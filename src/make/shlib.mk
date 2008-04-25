@@ -54,14 +54,14 @@ endif
 
 # Action to build the library
 ${${name}_lib}: ${${name}_objs} ${${name}_depfile}
-	@ echo "Building library ${${name}_lib} $@ ..."
-	${LDSHLIB} ${SHLIB_LDFLAGS} ${${notdir ${basename $@}}_objs} ${${basename ${notdir $<}}_LDFLAGS} ${SHLIB_DASHO}$@
+	@ echo "Building shared library ${${name}_lib} $@ ..."
+	@ ${LDSHLIB} ${SHLIB_LDFLAGS} ${${notdir ${basename $@}}_objs} ${${basename ${notdir $<}}_LDFLAGS} ${SHLIB_DASHO}$@
 
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}
 	@ echo "Building lib dependency $@ ..."
 	@ ${MKDIR} ${build_dir} ${build_dir}/obj ${ALL_BUILD_DIRS}
-	${MAKEDEPEND} -f- -- ${CFLAGS} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
+	@ ${MAKEDEPEND} -f- -- ${CFLAGS} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
 		| ${SED} -e 's^${${notdir ${basename $@}}_src_dir}^${${notdir ${basename $@}}_obj_dir}^g' \
 		> ${${notdir ${basename $@}}_depfile}
 

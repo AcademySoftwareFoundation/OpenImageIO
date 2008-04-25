@@ -114,7 +114,7 @@ CHMOD_NOWRITE := chmod -w
 CHMOD_RX := chmod 555
 STRIP_BINARY := strip
 MKDIR := mkdir -p
-CP := cp -uvp
+CP := cp -uvpf
 SED := sed
 LD := ${CXX}
 LDSHLIB := ${CXX}
@@ -134,7 +134,4 @@ LDSHLIB := ${CXX}
 
 # Include the platform-specific rules
 include ${src_make_dir}/${platform}.mk
-
-
-
 

@@ -58,13 +58,13 @@ endif
 # Action to build the library
 ${${name}_lib}: ${${name}_objs} ${${name}_depfile}
 	@ echo "Building library ${${name}_lib} $@ ..."
-	${AR} ${AROUT}$@ ${${notdir ${basename $@}}_objs} 
+	@ ${AR} ${AROUT}$@ ${${notdir ${basename $@}}_objs} 
 
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}
 	@ echo "Building lib dependency $@ ..."
 	@ ${MKDIR} ${build_dir} ${build_dir}/obj ${ALL_BUILD_DIRS}
-	${MAKEDEPEND} -f- -- ${CFLAGS} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
+	@ ${MAKEDEPEND} -f- -- ${CFLAGS} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
 		| ${SED} -e 's^${${notdir ${basename $@}}_src_dir}^${${notdir ${basename $@}}_obj_dir}^g' \
 		> ${${notdir ${basename $@}}_depfile}
 

@@ -1,5 +1,4 @@
 # License and copyright goes here
-#foo
 
 #########################################################################
 # global.mk
@@ -20,17 +19,19 @@
 #             build/platform.profile
 #
 #   clean - remove all temporary files used to compile (generally
-#           everything in build/platform/obj/)
+#           everything in build/platform)
 #
-#   realclean - remove everything but the bare source (everything in
-#               build/)
+#   realclean - remove both the build and dist for this platform
+#
+#   nuke - remove everything but the bare source -- including builds
+#          and dists for all platforms
 #
 #########################################################################
 
 
 
 # Phony targets
-.PHONY: all debug profile clean realclean
+.PHONY: all debug profile clean realclean nuke
 
 # All the suffixes we see and have rules for
 # do we need these?
@@ -68,6 +69,8 @@ top_build_dir := ${top_dir}/build
 build_dir     := ${top_build_dir}/${platform}${variant}
 build_obj_dir := ${build_dir}/obj
 
+top_dist_dir := ${top_dir}/dist
+dist_dir     := ${top_dist_dir}/${platform}${variant}
 
 
 
@@ -85,16 +88,15 @@ $(info all_makefiles = "${makefiles}")
 
 
 # Making dist
+build_dirs := bin lib include doc
 
 # Directories to create in the distribution
 dist_dirs := bin lib include doc
 
-# Libraries we put in the distribution
-#dist_libs = 
-#lib/alib${LIBEXT} lib/blib${SHLIBEXT}
 
-# Binaries we put in the distribution
-#dist_bins := bin/c${BINEXT}
+# Include the file containing all project-specific info
+include ${src_make_dir}/project.mk
+
 
 
 #########################################################################
@@ -118,7 +120,7 @@ ALL_BUILD_DIRS :=
 #########################################################################
 # Top-level documented targets
 
-all: build
+all: dist
 
 
 # 'make debug' is implemented via recursive make setting DEBUG
@@ -130,10 +132,13 @@ profile:
 	${MAKE} PROFILE=true --no-print-directory
 
 clean:
-	${RM_ALL} ${build_dir}/obj
+	${RM_ALL} ${build_dir}
 
 realclean:
-	${RM_ALL} ${top_build_dir}
+	${RM_ALL} ${dist_dir}
+
+nuke:
+	${RM_ALL} ${top_build_dir} ${top_dist_dir}
 
 # end top level targets
 #########################################################################
@@ -147,7 +152,7 @@ $(info RULE build_obj_dir=${build_obj_dir}    src_bin_dir=${src_bin_dir})
 
 ${build_obj_dir}/%${OEXT}: ${src_dir}/%.cpp
 	@ echo "Compiling $@ ..."
-	${CXX} ${CFLAGS} ${DASHC} $< ${DASHO}$@
+	@ ${CXX} ${CFLAGS} ${DASHC} $< ${DASHO}$@
 
 # end compilation rules
 #########################################################################
@@ -172,30 +177,48 @@ include ${all_makefiles}
 
 strip:
 ifndef DEBUG
-	@ echo -n "Stripping binaries in ${dist_dir}/bin ..."
-	@ ${MAKE_WRITABLE} ${build_dir}/bin/*${BINEXT}
+	@ echo "Stripping binaries in ${build_dir}/bin ..."
 	@ ${STRIP_BINARY} ${build_dir}/bin/*${BINEXT}
-	@ ${MAKE_UNWRITABLE} ${build_dir}/bin/*${BINEXT}
 endif
 
-build: make_build_dirs build_bins build_libs build_includes \
-		build_docs
+build: make_build_dirs build_bins build_libs build_docs
 
-# Target to create all dest directories
+# Target to create all build directories
 make_build_dirs:
-	@ for f in ${dist_dirs}; do ${MKDIR} ${build_dir}/$$f; done
+	@ for f in ${build_dirs}; do ${MKDIR} ${build_dir}/$$f; done
 
 build_libs: ${ALL_LIBS}
-	@ echo "ALL_LIBS = ${ALL_LIBS}"
+#	@ echo "ALL_LIBS = ${ALL_LIBS}"
 
 build_bins: ${ALL_BINS}
-	@ echo "ALL_BINS = ${ALL_BINS}"
-
-build_includes:
+#	@ echo "ALL_BINS = ${ALL_BINS}"
 
 build_docs:
 
-dist: strip
+dist: build strip copy_dist 
+
+make_dist_dirs:
+	@ for f in ${dist_dirs}; do ${MKDIR} ${dist_dir}/$$f; done
+
+copy_dist: copy_dist_bins copy_dist_libs copy_dist_includes
+
+copy_dist_bins: make_dist_dirs
+	@ echo "Copying dist_bins = ${dist_bins}"
+	@ for f in ${dist_bins}; do ${CP} ${build_dir}/$$f ${dist_dir}/bin; done
+	@ ${CHMOD_RX} ${dist_dir}/bin/*
+
+copy_dist_libs: make_dist_dirs
+	@ echo "Copying dist_libs = ${dist_libs}"
+	@ for f in ${dist_libs}; do ${CP} ${build_dir}/$$f ${dist_dir}/lib; done
+	@ ${CHMOD_NOWRITE} ${dist_dir}/lib/*
+
+copy_dist_includes: make_dist_dirs
+	@ echo "Copying dist_includes = ${dist_includes}"
+	@ for f in ${dist_includes}; do ${CP} ${src_include_dir}/$$f ${dist_dir}/include; done
+	@ ${CHMOD_NOWRITE} ${dist_dir}/include/*
+
+
+
 
 # end internal targets
 #########################################################################
