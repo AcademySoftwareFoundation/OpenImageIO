@@ -20,7 +20,7 @@ platform := "unknown"
 # Use 'uname -m' to determine the hardware architecture.  This should
 # return "x86" or "x86_64"
 hw := ${shell uname -m}
-$(info hardware = ${hw})
+#$(info hardware = ${hw})
 ifneq (${hw},x86)
     ifneq (${hw},x86_64)
 	error "ERROR: Unknown hardware architecture"

@@ -83,7 +83,7 @@ dist_dir     := ${top_dist_dir}/${platform}${variant}
 # List of all local module.mk files for binaries
 #all_makefiles := ${foreach f,${src_dirs},${wildcard ${f}/module.mk}}
 all_makefiles := ${wildcard src/*/module.mk}
-$(info all_makefiles = "${makefiles}")
+#$(info all_makefiles = "${makefiles}")
 
 
 
@@ -148,7 +148,7 @@ nuke:
 #########################################################################
 # Compilation rules
 
-$(info RULE build_obj_dir=${build_obj_dir}    src_bin_dir=${src_bin_dir})
+#$(info RULE build_obj_dir=${build_obj_dir}    src_bin_dir=${src_bin_dir})
 
 ${build_obj_dir}/%${OEXT}: ${src_dir}/%.cpp
 	@ echo "Compiling $@ ..."
@@ -175,13 +175,7 @@ include ${all_makefiles}
 #########################################################################
 # Internal targets
 
-strip:
-ifndef DEBUG
-	@ echo "Stripping binaries in ${build_dir}/bin ..."
-	@ ${STRIP_BINARY} ${build_dir}/bin/*${BINEXT}
-endif
-
-build: make_build_dirs build_bins build_libs build_docs
+build: make_build_dirs ${ALL_DEPS} build_bins build_libs build_docs
 
 # Target to create all build directories
 make_build_dirs:
@@ -195,28 +189,31 @@ build_bins: ${ALL_BINS}
 
 build_docs:
 
-dist: build strip copy_dist 
+dist: build copy_dist_bins copy_dist_libs copy_dist_includes
 
 make_dist_dirs:
 	@ for f in ${dist_dirs}; do ${MKDIR} ${dist_dir}/$$f; done
 
-copy_dist: copy_dist_bins copy_dist_libs copy_dist_includes
-
 copy_dist_bins: make_dist_dirs
-	@ echo "Copying dist_bins = ${dist_bins}"
-	@ for f in ${dist_bins}; do ${CP} ${build_dir}/$$f ${dist_dir}/bin; done
-	@ ${CHMOD_RX} ${dist_dir}/bin/*
+#	@ echo "Copying dist_bins = ${dist_bins}"
+	@ for f in ${dist_bins}; do \
+	    ${CP} ${build_dir}/$$f ${dist_dir}/bin; \
+	    ${CHMOD_RX} ${dist_dir}/bin/${notdir $$f} ; \
+	  done
 
 copy_dist_libs: make_dist_dirs
-	@ echo "Copying dist_libs = ${dist_libs}"
-	@ for f in ${dist_libs}; do ${CP} ${build_dir}/$$f ${dist_dir}/lib; done
-	@ ${CHMOD_NOWRITE} ${dist_dir}/lib/*
+#	@ echo "Copying dist_libs = ${dist_libs}"
+	@ for f in ${dist_libs}; \
+	    do ${CP} ${build_dir}/$$f ${dist_dir}/lib; \
+	    ${CHMOD_RX} ${dist_dir}/${notdir $$f} ; \
+	    done
 
 copy_dist_includes: make_dist_dirs
-	@ echo "Copying dist_includes = ${dist_includes}"
-	@ for f in ${dist_includes}; do ${CP} ${src_include_dir}/$$f ${dist_dir}/include; done
-	@ ${CHMOD_NOWRITE} ${dist_dir}/include/*
-
+#	@ echo "Copying dist_includes = ${dist_includes}"
+	@ for f in ${dist_includes}; \
+	    do ${CP} ${src_include_dir}/$$f ${dist_dir}/include; \
+	    ${CHMOD_NOWRITE} ${dist_dir}/include/${notdir $$f} ; \
+	    done
 
 
 

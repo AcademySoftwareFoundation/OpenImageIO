@@ -7,7 +7,7 @@
 # This is included directly from the module.mk of that local directory.
 
 
-${info Reading bin.mk for ${local_name}}
+#${info Reading bin.mk for ${local_name}}
 
 # Name for this binary
 name := ${notdir ${local_name}}
@@ -69,6 +69,9 @@ endif
 ${${name}_bin}: ${${name}_srcs} ${${name}_depfile} ${${name}_objs} ${${name}_needed_libs}
 	@ echo "Building binary $@ ..."
 	@ ${LD} ${LDFLAGS} ${BINOUT}$@ ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${notdir ${basename $@}}_linked_libs}
+ifndef DEBUG
+	@ ${STRIP_BINARY} $@
+endif
 
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}

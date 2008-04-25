@@ -7,7 +7,7 @@
 # This is included directly from the module.mk of that local directory.
 
 
-${info Reading shlib.mk for ${local_name}}
+#${info Reading shlib.mk for ${local_name}}
 
 # Name for this library
 name := ${notdir ${local_name}}

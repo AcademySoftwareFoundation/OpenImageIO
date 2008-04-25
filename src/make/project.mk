@@ -10,8 +10,8 @@
 
 # dist_files lists (relative to build) all files that end up in an
 # external distribution
-dist_bins    	:= bin/d${BINEXT}
-dist_libs     	:= lib/libb${LIBEXT}
-dist_includes	:= export.h
+#dist_bins    	:= bin/d${BINEXT}
+#dist_libs     	:= lib/libb${LIBEXT}
+dist_includes	:= export.h imageio.h paramtype.h
 
 
