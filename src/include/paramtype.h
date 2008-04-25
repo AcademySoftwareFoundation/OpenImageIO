@@ -1,5 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////
-// Copyright 2004 NVIDIA Corporation.  All Rights Reserved.
+// Copyright 2004 NVIDIA Corporation and Copyright 2008 Larry Gritz.
+// All Rights Reserved.
+//
+// Extensions by Larry Gritz based on open-source code by NVIDIA.
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -30,8 +33,24 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef GELATO_PARAMTYPE_H
-#define GELATO_PARAMTYPE_H
+/////////////////////////////////////////////////////////////////////////////
+// ParamType and related classes
+// -----------------------------
+//
+// It frequently comes up (in my experience, with renderers and image
+// handling programs) that you want a way to describe data that is passed
+// through APIs through blind pointers.  These are some simple classes
+// that provide a simple type descriptor system.  This is not meant to
+// be comprehensive -- for example, there is no provision for structs,
+// unions, pointers, const, or 'nested' type definitions.  Just simple
+// integer and floating point, *common* aggregates such as 3-points,
+// and reasonably-lengthed arrays thereof.
+//
+/////////////////////////////////////////////////////////////////////////////
+
+
+#ifndef PARAMTYPE_H
+#define PARAMTYPE_H
 
 #ifndef NULL
 #define NULL 0
@@ -39,37 +58,88 @@
 
 #include "export.h"
 
-namespace Gelato {
+
+// FIXME: We should clearly put this in a namespace.  But maybe not "Gelato".
+// namespace Gelato {
 
 
-// Base data types
+/// Base data types.
+///
 enum ParamBaseType {
-    PT_UNKNOWN = 0,
-    PT_VOID,
-    PT_STRING,
-    PT_FLOAT, PT_HALF, PT_DOUBLE,
-    PT_POINT, PT_VECTOR, PT_NORMAL,
-    PT_COLOR,
-    PT_HPOINT, PT_MATRIX,
-    PT_INT8, PT_UINT8, PT_INT16, PT_UINT16, PT_INT, PT_UINT,
-    PT_POINTER,
-    PT_LAST
+    PT_UNKNOWN = 0,          // Unknown type
+    PT_VOID,                 // Known to have no type
+    PT_STRING,               // String
+    PT_FLOAT,                // 32-bit IEEE float
+    PT_HALF,                 // 16-bit float a la OpenEXR or NVIDIA fp16
+    PT_DOUBLE,               // 64-bit IEEE float
+    PT_POINT,                // 3-tuple of float describing a position
+    PT_VECTOR,               // 3-tuple of float describing a direction
+    PT_NORMAL,               // 3-tuple of float describing a surface normal
+    PT_COLOR,                // 3-tuple of float describing a color
+    PT_HPOINT,               // 4-tuple of float describing a 4D position,
+                             //        4D direction, or homogeneous point
+    PT_MATRIX,               // 4x4-tuple of float describing a 4x4 matrix
+    PT_INT8, PT_UINT8,       // 8 bit int, signed and unsigned
+    PT_BYTE = PT_UINT8,      //    BYTE == synonym for UINT8
+    PT_INT16, PT_UINT16,     // 16 bit int, signed and unsigned
+    PT_INT, PT_UINT,         // 32 bit int, signed and unsigned
+    PT_POINTER,              // pointer, in system address width
+      // For historical reasons, DO NOT change the order of the above!
+      // Future expansion takes place here.  Remember to modify the 
+      // routines below that operate on ParamBaseType.
+    PT_LAST                  // Mark the end
 };
 
 
-// Return the name, for printing and whatnot, of a ParamBaseType
-extern GELATO_PUBLIC const char *ParamBaseTypeNameString (int t);
 
-// Return the size, in bytes, of a single item of a ParamBaseType
-extern GELATO_PUBLIC int ParamBaseTypeSize (int t);
-
-// Return the number of floats comprising a ParamBaseType
-// (e.g., 3 for PT_POINT).  Return 0 for all types not comprised of floats.
-extern GELATO_PUBLIC int ParamBaseTypeNFloats (int t);
+extern DLLPUBLIC const char *ParamBaseTypeNameString (int t);
+extern DLLPUBLIC int ParamBaseTypeSize (int t);
+extern DLLPUBLIC ParamBaseType ParamBaseTypeScalarType (int t);
+extern DLLPUBLIC int ParamBaseTypeNScalars (int t);
+extern DLLPUBLIC int ParamBaseTypeNFloats (int t);
 
 
 
-// Interpolation types
+/// Return the name, for printing and whatnot, of a ParamBaseType.
+/// For example, PT_FLOAT -> "float"
+const char *ParamBaseTypeNameString (ParamBaseType t) {
+    return ParamBaseTypeNameString ((int)t);
+}
+
+
+
+/// Return the size, in bytes, of a single item of a ParamBaseType
+///
+int ParamBaseTypeSize (ParamBaseType t) {
+    return ParamBaseTypeSize ((int)t);
+}
+
+
+/// Return the scalar type corresponding to this possibly aggregate type
+/// (e.g. for PT_POINT, return PT_FLOAT).  PT types that are not
+/// aggregates return themselves (e.g. PT_UINT returns PT_UINT).
+ParamBaseType ParamBaseTypeScalarType (ParamBaseType t) {
+    return ParamBaseTypeScalarType ((int)t);
+}
+
+
+/// Return the number of scalars comprising a ParamBaseType
+/// (e.g., 3 for PT_POINT).  Return 0 for all types not comprised of floats.
+int ParamBaseTypeNScalars (ParamBaseType t) {
+    return ParamBaseTypeNScalars ((int)t);
+}
+
+/// Return the number of floats comprising a ParamBaseType
+/// (e.g., 3 for PT_POINT).  Return 0 for all types not comprised of floats.
+int ParamBaseTypeNFloats (ParamBaseType t) {
+    return ParamBaseTypeNFloats ((int)t);
+}
+
+
+
+
+/// Interpolation types
+///
 enum ParamInterp {
     INTERP_CONSTANT = 0,       // Constant for all pieces/faces
     INTERP_PERPIECE = 1,       // Piecewise constant per piece/face
@@ -79,10 +149,10 @@ enum ParamInterp {
 
 
 
-// ParamType is a simple type descriptor.  Contains a base type, array
-// length, and other attributes.  This structure is no bigger than an
-// int, and so can be very cheaply passed around.
-class GELATO_PUBLIC ParamType {
+/// ParamType is a simple type descriptor.  Contains a base type, array
+/// length, and other attributes.  This structure is no bigger than an
+/// int, and so can be very cheaply passed around.
+class DLLPUBLIC ParamType {
 public:
     ParamType (void) { /* Uninitialized! */ }
 
@@ -131,8 +201,19 @@ public:
 
     int nfloats (void) const { return arraylen*ParamBaseTypeNFloats(basetype); }
 
-    bool operator== (const ParamType &t) {
-        return *(int*)(this) == *(int*)(&t);
+    bool operator== (const ParamType &t) const {
+        return *(const int*)(this) == *(const int*)(&t);
+    } 
+
+    bool operator!= (const ParamType &t) const {
+        return *(const int*)(this) != *(const int*)(&t);
+    } 
+
+    // equiv tests that they are the same, but ignoring 'interp'
+    bool equiv (const ParamType &t) const {
+        return (this->basetype == t.basetype && 
+                this->arraylen == t.arraylen &&
+                this->isarray == t.isarray);
     } 
 
     // Demote the type to a non-array
@@ -146,6 +227,7 @@ public:
 };
 
 
-}; /* end namespace Gelato */
+// FIXME: We should clearly put this in a namespace.  But maybe not "Gelato".
+// }; /* end namespace Gelato */
 
-#endif /* !defined(GELATO_PARAMTYPE_H) */
+#endif /* !defined(PARAMTYPE_H) */
