@@ -3,7 +3,5 @@
 # src/make/master.mk
 #########################################################################
 
-
-PROJECT = .
 include src/make/master.mk
 
