@@ -31,7 +31,8 @@
 
 
 # Phony targets
-.PHONY: all debug profile clean realclean nuke
+.PHONY: all debug profile clean realclean nuke \
+	doxygen
 
 # All the suffixes we see and have rules for
 # do we need these?
@@ -139,6 +140,9 @@ realclean:
 
 nuke:
 	${RM_ALL} ${top_build_dir} ${top_dist_dir}
+
+doxygen:
+	doxygen src/doc/Doxyfile
 
 # end top level targets
 #########################################################################
