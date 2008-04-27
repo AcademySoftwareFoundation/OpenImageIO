@@ -7,6 +7,8 @@
 
 
 
+CFLAGS += -DLINUX -DLINUX64 
 # 64-bit Linux should compile using PIC code
 CFLAGS += -fPIC
 
+CP := cp -uvpf

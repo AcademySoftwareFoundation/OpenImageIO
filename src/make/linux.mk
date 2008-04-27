@@ -7,4 +7,6 @@
 
 
 
+CFLAGS += -DLINUX
 
+CP := cp -uvpf

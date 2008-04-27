@@ -22,9 +22,11 @@ platform := "unknown"
 hw := ${shell uname -m}
 #$(info hardware = ${hw})
 ifneq (${hw},x86)
-    ifneq (${hw},x86_64)
-	error "ERROR: Unknown hardware architecture"
+  ifneq (${hw},x86_64)
+    ifneq (${hw},i386)
+      $(error "ERROR: Unknown hardware architecture")
     endif
+  endif
 endif
 
 # Use 'uname', lowercased and stripped of pesky stuff, and the hardware
@@ -32,45 +34,46 @@ endif
 # for, and store its name in ${platform}.
 
 uname := ${shell uname | sed 's/_NT-.*//' | tr '[:upper:]' '[:lower:]'}
+$(info uname = ${uname})
 
 # Linux
 ifeq (${uname},linux)
-    platform := linux
-    ifeq (${hw},x86_64)
-        platform := linux64
-    endif
+  platform := linux
+  ifeq (${hw},x86_64)
+    platform := linux64
+  endif
 endif
 
 # Windows
 ifeq (${uname},cygwin)
-    platform := win
-    ifeq (${hw},x86_64)
-        platform := win64
-    endif
+  platform := win
+  ifeq (${hw},x86_64)
+    platform := win64
+  endif
 endif
 
 # Mac OS X
 ifeq (${uname},darwin)
-    platform := osx
+  platform := osx
 endif
 
 # If we haven't been able to determine the platform from uname, use
 # whatever is in $ARCH, if it's set.
 ifeq (${platform},unknown)
-    ifneq (${ARCH},)
-	platform := ${ARCH}
-    endif
+  ifneq (${ARCH},)
+    platform := ${ARCH}
+  endif
 endif
 
 # Manual override: if there's an environment variable $BUILDARCH, use that
 # no matter what
 ifneq (${BUILDARCH},)
-    platform := ${BUILDARCH}
+  platform := ${BUILDARCH}
 endif
 
 # Throw an error if nothing worked
 ifeq (${platform},unknown)
-    $(error "ERROR: Could not determine the platform")
+  $(error "ERROR: Could not determine the platform")
 endif
 
 $(info platform=${platform}, hw=${hw})
@@ -94,8 +97,10 @@ AR := ar cr
 AROUT :=
 ARPREREQ = $?
 CFLAGS := -I${src_include_dir}
-LDFLAGS := -rdynamic
+LD := ${CXX}
 LD_LIBPATH := -L
+LDFLAGS := -rdynamic
+LDSHLIB := ${CXX}
 SHLIB_LDFLAGS := -Bdynamic -rdynamic -shared ${PIC} 
 restrict_syms := -Wl,--version-script=${restrict_syms_file}
 DASHC := -c #
@@ -109,15 +114,13 @@ DEPENDARGS :=
 
 RM := rm
 RM_ALL := rm -rf
-CHMOD_WRITE := chmod +w
-CHMOD_NOWRITE := chmod -w
+CHMOD_W := chmod +w
+CHMOD_RO := chmod -w
 CHMOD_RX := chmod 555
 STRIP_BINARY := strip
 MKDIR := mkdir -p
-CP := cp -uvpf
+CP := cp -vpf
 SED := sed
-LD := ${CXX}
-LDSHLIB := ${CXX}
 # ld?
 
 

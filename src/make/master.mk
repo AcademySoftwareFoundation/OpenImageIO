@@ -201,23 +201,23 @@ make_dist_dirs:
 copy_dist_bins: make_dist_dirs
 #	@ echo "Copying dist_bins = ${dist_bins}"
 	@ for f in ${dist_bins}; do \
-	    ${CP} ${build_dir}/$$f ${dist_dir}/bin; \
-	    ${CHMOD_RX} ${dist_dir}/bin/${notdir $$f} ; \
+	    ${CP} ${build_dir}/bin/$$f ${dist_dir}/bin; \
+	    ${CHMOD_RX} ${dist_dir}/bin/$$f ; \
 	  done
 
 copy_dist_libs: make_dist_dirs
 #	@ echo "Copying dist_libs = ${dist_libs}"
-	@ for f in ${dist_libs}; \
-	    do ${CP} ${build_dir}/$$f ${dist_dir}/lib; \
-	    ${CHMOD_RX} ${dist_dir}/${notdir $$f} ; \
-	    done
+	@ for f in ${dist_libs}; do \
+	    ${CP} ${build_dir}/lib/$$f ${dist_dir}/lib; \
+	    ${CHMOD_RX} ${dist_dir}/lib/$$f ; \
+	  done
 
 copy_dist_includes: make_dist_dirs
 #	@ echo "Copying dist_includes = ${dist_includes}"
-	@ for f in ${dist_includes}; \
-	    do ${CP} ${src_include_dir}/$$f ${dist_dir}/include; \
-	    ${CHMOD_NOWRITE} ${dist_dir}/include/${notdir $$f} ; \
-	    done
+	@ for f in ${dist_includes}; do \
+	    ${CP} ${src_include_dir}/$$f ${dist_dir}/include; \
+	    ${CHMOD_RO} ${dist_dir}/include/$$f ; \
+	  done
 
 
 
