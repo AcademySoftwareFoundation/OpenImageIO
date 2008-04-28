@@ -120,6 +120,7 @@ CHMOD_RX := chmod 555
 STRIP_BINARY := strip
 MKDIR := mkdir -p
 CP := cp -vpf
+CPR := cp -vpfr
 SED := sed
 # ld?
 

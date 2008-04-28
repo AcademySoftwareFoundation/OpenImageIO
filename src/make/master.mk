@@ -40,6 +40,7 @@
 
 
 # Set up variables holding the names of source directories
+working_dir	:= ${shell pwd}
 top_dir         := .
 top_src_dir     := ${top_dir}/src
 src_dir         := ${top_dir}/src
