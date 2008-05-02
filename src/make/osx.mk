@@ -7,9 +7,9 @@
 
 
 
-CFLAGS += -DMACOSX -DOSX
+CFLAGS += -DMACOSX -DOSX 
+# ? -fno-common
 
 SHLIBEXT := .dylib
 SHLIB_LDFLAGS := -dynamiclib
-
 

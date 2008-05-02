@@ -157,7 +157,7 @@ doxygen:
 
 ${build_obj_dir}/%${OEXT}: ${src_dir}/%.cpp
 	@ echo "Compiling $@ ..."
-	@ ${CXX} ${CFLAGS} ${DASHC} $< ${DASHO}$@
+	@ ${CXX} ${CFLAGS} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
 
 # end compilation rules
 #########################################################################
@@ -210,7 +210,7 @@ copy_dist_libs: make_dist_dirs
 #	@ echo "Copying dist_libs = ${dist_libs}"
 	@ for f in ${dist_libs}; do \
 	    ${CP} ${build_dir}/lib/$$f ${dist_dir}/lib; \
-	    ${CHMOD_RX} ${dist_dir}/lib/$$f ; \
+	    ${CHMOD_RO} ${dist_dir}/lib/$$f ; \
 	  done
 
 copy_dist_includes: make_dist_dirs

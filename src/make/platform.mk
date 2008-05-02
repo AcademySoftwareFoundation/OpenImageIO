@@ -87,31 +87,39 @@ $(info platform=${platform}, hw=${hw})
 # Default macros used by "most" platforms, so the platform-specific
 # makefiles can be minimal
 
-BINEXT :=
+# C and C++ compilation
+CFLAGS := -I${src_include_dir}
+DASHC := -c #
+DASHO := -o #
 OEXT := .o
+
+# Creating static libraries
 LIBPREFIX := lib
 LIBEXT := .a
-SHLIBEXT := .so
-
 AR := ar cr
 AROUT :=
 ARPREREQ = $?
-CFLAGS := -I${src_include_dir}
+
+# Linking an executable
+BINEXT :=
 LD := ${CXX}
+BINOUT := -o #
 LD_LIBPATH := -L
 LDFLAGS := -rdynamic
-LDSHLIB := ${CXX}
-SHLIB_LDFLAGS := -Bdynamic -rdynamic -shared ${PIC} 
-restrict_syms := -Wl,--version-script=${restrict_syms_file}
-DASHC := -c #
-DASHO := -o #
-SHLIB_DASHO := -o #
-BINOUT := -o #
+#restrict_syms := -Wl,--version-script=${restrict_syms_file}
 
+# Creating a dynamic/shared library
+SHLIBEXT := .so
+LDSHLIB := ${CXX}
+SHLIB_DASHO := -o #
+SHLIB_LDFLAGS := -Bdynamic -rdynamic -shared ${PIC} 
+
+# Making dependency make files (.d)
 MAKEDEPEND := makedepend
 DEPENDFLAGS :=
 DEPENDARGS :=
 
+# Miscellaneous shell commands
 RM := rm
 RM_ALL := rm -rf
 CHMOD_W := chmod +w
