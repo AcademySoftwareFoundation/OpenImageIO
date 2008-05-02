@@ -66,24 +66,24 @@
 /// Base data types.
 ///
 enum ParamBaseType {
-    PT_UNKNOWN = 0,          // Unknown type
-    PT_VOID,                 // Known to have no type
-    PT_STRING,               // String
-    PT_FLOAT,                // 32-bit IEEE float
-    PT_HALF,                 // 16-bit float a la OpenEXR or NVIDIA fp16
-    PT_DOUBLE,               // 64-bit IEEE float
-    PT_POINT,                // 3-tuple of float describing a position
-    PT_VECTOR,               // 3-tuple of float describing a direction
-    PT_NORMAL,               // 3-tuple of float describing a surface normal
-    PT_COLOR,                // 3-tuple of float describing a color
-    PT_HPOINT,               // 4-tuple of float describing a 4D position,
-                             //        4D direction, or homogeneous point
-    PT_MATRIX,               // 4x4-tuple of float describing a 4x4 matrix
-    PT_INT8, PT_UINT8,       // 8 bit int, signed and unsigned
-    PT_BYTE = PT_UINT8,      //    BYTE == synonym for UINT8
-    PT_INT16, PT_UINT16,     // 16 bit int, signed and unsigned
-    PT_INT, PT_UINT,         // 32 bit int, signed and unsigned
-    PT_POINTER,              // pointer, in system address width
+    PT_UNKNOWN = 0,          //< Unknown type
+    PT_VOID,                 //< Known to have no type
+    PT_STRING,               //< String
+    PT_FLOAT,                //< 32-bit IEEE float
+    PT_HALF,                 //< 16-bit float a la OpenEXR or NVIDIA fp16
+    PT_DOUBLE,               //< 64-bit IEEE float
+    PT_POINT,                //< 3-tuple of float describing a position
+    PT_VECTOR,               //< 3-tuple of float describing a direction
+    PT_NORMAL,               //< 3-tuple of float describing a surface normal
+    PT_COLOR,                //< 3-tuple of float describing a color
+    PT_HPOINT,               //< 4-tuple of float describing a 4D position,
+                             //<        4D direction, or homogeneous point
+    PT_MATRIX,               //< 4x4-tuple of float describing a 4x4 matrix
+    PT_INT8, PT_UINT8,       //< 8 bit int, signed and unsigned
+    PT_BYTE = PT_UINT8,      //<    BYTE == synonym for UINT8
+    PT_INT16, PT_UINT16,     //< 16 bit int, signed and unsigned
+    PT_INT, PT_UINT,         //< 32 bit int, signed and unsigned
+    PT_POINTER,              //< pointer, in system address width
       // For historical reasons, DO NOT change the order of the above!
       // Future expansion takes place here.  Remember to modify the 
       // routines below that operate on ParamBaseType.
@@ -102,7 +102,7 @@ extern DLLPUBLIC int ParamBaseTypeNFloats (int t);
 
 /// Return the name, for printing and whatnot, of a ParamBaseType.
 /// For example, PT_FLOAT -> "float"
-const char *ParamBaseTypeNameString (ParamBaseType t) {
+inline const char *ParamBaseTypeNameString (ParamBaseType t) {
     return ParamBaseTypeNameString ((int)t);
 }
 
@@ -110,7 +110,7 @@ const char *ParamBaseTypeNameString (ParamBaseType t) {
 
 /// Return the size, in bytes, of a single item of a ParamBaseType
 ///
-int ParamBaseTypeSize (ParamBaseType t) {
+inline int ParamBaseTypeSize (ParamBaseType t) {
     return ParamBaseTypeSize ((int)t);
 }
 
@@ -118,20 +118,20 @@ int ParamBaseTypeSize (ParamBaseType t) {
 /// Return the scalar type corresponding to this possibly aggregate type
 /// (e.g. for PT_POINT, return PT_FLOAT).  PT types that are not
 /// aggregates return themselves (e.g. PT_UINT returns PT_UINT).
-ParamBaseType ParamBaseTypeScalarType (ParamBaseType t) {
+inline ParamBaseType ParamBaseTypeScalarType (ParamBaseType t) {
     return ParamBaseTypeScalarType ((int)t);
 }
 
 
 /// Return the number of scalars comprising a ParamBaseType
 /// (e.g., 3 for PT_POINT).  Return 0 for all types not comprised of floats.
-int ParamBaseTypeNScalars (ParamBaseType t) {
+inline int ParamBaseTypeNScalars (ParamBaseType t) {
     return ParamBaseTypeNScalars ((int)t);
 }
 
 /// Return the number of floats comprising a ParamBaseType
 /// (e.g., 3 for PT_POINT).  Return 0 for all types not comprised of floats.
-int ParamBaseTypeNFloats (ParamBaseType t) {
+inline int ParamBaseTypeNFloats (ParamBaseType t) {
     return ParamBaseTypeNFloats ((int)t);
 }
 
@@ -141,10 +141,10 @@ int ParamBaseTypeNFloats (ParamBaseType t) {
 /// Interpolation types
 ///
 enum ParamInterp {
-    INTERP_CONSTANT = 0,       // Constant for all pieces/faces
-    INTERP_PERPIECE = 1,       // Piecewise constant per piece/face
-    INTERP_LINEAR = 2,         // Linearly interpolated across each piece/face
-    INTERP_VERTEX = 3          // Interpolated like vertices
+    INTERP_CONSTANT = 0,       //< Constant for all pieces/faces
+    INTERP_PERPIECE = 1,       //< Piecewise constant per piece/face
+    INTERP_LINEAR = 2,         //< Linearly interpolated across each piece/face
+    INTERP_VERTEX = 3          //< Interpolated like vertices
 };
 
 
@@ -156,7 +156,8 @@ class DLLPUBLIC ParamType {
 public:
     ParamType (void) { /* Uninitialized! */ }
 
-    // Construct from base type and interp, or base only (assume non-array)
+    /// Construct from base type and interp, or base only (assume non-array)
+    ///
     ParamType (ParamBaseType base, ParamInterp detail=INTERP_CONSTANT) {
         basetype = base;
         arraylen = 1;
@@ -165,7 +166,8 @@ public:
         reserved = 0;
     }
 
-    // Construct with array length
+    /// Construct with array length
+    ///
     ParamType (ParamBaseType base, short array,
                ParamInterp det=INTERP_CONSTANT) {
         basetype = base;
@@ -177,28 +179,31 @@ public:
         reserved = 0;
     }
 
-    // Construct from a string (e.g., "vertex float[3]").  If no valid
-    // type could be assembled, set basetype to PT_UNKNOWN.
+    /// Construct from a string (e.g., "vertex float[3]").  If no valid
+    /// type could be assembled, set basetype to PT_UNKNOWN.
     ParamType (const char *typestring) {
         if (! fromstring(typestring))
             basetype = PT_UNKNOWN;
     }
 
-    // Set *this to the type described in the string.  Return the
-    // length of the part of the string that describes the type.  If
-    // no valid type could be assembled, return 0 and do not modify
-    // *this.  If shortname is not NULL, store the word(s) in the string
-    // after the type (presumably the variable name) in shortname.
+    /// Set *this to the type described in the string.  Return the
+    /// length of the part of the string that describes the type.  If
+    /// no valid type could be assembled, return 0 and do not modify
+    /// *this.  If shortname is not NULL, store the word(s) in the string
+    /// after the type (presumably the variable name) in shortname.
     int fromstring (const char *typestring, char *shortname=NULL);
 
-    // Store the string representation of the type in typestring.  Don't
-    // overwrite more than maxlen bytes of typestring!  Return true upon
-    // success, false upon failure (including failure to fit).
+    /// Store the string representation of the type in typestring.  Don't
+    /// overwrite more than maxlen bytes of typestring!  Return true upon
+    /// success, false upon failure (including failure to fit).
     bool tostring (char *typestring, int maxlen, bool showinterp=false) const;
 
-    // Return size of one element of this type, in bytes
+    /// Return size of one element of this type, in bytes
+    ///
     int datasize (void) const { return arraylen*ParamBaseTypeSize(basetype); }
 
+    /// Return the number of floats in one element of this type, or 0 if
+    /// it's not constructed out of floats.
     int nfloats (void) const { return arraylen*ParamBaseTypeNFloats(basetype); }
 
     bool operator== (const ParamType &t) const {
@@ -209,21 +214,23 @@ public:
         return *(const int*)(this) != *(const int*)(&t);
     } 
 
-    // equiv tests that they are the same, but ignoring 'interp'
+    /// equiv tests that they are the same, but ignoring 'interp'
+    ///
     bool equiv (const ParamType &t) const {
         return (this->basetype == t.basetype && 
                 this->arraylen == t.arraylen &&
                 this->isarray == t.isarray);
     } 
 
-    // Demote the type to a non-array
+    /// Demote the type to a non-array
+    ///
     void unarray (void) { isarray = false;  arraylen = 1; }
 
-    unsigned int basetype:5;   // Base type of the data -- one of ParamBaseType
-    unsigned int arraylen:18;  // Array len (up to 256k), or 1 if not an array
-    unsigned int isarray:1;    // 1 if it's an array
-    unsigned int interp:3;     // Sometimes used: interpolation type
-    unsigned int reserved:5;   // Future expansion
+    unsigned int basetype:5;   //< Base type of the data -- one of ParamBaseType
+    unsigned int arraylen:18;  //< Array len (up to 256k), or 1 if not an array
+    unsigned int isarray:1;    //< 1 if it's an array
+    unsigned int interp:3;     //< Sometimes used: interpolation type
+    unsigned int reserved:5;   //< Future expansion
 };
 
 

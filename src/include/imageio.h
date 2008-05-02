@@ -54,7 +54,7 @@
 #include "paramtype.h"   /* Needed for ParamBaseType definition */
 
 
-namespace OpemImageIO {
+namespace OpenImageIO {
 
 
 // Each imageio DSO/DLL should include this statement:
@@ -71,35 +71,36 @@ namespace OpemImageIO {
 const int IMAGEIO_VERSION = 10;
 
 
+
 /// ImageIOFormatSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
-struct ImageIOFormatSpec {
-    int x, y, z;              //< image origin (0,0,0)
-    int width;                //< width of the crop window containing data
-    int height;               //< height of the crop window containing data
-    int depth;                //< depth, >1 indicates a "volume"
-    int full_width;           //< width of entire image (not just cropwindow)
-    int full_height;          //< height of entire image (not just cropwindow)
-    int full_depth;           //< depth of entire image (not just cropwindow)
-    int tile_width;           //< tile width (0 for a non-tiled image)
-    int tile_height;          //< tile height (0 for a non-tiled image)
-    int tile_depth;           //< tile depth (0 for a non-tiled image,
-                              //<             1 for a non-volume image)
-    int nchannels;            //< number of image channels, e.g., 4 for RGBA
-    ParamBaseType format;     //< format of data in each channel
-                              //<   N.B. current implementation assumes that
-                              //<   all channels are the same data format.
-    std::vector<std::string> channelnames;  //< Names for each channel,
-                                            //< e.g., {"R","G","B","A"}
-    int alpha_channel;        //< Index of alpha channel, or -1 if not known
-    int z_channel;            //< Index of depth channel, or -1 if not known
-    float gamma;              //< gamma exponent of the values in the file
+struct DLLPUBLIC ImageIOFormatSpec {
+    int x, y, z;              ///< image origin (0,0,0)
+    int width;                ///< width of the crop window containing data
+    int height;               ///< height of the crop window containing data
+    int depth;                ///< depth, >1 indicates a "volume"
+    int full_width;           ///< width of entire image (not just cropwindow)
+    int full_height;          ///< height of entire image (not just cropwindow)
+    int full_depth;           ///< depth of entire image (not just cropwindow)
+    int tile_width;           ///< tile width (0 for a non-tiled image)
+    int tile_height;          ///< tile height (0 for a non-tiled image)
+    int tile_depth;           ///< tile depth (0 for a non-tiled image,
+                              ///<             1 for a non-volume image)
+    ParamBaseType format;     ///< format of data in each channel
+                              ///<   N.B., current implementation assumes that
+                              ///<   all channels are the same data format.
+    int nchannels;            ///< number of image channels, e.g., 4 for RGBA
+    std::vector<std::string> channelnames;  ///< Names for each channel,
+                                            ///< e.g., {"R","G","B","A"}
+    int alpha_channel;        ///< Index of alpha channel, or -1 if not known
+    int z_channel;            ///< Index of depth channel, or -1 if not known
+    float gamma;              ///< gamma exponent of the values in the file
     // quantize, dither are only used for ImageOutput
-    int quant_black;          //< quantization of black (0.0) level
-    int quant_white;          //< quantization of white (1.0) level
-    int quant_min;            //< quantization minimum clamp value
-    int quant_max;            //< quantization maximum clamp value
-    float quant_dither;       //< dither amplitude for quantization
+    int quant_black;          ///< quantization of black (0.0) level
+    int quant_white;          ///< quantization of white (1.0) level
+    int quant_min;            ///< quantization minimum clamp value
+    int quant_max;            ///< quantization maximum clamp value
+    float quant_dither;       ///< dither amplitude for quantization
 
 
     /// Constructor: given just the data format, set the default quantize
@@ -162,8 +163,8 @@ public:
                                 const char *plugin_searchpath);
 
     
-    ImageOutput ();
-    virtual ~ImageOutput ();
+    ImageOutput () { }
+    virtual ~ImageOutput () { }
 
     // Overrride these functions in your derived output class
     // to inform the client which formats are supported
@@ -198,7 +199,6 @@ public:
     /// compatibility.
     virtual bool supports (const char *feature) const = 0;
 
-    
     /// Open file with given name, with resolution and other format data
     /// as given in spec.  Additional param[0..nparams-1] contains
     /// additional params specific to the format/driver (valid
@@ -210,6 +210,10 @@ public:
     /// appending images (such as for MIP-maps).
     virtual bool open (const char *name, const ImageIOFormatSpec &spec,
         int nparams, const ImageIOParameter *param, bool append=false) = 0;
+
+    /// Close an image that we are totally done with.
+    ///
+    virtual bool close () = 0;
 
     /// Write a full scanline that includes pixels (*,y,z).  (z is
     /// ignored for 2D non-volume images.)  The stride value gives the
@@ -253,10 +257,6 @@ public:
                                   int xstride, int ystride, int zstride)
         { return false; }
 
-    /// Close an image that we are totally done with.
-    ///
-    virtual bool close () = 0;
-
     /// General message passing between client and image output server
     ///
     virtual int send_to_output (const char *format, ...);
@@ -276,20 +276,20 @@ protected:
     /// Helper routine: quantize a value to an integer given the 
     /// quantization parameters.
     static int quantize (float value, int quant_black, int quant_white,
-                         int quant_min, int quant_max, float ditheramp);
+                         int quant_min, int quant_max, float quant_dither);
 
     /// Helper routine: compute (gain*value)^invgamma
     ///
     static float exposure (float value, float gain, float invgamma);
 
-    // Helper routines used by write_* implementations: convert data (in
-    // the given format and stride) to the "native" format of the file
-    // (described by the 'spec' member variable), in contiguous order.
-    // This requires a scratch space to be passed in so that there are
-    // no memory leaks.  Returns a pointer to the native data, which may
-    // be the original data if it was already in native format and
-    // contiguous, or it may point to the scratch space if it needed to
-    // make a copy or do conversions.
+    /// Helper routines used by write_* implementations: convert data (in
+    /// the given format and stride) to the "native" format of the file
+    /// (described by the 'spec' member variable), in contiguous order.
+    /// This requires a scratch space to be passed in so that there are
+    /// no memory leaks.  Returns a pointer to the native data, which may
+    /// be the original data if it was already in native format and
+    /// contiguous, or it may point to the scratch space if it needed to
+    /// make a copy or do conversions.
     const void *to_native_scanline (ParamBaseType format,
                                     const void *data, int xstride,
                                     std::vector<unsigned char> &scratch);
@@ -303,10 +303,10 @@ protected:
                                      std::vector<unsigned char> &scratch);
 
 protected:
-    ImageIOFormatSpec spec;     //< format spec of the currently open image
+    ImageIOFormatSpec spec;     ///< format spec of the currently open image
 
 private:
-    std::string m_errmessage;   //< private storage of error massage
+    std::string m_errmessage;   ///< private storage of error massage
 };
 
 
@@ -317,11 +317,11 @@ public:
     /// to read the given format.  The plugin_searchpath parameter is a
     /// colon-separated list of directories to search for ImageIO plugin
     /// DSO/DLL's (not a searchpath for the image itself!).  First, it
-    /// tries to find <formatname>.imageio.so (.dll on Windows).  If no
+    /// tries to find formatname.imageio.so (.dll on Windows).  If no
     /// such perfect match exists, it will try all imageio plugins it can
     /// find until it one reports that it can read the given format.
-    static ImageOutput *create_format (const char *formatname,
-                                       const char *plugin_searchpath);
+    static ImageInput *create_format (const char *formatname,
+                                      const char *plugin_searchpath);
 
     /// Create and return an ImageInput implementation that is willing
     /// to read the given file.  The plugin_searchpath parameter is a
@@ -330,11 +330,11 @@ public:
     /// actually just try every imageio plugin it can locate, until it
     /// finds one that's able to open the file without error.  This just
     /// creates the ImageInput, it does not open the file.
-    static ImageOutput *create (const char *filename, 
-                                const char *plugin_searchpath);
+    static ImageInput *create (const char *filename, 
+                               const char *plugin_searchpath);
 
-    ImageInput ();
-    virtual ~ImageInput ();
+    ImageInput () { }
+    virtual ~ImageInput () { }
 
     /// Open file with given name.  Various file attributes are put in
     /// newspec and a copy is also saved in this->spec.  From these
@@ -343,6 +343,10 @@ public:
     /// file was found and opened okay.
     virtual bool open (const char *name, ImageIOFormatSpec &newspec,
                        int nparams, const ImageIOParameter *param) = 0;
+
+    /// Close an image that we are totally done with.
+    ///
+    virtual bool close () = 0;
 
     /// Return the subimage number of the subimage we're currently
     /// reading.  Obviously, this is always 0 if there is only one
@@ -435,10 +439,6 @@ public:
         return false;
     }
 
-    /// Close an image that we are totally done with.
-    ///
-    virtual bool close () = 0;
-
     /// General message passing between client and image input server
     ///
     virtual int send_to_input (const char *format, ...);
@@ -456,32 +456,32 @@ protected:
     void error (const char *message, ...);
     
 protected:
-    ImageIOFormatSpec spec;  // spec of current subimage
+    ImageIOFormatSpec spec;    //< format spec of the currently open image
 
 private:
-    std::string m_errmessage;
+    std::string m_errmessage;  //< private storage of error massage
 };
 
 
 
 // Utility functions
 
-// If MakeImageInput/Output fail, there's no ImageInput/Output to use to
-// call error_message(), so call ImageIOErrorMessage().
-DLLPUBLIC const char *ImageIOErrorMessage ();
+/// If MakeImageInput/Output fail, there's no ImageInput/Output to use to
+/// call error_message(), so call ImageIOErrorMessage().
+DLLPUBLIC std::string ImageIOErrorMessage ();
 
-// Helper routines, used mainly by image output plugins, to search for
-// entries in an array of ImageIOParameter.
-// If the param[] array contains a param with the given name, type, and
-// nvalues, then store its index within param[], and return its value.
-// Else, set index to -1 and return NULL.
+/// Helper routines, used mainly by image output plugins, to search for
+/// entries in an array of ImageIOParameter.
+/// If the param[] array contains a param with the given name, type, and
+/// nvalues, then store its index within param[], and return its value.
+/// Else, set index to -1 and return NULL.
 DLLPUBLIC const void *IOParamFindValue (const char *name, ParamBaseType type,
-                                     int count, int& index, int nparams,
-                                     const ImageIOParameter *param);
-// If the param[] array contains a param with the given name, and a
-// single string value, return that value.  Else return NULL.
-DLLPUBLIC const char *IOParamFindString (const char *name, int nparams,
-                                      const ImageIOParameter *param);
+                                        int count, int& index, int nparams,
+                                        const ImageIOParameter *param);
+/// If the param[] array contains a param with the given name, and a
+/// single string value, return that value.  Else return NULL.
+DLLPUBLIC std::string IOParamFindString (const char *name, int nparams,
+                                         const ImageIOParameter *param);
 
 // to force correct linkage on some systems
 DLLPUBLIC void _ImageIO_force_link ();
