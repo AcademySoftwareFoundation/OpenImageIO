@@ -117,28 +117,54 @@ struct DLLPUBLIC ImageIOFormatSpec {
                                                int quant_min, int quant_max);
 
     ///
+    /// Return the number of bytes for each channel datum
+    int channel_bytes() const { return ParamBaseTypeSize(format); }
+
+    ///
     /// Return the number of bytes for each pixel (counting all channels)
-    int pixel_bytes () const { return nchannels * ParamBaseTypeSize(format); }
+    int pixel_bytes() const { return nchannels * channel_bytes(); }
 
     ///
     /// Return the number of bytes for each scanline
-    int scanline_bytes () const { return width * pixel_bytes (); }
+    int scanline_bytes() const { return width * pixel_bytes (); }
+
+    ///
+    /// Return the number of bytes for each scanline
+    int tile_bytes() const { return tile_width * tile_height * pixel_bytes (); }
 };
 
 
 
 /// ImageIOParameter holds a parameter and a pointer to its value(s)
 ///
-struct DLLPUBLIC ImageIOParameter {
+class DLLPUBLIC ImageIOParameter {
+public:
     std::string name;           //< data name
     ParamBaseType type;         //< data type
     int nvalues;                //< number of elements
     const void *value;          //< array of values
+    bool copy;                  //< make a copy instead of just a ptr
 
     ImageIOParameter () : type(PT_UNKNOWN), nvalues(0), value(NULL) {};
-    ImageIOParameter (std::string &name, ParamBaseType type,
-                      int nvalues, const void *value)
-        : name(name), type(type), nvalues(nvalues), value(value) {}
+    ImageIOParameter (const std::string &_name, ParamBaseType _type,
+                      int _nvalues, const void *_value, bool _copy=false) {
+        init (_name, _type, _nvalues, _value, _copy);
+    }
+    ImageIOParameter (const ImageIOParameter &p) {
+        init (p.name, p.type, p.nvalues, p.value, p.copy);
+    }
+    ~ImageIOParameter () { clear_value(); }
+    const ImageIOParameter& operator= (const ImageIOParameter &p) {
+        clear_value();
+        init (p.name, p.type, p.nvalues, p.value, p.copy);
+        return *this;
+    }
+
+private:
+    bool m_copy;
+    void init (const std::string &_name, ParamBaseType _type,
+               int _nvalues, const void *_value, bool _copy=false);
+    void clear_value();
 };
 
 

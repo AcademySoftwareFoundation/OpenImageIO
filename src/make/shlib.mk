@@ -32,9 +32,19 @@ ${name}_objs := ${patsubst %.cpp,%${OEXT},${foreach f,${local_src},${${name}_obj
 ${name}_lib := ${build_dir}/lib/${name}${SHLIBEXT}
 #${info shlib.mk ${name} ${name}_lib = ${${name}_lib}}
 
+# Libs we need to build
+${name}_needed_libs := ${foreach f,${local_libs},${build_dir}/lib/${f}${LIBEXT}}
+${name}_needed_libs += ${foreach f,${local_shlibs},${build_dir}/lib/${f}${SHLIBEXT}}
+#${info shlib.mk ${name} ${${name}_lib} needs libs ${${name}_needed_libs}}
+
+# Libs to link against
+${name}_linked_libs := ${foreach f,${local_libs},${build_dir}/lib/${f}${LIBEXT}}
+${name}_linked_libs += ${patsubst lib%,-l%,${foreach f,${local_shlibs},${f}}}
+#${info shlib.mk ${name} ${${name}_lib} links libs ${${name}_linked_libs}}
+
 # Local linking arguments
 ${name}_ldflags := ${local_ldflags}
-${info shlib.mk ${name} ${name}_ldflags = ${${name}_ldflags}}
+#${info shlib.mk ${name} ${name}_ldflags = ${${name}_ldflags}}
 
 # Dependency file is build/<platform>/obj/<name>.d
 ${name}_depfile := ${${name}_obj_dir}/${name}.d
@@ -57,9 +67,9 @@ endif
 
 
 # Action to build the library
-${${name}_lib}: ${${name}_objs} ${${name}_depfile}
+${${name}_lib}: ${${name}_srcs} ${${name}_depfile} ${${name}_objs} ${${name}_needed_libs}
 	@ echo "Building shared library $@ ..."
-	${LDSHLIB} ${SHLIB_LDFLAGS} ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${basename ${notdir $@}}_ldflags} ${SHLIB_DASHO}$@
+	@ ${LDSHLIB} ${SHLIB_LDFLAGS} ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${notdir ${basename $@}}_linked_libs} ${${basename ${notdir $@}}_ldflags} ${SHLIB_DASHO}$@
 
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}
@@ -69,3 +79,8 @@ ${${name}_depfile}: ${${name}_srcs}
 		| ${SED} -e 's^${${notdir ${basename $@}}_src_dir}^${${notdir ${basename $@}}_obj_dir}^g' \
 		> ${${notdir ${basename $@}}_depfile}
 
+
+local_name :=
+local_src :=
+local_libs :=
+local_shlibs :=

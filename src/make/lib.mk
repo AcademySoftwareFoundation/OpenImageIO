@@ -22,7 +22,7 @@ ${name}_srcs := ${foreach f,${local_src},${${name}_src_dir}/${f}}
 
 # Directory where we're going to build the object files for this library
 ${name}_obj_dir := ${build_obj_dir}/${name}
-#${info    lib.mk ${name} ${name}_obj_dir = ${${name}_obj_dir}}
+#${info lib.mk ${name} ${name}_obj_dir = ${${name}_obj_dir}}
 
 # List of all obj files we need to generate for this library
 ${name}_objs := ${patsubst %.cpp,%${OEXT},${foreach f,${local_src},${${name}_obj_dir}/${f}}}
@@ -69,3 +69,8 @@ ${${name}_depfile}: ${${name}_srcs}
 		> ${${notdir ${basename $@}}_depfile}
 
 
+
+local_name :=
+local_src :=
+local_libs :=
+local_shlibs :=

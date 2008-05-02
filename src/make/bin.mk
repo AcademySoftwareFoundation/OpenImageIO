@@ -82,3 +82,7 @@ ${${name}_depfile}: ${${name}_srcs}
 		> ${${notdir ${basename $@}}_depfile}
 
 
+local_name :=
+local_src :=
+local_libs :=
+local_shlibs :=

@@ -198,7 +198,7 @@ public:
     /// success, false upon failure (including failure to fit).
     bool tostring (char *typestring, int maxlen, bool showinterp=false) const;
 
-    /// Return size of one element of this type, in bytes
+    /// Return size of one item of this type, in bytes
     ///
     int datasize (void) const { return arraylen*ParamBaseTypeSize(basetype); }
 

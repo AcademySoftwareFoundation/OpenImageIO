@@ -37,3 +37,30 @@
 using namespace OpenImageIO;
 
 
+void
+ImageIOParameter::init (const std::string &_name, ParamBaseType _type,
+                        int _nvalues, const void *_value, bool _copy)
+{
+    name = _name;
+    type = _type;
+    nvalues = _nvalues;
+    copy = _copy;
+    if (copy) {
+        size_t size = (size_t) (nvalues * ParamBaseTypeSize (type));
+        value = malloc (size);
+        memcpy ((void *)value, _value, size);
+    } else {
+        value = _value;
+    }
+}
+
+
+
+void
+ImageIOParameter::clear_value ()
+{
+    if (copy)
+        free ((void *)value);
+    value = NULL;
+    copy = false;
+}

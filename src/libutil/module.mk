@@ -28,5 +28,5 @@ local_ldflags :=
 ## (DLL).
 
 #include ${src_make_dir}/bin.mk
-include ${src_make_dir}/lib.mk
-#include ${src_make_dir}/shlib.mk
+#include ${src_make_dir}/lib.mk
+include ${src_make_dir}/shlib.mk
