@@ -42,6 +42,10 @@ ${name}_linked_libs := ${foreach f,${local_libs},${build_dir}/lib/${f}${LIBEXT}}
 ${name}_linked_libs += ${patsubst lib%,-l%,${foreach f,${local_shlibs},${f}}}
 #${name}_linked_libs +=${foreach f,${local_shlibs},${f}${SHLIBEXT}}
 
+# Local linking arguments
+${name}_ldflags := ${local_ldflags}
+#${info bin.mk ${name} ${name}_ldflags = ${${name}_ldflags}}
+
 # Dependency file is build/<platform>/obj/<name>.d
 ${name}_depfile := ${${name}_obj_dir}/${name}.d
 #${info ${name} dep file = ${${name}_depfile}}
@@ -54,10 +58,6 @@ ALL_SRC += ${${name}_srcs}
 ALL_BINS += ${${name}_bin}
 ALL_DEPS += ${${name}_depfile}
 ALL_BUILD_DIRS += ${${name}_obj_dir}
-#ifdef PICLIBS
-#ALL_BUILD_DIRS += ${patsubst ${src_lib_dir}%,${build_pic_obj_dir}%,${f}}
-#endif
-
 #${info In bin.mk, now ALL_DEPS = ${ALL_DEPS}}
 #${info In bin.mk, now ALL_BUILD_DIRS = ${ALL_BUILD_DIRS}}
 
@@ -68,7 +68,7 @@ endif
 # Action to build the binary
 ${${name}_bin}: ${${name}_srcs} ${${name}_depfile} ${${name}_objs} ${${name}_needed_libs}
 	@ echo "Building binary $@ ..."
-	@ ${LD} ${LDFLAGS} ${BINOUT}$@ ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${notdir ${basename $@}}_linked_libs}
+	${LD} ${LDFLAGS} ${BINOUT}$@ ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${notdir ${basename $@}}_linked_libs} ${${basename ${notdir $@}}_ldflags}
 ifndef DEBUG
 	@ ${STRIP_BINARY} $@
 endif

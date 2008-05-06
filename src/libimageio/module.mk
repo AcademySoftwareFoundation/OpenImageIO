@@ -16,10 +16,10 @@ local_libs :=
 
 # Extra shared libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)
-local_shlibs :=
+local_shlibs := libutil
 
 # ld flags needed for this library
-local_ldflags := ${LINK_ILMBASE}
+local_ldflags := ${LINK_ILMBASE} ${LINK_BOOST}
 
 
 ## Include ONE of the includes below, depending on whether this module

@@ -32,7 +32,6 @@
 #include "tiffio.h"
 
 #include "dassert.h"
-#include "paramtype.h"
 #include "imageio.h"
 
 
@@ -67,8 +66,17 @@ private:
 
 // Obligatory material to make this a recognizeable imageio plugin:
 extern "C" {
-TIFFOutput *tiff_output_imageio_create () { return new TIFFOutput; }
+
+DLLEXPORT TIFFOutput *tiff_output_imageio_create () { return new TIFFOutput; }
+
+DLLEXPORT int imageio_version = IMAGEIO_VERSION;
+
+DLLEXPORT const char * tiff_output_extensions[] = {
+    "tiff", "tif", "tx", "env", "sm", "vsm"
+  };
+
 };
+
 
 
 TIFFOutput::TIFFOutput ()

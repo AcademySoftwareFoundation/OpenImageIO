@@ -157,7 +157,7 @@ doxygen:
 
 ${build_obj_dir}/%${OEXT}: ${src_dir}/%.cpp
 	@ echo "Compiling $@ ..."
-	@ ${CXX} ${CFLAGS} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+	${CXX} ${CFLAGS} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
 
 # end compilation rules
 #########################################################################
@@ -180,7 +180,7 @@ include ${all_makefiles}
 #########################################################################
 # Internal targets
 
-build: make_build_dirs ${ALL_DEPS} build_bins build_libs build_docs
+build: make_build_dirs ${ALL_DEPS} build_libs build_bins build_docs
 
 # Target to create all build directories
 make_build_dirs:

@@ -173,20 +173,19 @@ private:
 /// format-agnostic manner.
 class DLLPUBLIC ImageOutput {
 public:
-    /// Create an ImageOutput that will write to a file in the given
-    /// format.  The plugin_searchpath parameter is a colon-separated
-    /// list of directories to search for ImageIO plugin DSO/DLL's.
-    /// This just creates the ImageOutput, it does not open the file.
-    static ImageOutput *create (const char *filename, const char *format,
-                                const char *plugin_searchpath);
-
     /// Create an ImageOutput that will write to a file, with the format
     /// inferred from the extension of the file.  The plugin_searchpath
     /// parameter is a colon-separated list of directories to search for
     /// ImageIO plugin DSO/DLL's.  This just creates the ImageOutput, it
     /// does not open the file.
     static ImageOutput *create (const char *filename, 
-                                const char *plugin_searchpath);
+                                const char *plugin_searchpath=NULL);
+
+    /// Create an ImageOutput that will write to a file in the given
+    /// format.  The plugin_searchpath parameter is a colon-separated
+    /// list of directories to search for ImageIO plugin DSO/DLL's.
+    static ImageOutput *create_format (const char *format,
+                                       const char *plugin_searchpath=NULL);
 
     
     ImageOutput () { }
@@ -492,9 +491,9 @@ private:
 
 // Utility functions
 
-/// If MakeImageInput/Output fail, there's no ImageInput/Output to use to
+/// If create() fails, there's no ImageInput/Output to use to
 /// call error_message(), so call ImageIOErrorMessage().
-DLLPUBLIC std::string ImageIOErrorMessage ();
+DLLPUBLIC std::string error_message ();
 
 /// Helper routines, used mainly by image output plugins, to search for
 /// entries in an array of ImageIOParameter.
@@ -512,6 +511,8 @@ DLLPUBLIC std::string IOParamFindString (const char *name, int nparams,
 // to force correct linkage on some systems
 DLLPUBLIC void _ImageIO_force_link ();
 
+// Use privately only
+DLLPUBLIC void error (const char *message, ...);
 
 }; /* end namespace OpenImageIO */
 

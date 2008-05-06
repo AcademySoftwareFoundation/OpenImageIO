@@ -10,7 +10,7 @@
 
 # dist_files lists (relative to build) all files that end up in an
 # external distribution
-#dist_bins    	:= d${BINEXT}
+dist_bins    	:= iconvert${BINEXT}
 dist_libs     	:= libimageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
 dist_includes	:= export.h imageio.h paramtype.h
@@ -57,7 +57,25 @@ endif
 ZLIB_CXX := -I${ZLIB_HOME}/include/zlib-${ZLIB_VERSION}
 LINK_ZLIB := ${LD_LIBPATH}${ZLIB_HOME}/lib/zlib-${ZLIB_VERSION} -lz
 
+BOOST_VERSION := 1_35_0
+ifeq (${BOOST_HOME},)
+  BOOST_HOME := ${THIRD_PARTY_TOOLS_HOME}
+endif
+BOOST_CXX := -I${BOOST_HOME}/include/boost_${BOOST_VERSION}
+LINK_BOOST := ${LD_LIBPATH}${BOOST_HOME}/lib/boost_${BOOST_VERSION}
+ifeq (${platform},osx)
+LINK_BOOST += -lboost_program_options-mt-1_35 \
+	      -lboost_filesystem-mt-1_35 \
+	      -lboost_system-mt-1_35
+else
+LINK_BOOST += -lboost_program_options-gcc41-mt-1_35 \
+	      -lboost_filesystem-gcc41-mt-1_35 \
+	      -lboost_system-gcc41-mt-1_35
+endif
 
-PROJECT_EXTRA_CXX := ${ILMBASE_CXX} ${OPENEXR_CXX} ${TIFF_CXX} ${JPEG_CXX} ${ZLIB_CXX}
+
+PROJECT_EXTRA_CXX := ${ILMBASE_CXX} ${OPENEXR_CXX} ${TIFF_CXX} ${JPEG_CXX} \
+			${ZLIB_CXX} ${BOOST_CXX}
+
 
 

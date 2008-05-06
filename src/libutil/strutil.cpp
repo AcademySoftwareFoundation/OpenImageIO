@@ -24,75 +24,52 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#include <cstdio>
-#include <cstdlib>
+#include <string>
+#include <cstdarg>
+#include <vector>
+#include <string>
 
 #include "dassert.h"
-#include "paramtype.h"
-#include "strutil.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing ImageIO */
-#include "imageio.h"
+#define DLL_EXPORT_PUBLIC /* Because we are implementing Strutil */
+#include "strutil.h"
 #undef DLL_EXPORT_PUBLIC
 
-using namespace OpenImageIO;
 
 
-void
-ImageIOParameter::init (const std::string &_name, ParamBaseType _type,
-                        int _nvalues, const void *_value, bool _copy)
+std::string
+Strutil::format (const char *fmt, ...)
 {
-    name = _name;
-    type = _type;
-    nvalues = _nvalues;
-    copy = _copy;
-    if (copy) {
-        size_t size = (size_t) (nvalues * ParamBaseTypeSize (type));
-        value = malloc (size);
-        memcpy ((void *)value, _value, size);
-    } else {
-        value = _value;
-    }
-}
-
-
-
-void
-ImageIOParameter::clear_value ()
-{
-    if (copy)
-        free ((void *)value);
-    value = NULL;
-    copy = false;
-}
-
-
-
-// FIXME - thread safety
-static std::string create_error_msg;
-
-
-/// Error reporting for the plugin implementation: call this with
-/// printf-like arguments.
-void
-OpenImageIO::error (const char *message, ...)
-{
-    // FIXME - thread safety
     va_list ap;
-    va_start (ap, message);
-    create_error_msg = Strutil::format (message, ap);
+    va_start (ap, fmt);
+    std::string buf = vformat (fmt, ap);
     va_end (ap);
+    return buf;
 }
 
 
 
 std::string
-OpenImageIO::error_message ()
+Strutil::vformat (const char *fmt, va_list ap)
 {
-    // FIXME - thread safety
-    return create_error_msg;
+    // Allocate a buffer that's big enough for us almost all the time
+    size_t size = 1024;
+    std::vector<char> buf (size);
+    ASSERT (buf.size() == size);
+
+    va_list apcopy;
+    va_copy (apcopy, ap);
+    int needed = vsnprintf (&buf[0], size, fmt, ap);
+
+    if (needed > size) {
+        // vsnprintf reported that it wanted to write more characters
+        // than we allotted.  So re-allocate and try again.  Presumably,
+        // this doesn't happen very often if we chose our initial size
+        // well.
+        buf.resize (size);
+        needed = vsnprintf (&buf[0], size, fmt, apcopy);
+        DASSERT (needed <= size);
+    }
+
+    return &buf[0];
 }
-
-
-
-

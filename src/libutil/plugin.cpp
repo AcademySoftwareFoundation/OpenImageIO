@@ -24,75 +24,81 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#include <cstdio>
 #include <cstdlib>
+#include <string>
 
-#include "dassert.h"
-#include "paramtype.h"
-#include "strutil.h"
+#ifdef WINDOWS
+# include <windows.h>
+#else
+# include <dlfcn.h>
+#endif
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing ImageIO */
-#include "imageio.h"
+#define DLL_EXPORT_PUBLIC /* Because we are implementing Plugin */
+#include "plugin.h"
 #undef DLL_EXPORT_PUBLIC
 
-using namespace OpenImageIO;
+
+using namespace Plugin;
+
+// FIXME: make threadsafe
+
+// FIXME: this implementation doesn't set error messages for Windows.
+// Get a Windows expert to fix this.
+
+static std::string last_error;
 
 
-void
-ImageIOParameter::init (const std::string &_name, ParamBaseType _type,
-                        int _nvalues, const void *_value, bool _copy)
+
+Handle
+Plugin::open (const char *plugin_filename)
 {
-    name = _name;
-    type = _type;
-    nvalues = _nvalues;
-    copy = _copy;
-    if (copy) {
-        size_t size = (size_t) (nvalues * ParamBaseTypeSize (type));
-        value = malloc (size);
-        memcpy ((void *)value, _value, size);
-    } else {
-        value = _value;
+    last_error.clear ();
+#if defined(WINDOWS)
+    return LoadLibrary (plugin_filename);
+#else
+    Handle h = dlopen (plugin_filename, RTLD_LAZY | RTLD_GLOBAL);
+    if (!h)
+        last_error = dlerror();
+    return h;
+#endif
+}
+
+
+
+bool
+Plugin::close (Handle plugin_handle)
+{
+    last_error.clear ();
+#if defined(WINDOWS)
+    FreeLibrary (plugin_handle);
+#else
+    if (dlclose (plugin_handle)) {
+        last_error = dlerror();
+        return false;
     }
+#endif
+    return true;
 }
 
 
 
-void
-ImageIOParameter::clear_value ()
+void *
+Plugin::getsym (Handle plugin_handle, const char *symbol_name)
 {
-    if (copy)
-        free ((void *)value);
-    value = NULL;
-    copy = false;
+    last_error.clear ();
+#if defined(WINDOWS)
+    return GetProcAddress (plugin_handle, symbol_name);
+#else
+    void *s = dlsym (plugin_handle, symbol_name);
+    if (!s)
+        last_error = dlerror();
+    return s;
+#endif
 }
-
-
-
-// FIXME - thread safety
-static std::string create_error_msg;
-
-
-/// Error reporting for the plugin implementation: call this with
-/// printf-like arguments.
-void
-OpenImageIO::error (const char *message, ...)
-{
-    // FIXME - thread safety
-    va_list ap;
-    va_start (ap, message);
-    create_error_msg = Strutil::format (message, ap);
-    va_end (ap);
-}
-
 
 
 std::string
-OpenImageIO::error_message ()
+Plugin::error_message (void)
 {
-    // FIXME - thread safety
-    return create_error_msg;
+    return last_error;
 }
-
-
-
-

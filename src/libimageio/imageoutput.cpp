@@ -28,11 +28,17 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstdarg>
+#include <iostream>
+#include <dlfcn.h>
 
 #include <ImathFun.h>
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
 
 #include "dassert.h"
 #include "paramtype.h"
+#include "filesystem.h"
+#include "plugin.h"
 
 #define DLL_EXPORT_PUBLIC /* Because we are implementing ImageIO */
 #include "imageio.h"
@@ -42,30 +48,99 @@ using namespace OpenImageIO;
 
 
 
-/// Create an ImageOutput that will write to a file in the given
-/// format.  The plugin_searchpath parameter is a colon-separated
-/// list of directories to search for ImageIO plugin DSO/DLL's.
-/// This just creates the ImageOutput, it does not open the file.
+
 ImageOutput *
-ImageOutput::create (const char *filename, const char *format,
-                     const char *plugin_searchpath)
+ImageOutput::create (const char *filename, const char *plugin_searchpath)
 {
-    // FIXME
-    return NULL;
+    if (!filename || !filename[0]) { // Can't even guess if no filename given
+        OpenImageIO::error ("ImageOutput::create() called with no filename");
+        return NULL;
+    }
+
+    // Extract the file extension from the filename
+    std::string format = fs::extension (filename);
+    if (format.empty()) {
+        OpenImageIO::error ("ImageOutput::create() could not deduce the format from '%s'", filename);
+        return NULL;
+    }
+    if (format[0] == '.')
+        format.erase (format.begin());
+    std::cerr << "extension of '" << filename << "' is '" << format << "'\n";
+
+    // Try to create a format of the given extension
+    return create_format (format.c_str(), plugin_searchpath);
 }
 
 
 
-/// Create an ImageOutput that will write to a file, with the format
-/// inferred from the extension of the file.  The plugin_searchpath
-/// parameter is a colon-separated list of directories to search for
-/// ImageIO plugin DSO/DLL's.  This just creates the ImageOutput, it
-/// does not open the file.
 ImageOutput *
-ImageOutput::create (const char *filename, 
-                     const char *plugin_searchpath)
+ImageOutput::create_format (const char *fmt, const char *plugin_searchpath)
 {
+    std::cerr << "create_format '" << fmt << "'\n";
+    if (!fmt || !fmt[0]) {
+        OpenImageIO::error ("ImageOutput::create_format() called with no format");
+        return NULL;
+    }
+
+    std::string plugin_filename = std::string (fmt) + ".imageio";
+#if defined(WINDOWS)
+    plugin_filename += ".dll";
+#elif defined(__APPLE__)
+    plugin_filename += ".dylib";
+#else
+    plugin_filename += ".so";
+#endif
+
+    std::string searchpath;
+    const char *imageio_library_path = getenv ("IMAGEIO_LIBRARY_PATH");
+    if (imageio_library_path)
+        searchpath = imageio_library_path;
+    if (plugin_searchpath) {
+        if (searchpath.length())
+            searchpath += ':';
+        searchpath += std::string(plugin_searchpath);
+    }
+    std::cerr << "  searchpath = '" << searchpath << "'\n";
+    std::vector<std::string> dirs;
+    Filesystem::searchpath_split (searchpath, dirs, true);
+    std::string plugin_fullpath = Filesystem::searchpath_find (plugin_filename, dirs);
+    std::cerr << "Checkpoint 1\n";
+    if (plugin_fullpath.empty()) {
+        OpenImageIO::error ("Plugin \"%s\" not found in searchpath \"%s\"",
+                            plugin_filename.c_str(), searchpath.c_str());
+        return NULL;
+    }
+
+    std::cerr << "Checkpoint 2\n";
+    // FIXME -- threadsafe
+    Plugin::Handle handle = Plugin::open (plugin_fullpath);
+    if (handle) {
+        std::cerr << "Succeeded in opening " << plugin_fullpath << "\n";
+    } else {
+        std::cerr << "Open of " << plugin_fullpath << " failed:\n" 
+                  << Plugin::error_message() << "\n";
+    }
+
+
+
+#if 0
     // FIXME
+    std::string format;
+    if (fmt && fmt[0])
+        format = fmt;
+    else {
+        fs::path filename (fname);
+        if (!fname || !fname[0])    // Can't create
+            return NULL;
+        format = fs::extension (filename);
+
+
+    std::cerr << "extension of '" << filename << "' is '" << format << "'\n";
+#endif
+
+    // If we've already loaded the DSO we need, use it
+    // otherwise find one
+
     return NULL;
 }
 
