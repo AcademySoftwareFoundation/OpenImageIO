@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2008 Larry Gritz
+// Copyright (c) 2008 Larry Gritz.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the
@@ -20,57 +20,23 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
-// (this is the MIT license)
+// (This is the MIT open source license.)
 /////////////////////////////////////////////////////////////////////////////
 
 
-#include <string>
-#include <cstdarg>
-#include <vector>
-#include <string>
-#include <iostream>
-
-#include "dassert.h"
-
-#define DLL_EXPORT_PUBLIC /* Because we are implementing Strutil */
-#include "strutil.h"
-#undef DLL_EXPORT_PUBLIC
+// Wrappers and utilities for multithreading
 
 
+#ifndef THREAD_H
+#define THREAD_H
 
-std::string
-Strutil::format (const char *fmt, ...)
-{
-    va_list ap;
-    va_start (ap, fmt);
-    std::string buf = vformat (fmt, ap);
-    va_end (ap);
-    return buf;
-}
+#include <boost/thread.hpp>
 
 
+typedef boost::mutex mutex;
 
-std::string
-Strutil::vformat (const char *fmt, va_list ap)
-{
-    // Allocate a buffer that's big enough for us almost all the time
-    size_t size = 1024;
-    std::vector<char> buf (size);
-    ASSERT (buf.size() == size);
+typedef boost::lock_guard< boost::mutex > lock_guard;
 
-    va_list apcopy;
-    va_copy (apcopy, ap);
-    int needed = vsnprintf (&buf[0], size, fmt, ap);
 
-    if (needed > size) {
-        // vsnprintf reported that it wanted to write more characters
-        // than we allotted.  So re-allocate and try again.  Presumably,
-        // this doesn't happen very often if we chose our initial size
-        // well.
-        buf.resize (size);
-        needed = vsnprintf (&buf[0], size, fmt, apcopy);
-        DASSERT (needed <= size);
-    }
+#endif // THREAD_H
 
-    return &buf[0];
-}

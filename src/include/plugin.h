@@ -59,6 +59,10 @@ DLLPUBLIC bool close (Handle plugin_handle);
 /// error_message() will contain an explanatory message.
 DLLPUBLIC void * getsym (Handle plugin_handle, const char *symbol_name);
 
+void * getsym (Handle plugin_handle, const std::string &symbol_name) {
+    return getsym (plugin_handle, symbol_name.c_str());
+}
+
 /// Return any error messages associated with the last call to any of
 /// open, close, or getsym.  Note that in a multithreaded environment,
 /// it's up to the caller to properly mutex to ensure that no other

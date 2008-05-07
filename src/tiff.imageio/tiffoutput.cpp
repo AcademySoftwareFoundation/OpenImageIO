@@ -72,7 +72,7 @@ DLLEXPORT TIFFOutput *tiff_output_imageio_create () { return new TIFFOutput; }
 DLLEXPORT int imageio_version = IMAGEIO_VERSION;
 
 DLLEXPORT const char * tiff_output_extensions[] = {
-    "tiff", "tif", "tx", "env", "sm", "vsm"
+    "tiff", "tif", "tx", "env", "sm", "vsm", NULL
   };
 
 };
@@ -135,7 +135,8 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &spec,
     TIFFSetField (m_tif, TIFFTAG_YPOSITION, (float)spec.y);
     TIFFSetField (m_tif, TIFFTAG_IMAGEWIDTH, spec.width);
     TIFFSetField (m_tif, TIFFTAG_IMAGELENGTH, spec.height);
-    if (spec.full_width != spec.width || spec.full_height != spec.height) {
+    if ((spec.full_width != 0 || spec.full_height != 0) &&
+        (spec.full_width != spec.width || spec.full_height != spec.height)) {
         TIFFSetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, spec.full_width);
         TIFFSetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, spec.full_height);
     }

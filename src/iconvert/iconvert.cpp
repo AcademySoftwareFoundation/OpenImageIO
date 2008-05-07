@@ -162,25 +162,35 @@ main (int argc, char *argv[])
     for (int y = 0;  y < res;  ++y)
         for (int x = 0;  x < res;  ++x) {
             pixels[3*(y*res+x)+0] = x;
-            pixels[3*(y*res+x)+1] = x;
+            pixels[3*(y*res+x)+1] = y;
             pixels[3*(y*res+x)+2] = 0;
         }
 
-    ImageIOFormatSpec spec;
+    ImageIOFormatSpec spec (PT_UINT8);
+    spec.width = res;
+    spec.height = res;
+    spec.nchannels = 3;
 
     const char *filename = "out.tiff";
     ImageOutput *out = ImageOutput::create (filename);
     if (!out) {
         std::cerr << "Could not create ImageOutput for " << filename <<  "\n";
+        std::cerr << "  Error was: " << OpenImageIO::error_message() << "\n";
         exit (1);
     }
+    std::cerr << "Checkpoint 1\n";
     out->open (filename, spec, 0, NULL);
+    std::cerr << "Checkpoint 2\n";
     for (int y = 0;  y < res;  ++y)
         out->write_scanline (y, 0, PT_UINT8, pixels+3*res*y, 3);
+    std::cerr << "Checkpoint 3\n";
     out->close ();
+    std::cerr << "Checkpoint 4\n";
     delete out;
+    std::cerr << "Checkpoint 5\n";
 
     delete [] pixels;
+    std::cerr << "Checkpoint 6\n";
 
     return 0;
 }

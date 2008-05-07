@@ -66,11 +66,13 @@ LINK_BOOST := ${LD_LIBPATH}${BOOST_HOME}/lib/boost_${BOOST_VERSION}
 ifeq (${platform},osx)
 LINK_BOOST += -lboost_program_options-mt-1_35 \
 	      -lboost_filesystem-mt-1_35 \
-	      -lboost_system-mt-1_35
+	      -lboost_system-mt-1_35 \
+	      -lboost_thread-mt-1_35
 else
 LINK_BOOST += -lboost_program_options-gcc41-mt-1_35 \
 	      -lboost_filesystem-gcc41-mt-1_35 \
-	      -lboost_system-gcc41-mt-1_35
+	      -lboost_system-gcc41-mt-1_35 \
+	      -lboost_thread-gcc41-mt-1_35
 endif
 
 

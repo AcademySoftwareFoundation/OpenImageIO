@@ -51,6 +51,21 @@ ImageIOFormatSpec::ImageIOFormatSpec (ParamBaseType format)
 
 
 
+ImageIOFormatSpec::ImageIOFormatSpec (int xres, int yres, int nchans, 
+                                      ParamBaseType format)
+    : x(0), y(0), z(0), width(xres), height(yres), depth(0),
+      full_width(0), full_height(0), full_depth(0),
+      tile_width(0), tile_height(0), tile_depth(0),
+      format(format), nchannels(nchans), alpha_channel(-1), z_channel(-1),
+      gamma(1)
+{
+    set_format (format);
+    if (nchans == 4)
+        alpha_channel = 3;
+}
+
+
+
 // Generate the default quantization parameters, templated on the data
 // type.
 template <class T>

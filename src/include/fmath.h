@@ -33,6 +33,40 @@
 
 
 
+/// Template to convert contiguous data of type T to floats.
+///
+template<typename T>
+void to_float (const T *src, float *dst, size_t n)
+{
+    // FIXME: it would be a good idea to have table-based specializations
+    // for common types with only a few values (like unsigned char/short).
+    float scale = std::numeric_limits<T>::is_integer ?
+                      1.0f/(float)std::numeric_limits<T>::max() : 1.0f;
+    // Unroll loop for speed
+    for ( ; n >= 16; n -= 16) {
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+        *dst++ = (float)(*src++) * scale;
+    }
+    while (n--)
+        *dst++ = (float)(*src++) * scale;
+}
+
+
+
 
 
 

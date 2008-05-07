@@ -33,6 +33,8 @@
 # include <dlfcn.h>
 #endif
 
+#include "thread.h"
+
 #define DLL_EXPORT_PUBLIC /* Because we are implementing Plugin */
 #include "plugin.h"
 #undef DLL_EXPORT_PUBLIC
@@ -40,11 +42,10 @@
 
 using namespace Plugin;
 
-// FIXME: make threadsafe
-
 // FIXME: this implementation doesn't set error messages for Windows.
 // Get a Windows expert to fix this.
 
+static mutex plugin_mutex;
 static std::string last_error;
 
 
@@ -52,6 +53,7 @@ static std::string last_error;
 Handle
 Plugin::open (const char *plugin_filename)
 {
+    lock_guard guard (plugin_mutex);
     last_error.clear ();
 #if defined(WINDOWS)
     return LoadLibrary (plugin_filename);
@@ -68,6 +70,7 @@ Plugin::open (const char *plugin_filename)
 bool
 Plugin::close (Handle plugin_handle)
 {
+    lock_guard guard (plugin_mutex);
     last_error.clear ();
 #if defined(WINDOWS)
     FreeLibrary (plugin_handle);
@@ -85,6 +88,7 @@ Plugin::close (Handle plugin_handle)
 void *
 Plugin::getsym (Handle plugin_handle, const char *symbol_name)
 {
+    lock_guard guard (plugin_mutex);
     last_error.clear ();
 #if defined(WINDOWS)
     return GetProcAddress (plugin_handle, symbol_name);
@@ -100,5 +104,6 @@ Plugin::getsym (Handle plugin_handle, const char *symbol_name)
 std::string
 Plugin::error_message (void)
 {
+    lock_guard guard (plugin_mutex);
     return last_error;
 }

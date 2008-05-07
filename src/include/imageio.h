@@ -107,6 +107,11 @@ struct DLLPUBLIC ImageIOFormatSpec {
     /// and dither and set all other channels to something reasonable.
     ImageIOFormatSpec (ParamBaseType format = PT_UNKNOWN);
 
+    /// Constructor for simple 2D scanline image with nothing special.
+    /// If fmt is not supplied, default to unsigned 8-bit data.
+    ImageIOFormatSpec (int xres, int yres, int nchans, 
+                       ParamBaseType fmt = PT_UINT8);
+
     /// Set the data format, and as a side effect set quantize & dither
     /// to good defaults for that format
     void set_format (ParamBaseType fmt);
@@ -297,15 +302,6 @@ protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.
     void error (const char *message, ...);
-
-    /// Helper routine: quantize a value to an integer given the 
-    /// quantization parameters.
-    static int quantize (float value, int quant_black, int quant_white,
-                         int quant_min, int quant_max, float quant_dither);
-
-    /// Helper routine: compute (gain*value)^invgamma
-    ///
-    static float exposure (float value, float gain, float invgamma);
 
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
@@ -507,6 +503,15 @@ DLLPUBLIC const void *IOParamFindValue (const char *name, ParamBaseType type,
 /// single string value, return that value.  Else return NULL.
 DLLPUBLIC std::string IOParamFindString (const char *name, int nparams,
                                          const ImageIOParameter *param);
+
+/// Helper routine: quantize a value to an integer given the 
+/// quantization parameters.
+DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
+                        int quant_min, int quant_max, float quant_dither);
+
+/// Helper routine: compute (gain*value)^invgamma
+///
+DLLPUBLIC float exposure (float value, float gain, float invgamma);
 
 // to force correct linkage on some systems
 DLLPUBLIC void _ImageIO_force_link ();
