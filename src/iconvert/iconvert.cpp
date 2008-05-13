@@ -170,8 +170,10 @@ main (int argc, char *argv[])
     spec.width = res;
     spec.height = res;
     spec.nchannels = 3;
+    const char *compress = "deflate";
+    spec.add_parameter ("compression", PT_STRING, 1, &compress);
 
-    const char *filename = "out.tiff";
+    const char *filename = "out.tif";
     ImageOutput *out = ImageOutput::create (filename);
     if (!out) {
         std::cerr << "Could not create ImageOutput for " << filename <<  "\n";
@@ -179,7 +181,7 @@ main (int argc, char *argv[])
         exit (1);
     }
     std::cerr << "Checkpoint 1\n";
-    out->open (filename, spec, 0, NULL);
+    out->open (filename, spec);
     std::cerr << "Checkpoint 2\n";
     for (int y = 0;  y < res;  ++y)
         out->write_scanline (y, 0, PT_UINT8, pixels+3*res*y, 3);

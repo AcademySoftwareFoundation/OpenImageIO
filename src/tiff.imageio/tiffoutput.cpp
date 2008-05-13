@@ -27,9 +27,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <iostream>
 #include <time.h>
 
-#include "tiffio.h"
+#include <tiffio.h>
 
 #include "dassert.h"
 #include "imageio.h"
@@ -44,21 +45,24 @@ public:
     virtual ~TIFFOutput ();
     virtual bool supports (const char *feature) const;
     virtual bool open (const char *name, const ImageIOFormatSpec &spec,
-        int nparams, const ImageIOParameter *param, bool append=false);
+                       bool append=false);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, ParamBaseType format,
                                  const void *data, int xstride);
     virtual bool write_tile (int x, int y, int z,
-                             ParamType format, const void *data,
+                             ParamBaseType format, const void *data,
                              int xstride, int ystride, int zstride);
 
 private:
     TIFF *m_tif;
-    std::vector<unsigned char> m_scratch;
-    int planarconfig;
+    std::vector<char> m_scratch;
+    int m_planarconfig;
 
-    void contig_to_separate (int n, const unsigned char *contig,
-                             unsigned char *separate);
+    // Convert planar contiguous to planar separate data format
+    void contig_to_separate (int n, const char *contig, char *separate);
+    // Add a parameter to the output
+    bool put_parameter (const std::string &name, ParamBaseType type,
+                        const void *data);
 };
 
 
@@ -73,14 +77,14 @@ DLLEXPORT int imageio_version = IMAGEIO_VERSION;
 
 DLLEXPORT const char * tiff_output_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
-  };
+};
 
 };
 
 
 
 TIFFOutput::TIFFOutput ()
-    : m_tif(NULL), planarconfig(PLANARCONFIG_CONTIG)
+    : m_tif(NULL), m_planarconfig(PLANARCONFIG_CONTIG)
 {
 }
 
@@ -110,11 +114,11 @@ TIFFOutput::supports (const char *feature) const
 
 
 bool
-TIFFOutput::open (const char *name, const ImageIOFormatSpec &spec,
-                 int nparams, const ImageIOParameter *param, bool append)
+TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
+                  bool append)
 {
     close ();  // Close any already-opened file
-    this->spec = spec;  // Stash the spec
+    spec = userspec;  // Stash the spec
 
     // Open the file
     m_tif = TIFFOpen (name, append ? "a" : "w");
@@ -123,14 +127,6 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &spec,
         return false;
     }
 
-    // Check for unsupported data formats
-    if (spec.format != PT_INT8 && spec.format != PT_UINT8 &&
-        spec.format != PT_INT16 && spec.format != PT_UINT16 &&
-        spec.format != PT_FLOAT) {
-
-    }
-
-    // FIXME:  Go through params and set values appropriately
     TIFFSetField (m_tif, TIFFTAG_XPOSITION, (float)spec.x);
     TIFFSetField (m_tif, TIFFTAG_YPOSITION, (float)spec.y);
     TIFFSetField (m_tif, TIFFTAG_IMAGEWIDTH, spec.width);
@@ -146,11 +142,9 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &spec,
     } else {
         // Scanline images must set rowsperstrip
         TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, 32);
-        // FIXME -- check param for this
     }
     TIFFSetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, spec.nchannels);
     TIFFSetField (m_tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT); // always
-    TIFFSetField (m_tif, TIFFTAG_PLANARCONFIG, planarconfig);  // FIXME: user choice
     
     int bps, sampformat;
     switch (spec.format) {
@@ -170,6 +164,9 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &spec,
         bps = 16;
         sampformat = SAMPLEFORMAT_UINT;
         break;
+    case PT_HALF:
+        // Silently change requests for unsupported 'half' to 'float'
+        spec.format = PT_FLOAT;
     case PT_FLOAT:
         bps = 32;
         sampformat = SAMPLEFORMAT_IEEEFP;
@@ -191,13 +188,38 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &spec,
         TIFFSetField (m_tif, TIFFTAG_EXTRASAMPLES, 1, &s);
     }
 
-    int compress = COMPRESSION_LZW;  // FIXME: user choice
+    // Figure out if the user requested a specific compression in the
+    // extra parameters.
+    int compress = COMPRESSION_LZW;  // default
+    ImageIOParameter *param;
+    const char *str;
+    if ((param = spec.find_parameter("compression"))  &&
+            param->type == PT_STRING  &&  (str = *(char **)param->data())) {
+        if (! strcmp (str, "none"))
+            compress = COMPRESSION_NONE;
+        else if (! strcmp (str, "lzw"))
+            compress = COMPRESSION_LZW;
+        else if (! strcmp (str, "zip") || ! strcmp (str, "deflate"))
+            compress = COMPRESSION_ADOBE_DEFLATE;
+    }
     TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
-    // Use predictor for integer pixels and compression
-    if (bps < 32 && (compress == COMPRESSION_LZW || compress == COMPRESSION_ADOBE_DEFLATE))
-        TIFFSetField (m_tif, TIFFTAG_PREDICTOR, 2);
+    // Use predictor when using compression
+    if (compress == COMPRESSION_LZW || compress == COMPRESSION_ADOBE_DEFLATE) {
+        if (spec.format == PT_FLOAT || spec.format == PT_DOUBLE || spec.format == PT_HALF)
+            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
+        else
+            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
+    }
 
-    // Set date
+    // Did the user request separate planar configuration?
+    if ((param = spec.find_parameter("planarconfig")) &&
+            param->type == PT_STRING  &&  (str = *(char **)param->data())) {
+        if (! strcmp (str, "separate"))
+            m_planarconfig = PLANARCONFIG_SEPARATE;
+    }
+    TIFFSetField (m_tif, TIFFTAG_PLANARCONFIG, m_planarconfig);
+
+    // Set date in the file headers to NOW
     time_t now;
     time (&now);
     struct tm mytm;
@@ -208,11 +230,87 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &spec,
              mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
     TIFFSetField (m_tif, TIFFTAG_DATETIME, buf);
 
-    // FIXME: Deal with all other params
+    // Deal with all other params
+    for (size_t p = 0;  p < spec.extra_params.size();  ++p)
+        put_parameter (spec.extra_params[p].name, spec.extra_params[p].type,
+                       spec.extra_params[p].data());
 
     TIFFCheckpointDirectory (m_tif);  // Ensure the header is written early
 
     return true;
+}
+
+
+
+bool
+TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
+                           const void *data)
+{
+    if (name == "Artist" && type == PT_STRING) {
+        TIFFSetField (m_tif, TIFFTAG_ARTIST, *(char**)data);
+        return true;
+    }
+    if (name == "copyright" && type == PT_STRING) {
+        TIFFSetField (m_tif, TIFFTAG_COPYRIGHT, *(char**)data);
+        return true;
+    }
+    if (name == "DocumentName" && type == PT_STRING) {
+        TIFFSetField (m_tif, TIFFTAG_DOCUMENTNAME, *(char**)data);
+        return true;
+    }
+    if (name == "fovcot" && type == PT_FLOAT) {
+        double d = *(float *)data;
+        TIFFSetField (m_tif, TIFFTAG_PIXAR_FOVCOT, d);
+        return true;
+    }
+    if (name == "HostComputer" && type == PT_STRING) {
+        TIFFSetField (m_tif, TIFFTAG_HOSTCOMPUTER, *(char**)data);
+        return true;
+    }
+    if ((name == "ImageDescription" || name == "comments") &&
+          type == PT_STRING) {
+        TIFFSetField (m_tif, TIFFTAG_IMAGEDESCRIPTION, *(char**)data);
+        return true;
+    }
+    if (name == "predictor" && type == PT_INT) {
+        TIFFSetField (m_tif, TIFFTAG_PREDICTOR, *(int *)data);
+        return true;
+    }
+    if (name == "rowsperstrip") {
+        if (type == PT_INT) {
+            TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, *(int*)data);
+            return true;
+        } else if (type == PT_STRING) {
+            // Back-compatibility with Entropy and PRMan
+            TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, atoi(*(char **)data));
+            return true;
+        }
+    }
+    if (name == "software" && type == PT_STRING) {
+        TIFFSetField (m_tif, TIFFTAG_SOFTWARE, *(char**)data);
+        return true;
+    }
+    if (name == "subfiletype" && type == PT_INT) {
+        TIFFSetField (m_tif, TIFFTAG_SUBFILETYPE, *(int*)data);
+        return true;
+    }
+    if (name == "textureformat" && type == PT_STRING) {
+        TIFFSetField (m_tif, TIFFTAG_PIXAR_TEXTUREFORMAT, *(char**)data);
+        return true;
+    }
+    if (name == "wrapmodes" && type == PT_STRING) {
+        TIFFSetField (m_tif, TIFFTAG_PIXAR_WRAPMODES, *(char**)data);
+        return true;
+    }
+    if (name == "worldtocamera" && type == PT_MATRIX) {
+        TIFFSetField (m_tif, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, data);
+        return true;
+    }
+    if (name == "worldtoscreen" && type == PT_MATRIX) {
+        TIFFSetField (m_tif, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, data);
+        return true;
+    }
+    return false;
 }
 
 
@@ -232,8 +330,7 @@ TIFFOutput::close ()
 /// Helper: Convert n pixels from contiguous (RGBRGBRGB) to separate
 /// (RRRGGGBBB) planarconfig.
 void
-TIFFOutput::contig_to_separate (int n, const unsigned char *contig,
-                                unsigned char *separate)
+TIFFOutput::contig_to_separate (int n, const char *contig, char *separate)
 {
     int channelbytes = spec.channel_bytes();
     for (int p = 0;  p < n;  ++p)                     // loop over pixels
@@ -253,18 +350,17 @@ TIFFOutput::write_scanline (int y, int z, ParamBaseType format,
     data = to_native_scanline (format, data, xstride, m_scratch);
 
     y -= spec.y;
-    if (planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
+    if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
         m_scratch.resize (spec.scanline_bytes());
-        contig_to_separate (spec.width, (const unsigned char *)data, &m_scratch[0]);
+        contig_to_separate (spec.width, (const char *)data, &m_scratch[0]);
         TIFFWriteScanline (m_tif, &m_scratch[0], y);
     } else {
         // No contig->separate is necessary.  But we still use scratch
-        // space since TIFFWriteScanline is destructive
+        // space since TIFFWriteScanline is destructive when
         // TIFFTAG_PREDICTOR is used.
         if (data == origdata) {
-            m_scratch.assign ((unsigned char *)data,
-                              (unsigned char *)data + spec.scanline_bytes());
+            m_scratch.assign ((char *)data, (char *)data+spec.scanline_bytes());
             data = &m_scratch[0];
         }
         TIFFWriteScanline (m_tif, (tdata_t)data, y);
@@ -280,9 +376,37 @@ TIFFOutput::write_scanline (int y, int z, ParamBaseType format,
 
 bool
 TIFFOutput::write_tile (int x, int y, int z,
-                        ParamType format, const void *data,
+                        ParamBaseType format, const void *data,
                         int xstride, int ystride, int zstride)
 {
-    // FIXME
-    return false;
+    x -= spec.x;   // Account for offset, so x,y are file relative, not 
+    y -= spec.y;   // image relative
+    const void *origdata = data;   // Stash original pointer
+    data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
+    if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
+        // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
+        int tile_pixels = spec.tile_width * spec.tile_height 
+                            * std::max (spec.tile_depth, 1);
+        int plane_bytes = tile_pixels * ParamBaseTypeSize(spec.format);
+        DASSERT (plane_bytes*spec.nchannels == spec.tile_bytes());
+        m_scratch.resize (spec.tile_bytes());
+        contig_to_separate (tile_pixels, (const char *)data, &m_scratch[0]);
+        for (int c = 0;  c < spec.nchannels;  ++c)
+            TIFFWriteTile (m_tif, (tdata_t)&m_scratch[plane_bytes*c], x, y, z, c);
+    } else {
+        // No contig->separate is necessary.  But we still use scratch
+        // space since TIFFWriteTile is destructive when
+        // TIFFTAG_PREDICTOR is used.
+        if (data == origdata) {
+            m_scratch.assign ((char *)data, (char *)data + spec.tile_bytes());
+            data = &m_scratch[0];
+        }
+        TIFFWriteTile (m_tif, (tdata_t)data, x, y, z, 0);
+    }
+
+    // Every row of tiles, checkpoint (write partial file)
+    if ((y % spec.tile_height) == 0)
+        TIFFCheckpointDirectory (m_tif);
+
+    return true;
 }

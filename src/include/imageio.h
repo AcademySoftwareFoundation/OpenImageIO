@@ -72,6 +72,47 @@ const int IMAGEIO_VERSION = 10;
 
 
 
+/// ImageIOParameter holds a parameter and a pointer to its value(s)
+///
+class DLLPUBLIC ImageIOParameter {
+public:
+    std::string name;           //< data name
+    ParamBaseType type;         //< data type
+    int nvalues;                //< number of elements
+
+    ImageIOParameter () : type(PT_UNKNOWN), nvalues(0), m_nonlocal(false) {};
+    ImageIOParameter (const std::string &_name, ParamBaseType _type,
+                      int _nvalues, const void *_value, bool _copy=true) {
+        init (_name, _type, _nvalues, _value, _copy);
+    }
+    ImageIOParameter (const ImageIOParameter &p) {
+        init (p.name, p.type, p.nvalues, p.data(), p.m_copy);
+    }
+    ~ImageIOParameter () { clear_value(); }
+    const ImageIOParameter& operator= (const ImageIOParameter &p) {
+        clear_value();
+        init (p.name, p.type, p.nvalues, p.data(), p.m_copy);
+        return *this;
+    }
+    const void *data () const {
+        return m_nonlocal ? m_value.ptr : &m_value.localval;
+    }
+
+private: 
+    union {
+        ptrdiff_t localval;
+        const void *ptr;
+    } m_value;
+
+    bool m_copy, m_nonlocal;
+    void init (const std::string &_name, ParamBaseType _type,
+               int _nvalues, const void *_value, bool _copy=false);
+    void clear_value();
+    friend class ImageIOFormatSpec;
+};
+
+
+
 /// ImageIOFormatSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
 struct DLLPUBLIC ImageIOFormatSpec {
@@ -102,6 +143,16 @@ struct DLLPUBLIC ImageIOFormatSpec {
     int quant_max;            ///< quantization maximum clamp value
     float quant_dither;       ///< dither amplitude for quantization
 
+    /// The above contains all the information that is likely needed for
+    /// every image file, and common to all formats.  Rather than bloat
+    /// this structure, customize it for new formats, or break back
+    /// compatibility as we think of new things, we provide extra_params
+    /// as a holder for any other properties of the image.  The public
+    /// functions add_parameter and find_parameter may be used to access
+    /// these parameters.  Note, however, that the names and semantics
+    /// of such extra parameters are plugin-dependent and are not enforced
+    /// by the imageio library itself.
+    std::vector<ImageIOParameter> extra_params;  //< Additional parameters
 
     /// Constructor: given just the data format, set the default quantize
     /// and dither and set all other channels to something reasonable.
@@ -135,41 +186,28 @@ struct DLLPUBLIC ImageIOFormatSpec {
 
     ///
     /// Return the number of bytes for each scanline
-    int tile_bytes() const { return tile_width * tile_height * pixel_bytes (); }
-};
-
-
-
-/// ImageIOParameter holds a parameter and a pointer to its value(s)
-///
-class DLLPUBLIC ImageIOParameter {
-public:
-    std::string name;           //< data name
-    ParamBaseType type;         //< data type
-    int nvalues;                //< number of elements
-    const void *value;          //< array of values
-    bool copy;                  //< make a copy instead of just a ptr
-
-    ImageIOParameter () : type(PT_UNKNOWN), nvalues(0), value(NULL) {};
-    ImageIOParameter (const std::string &_name, ParamBaseType _type,
-                      int _nvalues, const void *_value, bool _copy=false) {
-        init (_name, _type, _nvalues, _value, _copy);
+    int tile_bytes() const {
+        return tile_width * tile_height * tile_depth * pixel_bytes ();
     }
-    ImageIOParameter (const ImageIOParameter &p) {
-        init (p.name, p.type, p.nvalues, p.value, p.copy);
+
+    ///
+    /// Return the number of bytes for an entire image
+    int image_bytes() const {
+        return width * height * std::max(depth,1) * pixel_bytes ();
     }
-    ~ImageIOParameter () { clear_value(); }
-    const ImageIOParameter& operator= (const ImageIOParameter &p) {
-        clear_value();
-        init (p.name, p.type, p.nvalues, p.value, p.copy);
-        return *this;
-    }
+
+    /// Add an optional parameter to the extra parameter list
+    ///
+    void add_parameter (const std::string &name, ParamBaseType type,
+                        int nvalues, const void *value);
+
+    /// Search for a parameter of the given name in the list of extra
+    /// parameters.
+    ImageIOParameter * find_parameter (const std::string &name);
 
 private:
-    bool m_copy;
-    void init (const std::string &_name, ParamBaseType _type,
-               int _nvalues, const void *_value, bool _copy=false);
-    void clear_value();
+    // Special storage space for strings that go into extra_parameters
+    std::vector< std::string > m_strings;
 };
 
 
@@ -185,12 +223,6 @@ public:
     /// does not open the file.
     static ImageOutput *create (const char *filename, 
                                 const char *plugin_searchpath=NULL);
-
-    /// Create an ImageOutput that will write to a file in the given
-    /// format.  The plugin_searchpath parameter is a colon-separated
-    /// list of directories to search for ImageIO plugin DSO/DLL's.
-    static ImageOutput *create_format (const char *format,
-                                       const char *plugin_searchpath=NULL);
 
     
     ImageOutput () { }
@@ -230,16 +262,13 @@ public:
     virtual bool supports (const char *feature) const = 0;
 
     /// Open file with given name, with resolution and other format data
-    /// as given in spec.  Additional param[0..nparams-1] contains
-    /// additional params specific to the format/driver (valid
-    /// parameters should be enumerated in the documentation for the
-    /// output plugin).  Open returns true for success, false for
+    /// as given in spec.  Open returns true for success, false for
     /// failure.  Note that it is legal to call open multiple times on
     /// the same file without a call to close(), if it supports
     /// multiimage and the append flag is true -- this is interpreted as
     /// appending images (such as for MIP-maps).
     virtual bool open (const char *name, const ImageIOFormatSpec &spec,
-        int nparams, const ImageIOParameter *param, bool append=false) = 0;
+                       bool append=false) = 0;
 
     /// Close an image that we are totally done with.
     ///
@@ -313,15 +342,15 @@ protected:
     /// make a copy or do conversions.
     const void *to_native_scanline (ParamBaseType format,
                                     const void *data, int xstride,
-                                    std::vector<unsigned char> &scratch);
+                                    std::vector<char> &scratch);
     const void *to_native_tile (ParamBaseType format, const void *data,
                                 int xstride, int ystride, int zstride,
-                                std::vector<unsigned char> &scratch);
+                                std::vector<char> &scratch);
     const void *to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                      int zmin, int zmax, 
                                      ParamBaseType format, const void *data,
                                      int xstride, int ystride, int zstride,
-                                     std::vector<unsigned char> &scratch);
+                                     std::vector<char> &scratch);
 
 protected:
     ImageIOFormatSpec spec;     ///< format spec of the currently open image
@@ -334,16 +363,6 @@ private:
 
 class DLLPUBLIC ImageInput {
 public:
-    /// Create and return an ImageInput implementation that is willing
-    /// to read the given format.  The plugin_searchpath parameter is a
-    /// colon-separated list of directories to search for ImageIO plugin
-    /// DSO/DLL's (not a searchpath for the image itself!).  First, it
-    /// tries to find formatname.imageio.so (.dll on Windows).  If no
-    /// such perfect match exists, it will try all imageio plugins it can
-    /// find until it one reports that it can read the given format.
-    static ImageInput *create_format (const char *formatname,
-                                      const char *plugin_searchpath);
-
     /// Create and return an ImageInput implementation that is willing
     /// to read the given file.  The plugin_searchpath parameter is a
     /// colon-separated list of directories to search for ImageIO plugin
@@ -362,8 +381,7 @@ public:
     /// attributes, you can discern the resolution, if it's tiled,
     /// number of channels, and native data format.  Return true if the
     /// file was found and opened okay.
-    virtual bool open (const char *name, ImageIOFormatSpec &newspec,
-                       int nparams, const ImageIOParameter *param) = 0;
+    virtual bool open (const char *name, ImageIOFormatSpec &newspec) = 0;
 
     /// Close an image that we are totally done with.
     ///
@@ -445,18 +463,6 @@ public:
     /// IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD
     /// IF IT SUPPORTS TILED IMAGES.
     virtual bool read_native_tile (int x, int y, int z, void *data) {
-        return false;
-    }
-
-    /// Try to find a parameter from the currently opened image (or
-    /// subimage) and store its value in *val.  The user is responsible
-    /// for making sure that val points to the right type and amount of
-    /// storage for the parameter requested.  Caveat emptor.  Return
-    /// true if the plugin knows about that parameter and it's in the
-    /// file (and of the right type).  Return false (and don't modify
-    /// *val) if the param name is unrecognized, or doesn't have an
-    /// entry in the file.
-    virtual bool get_parameter (std::string name, ParamType t, void *val) {
         return false;
     }
 

@@ -10,8 +10,10 @@
 
 # dist_files lists (relative to build) all files that end up in an
 # external distribution
-dist_bins    	:= iconvert${BINEXT}
+dist_bins    	:= iconvert${BINEXT} \
+		   iinfo${BINEXT}
 dist_libs     	:= libimageio${SHLIBEXT} \
+		   jpeg.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
 dist_includes	:= export.h imageio.h paramtype.h
 

@@ -36,12 +36,13 @@
 
 
 namespace OpenImageIO {
+namespace pvt {
 
 // Prototype for imageio factory prototype
 typedef void* (*create_prototype)();
 
 // Mutex allowing thread safety of ImageOutput internals
-extern mutex imageio_mutex;
+extern recursive_mutex imageio_mutex;
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGB RGB ") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values.
@@ -68,7 +69,22 @@ const void *convert_from_float (const float *src, void *dst, size_t nvals,
                                 int quant_min, int quant_max, float quant_dither, 
                                 ParamBaseType format);
 
+/// Convert contiguous arbitrary data between two arbitrary types
+/// (specified by ParamBaseType's).  Return true if ok, false if it
+/// didn't know how to do the conversion.
+bool convert_types (ParamBaseType src_type, const void *src, 
+                    ParamBaseType dst_type, void *to, int n);
 
+/// Convert arbitrary data between two arbitrary types (specified by
+/// ParamBaseType's), taking into account non-contiguous strides.
+/// Return true if ok, false if it didn't know how to do the conversion.
+bool convert_types (ParamBaseType src_type, const void *src,
+                    ParamBaseType dst_type, void *dst,
+                    int channels, int width, int height, int depth,
+                    int xstride, int ystride, int zstride);
+
+
+};  // namespace OpenImageIO::pvt
 };  // namespace OpenImageIO
 
 #endif // IMAGEIO_PVT_H

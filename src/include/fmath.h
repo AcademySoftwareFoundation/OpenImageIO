@@ -24,50 +24,91 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef FMATH_H
-#define FMATH_H
-
 // A variety of floating-point math helper routines (and, slight
 // misnomer, some int stuff as well).
 //
 
+#ifndef FMATH_H
+#define FMATH_H
 
 
-/// Template to convert contiguous data of type T to floats.
-///
-template<typename T>
-void to_float (const T *src, float *dst, size_t n)
+#include <ImathFun.h>
+
+
+
+/// Convert n consecutive values from the type of S to the type of D.
+/// The conversion is not a simple cast, but correctly remaps the
+/// 0.0->1.0 range from and to the full positive range of integral
+/// types.  Take a memcpy shortcut if both types are the same and no
+/// conversion is necessary. 
+//
+// FIXME: make table-based specializations for common types with only a
+// few possible src values (like unsigned char -> float).
+template<typename S, typename D>
+void convert_type (const S *src, D *dst, size_t n)
 {
-    // FIXME: it would be a good idea to have table-based specializations
-    // for common types with only a few values (like unsigned char/short).
-    float scale = std::numeric_limits<T>::is_integer ?
-                      1.0f/(float)std::numeric_limits<T>::max() : 1.0f;
-    // Unroll loop for speed
-    for ( ; n >= 16; n -= 16) {
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
-        *dst++ = (float)(*src++) * scale;
+    if (sizeof(D) == sizeof(S) &&
+        std::numeric_limits<D>::min() == std::numeric_limits<S>::min() &&
+        std::numeric_limits<D>::max() == std::numeric_limits<S>::max()) {
+        // They must be the same type.  Just memcpy.
+        memcpy (dst, src, n*sizeof(D));
+        return;
     }
-    while (n--)
-        *dst++ = (float)(*src++) * scale;
+    typedef float F;
+    F scale = std::numeric_limits<S>::is_integer ?
+        ((F)1.0)/std::numeric_limits<D>::max() : (F)1.0;
+    if (std::numeric_limits<D>::is_integer) {
+        // Converting to an integer-like type.
+        F min = (F)std::numeric_limits<D>::min();
+        F max = (F)std::numeric_limits<D>::max();
+        scale *= max;
+        // Unroll loop for speed
+        for ( ; n >= 16; n -= 16) {
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+        }
+        while (n--)
+            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+    } else {
+        // Converting to a float-like type, so we don't need to remap
+        // the range
+        // Unroll loop for speed
+        for ( ; n >= 16; n -= 16) {
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+            *dst++ = (D)((*src++) * scale);
+        }
+        while (n--)
+            *dst++ = (D)((*src++) * scale);
+    }
 }
-
-
-
-
 
 
 #endif // FMATH_H

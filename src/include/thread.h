@@ -34,8 +34,10 @@
 
 
 typedef boost::mutex mutex;
+typedef boost::recursive_mutex recursive_mutex;
 
 typedef boost::lock_guard< boost::mutex > lock_guard;
+typedef boost::lock_guard< boost::recursive_mutex > recursive_lock_guard;
 
 
 #endif // THREAD_H

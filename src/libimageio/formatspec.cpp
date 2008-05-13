@@ -185,3 +185,42 @@ ImageIOFormatSpec::format_from_quantize (int quant_black, int quant_white,
 
 
 
+void
+ImageIOFormatSpec::add_parameter (const std::string &name, ParamBaseType type,
+                                 int nvalues, const void *value)
+{
+    // Special case: strings -- the ImageIOParameter::init call below
+    // will correctly copy the *pointers* to the characters.  Here we
+    // make sure we have our own copy of the characters themselves, so
+    // they persist over the lifetime of this ImageIOFormatSpec and not
+    // leak memory either.  We do this by allocating a string in
+    // m_strings (which persists until our instance is destroyed) and
+    // pointing to its characters.
+    const char **tmp;
+    if (type == PT_STRING) {
+        // Allocate space for new pointers
+        tmp = (const char **) alloca (nvalues * sizeof(char *));
+        // For each string the user passed, make our own copy that we
+        // own in this ImageIOFormatSpec.
+        for (int i = 0;  i < nvalues;  ++i) {
+            m_strings.push_back (std::string(((char**)value)[i]));
+            tmp[i] = m_strings.back().c_str();
+        }
+        // Now carry on using our own pointer vector
+        value = tmp;
+    }
+
+    extra_params.resize (extra_params.size() + 1);
+    extra_params.back().init (name, type, nvalues, value);
+}
+
+
+
+ImageIOParameter *
+ImageIOFormatSpec::find_parameter (const std::string &name)
+{
+    for (size_t i = 0;  i < extra_params.size();  ++i)
+        if (extra_params[i].name == name)
+            return &extra_params[i];
+    return NULL;
+}

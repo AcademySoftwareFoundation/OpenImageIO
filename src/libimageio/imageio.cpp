@@ -30,6 +30,8 @@
 #include <half.h>
 #include <ImathFun.h>
 
+#include <boost/scoped_array.hpp>
+
 #include "dassert.h"
 #include "paramtype.h"
 #include "strutil.h"
@@ -41,12 +43,13 @@
 #undef DLL_EXPORT_PUBLIC
 
 using namespace OpenImageIO;
+using namespace OpenImageIO::pvt;
 
 
 
 static std::string create_error_msg;
 
-mutex OpenImageIO::imageio_mutex;
+recursive_mutex OpenImageIO::pvt::imageio_mutex;
 
 
 
@@ -57,13 +60,26 @@ ImageIOParameter::init (const std::string &_name, ParamBaseType _type,
     name = _name;
     type = _type;
     nvalues = _nvalues;
-    copy = _copy;
-    if (copy) {
-        size_t size = (size_t) (nvalues * ParamBaseTypeSize (type));
-        value = malloc (size);
-        memcpy ((void *)value, _value, size);
+    size_t size = (size_t) (nvalues * ParamBaseTypeSize (type));
+    bool small = (size <= sizeof(m_value));
+    if (_copy || small) {
+        void *value;
+        if (small) {
+            value = &m_value;
+            m_copy = false;
+            m_nonlocal = false;
+        } else {
+            m_value.ptr = value = malloc (size);
+            m_copy = true;
+            m_nonlocal = true;
+        }
+        memcpy (value, _value, size);
     } else {
-        value = _value;
+        // Big enough to warrant a malloc, but the caller said don't
+        // make a copy
+        m_copy = false;
+        m_nonlocal = true;
+        m_value.ptr = _value;
     }
 }
 
@@ -72,10 +88,11 @@ ImageIOParameter::init (const std::string &_name, ParamBaseType _type,
 void
 ImageIOParameter::clear_value ()
 {
-    if (copy)
-        free ((void *)value);
-    value = NULL;
-    copy = false;
+    if (m_copy && m_nonlocal)
+        free ((void *)m_value.ptr);
+    m_value.ptr = NULL;
+    m_copy = false;
+    m_nonlocal = false;
 }
 
 
@@ -85,7 +102,7 @@ ImageIOParameter::clear_value ()
 void
 OpenImageIO::error (const char *message, ...)
 {
-    lock_guard lock (imageio_mutex);
+    recursive_lock_guard lock (OpenImageIO::pvt::imageio_mutex);
     va_list ap;
     va_start (ap, message);
     create_error_msg = Strutil::vformat (message, ap);
@@ -97,7 +114,7 @@ OpenImageIO::error (const char *message, ...)
 std::string
 OpenImageIO::error_message ()
 {
-    lock_guard lock (imageio_mutex);
+    recursive_lock_guard lock (OpenImageIO::pvt::imageio_mutex);
     return create_error_msg;
 }
 
@@ -163,10 +180,10 @@ _contiguize (const T *src, int nchannels, int xstride, int ystride, int zstride,
 
 
 const void *
-OpenImageIO::contiguize (const void *src, int nchannels,
-                         int xstride, int ystride, int zstride, 
-                         void *dst, int width, int height, int depth,
-                         ParamBaseType format)
+OpenImageIO::pvt::contiguize (const void *src, int nchannels,
+                              int xstride, int ystride, int zstride, 
+                              void *dst, int width, int height, int depth,
+                              ParamBaseType format)
 {
     switch (format) {
     case PT_FLOAT :
@@ -204,28 +221,28 @@ OpenImageIO::contiguize (const void *src, int nchannels,
 
 
 const float *
-OpenImageIO::convert_to_float (const void *src, float *dst, int nvals,
-                               ParamBaseType format)
+OpenImageIO::pvt::convert_to_float (const void *src, float *dst, int nvals,
+                                    ParamBaseType format)
 {
     switch (format) {
     case PT_FLOAT :
         return (float *)src;
     case PT_HALF :
-        to_float<half> ((const half *)src, dst, nvals);
+        convert_type ((const half *)src, dst, nvals);
     case PT_DOUBLE :
-        to_float<double> ((const double *)src, dst, nvals);
+        convert_type ((const double *)src, dst, nvals);
     case PT_INT8:
-        to_float<char> ((const char *)src, dst, nvals);
+        convert_type ((const char *)src, dst, nvals);
     case PT_UINT8 :
-        to_float<unsigned char> ((const unsigned char *)src, dst, nvals);
+        convert_type ((const unsigned char *)src, dst, nvals);
     case PT_INT16 :
-        to_float<short> ((const short *)src, dst, nvals);
+        convert_type ((const short *)src, dst, nvals);
     case PT_UINT16 :
-        to_float<unsigned short> ((const unsigned short *)src, dst, nvals);
+        convert_type ((const unsigned short *)src, dst, nvals);
     case PT_INT :
-        to_float<int> ((const int *)src, dst, nvals);
+        convert_type ((const int *)src, dst, nvals);
     case PT_UINT :
-        to_float<unsigned int> ((const unsigned int *)src, dst, nvals);
+        convert_type ((const unsigned int *)src, dst, nvals);
     default:
         std::cerr << "ERROR to_float: bad format\n";
         ASSERT (0);
@@ -270,10 +287,10 @@ _from_float (const float *src, T *dst, size_t nvals,
 
 
 const void *
-OpenImageIO::convert_from_float (const float *src, void *dst, size_t nvals,
-                                 int quant_black, int quant_white,
-                                 int quant_min, int quant_max, float quant_dither, 
-                                 ParamBaseType format)
+OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
+                                      int quant_black, int quant_white,
+                                      int quant_min, int quant_max, float quant_dither, 
+                                      ParamBaseType format)
 {
     switch (format) {
     case PT_FLOAT :
@@ -315,4 +332,96 @@ OpenImageIO::convert_from_float (const float *src, void *dst, size_t nvals,
         ASSERT (0);
         return NULL;
     }
+}
+
+
+
+bool
+OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src, 
+                                 ParamBaseType dst_type, void *dst, int n)
+{
+    // If no conversion is necessary, just memcpy
+    if (src_type == dst_type) {
+        memcpy (dst, src, n * ParamBaseTypeSize(src_type));
+        return true;
+    }
+
+    // Conversions are via a temporary float array
+    boost::scoped_array<float> tmp;
+    float *buf;
+    if (src_type == PT_FLOAT)
+        buf = (float *) src;
+    else {
+        tmp.reset (new float[n]);  // Will be freed when tmp exists its scope
+        buf = tmp.get();
+    }
+
+    // Convert from 'src_type' to float (or nothing, if already float)
+    switch (src_type) {
+    case PT_FLOAT :  break; // skip conversion
+    case PT_UINT8 :  convert_type ((const unsigned char *)src, buf, n);  break;
+    case PT_UINT16 : convert_type ((const unsigned short *)src, buf, n); break;
+    case PT_HALF :   convert_type ((const half *)src, buf, n);   break;
+    case PT_INT8 :   convert_type ((const char *)src, buf, n);   break;
+    case PT_INT16 :  convert_type ((const short *)src, buf, n);  break;
+    case PT_DOUBLE : convert_type ((const double *)src, buf, n); break;
+    default:         return false;  // unknown format
+    }
+
+    // Convert float to 'dst_type' (just a copy if dst is float)
+    switch (dst_type) {
+    case PT_FLOAT :  memcpy (dst, buf, n * sizeof(float));       break;
+    case PT_UINT8 :  convert_type (buf, (unsigned char *)dst, n);  break;
+    case PT_UINT16 : convert_type (buf, (unsigned short *)dst, n); break;
+    case PT_HALF :   convert_type (buf, (half *)dst, n);   break;
+    case PT_INT8 :   convert_type (buf, (char *)dst, n);   break;
+    case PT_INT16 :  convert_type (buf, (short *)dst, n);  break;
+    case PT_DOUBLE : convert_type (buf, (double *)dst, n); break;
+    default:         return false;  // unknown format
+    }
+
+    return true;
+}
+
+
+
+bool
+OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src,
+                                 ParamBaseType dst_type, void *dst,
+                                 int channels, int width, int height, int depth,
+                                 int xstride, int ystride, int zstride)
+{
+    bool result = true;
+    int src_bytes = ParamBaseTypeSize(src_type);
+    int dst_bytes = ParamBaseTypeSize(dst_type);
+    if (xstride == channels) {
+        // Special case: pixels within each row are contiguous
+        int n = channels * width;
+        for (int z = 0;  z < depth;  ++z) {
+            for (int y = 0;  y < height;  ++y) {
+                const unsigned char *f = (const unsigned char *)src + 
+                    src_bytes*channels*(z*width*height + y*width);
+                unsigned char *t = (unsigned char *)dst +
+                    dst_bytes * (z*zstride + y*ystride);
+                result &= convert_types (src_type, f, dst_type, t, n);
+            }
+        }
+    } else {
+        // General case -- anything goes with strides
+        int n = channels;
+        for (int z = 0;  z < depth;  ++z) {
+            for (int y = 0;  y < height;  ++y) {
+                const unsigned char *f = (const unsigned char *)src + 
+                    src_bytes*channels*(z*width*height + y*width);
+                unsigned char *t = (unsigned char *)dst +
+                    dst_bytes * (z*zstride + y*ystride);
+                for (int x = 0;  x < width;  ++x) {
+                    result &= convert_types (src_type, f, dst_type, t, n);
+                    f += channels * src_bytes;
+                    t += xstride * dst_bytes;
+                }
+            }
+        }
+    }
+    return result;
 }

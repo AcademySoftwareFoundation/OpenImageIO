@@ -69,7 +69,7 @@ endif
 # Action to build the library
 ${${name}_lib}: ${${name}_srcs} ${${name}_depfile} ${${name}_objs} ${${name}_needed_libs}
 	@ echo "Building shared library $@ ..."
-	@ ${LDSHLIB} ${SHLIB_LDFLAGS} ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${notdir ${basename $@}}_linked_libs} ${${basename ${notdir $@}}_ldflags} ${SHLIB_DASHO}$@
+	${LDSHLIB} ${SHLIB_LDFLAGS} ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${notdir ${basename $@}}_linked_libs} ${${basename ${notdir $@}}_ldflags} ${SHLIB_DASHO}$@
 
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}

@@ -40,12 +40,18 @@ namespace Plugin {
 
 typedef void * Handle;
 
+/// Return the platform-dependent suffix for plug-ins ("dll" on
+/// Windows, "so" on Linux, "dylib" on Mac OS X.
+DLLPUBLIC const char *plugin_extension (void);
+
 /// Open the named plugin, return its handle.  If it could not be
 /// opened, return 0 and the next call to error_message() will contain
-/// an explanatory message.
+/// an explanatory meshsage.
 DLLPUBLIC Handle open (const char *plugin_filename);
 
-Handle open (const std::string &plugin_filename) {
+inline Handle
+open (const std::string &plugin_filename)
+{
     return open (plugin_filename.c_str());
 }
 
@@ -59,7 +65,9 @@ DLLPUBLIC bool close (Handle plugin_handle);
 /// error_message() will contain an explanatory message.
 DLLPUBLIC void * getsym (Handle plugin_handle, const char *symbol_name);
 
-void * getsym (Handle plugin_handle, const std::string &symbol_name) {
+inline void *
+getsym (Handle plugin_handle, const std::string &symbol_name)
+{
     return getsym (plugin_handle, symbol_name.c_str());
 }
 
@@ -69,7 +77,7 @@ void * getsym (Handle plugin_handle, const std::string &symbol_name) {
 /// thread has called open, close, or getsym (all of which clear or
 /// overwrite the error message) between the error-generating call and
 /// error_message.
-std::string error_message (void);
+DLLPUBLIC std::string error_message (void);
 
 
 

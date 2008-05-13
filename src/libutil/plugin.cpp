@@ -50,6 +50,20 @@ static std::string last_error;
 
 
 
+const char *
+Plugin::plugin_extension (void)
+{
+#if defined(WINDOWS)
+    return "dll";
+#elif defined(__APPLE__)
+    return "dylib";
+#else
+    return "so";
+#endif
+}
+
+
+
 Handle
 Plugin::open (const char *plugin_filename)
 {
