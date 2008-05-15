@@ -130,11 +130,10 @@ Filesystem::searchpath_split (const std::string &searchpath,
         if (!validonly || boost::filesystem::is_directory (path))
             dirs.push_back (path);
     }
-#if 1
+#if 0
     std::cerr << "Searchpath = '" << searchpath << "'\n";
-    BOOST_FOREACH (std::string &d, dirs) {
+    BOOST_FOREACH (std::string &d, dirs)
         std::cerr << "\tPath = '" << d << "'\n";
-    }
     std::cerr << "\n";
 #endif
 }

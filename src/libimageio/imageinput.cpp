@@ -46,6 +46,8 @@ bool
 ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
                            int xstride)
 {
+    if (! xstride)
+        xstride = spec.nchannels;
     bool contiguous = (xstride == spec.nchannels);
     if (contiguous && spec.format == format)  // Simple case
         return read_native_scanline (y, z, data);
@@ -69,9 +71,15 @@ ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
 
 
 bool 
-ImageInput::read_tile (int x, int y, int z, ParamBaseType format, float *data,
+ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
                        int xstride, int ystride, int zstride)
 {
+    if (! xstride)
+        xstride = spec.nchannels;
+    if (! ystride)
+        ystride = xstride * spec.width;
+    if (! zstride)
+        zstride = ystride * spec.height;
     bool contiguous = (xstride == spec.nchannels &&
                        ystride == xstride*spec.tile_width &&
                        zstride == ystride*spec.tile_height);
@@ -95,6 +103,52 @@ ImageInput::read_tile (int x, int y, int z, ParamBaseType format, float *data,
                ParamBaseTypeNameString(spec.format));
     return ok;
 
+}
+
+
+
+bool
+ImageInput::read_image (ParamBaseType format, void *data,
+                        int xstride, int ystride, int zstride)
+{
+    if (! xstride)
+        xstride = spec.nchannels;
+    if (! ystride)
+        ystride = xstride * spec.width;
+    if (! zstride)
+        zstride = ystride * spec.height;
+    // Rescale strides to be in bytes, not channel elements
+    int xstride_bytes = xstride * ParamBaseTypeSize (format);
+    int ystride_bytes = ystride * ParamBaseTypeSize (format);
+    int zstride_bytes = zstride * ParamBaseTypeSize (format);
+    if (spec.tile_width) {
+        
+        // Tiled image
+
+        // FIXME: what happens if the image dimensions are smaller than
+        // the tile dimensions?  Or if one of the tiles runs past the
+        // right or bottom edge?  Do we need to allocate a full tile and
+        // copy into it into buf?  That's probably the safe thing to do.
+        // Or should that handling be pushed all the way into read_tile
+        // itself?
+        bool ok = true;
+        for (int z = 0;  z < spec.depth;  z += spec.tile_depth)
+            for (int y = 0;  y < spec.height;  y += spec.tile_height)
+                for (int x = 0;  x < spec.width && ok;  y += spec.tile_width)
+                    ok &= read_tile (x, y, z, format,
+                                     (char *)data + z*zstride_bytes + y*ystride_bytes + x*xstride_bytes,
+                                     xstride, ystride, zstride);
+        return ok;
+    } else {
+        // Scanline image
+        bool ok = true;
+        for (int z = 0;  z < spec.depth;  ++z)
+            for (int y = 0;  y < spec.height && ok;  ++y)
+                ok &= read_scanline (y, z, format,
+                                     (char *)data + z*zstride_bytes + y*ystride_bytes,
+                                     xstride);
+        return ok;
+    }
 }
 
 

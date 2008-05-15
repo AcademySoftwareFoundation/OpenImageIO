@@ -40,7 +40,7 @@
 using namespace OpenImageIO;
 
 
-class DLLPUBLIC TIFFInput : public ImageInput {
+class TIFFInput : public ImageInput {
 public:
     TIFFInput () 
         : m_tif(NULL), m_planarconfig(PLANARCONFIG_CONTIG), m_subimage(-1)
@@ -67,8 +67,6 @@ private:
 
     // Convert planar separate to contiguous data format
     void separate_to_contig (int n, const char *separate, char *separate);
-
-    bool get_parameter (std::string name, ParamType t, void *val);
 
     // Get a string tiff tag field and put it into extra_params
     void get_string_field (const std::string &name, int tag) {
@@ -384,11 +382,4 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
         }
     }
     return true;
-}
-
-
-
-bool
-TIFFInput::get_parameter (std::string name, ParamType t, void *val)
-{
 }

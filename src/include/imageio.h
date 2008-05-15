@@ -80,22 +80,22 @@ public:
     ParamBaseType type;         //< data type
     int nvalues;                //< number of elements
 
-    ImageIOParameter () : type(PT_UNKNOWN), nvalues(0), m_nonlocal(false) {};
+    ImageIOParameter () : type(PT_UNKNOWN), nvalues(0), m_nonlocal(false) { }
     ImageIOParameter (const std::string &_name, ParamBaseType _type,
                       int _nvalues, const void *_value, bool _copy=true) {
         init (_name, _type, _nvalues, _value, _copy);
     }
     ImageIOParameter (const ImageIOParameter &p) {
-        init (p.name, p.type, p.nvalues, p.data(), p.m_copy);
+        init (p.name, p.type, p.nvalues, p.data(), m_copy);
     }
     ~ImageIOParameter () { clear_value(); }
     const ImageIOParameter& operator= (const ImageIOParameter &p) {
         clear_value();
-        init (p.name, p.type, p.nvalues, p.data(), p.m_copy);
+        init (p.name, p.type, p.nvalues, p.data(), m_copy);
         return *this;
     }
     const void *data () const {
-        return m_nonlocal ? m_value.ptr : &m_value.localval;
+        return m_nonlocal ? m_value.ptr : &m_value;
     }
 
 private: 
@@ -106,7 +106,7 @@ private:
 
     bool m_copy, m_nonlocal;
     void init (const std::string &_name, ParamBaseType _type,
-               int _nvalues, const void *_value, bool _copy=false);
+               int _nvalues, const void *_value, bool _copy=true);
     void clear_value();
     friend class ImageIOFormatSpec;
 };
@@ -277,44 +277,61 @@ public:
     /// Write a full scanline that includes pixels (*,y,z).  (z is
     /// ignored for 2D non-volume images.)  The stride value gives the
     /// data layout: one pixel to the "right" is xstride elements of the
-    /// given format away.  The data are automatically converted from
-    /// 'format' to the actual output format (as specified to open()) by
-    /// this method.  Return true for success, false for failure.  It is
-    /// a failure to call write_scanline with an out-of-order scanline
-    /// if this format driver does not support random access.
+    /// given format away.  Strides set to 0 imply 'contiguous' data
+    /// (i.e.  xstride==spec.nchannels).  The data are automatically
+    /// converted from 'format' to the actual output format (as
+    /// specified to open()) by this method.  Return true for success,
+    /// false for failure.  It is a failure to call write_scanline with
+    /// an out-of-order scanline if this format driver does not support
+    /// random access.
     virtual bool write_scanline (int y, int z, ParamBaseType format,
-                                 const void *data, int xstride)
+                                 const void *data, int xstride=0)
         { return false; }
 
     /// Write the tile with (x,y,z) as the upper left corner.  (z is
     /// ignored for 2D non-volume images.)  The three stride values give
     /// the distance (in number of elements of the given format) between
     /// successive pixels, scanlines, and volumetric slices,
-    /// respectively.  The data are automatically converted from
-    /// 'format' to the actual output format (as specified to open()) by
-    /// this method.  Return true for success, false for failure.  It is
-    /// a failure to call write_tile with an out-of-order tile if this
-    /// format driver does not support random access.
+    /// respectively.  Strides set to 0 imply 'contiguous' data (i.e.
+    /// xstride==spec.nchannels, ystride==xstride*spec.width,
+    /// zstride=ystride*spec.height).  The data are automatically
+    /// converted from 'format' to the actual output format (as
+    /// specified to open()) by this method.  Return true for success,
+    /// false for failure.  It is a failure to call write_tile with an
+    /// out-of-order tile if this format driver does not support random
+    /// access.
     virtual bool write_tile (int x, int y, int z,
-                             ParamType format, const void *data,
-                             int xstride, int ystride, int zstride)
+                             ParamBaseType format, const void *data,
+                             int xstride=0, int ystride=0, int zstride=0)
         { return false; }
 
     /// Write pixels whose x coords range over xmin..xmax (inclusive), y
     /// coords over ymin..ymax, and z coords over zmin...zmax.  The
     /// three stride values give the distance (in number of elements of
     /// the given format) between successive pixels, scanlines, and
-    /// volumetric slices, respectively.  The data are automatically
-    /// converted from 'format' to the actual output format (as
-    /// specified to open()) by this method.  Return true for success,
-    /// false for failure.  It is a failure to call write_rectangle for
-    /// a format plugin that does not return true for
-    /// supports_rectangles().
+    /// volumetric slices, respectively.  Strides set to 0 imply
+    /// 'contiguous' data (i.e.  xstride==spec.nchannels,
+    /// ystride==xstride*spec.width, zstride=ystride*spec.height).  The
+    /// data are automatically converted from 'format' to the actual
+    /// output format (as specified to open()) by this method.  Return
+    /// true for success, false for failure.  It is a failure to call
+    /// write_rectangle for a format plugin that does not return true
+    /// for supports_rectangles().
     virtual bool write_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax,
-                                  ParamType format, const void *data,
-                                  int xstride, int ystride, int zstride)
+                                  ParamBaseType format, const void *data,
+                                  int xstride=0, int ystride=0, int zstride=0)
         { return false; }
+
+    /// Write the entire image of spec.width x spec.height x spec.depth
+    /// pixels, with the given strides and in the desired format.
+    /// Strides set to 0 imply 'contiguous' data (i.e.
+    /// xstride==spec.nchannels, ystride==xstride*spec.width,
+    /// zstride=ystride*spec.height).  Depending on spec, write either
+    /// all tiles or all scanlines.  Assume that data points to a layout
+    /// in row-major order.
+    virtual bool write_image (ParamBaseType format, const void *data,
+                              int xstride=0, int ystride=0, int zstride=0);
 
     /// General message passing between client and image output server
     ///
@@ -417,13 +434,20 @@ public:
     /// appropriate format conversion, so there's no reason for each
     /// format plugin to override this method.
     virtual bool read_scanline (int y, int z, ParamBaseType format, void *data,
-                                int xstride);
+                                int xstride=0);
+
+    ///
+    /// Simple read_scanline reads to contiguous float pixels.
+    bool read_scanline (int y, int z, float *data) {
+        return read_scanline (y, z, PT_FLOAT, data);
+    }
 
     /// Read the tile that includes pixels (*,y,z) into data, converting
     /// if necessary from the native data format of the file into the
     /// 'format' specified.  (z==0 for non-volume images.)  The stride
     /// values give the data spacing of adjacent pixels, scanlines, and
     /// volumetric slices (measured in number of elements of 'format').
+    /// Strides set to 0 imply 'contiguous' data.
     /// The reader is expected to give the appearance of random access
     /// -- in other words, if it can't randomly seek to the given tile,
     /// it should transparently close, reopen, and sequentially read
@@ -432,14 +456,8 @@ public:
     /// appropriate format conversion, so there's no reason for each
     /// format plugin to override this method.
     virtual bool read_tile (int x, int y, int z,
-                            ParamBaseType format, float *data,
-                            int xstride, int ystride, int zstride);
-
-    ///
-    /// Simple read_scanline reads to contiguous float pixels.
-    bool read_scanline (int y, int z, float *data) {
-        return read_scanline (y, z, PT_FLOAT, data, spec.nchannels);
-    }
+                            ParamBaseType format, void *data,
+                            int xstride=0, int ystride=0, int zstride=0);
 
     ///
     /// Simple read_tile reads to contiguous float pixels.
@@ -447,6 +465,22 @@ public:
         return read_tile (x, y, z, PT_FLOAT, data, spec.nchannels,
                           spec.nchannels*spec.tile_width,
                           spec.nchannels*spec.tile_width*spec.tile_height);
+    }
+
+    /// Read the entire image of spec.width x spec.height x spec.depth
+    /// pixels into data (which must already be sized large enough for
+    /// the entire image) with the given strides and in the desired
+    /// format.  Read tiles or scanlines automatically.  Strides set to
+    /// 0 imply 'contiguous' data.
+    virtual bool read_image (ParamBaseType format, void *data,
+                             int xstride=0, int ystride=0, int zstride=0);
+
+    ///
+    /// Simple read_image reads to contiguous float pixels.
+    bool read_image (float *data) {
+        return read_image (PT_FLOAT, data, spec.nchannels,
+                           spec.nchannels*spec.width,
+                           spec.nchannels*spec.width*spec.height);
     }
 
     /// read_native_scanline is just like read_scanline, except that it

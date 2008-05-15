@@ -145,7 +145,6 @@ main (int argc, char *argv[])
 
     long long totalsize = 0;
     BOOST_FOREACH (const std::string &s, filenames) {
-        std::cout << "\"" << s << "\"\n";
         ImageInput *in = ImageInput::create (s.c_str(), "" /* searchpath */);
         ImageIOFormatSpec spec;
         if (in->open (s.c_str(), spec)) {

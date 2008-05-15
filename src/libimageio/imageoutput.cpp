@@ -107,6 +107,12 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int xstride, int ystride, int zstride,
                                   std::vector<char> &scratch)
 {
+    if (! xstride)
+        xstride = spec.nchannels;
+    if (! ystride)
+        ystride = xstride * spec.width;
+    if (! zstride)
+        zstride = ystride * spec.height;
     // Compute width and height from the rectangle extents
     int width = xmax - xmin + 1;
     int height = ymax - ymin + 1;
@@ -175,4 +181,53 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                        rectangle_pixels, spec.quant_black, spec.quant_white,
                        spec.quant_min, spec.quant_max, spec.quant_dither,
                        spec.format);
+}
+
+
+
+bool
+ImageOutput::write_image (ParamBaseType format, const void *data,
+                          int xstride, int ystride, int zstride)
+{
+    if (! xstride)
+        xstride = spec.nchannels;
+    if (! ystride)
+        ystride = xstride * spec.width;
+    if (! zstride)
+        zstride = ystride * spec.height;
+    // Rescale strides to be in bytes, not channel elements
+    int xstride_bytes = xstride * ParamBaseTypeSize (format);
+    int ystride_bytes = ystride * ParamBaseTypeSize (format);
+    int zstride_bytes = zstride * ParamBaseTypeSize (format);
+    if (supports ("rectangles")) {
+        // Use a rectangle if we can
+        return write_rectangle (0, spec.width-1, 0, spec.height-1, 0, spec.depth-1,
+                                format, data, xstride, ystride, zstride);
+    } else if (spec.tile_width && supports ("tiles")) {
+        // Tiled image
+
+        // FIXME: what happens if the image dimensions are smaller than
+        // the tile dimensions?  Or if one of the tiles runs past the
+        // right or bottom edge?  Do we need to allocate a full tile and
+        // copy into it before calling write_tile?  That's probably the
+        // safe thing to do.  Or should that handling be pushed all the
+        // way into write_tile itself?
+        bool ok = true;
+        for (int z = 0;  z < spec.depth;  z += spec.tile_depth)
+            for (int y = 0;  y < spec.height;  y += spec.tile_height)
+                for (int x = 0;  x < spec.width && ok;  y += spec.tile_width)
+                    ok &= write_tile (x, y, z, format,
+                                      (const char *)data + z*zstride_bytes + y*ystride_bytes + x*xstride_bytes,
+                                      xstride, ystride, zstride);
+        return ok;
+    } else {
+        // Scanline image
+        bool ok = true;
+        for (int z = 0;  z < spec.depth;  ++z)
+            for (int y = 0;  y < spec.height && ok;  ++y)
+                ok &= write_scanline (y, z, format,
+                                      (const char *)data + z*zstride_bytes + y*ystride_bytes,
+                                      xstride);
+        return ok;
+    }
 }

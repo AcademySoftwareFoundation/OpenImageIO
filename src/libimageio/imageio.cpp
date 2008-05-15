@@ -62,18 +62,18 @@ ImageIOParameter::init (const std::string &_name, ParamBaseType _type,
     nvalues = _nvalues;
     size_t size = (size_t) (nvalues * ParamBaseTypeSize (type));
     bool small = (size <= sizeof(m_value));
+
     if (_copy || small) {
-        void *value;
         if (small) {
-            value = &m_value;
+            memcpy (&m_value, _value, size);
             m_copy = false;
             m_nonlocal = false;
         } else {
-            m_value.ptr = value = malloc (size);
+            m_value.ptr = malloc (size);
+            memcpy ((char *)m_value.ptr, _value, size);
             m_copy = true;
             m_nonlocal = true;
         }
-        memcpy (value, _value, size);
     } else {
         // Big enough to warrant a malloc, but the caller said don't
         // make a copy
@@ -88,7 +88,7 @@ ImageIOParameter::init (const std::string &_name, ParamBaseType _type,
 void
 ImageIOParameter::clear_value ()
 {
-    if (m_copy && m_nonlocal)
+    if (m_copy && m_nonlocal && m_value.ptr)
         free ((void *)m_value.ptr);
     m_value.ptr = NULL;
     m_copy = false;
@@ -229,20 +229,28 @@ OpenImageIO::pvt::convert_to_float (const void *src, float *dst, int nvals,
         return (float *)src;
     case PT_HALF :
         convert_type ((const half *)src, dst, nvals);
+        break;
     case PT_DOUBLE :
         convert_type ((const double *)src, dst, nvals);
+        break;
     case PT_INT8:
         convert_type ((const char *)src, dst, nvals);
+        break;
     case PT_UINT8 :
         convert_type ((const unsigned char *)src, dst, nvals);
+        break;
     case PT_INT16 :
         convert_type ((const short *)src, dst, nvals);
+        break;
     case PT_UINT16 :
         convert_type ((const unsigned short *)src, dst, nvals);
+        break;
     case PT_INT :
         convert_type ((const int *)src, dst, nvals);
+        break;
     case PT_UINT :
         convert_type ((const unsigned int *)src, dst, nvals);
+        break;
     default:
         std::cerr << "ERROR to_float: bad format\n";
         ASSERT (0);

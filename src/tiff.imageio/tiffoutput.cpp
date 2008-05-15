@@ -39,7 +39,7 @@
 using namespace OpenImageIO;
 
 
-class DLLPUBLIC TIFFOutput : public ImageOutput {
+class TIFFOutput : public ImageOutput {
 public:
     TIFFOutput ();
     virtual ~TIFFOutput ();
@@ -346,6 +346,8 @@ bool
 TIFFOutput::write_scanline (int y, int z, ParamBaseType format,
                             const void *data, int xstride)
 {
+    if (! xstride)
+        xstride = spec.nchannels;
     const void *origdata = data;
     data = to_native_scanline (format, data, xstride, m_scratch);
 
@@ -379,6 +381,12 @@ TIFFOutput::write_tile (int x, int y, int z,
                         ParamBaseType format, const void *data,
                         int xstride, int ystride, int zstride)
 {
+    if (! xstride)
+        xstride = spec.nchannels;
+    if (! ystride)
+        ystride = xstride * spec.width;
+    if (! zstride)
+        zstride = ystride * spec.height;
     x -= spec.x;   // Account for offset, so x,y are file relative, not 
     y -= spec.y;   // image relative
     const void *origdata = data;   // Stash original pointer

@@ -229,5 +229,5 @@ copy_dist_includes: make_dist_dirs
 
 # Include all the dependency files
 ifndef NODEP
--include ${ALLDEPS}
+-include ${ALL_DEPS}
 endif

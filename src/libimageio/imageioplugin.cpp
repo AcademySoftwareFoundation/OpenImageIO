@@ -162,7 +162,6 @@ catalog_plugin (const std::string &format_name,
 static void
 catalog_all_plugins (std::string searchpath)
 {
-    std::cerr << "catalog_all_plugins\n";
     const char *imageio_library_path = getenv ("IMAGEIO_LIBRARY_PATH");
     if (imageio_library_path && *imageio_library_path) {
         std::string newpath = imageio_library_path;
@@ -170,34 +169,33 @@ catalog_all_plugins (std::string searchpath)
             newpath = newpath + ':' + searchpath;
         searchpath = newpath;
     }
-    std::cerr << "catalog_all_plugins: searchpath = '" << searchpath << "'\n";
+//    std::cerr << "catalog_all_plugins: searchpath = '" << searchpath << "'\n";
 
     size_t patlen = pattern.length();
-    std::cerr << "pattern is " << pattern << ", length=" << patlen << "\n";
-    std::cerr.flush();
+//    std::cerr << "pattern is " << pattern << ", length=" << patlen << "\n";
     std::vector<std::string> dirs;
     Filesystem::searchpath_split (searchpath, dirs, true);
     BOOST_FOREACH (std::string &dir, dirs) {
-        std::cerr << "Directory " << dir << "\n";
+//        std::cerr << "Directory " << dir << "\n";
         boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
         for (boost::filesystem::directory_iterator itr (dir);
               itr != end_itr;  ++itr) {
             std::string full_filename = itr->path().string();
             std::string leaf = itr->path().leaf();
-            std::cerr << "\tfound file " << full_filename << ", leaf = '" << leaf << "'\n";
+//            std::cerr << "\tfound file " << full_filename << ", leaf = '" << leaf << "'\n";
             size_t found = leaf.find (pattern);
             if (found != std::string::npos &&
                 (found == leaf.length() - patlen)) {
                 std::string pluginname (leaf.begin(), leaf.begin() + leaf.length() - patlen);
-                std::cerr << "\t\tFound imageio plugin " << full_filename << "\n";
-                std::cerr << "\t\t\tplugin name = '" << pluginname << "'\n";
+//                std::cerr << "\t\tFound imageio plugin " << full_filename << "\n";
+//                std::cerr << "\t\t\tplugin name = '" << pluginname << "'\n";
                 catalog_plugin (pluginname, full_filename);
 //                plugin_names.push_back (full_filename);
 //                plugin_handles.push_back (0);
             }
         }
     }
-    std::cerr << "done catalog_all\n";
+//    std::cerr << "done catalog_all\n";
 }
 
 
