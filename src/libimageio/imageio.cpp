@@ -272,6 +272,10 @@ _from_float (const float *src, T *dst, size_t nvals,
     if (! src) {
         // If no source pixels, assume zeroes
         memset (dst, 0, nvals * sizeof(T));
+        T z = (T) quantize (0, quant_black, quant_white,
+                            quant_min, quant_max, quant_dither);
+        for (size_t p = 0;  p < nvals;  ++p)
+            dst[p] = z;
     } else if (std::numeric_limits <T>::is_integer) {
         // Convert float to non-float native format, with quantization
         for (size_t p = 0;  p < nvals;  ++p)

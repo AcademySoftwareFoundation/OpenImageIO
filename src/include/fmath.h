@@ -40,12 +40,15 @@
 /// The conversion is not a simple cast, but correctly remaps the
 /// 0.0->1.0 range from and to the full positive range of integral
 /// types.  Take a memcpy shortcut if both types are the same and no
-/// conversion is necessary. 
+/// conversion is necessary.  Optional arguments can give nonstandard
+/// quantizations.
 //
 // FIXME: make table-based specializations for common types with only a
 // few possible src values (like unsigned char -> float).
 template<typename S, typename D>
-void convert_type (const S *src, D *dst, size_t n)
+void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
+                   D _min=std::numeric_limits<D>::min(),
+                   D _max=std::numeric_limits<D>::max())
 {
     if (sizeof(D) == sizeof(S) &&
         std::numeric_limits<D>::min() == std::numeric_limits<S>::min() &&
@@ -56,12 +59,12 @@ void convert_type (const S *src, D *dst, size_t n)
     }
     typedef float F;
     F scale = std::numeric_limits<S>::is_integer ?
-        ((F)1.0)/std::numeric_limits<D>::max() : (F)1.0;
+        ((F)1.0)/std::numeric_limits<S>::max() : (F)1.0;
     if (std::numeric_limits<D>::is_integer) {
         // Converting to an integer-like type.
-        F min = (F)std::numeric_limits<D>::min();
-        F max = (F)std::numeric_limits<D>::max();
-        scale *= max;
+        F min = (F)_min;  // std::numeric_limits<D>::min();
+        F max = (F)_max;  // std::numeric_limits<D>::max();
+        scale *= _max;
         // Unroll loop for speed
         for ( ; n >= 16; n -= 16) {
             *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));

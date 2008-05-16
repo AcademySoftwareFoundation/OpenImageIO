@@ -112,7 +112,7 @@ JpgInput::open (const char *name, ImageIOFormatSpec &newspec)
     spec.full_width = spec.width;
     spec.full_height = spec.height;
     spec.full_depth = spec.depth;
-    spec.format = PT_UINT8;
+    spec.set_format (PT_UINT8);
     spec.tile_width = 0;
     spec.tile_height = 0;
     spec.tile_depth = 0;

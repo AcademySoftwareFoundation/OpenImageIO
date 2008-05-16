@@ -130,12 +130,12 @@ getargs (int argc, char *argv[])
         else if (! strcmp (argv[i], "-g") || ! strcmp (argv[i], "--gamma")) {
             if (i < argc-1) {
                 gammaval = atof (argv[++i]);
-                continue;
-            } else {
-                std::cerr << "iconvert: -g argument needs to be followed by a numeric argument\n";
-                usage();
-                exit (0);
+                if (gammaval > 0)
+                    continue;
             }
+            std::cerr << "iconvert: -g argument needs to be followed by a positive gamma value\n";
+            usage();
+            exit (0);
         }
         else if (! strcmp (argv[i], "-d") || ! strcmp (argv[i], "--data-format")) {
             if (i < argc-1) {
@@ -184,6 +184,7 @@ main (int argc, char *argv[])
 
     // Copy the spec, with possible change in format
     ImageIOFormatSpec outspec = inspec;
+    outspec.set_format (inspec.format);
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
             outspec.set_format (PT_UINT8);
@@ -200,6 +201,7 @@ main (int argc, char *argv[])
         else if (dataformatname == "double")
             outspec.set_format (PT_DOUBLE);
     }
+    outspec.gamma = gammaval;
 
     // Find an ImageIO plugin that can open the output file, and open it
     ImageOutput *out = ImageOutput::create (filenames[1].c_str());
@@ -218,13 +220,9 @@ main (int argc, char *argv[])
 
     char *pixels = new char [outspec.image_bytes()];
     in->read_image (outspec.format, pixels);
-    char *mid = pixels + outspec.scanline_bytes()*outspec.height/2 + outspec.pixel_bytes()*outspec.width/2;
-    std::cerr << "read image, mid pixel = " << (int)mid[0] << ' ' << (int)mid[1] << ' ' << (int)mid[2] << "\n";
-    std::cerr << "about to close\n";
     in->close ();
-    std::cerr << "closed\n";
-    delete in;  in = NULL;
-    std::cerr << "deleted\n";
+    delete in;
+    in = NULL;
     out->write_image (outspec.format, pixels);
     out->close ();
     delete out;

@@ -83,7 +83,7 @@ ImageOutput::to_native_scanline (ParamBaseType format,
                                  std::vector<char> &scratch)
 {
     return to_native_rectangle (0, spec.width-1, 0, 0, 0, 0, format, data,
-                                xstride, xstride*spec.width, 0, scratch);
+                                xstride, 0, 0, scratch);
 }
 
 
@@ -116,11 +116,12 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     // Compute width and height from the rectangle extents
     int width = xmax - xmin + 1;
     int height = ymax - ymin + 1;
+    int depth = zmax - zmin + 1;
 
     // Do the strides indicate that the data are already contiguous?
     bool contiguous = (xstride == spec.nchannels &&
-                       ystride == spec.nchannels*width &&
-                       (zstride == spec.nchannels*width*height || !zstride));
+                       (ystride == xstride*width || height == 1) &&
+                       (zstride == ystride*height || depth == 1));
     // Is the only conversion we are doing that of data format?
     bool data_conversion_only =  (contiguous && spec.gamma == 1.0f);
 
@@ -130,11 +131,12 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
         return data;
     }
 
-    int depth = zmax - zmin + 1;
     int rectangle_pixels = width * height * depth;
     int rectangle_values = rectangle_pixels * spec.nchannels;
-    bool contiguoussize = contiguous ? 0 
-                : rectangle_values * ParamBaseTypeSize(format);
+    int contiguoussize = contiguous ? 0 
+                             : rectangle_values * ParamBaseTypeSize(format);
+    contiguoussize = (contiguoussize+3) & (~3); // Round up to 4-byte boundary
+    DASSERT ((contiguoussize & 3) == 0);
     int rectangle_bytes = rectangle_pixels * spec.pixel_bytes();
     int floatsize = rectangle_values * sizeof(float);
     scratch.resize (contiguoussize + floatsize + rectangle_bytes);
@@ -143,10 +145,6 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     if (! contiguous) {
         data = contiguize (data, spec.nchannels, xstride, ystride, zstride,
                            (void *)&scratch[0], width, height, depth, format);
-        // Reset strides to indicate contiguous data
-        xstride = spec.nchannels;
-        ystride = spec.nchannels * width;
-        zstride = spec.nchannels * width * height;
     }
 
     // Rather than implement the entire cross-product of possible
@@ -178,7 +176,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     }
     // Convert from float to native format.
     return convert_from_float (buf, &scratch[contiguoussize+floatsize], 
-                       rectangle_pixels, spec.quant_black, spec.quant_white,
+                       rectangle_values, spec.quant_black, spec.quant_white,
                        spec.quant_min, spec.quant_max, spec.quant_dither,
                        spec.format);
 }

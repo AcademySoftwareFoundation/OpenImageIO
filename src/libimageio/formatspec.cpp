@@ -98,11 +98,11 @@ set_default_quantize (ParamBaseType format,
                       int &quant_min, int &quant_max, float &quant_dither)
 {
     switch (format) {
-    case PT_UNKNOWN:
     case PT_INT8:
         set_default_quantize <char> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
+    case PT_UNKNOWN:
     case PT_UINT8:
         set_default_quantize <unsigned char> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);

@@ -531,19 +531,6 @@ private:
 /// call error_message(), so call ImageIOErrorMessage().
 DLLPUBLIC std::string error_message ();
 
-/// Helper routines, used mainly by image output plugins, to search for
-/// entries in an array of ImageIOParameter.
-/// If the param[] array contains a param with the given name, type, and
-/// nvalues, then store its index within param[], and return its value.
-/// Else, set index to -1 and return NULL.
-DLLPUBLIC const void *IOParamFindValue (const char *name, ParamBaseType type,
-                                        int count, int& index, int nparams,
-                                        const ImageIOParameter *param);
-/// If the param[] array contains a param with the given name, and a
-/// single string value, return that value.  Else return NULL.
-DLLPUBLIC std::string IOParamFindString (const char *name, int nparams,
-                                         const ImageIOParameter *param);
-
 /// Helper routine: quantize a value to an integer given the 
 /// quantization parameters.
 DLLPUBLIC int quantize (float value, int quant_black, int quant_white,

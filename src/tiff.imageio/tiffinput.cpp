@@ -213,22 +213,22 @@ TIFFInput::read ()
     switch (bps) {
     case 8:
         if (sampleformat == SAMPLEFORMAT_UINT)
-            spec.format = PT_UINT8;
+            spec.set_format (PT_UINT8);
         else if (sampleformat == SAMPLEFORMAT_INT)
-            spec.format = PT_INT8;
+            spec.set_format (PT_INT8);
         break;
     case 16:
         if (sampleformat == SAMPLEFORMAT_UINT)
-            spec.format = PT_UINT16;
+            spec.set_format (PT_UINT16);
         else if (sampleformat == SAMPLEFORMAT_INT)
-            spec.format = PT_INT16;
+            spec.set_format (PT_INT16);
         break;
     case 32:
         if (sampleformat == SAMPLEFORMAT_IEEEFP)
-            spec.format = PT_FLOAT;
+            spec.set_format (PT_FLOAT);
         break;
     default:
-        spec.format = PT_UNKNOWN;
+        spec.set_format (PT_UNKNOWN);
         break;
     }
 
