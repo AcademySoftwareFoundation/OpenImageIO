@@ -43,6 +43,8 @@ static float gammaval = 1.0f;
 static bool depth = false;
 static bool verbose = false;
 static std::vector<std::string> filenames;
+static int tile[3] = { 0, 0, 1 };
+static bool scanline = false;
 
 
 
@@ -52,14 +54,16 @@ usage (void)
     std::cout << 
         "Usage:  iconvert [options] infile outfile\n"
         "    --help                      Print this help message\n"
+        "    -v [--verbose]              Verbose status messages\n"
         "    -d %s [--data-format %s]    Set the output format to one of:\n"
         "                                   uint8, sint8, uint16, sint16, half, float\n"
-        "    -f %s [--format %s]         Set the output format to one of:\n"
-        "                                   uint8, sint8, uint16, sint16, half, float\n"
-        "    -v [--verbose]              Verbose status messages\n"
+//        "    -f %s [--format %s]         FIXME Set the output format to one of:\n"
+//        "                                   uint8, sint8, uint16, sint16, half, float\n"
         "    -g %f [--gamma %f]          Set gamma correction (default=1)\n"
-        "    -z                          Treat input as a depth file\n"
-        "    -c %s [--channels %s]       Restrict/shuffle channels\n"
+        "    --tile %d %d [%d]           Output as a tiled image (2D or 3D)\n"
+        "    --scanline                  Output as a scanline image\n"
+        "    -z                          FIXME Treat input as a depth file\n"
+        "    -c %s [--channels %s]       FIXME Restrict/shuffle channels\n"
         ;
 }
 
@@ -147,6 +151,33 @@ getargs (int argc, char *argv[])
                 exit (0);
             }
         }
+        else if (! strcmp (argv[i], "--scanline")) {
+            scanline = true;
+            continue;
+        }
+        else if (! strcmp (argv[i], "--tile")) {
+            bool err = false;
+            if (i < argc-2) {
+                int t0 = atoi (argv[++i]);
+                int t1 = atoi (argv[++i]);
+                if (t0 > 0 && t1 > 0) {
+                    tile[0] = t0;
+                    tile[1] = t1;
+                    int t2;
+                    if (i < argc-1 && (t2 = atoi(argv[i+1])) > 0) {
+                        tile[2] = t2;
+                        ++i;
+                    }
+                } else err = true;
+            } else {
+                err = true;
+            }
+            if (err) {
+                std::cerr << "iconvert: --tile argument needs at least 2 size values\n";
+                usage();
+                exit (0);
+            }
+        }
         else {
             filenames.push_back (argv[i]);
         }
@@ -178,8 +209,8 @@ main (int argc, char *argv[])
     if (! in->open (filenames[0].c_str(), inspec)) {
         std::cerr << "iconvert ERROR: Could not open \"" << filenames[0]
                   << "\" : " << in->error_message() << "\n";
-        exit (0);
         delete in;
+        exit (0);
     }
 
     // Copy the spec, with possible change in format
@@ -202,6 +233,17 @@ main (int argc, char *argv[])
             outspec.set_format (PT_DOUBLE);
     }
     outspec.gamma = gammaval;
+
+    if (tile[0]) {
+        outspec.tile_width = tile[0];
+        outspec.tile_height = tile[1];
+        outspec.tile_depth = tile[2];
+    }
+    if (scanline) {
+        outspec.tile_width = 0;
+        outspec.tile_height = 0;
+        outspec.tile_depth = 0;
+    }
 
     // Find an ImageIO plugin that can open the output file, and open it
     ImageOutput *out = ImageOutput::create (filenames[1].c_str());

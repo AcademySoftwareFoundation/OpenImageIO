@@ -15,7 +15,7 @@ local_libs :=
 # module is not for a binary executable)
 local_shlibs := libimageio libutil
 
-# ld flags needed for this library
+# ld flags needed for this module
 local_ldflags := ${LINK_BOOST}
 
 
