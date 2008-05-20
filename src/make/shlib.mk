@@ -71,12 +71,17 @@ ${${name}_lib}: ${${name}_srcs} ${${name}_depfile} ${${name}_objs} ${${name}_nee
 	@ echo "Building shared library $@ ..."
 	${LDSHLIB} ${SHLIB_LDFLAGS} ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${notdir ${basename $@}}_linked_libs} ${${basename ${notdir $@}}_ldflags} ${SHLIB_DASHO}$@
 
+# Action to build the object files
+${${name}_obj_dir}/%${OEXT}: ${${name}_src_dir}/%.cpp
+	@ echo "Compiling $@ ..."
+	@ ${CXX} ${CFLAGS} ${CINCL}${${name}_src_dir} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}
 	@ echo "Building lib dependency $@ ..."
 	@ ${MKDIR} ${build_dir} ${build_dir}/obj ${ALL_BUILD_DIRS}
-	@ ${MAKEDEPEND} -f- -- ${CFLAGS} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
-		| ${SED} -e 's^${${notdir ${basename $@}}_src_dir}^${${notdir ${basename $@}}_obj_dir}^g' \
+	@ ${MAKEDEPEND} -f- -- ${CFLAGS} ${CINCL}${${notdir ${basename $@}}_src_dir} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
+		| ${SED} -e 's%^${${notdir ${basename $@}}_src_dir}%${${notdir ${basename $@}}_obj_dir}%g' \
 		> ${${notdir ${basename $@}}_depfile}
 
 
@@ -84,3 +89,4 @@ local_name :=
 local_src :=
 local_libs :=
 local_shlibs :=
+local_ldflags :=

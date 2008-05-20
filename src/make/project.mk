@@ -11,7 +11,8 @@
 # dist_files lists (relative to build) all files that end up in an
 # external distribution
 dist_bins    	:= iconvert${BINEXT} \
-		   iinfo${BINEXT}
+		   iinfo${BINEXT} \
+		   iv${BINEXT}
 dist_libs     	:= libimageio${SHLIBEXT} \
 		   jpeg.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
@@ -80,6 +81,10 @@ endif
 
 PROJECT_EXTRA_CXX := ${ILMBASE_CXX} ${OPENEXR_CXX} ${TIFF_CXX} ${JPEG_CXX} \
 			${ZLIB_CXX} ${BOOST_CXX}
+
+PROJECT_EXTRA_CXX += ${QT_INCLUDE}
+
+
 
 
 

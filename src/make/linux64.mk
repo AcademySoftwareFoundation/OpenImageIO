@@ -12,3 +12,7 @@ CFLAGS += -DLINUX -DLINUX64
 CFLAGS += -fPIC
 
 CP := cp -uvpf
+
+QT_INCLUDE := /usr/include/qt4/QtGui
+LINK_QT := -lQtOpenGL -lQtGui -lQtCore 
+

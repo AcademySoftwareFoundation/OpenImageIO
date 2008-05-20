@@ -13,3 +13,9 @@ CFLAGS += -DMACOSX -DOSX
 SHLIBEXT := .dylib
 SHLIB_LDFLAGS := -dynamiclib
 
+QT_INCLUDE := -I/Library/Frameworks/QtGui.framework/Headers
+LINK_QT := /Library/Frameworks/QtGui.framework/QtGui
+LINK_QT += /Library/Frameworks/QtOpenGL.framework/QtOpenGL
+LINK_QT += /Library/Frameworks/QtCore.framework/QtCore
+
+

@@ -44,9 +44,6 @@ ALL_SRC += ${${name}_srcs}
 ALL_LIBS += ${${name}_lib}
 ALL_DEPS += ${${name}_depfile}
 ALL_BUILD_DIRS += ${${name}_obj_dir}
-#ifdef PICLIBS
-#ALL_BUILD_DIRS += ${patsubst ${src_lib_dir}%,${build_pic_obj_dir}%,${f}}
-#endif
 
 #${info In lib.mk, now ALL_DEPS = ${ALL_DEPS}}
 #${info In lib.mk, now ALL_BUILD_DIRS = ${ALL_BUILD_DIRS}}
@@ -60,14 +57,18 @@ ${${name}_lib}: ${${name}_objs} ${${name}_depfile}
 	@ echo "Building library ${${name}_lib} $@ ..."
 	@ ${AR} ${AROUT}$@ ${${notdir ${basename $@}}_objs} 
 
+# Action to build the object files
+${${name}_obj_dir}/%${OEXT}: ${${name}_src_dir}/%.cpp
+	@ echo "Compiling $@ ..."
+	@ ${CXX} ${CFLAGS} ${CINCL}${${name}_src_dir} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}
 	@ echo "Building lib dependency $@ ..."
 	@ ${MKDIR} ${build_dir} ${build_dir}/obj ${ALL_BUILD_DIRS}
-	@ ${MAKEDEPEND} -f- -- ${CFLAGS} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
-		| ${SED} -e 's^${${notdir ${basename $@}}_src_dir}^${${notdir ${basename $@}}_obj_dir}^g' \
+	@ ${MAKEDEPEND} -f- -- ${CFLAGS} ${CINCL}${${notdir ${basename $@}}_src_dir} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
+		| ${SED} -e 's%^${${notdir ${basename $@}}_src_dir}%${${notdir ${basename $@}}_obj_dir}%g' \
 		> ${${notdir ${basename $@}}_depfile}
-
 
 
 local_name :=

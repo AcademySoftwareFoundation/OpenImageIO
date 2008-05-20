@@ -155,9 +155,16 @@ doxygen:
 
 #$(info RULE build_obj_dir=${build_obj_dir}    src_bin_dir=${src_bin_dir})
 
-${build_obj_dir}/%${OEXT}: ${src_dir}/%.cpp
-	@ echo "Compiling $@ ..."
-	${CXX} ${CFLAGS} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+# Old rule for compiling C++ files.  This has moved into bin.mk, lib.mk,
+# etc., since it needs to be defined in that context.
+#${build_obj_dir}/%${OEXT}: ${src_dir}/%.cpp
+#	@ echo "Compiling $@ ..."
+#	${CXX} ${CFLAGS} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+
+# Rule for using Qt's "moc" preprocessor
+moc_%.cpp: %.h
+	@ echo "Running 'moc' on $@ ..."
+	moc $< -o $@
 
 # end compilation rules
 #########################################################################

@@ -91,6 +91,7 @@ $(info platform=${platform}, hw=${hw})
 CFLAGS := -I${src_include_dir}
 DASHC := -c #
 DASHO := -o #
+CINCL := -I
 OEXT := .o
 
 # Creating static libraries

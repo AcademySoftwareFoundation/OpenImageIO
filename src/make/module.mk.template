@@ -10,15 +10,15 @@ local_name :=
 # Name of all source files in this directory
 local_src := 
 
-# Extra static libs needed to compile this binary (leave blank if this
+# Extra static libs needed to compile this module (leave blank if this
 # module is not for a binary executable)
 local_libs := 
 
-# Extra shared libs needed to compile this binary (leave blank if this
+# Extra shared libs needed to compile this module (leave blank if this
 # module is not for a binary executable)
 local_shlibs :=
 
-# ld flags needed for this library
+# ld flags needed for this module
 local_ldflags :=
 
 

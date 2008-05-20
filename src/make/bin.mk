@@ -73,12 +73,17 @@ ifndef DEBUG
 	@ ${STRIP_BINARY} $@
 endif
 
+# Action to build the object files
+${${name}_obj_dir}/%${OEXT}: ${${name}_src_dir}/%.cpp
+	@ echo "Compiling $@ ..."
+	@ ${CXX} ${CFLAGS} ${CINCL}${${name}_src_dir} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}
 	@ echo "Building bin dependency $@ from $^ ..."
 	@ ${MKDIR} ${build_dir} ${build_dir}/obj ${ALL_BUILD_DIRS}
-	@ ${MAKEDEPEND} -f- -- ${CFLAGS} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
-		| ${SED} -e 's^${${notdir ${basename $@}}_src_dir}^${${notdir ${basename $@}}_obj_dir}^g' \
+	@ ${MAKEDEPEND} -f- -- ${CFLAGS} ${CINCL}${${notdir ${basename $@}}_src_dir} -- ${${notdir ${basename $@}}_srcs} 2>/dev/null \
+		| ${SED} -e 's%^${${notdir ${basename $@}}_src_dir}%${${notdir ${basename $@}}_obj_dir}%g' \
 		> ${${notdir ${basename $@}}_depfile}
 
 
@@ -86,3 +91,4 @@ local_name :=
 local_src :=
 local_libs :=
 local_shlibs :=
+local_ldflags :=
