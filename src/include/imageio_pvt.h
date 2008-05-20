@@ -75,14 +75,6 @@ const void *convert_from_float (const float *src, void *dst, size_t nvals,
 bool convert_types (ParamBaseType src_type, const void *src, 
                     ParamBaseType dst_type, void *to, int n);
 
-/// Convert arbitrary data between two arbitrary types (specified by
-/// ParamBaseType's), taking into account non-contiguous strides.
-/// Return true if ok, false if it didn't know how to do the conversion.
-bool convert_types (ParamBaseType src_type, const void *src,
-                    ParamBaseType dst_type, void *dst,
-                    int channels, int width, int height, int depth,
-                    int xstride, int ystride, int zstride);
-
 
 };  // namespace OpenImageIO::pvt
 };  // namespace OpenImageIO

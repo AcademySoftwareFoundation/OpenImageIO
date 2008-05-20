@@ -46,7 +46,7 @@ bool
 ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
                            int xstride)
 {
-    if (! xstride)
+    if (xstride == OpenImageIO::AutoStride)
         xstride = spec.nchannels;
     bool contiguous = (xstride == spec.nchannels);
     if (contiguous && spec.format == format)  // Simple case
@@ -60,8 +60,9 @@ ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
         return false;
     ok = contiguous 
         ? convert_types (spec.format, buf, format, data, scanline_values)
-        : convert_types (spec.format, buf, format, data, spec.nchannels,
-                        spec.width, 1, 1, xstride, 0, 0);
+        : convert_image (spec.nchannels, spec.width, 1, 1, 
+                         buf, spec.format, spec.width, spec.height, spec.depth,
+                         data, format, xstride, 0, 0);
     if (! ok)
         error ("ImageInput::read_scanline : no support for format %s",
                ParamBaseTypeNameString(spec.format));
@@ -74,11 +75,11 @@ bool
 ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
                        int xstride, int ystride, int zstride)
 {
-    if (! xstride)
+    if (xstride == OpenImageIO::AutoStride)
         xstride = spec.nchannels;
-    if (! ystride)
+    if (ystride == OpenImageIO::AutoStride)
         ystride = xstride * spec.width;
-    if (! zstride)
+    if (zstride == OpenImageIO::AutoStride)
         zstride = ystride * spec.height;
     bool contiguous = (xstride == spec.nchannels &&
                        ystride == xstride*spec.tile_width &&
@@ -95,9 +96,9 @@ ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
         return false;
     ok = contiguous 
         ? convert_types (spec.format, buf, format, data, tile_values)
-        : convert_types (spec.format, buf, format, data, spec.nchannels,
-                         spec.tile_width, spec.tile_height, spec.tile_depth,
-                         xstride, ystride, zstride);
+        : convert_image (spec.nchannels, spec.tile_width, spec.tile_height, spec.tile_depth, 
+                         buf, spec.format, spec.tile_width, spec.tile_height, spec.tile_depth,
+                         data, format, xstride, ystride, zstride);
     if (! ok)
         error ("ImageInput::read_tile : no support for format %s",
                ParamBaseTypeNameString(spec.format));
@@ -111,11 +112,11 @@ bool
 ImageInput::read_image (ParamBaseType format, void *data,
                         int xstride, int ystride, int zstride)
 {
-    if (! xstride)
+    if (xstride == OpenImageIO::AutoStride)
         xstride = spec.nchannels;
-    if (! ystride)
+    if (ystride == OpenImageIO::AutoStride)
         ystride = xstride * spec.width;
-    if (! zstride)
+    if (zstride == OpenImageIO::AutoStride)
         zstride = ystride * spec.height;
     // Rescale strides to be in bytes, not channel elements
     int xstride_bytes = xstride * ParamBaseTypeSize (format);

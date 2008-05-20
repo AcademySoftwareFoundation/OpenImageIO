@@ -107,11 +107,11 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int xstride, int ystride, int zstride,
                                   std::vector<char> &scratch)
 {
-    if (! xstride)
+    if (xstride == OpenImageIO::AutoStride)
         xstride = spec.nchannels;
-    if (! ystride)
+    if (ystride == OpenImageIO::AutoStride)
         ystride = xstride * spec.width;
-    if (! zstride)
+    if (zstride == OpenImageIO::AutoStride)
         zstride = ystride * spec.height;
     // Compute width and height from the rectangle extents
     int width = xmax - xmin + 1;
@@ -187,11 +187,11 @@ bool
 ImageOutput::write_image (ParamBaseType format, const void *data,
                           int xstride, int ystride, int zstride)
 {
-    if (! xstride)
+    if (xstride == OpenImageIO::AutoStride)
         xstride = spec.nchannels;
-    if (! ystride)
+    if (ystride == OpenImageIO::AutoStride)
         ystride = xstride * spec.width;
-    if (! zstride)
+    if (zstride == OpenImageIO::AutoStride)
         zstride = ystride * spec.height;
     // Rescale strides to be in bytes, not channel elements
     int xstride_bytes = xstride * ParamBaseTypeSize (format);

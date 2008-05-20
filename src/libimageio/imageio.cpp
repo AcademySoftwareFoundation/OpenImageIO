@@ -398,39 +398,48 @@ OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src,
 
 
 bool
-OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src,
-                                 ParamBaseType dst_type, void *dst,
-                                 int channels, int width, int height, int depth,
-                                 int xstride, int ystride, int zstride)
+OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
+                            const void *src, ParamBaseType src_type,
+                            int src_xstride, int src_ystride, int src_zstride,
+                            void *dst, ParamBaseType dst_type,
+                            int dst_xstride, int dst_ystride, int dst_zstride)
 {
+    if (src_xstride == OpenImageIO::AutoStride)
+        src_xstride = nchannels;
+    if (src_ystride == OpenImageIO::AutoStride)
+        src_ystride = src_xstride * width;
+    if (src_zstride == OpenImageIO::AutoStride)
+        src_zstride = src_ystride * height;
+    if (dst_xstride == OpenImageIO::AutoStride)
+        dst_xstride = nchannels;
+    if (dst_ystride == OpenImageIO::AutoStride)
+        dst_ystride = dst_xstride * width;
+    if (dst_zstride == OpenImageIO::AutoStride)
+        dst_zstride = dst_ystride * height;
+
     bool result = true;
     int src_bytes = ParamBaseTypeSize(src_type);
     int dst_bytes = ParamBaseTypeSize(dst_type);
-    if (xstride == channels) {
-        // Special case: pixels within each row are contiguous
-        int n = channels * width;
-        for (int z = 0;  z < depth;  ++z) {
-            for (int y = 0;  y < height;  ++y) {
-                const unsigned char *f = (const unsigned char *)src + 
-                    src_bytes*channels*(z*width*height + y*width);
-                unsigned char *t = (unsigned char *)dst +
-                    dst_bytes * (z*zstride + y*ystride);
-                result &= convert_types (src_type, f, dst_type, t, n);
-            }
-        }
-    } else {
-        // General case -- anything goes with strides
-        int n = channels;
-        for (int z = 0;  z < depth;  ++z) {
-            for (int y = 0;  y < height;  ++y) {
-                const unsigned char *f = (const unsigned char *)src + 
-                    src_bytes*channels*(z*width*height + y*width);
-                unsigned char *t = (unsigned char *)dst +
-                    dst_bytes * (z*zstride + y*ystride);
+    bool contig = (src_xstride == dst_xstride && src_xstride == nchannels);
+    for (int z = 0;  z < depth;  ++z) {
+        for (int y = 0;  y < height;  ++y) {
+            const unsigned char *f = (const unsigned char *)src + 
+                src_bytes * (z*src_zstride + y*src_ystride);
+            unsigned char *t = (unsigned char *)dst +
+                dst_bytes * (z*dst_zstride + y*dst_ystride);
+            if (contig) {
+                // Special case: pixels within each row are contiguous
+                // in both src and dst and we're copying all channels.
+                // Be efficient by converting each scanline as a single
+                // unit.  (Note that within convert_types, a memcpy will
+                // be used if the formats are identical.)
+                result &= convert_types (src_type, f, dst_type, t, nchannels*width);
+            } else {
+                // General case -- anything goes with strides.
                 for (int x = 0;  x < width;  ++x) {
-                    result &= convert_types (src_type, f, dst_type, t, n);
-                    f += channels * src_bytes;
-                    t += xstride * dst_bytes;
+                    result &= convert_types (src_type, f, dst_type, t, nchannels);
+                    f += src_xstride * src_bytes;
+                    t += dst_xstride * dst_bytes;
                 }
             }
         }
