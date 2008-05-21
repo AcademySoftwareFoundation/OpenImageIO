@@ -158,28 +158,15 @@ main (int argc, char *argv[])
 {
     getargs (argc, argv);
 
-#if 0
-    long long totalsize = 0;
-    BOOST_FOREACH (const std::string &s, filenames) {
-        ImageInput *in = ImageInput::create (s.c_str(), "" /* searchpath */);
-        ImageIOFormatSpec spec;
-        if (in->open (s.c_str(), spec)) {
-            print_info (s, in, spec, verbose, sum, totalsize);
-            in->close ();
-        } else {
-            fprintf (stderr, "iv: Could not open \"%s\" : %s",
-                     s.c_str(), in->error_message().c_str());
-        }
-        delete in;
-    }
-#endif
-
-    
     // LG
 //    Q_INIT_RESOURCE(iv);
     QApplication app(argc, argv);
-//    IvMainWindow *mainWin = new IvMainWindow;
     ImageViewer *mainWin = new ImageViewer;
     mainWin->show();
+
+    BOOST_FOREACH (const std::string &s, filenames) {
+        mainWin->add_image (s);
+    }
+
     return app.exec();
 }

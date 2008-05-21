@@ -25,11 +25,53 @@
 
 
 #include <iostream>
+#include <cmath>
 
 #include <boost/foreach.hpp>
 
 #include "imageviewer.h"
 #include "dassert.h"
+#include "strutil.h"
+
+
+
+/// Subclass QScrollArea just so we can intercept the keystrokes, in
+/// particular the arrows that we want to page between images in our UI,
+/// not to be hooked to the scroll bars.
+class IvScrollArea : public QScrollArea
+{
+public:
+    IvScrollArea (ImageViewer &viewer) : m_viewer(viewer) { }
+private:
+    void keyPressEvent (QKeyEvent *event);
+    ImageViewer &m_viewer;
+};
+
+
+void
+IvScrollArea::keyPressEvent (QKeyEvent *event)
+{
+//    std::cerr << "IvScrollArea key " << (int)event->key() << '\n';
+    switch (event->key()) {
+#if 1
+    case Qt::Key_Left :
+    case Qt::Key_Up :
+    case Qt::Key_PageUp :
+        m_viewer.prevImage();
+        return;  //break;
+    case Qt::Key_Right :
+//        std::cerr << "Modifier is " << (int)event->modifiers() << '\n';
+//        fprintf (stderr, "%x\n", event->modifiers());
+//        if (event->modifiers() == Qt::ControlModifier)
+//            std::cerr << "hey, ctrl right\n";
+    case Qt::Key_Down :
+    case Qt::Key_PageDown :
+        m_viewer.nextImage();
+        return; //break;
+#endif
+    }
+    QScrollArea::keyPressEvent (event);
+}
 
 
 
@@ -41,7 +83,7 @@ ImageViewer::ImageViewer ()
     imageLabel->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
     imageLabel->setScaledContents (true);
 
-    scrollArea = new QScrollArea;
+    scrollArea = new IvScrollArea (*this);
     scrollArea->setBackgroundRole (QPalette::Dark);
     scrollArea->setWidget (imageLabel);
     setCentralWidget (scrollArea);
@@ -105,6 +147,19 @@ void ImageViewer::createActions()
 
     aboutAct = new QAction(tr("&About"), this);
     connect(aboutAct, SIGNAL(triggered()), this, SLOT(about()));
+
+#if 1
+    // FIXME: why doesn't this work?
+    prevImageAct = new QAction(tr("Previous Image"), this);
+    prevImageAct->setShortcut(tr("PageUp"));
+    prevImageAct->setEnabled(true);
+    connect (prevImageAct, SIGNAL(triggered()), this, SLOT(prevImage()));
+
+    nextImageAct = new QAction(tr("Next Image"), this);
+    nextImageAct->setShortcut(tr("PageDown"));
+    nextImageAct->setEnabled(true);
+    connect (nextImageAct, SIGNAL(triggered()), this, SLOT(nextImage()));
+#endif
 }
 
 
@@ -126,6 +181,9 @@ ImageViewer::createMenus()
     menuBar()->addMenu (imageMenu);
 
     viewMenu = new QMenu(tr("&View"), this);
+    viewMenu->addAction(prevImageAct);
+    viewMenu->addAction(nextImageAct);
+    viewMenu->addSeparator();
     viewMenu->addAction(zoomInAct);
     viewMenu->addAction(zoomOutAct);
     viewMenu->addAction(normalSizeAct);
@@ -164,7 +222,16 @@ ImageViewer::createToolBars()
 void
 ImageViewer::createStatusBar()
 {
-    statusBar()->showMessage(tr("iv status"));
+    statusImgInfo = new QLabel;
+    statusBar()->addWidget (statusImgInfo);
+
+    statusViewInfo = new QLabel;
+    statusBar()->addWidget (statusViewInfo);
+
+    statusProgress = new QProgressBar;
+    statusProgress->setRange (0, 100);
+    statusProgress->reset ();
+    statusBar()->addWidget (statusProgress);
 }
 
 
@@ -191,28 +258,92 @@ ImageViewer::writeSettings()
 
 
 
+bool
+image_progress_callback (void *opaque, float done)
+{
+    ImageViewer *viewer = (ImageViewer *) opaque;
+    viewer->statusProgress->setValue ((int)(done*100));
+    return false;
+}
+
+
+
 void ImageViewer::open()
 {
     QString qfileName = QFileDialog::getOpenFileName (this,
                                     tr("Open File"), QDir::currentPath());
     std::string filename = qfileName.toStdString();
-
     if (filename.empty())
         return;
 
-    IvImage *newimage = new IvImage();
-    ASSERT (newimage);
-    if (! newimage->read (filename)) {
-        QMessageBox::information (this, tr("iv Image Viewer"),
-                                  tr("%1").arg(newimage->error_message().c_str()));
-    }
+    add_image (filename, false);
+    m_current_image = m_images.size()-1;
+    IvImage *newimage = m_images[m_current_image];
+    newimage->read (false, image_progress_callback, this);
+    displayCurrentImage ();
+}
 
-    const ImageIOFormatSpec &spec (newimage->spec());
-    QImage image (spec.width, spec.height, 
+
+
+void
+ImageViewer::add_image (const std::string &filename, bool getspec)
+{
+    if (filename.empty())
+        return;
+    IvImage *newimage = new IvImage(filename);
+    ASSERT (newimage);
+    if (getspec) {
+        if (! newimage->init_spec (filename)) {
+            QMessageBox::information (this, tr("iv Image Viewer"),
+                              tr("%1").arg(newimage->error_message().c_str()));
+        } else {
+            std::cerr << "Added image " << filename << ": " << newimage->spec().width << " x " << newimage->spec().height << "\n";
+        }
+    }
+    m_images.push_back (newimage);
+    displayCurrentImage ();
+}
+
+
+
+void
+ImageViewer::displayCurrentImage ()
+{
+    if (m_images.empty())
+        return;
+    if (m_current_image < 0 || m_current_image >= (int)m_images.size())
+        m_current_image = 0;
+    IvImage *img = m_images[m_current_image];
+    const ImageIOFormatSpec &spec (img->spec());
+
+    std::string message;
+    message = Strutil::format ("iv Image Viewer   %d    %s", m_current_image,
+                               img->name().c_str());
+    setWindowTitle (message.c_str());
+
+    message = Strutil::format (/*"%d) <b>%s</b> : " */  "%d x %d",
+                               /*m_current_image+1, img->name().c_str(), */
+                               spec.width, spec.height);
+    if (spec.depth > 1)
+        message += Strutil::format (" x %d", spec.depth);
+    message += Strutil::format (", %d channel %s (%.2f MB)",
+                                spec.nchannels,
+                                ParamBaseTypeNameString(spec.format),
+                                (float)spec.image_bytes() / (1024.0*1024.0));
+    statusImgInfo->setText(message.c_str()); // tr("iv status"));
+    message = Strutil::format ("%d:%d  exp %+.1f  gam %.2f",
+                               1, 1 /* FIXME! */,
+                               img->exposure(), img->gamma());
+    statusViewInfo->setText(message.c_str()); // tr("iv status"));
+
+    if (! img->read (false, image_progress_callback, this))
+        std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
+    QImage qimage (spec.width, spec.height, 
                   QImage::Format_ARGB32_Premultiplied);
     const int as = OpenImageIO::AutoStride;
+    float gain = powf (2.0, img->exposure());
     for (int y = 0;  y < spec.height;  ++y) {
-        unsigned char *sl = image.scanLine (y);
+        unsigned char *sl = qimage.scanLine (y);
         unsigned long *argb = (unsigned long *) sl;
         for (int x = 0;  x < spec.width;  ++x)
             argb[x] = 0xff000000;
@@ -220,32 +351,28 @@ void ImageViewer::open()
         // because of byte order on Intel chips, it's really BGRA in
         // memory.  Grrr... So we have to move each channel individually.
         convert_image (1, spec.width, 1, 1,
-                       newimage->scanline (y), spec.format, spec.nchannels, as, as,
-                       sl+2, PT_UINT8, 4, as, as);
+                       img->scanline (y), spec.format, spec.nchannels, as, as,
+                       sl+2, PT_UINT8, 4, as, as, gain);
         if (spec.nchannels > 1)
             convert_image (1, spec.width, 1, 1,
-                           (char *)newimage->scanline (y) + 1*spec.channel_bytes(),
+                           (char *)img->scanline (y) + 1*spec.channel_bytes(),
                            spec.format, spec.nchannels, as, as,
-                           sl+1, PT_UINT8, 4, as, as);
+                           sl+1, PT_UINT8, 4, as, as, gain);
         if (spec.nchannels > 2)
             convert_image (1, spec.width, 1, 1,
-                           (char *)newimage->scanline (y) + 2*spec.channel_bytes(),
+                           (char *)img->scanline (y) + 2*spec.channel_bytes(),
                            spec.format, spec.nchannels, as, as,
-                           sl+0, PT_UINT8, 4, as, as);
+                           sl+0, PT_UINT8, 4, as, as, gain);
         if (spec.nchannels > 3)
             convert_image (1, spec.width, 1, 1,
-                           (char *)newimage->scanline (y) + 
+                           (char *)img->scanline (y) + 
                                (spec.nchannels-1)*spec.channel_bytes(),
                            spec.format, spec.nchannels, as, as,
                            sl+3, PT_UINT8, 4, as, as);
     }
 
-    // Add the new image to the image list, and set the current viewing
-    // image to the new one.
-    m_images.push_back (newimage);
-    m_current_image = m_images.size()-1;
 
-    imageLabel->setPixmap(QPixmap::fromImage(image));
+    imageLabel->setPixmap(QPixmap::fromImage(qimage));
     scaleFactor = 1.0;
     
     printAct->setEnabled(true);
@@ -254,6 +381,130 @@ void ImageViewer::open()
     
     if (!fitToWindowAct->isChecked())
         imageLabel->adjustSize();
+
+}
+
+
+
+void
+ImageViewer::prevImage ()
+{
+    if (m_images.empty())
+        return;
+    --m_current_image;
+    if (m_current_image < 0)
+        m_current_image = ((int)m_images.size()) - 1;
+    displayCurrentImage ();
+}
+
+
+void
+ImageViewer::nextImage ()
+{
+    if (m_images.empty())
+        return;
+    ++m_current_image;
+    if (m_current_image >= (int)m_images.size())
+        m_current_image = 0;
+    displayCurrentImage ();
+}
+
+
+
+void
+ImageViewer::exposureMinusOneTenthStop ()
+{
+    if (m_images.empty())
+        return;
+    IvImage *img = m_images[m_current_image];
+    img->exposure (img->exposure() - 0.1);
+    displayCurrentImage();
+}
+
+
+void
+ImageViewer::exposureMinusOneHalfStop ()
+{
+    if (m_images.empty())
+        return;
+    IvImage *img = m_images[m_current_image];
+    img->exposure (img->exposure() - 0.5);
+    displayCurrentImage();
+}
+
+
+void
+ImageViewer::exposurePlusOneTenthStop ()
+{
+    if (m_images.empty())
+        return;
+    IvImage *img = m_images[m_current_image];
+    img->exposure (img->exposure() + 0.1);
+    displayCurrentImage();
+}
+
+
+void
+ImageViewer::exposurePlusOneHalfStop ()
+{
+    if (m_images.empty())
+        return;
+    IvImage *img = m_images[m_current_image];
+    img->exposure (img->exposure() + 0.5);
+    displayCurrentImage();
+}
+
+
+
+void
+ImageViewer::gammaMinus ()
+{
+    if (m_images.empty())
+        return;
+    IvImage *img = m_images[m_current_image];
+    img->gamma (img->gamma() - 0.05);
+    displayCurrentImage();
+}
+
+
+void
+ImageViewer::gammaPlus ()
+{
+    if (m_images.empty())
+        return;
+    IvImage *img = m_images[m_current_image];
+    img->gamma (img->gamma() + 0.05);
+    displayCurrentImage();
+}
+
+
+
+void
+ImageViewer::keyPressEvent (QKeyEvent *event)
+{
+    switch (event->key()) {
+    case Qt::Key_BracketLeft :
+        exposureMinusOneTenthStop();
+        break;
+    case Qt::Key_BracketRight :
+        exposurePlusOneTenthStop();
+        break;
+    case Qt::Key_BraceLeft :
+        exposureMinusOneHalfStop();
+        break;
+    case Qt::Key_BraceRight :
+        exposurePlusOneHalfStop();
+        break;
+    case Qt::Key_ParenLeft :
+        gammaMinus();
+        break;
+    case Qt::Key_ParenRight :
+        gammaPlus();
+        break;
+    default:
+//        std::cerr << "ImageViewer key " << (int)event->key() << '\n';
+        QMainWindow::keyPressEvent (event);
+    }
 }
 
 
