@@ -59,7 +59,7 @@ ${${name}_lib}: ${${name}_objs} ${${name}_depfile}
 
 # Action to build the object files
 ${${name}_obj_dir}/%${OEXT}: ${${name}_src_dir}/%.cpp
-	@ echo "Compiling $@ ..."
+	@ echo "  Compiling $@ ..."
 	@ ${CXX} ${CFLAGS} ${CINCL}${${name}_src_dir} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
 
 # Action to build the dependency if any of the src files change

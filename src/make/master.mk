@@ -163,8 +163,8 @@ doxygen:
 
 # Rule for using Qt's "moc" preprocessor
 moc_%.cpp: %.h
-	@ echo "Running 'moc' on $@ ..."
-	moc $< -o $@
+	@ echo "  Running 'moc' on $@ ..."
+	@ moc $< -o $@
 
 # end compilation rules
 #########################################################################

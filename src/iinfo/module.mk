@@ -16,7 +16,7 @@ local_libs :=
 local_shlibs := libimageio libutil
 
 # ld flags needed for this library
-local_ldflags := ${LINK_BOOST}
+local_ldflags := ${LINK_BOOST} ${LINK_ILMBASE}
 
 
 
