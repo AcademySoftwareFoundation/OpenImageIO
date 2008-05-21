@@ -76,6 +76,13 @@ const int IMAGEIO_VERSION = 10;
 /// auto-computed.
 const int AutoStride = std::numeric_limits<int>::min();
 
+/// Pointer to a function called periodically by read_image and
+/// write_image.  This can be used to implement progress feedback, etc.
+/// It takes an opaque data pointer (passed to read_image/write_image)
+/// and a float giving the portion of work done so far.  It returns a 
+/// bool, which if 'true' will STOP the read or write.
+typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
+
 
 
 /// ImageIOParameter holds a parameter and a pointer to its value(s)
@@ -200,6 +207,33 @@ struct DLLPUBLIC ImageIOFormatSpec {
     /// Return the number of bytes for an entire image
     int image_bytes() const {
         return width * height * std::max(depth,1) * pixel_bytes ();
+    }
+
+    /// Adjust any AutoStride values to be the right sizes for contiguous
+    /// data of this format.
+    void auto_stride (int &xstride, int &ystride, int &zstride) {
+        auto_stride (xstride, ystride, zstride, nchannels, width, height);
+    }
+
+    void auto_stride (int &xstride) {
+        auto_stride (xstride, nchannels);
+    }
+
+    /// Adjust any AutoStride values to be the right sizes for
+    /// contiguous data with the given channels, width, height.
+    static void auto_stride (int &xstride, int &ystride, int &zstride,
+                             int nchannels, int width, int height) {
+        if (xstride == AutoStride)
+            xstride = nchannels;
+        if (ystride == AutoStride)
+            ystride = xstride * width;
+        if (zstride == AutoStride)
+            zstride = ystride * height;
+    }
+
+    static void auto_stride (int &xstride, int nchannels) {
+        if (xstride == AutoStride)
+            xstride = nchannels;
     }
 
     /// Add an optional parameter to the extra parameter list
@@ -338,7 +372,9 @@ public:
     /// in row-major order.
     virtual bool write_image (ParamBaseType format, const void *data,
                               int xstride=AutoStride, int ystride=AutoStride,
-                              int zstride=AutoStride);
+                              int zstride=AutoStride,
+                              ProgressCallback progress_callback=NULL,
+                              void *progress_callback_data=NULL);
 
     /// General message passing between client and image output server
     ///
@@ -485,14 +521,14 @@ public:
     /// ystride==xstride*spec.width, zstride=ystride*spec.height).
     virtual bool read_image (ParamBaseType format, void *data,
                              int xstride=AutoStride, int ystride=AutoStride,
-                             int zstride=AutoStride);
+                             int zstride=AutoStride,
+                             ProgressCallback progress_callback=NULL,
+                             void *progress_callback_data=NULL);
 
     ///
     /// Simple read_image reads to contiguous float pixels.
     bool read_image (float *data) {
-        return read_image (PT_FLOAT, data, spec.nchannels,
-                           spec.nchannels*spec.width,
-                           spec.nchannels*spec.width*spec.height);
+        return read_image (PT_FLOAT, data);
     }
 
     /// read_native_scanline is just like read_scanline, except that it
@@ -565,7 +601,8 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
                               const void *src, ParamBaseType src_type, 
                               int src_xstride, int src_ystride, int src_zstride,
                               void *dst, ParamBaseType dst_type,
-                              int dst_xstride, int dst_ystride, int dst_zstride);
+                              int dst_xstride, int dst_ystride, int dst_zstride,
+                              float gain=1, float gamma=1);
 
 // to force correct linkage on some systems
 DLLPUBLIC void _ImageIO_force_link ();

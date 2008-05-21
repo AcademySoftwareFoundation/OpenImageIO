@@ -290,7 +290,7 @@ _from_float (const float *src, T *dst, size_t nvals,
         }
         // Otherwise, it's converting between two fp types
         for (size_t p = 0;  p < nvals;  ++p)
-            dst[p] = src[p];
+            dst[p] = (T) src[p];
     }
 
     return dst;
@@ -350,34 +350,45 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 
 bool
 OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src, 
-                                 ParamBaseType dst_type, void *dst, int n)
+                                 ParamBaseType dst_type, void *dst, int n,
+                                 float gain)
 {
     // If no conversion is necessary, just memcpy
-    if (src_type == dst_type) {
+    if (src_type == dst_type && gain == 1.0f) {
         memcpy (dst, src, n * ParamBaseTypeSize(src_type));
         return true;
     }
 
     // Conversions are via a temporary float array
+    bool use_tmp = false;
     boost::scoped_array<float> tmp;
     float *buf;
-    if (src_type == PT_FLOAT)
+    if (src_type == PT_FLOAT && gain == 1.0f) {
         buf = (float *) src;
-    else {
+    } else {
         tmp.reset (new float[n]);  // Will be freed when tmp exists its scope
         buf = tmp.get();
+        use_tmp = true;
     }
 
-    // Convert from 'src_type' to float (or nothing, if already float)
-    switch (src_type) {
-    case PT_FLOAT :  break; // skip conversion
-    case PT_UINT8 :  convert_type ((const unsigned char *)src, buf, n);  break;
-    case PT_UINT16 : convert_type ((const unsigned short *)src, buf, n); break;
-    case PT_HALF :   convert_type ((const half *)src, buf, n);   break;
-    case PT_INT8 :   convert_type ((const char *)src, buf, n);   break;
-    case PT_INT16 :  convert_type ((const short *)src, buf, n);  break;
-    case PT_DOUBLE : convert_type ((const double *)src, buf, n); break;
-    default:         return false;  // unknown format
+    if (use_tmp) {
+        // Convert from 'src_type' to float (or nothing, if already float)
+        switch (src_type) {
+        case PT_UINT8 :  convert_type ((const unsigned char *)src, buf, n);  break;
+        case PT_UINT16 : convert_type ((const unsigned short *)src, buf, n); break;
+        case PT_FLOAT :  convert_type ((const float *)src, buf, n);  break;
+        case PT_HALF :   convert_type ((const half *)src, buf, n);   break;
+        case PT_DOUBLE : convert_type ((const double *)src, buf, n); break;
+        case PT_INT8 :   convert_type ((const char *)src, buf, n);   break;
+        case PT_INT16 :  convert_type ((const short *)src, buf, n);  break;
+        default:         return false;  // unknown format
+        }
+    }
+
+    if (gain != 1) {
+        ASSERT (use_tmp);
+        for (int i = 0;  i < n;  ++i)
+            buf[i] *= gain;
     }
 
     // Convert float to 'dst_type' (just a copy if dst is float)
@@ -402,21 +413,13 @@ OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
                             const void *src, ParamBaseType src_type,
                             int src_xstride, int src_ystride, int src_zstride,
                             void *dst, ParamBaseType dst_type,
-                            int dst_xstride, int dst_ystride, int dst_zstride)
+                            int dst_xstride, int dst_ystride, int dst_zstride,
+                            float gain, float gamma)
 {
-    if (src_xstride == OpenImageIO::AutoStride)
-        src_xstride = nchannels;
-    if (src_ystride == OpenImageIO::AutoStride)
-        src_ystride = src_xstride * width;
-    if (src_zstride == OpenImageIO::AutoStride)
-        src_zstride = src_ystride * height;
-    if (dst_xstride == OpenImageIO::AutoStride)
-        dst_xstride = nchannels;
-    if (dst_ystride == OpenImageIO::AutoStride)
-        dst_ystride = dst_xstride * width;
-    if (dst_zstride == OpenImageIO::AutoStride)
-        dst_zstride = dst_ystride * height;
-
+    ImageIOFormatSpec::auto_stride (src_xstride, src_ystride, src_zstride,
+                                    nchannels, width, height);
+    ImageIOFormatSpec::auto_stride (dst_xstride, dst_ystride, dst_zstride,
+                                    nchannels, width, height);
     bool result = true;
     int src_bytes = ParamBaseTypeSize(src_type);
     int dst_bytes = ParamBaseTypeSize(dst_type);
@@ -433,11 +436,13 @@ OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
                 // Be efficient by converting each scanline as a single
                 // unit.  (Note that within convert_types, a memcpy will
                 // be used if the formats are identical.)
-                result &= convert_types (src_type, f, dst_type, t, nchannels*width);
+                result &= convert_types (src_type, f, dst_type, t,
+                                         nchannels*width, gain);
             } else {
                 // General case -- anything goes with strides.
                 for (int x = 0;  x < width;  ++x) {
-                    result &= convert_types (src_type, f, dst_type, t, nchannels);
+                    result &= convert_types (src_type, f, dst_type, t,
+                                             nchannels, gain);
                     f += src_xstride * src_bytes;
                     t += dst_xstride * dst_bytes;
                 }

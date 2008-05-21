@@ -27,6 +27,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <unistd.h>
 
 #include "dassert.h"
 #include "paramtype.h"
@@ -46,8 +47,7 @@ bool
 ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
                            int xstride)
 {
-    if (xstride == OpenImageIO::AutoStride)
-        xstride = spec.nchannels;
+    spec.auto_stride (xstride);
     bool contiguous = (xstride == spec.nchannels);
     if (contiguous && spec.format == format)  // Simple case
         return read_native_scanline (y, z, data);
@@ -75,12 +75,7 @@ bool
 ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
                        int xstride, int ystride, int zstride)
 {
-    if (xstride == OpenImageIO::AutoStride)
-        xstride = spec.nchannels;
-    if (ystride == OpenImageIO::AutoStride)
-        ystride = xstride * spec.width;
-    if (zstride == OpenImageIO::AutoStride)
-        zstride = ystride * spec.height;
+    spec.auto_stride (xstride, ystride, zstride);
     bool contiguous = (xstride == spec.nchannels &&
                        ystride == xstride*spec.tile_width &&
                        zstride == ystride*spec.tile_height);
@@ -110,20 +105,20 @@ ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
 
 bool
 ImageInput::read_image (ParamBaseType format, void *data,
-                        int xstride, int ystride, int zstride)
+                        int xstride, int ystride, int zstride,
+                        OpenImageIO::ProgressCallback progress_callback,
+                        void *progress_callback_data)
 {
-    if (xstride == OpenImageIO::AutoStride)
-        xstride = spec.nchannels;
-    if (ystride == OpenImageIO::AutoStride)
-        ystride = xstride * spec.width;
-    if (zstride == OpenImageIO::AutoStride)
-        zstride = ystride * spec.height;
+    spec.auto_stride (xstride, ystride, zstride);
     // Rescale strides to be in bytes, not channel elements
     int xstride_bytes = xstride * ParamBaseTypeSize (format);
     int ystride_bytes = ystride * ParamBaseTypeSize (format);
     int zstride_bytes = zstride * ParamBaseTypeSize (format);
+    bool ok = true;
+    if (progress_callback)
+        if (progress_callback (progress_callback_data, 0.0f))
+            return ok;
     if (spec.tile_width) {
-        
         // Tiled image
 
         // FIXME: what happens if the image dimensions are smaller than
@@ -132,24 +127,31 @@ ImageInput::read_image (ParamBaseType format, void *data,
         // copy into it into buf?  That's probably the safe thing to do.
         // Or should that handling be pushed all the way into read_tile
         // itself?
-        bool ok = true;
         for (int z = 0;  z < spec.depth;  z += spec.tile_depth)
-            for (int y = 0;  y < spec.height;  y += spec.tile_height)
+            for (int y = 0;  y < spec.height;  y += spec.tile_height) {
                 for (int x = 0;  x < spec.width && ok;  y += spec.tile_width)
                     ok &= read_tile (x, y, z, format,
                                      (char *)data + z*zstride_bytes + y*ystride_bytes + x*xstride_bytes,
                                      xstride, ystride, zstride);
-        return ok;
+                if (progress_callback)
+                    if (progress_callback (progress_callback_data, (float)y/spec.height))
+                        return ok;
+            }
     } else {
         // Scanline image
-        bool ok = true;
         for (int z = 0;  z < spec.depth;  ++z)
-            for (int y = 0;  y < spec.height && ok;  ++y)
+            for (int y = 0;  y < spec.height && ok;  ++y) {
                 ok &= read_scanline (y, z, format,
                                      (char *)data + z*zstride_bytes + y*ystride_bytes,
                                      xstride);
-        return ok;
+                if (progress_callback && !(y & 0x0f))
+                    if (progress_callback (progress_callback_data, (float)y/spec.height))
+                        return ok;
+            }
     }
+    if (progress_callback)
+        progress_callback (progress_callback_data, 1.0f);
+    return ok;
 }
 
 

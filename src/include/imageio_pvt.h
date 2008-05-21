@@ -73,7 +73,8 @@ const void *convert_from_float (const float *src, void *dst, size_t nvals,
 /// (specified by ParamBaseType's).  Return true if ok, false if it
 /// didn't know how to do the conversion.
 bool convert_types (ParamBaseType src_type, const void *src, 
-                    ParamBaseType dst_type, void *to, int n);
+                    ParamBaseType dst_type, void *to, int n,
+                    float gain=1);
 
 
 };  // namespace OpenImageIO::pvt

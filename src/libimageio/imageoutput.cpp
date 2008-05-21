@@ -107,12 +107,8 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int xstride, int ystride, int zstride,
                                   std::vector<char> &scratch)
 {
-    if (xstride == OpenImageIO::AutoStride)
-        xstride = spec.nchannels;
-    if (ystride == OpenImageIO::AutoStride)
-        ystride = xstride * spec.width;
-    if (zstride == OpenImageIO::AutoStride)
-        zstride = ystride * spec.height;
+    spec.auto_stride (xstride, ystride, zstride);
+
     // Compute width and height from the rectangle extents
     int width = xmax - xmin + 1;
     int height = ymax - ymin + 1;
@@ -185,14 +181,11 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
 
 bool
 ImageOutput::write_image (ParamBaseType format, const void *data,
-                          int xstride, int ystride, int zstride)
+                          int xstride, int ystride, int zstride,
+                          OpenImageIO::ProgressCallback progress_callback,
+                          void *progress_callback_data)
 {
-    if (xstride == OpenImageIO::AutoStride)
-        xstride = spec.nchannels;
-    if (ystride == OpenImageIO::AutoStride)
-        ystride = xstride * spec.width;
-    if (zstride == OpenImageIO::AutoStride)
-        zstride = ystride * spec.height;
+    spec.auto_stride (xstride, ystride, zstride);
     // Rescale strides to be in bytes, not channel elements
     int xstride_bytes = xstride * ParamBaseTypeSize (format);
     int ystride_bytes = ystride * ParamBaseTypeSize (format);
@@ -201,7 +194,13 @@ ImageOutput::write_image (ParamBaseType format, const void *data,
         // Use a rectangle if we can
         return write_rectangle (0, spec.width-1, 0, spec.height-1, 0, spec.depth-1,
                                 format, data, xstride, ystride, zstride);
-    } else if (spec.tile_width && supports ("tiles")) {
+    }
+
+    bool ok = true;
+    if (progress_callback)
+        if (progress_callback (progress_callback_data, 0.0f))
+            return ok;
+    if (spec.tile_width && supports ("tiles")) {
         // Tiled image
 
         // FIXME: what happens if the image dimensions are smaller than
@@ -212,20 +211,30 @@ ImageOutput::write_image (ParamBaseType format, const void *data,
         // way into write_tile itself?
         bool ok = true;
         for (int z = 0;  z < spec.depth;  z += spec.tile_depth)
-            for (int y = 0;  y < spec.height;  y += spec.tile_height)
+            for (int y = 0;  y < spec.height;  y += spec.tile_height) {
                 for (int x = 0;  x < spec.width && ok;  y += spec.tile_width)
                     ok &= write_tile (x, y, z, format,
                                       (const char *)data + z*zstride_bytes + y*ystride_bytes + x*xstride_bytes,
                                       xstride, ystride, zstride);
-        return ok;
+                if (progress_callback)
+                    if (progress_callback (progress_callback_data, (float)y/spec.height))
+                        return ok;
+            }
     } else {
         // Scanline image
         bool ok = true;
         for (int z = 0;  z < spec.depth;  ++z)
-            for (int y = 0;  y < spec.height && ok;  ++y)
+            for (int y = 0;  y < spec.height && ok;  ++y) {
                 ok &= write_scanline (y, z, format,
                                       (const char *)data + z*zstride_bytes + y*ystride_bytes,
                                       xstride);
-        return ok;
+                if (progress_callback && !(y & 0x0f))
+                    if (progress_callback (progress_callback_data, (float)y/spec.height))
+                        return ok;
+            }
     }
+    if (progress_callback)
+        progress_callback (progress_callback_data, 1.0f);
+
+    return ok;
 }
