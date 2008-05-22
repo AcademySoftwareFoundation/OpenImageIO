@@ -50,6 +50,7 @@
 #include <vector>
 #include <string>
 #include <limits>
+#include <cmath>
 
 #include "export.h"
 #include "paramtype.h"   /* Needed for ParamBaseType definition */
@@ -586,7 +587,15 @@ DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
 
 /// Helper routine: compute (gain*value)^invgamma
 ///
-DLLPUBLIC float exposure (float value, float gain, float invgamma);
+inline float exposure (float value, float gain, float invgamma)
+{
+    if (invgamma != 1 && value >= 0)
+        return powf (gain * value, invgamma);
+    // Simple case - skip the expensive pow; also fall back to this
+    // case for negative values, for which gamma makes no sense.
+    return gain * value;
+}
+
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have

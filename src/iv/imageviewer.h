@@ -121,6 +121,11 @@ public:
     ImageViewer();
     ~ImageViewer();
 
+    enum ChannelViews {
+        viewR=0, viewG=1, viewB=2, viewA=3,
+        viewFullColor = -1, viewLuminance = -2
+    };
+
     /// Tell the viewer about an image, but don't load it yet.  If
     /// getspec is true, open the file just enough to get the
     /// specification.
@@ -128,6 +133,8 @@ public:
 
 private slots:
     void open();
+    void reload();
+    void closeImg();
     void print();
     void zoomIn();
     void zoomOut();
@@ -142,6 +149,14 @@ private slots:
     void exposurePlusOneHalfStop();
     void gammaMinus();
     void gammaPlus();
+    void viewChannelFull();
+    void viewChannelRed();
+    void viewChannelGreen();
+    void viewChannelBlue();
+    void viewChannelAlpha();
+    void viewChannelLuminance();
+    void viewChannelPrev();
+    void viewChannelNext();
 
 private:
     void createActions();
@@ -164,21 +179,32 @@ private:
     QPrinter printer;
 #endif
 
-    QAction *openAct;
+    QAction *openAct, *reloadAct, *closeImgAct;
     QAction *printAct;
     QAction *exitAct;
+    QAction *gammaPlusAct, *gammaMinusAct;
+    QAction *exposurePlusOneTenthStopAct, *exposurePlusOneHalfStopAct;
+    QAction *exposureMinusOneTenthStopAct, *exposureMinusOneHalfStopAct;
+    QAction *viewChannelFullAct, *viewChannelRedAct, *viewChannelGreenAct;
+    QAction *viewChannelBlueAct, *viewChannelAlphaAct, *viewChannelLuminanceAct;
+    QAction *viewChannelPrevAct, *viewChannelNextAct;
+//    QRadioButton *viewChannelFullButton, *viewChannelRedButton, *viewChannelGreenButton;
+//    QRadioButton *viewChannelBlueButton, *viewChannelAlphaButton, *viewChannelLuminanceButton;
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;
     QAction *fitToWindowAct;
     QAction *aboutAct;
     QAction *nextImageAct, *prevImageAct;
-    QMenu *fileMenu, *editMenu, *imageMenu, *viewMenu, *toolsMenu, *helpMenu;
-    QLabel *statusImgInfo, *statusViewInfo;;
+    QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
+    QMenu *expgamMenu, *channelMenu;
+    QLabel *statusImgInfo, *statusViewInfo;
+//    QButtonGroup *channelGroup;
     QProgressBar *statusProgress;
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
+    int m_current_channel;            ///< Channel we're viewing: ChannelViews
 
     friend class IvScrollArea;
     friend bool image_progress_callback (void *opaque, float done);

@@ -70,11 +70,12 @@ const void *convert_from_float (const float *src, void *dst, size_t nvals,
                                 ParamBaseType format);
 
 /// Convert contiguous arbitrary data between two arbitrary types
-/// (specified by ParamBaseType's).  Return true if ok, false if it
-/// didn't know how to do the conversion.
+/// (specified by ParamBaseType's), with optional gain and gamma
+/// correction.  Return true if ok, false if it didn't know how to do
+/// the conversion.
 bool convert_types (ParamBaseType src_type, const void *src, 
                     ParamBaseType dst_type, void *to, int n,
-                    float gain=1);
+                    float gain=1, float gamma=1);
 
 
 };  // namespace OpenImageIO::pvt

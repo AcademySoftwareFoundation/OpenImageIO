@@ -135,18 +135,6 @@ OpenImageIO::quantize (float value, int quant_black, int quant_white,
 
 
 
-float
-OpenImageIO::exposure (float value, float gain, float invgamma)
-{
-    if (invgamma != 1 && value >= 0)
-        return powf (gain * value, invgamma);
-    // Simple case - skip the expensive pow; also fall back to this
-    // case for negative values, for which gamma makes no sense.
-    return gain * value;
-}
-
-
-
 /// Type-independent template for turning potentially
 /// non-contiguous-stride data (e.g. "RGB RGB ") into contiguous-stride
 /// ("RGBRGB").  Caller must pass in a dst pointing to enough memory to
@@ -351,10 +339,10 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 bool
 OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src, 
                                  ParamBaseType dst_type, void *dst, int n,
-                                 float gain)
+                                 float gain, float gamma)
 {
     // If no conversion is necessary, just memcpy
-    if (src_type == dst_type && gain == 1.0f) {
+    if (src_type == dst_type && gain == 1.0f && gamma == 1.0f) {
         memcpy (dst, src, n * ParamBaseTypeSize(src_type));
         return true;
     }
@@ -363,7 +351,7 @@ OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src,
     bool use_tmp = false;
     boost::scoped_array<float> tmp;
     float *buf;
-    if (src_type == PT_FLOAT && gain == 1.0f) {
+    if (src_type == PT_FLOAT && gain == 1.0f && gamma == 1.0f) {
         buf = (float *) src;
     } else {
         tmp.reset (new float[n]);  // Will be freed when tmp exists its scope
@@ -385,10 +373,10 @@ OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src,
         }
     }
 
-    if (gain != 1) {
+    if (gain != 1.0f || gamma != 1.0f) {
         ASSERT (use_tmp);
         for (int i = 0;  i < n;  ++i)
-            buf[i] *= gain;
+            buf[i] = exposure (buf[i], gain, gamma);
     }
 
     // Convert float to 'dst_type' (just a copy if dst is float)
@@ -437,12 +425,12 @@ OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
                 // unit.  (Note that within convert_types, a memcpy will
                 // be used if the formats are identical.)
                 result &= convert_types (src_type, f, dst_type, t,
-                                         nchannels*width, gain);
+                                         nchannels*width, gain, gamma);
             } else {
                 // General case -- anything goes with strides.
                 for (int x = 0;  x < width;  ++x) {
                     result &= convert_types (src_type, f, dst_type, t,
-                                             nchannels, gain);
+                                             nchannels, gain, gamma);
                     f += src_xstride * src_bytes;
                     t += dst_xstride * dst_bytes;
                 }
