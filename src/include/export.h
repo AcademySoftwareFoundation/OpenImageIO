@@ -64,9 +64,7 @@
 //
 
 #ifndef DLLEXPORT
-#  if defined(_MSC_VER) && (defined(WIN32) || defined(_Windows) || \
-     defined(_WINDOWS) || defined(_WIN32) || defined(__WIN32__) || \
-     defined(WINNT))
+#  if defined(_MSC_VER) && (defined(_WINDOWS) || defined(_WIN32))
 #    define DLLEXPORT __declspec(dllexport)
 #  else
 #    define DLLEXPORT
@@ -74,9 +72,7 @@
 #endif
 
 #ifndef DLLPUBLIC
-#  if defined(_MSC_VER) && (defined(WIN32) || defined(_Windows) || \
-     defined(_WINDOWS) || defined(_WIN32) || defined(__WIN32__) || \
-     defined(WINNT))
+#  if defined(_MSC_VER) && (defined(_WINDOWS) || defined(_WIN32))
 #    ifdef DLL_EXPORT_PUBLIC
 #      define DLLPUBLIC __declspec(dllexport)
 #    else
