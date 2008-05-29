@@ -65,26 +65,25 @@ ifeq (${BOOST_HOME},)
   BOOST_HOME := ${THIRD_PARTY_TOOLS_HOME}
 endif
 BOOST_CXX := -I${BOOST_HOME}/include/boost_${BOOST_VERSION}
-LINK_BOOST := ${LD_LIBPATH}${BOOST_HOME}/lib/boost_${BOOST_VERSION}
-ifeq (${platform},osx)
-LINK_BOOST += -lboost_program_options-mt-1_35 \
-	      -lboost_filesystem-mt-1_35 \
-	      -lboost_system-mt-1_35 \
-	      -lboost_thread-mt-1_35
+BOOST_LIB_AREA := ${BOOST_HOME}/lib/boost_${BOOST_VERSION}
+ifeq (${platform},macosx)
+  BOOST_SUFFIX := -mt-1_35
 else
-LINK_BOOST += -lboost_program_options-gcc41-mt-1_35 \
-	      -lboost_filesystem-gcc41-mt-1_35 \
-	      -lboost_system-gcc41-mt-1_35 \
-	      -lboost_thread-gcc41-mt-1_35
+  BOOST_SUFFIX := -gcc41-mt-1_35
 endif
+LINK_BOOST := ${LD_LIBPATH}${BOOST_LIB_AREA}
+LINK_BOOST += -lboost_program_options${BOOST_SUFFIX} \
+	      -lboost_filesystem${BOOST_SUFFIX} \
+	      -lboost_system${BOOST_SUFFIX} \
+	      -lboost_thread${BOOST_SUFFIX}
+dist_extra_libs += ${BOOST_LIB_AREA}/libboost_program_options${BOOST_SUFFIX}${SHLIBEXT} \
+		   ${BOOST_LIB_AREA}/libboost_filesystem${BOOST_SUFFIX}${SHLIBEXT} \
+		   ${BOOST_LIB_AREA}/libboost_system${BOOST_SUFFIX}${SHLIBEXT} \
+		   ${BOOST_LIB_AREA}/libboost_thread${BOOST_SUFFIX}${SHLIBEXT}
 
 
 PROJECT_EXTRA_CXX := ${ILMBASE_CXX} ${OPENEXR_CXX} ${TIFF_CXX} ${JPEG_CXX} \
 			${ZLIB_CXX} ${BOOST_CXX}
 
 PROJECT_EXTRA_CXX += ${QT_INCLUDE}
-
-
-
-
 

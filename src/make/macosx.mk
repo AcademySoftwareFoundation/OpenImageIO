@@ -7,7 +7,7 @@
 
 
 
-CFLAGS += -DMACOSX -DOSX
+CFLAGS += -DMACOSX -g
 # ? -fno-common
 
 SHLIBEXT := .dylib

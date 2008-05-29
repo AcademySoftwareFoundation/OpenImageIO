@@ -54,7 +54,7 @@ endif
 
 # Mac OS X
 ifeq (${uname},darwin)
-  platform := osx
+  platform := macosx
 endif
 
 # If we haven't been able to determine the platform from uname, use

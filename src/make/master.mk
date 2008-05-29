@@ -201,7 +201,7 @@ build_bins: ${ALL_BINS}
 
 build_docs:
 
-dist: build copy_dist_bins copy_dist_libs copy_dist_includes
+dist: build copy_dist_bins copy_dist_libs copy_dist_includes copy_dist_extra_libs
 
 make_dist_dirs:
 	@ for f in ${dist_dirs}; do ${MKDIR} ${dist_dir}/$$f; done
@@ -225,6 +225,12 @@ copy_dist_includes: make_dist_dirs
 	@ for f in ${dist_includes}; do \
 	    ${CP} ${src_include_dir}/$$f ${dist_dir}/include; \
 	    ${CHMOD_RO} ${dist_dir}/include/$$f ; \
+	  done
+
+copy_dist_extra_libs: make_dist_dirs
+#	@ echo "Copying dist_extra_libs = ${dist_extra_libs}"
+	@ for f in ${dist_extra_libs}; do \
+	    ${CP} $$f ${dist_dir}/lib; \
 	  done
 
 
