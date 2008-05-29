@@ -150,9 +150,6 @@ print_info (const std::string &filename, ImageInput *input,
 
 
 
-
-
-
 int
 main (int argc, char *argv[])
 {

@@ -27,6 +27,8 @@
 #include <iostream>
 #include <cmath>
 
+#include <ImathFun.h>
+
 #include <boost/foreach.hpp>
 
 #include "imageviewer.h"
@@ -35,19 +37,23 @@
 
 
 
-/// Subclass QScrollArea just so we can intercept the keystrokes, in
-/// particular the arrows that we want to page between images in our UI,
-/// not to be hooked to the scroll bars.
+/// Subclass QScrollArea just so we can intercept events that we want
+/// handled in non-default ways.
 class IvScrollArea : public QScrollArea
 {
 public:
     IvScrollArea (ImageViewer &viewer) : m_viewer(viewer) { }
 private:
     void keyPressEvent (QKeyEvent *event);
+    void mousePressEvent (QMouseEvent *event);
     ImageViewer &m_viewer;
 };
 
 
+
+/// Replacement keyPressEvent for IvScroll Area intercepts the arrows
+/// that we want to page between images in our UI, not to be hooked to
+/// the scroll bars.
 void
 IvScrollArea::keyPressEvent (QKeyEvent *event)
 {
@@ -60,10 +66,10 @@ IvScrollArea::keyPressEvent (QKeyEvent *event)
         m_viewer.prevImage();
         return;  //break;
     case Qt::Key_Right :
-        std::cerr << "Modifier is " << (int)event->modifiers() << '\n';
-        fprintf (stderr, "%x\n", (int)event->modifiers());
-        if (event->modifiers() == Qt::ShiftModifier)
-            std::cerr << "hey, ctrl right\n";
+//        std::cerr << "Modifier is " << (int)event->modifiers() << '\n';
+//        fprintf (stderr, "%x\n", (int)event->modifiers());
+//        if (event->modifiers() & Qt::ShiftModifier)
+//            std::cerr << "hey, ctrl right\n";
     case Qt::Key_Down :
     case Qt::Key_PageDown :
         m_viewer.nextImage();
@@ -75,8 +81,26 @@ IvScrollArea::keyPressEvent (QKeyEvent *event)
 
 
 
+void
+IvScrollArea::mousePressEvent (QMouseEvent *event)
+{
+    switch (event->button()) {
+    case Qt::LeftButton :
+        m_viewer.zoomIn();
+        return;
+    case Qt::RightButton :
+        m_viewer.zoomOut();
+        return;;
+    }
+    QScrollArea::mousePressEvent (event);
+}
+
+
+
+
 ImageViewer::ImageViewer ()
-    : m_current_image(-1), m_current_channel(-1)
+    : m_current_image(-1), m_current_channel(-1), m_last_image(-1),
+      m_zoom(1)
 {
     imageLabel = new QLabel;
     imageLabel->setBackgroundRole (QPalette::Base);
@@ -85,6 +109,7 @@ ImageViewer::ImageViewer ()
 
     scrollArea = new IvScrollArea (*this);
     scrollArea->setBackgroundRole (QPalette::Dark);
+    scrollArea->setAlignment (Qt::AlignCenter);
     scrollArea->setWidget (imageLabel);
     setCentralWidget (scrollArea);
 
@@ -95,8 +120,9 @@ ImageViewer::ImageViewer ()
 
     readSettings();
 
-    setWindowTitle(tr("Image Viewer"));
-    resize(500, 400);
+    setWindowTitle (tr("Image Viewer"));
+    resize (640, 480);
+//    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
 }
 
 
@@ -115,7 +141,7 @@ void ImageViewer::createActions()
     openAct->setShortcut(tr("Ctrl+O"));
     connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
 
-    reloadAct = new QAction(tr("&Reload..."), this);
+    reloadAct = new QAction(tr("&Reload image"), this);
     reloadAct->setShortcut(tr("Ctrl+R"));
     connect(reloadAct, SIGNAL(triggered()), this, SLOT(reload()));
 
@@ -158,10 +184,14 @@ void ImageViewer::createActions()
 
     viewChannelFullAct = new QAction(tr("Full Color"), this);
     viewChannelFullAct->setShortcut(tr("c"));
+    viewChannelFullAct->setCheckable (true);
+    viewChannelFullAct->setChecked (true);
     connect(viewChannelFullAct, SIGNAL(triggered()), this, SLOT(viewChannelFull()));
 
     viewChannelRedAct = new QAction(tr("Red"), this);
     viewChannelRedAct->setShortcut(tr("r"));
+    viewChannelFullAct->setCheckable (true);
+    viewChannelFullAct->setChecked (false);
     connect(viewChannelRedAct, SIGNAL(triggered()), this, SLOT(viewChannelRed()));
 
     viewChannelGreenAct = new QAction(tr("Green"), this);
@@ -170,14 +200,20 @@ void ImageViewer::createActions()
 
     viewChannelBlueAct = new QAction(tr("Blue"), this);
     viewChannelBlueAct->setShortcut(tr("b"));
+    viewChannelFullAct->setCheckable (true);
+    viewChannelFullAct->setChecked (false);
     connect(viewChannelBlueAct, SIGNAL(triggered()), this, SLOT(viewChannelBlue()));
 
     viewChannelAlphaAct = new QAction(tr("Alpha"), this);
     viewChannelAlphaAct->setShortcut(tr("a"));
+    viewChannelFullAct->setCheckable (true);
+    viewChannelFullAct->setChecked (false);
     connect(viewChannelAlphaAct, SIGNAL(triggered()), this, SLOT(viewChannelAlpha()));
 
     viewChannelLuminanceAct = new QAction(tr("Luminance"), this);
     viewChannelLuminanceAct->setShortcut(tr("l"));
+    viewChannelFullAct->setCheckable (true);
+    viewChannelFullAct->setChecked (false);
     connect(viewChannelLuminanceAct, SIGNAL(triggered()), this, SLOT(viewChannelLuminance()));
 
     viewChannelPrevAct = new QAction(tr("Prev Channel"), this);
@@ -188,34 +224,38 @@ void ImageViewer::createActions()
     viewChannelNextAct->setShortcut(tr("."));
     connect(viewChannelNextAct, SIGNAL(triggered()), this, SLOT(viewChannelNext()));
 
-    zoomInAct = new QAction(tr("Zoom &In (25%)"), this);
+    zoomInAct = new QAction(tr("Zoom &In"), this);
     zoomInAct->setShortcut(tr("Ctrl++"));
     zoomInAct->setEnabled(false);
     connect(zoomInAct, SIGNAL(triggered()), this, SLOT(zoomIn()));
 
-    zoomOutAct = new QAction(tr("Zoom &Out (25%)"), this);
+    zoomOutAct = new QAction(tr("Zoom &Out"), this);
     zoomOutAct->setShortcut(tr("Ctrl+-"));
     zoomOutAct->setEnabled(false);
     connect(zoomOutAct, SIGNAL(triggered()), this, SLOT(zoomOut()));
 
-    normalSizeAct = new QAction(tr("&Normal Size"), this);
-    normalSizeAct->setShortcut(tr("Ctrl+S"));
+    normalSizeAct = new QAction(tr("&Normal Size (1:1)"), this);
+//    normalSizeAct->setShortcut(tr("Ctrl+S"));
     normalSizeAct->setEnabled(false);
     connect(normalSizeAct, SIGNAL(triggered()), this, SLOT(normalSize()));
 
-    fitToWindowAct = new QAction(tr("&Fit to Window"), this);
-    fitToWindowAct->setEnabled(false);
-    fitToWindowAct->setCheckable(true);
-    fitToWindowAct->setShortcut(tr("Ctrl+F"));
-    connect(fitToWindowAct, SIGNAL(triggered()), this, SLOT(fitToWindow()));
+    fitWindowToImageAct = new QAction(tr("&Fit Window to Image"), this);
+    fitWindowToImageAct->setEnabled(false);
+//    fitWindowToImageAct->setCheckable(true);
+    fitWindowToImageAct->setShortcut(tr("f"));
+    connect(fitWindowToImageAct, SIGNAL(triggered()), this, SLOT(fitWindowToImage()));
+
+    fitImageToWindowAct = new QAction(tr("Fit Image to Window"), this);
+    fitImageToWindowAct->setEnabled(false);
+//    fitImageToWindowAct->setCheckable(true);
+    fitImageToWindowAct->setShortcut(tr("F"));
+    connect(fitImageToWindowAct, SIGNAL(triggered()), this, SLOT(fitImageToWindow()));
 
     aboutAct = new QAction(tr("&About"), this);
     connect(aboutAct, SIGNAL(triggered()), this, SLOT(about()));
 
-#if 1
-    // FIXME: why doesn't this work?
     prevImageAct = new QAction(tr("Previous Image"), this);
-    prevImageAct->setShortcut(tr("PageUp"));
+    prevImageAct->setShortcut(tr("PgUp"));  // FIXME: Does this work?
     prevImageAct->setEnabled(true);
     connect (prevImageAct, SIGNAL(triggered()), this, SLOT(prevImage()));
 
@@ -223,7 +263,11 @@ void ImageViewer::createActions()
     nextImageAct->setShortcut(tr("PageDown"));
     nextImageAct->setEnabled(true);
     connect (nextImageAct, SIGNAL(triggered()), this, SLOT(nextImage()));
-#endif
+
+    toggleImageAct = new QAction(tr("Toggle image"), this);
+    toggleImageAct->setShortcut(tr("t"));
+    toggleImageAct->setEnabled(true);
+    connect (toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 }
 
 
@@ -235,11 +279,12 @@ ImageViewer::createMenus()
     fileMenu->addAction (openAct);
     fileMenu->addAction (reloadAct);
     fileMenu->addAction (closeImgAct);
-    fileMenu->addAction (printAct);
     fileMenu->addSeparator ();
     // Save as ^S
     // Save window as Shift-Ctrl-S
     // Save selection as
+    fileMenu->addSeparator ();
+    fileMenu->addAction (printAct);
     fileMenu->addSeparator ();
     // Preferences ^,
     fileMenu->addAction (exitAct);
@@ -265,7 +310,7 @@ ImageViewer::createMenus()
     
     channelMenu = new QMenu(tr("Channels"));
 //    viewChannelFullButton = new QRadioButton(tr("Full Color"));
-//    channelMenu-L
+    // Color mode: true, random, falsegrgbacCrgR
     channelMenu->addAction (viewChannelFullAct);
     channelMenu->addAction (viewChannelRedAct);
     channelMenu->addAction (viewChannelGreenAct);
@@ -274,25 +319,23 @@ ImageViewer::createMenus()
     channelMenu->addAction (viewChannelLuminanceAct);
     channelMenu->addAction (viewChannelPrevAct);
     channelMenu->addAction (viewChannelNextAct);
+//    channelMenu-L
 
     viewMenu = new QMenu(tr("&View"), this);
     viewMenu->addAction (prevImageAct);
     viewMenu->addAction (nextImageAct);
+    viewMenu->addAction (toggleImageAct);
     viewMenu->addSeparator ();
     viewMenu->addAction (zoomInAct);
     viewMenu->addAction (zoomOutAct);
     viewMenu->addAction (normalSizeAct);
-    viewMenu->addAction (fitToWindowAct);
+    viewMenu->addAction (fitWindowToImageAct);
+    viewMenu->addAction (fitImageToWindowAct);
     viewMenu->addSeparator ();
     viewMenu->addMenu (channelMenu);
     viewMenu->addMenu (expgamMenu);
     menuBar()->addMenu (viewMenu);
-    // Fit image to window
-    // Fit window to image
     // Full screen mode
-    // Channel views: full color C, red R, green G, blue B, alpha A, luminance L
-    // Color mode: true, random, falsegrgbacCrgR
-    // prev channel ',', next channel '.'
     // prev subimage <, next subimage >
     // fg/bg image...
 
@@ -379,6 +422,7 @@ image_progress_callback (void *opaque, float done)
 {
     ImageViewer *viewer = (ImageViewer *) opaque;
     viewer->statusProgress->setValue ((int)(done*100));
+    QApplication::processEvents();
     return false;
 }
 
@@ -393,10 +437,10 @@ void ImageViewer::open()
         return;
 
     add_image (filename, false);
-    m_current_image = m_images.size()-1;
-    IvImage *newimage = m_images[m_current_image];
+    int n = m_images.size()-1;
+    IvImage *newimage = m_images[n];
     newimage->read (false, image_progress_callback, this);
-    displayCurrentImage ();
+    current_image (n);
 }
 
 
@@ -434,34 +478,66 @@ ImageViewer::add_image (const std::string &filename, bool getspec)
 
 
 void
-ImageViewer::displayCurrentImage ()
+ImageViewer::updateTitle ()
 {
-    if (m_images.empty())
-        return;
-    if (m_current_image < 0 || m_current_image >= (int)m_images.size())
-        m_current_image = 0;
+    IvImage *img = m_images[m_current_image];
+    std::string message;
+    message = Strutil::format ("%s - iv Image Viewer", img->name().c_str());
+    setWindowTitle (message.c_str());
+}
+
+
+
+void
+ImageViewer::updateStatusBar ()
+{
     IvImage *img = m_images[m_current_image];
     const ImageIOFormatSpec &spec (img->spec());
-
     std::string message;
-    message = Strutil::format ("iv Image Viewer   %d    %s", m_current_image,
-                               img->name().c_str());
-    setWindowTitle (message.c_str());
-
-    message = Strutil::format (/*"%d) <b>%s</b> : " */  "%d x %d",
-                               /*m_current_image+1, img->name().c_str(), */
+    message = Strutil::format ("%d/%d) : %d x %d",
+                               m_current_image+1, m_images.size(),
                                spec.width, spec.height);
     if (spec.depth > 1)
         message += Strutil::format (" x %d", spec.depth);
-    message += Strutil::format (", %d channel %s (%.2f MB)",
+    message += Strutil::format (" x %d channel %s (%.2f MB)",
                                 spec.nchannels,
                                 ParamBaseTypeNameString(spec.format),
                                 (float)spec.image_bytes() / (1024.0*1024.0));
     statusImgInfo->setText(message.c_str()); // tr("iv status"));
-    message = Strutil::format ("%d:%d  exp %+.1f  gam %.2f",
-                               1, 1 /* FIXME! */,
+    switch (m_current_channel) {
+    case channelFullColor: message = "RGB"; break;
+    case channelLuminance: message = "Lum"; break;
+    case channelRed: message = "R"; break;
+    case channelGreen: message = "G"; break;
+    case channelBlue: message = "B"; break;
+    case channelAlpha: message = "A"; break;
+    default:
+        message = Strutil::format ("chan %d", m_current_channel);
+        break;
+    }
+    message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f",
+                                zoom() >= 1 ? zoom() : 1.0f,
+                                zoom() >= 1 ? 1.0f : 1.0f/zoom(),
                                img->exposure(), img->gamma());
     statusViewInfo->setText(message.c_str()); // tr("iv status"));
+}
+
+
+
+void
+ImageViewer::displayCurrentImage ()
+{
+    if (m_images.empty()) {
+        m_current_image = m_last_image = -1;
+        return;
+    }
+    if (m_current_image < 0 || m_current_image >= (int)m_images.size())
+        m_current_image = 0;
+    IvImage *img = cur();
+    const ImageIOFormatSpec &spec (img->spec());
+
+    updateTitle();
+    updateStatusBar();
 
     if (! img->read (false, image_progress_callback, this))
         std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
@@ -477,7 +553,11 @@ ImageViewer::displayCurrentImage ()
         // FIXME -- Ugh, Qt's Pixmap stores "ARGB" as a uint32, but
         // because of byte order on Intel chips, it's really BGRA in
         // memory.  Grrr... So we have to move each channel individually.
-        if (m_current_channel == viewFullColor) {
+        // Probably the right way to address this is to change from a
+        // QLabel to a GL widget and just draw a textured rectangle,
+        // with the texture in the original format and an appropriate
+        // fragment program that draws the right channel(s).
+        if (m_current_channel == channelFullColor) {
             convert_image (1, spec.width, 1, 1,
                            img->scanline (y), spec.format, spec.nchannels, as, as,
                            sl+2, PT_UINT8, 4, as, as, gain, invgamma);
@@ -496,7 +576,7 @@ ImageViewer::displayCurrentImage ()
                                (char *)img->scanline (y) + (spec.nchannels-1)*spec.channel_bytes(),
                                spec.format, spec.nchannels, as, as,
                                sl+3, PT_UINT8, 4, as, as);
-        } else if (m_current_channel == viewLuminance) {
+        } else if (m_current_channel == channelLuminance) {
         } else if (m_current_channel < spec.nchannels) {
             for (int c = 0;  c < 3;  ++c)
                 convert_image (1, spec.width, 1, 1,
@@ -514,15 +594,28 @@ ImageViewer::displayCurrentImage ()
 
 
     imageLabel->setPixmap(QPixmap::fromImage(qimage));
-    scaleFactor = 1.0;
     
     printAct->setEnabled(true);
-    fitToWindowAct->setEnabled(true);
+    fitWindowToImageAct->setEnabled(true);
+    fitImageToWindowAct->setEnabled(true);
     updateActions();
     
-    if (!fitToWindowAct->isChecked())
+    if (!fitImageToWindowAct->isChecked())
         imageLabel->adjustSize();
+}
 
+
+
+void
+ImageViewer::current_image (int newimage)
+{
+    if (m_images.empty() || newimage < 0 || newimage >= (int)m_images.size())
+        return;
+    if (m_current_image != newimage) {
+        m_last_image = (m_current_image >= 0) ? m_current_image : newimage;
+        m_current_image = newimage;
+        displayCurrentImage ();
+    }
 }
 
 
@@ -532,10 +625,10 @@ ImageViewer::prevImage ()
 {
     if (m_images.empty())
         return;
-    --m_current_image;
-    if (m_current_image < 0)
-        m_current_image = ((int)m_images.size()) - 1;
-    displayCurrentImage ();
+    if (m_current_image == 0)
+        current_image ((int)m_images.size() - 1);
+    else
+        current_image (current_image() - 1);
 }
 
 
@@ -544,10 +637,18 @@ ImageViewer::nextImage ()
 {
     if (m_images.empty())
         return;
-    ++m_current_image;
-    if (m_current_image >= (int)m_images.size())
-        m_current_image = 0;
-    displayCurrentImage ();
+    if (m_current_image >= (int)m_images.size()-1)
+        current_image (0);
+    else
+        current_image (current_image() + 1);
+}
+
+
+
+void
+ImageViewer::toggleImage ()
+{
+    current_image (m_last_image);
 }
 
 
@@ -621,67 +722,76 @@ ImageViewer::gammaPlus ()
 
 
 void
+ImageViewer::viewChannel (ChannelView c)
+{
+    if (m_current_channel != c) {
+        m_current_channel = c;
+        displayCurrentImage();
+        viewChannelFullAct->setChecked (c == channelFullColor);
+        viewChannelRedAct->setChecked (c == channelRed);
+        viewChannelGreenAct->setChecked (c == channelGreen);
+        viewChannelBlueAct->setChecked (c == channelBlue);
+        viewChannelAlphaAct->setChecked (c == channelAlpha);
+        viewChannelLuminanceAct->setChecked (c == channelLuminance);
+    }
+}
+
+
+
+void
 ImageViewer::viewChannelFull ()
 {
-    m_current_channel = viewFullColor;
-    displayCurrentImage();
+    viewChannel (channelFullColor);
 }
 
 
 void
 ImageViewer::viewChannelRed ()
 {
-    m_current_channel = viewR;
-    displayCurrentImage();
+    viewChannel (channelRed);
 }
 
 
 void
 ImageViewer::viewChannelGreen ()
 {
-    m_current_channel = viewG;
-    displayCurrentImage();
+    viewChannel (channelGreen);
 }
 
 
 void
 ImageViewer::viewChannelBlue ()
 {
-    m_current_channel = viewB;
-    displayCurrentImage();
+    viewChannel (channelBlue);
 }
 
 
 void
 ImageViewer::viewChannelAlpha ()
 {
-    m_current_channel = viewA;
-    displayCurrentImage();
+    viewChannel (channelAlpha);
 }
 
 
 void
 ImageViewer::viewChannelLuminance ()
 {
-    m_current_channel = viewLuminance;
-    displayCurrentImage();
+    viewChannel (channelLuminance);
 }
 
 
 void
 ImageViewer::viewChannelPrev ()
 {
-    if (m_current_channel)
-        --m_current_channel;
-    displayCurrentImage();
+    if ((int)m_current_channel >= 0)
+        viewChannel ((ChannelView)((int)m_current_channel - 1));
 }
 
 
 void
 ImageViewer::viewChannelNext ()
 {
-    ++m_current_channel;
-    displayCurrentImage();
+    viewChannel ((ChannelView)((int)m_current_channel + 1));
 }
 
 
@@ -690,16 +800,16 @@ void
 ImageViewer::keyPressEvent (QKeyEvent *event)
 {
     switch (event->key()) {
-#if 0
-    case Qt::Key_ParenLeft :
-        gammaMinus();
+    case Qt::Key_Minus :
+    case Qt::Key_Underscore :
+        zoomOut();
         break;
-    case Qt::Key_ParenRight :
-        gammaPlus();
+    case Qt::Key_Plus :
+    case Qt::Key_Equal :
+        zoomIn();
         break;
-#endif
     default:
-//        std::cerr << "ImageViewer key " << (int)event->key() << '\n';
+        std::cerr << "ImageViewer key " << (int)event->key() << '\n';
         QMainWindow::keyPressEvent (event);
     }
 }
@@ -720,10 +830,7 @@ ImageViewer::closeImg()
     //   if == m_current_image, wrap to 0 if this was the last image
     //   else if > m_current_image, subtract one
 
-    if (m_current_image >= m_images.size())
-        m_current_image = 0;
-
-    displayCurrentImage();
+    current_image (current_image() < m_images.size() ? current_image() : 0);
 }
 
 
@@ -750,36 +857,84 @@ ImageViewer::print()
 
 void ImageViewer::zoomIn()
 {
-    scaleImage(1.25);
+    if (zoom() >= 64)
+        return;
+    if (zoom() >= 1.0f) {
+        int z = (int) zoom();
+        zoom ((float)(z + 1));
+    } else {
+        int z = (int)(1.0 / zoom());
+        zoom (1.0f / std::max(z-1,1));
+    }
 }
+
+
 
 void ImageViewer::zoomOut()
 {
-    scaleImage(0.8);
+    if (zoom() <= 1.0f/64)
+        return;
+    if (zoom() > 1.0f) {
+        int z = (int) zoom();
+        zoom (std::max ((float)(z-1), 0.5f));
+    } else {
+        int z = (int)(1.0 / zoom() + 0.001);  // add for floating point slop
+        zoom (1.0f / (1 + z));
+    }
 }
 
 
 void ImageViewer::normalSize()
 {
-    imageLabel->adjustSize();
-    scaleFactor = 1.0;
+    zoom (1.0f);
 }
 
 
 
-void ImageViewer::fitToWindow()
+void ImageViewer::fitImageToWindow()
 {
-    bool fitToWindow = fitToWindowAct->isChecked();
-    scrollArea->setWidgetResizable(fitToWindow);
-    if (!fitToWindow) {
+#if 0
+    bool fitToWindow = fitImageToWindowAct->isChecked();
+    scrollArea->setWidgetResizable(fitImageToWindow);
+    if (!fitImageToWindow) {
         normalSize();
     }
+    updateActions();
+#endif
+}
+
+
+
+void ImageViewer::fitWindowToImage()
+{
+    IvImage *img = cur();
+    if (! img)
+        return;
+    // FIXME -- figure out a way to make it exactly right, even for the
+    // main window border, etc.
+    int extraw = 24; // width() - minimumWidth();
+    int extrah = 40; // height() - minimumHeight();
+//    std::cerr << "extra wh = " << extraw << ' ' << extrah << '\n';
+//    scrollArea->resize ((int)(img->spec().width * zoom()),
+//                        (int)(img->spec().height * zoom()));
+    resize ((int)(img->spec().width * zoom())+extraw,
+            (int)(img->spec().height * zoom())+extrah);
+    zoom (zoom());
+
+#if 0
+    bool fit = fitWindowToImageAct->isChecked();
+    scrollArea->setWidgetResizable(fit);
+    if (!fit) {
+        normalSize();
+    }
+#endif
     updateActions();
 }
 
 
 
-void ImageViewer::about()
+void
+ImageViewer::about()
 {
     QMessageBox::about(this, tr("About iv"),
             tr("<p><b>iv</b> is the image viewer for OpenImageIO.</p>"
@@ -790,30 +945,39 @@ void ImageViewer::about()
 
 void ImageViewer::updateActions()
 {
-    zoomInAct->setEnabled(!fitToWindowAct->isChecked());
-    zoomOutAct->setEnabled(!fitToWindowAct->isChecked());
-    normalSizeAct->setEnabled(!fitToWindowAct->isChecked());
+    zoomInAct->setEnabled(!fitImageToWindowAct->isChecked());
+    zoomOutAct->setEnabled(!fitImageToWindowAct->isChecked());
+    normalSizeAct->setEnabled(!fitImageToWindowAct->isChecked());
 }
 
 
 
-void ImageViewer::scaleImage(double factor)
+void
+ImageViewer::zoom (float newzoom)
 {
-    Q_ASSERT(imageLabel->pixmap());
-    scaleFactor *= factor;
-    imageLabel->resize(scaleFactor * imageLabel->pixmap()->size());
+    IvImage *img = cur();
+    if (! img)
+        return;
+    ASSERT(imageLabel->pixmap());
+    QScrollBar *hsb = scrollArea->horizontalScrollBar();
+    QScrollBar *vsb = scrollArea->verticalScrollBar();
 
-    adjustScrollBar(scrollArea->horizontalScrollBar(), factor);
-    adjustScrollBar(scrollArea->verticalScrollBar(), factor);
+    // Zoom so that the center of the viewport stays on the same pixel
+    int centerh, centerv;
+    QSize viewsize = scrollArea->maximumViewportSize();
+    centerh = Imath::clamp ((int)((viewsize.width()/2 + hsb->value())/zoom()), 0, curspec()->width-1);
+    centerv = Imath::clamp ((int)((viewsize.height()/2 + vsb->value())/zoom()), 0, curspec()->height-1);
 
-    zoomInAct->setEnabled(scaleFactor < 3.0);
-    zoomOutAct->setEnabled(scaleFactor > 0.333);
+    m_zoom = newzoom;
+    imageLabel->resize (zoom() * imageLabel->pixmap()->size());
+
+    centerh = (int)(zoom() * centerh) - viewsize.width()/2;
+    centerv = (int)(zoom() * centerv) - viewsize.height()/2;
+    hsb->setValue (centerh);
+    vsb->setValue (centerv);
+
+    zoomInAct->setEnabled (zoom() < 64.0);
+    zoomOutAct->setEnabled (zoom() > 1.0/64);
+
+    updateStatusBar ();
 }
-
-
-void ImageViewer::adjustScrollBar(QScrollBar *scrollBar, double factor)
-{
-    scrollBar->setValue(int(factor * scrollBar->value()
-                            + ((factor - 1) * scrollBar->pageStep()/2)));
-}
-

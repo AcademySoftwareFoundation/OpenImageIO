@@ -55,11 +55,13 @@ IvImage::init_spec (const std::string &filename)
 {
     m_name = filename;
     ImageInput *in = ImageInput::create (filename.c_str(), "" /* searchpath */);
-    if (in->open (filename.c_str(), m_spec)) {
+    if (! in) {
+        std::cerr << OpenImageIO::error_message() << "\n";
+    }
+    if (in && in->open (filename.c_str(), m_spec)) {
         in->close ();
         m_badfile = false;
         m_spec_valid = true;
-        std::cerr << "init_spec succeeded " << filename << "\n";
     } else {
         m_badfile = true;
         m_spec_valid = false;
@@ -98,5 +100,7 @@ IvImage::read (bool force, OpenImageIO::ProgressCallback progress_callback,
     if (ok)
         m_pixels_valid = true;
     in->close ();
+    if (progress_callback)
+        progress_callback (progress_callback_data, 0);
     return ok;
 }

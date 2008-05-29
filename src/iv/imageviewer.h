@@ -121,9 +121,9 @@ public:
     ImageViewer();
     ~ImageViewer();
 
-    enum ChannelViews {
-        viewR=0, viewG=1, viewB=2, viewA=3,
-        viewFullColor = -1, viewLuminance = -2
+    enum ChannelView {
+        channelRed=0, channelGreen=1, channelBlue=2, channelAlpha=3,
+        channelFullColor = -1, channelLuminance = -2
     };
 
     /// Tell the viewer about an image, but don't load it yet.  If
@@ -131,49 +131,83 @@ public:
     /// specification.
     void add_image (const std::string &filename, bool getspec=true);
 
+    /// View a particular channel
+    ///
+    void viewChannel (ChannelView c);
+
+    /// View this image.
+    ///
+    void current_image (int newimage);
+
+    /// Which image index are we viewing?
+    ///
+    int current_image (void) const { return m_current_image; }
+
+    /// Return the current zoom level.  1.0 == 1:1 pixel ratio.  Positive
+    /// is a "zoom in" (closer/maxify), negative is zoom out (farther/minify).
+    float zoom (void) const { return m_zoom; }
+
+    /// Set a new zoom level.
+    ///
+    void zoom (float newzoom);
+
+    /// Return a ptr to the current image, or NULL if there is no
+    /// current image.
+    IvImage *cur (void) const {
+        return m_current_image >= 0 ? m_images[m_current_image] : NULL;
+    }
+
+    /// Return a ref to the current image spec, or NULL if there is no
+    /// current image.
+    const ImageIOFormatSpec *curspec (void) const {
+        IvImage *img = cur();
+        return img ? &img->spec() : NULL;
+    }
+
 private slots:
-    void open();
-    void reload();
-    void closeImg();
+    void open();                        ///< Dialog to open new image from file
+    void reload();                      ///< Reread current image from disk
+    void closeImg();                    ///< Close the current image
     void print();
     void zoomIn();
     void zoomOut();
     void normalSize();
-    void fitToWindow();
-    void about();
-    void prevImage();
-    void nextImage();
-    void exposureMinusOneTenthStop();
-    void exposureMinusOneHalfStop();
-    void exposurePlusOneTenthStop();
-    void exposurePlusOneHalfStop();
-    void gammaMinus();
-    void gammaPlus();
-    void viewChannelFull();
-    void viewChannelRed();
-    void viewChannelGreen();
-    void viewChannelBlue();
-    void viewChannelAlpha();
-    void viewChannelLuminance();
-    void viewChannelPrev();
-    void viewChannelNext();
+    void fitImageToWindow();
+    void fitWindowToImage();
+    void about();                       ///< Show "about iv" dialog
+    void prevImage();                   ///< View previous image in sequence
+    void nextImage();                   ///< View next image in sequence
+    void toggleImage();                 ///< View most recently viewed image
+    void exposureMinusOneTenthStop();   ///< Decrease exposure 1/10 stop
+    void exposureMinusOneHalfStop();    ///< Decrease exposure 1/2 stop
+    void exposurePlusOneTenthStop();    ///< Increase exposure 1/10 stop
+    void exposurePlusOneHalfStop();     ///< Increase exposure 1/2 stop
+    void gammaMinus();                  ///< Decrease gamma 0.05
+    void gammaPlus();                   ///< Increase gamma 0.05
+    void viewChannelFull();             ///< View RGB
+    void viewChannelRed();              ///< View just red as gray
+    void viewChannelGreen();            ///< View just green as gray
+    void viewChannelBlue();             ///< View just blue as gray
+    void viewChannelAlpha();            ///< View alpha as gray
+    void viewChannelLuminance();        ///< View luminance as gray
+    void viewChannelPrev();             ///< View just prev channel as gray
+    void viewChannelNext();             ///< View just next channel as gray
 
 private:
-    void createActions();
-    void createMenus();
-    void createToolBars();
-    void createStatusBar();
-    void readSettings();
-    void writeSettings();
-    void updateActions();
-    void scaleImage(double factor);
-    void adjustScrollBar(QScrollBar *scrollBar, double factor);
-    void displayCurrentImage();
+    void createActions ();
+    void createMenus ();
+    void createToolBars ();
+    void createStatusBar ();
+    void readSettings ();
+    void writeSettings ();
+    void updateActions ();
+    void displayCurrentImage ();
+    void updateTitle ();
+    void updateStatusBar ();
     void keyPressEvent (QKeyEvent *event);
 
     QLabel *imageLabel;
     QScrollArea *scrollArea;
-    double scaleFactor;
 
 #ifndef QT_NO_PRINTER
     QPrinter printer;
@@ -193,9 +227,9 @@ private:
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;
-    QAction *fitToWindowAct;
+    QAction *fitWindowToImageAct, *fitImageToWindowAct;
     QAction *aboutAct;
-    QAction *nextImageAct, *prevImageAct;
+    QAction *nextImageAct, *prevImageAct, *toggleImageAct;;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
     QMenu *expgamMenu, *channelMenu;
     QLabel *statusImgInfo, *statusViewInfo;
@@ -205,6 +239,8 @@ private:
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
     int m_current_channel;            ///< Channel we're viewing: ChannelViews
+    int m_last_image;                 ///< Last image we viewed
+    float m_zoom;                     ///< Zoom amount (positive maxifies)
 
     friend class IvScrollArea;
     friend bool image_progress_callback (void *opaque, float done);
