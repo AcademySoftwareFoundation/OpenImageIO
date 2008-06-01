@@ -36,6 +36,51 @@
 
 
 
+/// Quick test for whether an integer is a power of 2.
+inline bool
+ispow2 (int x)
+{
+    // Numerous references for this bit trick are on the web.  The
+    // principle is that x is a power of 2 <=> x == 1<<b <=> x-1 is
+    // all 1 bits for bits < b.
+    return (x & (x-1)) == 0;
+}
+
+
+
+/// Round up to next higher power of 2 (return x if it's already a power
+/// of 2).
+inline int
+pow2roundup (int x)
+{
+    // There's probably a bit twiddling trick that does this without
+    // looping.
+    int p = 1;
+    while (p < x)
+        p <<= 1;
+    return p;
+}
+
+
+
+/// Round down to next lower power of 2 (return x if it's already a power
+/// of 2).
+inline int
+pow2rounddown (int x)
+{
+    // There's probably a bit twiddling trick that does this without
+    // looping.
+    if (x <= 0)
+        return 0;
+    int p = 1;
+    while (2*p <= x)
+        p <<= 1;
+    return p;
+}
+
+
+
+
 /// Convert n consecutive values from the type of S to the type of D.
 /// The conversion is not a simple cast, but correctly remaps the
 /// 0.0->1.0 range from and to the full positive range of integral
