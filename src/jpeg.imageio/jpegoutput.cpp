@@ -53,7 +53,8 @@ using namespace OpenImageIO;
 
 class JpgOutput : public ImageOutput {
  public:
-    JpgOutput() : fd(NULL) {}
+    JpgOutput () { init(); }
+    virtual ~JpgOutput () { close(); }
     bool supports (const char *property) const { return false; }
     bool open (const char *name, const ImageIOFormatSpec &spec,
                bool append=false);
@@ -65,6 +66,8 @@ class JpgOutput : public ImageOutput {
     std::vector <char> scratch;
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
+
+    void init (void) { fd = NULL; }
 };
 
 
@@ -151,9 +154,9 @@ bool
 JpgOutput::close ()
 {
     jpeg_finish_compress (&cinfo);
-    fclose (fd);
-    fd = NULL;
     jpeg_destroy_compress (&cinfo);
+    fclose (fd);
+    init();
     
     return true;
 }

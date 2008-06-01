@@ -73,9 +73,17 @@ namespace OpenImageIO {
 const int IMAGEIO_VERSION = 10;
 
 
+/// Type we use for stride lengths.  It should be 64 bit on all 
+/// supported systems.
+typedef long long stride_t;
+
+
+
 /// Special value to indicate a stride length that should be
 /// auto-computed.
-const int AutoStride = std::numeric_limits<int>::min();
+const stride_t AutoStride = std::numeric_limits<stride_t>::min();
+
+
 
 /// Pointer to a function called periodically by read_image and
 /// write_image.  This can be used to implement progress feedback, etc.
@@ -188,53 +196,57 @@ struct DLLPUBLIC ImageIOFormatSpec {
 
     ///
     /// Return the number of bytes for each channel datum
-    int channel_bytes() const { return ParamBaseTypeSize(format); }
+    size_t channel_bytes() const { return (size_t)ParamBaseTypeSize(format); }
 
     ///
     /// Return the number of bytes for each pixel (counting all channels)
-    int pixel_bytes() const { return nchannels * channel_bytes(); }
+    size_t pixel_bytes() const { return (size_t)nchannels * channel_bytes(); }
 
     ///
     /// Return the number of bytes for each scanline
-    int scanline_bytes() const { return width * pixel_bytes (); }
+    size_t scanline_bytes() const { return (size_t)width * pixel_bytes (); }
 
     ///
     /// Return the number of bytes for each scanline
-    int tile_bytes() const {
-        return tile_width * tile_height * tile_depth * pixel_bytes ();
+    size_t tile_bytes() const {
+        return (size_t)tile_width * (size_t)tile_height *
+               (size_t)tile_depth * pixel_bytes ();
     }
 
     ///
     /// Return the number of bytes for an entire image
-    int image_bytes() const {
-        return width * height * std::max(depth,1) * pixel_bytes ();
+    size_t image_bytes() const {
+        return (size_t)width * (size_t)height *
+               (size_t)std::max(depth,1) * pixel_bytes ();
     }
 
     /// Adjust any AutoStride values to be the right sizes for contiguous
     /// data of this format.
-    void auto_stride (int &xstride, int &ystride, int &zstride) {
-        auto_stride (xstride, ystride, zstride, nchannels, width, height);
+    void auto_stride (stride_t &xstride, stride_t &ystride, stride_t &zstride) {
+        auto_stride (xstride, ystride, zstride,
+                     format, nchannels, width, height);
     }
 
-    void auto_stride (int &xstride) {
-        auto_stride (xstride, nchannels);
+    void auto_stride (stride_t &xstride) {
+        auto_stride (xstride, format, nchannels);
     }
 
     /// Adjust any AutoStride values to be the right sizes for
     /// contiguous data with the given channels, width, height.
-    static void auto_stride (int &xstride, int &ystride, int &zstride,
+    static void auto_stride (stride_t &xstride, stride_t &ystride, stride_t &zstride,
+                             ParamBaseType format,
                              int nchannels, int width, int height) {
         if (xstride == AutoStride)
-            xstride = nchannels;
+            xstride = nchannels * ParamBaseTypeSize(format);
         if (ystride == AutoStride)
             ystride = xstride * width;
         if (zstride == AutoStride)
             zstride = ystride * height;
     }
 
-    static void auto_stride (int &xstride, int nchannels) {
+    static void auto_stride (stride_t &xstride, ParamBaseType format, int nchannels) {
         if (xstride == AutoStride)
-            xstride = nchannels;
+            xstride = nchannels * ParamBaseTypeSize(format);
     }
 
     /// Add an optional parameter to the extra parameter list
@@ -311,47 +323,48 @@ public:
     virtual bool open (const char *name, const ImageIOFormatSpec &spec,
                        bool append=false) = 0;
 
-    /// Close an image that we are totally done with.
-    ///
+    /// Close an image that we are totally done with.  This should leave
+    /// the plugin in a state where it could open a new file safely,
+    /// without having to destroy the writer.
     virtual bool close () = 0;
 
     /// Write a full scanline that includes pixels (*,y,z).  (z is
     /// ignored for 2D non-volume images.)  The stride value gives the
-    /// data layout: one pixel to the "right" is xstride elements of the
-    /// given format away.  Strides set to AutoStride imply 'contiguous'
-    /// data (i.e.  xstride==spec.nchannels).  The data are
+    /// distance between successive pixels (in bytes).  Strides set to
+    /// AutoStride imply 'contiguous' data (i.e. xstride ==
+    /// spec.nchannels*ParamBaseTypeSize(format)).  The data are
     /// automatically converted from 'format' to the actual output
     /// format (as specified to open()) by this method.  Return true for
     /// success, false for failure.  It is a failure to call
     /// write_scanline with an out-of-order scanline if this format
     /// driver does not support random access.
     virtual bool write_scanline (int y, int z, ParamBaseType format,
-                                 const void *data, int xstride=AutoStride)
+                                 const void *data, stride_t xstride=AutoStride)
         { return false; }
 
     /// Write the tile with (x,y,z) as the upper left corner.  (z is
     /// ignored for 2D non-volume images.)  The three stride values give
-    /// the distance (in number of elements of the given format) between
-    /// successive pixels, scanlines, and volumetric slices,
-    /// respectively.  Strides set to AutoStride imply 'contiguous' data
-    /// (i.e.  xstride==spec.nchannels, ystride==xstride*spec.width,
-    /// zstride=ystride*spec.height).  The data are automatically
-    /// converted from 'format' to the actual output format (as
-    /// specified to open()) by this method.  Return true for success,
-    /// false for failure.  It is a failure to call write_tile with an
-    /// out-of-order tile if this format driver does not support random
-    /// access.
+    /// the distance (in bytes) between successive pixels, scanlines,
+    /// and volumetric slices, respectively.  Strides set to AutoStride
+    /// imply 'contiguous' data (i.e. xstride ==
+    /// spec.nchannels*ParamBaseTypeSize(format),
+    /// ystride==xstride*spec.width, zstride=ystride*spec.height).  The
+    /// data are automatically converted from 'format' to the actual
+    /// output format (as specified to open()) by this method.  Return
+    /// true for success, false for failure.  It is a failure to call
+    /// write_tile with an out-of-order tile if this format driver does
+    /// not support random access.
     virtual bool write_tile (int x, int y, int z, ParamBaseType format,
-                             const void *data, int xstride=AutoStride,
-                             int ystride=AutoStride, int zstride=AutoStride)
+                             const void *data, stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride, stride_t zstride=AutoStride)
         { return false; }
 
     /// Write pixels whose x coords range over xmin..xmax (inclusive), y
     /// coords over ymin..ymax, and z coords over zmin...zmax.  The
-    /// three stride values give the distance (in number of elements of
-    /// the given format) between successive pixels, scanlines, and
-    /// volumetric slices, respectively.  Strides set to AutoStride
-    /// imply 'contiguous' data (i.e.  xstride==spec.nchannels,
+    /// three stride values give the distance (in bytes between
+    /// successive pixels, scanlines, and volumetric slices,
+    /// respectively.  Strides set to AutoStride imply 'contiguous' data
+    /// (i.e. xstride == spec.nchannels*ParamBaseTypeSize(format)),
     /// ystride==xstride*spec.width, zstride=ystride*spec.height).  The
     /// data are automatically converted from 'format' to the actual
     /// output format (as specified to open()) by this method.  Return
@@ -360,20 +373,20 @@ public:
     /// for supports_rectangles().
     virtual bool write_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax, ParamBaseType format,
-                                  const void *data, int xstride=AutoStride,
-                                  int ystride=AutoStride, int zstride=AutoStride)
+                                  const void *data, stride_t xstride=AutoStride,
+                                  stride_t ystride=AutoStride, stride_t zstride=AutoStride)
         { return false; }
 
     /// Write the entire image of spec.width x spec.height x spec.depth
     /// pixels, with the given strides and in the desired format.
     /// Strides set to AutoStride imply 'contiguous' data (i.e.
-    /// xstride==spec.nchannels, ystride==xstride*spec.width,
-    /// zstride=ystride*spec.height).  Depending on spec, write either
-    /// all tiles or all scanlines.  Assume that data points to a layout
-    /// in row-major order.
+    /// xstride==spec.nchannels*ParamBaseTypeSize(format),
+    /// ystride==xstride*spec.width, zstride=ystride*spec.height).
+    /// Depending on spec, write either all tiles or all scanlines.
+    /// Assume that data points to a layout in row-major order.
     virtual bool write_image (ParamBaseType format, const void *data,
-                              int xstride=AutoStride, int ystride=AutoStride,
-                              int zstride=AutoStride,
+                              stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                              stride_t zstride=AutoStride,
                               ProgressCallback progress_callback=NULL,
                               void *progress_callback_data=NULL);
 
@@ -402,15 +415,15 @@ protected:
     /// contiguous, or it may point to the scratch space if it needed to
     /// make a copy or do conversions.
     const void *to_native_scanline (ParamBaseType format,
-                                    const void *data, int xstride,
+                                    const void *data, stride_t xstride,
                                     std::vector<char> &scratch);
     const void *to_native_tile (ParamBaseType format, const void *data,
-                                int xstride, int ystride, int zstride,
+                                stride_t xstride, stride_t ystride, stride_t zstride,
                                 std::vector<char> &scratch);
     const void *to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                      int zmin, int zmax, 
                                      ParamBaseType format, const void *data,
-                                     int xstride, int ystride, int zstride,
+                                     stride_t xstride, stride_t ystride, stride_t zstride,
                                      std::vector<char> &scratch);
 
 protected:
@@ -467,19 +480,19 @@ public:
 
     /// Read the scanline that includes pixels (*,y,z) into data,
     /// converting if necessary from the native data format of the file
-    /// into the 'format' specified.  (z==0 for non-volume images.)  The
-    /// stride value gives the data spacing of adjacent pixels (measured
-    /// in number of elements of 'format').  Strides set to AutoStride
-    /// imply 'contiguous' data (i.e.  xstride==spec.nchannels).  The
-    /// reader is expected to give the appearance of random access -- in
-    /// other words, if it can't randomly seek to the given scanline, it
+    /// into the 'format' specified (z==0 for non-volume images).  The
+    /// stride value gives the data spacing of adjacent pixels (in
+    /// bytes).  Strides set to AutoStride imply 'contiguous' data (i.e.
+    /// xstride==spec.nchannels*ParamBaseTypeSize(format)).  The reader
+    /// is expected to give the appearance of random access -- in other
+    /// words, if it can't randomly seek to the given scanline, it
     /// should transparently close, reopen, and sequentially read
     /// through prior scanlines.  The base ImageInput class has a
     /// default implementation that calls read_native_scanline and then
     /// does appropriate format conversion, so there's no reason for
     /// each format plugin to override this method.
     virtual bool read_scanline (int y, int z, ParamBaseType format, void *data,
-                                int xstride=AutoStride);
+                                stride_t xstride=AutoStride);
 
     ///
     /// Simple read_scanline reads to contiguous float pixels.
@@ -491,20 +504,20 @@ public:
     /// if necessary from the native data format of the file into the
     /// 'format' specified.  (z==0 for non-volume images.)  The stride
     /// values give the data spacing of adjacent pixels, scanlines, and
-    /// volumetric slices (measured in number of elements of 'format').
-    /// Strides set to AutoStride imply 'contiguous' data (i.e.
-    /// xstride==spec.nchannels, ystride==xstride*spec.tile_width,
-    /// zstride=ystride*spec.tile_height).  The reader is expected to
-    /// give the appearance of random access -- in other words, if it
-    /// can't randomly seek to the given tile, it should transparently
-    /// close, reopen, and sequentially read through prior tiles.  The
-    /// base ImageInput class has a default implementation that calls
-    /// read_native_tile and then does appropriate format conversion, so
-    /// there's no reason for each format plugin to override this
-    /// method.
+    /// volumetric slices (measured in bytes).  Strides set to
+    /// AutoStride imply 'contiguous' data (i.e.  xstride ==
+    /// spec.nchannels*ParamBaseTypeSize(format), ystride ==
+    /// xstride*spec.tile_width, zstride == ystride*spec.tile_height).
+    /// The reader is expected to give the appearance of random access
+    /// -- in other words, if it can't randomly seek to the given tile,
+    /// it should transparently close, reopen, and sequentially read
+    /// through prior tiles.  The base ImageInput class has a default
+    /// implementation that calls read_native_tile and then does
+    /// appropriate format conversion, so there's no reason for each
+    /// format plugin to override this method.
     virtual bool read_tile (int x, int y, int z, ParamBaseType format,
-                            void *data, int xstride=AutoStride,
-                            int ystride=AutoStride, int zstride=AutoStride);
+                            void *data, stride_t xstride=AutoStride,
+                            stride_t ystride=AutoStride, stride_t zstride=AutoStride);
 
     ///
     /// Simple read_tile reads to contiguous float pixels.
@@ -518,11 +531,12 @@ public:
     /// pixels into data (which must already be sized large enough for
     /// the entire image) with the given strides and in the desired
     /// format.  Read tiles or scanlines automatically.  Strides set to
-    /// AutoStride imply 'contiguous' data (i.e. xstride==spec.nchannels,
+    /// AutoStride imply 'contiguous' data (i.e. xstride ==
+    /// spec.nchannels*ParamBaseTypeSize(format),
     /// ystride==xstride*spec.width, zstride=ystride*spec.height).
     virtual bool read_image (ParamBaseType format, void *data,
-                             int xstride=AutoStride, int ystride=AutoStride,
-                             int zstride=AutoStride,
+                             stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
 
@@ -608,9 +622,11 @@ inline float exposure (float value, float gain, float invgamma)
 /// conversion.
 DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
                               const void *src, ParamBaseType src_type, 
-                              int src_xstride, int src_ystride, int src_zstride,
+                              stride_t src_xstride, stride_t src_ystride,
+                              stride_t src_zstride,
                               void *dst, ParamBaseType dst_type,
-                              int dst_xstride, int dst_ystride, int dst_zstride,
+                              stride_t dst_xstride, stride_t dst_ystride,
+                              stride_t dst_zstride,
                               float gain=1, float gamma=1);
 
 // to force correct linkage on some systems

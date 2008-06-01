@@ -48,15 +48,20 @@ public:
                        bool append=false);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, ParamBaseType format,
-                                 const void *data, int xstride);
+                                 const void *data, stride_t xstride);
     virtual bool write_tile (int x, int y, int z,
                              ParamBaseType format, const void *data,
-                             int xstride, int ystride, int zstride);
+                             stride_t xstride, stride_t ystride, stride_t zstride);
 
 private:
     TIFF *m_tif;
     std::vector<char> m_scratch;
     int m_planarconfig;
+
+    // Initialize private members to pre-opened state
+    void init (void) {
+        m_tif = NULL;
+    }
 
     // Convert planar contiguous to planar separate data format
     void contig_to_separate (int n, const char *contig, char *separate);
@@ -84,14 +89,15 @@ DLLEXPORT const char * tiff_output_extensions[] = {
 
 
 TIFFOutput::TIFFOutput ()
-    : m_tif(NULL), m_planarconfig(PLANARCONFIG_CONTIG)
 {
+    init ();
 }
 
 
 
 TIFFOutput::~TIFFOutput ()
 {
+    // Close, if not already done.
     close ();
 }
 
@@ -212,6 +218,7 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
     }
 
     // Did the user request separate planar configuration?
+    m_planarconfig = PLANARCONFIG_CONTIG;
     if ((param = spec.find_parameter("planarconfig")) &&
             param->type == PT_STRING  &&  (str = *(char **)param->data())) {
         if (! strcmp (str, "separate"))
@@ -318,10 +325,9 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
 bool
 TIFFOutput::close ()
 {
-    if (m_tif) {
+    if (m_tif)
         TIFFClose (m_tif);
-        m_tif = NULL;
-    }
+    init ();      // re-initialize
     return true;  // How can we fail?
 }
 
@@ -344,10 +350,9 @@ TIFFOutput::contig_to_separate (int n, const char *contig, char *separate)
 
 bool
 TIFFOutput::write_scanline (int y, int z, ParamBaseType format,
-                            const void *data, int xstride)
+                            const void *data, stride_t xstride)
 {
-    if (! xstride)
-        xstride = spec.nchannels;
+    spec.auto_stride (xstride);
     const void *origdata = data;
     data = to_native_scanline (format, data, xstride, m_scratch);
 
@@ -379,14 +384,9 @@ TIFFOutput::write_scanline (int y, int z, ParamBaseType format,
 bool
 TIFFOutput::write_tile (int x, int y, int z,
                         ParamBaseType format, const void *data,
-                        int xstride, int ystride, int zstride)
+                        stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    if (! xstride)
-        xstride = spec.nchannels;
-    if (! ystride)
-        ystride = xstride * spec.width;
-    if (! zstride)
-        zstride = ystride * spec.height;
+    spec.auto_stride (xstride, ystride, zstride);
     x -= spec.x;   // Account for offset, so x,y are file relative, not 
     y -= spec.y;   // image relative
     const void *origdata = data;   // Stash original pointer

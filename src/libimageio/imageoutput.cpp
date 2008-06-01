@@ -79,7 +79,7 @@ ImageOutput::error (const char *message, ...)
 
 const void *
 ImageOutput::to_native_scanline (ParamBaseType format,
-                                 const void *data, int xstride,
+                                 const void *data, stride_t xstride,
                                  std::vector<char> &scratch)
 {
     return to_native_rectangle (0, spec.width-1, 0, 0, 0, 0, format, data,
@@ -90,7 +90,7 @@ ImageOutput::to_native_scanline (ParamBaseType format,
 
 const void *
 ImageOutput::to_native_tile (ParamBaseType format, const void *data,
-                             int xstride, int ystride, int zstride,
+                             stride_t xstride, stride_t ystride, stride_t zstride,
                              std::vector<char> &scratch)
 {
     return to_native_rectangle (0, spec.tile_width-1, 0, spec.tile_height-1,
@@ -104,7 +104,7 @@ const void *
 ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax, 
                                   ParamBaseType format, const void *data,
-                                  int xstride, int ystride, int zstride,
+                                  stride_t xstride, stride_t ystride, stride_t zstride,
                                   std::vector<char> &scratch)
 {
     spec.auto_stride (xstride, ystride, zstride);
@@ -115,7 +115,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     int depth = zmax - zmin + 1;
 
     // Do the strides indicate that the data are already contiguous?
-    bool contiguous = (xstride == spec.nchannels &&
+    bool contiguous = (xstride == spec.nchannels*ParamBaseTypeSize(format) &&
                        (ystride == xstride*width || height == 1) &&
                        (zstride == ystride*height || depth == 1));
     // Is the only conversion we are doing that of data format?
@@ -181,15 +181,11 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
 
 bool
 ImageOutput::write_image (ParamBaseType format, const void *data,
-                          int xstride, int ystride, int zstride,
+                          stride_t xstride, stride_t ystride, stride_t zstride,
                           OpenImageIO::ProgressCallback progress_callback,
                           void *progress_callback_data)
 {
     spec.auto_stride (xstride, ystride, zstride);
-    // Rescale strides to be in bytes, not channel elements
-    int xstride_bytes = xstride * ParamBaseTypeSize (format);
-    int ystride_bytes = ystride * ParamBaseTypeSize (format);
-    int zstride_bytes = zstride * ParamBaseTypeSize (format);
     if (supports ("rectangles")) {
         // Use a rectangle if we can
         return write_rectangle (0, spec.width-1, 0, spec.height-1, 0, spec.depth-1,
@@ -214,7 +210,7 @@ ImageOutput::write_image (ParamBaseType format, const void *data,
             for (int y = 0;  y < spec.height;  y += spec.tile_height) {
                 for (int x = 0;  x < spec.width && ok;  y += spec.tile_width)
                     ok &= write_tile (x, y, z, format,
-                                      (const char *)data + z*zstride_bytes + y*ystride_bytes + x*xstride_bytes,
+                                      (const char *)data + z*zstride + y*ystride + x*xstride,
                                       xstride, ystride, zstride);
                 if (progress_callback)
                     if (progress_callback (progress_callback_data, (float)y/spec.height))
@@ -226,7 +222,7 @@ ImageOutput::write_image (ParamBaseType format, const void *data,
         for (int z = 0;  z < spec.depth;  ++z)
             for (int y = 0;  y < spec.height && ok;  ++y) {
                 ok &= write_scanline (y, z, format,
-                                      (const char *)data + z*zstride_bytes + y*ystride_bytes,
+                                      (const char *)data + z*zstride + y*ystride,
                                       xstride);
                 if (progress_callback && !(y & 0x0f))
                     if (progress_callback (progress_callback_data, (float)y/spec.height))

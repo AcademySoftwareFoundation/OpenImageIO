@@ -143,21 +143,22 @@ OpenImageIO::quantize (float value, int quant_black, int quant_white,
 /// that data were already contiguous).
 template<typename T>
 const T *
-_contiguize (const T *src, int nchannels, int xstride, int ystride, int zstride, 
+_contiguize (const T *src, int nchannels, stride_t xstride, stride_t ystride, stride_t zstride, 
              T *dst, int width, int height, int depth)
 {
-    if (xstride == nchannels  &&  ystride == nchannels*width  &&
-            (zstride == nchannels*width*height || !zstride))
+    int datasize = sizeof(T);
+    if (xstride == nchannels*datasize  &&  ystride == xstride*width  &&
+            (zstride == ystride*height || !zstride))
         return src;
 
     if (depth < 1)     // Safeguard against volume-unaware clients
         depth == 1;
     T *dstsave = dst;
-    for (int z = 0;  z < depth;  ++z, src += zstride) {
+    for (int z = 0;  z < depth;  ++z, src = (const T *)((char *)src + zstride)) {
         const T *scanline = src;
-        for (int y = 0;  y < height;  ++y, scanline += ystride) {
+        for (int y = 0;  y < height;  ++y, scanline = (const T *)((char *)scanline + ystride)) {
             const T *pixel = scanline;
-            for (int x = 0;  x < width;  ++x, pixel += xstride)
+            for (int x = 0;  x < width;  ++x, pixel = (const T *)((char *)pixel + xstride))
                 for (int c = 0;  c < nchannels;  ++c)
                     *dst++ = pixel[c];
         }
@@ -169,7 +170,7 @@ _contiguize (const T *src, int nchannels, int xstride, int ystride, int zstride,
 
 const void *
 OpenImageIO::pvt::contiguize (const void *src, int nchannels,
-                              int xstride, int ystride, int zstride, 
+                              stride_t xstride, stride_t ystride, stride_t zstride, 
                               void *dst, int width, int height, int depth,
                               ParamBaseType format)
 {
@@ -399,25 +400,23 @@ OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src,
 bool
 OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
                             const void *src, ParamBaseType src_type,
-                            int src_xstride, int src_ystride, int src_zstride,
+                            stride_t src_xstride, stride_t src_ystride,
+                            stride_t src_zstride,
                             void *dst, ParamBaseType dst_type,
-                            int dst_xstride, int dst_ystride, int dst_zstride,
+                            stride_t dst_xstride, stride_t dst_ystride,
+                            stride_t dst_zstride,
                             float gain, float gamma)
 {
     ImageIOFormatSpec::auto_stride (src_xstride, src_ystride, src_zstride,
-                                    nchannels, width, height);
+                                    src_type, nchannels, width, height);
     ImageIOFormatSpec::auto_stride (dst_xstride, dst_ystride, dst_zstride,
-                                    nchannels, width, height);
+                                    dst_type, nchannels, width, height);
     bool result = true;
-    int src_bytes = ParamBaseTypeSize(src_type);
-    int dst_bytes = ParamBaseTypeSize(dst_type);
     bool contig = (src_xstride == dst_xstride && src_xstride == nchannels);
     for (int z = 0;  z < depth;  ++z) {
         for (int y = 0;  y < height;  ++y) {
-            const unsigned char *f = (const unsigned char *)src + 
-                src_bytes * (z*src_zstride + y*src_ystride);
-            unsigned char *t = (unsigned char *)dst +
-                dst_bytes * (z*dst_zstride + y*dst_ystride);
+            const char *f = (const char *)src + (z*src_zstride + y*src_ystride);
+            char *t = (char *)dst + (z*dst_zstride + y*dst_ystride);
             if (contig) {
                 // Special case: pixels within each row are contiguous
                 // in both src and dst and we're copying all channels.
@@ -431,8 +430,8 @@ OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
                 for (int x = 0;  x < width;  ++x) {
                     result &= convert_types (src_type, f, dst_type, t,
                                              nchannels, gain, gamma);
-                    f += src_xstride * src_bytes;
-                    t += dst_xstride * dst_bytes;
+                    f += src_xstride;
+                    t += dst_xstride;
                 }
             }
         }

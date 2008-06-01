@@ -45,13 +45,13 @@ typedef void* (*create_prototype)();
 extern recursive_mutex imageio_mutex;
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGB RGB ") into
-/// contiguous-stride ("RGBRGB"), for any format or stride values.
-/// Caller must pass in a dst pointing to enough memory to hold the
-/// contiguous rectangle.  Return a ptr to where the contiguous data
-/// ended up, which is either dst or src (if the strides indicated that
-/// data were already contiguous).
+/// contiguous-stride ("RGBRGB"), for any format or stride values
+/// (measured in bytes).  Caller must pass in a dst pointing to enough
+/// memory to hold the contiguous rectangle.  Return a ptr to where the
+/// contiguous data ended up, which is either dst or src (if the strides
+/// indicated that data were already contiguous).
 const void *contiguize (const void *src, int nchannels,
-                        int xstride, int ystride, int zstride, 
+                        stride_t xstride, stride_t ystride, stride_t zstride, 
                         void *dst, int width, int height, int depth,
                         ParamBaseType format);
 

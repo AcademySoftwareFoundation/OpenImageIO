@@ -45,10 +45,10 @@ using namespace OpenImageIO::pvt;
 
 bool 
 ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
-                           int xstride)
+                           stride_t xstride)
 {
     spec.auto_stride (xstride);
-    bool contiguous = (xstride == spec.nchannels);
+    bool contiguous = (xstride == spec.nchannels*ParamBaseTypeSize(format));
     if (contiguous && spec.format == format)  // Simple case
         return read_native_scanline (y, z, data);
 
@@ -61,8 +61,8 @@ ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
     ok = contiguous 
         ? convert_types (spec.format, buf, format, data, scanline_values)
         : convert_image (spec.nchannels, spec.width, 1, 1, 
-                         buf, spec.format, spec.width, spec.height, spec.depth,
-                         data, format, xstride, 0, 0);
+                         buf, spec.format, AutoStride, AutoStride, AutoStride,
+                         data, format, xstride, AutoStride, AutoStride);
     if (! ok)
         error ("ImageInput::read_scanline : no support for format %s",
                ParamBaseTypeNameString(spec.format));
@@ -73,10 +73,10 @@ ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
 
 bool 
 ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
-                       int xstride, int ystride, int zstride)
+                       stride_t xstride, stride_t ystride, stride_t zstride)
 {
     spec.auto_stride (xstride, ystride, zstride);
-    bool contiguous = (xstride == spec.nchannels &&
+    bool contiguous = (xstride == spec.nchannels*ParamBaseTypeSize(format) &&
                        ystride == xstride*spec.tile_width &&
                        zstride == ystride*spec.tile_height);
     if (contiguous && spec.format == format)  // Simple case
@@ -92,7 +92,7 @@ ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
     ok = contiguous 
         ? convert_types (spec.format, buf, format, data, tile_values)
         : convert_image (spec.nchannels, spec.tile_width, spec.tile_height, spec.tile_depth, 
-                         buf, spec.format, spec.tile_width, spec.tile_height, spec.tile_depth,
+                         buf, spec.format, AutoStride, AutoStride, AutoStride,
                          data, format, xstride, ystride, zstride);
     if (! ok)
         error ("ImageInput::read_tile : no support for format %s",
@@ -105,15 +105,11 @@ ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
 
 bool
 ImageInput::read_image (ParamBaseType format, void *data,
-                        int xstride, int ystride, int zstride,
+                        stride_t xstride, stride_t ystride, stride_t zstride,
                         OpenImageIO::ProgressCallback progress_callback,
                         void *progress_callback_data)
 {
     spec.auto_stride (xstride, ystride, zstride);
-    // Rescale strides to be in bytes, not channel elements
-    int xstride_bytes = xstride * ParamBaseTypeSize (format);
-    int ystride_bytes = ystride * ParamBaseTypeSize (format);
-    int zstride_bytes = zstride * ParamBaseTypeSize (format);
     bool ok = true;
     if (progress_callback)
         if (progress_callback (progress_callback_data, 0.0f))
@@ -129,9 +125,9 @@ ImageInput::read_image (ParamBaseType format, void *data,
         // itself?
         for (int z = 0;  z < spec.depth;  z += spec.tile_depth)
             for (int y = 0;  y < spec.height;  y += spec.tile_height) {
-                for (int x = 0;  x < spec.width && ok;  y += spec.tile_width)
+                for (int x = 0;  x < spec.width && ok;  x += spec.tile_width)
                     ok &= read_tile (x, y, z, format,
-                                     (char *)data + z*zstride_bytes + y*ystride_bytes + x*xstride_bytes,
+                                     (char *)data + z*zstride + y*ystride + x*xstride,
                                      xstride, ystride, zstride);
                 if (progress_callback)
                     if (progress_callback (progress_callback_data, (float)y/spec.height))
@@ -142,7 +138,7 @@ ImageInput::read_image (ParamBaseType format, void *data,
         for (int z = 0;  z < spec.depth;  ++z)
             for (int y = 0;  y < spec.height && ok;  ++y) {
                 ok &= read_scanline (y, z, format,
-                                     (char *)data + z*zstride_bytes + y*ystride_bytes,
+                                     (char *)data + z*zstride + y*ystride,
                                      xstride);
                 if (progress_callback && !(y & 0x0f))
                     if (progress_callback (progress_callback_data, (float)y/spec.height))
