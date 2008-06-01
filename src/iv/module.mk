@@ -6,7 +6,7 @@ local_name := iv
 
 # Name of all source files in this directory
 local_src := imageviewer.cpp moc_imageviewer.cpp ivimage.cpp \
-	     ivmain.cpp
+	     ivinfowin.cpp ivmain.cpp
 
 # Extra static libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)

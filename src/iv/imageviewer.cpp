@@ -99,7 +99,8 @@ IvScrollArea::mousePressEvent (QMouseEvent *event)
 
 
 ImageViewer::ImageViewer ()
-    : m_current_image(-1), m_current_channel(-1), m_last_image(-1),
+    : infoWindow(NULL),
+      m_current_image(-1), m_current_channel(-1), m_last_image(-1),
       m_zoom(1)
 {
     imageLabel = new QLabel;
@@ -235,7 +236,7 @@ void ImageViewer::createActions()
     connect(zoomOutAct, SIGNAL(triggered()), this, SLOT(zoomOut()));
 
     normalSizeAct = new QAction(tr("&Normal Size (1:1)"), this);
-//    normalSizeAct->setShortcut(tr("Ctrl+S"));
+    normalSizeAct->setShortcut(tr("Ctrl+0"));
     normalSizeAct->setEnabled(false);
     connect(normalSizeAct, SIGNAL(triggered()), this, SLOT(normalSize()));
 
@@ -248,7 +249,7 @@ void ImageViewer::createActions()
     fitImageToWindowAct = new QAction(tr("Fit Image to Window"), this);
     fitImageToWindowAct->setEnabled(false);
 //    fitImageToWindowAct->setCheckable(true);
-    fitImageToWindowAct->setShortcut(tr("F"));
+    fitImageToWindowAct->setShortcut(tr("Alt+f"));
     connect(fitImageToWindowAct, SIGNAL(triggered()), this, SLOT(fitImageToWindow()));
 
     aboutAct = new QAction(tr("&About"), this);
@@ -268,6 +269,11 @@ void ImageViewer::createActions()
     toggleImageAct->setShortcut(tr("t"));
     toggleImageAct->setEnabled(true);
     connect (toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
+
+    showInfoWindowAct = new QAction(tr("&Image info..."), this);
+    showInfoWindowAct->setShortcut(tr("Ctrl+I"));
+//    showInfoWindowAct->setEnabled(true);
+    connect (showInfoWindowAct, SIGNAL(triggered()), this, SLOT(showInfoWindow()));
 }
 
 
@@ -340,10 +346,9 @@ ImageViewer::createMenus()
     // fg/bg image...
 
     toolsMenu = new QMenu(tr("&Tools"), this);
-    menuBar()->addMenu (toolsMenu);
     // Mode: select, zoom, pan, wipe
     // Pixel view
-    // Image info
+    toolsMenu->addAction (showInfoWindowAct);
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -351,6 +356,7 @@ ImageViewer::createMenus()
     // kill renderer
     // store render
     // Playback: forward, reverse, faster, slower, loop/pingpong
+    menuBar()->addMenu (toolsMenu);
 
     helpMenu = new QMenu(tr("&Help"), this);
     helpMenu->addAction (aboutAct);
@@ -491,19 +497,11 @@ ImageViewer::updateTitle ()
 void
 ImageViewer::updateStatusBar ()
 {
-    IvImage *img = m_images[m_current_image];
-    const ImageIOFormatSpec &spec (img->spec());
     std::string message;
-    message = Strutil::format ("%d/%d) : %d x %d",
-                               m_current_image+1, m_images.size(),
-                               spec.width, spec.height);
-    if (spec.depth > 1)
-        message += Strutil::format (" x %d", spec.depth);
-    message += Strutil::format (" x %d channel %s (%.2f MB)",
-                                spec.nchannels,
-                                ParamBaseTypeNameString(spec.format),
-                                (float)spec.image_bytes() / (1024.0*1024.0));
-    statusImgInfo->setText(message.c_str()); // tr("iv status"));
+    message = Strutil::format ("%d/%d) : ", m_current_image+1, m_images.size());
+    message += cur()->shortinfo();
+    statusImgInfo->setText (message.c_str());
+
     switch (m_current_channel) {
     case channelFullColor: message = "RGB"; break;
     case channelLuminance: message = "Lum"; break;
@@ -518,7 +516,7 @@ ImageViewer::updateStatusBar ()
     message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f",
                                 zoom() >= 1 ? zoom() : 1.0f,
                                 zoom() >= 1 ? 1.0f : 1.0f/zoom(),
-                               img->exposure(), img->gamma());
+                                cur()->exposure(), cur()->gamma());
     statusViewInfo->setText(message.c_str()); // tr("iv status"));
 }
 
@@ -536,13 +534,16 @@ ImageViewer::displayCurrentImage ()
     IvImage *img = cur();
     const ImageIOFormatSpec &spec (img->spec());
 
-    updateTitle();
-    updateStatusBar();
-
     if (! img->read (false, image_progress_callback, this))
         std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
+
+    updateTitle();
+    updateStatusBar();
+    if (infoWindow)
+        infoWindow->update (img);
+
     QImage qimage (spec.width, spec.height, QImage::Format_ARGB32_Premultiplied);
-    const int as = OpenImageIO::AutoStride;
+    const OpenImageIO::stride_t as = OpenImageIO::AutoStride;
     float gain = powf (2.0, img->exposure());
     float invgamma = 1.0f / img->gamma();
     for (int y = 0;  y < spec.height;  ++y) {
@@ -980,4 +981,17 @@ ImageViewer::zoom (float newzoom)
     zoomOutAct->setEnabled (zoom() > 1.0/64);
 
     updateStatusBar ();
+}
+
+
+
+void
+ImageViewer::showInfoWindow ()
+{
+    if (! infoWindow) {
+        std::cerr << "Making new info window\n";
+        infoWindow = new IvInfoWindow (this, true);
+    }
+    infoWindow->update (cur());
+    infoWindow->show();
 }

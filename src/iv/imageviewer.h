@@ -37,6 +37,7 @@
 using namespace OpenImageIO;
 
 class IvMainWindow;
+class IvInfoWindow;
 
 
 
@@ -82,6 +83,9 @@ public:
     float exposure (void) const { return m_exposure; }
     void exposure (float e) { m_exposure = e; }
 
+    std::string shortinfo () const;
+    std::string longinfo () const;
+
 private:
     std::string m_name;        ///< Filename of the image
     int m_nsubimages;          ///< How many subimages are there?
@@ -96,6 +100,8 @@ private:
     std::string m_err;         ///< Last error message
     float m_gamma;             ///< Gamma correction of this image
     float m_exposure;          ///< Exposure gain of this image, in stops
+    mutable std::string m_shortinfo;
+    mutable std::string m_longinfo;
 
     // An IvImage can be in one of several states:
     //   * Uninitialized
@@ -192,7 +198,7 @@ private slots:
     void viewChannelLuminance();        ///< View luminance as gray
     void viewChannelPrev();             ///< View just prev channel as gray
     void viewChannelNext();             ///< View just next channel as gray
-
+    void showInfoWindow();              ///< View extended info on image
 private:
     void createActions ();
     void createMenus ();
@@ -229,12 +235,14 @@ private:
     QAction *normalSizeAct;
     QAction *fitWindowToImageAct, *fitImageToWindowAct;
     QAction *aboutAct;
-    QAction *nextImageAct, *prevImageAct, *toggleImageAct;;
+    QAction *nextImageAct, *prevImageAct, *toggleImageAct;
+    QAction *showInfoWindowAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
     QMenu *expgamMenu, *channelMenu;
     QLabel *statusImgInfo, *statusViewInfo;
 //    QButtonGroup *channelGroup;
     QProgressBar *statusProgress;
+    IvInfoWindow *infoWindow;
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
@@ -244,6 +252,27 @@ private:
 
     friend class IvScrollArea;
     friend bool image_progress_callback (void *opaque, float done);
+};
+
+
+
+class IvInfoWindow : public QDialog
+{
+    Q_OBJECT
+public:
+    IvInfoWindow (ImageViewer *viewer=NULL, bool visible=true);
+    void update (IvImage *img);
+    
+//private slots:
+//    void close ();
+
+private:
+
+    QPushButton *closeButton;
+    QLabel *infoLabel;
+
+    ImageViewer *m_viewer;
+    bool m_visible;
 };
 
 
