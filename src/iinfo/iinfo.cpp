@@ -146,6 +146,10 @@ main (int argc, char *argv[])
     long long totalsize = 0;
     BOOST_FOREACH (const std::string &s, filenames) {
         ImageInput *in = ImageInput::create (s.c_str(), "" /* searchpath */);
+        if (! in) {
+            std::cerr << OpenImageIO::error_message() << "\n";
+            continue;
+        }
         ImageIOFormatSpec spec;
         if (in->open (s.c_str(), spec)) {
             print_info (s, in, spec, verbose, sum, totalsize);
