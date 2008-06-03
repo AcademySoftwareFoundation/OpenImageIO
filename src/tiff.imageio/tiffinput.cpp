@@ -42,12 +42,8 @@ using namespace OpenImageIO;
 
 class TIFFInput : public ImageInput {
 public:
-    TIFFInput () 
-        : m_tif(NULL), m_planarconfig(PLANARCONFIG_CONTIG), m_subimage(-1)
-    { }
-
+    TIFFInput () { init(); }
     virtual ~TIFFInput () { close(); }
-
     virtual bool open (const char *name, ImageIOFormatSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
@@ -61,6 +57,10 @@ private:
     std::vector<char> m_scratch;
     int m_planarconfig;
     int m_subimage;
+
+    void init () {
+        m_tif = NULL;
+    }
 
     // Read tags from m_tif and fill out spec
     void read ();
@@ -128,6 +128,7 @@ bool
 TIFFInput::open (const char *name, ImageIOFormatSpec &newspec)
 {
     m_filename = name;
+    m_subimage = -1;
     return seek_subimage (0, newspec);
 }
 
@@ -289,7 +290,7 @@ TIFFInput::read ()
 
     // FIXME: look for ExtraSamples?
 
-    short pc;
+    short pc = PLANARCONFIG_CONTIG;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &pc);
     m_planarconfig = pc;
 
@@ -307,11 +308,9 @@ TIFFInput::read ()
 bool
 TIFFInput::close ()
 {
-    if (m_tif) {
+    if (m_tif)
         TIFFClose (m_tif);
-        m_tif = NULL;
-    }
-    m_subimage = -1;
+    init();  // Reset to initial state
     return true;
 }
 

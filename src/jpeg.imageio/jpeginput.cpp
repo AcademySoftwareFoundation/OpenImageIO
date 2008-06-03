@@ -49,8 +49,8 @@ using namespace OpenImageIO;
 
 class JpgInput : public ImageInput {
  public:
-    JpgInput () : fd(NULL) {}
-    ~JpgInput () {}
+    JpgInput () { init(); }
+    ~JpgInput () { close(); }
     bool open (const char *name, ImageIOFormatSpec &spec);
     bool read_native_scanline (int y, int z, void *data);
     bool close ();
@@ -59,7 +59,10 @@ class JpgInput : public ImageInput {
     bool first_scanline;
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
+
+    void init () { fd = NULL; }
 };
+
 
 
 // Export version number and create function symbols
@@ -153,7 +156,8 @@ JpgInput::read_native_scanline (int y, int z, void *data)
     return true;
 }
 
-    
+
+
 bool
 JpgInput::close ()
 {
@@ -162,8 +166,8 @@ JpgInput::close ()
             jpeg_finish_decompress (&cinfo);
         jpeg_destroy_decompress(&cinfo);
         fclose (fd);
-        fd = NULL;
     }
+    init ();   // Reset to initial state
     return true;
 }
 
