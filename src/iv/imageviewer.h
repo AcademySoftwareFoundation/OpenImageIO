@@ -31,13 +31,15 @@
 #include <vector>
 
 #include <QtGui>
-
+#include <QGLWidget>
 
 #include "imageio.h"
 using namespace OpenImageIO;
 
 class IvMainWindow;
 class IvInfoWindow;
+class IvCanvas;
+class IvGL;
 
 
 
@@ -213,7 +215,7 @@ private:
     void keyPressEvent (QKeyEvent *event);
 
     QLabel *imageLabel;
-    QScrollArea *scrollArea;
+    IvCanvas *scrollArea;
 
 #ifndef QT_NO_PRINTER
     QPrinter printer;
@@ -228,8 +230,6 @@ private:
     QAction *viewChannelFullAct, *viewChannelRedAct, *viewChannelGreenAct;
     QAction *viewChannelBlueAct, *viewChannelAlphaAct, *viewChannelLuminanceAct;
     QAction *viewChannelPrevAct, *viewChannelNextAct;
-//    QRadioButton *viewChannelFullButton, *viewChannelRedButton, *viewChannelGreenButton;
-//    QRadioButton *viewChannelBlueButton, *viewChannelAlphaButton, *viewChannelLuminanceButton;
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;
@@ -240,9 +240,14 @@ private:
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
     QMenu *expgamMenu, *channelMenu;
     QLabel *statusImgInfo, *statusViewInfo;
-//    QButtonGroup *channelGroup;
     QProgressBar *statusProgress;
     IvInfoWindow *infoWindow;
+
+    QGraphicsScene *gscene;
+    QGraphicsPixmapItem *gpixmapitem;
+    QPixmap gpixmap;
+
+    IvGL *glwin;
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
@@ -250,7 +255,7 @@ private:
     int m_last_image;                 ///< Last image we viewed
     float m_zoom;                     ///< Zoom amount (positive maxifies)
 
-    friend class IvScrollArea;
+    friend class IvCanvas;
     friend bool image_progress_callback (void *opaque, float done);
 };
 
@@ -263,11 +268,7 @@ public:
     IvInfoWindow (ImageViewer *viewer=NULL, bool visible=true);
     void update (IvImage *img);
     
-//private slots:
-//    void close ();
-
 private:
-
     QPushButton *closeButton;
     QLabel *infoLabel;
 
@@ -275,5 +276,33 @@ private:
     bool m_visible;
 };
 
+
+
+class IvGL : public QGLWidget
+{
+Q_OBJECT
+public:
+    IvGL (QWidget *parent, ImageViewer *viewer);
+    ~IvGL ();
+
+    /// Update the image texture.
+    ///
+    void update (IvImage *img);
+
+    /// Update the zoom
+    ///
+    void zoom (float newzoom);
+
+protected:
+    void initializeGL ();
+    void resizeGL (int w, int h);
+    void paintGL ();
+private:
+    ImageViewer *m_viewer;
+    GLuint m_vertex_shader;
+    GLuint m_fragment_shader;
+    GLuint m_shader_program;
+    GLuint m_texid;
+};
 
 #endif // IMAGEVIEWER_H

@@ -32,20 +32,13 @@
 #include <iterator>
 
 #include <QtGui>
-//#include <QPushButton>
-//#include <QHBoxLayout>
-//#include <QVBoxLayout>
-//#include <QSlider>
-//#include <QSpinBox>
-//#include <QMainWindow>
 
 #include <boost/foreach.hpp>
 
 #include "imageio.h"
 using namespace OpenImageIO;
-
-//#include "ivmainwindow.h"
 #include "imageviewer.h"
+#include "timer.h"
 
 
 static bool verbose = false;
@@ -105,5 +98,7 @@ main (int argc, char *argv[])
         mainWin->add_image (s);
     }
 
-    return app.exec();
+    int r = app.exec();
+    // OK to clean up here
+    return r;
 }

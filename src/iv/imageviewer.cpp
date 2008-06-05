@@ -34,19 +34,35 @@
 #include "imageviewer.h"
 #include "dassert.h"
 #include "strutil.h"
+#include "timer.h"
 
+
+
+// Define if we want to use QGraphicsView instead of just a QLabel
+#define xUSE_GRAPHICSVIEW 1
+#define xUSE_LABEL 1
+#define USE_OGL 1
 
 
 /// Subclass QScrollArea just so we can intercept events that we want
 /// handled in non-default ways.
-class IvScrollArea : public QScrollArea
+#ifdef USE_GRAPHICSVIEW
+class IvCanvas : public QGraphicsView
+#else
+class IvCanvas : public QScrollArea
+#endif
 {
 public:
-    IvScrollArea (ImageViewer &viewer) : m_viewer(viewer) { }
+    IvCanvas (ImageViewer &viewer) : m_viewer(viewer) { }
 private:
     void keyPressEvent (QKeyEvent *event);
     void mousePressEvent (QMouseEvent *event);
     ImageViewer &m_viewer;
+#ifdef USE_GRAPHICSVIEW
+    typedef QGraphicsView parent_t;
+#else
+    typedef QScrollArea parent_t;
+#endif
 };
 
 
@@ -55,9 +71,9 @@ private:
 /// that we want to page between images in our UI, not to be hooked to
 /// the scroll bars.
 void
-IvScrollArea::keyPressEvent (QKeyEvent *event)
+IvCanvas::keyPressEvent (QKeyEvent *event)
 {
-//    std::cerr << "IvScrollArea key " << (int)event->key() << '\n';
+//    std::cerr << "IvCanvas key " << (int)event->key() << '\n';
     switch (event->key()) {
 #if 1
     case Qt::Key_Left :
@@ -76,13 +92,13 @@ IvScrollArea::keyPressEvent (QKeyEvent *event)
         return; //break;
 #endif
     }
-    QScrollArea::keyPressEvent (event);
+    parent_t::keyPressEvent (event);
 }
 
 
 
 void
-IvScrollArea::mousePressEvent (QMouseEvent *event)
+IvCanvas::mousePressEvent (QMouseEvent *event)
 {
     switch (event->button()) {
     case Qt::LeftButton :
@@ -92,7 +108,7 @@ IvScrollArea::mousePressEvent (QMouseEvent *event)
         m_viewer.zoomOut();
         return;;
     }
-    QScrollArea::mousePressEvent (event);
+    parent_t::mousePressEvent (event);
 }
 
 
@@ -101,17 +117,31 @@ IvScrollArea::mousePressEvent (QMouseEvent *event)
 ImageViewer::ImageViewer ()
     : infoWindow(NULL),
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
-      m_zoom(1)
+      m_zoom(1), gpixmap(100,200)
 {
     imageLabel = new QLabel;
     imageLabel->setBackgroundRole (QPalette::Base);
     imageLabel->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
     imageLabel->setScaledContents (true);
 
-    scrollArea = new IvScrollArea (*this);
+    scrollArea = new IvCanvas (*this);
+#ifdef USE_GRAPHICSVIEW
+    gscene = new QGraphicsScene;
+    gpixmapitem = gscene->addPixmap (gpixmap);
+    scrollArea->setScene (gscene);
+#endif
+#ifdef USE_LABEL
     scrollArea->setBackgroundRole (QPalette::Dark);
     scrollArea->setAlignment (Qt::AlignCenter);
     scrollArea->setWidget (imageLabel);
+#endif
+#ifdef USE_OGL
+    scrollArea->setBackgroundRole (QPalette::Dark);
+    scrollArea->setAlignment (Qt::AlignCenter);
+    glwin = new IvGL (this, this);
+    glwin->resize (640, 480);
+    scrollArea->setWidget (glwin);
+#endif
     setCentralWidget (scrollArea);
 
     createActions();
@@ -191,30 +221,27 @@ void ImageViewer::createActions()
 
     viewChannelRedAct = new QAction(tr("Red"), this);
     viewChannelRedAct->setShortcut(tr("r"));
-    viewChannelFullAct->setCheckable (true);
-    viewChannelFullAct->setChecked (false);
+    viewChannelRedAct->setCheckable (true);
     connect(viewChannelRedAct, SIGNAL(triggered()), this, SLOT(viewChannelRed()));
 
     viewChannelGreenAct = new QAction(tr("Green"), this);
     viewChannelGreenAct->setShortcut(tr("g"));
+    viewChannelGreenAct->setCheckable (true);
     connect(viewChannelGreenAct, SIGNAL(triggered()), this, SLOT(viewChannelGreen()));
 
     viewChannelBlueAct = new QAction(tr("Blue"), this);
     viewChannelBlueAct->setShortcut(tr("b"));
-    viewChannelFullAct->setCheckable (true);
-    viewChannelFullAct->setChecked (false);
+    viewChannelBlueAct->setCheckable (true);
     connect(viewChannelBlueAct, SIGNAL(triggered()), this, SLOT(viewChannelBlue()));
 
     viewChannelAlphaAct = new QAction(tr("Alpha"), this);
     viewChannelAlphaAct->setShortcut(tr("a"));
-    viewChannelFullAct->setCheckable (true);
-    viewChannelFullAct->setChecked (false);
+    viewChannelAlphaAct->setCheckable (true);
     connect(viewChannelAlphaAct, SIGNAL(triggered()), this, SLOT(viewChannelAlpha()));
 
     viewChannelLuminanceAct = new QAction(tr("Luminance"), this);
     viewChannelLuminanceAct->setShortcut(tr("l"));
-    viewChannelFullAct->setCheckable (true);
-    viewChannelFullAct->setChecked (false);
+    viewChannelLuminanceAct->setCheckable (true);
     connect(viewChannelLuminanceAct, SIGNAL(triggered()), this, SLOT(viewChannelLuminance()));
 
     viewChannelPrevAct = new QAction(tr("Prev Channel"), this);
@@ -525,6 +552,9 @@ ImageViewer::updateStatusBar ()
 void
 ImageViewer::displayCurrentImage ()
 {
+    Timer dCI_total(false), qt(false), convert_pixels(false);
+    ScopedTimer<Timer> time_dCI_total(dCI_total);
+
     if (m_images.empty()) {
         m_current_image = m_last_image = -1;
         return;
@@ -542,13 +572,17 @@ ImageViewer::displayCurrentImage ()
     if (infoWindow)
         infoWindow->update (img);
 
+    qt.start();
     QImage qimage (spec.width, spec.height, QImage::Format_ARGB32_Premultiplied);
+    qt.stop();
+    convert_pixels.start();
     const OpenImageIO::stride_t as = OpenImageIO::AutoStride;
     float gain = powf (2.0, img->exposure());
     float invgamma = 1.0f / img->gamma();
     for (int y = 0;  y < spec.height;  ++y) {
         unsigned char *sl = qimage.scanLine (y);
         unsigned long *argb = (unsigned long *) sl;
+//        memset (argb, 0xff, spec.width*4);
         for (int x = 0;  x < spec.width;  ++x)
             argb[x] = 0xff000000;
         // FIXME -- Ugh, Qt's Pixmap stores "ARGB" as a uint32, but
@@ -592,17 +626,35 @@ ImageViewer::displayCurrentImage ()
                                sl+3, PT_UINT8, 4, as, as);
         }
     }
+    convert_pixels.stop();
 
+    qt.start();
+#ifdef USE_GRAPHICSVIEW
+    gpixmap = QPixmap::fromImage (qimage);
+    gpixmapitem->setPixmap (gpixmap);
+    scrollArea->resize (spec.width, spec.height);
+//    gscene->invalidate();
+    std::cerr << "Reassigned pixmap\n";
+#endif
+#ifdef USE_LABEL
+    imageLabel->setPixmap (QPixmap::fromImage(qimage));
+#endif
+#ifdef USE_OGL
+    glwin->zoom (zoom());
+    glwin->update (img);
+#endif
 
-    imageLabel->setPixmap(QPixmap::fromImage(qimage));
-    
     printAct->setEnabled(true);
     fitWindowToImageAct->setEnabled(true);
     fitImageToWindowAct->setEnabled(true);
     updateActions();
-    
+
     if (!fitImageToWindowAct->isChecked())
         imageLabel->adjustSize();
+    qt.stop();
+    dCI_total.stop();
+
+    std::cerr << "Times: total=" << dCI_total() << ", GUI time " << qt() << ", pixel prep time " << convert_pixels() << "\n";
 }
 
 
@@ -913,7 +965,7 @@ void ImageViewer::fitWindowToImage()
         return;
     // FIXME -- figure out a way to make it exactly right, even for the
     // main window border, etc.
-    int extraw = 24; // width() - minimumWidth();
+    int extraw = 12; // width() - minimumWidth();
     int extrah = 40; // height() - minimumHeight();
 //    std::cerr << "extra wh = " << extraw << ' ' << extrah << '\n';
 //    scrollArea->resize ((int)(img->spec().width * zoom()),
@@ -959,7 +1011,6 @@ ImageViewer::zoom (float newzoom)
     IvImage *img = cur();
     if (! img)
         return;
-    ASSERT(imageLabel->pixmap());
     QScrollBar *hsb = scrollArea->horizontalScrollBar();
     QScrollBar *vsb = scrollArea->verticalScrollBar();
 
@@ -970,7 +1021,20 @@ ImageViewer::zoom (float newzoom)
     centerv = Imath::clamp ((int)((viewsize.height()/2 + vsb->value())/zoom()), 0, curspec()->height-1);
 
     m_zoom = newzoom;
+#ifdef USE_GRAPHICSVIEW
+    ASSERT (scrollArea);
+    QMatrix m;
+    m.reset();
+    m.scale (zoom(), zoom());
+    scrollArea->setMatrix (m);
+#endif
+#ifdef USE_LABEL
+    ASSERT(imageLabel->pixmap());
     imageLabel->resize (zoom() * imageLabel->pixmap()->size());
+#endif
+#ifdef USE_OGL
+    glwin->zoom (zoom());
+#endif
 
     centerh = (int)(zoom() * centerh) - viewsize.width()/2;
     centerv = (int)(zoom() * centerv) - viewsize.height()/2;
