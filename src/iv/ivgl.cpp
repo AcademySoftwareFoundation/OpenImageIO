@@ -60,7 +60,7 @@ IvGL::~IvGL ()
 void
 IvGL::initializeGL ()
 {
-    std::cerr << "initializeGL\n";
+//    std::cerr << "initializeGL\n";
     glClearColor (1.0, 0.0, 0.0, 1.0);
 //    object = makeObject();
     glShadeModel(GL_FLAT);
@@ -113,11 +113,30 @@ IvGL::initializeGL ()
     static const GLchar *fragment_source = 
         "uniform sampler2D imgtex;\n"
         "varying vec2 vTexCoord;\n"
-        "uniform float test;\n"
+        "uniform float gain;\n"
+        "uniform float gamma;\n"
+        "uniform int channelview;\n"
         "void main ()\n"
         "{\n"
-        "    gl_FragColor = texture2D (imgtex, vTexCoord);\n"
-//        "    gl_FragColor = vec4(test, 1, 0, 1);\n"
+        "    vec4 C = texture2D (imgtex, vTexCoord);\n"
+        "    if (channelview == -1) {\n"
+        "    }\n"
+        "    else if (channelview == 0)\n"
+        "        C.xyz = C.xxx;\n"
+        "    else if (channelview == 1)\n"
+        "        C.xyz = C.yyy;\n"
+        "    else if (channelview == 2)\n"
+        "        C.xyz = C.zzz;\n"
+        "    else if (channelview == 3)\n"
+        "        C.xyz = C.www;\n"
+        "    else if (channelview == -2) {\n"
+        "        float lum = dot (C.xyz, vec3(0.3086, 0.6094, 0.0820));\n"
+        "        C.xyz = vec3 (lum, lum, lum);\n"
+        "    }\n"
+        "    C.xyz *= gain;\n"
+        "    float invgamma = 1.0/gamma;\n"
+        "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
+        "    gl_FragColor = C;\n"
         "}\n";
     m_fragment_shader = glCreateShader (GL_FRAGMENT_SHADER);
     glShaderSource (m_fragment_shader, 1, &fragment_source, NULL);
@@ -141,9 +160,11 @@ IvGL::initializeGL ()
     glGetProgramiv (m_shader_program, GL_ATTACHED_SHADERS, &attached_shaders);
     std::cerr << "attached shaders: " << (int)attached_shaders << "\n";
 
-    GLint samplerloc = glGetUniformLocation (m_shader_program, "imgtex");
+    useshader ();
+    GLint loc;
+    loc = glGetUniformLocation (m_shader_program, "imgtex");
     GLERRPRINT ("use tex 1");
-    glUniform1i (samplerloc, m_texid /*texture sampler number*/);
+    glUniform1i (loc, m_texid /*texture sampler number*/);
     GLERRPRINT ("use tex 2");
 }
 
@@ -152,7 +173,7 @@ IvGL::initializeGL ()
 void
 IvGL::resizeGL (int w, int h)
 {
-    std::cerr << "resizeGL " << w << ' ' << h << "\n";
+//    std::cerr << "resizeGL " << w << ' ' << h << "\n";
     GLERRPRINT ("resizeGL entry");
 //    int side = qMin(w, h);
 //    glViewport ((w - side) / 2, (h - side) / 2, side, side);
@@ -169,8 +190,7 @@ IvGL::resizeGL (int w, int h)
 void
 IvGL::paintGL ()
 {
-    std::cerr << "paintGL\n";
-    GLERRPRINT ("paintGL entry");
+//    std::cerr << "paintGL\n";
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (! m_viewer || ! m_viewer->cur())
         return;
@@ -181,16 +201,7 @@ IvGL::paintGL ()
     const ImageIOFormatSpec &spec (img->spec());
     glScalef (spec.width, spec.height, 1);
 
-#if 0
-    GLint testloc = glGetUniformLocation (m_shader_program, "test");
-    GLERRPRINT ("getloc 1");
-    glUniform1f (testloc, 0.5 /*texture sampler number*/);
-    GLERRPRINT ("getloc 2");
-#endif
-
-    GLERRPRINT ("before use program");
-    glUseProgram (m_shader_program);
-    GLERRPRINT ("use program");
+    useshader ();
 
     glBegin (GL_QUAD_STRIP);
     glTexCoord2f (0, 0);
@@ -202,6 +213,45 @@ IvGL::paintGL ()
     glTexCoord2f (1, 1);
     glVertex3f (0.5f, -0.5f, 1.0f);
     glEnd ();
+}
+
+
+
+void
+IvGL::useshader (void)
+{
+    if (! m_viewer)
+        return;
+    IvImage *img = m_viewer->cur();
+    if (! img)
+        return;
+    const ImageIOFormatSpec &spec (img->spec());
+
+    GLERRPRINT ("before use program");
+    glUseProgram (m_shader_program);
+    GLERRPRINT ("use program");
+
+    GLint loc;
+#if 0
+    loc = glGetUniformLocation (m_shader_program, "imgtex");
+    GLERRPRINT ("set param 1");
+    glUniform1i (loc, m_texid);
+    GLERRPRINT ("set param 2");
+#endif
+    loc = glGetUniformLocation (m_shader_program, "gain");
+    GLERRPRINT ("set param 3");
+//    std::cerr << "loc for gain is " << (int)loc << '\n';
+    float gain = powf (2.0, img->exposure());
+    glUniform1f (loc, gain);
+    GLERRPRINT ("set param 4");
+    loc = glGetUniformLocation (m_shader_program, "gamma");
+//    std::cerr << "loc for gamma is " << (int)loc << '\n';
+    glUniform1f (loc, img->gamma());
+    GLERRPRINT ("set param 5");
+    loc = glGetUniformLocation (m_shader_program, "channelview");
+//    std::cerr << "loc for channelview is " << (int)loc << '\n';
+    glUniform1i (loc, m_viewer->current_channel());
+    GLERRPRINT ("set param 5");
 }
 
 
@@ -230,8 +280,7 @@ IvGL::zoom (float z)
     if (! img)
         return;
     const ImageIOFormatSpec &spec (img->spec());
-    std::cerr << "resizing to " << 
-        (spec.width * z) << ' ' << (spec.height * z) << "\n";
+//    std::cerr << "resizing to " << (spec.width*z) << ' ' << (spec.height*z) << "\n";
     resize (spec.width * z, spec.height * z);
     // Update the texture
     repaint (0, 0, spec.width * z, spec.height * z);

@@ -139,10 +139,6 @@ public:
     /// specification.
     void add_image (const std::string &filename, bool getspec=true);
 
-    /// View a particular channel
-    ///
-    void viewChannel (ChannelView c);
-
     /// View this image.
     ///
     void current_image (int newimage);
@@ -150,6 +146,14 @@ public:
     /// Which image index are we viewing?
     ///
     int current_image (void) const { return m_current_image; }
+
+    /// View a particular channel
+    ///
+    void viewChannel (ChannelView c);
+
+    /// Which channel are we viewing?
+    ///
+    int current_channel (void) const { return m_current_channel; }
 
     /// Return the current zoom level.  1.0 == 1:1 pixel ratio.  Positive
     /// is a "zoom in" (closer/maxify), negative is zoom out (farther/minify).
@@ -303,6 +307,8 @@ private:
     GLuint m_fragment_shader;
     GLuint m_shader_program;
     GLuint m_texid;
+
+    void useshader ();
 };
 
 #endif // IMAGEVIEWER_H

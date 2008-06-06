@@ -39,8 +39,8 @@
 
 
 // Define if we want to use QGraphicsView instead of just a QLabel
-#define xUSE_GRAPHICSVIEW 1
 #define xUSE_LABEL 1
+#define xUSE_GRAPHICSVIEW 1
 #define USE_OGL 1
 
 
@@ -342,7 +342,6 @@ ImageViewer::createMenus()
 //    menuBar()->addMenu (imageMenu);
     
     channelMenu = new QMenu(tr("Channels"));
-//    viewChannelFullButton = new QRadioButton(tr("Full Color"));
     // Color mode: true, random, falsegrgbacCrgR
     channelMenu->addAction (viewChannelFullAct);
     channelMenu->addAction (viewChannelRedAct);
@@ -352,7 +351,6 @@ ImageViewer::createMenus()
     channelMenu->addAction (viewChannelLuminanceAct);
     channelMenu->addAction (viewChannelPrevAct);
     channelMenu->addAction (viewChannelNextAct);
-//    channelMenu-L
 
     viewMenu = new QMenu(tr("&View"), this);
     viewMenu->addAction (prevImageAct);
@@ -576,6 +574,7 @@ ImageViewer::displayCurrentImage ()
     QImage qimage (spec.width, spec.height, QImage::Format_ARGB32_Premultiplied);
     qt.stop();
     convert_pixels.start();
+#ifndef USE_OGL
     const OpenImageIO::stride_t as = OpenImageIO::AutoStride;
     float gain = powf (2.0, img->exposure());
     float invgamma = 1.0f / img->gamma();
@@ -626,6 +625,7 @@ ImageViewer::displayCurrentImage ()
                                sl+3, PT_UINT8, 4, as, as);
         }
     }
+#endif
     convert_pixels.stop();
 
     qt.start();
