@@ -15,9 +15,15 @@ local_src := formatspec.cpp imageinput.cpp imageio.cpp \
 # module is not for a binary executable)
 local_libs := 
 
+# Extra objects from other libs we need to compile this library 
+local_extra_objs := ${build_obj_dir}/libutil/filesystem${OEXT} \
+		    ${build_obj_dir}/libutil/paramtype${OEXT} \
+		    ${build_obj_dir}/libutil/plugin${OEXT} \
+		    ${build_obj_dir}/libutil/strutil${OEXT}
+
 # Extra shared libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)
-local_shlibs := libutil
+local_shlibs := 
 
 # ld flags needed for this library
 local_ldflags := ${LINK_ILMBASE} ${LINK_BOOST}

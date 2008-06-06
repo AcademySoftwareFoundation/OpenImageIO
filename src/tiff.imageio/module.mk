@@ -13,7 +13,7 @@ local_libs :=
 
 # Extra shared libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)
-local_shlibs := libimageio libutil
+local_shlibs := libimageio
 
 # ld flags needed for this library
 #local_ldflags := ${LINK_TIFF} #${TIFF_HOME}/lib/tiff-${TIFF_VERSION}/*${OEXT}

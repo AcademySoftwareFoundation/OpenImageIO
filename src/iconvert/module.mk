@@ -13,7 +13,7 @@ local_libs :=
 
 # Extra shared libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)
-local_shlibs := libimageio libutil
+local_shlibs := libimageio
 
 # ld flags needed for this module
 local_ldflags := ${LINK_BOOST} ${LINK_ILMBASE}
