@@ -52,14 +52,18 @@ public:
     virtual bool read_native_tile (int x, int y, int z, void *data);
 
 private:
-    TIFF *m_tif;
-    std::string m_filename;
-    std::vector<char> m_scratch;
-    int m_planarconfig;
-    int m_subimage;
+    TIFF *m_tif;                     ///< libtiff handle
+    std::string m_filename;          ///< Stash the filename
+    std::vector<char> m_scratch;     ///< Scratch space for us to use
+    int m_subimage;                  ///< What subimage are we looking at?
+    unsigned short m_planarconfig;   ///< Planar config of the file
+    unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
+    unsigned short m_photometric;    ///< Of the *file*, not the client's view
+    std::vector<unsigned short> m_colormap;  ///< Color map for palette images
 
     void init () {
         m_tif = NULL;
+        m_colormap.clear();
     }
 
     // Read tags from m_tif and fill out spec
@@ -67,6 +71,12 @@ private:
 
     // Convert planar separate to contiguous data format
     void separate_to_contig (int n, const char *separate, char *separate);
+
+    // Convert palette to RGB
+    void palette_to_rgb (int n, const unsigned char *palettepels,
+                         unsigned char *rgb);
+
+    void invert_photometric (int n, void *data);
 
     // Get a string tiff tag field and put it into extra_params
     void get_string_field (const std::string &name, int tag) {
@@ -207,11 +217,13 @@ TIFFInput::read ()
         spec.tile_depth = 0;
     }
 
-    short bps = 8;
-    TIFFGetField (m_tif, TIFFTAG_BITSPERSAMPLE, &bps);
-    short sampleformat = SAMPLEFORMAT_UINT;
-    TIFFGetField (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
-    switch (bps) {
+    unsigned short bps = 8;
+    TIFFGetField (m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
+    unsigned short sampleformat = SAMPLEFORMAT_UINT;
+    TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
+    switch (m_bitspersample) {
+    case 4:
+        // Make 4 bpp look like byte images
     case 8:
         if (sampleformat == SAMPLEFORMAT_UINT)
             spec.set_format (PT_UINT8);
@@ -233,7 +245,7 @@ TIFFInput::read ()
         break;
     }
 
-    short nchans;
+    unsigned short nchans;
     TIFFGetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
     spec.nchannels = nchans;
 
@@ -286,13 +298,25 @@ TIFFInput::read ()
     // PlanarConfiguration
     // Optional EXIF tags (exposuretime, fnumber, etc)?
 
-    // FIXME: we probably do the entirely wrong thing for palette images
+    m_photometric = (spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
+    TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
+    if (m_photometric == PHOTOMETRIC_PALETTE) {
+        // Read the color map
+        unsigned short *r = NULL, *g = NULL, *b = NULL;
+        TIFFGetField (m_tif, TIFFTAG_COLORMAP, &r, &g, &b);
+        ASSERT (r != NULL && g != NULL && b != NULL);
+        m_colormap.clear ();
+        m_colormap.insert (m_colormap.end(), r, r + (1 << m_bitspersample));
+        m_colormap.insert (m_colormap.end(), g, g + (1 << m_bitspersample));
+        m_colormap.insert (m_colormap.end(), b, b + (1 << m_bitspersample));
+        // Palette TIFF images are always 3 channels (to the client)
+        spec.nchannels = 3;
+    }
 
     // FIXME: look for ExtraSamples?
+    TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
 
-    short pc = PLANARCONFIG_CONTIG;
-    TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &pc);
-    m_planarconfig = pc;
+    // FIXME: do we care about fillorder for 1-bit and 4-bit images?
 
     // Special names for shadow maps
     char *s = NULL;
@@ -331,11 +355,68 @@ TIFFInput::separate_to_contig (int n, const char *separate, char *contig)
 
 
 
+void
+TIFFInput::palette_to_rgb (int n, const unsigned char *palettepels,
+                           unsigned char *rgb)
+{
+    DASSERT (spec.nchannels == 3);
+    int entries = 1 << m_bitspersample;
+    DASSERT (m_colormap.size() == 3*entries);
+    if (m_bitspersample == 8) {
+        for (int x = 0;  x < n;  ++x) {
+            int i = (*palettepels++);
+            *rgb++ = m_colormap[0*entries+i] / 257;
+            *rgb++ = m_colormap[1*entries+i] / 257;
+            *rgb++ = m_colormap[2*entries+i] / 257;
+        }
+    } else {
+        // 4 bits per sample
+        DASSERT (m_bitspersample == 4);
+        for (int x = 0;  x < n;  ++x) {
+            int i;
+            if ((x & 1) == 0)
+                i = (*palettepels >> 4);
+            else
+                i = (*palettepels++) & 0x0f;
+            *rgb++ = m_colormap[0*entries+i] / 257;
+            *rgb++ = m_colormap[1*entries+i] / 257;
+            *rgb++ = m_colormap[2*entries+i] / 257;
+        }
+    }
+}
+
+
+
+void
+TIFFInput::invert_photometric (int n, void *data)
+{
+    switch (spec.format) {
+    case PT_UINT8:
+        unsigned char *d = (unsigned char *) data;
+        for (int i = 0;  i < n;  ++i)
+            d[i] = 255 - d[i];
+        break;
+    default:
+        break;
+    }
+}
+
+
+
 bool
 TIFFInput::read_native_scanline (int y, int z, void *data)
 {
     y -= spec.y;
-    if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
+    if (m_photometric == PHOTOMETRIC_PALETTE) {
+        // Convert from palette to RGB
+        m_scratch.resize (spec.width);
+        unsigned char *palettepels = (unsigned char *) &(m_scratch[0]);
+        if (TIFFReadScanline (m_tif, palettepels, y) < 0) {
+            error ("%s", lasterr.c_str());
+            return false;
+        }
+        palette_to_rgb (spec.width, palettepels, (unsigned char *)data);
+    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
         m_scratch.resize (spec.scanline_bytes());
         if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
@@ -350,6 +431,10 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
             return false;
         }
     }
+
+    if (m_photometric == PHOTOMETRIC_MINISWHITE)
+        invert_photometric (spec.width * spec.nchannels, data);
+
     return true;
 }
 
@@ -360,10 +445,19 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
 {
     x -= spec.x;
     y -= spec.y;
-    if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
+    int tile_pixels = spec.tile_width * spec.tile_height 
+                      * std::max (spec.tile_depth, 1);
+    if (m_photometric == PHOTOMETRIC_PALETTE) {
+        // Convert from palette to RGB
+        m_scratch.resize (tile_pixels);
+        unsigned char *palettepels = (unsigned char *) &(m_scratch[0]);
+        if (TIFFReadTile (m_tif, palettepels, x, y, z, 0) < 0) {
+            error ("%s", lasterr.c_str());
+            return false;
+        }
+        palette_to_rgb (tile_pixels, palettepels, (unsigned char *)data);
+    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        int tile_pixels = spec.tile_width * spec.tile_height 
-                            * std::max (spec.tile_depth, 1);
         int plane_bytes = tile_pixels * ParamBaseTypeSize(spec.format);
         DASSERT (plane_bytes*spec.nchannels == spec.tile_bytes());
         m_scratch.resize (spec.tile_bytes());
@@ -380,5 +474,9 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
             return false;
         }
     }
+
+    if (m_photometric == PHOTOMETRIC_MINISWHITE)
+        invert_photometric (tile_pixels, data);
+
     return true;
 }
