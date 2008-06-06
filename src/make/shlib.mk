@@ -26,6 +26,7 @@ ${name}_obj_dir := ${build_obj_dir}/${name}
 
 # List of all obj files we need to generate for this library
 ${name}_objs := ${patsubst %.cpp,%${OEXT},${foreach f,${local_src},${${name}_obj_dir}/${f}}}
+${name}_objs += ${local_extra_objs}
 #${info shlib.mk ${name} ${name}_objs = ${${name}_objs}}
 
 # Full path and name of the library
@@ -87,6 +88,7 @@ ${${name}_depfile}: ${${name}_srcs}
 
 local_name :=
 local_src :=
+local_extra_objs :=
 local_libs :=
 local_shlibs :=
 local_ldflags :=

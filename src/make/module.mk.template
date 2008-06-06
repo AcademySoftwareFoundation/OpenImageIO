@@ -10,6 +10,9 @@ local_name :=
 # Name of all source files in this directory
 local_src := 
 
+# Extra objects from other libs we need to compile this library or binary
+local_extra_objs := 
+
 # Extra static libs needed to compile this module (leave blank if this
 # module is not for a binary executable)
 local_libs := 
