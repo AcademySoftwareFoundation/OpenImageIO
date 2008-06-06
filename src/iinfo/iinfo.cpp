@@ -60,7 +60,6 @@ static void
 getargs (int argc, char *argv[])
 {
     for (int i = 1;  i < argc;  ++i) {
-        std::cerr << "arg " << i << " : " << argv[i] << '\n';
         if (! strcmp (argv[i], "-h") || ! strcmp (argv[i], "--help")) {
             usage();
             exit (0);
@@ -98,7 +97,7 @@ print_info (const std::string &filename, ImageInput *input,
     printf ("\n");
 
     if (verbose) {
-        if (spec.x || spec.y || spec.z) {
+        if (1 || spec.x || spec.y || spec.z) {
             printf ("    offset: x=%d, y=%d", spec.x, spec.y);
             if (spec.depth > 1)
                 printf (", z=%d\n", spec.x, spec.y, spec.z);
@@ -155,7 +154,7 @@ main (int argc, char *argv[])
             print_info (s, in, spec, verbose, sum, totalsize);
             in->close ();
         } else {
-            fprintf (stderr, "iinfo: Could not open \"%s\" : %s",
+            fprintf (stderr, "iinfo: Could not open \"%s\" : %s\n",
                      s.c_str(), in->error_message().c_str());
         }
         delete in;

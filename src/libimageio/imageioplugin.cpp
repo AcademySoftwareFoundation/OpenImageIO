@@ -100,7 +100,7 @@ catalog_plugin (const std::string &format_name,
         return;
     }
 //        if (verbosity > 1)
-    std::cerr << "Succeeded in opening " << plugin_fullpath << "\n";
+//    std::cerr << "Succeeded in opening " << plugin_fullpath << "\n";
     
     int *plugin_version = (int *) Plugin::getsym (handle, "imageio_version");
     if (! plugin_version || *plugin_version != IMAGEIO_VERSION) {
