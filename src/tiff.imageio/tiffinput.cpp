@@ -44,6 +44,7 @@ class TIFFInput : public ImageInput {
 public:
     TIFFInput () { init(); }
     virtual ~TIFFInput () { close(); }
+    virtual const char * format_name (void) const { return "TIFF"; }
     virtual bool open (const char *name, ImageIOFormatSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
@@ -54,7 +55,7 @@ public:
 private:
     TIFF *m_tif;                     ///< libtiff handle
     std::string m_filename;          ///< Stash the filename
-    std::vector<char> m_scratch;     ///< Scratch space for us to use
+    std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
     int m_subimage;                  ///< What subimage are we looking at?
     unsigned short m_planarconfig;   ///< Planar config of the file
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
@@ -70,11 +71,20 @@ private:
     void read ();
 
     // Convert planar separate to contiguous data format
-    void separate_to_contig (int n, const char *separate, char *separate);
+    void separate_to_contig (int n, const unsigned char *separate,
+                             unsigned char *separate);
 
     // Convert palette to RGB
     void palette_to_rgb (int n, const unsigned char *palettepels,
                          unsigned char *rgb);
+
+    // Convert bilevel (1-bit) to 8-bit
+    void bilevel_to_8bit (int n, const unsigned char *bits,
+                          unsigned char *bytes);
+
+     // Convert bilevel (1-bit) to 8-bit
+    void fourbit_to_8bit (int n, const unsigned char *bits,
+                          unsigned char *bytes);
 
     void invert_photometric (int n, void *data);
 
@@ -88,7 +98,7 @@ private:
 
     // Get a float-oid tiff tag field and put it into extra_params
     void get_float_field (const std::string &name, int tag,
-                                  ParamBaseType type=PT_FLOAT) {
+                          ParamBaseType type=PT_FLOAT) {
         float f[16];
         if (TIFFGetField (m_tif, tag, f))
             spec.add_parameter (name, type, 1, &f);
@@ -96,7 +106,7 @@ private:
 
     // Get an int tiff tag field and put it into extra_params
     void get_int_field (const std::string &name, int tag,
-                              ParamBaseType type=PT_INT) {
+                        ParamBaseType type=PT_INT) {
         int i;
         if (TIFFGetField (m_tif, tag, &i))
             spec.add_parameter (name, type, 1, &i);
@@ -222,6 +232,8 @@ TIFFInput::read ()
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
     switch (m_bitspersample) {
+    case 1:
+        // Make 1bpp look like byte images
     case 4:
         // Make 4 bpp look like byte images
     case 8:
@@ -229,6 +241,7 @@ TIFFInput::read ()
             spec.set_format (PT_UINT8);
         else if (sampleformat == SAMPLEFORMAT_INT)
             spec.set_format (PT_INT8);
+        else spec.set_format (PT_UINT8);  // punt
         break;
     case 16:
         if (sampleformat == SAMPLEFORMAT_UINT)
@@ -343,7 +356,8 @@ TIFFInput::close ()
 /// Helper: Convert n pixels from separate (RRRGGGBBB) to contiguous
 /// (RGBRGBRGB) planarconfig.
 void
-TIFFInput::separate_to_contig (int n, const char *separate, char *contig)
+TIFFInput::separate_to_contig (int n, const unsigned char *separate,
+                               unsigned char *contig)
 {
     int channelbytes = spec.channel_bytes();
     for (int p = 0;  p < n;  ++p)                     // loop over pixels
@@ -388,6 +402,30 @@ TIFFInput::palette_to_rgb (int n, const unsigned char *palettepels,
 
 
 void
+TIFFInput::bilevel_to_8bit (int n, const unsigned char *bits,
+                            unsigned char *bytes)
+{
+    for (int i = 0;  i < n;  ++i) {
+        int b = bits[i/8] & (1 << (7 - (i&7)));
+        bytes[i] = b ? 255 : 0;
+    }
+}
+
+
+
+void
+TIFFInput::fourbit_to_8bit (int n, const unsigned char *bits,
+                            unsigned char *bytes)
+{
+    for (int i = 0;  i < n;  ++i) {
+        int b = ((i & 1) == 0) ? (bits[i/2] >> 4) : (bits[i/2] & 15);
+        bytes[i] = (unsigned char) ((b * 255) / 15);
+    }
+}
+
+
+
+void
 TIFFInput::invert_photometric (int n, void *data)
 {
     switch (spec.format) {
@@ -410,22 +448,34 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         m_scratch.resize (spec.width);
-        unsigned char *palettepels = (unsigned char *) &(m_scratch[0]);
-        if (TIFFReadScanline (m_tif, palettepels, y) < 0) {
-            error ("%s", lasterr.c_str());
-            return false;
-        }
-        palette_to_rgb (spec.width, palettepels, (unsigned char *)data);
-    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
-        // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        m_scratch.resize (spec.scanline_bytes());
         if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
             error ("%s", lasterr.c_str());
             return false;
         }
-        separate_to_contig (spec.width, &m_scratch[0], (char *)data);
+        palette_to_rgb (spec.width, &m_scratch[0], (unsigned char *)data);
+    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
+        // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
+        m_scratch.resize (spec.scanline_bytes());
+        int plane_bytes = spec.width * ParamBaseTypeSize(spec.format);
+        for (int c = 0;  c < spec.nchannels;  ++c)
+            if (TIFFReadScanline (m_tif, &m_scratch[plane_bytes*c], y, c) < 0) {
+                error ("%s", lasterr.c_str());
+                return false;
+            }
+        separate_to_contig (spec.width, &m_scratch[0], (unsigned char *)data);
+    } else if (m_bitspersample == 1 || m_bitspersample == 4) {
+        // Bilevel images
+        m_scratch.resize (spec.width);
+        if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
+            error ("%s", lasterr.c_str());
+            return false;
+        }
+        if (m_bitspersample == 1)
+            bilevel_to_8bit (spec.width, &m_scratch[0], (unsigned char *)data);
+        else
+            fourbit_to_8bit (spec.width, &m_scratch[0], (unsigned char *)data);
     } else {
-        // No separate->contig is necessary.
+        // Contiguous, >= bit per sample -- the "usual" case
         if (TIFFReadScanline (m_tif, data, y) < 0) {
             error ("%s", lasterr.c_str());
             return false;
@@ -450,12 +500,11 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         m_scratch.resize (tile_pixels);
-        unsigned char *palettepels = (unsigned char *) &(m_scratch[0]);
-        if (TIFFReadTile (m_tif, palettepels, x, y, z, 0) < 0) {
+        if (TIFFReadTile (m_tif, &m_scratch[0], x, y, z, 0) < 0) {
             error ("%s", lasterr.c_str());
             return false;
         }
-        palette_to_rgb (tile_pixels, palettepels, (unsigned char *)data);
+        palette_to_rgb (tile_pixels, &m_scratch[0], (unsigned char *)data);
     } else if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
         int plane_bytes = tile_pixels * ParamBaseTypeSize(spec.format);
@@ -466,9 +515,9 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
                 error ("%s", lasterr.c_str());
                 return false;
             }
-        separate_to_contig (spec.width, &m_scratch[0], (char *)data);
+        separate_to_contig (spec.width, &m_scratch[0], (unsigned char *)data);
     } else {
-        // No separate->contig is necessary.
+        // Contiguous, >= bit per sample -- the "usual" case
         if (TIFFReadTile (m_tif, data, x, y, z, 0) < 0) {
             error ("%s", lasterr.c_str());
             return false;

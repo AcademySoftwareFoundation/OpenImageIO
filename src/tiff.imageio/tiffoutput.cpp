@@ -43,6 +43,7 @@ class TIFFOutput : public ImageOutput {
 public:
     TIFFOutput ();
     virtual ~TIFFOutput ();
+    virtual const char * format_name (void) const { return "TIFF"; }
     virtual bool supports (const char *feature) const;
     virtual bool open (const char *name, const ImageIOFormatSpec &spec,
                        bool append=false);
@@ -55,7 +56,7 @@ public:
 
 private:
     TIFF *m_tif;
-    std::vector<char> m_scratch;
+    std::vector<unsigned char> m_scratch;
     int m_planarconfig;
 
     // Initialize private members to pre-opened state
@@ -64,7 +65,8 @@ private:
     }
 
     // Convert planar contiguous to planar separate data format
-    void contig_to_separate (int n, const char *contig, char *separate);
+    void contig_to_separate (int n, const unsigned char *contig,
+                             unsigned char *separate);
     // Add a parameter to the output
     bool put_parameter (const std::string &name, ParamBaseType type,
                         const void *data);
@@ -336,7 +338,8 @@ TIFFOutput::close ()
 /// Helper: Convert n pixels from contiguous (RGBRGBRGB) to separate
 /// (RRRGGGBBB) planarconfig.
 void
-TIFFOutput::contig_to_separate (int n, const char *contig, char *separate)
+TIFFOutput::contig_to_separate (int n, const unsigned char *contig,
+                                unsigned char *separate)
 {
     int channelbytes = spec.channel_bytes();
     for (int p = 0;  p < n;  ++p)                     // loop over pixels
@@ -360,14 +363,15 @@ TIFFOutput::write_scanline (int y, int z, ParamBaseType format,
     if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
         m_scratch.resize (spec.scanline_bytes());
-        contig_to_separate (spec.width, (const char *)data, &m_scratch[0]);
+        contig_to_separate (spec.width, (const unsigned char *)data, &m_scratch[0]);
         TIFFWriteScanline (m_tif, &m_scratch[0], y);
     } else {
         // No contig->separate is necessary.  But we still use scratch
         // space since TIFFWriteScanline is destructive when
         // TIFFTAG_PREDICTOR is used.
         if (data == origdata) {
-            m_scratch.assign ((char *)data, (char *)data+spec.scanline_bytes());
+            m_scratch.assign ((unsigned char *)data,
+                              (unsigned char *)data+spec.scanline_bytes());
             data = &m_scratch[0];
         }
         TIFFWriteScanline (m_tif, (tdata_t)data, y);
@@ -398,7 +402,7 @@ TIFFOutput::write_tile (int x, int y, int z,
         int plane_bytes = tile_pixels * ParamBaseTypeSize(spec.format);
         DASSERT (plane_bytes*spec.nchannels == spec.tile_bytes());
         m_scratch.resize (spec.tile_bytes());
-        contig_to_separate (tile_pixels, (const char *)data, &m_scratch[0]);
+        contig_to_separate (tile_pixels, (const unsigned char *)data, &m_scratch[0]);
         for (int c = 0;  c < spec.nchannels;  ++c)
             TIFFWriteTile (m_tif, (tdata_t)&m_scratch[plane_bytes*c], x, y, z, c);
     } else {
@@ -406,7 +410,8 @@ TIFFOutput::write_tile (int x, int y, int z,
         // space since TIFFWriteTile is destructive when
         // TIFFTAG_PREDICTOR is used.
         if (data == origdata) {
-            m_scratch.assign ((char *)data, (char *)data + spec.tile_bytes());
+            m_scratch.assign ((unsigned char *)data,
+                              (unsigned char *)data + spec.tile_bytes());
             data = &m_scratch[0];
         }
         TIFFWriteTile (m_tif, (tdata_t)data, x, y, z, 0);
