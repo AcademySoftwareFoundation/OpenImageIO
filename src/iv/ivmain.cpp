@@ -64,7 +64,6 @@ static void
 getargs (int argc, char *argv[])
 {
     for (int i = 1;  i < argc;  ++i) {
-        std::cerr << "arg " << i << " : " << argv[i] << '\n';
         if (! strcmp (argv[i], "-h") || ! strcmp (argv[i], "--help")) {
             usage();
             exit (0);

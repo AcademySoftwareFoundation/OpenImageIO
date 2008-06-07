@@ -92,7 +92,6 @@ IvGL::initializeGL ()
 #endif
 
     m_shader_program = glCreateProgram ();
-    std::cerr << "shader program = " << (int)m_shader_program << "\n";
 
     static const GLchar *vertex_source = 
         "varying vec2 vTexCoord;\n"
@@ -106,7 +105,9 @@ IvGL::initializeGL ()
     glCompileShader (m_vertex_shader);
     GLint status;
     glGetShaderiv (m_vertex_shader, GL_COMPILE_STATUS, &status);
-    std::cerr << "vertex shader compile status: " << status << "\n";
+    if (! status) {
+        std::cerr << "vertex shader compile status: " << status << "\n";
+    }
     glAttachShader (m_shader_program, m_vertex_shader);
     GLERRPRINT ("vertex shader");
 
@@ -116,9 +117,12 @@ IvGL::initializeGL ()
         "uniform float gain;\n"
         "uniform float gamma;\n"
         "uniform int channelview;\n"
+        "uniform int imgchannels;\n"
         "void main ()\n"
         "{\n"
         "    vec4 C = texture2D (imgtex, vTexCoord);\n"
+        "    if (imgchannels == 1)\n"
+        "        C = C.xxxx;\n"
         "    if (channelview == -1) {\n"
         "    }\n"
         "    else if (channelview == 0)\n"
@@ -142,12 +146,14 @@ IvGL::initializeGL ()
     glShaderSource (m_fragment_shader, 1, &fragment_source, NULL);
     glCompileShader (m_fragment_shader);
     glGetShaderiv (m_fragment_shader, GL_COMPILE_STATUS, &status);
-    std::cerr << "fragment shader compile status: " << status << "\n";
-    char buf[10000];
-    buf[0] = 0;
-    GLsizei len;
-    glGetShaderInfoLog (m_fragment_shader, sizeof(buf), &len, buf);
-    std::cerr << "compile log:\n" << buf << "---\n";
+    if (! status) {
+        std::cerr << "fragment shader compile status: " << status << "\n";
+        char buf[10000];
+        buf[0] = 0;
+        GLsizei len;
+        glGetShaderInfoLog (m_fragment_shader, sizeof(buf), &len, buf);
+        std::cerr << "compile log:\n" << buf << "---\n";
+    }
     glAttachShader (m_shader_program, m_fragment_shader);
     GLERRPRINT ("fragment shader");
 
@@ -155,10 +161,12 @@ IvGL::initializeGL ()
     GLERRPRINT ("link");
     GLint linked, attached_shaders;
     glGetProgramiv (m_shader_program, GL_LINK_STATUS, &linked);
-    std::cerr << "linked? " << (int)linked << "\n";
+    if (! linked)
+        std::cerr << "NOT LINKED\n";
     GLERRPRINT ("check link");
     glGetProgramiv (m_shader_program, GL_ATTACHED_SHADERS, &attached_shaders);
-    std::cerr << "attached shaders: " << (int)attached_shaders << "\n";
+    if (attached_shaders != 2)
+        std::cerr << "attached shaders: " << (int)attached_shaders << "\n";
 
     useshader ();
     GLint loc;
@@ -249,9 +257,12 @@ IvGL::useshader (void)
     glUniform1f (loc, img->gamma());
     GLERRPRINT ("set param 5");
     loc = glGetUniformLocation (m_shader_program, "channelview");
-//    std::cerr << "loc for channelview is " << (int)loc << '\n';
     glUniform1i (loc, m_viewer->current_channel());
     GLERRPRINT ("set param 5");
+
+    loc = glGetUniformLocation (m_shader_program, "imgchannels");
+    glUniform1i (loc, spec.nchannels);
+    GLERRPRINT ("set param 6");
 }
 
 
@@ -262,13 +273,48 @@ IvGL::update (IvImage *img)
     const ImageIOFormatSpec &spec (img->spec());
 //    glActiveTexture (GL_TEXTURE0);
     glBindTexture (GL_TEXTURE_2D, m_texid);
+
+    GLenum glformat = GL_RGB;
+    if (spec.nchannels == 1)
+        glformat = GL_LUMINANCE;
+    else if (spec.nchannels == 4)
+        glformat = GL_RGBA;
+
+    GLenum gltype = GL_UNSIGNED_BYTE;
+    switch (spec.format) {
+    case PT_FLOAT  : gltype = GL_FLOAT;          break;
+    case PT_HALF   : gltype = GL_HALF_FLOAT_ARB; break;
+    case PT_INT8   : gltype = GL_BYTE;           break;
+    case PT_UINT8  : gltype = GL_UNSIGNED_BYTE;  break;
+    case PT_INT16  : gltype = GL_SHORT;          break;
+    case PT_UINT16 : gltype = GL_UNSIGNED_SHORT; break;
+    case PT_INT    : gltype = GL_INT;            break;
+    case PT_UINT   : gltype = GL_UNSIGNED_INT;   break;
+    default:
+        gltype = GL_UNSIGNED_BYTE;  // punt
+        break;
+    }
+
     glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
                   spec.nchannels /*internal format - color components */,
-                  spec.width /*width*/, spec.height /*height*/,
+                  spec.width, spec.height,
                   0 /*border width*/,
-                  spec.nchannels == 4 ? GL_RGBA : GL_RGB /*type*/,
-                  GL_UNSIGNED_BYTE /*format - GL_FLOAT */,
+                  glformat, gltype, 
                   (const GLvoid *)img->scanline(0) /*data*/);
+
+    // Work around... bug? ... wherein odd-sized scanlines don't seem to
+    // download the texture correctly, at least in OSX 10.5's OpenGL.
+    // I found an effective workaround is to send each scanline separately.
+    // Keep on the lookout for other conditions that trigger this problem,
+    // maybe my assumption that it's about odd-length width is wrong.
+    if (spec.width & 1) {
+        for (int y = 0;  y < spec.height;  ++y) {
+            glTexSubImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
+                             0, y, spec.width, 1,
+                             glformat, gltype, 
+                             (const GLvoid *)img->scanline(y) /*data*/);
+        }
+    }
 }
 
 

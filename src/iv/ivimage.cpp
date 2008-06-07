@@ -95,7 +95,7 @@ IvImage::read (bool force, OpenImageIO::ProgressCallback progress_callback,
         return false;
     }
     if (! in->open (m_name.c_str(), m_spec)) {
-        m_err = OpenImageIO::error_message().c_str();
+        m_err = in->error_message();
         return false;
     }
     delete [] m_pixels;
@@ -105,6 +105,9 @@ IvImage::read (bool force, OpenImageIO::ProgressCallback progress_callback,
                               progress_callback, progress_callback_data);
     if (ok)
         m_pixels_valid = true;
+    else {
+        m_err = in->error_message();
+    }
     in->close ();
     if (progress_callback)
         progress_callback (progress_callback_data, 0);
