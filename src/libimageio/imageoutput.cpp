@@ -80,7 +80,7 @@ ImageOutput::error (const char *message, ...)
 const void *
 ImageOutput::to_native_scanline (ParamBaseType format,
                                  const void *data, stride_t xstride,
-                                 std::vector<char> &scratch)
+                                 std::vector<unsigned char> &scratch)
 {
     return to_native_rectangle (0, spec.width-1, 0, 0, 0, 0, format, data,
                                 xstride, 0, 0, scratch);
@@ -91,7 +91,7 @@ ImageOutput::to_native_scanline (ParamBaseType format,
 const void *
 ImageOutput::to_native_tile (ParamBaseType format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride,
-                             std::vector<char> &scratch)
+                             std::vector<unsigned char> &scratch)
 {
     return to_native_rectangle (0, spec.tile_width-1, 0, spec.tile_height-1,
                                 0, std::max(0,spec.tile_depth-1), format, data,
@@ -105,7 +105,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax, 
                                   ParamBaseType format, const void *data,
                                   stride_t xstride, stride_t ystride, stride_t zstride,
-                                  std::vector<char> &scratch)
+                                  std::vector<unsigned char> &scratch)
 {
     spec.auto_stride (xstride, ystride, zstride);
 

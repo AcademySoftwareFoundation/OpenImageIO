@@ -55,15 +55,16 @@ class JpgOutput : public ImageOutput {
  public:
     JpgOutput () { init(); }
     virtual ~JpgOutput () { close(); }
-    bool supports (const char *property) const { return false; }
-    bool open (const char *name, const ImageIOFormatSpec &spec,
-               bool append=false);
-    bool write_scanline (int y, int z, ParamBaseType format,
-                         const void *data, int xstride);
+    virtual const char * format_name (void) const { return "JPEG"; }
+    virtual bool supports (const char *property) const { return false; }
+    virtual bool open (const char *name, const ImageIOFormatSpec &spec,
+                       bool append=false);
+    virtual bool write_scanline (int y, int z, ParamBaseType format,
+                                 const void *data, stride_t xstride);
     bool close ();
  private:
     FILE *fd;
-    std::vector <char> scratch;
+    std::vector<unsigned char> scratch;
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
 
@@ -135,7 +136,7 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
 
 bool
 JpgOutput::write_scanline (int y, int z, ParamBaseType format,
-                           const void *data, int xstride)
+                           const void *data, stride_t xstride)
 {
     y -= spec.y;
     assert (y == (int)cinfo.next_scanline);

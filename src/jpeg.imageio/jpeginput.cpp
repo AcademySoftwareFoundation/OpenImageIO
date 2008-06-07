@@ -50,10 +50,11 @@ using namespace OpenImageIO;
 class JpgInput : public ImageInput {
  public:
     JpgInput () { init(); }
-    ~JpgInput () { close(); }
-    bool open (const char *name, ImageIOFormatSpec &spec);
-    bool read_native_scanline (int y, int z, void *data);
-    bool close ();
+    virtual ~JpgInput () { close(); }
+    virtual const char * format_name (void) const { return "JPEG"; }
+    virtual bool open (const char *name, ImageIOFormatSpec &spec);
+    virtual bool read_native_scanline (int y, int z, void *data);
+    virtual bool close ();
  private:
     FILE *fd;
     bool first_scanline;

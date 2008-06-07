@@ -277,9 +277,12 @@ public:
     static ImageOutput *create (const char *filename, 
                                 const char *plugin_searchpath=NULL);
 
-    
     ImageOutput () { }
     virtual ~ImageOutput () { }
+
+    /// Return the name of the format implemented by this class.
+    ///
+    virtual const char *format_name (void) const = 0;
 
     // Overrride these functions in your derived output class
     // to inform the client which formats are supported
@@ -416,15 +419,15 @@ protected:
     /// make a copy or do conversions.
     const void *to_native_scanline (ParamBaseType format,
                                     const void *data, stride_t xstride,
-                                    std::vector<char> &scratch);
+                                    std::vector<unsigned char> &scratch);
     const void *to_native_tile (ParamBaseType format, const void *data,
                                 stride_t xstride, stride_t ystride, stride_t zstride,
-                                std::vector<char> &scratch);
+                                std::vector<unsigned char> &scratch);
     const void *to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                      int zmin, int zmax, 
                                      ParamBaseType format, const void *data,
                                      stride_t xstride, stride_t ystride, stride_t zstride,
-                                     std::vector<char> &scratch);
+                                     std::vector<unsigned char> &scratch);
 
 protected:
     ImageIOFormatSpec spec;     ///< format spec of the currently open image
@@ -449,6 +452,10 @@ public:
 
     ImageInput () { }
     virtual ~ImageInput () { }
+
+    /// Return the name of the format implemented by this class.
+    ///
+    virtual const char *format_name (void) const = 0;
 
     /// Open file with given name.  Various file attributes are put in
     /// newspec and a copy is also saved in this->spec.  From these
