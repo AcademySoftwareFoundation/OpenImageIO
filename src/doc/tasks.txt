@@ -1,0 +1,44 @@
+Development tasks
+=================
+
+
+Before letting other developers work on it:
+-------------------------------------------
+
+lg/DONE     TIFF - palette
+lg/DONE     TIFF - miniswhite
+lg/DONE     TIFF - 1-bit and 4-bit images
+DONE        TIFF - separated samples broken (oxford.tif)
+            TIFF - orientations
+            TIFF - double (caspian)
+            TIFF - YCbCr (dscf0013.tif, ycbcr-cat.tif)
+            TIFF - uint16 (ladoga)
+            TIFF - CIE LogL, LogLuv (off_*.tif)
+            TIFF - what's wrong with quad-jpeg.tif?
+            OpenEXR plugin
+            tag nomenclature
+            API docs
+            Linux
+            iv - pixel view window
+            iv - half, double, uint16
+            imageio.h - should ImageIOFormatSpec just be ImageFormatSpec?
+                        or ImageSpec?
+            imageio.h - should iiofs::add_parameter be renamed and fully
+                        conform to GelatoAPI::Parameter?  Are they
+                        parameters or attributes?
+
+
+Before first alpha release
+--------------------------
+
+            Windows port of everything
+            iv - draw overtop image
+            iv - thumbnail window
+
+
+
+
+============
+
+Idea pool / future feature wish list
+
