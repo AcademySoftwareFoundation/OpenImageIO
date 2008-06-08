@@ -25,16 +25,9 @@
 
 
 #include <iostream>
-#include <cmath>
-
-#include <ImathFun.h>
-
-#include <boost/foreach.hpp>
 
 #include "imageviewer.h"
-#include "dassert.h"
-#include "strutil.h"
-#include "timer.h"
+
 
 
 #define GLERRPRINT(msg)                                           \
