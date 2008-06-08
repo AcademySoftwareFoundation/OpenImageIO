@@ -105,11 +105,19 @@ private:
     }
 
     // Get an int tiff tag field and put it into extra_params
-    void get_int_field (const std::string &name, int tag,
-                        ParamBaseType type=PT_INT) {
+    void get_int_field (const std::string &name, int tag) {
         int i;
         if (TIFFGetField (m_tif, tag, &i))
-            spec.add_parameter (name, type, 1, &i);
+            spec.add_parameter (name, PT_INT, 1, &i);
+    }
+
+    // Get an int tiff tag field and put it into extra_params
+    void get_short_field (const std::string &name, int tag) {
+        unsigned short s;
+        if (TIFFGetField (m_tif, tag, &s)) {
+            int i = s;
+            spec.add_parameter (name, PT_INT, 1, &i);
+        }
     }
 };
 
@@ -205,6 +213,10 @@ TIFFInput::read ()
     spec.x = (int)x;
     spec.y = (int)y;
     spec.z = 0;
+    // FIXME? - TIFF spec describes the positions as in resolutionunit.
+    // What happens if this is not unitless pixels?  Are we interpreting
+    // it all wrong?
+
     uint32 width, height, depth;
     TIFFGetField (m_tif, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetField (m_tif, TIFFTAG_IMAGELENGTH, &height);
@@ -227,8 +239,10 @@ TIFFInput::read ()
         spec.tile_depth = 0;
     }
 
-    unsigned short bps = 8;
+    m_bitspersample = 8;
     TIFFGetField (m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
+    spec.add_parameter ("bitspersample", m_bitspersample);
+
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
     switch (m_bitspersample) {
@@ -289,30 +303,9 @@ TIFFInput::read ()
             spec.channelnames.push_back ("");
     }
 
-    get_string_field ("Artist", TIFFTAG_ARTIST);
-    get_string_field ("comments", TIFFTAG_IMAGEDESCRIPTION); // Synonym for ImageDescription
-    get_string_field ("copyright", TIFFTAG_COPYRIGHT);
-    get_string_field ("DocumentName", TIFFTAG_DOCUMENTNAME);
-    get_float_field ("fovcot", TIFFTAG_PIXAR_FOVCOT);
-    get_string_field ("HostComputer", TIFFTAG_HOSTCOMPUTER);
-    get_string_field ("ImageDescription", TIFFTAG_IMAGEDESCRIPTION);
-    get_string_field ("software", TIFFTAG_SOFTWARE);
-    get_int_field ("subfiletype", TIFFTAG_SUBFILETYPE);
-    // FIXME -- should subfiletype be "conventionized" and used for all
-    // plugins uniformly? Also, should handle "NewSubfileType" that renders
-    // the old SubfileType obsolete.
-    get_string_field ("textureformat", TIFFTAG_PIXAR_TEXTUREFORMAT);
-    get_float_field ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, PT_MATRIX);
-    get_float_field ("worldtosreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, PT_MATRIX);
-    get_string_field ("wrapmodes", TIFFTAG_PIXAR_WRAPMODES);
-
-    // FIXME: Others to consider adding: PhotometricInterpretation
-    // XResolution YResolution ResolutionUnit Compression DateTime Orientation
-    // PlanarConfiguration
-    // Optional EXIF tags (exposuretime, fnumber, etc)?
-
     m_photometric = (spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
     TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
+    spec.add_parameter ("tiff_PhotometricInterpretation", m_photometric);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
@@ -326,9 +319,68 @@ TIFFInput::read ()
         spec.nchannels = 3;
     }
 
-    // FIXME: look for ExtraSamples?
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
+    spec.add_parameter ("tiff_PlanarConfiguration", m_planarconfig);
+    if (m_planarconfig == PLANARCONFIG_SEPARATE)
+        spec.add_parameter ("planarconfig", "separate");
+    else
+        spec.add_parameter ("planarconfig", "contig");
 
+    short compress;
+    TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
+    spec.add_parameter ("tiff_Compression", compress);
+    switch (compress) {
+    case COMPRESSION_NONE :
+        spec.add_parameter ("compression", "none");
+        break;
+    case COMPRESSION_LZW :
+        spec.add_parameter ("compression", "lzw");
+        break;
+    case COMPRESSION_CCITTRLE :
+        spec.add_parameter ("compression", "ccittrle");
+        break;
+    case COMPRESSION_ADOBE_DEFLATE :
+        spec.add_parameter ("compression", "deflate");  // zip?
+        break;
+    case COMPRESSION_PACKBITS :
+        spec.add_parameter ("compression", "packbits");  // zip?
+        break;
+    default:
+        break;
+    }
+
+    short resunit = -1;
+    TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
+    switch (resunit) {
+    case RESUNIT_NONE : spec.add_parameter ("resolutionunit", "none"); break;
+    case RESUNIT_INCH : spec.add_parameter ("resolutionunit", "in"); break;
+    case RESUNIT_CENTIMETER : spec.add_parameter ("resolutionunit", "cm"); break;
+    }
+    get_float_field ("xresolution", TIFFTAG_XRESOLUTION);
+    get_float_field ("yresolution", TIFFTAG_YRESOLUTION);
+    // FIXME: xresolution, yresolution -- N.B. they are rational
+
+    get_string_field ("artist", TIFFTAG_ARTIST);
+    get_string_field ("description", TIFFTAG_IMAGEDESCRIPTION);
+    get_string_field ("copyright", TIFFTAG_COPYRIGHT);
+    get_string_field ("datetime", TIFFTAG_DATETIME);
+    get_string_field ("name", TIFFTAG_DOCUMENTNAME);
+    get_float_field ("fovcot", TIFFTAG_PIXAR_FOVCOT);
+    get_string_field ("host", TIFFTAG_HOSTCOMPUTER);
+    get_string_field ("software", TIFFTAG_SOFTWARE);
+    get_string_field ("textureformat", TIFFTAG_PIXAR_TEXTUREFORMAT);
+    get_float_field ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, PT_MATRIX);
+    get_float_field ("worldtosreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, PT_MATRIX);
+    get_string_field ("wrapmodes", TIFFTAG_PIXAR_WRAPMODES);
+    get_string_field ("tiff_PageName", TIFFTAG_PAGENAME);
+    get_short_field ("tiff_PageNumber", TIFFTAG_PAGENUMBER);
+    get_int_field ("tiff_subfiletype", TIFFTAG_SUBFILETYPE);
+    // FIXME -- should subfiletype be "conventionized" and used for all
+    // plugins uniformly? 
+
+    // FIXME: Others to consider adding: 
+    // Orientation ExtraSamples? NewSubfileType?
+    // Optional EXIF tags (exposuretime, fnumber, etc)?
     // FIXME: do we care about fillorder for 1-bit and 4-bit images?
 
     // Special names for shadow maps
@@ -338,6 +390,13 @@ TIFFInput::read ()
         for (int c = 0;  c < spec.nchannels;  ++c)
             spec.channelnames[c] = "z";
     }
+
+    // N.B. we currently ignore the following TIFF fields:
+    // Orientation ExtraSamples
+    // GrayResponseCurve GrayResponseUnit
+    // Make MaxSampleValue MinSampleValue
+    // Model NewSubfileType RowsPerStrip SubfileType(deprecated)
+    // Colorimetry fields
 }
 
 

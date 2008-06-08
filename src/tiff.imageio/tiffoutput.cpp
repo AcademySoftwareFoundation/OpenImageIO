@@ -255,15 +255,15 @@ bool
 TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
                            const void *data)
 {
-    if (name == "Artist" && type == PT_STRING) {
+    if ((name == "artist" || name == "Artist") && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_ARTIST, *(char**)data);
         return true;
     }
-    if (name == "copyright" && type == PT_STRING) {
+    if ((name == "copyright" || name == "Copyright") && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_COPYRIGHT, *(char**)data);
         return true;
     }
-    if (name == "DocumentName" && type == PT_STRING) {
+    if ((name == "name" || name == "DocumentName") && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_DOCUMENTNAME, *(char**)data);
         return true;
     }
@@ -272,20 +272,20 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
         TIFFSetField (m_tif, TIFFTAG_PIXAR_FOVCOT, d);
         return true;
     }
-    if (name == "HostComputer" && type == PT_STRING) {
+    if ((name == "host" || name == "HostComputer") && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_HOSTCOMPUTER, *(char**)data);
         return true;
     }
-    if ((name == "ImageDescription" || name == "comments") &&
+    if ((name == "description" || name == "ImageDescription") &&
           type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_IMAGEDESCRIPTION, *(char**)data);
         return true;
     }
-    if (name == "predictor" && type == PT_INT) {
+    if (name == "tiff_Predictor" && type == PT_INT) {
         TIFFSetField (m_tif, TIFFTAG_PREDICTOR, *(int *)data);
         return true;
     }
-    if (name == "rowsperstrip") {
+    if (name == "tiff_RowsPerStrip") {
         if (type == PT_INT) {
             TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, *(int*)data);
             return true;
@@ -295,11 +295,11 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
             return true;
         }
     }
-    if (name == "software" && type == PT_STRING) {
+    if ((name == "software" || name == "Software") && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_SOFTWARE, *(char**)data);
         return true;
     }
-    if (name == "subfiletype" && type == PT_INT) {
+    if (name == "tiff_SubFileType" && type == PT_INT) {
         TIFFSetField (m_tif, TIFFTAG_SUBFILETYPE, *(int*)data);
         return true;
     }

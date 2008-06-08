@@ -254,6 +254,17 @@ struct DLLPUBLIC ImageIOFormatSpec {
     void add_parameter (const std::string &name, ParamBaseType type,
                         int nvalues, const void *value);
 
+    /// Add an int parameter
+    void add_parameter (const std::string &name, int value) {
+        add_parameter (name, PT_INT, 1, &value);
+    }
+
+    /// Add a string parameter
+    void add_parameter (const std::string &name, const std::string &value) {
+        const char *s = value.c_str();
+        add_parameter (name, PT_STRING, 1, &s);
+    }
+
     /// Search for a parameter of the given name in the list of extra
     /// parameters.
     ImageIOParameter * find_parameter (const std::string &name);
