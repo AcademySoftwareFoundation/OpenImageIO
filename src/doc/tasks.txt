@@ -11,12 +11,8 @@ lg/DONE     TIFF - 1-bit and 4-bit images
 DONE        TIFF - separated samples broken (oxford.tif)
             TIFF - orientations
             TIFF - double (caspian)
-            TIFF - YCbCr (dscf0013.tif, ycbcr-cat.tif)
-            TIFF - uint16 (ladoga)
-            TIFF - CIE LogL, LogLuv (off_*.tif)
-            TIFF - what's wrong with quad-jpeg.tif?
             OpenEXR plugin
-            tag nomenclature
+DONE?       tag nomenclature
             API docs
             Linux
             iv - pixel view window
@@ -26,6 +22,18 @@ DONE        TIFF - separated samples broken (oxford.tif)
             imageio.h - should iiofs::add_parameter be renamed and fully
                         conform to GelatoAPI::Parameter?  Are they
                         parameters or attributes?
+            iv - open recent
+            iv - new window, new tab
+            iv - save as, save window as, save selection as
+            iv - preferences
+            iv - copy/paste
+            iv - select all images
+            iv - fit image to window
+            iv - full screen
+            iv - view as depth, false, random
+            iv - prev/next subimage
+            iv - >4 channels, gray vs color
+            iv - pixel view window
 
 
 Before first alpha release
@@ -34,11 +42,45 @@ Before first alpha release
             Windows port of everything
             iv - draw overtop image
             iv - thumbnail window
+            iv - region of interest (select, clear, prioritize, crop)
+            iv - annotate
+            iv - fg/bg images
+            iv - subtract from last image
 
 
+Before first 1.0 release
+------------------------
 
+            GIF
+            PNM/PPM/PBM/PGM
+            XBM/XPM
+            HDR
+            DDS
+            IFF?
+            null (why?)
+            PIC
+            PNG
+            Targa
+            BMP
+            JPEG 2000
+            ICO (windows icon files)
+            iv - delete image on disk
+            iv - show error log?
+            iv - render control - connect, disconnect, overwrite, store render
+            iv - hide controls?
 
 ============
 
 Idea pool / future feature wish list
+
+            TIFF - YCbCr (dscf0013.tif, ycbcr-cat.tif)
+            TIFF - CIE LogL, LogLuv (off_*.tif)
+            TIFF - what's wrong with quad-jpeg.tif?
+            TIFF - what's wrong with ladoga.tif?
+            FITS
+            PSD (photoshop)
+            PCD (PhotoCD)
+            RAS (Sun Rasterfile)
+            SGI
+            PCX
 
