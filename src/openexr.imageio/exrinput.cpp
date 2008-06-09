@@ -34,6 +34,12 @@
 #include <ImfInputFile.h>
 #include <ImfTiledInputFile.h>
 #include <ImfChannelList.h>
+#include <ImfEnvmap.h>
+#include <ImfIntAttribute.h>
+#include <ImfFloatAttribute.h>
+#include <ImfMatrixAttribute.h>
+#include <ImfStringAttribute.h>
+#include <ImfEnvmapAttribute.h>
 //using namespace Imf;
 
 #include "dassert.h"
@@ -69,16 +75,15 @@ private:
     int m_nsubimages;                ///< How many subimages are there?
     int m_topwidth;                  ///< Width of top mip level
     int m_topheight;                 ///< Height of top mip level
+    bool m_cubeface;                 ///< It's a cubeface environment map
     std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
 
     void init () {
         m_exr_header = NULL;
         m_input_scanline = NULL;
         m_input_tiled = NULL;
+        m_subimage = -1;
     }
-
-    // Read tags from m_tif and fill out spec
-    void read ();
 
     // Get a string tiff tag field and put it into extra_params
     void get_string_field (const std::string &name, int tag) {
@@ -142,11 +147,6 @@ DLLEXPORT const char * openexr_input_extensions[] = {
 
 
 
-// Someplace to store an error message from the OpenEXR error handler
-//static std::string lasterr;
-//static mutex lasterr_mutex;
-
-
 bool
 OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
 {
@@ -155,7 +155,7 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
     if (! Imf::isOpenExrFile (name, tiled))
         return false;
 
-    spec = ImageIOFormatSpec();
+    spec = ImageIOFormatSpec();  // Clear everything with default constructor
     try {
         if (tiled) {
             m_input_tiled = new Imf::TiledInputFile (name);
@@ -186,8 +186,13 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
     spec.full_width = spec.width;
     spec.full_height = spec.height;
     spec.full_depth = spec.depth;
-    spec.tile_width = 0;
-    spec.tile_height = 0;
+    if (tiled) {
+        spec.tile_width = m_input_tiled->tileXSize();
+        spec.tile_height = m_input_tiled->tileYSize();
+    } else {
+        spec.tile_width = 0;
+        spec.tile_height = 0;
+    }
     spec.tile_depth = 0;
     spec.format = PT_HALF;  // FIXME: do the right thing for non-half
     spec.nchannels = 0;
@@ -221,9 +226,23 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
         m_levelmode = Imf::ONE_LEVEL;
         m_nsubimages = 1;
     }
+
+    const Imf::EnvmapAttribute *envmap;
+    envmap = m_exr_header->findTypedAttribute<Imf::EnvmapAttribute>("envmap");
+    if (envmap) {
+        m_cubeface = (envmap->value() == Imf::ENVMAP_CUBE);
+        spec.add_parameter ("textureformat", m_cubeface ? "CubeFace Environment" : "LatLong Environment");
+        // FIXME - detect CubeFace Shadow
+        spec.add_parameter ("up", "y");  // OpenEXR convention
+    } else {
+        m_cubeface = false;
+        if (tiled)
+            spec.add_parameter ("textureformat", "Plain Texture");
+        // FIXME - detect Shadow
+    }
+
     m_subimage = 0;
     newspec = spec;
-
     return true;
 }
 
@@ -232,242 +251,44 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
 bool
 OpenEXRInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
 {
-#if 0
-    if (index < 0)       // Illegal
+    if (index < 0 || index >= m_nsubimages)   // out of range
         return false;
-    if (index == m_subimage) {
-        // We're already pointing to the right subimage
+
+    m_subimage = index;
+
+    if (index == 0 && m_levelmode == Imf::ONE_LEVEL) {
         newspec = spec;
         return true;
     }
 
-    // User our own error handler to keep libtiff from spewing to stderr
-    TIFFSetErrorHandler (my_error_handler);
-    TIFFSetWarningHandler (my_error_handler);
-
-    if (! m_tif) {
-        m_tif = TIFFOpen (m_filename.c_str(), "r");
-        if (m_tif == NULL) {
-            error ("%s", lasterr.c_str());
-            return false;
+    // Compute the resolution of the requested subimage.
+    int w = m_topwidth, h = m_topheight;
+    if (m_levelmode == Imf::MIPMAP_LEVELS) {
+        while (index--) {
+            if (w > 1) {
+                if ((w & 1) && m_roundingmode == Imf::ROUND_UP)
+                    w = w/2 + 1;
+                else w /= 2;
+            }
+            if (h > 1) {
+                if ((h & 1) && m_roundingmode == Imf::ROUND_UP)
+                    h = h/2 + 1;
+                else h /= 2;
+            }
         }
-        m_subimage = 0;
-    }
-    
-    if (TIFFSetDirectory (m_tif, index)) {
-        m_subimage = index;
-        read ();
-        newspec = spec;
-        if (newspec.format == PT_UNKNOWN) {
-            error ("No support for data format of \"%s\"", m_filename.c_str());
-            return false;
-        }
-        return true;
+    } else if (m_levelmode == Imf::RIPMAP_LEVELS) {
+        // FIXME
     } else {
-        error ("%s", lasterr.c_str());
-        m_subimage = -1;
-        return false;
-    }
-#endif
-}
-
-
-
-void
-OpenEXRInput::read ()
-{
-#if 0
-    float x = 0, y = 0;
-    TIFFGetField (m_tif, TIFFTAG_XPOSITION, &x);
-    TIFFGetField (m_tif, TIFFTAG_YPOSITION, &y);
-    spec.x = (int)x;
-    spec.y = (int)y;
-    spec.z = 0;
-    // FIXME? - TIFF spec describes the positions as in resolutionunit.
-    // What happens if this is not unitless pixels?  Are we interpreting
-    // it all wrong?
-
-    uint32 width, height, depth;
-    TIFFGetField (m_tif, TIFFTAG_IMAGEWIDTH, &width);
-    TIFFGetField (m_tif, TIFFTAG_IMAGELENGTH, &height);
-    TIFFGetFieldDefaulted (m_tif, TIFFTAG_IMAGEDEPTH, &depth);
-    spec.full_width  = spec.width  = width;
-    spec.full_height = spec.height = height;
-    spec.full_depth  = spec.depth  = depth;
-    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1) 
-        spec.full_width = width;
-    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1)
-        spec.full_height = height;
-
-    if (TIFFIsTiled (m_tif)) {
-        TIFFGetField (m_tif, TIFFTAG_TILEWIDTH, &spec.tile_width);
-        TIFFGetField (m_tif, TIFFTAG_TILELENGTH, &spec.tile_height);
-        TIFFGetFieldDefaulted (m_tif, TIFFTAG_TILEDEPTH, &spec.tile_depth);
-    } else {
-        spec.tile_width = 0;
-        spec.tile_height = 0;
-        spec.tile_depth = 0;
+        ASSERT(0);
     }
 
-    m_bitspersample = 8;
-    TIFFGetField (m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
-    spec.add_parameter ("bitspersample", m_bitspersample);
+    spec.width = w;
+    spec.height = h;
+    spec.full_width = w;
+    spec.full_height = m_cubeface ? w : h;
+    newspec = spec;
 
-    unsigned short sampleformat = SAMPLEFORMAT_UINT;
-    TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
-    switch (m_bitspersample) {
-    case 1:
-        // Make 1bpp look like byte images
-    case 4:
-        // Make 4 bpp look like byte images
-    case 8:
-        if (sampleformat == SAMPLEFORMAT_UINT)
-            spec.set_format (PT_UINT8);
-        else if (sampleformat == SAMPLEFORMAT_INT)
-            spec.set_format (PT_INT8);
-        else spec.set_format (PT_UINT8);  // punt
-        break;
-    case 16:
-        if (sampleformat == SAMPLEFORMAT_UINT)
-            spec.set_format (PT_UINT16);
-        else if (sampleformat == SAMPLEFORMAT_INT)
-            spec.set_format (PT_INT16);
-        break;
-    case 32:
-        if (sampleformat == SAMPLEFORMAT_IEEEFP)
-            spec.set_format (PT_FLOAT);
-        break;
-    default:
-        spec.set_format (PT_UNKNOWN);
-        break;
-    }
-
-    unsigned short nchans;
-    TIFFGetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
-    spec.nchannels = nchans;
-
-    spec.channelnames.clear();
-    switch (spec.nchannels) {
-    case 1:
-        spec.channelnames.push_back ("a");
-        break;
-    case 2:
-        spec.channelnames.push_back ("i");
-        spec.channelnames.push_back ("a");
-        spec.alpha_channel = 1;  // Is this a safe bet?
-        break;
-    case 3:
-        spec.channelnames.push_back ("r");
-        spec.channelnames.push_back ("g");
-        spec.channelnames.push_back ("b");
-        break;
-    case 4:
-        spec.channelnames.push_back ("r");
-        spec.channelnames.push_back ("g");
-        spec.channelnames.push_back ("b");
-        spec.channelnames.push_back ("a");
-        spec.alpha_channel = 3;  // Is this a safe bet?
-        break;
-    default:
-        for (int c = 0;  c < spec.nchannels;  ++c)
-            spec.channelnames.push_back ("");
-    }
-
-    m_photometric = (spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
-    TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
-    spec.add_parameter ("tiff_PhotometricInterpretation", m_photometric);
-    if (m_photometric == PHOTOMETRIC_PALETTE) {
-        // Read the color map
-        unsigned short *r = NULL, *g = NULL, *b = NULL;
-        TIFFGetField (m_tif, TIFFTAG_COLORMAP, &r, &g, &b);
-        ASSERT (r != NULL && g != NULL && b != NULL);
-        m_colormap.clear ();
-        m_colormap.insert (m_colormap.end(), r, r + (1 << m_bitspersample));
-        m_colormap.insert (m_colormap.end(), g, g + (1 << m_bitspersample));
-        m_colormap.insert (m_colormap.end(), b, b + (1 << m_bitspersample));
-        // Palette TIFF images are always 3 channels (to the client)
-        spec.nchannels = 3;
-    }
-
-    TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
-    spec.add_parameter ("tiff_PlanarConfiguration", m_planarconfig);
-    if (m_planarconfig == PLANARCONFIG_SEPARATE)
-        spec.add_parameter ("planarconfig", "separate");
-    else
-        spec.add_parameter ("planarconfig", "contig");
-
-    short compress;
-    TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
-    spec.add_parameter ("tiff_Compression", compress);
-    switch (compress) {
-    case COMPRESSION_NONE :
-        spec.add_parameter ("compression", "none");
-        break;
-    case COMPRESSION_LZW :
-        spec.add_parameter ("compression", "lzw");
-        break;
-    case COMPRESSION_CCITTRLE :
-        spec.add_parameter ("compression", "ccittrle");
-        break;
-    case COMPRESSION_ADOBE_DEFLATE :
-        spec.add_parameter ("compression", "deflate");  // zip?
-        break;
-    case COMPRESSION_PACKBITS :
-        spec.add_parameter ("compression", "packbits");  // zip?
-        break;
-    default:
-        break;
-    }
-
-    short resunit = -1;
-    TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
-    switch (resunit) {
-    case RESUNIT_NONE : spec.add_parameter ("resolutionunit", "none"); break;
-    case RESUNIT_INCH : spec.add_parameter ("resolutionunit", "in"); break;
-    case RESUNIT_CENTIMETER : spec.add_parameter ("resolutionunit", "cm"); break;
-    }
-    get_float_field ("xresolution", TIFFTAG_XRESOLUTION);
-    get_float_field ("yresolution", TIFFTAG_YRESOLUTION);
-    // FIXME: xresolution, yresolution -- N.B. they are rational
-
-    get_string_field ("artist", TIFFTAG_ARTIST);
-    get_string_field ("description", TIFFTAG_IMAGEDESCRIPTION);
-    get_string_field ("copyright", TIFFTAG_COPYRIGHT);
-    get_string_field ("datetime", TIFFTAG_DATETIME);
-    get_string_field ("name", TIFFTAG_DOCUMENTNAME);
-    get_float_field ("fovcot", TIFFTAG_PIXAR_FOVCOT);
-    get_string_field ("host", TIFFTAG_HOSTCOMPUTER);
-    get_string_field ("software", TIFFTAG_SOFTWARE);
-    get_string_field ("textureformat", TIFFTAG_PIXAR_TEXTUREFORMAT);
-    get_float_field ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, PT_MATRIX);
-    get_float_field ("worldtosreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, PT_MATRIX);
-    get_string_field ("wrapmodes", TIFFTAG_PIXAR_WRAPMODES);
-    get_string_field ("tiff_PageName", TIFFTAG_PAGENAME);
-    get_short_field ("tiff_PageNumber", TIFFTAG_PAGENUMBER);
-    get_int_field ("tiff_subfiletype", TIFFTAG_SUBFILETYPE);
-    // FIXME -- should subfiletype be "conventionized" and used for all
-    // plugins uniformly? 
-
-    // FIXME: Others to consider adding: 
-    // Orientation ExtraSamples? NewSubfileType?
-    // Optional EXIF tags (exposuretime, fnumber, etc)?
-    // FIXME: do we care about fillorder for 1-bit and 4-bit images?
-
-    // Special names for shadow maps
-    char *s = NULL;
-    TIFFGetField (m_tif, TIFFTAG_PIXAR_TEXTUREFORMAT, &s);
-    if (s && ! strcmp (s, "Shadow")) {
-        for (int c = 0;  c < spec.nchannels;  ++c)
-            spec.channelnames[c] = "z";
-    }
-
-    // N.B. we currently ignore the following TIFF fields:
-    // Orientation ExtraSamples
-    // GrayResponseCurve GrayResponseUnit
-    // Make MaxSampleValue MinSampleValue
-    // Model NewSubfileType RowsPerStrip SubfileType(deprecated)
-    // Colorimetry fields
-#endif
+    return true;
 }
 
 
@@ -475,12 +296,11 @@ OpenEXRInput::read ()
 bool
 OpenEXRInput::close ()
 {
-#if 0
-    if (m_tif)
-        TIFFClose (m_tif);
-    init();  // Reset to initial state
+    delete m_input_scanline;
+    delete m_input_tiled;
+    m_subimage = -1;
+    init ();  // Reset to initial state
     return true;
-#endif
 }
 
 
@@ -488,47 +308,36 @@ OpenEXRInput::close ()
 bool
 OpenEXRInput::read_native_scanline (int y, int z, void *data)
 {
-    y -= spec.y;
-#if 0
-    if (m_photometric == PHOTOMETRIC_PALETTE) {
-        // Convert from palette to RGB
-        m_scratch.resize (spec.width);
-        if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
-            error ("%s", lasterr.c_str());
-            return false;
-        }
-        palette_to_rgb (spec.width, &m_scratch[0], (unsigned char *)data);
-    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
-        // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        m_scratch.resize (spec.scanline_bytes());
-        int plane_bytes = spec.width * ParamBaseTypeSize(spec.format);
-        for (int c = 0;  c < spec.nchannels;  ++c)
-            if (TIFFReadScanline (m_tif, &m_scratch[plane_bytes*c], y, c) < 0) {
-                error ("%s", lasterr.c_str());
-                return false;
-            }
-        separate_to_contig (spec.width, &m_scratch[0], (unsigned char *)data);
-    } else if (m_bitspersample == 1 || m_bitspersample == 4) {
-        // Bilevel images
-        m_scratch.resize (spec.width);
-        if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
-            error ("%s", lasterr.c_str());
-            return false;
-        }
-        if (m_bitspersample == 1)
-            bilevel_to_8bit (spec.width, &m_scratch[0], (unsigned char *)data);
-        else
-            fourbit_to_8bit (spec.width, &m_scratch[0], (unsigned char *)data);
-    } else {
-        // Contiguous, >= bit per sample -- the "usual" case
-        if (TIFFReadScanline (m_tif, data, y) < 0) {
-            error ("%s", lasterr.c_str());
-            return false;
-        }
-    }
+    ASSERT (m_input_scanline != NULL);
 
+    // Compute where OpenEXR needs to think the full buffers starts.
+    // OpenImageIO requires that 'data' points to where the client wants
+    // to put the pixels being read, but OpenEXR's frameBuffer.insert()
+    // wants where the address of the "virtual framebuffer" for the
+    // whole image.
+    char *buf = (char *)data
+              - spec.x * spec.pixel_bytes() 
+              - (y + spec.y) * spec.scanline_bytes();
+
+    try {
+        Imf::FrameBuffer frameBuffer;
+        for (int c = 0;  c < spec.nchannels;  ++c) {
+            frameBuffer.insert (spec.channelnames[c].c_str(),
+                                Imf::Slice (Imf::HALF,  // FIXME
+                                            buf + c * spec.channel_bytes(),
+                                            spec.pixel_bytes(),
+                                            spec.scanline_bytes()));
+            // FIXME - what if all channels aren't the same data type?
+        }
+        m_input_scanline->setFrameBuffer (frameBuffer);
+        y -= spec.y;
+        m_input_scanline->readPixels (y, y);
+    }
+    catch (const std::exception &e) {
+        error ("Filed OpenEXR read: %s", e.what());
+        return false;
+    }
     return true;
-#endif
 }
 
 
@@ -536,38 +345,36 @@ OpenEXRInput::read_native_scanline (int y, int z, void *data)
 bool
 OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
 {
-    x -= spec.x;
-    y -= spec.y;
-#if 0
-    int tile_pixels = spec.tile_width * spec.tile_height 
-                      * std::max (spec.tile_depth, 1);
-    if (m_photometric == PHOTOMETRIC_PALETTE) {
-        // Convert from palette to RGB
-        m_scratch.resize (tile_pixels);
-        if (TIFFReadTile (m_tif, &m_scratch[0], x, y, z, 0) < 0) {
-            error ("%s", lasterr.c_str());
-            return false;
-        }
-        palette_to_rgb (tile_pixels, &m_scratch[0], (unsigned char *)data);
-    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
-        // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        int plane_bytes = tile_pixels * ParamBaseTypeSize(spec.format);
-        DASSERT (plane_bytes*spec.nchannels == spec.tile_bytes());
-        m_scratch.resize (spec.tile_bytes());
-        for (int c = 0;  c < spec.nchannels;  ++c)
-            if (TIFFReadTile (m_tif, &m_scratch[plane_bytes*c], x, y, z, c) < 0) {
-                error ("%s", lasterr.c_str());
-                return false;
-            }
-        separate_to_contig (spec.width, &m_scratch[0], (unsigned char *)data);
-    } else {
-        // Contiguous, >= bit per sample -- the "usual" case
-        if (TIFFReadTile (m_tif, data, x, y, z, 0) < 0) {
-            error ("%s", lasterr.c_str());
-            return false;
-        }
-    }
-#endif
+    ASSERT (m_input_tiled != NULL);
 
+    // Compute where OpenEXR needs to think the full buffers starts.
+    // OpenImageIO requires that 'data' points to where the client wants
+    // to put the pixels being read, but OpenEXR's frameBuffer.insert()
+    // wants where the address of the "virtual framebuffer" for the
+    // whole image.
+    char *buf = (char *)data
+              - spec.x * spec.pixel_bytes() 
+              - (y + spec.y) * spec.scanline_bytes();
+
+    try {
+        Imf::FrameBuffer frameBuffer;
+        for (int c = 0;  c < spec.nchannels;  ++c) {
+            frameBuffer.insert (spec.channelnames[c].c_str(),
+                                Imf::Slice (Imf::HALF,  // FIXME
+                                            buf + c * spec.channel_bytes(),
+                                            spec.pixel_bytes(),
+                                            spec.scanline_bytes()));
+            // FIXME - what if all channels aren't the same data type?
+        }
+        m_input_tiled->setFrameBuffer (frameBuffer);
+        x -= spec.x;
+        y -= spec.y;
+        m_input_tiled->readTile (x/spec.tile_width, y/spec.tile_height,
+                                 m_subimage, m_subimage);
+    }
+    catch (const std::exception &e) {
+        error ("Filed OpenEXR read: %s", e.what());
+        return false;
+    }
     return true;
 }

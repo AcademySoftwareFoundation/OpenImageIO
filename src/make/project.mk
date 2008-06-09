@@ -15,6 +15,7 @@ dist_bins    	:= iconvert${BINEXT} \
 		   iv${BINEXT}
 dist_libs     	:= libimageio${SHLIBEXT} \
 		   jpeg.imageio${SHLIBEXT} \
+		   openexr.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
 dist_includes	:= export.h imageio.h paramtype.h
 
