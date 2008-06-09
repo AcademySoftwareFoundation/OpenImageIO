@@ -1,0 +1,123 @@
+Proposed menus:
+
+File
+    New window ^N
+    New tab ^T
+x   Open ^O
+    Open Recent
+    Save ^S
+    Save As...
+    Save Window As...
+    Save Selection As...
+x   Reload
+x   Close ^W
+    Delete image on disk
+    Preferences ^,
+x   Quit ^Q
+
+Edit
+    Cut (??? is this the same as clear?)
+    Copy
+    Paste
+    Clear Region of Interest
+    Prioritize Region of Interest
+    Crop Region of Interest
+    Select all images ^A
+    Annotate
+
+Image ?
+
+View
+    Fit image (zoom to fill current window)
+x   Fit window (adjust window to fit current zoom level of image)
+    Full screen
+x   Channel mode (color, red, green, blue, alpha, luminance)
+    View as depth, false, random
+x   Zoom in
+x   Zoom out
+x   Stop up/down
+x   Gamma up/down
+x   Toggle last image
+    Foreground/background images
+x   Prev/next image
+    Prev/next subimage
+x   Prev/next channel
+    Subtract (image difference against last)
+    Stereo mode
+
+Tools
+    Mouse mode (zoom/pan, select, wipe)
+          [ note: In zoom/pan mode, L/R click is zoom in/out, middle
+            drag is pan, shift-drag is select. ]
+    Pixel view
+    Thumbnails
+    Hide controls
+    Disconnect
+    Overwrite render
+    Store render
+    Show error log
+
+Help
+
+---
+
+Standard tags:
+
+    int bitspersample - for the *file* -- may differ from what format implies)
+    string compression - name of compression scheme to use
+    string planarconfig - "separate" or "contiguous"
+    string datetime - "yyyy:mm:dd hh:mm:ss"
+    string copyright (TIFF Copyright)
+    string artist (TIFF Artist)
+    string name (TIFF DocumentName)
+    string host (TIFF HostName)
+    string description (TIFF ImageDescription)
+    string software (TIFF Software)
+    string textureformat
+    string wrapmodes
+    matrix worldtocamera
+    matrix worldtoscreen
+    float fovcot
+    int[nchannels] bitspersample ? - allow per-channel description?
+    int xresolution
+    int yresolution
+    string resolutionunit
+
+    tiff-specific:
+        tiff_Predictor
+        tiff_RowsPerStrip
+        tiff_SubfileType
+        tiff_PhotometricInterpretation
+        tiff_Planarconfig 
+
+---
+
+Assumptions about in-core image representation (NOT file!):
+
+* Pixel data are 8- 16- or 32-bit int (signed or unsigned), 16- 32- or
+  16-bit float.  NOTHING ELSE.  No <8 bit images, or pixels boundaries
+  that aren't byte boundaries.  Files with <8 bits will appear to the 
+  client as 8-bit unsigned grayscale images.
+
+* Color space is grayscale or RGB.  XYZ, CMYK, YUV, or other
+  non-spectral pixel data are converted to RGB upon reading.  (Though
+  you could write a custom ImageIO plugin that would preserve some other
+  color space upon read, or convert to some other color space upon
+  write.)
+
+* All color channels have the same data format.  Upon read, an
+  ImageInput ought to convert all channels to the one with the highest
+  precision in the file.
+
+* All image channels in a subimage are sampled at the same resolution.
+  For file formats that allow some channels to be subsampled, they will
+  be automatically up-resed to the highest resolution channel in the
+  subimage.
+
+* Color information is always in the order R, G, B, and the alpha
+  channel, if any, always follows RGB, and z channel (if any) always
+  follows alpha.  So if a file actually stores ABGR, the plugin is
+  expected to rearrange it as RGBA.
+
+
+

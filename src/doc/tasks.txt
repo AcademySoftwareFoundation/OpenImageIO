@@ -46,6 +46,7 @@ Before first alpha release
             iv - annotate
             iv - fg/bg images
             iv - subtract from last image
+            exr - ripmaps
 
 
 Before first 1.0 release
