@@ -105,7 +105,8 @@ JpgInput::open (const char *name, ImageIOFormatSpec &newspec)
     jpeg_read_header (&cinfo, FALSE);           // read the file parameters
     jpeg_start_decompress (&cinfo);             // start working
     first_scanline = true;                      // start decompressor
-    
+
+    spec = ImageIOFormatSpec();
     spec.x = 0;
     spec.y = 0;
     spec.z = 0;

@@ -207,6 +207,7 @@ TIFFInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
 void
 TIFFInput::read ()
 {
+    spec = ImageIOFormatSpec();
     float x = 0, y = 0;
     TIFFGetField (m_tif, TIFFTAG_XPOSITION, &x);
     TIFFGetField (m_tif, TIFFTAG_YPOSITION, &y);
