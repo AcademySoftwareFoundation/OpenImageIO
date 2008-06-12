@@ -66,8 +66,8 @@ Standard tags:
     int bitspersample - for the *file* -- may differ from what format implies)
     string compression - name of compression scheme to use
     string planarconfig - "separate" or "contiguous"
-    string datetime - "yyyy:mm:dd hh:mm:ss"
-    string copyright (TIFF Copyright)
+    string datetime - "yyyy:mm:dd hh:mm:ss" (TIFF DateTime, OpenEXR capDate)
+    string copyright (TIFF Copyright, OpenEXR owner)  [ should it be owner? ]
     string artist (TIFF Artist)
     string name (TIFF DocumentName)
     string host (TIFF HostName)
@@ -82,6 +82,7 @@ Standard tags:
     int xresolution
     int yresolution
     string resolutionunit
+    float pixelaspectratio
 
     tiff-specific:
         tiff_Predictor
@@ -89,6 +90,10 @@ Standard tags:
         tiff_SubfileType
         tiff_PhotometricInterpretation
         tiff_Planarconfig 
+
+    openexr-specific
+        openexr_foo - arbitrary float, int, matrix, string
+
 
 ---
 
@@ -121,3 +126,4 @@ Assumptions about in-core image representation (NOT file!):
 
 
 
+lpxnvt190

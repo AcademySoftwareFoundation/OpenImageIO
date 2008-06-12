@@ -26,6 +26,9 @@
 
 #include <iostream>
 
+#include <half.h>
+#include <QGLFormat>
+
 #include "imageviewer.h"
 
 
@@ -35,10 +38,26 @@
         std::cerr << "GL error " << msg << " " << (int)err << "\n";      \
 
 
+class MyGLFormat
+{
+public:
+    MyGLFormat() {
+        m_fmt.setRedBufferSize (32);
+        m_fmt.setGreenBufferSize (32);
+        m_fmt.setBlueBufferSize (32);
+        m_fmt.setAlphaBufferSize (32);
+    }
+    const QGLFormat & operator() () const { return m_fmt; }
+private:
+    QGLFormat m_fmt;
+};
+
+static MyGLFormat glformat;
+
 
 
 IvGL::IvGL (QWidget *parent, ImageViewer *viewer)
-    : QGLWidget(parent), m_viewer (viewer)
+    : QGLWidget(glformat(), parent), m_viewer (viewer)
 {
 }
 
@@ -63,13 +82,13 @@ IvGL::initializeGL ()
     glGenTextures (1, &m_texid);
 //    glActiveTexture (GL_TEXTURE0);
     glBindTexture (GL_TEXTURE_2D, m_texid);
-    unsigned char pix[4] = {55, 55, 255, 255};
+    half pix[4] = {.25, .25, 1, 1};
 #if 1
     glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
                   4 /*internal format - color components */,
                   1 /*width*/, 1 /*height*/, 0 /*border width*/,
                   GL_RGBA /*type - GL_RGB, GL_RGBA, GL_LUMINANCE */,
-                  GL_UNSIGNED_BYTE /*format - GL_FLOAT */,
+                  GL_HALF_FLOAT_ARB /*format - GL_FLOAT */,
                   (const GLvoid *)pix /*data*/);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

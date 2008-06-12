@@ -511,7 +511,9 @@ ImageViewer::add_image (const std::string &filename, bool getspec)
 void
 ImageViewer::updateTitle ()
 {
-    IvImage *img = m_images[m_current_image];
+    IvImage *img = cur();
+    if (! img)
+        return;
     std::string message;
     message = Strutil::format ("%s - iv Image Viewer", img->name().c_str());
     setWindowTitle (message.c_str());
@@ -522,6 +524,9 @@ ImageViewer::updateTitle ()
 void
 ImageViewer::updateStatusBar ()
 {
+    const ImageIOFormatSpec *spec = curspec();
+    if (! spec)
+        return;
     std::string message;
     message = Strutil::format ("%d/%d) : ", m_current_image+1, m_images.size());
     message += cur()->shortinfo();
@@ -530,12 +535,12 @@ ImageViewer::updateStatusBar ()
     switch (m_current_channel) {
     case channelFullColor: message = "RGB"; break;
     case channelLuminance: message = "Lum"; break;
-    case channelRed: message = "R"; break;
-    case channelGreen: message = "G"; break;
-    case channelBlue: message = "B"; break;
-    case channelAlpha: message = "A"; break;
     default:
-        message = Strutil::format ("chan %d", m_current_channel);
+        if (spec->channelnames.size() > m_current_channel &&
+                spec->channelnames[m_current_channel].size())
+            message = spec->channelnames[m_current_channel];
+        else
+            message = Strutil::format ("chan %d", m_current_channel);
         break;
     }
     message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f",
