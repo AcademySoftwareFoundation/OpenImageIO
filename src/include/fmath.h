@@ -80,6 +80,57 @@ pow2rounddown (int x)
 
 
 
+/// Return true if the architecture we are running on is little endian
+///
+inline bool littleendian (void)
+{
+#ifdef HOST_BIG_ENDIAN
+    return false;   // If makefiles define BIG_ENDIAN, it is!
+#endif
+#ifdef HOST_LITTLE_ENDIAN
+    return true;    // If makefiles define LITTLE_ENDIAN, it is!
+#endif
+    // Otherwise, do something quick to compute it
+    int i = 1;
+    return *((char *) &i);
+}
+
+
+
+/// Return true if the architecture we are running on is big endian
+///
+inline bool bigendian (void)
+{
+#ifdef HOST_BIG_ENDIAN
+    return true;    // If makefiles define BIG_ENDIAN, it is!
+#endif
+#ifdef HOST_LITTLE_ENDIAN
+    return false;   // If makefiles define LITTLE_ENDIAN, it is!
+#endif
+    return ! littleendian();
+}
+
+
+
+/// Change endian-ness of one or more data items that are each either 2
+/// or 4 bytes.  This should work for any of short, unsigned short, int,
+/// unsigned int, float.
+template<class T>
+inline void
+swap_endian (T *f, int len=1)
+{
+    for (char *c = (char *) f;  len--;  c += sizeof(T)) {
+        if (sizeof(T) == 2) {
+            std::swap (c[0], c[1]);
+        } else if (sizeof(T) == 4) {
+            std::swap (c[0], c[3]);
+            std::swap (c[1], c[2]);
+            c += 4;
+        }
+    }
+}
+
+
 
 /// Convert n consecutive values from the type of S to the type of D.
 /// The conversion is not a simple cast, but correctly remaps the
