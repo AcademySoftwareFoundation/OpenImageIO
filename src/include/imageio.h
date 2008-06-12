@@ -259,6 +259,11 @@ struct DLLPUBLIC ImageIOFormatSpec {
         add_parameter (name, PT_INT, 1, &value);
     }
 
+    /// Add a float parameter
+    void add_parameter (const std::string &name, float value) {
+        add_parameter (name, PT_FLOAT, 1, &value);
+    }
+
     /// Add a string parameter
     void add_parameter (const std::string &name, const std::string &value) {
         const char *s = value.c_str();
@@ -329,13 +334,18 @@ public:
     virtual bool supports (const char *feature) const = 0;
 
     /// Open file with given name, with resolution and other format data
-    /// as given in spec.  Open returns true for success, false for
+    /// as given in newspec.  Open returns true for success, false for
     /// failure.  Note that it is legal to call open multiple times on
     /// the same file without a call to close(), if it supports
     /// multiimage and the append flag is true -- this is interpreted as
     /// appending images (such as for MIP-maps).
-    virtual bool open (const char *name, const ImageIOFormatSpec &spec,
+    virtual bool open (const char *name, const ImageIOFormatSpec &newspec,
                        bool append=false) = 0;
+
+    /// Return a reference to the image format specification of the
+    /// current subimage.  Note that the contents of the spec are
+    /// invalid before open() or after close().
+    const ImageIOFormatSpec &spec (void) const { return m_spec; }
 
     /// Close an image that we are totally done with.  This should leave
     /// the plugin in a state where it could open a new file safely,
@@ -441,7 +451,7 @@ protected:
                                      std::vector<unsigned char> &scratch);
 
 protected:
-    ImageIOFormatSpec spec;     ///< format spec of the currently open image
+    ImageIOFormatSpec m_spec;   ///< format spec of the currently open image
 
 private:
     std::string m_errmessage;   ///< private storage of error massage
@@ -474,6 +484,11 @@ public:
     /// number of channels, and native data format.  Return true if the
     /// file was found and opened okay.
     virtual bool open (const char *name, ImageIOFormatSpec &newspec) = 0;
+
+    /// Return a reference to the image format specification of the
+    /// current subimage.  Note that the contents of the spec are
+    /// invalid before open() or after close().
+    const ImageIOFormatSpec &spec (void) const { return m_spec; }
 
     /// Close an image that we are totally done with.
     ///
@@ -540,9 +555,9 @@ public:
     ///
     /// Simple read_tile reads to contiguous float pixels.
     bool read_tile (int x, int y, int z, float *data) {
-        return read_tile (x, y, z, PT_FLOAT, data, spec.nchannels,
-                          spec.nchannels*spec.tile_width,
-                          spec.nchannels*spec.tile_width*spec.tile_height);
+        return read_tile (x, y, z, PT_FLOAT, data, m_spec.nchannels,
+                          m_spec.nchannels*m_spec.tile_width,
+                          m_spec.nchannels*m_spec.tile_width*m_spec.tile_height);
     }
 
     /// Read the entire image of spec.width x spec.height x spec.depth
@@ -598,7 +613,7 @@ protected:
     void error (const char *message, ...);
     
 protected:
-    ImageIOFormatSpec spec;    //< format spec of the currently open image
+    ImageIOFormatSpec m_spec;  //< format spec of the current open subimage
 
 private:
     std::string m_errmessage;  //< private storage of error massage

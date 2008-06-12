@@ -47,25 +47,25 @@ bool
 ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
                            stride_t xstride)
 {
-    spec.auto_stride (xstride);
-    bool contiguous = (xstride == spec.nchannels*ParamBaseTypeSize(format));
-    if (contiguous && spec.format == format)  // Simple case
+    m_spec.auto_stride (xstride);
+    bool contiguous = (xstride == m_spec.nchannels*ParamBaseTypeSize(format));
+    if (contiguous && m_spec.format == format)  // Simple case
         return read_native_scanline (y, z, data);
 
     // Complex case -- either changing data type or stride
-    int scanline_values = spec.width * spec.nchannels;
-    unsigned char *buf = (unsigned char *) alloca (spec.scanline_bytes());
+    int scanline_values = m_spec.width * m_spec.nchannels;
+    unsigned char *buf = (unsigned char *) alloca (m_spec.scanline_bytes());
     bool ok = read_native_scanline (y, z, buf);
     if (! ok)
         return false;
     ok = contiguous 
-        ? convert_types (spec.format, buf, format, data, scanline_values)
-        : convert_image (spec.nchannels, spec.width, 1, 1, 
-                         buf, spec.format, AutoStride, AutoStride, AutoStride,
+        ? convert_types (m_spec.format, buf, format, data, scanline_values)
+        : convert_image (m_spec.nchannels, m_spec.width, 1, 1, 
+                         buf, m_spec.format, AutoStride, AutoStride, AutoStride,
                          data, format, xstride, AutoStride, AutoStride);
     if (! ok)
         error ("ImageInput::read_scanline : no support for format %s",
-               ParamBaseTypeNameString(spec.format));
+               ParamBaseTypeNameString(m_spec.format));
     return ok;
 }
 
@@ -75,28 +75,28 @@ bool
 ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
                        stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    spec.auto_stride (xstride, ystride, zstride);
-    bool contiguous = (xstride == spec.nchannels*ParamBaseTypeSize(format) &&
-                       ystride == xstride*spec.tile_width &&
-                       zstride == ystride*spec.tile_height);
-    if (contiguous && spec.format == format)  // Simple case
+    m_spec.auto_stride (xstride, ystride, zstride);
+    bool contiguous = (xstride == m_spec.nchannels*ParamBaseTypeSize(format) &&
+                       ystride == xstride*m_spec.tile_width &&
+                       zstride == ystride*m_spec.tile_height);
+    if (contiguous && m_spec.format == format)  // Simple case
         return read_native_tile (x, y, z, data);
 
     // Complex case -- either changing data type or stride
-    int tile_values = spec.tile_width * spec.tile_height * 
-                      spec.tile_depth * spec.nchannels;
-    unsigned char *buf = (unsigned char *) alloca (spec.tile_bytes());
+    int tile_values = m_spec.tile_width * m_spec.tile_height * 
+                      m_spec.tile_depth * m_spec.nchannels;
+    unsigned char *buf = (unsigned char *) alloca (m_spec.tile_bytes());
     bool ok = read_native_tile (x, y, z, buf);
     if (! ok)
         return false;
     ok = contiguous 
-        ? convert_types (spec.format, buf, format, data, tile_values)
-        : convert_image (spec.nchannels, spec.tile_width, spec.tile_height, spec.tile_depth, 
-                         buf, spec.format, AutoStride, AutoStride, AutoStride,
+        ? convert_types (m_spec.format, buf, format, data, tile_values)
+        : convert_image (m_spec.nchannels, m_spec.tile_width, m_spec.tile_height, m_spec.tile_depth, 
+                         buf, m_spec.format, AutoStride, AutoStride, AutoStride,
                          data, format, xstride, ystride, zstride);
     if (! ok)
         error ("ImageInput::read_tile : no support for format %s",
-               ParamBaseTypeNameString(spec.format));
+               ParamBaseTypeNameString(m_spec.format));
     return ok;
 
 }
@@ -109,12 +109,12 @@ ImageInput::read_image (ParamBaseType format, void *data,
                         OpenImageIO::ProgressCallback progress_callback,
                         void *progress_callback_data)
 {
-    spec.auto_stride (xstride, ystride, zstride);
+    m_spec.auto_stride (xstride, ystride, zstride);
     bool ok = true;
     if (progress_callback)
         if (progress_callback (progress_callback_data, 0.0f))
             return ok;
-    if (spec.tile_width) {
+    if (m_spec.tile_width) {
         // Tiled image
 
         // FIXME: what happens if the image dimensions are smaller than
@@ -123,25 +123,25 @@ ImageInput::read_image (ParamBaseType format, void *data,
         // copy into it into buf?  That's probably the safe thing to do.
         // Or should that handling be pushed all the way into read_tile
         // itself?
-        for (int z = 0;  z < spec.depth;  z += spec.tile_depth)
-            for (int y = 0;  y < spec.height;  y += spec.tile_height) {
-                for (int x = 0;  x < spec.width && ok;  x += spec.tile_width)
+        for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth)
+            for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
+                for (int x = 0;  x < m_spec.width && ok;  x += m_spec.tile_width)
                     ok &= read_tile (x, y, z, format,
                                      (char *)data + z*zstride + y*ystride + x*xstride,
                                      xstride, ystride, zstride);
                 if (progress_callback)
-                    if (progress_callback (progress_callback_data, (float)y/spec.height))
+                    if (progress_callback (progress_callback_data, (float)y/m_spec.height))
                         return ok;
             }
     } else {
         // Scanline image
-        for (int z = 0;  z < spec.depth;  ++z)
-            for (int y = 0;  y < spec.height && ok;  ++y) {
+        for (int z = 0;  z < m_spec.depth;  ++z)
+            for (int y = 0;  y < m_spec.height && ok;  ++y) {
                 ok &= read_scanline (y, z, format,
                                      (char *)data + z*zstride + y*ystride,
                                      xstride);
                 if (progress_callback && !(y & 0x0f))
-                    if (progress_callback (progress_callback_data, (float)y/spec.height))
+                    if (progress_callback (progress_callback_data, (float)y/m_spec.height))
                         return ok;
             }
     }

@@ -62,13 +62,15 @@ private:
     unsigned short m_photometric;    ///< Of the *file*, not the client's view
     std::vector<unsigned short> m_colormap;  ///< Color map for palette images
 
+    // Reset everything to initial state
     void init () {
         m_tif = NULL;
+        m_subimage = -1;
         m_colormap.clear();
     }
 
-    // Read tags from m_tif and fill out spec
-    void read ();
+    // Read tags from the current directory of m_tif and fill out spec
+    void readspec ();
 
     // Convert planar separate to contiguous data format
     void separate_to_contig (int n, const unsigned char *separate,
@@ -93,7 +95,7 @@ private:
         char *s = NULL;
         TIFFGetField (m_tif, tag, &s);
         if (s && *s)
-            spec.add_parameter (name, PT_STRING, 1, &s);
+            m_spec.add_parameter (name, PT_STRING, 1, &s);
     }
 
     // Get a float-oid tiff tag field and put it into extra_params
@@ -101,14 +103,14 @@ private:
                           ParamBaseType type=PT_FLOAT) {
         float f[16];
         if (TIFFGetField (m_tif, tag, f))
-            spec.add_parameter (name, type, 1, &f);
+            m_spec.add_parameter (name, type, 1, &f);
     }
 
     // Get an int tiff tag field and put it into extra_params
     void get_int_field (const std::string &name, int tag) {
         int i;
         if (TIFFGetField (m_tif, tag, &i))
-            spec.add_parameter (name, PT_INT, 1, &i);
+            m_spec.add_parameter (name, PT_INT, 1, &i);
     }
 
     // Get an int tiff tag field and put it into extra_params
@@ -116,7 +118,7 @@ private:
         unsigned short s;
         if (TIFFGetField (m_tif, tag, &s)) {
             int i = s;
-            spec.add_parameter (name, PT_INT, 1, &i);
+            m_spec.add_parameter (name, PT_INT, 1, &i);
         }
     }
 };
@@ -169,7 +171,7 @@ TIFFInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
         return false;
     if (index == m_subimage) {
         // We're already pointing to the right subimage
-        newspec = spec;
+        newspec = m_spec;
         return true;
     }
 
@@ -188,8 +190,8 @@ TIFFInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
     
     if (TIFFSetDirectory (m_tif, index)) {
         m_subimage = index;
-        read ();
-        newspec = spec;
+        readspec ();
+        newspec = m_spec;
         if (newspec.format == PT_UNKNOWN) {
             error ("No support for data format of \"%s\"", m_filename.c_str());
             return false;
@@ -205,15 +207,15 @@ TIFFInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
 
 
 void
-TIFFInput::read ()
+TIFFInput::readspec ()
 {
-    spec = ImageIOFormatSpec();
+    m_spec = ImageIOFormatSpec();
     float x = 0, y = 0;
     TIFFGetField (m_tif, TIFFTAG_XPOSITION, &x);
     TIFFGetField (m_tif, TIFFTAG_YPOSITION, &y);
-    spec.x = (int)x;
-    spec.y = (int)y;
-    spec.z = 0;
+    m_spec.x = (int)x;
+    m_spec.y = (int)y;
+    m_spec.z = 0;
     // FIXME? - TIFF spec describes the positions as in resolutionunit.
     // What happens if this is not unitless pixels?  Are we interpreting
     // it all wrong?
@@ -222,27 +224,27 @@ TIFFInput::read ()
     TIFFGetField (m_tif, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetField (m_tif, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_IMAGEDEPTH, &depth);
-    spec.full_width  = spec.width  = width;
-    spec.full_height = spec.height = height;
-    spec.full_depth  = spec.depth  = depth;
+    m_spec.full_width  = m_spec.width  = width;
+    m_spec.full_height = m_spec.height = height;
+    m_spec.full_depth  = m_spec.depth  = depth;
     if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1) 
-        spec.full_width = width;
+        m_spec.full_width = width;
     if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1)
-        spec.full_height = height;
+        m_spec.full_height = height;
 
     if (TIFFIsTiled (m_tif)) {
-        TIFFGetField (m_tif, TIFFTAG_TILEWIDTH, &spec.tile_width);
-        TIFFGetField (m_tif, TIFFTAG_TILELENGTH, &spec.tile_height);
-        TIFFGetFieldDefaulted (m_tif, TIFFTAG_TILEDEPTH, &spec.tile_depth);
+        TIFFGetField (m_tif, TIFFTAG_TILEWIDTH, &m_spec.tile_width);
+        TIFFGetField (m_tif, TIFFTAG_TILELENGTH, &m_spec.tile_height);
+        TIFFGetFieldDefaulted (m_tif, TIFFTAG_TILEDEPTH, &m_spec.tile_depth);
     } else {
-        spec.tile_width = 0;
-        spec.tile_height = 0;
-        spec.tile_depth = 0;
+        m_spec.tile_width = 0;
+        m_spec.tile_height = 0;
+        m_spec.tile_depth = 0;
     }
 
     m_bitspersample = 8;
     TIFFGetField (m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
-    spec.add_parameter ("bitspersample", m_bitspersample);
+    m_spec.add_parameter ("bitspersample", m_bitspersample);
 
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
@@ -253,60 +255,60 @@ TIFFInput::read ()
         // Make 4 bpp look like byte images
     case 8:
         if (sampleformat == SAMPLEFORMAT_UINT)
-            spec.set_format (PT_UINT8);
+            m_spec.set_format (PT_UINT8);
         else if (sampleformat == SAMPLEFORMAT_INT)
-            spec.set_format (PT_INT8);
-        else spec.set_format (PT_UINT8);  // punt
+            m_spec.set_format (PT_INT8);
+        else m_spec.set_format (PT_UINT8);  // punt
         break;
     case 16:
         if (sampleformat == SAMPLEFORMAT_UINT)
-            spec.set_format (PT_UINT16);
+            m_spec.set_format (PT_UINT16);
         else if (sampleformat == SAMPLEFORMAT_INT)
-            spec.set_format (PT_INT16);
+            m_spec.set_format (PT_INT16);
         break;
     case 32:
         if (sampleformat == SAMPLEFORMAT_IEEEFP)
-            spec.set_format (PT_FLOAT);
+            m_spec.set_format (PT_FLOAT);
         break;
     default:
-        spec.set_format (PT_UNKNOWN);
+        m_spec.set_format (PT_UNKNOWN);
         break;
     }
 
     unsigned short nchans;
     TIFFGetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
-    spec.nchannels = nchans;
+    m_spec.nchannels = nchans;
 
-    spec.channelnames.clear();
-    switch (spec.nchannels) {
+    m_spec.channelnames.clear();
+    switch (m_spec.nchannels) {
     case 1:
-        spec.channelnames.push_back ("a");
+        m_spec.channelnames.push_back ("A");
         break;
     case 2:
-        spec.channelnames.push_back ("i");
-        spec.channelnames.push_back ("a");
-        spec.alpha_channel = 1;  // Is this a safe bet?
+        m_spec.channelnames.push_back ("I");
+        m_spec.channelnames.push_back ("A");
+        m_spec.alpha_channel = 1;  // Is this a safe bet?
         break;
     case 3:
-        spec.channelnames.push_back ("r");
-        spec.channelnames.push_back ("g");
-        spec.channelnames.push_back ("b");
+        m_spec.channelnames.push_back ("R");
+        m_spec.channelnames.push_back ("G");
+        m_spec.channelnames.push_back ("B");
         break;
     case 4:
-        spec.channelnames.push_back ("r");
-        spec.channelnames.push_back ("g");
-        spec.channelnames.push_back ("b");
-        spec.channelnames.push_back ("a");
-        spec.alpha_channel = 3;  // Is this a safe bet?
+        m_spec.channelnames.push_back ("R");
+        m_spec.channelnames.push_back ("G");
+        m_spec.channelnames.push_back ("B");
+        m_spec.channelnames.push_back ("A");
+        m_spec.alpha_channel = 3;  // Is this a safe bet?
         break;
     default:
-        for (int c = 0;  c < spec.nchannels;  ++c)
-            spec.channelnames.push_back ("");
+        for (int c = 0;  c < m_spec.nchannels;  ++c)
+            m_spec.channelnames.push_back ("");
     }
 
-    m_photometric = (spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
+    m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
     TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
-    spec.add_parameter ("tiff_PhotometricInterpretation", m_photometric);
+    m_spec.add_parameter ("tiff_PhotometricInterpretation", m_photometric);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
@@ -317,34 +319,34 @@ TIFFInput::read ()
         m_colormap.insert (m_colormap.end(), g, g + (1 << m_bitspersample));
         m_colormap.insert (m_colormap.end(), b, b + (1 << m_bitspersample));
         // Palette TIFF images are always 3 channels (to the client)
-        spec.nchannels = 3;
+        m_spec.nchannels = 3;
     }
 
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
-    spec.add_parameter ("tiff_PlanarConfiguration", m_planarconfig);
+    m_spec.add_parameter ("tiff_PlanarConfiguration", m_planarconfig);
     if (m_planarconfig == PLANARCONFIG_SEPARATE)
-        spec.add_parameter ("planarconfig", "separate");
+        m_spec.add_parameter ("planarconfig", "separate");
     else
-        spec.add_parameter ("planarconfig", "contig");
+        m_spec.add_parameter ("planarconfig", "contig");
 
     short compress;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
-    spec.add_parameter ("tiff_Compression", compress);
+    m_spec.add_parameter ("tiff_Compression", compress);
     switch (compress) {
     case COMPRESSION_NONE :
-        spec.add_parameter ("compression", "none");
+        m_spec.add_parameter ("compression", "none");
         break;
     case COMPRESSION_LZW :
-        spec.add_parameter ("compression", "lzw");
+        m_spec.add_parameter ("compression", "lzw");
         break;
     case COMPRESSION_CCITTRLE :
-        spec.add_parameter ("compression", "ccittrle");
+        m_spec.add_parameter ("compression", "ccittrle");
         break;
     case COMPRESSION_ADOBE_DEFLATE :
-        spec.add_parameter ("compression", "deflate");  // zip?
+        m_spec.add_parameter ("compression", "deflate");  // zip?
         break;
     case COMPRESSION_PACKBITS :
-        spec.add_parameter ("compression", "packbits");  // zip?
+        m_spec.add_parameter ("compression", "packbits");  // zip?
         break;
     default:
         break;
@@ -353,9 +355,9 @@ TIFFInput::read ()
     short resunit = -1;
     TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
     switch (resunit) {
-    case RESUNIT_NONE : spec.add_parameter ("resolutionunit", "none"); break;
-    case RESUNIT_INCH : spec.add_parameter ("resolutionunit", "in"); break;
-    case RESUNIT_CENTIMETER : spec.add_parameter ("resolutionunit", "cm"); break;
+    case RESUNIT_NONE : m_spec.add_parameter ("resolutionunit", "none"); break;
+    case RESUNIT_INCH : m_spec.add_parameter ("resolutionunit", "in"); break;
+    case RESUNIT_CENTIMETER : m_spec.add_parameter ("resolutionunit", "cm"); break;
     }
     get_float_field ("xresolution", TIFFTAG_XRESOLUTION);
     get_float_field ("yresolution", TIFFTAG_YRESOLUTION);
@@ -388,8 +390,8 @@ TIFFInput::read ()
     char *s = NULL;
     TIFFGetField (m_tif, TIFFTAG_PIXAR_TEXTUREFORMAT, &s);
     if (s && ! strcmp (s, "Shadow")) {
-        for (int c = 0;  c < spec.nchannels;  ++c)
-            spec.channelnames[c] = "z";
+        for (int c = 0;  c < m_spec.nchannels;  ++c)
+            m_spec.channelnames[c] = "z";
     }
 
     // N.B. we currently ignore the following TIFF fields:
@@ -419,11 +421,11 @@ void
 TIFFInput::separate_to_contig (int n, const unsigned char *separate,
                                unsigned char *contig)
 {
-    int channelbytes = spec.channel_bytes();
+    int channelbytes = m_spec.channel_bytes();
     for (int p = 0;  p < n;  ++p)                     // loop over pixels
-        for (int c = 0;  c < spec.nchannels;  ++c)    // loop over channels
+        for (int c = 0;  c < m_spec.nchannels;  ++c)    // loop over channels
             for (int i = 0;  i < channelbytes;  ++i)  // loop over data bytes
-                contig[(p*spec.nchannels+c)*channelbytes+i] =
+                contig[(p*m_spec.nchannels+c)*channelbytes+i] =
                     separate[(c*n+p)*channelbytes+i];
 }
 
@@ -433,7 +435,7 @@ void
 TIFFInput::palette_to_rgb (int n, const unsigned char *palettepels,
                            unsigned char *rgb)
 {
-    DASSERT (spec.nchannels == 3);
+    DASSERT (m_spec.nchannels == 3);
     int entries = 1 << m_bitspersample;
     DASSERT (m_colormap.size() == 3*entries);
     if (m_bitspersample == 8) {
@@ -488,7 +490,7 @@ TIFFInput::fourbit_to_8bit (int n, const unsigned char *bits,
 void
 TIFFInput::invert_photometric (int n, void *data)
 {
-    switch (spec.format) {
+    switch (m_spec.format) {
     case PT_UINT8:
         unsigned char *d = (unsigned char *) data;
         for (int i = 0;  i < n;  ++i)
@@ -504,36 +506,36 @@ TIFFInput::invert_photometric (int n, void *data)
 bool
 TIFFInput::read_native_scanline (int y, int z, void *data)
 {
-    y -= spec.y;
+    y -= m_spec.y;
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
-        m_scratch.resize (spec.width);
+        m_scratch.resize (m_spec.width);
         if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
             error ("%s", lasterr.c_str());
             return false;
         }
-        palette_to_rgb (spec.width, &m_scratch[0], (unsigned char *)data);
-    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
+        palette_to_rgb (m_spec.width, &m_scratch[0], (unsigned char *)data);
+    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        m_scratch.resize (spec.scanline_bytes());
-        int plane_bytes = spec.width * ParamBaseTypeSize(spec.format);
-        for (int c = 0;  c < spec.nchannels;  ++c)
+        m_scratch.resize (m_spec.scanline_bytes());
+        int plane_bytes = m_spec.width * ParamBaseTypeSize(m_spec.format);
+        for (int c = 0;  c < m_spec.nchannels;  ++c)
             if (TIFFReadScanline (m_tif, &m_scratch[plane_bytes*c], y, c) < 0) {
                 error ("%s", lasterr.c_str());
                 return false;
             }
-        separate_to_contig (spec.width, &m_scratch[0], (unsigned char *)data);
+        separate_to_contig (m_spec.width, &m_scratch[0], (unsigned char *)data);
     } else if (m_bitspersample == 1 || m_bitspersample == 4) {
         // Bilevel images
-        m_scratch.resize (spec.width);
+        m_scratch.resize (m_spec.width);
         if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
             error ("%s", lasterr.c_str());
             return false;
         }
         if (m_bitspersample == 1)
-            bilevel_to_8bit (spec.width, &m_scratch[0], (unsigned char *)data);
+            bilevel_to_8bit (m_spec.width, &m_scratch[0], (unsigned char *)data);
         else
-            fourbit_to_8bit (spec.width, &m_scratch[0], (unsigned char *)data);
+            fourbit_to_8bit (m_spec.width, &m_scratch[0], (unsigned char *)data);
     } else {
         // Contiguous, >= bit per sample -- the "usual" case
         if (TIFFReadScanline (m_tif, data, y) < 0) {
@@ -543,7 +545,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     }
 
     if (m_photometric == PHOTOMETRIC_MINISWHITE)
-        invert_photometric (spec.width * spec.nchannels, data);
+        invert_photometric (m_spec.width * m_spec.nchannels, data);
 
     return true;
 }
@@ -553,10 +555,10 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
 bool
 TIFFInput::read_native_tile (int x, int y, int z, void *data)
 {
-    x -= spec.x;
-    y -= spec.y;
-    int tile_pixels = spec.tile_width * spec.tile_height 
-                      * std::max (spec.tile_depth, 1);
+    x -= m_spec.x;
+    y -= m_spec.y;
+    int tile_pixels = m_spec.tile_width * m_spec.tile_height 
+                      * std::max (m_spec.tile_depth, 1);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         m_scratch.resize (tile_pixels);
@@ -565,17 +567,17 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
             return false;
         }
         palette_to_rgb (tile_pixels, &m_scratch[0], (unsigned char *)data);
-    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && spec.nchannels > 1) {
+    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        int plane_bytes = tile_pixels * ParamBaseTypeSize(spec.format);
-        DASSERT (plane_bytes*spec.nchannels == spec.tile_bytes());
-        m_scratch.resize (spec.tile_bytes());
-        for (int c = 0;  c < spec.nchannels;  ++c)
+        int plane_bytes = tile_pixels * ParamBaseTypeSize(m_spec.format);
+        DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
+        m_scratch.resize (m_spec.tile_bytes());
+        for (int c = 0;  c < m_spec.nchannels;  ++c)
             if (TIFFReadTile (m_tif, &m_scratch[plane_bytes*c], x, y, z, c) < 0) {
                 error ("%s", lasterr.c_str());
                 return false;
             }
-        separate_to_contig (spec.width, &m_scratch[0], (unsigned char *)data);
+        separate_to_contig (m_spec.width, &m_scratch[0], (unsigned char *)data);
     } else {
         // Contiguous, >= bit per sample -- the "usual" case
         if (TIFFReadTile (m_tif, data, x, y, z, 0) < 0) {
