@@ -101,7 +101,7 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
     }
 
     // Save spec for later use
-    spec = newspec;
+    m_spec = newspec;
 
     int quality = 98;
 
@@ -110,15 +110,15 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
     jpeg_stdio_dest (&cinfo, fd);                       // set output stream
 
     // set compression parameters
-    cinfo.image_width = spec.width;
-    cinfo.image_height = spec.height;
+    cinfo.image_width = m_spec.width;
+    cinfo.image_height = m_spec.height;
 
-    if (spec.nchannels == 3 || spec.nchannels == 4) {
+    if (m_spec.nchannels == 3 || m_spec.nchannels == 4) {
         cinfo.input_components = 3;
         cinfo.in_color_space = JCS_RGB;
-        spec.nchannels = 3;  // Force RGBA -> RGB
-        spec.alpha_channel = -1;  // No alpha channel
-    } else if (spec.nchannels == 1) {
+        m_spec.nchannels = 3;  // Force RGBA -> RGB
+        m_spec.alpha_channel = -1;  // No alpha channel
+    } else if (m_spec.nchannels == 1) {
         cinfo.input_components = 1;
         cinfo.in_color_space = JCS_GRAYSCALE;
     }
@@ -127,7 +127,7 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
     jpeg_set_quality (&cinfo, quality, TRUE);           // baseline values
     jpeg_start_compress (&cinfo, TRUE);                 // start working
 
-    spec.set_format (PT_UINT8);  // JPG is only 8 bit
+    m_spec.set_format (PT_UINT8);  // JPG is only 8 bit
 
     return true;
 }
@@ -138,7 +138,7 @@ bool
 JpgOutput::write_scanline (int y, int z, ParamBaseType format,
                            const void *data, stride_t xstride)
 {
-    y -= spec.y;
+    y -= m_spec.y;
     assert (y == (int)cinfo.next_scanline);
     assert (y < (int)cinfo.image_height);
 
