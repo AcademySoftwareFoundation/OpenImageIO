@@ -83,13 +83,13 @@ print_info (const std::string &filename, ImageInput *input,
             ImageIOFormatSpec &spec,
             bool verbose, bool sum, long long &totalsize)
 {
-    printf ("%s : %s %s %4d x %4d", filename.c_str(), 
-            ParamBaseTypeNameString(spec.format),
-            spec.depth > 1 ? "volume" : "image",
+    printf ("%s : %4d x %4d", filename.c_str(), 
             spec.width, spec.height);
     if (spec.depth > 1)
         printf (" x %4d", spec.depth);
-    printf (", %d channel%s", spec.nchannels, spec.nchannels > 1 ? "s" : "");
+    printf (", %d channel, %s%s", spec.nchannels,
+            ParamBaseTypeNameString(spec.format),
+            spec.depth > 1 ? " volume" : "");
     if (sum) {
         totalsize += spec.image_bytes();
         printf (" (%.2f MB)", (float)spec.image_bytes() / (1024.0*1024.0));
@@ -97,8 +97,14 @@ print_info (const std::string &filename, ImageInput *input,
     printf ("\n");
 
     if (verbose) {
-        if (1 || spec.x || spec.y || spec.z) {
-            printf ("    offset: x=%d, y=%d", spec.x, spec.y);
+        printf ("    channel list: ");
+        for (int i = 0;  i < spec.nchannels;  ++i) {
+            printf ("%s%s", spec.channelnames[i].c_str(),
+                    (i == spec.nchannels-1) ? "" : ", ");
+        }
+        printf ("\n");
+        if (spec.x || spec.y || spec.z) {
+            printf ("    origin: x=%d, y=%d", spec.x, spec.y);
             if (spec.depth > 1)
                 printf (", z=%d\n", spec.x, spec.y, spec.z);
             printf ("\n");
