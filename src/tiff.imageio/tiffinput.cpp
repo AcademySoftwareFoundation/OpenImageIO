@@ -491,11 +491,12 @@ void
 TIFFInput::invert_photometric (int n, void *data)
 {
     switch (m_spec.format) {
-    case PT_UINT8:
+    case PT_UINT8: {
         unsigned char *d = (unsigned char *) data;
         for (int i = 0;  i < n;  ++i)
             d[i] = 255 - d[i];
         break;
+        }
     default:
         break;
     }

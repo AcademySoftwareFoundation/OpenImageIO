@@ -28,6 +28,7 @@
 
 #include <half.h>
 #include <QGLFormat>
+#include <gl.h>
 
 #include "imageviewer.h"
 
