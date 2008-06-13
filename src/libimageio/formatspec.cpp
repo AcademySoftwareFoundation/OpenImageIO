@@ -29,6 +29,9 @@
 
 #include <half.h>
 
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+
 #include "dassert.h"
 #include "paramtype.h"
 
@@ -40,7 +43,7 @@ using namespace OpenImageIO;
 
 
 ImageIOFormatSpec::ImageIOFormatSpec (ParamBaseType format)
-    : x(0), y(0), z(0), width(0), height(0), depth(0),
+    : x(0), y(0), z(0), width(0), height(0), depth(1),
       full_width(0), full_height(0), full_depth(0),
       tile_width(0), tile_height(0), tile_depth(0),
       format(format), nchannels(0), alpha_channel(-1), z_channel(-1),
@@ -217,10 +220,16 @@ ImageIOFormatSpec::add_parameter (const std::string &name, ParamBaseType type,
 
 
 ImageIOParameter *
-ImageIOFormatSpec::find_parameter (const std::string &name)
+ImageIOFormatSpec::find_parameter (const std::string &name, bool casesensitive)
 {
-    for (size_t i = 0;  i < extra_params.size();  ++i)
-        if (extra_params[i].name == name)
-            return &extra_params[i];
+    if (casesensitive) {
+        for (size_t i = 0;  i < extra_params.size();  ++i)
+            if (extra_params[i].name == name)
+                return &extra_params[i];
+    } else {
+        for (size_t i = 0;  i < extra_params.size();  ++i)
+            if (iequals (extra_params[i].name, name))
+                return &extra_params[i];
+    }
     return NULL;
 }

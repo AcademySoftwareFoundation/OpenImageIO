@@ -107,7 +107,8 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   stride_t xstride, stride_t ystride, stride_t zstride,
                                   std::vector<unsigned char> &scratch)
 {
-    m_spec.auto_stride (xstride, ystride, zstride);
+    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
+                        xmax-xmin+1, ymax-ymin+1);
 
     // Compute width and height from the rectangle extents
     int width = xmax - xmin + 1;
@@ -185,7 +186,8 @@ ImageOutput::write_image (ParamBaseType format, const void *data,
                           OpenImageIO::ProgressCallback progress_callback,
                           void *progress_callback_data)
 {
-    m_spec.auto_stride (xstride, ystride, zstride);
+    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
+                        m_spec.width, m_spec.height);
     if (supports ("rectangles")) {
         // Use a rectangle if we can
         return write_rectangle (0, m_spec.width-1, 0, m_spec.height-1, 0, m_spec.depth-1,

@@ -210,7 +210,7 @@ struct DLLPUBLIC ImageIOFormatSpec {
     /// Return the number of bytes for each scanline
     size_t tile_bytes() const {
         return (size_t)tile_width * (size_t)tile_height *
-               (size_t)tile_depth * pixel_bytes ();
+               (size_t)std::max(1,tile_depth) * pixel_bytes ();
     }
 
     ///
@@ -221,10 +221,17 @@ struct DLLPUBLIC ImageIOFormatSpec {
     }
 
     /// Adjust any AutoStride values to be the right sizes for contiguous
-    /// data of this format.
+    /// scanline data of this format.
     void auto_stride (stride_t &xstride, stride_t &ystride, stride_t &zstride) {
         auto_stride (xstride, ystride, zstride,
                      format, nchannels, width, height);
+    }
+
+    /// Adjust any AutoStride values to be the right sizes for contiguous
+    /// tile data of this format.
+    void auto_tile_stride (stride_t &xstride, stride_t &ystride, stride_t &zstride) {
+        auto_stride (xstride, ystride, zstride,
+                     format, nchannels, tile_width, tile_height);
     }
 
     void auto_stride (stride_t &xstride) {
@@ -265,14 +272,19 @@ struct DLLPUBLIC ImageIOFormatSpec {
     }
 
     /// Add a string parameter
+    void add_parameter (const std::string &name, const char *value) {
+        add_parameter (name, PT_STRING, 1, &value);
+    }
+
+    /// Add a string parameter
     void add_parameter (const std::string &name, const std::string &value) {
-        const char *s = value.c_str();
-        add_parameter (name, PT_STRING, 1, &s);
+        add_parameter (name, value.c_str());
     }
 
     /// Search for a parameter of the given name in the list of extra
     /// parameters.
-    ImageIOParameter * find_parameter (const std::string &name);
+    ImageIOParameter * find_parameter (const std::string &name,
+                                       bool casesensitive=false);
 
 private:
     // Special storage space for strings that go into extra_parameters
@@ -370,10 +382,10 @@ public:
     /// ignored for 2D non-volume images.)  The three stride values give
     /// the distance (in bytes) between successive pixels, scanlines,
     /// and volumetric slices, respectively.  Strides set to AutoStride
-    /// imply 'contiguous' data (i.e. xstride ==
-    /// spec.nchannels*ParamBaseTypeSize(format),
-    /// ystride==xstride*spec.width, zstride=ystride*spec.height).  The
-    /// data are automatically converted from 'format' to the actual
+    /// imply 'contiguous' data (i.e.,
+    /// xstride == spec.nchannels*ParamBaseTypeSize(format),
+    /// ystride==xstride*spec.tile_width, zstride=ystride*spec.tile_height.
+    /// The data are automatically converted from 'format' to the actual
     /// output format (as specified to open()) by this method.  Return
     /// true for success, false for failure.  It is a failure to call
     /// write_tile with an out-of-order tile if this format driver does
@@ -389,7 +401,7 @@ public:
     /// successive pixels, scanlines, and volumetric slices,
     /// respectively.  Strides set to AutoStride imply 'contiguous' data
     /// (i.e. xstride == spec.nchannels*ParamBaseTypeSize(format)),
-    /// ystride==xstride*spec.width, zstride=ystride*spec.height).  The
+    /// ystride==xstride*(xmax-xmin+1), zstride=ystride*(ymax-ymin+1).  The
     /// data are automatically converted from 'format' to the actual
     /// output format (as specified to open()) by this method.  Return
     /// true for success, false for failure.  It is a failure to call
@@ -555,9 +567,8 @@ public:
     ///
     /// Simple read_tile reads to contiguous float pixels.
     bool read_tile (int x, int y, int z, float *data) {
-        return read_tile (x, y, z, PT_FLOAT, data, m_spec.nchannels,
-                          m_spec.nchannels*m_spec.tile_width,
-                          m_spec.nchannels*m_spec.tile_width*m_spec.tile_height);
+        return read_tile (x, y, z, PT_FLOAT, data, 
+                          AutoStride, AutoStride, AutoStride);
     }
 
     /// Read the entire image of spec.width x spec.height x spec.depth
