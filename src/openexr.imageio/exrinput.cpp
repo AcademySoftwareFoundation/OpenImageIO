@@ -43,7 +43,6 @@ using boost::algorithm::iequals;
 #include <ImfStringAttribute.h>
 #include <ImfEnvmapAttribute.h>
 #include <ImfCompressionAttribute.h>
-//using namespace Imf;
 
 #include "dassert.h"
 #include "paramtype.h"
@@ -118,16 +117,17 @@ DLLEXPORT const char * openexr_input_extensions[] = {
 
 
 class StringMap {
+    typedef std::map<std::string, std::string> map_t;
 public:
     StringMap (void) { init(); }
 
     const std::string & operator[] (const std::string &s) const {
-        std::map<std::string, std::string>::const_iterator i;
+        map_t::const_iterator i;
         i = m_map.find (s);
         return i == m_map.end() ? s : i->second;
     }
 private:
-    std::map<std::string, std::string> m_map;
+    map_t m_map;
 
     void init (void) {
         // Ones whose name we change to our convention
@@ -136,8 +136,10 @@ private:
         m_map["comments"] = "description";
         m_map["owner"] = "copyright";
         m_map["pixelAspectRatio"] = "pixelaspectratio";
+        m_map["expTime"] = "exposuretime";
         // Ones we don't rename -- OpenEXR convention matches ours
         m_map["wrapmodes"] = "wrapmodes";
+        m_map["aperture"] = "aperture";
         // Ones to skip because we handle specially
         m_map["channels"] = "";
         m_map["compression"] = "";
@@ -157,7 +159,7 @@ private:
         // xDensity
         // utcOffset
         // longitude latitude altitude
-        // focus expTime aperture isoSpeed
+        // focus isoSpeed
         // keyCode timeCode framesPerSecond
     }
 };
@@ -212,7 +214,7 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
         m_spec.tile_width = 0;
         m_spec.tile_height = 0;
     }
-    m_spec.tile_depth = 0;
+    m_spec.tile_depth = 1;
     m_spec.format = PT_HALF;  // FIXME: do the right thing for non-half
     query_channels ();
 
@@ -466,8 +468,8 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
     char *buf = (char *)data
-              - m_spec.x * m_spec.pixel_bytes() 
-              - (y + m_spec.y) * m_spec.scanline_bytes();
+              - (x + m_spec.x) * m_spec.pixel_bytes() 
+              - (y + m_spec.y) * m_spec.pixel_bytes() * m_spec.tile_width;
 
     try {
         Imf::FrameBuffer frameBuffer;
@@ -476,7 +478,7 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
                                 Imf::Slice (Imf::HALF,  // FIXME
                                             buf + c * m_spec.channel_bytes(),
                                             m_spec.pixel_bytes(),
-                                            m_spec.scanline_bytes()));
+                                            m_spec.pixel_bytes()*m_spec.tile_width));
             // FIXME - what if all channels aren't the same data type?
         }
         m_input_tiled->setFrameBuffer (frameBuffer);
