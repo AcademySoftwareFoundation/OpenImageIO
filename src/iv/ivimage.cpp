@@ -167,7 +167,14 @@ IvImage::longinfo () const
                         format ("%d x %d x %d pixels",
                                 m_spec.width, m_spec.height, m_spec.depth));
         m_longinfo += infoline ("Channels", m_spec.nchannels);
-        // FIXME: put all channel names in the table
+        std::string chanlist;
+        for (int i = 0;  i < m_spec.nchannels;  ++i) {
+            chanlist += m_spec.channelnames[i].c_str();
+            if (i != m_spec.nchannels-1)
+                chanlist += ", ";
+        }
+        m_longinfo += infoline ("Channel list", chanlist);
+
         m_longinfo += infoline ("Data format", ParamBaseTypeNameString(m_spec.format));
         m_longinfo += infoline ("Data size",
              format("%.2f MB", (float)m_spec.image_bytes() / (1024.0*1024.0)));
