@@ -39,13 +39,23 @@ IvInfoWindow::IvInfoWindow (ImageViewer *viewer, bool visible)
 
     infoLabel = new QLabel;
 
+    scrollArea = new QScrollArea;
+    scrollArea->setWidgetResizable (true);
+    scrollArea->setWidget (infoLabel);
+    scrollArea->setSizePolicy (QSizePolicy (QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding, QSizePolicy::Label));
+    scrollArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+    scrollArea->setFrameStyle (QFrame::NoFrame);
+    scrollArea->setAlignment (Qt::AlignTop);
+
     closeButton = new QPushButton (tr("Close"));
     connect (closeButton, SIGNAL(clicked()), this, SLOT(hide()));
 
     QVBoxLayout *mainLayout = new QVBoxLayout;
-    mainLayout->addWidget (infoLabel);
+    mainLayout->addWidget (scrollArea);
     mainLayout->addWidget (closeButton);
     setLayout (mainLayout);
+    infoLabel->show();
+    scrollArea->show();
 
     setWindowTitle (tr("Image Info"));
 }

@@ -28,7 +28,6 @@ DONE?       tag nomenclature
             iv - new window, new tab
             iv - save as, save window as, save selection as
             iv - preferences
-            iv - copy/paste
             iv - select all images
             iv - fit image to window 
             iv - full screen
@@ -36,13 +35,14 @@ DONE?       tag nomenclature
             iv - prev/next subimage
             iv - >4 channels, gray vs color
             iv - pixel view window
-            iv - info window - scroll when too much info to fit on screen
+DONE        iv - info window - scroll when too much info to fit on screen
             iv - clamp fit-window-to-image to display size
 
 
 Before first alpha release
 --------------------------
 
+            iv - copy/paste
             OpenEXR - YCbCr, subsampling
             Windows port of everything
             iv - draw overtop image

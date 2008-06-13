@@ -274,6 +274,7 @@ public:
     
 private:
     QPushButton *closeButton;
+    QScrollArea *scrollArea;
     QLabel *infoLabel;
 
     ImageViewer *m_viewer;
