@@ -9,9 +9,10 @@ lg/DONE     TIFF - palette
 lg/DONE     TIFF - miniswhite
 lg/DONE     TIFF - 1-bit and 4-bit images
 DONE        TIFF - separated samples broken (oxford.tif)
-            TIFF - orientations
+            TIFF - orientations (does this really mean iv orientation?)
             TIFF - double (caspian)
-            OpenEXR plugin
+IP          OpenEXR plugin (status: reader works, writer IP)
+IP          jpeg - EXIF info (status: reader mostly works, writer not started)
 DONE?       tag nomenclature
             API docs
             Linux
@@ -22,23 +23,27 @@ DONE?       tag nomenclature
             imageio.h - should iiofs::add_parameter be renamed and fully
                         conform to GelatoAPI::Parameter?  Are they
                         parameters or attributes?
+            API - allow per-channel data formats?
             iv - open recent
             iv - new window, new tab
             iv - save as, save window as, save selection as
             iv - preferences
             iv - copy/paste
             iv - select all images
-            iv - fit image to window
+            iv - fit image to window 
             iv - full screen
             iv - view as depth, false, random
             iv - prev/next subimage
             iv - >4 channels, gray vs color
             iv - pixel view window
+            iv - info window - scroll when too much info to fit on screen
+            iv - clamp fit-window-to-image to display size
 
 
 Before first alpha release
 --------------------------
 
+            OpenEXR - YCbCr, subsampling
             Windows port of everything
             iv - draw overtop image
             iv - thumbnail window
@@ -52,7 +57,9 @@ Before first alpha release
 Before first 1.0 release
 ------------------------
 
-            GIF
+            GIF (Wex request)
+            PNG (Philip request)
+            Targa (Wex request)
             PNM/PPM/PBM/PGM
             XBM/XPM
             HDR
@@ -60,8 +67,6 @@ Before first 1.0 release
             IFF?
             null (why?)
             PIC
-            PNG
-            Targa
             BMP
             JPEG 2000
             ICO (windows icon files)
@@ -74,12 +79,13 @@ Before first 1.0 release
 
 Idea pool / future feature wish list
 
+            imageio.h - add sRGB vs Linear?
             TIFF - YCbCr (dscf0013.tif, ycbcr-cat.tif)
             TIFF - CIE LogL, LogLuv (off_*.tif)
             TIFF - what's wrong with quad-jpeg.tif?
             TIFF - what's wrong with ladoga.tif?
             FITS
-            PSD (photoshop)
+            PSD (photoshop - Philip request)
             PCD (PhotoCD)
             RAS (Sun Rasterfile)
             SGI

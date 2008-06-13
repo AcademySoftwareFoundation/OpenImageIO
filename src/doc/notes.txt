@@ -73,16 +73,23 @@ Standard tags:
     string host (TIFF HostName)
     string description (TIFF ImageDescription)
     string software (TIFF Software)
+    string make (TIFF Make)
+    string model (TIFF Model)
     string textureformat
     string wrapmodes
     matrix worldtocamera
     matrix worldtoscreen
     float fovcot
     int[nchannels] bitspersample ? - allow per-channel description?
-    int xresolution
+    int xresolution (pixels per resolutionunit)
     int yresolution
-    string resolutionunit
+    string resolutionunit ("none", "in", "cm")
     float pixelaspectratio
+    int orientation ???
+    float aperture
+    float exposuretime
+    float fstop
+    float focallength
 
     tiff-specific:
         tiff_Predictor
@@ -94,6 +101,7 @@ Standard tags:
     openexr-specific
         openexr_foo - arbitrary float, int, matrix, string
 
+        exif_ShutterSpeedValue
 
 ---
 
