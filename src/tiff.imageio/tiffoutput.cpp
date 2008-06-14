@@ -37,6 +37,7 @@ using boost::algorithm::iequals;
 
 #include "dassert.h"
 #include "imageio.h"
+#include "strutil.h"
 
 
 using namespace OpenImageIO;
@@ -46,7 +47,7 @@ class TIFFOutput : public ImageOutput {
 public:
     TIFFOutput ();
     virtual ~TIFFOutput ();
-    virtual const char * format_name (void) const { return "TIFF"; }
+    virtual const char * format_name (void) const { return "tiff"; }
     virtual bool supports (const char *feature) const;
     virtual bool open (const char *name, const ImageIOFormatSpec &spec,
                        bool append=false);
@@ -199,28 +200,12 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
         TIFFSetField (m_tif, TIFFTAG_EXTRASAMPLES, 1, &s);
     }
 
-    // Figure out if the user requested a specific compression in the
-    // extra parameters.
-    int compress = COMPRESSION_LZW;  // default
+    // Default to LZW compression if no request came with the user spec
+    if (! m_spec.find_parameter("compression"))
+        m_spec.add_parameter ("compression", "lzw");
+
     ImageIOParameter *param;
     const char *str;
-    if ((param = m_spec.find_parameter("compression"))  &&
-            param->type == PT_STRING  &&  (str = *(char **)param->data())) {
-        if (! strcmp (str, "none"))
-            compress = COMPRESSION_NONE;
-        else if (! strcmp (str, "lzw"))
-            compress = COMPRESSION_LZW;
-        else if (! strcmp (str, "zip") || ! strcmp (str, "deflate"))
-            compress = COMPRESSION_ADOBE_DEFLATE;
-    }
-    TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
-    // Use predictor when using compression
-    if (compress == COMPRESSION_LZW || compress == COMPRESSION_ADOBE_DEFLATE) {
-        if (m_spec.format == PT_FLOAT || m_spec.format == PT_DOUBLE || m_spec.format == PT_HALF)
-            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
-        else
-            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
-    }
 
     // Did the user request separate planar configuration?
     m_planarconfig = PLANARCONFIG_CONTIG;
@@ -231,16 +216,17 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
     }
     TIFFSetField (m_tif, TIFFTAG_PLANARCONFIG, m_planarconfig);
 
-    // Set date in the file headers to NOW
-    time_t now;
-    time (&now);
-    struct tm mytm;
-    char buf[100];
-    localtime_r (&now, &mytm);
-    sprintf (buf, "%4d:%02d:%02d %2d:%02d:%02d",
-             mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
-             mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
-    TIFFSetField (m_tif, TIFFTAG_DATETIME, buf);
+    // Automatically set date field if the client didn't supply it.
+    if (! m_spec.find_parameter("datetime")) {
+        time_t now;
+        time (&now);
+        struct tm mytm;
+        localtime_r (&now, &mytm);
+        std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
+                               mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
+                               mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
+        m_spec.add_parameter ("datetime", date);
+    }
 
     // Deal with all other params
     for (size_t p = 0;  p < m_spec.extra_params.size();  ++p)
@@ -262,8 +248,32 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
         TIFFSetField (m_tif, TIFFTAG_ARTIST, *(char**)data);
         return true;
     }
+    if (iequals(name, "Compression") && type == PT_STRING) {
+        int compress = COMPRESSION_LZW;  // default
+        const char *str = *(char **)data;
+        if (str) {
+            if (! strcmp (str, "none"))
+                compress = COMPRESSION_NONE;
+            else if (! strcmp (str, "lzw"))
+                compress = COMPRESSION_LZW;
+            else if (! strcmp (str, "zip") || ! strcmp (str, "deflate"))
+                compress = COMPRESSION_ADOBE_DEFLATE;
+        }
+        TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
+        // Use predictor when using compression
+        if (compress == COMPRESSION_LZW || compress == COMPRESSION_ADOBE_DEFLATE) {
+            if (m_spec.format == PT_FLOAT || m_spec.format == PT_DOUBLE || m_spec.format == PT_HALF)
+                TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
+            else
+                TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
+        }
+    }
     if ((iequals(name, "copyright") || iequals(name, "tiff_Copyright")) && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_COPYRIGHT, *(char**)data);
+        return true;
+    }
+    if (iequals(name, "datetime") && type == PT_STRING) {
+        TIFFSetField (m_tif, TIFFTAG_DATETIME, *(char**)data);
         return true;
     }
     if ((iequals(name, "name") || iequals(name, "DocumentName") || iequals(name,"tiff_DocumentName")) && type == PT_STRING) {
@@ -358,7 +368,7 @@ bool
 TIFFOutput::write_scanline (int y, int z, ParamBaseType format,
                             const void *data, stride_t xstride)
 {
-    m_spec.auto_stride (xstride);
+    m_spec.auto_stride (xstride, format, spec().nchannels);
     const void *origdata = data;
     data = to_native_scanline (format, data, xstride, m_scratch);
 
@@ -393,7 +403,8 @@ TIFFOutput::write_tile (int x, int y, int z,
                         ParamBaseType format, const void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    m_spec.auto_stride (xstride, ystride, zstride);
+    m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
+                        spec().tile_width, spec().tile_height);
     x -= m_spec.x;   // Account for offset, so x,y are file relative, not 
     y -= m_spec.y;   // image relative
     const void *origdata = data;   // Stash original pointer

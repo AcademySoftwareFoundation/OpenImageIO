@@ -44,7 +44,7 @@ class TIFFInput : public ImageInput {
 public:
     TIFFInput () { init(); }
     virtual ~TIFFInput () { close(); }
-    virtual const char * format_name (void) const { return "TIFF"; }
+    virtual const char * format_name (void) const { return "tiff"; }
     virtual bool open (const char *name, ImageIOFormatSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
