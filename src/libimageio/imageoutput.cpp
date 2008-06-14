@@ -31,6 +31,8 @@
 #include <iostream>
 #include <vector>
 
+#include <boost/scoped_array.hpp>
+
 #include "dassert.h"
 #include "paramtype.h"
 #include "filesystem.h"
@@ -207,20 +209,44 @@ ImageOutput::write_image (ParamBaseType format, const void *data,
         // copy into it before calling write_tile?  That's probably the
         // safe thing to do.  Or should that handling be pushed all the
         // way into write_tile itself?
-        bool ok = true;
+
+        // Locally allocate a single tile to gracefully deal with image
+        // dimensions smaller than a tile, or if one of the tiles runs
+        // past the right or bottom edge.  Then we copy from our tile to
+        // the user data, only copying valid pixel ranges.
+        size_t tilexstride = m_spec.nchannels * ParamBaseTypeSize(format);
+        size_t tileystride = tilexstride * m_spec.tile_width;
+        size_t tilezstride = tileystride * m_spec.tile_height;
+        size_t tile_values = (size_t)m_spec.tile_width * (size_t)m_spec.tile_height *
+            (size_t)std::max(1,m_spec.tile_depth) * m_spec.nchannels;
+        boost::scoped_array<char> pels (new char [tile_values * ParamBaseTypeSize(format)]);
+
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth)
             for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
-                for (int x = 0;  x < m_spec.width && ok;  y += m_spec.tile_width)
-                    ok &= write_tile (x, y, z, format,
-                                      (const char *)data + z*zstride + y*ystride + x*xstride,
-                                      xstride, ystride, zstride);
+                for (int x = 0;  x < m_spec.width && ok;  x += m_spec.tile_width) {
+                    // Now copy out the scanlines
+                    // FIXME -- can we do less work for the tiles that
+                    // don't overlap image boundaries?
+                    int ntz = std::min (z+m_spec.tile_depth, m_spec.depth) - z;
+                    int nty = std::min (y+m_spec.tile_height, m_spec.height) - y;
+                    int ntx = std::min (x+m_spec.tile_width, m_spec.width) - x;
+                    for (int tz = 0;  tz < ntz;  ++tz) {
+                        for (int ty = 0;  ty < nty;  ++ty) {
+                            // FIXME -- doesn't work for non-contiguous scanlines
+                            memcpy (&pels[ty*tileystride+tz*tilezstride],
+                                    (char *)data + x*xstride + (y+ty)*ystride + (z+tz)*zstride,
+                                    ntx*tilexstride);
+                        }
+                    }
+
+                    ok &= write_tile (x, y, z, format, &pels[0]);
+                }
                 if (progress_callback)
                     if (progress_callback (progress_callback_data, (float)y/m_spec.height))
                         return ok;
             }
     } else {
         // Scanline image
-        bool ok = true;
         for (int z = 0;  z < m_spec.depth;  ++z)
             for (int y = 0;  y < m_spec.height && ok;  ++y) {
                 ok &= write_scanline (y, z, format,

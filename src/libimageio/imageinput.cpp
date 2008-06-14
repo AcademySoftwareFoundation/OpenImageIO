@@ -27,7 +27,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <unistd.h>
 
 #include <boost/scoped_array.hpp>
 

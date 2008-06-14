@@ -220,26 +220,9 @@ struct DLLPUBLIC ImageIOFormatSpec {
                (size_t)std::max(depth,1) * pixel_bytes ();
     }
 
-    /// Adjust any AutoStride values to be the right sizes for contiguous
-    /// scanline data of this format.
-    void auto_stride (stride_t &xstride, stride_t &ystride, stride_t &zstride) {
-        auto_stride (xstride, ystride, zstride,
-                     format, nchannels, width, height);
-    }
-
-    /// Adjust any AutoStride values to be the right sizes for contiguous
-    /// tile data of this format.
-    void auto_tile_stride (stride_t &xstride, stride_t &ystride, stride_t &zstride) {
-        auto_stride (xstride, ystride, zstride,
-                     format, nchannels, tile_width, tile_height);
-    }
-
-    void auto_stride (stride_t &xstride) {
-        auto_stride (xstride, format, nchannels);
-    }
-
-    /// Adjust any AutoStride values to be the right sizes for
-    /// contiguous data with the given channels, width, height.
+    /// Adjust the stride values, if set to AutoStride, to be the right
+    /// sizes for contiguous data with the given format, channels,
+    /// width, height.
     static void auto_stride (stride_t &xstride, stride_t &ystride, stride_t &zstride,
                              ParamBaseType format,
                              int nchannels, int width, int height) {
@@ -251,6 +234,8 @@ struct DLLPUBLIC ImageIOFormatSpec {
             zstride = ystride * height;
     }
 
+    /// Adjust xstride, if set to AutoStride, to be the right size for
+    /// contiguous data with the given format and channels.
     static void auto_stride (stride_t &xstride, ParamBaseType format, int nchannels) {
         if (xstride == AutoStride)
             xstride = nchannels * ParamBaseTypeSize(format);
