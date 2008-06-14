@@ -36,6 +36,7 @@
 #include <ctype.h>
 #include <cstdio>
 #include <iostream>
+#include <map>
 
 #include <boost/scoped_array.hpp>
 
@@ -43,17 +44,11 @@
 using namespace OpenImageIO;
 
 #include "fmath.h"
-#include "thread.h"
 
 extern "C" {
 #include "jpeglib.h"
 #include "tiff.h"
 }
-
-
-
-static mutex marker_mutex;   // Guard non-reentrant marker
-static ImageIOFormatSpec *marker_spec;  // Spec that my_marker_handler mods
 
 
 
@@ -64,7 +59,7 @@ class JpgInput : public ImageInput {
  public:
     JpgInput () { init(); }
     virtual ~JpgInput () { close(); }
-    virtual const char * format_name (void) const { return "JPEG"; }
+    virtual const char * format_name (void) const { return "jpeg"; }
     virtual bool open (const char *name, ImageIOFormatSpec &spec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool close ();
@@ -75,6 +70,9 @@ class JpgInput : public ImageInput {
     struct jpeg_error_mgr jerr;
 
     void init () { fd = NULL; }
+    void process_APP1_marker (unsigned char *buf);
+    void process_tag (TIFFDirEntry *dirp, const char *buf, bool swab);
+    void add_tag (const char *name, TIFFDirEntry *dirp, const char *buf, bool swab);
 };
 
 
@@ -92,21 +90,22 @@ extern "C" {
 
 
 
-static void
-add_tag (const char *name, TIFFDirEntry *dirp, const char *buf, bool swab)
+void
+JpgInput::add_tag (const char *name, TIFFDirEntry *dirp,
+                   const char *buf, bool swab)
 {
     if (dirp->tdir_type == TIFF_SHORT && dirp->tdir_count == 1) {
         unsigned short d;
         d = * (unsigned short *) &dirp->tdir_offset;  // short stored in offset itself
         if (swab)
             swap_endian (&d);
-        marker_spec->add_parameter (name, (int)d);
+        m_spec.add_parameter (name, (int)d);
     } else if (dirp->tdir_type == TIFF_LONG && dirp->tdir_count == 1) {
         unsigned int d;
         d = * (unsigned int *) &dirp->tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian (&d);
-        marker_spec->add_parameter (name, (int)d);
+        m_spec.add_parameter (name, (int)d);
     } else if (dirp->tdir_type == TIFF_RATIONAL && dirp->tdir_count == 1) {
         unsigned int num, den;
         num = ((unsigned int *) &(buf[dirp->tdir_offset]))[0];
@@ -116,7 +115,7 @@ add_tag (const char *name, TIFFDirEntry *dirp, const char *buf, bool swab)
             swap_endian (&den);
         }
         double db = (double)num / (double)den;
-        marker_spec->add_parameter (name, (float)db);
+        m_spec.add_parameter (name, (float)db);
     } else if (dirp->tdir_type == TIFF_SRATIONAL && dirp->tdir_count == 1) {
         unsigned int num, den;
         num = ((unsigned int *) &(buf[dirp->tdir_offset]))[0];
@@ -126,9 +125,9 @@ add_tag (const char *name, TIFFDirEntry *dirp, const char *buf, bool swab)
             swap_endian (&den);
         }
         double db = (double)num / (double)den;
-        marker_spec->add_parameter (name, (float)db);
+        m_spec.add_parameter (name, (float)db);
     } else if (dirp->tdir_type == TIFF_ASCII) {
-        marker_spec->add_parameter (name, buf+dirp->tdir_offset);
+        m_spec.add_parameter (name, buf+dirp->tdir_offset);
     } else {
         std::cerr << "didn't know how to process type " 
                   << dirp->tdir_type << " x " << dirp->tdir_count << "\n";
@@ -256,8 +255,8 @@ static TagMap tag_to_name;
 
 
 
-static void
-process_tag (TIFFDirEntry *dirp, const char *buf, bool swab)
+void
+JpgInput::process_tag (TIFFDirEntry *dirp, const char *buf, bool swab)
 {
     TIFFDirEntry dir = *dirp;
     if (swab) {
@@ -301,81 +300,33 @@ process_tag (TIFFDirEntry *dirp, const char *buf, bool swab)
 
 
 
-// Read next byte from jpeg strem.
-// Borrowed from source code of libjpeg's "djpeg", which I used as an example
-// of how to read the APPx markers.
-static unsigned int
-jpeg_getc (j_decompress_ptr cinfo)
+void
+JpgInput::process_APP1_marker (unsigned char *buf)
 {
-    struct jpeg_source_mgr * datasrc = cinfo->src;
-
-    if (datasrc->bytes_in_buffer == 0) {
-        if (! (*datasrc->fill_input_buffer) (cinfo)) {
-            // ERREXIT (cinfo, JERR_CANT_SUSPEND);
-            // FIXME - error handling
-            return 0;
-        }
+    if (strncmp ((char *)buf, "Exif", 5)) {
+        // std::cerr << "JPEG: saw APP1, but didn't start 'Exif'\n";
+        return;
     }
-    datasrc->bytes_in_buffer--;
-    return GETJOCTET(*datasrc->next_input_byte++);
-}
-
-
-
-// Borrowed from source code of libjpeg's "djpeg", which I used as an example
-// of how to read the APPx markers.
-static int
-my_marker_handler (j_decompress_ptr cinfo)
-{
-    std::cerr << "my_marker\n";
-
-    int length = jpeg_getc(cinfo) << 8;
-    length += jpeg_getc(cinfo);
-    length -= 2;			/* discount the length word itself */
-
-    // FIXME -- handle comments
-#if 0
-    if (cinfo->unread_marker == JPEG_COM)
-        fprintf(stderr, "Comment, length %ld:\n", (long) length);
-    else			/* assume it is an APPn otherwise */
-        fprintf(stderr, "APP%d, length %ld:\n",
-                cinfo->unread_marker - JPEG_APP0, (long) length);
-#endif
-
-    boost::scoped_array<unsigned char> blob (new unsigned char [length+1]);
-    for (int i = 0;  i < length;  ++i)
-        blob[i] = jpeg_getc (cinfo);
-    blob[length] = 0;  // Just in case it's a string that didn't terminate
-
-    if (cinfo->unread_marker == (JPEG_APP0+1)) {
-        unsigned char *buf = &blob[0];
-        if (strncmp ((char *)buf, "Exif", 5)) {
-            std::cerr << "JPEG: saw APP1, but didn't start 'Exif'\n";
-            return 1;
-        }
-        buf += 6;
-        TIFFHeader *head = (TIFFHeader *)buf;
-        if (head->tiff_magic != 0x4949 && head->tiff_magic != 0x4d4d) {
-            std::cerr << "JPEG: saw Exif, didn't see TIFF magic\n";
-            return 1;
-        }
-        bool host_little = littleendian();
-        bool file_little = (head->tiff_magic == 0x4949);
-        bool swab = (host_little != file_little);
-        if (swab)
-            swap_endian (&head->tiff_diroff);
-        // std::cerr << "TIFF directory offset = " << head->tiff_diroff << "\n";
-        unsigned char *ifd = (buf + head->tiff_diroff);
-        unsigned short ndirs = *(unsigned short *)ifd;
-        if (swab)
-            swap_endian (&ndirs);
-        // std::cerr << "Number of directory entries = " << ndirs << "\n";
-        for (int d = 0;  d < ndirs;  ++d)
-            process_tag ((TIFFDirEntry *) (ifd+2+d*sizeof(TIFFDirEntry)),
-                         (char *)buf, swab);
+    buf += 6;
+    TIFFHeader *head = (TIFFHeader *)buf;
+    if (head->tiff_magic != 0x4949 && head->tiff_magic != 0x4d4d) {
+        // std::cerr << "JPEG: saw Exif, didn't see TIFF magic\n";
+        return;
     }
-
-    return 1;
+    bool host_little = littleendian();
+    bool file_little = (head->tiff_magic == 0x4949);
+    bool swab = (host_little != file_little);
+    if (swab)
+        swap_endian (&head->tiff_diroff);
+    // std::cerr << "TIFF directory offset = " << head->tiff_diroff << "\n";
+    unsigned char *ifd = (buf + head->tiff_diroff);
+    unsigned short ndirs = *(unsigned short *)ifd;
+    if (swab)
+        swap_endian (&ndirs);
+    // std::cerr << "Number of directory entries = " << ndirs << "\n";
+    for (int d = 0;  d < ndirs;  ++d)
+        process_tag ((TIFFDirEntry *) (ifd+2+d*sizeof(TIFFDirEntry)),
+                     (char *)buf, swab);
 }
 
 
@@ -406,24 +357,11 @@ JpgInput::open (const char *name, ImageIOFormatSpec &newspec)
     jpeg_create_decompress (&cinfo);            // initialize decompressor
     jpeg_stdio_src (&cinfo, fd);                // specify the data source
 
-    // EXIF and other special tags need to be extracted by our custom
-    // marker handler.  Except, duh, there's no blind pointer or other
-    // way for the marker handler to know which ImageIO it's associated
-    // with.  So we lock this section to make it thread-safe.
-    marker_mutex.lock ();
-    assert (marker_spec == NULL);
-    marker_spec = &m_spec;
-    jpeg_set_marker_processor (&cinfo, JPEG_APP0+1, my_marker_handler);
-    jpeg_set_marker_processor (&cinfo, JPEG_COM, my_marker_handler);
+    // Request saving of EXIF and other special tags for later spelunking
+    jpeg_save_markers (&cinfo, JPEG_APP0+1, 0xffff);
+    // FIXME - also process JPEG_COM marker
 
     jpeg_read_header (&cinfo, FALSE);           // read the file parameters
-
-    jpeg_set_marker_processor (&cinfo, JPEG_APP0+1, NULL);
-    jpeg_set_marker_processor (&cinfo, JPEG_COM, NULL);
-    marker_spec = NULL;
-    marker_mutex.unlock ();
-    // End critical section for the marker processing
-
     jpeg_start_decompress (&cinfo);             // start working
     first_scanline = true;                      // start decompressor
 
@@ -461,6 +399,11 @@ JpgInput::open (const char *name, ImageIOFormatSpec &newspec)
     default:
         fclose (fd);
         return false;
+    }
+
+    for (jpeg_saved_marker_ptr m = cinfo.marker_list;  m;  m = m->next) {
+        if (m->marker == (JPEG_APP0+1))
+            process_APP1_marker ((unsigned char *)m->data);
     }
 
     newspec = m_spec;
