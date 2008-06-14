@@ -45,7 +45,6 @@ using boost::algorithm::iequals;
 #include <ImfCompressionAttribute.h>
 
 #include "dassert.h"
-#include "paramtype.h"
 #include "imageio.h"
 #include "thread.h"
 #include "strutil.h"
@@ -58,7 +57,7 @@ class OpenEXRInput : public ImageInput {
 public:
     OpenEXRInput () { init(); }
     virtual ~OpenEXRInput () { close(); }
-    virtual const char * format_name (void) const { return "OpenEXR"; }
+    virtual const char * format_name (void) const { return "openexr"; }
     virtual bool open (const char *name, ImageIOFormatSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
@@ -70,7 +69,6 @@ private:
     const Imf::Header *m_header;          ///< Ptr to image header
     Imf::InputFile *m_input_scanline;     ///< Input for scanline files
     Imf::TiledInputFile *m_input_tiled;   ///< Input for tiled files
-    std::string m_filename;               ///< Stash the filename
     int m_levelmode;                      ///< The level mode of the file
     int m_roundingmode;                   ///< Rounding mode of the file
     int m_subimage;                       ///< What subimage are we looking at?
@@ -277,7 +275,7 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
         if (oname.empty())   // Empty string means skip this attrib
             continue;
         if (oname == name)
-            oname = std::string("openexr_") + oname;
+            oname = std::string(format_name()) + oname;
         const Imf::Attribute &attrib = hit.attribute();
         std::string type = attrib.typeName();
         if (type == "string" && 
@@ -449,7 +447,7 @@ OpenEXRInput::read_native_scanline (int y, int z, void *data)
         m_input_scanline->readPixels (y, y);
     }
     catch (const std::exception &e) {
-        error ("Filed OpenEXR read: %s", e.what());
+        error ("Failed OpenEXR read: %s", e.what());
         return false;
     }
     return true;
@@ -482,14 +480,14 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
             // FIXME - what if all channels aren't the same data type?
         }
         m_input_tiled->setFrameBuffer (frameBuffer);
-        x -= m_spec.x;
-        y -= m_spec.y;
-        m_input_tiled->readTile (x/m_spec.tile_width, y/m_spec.tile_height,
+        m_input_tiled->readTile ((x - m_spec.x) / m_spec.tile_width,
+                                 (y - m_spec.y) / m_spec.tile_height,
                                  m_subimage, m_subimage);
     }
     catch (const std::exception &e) {
         error ("Filed OpenEXR read: %s", e.what());
         return false;
     }
+
     return true;
 }

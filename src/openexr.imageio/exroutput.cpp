@@ -29,11 +29,28 @@
 #include <cmath>
 #include <iostream>
 #include <time.h>
+#include <map>
+
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+using boost::algorithm::istarts_with;
 
 #include <tiffio.h>
 
+#include <ImfOutputFile.h>
+#include <ImfTiledOutputFile.h>
+#include <ImfChannelList.h>
+#include <ImfEnvmap.h>
+#include <ImfIntAttribute.h>
+#include <ImfFloatAttribute.h>
+#include <ImfMatrixAttribute.h>
+#include <ImfStringAttribute.h>
+#include <ImfEnvmapAttribute.h>
+#include <ImfCompressionAttribute.h>
+
 #include "dassert.h"
 #include "imageio.h"
+#include "strutil.h"
 
 
 using namespace OpenImageIO;
@@ -43,7 +60,7 @@ class OpenEXROutput : public ImageOutput {
 public:
     OpenEXROutput ();
     virtual ~OpenEXROutput ();
-    virtual const char * format_name (void) const { return "OpenEXR"; }
+    virtual const char * format_name (void) const { return "openexr"; }
     virtual bool supports (const char *feature) const;
     virtual bool open (const char *name, const ImageIOFormatSpec &spec,
                        bool append=false);
@@ -55,10 +72,21 @@ public:
                              stride_t xstride, stride_t ystride, stride_t zstride);
 
 private:
-    std::vector<unsigned char> m_scratch;
+    Imf::Header *m_header;                ///< Ptr to image header
+    Imf::OutputFile *m_output_scanline;   ///< Input for scanline files
+    Imf::TiledOutputFile *m_output_tiled; ///< Input for tiled files
+    int m_levelmode;                      ///< The level mode of the file
+    int m_roundingmode;                   ///< Rounding mode of the file
+    int m_subimage;                       ///< What subimage we're writing now
+    int m_nsubimages;                     ///< How many subimages are there?
+    std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
 
     // Initialize private members to pre-opened state
     void init (void) {
+        m_header = NULL;
+        m_output_scanline = NULL;
+        m_output_tiled = NULL;
+        m_subimage = -1;
     }
 
     // Add a parameter to the output
@@ -72,7 +100,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 extern "C" {
 
-DLLEXPORT OpenEXROutput *openexr_output_imageio_create () { return new OpenEXROutput; }
+DLLEXPORT OpenEXROutput *
+openexr_output_imageio_create ()
+{
+    return new OpenEXROutput;
+}
 
 DLLEXPORT int imageio_version = IMAGEIO_VERSION;
 
@@ -81,6 +113,10 @@ DLLEXPORT const char * openexr_output_extensions[] = {
 };
 
 };
+
+
+
+static std::string format_string ("openexr");
 
 
 
@@ -107,7 +143,8 @@ OpenEXROutput::supports (const char *feature) const
     if (! strcmp (feature, "multiimage"))
         return true;
 
-    // FIXME: we could support "volumes" and "empty"
+    // FIXME: we could support "empty"
+    // Can EXR support "random"?
 
     // Everything else, we either don't support or don't know about
     return false;
@@ -119,205 +156,195 @@ bool
 OpenEXROutput::open (const char *name, const ImageIOFormatSpec &userspec,
                      bool append)
 {
-    close ();  // Close any already-opened file
+    if (append && (m_output_scanline || m_output_tiled)) {
+        // Special case for appending to an open file -- we don't need
+        // to close and reopen
+        if (m_spec.tile_width && m_levelmode != Imf::ONE_LEVEL) {
+            // OpenEXR does not support differing tile sizes on different
+            // MIP-map levels.  Reject the open() if not using the original
+            // tile sizes.
+            if (userspec.tile_width != m_spec.tile_width ||
+                userspec.tile_height != m_spec.tile_height) {
+                error ("OpenEXR tiles must have the same size on all MIPmap levels");
+                return false;
+            }
+            // Copy the new subimage size.  Keep everything else from the
+            // original level.
+            m_spec.width = userspec.width;
+            m_spec.height = userspec.height;
+            // N.B. do we need to copy anything else from userspec?
+            ++m_subimage;
+            return true;
+        }
+    }
+
     m_spec = userspec;  // Stash the spec
 
-#if 0
-    // Open the file
-    m_tif = TIFFOpen (name, append ? "a" : "w");
-    if (! m_tif) {
-        error ("Can't open \"%s\" for output.", name);
-        return false;
-    }
+    m_spec.format = PT_HALF;
+    // FIXME: support float and uint32
+    // Big FIXME: support per-channel formats?
 
-    TIFFSetField (m_tif, TIFFTAG_XPOSITION, (float)m_spec.x);
-    TIFFSetField (m_tif, TIFFTAG_YPOSITION, (float)m_spec.y);
-    TIFFSetField (m_tif, TIFFTAG_IMAGEWIDTH, m_spec.width);
-    TIFFSetField (m_tif, TIFFTAG_IMAGELENGTH, m_spec.height);
-    if ((m_spec.full_width != 0 || m_spec.full_height != 0) &&
-        (m_spec.full_width != m_spec.width || m_spec.full_height != m_spec.height)) {
-        TIFFSetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, m_spec.full_width);
-        TIFFSetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, m_spec.full_height);
+
+    Imath::Box2i dataWindow (Imath::V2i (m_spec.x, m_spec.y),
+                             Imath::V2i (m_spec.width + m_spec.x - 1,
+                                         m_spec.height + m_spec.y - 1));
+    m_header = new Imf::Header (m_spec.full_width, m_spec.full_height, dataWindow);
+
+    // Insert channels into the header.  Also give the channels names if
+    // the user botched it.
+    static const char *default_chan_names[] = { "R", "G", "B", "A" };
+    m_spec.channelnames.resize (m_spec.nchannels);
+    for (int c = 0;  c < m_spec.nchannels;  ++c) {
+        if (m_spec.channelnames[c].empty())
+            m_spec.channelnames[c] = (c<4) ? default_chan_names[c]
+                                           : Strutil::format ("unknown %d", c);
+        m_header->channels().insert (m_spec.channelnames[c].c_str(),
+                                     Imf::Channel(Imf::HALF, 1, 1, true));
     }
-    if (m_spec.tile_width) {
-        TIFFSetField (m_tif, TIFFTAG_TILEWIDTH, m_spec.tile_width);
-        TIFFSetField (m_tif, TIFFTAG_TILELENGTH, m_spec.tile_height);
-    } else {
-        // Scanline images must set rowsperstrip
-        TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, 32);
-    }
-    TIFFSetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, m_spec.nchannels);
-    TIFFSetField (m_tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT); // always
     
-    int bps, sampformat;
-    switch (m_spec.format) {
-    case PT_INT8:
-        bps = 8;
-        sampformat = SAMPLEFORMAT_INT;
-        break;
-    case PT_UINT8:
-        bps = 8;
-        sampformat = SAMPLEFORMAT_UINT;
-        break;
-    case PT_INT16:
-        bps = 16;
-        sampformat = SAMPLEFORMAT_INT;
-        break;
-    case PT_UINT16:
-        bps = 16;
-        sampformat = SAMPLEFORMAT_UINT;
-        break;
-    case PT_HALF:
-        // Silently change requests for unsupported 'half' to 'float'
-        m_spec.format = PT_FLOAT;
-    case PT_FLOAT:
-        bps = 32;
-        sampformat = SAMPLEFORMAT_IEEEFP;
-        break;
-    default:
-        error ("TIFF doesn't support %s images (\"%s\")",
-               ParamBaseTypeNameString(m_spec.format), name);
-        close();
-        return false;
-    }
-    TIFFSetField (m_tif, TIFFTAG_BITSPERSAMPLE, bps);
-    TIFFSetField (m_tif, TIFFTAG_SAMPLEFORMAT, sampformat);
+    // Default to ZIP compression if no request came with the user spec.
+    if (! m_spec.find_parameter("compression"))
+        m_spec.add_parameter ("compression", "zip");
 
-    int photo = (m_spec.nchannels > 1 ? PHOTOMETRIC_RGB : PHOTOMETRIC_MINISBLACK);
-    TIFFSetField (m_tif, TIFFTAG_PHOTOMETRIC, photo);
-
-    if (m_spec.nchannels == 4 && m_spec.alpha_channel == m_spec.nchannels-1) {
-        unsigned short s = EXTRASAMPLE_ASSOCALPHA;
-        TIFFSetField (m_tif, TIFFTAG_EXTRASAMPLES, 1, &s);
+    // Automatically set date field if the client didn't supply it.
+    if (! m_spec.find_parameter("datetime")) {
+        time_t now;
+        time (&now);
+        struct tm mytm;
+        localtime_r (&now, &mytm);
+        std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
+                               mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
+                               mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
+        m_spec.add_parameter ("datetime", date);
     }
 
-    // Figure out if the user requested a specific compression in the
-    // extra parameters.
-    int compress = COMPRESSION_LZW;  // default
-    ImageIOParameter *param;
-    const char *str;
-    if ((param = m_spec.find_parameter("compression"))  &&
-            param->type == PT_STRING  &&  (str = *(char **)param->data())) {
-        if (! strcmp (str, "none"))
-            compress = COMPRESSION_NONE;
-        else if (! strcmp (str, "lzw"))
-            compress = COMPRESSION_LZW;
-        else if (! strcmp (str, "zip") || ! strcmp (str, "deflate"))
-            compress = COMPRESSION_ADOBE_DEFLATE;
-    }
-    TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
-    // Use predictor when using compression
-    if (compress == COMPRESSION_LZW || compress == COMPRESSION_ADOBE_DEFLATE) {
-        if (m_spec.format == PT_FLOAT || m_spec.format == PT_DOUBLE || m_spec.format == PT_HALF)
-            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
-        else
-            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
-    }
+    m_nsubimages = 1;
+    m_subimage = 0;
 
-    // Did the user request separate planar configuration?
-    m_planarconfig = PLANARCONFIG_CONTIG;
-    if ((param = m_spec.find_parameter("planarconfig")) &&
-            param->type == PT_STRING  &&  (str = *(char **)param->data())) {
-        if (! strcmp (str, "separate"))
-            m_planarconfig = PLANARCONFIG_SEPARATE;
-    }
-    TIFFSetField (m_tif, TIFFTAG_PLANARCONFIG, m_planarconfig);
+    // Figure out if we are a mipmap or an environment map
+    ImageIOParameter *param = m_spec.find_parameter ("textureformat");
+    const char *textureformat = param ? *(char **)param->data() : NULL;
+    m_levelmode = Imf::ONE_LEVEL;  // Default to no MIP-mapping
+    m_roundingmode = Imf::ROUND_UP;     // Force rounding up mode
+    if (textureformat) {
+        if (! strcmp (textureformat, "Plain Texture")) {
+            m_levelmode = Imf::MIPMAP_LEVELS;
+        } else if (! strcmp (textureformat, "CubeFace Environment")) {
+            m_levelmode = Imf::MIPMAP_LEVELS;
+            m_header->insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_CUBE));
+        } else if (! strcmp (textureformat, "LatLong Environment")) {
+            m_levelmode = Imf::MIPMAP_LEVELS;
+            m_header->insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_LATLONG));
+        } else if (! strcmp (textureformat, "Shadow")) {
+            m_levelmode = Imf::ONE_LEVEL;
+        }
 
-    // Set date in the file headers to NOW
-    time_t now;
-    time (&now);
-    struct tm mytm;
-    char buf[100];
-    localtime_r (&now, &mytm);
-    sprintf (buf, "%4d:%02d:%02d %2d:%02d:%02d",
-             mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
-             mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
-    TIFFSetField (m_tif, TIFFTAG_DATETIME, buf);
+        if (m_levelmode == Imf::MIPMAP_LEVELS) {
+            // Compute how many subimages there will be
+            int w = m_spec.width;
+            int h = m_spec.height;
+            while (w > 1 && h > 1) {
+                w = (w + 1) / 2;
+                h = (h + 1) / 2;
+                ++m_nsubimages;
+            }
+        }
+    }
 
     // Deal with all other params
     for (size_t p = 0;  p < m_spec.extra_params.size();  ++p)
         put_parameter (m_spec.extra_params[p].name, m_spec.extra_params[p].type,
                        m_spec.extra_params[p].data());
 
-    TIFFCheckpointDirectory (m_tif);  // Ensure the header is written early
+    try {
+        if (m_spec.tile_width) {
+            m_header->setTileDescription (
+                Imf::TileDescription (m_spec.tile_width, m_spec.tile_height,
+                                      Imf::LevelMode(m_levelmode),
+                                      Imf::LevelRoundingMode(m_roundingmode)));
+            m_output_tiled = new Imf::TiledOutputFile (name, *m_header);
+        } else {
+            m_output_scanline = new Imf::OutputFile (name, *m_header);
+        }
+    }
+    catch (const std::exception &e) {
+        error ("OpenEXR exception: %s", e.what());
+        m_output_scanline = NULL;
+        return false;
+    }
+    if (! m_output_scanline && ! m_output_tiled) {
+        error ("Unknown error opening EXR file");
+        return false;
+    }
 
     return true;
-#endif
 }
 
 
 
 bool
 OpenEXROutput::put_parameter (const std::string &name, ParamBaseType type,
-                           const void *data)
+                              const void *data)
 {
-#if 0
-    if ((name == "artist" || name == "Artist") && type == PT_STRING) {
-        TIFFSetField (m_tif, TIFFTAG_ARTIST, *(char**)data);
-        return true;
-    }
-    if ((name == "copyright" || name == "Copyright") && type == PT_STRING) {
-        TIFFSetField (m_tif, TIFFTAG_COPYRIGHT, *(char**)data);
-        return true;
-    }
-    if ((name == "name" || name == "DocumentName") && type == PT_STRING) {
-        TIFFSetField (m_tif, TIFFTAG_DOCUMENTNAME, *(char**)data);
-        return true;
-    }
-    if (name == "fovcot" && type == PT_FLOAT) {
-        double d = *(float *)data;
-        TIFFSetField (m_tif, TIFFTAG_PIXAR_FOVCOT, d);
-        return true;
-    }
-    if ((name == "host" || name == "HostComputer") && type == PT_STRING) {
-        TIFFSetField (m_tif, TIFFTAG_HOSTCOMPUTER, *(char**)data);
-        return true;
-    }
-    if ((name == "description" || name == "ImageDescription") &&
-          type == PT_STRING) {
-        TIFFSetField (m_tif, TIFFTAG_IMAGEDESCRIPTION, *(char**)data);
-        return true;
-    }
-    if (name == "tiff_Predictor" && type == PT_INT) {
-        TIFFSetField (m_tif, TIFFTAG_PREDICTOR, *(int *)data);
-        return true;
-    }
-    if (name == "tiff_RowsPerStrip") {
-        if (type == PT_INT) {
-            TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, *(int*)data);
-            return true;
-        } else if (type == PT_STRING) {
-            // Back-compatibility with Entropy and PRMan
-            TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, atoi(*(char **)data));
-            return true;
+    // Translate
+    std::string xname = name; // ooio_std_to_exr_tag[name];
+
+    if (iequals(xname, "worldtocamera"))
+        xname = "cameraTransform";
+    else if (iequals(xname, "datetime"))
+        xname = "capDate";
+    else if (iequals(xname, "description"))
+        xname = "comments";
+    else if (iequals(xname, "copyright"))
+        xname = "owner";
+    else if (iequals(xname, "pixelaspectratio"))
+        xname = "pixelAspectRatio";
+    else if (iequals(xname, "exposuretime"))
+        xname = "expTime";
+    else if (istarts_with (xname, format_string))
+        xname = std::string (xname.begin()+format_string.size(), xname.end());
+
+    std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
+
+    // Special cases
+    if (iequals(xname, "compression") && type == PT_STRING) {
+        int compress = COMPRESSION_LZW;  // default
+        const char *str = *(char **)data;
+        m_header->compression() = Imf::ZIP_COMPRESSION;  // Default
+        if (str) {
+            if (! strcmp (str, "none"))
+                m_header->compression() = Imf::NO_COMPRESSION;
+            else if (! strcmp (str, "deflate") || ! strcmp (str, "zip")) 
+                m_header->compression() = Imf::ZIP_COMPRESSION;
+            else if (! strcmp (str, "zips")) 
+                m_header->compression() = Imf::ZIPS_COMPRESSION;
+            else if (! strcmp (str, "piz")) 
+                m_header->compression() = Imf::PIZ_COMPRESSION;
+            else if (! strcmp (str, "pxr24")) 
+                m_header->compression() = Imf::PXR24_COMPRESSION;
         }
-    }
-    if ((name == "software" || name == "Software") && type == PT_STRING) {
-        TIFFSetField (m_tif, TIFFTAG_SOFTWARE, *(char**)data);
         return true;
     }
-    if (name == "tiff_SubFileType" && type == PT_INT) {
-        TIFFSetField (m_tif, TIFFTAG_SUBFILETYPE, *(int*)data);
+
+    // General handling of attributes
+    // FIXME -- police this if we ever allow arrays
+    if (type == PT_INT) {
+        m_header->insert (xname.c_str(), Imf::IntAttribute (*(int*)data));
         return true;
     }
-    if (name == "textureformat" && type == PT_STRING) {
-        TIFFSetField (m_tif, TIFFTAG_PIXAR_TEXTUREFORMAT, *(char**)data);
+    if (type == PT_FLOAT) {
+        m_header->insert (xname.c_str(), Imf::FloatAttribute (*(float*)data));
         return true;
     }
-    if (name == "wrapmodes" && type == PT_STRING) {
-        TIFFSetField (m_tif, TIFFTAG_PIXAR_WRAPMODES, *(char**)data);
+    if (type == PT_MATRIX) {
+        m_header->insert (xname.c_str(), Imf::M44fAttribute (*(Imath::M44f*)data));
         return true;
     }
-    if (name == "worldtocamera" && type == PT_MATRIX) {
-        TIFFSetField (m_tif, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, data);
-        return true;
-    }
-    if (name == "worldtoscreen" && type == PT_MATRIX) {
-        TIFFSetField (m_tif, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, data);
+    if (type == PT_STRING) {
+        m_header->insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
         return true;
     }
     return false;
-#endif
 }
 
 
@@ -325,10 +352,17 @@ OpenEXROutput::put_parameter (const std::string &name, ParamBaseType type,
 bool
 OpenEXROutput::close ()
 {
-#if 0
-    if (m_tif)
-        TIFFClose (m_tif);
-#endif
+    // FIXME: if the use pattern for mipmaps is open(), open(append),
+    // ... close(), then we don't have to leave the file open with this
+    // trickery.  That's only necessary if it's open(), close(),
+    // open(append), close(), ...
+
+    if (m_levelmode != Imf::ONE_LEVEL) {
+        // Leave MIP-map files open, since appending cannot be done via
+        // a re-open like it can with TIFF files.
+        return true;
+    }
+
     init ();      // re-initialize
     return true;  // How can we fail?
 }
@@ -339,32 +373,41 @@ bool
 OpenEXROutput::write_scanline (int y, int z, ParamBaseType format,
                                const void *data, stride_t xstride)
 {
-    m_spec.auto_stride (xstride);
-    const void *origdata = data;
+    // FIXME: hard-coded for HALF!
+
+    m_spec.auto_stride (xstride, format, spec().nchannels);
     data = to_native_scanline (format, data, xstride, m_scratch);
 
-    y -= m_spec.y;
-#if 0
-    if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
-        // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
-        m_scratch.resize (m_spec.scanline_bytes());
-        contig_to_separate (m_spec.width, (const unsigned char *)data, &m_scratch[0]);
-        TIFFWriteScanline (m_tif, &m_scratch[0], y);
-    } else {
-        // No contig->separate is necessary.  But we still use scratch
-        // space since TIFFWriteScanline is destructive when
-        // TIFFTAG_PREDICTOR is used.
-        if (data == origdata) {
-            m_scratch.assign ((unsigned char *)data,
-                              (unsigned char *)data+m_spec.scanline_bytes());
-            data = &m_scratch[0];
+    // Compute where OpenEXR needs to think the full buffers starts.
+    // OpenImageIO requires that 'data' points to where the client wants
+    // to put the pixels being read, but OpenEXR's frameBuffer.insert()
+    // wants where the address of the "virtual framebuffer" for the
+    // whole image.
+    char *buf = (char *)data
+              - m_spec.x * m_spec.pixel_bytes() 
+              - (y + m_spec.y) * m_spec.scanline_bytes();
+    // FIXME: Should it be scanline_bytes, or full_width*pixelsize?
+
+    try {
+        Imf::FrameBuffer frameBuffer;
+        for (int c = 0;  c < m_spec.nchannels;  ++c) {
+            frameBuffer.insert (m_spec.channelnames[c].c_str(),
+                                Imf::Slice (Imf::HALF,  // FIXME
+                                            buf + c * m_spec.channel_bytes(),
+                                            m_spec.pixel_bytes(),
+                                            m_spec.scanline_bytes()));
+            // FIXME - what if all channels aren't the same data type?
         }
-        TIFFWriteScanline (m_tif, (tdata_t)data, y);
+        m_output_scanline->setFrameBuffer (frameBuffer);
+        m_output_scanline->writePixels (1);  // FIXME - is this the right call?
     }
-    // Every 16 scanlines, checkpoint (write partial file)
-    if ((y % 16) == 0)
-        TIFFCheckpointDirectory (m_tif);
-#endif
+    catch (const std::exception &e) {
+        error ("Failed OpenEXR write: %s", e.what());
+        return false;
+    }
+
+    // FIXME -- can we checkpoint the file?
+
     return true;
 }
 
@@ -372,42 +415,42 @@ OpenEXROutput::write_scanline (int y, int z, ParamBaseType format,
 
 bool
 OpenEXROutput::write_tile (int x, int y, int z,
-                        ParamBaseType format, const void *data,
-                        stride_t xstride, stride_t ystride, stride_t zstride)
+                           ParamBaseType format, const void *data,
+                           stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    m_spec.auto_stride (xstride, ystride, zstride);
-    x -= m_spec.x;   // Account for offset, so x,y are file relative, not 
-    y -= m_spec.y;   // image relative
-    const void *origdata = data;   // Stash original pointer
+    std::cerr << "write_tile " << x << ' ' << y << ' ' << z << "\n";
+    m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
+                        spec().tile_width, spec().tile_height);
     data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
 
-#if 0
-    if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
-        // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
-        int tile_pixels = m_spec.tile_width * m_spec.tile_height 
-                            * std::max (m_spec.tile_depth, 1);
-        int plane_bytes = tile_pixels * ParamBaseTypeSize(m_spec.format);
-        DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
-        m_scratch.resize (m_spec.tile_bytes());
-        contig_to_separate (tile_pixels, (const unsigned char *)data, &m_scratch[0]);
-        for (int c = 0;  c < m_spec.nchannels;  ++c)
-            TIFFWriteTile (m_tif, (tdata_t)&m_scratch[plane_bytes*c], x, y, z, c);
-    } else {
-        // No contig->separate is necessary.  But we still use scratch
-        // space since TIFFWriteTile is destructive when
-        // TIFFTAG_PREDICTOR is used.
-        if (data == origdata) {
-            m_scratch.assign ((unsigned char *)data,
-                              (unsigned char *)data + m_spec.tile_bytes());
-            data = &m_scratch[0];
-        }
-        TIFFWriteTile (m_tif, (tdata_t)data, x, y, z, 0);
-    }
+    // Compute where OpenEXR needs to think the full buffers starts.
+    // OpenImageIO requires that 'data' points to where the client wants
+    // to put the pixels being read, but OpenEXR's frameBuffer.insert()
+    // wants where the address of the "virtual framebuffer" for the
+    // whole image.
+    char *buf = (char *)data
+              - (x + m_spec.x) * m_spec.pixel_bytes() 
+              - (y + m_spec.y) * m_spec.pixel_bytes() * m_spec.tile_width;
 
-    // Every row of tiles, checkpoint (write partial file)
-    if ((y % m_spec.tile_height) == 0)
-        TIFFCheckpointDirectory (m_tif);
-#endif
+    try {
+        Imf::FrameBuffer frameBuffer;
+        for (int c = 0;  c < m_spec.nchannels;  ++c) {
+            frameBuffer.insert (m_spec.channelnames[c].c_str(),
+                                Imf::Slice (Imf::HALF,  // FIXME
+                                            buf + c * m_spec.channel_bytes(),
+                                            m_spec.pixel_bytes(),
+                                            m_spec.pixel_bytes()*m_spec.tile_width));
+            // FIXME - what if all channels aren't the same data type?
+        }
+        m_output_tiled->setFrameBuffer (frameBuffer);
+        m_output_tiled->writeTile ((x - m_spec.x) / m_spec.tile_width,
+                                   (y - m_spec.y) / m_spec.tile_height,
+                                   m_subimage, m_subimage);
+    }
+    catch (const std::exception &e) {
+        error ("Failed OpenEXR write: %s", e.what());
+        return false;
+    }
 
     return true;
 }
