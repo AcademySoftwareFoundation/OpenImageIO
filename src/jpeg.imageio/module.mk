@@ -5,7 +5,7 @@
 local_name := jpeg.imageio
 
 # Name of all source files in this directory
-local_src := jpeginput.cpp jpegoutput.cpp
+local_src := jpeginput.cpp jpegoutput.cpp jpegexif.cpp
 
 # Extra static libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)

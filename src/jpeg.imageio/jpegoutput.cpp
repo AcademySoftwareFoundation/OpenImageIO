@@ -38,16 +38,17 @@
 #include <ctype.h>
 #include <cstdio>
 #include <csetjmp>
+#include <vector>
 
 extern "C" {
 #include "jpeglib.h"
-#include "tiff.h"
 }
 
 #include "imageio.h"
-#include "fmath.h"
-
 using namespace OpenImageIO;
+#include "fmath.h"
+#include "jpeg_pvt.h"
+
 
 
 // See JPEG library documentation in /usr/share/doc/libjpeg-devel-6b
@@ -106,6 +107,7 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
     m_spec = newspec;
 
     int quality = 98;
+    // FIXME -- see if there's a quality set in the attributes
 
     cinfo.err = jpeg_std_error (&jerr);                 // set error handler
     jpeg_create_compress (&cinfo);                      // create compressor
@@ -130,43 +132,10 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
     jpeg_start_compress (&cinfo, TRUE);                 // start working
 
     std::vector<char> exif;
-    exif.reserve (0xffff);   // So we can point to the middle without realloc
-    exif.push_back ('E');
-    exif.push_back ('x');
-    exif.push_back ('i');
-    exif.push_back ('f');
-    exif.push_back (0);
-    exif.push_back (0);
-    int tiffstart = exif.size();
-    TIFFHeader *head = &exif[exif.size()];
-    exif.resize (exif.size() + sizeof(TIFFHeader));
-    bool host_little = littleendian();
-    head->tiff_magic = host_little ? 0x4949 : 0x4d4d;
-    head->tiff_version = 42;
-    head->tiff_diroff = exif.size() - tiffstart;
-    unsigned short *ndirs = (unsigned short) &exif[exif.size()];
-    exif.resize (exif.size() + sizeof(*ndirs));
-    *ndirs = 1;
-    TIFFDirEntry *dir = (TIFFDirEntry *) &exif[exif.size()];
-    exif.resize (exif.size() + sizeof(*dir));
-    dir->tdir_tag = TIFFTAG_EXIFID;
-    dir->tdir_type = TIFFTAG_IFD;  // ?? right?
-    dir->tdir_count = 1;
-    dir->tdir_offset = exif.size();
-#if 0
-    XXX I am here
-    unsigned short *ndirs = (unsigned short) &exif[exif.size()];
-    exif.resize (exif.size() + sizeof(*ndirs));
-    *ndirs = 1;
-    TIFFDirEntry *dir = (TIFFDirEntry *) &exif[exif.size()];
-    exif.resize (exif.size() + sizeof(*dir));
-    dir->tdir_tag = TIFFTAG_EXIFID;
-    dir->tdir_type = TIFFTAG_IFD;  // ?? right?
-    dir->tdir_count = 1;
-    dir->tdir_offset = exif.size();
-#endif
+    APP1_exif_from_spec (m_spec, exif);
+    if (exif.size())
+        jpeg_write_marker (&cinfo, JPEG_APP0+1, (JOCTET*)&exif[0], exif.size());
 
-//    jpeg_write_marker (&cinfo, JPEG_APP0+1, &exif[0], exif.size());
 //    jpeg_write_marker (&cinfo, JPEG_COM, comment, strlen(comment) /* + 1 ? */ );
 
     m_spec.set_format (PT_UINT8);  // JPG is only 8 bit
