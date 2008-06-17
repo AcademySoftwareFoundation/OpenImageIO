@@ -113,7 +113,7 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
     jpeg_create_compress (&cinfo);                      // create compressor
     jpeg_stdio_dest (&cinfo, fd);                       // set output stream
 
-    // set compression parameters
+    // Set image and compression parameters
     cinfo.image_width = m_spec.width;
     cinfo.image_height = m_spec.height;
 
@@ -126,6 +126,10 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
         cinfo.input_components = 1;
         cinfo.in_color_space = JCS_GRAYSCALE;
     }
+    cinfo.density_unit = 2; // RESUNIT_INCH;
+    cinfo.X_density = 72;
+    cinfo.Y_density = 72;
+    cinfo.write_JFIF_header = true;
 
     jpeg_set_defaults (&cinfo);                         // default compression
     jpeg_set_quality (&cinfo, quality, TRUE);           // baseline values
