@@ -359,9 +359,6 @@ TIFFInput::readspec ()
     case RESUNIT_INCH : m_spec.add_parameter ("resolutionunit", "in"); break;
     case RESUNIT_CENTIMETER : m_spec.add_parameter ("resolutionunit", "cm"); break;
     }
-    get_float_field ("xresolution", TIFFTAG_XRESOLUTION);
-    get_float_field ("yresolution", TIFFTAG_YRESOLUTION);
-    // FIXME: xresolution, yresolution -- N.B. they are rational
 
     get_string_field ("artist", TIFFTAG_ARTIST);
     get_string_field ("description", TIFFTAG_IMAGEDESCRIPTION);
@@ -375,6 +372,9 @@ TIFFInput::readspec ()
     get_float_field ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, PT_MATRIX);
     get_float_field ("worldtosreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, PT_MATRIX);
     get_string_field ("wrapmodes", TIFFTAG_PIXAR_WRAPMODES);
+    get_float_field ("xresolution", TIFFTAG_XRESOLUTION);
+    get_float_field ("yresolution", TIFFTAG_YRESOLUTION);
+
     get_string_field ("tiff_PageName", TIFFTAG_PAGENAME);
     get_short_field ("tiff_PageNumber", TIFFTAG_PAGENUMBER);
     get_int_field ("tiff_subfiletype", TIFFTAG_SUBFILETYPE);

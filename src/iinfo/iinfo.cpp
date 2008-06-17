@@ -133,7 +133,7 @@ print_info (const std::string &filename, ImageInput *input,
             else if (p.type == PT_INT)
                 printf ("%d", *(const int *)p.data());
             else if (p.type == PT_UINT)
-                printf ("%ud", *(const unsigned int *)p.data());
+                printf ("%u", *(const unsigned int *)p.data());
             else
                 printf ("<unknown data type>");
             printf ("\n");

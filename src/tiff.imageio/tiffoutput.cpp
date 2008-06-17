@@ -298,6 +298,22 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
         TIFFSetField (m_tif, TIFFTAG_PREDICTOR, *(int *)data);
         return true;
     }
+    if (iequals(name, "ResolutionUnit") && type == PT_STRING) {
+        const char *s = *(char**)data;
+        bool ok = true;
+        if (! strcmp (s, "none"))
+            TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_NONE);
+        else if (! strcmp (s, "in") || ! strcmp (s, "inch"))
+            TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_INCH);
+        else if (! strcmp (s, "cm"))
+            TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_CENTIMETER);
+        else ok = false;
+        return ok;
+    }
+    if (iequals(name, "ResolutionUnit") && type == PT_UINT) {
+        TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, *(unsigned int *)data);
+        return true;
+    }
     if (iequals(name, "tiff_RowsPerStrip")) {
         if (type == PT_INT) {
             TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, *(int*)data);
@@ -330,6 +346,14 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
     }
     if (iequals(name, "worldtoscreen") && type == PT_MATRIX) {
         TIFFSetField (m_tif, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, data);
+        return true;
+    }
+    if (iequals(name, "XResolution") && type == PT_FLOAT) {
+        TIFFSetField (m_tif, TIFFTAG_XRESOLUTION, *(float *)data);
+        return true;
+    }
+    if (iequals(name, "YResolution") && type == PT_FLOAT) {
+        TIFFSetField (m_tif, TIFFTAG_YRESOLUTION, *(float *)data);
         return true;
     }
     return false;

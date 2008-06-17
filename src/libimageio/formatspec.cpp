@@ -213,8 +213,13 @@ ImageIOFormatSpec::add_parameter (const std::string &name, ParamBaseType type,
         value = tmp;
     }
 
-    extra_params.resize (extra_params.size() + 1);
-    extra_params.back().init (name, type, nvalues, value);
+    // Don't allow duplicates
+    ImageIOParameter *f = find_parameter (name);
+    if (! f) {
+        extra_params.resize (extra_params.size() + 1);
+        f = &extra_params.back();
+    }
+    f->init (name, type, nvalues, value);
 }
 
 

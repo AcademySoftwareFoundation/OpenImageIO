@@ -247,6 +247,10 @@ struct DLLPUBLIC ImageIOFormatSpec {
                         int nvalues, const void *value);
 
     /// Add an int parameter
+    void add_parameter (const std::string &name, unsigned int value) {
+        add_parameter (name, PT_UINT, 1, &value);
+    }
+
     void add_parameter (const std::string &name, int value) {
         add_parameter (name, PT_INT, 1, &value);
     }
