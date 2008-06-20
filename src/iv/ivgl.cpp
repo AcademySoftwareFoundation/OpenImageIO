@@ -73,7 +73,7 @@ void
 IvGL::initializeGL ()
 {
 //    std::cerr << "initializeGL\n";
-    glClearColor (1.0, 0.0, 0.0, 1.0);
+    glClearColor (0.05, 0.05, 0.05, 1.0);
 //    object = makeObject();
     glShadeModel(GL_FLAT);
     glEnable (GL_DEPTH_TEST);
@@ -193,7 +193,7 @@ IvGL::initializeGL ()
 void
 IvGL::resizeGL (int w, int h)
 {
-//    std::cerr << "resizeGL " << w << ' ' << h << "\n";
+    std::cerr << "resizeGL " << w << ' ' << h << "\n";
     GLERRPRINT ("resizeGL entry");
 //    int side = qMin(w, h);
 //    glViewport ((w - side) / 2, (h - side) / 2, side, side);
@@ -339,6 +339,8 @@ IvGL::zoom (float z)
         return;
     const ImageIOFormatSpec &spec (img->spec());
 //    std::cerr << "resizing to " << (spec.width*z) << ' ' << (spec.height*z) << "\n";
+
+    z = 1;
     resize (spec.width * z, spec.height * z);
     // Update the texture
     repaint (0, 0, spec.width * z, spec.height * z);

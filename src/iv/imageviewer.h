@@ -186,6 +186,7 @@ private slots:
     void normalSize();
     void fitImageToWindow();
     void fitWindowToImage();
+    void fullScreenToggle();
     void about();                       ///< Show "about iv" dialog
     void prevImage();                   ///< View previous image in sequence
     void nextImage();                   ///< View next image in sequence
@@ -218,8 +219,9 @@ private:
     void updateStatusBar ();
     void keyPressEvent (QKeyEvent *event);
 
-    QLabel *imageLabel;
     IvCanvas *scrollArea;
+    IvGL *glwin;
+    IvInfoWindow *infoWindow;
 
 #ifndef QT_NO_PRINTER
     QPrinter printer;
@@ -238,6 +240,7 @@ private:
     QAction *zoomOutAct;
     QAction *normalSizeAct;
     QAction *fitWindowToImageAct, *fitImageToWindowAct;
+    QAction *fullScreenAct;
     QAction *aboutAct;
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
     QAction *showInfoWindowAct;
@@ -245,19 +248,13 @@ private:
     QMenu *expgamMenu, *channelMenu;
     QLabel *statusImgInfo, *statusViewInfo;
     QProgressBar *statusProgress;
-    IvInfoWindow *infoWindow;
-
-    QGraphicsScene *gscene;
-    QGraphicsPixmapItem *gpixmapitem;
-    QPixmap gpixmap;
-
-    IvGL *glwin;
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
     int m_current_channel;            ///< Channel we're viewing: ChannelViews
     int m_last_image;                 ///< Last image we viewed
     float m_zoom;                     ///< Zoom amount (positive maxifies)
+    bool m_fullscreen;                ///< Full screen mode
 
     friend class IvCanvas;
     friend bool image_progress_callback (void *opaque, float done);
@@ -297,6 +294,8 @@ public:
     /// Update the zoom
     ///
     void zoom (float newzoom);
+
+    void trigger_redraw (void) { glDraw(); }
 
 protected:
     void initializeGL ();

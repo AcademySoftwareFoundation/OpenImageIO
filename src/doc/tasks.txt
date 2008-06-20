@@ -9,31 +9,31 @@ DONE        TIFF - palette
 DONE        TIFF - miniswhite
 DONE        TIFF - 1-bit and 4-bit images
 DONE        TIFF - separated samples broken (oxford.tif)
-            TIFF - orientations (does this really mean iv orientation?)
+            TIFF/JPEG - orientations (does this really mean iv orientation?)
             TIFF - double (caspian)
-DONE?       OpenEXR plugin (status: reader works, writer works, scanline/tile)
-IP          jpeg - EXIF info (status: reader mostly works, writer not started)
+DONE        OpenEXR plugin (status: reader works, writer works, scanline/tile)
+DONE        jpeg - EXIF info
             nomenclature - capitalize tags?
             API - should strides, even for tile routines, auto-set to
                 full image strides?                         
             imageio.h - add sRGB vs Linear?
             API docs
             Linux
+            iv - middle mouse drag
             iv - pixel view window
 DONE        iv - half, float, uint16
             imageio.h - should ImageIOFormatSpec just be ImageFormatSpec?
                         or ImageSpec?
             imageio.h - should iiofs::add_parameter be renamed and fully
-                        conform to GelatoAPI::Parameter?  Are they
-                        parameters or attributes?
+                        conform to GelatoAPI::Attribute?
             API - allow per-channel data formats?
             iv - open recent
             iv - new window, new tab
             iv - save as, save window as, save selection as
             iv - preferences
             iv - select all images
-            iv - fit image to window 
-            iv - full screen
+DONE?       iv - fit image to window (TODO: is it a mode?)
+DONE        iv - full screen
             iv - view as depth, false, random
             iv - prev/next subimage
             iv - >4 channels, gray vs color
@@ -55,18 +55,19 @@ Before first alpha release
             iv - fg/bg images
             iv - subtract from last image
             exr - ripmaps
+            iv - put into background mode
 
 
 Before first 1.0 release
 ------------------------
 
+            wipe between images
             GIF (Wex request)
             PNG (Philip request)
             Targa (Wex request)
             PNM/PPM/PBM/PGM
             XBM/XPM
             HDR
-            DDS
             IFF?
             null (why?)
             PIC
@@ -77,6 +78,7 @@ Before first 1.0 release
             iv - show error log?
             iv - render control - connect, disconnect, overwrite, store render
             iv - hide controls?
+            iv - socket mode (socket-based "iv.imageio")
 
 ============
 
@@ -86,11 +88,18 @@ Idea pool / future feature wish list
             TIFF - CIE LogL, LogLuv (off_*.tif)
             TIFF - what's wrong with quad-jpeg.tif?
             TIFF - what's wrong with ladoga.tif?
-            FITS
             PSD (photoshop - Philip request)
             PCD (PhotoCD)
-            RAS (Sun Rasterfile)
-            SGI
+            Cineon
+            DDS
+            DPX (?)
+            FITS
             PCX
-            OpenEXR layers
-
+            RAS Sun Rasterfile
+            RLA
+            SGI
+            zfile
+            PRMan deep shads
+            OpenEXR - support layers
+            Movies?
+            Sound?

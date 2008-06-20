@@ -26,10 +26,12 @@
 
 #include <iostream>
 #include <cmath>
+#include <unistd.h>
 
 #include <ImathFun.h>
 
 #include <boost/foreach.hpp>
+#include <ImathFun.h>
 
 #include "imageviewer.h"
 #include "dassert.h"
@@ -38,31 +40,24 @@
 
 
 
-// Define if we want to use QGraphicsView instead of just a QLabel
-#define xUSE_LABEL 1
-#define xUSE_GRAPHICSVIEW 1
-#define USE_OGL 1
-
 
 /// Subclass QScrollArea just so we can intercept events that we want
 /// handled in non-default ways.
-#ifdef USE_GRAPHICSVIEW
-class IvCanvas : public QGraphicsView
-#else
 class IvCanvas : public QScrollArea
-#endif
 {
 public:
-    IvCanvas (ImageViewer &viewer) : m_viewer(viewer) { }
+    IvCanvas (ImageViewer &viewer) : m_viewer(viewer), m_dragging(false) { }
 private:
     void keyPressEvent (QKeyEvent *event);
     void mousePressEvent (QMouseEvent *event);
-    ImageViewer &m_viewer;
-#ifdef USE_GRAPHICSVIEW
-    typedef QGraphicsView parent_t;
-#else
+    void mouseReleaseEvent (QMouseEvent *event);
+    void mouseMoveEvent (QMouseEvent *event);
+
     typedef QScrollArea parent_t;
-#endif
+    ImageViewer &m_viewer;
+    bool m_dragging;                  ///< Are we dragging?
+    int m_drag_oldx, m_drag_oldy;
+    Qt::MouseButton m_drag_button;    ///< Button on when dragging
 };
 
 
@@ -90,6 +85,10 @@ IvCanvas::keyPressEvent (QKeyEvent *event)
     case Qt::Key_PageDown :
         m_viewer.nextImage();
         return; //break;
+    case Qt::Key_Escape :
+        if (m_viewer.m_fullscreen)
+            m_viewer.fullScreenToggle();
+        return;
 #endif
     }
     parent_t::keyPressEvent (event);
@@ -100,15 +99,55 @@ IvCanvas::keyPressEvent (QKeyEvent *event)
 void
 IvCanvas::mousePressEvent (QMouseEvent *event)
 {
+    m_drag_button = event->button();
     switch (event->button()) {
     case Qt::LeftButton :
         m_viewer.zoomIn();
         return;
     case Qt::RightButton :
         m_viewer.zoomOut();
-        return;;
+        return;
+    case Qt::MidButton :
+        m_dragging = true;
+        m_drag_oldx = event->x();
+        m_drag_oldy = event->y();
+        std::cerr << "Middle press\n";
+        break;
     }
     parent_t::mousePressEvent (event);
+}
+
+
+
+void
+IvCanvas::mouseReleaseEvent (QMouseEvent *event)
+{
+    m_drag_button = Qt::NoButton;
+    switch (event->button()) {
+    case Qt::MidButton :
+        m_dragging = false;
+        std::cerr << "Middle release\n";
+        break;
+    }
+    parent_t::mouseReleaseEvent (event);
+}
+
+
+
+void
+IvCanvas::mouseMoveEvent (QMouseEvent *event)
+{
+    // FIXME - there's probably a better Qt way than tracking the button
+    // myself.
+    switch (m_drag_button /*event->button()*/) {
+    case Qt::MidButton : {
+        QPoint pos = event->pos(); //, oldpos = event->oldPos();
+        std::cerr << "Middle drag " << m_drag_oldx << ',' << m_drag_oldy 
+                  << " -> " << pos.x() << ',' << pos.y() << '\n';
+        break;
+        }
+    }
+    parent_t::mouseMoveEvent (event);
 }
 
 
@@ -117,31 +156,14 @@ IvCanvas::mousePressEvent (QMouseEvent *event)
 ImageViewer::ImageViewer ()
     : infoWindow(NULL),
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
-      m_zoom(1), gpixmap(100,200)
+      m_zoom(1), m_fullscreen(false)
 {
-    imageLabel = new QLabel;
-    imageLabel->setBackgroundRole (QPalette::Base);
-    imageLabel->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
-    imageLabel->setScaledContents (true);
-
     scrollArea = new IvCanvas (*this);
-#ifdef USE_GRAPHICSVIEW
-    gscene = new QGraphicsScene;
-    gpixmapitem = gscene->addPixmap (gpixmap);
-    scrollArea->setScene (gscene);
-#endif
-#ifdef USE_LABEL
-    scrollArea->setBackgroundRole (QPalette::Dark);
-    scrollArea->setAlignment (Qt::AlignCenter);
-    scrollArea->setWidget (imageLabel);
-#endif
-#ifdef USE_OGL
     scrollArea->setBackgroundRole (QPalette::Dark);
     scrollArea->setAlignment (Qt::AlignCenter);
     glwin = new IvGL (this, this);
     glwin->resize (640, 480);
     scrollArea->setWidget (glwin);
-#endif
     setCentralWidget (scrollArea);
 
     createActions();
@@ -279,6 +301,12 @@ void ImageViewer::createActions()
     fitImageToWindowAct->setShortcut(tr("Alt+f"));
     connect(fitImageToWindowAct, SIGNAL(triggered()), this, SLOT(fitImageToWindow()));
 
+    fullScreenAct = new QAction(tr("Full screen"), this);
+    fullScreenAct->setEnabled(false);
+//    fullScreenAct->setCheckable(true);
+    fullScreenAct->setShortcut(tr("Ctrl+f"));
+    connect(fullScreenAct, SIGNAL(triggered()), this, SLOT(fullScreenToggle()));
+
     aboutAct = new QAction(tr("&About"), this);
     connect(aboutAct, SIGNAL(triggered()), this, SLOT(about()));
 
@@ -362,6 +390,7 @@ ImageViewer::createMenus()
     viewMenu->addAction (normalSizeAct);
     viewMenu->addAction (fitWindowToImageAct);
     viewMenu->addAction (fitImageToWindowAct);
+    viewMenu->addAction (fullScreenAct);
     viewMenu->addSeparator ();
     viewMenu->addMenu (channelMenu);
     viewMenu->addMenu (expgamMenu);
@@ -555,9 +584,6 @@ ImageViewer::updateStatusBar ()
 void
 ImageViewer::displayCurrentImage ()
 {
-    Timer dCI_total(false), qt(false), convert_pixels(false);
-    ScopedTimer<Timer> time_dCI_total(dCI_total);
-
     if (m_images.empty()) {
         m_current_image = m_last_image = -1;
         return;
@@ -575,91 +601,14 @@ ImageViewer::displayCurrentImage ()
     if (infoWindow)
         infoWindow->update (img);
 
-    qt.start();
-    QImage qimage (spec.width, spec.height, QImage::Format_ARGB32_Premultiplied);
-    qt.stop();
-    convert_pixels.start();
-#ifndef USE_OGL
-    const OpenImageIO::stride_t as = OpenImageIO::AutoStride;
-    float gain = powf (2.0, img->exposure());
-    float invgamma = 1.0f / img->gamma();
-    for (int y = 0;  y < spec.height;  ++y) {
-        unsigned char *sl = qimage.scanLine (y);
-        unsigned long *argb = (unsigned long *) sl;
-//        memset (argb, 0xff, spec.width*4);
-        for (int x = 0;  x < spec.width;  ++x)
-            argb[x] = 0xff000000;
-        // FIXME -- Ugh, Qt's Pixmap stores "ARGB" as a uint32, but
-        // because of byte order on Intel chips, it's really BGRA in
-        // memory.  Grrr... So we have to move each channel individually.
-        // Probably the right way to address this is to change from a
-        // QLabel to a GL widget and just draw a textured rectangle,
-        // with the texture in the original format and an appropriate
-        // fragment program that draws the right channel(s).
-        if (m_current_channel == channelFullColor) {
-            convert_image (1, spec.width, 1, 1,
-                           img->scanline (y), spec.format, spec.nchannels, as, as,
-                           sl+2, PT_UINT8, 4, as, as, gain, invgamma);
-            if (spec.nchannels > 1)
-                convert_image (1, spec.width, 1, 1,
-                               (char *)img->scanline (y) + 1*spec.channel_bytes(),
-                               spec.format, spec.nchannels, as, as,
-                               sl+1, PT_UINT8, 4, as, as, gain, invgamma);
-            if (spec.nchannels > 2)
-                convert_image (1, spec.width, 1, 1,
-                               (char *)img->scanline (y) + 2*spec.channel_bytes(),
-                               spec.format, spec.nchannels, as, as,
-                               sl+0, PT_UINT8, 4, as, as, gain, invgamma);
-            if (spec.nchannels > 3)
-                convert_image (1, spec.width, 1, 1,
-                               (char *)img->scanline (y) + (spec.nchannels-1)*spec.channel_bytes(),
-                               spec.format, spec.nchannels, as, as,
-                               sl+3, PT_UINT8, 4, as, as);
-        } else if (m_current_channel == channelLuminance) {
-        } else if (m_current_channel < spec.nchannels) {
-            for (int c = 0;  c < 3;  ++c)
-                convert_image (1, spec.width, 1, 1,
-                               (char *)img->scanline (y) + m_current_channel*spec.channel_bytes(),
-                               spec.format, spec.nchannels, as, as,
-                               sl+c, PT_UINT8, 4, as, as, gain, invgamma);
-            if (spec.nchannels > 3)
-                convert_image (1, spec.width, 1, 1,
-                               (char *)img->scanline (y) + 
-                               (spec.nchannels-1)*spec.channel_bytes(),
-                               spec.format, spec.nchannels, as, as,
-                               sl+3, PT_UINT8, 4, as, as);
-        }
-    }
-#endif
-    convert_pixels.stop();
-
-    qt.start();
-#ifdef USE_GRAPHICSVIEW
-    gpixmap = QPixmap::fromImage (qimage);
-    gpixmapitem->setPixmap (gpixmap);
-    scrollArea->resize (spec.width, spec.height);
-//    gscene->invalidate();
-    std::cerr << "Reassigned pixmap\n";
-#endif
-#ifdef USE_LABEL
-    imageLabel->setPixmap (QPixmap::fromImage(qimage));
-#endif
-#ifdef USE_OGL
     glwin->zoom (zoom());
     glwin->update (img);
-#endif
 
     printAct->setEnabled(true);
     fitWindowToImageAct->setEnabled(true);
     fitImageToWindowAct->setEnabled(true);
+    fullScreenAct->setEnabled(true);
     updateActions();
-
-    if (!fitImageToWindowAct->isChecked())
-        imageLabel->adjustSize();
-    qt.stop();
-    dCI_total.stop();
-
-    std::cerr << "Times: total=" << dCI_total() << ", GUI time " << qt() << ", pixel prep time " << convert_pixels() << "\n";
 }
 
 
@@ -896,8 +845,8 @@ ImageViewer::closeImg()
 void
 ImageViewer::print()
 {
+#if 0
     Q_ASSERT(imageLabel->pixmap());
-#ifndef QT_NO_PRINTER
     QPrintDialog dialog(&printer, this);
     if (dialog.exec()) {
         QPainter painter(&printer);
@@ -951,14 +900,18 @@ void ImageViewer::normalSize()
 
 void ImageViewer::fitImageToWindow()
 {
-#if 0
-    bool fitToWindow = fitImageToWindowAct->isChecked();
-    scrollArea->setWidgetResizable(fitImageToWindow);
-    if (!fitImageToWindow) {
-        normalSize();
-    }
-    updateActions();
-#endif
+    IvImage *img = cur();
+    if (! img)
+        return;
+    const ImageIOFormatSpec &spec (img->spec());
+    std::cerr << "fitImageToWindow wh = " << scrollArea->width() << ' ' << scrollArea->height() << "\n";
+    QSize s = scrollArea->maximumViewportSize();
+    std::cerr << "  max " << s.width() << ' ' << s.height() << "\n";
+    float zw = (float) s.width() / spec.width;
+    float zh = (float) s.height() / spec.height;
+    std::cerr << "zoom potentials " << zw << ' ' << zh << "\n";
+    float z = std::min (zw, zh);
+    zoom (z);
 }
 
 
@@ -987,6 +940,30 @@ void ImageViewer::fitWindowToImage()
     }
 #endif
     updateActions();
+}
+
+
+
+void ImageViewer::fullScreenToggle()
+{
+    std::cerr << "toggle full screen\n";
+    if (m_fullscreen) {
+        menuBar()->show ();
+        statusBar()->show ();
+        showNormal ();
+        // glwin->showNormal ();
+        // glwin->setParent (scrollArea);
+        // scrollArea->setWidget (glwin);
+        m_fullscreen = false;
+    } else {
+        menuBar()->hide ();
+        statusBar()->hide ();
+        showFullScreen ();
+        fitImageToWindow ();
+        // glwin->setParent (NULL);  // Make it into a top-level window
+        // glwin->showFullScreen ();
+        m_fullscreen = true;
+    }
 }
 
 
@@ -1020,31 +997,28 @@ ImageViewer::zoom (float newzoom)
     QScrollBar *vsb = scrollArea->verticalScrollBar();
 
     // Zoom so that the center of the viewport stays on the same pixel
-    int centerh, centerv;
+    int centerh, centerv, oldcenterh, oldcenterv;
     QSize viewsize = scrollArea->maximumViewportSize();
-    centerh = Imath::clamp ((int)((viewsize.width()/2 + hsb->value())/zoom()), 0, curspec()->width-1);
-    centerv = Imath::clamp ((int)((viewsize.height()/2 + vsb->value())/zoom()), 0, curspec()->height-1);
+    oldcenterh = Imath::clamp ((int)((viewsize.width()/2 + hsb->value())/zoom()), 0, curspec()->width-1);
+    oldcenterv = Imath::clamp ((int)((viewsize.height()/2 + vsb->value())/zoom()), 0, curspec()->height-1);
 
-    m_zoom = newzoom;
-#ifdef USE_GRAPHICSVIEW
-    ASSERT (scrollArea);
-    QMatrix m;
-    m.reset();
-    m.scale (zoom(), zoom());
-    scrollArea->setMatrix (m);
-#endif
-#ifdef USE_LABEL
-    ASSERT(imageLabel->pixmap());
-    imageLabel->resize (zoom() * imageLabel->pixmap()->size());
-#endif
-#ifdef USE_OGL
-    glwin->zoom (zoom());
-#endif
+    float oldzoom = m_zoom;
+    const int nsteps = 10;
+    for (int i = 1;  i <= nsteps;  ++i) {
+        float z = Imath::lerp (oldzoom, newzoom, (float)i/(float)nsteps);
+        m_zoom = z;
 
-    centerh = (int)(zoom() * centerh) - viewsize.width()/2;
-    centerv = (int)(zoom() * centerv) - viewsize.height()/2;
-    hsb->setValue (centerh);
-    vsb->setValue (centerv);
+        glwin->zoom (zoom());
+
+        centerh = (int)(zoom() * oldcenterh) - viewsize.width()/2;
+        centerv = (int)(zoom() * oldcenterv) - viewsize.height()/2;
+        hsb->setValue (centerh);
+        vsb->setValue (centerv);
+//        QApplication::processEvents();
+        glwin->trigger_redraw();
+        if (i != nsteps)
+            usleep (1000000 / 4 / nsteps);
+    }
 
     zoomInAct->setEnabled (zoom() < 64.0);
     zoomOutAct->setEnabled (zoom() > 1.0/64);
