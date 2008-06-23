@@ -53,24 +53,29 @@ Strutil::format (const char *fmt, ...)
 std::string
 Strutil::vformat (const char *fmt, va_list ap)
 {
-    // Allocate a buffer that's big enough for us almost all the time
+    // Allocate a buffer on the stack that's big enough for us almost
+    // all the time.
     size_t size = 1024;
-    std::vector<char> buf (size);
-    ASSERT (buf.size() == size);
+    char buf[size];
 
+    // Try to vsnprintf into our buffer.
     va_list apcopy;
     va_copy (apcopy, ap);
     int needed = vsnprintf (&buf[0], size, fmt, ap);
 
-    if (needed > size) {
+    if (needed <= size) {
+        // It fit fine the first time, we're done.
+        return std::string (&buf[0]);
+    } else {
         // vsnprintf reported that it wanted to write more characters
-        // than we allotted.  So re-allocate and try again.  Presumably,
-        // this doesn't happen very often if we chose our initial size
+        // than we allotted.  So do a malloc of the right size and try again.
+        // This doesn't happen very often if we chose our initial size
         // well.
+        std::vector <char> buf;
+        size = needed;
         buf.resize (size);
         needed = vsnprintf (&buf[0], size, fmt, apcopy);
         DASSERT (needed <= size);
+        return std::string (&buf[0]);
     }
-
-    return &buf[0];
 }
