@@ -46,6 +46,43 @@ std::string format (const char *fmt, ...);
 std::string vformat (const char *fmt, va_list ap);
 
 
+/// Beautiful little string hasher from Aho, Sethi, and Ullman's 1986
+/// Dragon compiler book.  This depends on sizeof(unsigned int) == 4.
+inline unsigned int
+strhash (const char *s)
+{
+    if (!s) return 0;
+    unsigned int h=0, g;
+    while (*s) {
+        h = (h<<4) + (unsigned char)(*s);
+        if ((g = (h & 0xf0000000))) {
+            h ^= g>>24;
+            h ^= g;
+        }
+        ++s;
+    }
+    return h;
+}
+
+
+
+/// C++ functor wrapper class for using strhash for hash_map or hash_set.
+///
+class StringHash
+#ifdef WINNT
+    : public hash_compare<const char*>
+#endif
+{
+public:
+    size_t operator() (const char *s) const {
+        return (size_t)Strutil::strhash(s);
+    }
+    bool operator() (const char *a, const char *b) {
+        return strcmp (a, b) < 0;
+    }
+};
+
+
 
 
 };  // namespace Strutil
