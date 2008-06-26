@@ -84,11 +84,11 @@ pow2rounddown (int x)
 ///
 inline bool littleendian (void)
 {
-#ifdef HOST_BIG_ENDIAN
-    return false;   // If makefiles define BIG_ENDIAN, it is!
+#ifdef __BIG_ENDIAN__
+    return false;
 #endif
-#ifdef HOST_LITTLE_ENDIAN
-    return true;    // If makefiles define LITTLE_ENDIAN, it is!
+#ifdef __LITTLE_ENDIAN__
+    return true;
 #endif
     // Otherwise, do something quick to compute it
     int i = 1;
@@ -101,12 +101,6 @@ inline bool littleendian (void)
 ///
 inline bool bigendian (void)
 {
-#ifdef HOST_BIG_ENDIAN
-    return true;    // If makefiles define BIG_ENDIAN, it is!
-#endif
-#ifdef HOST_LITTLE_ENDIAN
-    return false;   // If makefiles define LITTLE_ENDIAN, it is!
-#endif
     return ! littleendian();
 }
 
