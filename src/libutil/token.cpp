@@ -30,69 +30,39 @@
 #include "thread.h"
 #include "strutil.h"
 #include "hash.h"
-#include "strhash.h"
 
 #define DLL_EXPORT_PUBLIC /* Because we are implementing Token */
 #include "token.h"
 #undef DLL_EXPORT_PUBLIC
 
 
+typedef hash_map <const char *, Token::TableRep *, Strutil::StringHash> TokenTable;
 
-struct TokenRep {
-    std::string str;     // String representation
-    char chars[0];       // The characters
-};
-
-
-
-
-typedef hash_map <const char *, TokenRep *, Strutil::StringHash> TokenTable;
 static TokenTable token_table;
 static mutex token_mutex;
 
 
 
-Token::Token (const char *s)
+const Token::TableRep *
+Token::_make_unique (const char *str)
 {
-    // If we're be asked to construct an empty token, we can do that 
-    // trivially, without even checking the table.
-    if (s == NULL || *s == 0) {
-        m_chars = NULL;
-        return;
-    }
+    // Eliminate NULLs
+    if (! str)
+        str = "";
 
     // Check the token table to see if this string already exists.  If so,
     // construct from its canonical representation.
     lock_guard guard(token_mutex);
-    TokenTable::const_iterator found = token_table.find (s);
-    if (found != token_table.end()) {
-        m_chars = (found->second)->chars;
-        return;
-    }
+    TokenTable::const_iterator found = token_table.find (str);
+    if (found != token_table.end())
+        return found->second;
 
     // This string is not yet in the token table.  Create a new entry.
-    size_t len = sizeof (TokenRep) + strlen (s) + 1;
-    TokenRep *rep = (TokenRep *) malloc (len);
-    new (&rep->str) std::string (s);
-    strcpy (rep->chars, s);
-    token_table[rep->chars] = rep;
-    m_chars = rep->chars;
-}
-
-
-
-Token::Token (const std::string &s)
-{
-    *this = Token (s.c_str());
-}
-
-
-
-const std::string &
-Token::string () const
-{
-    const std::string *str = (const std::string *)m_chars;
-    return str[-1];
+    size_t size = sizeof(Token::TableRep) + strlen(str) + 1;
+    Token::TableRep *rep = (Token::TableRep *) malloc (size);
+    new (rep) Token::TableRep (str);
+    token_table[rep->c_str()] = rep;
+    return rep;
 }
 
 
@@ -100,9 +70,35 @@ Token::string () const
 Token
 Token::format (const char *fmt, ...)
 {
+    Token tok;
     va_list ap;
     va_start (ap, fmt);
-    std::string buf = Strutil::vformat (fmt, ap);
+
+    // Allocate a buffer on the stack that's big enough for us almost
+    // all the time.
+    size_t size = 1024;
+    char buf[size];
+
+    // Try to vsnprintf into our buffer.
+    va_list apcopy;
+    va_copy (apcopy, ap);
+    int needed = vsnprintf (&buf[0], size, fmt, ap);
+
+    if (needed <= size) {
+        // It fit fine the first time, we're done.
+        tok.assign (&buf[0]);
+    } else {
+        // vsnprintf reported that it wanted to write more characters
+        // than we allotted.  So do a malloc of the right size and try again.
+        // This doesn't happen very often if we chose our initial size
+        // well.
+        std::vector <char> buf;
+        size = needed;
+        buf.resize (size);
+        needed = vsnprintf (&buf[0], size, fmt, apcopy);
+        tok.assign (&buf[0]);
+    }
+
     va_end (ap);
-    return Token (buf.c_str());
+    return tok;
 }
