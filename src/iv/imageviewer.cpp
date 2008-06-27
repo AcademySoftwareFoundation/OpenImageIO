@@ -37,7 +37,10 @@
 #include "dassert.h"
 #include "strutil.h"
 #include "timer.h"
+#include "fmath.h"
 
+
+#define USE_SCROLL_AREA 0
 
 
 
@@ -111,7 +114,6 @@ IvCanvas::mousePressEvent (QMouseEvent *event)
         m_dragging = true;
         m_drag_oldx = event->x();
         m_drag_oldy = event->y();
-        std::cerr << "Middle press\n";
         break;
     }
     parent_t::mousePressEvent (event);
@@ -126,7 +128,6 @@ IvCanvas::mouseReleaseEvent (QMouseEvent *event)
     switch (event->button()) {
     case Qt::MidButton :
         m_dragging = false;
-        std::cerr << "Middle release\n";
         break;
     }
     parent_t::mouseReleaseEvent (event);
@@ -142,8 +143,13 @@ IvCanvas::mouseMoveEvent (QMouseEvent *event)
     switch (m_drag_button /*event->button()*/) {
     case Qt::MidButton : {
         QPoint pos = event->pos(); //, oldpos = event->oldPos();
-        std::cerr << "Middle drag " << m_drag_oldx << ',' << m_drag_oldy 
-                  << " -> " << pos.x() << ',' << pos.y() << '\n';
+        float z = m_viewer.zoom ();
+        float dx = (pos.x() - m_drag_oldx) / (z * m_viewer.curspec()->width);
+        float dy = (pos.y() - m_drag_oldy) / (z * m_viewer.curspec()->height);
+        m_viewer.glwin->pan (-dx, -dy);
+        m_drag_oldx = pos.x();
+        m_drag_oldy = pos.y();
+        m_viewer.glwin->trigger_redraw();
         break;
         }
     }
@@ -156,15 +162,19 @@ IvCanvas::mouseMoveEvent (QMouseEvent *event)
 ImageViewer::ImageViewer ()
     : infoWindow(NULL),
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
-      m_zoom(1), m_fullscreen(false)
+      m_zoom(1), m_fullscreen(false), m_dragging(false)
 {
     scrollArea = new IvCanvas (*this);
     scrollArea->setBackgroundRole (QPalette::Dark);
     scrollArea->setAlignment (Qt::AlignCenter);
-    glwin = new IvGL (this, this);
+    glwin = new IvGL (this, *this);
     glwin->resize (640, 480);
+#if USE_SCROLL_AREA
     scrollArea->setWidget (glwin);
     setCentralWidget (scrollArea);
+#else
+    setCentralWidget (glwin);
+#endif
 
     createActions();
     createMenus();
@@ -291,13 +301,12 @@ void ImageViewer::createActions()
 
     fitWindowToImageAct = new QAction(tr("&Fit Window to Image"), this);
     fitWindowToImageAct->setEnabled(false);
-//    fitWindowToImageAct->setCheckable(true);
     fitWindowToImageAct->setShortcut(tr("f"));
     connect(fitWindowToImageAct, SIGNAL(triggered()), this, SLOT(fitWindowToImage()));
 
     fitImageToWindowAct = new QAction(tr("Fit Image to Window"), this);
     fitImageToWindowAct->setEnabled(false);
-//    fitImageToWindowAct->setCheckable(true);
+    fitImageToWindowAct->setCheckable(true);
     fitImageToWindowAct->setShortcut(tr("Alt+f"));
     connect(fitImageToWindowAct, SIGNAL(triggered()), this, SLOT(fitImageToWindow()));
 
@@ -501,6 +510,7 @@ void ImageViewer::open()
     IvImage *newimage = m_images[n];
     newimage->read (false, image_progress_callback, this);
     current_image (n);
+    fitWindowToImage ();
 }
 
 
@@ -533,6 +543,9 @@ ImageViewer::add_image (const std::string &filename, bool getspec)
     }
     m_images.push_back (newimage);
     displayCurrentImage ();
+    // If this is the first image, resize to fit it
+    if (m_images.size() == 1)
+        fitWindowToImage ();
 }
 
 
@@ -807,6 +820,24 @@ void
 ImageViewer::keyPressEvent (QKeyEvent *event)
 {
     switch (event->key()) {
+    case Qt::Key_Left :
+    case Qt::Key_Up :
+    case Qt::Key_PageUp :
+        prevImage();
+        return;  //break;
+    case Qt::Key_Right :
+//        std::cerr << "Modifier is " << (int)event->modifiers() << '\n';
+//        fprintf (stderr, "%x\n", (int)event->modifiers());
+//        if (event->modifiers() & Qt::ShiftModifier)
+//            std::cerr << "hey, ctrl right\n";
+    case Qt::Key_Down :
+    case Qt::Key_PageDown :
+        nextImage();
+        return; //break;
+    case Qt::Key_Escape :
+        if (m_fullscreen)
+            fullScreenToggle();
+        return;
     case Qt::Key_Minus :
     case Qt::Key_Underscore :
         zoomOut();
@@ -816,9 +847,20 @@ ImageViewer::keyPressEvent (QKeyEvent *event)
         zoomIn();
         break;
     default:
-        std::cerr << "ImageViewer key " << (int)event->key() << '\n';
+        // std::cerr << "ImageViewer key " << (int)event->key() << '\n';
         QMainWindow::keyPressEvent (event);
     }
+}
+
+
+
+void
+ImageViewer::resizeEvent (QResizeEvent *event)
+{
+    QSize size = event->size();
+    if (fitImageToWindowAct->isChecked ())
+        fitImageToWindow ();
+    QMainWindow::resizeEvent (event);
 }
 
 
@@ -868,11 +910,20 @@ void ImageViewer::zoomIn()
         return;
     if (zoom() >= 1.0f) {
         int z = (int) zoom();
-        zoom ((float)(z + 1));
+        if (z < 4)
+            ++z;
+        else
+            z = pow2roundup (z+1);
+        zoom (z);
     } else {
         int z = (int)(1.0 / zoom());
-        zoom (1.0f / std::max(z-1,1));
+        if (z > 4)
+            z = pow2rounddown (z-1);
+        else
+            --z;
+        zoom (1.0f / std::max(z,1));
     }
+    fitImageToWindowAct->setChecked (false);
 }
 
 
@@ -883,17 +934,41 @@ void ImageViewer::zoomOut()
         return;
     if (zoom() > 1.0f) {
         int z = (int) zoom();
-        zoom (std::max ((float)(z-1), 0.5f));
+        if (z > 4)
+            z = pow2rounddown (z-1);
+        else
+            --z;
+        zoom (std::max ((float)z, 0.5f));
     } else {
         int z = (int)(1.0 / zoom() + 0.001);  // add for floating point slop
-        zoom (1.0f / (1 + z));
+        if (z < 4)
+            ++z;
+        else
+            z = pow2roundup (z+1);
+        zoom (1.0f / z);
     }
+    fitImageToWindowAct->setChecked (false);
 }
 
 
 void ImageViewer::normalSize()
 {
     zoom (1.0f);
+    fitImageToWindowAct->setChecked (false);
+}
+
+
+
+float
+ImageViewer::zoom_needed_to_fit (int w, int h)
+{
+    IvImage *img = cur();
+    if (! img)
+        return 1;
+    const ImageIOFormatSpec &spec (img->spec());
+    float zw = (float) w / spec.width;
+    float zh = (float) h / spec.height;
+    return std::min (zw, zh);
 }
 
 
@@ -903,15 +978,9 @@ void ImageViewer::fitImageToWindow()
     IvImage *img = cur();
     if (! img)
         return;
-    const ImageIOFormatSpec &spec (img->spec());
-    std::cerr << "fitImageToWindow wh = " << scrollArea->width() << ' ' << scrollArea->height() << "\n";
-    QSize s = scrollArea->maximumViewportSize();
-    std::cerr << "  max " << s.width() << ' ' << s.height() << "\n";
-    float zw = (float) s.width() / spec.width;
-    float zh = (float) s.height() / spec.height;
-    std::cerr << "zoom potentials " << zw << ' ' << zh << "\n";
-    float z = std::min (zw, zh);
-    zoom (z);
+//    QSize s = scrollArea->maximumViewportSize();
+//    int w = s.width(), h = s.height();
+    zoom (zoom_needed_to_fit (width(), height()));
 }
 
 
@@ -923,14 +992,57 @@ void ImageViewer::fitWindowToImage()
         return;
     // FIXME -- figure out a way to make it exactly right, even for the
     // main window border, etc.
-    int extraw = 12; // width() - minimumWidth();
-    int extrah = 40; // height() - minimumHeight();
+    int extraw = 4; //12; // width() - minimumWidth();
+    int extrah = statusBar()->height() + 4; //40; // height() - minimumHeight();
 //    std::cerr << "extra wh = " << extraw << ' ' << extrah << '\n';
 //    scrollArea->resize ((int)(img->spec().width * zoom()),
 //                        (int)(img->spec().height * zoom()));
-    resize ((int)(img->spec().width * zoom())+extraw,
-            (int)(img->spec().height * zoom())+extrah);
-    zoom (zoom());
+
+    float z = zoom();
+    int w = (int)(img->spec().width  * z)+extraw;
+    int h = (int)(img->spec().height * z)+extrah;
+    if (! m_fullscreen) {
+        QDesktopWidget *desktop = QApplication::desktop ();
+        QRect availgeom = desktop->availableGeometry (this);
+        QRect screengeom = desktop->screenGeometry (this);
+        int availwidth = availgeom.width() - extraw - 20;
+        int availheight = availgeom.height() - extrah - menuBar()->height() - 20;
+#if 0
+        std::cerr << "available desktop geom " << availgeom.x() << ' ' << availgeom.y() << ' ' << availgeom.width() << "x" << availgeom.height() << "\n";
+        std::cerr << "screen desktop geom " << screengeom.x() << ' ' << screengeom.y() << ' ' << screengeom.width() << "x" << screengeom.height() << "\n";
+#endif
+        if (w > availwidth || h > availheight) {
+            w = std::min (w, availwidth);
+            h = std::min (h, availheight);
+            z = zoom_needed_to_fit (w, h);
+            // std::cerr << "must rezoom to " << z << " to fit\n";
+            w = (int)(img->spec().width  * z) + extraw;
+            h = (int)(img->spec().height * z) + extrah;
+            // std::cerr << "New window geom " << w << "x" << h << "\n";
+            int posx = x(), posy = y();
+            if (posx + w > availwidth || posy + h > availheight) {
+                if (posx + w > availwidth)
+                    posx = std::max (0, availwidth - w) + availgeom.x();
+                if (posy + h > availheight)
+                    posy = std::max (0, availheight - h) + availgeom.y();
+                // std::cerr << "New position " << posx << ' ' << posy << "\n";
+                move (QPoint (posx, posy));
+            }
+        }
+    }
+
+    resize (w, h);
+    zoom (z);
+
+#if 0
+    QRect g = geometry();
+    std::cerr << "geom " << g.x() << ' ' << g.y() << ' ' << g.width() << "x" << g.height() << "\n";
+    g = frameGeometry();
+    std::cerr << "frame geom " << g.x() << ' ' << g.y() << ' ' << g.width() << "x" << g.height() << "\n";
+    g = glwin->geometry();
+    std::cerr << "ogl geom " << g.x() << ' ' << g.y() << ' ' << g.width() << "x" << g.height() << "\n";
+    std::cerr << "Status bar height = " << statusBar()->height() << "\n";
+#endif
 
 #if 0
     bool fit = fitWindowToImageAct->isChecked();
@@ -993,6 +1105,7 @@ ImageViewer::zoom (float newzoom)
     IvImage *img = cur();
     if (! img)
         return;
+#if USE_SCROLL_AREA
     QScrollBar *hsb = scrollArea->horizontalScrollBar();
     QScrollBar *vsb = scrollArea->verticalScrollBar();
 
@@ -1001,19 +1114,23 @@ ImageViewer::zoom (float newzoom)
     QSize viewsize = scrollArea->maximumViewportSize();
     oldcenterh = Imath::clamp ((int)((viewsize.width()/2 + hsb->value())/zoom()), 0, curspec()->width-1);
     oldcenterv = Imath::clamp ((int)((viewsize.height()/2 + vsb->value())/zoom()), 0, curspec()->height-1);
+#endif
 
     float oldzoom = m_zoom;
-    const int nsteps = 10;
+    float zoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
+    int nsteps = (int) Imath::clamp (10 * (zoomratio - 1), 1.0f, 10.0f);
     for (int i = 1;  i <= nsteps;  ++i) {
         float z = Imath::lerp (oldzoom, newzoom, (float)i/(float)nsteps);
         m_zoom = z;
 
         glwin->zoom (zoom());
 
+#if USE_SCROLL_AREA
         centerh = (int)(zoom() * oldcenterh) - viewsize.width()/2;
         centerv = (int)(zoom() * oldcenterv) - viewsize.height()/2;
         hsb->setValue (centerh);
         vsb->setValue (centerv);
+#endif
 //        QApplication::processEvents();
         glwin->trigger_redraw();
         if (i != nsteps)
@@ -1037,4 +1154,14 @@ ImageViewer::showInfoWindow ()
     }
     infoWindow->update (cur());
     infoWindow->show();
+}
+
+
+
+void
+ImageViewer::get_view_size (int &w, int &h)
+{
+    QSize viewsize = scrollArea->maximumViewportSize();
+    w = viewsize.width ();
+    h = viewsize.height ();
 }

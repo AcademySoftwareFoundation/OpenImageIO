@@ -56,8 +56,9 @@ static MyGLFormat glformat;
 
 
 
-IvGL::IvGL (QWidget *parent, ImageViewer *viewer)
-    : QGLWidget(glformat(), parent), m_viewer (viewer)
+IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
+    : QGLWidget(glformat(), parent), m_viewer (viewer), 
+      m_centerx(0.5), m_centery(0.5), m_dragging(false)
 {
 }
 
@@ -193,10 +194,8 @@ IvGL::initializeGL ()
 void
 IvGL::resizeGL (int w, int h)
 {
-    std::cerr << "resizeGL " << w << ' ' << h << "\n";
+//    std::cerr << "resizeGL " << w << ' ' << h << "\n";
     GLERRPRINT ("resizeGL entry");
-//    int side = qMin(w, h);
-//    glViewport ((w - side) / 2, (h - side) / 2, side, side);
     glViewport (0, 0, w, h);
     glMatrixMode (GL_PROJECTION);
     glLoadIdentity ();
@@ -210,16 +209,25 @@ IvGL::resizeGL (int w, int h)
 void
 IvGL::paintGL ()
 {
-//    std::cerr << "paintGL\n";
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if (! m_viewer || ! m_viewer->cur())
+    if (! m_viewer.cur())
         return;
-    glLoadIdentity ();
-    glTranslatef (0.5, 0.5, -1.0);
-    glScalef (m_viewer->zoom(), m_viewer->zoom(), 1);
-    IvImage *img = m_viewer->cur();
+ 
+    IvImage *img = m_viewer.cur();
     const ImageIOFormatSpec &spec (img->spec());
+    float z = m_viewer.zoom();
+
+    if (z*spec.width <= width())  // FIXME - ivgl window?
+        m_centerx = 0.5;
+    if (z*spec.height <= height())
+        m_centery = 0.5;
+
+    glLoadIdentity ();
+//    std::cerr << "paintGL, center " << m_centerx << ' ' << m_centery << '\n';
+    glScalef (z, z, 1);
+    glTranslatef (0, 0, -1.0);
     glScalef (spec.width, spec.height, 1);
+    glTranslatef (-(m_centerx-0.5f), (m_centery-0.5f), 0.0f);
 
     useshader ();
 
@@ -240,9 +248,7 @@ IvGL::paintGL ()
 void
 IvGL::useshader (void)
 {
-    if (! m_viewer)
-        return;
-    IvImage *img = m_viewer->cur();
+    IvImage *img = m_viewer.cur();
     if (! img)
         return;
     const ImageIOFormatSpec &spec (img->spec());
@@ -269,7 +275,7 @@ IvGL::useshader (void)
     glUniform1f (loc, img->gamma());
     GLERRPRINT ("set param 5");
     loc = glGetUniformLocation (m_shader_program, "channelview");
-    glUniform1i (loc, m_viewer->current_channel());
+    glUniform1i (loc, m_viewer.current_channel());
     GLERRPRINT ("set param 5");
 
     loc = glGetUniformLocation (m_shader_program, "imgchannels");
@@ -334,15 +340,135 @@ IvGL::update (IvImage *img)
 void
 IvGL::zoom (float z)
 {
-    IvImage *img = m_viewer->cur();
+    IvImage *img = m_viewer.cur();
     if (! img)
         return;
     const ImageIOFormatSpec &spec (img->spec());
 //    std::cerr << "resizing to " << (spec.width*z) << ' ' << (spec.height*z) << "\n";
-
-    z = 1;
-    resize (spec.width * z, spec.height * z);
+    clamp_view_to_window ();
     // Update the texture
-    repaint (0, 0, spec.width * z, spec.height * z);
+    repaint (0, 0, spec.width, spec.height);
 //    update (img);
+}
+
+
+
+void
+IvGL::pan (float dx, float dy)
+{
+//    std::cerr << "Panning " << dx << ", " << dy << "\n";
+    m_centerx += dx;
+    m_centery += dy;
+    clamp_view_to_window ();
+}
+
+
+
+void
+IvGL::clamp_view_to_window ()
+{
+    int w = width(), h = height();
+//    m_viewer.get_view_size (w, h);
+    float z = m_viewer.zoom ();
+
+    float zoomedwidth  = z * m_viewer.curspec()->width;
+    float zoomedheight = z * m_viewer.curspec()->height;
+    float left    = m_centerx - 0.5 * ((float)w / zoomedwidth);
+    float top     = m_centery - 0.5 * ((float)h / zoomedheight);
+    float right   = m_centerx + 0.5 * ((float)w / zoomedwidth);
+    float bottom  = m_centery + 0.5 * ((float)h / zoomedheight);
+#if 0
+    std::cerr << "Window size is " << w << " x " << h << "\n";
+    std::cerr << "Center (normalized coords) is " << m_centerx << ", " << m_centery << "\n";
+    std::cerr << "Top left (normalized coords) is " << left << ", " << top << "\n";
+    std::cerr << "Bottom right (normalized coords) is " << right << ", " << bottom << "\n";
+#endif
+
+    // Don't let us scroll off the edges
+    if (zoomedwidth >= w) {
+        if (left < 0) {
+            right -= left;
+            m_centerx -= left;
+            left = 0;
+        } else if (right > 1) {
+            m_centerx -= (right-1);
+            left -= (right-1);
+            right = 1;
+        }
+    } else {
+        m_centerx = 0.5;
+    }
+
+    if (zoomedheight >= h) {
+        if (top < 0) {
+            bottom -= top;
+            m_centery -= top;
+            top = 0;
+        } else if (bottom > 1) {
+            m_centery -= (bottom-1);
+            top -= (bottom-1);
+            bottom = 1;
+        }
+    } else {
+        m_centery = 0.5;
+    }
+}
+
+
+
+void
+IvGL::mousePressEvent (QMouseEvent *event)
+{
+    m_drag_button = event->button();
+    switch (event->button()) {
+    case Qt::LeftButton :
+        m_viewer.zoomIn();
+        return;
+    case Qt::RightButton :
+        m_viewer.zoomOut();
+        return;
+    case Qt::MidButton :
+        m_dragging = true;
+        m_drag_oldx = event->x();
+        m_drag_oldy = event->y();
+        break;
+    }
+    parent_t::mousePressEvent (event);
+}
+
+
+
+void
+IvGL::mouseReleaseEvent (QMouseEvent *event)
+{
+    m_drag_button = Qt::NoButton;
+    switch (event->button()) {
+    case Qt::MidButton :
+        m_dragging = false;
+        break;
+    }
+    parent_t::mouseReleaseEvent (event);
+}
+
+
+
+void
+IvGL::mouseMoveEvent (QMouseEvent *event)
+{
+    // FIXME - there's probably a better Qt way than tracking the button
+    // myself.
+    switch (m_drag_button /*event->button()*/) {
+    case Qt::MidButton : {
+        QPoint pos = event->pos(); //, oldpos = event->oldPos();
+        float z = m_viewer.zoom ();
+        float dx = (pos.x() - m_drag_oldx) / (z * m_viewer.curspec()->width);
+        float dy = (pos.y() - m_drag_oldy) / (z * m_viewer.curspec()->height);
+        pan (-dx, -dy);
+        m_drag_oldx = pos.x();
+        m_drag_oldy = pos.y();
+        trigger_redraw();
+        break;
+        }
+    }
+    parent_t::mouseMoveEvent (event);
 }

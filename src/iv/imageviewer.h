@@ -176,6 +176,10 @@ public:
         return img ? &img->spec() : NULL;
     }
 
+    /// Find out how big a window is visible.
+    ///
+    void get_view_size (int &w, int &h);
+
 private slots:
     void open();                        ///< Dialog to open new image from file
     void reload();                      ///< Reread current image from disk
@@ -218,6 +222,7 @@ private:
     void updateTitle ();
     void updateStatusBar ();
     void keyPressEvent (QKeyEvent *event);
+    void resizeEvent (QResizeEvent *event);
 
     IvCanvas *scrollArea;
     IvGL *glwin;
@@ -255,8 +260,15 @@ private:
     int m_last_image;                 ///< Last image we viewed
     float m_zoom;                     ///< Zoom amount (positive maxifies)
     bool m_fullscreen;                ///< Full screen mode
+    bool m_dragging;                  ///< Are we dragging?
+    int m_drag_oldx, m_drag_oldy;
+    Qt::MouseButton m_drag_button;    ///< Button on when dragging
+
+    // What zoom do we need to fit these window dimensions?
+    float zoom_needed_to_fit (int w, int h);
 
     friend class IvCanvas;
+    friend class IvGL;
     friend bool image_progress_callback (void *opaque, float done);
 };
 
@@ -284,7 +296,7 @@ class IvGL : public QGLWidget
 {
 Q_OBJECT
 public:
-    IvGL (QWidget *parent, ImageViewer *viewer);
+    IvGL (QWidget *parent, ImageViewer &viewer);
     ~IvGL ();
 
     /// Update the image texture.
@@ -297,18 +309,33 @@ public:
 
     void trigger_redraw (void) { glDraw(); }
 
+    void pan (float dx, float dy);
+
 protected:
     void initializeGL ();
     void resizeGL (int w, int h);
     void paintGL ();
 private:
-    ImageViewer *m_viewer;
-    GLuint m_vertex_shader;
-    GLuint m_fragment_shader;
-    GLuint m_shader_program;
-    GLuint m_texid;
+    ImageViewer &m_viewer;            ///< Backpointer to viewer
+    GLuint m_vertex_shader;           ///< Vertex shader id
+    GLuint m_fragment_shader;         ///< Fragment shader id
+    GLuint m_shader_program;          ///< GL shader program id
+    GLuint m_texid;                   ///< Texture holding current imag
+    bool m_dragging;                  ///< Are we dragging?
+    int m_drag_oldx, m_drag_oldy;
+    Qt::MouseButton m_drag_button;    ///< Button on when dragging
+
+    float m_centerx, m_centery; ///< Where is the view centered in the img?
 
     void useshader ();
+    void clamp_view_to_window ();
+
+    void mousePressEvent (QMouseEvent *event);
+    void mouseReleaseEvent (QMouseEvent *event);
+    void mouseMoveEvent (QMouseEvent *event);
+
+    typedef QGLWidget parent_t;
+
 };
 
 #endif // IMAGEVIEWER_H

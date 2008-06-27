@@ -19,7 +19,7 @@ DONE        jpeg - EXIF info
             imageio.h - add sRGB vs Linear?
             API docs
             Linux
-            iv - middle mouse drag
+DONE        iv - middle mouse drag
             iv - pixel view window
 DONE        iv - half, float, uint16
             imageio.h - should ImageIOFormatSpec just be ImageFormatSpec?
@@ -32,7 +32,7 @@ DONE        iv - half, float, uint16
             iv - save as, save window as, save selection as
             iv - preferences
             iv - select all images
-DONE?       iv - fit image to window (TODO: is it a mode?)
+DONE        iv - fit image to window
 DONE        iv - full screen
             iv - view as depth, false, random
             iv - prev/next subimage
@@ -79,6 +79,7 @@ Before first 1.0 release
             iv - render control - connect, disconnect, overwrite, store render
             iv - hide controls?
             iv - socket mode (socket-based "iv.imageio")
+            iv - timed frame playback
 
 ============
 
@@ -103,3 +104,6 @@ Idea pool / future feature wish list
             OpenEXR - support layers
             Movies?
             Sound?
+            iv slide mode (full screen, fi2w, timed)
+            play back sound memos in jpeg images
+
