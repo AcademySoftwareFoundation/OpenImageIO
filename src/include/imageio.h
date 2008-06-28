@@ -59,17 +59,17 @@
 namespace OpenImageIO {
 
 
-// Each imageio DSO/DLL should include this statement:
-//      GELATO_EXPORT int imageio_version = Gelato::IMAGEIO_VERSION;
-// Applications using imageio DSO/DLL's should check this
-// variable, to avoid using DSO/DLL's compiled against
-// incompatible versions of this header file.
-//
-// Version 3 added supports_rectangles() and write_rectangle() to
-// ImageOutput, and added stride parameters to the ImageInput read
-// routines.
-// Version 10 represents forking from NVIDIA's open source version,
-// with which we break backwards compatibility.
+/// Each imageio DSO/DLL should include this statement:
+///      GELATO_EXPORT int imageio_version = Gelato::IMAGEIO_VERSION;
+/// Applications using imageio DSO/DLL's should check this
+/// variable, to avoid using DSO/DLL's compiled against
+/// incompatible versions of this header file.
+///
+/// Version 3 added supports_rectangles() and write_rectangle() to
+/// ImageOutput, and added stride parameters to the ImageInput read
+/// routines.
+/// Version 10 represents forking from NVIDIA's open source version,
+/// with which we break backwards compatibility.
 const int IMAGEIO_VERSION = 10;
 
 
