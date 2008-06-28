@@ -40,141 +40,15 @@
 #include "fmath.h"
 
 
-#define USE_SCROLL_AREA 0
-
-
-
-/// Subclass QScrollArea just so we can intercept events that we want
-/// handled in non-default ways.
-class IvCanvas : public QScrollArea
-{
-public:
-    IvCanvas (ImageViewer &viewer) : m_viewer(viewer), m_dragging(false) { }
-private:
-    void keyPressEvent (QKeyEvent *event);
-    void mousePressEvent (QMouseEvent *event);
-    void mouseReleaseEvent (QMouseEvent *event);
-    void mouseMoveEvent (QMouseEvent *event);
-
-    typedef QScrollArea parent_t;
-    ImageViewer &m_viewer;
-    bool m_dragging;                  ///< Are we dragging?
-    int m_drag_oldx, m_drag_oldy;
-    Qt::MouseButton m_drag_button;    ///< Button on when dragging
-};
-
-
-
-/// Replacement keyPressEvent for IvScroll Area intercepts the arrows
-/// that we want to page between images in our UI, not to be hooked to
-/// the scroll bars.
-void
-IvCanvas::keyPressEvent (QKeyEvent *event)
-{
-//    std::cerr << "IvCanvas key " << (int)event->key() << '\n';
-    switch (event->key()) {
-#if 1
-    case Qt::Key_Left :
-    case Qt::Key_Up :
-    case Qt::Key_PageUp :
-        m_viewer.prevImage();
-        return;  //break;
-    case Qt::Key_Right :
-//        std::cerr << "Modifier is " << (int)event->modifiers() << '\n';
-//        fprintf (stderr, "%x\n", (int)event->modifiers());
-//        if (event->modifiers() & Qt::ShiftModifier)
-//            std::cerr << "hey, ctrl right\n";
-    case Qt::Key_Down :
-    case Qt::Key_PageDown :
-        m_viewer.nextImage();
-        return; //break;
-    case Qt::Key_Escape :
-        if (m_viewer.m_fullscreen)
-            m_viewer.fullScreenToggle();
-        return;
-#endif
-    }
-    parent_t::keyPressEvent (event);
-}
-
-
-
-void
-IvCanvas::mousePressEvent (QMouseEvent *event)
-{
-    m_drag_button = event->button();
-    switch (event->button()) {
-    case Qt::LeftButton :
-        m_viewer.zoomIn();
-        return;
-    case Qt::RightButton :
-        m_viewer.zoomOut();
-        return;
-    case Qt::MidButton :
-        m_dragging = true;
-        m_drag_oldx = event->x();
-        m_drag_oldy = event->y();
-        break;
-    }
-    parent_t::mousePressEvent (event);
-}
-
-
-
-void
-IvCanvas::mouseReleaseEvent (QMouseEvent *event)
-{
-    m_drag_button = Qt::NoButton;
-    switch (event->button()) {
-    case Qt::MidButton :
-        m_dragging = false;
-        break;
-    }
-    parent_t::mouseReleaseEvent (event);
-}
-
-
-
-void
-IvCanvas::mouseMoveEvent (QMouseEvent *event)
-{
-    // FIXME - there's probably a better Qt way than tracking the button
-    // myself.
-    switch (m_drag_button /*event->button()*/) {
-    case Qt::MidButton : {
-        QPoint pos = event->pos(); //, oldpos = event->oldPos();
-        float z = m_viewer.zoom ();
-        float dx = (pos.x() - m_drag_oldx) / (z * m_viewer.curspec()->width);
-        float dy = (pos.y() - m_drag_oldy) / (z * m_viewer.curspec()->height);
-        m_viewer.glwin->pan (-dx, -dy);
-        m_drag_oldx = pos.x();
-        m_drag_oldy = pos.y();
-        m_viewer.glwin->trigger_redraw();
-        break;
-        }
-    }
-    parent_t::mouseMoveEvent (event);
-}
-
-
-
 
 ImageViewer::ImageViewer ()
-    : infoWindow(NULL),
+    : infoWindow(NULL), pixelviewWindow(NULL),
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
-      m_zoom(1), m_fullscreen(false), m_dragging(false)
+      m_zoom(1), m_fullscreen(false)
 {
-    scrollArea = new IvCanvas (*this);
-    scrollArea->setBackgroundRole (QPalette::Dark);
-    scrollArea->setAlignment (Qt::AlignCenter);
     glwin = new IvGL (this, *this);
     glwin->resize (640, 480);
-#if USE_SCROLL_AREA
-    scrollArea->setWidget (glwin);
-    setCentralWidget (scrollArea);
-#else
     setCentralWidget (glwin);
-#endif
 
     createActions();
     createMenus();
@@ -284,6 +158,14 @@ void ImageViewer::createActions()
     viewChannelNextAct->setShortcut(tr("."));
     connect(viewChannelNextAct, SIGNAL(triggered()), this, SLOT(viewChannelNext()));
 
+    viewSubimagePrevAct = new QAction(tr("Prev Subimage"), this);
+    viewSubimagePrevAct->setShortcut(tr("<"));
+    connect(viewSubimagePrevAct, SIGNAL(triggered()), this, SLOT(viewSubimagePrev()));
+
+    viewSubimageNextAct = new QAction(tr("Next Subimage"), this);
+    viewSubimageNextAct->setShortcut(tr(">"));
+    connect(viewSubimageNextAct, SIGNAL(triggered()), this, SLOT(viewSubimageNext()));
+
     zoomInAct = new QAction(tr("Zoom &In"), this);
     zoomInAct->setShortcut(tr("Ctrl++"));
     zoomInAct->setEnabled(false);
@@ -338,6 +220,10 @@ void ImageViewer::createActions()
     showInfoWindowAct->setShortcut(tr("Ctrl+I"));
 //    showInfoWindowAct->setEnabled(true);
     connect (showInfoWindowAct, SIGNAL(triggered()), this, SLOT(showInfoWindow()));
+
+    showPixelviewWindowAct = new QAction(tr("&Pixel closeup view..."), this);
+    showPixelviewWindowAct->setShortcut(tr("P"));
+    connect (showPixelviewWindowAct, SIGNAL(triggered()), this, SLOT(showPixelviewWindow()));
 }
 
 
@@ -401,6 +287,8 @@ ImageViewer::createMenus()
     viewMenu->addAction (fitImageToWindowAct);
     viewMenu->addAction (fullScreenAct);
     viewMenu->addSeparator ();
+    viewMenu->addAction (viewSubimagePrevAct);
+    viewMenu->addAction (viewSubimageNextAct);
     viewMenu->addMenu (channelMenu);
     viewMenu->addMenu (expgamMenu);
     menuBar()->addMenu (viewMenu);
@@ -410,8 +298,8 @@ ImageViewer::createMenus()
 
     toolsMenu = new QMenu(tr("&Tools"), this);
     // Mode: select, zoom, pan, wipe
-    // Pixel view
     toolsMenu->addAction (showInfoWindowAct);
+    toolsMenu->addAction (showPixelviewWindowAct);
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -508,7 +396,7 @@ void ImageViewer::open()
     add_image (filename, false);
     int n = m_images.size()-1;
     IvImage *newimage = m_images[n];
-    newimage->read (false, image_progress_callback, this);
+    newimage->read (0, false, image_progress_callback, this);
     current_image (n);
     fitWindowToImage ();
 }
@@ -520,7 +408,7 @@ void ImageViewer::reload()
     if (m_images.empty())
         return;
     IvImage *newimage = m_images[m_current_image];
-    newimage->read (true, image_progress_callback, this);
+    newimage->read (newimage->subimage(), true, image_progress_callback, this);
     displayCurrentImage ();
 }
 
@@ -554,8 +442,10 @@ void
 ImageViewer::updateTitle ()
 {
     IvImage *img = cur();
-    if (! img)
+    if (! img) {
+        setWindowTitle (tr("iv Image Viewer (no image loaded)"));
         return;
+    }
     std::string message;
     message = Strutil::format ("%s - iv Image Viewer", img->name().c_str());
     setWindowTitle (message.c_str());
@@ -567,8 +457,11 @@ void
 ImageViewer::updateStatusBar ()
 {
     const ImageIOFormatSpec *spec = curspec();
-    if (! spec)
+    if (! spec) {
+        statusImgInfo->setText (tr("No image loaded"));
+        statusViewInfo->setText (tr(""));
         return;
+    }
     std::string message;
     message = Strutil::format ("%d/%d) : ", m_current_image+1, m_images.size());
     message += cur()->shortinfo();
@@ -589,6 +482,9 @@ ImageViewer::updateStatusBar ()
                                 zoom() >= 1 ? zoom() : 1.0f,
                                 zoom() >= 1 ? 1.0f : 1.0f/zoom(),
                                 cur()->exposure(), cur()->gamma());
+    if (cur()->nsubimages() > 1)
+        message += Strutil::format ("  subimg %d/%d",
+                                    cur()->subimage()+1, cur()->nsubimages());
     statusViewInfo->setText(message.c_str()); // tr("iv status"));
 }
 
@@ -597,28 +493,28 @@ ImageViewer::updateStatusBar ()
 void
 ImageViewer::displayCurrentImage ()
 {
-    if (m_images.empty()) {
-        m_current_image = m_last_image = -1;
-        return;
-    }
     if (m_current_image < 0 || m_current_image >= (int)m_images.size())
         m_current_image = 0;
     IvImage *img = cur();
-    const ImageIOFormatSpec &spec (img->spec());
-
-    if (! img->read (false, image_progress_callback, this))
-        std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
+    if (img) {
+        const ImageIOFormatSpec &spec (img->spec());
+        if (! img->read (img->subimage(), false, image_progress_callback, this))
+            std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
+    } else {
+        m_current_image = m_last_image = -1;
+    }
 
     updateTitle();
     updateStatusBar();
     if (infoWindow)
         infoWindow->update (img);
+    if (pixelviewWindow)
+        pixelviewWindow->update (img);
 
-    glwin->zoom (zoom());
     glwin->update (img);
+    glwin->zoom (zoom());
 
     printAct->setEnabled(true);
-    fitWindowToImageAct->setEnabled(true);
     fitImageToWindowAct->setEnabled(true);
     fullScreenAct->setEnabled(true);
     updateActions();
@@ -630,12 +526,12 @@ void
 ImageViewer::current_image (int newimage)
 {
     if (m_images.empty() || newimage < 0 || newimage >= (int)m_images.size())
-        return;
+        m_current_image = 0;
     if (m_current_image != newimage) {
         m_last_image = (m_current_image >= 0) ? m_current_image : newimage;
         m_current_image = newimage;
-        displayCurrentImage ();
     }
+    displayCurrentImage ();
 }
 
 
@@ -817,6 +713,37 @@ ImageViewer::viewChannelNext ()
 
 
 void
+ImageViewer::viewSubimagePrev ()
+{
+    IvImage *img = cur();
+    if (! img)
+        return;
+    if (img->subimage() > 0) {
+        img->read (img->subimage()-1, true, image_progress_callback, this);
+        if (fitImageToWindowAct->isChecked ())
+            fitImageToWindow ();
+        displayCurrentImage ();
+    }
+}
+
+
+void
+ImageViewer::viewSubimageNext ()
+{
+    IvImage *img = cur();
+    if (! img)
+        return;
+    if (img->subimage() < img->nsubimages()-1) {
+        img->read (img->subimage()+1, true, image_progress_callback, this);
+        if (fitImageToWindowAct->isChecked ())
+            fitImageToWindow ();
+        displayCurrentImage ();
+    }
+}
+
+
+
+void
 ImageViewer::keyPressEvent (QKeyEvent *event)
 {
     switch (event->key()) {
@@ -909,18 +836,12 @@ void ImageViewer::zoomIn()
     if (zoom() >= 64)
         return;
     if (zoom() >= 1.0f) {
-        int z = (int) zoom();
-        if (z < 4)
-            ++z;
-        else
-            z = pow2roundup (z+1);
+        int z = (int) round (zoom());
+        z = pow2roundup (z+1);
         zoom (z);
     } else {
-        int z = (int)(1.0 / zoom());
-        if (z > 4)
-            z = pow2rounddown (z-1);
-        else
-            --z;
+        int z = (int)round(1.0 / zoom());
+        z = pow2rounddown (z-1);
         zoom (1.0f / std::max(z,1));
     }
     fitImageToWindowAct->setChecked (false);
@@ -934,17 +855,11 @@ void ImageViewer::zoomOut()
         return;
     if (zoom() > 1.0f) {
         int z = (int) zoom();
-        if (z > 4)
-            z = pow2rounddown (z-1);
-        else
-            --z;
+        z = pow2rounddown (z-1);
         zoom (std::max ((float)z, 0.5f));
     } else {
         int z = (int)(1.0 / zoom() + 0.001);  // add for floating point slop
-        if (z < 4)
-            ++z;
-        else
-            z = pow2roundup (z+1);
+        z = pow2roundup (z+1);
         zoom (1.0f / z);
     }
     fitImageToWindowAct->setChecked (false);
@@ -978,8 +893,6 @@ void ImageViewer::fitImageToWindow()
     IvImage *img = cur();
     if (! img)
         return;
-//    QSize s = scrollArea->maximumViewportSize();
-//    int w = s.width(), h = s.height();
     zoom (zoom_needed_to_fit (width(), height()));
 }
 
@@ -995,8 +908,6 @@ void ImageViewer::fitWindowToImage()
     int extraw = 4; //12; // width() - minimumWidth();
     int extrah = statusBar()->height() + 4; //40; // height() - minimumHeight();
 //    std::cerr << "extra wh = " << extraw << ' ' << extrah << '\n';
-//    scrollArea->resize ((int)(img->spec().width * zoom()),
-//                        (int)(img->spec().height * zoom()));
 
     float z = zoom();
     int w = (int)(img->spec().width  * z)+extraw;
@@ -1046,7 +957,6 @@ void ImageViewer::fitWindowToImage()
 
 #if 0
     bool fit = fitWindowToImageAct->isChecked();
-    scrollArea->setWidgetResizable(fit);
     if (!fit) {
         normalSize();
     }
@@ -1063,9 +973,6 @@ void ImageViewer::fullScreenToggle()
         menuBar()->show ();
         statusBar()->show ();
         showNormal ();
-        // glwin->showNormal ();
-        // glwin->setParent (scrollArea);
-        // scrollArea->setWidget (glwin);
         m_fullscreen = false;
     } else {
         menuBar()->hide ();
@@ -1105,33 +1012,14 @@ ImageViewer::zoom (float newzoom)
     IvImage *img = cur();
     if (! img)
         return;
-#if USE_SCROLL_AREA
-    QScrollBar *hsb = scrollArea->horizontalScrollBar();
-    QScrollBar *vsb = scrollArea->verticalScrollBar();
-
-    // Zoom so that the center of the viewport stays on the same pixel
-    int centerh, centerv, oldcenterh, oldcenterv;
-    QSize viewsize = scrollArea->maximumViewportSize();
-    oldcenterh = Imath::clamp ((int)((viewsize.width()/2 + hsb->value())/zoom()), 0, curspec()->width-1);
-    oldcenterv = Imath::clamp ((int)((viewsize.height()/2 + vsb->value())/zoom()), 0, curspec()->height-1);
-#endif
 
     float oldzoom = m_zoom;
     float zoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
-    int nsteps = (int) Imath::clamp (10 * (zoomratio - 1), 1.0f, 10.0f);
+    int nsteps = (int) Imath::clamp (20 * (zoomratio - 1), 2.0f, 10.0f);
     for (int i = 1;  i <= nsteps;  ++i) {
         float z = Imath::lerp (oldzoom, newzoom, (float)i/(float)nsteps);
         m_zoom = z;
-
         glwin->zoom (zoom());
-
-#if USE_SCROLL_AREA
-        centerh = (int)(zoom() * oldcenterh) - viewsize.width()/2;
-        centerv = (int)(zoom() * oldcenterv) - viewsize.height()/2;
-        hsb->setValue (centerh);
-        vsb->setValue (centerv);
-#endif
-//        QApplication::processEvents();
         glwin->trigger_redraw();
         if (i != nsteps)
             usleep (1000000 / 4 / nsteps);
@@ -1148,10 +1036,8 @@ ImageViewer::zoom (float newzoom)
 void
 ImageViewer::showInfoWindow ()
 {
-    if (! infoWindow) {
-        std::cerr << "Making new info window\n";
+    if (! infoWindow)
         infoWindow = new IvInfoWindow (this, true);
-    }
     infoWindow->update (cur());
     infoWindow->show();
 }
@@ -1159,9 +1045,10 @@ ImageViewer::showInfoWindow ()
 
 
 void
-ImageViewer::get_view_size (int &w, int &h)
+ImageViewer::showPixelviewWindow ()
 {
-    QSize viewsize = scrollArea->maximumViewportSize();
-    w = viewsize.width ();
-    h = viewsize.height ();
+    if (! pixelviewWindow)
+        pixelviewWindow = new IvPixelviewWindow (this, true);
+    pixelviewWindow->update (cur());
+    pixelviewWindow->show();
 }

@@ -38,8 +38,10 @@ using namespace OpenImageIO;
 
 class IvMainWindow;
 class IvInfoWindow;
+class IvPixelviewWindow;
 class IvCanvas;
 class IvGL;
+class IvGLPixelview;
 
 
 
@@ -51,7 +53,7 @@ public:
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
     /// force==true.
-    bool read (bool force=false,
+    bool read (int subimage=0, bool force=false,
                OpenImageIO::ProgressCallback progress_callback=NULL,
                void *progress_callback_data=NULL);
 
@@ -87,6 +89,14 @@ public:
 
     std::string shortinfo () const;
     std::string longinfo () const;
+
+    /// Return the index of the subimage are we currently viewing
+    ///
+    int subimage () const { return m_current_subimage; }
+
+    /// Return the number of subimages in the file.
+    ///
+    int nsubimages () const { return m_nsubimages; }
 
 private:
     std::string m_name;        ///< Filename of the image
@@ -166,6 +176,8 @@ public:
     /// Return a ptr to the current image, or NULL if there is no
     /// current image.
     IvImage *cur (void) const {
+        if (m_images.empty())
+            return NULL;
         return m_current_image >= 0 ? m_images[m_current_image] : NULL;
     }
 
@@ -176,21 +188,17 @@ public:
         return img ? &img->spec() : NULL;
     }
 
-    /// Find out how big a window is visible.
-    ///
-    void get_view_size (int &w, int &h);
-
 private slots:
     void open();                        ///< Dialog to open new image from file
     void reload();                      ///< Reread current image from disk
     void closeImg();                    ///< Close the current image
-    void print();
-    void zoomIn();
-    void zoomOut();
-    void normalSize();
-    void fitImageToWindow();
-    void fitWindowToImage();
-    void fullScreenToggle();
+    void print();                       ///< Print current image
+    void zoomIn();                      ///< Zoom in to next power of 2
+    void zoomOut();                     ///< Zoom out to next power of 2
+    void normalSize();                  ///< Adjust zoom to 1:1
+    void fitImageToWindow();            ///< Adjust zoom to fit window exactly
+    void fitWindowToImage();            ///< Resize window to fit image exactly
+    void fullScreenToggle();            ///< Toggle full screen mode
     void about();                       ///< Show "about iv" dialog
     void prevImage();                   ///< View previous image in sequence
     void nextImage();                   ///< View next image in sequence
@@ -209,7 +217,10 @@ private slots:
     void viewChannelLuminance();        ///< View luminance as gray
     void viewChannelPrev();             ///< View just prev channel as gray
     void viewChannelNext();             ///< View just next channel as gray
+    void viewSubimagePrev();            ///< View prev subimage
+    void viewSubimageNext();            ///< View next subimage
     void showInfoWindow();              ///< View extended info on image
+    void showPixelviewWindow();         ///< View closeup pixel view
 private:
     void createActions ();
     void createMenus ();
@@ -224,9 +235,9 @@ private:
     void keyPressEvent (QKeyEvent *event);
     void resizeEvent (QResizeEvent *event);
 
-    IvCanvas *scrollArea;
     IvGL *glwin;
     IvInfoWindow *infoWindow;
+    IvPixelviewWindow *pixelviewWindow;
 
 #ifndef QT_NO_PRINTER
     QPrinter printer;
@@ -241,6 +252,7 @@ private:
     QAction *viewChannelFullAct, *viewChannelRedAct, *viewChannelGreenAct;
     QAction *viewChannelBlueAct, *viewChannelAlphaAct, *viewChannelLuminanceAct;
     QAction *viewChannelPrevAct, *viewChannelNextAct;
+    QAction *viewSubimagePrevAct, *viewSubimageNextAct;
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;
@@ -249,6 +261,7 @@ private:
     QAction *aboutAct;
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
     QAction *showInfoWindowAct;
+    QAction *showPixelviewWindowAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
     QMenu *expgamMenu, *channelMenu;
     QLabel *statusImgInfo, *statusViewInfo;
@@ -260,15 +273,13 @@ private:
     int m_last_image;                 ///< Last image we viewed
     float m_zoom;                     ///< Zoom amount (positive maxifies)
     bool m_fullscreen;                ///< Full screen mode
-    bool m_dragging;                  ///< Are we dragging?
-    int m_drag_oldx, m_drag_oldy;
-    Qt::MouseButton m_drag_button;    ///< Button on when dragging
 
     // What zoom do we need to fit these window dimensions?
     float zoom_needed_to_fit (int w, int h);
 
     friend class IvCanvas;
     friend class IvGL;
+    friend class IvGLPixelview;
     friend bool image_progress_callback (void *opaque, float done);
 };
 
@@ -284,6 +295,25 @@ public:
 private:
     QPushButton *closeButton;
     QScrollArea *scrollArea;
+    QLabel *infoLabel;
+
+    ImageViewer *m_viewer;
+    bool m_visible;
+};
+
+
+
+class IvPixelviewWindow : public QDialog
+{
+    Q_OBJECT
+public:
+    IvPixelviewWindow (ImageViewer *viewer=NULL, bool visible=true);
+    void update (IvImage *img);
+
+private:
+    QPushButton *closeButton;
+    QScrollArea *scrollArea;
+    IvGLPixelview *closeup;
     QLabel *infoLabel;
 
     ImageViewer *m_viewer;
@@ -311,31 +341,74 @@ public:
 
     void pan (float dx, float dy);
 
+    /// Which pixel is the mouse over?
+    ///
+    void get_focus_pixel (int &x, int &y);
+
 protected:
     void initializeGL ();
     void resizeGL (int w, int h);
     void paintGL ();
 private:
     ImageViewer &m_viewer;            ///< Backpointer to viewer
+    bool m_pixelview;                 ///< Is this a closeup pixelview window?
+    bool m_shaders_created;           ///< Have the shaders been created?
     GLuint m_vertex_shader;           ///< Vertex shader id
     GLuint m_fragment_shader;         ///< Fragment shader id
     GLuint m_shader_program;          ///< GL shader program id
     GLuint m_texid;                   ///< Texture holding current imag
     bool m_dragging;                  ///< Are we dragging?
-    int m_drag_oldx, m_drag_oldy;
+    int m_mousex, m_mousey;           ///< Last mouse position
     Qt::MouseButton m_drag_button;    ///< Button on when dragging
 
     float m_centerx, m_centery; ///< Where is the view centered in the img?
 
-    void useshader ();
+    void createshaders (void);
+    void useshader (void);
     void clamp_view_to_window ();
 
     void mousePressEvent (QMouseEvent *event);
     void mouseReleaseEvent (QMouseEvent *event);
     void mouseMoveEvent (QMouseEvent *event);
+    void wheelEvent (QWheelEvent *event);
+
+    void remember_mouse (const QPoint &pos) {
+        m_mousex = pos.x();
+        m_mousey = pos.y();
+    }
+
+    friend class IvGLPixelview;
+    typedef QGLWidget parent_t;
+};
+
+
+
+class IvGLPixelview : public QGLWidget
+{
+Q_OBJECT
+public:
+    IvGLPixelview (QWidget *parent, ImageViewer &viewer);
+    ~IvGLPixelview ();
+
+    void trigger_redraw (void) { glDraw(); }
+
+protected:
+    void initializeGL ();
+    void resizeGL (int w, int h);
+    void paintGL ();
+    void useshader (void);
+private:
+    ImageViewer &m_viewer;            ///< Backpointer to viewer
 
     typedef QGLWidget parent_t;
-
 };
+
+
+
+
+// Format name/value pairs as HTML table entries.
+std::string html_table_row (const char *name, const std::string &value);
+std::string html_table_row (const char *name, int value);
+
 
 #endif // IMAGEVIEWER_H

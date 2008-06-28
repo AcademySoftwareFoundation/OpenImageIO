@@ -20,6 +20,7 @@ DONE        jpeg - EXIF info
             API docs
             Linux
 DONE        iv - middle mouse drag
+DONE        iv - mouse wheel zoom
             iv - pixel view window
 DONE        iv - half, float, uint16
             imageio.h - should ImageIOFormatSpec just be ImageFormatSpec?
@@ -35,11 +36,13 @@ DONE        iv - half, float, uint16
 DONE        iv - fit image to window
 DONE        iv - full screen
             iv - view as depth, false, random
-            iv - prev/next subimage
+DONE        iv - prev/next subimage
             iv - >4 channels, gray vs color
 DONE        iv - info window - scroll when too much info to fit on screen
-            iv - clamp fit-window-to-image to display size
+DONE        iv - clamp fit-window-to-image to display size
             iv - why don't I seem to be getting HDR?
+            iv - Ctrl-W in info window should close info, not close image
+
 
 
 Before first alpha release

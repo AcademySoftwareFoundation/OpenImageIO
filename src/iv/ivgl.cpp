@@ -27,6 +27,7 @@
 #include <iostream>
 
 #include <half.h>
+#include <ImathFun.h>
 #include <QGLFormat>
 
 #include "imageviewer.h"
@@ -57,7 +58,8 @@ static MyGLFormat glformat;
 
 
 IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
-    : QGLWidget(glformat(), parent), m_viewer (viewer), 
+    : QGLWidget(glformat(), parent), m_viewer(viewer),
+      m_shaders_created(false),
       m_centerx(0.5), m_centery(0.5), m_dragging(false)
 {
 }
@@ -103,6 +105,18 @@ IvGL::initializeGL ()
     GLERRPRINT ("bind tex 1");
     std::cerr << "Resident? " << (int)residences[0] << "\n";
 #endif
+
+    createshaders();
+}
+
+
+
+
+void
+IvGL::createshaders (void)
+{
+    if (m_shaders_created)
+        return;
 
     m_shader_program = glCreateProgram ();
 
@@ -180,6 +194,8 @@ IvGL::initializeGL ()
     glGetProgramiv (m_shader_program, GL_ATTACHED_SHADERS, &attached_shaders);
     if (attached_shaders != 2)
         std::cerr << "attached shaders: " << (int)attached_shaders << "\n";
+
+    m_shaders_created = true;
 
     useshader ();
     GLint loc;
@@ -288,6 +304,9 @@ IvGL::useshader (void)
 void
 IvGL::update (IvImage *img)
 {
+    if (! img)
+        return;
+
     const ImageIOFormatSpec &spec (img->spec());
 //    glActiveTexture (GL_TEXTURE0);
     glBindTexture (GL_TEXTURE_2D, m_texid);
@@ -341,14 +360,13 @@ void
 IvGL::zoom (float z)
 {
     IvImage *img = m_viewer.cur();
-    if (! img)
-        return;
-    const ImageIOFormatSpec &spec (img->spec());
-//    std::cerr << "resizing to " << (spec.width*z) << ' ' << (spec.height*z) << "\n";
-    clamp_view_to_window ();
-    // Update the texture
-    repaint (0, 0, spec.width, spec.height);
-//    update (img);
+    if (img) {
+        const ImageIOFormatSpec &spec (img->spec());
+        clamp_view_to_window ();
+        repaint (0, 0, spec.width, spec.height);     // Update the texture
+    } else {
+        repaint (0, 0, width(), height());
+    }
 }
 
 
@@ -356,7 +374,6 @@ IvGL::zoom (float z)
 void
 IvGL::pan (float dx, float dy)
 {
-//    std::cerr << "Panning " << dx << ", " << dy << "\n";
     m_centerx += dx;
     m_centery += dy;
     clamp_view_to_window ();
@@ -419,6 +436,7 @@ IvGL::clamp_view_to_window ()
 void
 IvGL::mousePressEvent (QMouseEvent *event)
 {
+    remember_mouse (event->pos());
     m_drag_button = event->button();
     switch (event->button()) {
     case Qt::LeftButton :
@@ -429,8 +447,6 @@ IvGL::mousePressEvent (QMouseEvent *event)
         return;
     case Qt::MidButton :
         m_dragging = true;
-        m_drag_oldx = event->x();
-        m_drag_oldy = event->y();
         break;
     }
     parent_t::mousePressEvent (event);
@@ -441,6 +457,7 @@ IvGL::mousePressEvent (QMouseEvent *event)
 void
 IvGL::mouseReleaseEvent (QMouseEvent *event)
 {
+    remember_mouse (event->pos());
     m_drag_button = Qt::NoButton;
     switch (event->button()) {
     case Qt::MidButton :
@@ -455,20 +472,51 @@ IvGL::mouseReleaseEvent (QMouseEvent *event)
 void
 IvGL::mouseMoveEvent (QMouseEvent *event)
 {
+    QPoint pos = event->pos();
     // FIXME - there's probably a better Qt way than tracking the button
     // myself.
     switch (m_drag_button /*event->button()*/) {
     case Qt::MidButton : {
-        QPoint pos = event->pos(); //, oldpos = event->oldPos();
         float z = m_viewer.zoom ();
-        float dx = (pos.x() - m_drag_oldx) / (z * m_viewer.curspec()->width);
-        float dy = (pos.y() - m_drag_oldy) / (z * m_viewer.curspec()->height);
+        float dx = (pos.x() - m_mousex) / (z * m_viewer.curspec()->width);
+        float dy = (pos.y() - m_mousey) / (z * m_viewer.curspec()->height);
         pan (-dx, -dy);
-        m_drag_oldx = pos.x();
-        m_drag_oldy = pos.y();
         trigger_redraw();
         break;
         }
     }
+    remember_mouse (pos);
     parent_t::mouseMoveEvent (event);
+}
+
+
+
+void
+IvGL::wheelEvent (QWheelEvent *event)
+{
+    if (event->orientation() == Qt::Vertical) {
+        int degrees = event->delta() / 8;
+        if (true || (event->modifiers() & Qt::AltModifier)) {
+            // Holding down Alt while wheeling makes smooth zoom of small
+            // increments
+            float z = m_viewer.zoom();
+            z *= 1.0 + 0.005*degrees;
+            z = Imath::clamp (z, 0.01f, 256.0f);
+            m_viewer.zoom (z);
+            m_viewer.fitImageToWindowAct->setChecked (false);
+        } else {
+            if (degrees > 5)
+                m_viewer.zoomIn ();
+            else if (degrees < -5)
+                m_viewer.zoomOut ();
+        }
+        event->accept();
+    }
+}
+
+
+
+void
+IvGL::get_focus_pixel (int &x, int &y)
+{
 }
