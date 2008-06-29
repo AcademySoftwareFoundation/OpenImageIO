@@ -1025,8 +1025,8 @@ ImageViewer::zoom (float newzoom)
             usleep (1000000 / 4 / nsteps);
     }
 
-    zoomInAct->setEnabled (zoom() < 64.0);
-    zoomOutAct->setEnabled (zoom() > 1.0/64);
+//    zoomInAct->setEnabled (zoom() < 64.0);
+//    zoomOutAct->setEnabled (zoom() > 1.0/64);
 
     updateStatusBar ();
 }
@@ -1037,9 +1037,12 @@ void
 ImageViewer::showInfoWindow ()
 {
     if (! infoWindow)
-        infoWindow = new IvInfoWindow (this, true);
+        infoWindow = new IvInfoWindow (*this, true);
     infoWindow->update (cur());
-    infoWindow->show();
+    if (infoWindow->isHidden ())
+        infoWindow->show ();
+    else
+        infoWindow->hide ();
 }
 
 
@@ -1048,7 +1051,10 @@ void
 ImageViewer::showPixelviewWindow ()
 {
     if (! pixelviewWindow)
-        pixelviewWindow = new IvPixelviewWindow (this, true);
+        pixelviewWindow = new IvPixelviewWindow (*this, true);
     pixelviewWindow->update (cur());
-    pixelviewWindow->show();
+    if (pixelviewWindow->isHidden ())
+        pixelviewWindow->show ();
+    else
+        pixelviewWindow->hide ();
 }

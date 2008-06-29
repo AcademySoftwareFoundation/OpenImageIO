@@ -32,11 +32,9 @@
 
 
 
-IvInfoWindow::IvInfoWindow (ImageViewer *viewer, bool visible)
-    : QDialog(viewer), m_viewer(viewer), m_visible (visible)
+IvInfoWindow::IvInfoWindow (ImageViewer &viewer, bool visible)
+    : QDialog(&viewer), m_viewer(viewer), m_visible (visible)
 {
-    ASSERT (viewer != NULL);
-
     infoLabel = new QLabel;
 
     scrollArea = new QScrollArea;

@@ -98,6 +98,15 @@ public:
     ///
     int nsubimages () const { return m_nsubimages; }
 
+    int nchannels () const { return m_spec.nchannels; }
+
+    const void *pixeladdr (int x, int y) const {
+        size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
+        return &m_pixels[p];
+    }
+    void getpixel (int x, int y, int *pixel) const;
+    void getpixel (int x, int y, float *pixel) const;
+
 private:
     std::string m_name;        ///< Filename of the image
     int m_nsubimages;          ///< How many subimages are there?
@@ -280,6 +289,7 @@ private:
     friend class IvCanvas;
     friend class IvGL;
     friend class IvGLPixelview;
+    friend class IvPixelviewWindow;
     friend bool image_progress_callback (void *opaque, float done);
 };
 
@@ -289,7 +299,7 @@ class IvInfoWindow : public QDialog
 {
     Q_OBJECT
 public:
-    IvInfoWindow (ImageViewer *viewer=NULL, bool visible=true);
+    IvInfoWindow (ImageViewer &viewer, bool visible=true);
     void update (IvImage *img);
     
 private:
@@ -297,7 +307,7 @@ private:
     QScrollArea *scrollArea;
     QLabel *infoLabel;
 
-    ImageViewer *m_viewer;
+    ImageViewer &m_viewer;
     bool m_visible;
 };
 
@@ -307,16 +317,15 @@ class IvPixelviewWindow : public QDialog
 {
     Q_OBJECT
 public:
-    IvPixelviewWindow (ImageViewer *viewer=NULL, bool visible=true);
+    IvPixelviewWindow (ImageViewer &viewer, bool visible=true);
     void update (IvImage *img);
 
 private:
     QPushButton *closeButton;
-    QScrollArea *scrollArea;
     IvGLPixelview *closeup;
     QLabel *infoLabel;
 
-    ImageViewer *m_viewer;
+    ImageViewer &m_viewer;
     bool m_visible;
 };
 
@@ -356,6 +365,7 @@ private:
     GLuint m_vertex_shader;           ///< Vertex shader id
     GLuint m_fragment_shader;         ///< Fragment shader id
     GLuint m_shader_program;          ///< GL shader program id
+    bool m_tex_created;               ///< Have the textures been created?
     GLuint m_texid;                   ///< Texture holding current imag
     bool m_dragging;                  ///< Are we dragging?
     int m_mousex, m_mousey;           ///< Last mouse position
@@ -363,7 +373,8 @@ private:
 
     float m_centerx, m_centery; ///< Where is the view centered in the img?
 
-    void createshaders (void);
+    void create_shaders (void);
+    void create_textures (void);
     void useshader (void);
     void clamp_view_to_window ();
 
@@ -387,11 +398,11 @@ class IvGLPixelview : public QGLWidget
 {
 Q_OBJECT
 public:
-    IvGLPixelview (QWidget *parent, ImageViewer &viewer);
+    IvGLPixelview (ImageViewer &viewer);
     ~IvGLPixelview ();
 
     void trigger_redraw (void) { glDraw(); }
-
+    
 protected:
     void initializeGL ();
     void resizeGL (int w, int h);
@@ -409,6 +420,7 @@ private:
 // Format name/value pairs as HTML table entries.
 std::string html_table_row (const char *name, const std::string &value);
 std::string html_table_row (const char *name, int value);
+std::string html_table_row (const char *name, float value);
 
 
 #endif // IMAGEVIEWER_H

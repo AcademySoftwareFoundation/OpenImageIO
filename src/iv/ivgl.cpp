@@ -59,9 +59,10 @@ static MyGLFormat glformat;
 
 IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
     : QGLWidget(glformat(), parent), m_viewer(viewer),
-      m_shaders_created(false),
+      m_shaders_created(false), m_tex_created(false),
       m_centerx(0.5), m_centery(0.5), m_dragging(false)
 {
+    setMouseTracking (true);
 }
 
 
@@ -81,6 +82,18 @@ IvGL::initializeGL ()
     glShadeModel(GL_FLAT);
     glEnable (GL_DEPTH_TEST);
     glDisable (GL_CULL_FACE);
+
+    create_textures ();
+    create_shaders ();
+}
+
+
+
+void
+IvGL::create_textures (void)
+{
+    if (m_tex_created)
+        return;
 
     glGenTextures (1, &m_texid);
 //    glActiveTexture (GL_TEXTURE0);
@@ -106,14 +119,13 @@ IvGL::initializeGL ()
     std::cerr << "Resident? " << (int)residences[0] << "\n";
 #endif
 
-    createshaders();
+    m_tex_created = true;
 }
 
 
 
-
 void
-IvGL::createshaders (void)
+IvGL::create_shaders (void)
 {
     if (m_shaders_created)
         return;
@@ -385,9 +397,7 @@ void
 IvGL::clamp_view_to_window ()
 {
     int w = width(), h = height();
-//    m_viewer.get_view_size (w, h);
     float z = m_viewer.zoom ();
-
     float zoomedwidth  = z * m_viewer.curspec()->width;
     float zoomedheight = z * m_viewer.curspec()->height;
     float left    = m_centerx - 0.5 * ((float)w / zoomedwidth);
@@ -486,6 +496,8 @@ IvGL::mouseMoveEvent (QMouseEvent *event)
         }
     }
     remember_mouse (pos);
+    if (m_viewer.pixelviewWindow)
+        m_viewer.pixelviewWindow->update (m_viewer.cur());
     parent_t::mouseMoveEvent (event);
 }
 
@@ -519,4 +531,31 @@ IvGL::wheelEvent (QWheelEvent *event)
 void
 IvGL::get_focus_pixel (int &x, int &y)
 {
+    int w = width(), h = height();
+    float z = m_viewer.zoom ();
+    float zoomedwidth  = z * m_viewer.curspec()->width;
+    float zoomedheight = z * m_viewer.curspec()->height;
+    float left    = m_centerx - 0.5 * ((float)w / zoomedwidth);
+    float top     = m_centery - 0.5 * ((float)h / zoomedheight);
+    float right   = m_centerx + 0.5 * ((float)w / zoomedwidth);
+    float bottom  = m_centery + 0.5 * ((float)h / zoomedheight);
+
+    float normx = (float)(m_mousex + 0.5f) / w;
+    float normy = (float)(m_mousey + 0.5f) / h;
+    float imgx = Imath::lerp (left, right, normx);
+    float imgy = Imath::lerp (top, bottom, normy);
+    int pixx = imgx * m_viewer.curspec()->width;
+    int pixy = imgy * m_viewer.curspec()->height;
+    x = pixx;
+    y = pixy;
+#if 0
+    std::cerr << "get_focus_pixel\n";
+    std::cerr << "    mouse window pixel coords " << m_mousex << ' ' << m_mousey << "\n";
+    std::cerr << "    mouse window NDC coords " << normx << ' ' << normy << '\n';
+    std::cerr << "    center image coords " << m_centerx << ' ' << m_centery << "\n";
+    std::cerr << "    left,top = " << left << ' ' << top << "\n";
+    std::cerr << "    right,bottom = " << right << ' ' << bottom << "\n";
+    std::cerr << "    mouse image coords " << imgx << ' ' << imgy << "\n";
+    std::cerr << "    mouse pixel image coords " << pixx << ' ' << pixy << "\n";
+#endif
 }

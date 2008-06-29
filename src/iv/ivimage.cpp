@@ -164,6 +164,13 @@ html_table_row (const char *name, int value)
 }
 
 
+std::string
+html_table_row (const char *name, float value)
+{
+    return html_table_row (name, Strutil::format ("%g", value));
+}
+
+
 
 std::string
 IvImage::longinfo () const
@@ -227,3 +234,27 @@ IvImage::longinfo () const
     }
     return m_longinfo;
 }
+
+
+
+void
+IvImage::getpixel (int x, int y, int *pixel) const
+{
+    const OpenImageIO::stride_t as = OpenImageIO::AutoStride;
+    OpenImageIO::convert_image (m_spec.nchannels, 1, 1, 1,
+                                pixeladdr(x,y), m_spec.format, as, as, as,
+                                pixel, PT_INT, as, as, as);
+    std::cerr << "src offset " << pixeladdr(x,y) << ": " << pixel[0] << "\n";
+}
+
+
+
+void
+IvImage::getpixel (int x, int y, float *pixel) const
+{
+    const OpenImageIO::stride_t as = OpenImageIO::AutoStride;
+    OpenImageIO::convert_image (m_spec.nchannels, 1, 1, 1,
+                                pixeladdr(x,y), m_spec.format, as, as, as,
+                                pixel, PT_FLOAT, as, as, as);
+}
+
