@@ -370,6 +370,8 @@ OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src,
         case PT_DOUBLE : convert_type ((const double *)src, buf, n); break;
         case PT_INT8 :   convert_type ((const char *)src, buf, n);   break;
         case PT_INT16 :  convert_type ((const short *)src, buf, n);  break;
+        case PT_INT :    convert_type ((const int *)src, buf, n);  break;
+        case PT_UINT :   convert_type ((const unsigned int *)src, buf, n);  break;
         default:         return false;  // unknown format
         }
     }
@@ -388,6 +390,8 @@ OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src,
     case PT_HALF :   convert_type (buf, (half *)dst, n);   break;
     case PT_INT8 :   convert_type (buf, (char *)dst, n);   break;
     case PT_INT16 :  convert_type (buf, (short *)dst, n);  break;
+    case PT_INT :    convert_type (buf, (int *)dst, n);  break;
+    case PT_UINT :   convert_type (buf, (unsigned int *)dst, n);  break;
     case PT_DOUBLE : convert_type (buf, (double *)dst, n); break;
     default:         return false;  // unknown format
     }
