@@ -82,7 +82,10 @@ enum ParamBaseType {
     PT_INT8, PT_UINT8,       //< 8 bit int, signed and unsigned
     PT_BYTE = PT_UINT8,      //<    BYTE == synonym for UINT8
     PT_INT16, PT_UINT16,     //< 16 bit int, signed and unsigned
-    PT_INT, PT_UINT,         //< 32 bit int, signed and unsigned
+    PT_INT,                  //< 32-bit signed int
+    PT_INT32 = PT_INT,       //< 32-bit signed int
+    PT_UINT,                 //< 32-bit unsigned int
+    PT_UINT32 = PT_UINT,     //< 32-bit unsigned int
     PT_POINTER,              //< pointer, in system address width
       // For historical reasons, DO NOT change the order of the above!
       // Future expansion takes place here.  Remember to modify the 
