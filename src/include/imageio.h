@@ -75,7 +75,7 @@ const int IMAGEIO_VERSION = 10;
 
 /// Type we use for stride lengths.  It should be 64 bit on all 
 /// supported systems.
-typedef long long stride_t;
+typedef off_t stride_t;
 
 
 
