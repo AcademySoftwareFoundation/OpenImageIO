@@ -38,7 +38,9 @@ IvPixelviewWindow::IvPixelviewWindow (ImageViewer &viewer, bool visible)
     infoLabel = new QLabel;
 
     closeup = new IvGLPixelview (viewer);
-    closeup->resize (100, 100);
+    closeup->setFixedHeight (200 /*sizeHint().height()*/);
+    closeup->setFixedWidth (200 /*sizeHint().width()*/);
+//    closeup->resize (200, 200);
 //    closeup->setSizePolicy (QSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored));
 
     closeButton = new QPushButton (tr("Close"));
@@ -51,8 +53,6 @@ IvPixelviewWindow::IvPixelviewWindow (ImageViewer &viewer, bool visible)
     mainLayout->addWidget (closeButton);
     setLayout (mainLayout);
 
-    closeup->setFixedHeight (sizeHint().height());
-    closeup->setFixedWidth (sizeHint().width());
 
     setWindowTitle (tr("iv Pixel View"));
 }
@@ -99,53 +99,39 @@ IvPixelviewWindow::update (IvImage *img)
     } else {
         infoLabel->setText (tr("No image loaded."));
     }
-//    closeup->resize (100, 100);
-//    closeup->setSizePolicy (QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum));
+
+    closeup->update (img);
+    closeup->zoom (16);
+    closeup->trigger_redraw();
+}
+
+
+
+void
+IvPixelviewWindow::center (float x, float y)
+{
+    closeup->center (x, y);
 }
 
 
 
 IvGLPixelview::IvGLPixelview (ImageViewer &viewer)
-    : m_viewer (viewer)
+    : IvGL(NULL, viewer)
 {
-}
-
-
-
-IvGLPixelview::~IvGLPixelview ()
-{
+    m_pixelview = true;
 }
 
 
 
 void
-IvGLPixelview::initializeGL ()
+IvGLPixelview::zoom (float z)
 {
-    glClearColor (0.05, 0.05, 0.05, 1.0);
-    m_viewer.glwin->initializeGL ();
-}
-
-
-
-void
-IvGLPixelview::resizeGL (int w, int h)
-{
-    m_viewer.glwin->resizeGL (w, h);
-}
-
-
-
-void
-IvGLPixelview::paintGL ()
-{
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    m_viewer.glwin->paintGL ();
-}
-
-
-
-void
-IvGLPixelview::useshader ()
-{
-    m_viewer.glwin->useshader ();
+    IvImage *img = m_viewer.cur();
+    if (img) {
+        const ImageIOFormatSpec &spec (img->spec());
+        // clamp_view_to_window ();
+        repaint (0, 0, spec.width, spec.height);     // Update the texture
+    } else {
+        repaint (0, 0, width(), height());
+    }
 }

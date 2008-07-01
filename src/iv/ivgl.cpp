@@ -39,30 +39,20 @@
         std::cerr << "GL error " << msg << " " << (int)err << "\n";      \
 
 
-class MyGLFormat
-{
-public:
-    MyGLFormat() {
-        m_fmt.setRedBufferSize (32);
-        m_fmt.setGreenBufferSize (32);
-        m_fmt.setBlueBufferSize (32);
-        m_fmt.setAlphaBufferSize (32);
-    }
-    const QGLFormat & operator() () const { return m_fmt; }
-private:
-    QGLFormat m_fmt;
-};
-
-static MyGLFormat glformat;
-
 
 
 IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
-    : QGLWidget(glformat(), parent), m_viewer(viewer),
+    : QGLWidget(parent), m_viewer(viewer), m_pixelview(false),
       m_shaders_created(false), m_tex_created(false),
-      m_centerx(0.5), m_centery(0.5), m_dragging(false)
+      m_centerx(0.5), m_centery(0.5)
 {
-    setMouseTracking (true);
+    QGLFormat format;
+    format.setRedBufferSize (32);
+    format.setGreenBufferSize (32);
+    format.setBlueBufferSize (32);
+    format.setAlphaBufferSize (32);
+    format.setDepth (true);
+    setFormat (format);
 }
 
 
@@ -76,12 +66,15 @@ IvGL::~IvGL ()
 void
 IvGL::initializeGL ()
 {
-//    std::cerr << "initializeGL\n";
+    std::cerr << "initializeGL\n";
+    if (m_pixelview)
+    glClearColor (0.5, 0.05, 0.05, 1.0);
+    else
     glClearColor (0.05, 0.05, 0.05, 1.0);
-//    object = makeObject();
-    glShadeModel(GL_FLAT);
+    glShadeModel (GL_FLAT);
     glEnable (GL_DEPTH_TEST);
     glDisable (GL_CULL_FACE);
+//    glEnable (GL_TEXTURE_2D);
 
     create_textures ();
     create_shaders ();
@@ -96,7 +89,10 @@ IvGL::create_textures (void)
         return;
 
     glGenTextures (1, &m_texid);
+    m_texid = 0;
+    std::cerr << "m_texid = " << m_texid << ", texture0=" << GL_TEXTURE0 << "\n";
 //    glActiveTexture (GL_TEXTURE0);
+//    glEnable (GL_TEXTURE_2D);
     glBindTexture (GL_TEXTURE_2D, m_texid);
     half pix[4] = {.25, .25, 1, 1};
 #if 1
@@ -108,6 +104,8 @@ IvGL::create_textures (void)
                   (const GLvoid *)pix /*data*/);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 #endif
 
     GLERRPRINT ("bind tex 1");
@@ -157,9 +155,17 @@ IvGL::create_shaders (void)
         "uniform float gamma;\n"
         "uniform int channelview;\n"
         "uniform int imgchannels;\n"
+        "uniform int pixelview;\n"
+        "uniform int width;\n"
+        "uniform int height;\n"
         "void main ()\n"
         "{\n"
-        "    vec4 C = texture2D (imgtex, vTexCoord);\n"
+        "    vec2 st = vTexCoord;\n"
+        "    if (pixelview != 0) {\n"
+        "        vec2 wh = vec2(width,height);\n"
+        "        st = floor(st * wh + vec2(0.5,0.5)) / wh;\n"
+        "    }\n"
+        "    vec4 C = texture2D (imgtex, st);\n"
         "    if (imgchannels == 1)\n"
         "        C = C.xxxx;\n"
         "    if (channelview == -1) {\n"
@@ -179,6 +185,8 @@ IvGL::create_shaders (void)
         "    C.xyz *= gain;\n"
         "    float invgamma = 1.0/gamma;\n"
         "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
+//        "    if (pixelview != 0)\n"
+//        "        C = vec4(vTexCoord.x,vTexCoord.y,0,1);\n"
         "    gl_FragColor = C;\n"
         "}\n";
     m_fragment_shader = glCreateShader (GL_FRAGMENT_SHADER);
@@ -222,7 +230,8 @@ IvGL::create_shaders (void)
 void
 IvGL::resizeGL (int w, int h)
 {
-//    std::cerr << "resizeGL " << w << ' ' << h << "\n";
+    if (m_pixelview)
+    std::cerr << "resizeGL " << w << ' ' << h << "\n";
     GLERRPRINT ("resizeGL entry");
     glViewport (0, 0, w, h);
     glMatrixMode (GL_PROJECTION);
@@ -243,22 +252,29 @@ IvGL::paintGL ()
  
     IvImage *img = m_viewer.cur();
     const ImageIOFormatSpec &spec (img->spec());
-    float z = m_viewer.zoom();
+    float z = m_pixelview ? 1 : m_viewer.zoom();
 
-    if (z*spec.width <= width())  // FIXME - ivgl window?
-        m_centerx = 0.5;
-    if (z*spec.height <= height())
-        m_centery = 0.5;
+    if (! m_pixelview) {
+        if (z*spec.width <= width())  // FIXME - ivgl window?
+            m_centerx = 0.5;
+        if (z*spec.height <= height())
+            m_centery = 0.5;
+    }
 
+
+    glPushMatrix ();
     glLoadIdentity ();
+//    if (m_pixelview)
 //    std::cerr << "paintGL, center " << m_centerx << ' ' << m_centery << '\n';
     glScalef (z, z, 1);
-    glTranslatef (0, 0, -1.0);
+    glTranslatef (0, 0, -5.0);
     glScalef (spec.width, spec.height, 1);
     glTranslatef (-(m_centerx-0.5f), (m_centery-0.5f), 0.0f);
 
     useshader ();
 
+//    if (m_pixelview) return;
+#if 1
     glBegin (GL_QUAD_STRIP);
     glTexCoord2f (0, 0);
     glVertex3f (-0.5f, 0.5f, 1.0f);
@@ -269,17 +285,72 @@ IvGL::paintGL ()
     glTexCoord2f (1, 1);
     glVertex3f (0.5f, -0.5f, 1.0f);
     glEnd ();
+#endif
+    glPopMatrix ();
+
+    if (m_viewer.pixelviewOn()) {
+        const int ncloseuppixels = 9;   // How many pixels to show in each dir
+        const int closeuppixelzoom = 24;
+        const int closeupsize = ncloseuppixels * closeuppixelzoom;
+        int xp, yp;
+        m_viewer.glwin->get_focus_pixel (xp, yp);
+        float x = xp / (z * spec.width);
+        float y = yp / (z * spec.height);
+
+        glPushMatrix ();
+        glLoadIdentity ();
+        glTranslatef (0, 0, -1);
+#if 0
+        // Display closeup in upper left corner
+        glTranslatef (-spec.width*0.5 + closeupsize*0.5f + 5,
+                      spec.height*0.5 - closeupsize*0.5f - 5, 0);
+#else
+        // Display closeup overtop mouse
+        glTranslatef (z * (xp - spec.width/2), z * (spec.height/2 - yp), 0);
+#endif
+        glScalef (spec.width, spec.height, 1);
+        glScalef ((float)closeupsize/spec.width, (float)closeupsize/spec.height, 1);
+
+        useshader (true);
+
+        float xsize = 0.5 * (float)ncloseuppixels / spec.width;
+        float ysize = 0.5 * (float)ncloseuppixels / spec.height;
+        glBegin (GL_QUAD_STRIP);
+        glTexCoord2f (x - xsize, y - ysize);
+        glVertex3f (-0.5f, 0.5f, 1.0f);
+        glTexCoord2f (x + xsize, y - ysize);
+        glVertex3f (0.5f, 0.5f, 1.0f);
+        glTexCoord2f (x - xsize, y + ysize);
+        glVertex3f (-0.5f, -0.5f, 1.0f);
+        glTexCoord2f (x + xsize, y + ysize);
+        glVertex3f (0.5f, -0.5f, 1.0f);
+
+        setFont (QFont("Times", 24));
+        qglColor (QColor (1.0, 1.0, 1.0));
+        renderText (0.0, 0.0, 0.0, QString("Test"));
+        glEnd ();
+
+        glPopMatrix ();
+    }
+
+//////////////
+
+    swapBuffers ();
 }
 
 
 
 void
-IvGL::useshader (void)
+IvGL::useshader (bool pixelview)
 {
     IvImage *img = m_viewer.cur();
     if (! img)
         return;
     const ImageIOFormatSpec &spec (img->spec());
+
+//    glActiveTexture (GL_TEXTURE0);
+//    glEnable (GL_TEXTURE_2D);
+    glBindTexture (GL_TEXTURE_2D, m_texid);
 
     GLERRPRINT ("before use program");
     glUseProgram (m_shader_program);
@@ -309,6 +380,17 @@ IvGL::useshader (void)
     loc = glGetUniformLocation (m_shader_program, "imgchannels");
     glUniform1i (loc, spec.nchannels);
     GLERRPRINT ("set param 6");
+
+    loc = glGetUniformLocation (m_shader_program, "pixelview");
+    glUniform1i (loc, pixelview);
+    GLERRPRINT ("set param 7");
+
+    loc = glGetUniformLocation (m_shader_program, "width");
+    glUniform1i (loc, spec.width);
+    GLERRPRINT ("set param 8");
+    loc = glGetUniformLocation (m_shader_program, "height");
+    glUniform1i (loc, spec.height);
+    GLERRPRINT ("set param 9");
 }
 
 
@@ -318,10 +400,13 @@ IvGL::update (IvImage *img)
 {
     if (! img)
         return;
+    if (m_pixelview) return;
 
     const ImageIOFormatSpec &spec (img->spec());
 //    glActiveTexture (GL_TEXTURE0);
+//    glEnable (GL_TEXTURE_2D);
     glBindTexture (GL_TEXTURE_2D, m_texid);
+    std::cerr << "update " << (m_pixelview ? "pv " : "") <<" : bind " << m_texid << "\n";
 
     GLenum glformat = GL_RGB;
     if (spec.nchannels == 1)
@@ -369,7 +454,25 @@ IvGL::update (IvImage *img)
 
 
 void
-IvGL::zoom (float z)
+IvGL::center (float x, float y)
+{
+    m_centerx = x;
+    m_centery = y;
+    trigger_redraw ();
+}
+
+
+
+IvGLMainview::IvGLMainview (QWidget *parent, ImageViewer &viewer)
+    : IvGL(parent, viewer), m_dragging(false)
+{
+    setMouseTracking (true);
+}
+
+
+
+void
+IvGLMainview::zoom (float z)
 {
     IvImage *img = m_viewer.cur();
     if (img) {
@@ -384,17 +487,35 @@ IvGL::zoom (float z)
 
 
 void
-IvGL::pan (float dx, float dy)
+IvGLMainview::center (float x, float y)
 {
-    m_centerx += dx;
-    m_centery += dy;
+    m_centerx = x;
+    m_centery = y;
     clamp_view_to_window ();
+    trigger_redraw ();
 }
 
 
 
 void
-IvGL::clamp_view_to_window ()
+IvGLMainview::pan (float dx, float dy)
+{
+    center (m_centerx + dx, m_centery + dy);
+}
+
+
+
+void
+IvGLMainview::remember_mouse (const QPoint &pos)
+{
+    m_mousex = pos.x();
+    m_mousey = pos.y();
+}
+
+
+
+void
+IvGLMainview::clamp_view_to_window ()
 {
     int w = width(), h = height();
     float z = m_viewer.zoom ();
@@ -444,7 +565,7 @@ IvGL::clamp_view_to_window ()
 
 
 void
-IvGL::mousePressEvent (QMouseEvent *event)
+IvGLMainview::mousePressEvent (QMouseEvent *event)
 {
     remember_mouse (event->pos());
     m_drag_button = event->button();
@@ -465,7 +586,7 @@ IvGL::mousePressEvent (QMouseEvent *event)
 
 
 void
-IvGL::mouseReleaseEvent (QMouseEvent *event)
+IvGLMainview::mouseReleaseEvent (QMouseEvent *event)
 {
     remember_mouse (event->pos());
     m_drag_button = Qt::NoButton;
@@ -480,7 +601,7 @@ IvGL::mouseReleaseEvent (QMouseEvent *event)
 
 
 void
-IvGL::mouseMoveEvent (QMouseEvent *event)
+IvGLMainview::mouseMoveEvent (QMouseEvent *event)
 {
     QPoint pos = event->pos();
     // FIXME - there's probably a better Qt way than tracking the button
@@ -491,20 +612,26 @@ IvGL::mouseMoveEvent (QMouseEvent *event)
         float dx = (pos.x() - m_mousex) / (z * m_viewer.curspec()->width);
         float dy = (pos.y() - m_mousey) / (z * m_viewer.curspec()->height);
         pan (-dx, -dy);
-        trigger_redraw();
         break;
         }
     }
     remember_mouse (pos);
-    if (m_viewer.pixelviewWindow)
+    if (m_viewer.pixelviewWindow) {
+        float z = m_viewer.zoom ();
+        float x = pos.x() / (z * m_viewer.curspec()->width);
+        float y = pos.y() / (z * m_viewer.curspec()->height);
+        m_viewer.pixelviewWindow->center (x, y);
         m_viewer.pixelviewWindow->update (m_viewer.cur());
+    }
+    if (m_viewer.pixelviewOn())
+        trigger_redraw ();
     parent_t::mouseMoveEvent (event);
 }
 
 
 
 void
-IvGL::wheelEvent (QWheelEvent *event)
+IvGLMainview::wheelEvent (QWheelEvent *event)
 {
     if (event->orientation() == Qt::Vertical) {
         int degrees = event->delta() / 8;
@@ -529,7 +656,7 @@ IvGL::wheelEvent (QWheelEvent *event)
 
 
 void
-IvGL::get_focus_pixel (int &x, int &y)
+IvGLMainview::get_focus_pixel (int &x, int &y)
 {
     int w = width(), h = height();
     float z = m_viewer.zoom ();

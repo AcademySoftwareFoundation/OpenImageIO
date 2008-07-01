@@ -41,6 +41,7 @@ class IvInfoWindow;
 class IvPixelviewWindow;
 class IvCanvas;
 class IvGL;
+class IvGLMainview;
 class IvGLPixelview;
 
 
@@ -197,6 +198,10 @@ public:
         return img ? &img->spec() : NULL;
     }
 
+    bool pixelviewOn (void) const {
+        return (showPixelviewWindowAct && showPixelviewWindowAct->isChecked());
+    }
+
 private slots:
     void open();                        ///< Dialog to open new image from file
     void reload();                      ///< Reread current image from disk
@@ -244,7 +249,7 @@ private:
     void keyPressEvent (QKeyEvent *event);
     void resizeEvent (QResizeEvent *event);
 
-    IvGL *glwin;
+    IvGLMainview *glwin;
     IvInfoWindow *infoWindow;
     IvPixelviewWindow *pixelviewWindow;
 
@@ -288,6 +293,7 @@ private:
 
     friend class IvCanvas;
     friend class IvGL;
+    friend class IvGLMainview;
     friend class IvGLPixelview;
     friend class IvPixelviewWindow;
     friend bool image_progress_callback (void *opaque, float done);
@@ -319,6 +325,8 @@ class IvPixelviewWindow : public QDialog
 public:
     IvPixelviewWindow (ImageViewer &viewer, bool visible=true);
     void update (IvImage *img);
+//    void remember_mouse (const QPoint &pos);
+    void center (float x, float y);
 
 private:
     QPushButton *closeButton;
@@ -336,29 +344,21 @@ class IvGL : public QGLWidget
 Q_OBJECT
 public:
     IvGL (QWidget *parent, ImageViewer &viewer);
-    ~IvGL ();
+    virtual ~IvGL ();
 
     /// Update the image texture.
     ///
-    void update (IvImage *img);
+    virtual void update (IvImage *img);
 
     /// Update the zoom
     ///
-    void zoom (float newzoom);
+    virtual void zoom (float newzoom) { }
 
     void trigger_redraw (void) { glDraw(); }
 
-    void pan (float dx, float dy);
-
-    /// Which pixel is the mouse over?
-    ///
-    void get_focus_pixel (int &x, int &y);
+    virtual void center (float x, float y);
 
 protected:
-    void initializeGL ();
-    void resizeGL (int w, int h);
-    void paintGL ();
-private:
     ImageViewer &m_viewer;            ///< Backpointer to viewer
     bool m_pixelview;                 ///< Is this a closeup pixelview window?
     bool m_shaders_created;           ///< Have the shaders been created?
@@ -367,51 +367,82 @@ private:
     GLuint m_shader_program;          ///< GL shader program id
     bool m_tex_created;               ///< Have the textures been created?
     GLuint m_texid;                   ///< Texture holding current imag
-    bool m_dragging;                  ///< Are we dragging?
-    int m_mousex, m_mousey;           ///< Last mouse position
-    Qt::MouseButton m_drag_button;    ///< Button on when dragging
-
     float m_centerx, m_centery; ///< Where is the view centered in the img?
 
-    void create_shaders (void);
-    void create_textures (void);
-    void useshader (void);
-    void clamp_view_to_window ();
+    virtual void initializeGL ();
+    virtual void resizeGL (int w, int h);
+    virtual void paintGL ();
 
-    void mousePressEvent (QMouseEvent *event);
-    void mouseReleaseEvent (QMouseEvent *event);
-    void mouseMoveEvent (QMouseEvent *event);
-    void wheelEvent (QWheelEvent *event);
+    virtual void create_shaders (void);
+    virtual void create_textures (void);
+    virtual void useshader (bool pixelview=false);
 
-    void remember_mouse (const QPoint &pos) {
-        m_mousex = pos.x();
-        m_mousey = pos.y();
-    }
-
-    friend class IvGLPixelview;
+private:
     typedef QGLWidget parent_t;
 };
 
 
 
-class IvGLPixelview : public QGLWidget
+class IvGLMainview : public IvGL
+{
+Q_OBJECT
+public:
+    IvGLMainview (QWidget *parent, ImageViewer &viewer);
+
+    /// Update the zoom
+    ///
+    virtual void zoom (float newzoom);
+
+    virtual void center (float x, float y);
+
+    void pan (float dx, float dy);
+
+    /// Let the widget know which pixel the mouse is over
+    ///
+    void remember_mouse (const QPoint &pos);
+
+    /// Which pixel is the mouse over?
+    ///
+    void get_focus_pixel (int &x, int &y);
+
+protected:
+    bool m_dragging;                  ///< Are we dragging?
+    int m_mousex, m_mousey;           ///< Last mouse position
+    Qt::MouseButton m_drag_button;    ///< Button on when dragging
+
+    virtual void mousePressEvent (QMouseEvent *event);
+    virtual void mouseReleaseEvent (QMouseEvent *event);
+    virtual void mouseMoveEvent (QMouseEvent *event);
+    virtual void wheelEvent (QWheelEvent *event);
+
+private:
+    typedef IvGL parent_t;
+
+    void clamp_view_to_window ();
+};
+
+
+
+class IvGLPixelview : public IvGL
 {
 Q_OBJECT
 public:
     IvGLPixelview (ImageViewer &viewer);
-    ~IvGLPixelview ();
 
-    void trigger_redraw (void) { glDraw(); }
-    
+    /// Update the zoom
+    ///
+    virtual void zoom (float newzoom);
+
 protected:
-    void initializeGL ();
-    void resizeGL (int w, int h);
-    void paintGL ();
-    void useshader (void);
-private:
-    ImageViewer &m_viewer;            ///< Backpointer to viewer
+#if 0
+    virtual void initializeGL ();
+    virtual void resizeGL (int w, int h);
+    virtual void paintGL ();
+    virtual void useshader (void);
+#endif
 
-    typedef QGLWidget parent_t;
+private:
+    typedef IvGL parent_t;
 };
 
 

@@ -46,7 +46,7 @@ ImageViewer::ImageViewer ()
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
       m_zoom(1), m_fullscreen(false)
 {
-    glwin = new IvGL (this, *this);
+    glwin = new IvGLMainview (this, *this);
     glwin->resize (640, 480);
     setCentralWidget (glwin);
 
@@ -222,6 +222,7 @@ void ImageViewer::createActions()
     connect (showInfoWindowAct, SIGNAL(triggered()), this, SLOT(showInfoWindow()));
 
     showPixelviewWindowAct = new QAction(tr("&Pixel closeup view..."), this);
+    showPixelviewWindowAct->setCheckable (true);
     showPixelviewWindowAct->setShortcut(tr("P"));
     connect (showPixelviewWindowAct, SIGNAL(triggered()), this, SLOT(showPixelviewWindow()));
 }
@@ -999,9 +1000,9 @@ ImageViewer::about()
 
 void ImageViewer::updateActions()
 {
-    zoomInAct->setEnabled(!fitImageToWindowAct->isChecked());
-    zoomOutAct->setEnabled(!fitImageToWindowAct->isChecked());
-    normalSizeAct->setEnabled(!fitImageToWindowAct->isChecked());
+//    zoomInAct->setEnabled(!fitImageToWindowAct->isChecked());
+//    zoomOutAct->setEnabled(!fitImageToWindowAct->isChecked());
+//    normalSizeAct->setEnabled(!fitImageToWindowAct->isChecked());
 }
 
 
@@ -1050,6 +1051,8 @@ ImageViewer::showInfoWindow ()
 void
 ImageViewer::showPixelviewWindow ()
 {
+//    showPixelviewWindowAct->setChecked (! showPixelviewWindowAct->isChecked());
+#if 0
     if (! pixelviewWindow)
         pixelviewWindow = new IvPixelviewWindow (*this, true);
     pixelviewWindow->update (cur());
@@ -1057,4 +1060,6 @@ ImageViewer::showPixelviewWindow ()
         pixelviewWindow->show ();
     else
         pixelviewWindow->hide ();
+#endif
+    glwin->trigger_redraw ();
 }
