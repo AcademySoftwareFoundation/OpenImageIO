@@ -32,7 +32,8 @@ ifeq (${ILMBASE_HOME},)
 endif
 ILMBASE_LIB_AREA := ${ILMBASE_HOME}/lib/ilmbase-${ILMBASE_VERSION}
 ILMBASE_CXX := -I${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}/OpenEXR
-LINK_ILMBASE := ${LD_LIBPATH}${ILMBASE_LIB_AREA} -lImath -lHalf -lIlmThread -lIex
+#LINK_ILMBASE := ${LD_LIBPATH}${ILMBASE_LIB_AREA} -lImath -lHalf -lIlmThread -lIex
+LINK_ILMBASE := ${LD_LIBPATH}${ILMBASE_LIB_AREA} -lImath ${ILMBASE_LIB_AREA}/half${OEXT} -lIlmThread -lIex
 
 OPENEXR_VERSION := 1.6.1
 ifeq (${OPENEXR_HOME},)
@@ -74,18 +75,20 @@ else
   BOOST_SUFFIX := -gcc41-mt-1_35
 endif
 LINK_BOOST := ${LD_LIBPATH}${BOOST_LIB_AREA}
-LINK_BOOST += -lboost_program_options${BOOST_SUFFIX} \
-	      -lboost_filesystem${BOOST_SUFFIX} \
+LINK_BOOST += -lboost_filesystem${BOOST_SUFFIX} \
 	      -lboost_system${BOOST_SUFFIX} \
 	      -lboost_thread${BOOST_SUFFIX}
+#-lboost_program_options${BOOST_SUFFIX}
+
+
 dist_extra_libs += ${BOOST_LIB_AREA}/libboost_program_options${BOOST_SUFFIX}${SHLIBEXT} \
-		   ${BOOST_LIB_AREA}/libboost_filesystem${BOOST_SUFFIX}${SHLIBEXT} \
-		   ${BOOST_LIB_AREA}/libboost_system${BOOST_SUFFIX}${SHLIBEXT} \
-		   ${BOOST_LIB_AREA}/libboost_thread${BOOST_SUFFIX}${SHLIBEXT} \
+		   $(wildcard ${BOOST_LIB_AREA}/libboost_filesystem${BOOST_SUFFIX}${SHLIBEXT}*) \
+		   $(wildcard ${BOOST_LIB_AREA}/libboost_system${BOOST_SUFFIX}${SHLIBEXT}*) \
+		   $(wildcard ${BOOST_LIB_AREA}/libboost_thread${BOOST_SUFFIX}${SHLIBEXT}*) \
 		   ${ILMBASE_LIB_AREA}/libHalf${SHLIBEXT} \
-		   ${ILMBASE_LIB_AREA}/libImath${SHLIBEXT} \
-		   ${ILMBASE_LIB_AREA}/libIex${SHLIBEXT} \
-		   ${ILMBASE_LIB_AREA}/libIlmThread${SHLIBEXT}
+		   $(wildcard ${ILMBASE_LIB_AREA}/libImath${SHLIBEXT}*) \
+		   $(wildcard ${ILMBASE_LIB_AREA}/libIex${SHLIBEXT}*) \
+		   $(wildcard ${ILMBASE_LIB_AREA}/libIlmThread${SHLIBEXT}*)
 
 
 PROJECT_EXTRA_CXX := ${ILMBASE_CXX} ${OPENEXR_CXX} ${TIFF_CXX} ${JPEG_CXX} \
