@@ -31,6 +31,9 @@
 #include <QGLFormat>
 
 #include "imageviewer.h"
+#include "strutil.h"
+
+#define USE_SHADERS 1
 
 
 
@@ -46,6 +49,7 @@ IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
       m_shaders_created(false), m_tex_created(false),
       m_centerx(0.5), m_centery(0.5)
 {
+#if 0
     QGLFormat format;
     format.setRedBufferSize (32);
     format.setGreenBufferSize (32);
@@ -53,6 +57,7 @@ IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
     format.setAlphaBufferSize (32);
     format.setDepth (true);
     setFormat (format);
+#endif
 }
 
 
@@ -66,7 +71,7 @@ IvGL::~IvGL ()
 void
 IvGL::initializeGL ()
 {
-    std::cerr << "initializeGL\n";
+    std::cerr << "\n\n\ninitializeGL\n";
     if (m_pixelview)
     glClearColor (0.5, 0.05, 0.05, 1.0);
     else
@@ -74,10 +79,15 @@ IvGL::initializeGL ()
     glShadeModel (GL_FLAT);
     glEnable (GL_DEPTH_TEST);
     glDisable (GL_CULL_FACE);
+    glEnable (GL_ALPHA_TEST);
+    glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 //    glEnable (GL_TEXTURE_2D);
 
     create_textures ();
+#ifdef USE_SHADERS
     create_shaders ();
+#endif
 }
 
 
@@ -163,7 +173,8 @@ IvGL::create_shaders (void)
         "    vec2 st = vTexCoord;\n"
         "    if (pixelview != 0) {\n"
         "        vec2 wh = vec2(width,height);\n"
-        "        st = floor(st * wh + vec2(0.5,0.5)) / wh;\n"
+        "        vec2 onehalf = vec2(0.5,0.5);\n"
+        "        st = (floor(st * wh + onehalf) + onehalf) / wh;\n"
         "    }\n"
         "    vec4 C = texture2D (imgtex, st);\n"
         "    if (imgchannels == 1)\n"
@@ -217,12 +228,15 @@ IvGL::create_shaders (void)
 
     m_shaders_created = true;
 
-    useshader ();
+#if 0
+//    useshader ();
+
     GLint loc;
     loc = glGetUniformLocation (m_shader_program, "imgtex");
     GLERRPRINT ("use tex 1");
     glUniform1i (loc, m_texid /*texture sampler number*/);
     GLERRPRINT ("use tex 2");
+#endif
 }
 
 
@@ -261,7 +275,7 @@ IvGL::paintGL ()
             m_centery = 0.5;
     }
 
-
+    glPushAttrib (GL_ALL_ATTRIB_BITS);
     glPushMatrix ();
     glLoadIdentity ();
 //    if (m_pixelview)
@@ -287,55 +301,138 @@ IvGL::paintGL ()
     glEnd ();
 #endif
     glPopMatrix ();
+    glPopAttrib ();
 
     if (m_viewer.pixelviewOn()) {
-        const int ncloseuppixels = 9;   // How many pixels to show in each dir
-        const int closeuppixelzoom = 24;
-        const int closeupsize = ncloseuppixels * closeuppixelzoom;
-        int xp, yp;
-        m_viewer.glwin->get_focus_pixel (xp, yp);
-        float x = xp / (z * spec.width);
-        float y = yp / (z * spec.height);
-
-        glPushMatrix ();
-        glLoadIdentity ();
-        glTranslatef (0, 0, -1);
-#if 0
-        // Display closeup in upper left corner
-        glTranslatef (-spec.width*0.5 + closeupsize*0.5f + 5,
-                      spec.height*0.5 - closeupsize*0.5f - 5, 0);
-#else
-        // Display closeup overtop mouse
-        glTranslatef (z * (xp - spec.width/2), z * (spec.height/2 - yp), 0);
-#endif
-        glScalef (spec.width, spec.height, 1);
-        glScalef ((float)closeupsize/spec.width, (float)closeupsize/spec.height, 1);
-
-        useshader (true);
-
-        float xsize = 0.5 * (float)ncloseuppixels / spec.width;
-        float ysize = 0.5 * (float)ncloseuppixels / spec.height;
-        glBegin (GL_QUAD_STRIP);
-        glTexCoord2f (x - xsize, y - ysize);
-        glVertex3f (-0.5f, 0.5f, 1.0f);
-        glTexCoord2f (x + xsize, y - ysize);
-        glVertex3f (0.5f, 0.5f, 1.0f);
-        glTexCoord2f (x - xsize, y + ysize);
-        glVertex3f (-0.5f, -0.5f, 1.0f);
-        glTexCoord2f (x + xsize, y + ysize);
-        glVertex3f (0.5f, -0.5f, 1.0f);
-
-        setFont (QFont("Times", 24));
-        qglColor (QColor (1.0, 1.0, 1.0));
-        renderText (0.0, 0.0, 0.0, QString("Test"));
-        glEnd ();
-
-        glPopMatrix ();
+        paint_pixelview ();
     }
+}
 
-//////////////
 
-    swapBuffers ();
+
+void
+IvGL::shadowed_text (int x, int y, const std::string &s,
+                     const QFont &font)
+{
+    QString q (s.c_str());
+#if 0
+    glColor4f (0, 0, 0, 1);
+    const int b = 2;  // blur size
+    for (int i = -b;  i <= b;  ++i)
+        for (int j = -b;  j <= b;  ++j)
+            renderText (x+i, y+j, q, font);
+#endif
+    glColor4f (1, 1, 1, 1);
+    renderText (x, y, q, font);
+}
+
+
+
+void
+IvGL::paint_pixelview ()
+{
+    const int ncloseuppixels = 9;   // How many pixels to show in each dir
+    const int closeuppixelzoom = 24;
+    const int closeupsize = ncloseuppixels * closeuppixelzoom;
+
+//    glFlush();
+    IvImage *img = m_viewer.cur();
+    const ImageIOFormatSpec &spec (img->spec());
+    float z = m_pixelview ? 1 : m_viewer.zoom();
+    int xp, yp;
+    m_viewer.glwin->get_focus_image_pixel (xp, yp);
+    float x = xp / (z * spec.width);
+    float y = yp / (z * spec.height);
+
+    glPushMatrix ();
+    glLoadIdentity ();
+    glTranslatef (0, 0, -1);
+#if 0
+    // Display closeup in upper left corner
+    glTranslatef (-spec.width*0.5 + closeupsize*0.5f + 5,
+                  spec.height*0.5 - closeupsize*0.5f - 5, 0);
+#else
+    // Display closeup overtop mouse
+    glTranslatef (z * (xp - spec.width/2), z * (spec.height/2 - yp), 0);
+#endif
+//    glScalef (spec.width, spec.height, 1);
+//    glScalef ((float)closeupsize, (float)closeupsize, 1);
+
+    glPushAttrib (GL_ALL_ATTRIB_BITS);
+    useshader (true);
+    float xtexsize = 0.5 * (float)ncloseuppixels / spec.width;
+    float ytexsize = 0.5 * (float)ncloseuppixels / spec.height;
+    glBegin (GL_QUAD_STRIP);
+    glTexCoord2f (x - xtexsize, y - ytexsize);
+    glVertex3f (-0.5f*closeupsize,  0.5f*closeupsize, 1.0f);
+    glTexCoord2f (x + xtexsize, y - ytexsize);
+    glVertex3f ( 0.5f*closeupsize,  0.5f*closeupsize, 1.0f);
+    glTexCoord2f (x - xtexsize, y + ytexsize);
+    glVertex3f (-0.5f*closeupsize, -0.5f*closeupsize, 1.0f);
+    glTexCoord2f (x + xtexsize, y + ytexsize);
+    glVertex3f ( 0.5f*closeupsize, -0.5f*closeupsize, 1.0f);
+    glEnd ();
+    glPopAttrib ();
+
+    int xwin, ywin;
+    m_viewer.glwin->get_focus_image_pixel (xwin, ywin);
+    const int yspacing = 18;
+    int textx = xwin - closeupsize/2 + 4;
+    int texty = ywin + closeupsize/2 + yspacing;
+
+    glPushAttrib (GL_ALL_ATTRIB_BITS);
+    glUseProgram (0);
+#if 1
+    float extraspace = yspacing * (1 + spec.nchannels);
+    glColor4f (0, 0, 0, 0.75);
+    glBegin (GL_QUAD_STRIP);
+    glVertex3f (-0.5f*closeupsize-2, 0.5f*closeupsize+2, 1.0f);
+    glVertex3f ( 0.5f*closeupsize+2, 0.5f*closeupsize+2, 1.0f);
+    glVertex3f (-0.5f*closeupsize-2, -0.5f*closeupsize - extraspace, 1.0f);
+    glVertex3f ( 0.5f*closeupsize+2, -0.5f*closeupsize - extraspace, 1.0f);
+    glEnd ();
+#endif
+
+//        setFont (QFont("Times", 24));
+//        qglColor (QColor (1.0, 1.0, 1.0));
+#if 1
+    QFont fgfont;
+    fgfont.setFixedPitch (true);
+//        std::cerr << "pixel size " << font.pixelSize() << "\n";
+//    fgfont.setPixelSize (16);
+//    fgfont.setFixedPitch (20);
+    glColor3f (1, 1, 0.25);
+//    bgfont.setPixelSize (20);
+    char *pixel = (char *) alloca (spec.pixel_bytes());
+    float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
+    if (xp >= 0 && xp <= spec.width && yp >= 0 && yp <= spec.height) {
+        std::string s = Strutil::format ("(%d, %d)", xp+spec.x, yp+spec.y);
+        shadowed_text (textx, texty, s, fgfont);
+        texty += yspacing;
+        img->getpixel (xp, yp, fpixel);
+        if (spec.format == PT_UINT8) {
+            unsigned char *p = (unsigned char *) img->pixeladdr (xp, yp);
+            for (int i = 0;  i < spec.nchannels;  ++i) {
+                s = Strutil::format ("%s: %3d  (%5.3f)",
+                                     spec.channelnames[i].c_str(),
+                                     (int)(p[i]), fpixel[i]);
+                shadowed_text (textx, texty, s, fgfont);
+                texty += yspacing;
+            }
+        } else {
+            // Treat as float
+            for (int i = 0;  i < spec.nchannels;  ++i) {
+                s = Strutil::format ("%s: %5.3f",
+                                     spec.channelnames[i].c_str(), fpixel[i]);
+                shadowed_text (textx, texty, s, fgfont);
+                texty += yspacing;
+            }
+        }
+    }
+#endif
+    glPopAttrib ();
+  
+    glPopMatrix ();
 }
 
 
@@ -343,13 +440,18 @@ IvGL::paintGL ()
 void
 IvGL::useshader (bool pixelview)
 {
+#if (USE_SHADERS == 0)
+    glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    return;
+#endif
+
     IvImage *img = m_viewer.cur();
     if (! img)
         return;
     const ImageIOFormatSpec &spec (img->spec());
 
-//    glActiveTexture (GL_TEXTURE0);
-//    glEnable (GL_TEXTURE_2D);
+    glActiveTexture (GL_TEXTURE0);
+    glEnable (GL_TEXTURE_2D);
     glBindTexture (GL_TEXTURE_2D, m_texid);
 
     GLERRPRINT ("before use program");
@@ -656,7 +758,16 @@ IvGLMainview::wheelEvent (QWheelEvent *event)
 
 
 void
-IvGLMainview::get_focus_pixel (int &x, int &y)
+IvGLMainview::get_focus_window_pixel (int &x, int &y)
+{
+    x = m_mousex;
+    y = m_mousey;
+}
+
+
+
+void
+IvGLMainview::get_focus_image_pixel (int &x, int &y)
 {
     int w = width(), h = height();
     float z = m_viewer.zoom ();

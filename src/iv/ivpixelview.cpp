@@ -74,7 +74,7 @@ IvPixelviewWindow::update (IvImage *img)
         int x, y;
         char *pixel = (char *) alloca (spec.pixel_bytes());
         float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
-        m_viewer.glwin->get_focus_pixel (x, y);
+        m_viewer.glwin->get_focus_image_pixel (x, y);
         if (x >= 0 && x <= spec.width && y >= 0 && y <= spec.height) {
             s += Strutil::format ("<p>(%d, %d)</p>", x+spec.x, y+spec.y);
             s += "<table>";

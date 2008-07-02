@@ -373,9 +373,15 @@ protected:
     virtual void resizeGL (int w, int h);
     virtual void paintGL ();
 
+    void paint_pixelview ();
+    void glSquare (float xmin, float ymin, float xmax, float ymax, float z=0);
+
     virtual void create_shaders (void);
     virtual void create_textures (void);
     virtual void useshader (bool pixelview=false);
+
+    void shadowed_text (int x, int y, const std::string &s,
+                        const QFont &font);
 
 private:
     typedef QGLWidget parent_t;
@@ -401,9 +407,13 @@ public:
     ///
     void remember_mouse (const QPoint &pos);
 
-    /// Which pixel is the mouse over?
+    /// Which image pixel is the mouse over?
     ///
-    void get_focus_pixel (int &x, int &y);
+    void get_focus_image_pixel (int &x, int &y);
+
+    /// Which display window pixel is the mouse over?  (Relative to
+    /// widget boundaries)
+    void get_focus_window_pixel (int &x, int &y);
 
 protected:
     bool m_dragging;                  ///< Are we dragging?
