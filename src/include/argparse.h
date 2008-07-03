@@ -102,12 +102,12 @@ public:
     int parse (const char *format, ...); // parse the command line  <0 on error
     int found (char *option);            // number of times option was parsed
 
-    char *error_message () { return message; };
+    std::string error_message () const { return errmessage; }
 
 private:
     int argc;                           // a copy of the command line argc
     char **argv;                        // a copy of the command line argv
-    char message[4096];                 // error message
+    std::string errmessage;             // error message
     ArgOption *global;                  // option for extra cmd line arguments
     
     std::vector<ArgOption *> option;
@@ -115,7 +115,7 @@ private:
     ArgOption *find_option(const char *name);
     int invoke_all_sublist_callbacks();
     int parse_command_line();
-    void report_error(const char *format, ...);
+    void error (const char *format, ...);
 };
 
 
@@ -123,41 +123,41 @@ private:
 class ArgOption {
 public:
     ArgOption (const char *str);
-    ~ArgOption();
+    ~ArgOption () { }
     
     int initialize ();
     
     int parameter_count () const { return count; }
-    const char *name() const { return flag; }
+    const std::string & name() const { return flag; }
 
-    bool is_flag() const { return type == Flag; }
-    bool is_sublist() const { return type == Sublist; }
-    bool is_regular() const { return type == Regular; }
+    bool is_flag () const { return type == Flag; }
+    bool is_sublist () const { return type == Sublist; }
+    bool is_regular () const { return type == Regular; }
     
     void add_parameter (int i, void *p);
 
-    void set_parameter (int i, char *argv);
+    void set_parameter (int i, const char *argv);
 
     void add_argument (char *argv);
-    int invoke_callback() const;
+    int invoke_callback () const;
 
-    void found_on_command_line() { repetitions++; }
-    int parsed_count() const { return repetitions; }
+    void found_on_command_line () { repetitions++; }
+    int parsed_count () const { return repetitions; }
     
- private:
+private:
     enum OptionType { None, Regular, Flag, Sublist };
 
-    const char *format;                         // original format string
-    char *flag;                                 // just the -flag_foo part
-    char *code;                                 // paramter types, eg "df"
+    std::string format;                         // original format string
+    std::string flag;                           // just the -flag_foo part
+    std::string code;                           // paramter types, eg "df"
     OptionType type;                    
     int count;                                  // number of parameters
-    void **param;                               // pointers to app data vars
+    std::vector<void *> param;                  // pointers to app data vars
     int (*callback) (int argc, char **argv);
     int repetitions;                            // number of times on cmd line
-    int argc;                                   // for sublist storage
-    char **argv;
+    std::vector<std::string> argv;
 };
+
 
 
 // }; // namespace ???

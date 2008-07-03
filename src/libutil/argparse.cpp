@@ -41,24 +41,19 @@
 #include <cstdarg>
 #include <iterator>
 
+#include "strutil.h"
+
+#define DLL_EXPORT_PUBLIC /* Because we are implementing ArgParse */
 #include "argparse.h"
+#undef DLL_EXPORT_PUBLIC
 
 
 
 // Constructor.  Does not do any parsing or error checking.
 // Make sure to call initialize() right after construction.
 ArgOption::ArgOption (const char *str) 
-    : format(str)
+    : format(str), type(None), count(0), callback(NULL), repetitions(0)
 {
-    flag = NULL;
-    code = NULL;
-    type = None;
-    count = 0;
-    param = NULL;
-    callback = NULL;
-    repetitions = 0;
-    argc = 0;
-    argv = NULL;
 }
 
 
@@ -72,17 +67,15 @@ ArgOption::initialize()
 {
     size_t n;
     const char *s;
-    char *c;
 
-    if (format[0] == '\0' ||
-        (format[0] == '%' && format[1] == '*' && format[2] == '\0')) {
+    if (format.empty() || format == "%*") {
         type = Sublist;
         count = 1;                      // sublist callback function pointer
-        code = strdup("*");
-        flag = strdup("");
+        code = "*";
+        flag = "";
     } else {
         // extract the flag name
-        s = format;
+        s = &format[0];
         assert(*s == '-');
         assert(isalpha(s[1]));
     
@@ -90,26 +83,21 @@ ArgOption::initialize()
 
         while (isalnum(*s) || *s == '_' || *s == '-') s++;
 
-        n = s - format + 1;
-        flag = (char *)malloc (n * sizeof(char));
-        assert(flag != NULL);
-        strncpy(flag, format, n-1);
-        flag[n-1] = '\0';
+        n = s - (&format[0]) + 1;
+        flag.assign (format.begin(), format.begin()+n);
 
         // Check to see if this is a simple flag option
-        if (n == strlen (format) + 1) {
+        if (n == format.length() + 1) {
             type = Flag;
             count = 1;
-            code = strdup("!");
+            code = "!";
         } else {
             // Parse the scanf-like parameters
 
             type = Regular;
     
-            n = (strlen (format) - n) / 2;       // conservative estimate
-            code = (char *)malloc(n * sizeof (char));
-            assert(code != NULL);
-            c = code;
+            n = (format.length() - n) / 2;       // conservative estimate
+            code.clear ();
     
             while (*s != '\0') {
                 if (*s == '%') {
@@ -127,7 +115,7 @@ ArgOption::initialize()
                     case 'S':                   // allocated char *
                     case 'L':                   // allocated char * list
                         assert (type == Regular);
-                        *c++ = *s;
+                        code += *s;
                         break;
 
                     case '*':
@@ -148,9 +136,7 @@ ArgOption::initialize()
     }
     
     // Allocate space for the parameter pointers and initialize to NULL
-    assert(count > 0);
-    param = (void **)calloc (count, sizeof(void *));
-    assert(param != NULL);
+    param.resize (count, NULL);
 
     return 0;
 }
@@ -159,6 +145,7 @@ ArgOption::initialize()
 
 // Stores the pointer to an argument in the param list and
 // initializes flag options to FALSE.
+// FIXME -- there is no such initialization.  Bug?
 void
 ArgOption::add_parameter (int i, void *p)
 {
@@ -171,7 +158,7 @@ ArgOption::add_parameter (int i, void *p)
 // Given a string from argv, set the associated option parameter
 // at index i using the format conversion code in the code string.
 void
-ArgOption::set_parameter (int i, char *argv)
+ArgOption::set_parameter (int i, const char *argv)
 {
     assert(i < count);
     
@@ -190,22 +177,17 @@ ArgOption::set_parameter (int i, char *argv)
         break;
 
     case 's':
-        strcpy((char *)param[i], argv);
+        *(std::string *)param[i] = argv;
         break;
 
     case 'S':
-        *(char **)param[i] = strdup(argv);
+        *(std::string *)param[i] = argv;
         break;
 
     case 'L':
-        if (*(char **)param[i] == NULL) {
-            *(char **)param[i] = strdup(argv);
-        } else {
-            char *tmp = *(char **)param[i];
-            size_t len = strlen (tmp) + strlen (argv) + 2;  // + (space & \0)
-            *(char **)param[i] = (char *)malloc (len);
-            sprintf (*(char **)param[i], "%s %s", tmp, argv);
-        }
+        if (! (*(std::string *)param[i]).empty())
+            *(std::string *)param[i] += " ";
+        *(std::string *)param[i] += argv;
         break;
 
     case '!':
@@ -222,15 +204,19 @@ ArgOption::set_parameter (int i, char *argv)
 
 // Call the sublist callback if any arguments have been parsed
 int
-ArgOption::invoke_callback() const
+ArgOption::invoke_callback () const
 {
     assert (count == 1);
 
-    if (argc == 0) {
+    int argc = (int) argv.size();
+    if (argc == 0)
         return 0;
-    }
-    
-    if (((int (*)(int, char **))param[0]) (argc, argv) < 0) {
+
+    // Convert the argv's to char*[]
+    const char **myargv = (const char **) alloca (argc * sizeof(const char *));
+    for (int i = 0;  i < argc;  ++i)
+        myargv[i] = argv[i].c_str();
+    if (((int (*)(int, const char **))param[0]) (argc, myargv) < 0) {
         return -1;
     }
 
@@ -243,38 +229,9 @@ ArgOption::invoke_callback() const
 void
 ArgOption::add_argument (char *argv)
 {
-    argc++;
-    this->argv = (char **)realloc(this->argv, argc * sizeof(char *));
-    assert (this->argv != NULL);
-
-    this->argv[argc - 1] = strdup(argv);
+    this->argv.push_back (argv);
 }
 
-
-
-ArgOption::~ArgOption()
-{
-    assert (flag != NULL);
-    free (flag);
-
-    if (code != NULL) {
-        free (code);
-    }
-
-    if (param != NULL) {
-        assert (count > 0);
-        free (param);
-    }
-
-    if (argv != NULL) {
-        assert (argc > 0);
-        for (int i = 0; i < argc; i++)
-            free (argv[i]);
-        free (argv);
-    }
-
-    // free globbed argument strings
-}
 
 
 
@@ -282,7 +239,6 @@ ArgOption::~ArgOption()
 ArgParse::ArgParse (int argc, const char **argv)
     : argc(argc), argv((char **)argv), global(NULL)
 {
-    message[0] = '\0';
 }
 
 
@@ -326,7 +282,7 @@ ArgParse::parse_command_line()
 
             ArgOption *option = find_option (argv[i]);
             if (option == NULL) {
-                report_error ("Invalid option \"%s\"", argv[i]);
+                error ("Invalid option \"%s\"", argv[i]);
                 return -1;
             }
 
@@ -346,8 +302,8 @@ ArgParse::parse_command_line()
                 for (int j = 0; j < option->parameter_count(); j++) {
 
                     if (j+i+1 >= argc) {
-                        report_error ("Missing parameter %d from option "
-                            "\"%s\"", j+1, option->name());
+                        error ("Missing parameter %d from option "
+                                      "\"%s\"", j+1, option->name().c_str());
                         return -1;
                     }
 
@@ -360,7 +316,7 @@ ArgParse::parse_command_line()
         } else {
             // not an option nor an option parameter, glob onto global list
             if (global == NULL) {
-                report_error ("Argument \"%s\" does not have an associated "
+                error ("Argument \"%s\" does not have an associated "
                     "option", argv[i]);
                 return -1;
             }
@@ -391,7 +347,7 @@ ArgParse::parse (const char *format, ...)
     for (const char *cur = format; cur != NULL; cur = va_arg (ap, char *)) {
 
         if (find_option (cur)) {
-            report_error ("Option \"%s\" is multiply defined");
+            error ("Option \"%s\" is multiply defined");
             return -1;
         }
         
@@ -412,8 +368,8 @@ ArgParse::parse (const char *format, ...)
 
             void *p = va_arg (ap, void *);
             if (p == NULL) {
-                report_error ("Missing argument parameter for \"%s\"",
-                    option->name());
+                error ("Missing argument parameter for \"%s\"",
+                              option->name().c_str());
                 return -1;
             }
             
@@ -444,11 +400,8 @@ ArgParse::find_option(const char *name)
 {
     for (std::vector<ArgOption *>::const_iterator i = option.begin();
          i != option.end(); i++) {
-
-        if (strlen(name) == strlen((*i)->name()) &&
-            strcmp(name, (*i)->name()) == 0) {
+        if (! strcmp(name, (*i)->name().c_str()))
             return *i;
-        }
     }
 
     return NULL;
@@ -465,13 +418,14 @@ ArgParse::found(char *option_name)
 }
 
 
+
 void
-ArgParse::report_error(const char *format, ...)
+ArgParse::error (const char *format, ...)
 {
     va_list ap;
-    va_start(ap, format);
-    vsprintf(message, format, ap);
-    va_end(ap);
+    va_start (ap, format);
+    errmessage = Strutil::vformat (format, ap);
+    va_end (ap);
 }
 
 
