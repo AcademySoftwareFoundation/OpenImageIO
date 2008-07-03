@@ -429,7 +429,7 @@ public:
 protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.
-    void error (const char *message, ...);
+    void error (const char *format, ...);
 
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
@@ -610,7 +610,7 @@ public:
 protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.
-    void error (const char *message, ...);
+    void error (const char *format, ...);
     
 protected:
     ImageIOFormatSpec m_spec;  //< format spec of the current open subimage
@@ -666,7 +666,7 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
 DLLPUBLIC void _ImageIO_force_link ();
 
 // Use privately only
-DLLPUBLIC void error (const char *message, ...);
+DLLPUBLIC void error (const char *format, ...);
 
 }; /* end namespace OpenImageIO */
 

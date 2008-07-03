@@ -69,11 +69,11 @@ ImageOutput::send_to_client (const char *format, ...)
 
 
 void
-ImageOutput::error (const char *message, ...)
+ImageOutput::error (const char *format, ...)
 {
     va_list ap;
-    va_start (ap, message);
-    m_errmessage = Strutil::vformat (message, ap);
+    va_start (ap, format);
+    m_errmessage = Strutil::vformat (format, ap);
     va_end (ap);
 }
 
