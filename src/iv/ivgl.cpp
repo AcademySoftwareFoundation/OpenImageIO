@@ -171,12 +171,22 @@ IvGL::create_shaders (void)
         "void main ()\n"
         "{\n"
         "    vec2 st = vTexCoord;\n"
+        "    float black = 0.0;\n"
         "    if (pixelview != 0) {\n"
         "        vec2 wh = vec2(width,height);\n"
         "        vec2 onehalf = vec2(0.5,0.5);\n"
-        "        st = (floor(st * wh + onehalf) + onehalf) / wh;\n"
+        "        vec2 st_res = st * wh + onehalf;\n"
+        "        vec2 st_pix = floor (st_res);\n"
+        "        vec2 st_rem = st_res - st_pix;\n"
+        "        st = (st_pix + onehalf) / wh;\n"
+        "        if (st.x < 0.0 || st.x >= 1.0 || \n"
+        "                st.y < 0.0 || st.y >= 1.0 || \n"
+        "                st_rem.x < 0.05 || st_rem.x >= 0.95 || \n"
+        "                st_rem.y < 0.05 || st_rem.y >= 0.95)\n"
+        "            black = 1.0;\n"
         "    }\n"
         "    vec4 C = texture2D (imgtex, st);\n"
+        "    C = mix (C, vec4(0.0,0.0,0.0,1.0), black);\n"
         "    if (imgchannels == 1)\n"
         "        C = C.xxxx;\n"
         "    if (channelview == -1) {\n"
@@ -196,8 +206,6 @@ IvGL::create_shaders (void)
         "    C.xyz *= gain;\n"
         "    float invgamma = 1.0/gamma;\n"
         "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
-//        "    if (pixelview != 0)\n"
-//        "        C = vec4(vTexCoord.x,vTexCoord.y,0,1);\n"
         "    gl_FragColor = C;\n"
         "}\n";
     m_fragment_shader = glCreateShader (GL_FRAGMENT_SHADER);
@@ -251,8 +259,29 @@ IvGL::resizeGL (int w, int h)
     glMatrixMode (GL_PROJECTION);
     glLoadIdentity ();
     glOrtho (-w/2.0, w/2.0, -h/2.0, h/2.0, 0, 10);
+    // Main GL viewport is set up for orthographic view centered at
+    // (0,0) and with width and height equal to the window dimensions IN
+    // PIXEL UNITS.
     glMatrixMode (GL_MODELVIEW);
     GLERRPRINT ("resizeGL exit");
+}
+
+
+
+static void
+gl_rect (float xmin, float ymin, float xmax, float ymax, float z = 0,
+         float smin = 0, float tmin = 0, float smax = 1, float tmax = 1)
+{
+    glBegin (GL_QUAD_STRIP);
+    glTexCoord2f (smin, tmin);
+    glVertex3f (xmin,  ymin, z);
+    glTexCoord2f (smax, tmin);
+    glVertex3f (xmax,  ymin, z);
+    glTexCoord2f (smin, tmax);
+    glVertex3f (xmin, ymax, z);
+    glTexCoord2f (smax, tmax);
+    glVertex3f (xmax, ymax, z);
+    glEnd ();
 }
 
 
@@ -278,28 +307,24 @@ IvGL::paintGL ()
     glPushAttrib (GL_ALL_ATTRIB_BITS);
     glPushMatrix ();
     glLoadIdentity ();
-//    if (m_pixelview)
-//    std::cerr << "paintGL, center " << m_centerx << ' ' << m_centery << '\n';
+    // Transform is now same as the main GL viewport -- window pixels as
+    // units, with (0,0) at the center of the visible unit.
     glScalef (z, z, 1);
-    glTranslatef (0, 0, -5.0);
+    // Scaled by zoom level.  So now xy units are image pixels as
+    // displayed at the current zoom level, with the origin at the
+    // center of the visible window.
     glScalef (spec.width, spec.height, 1);
+    // Scaled by image dimensions.  So now xy runs from [-0.5 to 0.5] over
+    // the image data.
     glTranslatef (-(m_centerx-0.5f), (m_centery-0.5f), 0.0f);
+    // Recentered so that the NDC-space (m_centerx,m_centery) position is
+    // at the center of the visible window.
+    glTranslatef (0, 0, -5.0);
+    // Pushed away from the camera 5 units.
 
     useshader ();
+    gl_rect (-0.5, 0.5, 0.5, -0.5);
 
-//    if (m_pixelview) return;
-#if 1
-    glBegin (GL_QUAD_STRIP);
-    glTexCoord2f (0, 0);
-    glVertex3f (-0.5f, 0.5f, 1.0f);
-    glTexCoord2f (1, 0);
-    glVertex3f (0.5f, 0.5f, 1.0f);
-    glTexCoord2f (0, 1);
-    glVertex3f (-0.5f, -0.5f, 1.0f);
-    glTexCoord2f (1, 1);
-    glVertex3f (0.5f, -0.5f, 1.0f);
-    glEnd ();
-#endif
     glPopMatrix ();
     glPopAttrib ();
 
@@ -311,7 +336,7 @@ IvGL::paintGL ()
 
 
 void
-IvGL::shadowed_text (int x, int y, const std::string &s,
+IvGL::shadowed_text (float x, float y, float z, const std::string &s,
                      const QFont &font)
 {
     QString q (s.c_str());
@@ -323,7 +348,7 @@ IvGL::shadowed_text (int x, int y, const std::string &s,
             renderText (x+i, y+j, q, font);
 #endif
     glColor4f (1, 1, 1, 1);
-    renderText (x, y, q, font);
+    renderText (x, y, z, q, font);
 }
 
 
@@ -331,105 +356,126 @@ IvGL::shadowed_text (int x, int y, const std::string &s,
 void
 IvGL::paint_pixelview ()
 {
+    // ncloseuppixels is the number of big pixels (in each direction)
+    // visible in our closeup window.
     const int ncloseuppixels = 9;   // How many pixels to show in each dir
+    // closeuppixelzoom is the zoom factor we use for closeup pixels --
+    // i.e. one image pixel will appear in the closeup window as a 
+    // closeuppixelzoom x closeuppixelzoom square.
     const int closeuppixelzoom = 24;
+    // closeupsize is the size, in pixels, of the closeup window itself --
+    // just the number of pixels times the width of each closeup pixel.
     const int closeupsize = ncloseuppixels * closeuppixelzoom;
 
-//    glFlush();
     IvImage *img = m_viewer.cur();
     const ImageIOFormatSpec &spec (img->spec());
     float z = m_pixelview ? 1 : m_viewer.zoom();
+
+    // (xw,yw) are the window coordinates of the mouse.
+    int xw, yw;
+    m_viewer.glwin->get_focus_window_pixel (xw, yw);
+
+    // (xp,yp) are the image-space [0..res-1] position of the mouse.
     int xp, yp;
     m_viewer.glwin->get_focus_image_pixel (xp, yp);
-    float x = xp / (z * spec.width);
-    float y = yp / (z * spec.height);
 
     glPushMatrix ();
     glLoadIdentity ();
+    // Transform is now same as the main GL viewport -- window pixels as
+    // units, with (0,0) at the center of the visible window.
+
     glTranslatef (0, 0, -1);
-#if 0
-    // Display closeup in upper left corner
-    glTranslatef (-spec.width*0.5 + closeupsize*0.5f + 5,
-                  spec.height*0.5 - closeupsize*0.5f - 5, 0);
-#else
-    // Display closeup overtop mouse
-    glTranslatef (z * (xp - spec.width/2), z * (spec.height/2 - yp), 0);
-#endif
+    // Pushed away from the camera 1 unit.  This makes the pixel view
+    // elements closer to the camera than the main view.
+
+    if (m_viewer.pixelviewFollowsMouse()) {
+        // Display closeup overtop mouse -- translate the coordinate system
+        // so that it is centered at the mouse position.
+        glTranslatef (xw - width()/2, -yw + height()/2, 0);
+    } else {
+        // Display closeup in upper left corner -- translate the coordinate
+        // system so that it is centered near the upper left of the window.
+        glTranslatef (closeupsize*0.5f + 5 - width()/2,
+                      -closeupsize*0.5f - 5 + height()/2, 0);
+    }
+    // In either case, the GL coordinate system is now scaled to window
+    // pixel units, and centered on the middle of where the closeup
+    // window is going to appear.  All other coordinates from here on
+    // (in this procedure) should be relative to the closeup window center.
+
 //    glScalef (spec.width, spec.height, 1);
 //    glScalef ((float)closeupsize, (float)closeupsize, 1);
 
+    // This square is the closeup window itself
+    //
     glPushAttrib (GL_ALL_ATTRIB_BITS);
     useshader (true);
     float xtexsize = 0.5 * (float)ncloseuppixels / spec.width;
     float ytexsize = 0.5 * (float)ncloseuppixels / spec.height;
-    glBegin (GL_QUAD_STRIP);
-    glTexCoord2f (x - xtexsize, y - ytexsize);
-    glVertex3f (-0.5f*closeupsize,  0.5f*closeupsize, 1.0f);
-    glTexCoord2f (x + xtexsize, y - ytexsize);
-    glVertex3f ( 0.5f*closeupsize,  0.5f*closeupsize, 1.0f);
-    glTexCoord2f (x - xtexsize, y + ytexsize);
-    glVertex3f (-0.5f*closeupsize, -0.5f*closeupsize, 1.0f);
-    glTexCoord2f (x + xtexsize, y + ytexsize);
-    glVertex3f ( 0.5f*closeupsize, -0.5f*closeupsize, 1.0f);
-    glEnd ();
+    // Make (x,y) be the image space NDC coords of the mouse.
+    float x = (float)xp / (/* ? z * */ spec.width);
+    float y = (float)yp / (/* ? z * */ spec.height);
+    gl_rect (-0.5f*closeupsize, 0.5f*closeupsize,
+             0.5f*closeupsize, -0.5f*closeupsize, 0,
+             x - xtexsize, y - ytexsize, x + xtexsize, y + ytexsize);
     glPopAttrib ();
 
+    // Draw a second window, slightly behind the closeup window, as a
+    // backdrop.  It's partially transparent, having the effect of
+    // darkening the main image view beneath the closeup window.  It
+    // extends slightly out from the closeup window (making it more
+    // clearly visible), and also all the way down to cover the area
+    // where the text will be printed, so it is very readable.
     int xwin, ywin;
     m_viewer.glwin->get_focus_image_pixel (xwin, ywin);
     const int yspacing = 18;
-    int textx = xwin - closeupsize/2 + 4;
-    int texty = ywin + closeupsize/2 + yspacing;
 
     glPushAttrib (GL_ALL_ATTRIB_BITS);
-    glUseProgram (0);
-#if 1
-    float extraspace = yspacing * (1 + spec.nchannels);
-    glColor4f (0, 0, 0, 0.75);
-    glBegin (GL_QUAD_STRIP);
-    glVertex3f (-0.5f*closeupsize-2, 0.5f*closeupsize+2, 1.0f);
-    glVertex3f ( 0.5f*closeupsize+2, 0.5f*closeupsize+2, 1.0f);
-    glVertex3f (-0.5f*closeupsize-2, -0.5f*closeupsize - extraspace, 1.0f);
-    glVertex3f ( 0.5f*closeupsize+2, -0.5f*closeupsize - extraspace, 1.0f);
-    glEnd ();
-#endif
+    glUseProgram (0);  // No shader
+    float extraspace = yspacing * (1 + spec.nchannels) + 4;
+    glColor4f (0, 0, 0, 0.5);
+    gl_rect (-0.5f*closeupsize-2, 0.5f*closeupsize+2,
+             0.5f*closeupsize+2, -0.5f*closeupsize - extraspace, -0.1);
 
-//        setFont (QFont("Times", 24));
-//        qglColor (QColor (1.0, 1.0, 1.0));
-#if 1
-    QFont fgfont;
-    fgfont.setFixedPitch (true);
+    // Now we print text giving the mouse coordinates and the numerical
+    // values of the pixel that the mouse is over.
+    QFont font;
+    font.setFixedPitch (true);
 //        std::cerr << "pixel size " << font.pixelSize() << "\n";
-//    fgfont.setPixelSize (16);
-//    fgfont.setFixedPitch (20);
-    glColor3f (1, 1, 0.25);
+//    font.setPixelSize (16);
+//    font.setFixedPitch (20);
 //    bgfont.setPixelSize (20);
-    char *pixel = (char *) alloca (spec.pixel_bytes());
-    float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
-    if (xp >= 0 && xp <= spec.width && yp >= 0 && yp <= spec.height) {
+    if (xp >= 0 && xp < spec.width && yp >= 0 && yp < spec.height) {
+        char *pixel = (char *) alloca (spec.pixel_bytes());
+        float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
+        int textx = - closeupsize/2 + 4;
+        int texty = - closeupsize/2 - yspacing;
         std::string s = Strutil::format ("(%d, %d)", xp+spec.x, yp+spec.y);
-        shadowed_text (textx, texty, s, fgfont);
-        texty += yspacing;
+        shadowed_text (textx, texty, 0.0f, s, font);
+        texty -= yspacing;
         img->getpixel (xp, yp, fpixel);
-        if (spec.format == PT_UINT8) {
-            unsigned char *p = (unsigned char *) img->pixeladdr (xp, yp);
-            for (int i = 0;  i < spec.nchannels;  ++i) {
+        const void *p = img->pixeladdr (xp, yp);
+        for (int i = 0;  i < spec.nchannels;  ++i) {
+            switch (spec.format) {
+            case PT_UINT8 :
                 s = Strutil::format ("%s: %3d  (%5.3f)",
                                      spec.channelnames[i].c_str(),
-                                     (int)(p[i]), fpixel[i]);
-                shadowed_text (textx, texty, s, fgfont);
-                texty += yspacing;
-            }
-        } else {
-            // Treat as float
-            for (int i = 0;  i < spec.nchannels;  ++i) {
+                                     (int)((unsigned char *)p)[i], fpixel[i]);
+                break;
+            case PT_UINT16 :
+                s = Strutil::format ("%s: %3d  (%5.3f)",
+                                     spec.channelnames[i].c_str(),
+                                     (int)((unsigned short *)p)[i], fpixel[i]);
+                break;
+            default:  // everything else, treat as float
                 s = Strutil::format ("%s: %5.3f",
                                      spec.channelnames[i].c_str(), fpixel[i]);
-                shadowed_text (textx, texty, s, fgfont);
-                texty += yspacing;
             }
+            shadowed_text (textx, texty, 0.0f, s, font);
+            texty -= yspacing;
         }
     }
-#endif
+
     glPopAttrib ();
   
     glPopMatrix ();
@@ -718,13 +764,6 @@ IvGLMainview::mouseMoveEvent (QMouseEvent *event)
         }
     }
     remember_mouse (pos);
-    if (m_viewer.pixelviewWindow) {
-        float z = m_viewer.zoom ();
-        float x = pos.x() / (z * m_viewer.curspec()->width);
-        float y = pos.y() / (z * m_viewer.curspec()->height);
-        m_viewer.pixelviewWindow->center (x, y);
-        m_viewer.pixelviewWindow->update (m_viewer.cur());
-    }
     if (m_viewer.pixelviewOn())
         trigger_redraw ();
     parent_t::mouseMoveEvent (event);
@@ -769,23 +808,30 @@ IvGLMainview::get_focus_window_pixel (int &x, int &y)
 void
 IvGLMainview::get_focus_image_pixel (int &x, int &y)
 {
+    // w,h are the dimensions of the visible window, in pixels
     int w = width(), h = height();
     float z = m_viewer.zoom ();
+    // zoomedwidth,zoomedheight are the size of the zoomed-in image, in pixels
     float zoomedwidth  = z * m_viewer.curspec()->width;
     float zoomedheight = z * m_viewer.curspec()->height;
+    // left,top,right,bottom are the borders of the visible window,
+    // in image NDC coordintes (in which the full image is [0..1]).
     float left    = m_centerx - 0.5 * ((float)w / zoomedwidth);
     float top     = m_centery - 0.5 * ((float)h / zoomedheight);
     float right   = m_centerx + 0.5 * ((float)w / zoomedwidth);
     float bottom  = m_centery + 0.5 * ((float)h / zoomedheight);
-
+    // normx,normy are the position of the mouse, in normalized (i.e. [0..1])
+    // visible window coordinates.
     float normx = (float)(m_mousex + 0.5f) / w;
     float normy = (float)(m_mousey + 0.5f) / h;
+    // imgx,imgy are the position of the mouse, in image NDC coordinates
+    // (full image is [0..1]).
     float imgx = Imath::lerp (left, right, normx);
     float imgy = Imath::lerp (top, bottom, normy);
-    int pixx = imgx * m_viewer.curspec()->width;
-    int pixy = imgy * m_viewer.curspec()->height;
-    x = pixx;
-    y = pixy;
+    // So finally x,y are the coordinates of the image pixel (on [0,res-1])
+    // underneath the mouse cursor.
+    x = imgx * m_viewer.curspec()->width;
+    y = imgy * m_viewer.curspec()->height;
 #if 0
     std::cerr << "get_focus_pixel\n";
     std::cerr << "    mouse window pixel coords " << m_mousex << ' ' << m_mousey << "\n";
@@ -794,6 +840,6 @@ IvGLMainview::get_focus_image_pixel (int &x, int &y)
     std::cerr << "    left,top = " << left << ' ' << top << "\n";
     std::cerr << "    right,bottom = " << right << ' ' << bottom << "\n";
     std::cerr << "    mouse image coords " << imgx << ' ' << imgy << "\n";
-    std::cerr << "    mouse pixel image coords " << pixx << ' ' << pixy << "\n";
+    std::cerr << "    mouse pixel image coords " << x << ' ' << y << "\n";
 #endif
 }

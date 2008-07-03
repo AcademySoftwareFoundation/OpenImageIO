@@ -42,7 +42,7 @@
 
 
 ImageViewer::ImageViewer ()
-    : infoWindow(NULL), pixelviewWindow(NULL),
+    : infoWindow(NULL), 
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
       m_zoom(1), m_fullscreen(false)
 {
@@ -168,17 +168,17 @@ void ImageViewer::createActions()
 
     zoomInAct = new QAction(tr("Zoom &In"), this);
     zoomInAct->setShortcut(tr("Ctrl++"));
-    zoomInAct->setEnabled(false);
+//    zoomInAct->setEnabled(false);
     connect(zoomInAct, SIGNAL(triggered()), this, SLOT(zoomIn()));
 
     zoomOutAct = new QAction(tr("Zoom &Out"), this);
     zoomOutAct->setShortcut(tr("Ctrl+-"));
-    zoomOutAct->setEnabled(false);
+//    zoomOutAct->setEnabled(false);
     connect(zoomOutAct, SIGNAL(triggered()), this, SLOT(zoomOut()));
 
     normalSizeAct = new QAction(tr("&Normal Size (1:1)"), this);
     normalSizeAct->setShortcut(tr("Ctrl+0"));
-    normalSizeAct->setEnabled(false);
+//    normalSizeAct->setEnabled(false);
     connect(normalSizeAct, SIGNAL(triggered()), this, SLOT(normalSize()));
 
     fitWindowToImageAct = new QAction(tr("&Fit Window to Image"), this);
@@ -187,13 +187,13 @@ void ImageViewer::createActions()
     connect(fitWindowToImageAct, SIGNAL(triggered()), this, SLOT(fitWindowToImage()));
 
     fitImageToWindowAct = new QAction(tr("Fit Image to Window"), this);
-    fitImageToWindowAct->setEnabled(false);
+//    fitImageToWindowAct->setEnabled(false);
     fitImageToWindowAct->setCheckable(true);
     fitImageToWindowAct->setShortcut(tr("Alt+f"));
     connect(fitImageToWindowAct, SIGNAL(triggered()), this, SLOT(fitImageToWindow()));
 
     fullScreenAct = new QAction(tr("Full screen"), this);
-    fullScreenAct->setEnabled(false);
+//    fullScreenAct->setEnabled(false);
 //    fullScreenAct->setCheckable(true);
     fullScreenAct->setShortcut(tr("Ctrl+f"));
     connect(fullScreenAct, SIGNAL(triggered()), this, SLOT(fullScreenToggle()));
@@ -203,17 +203,17 @@ void ImageViewer::createActions()
 
     prevImageAct = new QAction(tr("Previous Image"), this);
     prevImageAct->setShortcut(tr("PgUp"));  // FIXME: Does this work?
-    prevImageAct->setEnabled(true);
+//    prevImageAct->setEnabled(true);
     connect (prevImageAct, SIGNAL(triggered()), this, SLOT(prevImage()));
 
     nextImageAct = new QAction(tr("Next Image"), this);
     nextImageAct->setShortcut(tr("PageDown"));
-    nextImageAct->setEnabled(true);
+//    nextImageAct->setEnabled(true);
     connect (nextImageAct, SIGNAL(triggered()), this, SLOT(nextImage()));
 
     toggleImageAct = new QAction(tr("Toggle image"), this);
     toggleImageAct->setShortcut(tr("t"));
-    toggleImageAct->setEnabled(true);
+//    toggleImageAct->setEnabled(true);
     connect (toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
     showInfoWindowAct = new QAction(tr("&Image info..."), this);
@@ -225,6 +225,10 @@ void ImageViewer::createActions()
     showPixelviewWindowAct->setCheckable (true);
     showPixelviewWindowAct->setShortcut(tr("P"));
     connect (showPixelviewWindowAct, SIGNAL(triggered()), this, SLOT(showPixelviewWindow()));
+
+    pixelviewFollowsMouseAct = new QAction(tr("Pixel view follows mouse"), this);
+    pixelviewFollowsMouseAct->setCheckable (true);
+    pixelviewFollowsMouseAct->setChecked (true);
 }
 
 
@@ -301,6 +305,7 @@ ImageViewer::createMenus()
     // Mode: select, zoom, pan, wipe
     toolsMenu->addAction (showInfoWindowAct);
     toolsMenu->addAction (showPixelviewWindowAct);
+    toolsMenu->addAction (pixelviewFollowsMouseAct);
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -509,15 +514,13 @@ ImageViewer::displayCurrentImage ()
     updateStatusBar();
     if (infoWindow)
         infoWindow->update (img);
-    if (pixelviewWindow)
-        pixelviewWindow->update (img);
 
     glwin->update (img);
     glwin->zoom (zoom());
 
-    printAct->setEnabled(true);
-    fitImageToWindowAct->setEnabled(true);
-    fullScreenAct->setEnabled(true);
+//    printAct->setEnabled(true);
+//    fitImageToWindowAct->setEnabled(true);
+//    fullScreenAct->setEnabled(true);
     updateActions();
 }
 
@@ -1051,15 +1054,5 @@ ImageViewer::showInfoWindow ()
 void
 ImageViewer::showPixelviewWindow ()
 {
-//    showPixelviewWindowAct->setChecked (! showPixelviewWindowAct->isChecked());
-#if 0
-    if (! pixelviewWindow)
-        pixelviewWindow = new IvPixelviewWindow (*this, true);
-    pixelviewWindow->update (cur());
-    if (pixelviewWindow->isHidden ())
-        pixelviewWindow->show ();
-    else
-        pixelviewWindow->hide ();
-#endif
     glwin->trigger_redraw ();
 }

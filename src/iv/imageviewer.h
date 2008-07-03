@@ -38,11 +38,9 @@ using namespace OpenImageIO;
 
 class IvMainWindow;
 class IvInfoWindow;
-class IvPixelviewWindow;
 class IvCanvas;
 class IvGL;
 class IvGLMainview;
-class IvGLPixelview;
 
 
 
@@ -199,7 +197,11 @@ public:
     }
 
     bool pixelviewOn (void) const {
-        return (showPixelviewWindowAct && showPixelviewWindowAct->isChecked());
+        return showPixelviewWindowAct && showPixelviewWindowAct->isChecked();
+    }
+
+    bool pixelviewFollowsMouse (void) const {
+        return pixelviewFollowsMouseAct && pixelviewFollowsMouseAct->isChecked();
     }
 
 private slots:
@@ -251,7 +253,6 @@ private:
 
     IvGLMainview *glwin;
     IvInfoWindow *infoWindow;
-    IvPixelviewWindow *pixelviewWindow;
 
 #ifndef QT_NO_PRINTER
     QPrinter printer;
@@ -276,6 +277,7 @@ private:
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
     QAction *showInfoWindowAct;
     QAction *showPixelviewWindowAct;
+    QAction *pixelviewFollowsMouseAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
     QMenu *expgamMenu, *channelMenu;
     QLabel *statusImgInfo, *statusViewInfo;
@@ -294,8 +296,6 @@ private:
     friend class IvCanvas;
     friend class IvGL;
     friend class IvGLMainview;
-    friend class IvGLPixelview;
-    friend class IvPixelviewWindow;
     friend bool image_progress_callback (void *opaque, float done);
 };
 
@@ -311,26 +311,6 @@ public:
 private:
     QPushButton *closeButton;
     QScrollArea *scrollArea;
-    QLabel *infoLabel;
-
-    ImageViewer &m_viewer;
-    bool m_visible;
-};
-
-
-
-class IvPixelviewWindow : public QDialog
-{
-    Q_OBJECT
-public:
-    IvPixelviewWindow (ImageViewer &viewer, bool visible=true);
-    void update (IvImage *img);
-//    void remember_mouse (const QPoint &pos);
-    void center (float x, float y);
-
-private:
-    QPushButton *closeButton;
-    IvGLPixelview *closeup;
     QLabel *infoLabel;
 
     ImageViewer &m_viewer;
@@ -380,7 +360,7 @@ protected:
     virtual void create_textures (void);
     virtual void useshader (bool pixelview=false);
 
-    void shadowed_text (int x, int y, const std::string &s,
+    void shadowed_text (float x, float y, float z, const std::string &s,
                         const QFont &font);
 
 private:
@@ -429,30 +409,6 @@ private:
     typedef IvGL parent_t;
 
     void clamp_view_to_window ();
-};
-
-
-
-class IvGLPixelview : public IvGL
-{
-Q_OBJECT
-public:
-    IvGLPixelview (ImageViewer &viewer);
-
-    /// Update the zoom
-    ///
-    virtual void zoom (float newzoom);
-
-protected:
-#if 0
-    virtual void initializeGL ();
-    virtual void resizeGL (int w, int h);
-    virtual void paintGL ();
-    virtual void useshader (void);
-#endif
-
-private:
-    typedef IvGL parent_t;
 };
 
 

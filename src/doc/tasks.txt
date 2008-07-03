@@ -18,10 +18,10 @@ DONE        jpeg - EXIF info
                 full image strides?                         
             imageio.h - add sRGB vs Linear?
             API docs
-            Linux
+DONE?       Linux
 DONE        iv - middle mouse drag
 DONE        iv - mouse wheel zoom
-            iv - pixel view window
+DONE        iv - pixel view window
 DONE        iv - half, float, uint16
             imageio.h - should ImageIOFormatSpec just be ImageFormatSpec?
                         or ImageSpec?
