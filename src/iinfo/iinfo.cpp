@@ -33,6 +33,7 @@
 
 #include <boost/foreach.hpp>
 
+#include "argparse.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
@@ -49,7 +50,7 @@ usage (void)
     std::cout << 
         "Usage:  iinfo [options] filename...\n"
         "    --help                      Print this help message\n"
-        "    -v [--verbose]              Verbose output\n"
+        "    -v                          Verbose output\n"
         "    -s                          Sum the image sizes\n";
         ;
 }
@@ -143,10 +144,34 @@ print_info (const std::string &filename, ImageInput *input,
 
 
 
-int
-main (int argc, char *argv[])
+static int
+parse_files (int argc, char *argv[])
 {
+    for (int i = 0;  i < argc;  i++)
+        filenames.push_back (argv[i]);
+    return 0;
+}
+
+
+
+int
+main (int argc, const char *argv[])
+{
+#if 0
     getargs (argc, argv);
+#else
+    ArgParse ap (argc, argv);
+    if (ap.parse (
+            "%*", parse_files,
+//            "--help",
+            "-v", &verbose,
+            "-s", &sum,
+            NULL) < 0) {
+        std::cerr << ap.error_message() << std::endl;
+        usage ();
+        return EXIT_FAILURE;
+    }
+#endif
 
     long long totalsize = 0;
     BOOST_FOREACH (const std::string &s, filenames) {
