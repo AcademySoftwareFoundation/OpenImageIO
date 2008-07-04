@@ -40,42 +40,8 @@ using namespace OpenImageIO;
 
 static bool verbose = false;
 static bool sum = false;
+static bool help = false;
 static std::vector<std::string> filenames;
-
-
-
-static void
-usage (void)
-{
-    std::cout << 
-        "Usage:  iinfo [options] filename...\n"
-        "    --help                      Print this help message\n"
-        "    -v                          Verbose output\n"
-        "    -s                          Sum the image sizes\n";
-        ;
-}
-
-
-
-static void
-getargs (int argc, char *argv[])
-{
-    for (int i = 1;  i < argc;  ++i) {
-        if (! strcmp (argv[i], "-h") || ! strcmp (argv[i], "--help")) {
-            usage();
-            exit (0);
-        }
-        if (! strcmp (argv[i], "-v") || ! strcmp (argv[i], "--verbose")) {
-            verbose = true;
-            continue;
-        }
-        if (! strcmp (argv[i], "-s")) {
-            sum = true;
-            continue;
-        }
-        filenames.push_back (argv[i]);
-    }
-}
 
 
 
@@ -145,7 +111,7 @@ print_info (const std::string &filename, ImageInput *input,
 
 
 static int
-parse_files (int argc, char *argv[])
+parse_files (int argc, const char *argv[])
 {
     for (int i = 0;  i < argc;  i++)
         filenames.push_back (argv[i]);
@@ -157,21 +123,21 @@ parse_files (int argc, char *argv[])
 int
 main (int argc, const char *argv[])
 {
-#if 0
-    getargs (argc, argv);
-#else
     ArgParse ap (argc, argv);
-    if (ap.parse (
-            "%*", parse_files,
-//            "--help",
-            "-v", &verbose,
-            "-s", &sum,
-            NULL) < 0) {
+    if (ap.parse ("Usage:  iinfo [options] filename...",
+                  "%*", parse_files, "",
+                  "--help", &help, "Print help message",
+                  "-v", &verbose, "Verbose output",
+                  "-s", &sum, "Sum the image sizes",
+                  NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
-        usage ();
+        ap.usage ();
         return EXIT_FAILURE;
     }
-#endif
+    if (help) {
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
 
     long long totalsize = 0;
     BOOST_FOREACH (const std::string &s, filenames) {

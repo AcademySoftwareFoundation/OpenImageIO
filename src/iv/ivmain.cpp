@@ -39,23 +39,21 @@
 using namespace OpenImageIO;
 #include "imageviewer.h"
 #include "timer.h"
+#include "argparse.h"
+
 
 
 static bool verbose = false;
-static bool sum = false;
 static std::vector<std::string> filenames;
 
 
 
-static void
-usage (void)
+static int
+parse_files (int argc, const char *argv[])
 {
-    std::cout << 
-        "Usage:  iv [options] filename...\n"
-        "    --help                      Print this help message\n"
-        "    -v [--verbose]              Verbose output\n"
-        "    -s                          Sum the image sizes\n";
-        ;
+    for (int i = 0;  i < argc;  i++)
+        filenames.push_back (argv[i]);
+    return 0;
 }
 
 
@@ -63,20 +61,20 @@ usage (void)
 static void
 getargs (int argc, char *argv[])
 {
-    for (int i = 1;  i < argc;  ++i) {
-        if (! strcmp (argv[i], "-h") || ! strcmp (argv[i], "--help")) {
-            usage();
-            exit (0);
-        }
-        if (! strcmp (argv[i], "-v") || ! strcmp (argv[i], "--verbose")) {
-            verbose = true;
-            continue;
-        }
-        if (! strcmp (argv[i], "-s")) {
-            sum = true;
-            continue;
-        }
-        filenames.push_back (argv[i]);
+    bool help = false;
+    ArgParse ap (argc, (const char **)argv);
+    if (ap.parse ("Usage:  iv [options] [filename...]",
+                  "%*", parse_files, "",
+                  "--help", &help, "Print help message",
+                  "-v", &verbose, "Verbose status messages",
+                  NULL) < 0) {
+        std::cerr << ap.error_message() << std::endl;
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+    if (help) {
+        ap.usage ();
+        exit (EXIT_FAILURE);
     }
 }
 

@@ -43,21 +43,22 @@
 ///
 ///    ArgParse ap(argc, argv);
 ///
-///    if (ap.parse (
-///            "%*", parse_objects,
+///    if (ap.parse ("Usage: myapp [options] filename...",
+///            "%*", parse_objects, "",
 ///            "-camera %f %f %f", &camera[0], &camera[1], &camera[2],
+///                  "set the camera position",
 ///            "-lookat %f %f %f", &lx, &ly, &lz,
-///            "-oversampling %d", &oversampling,
-///            "-passes %d", &passes,
+///                  "set the position of interest",
+///            "-oversampling %d", &oversampling,  "oversamping rate",
+///            "-passes %d", &passes, "number of passes",
 ///            "-lens %f %f %f", &aperture, &focalDistance, &focalLength,
-///            "-motion %f %f", &frameopen, &frameclose,
-///            "-motion_camera %f %f %f", &vcx, &vcy, &vcz,
-///            "-motion_lookat %f %f %f", &vlx, &vly, &vlz,
+///                   "set aperture, focal distance, focal length",
 ///            "-format %d %d %f", &width, &height, &aspect,
-///            "-flag", &flag,
+///                   "set width, height, aspect ratio",
+///            "-v", &flag, "verbose output",
 ///            NULL) < 0) {
 ///        std::cerr << ap.error_message() << std::endl;
-///        usage ();
+///        ap.usage ();
 ///        return EXIT_FAILURE;
 ///    }
 ///
@@ -67,7 +68,7 @@
 ///     %F - 64bit float (double)
 ///     %s - char* (assumed allocated before calling ArgParse::parse())
 ///     %S - char* (allocated automatically in ArgParse::parse())
-///     %! - bool flag
+///     %! (or no % argument) - bool flag
 ///     %* - (argc,argv) sublist with callback
 ///
 /// Notes:
@@ -99,23 +100,25 @@ public:
     ArgParse (int argc, const char **argv);
     ~ArgParse ();
     
-    int parse (const char *format, ...); // parse the command line  <0 on error
-    int found (char *option);            // number of times option was parsed
+    int parse (const char *intro, ...);  // parse the command line  <0 on error
 
     std::string error_message () const { return errmessage; }
+
+    void usage () const;
 
 private:
     int argc;                           // a copy of the command line argc
     char **argv;                        // a copy of the command line argv
     std::string errmessage;             // error message
     ArgOption *global;                  // option for extra cmd line arguments
-    
+    std::string intro;
     std::vector<ArgOption *> option;
 
     ArgOption *find_option(const char *name);
     int invoke_all_sublist_callbacks();
     int parse_command_line();
     void error (const char *format, ...);
+    int found (const char *option);      // number of times option was parsed
 };
 
 
@@ -130,6 +133,8 @@ public:
     int parameter_count () const { return count; }
     const std::string & name() const { return flag; }
 
+    const std::string & fmt() const { return format; }
+
     bool is_flag () const { return type == Flag; }
     bool is_sublist () const { return type == Sublist; }
     bool is_regular () const { return type == Regular; }
@@ -143,13 +148,17 @@ public:
 
     void found_on_command_line () { repetitions++; }
     int parsed_count () const { return repetitions; }
-    
+
+    void description (const char *d) { descript = d; }
+    const std::string & description() const { return descript; }
+
 private:
     enum OptionType { None, Regular, Flag, Sublist };
 
     std::string format;                         // original format string
     std::string flag;                           // just the -flag_foo part
     std::string code;                           // paramter types, eg "df"
+    std::string descript;
     OptionType type;                    
     int count;                                  // number of parameters
     std::vector<void *> param;                  // pointers to app data vars

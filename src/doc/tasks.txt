@@ -83,6 +83,7 @@ Before first 1.0 release
             iv - hide controls?
             iv - socket mode (socket-based "iv.imageio")
             iv - timed frame playback
+            iv - sort all images by { name, sequence, date }
 
 ============
 

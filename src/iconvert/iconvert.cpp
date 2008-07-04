@@ -31,9 +31,7 @@
 #include <iostream>
 #include <iterator>
 
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
+#include "argparse.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
@@ -45,26 +43,17 @@ static bool verbose = false;
 static std::vector<std::string> filenames;
 static int tile[3] = { 0, 0, 1 };
 static bool scanline = false;
+static bool zfile = false;
+static std::string channellist;
 
 
 
-static void
-usage (void)
+static int
+parse_files (int argc, const char *argv[])
 {
-    std::cout << 
-        "Usage:  iconvert [options] infile outfile\n"
-        "    --help                      Print this help message\n"
-        "    -v [--verbose]              Verbose status messages\n"
-        "    -d %s [--data-format %s]    Set the output format to one of:\n"
-        "                                   uint8, sint8, uint16, sint16, half, float\n"
-//        "    -f %s [--format %s]         FIXME Set the output format to one of:\n"
-//        "                                   uint8, sint8, uint16, sint16, half, float\n"
-        "    -g %f [--gamma %f]          Set gamma correction (default=1)\n"
-        "    --tile %d %d [%d]           Output as a tiled image (2D or 3D)\n"
-        "    --scanline                  Output as a scanline image\n"
-        "    -z                          FIXME Treat input as a depth file\n"
-        "    -c %s [--channels %s]       FIXME Restrict/shuffle channels\n"
-        ;
+    for (int i = 0;  i < argc;  i++)
+        filenames.push_back (argv[i]);
+    return 0;
 }
 
 
@@ -72,122 +61,35 @@ usage (void)
 static void
 getargs (int argc, char *argv[])
 {
-#if 0
-    float gamma = 1;
-    try {
-        po::options_description desc("Allowed options");
-        desc.add_options()
-            ("help", "print help message")
-            ("verbose,v", "verbose status messages")
-            ("data-format,d", po::value<std::string>(), 
-                 "set output data format to one of:\n"
-                 "  uint8, sint8, uint16, sint16, half, float")
-            ("gamma,g", po::value<float>(&gamma)->default_value(1),
-                 "apply gamma correction to output")
-            ("channels,c", po::value<std::string>(), "channel list")
-            ("z,z", "treat input as a depth file")
-            ("input-file", po::value< vector<std::string> >(), "input file")
-        ;
+    bool help = false;
+    ArgParse ap (argc, (const char **)argv);
+    if (ap.parse ("Usage:  iconvert [options] inputfile outputfile",
+                  "%*", parse_files, "",
+                  "--help", &help, "Print help message",
+                  "-v", &verbose, "Verbose status messages",
+                  "-d %s", &dataformatname, "Set the output data format to one of:\n"
+                          "\t\t\tuint8, sint8, uint16, sint16, half, float",
+                  "-g %f", &gammaval, "Set gamma correction (default = 1)",
+                  "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
+                  "--scanline", &scanline, "Output as a scanline image",
+//FIXME           "-z", &zfile, "Treat input as a depth file",
+//FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
+                  NULL) < 0) {
+        std::cerr << ap.error_message() << std::endl;
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+    if (help) {
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
 
-        po::positional_options_description p;
-        p.add("input-file", -1);
-        po::variables_map vm;        
-        po::store (po::command_line_parser(argc, argv).
-                   options(desc).positional(p).run(), vm);
-        po::notify(vm);
-
-        if (vm.count("help")) {
-            std::cout << "Usage:  iconvert [options] infile output\n";
-            std::cout << desc << "\n";
-            return;
-        }
-
-        if (vm.count ("data-format")) {
-            string f = vm["data-format"].as<string>();
-            std::cout << "Format = '" << f << "'\n";
-        }
-//        if (vm.count ("input-file")) {
-//            vector<string> inputs = vm["input-file"].as< vector<string> >();
-//            for (size_t i = 0;  i < inputs.size(); ++i)
-//                std::cout << "input " << inputs[i] << '\n';
-//        }
-//        cout << "Inputs = " << vm["input-file"].as< vector<string> >() << "\n";
-    }
-    catch(exception& e) {
-        std::cerr << "error: " << e.what() << "\n";
-        return;
-    }
-    catch(...) {
-        std::cerr << "Exception of unknown type!\n";
-    }
-#endif
-    for (int i = 1;  i < argc;  ++i) {
-        std::cerr << "arg " << i << " : " << argv[i] << '\n';
-        if (! strcmp (argv[i], "-h") || ! strcmp (argv[i], "--help")) {
-            usage();
-            exit (0);
-        }
-        else if (! strcmp (argv[i], "-v") || ! strcmp (argv[i], "--verbose")) {
-            verbose = true;
-            continue;
-        }
-        else if (! strcmp (argv[i], "-g") || ! strcmp (argv[i], "--gamma")) {
-            if (i < argc-1) {
-                gammaval = atof (argv[++i]);
-                if (gammaval > 0)
-                    continue;
-            }
-            std::cerr << "iconvert: -g argument needs to be followed by a positive gamma value\n";
-            usage();
-            exit (0);
-        }
-        else if (! strcmp (argv[i], "-d") || ! strcmp (argv[i], "--data-format")) {
-            if (i < argc-1) {
-                dataformatname = argv[++i];
-                continue;
-            } else {
-                std::cerr << "iconvert: -f argument needs to be followed by a string argument\n";
-                usage();
-                exit (0);
-            }
-        }
-        else if (! strcmp (argv[i], "--scanline")) {
-            scanline = true;
-            continue;
-        }
-        else if (! strcmp (argv[i], "--tile")) {
-            bool err = false;
-            if (i < argc-2) {
-                int t0 = atoi (argv[++i]);
-                int t1 = atoi (argv[++i]);
-                if (t0 > 0 && t1 > 0) {
-                    tile[0] = t0;
-                    tile[1] = t1;
-                    int t2;
-                    if (i < argc-1 && (t2 = atoi(argv[i+1])) > 0) {
-                        tile[2] = t2;
-                        ++i;
-                    }
-                } else err = true;
-            } else {
-                err = true;
-            }
-            if (err) {
-                std::cerr << "iconvert: --tile argument needs at least 2 size values\n";
-                usage();
-                exit (0);
-            }
-        }
-        else {
-            filenames.push_back (argv[i]);
-        }
-    }
     if (filenames.size() != 2) {
         std::cerr << "iconvert: Must have both an input and output filename specified.\n";
-        usage();
-        exit (0);
+        ap.usage();
+        exit (EXIT_FAILURE);
     }
-    std::cerr << "Converting " << filenames[0] << " to " << filenames[1] << "\n";
+    std::cout << "Converting " << filenames[0] << " to " << filenames[1] << "\n";
 }
 
 

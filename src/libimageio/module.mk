@@ -16,7 +16,8 @@ local_src := formatspec.cpp imageinput.cpp imageio.cpp \
 local_libs := 
 
 # Extra objects from other libs we need to compile this library 
-local_extra_objs := ${build_obj_dir}/libutil/filesystem${OEXT} \
+local_extra_objs := ${build_obj_dir}/libutil/argparse${OEXT} \
+		    ${build_obj_dir}/libutil/filesystem${OEXT} \
 		    ${build_obj_dir}/libutil/paramtype${OEXT} \
 		    ${build_obj_dir}/libutil/plugin${OEXT} \
 		    ${build_obj_dir}/libutil/strutil${OEXT} \

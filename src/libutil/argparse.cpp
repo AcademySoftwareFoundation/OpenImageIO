@@ -41,6 +41,8 @@
 #include <cstdarg>
 #include <iterator>
 
+#include <boost/foreach.hpp>
+
 #include "strutil.h"
 
 #define DLL_EXPORT_PUBLIC /* Because we are implementing ArgParse */
@@ -77,9 +79,11 @@ ArgOption::initialize()
         // extract the flag name
         s = &format[0];
         assert(*s == '-');
-        assert(isalpha(s[1]));
+        assert(isalpha(s[1]) || (s[1] == '-' && isalpha(s[2])));
     
         s++;
+        if (*s == '-')
+            s++;
 
         while (isalnum(*s) || *s == '_' || *s == '-') s++;
 
@@ -339,13 +343,13 @@ ArgParse::parse_command_line()
 // After all ArgOptions are created, the command line is parsed and
 // the sublist option callbacks are invoked.
 int
-ArgParse::parse (const char *format, ...)
+ArgParse::parse (const char *intro, ...)
 {
     va_list ap;
-    va_start (ap, format);
+    va_start (ap, intro);
 
-    for (const char *cur = format; cur != NULL; cur = va_arg (ap, char *)) {
-
+    this->intro = intro;
+    for (const char *cur = va_arg(ap, char *); cur; cur = va_arg(ap, char *)) {
         if (find_option (cur)) {
             error ("Option \"%s\" is multiply defined");
             return -1;
@@ -375,6 +379,9 @@ ArgParse::parse (const char *format, ...)
             
             option->add_parameter (i, p);
         }
+
+        // Last argument is description
+        option->description ((const char *) va_arg (ap, const char *));
 
         this->option.push_back(option);
     }
@@ -410,7 +417,7 @@ ArgParse::find_option(const char *name)
 
 
 int
-ArgParse::found(char *option_name)
+ArgParse::found (const char *option_name)
 {
     ArgOption *option = find_option(option_name);
     if (option == NULL) return 0;
@@ -430,10 +437,25 @@ ArgParse::error (const char *format, ...)
 
 
 
+void
+ArgParse::usage () const
+{
+    std::cout << intro << '\n';
+    size_t maxlen = 0;
+    BOOST_FOREACH (ArgOption *opt, option)
+        maxlen = std::max (maxlen, opt->fmt().length());
+    BOOST_FOREACH (ArgOption *opt, option) {
+        if (opt->description().length())
+            std::cout << "    " << opt->fmt() 
+                      << std::string (maxlen + 2 - opt->fmt().length(), ' ')
+                      << opt->description() << '\n';
+    }
+}
+
+
+
 ArgParse::~ArgParse()
 {
-    for (std::vector<ArgOption *>::const_iterator i = option.begin();
-         i != option.end(); i++) {
-        delete *i;
-    }
+    BOOST_FOREACH (ArgOption *opt, option)
+        delete opt;
 }
