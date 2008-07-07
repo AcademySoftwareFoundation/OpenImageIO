@@ -45,9 +45,9 @@
 
 
 IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
-    : QGLWidget(parent), m_viewer(viewer), m_pixelview(false),
+    : QGLWidget(parent), m_viewer(viewer), 
       m_shaders_created(false), m_tex_created(false),
-      m_centerx(0.5), m_centery(0.5)
+      m_centerx(0.5), m_centery(0.5), m_dragging(false)
 {
 #if 0
     QGLFormat format;
@@ -58,6 +58,7 @@ IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
     format.setDepth (true);
     setFormat (format);
 #endif
+    setMouseTracking (true);
 }
 
 
@@ -71,10 +72,6 @@ IvGL::~IvGL ()
 void
 IvGL::initializeGL ()
 {
-    std::cerr << "\n\n\ninitializeGL\n";
-    if (m_pixelview)
-    glClearColor (0.5, 0.05, 0.05, 1.0);
-    else
     glClearColor (0.05, 0.05, 0.05, 1.0);
     glShadeModel (GL_FLAT);
     glEnable (GL_DEPTH_TEST);
@@ -100,7 +97,6 @@ IvGL::create_textures (void)
 
     glGenTextures (1, &m_texid);
     m_texid = 0;
-    std::cerr << "m_texid = " << m_texid << ", texture0=" << GL_TEXTURE0 << "\n";
 //    glActiveTexture (GL_TEXTURE0);
 //    glEnable (GL_TEXTURE_2D);
     glBindTexture (GL_TEXTURE_2D, m_texid);
@@ -252,8 +248,6 @@ IvGL::create_shaders (void)
 void
 IvGL::resizeGL (int w, int h)
 {
-    if (m_pixelview)
-    std::cerr << "resizeGL " << w << ' ' << h << "\n";
     GLERRPRINT ("resizeGL entry");
     glViewport (0, 0, w, h);
     glMatrixMode (GL_PROJECTION);
@@ -294,15 +288,12 @@ IvGL::paintGL ()
         return;
  
     IvImage *img = m_viewer.cur();
-    const ImageIOFormatSpec &spec (img->spec());
-    float z = m_pixelview ? 1 : m_viewer.zoom();
+    float z = m_viewer.zoom();
 
-    if (! m_pixelview) {
-        if (z*spec.width <= width())  // FIXME - ivgl window?
-            m_centerx = 0.5;
-        if (z*spec.height <= height())
-            m_centery = 0.5;
-    }
+    if (z*img->oriented_width() <= width())  // FIXME - ivgl window?
+        m_centerx = 0.5;
+    if (z*img->oriented_height() <= height())
+        m_centery = 0.5;
 
     glPushAttrib (GL_ALL_ATTRIB_BITS);
     glPushMatrix ();
@@ -313,7 +304,7 @@ IvGL::paintGL ()
     // Scaled by zoom level.  So now xy units are image pixels as
     // displayed at the current zoom level, with the origin at the
     // center of the visible window.
-    glScalef (spec.width, spec.height, 1);
+    glScalef (img->oriented_width(), img->oriented_height(), 1);
     // Scaled by image dimensions.  So now xy runs from [-0.5 to 0.5] over
     // the image data.
     glTranslatef (-(m_centerx-0.5f), (m_centery-0.5f), 0.0f);
@@ -321,6 +312,19 @@ IvGL::paintGL ()
     // at the center of the visible window.
     glTranslatef (0, 0, -5.0);
     // Pushed away from the camera 5 units.
+
+    // Handle orientation
+    int orient = img->orientation();
+    if (orient != 1) {
+        if (orient == 2 || orient == 3 || orient == 5)
+            glScalef (-1, 1, 1);
+        if (orient == 3 || orient == 4)
+            glScalef (1, -1, 1);
+        if (orient == 5 || orient == 8)
+            glRotatef (90, 0, 0, 1);
+        if (orient == 6 || orient == 7)
+            glRotatef (-90, 0, 0, 1);
+    }
 
     useshader ();
     gl_rect (-0.5, 0.5, 0.5, -0.5);
@@ -369,7 +373,7 @@ IvGL::paint_pixelview ()
 
     IvImage *img = m_viewer.cur();
     const ImageIOFormatSpec &spec (img->spec());
-    float z = m_pixelview ? 1 : m_viewer.zoom();
+    float z = m_viewer.zoom();
 
     // (xw,yw) are the window coordinates of the mouse.
     int xw, yw;
@@ -403,18 +407,15 @@ IvGL::paint_pixelview ()
     // window is going to appear.  All other coordinates from here on
     // (in this procedure) should be relative to the closeup window center.
 
-//    glScalef (spec.width, spec.height, 1);
-//    glScalef ((float)closeupsize, (float)closeupsize, 1);
-
     // This square is the closeup window itself
     //
     glPushAttrib (GL_ALL_ATTRIB_BITS);
     useshader (true);
-    float xtexsize = 0.5 * (float)ncloseuppixels / spec.width;
-    float ytexsize = 0.5 * (float)ncloseuppixels / spec.height;
+    float xtexsize = 0.5 * (float)ncloseuppixels / img->oriented_width();
+    float ytexsize = 0.5 * (float)ncloseuppixels / img->oriented_height();
     // Make (x,y) be the image space NDC coords of the mouse.
-    float x = (float)xp / (/* ? z * */ spec.width);
-    float y = (float)yp / (/* ? z * */ spec.height);
+    float x = (float)xp / (/* ? z * */ img->oriented_width());
+    float y = (float)yp / (/* ? z * */ img->oriented_height());
     gl_rect (-0.5f*closeupsize, 0.5f*closeupsize,
              0.5f*closeupsize, -0.5f*closeupsize, 0,
              x - xtexsize, y - ytexsize, x + xtexsize, y + ytexsize);
@@ -445,7 +446,7 @@ IvGL::paint_pixelview ()
 //    font.setPixelSize (16);
 //    font.setFixedPitch (20);
 //    bgfont.setPixelSize (20);
-    if (xp >= 0 && xp < spec.width && yp >= 0 && yp < spec.height) {
+    if (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()) {
         char *pixel = (char *) alloca (spec.pixel_bytes());
         float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
         int textx = - closeupsize/2 + 4;
@@ -548,13 +549,11 @@ IvGL::update (IvImage *img)
 {
     if (! img)
         return;
-    if (m_pixelview) return;
 
     const ImageIOFormatSpec &spec (img->spec());
 //    glActiveTexture (GL_TEXTURE0);
 //    glEnable (GL_TEXTURE_2D);
     glBindTexture (GL_TEXTURE_2D, m_texid);
-    std::cerr << "update " << (m_pixelview ? "pv " : "") <<" : bind " << m_texid << "\n";
 
     GLenum glformat = GL_RGB;
     if (spec.nchannels == 1)
@@ -602,31 +601,12 @@ IvGL::update (IvImage *img)
 
 
 void
-IvGL::center (float x, float y)
-{
-    m_centerx = x;
-    m_centery = y;
-    trigger_redraw ();
-}
-
-
-
-IvGLMainview::IvGLMainview (QWidget *parent, ImageViewer &viewer)
-    : IvGL(parent, viewer), m_dragging(false)
-{
-    setMouseTracking (true);
-}
-
-
-
-void
-IvGLMainview::zoom (float z)
+IvGL::zoom (float z)
 {
     IvImage *img = m_viewer.cur();
     if (img) {
-        const ImageIOFormatSpec &spec (img->spec());
         clamp_view_to_window ();
-        repaint (0, 0, spec.width, spec.height);     // Update the texture
+        repaint (0, 0, img->oriented_width(), img->oriented_height());     // Update the texture
     } else {
         repaint (0, 0, width(), height());
     }
@@ -635,7 +615,7 @@ IvGLMainview::zoom (float z)
 
 
 void
-IvGLMainview::center (float x, float y)
+IvGL::center (float x, float y)
 {
     m_centerx = x;
     m_centery = y;
@@ -646,7 +626,7 @@ IvGLMainview::center (float x, float y)
 
 
 void
-IvGLMainview::pan (float dx, float dy)
+IvGL::pan (float dx, float dy)
 {
     center (m_centerx + dx, m_centery + dy);
 }
@@ -654,7 +634,7 @@ IvGLMainview::pan (float dx, float dy)
 
 
 void
-IvGLMainview::remember_mouse (const QPoint &pos)
+IvGL::remember_mouse (const QPoint &pos)
 {
     m_mousex = pos.x();
     m_mousey = pos.y();
@@ -663,7 +643,7 @@ IvGLMainview::remember_mouse (const QPoint &pos)
 
 
 void
-IvGLMainview::clamp_view_to_window ()
+IvGL::clamp_view_to_window ()
 {
     int w = width(), h = height();
     float z = m_viewer.zoom ();
@@ -713,7 +693,7 @@ IvGLMainview::clamp_view_to_window ()
 
 
 void
-IvGLMainview::mousePressEvent (QMouseEvent *event)
+IvGL::mousePressEvent (QMouseEvent *event)
 {
     remember_mouse (event->pos());
     m_drag_button = event->button();
@@ -734,7 +714,7 @@ IvGLMainview::mousePressEvent (QMouseEvent *event)
 
 
 void
-IvGLMainview::mouseReleaseEvent (QMouseEvent *event)
+IvGL::mouseReleaseEvent (QMouseEvent *event)
 {
     remember_mouse (event->pos());
     m_drag_button = Qt::NoButton;
@@ -749,7 +729,7 @@ IvGLMainview::mouseReleaseEvent (QMouseEvent *event)
 
 
 void
-IvGLMainview::mouseMoveEvent (QMouseEvent *event)
+IvGL::mouseMoveEvent (QMouseEvent *event)
 {
     QPoint pos = event->pos();
     // FIXME - there's probably a better Qt way than tracking the button
@@ -772,7 +752,7 @@ IvGLMainview::mouseMoveEvent (QMouseEvent *event)
 
 
 void
-IvGLMainview::wheelEvent (QWheelEvent *event)
+IvGL::wheelEvent (QWheelEvent *event)
 {
     if (event->orientation() == Qt::Vertical) {
         int degrees = event->delta() / 8;
@@ -797,7 +777,7 @@ IvGLMainview::wheelEvent (QWheelEvent *event)
 
 
 void
-IvGLMainview::get_focus_window_pixel (int &x, int &y)
+IvGL::get_focus_window_pixel (int &x, int &y)
 {
     x = m_mousex;
     y = m_mousey;
@@ -806,7 +786,7 @@ IvGLMainview::get_focus_window_pixel (int &x, int &y)
 
 
 void
-IvGLMainview::get_focus_image_pixel (int &x, int &y)
+IvGL::get_focus_image_pixel (int &x, int &y)
 {
     // w,h are the dimensions of the visible window, in pixels
     int w = width(), h = height();

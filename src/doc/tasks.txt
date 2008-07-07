@@ -9,7 +9,7 @@ DONE        TIFF - palette
 DONE        TIFF - miniswhite
 DONE        TIFF - 1-bit and 4-bit images
 DONE        TIFF - separated samples broken (oxford.tif)
-            TIFF/JPEG - orientations (does this really mean iv orientation?)
+DONE        iv - honor orientation
             TIFF - double (caspian)
 DONE        OpenEXR plugin (status: reader works, writer works, scanline/tile)
 DONE        jpeg - EXIF info

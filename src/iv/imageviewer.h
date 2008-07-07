@@ -40,7 +40,6 @@ class IvMainWindow;
 class IvInfoWindow;
 class IvCanvas;
 class IvGL;
-class IvGLMainview;
 
 
 
@@ -106,6 +105,10 @@ public:
     void getpixel (int x, int y, int *pixel) const;
     void getpixel (int x, int y, float *pixel) const;
 
+    int oriented_width () const;
+    int oriented_height () const;
+    int orientation () const { return m_orientation; }
+
 private:
     std::string m_name;        ///< Filename of the image
     int m_nsubimages;          ///< How many subimages are there?
@@ -120,6 +123,7 @@ private:
     std::string m_err;         ///< Last error message
     float m_gamma;             ///< Gamma correction of this image
     float m_exposure;          ///< Exposure gain of this image, in stops
+    int m_orientation;         ///< Orientation of the image
     mutable std::string m_shortinfo;
     mutable std::string m_longinfo;
 
@@ -177,9 +181,10 @@ public:
     /// is a "zoom in" (closer/maxify), negative is zoom out (farther/minify).
     float zoom (void) const { return m_zoom; }
 
-    /// Set a new zoom level.
-    ///
-    void zoom (float newzoom);
+    /// Set a new zoom level.  If smooth is true, switch to the new zoom
+    /// level smoothly over many gradual steps, otherwise do it all in
+    /// one shot.
+    void zoom (float newzoom, bool smooth = false);
 
     /// Return a ptr to the current image, or NULL if there is no
     /// current image.
@@ -251,7 +256,7 @@ private:
     void keyPressEvent (QKeyEvent *event);
     void resizeEvent (QResizeEvent *event);
 
-    IvGLMainview *glwin;
+    IvGL *glwin;
     IvInfoWindow *infoWindow;
 
 #ifndef QT_NO_PRINTER
@@ -295,7 +300,7 @@ private:
 
     friend class IvCanvas;
     friend class IvGL;
-    friend class IvGLMainview;
+    friend class IvInfoWindow;
     friend bool image_progress_callback (void *opaque, float done);
 };
 
@@ -332,51 +337,6 @@ public:
 
     /// Update the zoom
     ///
-    virtual void zoom (float newzoom) { }
-
-    void trigger_redraw (void) { glDraw(); }
-
-    virtual void center (float x, float y);
-
-protected:
-    ImageViewer &m_viewer;            ///< Backpointer to viewer
-    bool m_pixelview;                 ///< Is this a closeup pixelview window?
-    bool m_shaders_created;           ///< Have the shaders been created?
-    GLuint m_vertex_shader;           ///< Vertex shader id
-    GLuint m_fragment_shader;         ///< Fragment shader id
-    GLuint m_shader_program;          ///< GL shader program id
-    bool m_tex_created;               ///< Have the textures been created?
-    GLuint m_texid;                   ///< Texture holding current imag
-    float m_centerx, m_centery; ///< Where is the view centered in the img?
-
-    virtual void initializeGL ();
-    virtual void resizeGL (int w, int h);
-    virtual void paintGL ();
-
-    void paint_pixelview ();
-    void glSquare (float xmin, float ymin, float xmax, float ymax, float z=0);
-
-    virtual void create_shaders (void);
-    virtual void create_textures (void);
-    virtual void useshader (bool pixelview=false);
-
-    void shadowed_text (float x, float y, float z, const std::string &s,
-                        const QFont &font);
-
-private:
-    typedef QGLWidget parent_t;
-};
-
-
-
-class IvGLMainview : public IvGL
-{
-Q_OBJECT
-public:
-    IvGLMainview (QWidget *parent, ImageViewer &viewer);
-
-    /// Update the zoom
-    ///
     virtual void zoom (float newzoom);
 
     virtual void center (float x, float y);
@@ -395,22 +355,45 @@ public:
     /// widget boundaries)
     void get_focus_window_pixel (int &x, int &y);
 
+    void trigger_redraw (void) { glDraw(); }
+
 protected:
+    ImageViewer &m_viewer;            ///< Backpointer to viewer
+    bool m_shaders_created;           ///< Have the shaders been created?
+    GLuint m_vertex_shader;           ///< Vertex shader id
+    GLuint m_fragment_shader;         ///< Fragment shader id
+    GLuint m_shader_program;          ///< GL shader program id
+    bool m_tex_created;               ///< Have the textures been created?
+    GLuint m_texid;                   ///< Texture holding current imag
+    float m_centerx, m_centery; ///< Where is the view centered in the img?
     bool m_dragging;                  ///< Are we dragging?
     int m_mousex, m_mousey;           ///< Last mouse position
     Qt::MouseButton m_drag_button;    ///< Button on when dragging
+
+    virtual void initializeGL ();
+    virtual void resizeGL (int w, int h);
+    virtual void paintGL ();
 
     virtual void mousePressEvent (QMouseEvent *event);
     virtual void mouseReleaseEvent (QMouseEvent *event);
     virtual void mouseMoveEvent (QMouseEvent *event);
     virtual void wheelEvent (QWheelEvent *event);
 
+    void paint_pixelview ();
+    void glSquare (float xmin, float ymin, float xmax, float ymax, float z=0);
+
+    virtual void create_shaders (void);
+    virtual void create_textures (void);
+    virtual void useshader (bool pixelview=false);
+
+    void shadowed_text (float x, float y, float z, const std::string &s,
+                        const QFont &font);
+
 private:
-    typedef IvGL parent_t;
+    typedef QGLWidget parent_t;
 
     void clamp_view_to_window ();
 };
-
 
 
 

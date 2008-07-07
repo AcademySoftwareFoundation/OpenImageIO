@@ -71,4 +71,3 @@ IvInfoWindow::update (IvImage *img)
         infoLabel->setText (tr("No image loaded."));
     }
 }
-

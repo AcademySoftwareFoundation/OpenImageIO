@@ -36,7 +36,7 @@
 IvImage::IvImage (const std::string &filename)
     : m_name(filename), m_pixels(NULL), m_thumbnail(NULL),
       m_spec_valid(false), m_pixels_valid(false), m_thumbnail_valid(false),
-      m_badfile(false), m_gamma(1), m_exposure(0)
+      m_badfile(false), m_gamma(1), m_exposure(0), m_orientation(1)
 {
 }
 
@@ -110,6 +110,13 @@ IvImage::read (int subimage, bool force,
         m_current_subimage = subimage;
     else
         m_current_subimage = 0;
+
+    ImageIOParameter *orient = m_spec.find_parameter ("orientation");
+    if (orient && orient->type == PT_UINT && orient->nvalues == 1)
+        m_orientation = *(unsigned int *)orient->data();
+    else 
+        m_orientation = 1;
+            std::cerr << "  orientation " << orientation() << ", oriented size = " << oriented_width() << " x " << oriented_height() << "\n";
 
     delete [] m_pixels;
     m_pixels = new char [m_spec.image_bytes()];
@@ -258,3 +265,18 @@ IvImage::getpixel (int x, int y, float *pixel) const
                                 pixel, PT_FLOAT, as, as, as);
 }
 
+
+
+int
+IvImage::oriented_width () const
+{
+    return m_orientation <= 4 ? m_spec.width : m_spec.height;
+}
+
+
+
+int
+IvImage::oriented_height () const
+{
+    return m_orientation <= 4 ? m_spec.height : m_spec.width;
+}

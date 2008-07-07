@@ -46,7 +46,7 @@ ImageViewer::ImageViewer ()
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
       m_zoom(1), m_fullscreen(false)
 {
-    glwin = new IvGLMainview (this, *this);
+    glwin = new IvGL (this, *this);
     glwin->resize (640, 480);
     setCentralWidget (glwin);
 
@@ -168,21 +168,17 @@ void ImageViewer::createActions()
 
     zoomInAct = new QAction(tr("Zoom &In"), this);
     zoomInAct->setShortcut(tr("Ctrl++"));
-//    zoomInAct->setEnabled(false);
     connect(zoomInAct, SIGNAL(triggered()), this, SLOT(zoomIn()));
 
     zoomOutAct = new QAction(tr("Zoom &Out"), this);
     zoomOutAct->setShortcut(tr("Ctrl+-"));
-//    zoomOutAct->setEnabled(false);
     connect(zoomOutAct, SIGNAL(triggered()), this, SLOT(zoomOut()));
 
     normalSizeAct = new QAction(tr("&Normal Size (1:1)"), this);
     normalSizeAct->setShortcut(tr("Ctrl+0"));
-//    normalSizeAct->setEnabled(false);
     connect(normalSizeAct, SIGNAL(triggered()), this, SLOT(normalSize()));
 
     fitWindowToImageAct = new QAction(tr("&Fit Window to Image"), this);
-    fitWindowToImageAct->setEnabled(false);
     fitWindowToImageAct->setShortcut(tr("f"));
     connect(fitWindowToImageAct, SIGNAL(triggered()), this, SLOT(fitWindowToImage()));
 
@@ -432,7 +428,8 @@ ImageViewer::add_image (const std::string &filename, bool getspec)
             QMessageBox::information (this, tr("iv Image Viewer"),
                               tr("%1").arg(newimage->error_message().c_str()));
         } else {
-            std::cerr << "Added image " << filename << ": " << newimage->spec().width << " x " << newimage->spec().height << "\n";
+            std::cerr << "Added image " << filename << ": " 
+<< newimage->spec().width << " x " << newimage->spec().height << "\n";
         }
     }
     m_images.push_back (newimage);
@@ -510,13 +507,17 @@ ImageViewer::displayCurrentImage ()
         m_current_image = m_last_image = -1;
     }
 
+    glwin->update (img);
+    float z = zoom();
+    if (fitImageToWindowAct->isChecked ())
+        z = zoom_needed_to_fit (glwin->width(), glwin->height());
+    zoom (z);
+//    glwin->trigger_redraw ();
+
     updateTitle();
     updateStatusBar();
     if (infoWindow)
         infoWindow->update (img);
-
-    glwin->update (img);
-    glwin->zoom (zoom());
 
 //    printAct->setEnabled(true);
 //    fitImageToWindowAct->setEnabled(true);
@@ -842,11 +843,11 @@ void ImageViewer::zoomIn()
     if (zoom() >= 1.0f) {
         int z = (int) round (zoom());
         z = pow2roundup (z+1);
-        zoom (z);
+        zoom (z, true);
     } else {
         int z = (int)round(1.0 / zoom());
         z = pow2rounddown (z-1);
-        zoom (1.0f / std::max(z,1));
+        zoom (1.0f / std::max(z,1), true);
     }
     fitImageToWindowAct->setChecked (false);
 }
@@ -860,11 +861,11 @@ void ImageViewer::zoomOut()
     if (zoom() > 1.0f) {
         int z = (int) zoom();
         z = pow2rounddown (z-1);
-        zoom (std::max ((float)z, 0.5f));
+        zoom (std::max ((float)z, 0.5f), true);
     } else {
         int z = (int)(1.0 / zoom() + 0.001);  // add for floating point slop
         z = pow2roundup (z+1);
-        zoom (1.0f / z);
+        zoom (1.0f / z, true);
     }
     fitImageToWindowAct->setChecked (false);
 }
@@ -872,7 +873,7 @@ void ImageViewer::zoomOut()
 
 void ImageViewer::normalSize()
 {
-    zoom (1.0f);
+    zoom (1.0f, true);
     fitImageToWindowAct->setChecked (false);
 }
 
@@ -884,9 +885,8 @@ ImageViewer::zoom_needed_to_fit (int w, int h)
     IvImage *img = cur();
     if (! img)
         return 1;
-    const ImageIOFormatSpec &spec (img->spec());
-    float zw = (float) w / spec.width;
-    float zh = (float) h / spec.height;
+    float zw = (float) w / img->oriented_width ();
+    float zh = (float) h / img->oriented_height ();
     return std::min (zw, zh);
 }
 
@@ -897,7 +897,8 @@ void ImageViewer::fitImageToWindow()
     IvImage *img = cur();
     if (! img)
         return;
-    zoom (zoom_needed_to_fit (width(), height()));
+    zoom (zoom_needed_to_fit (glwin->width(), glwin->height()));
+    std::cerr << "done fitImageToWindow, current zoom is " << zoom() << "\n";
 }
 
 
@@ -914,8 +915,8 @@ void ImageViewer::fitWindowToImage()
 //    std::cerr << "extra wh = " << extraw << ' ' << extrah << '\n';
 
     float z = zoom();
-    int w = (int)(img->spec().width  * z)+extraw;
-    int h = (int)(img->spec().height * z)+extrah;
+    int w = (int)(img->oriented_width()  * z)+extraw;
+    int h = (int)(img->oriented_height() * z)+extrah;
     if (! m_fullscreen) {
         QDesktopWidget *desktop = QApplication::desktop ();
         QRect availgeom = desktop->availableGeometry (this);
@@ -931,8 +932,8 @@ void ImageViewer::fitWindowToImage()
             h = std::min (h, availheight);
             z = zoom_needed_to_fit (w, h);
             // std::cerr << "must rezoom to " << z << " to fit\n";
-            w = (int)(img->spec().width  * z) + extraw;
-            h = (int)(img->spec().height * z) + extrah;
+            w = (int)(img->oriented_width()  * z) + extraw;
+            h = (int)(img->oriented_height() * z) + extrah;
             // std::cerr << "New window geom " << w << "x" << h << "\n";
             int posx = x(), posy = y();
             if (posx + w > availwidth || posy + h > availheight) {
@@ -972,7 +973,6 @@ void ImageViewer::fitWindowToImage()
 
 void ImageViewer::fullScreenToggle()
 {
-    std::cerr << "toggle full screen\n";
     if (m_fullscreen) {
         menuBar()->show ();
         statusBar()->show ();
@@ -982,10 +982,8 @@ void ImageViewer::fullScreenToggle()
         menuBar()->hide ();
         statusBar()->hide ();
         showFullScreen ();
-        fitImageToWindow ();
-        // glwin->setParent (NULL);  // Make it into a top-level window
-        // glwin->showFullScreen ();
         m_fullscreen = true;
+        fitImageToWindow ();
     }
 }
 
@@ -1011,7 +1009,7 @@ void ImageViewer::updateActions()
 
 
 void
-ImageViewer::zoom (float newzoom)
+ImageViewer::zoom (float newzoom, bool smooth)
 {
     IvImage *img = cur();
     if (! img)
@@ -1020,6 +1018,8 @@ ImageViewer::zoom (float newzoom)
     float oldzoom = m_zoom;
     float zoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
     int nsteps = (int) Imath::clamp (20 * (zoomratio - 1), 2.0f, 10.0f);
+    if (! smooth)
+        nsteps = 1;
     for (int i = 1;  i <= nsteps;  ++i) {
         float z = Imath::lerp (oldzoom, newzoom, (float)i/(float)nsteps);
         m_zoom = z;
