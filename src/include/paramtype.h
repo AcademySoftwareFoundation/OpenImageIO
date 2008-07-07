@@ -66,27 +66,27 @@
 /// Base data types.
 ///
 enum ParamBaseType {
-    PT_UNKNOWN = 0,          //< Unknown type
-    PT_VOID,                 //< Known to have no type
-    PT_STRING,               //< String
-    PT_FLOAT,                //< 32-bit IEEE float
-    PT_HALF,                 //< 16-bit float a la OpenEXR or NVIDIA fp16
-    PT_DOUBLE,               //< 64-bit IEEE float
-    PT_POINT,                //< 3-tuple of float describing a position
-    PT_VECTOR,               //< 3-tuple of float describing a direction
-    PT_NORMAL,               //< 3-tuple of float describing a surface normal
-    PT_COLOR,                //< 3-tuple of float describing a color
-    PT_HPOINT,               //< 4-tuple of float describing a 4D position,
-                             //<        4D direction, or homogeneous point
-    PT_MATRIX,               //< 4x4-tuple of float describing a 4x4 matrix
-    PT_INT8, PT_UINT8,       //< 8 bit int, signed and unsigned
-    PT_BYTE = PT_UINT8,      //<    BYTE == synonym for UINT8
-    PT_INT16, PT_UINT16,     //< 16 bit int, signed and unsigned
-    PT_INT,                  //< 32-bit signed int
-    PT_INT32 = PT_INT,       //< 32-bit signed int
-    PT_UINT,                 //< 32-bit unsigned int
-    PT_UINT32 = PT_UINT,     //< 32-bit unsigned int
-    PT_POINTER,              //< pointer, in system address width
+    PT_UNKNOWN = 0,          ///< Unknown type
+    PT_VOID,                 ///< Known to have no type
+    PT_STRING,               ///< String
+    PT_FLOAT,                ///< 32-bit IEEE float
+    PT_HALF,                 ///< 16-bit float a la OpenEXR or NVIDIA fp16
+    PT_DOUBLE,               ///< 64-bit IEEE float
+    PT_POINT,                ///< 3-tuple of float describing a position
+    PT_VECTOR,               ///< 3-tuple of float describing a direction
+    PT_NORMAL,               ///< 3-tuple of float describing a surface normal
+    PT_COLOR,                ///< 3-tuple of float describing a color
+    PT_HPOINT,               ///< 4-tuple of float describing a 4D position,
+                             ///<        4D direction, or homogeneous point
+    PT_MATRIX,               ///< 4x4-tuple of float describing a 4x4 matrix
+    PT_INT8, PT_UINT8,       ///< 8 bit int, signed and unsigned
+    PT_BYTE = PT_UINT8,      ///<    BYTE == synonym for UINT8
+    PT_INT16, PT_UINT16,     ///< 16 bit int, signed and unsigned
+    PT_INT,                  ///< 32-bit signed int
+    PT_INT32 = PT_INT,       ///< 32-bit signed int
+    PT_UINT,                 ///< 32-bit unsigned int
+    PT_UINT32 = PT_UINT,     ///< 32-bit unsigned int
+    PT_POINTER,              ///< pointer, in system address width
       // For historical reasons, DO NOT change the order of the above!
       // Future expansion takes place here.  Remember to modify the 
       // routines below that operate on ParamBaseType.

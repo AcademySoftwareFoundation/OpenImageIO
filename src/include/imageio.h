@@ -98,9 +98,9 @@ typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 ///
 class DLLPUBLIC ImageIOParameter {
 public:
-    std::string name;           //< data name
-    ParamBaseType type;         //< data type
-    int nvalues;                //< number of elements
+    std::string name;           ///< data name
+    ParamBaseType type;         ///< data type
+    int nvalues;                ///< number of elements
 
     ImageIOParameter () : type(PT_UNKNOWN), nvalues(0), m_nonlocal(false) { }
     ImageIOParameter (const std::string &_name, ParamBaseType _type,
