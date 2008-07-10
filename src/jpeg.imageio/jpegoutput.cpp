@@ -38,6 +38,7 @@
 #include <ctype.h>
 #include <cstdio>
 #include <csetjmp>
+#include <iostream>
 #include <vector>
 
 extern "C" {
@@ -169,6 +170,8 @@ JpgOutput::write_scanline (int y, int z, ParamBaseType format,
 bool
 JpgOutput::close ()
 {
+    if (! fd)          // Already closed
+        return true;
     jpeg_finish_compress (&cinfo);
     jpeg_destroy_compress (&cinfo);
     fclose (fd);
