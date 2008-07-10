@@ -72,7 +72,8 @@ ImageViewer::~ImageViewer ()
 
 
 
-void ImageViewer::createActions()
+void
+ImageViewer::createActions()
 {
     openAct = new QAction(tr("&Open..."), this);
     openAct->setShortcut(tr("Ctrl+O"));
@@ -85,6 +86,16 @@ void ImageViewer::createActions()
     closeImgAct = new QAction(tr("&Close Image"), this);
     closeImgAct->setShortcut(tr("Ctrl+W"));
     connect(closeImgAct, SIGNAL(triggered()), this, SLOT(closeImg()));
+
+    saveAsAct = new QAction(tr("&Save As..."), this);
+    saveAsAct->setShortcut(tr("Ctrl+S"));
+    connect(saveAsAct, SIGNAL(triggered()), this, SLOT(saveAs()));
+
+    saveWindowAsAct = new QAction(tr("Save Window As..."), this);
+    connect(saveWindowAsAct, SIGNAL(triggered()), this, SLOT(saveWindowAs()));
+
+    saveSelectionAsAct = new QAction(tr("Save Selection As..."), this);
+    connect(saveSelectionAsAct, SIGNAL(triggered()), this, SLOT(saveSelectionAs()));
 
     printAct = new QAction(tr("&Print..."), this);
     printAct->setShortcut(tr("Ctrl+P"));
@@ -237,9 +248,9 @@ ImageViewer::createMenus()
     fileMenu->addAction (reloadAct);
     fileMenu->addAction (closeImgAct);
     fileMenu->addSeparator ();
-    // Save as ^S
-    // Save window as Shift-Ctrl-S
-    // Save selection as
+    fileMenu->addAction (saveAsAct);
+    fileMenu->addAction (saveWindowAsAct);
+    fileMenu->addAction (saveSelectionAsAct);
     fileMenu->addSeparator ();
     fileMenu->addAction (printAct);
     fileMenu->addSeparator ();
@@ -387,25 +398,33 @@ image_progress_callback (void *opaque, float done)
 
 
 
-void ImageViewer::open()
+void
+ImageViewer::open()
 {
-    QString qfileName = QFileDialog::getOpenFileName (this,
-                                    tr("Open File"), QDir::currentPath());
-    std::string filename = qfileName.toStdString();
-    if (filename.empty())
+    QStringList names;
+    names = QFileDialog::getOpenFileNames (this, tr("Open File(s)"),
+                                           QDir::currentPath());
+    if (names.empty())
         return;
-
-    add_image (filename, false);
-    int n = m_images.size()-1;
-    IvImage *newimage = m_images[n];
-    newimage->read (0, false, image_progress_callback, this);
-    current_image (n);
+    int old_lastimage = m_images.size()-1;
+    QStringList list = names;
+    for (QStringList::Iterator it = list.begin();  it != list.end();  ++it) {
+        std::string filename = it->toStdString();
+        if (filename.empty())
+            continue;
+        add_image (filename, false);
+        int n = m_images.size()-1;
+        IvImage *newimage = m_images[n];
+        newimage->read (0, false, image_progress_callback, this);
+    }
+    current_image (old_lastimage + 1);
     fitWindowToImage ();
 }
 
 
 
-void ImageViewer::reload()
+void
+ImageViewer::reload()
 {
     if (m_images.empty())
         return;
@@ -437,6 +456,57 @@ ImageViewer::add_image (const std::string &filename, bool getspec)
     // If this is the first image, resize to fit it
     if (m_images.size() == 1)
         fitWindowToImage ();
+}
+
+
+
+void
+ImageViewer::saveAs()
+{
+    IvImage *img = cur();
+    if (! img)
+        return;
+    QString name;
+    name = QFileDialog::getSaveFileName (this, tr("Save Image"),
+                                         QString(img->name().c_str()));
+    if (name.isEmpty())
+        return;
+    bool ok = img->save (name.toStdString(), image_progress_callback, this);
+    if (! ok) {
+        std::cerr << "Save failed: " << img->error_message() << "\n";
+    }
+}
+
+
+
+void
+ImageViewer::saveWindowAs()
+{
+    IvImage *img = cur();
+    if (! img)
+        return;
+    QString name;
+    name = QFileDialog::getSaveFileName (this, tr("Save Window"),
+                                         QString(img->name().c_str()));
+    if (name.isEmpty())
+        return;
+    img->save (name.toStdString(), image_progress_callback, this);  // FIXME
+}
+
+
+
+void
+ImageViewer::saveSelectionAs()
+{
+    IvImage *img = cur();
+    if (! img)
+        return;
+    QString name;
+    name = QFileDialog::getSaveFileName (this, tr("Save Selection"),
+                                         QString(img->name().c_str()));
+    if (name.isEmpty())
+        return;
+    img->save (name.toStdString(), image_progress_callback, this);  // FIXME
 }
 
 
@@ -897,8 +967,8 @@ void ImageViewer::fitImageToWindow()
     IvImage *img = cur();
     if (! img)
         return;
+    fitImageToWindowAct->setChecked (true);
     zoom (zoom_needed_to_fit (glwin->width(), glwin->height()));
-    std::cerr << "done fitImageToWindow, current zoom is " << zoom() << "\n";
 }
 
 

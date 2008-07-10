@@ -60,6 +60,12 @@ public:
     /// succeeded, false if the file could not be read.
     bool init_spec (const std::string &filename);
 
+    /// Save the image or a subset thereof.
+    ///
+    bool save (const std::string &filename,
+               OpenImageIO::ProgressCallback progress_callback=NULL,
+               void *progress_callback_data=NULL);
+
     /// Return info on the last error that occurred since error_message()
     /// was called.  This also clears the error message for next time.
     std::string error_message (void) {
@@ -213,6 +219,9 @@ private slots:
     void open();                        ///< Dialog to open new image from file
     void reload();                      ///< Reread current image from disk
     void closeImg();                    ///< Close the current image
+    void saveAs();                      ///< Save As... functionality
+    void saveWindowAs();                ///< Save As... functionality
+    void saveSelectionAs();             ///< Save As... functionality
     void print();                       ///< Print current image
     void zoomIn();                      ///< Zoom in to next power of 2
     void zoomOut();                     ///< Zoom out to next power of 2
@@ -264,6 +273,7 @@ private:
 #endif
 
     QAction *openAct, *reloadAct, *closeImgAct;
+    QAction *saveAsAct, *saveWindowAsAct, *saveSelectionAsAct;
     QAction *printAct;
     QAction *exitAct;
     QAction *gammaPlusAct, *gammaMinusAct;

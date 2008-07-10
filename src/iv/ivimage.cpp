@@ -54,7 +54,7 @@ bool
 IvImage::init_spec (const std::string &filename)
 {
     m_name = filename;
-    ImageInput *in = ImageInput::create (filename.c_str(), "" /* searchpath */);
+    boost::scoped_ptr<ImageInput> in (ImageInput::create (filename.c_str(), "" /* searchpath */));
     if (! in) {
         std::cerr << OpenImageIO::error_message() << "\n";
     }
@@ -71,7 +71,6 @@ IvImage::init_spec (const std::string &filename)
     } else {
         m_badfile = true;
         m_spec_valid = false;
-        delete in;
     }
     m_shortinfo.clear();  // invalidate info strings
     m_longinfo.clear();
@@ -98,10 +97,21 @@ IvImage::read (int subimage, bool force,
     // Find an ImageIO plugin that can open the input file, and open it.
     boost::scoped_ptr<ImageInput> in (ImageInput::create (m_name.c_str(), "" /* searchpath */));
     if (! in) {
-        m_err = OpenImageIO::error_message().c_str();
+        m_err = OpenImageIO::error_message();
         return false;
     }
-    if (! in->open (m_name.c_str(), m_spec)) {
+    if (in->open (m_name.c_str(), m_spec)) {
+        ImageIOFormatSpec tempspec;
+        m_nsubimages = 1;
+        while (in->seek_subimage (m_nsubimages, tempspec))
+            ++m_nsubimages;
+        m_current_subimage = 0;
+        in->seek_subimage (0, m_spec);
+        m_badfile = false;
+        m_spec_valid = true;
+    } else {
+        m_badfile = true;
+        m_spec_valid = false;
         m_err = in->error_message();
         return false;
     }
@@ -116,7 +126,6 @@ IvImage::read (int subimage, bool force,
         m_orientation = *(unsigned int *)orient->data();
     else 
         m_orientation = 1;
-            std::cerr << "  orientation " << orientation() << ", oriented size = " << oriented_width() << " x " << oriented_height() << "\n";
 
     delete [] m_pixels;
     m_pixels = new char [m_spec.image_bytes()];
@@ -132,6 +141,35 @@ IvImage::read (int subimage, bool force,
     if (progress_callback)
         progress_callback (progress_callback_data, 0);
     return ok;
+}
+
+
+
+bool
+IvImage::save (const std::string &filename,
+               OpenImageIO::ProgressCallback progress_callback,
+               void *progress_callback_data)
+{
+    std::cerr << "Save " << filename << "\n";
+    boost::scoped_ptr<ImageOutput> out (ImageOutput::create (filename.c_str(), "" /* searchpath */));
+    if (! out) {
+        m_err = OpenImageIO::error_message();
+        return false;
+    }
+    if (! out->open (filename.c_str(), m_spec)) {
+        m_err = out->error_message();
+        return false;
+    }
+    OpenImageIO::stride_t as = OpenImageIO::AutoStride;
+    if (! out->write_image (m_spec.format, m_pixels, as, as, as,
+                            progress_callback, progress_callback_data)) {
+        m_err = out->error_message();
+        return false;
+    }
+    out->close ();
+    if (progress_callback)
+        progress_callback (progress_callback_data, 0);
+    return true;
 }
 
 

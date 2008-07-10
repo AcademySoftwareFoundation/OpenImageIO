@@ -283,6 +283,7 @@ gl_rect (float xmin, float ymin, float xmax, float ymax, float z = 0,
 void
 IvGL::paintGL ()
 {
+//    std::cerr << "paintGL " << m_viewer.current_image() << " with zoom " << m_viewer.zoom() << "\n";
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (! m_viewer.cur())
         return;

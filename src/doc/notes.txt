@@ -28,9 +28,9 @@ Edit
 Image ?
 
 View
-    Fit image (zoom to fill current window)
+x   Fit image (zoom to fill current window)
 x   Fit window (adjust window to fit current zoom level of image)
-    Full screen
+x   Full screen
 x   Channel mode (color, red, green, blue, alpha, luminance)
     View as depth, false, random
 x   Zoom in
@@ -40,7 +40,7 @@ x   Gamma up/down
 x   Toggle last image
     Foreground/background images
 x   Prev/next image
-    Prev/next subimage
+x   Prev/next subimage
 x   Prev/next channel
     Subtract (image difference against last)
     Stereo mode
@@ -49,7 +49,7 @@ Tools
     Mouse mode (zoom/pan, select, wipe)
           [ note: In zoom/pan mode, L/R click is zoom in/out, middle
             drag is pan, shift-drag is select. ]
-    Pixel view
+x   Pixel view
     Thumbnails
     Hide controls
     Disconnect
