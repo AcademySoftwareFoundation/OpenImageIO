@@ -189,8 +189,8 @@ ImageIOFormatSpec::format_from_quantize (int quant_black, int quant_white,
 
 
 void
-ImageIOFormatSpec::add_parameter (const std::string &name, ParamBaseType type,
-                                 int nvalues, const void *value)
+ImageIOFormatSpec::attribute (const std::string &name, ParamBaseType type,
+                              int nvalues, const void *value)
 {
     // Special case: strings -- the ImageIOParameter::init call below
     // will correctly copy the *pointers* to the characters.  Here we
@@ -214,10 +214,10 @@ ImageIOFormatSpec::add_parameter (const std::string &name, ParamBaseType type,
     }
 
     // Don't allow duplicates
-    ImageIOParameter *f = find_parameter (name);
+    ImageIOParameter *f = find_attribute (name);
     if (! f) {
-        extra_params.resize (extra_params.size() + 1);
-        f = &extra_params.back();
+        extra_attribs.resize (extra_attribs.size() + 1);
+        f = &extra_attribs.back();
     }
     f->init (name, type, nvalues, value);
 }
@@ -225,16 +225,16 @@ ImageIOFormatSpec::add_parameter (const std::string &name, ParamBaseType type,
 
 
 ImageIOParameter *
-ImageIOFormatSpec::find_parameter (const std::string &name, bool casesensitive)
+ImageIOFormatSpec::find_attribute (const std::string &name, bool casesensitive)
 {
     if (casesensitive) {
-        for (size_t i = 0;  i < extra_params.size();  ++i)
-            if (extra_params[i].name == name)
-                return &extra_params[i];
+        for (size_t i = 0;  i < extra_attribs.size();  ++i)
+            if (extra_attribs[i].name == name)
+                return &extra_attribs[i];
     } else {
-        for (size_t i = 0;  i < extra_params.size();  ++i)
-            if (iequals (extra_params[i].name, name))
-                return &extra_params[i];
+        for (size_t i = 0;  i < extra_attribs.size();  ++i)
+            if (iequals (extra_attribs[i].name, name))
+                return &extra_attribs[i];
     }
     return NULL;
 }

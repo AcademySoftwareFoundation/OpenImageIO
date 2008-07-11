@@ -95,7 +95,7 @@ private:
         char *s = NULL;
         TIFFGetField (m_tif, tag, &s);
         if (s && *s)
-            m_spec.add_parameter (name, PT_STRING, 1, &s);
+            m_spec.attribute (name, PT_STRING, 1, &s);
     }
 
     // Get a float-oid tiff tag field and put it into extra_params
@@ -103,14 +103,14 @@ private:
                           ParamBaseType type=PT_FLOAT) {
         float f[16];
         if (TIFFGetField (m_tif, tag, f))
-            m_spec.add_parameter (name, type, 1, &f);
+            m_spec.attribute (name, type, 1, &f);
     }
 
     // Get an int tiff tag field and put it into extra_params
     void get_int_field (const std::string &name, int tag) {
         int i;
         if (TIFFGetField (m_tif, tag, &i))
-            m_spec.add_parameter (name, PT_INT, 1, &i);
+            m_spec.attribute (name, PT_INT, 1, &i);
     }
 
     // Get an int tiff tag field and put it into extra_params
@@ -118,7 +118,7 @@ private:
         unsigned short s;
         if (TIFFGetField (m_tif, tag, &s)) {
             int i = s;
-            m_spec.add_parameter (name, PT_INT, 1, &i);
+            m_spec.attribute (name, PT_INT, 1, &i);
         }
     }
 };
@@ -244,7 +244,7 @@ TIFFInput::readspec ()
 
     m_bitspersample = 8;
     TIFFGetField (m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
-    m_spec.add_parameter ("bitspersample", m_bitspersample);
+    m_spec.attribute ("bitspersample", m_bitspersample);
 
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
@@ -308,7 +308,7 @@ TIFFInput::readspec ()
 
     m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
     TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
-    m_spec.add_parameter ("tiff_PhotometricInterpretation", m_photometric);
+    m_spec.attribute ("tiff_PhotometricInterpretation", m_photometric);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
@@ -323,30 +323,30 @@ TIFFInput::readspec ()
     }
 
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
-    m_spec.add_parameter ("tiff_PlanarConfiguration", m_planarconfig);
+    m_spec.attribute ("tiff_PlanarConfiguration", m_planarconfig);
     if (m_planarconfig == PLANARCONFIG_SEPARATE)
-        m_spec.add_parameter ("planarconfig", "separate");
+        m_spec.attribute ("planarconfig", "separate");
     else
-        m_spec.add_parameter ("planarconfig", "contig");
+        m_spec.attribute ("planarconfig", "contig");
 
     short compress;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
-    m_spec.add_parameter ("tiff_Compression", compress);
+    m_spec.attribute ("tiff_Compression", compress);
     switch (compress) {
     case COMPRESSION_NONE :
-        m_spec.add_parameter ("compression", "none");
+        m_spec.attribute ("compression", "none");
         break;
     case COMPRESSION_LZW :
-        m_spec.add_parameter ("compression", "lzw");
+        m_spec.attribute ("compression", "lzw");
         break;
     case COMPRESSION_CCITTRLE :
-        m_spec.add_parameter ("compression", "ccittrle");
+        m_spec.attribute ("compression", "ccittrle");
         break;
     case COMPRESSION_ADOBE_DEFLATE :
-        m_spec.add_parameter ("compression", "deflate");  // zip?
+        m_spec.attribute ("compression", "deflate");  // zip?
         break;
     case COMPRESSION_PACKBITS :
-        m_spec.add_parameter ("compression", "packbits");  // zip?
+        m_spec.attribute ("compression", "packbits");  // zip?
         break;
     default:
         break;
@@ -355,9 +355,9 @@ TIFFInput::readspec ()
     short resunit = -1;
     TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
     switch (resunit) {
-    case RESUNIT_NONE : m_spec.add_parameter ("resolutionunit", "none"); break;
-    case RESUNIT_INCH : m_spec.add_parameter ("resolutionunit", "in"); break;
-    case RESUNIT_CENTIMETER : m_spec.add_parameter ("resolutionunit", "cm"); break;
+    case RESUNIT_NONE : m_spec.attribute ("resolutionunit", "none"); break;
+    case RESUNIT_INCH : m_spec.attribute ("resolutionunit", "in"); break;
+    case RESUNIT_CENTIMETER : m_spec.attribute ("resolutionunit", "cm"); break;
     }
 
     get_string_field ("artist", TIFFTAG_ARTIST);

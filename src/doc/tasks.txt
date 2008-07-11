@@ -25,8 +25,6 @@ DONE        iv - pixel view window
 DONE        iv - half, float, uint16
             imageio.h - should ImageIOFormatSpec just be ImageFormatSpec?
                         or ImageSpec?
-            imageio.h - should iiofs::add_parameter be renamed and fully
-                        conform to GelatoAPI::Attribute?
             API - allow per-channel data formats?
             iv - open recent
             iv - new window, new tab

@@ -236,13 +236,13 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
     envmap = m_header->findTypedAttribute<Imf::EnvmapAttribute>("envmap");
     if (envmap) {
         m_cubeface = (envmap->value() == Imf::ENVMAP_CUBE);
-        m_spec.add_parameter ("textureformat", m_cubeface ? "CubeFace Environment" : "LatLong Environment");
+        m_spec.attribute ("textureformat", m_cubeface ? "CubeFace Environment" : "LatLong Environment");
         // FIXME - detect CubeFace Shadow
-        m_spec.add_parameter ("up", "y");  // OpenEXR convention
+        m_spec.attribute ("up", "y");  // OpenEXR convention
     } else {
         m_cubeface = false;
         if (tiled)
-            m_spec.add_parameter ("textureformat", "Plain Texture");
+            m_spec.attribute ("textureformat", "Plain Texture");
         // FIXME - detect Shadow
     }
 
@@ -261,7 +261,7 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
         case Imf::B44A_COMPRESSION  : comp = "b44a"; break;
         }
         if (comp)
-            m_spec.add_parameter ("compression", comp);
+            m_spec.attribute ("compression", comp);
     }
 
     for (Imf::Header::ConstIterator hit = m_header->begin();
@@ -280,16 +280,16 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
         std::string type = attrib.typeName();
         if (type == "string" && 
             (sattr = m_header->findTypedAttribute<Imf::StringAttribute> (name)))
-            m_spec.add_parameter (oname, sattr->value().c_str());
+            m_spec.attribute (oname, sattr->value().c_str());
         else if (type == "int" && 
             (iattr = m_header->findTypedAttribute<Imf::IntAttribute> (name)))
-            m_spec.add_parameter (oname, iattr->value());
+            m_spec.attribute (oname, iattr->value());
         else if (type == "float" && 
             (fattr = m_header->findTypedAttribute<Imf::FloatAttribute> (name)))
-            m_spec.add_parameter (oname, fattr->value());
+            m_spec.attribute (oname, fattr->value());
         else if (type == "M44f" && 
             (mattr = m_header->findTypedAttribute<Imf::M44fAttribute> (name)))
-            m_spec.add_parameter (oname, PT_MATRIX, 1, &(mattr->value()));
+            m_spec.attribute (oname, PT_MATRIX, 1, &(mattr->value()));
         else {
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";
         }

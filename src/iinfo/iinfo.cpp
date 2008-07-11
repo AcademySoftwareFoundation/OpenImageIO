@@ -91,7 +91,7 @@ print_info (const std::string &filename, ImageInput *input,
                 printf (" x %d", spec.tile_depth);
             printf ("\n");
         }
-        BOOST_FOREACH (const ImageIOParameter &p, spec.extra_params) {
+        BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
             printf ("    %s: ", p.name.c_str());
             if (p.type == PT_STRING)
                 printf ("\"%s\"", *(const char **)p.data());

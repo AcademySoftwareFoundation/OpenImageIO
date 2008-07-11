@@ -201,15 +201,15 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
     }
 
     // Default to LZW compression if no request came with the user spec
-    if (! m_spec.find_parameter("compression"))
-        m_spec.add_parameter ("compression", "lzw");
+    if (! m_spec.find_attribute("compression"))
+        m_spec.attribute ("compression", "lzw");
 
     ImageIOParameter *param;
     const char *str;
 
     // Did the user request separate planar configuration?
     m_planarconfig = PLANARCONFIG_CONTIG;
-    if ((param = m_spec.find_parameter("planarconfig")) &&
+    if ((param = m_spec.find_attribute("planarconfig")) &&
             param->type == PT_STRING  &&  (str = *(char **)param->data())) {
         if (! strcmp (str, "separate"))
             m_planarconfig = PLANARCONFIG_SEPARATE;
@@ -217,7 +217,7 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
     TIFFSetField (m_tif, TIFFTAG_PLANARCONFIG, m_planarconfig);
 
     // Automatically set date field if the client didn't supply it.
-    if (! m_spec.find_parameter("datetime")) {
+    if (! m_spec.find_attribute("datetime")) {
         time_t now;
         time (&now);
         struct tm mytm;
@@ -225,13 +225,13 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
         std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
                                mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                                mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
-        m_spec.add_parameter ("datetime", date);
+        m_spec.attribute ("datetime", date);
     }
 
     // Deal with all other params
-    for (size_t p = 0;  p < m_spec.extra_params.size();  ++p)
-        put_parameter (m_spec.extra_params[p].name, m_spec.extra_params[p].type,
-                       m_spec.extra_params[p].data());
+    for (size_t p = 0;  p < m_spec.extra_attribs.size();  ++p)
+        put_parameter (m_spec.extra_attribs[p].name, m_spec.extra_attribs[p].type,
+                       m_spec.extra_attribs[p].data());
 
     TIFFCheckpointDirectory (m_tif);  // Ensure the header is written early
 

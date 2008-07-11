@@ -121,7 +121,7 @@ IvImage::read (int subimage, bool force,
     else
         m_current_subimage = 0;
 
-    ImageIOParameter *orient = m_spec.find_parameter ("orientation");
+    ImageIOParameter *orient = m_spec.find_attribute ("orientation");
     if (orient && orient->type == PT_UINT && orient->nvalues == 1)
         m_orientation = *(unsigned int *)orient->data();
     else 
@@ -262,7 +262,7 @@ IvImage::longinfo () const
         // gamma
         // image format
 
-        BOOST_FOREACH (const ImageIOParameter &p, m_spec.extra_params) {
+        BOOST_FOREACH (const ImageIOParameter &p, m_spec.extra_attribs) {
             if (p.type == PT_STRING)
                 m_longinfo += html_table_row (p.name.c_str(), *(const char **)p.data());
             else if (p.type == PT_FLOAT)

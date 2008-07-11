@@ -137,7 +137,8 @@ private:
 
 /// ImageIOFormatSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
-struct DLLPUBLIC ImageIOFormatSpec {
+class DLLPUBLIC ImageIOFormatSpec {
+public:
     int x, y, z;              ///< image origin (0,0,0)
     int width;                ///< width of the crop window containing data
     int height;               ///< height of the crop window containing data
@@ -168,13 +169,13 @@ struct DLLPUBLIC ImageIOFormatSpec {
     /// The above contains all the information that is likely needed for
     /// every image file, and common to all formats.  Rather than bloat
     /// this structure, customize it for new formats, or break back
-    /// compatibility as we think of new things, we provide extra_params
+    /// compatibility as we think of new things, we provide extra_attribs
     /// as a holder for any other properties of the image.  The public
-    /// functions add_parameter and find_parameter may be used to access
-    /// these parameters.  Note, however, that the names and semantics
-    /// of such extra parameters are plugin-dependent and are not enforced
-    /// by the imageio library itself.
-    std::vector<ImageIOParameter> extra_params;  //< Additional parameters
+    /// functions attribute and find_attribute may be used to access
+    /// these data.  Note, however, that the names and semantics of such
+    /// extra attributes are plugin-dependent and are not enforced by
+    /// the imageio library itself.
+    std::vector<ImageIOParameter> extra_attribs;  //< Additional attributes
 
     /// Constructor: given just the data format, set the default quantize
     /// and dither and set all other channels to something reasonable.
@@ -241,38 +242,38 @@ struct DLLPUBLIC ImageIOFormatSpec {
             xstride = nchannels * ParamBaseTypeSize(format);
     }
 
-    /// Add an optional parameter to the extra parameter list
+    /// Add an optional attribute to the extra attribute list
     ///
-    void add_parameter (const std::string &name, ParamBaseType type,
-                        int nvalues, const void *value);
+    void attribute (const std::string &name, ParamBaseType type,
+                    int nvalues, const void *value);
 
-    /// Add an int parameter
-    void add_parameter (const std::string &name, unsigned int value) {
-        add_parameter (name, PT_UINT, 1, &value);
+    /// Add an int attribute
+    void attribute (const std::string &name, unsigned int value) {
+        attribute (name, PT_UINT, 1, &value);
     }
 
-    void add_parameter (const std::string &name, int value) {
-        add_parameter (name, PT_INT, 1, &value);
+    void attribute (const std::string &name, int value) {
+        attribute (name, PT_INT, 1, &value);
     }
 
-    /// Add a float parameter
-    void add_parameter (const std::string &name, float value) {
-        add_parameter (name, PT_FLOAT, 1, &value);
+    /// Add a float attribute
+    void attribute (const std::string &name, float value) {
+        attribute (name, PT_FLOAT, 1, &value);
     }
 
-    /// Add a string parameter
-    void add_parameter (const std::string &name, const char *value) {
-        add_parameter (name, PT_STRING, 1, &value);
+    /// Add a string attribute
+    void attribute (const std::string &name, const char *value) {
+        attribute (name, PT_STRING, 1, &value);
     }
 
-    /// Add a string parameter
-    void add_parameter (const std::string &name, const std::string &value) {
-        add_parameter (name, value.c_str());
+    /// Add a string attribute
+    void attribute (const std::string &name, const std::string &value) {
+        attribute (name, value.c_str());
     }
 
-    /// Search for a parameter of the given name in the list of extra
-    /// parameters.
-    ImageIOParameter * find_parameter (const std::string &name,
+    /// Search for a attribute of the given name in the list of extra
+    /// attributes.
+    ImageIOParameter * find_attribute (const std::string &name,
                                        bool casesensitive=false);
 
 private:

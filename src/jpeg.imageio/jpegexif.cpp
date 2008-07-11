@@ -259,13 +259,13 @@ add_exif_item_to_spec (ImageIOFormatSpec &spec, const char *name,
         ((unsigned short *)&dirp->tdir_offset)[1] = 0; // clear unused half
         if (swab)
             swap_endian (&d);
-        spec.add_parameter (name, (unsigned int)d);
+        spec.attribute (name, (unsigned int)d);
     } else if (dirp->tdir_type == TIFF_LONG && dirp->tdir_count == 1) {
         unsigned int d;
         d = * (unsigned int *) &dirp->tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian (&d);
-        spec.add_parameter (name, (unsigned int)d);
+        spec.attribute (name, (unsigned int)d);
     } else if (dirp->tdir_type == TIFF_RATIONAL && dirp->tdir_count == 1) {
         unsigned int num, den;
         num = ((unsigned int *) &(buf[dirp->tdir_offset]))[0];
@@ -275,7 +275,7 @@ add_exif_item_to_spec (ImageIOFormatSpec &spec, const char *name,
             swap_endian (&den);
         }
         double db = (double)num / (double)den;
-        spec.add_parameter (name, (float)db);
+        spec.attribute (name, (float)db);
     } else if (dirp->tdir_type == TIFF_SRATIONAL && dirp->tdir_count == 1) {
         unsigned int num, den;
         num = ((unsigned int *) &(buf[dirp->tdir_offset]))[0];
@@ -285,14 +285,14 @@ add_exif_item_to_spec (ImageIOFormatSpec &spec, const char *name,
             swap_endian (&den);
         }
         double db = (double)num / (double)den;
-        spec.add_parameter (name, (float)db);
+        spec.attribute (name, (float)db);
     } else if (dirp->tdir_type == TIFF_ASCII) {
-        spec.add_parameter (name, buf+dirp->tdir_offset);
+        spec.attribute (name, buf+dirp->tdir_offset);
     } else if (dirp->tdir_type == TIFF_UNDEFINED) {
         // Add it as bytes
         void *addr = dirp->tdir_count <= 4 ? (void *) &dirp->tdir_offset 
                                            : (void *) &buf[dirp->tdir_offset];
-        spec.add_parameter (name, PT_UINT8, dirp->tdir_count, addr);
+        spec.attribute (name, PT_UINT8, dirp->tdir_count, addr);
     } else {
         std::cerr << "didn't know how to process type " 
                   << dirp->tdir_type << " x " << dirp->tdir_count << "\n";
@@ -654,7 +654,7 @@ APP1_exif_from_spec (ImageIOFormatSpec &spec, std::vector<char> &exif)
 #if DEBUG_EXIF_WRITE
     std::cerr << "Non-exif tags\n";
 #endif
-    BOOST_FOREACH (const ImageIOParameter &p, spec.extra_params) {
+    BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
         int tag = tagmap.tag (p.name);
         if (tag < EXIFTAG_EXPOSURETIME || tag > EXIFTAG_IMAGEUNIQUEID) {
             encode_exif_entry (p, tag, tiffdirs, data);
