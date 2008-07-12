@@ -57,12 +57,11 @@ include ${src_make_dir}/platform.mk
 
 # Presence of make variables DEBUG and PROFILE cause us to make special
 # builds, which we put in their own areas.
-variant :=
 ifdef DEBUG
-    variant += .debug
+    variant +=.debug
 endif
 ifdef PROFILE
-    variant += .profile
+    variant +=.profile
 endif
 
 
@@ -127,11 +126,11 @@ all: dist
 
 # 'make debug' is implemented via recursive make setting DEBUG
 debug:
-	${MAKE} DEBUG=true --no-print-directory
+	${MAKE} DEBUG=1 --no-print-directory
 
 # 'make profile' is implemented via recursive make setting PROFILE
 profile:
-	${MAKE} PROFILE=true --no-print-directory
+	${MAKE} PROFILE=1 --no-print-directory
 
 clean:
 	${RM_ALL} ${build_dir}

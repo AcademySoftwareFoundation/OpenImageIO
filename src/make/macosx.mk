@@ -7,8 +7,15 @@
 
 
 
-CFLAGS += -DMACOSX -g
+CFLAGS += -DMACOSX
 #CFLAGS += -arch i386 -arch x86_64 -mmacosx-version-min=10.5
+
+ifdef DEBUG
+CFLAGS += -g
+else
+CFLAGS += -O3 
+endif
+
 # ? -fno-common
 
 #LDFLAGS += -arch x86_64

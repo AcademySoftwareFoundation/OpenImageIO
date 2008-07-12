@@ -11,6 +11,12 @@ CFLAGS += -DLINUX -DLINUX64
 # 64-bit Linux should compile using PIC code
 CFLAGS += -fPIC
 
+ifdef DEBUG
+CFLAGS += -g
+else
+CFLAGS += -O3 
+endif
+
 CP := cp -uvpf
 
 QT_INCLUDE := -I/usr/include/qt4/QtGui -I/usr/include/qt4/QtOpenGL \
