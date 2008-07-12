@@ -38,6 +38,7 @@ using namespace OpenImageIO;
 
 class IvMainWindow;
 class IvInfoWindow;
+class IvPreferenceWindow;
 class IvCanvas;
 class IvGL;
 
@@ -162,10 +163,8 @@ public:
         channelFullColor = -1, channelLuminance = -2
     };
 
-    /// Tell the viewer about an image, but don't load it yet.  If
-    /// getspec is true, open the file just enough to get the
-    /// specification.
-    void add_image (const std::string &filename, bool getspec=true);
+    /// Tell the viewer about an image, but don't load it yet.
+    void add_image (const std::string &filename);
 
     /// View this image.
     ///
@@ -212,12 +211,13 @@ public:
     }
 
     bool pixelviewFollowsMouse (void) const {
-        return pixelviewFollowsMouseAct && pixelviewFollowsMouseAct->isChecked();
+        return pixelviewFollowsMouseBox && pixelviewFollowsMouseBox->isChecked();
     }
 
 private slots:
     void open();                        ///< Dialog to open new image from file
     void reload();                      ///< Reread current image from disk
+    void openRecentFile();              ///< Open a recent file
     void closeImg();                    ///< Close the current image
     void saveAs();                      ///< Save As... functionality
     void saveWindowAs();                ///< Save As... functionality
@@ -251,6 +251,7 @@ private slots:
     void viewSubimageNext();            ///< View next subimage
     void showInfoWindow();              ///< View extended info on image
     void showPixelviewWindow();         ///< View closeup pixel view
+    void editPreferences();             ///< Edit viewer preferences
 private:
     void createActions ();
     void createMenus ();
@@ -259,20 +260,27 @@ private:
     void readSettings ();
     void writeSettings ();
     void updateActions ();
+    void addRecentFile (const std::string &name);
+    void removeRecentFile (const std::string &name);
+    void updateRecentFilesMenu ();
     void displayCurrentImage ();
     void updateTitle ();
     void updateStatusBar ();
     void keyPressEvent (QKeyEvent *event);
     void resizeEvent (QResizeEvent *event);
+    void closeEvent (QCloseEvent *event);
 
     IvGL *glwin;
     IvInfoWindow *infoWindow;
+    IvPreferenceWindow *preferenceWindow;
 
 #ifndef QT_NO_PRINTER
     QPrinter printer;
 #endif
 
     QAction *openAct, *reloadAct, *closeImgAct;
+    static const int MaxRecentFiles = 10;
+    QAction *openRecentAct[MaxRecentFiles];
     QAction *saveAsAct, *saveWindowAsAct, *saveSelectionAsAct;
     QAction *printAct;
     QAction *exitAct;
@@ -291,12 +299,15 @@ private:
     QAction *aboutAct;
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
     QAction *showInfoWindowAct;
+    QAction *editPreferencesAct;
     QAction *showPixelviewWindowAct;
-    QAction *pixelviewFollowsMouseAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
+    QMenu *openRecentMenu;
     QMenu *expgamMenu, *channelMenu;
     QLabel *statusImgInfo, *statusViewInfo;
     QProgressBar *statusProgress;
+
+    QCheckBox *pixelviewFollowsMouseBox;
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
@@ -304,6 +315,7 @@ private:
     int m_last_image;                 ///< Last image we viewed
     float m_zoom;                     ///< Zoom amount (positive maxifies)
     bool m_fullscreen;                ///< Full screen mode
+    std::vector<std::string> m_recent_files;  ///< Recently opened files
 
     // What zoom do we need to fit these window dimensions?
     float zoom_needed_to_fit (int w, int h);
@@ -311,6 +323,7 @@ private:
     friend class IvCanvas;
     friend class IvGL;
     friend class IvInfoWindow;
+    friend class IvPreferenceWindow;
     friend bool image_progress_callback (void *opaque, float done);
 };
 
@@ -322,6 +335,9 @@ class IvInfoWindow : public QDialog
 public:
     IvInfoWindow (ImageViewer &viewer, bool visible=true);
     void update (IvImage *img);
+
+protected:
+    void keyPressEvent (QKeyEvent *event);
     
 private:
     QPushButton *closeButton;
@@ -330,6 +346,25 @@ private:
 
     ImageViewer &m_viewer;
     bool m_visible;
+};
+
+
+
+class IvPreferenceWindow : public QDialog
+{
+    Q_OBJECT
+public:
+    IvPreferenceWindow (ImageViewer &viewer);
+
+protected:
+    void keyPressEvent (QKeyEvent *event);
+    
+private:
+    QVBoxLayout *layout;
+    QLabel *label;
+    QPushButton *closeButton;
+
+    ImageViewer &m_viewer;
 };
 
 

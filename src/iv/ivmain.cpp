@@ -95,6 +95,8 @@ main (int argc, char *argv[])
         mainWin->add_image (s);
     }
 
+    mainWin->current_image (0);
+
     int r = app.exec();
     // OK to clean up here
     return r;

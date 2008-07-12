@@ -10,7 +10,6 @@ DONE        TIFF - miniswhite
 DONE        TIFF - 1-bit and 4-bit images
 DONE        TIFF - separated samples broken (oxford.tif)
 DONE        iv - honor orientation
-            TIFF - double (caspian)
 DONE        OpenEXR plugin (status: reader works, writer works, scanline/tile)
 DONE        jpeg - EXIF info
             nomenclature - capitalize tags? (pending feedback)
@@ -26,26 +25,24 @@ DONE        iv - half, float, uint16
             imageio.h - should ImageIOFormatSpec just be ImageFormatSpec?
                         or ImageSpec?
             API - allow per-channel data formats?
-            iv - open recent
-            iv - new window, new tab
+DONE        iv - open recent
 DONE        iv - save as
-            iv - preferences
-            iv - select all images
+DONE        iv - preferences
 DONE        iv - fit image to window
 DONE        iv - full screen
-            iv - view as depth, false, random
 DONE        iv - prev/next subimage
-            iv - >4 channels, gray vs color
 DONE        iv - info window - scroll when too much info to fit on screen
 DONE        iv - clamp fit-window-to-image to display size
-            iv - why don't I seem to be getting HDR?
-            iv - Ctrl-W in info window should close info, not close image
+hard        iv - Ctrl-W in info window should close info, not close image
             iv - change cursor depending on drag mode
 
 
 Before first alpha release
 --------------------------
 
+            TIFF - double (caspian)
+            iv - why don't I seem to be getting HDR?
+            iv - new window, new tab ?
             iv - copy/paste
             OpenEXR - YCbCr, subsampling
             Windows port of everything
@@ -59,11 +56,18 @@ Before first alpha release
             iv - put into background mode
             iv - save window as
             iv - save selection as
+            iv - select all images
 
 
 Before first 1.0 release
 ------------------------
 
+            iv socket mode (display in separate process)
+            iv imageio plugin
+            iv - >4 channels, gray vs color
+            iv - view as depth (gray scale between min/max)
+            iv - view as false color
+            iv - view as random color
             wipe between images
             GIF (Wex request)
             PNG (Philip request)

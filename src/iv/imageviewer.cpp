@@ -27,10 +27,10 @@
 #include <iostream>
 #include <cmath>
 #include <unistd.h>
-
-#include <ImathFun.h>
+#include <vector>
 
 #include <boost/foreach.hpp>
+#include <boost/filesystem.hpp>
 #include <ImathFun.h>
 
 #include "imageviewer.h"
@@ -42,7 +42,7 @@
 
 
 ImageViewer::ImageViewer ()
-    : infoWindow(NULL), 
+    : infoWindow(NULL), preferenceWindow(NULL),
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
       m_zoom(1), m_fullscreen(false)
 {
@@ -73,11 +73,25 @@ ImageViewer::~ImageViewer ()
 
 
 void
+ImageViewer::closeEvent (QCloseEvent *event)
+{
+    writeSettings ();
+}
+
+
+
+void
 ImageViewer::createActions()
 {
     openAct = new QAction(tr("&Open..."), this);
     openAct->setShortcut(tr("Ctrl+O"));
     connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
+
+    for (int i = 0;  i < MaxRecentFiles;  ++i) {
+        openRecentAct[i] = new QAction (this);
+        openRecentAct[i]->setVisible (false);
+        connect (openRecentAct[i], SIGNAL(triggered()), this, SLOT(openRecentFile()));
+    }
 
     reloadAct = new QAction(tr("&Reload image"), this);
     reloadAct->setShortcut(tr("Ctrl+R"));
@@ -101,6 +115,11 @@ ImageViewer::createActions()
     printAct->setShortcut(tr("Ctrl+P"));
     printAct->setEnabled(false);
     connect(printAct, SIGNAL(triggered()), this, SLOT(print()));
+
+    editPreferencesAct = new QAction(tr("&Preferences..."), this);
+    editPreferencesAct->setShortcut(tr("Ctrl+,"));
+    editPreferencesAct->setEnabled (true);
+    connect (editPreferencesAct, SIGNAL(triggered()), this, SLOT(editPreferences()));
 
     exitAct = new QAction(tr("E&xit"), this);
     exitAct->setShortcut(tr("Ctrl+Q"));
@@ -233,9 +252,8 @@ ImageViewer::createActions()
     showPixelviewWindowAct->setShortcut(tr("P"));
     connect (showPixelviewWindowAct, SIGNAL(triggered()), this, SLOT(showPixelviewWindow()));
 
-    pixelviewFollowsMouseAct = new QAction(tr("Pixel view follows mouse"), this);
-    pixelviewFollowsMouseAct->setCheckable (true);
-    pixelviewFollowsMouseAct->setChecked (true);
+    pixelviewFollowsMouseBox = new QCheckBox (tr("Pixel view follows mouse"));
+    pixelviewFollowsMouseBox->setChecked (false);
 }
 
 
@@ -243,8 +261,13 @@ ImageViewer::createActions()
 void
 ImageViewer::createMenus()
 {
+    openRecentMenu = new QMenu(tr("Open recent..."), this);
+    for (int i = 0;  i < MaxRecentFiles;  ++i)
+        openRecentMenu->addAction (openRecentAct[i]);
+
     fileMenu = new QMenu(tr("&File"), this);
     fileMenu->addAction (openAct);
+    fileMenu->addMenu (openRecentMenu);
     fileMenu->addAction (reloadAct);
     fileMenu->addAction (closeImgAct);
     fileMenu->addSeparator ();
@@ -254,7 +277,7 @@ ImageViewer::createMenus()
     fileMenu->addSeparator ();
     fileMenu->addAction (printAct);
     fileMenu->addSeparator ();
-    // Preferences ^,
+    fileMenu->addAction (editPreferencesAct);
     fileMenu->addAction (exitAct);
     menuBar()->addMenu (fileMenu);
 
@@ -312,7 +335,6 @@ ImageViewer::createMenus()
     // Mode: select, zoom, pan, wipe
     toolsMenu->addAction (showInfoWindowAct);
     toolsMenu->addAction (showPixelviewWindowAct);
-    toolsMenu->addAction (pixelviewFollowsMouseAct);
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -368,11 +390,12 @@ ImageViewer::createStatusBar()
 void
 ImageViewer::readSettings()
 {
-//    QSettings settings("OpenImgageIO", "iv");
-//    QPoint pos = settings.value("pos", QPoint(200, 200)).toPoint();
-//    QSize size = settings.value("size", QSize(400, 400)).toSize();
-//    move(pos);
-//    resize(size);
+    QSettings settings("OpenImageIO", "iv");
+    pixelviewFollowsMouseBox->setChecked (settings.value ("pixelviewFollowsMouse").toBool());
+    QStringList recent = settings.value ("RecentFiles").toStringList();
+    BOOST_FOREACH (const QString &s, recent)
+        addRecentFile (s.toStdString());
+    updateRecentFilesMenu (); // only safe because it's called after menu setup
 }
 
 
@@ -380,9 +403,13 @@ ImageViewer::readSettings()
 void
 ImageViewer::writeSettings()
 {
-//    QSettings settings("OpenImageIO", "iv");
-//    settings.setValue("pos", pos());
-//    settings.setValue("size", size());
+    QSettings settings("OpenImageIO", "iv");
+    settings.setValue ("pixelviewFollowsMouse",
+                       pixelviewFollowsMouseBox->isChecked());
+    QStringList recent;
+    BOOST_FOREACH (const std::string &s, m_recent_files)
+        recent.push_front (QString(s.c_str()));
+    settings.setValue ("RecentFiles", recent);
 }
 
 
@@ -412,13 +439,78 @@ ImageViewer::open()
         std::string filename = it->toStdString();
         if (filename.empty())
             continue;
-        add_image (filename, false);
-        int n = m_images.size()-1;
-        IvImage *newimage = m_images[n];
-        newimage->read (0, false, image_progress_callback, this);
+        add_image (filename);
+//        int n = m_images.size()-1;
+//        IvImage *newimage = m_images[n];
+//        newimage->read (0, false, image_progress_callback, this);
     }
     current_image (old_lastimage + 1);
     fitWindowToImage ();
+}
+
+
+
+void
+ImageViewer::openRecentFile ()
+{
+    QAction *action = qobject_cast<QAction *>(sender());
+    if (action) {
+        std::string filename = action->data().toString().toStdString();
+        // If it's an image we already have loaded, just switch to it
+        // (and reload) rather than loading a second copy.
+        for (size_t i = 0;  i < m_images.size();  ++i) {
+            if (m_images[i]->name() == filename) {
+                current_image (i);
+                reload ();
+                return;
+            }
+        }
+        // It's not an image we already have loaded
+        add_image (filename);
+        current_image (m_images.size() - 1);
+        fitWindowToImage ();
+    }
+}
+
+
+
+void
+ImageViewer::addRecentFile (const std::string &name)
+{
+    removeRecentFile (name);
+    m_recent_files.insert (m_recent_files.begin(), name);
+    if (m_recent_files.size() > MaxRecentFiles)
+        m_recent_files.resize (MaxRecentFiles);
+}
+
+
+
+void
+ImageViewer::removeRecentFile (const std::string &name)
+{
+    for (size_t i = 0;  i < m_recent_files.size();  ++i) {
+        if (m_recent_files[i] == name) {
+            m_recent_files.erase (m_recent_files.begin()+i);
+            --i;
+        }
+    }
+}
+
+
+
+void
+ImageViewer::updateRecentFilesMenu ()
+{
+    for (int i = 0;  i < MaxRecentFiles;  ++i) {
+        if (i < m_recent_files.size()) {
+            boost::filesystem::path fn (m_recent_files[i]);
+            openRecentAct[i]->setText (fn.leaf().c_str());
+            openRecentAct[i]->setData (m_recent_files[i].c_str());
+            openRecentAct[i]->setVisible (true);
+        } else {
+            openRecentAct[i]->setVisible (false);
+        }
+    }
 }
 
 
@@ -436,12 +528,17 @@ ImageViewer::reload()
 
 
 void
-ImageViewer::add_image (const std::string &filename, bool getspec)
+ImageViewer::add_image (const std::string &filename)
 {
     if (filename.empty())
         return;
     IvImage *newimage = new IvImage(filename);
     ASSERT (newimage);
+    m_images.push_back (newimage);
+    addRecentFile (filename);
+    updateRecentFilesMenu ();
+
+#if 0
     if (getspec) {
         if (! newimage->init_spec (filename)) {
             QMessageBox::information (this, tr("iv Image Viewer"),
@@ -450,12 +547,14 @@ ImageViewer::add_image (const std::string &filename, bool getspec)
             std::cerr << "Added image " << filename << ": " 
 << newimage->spec().width << " x " << newimage->spec().height << "\n";
         }
+        return;
     }
-    m_images.push_back (newimage);
-    displayCurrentImage ();
-    // If this is the first image, resize to fit it
-    if (m_images.size() == 1)
+#endif
+    if (m_images.size() == 1) {
+        // If this is the first image, resize to fit it
+        displayCurrentImage ();
         fitWindowToImage ();
+    }
 }
 
 
@@ -1125,4 +1224,14 @@ void
 ImageViewer::showPixelviewWindow ()
 {
     glwin->trigger_redraw ();
+}
+
+
+
+void
+ImageViewer::editPreferences ()
+{
+    if (! preferenceWindow)
+        preferenceWindow = new IvPreferenceWindow (*this);
+    preferenceWindow->show ();
 }

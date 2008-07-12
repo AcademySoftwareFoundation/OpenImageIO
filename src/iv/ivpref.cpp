@@ -32,54 +32,38 @@
 
 
 
-IvInfoWindow::IvInfoWindow (ImageViewer &viewer, bool visible)
-    : QDialog(&viewer), m_viewer(viewer), m_visible (visible)
+IvPreferenceWindow::IvPreferenceWindow (ImageViewer &viewer)
+    : QDialog(&viewer), m_viewer(viewer)
 {
-    infoLabel = new QLabel;
-
-    scrollArea = new QScrollArea;
-    scrollArea->setWidgetResizable (true);
-    scrollArea->setWidget (infoLabel);
-    scrollArea->setSizePolicy (QSizePolicy (QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding, QSizePolicy::Label));
-    scrollArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-    scrollArea->setFrameStyle (QFrame::NoFrame);
-    scrollArea->setAlignment (Qt::AlignTop);
+    label = new QLabel (tr("foo"));
 
     closeButton = new QPushButton (tr("Close"));
+    closeButton->setShortcut (tr("Ctrl+W"));
     connect (closeButton, SIGNAL(clicked()), this, SLOT(hide()));
 
-    QVBoxLayout *mainLayout = new QVBoxLayout;
-    mainLayout->addWidget (scrollArea);
-    mainLayout->addWidget (closeButton);
-    setLayout (mainLayout);
-    infoLabel->show();
-    scrollArea->show();
+    layout = new QVBoxLayout;
+    layout->addWidget (label);
+    layout->addWidget (viewer.pixelviewFollowsMouseBox);
+    layout->addWidget (closeButton);
+    setLayout (layout);
 
-    setWindowTitle (tr("Image Info"));
+    setWindowTitle (tr("iv Preferences"));
 }
 
 
 
 void
-IvInfoWindow::update (IvImage *img)
+IvPreferenceWindow::keyPressEvent (QKeyEvent *event)
 {
-    std::string newtitle = Strutil::format ("%s - iv Info", img->name().c_str());
-    setWindowTitle (newtitle.c_str());
-    if (img) {
-        infoLabel->setText (img->longinfo().c_str());
-    } else {
-        infoLabel->setText (tr("No image loaded."));
-    }
-}
-
-
-
-void
-IvInfoWindow::keyPressEvent (QKeyEvent *event)
-{
-    if (event->key() == 'w' && (event->modifiers() & Qt::ControlModifier)) {
-        event->accept();
-        hide();
+//    if (event->key() == 'w' && (event->modifiers() & Qt::ControlModifier)) {
+    if (event->key() == Qt::Key_W) {
+        std::cerr << "found w\n";
+        if ((event->modifiers() & Qt::ControlModifier)) {
+            std::cerr << "think we did ctrl-w\n";
+            event->accept();
+            hide();
+        }
+        else std::cerr << "modifier " << (int)event->modifiers() << "\n";
     } else {
         event->ignore();
     }
