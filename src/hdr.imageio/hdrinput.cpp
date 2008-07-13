@@ -34,6 +34,19 @@ using namespace OpenImageIO;
 
 
 
+/////////////////////////////////////////////////////////////////////////////
+// .hdr / .rgbe files - HDR files from Radiance
+//
+// General info on the hdr/rgbe format can be found at:
+//     http://local.wasp.uwa.edu.au/~pbourke/dataformats/pic/
+// The source code in rgbe.{h,cpp} originally came from:
+//     http://www.graphics.cornell.edu/~bjw/rgbe.html
+// Also see Greg Ward's "Real Pixels" chapter in Graphics Gems II for an
+// explanation of the encoding that's used in Radiance rgba files.
+/////////////////////////////////////////////////////////////////////////////
+
+
+
 class HdrInput : public ImageInput {
 public:
     HdrInput () { init(); }
@@ -49,12 +62,12 @@ private:
     std::string m_filename;       ///< File name
     FILE *m_fd;                   ///< The open file handle
     int m_subimage;               ///< What subimage are we looking at?
-    std::vector<float> m_pixels;  ///< Data buffer
+    int m_nextscanline;           ///< Next scanline to read
 
     void init () {
         m_fd = NULL;
         m_subimage = -1;
-        m_pixels.clear ();
+        m_nextscanline = 0;
     }
 
 };
@@ -118,9 +131,12 @@ HdrInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
         m_spec.gamma = h.gamma;
     if (h.valid & RGBE_VALID_ORIENTATION)
         m_spec.attribute ("orientation", h.orientation);
-    // Not sure what to do with the header's "exposure" field
+
+    // FIXME -- should we do anything about exposure, software,
+    // pixaspect, primaries?  (N.B. rgbe.c doesn't even handle most of them)
 
     m_subimage = index;
+    m_nextscanline = 0;
     newspec = m_spec;
     return true;
 }
@@ -130,13 +146,11 @@ HdrInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
 bool
 HdrInput::read_native_scanline (int y, int z, void *data)
 {
-    if (! m_pixels.size()) {    // We haven't read the pixels yet
-        m_pixels.resize (m_spec.width * m_spec.height * m_spec.nchannels);
-        RGBE_ReadPixels_RLE (m_fd, &m_pixels[0], m_spec.width, m_spec.height);
-    }
-    memcpy (data, &m_pixels[y * m_spec.width * m_spec.nchannels],
-            m_spec.scanline_bytes());
-    return true;
+    if (y != m_nextscanline)
+        return false;
+    ++m_nextscanline;
+    int r = RGBE_ReadPixels_RLE (m_fd, (float *)data, m_spec.width, 1);
+    return (r == RGBE_RETURN_SUCCESS);
 }
 
 

@@ -74,7 +74,7 @@ Before first 1.0 release
             Targa (Wex request)
             PNM/PPM/PBM/PGM
             XBM/XPM
-IP          HDR
+DONE        HDR
             IFF?
             null (why?)
             PIC

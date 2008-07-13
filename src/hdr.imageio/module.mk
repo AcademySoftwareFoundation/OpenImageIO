@@ -5,8 +5,7 @@
 local_name := hdr.imageio
 
 # Name of all source files in this directory
-local_src := rgbe.cpp hdrinput.cpp
-# hdrinput.cpp hdrouput.cpp rgbe.cpp
+local_src := rgbe.cpp hdrinput.cpp hdroutput.cpp
 
 # Extra static libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)

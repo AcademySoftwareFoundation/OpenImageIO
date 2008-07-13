@@ -27,6 +27,9 @@
     that can be found in some .hdr files on the net.
  2. Correctly read and write images of all 8 orientations (not just -Y+X)
     and specify the orientation in the rgbe_header_info structure.
+ 3. Change the default programtype string from "RGBE" to "RADIANCE" since
+    I noticed that some hdr/rgbe readers (including OS X's preivew util)
+    will only accept "RADIANCE" as the programtype.
 */
 
 #ifdef _CPLUSPLUS
@@ -114,7 +117,13 @@ rgbe2float(float *red, float *green, float *blue, unsigned char rgbe[4])
 /* default minimal header. modify if you want more information in header */
 int RGBE_WriteHeader(FILE *fp, int width, int height, rgbe_header_info *info)
 {
-  char *programtype = "RGBE";
+  char *programtype = "RADIANCE";
+  /* N.B. from Larry Gritz:
+   * Plenty of readers will refuse to read .rgbe/.hdr files if their
+   * program type is not "RADIANCE".  So I changed the default
+   * programtype from Bruce Walter's original "RGBE", which many readers
+   * refuse to accept.  (Mac OS X's "preview" utility is one such reader!)
+   */
 
   if (info && (info->valid & RGBE_VALID_PROGRAMTYPE))
     programtype = info->programtype;
