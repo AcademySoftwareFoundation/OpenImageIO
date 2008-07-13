@@ -4,7 +4,7 @@
 
 #include "rgbe.h"
 #include <math.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -21,6 +21,12 @@
  posted to http://www.graphics.cornell.edu/~bjw/
  written by Bruce Walter  (bjw@graphics.cornell.edu)  5/26/95
  based on code written by Greg Ward
+
+ Various modifications by Larry Gritz (lg@larrygritz.com), July 1998:
+ 1. Fix RGBE_ReadHeader to handle changes in the order of header fields
+    that can be found in some .hdr files on the net.
+ 2. Correctly read and write images of all 8 orientations (not just -Y+X)
+    and specify the orientation in the rgbe_header_info structure.
 */
 
 #ifdef _CPLUSPLUS
@@ -161,11 +167,17 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info)
     if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
       return rgbe_error(rgbe_read_error,NULL);
   }
+  bool found_FORMAT_line = false;
   for(;;) {
-    if ((buf[0] == 0)||(buf[0] == '\n'))
-      return rgbe_error(rgbe_format_error,"no FORMAT specifier found");
-    else if (strcmp(buf,"FORMAT=32-bit_rle_rgbe\n") == 0)
-      break;       /* format found so break out of loop */
+    if ((buf[0] == 0)||(buf[0] == '\n')) {
+        if (found_FORMAT_line)
+            break;
+        return rgbe_error(rgbe_format_error,"no FORMAT specifier found");
+    }
+    else if (strcmp(buf,"FORMAT=32-bit_rle_rgbe\n") == 0) {
+        found_FORMAT_line = true;
+        /* LG says no:    break;       /* format found so break out of loop */
+    }
     else if (info && (sscanf(buf,"GAMMA=%g",&tempf) == 1)) {
       info->gamma = tempf;
       info->valid |= RGBE_VALID_GAMMA;
@@ -177,15 +189,57 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info)
     if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
       return rgbe_error(rgbe_read_error,NULL);
   }
-  if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
-    return rgbe_error(rgbe_read_error,NULL);
-  if (strcmp(buf,"\n") != 0)
+  if (strcmp(buf,"\n") != 0) {
+      printf ("Found '%s'\n", buf);
     return rgbe_error(rgbe_format_error,
 		      "missing blank line after FORMAT specifier");
+  }
   if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
     return rgbe_error(rgbe_read_error,NULL);
-  if (sscanf(buf,"-Y %d +X %d",height,width) < 2)
+
+  if (sscanf(buf,"-Y %d +X %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 1;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"-Y %d -X %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 2;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"+Y %d -X %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 3;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"+Y %d +X %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 4;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"+X %d -Y %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 5;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"+X %d +Y %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 6;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"-X %d +Y %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 7;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"-X %d -Y %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 8;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else {
     return rgbe_error(rgbe_format_error,"missing image size specifier");
+  }
   return RGBE_RETURN_SUCCESS;
 }
 

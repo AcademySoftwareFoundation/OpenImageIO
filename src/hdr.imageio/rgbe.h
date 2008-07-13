@@ -19,12 +19,18 @@ typedef struct {
   float exposure;       /* a value of 1.0 in an image corresponds to
 			 * <exposure> watts/steradian/m^2. 
 			 * defaults to 1.0 */
+  int orientation;      /* Orientation of the image.  Use the same coded
+                         * values as the TIFF and JPEG/JFIF/EXIF specs.
+                         * defaults to 1 (-Y +X)
+                         * (added by Larry Gritz, 7/2008)
+                         */
 } rgbe_header_info;
 
 /* flags indicating which fields in an rgbe_header_info are valid */
 #define RGBE_VALID_PROGRAMTYPE 0x01
 #define RGBE_VALID_GAMMA       0x02
 #define RGBE_VALID_EXPOSURE    0x04
+#define RGBE_VALID_ORIENTATION 0x08
 
 /* return codes for rgbe routines */
 #define RGBE_RETURN_SUCCESS 0
