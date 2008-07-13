@@ -14,6 +14,7 @@ dist_bins    	:= iconvert${BINEXT} \
 		   iinfo${BINEXT} \
 		   iv${BINEXT}
 dist_libs     	:= libimageio${SHLIBEXT} \
+		   hdr.imageio${SHLIBEXT} \
 		   jpeg.imageio${SHLIBEXT} \
 		   openexr.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
