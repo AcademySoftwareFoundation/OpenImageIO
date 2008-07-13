@@ -33,9 +33,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <cassert>
-#include <ctype.h>
 #include <cstdio>
-#include <iostream>
 
 extern "C" {
 #include "jpeglib.h"
@@ -60,12 +58,12 @@ class JpgInput : public ImageInput {
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool close ();
  private:
-    FILE *fd;
-    bool first_scanline;
-    struct jpeg_decompress_struct cinfo;
-    struct jpeg_error_mgr jerr;
+    FILE *m_fd;
+    bool m_first_scanline;
+    struct jpeg_decompress_struct m_cinfo;
+    struct jpeg_error_mgr m_jerr;
 
-    void init () { fd = NULL; }
+    void init () { m_fd = NULL; }
 };
 
 
@@ -87,42 +85,42 @@ bool
 JpgInput::open (const char *name, ImageIOFormatSpec &newspec)
 {
     // Check that file exists and can be opened
-    fd = fopen (name, "rb");
-    if (fd == NULL)
+    m_fd = fopen (name, "rb");
+    if (m_fd == NULL)
         return false;
 
     // Check magic number to assure this is a JPEG file
     int magic = 0;
-    fread (&magic, 4, 1, fd);
-    rewind (fd);
+    fread (&magic, 4, 1, m_fd);
+    rewind (m_fd);
     const int JPEG_MAGIC = 0xffd8ffe0, JPEG_MAGIC_OTHER_ENDIAN =  0xe0ffd8ff;
     const int JPEG_MAGIC2 = 0xffd8ffe1, JPEG_MAGIC2_OTHER_ENDIAN =  0xe1ffd8ff;
     if (magic != JPEG_MAGIC && magic != JPEG_MAGIC_OTHER_ENDIAN &&
         magic != JPEG_MAGIC2 && magic != JPEG_MAGIC2_OTHER_ENDIAN) {
-        fclose (fd);
+        fclose (m_fd);
         return false;
     }
 
     m_spec = ImageIOFormatSpec();
 
-    cinfo.err = jpeg_std_error(&jerr);
-    jpeg_create_decompress (&cinfo);            // initialize decompressor
-    jpeg_stdio_src (&cinfo, fd);                // specify the data source
+    m_cinfo.err = jpeg_std_error (&m_jerr);
+    jpeg_create_decompress (&m_cinfo);          // initialize decompressor
+    jpeg_stdio_src (&m_cinfo, m_fd);            // specify the data source
 
     // Request saving of EXIF and other special tags for later spelunking
-    jpeg_save_markers (&cinfo, JPEG_APP0+1, 0xffff);
+    jpeg_save_markers (&m_cinfo, JPEG_APP0+1, 0xffff);
     // FIXME - also process JPEG_COM marker
 
-    jpeg_read_header (&cinfo, FALSE);           // read the file parameters
-    jpeg_start_decompress (&cinfo);             // start working
-    first_scanline = true;                      // start decompressor
+    jpeg_read_header (&m_cinfo, FALSE);         // read the file parameters
+    jpeg_start_decompress (&m_cinfo);           // start working
+    m_first_scanline = true;                    // start decompressor
 
     m_spec.x = 0;
     m_spec.y = 0;
     m_spec.z = 0;
-    m_spec.width = cinfo.output_width;
-    m_spec.height = cinfo.output_height;
-    m_spec.nchannels = cinfo.output_components;
+    m_spec.width = m_cinfo.output_width;
+    m_spec.height = m_cinfo.output_height;
+    m_spec.nchannels = m_cinfo.output_components;
     m_spec.depth = 1;
     m_spec.full_width = m_spec.width;
     m_spec.full_height = m_spec.height;
@@ -149,11 +147,11 @@ JpgInput::open (const char *name, ImageIOFormatSpec &newspec)
         m_spec.channelnames.push_back("A");
         break;
     default:
-        fclose (fd);
+        fclose (m_fd);
         return false;
     }
 
-    for (jpeg_saved_marker_ptr m = cinfo.marker_list;  m;  m = m->next) {
+    for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
         if (m->marker == (JPEG_APP0+1))
             exif_from_APP1 (m_spec, (unsigned char *)m->data);
     }
@@ -167,10 +165,10 @@ JpgInput::open (const char *name, ImageIOFormatSpec &newspec)
 bool
 JpgInput::read_native_scanline (int y, int z, void *data)
 {
-    first_scanline = false;
-    assert (y == (int)cinfo.output_scanline);
-    assert (y < (int)cinfo.output_height);
-    jpeg_read_scanlines (&cinfo, (JSAMPLE **)&data, 1); // read one scanline
+    m_first_scanline = false;
+    assert (y == (int)m_cinfo.output_scanline);
+    assert (y < (int)m_cinfo.output_height);
+    jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&data, 1); // read one scanline
     return true;
 }
 
@@ -179,11 +177,11 @@ JpgInput::read_native_scanline (int y, int z, void *data)
 bool
 JpgInput::close ()
 {
-    if (fd != NULL) {
-        if (!first_scanline)
-            jpeg_finish_decompress (&cinfo);
-        jpeg_destroy_decompress(&cinfo);
-        fclose (fd);
+    if (m_fd != NULL) {
+        if (!m_first_scanline)
+            jpeg_finish_decompress (&m_cinfo);
+        jpeg_destroy_decompress (&m_cinfo);
+        fclose (m_fd);
     }
     init ();   // Reset to initial state
     return true;

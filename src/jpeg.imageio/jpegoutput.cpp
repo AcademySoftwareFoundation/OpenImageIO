@@ -33,12 +33,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <cassert>
-#include <cstdlib>
-#include <cstring>
-#include <ctype.h>
 #include <cstdio>
-#include <csetjmp>
-#include <iostream>
 #include <vector>
 
 extern "C" {
@@ -67,12 +62,12 @@ class JpgOutput : public ImageOutput {
                                  const void *data, stride_t xstride);
     bool close ();
  private:
-    FILE *fd;
-    std::vector<unsigned char> scratch;
-    struct jpeg_compress_struct cinfo;
-    struct jpeg_error_mgr jerr;
+    FILE *m_fd;
+    std::vector<unsigned char> m_scratch;
+    struct jpeg_compress_struct m_cinfo;
+    struct jpeg_error_mgr c_jerr;
 
-    void init (void) { fd = NULL; }
+    void init (void) { m_fd = NULL; }
 };
 
 
@@ -98,8 +93,8 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
         return false;
     }
 
-    fd = fopen (name, "wb");
-    if (fd == NULL) {
+    m_fd = fopen (name, "wb");
+    if (m_fd == NULL) {
         error ("Unable to open file");
         return false;
     }
@@ -110,38 +105,38 @@ JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
     int quality = 98;
     // FIXME -- see if there's a quality set in the attributes
 
-    cinfo.err = jpeg_std_error (&jerr);                 // set error handler
-    jpeg_create_compress (&cinfo);                      // create compressor
-    jpeg_stdio_dest (&cinfo, fd);                       // set output stream
+    m_cinfo.err = jpeg_std_error (&c_jerr);             // set error handler
+    jpeg_create_compress (&m_cinfo);                    // create compressor
+    jpeg_stdio_dest (&m_cinfo, m_fd);                   // set output stream
 
     // Set image and compression parameters
-    cinfo.image_width = m_spec.width;
-    cinfo.image_height = m_spec.height;
+    m_cinfo.image_width = m_spec.width;
+    m_cinfo.image_height = m_spec.height;
 
     if (m_spec.nchannels == 3 || m_spec.nchannels == 4) {
-        cinfo.input_components = 3;
-        cinfo.in_color_space = JCS_RGB;
+        m_cinfo.input_components = 3;
+        m_cinfo.in_color_space = JCS_RGB;
         m_spec.nchannels = 3;  // Force RGBA -> RGB
         m_spec.alpha_channel = -1;  // No alpha channel
     } else if (m_spec.nchannels == 1) {
-        cinfo.input_components = 1;
-        cinfo.in_color_space = JCS_GRAYSCALE;
+        m_cinfo.input_components = 1;
+        m_cinfo.in_color_space = JCS_GRAYSCALE;
     }
-    cinfo.density_unit = 2; // RESUNIT_INCH;
-    cinfo.X_density = 72;
-    cinfo.Y_density = 72;
-    cinfo.write_JFIF_header = true;
+    m_cinfo.density_unit = 2; // RESUNIT_INCH;
+    m_cinfo.X_density = 72;
+    m_cinfo.Y_density = 72;
+    m_cinfo.write_JFIF_header = true;
 
-    jpeg_set_defaults (&cinfo);                         // default compression
-    jpeg_set_quality (&cinfo, quality, TRUE);           // baseline values
-    jpeg_start_compress (&cinfo, TRUE);                 // start working
+    jpeg_set_defaults (&m_cinfo);                       // default compression
+    jpeg_set_quality (&m_cinfo, quality, TRUE);         // baseline values
+    jpeg_start_compress (&m_cinfo, TRUE);               // start working
 
     std::vector<char> exif;
     APP1_exif_from_spec (m_spec, exif);
     if (exif.size())
-        jpeg_write_marker (&cinfo, JPEG_APP0+1, (JOCTET*)&exif[0], exif.size());
+        jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&exif[0], exif.size());
 
-//    jpeg_write_marker (&cinfo, JPEG_COM, comment, strlen(comment) /* + 1 ? */ );
+//    jpeg_write_marker (&m_cinfo, JPEG_COM, comment, strlen(comment) /* + 1 ? */ );
 
     m_spec.set_format (PT_UINT8);  // JPG is only 8 bit
 
@@ -155,12 +150,12 @@ JpgOutput::write_scanline (int y, int z, ParamBaseType format,
                            const void *data, stride_t xstride)
 {
     y -= m_spec.y;
-    assert (y == (int)cinfo.next_scanline);
-    assert (y < (int)cinfo.image_height);
+    assert (y == (int)m_cinfo.next_scanline);
+    assert (y < (int)m_cinfo.image_height);
 
-    data = to_native_scanline (format, data, xstride, scratch);
+    data = to_native_scanline (format, data, xstride, m_scratch);
 
-    jpeg_write_scanlines (&cinfo, (JSAMPLE**)&data, 1);
+    jpeg_write_scanlines (&m_cinfo, (JSAMPLE**)&data, 1);
 
     return true;
 }
@@ -170,11 +165,11 @@ JpgOutput::write_scanline (int y, int z, ParamBaseType format,
 bool
 JpgOutput::close ()
 {
-    if (! fd)          // Already closed
+    if (! m_fd)          // Already closed
         return true;
-    jpeg_finish_compress (&cinfo);
-    jpeg_destroy_compress (&cinfo);
-    fclose (fd);
+    jpeg_finish_compress (&m_cinfo);
+    jpeg_destroy_compress (&m_cinfo);
+    fclose (m_fd);
     init();
     
     return true;
