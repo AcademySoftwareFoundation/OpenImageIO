@@ -57,7 +57,6 @@ private:
         m_pixels.clear ();
     }
 
-//    int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info);
 };
 
 
@@ -84,77 +83,6 @@ HdrInput::open (const char *name, ImageIOFormatSpec &newspec)
 
 
 
-#if 0
-int
-HdrInput::RGBE_ReadHeader (FILE *fp, int *width, int *height, rgbe_header_info *info)
-{
-  char buf[128];
-  int found_format;
-  float tempf;
-  int i;
-
-  found_format = 0;
-  if (info) {
-    info->valid = 0;
-    info->programtype[0] = 0;
-    info->gamma = info->exposure = 1.0;
-  }
-  if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == NULL)
-    return rgbe_error(rgbe_read_error,NULL);
-  if ((buf[0] != '#')||(buf[1] != '?')) {
-    /* if you want to require the magic token then uncomment the next line */
-    /*return rgbe_error(rgbe_format_error,"bad initial token"); */
-  }
-  else if (info) {
-    info->valid |= RGBE_VALID_PROGRAMTYPE;
-    for(i=0;i<sizeof(info->programtype)-1;i++) {
-      if ((buf[i+2] == 0) || isspace(buf[i+2]))
-	break;
-      info->programtype[i] = buf[i+2];
-    }
-    info->programtype[i] = 0;
-    if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
-      return rgbe_error(rgbe_read_error,NULL);
-  }
-  bool found_FORMAT_line = false;
-  for(;;) {
-    if ((buf[0] == 0)||(buf[0] == '\n')) {
-        if (found_FORMAT_line)
-            break;
-        return rgbe_error(rgbe_format_error,"no FORMAT specifier found");
-    }
-    else if (strcmp(buf,"FORMAT=32-bit_rle_rgbe\n") == 0) {
-        found_FORMAT_line = true;
-        //LG says no:    break;       /* format found so break out of loop */
-    }
-    else if (info && (sscanf(buf,"GAMMA=%g",&tempf) == 1)) {
-      info->gamma = tempf;
-      info->valid |= RGBE_VALID_GAMMA;
-    }
-    else if (info && (sscanf(buf,"EXPOSURE=%g",&tempf) == 1)) {
-      info->exposure = tempf;
-      info->valid |= RGBE_VALID_EXPOSURE;
-    }
-    if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
-      return rgbe_error(rgbe_read_error,NULL);
-  }
-//  if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
-//    return rgbe_error(rgbe_read_error,NULL);
-  if (strcmp(buf,"\n") != 0) {
-      printf ("Found '%s'\n", buf);
-    return rgbe_error(rgbe_format_error,
-		      "missing blank line after FORMAT specifier");
-  }
-  if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
-    return rgbe_error(rgbe_read_error,NULL);
-  if (sscanf(buf,"-Y %d +X %d",height,width) < 2)
-    return rgbe_error(rgbe_format_error,"missing image size specifier");
-  return RGBE_RETURN_SUCCESS;
-}
-#endif
-
-
-
 bool
 HdrInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
 {
@@ -170,7 +98,8 @@ HdrInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
 
     m_spec = ImageIOFormatSpec();
 
-    int r = RGBE_ReadHeader (m_fd, &m_spec.width, &m_spec.height, NULL);
+    rgbe_header_info h;
+    int r = RGBE_ReadHeader (m_fd, &m_spec.width, &m_spec.height, &h);
     if (r != RGBE_RETURN_SUCCESS) {
         close ();
         return false;
@@ -184,6 +113,12 @@ HdrInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
     m_spec.channelnames.push_back ("R");
     m_spec.channelnames.push_back ("G");
     m_spec.channelnames.push_back ("B");
+
+    if (h.valid & RGBE_VALID_GAMMA)
+        m_spec.gamma = h.gamma;
+    if (h.valid & RGBE_VALID_ORIENTATION)
+        m_spec.attribute ("orientation", h.orientation);
+    // Not sure what to do with the header's "exposure" field
 
     m_subimage = index;
     newspec = m_spec;

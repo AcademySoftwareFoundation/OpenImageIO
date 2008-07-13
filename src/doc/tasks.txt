@@ -16,7 +16,7 @@ DONE        jpeg - EXIF info
             API - should strides, even for tile routines, auto-set to
                 full image strides?                         
             imageio.h - add sRGB vs Linear?
-            API docs
+IP          API docs
 DONE        Linux
 DONE        iv - middle mouse drag
 DONE        iv - mouse wheel zoom
@@ -74,7 +74,7 @@ Before first 1.0 release
             Targa (Wex request)
             PNM/PPM/PBM/PGM
             XBM/XPM
-            HDR
+IP          HDR
             IFF?
             null (why?)
             PIC
