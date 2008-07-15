@@ -1,0 +1,608 @@
+\chapter{Image I/O API}
+\label{chap:imageioapi}
+\index{Image I/O API|(}
+
+
+\section{Image Format Spec}
+\indexapi{ImageIOFormatSpec}
+
+An {\kw ImageIOFormatSpec} is a structure that describes the complete
+format specification of a single image.  It contains:
+
+\begin{itemize}
+\item The image resolution (number of pixels).
+\item The origin, if it is not located beginning at pixel (0,0).
+\item The full size of any ``surrounding'' image, if this represents a crop
+  window.
+\item Whether the image is organized into \emph{tiles}, and if so, the
+  tile size.
+\item The \emph{data format} of the pixel values (e.g., float, 8-bit
+  integer, etc.).
+\item The number of color channels in the image (e.g., 3 for RGB
+  images).
+\item Which channel, if any, represents \emph{alpha} and \emph{depth}.
+\item Any presumed gamma correction already applied to the pixel values.
+\item Quantization parameters describing how floating point values
+  should be converted to integers (if cases where users pass real values
+  but integer values are stored in the file).  This is used only when
+  writing images, not when reading them.
+\item A user-extensible (and format-extensible) list of any other
+  arbitrarily-named and -typed data that may help describe the image or
+  its disk representation.
+\end{itemize}
+
+\subsection{{\kw ImageIOFormatSpec} Data Members}
+
+The {\kw ImageIOFormatSpec} contains data fields for the values that are
+required to describe nearly any image, and an extensible list of
+arbitrary attributes that can hold metadata that may be user-defined or
+specific to individual file formats.  Here are the hard-coded data
+fields:
+
+\apiitem{int width, height, depth}
+The size of the data of this image, i.e., the number pixels in each
+dimension.  If {\kw depth} is 0 or 1, it indicates a 2D image, but if
+{\kw depth} is greater than 1, it's actually a 3D ``volumetric'' image.
+\apiend
+
+\apiitem{int x, y, z}
+The \emph{origin} of the image.  These default to (0,0,0), but setting
+them differently indicates that this image is actually a \emph{crop window}
+of a larger surrounding image.
+\apiend
+
+\apiitem{int full_width, full_height, full_depth}
+The size of the full surrounding image, if this image is a crop window.
+The default is (0,0,0), indicating that this is the ``full'' image data
+(setting these values to {\kw width}, {\kw height}, and {\kw depth},
+respectively, has the same meaning).
+\apiend
+
+\apiitem{int tile_width, tile_height, tile_depth}
+If nonzero, indicates that the image is stored on disk organized into
+rectangular \emph{tiles} of the given dimension.  The default of 
+(0,0,0) indicates that the image is stored in scanline order, rather
+than as tiles.
+\apiend
+
+\apiitem{ParamBaseType format}
+Indicates the format of the pixel data values themselves, as a 
+{\kw ParamBaseType} (see \ref{ParamBaseType}).  Typical values would be
+{\kw PT_UINT8} for 8-bit unsigned values, {\kw PT_FLOAT} for 32-bit
+floating-point values, etc.
+
+\noindent NOTE: Currently, the implementation of OpenImageIO requires
+all channels to have the same data format.
+\apiend
+
+\apiitem{int nchannels}
+The number of \emph{channels} (color values) present in each pixel of
+the image.  For example, an RGB image has 3 channels.
+\apiend
+
+\apiitem{std:vector<std::string> channelnames}
+The names of each channel, in order.  Typically this will be "R", "G",
+"B", "A" (alpha), "Z" (depth), or other arbitrary names.
+\apiend
+
+\apiitem{int alpha_channel}
+The index of the channel that respresents \emph{alpha} (pixel coverage
+and/or transparency).  It defaults to -1 if no alpha channel is present,
+or if it is not know which channel represents alpha.
+\apiend
+
+\apiitem{int z_channel}
+The index of the channel that respresents \emph{z} or \emph{depth} (from
+the camera).  It defaults to -1 if no depth channel is present, or if it
+is not know which channel represents depth.
+\apiend
+
+\apiitem{LinearitySpec nonlinear}
+Describes the type of nonlinearity, if any, that is present in the
+mapping of pixel values to real-world units.  {\kw LinearitySpec} is
+an enumerated type that may take on the following values:
+\begin{itemize}
+\item[] 
+\item {\kw Linear} (the default) indicates that pixel values map
+  linearly.
+\item {\kw GammaCorrected} indicates that the color pixel values have
+  already been gamma corrected, using the exponent given by the {\kw
+    gamma} field.  (It is still assumed that non-color values, such as
+  alpha and depth, are linear.)
+\item {\kw sRGB} indicates that color values are encoded using the sRGB
+  mapping.  (It is still assumed that non-color values are linear.)
+\end{itemize}
+\apiend
+
+\apiitem{float gamma}
+The gamma exponent, if the pixel values in the image have already been
+gamma corrected (indicated by {\kw nonlinear} having a value of {\kw
+GammaCorrected}).  The default of 1.0 indicates that no gamma
+correction has been applied.
+\apiend
+
+\apiitem{int quant_black, quant_white, quant_min, quant_max;\\
+  float quant_dither}
+Describes the \emph{quantization}, or mapping between real
+(floating-point) values and the stored integer values.
+FIXME - describe this better.
+\apiend
+
+\apiitem{std::vector<ImageIOParameter> extra_attribs}
+A list of arbitrarily-named and arbitrarily-typed additional attributes
+of the image, for any metadata not described by the hard-coded fields
+described above.  This list may be manipulated with the {\kw
+attribute()} and {\kw find_attribute()} methods.
+\apiend
+
+\subsection{{\kw ImageIOFormatSpec} member functions}
+
+\noindent {\kw ImageIOFormatSpec} contains the following methods that
+manipulate format specs or compute useful information about images given
+their format spec:
+
+\apiitem{ImageIOFormatSpec (int xres, int yres, int nchans, \\
+   \bigspc ParamBaseType fmt = PT_UINT8)}
+Constructs an ImageIOFormatSpec with the $x$ and $y$ resolution, number
+of channels, and pixel data format.
+
+All other fields are set to the obvious defaults -- the image is an
+ordinary 2D image (not a volume), the image is not offset or a crop of a
+bigger image, the image is scanline-oriented (not tiled), channel names
+are ``R'', ``G'', ``B,'' and ``A'' (up to and including 4 channels,
+beyond that they are named ``channel \emph{n}''), the fourth channel (if
+it exists) is assumed to be alpha, values are assumed to be linear, and
+quantizaiton (if \emph{fmt} describes an integer type) is done in
+such a way that the maximum positive integer range maps to (0.0, 1.0).
+\apiend
+
+\apiitem{void set_format (ParamBaseType fmt)}
+Sets the format as described, and also sets all quantization parameters
+to the default for that data type (maps the maximum positive integer
+range to (0.0, 1.0)).
+\apiend
+
+\apiitem{static ParamBaseType format_from_quantize (int quant_black, int quant_white,\\
+\bigspc \bigspc                          int quant_min, int quant_max)}
+Utility function that, given quantization parameters, returns a data
+type that may be used without unacceptable loss of significant bits.
+% FIXME - elaborate?
+\apiend
+
+\apiitem{size_t channel_bytes ()}
+Returns the number of bytes comprising each channel of each pixel (i.e.,
+the size of a single value of the type described by the {\kw format} field).
+\apiend
+
+\apiitem{size_t pixel_bytes ()}
+Returns the number of bytes comprising each pixel (i.e. the number of
+channels multiplied by the channel size).
+\apiend
+
+\apiitem{size_t scanline_btes ()}
+Returns the number of bytes comprising each scanline (i.e. {\kw width} pixels).
+\apiend
+
+\apiitem{size_t tile_bytes ()}
+Returns the number of bytes comprising an image tile (if it's a tiled image).
+\apiend
+
+\apiitem{size_t image_bytes ()}
+Returns the number of bytes comprising an image of these dimensions.
+\apiend
+
+% FIXME - document auto_stride() ?
+
+\apiitem{void attribute (const std::string \&name, ParamBaseType type, \\
+\bigspc int nvalues, const void *value)}
+Add a metadata attribute to {\kw extra_attribs}, with the given name,
+data type, and number of values.  The {\kw value} pointer specifies
+the address of the data to be copied.
+\apiend
+
+\apiitem{void attribute (const std::string \&name, unsigned int value)\\
+    void attribute (const std::string \&name, int value)\\
+    void attribute (const std::string \&name, float value)\\
+    void attribute (const std::string \&name, const char *value)\\
+    void attribute (const std::string \&name, const std::string \&value)}
+Shortcuts for passing attributes comprised of a single integer,
+floating-point value, or string.
+\apiend
+
+\apiitem{ImageIOParameter * find_attribute (const std::string \&name,\\
+\bigspc\bigspc                              bool casesensitive=false)}
+Searches {\kw extra_attribs} for an attribute matching {\kw name}
+(exactly, if {\kw casesensitive} is true, otherwise in a
+case-insensitive manner) and returns the pointer to that attribute
+record.
+\apiend
+
+
+
+\section{Image Output}
+
+\apiitem{static ImageOutput * create (const char *filename, \\
+\bigspc\bigspc const char *plugin_searchpath=NULL)}
+
+Create an {\kw ImageOutput} that can be used to write an image file.
+The type of image file (and hence, the particular subclass of {\kw
+  ImageOutput} returned, and the plugin that contains its methods) is
+inferred from the extension of the file name.  The {\kw
+  plugin_searchpath} parameter is a colon-separated list of directories
+to search for ImageIO plugin DSO/DLL's.
+
+\apiend
+
+\apiitem{const char *format_name ()}
+Returns the canonical name of the format that this {\kw ImageOutput}
+instance is capable of writing.
+\apiend
+
+\apiitem{bool supports (const char *feature)}
+Given the name of a \emph{feature}, tells if this {\kw ImageOutput} 
+instance supports that feature.  The following features are recognized
+by this query:
+\begin{description}
+\item[\spc] \spc 
+\item[\rm \qkw{tiles}] Is this plugin able to write tiled images?
+\item[\rm \qkw{rectangles}] Can this plugin accept arbitrary rectangular
+  pixel regions (via {\kw write_rectangle()})?  False indicates that
+  pixels must be transmitted via {\kw write_scanline()} (if
+  scanline-oriented) or {\kw write_tile} (if tile-oriented, and only if
+  {\kw supports("tiles")} returns true).
+\item[\rm \qkw{random_access}] May tiles or scanlines be written in any
+  order?  False indicates that they must be in successive order.
+\item[\rm \qkw{multiimage}] Does this format support multiple images
+  within a single file?
+\item[\rm \qkw{volumes}] Does this format support ``3D'' pixel arrays
+  (a.k.a.\ volume images)?
+\item[\rm \qkw{rewrite}] Does this plugin allow the same scanline or
+  tile to be sent more than once?  Generally this is true for plugins
+  that implement some sort of interactive display, rather than a saved
+  image file.
+\item[\rm \qkw{empty}] Does this plugin support passing a NULL data
+  pointer to the various {\kw write_*} routines to indicate that the
+  entire data block is composed of pixels with value zero.  Plugins
+  that support this achieve a speedup when passing blank scanlines or
+  tiles (since no actual data needs to be transmitted or converted).
+\end{description}
+
+\noindent This list of queries may be extended in future releases.
+Since this can be done simply by recognizing new query strings, and does
+not require any new API entry points, addition of support for new
+queries does not break ``link compatibility'' with previously-compiled
+plugins.
+\apiend
+
+\apiitem{bool open (const char *name, const ImageIOFormatSpec \&newspec,
+                       bool append=false)}
+
+Open the file with given {\kw name}, with resolution, and other format
+data as given in {\kw newspec}.  This function returns {\kw true} for
+success, {\kw false} for failure.  Note that it is legal to call {\kw
+open()} multiple times on the same file without a call to {\kw
+close()}, if it supports multiimage and the append flag is {\kw true}
+-- this is interpreted as appending images (such as for MIP-maps).
+
+\apiend
+
+\apiitem{const ImageIOFormatSpec \& spec ()}
+Returns the spec internally associated with this currently open
+{\kw ImageOutput}.
+\apiend
+
+\apiitem{bool close()}
+Closes the currently open file associated with this {\kw ImageOutput}.
+\apiend
+
+\apiitem{bool write_scanline (int y, int z, ParamBaseType format,
+     const void *data, \\
+\bigspc stride_t xstride=AutoStride)}
+
+Write a full scanline that includes pixels $(*,y,z)$.  For 2D non-volume
+images, $z$ is ignored.  The {\kw xstride} value gives the distance
+between successive pixels (in bytes).  Strides set to the special value
+{\kw AutoStride} imply contiguous data, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+This method automatically converts the data from the specified {\kw
+  format} to the actual output format of the file.  Return {\kw true}
+for success, {\kw false} for failure.  It is a failure to call {\kw
+  write_scanline()} with an out-of-order scanline if this format driver
+does not support random access.
+
+\apiend
+
+\apiitem{bool write_tile (int x, int y, int z, ParamBaseType format,
+                             const void *data, \\ \bigspc stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride, \\ \bigspc stride_t zstride=AutoStride)}
+
+Write the tile with $(x,y,z)$ as the upper left corner.  For 2D
+non-volume images, $z$ is ignored.  The three stride values give the
+distance (in bytes) between successive pixels, scanlines, and volumetric
+slices, respectively.  Strides set to the special value {\kw AutoStride}
+imply contiguous data, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+\spc {\kw ystride} $=$ {\kw xstride*spec.tile_width} \\
+\spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
+This method automatically converts the
+data from the specified {\kw format} to the actual output format of the
+fil.  Return {\kw true} for success, {\kw false} for failure.  It is a
+failure to call {\kw write_tile()} with an out-of-order tile if this
+format driver does not support random access.
+
+\apiend
+
+\apiitem{bool write_rectangle ({\small int xmin, int xmax, int ymin, int ymax,
+                                  int zmin, int zmax,} \\ \bigspc ParamBaseType format,
+                                  const void *data, \\ \bigspc stride_t xstride=AutoStride,
+                                  stride_t ystride=AutoStride, \\
+                                  \bigspc stride_t zstride=AutoStride)}
+
+Write pixels whose $x$ coords range over {\kw xmin}...{\kw xmax} (inclusive), $y$
+coords over {\kw ymin}...{\kw ymax}, and $z$ coords over {\kw
+  zmin}....{\kw zmax}.  The
+three stride values give the distance (in bytes) between
+successive pixels, scanlines, and volumetric slices,
+respectively.  Strides set to the special value {\kw AutoStride}
+imply contiguous data, i.e.,\\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+\spc {\kw ystride} $=$ {\kw xstride*(xmax-xmin+1)} \\
+\spc {\kw zstride} $=$ {\kw ystride*(ymax-ymin+1)}\\
+This method automatically converts the data from the specified 
+{\kw format} to the actual output format of the fil.  Return {\kw true}
+for success, {\kw false} for failure.  It is a failure to call 
+{\kw write_rectangle} for a format plugin that does not return true for
+{\kw supports("rectangles")}.
+
+\apiend
+
+\apiitem{bool write_image (ParamBaseType format, const void *data, \\
+                              \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                              \\ \bigspc stride_t zstride=AutoStride, \\
+                              \bigspc ProgressCallback progress_callback=NULL,\\
+                              \bigspc void *progress_callback_data=NULL)}
+
+Write the entire image of {\kw spec.width} $\times$ {\kw spec.height}
+$\times$ {\kw spec.depth}
+pixels, with the given strides and in the desired format.
+Strides set to the special value {\kw AutoStride} imply contiguous data, i.e.,
+\spc {\kw xstride} $=$ {\kw spec.nchannels * ParamBaseTypeSize(format)} \\
+\spc {\kw ystride} $=$ {\kw xstride * spec.width} \\
+\spc {\kw zstride} $=$ {\kw ystride * spec.height}\\
+The function will internally either call {\kw write_scanline} or 
+{\kw write_tile}, depending on whether the file is scanline- or
+tile-oriented.
+
+Because this may be an expensive operation, a callback may be passed.
+Periodically, it will be called as follows:\\
+\begin{code}
+  progress_callback (progress_callback_data, float done)
+\end{code}
+\noindent where \emph{done} gives the portion of the image that has
+been written (between 0.0 and 1.0).
+
+\apiend
+
+\apiitem{int send_to_output (const char *format, ...)}
+General message passing between client and image output server
+\apiend
+
+\apiitem{int send_to_client (const char *format, ...)}
+General message passing between client and image output server
+\apiend
+
+\apiitem{std::string error_message ()}
+Returns the current error string describing what went wrong if
+any of the public methods returned {\kw false} indicating an error.
+(Hopefully the implementation plugin called {\kw error()} with a
+helpful error message.)
+\apiend
+
+
+\section{Image Input}
+
+\apiitem{ImageInput *create (const char *filename, 
+                               const char *plugin_searchpath)}
+Create and return an {\kw ImageInput} implementation that is able
+to read the given file.  The {\kw plugin_searchpath} parameter is a
+colon-separated list of directories to search for ImageIO plugin
+DSO/DLL's (not a searchpath for the image itself!).  This will
+actually just try every ImageIO plugin it can locate, until it
+finds one that's able to open the file without error.  This just
+creates the {\kw ImageInput}, it does not open the file.
+\apiend
+
+\apiitem{const char *format_name (void) const}
+Return the name of the format implemented by this class.
+\apiend
+
+\apiitem{bool open (const char *name, ImageIOFormatSpec \&newspec)}
+Opens the file with given name.  Various file attributes are put in
+{\kw newspec} and a copy is also saved internally to the
+{\kw ImageInput} (retrievable via {\kw spec()}.  From examining
+{\kw newspec} or {\kw spec()}, you can discern the resolution, if it's
+tiled, number of channels, native data format, and other metadata about
+the image.  Return {\kw true} if the file was found and opened okay,
+otherwise {\kw false}.
+\apiend
+
+\apiitem {const ImageIOFormatSpec \&spec (void) const}
+Returns a reference to the image format specification of the
+current subimage.  Note that the contents of the spec are
+invalid before {\kw open()} or after {\kw close()}.
+\apiend
+
+\apiitem{bool close ()}
+Closes an open image.
+\apiend
+
+
+\apiitem{int current_subimage (void) const}
+Returns the index of the subimage that is currently being read.
+The first subimage (or the only subimage, if there is just one) is
+number 0.
+\apiend
+
+\begin{comment}
+
+\apiitem{bool seek_subimage (int index, ImageIOFormatSpec \&newspec)}
+Seek to the given subimage.  Return true on success, false on
+failure (including that there is not a subimage with that
+index).  The new subimage's vital statistics are put in newspec
+(and also saved in this->spec).  The reader is expected to give
+the appearance of random access to subimages -- in other words,
+if it can't randomly seek to the given subimage, it should
+transparently close, reopen, and sequentially read through prior
+subimages.
+\apiend
+
+\apiitem{bool read_scanline (int y, int z, ParamBaseType format, void *data,
+                                stride_t xstride=AutoStride)}
+Read the scanline that includes pixels (*,y,z) into data,
+converting if necessary from the native data format of the file
+into the 'format' specified (z==0 for non-volume images).  The
+stride value gives the data spacing of adjacent pixels (in
+bytes).  Strides set to AutoStride imply 'contiguous' data (i.e.
+xstride==spec.nchannels*ParamBaseTypeSize(format)).  The reader
+is expected to give the appearance of random access -- in other
+words, if it can't randomly seek to the given scanline, it
+should transparently close, reopen, and sequentially read
+through prior scanlines.  The base ImageInput class has a
+default implementation that calls read_native_scanline and then
+does appropriate format conversion, so there's no reason for
+each format plugin to override this method.
+\apiend
+
+
+\apiitem{bool read_scanline (int y, int z, float *data)}
+Simple read_scanline reads to contiguous float pixels.
+\apiend
+
+\apiitem{bool read_tile (int x, int y, int z, ParamBaseType format,
+                            void *data, stride_t xstride=AutoStride,
+                            stride_t ystride=AutoStride, stride_t zstride=AutoStride)}
+Read the tile that includes pixels (*,y,z) into data, converting
+if necessary from the native data format of the file into the
+'format' specified.  (z==0 for non-volume images.)  The stride
+values give the data spacing of adjacent pixels, scanlines, and
+volumetric slices (measured in bytes).  Strides set to
+AutoStride imply 'contiguous' data (i.e.  xstride ==
+spec.nchannels*ParamBaseTypeSize(format), ystride ==
+xstride*spec.tile_width, zstride == ystride*spec.tile_height).
+The reader is expected to give the appearance of random access
+-- in other words, if it can't randomly seek to the given tile,
+it should transparently close, reopen, and sequentially read
+through prior tiles.  The base ImageInput class has a default
+implementation that calls read_native_tile and then does
+appropriate format conversion, so there's no reason for each
+format plugin to override this method.
+\apiend
+
+
+\apiitem{bool read_tile (int x, int y, int z, float *data)}
+Simple read_tile reads to contiguous float pixels.
+\apiend
+
+\apiitem{bool read_image (ParamBaseType format, void *data,
+                             stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride,
+                             ProgressCallback progress_callback=NULL,
+                             void *progress_callback_data=NULL)}
+Read the entire image of spec.width x spec.height x spec.depth
+pixels into data (which must already be sized large enough for
+the entire image) with the given strides and in the desired
+format.  Read tiles or scanlines automatically.  Strides set to
+AutoStride imply 'contiguous' data (i.e. xstride ==
+spec.nchannels*ParamBaseTypeSize(format),
+ystride==xstride*spec.width, zstride=ystride*spec.height).
+\apiend
+
+
+\apiitem{bool read_image (float *data)}
+Simple read_image reads to contiguous float pixels.
+\apiend
+
+\apiitem{bool read_native_scanline (int y, int z, void *data)}
+read_native_scanline is just like read_scanline, except that it
+keeps the data in the native format of the disk file and always
+read into contiguous memory (no strides).  It's up to the user to
+have enough space allocated and know what to do with the data.
+IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD.
+\apiend
+
+
+\apiitem{bool read_native_tile (int x, int y, int z, void *data)}
+read_native_tile is just like read_tile, except that it
+keeps the data in the native format of the disk file and always
+read into contiguous memory (no strides).  It's up to the user to
+have enough space allocated and know what to do with the data.
+IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD
+IF IT SUPPORTS TILED IMAGES.
+\apiend
+
+\apiitem{int send_to_input (const char *format, ...)}
+General message passing between client and image input server
+\apiend
+
+\apiitem{int send_to_client (const char *format, ...)}
+General message passing between client and image input server
+\apiend
+
+\apiitem{std::string error_message () const}
+Return the current error string describing what went wrong if
+any of the public methods returned 'false' indicating an error.
+(Hopefully the implementation plugin called error() with a
+helpful error message.)
+\apiend
+
+\end{comment}
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+\apiitem{}
+\apiend
+
+
+\index{Image I/O API|)}
+
+\chapwidthend
