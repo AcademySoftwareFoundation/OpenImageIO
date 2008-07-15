@@ -113,7 +113,12 @@
 #define TOKEN_H
 
 #include <string>
+#include <iostream>
 #include "export.h"
+
+#ifndef NULL
+#define NULL 0
+#endif
 
 #ifndef TOKEN_IMPL_STRING
 #define TOKEN_IMPL_STRING 0
