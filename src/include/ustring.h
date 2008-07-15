@@ -26,52 +26,52 @@
 
 
 /////////////////////////////////////////////////////////////////////////////
-/// \class Token
+/// \class ustring
 ///
-/// A Token is an alternative to char* or std::string for storing
+/// A ustring is an alternative to char* or std::string for storing
 /// strings, in which the character sequence is unique (allowing many
 /// speed advantages for assignment, equality testing, and inequality
 /// testing).
 ///
 /// The implementation is that behind the scenes there is a hash set of
 /// allocated strings, so the characters of each string are unique.  A
-/// Token itself is a pointer to the characters of one of these canonical
+/// ustring itself is a pointer to the characters of one of these canonical
 /// strings.  Therefore, assignment and equality testing is just a single
-/// 32- or 64-bit int operation, the only mutex is when a Token is
+/// 32- or 64-bit int operation, the only mutex is when a ustring is
 /// created from raw characters, and the only malloc is the first time
-/// each canonical Token is created.
+/// each canonical ustring is created.
 ///
 /// The internal table also contains a std::string version and the length
-/// of the string, so converting a Token to a std::string (via
-/// Token::string()) or querying the number of characters (via
-/// Token::size() or Token::length()) is extremely inexpensive, and does
+/// of the string, so converting a ustring to a std::string (via
+/// ustring::string()) or querying the number of characters (via
+/// ustring::size() or ustring::length()) is extremely inexpensive, and does
 /// not involve creation/allocation of a new std::string or a call to
 /// strlen.
 ///
 /// We try very hard to completely mimic the API of std::string,
 /// including all the constructors, comparisons, iterations, etc.  Of
-/// course, the charaters of a Token are non-modifiable, so we do not
+/// course, the charaters of a ustring are non-modifiable, so we do not
 /// replicate any of the non-const methods of std::string.  But in most
 /// other ways it looks and acts like a std::string and so most templated
 /// algorthms that would work on a "const std::string &" will also work
-/// on a Token.
+/// on a ustring.
 /// 
 /// Usage guidelines:
 ///
-/// Compared to standard strings, Tokens have several advantages:
+/// Compared to standard strings, ustrings have several advantages:
 /// 
-///   - Each individual Token is very small -- in fact, we guarantee that
-///     a Token is the same size and memory layout as an ordinary char*.
+///   - Each individual ustring is very small -- in fact, we guarantee that
+///     a ustring is the same size and memory layout as an ordinary char*.
 ///   - Storage is frugal, since there is only one allocated copy of each
 ///     unique character sequence, throughout the lifetime of the program.
-///   - Assignment from one Token to another is just copy of the pointer;
+///   - Assignment from one ustring to another is just copy of the pointer;
 ///     no allocation, no character copying, no reference counting.
 ///   - Equality testing (do the strings contain the same characters) is
 ///     a single operation, the comparison of the pointer.
-///   - Memory allocation only occurs when a new Token is construted from
+///   - Memory allocation only occurs when a new ustring is construted from
 ///     raw characters the FIRST time -- subsequent constructions of the
 ///     same string just finds it in the canonial string set, but doesn't
-///     need to allocate new storage.  Destruction of a Token is trivial,
+///     need to allocate new storage.  Destruction of a ustring is trivial,
 ///     there is no de-allocation because the canonical version stays in
 ///     the set.  Also, therefore, no user code mistake can lead to
 ///     memory leaks.
@@ -83,7 +83,7 @@
 /// expensive than for standard strings, due to hashing, table queries,
 /// and other overhead.
 ///
-/// On the whole, Tokens are a really great string representation
+/// On the whole, ustrings are a really great string representation
 ///   - if you tend to have (relatively) few unique strings, but many
 ///     copies of those strings;
 ///   - if the creation of strings from raw characters is relatively
@@ -97,7 +97,7 @@
 ///     of strings, string concatenation, or other "string manipulation"
 ///     (other than equality testing).
 ///
-/// Tokens are not so hot
+/// ustrings are not so hot
 ///   - if your program tends to have very few copies of each character
 ///     sequence over the entire lifetime of the program;
 ///   - if your program tends to generate a huge variety of unique
@@ -109,8 +109,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef TOKEN_H
-#define TOKEN_H
+#ifndef USTRING_H
+#define USTRING_H
 
 #include <string>
 #include <iostream>
@@ -120,8 +120,8 @@
 #define NULL 0
 #endif
 
-#ifndef TOKEN_IMPL_STRING
-#define TOKEN_IMPL_STRING 0
+#ifndef USTRING_IMPL_STRING
+#define USTRING_IMPL_STRING 0
 #endif
 
 
@@ -129,7 +129,7 @@
 // namespace blah {
 
 
-class DLLPUBLIC Token {
+class DLLPUBLIC ustring {
 public:
     typedef char value_type;
     typedef value_type * pointer;
@@ -140,89 +140,89 @@ public:
     typedef std::string::const_iterator const_iterator;
     typedef std::string::const_reverse_iterator const_reverse_iterator;
 
-    /// Default ctr for Token -- make an empty string.
+    /// Default ctr for ustring -- make an empty string.
     ///
-    Token (void)
-#if (! TOKEN_IMPL_STRING)
+    ustring (void)
+#if (! USTRING_IMPL_STRING)
         : m_chars(NULL)
 #endif
     { }
 
-    /// Construct a Token from a null-terminated C string (char *).
+    /// Construct a ustring from a null-terminated C string (char *).
     ///
-    explicit Token (const char *str) {
-#if TOKEN_IMPL_STRING
+    explicit ustring (const char *str) {
+#if USTRING_IMPL_STRING
         m_chars = _make_unique(str)->str;
 #else
         m_chars = str ? _make_unique(str)->c_str() : NULL;
 #endif
     }
 
-    /// Construct a Token from at most n characters of str, starting at
+    /// Construct a ustring from at most n characters of str, starting at
     /// position pos.
-    Token (const char *str, size_type pos, size_type n)
+    ustring (const char *str, size_type pos, size_type n)
         : m_chars (_make_unique(std::string(str,pos,n).c_str())->c_str()) { }
 
-    /// Construct a Token from at most n characters beginning at str.
+    /// Construct a ustring from at most n characters beginning at str.
     ///
-    Token (const char *str, size_type n)
+    ustring (const char *str, size_type n)
         : m_chars (_make_unique(std::string(str,n).c_str())->c_str()) { }
 
-    /// Construct a Token from n copies of character c.
+    /// Construct a ustring from n copies of character c.
     ///
-    Token (size_type n, char c)
+    ustring (size_type n, char c)
         : m_chars (_make_unique(std::string(n,c).c_str())->c_str()) { }
 
-    /// Construct a Token from a C++ std::string.
+    /// Construct a ustring from a C++ std::string.
     ///
-    explicit Token (const std::string &str) { *this = Token(str.c_str()); }
+    explicit ustring (const std::string &str) { *this = ustring(str.c_str()); }
 
-    /// Construct a Token from an indexed substring of a std::string.
+    /// Construct a ustring from an indexed substring of a std::string.
     ///
-    Token (const std::string &str, size_type pos, size_type n=npos)
+    ustring (const std::string &str, size_type pos, size_type n=npos)
         : m_chars (_make_unique(std::string(str, pos, n).c_str())->c_str()) { }
 
-    /// Copy construct a Token from another Token.
+    /// Copy construct a ustring from another ustring.
     ///
-    Token (const Token &str) : m_chars(str.m_chars) { }
+    ustring (const ustring &str) : m_chars(str.m_chars) { }
 
-    /// Construct a Token from an indexed substring of a Token.
+    /// Construct a ustring from an indexed substring of a ustring.
     ///
-    Token (const Token &str, size_type pos, size_type n=npos)
+    ustring (const ustring &str, size_type pos, size_type n=npos)
         : m_chars (_make_unique(std::string(str.c_str(),pos,n).c_str())->c_str()) { }
 
-    /// Token destructor.
+    /// ustring destructor.
     ///
-    ~Token () { }
+    ~ustring () { }
 
-    /// Assign a Token to *this.
+    /// Assign a ustring to *this.
     ///
-    const Token & assign (const Token &str) {
+    const ustring & assign (const ustring &str) {
         m_chars = str.m_chars;
         return *this;
     }
 
-    /// Assign a substring of a Token to *this.
+    /// Assign a substring of a ustring to *this.
     ///
-    const Token & assign (const Token &str, size_type pos, size_type n=npos)
-        { *this = Token(str,pos,n); return *this; }
+    const ustring & assign (const ustring &str, size_type pos, size_type n=npos)
+        { *this = ustring(str,pos,n); return *this; }
 
     /// Assign a std::string to *this.
     ///
-    const Token & assign (const std::string &str) {
+    const ustring & assign (const std::string &str) {
         assign (str.c_str());
         return *this;
     } 
 
     /// Assign a substring of a std::string to *this.
     ///
-    const Token & assign (const std::string &str, size_type pos, size_type n=npos)
-        { *this = Token(str,pos,n); return *this; }
+    const ustring & assign (const std::string &str, size_type pos, size_type n=npos)
+        { *this = ustring(str,pos,n); return *this; }
 
     /// Assign a null-terminated C string (char*) to *this.
     ///
-    const Token & assign (const char *str) {
-#if TOKEN_IMPL_STRING
+    const ustring & assign (const char *str) {
+#if USTRING_IMPL_STRING
         m_chars = _make_unique(str)->str;
 #else
         m_chars = str ? _make_unique(str)->c_str() : NULL;
@@ -232,53 +232,53 @@ public:
 
     /// Assign the first n characters of str to *this.
     ///
-    const Token & assign (const char *str, size_type n)
-        { *this = Token(str,n); return *this; }
+    const ustring & assign (const char *str, size_type n)
+        { *this = ustring(str,n); return *this; }
 
     /// Assign n copies of c to *this.
     ///
-    const Token & assign (size_type n, char c)
-        { *this = Token(n,c); return *this; }
+    const ustring & assign (size_type n, char c)
+        { *this = ustring(n,c); return *this; }
 
-    /// Assign a Token to another Token.
+    /// Assign a ustring to another ustring.
     ///
-    const Token & operator= (const Token &str) { return assign(str); }
+    const ustring & operator= (const ustring &str) { return assign(str); }
 
-    /// Assign a null-terminated C string (char *) to a Token.
+    /// Assign a null-terminated C string (char *) to a ustring.
     ///
-    const Token & operator= (const char *str) { assign(str); }
+    const ustring & operator= (const char *str) { assign(str); }
 
-    /// Assign a C++ std::string to a Token.
+    /// Assign a C++ std::string to a ustring.
     ///
-    const Token & operator= (const std::string &str) { assign(str); }
+    const ustring & operator= (const std::string &str) { assign(str); }
 
-    /// Assign a single char to a Token.
+    /// Assign a single char to a ustring.
     ///
-    const Token & operator= (char c) {
+    const ustring & operator= (char c) {
         char s[2];
         s[0] = c; s[1] = 0;
-        *this = Token (s);
+        *this = ustring (s);
         return *this;
     }
 
-    /// Return a C string representation of a Token.
+    /// Return a C string representation of a ustring.
     ///
     const char *c_str () const {
-#if TOKEN_IMPL_STRING
+#if USTRING_IMPL_STRING
         return m_chars.c_str();
 #else
         return m_chars;
 #endif
     }
 
-    /// Return a C string representation of a Token.
+    /// Return a C string representation of a ustring.
     ///
     const char *data () const { return c_str(); }
 
-    /// Return a C++ std::string representation of a Token.
+    /// Return a C++ std::string representation of a ustring.
     ///
     const std::string & string () const {
-#if TOKEN_IMPL_STRING
+#if USTRING_IMPL_STRING
         return m_chars;
 #else
         const TableRep *rep = (const TableRep *)(m_chars - chars_offset);
@@ -289,7 +289,7 @@ public:
     /// Reset to an empty string.
     ///
     void clear (void) {
-#if TOKEN_IMPL_STRING
+#if USTRING_IMPL_STRING
         m_chars.clear();
 #else
         m_chars = NULL;
@@ -299,7 +299,7 @@ public:
     /// Return the number of characters in the string.
     ///
     size_t length (void) const {
-#if TOKEN_IMPL_STRING
+#if USTRING_IMPL_STRING
         return m_chars.size();
 #else
         if (! m_chars)
@@ -343,7 +343,7 @@ public:
     /// size of the string.
     const_reference operator[] (size_type pos) const { return c_str()[pos]; }
 
-    /// Dump into character array s the characters of this Token,
+    /// Dump into character array s the characters of this ustring,
     /// beginning with position pos and copying at most n characters.
     size_type copy (char* s, size_type n, size_type pos = 0) const {
         char *c = strncpy (s, c_str()+pos, n);
@@ -357,7 +357,7 @@ public:
     /// *this is lexicographically earlier than str, 1 if *this is
     /// lexicographically after str.
 
-    int compare (const Token& str) const {
+    int compare (const ustring& str) const {
         return c_str() == str.c_str() ? 0 : strcmp (c_str(), str.c_str());
     }
 
@@ -371,50 +371,50 @@ public:
     /// Return 0 if a is lexicographically equal to b, -1 if a is
     /// lexicographically earlier than b, 1 if a is lexicographically
     /// after b.
-    friend int compare (const std::string& a, const Token &b) {
+    friend int compare (const std::string& a, const ustring &b) {
         return strcmp (a.c_str(), b.c_str());
     }
 
-    /// Test two Tokens for equality -- are they comprised of the same
-    /// sequence of characters.  Note that because Tokens are unique,
+    /// Test two ustrings for equality -- are they comprised of the same
+    /// sequence of characters.  Note that because ustrings are unique,
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
-    bool operator== (const Token &str) { return c_str() == str.c_str(); }
+    bool operator== (const ustring &str) { return c_str() == str.c_str(); }
 
-    /// Test two Tokens for inequality -- are they comprised of different
-    /// sequences of characters.  Note that because Tokens are unique,
+    /// Test two ustrings for inequality -- are they comprised of different
+    /// sequences of characters.  Note that because ustrings are unique,
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
-    bool operator!= (const Token &str) { return c_str() != str.c_str(); }
+    bool operator!= (const ustring &str) { return c_str() != str.c_str(); }
 
-    /// Test a Token (*this) for lexicographic equality with std::string
+    /// Test a ustring (*this) for lexicographic equality with std::string
     /// x.
     bool operator== (const std::string &x) { return compare(x) == 0; }
 
-    /// Test for lexicographic equality between std::string a and Token
+    /// Test for lexicographic equality between std::string a and ustring
     /// b.
-    friend bool operator== (const std::string &a, const Token &b) {
+    friend bool operator== (const std::string &a, const ustring &b) {
         return b.compare(a) == 0;
     }
 
-    /// Test a Token (*this) for lexicographic inequality with
+    /// Test a ustring (*this) for lexicographic inequality with
     /// std::string x.
     bool operator!= (const std::string &x) { return compare(x) != 0; }
 
     /// Test for lexicographic inequality between std::string a and
-    /// Token b.
-    friend bool operator!= (const std::string &a, const Token &b) {
+    /// ustring b.
+    friend bool operator!= (const std::string &a, const ustring &b) {
         return b.compare(a) != 0;
     }
 
 
-    /// Construct a Token in a printf-like fashion.
+    /// Construct a ustring in a printf-like fashion.
     ///
-    static Token format (const char *fmt, ...);
+    static ustring format (const char *fmt, ...);
 
-    /// Generic stream output of a Token.
+    /// Generic stream output of a ustring.
     ///
-    friend std::ostream & operator<< (std::ostream &out, const Token &str) {
+    friend std::ostream & operator<< (std::ostream &out, const ustring &str) {
         if (str.c_str())
             out << str.c_str();
         return out;
@@ -422,9 +422,9 @@ public:
 
 private:
 
-    /// Individual token internal representation -- the unique characters.
+    /// Individual ustring internal representation -- the unique characters.
     ///
-#if TOKEN_IMPL_STRING
+#if USTRING_IMPL_STRING
     std::string m_chars;
 #else
     const char *m_chars;
@@ -447,7 +447,7 @@ public:
     static const off_t chars_offset = offsetof(TableRep, chars);
 
 private:
-    /// Important internal guts of Token -- given a null-terminated
+    /// Important internal guts of ustring -- given a null-terminated
     /// string, return a pointer to the unique internal table
     /// representation of the string (creating a new table entry if we
     /// haven't seen this sequence of characters before).
@@ -456,14 +456,14 @@ private:
 
 
 
-class TokenHash
+class ustringHash
 #ifdef WINNT
-    : public hash_compare<Token>
+    : public hash_compare<ustring>
 #endif
 {
 public:
-    size_t operator() (Token s) const { return (size_t)s.c_str(); }
-    bool operator() (Token a, Token b) {
+    size_t operator() (const ustring &s) const { return (size_t)s.c_str(); }
+    bool operator() (const ustring &a, const ustring &b) {
         return strcmp (a.c_str(), b.c_str()) < 0;
     }
 };
@@ -473,4 +473,4 @@ public:
 
 // };  // end namespace blah
 
-#endif // TOKEN_H
+#endif // USTRING_H

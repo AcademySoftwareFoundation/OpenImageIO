@@ -31,46 +31,46 @@
 #include "strutil.h"
 #include "hash.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing Token */
-#include "token.h"
+#define DLL_EXPORT_PUBLIC /* Because we are implementing ustring */
+#include "ustring.h"
 #undef DLL_EXPORT_PUBLIC
 
 
-typedef hash_map <const char *, Token::TableRep *, Strutil::StringHash> TokenTable;
+typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash> UstringTable;
 
-static TokenTable token_table;
-static mutex token_mutex;
+static UstringTable ustring_table;
+static mutex ustring_mutex;
 
 
 
-const Token::TableRep *
-Token::_make_unique (const char *str)
+const ustring::TableRep *
+ustring::_make_unique (const char *str)
 {
     // Eliminate NULLs
     if (! str)
         str = "";
 
-    // Check the token table to see if this string already exists.  If so,
+    // Check the ustring table to see if this string already exists.  If so,
     // construct from its canonical representation.
-    lock_guard guard(token_mutex);
-    TokenTable::const_iterator found = token_table.find (str);
-    if (found != token_table.end())
+    lock_guard guard(ustring_mutex);
+    UstringTable::const_iterator found = ustring_table.find (str);
+    if (found != ustring_table.end())
         return found->second;
 
-    // This string is not yet in the token table.  Create a new entry.
-    size_t size = sizeof(Token::TableRep) + strlen(str) + 1;
-    Token::TableRep *rep = (Token::TableRep *) malloc (size);
-    new (rep) Token::TableRep (str);
-    token_table[rep->c_str()] = rep;
+    // This string is not yet in the ustring table.  Create a new entry.
+    size_t size = sizeof(ustring::TableRep) + strlen(str) + 1;
+    ustring::TableRep *rep = (ustring::TableRep *) malloc (size);
+    new (rep) ustring::TableRep (str);
+    ustring_table[rep->c_str()] = rep;
     return rep;
 }
 
 
 
-Token
-Token::format (const char *fmt, ...)
+ustring
+ustring::format (const char *fmt, ...)
 {
-    Token tok;
+    ustring tok;
     va_list ap;
     va_start (ap, fmt);
 
