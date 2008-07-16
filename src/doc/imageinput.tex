@@ -1,0 +1,286 @@
+\chapter{Image I/O: Reading Images}
+\label{chap:imageinput}
+\index{Image I/O API|(}
+
+
+\section{Image Input Made Simple}
+
+Here is the simplest sequence required to open an image file, find
+out its resolution, and read the pixels (converting them into
+8-bit pixels, even if that's not the way they're stored in the file):
+
+\begin{code}
+    #include "imageio.h"
+    using namespace OpenImageIO;
+    ...
+
+    const char *filename = "foo.jpg";
+    int xres, yres, channels;
+    unsigned char *pixels;
+
+    ImageInput *in = ImageInput::create (filename);
+    ImageIOFormatSpec spec;
+    in->open (filename, spec);
+    xres = spec.width;
+    yres = spec.height;
+    channels = spec.nchannels;
+    pixels = new unsigned char [xres*yres*channels];
+    in->read_image (PT_UINT8, pixels);
+    in->close ();
+    delete in;
+\end{code}
+
+\begin{itemize}
+\item Search for an ImageIO plugin that is capable of reading the file
+  (\qkw{foo.jpg}), first by trying to deduce the correct plugin from the
+  file extension, but if that fails, by opening every ImageIO plugin it
+  can find until one will open the file without error.  When it finds
+  the right plugin, it creates a subclass instance of \ImageInput that
+  reads the right kind of file format.
+  \begin{code}
+    ImageInput *in = ImageInput::create (filename);
+  \end{code}
+\item Open the file, read the header, and put all relevant metadata
+  about the file in a specification structure.
+  \begin{code}
+    ImageIOFormatSpec spec;
+    in->open (filename, spec);
+  \end{code}
+\item The specification contains vital information such as the
+  dimensions of the image, number of color channels, and data type of
+  the pixel values.  This is enough to allow us to allocate enough space
+  for the image.
+  \begin{code}
+    xres = spec.width;
+    yres = spec.height;
+    channels = spec.nchannels;
+    pixels = new unsigned char [xres*yres*channels];
+  \end{code}
+  Note that in this example, we don't care what data format is used for
+  the pixel data in the file --- we allocate enough space for unsigned
+  8-bit integer pixel values, and will rely on ImageIO's ability to
+  convert to our requested format from the native data format of the
+  file.
+\item Read the entire image, hiding all details of the encoding of image
+  data in the file, whether the file is scanline- or tile-based, or what
+  is the native format of the data in the file (in this case, we request
+  that it be automatically converted to unsigned 8-bit integers).
+  \begin{code}
+    in->read_image (PT_UINT8, pixels);
+  \end{code}
+\item Close the file, destroy and free the \ImageInput we had created,
+  and perform all other cleanup and release of any resources used by
+  the plugin.
+  \begin{code}
+    in->close ();
+    delete in;
+  \end{code}
+\end{itemize}
+
+\section{Advanced Image Input}
+\label{sec:advancedimageinput}
+
+Maybe the easiest thing to do is to just walk through a bunch of the
+most common things you might want to do, but that are more complex than
+the simple example above.
+
+\subsection{Converting formats}
+\label{sec:imageinput:convertingformat}
+
+\subsection{Reading individual scanlines and tiles}
+\label{sec:imageinput:reading}
+
+\subsection{Reading metadata}
+\label{sec:imageinput:metadata}
+
+Don't forget to include channel names, alpha channel, z channel,
+linearity.
+
+\subsection{Custom search paths for plugins}
+\label{sec:imageinput:searchpaths}
+
+\subsection{Multi-image files and MIP-maps}
+\label{sec:imageinput:multiimage}
+
+\subsection{Error checking}
+\label{sec:imageinput:errors}
+
+\section{{\kw ImageInput} Class Reference}
+
+\apiitem{ImageInput *create (const char *filename, 
+                               const char *plugin_searchpath)}
+Create and return an {\kw ImageInput} implementation that is able
+to read the given file.  The {\kw plugin_searchpath} parameter is a
+colon-separated list of directories to search for ImageIO plugin
+DSO/DLL's (not a searchpath for the image itself!).  This will
+actually just try every ImageIO plugin it can locate, until it
+finds one that's able to open the file without error.  This just
+creates the {\kw ImageInput}, it does not open the file.
+\apiend
+
+\apiitem{const char *format_name (void) const}
+Return the name of the format implemented by this class.
+\apiend
+
+\apiitem{bool open (const char *name, ImageIOFormatSpec \&newspec)}
+Opens the file with given name.  Various file attributes are put in
+{\kw newspec} and a copy is also saved internally to the
+{\kw ImageInput} (retrievable via {\kw spec()}.  From examining
+{\kw newspec} or {\kw spec()}, you can discern the resolution, if it's
+tiled, number of channels, native data format, and other metadata about
+the image.  Return {\kw true} if the file was found and opened okay,
+otherwise {\kw false}.
+\apiend
+
+\apiitem {const ImageIOFormatSpec \&spec (void) const}
+Returns a reference to the image format specification of the
+current subimage.  Note that the contents of the spec are
+invalid before {\kw open()} or after {\kw close()}.
+\apiend
+
+\apiitem{bool close ()}
+Closes an open image.
+\apiend
+
+
+\apiitem{int current_subimage (void) const}
+Returns the index of the subimage that is currently being read.
+The first subimage (or the only subimage, if there is just one) is
+number 0.
+\apiend
+
+
+\apiitem{bool seek_subimage (int index, ImageIOFormatSpec \&newspec)}
+Seek to the given subimage.  The first subimage in the file has index 0.
+Return {\kw true} on success, {\kw false} on failure (including that
+there is not a subimage with that index).  The new subimage's vital
+statistics are put in {\kw newspec} (and also saved internally in a way
+that can be retrieved via {\kw spec()}).  The {\kw ImageInput} is
+expected to give the appearance of random access to subimages --- in
+other words, if it can't randomly seek to the given subimage, it should
+transparently close, reopen, and sequentially read through prior
+subimages.
+\apiend
+
+\apiitem{bool read_scanline (int y, int z, ParamBaseType format, void *data,\\
+  \bigspc                      stride_t xstride=AutoStride)}
+
+Read the scanline that includes pixels $(*,y,z)$ into {\kw data},
+converting if necessary from the native data format of the file into the
+{\kw format} specified ($z=0$ for non-volume images).  The {\kw xstride}
+value gives the data spacing of adjacent pixels (in bytes).  Strides set
+to the special value {\kw AutoStride} imply contiguous data, i.e., \\
+  \spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+The {\kw ImageInput} is expected to give the appearance of random access
+--- in other words, if it can't randomly seek to the given scanline, it
+should transparently close, reopen, and sequentially read through prior
+scanlines.  The base {\kw ImageInput} class has a default implementation
+that calls {\kw read_native_scanline()} and then does appropriate format
+conversion, so there's no reason for each format plugin to override this
+method.
+\apiend
+
+\apiitem{bool read_scanline (int y, int z, float *data)}
+This simplified version of {\kw read_scanline()} reads to contiguous 
+float pixels.
+\apiend
+
+\apiitem{bool read_tile (int x, int y, int z, ParamBaseType format,
+                            void *data, \\ \bigspc stride_t xstride=AutoStride,
+                            stride_t ystride=AutoStride, \\ \bigspc stride_t
+                            zstride=AutoStride)}
+Read the tile that includes pixels $(*,y,z)$ into {\kw data}, converting
+if necessary from the native data format of the file into the 
+{\kw format} specified ($z=0$ for non-volume images).  The stride values
+give the data spacing of adjacent pixels, scanlines, and volumetric
+slices, respectively (measured in bytes).  Strides set to the special
+value of {\kw AutoStride} imply contiguous data, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+\spc {\kw ystride} $=$ {\kw xstride*spec.tile_width} \\
+\spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
+The {\kw ImageInput} is expected to give the appearance of random access
+--- in other words, if it can't randomly seek to the given tile, it
+should transparently close, reopen, and sequentially read through prior
+tiles.  The base {\kw ImageInput} class has a default implementation
+that calls read_native_tile and then does appropriate format conversion,
+so there's no reason for each format plugin to override this method.
+\apiend
+
+
+\apiitem{bool read_tile (int x, int y, int z, float *data)}
+Simple version of {\kw read_tile} that reads to contiguous float pixels.
+\apiend
+
+\apiitem{bool read_image (ParamBaseType format, void *data, \\
+                             \bigspc stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride, \\
+                             \bigspc stride_t zstride=AutoStride, \\
+                             \bigspc ProgressCallback progress_callback=NULL,\\
+                             \bigspc void *progress_callback_data=NULL)}
+
+Read the entire image of {\kw spec.width} $\times$ {\kw spec.height}
+$\times$ {\kw spec.depth}
+pixels into data (which must already be sized large enough for
+the entire image) with the given strides and in the desired
+format.  Read tiles or scanlines automatically.  
+
+Strides set to the special value of {\kw AutoStride} imply contiguous
+data, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels * ParamBaseTypeSize(format)} \\
+\spc {\kw ystride} $=$ {\kw xstride * spec.width} \\
+\spc {\kw zstride} $=$ {\kw ystride * spec.height} \\
+The function will internally either call {\kw read_scanline} or 
+{\kw read_tile}, depending on whether the file is scanline- or
+tile-oriented.
+
+Because this may be an expensive operation, a progres callback may be passed.
+Periodically, it will be called as follows:\\
+\begin{code}
+    progress_callback (progress_callback_data, float done)
+\end{code}
+\noindent where \emph{done} gives the portion of the image 
+(between 0.0 and 1.0) that has been read thus far.
+\apiend
+
+\apiitem{bool read_image (float *data)}
+Simple version of {\kw read_image()} reads to contiguous float pixels.
+\apiend
+
+\apiitem{bool read_native_scanline (int y, int z, void *data)}
+The {\kw read_native_scanline()} function is just like {\kw
+  read_scanline()}, except that it keeps the data in the native format
+of the disk file and always reads into contiguous memory (no strides).
+It's up to the user to have enough space allocated and know what to do
+with the data.  IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE
+THIS METHOD.
+\apiend
+
+\apiitem{bool read_native_tile (int x, int y, int z, void *data)}
+The {\kw read_native_tile()} function is just like {\kw read_tile()}, 
+except that it keeps the data in the native format of the disk file and
+always read into contiguous memory (no strides).  It's up to the user to
+have enough space allocated and know what to do with the data.  IT IS
+EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD IF IT
+SUPPORTS TILED IMAGES.
+\apiend
+
+\apiitem{int send_to_input (const char *format, ...)}
+General message passing between client and image input server
+\apiend
+
+\apiitem{int send_to_client (const char *format, ...)}
+General message passing between client and image input server
+\apiend
+
+\apiitem{std::string error_message () const}
+Returns the current error string describing what went wrong if
+any of the public methods returned {\kw false} indicating an error.
+(Hopefully the implementation plugin called {\kw error()} with a
+helpful error message.)
+\apiend
+
+
+
+\index{Image I/O API|)}
+
+\chapwidthend

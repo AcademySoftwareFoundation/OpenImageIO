@@ -12,10 +12,10 @@ DONE        TIFF - separated samples broken (oxford.tif)
 DONE        iv - honor orientation
 DONE        OpenEXR plugin (status: reader works, writer works, scanline/tile)
 DONE        jpeg - EXIF info
-            nomenclature - capitalize tags? (pending feedback)
+IP          nomenclature - capitalize tags? (pending feedback)
             API - should strides, even for tile routines, auto-set to
                 full image strides?                         
-            imageio.h - add sRGB vs Linear?
+IP          imageio.h - add sRGB vs Linear?
 IP          API docs
 DONE        Linux
 DONE        iv - middle mouse drag

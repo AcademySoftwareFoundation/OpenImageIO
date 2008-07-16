@@ -40,11 +40,15 @@
 
 
 \def\product{{\sffamily OpenImageIO}\xspace}
+\def\OpenImageIO{{\sffamily OpenImageIO}\xspace}
 \def\versionnumber{0.1}
 \def\productver{\product\ {\sffamily \versionnumber}\xspace}
 \def\producthome{{\codefont \$IMAGEIOHOME}\xspace}
 \def\ivbinary{{\codefont iv}\xspace}
 \def\maketx{{\codefont maketx}\xspace}
+\def\ImageInput{{\codefont ImageInput}\xspace}
+\def\ImageOutput{{\codefont ImageInput}\xspace}
+
 
 \title{ 
 {\Huge{\bf \product}
@@ -81,13 +85,32 @@ Date: 11 July, 2008
 
 %\include{intro}
 
-%\part{Part name}
+\part{The ImageIO Library}
 
 \include{imageioapi}
+\include{imageoutput}
+\include{imageinput}
+
+\chapter{Writing ImageIO Plugins}
+
+\chapter{Bundled ImageIO Plugins}
+\section{TIFF}
+\section{JPEG}
+\section{OpenEXR}
+\section{HDR/RGBE}
 
 
-%\part{Appendices}
+\part{Image Utilities}
+
+\chapter{The {\kw iv} Image Viewer}
+\chapter{Getting Image information With {\kw iinfo}}
+\chapter{Converting Image Formats With {\kw iconvert}}
+
+\part{Appendices}
 \begin{appendix}
+
+\chapter{Building OpenImageIO}
+
 %\include{header}
 %\include{glossary}
 \end{appendix}

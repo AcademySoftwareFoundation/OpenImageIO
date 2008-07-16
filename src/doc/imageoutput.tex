@@ -1,0 +1,284 @@
+\chapter{ImageOutput: Writing Images}
+\label{chap:imageoutput}
+\index{Image I/O API|(}
+\indexapi{ImageOutput}
+
+
+\section{Image Output Made Simple}
+
+Here is the simplest sequence required to write the pixels of a 2D image
+to a file:
+
+\begin{code}
+    #include "imageio.h"
+    using namespace OpenImageIO;
+    ...
+
+    const char *filename = "foo.jpg";
+    const int xres = 640, yres = 480;
+    const int channels = 3;  // RGB
+    unsigned char pixels[xres*yres*channels];
+
+    ImageOutput *out = ImageOutput::create (filename);
+    ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+    out->open (filename, spec);
+    out->write_image (PT_UINT8, &pixels);
+    out->close ();
+    delete out;
+\end{code}
+
+\noindent This little bit of code does a surprising amount of useful work:  
+
+\begin{itemize}
+\item Search for an ImageIO plugin that is capable of writing the file
+  (\qkw{foo.jpg}), deducing the format from the file extension.  When it
+  finds such a plugin, it creates a subclass instance of \ImageOutput
+  that writes the right kind of file format.
+  \begin{code}
+    ImageOutput *out = ImageOutput::create (filename);
+  \end{code}
+\item Open the file, write the correct headers, and in all other
+  important ways prepare a file with the given dimensions ($640 \times
+  480$), number of color channels (3), and data format (unsigned 8-bit
+  integer).
+  \begin{code}
+    ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+    out->open (filename, spec);
+  \end{code}
+\item Write the entire image, hiding all details of the encoding of
+  image data in the file, whether the file is scanline- or tile-based,
+  or what is the native format of data in the file (in this case, our
+  in-memory data is unsigned 8-bit and we've requested the same format
+  for disk storage, but if they had been different, {\kw write_image()}
+  would do all the conversions for us).
+  \begin{code}
+    out->write_image (PT_UINT8, &pixels);
+  \end{code}
+\item Close the file, destroy and free the \ImageOutput we had created,
+  and perform all other cleanup and release of any resources needed by
+  the plugin.
+  \begin{code}
+    out->close ();
+    delete out;
+  \end{code}
+\end{itemize}
+
+\section{Advanced Image Output}
+
+Maybe the easiest thing to do is to just walk through a bunch of the
+most common things you might want to do, but that are more complex than
+the simple example above.
+
+\subsection{Writing individual scanlines, tiles, and rectangles}
+
+Don't forget to talk about non-contiguous strides.
+
+\subsection{Converting formats}
+\label{sec:imageoutput:convertingformats}
+
+\subsection{Writing a crop window}
+\label{sec:imageoutput:cropwindows}
+
+\subsection{Writing metadata}
+\label{sec:imageoutput:metadata}
+
+Don't forget to include channel names, alpha channel, z channel,
+linearity.
+
+\subsection{Controlling quantization}
+\label{sec:imageoutput:quantization}
+
+\subsection{Custom search paths for plugins}
+\label{sec:imageoutput:searchpaths}
+
+\subsection{Multi-image files and MIP-maps}
+\label{sec:imageoutput:multiimage}
+
+\subsection{Error checking}
+\label{sec:imageoutput:errors}
+
+
+\section{{\kw ImageOutput} Class Reference}
+
+\apiitem{static ImageOutput * create (const char *filename, \\
+\bigspc\bigspc const char *plugin_searchpath=NULL)}
+
+Create an {\kw ImageOutput} that can be used to write an image file.
+The type of image file (and hence, the particular subclass of {\kw
+  ImageOutput} returned, and the plugin that contains its methods) is
+inferred from the extension of the file name.  The {\kw
+  plugin_searchpath} parameter is a colon-separated list of directories
+to search for ImageIO plugin DSO/DLL's.
+
+\apiend
+
+\apiitem{const char *format_name ()}
+Returns the canonical name of the format that this {\kw ImageOutput}
+instance is capable of writing.
+\apiend
+
+\apiitem{bool supports (const char *feature)}
+Given the name of a \emph{feature}, tells if this {\kw ImageOutput} 
+instance supports that feature.  The following features are recognized
+by this query:
+\begin{description}
+\item[\spc] \spc 
+\item[\rm \qkw{tiles}] Is this plugin able to write tiled images?
+\item[\rm \qkw{rectangles}] Can this plugin accept arbitrary rectangular
+  pixel regions (via {\kw write_rectangle()})?  False indicates that
+  pixels must be transmitted via {\kw write_scanline()} (if
+  scanline-oriented) or {\kw write_tile} (if tile-oriented, and only if
+  {\kw supports("tiles")} returns true).
+\item[\rm \qkw{random_access}] May tiles or scanlines be written in any
+  order?  False indicates that they must be in successive order.
+\item[\rm \qkw{multiimage}] Does this format support multiple images
+  within a single file?
+\item[\rm \qkw{volumes}] Does this format support ``3D'' pixel arrays
+  (a.k.a.\ volume images)?
+\item[\rm \qkw{rewrite}] Does this plugin allow the same scanline or
+  tile to be sent more than once?  Generally this is true for plugins
+  that implement some sort of interactive display, rather than a saved
+  image file.
+\item[\rm \qkw{empty}] Does this plugin support passing a NULL data
+  pointer to the various {\kw write_*} routines to indicate that the
+  entire data block is composed of pixels with value zero.  Plugins
+  that support this achieve a speedup when passing blank scanlines or
+  tiles (since no actual data needs to be transmitted or converted).
+\end{description}
+
+\noindent This list of queries may be extended in future releases.
+Since this can be done simply by recognizing new query strings, and does
+not require any new API entry points, addition of support for new
+queries does not break ``link compatibility'' with previously-compiled
+plugins.
+\apiend
+
+\apiitem{bool open (const char *name, const ImageIOFormatSpec \&newspec,
+                       bool append=false)}
+
+Open the file with given {\kw name}, with resolution, and other format
+data as given in {\kw newspec}.  This function returns {\kw true} for
+success, {\kw false} for failure.  Note that it is legal to call {\kw
+open()} multiple times on the same file without a call to {\kw
+close()}, if it supports multiimage and the append flag is {\kw true}
+-- this is interpreted as appending images (such as for MIP-maps).
+
+\apiend
+
+\apiitem{const ImageIOFormatSpec \& spec ()}
+Returns the spec internally associated with this currently open
+{\kw ImageOutput}.
+\apiend
+
+\apiitem{bool close()}
+Closes the currently open file associated with this {\kw ImageOutput}.
+\apiend
+
+\apiitem{bool write_scanline (int y, int z, ParamBaseType format,
+     const void *data, \\
+\bigspc stride_t xstride=AutoStride)}
+
+Write a full scanline that includes pixels $(*,y,z)$.  For 2D non-volume
+images, $z$ is ignored.  The {\kw xstride} value gives the distance
+between successive pixels (in bytes).  Strides set to the special value
+{\kw AutoStride} imply contiguous data, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+This method automatically converts the data from the specified {\kw
+  format} to the actual output format of the file.  Return {\kw true}
+for success, {\kw false} for failure.  It is a failure to call {\kw
+  write_scanline()} with an out-of-order scanline if this format driver
+does not support random access.
+
+\apiend
+
+\apiitem{bool write_tile (int x, int y, int z, ParamBaseType format,
+                             const void *data, \\ \bigspc stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride, \\ \bigspc stride_t zstride=AutoStride)}
+
+Write the tile with $(x,y,z)$ as the upper left corner.  For 2D
+non-volume images, $z$ is ignored.  The three stride values give the
+distance (in bytes) between successive pixels, scanlines, and volumetric
+slices, respectively.  Strides set to the special value {\kw AutoStride}
+imply contiguous data, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+\spc {\kw ystride} $=$ {\kw xstride*spec.tile_width} \\
+\spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
+This method automatically converts the
+data from the specified {\kw format} to the actual output format of the
+fil.  Return {\kw true} for success, {\kw false} for failure.  It is a
+failure to call {\kw write_tile()} with an out-of-order tile if this
+format driver does not support random access.
+
+\apiend
+
+\apiitem{bool write_rectangle ({\small int xmin, int xmax, int ymin, int ymax,
+                                  int zmin, int zmax,} \\ \bigspc ParamBaseType format,
+                                  const void *data, \\ \bigspc stride_t xstride=AutoStride,
+                                  stride_t ystride=AutoStride, \\
+                                  \bigspc stride_t zstride=AutoStride)}
+
+Write pixels whose $x$ coords range over {\kw xmin}...{\kw xmax} (inclusive), $y$
+coords over {\kw ymin}...{\kw ymax}, and $z$ coords over {\kw
+  zmin}....{\kw zmax}.  The
+three stride values give the distance (in bytes) between
+successive pixels, scanlines, and volumetric slices,
+respectively.  Strides set to the special value {\kw AutoStride}
+imply contiguous data, i.e.,\\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+\spc {\kw ystride} $=$ {\kw xstride*(xmax-xmin+1)} \\
+\spc {\kw zstride} $=$ {\kw ystride*(ymax-ymin+1)}\\
+This method automatically converts the data from the specified 
+{\kw format} to the actual output format of the fil.  Return {\kw true}
+for success, {\kw false} for failure.  It is a failure to call 
+{\kw write_rectangle} for a format plugin that does not return true for
+{\kw supports("rectangles")}.
+
+\apiend
+
+\apiitem{bool write_image (ParamBaseType format, const void *data, \\
+                              \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                              \\ \bigspc stride_t zstride=AutoStride, \\
+                              \bigspc ProgressCallback progress_callback=NULL,\\
+                              \bigspc void *progress_callback_data=NULL)}
+
+Write the entire image of {\kw spec.width} $\times$ {\kw spec.height}
+$\times$ {\kw spec.depth}
+pixels, with the given strides and in the desired format.
+Strides set to the special value {\kw AutoStride} imply contiguous data, i.e.,
+\spc {\kw xstride} $=$ {\kw spec.nchannels * ParamBaseTypeSize(format)} \\
+\spc {\kw ystride} $=$ {\kw xstride * spec.width} \\
+\spc {\kw zstride} $=$ {\kw ystride * spec.height}\\
+The function will internally either call {\kw write_scanline} or 
+{\kw write_tile}, depending on whether the file is scanline- or
+tile-oriented.
+
+Because this may be an expensive operation, a progress callback may be passed.
+Periodically, it will be called as follows:\\
+\begin{code}
+    progress_callback (progress_callback_data, float done)
+\end{code}
+\noindent where \emph{done} gives the portion of the image 
+(between 0.0 and 1.0) that has been written thus far.
+
+\apiend
+
+\apiitem{int send_to_output (const char *format, ...)}
+General message passing between client and image output server
+\apiend
+
+\apiitem{int send_to_client (const char *format, ...)}
+General message passing between client and image output server
+\apiend
+
+\apiitem{std::string error_message ()}
+Returns the current error string describing what went wrong if
+any of the public methods returned {\kw false} indicating an error.
+(Hopefully the implementation plugin called {\kw error()} with a
+helpful error message.)
+\apiend
+
+
+
+\index{Image I/O API|)}
+
+\chapwidthend
