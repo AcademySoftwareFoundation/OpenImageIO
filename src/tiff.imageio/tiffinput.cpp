@@ -91,7 +91,7 @@ private:
     void invert_photometric (int n, void *data);
 
     // Get a string tiff tag field and put it into extra_params
-    void get_string_field (const std::string &name, int tag) {
+    void get_string_attribute (const std::string &name, int tag) {
         char *s = NULL;
         TIFFGetField (m_tif, tag, &s);
         if (s && *s)
@@ -99,7 +99,7 @@ private:
     }
 
     // Get a float-oid tiff tag field and put it into extra_params
-    void get_float_field (const std::string &name, int tag,
+    void get_float_attribute (const std::string &name, int tag,
                           ParamBaseType type=PT_FLOAT) {
         float f[16];
         if (TIFFGetField (m_tif, tag, f))
@@ -107,14 +107,14 @@ private:
     }
 
     // Get an int tiff tag field and put it into extra_params
-    void get_int_field (const std::string &name, int tag) {
+    void get_int_attribute (const std::string &name, int tag) {
         int i;
         if (TIFFGetField (m_tif, tag, &i))
             m_spec.attribute (name, PT_INT, 1, &i);
     }
 
     // Get an int tiff tag field and put it into extra_params
-    void get_short_field (const std::string &name, int tag) {
+    void get_short_attribute (const std::string &name, int tag) {
         unsigned short s;
         if (TIFFGetField (m_tif, tag, &s)) {
             int i = s;
@@ -244,7 +244,7 @@ TIFFInput::readspec ()
 
     m_bitspersample = 8;
     TIFFGetField (m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
-    m_spec.attribute ("bitspersample", m_bitspersample);
+    m_spec.attribute ("BitsPerSample", m_bitspersample);
 
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
@@ -308,7 +308,7 @@ TIFFInput::readspec ()
 
     m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
     TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
-    m_spec.attribute ("tiff_PhotometricInterpretation", m_photometric);
+    m_spec.attribute ("tiff:PhotometricInterpretation", m_photometric);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
@@ -323,7 +323,7 @@ TIFFInput::readspec ()
     }
 
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
-    m_spec.attribute ("tiff_PlanarConfiguration", m_planarconfig);
+    m_spec.attribute ("tiff:PlanarConfiguration", m_planarconfig);
     if (m_planarconfig == PLANARCONFIG_SEPARATE)
         m_spec.attribute ("planarconfig", "separate");
     else
@@ -331,7 +331,7 @@ TIFFInput::readspec ()
 
     short compress;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
-    m_spec.attribute ("tiff_Compression", compress);
+    m_spec.attribute ("tiff:Compression", compress);
     switch (compress) {
     case COMPRESSION_NONE :
         m_spec.attribute ("compression", "none");
@@ -355,34 +355,36 @@ TIFFInput::readspec ()
     short resunit = -1;
     TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
     switch (resunit) {
-    case RESUNIT_NONE : m_spec.attribute ("resolutionunit", "none"); break;
-    case RESUNIT_INCH : m_spec.attribute ("resolutionunit", "in"); break;
-    case RESUNIT_CENTIMETER : m_spec.attribute ("resolutionunit", "cm"); break;
+    case RESUNIT_NONE : m_spec.attribute ("ResolutionUnit", "none"); break;
+    case RESUNIT_INCH : m_spec.attribute ("ResolutionUnit", "in"); break;
+    case RESUNIT_CENTIMETER : m_spec.attribute ("ResolutionUnit", "cm"); break;
     }
 
-    get_string_field ("artist", TIFFTAG_ARTIST);
-    get_string_field ("description", TIFFTAG_IMAGEDESCRIPTION);
-    get_string_field ("copyright", TIFFTAG_COPYRIGHT);
-    get_string_field ("datetime", TIFFTAG_DATETIME);
-    get_string_field ("name", TIFFTAG_DOCUMENTNAME);
-    get_float_field ("fovcot", TIFFTAG_PIXAR_FOVCOT);
-    get_string_field ("host", TIFFTAG_HOSTCOMPUTER);
-    get_string_field ("software", TIFFTAG_SOFTWARE);
-    get_string_field ("textureformat", TIFFTAG_PIXAR_TEXTUREFORMAT);
-    get_float_field ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, PT_MATRIX);
-    get_float_field ("worldtosreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, PT_MATRIX);
-    get_string_field ("wrapmodes", TIFFTAG_PIXAR_WRAPMODES);
-    get_float_field ("xresolution", TIFFTAG_XRESOLUTION);
-    get_float_field ("yresolution", TIFFTAG_YRESOLUTION);
+    get_string_attribute ("Artist", TIFFTAG_ARTIST);
+    get_string_attribute ("ImageDescription", TIFFTAG_IMAGEDESCRIPTION);
+    get_string_attribute ("Copyright", TIFFTAG_COPYRIGHT);
+    get_string_attribute ("DateTime", TIFFTAG_DATETIME);
+    get_string_attribute ("DocumentName", TIFFTAG_DOCUMENTNAME);
+    get_float_attribute ("fovcot", TIFFTAG_PIXAR_FOVCOT);
+    get_string_attribute ("HostComputer", TIFFTAG_HOSTCOMPUTER);
+    get_string_attribute ("Make", TIFFTAG_MAKE);
+    get_string_attribute ("Model", TIFFTAG_MODEL);
+    get_short_attribute ("Orientation", TIFFTAG_ORIENTATION);
+    get_string_attribute ("Software", TIFFTAG_SOFTWARE);
+    get_string_attribute ("textureformat", TIFFTAG_PIXAR_TEXTUREFORMAT);
+    get_float_attribute ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, PT_MATRIX);
+    get_float_attribute ("worldtoscreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, PT_MATRIX);
+    get_string_attribute ("wrapmodes", TIFFTAG_PIXAR_WRAPMODES);
+    get_float_attribute ("XResolution", TIFFTAG_XRESOLUTION);
+    get_float_attribute ("YResolution", TIFFTAG_YRESOLUTION);
 
-    get_string_field ("tiff_PageName", TIFFTAG_PAGENAME);
-    get_short_field ("tiff_PageNumber", TIFFTAG_PAGENUMBER);
-    get_int_field ("tiff_subfiletype", TIFFTAG_SUBFILETYPE);
+    get_string_attribute ("tiff:PageName", TIFFTAG_PAGENAME);
+    get_short_attribute ("tiff:PageNumber", TIFFTAG_PAGENUMBER);
+    get_int_attribute ("tiff:subfiletype", TIFFTAG_SUBFILETYPE);
     // FIXME -- should subfiletype be "conventionized" and used for all
     // plugins uniformly? 
 
     // FIXME: Others to consider adding: 
-    // Orientation ExtraSamples? NewSubfileType?
     // Optional EXIF tags (exposuretime, fnumber, etc)?
     // FIXME: do we care about fillorder for 1-bit and 4-bit images?
 
@@ -395,10 +397,10 @@ TIFFInput::readspec ()
     }
 
     // N.B. we currently ignore the following TIFF fields:
-    // Orientation ExtraSamples
+    // ExtraSamples
     // GrayResponseCurve GrayResponseUnit
-    // Make MaxSampleValue MinSampleValue
-    // Model NewSubfileType RowsPerStrip SubfileType(deprecated)
+    // MaxSampleValue MinSampleValue
+    // NewSubfileType RowsPerStrip SubfileType(deprecated)
     // Colorimetry fields
 }
 

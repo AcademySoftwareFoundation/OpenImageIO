@@ -291,23 +291,25 @@ OpenEXROutput::put_parameter (const std::string &name, ParamBaseType type,
 
     if (iequals(xname, "worldtocamera"))
         xname = "cameraTransform";
-    else if (iequals(xname, "datetime"))
+    else if (iequals(xname, "DateTime"))
         xname = "capDate";
-    else if (iequals(xname, "description"))
+    else if (iequals(xname, "description") || iequals(xname, "ImageDescription"))
         xname = "comments";
-    else if (iequals(xname, "copyright"))
+    else if (iequals(xname, "Copyright"))
         xname = "owner";
     else if (iequals(xname, "pixelaspectratio"))
         xname = "pixelAspectRatio";
-    else if (iequals(xname, "exposuretime"))
+    else if (iequals(xname, "ExposureTime"))
         xname = "expTime";
+    else if (iequals(xname, "FNumber"))
+        xname = "aperture";
     else if (istarts_with (xname, format_string))
         xname = std::string (xname.begin()+format_string.size(), xname.end());
 
     std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
 
     // Special cases
-    if (iequals(xname, "compression") && type == PT_STRING) {
+    if (iequals(xname, "Compression") && type == PT_STRING) {
         int compress = COMPRESSION_LZW;  // default
         const char *str = *(char **)data;
         m_header->compression() = Imf::ZIP_COMPRESSION;  // Default

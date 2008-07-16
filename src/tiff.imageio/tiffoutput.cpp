@@ -268,15 +268,15 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
                 TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
         }
     }
-    if ((iequals(name, "copyright") || iequals(name, "tiff_Copyright")) && type == PT_STRING) {
+    if (iequals(name, "Copyright") && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_COPYRIGHT, *(char**)data);
         return true;
     }
-    if (iequals(name, "datetime") && type == PT_STRING) {
+    if (iequals(name, "DateTime") && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_DATETIME, *(char**)data);
         return true;
     }
-    if ((iequals(name, "name") || iequals(name, "DocumentName") || iequals(name,"tiff_DocumentName")) && type == PT_STRING) {
+    if ((iequals(name, "name") || iequals(name, "DocumentName")) && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_DOCUMENTNAME, *(char**)data);
         return true;
     }
@@ -285,16 +285,16 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
         TIFFSetField (m_tif, TIFFTAG_PIXAR_FOVCOT, d);
         return true;
     }
-    if ((iequals(name, "host") || iequals(name, "HostComputer") || iequals(name, "tiff_HostComputer")) && type == PT_STRING) {
+    if ((iequals(name, "host") || iequals(name, "HostComputer")) && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_HOSTCOMPUTER, *(char**)data);
         return true;
     }
-    if ((iequals(name, "description") || iequals(name, "ImageDescription") || iequals(name, "tiff_ImageDescription")) &&
+    if ((iequals(name, "description") || iequals(name, "ImageDescription")) &&
           type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_IMAGEDESCRIPTION, *(char**)data);
         return true;
     }
-    if (iequals(name, "tiff_Predictor") && type == PT_INT) {
+    if (iequals(name, "tiff:Predictor") && type == PT_INT) {
         TIFFSetField (m_tif, TIFFTAG_PREDICTOR, *(int *)data);
         return true;
     }
@@ -314,7 +314,7 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
         TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, *(unsigned int *)data);
         return true;
     }
-    if (iequals(name, "tiff_RowsPerStrip")) {
+    if (iequals(name, "tiff:RowsPerStrip")) {
         if (type == PT_INT) {
             TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, *(int*)data);
             return true;
@@ -324,11 +324,11 @@ TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
             return true;
         }
     }
-    if ((iequals(name, "software") || iequals(name,"tiff_Software")) && type == PT_STRING) {
+    if (iequals(name, "Software") && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_SOFTWARE, *(char**)data);
         return true;
     }
-    if (iequals(name, "tiff_SubFileType") && type == PT_INT) {
+    if (iequals(name, "tiff:SubFileType") && type == PT_INT) {
         TIFFSetField (m_tif, TIFFTAG_SUBFILETYPE, *(int*)data);
         return true;
     }

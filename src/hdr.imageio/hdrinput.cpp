@@ -130,7 +130,7 @@ HdrInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
     if (h.valid & RGBE_VALID_GAMMA)
         m_spec.gamma = h.gamma;
     if (h.valid & RGBE_VALID_ORIENTATION)
-        m_spec.attribute ("orientation", h.orientation);
+        m_spec.attribute ("Orientation", h.orientation);
 
     // FIXME -- should we do anything about exposure, software,
     // pixaspect, primaries?  (N.B. rgbe.c doesn't even handle most of them)

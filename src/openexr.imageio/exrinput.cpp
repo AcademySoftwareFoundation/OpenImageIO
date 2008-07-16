@@ -130,14 +130,14 @@ private:
     void init (void) {
         // Ones whose name we change to our convention
         m_map["cameraTransform"] = "worldtocamera";
-        m_map["capDate"] = "datetime";
-        m_map["comments"] = "description";
-        m_map["owner"] = "copyright";
+        m_map["capDate"] = "DateTime";
+        m_map["comments"] = "ImageDescription";
+        m_map["owner"] = "Copyright";
         m_map["pixelAspectRatio"] = "pixelaspectratio";
-        m_map["expTime"] = "exposuretime";
+        m_map["expTime"] = "ExposureTime";
         // Ones we don't rename -- OpenEXR convention matches ours
         m_map["wrapmodes"] = "wrapmodes";
-        m_map["aperture"] = "aperture";
+        m_map["aperture"] = "FNumber";
         // Ones to skip because we handle specially
         m_map["channels"] = "";
         m_map["compression"] = "";
