@@ -35,6 +35,7 @@ DONE        iv - info window - scroll when too much info to fit on screen
 DONE        iv - clamp fit-window-to-image to display size
 hard        iv - Ctrl-W in info window should close info, not close image
             iv - change cursor depending on drag mode
+DONE        idiff
 
 
 Before first alpha release
@@ -62,6 +63,8 @@ Before first alpha release
 Before first 1.0 release
 ------------------------
 
+IP          texture - basic texture, tile cache, file handle cache
+            texture - maketx
             iv socket mode (display in separate process)
             iv imageio plugin
             iv - >4 channels, gray vs color
@@ -88,6 +91,7 @@ DONE        HDR
             iv - socket mode (socket-based "iv.imageio")
             iv - timed frame playback
             iv - sort all images by { name, sequence, date }
+            idiff - perceptual diff (Yee)
 
 ============
 
