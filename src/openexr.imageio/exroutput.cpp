@@ -117,6 +117,7 @@ DLLEXPORT const char * openexr_output_extensions[] = {
 
 
 static std::string format_string ("openexr");
+static std::string format_prefix ("openexr_");
 
 
 
@@ -303,10 +304,10 @@ OpenEXROutput::put_parameter (const std::string &name, ParamBaseType type,
         xname = "expTime";
     else if (iequals(xname, "FNumber"))
         xname = "aperture";
-    else if (istarts_with (xname, format_string))
-        xname = std::string (xname.begin()+format_string.size(), xname.end());
+    else if (istarts_with (xname, format_prefix))
+        xname = std::string (xname.begin()+format_prefix.size(), xname.end());
 
-    std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
+//    std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
 
     // Special cases
     if (iequals(xname, "Compression") && type == PT_STRING) {
@@ -330,12 +331,24 @@ OpenEXROutput::put_parameter (const std::string &name, ParamBaseType type,
 
     // General handling of attributes
     // FIXME -- police this if we ever allow arrays
-    if (type == PT_INT) {
+    if (type == PT_INT || type == PT_UINT) {
         m_header->insert (xname.c_str(), Imf::IntAttribute (*(int*)data));
+        return true;
+    }
+    if (type == PT_INT16) {
+        m_header->insert (xname.c_str(), Imf::IntAttribute (*(short*)data));
+        return true;
+    }
+    if (type == PT_UINT16) {
+        m_header->insert (xname.c_str(), Imf::IntAttribute (*(unsigned short*)data));
         return true;
     }
     if (type == PT_FLOAT) {
         m_header->insert (xname.c_str(), Imf::FloatAttribute (*(float*)data));
+        return true;
+    }
+    if (type == PT_HALF) {
+        m_header->insert (xname.c_str(), Imf::FloatAttribute ((float)*(half*)data));
         return true;
     }
     if (type == PT_MATRIX) {
@@ -346,6 +359,7 @@ OpenEXROutput::put_parameter (const std::string &name, ParamBaseType type,
         m_header->insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
         return true;
     }
+    std::cerr << "Don't know what to do with " << type << ' ' << xname << "\n";
     return false;
 }
 

@@ -274,8 +274,8 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
         std::string oname = exr_tag_to_ooio_std[name];
         if (oname.empty())   // Empty string means skip this attrib
             continue;
-        if (oname == name)
-            oname = std::string(format_name()) + oname;
+//        if (oname == name)
+//            oname = std::string(format_name()) + "_" + oname;
         const Imf::Attribute &attrib = hit.attribute();
         std::string type = attrib.typeName();
         if (type == "string" && 

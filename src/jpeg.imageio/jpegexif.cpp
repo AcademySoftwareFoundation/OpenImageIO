@@ -290,9 +290,11 @@ add_exif_item_to_spec (ImageIOFormatSpec &spec, const char *name,
         spec.attribute (name, buf+dirp->tdir_offset);
     } else if (dirp->tdir_type == TIFF_UNDEFINED) {
         // Add it as bytes
+#if 0
         void *addr = dirp->tdir_count <= 4 ? (void *) &dirp->tdir_offset 
                                            : (void *) &buf[dirp->tdir_offset];
         spec.attribute (name, PT_UINT8, dirp->tdir_count, addr);
+#endif
     } else {
         std::cerr << "didn't know how to process type " 
                   << dirp->tdir_type << " x " << dirp->tdir_count << "\n";
@@ -575,14 +577,21 @@ encode_exif_entry (const ImageIOParameter p, int tag,
         }
         break;
     case TIFF_SHORT :
-        if (p.type == PT_UINT) {
-            unsigned short s = (unsigned short) *(unsigned int *)p.data();
+        if (p.type == PT_UINT || p.type == PT_INT ||
+                p.type == PT_UINT16 || p.type == PT_INT16) {
+            unsigned short s;
+            switch (p.type) {
+            case PT_UINT:   s = (unsigned short) *(unsigned int *)p.data(); break;
+            case PT_INT:    s = (unsigned short) *(int *)p.data();   break;
+            case PT_UINT16: s = *(unsigned short *)p.data();         break;
+            case PT_INT16:  s = (unsigned short) *(short *)p.data(); break;
+            }
             append_dir_entry (dirs, data, tag, type, 1, &s);
             return;
         }
         break;
     case TIFF_LONG :
-        if (p.type == PT_UINT) {
+        if (p.type == PT_UINT || p.type == PT_INT) {
             append_dir_entry (dirs, data, tag, type, 1, p.data());
             return;
         }
