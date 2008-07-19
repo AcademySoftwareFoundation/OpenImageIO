@@ -11,9 +11,11 @@
 # dist_files lists (relative to build) all files that end up in an
 # external distribution
 dist_bins    	:= iconvert${BINEXT} \
+		   idiff${BINEXT} \
 		   iinfo${BINEXT} \
 		   iv${BINEXT}
 dist_libs     	:= libimageio${SHLIBEXT} \
+		   libtexture${SHLIBEXT} \
 		   hdr.imageio${SHLIBEXT} \
 		   jpeg.imageio${SHLIBEXT} \
 		   openexr.imageio${SHLIBEXT} \
