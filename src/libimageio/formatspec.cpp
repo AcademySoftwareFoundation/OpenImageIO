@@ -42,32 +42,6 @@ using boost::algorithm::iequals;
 using namespace OpenImageIO;
 
 
-ImageIOFormatSpec::ImageIOFormatSpec (ParamBaseType format)
-    : x(0), y(0), z(0), width(0), height(0), depth(1),
-      full_width(0), full_height(0), full_depth(0),
-      tile_width(0), tile_height(0), tile_depth(0),
-      format(format), nchannels(0), alpha_channel(-1), z_channel(-1),
-      gamma(1)
-{
-    set_format (format);
-}
-
-
-
-ImageIOFormatSpec::ImageIOFormatSpec (int xres, int yres, int nchans, 
-                                      ParamBaseType format)
-    : x(0), y(0), z(0), width(xres), height(yres), depth(0),
-      full_width(0), full_height(0), full_depth(0),
-      tile_width(0), tile_height(0), tile_depth(0),
-      format(format), nchannels(nchans), alpha_channel(-1), z_channel(-1),
-      gamma(1)
-{
-    set_format (format);
-    if (nchans == 4)
-        alpha_channel = 3;
-}
-
-
 
 // Generate the default quantization parameters, templated on the data
 // type.
@@ -140,6 +114,50 @@ set_default_quantize (ParamBaseType format,
         break;
     default: ASSERT(0);
     }
+}
+
+
+
+QuantizationSpec
+    QuantizationSpec::quantize_default (std::numeric_limits<stride_t>::min(),
+                                        std::numeric_limits<stride_t>::min(),
+                                        std::numeric_limits<stride_t>::min(),
+                                        std::numeric_limits<stride_t>::min(),
+                                        0);
+
+
+
+QuantizationSpec::QuantizationSpec (ParamBaseType _type)
+{
+    set_default_quantize (_type, quant_black, quant_white,
+                          quant_min, quant_max, quant_dither);
+}
+
+
+
+ImageIOFormatSpec::ImageIOFormatSpec (ParamBaseType format)
+    : x(0), y(0), z(0), width(0), height(0), depth(1),
+      full_width(0), full_height(0), full_depth(0),
+      tile_width(0), tile_height(0), tile_depth(0),
+      format(format), nchannels(0), alpha_channel(-1), z_channel(-1),
+      nonlinear(Linear), gamma(1)
+{
+    set_format (format);
+}
+
+
+
+ImageIOFormatSpec::ImageIOFormatSpec (int xres, int yres, int nchans, 
+                                      ParamBaseType format)
+    : x(0), y(0), z(0), width(xres), height(yres), depth(0),
+      full_width(0), full_height(0), full_depth(0),
+      tile_width(0), tile_height(0), tile_depth(0),
+      format(format), nchannels(nchans), alpha_channel(-1), z_channel(-1),
+      nonlinear(Linear), gamma(1)
+{
+    set_format (format);
+    if (nchans == 4)
+        alpha_channel = 3;
 }
 
 

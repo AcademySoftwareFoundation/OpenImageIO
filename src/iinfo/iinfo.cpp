@@ -91,6 +91,19 @@ print_info (const std::string &filename, ImageInput *input,
                 printf (" x %d", spec.tile_depth);
             printf ("\n");
         }
+        switch (spec.nonlinear) {
+        case ImageIOFormatSpec::Linear :
+            printf ("    linear color space\n");
+            break;
+        case ImageIOFormatSpec::GammaCorrected :
+            printf ("    gamma-corrected: %g\n", spec.gamma);
+            break;
+        case ImageIOFormatSpec::sRGB :
+            printf ("    sRGB color space\n");
+            break;
+        default:
+            printf ("    unknown color space\n");
+        }
         BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
             printf ("    %s: ", p.name.c_str());
             if (p.type == PT_STRING)

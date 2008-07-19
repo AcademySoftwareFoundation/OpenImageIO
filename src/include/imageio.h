@@ -135,10 +135,43 @@ private:
 
 
 
+class QuantizationSpec {
+public:
+    int quant_black;          ///< quantization of black (0.0) level
+    int quant_white;          ///< quantization of white (1.0) level
+    int quant_min;            ///< quantization minimum clamp value
+    int quant_max;            ///< quantization maximum clamp value
+    float quant_dither;       ///< dither amplitude for quantization
+
+    /// Construct a QuantizationSpec from the quantization parameters.
+    ///
+    QuantizationSpec (int _black, int _white, int _min, int _max, float _dither)
+        : quant_black(_black), quant_white(_white),
+          quant_min(_min), quant_max(_max), quant_dither(_dither)
+    { }
+
+    /// Construct the "obvious" QuantizationSpec appropriate for the
+    /// given data type.
+    QuantizationSpec (ParamBaseType _type);
+
+    /// Return a special QuantizationSpec that is a marker that the
+    /// recipient should use the default quantization for whatever data
+    /// type it is dealing with.
+    static QuantizationSpec quantize_default;
+};
+
+
+
 /// ImageIOFormatSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
 class DLLPUBLIC ImageIOFormatSpec {
 public:
+    enum LinearitySpec {
+        Linear = 0,           ///< Color values are linear
+        GammaCorrected = 1,   ///< Color values are gamma corrected
+        sRGB = 2              ///< Color values are in sRGB mapping
+    };
+
     int x, y, z;              ///< image origin (0,0,0)
     int width;                ///< width of the crop window containing data
     int height;               ///< height of the crop window containing data
@@ -158,6 +191,7 @@ public:
                                             ///< e.g., {"R","G","B","A"}
     int alpha_channel;        ///< Index of alpha channel, or -1 if not known
     int z_channel;            ///< Index of depth channel, or -1 if not known
+    LinearitySpec nonlinear;  ///< Value mapping of color channels
     float gamma;              ///< gamma exponent of the values in the file
     // quantize, dither are only used for ImageOutput
     int quant_black;          ///< quantization of black (0.0) level
@@ -175,7 +209,7 @@ public:
     /// these data.  Note, however, that the names and semantics of such
     /// extra attributes are plugin-dependent and are not enforced by
     /// the imageio library itself.
-    std::vector<ImageIOParameter> extra_attribs;  //< Additional attributes
+    std::vector<ImageIOParameter> extra_attribs;  ///< Additional attributes
 
     /// Constructor: given just the data format, set the default quantize
     /// and dither and set all other channels to something reasonable.
@@ -208,7 +242,7 @@ public:
     size_t scanline_bytes() const { return (size_t)width * pixel_bytes (); }
 
     ///
-    /// Return the number of bytes for each scanline
+    /// Return the number of bytes for each a tile of the image
     size_t tile_bytes() const {
         return (size_t)tile_width * (size_t)tile_height *
                (size_t)std::max(1,tile_depth) * pixel_bytes ();
@@ -288,7 +322,7 @@ private:
 class DLLPUBLIC ImageOutput {
 public:
     /// Create an ImageOutput that will write to a file, with the format
-    /// inferred from the extension of the file.  The plugin_searchpath
+    /// inferred from the extension of the name.  The plugin_searchpath
     /// parameter is a colon-separated list of directories to search for
     /// ImageIO plugin DSO/DLL's.  This just creates the ImageOutput, it
     /// does not open the file.
@@ -317,7 +351,7 @@ public:
     ///                       any order (false indicates that they MUST
     ///                       be in successive order).
     ///    "multiimage"     Does this format support multiple images
-    ///                       within a tile?
+    ///                       within a file?
     ///    "volumes"        Does this format support "3D" pixel arrays?
     ///    "rewrite"        May the same scanline or tile be sent more than
     ///                       once?  (Generally, this will be true for
@@ -387,16 +421,16 @@ public:
 
     /// Write pixels whose x coords range over xmin..xmax (inclusive), y
     /// coords over ymin..ymax, and z coords over zmin...zmax.  The
-    /// three stride values give the distance (in bytes between
+    /// three stride values give the distance (in bytes) between
     /// successive pixels, scanlines, and volumetric slices,
     /// respectively.  Strides set to AutoStride imply 'contiguous' data
-    /// (i.e. xstride == spec.nchannels*ParamBaseTypeSize(format)),
+    /// (i.e. xstride == spec.nchannels*ParamBaseTypeSize(format),
     /// ystride==xstride*(xmax-xmin+1), zstride=ystride*(ymax-ymin+1).  The
     /// data are automatically converted from 'format' to the actual
     /// output format (as specified to open()) by this method.  Return
     /// true for success, false for failure.  It is a failure to call
     /// write_rectangle for a format plugin that does not return true
-    /// for supports_rectangles().
+    /// for supports("rectangles").
     virtual bool write_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax, ParamBaseType format,
                                   const void *data, stride_t xstride=AutoStride,
@@ -405,11 +439,16 @@ public:
 
     /// Write the entire image of spec.width x spec.height x spec.depth
     /// pixels, with the given strides and in the desired format.
-    /// Strides set to AutoStride imply 'contiguous' data (i.e.
-    /// xstride==spec.nchannels*ParamBaseTypeSize(format),
-    /// ystride==xstride*spec.width, zstride=ystride*spec.height).
+    /// Strides set to AutoStride imply 'contiguous' data, i.e.,
+    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     ystride == xstride*spec.width
+    ///     zstride == ystride*spec.height
     /// Depending on spec, write either all tiles or all scanlines.
     /// Assume that data points to a layout in row-major order.
+    /// Because this may be an expensive operation, a progress callback
+    /// may be passed.  Periodically, it will be called as follows:
+    ///   progress_callback (progress_callback_data, float done)
+    /// where 'done' gives the portion of the image 
     virtual bool write_image (ParamBaseType format, const void *data,
                               stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                               stride_t zstride=AutoStride,
@@ -496,19 +535,19 @@ public:
     ///
     virtual bool close () = 0;
 
-    /// Return the subimage number of the subimage we're currently
-    /// reading.  Obviously, this is always 0 if there is only one
-    /// subimage in the file.
+    /// Returns the index of the subimage that is currently being read.
+    /// The first subimage (or the only subimage, if there is just one)
+    /// is number 0.
     virtual int current_subimage (void) const { return 0; }
 
-    /// Seek to the given subimage.  Return true on success, false on
-    /// failure (including that there is not a subimage with that
-    /// index).  The new subimage's vital statistics are put in newspec
-    /// (and also saved in this->spec).  The reader is expected to give
-    /// the appearance of random access to subimages -- in other words,
-    /// if it can't randomly seek to the given subimage, it should
-    /// transparently close, reopen, and sequentially read through prior
-    /// subimages.
+    /// Seek to the given subimage.  THe first subimage of the file has
+    /// index 0.  Return true on success, false on failure (including
+    /// that there is not a subimage with that index).  The new
+    /// subimage's vital statistics are put in newspec (and also saved
+    /// in this->spec).  The reader is expected to give the appearance
+    /// of random access to subimages -- in other words, if it can't
+    /// randomly seek to the given subimage, it should transparently
+    /// close, reopen, and sequentially read through prior subimages.
     virtual bool seek_subimage (int index, ImageIOFormatSpec &newspec) {
         return false;
     }
@@ -565,9 +604,14 @@ public:
     /// pixels into data (which must already be sized large enough for
     /// the entire image) with the given strides and in the desired
     /// format.  Read tiles or scanlines automatically.  Strides set to
-    /// AutoStride imply 'contiguous' data (i.e. xstride ==
-    /// spec.nchannels*ParamBaseTypeSize(format),
-    /// ystride==xstride*spec.width, zstride=ystride*spec.height).
+    /// AutoStride imply 'contiguous' data, i.e.,
+    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     ystride == xstride*spec.width
+    ///     zstride == ystride*spec.height
+    /// Because this may be an expensive operation, a progress callback
+    /// may be passed.  Periodically, it will be called as follows:
+    ///     progress_callback (progress_callback_data, float done)
+    /// where 'done' gives the portion of the image 
     virtual bool read_image (ParamBaseType format, void *data,
                              stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride,
