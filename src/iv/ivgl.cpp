@@ -182,7 +182,7 @@ IvGL::create_shaders (void)
         "            black = 1.0;\n"
         "    }\n"
         "    vec4 C = texture2D (imgtex, st);\n"
-        "    C = mix (C, vec4(0.0,0.0,0.0,1.0), black);\n"
+        "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
         "    if (imgchannels == 1)\n"
         "        C = C.xxxx;\n"
         "    if (channelview == -1) {\n"
@@ -435,7 +435,7 @@ IvGL::paint_pixelview ()
     glPushAttrib (GL_ALL_ATTRIB_BITS);
     glUseProgram (0);  // No shader
     float extraspace = yspacing * (1 + spec.nchannels) + 4;
-    glColor4f (0, 0, 0, 0.5);
+    glColor4f (0.1, 0.1, 0.1, 0.5);
     gl_rect (-0.5f*closeupsize-2, 0.5f*closeupsize+2,
              0.5f*closeupsize+2, -0.5f*closeupsize - extraspace, -0.1);
 
