@@ -87,15 +87,15 @@ ArgOption::initialize()
 
         while (isalnum(*s) || *s == '_' || *s == '-') s++;
 
-        n = s - (&format[0]) + 1;
-        flag.assign (format.begin(), format.begin()+n);
-
-        // Check to see if this is a simple flag option
-        if (n == format.length() + 1) {
+        if (! *s) {
+            flag = format;
             type = Flag;
             count = 1;
             code = "!";
         } else {
+            n = s - (&format[0]);
+            flag.assign (format.begin(), format.begin()+n);
+
             // Parse the scanf-like parameters
 
             type = Regular;
@@ -116,7 +116,7 @@ ArgOption::initialize()
                     case 'f':                   // float
                     case 'F':                   // double
                     case 's':                   // char * 
-                    case 'S':                   // allocated char *
+                    case 'S':                   // string
                     case 'L':                   // allocated char * list
                         assert (type == Regular);
                         code += *s;
@@ -382,7 +382,6 @@ ArgParse::parse (const char *intro, ...)
 
         // Last argument is description
         option->description ((const char *) va_arg (ap, const char *));
-
         this->option.push_back(option);
     }
 
