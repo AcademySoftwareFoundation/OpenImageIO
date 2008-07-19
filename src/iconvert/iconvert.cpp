@@ -104,7 +104,7 @@ main (int argc, char *argv[])
     if (! in) {
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to read \"" 
-            << filenames[0] << "\" : " << OpenImageIO::error_message() << "\n";;
+            << filenames[0] << "\" : " << OpenImageIO::error_message() << "\n";
         exit (0);
     }
     ImageIOFormatSpec inspec;
@@ -152,13 +152,12 @@ main (int argc, char *argv[])
     if (! out) {
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to write \"" 
-            << filenames[1] << "\" :" << OpenImageIO::error_message() << "\n";;
+            << filenames[1] << "\" :" << OpenImageIO::error_message() << "\n";
         exit (0);
     }
     if (! out->open (filenames[1].c_str(), outspec)) {
         std::cerr << "iconvert ERROR: Could not open \"" << filenames[1]
-                  << "\" : " << in->error_message() << "\n";
-        delete in;
+                  << "\" : " << out->error_message() << "\n";
         exit (0);
     }
 
