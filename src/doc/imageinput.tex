@@ -4,6 +4,7 @@
 
 
 \section{Image Input Made Simple}
+\label{sec:imageinput:simple}
 
 Here is the simplest sequence required to open an image file, find
 out its resolution, and read the pixels (converting them into
@@ -84,11 +85,14 @@ Maybe the easiest thing to do is to just walk through a bunch of the
 most common things you might want to do, but that are more complex than
 the simple example above.
 
+\subsection{Reading individual scanlines and tiles}
+\label{sec:imageinput:scanlinestiles}
+
 \subsection{Converting formats}
 \label{sec:imageinput:convertingformat}
 
-\subsection{Reading individual scanlines and tiles}
-\label{sec:imageinput:reading}
+\subsection{Data Strides}
+\label{sec:imageinput:strides}
 
 \subsection{Reading metadata}
 \label{sec:imageinput:metadata}
@@ -96,11 +100,14 @@ the simple example above.
 Don't forget to include channel names, alpha channel, z channel,
 linearity.
 
-\subsection{Custom search paths for plugins}
-\label{sec:imageinput:searchpaths}
+\subsection{Random access and repeated transmission of pixels}
+\label{sec:imageoutput:randomrepeated}
 
 \subsection{Multi-image files and MIP-maps}
 \label{sec:imageinput:multiimage}
+
+\subsection{Custom search paths for plugins}
+\label{sec:imageinput:searchpaths}
 
 \subsection{Error checking}
 \label{sec:imageinput:errors}

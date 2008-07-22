@@ -3,6 +3,63 @@
 \index{Image I/O API|(}
 
 
+
+\section{Data Formats}
+\label{sec:dataformats}
+\label{sec:ParamBaseType}
+\index{data formats}
+
+There are two kinds of data that are important to \product:
+
+\begin{itemize}
+\item \emph{Internal data} is in the memory of the computer, used by an
+  application program.
+\item \emph{Native file data} is what is stored in an image file itself
+  (i.e., on the ``other side'' of the abstraction layer that \product
+  provides).
+\end{itemize}
+
+Both internal and file data is stored in a particular \emph{data
+  format}, which describes the numerical encoding of the values.
+\product understands several types of data encodings, and there
+is an enumerated type \ParamBaseType, that provides labels used
+to describe these data types.  \product supports the following 
+data format types:
+
+\begin{description}
+\item[\halfspc\rm {\cf PT_UINT8}] unsigned 8-bit integer values ranging from
+  0..255, corresponding to the C/C++ {\kw unsigned char}.
+\item[\halfspc\rm {\cf PT_INT8}] signed 8-bit integer values ranging from
+  -128..127, corresponding to the C/C++ {\kw char}.
+\item[\halfspc\rm {\cf PT_UINT16}] unsigned 16-bit integer values ranging
+  from 0..65535, corresponding to the C/C++ {\kw unsigned short}.
+\item[\halfspc\rm {\cf PT_INT16}] unsigned 16-bit integer values ranging
+  from -32768..32767, corresponding to the C/C++ {\kw short}.
+\item[\halfspc\rm {\cf PT_UINT}] unsigned 32-bit integer values,
+  corresponding to the C/C++ {\kw unsigned int}.
+\item[\halfspc\rm {\cf PT_INT}] signed 32-bit integer values, corresponding
+  to the C/C++ {\kw int}.
+\item[\halfspc\rm {\cf PT_FLOAT}] 32-bit IEEE floating point values,
+  corresponding to the C/C++ {\kw float}.
+\item[\halfspc\rm {\cf PT_DOUBLE}] 64-bit IEEE floating point values,
+  corresponding to the C/C++ {\kw double}.
+\item[\halfspc\rm {\cf PT_HALF}] 16-bit floating point values in the format
+  supported by OpenEXR and OpenGL.
+\end{description}
+
+Of these, the only ones commonly used by image file formats
+are {\cf PT_UINT8}, {\cf PT_UINT16}, {\cf PT_FLOAT}, and {\cf PT_HALF}
+(the last only used by OpenEXR, to the best of our knowledge).
+
+Note that the \ParamBaseType (which is also used for applications other
+than images) enumerates several other types that are not used by
+\product.  Please ignore them; only the above types are understood by
+\product as pixel storage data types.\footnote{But a few others, including
+{\cf PT_STRING} and {\cf PT_MATRIX}, are occasionally used for
+\emph{metadata} for certain image file formats. See
+Sections~\ref{sec:imageoutput:metadata}, \ref{sec:imageinput:metadata},
+and the documentation of individual ImageIO plugins for details.}
+
 \section{Image Format Spec}
 \indexapi{ImageIOFormatSpec}
 
@@ -16,7 +73,7 @@ format specification of a single image.  It contains:
   window.
 \item Whether the image is organized into \emph{tiles}, and if so, the
   tile size.
-\item The \emph{data format} of the pixel values (e.g., float, 8-bit
+\item The \emph{native data format} of the pixel values (e.g., float, 8-bit
   integer, etc.).
 \item The number of color channels in the image (e.g., 3 for RGB
   images).
@@ -66,8 +123,8 @@ than as tiles.
 \apiend
 
 \apiitem{ParamBaseType format}
-Indicates the format of the pixel data values themselves, as a 
-{\kw ParamBaseType} (see \ref{ParamBaseType}).  Typical values would be
+Indicates the native format of the pixel data values themselves, as a 
+{\kw ParamBaseType} (see \ref{sec:ParamBaseType}).  Typical values would be
 {\kw PT_UINT8} for 8-bit unsigned values, {\kw PT_FLOAT} for 32-bit
 floating-point values, etc.
 
@@ -81,8 +138,9 @@ the image.  For example, an RGB image has 3 channels.
 \apiend
 
 \apiitem{std:vector<std::string> channelnames}
-The names of each channel, in order.  Typically this will be "R", "G",
-"B", "A" (alpha), "Z" (depth), or other arbitrary names.
+The names of each channel, in order.  Typically this will be \qkw{R},
+\qkw{G},\qkw{B}, \qkw{A} (alpha), \qkw{Z} (depth), or other arbitrary
+names.
 \apiend
 
 \apiitem{int alpha_channel}

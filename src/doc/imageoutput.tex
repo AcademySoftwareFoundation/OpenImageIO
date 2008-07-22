@@ -5,26 +5,27 @@
 
 
 \section{Image Output Made Simple}
+\label{sec:imageoutput:simple}
 
 Here is the simplest sequence required to write the pixels of a 2D image
 to a file:
 
 \begin{code}
-    #include "imageio.h"
-    using namespace OpenImageIO;
-    ...
+        #include "imageio.h"
+        using namespace OpenImageIO;
+        ...
 
-    const char *filename = "foo.jpg";
-    const int xres = 640, yres = 480;
-    const int channels = 3;  // RGB
-    unsigned char pixels[xres*yres*channels];
+        const char *filename = "foo.jpg";
+        const int xres = 640, yres = 480;
+        const int channels = 3;  // RGB
+        unsigned char pixels[xres*yres*channels];
 
-    ImageOutput *out = ImageOutput::create (filename);
-    ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
-    out->open (filename, spec);
-    out->write_image (PT_UINT8, &pixels);
-    out->close ();
-    delete out;
+        ImageOutput *out = ImageOutput::create (filename);
+        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+        out->open (filename, spec);
+        out->write_image (PT_UINT8, pixels);
+        out->close ();
+        delete out;
 \end{code}
 
 \noindent This little bit of code does a surprising amount of useful work:  
@@ -35,15 +36,15 @@ to a file:
   finds such a plugin, it creates a subclass instance of \ImageOutput
   that writes the right kind of file format.
   \begin{code}
-    ImageOutput *out = ImageOutput::create (filename);
+        ImageOutput *out = ImageOutput::create (filename);
   \end{code}
 \item Open the file, write the correct headers, and in all other
   important ways prepare a file with the given dimensions ($640 \times
   480$), number of color channels (3), and data format (unsigned 8-bit
   integer).
   \begin{code}
-    ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
-    out->open (filename, spec);
+        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+        out->open (filename, spec);
   \end{code}
 \item Write the entire image, hiding all details of the encoding of
   image data in the file, whether the file is scanline- or tile-based,
@@ -52,53 +53,463 @@ to a file:
   for disk storage, but if they had been different, {\kw write_image()}
   would do all the conversions for us).
   \begin{code}
-    out->write_image (PT_UINT8, &pixels);
+        out->write_image (PT_UINT8, &pixels);
   \end{code}
 \item Close the file, destroy and free the \ImageOutput we had created,
   and perform all other cleanup and release of any resources needed by
   the plugin.
   \begin{code}
-    out->close ();
-    delete out;
+        out->close ();
+        delete out;
   \end{code}
 \end{itemize}
 
 \section{Advanced Image Output}
+\label{sec:imageoutput:advanced}
 
 Maybe the easiest thing to do is to just walk through a bunch of the
 most common things you might want to do, but that are more complex than
 the simple example above.
 
 \subsection{Writing individual scanlines, tiles, and rectangles}
+\label{sec:imageoutput:scanlinestiles}
 
-Don't forget to talk about non-contiguous strides.
+The simple example of Section~\ref{sec:imageoutput:simple} wrote an
+entire image with one call.  But sometimes you are generating output a
+little at a time and do not wish to retain the entire image in memory
+until it is time to write the file.  \product allows you to write image
+one scanline at a time, one tile at a time, or by individual rectangles.
+
+\subsubsection{Writing individual scanlines}
+
+Individual scanlines may be written using the {\kw write_image()} API
+call:
+
+\begin{code}
+        ...
+        unsigned int scanline[xres*channels];
+        out->open (filename, spec);
+        int z = 0;   // Always zero for 2D images
+        for (int y = 0;  y < yres;  ++y) {
+            ... generate data in scanline[0..xres*channels-1] ...
+            out->write_scanline (y, z, PT_UINT8, scanline);
+        }
+        out->close ();
+        ...
+\end{code}
+
+The first two arguments to {\kw write_image()} specify which scanline is
+being written by its vertical ($y$) scanline number (beginning with 0)
+and, for volume images, its slice ($z$) number (the slice number should
+be 0 for 2D non-volume images).  This is followed by a \ParamBaseType
+describing the data you are supplying, and a pointer to the pixel data
+itself.  Additional optional arguments describe the data stride, which
+can be ignored for contiguous data (use of strides is explained in
+Section~\ref{sec:imageoutput:strides}).
+
+All \ImageOutput implemenations will accept scanlines in strict order
+(starting with scanline 0, then 1, up to {\kw yres-1}, without skipping
+any).  See Section~\ref{sec:imageoutput:randomrewrite} for details
+on out-of-order or repeated scanlines.
+
+The full description of the \writescanline function may be found
+in Section~\ref{sec:imageoutput:reference}.
+
+\subsubsection{Writing individual tiles}
+
+Not all image formats (and therefore not all \ImageOutput
+implementations) support tiled images.  If the format does not support
+tiles, then \writetile will fail.  An application using \product
+should gracefully handle the case that tiled output is not available for
+the chosen format.
+
+Once you {\kw create()} an \ImageOutput, you can ask if it is capable
+of writing a tiled image by using the {\kw supports("tiles")} query:
+
+\begin{code}
+        ...
+        ImageOutput *out = ImageOutput::create (filename);
+        if (! out->supports ("tiles")) {
+            // Tiles are not supported
+        }
+\end{code}
+
+Assuming that the \ImageOutput supports tiled images, you need to
+specifically request a tiled image when you {\kw open()} the file.  This
+is done by setting the tile size in the {\kw ImageIOFormatSpec} passed
+to {\kw open()}.  If the tile dimensions are not set, they will default
+to zero, which indicates that scanline output should be used rather than
+tiled output.
+
+\begin{code}
+        int tilesize = 64;
+        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+        spec.tile_width = tilesize;
+        spec.tile_height = tilesize;
+        out->open (filename, spec);
+        ...
+\end{code}
+
+In this example, we have used square tiles (the same number of pixels
+horizontally and vertically), but this is not a requirement of \product.
+However, it is possible that some image formats may only support square
+tiles, or only certain tile sizes (such as restricting tile sizes to
+powers of two).  Such restrictions should be documented by each
+individual plugin.
+
+\begin{code}
+        unsigned int tile[tilesize*tilesize*channels];
+        int z = 0;   // Always zero for 2D images
+        for (int y = 0;  y < yres;  y += tilesize) {
+            for (int x = 0;  x < xres;  x += tilesize) {
+                ... generate data in tile[] ..
+                out->write_tile (x, y, z, PT_UINT8, tile);
+            }
+        }
+        out->close ();
+        ...
+\end{code}
+
+The first three arguments to \writetile specify which tile is
+being written by the pixel coordinates of any pixel contained in the
+tile: $x$ (column), $y$ (scanline), and $z$ (slice, which should always
+be 0 for 2D non-volume images).  This is followed by a \ParamBaseType
+describing the data you are supplying, and a pointer to the tile's pixel
+data itself, which should be ordered by increasing slice, increasing
+scanline within each slice, and increasing column within each scanline.
+Additional optional arguments describe the data stride, which can be
+ignored for contiguous data (use of strides is explained in
+Section~\ref{sec:imageoutput:strides}).
+
+All \ImageOutput implemenations that support tiles will accept tiles in
+strict order of increasing $y$ rows, and within each row, increasing $x$
+column, without missing any tiles.  See
+Section~\ref{sec:imageoutput:randomrewrite} for details on out-of-order
+or repeated tiles.
+
+The full description of the \writetile function may be found
+in Section~\ref{sec:imageoutput:reference}.
+
+\subsubsection{Writing arbitrary rectangles}
+
+Some \ImageOutput implementations --- such as those implementing an
+interactive image display, but probably not any that are outputting
+directly to a file --- may allow you to send arbitrary rectangular pixel
+regions.  Once you {\kw create()} an \ImageOutput, you can ask if it is
+capable of accepting arbitrary rectangles by using the {\kw
+supports("rectangles")} query:
+
+\begin{code}
+        ...
+        ImageOutput *out = ImageOutput::create (filename);
+        if (! out->supports ("rectangles")) {
+            // Rectangles are not supported
+        }
+\end{code}
+
+If rectangular regions are supported, they may be sent using
+the {\kw write_rectangle()} API call:
+
+\begin{code}
+        unsigned int rect[...];
+        ... generate data in rect[] ..
+        out->write_rectangle (xmin, xmax, ymin, ymax, zmin, zmax,
+                              PT_UINT8, rect);
+        ...
+\end{code}
+
+The first six arguments to {\kw write_rectangle()} specify the region of
+pixels that is being transmitted by supplying the minimum and maximum
+pixel indices in $x$ (column), $y$ (scanline), and $z$ (slice, always 0
+for 2D non-volume images).  The total number of pixels being transmitted
+is therefore:
+\begin{code}
+        (xmax-xmin+1) * (ymax-ymin+1) * (zmax-zmin+1)
+\end{code}
+\noindent This is followed by a \ParamBaseType describing the data you
+are supplying, and a pointer to the rectangle's pixel data itself, which
+should be ordered by increasing slice, increasing scanline within each
+slice, and increasing column within each scanline.  Additional optional
+arguments describe the data stride, which can be ignored for contiguous
+data (use of strides is explained in
+Section~\ref{sec:imageoutput:strides}).
 
 \subsection{Converting formats}
 \label{sec:imageoutput:convertingformats}
 
+The code examples of the previous sections all assumed that your
+internal pixel data is stored as unsigned 8-bit integers (i.e., 0-255
+range).  But \product is significantly more flexible.  
+
+You may request that the output image be stored in any of several
+formats.  This is done by setting the {\kw format} field of the
+\ImageIOFormatSpec prior to calling {\kw open}.  You can do this upon
+construction of the \ImageIOFormatSpec, as in the following example
+that requests a spec that stores data as 16-bit unsigned integers:
+\begin{code}
+        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT16);
+\end{code}
+
+\noindent Or, for an \ImageIOFormatSpec that has already been
+constructed, you may reset its format using the {\kw set_format()}
+method (which also resets the various quantization fields of the
+spec to the defaults for the data format you have specified).  
+
+\begin{code}
+        ImageIOFormatSpec spec (...);
+        spec.set_format (PT_UINT16);
+\end{code}
+
+Note that resetting the format must be done \emph{before} passing the
+spec to {\kw open()}, or it will have no effect on the file.
+
+Individual file formats, and therefore \ImageOutput implementations, may
+only support a subset of the formats understood by the \product library.
+Each \ImageOutput plugin implementation should document which data
+formats it supports.  An individual \ImageOutput implementation may
+choose to simply fail open {\kw open()}, though the recommended behavior
+is for {\kw open()} to succeed but in fact choose a data format
+supported by the file format that best preserves the precision and range
+of the originally-requested data format.
+
+It is not required that the pixel data passed to \writeimage,
+\writescanline, \writetile, or {\kw write_rectangle()} actually be in
+the same data format as that requested as the native format of the file.
+You can fully mix and match data you pass to the various {\kw write_*}
+routines and \product will automatically convert from the internal
+format to the native file format.  For example. the following code will
+open a TIFF file that stores pixel data as 16-bit unsigned integers
+(values ranging from 0 to 65535), compute internal pixel values as
+floating-point values, with \writeimage performing the conversion
+automatically:
+
+\begin{code}
+        ImageOutput *out = ImageOutput::create ("myfile.tif");
+        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT16);
+        out->open (filename, spec);
+        ...
+        float pixels [xres*yres*channels];
+        ...
+        out->write_image (PT_FLOAT, pixels);
+\end{code}
+
+\noindent Note that \writescanline, \writetile, and {\cf
+  write_rectangle} have a parameter that works in a corresponding
+manner.
+
+Please refer to Section~\ref{sec:imageoutput:quantization} for more
+information on how values are translated among the supported data
+formats by default, and how to change the formulas by specifying
+quantization in the \ImageIOFormatSpec.
+
+\subsection{Data Strides}
+\label{sec:imageoutput:strides}
+
+In the preceeding examples, we have assumed that the block of data being
+passed to the {\cf write_*} functions are \emph{contiguous}, that is:
+
+\begin{itemize}
+\item each pixel in memory consists of a number of data values equal to
+  the declared number of channels that are being written to the file;
+\item successive column pixels within a row directly follow each other in
+  memory, with the first channel of pixel $x$ of immediately following
+  last channel of pixel $x-1$ of the same row;
+\item for whole images, tiles or rectangles, the data for each row
+  immediately follows the previous one in memory (the first pixel of row
+  $y$ immediately follows the last column of row $y-1$);
+\item for 3D volumetric images, the first pixel of slice $z$ immediately
+  follows the last pixel of of slice $z-1$.
+\end{itemize}
+
+Please note that this means that this implies that data passed to
+\writetile be contiguous in the shape of a single tile (not just an
+offset into a whole image worth of pixels), and that data passed to {\cf
+  write_rectangle()} be contiguous in the dimensions of the rectangle.
+
+The \writescanline function takes an optional {\cf xstride} argument,
+and the \writeimage, \writescanline, \writetile, and {\cf write_rectangle}
+functions take optional {\cf xstride}, {\cf ystride}, and {\cf zstride}
+values that describe the distance, in \emph{bytes}, between successive
+pixel columns, rows, and slices, respectively, of the data you are
+passing.  For any of these values that are not supplied, or are given
+as the special constant {\cf AutoStride}, the contiguity will be
+assumed.  
+
+By passing different stride values, you can achieving some surprisingly
+flexible functionality.  A few representative examples follow:
+
+\begin{itemize}
+\item Flip an image vertically upon writing, by using \emph{negative}
+  $y$ stride:
+  \begin{code}
+        unsigned char pixels[xres*yres*channels];
+        int scanlinesize = xres * channels * sizeof(pixels[0]);
+        ...
+        out->write_image (PT_UINT8,
+                          (char *)pixels + (yres-1)*scanlinesize,  // offset to last
+                          AutoStride,                      // default x stride
+                          -scanlinesize,                   // special y stride
+                          AutoStride);                     // default z stride
+  \end{code}
+\item Write a tile that is embedded within a whole image of pixel data,
+  rather than having a one-tile-only memory layout:
+  \begin{code}
+        unsigned char pixels[xres*yres*channels];
+        int pixelsize = channels * sizeof(pixels[0]);
+        int scanlinesize = xres * pixelsize;
+        ...
+        out->write_tile (x, y, 0, PT_UINT8,
+                         (char *)pixels + y*scanlinesize + x*pixelsize,
+                         pixelsize,
+                         scanlinesize);
+  \end{code}
+\item Write only a subset of channels to disk.  In this example, our
+  internal data layout consists of 4 channels, but we write just 
+  channel 3 to disk as a one-channel image:
+  \begin{code}
+        // In-memory representation is 4 channel
+        const int xres = 640, yres = 480;
+        const int channels = 4;  // RGBA
+        const int channelsize = sizeof(unsigned char);
+        unsigned char pixels[xres*yres*channels];
+
+        // File representation is 1 channel
+        ImageOutput *out = ImageOutput::create (filename);
+        ImageIOFormatSpec spec (xres, yres, 1, PT_UINT8);
+        out->open (filename, spec);
+
+        // Use strides to write out a one-channel "slice" of the image
+        out->write_image (PT_UINT8,
+                          (char *)pixels + 3*channelsize,  // offset to chan 3
+                          channels*channelsize,            // 4 channel x stride
+                          AutoStride,                      // default y stride
+                          AutoStride);                     // default z stride
+        ...
+  \end{code}
+\end{itemize}
+
+Please consult Section~\ref{sec:imageoutput:reference} for detailed
+descriptions of the stride parameters to each {\cf write_*} function.
+
+
 \subsection{Writing a crop window}
 \label{sec:imageoutput:cropwindows}
+
+Some file formats allow you to specify that the pixels they contain
+are a smaller \emph{crop window} within a larger absract \emph{full
+  image}.  Specifying this situation is simple, and merely requires
+a few extra fields in the \ImageIOFormatSpec to be set:  
+
+The \ImageIOFormatSpec fields {\cf width}, {\cf height}, and {\cf depth}
+describe the dimensions of the image being written, i.e., the size of
+the crop window, not the size of the abstract full image.
+
+The \ImageIOFormatSpec fields {\cf full_width}, {\cf full_height}, and
+{\cf full_depth} describe the dimensions of the abstract full image.  If
+these are set equal to {\cf width}, {\cf height}, and {\cf depth},
+respectively, or if they are all set to zero (the default upon
+construction of \ImageIOFormatSpec), then this image is the full image
+and is not a crop window.
+
+The \ImageIOFormatSpec fields {\cf x}, {\cf y}, and {\cf z} describe the
+\emph{offset} of the crop window --- that is, the upper left pixel
+coordinates of the abstract full image that correspond to the upper left
+pixel of the crop window.  They default to 0 upon construction of the
+\ImageIOFormatSpec, indicating that the crop window is the
+upper-left-most portion of the full image.
+
+Not all image file formats have a way to describe crop windows.
+An \ImageOutput implementation that cannot express crop windows will
+simply write the file as if is a complete image (i.e., the spec settings
+of {\cf x}, {\cf y}, {\cf z}, {\cf full_width}, {\cf full_height}, and
+{\cf full_depth}, will not result in a differently-written file.
+
+Here is a code example that opens an image file that will contain a $32
+\times 32$ pixel crop window within an abstract $640 \times 480$ full
+size image.  Notice that the pixel indices (column, scanline, slice)
+passed to the {\cf write_*} functions are the coordinates relative to
+the full image, not relative to the crop widow, but the data pointer
+passed to the {\cf write_*} functions should point to the beginning of
+the actual pixel data being passed (not the the hypothetical start of
+the full data, if it was all present).
+
+\begin{code}
+        int fullwidth = 640, fulllength = 480; // Full image size
+        int cropwidth = 16, croplength = 16;  // Crop window size
+        int xorigin = 32, yorigin = 128;      // Crop window position
+        unsigned char pixels [cropwidth * croplength * channels]; // Crop size!
+        ...
+        ImageOutput *out = ImageOutput::create (filename);
+        ImageIOFormatSpec spec (cropwidth, croplength, channels, PT_UINT8);
+        spec.full_width = fullwidth;
+        spec.full_length = fulllength;
+        spec.x = xorigin;
+        spec.y = yorigin;
+        out->open (filename, spec);
+        ...
+        int z = 0;   // Always zero for 2D images
+        for (int y = yorigin;  y < yorigin+croplength;  ++y) {
+            out->write_scanline (y, z, PT_UINT8, (y-yorigin)*cropwidth*channels);
+        }
+        out->close ();
+\end{code}
+
 
 \subsection{Writing metadata}
 \label{sec:imageoutput:metadata}
 
-Don't forget to include channel names, alpha channel, z channel,
-linearity.
+\subsubsection{Channel names}
+
+\subsubsection{Specially-designated channels}
+
+\subsubsection{Nonlinearity hints}
+
+nonlinear and gamma
+
+\subsubsection{Arbitrary metadata}
+
 
 \subsection{Controlling quantization}
 \label{sec:imageoutput:quantization}
 
-\subsection{Custom search paths for plugins}
-\label{sec:imageoutput:searchpaths}
+\subsection{Random access and repeated transmission of pixels}
+\label{sec:imageoutput:randomrewrite}
+
+All \ImageOutput implemenations that support scanlines and tiles strict
+order of increasing $z$ slice, increasing $y$ scanlines/rows within each
+slice, and increasing $x$ column within each row.  It is generally not
+safe to skip scanlines or tiles, or transmit them out of order, unless
+the plugin specifically advertises that it supports random access or
+rewrites, which may be queried using:
+
+\begin{code}
+        if (out->supports ("random_access"))
+            ...
+\end{code}
+
+\noindent Similarly, you should assume the plugin will not correctly
+handle repeated transmissions of a scanline or tile that has already
+been sent, unless it advertises that it supports rewrites, which may be
+queried using:
+
+\begin{code}
+        if (out->supports ("rewrite"))
+            ...
+\end{code}
+
 
 \subsection{Multi-image files and MIP-maps}
 \label{sec:imageoutput:multiimage}
+
+\subsection{Custom search paths for plugins}
+\label{sec:imageoutput:searchpaths}
 
 \subsection{Error checking}
 \label{sec:imageoutput:errors}
 
 
 \section{{\kw ImageOutput} Class Reference}
+\label{sec:imageoutput:reference}
 
 \apiitem{static ImageOutput * create (const char *filename, \\
 \bigspc\bigspc const char *plugin_searchpath=NULL)}
@@ -126,8 +537,8 @@ by this query:
 \item[\rm \qkw{tiles}] Is this plugin able to write tiled images?
 \item[\rm \qkw{rectangles}] Can this plugin accept arbitrary rectangular
   pixel regions (via {\kw write_rectangle()})?  False indicates that
-  pixels must be transmitted via {\kw write_scanline()} (if
-  scanline-oriented) or {\kw write_tile} (if tile-oriented, and only if
+  pixels must be transmitted via \writescanline (if
+  scanline-oriented) or \writetile (if tile-oriented, and only if
   {\kw supports("tiles")} returns true).
 \item[\rm \qkw{random_access}] May tiles or scanlines be written in any
   order?  False indicates that they must be in successive order.
@@ -181,13 +592,13 @@ Closes the currently open file associated with this {\kw ImageOutput}.
 Write a full scanline that includes pixels $(*,y,z)$.  For 2D non-volume
 images, $z$ is ignored.  The {\kw xstride} value gives the distance
 between successive pixels (in bytes).  Strides set to the special value
-{\kw AutoStride} imply contiguous data, i.e., \\
-\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
-This method automatically converts the data from the specified {\kw
-  format} to the actual output format of the file.  Return {\kw true}
-for success, {\kw false} for failure.  It is a failure to call {\kw
-  write_scanline()} with an out-of-order scanline if this format driver
-does not support random access.
+{\kw AutoStride} imply contiguous data, i.e., \\ \spc {\kw xstride} $=$
+{\kw spec.nchannels*ParamBaseTypeSize(format)} \\ This method
+automatically converts the data from the specified {\kw format} to the
+actual output format of the file.  Return {\kw true} for success, {\kw
+  false} for failure.  It is a failure to call \writescanline with an
+out-of-order scanline if this format driver does not support random
+access.
 
 \apiend
 
@@ -206,7 +617,7 @@ imply contiguous data, i.e., \\
 This method automatically converts the
 data from the specified {\kw format} to the actual output format of the
 fil.  Return {\kw true} for success, {\kw false} for failure.  It is a
-failure to call {\kw write_tile()} with an out-of-order tile if this
+failure to call \writetile with an out-of-order tile if this
 format driver does not support random access.
 
 \apiend
@@ -248,14 +659,14 @@ Strides set to the special value {\kw AutoStride} imply contiguous data, i.e.,
 \spc {\kw xstride} $=$ {\kw spec.nchannels * ParamBaseTypeSize(format)} \\
 \spc {\kw ystride} $=$ {\kw xstride * spec.width} \\
 \spc {\kw zstride} $=$ {\kw ystride * spec.height}\\
-The function will internally either call {\kw write_scanline} or 
-{\kw write_tile}, depending on whether the file is scanline- or
+The function will internally either call \writescanline or 
+\writetile, depending on whether the file is scanline- or
 tile-oriented.
 
 Because this may be an expensive operation, a progress callback may be passed.
 Periodically, it will be called as follows:\\
 \begin{code}
-    progress_callback (progress_callback_data, float done)
+        progress_callback (progress_callback_data, float done)
 \end{code}
 \noindent where \emph{done} gives the portion of the image 
 (between 0.0 and 1.0) that has been written thus far.

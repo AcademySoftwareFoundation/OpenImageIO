@@ -24,7 +24,6 @@ DONE        iv - pixel view window
 DONE        iv - half, float, uint16
             imageio.h - should ImageIOFormatSpec just be ImageFormatSpec?
                         or ImageSpec?
-            API - allow per-channel data formats?
 DONE        iv - open recent
 DONE        iv - save as
 DONE        iv - preferences
@@ -58,6 +57,8 @@ Before first alpha release
             iv - save window as
             iv - save selection as
             iv - select all images
+            iv - gamma correction (env variable; per-format default gamma)
+            iv - honor sRGB images
 
 
 Before first 1.0 release
@@ -91,12 +92,13 @@ DONE        HDR
             iv - socket mode (socket-based "iv.imageio")
             iv - timed frame playback
             iv - sort all images by { name, sequence, date }
-            idiff - perceptual diff (Yee)
+DONE?       idiff - perceptual diff (Yee)
 
 ============
 
 Idea pool / future feature wish list
 
+            API - allow per-channel data formats?
             TIFF - YCbCr (dscf0013.tif, ycbcr-cat.tif)
             TIFF - CIE LogL, LogLuv (off_*.tif)
             TIFF - what's wrong with quad-jpeg.tif?
