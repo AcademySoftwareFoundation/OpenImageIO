@@ -472,7 +472,7 @@ exif_from_APP1 (ImageIOFormatSpec &spec, unsigned char *buf)
         else if (p->type == PT_INT16) 
             cs = *(const short *)p->data();
         if (cs == 1)
-            spec.nonlinear = ImageIOFormatSpec::sRGB;
+            spec.linearity = ImageIOFormatSpec::sRGB;
     }
 }
 
@@ -579,20 +579,28 @@ encode_exif_entry (const ImageIOParameter p, int tag,
     case TIFF_SHORT :
         if (p.type == PT_UINT || p.type == PT_INT ||
                 p.type == PT_UINT16 || p.type == PT_INT16) {
-            unsigned short s;
+            unsigned short i;
             switch (p.type) {
-            case PT_UINT:   s = (unsigned short) *(unsigned int *)p.data(); break;
-            case PT_INT:    s = (unsigned short) *(int *)p.data();   break;
-            case PT_UINT16: s = *(unsigned short *)p.data();         break;
-            case PT_INT16:  s = (unsigned short) *(short *)p.data(); break;
+            case PT_UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
+            case PT_INT:    i = (unsigned short) *(int *)p.data();   break;
+            case PT_UINT16: i = *(unsigned short *)p.data();         break;
+            case PT_INT16:  i = (unsigned short) *(short *)p.data(); break;
             }
-            append_dir_entry (dirs, data, tag, type, 1, &s);
+            append_dir_entry (dirs, data, tag, type, 1, &i);
             return;
         }
         break;
     case TIFF_LONG :
-        if (p.type == PT_UINT || p.type == PT_INT) {
-            append_dir_entry (dirs, data, tag, type, 1, p.data());
+        if (p.type == PT_UINT || p.type == PT_INT ||
+                p.type == PT_UINT16 || p.type == PT_INT16) {
+            unsigned int i;
+            switch (p.type) {
+            case PT_UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
+            case PT_INT:    i = (unsigned short) *(int *)p.data();   break;
+            case PT_UINT16: i = *(unsigned short *)p.data();         break;
+            case PT_INT16:  i = (unsigned short) *(short *)p.data(); break;
+            }
+            append_dir_entry (dirs, data, tag, type, 1, &i);
             return;
         }
         break;

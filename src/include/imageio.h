@@ -166,10 +166,11 @@ public:
 /// dimensions, layout, number and meanings of image channels.
 class DLLPUBLIC ImageIOFormatSpec {
 public:
-    enum LinearitySpec {
+    enum Linearity {
+        UnknownLinearity = 0, ///< Unknown which color space we're in
         Linear = 0,           ///< Color values are linear
         GammaCorrected = 1,   ///< Color values are gamma corrected
-        sRGB = 2              ///< Color values are in sRGB mapping
+        sRGB = 2              ///< Color values are in sRGB
     };
 
     int x, y, z;              ///< image origin (0,0,0)
@@ -191,7 +192,7 @@ public:
                                             ///< e.g., {"R","G","B","A"}
     int alpha_channel;        ///< Index of alpha channel, or -1 if not known
     int z_channel;            ///< Index of depth channel, or -1 if not known
-    LinearitySpec nonlinear;  ///< Value mapping of color channels
+    Linearity linearity;      ///< Value mapping of color channels
     float gamma;              ///< gamma exponent of the values in the file
     // quantize, dither are only used for ImageOutput
     int quant_black;          ///< quantization of black (0.0) level
@@ -391,11 +392,11 @@ public:
     /// Write a full scanline that includes pixels (*,y,z).  (z is
     /// ignored for 2D non-volume images.)  The stride value gives the
     /// distance between successive pixels (in bytes).  Strides set to
-    /// AutoStride imply 'contiguous' data (i.e. xstride ==
-    /// spec.nchannels*ParamBaseTypeSize(format)).  The data are
-    /// automatically converted from 'format' to the actual output
-    /// format (as specified to open()) by this method.  Return true for
-    /// success, false for failure.  It is a failure to call
+    /// AutoStride imply 'contiguous' data, i.e.,
+    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    /// The data are automatically converted from 'format' to the actual
+    /// output format (as specified to open()) by this method.  Return
+    /// true for success, false for failure.  It is a failure to call
     /// write_scanline with an out-of-order scanline if this format
     /// driver does not support random access.
     virtual bool write_scanline (int y, int z, ParamBaseType format,
@@ -406,9 +407,10 @@ public:
     /// ignored for 2D non-volume images.)  The three stride values give
     /// the distance (in bytes) between successive pixels, scanlines,
     /// and volumetric slices, respectively.  Strides set to AutoStride
-    /// imply 'contiguous' data (i.e.,
-    /// xstride == spec.nchannels*ParamBaseTypeSize(format),
-    /// ystride==xstride*spec.tile_width, zstride=ystride*spec.tile_height.
+    /// imply 'contiguous' data, i.e.,
+    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     ystride == xstride*spec.tile_width
+    ///     zstride == ystride*spec.tile_height
     /// The data are automatically converted from 'format' to the actual
     /// output format (as specified to open()) by this method.  Return
     /// true for success, false for failure.  It is a failure to call
@@ -423,10 +425,12 @@ public:
     /// coords over ymin..ymax, and z coords over zmin...zmax.  The
     /// three stride values give the distance (in bytes) between
     /// successive pixels, scanlines, and volumetric slices,
-    /// respectively.  Strides set to AutoStride imply 'contiguous' data
-    /// (i.e. xstride == spec.nchannels*ParamBaseTypeSize(format),
-    /// ystride==xstride*(xmax-xmin+1), zstride=ystride*(ymax-ymin+1).  The
-    /// data are automatically converted from 'format' to the actual
+    /// respectively.  Strides set to AutoStride imply 'contiguous'
+    /// data, i.e.,
+    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     ystride == xstride * (xmax-xmin+1)
+    ///     zstride == ystride * (ymax-ymin+1)
+    /// The data are automatically converted from 'format' to the actual
     /// output format (as specified to open()) by this method.  Return
     /// true for success, false for failure.  It is a failure to call
     /// write_rectangle for a format plugin that does not return true
@@ -556,11 +560,11 @@ public:
     /// converting if necessary from the native data format of the file
     /// into the 'format' specified (z==0 for non-volume images).  The
     /// stride value gives the data spacing of adjacent pixels (in
-    /// bytes).  Strides set to AutoStride imply 'contiguous' data (i.e.
-    /// xstride==spec.nchannels*ParamBaseTypeSize(format)).  The reader
-    /// is expected to give the appearance of random access -- in other
-    /// words, if it can't randomly seek to the given scanline, it
-    /// should transparently close, reopen, and sequentially read
+    /// bytes).  Strides set to AutoStride imply 'contiguous' data, i.e.,
+    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    /// The reader is expected to give the appearance of random access --
+    /// in other words, if it can't randomly seek to the given scanline,
+    /// it should transparently close, reopen, and sequentially read
     /// through prior scanlines.  The base ImageInput class has a
     /// default implementation that calls read_native_scanline and then
     /// does appropriate format conversion, so there's no reason for
@@ -579,9 +583,10 @@ public:
     /// 'format' specified.  (z==0 for non-volume images.)  The stride
     /// values give the data spacing of adjacent pixels, scanlines, and
     /// volumetric slices (measured in bytes).  Strides set to
-    /// AutoStride imply 'contiguous' data (i.e.  xstride ==
-    /// spec.nchannels*ParamBaseTypeSize(format), ystride ==
-    /// xstride*spec.tile_width, zstride == ystride*spec.tile_height).
+    /// AutoStride imply 'contiguous' data, i.e.,
+    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     ystride == xstride*spec.tile_width
+    ///     zstride == ystride*spec.tile_height
     /// The reader is expected to give the appearance of random access
     /// -- in other words, if it can't randomly seek to the given tile,
     /// it should transparently close, reopen, and sequentially read

@@ -91,7 +91,7 @@ print_info (const std::string &filename, ImageInput *input,
                 printf (" x %d", spec.tile_depth);
             printf ("\n");
         }
-        switch (spec.nonlinear) {
+        switch (spec.linearity) {
         case ImageIOFormatSpec::Linear :
             printf ("    linear color space\n");
             break;

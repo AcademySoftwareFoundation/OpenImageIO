@@ -140,7 +140,7 @@ ImageIOFormatSpec::ImageIOFormatSpec (ParamBaseType format)
       full_width(0), full_height(0), full_depth(0),
       tile_width(0), tile_height(0), tile_depth(0),
       format(format), nchannels(0), alpha_channel(-1), z_channel(-1),
-      nonlinear(Linear), gamma(1)
+      linearity(UnknownLinearity), gamma(1)
 {
     set_format (format);
 }
@@ -153,7 +153,7 @@ ImageIOFormatSpec::ImageIOFormatSpec (int xres, int yres, int nchans,
       full_width(0), full_height(0), full_depth(0),
       tile_width(0), tile_height(0), tile_depth(0),
       format(format), nchannels(nchans), alpha_channel(-1), z_channel(-1),
-      nonlinear(Linear), gamma(1)
+      linearity(UnknownLinearity), gamma(1)
 {
     set_format (format);
     if (nchans == 4)
