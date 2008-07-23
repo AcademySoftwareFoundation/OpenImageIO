@@ -208,8 +208,6 @@ ImageOutput::create (const char *filename, const char *plugin_searchpath)
         return NULL;
     }
 
-    recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
-
     // Extract the file extension from the filename
     std::string format = boost::filesystem::extension (filename);
     if (format.empty()) {
@@ -221,6 +219,8 @@ ImageOutput::create (const char *filename, const char *plugin_searchpath)
         // if (verbose > 1)
         // std::cerr << "extension of '" << filename << "' is '" << format << "'\n";
     }
+
+    recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
 
     // See if it's already in the table.  If not, scan all plugins we can
     // find to populate the table.
@@ -248,8 +248,6 @@ ImageInput::create (const char *filename, const char *plugin_searchpath)
         return NULL;
     }
 
-    recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
-
     // Extract the file extension from the filename
     std::string format = boost::filesystem::extension (filename);
     if (format.empty()) {
@@ -261,6 +259,8 @@ ImageInput::create (const char *filename, const char *plugin_searchpath)
         // if (verbose > 1)
         // std::cerr << "extension of '" << filename << "' is '" << format << "'\n";
     }
+
+    recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
 
     // See if it's already in the table.  If not, scan all plugins we can
     // find to populate the table.
