@@ -244,7 +244,7 @@ bool
 TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
                            const void *data)
 {
-    if (iequals(name, "artist") && type == PT_STRING) {
+    if (iequals(name, "Artist") && type == PT_STRING) {
         TIFFSetField (m_tif, TIFFTAG_ARTIST, *(char**)data);
         return true;
     }
