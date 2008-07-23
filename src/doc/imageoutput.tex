@@ -458,19 +458,233 @@ the full data, if it was all present).
 \subsection{Writing metadata}
 \label{sec:imageoutput:metadata}
 
+The \ImageIOFormatSpec passed to {\cf open()} can specify all the common
+required properties that describe an image: data format, dimensions,
+number of channels, tiling.  However, there may be a variety of
+additional \emph{metadata}\footnote{\emph{Metadata} refers to data about
+data, in this case, data about the image that goes beyond the pixel
+values and description thereof.} that should be carried along with the
+image or saved in the file.  
+
+The remainder of this section explains how to store additional metadata
+in the \ImageIOFormatSpec.  It is up to the \ImageOutput to store these
+in the file, in indeed the file format is able to accept the data.
+Individual \ImageOutput implementations should document which metadata
+they respect.
+
 \subsubsection{Channel names}
+
+In addition to specifying the number of color channels, it is also
+possible to name those channels.  Only a few \ImageOutput
+implementations have a way of saving this in the file, but some do, so
+you may as well do it if you have information about what the channels
+represent.
+
+By convention, channel names for red, green, blue, and alpha (or a main
+image) should be named \qkw{R}, \qkw{G}, \qkw{B}, and \qkw{A},
+respectively.  Beyond this guideline, however, you can use any names you
+want.
+
+The \ImageIOFormatSpec has a vector of strings called {\cf
+  channelnames}.  Upon construction, it starts out empty.  If you use it
+at all, you should make sure that it contains the same number of strings
+as the number of color channels in your image.  Here is an example:
+
+\begin{code}
+        int channels = 4;
+        ImageIOFormatSpec spec (width, length, channels, PT_UINT8);
+        spec.channelnames.push_back ("R");
+        spec.channelnames.push_back ("G");
+        spec.channelnames.push_back ("B");
+        spec.channelnames.push_back ("A");
+\end{code}
+
+Here is another example in which custom channel names are used to 
+label the channels in an 8-channel image containing beauty pass
+RGB, per-channel opacity, and texture $s,t$ coordinates for each pixel.
+
+\begin{code}
+        int channels = 8;
+        ImageIOFormatSpec spec (width, length, channels, PT_UINT8);
+        spec.channelnames.push_back ("R");
+        spec.channelnames.push_back ("G");
+        spec.channelnames.push_back ("B");
+        spec.channelnames.push_back ("opacityR");
+        spec.channelnames.push_back ("opacityG");
+        spec.channelnames.push_back ("opacityB");
+        spec.channelnames.push_back ("texture_s");
+        spec.channelnames.push_back ("texture_t");
+\end{code}
+
+The main advantage to naming color channels is that if you are saving to
+a file format that supports channel names, then any application that
+uses \product to read the image back has the option to retain those
+names and use them for helpful purposes.  For example, the {\cf iv}
+image viewer will display the channel names when viewing individual
+channels or displaying numeric pixel values in ``pixel view'' mode.
+
 
 \subsubsection{Specially-designated channels}
 
+The \ImageIOFormatSpec contains two fields, {\cf alpha_channel} and {\cf
+  z_channel}, which can be used to designate which channel indices are
+used for alpha and $z$ depth, if any.  Upon construction, these are both
+set to {\cf -1}, indicating that it is not known which channels 
+are alpha or depth.  Here is an example of setting up a 5-channel output
+that represents RGBAZ:
+
+\begin{code}
+        int channels = 5;
+        ImageIOFormatSpec spec (width, length, channels, format);
+        spec.channelnames.push_back ("R");
+        spec.channelnames.push_back ("G");
+        spec.channelnames.push_back ("B");
+        spec.channelnames.push_back ("A");
+        spec.channelnames.push_back ("Z");
+        spec.alpha_channel = 4;
+        spec.z_channel = 5;
+\end{code}
+
+There are two advantages to designating the alpha and depth channels in
+this manner:  
+\begin{itemize}
+\item Some file formats may require that these channels be stored in a
+  particular order, with a particular precision, or the \ImageOutput may
+  in some other way need to know about these special channels.
+\item Certain operations that make sense for colors should not apply to
+  alpha or $z$.  For example, if your call to {\cf write_*} reduces
+  precision (e.g., converts from {\cf float} to integer pixels) it will
+  will typically add random \emph{dither} to eliminate banding artifacts
+  in the quantization.  But for a variety of reasons, you want to add
+  dither only to color channels and not to alpha.  So setting {\cf
+    alpha_channel} will cause {\cf write_*} to not dither that channel.
+\end{itemize}
+
 \subsubsection{Nonlinearity hints}
 
-nonlinear and gamma
+We certainly hope that you are using only modern file formats that
+support high precision and extended range pixels (such as OpenEXR) and
+keeping all your images in a linear color space.  But you may have to
+work with file formats that dictate the use of nonlinear color values.
+This is prevalent in formats that store pixels only as 8-bit values,
+since 256 values are not enough to linearly represent colors without
+banding artifacts in the dim values.
+
+Since this can (and probably will) happen, the \ImageIOFormatSpec has
+fields that allow you to explain what color space your image pixels are
+in.  Each individual \ImageOutput should document how it uses this (or
+not).
+
+The \ImageIOFormatSpec field {\cf linearity} can take on any of the
+following values:
+\begin{description}
+\item[\halfspc \rm \kw{ImageIOFormatSpec::UnknownLinearity}] the default,
+  indicates that you have made no claim about the color space of your
+  pixel data.
+\item[\halfspc \rm \kw{ImageIOFormatSpec::Linear}] indicates that the pixel
+  values you are pssing repesent linear values.
+\item[\halfspc \rm \kw{ImageIOFormatSpec::GammaCorrected}] indicates that the
+  color pixel values (but not alpha or $z$) that you are passing have
+  already been gamma corrected (raised to the power $1/\gamma$), and
+  that the gamma exponent may be found in the {\cf gamma} field of the
+  \ImageIOFormatSpec.
+\item[\halfspc \rm \kw{ImageIOFormatSpec::sRGB}] indicates that the color pixel
+  values that you are passing are already in sRGB color space.
+\end{description}
+
+\noindent Here is a simple example of setting up the \ImageIOFormatSpec
+when you know that the pixel values you are writing are linear:
+
+\begin{code}
+        ImageIOFormatSpec spec (width, length, channels, format);
+        spec.linearity = ImageIOFormatSpec::Linear;
+        ...
+\end{code}
+
+If a particular \ImageOutput implementation is required (by the rules of
+the file format it writes) to have pixels in a particular color space,
+then it will convert the color values of your image to the right color
+space if it is not already in that space.  For example, JPEG images
+must be in sRGB space, so if you declare your pixels to be {\kw Linear},
+the JPEG \ImageOutput will convert to sRGB.
+
+If you leave the linearity set to the default of {\cf UnknownLinearity},
+the values will not be transformed, since the plugin can't be sure that
+it's not in the correct space to begin with.  
+
+The linearity only describes color channels.  An \ImageOutput plugin
+will assume that alpha or depth ($z$) channels (designated by the {\cf
+  alpha_channel} and {\cf z_channel} fields, respectively) always
+represent linear values and should never be transformed.
+
 
 \subsubsection{Arbitrary metadata}
 
+For all other metadata that you wish to save in the file, you can attach
+the data to the \ImageIOFormatSpec using the {\cf attribute()} methods.
+These come in polymorphic varieties that allow you to attach an
+attribute name and a value consisting of a single {\cf int}, {\cf
+  unsigned int}, {\cf float}, {\cf char*}, or {\cf std::string}, as
+shown in the following examples:
+
+\begin{code}
+        ImageIOFormatString spec (...);
+        ...
+
+        unsigned int u = 1;
+        spec.attribute ("Orientation", u);
+
+        float x = 72.0;
+        spec.attribute ("dotsize", f);
+
+        std::string s = "Fabulous image writer 1.0";
+        spec.attribute ("Software", s);
+\end{code}
+
+These are convenience routines for metadata that consist of a single
+value of one of these common types.  For other data types, or more
+complex arrangements, you can use the more general form of {\cf
+  attribute()}, which takes arguments giving the name, type (as a
+\ParamBaseType), number of values (1 for a single value, $>1$ for an
+  array), and then a pointer to the data values.  For example,
+
+\begin{code}
+        ImageIOFormatString spec (...);
+
+        // Attach a 4x4 matrix to describe the camera coordinates
+        float mymatrix[16] = { ... };
+        spec.attribute ("worldtocamera", PT_MATRIX, 1, &mymatrix);
+
+        // Attach an array of two floats giving the CIE neutral color
+        float neutral[2] = { ... };
+        spec.attribute ("adoptedNeutral", PT_FLOAT, 2, &neutral);
+\end{code}
+
+In general, most image file formats (and therefore most \ImageOutput
+implementations) are aware of only a small number of name/value pairs
+that they predefine and will recognize.  Some file formats (OpenEXR,
+notably) do accept arbitrary user data and save it in the image file.
+If an \ImageOutput does not recognize your metadata and does not support
+arbitrary metadata, that metadatum will be silently ignored and will not
+be saved with the file.
+
+Each individual \ImageOutput implementation should document the names,
+types, and meanings of all metadata attributes that they understand.
 
 \subsection{Controlling quantization}
 \label{sec:imageoutput:quantization}
+
+It is possible that your internal data format (that in which you compute
+pixel values that you pass to the {\cf write} functions) is of greater
+precision or range than the native data format of the output file.  This
+can occur either because you specified a lower-precision data format in
+the \ImageIOFormatSpec that you passed to {\cf open()}, or else that the
+image file format dictates a particular data format that does not match
+your internal format.  For example, you may compute {\cf float} pixels
+and pass those to {\cf write_image()}, but if you are writing a
+JPEG/JFIF file, the values must be stored as 8-bit unsigned integers.
+
+FIXME
 
 \subsection{Random access and repeated transmission of pixels}
 \label{sec:imageoutput:randomrewrite}
@@ -483,6 +697,7 @@ the plugin specifically advertises that it supports random access or
 rewrites, which may be queried using:
 
 \begin{code}
+        ImageOutput *out = ImageOutput::create (filename);
         if (out->supports ("random_access"))
             ...
 \end{code}
@@ -501,11 +716,161 @@ queried using:
 \subsection{Multi-image files and MIP-maps}
 \label{sec:imageoutput:multiimage}
 
+Some image file formats support multiple discrete images to be stored
+in one file.  Given a created \ImageOutput, you can query whether
+multiple images may be stored in the file:
+
+\begin{code}
+        ImageOutput *out = ImageOutput::create (filename);
+        if (out->supports ("multiimage"))
+            ...
+\end{code}
+
+If you are working with an \ImageOutput that supports multiple images,
+it is easy to write these images.  All you have to do is, after writing
+all the pixels of one image but before calling {\cf close()}, call {\cf
+  open()} again for the next image and passing {\cf true} as the
+optional third \emph{append} argument.  (See
+Section~\ref{sec:imageoutput:reference} for the full technical
+description of the arguments to {\cf open()}.)  The {\cf close()}
+routine is called just once, after all subimages are completed.
+
+Below is pseudocode for writing a MIP-map (a multi-resolution image
+used for texture mapping) that shows how to use multi-image:
+
+\begin{code}
+        const char *filename = "foo.tif";
+        const int xres = 512, yres = 512;
+        const int channels = 3;  // RGB
+        unsigned char *pixels = new unsigned char [xres*yres*channels];
+
+        // Create the ImageOutput
+        ImageOutput *out = ImageOutput::create (filename);
+
+        // Be sure we can support multi-res
+        if (! out->supports ("multiimage")) {
+            std::cerr << "Cannot write a MIP-map\n";
+            delete out;
+            return;
+        }
+
+        // Set up spec for the highest resolution
+        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+
+        // Write images, halving every time, until we're down to
+        // 1 pixel in either dimension
+        while (spec.width >= 1 && spec.height >= 1) {
+            out->open (filename, spec, true /* append mode */);
+            out->write_image (PT_UINT8, pixels);
+            // Assume halve() resamples the image to half resolution
+            halve (pixels, spec.width, spec.height);
+            // Don't forget to change spec for the next iteration
+            spec.width /= 2;
+            spec.height /= 2;
+        }
+        out->close ();
+        delete out;
+\end{code}
+
+
+
 \subsection{Custom search paths for plugins}
 \label{sec:imageoutput:searchpaths}
 
+When you call {\cf ImageOutput::create()}, the \product library will try
+to find a plugin that is able to write the format implied by your
+filename.  These plugins are alternately known as DLL's on Windows (with
+the {\cf .dll} extension), DSO's on Linux (with the {\cf .so}
+extension), and dynamic libraries on Mac OS X (with the {\cf .dylib}
+extension).  
+
+\product will look for matching plugins according to
+\emph{searth paths}, which are strings giving a list of directories to
+search, with each directory separated by a colon (`{\cf :}').  Within
+a search path, any
+substrings of the form {\cf \$\{FOO\}} will be replaced
+by the value of environment variable {\cf FOO}.  For
+example, the searchpath \qkw{\$\{HOME\}/plugins:/shared/plugins}
+will first check the directory \qkw{/home/tom/plugins} (assuming the
+user's home directory is {\cf /home/tom}), and if not
+found there, will then check the directory \qkw{/shared/plugins}.
+
+The first search path it will check is that stored in the environment
+variable {\cf IMAGEIO_LIBRARY_PATH}.  If no adequate plugin is found
+in any of the directories listed in this environment variable, then
+it will check the custom searchpath passed as the optional second
+argument to {\cf ImageOutput::create()}.  Here is an example:
+
+\begin{code}
+        char *mysearch = "/usr/myapp/lib:\${HOME}/plugins";
+        ImageOutput *out = ImageOutput::create (filename, mysearch);
+        ...
+\end{code}
+
+
 \subsection{Error checking}
 \label{sec:imageoutput:errors}
+
+Nearly every \ImageOutput API function returns a {\cf bool} indicating
+whether the operation succeeded ({\cf true}) or failed ({\cf false}).
+In the case of a failure, the \ImageOutput will have saved an error
+message describing in more detail what went wrong, and the latest
+error messages is accessible using the \ImageOutput method 
+{\cf error_message()}, which returns the message as a {\cf std::string}.
+
+The exception to this rule is {\cf ImageOutput::create}, which returns
+{\cf NULL} if it could not create an appropriate \ImageOutput.  And in
+this case, since no \ImageOutput exists for which you can call its {\cf
+  error_message()} function, there exists a global {\cf error_message()}
+function (in the {\cf OpenImageIO} namespace) that retrieves the latest
+error message resulting from a call to {\cf create}.
+
+Here is another version of the simple image writing code from
+Section~\ref{sec:imageoutput:simple}, but this time it is fully 
+elaborated with error checking and reporting:
+
+\begin{code}
+        #include "imageio.h"
+        using namespace OpenImageIO;
+        ...
+
+        const char *filename = "foo.jpg";
+        const int xres = 640, yres = 480;
+        const int channels = 3;  // RGB
+        unsigned char pixels[xres*yres*channels];
+
+        ImageOutput *out = ImageOutput::create (filename);
+        if (! out) {
+            std::cerr << "Could not create an ImageOutput for " 
+                      << filename << ", error = " 
+                      << OpenImageIO::error_message() << "\n";
+            return;
+        }
+        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+
+        if (! out->open (filename, spec)) {
+            std::cerr << "Could not open " << filename 
+                      << ", error = " << out->error_message() << "\n";
+            delete out;
+            return;
+        }
+
+        if (! out->write_image (PT_UINT8, pixels)) {
+            std::cerr << "Could write pixels to " << filename 
+                      << ", error = " << out->error_message() << "\n";
+            delete out;
+            return;
+        }
+
+        if (! out->close ()) {
+            std::cerr << "Error closing " << filename 
+                      << ", error = " << out->error_message() << "\n";
+            delete out;
+            return;
+        }
+
+        delete out;
+\end{code}
 
 
 \section{{\kw ImageOutput} Class Reference}
@@ -664,7 +1029,7 @@ The function will internally either call \writescanline or
 tile-oriented.
 
 Because this may be an expensive operation, a progress callback may be passed.
-Periodically, it will be called as follows:\\
+Periodically, it will be called as follows:
 \begin{code}
         progress_callback (progress_callback_data, float done)
 \end{code}
