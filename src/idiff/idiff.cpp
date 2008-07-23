@@ -289,7 +289,7 @@ public:
     {
         level[0].insert (level[0].begin(), image, image+w*h);
         for (int i = 1;  i < LAPLACIAN_MAX_LEVELS;  ++i)
-            Convolve (level[i], level[i-1]);
+            convolve (level[i], level[i-1]);
     }
 
     ~LaplacianPyramid () { }
@@ -303,18 +303,17 @@ private:
     std::vector<float> level[LAPLACIAN_MAX_LEVELS];
 
     // convolve image b with the kernel and store it in a
-    void Convolve (std::vector<float> &a, const std::vector<float> &b) {
-        const float Kernel[] = {0.05f, 0.25f, 0.4f, 0.25f, 0.05f};
+    void convolve (std::vector<float> &a, const std::vector<float> &b) {
+        const float kernel[] = {0.05f, 0.25f, 0.4f, 0.25f, 0.05f};
         a.resize (b.size());
-        for (int y = 0;  y < h;  ++y) {
-            for (int x = 0;  x < w;  ++x) {
-                int index = y * w + x;
+        for (int y = 0, index = 0;  y < h;  ++y) {
+            for (int x = 0;  x < w;  ++x, ++index) {
                 a[index] = 0.0f;
                 for (int i = -2;  i <= 2;  ++i) {
                     for (int j = -2;  j<= 2;  ++j) {
                         int nx = x+i;
                         int ny = y+j;
-                        if (nx<0)
+                        if (nx < 0)
                             nx = -nx;
                         if (ny < 0)
                             ny = -ny;
@@ -322,7 +321,7 @@ private:
                             nx=2*w-nx-1;
                         if (ny >= h)
                             ny=2*h-ny-1;
-                        a[index] += Kernel[i+2] * Kernel[j+2] * b[ny * w + nx];
+                        a[index] += kernel[i+2] * kernel[j+2] * b[ny * w + nx];
                     } 
                 }
             }
@@ -538,17 +537,6 @@ main (int argc, char *argv[])
     int npels = inspec[0].width * inspec[0].height * inspec[0].depth;
     int nvals = npels * inspec[0].nchannels;
 
-    int yee_failures = 0;
-    if (perceptual)
-        yee_failures = Yee_Compare (inspec[0], pixels0, pixels1);
-
-    // Subtract the second image from the first.  At which time we no
-    // longer need the second image, so free it.
-    for (int i = 0;  i < nvals;  ++i)
-        pixels0[i] -= pixels1[i];
-    delete [] pixels1;
-    pixels1 = NULL;
-
     // Compare the two images.
     //
     int nscanlines = inspec[0].height * inspec[0].depth;
@@ -558,15 +546,15 @@ main (int argc, char *argv[])
     int maxx, maxy, maxz, maxc;
     int nfail = 0, nwarn = 0;
     float *p = &pixels0[0];
+    float *q = &pixels1[0];
     for (int z = 0;  z < inspec[0].depth;  ++z) {
         for (int y = 0;  y < inspec[0].height;  ++y) {
             double scanlineerror = 0;
             for (int x = 0;  x < inspec[0].width;  ++x) {
                 bool warned = false, failed = false;  // For this pixel
-                for (int c = 0;  c < inspec[0].nchannels;  ++c, ++p) {
-                    double f = (*p);
+                for (int c = 0;  c < inspec[0].nchannels;  ++c, ++p, ++q) {
+                    double f = fabs (*p - *q);
                     scanlineerror += f;
-                    f = fabs(f);
                     if (f > maxerror) {
                         maxerror = f;
                         maxx = x;
@@ -588,6 +576,10 @@ main (int argc, char *argv[])
         }
     }
     totalerror /= nvals;
+
+    int yee_failures = 0;
+    if (perceptual)
+        yee_failures = Yee_Compare (inspec[0], pixels0, pixels1);
 
     // Print the report
     //
@@ -614,11 +606,6 @@ main (int argc, char *argv[])
                   << std::setprecision(3) << (100.0*yee_failures / npels) 
                   << std::setprecision(precis)
                   << "%) failed the perceptual test\n";
-    // If the user requested that a difference image be output, do that.
-    //
-    if (diffimage.size() && (maxerror != 0 || !outdiffonly))
-        write_diff_image (diffimage, inspec[0], pixels0);
-
     if (nfail > (failpercent/100.0 * npels) || maxerror > hardfail ||
             yee_failures > (failpercent/100.0 * npels)) {
         std::cout << "FAILURE\n";
@@ -629,5 +616,16 @@ main (int argc, char *argv[])
         return ErrWarn;
     }
     std::cout << "PASS\n";
+
+    // If the user requested that a difference image be output, do that.
+    //
+    if (diffimage.size() && (maxerror != 0 || !outdiffonly)) {
+        // Subtract the second image from the first.  At which time we no
+        // longer need the second image, so free it.
+        for (int i = 0;  i < nvals;  ++i)
+            pixels0[i] -= pixels1[i];
+        write_diff_image (diffimage, inspec[0], pixels0);
+    }
+
     return ErrOK;
 }
