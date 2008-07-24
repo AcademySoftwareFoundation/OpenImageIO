@@ -64,6 +64,8 @@ to a file:
   \end{code}
 \end{itemize}
 
+
+
 \section{Advanced Image Output}
 \label{sec:imageoutput:advanced}
 
@@ -77,17 +79,17 @@ the simple example above.
 The simple example of Section~\ref{sec:imageoutput:simple} wrote an
 entire image with one call.  But sometimes you are generating output a
 little at a time and do not wish to retain the entire image in memory
-until it is time to write the file.  \product allows you to write image
+until it is time to write the file.  \product allows you to write images
 one scanline at a time, one tile at a time, or by individual rectangles.
 
 \subsubsection{Writing individual scanlines}
 
-Individual scanlines may be written using the {\kw write_image()} API
+Individual scanlines may be written using the \writescanline API
 call:
 
 \begin{code}
         ...
-        unsigned int scanline[xres*channels];
+        unsigned char scanline[xres*channels];
         out->open (filename, spec);
         int z = 0;   // Always zero for 2D images
         for (int y = 0;  y < yres;  ++y) {
@@ -98,7 +100,7 @@ call:
         ...
 \end{code}
 
-The first two arguments to {\kw write_image()} specify which scanline is
+The first two arguments to \writescanline specify which scanline is
 being written by its vertical ($y$) scanline number (beginning with 0)
 and, for volume images, its slice ($z$) number (the slice number should
 be 0 for 2D non-volume images).  This is followed by a \ParamBaseType
@@ -158,7 +160,7 @@ powers of two).  Such restrictions should be documented by each
 individual plugin.
 
 \begin{code}
-        unsigned int tile[tilesize*tilesize*channels];
+        unsigned char tile[tilesize*tilesize*channels];
         int z = 0;   // Always zero for 2D images
         for (int y = 0;  y < yres;  y += tilesize) {
             for (int x = 0;  x < xres;  x += tilesize) {
@@ -234,6 +236,7 @@ arguments describe the data stride, which can be ignored for contiguous
 data (use of strides is explained in
 Section~\ref{sec:imageoutput:strides}).
 
+
 \subsection{Converting formats}
 \label{sec:imageoutput:convertingformats}
 
@@ -302,6 +305,7 @@ information on how values are translated among the supported data
 formats by default, and how to change the formulas by specifying
 quantization in the \ImageIOFormatSpec.
 
+
 \subsection{Data Strides}
 \label{sec:imageoutput:strides}
 
@@ -321,19 +325,18 @@ passed to the {\cf write_*} functions are \emph{contiguous}, that is:
   follows the last pixel of of slice $z-1$.
 \end{itemize}
 
-Please note that this means that this implies that data passed to
+Please note that this implies that data passed to
 \writetile be contiguous in the shape of a single tile (not just an
 offset into a whole image worth of pixels), and that data passed to {\cf
   write_rectangle()} be contiguous in the dimensions of the rectangle.
 
 The \writescanline function takes an optional {\cf xstride} argument,
-and the \writeimage, \writescanline, \writetile, and {\cf write_rectangle}
-functions take optional {\cf xstride}, {\cf ystride}, and {\cf zstride}
-values that describe the distance, in \emph{bytes}, between successive
-pixel columns, rows, and slices, respectively, of the data you are
-passing.  For any of these values that are not supplied, or are given
-as the special constant {\cf AutoStride}, the contiguity will be
-assumed.  
+and the \writeimage, \writetile, and {\cf write_rectangle} functions
+take optional {\cf xstride}, {\cf ystride}, and {\cf zstride} values
+that describe the distance, in \emph{bytes}, between successive pixel
+columns, rows, and slices, respectively, of the data you are passing.
+For any of these values that are not supplied, or are given as the
+special constant {\cf AutoStride}, contiguity will be assumed.
 
 By passing different stride values, you can achieving some surprisingly
 flexible functionality.  A few representative examples follow:
@@ -394,6 +397,7 @@ descriptions of the stride parameters to each {\cf write_*} function.
 
 \subsection{Writing a crop window}
 \label{sec:imageoutput:cropwindows}
+\index{crop windows}
 
 Some file formats allow you to specify that the pixels they contain
 are a smaller \emph{crop window} within a larger absract \emph{full
@@ -671,6 +675,7 @@ be saved with the file.
 Each individual \ImageOutput implementation should document the names,
 types, and meanings of all metadata attributes that they understand.
 
+
 \subsection{Controlling quantization}
 \label{sec:imageoutput:quantization}
 
@@ -682,9 +687,81 @@ the \ImageIOFormatSpec that you passed to {\cf open()}, or else that the
 image file format dictates a particular data format that does not match
 your internal format.  For example, you may compute {\cf float} pixels
 and pass those to {\cf write_image()}, but if you are writing a
-JPEG/JFIF file, the values must be stored as 8-bit unsigned integers.
+JPEG/JFIF file, the values must be stored in the file as 8-bit unsigned
+integers.
 
-FIXME
+The conversion from floating-point formats to integer formats (or from
+higher to lower integer, which is done by first converting to float) is
+controlled by five fields within the \ImageIOFormatSpec: {\cf
+  quant_black}, {\cf quant_white}, {\cf quant_min}, {\cf quant_max},
+and {\cf quant_dither}.
+Float 0.0 maps to the integer value given by {\cf quant_black}, and
+float 1.0 maps to the integer value given by {\cf quant_white}.  Then,
+for color channels only (not alpha or depth), a random amount is added
+in the range ({\cf -quant_dither..quant_dither}), in order to reduce
+banding artifats.  The result is then clamped to lie within the range of
+{\cf quant_min} and {\cf quant_max}, inclusive.  Finally, this result is
+truncated its integer value for final output.  Here is the code that
+implements this transformation ({\cf T} is the final output integer
+type):
+
+\begin{code}
+        float value = quant_black * (1 - input) + quant_white * input;
+        if (it's a color channel)
+            value += quant_dither * (2 * random() - 1);
+        T output = (T) clamp ((int)(value + 0.5), quant_min, quant_max);
+\end{code}
+
+The values of the quantization parameters are set in one of three ways:
+(1) upon construction of the \ImageIOFormatSpec, they are set to the
+default quantization values for the given data format; (2) upon call to
+{\cf ImageIOFormatSpec::set_format()}, the quantization values are set
+to the defaults for the given data format; (3) or, after being first set
+up in this manner, you may manually change the quantization parameters
+in the \ImageIOFormatSpec, if you want something other than the default
+quantization.
+
+\noindent Default quantization for each integer type is as follows:\\
+
+\smallskip
+\begin{tabular}{|l|r|r|r|r|r|}
+\hline
+{\bf Data Format} & {\bf black} & {\bf white} & {\bf min} & {\bf max} & {\bf
+  dither} \\
+\hline
+{\cf PT_UINT8}  & 0 &        255 &     0 & 255 & 0.5 \\
+{\cf PT_INT8}   & 0 &        127 &  -128 & 127 & 0.5 \\
+{\cf PT_UINT16} & 0 &      65535 &     0 & 65535 & 0.5 \\
+{\cf PT_INT16}  & 0 &      32767 & -32768 & 32767 & 0.5 \\
+{\cf PT_UINT}   & 0 & 4294967295 & 0 & 4294967295 & 0.5 \\
+{\cf PT_INT}    & 0 & 2147483647 & -2147483648 & 2147483647 & 0.5 \\
+\hline
+{\cf PT_FLOAT} & & & & & \\
+{\cf PT_HALF} & 0 & 1 & N/A & N/A & 0 \\
+{\cf PT_DOUBLE} & & & & & \\
+\hline
+\end{tabular} \\
+\smallskip
+
+\noindent Note that the default is to use the entire positive range
+of each integer type to represent the floating-point (0..1) range.
+Floating-point types do not attempt to remap values, do not add dither,
+and do not clamp (except to their full floating-point range).
+
+The default will almost always be what you want.  But just as an
+example, here's how you would specify a quantization for a 16-bit file
+in which 1.0 maps to 16383 (14 bits of positive range) rather than
+filling the full 16 bit:
+
+\begin{code}
+        ImageIOFormatSpec spec (width, length, channels, PT_UINT16);
+        spec.quant_black  = 0;
+        spec.quant_white  = 16383;
+        spec.quant_min    = 0;
+        spec.quant_max    = 16383;
+        spec.quant_dither = 0.5;
+\end{code}
+
 
 \subsection{Random access and repeated transmission of pixels}
 \label{sec:imageoutput:randomrewrite}
@@ -772,7 +849,9 @@ used for texture mapping) that shows how to use multi-image:
         delete out;
 \end{code}
 
-
+In this example, we have used \writeimage, but of course \writescanline,
+\writetile, and {\cf write_rectangle()} work as you would expect, on the
+current subimage.
 
 \subsection{Custom search paths for plugins}
 \label{sec:imageoutput:searchpaths}
@@ -871,6 +950,7 @@ elaborated with error checking and reporting:
 
         delete out;
 \end{code}
+
 
 
 \section{{\kw ImageOutput} Class Reference}

@@ -78,6 +78,8 @@ out its resolution, and read the pixels (converting them into
   \end{code}
 \end{itemize}
 
+
+
 \section{Advanced Image Input}
 \label{sec:advancedimageinput}
 
@@ -85,34 +87,480 @@ Maybe the easiest thing to do is to just walk through a bunch of the
 most common things you might want to do, but that are more complex than
 the simple example above.
 
+
 \subsection{Reading individual scanlines and tiles}
 \label{sec:imageinput:scanlinestiles}
+
+The simple example of Section~\ref{sec:imageinput:simple} read an
+entire image with one call.  But sometimes you want to read a large
+image a
+little at a time and do not wish to retain the entire image in memory
+as you process it.  \product allows you to read images
+one scanline at a time or one tile at a time.
+
+\subsubsection{Reading individual scanlines}
+
+Individual scanlines may be read using the \readscanline API
+call:
+
+\begin{code}
+        ...
+        in->open (filename, spec);
+        unsigned char *scanline = new unsigned char [spec.width*spec.channels];
+        for (int y = 0;  y < yres;  ++y) {
+            in->read_scanline (y, 0, PT_UINT8, scanline);
+            ... process data in scanline[0..width*channels-1] ...
+        }
+        delete [] scanline;
+        in->close ();
+        ...
+\end{code}
+
+The first two arguments to \readscanline specify which scanline
+is being read by its vertical ($y$) scanline number (beginning with 0)
+and, for volume images, its slice ($z$) number (the slice number should
+be 0 for 2D non-volume images).  This is followed by a \ParamBaseType
+describing the data type of the pixel buffer you are supplying, and a
+pointer to the pixel buffer itself.  Additional optional arguments
+describe the data stride, which can be ignored for contiguous data (use
+of strides is explained in Section~\ref{sec:imageinput:strides}).
+
+All \ImageInput implemenations will read scanlines in strict order
+(starting with scanline 0, then 1, up to {\kw yres-1}, without skipping
+any).  See Section~\ref{sec:imageinput:randomread} for details
+on reading out-of-order or repeated scanlines.
+
+The full description of the \readscanline function may be found
+in Section~\ref{sec:imageinput:reference}.
+
+\subsubsection{Reading individual tiles}
+
+Once you {\kw open()} an image file, you can find out if it is a tiled
+image (and the tile size) by examining the \ImageIOFormatSpec's {\cf
+  tile_width}, {\cf tile_height}, and {\cf tile_depth} fields.
+If they are zero, it's a scanline image and you should read pixels
+using \readscanline, not \readtile.
+
+\begin{code}
+        ...
+        in->open (filename, spec);
+        if (spec.tile_width == 0) {
+            ... read by scanline ...
+        } else {
+            // Tiles
+            int tilesize = spec.tile_width * spec.tile_height;
+            unsigned char *tile = new unsigned char [tilesize * spec.channels];
+            for (int y = 0;  y < yres;  y += spec.tile_height) {
+                for (int x = 0;  x < xres;  x += spec.tile_width) {
+                    in->read_tile (x, y, 0, PT_UINT8, tile);
+                    ... process the pixels in tile[] ..
+                }
+            }
+            delete [] tile;
+        }
+        in->close ();
+        ...
+\end{code}
+
+The first three arguments to \readtile specify which tile is
+being read by the pixel coordinates of any pixel contained in the
+tile: $x$ (column), $y$ (scanline), and $z$ (slice, which should always
+be 0 for 2D non-volume images).  This is followed by a \ParamBaseType
+describing the data format of the pixel buffer you are supplying, and a
+pointer to the pixel buffer.  Pixel data will be written to your buffer
+in order of increasing slice, increasing
+scanline within each slice, and increasing column within each scanline.
+Additional optional arguments describe the data stride, which can be
+ignored for contiguous data (use of strides is explained in
+Section~\ref{sec:imageinput:strides}).
+
+All \ImageInput implemenations that support tiles will read tiles in
+strict order of increasing $y$ rows, and within each row, increasing $x$
+column, without missing any tiles.  See
+Section~\ref{sec:imageinput:randomrewrite} for details on out-of-order
+or repeated tiles.
+
+The full description of the \readtile function may be found
+in Section~\ref{sec:imageinput:reference}.
+
 
 \subsection{Converting formats}
 \label{sec:imageinput:convertingformat}
 
+The code examples of the previous sections all assumed that your
+internal pixel data is stored as unsigned 8-bit integers (i.e., 0-255
+range).  But \product is significantly more flexible.  
+
+You may request that the pixels be stored in any of several formats.
+This is done merely by passing the {\cf read_*} function the data type
+of your pixel buffer, as one of the enumerated type \ParamBaseType.
+
+%FIXME
+%Individual file formats, and therefore \ImageInput implementations, may
+%only support a subset of the formats understood by the \product library.
+%Each \ImageInput plugin implementation should document which data
+%formats it supports.  An individual \ImageInput implementation may
+%choose to simply fail open {\kw open()}, though the recommended behavior
+%is for {\kw open()} to succeed but in fact choose a data format
+%supported by the file format that best preserves the precision and range
+%of the originally-requested data format.
+
+It is not required that the pixel data buffer passed to \readimage,
+\readscanline, or \readtile actually be in the same data format as the
+data in the file being read.  \product will automatically convert from
+native data type of the file to the internal data format of your choice.
+For example. the following code will open a TIFF and read pixels into
+your internal buffer represented as {\cf float} values.  This will work
+regardless of whether the TIFF file itself is using 8-bit, 16-bit, or
+float values.
+
+\begin{code}
+        ImageInput *in = ImageInput::create ("myfile.tif");
+        ImageIOFormatSpec spec;
+        in->open (filename, spec);
+        ...
+        int numpixels = spec.width * spec.height;
+        float pixels = new float [numpixels * channels];
+        ...
+        in->read_image (PT_FLOAT, pixels);
+\end{code}
+
+\noindent Note that \readscanline and \readtile have a parameter that
+works in a corresponding manner.
+
+You can, of course, find out the native type of the file simply by
+examining {\cf spec.format}.  If you wish, you may then allocate a
+buffer big enough for an image of that type and request the native type
+when reading, therefore eliminating any translation among types and
+seeing the actual numerical values in the file.
+
+%FIXME
+%Please refer to Section~\ref{sec:imageinput:quantization} for more
+%information on how values are translated among the supported data
+%formats by default, and how to change the formulas by specifying
+%quantization in the \ImageIOFormatSpec.
+
+
 \subsection{Data Strides}
 \label{sec:imageinput:strides}
+
+In the preceeding examples, we have assumed that the buffer passed to
+the {\cf read_*} functions (i.e., the place where you want your pixels
+to be stored) is \emph{contiguous}, that is:
+
+\begin{itemize}
+\item each pixel in memory consists of a number of data values equal to
+  the number of channels in the file;
+\item successive column pixels within a row directly follow each other in
+  memory, with the first channel of pixel $x$ of immediately following
+  last channel of pixel $x-1$ of the same row;
+\item for whole images or tiles, the data for each row
+  immediately follows the previous one in memory (the first pixel of row
+  $y$ immediately follows the last column of row $y-1$);
+\item for 3D volumetric images, the first pixel of slice $z$ immediately
+  follows the last pixel of of slice $z-1$.
+\end{itemize}
+
+Please note that this implies that \readtile will write pixel data into
+your buffer so that it is contiguous in the shape of a single tile (not
+just an offset into a whole image worth of pixels).
+
+The \readscanline function takes an optional {\cf xstride} argument, and
+the \readimage and \readtile functions take optional {\cf xstride}, 
+{\cf ystride}, and {\cf zstride} values that describe the distance, in
+\emph{bytes}, between successive pixel columns, rows, and slices,
+respectively, of your pixel buffer.  For any of these values that are
+not supplied, or are given as the special constant {\cf AutoStride},
+contiguity will be assumed.
+
+By passing different stride values, you can achieving some surprisingly
+flexible functionality.  A few representative examples follow:
+
+\begin{itemize}
+\item Flip an image vertically upon reading, by using \emph{negative}
+  $y$ stride:
+  \begin{code}
+        unsigned char pixels[spec.width * spec.height * spec.nchannels];
+        int scanlinesize = spec.width * spec.nchannels * sizeof(pixels[0]);
+        ...
+        in->read_image (PT_UINT8,
+                        (char *)pixels + (yres-1)*scanlinesize,  // offset to last
+                        AutoStride,                      // default x stride
+                        -scanlinesize,                   // special y stride
+                        AutoStride);                     // default z stride
+  \end{code}
+\item Read a tile into its spot in a buffer whose layout matches
+  a whole image of pixel data,
+  rather than having a one-tile-only memory layout:
+  \begin{code}
+        unsigned char pixels[spec.width * spec.height * spec.nchannels];
+        int pixelsize = spec.nchannels * sizeof(pixels[0]);
+        int scanlinesize = xpec.width * pixelsize;
+        ...
+        in->read_tile (x, y, 0, PT_UINT8,
+                       (char *)pixels + y*scanlinesize + x*pixelsize,
+                       pixelsize,
+                       scanlinesize);
+  \end{code}
+\end{itemize}
+
+Please consult Section~\ref{sec:imageinput:reference} for detailed
+descriptions of the stride parameters to each {\cf read_*} function.
+
 
 \subsection{Reading metadata}
 \label{sec:imageinput:metadata}
 
-Don't forget to include channel names, alpha channel, z channel,
-linearity.
+The \ImageIOFormatSpec that is filled in by {\cf ImageInput::open()}
+specifies all the common properties that describe an image: data format,
+dimensions, number of channels, tiling.  However, there may be a variety
+of additional \emph{metadata} that are present in the image file and
+could be queried by your application.
+
+The remainder of this section explains how to query additional metadata
+in the \ImageIOFormatSpec.  It is up to the \ImageInput to read these
+from the file, if indeed the file format is able to carry additional
+data.  Individual \ImageInput implementations should document which
+metadata they read.
+
+\subsubsection{Channel names}
+
+In addition to specifying the number of color channels, the
+\ImageIOFormatSpec also stores the names of those channels in its {\cf
+  channelnames} field, which is a {\cf vector<std::string>}.  Its length
+should always be equal to the number of channels (it's the
+responsibility of the \ImageInput to ensure this).
+
+Only a few file formats (and thus \ImageInput implementations) have a
+way of specifying custom channel names, so most of the time you will see
+that the channel names follow the default convention of being named
+\qkw{R}, \qkw{G}, \qkw{B}, and \qkw{A}, for red, green, blue, and alpha,
+respectively.
+
+Here is example code that prints the names of the channels in an image:
+
+\begin{code}
+        ImageInput *in = ImageInput::create (filename);
+        ImageIOFormatSpec spec;
+        in->open (filename, spec);
+        for (int i = 0;  i < spec.nchannels;  ++i)
+            std::cout << "Channel " << i << " is " 
+                      << spec.channelnames[i] << "\n";
+\end{code}
+
+\subsubsection{Specially-designated channels}
+
+The \ImageIOFormatSpec contains two fields, {\cf alpha_channel} and {\cf
+  z_channel}, which designate which channel numbers represent alpha and
+$z$ depth, if any.  If either is set to {\cf -1}, it indicates that it
+is not known which channel is used for that data.
+
+If you are doing something special with alpha or depth, it is probably
+safer to respect the {\cf alpha_channel} and {\cf z_channel}
+designations (if not set to {\cf -1}) rather than merely assuming that,
+for example, channel 3 is always the alpha channel.
+
+\subsubsection{Nonlinearity hints}
+
+We certainly hope that you are using only modern file formats that
+support high precision and extended range pixels (such as OpenEXR) and
+keeping all your images in a linear color space.  But you may have to
+work with file formats that dictate the use of nonlinear color values.
+This is prevalent in formats that store pixels only as 8-bit values,
+since 256 values are not enough to linearly represent colors without
+banding artifacts in the dim values.
+
+The \ImageIOFormatSpec has a field that reveals what color space the
+image file is using.  Each individual \ImageInput is responsible for
+setting this properly.
+
+The \ImageIOFormatSpec field {\cf linearity} can take on any of the
+following values:
+\begin{description}
+\item[\halfspc \rm \kw{ImageIOFormatSpec::UnknownLinearity}] indicates
+  indicates it's unkown what color space the image file is using.
+\item[\halfspc \rm \kw{ImageIOFormatSpec::Linear}] indicates that the
+  color pixel values are known to be linear.
+\item[\halfspc \rm \kw{ImageIOFormatSpec::GammaCorrected}] indicates
+  that the color pixel values (but not alpha or $z$) in the file have
+  already been gamma corrected (raised to the power $1/\gamma$), and
+  that the gamma exponent may be found in the {\cf gamma} field of the
+  \ImageIOFormatSpec.
+\item[\halfspc \rm \kw{ImageIOFormatSpec::sRGB}] indicates that the
+  color pixel values in the file are in sRGB color space.
+\end{description}
+
+The \ImageInput sets the {\cf ImageIOFormatSpec::linearity} field in a
+purely advisory capacity --- the {\cf read_*} will not convert pixel
+values among color spaces.  Many image file formats only support
+nonlinear color spaces (for example, JPEG/JFIF dictates use of sRGB).
+So your application should intelligently deal with gamma-corrected and
+sRGB input.
+
+The linearity only describes color channels.  You should assume that
+alpha or depth ($z$) channels (designated by the {\cf alpha_channel} and
+{\cf z_channel} fields, respectively) always represent linear values and
+should never be transformed by your application.
+
+\subsubsection{Arbitrary metadata}
+
+All other metadata found in the file will be stored in the
+\ImageIOFormatSpec's {\cf extra_attribs} field, which is a vector
+of {\cf ImageIOParameter} structures.  Each {\cf ImageIOParameter}
+stores one metadatum consisting of a name, type (specified by 
+a \ParamBaseType), number of values, and data pointer.
+
+If you know the name of a specific piece of metadata you want to use,
+you can find it using the {\cf ImageIOFormatSpec::find_attribute()}
+method, which returns a pointer to the matching {\cf ImageIOParameter},
+or {\cf NULL} if no match was found.  You should double check the
+type of the metadata before accessing its data directly.  Below is an
+example that looks for orientation information, expecting it to consist 
+of a single integer:
+
+\begin{code}
+        ImageInput *in = ImageInput::create (filename);
+        ImageIOFormatSpec spec;
+        in->open (filename, spec);
+        ...
+        ImageIOParameter *p = spec.find_attribute ("Orientation");
+        if (p) {
+            int orientation;
+            if (p->type == PT_INT && p->nvalues == 1)
+                orientation = * (int *) p->data();
+            else
+                std::cout << "Orientation found but unknown type\n";
+        } else {
+            std::cout << "No orientation in the file\n";
+        }
+\end{code}
+
+By convention, \ImageInput plugins will save all integer metadata as
+32-bit integers ({\cf PT_INT} or {\cf PT_UINT}), even if the file format
+dictates that a particular item is stored in the file as a 8- or 16-bit
+integer.  This is just to keep client applications from having to deal
+with all the types.  Since there is relatively little metadata compared
+to pixel data, there's no real memory waste of promoting all integer
+types to int32 metadata.  Floating-point metadata and string metadata
+may also exist, of course.
+
+It is also possible to step through all the metadata, item by item.
+This can be accomplished using the technique of the following example:
+
+\begin{code}
+        for (size_t i = 0;  i < spec.extra_attribs.size();  ++i) {
+            const ImageIOParameter &p (spec.extra_attribs[i]);
+            printf ("    \%s: ", p.name.c_str());
+            if (p.type == PT_STRING)
+                printf ("\"\%s\"", *(const char **)p.data());
+            else if (p.type == PT_FLOAT)
+                printf ("\%g", *(const float *)p.data());
+            else if (p.type == PT_INT)
+                printf ("\%d", *(const int *)p.data());
+            else if (p.type == PT_UINT)
+                printf ("\%u", *(const unsigned int *)p.data());
+            else
+                printf ("<unknown data type>");
+            printf ("\n");
+        }
+\end{code}
+
+Each individual \ImageInput implementation should document the names,
+types, and meanings of all metadata attributes that they understand.
+
+
+\subsection{Controlling quantization and encoding}
+\label{sec:imageinput:quantization}
+
+FIXME
+
 
 \subsection{Random access and repeated transmission of pixels}
-\label{sec:imageoutput:randomrepeated}
+\label{sec:imageinput:randomrepeated}
+
+FIXME
+
 
 \subsection{Multi-image files and MIP-maps}
 \label{sec:imageinput:multiimage}
 
+Some image file formats support multiple discrete images to be stored
+in one file.  When you {\cf open()} an \ImageOutput, it will by default
+point to the first (i.e., number 0) subimage in the file.  You can
+switch to viewing another subimage using the {\cf seek_subimage()} 
+function:
+
+\begin{code}
+        ImageInput *in = ImageOutput::create (filename);
+        ImageIOFormatSpec spec;
+        in->open (filename, spec);
+        ...
+        int sub = 1;
+        if (in->seek_subimage (sub, spec)) {
+            ...
+        } else {
+            ... no such subimage ...
+        }
+\end{code}
+
+The {\cf seek_subimage()} function takes two arguments: the index of the
+subimage to switch to (starting with 0), and a reference to an
+\ImageIOFormatSpec, into which will be stored the spec of the new
+subimage.  The {\cf seek_subimage()} function returns {\cf true} upon
+success, and {\cf false} if no such subimage existed.  It is legal to
+visit subimages out of order; the \ImageInput is responsible for making
+it work properly.  It is also possible to find out which subimage is
+currently being viewed, using the {\cf current_subimage()} function,
+which returns the index of the current subimage.
+
+Below is pseudocode for reading all the levels of a MIP-map (a
+multi-resolution image used for texture mapping) that shows how to read
+multi-image files:
+
+\begin{code}
+        ImageInput *in = ImageInput::create (filename);
+        ImageIOFormatSpec spec;
+        in->open (filename, spec);
+
+        int num_subimages = 0;
+        while (in->seek_subimage (num_subimages, spec)) {
+            // Note: spec has the format spec of the current subimage
+            int npixels = spec.width * spec.height;
+            int nchannels = spec.nchannels;
+            unsigned char *pixels = new unsigned char [npixels * nchannels];
+            in->read_image (PT_UINT8, pixels);
+
+            ... do whatever you want with this level, in pixels ...
+
+            delete [] pixels;
+            ++num_subimages;
+        }
+        // Note: we break out of the while loop when seek_subimage fails
+        // to find a next subimage.
+
+        in->close ();
+        delete in;
+\end{code}
+
+In this example, we have used \readimage, but of course \readscanline
+and \readtile work as you would expect, on the current subimage.
+
+
 \subsection{Custom search paths for plugins}
 \label{sec:imageinput:searchpaths}
+
+FIXME
+
 
 \subsection{Error checking}
 \label{sec:imageinput:errors}
 
+FIXME
+
+
+
 \section{{\kw ImageInput} Class Reference}
+\label{sec:imageinput:reference}
 
 \apiitem{ImageInput *create (const char *filename, 
                                const char *plugin_searchpath)}
