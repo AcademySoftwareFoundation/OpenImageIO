@@ -11,24 +11,24 @@ out its resolution, and read the pixels (converting them into
 8-bit pixels, even if that's not the way they're stored in the file):
 
 \begin{code}
-    #include "imageio.h"
-    using namespace OpenImageIO;
-    ...
+        #include "imageio.h"
+        using namespace OpenImageIO;
+        ...
 
-    const char *filename = "foo.jpg";
-    int xres, yres, channels;
-    unsigned char *pixels;
+        const char *filename = "foo.jpg";
+        int xres, yres, channels;
+        unsigned char *pixels;
 
-    ImageInput *in = ImageInput::create (filename);
-    ImageIOFormatSpec spec;
-    in->open (filename, spec);
-    xres = spec.width;
-    yres = spec.height;
-    channels = spec.nchannels;
-    pixels = new unsigned char [xres*yres*channels];
-    in->read_image (PT_UINT8, pixels);
-    in->close ();
-    delete in;
+        ImageInput *in = ImageInput::create (filename);
+        ImageIOFormatSpec spec;
+        in->open (filename, spec);
+        xres = spec.width;
+        yres = spec.height;
+        channels = spec.nchannels;
+        pixels = new unsigned char [xres*yres*channels];
+        in->read_image (PT_UINT8, pixels);
+        in->close ();
+        delete in;
 \end{code}
 
 \begin{itemize}
@@ -39,23 +39,23 @@ out its resolution, and read the pixels (converting them into
   the right plugin, it creates a subclass instance of \ImageInput that
   reads the right kind of file format.
   \begin{code}
-    ImageInput *in = ImageInput::create (filename);
+        ImageInput *in = ImageInput::create (filename);
   \end{code}
 \item Open the file, read the header, and put all relevant metadata
   about the file in a specification structure.
   \begin{code}
-    ImageIOFormatSpec spec;
-    in->open (filename, spec);
+        ImageIOFormatSpec spec;
+        in->open (filename, spec);
   \end{code}
 \item The specification contains vital information such as the
   dimensions of the image, number of color channels, and data type of
   the pixel values.  This is enough to allow us to allocate enough space
   for the image.
   \begin{code}
-    xres = spec.width;
-    yres = spec.height;
-    channels = spec.nchannels;
-    pixels = new unsigned char [xres*yres*channels];
+        xres = spec.width;
+        yres = spec.height;
+        channels = spec.nchannels;
+        pixels = new unsigned char [xres*yres*channels];
   \end{code}
   Note that in this example, we don't care what data format is used for
   the pixel data in the file --- we allocate enough space for unsigned
@@ -67,14 +67,14 @@ out its resolution, and read the pixels (converting them into
   is the native format of the data in the file (in this case, we request
   that it be automatically converted to unsigned 8-bit integers).
   \begin{code}
-    in->read_image (PT_UINT8, pixels);
+        in->read_image (PT_UINT8, pixels);
   \end{code}
 \item Close the file, destroy and free the \ImageInput we had created,
   and perform all other cleanup and release of any resources used by
   the plugin.
   \begin{code}
-    in->close ();
-    delete in;
+        in->close ();
+        delete in;
   \end{code}
 \end{itemize}
 
@@ -469,16 +469,16 @@ Each individual \ImageInput implementation should document the names,
 types, and meanings of all metadata attributes that they understand.
 
 
-\subsection{Controlling quantization and encoding}
-\label{sec:imageinput:quantization}
+%\subsection{Controlling quantization and encoding}
+%\label{sec:imageinput:quantization}
+%
+%FIXME
 
-FIXME
 
-
-\subsection{Random access and repeated transmission of pixels}
-\label{sec:imageinput:randomrepeated}
-
-FIXME
+%\subsection{Random access and repeated transmission of pixels}
+%\label{sec:imageinput:randomrepeated}
+%
+%FIXME
 
 
 \subsection{Multi-image files and MIP-maps}
@@ -549,13 +549,88 @@ and \readtile work as you would expect, on the current subimage.
 \subsection{Custom search paths for plugins}
 \label{sec:imageinput:searchpaths}
 
-FIXME
+Please see Section~\ref{sec:imageoutput:searchpaths} for discussion
+about search paths for finding plugins that implement \ImageOutput.
+
+In a similar fashion, calls to {\cf ImageOutput::create()}
+will search for plugins in each directory listed in the environment
+variable {\cf IMAGEIO_LIBRARY_PATH}, in the order that they are listed.
+If no adequate plugin is found, then it will check the custom searchpath
+passed as the optional second argument to {\cf ImageInput::create()}.
+Here is an example:
+
+\begin{code}
+        char *mysearch = "/usr/myapp/lib:\${HOME}/plugins";
+        ImageInput *in = ImageInput::create (filename, mysearch);
+        ...
+\end{code}
 
 
 \subsection{Error checking}
 \label{sec:imageinput:errors}
 
-FIXME
+Nearly every \ImageInput API function returns a {\cf bool} indicating
+whether the operation succeeded ({\cf true}) or failed ({\cf false}).
+In the case of a failure, the \ImageInput will have saved an error
+message describing in more detail what went wrong, and the latest
+error messages is accessible using the \ImageInput method 
+{\cf error_message()}, which returns the message as a {\cf std::string}.
+
+The exception to this rule is {\cf ImageInput::create}, which returns
+{\cf NULL} if it could not create an appropriate \ImageInput.  And in
+this case, since no \ImageInput exists for which you can call its {\cf
+  error_message()} function, there exists a global {\cf error_message()}
+function (in the {\cf OpenImageIO} namespace) that retrieves the latest
+error message resulting from a call to {\cf create}.
+
+Here is another version of the simple image reading code from
+Section~\ref{sec:imageinput:simple}, but this time it is fully
+elaborated with error checking and reporting:
+
+\begin{code}
+        #include "imageio.h"
+        using namespace OpenImageIO;
+        ...
+
+        const char *filename = "foo.jpg";
+        int xres, yres, channels;
+        unsigned char *pixels;
+
+        ImageInput *in = ImageInput::create (filename);
+        if (! in) {
+            std::cerr << "Could not create an ImageInput for " 
+                      << filename << ", error = " 
+                      << OpenImageIO::error_message() << "\n";
+            return;
+        }
+
+        ImageIOFormatSpec spec;
+        if (! in->open (filename, spec)) {
+            std::cerr << "Could not open " << filename 
+                      << ", error = " << in->error_message() << "\n";
+            delete in;
+            return;
+        }
+        xres = spec.width;
+        yres = spec.height;
+        channels = spec.nchannels;
+        pixels = new unsigned char [xres*yres*channels];
+
+        if (! in->read_image (PT_UINT8, pixels)) {
+            std::cerr << "Could read pixels from " << filename 
+                      << ", error = " << in->error_message() << "\n";
+            delete in;
+            return;
+        }
+
+        if (! in->close ()) {
+            std::cerr << "Error closing " << filename 
+                      << ", error = " << in->error_message() << "\n";
+            delete in;
+            return;
+        }
+        delete in;
+\end{code}
 
 
 

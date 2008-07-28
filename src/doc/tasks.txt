@@ -13,9 +13,7 @@ DONE        iv - honor orientation
 DONE        OpenEXR plugin (status: reader works, writer works, scanline/tile)
 DONE        jpeg - EXIF info
 IP          nomenclature - capitalize tags? (pending feedback)
-            API - should strides, even for tile routines, auto-set to
-                full image strides?                         
-IP          imageio.h - add sRGB vs Linear?
+DONE        imageio.h - add sRGB vs Linear?
 IP          API docs
 DONE        Linux
 DONE        iv - middle mouse drag
@@ -33,13 +31,17 @@ DONE        iv - prev/next subimage
 DONE        iv - info window - scroll when too much info to fit on screen
 DONE        iv - clamp fit-window-to-image to display size
 hard        iv - Ctrl-W in info window should close info, not close image
-            iv - change cursor depending on drag mode
 DONE        idiff
+DONE        iv - zoom centered on mouse pixel
+DONE        iv - option for zoom to show non-interpolated pixels
+            iv - change cursor depending on drag mode
 
 
 Before first alpha release
 --------------------------
 
+            iv - subtract from last image
+            iv - view as random color
             TIFF - double (caspian)
             iv - why don't I seem to be getting HDR?
             iv - new window, new tab ?
@@ -51,7 +53,6 @@ Before first alpha release
             iv - region of interest (select, clear, prioritize, crop)
             iv - annotate
             iv - fg/bg images
-            iv - subtract from last image
             exr - ripmaps
             iv - put into background mode
             iv - save window as
@@ -71,7 +72,6 @@ IP          texture - basic texture, tile cache, file handle cache
             iv - >4 channels, gray vs color
             iv - view as depth (gray scale between min/max)
             iv - view as false color
-            iv - view as random color
             wipe between images
             GIF (Wex request)
             PNG (Philip request)
