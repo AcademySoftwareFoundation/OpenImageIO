@@ -35,15 +35,13 @@
 IvPreferenceWindow::IvPreferenceWindow (ImageViewer &viewer)
     : QDialog(&viewer), m_viewer(viewer)
 {
-    label = new QLabel (tr("foo"));
-
     closeButton = new QPushButton (tr("Close"));
     closeButton->setShortcut (tr("Ctrl+W"));
     connect (closeButton, SIGNAL(clicked()), this, SLOT(hide()));
 
     layout = new QVBoxLayout;
-    layout->addWidget (label);
     layout->addWidget (viewer.pixelviewFollowsMouseBox);
+    layout->addWidget (viewer.linearInterpolationBox);
     layout->addWidget (closeButton);
     setLayout (layout);
 

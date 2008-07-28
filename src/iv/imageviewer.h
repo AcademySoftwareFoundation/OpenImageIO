@@ -186,10 +186,15 @@ public:
     /// is a "zoom in" (closer/maxify), negative is zoom out (farther/minify).
     float zoom (void) const { return m_zoom; }
 
-    /// Set a new zoom level.  If smooth is true, switch to the new zoom
-    /// level smoothly over many gradual steps, otherwise do it all in
-    /// one shot.
-    void zoom (float newzoom, bool smooth = false);
+    /// Set a new view (zoom level and center position).  If smooth is
+    /// true, switch to the new view smoothly over many gradual steps,
+    /// otherwise do it all in one step.
+    void view (float xcenter, float ycenter, float zoom, bool smooth=false);
+
+    /// Set a new zoom level, keeping the center of view.  If smooth is
+    /// true, switch to the new zoom level smoothly over many gradual
+    /// steps, otherwise do it all in one step.
+    void zoom (float newzoom, bool smooth=false);
 
     /// Return a ptr to the current image, or NULL if there is no
     /// current image.
@@ -212,6 +217,10 @@ public:
 
     bool pixelviewFollowsMouse (void) const {
         return pixelviewFollowsMouseBox && pixelviewFollowsMouseBox->isChecked();
+    }
+
+    bool linearInterpolation (void) const {
+        return linearInterpolationBox && linearInterpolationBox->isChecked();
     }
 
 private slots:
@@ -308,6 +317,7 @@ private:
     QProgressBar *statusProgress;
 
     QCheckBox *pixelviewFollowsMouseBox;
+    QCheckBox *linearInterpolationBox;
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
@@ -361,7 +371,6 @@ protected:
     
 private:
     QVBoxLayout *layout;
-    QLabel *label;
     QPushButton *closeButton;
 
     ImageViewer &m_viewer;
@@ -380,11 +389,22 @@ public:
     ///
     virtual void update (IvImage *img);
 
-    /// Update the zoom
+    /// Update the view -- center and zoom level
     ///
-    virtual void zoom (float newzoom);
+    virtual void view (float centerx, float centery, float zoom);
 
-    virtual void center (float x, float y);
+    /// Update just the zoom, keep the old center
+    ///
+    void zoom (float newzoom) { view (m_centerx, m_centery, newzoom); }
+
+    /// Update just the center, keep the old zoom
+    ///
+    void center (float x, float y) { view (x, y, m_viewer.zoom()); }
+
+    void get_center (float &x, float &y) {
+        x = m_centerx;
+        y = m_centery;
+    }
 
     void pan (float dx, float dy);
 
@@ -410,7 +430,8 @@ protected:
     GLuint m_shader_program;          ///< GL shader program id
     bool m_tex_created;               ///< Have the textures been created?
     GLuint m_texid;                   ///< Texture holding current imag
-    float m_centerx, m_centery; ///< Where is the view centered in the img?
+    float m_zoom;                     ///< Zoom ratio
+    float m_centerx, m_centery;       ///< Where is the view centered in the img?
     bool m_dragging;                  ///< Are we dragging?
     int m_mousex, m_mousey;           ///< Last mouse position
     Qt::MouseButton m_drag_button;    ///< Button on when dragging

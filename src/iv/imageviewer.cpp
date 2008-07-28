@@ -254,6 +254,8 @@ ImageViewer::createActions()
 
     pixelviewFollowsMouseBox = new QCheckBox (tr("Pixel view follows mouse"));
     pixelviewFollowsMouseBox->setChecked (false);
+    linearInterpolationBox = new QCheckBox (tr("Linear interpolation"));
+    linearInterpolationBox->setChecked (true);
 }
 
 
@@ -392,6 +394,7 @@ ImageViewer::readSettings()
 {
     QSettings settings("OpenImageIO", "iv");
     pixelviewFollowsMouseBox->setChecked (settings.value ("pixelviewFollowsMouse").toBool());
+    linearInterpolationBox->setChecked (settings.value ("linearInterpolation").toBool());
     QStringList recent = settings.value ("RecentFiles").toStringList();
     BOOST_FOREACH (const QString &s, recent)
         addRecentFile (s.toStdString());
@@ -406,6 +409,8 @@ ImageViewer::writeSettings()
     QSettings settings("OpenImageIO", "iv");
     settings.setValue ("pixelviewFollowsMouse",
                        pixelviewFollowsMouseBox->isChecked());
+    settings.setValue ("linearInterpolation",
+                       linearInterpolationBox->isChecked());
     QStringList recent;
     BOOST_FOREACH (const std::string &s, m_recent_files)
         recent.push_front (QString(s.c_str()));
@@ -1007,17 +1012,38 @@ ImageViewer::print()
 
 void ImageViewer::zoomIn()
 {
+    IvImage *img = cur();
+    if (! img)
+        return;
     if (zoom() >= 64)
         return;
+    float oldzoom = zoom ();
+    float newzoom;
     if (zoom() >= 1.0f) {
-        int z = (int) round (zoom());
-        z = pow2roundup (z+1);
-        zoom (z, true);
+        newzoom = pow2roundup ((int) round (zoom()) + 1);
     } else {
-        int z = (int)round(1.0 / zoom());
-        z = pow2rounddown (z-1);
-        zoom (1.0f / std::max(z,1), true);
+        newzoom = 1.0 / std::max (1, pow2rounddown ((int)round(1.0/zoom()) - 1));
     }
+
+    float xc, yc;  // Center view position
+    glwin->get_center (xc, yc);
+    int xmpel, ympel;  // Mouse position
+    glwin->get_focus_image_pixel (xmpel, ympel);
+    float xm = (float)xmpel / img->oriented_width ();
+    float ym = (float)ympel / img->oriented_height ();
+    float xoffset = xc - xm;
+    float yoffset = yc - ym;
+    float maxzoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
+    int nsteps = (int) Imath::clamp (20 * (maxzoomratio - 1), 2.0f, 10.0f);
+    for (int i = 0;  i <= nsteps;  ++i) {
+        float a = (float)i/(float)nsteps;   // Interpolation amount
+        float z = Imath::lerp (oldzoom, newzoom, a);
+        float zoomratio = z / oldzoom;
+        view (xm + xoffset/zoomratio, ym + yoffset/zoomratio, z, false);
+        if (i != nsteps)
+            usleep (1000000 / 4 / nsteps);
+    }
+
     fitImageToWindowAct->setChecked (false);
 }
 
@@ -1025,17 +1051,41 @@ void ImageViewer::zoomIn()
 
 void ImageViewer::zoomOut()
 {
+    IvImage *img = cur();
+    if (! img)
+        return;
     if (zoom() <= 1.0f/64)
         return;
+    float oldzoom = zoom ();
+    float newzoom;
     if (zoom() > 1.0f) {
-        int z = (int) zoom();
-        z = pow2rounddown (z-1);
-        zoom (std::max ((float)z, 0.5f), true);
+        int z = pow2rounddown ((int) zoom() - 1);
+        newzoom = std::max ((float)z, 0.5f);
     } else {
         int z = (int)(1.0 / zoom() + 0.001);  // add for floating point slop
         z = pow2roundup (z+1);
-        zoom (1.0f / z, true);
+        newzoom = 1.0f / z;
     }
+
+    float xc, yc;  // Center view position
+    glwin->get_center (xc, yc);
+    int xmpel, ympel;  // Mouse position
+    glwin->get_focus_image_pixel (xmpel, ympel);
+    float xm = (float)xmpel / img->oriented_width ();
+    float ym = (float)ympel / img->oriented_height ();
+    float xoffset = xc - xm;
+    float yoffset = yc - ym;
+    float maxzoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
+    int nsteps = (int) Imath::clamp (20 * (maxzoomratio - 1), 2.0f, 10.0f);
+    for (int i = 0;  i <= nsteps;  ++i) {
+        float a = (float)i/(float)nsteps;   // Interpolation amount
+        float z = Imath::lerp (oldzoom, newzoom, a);
+        float zoomratio = z / oldzoom;
+        view (xm + xoffset/zoomratio, ym + yoffset/zoomratio, z, false);
+        if (i != nsteps)
+            usleep (1000000 / 4 / nsteps);
+    }
+
     fitImageToWindowAct->setChecked (false);
 }
 
@@ -1178,30 +1228,44 @@ void ImageViewer::updateActions()
 
 
 void
-ImageViewer::zoom (float newzoom, bool smooth)
+ImageViewer::view (float xcenter, float ycenter, float newzoom, bool smooth)
 {
     IvImage *img = cur();
     if (! img)
         return;
 
-    float oldzoom = m_zoom;
+    float oldzoom = m_zoom; 
+    float oldxcenter, oldycenter;
+    glwin->get_center (oldxcenter, oldycenter);
     float zoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
     int nsteps = (int) Imath::clamp (20 * (zoomratio - 1), 2.0f, 10.0f);
     if (! smooth)
         nsteps = 1;
     for (int i = 1;  i <= nsteps;  ++i) {
-        float z = Imath::lerp (oldzoom, newzoom, (float)i/(float)nsteps);
-        m_zoom = z;
-        glwin->zoom (zoom());
-        glwin->trigger_redraw();
+        float a = (float)i/(float)nsteps;   // Interpolation amount
+        float z = Imath::lerp (oldzoom, newzoom, a);
+        float xc = Imath::lerp (oldxcenter, xcenter, a);
+        float yc = Imath::lerp (oldycenter, ycenter, a);
+        glwin->view (xc, yc, z);  // Triggers redraw automatically
         if (i != nsteps)
             usleep (1000000 / 4 / nsteps);
     }
+    m_zoom = newzoom;
 
 //    zoomInAct->setEnabled (zoom() < 64.0);
 //    zoomOutAct->setEnabled (zoom() > 1.0/64);
 
     updateStatusBar ();
+}
+
+
+
+void
+ImageViewer::zoom (float newzoom, bool smooth)
+{
+    float xcenter, ycenter;
+    glwin->get_center (xcenter, ycenter);
+    view (xcenter, ycenter, newzoom, smooth);
 }
 
 

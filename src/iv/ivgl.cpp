@@ -47,7 +47,7 @@
 IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
     : QGLWidget(parent), m_viewer(viewer), 
       m_shaders_created(false), m_tex_created(false),
-      m_centerx(0.5), m_centery(0.5), m_dragging(false)
+      m_zoom(1.0), m_centerx(0.5), m_centery(0.5), m_dragging(false)
 {
 #if 0
     QGLFormat format;
@@ -162,24 +162,27 @@ IvGL::create_shaders (void)
         "uniform int channelview;\n"
         "uniform int imgchannels;\n"
         "uniform int pixelview;\n"
+        "uniform int linearinterp;\n"
         "uniform int width;\n"
         "uniform int height;\n"
         "void main ()\n"
         "{\n"
         "    vec2 st = vTexCoord;\n"
         "    float black = 0.0;\n"
-        "    if (pixelview != 0) {\n"
+        "    if (pixelview != 0 || linearinterp == 0) {\n"
         "        vec2 wh = vec2(width,height);\n"
         "        vec2 onehalf = vec2(0.5,0.5);\n"
-        "        vec2 st_res = st * wh + onehalf;\n"
+        "        vec2 st_res = st * wh /* + onehalf */ ;\n"
         "        vec2 st_pix = floor (st_res);\n"
         "        vec2 st_rem = st_res - st_pix;\n"
         "        st = (st_pix + onehalf) / wh;\n"
-        "        if (st.x < 0.0 || st.x >= 1.0 || \n"
-        "                st.y < 0.0 || st.y >= 1.0 || \n"
-        "                st_rem.x < 0.05 || st_rem.x >= 0.95 || \n"
-        "                st_rem.y < 0.05 || st_rem.y >= 0.95)\n"
-        "            black = 1.0;\n"
+        "        if (pixelview != 0) {\n"
+        "            if (st.x < 0.0 || st.x >= 1.0 || \n"
+        "                    st.y < 0.0 || st.y >= 1.0 || \n"
+        "                    st_rem.x < 0.05 || st_rem.x >= 0.95 || \n"
+        "                    st_rem.y < 0.05 || st_rem.y >= 0.95)\n"
+        "                black = 1.0;\n"
+        "        }\n"
         "    }\n"
         "    vec4 C = texture2D (imgtex, st);\n"
         "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
@@ -283,13 +286,13 @@ gl_rect (float xmin, float ymin, float xmax, float ymax, float z = 0,
 void
 IvGL::paintGL ()
 {
-//    std::cerr << "paintGL " << m_viewer.current_image() << " with zoom " << m_viewer.zoom() << "\n";
+//    std::cerr << "paintGL " << m_viewer.current_image() << " with zoom " << m_zoom << "\n";
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (! m_viewer.cur())
         return;
  
     IvImage *img = m_viewer.cur();
-    float z = m_viewer.zoom();
+    float z = m_zoom;
 
     if (z*img->oriented_width() <= width())  // FIXME - ivgl window?
         m_centerx = 0.5;
@@ -374,7 +377,7 @@ IvGL::paint_pixelview ()
 
     IvImage *img = m_viewer.cur();
     const ImageIOFormatSpec &spec (img->spec());
-    float z = m_viewer.zoom();
+    float z = m_zoom;
 
     // (xw,yw) are the window coordinates of the mouse.
     int xw, yw;
@@ -415,8 +418,8 @@ IvGL::paint_pixelview ()
     float xtexsize = 0.5 * (float)ncloseuppixels / img->oriented_width();
     float ytexsize = 0.5 * (float)ncloseuppixels / img->oriented_height();
     // Make (x,y) be the image space NDC coords of the mouse.
-    float x = (float)xp / (/* ? z * */ img->oriented_width());
-    float y = (float)yp / (/* ? z * */ img->oriented_height());
+    float x = (xp+0.5f) / (/* ? z * */ img->oriented_width());
+    float y = (yp+0.5f) / (/* ? z * */ img->oriented_height());
     gl_rect (-0.5f*closeupsize, 0.5f*closeupsize,
              0.5f*closeupsize, -0.5f*closeupsize, 0,
              x - xtexsize, y - ytexsize, x + xtexsize, y + ytexsize);
@@ -535,6 +538,10 @@ IvGL::useshader (bool pixelview)
     glUniform1i (loc, pixelview);
     GLERRPRINT ("set param 7");
 
+    loc = glGetUniformLocation (m_shader_program, "linearinterp");
+    glUniform1i (loc, m_viewer.linearInterpolation());
+    GLERRPRINT ("set param 7");
+
     loc = glGetUniformLocation (m_shader_program, "width");
     glUniform1i (loc, spec.width);
     GLERRPRINT ("set param 8");
@@ -602,25 +609,19 @@ IvGL::update (IvImage *img)
 
 
 void
-IvGL::zoom (float z)
+IvGL::view (float xcenter, float ycenter, float zoom)
 {
+    m_centerx = xcenter;
+    m_centery = ycenter;
+    m_zoom = zoom;
+
     IvImage *img = m_viewer.cur();
     if (img) {
         clamp_view_to_window ();
-        repaint (0, 0, img->oriented_width(), img->oriented_height());     // Update the texture
+//        repaint (0, 0, img->oriented_width(), img->oriented_height());     // Update the texture
     } else {
-        repaint (0, 0, width(), height());
+//        repaint (0, 0, width(), height());
     }
-}
-
-
-
-void
-IvGL::center (float x, float y)
-{
-    m_centerx = x;
-    m_centery = y;
-    clamp_view_to_window ();
     trigger_redraw ();
 }
 
@@ -647,9 +648,8 @@ void
 IvGL::clamp_view_to_window ()
 {
     int w = width(), h = height();
-    float z = m_viewer.zoom ();
-    float zoomedwidth  = z * m_viewer.curspec()->width;
-    float zoomedheight = z * m_viewer.curspec()->height;
+    float zoomedwidth  = m_zoom * m_viewer.curspec()->width;
+    float zoomedheight = m_zoom * m_viewer.curspec()->height;
     float left    = m_centerx - 0.5 * ((float)w / zoomedwidth);
     float top     = m_centery - 0.5 * ((float)h / zoomedheight);
     float right   = m_centerx + 0.5 * ((float)w / zoomedwidth);
@@ -737,9 +737,8 @@ IvGL::mouseMoveEvent (QMouseEvent *event)
     // myself.
     switch (m_drag_button /*event->button()*/) {
     case Qt::MidButton : {
-        float z = m_viewer.zoom ();
-        float dx = (pos.x() - m_mousex) / (z * m_viewer.curspec()->width);
-        float dy = (pos.y() - m_mousey) / (z * m_viewer.curspec()->height);
+        float dx = (pos.x() - m_mousex) / (m_zoom * m_viewer.curspec()->width);
+        float dy = (pos.y() - m_mousey) / (m_zoom * m_viewer.curspec()->height);
         pan (-dx, -dy);
         break;
         }
@@ -791,7 +790,7 @@ IvGL::get_focus_image_pixel (int &x, int &y)
 {
     // w,h are the dimensions of the visible window, in pixels
     int w = width(), h = height();
-    float z = m_viewer.zoom ();
+    float z = m_zoom;
     // zoomedwidth,zoomedheight are the size of the zoomed-in image, in pixels
     float zoomedwidth  = z * m_viewer.curspec()->width;
     float zoomedheight = z * m_viewer.curspec()->height;
