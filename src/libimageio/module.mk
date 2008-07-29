@@ -21,7 +21,7 @@ local_extra_objs := ${build_obj_dir}/libutil/argparse${OEXT} \
 		    ${build_obj_dir}/libutil/paramtype${OEXT} \
 		    ${build_obj_dir}/libutil/plugin${OEXT} \
 		    ${build_obj_dir}/libutil/strutil${OEXT} \
-		    ${build_obj_dir}/libutil/token${OEXT}
+		    ${build_obj_dir}/libutil/ustring${OEXT}
 
 # Extra shared libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)

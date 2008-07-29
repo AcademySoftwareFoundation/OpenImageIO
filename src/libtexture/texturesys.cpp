@@ -25,13 +25,20 @@
 
 
 #include <string>
+#include <boost/tr1/memory.hpp>
+using namespace std::tr1;
 
+#include <ImathVec.h>
+#include <ImathMatrix.h>
 #include <half.h>
 
 #include "dassert.h"
 #include "paramtype.h"
 #include "varyingref.h"
 #include "ustring.h"
+#include "hash.h"
+#include "imageio.h"
+using namespace OpenImageIO;
 
 #define DLL_EXPORT_PUBLIC /* Because we are implementing TextureSystem */
 #include "texture.h"
@@ -43,7 +50,7 @@
 TextureSystem *
 TextureSystem::create ()
 {
-    return new TextureSystemImpl;
+    return new TexturePvt::TextureSystemImpl;
 }
 
 
@@ -57,9 +64,41 @@ TextureSystem::destroy (TextureSystem * &x)
 
 
 
+namespace TexturePvt {
+
+
 void
 TextureSystemImpl::init ()
 {
     max_open_files (100);
     max_memory_MB (50);
 }
+
+
+
+TextureFile *
+TextureSystemImpl::findtex (ustring filename)
+{
+    return NULL;
+}
+
+
+
+bool
+TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
+                                   ParamType datatype, void *data)
+{
+    std::cerr << "gettextureinfo \"" << filename << "\"\n";
+
+    TextureFile *texfile = findtex (filename);
+    if (! texfile) {
+        std::cerr << "   NOT FOUND\n";
+        return false;
+    }
+    std::cerr << "    found.\n";
+    return true;
+}
+
+
+};  // end namespace TexturePvt
+

@@ -13,7 +13,8 @@
 dist_bins    	:= iconvert${BINEXT} \
 		   idiff${BINEXT} \
 		   iinfo${BINEXT} \
-		   iv${BINEXT}
+		   iv${BINEXT} \
+		   testtex${BINEXT}
 dist_libs     	:= libimageio${SHLIBEXT} \
 		   libtexture${SHLIBEXT} \
 		   hdr.imageio${SHLIBEXT} \

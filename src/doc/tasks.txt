@@ -60,6 +60,7 @@ Before first alpha release
             iv - select all images
             iv - gamma correction (env variable; per-format default gamma)
             iv - honor sRGB images
+            iv - handle images > 4k
 
 
 Before first 1.0 release

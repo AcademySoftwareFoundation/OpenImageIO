@@ -30,6 +30,9 @@
 #include "varyingref.h"
 #include "ustring.h"
 
+namespace Imath {
+    class Vector3f;
+};
 
 typedef unsigned char Runflag;
 
@@ -77,6 +80,10 @@ public:
     TextureSystem (void) { }
     virtual ~TextureSystem () { }
 
+    /// Close everything, free resources, start from scratch.
+    ///
+    virtual void clear () = 0;
+
     // Set options
     virtual void max_open_files (int nfiles) = 0;
     virtual void max_memory_MB (float size) = 0;
@@ -87,13 +94,54 @@ public:
     virtual float max_memory_MB () const = 0;
     virtual ustring searchpath () const = 0;
 
-    /// Retrieve filtered texture lookups for several points.
+    /// Retrieve filtered (possibly anisotropic) texture lookups for
+    /// several points.  s,t are the texture coordinates; dsdx, dtdx,
+    /// dsdy, and dtdy are the differentials of s and t change in some
+    /// canonical directions x and y.  The choice of x and y are not
+    /// important to the implementation; it can be any imposed 2D
+    /// coordinates, such as pixels in screen space, adjacent samples in
+    /// parameter space on a surface, etc.
     virtual void texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int firstactive, int lastactive,
                           VaryingRef<float> s, VaryingRef<float> t,
                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
-                          float *result, int threadid=-1) = 0;
+                          float *result) = 0;
+
+    /// Retrieve a 3D texture lookup.
+    ///
+    virtual void texture (ustring filename, TextureOptions &options,
+                          Runflag *runflags, int firstactive, int lastactive,
+                          VaryingRef<Imath::Vector3f> P,
+                          VaryingRef<Imath::Vector3f> dPdx,
+                          VaryingRef<Imath::Vector3f> dPdy,
+                          float *result) = 0;
+
+    /// Retrieve a shadow lookup for position P.
+    ///
+    virtual void shadow (ustring filename, TextureOptions &options,
+                         Runflag *runflags, int firstactive, int lastactive,
+                         VaryingRef<Imath::Vector3f> P,
+                         VaryingRef<Imath::Vector3f> dPdx,
+                         VaryingRef<Imath::Vector3f> dPdy,
+                         float *result) = 0;
+
+    /// Retrieve an environment map lookup for direction R.
+    ///
+    virtual void environment (ustring filename, TextureOptions &options,
+                              short *runflags, int firstactive, int lastactive,
+                              VaryingRef<Imath::Vector3f> R,
+                              VaryingRef<Imath::Vector3f> dRdx,
+                              VaryingRef<Imath::Vector3f> dRdy,
+                              float *result) = 0;
+
+    /// Get information about the given texture.  Return true if found
+    /// and the data has been put in *data.  Return false if the texture
+    /// doesn't exist, doesn't have the requested data, if the data
+    /// doesn't match the type requested. or some other failure.
+    virtual bool gettextureinfo (ustring filename, ustring dataname,
+                                 ParamType datatype, void *data) = 0;
+    
 };
 
 
