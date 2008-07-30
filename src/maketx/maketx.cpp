@@ -31,20 +31,43 @@
 #include <iostream>
 #include <iterator>
 
+#include <ImathMatrix.h>
+
 #include "argparse.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
 
-static std::string dataformatname = "";
-static float gammaval = 1.0f;
-static bool depth = false;
-static bool verbose = false;
+// Basic runtime options
 static std::vector<std::string> filenames;
+static std::string outputfilename;
+static std::string dataformatname = "";
+static std::string fileformatname = "tiff";
+static float ingamma = 1.0f, outgamma = 1.0f;
+static bool verbose = false;
 static int tile[3] = { 0, 0, 1 };
-static bool scanline = false;
-static bool zfile = false;
 static std::string channellist;
+static bool updatemode = false;
+
+// Conversion modes.  If none are true, we just make an ordinary texture.
+static bool shadowmode = false;
+static bool shadowcubemode = false;
+static bool volshadowmode = false;
+static bool envlatlmode = false;
+static bool envcubemode = false;
+static bool lightprobemode = false;
+static bool vertcrossmode = false;
+static bool latl2envcubemode = false;
+
+// Options controlling file metadata or mipmap creation
+static float fov = 90;
+static std::string wrap;
+static std::string swrap = "black";
+static std::string twrap = "black";
+static bool noresize = false;
+static float opaquewidth = 0;  // should be volume shadow epsilon
+static Imath::M44f Mcam, Mscr;  // Initialize to identity
+static bool separate = false;
 
 
 
@@ -58,66 +81,6 @@ parse_files (int argc, const char *argv[])
 
 
 
-
-
-#if 0
-              << "       -o %s             Output directory or filename\n"
-              << "       -shadow           Make shadow map\n"
-              << "       -shadcube         Make cubical shadow map (order: px,nx
-,py,ny,pz,nz)\n"
-              << "       -volshad          Make volume shadow map\n"
-              << "       -opaquewidth %f   For -volshad, set z fudge factor"
-                                           " [default " << volshadeps << "]\n"
-#ifndef RELEASE
-              << "       -shadowmip        Make shadow mip-map\n"
-              << "       -shadowmipcube    Make cubical shadow mipmap (px,nx,py,
-ny,pz,nz)\n"
-              << "       -volshadcube      Make cubical volume shadow (px,nx,py,
-ny,pz,nz)\n"
-              << "       -volshadlevel %d  Set the starting mip level for volume
- shadow maps\n"
-#endif
-              << "       -envlatl          Make lat/long environment map\n"
-              << "       -envcube          Make cubical environment map\n"
-              << "                             (file order: px,nx,py,ny,pz,nz)\n
-"
-              << "       -fov %f           envcube/twofish fov (90 - 180)\n"
-//              << "       -envsphere        Not implemented\n"
-              << "       -lightprobe       Convert a lightprobe to cube env\n"
-              << "       -vertcross        Convert vertical cross to env map\n"
-              << "       -latl2envcube     Convert a lat/long map to a cube map 
-env\n"
-              << "       -dump             Dump the file as text\n"
-//              << "       -twofish          Not implemented\n"
-              << "       -mode %s          black, clamp, periodic, or mirror\n"
-              << "       -smode %s         Horizontal edge mode\n"
-              << "       -tmode %s         Vertical edge mode\n"
-              << "       -noresize         Do not resize texture to pow2\n"
-              << "       -Mcamera %f x 16  Set the camera matrix\n"
-              << "       -Mscreen %f x 16  Set the screen/viewing matrix\n"
-              << "       -separate         Use planarconfig separate (default is
-
- contig)\n"
-              << "       -tilesize %d      Specify a particular tile size\n"
-              << "       -tiled            Process image in tiles (use less memo
-ry)\n"
-              << "       -u                Update mode\n"
-              << "       -p %s             Specify search path for input images\
-n"
-              << "       -ingamma %f       Specify gamma of input files (default
-: 1)\n"
-              << "       -outgamma %f      Gamma correct output (default: 1)\n"
-              << "       -format %s        Output format (default: tiff)\n"
-              << "       -uint8 | -uint16  Force output integer bit depth\n"
-              << "       -half | -float    Force output float bit depth\n"
-              << "       -ch list          channel list\n"
-              << "       -note %s          Append to image description/note\n"
-              << "       -verbosity %d     Error message reporting level\n"
-              << "       -debugdso         Extra messages for dsos\n"
-              << "       -errorfile %s     Error file output (default stderr)\n"
-#endif
-
-
 static void
 getargs (int argc, char *argv[])
 {
@@ -127,13 +90,45 @@ getargs (int argc, char *argv[])
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
+                  "-o %s", &outputfilename, "Output directory or filename",
+                  "-u", &updatemode, "Update mode",
+                  "--format %s", &fileformatname, "Specify output format (default: tiff)",
                   "-d %s", &dataformatname, "Set the output data format to one of:\n"
                           "\t\t\tuint8, sint8, uint16, sint16, half, float",
-                  "-g %f", &gammaval, "Set gamma correction (default = 1)",
-                  "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
-                  "--scanline", &scanline, "Output as a scanline image",
-//FIXME           "-z", &zfile, "Treat input as a depth file",
+                  "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
+                  "--separate", &separate, "Use planarconfig separate (default: contiguous)",
+                  "--ingamma %f", &ingamma, "Specify gamma of input files (default: 1)",
+                  "--outgamma %f", &outgamma, "Specify gamma of output files (default: 1)",
+                  "--opaquewidth %f", &opaquewidth, "Set z fudge factor for volume shadows",
+                  "--fov %f", &fov, "Field of view for envcube/shadcube/twofish",
+                  "--wrap %s", &wrap, "Specify wrap mode (black, clamp, periodic, mirror)",
+                  "--swrap %s", &swrap, "Specific s wrap mode separately",
+                  "--twrap %s", &twrap, "Specific t wrap mode separately",
+                  "--noresize", &noresize, "Do not resize textures to power of 2 resolution",
+                  "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+                          &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3], 
+                          &Mcam[1][0], &Mcam[1][1], &Mcam[1][2], &Mcam[1][3], 
+                          &Mcam[2][0], &Mcam[2][1], &Mcam[2][2], &Mcam[2][3], 
+                          &Mcam[3][0], &Mcam[3][1], &Mcam[3][2], &Mcam[3][3], 
+                          "Set the camera matrix",
+                  "--Mscreen %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+                          &Mscr[0][0], &Mscr[0][1], &Mscr[0][2], &Mscr[0][3], 
+                          &Mscr[1][0], &Mscr[1][1], &Mscr[1][2], &Mscr[1][3], 
+                          &Mscr[2][0], &Mscr[2][1], &Mscr[2][2], &Mscr[2][3], 
+                          &Mscr[3][0], &Mscr[3][1], &Mscr[3][2], &Mscr[3][3], 
+                          "Set the camera matrix",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
+//FIXME           "-debugdso"
+//FIXME           "-note %s", &note, "Append a note to the image comments",
+                  "<SEPARATOR>", "Basic modes (default is plain texture):",
+                  "--shadow", &shadowmode, "Create shadow map",
+                  "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz)",
+                  "--volshad", &volshadowmode, "Create volume shadow map",
+                  "--envlatl", &envlatlmode, "Create lat/long environment map",
+                  "--envcube", &envcubemode, "Create cubic env map (file order: px,nx,py,ny,pz,nz)",
+                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map",
+                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map",
+                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map",
                   NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
@@ -144,12 +139,24 @@ getargs (int argc, char *argv[])
         exit (EXIT_FAILURE);
     }
 
-    if (filenames.size() != 2) {
-        std::cerr << "maketx: Must have both an input and output filename specified.\n";
+    int optionsum = ((int)shadowmode + (int)shadowcubemode + (int)volshadowmode +
+                     (int)envlatlmode + (int)envcubemode +
+                     (int)lightprobemode + (int)vertcrossmode +
+                     (int)latl2envcubemode);
+    if (optionsum > 1) {
+        std::cerr << "maketx ERROR: At most one of the following options may be set:\n"
+                  << "\t--shadow --shadcube --volshad --envlatl --envcube\n"
+                  << "\t--lightprobe --vertcross --latl2envcube\n";
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+
+    if (filenames.size() < 1) {
+        std::cerr << "maketx: Must have at least one input filename specified.\n";
         ap.usage();
         exit (EXIT_FAILURE);
     }
-    std::cout << "Converting " << filenames[0] << " to " << filenames[1] << "\n";
+//    std::cout << "Converting " << filenames[0] << " to " << outputfilename << "\n";
 }
 
 
@@ -194,17 +201,11 @@ main (int argc, char *argv[])
         else if (dataformatname == "double")
             outspec.set_format (PT_DOUBLE);
     }
-    outspec.gamma = gammaval;
 
     if (tile[0]) {
         outspec.tile_width = tile[0];
         outspec.tile_height = tile[1];
         outspec.tile_depth = tile[2];
-    }
-    if (scanline) {
-        outspec.tile_width = 0;
-        outspec.tile_height = 0;
-        outspec.tile_depth = 0;
     }
 
     // Find an ImageIO plugin that can open the output file, and open it
