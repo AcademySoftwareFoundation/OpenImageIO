@@ -75,6 +75,7 @@ ArgOption::initialize()
         count = 1;                      // sublist callback function pointer
         code = "*";
         flag = "";
+    } else if (format == "<SEPARATOR>") {
     } else {
         // extract the flag name
         s = &format[0];
@@ -350,7 +351,8 @@ ArgParse::parse (const char *intro, ...)
 
     this->intro = intro;
     for (const char *cur = va_arg(ap, char *); cur; cur = va_arg(ap, char *)) {
-        if (find_option (cur)) {
+        if (find_option (cur) &&
+                strcmp(cur, "<SEPARATOR>")) {
             error ("Option \"%s\" is multiply defined");
             return -1;
         }
@@ -439,15 +441,29 @@ ArgParse::error (const char *format, ...)
 void
 ArgParse::usage () const
 {
+    const size_t longline = 40;
     std::cout << intro << '\n';
     size_t maxlen = 0;
-    BOOST_FOREACH (ArgOption *opt, option)
-        maxlen = std::max (maxlen, opt->fmt().length());
     BOOST_FOREACH (ArgOption *opt, option) {
-        if (opt->description().length())
-            std::cout << "    " << opt->fmt() 
-                      << std::string (maxlen + 2 - opt->fmt().length(), ' ')
-                      << opt->description() << '\n';
+        size_t fmtlen = opt->fmt().length();
+        // Option lists > 40 chars will be split into multiple lines
+        if (fmtlen < longline)
+            maxlen = std::max (maxlen, fmtlen);
+    }
+    BOOST_FOREACH (ArgOption *opt, option) {
+        if (opt->description().length()) {
+            size_t fmtlen = opt->fmt().length();
+            if (opt->fmt() == "<SEPARATOR>")
+                std::cout << opt->description() << '\n';
+            else if (fmtlen < longline)
+                std::cout << "    " << opt->fmt() 
+                          << std::string (maxlen + 2 - fmtlen, ' ')
+                          << opt->description() << '\n';
+            else
+                std::cout << "    " << opt->fmt() << "\n    "
+                          << std::string (maxlen + 2, ' ')
+                          << opt->description() << '\n';
+        }
     }
 }
 

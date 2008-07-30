@@ -71,6 +71,10 @@
 ///     %! (or no % argument) - bool flag
 ///     %* - (argc,argv) sublist with callback
 ///
+/// There are several special format tokens:
+///     "<SEPARATOR>" - not an option at all, just a description to print
+///                     in the usage output.
+///
 /// Notes:
 ///   - If an option doesn't have any arguments, a flag argument is assumed.
 ///   - Flags are initialized to false.  No other variables are initialized.
