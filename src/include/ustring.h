@@ -120,10 +120,6 @@
 #define NULL 0
 #endif
 
-#ifndef USTRING_IMPL_STRING
-#define USTRING_IMPL_STRING 0
-#endif
-
 
 // FIXME: want a namespace 
 // namespace blah {
@@ -142,20 +138,12 @@ public:
 
     /// Default ctr for ustring -- make an empty string.
     ///
-    ustring (void)
-#if (! USTRING_IMPL_STRING)
-        : m_chars(NULL)
-#endif
-    { }
+    ustring (void) : m_chars(NULL) { }
 
     /// Construct a ustring from a null-terminated C string (char *).
     ///
     explicit ustring (const char *str) {
-#if USTRING_IMPL_STRING
-        m_chars = _make_unique(str)->str;
-#else
         m_chars = str ? _make_unique(str)->c_str() : NULL;
-#endif
     }
 
     /// Construct a ustring from at most n characters of str, starting at
@@ -222,11 +210,7 @@ public:
     /// Assign a null-terminated C string (char*) to *this.
     ///
     const ustring & assign (const char *str) {
-#if USTRING_IMPL_STRING
-        m_chars = _make_unique(str)->str;
-#else
         m_chars = str ? _make_unique(str)->c_str() : NULL;
-#endif
         return *this;
     }
 
@@ -264,11 +248,7 @@ public:
     /// Return a C string representation of a ustring.
     ///
     const char *c_str () const {
-#if USTRING_IMPL_STRING
-        return m_chars.c_str();
-#else
         return m_chars;
-#endif
     }
 
     /// Return a C string representation of a ustring.
@@ -278,35 +258,23 @@ public:
     /// Return a C++ std::string representation of a ustring.
     ///
     const std::string & string () const {
-#if USTRING_IMPL_STRING
-        return m_chars;
-#else
         const TableRep *rep = (const TableRep *)(m_chars - chars_offset);
         return rep->str;
-#endif
     }
 
     /// Reset to an empty string.
     ///
     void clear (void) {
-#if USTRING_IMPL_STRING
-        m_chars.clear();
-#else
         m_chars = NULL;
-#endif
     }
 
     /// Return the number of characters in the string.
     ///
     size_t length (void) const {
-#if USTRING_IMPL_STRING
-        return m_chars.size();
-#else
         if (! m_chars)
             return 0;
         const TableRep *rep = (const TableRep *)(m_chars - chars_offset);
         return rep->length;
-#endif
     }
 
     /// Return the number of characters in the string.
@@ -408,7 +376,9 @@ public:
     }
 
 
-    /// Construct a ustring in a printf-like fashion.
+    /// Construct a ustring in a printf-like fashion.  In other words,
+    /// something like:
+    ///    ustring s = ustring::format ("blah %d %g", (int)foo, (float)bar);
     ///
     static ustring format (const char *fmt, ...);
 
@@ -424,11 +394,7 @@ private:
 
     /// Individual ustring internal representation -- the unique characters.
     ///
-#if USTRING_IMPL_STRING
-    std::string m_chars;
-#else
     const char *m_chars;
-#endif
 
 public:
     /// Representation within the hidden string table -- DON'T EVER CREATE
