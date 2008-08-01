@@ -63,6 +63,10 @@ Filesystem::file_directory (const std::string &filepath)
 }
 
 
+#endif
+
+
+
 
 /// Return the file extension (just the part after the last '.') of a 
 /// filename.
@@ -87,9 +91,6 @@ Filesystem::file_extension (const std::string &filepath)
     // The extension starts AFTER the period!
     return ext;
 }
-
-
-#endif
 
 
 
