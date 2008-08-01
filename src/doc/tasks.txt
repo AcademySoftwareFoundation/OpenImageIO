@@ -35,6 +35,7 @@ DONE        idiff
 DONE        iv - zoom centered on mouse pixel
 DONE        iv - option for zoom to show non-interpolated pixels
             iv - change cursor depending on drag mode
+            jpeg - handle changes in linearity
 
 
 Before first alpha release
