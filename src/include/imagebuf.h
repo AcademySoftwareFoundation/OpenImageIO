@@ -36,12 +36,12 @@ namespace OpenImageIO {
 class ImageBuf {
 public:
     ImageBuf (const std::string &name);
-    ImageBuf (const std::string &name, ImageIOFormatSpec &spec);
+    ImageBuf (const std::string &name, const ImageIOFormatSpec &spec);
     virtual ~ImageBuf ();
 
     /// Allocate space the right size for an image described by the
     /// format spec.
-    virtual bool alloc (ImageIOFormatSpec &spec);
+    virtual void alloc (const ImageIOFormatSpec &spec);
 
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
@@ -150,17 +150,11 @@ protected:
     int m_current_subimage;    ///< Current subimage we're viewing
     ImageIOFormatSpec m_spec;  ///< Describes the image (size, etc)
     std::vector<char> m_pixels;  ///< Pixel data
-//    char *m_thumbnail;         ///< Thumbnail image
     bool m_spec_valid;         ///< Is the spec valid
     bool m_pixels_valid;       ///< Image is valid
-//    bool m_thumbnail_valid;    ///< Thumbnail is valid
     bool m_badfile;            ///< File not found
     std::string m_err;         ///< Last error message
-//    float m_gamma;             ///< Gamma correction of this image
-//    float m_exposure;          ///< Exposure gain of this image, in stops
     int m_orientation;         ///< Orientation of the image
-//    mutable std::string m_shortinfo;
-//    mutable std::string m_longinfo;
 
     // An ImageBuf can be in one of several states:
     //   * Uninitialized
@@ -174,6 +168,7 @@ protected:
     //   * Pixels loaded from disk, currently accurate
     //         (m_pixels && m_pixels_valid)
 
+    void realloc ();
 };
 
 

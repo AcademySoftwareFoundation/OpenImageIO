@@ -35,7 +35,7 @@
 
 IvImage::IvImage (const std::string &filename)
     : ImageBuf(filename), m_thumbnail(NULL),
-      m_thumbnail_valid(false),
+      m_pixels_valid(false), m_thumbnail_valid(false),
       m_gamma(1), m_exposure(0)
 {
 }
@@ -66,12 +66,19 @@ IvImage::read (int subimage, bool force,
                OpenImageIO::ProgressCallback progress_callback,
                void *progress_callback_data)
 {
+    // Don't read if we already have it in memory, unless force is true.
+    // FIXME: should we also check the time on the file to see if it's
+    // been updated since we last loaded?
+    if (m_pixels.size() && m_pixels_valid && !force && subimage == m_current_subimage)
+        return true;
+
     // invalidate info strings
     m_shortinfo.clear();
     m_longinfo.clear();
 
-    return ImageBuf::read (subimage, force, progress_callback,
-                           progress_callback_data);
+    bool ok = ImageBuf::read (subimage, force, progress_callback,
+                              progress_callback_data);
+    m_pixels_valid = ok;
 }
 
 

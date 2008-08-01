@@ -66,7 +66,7 @@ public:
 private:
     char *m_thumbnail;         ///< Thumbnail image
 //    bool m_spec_valid;         ///< Is the spec valid
-//    bool m_pixels_valid;       ///< Image is valid
+    bool m_pixels_valid;       ///< Image is valid
     bool m_thumbnail_valid;    ///< Thumbnail is valid
 //    bool m_badfile;            ///< File not found
 //    std::string m_err;         ///< Last error message
