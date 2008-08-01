@@ -343,10 +343,10 @@ TIFFInput::readspec ()
         m_spec.attribute ("compression", "ccittrle");
         break;
     case COMPRESSION_ADOBE_DEFLATE :
-        m_spec.attribute ("compression", "deflate");  // zip?
+        m_spec.attribute ("compression", "zip");
         break;
     case COMPRESSION_PACKBITS :
-        m_spec.attribute ("compression", "packbits");  // zip?
+        m_spec.attribute ("compression", "packbits");
         break;
     default:
         break;
