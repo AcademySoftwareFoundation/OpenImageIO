@@ -204,4 +204,46 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
 }
 
 
+
+template <class T, class Q>
+inline T
+bilerp (T v0, T v1, T v2, T v3, Q s, Q t)
+{
+    // NOTE: a*(t-1) + b*t is much more numerically stable than a+t*(b-a)
+    Q s1 = 1.0f - s;
+    return (T) ((1-t)*(v0*s1 + v1*s) + t*(v2*s1 + v3*s));
+}
+
+
+
+template <class T, class Q>
+inline void
+bilerp (const T *v0, const T *v1,
+        const T *v2, const T *v3,
+        Q s, Q t, int n, T *result)
+{
+    T s1 = 1 - s;
+    T t1 = 1 - t;
+    for (int i = 0;  i < n;  ++i)
+        result[i] = (T) t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s);
+}
+
+
+
+/// Return (x-floor(x)) and put (int)floor(x) in *xint.  This is similar
+/// to the built-in modf, but returns a true int, always rounds down
+/// (compared to modf which rounds toward 0), and always returns 
+/// frac >= 0 (comapred to modf which can return <0 if x<0).
+inline float
+floorfrac (float x, int *xint)
+{
+    // Find the greatest whole number <= x.  This cast is faster than
+    // calling floorf.
+    int i = (int) x - (x < 0.0f ? 1 : 0);
+    *xint = i;
+    return x - i;   // Return the fraction left over
+}
+
+
+
 #endif // FMATH_H
