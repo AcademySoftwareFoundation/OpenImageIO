@@ -54,7 +54,7 @@ enum rgbe_error_codes {
 };
 
 /* default error routine.  change this to change error handling */
-static int rgbe_error(int rgbe_error_code, char *msg)
+static int rgbe_error(int rgbe_error_code, const char *msg)
 {
   switch (rgbe_error_code) {
   case rgbe_read_error:
@@ -117,7 +117,7 @@ rgbe2float(float *red, float *green, float *blue, unsigned char rgbe[4])
 /* default minimal header. modify if you want more information in header */
 int RGBE_WriteHeader(FILE *fp, int width, int height, rgbe_header_info *info)
 {
-  char *programtype = "RADIANCE";
+  const char *programtype = "RADIANCE";
   /* N.B. from Larry Gritz:
    * Plenty of readers will refuse to read .rgbe/.hdr files if their
    * program type is not "RADIANCE".  So I changed the default
