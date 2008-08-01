@@ -34,6 +34,7 @@
 #include <QGLWidget>
 
 #include "imageio.h"
+#include "imagebuf.h"
 using namespace OpenImageIO;
 
 class IvMainWindow;
@@ -44,48 +45,15 @@ class IvGL;
 
 
 
-class IvImage {
+class IvImage : public ImageBuf {
 public:
     IvImage (const std::string &filename);
-    ~IvImage ();
+    virtual ~IvImage ();
 
-    /// Read the file from disk.  Generally will skip the read if we've
-    /// already got a current version of the image in memory, unless
-    /// force==true.
-    bool read (int subimage=0, bool force=false,
-               OpenImageIO::ProgressCallback progress_callback=NULL,
-               void *progress_callback_data=NULL);
-
-    /// Initialize this IvImage with the named image file, and read its
-    /// header to fill out the spec correctly.  Return true if this
-    /// succeeded, false if the file could not be read.
-    bool init_spec (const std::string &filename);
-
-    /// Save the image or a subset thereof.
-    ///
-    bool save (const std::string &filename,
-               OpenImageIO::ProgressCallback progress_callback=NULL,
-               void *progress_callback_data=NULL);
-
-    /// Return info on the last error that occurred since error_message()
-    /// was called.  This also clears the error message for next time.
-    std::string error_message (void) {
-        std::string e = m_err;
-        m_err.clear();
-        return e;
-    }
-
-    /// Return a reference to the image spec;
-    ///
-    const ImageIOFormatSpec & spec () const { return m_spec; }
-
-    /// Return a pointer to the start of scanline #y.
-    ///
-    void *scanline (int y) {
-        return (void *) (m_pixels + y * m_spec.scanline_bytes());
-    }
-
-    const std::string & name (void) const { return m_name; }
+    virtual bool read (int subimage=0, bool force=false,
+                       OpenImageIO::ProgressCallback progress_callback=NULL,
+                       void *progress_callback_data=NULL);
+    virtual bool init_spec (const std::string &filename);
 
     float gamma (void) const { return m_gamma; }
     void gamma (float e) { m_gamma = e; }
@@ -95,42 +63,16 @@ public:
     std::string shortinfo () const;
     std::string longinfo () const;
 
-    /// Return the index of the subimage are we currently viewing
-    ///
-    int subimage () const { return m_current_subimage; }
-
-    /// Return the number of subimages in the file.
-    ///
-    int nsubimages () const { return m_nsubimages; }
-
-    int nchannels () const { return m_spec.nchannels; }
-
-    const void *pixeladdr (int x, int y) const {
-        size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
-        return &m_pixels[p];
-    }
-    void getpixel (int x, int y, int *pixel) const;
-    void getpixel (int x, int y, float *pixel) const;
-
-    int oriented_width () const;
-    int oriented_height () const;
-    int orientation () const { return m_orientation; }
-
 private:
-    std::string m_name;        ///< Filename of the image
-    int m_nsubimages;          ///< How many subimages are there?
-    int m_current_subimage;    ///< Current subimage we're viewing
-    ImageIOFormatSpec m_spec;  ///< Describes the image (size, etc)
-    char *m_pixels;            ///< Pixel data
     char *m_thumbnail;         ///< Thumbnail image
-    bool m_spec_valid;         ///< Is the spec valid
-    bool m_pixels_valid;       ///< Image is valid
+//    bool m_spec_valid;         ///< Is the spec valid
+//    bool m_pixels_valid;       ///< Image is valid
     bool m_thumbnail_valid;    ///< Thumbnail is valid
-    bool m_badfile;            ///< File not found
-    std::string m_err;         ///< Last error message
+//    bool m_badfile;            ///< File not found
+//    std::string m_err;         ///< Last error message
     float m_gamma;             ///< Gamma correction of this image
     float m_exposure;          ///< Exposure gain of this image, in stops
-    int m_orientation;         ///< Orientation of the image
+//    int m_orientation;         ///< Orientation of the image
     mutable std::string m_shortinfo;
     mutable std::string m_longinfo;
 

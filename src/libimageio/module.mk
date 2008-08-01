@@ -9,7 +9,8 @@ local_name := libimageio
 
 # Name of all source files in this directory
 local_src := formatspec.cpp imageinput.cpp imageio.cpp \
-		imageoutput.cpp imageioplugin.cpp
+		imageoutput.cpp imageioplugin.cpp \
+		imagebuf.cpp imagebufalgo.cpp
 
 # Extra static libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)
