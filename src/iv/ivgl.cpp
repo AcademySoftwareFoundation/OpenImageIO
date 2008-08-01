@@ -458,8 +458,8 @@ IvGL::paint_pixelview ()
         std::string s = Strutil::format ("(%d, %d)", xp+spec.x, yp+spec.y);
         shadowed_text (textx, texty, 0.0f, s, font);
         texty -= yspacing;
-        img->getpixel (xp, yp, fpixel);
-        const void *p = img->pixeladdr (xp, yp);
+        img->getpixel (xp+spec.x, yp+spec.y, fpixel);
+        const void *p = img->pixeladdr (xp+spec.x, yp+spec.y);
         for (int i = 0;  i < spec.nchannels;  ++i) {
             switch (spec.format) {
             case PT_UINT8 :
