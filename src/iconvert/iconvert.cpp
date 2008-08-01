@@ -105,14 +105,14 @@ main (int argc, char *argv[])
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to read \"" 
             << filenames[0] << "\" : " << OpenImageIO::error_message() << "\n";
-        exit (0);
+        exit (EXIT_FAILURE);
     }
     ImageIOFormatSpec inspec;
     if (! in->open (filenames[0].c_str(), inspec)) {
         std::cerr << "iconvert ERROR: Could not open \"" << filenames[0]
                   << "\" : " << in->error_message() << "\n";
         delete in;
-        exit (0);
+        exit (EXIT_FAILURE);
     }
 
     // Copy the spec, with possible change in format
@@ -153,12 +153,12 @@ main (int argc, char *argv[])
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to write \"" 
             << filenames[1] << "\" :" << OpenImageIO::error_message() << "\n";
-        exit (0);
+        exit (EXIT_FAILURE);
     }
     if (! out->open (filenames[1].c_str(), outspec)) {
         std::cerr << "iconvert ERROR: Could not open \"" << filenames[1]
                   << "\" : " << out->error_message() << "\n";
-        exit (0);
+        exit (EXIT_FAILURE);
     }
 
     char *pixels = new char [outspec.image_bytes()];
