@@ -31,11 +31,15 @@
 #include <iostream>
 #include <iterator>
 
+#include <boost/filesystem.hpp>
 #include <ImathMatrix.h>
 
 #include "argparse.h"
+#include "filesystem.h"
+#include "fmath.h"
 #include "imageio.h"
 using namespace OpenImageIO;
+#include "imagebuf.h"
 
 
 // Basic runtime options
@@ -45,11 +49,12 @@ static std::string dataformatname = "";
 static std::string fileformatname = "tiff";
 static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
-static int tile[3] = { 0, 0, 1 };
+static int tile[3] = { 64, 64, 1 };
 static std::string channellist;
 static bool updatemode = false;
 
 // Conversion modes.  If none are true, we just make an ordinary texture.
+static bool mipmapmode = false;
 static bool shadowmode = false;
 static bool shadowcubemode = false;
 static bool volshadowmode = false;
@@ -150,13 +155,161 @@ getargs (int argc, char *argv[])
         ap.usage ();
         exit (EXIT_FAILURE);
     }
+    if (optionsum == 0)
+        mipmapmode = true;
 
     if (filenames.size() < 1) {
-        std::cerr << "maketx: Must have at least one input filename specified.\n";
+        std::cerr << "maketx ERROR: Must have at least one input filename specified.\n";
         ap.usage();
         exit (EXIT_FAILURE);
     }
 //    std::cout << "Converting " << filenames[0] << " to " << outputfilename << "\n";
+}
+
+
+
+static void
+make_mipmap (void)
+{
+    std::cerr << "make_mipmap\n";
+    if (filenames.size() != 1) {
+        std::cerr << "maketx ERROR: Ordinary texture map requires exactly one filename\n";
+        exit (EXIT_FAILURE);
+    }
+
+    if (! boost::filesystem::exists (filenames[0])) {
+        std::cerr << "maketx ERROR: \"" << filenames[0] << "\" does not exist\n";
+        exit (EXIT_FAILURE);
+    }
+    if (outputfilename.empty()) {
+        std::string ext = boost::filesystem::extension (filenames[0]);
+        int notextlen = (int) filenames[0].length() - (int) ext.length();
+        std::cerr << "I think ext = '" << ext << "'\n";
+        outputfilename = std::string (filenames[0].begin(),
+                                      filenames[0].begin() + notextlen);
+        outputfilename += ".tx";
+    }
+    std::cerr << "Output filename is " << outputfilename << "\n";
+
+    ImageBuf src (filenames[0]);
+    if (! src.read()) {
+        std::cerr 
+            << "maketx ERROR: Could not find an ImageIO plugin to read \"" 
+            << filenames[0] << "\" : " << src.error_message() << "\n";
+        exit (EXIT_FAILURE);
+    }
+
+    // Copy the spec, with possible change in format
+    ImageIOFormatSpec dstspec = src.spec();
+    dstspec.set_format (src.spec().format);
+    if (! dataformatname.empty()) {
+        if (dataformatname == "uint8")
+            dstspec.set_format (PT_UINT8);
+        else if (dataformatname == "int8")
+            dstspec.set_format (PT_INT8);
+        else if (dataformatname == "uint16")
+            dstspec.set_format (PT_UINT16);
+        else if (dataformatname == "int16")
+            dstspec.set_format (PT_INT16);
+        else if (dataformatname == "half")
+            dstspec.set_format (PT_HALF);
+        else if (dataformatname == "float")
+            dstspec.set_format (PT_FLOAT);
+        else if (dataformatname == "double")
+            dstspec.set_format (PT_DOUBLE);
+    }
+
+    // Make the output not a crop window
+    dstspec.x = 0;
+    dstspec.y = 0;
+    dstspec.z = 0;
+    dstspec.full_width = 0;
+    dstspec.full_height = 0;
+    dstspec.full_depth = 0;
+
+    // Make the output tiled, regardless of input
+    dstspec.tile_width  = tile[0];
+    dstspec.tile_height = tile[1];
+    dstspec.tile_depth  = tile[2];
+
+    // Always use ZIP compression
+    dstspec.attribute ("compression", "zip");
+
+    // FIXME: Reset "DateTime" attribute to NOW
+    // FIXME: set "Software" and amend "ImageDescription"
+
+    dstspec.set_format (PT_FLOAT);
+    if (! noresize) {
+        dstspec.width = pow2roundup (dstspec.width);
+        dstspec.height = pow2roundup (dstspec.height);
+        dstspec.full_width = dstspec.width;
+        dstspec.full_height = dstspec.height;
+    }
+    std::cerr << "Rounded res is " << dstspec.width << ' ' << dstspec.height << "\n";
+    ImageBuf dst ("temp", dstspec);
+    float *pel = (float *) alloca (dstspec.pixel_bytes());
+    for (int y = 0;  y < dstspec.height;  ++y) {
+        for (int x = 0;  x < dstspec.width;  ++x) {
+            src.interppixel_NDC ((x+0.5f)/(float)dstspec.width,
+                                 (y+0.5f)/(float)dstspec.height, pel);
+            dst.setpixel (x, y, pel);
+        }
+    }
+
+    // Find an ImageIO plugin that can open the output file, and open it
+    ImageOutput *out = ImageOutput::create (fileformatname.c_str());
+    if (! out) {
+        std::cerr 
+            << "maketx ERROR: Could not find an ImageIO plugin to write " 
+            << fileformatname << " files:" << OpenImageIO::error_message() << "\n";
+        exit (EXIT_FAILURE);
+    }
+    if (! out->supports ("tiles") || ! out->supports ("multiimage")) {
+        std::cerr << "maketx ERROR: \"" << outputfilename
+                  << "\" format does not support tiled, multires images\n";
+        exit (EXIT_FAILURE);
+    }
+    ImageIOFormatSpec outspec = dstspec;
+    outspec.set_format (src.spec().format);
+    if (! out->open (outputfilename.c_str(), outspec)) {
+        std::cerr << "maketx ERROR: Could not open \"" << outputfilename
+                  << "\" : " << out->error_message() << "\n";
+        exit (EXIT_FAILURE);
+    }
+
+    out->write_image (PT_FLOAT, dst.pixeladdr(0,0));
+    while (dstspec.width > 1 || dstspec.height > 1) {
+        ImageBuf tmp = dst;
+        if (dstspec.width > 1) {
+            // Halve width
+            dstspec.width /= 2;
+        }
+        if (dstspec.height > 1) {
+            // Halve height
+            dstspec.height /= 2;
+        }
+        dst.alloc (dstspec);  // Realocate with new size
+        for (int y = 0;  y < dstspec.height;  ++y) {
+            for (int x = 0;  x < dstspec.width;  ++x) {
+                tmp.interppixel_NDC ((x+0.5f)/(float)dstspec.width,
+                                     (y+0.5f)/(float)dstspec.height, pel);
+                dst.setpixel (x, y, pel);
+            }
+        }
+
+        std::cerr << "writing " << dstspec.width << ' ' << dstspec.height << "\n";
+        outspec = dst.spec();
+        outspec.set_format (src.spec().format);
+        if (! out->open (outputfilename.c_str(), outspec, true)) {
+            std::cerr << "maketx ERROR: Could not append \"" << outputfilename
+                      << "\" : " << out->error_message() << "\n";
+            exit (EXIT_FAILURE);
+        }
+        out->write_image (PT_FLOAT, dst.pixeladdr(0,0));
+    }
+
+    out->close ();
+    delete out;
 }
 
 
@@ -166,71 +319,17 @@ main (int argc, char *argv[])
 {
     getargs (argc, argv);
 
-    // Find an ImageIO plugin that can open the input file, and open it.
-    ImageInput *in = ImageInput::create (filenames[0].c_str(), "" /* searchpath */);
-    if (! in) {
-        std::cerr 
-            << "maketx ERROR: Could not find an ImageIO plugin to read \"" 
-            << filenames[0] << "\" : " << OpenImageIO::error_message() << "\n";
-        exit (0);
+    if (mipmapmode) {
+        make_mipmap ();
+    } else if (shadowmode) {
+    } else if (shadowcubemode) {
+    } else if (volshadowmode) {
+    } else if (envlatlmode) {
+    } else if (envcubemode) {
+    } else if (lightprobemode) {
+    } else if (vertcrossmode) {
+    } else if (latl2envcubemode) {
     }
-    ImageIOFormatSpec inspec;
-    if (! in->open (filenames[0].c_str(), inspec)) {
-        std::cerr << "maketx ERROR: Could not open \"" << filenames[0]
-                  << "\" : " << in->error_message() << "\n";
-        delete in;
-        exit (0);
-    }
-
-    // Copy the spec, with possible change in format
-    ImageIOFormatSpec outspec = inspec;
-    outspec.set_format (inspec.format);
-    if (! dataformatname.empty()) {
-        if (dataformatname == "uint8")
-            outspec.set_format (PT_UINT8);
-        else if (dataformatname == "int8")
-            outspec.set_format (PT_INT8);
-        else if (dataformatname == "uint16")
-            outspec.set_format (PT_UINT16);
-        else if (dataformatname == "int16")
-            outspec.set_format (PT_INT16);
-        else if (dataformatname == "half")
-            outspec.set_format (PT_HALF);
-        else if (dataformatname == "float")
-            outspec.set_format (PT_FLOAT);
-        else if (dataformatname == "double")
-            outspec.set_format (PT_DOUBLE);
-    }
-
-    if (tile[0]) {
-        outspec.tile_width = tile[0];
-        outspec.tile_height = tile[1];
-        outspec.tile_depth = tile[2];
-    }
-
-    // Find an ImageIO plugin that can open the output file, and open it
-    ImageOutput *out = ImageOutput::create (filenames[1].c_str());
-    if (! out) {
-        std::cerr 
-            << "maketx ERROR: Could not find an ImageIO plugin to write \"" 
-            << filenames[1] << "\" :" << OpenImageIO::error_message() << "\n";
-        exit (0);
-    }
-    if (! out->open (filenames[1].c_str(), outspec)) {
-        std::cerr << "maketx ERROR: Could not open \"" << filenames[1]
-                  << "\" : " << out->error_message() << "\n";
-        exit (0);
-    }
-
-    char *pixels = new char [outspec.image_bytes()];
-    in->read_image (outspec.format, pixels);
-    in->close ();
-    delete in;
-    in = NULL;
-    out->write_image (outspec.format, pixels);
-    out->close ();
-    delete out;
-    delete [] pixels;
 
     return 0;
 }
