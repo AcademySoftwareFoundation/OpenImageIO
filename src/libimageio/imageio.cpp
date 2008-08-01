@@ -338,9 +338,9 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 
 
 bool
-OpenImageIO::pvt::convert_types (ParamBaseType src_type, const void *src, 
-                                 ParamBaseType dst_type, void *dst, int n,
-                                 float gain, float gamma)
+OpenImageIO::convert_types (ParamBaseType src_type, const void *src, 
+                            ParamBaseType dst_type, void *dst, int n,
+                            float gain, float gamma)
 {
     // If no conversion is necessary, just memcpy
     if (src_type == dst_type && gain == 1.0f && gamma == 1.0f) {

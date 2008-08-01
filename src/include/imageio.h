@@ -256,6 +256,12 @@ public:
                (size_t)std::max(depth,1) * pixel_bytes ();
     }
 
+    ///
+    /// Return the number of pixels for an entire image
+    size_t image_pixels() const {
+        return (size_t)width * (size_t)height * (size_t)std::max(depth,1);
+    }
+
     /// Adjust the stride values, if set to AutoStride, to be the right
     /// sizes for contiguous data with the given format, channels,
     /// width, height.
@@ -693,6 +699,14 @@ inline float exposure (float value, float gain, float invgamma)
     return gain * value;
 }
 
+
+/// Helper function: convert contiguous arbitrary data between two
+/// arbitrary types (specified by ParamBaseType's), with optional gain
+/// and gamma correction.  Return true if ok, false if it didn't know
+/// how to do the conversion.
+DLLPUBLIC bool convert_types (ParamBaseType src_type, const void *src, 
+                              ParamBaseType dst_type, void *to, int n,
+                              float gain=1, float gamma=1);
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
