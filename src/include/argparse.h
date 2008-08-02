@@ -108,7 +108,14 @@ public:
 
     std::string error_message () const { return errmessage; }
 
+    /// Print the usage message to stdout.  The usage message is
+    /// generated and formatted automatically based on the command and
+    /// description arguments passed to parse().
     void usage () const;
+
+    /// Return the entire command-line as one string.
+    ///
+    std::string command_line () const;
 
 private:
     int argc;                           // a copy of the command line argc

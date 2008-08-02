@@ -248,6 +248,14 @@ ArgParse::ArgParse (int argc, const char **argv)
 
 
 
+ArgParse::~ArgParse()
+{
+    BOOST_FOREACH (ArgOption *opt, option)
+        delete opt;
+}
+
+
+
 // Called after all command line parsing is completed, this function
 // will invoke all callbacks for sublist arguments.  
 inline int
@@ -469,8 +477,20 @@ ArgParse::usage () const
 
 
 
-ArgParse::~ArgParse()
+std::string
+ArgParse::command_line () const
 {
-    BOOST_FOREACH (ArgOption *opt, option)
-        delete opt;
+    std::string s;
+    for (int i = 0;  i < argc;  ++i) {
+        if (strchr (argv[i], ' ')) {
+            s += '\"';
+            s += argv[i];
+            s += '\"';
+        } else {
+            s += argv[i];
+        }
+        if (i < argc-i)
+            s += ' ';
+    }
+    return s;
 }
