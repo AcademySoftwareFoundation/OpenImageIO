@@ -168,9 +168,9 @@ class DLLPUBLIC ImageIOFormatSpec {
 public:
     enum Linearity {
         UnknownLinearity = 0, ///< Unknown which color space we're in
-        Linear = 0,           ///< Color values are linear
-        GammaCorrected = 1,   ///< Color values are gamma corrected
-        sRGB = 2              ///< Color values are in sRGB
+        Linear = 1,           ///< Color values are linear
+        GammaCorrected = 2,   ///< Color values are gamma corrected
+        sRGB = 3              ///< Color values are in sRGB
     };
 
     int x, y, z;              ///< image origin (0,0,0)
