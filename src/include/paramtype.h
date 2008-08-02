@@ -174,10 +174,8 @@ public:
     ParamType (ParamBaseType base, short array,
                ParamInterp det=INTERP_CONSTANT) {
         basetype = base;
-        arraylen = array;
+        arraylen = array ? array : 1;
         isarray = (array != 0);
-        if (! isarray)
-            arraylen = 1;
         interp = det;
         reserved = 0;
     }
