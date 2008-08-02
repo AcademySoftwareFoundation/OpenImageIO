@@ -25,6 +25,7 @@
 
 
 #include <string>
+#include <boost/scoped_ptr.hpp>
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
 
@@ -37,6 +38,7 @@ using namespace std::tr1;
 #include "varyingref.h"
 #include "ustring.h"
 #include "hash.h"
+#include "thread.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
@@ -67,6 +69,46 @@ TextureSystem::destroy (TextureSystem * &x)
 namespace TexturePvt {
 
 
+TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
+    : m_texsys(texsys), m_filename(filename), m_used(true), m_broken(false)
+{
+    m_input.reset (ImageInput::create (filename.c_str(), m_texsys.searchpath().c_str()));
+    if (! m_input) {
+        m_broken = true;
+        return;
+    }
+    m_spec.reserve (16);
+    ImageIOFormatSpec tempspec;
+    if (! m_input->open (filename.c_str(), tempspec)) {
+        m_broken = true;
+        m_input.reset ();
+        return;
+    }
+
+    int nsubimages = 0;
+    do {
+        ++nsubimages;
+        m_spec.push_back (tempspec);
+    } while (m_input->seek_subimage (nsubimages, tempspec));
+    std::cerr << filename << " has " << m_spec.size() << " subimages\n";
+    ASSERT (nsubimages = m_spec.size());
+
+    // FIXME -- fill in: textype, swrap, twrap, Mlocal, Mproj, Mtex,
+    // Mras, cubelayout, y_up
+}
+
+
+
+TextureFile::~TextureFile ()
+{
+    if (m_input) {
+        m_input->close ();
+        m_input.reset ();
+    }
+}
+
+
+
 void
 TextureSystemImpl::init ()
 {
@@ -79,7 +121,19 @@ TextureSystemImpl::init ()
 TextureFile *
 TextureSystemImpl::findtex (ustring filename)
 {
-    return NULL;
+    lock_guard guard (m_texturefiles_mutex);
+    FilenameMap::iterator found = m_texturefiles.find (filename);
+    TextureFileRef tf;
+    if (found == m_texturefiles.end()) {
+        // We don't already have this file in the texture list.  Try to
+        // open it and create a record.
+        tf.reset (new TextureFile (*this, filename));
+        m_texturefiles[filename] = tf;
+    } else {
+        tf = found->second;
+    }
+
+    return tf.get();
 }
 
 
@@ -95,8 +149,44 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
         std::cerr << "   NOT FOUND\n";
         return false;
     }
-    std::cerr << "    found.\n";
-    return true;
+    if (texfile->broken()) {
+        std::cerr << "    Invalid file\n";
+        return false;
+    }
+    const ImageIOFormatSpec &spec (texfile->spec());
+    if (dataname == "resolution" && datatype==ParamType(PT_INT,2)) {
+        int *d = (int *)data;
+        d[0] = spec.width;
+        d[1] = spec.height;
+        return true;
+    }
+    if (dataname == "texturetype" && datatype==ParamType(PT_STRING)) {
+        const char **d = (const char **)data;
+        d[0] = "unknown";  // FIXME
+        return true;
+    }
+#if 0
+    if (dataname == "textureformat" && datatype==ParamType(PT_STRING)) {
+        const char **d = (const char **)data;
+        d[0] = "unknown";  // FIXME
+        return true;
+    }
+#endif
+    if (dataname == "channels" && datatype==ParamType(PT_INT)) {
+        *(int *)data = spec.nchannels;
+        return true;
+    }
+    if (dataname == "channels" && datatype==ParamType(PT_FLOAT)) {
+        *(float *)data = spec.nchannels;
+        return true;
+    }
+    // FIXME - "viewingmatrix"
+    // FIXME - "projectionmatrix"
+
+    // FIXME - general case
+
+    
+    return false;
 }
 
 

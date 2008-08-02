@@ -54,28 +54,29 @@ enum CubeLayout {
 ///
 class TextureFile {
 public:
-    TextureFile (TextureSystemImpl &texsys)
-        : m_texsys(texsys)
-    { }
+    TextureFile (TextureSystemImpl &texsys, ustring filename);
+    ~TextureFile ();
 
-    ~TextureFile () { }
+    bool broken () const { return m_broken; }
+    int levels () const { return (int)m_spec.size(); }
+    const ImageIOFormatSpec & spec (int level=0) const { return m_spec[level]; }
 
 private:
-    ustring m_filename;            ///< Filename
-    bool m_used;                   ///< Recently used (in the LRU sense)
-    bool m_broken;                 ///< has errors; can't be used properly
-    ImageInput *m_input;           ///< Open ImageInput, NULL if closed
-    std::vector<ImageIOFormatSpec> m_format;  ///< Format for each MIP-map level
-    TexType m_textype;             ///< Which texture type
-    TextureOptions::Wrap m_swrap;  ///< Default wrap modes
-    TextureOptions::Wrap m_twrap;  ///< Default wrap modes
-    Imath::M44f m_Mlocal;          ///< shadows: world-to-local (light) matrix
-    Imath::M44f m_Mproj;           ///< shadows: world-to-pseudo-NDC
-    Imath::M44f m_Mtex;            ///< shadows: world-to-NDC with camera z
-    Imath::M44f m_Mras;            ///< shadows: world-to-raster with camera z
-    CubeLayout m_cubelayout;       ///< cubemap: which layout?
-    bool y_up;                     ///< latlong: is y "up"?
-    TextureSystemImpl &m_texsys;   ///< Back pointer for texture system
+    ustring m_filename;             ///< Filename
+    bool m_used;                    ///< Recently used (in the LRU sense)
+    bool m_broken;                  ///< has errors; can't be used properly
+    shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
+    std::vector<ImageIOFormatSpec> m_spec;  ///< Format for each MIP-map level
+    TexType m_textype;              ///< Which texture type
+    TextureOptions::Wrap m_swrap;   ///< Default wrap modes
+    TextureOptions::Wrap m_twrap;   ///< Default wrap modes
+    Imath::M44f m_Mlocal;           ///< shadows: world-to-local (light) matrix
+    Imath::M44f m_Mproj;            ///< shadows: world-to-pseudo-NDC
+    Imath::M44f m_Mtex;             ///< shadows: world-to-NDC with camera z
+    Imath::M44f m_Mras;             ///< shadows: world-to-raster with camera z
+    CubeLayout m_cubelayout;        ///< cubemap: which layout?
+    bool m_y_up;                    ///< latlong: is y "up"?
+    TextureSystemImpl &m_texsys;    ///< Back pointer for texture system
 };
 
 
@@ -234,6 +235,7 @@ private:
     size_t m_max_memory_bytes;
     ustring m_searchpath;
     FilenameMap m_texturefiles;  ///< Map file names to TextureFile's
+    mutex m_texturefiles_mutex;  ///< Protect filename map
 };
 
 
