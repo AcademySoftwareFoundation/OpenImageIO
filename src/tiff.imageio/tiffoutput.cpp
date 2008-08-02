@@ -217,7 +217,7 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
     TIFFSetField (m_tif, TIFFTAG_PLANARCONFIG, m_planarconfig);
 
     // Automatically set date field if the client didn't supply it.
-    if (! m_spec.find_attribute("datetime")) {
+    if (! m_spec.find_attribute("DateTime")) {
         time_t now;
         time (&now);
         struct tm mytm;
@@ -225,7 +225,7 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
         std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
                                mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                                mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
-        m_spec.attribute ("datetime", date);
+        m_spec.attribute ("DateTime", date);
     }
 
     // Deal with all other params
