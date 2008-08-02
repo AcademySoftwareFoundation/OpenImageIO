@@ -36,8 +36,12 @@
 #undef DLL_EXPORT_PUBLIC
 
 
-typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash> UstringTable;
 
+#ifdef WINNT
+typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash> UstringTable;
+#else
+typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
+#endif
 static UstringTable ustring_table;
 static mutex ustring_mutex;
 

@@ -347,17 +347,17 @@ public:
     /// sequence of characters.  Note that because ustrings are unique,
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
-    bool operator== (const ustring &str) { return c_str() == str.c_str(); }
+    bool operator== (const ustring &str) const { return c_str() == str.c_str(); }
 
     /// Test two ustrings for inequality -- are they comprised of different
     /// sequences of characters.  Note that because ustrings are unique,
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
-    bool operator!= (const ustring &str) { return c_str() != str.c_str(); }
+    bool operator!= (const ustring &str) const { return c_str() != str.c_str(); }
 
     /// Test a ustring (*this) for lexicographic equality with std::string
     /// x.
-    bool operator== (const std::string &x) { return compare(x) == 0; }
+    bool operator== (const std::string &x) const { return compare(x) == 0; }
 
     /// Test for lexicographic equality between std::string a and ustring
     /// b.
@@ -367,7 +367,7 @@ public:
 
     /// Test a ustring (*this) for lexicographic inequality with
     /// std::string x.
-    bool operator!= (const std::string &x) { return compare(x) != 0; }
+    bool operator!= (const std::string &x) const { return compare(x) != 0; }
 
     /// Test for lexicographic inequality between std::string a and
     /// ustring b.
@@ -429,9 +429,11 @@ class ustringHash
 {
 public:
     size_t operator() (const ustring &s) const { return (size_t)s.c_str(); }
+#ifdef WINNT
     bool operator() (const ustring &a, const ustring &b) {
         return strcmp (a.c_str(), b.c_str()) < 0;
     }
+#endif
 };
 
 

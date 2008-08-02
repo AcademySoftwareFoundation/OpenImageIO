@@ -67,6 +67,13 @@ strhash (const char *s)
 
 
 /// C++ functor wrapper class for using strhash for hash_map or hash_set.
+/// The way this is used, in conjunction with StringEqual, to build an
+/// efficient hash_map for char*'s is as follows:
+///   #ifdef WINNT
+///    hash_map <const char *, Key, Strutil::StringHash>
+///   #else
+///    hash_map <const char *, Key, Strutil::StringHash, Strutil::StringEqual>
+///   #endif
 ///
 class StringHash
 #ifdef WINNT
@@ -77,12 +84,23 @@ public:
     size_t operator() (const char *s) const {
         return (size_t)Strutil::strhash(s);
     }
+#ifdef WINNT
     bool operator() (const char *a, const char *b) {
         return strcmp (a, b) < 0;
     }
+#endif
 };
 
 
+
+/// C++ functor class for comparing two char*'s for equality of their
+/// strings.
+class StringEqual {
+public:
+    bool operator() (const char *a, const char *b) {
+        return strcmp (a, b) == 0;
+    }
+};
 
 
 };  // namespace Strutil
