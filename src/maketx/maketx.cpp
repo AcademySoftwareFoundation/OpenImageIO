@@ -37,12 +37,14 @@
 #include "argparse.h"
 #include "filesystem.h"
 #include "fmath.h"
+#include "strutil.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 #include "imagebuf.h"
 
 
 // Basic runtime options
+static std::string full_command_line;
 static std::vector<std::string> filenames;
 static std::string outputfilename;
 static std::string dataformatname = "";
@@ -66,12 +68,12 @@ static bool latl2envcubemode = false;
 
 // Options controlling file metadata or mipmap creation
 static float fov = 90;
-static std::string wrap;
-static std::string swrap = "black";
-static std::string twrap = "black";
+static std::string wrap = "black";
+static std::string swrap;
+static std::string twrap;
 static bool noresize = false;
 static float opaquewidth = 0;  // should be volume shadow epsilon
-static Imath::M44f Mcam, Mscr;  // Initialize to identity
+static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
 
 
@@ -143,6 +145,7 @@ getargs (int argc, char *argv[])
         ap.usage ();
         exit (EXIT_FAILURE);
     }
+    full_command_line = ap.command_line ();
 
     int optionsum = ((int)shadowmode + (int)shadowcubemode + (int)volshadowmode +
                      (int)envlatlmode + (int)envcubemode +
@@ -168,10 +171,23 @@ getargs (int argc, char *argv[])
 
 
 
+static std::string
+datestring ()
+{
+    time_t now;
+    time (&now);
+    struct tm mytm;
+    localtime_r (&now, &mytm);
+    return Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
+                            mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
+                            mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
+}
+
+
+
 static void
 make_mipmap (void)
 {
-    std::cerr << "make_mipmap\n";
     if (filenames.size() != 1) {
         std::cerr << "maketx ERROR: Ordinary texture map requires exactly one filename\n";
         exit (EXIT_FAILURE);
@@ -184,12 +200,10 @@ make_mipmap (void)
     if (outputfilename.empty()) {
         std::string ext = boost::filesystem::extension (filenames[0]);
         int notextlen = (int) filenames[0].length() - (int) ext.length();
-        std::cerr << "I think ext = '" << ext << "'\n";
         outputfilename = std::string (filenames[0].begin(),
                                       filenames[0].begin() + notextlen);
         outputfilename += ".tx";
     }
-    std::cerr << "Output filename is " << outputfilename << "\n";
 
     ImageBuf src (filenames[0]);
     if (! src.read()) {
@@ -235,8 +249,25 @@ make_mipmap (void)
     // Always use ZIP compression
     dstspec.attribute ("compression", "zip");
 
-    // FIXME: Reset "DateTime" attribute to NOW
-    // FIXME: set "Software" and amend "ImageDescription"
+    dstspec.attribute ("DateTime", datestring());
+    dstspec.attribute ("Software", full_command_line);
+    dstspec.attribute ("textureformat", "Plain Texture");
+
+    if (Mcam != Imath::M44f(0.0f))
+        dstspec.attribute ("worldtocamera", PT_MATRIX, 1, &Mcam);
+    if (Mscr != Imath::M44f(0.0f))
+        dstspec.attribute ("worldtoscreen", PT_MATRIX, 1, &Mscr);
+
+    // FIXME - check for valid strings in the wrap mode
+    std::string wrapmodes = (swrap.size() ? swrap : wrap) + ',' + 
+                            (twrap.size() ? twrap : wrap);
+    dstspec.attribute ("wrapmodes", wrapmodes);
+    dstspec.attribute ("fovcot", (float)src.spec().width / src.spec().height);
+
+    // FIXME -- should we allow tile sizes to reduce if the image is
+    // smaller than the tile size?  And when we do, should we also try
+    // to make it bigger in the other direction to make the total tile
+    // size more constant?
 
     dstspec.set_format (PT_FLOAT);
     if (! noresize) {
@@ -245,7 +276,6 @@ make_mipmap (void)
         dstspec.full_width = dstspec.width;
         dstspec.full_height = dstspec.height;
     }
-    std::cerr << "Rounded res is " << dstspec.width << ' ' << dstspec.height << "\n";
     ImageBuf dst ("temp", dstspec);
     float *pel = (float *) alloca (dstspec.pixel_bytes());
     for (int y = 0;  y < dstspec.height;  ++y) {
@@ -280,14 +310,10 @@ make_mipmap (void)
     out->write_image (PT_FLOAT, dst.pixeladdr(0,0));
     while (dstspec.width > 1 || dstspec.height > 1) {
         ImageBuf tmp = dst;
-        if (dstspec.width > 1) {
-            // Halve width
+        if (dstspec.width > 1)
             dstspec.width /= 2;
-        }
-        if (dstspec.height > 1) {
-            // Halve height
+        if (dstspec.height > 1)
             dstspec.height /= 2;
-        }
         dst.alloc (dstspec);  // Realocate with new size
         for (int y = 0;  y < dstspec.height;  ++y) {
             for (int x = 0;  x < dstspec.width;  ++x) {
@@ -296,8 +322,6 @@ make_mipmap (void)
                 dst.setpixel (x, y, pel);
             }
         }
-
-        std::cerr << "writing " << dstspec.width << ' ' << dstspec.height << "\n";
         outspec = dst.spec();
         outspec.set_format (src.spec().format);
         if (! out->open (outputfilename.c_str(), outspec, true)) {
