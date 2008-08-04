@@ -256,3 +256,21 @@ ImageIOFormatSpec::find_attribute (const std::string &name, bool casesensitive)
     }
     return NULL;
 }
+
+
+
+const ImageIOParameter *
+ImageIOFormatSpec::find_attribute (const std::string &name,
+                                   bool casesensitive) const
+{
+    if (casesensitive) {
+        for (size_t i = 0;  i < extra_attribs.size();  ++i)
+            if (extra_attribs[i].name == name)
+                return &extra_attribs[i];
+    } else {
+        for (size_t i = 0;  i < extra_attribs.size();  ++i)
+            if (iequals (extra_attribs[i].name, name))
+                return &extra_attribs[i];
+    }
+    return NULL;
+}

@@ -316,6 +316,8 @@ public:
     /// attributes.
     ImageIOParameter * find_attribute (const std::string &name,
                                        bool casesensitive=false);
+    const ImageIOParameter * find_attribute (const std::string &name,
+                                             bool casesensitive=false) const;
 
 private:
     // Special storage space for strings that go into extra_parameters
