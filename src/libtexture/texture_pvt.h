@@ -28,7 +28,8 @@
 #define TEXTURE_PVT_H
 
 
-namespace TexturePvt {
+namespace OpenImageIO {
+namespace pvt {
 
 class TextureSystemImpl;
 
@@ -43,6 +44,7 @@ enum TexType {
 
 
 enum CubeLayout {
+    CubeUnknown,
     CubeThreeByTwo,
     CubeOneBySix,
     CubeLast
@@ -75,7 +77,7 @@ private:
     Imath::M44f m_Mtex;             ///< shadows: world-to-NDC with camera z
     Imath::M44f m_Mras;             ///< shadows: world-to-raster with camera z
     CubeLayout m_cubelayout;        ///< cubemap: which layout?
-    bool m_y_up;                    ///< latlong: is y "up"?
+    bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
     TextureSystemImpl &m_texsys;    ///< Back pointer for texture system
 };
 
@@ -240,7 +242,8 @@ private:
 
 
 
-};  // end namespace TexturePvt
+};  // end namespace OpenImageIO::pvt
+};  // end namespace OpenImageIO
 
 
 #endif // TEXTURE_PVT_H

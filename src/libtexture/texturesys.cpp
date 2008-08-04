@@ -49,10 +49,13 @@ using namespace OpenImageIO;
 #include "texture_pvt.h"
 
 
+namespace OpenImageIO {
+
+
 TextureSystem *
 TextureSystem::create ()
 {
-    return new TexturePvt::TextureSystemImpl;
+    return new pvt::TextureSystemImpl;
 }
 
 
@@ -66,13 +69,65 @@ TextureSystem::destroy (TextureSystem * &x)
 
 
 
-namespace TexturePvt {
+namespace pvt {   // namespace TextureSystem::pvt
+
+
+static const char * texture_type_name[] = {
+    // MUST match the order of TexType
+    "unknown", "Plain Texture", "Volume Texture",
+    "Shadow", "CubeFace Shadow", "Volume Shadow",
+    "LatLong Environment", "CubeFace Environment",
+    ""
+};
+
+
+
+static const char * wrap_type_name[] = {
+    // MUST match the order of TextureOptions::Wrap
+    "default", "black", "clamp", "periodic", "mirror",
+    ""
+};
+
+
+static TextureOptions::Wrap
+decode_wrapmode (const char *name)
+{
+    for (int i = 0;  i < (int)TextureOptions::WrapLast;  ++i)
+        if (! strcmp (name, wrap_type_name[i]))
+            return (TextureOptions::Wrap) i;
+    return TextureOptions::WrapDefault;
+}
+
+
+
+static void
+parse_wrapmodes (const char *wrapmodes, TextureOptions::Wrap &m_swrap,
+                 TextureOptions::Wrap &m_twrap)
+{
+    char *swrap = (char *) alloca (strlen(wrapmodes)+1);
+    const char *twrap;
+    int i;
+    for (i = 0;  wrapmodes[i] && wrapmodes[i] != ',';  ++i)
+        swrap[i] = wrapmodes[i];
+    swrap[i] = 0;
+    if (wrapmodes[i] == ',')
+        twrap = wrapmodes + i+1;
+    else twrap = swrap;
+    m_swrap = decode_wrapmode (swrap);
+    m_twrap = decode_wrapmode (twrap);
+}
+
 
 
 TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
-    : m_texsys(texsys), m_filename(filename), m_used(true), m_broken(false)
+    : m_filename(filename), m_used(true), m_broken(false),
+      m_textype(TexTypeTexture), 
+      m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
+      m_cubelayout(CubeUnknown), m_y_up(false),
+      m_texsys(texsys)
 {
-    m_input.reset (ImageInput::create (filename.c_str(), m_texsys.searchpath().c_str()));
+    m_input.reset (ImageInput::create (filename.c_str(),
+                                       m_texsys.searchpath().c_str()));
     if (! m_input) {
         m_broken = true;
         return;
@@ -93,8 +148,41 @@ TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
     std::cerr << filename << " has " << m_spec.size() << " subimages\n";
     ASSERT (nsubimages = m_spec.size());
 
-    // FIXME -- fill in: textype, swrap, twrap, Mlocal, Mproj, Mtex,
-    // Mras, cubelayout, y_up
+    const ImageIOFormatSpec &spec (m_spec[0]);
+    const ImageIOParameter *p;
+
+    m_textype = TexTypeTexture;
+    p = spec.find_attribute ("textureformat");
+    if (p && p->type == PT_STRING && p->nvalues == 1) {
+        const char *textureformat = (const char *)p->data();
+        for (int i = 0;  i < TexTypeLast;  ++i)
+            if (! strcmp (textureformat, texture_type_name[i])) {
+                m_textype = (TexType) i;
+                break;
+            }
+    }
+
+    p = spec.find_attribute ("wrapmodes");
+    if (p && p->type == PT_STRING && p->nvalues == 1) {
+        const char *wrapmodes = (const char *)p->data();
+        parse_wrapmodes (wrapmodes, m_swrap, m_twrap);
+    }
+
+    m_y_up = false;
+    if (m_textype == TexTypeCubeFaceEnv) {
+        if (! strcmp (m_input->format_name(), "openexr"))
+            m_y_up = true;
+        int w = std::max (spec.full_width, spec.tile_width);
+        int h = std::max (spec.full_height, spec.tile_height);
+        if (spec.width == 3*w && spec.height == 2*h)
+            m_cubelayout = CubeThreeByTwo;
+        else if (spec.width == w && spec.height == 6*h)
+            m_cubelayout = CubeOneBySix;
+        else
+            m_cubelayout = CubeLast;
+    }
+
+    // FIXME -- fill in: Mlocal, Mproj, Mtex, Mras
 }
 
 
@@ -165,13 +253,11 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
         d[0] = "unknown";  // FIXME
         return true;
     }
-#if 0
     if (dataname == "textureformat" && datatype==ParamType(PT_STRING)) {
         const char **d = (const char **)data;
         d[0] = "unknown";  // FIXME
         return true;
     }
-#endif
     if (dataname == "channels" && datatype==ParamType(PT_INT)) {
         *(int *)data = spec.nchannels;
         return true;
@@ -183,12 +269,25 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
     // FIXME - "viewingmatrix"
     // FIXME - "projectionmatrix"
 
-    // FIXME - general case
+    // general case
+    const ImageIOParameter *p = spec.find_attribute (dataname.string());
+    if (p && p->nvalues == datatype.arraylen) {
+        // First test for exact type match
+        if (p->type == datatype.basetype) {
+            memcpy (data, p->data(), datatype.datasize());
+            return true;
+        }
+        // If the real data is int but user asks for float, translate it
+        if (p->type == PT_FLOAT && datatype.basetype == PT_INT) {
+            for (int i = 0;  i < p->nvalues;  ++i)
+                ((float *)data)[i] = ((int *)p->data())[i];
+            return true;
+        }
+    }
 
-    
     return false;
 }
 
 
-};  // end namespace TexturePvt
-
+};  // end namespace OpenImageIO::pvt
+};  // end namespace OpenImageIO

@@ -96,19 +96,25 @@ main (int argc, char *argv[])
     bool ok;
 
     int res[2];
-    ok = texsys->gettextureinfo (ustring("grid.tx"), ustring("resolution"),
+    ok = texsys->gettextureinfo (ustring("img_6019m.tx"), ustring("resolution"),
                                  ParamType(PT_INT,2), res);
     std::cerr << "Result of gettextureinfo resolution = " << ok << ' ' << res[0] << 'x' << res[1] << "\n";
 
     int chan;
-    ok = texsys->gettextureinfo (ustring("grid.tx"), ustring("channels"),
+    ok = texsys->gettextureinfo (ustring("img_6019m.tx"), ustring("channels"),
                                  PT_INT, &chan);
     std::cerr << "Result of gettextureinfo channels = " << ok << ' ' << chan << "\n";
 
     float fchan;
-    ok = texsys->gettextureinfo (ustring("grid.tx"), ustring("channels"),
+    ok = texsys->gettextureinfo (ustring("img_6019m.tx"), ustring("channels"),
                                  PT_FLOAT, &fchan);
     std::cerr << "Result of gettextureinfo channels = " << ok << ' ' << fchan << "\n";
+
+    const char *datetime = NULL;
+    ok = texsys->gettextureinfo (ustring("img_6019m.tx"), ustring("DateTime"),
+                                 PT_STRING, &datetime);
+    std::cerr << "Result of gettextureinfo datetime = " << ok << ' ' 
+              << (datetime ? datetime : "") << "\n";
 
     delete texsys;
     return 0;

@@ -68,7 +68,11 @@ Before first 1.0 release
 ------------------------
 
 IP          texture - basic texture, tile cache, file handle cache
-            texture - maketx
+DONE        maketx - plain texture maps
+            maketx - shadow map
+            maketx - latlong env
+            maketx - cubeface env
+            maketx - shadow cube
             iv socket mode (display in separate process)
             iv imageio plugin
             iv - >4 channels, gray vs color
@@ -100,6 +104,9 @@ DONE?       idiff - perceptual diff (Yee)
 
 Idea pool / future feature wish list
 
+            maketx - lightprobe -> cubemap
+            maketx - vertcross -> cubemap
+            maketx - latlong -> cubemap
             API - allow per-channel data formats?
             TIFF - YCbCr (dscf0013.tif, ycbcr-cat.tif)
             TIFF - CIE LogL, LogLuv (off_*.tif)
