@@ -138,7 +138,7 @@ QuantizationSpec::QuantizationSpec (ParamBaseType _type)
 ImageIOFormatSpec::ImageIOFormatSpec (ParamBaseType format)
     : x(0), y(0), z(0), width(0), height(0), depth(1),
       full_width(0), full_height(0), full_depth(0),
-      tile_width(0), tile_height(0), tile_depth(0),
+      tile_width(0), tile_height(0), tile_depth(1),
       format(format), nchannels(0), alpha_channel(-1), z_channel(-1),
       linearity(UnknownLinearity), gamma(1)
 {
@@ -149,9 +149,9 @@ ImageIOFormatSpec::ImageIOFormatSpec (ParamBaseType format)
 
 ImageIOFormatSpec::ImageIOFormatSpec (int xres, int yres, int nchans, 
                                       ParamBaseType format)
-    : x(0), y(0), z(0), width(xres), height(yres), depth(0),
+    : x(0), y(0), z(0), width(xres), height(yres), depth(1),
       full_width(0), full_height(0), full_depth(0),
-      tile_width(0), tile_height(0), tile_depth(0),
+      tile_width(0), tile_height(0), tile_depth(1),
       format(format), nchannels(nchans), alpha_channel(-1), z_channel(-1),
       linearity(UnknownLinearity), gamma(1)
 {
