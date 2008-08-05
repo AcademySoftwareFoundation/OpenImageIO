@@ -289,4 +289,12 @@ ImageBuf::oriented_height () const
 }
 
 
+
+void
+ImageBuf::zero ()
+{
+    memset (&m_pixels[0], 0, m_pixels.size());
+}
+
+
 };  // end namespace OpenImageIO

@@ -144,6 +144,10 @@ public:
         return &(m_pixels[p]);
     }
 
+    /// Zero out (set to 0, black) the entire image.
+    ///
+    void zero ();
+
 protected:
     std::string m_name;        ///< Filename of the image
     int m_nsubimages;          ///< How many subimages are there?
