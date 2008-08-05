@@ -35,6 +35,64 @@
 #include <ImathFun.h>
 
 
+#ifndef M_PI
+/// PI
+///
+#  define M_PI 3.1415926535897932
+#endif
+
+#ifndef M_PI_2
+/// PI / 2
+///
+#  define M_PI_2 1.5707963267948966
+#endif
+
+#ifndef M_TWO_PI
+/// PI * 2
+///
+#  define M_TWO_PI (M_PI * 2.0)
+#endif
+
+#ifndef M_SQRT2
+/// sqrt(2)
+///
+#  define M_SQRT2 1.414135623730950
+#endif
+
+#ifndef M_SQRT1_2
+/// 1/sqrt(2)
+///
+#  define M_SQRT1_2 0.7071067811865475
+#endif
+
+#ifndef M_LN2
+/// ln(2)
+///
+#  define M_LN2 0.6931471805599453
+#endif
+
+#ifndef M_LN10
+/// ln(10)
+///
+#  define M_LN10 2.3025850929940457
+#endif
+
+
+
+/// Large constant that we use to indicate a really large float
+///
+#define HUGE_FLOAT ((float)1.0e38)
+
+/// Test a float for whether it's huge.  To account for awful fp roundoff,
+/// consider it large if within a factor of 2 of HUGE_FLOAT.
+inline bool huge (float f) { return (f >= HUGE_FLOAT/2); }
+
+/// Special value we can use for an uninitialized float.
+///
+#define UNINITIALIZED_FLOAT (- std::numeric_limits<float>::max())
+
+
+
 
 /// Quick test for whether an integer is a power of 2.
 inline bool
@@ -244,6 +302,10 @@ floorfrac (float x, int *xint)
     return x - i;   // Return the fraction left over
 }
 
+
+
+inline float radians (float deg) { return deg * M_PI / 180.0f; }
+inline float degrees (float rad) { return rad * 180.0 / M_PI; }
 
 
 #endif // FMATH_H
