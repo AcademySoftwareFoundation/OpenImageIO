@@ -39,6 +39,10 @@ namespace Imath {
 #endif
 };
 
+
+namespace OpenImageIO {
+
+
 typedef unsigned char Runflag;
 enum RunFlagVal { RunFlagOff = 0, RunFlagOn = 255 };
 
@@ -184,6 +188,9 @@ public:
     virtual void attribute (const char *typedname, const char **val) {}
 #endif
 };
+
+
+};  // end namespace OpenImageIO
 
 
 #endif // TEXTURE_H
