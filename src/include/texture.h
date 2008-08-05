@@ -31,10 +31,16 @@
 #include "ustring.h"
 
 namespace Imath {
-    class Vector3f;
+#ifndef INCLUDED_IMATHVEC_H
+    class V3f;
+#endif
+#ifndef INCLUDED_IMATHMATRIX_H
+    class M44f;
+#endif
 };
 
 typedef unsigned char Runflag;
+enum RunFlagVal { RunFlagOff = 0, RunFlagOn = 255 };
 
 
 
@@ -49,7 +55,7 @@ public:
         WrapLast            ///< Mark the end
     };
 
-    TextureOptions () { }
+    TextureOptions ();
 
     // Options that must be the same for all points we're texturing at once
     int firstchannel;
@@ -67,7 +73,16 @@ public:
     // Storage for results
     VaryingRef<float>   alpha;
 
-private:
+    // Options set INTERNALLY by libtexture after the options are passed
+    // by the user.  Users should not attempt to alter these!
+    bool stateful;         // False for a new-ish TextureOptions
+    int actualchannels;    // True number of channels read
+
+    /// Special private ctr that makes a canonical default TextureOptions.
+    /// For use internal to libtexture.  Users, don't call this!
+    /// Though, there is no harm.  It's just not as efficient as the
+    /// default ctr that memcpy's a canonical pre-constructed default.
+    TextureOptions (bool);
 };
 
 
@@ -88,7 +103,11 @@ public:
     virtual void max_open_files (int nfiles) = 0;
     virtual void max_memory_MB (float size) = 0;
     virtual void searchpath (const ustring &path) = 0;
-    
+    virtual void worldtocommon (const float *mx) = 0;
+    void worldtocommon (const Imath::M44f &w2c) {
+        worldtocommon ((const float *)&w2c);
+    }
+
     // Retrieve options
     virtual int max_open_files () const = 0;
     virtual float max_memory_MB () const = 0;
@@ -112,27 +131,27 @@ public:
     ///
     virtual void texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int firstactive, int lastactive,
-                          VaryingRef<Imath::Vector3f> P,
-                          VaryingRef<Imath::Vector3f> dPdx,
-                          VaryingRef<Imath::Vector3f> dPdy,
+                          VaryingRef<Imath::V3f> P,
+                          VaryingRef<Imath::V3f> dPdx,
+                          VaryingRef<Imath::V3f> dPdy,
                           float *result) = 0;
 
     /// Retrieve a shadow lookup for position P.
     ///
     virtual void shadow (ustring filename, TextureOptions &options,
                          Runflag *runflags, int firstactive, int lastactive,
-                         VaryingRef<Imath::Vector3f> P,
-                         VaryingRef<Imath::Vector3f> dPdx,
-                         VaryingRef<Imath::Vector3f> dPdy,
+                         VaryingRef<Imath::V3f> P,
+                         VaryingRef<Imath::V3f> dPdx,
+                         VaryingRef<Imath::V3f> dPdy,
                          float *result) = 0;
 
     /// Retrieve an environment map lookup for direction R.
     ///
     virtual void environment (ustring filename, TextureOptions &options,
                               short *runflags, int firstactive, int lastactive,
-                              VaryingRef<Imath::Vector3f> R,
-                              VaryingRef<Imath::Vector3f> dRdx,
-                              VaryingRef<Imath::Vector3f> dRdy,
+                              VaryingRef<Imath::V3f> R,
+                              VaryingRef<Imath::V3f> dRdx,
+                              VaryingRef<Imath::V3f> dRdy,
                               float *result) = 0;
 
     /// Get information about the given texture.  Return true if found
@@ -142,6 +161,28 @@ public:
     virtual bool gettextureinfo (ustring filename, ustring dataname,
                                  ParamType datatype, void *data) = 0;
     
+
+#if 0
+    // Set an attribute in the graphics state, with name and explicit type
+    virtual void attribute (const char *name, ParamType t, const void *val) {}
+    virtual void attribute (const char *name, ParamType t, int val) {}
+    virtual void attribute (const char *name, ParamType t, float val) {}
+    virtual void attribute (const char *name, ParamType t, double val) {}
+    virtual void attribute (const char *name, ParamType t, const char *val) {}
+    virtual void attribute (const char *name, ParamType t, const int *val) {}
+    virtual void attribute (const char *name, ParamType t, const float *val) {}
+    virtual void attribute (const char *name, ParamType t, const char **val) {}
+
+    // Set an attribute with type embedded in the name
+    virtual void attribute (const char *typedname, const void *val) {}
+    virtual void attribute (const char *typedname, int val) {}
+    virtual void attribute (const char *typedname, float val) {}
+    virtual void attribute (const char *typedname, double val) {}
+    virtual void attribute (const char *typedname, const char *val) {}
+    virtual void attribute (const char *typedname, const int *val) {}
+    virtual void attribute (const char *typedname, const float *val) {}
+    virtual void attribute (const char *typedname, const char **val) {}
+#endif
 };
 
 

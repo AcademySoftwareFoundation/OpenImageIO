@@ -31,16 +31,22 @@
 #include <iostream>
 #include <iterator>
 
+#include <ImathMatrix.h>
+#include <ImathVec.h>
+
 #include "argparse.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 #include "ustring.h"
+#include "imagebuf.h"
 #include "texture.h"
+#include "fmath.h"
 
 
 static std::vector<std::string> filenames;
+static std::string output_filename = "out.exr";
 static bool verbose = false;
-
+static int output_xres = 512, output_yres = 512;
 static TextureSystem *texsys = NULL;
 
 
@@ -60,10 +66,13 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap (argc, (const char **)argv);
-    if (ap.parse ("Usage:  testtex [options] inputfile outputfile",
+    if (ap.parse ("Usage:  testtex [options] inputfile",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
+                  "-o %s", &output_filename, "Output test image",
+                  "-res %d %d", &output_xres, &output_yres,
+                      "Resolution of output test image",
                   NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
@@ -74,13 +83,105 @@ getargs (int argc, char *argv[])
         exit (EXIT_FAILURE);
     }
 
-#if 0
-    if (filenames.size() != 2) {
-        std::cerr << "iconvert: Must have both an input and output filename specified.\n";
+    if (filenames.size() < 1) {
+        std::cerr << "testtex: Must have at least one input file\n";
         ap.usage();
         exit (EXIT_FAILURE);
     }
-#endif
+}
+
+
+
+static void
+test_gettextureinfo (ustring filename)
+{
+    bool ok;
+
+    int res[2];
+    ok = texsys->gettextureinfo (filename, ustring("resolution"),
+                                 ParamType(PT_INT,2), res);
+    std::cerr << "Result of gettextureinfo resolution = " << ok << ' ' << res[0] << 'x' << res[1] << "\n";
+
+    int chan;
+    ok = texsys->gettextureinfo (filename, ustring("channels"),
+                                 PT_INT, &chan);
+    std::cerr << "Result of gettextureinfo channels = " << ok << ' ' << chan << "\n";
+
+    float fchan;
+    ok = texsys->gettextureinfo (filename, ustring("channels"),
+                                 PT_FLOAT, &fchan);
+    std::cerr << "Result of gettextureinfo channels = " << ok << ' ' << fchan << "\n";
+
+    const char *datetime = NULL;
+    ok = texsys->gettextureinfo (filename, ustring("DateTime"),
+                                 PT_STRING, &datetime);
+    std::cerr << "Result of gettextureinfo datetime = " << ok << ' ' 
+              << (datetime ? datetime : "") << "\n";
+
+    const char *texturetype = NULL;
+    ok = texsys->gettextureinfo (filename, ustring("textureformat"),
+                                 PT_STRING, &texturetype);
+    std::cerr << "Texture type is " << ok << ' '
+              << (texturetype ? texturetype : "") << "\n";
+    std::cerr << "\n";
+}
+
+
+
+static void
+test_plain_texture (ustring filename)
+{
+    std::cerr << "Testing 2d texture " << filename << ", output = " 
+              << output_filename << "\n";
+    const int nchannels = 4;
+    const int shadepoints = 32;
+    ImageIOFormatSpec outspec (output_xres, output_yres, nchannels, PT_HALF);
+    ImageBuf image (output_filename, outspec);
+    image.zero ();
+
+    Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
+    Imath::M33f rot;    rot.rotate (radians(30.0f));
+    Imath::M33f trans;  trans.translate (Imath::V2f (0.35f, 0.15f));
+    Imath::M33f xform = scale * rot * trans;
+    xform.invert();
+
+    TextureOptions opt;
+    opt.nchannels = 3;
+    float s[shadepoints], t[shadepoints];
+    Runflag runflags[shadepoints] = { RunFlagOn };
+
+    for (int y = 0;  y < output_yres;  ++y) {
+        for (int x = 0;  x < output_xres;  ++x) {
+            Imath::V3f coord ((float)x/output_xres, (float)y/output_yres, 1.0f);
+            Imath::V3f xcoord;
+//            xform.multVecMatrix (coord, xcoord);
+            coord *= xform;
+            float s = coord[0], t = coord[1];
+            float val[nchannels] = { 0, 0, 0, 1 };
+            texsys->texture (filename, opt, runflags, 0, 0, s, t,
+                             NULL, NULL, NULL, NULL, val);
+            image.setpixel (x, y, val);
+        }
+    }
+    
+    
+    if (! image.save ()) 
+        std::cerr << "Error writing " << output_filename 
+                  << " : " << image.error_message() << "\n";
+}
+
+
+
+static void
+test_shadow (ustring filename)
+{
+}
+
+
+
+static void
+test_environment (ustring filename)
+{
 }
 
 
@@ -93,28 +194,23 @@ main (int argc, char *argv[])
     texsys = TextureSystem::create ();
     std::cerr << "Created texture system\n";
 
-    bool ok;
+    ustring filename (filenames[0]);
+    test_gettextureinfo (filename);
 
-    int res[2];
-    ok = texsys->gettextureinfo (ustring("img_6019m.tx"), ustring("resolution"),
-                                 ParamType(PT_INT,2), res);
-    std::cerr << "Result of gettextureinfo resolution = " << ok << ' ' << res[0] << 'x' << res[1] << "\n";
-
-    int chan;
-    ok = texsys->gettextureinfo (ustring("img_6019m.tx"), ustring("channels"),
-                                 PT_INT, &chan);
-    std::cerr << "Result of gettextureinfo channels = " << ok << ' ' << chan << "\n";
-
-    float fchan;
-    ok = texsys->gettextureinfo (ustring("img_6019m.tx"), ustring("channels"),
-                                 PT_FLOAT, &fchan);
-    std::cerr << "Result of gettextureinfo channels = " << ok << ' ' << fchan << "\n";
-
-    const char *datetime = NULL;
-    ok = texsys->gettextureinfo (ustring("img_6019m.tx"), ustring("DateTime"),
-                                 PT_STRING, &datetime);
-    std::cerr << "Result of gettextureinfo datetime = " << ok << ' ' 
-              << (datetime ? datetime : "") << "\n";
+    const char *texturetype = NULL;
+    bool ok = texsys->gettextureinfo (filename, ustring("texturetype"),
+                                      PT_STRING, &texturetype);
+    if (ok) {
+        if (! strcmp (texturetype, "Plain Texture")) {
+            test_plain_texture (filename);
+        }
+        if (! strcmp (texturetype, "Shadow")) {
+            test_shadow (filename);
+        }
+        if (! strcmp (texturetype, "Environment")) {
+            test_environment (filename);
+        }
+    }
 
     delete texsys;
     return 0;

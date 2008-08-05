@@ -32,11 +32,16 @@ template<class T>
 class VaryingRef {
 public:
     VaryingRef () { }
-    VaryingRef (T *ptr, int step) { init (ptr,step); }
-    void init (T *ptr, int step) {
+    VaryingRef (T *ptr, int step=0) { init (ptr,step); }
+    VaryingRef (T &ptr) { init (&ptr, 0); }
+    void init (T *ptr, int step=0) {
         m_ptr = ptr;
         m_step = step;
     }
+
+    bool is_null () const { return (m_ptr == 0); }
+
+    operator bool() const { return (m_ptr != 0); }
 
     bool is_varying () const { return (m_step != 0); }
     bool is_uniform () const { return (m_step == 0); }
@@ -51,6 +56,8 @@ public:
     }
     T & operator* () const { return *m_ptr; }
     T & operator[] (int i) const { return *(T *) ((char *)m_ptr + i*m_step); }
+
+    T * ptr () const { return m_ptr; }
 
 private:
     T  *m_ptr;    ///< Pointer to value
