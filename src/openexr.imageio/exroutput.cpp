@@ -181,6 +181,11 @@ OpenEXROutput::open (const char *name, const ImageIOFormatSpec &userspec,
 
     m_spec = userspec;  // Stash the spec
 
+    if (! m_spec.full_width)
+        m_spec.full_width = m_spec.width;
+    if (! m_spec.full_height)
+        m_spec.full_height = m_spec.height;
+
     m_spec.format = PT_HALF;
     // FIXME: support float and uint32
     // Big FIXME: support per-channel formats?
