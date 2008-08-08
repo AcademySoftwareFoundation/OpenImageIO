@@ -243,24 +243,26 @@ public:
     size_t scanline_bytes() const { return (size_t)width * pixel_bytes (); }
 
     ///
-    /// Return the number of bytes for each a tile of the image
-    size_t tile_bytes() const {
-        return (size_t)tile_width * (size_t)tile_height *
-               (size_t)std::max(1,tile_depth) * pixel_bytes ();
+    /// Return the number of pixels for a tile
+    size_t tile_pixels() const {
+        return (size_t)tile_width * (size_t)tile_height * 
+               std::max((size_t)tile_depth,(size_t)1);
     }
 
     ///
-    /// Return the number of bytes for an entire image
-    size_t image_bytes() const {
-        return (size_t)width * (size_t)height *
-               (size_t)std::max(depth,1) * pixel_bytes ();
-    }
+    /// Return the number of bytes for each a tile of the image
+    size_t tile_bytes() const { return tile_pixels() * pixel_bytes (); }
 
     ///
     /// Return the number of pixels for an entire image
     size_t image_pixels() const {
-        return (size_t)width * (size_t)height * (size_t)std::max(depth,1);
+        return (size_t)width * (size_t)height * 
+               std::max((size_t)depth,(size_t)1);
     }
+
+    ///
+    /// Return the number of bytes for an entire image
+    size_t image_bytes() const { return image_pixels() * pixel_bytes (); }
 
     /// Adjust the stride values, if set to AutoStride, to be the right
     /// sizes for contiguous data with the given format, channels,
