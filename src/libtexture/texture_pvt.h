@@ -52,7 +52,10 @@ enum CubeLayout {
 
 
 
-/// Unique in-memory record for each texture file on disk.
+/// Unique in-memory record for each texture file on disk.  Note that
+/// this class is not in and of itself thread-safe.  It's critical that
+/// any calling routine use a mutex any time a TextureFile's methods are
+/// being called, including constructing a new TextureFile.
 ///
 class TextureFile {
 public:
@@ -65,6 +68,25 @@ public:
     TexFormat textureformat () const { return m_texformat; }
     TextureOptions::Wrap swrap () const { return m_swrap; }
     TextureOptions::Wrap twrap () const { return m_twrap; }
+    bool opened () const { return m_input.get() != NULL; }
+
+    /// We will need to read pixels from the file, so be sure it's
+    /// currently opened.
+    void open ();
+
+    /// load new data tile
+    ///
+    bool read_tile (int level, int x, int y, int z,
+                    ParamBaseType format, void *data);
+
+    /// Mark the tile as recently used.
+    ///
+    void use (void) { m_used = true; }
+
+    /// Try to release resources for this tile -- if recently used, mark
+    /// as not recently used; if already not recently used, close the
+    /// file and return true.
+    void release (void);
 
 private:
     ustring m_filename;             ///< Filename
@@ -142,39 +164,55 @@ public:
     ///
     bool operator== (const TileID &b) const { return equal (*this, b); }
 
+    /// Digest the TileID into a size_t to use as a hash key.  We do
+    /// this by multiplying each element by a different prime and
+    /// summing, so that collisions are unlikely.
+    size_t hash () const {
+        return m_x * 53 + m_y * 97 + m_z * 193 + 
+               m_level * 389 + (size_t)m_texfile * 769;
+    }
+
+    /// Functor that hashes a TileID
+    class Hasher
+#ifdef WINNT
+        : public hash_compare<TileID>
+#endif
+    {
+      public:
+        size_t operator() (const TileID &a) const { return a.hash(); }
+        bool operator() (const TileID &a, const TileID &b) const {
+            return a.hash() < b.hash();
+        }
+    };
+
 private:
-    TextureFile *m_texfile;   ///< Which TextureFile we refer to
-    int m_level;              ///< MIP-map level
     int m_x, m_y, m_z;        ///< x,y,z tile index within the mip level
+    int m_level;              ///< MIP-map level
+    TextureFile *m_texfile;   ///< Which TextureFile we refer to
 };
 
 
 
 
+/// Record for a single texture tile.
+///
 class Tile {
 public:
     Tile (const TileID &id);
 
-    ~Tile ();
+    ~Tile () { }
 
     /// Return pointer to the floating-point texel data
     ///
-    const float *data (void) const { return (const float *)m_texels[0]; }
+    const float *data (void) const { return (const float *)&m_texels[0]; }
 
     /// Return a pointer to the character data
     ///
     const unsigned char *bytedata (void) const {
-        return (unsigned char *) m_texels[0];
+        return (unsigned char *) &m_texels[0];
     }
 
     const TileID& id (void) const { return m_id; }
-
-    /// load new data into tile from an ImageIO
-    ///
-    bool read_tile (OpenImageIO::ImageInput &input, int x, int y, int z,
-                    ParamBaseType format=PT_FLOAT) {
-        return input.read_tile (x, y, z, format, &m_texels[0]);
-    }
 
 private:
     TileID m_id;                  ///< ID of this tile
@@ -192,12 +230,18 @@ typedef shared_ptr<Tile> TileRef;
 
 
 
+/// Hash table that maps TileID to TileRef -- this is the type of the
+/// main tile cache.
+typedef hash_map<TileID, TileRef, TileID::Hasher> TileCache;
+
+
+
 /// Working implementation of the abstract TextureSystem class.
 ///
 class TextureSystemImpl : public TextureSystem {
 public:
-    TextureSystemImpl (void) { }
-    virtual ~TextureSystemImpl () { };
+    TextureSystemImpl ();
+    virtual ~TextureSystemImpl ();
 
     // Set options
     virtual void max_open_files (int nfiles) { m_max_open_files = nfiles; }
@@ -260,8 +304,19 @@ public:
                               float *result) { }
 
     /// Get information about the given texture.
+    ///
     virtual bool gettextureinfo (ustring filename, ustring dataname,
                                  ParamType datatype, void *data);
+
+    /// Called when a new file is opened, so that the system can track
+    /// the number of simultaneously-opened files.  This should only
+    /// be invoked when the caller holds m_texturefiles_mutex.
+    void incr_open_files (void) { ++m_open_files; }
+
+    /// Called when a new file is opened, so that the system can track
+    /// the number of simultaneously-opened files.  This should only
+    /// be invoked when the caller holds m_texturefiles_mutex.
+    void decr_open_files (void) { --m_open_files; }
 
 private:
     void init ();
@@ -269,6 +324,10 @@ private:
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
     TextureFile *find_texturefile (ustring filename);
+
+    // Enforce the max number of open files.  This should only be invoked
+    // when the caller holds m_texturefiles_mutex.
+    void check_max_files ();
 
     /// Find a tile identified by 'id' in the tile cache, paging it in
     /// if needed, and return a reference to the tile.  Return a NULL
@@ -280,7 +339,7 @@ private:
     /// hit rate over the big cache.  This is just a wrapper around
     /// find_tile(id) and avoids looking to the big cache (and locking)
     /// most of the time for fairly coherent tile access patterns.
-    /// If tile is null, so is lasttile.
+    /// If tile is null, so is lasttile.  Inlined for speed.
     void find_tile (const TileID &id,
                     TileRef &tile, TileRef &lasttile) {
         if (tile) {
@@ -301,6 +360,28 @@ private:
             }
         }
         tile = find_tile (id);
+    }
+
+    TileRef find_tile (const TileID &id, TileRef microcache[2]) {
+        if (microcache[0]) {
+            if (microcache[0]->id() == id)
+                return microcache[0];
+            if (microcache[1]) {
+                // Tile didn't match, maybe lasttile will?  Swap tile
+                // and last tile.  Then the new one will either match,
+                // or we'll fall through and replace tile.
+                swap (microcache[0], microcache[1]);
+                if (microcache[0]->id() == id)
+                    return microcache[0];
+            } else {
+                // Tile didn't match, and there was nothing in lasttile.
+                // Move tile to lasttile, then fall through to page in
+                // to tile.
+                microcache[1] = microcache[0];
+            }
+        }
+        microcache[0] = find_tile (id);
+        return microcache[0];
     }
 
     /// Find the tile specified by id and place its reference in 'tile'.
@@ -343,8 +424,11 @@ private:
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_texturefiles;  ///< Map file names to TextureFile's
+    FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
+    int m_open_files;            ///< How many files are open?
     mutex m_texturefiles_mutex;  ///< Protect filename map
-//    TileMap tilecache;
+    TileCache tilecache;         ///< Our in-memory tile cache
+    TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
     
 };
 

@@ -171,20 +171,53 @@ TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
       m_cubelayout(CubeUnknown), m_y_up(false),
       m_texsys(texsys)
 {
-    m_input.reset (ImageInput::create (filename.c_str(),
+    m_spec.clear ();
+    open ();
+}
+
+
+
+TextureFile::~TextureFile ()
+{
+    release ();
+}
+
+
+
+void
+TextureFile::open ()
+{
+    if (m_input)         // Already opened
+        return;
+    if (m_broken)        // Already failed an open -- it's broken
+        return;
+    
+    m_input.reset (ImageInput::create (m_filename.c_str(),
                                        m_texsys.searchpath().c_str()));
     if (! m_input) {
         m_broken = true;
         return;
     }
-    m_spec.reserve (16);
+
     ImageIOFormatSpec tempspec;
-    if (! m_input->open (filename.c_str(), tempspec)) {
+    if (! m_input->open (m_filename.c_str(), tempspec)) {
         m_broken = true;
         m_input.reset ();
         return;
     }
+    m_texsys.incr_open_files ();
+    use ();
 
+    // If m_spec has already been filled out, we've opened this file
+    // before, read the spec, and filled in all the fields.  So now that
+    // we've re-opened it, we're done.
+    if (m_spec.size())
+        return;
+
+    // From here on, we know that we've opened this file for the very
+    // first time.  So read all the MIP levels, fill out all the fields
+    // of the TextureFile.
+    m_spec.reserve (16);
     int nsubimages = 0;
     do {
         ++nsubimages;
@@ -192,7 +225,7 @@ TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
         // Sanity checks: all levels need the same num channels
         ASSERT (tempspec.nchannels == m_spec[0].nchannels);
     } while (m_input->seek_subimage (nsubimages, tempspec));
-    std::cerr << filename << " has " << m_spec.size() << " subimages\n";
+    std::cerr << m_filename << " has " << m_spec.size() << " subimages\n";
     ASSERT (nsubimages = m_spec.size());
 
     const ImageIOFormatSpec &spec (m_spec[0]);
@@ -246,12 +279,62 @@ TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
 
 
 
-TextureFile::~TextureFile ()
+bool
+TextureFile::read_tile (int level, int x, int y, int z,
+                        ParamBaseType format, void *data)
 {
-    if (m_input) {
+    open ();
+    ImageIOFormatSpec tmp;
+    if (m_input->current_subimage() != level)
+        m_input->seek_subimage (level, tmp);
+    std::cerr << "want to read tile " << m_filename << " " << level << ' ' << x << ' ' << y << "\n";
+    bool ok = m_input->read_tile (x, y, z, format, data);
+    if (! ok)
+        std::cerr << "read_tile failed " << m_input->error_message() << "\n";
+    return ok;
+}
+
+
+
+void
+TextureFile::release ()
+{
+    if (m_used) {
+        m_used = false;
+    } else if (opened()) {
         m_input->close ();
         m_input.reset ();
+        m_used = false;
+        m_texsys.decr_open_files ();
     }
+}
+
+
+
+Tile::Tile (const TileID &id)
+    : m_id (id), m_valid(true), m_used(true)
+{
+    TextureFile *texfile = m_id.texfile ();
+    const ImageIOFormatSpec &spec (texfile->spec());
+    m_texels.resize (spec.tile_bytes ());
+    texfile->read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
+                        PT_FLOAT, &m_texels[0]);
+    // FIXME -- read 8-bit directly if that's native
+    // FIXME -- for shadow, fill in mindepth, maxdepth
+}
+
+
+
+TextureSystemImpl::TextureSystemImpl ()
+    : m_open_files(0)
+{
+    init ();
+}
+
+
+
+TextureSystemImpl::~TextureSystemImpl ()
+{
 }
 
 
@@ -270,18 +353,35 @@ TextureFile *
 TextureSystemImpl::find_texturefile (ustring filename)
 {
     lock_guard guard (m_texturefiles_mutex);
+
     FilenameMap::iterator found = m_texturefiles.find (filename);
     TextureFileRef tf;
     if (found == m_texturefiles.end()) {
         // We don't already have this file in the texture list.  Try to
         // open it and create a record.
+        check_max_files ();
         tf.reset (new TextureFile (*this, filename));
         m_texturefiles[filename] = tf;
     } else {
         tf = found->second;
     }
 
+    tf->use ();
     return tf.get();
+}
+
+
+
+void
+TextureSystemImpl::check_max_files ()
+{
+    std::cerr << "open files " << m_open_files << ", max = " << m_max_open_files << "\n";
+    while (m_open_files >= m_max_open_files) {
+        if (m_file_sweep == m_texturefiles.end())
+            m_file_sweep = m_texturefiles.begin();
+        ASSERT (m_file_sweep != m_texturefiles.end());
+        m_file_sweep->second->release ();  // May reduce m_open_files
+    }
 }
 
 
@@ -289,7 +389,17 @@ TextureSystemImpl::find_texturefile (ustring filename)
 TileRef
 TextureSystemImpl::find_tile (const TileID &id)
 {
-    // FIXME
+    DASSERT (id.texfile() != NULL);
+    lock_guard guard (m_texturefiles_mutex);
+    TileCache::iterator found = tilecache.find (id);
+    TileRef tile;
+    if (found != tilecache.end())
+        tile = found->second;
+    else {
+        tile.reset (new Tile (id));
+        tilecache[id] = tile;
+    }
+    return tile;
 }
 
 
@@ -479,11 +589,30 @@ TextureSystemImpl::texture_lookup (TextureFile *texturefile,
     // and to the right).
     
     // Wrap not implemented yet.  Just ignore lookups outside the texture.
-    if (sint >= 0 && sint < spec.width && tint >= 0 && tint < spec.height) {
+    if (sint < 0 || sint >= spec.width || tint < 0 || tint >= spec.height) {
         result[0] = 1;
-        
-
+        return;
     }
+
+    int tilewidthmask = spec.tile_width - 1;
+    int tileheightmask = spec.tile_height - 1;
+    int tile_s = sint & tilewidthmask;
+    int tile_t = tint & tileheightmask;
+    TileID id (texturefile, 0 /* always level 0 for now */, 
+               sint & (~tilewidthmask), tint & (~tileheightmask), 0);
+    TileRef tile = find_tile (id);
+    if (! tile.get()) {
+        result[0] = 0.5;
+        return;
+    }
+
+    // FIXME -- float only for now
+    const float *data = tile->data() +
+                     (tile_t * spec.tile_width + tile_s) * spec.nchannels;
+    for (int c = 0;  c < options.actualchannels;  ++c)
+        result[c] = data[options.firstchannel+c];
+    if (options.alpha)
+        options.alpha[index] = data[options.firstchannel+options.actualchannels];
 }
 
 
