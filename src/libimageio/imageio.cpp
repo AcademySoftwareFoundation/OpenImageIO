@@ -60,7 +60,7 @@ ImageIOParameter::init (const std::string &_name, ParamBaseType _type,
     name = _name;
     type = _type;
     nvalues = _nvalues;
-    size_t size = (size_t) (nvalues * ParamBaseTypeSize (type));
+    size_t size = (size_t) (nvalues * typesize (type));
     bool small = (size <= sizeof(m_value));
 
     if (_copy || small) {
@@ -344,7 +344,7 @@ OpenImageIO::convert_types (ParamBaseType src_type, const void *src,
 {
     // If no conversion is necessary, just memcpy
     if (src_type == dst_type && gain == 1.0f && gamma == 1.0f) {
-        memcpy (dst, src, n * ParamBaseTypeSize(src_type));
+        memcpy (dst, src, n * typesize(src_type));
         return true;
     }
 

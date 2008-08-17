@@ -95,48 +95,37 @@ enum ParamBaseType {
 
 
 
-extern DLLPUBLIC const char *ParamBaseTypeNameString (int t);
-extern DLLPUBLIC int ParamBaseTypeSize (int t);
-extern DLLPUBLIC ParamBaseType ParamBaseTypeScalarType (int t);
-extern DLLPUBLIC int ParamBaseTypeNScalars (int t);
-extern DLLPUBLIC int ParamBaseTypeNFloats (int t);
-
-
-
 /// Return the name, for printing and whatnot, of a ParamBaseType.
 /// For example, PT_FLOAT -> "float"
-inline const char *ParamBaseTypeNameString (ParamBaseType t) {
-    return ParamBaseTypeNameString ((int)t);
-}
-
-
+extern DLLPUBLIC const char *typestring (ParamBaseType t);
 
 /// Return the size, in bytes, of a single item of a ParamBaseType
 ///
-inline int ParamBaseTypeSize (ParamBaseType t) {
-    return ParamBaseTypeSize ((int)t);
-}
-
+extern DLLPUBLIC int typesize (ParamBaseType t);
 
 /// Return the scalar type corresponding to this possibly aggregate type
 /// (e.g. for PT_POINT, return PT_FLOAT).  PT types that are not
 /// aggregates return themselves (e.g. PT_UINT returns PT_UINT).
-inline ParamBaseType ParamBaseTypeScalarType (ParamBaseType t) {
-    return ParamBaseTypeScalarType ((int)t);
-}
+extern DLLPUBLIC ParamBaseType scalartype (ParamBaseType t);
+
+/// Return the number of scalars comprising a ParamBaseType (e.g., 3 for
+/// PT_POINT).  Return 0 for all types not comprised of floats.
+extern DLLPUBLIC int nscalars (ParamBaseType t);
+
+/// Return the number of floats comprising a ParamBaseType (e.g., 3 for
+/// PT_POINT).  Return 0 for all types not comprised of floats.
+extern DLLPUBLIC int nfloats (ParamBaseType t);
 
 
-/// Return the number of scalars comprising a ParamBaseType
-/// (e.g., 3 for PT_POINT).  Return 0 for all types not comprised of floats.
-inline int ParamBaseTypeNScalars (ParamBaseType t) {
-    return ParamBaseTypeNScalars ((int)t);
-}
 
-/// Return the number of floats comprising a ParamBaseType
-/// (e.g., 3 for PT_POINT).  Return 0 for all types not comprised of floats.
-inline int ParamBaseTypeNFloats (ParamBaseType t) {
-    return ParamBaseTypeNFloats ((int)t);
-}
+// Deprecated names from Gelato's paramtype.h
+inline const char *ParamBaseTypeNameString (int t) { return typestring((ParamBaseType)t); }
+inline int ParamBaseTypeSize (int t) { return typesize ((ParamBaseType)t); }
+inline int ParamBaseTypeNFloats (int t) { return nfloats ((ParamBaseType)t); }
+
+
+
+
 
 
 
@@ -201,11 +190,11 @@ public:
 
     /// Return size of one item of this type, in bytes
     ///
-    int datasize (void) const { return arraylen*ParamBaseTypeSize(basetype); }
+    int datasize (void) const { return arraylen*typesize((ParamBaseType)basetype); }
 
     /// Return the number of floats in one element of this type, or 0 if
     /// it's not constructed out of floats.
-    int nfloats (void) const { return arraylen*ParamBaseTypeNFloats(basetype); }
+    int nfloats (void) const { return arraylen*::nfloats((ParamBaseType)basetype); }
 
     bool operator== (const ParamType &t) const {
         return *(const int*)(this) == *(const int*)(&t);

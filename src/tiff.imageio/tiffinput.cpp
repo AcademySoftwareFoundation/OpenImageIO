@@ -521,7 +521,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     } else if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
         m_scratch.resize (m_spec.scanline_bytes());
-        int plane_bytes = m_spec.width * ParamBaseTypeSize(m_spec.format);
+        int plane_bytes = m_spec.width * typesize(m_spec.format);
         for (int c = 0;  c < m_spec.nchannels;  ++c)
             if (TIFFReadScanline (m_tif, &m_scratch[plane_bytes*c], y, c) < 0) {
                 error ("%s", lasterr.c_str());
@@ -572,7 +572,7 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
         palette_to_rgb (tile_pixels, &m_scratch[0], (unsigned char *)data);
     } else if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        int plane_bytes = tile_pixels * ParamBaseTypeSize(m_spec.format);
+        int plane_bytes = tile_pixels * typesize(m_spec.format);
         DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
         m_scratch.resize (m_spec.tile_bytes());
         for (int c = 0;  c < m_spec.nchannels;  ++c)

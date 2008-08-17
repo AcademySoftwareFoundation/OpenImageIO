@@ -232,7 +232,7 @@ public:
 
     ///
     /// Return the number of bytes for each channel datum
-    size_t channel_bytes() const { return (size_t)ParamBaseTypeSize(format); }
+    size_t channel_bytes() const { return (size_t)typesize(format); }
 
     ///
     /// Return the number of bytes for each pixel (counting all channels)
@@ -271,7 +271,7 @@ public:
                              ParamBaseType format,
                              int nchannels, int width, int height) {
         if (xstride == AutoStride)
-            xstride = nchannels * ParamBaseTypeSize(format);
+            xstride = nchannels * typesize(format);
         if (ystride == AutoStride)
             ystride = xstride * width;
         if (zstride == AutoStride)
@@ -282,7 +282,7 @@ public:
     /// contiguous data with the given format and channels.
     static void auto_stride (stride_t &xstride, ParamBaseType format, int nchannels) {
         if (xstride == AutoStride)
-            xstride = nchannels * ParamBaseTypeSize(format);
+            xstride = nchannels * typesize(format);
     }
 
     /// Add an optional attribute to the extra attribute list
@@ -403,7 +403,7 @@ public:
     /// ignored for 2D non-volume images.)  The stride value gives the
     /// distance between successive pixels (in bytes).  Strides set to
     /// AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     xstride == spec.nchannels*typesize(format)
     /// The data are automatically converted from 'format' to the actual
     /// output format (as specified to open()) by this method.  Return
     /// true for success, false for failure.  It is a failure to call
@@ -418,7 +418,7 @@ public:
     /// the distance (in bytes) between successive pixels, scanlines,
     /// and volumetric slices, respectively.  Strides set to AutoStride
     /// imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     xstride == spec.nchannels*typesize(format)
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height
     /// The data are automatically converted from 'format' to the actual
@@ -437,7 +437,7 @@ public:
     /// successive pixels, scanlines, and volumetric slices,
     /// respectively.  Strides set to AutoStride imply 'contiguous'
     /// data, i.e.,
-    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     xstride == spec.nchannels*typesize(format)
     ///     ystride == xstride * (xmax-xmin+1)
     ///     zstride == ystride * (ymax-ymin+1)
     /// The data are automatically converted from 'format' to the actual
@@ -454,7 +454,7 @@ public:
     /// Write the entire image of spec.width x spec.height x spec.depth
     /// pixels, with the given strides and in the desired format.
     /// Strides set to AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     xstride == spec.nchannels*typesize(format)
     ///     ystride == xstride*spec.width
     ///     zstride == ystride*spec.height
     /// Depending on spec, write either all tiles or all scanlines.
@@ -571,7 +571,7 @@ public:
     /// into the 'format' specified (z==0 for non-volume images).  The
     /// stride value gives the data spacing of adjacent pixels (in
     /// bytes).  Strides set to AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     xstride == spec.nchannels*typesize(format)
     /// The reader is expected to give the appearance of random access --
     /// in other words, if it can't randomly seek to the given scanline,
     /// it should transparently close, reopen, and sequentially read
@@ -594,7 +594,7 @@ public:
     /// values give the data spacing of adjacent pixels, scanlines, and
     /// volumetric slices (measured in bytes).  Strides set to
     /// AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     xstride == spec.nchannels*typesize(format)
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height
     /// The reader is expected to give the appearance of random access
@@ -620,7 +620,7 @@ public:
     /// the entire image) with the given strides and in the desired
     /// format.  Read tiles or scanlines automatically.  Strides set to
     /// AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*ParamBaseTypeSize(format)
+    ///     xstride == spec.nchannels*typesize(format)
     ///     ystride == xstride*spec.width
     ///     zstride == ystride*spec.height
     /// Because this may be an expensive operation, a progress callback

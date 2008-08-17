@@ -63,7 +63,7 @@ static const char * pbt_name[] = {
 
 
 const char *
-ParamBaseTypeNameString (int t)
+typestring (ParamBaseType t)
 {
     DASSERT (sizeof(pbt_name)/sizeof(pbt_name[0]) == PT_LAST);
     if (t < 0 || t >= PT_LAST)
@@ -98,7 +98,7 @@ static const int pbt_size[] = {
 
 
 int
-ParamBaseTypeSize (int t)
+typesize (ParamBaseType t)
 {
     DASSERT (sizeof(pbt_size)/sizeof(pbt_size[0]) == PT_LAST);
     if (t < 0 || t >= PT_LAST)
@@ -133,7 +133,7 @@ static const ParamBaseType pbt_scalartype[] = {
 
 
 ParamBaseType
-ParamBaseTypeScalarType (int t)
+scalartype (ParamBaseType t)
 {
     DASSERT (sizeof(pbt_scalartype)/sizeof(pbt_scalartype[0]) == PT_LAST);
     if (t < 0 || t >= PT_LAST)
@@ -168,7 +168,7 @@ static const int pbt_nscalars[] = {
 
 
 int
-ParamBaseTypeNScalars (int t)
+nscalars (ParamBaseType t)
 {
     DASSERT (sizeof(pbt_nscalars)/sizeof(pbt_size[0]) == PT_LAST);
     if (t < 0 || t >= PT_LAST)
@@ -203,7 +203,7 @@ static const int pbt_nfloats[] = {
 
 
 int
-ParamBaseTypeNFloats (int t)
+nfloats (ParamBaseType t)
 {
     DASSERT (sizeof(pbt_nfloats)/sizeof(pbt_size[0]) == PT_LAST);
     if (t < 0 || t >= PT_LAST)

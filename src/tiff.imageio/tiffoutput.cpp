@@ -185,7 +185,7 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
         break;
     default:
         error ("TIFF doesn't support %s images (\"%s\")",
-               ParamBaseTypeNameString(m_spec.format), name);
+               typestring(m_spec.format), name);
         close();
         return false;
     }
@@ -437,7 +437,7 @@ TIFFOutput::write_tile (int x, int y, int z,
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
         int tile_pixels = m_spec.tile_width * m_spec.tile_height 
                             * std::max (m_spec.tile_depth, 1);
-        int plane_bytes = tile_pixels * ParamBaseTypeSize(m_spec.format);
+        int plane_bytes = tile_pixels * typesize(m_spec.format);
         DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
         m_scratch.resize (m_spec.tile_bytes());
         contig_to_separate (tile_pixels, (const unsigned char *)data, &m_scratch[0]);
