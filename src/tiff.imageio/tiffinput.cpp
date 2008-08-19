@@ -540,7 +540,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
         else
             fourbit_to_8bit (m_spec.width, &m_scratch[0], (unsigned char *)data);
     } else {
-        // Contiguous, >= bit per sample -- the "usual" case
+        // Contiguous, >= 8 bit per sample -- the "usual" case
         if (TIFFReadScanline (m_tif, data, y) < 0) {
             error ("%s", lasterr.c_str());
             return false;
@@ -582,7 +582,7 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
             }
         separate_to_contig (m_spec.width, &m_scratch[0], (unsigned char *)data);
     } else {
-        // Contiguous, >= bit per sample -- the "usual" case
+        // Contiguous, >= 8 bit per sample -- the "usual" case
         if (TIFFReadTile (m_tif, data, x, y, z, 0) < 0) {
             error ("%s", lasterr.c_str());
             return false;

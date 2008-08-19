@@ -247,7 +247,10 @@ make_mipmap (void)
     dstspec.tile_depth  = tile[2];
 
     // Always use ZIP compression
-    dstspec.attribute ("compression", "zip");
+    // dstspec.attribute ("compression", "zip");
+    // Ugh, the line above seems to trigger a bug in the tiff library.
+    // Maybe a bug in libtiff zip compression for tiles?  So let's
+    // stick to the default compression.
 
     dstspec.attribute ("DateTime", datestring());
     dstspec.attribute ("Software", full_command_line);

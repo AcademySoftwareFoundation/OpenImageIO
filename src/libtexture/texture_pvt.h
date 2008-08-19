@@ -123,13 +123,13 @@ typedef hash_map<ustring,TextureFileRef,ustringHash> FilenameMap;
 ///
 class TileID {
 public:
-    /// Default constructor -- just make sure the texfile pointer is
-    /// not dangling.
-    TileID () : m_texfile(NULL) { }
+    /// Default constructor -- do not define
+    ///
+    TileID ();
 
     /// Initialize a TileID based on full elaboration of texture file,
     /// MIPmap level, and tile x,y,z indices.
-    TileID (TextureFile *texfile, int level, int x, int y, int z=0)
+    TileID (TextureFile &texfile, int level, int x, int y, int z=0)
         : m_texfile(texfile), m_level(level), m_x(x), m_y(y), m_z(z)
     { }
 
@@ -137,7 +137,7 @@ public:
     /// of our own.  This is by design.
     ~TileID () { }
 
-    TextureFile *texfile (void) const { return m_texfile; }
+    TextureFile &texfile (void) const { return m_texfile; }
     int level (void) const { return m_level; }
     int x (void) const { return m_x; }
     int y (void) const { return m_y; }
@@ -149,14 +149,14 @@ public:
         // Try to speed up by comparing field by field in order of most
         // probable rejection if they really are unequal.
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z &&
-                a.m_level == b.m_level && a.m_texfile == b.m_texfile);
+                a.m_level == b.m_level && (&a.m_texfile == &b.m_texfile));
     }
 
     /// Do the two ID's refer to the same tile, given that the
     /// caller *guarantees* that the two tiles point to the same
     /// file and level (so it only has to compare xyz)?
     friend bool equal_same_level (const TileID &a, const TileID &b) {
-        DASSERT (a.m_texfile == b.m_texfile && a.m_level == b.m_level);
+        DASSERT ((&a.m_texfile == &b.m_texfile) && a.m_level == b.m_level);
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z);
     }
 
@@ -169,7 +169,7 @@ public:
     /// summing, so that collisions are unlikely.
     size_t hash () const {
         return m_x * 53 + m_y * 97 + m_z * 193 + 
-               m_level * 389 + (size_t)m_texfile * 769;
+               m_level * 389 + (size_t)(&m_texfile) * 769;
     }
 
     /// Functor that hashes a TileID
@@ -188,7 +188,7 @@ public:
 private:
     int m_x, m_y, m_z;        ///< x,y,z tile index within the mip level
     int m_level;              ///< MIP-map level
-    TextureFile *m_texfile;   ///< Which TextureFile we refer to
+    TextureFile &m_texfile;   ///< Which TextureFile we refer to
 };
 
 
@@ -323,7 +323,7 @@ private:
 
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
-    TextureFile *find_texturefile (ustring filename);
+    TextureFileRef find_texturefile (ustring filename);
 
     // Enforce the max number of open files.  This should only be invoked
     // when the caller holds m_texturefiles_mutex.
@@ -408,7 +408,7 @@ private:
 
     /// Look up texture from just ONE point
     ///
-    void texture_lookup (TextureFile *texfile, TextureOptions &options,
+    void texture_lookup (TextureFile &texfile, TextureOptions &options,
                          int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,

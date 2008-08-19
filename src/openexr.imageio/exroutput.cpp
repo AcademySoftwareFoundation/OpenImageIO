@@ -316,7 +316,7 @@ OpenEXROutput::put_parameter (const std::string &name, ParamBaseType type,
 
     // Special cases
     if (iequals(xname, "Compression") && type == PT_STRING) {
-        int compress = COMPRESSION_LZW;  // default
+        int compress = Imf::ZIP_COMPRESSION;  // default
         const char *str = *(char **)data;
         m_header->compression() = Imf::ZIP_COMPRESSION;  // Default
         if (str) {

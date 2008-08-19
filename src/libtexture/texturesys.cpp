@@ -287,11 +287,7 @@ TextureFile::read_tile (int level, int x, int y, int z,
     ImageIOFormatSpec tmp;
     if (m_input->current_subimage() != level)
         m_input->seek_subimage (level, tmp);
-    std::cerr << "want to read tile " << m_filename << " " << level << ' ' << x << ' ' << y << "\n";
-    bool ok = m_input->read_tile (x, y, z, format, data);
-    if (! ok)
-        std::cerr << "read_tile failed " << m_input->error_message() << "\n";
-    return ok;
+    return m_input->read_tile (x, y, z, format, data);
 }
 
 
@@ -314,12 +310,15 @@ TextureFile::release ()
 Tile::Tile (const TileID &id)
     : m_id (id), m_valid(true), m_used(true)
 {
-    TextureFile *texfile = m_id.texfile ();
-    const ImageIOFormatSpec &spec (texfile->spec());
-    m_texels.resize (spec.tile_bytes ());
-    texfile->read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
-                        PT_FLOAT, &m_texels[0]);
+    TextureFile &texfile = m_id.texfile ();
+    const ImageIOFormatSpec &spec (texfile.spec());
+    ParamBaseType peltype = PT_FLOAT;
     // FIXME -- read 8-bit directly if that's native
+    m_texels.resize (spec.tile_pixels () * spec.nchannels * typesize(peltype));
+    if (! texfile.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
+                             peltype, &m_texels[0])) {
+        std::cerr << "(1) error reading tile\n";
+    }
     // FIXME -- for shadow, fill in mindepth, maxdepth
 }
 
@@ -349,7 +348,7 @@ TextureSystemImpl::init ()
 
 
 
-TextureFile *
+TextureFileRef
 TextureSystemImpl::find_texturefile (ustring filename)
 {
     lock_guard guard (m_texturefiles_mutex);
@@ -367,7 +366,7 @@ TextureSystemImpl::find_texturefile (ustring filename)
     }
 
     tf->use ();
-    return tf.get();
+    return tf;
 }
 
 
@@ -393,12 +392,13 @@ TextureSystemImpl::find_tile (const TileID &id)
     lock_guard guard (m_texturefiles_mutex);
     TileCache::iterator found = tilecache.find (id);
     TileRef tile;
-    if (found != tilecache.end())
+    if (found != tilecache.end()) {
         tile = found->second;
-    else {
+    } else {
         tile.reset (new Tile (id));
         tilecache[id] = tile;
     }
+    DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
     return tile;
 }
 
@@ -410,7 +410,7 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
 {
     std::cerr << "gettextureinfo \"" << filename << "\"\n";
 
-    TextureFile *texfile = find_texturefile (filename);
+    TextureFileRef texfile = find_texturefile (filename);
     if (! texfile) {
         std::cerr << "   NOT FOUND\n";
         return false;
@@ -478,7 +478,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 {
     // FIXME - should we be keeping stats, times?
 
-    TextureFile *texturefile = find_texturefile (filename);
+    TextureFileRef texturefile = find_texturefile (filename);
     if (! texturefile  ||  texturefile->broken()) {
         std::cerr << "   TEXTURE NOT FOUND " << filename << "\n";
         for (int i = firstactive;  i <= lastactive;  ++i) {
@@ -532,7 +532,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     // that MUST be redone for each individual texture lookup point.
     for (int i = firstactive;  i <= lastactive;  ++i) {
         if (runflags[i]) {
-            texture_lookup (texturefile, options, i,
+            texture_lookup (*texturefile, options, i,
 #if 0
                             s[i], t[i],
                             dsdx[i] * swidth[i] + sblur[i],
@@ -541,7 +541,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             dtdy[i] * twidth[i] + tblur[i],
                             result + i * options.nchannels
 #else
-                            s, t, dsdx, dtdx, dsdy, dtdy, result
+                            s, t, dsdx, dtdx, dsdy, dtdy, result + i * options.nchannels
 #endif
                 );
         }
@@ -551,7 +551,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 
 
 void
-TextureSystemImpl::texture_lookup (TextureFile *texturefile,
+TextureSystemImpl::texture_lookup (TextureFile &texturefile,
                             TextureOptions &options,
                             int index,
                             VaryingRef<float> _s, VaryingRef<float> _t,
@@ -562,17 +562,17 @@ TextureSystemImpl::texture_lookup (TextureFile *texturefile,
     // N.B. If any computations within this function are identical for
     // all texture lookups in this batch, those computations should be
     // hoisted up to the calling function, texture().
-    float dsdx = _dsdx[index] * options.swidth[index] + options.sblur[index];
-    float dtdx = _dtdx[index] * options.twidth[index] + options.tblur[index];
-    float dsdy = _dsdy[index] * options.swidth[index] + options.sblur[index];
-    float dtdy = _dtdy[index] * options.twidth[index] + options.tblur[index];
+    float dsdx = _dsdx ? (_dsdx[index] * options.swidth[index] + options.sblur[index]) : 0;
+    float dtdx = _dtdx ? (_dtdx[index] * options.twidth[index] + options.tblur[index]) : 0;
+    float dsdy = _dsdy ? (_dsdy[index] * options.swidth[index] + options.sblur[index]) : 0;
+    float dtdy = _dtdy ? (_dtdy[index] * options.twidth[index] + options.tblur[index]) : 0;
     result += index * options.nchannels;
     result[0] = _s[index];
     result[1] = _t[index];
 
     // Very primitive -- unfiltered, uninterpolated lookup
     int level = 0;
-    const ImageIOFormatSpec &spec (texturefile->spec (level));
+    const ImageIOFormatSpec &spec (texturefile.spec (level));
     // As passed in, (s,t) map the texture to (0,1)
     float s = _s[index] * spec.width;
     float t = _t[index] * spec.height;
@@ -599,20 +599,39 @@ TextureSystemImpl::texture_lookup (TextureFile *texturefile,
     int tile_s = sint & tilewidthmask;
     int tile_t = tint & tileheightmask;
     TileID id (texturefile, 0 /* always level 0 for now */, 
-               sint & (~tilewidthmask), tint & (~tileheightmask), 0);
+               sint - tile_s, tint - tile_t, 0);
     TileRef tile = find_tile (id);
-    if (! tile.get()) {
+    if (! tile) {
         result[0] = 0.5;
         return;
     }
+    DASSERT (tile->id() == id);
 
     // FIXME -- float only for now
-    const float *data = tile->data() +
-                     (tile_t * spec.tile_width + tile_s) * spec.nchannels;
+    int offset = (tile_t * spec.tile_width + tile_s);
+    DASSERT (offset < spec.tile_pixels());
+    const float *data = tile->data() + offset * spec.nchannels;
     for (int c = 0;  c < options.actualchannels;  ++c)
         result[c] = data[options.firstchannel+c];
     if (options.alpha)
         options.alpha[index] = data[options.firstchannel+options.actualchannels];
+#if 0
+    // Debug: R,G show the coords within a tile
+    result[0] = (float)tile_s / spec.tile_width;
+    result[1] = (float)tile_t / spec.tile_height;
+#endif
+#if 0
+    // Debug: R,G show the tile id
+    result[0] = (float) (sint) / spec.width;
+    result[1] = (float) (tint) / spec.height;
+//    result[2] = (float)offset / spec.tile_pixels();
+#endif
+#if 0
+    // Debug: R,G show the tile id
+//    result[0] = (float) (sint & (~tilewidthmask)) / spec.width;
+    result[1] = (float) (tint & (~tileheightmask)) / spec.height;
+//    result[2] = (float)offset / spec.tile_pixels();
+#endif
 }
 
 
