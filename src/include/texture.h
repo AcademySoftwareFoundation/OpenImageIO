@@ -42,6 +42,11 @@ namespace Imath {
 
 namespace OpenImageIO {
 
+// Forward declaration
+namespace pvt {
+    class TextureSystemImpl;
+};
+
 
 typedef unsigned char Runflag;
 enum RunFlagVal { RunFlagOff = 0, RunFlagOn = 255 };
@@ -100,6 +105,11 @@ public:
     /// Though, there is no harm.  It's just not as efficient as the
     /// default ctr that memcpy's a canonical pre-constructed default.
     TextureOptions (bool);
+
+private:
+    typedef bool (*wrap_impl) (int &coord, int width);
+    wrap_impl swrap_func, twrap_func;
+    friend class OpenImageIO::pvt::TextureSystemImpl;
 };
 
 

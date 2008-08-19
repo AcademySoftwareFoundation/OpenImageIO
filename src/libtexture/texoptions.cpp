@@ -73,7 +73,8 @@ TextureOptions::TextureOptions (bool)
       bias(default_bias),
       fill(default_fill),
       alpha(NULL),
-      stateful(false)
+      stateful(false),
+      swrap_func(NULL), twrap_func(NULL)
 {
     
 }

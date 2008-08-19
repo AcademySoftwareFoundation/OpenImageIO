@@ -409,9 +409,25 @@ private:
         tile = find_tile (id);
     }
 
+    // Define a prototype of a member function pointer for texture
+    // lookups.
+    typedef void (TextureSystemImpl::*texture_lookup_prototype)
+            (TextureFile &texfile, TextureOptions &options, int index,
+             VaryingRef<float> _s, VaryingRef<float> _t,
+             VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
+             VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+             float *result);
+
     /// Look up texture from just ONE point
     ///
     void texture_lookup (TextureFile &texfile, TextureOptions &options,
+                         int index,
+                         VaryingRef<float> _s, VaryingRef<float> _t,
+                         VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
+                         VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                         float *result);
+    
+    void texture_lookup_closest (TextureFile &texfile, TextureOptions &options,
                          int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,

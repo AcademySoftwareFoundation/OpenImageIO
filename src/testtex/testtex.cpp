@@ -147,6 +147,8 @@ test_plain_texture (ustring filename)
 
     TextureOptions opt;
     opt.nchannels = 3;
+//    opt.swrap = opt.twrap = TextureOptions::WrapMirror;
+//    opt.twrap = TextureOptions::WrapBlack;
     float s[shadepoints], t[shadepoints];
     Runflag runflags[shadepoints] = { RunFlagOn };
 

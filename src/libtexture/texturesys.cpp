@@ -229,6 +229,69 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
 
 
 
+// Wrap functions wrap 'coord' around 'width', and return true if the
+// result is a valid pixel coordinate, false if black should be used
+// instead.
+
+typedef bool (*wrap_impl) (int &coord, int width);
+
+static bool wrap_black (int &coord, int width)
+{
+    return (coord >= 0 && coord < width);
+}
+
+
+static bool wrap_clamp (int &coord, int width)
+{
+    if (coord < 0)
+        coord = 0;
+    else if (coord >= width)
+        coord = width-1;
+    return true;
+}
+
+
+static bool wrap_periodic (int &coord, int width)
+{
+    coord %= width;
+    if (coord < 0)       // Fix negative values
+        coord += width;
+    return true;
+}
+
+
+static bool wrap_periodic2 (int &coord, int width)
+{
+    coord &= (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
+    return true;
+}
+
+
+static bool wrap_mirror (int &coord, int width)
+{
+    bool negative = (coord < 0);
+    int iter = coord / width;    // Which iteration of the pattern?
+    coord -= iter * width;
+    bool flip = (iter & 1);
+    if (negative) {
+        coord += width - 1;
+        flip = !flip;
+    }
+    if (flip)
+        coord = width - 1 - coord;
+    DASSERT (coord >= 0 && coord < width);
+    return true;
+}
+
+
+
+static const wrap_impl wrap_functions[] = {
+    // Must be in same order as Wrap enum
+    wrap_black, wrap_black, wrap_clamp, wrap_periodic, wrap_mirror
+};
+
+
+
 void
 TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             Runflag *runflags, int firstactive, int lastactive,
@@ -259,6 +322,9 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
         options.swrap = texturefile->swrap();
     if (options.twrap == TextureOptions::WrapDefault)
         options.twrap = texturefile->twrap();
+
+    options.swrap_func = wrap_functions[(int)options.swrap];
+    options.twrap_func = wrap_functions[(int)options.twrap];
 
     int actualchannels = Imath::clamp (texturefile->spec().nchannels - options.firstchannel, 0, options.nchannels);
     options.actualchannels = actualchannels;
@@ -294,19 +360,85 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     for (int i = firstactive;  i <= lastactive;  ++i) {
         if (runflags[i]) {
             texture_lookup (*texturefile, options, i,
-#if 0
-                            s[i], t[i],
-                            dsdx[i] * swidth[i] + sblur[i],
-                            dtdx[i] * twidth[i] + tblur[i],
-                            dsdy[i] * swidth[i] + sblur[i],
-                            dtdy[i] * twidth[i] + tblur[i],
-                            result + i * options.nchannels
-#else
-                            s, t, dsdx, dtdx, dsdy, dtdy, result + i * options.nchannels
-#endif
-                );
+                            s, t, dsdx, dtdx, dsdy, dtdy,
+                            result + i * options.nchannels);
         }
     }
+}
+
+
+
+void
+TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
+                            TextureOptions &options,
+                            int index,
+                            VaryingRef<float> _s, VaryingRef<float> _t,
+                            VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
+                            VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                            float *result)
+{
+    // N.B. If any computations within this function are identical for
+    // all texture lookups in this batch, those computations should be
+    // hoisted up to the calling function, texture().
+    float dsdx = _dsdx ? (_dsdx[index] * options.swidth[index] + options.sblur[index]) : 0;
+    float dtdx = _dtdx ? (_dtdx[index] * options.twidth[index] + options.tblur[index]) : 0;
+    float dsdy = _dsdy ? (_dsdy[index] * options.swidth[index] + options.sblur[index]) : 0;
+    float dtdy = _dtdy ? (_dtdy[index] * options.twidth[index] + options.tblur[index]) : 0;
+    result += index * options.nchannels;
+    result[0] = _s[index];
+    result[1] = _t[index];
+
+    // Very primitive -- unfiltered, uninterpolated lookup
+    int level = 0;
+    const ImageIOFormatSpec &spec (texturefile.spec (level));
+    // As passed in, (s,t) map the texture to (0,1)
+    float s = _s[index] * spec.width;
+    float t = _t[index] * spec.height;
+    // Now (s,t) map the texture to (0,res)
+    s -= 0.5f;
+    t -= 0.5f;
+    int sint, tint;
+    float sfrac = floorfrac (s, &sint);
+    float tfrac = floorfrac (t, &tint);
+    // Now (xint,yint) are the integer coordinates of the texel to the
+    // immediate "upper left" of the lookup point, and (xfrac,yfrac) are
+    // the amount that the lookup point is actually offset from the
+    // texel center (with (1,1) being all the way to the next texel down
+    // and to the right).
+
+    // Wrap
+    ASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
+    bool ok = options.swrap_func (sint, spec.full_width);
+    ok &= options.twrap_func (tint, spec.full_width);
+    if (! ok) {
+        for (int c = 0;  c < options.actualchannels;  ++c)
+            result[c] = 0;
+        if (options.alpha)
+            options.alpha[index] = 0;
+        return;
+    }
+
+    int tilewidthmask = spec.tile_width - 1;
+    int tileheightmask = spec.tile_height - 1;
+    int tile_s = sint & tilewidthmask;
+    int tile_t = tint & tileheightmask;
+    TileID id (texturefile, 0 /* always level 0 for now */, 
+               sint - tile_s, tint - tile_t, 0);
+    TileRef tile = find_tile (id);
+    if (! tile) {
+        result[0] = 0.5;
+        return;
+    }
+    DASSERT (tile->id() == id);
+
+    // FIXME -- float only for now
+    int offset = (tile_t * spec.tile_width + tile_s);
+    DASSERT (offset < spec.tile_pixels());
+    const float *data = tile->data() + offset * spec.nchannels;
+    for (int c = 0;  c < options.actualchannels;  ++c)
+        result[c] = data[options.firstchannel+c];
+    if (options.alpha)
+        options.alpha[index] = data[options.firstchannel+options.actualchannels];
 }
 
 
@@ -349,9 +481,15 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     // texel center (with (1,1) being all the way to the next texel down
     // and to the right).
     
-    // Wrap not implemented yet.  Just ignore lookups outside the texture.
-    if (sint < 0 || sint >= spec.width || tint < 0 || tint >= spec.height) {
-        result[0] = 1;
+    // Wrap
+    ASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
+    bool ok = options.swrap_func (sint, spec.full_width);
+    ok &= options.twrap_func (tint, spec.full_width);
+    if (! ok) {
+        for (int c = 0;  c < options.actualchannels;  ++c)
+            result[c] = 0;
+        if (options.alpha)
+            options.alpha[index] = 0;
         return;
     }
 
