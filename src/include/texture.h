@@ -82,6 +82,19 @@ public:
     bool stateful;         // False for a new-ish TextureOptions
     int actualchannels;    // True number of channels read
 
+
+    /// Utility: Return the Wrap enum corresponding to a wrap name:
+    /// "default", "black", "clamp", "periodic", "mirror".
+    static Wrap decode_wrapmode (const char *name);
+
+    /// Utility: Parse a single wrap mode (e.g., "periodic") or a
+    /// comma-separated wrap modes string (e.g., "black,clamp") into
+    /// separate Wrap enums for s and t.
+    static void parse_wrapmodes (const char *wrapmodes,
+                                 TextureOptions::Wrap &swrapcode,
+                                 TextureOptions::Wrap &twrapcode);
+    
+
     /// Special private ctr that makes a canonical default TextureOptions.
     /// For use internal to libtexture.  Users, don't call this!
     /// Though, there is no harm.  It's just not as efficient as the

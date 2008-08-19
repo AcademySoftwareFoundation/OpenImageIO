@@ -8,7 +8,7 @@
 local_name := libtexture
 
 # Name of all source files in this directory
-local_src := texturesys.cpp
+local_src := texturesys.cpp texoptions.cpp texfile.cpp
 
 # Extra static libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)

@@ -54,39 +54,6 @@ using namespace OpenImageIO::pvt;
 namespace OpenImageIO {
 
 
-static float default_blur = 0;
-static float default_width = 1;
-static float default_bias = 0;
-static float default_fill = 0;
-
-static TextureOptions defaultTextureOptions(true);  // use special ctr
-
-
-
-/// Special private ctr that makes a canonical default TextureOptions.
-/// For use internal to libtexture.  Users, don't call this!
-TextureOptions::TextureOptions (bool)
-    : firstchannel(0), nchannels(1),
-      swrap(WrapDefault), twrap(WrapDefault),
-      sblur(default_blur), tblur(default_blur),
-      swidth(default_width), twidth(default_width),
-      bias(default_bias),
-      fill(default_fill),
-      alpha(NULL),
-      stateful(false)
-{
-    
-}
-
-
-
-TextureOptions::TextureOptions ()
-{
-    memcpy (this, &defaultTextureOptions, sizeof(*this));
-}
-
-
-
 TextureSystem *
 TextureSystem::create ()
 {
@@ -104,205 +71,36 @@ TextureSystem::destroy (TextureSystem * &x)
 
 
 
-namespace pvt {   // namespace TextureSystem::pvt
-
-
-static const char * texture_format_name[] = {
-    // MUST match the order of TexFormat
-    "unknown", "Plain Texture", "Volume Texture",
-    "Shadow", "CubeFace Shadow", "Volume Shadow",
-    "LatLong Environment", "CubeFace Environment",
-    ""
-};
+namespace pvt {   // namespace OpenImageIO::pvt
 
 
 
-static const char * texture_type_name[] = {
-    // MUST match the order of TexFormat
-    "unknown", "Plain Texture", "Volume Texture",
-    "Shadow", "Shadow", "Shadow",
-    "Environment", "Environment",
-    ""
-};
-
-
-
-static const char * wrap_type_name[] = {
-    // MUST match the order of TextureOptions::Wrap
-    "default", "black", "clamp", "periodic", "mirror",
-    ""
-};
-
-
-static TextureOptions::Wrap
-decode_wrapmode (const char *name)
+const char *
+texture_format_name (TexFormat f)
 {
-    for (int i = 0;  i < (int)TextureOptions::WrapLast;  ++i)
-        if (! strcmp (name, wrap_type_name[i]))
-            return (TextureOptions::Wrap) i;
-    return TextureOptions::WrapDefault;
+    static const char * texture_format_names[] = {
+        // MUST match the order of TexFormat
+        "unknown", "Plain Texture", "Volume Texture",
+        "Shadow", "CubeFace Shadow", "Volume Shadow",
+        "LatLong Environment", "CubeFace Environment",
+        ""
+    };
+    return texture_format_names[(int)f];
 }
 
 
 
-static void
-parse_wrapmodes (const char *wrapmodes, TextureOptions::Wrap &m_swrap,
-                 TextureOptions::Wrap &m_twrap)
+const char *
+texture_type_name (TexFormat f)
 {
-    char *swrap = (char *) alloca (strlen(wrapmodes)+1);
-    const char *twrap;
-    int i;
-    for (i = 0;  wrapmodes[i] && wrapmodes[i] != ',';  ++i)
-        swrap[i] = wrapmodes[i];
-    swrap[i] = 0;
-    if (wrapmodes[i] == ',')
-        twrap = wrapmodes + i+1;
-    else twrap = swrap;
-    m_swrap = decode_wrapmode (swrap);
-    m_twrap = decode_wrapmode (twrap);
-}
-
-
-
-TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
-    : m_filename(filename), m_used(true), m_broken(false),
-      m_texformat(TexFormatTexture), 
-      m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
-      m_cubelayout(CubeUnknown), m_y_up(false),
-      m_texsys(texsys)
-{
-    m_spec.clear ();
-    open ();
-}
-
-
-
-TextureFile::~TextureFile ()
-{
-    release ();
-}
-
-
-
-void
-TextureFile::open ()
-{
-    if (m_input)         // Already opened
-        return;
-    if (m_broken)        // Already failed an open -- it's broken
-        return;
-    
-    m_input.reset (ImageInput::create (m_filename.c_str(),
-                                       m_texsys.searchpath().c_str()));
-    if (! m_input) {
-        m_broken = true;
-        return;
-    }
-
-    ImageIOFormatSpec tempspec;
-    if (! m_input->open (m_filename.c_str(), tempspec)) {
-        m_broken = true;
-        m_input.reset ();
-        return;
-    }
-    m_texsys.incr_open_files ();
-    use ();
-
-    // If m_spec has already been filled out, we've opened this file
-    // before, read the spec, and filled in all the fields.  So now that
-    // we've re-opened it, we're done.
-    if (m_spec.size())
-        return;
-
-    // From here on, we know that we've opened this file for the very
-    // first time.  So read all the MIP levels, fill out all the fields
-    // of the TextureFile.
-    m_spec.reserve (16);
-    int nsubimages = 0;
-    do {
-        ++nsubimages;
-        m_spec.push_back (tempspec);
-        // Sanity checks: all levels need the same num channels
-        ASSERT (tempspec.nchannels == m_spec[0].nchannels);
-    } while (m_input->seek_subimage (nsubimages, tempspec));
-    std::cerr << m_filename << " has " << m_spec.size() << " subimages\n";
-    ASSERT (nsubimages = m_spec.size());
-
-    const ImageIOFormatSpec &spec (m_spec[0]);
-    const ImageIOParameter *p;
-
-    m_texformat = TexFormatTexture;
-    p = spec.find_attribute ("textureformat");
-    if (p && p->type == PT_STRING && p->nvalues == 1) {
-        const char *textureformat = (const char *)p->data();
-        for (int i = 0;  i < TexFormatLast;  ++i)
-            if (! strcmp (textureformat, texture_format_name[i])) {
-                m_texformat = (TexFormat) i;
-                break;
-            }
-    }
-
-    p = spec.find_attribute ("wrapmodes");
-    if (p && p->type == PT_STRING && p->nvalues == 1) {
-        const char *wrapmodes = (const char *)p->data();
-        parse_wrapmodes (wrapmodes, m_swrap, m_twrap);
-    }
-
-    m_y_up = false;
-    if (m_texformat == TexFormatCubeFaceEnv) {
-        if (! strcmp (m_input->format_name(), "openexr"))
-            m_y_up = true;
-        int w = std::max (spec.full_width, spec.tile_width);
-        int h = std::max (spec.full_height, spec.tile_height);
-        if (spec.width == 3*w && spec.height == 2*h)
-            m_cubelayout = CubeThreeByTwo;
-        else if (spec.width == w && spec.height == 6*h)
-            m_cubelayout = CubeOneBySix;
-        else
-            m_cubelayout = CubeLast;
-    }
-
-    Imath::M44f c2w;
-    m_texsys.get_commontoworld (c2w);
-    p = spec.find_attribute ("worldtocamera");
-    if (p && p->type == PT_MATRIX && p->nvalues == 1) {
-        const Imath::M44f *m = (const Imath::M44f *)p->data();
-        m_Mlocal = c2w * (*m);
-    }
-    p = spec.find_attribute ("worldtoscreen");
-    if (p && p->type == PT_MATRIX && p->nvalues == 1) {
-        const Imath::M44f *m = (const Imath::M44f *)p->data();
-        m_Mproj = c2w * (*m);
-    }
-    // FIXME -- compute Mtex, Mras
-}
-
-
-
-bool
-TextureFile::read_tile (int level, int x, int y, int z,
-                        ParamBaseType format, void *data)
-{
-    open ();
-    ImageIOFormatSpec tmp;
-    if (m_input->current_subimage() != level)
-        m_input->seek_subimage (level, tmp);
-    return m_input->read_tile (x, y, z, format, data);
-}
-
-
-
-void
-TextureFile::release ()
-{
-    if (m_used) {
-        m_used = false;
-    } else if (opened()) {
-        m_input->close ();
-        m_input.reset ();
-        m_used = false;
-        m_texsys.decr_open_files ();
-    }
+    static const char * texture_type_names[] = {
+        // MUST match the order of TexFormat
+        "unknown", "Plain Texture", "Volume Texture",
+        "Shadow", "Shadow", "Shadow",
+        "Environment", "Environment",
+        ""
+    };
+    return texture_type_names[(int)f];
 }
 
 
@@ -344,43 +142,6 @@ TextureSystemImpl::init ()
     max_open_files (100);
     max_memory_MB (50);
     m_Mw2c.makeIdentity();
-}
-
-
-
-TextureFileRef
-TextureSystemImpl::find_texturefile (ustring filename)
-{
-    lock_guard guard (m_texturefiles_mutex);
-
-    FilenameMap::iterator found = m_texturefiles.find (filename);
-    TextureFileRef tf;
-    if (found == m_texturefiles.end()) {
-        // We don't already have this file in the texture list.  Try to
-        // open it and create a record.
-        check_max_files ();
-        tf.reset (new TextureFile (*this, filename));
-        m_texturefiles[filename] = tf;
-    } else {
-        tf = found->second;
-    }
-
-    tf->use ();
-    return tf;
-}
-
-
-
-void
-TextureSystemImpl::check_max_files ()
-{
-    std::cerr << "open files " << m_open_files << ", max = " << m_max_open_files << "\n";
-    while (m_open_files >= m_max_open_files) {
-        if (m_file_sweep == m_texturefiles.end())
-            m_file_sweep = m_texturefiles.begin();
-        ASSERT (m_file_sweep != m_texturefiles.end());
-        m_file_sweep->second->release ();  // May reduce m_open_files
-    }
 }
 
 
@@ -427,12 +188,12 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
         return true;
     }
     if (dataname == "texturetype" && datatype==ParamType(PT_STRING)) {
-        ustring s (texture_type_name[(int)texfile->textureformat()]);
+        ustring s (texture_type_name (texfile->textureformat()));
         *(const char **)data = s.c_str();
         return true;
     }
     if (dataname == "textureformat" && datatype==ParamType(PT_STRING)) {
-        ustring s (texture_format_name[(int)texfile->textureformat()]);
+        ustring s (texture_format_name (texfile->textureformat()));
         *(const char **)data = s.c_str();
         return true;
     }

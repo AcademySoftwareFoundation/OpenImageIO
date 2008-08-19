@@ -41,6 +41,9 @@ enum TexFormat {
     TexFormatLast
 };
 
+const char * texture_format_name (TexFormat f);
+const char * texture_type_name (TexFormat f);
+
 
 
 enum CubeLayout {
