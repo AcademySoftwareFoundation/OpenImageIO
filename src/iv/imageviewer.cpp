@@ -526,7 +526,8 @@ ImageViewer::reload()
     if (m_images.empty())
         return;
     IvImage *newimage = m_images[m_current_image];
-    newimage->read (newimage->subimage(), true, image_progress_callback, this);
+    newimage->invalidate ();
+    glwin->trigger_redraw ();
     displayCurrentImage ();
 }
 

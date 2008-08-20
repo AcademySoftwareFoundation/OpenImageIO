@@ -63,6 +63,8 @@ public:
     std::string shortinfo () const;
     std::string longinfo () const;
 
+    void invalidate () { m_pixels_valid = false;  m_thumbnail_valid = false; }
+
 private:
     char *m_thumbnail;         ///< Thumbnail image
 //    bool m_spec_valid;         ///< Is the spec valid
