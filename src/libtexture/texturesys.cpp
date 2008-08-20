@@ -476,15 +476,15 @@ TextureSystemImpl::texture_lookup_bilinear (TextureFile &texturefile,
     
     // Wrap
     ASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
-    int texx[2], texy[2];       // Texel coords
-    texx[0] = sint;  texx[1] = sint+1;
-    texy[0] = tint;  texy[1] = tint+1;
-    bool validx[2], validy[2];  // Valid texels?  false means black border
-    validx[0] = options.swrap_func (texx[0], spec.full_width);
-    validx[1] = options.swrap_func (texx[1], spec.full_width);
-    validy[0] = options.twrap_func (texy[0], spec.full_height);
-    validy[1] = options.twrap_func (texy[1], spec.full_height);
-    if (! (validx[0] | validx[1] | validy[0] | validy[1])) {
+    int stex[2], ttex[2];       // Texel coords
+    stex[0] = sint;  stex[1] = sint+1;
+    ttex[0] = tint;  ttex[1] = tint+1;
+    bool svalid[2], tvalid[2];  // Valid texels?  false means black border
+    svalid[0] = options.swrap_func (stex[0], spec.full_width);
+    svalid[1] = options.swrap_func (stex[1], spec.full_width);
+    tvalid[0] = options.twrap_func (ttex[0], spec.full_height);
+    tvalid[1] = options.twrap_func (ttex[1], spec.full_height);
+    if (! (svalid[0] | svalid[1] | tvalid[0] | tvalid[1])) {
         for (int c = 0;  c < options.actualchannels;  ++c)
             result[c] = 0;
         if (options.alpha)
@@ -500,15 +500,15 @@ TextureSystemImpl::texture_lookup_bilinear (TextureFile &texturefile,
     const float *texel[2][2];
     TileRef tile[2][2];
     static float black[4] = { 0, 0, 0, 0 };
-    bool onetilex = ((texx[0] & invtilewidthmask) == (texx[1] & invtilewidthmask));
-    bool onetiley = ((texy[0] & invtileheightmask) == (texy[1] & invtileheightmask));
+    bool onetilex = ((stex[0] & invtilewidthmask) == (stex[1] & invtilewidthmask));
+    bool onetiley = ((ttex[0] & invtileheightmask) == (ttex[1] & invtileheightmask));
     bool onetile = (onetilex & onetiley);
-    if (onetile && validx[0] && validy[0]) {
+    if (onetile && svalid[0] && tvalid[0]) {
         // Shortcut if all the texels we need are on the same tile
-        int tile_s = texx[0] & tilewidthmask;
-        int tile_t = texy[0] & tileheightmask;
+        int tile_s = stex[0] & tilewidthmask;
+        int tile_t = ttex[0] & tileheightmask;
         TileID id (texturefile, level,
-                   texx[0] - tile_s, texy[0] - tile_t, 0);
+                   stex[0] - tile_s, ttex[0] - tile_t, 0);
         find_tile (id, tilecache0, tilecache1);
         if (! tilecache0) {
             result[0] = 0.5;
@@ -522,14 +522,14 @@ TextureSystemImpl::texture_lookup_bilinear (TextureFile &texturefile,
     } else {
         for (int j = 0, initialized = 0;  j < 2;  ++j) {
             for (int i = 0;  i < 2;  ++i) {
-                if (! (validx[i] && validy[j])) {
+                if (! (svalid[i] && tvalid[j])) {
                     texel[j][i] = black;
                     continue;
                 }
-                int tile_s = texx[i] & tilewidthmask;
-                int tile_t = texy[j] & tileheightmask;
+                int tile_s = stex[i] & tilewidthmask;
+                int tile_t = ttex[j] & tileheightmask;
                 TileID id (texturefile, level,
-                           texx[i] - tile_s, texy[j] - tile_t, 0);
+                           stex[i] - tile_s, ttex[j] - tile_t, 0);
                 if (0 && initialized)   // Why isn't it faster to do this?
                     find_tile_same_level (id, tilecache0, tilecache1);
                 else {
@@ -651,15 +651,15 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     
         // Wrap
         DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
-        int texx[2], texy[2];       // Texel coords
-        texx[0] = sint;  texx[1] = sint+1;
-        texy[0] = tint;  texy[1] = tint+1;
-        bool validx[2], validy[2];  // Valid texels?  false means black border
-        validx[0] = options.swrap_func (texx[0], spec.full_width);
-        validx[1] = options.swrap_func (texx[1], spec.full_width);
-        validy[0] = options.twrap_func (texy[0], spec.full_height);
-        validy[1] = options.twrap_func (texy[1], spec.full_height);
-        if (! (validx[0] | validx[1] | validy[0] | validy[1])) {
+        int stex[2], ttex[2];       // Texel coords
+        stex[0] = sint;  stex[1] = sint+1;
+        ttex[0] = tint;  ttex[1] = tint+1;
+        bool svalid[2], tvalid[2];  // Valid texels?  false means black border
+        svalid[0] = options.swrap_func (stex[0], spec.full_width);
+        svalid[1] = options.swrap_func (stex[1], spec.full_width);
+        tvalid[0] = options.twrap_func (ttex[0], spec.full_height);
+        tvalid[1] = options.twrap_func (ttex[1], spec.full_height);
+        if (! (svalid[0] | svalid[1] | tvalid[0] | tvalid[1])) {
             // All texels we need were out of range and using 'black' wrap.
             // Remember we already initialized results to 0, so we're done.
             return;
@@ -673,15 +673,15 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         const float *texel[2][2];
         TileRef tile[2][2];
         static float black[4] = { 0, 0, 0, 0 };
-        bool onetilex = ((texx[0] & invtilewidthmask) == (texx[1] & invtilewidthmask));
-        bool onetiley = ((texy[0] & invtileheightmask) == (texy[1] & invtileheightmask));
+        bool onetilex = ((stex[0] & invtilewidthmask) == (stex[1] & invtilewidthmask));
+        bool onetiley = ((ttex[0] & invtileheightmask) == (ttex[1] & invtileheightmask));
         bool onetile = (onetilex & onetiley);
-        if (onetile && (validx[0] & validx[1] & validy[0] & validy[1])) {
+        if (onetile && (svalid[0] & svalid[1] & tvalid[0] & tvalid[1])) {
             // Shortcut if all the texels we need are on the same tile
-            int tile_s = texx[0] & tilewidthmask;
-            int tile_t = texy[0] & tileheightmask;
+            int tile_s = stex[0] & tilewidthmask;
+            int tile_t = ttex[0] & tileheightmask;
             TileID id (texturefile, miplevel[level],
-                       texx[0] - tile_s, texy[0] - tile_t, 0);
+                       stex[0] - tile_s, ttex[0] - tile_t, 0);
             find_tile (id, tilecache0, tilecache1);
             if (! tilecache0) {
                 result[0] = 0.5;
@@ -695,14 +695,14 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         } else {
             for (int j = 0, initialized = 0;  j < 2;  ++j) {
                 for (int i = 0;  i < 2;  ++i) {
-                    if (! (validx[i] && validy[j])) {
+                    if (! (svalid[i] && tvalid[j])) {
                         texel[j][i] = black;
                         continue;
                     }
-                    int tile_s = texx[i] & tilewidthmask;
-                    int tile_t = texy[j] & tileheightmask;
+                    int tile_s = stex[i] & tilewidthmask;
+                    int tile_t = ttex[j] & tileheightmask;
                     TileID id (texturefile, miplevel[level],
-                               texx[i] - tile_s, texy[j] - tile_t, 0);
+                               stex[i] - tile_s, ttex[j] - tile_t, 0);
                     if (0 && initialized)   // Why isn't it faster to do this?
                         find_tile_same_level (id, tilecache0, tilecache1);
                     else {
