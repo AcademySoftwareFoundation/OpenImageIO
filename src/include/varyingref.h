@@ -38,6 +38,7 @@ public:
         m_ptr = ptr;
         m_step = step;
     }
+    const VaryingRef & operator= (T &ptr) { init (&ptr); return *this; }
 
     bool is_null () const { return (m_ptr == 0); }
 

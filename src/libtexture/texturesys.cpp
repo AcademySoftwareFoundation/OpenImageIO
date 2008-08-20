@@ -115,7 +115,7 @@ Tile::Tile (const TileID &id)
     m_texels.resize (spec.tile_pixels () * spec.nchannels * typesize(peltype));
     if (! texfile.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
                              peltype, &m_texels[0])) {
-        std::cerr << "(1) error reading tile\n";
+        std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() << "\n";
     }
     // FIXME -- for shadow, fill in mindepth, maxdepth
 }
@@ -169,8 +169,6 @@ bool
 TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
                                    ParamType datatype, void *data)
 {
-    std::cerr << "gettextureinfo \"" << filename << "\"\n";
-
     TextureFileRef texfile = find_texturefile (filename);
     if (! texfile) {
         std::cerr << "   NOT FOUND\n";
@@ -357,10 +355,12 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     // "grid points" at once should be done in this function, outside
     // the loop, and all the work inside texture_lookup should be work
     // that MUST be redone for each individual texture lookup point.
+    TileRef tilecache0, tilecache1;
     for (int i = firstactive;  i <= lastactive;  ++i) {
         if (runflags[i]) {
             texture_lookup (*texturefile, options, i,
                             s, t, dsdx, dtdx, dsdy, dtdy,
+                            tilecache0, tilecache1,
                             result + i * options.nchannels);
         }
     }
@@ -375,18 +375,12 @@ TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
                             VaryingRef<float> _s, VaryingRef<float> _t,
                             VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                             VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                            TileRef &tilecache0, TileRef &tilecache1,
                             float *result)
 {
     // N.B. If any computations within this function are identical for
     // all texture lookups in this batch, those computations should be
     // hoisted up to the calling function, texture().
-    float dsdx = _dsdx ? (_dsdx[index] * options.swidth[index] + options.sblur[index]) : 0;
-    float dtdx = _dtdx ? (_dtdx[index] * options.twidth[index] + options.tblur[index]) : 0;
-    float dsdy = _dsdy ? (_dsdy[index] * options.swidth[index] + options.sblur[index]) : 0;
-    float dtdy = _dtdy ? (_dtdy[index] * options.twidth[index] + options.tblur[index]) : 0;
-    result += index * options.nchannels;
-    result[0] = _s[index];
-    result[1] = _t[index];
 
     // Very primitive -- unfiltered, uninterpolated lookup
     int level = 0;
@@ -422,7 +416,7 @@ TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
     int tileheightmask = spec.tile_height - 1;
     int tile_s = sint & tilewidthmask;
     int tile_t = tint & tileheightmask;
-    TileID id (texturefile, 0 /* always level 0 for now */, 
+    TileID id (texturefile, level,
                sint - tile_s, tint - tile_t, 0);
     TileRef tile = find_tile (id);
     if (! tile) {
@@ -444,12 +438,13 @@ TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
 
 
 void
-TextureSystemImpl::texture_lookup (TextureFile &texturefile,
+TextureSystemImpl::texture_lookup_bilinear (TextureFile &texturefile,
                             TextureOptions &options,
                             int index,
                             VaryingRef<float> _s, VaryingRef<float> _t,
                             VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                             VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                            TileRef &tilecache0, TileRef &tilecache1,
                             float *result)
 {
     // N.B. If any computations within this function are identical for
@@ -460,8 +455,6 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     float dsdy = _dsdy ? (_dsdy[index] * options.swidth[index] + options.sblur[index]) : 0;
     float dtdy = _dtdy ? (_dtdy[index] * options.twidth[index] + options.tblur[index]) : 0;
     result += index * options.nchannels;
-    result[0] = _s[index];
-    result[1] = _t[index];
 
     // Very primitive -- unfiltered, uninterpolated lookup
     int level = 0;
@@ -483,9 +476,15 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     
     // Wrap
     ASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
-    bool ok = options.swrap_func (sint, spec.full_width);
-    ok &= options.twrap_func (tint, spec.full_width);
-    if (! ok) {
+    int texx[2], texy[2];       // Texel coords
+    texx[0] = sint;  texx[1] = sint+1;
+    texy[0] = tint;  texy[1] = tint+1;
+    bool validx[2], validy[2];  // Valid texels?  false means black border
+    validx[0] = options.swrap_func (texx[0], spec.full_width);
+    validx[1] = options.swrap_func (texx[1], spec.full_width);
+    validy[0] = options.twrap_func (texy[0], spec.full_height);
+    validy[1] = options.twrap_func (texy[1], spec.full_height);
+    if (! (validx[0] | validx[1] | validy[0] | validy[1])) {
         for (int c = 0;  c < options.actualchannels;  ++c)
             result[c] = 0;
         if (options.alpha)
@@ -493,27 +492,255 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         return;
     }
 
-    int tilewidthmask = spec.tile_width - 1;
+    // Indices: texels 0, 1, 2, 3.  The sample lies between samples 1 and 2.
+    int tilewidthmask  = spec.tile_width  - 1;
     int tileheightmask = spec.tile_height - 1;
-    int tile_s = sint & tilewidthmask;
-    int tile_t = tint & tileheightmask;
-    TileID id (texturefile, 0 /* always level 0 for now */, 
-               sint - tile_s, tint - tile_t, 0);
-    TileRef tile = find_tile (id);
-    if (! tile) {
-        result[0] = 0.5;
-        return;
+    int invtilewidthmask  = ~tilewidthmask;
+    int invtileheightmask = ~tileheightmask;
+    const float *texel[2][2];
+    TileRef tile[2][2];
+    static float black[4] = { 0, 0, 0, 0 };
+    bool onetilex = ((texx[0] & invtilewidthmask) == (texx[1] & invtilewidthmask));
+    bool onetiley = ((texy[0] & invtileheightmask) == (texy[1] & invtileheightmask));
+    bool onetile = (onetilex & onetiley);
+    if (onetile && validx[0] && validy[0]) {
+        // Shortcut if all the texels we need are on the same tile
+        int tile_s = texx[0] & tilewidthmask;
+        int tile_t = texy[0] & tileheightmask;
+        TileID id (texturefile, level,
+                   texx[0] - tile_s, texy[0] - tile_t, 0);
+        find_tile (id, tilecache0, tilecache1);
+        if (! tilecache0) {
+            result[0] = 0.5;
+            return;
+        }
+        int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
+        texel[0][0] = tilecache0->data() + offset + options.firstchannel;
+        texel[0][1] = texel[0][0] + spec.nchannels;
+        texel[1][0] = texel[0][0] + spec.nchannels * spec.tile_width;
+        texel[1][1] = texel[1][0] + spec.nchannels;
+    } else {
+        for (int j = 0, initialized = 0;  j < 2;  ++j) {
+            for (int i = 0;  i < 2;  ++i) {
+                if (! (validx[i] && validy[j])) {
+                    texel[j][i] = black;
+                    continue;
+                }
+                int tile_s = texx[i] & tilewidthmask;
+                int tile_t = texy[j] & tileheightmask;
+                TileID id (texturefile, level,
+                           texx[i] - tile_s, texy[j] - tile_t, 0);
+                if (0 && initialized)   // Why isn't it faster to do this?
+                    find_tile_same_level (id, tilecache0, tilecache1);
+                else {
+                    find_tile (id, tilecache0, tilecache1);
+                    initialized = true;
+                }
+                tile[j][i] = tilecache0;
+                if (! tile[j][i]) {
+                    result[0] = 0.5;
+                    return;
+                }
+                int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
+                texel[j][i] = tile[j][i]->data() + offset + options.firstchannel;
+                DASSERT (tile->id() == id);
+            }
+        }
     }
-    DASSERT (tile->id() == id);
+    // FIXME -- optimize the above loop by unrolling
+
+    // FIXME -- handle 8 bit textures?
 
     // FIXME -- float only for now
-    int offset = (tile_t * spec.tile_width + tile_s);
     DASSERT (offset < spec.tile_pixels());
-    const float *data = tile->data() + offset * spec.nchannels;
+    bilerp (texel[0][0], texel[0][1], texel[1][0], texel[1][1],
+            sfrac, tfrac, options.actualchannels, result);
+    if (options.alpha) {
+        int c = options.actualchannels;
+        options.alpha[index] = bilerp (texel[0][0][c], texel[0][1][c],
+                                       texel[1][0][c], texel[1][1][c],
+                                       sfrac, tfrac);
+    }
+}
+
+
+
+void
+TextureSystemImpl::texture_lookup (TextureFile &texturefile,
+                            TextureOptions &options,
+                            int index,
+                            VaryingRef<float> _s, VaryingRef<float> _t,
+                            VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
+                            VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                            TileRef &tilecache0, TileRef &tilecache1,
+                            float *result)
+{
+    // N.B. If any computations within this function are identical for
+    // all texture lookups in this batch, those computations should be
+    // hoisted up to the calling function, texture().
+
+    // Initialize results to 0.  We'll add from here on as we sample.
+    result += index * options.nchannels;
     for (int c = 0;  c < options.actualchannels;  ++c)
-        result[c] = data[options.firstchannel+c];
+        result[c] = 0;
     if (options.alpha)
-        options.alpha[index] = data[options.firstchannel+options.actualchannels];
+        options.alpha[index] = 0;
+
+    // Use the differentials to figure out which MIP-map levels to use.
+    float dsdx = _dsdx ? (_dsdx[index] * options.swidth[index] + options.sblur[index]) : 0;
+    float dtdx = _dtdx ? (_dtdx[index] * options.twidth[index] + options.tblur[index]) : 0;
+    float dsdy = _dsdy ? (_dsdy[index] * options.swidth[index] + options.sblur[index]) : 0;
+    float dtdy = _dtdy ? (_dtdy[index] * options.twidth[index] + options.tblur[index]) : 0;
+
+    // Determine the MIP-map level(s) we need: we will blend 
+    //    data(miplevel[0]) * levelblend + data(miplevel[1]) * (1-levelblend)
+    // Note that this differs from the usual lerp -- levelblend==1 means
+    // we want all level 0!
+    int miplevel[2] = { -1, -1 };
+    float levelblend = 0;
+    float sfilt = std::max (std::max (dsdx, dsdy), (float)1.0e-8);
+    float tfilt = std::max (std::max (dtdx, dtdy), (float)1.0e-8);
+    float filtwidth = std::max (sfilt, tfilt);
+    for (int i = 0;  i < texturefile.levels();  ++i) {
+        // Compute the filter size in raster space at this MIP level
+        float filtwidth_ras = texturefile.spec(i).full_width * filtwidth;
+        // Once the filter width is smaller than one texel at this level,
+        // we've gone too far, so we know that we want to interpolate the
+        // previous level and the current level.  Note that filtwidth_ras
+        // is expected to be >= 0.5, or would have stopped one level ago.
+        if (filtwidth_ras < 1) {
+            miplevel[0] = i-1;
+            miplevel[1] = i;
+            levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
+            break;
+        }
+    } 
+    if (miplevel[0] < 0) {
+        // We wish we had even more resolution than the finest MIP level,
+        // but tough for us.
+        miplevel[0] = 0;
+        miplevel[1] = 0;
+        levelblend = 0;
+        // FIXME -- we should use bicubic filtering here
+    } else if (miplevel[1] < 0) {
+        // We'd like to blur even more, but make due with the coarsest
+        // MIP level.
+        miplevel[0] = texturefile.levels() - 1;
+        miplevel[1] = miplevel[0];
+        levelblend = 0;
+    }
+//    std::cerr << "Levels " << miplevel[0] << ' ' << miplevel[1] << ' ' << levelblend << "\n";
+
+    // Very primitive -- unfiltered, uninterpolated lookup
+    for (int level = 0;  true;  ++level) {
+        const ImageIOFormatSpec &spec (texturefile.spec (miplevel[level]));
+        // As passed in, (s,t) map the texture to (0,1)
+        float s = _s[index] * spec.width;
+        float t = _t[index] * spec.height;
+        // Now (s,t) map the texture to (0,res)
+        s -= 0.5f;
+        t -= 0.5f;
+        int sint, tint;
+        float sfrac = floorfrac (s, &sint);
+        float tfrac = floorfrac (t, &tint);
+        // Now (xint,yint) are the integer coordinates of the texel to the
+        // immediate "upper left" of the lookup point, and (xfrac,yfrac) are
+        // the amount that the lookup point is actually offset from the
+        // texel center (with (1,1) being all the way to the next texel down
+        // and to the right).
+    
+        // Wrap
+        DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
+        int texx[2], texy[2];       // Texel coords
+        texx[0] = sint;  texx[1] = sint+1;
+        texy[0] = tint;  texy[1] = tint+1;
+        bool validx[2], validy[2];  // Valid texels?  false means black border
+        validx[0] = options.swrap_func (texx[0], spec.full_width);
+        validx[1] = options.swrap_func (texx[1], spec.full_width);
+        validy[0] = options.twrap_func (texy[0], spec.full_height);
+        validy[1] = options.twrap_func (texy[1], spec.full_height);
+        if (! (validx[0] | validx[1] | validy[0] | validy[1])) {
+            // All texels we need were out of range and using 'black' wrap.
+            // Remember we already initialized results to 0, so we're done.
+            return;
+        }
+
+        // Indices: texels 0, 1, 2, 3.  The sample lies between samples 1 and 2.
+        int tilewidthmask  = spec.tile_width  - 1;
+        int tileheightmask = spec.tile_height - 1;
+        int invtilewidthmask  = ~tilewidthmask;
+        int invtileheightmask = ~tileheightmask;
+        const float *texel[2][2];
+        TileRef tile[2][2];
+        static float black[4] = { 0, 0, 0, 0 };
+        bool onetilex = ((texx[0] & invtilewidthmask) == (texx[1] & invtilewidthmask));
+        bool onetiley = ((texy[0] & invtileheightmask) == (texy[1] & invtileheightmask));
+        bool onetile = (onetilex & onetiley);
+        if (onetile && (validx[0] & validx[1] & validy[0] & validy[1])) {
+            // Shortcut if all the texels we need are on the same tile
+            int tile_s = texx[0] & tilewidthmask;
+            int tile_t = texy[0] & tileheightmask;
+            TileID id (texturefile, miplevel[level],
+                       texx[0] - tile_s, texy[0] - tile_t, 0);
+            find_tile (id, tilecache0, tilecache1);
+            if (! tilecache0) {
+                result[0] = 0.5;
+                return;
+            }
+            int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
+            texel[0][0] = tilecache0->data() + offset + options.firstchannel;
+            texel[0][1] = texel[0][0] + spec.nchannels;
+            texel[1][0] = texel[0][0] + spec.nchannels * spec.tile_width;
+            texel[1][1] = texel[1][0] + spec.nchannels;
+        } else {
+            for (int j = 0, initialized = 0;  j < 2;  ++j) {
+                for (int i = 0;  i < 2;  ++i) {
+                    if (! (validx[i] && validy[j])) {
+                        texel[j][i] = black;
+                        continue;
+                    }
+                    int tile_s = texx[i] & tilewidthmask;
+                    int tile_t = texy[j] & tileheightmask;
+                    TileID id (texturefile, miplevel[level],
+                               texx[i] - tile_s, texy[j] - tile_t, 0);
+                    if (0 && initialized)   // Why isn't it faster to do this?
+                        find_tile_same_level (id, tilecache0, tilecache1);
+                    else {
+                        find_tile (id, tilecache0, tilecache1);
+                        initialized = true;
+                    }
+                    tile[j][i] = tilecache0;
+                    if (! tile[j][i]) {
+                        result[0] = 0.5;
+                        return;
+                    }
+                    int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
+                    texel[j][i] = tile[j][i]->data() + offset + options.firstchannel;
+                    DASSERT (tile->id() == id);
+                }
+            }
+        }
+        // FIXME -- optimize the above loop by unrolling
+
+        // FIXME -- handle 8 bit textures? float only for now
+        DASSERT (offset < spec.tile_pixels());
+        bilerp_mad (texel[0][0], texel[0][1], texel[1][0], texel[1][1],
+                    sfrac, tfrac, levelblend, options.actualchannels, result);
+        if (options.alpha) {
+            int c = options.actualchannels;
+            options.alpha[index] +=
+                levelblend * bilerp (texel[0][0][c], texel[0][1][c],
+                                     texel[1][0][c], texel[1][1][c],
+                                     sfrac, tfrac);
+        }
+
+        // Switch to the next level
+        if (level)
+            break;
+        levelblend = 1.0f - levelblend;
+    }
+
+
 #if 0
     // Debug: R,G show the coords within a tile
     result[0] = (float)tile_s / spec.tile_width;

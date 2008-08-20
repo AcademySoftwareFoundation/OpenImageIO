@@ -397,6 +397,7 @@ private:
     /// are reading several tiles from the same level.
     void find_tile_same_level (const TileID &id,
                                TileRef &tile, TileRef &lasttile) {
+        DASSERT (tile);
         if (equal_same_level (tile->id(), id))
             return;
         if (lasttile) {
@@ -416,6 +417,7 @@ private:
              VaryingRef<float> _s, VaryingRef<float> _t,
              VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
              VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+             TileRef &tilecache0, TileRef &tilecache1,
              float *result);
 
     /// Look up texture from just ONE point
@@ -425,6 +427,7 @@ private:
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                          VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                         TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
     void texture_lookup_closest (TextureFile &texfile, TextureOptions &options,
@@ -432,6 +435,23 @@ private:
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                          VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                         TileRef &tilecache0, TileRef &tilecache1,
+                         float *result);
+    
+    void texture_lookup_bilinear (TextureFile &texfile, TextureOptions &options,
+                         int index,
+                         VaryingRef<float> _s, VaryingRef<float> _t,
+                         VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
+                         VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                         TileRef &tilecache0, TileRef &tilecache1,
+                         float *result);
+    
+    void texture_lookup_trilinear (TextureFile &texfile, TextureOptions &options,
+                         int index,
+                         VaryingRef<float> _s, VaryingRef<float> _t,
+                         VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
+                         VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                         TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
 

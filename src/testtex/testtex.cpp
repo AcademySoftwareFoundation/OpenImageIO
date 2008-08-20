@@ -146,26 +146,37 @@ test_plain_texture (ustring filename)
     xform.invert();
 
     TextureOptions opt;
+//    float blur = 0.1;
+//    opt.sblur = blur;
+//    opt.tblur = blur;
     opt.nchannels = 3;
 //    opt.swrap = opt.twrap = TextureOptions::WrapMirror;
 //    opt.twrap = TextureOptions::WrapBlack;
     float s[shadepoints], t[shadepoints];
     Runflag runflags[shadepoints] = { RunFlagOn };
 
-    for (int y = 0;  y < output_yres;  ++y) {
-        for (int x = 0;  x < output_xres;  ++x) {
-            Imath::V3f coord ((float)x/output_xres, (float)y/output_yres, 1.0f);
-            Imath::V3f xcoord;
-//            xform.multVecMatrix (coord, xcoord);
-            coord *= xform;
-            float s = coord[0], t = coord[1];
-            float val[nchannels] = { 0, 0, 0, 1 };
-            texsys->texture (filename, opt, runflags, 0, 0, s, t,
-                             NULL, NULL, NULL, NULL, val);
-            image.setpixel (x, y, val);
+    for (int iter = 0;  iter < 1;  ++iter) {
+        for (int y = 0;  y < output_yres;  ++y) {
+            for (int x = 0;  x < output_xres;  ++x) {
+                Imath::V3f coord ((float)x/output_xres, (float)y/output_yres, 1.0f);
+                Imath::V3f coordx ((float)(x+1)/output_xres, (float)y/output_yres, 1.0f);
+                Imath::V3f coordy ((float)x/output_xres, (float)(y+1)/output_yres, 1.0f);
+                Imath::V3f xcoord;
+                coord *= xform;
+                coordx *= xform;
+                coordy *= xform;
+                float s = coord[0], t = coord[1];
+                float dsdx = coordx[0] - s;
+                float dtdx = coordx[1] - t;
+                float dsdy = coordy[0] - s;
+                float dtdy = coordy[1] - t;
+                float val[nchannels] = { 0, 0, 0, 1 };
+                texsys->texture (filename, opt, runflags, 0, 0, s, t,
+                                 dsdx, dtdx, dsdy, dtdy, val);
+                image.setpixel (x, y, val);
+            }
         }
     }
-    
     
     if (! image.save ()) 
         std::cerr << "Error writing " << output_filename 
