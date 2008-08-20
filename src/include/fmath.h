@@ -263,27 +263,54 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
 
 
 
+/// Bilinearly interoplate values v0-v3 (v0 upper left, v1 upper right,
+/// v2 lower left, v3 lower right) at coordinates (s,t) and return the
+/// result.  This is a template, and so should work for any types.
 template <class T, class Q>
 inline T
 bilerp (T v0, T v1, T v2, T v3, Q s, Q t)
 {
     // NOTE: a*(t-1) + b*t is much more numerically stable than a+t*(b-a)
-    Q s1 = 1.0f - s;
+    Q s1 = (Q)1 - s;
     return (T) ((1-t)*(v0*s1 + v1*s) + t*(v2*s1 + v3*s));
 }
 
 
 
+/// Bilinearly interoplate arrays of values v0-v3 (v0 upper left, v1
+/// upper right, v2 lower left, v3 lower right) at coordinates (s,t),
+/// storing the results in 'result'.  These are all vectors, so do it
+/// for each of 'n' contiguous values (using the same s,t interpolants).
 template <class T, class Q>
 inline void
 bilerp (const T *v0, const T *v1,
         const T *v2, const T *v3,
         Q s, Q t, int n, T *result)
 {
-    T s1 = 1 - s;
-    T t1 = 1 - t;
+    Q s1 = (Q)1 - s;
+    Q t1 = (Q)1 - t;
     for (int i = 0;  i < n;  ++i)
-        result[i] = (T) t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s);
+        result[i] = (T) (t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s));
+}
+
+
+
+
+/// Bilinearly interoplate arrays of values v0-v3 (v0 upper left, v1
+/// upper right, v2 lower left, v3 lower right) at coordinates (s,t),
+/// SCALING the interpolated value by 'scale' and then ADDING to
+/// 'result'.  These are all vectors, so do it for each of 'n'
+/// contiguous values (using the same s,t interpolants).
+template <class T, class Q>
+inline void
+bilerp_mad (const T *v0, const T *v1,
+            const T *v2, const T *v3,
+            Q s, Q t, Q scale, int n, T *result)
+{
+    Q s1 = (Q)1 - s;
+    Q t1 = (Q)1 - t;
+    for (int i = 0;  i < n;  ++i)
+        result[i] += (T) (scale * (t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s)));
 }
 
 
