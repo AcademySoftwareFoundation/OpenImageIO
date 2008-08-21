@@ -172,16 +172,16 @@ IvImage::longinfo () const
         // image format
 
         BOOST_FOREACH (const ImageIOParameter &p, m_spec.extra_attribs) {
-            if (p.type == PT_STRING)
-                m_longinfo += html_table_row (p.name.c_str(), *(const char **)p.data());
-            else if (p.type == PT_FLOAT)
-                m_longinfo += html_table_row (p.name.c_str(), format("%g",*(const float *)p.data()));
-            else if (p.type == PT_INT)
-                m_longinfo += html_table_row (p.name.c_str(), *(const int *)p.data());
-            else if (p.type == PT_UINT)
-                m_longinfo += html_table_row (p.name.c_str(), format("%u",*(const unsigned int *)p.data()));
+            if (p.type() == PT_STRING)
+                m_longinfo += html_table_row (p.name().c_str(), *(const char **)p.data());
+            else if (p.type() == PT_FLOAT)
+                m_longinfo += html_table_row (p.name().c_str(), format("%g",*(const float *)p.data()));
+            else if (p.type() == PT_INT)
+                m_longinfo += html_table_row (p.name().c_str(), *(const int *)p.data());
+            else if (p.type() == PT_UINT)
+                m_longinfo += html_table_row (p.name().c_str(), format("%u",*(const unsigned int *)p.data()));
             else
-                m_longinfo += html_table_row (p.name.c_str(), "<unknown data type>");
+                m_longinfo += html_table_row (p.name().c_str(), "<unknown data type>");
         }
 
         m_longinfo += "</table>";

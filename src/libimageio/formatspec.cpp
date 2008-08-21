@@ -210,27 +210,6 @@ void
 ImageIOFormatSpec::attribute (const std::string &name, ParamBaseType type,
                               int nvalues, const void *value)
 {
-    // Special case: strings -- the ImageIOParameter::init call below
-    // will correctly copy the *pointers* to the characters.  Here we
-    // make sure we have our own copy of the characters themselves, so
-    // they persist over the lifetime of this ImageIOFormatSpec and not
-    // leak memory either.  We do this by allocating a string in
-    // m_strings (which persists until our instance is destroyed) and
-    // pointing to its characters.
-    const char **tmp;
-    if (type == PT_STRING) {
-        // Allocate space for new pointers
-        tmp = (const char **) alloca (nvalues * sizeof(char *));
-        // For each string the user passed, make our own copy that we
-        // own in this ImageIOFormatSpec.
-        for (int i = 0;  i < nvalues;  ++i) {
-            m_strings.push_back (std::string(((char**)value)[i]));
-            tmp[i] = m_strings.back().c_str();
-        }
-        // Now carry on using our own pointer vector
-        value = tmp;
-    }
-
     // Don't allow duplicates
     ImageIOParameter *f = find_attribute (name);
     if (! f) {
@@ -243,15 +222,19 @@ ImageIOFormatSpec::attribute (const std::string &name, ParamBaseType type,
 
 
 ImageIOParameter *
-ImageIOFormatSpec::find_attribute (const std::string &name, bool casesensitive)
+ImageIOFormatSpec::find_attribute (const std::string &name,
+                                   ParamType searchtype,
+                                   bool casesensitive)
 {
     if (casesensitive) {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)
-            if (extra_attribs[i].name == name)
+            if (extra_attribs[i].name() == name &&
+                (searchtype == PT_UNKNOWN || searchtype == extra_attribs[i].type()))
                 return &extra_attribs[i];
     } else {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)
-            if (iequals (extra_attribs[i].name, name))
+            if (iequals (extra_attribs[i].name().string(), name) &&
+                (searchtype == PT_UNKNOWN || searchtype == extra_attribs[i].type()))
                 return &extra_attribs[i];
     }
     return NULL;
@@ -261,15 +244,18 @@ ImageIOFormatSpec::find_attribute (const std::string &name, bool casesensitive)
 
 const ImageIOParameter *
 ImageIOFormatSpec::find_attribute (const std::string &name,
+                                   ParamType searchtype,
                                    bool casesensitive) const
 {
     if (casesensitive) {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)
-            if (extra_attribs[i].name == name)
+            if (extra_attribs[i].name() == name &&
+                (searchtype == PT_UNKNOWN || searchtype == extra_attribs[i].type()))
                 return &extra_attribs[i];
     } else {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)
-            if (iequals (extra_attribs[i].name, name))
+            if (iequals (extra_attribs[i].name().string(), name) &&
+                (searchtype == PT_UNKNOWN || searchtype == extra_attribs[i].type()))
                 return &extra_attribs[i];
     }
     return NULL;

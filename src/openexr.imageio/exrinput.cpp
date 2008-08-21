@@ -291,7 +291,9 @@ OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
             (mattr = m_header->findTypedAttribute<Imf::M44fAttribute> (name)))
             m_spec.attribute (oname, PT_MATRIX, 1, &(mattr->value()));
         else {
+#ifdef DEBUG
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";
+#endif
         }
     }
 

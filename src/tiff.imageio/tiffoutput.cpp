@@ -72,7 +72,7 @@ private:
     void contig_to_separate (int n, const unsigned char *contig,
                              unsigned char *separate);
     // Add a parameter to the output
-    bool put_parameter (const std::string &name, ParamBaseType type,
+    bool put_parameter (const std::string &name, ParamType type,
                         const void *data);
 };
 
@@ -209,8 +209,8 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
 
     // Did the user request separate planar configuration?
     m_planarconfig = PLANARCONFIG_CONTIG;
-    if ((param = m_spec.find_attribute("planarconfig")) &&
-            param->type == PT_STRING  &&  (str = *(char **)param->data())) {
+    if ((param = m_spec.find_attribute("planarconfig", PT_STRING)) &&
+            (str = *(char **)param->data())) {
         if (! strcmp (str, "separate"))
             m_planarconfig = PLANARCONFIG_SEPARATE;
     }
@@ -230,7 +230,8 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
 
     // Deal with all other params
     for (size_t p = 0;  p < m_spec.extra_attribs.size();  ++p)
-        put_parameter (m_spec.extra_attribs[p].name, m_spec.extra_attribs[p].type,
+        put_parameter (m_spec.extra_attribs[p].name().string(),
+                       m_spec.extra_attribs[p].type(),
                        m_spec.extra_attribs[p].data());
 
     TIFFCheckpointDirectory (m_tif);  // Ensure the header is written early
@@ -241,7 +242,7 @@ TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
 
 
 bool
-TIFFOutput::put_parameter (const std::string &name, ParamBaseType type,
+TIFFOutput::put_parameter (const std::string &name, ParamType type,
                            const void *data)
 {
     if (iequals(name, "Artist") && type == PT_STRING) {

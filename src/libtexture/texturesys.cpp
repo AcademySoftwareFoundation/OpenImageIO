@@ -208,28 +208,15 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
 
     // general case
     const ImageIOParameter *p = spec.find_attribute (dataname.string());
-#if USE_PARAMLIST
     if (p && p->type().arraylen == datatype.arraylen) {
-#else
-    if (p && p->nvalues == datatype.arraylen) {
-#endif
         // First test for exact type match
-#if USE_PARAMLIST
         if (p->type() == datatype) {
-#else
-        if (p->type == datatype.basetype) {
-#endif
             memcpy (data, p->data(), datatype.datasize());
             return true;
         }
         // If the real data is int but user asks for float, translate it
-#if USE_PARAMLIST
-        if (p->type() == PT_FLOAT && datatype.basetype == PT_INT) {
+        if (p->type().basetype == PT_FLOAT && datatype.basetype == PT_INT) {
             for (int i = 0;  i < p->type().arraylen;  ++i)
-#else
-        if (p->type == PT_FLOAT && datatype.basetype == PT_INT) {
-            for (int i = 0;  i < p->nvalues;  ++i)
-#endif
                 ((float *)data)[i] = ((int *)p->data())[i];
             return true;
         }

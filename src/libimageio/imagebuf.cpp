@@ -149,11 +149,8 @@ ImageBuf::read (int subimage, bool force,
     else
         m_current_subimage = 0;
 
-    ImageIOParameter *orient = m_spec.find_attribute ("orientation");
-    if (orient && orient->type == PT_UINT && orient->nvalues == 1)
-        m_orientation = *(unsigned int *)orient->data();
-    else 
-        m_orientation = 1;
+    ImageIOParameter *orient = m_spec.find_attribute ("orientation", PT_UINT);
+    m_orientation = orient ? *(unsigned int *)orient->data() : 1;
 
     realloc ();
     const OpenImageIO::stride_t as = OpenImageIO::AutoStride;

@@ -20,6 +20,7 @@ local_libs :=
 local_extra_objs := ${build_obj_dir}/libutil/argparse${OEXT} \
 		    ${build_obj_dir}/libutil/filesystem${OEXT} \
 		    ${build_obj_dir}/libutil/paramtype${OEXT} \
+		    ${build_obj_dir}/libutil/paramlist${OEXT} \
 		    ${build_obj_dir}/libutil/plugin${OEXT} \
 		    ${build_obj_dir}/libutil/strutil${OEXT} \
 		    ${build_obj_dir}/libutil/ustring${OEXT}

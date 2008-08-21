@@ -53,50 +53,6 @@ recursive_mutex OpenImageIO::pvt::imageio_mutex;
 
 
 
-void
-ImageIOParameter::init (const std::string &_name, ParamBaseType _type,
-                        int _nvalues, const void *_value, bool _copy)
-{
-    name = _name;
-    type = _type;
-    nvalues = _nvalues;
-    size_t size = (size_t) (nvalues * typesize (type));
-    bool small = (size <= sizeof(m_value));
-
-    if (_copy || small) {
-        if (small) {
-            memcpy (&m_value, _value, size);
-            m_copy = false;
-            m_nonlocal = false;
-        } else {
-            m_value.ptr = malloc (size);
-            memcpy ((char *)m_value.ptr, _value, size);
-            m_copy = true;
-            m_nonlocal = true;
-        }
-    } else {
-        // Big enough to warrant a malloc, but the caller said don't
-        // make a copy
-        m_copy = false;
-        m_nonlocal = true;
-        m_value.ptr = _value;
-    }
-}
-
-
-
-void
-ImageIOParameter::clear_value ()
-{
-    if (m_copy && m_nonlocal && m_value.ptr)
-        free ((void *)m_value.ptr);
-    m_value.ptr = NULL;
-    m_copy = false;
-    m_nonlocal = false;
-}
-
-
-
 /// Error reporting for the plugin implementation: call this with
 /// printf-like arguments.
 void

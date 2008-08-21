@@ -54,14 +54,8 @@
 
 #include "export.h"
 #include "paramtype.h"   /* Needed for ParamBaseType definition */
-
-#ifndef USE_PARAMLIST
-#define USE_PARAMLIST 0
-#endif
-
-#if USE_PARAMLIST
 #include "paramlist.h"
-#endif
+
 
 
 namespace OpenImageIO {
@@ -102,53 +96,8 @@ typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
 
 
-#if USE_PARAMLIST
 typedef ParamValue ImageIOParameter;
 typedef ParamValueList ImageIOParameterList;
-#else
-
-/// ImageIOParameter holds a parameter and a pointer to its value(s)
-///
-class DLLPUBLIC ImageIOParameter {
-public:
-    std::string name;           ///< data name
-    ParamBaseType type;         ///< data type
-    int nvalues;                ///< number of elements
-
-    ImageIOParameter () : type(PT_UNKNOWN), nvalues(0), m_nonlocal(false) { }
-    ImageIOParameter (const std::string &_name, ParamBaseType _type,
-                      int _nvalues, const void *_value, bool _copy=true) {
-        init (_name, _type, _nvalues, _value, _copy);
-    }
-    ImageIOParameter (const ImageIOParameter &p) {
-        init (p.name, p.type, p.nvalues, p.data(), m_copy);
-    }
-    ~ImageIOParameter () { clear_value(); }
-    const ImageIOParameter& operator= (const ImageIOParameter &p) {
-        clear_value();
-        init (p.name, p.type, p.nvalues, p.data(), m_copy);
-        return *this;
-    }
-    const void *data () const {
-        return m_nonlocal ? m_value.ptr : &m_value;
-    }
-
-private: 
-    union {
-        ptrdiff_t localval;
-        const void *ptr;
-    } m_value;
-
-    bool m_copy, m_nonlocal;
-    void init (const std::string &_name, ParamBaseType _type,
-               int _nvalues, const void *_value, bool _copy=true);
-    void clear_value();
-    friend class ImageIOFormatSpec;
-};
-
-
-typedef std::vector<ImageIOParameter> ImageIOParameterList;
-#endif
 
 
 
@@ -339,10 +288,6 @@ public:
     const ImageIOParameter *find_attribute (const std::string &name,
                                             ParamType searchtype=PT_UNKNOWN,
                                             bool casesensitive=false) const;
-
-private:
-    // Special storage space for strings that go into extra_parameters
-    std::vector< std::string > m_strings;
 };
 
 

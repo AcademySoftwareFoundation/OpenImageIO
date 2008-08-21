@@ -463,13 +463,13 @@ exif_from_APP1 (ImageIOFormatSpec &spec, unsigned char *buf)
     if ((p = spec.find_attribute ("exif:ColorSpace")) ||
         (p = spec.find_attribute ("ColorSpace"))) {
         int cs = -1;
-        if (p->type == PT_UINT) 
+        if (p->type() == PT_UINT) 
             cs = *(const unsigned int *)p->data();
-        else if (p->type == PT_INT) 
+        else if (p->type() == PT_INT) 
             cs = *(const int *)p->data();
-        else if (p->type == PT_UINT16) 
+        else if (p->type() == PT_UINT16) 
             cs = *(const unsigned short *)p->data();
-        else if (p->type == PT_INT16) 
+        else if (p->type() == PT_INT16) 
             cs = *(const short *)p->data();
         if (cs == 1)
             spec.linearity = ImageIOFormatSpec::sRGB;
@@ -559,7 +559,7 @@ encode_exif_entry (const ImageIOParameter p, int tag,
 
     switch (type) {
     case TIFF_ASCII :
-        if (p.type == PT_STRING) {
+        if (p.type() == PT_STRING) {
             const char *s = *(const char **) p.data();
             int len = strlen(s) + 1;
             append_dir_entry (dirs, data, tag, type, len, s);
@@ -568,7 +568,7 @@ encode_exif_entry (const ImageIOParameter p, int tag,
         break;
     case TIFF_RATIONAL :
     case TIFF_SRATIONAL :
-        if (p.type == PT_FLOAT) {
+        if (p.type() == PT_FLOAT) {
             unsigned int rat[2];  // num, den
             float f = *(const float *)p.data();
             float_to_rational (f, rat[0], rat[1], type == TIFF_SRATIONAL);
@@ -577,10 +577,10 @@ encode_exif_entry (const ImageIOParameter p, int tag,
         }
         break;
     case TIFF_SHORT :
-        if (p.type == PT_UINT || p.type == PT_INT ||
-                p.type == PT_UINT16 || p.type == PT_INT16) {
+        if (p.type() == PT_UINT || p.type() == PT_INT ||
+                p.type() == PT_UINT16 || p.type() == PT_INT16) {
             unsigned short i;
-            switch (p.type) {
+            switch (p.type().basetype) {
             case PT_UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
             case PT_INT:    i = (unsigned short) *(int *)p.data();   break;
             case PT_UINT16: i = *(unsigned short *)p.data();         break;
@@ -591,10 +591,10 @@ encode_exif_entry (const ImageIOParameter p, int tag,
         }
         break;
     case TIFF_LONG :
-        if (p.type == PT_UINT || p.type == PT_INT ||
-                p.type == PT_UINT16 || p.type == PT_INT16) {
+        if (p.type() == PT_UINT || p.type() == PT_INT ||
+                p.type() == PT_UINT16 || p.type() == PT_INT16) {
             unsigned int i;
-            switch (p.type) {
+            switch (p.type().basetype) {
             case PT_UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
             case PT_INT:    i = (unsigned short) *(int *)p.data();   break;
             case PT_UINT16: i = *(unsigned short *)p.data();         break;
@@ -689,7 +689,7 @@ APP1_exif_from_spec (ImageIOFormatSpec &spec, std::vector<char> &exif)
     std::cerr << "Non-exif tags\n";
 #endif
     BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
-        int tag = tagmap.tag (p.name);
+        int tag = tagmap.tag (p.name().string());
         if (tag < EXIFTAG_EXPOSURETIME || tag > EXIFTAG_IMAGEUNIQUEID) {
             encode_exif_entry (p, tag, tiffdirs, data);
         } else {

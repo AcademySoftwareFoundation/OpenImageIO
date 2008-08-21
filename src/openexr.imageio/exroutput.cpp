@@ -90,7 +90,7 @@ private:
     }
 
     // Add a parameter to the output
-    bool put_parameter (const std::string &name, ParamBaseType type,
+    bool put_parameter (const std::string &name, ParamType type,
                         const void *data);
 };
 
@@ -259,7 +259,8 @@ OpenEXROutput::open (const char *name, const ImageIOFormatSpec &userspec,
 
     // Deal with all other params
     for (size_t p = 0;  p < m_spec.extra_attribs.size();  ++p)
-        put_parameter (m_spec.extra_attribs[p].name, m_spec.extra_attribs[p].type,
+        put_parameter (m_spec.extra_attribs[p].name().string(),
+                       m_spec.extra_attribs[p].type(),
                        m_spec.extra_attribs[p].data());
 
     try {
@@ -289,7 +290,7 @@ OpenEXROutput::open (const char *name, const ImageIOFormatSpec &userspec,
 
 
 bool
-OpenEXROutput::put_parameter (const std::string &name, ParamBaseType type,
+OpenEXROutput::put_parameter (const std::string &name, ParamType type,
                               const void *data)
 {
     // Translate
@@ -364,7 +365,7 @@ OpenEXROutput::put_parameter (const std::string &name, ParamBaseType type,
         m_header->insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
         return true;
     }
-    std::cerr << "Don't know what to do with " << type << ' ' << xname << "\n";
+    std::cerr << "Don't know what to do with " << type.basetype << ' ' << xname << "\n";
     return false;
 }
 

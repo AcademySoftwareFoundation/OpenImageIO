@@ -41,8 +41,8 @@
 
 
 void
-ParamValue::init (ustring _name, ParamType _type,
-                  int _nvalues, const void *_value, bool _copy)
+ParamValue::init_noclear (ustring _name, ParamType _type,
+                          int _nvalues, const void *_value, bool _copy)
 {
     m_name = _name;
     m_type = _type;
@@ -81,5 +81,3 @@ ParamValue::clear_value ()
     m_copy = false;
     m_nonlocal = false;
 }
-
-

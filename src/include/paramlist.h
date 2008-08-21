@@ -33,6 +33,7 @@
 
 #include "export.h"
 #include "paramtype.h"
+#include "ustring.h"
 
 
 // FIXME: We should clearly put this in a namespace.  But maybe not "Gelato".
@@ -50,22 +51,30 @@ public:
     ParamValue () : m_type(PT_UNKNOWN), m_nvalues(0), m_nonlocal(false) { }
     ParamValue (const ustring &_name, ParamType _type,
                 int _nvalues, const void *_value, bool _copy=true) {
-        init (_name, _type, _nvalues, _value, _copy);
+        init_noclear (_name, _type, _nvalues, _value, _copy);
     }
     ParamValue (const std::string &_name, ParamType _type,
                 int _nvalues, const void *_value, bool _copy=true) {
-        init (ustring(_name.c_str()), _type, _nvalues, _value, _copy);
+        init_noclear (ustring(_name.c_str()), _type, _nvalues, _value, _copy);
     }
     ParamValue (const char *_name, ParamType _type,
                 int _nvalues, const void *_value, bool _copy=true) {
-        init (ustring(_name), _type, _nvalues, _value, _copy);
+        init_noclear (ustring(_name), _type, _nvalues, _value, _copy);
     }
     ParamValue (const ParamValue &p, bool _copy=true) {
-        init (p.name(), p.type(), p.nvalues(), p.data(), _copy);
+        init_noclear (p.name(), p.type(), p.nvalues(), p.data(), _copy);
     }
     ~ParamValue () { clear_value(); }
+    void init (ustring _name, ParamType _type,
+               int _nvalues, const void *_value, bool _copy=true) {
+        clear_value ();
+        init_noclear (_name, _type, _nvalues, _value, _copy);
+    }
+    void init (std::string _name, ParamType _type,
+               int _nvalues, const void *_value, bool _copy=true) {
+        init (ustring(_name), _type, _nvalues, _value, _copy);
+    }
     const ParamValue& operator= (const ParamValue &p) {
-        clear_value();
         init (p.name(), p.type(), p.nvalues(), p.data(), p.m_copy);
         return *this;
     }
@@ -86,7 +95,7 @@ public:
     }
 
 private: 
-    ustring m_name;             ///< data name
+    ustring m_name;           ///< data name
     ParamType m_type;         ///< data type, which may itself be an array
     int m_nvalues;            ///< number of values of the given type
     union {
@@ -95,8 +104,8 @@ private:
     } m_data;             ///< Our data, either a pointer or small local value
     bool m_copy, m_nonlocal;
 
-    void init (ustring _name, ParamType _type,
-               int _nvalues, const void *_value, bool _copy=true);
+    void init_noclear (ustring _name, ParamType _type,
+                       int _nvalues, const void *_value, bool _copy=true);
     void clear_value();
 };
 
@@ -107,14 +116,38 @@ class DLLPUBLIC ParamValueList {
 public:
     ParamValueList () { }
 
-    typedef Rep::iterator iterator;
-    typedef Rep::const_iterator const_iterator;
-    typedef ParamValue value_type;
+    typedef Rep::iterator        iterator;
+    typedef Rep::const_iterator  const_iterator;
+    typedef ParamValue           value_type;
+    typedef value_type &         reference;
+    typedef const value_type &   const_reference;
+    typedef value_type *         pointer;
+    typedef const value_type *   const_pointer;
 
     iterator begin () { return m_vals.begin(); }
     iterator end () { return m_vals.end(); }
     const_iterator begin () const { return m_vals.begin(); }
     const_iterator end () const { return m_vals.end(); }
+
+    reference front () { return m_vals.front(); }
+    reference back () { return m_vals.back(); }
+    const_reference front () const { return m_vals.front(); }
+    const_reference back () const { return m_vals.back(); }
+
+    reference operator[] (int i) { return m_vals[i]; }
+    const_reference operator[] (int i) const { return m_vals[i]; }
+    reference operator[] (size_t i) { return m_vals[i]; }
+    const_reference operator[] (size_t i) const { return m_vals[i]; }
+
+    void resize (size_t newsize) { m_vals.resize (newsize); }
+    size_t size () const { return m_vals.size(); }
+
+    void clear () { m_vals.clear(); }
+
+    // Even more radical than clear, free ALL memory associated with the
+    // list itself.
+    void free () { Rep tmp; std::swap (m_vals, tmp); }
+
 private:
     Rep m_vals;
 };

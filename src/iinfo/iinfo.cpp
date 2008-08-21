@@ -105,14 +105,14 @@ print_info (const std::string &filename, ImageInput *input,
             printf ("    unknown color space\n");
         }
         BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
-            printf ("    %s: ", p.name.c_str());
-            if (p.type == PT_STRING)
+            printf ("    %s: ", p.name().c_str());
+            if (p.type() == PT_STRING)
                 printf ("\"%s\"", *(const char **)p.data());
-            else if (p.type == PT_FLOAT)
+            else if (p.type() == PT_FLOAT)
                 printf ("%g", *(const float *)p.data());
-            else if (p.type == PT_INT)
+            else if (p.type() == PT_INT)
                 printf ("%d", *(const int *)p.data());
-            else if (p.type == PT_UINT)
+            else if (p.type() == PT_UINT)
                 printf ("%u", *(const unsigned int *)p.data());
             else
                 printf ("<unknown data type>");

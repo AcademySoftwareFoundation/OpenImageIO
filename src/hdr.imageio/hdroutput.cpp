@@ -101,8 +101,8 @@ HdrOutput::open (const char *name, const ImageIOFormatSpec &newspec,
     strcpy (h.programtype, "RADIANCE");
 
     ImageIOParameter *p;
-    p = m_spec.find_attribute ("Orientation");
-    if (p && p->type == PT_INT) {
+    p = m_spec.find_attribute ("Orientation", PT_INT);
+    if (p) {
         h.valid |= RGBE_VALID_ORIENTATION;
         h.orientation = * (int *)p->data();
     }
