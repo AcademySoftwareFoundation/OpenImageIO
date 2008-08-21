@@ -127,6 +127,15 @@ test_gettextureinfo (ustring filename)
 }
 
 
+Imath::V3f
+warp (float x, float y, Imath::M33f &xform)
+{
+    Imath::V3f coord (x, y, 1.0f);
+    coord *= xform;
+    coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
+    return coord;
+}
+
 
 static void
 test_plain_texture (ustring filename)
@@ -150,7 +159,7 @@ test_plain_texture (ustring filename)
 //    opt.sblur = blur;
 //    opt.tblur = blur;
     opt.nchannels = 3;
-//    opt.swrap = opt.twrap = TextureOptions::WrapMirror;
+    opt.swrap = opt.twrap = TextureOptions::WrapPeriodic;
 //    opt.twrap = TextureOptions::WrapBlack;
     float s[shadepoints], t[shadepoints];
     Runflag runflags[shadepoints] = { RunFlagOn };
@@ -158,13 +167,9 @@ test_plain_texture (ustring filename)
     for (int iter = 0;  iter < 1;  ++iter) {
         for (int y = 0;  y < output_yres;  ++y) {
             for (int x = 0;  x < output_xres;  ++x) {
-                Imath::V3f coord ((float)x/output_xres, (float)y/output_yres, 1.0f);
-                Imath::V3f coordx ((float)(x+1)/output_xres, (float)y/output_yres, 1.0f);
-                Imath::V3f coordy ((float)x/output_xres, (float)(y+1)/output_yres, 1.0f);
-                Imath::V3f xcoord;
-                coord *= xform;
-                coordx *= xform;
-                coordy *= xform;
+                Imath::V3f coord = warp ((float)x/output_xres, (float)y/output_yres, xform);
+                Imath::V3f coordx = warp ((float)(x+1)/output_xres, (float)y/output_yres, xform);
+                Imath::V3f coordy = warp ((float)x/output_xres, (float)(y+1)/output_yres, xform);
                 float s = coord[0], t = coord[1];
                 float dsdx = coordx[0] - s;
                 float dtdx = coordx[1] - t;

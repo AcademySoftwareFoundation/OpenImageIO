@@ -55,6 +55,14 @@
 #include "export.h"
 #include "paramtype.h"   /* Needed for ParamBaseType definition */
 
+#ifndef USE_PARAMLIST
+#define USE_PARAMLIST 0
+#endif
+
+#if USE_PARAMLIST
+#include "paramlist.h"
+#endif
+
 
 namespace OpenImageIO {
 
@@ -94,6 +102,11 @@ typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
 
 
+#if USE_PARAMLIST
+typedef ParamValue ImageIOParameter;
+typedef ParamValueList ImageIOParameterList;
+#else
+
 /// ImageIOParameter holds a parameter and a pointer to its value(s)
 ///
 class DLLPUBLIC ImageIOParameter {
@@ -132,6 +145,10 @@ private:
     void clear_value();
     friend class ImageIOFormatSpec;
 };
+
+
+typedef std::vector<ImageIOParameter> ImageIOParameterList;
+#endif
 
 
 
@@ -210,7 +227,7 @@ public:
     /// these data.  Note, however, that the names and semantics of such
     /// extra attributes are plugin-dependent and are not enforced by
     /// the imageio library itself.
-    std::vector<ImageIOParameter> extra_attribs;  ///< Additional attributes
+    ImageIOParameterList extra_attribs;  ///< Additional attributes
 
     /// Constructor: given just the data format, set the default quantize
     /// and dither and set all other channels to something reasonable.
@@ -317,9 +334,11 @@ public:
     /// Search for a attribute of the given name in the list of extra
     /// attributes.
     ImageIOParameter * find_attribute (const std::string &name,
+                                       ParamType searchtype=PT_UNKNOWN,
                                        bool casesensitive=false);
-    const ImageIOParameter * find_attribute (const std::string &name,
-                                             bool casesensitive=false) const;
+    const ImageIOParameter *find_attribute (const std::string &name,
+                                            ParamType searchtype=PT_UNKNOWN,
+                                            bool casesensitive=false) const;
 
 private:
     // Special storage space for strings that go into extra_parameters

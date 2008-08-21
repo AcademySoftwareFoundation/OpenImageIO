@@ -124,8 +124,7 @@ TextureFile::open ()
     const ImageIOParameter *p;
 
     m_texformat = TexFormatTexture;
-    p = spec.find_attribute ("textureformat");
-    if (p && p->type == PT_STRING && p->nvalues == 1) {
+    if (p = spec.find_attribute ("textureformat", PT_STRING)) {
         const char *textureformat = (const char *)p->data();
         for (int i = 0;  i < TexFormatLast;  ++i)
             if (! strcmp (textureformat, texture_format_name((TexFormat)i))) {
@@ -134,8 +133,7 @@ TextureFile::open ()
             }
     }
 
-    p = spec.find_attribute ("wrapmodes");
-    if (p && p->type == PT_STRING && p->nvalues == 1) {
+    if (p = spec.find_attribute ("wrapmodes", PT_STRING)) {
         const char *wrapmodes = (const char *)p->data();
         TextureOptions::parse_wrapmodes (wrapmodes, m_swrap, m_twrap);
     }
@@ -156,13 +154,11 @@ TextureFile::open ()
 
     Imath::M44f c2w;
     m_texsys.get_commontoworld (c2w);
-    p = spec.find_attribute ("worldtocamera");
-    if (p && p->type == PT_MATRIX && p->nvalues == 1) {
+    if (p = spec.find_attribute ("worldtocamera", PT_MATRIX)) {
         const Imath::M44f *m = (const Imath::M44f *)p->data();
         m_Mlocal = c2w * (*m);
     }
-    p = spec.find_attribute ("worldtoscreen");
-    if (p && p->type == PT_MATRIX && p->nvalues == 1) {
+    if (p = spec.find_attribute ("worldtoscreen", PT_MATRIX)) {
         const Imath::M44f *m = (const Imath::M44f *)p->data();
         m_Mproj = c2w * (*m);
     }

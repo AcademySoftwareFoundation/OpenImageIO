@@ -422,39 +422,43 @@ private:
 
     /// Look up texture from just ONE point
     ///
-    void texture_lookup (TextureFile &texfile, TextureOptions &options,
-                         int index,
+    void texture_lookup (TextureFile &texfile,
+                         TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                          VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
                          TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-    void texture_lookup_closest (TextureFile &texfile, TextureOptions &options,
-                         int index,
+    void texture_lookup_closest (TextureFile &texfile,
+                         TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                          VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
                          TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-    void texture_lookup_bilinear (TextureFile &texfile, TextureOptions &options,
-                         int index,
+    void texture_lookup_bilinear (TextureFile &texfile,
+                         TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                          VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
                          TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-    void texture_lookup_trilinear (TextureFile &texfile, TextureOptions &options,
-                         int index,
+    void texture_lookup_trilinear_mipmap (TextureFile &texfile,
+                         TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                          VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
                          TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-
+    void accum_sample (float s, float t, int level,
+                       TextureFile &texturefile,
+                       TextureOptions &options, int index,
+                       TileRef &tilecache0, TileRef &tilecache1,
+                       float weight, float *accum);
 
     int m_max_open_files;
     float m_max_memory_MB;
