@@ -212,6 +212,22 @@ public:
                 this->isarray == t.isarray);
     } 
 
+    bool operator== (const ParamBaseType t) const {
+        return *this == ParamType(t);
+    } 
+
+    bool operator!= (const ParamBaseType t) const {
+        return *this != ParamType(t);
+    } 
+
+    friend bool operator== (const ParamBaseType t, const ParamType &p) {
+        return p == t;
+    } 
+
+    friend bool operator!= (const ParamBaseType t, const ParamType &p) {
+        return p == t;
+    } 
+
     /// Demote the type to a non-array
     ///
     void unarray (void) { isarray = false;  arraylen = 1; }
