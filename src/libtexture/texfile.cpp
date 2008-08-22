@@ -91,7 +91,7 @@ TextureFile::open ()
         return;
     }
 
-    ImageIOFormatSpec tempspec;
+    ImageSpec tempspec;
     if (! m_input->open (m_filename.c_str(), tempspec)) {
         m_broken = true;
         m_input.reset ();
@@ -117,10 +117,9 @@ TextureFile::open ()
         // Sanity checks: all levels need the same num channels
         ASSERT (tempspec.nchannels == m_spec[0].nchannels);
     } while (m_input->seek_subimage (nsubimages, tempspec));
-    std::cerr << m_filename << " has " << m_spec.size() << " subimages\n";
     ASSERT (nsubimages = m_spec.size());
 
-    const ImageIOFormatSpec &spec (m_spec[0]);
+    const ImageSpec &spec (m_spec[0]);
     const ImageIOParameter *p;
 
     m_texformat = TexFormatTexture;
@@ -163,6 +162,9 @@ TextureFile::open ()
         m_Mproj = c2w * (*m);
     }
     // FIXME -- compute Mtex, Mras
+
+    m_datatype = PT_FLOAT;
+    // FIXME -- use 8-bit when that's native?
 }
 
 
@@ -172,7 +174,7 @@ TextureFile::read_tile (int level, int x, int y, int z,
                         ParamBaseType format, void *data)
 {
     open ();
-    ImageIOFormatSpec tmp;
+    ImageSpec tmp;
     if (m_input->current_subimage() != level)
         m_input->seek_subimage (level, tmp);
     return m_input->read_tile (x, y, z, format, data);
@@ -221,12 +223,15 @@ TextureSystemImpl::find_texturefile (ustring filename)
 void
 TextureSystemImpl::check_max_files ()
 {
+#ifdef DEBUG
     std::cerr << "open files " << m_open_files << ", max = " << m_max_open_files << "\n";
+#endif
     while (m_open_files >= m_max_open_files) {
         if (m_file_sweep == m_texturefiles.end())
             m_file_sweep = m_texturefiles.begin();
         ASSERT (m_file_sweep != m_texturefiles.end());
         m_file_sweep->second->release ();  // May reduce m_open_files
+        ++m_file_sweep;
     }
 }
 

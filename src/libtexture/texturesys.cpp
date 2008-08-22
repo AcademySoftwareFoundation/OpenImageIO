@@ -109,12 +109,9 @@ Tile::Tile (const TileID &id)
     : m_id (id), m_valid(true), m_used(true)
 {
     TextureFile &texfile = m_id.texfile ();
-    const ImageIOFormatSpec &spec (texfile.spec());
-    ParamBaseType peltype = PT_FLOAT;
-    // FIXME -- read 8-bit directly if that's native
-    m_texels.resize (spec.tile_pixels () * spec.nchannels * typesize(peltype));
+    m_texels.resize (memsize());
     if (! texfile.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
-                             peltype, &m_texels[0])) {
+                             texfile.datatype(), &m_texels[0])) {
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() << "\n";
     }
     // FIXME -- for shadow, fill in mindepth, maxdepth
@@ -123,7 +120,8 @@ Tile::Tile (const TileID &id)
 
 
 TextureSystemImpl::TextureSystemImpl ()
-    : m_open_files(0)
+    : m_open_files(0), m_file_sweep(m_texturefiles.end()),
+      m_tile_sweep(m_tilecache.end())
 {
     init ();
 }
@@ -151,16 +149,47 @@ TextureSystemImpl::find_tile (const TileID &id)
 {
     DASSERT (id.texfile() != NULL);
     lock_guard guard (m_texturefiles_mutex);
-    TileCache::iterator found = tilecache.find (id);
+    TileCache::iterator found = m_tilecache.find (id);
     TileRef tile;
-    if (found != tilecache.end()) {
+    if (found != m_tilecache.end()) {
         tile = found->second;
     } else {
+        check_max_mem ();
         tile.reset (new Tile (id));
-        tilecache[id] = tile;
+        m_tilecache[id] = tile;
+        m_mem_used += tile->memsize();
     }
     DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
+    tile->used ();
     return tile;
+}
+
+
+
+void
+TextureSystemImpl::check_max_mem ()
+{
+#ifdef DEBUG
+    std::cerr << "mem used: " << m_mem_used << ", max = " << m_max_memory_bytes << "\n";
+#endif
+    while (m_mem_used >= m_max_memory_bytes) {
+        if (m_tile_sweep == m_tilecache.end())
+            m_tile_sweep = m_tilecache.begin();
+        ASSERT (m_tile_sweep != m_tilecache.end());
+        if (! m_tile_sweep->second->used (false)) {
+            TileCache::iterator todelete = m_tile_sweep;
+            ++m_tile_sweep;
+            ASSERT (m_mem_used > todelete->second->memsize ());
+            m_mem_used -= todelete->second->memsize ();
+#ifdef DEBUG
+            std::cerr << "  Freeing tile, recovering " 
+                      << todelete->second->memsize() << "\n";
+#endif
+            m_tilecache.erase (todelete);
+        } else {
+            ++m_tile_sweep;
+        }
+    }
 }
 
 
@@ -178,7 +207,7 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
         std::cerr << "    Invalid file\n";
         return false;
     }
-    const ImageIOFormatSpec &spec (texfile->spec());
+    const ImageSpec &spec (texfile->spec());
     if (dataname == "resolution" && datatype==ParamType(PT_INT,2)) {
         int *d = (int *)data;
         d[0] = spec.width;
@@ -388,7 +417,7 @@ TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
     if (options.alpha)
         options.alpha[index] = 0;
 
-    const ImageIOFormatSpec &spec (texturefile.spec (0));
+    const ImageSpec &spec (texturefile.spec (0));
     float s = (floorf (_s[index] * spec.full_width)  + 0.5f) / spec.full_width;
     float t = (floorf (_t[index] * spec.full_height) + 0.5f) / spec.full_height;
     accum_sample (s, t, 0, texturefile,
@@ -533,7 +562,27 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     float levelblend = 0;
     float sfilt = std::max (hypotf (dsdx, dtdx), (float)1.0e-8);
     float tfilt = std::max (hypotf (dsdy, dtdy), (float)1.0e-8);
-    float filtwidth = std::max (sfilt, tfilt);
+    float smajor, tmajor;
+    float *majorlength, *minorlength;
+    if (sfilt > tfilt) {
+        majorlength = &sfilt;
+        minorlength = &tfilt;
+        smajor = dsdx;
+        tmajor = dtdx;
+    } else {
+        majorlength = &tfilt;
+        minorlength = &sfilt;
+        smajor = dsdy;
+        tmajor = dtdy;
+    }
+    float aspect = (*majorlength) / (*minorlength);
+    const float max_aspect = 16;
+    if (aspect > max_aspect) {
+        aspect = max_aspect;
+        *minorlength = (*majorlength) / max_aspect;
+    }
+
+    float filtwidth = (*minorlength);
     for (int i = 0;  i < texturefile.levels();  ++i) {
         // Compute the filter size in raster space at this MIP level
         float filtwidth_ras = texturefile.spec(i).full_width * filtwidth;
@@ -563,15 +612,21 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         levelblend = 0;
     }
     float levelweight[2] = { 1.0f - levelblend, levelblend };
-//    levelblend = 0;
-//    std::cerr << "Levels " << miplevel[0] << ' ' << miplevel[1] << ' ' << levelblend << "\n";
 
+    int nsamples = std::max (1, (int) ceilf (aspect - 0.25f));
+    float invsamples = 1.0f / nsamples;
+
+    float s = _s[index], t = _t[index];
     for (int level = 0;  level < 2;  ++level) {
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
-        accum_sample (_s[index], _t[index], miplevel[level], texturefile,
-                      options, index, tilecache0, tilecache1,
-                      levelweight[level], result);
+        int lev = miplevel[level];
+        float w = invsamples * levelweight[level];
+        for (int sample = 0;  sample < nsamples;  ++sample) {
+            float pos = (sample + 0.5f) * invsamples - 0.5f;
+            accum_sample (s + pos * smajor, t + pos * tmajor, lev, texturefile,
+                          options, index, tilecache0, tilecache1, w, result);
+        }
     }
 }
 
@@ -584,7 +639,7 @@ TextureSystemImpl::accum_sample (float s, float t, int miplevel,
                                  TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
-    const ImageIOFormatSpec &spec (texturefile.spec (miplevel));
+    const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
     s = s * spec.width  - 0.5f;

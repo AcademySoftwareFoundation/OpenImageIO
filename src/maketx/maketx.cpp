@@ -214,7 +214,7 @@ make_mipmap (void)
     }
 
     // Copy the spec, with possible change in format
-    ImageIOFormatSpec dstspec = src.spec();
+    ImageSpec dstspec = src.spec();
     dstspec.set_format (src.spec().format);
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
@@ -302,7 +302,7 @@ make_mipmap (void)
                   << "\" format does not support tiled, multires images\n";
         exit (EXIT_FAILURE);
     }
-    ImageIOFormatSpec outspec = dstspec;
+    ImageSpec outspec = dstspec;
     outspec.set_format (src.spec().format);
     if (! out->open (outputfilename.c_str(), outspec)) {
         std::cerr << "maketx ERROR: Could not open \"" << outputfilename

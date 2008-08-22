@@ -67,11 +67,12 @@ public:
 
     bool broken () const { return m_broken; }
     int levels () const { return (int)m_spec.size(); }
-    const ImageIOFormatSpec & spec (int level=0) const { return m_spec[level]; }
+    const ImageSpec & spec (int level=0) const { return m_spec[level]; }
     TexFormat textureformat () const { return m_texformat; }
     TextureOptions::Wrap swrap () const { return m_swrap; }
     TextureOptions::Wrap twrap () const { return m_twrap; }
     bool opened () const { return m_input.get() != NULL; }
+    ParamBaseType datatype () const { return m_datatype; }
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.
@@ -82,11 +83,11 @@ public:
     bool read_tile (int level, int x, int y, int z,
                     ParamBaseType format, void *data);
 
-    /// Mark the tile as recently used.
+    /// Mark the file as recently used.
     ///
     void use (void) { m_used = true; }
 
-    /// Try to release resources for this tile -- if recently used, mark
+    /// Try to release resources for this file -- if recently used, mark
     /// as not recently used; if already not recently used, close the
     /// file and return true.
     void release (void);
@@ -96,7 +97,7 @@ private:
     bool m_used;                    ///< Recently used (in the LRU sense)
     bool m_broken;                  ///< has errors; can't be used properly
     shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
-    std::vector<ImageIOFormatSpec> m_spec;  ///< Format for each MIP-map level
+    std::vector<ImageSpec> m_spec;  ///< Format for each MIP-map level
     TexFormat m_texformat;          ///< Which texture format
     TextureOptions::Wrap m_swrap;   ///< Default wrap modes
     TextureOptions::Wrap m_twrap;   ///< Default wrap modes
@@ -106,6 +107,7 @@ private:
     Imath::M44f m_Mras;             ///< shadows: world-to-raster with camera z
     CubeLayout m_cubelayout;        ///< cubemap: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
+    ParamBaseType m_datatype;       ///< Type of pixels we store internally
     TextureSystemImpl &m_texsys;    ///< Back pointer for texture system
 };
 
@@ -215,7 +217,24 @@ public:
         return (unsigned char *) &m_texels[0];
     }
 
+    /// Return the id for this tile.
+    ///
     const TileID& id (void) const { return m_id; }
+
+    const TextureFile & texfile () const { return m_id.texfile(); }
+    /// Return the allocated memory size for this tile's texels.
+    ///
+    size_t memsize () const {
+        const ImageSpec &spec (texfile().spec(m_id.level()));
+        return spec.tile_pixels() * spec.nchannels * typesize(texfile().datatype());
+    }
+
+    /// Mark the tile as recently used (or not, if used==false).  Return
+    /// its previous value.
+    bool used (bool used=true) { bool r = m_used;  m_used = used;  return r; }
+
+    /// Has this tile been recently used?
+    bool used (void) const { return m_used; }
 
 private:
     TileID m_id;                  ///< ID of this tile
@@ -223,6 +242,7 @@ private:
     bool m_valid;                 ///< Valid texels
     bool m_used;                  ///< Used recently
     float m_mindepth, m_maxdepth; ///< shadows only: min/max depth of the tile
+
 };
 
 
@@ -328,9 +348,13 @@ private:
     /// such file can be found.
     TextureFileRef find_texturefile (ustring filename);
 
-    // Enforce the max number of open files.  This should only be invoked
-    // when the caller holds m_texturefiles_mutex.
+    /// Enforce the max number of open files.  This should only be invoked
+    /// when the caller holds m_texturefiles_mutex.
     void check_max_files ();
+
+    /// Enforce the max memory for tile data.  This should only be invoked
+    /// when the caller holds m_texturefiles_mutex.
+    void check_max_mem ();
 
     /// Find a tile identified by 'id' in the tile cache, paging it in
     /// if needed, and return a reference to the tile.  Return a NULL
@@ -470,9 +494,9 @@ private:
     FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
     int m_open_files;            ///< How many files are open?
     mutex m_texturefiles_mutex;  ///< Protect filename map
-    TileCache tilecache;         ///< Our in-memory tile cache
+    TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
-    
+    size_t m_mem_used;           ///< Memory being used for tiles
 };
 
 
