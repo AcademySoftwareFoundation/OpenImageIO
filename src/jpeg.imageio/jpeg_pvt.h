@@ -35,13 +35,13 @@
 
 struct TIFFDirEntry;
 
-void exif_from_APP1 (ImageIOFormatSpec &spec, unsigned char *buf);
-void read_exif_tag (ImageIOFormatSpec &spec, TIFFDirEntry *dirp,
+void exif_from_APP1 (ImageSpec &spec, unsigned char *buf);
+void read_exif_tag (ImageSpec &spec, TIFFDirEntry *dirp,
                     const char *buf, bool swab);
-void add_exif_item_to_spec (ImageIOFormatSpec &spec, const char *name,
+void add_exif_item_to_spec (ImageSpec &spec, const char *name,
                             TIFFDirEntry *dirp, const char *buf, bool swab);
 
-void APP1_exif_from_spec (ImageIOFormatSpec &spec, std::vector<char> &exif);
+void APP1_exif_from_spec (ImageSpec &spec, std::vector<char> &exif);
 
 
 

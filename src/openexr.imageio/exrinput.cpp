@@ -58,10 +58,10 @@ public:
     OpenEXRInput () { init(); }
     virtual ~OpenEXRInput () { close(); }
     virtual const char * format_name (void) const { return "openexr"; }
-    virtual bool open (const char *name, ImageIOFormatSpec &newspec);
+    virtual bool open (const char *name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageIOFormatSpec &newspec);
+    virtual bool seek_subimage (int index, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
 
@@ -167,14 +167,14 @@ static StringMap exr_tag_to_ooio_std;
 
 
 bool
-OpenEXRInput::open (const char *name, ImageIOFormatSpec &newspec)
+OpenEXRInput::open (const char *name, ImageSpec &newspec)
 {
     // Quick check to reject non-exr files
     bool tiled;
     if (! Imf::isOpenExrFile (name, tiled))
         return false;
 
-    m_spec = ImageIOFormatSpec(); // Clear everything with default constructor
+    m_spec = ImageSpec(); // Clear everything with default constructor
     try {
         if (tiled) {
             m_input_tiled = new Imf::TiledInputFile (name);
@@ -364,7 +364,7 @@ OpenEXRInput::query_channels (void)
 
 
 bool
-OpenEXRInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
+OpenEXRInput::seek_subimage (int index, ImageSpec &newspec)
 {
     if (index < 0 || index >= m_nsubimages)   // out of range
         return false;

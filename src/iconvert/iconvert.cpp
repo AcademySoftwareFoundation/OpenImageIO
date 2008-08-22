@@ -107,7 +107,7 @@ main (int argc, char *argv[])
             << filenames[0] << "\" : " << OpenImageIO::error_message() << "\n";
         exit (EXIT_FAILURE);
     }
-    ImageIOFormatSpec inspec;
+    ImageSpec inspec;
     if (! in->open (filenames[0].c_str(), inspec)) {
         std::cerr << "iconvert ERROR: Could not open \"" << filenames[0]
                   << "\" : " << in->error_message() << "\n";
@@ -116,7 +116,7 @@ main (int argc, char *argv[])
     }
 
     // Copy the spec, with possible change in format
-    ImageIOFormatSpec outspec = inspec;
+    ImageSpec outspec = inspec;
     outspec.set_format (inspec.format);
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")

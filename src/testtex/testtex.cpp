@@ -144,7 +144,7 @@ test_plain_texture (ustring filename)
               << output_filename << "\n";
     const int nchannels = 4;
     const int shadepoints = 32;
-    ImageIOFormatSpec outspec (output_xres, output_yres, nchannels, PT_HALF);
+    ImageSpec outspec (output_xres, output_yres, nchannels, PT_HALF);
     ImageBuf image (output_filename, outspec);
     image.zero ();
 

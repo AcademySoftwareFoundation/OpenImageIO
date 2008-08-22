@@ -36,12 +36,12 @@ namespace OpenImageIO {
 class ImageBuf {
 public:
     ImageBuf (const std::string &name);
-    ImageBuf (const std::string &name, const ImageIOFormatSpec &spec);
+    ImageBuf (const std::string &name, const ImageSpec &spec);
     virtual ~ImageBuf ();
 
     /// Allocate space the right size for an image described by the
     /// format spec.
-    virtual void alloc (const ImageIOFormatSpec &spec);
+    virtual void alloc (const ImageSpec &spec);
 
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
@@ -74,7 +74,7 @@ public:
 
     /// Return a reference to the image spec;
     ///
-    const ImageIOFormatSpec & spec () const { return m_spec; }
+    const ImageSpec & spec () const { return m_spec; }
 
     /// Return a pointer to the start of scanline #y.
     ///
@@ -149,16 +149,16 @@ public:
     void zero ();
 
 protected:
-    std::string m_name;        ///< Filename of the image
-    int m_nsubimages;          ///< How many subimages are there?
-    int m_current_subimage;    ///< Current subimage we're viewing
-    ImageIOFormatSpec m_spec;  ///< Describes the image (size, etc)
+    std::string m_name;          ///< Filename of the image
+    int m_nsubimages;            ///< How many subimages are there?
+    int m_current_subimage;      ///< Current subimage we're viewing
+    ImageSpec m_spec;            ///< Describes the image (size, etc)
     std::vector<char> m_pixels;  ///< Pixel data
-    bool m_spec_valid;         ///< Is the spec valid
-    bool m_pixels_valid;       ///< Image is valid
-    bool m_badfile;            ///< File not found
-    std::string m_err;         ///< Last error message
-    int m_orientation;         ///< Orientation of the image
+    bool m_spec_valid;           ///< Is the spec valid
+    bool m_pixels_valid;         ///< Image is valid
+    bool m_badfile;              ///< File not found
+    std::string m_err;           ///< Last error message
+    int m_orientation;           ///< Orientation of the image
 
     // An ImageBuf can be in one of several states:
     //   * Uninitialized

@@ -367,10 +367,10 @@ OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
                             stride_t dst_zstride,
                             float gain, float gamma)
 {
-    ImageIOFormatSpec::auto_stride (src_xstride, src_ystride, src_zstride,
-                                    src_type, nchannels, width, height);
-    ImageIOFormatSpec::auto_stride (dst_xstride, dst_ystride, dst_zstride,
-                                    dst_type, nchannels, width, height);
+    ImageSpec::auto_stride (src_xstride, src_ystride, src_zstride,
+                            src_type, nchannels, width, height);
+    ImageSpec::auto_stride (dst_xstride, dst_ystride, dst_zstride,
+                            dst_type, nchannels, width, height);
     bool result = true;
     bool contig = (src_xstride == dst_xstride && src_xstride == nchannels);
     for (int z = 0;  z < depth;  ++z) {

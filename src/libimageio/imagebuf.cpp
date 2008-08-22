@@ -49,7 +49,7 @@ ImageBuf::ImageBuf (const std::string &filename)
 
 
 
-ImageBuf::ImageBuf (const std::string &filename, const ImageIOFormatSpec &spec)
+ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
     : m_name(filename), m_nsubimages(0), m_current_subimage(0),
       m_spec_valid(false), m_badfile(false), m_orientation(1)
 {
@@ -81,7 +81,7 @@ ImageBuf::realloc ()
 
 
 void
-ImageBuf::alloc (const ImageIOFormatSpec &spec)
+ImageBuf::alloc (const ImageSpec &spec)
 {
     m_spec = spec;
     m_spec_valid = true;
@@ -99,7 +99,7 @@ ImageBuf::init_spec (const std::string &filename)
         std::cerr << OpenImageIO::error_message() << "\n";
     }
     if (in && in->open (filename.c_str(), m_spec)) {
-        ImageIOFormatSpec tempspec;
+        ImageSpec tempspec;
         m_nsubimages = 1;
         while (in->seek_subimage (m_nsubimages, tempspec))
             ++m_nsubimages;
@@ -129,7 +129,7 @@ ImageBuf::read (int subimage, bool force,
         return false;
     }
     if (in->open (m_name.c_str(), m_spec)) {
-        ImageIOFormatSpec tempspec;
+        ImageSpec tempspec;
         m_nsubimages = 1;
         while (in->seek_subimage (m_nsubimages, tempspec))
             ++m_nsubimages;

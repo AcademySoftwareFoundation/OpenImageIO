@@ -40,7 +40,7 @@ class HdrOutput : public ImageOutput {
     virtual ~HdrOutput () { close(); }
     virtual const char * format_name (void) const { return "hdr"; }
     virtual bool supports (const char *property) const { return false; }
-    virtual bool open (const char *name, const ImageIOFormatSpec &spec,
+    virtual bool open (const char *name, const ImageSpec &spec,
                        bool append=false);
     virtual bool write_scanline (int y, int z, ParamBaseType format,
                                  const void *data, stride_t xstride);
@@ -67,8 +67,7 @@ extern "C" {
 
 
 bool
-HdrOutput::open (const char *name, const ImageIOFormatSpec &newspec,
-                 bool append)
+HdrOutput::open (const char *name, const ImageSpec &newspec, bool append)
 {
     if (append) {
         error ("HDR doesn't support multiple images per file");

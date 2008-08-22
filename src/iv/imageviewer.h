@@ -150,7 +150,7 @@ public:
 
     /// Return a ref to the current image spec, or NULL if there is no
     /// current image.
-    const ImageIOFormatSpec *curspec (void) const {
+    const ImageSpec *curspec (void) const {
         IvImage *img = cur();
         return img ? &img->spec() : NULL;
     }

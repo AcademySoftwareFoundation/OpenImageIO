@@ -49,7 +49,7 @@ public:
     virtual ~TIFFOutput ();
     virtual const char * format_name (void) const { return "tiff"; }
     virtual bool supports (const char *feature) const;
-    virtual bool open (const char *name, const ImageIOFormatSpec &spec,
+    virtual bool open (const char *name, const ImageSpec &spec,
                        bool append=false);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, ParamBaseType format,
@@ -126,8 +126,7 @@ TIFFOutput::supports (const char *feature) const
 
 
 bool
-TIFFOutput::open (const char *name, const ImageIOFormatSpec &userspec,
-                  bool append)
+TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
 {
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec

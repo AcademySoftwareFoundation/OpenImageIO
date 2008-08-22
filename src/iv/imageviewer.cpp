@@ -634,7 +634,7 @@ ImageViewer::updateTitle ()
 void
 ImageViewer::updateStatusBar ()
 {
-    const ImageIOFormatSpec *spec = curspec();
+    const ImageSpec *spec = curspec();
     if (! spec) {
         statusImgInfo->setText (tr("No image loaded"));
         statusViewInfo->setText (tr(""));
@@ -675,7 +675,7 @@ ImageViewer::displayCurrentImage ()
         m_current_image = 0;
     IvImage *img = cur();
     if (img) {
-        const ImageIOFormatSpec &spec (img->spec());
+        const ImageSpec &spec (img->spec());
         if (! img->read (img->subimage(), false, image_progress_callback, this))
             std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
     } else {

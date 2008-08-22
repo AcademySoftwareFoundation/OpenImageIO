@@ -135,7 +135,7 @@ QuantizationSpec::QuantizationSpec (ParamBaseType _type)
 
 
 
-ImageIOFormatSpec::ImageIOFormatSpec (ParamBaseType format)
+ImageSpec::ImageSpec (ParamBaseType format)
     : x(0), y(0), z(0), width(0), height(0), depth(1),
       full_width(0), full_height(0), full_depth(0),
       tile_width(0), tile_height(0), tile_depth(1),
@@ -147,8 +147,7 @@ ImageIOFormatSpec::ImageIOFormatSpec (ParamBaseType format)
 
 
 
-ImageIOFormatSpec::ImageIOFormatSpec (int xres, int yres, int nchans, 
-                                      ParamBaseType format)
+ImageSpec::ImageSpec (int xres, int yres, int nchans, ParamBaseType format)
     : x(0), y(0), z(0), width(xres), height(yres), depth(1),
       full_width(0), full_height(0), full_depth(0),
       tile_width(0), tile_height(0), tile_depth(1),
@@ -163,7 +162,7 @@ ImageIOFormatSpec::ImageIOFormatSpec (int xres, int yres, int nchans,
 
 
 void
-ImageIOFormatSpec::set_format (ParamBaseType fmt)
+ImageSpec::set_format (ParamBaseType fmt)
 {
     format = fmt;
     set_default_quantize (fmt, quant_black, quant_white,
@@ -173,8 +172,8 @@ ImageIOFormatSpec::set_format (ParamBaseType fmt)
 
 
 ParamBaseType
-ImageIOFormatSpec::format_from_quantize (int quant_black, int quant_white,
-                                         int quant_min, int quant_max)
+ImageSpec::format_from_quantize (int quant_black, int quant_white,
+                                 int quant_min, int quant_max)
 {
     if (quant_black == 0 && quant_white == 0 && 
         quant_min == 0 && quant_max == 0) {
@@ -207,8 +206,8 @@ ImageIOFormatSpec::format_from_quantize (int quant_black, int quant_white,
 
 
 void
-ImageIOFormatSpec::attribute (const std::string &name, ParamBaseType type,
-                              int nvalues, const void *value)
+ImageSpec::attribute (const std::string &name, ParamBaseType type,
+                      int nvalues, const void *value)
 {
     // Don't allow duplicates
     ImageIOParameter *f = find_attribute (name);
@@ -222,9 +221,8 @@ ImageIOFormatSpec::attribute (const std::string &name, ParamBaseType type,
 
 
 ImageIOParameter *
-ImageIOFormatSpec::find_attribute (const std::string &name,
-                                   ParamType searchtype,
-                                   bool casesensitive)
+ImageSpec::find_attribute (const std::string &name, ParamType searchtype,
+                           bool casesensitive)
 {
     if (casesensitive) {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)
@@ -243,9 +241,8 @@ ImageIOFormatSpec::find_attribute (const std::string &name,
 
 
 const ImageIOParameter *
-ImageIOFormatSpec::find_attribute (const std::string &name,
-                                   ParamType searchtype,
-                                   bool casesensitive) const
+ImageSpec::find_attribute (const std::string &name, ParamType searchtype,
+                           bool casesensitive) const
 {
     if (casesensitive) {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)

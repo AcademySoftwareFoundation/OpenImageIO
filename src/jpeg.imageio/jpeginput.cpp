@@ -54,7 +54,7 @@ class JpgInput : public ImageInput {
     JpgInput () { init(); }
     virtual ~JpgInput () { close(); }
     virtual const char * format_name (void) const { return "jpeg"; }
-    virtual bool open (const char *name, ImageIOFormatSpec &spec);
+    virtual bool open (const char *name, ImageSpec &spec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool close ();
  private:
@@ -82,7 +82,7 @@ extern "C" {
 
 
 bool
-JpgInput::open (const char *name, ImageIOFormatSpec &newspec)
+JpgInput::open (const char *name, ImageSpec &newspec)
 {
     // Check that file exists and can be opened
     m_fd = fopen (name, "rb");
@@ -101,7 +101,7 @@ JpgInput::open (const char *name, ImageIOFormatSpec &newspec)
         return false;
     }
 
-    m_spec = ImageIOFormatSpec();
+    m_spec = ImageSpec();
 
     m_cinfo.err = jpeg_std_error (&m_jerr);
     jpeg_create_decompress (&m_cinfo);          // initialize decompressor

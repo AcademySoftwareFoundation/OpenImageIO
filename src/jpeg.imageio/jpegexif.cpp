@@ -250,7 +250,7 @@ print_dir_entry (const TIFFDirEntry &dir, const char *datastart)
 /// needs to be byte-swapped.  Note that *dirp HAS already been swapped,
 /// if necessary, so no byte swapping on *dirp is necessary.
 void
-add_exif_item_to_spec (ImageIOFormatSpec &spec, const char *name,
+add_exif_item_to_spec (ImageSpec &spec, const char *name,
                        TIFFDirEntry *dirp, const char *buf, bool swab)
 {
     if (dirp->tdir_type == TIFF_SHORT && dirp->tdir_count == 1) {
@@ -330,7 +330,7 @@ resunit_tag (TIFFDirEntry *dirp, const char *buf, bool swab)
 /// Note that *dirp has not been swapped, and so is still in the native
 /// endianness of the file.
 void
-read_exif_tag (ImageIOFormatSpec &spec, TIFFDirEntry *dirp,
+read_exif_tag (ImageSpec &spec, TIFFDirEntry *dirp,
                const char *buf, bool swab)
 {
     // Make a copy of the pointed-to TIFF directory, swab the components
@@ -410,7 +410,7 @@ read_exif_tag (ImageIOFormatSpec &spec, TIFFDirEntry *dirp,
 /// Rummage through the JPEG "APP1" marker pointed to by buf, decoding
 /// EXIF information and adding attributes to spec.
 void
-exif_from_APP1 (ImageIOFormatSpec &spec, unsigned char *buf)
+exif_from_APP1 (ImageSpec &spec, unsigned char *buf)
 {
     // APP1 blob doesn't have to be exif info.  Look for the exif marker,
     // which near as I can tell is just the letters "Exif" at the start.
@@ -472,7 +472,7 @@ exif_from_APP1 (ImageIOFormatSpec &spec, unsigned char *buf)
         else if (p->type() == PT_INT16) 
             cs = *(const short *)p->data();
         if (cs == 1)
-            spec.linearity = ImageIOFormatSpec::sRGB;
+            spec.linearity = ImageSpec::sRGB;
     }
 }
 
@@ -626,7 +626,7 @@ public:
 /// Take all the stuff in spec that should be expressed as EXIF tags in
 /// a JPEG, and construct a huge blob of an APP1 marker in exif.
 void
-APP1_exif_from_spec (ImageIOFormatSpec &spec, std::vector<char> &exif)
+APP1_exif_from_spec (ImageSpec &spec, std::vector<char> &exif)
 {
     // Clear the buffer and reserve maximum space that an APP1 can take
     // in a JPEG file, so we can push_back to our heart's content and

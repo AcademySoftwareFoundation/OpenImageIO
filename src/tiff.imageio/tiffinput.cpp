@@ -45,10 +45,10 @@ public:
     TIFFInput () { init(); }
     virtual ~TIFFInput () { close(); }
     virtual const char * format_name (void) const { return "tiff"; }
-    virtual bool open (const char *name, ImageIOFormatSpec &newspec);
+    virtual bool open (const char *name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageIOFormatSpec &newspec);
+    virtual bool seek_subimage (int index, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
 
@@ -155,7 +155,7 @@ my_error_handler (const char *str, const char *format, va_list ap)
 
 
 bool
-TIFFInput::open (const char *name, ImageIOFormatSpec &newspec)
+TIFFInput::open (const char *name, ImageSpec &newspec)
 {
     m_filename = name;
     m_subimage = -1;
@@ -165,7 +165,7 @@ TIFFInput::open (const char *name, ImageIOFormatSpec &newspec)
 
 
 bool
-TIFFInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
+TIFFInput::seek_subimage (int index, ImageSpec &newspec)
 {
     if (index < 0)       // Illegal
         return false;
@@ -209,7 +209,7 @@ TIFFInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
 void
 TIFFInput::readspec ()
 {
-    m_spec = ImageIOFormatSpec();
+    m_spec = ImageSpec();
     float x = 0, y = 0;
     TIFFGetField (m_tif, TIFFTAG_XPOSITION, &x);
     TIFFGetField (m_tif, TIFFTAG_YPOSITION, &y);

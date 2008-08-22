@@ -62,7 +62,7 @@ public:
     virtual ~OpenEXROutput ();
     virtual const char * format_name (void) const { return "openexr"; }
     virtual bool supports (const char *feature) const;
-    virtual bool open (const char *name, const ImageIOFormatSpec &spec,
+    virtual bool open (const char *name, const ImageSpec &spec,
                        bool append=false);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, ParamBaseType format,
@@ -154,8 +154,7 @@ OpenEXROutput::supports (const char *feature) const
 
 
 bool
-OpenEXROutput::open (const char *name, const ImageIOFormatSpec &userspec,
-                     bool append)
+OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
 {
     if (append && (m_output_scanline || m_output_tiled)) {
         // Special case for appending to an open file -- we don't need

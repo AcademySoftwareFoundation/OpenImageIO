@@ -56,7 +56,7 @@ class JpgOutput : public ImageOutput {
     virtual ~JpgOutput () { close(); }
     virtual const char * format_name (void) const { return "jpeg"; }
     virtual bool supports (const char *property) const { return false; }
-    virtual bool open (const char *name, const ImageIOFormatSpec &spec,
+    virtual bool open (const char *name, const ImageSpec &spec,
                        bool append=false);
     virtual bool write_scanline (int y, int z, ParamBaseType format,
                                  const void *data, stride_t xstride);
@@ -85,7 +85,7 @@ extern "C" {
 
 
 bool
-JpgOutput::open (const char *name, const ImageIOFormatSpec &newspec,
+JpgOutput::open (const char *name, const ImageSpec &newspec,
                  bool append)
 {
     if (append) {

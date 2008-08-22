@@ -47,7 +47,7 @@ static std::vector<std::string> filenames;
 
 static void
 print_info (const std::string &filename, ImageInput *input,
-            ImageIOFormatSpec &spec,
+            ImageSpec &spec,
             bool verbose, bool sum, long long &totalsize)
 {
     printf ("%s : %4d x %4d", filename.c_str(), 
@@ -92,13 +92,13 @@ print_info (const std::string &filename, ImageInput *input,
             printf ("\n");
         }
         switch (spec.linearity) {
-        case ImageIOFormatSpec::Linear :
+        case ImageSpec::Linear :
             printf ("    linear color space\n");
             break;
-        case ImageIOFormatSpec::GammaCorrected :
+        case ImageSpec::GammaCorrected :
             printf ("    gamma-corrected: %g\n", spec.gamma);
             break;
-        case ImageIOFormatSpec::sRGB :
+        case ImageSpec::sRGB :
             printf ("    sRGB color space\n");
             break;
         default:
@@ -159,7 +159,7 @@ main (int argc, const char *argv[])
             std::cerr << OpenImageIO::error_message() << "\n";
             continue;
         }
-        ImageIOFormatSpec spec;
+        ImageSpec spec;
         if (in->open (s.c_str(), spec)) {
             print_info (s, in, spec, verbose, sum, totalsize);
             in->close ();

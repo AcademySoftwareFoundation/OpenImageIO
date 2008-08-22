@@ -128,9 +128,9 @@ public:
 
 
 
-/// ImageIOFormatSpec describes the data format of an image --
+/// ImageSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
-class DLLPUBLIC ImageIOFormatSpec {
+class DLLPUBLIC ImageSpec {
 public:
     enum Linearity {
         UnknownLinearity = 0, ///< Unknown which color space we're in
@@ -180,12 +180,11 @@ public:
 
     /// Constructor: given just the data format, set the default quantize
     /// and dither and set all other channels to something reasonable.
-    ImageIOFormatSpec (ParamBaseType format = PT_UNKNOWN);
+    ImageSpec (ParamBaseType format = PT_UNKNOWN);
 
     /// Constructor for simple 2D scanline image with nothing special.
     /// If fmt is not supplied, default to unsigned 8-bit data.
-    ImageIOFormatSpec (int xres, int yres, int nchans, 
-                       ParamBaseType fmt = PT_UINT8);
+    ImageSpec (int xres, int yres, int nchans, ParamBaseType fmt = PT_UINT8);
 
     /// Set the data format, and as a side effect set quantize & dither
     /// to good defaults for that format
@@ -292,6 +291,12 @@ public:
 
 
 
+/// Deprecated, Gelato <= 3 name for what we now call ImageSpec.
+///
+typedef ImageSpec ImageIOFormatSpec;
+
+
+
 /// ImageOutput abstracts the writing of an image file in a file
 /// format-agnostic manner.
 class DLLPUBLIC ImageOutput {
@@ -350,13 +355,13 @@ public:
     /// the same file without a call to close(), if it supports
     /// multiimage and the append flag is true -- this is interpreted as
     /// appending images (such as for MIP-maps).
-    virtual bool open (const char *name, const ImageIOFormatSpec &newspec,
+    virtual bool open (const char *name, const ImageSpec &newspec,
                        bool append=false) = 0;
 
     /// Return a reference to the image format specification of the
     /// current subimage.  Note that the contents of the spec are
     /// invalid before open() or after close().
-    const ImageIOFormatSpec &spec (void) const { return m_spec; }
+    const ImageSpec &spec (void) const { return m_spec; }
 
     /// Close an image that we are totally done with.  This should leave
     /// the plugin in a state where it could open a new file safely,
@@ -470,7 +475,7 @@ protected:
                                      std::vector<unsigned char> &scratch);
 
 protected:
-    ImageIOFormatSpec m_spec;   ///< format spec of the currently open image
+    ImageSpec m_spec;           ///< format spec of the currently open image
 
 private:
     std::string m_errmessage;   ///< private storage of error massage
@@ -502,12 +507,12 @@ public:
     /// attributes, you can discern the resolution, if it's tiled,
     /// number of channels, and native data format.  Return true if the
     /// file was found and opened okay.
-    virtual bool open (const char *name, ImageIOFormatSpec &newspec) = 0;
+    virtual bool open (const char *name, ImageSpec &newspec) = 0;
 
     /// Return a reference to the image format specification of the
     /// current subimage.  Note that the contents of the spec are
     /// invalid before open() or after close().
-    const ImageIOFormatSpec &spec (void) const { return m_spec; }
+    const ImageSpec &spec (void) const { return m_spec; }
 
     /// Close an image that we are totally done with.
     ///
@@ -526,7 +531,7 @@ public:
     /// of random access to subimages -- in other words, if it can't
     /// randomly seek to the given subimage, it should transparently
     /// close, reopen, and sequentially read through prior subimages.
-    virtual bool seek_subimage (int index, ImageIOFormatSpec &newspec) {
+    virtual bool seek_subimage (int index, ImageSpec &newspec) {
         return false;
     }
 
@@ -637,10 +642,10 @@ protected:
     void error (const char *format, ...);
     
 protected:
-    ImageIOFormatSpec m_spec;  //< format spec of the current open subimage
+    ImageSpec m_spec;          ///< format spec of the current open subimage
 
 private:
-    std::string m_errmessage;  //< private storage of error massage
+    std::string m_errmessage;  ///< private storage of error massage
 };
 
 

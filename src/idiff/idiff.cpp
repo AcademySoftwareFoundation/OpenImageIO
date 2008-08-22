@@ -68,7 +68,7 @@ static float failpercent = 0;
 static bool perceptual = false;
 static float hardfail = std::numeric_limits<float>::max();
 static std::vector<std::string> filenames;
-static ImageIOFormatSpec inspec[2];
+static ImageSpec inspec[2];
 static float *pixels0 = NULL, *pixels1 = NULL;
 
 
@@ -122,7 +122,7 @@ getargs (int argc, char *argv[])
 
 
 static bool
-read_input (const std::string &filename, ImageIOFormatSpec &inspec,
+read_input (const std::string &filename, ImageSpec &inspec,
             float * &pixels)
 {
     ImageInput *in = ImageInput::create (filename.c_str(), "" /* searchpath */);
@@ -156,10 +156,10 @@ read_input (const std::string &filename, ImageIOFormatSpec &inspec,
 
 
 static void
-write_diff_image (const std::string &filename, const ImageIOFormatSpec &spec,
+write_diff_image (const std::string &filename, const ImageSpec &spec,
                   float *pixels)
 {
-    ImageIOFormatSpec outspec = spec;
+    ImageSpec outspec = spec;
     outspec.extra_attribs.clear();
 
     // Find an ImageIO plugin that can open the output file, and open it
@@ -384,7 +384,7 @@ tvi (float adaptation_luminance)
 // fail the comparison.
 /// N.B. - assume pixels are already in linear color space.
 int
-Yee_Compare (const ImageIOFormatSpec &spec,
+Yee_Compare (const ImageSpec &spec,
              float *pixels0, float *pixels1,
              float luminance = 100,
              float fov = 45)

@@ -376,7 +376,7 @@ IvGL::paint_pixelview ()
     const int closeupsize = ncloseuppixels * closeuppixelzoom;
 
     IvImage *img = m_viewer.cur();
-    const ImageIOFormatSpec &spec (img->spec());
+    const ImageSpec &spec (img->spec());
     float z = m_zoom;
 
     // (xw,yw) are the window coordinates of the mouse.
@@ -499,7 +499,7 @@ IvGL::useshader (bool pixelview)
     IvImage *img = m_viewer.cur();
     if (! img)
         return;
-    const ImageIOFormatSpec &spec (img->spec());
+    const ImageSpec &spec (img->spec());
 
     glActiveTexture (GL_TEXTURE0);
     glEnable (GL_TEXTURE_2D);
@@ -558,7 +558,7 @@ IvGL::update (IvImage *img)
     if (! img)
         return;
 
-    const ImageIOFormatSpec &spec (img->spec());
+    const ImageSpec &spec (img->spec());
 //    glActiveTexture (GL_TEXTURE0);
 //    glEnable (GL_TEXTURE_2D);
     glBindTexture (GL_TEXTURE_2D, m_texid);

@@ -52,11 +52,11 @@ public:
     HdrInput () { init(); }
     virtual ~HdrInput () { close(); }
     virtual const char * format_name (void) const { return "hdr"; }
-    virtual bool open (const char *name, ImageIOFormatSpec &spec);
+    virtual bool open (const char *name, ImageSpec &spec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageIOFormatSpec &newspec);
+    virtual bool seek_subimage (int index, ImageSpec &newspec);
 
 private:
     std::string m_filename;       ///< File name
@@ -88,7 +88,7 @@ extern "C" {
 
 
 bool
-HdrInput::open (const char *name, ImageIOFormatSpec &newspec)
+HdrInput::open (const char *name, ImageSpec &newspec)
 {
     m_filename = name;
     return seek_subimage (0, newspec);
@@ -97,7 +97,7 @@ HdrInput::open (const char *name, ImageIOFormatSpec &newspec)
 
 
 bool
-HdrInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
+HdrInput::seek_subimage (int index, ImageSpec &newspec)
 {
     if (index != 0)
         return false;
@@ -109,7 +109,7 @@ HdrInput::seek_subimage (int index, ImageIOFormatSpec &newspec)
     if (m_fd == NULL)
         return false;
 
-    m_spec = ImageIOFormatSpec();
+    m_spec = ImageSpec();
 
     rgbe_header_info h;
     int r = RGBE_ReadHeader (m_fd, &m_spec.width, &m_spec.height, &h);
