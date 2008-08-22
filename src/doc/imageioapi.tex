@@ -61,9 +61,9 @@ Sections~\ref{sec:imageoutput:metadata}, \ref{sec:imageinput:metadata},
 and the documentation of individual ImageIO plugins for details.}
 
 \section{Image Format Spec}
-\indexapi{ImageIOFormatSpec}
+\indexapi{ImageSpec}
 
-An {\kw ImageIOFormatSpec} is a structure that describes the complete
+An \ImageSpec is a structure that describes the complete
 format specification of a single image.  It contains:
 
 \begin{itemize}
@@ -88,9 +88,9 @@ format specification of a single image.  It contains:
   its disk representation.
 \end{itemize}
 
-\subsection{{\kw ImageIOFormatSpec} Data Members}
+\subsection{\ImageSpec Data Members}
 
-The {\kw ImageIOFormatSpec} contains data fields for the values that are
+The \ImageSpec contains data fields for the values that are
 required to describe nearly any image, and an extensible list of
 arbitrary attributes that can hold metadata that may be user-defined or
 specific to individual file formats.  Here are the hard-coded data
@@ -193,15 +193,15 @@ described above.  This list may be manipulated with the {\kw
 attribute()} and {\kw find_attribute()} methods.
 \apiend
 
-\subsection{{\kw ImageIOFormatSpec} member functions}
+\subsection{\ImageSpec member functions}
 
-\noindent {\kw ImageIOFormatSpec} contains the following methods that
+\noindent \ImageSpec contains the following methods that
 manipulate format specs or compute useful information about images given
 their format spec:
 
-\apiitem{ImageIOFormatSpec (int xres, int yres, int nchans, \\
+\apiitem{ImageSpec (int xres, int yres, int nchans, \\
    \bigspc ParamBaseType fmt = PT_UINT8)}
-Constructs an ImageIOFormatSpec with the $x$ and $y$ resolution, number
+Constructs an \ImageSpec with the $x$ and $y$ resolution, number
 of channels, and pixel data format.
 
 All other fields are set to the obvious defaults -- the image is an

@@ -20,8 +20,7 @@ DONE        iv - middle mouse drag
 DONE        iv - mouse wheel zoom
 DONE        iv - pixel view window
 DONE        iv - half, float, uint16
-            imageio.h - should ImageIOFormatSpec just be ImageFormatSpec?
-                        or ImageSpec?
+DONE        imageio.h - should ImageIOFormatSpec just be ImageSpec?
 DONE        iv - open recent
 DONE        iv - save as
 DONE        iv - preferences
@@ -67,8 +66,9 @@ Before first alpha release
 Before first 1.0 release
 ------------------------
 
-IP          texture - basic texture, tile cache, file handle cache
+DONE?       texture - basic texture, tile cache, file handle cache
 DONE        maketx - plain texture maps
+            texture - add statistics (ugh, stats manager?)
             maketx - shadow map
             maketx - latlong env
             maketx - cubeface env

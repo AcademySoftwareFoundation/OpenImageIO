@@ -21,7 +21,7 @@ to a file:
         unsigned char pixels[xres*yres*channels];
 
         ImageOutput *out = ImageOutput::create (filename);
-        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, PT_UINT8);
         out->open (filename, spec);
         out->write_image (PT_UINT8, pixels);
         out->close ();
@@ -43,7 +43,7 @@ to a file:
   480$), number of color channels (3), and data format (unsigned 8-bit
   integer).
   \begin{code}
-        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, PT_UINT8);
         out->open (filename, spec);
   \end{code}
 \item Write the entire image, hiding all details of the encoding of
@@ -138,14 +138,14 @@ of writing a tiled image by using the {\kw supports("tiles")} query:
 
 Assuming that the \ImageOutput supports tiled images, you need to
 specifically request a tiled image when you {\kw open()} the file.  This
-is done by setting the tile size in the {\kw ImageIOFormatSpec} passed
+is done by setting the tile size in the \ImageSpec passed
 to {\kw open()}.  If the tile dimensions are not set, they will default
 to zero, which indicates that scanline output should be used rather than
 tiled output.
 
 \begin{code}
         int tilesize = 64;
-        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, PT_UINT8);
         spec.tile_width = tilesize;
         spec.tile_height = tilesize;
         out->open (filename, spec);
@@ -246,20 +246,20 @@ range).  But \product is significantly more flexible.
 
 You may request that the output image be stored in any of several
 formats.  This is done by setting the {\kw format} field of the
-\ImageIOFormatSpec prior to calling {\kw open}.  You can do this upon
-construction of the \ImageIOFormatSpec, as in the following example
+\ImageSpec prior to calling {\kw open}.  You can do this upon
+construction of the \ImageSpec, as in the following example
 that requests a spec that stores data as 16-bit unsigned integers:
 \begin{code}
-        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT16);
+        ImageSpec spec (xres, yres, channels, PT_UINT16);
 \end{code}
 
-\noindent Or, for an \ImageIOFormatSpec that has already been
+\noindent Or, for an \ImageSpec that has already been
 constructed, you may reset its format using the {\kw set_format()}
 method (which also resets the various quantization fields of the
 spec to the defaults for the data format you have specified).  
 
 \begin{code}
-        ImageIOFormatSpec spec (...);
+        ImageSpec spec (...);
         spec.set_format (PT_UINT16);
 \end{code}
 
@@ -288,7 +288,7 @@ automatically:
 
 \begin{code}
         ImageOutput *out = ImageOutput::create ("myfile.tif");
-        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT16);
+        ImageSpec spec (xres, yres, channels, PT_UINT16);
         out->open (filename, spec);
         ...
         float pixels [xres*yres*channels];
@@ -303,7 +303,7 @@ manner.
 Please refer to Section~\ref{sec:imageoutput:quantization} for more
 information on how values are translated among the supported data
 formats by default, and how to change the formulas by specifying
-quantization in the \ImageIOFormatSpec.
+quantization in the \ImageSpec.
 
 
 \subsection{Data Strides}
@@ -378,7 +378,7 @@ flexible functionality.  A few representative examples follow:
 
         // File representation is 1 channel
         ImageOutput *out = ImageOutput::create (filename);
-        ImageIOFormatSpec spec (xres, yres, 1, PT_UINT8);
+        ImageSpec spec (xres, yres, 1, PT_UINT8);
         out->open (filename, spec);
 
         // Use strides to write out a one-channel "slice" of the image
@@ -402,24 +402,24 @@ descriptions of the stride parameters to each {\cf write_*} function.
 Some file formats allow you to specify that the pixels they contain
 are a smaller \emph{crop window} within a larger absract \emph{full
   image}.  Specifying this situation is simple, and merely requires
-a few extra fields in the \ImageIOFormatSpec to be set:  
+a few extra fields in the \ImageSpec to be set:  
 
-The \ImageIOFormatSpec fields {\cf width}, {\cf height}, and {\cf depth}
+The \ImageSpec fields {\cf width}, {\cf height}, and {\cf depth}
 describe the dimensions of the image being written, i.e., the size of
 the crop window, not the size of the abstract full image.
 
-The \ImageIOFormatSpec fields {\cf full_width}, {\cf full_height}, and
+The \ImageSpec fields {\cf full_width}, {\cf full_height}, and
 {\cf full_depth} describe the dimensions of the abstract full image.  If
 these are set equal to {\cf width}, {\cf height}, and {\cf depth},
 respectively, or if they are all set to zero (the default upon
-construction of \ImageIOFormatSpec), then this image is the full image
+construction of \ImageSpec), then this image is the full image
 and is not a crop window.
 
-The \ImageIOFormatSpec fields {\cf x}, {\cf y}, and {\cf z} describe the
+The \ImageSpec fields {\cf x}, {\cf y}, and {\cf z} describe the
 \emph{offset} of the crop window --- that is, the upper left pixel
 coordinates of the abstract full image that correspond to the upper left
 pixel of the crop window.  They default to 0 upon construction of the
-\ImageIOFormatSpec, indicating that the crop window is the
+\ImageSpec, indicating that the crop window is the
 upper-left-most portion of the full image.
 
 Not all image file formats have a way to describe crop windows.
@@ -444,7 +444,7 @@ the full data, if it was all present).
         unsigned char pixels [cropwidth * croplength * channels]; // Crop size!
         ...
         ImageOutput *out = ImageOutput::create (filename);
-        ImageIOFormatSpec spec (cropwidth, croplength, channels, PT_UINT8);
+        ImageSpec spec (cropwidth, croplength, channels, PT_UINT8);
         spec.full_width = fullwidth;
         spec.full_length = fulllength;
         spec.x = xorigin;
@@ -462,7 +462,7 @@ the full data, if it was all present).
 \subsection{Writing metadata}
 \label{sec:imageoutput:metadata}
 
-The \ImageIOFormatSpec passed to {\cf open()} can specify all the common
+The \ImageSpec passed to {\cf open()} can specify all the common
 required properties that describe an image: data format, dimensions,
 number of channels, tiling.  However, there may be a variety of
 additional \emph{metadata}\footnote{\emph{Metadata} refers to data about
@@ -471,7 +471,7 @@ values and description thereof.} that should be carried along with the
 image or saved in the file.  
 
 The remainder of this section explains how to store additional metadata
-in the \ImageIOFormatSpec.  It is up to the \ImageOutput to store these
+in the \ImageSpec.  It is up to the \ImageOutput to store these
 in the file, in indeed the file format is able to accept the data.
 Individual \ImageOutput implementations should document which metadata
 they respect.
@@ -489,14 +489,14 @@ image) should be named \qkw{R}, \qkw{G}, \qkw{B}, and \qkw{A},
 respectively.  Beyond this guideline, however, you can use any names you
 want.
 
-The \ImageIOFormatSpec has a vector of strings called {\cf
+The \ImageSpec has a vector of strings called {\cf
   channelnames}.  Upon construction, it starts out empty.  If you use it
 at all, you should make sure that it contains the same number of strings
 as the number of color channels in your image.  Here is an example:
 
 \begin{code}
         int channels = 4;
-        ImageIOFormatSpec spec (width, length, channels, PT_UINT8);
+        ImageSpec spec (width, length, channels, PT_UINT8);
         spec.channelnames.push_back ("R");
         spec.channelnames.push_back ("G");
         spec.channelnames.push_back ("B");
@@ -509,7 +509,7 @@ RGB, per-channel opacity, and texture $s,t$ coordinates for each pixel.
 
 \begin{code}
         int channels = 8;
-        ImageIOFormatSpec spec (width, length, channels, PT_UINT8);
+        ImageSpec spec (width, length, channels, PT_UINT8);
         spec.channelnames.push_back ("R");
         spec.channelnames.push_back ("G");
         spec.channelnames.push_back ("B");
@@ -530,7 +530,7 @@ channels or displaying numeric pixel values in ``pixel view'' mode.
 
 \subsubsection{Specially-designated channels}
 
-The \ImageIOFormatSpec contains two fields, {\cf alpha_channel} and {\cf
+The \ImageSpec contains two fields, {\cf alpha_channel} and {\cf
   z_channel}, which can be used to designate which channel indices are
 used for alpha and $z$ depth, if any.  Upon construction, these are both
 set to {\cf -1}, indicating that it is not known which channels 
@@ -539,7 +539,7 @@ that represents RGBAZ:
 
 \begin{code}
         int channels = 5;
-        ImageIOFormatSpec spec (width, length, channels, format);
+        ImageSpec spec (width, length, channels, format);
         spec.channelnames.push_back ("R");
         spec.channelnames.push_back ("G");
         spec.channelnames.push_back ("B");
@@ -574,34 +574,34 @@ This is prevalent in formats that store pixels only as 8-bit values,
 since 256 values are not enough to linearly represent colors without
 banding artifacts in the dim values.
 
-Since this can (and probably will) happen, the \ImageIOFormatSpec has
+Since this can (and probably will) happen, the \ImageSpec has
 fields that allow you to explain what color space your image pixels are
 in.  Each individual \ImageOutput should document how it uses this (or
 not).
 
-The \ImageIOFormatSpec field {\cf linearity} can take on any of the
+The \ImageSpec field {\cf linearity} can take on any of the
 following values:
 \begin{description}
-\item[\halfspc \rm \kw{ImageIOFormatSpec::UnknownLinearity}] the default,
+\item[\halfspc \rm \kw{ImageSpec::UnknownLinearity}] the default,
   indicates that you have made no claim about the color space of your
   pixel data.
-\item[\halfspc \rm \kw{ImageIOFormatSpec::Linear}] indicates that the pixel
+\item[\halfspc \rm \kw{ImageSpec::Linear}] indicates that the pixel
   values you are pssing repesent linear values.
-\item[\halfspc \rm \kw{ImageIOFormatSpec::GammaCorrected}] indicates that the
+\item[\halfspc \rm \kw{ImageSpec::GammaCorrected}] indicates that the
   color pixel values (but not alpha or $z$) that you are passing have
   already been gamma corrected (raised to the power $1/\gamma$), and
   that the gamma exponent may be found in the {\cf gamma} field of the
-  \ImageIOFormatSpec.
-\item[\halfspc \rm \kw{ImageIOFormatSpec::sRGB}] indicates that the color pixel
+  \ImageSpec.
+\item[\halfspc \rm \kw{ImageSpec::sRGB}] indicates that the color pixel
   values that you are passing are already in sRGB color space.
 \end{description}
 
-\noindent Here is a simple example of setting up the \ImageIOFormatSpec
+\noindent Here is a simple example of setting up the \ImageSpec
 when you know that the pixel values you are writing are linear:
 
 \begin{code}
-        ImageIOFormatSpec spec (width, length, channels, format);
-        spec.linearity = ImageIOFormatSpec::Linear;
+        ImageSpec spec (width, length, channels, format);
+        spec.linearity = ImageSpec::Linear;
         ...
 \end{code}
 
@@ -625,7 +625,7 @@ represent linear values and should never be transformed.
 \subsubsection{Arbitrary metadata}
 
 For all other metadata that you wish to save in the file, you can attach
-the data to the \ImageIOFormatSpec using the {\cf attribute()} methods.
+the data to the \ImageSpec using the {\cf attribute()} methods.
 These come in polymorphic varieties that allow you to attach an
 attribute name and a value consisting of a single {\cf int}, {\cf
   unsigned int}, {\cf float}, {\cf char*}, or {\cf std::string}, as
@@ -683,7 +683,7 @@ It is possible that your internal data format (that in which you compute
 pixel values that you pass to the {\cf write} functions) is of greater
 precision or range than the native data format of the output file.  This
 can occur either because you specified a lower-precision data format in
-the \ImageIOFormatSpec that you passed to {\cf open()}, or else that the
+the \ImageSpec that you passed to {\cf open()}, or else that the
 image file format dictates a particular data format that does not match
 your internal format.  For example, you may compute {\cf float} pixels
 and pass those to {\cf write_image()}, but if you are writing a
@@ -692,7 +692,7 @@ integers.
 
 The conversion from floating-point formats to integer formats (or from
 higher to lower integer, which is done by first converting to float) is
-controlled by five fields within the \ImageIOFormatSpec: {\cf
+controlled by five fields within the \ImageSpec: {\cf
   quant_black}, {\cf quant_white}, {\cf quant_min}, {\cf quant_max},
 and {\cf quant_dither}.
 Float 0.0 maps to the integer value given by {\cf quant_black}, and
@@ -713,12 +713,12 @@ type):
 \end{code}
 
 The values of the quantization parameters are set in one of three ways:
-(1) upon construction of the \ImageIOFormatSpec, they are set to the
+(1) upon construction of the \ImageSpec, they are set to the
 default quantization values for the given data format; (2) upon call to
-{\cf ImageIOFormatSpec::set_format()}, the quantization values are set
+{\cf ImageSpec::set_format()}, the quantization values are set
 to the defaults for the given data format; (3) or, after being first set
 up in this manner, you may manually change the quantization parameters
-in the \ImageIOFormatSpec, if you want something other than the default
+in the \ImageSpec, if you want something other than the default
 quantization.
 
 \noindent Default quantization for each integer type is as follows:\\
@@ -754,7 +754,7 @@ in which 1.0 maps to 16383 (14 bits of positive range) rather than
 filling the full 16 bit:
 
 \begin{code}
-        ImageIOFormatSpec spec (width, length, channels, PT_UINT16);
+        ImageSpec spec (width, length, channels, PT_UINT16);
         spec.quant_black  = 0;
         spec.quant_white  = 16383;
         spec.quant_min    = 0;
@@ -832,7 +832,7 @@ used for texture mapping) that shows how to use multi-image:
         }
 
         // Set up spec for the highest resolution
-        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, PT_UINT8);
 
         // Write images, halving every time, until we're down to
         // 1 pixel in either dimension
@@ -927,7 +927,7 @@ elaborated with error checking and reporting:
                       << OpenImageIO::error_message() << "\n";
             return;
         }
-        ImageIOFormatSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, PT_UINT8);
 
         if (! out->open (filename, spec)) {
             std::cerr << "Could not open " << filename 
@@ -955,28 +955,28 @@ elaborated with error checking and reporting:
 
 
 
-\section{{\kw ImageOutput} Class Reference}
+\section{\ImageOutput Class Reference}
 \label{sec:imageoutput:reference}
 
 \apiitem{static ImageOutput * create (const char *filename, \\
 \bigspc\bigspc const char *plugin_searchpath=NULL)}
 
-Create an {\kw ImageOutput} that can be used to write an image file.
-The type of image file (and hence, the particular subclass of {\kw
-  ImageOutput} returned, and the plugin that contains its methods) is
-inferred from the extension of the file name.  The {\kw
-  plugin_searchpath} parameter is a colon-separated list of directories
-to search for ImageIO plugin DSO/DLL's.
+Create an \ImageOutput that can be used to write an image file.  The
+type of image file (and hence, the particular subclass of \ImageOutput
+returned, and the plugin that contains its methods) is inferred from the
+extension of the file name.  The {\kw plugin_searchpath} parameter is a
+colon-separated list of directories to search for ImageIO plugin
+DSO/DLL's.
 
 \apiend
 
 \apiitem{const char *format_name ()}
-Returns the canonical name of the format that this {\kw ImageOutput}
+Returns the canonical name of the format that this \ImageOutput
 instance is capable of writing.
 \apiend
 
 \apiitem{bool supports (const char *feature)}
-Given the name of a \emph{feature}, tells if this {\kw ImageOutput} 
+Given the name of a \emph{feature}, tells if this \ImageOutput 
 instance supports that feature.  The following features are recognized
 by this query:
 \begin{description}
@@ -1011,7 +1011,7 @@ queries does not break ``link compatibility'' with previously-compiled
 plugins.
 \apiend
 
-\apiitem{bool open (const char *name, const ImageIOFormatSpec \&newspec,
+\apiitem{bool open (const char *name, const ImageSpec \&newspec,
                        bool append=false)}
 
 Open the file with given {\kw name}, with resolution, and other format
@@ -1023,13 +1023,13 @@ close()}, if it supports multiimage and the append flag is {\kw true}
 
 \apiend
 
-\apiitem{const ImageIOFormatSpec \& spec ()}
+\apiitem{const ImageSpec \& spec ()}
 Returns the spec internally associated with this currently open
-{\kw ImageOutput}.
+\ImageOutput.
 \apiend
 
 \apiitem{bool close()}
-Closes the currently open file associated with this {\kw ImageOutput}.
+Closes the currently open file associated with this \ImageOutput.
 \apiend
 
 \apiitem{bool write_scanline (int y, int z, ParamBaseType format,

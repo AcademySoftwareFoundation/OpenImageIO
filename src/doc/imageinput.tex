@@ -20,7 +20,7 @@ out its resolution, and read the pixels (converting them into
         unsigned char *pixels;
 
         ImageInput *in = ImageInput::create (filename);
-        ImageIOFormatSpec spec;
+        ImageSpec spec;
         in->open (filename, spec);
         xres = spec.width;
         yres = spec.height;
@@ -44,7 +44,7 @@ out its resolution, and read the pixels (converting them into
 \item Open the file, read the header, and put all relevant metadata
   about the file in a specification structure.
   \begin{code}
-        ImageIOFormatSpec spec;
+        ImageSpec spec;
         in->open (filename, spec);
   \end{code}
 \item The specification contains vital information such as the
@@ -136,7 +136,7 @@ in Section~\ref{sec:imageinput:reference}.
 \subsubsection{Reading individual tiles}
 
 Once you {\kw open()} an image file, you can find out if it is a tiled
-image (and the tile size) by examining the \ImageIOFormatSpec's {\cf
+image (and the tile size) by examining the \ImageSpec's {\cf
   tile_width}, {\cf tile_height}, and {\cf tile_depth} fields.
 If they are zero, it's a scanline image and you should read pixels
 using \readscanline, not \readtile.
@@ -216,7 +216,7 @@ float values.
 
 \begin{code}
         ImageInput *in = ImageInput::create ("myfile.tif");
-        ImageIOFormatSpec spec;
+        ImageSpec spec;
         in->open (filename, spec);
         ...
         int numpixels = spec.width * spec.height;
@@ -238,7 +238,7 @@ seeing the actual numerical values in the file.
 %Please refer to Section~\ref{sec:imageinput:quantization} for more
 %information on how values are translated among the supported data
 %formats by default, and how to change the formulas by specifying
-%quantization in the \ImageIOFormatSpec.
+%quantization in the \ImageSpec.
 
 
 \subsection{Data Strides}
@@ -311,14 +311,14 @@ descriptions of the stride parameters to each {\cf read_*} function.
 \subsection{Reading metadata}
 \label{sec:imageinput:metadata}
 
-The \ImageIOFormatSpec that is filled in by {\cf ImageInput::open()}
+The \ImageSpec that is filled in by {\cf ImageInput::open()}
 specifies all the common properties that describe an image: data format,
 dimensions, number of channels, tiling.  However, there may be a variety
 of additional \emph{metadata} that are present in the image file and
 could be queried by your application.
 
 The remainder of this section explains how to query additional metadata
-in the \ImageIOFormatSpec.  It is up to the \ImageInput to read these
+in the \ImageSpec.  It is up to the \ImageInput to read these
 from the file, if indeed the file format is able to carry additional
 data.  Individual \ImageInput implementations should document which
 metadata they read.
@@ -326,7 +326,7 @@ metadata they read.
 \subsubsection{Channel names}
 
 In addition to specifying the number of color channels, the
-\ImageIOFormatSpec also stores the names of those channels in its {\cf
+\ImageSpec also stores the names of those channels in its {\cf
   channelnames} field, which is a {\cf vector<std::string>}.  Its length
 should always be equal to the number of channels (it's the
 responsibility of the \ImageInput to ensure this).
@@ -341,7 +341,7 @@ Here is example code that prints the names of the channels in an image:
 
 \begin{code}
         ImageInput *in = ImageInput::create (filename);
-        ImageIOFormatSpec spec;
+        ImageSpec spec;
         in->open (filename, spec);
         for (int i = 0;  i < spec.nchannels;  ++i)
             std::cout << "Channel " << i << " is " 
@@ -350,7 +350,7 @@ Here is example code that prints the names of the channels in an image:
 
 \subsubsection{Specially-designated channels}
 
-The \ImageIOFormatSpec contains two fields, {\cf alpha_channel} and {\cf
+The \ImageSpec contains two fields, {\cf alpha_channel} and {\cf
   z_channel}, which designate which channel numbers represent alpha and
 $z$ depth, if any.  If either is set to {\cf -1}, it indicates that it
 is not known which channel is used for that data.
@@ -370,27 +370,27 @@ This is prevalent in formats that store pixels only as 8-bit values,
 since 256 values are not enough to linearly represent colors without
 banding artifacts in the dim values.
 
-The \ImageIOFormatSpec has a field that reveals what color space the
+The \ImageSpec has a field that reveals what color space the
 image file is using.  Each individual \ImageInput is responsible for
 setting this properly.
 
-The \ImageIOFormatSpec field {\cf linearity} can take on any of the
+The \ImageSpec field {\cf linearity} can take on any of the
 following values:
 \begin{description}
-\item[\halfspc \rm \kw{ImageIOFormatSpec::UnknownLinearity}] indicates
+\item[\halfspc \rm \kw{ImageSpec::UnknownLinearity}] indicates
   indicates it's unkown what color space the image file is using.
-\item[\halfspc \rm \kw{ImageIOFormatSpec::Linear}] indicates that the
+\item[\halfspc \rm \kw{ImageSpec::Linear}] indicates that the
   color pixel values are known to be linear.
-\item[\halfspc \rm \kw{ImageIOFormatSpec::GammaCorrected}] indicates
+\item[\halfspc \rm \kw{ImageSpec::GammaCorrected}] indicates
   that the color pixel values (but not alpha or $z$) in the file have
   already been gamma corrected (raised to the power $1/\gamma$), and
   that the gamma exponent may be found in the {\cf gamma} field of the
-  \ImageIOFormatSpec.
-\item[\halfspc \rm \kw{ImageIOFormatSpec::sRGB}] indicates that the
+  \ImageSpec.
+\item[\halfspc \rm \kw{ImageSpec::sRGB}] indicates that the
   color pixel values in the file are in sRGB color space.
 \end{description}
 
-The \ImageInput sets the {\cf ImageIOFormatSpec::linearity} field in a
+The \ImageInput sets the {\cf ImageSpec::linearity} field in a
 purely advisory capacity --- the {\cf read_*} will not convert pixel
 values among color spaces.  Many image file formats only support
 nonlinear color spaces (for example, JPEG/JFIF dictates use of sRGB).
@@ -405,13 +405,13 @@ should never be transformed by your application.
 \subsubsection{Arbitrary metadata}
 
 All other metadata found in the file will be stored in the
-\ImageIOFormatSpec's {\cf extra_attribs} field, which is a vector
+\ImageSpec's {\cf extra_attribs} field, which is a vector
 of {\cf ImageIOParameter} structures.  Each {\cf ImageIOParameter}
 stores one metadatum consisting of a name, type (specified by 
 a \ParamBaseType), number of values, and data pointer.
 
 If you know the name of a specific piece of metadata you want to use,
-you can find it using the {\cf ImageIOFormatSpec::find_attribute()}
+you can find it using the {\cf ImageSpec::find_attribute()}
 method, which returns a pointer to the matching {\cf ImageIOParameter},
 or {\cf NULL} if no match was found.  You should double check the
 type of the metadata before accessing its data directly.  Below is an
@@ -420,7 +420,7 @@ of a single integer:
 
 \begin{code}
         ImageInput *in = ImageInput::create (filename);
-        ImageIOFormatSpec spec;
+        ImageSpec spec;
         in->open (filename, spec);
         ...
         ImageIOParameter *p = spec.find_attribute ("Orientation");
@@ -492,7 +492,7 @@ function:
 
 \begin{code}
         ImageInput *in = ImageOutput::create (filename);
-        ImageIOFormatSpec spec;
+        ImageSpec spec;
         in->open (filename, spec);
         ...
         int sub = 1;
@@ -505,7 +505,7 @@ function:
 
 The {\cf seek_subimage()} function takes two arguments: the index of the
 subimage to switch to (starting with 0), and a reference to an
-\ImageIOFormatSpec, into which will be stored the spec of the new
+\ImageSpec, into which will be stored the spec of the new
 subimage.  The {\cf seek_subimage()} function returns {\cf true} upon
 success, and {\cf false} if no such subimage existed.  It is legal to
 visit subimages out of order; the \ImageInput is responsible for making
@@ -519,7 +519,7 @@ multi-image files:
 
 \begin{code}
         ImageInput *in = ImageInput::create (filename);
-        ImageIOFormatSpec spec;
+        ImageSpec spec;
         in->open (filename, spec);
 
         int num_subimages = 0;
@@ -604,7 +604,7 @@ elaborated with error checking and reporting:
             return;
         }
 
-        ImageIOFormatSpec spec;
+        ImageSpec spec;
         if (! in->open (filename, spec)) {
             std::cerr << "Could not open " << filename 
                       << ", error = " << in->error_message() << "\n";
@@ -634,35 +634,35 @@ elaborated with error checking and reporting:
 
 
 
-\section{{\kw ImageInput} Class Reference}
+\section{\ImageInput Class Reference}
 \label{sec:imageinput:reference}
 
 \apiitem{ImageInput *create (const char *filename, 
                                const char *plugin_searchpath)}
-Create and return an {\kw ImageInput} implementation that is able
+Create and return an \ImageInput implementation that is able
 to read the given file.  The {\kw plugin_searchpath} parameter is a
 colon-separated list of directories to search for ImageIO plugin
 DSO/DLL's (not a searchpath for the image itself!).  This will
 actually just try every ImageIO plugin it can locate, until it
 finds one that's able to open the file without error.  This just
-creates the {\kw ImageInput}, it does not open the file.
+creates the \ImageInput, it does not open the file.
 \apiend
 
 \apiitem{const char *format_name (void) const}
 Return the name of the format implemented by this class.
 \apiend
 
-\apiitem{bool open (const char *name, ImageIOFormatSpec \&newspec)}
+\apiitem{bool open (const char *name, ImageSpec \&newspec)}
 Opens the file with given name.  Various file attributes are put in
 {\kw newspec} and a copy is also saved internally to the
-{\kw ImageInput} (retrievable via {\kw spec()}.  From examining
+\ImageInput (retrievable via {\kw spec()}.  From examining
 {\kw newspec} or {\kw spec()}, you can discern the resolution, if it's
 tiled, number of channels, native data format, and other metadata about
 the image.  Return {\kw true} if the file was found and opened okay,
 otherwise {\kw false}.
 \apiend
 
-\apiitem {const ImageIOFormatSpec \&spec (void) const}
+\apiitem {const ImageSpec \&spec (void) const}
 Returns a reference to the image format specification of the
 current subimage.  Note that the contents of the spec are
 invalid before {\kw open()} or after {\kw close()}.
@@ -680,12 +680,12 @@ number 0.
 \apiend
 
 
-\apiitem{bool seek_subimage (int index, ImageIOFormatSpec \&newspec)}
+\apiitem{bool seek_subimage (int index, ImageSpec \&newspec)}
 Seek to the given subimage.  The first subimage in the file has index 0.
 Return {\kw true} on success, {\kw false} on failure (including that
 there is not a subimage with that index).  The new subimage's vital
 statistics are put in {\kw newspec} (and also saved internally in a way
-that can be retrieved via {\kw spec()}).  The {\kw ImageInput} is
+that can be retrieved via {\kw spec()}).  The \ImageInput is
 expected to give the appearance of random access to subimages --- in
 other words, if it can't randomly seek to the given subimage, it should
 transparently close, reopen, and sequentially read through prior
@@ -701,10 +701,10 @@ converting if necessary from the native data format of the file into the
 value gives the data spacing of adjacent pixels (in bytes).  Strides set
 to the special value {\kw AutoStride} imply contiguous data, i.e., \\
   \spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
-The {\kw ImageInput} is expected to give the appearance of random access
+The \ImageInput is expected to give the appearance of random access
 --- in other words, if it can't randomly seek to the given scanline, it
 should transparently close, reopen, and sequentially read through prior
-scanlines.  The base {\kw ImageInput} class has a default implementation
+scanlines.  The base \ImageInput class has a default implementation
 that calls {\kw read_native_scanline()} and then does appropriate format
 conversion, so there's no reason for each format plugin to override this
 method.
@@ -728,10 +728,10 @@ value of {\kw AutoStride} imply contiguous data, i.e., \\
 \spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
 \spc {\kw ystride} $=$ {\kw xstride*spec.tile_width} \\
 \spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
-The {\kw ImageInput} is expected to give the appearance of random access
+The \ImageInput is expected to give the appearance of random access
 --- in other words, if it can't randomly seek to the given tile, it
 should transparently close, reopen, and sequentially read through prior
-tiles.  The base {\kw ImageInput} class has a default implementation
+tiles.  The base \ImageInput class has a default implementation
 that calls read_native_tile and then does appropriate format conversion,
 so there's no reason for each format plugin to override this method.
 \apiend
