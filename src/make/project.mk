@@ -85,6 +85,14 @@ LINK_BOOST += -lboost_filesystem${BOOST_SUFFIX} \
 	      -lboost_thread${BOOST_SUFFIX}
 #-lboost_program_options${BOOST_SUFFIX}
 
+TBB_VERSION := 21_20080605oss
+ifeq (${TBB_HOME},)
+  TBB_HOME := ${THIRD_PARTY_TOOLS_HOME}
+endif
+TBB_CXX := -I${TBB_HOME}/include/tbb${TBB_VERSION}
+TBB_LIB_AREA := ${TBB_HOME}/lib/tbb${TBB_VERSION}
+LINK_TBB := ${LD_LIBPATH}${TBB_LIB_AREA} -ltbb
+
 
 dist_extra_libs += ${BOOST_LIB_AREA}/libboost_program_options${BOOST_SUFFIX}${SHLIBEXT} \
 		   $(wildcard ${BOOST_LIB_AREA}/libboost_filesystem${BOOST_SUFFIX}${SHLIBEXT}*) \
@@ -97,7 +105,7 @@ dist_extra_libs += ${BOOST_LIB_AREA}/libboost_program_options${BOOST_SUFFIX}${SH
 
 
 PROJECT_EXTRA_CXX := ${ILMBASE_CXX} ${OPENEXR_CXX} ${TIFF_CXX} ${JPEG_CXX} \
-			${ZLIB_CXX} ${BOOST_CXX}
+			${ZLIB_CXX} ${BOOST_CXX} ${TBB_CXX}
 
 PROJECT_EXTRA_CXX += ${QT_INCLUDE} ${OPENGL_INCLUDE}
 
