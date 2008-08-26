@@ -109,23 +109,15 @@ HdrInput::seek_subimage (int index, ImageSpec &newspec)
     if (m_fd == NULL)
         return false;
 
-    m_spec = ImageSpec();
-
     rgbe_header_info h;
-    int r = RGBE_ReadHeader (m_fd, &m_spec.width, &m_spec.height, &h);
+    int width, height;
+    int r = RGBE_ReadHeader (m_fd, &width, &height, &h);
     if (r != RGBE_RETURN_SUCCESS) {
         close ();
         return false;
     }
 
-    m_spec.nchannels = 3;           // HDR files are always 3 channel
-    m_spec.full_width = m_spec.width;
-    m_spec.full_height = m_spec.height;
-    m_spec.full_depth = m_spec.depth;
-    m_spec.set_format (PT_FLOAT);   // HDR files are always float
-    m_spec.channelnames.push_back ("R");
-    m_spec.channelnames.push_back ("G");
-    m_spec.channelnames.push_back ("B");
+    m_spec = ImageSpec (width, height, 3, PT_FLOAT);
 
     if (h.valid & RGBE_VALID_GAMMA)
         m_spec.gamma = h.gamma;

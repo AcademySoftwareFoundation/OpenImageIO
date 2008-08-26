@@ -190,6 +190,10 @@ public:
     /// to good defaults for that format
     void set_format (ParamBaseType fmt);
 
+    /// Set the channelnames to reasonable defaults ("R", "G", "B", "A"),
+    /// and alpha_channel, based on the number of channels.
+    void default_channel_names ();
+
     /// Given quantization parameters, deduce a ParamBaseType that can
     /// be used without unacceptable loss of significant bits.
     static ParamBaseType format_from_quantize (int quant_black, int quant_white,

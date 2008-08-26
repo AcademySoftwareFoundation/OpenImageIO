@@ -101,8 +101,6 @@ JpgInput::open (const char *name, ImageSpec &newspec)
         return false;
     }
 
-    m_spec = ImageSpec();
-
     m_cinfo.err = jpeg_std_error (&m_jerr);
     jpeg_create_decompress (&m_cinfo);          // initialize decompressor
     jpeg_stdio_src (&m_cinfo, m_fd);            // specify the data source
@@ -115,41 +113,8 @@ JpgInput::open (const char *name, ImageSpec &newspec)
     jpeg_start_decompress (&m_cinfo);           // start working
     m_first_scanline = true;                    // start decompressor
 
-    m_spec.x = 0;
-    m_spec.y = 0;
-    m_spec.z = 0;
-    m_spec.width = m_cinfo.output_width;
-    m_spec.height = m_cinfo.output_height;
-    m_spec.nchannels = m_cinfo.output_components;
-    m_spec.depth = 1;
-    m_spec.full_width = m_spec.width;
-    m_spec.full_height = m_spec.height;
-    m_spec.full_depth = m_spec.depth;
-    m_spec.set_format (PT_UINT8);
-    m_spec.tile_width = 0;
-    m_spec.tile_height = 0;
-    m_spec.tile_depth = 0;
-
-    m_spec.channelnames.clear();
-    switch (m_spec.nchannels) {
-    case 1:
-        m_spec.channelnames.push_back("A");
-        break;
-    case 3:
-        m_spec.channelnames.push_back("R");
-        m_spec.channelnames.push_back("G");
-        m_spec.channelnames.push_back("B");
-        break;
-    case 4:
-        m_spec.channelnames.push_back("R");
-        m_spec.channelnames.push_back("G");
-        m_spec.channelnames.push_back("B");
-        m_spec.channelnames.push_back("A");
-        break;
-    default:
-        fclose (m_fd);
-        return false;
-    }
+    m_spec = ImageSpec (m_cinfo.output_width, m_cinfo.output_height,
+                        m_cinfo.output_components, PT_UINT8);
 
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
         if (m->marker == (JPEG_APP0+1))

@@ -149,14 +149,13 @@ ImageSpec::ImageSpec (ParamBaseType format)
 
 ImageSpec::ImageSpec (int xres, int yres, int nchans, ParamBaseType format)
     : x(0), y(0), z(0), width(xres), height(yres), depth(1),
-      full_width(0), full_height(0), full_depth(0),
+      full_width(xres), full_height(yres), full_depth(1),
       tile_width(0), tile_height(0), tile_depth(1),
       format(format), nchannels(nchans), alpha_channel(-1), z_channel(-1),
       linearity(UnknownLinearity), gamma(1)
 {
     set_format (format);
-    if (nchans == 4)
-        alpha_channel = 3;
+    default_channel_names ();
 }
 
 
@@ -200,6 +199,41 @@ ImageSpec::format_from_quantize (int quant_black, int quant_white,
         return PT_UINT;
     } else {
         return PT_UNKNOWN;
+    }
+}
+
+
+
+void
+ImageSpec::default_channel_names ()
+{
+    channelnames.clear();
+    alpha_channel = -1;
+    z_channel = -1;
+    switch (nchannels) {
+    case 1:
+        channelnames.push_back ("A");
+        break;
+    case 2:
+        channelnames.push_back ("I");
+        channelnames.push_back ("A");
+        alpha_channel = 1;
+        break;
+    case 3:
+        channelnames.push_back ("R");
+        channelnames.push_back ("G");
+        channelnames.push_back ("B");
+        break;
+    case 4:
+        channelnames.push_back ("R");
+        channelnames.push_back ("G");
+        channelnames.push_back ("B");
+        channelnames.push_back ("A");
+        alpha_channel = 3;
+        break;
+    default:
+        for (int c = 0;  c < nchannels;  ++c)
+            channelnames.push_back ("");
     }
 }
 

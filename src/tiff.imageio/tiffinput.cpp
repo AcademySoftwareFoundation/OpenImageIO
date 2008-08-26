@@ -209,7 +209,15 @@ TIFFInput::seek_subimage (int index, ImageSpec &newspec)
 void
 TIFFInput::readspec ()
 {
-    m_spec = ImageSpec();
+    uint32 width, height, depth;
+    unsigned short nchans;
+    TIFFGetField (m_tif, TIFFTAG_IMAGEWIDTH, &width);
+    TIFFGetField (m_tif, TIFFTAG_IMAGELENGTH, &height);
+    TIFFGetFieldDefaulted (m_tif, TIFFTAG_IMAGEDEPTH, &depth);
+    TIFFGetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
+
+    m_spec = ImageSpec ((int)width, (int)height, (int)nchans);
+
     float x = 0, y = 0;
     TIFFGetField (m_tif, TIFFTAG_XPOSITION, &x);
     TIFFGetField (m_tif, TIFFTAG_YPOSITION, &y);
@@ -220,13 +228,6 @@ TIFFInput::readspec ()
     // What happens if this is not unitless pixels?  Are we interpreting
     // it all wrong?
 
-    uint32 width, height, depth;
-    TIFFGetField (m_tif, TIFFTAG_IMAGEWIDTH, &width);
-    TIFFGetField (m_tif, TIFFTAG_IMAGELENGTH, &height);
-    TIFFGetFieldDefaulted (m_tif, TIFFTAG_IMAGEDEPTH, &depth);
-    m_spec.full_width  = m_spec.width  = width;
-    m_spec.full_height = m_spec.height = height;
-    m_spec.full_depth  = m_spec.depth  = depth;
     if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1) 
         m_spec.full_width = width;
     if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1)
@@ -273,37 +274,6 @@ TIFFInput::readspec ()
     default:
         m_spec.set_format (PT_UNKNOWN);
         break;
-    }
-
-    unsigned short nchans;
-    TIFFGetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
-    m_spec.nchannels = nchans;
-
-    m_spec.channelnames.clear();
-    switch (m_spec.nchannels) {
-    case 1:
-        m_spec.channelnames.push_back ("A");
-        break;
-    case 2:
-        m_spec.channelnames.push_back ("I");
-        m_spec.channelnames.push_back ("A");
-        m_spec.alpha_channel = 1;  // Is this a safe bet?
-        break;
-    case 3:
-        m_spec.channelnames.push_back ("R");
-        m_spec.channelnames.push_back ("G");
-        m_spec.channelnames.push_back ("B");
-        break;
-    case 4:
-        m_spec.channelnames.push_back ("R");
-        m_spec.channelnames.push_back ("G");
-        m_spec.channelnames.push_back ("B");
-        m_spec.channelnames.push_back ("A");
-        m_spec.alpha_channel = 3;  // Is this a safe bet?
-        break;
-    default:
-        for (int c = 0;  c < m_spec.nchannels;  ++c)
-            m_spec.channelnames.push_back ("");
     }
 
     m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
