@@ -47,7 +47,8 @@ ParamValue::init_noclear (ustring _name, ParamType _type,
     m_name = _name;
     m_type = _type;
     m_nvalues = _nvalues;
-    size_t size = (size_t) (m_nvalues * m_type.datasize());
+    size_t n = (size_t) (m_nvalues * m_type.arraylen);
+    size_t size = (size_t) (n * m_type.datasize());
     bool small = (size <= sizeof(m_data));
 
     if (_copy || small) {
@@ -60,6 +61,11 @@ ParamValue::init_noclear (ustring _name, ParamType _type,
             memcpy ((char *)m_data.ptr, _value, size);
             m_copy = true;
             m_nonlocal = true;
+        }
+        if (m_type.basetype == PT_STRING) {
+            ustring *u = (ustring *) data();
+            for (int i = 0;  i < n;  ++i)
+                u[i] = ustring(u[i].c_str());
         }
     } else {
         // Big enough to warrant a malloc, but the caller said don't
