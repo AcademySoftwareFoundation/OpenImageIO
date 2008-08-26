@@ -35,6 +35,7 @@ DONE        iv - zoom centered on mouse pixel
 DONE        iv - option for zoom to show non-interpolated pixels
             iv - change cursor depending on drag mode
             jpeg - handle changes in linearity
+            iv - crash with 1-channel images?
 
 
 Before first alpha release
@@ -66,7 +67,7 @@ Before first alpha release
 Before first 1.0 release
 ------------------------
 
-DONE?       texture - basic texture, tile cache, file handle cache
+DONE        texture - basic texture, tile cache, file handle cache
 DONE        maketx - plain texture maps
             texture - add statistics (ugh, stats manager?)
             maketx - shadow map
@@ -80,7 +81,7 @@ DONE        maketx - plain texture maps
             iv - view as false color
             wipe between images
             GIF (Wex request)
-            PNG (Philip request)
+IP          PNG (Philip request)
             Targa (Wex request)
             PNM/PPM/PBM/PGM
             XBM/XPM

@@ -21,6 +21,7 @@ dist_libs     	:= libimageio${SHLIBEXT} \
 		   hdr.imageio${SHLIBEXT} \
 		   jpeg.imageio${SHLIBEXT} \
 		   openexr.imageio${SHLIBEXT} \
+		   png.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
 dist_includes	:= export.h imageio.h paramtype.h
 
@@ -60,6 +61,13 @@ ifeq (${JPEG_HOME},)
 endif
 JPEG_CXX := -I${JPEG_HOME}/include/jpeg-${JPEG_VERSION}
 LINK_JPEG := ${LD_LIBPATH}${JPEG_HOME}/lib/jpeg-${JPEG_VERSION} -ljpeg
+
+PNG_VERSION := 1.2.31
+ifeq (${PNG_HOME},)
+  PNG_HOME := ${THIRD_PARTY_TOOLS_HOME}
+endif
+PNG_CXX := -I${PNG_HOME}/include/libpng-${PNG_VERSION}
+LINK_PNG := ${LD_LIBPATH}${PNG_HOME}/lib/libpng-${PNG_VERSION} -lpng
 
 ZLIB_VERSION := 1.2.3
 ifeq (${ZLIB_HOME},)
@@ -105,7 +113,7 @@ dist_extra_libs += ${BOOST_LIB_AREA}/libboost_program_options${BOOST_SUFFIX}${SH
 
 
 PROJECT_EXTRA_CXX := ${ILMBASE_CXX} ${OPENEXR_CXX} ${TIFF_CXX} ${JPEG_CXX} \
-			${ZLIB_CXX} ${BOOST_CXX} ${TBB_CXX}
+			${PNG_CXX} ${ZLIB_CXX} ${BOOST_CXX} ${TBB_CXX}
 
 PROJECT_EXTRA_CXX += ${QT_INCLUDE} ${OPENGL_INCLUDE}
 
