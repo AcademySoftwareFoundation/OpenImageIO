@@ -76,8 +76,9 @@ print_info (const std::string &filename, ImageInput *input,
                 printf (", z=%d\n", spec.x, spec.y, spec.z);
             printf ("\n");
         }
-        if (spec.full_width != spec.width || spec.full_height != spec.height ||
-            spec.full_depth != spec.depth) {
+        if ((spec.full_width != spec.width && spec.full_width != 0) || 
+            (spec.full_height != spec.height && spec.full_height != 0) ||
+            (spec.full_depth != spec.depth && spec.full_depth != 0)) {
             printf ("    full (uncropped) size: %4d x %d",
                     spec.full_width, spec.full_height);
             if (spec.depth > 1)
