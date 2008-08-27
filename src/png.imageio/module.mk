@@ -5,8 +5,7 @@
 local_name := png.imageio
 
 # Name of all source files in this directory
-local_src := pnginput.cpp 
-#pngoutput.cpp
+local_src := pnginput.cpp pngoutput.cpp
 
 # Extra static libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)

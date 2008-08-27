@@ -81,7 +81,7 @@ DONE        maketx - plain texture maps
             iv - view as false color
             wipe between images
             GIF (Wex request)
-IP          PNG (Philip request)
+DONE        PNG (Philip request)
             Targa (Wex request)
             PNM/PPM/PBM/PGM
             XBM/XPM

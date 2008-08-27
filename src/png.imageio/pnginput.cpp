@@ -44,7 +44,7 @@ using boost::algorithm::iequals;
 using namespace OpenImageIO;
 
 
-// FIXME -- these test images don't work properly: 
+// FIXME -- these test images from PNGSuite don't work properly: 
 //   basi3p?? -- 1, 2, 4, 8 bit paletted
 //   basn4a{08,16} -- 8 and 16 bit graycale with alpha
 // 
@@ -194,16 +194,11 @@ PNGInput::open (const char *name, ImageSpec &newspec)
                            mod_time->hour, mod_time->minute, mod_time->second);
         m_spec.attribute ("DateTime", date); 
     }
-    png_color_16p background;
-    if (png_get_bKGD (m_png, m_info, &background)) {
-        // FIXME
-    }
     
     png_textp text_ptr;
     int num_comments = png_get_text (m_png, m_info, &text_ptr, NULL);
     if (num_comments) {
         std::string comments;
-        // FIXME
         for (int i = 0;  i < num_comments;  ++i) {
             if (iequals (text_ptr[i].key, "Description"))
                 m_spec.attribute ("ImageDescription", text_ptr[i].text);
@@ -219,16 +214,17 @@ PNGInput::open (const char *name, ImageSpec &newspec)
     m_spec.y = png_get_y_offset_pixels (m_png, m_info);
 
     int unit;
-    double wscale, hscale;
-    if (png_get_sCAL (m_png, m_info, &unit, &wscale, &hscale)) {
-        if (unit == PNG_SCALE_METER)
-            m_spec.attribute ("ResolutionUnit", "meter");
-        else if (unit == PNG_SCALE_RADIAN)
-            m_spec.attribute ("ResolutionUnit", "radian");
-        else
+    png_uint_32 resx, resy;
+    if (png_get_pHYs (m_png, m_info, &resx, &resy, &unit)) {
+        float scale = 1;
+        if (unit == PNG_RESOLUTION_METER) {
+            // Convert to inches, to match most other formats
+            scale = 2.54 / 100.0;
+            m_spec.attribute ("ResolutionUnit", "inch");
+        } else
             m_spec.attribute ("ResolutionUnit", "unknown");
-        m_spec.attribute ("XResolution", (float)wscale);
-        m_spec.attribute ("YResolution", (float)hscale);
+        m_spec.attribute ("XResolution", (float)resx*scale);
+        m_spec.attribute ("YResolution", (float)resy*scale);
     }
 
     float aspect = (float)png_get_pixel_aspect_ratio (m_png, m_info);
@@ -238,7 +234,7 @@ PNGInput::open (const char *name, ImageSpec &newspec)
     float r, g, b;
     if (get_background (&r, &g, &b)) {
         m_bg = Imath::Color3f (r, g, b);
-        // FIXME -- should we be doing anything with this?
+        // FIXME -- should we do anything with the background color?
     }
 
     newspec = spec ();
@@ -311,10 +307,15 @@ PNGInput::readimg ()
     // Auto-convert transparency to alpha
     if (png_get_valid (m_png, m_info, PNG_INFO_tRNS))
         png_set_tRNS_to_alpha (m_png);
+#if 0
+    // ?? This doesn't seem necessary, but I don't know why
     // Make the library handle fewer significant bits
-    png_color_8p sig_bit;
-    if (png_get_sBIT (m_png, m_info, &sig_bit))
-        png_set_shift (m_png, sig_bit);
+    // png_color_8p sig_bit;
+    // if (png_get_sBIT (m_png, m_info, &sig_bit)) {
+    //        png_set_shift (m_png, sig_bit);
+    // }
+#endif
+
     // PNG files are naturally big-endian
     if (littleendian())
         png_set_swap (m_png);
