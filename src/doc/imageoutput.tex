@@ -69,9 +69,8 @@ to a file:
 \section{Advanced Image Output}
 \label{sec:imageoutput:advanced}
 
-Maybe the easiest thing to do is to just walk through a bunch of the
-most common things you might want to do, but that are more complex than
-the simple example above.
+Let's walk through many of the most common things you might want to do,
+but that are more complex than the simple example above.
 
 \subsection{Writing individual scanlines, tiles, and rectangles}
 \label{sec:imageoutput:scanlinestiles}
@@ -215,8 +214,7 @@ the {\kw write_rectangle()} API call:
 \begin{code}
         unsigned int rect[...];
         ... generate data in rect[] ..
-        out->write_rectangle (xmin, xmax, ymin, ymax, zmin, zmax,
-                              PT_UINT8, rect);
+        out->write_rectangle (xmin, xmax, ymin, ymax, zmin, zmax, PT_UINT8, rect);
         ...
 \end{code}
 
@@ -270,7 +268,7 @@ Individual file formats, and therefore \ImageOutput implementations, may
 only support a subset of the formats understood by the \product library.
 Each \ImageOutput plugin implementation should document which data
 formats it supports.  An individual \ImageOutput implementation may
-choose to simply fail open {\kw open()}, though the recommended behavior
+choose to simply fail to {\kw open()}, though the recommended behavior
 is for {\kw open()} to succeed but in fact choose a data format
 supported by the file format that best preserves the precision and range
 of the originally-requested data format.
@@ -278,7 +276,7 @@ of the originally-requested data format.
 It is not required that the pixel data passed to \writeimage,
 \writescanline, \writetile, or {\kw write_rectangle()} actually be in
 the same data format as that requested as the native format of the file.
-You can fully mix and match data you pass to the various {\kw write_*}
+You can fully mix and match data you pass to the various {\kw write}
 routines and \product will automatically convert from the internal
 format to the native file format.  For example. the following code will
 open a TIFF file that stores pixel data as 16-bit unsigned integers
@@ -310,7 +308,7 @@ quantization in the \ImageSpec.
 \label{sec:imageoutput:strides}
 
 In the preceeding examples, we have assumed that the block of data being
-passed to the {\cf write_*} functions are \emph{contiguous}, that is:
+passed to the {\cf write} functions are \emph{contiguous}, that is:
 
 \begin{itemize}
 \item each pixel in memory consists of a number of data values equal to
@@ -392,7 +390,7 @@ flexible functionality.  A few representative examples follow:
 \end{itemize}
 
 Please consult Section~\ref{sec:imageoutput:reference} for detailed
-descriptions of the stride parameters to each {\cf write_*} function.
+descriptions of the stride parameters to each {\cf write} function.
 
 
 \subsection{Writing a crop window}
@@ -431,9 +429,9 @@ of {\cf x}, {\cf y}, {\cf z}, {\cf full_width}, {\cf full_height}, and
 Here is a code example that opens an image file that will contain a $32
 \times 32$ pixel crop window within an abstract $640 \times 480$ full
 size image.  Notice that the pixel indices (column, scanline, slice)
-passed to the {\cf write_*} functions are the coordinates relative to
+passed to the {\cf write} functions are the coordinates relative to
 the full image, not relative to the crop widow, but the data pointer
-passed to the {\cf write_*} functions should point to the beginning of
+passed to the {\cf write} functions should point to the beginning of
 the actual pixel data being passed (not the the hypothetical start of
 the full data, if it was all present).
 
@@ -490,13 +488,15 @@ respectively.  Beyond this guideline, however, you can use any names you
 want.
 
 The \ImageSpec has a vector of strings called {\cf
-  channelnames}.  Upon construction, it starts out empty.  If you use it
+  channelnames}.  Upon construction, it starts out with reasonable
+default values.  If you use it
 at all, you should make sure that it contains the same number of strings
 as the number of color channels in your image.  Here is an example:
 
 \begin{code}
         int channels = 4;
         ImageSpec spec (width, length, channels, PT_UINT8);
+        spec.channelnames.clear ();
         spec.channelnames.push_back ("R");
         spec.channelnames.push_back ("G");
         spec.channelnames.push_back ("B");
@@ -510,6 +510,7 @@ RGB, per-channel opacity, and texture $s,t$ coordinates for each pixel.
 \begin{code}
         int channels = 8;
         ImageSpec spec (width, length, channels, PT_UINT8);
+        spec.channelnames.clear ();
         spec.channelnames.push_back ("R");
         spec.channelnames.push_back ("G");
         spec.channelnames.push_back ("B");
@@ -545,8 +546,8 @@ that represents RGBAZ:
         spec.channelnames.push_back ("B");
         spec.channelnames.push_back ("A");
         spec.channelnames.push_back ("Z");
-        spec.alpha_channel = 4;
-        spec.z_channel = 5;
+        spec.alpha_channel = 3;
+        spec.z_channel = 4;
 \end{code}
 
 There are two advantages to designating the alpha and depth channels in
@@ -556,15 +557,15 @@ this manner:
   particular order, with a particular precision, or the \ImageOutput may
   in some other way need to know about these special channels.
 \item Certain operations that make sense for colors should not apply to
-  alpha or $z$.  For example, if your call to {\cf write_*} reduces
+  alpha or $z$.  For example, if your call to {\cf write} reduces
   precision (e.g., converts from {\cf float} to integer pixels) it will
   will typically add random \emph{dither} to eliminate banding artifacts
   in the quantization.  But for a variety of reasons, you want to add
   dither only to color channels and not to alpha.  So setting {\cf
-    alpha_channel} will cause {\cf write_*} to not dither that channel.
+    alpha_channel} will cause {\cf write} to not dither that channel.
 \end{itemize}
 
-\subsubsection{Nonlinearity hints}
+\subsubsection{Linearity hints}
 
 We certainly hope that you are using only modern file formats that
 support high precision and extended range pixels (such as OpenEXR) and
@@ -958,8 +959,8 @@ elaborated with error checking and reporting:
 \section{\ImageOutput Class Reference}
 \label{sec:imageoutput:reference}
 
-\apiitem{static ImageOutput * create (const char *filename, \\
-\bigspc\bigspc const char *plugin_searchpath=NULL)}
+\apiitem{static ImageOutput * {\ce create} (const char *filename, \\
+\bigspc\bigspc\spc const char *plugin_searchpath=NULL)}
 
 Create an \ImageOutput that can be used to write an image file.  The
 type of image file (and hence, the particular subclass of \ImageOutput
@@ -970,12 +971,13 @@ DSO/DLL's.
 
 \apiend
 
-\apiitem{const char *format_name ()}
+\apiitem{const char * {\ce format_name} ()}
 Returns the canonical name of the format that this \ImageOutput
 instance is capable of writing.
 \apiend
 
-\apiitem{bool supports (const char *feature)}
+\apiitem{bool {\ce supports} (const char *feature)}
+\label{sec:supportsfeaturelist}
 Given the name of a \emph{feature}, tells if this \ImageOutput 
 instance supports that feature.  The following features are recognized
 by this query:
@@ -998,7 +1000,7 @@ by this query:
   that implement some sort of interactive display, rather than a saved
   image file.
 \item[\rm \qkw{empty}] Does this plugin support passing a NULL data
-  pointer to the various {\kw write_*} routines to indicate that the
+  pointer to the various {\kw write} routines to indicate that the
   entire data block is composed of pixels with value zero.  Plugins
   that support this achieve a speedup when passing blank scanlines or
   tiles (since no actual data needs to be transmitted or converted).
@@ -1011,7 +1013,7 @@ queries does not break ``link compatibility'' with previously-compiled
 plugins.
 \apiend
 
-\apiitem{bool open (const char *name, const ImageSpec \&newspec,
+\apiitem{bool {\ce open} (const char *name, const ImageSpec \&newspec,
                        bool append=false)}
 
 Open the file with given {\kw name}, with resolution, and other format
@@ -1023,16 +1025,17 @@ close()}, if it supports multiimage and the append flag is {\kw true}
 
 \apiend
 
-\apiitem{const ImageSpec \& spec ()}
+\apiitem{const ImageSpec \& {\ce spec} ()}
 Returns the spec internally associated with this currently open
 \ImageOutput.
 \apiend
 
-\apiitem{bool close()}
-Closes the currently open file associated with this \ImageOutput.
+\apiitem{bool {\ce close} ()}
+Closes the currently open file associated with this \ImageOutput
+and frees any memory or resources associated with it.
 \apiend
 
-\apiitem{bool write_scanline (int y, int z, ParamBaseType format,
+\apiitem{bool {\ce write_scanline} (int y, int z, ParamBaseType format,
      const void *data, \\
 \bigspc stride_t xstride=AutoStride)}
 
@@ -1049,7 +1052,7 @@ access.
 
 \apiend
 
-\apiitem{bool write_tile (int x, int y, int z, ParamBaseType format,
+\apiitem{bool {\ce write_tile} (int x, int y, int z, ParamBaseType format,
                              const void *data, \\ \bigspc stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride, \\ \bigspc stride_t zstride=AutoStride)}
 
@@ -1069,19 +1072,18 @@ format driver does not support random access.
 
 \apiend
 
-\apiitem{bool write_rectangle ({\small int xmin, int xmax, int ymin, int ymax,
+\apiitem{bool {\ce write_rectangle} ({\small int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax,} \\ \bigspc ParamBaseType format,
                                   const void *data, \\ \bigspc stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride, \\
                                   \bigspc stride_t zstride=AutoStride)}
 
-Write pixels whose $x$ coords range over {\kw xmin}...{\kw xmax} (inclusive), $y$
-coords over {\kw ymin}...{\kw ymax}, and $z$ coords over {\kw
-  zmin}....{\kw zmax}.  The
-three stride values give the distance (in bytes) between
-successive pixels, scanlines, and volumetric slices,
-respectively.  Strides set to the special value {\kw AutoStride}
-imply contiguous data, i.e.,\\
+Write pixels whose $x$ coords range over {\kw xmin}...{\kw xmax}
+(inclusive), $y$ coords over {\kw ymin}...{\kw ymax}, and $z$ coords
+over {\kw zmin}...{\kw zmax}.  The three stride values give the distance
+(in bytes) between successive pixels, scanlines, and volumetric slices,
+respectively.  Strides set to the special value {\kw AutoStride} imply
+contiguous data, i.e.,\\
 \spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
 \spc {\kw ystride} $=$ {\kw xstride*(xmax-xmin+1)} \\
 \spc {\kw zstride} $=$ {\kw ystride*(ymax-ymin+1)}\\
@@ -1093,7 +1095,7 @@ for success, {\kw false} for failure.  It is a failure to call
 
 \apiend
 
-\apiitem{bool write_image (ParamBaseType format, const void *data, \\
+\apiitem{bool {\ce write_image} (ParamBaseType format, const void *data, \\
                               \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                               \\ \bigspc stride_t zstride=AutoStride, \\
                               \bigspc ProgressCallback progress_callback=NULL,\\
@@ -1102,7 +1104,8 @@ for success, {\kw false} for failure.  It is a failure to call
 Write the entire image of {\kw spec.width} $\times$ {\kw spec.height}
 $\times$ {\kw spec.depth}
 pixels, with the given strides and in the desired format.
-Strides set to the special value {\kw AutoStride} imply contiguous data, i.e.,
+Strides set to the special value {\kw AutoStride} imply contiguous data,
+i.e., \\
 \spc {\kw xstride} $=$ {\kw spec.nchannels * ParamBaseTypeSize(format)} \\
 \spc {\kw ystride} $=$ {\kw xstride * spec.width} \\
 \spc {\kw zstride} $=$ {\kw ystride * spec.height}\\
@@ -1120,15 +1123,17 @@ Periodically, it will be called as follows:
 
 \apiend
 
-\apiitem{int send_to_output (const char *format, ...)}
-General message passing between client and image output server
+\apiitem{int {\ce send_to_output} (const char *format, ...)}
+General message passing between client and image output server.
+This is currently undefined and is reserved for future use.
 \apiend
 
-\apiitem{int send_to_client (const char *format, ...)}
-General message passing between client and image output server
+\apiitem{int {\ce send_to_client} (const char *format, ...)}
+General message passing between client and image output server.
+This is currently undefined and is reserved for future use.
 \apiend
 
-\apiitem{std::string error_message ()}
+\apiitem{std::string {\ce error_message} ()}
 Returns the current error string describing what went wrong if
 any of the public methods returned {\kw false} indicating an error.
 (Hopefully the implementation plugin called {\kw error()} with a

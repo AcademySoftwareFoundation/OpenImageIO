@@ -19,12 +19,11 @@ There are two kinds of data that are important to \product:
   provides).
 \end{itemize}
 
-Both internal and file data is stored in a particular \emph{data
-  format}, which describes the numerical encoding of the values.
-\product understands several types of data encodings, and there
-is an enumerated type \ParamBaseType, that provides labels used
-to describe these data types.  \product supports the following 
-data format types:
+Both internal and file data is stored in a particular \emph{data format}
+that describes the numerical encoding of the values.  \product
+understands several types of data encodings, and there is an enumerated
+type \ParamBaseType, that provides labels used to describe these data
+types.  \product supports the following data format types:
 
 \begin{description}
 \item[\halfspc\rm {\cf PT_UINT8}] unsigned 8-bit integer values ranging from
@@ -60,7 +59,7 @@ than images) enumerates several other types that are not used by
 Sections~\ref{sec:imageoutput:metadata}, \ref{sec:imageinput:metadata},
 and the documentation of individual ImageIO plugins for details.}
 
-\section{Image Format Spec}
+\section{Image Spec}
 \indexapi{ImageSpec}
 
 An \ImageSpec is a structure that describes the complete
@@ -76,9 +75,10 @@ format specification of a single image.  It contains:
 \item The \emph{native data format} of the pixel values (e.g., float, 8-bit
   integer, etc.).
 \item The number of color channels in the image (e.g., 3 for RGB
-  images).
-\item Which channel, if any, represents \emph{alpha} and \emph{depth}.
-\item Any presumed gamma correction already applied to the pixel values.
+  images), names of the channels, and whether any particular channels
+  represent \emph{alpha} and \emph{depth}.
+\item Any presumed gamma correction or hints about color space of
+  the pixel values.
 \item Quantization parameters describing how floating point values
   should be converted to integers (if cases where users pass real values
   but integer values are stored in the file).  This is used only when
@@ -155,9 +155,9 @@ the camera).  It defaults to -1 if no depth channel is present, or if it
 is not know which channel represents depth.
 \apiend
 
-\apiitem{LinearitySpec nonlinear}
-Describes the type of nonlinearity, if any, that is present in the
-mapping of pixel values to real-world units.  {\kw LinearitySpec} is
+\apiitem{LinearitySpec linearity}
+Describes the mapping of pixel values to real-world units.  
+{\kw LinearitySpec} is
 an enumerated type that may take on the following values:
 \begin{itemize}
 \item[] 
@@ -183,10 +183,11 @@ correction has been applied.
   float quant_dither}
 Describes the \emph{quantization}, or mapping between real
 (floating-point) values and the stored integer values.
-FIXME - describe this better.
+Please refer to Section~\ref{sec:imageoutput:quantization} for
+a more complete explanation of each of these parameters.
 \apiend
 
-\apiitem{std::vector<ImageIOParameter> extra_attribs}
+\apiitem{ImageIOParameterList extra_attribs}
 A list of arbitrarily-named and arbitrarily-typed additional attributes
 of the image, for any metadata not described by the hard-coded fields
 described above.  This list may be manipulated with the {\kw
@@ -199,9 +200,8 @@ attribute()} and {\kw find_attribute()} methods.
 manipulate format specs or compute useful information about images given
 their format spec:
 
-\apiitem{ImageSpec (int xres, int yres, int nchans, \\
-   \bigspc ParamBaseType fmt = PT_UINT8)}
-Constructs an \ImageSpec with the $x$ and $y$ resolution, number
+\apiitem{{\ce ImageSpec} (int xres, int yres, int nchans, ParamBaseType fmt = PT_UINT8)}
+Constructs an \ImageSpec with the given $x$ and $y$ resolution, number
 of channels, and pixel data format.
 
 All other fields are set to the obvious defaults -- the image is an
@@ -210,69 +210,82 @@ bigger image, the image is scanline-oriented (not tiled), channel names
 are ``R'', ``G'', ``B,'' and ``A'' (up to and including 4 channels,
 beyond that they are named ``channel \emph{n}''), the fourth channel (if
 it exists) is assumed to be alpha, values are assumed to be linear, and
-quantizaiton (if \emph{fmt} describes an integer type) is done in
+quantization (if \emph{fmt} describes an integer type) is done in
 such a way that the maximum positive integer range maps to (0.0, 1.0).
 \apiend
 
-\apiitem{void set_format (ParamBaseType fmt)}
+\apiitem{void {\ce set_format} (ParamBaseType fmt)}
 Sets the format as described, and also sets all quantization parameters
 to the default for that data type (maps the maximum positive integer
 range to (0.0, 1.0)).
 \apiend
 
-\apiitem{static ParamBaseType format_from_quantize (int quant_black, int quant_white,\\
+\apiitem{void {\ce default_channel_names} ()}
+Sets the {\kw channelnames} to reasonable defaults for the number of
+channels.  Specifically, channel names are set to ``R'', ``G'', ``B,''
+and ``A'' (up to and including 4 channels, beyond that they are named
+``channel\emph{n}''.
+\apiend
+
+\apiitem{static ParamBaseType \\
+\spc {\ce format_from_quantize} (int quant_black, int quant_white,\\
 \bigspc \bigspc                          int quant_min, int quant_max)}
 Utility function that, given quantization parameters, returns a data
 type that may be used without unacceptable loss of significant bits.
 % FIXME - elaborate?
 \apiend
 
-\apiitem{size_t channel_bytes ()}
+\apiitem{size_t {\ce channel_bytes} ()}
 Returns the number of bytes comprising each channel of each pixel (i.e.,
 the size of a single value of the type described by the {\kw format} field).
 \apiend
 
-\apiitem{size_t pixel_bytes ()}
+\apiitem{size_t {\ce pixel_bytes} ()}
 Returns the number of bytes comprising each pixel (i.e. the number of
 channels multiplied by the channel size).
 \apiend
 
-\apiitem{size_t scanline_btes ()}
+\apiitem{size_t {\ce scanline_bytes} ()}
 Returns the number of bytes comprising each scanline (i.e. {\kw width} pixels).
 \apiend
 
-\apiitem{size_t tile_bytes ()}
+\apiitem{size_t {\ce tile_bytes} ()}
 Returns the number of bytes comprising an image tile (if it's a tiled image).
 \apiend
 
-\apiitem{size_t image_bytes ()}
+\apiitem{size_t {\ce image_bytes} ()}
 Returns the number of bytes comprising an image of these dimensions.
 \apiend
 
 % FIXME - document auto_stride() ?
 
-\apiitem{void attribute (const std::string \&name, ParamBaseType type, \\
+\apiitem{void {\ce attribute} (const std::string \&name, ParamBaseType type, \\
 \bigspc int nvalues, const void *value)}
 Add a metadata attribute to {\kw extra_attribs}, with the given name,
 data type, and number of values.  The {\kw value} pointer specifies
 the address of the data to be copied.
 \apiend
 
-\apiitem{void attribute (const std::string \&name, unsigned int value)\\
-    void attribute (const std::string \&name, int value)\\
-    void attribute (const std::string \&name, float value)\\
-    void attribute (const std::string \&name, const char *value)\\
-    void attribute (const std::string \&name, const std::string \&value)}
+\apiitem{void {\ce attribute} (const std::string \&name, unsigned int value)\\
+    void {\ce attribute} (const std::string \&name, int value)\\
+    void {\ce attribute} (const std::string \&name, float value)\\
+    void {\ce attribute} (const std::string \&name, const char *value)\\
+    void {\ce attribute} (const std::string \&name, const std::string \&value)}
 Shortcuts for passing attributes comprised of a single integer,
 floating-point value, or string.
 \apiend
 
-\apiitem{ImageIOParameter * find_attribute (const std::string \&name,\\
-\bigspc\bigspc                              bool casesensitive=false)}
-Searches {\kw extra_attribs} for an attribute matching {\kw name}
-(exactly, if {\kw casesensitive} is true, otherwise in a
-case-insensitive manner) and returns the pointer to that attribute
-record.
+\apiitem{ImageIOParameter * {\ce find_attribute} (const std::string \&name,\\
+\bigspc\bigspc\spc                           ParamType searchtype=PT_UNKNOWN,\\
+\bigspc\bigspc\spc                           bool casesensitive=false)}
+
+Searches {\kw extra_attribs} for an attribute matching {\kw name},
+returning a pointer to the attribute record, or NULL if there was no
+match.  If {\kw searchtype} is {\kw PT_UNKNOWN}, the search will be made
+regardless of the data type, whereas other values of {\kw searchtype}
+will reject a matching name if the data type does not also match.  The
+name comparison will be exact if {\kw casesensitive} is true, otherwise
+in a case-insensitive manner if {\kw caseinsensitive} is false.
 \apiend
 
 

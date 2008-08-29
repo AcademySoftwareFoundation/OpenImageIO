@@ -8,7 +8,7 @@
 
 Here is the simplest sequence required to open an image file, find
 out its resolution, and read the pixels (converting them into
-8-bit pixels, even if that's not the way they're stored in the file):
+8-bit values in memory, even if that's not the way they're stored in the file):
 
 \begin{code}
         #include "imageio.h"
@@ -30,6 +30,8 @@ out its resolution, and read the pixels (converting them into
         in->close ();
         delete in;
 \end{code}
+
+\noindent Here is a breakdown of what work this code is doing:
 
 \begin{itemize}
 \item Search for an ImageIO plugin that is capable of reading the file
@@ -59,7 +61,7 @@ out its resolution, and read the pixels (converting them into
   \end{code}
   Note that in this example, we don't care what data format is used for
   the pixel data in the file --- we allocate enough space for unsigned
-  8-bit integer pixel values, and will rely on ImageIO's ability to
+  8-bit integer pixel values, and will rely on \product's ability to
   convert to our requested format from the native data format of the
   file.
 \item Read the entire image, hiding all details of the encoding of image
@@ -83,9 +85,8 @@ out its resolution, and read the pixels (converting them into
 \section{Advanced Image Input}
 \label{sec:advancedimageinput}
 
-Maybe the easiest thing to do is to just walk through a bunch of the
-most common things you might want to do, but that are more complex than
-the simple example above.
+Let's walk through some of the most common things you might want to do,
+but that are more complex than the simple example above.
 
 
 \subsection{Reading individual scanlines and tiles}
@@ -127,8 +128,8 @@ of strides is explained in Section~\ref{sec:imageinput:strides}).
 
 All \ImageInput implemenations will read scanlines in strict order
 (starting with scanline 0, then 1, up to {\kw yres-1}, without skipping
-any).  See Section~\ref{sec:imageinput:randomread} for details
-on reading out-of-order or repeated scanlines.
+any).  However, it's probably uncommon for an \ImageInput to properly
+allow reading of out-of-order scanlines.
 
 The full description of the \readscanline function may be found
 in Section~\ref{sec:imageinput:reference}.
@@ -174,11 +175,9 @@ Additional optional arguments describe the data stride, which can be
 ignored for contiguous data (use of strides is explained in
 Section~\ref{sec:imageinput:strides}).
 
-All \ImageInput implemenations that support tiles will read tiles in
-strict order of increasing $y$ rows, and within each row, increasing $x$
-column, without missing any tiles.  See
-Section~\ref{sec:imageinput:randomrewrite} for details on out-of-order
-or repeated tiles.
+All \ImageInput implemenations are required to support reading tiles in
+arbitrary order (i.e., not in strict order of increasing $y$ rows, and
+within each row, increasing $x$ column, without missing any tiles).
 
 The full description of the \readtile function may be found
 in Section~\ref{sec:imageinput:reference}.
@@ -192,7 +191,7 @@ internal pixel data is stored as unsigned 8-bit integers (i.e., 0-255
 range).  But \product is significantly more flexible.  
 
 You may request that the pixels be stored in any of several formats.
-This is done merely by passing the {\cf read_*} function the data type
+This is done merely by passing the {\cf read} function the data type
 of your pixel buffer, as one of the enumerated type \ParamBaseType.
 
 %FIXME
@@ -245,7 +244,7 @@ seeing the actual numerical values in the file.
 \label{sec:imageinput:strides}
 
 In the preceeding examples, we have assumed that the buffer passed to
-the {\cf read_*} functions (i.e., the place where you want your pixels
+the {\cf read} functions (i.e., the place where you want your pixels
 to be stored) is \emph{contiguous}, that is:
 
 \begin{itemize}
@@ -262,8 +261,8 @@ to be stored) is \emph{contiguous}, that is:
 \end{itemize}
 
 Please note that this implies that \readtile will write pixel data into
-your buffer so that it is contiguous in the shape of a single tile (not
-just an offset into a whole image worth of pixels).
+your buffer so that it is contiguous in the shape of a single tile, not
+just an offset into a whole image worth of pixels.
 
 The \readscanline function takes an optional {\cf xstride} argument, and
 the \readimage and \readtile functions take optional {\cf xstride}, 
@@ -305,7 +304,7 @@ flexible functionality.  A few representative examples follow:
 \end{itemize}
 
 Please consult Section~\ref{sec:imageinput:reference} for detailed
-descriptions of the stride parameters to each {\cf read_*} function.
+descriptions of the stride parameters to each {\cf read} function.
 
 
 \subsection{Reading metadata}
@@ -360,7 +359,7 @@ safer to respect the {\cf alpha_channel} and {\cf z_channel}
 designations (if not set to {\cf -1}) rather than merely assuming that,
 for example, channel 3 is always the alpha channel.
 
-\subsubsection{Nonlinearity hints}
+\subsubsection{Linearity hints}
 
 We certainly hope that you are using only modern file formats that
 support high precision and extended range pixels (such as OpenEXR) and
@@ -391,7 +390,7 @@ following values:
 \end{description}
 
 The \ImageInput sets the {\cf ImageSpec::linearity} field in a
-purely advisory capacity --- the {\cf read_*} will not convert pixel
+purely advisory capacity --- the {\cf read} will not convert pixel
 values among color spaces.  Many image file formats only support
 nonlinear color spaces (for example, JPEG/JFIF dictates use of sRGB).
 So your application should intelligently deal with gamma-corrected and
@@ -413,8 +412,9 @@ a \ParamBaseType), number of values, and data pointer.
 If you know the name of a specific piece of metadata you want to use,
 you can find it using the {\cf ImageSpec::find_attribute()}
 method, which returns a pointer to the matching {\cf ImageIOParameter},
-or {\cf NULL} if no match was found.  You should double check the
-type of the metadata before accessing its data directly.  Below is an
+or {\cf NULL} if no match was found.  An optional {\cf ParamType}
+argument can narrow the search to only parameters that match the
+specified type as well as the name.  Below is an
 example that looks for orientation information, expecting it to consist 
 of a single integer:
 
@@ -423,15 +423,11 @@ of a single integer:
         ImageSpec spec;
         in->open (filename, spec);
         ...
-        ImageIOParameter *p = spec.find_attribute ("Orientation");
+        ImageIOParameter *p = spec.find_attribute ("Orientation", PT_INT);
         if (p) {
-            int orientation;
-            if (p->type == PT_INT && p->nvalues == 1)
-                orientation = * (int *) p->data();
-            else
-                std::cout << "Orientation found but unknown type\n";
+            int orientation = * (int *) p->data();
         } else {
-            std::cout << "No orientation in the file\n";
+            std::cout << "No integer orientation in the file\n";
         }
 \end{code}
 
@@ -451,13 +447,13 @@ This can be accomplished using the technique of the following example:
         for (size_t i = 0;  i < spec.extra_attribs.size();  ++i) {
             const ImageIOParameter &p (spec.extra_attribs[i]);
             printf ("    \%s: ", p.name.c_str());
-            if (p.type == PT_STRING)
+            if (p.type() == PT_STRING)
                 printf ("\"\%s\"", *(const char **)p.data());
-            else if (p.type == PT_FLOAT)
+            else if (p.type() == PT_FLOAT)
                 printf ("\%g", *(const float *)p.data());
-            else if (p.type == PT_INT)
+            else if (p.type() == PT_INT)
                 printf ("\%d", *(const int *)p.data());
-            else if (p.type == PT_UINT)
+            else if (p.type() == PT_UINT)
                 printf ("\%u", *(const unsigned int *)p.data());
             else
                 printf ("<unknown data type>");
@@ -637,7 +633,7 @@ elaborated with error checking and reporting:
 \section{\ImageInput Class Reference}
 \label{sec:imageinput:reference}
 
-\apiitem{ImageInput *create (const char *filename, 
+\apiitem{ImageInput * {\ce create} (const char *filename, 
                                const char *plugin_searchpath)}
 Create and return an \ImageInput implementation that is able
 to read the given file.  The {\kw plugin_searchpath} parameter is a
@@ -648,11 +644,11 @@ finds one that's able to open the file without error.  This just
 creates the \ImageInput, it does not open the file.
 \apiend
 
-\apiitem{const char *format_name (void) const}
+\apiitem{const char * {\ce format_name} (void) const}
 Return the name of the format implemented by this class.
 \apiend
 
-\apiitem{bool open (const char *name, ImageSpec \&newspec)}
+\apiitem{bool {\ce open} (const char *name, ImageSpec \&newspec)}
 Opens the file with given name.  Various file attributes are put in
 {\kw newspec} and a copy is also saved internally to the
 \ImageInput (retrievable via {\kw spec()}.  From examining
@@ -662,25 +658,25 @@ the image.  Return {\kw true} if the file was found and opened okay,
 otherwise {\kw false}.
 \apiend
 
-\apiitem {const ImageSpec \&spec (void) const}
+\apiitem {const ImageSpec \& {\ce spec} (void) const}
 Returns a reference to the image format specification of the
 current subimage.  Note that the contents of the spec are
 invalid before {\kw open()} or after {\kw close()}.
 \apiend
 
-\apiitem{bool close ()}
+\apiitem{bool {\ce close} ()}
 Closes an open image.
 \apiend
 
 
-\apiitem{int current_subimage (void) const}
+\apiitem{int {\ce current_subimage} (void) const}
 Returns the index of the subimage that is currently being read.
 The first subimage (or the only subimage, if there is just one) is
 number 0.
 \apiend
 
 
-\apiitem{bool seek_subimage (int index, ImageSpec \&newspec)}
+\apiitem{bool {\ce seek_subimage} (int index, ImageSpec \&newspec)}
 Seek to the given subimage.  The first subimage in the file has index 0.
 Return {\kw true} on success, {\kw false} on failure (including that
 there is not a subimage with that index).  The new subimage's vital
@@ -692,7 +688,7 @@ transparently close, reopen, and sequentially read through prior
 subimages.
 \apiend
 
-\apiitem{bool read_scanline (int y, int z, ParamBaseType format, void *data,\\
+\apiitem{bool {\ce read_scanline} (int y, int z, ParamBaseType format, void *data,\\
   \bigspc                      stride_t xstride=AutoStride)}
 
 Read the scanline that includes pixels $(*,y,z)$ into {\kw data},
@@ -710,12 +706,12 @@ conversion, so there's no reason for each format plugin to override this
 method.
 \apiend
 
-\apiitem{bool read_scanline (int y, int z, float *data)}
+\apiitem{bool {\ce read_scanline} (int y, int z, float *data)}
 This simplified version of {\kw read_scanline()} reads to contiguous 
 float pixels.
 \apiend
 
-\apiitem{bool read_tile (int x, int y, int z, ParamBaseType format,
+\apiitem{bool {\ce read_tile} (int x, int y, int z, ParamBaseType format,
                             void *data, \\ \bigspc stride_t xstride=AutoStride,
                             stride_t ystride=AutoStride, \\ \bigspc stride_t
                             zstride=AutoStride)}
@@ -737,11 +733,11 @@ so there's no reason for each format plugin to override this method.
 \apiend
 
 
-\apiitem{bool read_tile (int x, int y, int z, float *data)}
+\apiitem{bool {\ce read_tile} (int x, int y, int z, float *data)}
 Simple version of {\kw read_tile} that reads to contiguous float pixels.
 \apiend
 
-\apiitem{bool read_image (ParamBaseType format, void *data, \\
+\apiitem{bool {\ce read_image} (ParamBaseType format, void *data, \\
                              \bigspc stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride, \\
                              \bigspc stride_t zstride=AutoStride, \\
@@ -776,7 +772,7 @@ Periodically, it will be called as follows:\\
 Simple version of {\kw read_image()} reads to contiguous float pixels.
 \apiend
 
-\apiitem{bool read_native_scanline (int y, int z, void *data)}
+\apiitem{bool {\ce read_native_scanline} (int y, int z, void *data)}
 The {\kw read_native_scanline()} function is just like {\kw
   read_scanline()}, except that it keeps the data in the native format
 of the disk file and always reads into contiguous memory (no strides).
@@ -785,7 +781,7 @@ with the data.  IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE
 THIS METHOD.
 \apiend
 
-\apiitem{bool read_native_tile (int x, int y, int z, void *data)}
+\apiitem{bool {\ce read_native_tile} (int x, int y, int z, void *data)}
 The {\kw read_native_tile()} function is just like {\kw read_tile()}, 
 except that it keeps the data in the native format of the disk file and
 always read into contiguous memory (no strides).  It's up to the user to
@@ -794,15 +790,17 @@ EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD IF IT
 SUPPORTS TILED IMAGES.
 \apiend
 
-\apiitem{int send_to_input (const char *format, ...)}
-General message passing between client and image input server
+\apiitem{int {\ce send_to_input} (const char *format, ...)}
+General message passing between client and image input server.
+This is currently undefined and is reserved for future use.
 \apiend
 
-\apiitem{int send_to_client (const char *format, ...)}
-General message passing between client and image input server
+\apiitem{int {\ce send_to_client} (const char *format, ...)}
+General message passing between client and image input server.
+This is currently undefined and is reserved for future use.
 \apiend
 
-\apiitem{std::string error_message () const}
+\apiitem{std::string {\ce error_message} () const}
 Returns the current error string describing what went wrong if
 any of the public methods returned {\kw false} indicating an error.
 (Hopefully the implementation plugin called {\kw error()} with a

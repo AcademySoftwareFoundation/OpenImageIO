@@ -1,0 +1,359 @@
+\chapter{Writing ImageIO Plugins}
+\label{chap:writingplugins}
+
+
+
+\section{Plugin Introduction}
+\label{sec:pluginintro}
+
+As explained in Chapters~\ref{chap:imageinput} and
+\ref{chap:imageoutput}, the ImageIO library does not know how to read or
+write any particular image formats, but rather relies on plugins located
+and loaded dynamically at run-time.  This set of plugins, and therefore
+the set of image file formats that \product or its clients can read and
+write, is extensible without needing to modify \product itself.  
+
+This chapter explains how to write your own \product plugins.  We will
+first explain separately how to write image file readers and writers,
+then tie up the loose ends of how to build the plugins themselves.
+
+\section{Image Readers}
+\label{sec:pluginreaders}
+
+A plugin that reads a particular image file format must implement a
+\emph{subclass} of \ImageInput (described in
+Chapter~\ref{chap:imageinput}).  This is actually very straightforward
+and consists of the following steps, which we will illustrate with a
+real-world example of writing a JPEG/JFIF plug-in.
+
+\begin{enumerate}
+\item Read the base class definition from {\fn imageio.h}.  It may also
+  be helpful to just use the {\cf OpenImageIO} namespace, just to 
+  make your code a little less verbose.
+
+  \begin{code}
+    #include "imageio.h"
+    using namespace OpenImageIO;
+  \end{code}
+
+\item Declare three public items:
+
+  \begin{enumerate}
+    \item An integer called {\cf imageio_version} that identifies
+      the version of the ImageIO protocol implemented by the plugin,
+      defined in {\fn imageio.h} as the constant {\cf IMAGEIO_VERSION}.
+      This allows the library to be sure it is not loading a plugin
+      that was compiled against a different version of \product.
+    \item A function named \emph{name}{\cf _input_imageio_create} that
+      takes no arguments and returns a new instance of your \ImageInput
+      subclass.  (Note that \emph{name} is the name of your format,
+      and must match the name of the plugin itself.)
+    \item An array of {\cf char *} called \emph{name}{\cf _input_extensions}
+      that contains the list of file extensions that are likely to indicate
+      a file of the right format.  The list is terminated by a {\cf NULL}
+      pointer.
+  \end{enumerate}
+
+  All of these items must be inside an `{\cf extern "C"}' block in order
+  to avoid name mangling by the C++ compiler.  Depending on your
+  compiler, you may need to use special commands to dictate that the
+  symbols will be exported in the DSO; we provide a special {\cf
+  DLLEXPORT} macro for this purpose, defined in {\fn export.h}.
+
+  Putting this all together, we get the following for our JPEG example:
+
+  \begin{code}
+    extern "C" {
+        DLLEXPORT int imageio_version = IMAGEIO_VERSION;
+        DLLEXPORT JpgInput *jpeg_input_imageio_create () {
+            return new JpgInput;
+        }
+        DLLEXPORT const char *jpeg_input_extensions[] = {
+            "jpg", "jpe", "jpeg", NULL
+        };
+    };
+  \end{code}
+
+\item The definition and implementation of an \ImageInput subclass for
+  this file format.  It must publicly inherit \ImageInput, and must
+  overload the following methods which are ``pure virtual'' in the
+  \ImageInput base class:
+
+  \begin{enumerate}
+    \item {\cf format_name()} should return the name of the format, which
+      ought to match the name of the plugin and by convention is
+      strictly lower-case and contains no whitespace.
+    \item {\cf open()} should open the file and return true, or should
+      return false if unable to do so (including if the file was found
+      but turned out not to be in the format that your plugin is trying
+      to implement).
+    \item {\cf close()} should close the file, if open.
+    \item {\cf read_native_scanline} should read a single scanline from
+      the file into the address provided, uncompressing it but
+      keeping it in its native data format without any translation.
+    \item The virtual destructor, which should {\cf close()} if the file
+      is still open, addition to performing any other tear-down activities.
+  \end{enumerate}
+  
+  Additionally, your \ImageInput subclass may optionally choose to
+  overload any of the following methods, which are defined in the
+  \ImageInput base class and only need to be overloaded if the default
+  behavior is not appropriate for your plugin:
+
+  \begin{enumerate}
+    \item[(f)] {\cf seek_subimage()}, only if your format supports
+      reading multiple subimages within a single file.
+    \item[(g)] {\cf read_native_tile()}, only if your format supports
+      reading tiled images.
+  \end{enumerate}
+
+  Here is how the class definition looks for our JPEG example.  Note
+  that the JPEG/JFIF file format does not support multiple subimages
+  or tiled images.
+
+  \begin{code}
+    class JpgInput : public ImageInput {
+     public:
+        JpgInput () { init(); }
+        virtual ~JpgInput () { close(); }
+        virtual const char * format_name (void) const { return "jpeg"; }
+        virtual bool open (const char *name, ImageSpec &spec);
+        virtual bool read_native_scanline (int y, int z, void *data);
+        virtual bool close ();
+     private:
+        FILE *m_fd;
+        bool m_first_scanline;
+        struct jpeg_decompress_struct m_cinfo;
+        struct jpeg_error_mgr m_jerr;
+
+        void init () { m_fd = NULL; }
+    };
+  \end{code}
+\end{enumerate}
+
+Your subclass implementation of {\cf open()}, {\cf close()}, and {\cf
+  read_native_scanline()} are the heart of an \ImageInput
+implementation.  (Also {\cf read_native_tile()} and {\cf
+  seek_subimage()}, for those image formats that support them.)
+
+The remainder of this section simply lists the full implementation of
+our JPEG reader, which relies heavily on the open source {\fn jpeg-6b}
+library to perform the actual JPEG decoding.
+
+\includedcode{../jpeg.imageio/jpeginput.cpp}
+
+
+
+
+\section{Image Writers}
+\label{sec:pluginwriters}
+
+A plugin that writes a particular image file format must implement a
+\emph{subclass} of \ImageOutput (described in
+Chapter~\ref{chap:imageoutput}).  This is actually very straightforward
+and consists of the following steps, which we will illustrate with a
+real-world example of writing a JPEG/JFIF plug-in.
+
+\begin{enumerate}
+\item Read the base class definition from {\fn imageio.h}, just as
+  with an image reader (see Section~\ref{sec:pluginreaders}).
+
+\item Declare three public items:
+
+  \begin{enumerate}
+    \item An integer called {\cf imageio_version} that identifies
+      the version of the ImageIO protocol implemented by the plugin,
+      defined in {\fn imageio.h} as the constant {\cf IMAGEIO_VERSION}.
+      This allows the library to be sure it is not loading a plugin
+      that was compiled against a different version of \product.
+      Note that if your plugin has both a reader and writer and they
+      are compiled as separate modules (C++ source files), you don't
+      want to declare this in \emph{both} modules; either one is fine.
+    \item A function named \emph{name}{\cf _output_imageio_create} that
+      takes no arguments and returns a new instance of your \ImageOutput
+      subclass.  (Note that \emph{name} is the name of your format,
+      and must match the name of the plugin itself.)
+    \item An array of {\cf char *} called \emph{name}{\cf _output_extensions}
+      that contains the list of file extensions that are likely to indicate
+      a file of the right format.  The list is terminated by a {\cf NULL}
+      pointer.
+  \end{enumerate}
+
+  All of these items must be inside an `{\cf extern "C"}' block in order
+  to avoid name mangling by the C++ compiler.  Depending on your
+  compiler, you may need to use special commands to dictate that the
+  symbols will be exported in the DSO; we provide a special {\cf
+  DLLEXPORT} macro for this purpose, defined in {\fn export.h}.
+
+  Putting this all together, we get the following for our JPEG example:
+
+  \begin{code}
+    extern "C" {
+        DLLEXPORT int imageio_version = IMAGEIO_VERSION;
+        DLLEXPORT JpgOutput *jpeg_output_imageio_create () {
+            return new JpgOutput;
+        }
+        DLLEXPORT const char *jpeg_input_extensions[] = {
+            "jpg", "jpe", "jpeg", NULL
+        };
+    };
+  \end{code}
+
+\item The definition and implementation of an \ImageOutput subclass for
+  this file format.  It must publicly inherit \ImageOutput, and must
+  overload the following methods which are ``pure virtual'' in the
+  \ImageOutput base class:
+
+  \begin{enumerate}
+    \item {\cf format_name()} should return the name of the format, which
+      ought to match the name of the plugin and by convention is
+      strictly lower-case and contains no whitespace.
+    \item {\cf supports()} should return {\cf true} if its argument
+      names a feature supported by your format plugin, {\cf false} if it
+      names a feature not supported by your plugin.  See
+      Section~\ref{sec:supportsfeaturelist} for the list of feature
+      names.
+    \item {\cf open()} should open the file and return true, or should
+      return false if unable to do so (including if the file was found
+      but turned out not to be in the format that your plugin is trying
+      to implement).
+    \item {\cf close()} should close the file, if open.
+    \item {\cf write_scanline} should write a single scanline to
+      the file, translating from internal to native data format and
+      handling strides properly.
+    \item The virtual destructor, which should {\cf close()} if the file
+      is still open, addition to performing any other tear-down activities.
+  \end{enumerate}
+  
+  Additionally, your \ImageOutput subclass may optionally choose to
+  overload any of the following methods, which are defined in the
+  \ImageOutput base class and only need to be overloaded if the default
+  behavior is not appropriate for your plugin:
+
+  \begin{enumerate}
+    \item[(g)] {\cf write_tile()}, only if your format supports
+      writing tiled images.
+    \item[(h)] {\cf write_rectangle()}, only if your format supports
+      writing arbitrary rectangles.
+    \item[(i)] {\cf write_image()}, only if you have a more clever
+      method of doing so than the default implementation that calls
+      {\cf write_scanline()} or {\cf write_tile()} repeatedly.
+  \end{enumerate}
+
+  Here is how the class definition looks for our JPEG example.  Note
+  that the JPEG/JFIF file format does not support multiple subimages
+  or tiled images.
+
+  \begin{code}
+    class JpgOutput : public ImageOutput {
+     public:
+        JpgOutput () { init(); }
+        virtual ~JpgOutput () { close(); }
+        virtual const char * format_name (void) const { return "jpeg"; }
+        virtual bool supports (const char *property) const { return false; }
+        virtual bool open (const char *name, const ImageSpec &spec,
+                           bool append=false);
+        virtual bool write_scanline (int y, int z, ParamBaseType format,
+                                     const void *data, stride_t xstride);
+        bool close ();
+     private:
+        FILE *m_fd;
+        std::vector<unsigned char> m_scratch;
+        struct jpeg_compress_struct m_cinfo;
+        struct jpeg_error_mgr m_jerr;
+
+        void init () { m_fd = NULL; }
+    };
+  \end{code}
+\end{enumerate}
+
+Your subclass implementation of {\cf open()}, {\cf close()}, and {\cf
+  write_scanline()} are the heart of an \ImageOutput implementation.
+(Also {\cf write_tile()}, for those image formats that support tiled
+output.)
+
+An \ImageOutput implementation must properly handle all data formats and
+strides passed to {\cf write_scanline()} or {\cf write_tile()}, unlike
+an \ImageInput implementation, which only needs to read scanlines or
+tiles in their native format and then have the super-class handle the
+translation.  But don't worry, all the heavy lifting can be accomplished
+with the following helper functions provided as protected member
+functions of \ImageOutput:
+
+\apiitem{const void * {\ce to_native_scanline} (ParamBaseType format,
+                                    const void *data, \\ \bigspc stride_t xstride,
+                                    std::vector<unsigned char>
+                                    \&scratch);}
+
+Convert a full scanline of pixels (pointed to by \emph{data}) with the
+given \emph{format} and strides into contiguous pixels in the native
+format (described by the \ImageSpec returned by the {\cf spec()} member
+function).  The location of the newly converted data is returned, which
+may either be the original \emph{data} itself if no data conversion was
+necessary and the requested layout was contiguous (thereby avoiding
+unnecessary memory copies), or may point into memory allocated within
+the \emph{scratch} vector passed by the user.  In either case, the
+caller doesn't need to worry about thread safety or freeing any
+allocated memory (other than eventually destroying the scratch vector).
+\apiend
+
+\apiitem{const void * {\ce to_native_tile} (ParamBaseType format, const
+  void *data,\\ \bigspc
+                                stride_t xstride, stride_t ystride, stride_t zstride,\\ \bigspc
+                                std::vector<unsigned char> \&scratch);}
+
+Convert a full tile of pixels (pointed to by \emph{data}) with the given
+\emph{format} and strides into contiguous pixels in the native format
+(described by the \ImageSpec returned by the {\cf spec()} member
+function).  The location of the newly converted data is returned, which
+may either be the original \emph{data} itself if no data conversion was
+necessary and the requested layout was contiguous (thereby avoiding
+unnecessary memory copies), or may point into memory allocated within
+the \emph{scratch} vector passed by the user.  In either case, the
+caller doesn't need to worry about thread safety or freeing any
+allocated memory (other than eventually destroying the scratch vector).
+
+\apiend
+
+\apiitem{const void * {\ce to_native_rectangle} (int xmin, int xmax, int
+  ymin, int ymax, \\ \bigspc
+                                     int zmin, int zmax, 
+                                     ParamBaseType format, const void
+                                     *data, \\ \bigspc
+                                     stride_t xstride, stride_t ystride,
+                                     stride_t zstride, \\ \bigspc
+                                     std::vector<unsigned char> \&scratch);}
+
+Convert a rectangle of pixels (pointed to by \emph{data}) with the given
+\emph{format}, dimensions, and strides into contiguous pixels in the
+native format (described by the \ImageSpec returned by the {\cf spec()}
+member function).  The location of the newly converted data is returned,
+which may either be the original \emph{data} itself if no data
+conversion was necessary and the requested layout was contiguous
+(thereby avoiding unnecessary memory copies), or may point into memory
+allocated within the \emph{scratch} vector passed by the user.  In
+either case, the caller doesn't need to worry about thread safety or
+freeing any allocated memory (other than eventually destroying the
+scratch vector).
+
+\apiend
+
+\bigskip
+\bigskip
+
+\noindent
+The remainder of this section simply lists the full implementation of
+our JPEG writer, which relies heavily on the open source {\fn jpeg-6b}
+library to perform the actual JPEG encoding.
+
+\includedcode{../jpeg.imageio/jpegoutput.cpp}
+
+
+\section{Building ImageIO Plugins}
+\label{sec:buildingplugins}
+
+FIXME -- spell out how to compile and link plugins on each of the major
+platforms.
+
+
+\chapwidthend
