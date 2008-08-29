@@ -224,16 +224,20 @@ ImageSpec::default_channel_names ()
         channelnames.push_back ("G");
         channelnames.push_back ("B");
         break;
-    case 4:
-        channelnames.push_back ("R");
-        channelnames.push_back ("G");
-        channelnames.push_back ("B");
-        channelnames.push_back ("A");
-        alpha_channel = 3;
-        break;
     default:
-        for (int c = 0;  c < nchannels;  ++c)
-            channelnames.push_back ("");
+        if (nchannels >= 1)
+            channelnames.push_back ("R");
+        if (nchannels >= 2)
+            channelnames.push_back ("G");
+        if (nchannels >= 3)
+            channelnames.push_back ("B");
+        if (nchannels >= 4) {
+            channelnames.push_back ("A");
+            alpha_channel = 3;
+        }
+        for (int c = 4;  c < nchannels;  ++c)
+            channelnames.push_back (Strutil::format("channel%d", c));
+        break;
     }
 }
 
