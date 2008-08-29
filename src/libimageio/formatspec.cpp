@@ -34,6 +34,7 @@ using boost::algorithm::iequals;
 
 #include "dassert.h"
 #include "paramtype.h"
+#include "strutil.h"
 
 #define DLL_EXPORT_PUBLIC /* Because we are implementing ImageIO */
 #include "imageio.h"
