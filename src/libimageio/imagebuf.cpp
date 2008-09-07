@@ -202,7 +202,7 @@ ImageBuf::getchannel (int x, int y, int c) const
     if (c < 0 || c >= spec().nchannels)
         return 0.0f;
     const void *pixel = pixeladdr(x,y);
-    switch (spec().format) {
+    switch (spec().format.basetype) {
     case PT_FLOAT:
         return ((float *)pixel)[c];
     case PT_HALF:

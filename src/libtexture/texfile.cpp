@@ -34,7 +34,7 @@ using namespace std::tr1;
 #include <half.h>
 
 #include "dassert.h"
-#include "paramtype.h"
+#include "typedesc.h"
 #include "varyingref.h"
 #include "ustring.h"
 #include "hash.h"

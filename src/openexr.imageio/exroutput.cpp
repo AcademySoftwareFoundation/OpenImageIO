@@ -90,7 +90,7 @@ private:
     }
 
     // Add a parameter to the output
-    bool put_parameter (const std::string &name, ParamType type,
+    bool put_parameter (const std::string &name, TypeDesc type,
                         const void *data);
 };
 
@@ -289,7 +289,7 @@ OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
 
 
 bool
-OpenEXROutput::put_parameter (const std::string &name, ParamType type,
+OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                               const void *data)
 {
     // Translate

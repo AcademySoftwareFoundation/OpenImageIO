@@ -35,7 +35,7 @@ using boost::algorithm::iequals;
 #include <png.h>
 
 #include "dassert.h"
-#include "paramtype.h"
+#include "typedesc.h"
 #include "imageio.h"
 #include "thread.h"
 #include "strutil.h"

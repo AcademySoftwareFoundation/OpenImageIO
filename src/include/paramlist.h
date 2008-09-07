@@ -32,7 +32,7 @@
 #include <vector>
 
 #include "export.h"
-#include "paramtype.h"
+#include "typedesc.h"
 #include "ustring.h"
 
 
@@ -48,16 +48,25 @@
 ///   
 class DLLPUBLIC ParamValue {
 public:
+    /// Interpolation types
+    ///
+    enum Interp {
+        INTERP_CONSTANT = 0, ///< Constant for all pieces/faces
+        INTERP_PERPIECE = 1, ///< Piecewise constant per piece/face
+        INTERP_LINEAR = 2,   ///< Linearly interpolated across each piece/face
+        INTERP_VERTEX = 3    ///< Interpolated like vertices
+    };
+
     ParamValue () : m_type(PT_UNKNOWN), m_nvalues(0), m_nonlocal(false) { }
-    ParamValue (const ustring &_name, ParamType _type,
+    ParamValue (const ustring &_name, TypeDesc _type,
                 int _nvalues, const void *_value, bool _copy=true) {
         init_noclear (_name, _type, _nvalues, _value, _copy);
     }
-    ParamValue (const std::string &_name, ParamType _type,
+    ParamValue (const std::string &_name, TypeDesc _type,
                 int _nvalues, const void *_value, bool _copy=true) {
         init_noclear (ustring(_name.c_str()), _type, _nvalues, _value, _copy);
     }
-    ParamValue (const char *_name, ParamType _type,
+    ParamValue (const char *_name, TypeDesc _type,
                 int _nvalues, const void *_value, bool _copy=true) {
         init_noclear (ustring(_name), _type, _nvalues, _value, _copy);
     }
@@ -65,12 +74,12 @@ public:
         init_noclear (p.name(), p.type(), p.nvalues(), p.data(), _copy);
     }
     ~ParamValue () { clear_value(); }
-    void init (ustring _name, ParamType _type,
+    void init (ustring _name, TypeDesc _type,
                int _nvalues, const void *_value, bool _copy=true) {
         clear_value ();
         init_noclear (_name, _type, _nvalues, _value, _copy);
     }
-    void init (std::string _name, ParamType _type,
+    void init (std::string _name, TypeDesc _type,
                int _nvalues, const void *_value, bool _copy=true) {
         init (ustring(_name), _type, _nvalues, _value, _copy);
     }
@@ -80,10 +89,10 @@ public:
     }
 
     const ustring &name () const { return m_name; }
-    ParamType type () const { return m_type; }
+    TypeDesc type () const { return m_type; }
     int nvalues () const { return m_nvalues; }
     const void *data () const { return m_nonlocal ? m_data.ptr : &m_data; }
-    int datasize () const { return m_nvalues * m_type.datasize(); }
+    int datasize () const { return m_nvalues * m_type.size(); }
 
     friend void swap (ParamValue &a, ParamValue &b) {
         std::swap (a.m_name,     b.m_name);
@@ -96,15 +105,16 @@ public:
 
 private: 
     ustring m_name;           ///< data name
-    ParamType m_type;         ///< data type, which may itself be an array
+    TypeDesc m_type;          ///< data type, which may itself be an array
     int m_nvalues;            ///< number of values of the given type
     union {
         ptrdiff_t localval;
         const void *ptr;
     } m_data;             ///< Our data, either a pointer or small local value
+    unsigned char m_interp;   ///< Interpolation type
     bool m_copy, m_nonlocal;
 
-    void init_noclear (ustring _name, ParamType _type,
+    void init_noclear (ustring _name, TypeDesc _type,
                        int _nvalues, const void *_value, bool _copy=true);
     void clear_value();
 };

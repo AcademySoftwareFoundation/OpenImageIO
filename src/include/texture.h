@@ -186,19 +186,19 @@ public:
     /// doesn't exist, doesn't have the requested data, if the data
     /// doesn't match the type requested. or some other failure.
     virtual bool gettextureinfo (ustring filename, ustring dataname,
-                                 ParamType datatype, void *data) = 0;
+                                 TypeDesc datatype, void *data) = 0;
     
 
 #if 0
     // Set an attribute in the graphics state, with name and explicit type
-    virtual void attribute (const char *name, ParamType t, const void *val) {}
-    virtual void attribute (const char *name, ParamType t, int val) {}
-    virtual void attribute (const char *name, ParamType t, float val) {}
-    virtual void attribute (const char *name, ParamType t, double val) {}
-    virtual void attribute (const char *name, ParamType t, const char *val) {}
-    virtual void attribute (const char *name, ParamType t, const int *val) {}
-    virtual void attribute (const char *name, ParamType t, const float *val) {}
-    virtual void attribute (const char *name, ParamType t, const char **val) {}
+    virtual void attribute (const char *name, TypeDesc t, const void *val) {}
+    virtual void attribute (const char *name, TypeDesc t, int val) {}
+    virtual void attribute (const char *name, TypeDesc t, float val) {}
+    virtual void attribute (const char *name, TypeDesc t, double val) {}
+    virtual void attribute (const char *name, TypeDesc t, const char *val) {}
+    virtual void attribute (const char *name, TypeDesc t, const int *val) {}
+    virtual void attribute (const char *name, TypeDesc t, const float *val) {}
+    virtual void attribute (const char *name, TypeDesc t, const char **val) {}
 
     // Set an attribute with type embedded in the name
     virtual void attribute (const char *typedname, const void *val) {}

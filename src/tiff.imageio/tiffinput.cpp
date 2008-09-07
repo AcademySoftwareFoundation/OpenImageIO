@@ -31,7 +31,7 @@
 #include <tiffio.h>
 
 #include "dassert.h"
-#include "paramtype.h"
+#include "typedesc.h"
 #include "imageio.h"
 #include "thread.h"
 #include "strutil.h"
@@ -462,7 +462,7 @@ TIFFInput::fourbit_to_8bit (int n, const unsigned char *bits,
 void
 TIFFInput::invert_photometric (int n, void *data)
 {
-    switch (m_spec.format) {
+    switch (m_spec.format.basetype) {
     case PT_UINT8: {
         unsigned char *d = (unsigned char *) data;
         for (int i = 0;  i < n;  ++i)
@@ -491,7 +491,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     } else if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
         m_scratch.resize (m_spec.scanline_bytes());
-        int plane_bytes = m_spec.width * typesize(m_spec.format);
+        int plane_bytes = m_spec.width * m_spec.format.size();
         for (int c = 0;  c < m_spec.nchannels;  ++c)
             if (TIFFReadScanline (m_tif, &m_scratch[plane_bytes*c], y, c) < 0) {
                 error ("%s", lasterr.c_str());
@@ -542,7 +542,7 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
         palette_to_rgb (tile_pixels, &m_scratch[0], (unsigned char *)data);
     } else if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        int plane_bytes = tile_pixels * typesize(m_spec.format);
+        int plane_bytes = tile_pixels * m_spec.format.size();
         DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
         m_scratch.resize (m_spec.tile_bytes());
         for (int c = 0;  c < m_spec.nchannels;  ++c)

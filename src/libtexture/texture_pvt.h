@@ -226,7 +226,7 @@ public:
     ///
     size_t memsize () const {
         const ImageSpec &spec (texfile().spec(m_id.level()));
-        return spec.tile_pixels() * spec.nchannels * typesize(texfile().datatype());
+        return spec.tile_pixels() * spec.nchannels * texfile().datatype().size();
     }
 
     /// Mark the tile as recently used (or not, if used==false).  Return
@@ -329,7 +329,7 @@ public:
     /// Get information about the given texture.
     ///
     virtual bool gettextureinfo (ustring filename, ustring dataname,
-                                 ParamType datatype, void *data);
+                                 TypeDesc datatype, void *data);
 
     /// Called when a new file is opened, so that the system can track
     /// the number of simultaneously-opened files.  This should only

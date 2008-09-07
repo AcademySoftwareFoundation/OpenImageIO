@@ -99,7 +99,7 @@ test_gettextureinfo (ustring filename)
 
     int res[2];
     ok = texsys->gettextureinfo (filename, ustring("resolution"),
-                                 ParamType(PT_INT,2), res);
+                                 TypeDesc(TypeDesc::INT,2), res);
     std::cerr << "Result of gettextureinfo resolution = " << ok << ' ' << res[0] << 'x' << res[1] << "\n";
 
     int chan;

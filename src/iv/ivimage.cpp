@@ -92,7 +92,7 @@ IvImage::shortinfo () const
             m_shortinfo += Strutil::format (" x %d", m_spec.depth);
         m_shortinfo += Strutil::format (" x %d channel %s (%.2f MB)",
                                         m_spec.nchannels,
-                                        typestring(m_spec.format),
+                                        m_spec.format.c_str(),
                                         (float)m_spec.image_bytes() / (1024.0*1024.0));
     }
     return m_shortinfo;
@@ -150,7 +150,7 @@ IvImage::longinfo () const
         }
         m_longinfo += html_table_row ("Channel list", chanlist);
 
-        m_longinfo += html_table_row ("Data format", typestring(m_spec.format));
+        m_longinfo += html_table_row ("Data format", m_spec.format.c_str());
         m_longinfo += html_table_row ("Data size",
              format("%.2f MB", (float)m_spec.image_bytes() / (1024.0*1024.0)));
         m_longinfo += html_table_row ("Image origin", 

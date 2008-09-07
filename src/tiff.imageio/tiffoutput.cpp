@@ -72,7 +72,7 @@ private:
     void contig_to_separate (int n, const unsigned char *contig,
                              unsigned char *separate);
     // Add a parameter to the output
-    bool put_parameter (const std::string &name, ParamType type,
+    bool put_parameter (const std::string &name, TypeDesc type,
                         const void *data);
 };
 
@@ -158,7 +158,7 @@ TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
     TIFFSetField (m_tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT); // always
     
     int bps, sampformat;
-    switch (m_spec.format) {
+    switch (m_spec.format.basetype) {
     case PT_INT8:
         bps = 8;
         sampformat = SAMPLEFORMAT_INT;
@@ -184,7 +184,7 @@ TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
         break;
     default:
         error ("TIFF doesn't support %s images (\"%s\")",
-               typestring(m_spec.format), name);
+               m_spec.format.c_str(), name);
         close();
         return false;
     }
@@ -241,7 +241,7 @@ TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
 
 
 bool
-TIFFOutput::put_parameter (const std::string &name, ParamType type,
+TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
                            const void *data)
 {
     if (iequals(name, "Artist") && type == PT_STRING) {
@@ -437,7 +437,7 @@ TIFFOutput::write_tile (int x, int y, int z,
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
         int tile_pixels = m_spec.tile_width * m_spec.tile_height 
                             * std::max (m_spec.tile_depth, 1);
-        int plane_bytes = tile_pixels * typesize(m_spec.format);
+        int plane_bytes = tile_pixels * m_spec.format.size();
         DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
         m_scratch.resize (m_spec.tile_bytes());
         contig_to_separate (tile_pixels, (const unsigned char *)data, &m_scratch[0]);

@@ -461,7 +461,7 @@ IvGL::paint_pixelview ()
         img->getpixel (xp+spec.x, yp+spec.y, fpixel);
         const void *p = img->pixeladdr (xp+spec.x, yp+spec.y);
         for (int i = 0;  i < spec.nchannels;  ++i) {
-            switch (spec.format) {
+            switch (spec.format.basetype) {
             case PT_UINT8 :
                 s = Strutil::format ("%s: %3d  (%5.3f)",
                                      spec.channelnames[i].c_str(),
@@ -570,7 +570,7 @@ IvGL::update (IvImage *img)
         glformat = GL_RGBA;
 
     GLenum gltype = GL_UNSIGNED_BYTE;
-    switch (spec.format) {
+    switch (spec.format.basetype) {
     case PT_FLOAT  : gltype = GL_FLOAT;          break;
     case PT_HALF   : gltype = GL_HALF_FLOAT_ARB; break;
     case PT_INT8   : gltype = GL_BYTE;           break;

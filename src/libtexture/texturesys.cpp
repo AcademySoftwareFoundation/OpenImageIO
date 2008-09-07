@@ -34,7 +34,7 @@ using namespace std::tr1;
 #include <half.h>
 
 #include "dassert.h"
-#include "paramtype.h"
+#include "typedesc.h"
 #include "varyingref.h"
 #include "ustring.h"
 #include "hash.h"
@@ -196,7 +196,7 @@ TextureSystemImpl::check_max_mem ()
 
 bool
 TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
-                                   ParamType datatype, void *data)
+                                   TypeDesc datatype, void *data)
 {
     TextureFileRef texfile = find_texturefile (filename);
     if (! texfile) {
@@ -208,27 +208,27 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
         return false;
     }
     const ImageSpec &spec (texfile->spec());
-    if (dataname == "resolution" && datatype==ParamType(PT_INT,2)) {
+    if (dataname == "resolution" && datatype==TypeDesc(TypeDesc::INT,2)) {
         int *d = (int *)data;
         d[0] = spec.width;
         d[1] = spec.height;
         return true;
     }
-    if (dataname == "texturetype" && datatype==PT_STRING) {
+    if (dataname == "texturetype" && datatype == TypeDesc::TypeString) {
         ustring s (texture_type_name (texfile->textureformat()));
         *(const char **)data = s.c_str();
         return true;
     }
-    if (dataname == "textureformat" && datatype==PT_STRING) {
+    if (dataname == "textureformat" && datatype == TypeDesc::TypeString) {
         ustring s (texture_format_name (texfile->textureformat()));
         *(const char **)data = s.c_str();
         return true;
     }
-    if (dataname == "channels" && datatype==PT_INT) {
+    if (dataname == "channels" && datatype == TypeDesc::TypeInt) {
         *(int *)data = spec.nchannels;
         return true;
     }
-    if (dataname == "channels" && datatype==PT_FLOAT) {
+    if (dataname == "channels" && datatype == TypeDesc::TypeFloat) {
         *(float *)data = spec.nchannels;
         return true;
     }
@@ -240,7 +240,7 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
     if (p && p->type().arraylen == datatype.arraylen) {
         // First test for exact type match
         if (p->type() == datatype) {
-            memcpy (data, p->data(), datatype.datasize());
+            memcpy (data, p->data(), datatype.size());
             return true;
         }
         // If the real data is int but user asks for float, translate it

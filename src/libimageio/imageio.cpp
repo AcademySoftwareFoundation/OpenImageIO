@@ -33,7 +33,7 @@
 #include <boost/scoped_array.hpp>
 
 #include "dassert.h"
-#include "paramtype.h"
+#include "typedesc.h"
 #include "strutil.h"
 #include "fmath.h"
 
@@ -130,7 +130,7 @@ OpenImageIO::pvt::contiguize (const void *src, int nchannels,
                               void *dst, int width, int height, int depth,
                               ParamBaseType format)
 {
-    switch (format) {
+    switch (format.basetype) {
     case PT_FLOAT :
         return _contiguize ((const float *)src, nchannels, 
                             xstride, ystride, zstride,
@@ -169,7 +169,7 @@ const float *
 OpenImageIO::pvt::convert_to_float (const void *src, float *dst, int nvals,
                                     ParamBaseType format)
 {
-    switch (format) {
+    switch (format.basetype) {
     case PT_FLOAT :
         return (float *)src;
     case PT_HALF :
@@ -249,7 +249,7 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
                                       int quant_min, int quant_max, float quant_dither, 
                                       ParamBaseType format)
 {
-    switch (format) {
+    switch (format.basetype) {
     case PT_FLOAT :
         return src;
     case PT_HALF :
@@ -300,7 +300,7 @@ OpenImageIO::convert_types (ParamBaseType src_type, const void *src,
 {
     // If no conversion is necessary, just memcpy
     if (src_type == dst_type && gain == 1.0f && gamma == 1.0f) {
-        memcpy (dst, src, n * typesize(src_type));
+        memcpy (dst, src, n * src_type.size());
         return true;
     }
 
@@ -318,7 +318,7 @@ OpenImageIO::convert_types (ParamBaseType src_type, const void *src,
 
     if (use_tmp) {
         // Convert from 'src_type' to float (or nothing, if already float)
-        switch (src_type) {
+        switch (src_type.basetype) {
         case PT_UINT8 :  convert_type ((const unsigned char *)src, buf, n);  break;
         case PT_UINT16 : convert_type ((const unsigned short *)src, buf, n); break;
         case PT_FLOAT :  convert_type ((const float *)src, buf, n);  break;
@@ -339,7 +339,7 @@ OpenImageIO::convert_types (ParamBaseType src_type, const void *src,
     }
 
     // Convert float to 'dst_type' (just a copy if dst is float)
-    switch (dst_type) {
+    switch (dst_type.basetype) {
     case PT_FLOAT :  memcpy (dst, buf, n * sizeof(float));       break;
     case PT_UINT8 :  convert_type (buf, (unsigned char *)dst, n);  break;
     case PT_UINT16 : convert_type (buf, (unsigned short *)dst, n); break;

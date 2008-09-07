@@ -34,7 +34,7 @@
 #include <boost/scoped_array.hpp>
 
 #include "dassert.h"
-#include "paramtype.h"
+#include "typedesc.h"
 #include "filesystem.h"
 #include "plugin.h"
 #include "thread.h"
@@ -118,7 +118,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     int depth = zmax - zmin + 1;
 
     // Do the strides indicate that the data are already contiguous?
-    bool contiguous = (xstride == m_spec.nchannels*typesize(format) &&
+    bool contiguous = (xstride == m_spec.nchannels*format.size() &&
                        (ystride == xstride*width || height == 1) &&
                        (zstride == ystride*height || depth == 1));
     // Is the only conversion we are doing that of data format?
@@ -133,7 +133,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     int rectangle_pixels = width * height * depth;
     int rectangle_values = rectangle_pixels * m_spec.nchannels;
     int contiguoussize = contiguous ? 0 
-                             : rectangle_values * typesize(format);
+                             : rectangle_values * format.size();
     contiguoussize = (contiguoussize+3) & (~3); // Round up to 4-byte boundary
     DASSERT ((contiguoussize & 3) == 0);
     int rectangle_bytes = rectangle_pixels * m_spec.pixel_bytes();
@@ -214,12 +214,12 @@ ImageOutput::write_image (ParamBaseType format, const void *data,
         // dimensions smaller than a tile, or if one of the tiles runs
         // past the right or bottom edge.  Then we copy from our tile to
         // the user data, only copying valid pixel ranges.
-        size_t tilexstride = m_spec.nchannels * typesize(format);
+        size_t tilexstride = m_spec.nchannels * format.size();
         size_t tileystride = tilexstride * m_spec.tile_width;
         size_t tilezstride = tileystride * m_spec.tile_height;
         size_t tile_values = (size_t)m_spec.tile_width * (size_t)m_spec.tile_height *
             (size_t)std::max(1,m_spec.tile_depth) * m_spec.nchannels;
-        boost::scoped_array<char> pels (new char [tile_values * typesize(format)]);
+        boost::scoped_array<char> pels (new char [tile_values * format.size()]);
 
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth)
             for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {

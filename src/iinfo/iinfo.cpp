@@ -55,7 +55,7 @@ print_info (const std::string &filename, ImageInput *input,
     if (spec.depth > 1)
         printf (" x %4d", spec.depth);
     printf (", %d channel, %s%s", spec.nchannels,
-            typestring(spec.format),
+            spec.format.c_str(),
             spec.depth > 1 ? " volume" : "");
     if (sum) {
         totalsize += spec.image_bytes();

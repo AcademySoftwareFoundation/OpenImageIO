@@ -75,7 +75,7 @@ private:
     }
 
     // Add a parameter to the output
-    bool put_parameter (const std::string &name, ParamType type,
+    bool put_parameter (const std::string &name, TypeDesc type,
                         const void *data);
 
     void finish_image ();
@@ -165,7 +165,7 @@ PNGOutput::open (const char *name, const ImageSpec &userspec, bool append)
         m_spec.format = PT_UINT8;
 
     png_set_IHDR (m_png, m_info, m_spec.width, m_spec.height,
-                  typesize(m_spec.format)*8, color_type, PNG_INTERLACE_NONE,
+                  m_spec.format.size()*8, color_type, PNG_INTERLACE_NONE,
                   PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
     png_set_oFFs (m_png, m_info, m_spec.x, m_spec.y, PNG_OFFSET_PIXEL);
@@ -236,7 +236,7 @@ PNGOutput::open (const char *name, const ImageSpec &userspec, bool append)
 
 
 bool
-PNGOutput::put_parameter (const std::string &_name, ParamType type,
+PNGOutput::put_parameter (const std::string &_name, TypeDesc type,
                            const void *data)
 {
     std::string name = _name;

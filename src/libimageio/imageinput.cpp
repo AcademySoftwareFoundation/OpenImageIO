@@ -31,7 +31,7 @@
 #include <boost/scoped_array.hpp>
 
 #include "dassert.h"
-#include "paramtype.h"
+#include "typedesc.h"
 #include "strutil.h"
 
 #define DLL_EXPORT_PUBLIC /* Because we are implementing ImageIO */
@@ -49,7 +49,7 @@ ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
                            stride_t xstride)
 {
     m_spec.auto_stride (xstride, format, m_spec.nchannels);
-    bool contiguous = (xstride == m_spec.nchannels*typesize(format));
+    bool contiguous = (xstride == m_spec.nchannels*format.size());
     if (contiguous && m_spec.format == format)  // Simple case
         return read_native_scanline (y, z, data);
 
@@ -66,7 +66,7 @@ ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
                          data, format, xstride, AutoStride, AutoStride);
     if (! ok)
         error ("ImageInput::read_scanline : no support for format %s",
-               typestring(m_spec.format));
+               m_spec.format.c_str());
     return ok;
 }
 
@@ -78,7 +78,7 @@ ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
 {
     m_spec.auto_stride (xstride, ystride, zstride, format,
                         m_spec.nchannels, m_spec.tile_width, m_spec.tile_height);
-    bool contiguous = (xstride == m_spec.nchannels*typesize(format) &&
+    bool contiguous = (xstride == m_spec.nchannels*format.size() &&
                        ystride == xstride*m_spec.tile_width &&
                        (zstride == ystride*m_spec.tile_height || zstride == 0));
     if (contiguous && m_spec.format == format)  // Simple case
@@ -100,7 +100,7 @@ ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
                          data, format, xstride, ystride, zstride);
     if (! ok)
         error ("ImageInput::read_tile : no support for format %s",
-               typestring(m_spec.format));
+               m_spec.format.c_str());
     return ok;
 }
 
@@ -125,12 +125,12 @@ ImageInput::read_image (ParamBaseType format, void *data,
         // dimensions smaller than a tile, or if one of the tiles runs
         // past the right or bottom edge.  Then we copy from our tile to
         // the user data, only copying valid pixel ranges.
-        size_t tilexstride = m_spec.nchannels * typesize(format);
+        size_t tilexstride = m_spec.nchannels * format.size();
         size_t tileystride = tilexstride * m_spec.tile_width;
         size_t tilezstride = tileystride * m_spec.tile_height;
         size_t tile_values = (size_t)m_spec.tile_width * (size_t)m_spec.tile_height *
             (size_t)std::max(1,m_spec.tile_depth) * m_spec.nchannels;
-        boost::scoped_array<char> pels (new char [tile_values * typesize(format)]);
+        boost::scoped_array<char> pels (new char [tile_values * format.size()]);
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth)
             for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
                 for (int x = 0;  x < m_spec.width && ok;  x += m_spec.tile_width) {

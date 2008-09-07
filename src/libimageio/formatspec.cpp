@@ -33,7 +33,7 @@
 using boost::algorithm::iequals;
 
 #include "dassert.h"
-#include "paramtype.h"
+#include "typedesc.h"
 #include "strutil.h"
 
 #define DLL_EXPORT_PUBLIC /* Because we are implementing ImageIO */
@@ -75,7 +75,7 @@ set_default_quantize (ParamBaseType format,
                       int &quant_black, int &quant_white,
                       int &quant_min, int &quant_max, float &quant_dither)
 {
-    switch (format) {
+    switch (format.basetype) {
     case PT_INT8:
         set_default_quantize <char> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
@@ -260,7 +260,7 @@ ImageSpec::attribute (const std::string &name, ParamBaseType type,
 
 
 ImageIOParameter *
-ImageSpec::find_attribute (const std::string &name, ParamType searchtype,
+ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
                            bool casesensitive)
 {
     if (casesensitive) {
@@ -280,7 +280,7 @@ ImageSpec::find_attribute (const std::string &name, ParamType searchtype,
 
 
 const ImageIOParameter *
-ImageSpec::find_attribute (const std::string &name, ParamType searchtype,
+ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
                            bool casesensitive) const
 {
     if (casesensitive) {
