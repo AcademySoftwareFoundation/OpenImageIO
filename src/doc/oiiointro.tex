@@ -1,0 +1,202 @@
+\chapter{Introduction}
+\label{chap:oiiointro}
+
+
+
+%\section{Data Formats and \ParamBaseType}
+%\label{sec:dataformats}
+
+Welcome to \product!
+
+\bigskip
+
+\section{Overview}
+
+\product provides simple but powerful \ImageInput and \ImageOutput APIs
+that abstract the reading and writing of 2D image file formats.  They
+don't support every possible way of encoding images in memory, but for a
+reasonable and common set of desired functionality, they provide an
+exceptionally easy way for an application using the APIs support a wide
+--- and extensible --- selection of image formats without knowing the
+details of any of these formats.
+
+Concrete instances of these APIs, each of which implements the ability
+to read and/or write a different image file format, are stored as
+plugins (i.e., dynamic libraries, DLL's, or DSO's) that are loaded at
+runtime.  The \product distribution contains such plugins for several
+popular formats.  Any user may create conforming plugins that implement
+reading and writing capabilities for other image formats, and any
+application that uses \product would be able to use those plugins.
+
+The \product distribution contains several utility programs that operate
+on images, each of which is built atop \ImageInput and \ImageOutput, and
+therefore may read or write any image file type for which an appropriate
+plugin is found at runtime.  Paramount among these utilities is {\fn
+  iv}, a really fantastic and powerful image viewing application.
+
+The library also implements the helper class {\kw ImageBuf}, which is a
+handy way to store and manipulate images in memory.  {\kw ImageBuf}
+itself uses \ImageInput and \ImageOutput for its file I/O, and therefore
+is also agnostic as to image file formats.
+
+Finally, the library implements a {\kw TextureSystem} class that can be
+used for filtered lookups of multiresolution (MIP-map) textures,
+environment maps, and shadow maps.  The texture library not only uses
+\ImageInput to be format-agnostic, but it also transparently manages a
+cache of image data so that it can access truly vast amounts of texture
+(thousands of texture files totaling tens of GB) very efficiently using
+only a tiny amount (tens of megabytes at most) of runtime memory.
+
+All of this is released as ``open source'' software using the very
+permissive BSD license.  So you should feel free to use any or all of
+\product in your own software, whether it is private or public, open
+source or proprietary, free or commercial.  You may also modify it on
+your own.  You are also encouraged to contribute to the continued
+development of \product and to share any improvements that you make on
+your own.
+
+\section{Simplifying Assumptions}
+
+\product is not the only image library in the world.  Certainly there
+are many fine libraries that implement a single image format (including
+the excellent {\fn libtiff}, {\fn jpeg-6b}, and {\fn OpenEXR} that
+\product itself relies on).  Many libraries attempt to present a uniform
+API for reading and writing multiple image file formats.  Most of these
+support a fixed (if vast) set of image formats, though a few of these
+also attempt to provide an extensible set by using the plugin approach.
+
+But in our experience, these libraries are all flawed in one or more
+ways: (1) They either support only a few formats, or many formats but
+with the majority of them somehow incomplete or incorrect.  (2) Their
+APIs are not sufficiently expressive as to handle all the image features
+we need (such as tiled images, which is critical for our texture
+library).  (3) Their APIs are \emph{too complete}, trying to handle
+every possible permutation of image format features, and as a result
+are horribly complicated.
+
+The third sin is the most severe, and is almost always the main problem
+at the end of the day.  Even among the many open source image libraries
+that rely on extensible plugins, we have not found one that is both
+sufficiently flexible and has APIs anywhere near as simple to understand
+and use as those of \product.
+
+Good design is usually a matter of deciding what \emph{not} to do, and
+\product is no exception.  We achieve power and simplicity only by
+making simplifying assumptions.  Among them:
+
+\begin{itemize}
+  \item \product only deals with ordinary 2D images, and to a limited
+    extent 3D volumes, and image files that contain multiple (but
+    finite) independent images within them.  \product {\bf~ does not deal
+      with motion picture files.}  At least, not currently.
+
+  \item Pixel data are 8- 16- or 32-bit int (signed or unsigned), 16-
+    32- or 16-bit float.  NOTHING ELSE.  No $<8$ bit images, or pixels
+    boundaries that aren't byte boundaries.  Files with $<8$ bits will
+    appear to the client as 8-bit unsigned grayscale images.
+
+  \item Only fully elaborated, non-compressed data are are accepted
+    are returned by the API.  Compression or special encodings are
+    handled entirely within an \product plugin.
+
+  \item Color space is grayscale or RGB.  Non-spectral data, such as
+    XYZ, CMYK, or YUV, are converted to RGB upon reading.\
+
+  \item All color channels have the same data format.  Upon read, an
+    \ImageInput ought to convert all channels to the one with the highest
+    precision in the file.
+
+  \item All image channels in a subimage are sampled at the same
+    resolution.  For file formats that allow some channels to be
+    subsampled, they will be automatically up-sampled to the highest
+    resolution channel in the subimage.
+
+  \item Color information is always in the order R, G, B, and the alpha
+    channel, if any, always follows RGB, and z channel (if any) always
+    follows alpha.  So if a file actually stores ABGR, the plugin is
+    expected to rearrange it as RGBA.
+
+\end{itemize}
+
+It's important to remember that these restrictions apply to data passed
+through the APIs, not to the files themselves.  It's perfectly fine to
+have an \product plugin that supports YUV data, or 4 bits per channel, or
+any other exotic feature.  You could even write a movie-reading
+\ImageInput (despite \product's claims of not supporting movies) and
+make it look to the client like it's just a series of images within the
+file.  It's just that all the nonconforming details are handled entirely
+within the \product plugin and are not exposed through the main \product
+APIs.
+
+
+\subsection*{Historical Origins}
+
+\product is the evolution of concepts and tools I've been working on 
+for two decades.
+
+In the 1980's, every program I wrote that output images would have a
+simple, custom format and viewer.  I soon graduated to using a standard
+image file format (TIFF) with my own implementation to write it.  Then I
+switched to Sam Leffler's stable and complete {\fn libtiff}.
+
+In the mid-to-late-1990's, I worked at Pixar as one of the main
+implementors of PhotoRealistic RenderMan, which had \emph{display
+  drivers} that consisted of an API for opening files and outputting
+pixels, and a set of DSO/DLL plugins that each implemented image output
+for each of a dozen or so different file format.  The plugins all
+responded to the same API, so the renderer itself did not need to know
+how to the details of the image file formats, and users could (in
+theory, but rarely in practice) extend the set of output image formats
+the renderer could use by writing their own plugins.
+
+This was the seed of a good idea, but PRMan's display driver plugin API
+was abstruse and hard to use.  So when I started Exluna in 2000, Matt
+Pharr, Craig Kolb, and I designed a new API for image output for our own
+renderer, Entropy.  This API, called ``ExDisplay,'' was C++, and much
+simpler, clearer, and easier to use than PRMan's display drivers.
+
+NVIDIA's Gelato (circa 2002), whose early work was done by myself, Dan
+Wexler, Jonathan Rice, and Eric Enderton, had an API
+called ``ImageIO.''  ImageIO was 
+\emph{much} more powerful and descriptive than ExDisplay, and had an
+API for \emph{reading} as well as writing images.  Gelato was not only
+``image format agnostic'' for its image output, but also for its
+image input (textures, image viewer, and other image utilities).
+We released the API specification and headers (though not the
+library implementation) using the BSD open source license, firmly
+repudiating any notion that the API should be specific to NVIDIA or
+Gelato.
+
+For Gelato 3.0 (circa 2007), we refined ImageIO again (by this time,
+Philip Nemec was also a major influence, in addition to Dan, Eric, and
+myself\footnote{Gelato as a whole had many other contributors; those
+  I've named here are the ones I recall contributing to the design or
+  implementation of the ImageIO APIs}).  This revision was not a major
+overhaul but more of a fine tuning.  Our ideas were clearly approaching
+stability.  But, alas, the Gelato project was canceled before Gelato 3.0
+was released, and despite our prodding, NVIDIA executives would not open
+source the full ImageIO code and related tools.
+
+After I left NVIDIA, I was determined to recreate this work once
+again -- and ONLY once more -- and release it as open source from the
+start.  Thus, \product was born.  I started with the existing Gelato
+ImageIO specification and headers (which were BSD licensed all along),
+and made some more refinements since I had to rewrite the entire
+implementation from scratch anyway.  I think the additional changes are
+all improvements.  This is the software you have in your hands today.
+
+
+\subsection*{Acknowledgments}
+
+\begin{comment}
+The direct precursor to \product was Gelato's ImageIO, which I
+co-designed and implemented with Dan Wexler, Jonathan Rice, Eric
+Enderton, and Philip Nemec.
+
+Big thanks to our bosses at NVIDIA for allowing us to share the API spec
+and headers under the BSD license.  And thanks to their inability to
+open source their own implementation in a timely manner, I was forced to
+create this clearly superior descendant.
+\end{comment}
+
+\chapwidthend
