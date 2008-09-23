@@ -101,7 +101,7 @@ ispow2 (int x)
     // Numerous references for this bit trick are on the web.  The
     // principle is that x is a power of 2 <=> x == 1<<b <=> x-1 is
     // all 1 bits for bits < b.
-    return (x & (x-1)) == 0;
+    return !(x & (x-1)) && (x > 0);
 }
 
 
