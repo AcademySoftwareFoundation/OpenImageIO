@@ -53,13 +53,13 @@ extern recursive_mutex imageio_mutex;
 const void *contiguize (const void *src, int nchannels,
                         stride_t xstride, stride_t ystride, stride_t zstride, 
                         void *dst, int width, int height, int depth,
-                        ParamBaseType format);
+                        TypeDesc format);
 
 /// Turn contiguous data from any format into float data.  Return a
 /// pointer to the converted data (which may still point to src if no
 /// conversion was necessary).
 const float *convert_to_float (const void *src, float *dst, int nvals,
-                               ParamBaseType format);
+                               TypeDesc format);
 
 /// Turn contiguous float data into any format.  Return a pointer to the
 /// converted data (which may still point to src if no conversion was
@@ -67,7 +67,7 @@ const float *convert_to_float (const void *src, float *dst, int nvals,
 const void *convert_from_float (const float *src, void *dst, size_t nvals,
                                 int quant_black, int quant_white,
                                 int quant_min, int quant_max, float quant_dither, 
-                                ParamBaseType format);
+                                TypeDesc format);
 
 };  // namespace OpenImageIO::pvt
 };  // namespace OpenImageIO
