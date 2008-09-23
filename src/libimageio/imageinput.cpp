@@ -45,7 +45,7 @@ using namespace OpenImageIO::pvt;
 
 
 bool 
-ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
+ImageInput::read_scanline (int y, int z, TypeDesc format, void *data,
                            stride_t xstride)
 {
     m_spec.auto_stride (xstride, format, m_spec.nchannels);
@@ -73,7 +73,7 @@ ImageInput::read_scanline (int y, int z, ParamBaseType format, void *data,
 
 
 bool 
-ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
+ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
                        stride_t xstride, stride_t ystride, stride_t zstride)
 {
     m_spec.auto_stride (xstride, ystride, zstride, format,
@@ -107,7 +107,7 @@ ImageInput::read_tile (int x, int y, int z, ParamBaseType format, void *data,
 
 
 bool
-ImageInput::read_image (ParamBaseType format, void *data,
+ImageInput::read_image (TypeDesc format, void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride,
                         OpenImageIO::ProgressCallback progress_callback,
                         void *progress_callback_data)

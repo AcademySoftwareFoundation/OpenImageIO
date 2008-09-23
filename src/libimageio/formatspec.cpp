@@ -71,7 +71,7 @@ set_default_quantize (int &quant_black, int &quant_white,
 // Given the format, set the default quantization parameters.
 // Rely on the template version to make life easy.
 static void
-set_default_quantize (ParamBaseType format,
+set_default_quantize (TypeDesc format,
                       int &quant_black, int &quant_white,
                       int &quant_min, int &quant_max, float &quant_dither)
 {
@@ -128,7 +128,7 @@ QuantizationSpec
 
 
 
-QuantizationSpec::QuantizationSpec (ParamBaseType _type)
+QuantizationSpec::QuantizationSpec (TypeDesc _type)
 {
     set_default_quantize (_type, quant_black, quant_white,
                           quant_min, quant_max, quant_dither);
@@ -136,7 +136,7 @@ QuantizationSpec::QuantizationSpec (ParamBaseType _type)
 
 
 
-ImageSpec::ImageSpec (ParamBaseType format)
+ImageSpec::ImageSpec (TypeDesc format)
     : x(0), y(0), z(0), width(0), height(0), depth(1),
       full_width(0), full_height(0), full_depth(0),
       tile_width(0), tile_height(0), tile_depth(1),
@@ -148,7 +148,7 @@ ImageSpec::ImageSpec (ParamBaseType format)
 
 
 
-ImageSpec::ImageSpec (int xres, int yres, int nchans, ParamBaseType format)
+ImageSpec::ImageSpec (int xres, int yres, int nchans, TypeDesc format)
     : x(0), y(0), z(0), width(xres), height(yres), depth(1),
       full_width(xres), full_height(yres), full_depth(1),
       tile_width(0), tile_height(0), tile_depth(1),
@@ -162,7 +162,7 @@ ImageSpec::ImageSpec (int xres, int yres, int nchans, ParamBaseType format)
 
 
 void
-ImageSpec::set_format (ParamBaseType fmt)
+ImageSpec::set_format (TypeDesc fmt)
 {
     format = fmt;
     set_default_quantize (fmt, quant_black, quant_white,
@@ -171,7 +171,7 @@ ImageSpec::set_format (ParamBaseType fmt)
 
 
 
-ParamBaseType
+TypeDesc
 ImageSpec::format_from_quantize (int quant_black, int quant_white,
                                  int quant_min, int quant_max)
 {
@@ -245,7 +245,7 @@ ImageSpec::default_channel_names ()
 
 
 void
-ImageSpec::attribute (const std::string &name, ParamBaseType type,
+ImageSpec::attribute (const std::string &name, TypeDesc type,
                       int nvalues, const void *value)
 {
     // Don't allow duplicates

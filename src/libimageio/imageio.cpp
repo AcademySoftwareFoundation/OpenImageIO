@@ -128,7 +128,7 @@ const void *
 OpenImageIO::pvt::contiguize (const void *src, int nchannels,
                               stride_t xstride, stride_t ystride, stride_t zstride, 
                               void *dst, int width, int height, int depth,
-                              ParamBaseType format)
+                              TypeDesc format)
 {
     switch (format.basetype) {
     case PT_FLOAT :
@@ -167,7 +167,7 @@ OpenImageIO::pvt::contiguize (const void *src, int nchannels,
 
 const float *
 OpenImageIO::pvt::convert_to_float (const void *src, float *dst, int nvals,
-                                    ParamBaseType format)
+                                    TypeDesc format)
 {
     switch (format.basetype) {
     case PT_FLOAT :
@@ -247,7 +247,7 @@ const void *
 OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
                                       int quant_black, int quant_white,
                                       int quant_min, int quant_max, float quant_dither, 
-                                      ParamBaseType format)
+                                      TypeDesc format)
 {
     switch (format.basetype) {
     case PT_FLOAT :
@@ -294,8 +294,8 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 
 
 bool
-OpenImageIO::convert_types (ParamBaseType src_type, const void *src, 
-                            ParamBaseType dst_type, void *dst, int n,
+OpenImageIO::convert_types (TypeDesc src_type, const void *src, 
+                            TypeDesc dst_type, void *dst, int n,
                             float gain, float gamma)
 {
     // If no conversion is necessary, just memcpy
@@ -359,10 +359,10 @@ OpenImageIO::convert_types (ParamBaseType src_type, const void *src,
 
 bool
 OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
-                            const void *src, ParamBaseType src_type,
+                            const void *src, TypeDesc src_type,
                             stride_t src_xstride, stride_t src_ystride,
                             stride_t src_zstride,
-                            void *dst, ParamBaseType dst_type,
+                            void *dst, TypeDesc dst_type,
                             stride_t dst_xstride, stride_t dst_ystride,
                             stride_t dst_zstride,
                             float gain, float gamma)

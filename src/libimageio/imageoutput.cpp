@@ -80,7 +80,7 @@ ImageOutput::error (const char *format, ...)
 
 
 const void *
-ImageOutput::to_native_scanline (ParamBaseType format,
+ImageOutput::to_native_scanline (TypeDesc format,
                                  const void *data, stride_t xstride,
                                  std::vector<unsigned char> &scratch)
 {
@@ -91,7 +91,7 @@ ImageOutput::to_native_scanline (ParamBaseType format,
 
 
 const void *
-ImageOutput::to_native_tile (ParamBaseType format, const void *data,
+ImageOutput::to_native_tile (TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride,
                              std::vector<unsigned char> &scratch)
 {
@@ -105,7 +105,7 @@ ImageOutput::to_native_tile (ParamBaseType format, const void *data,
 const void *
 ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax, 
-                                  ParamBaseType format, const void *data,
+                                  TypeDesc format, const void *data,
                                   stride_t xstride, stride_t ystride, stride_t zstride,
                                   std::vector<unsigned char> &scratch)
 {
@@ -183,7 +183,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
 
 
 bool
-ImageOutput::write_image (ParamBaseType format, const void *data,
+ImageOutput::write_image (TypeDesc format, const void *data,
                           stride_t xstride, stride_t ystride, stride_t zstride,
                           OpenImageIO::ProgressCallback progress_callback,
                           void *progress_callback_data)
