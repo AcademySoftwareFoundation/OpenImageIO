@@ -44,6 +44,7 @@ using namespace OpenImageIO;
 
 
 static bool verbose = false;
+static bool foreground_mode = false;
 static std::vector<std::string> filenames;
 
 
@@ -67,6 +68,7 @@ getargs (int argc, char *argv[])
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
+                  "-F", &foreground_mode, "Foreground mode",
                   NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
@@ -80,10 +82,83 @@ getargs (int argc, char *argv[])
 
 
 
+/// Try to put the process into the background so it doesn't continue to
+/// tie up any shell that it was launched from.  Return true if successful,
+/// false if it was unable to do so.
+static bool
+put_in_background (int argc, char *argv[])
+{
+    // You would think that this would be sufficient:
+    //   pid_t pid = fork ();
+    //   if (pid < 0)       // Some kind of error, we were unable to background
+    //      return false;
+    //   if (pid == 0)
+    //       return true;   // This is the child process, so continue with life
+    //   // Otherwise, this is the parent process, so terminate
+    //   exit (0); 
+    // But it's not.  On OS X, it's not safe to fork() if your app is linked
+    // against certain libraries or frameworks.  So the only thing that I
+    // think is safe is to exec a new process.
+    // Another solution is this:
+    //    daemon (1, 1);
+    // But it suffers from the same problem on OS X, and seems to just be
+    // a wrapper for fork.
+
+#ifdef LINUX
+    // Simplest case:
+    daemon (1, 1);
+    return true;
+#endif
+
+
+#ifdef MACOSX
+#if 0
+    // Another solution -- But I can't seem to make this work!
+    std::vector<char *> newargs;
+    newargs.push_back ("-F");
+    for (int i = 0;  i < argc;  ++i)
+        newargs.push_back (argv[i]);
+    newargs.push_back (NULL);
+    if (fork())
+        exit (0);
+    execv ("/Users/lg/lg/proj/oiio/dist/macosx/bin/iv" /*argv[0]*/, &newargs[0]);
+    exit (0);
+#endif
+
+#if 1
+    // This one works -- just call system(), but we have to properly
+    // quote all the arguments in case filenames have spaces in them.
+    std::string newcmd = std::string(argv[0]) + " -F";
+    for (int i = 1;  i < argc;  ++i) {
+        newcmd += " \"";
+        newcmd += argv[i];
+        newcmd += "\"";
+    }
+    newcmd += " &";
+    if (system (newcmd.c_str()) != -1)
+        exit (0);
+    return true;
+#endif
+
+
+#endif
+
+#ifdef WIN32
+    // FIXME: How to do this for win32?  Somebody told me that it's not
+    // necessary at all, and we just have to rename 'main' to 'winMain'
+    // for it to become a backgrounded app.
+#endif
+}
+
+
+
 int
 main (int argc, char *argv[])
 {
     getargs (argc, argv);
+
+    if (! foreground_mode)
+        put_in_background (argc, argv);
 
     // LG
 //    Q_INIT_RESOURCE(iv);
