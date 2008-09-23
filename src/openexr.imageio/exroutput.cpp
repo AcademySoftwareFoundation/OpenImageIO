@@ -65,10 +65,10 @@ public:
     virtual bool open (const char *name, const ImageSpec &spec,
                        bool append=false);
     virtual bool close ();
-    virtual bool write_scanline (int y, int z, ParamBaseType format,
+    virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
     virtual bool write_tile (int x, int y, int z,
-                             ParamBaseType format, const void *data,
+                             TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride);
 
 private:
@@ -391,7 +391,7 @@ OpenEXROutput::close ()
 
 
 bool
-OpenEXROutput::write_scanline (int y, int z, ParamBaseType format,
+OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
                                const void *data, stride_t xstride)
 {
     // FIXME: hard-coded for HALF!
@@ -436,7 +436,7 @@ OpenEXROutput::write_scanline (int y, int z, ParamBaseType format,
 
 bool
 OpenEXROutput::write_tile (int x, int y, int z,
-                           ParamBaseType format, const void *data,
+                           TypeDesc format, const void *data,
                            stride_t xstride, stride_t ystride, stride_t zstride)
 {
     std::cerr << "write_tile " << x << ' ' << y << ' ' << z << "\n";

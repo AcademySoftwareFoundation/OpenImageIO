@@ -72,7 +72,7 @@ public:
     TextureOptions::Wrap swrap () const { return m_swrap; }
     TextureOptions::Wrap twrap () const { return m_twrap; }
     bool opened () const { return m_input.get() != NULL; }
-    ParamBaseType datatype () const { return m_datatype; }
+    TypeDesc datatype () const { return m_datatype; }
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.
@@ -81,7 +81,7 @@ public:
     /// load new data tile
     ///
     bool read_tile (int level, int x, int y, int z,
-                    ParamBaseType format, void *data);
+                    TypeDesc format, void *data);
 
     /// Mark the file as recently used.
     ///
@@ -107,7 +107,7 @@ private:
     Imath::M44f m_Mras;             ///< shadows: world-to-raster with camera z
     CubeLayout m_cubelayout;        ///< cubemap: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
-    ParamBaseType m_datatype;       ///< Type of pixels we store internally
+    TypeDesc m_datatype;            ///< Type of pixels we store internally
     TextureSystemImpl &m_texsys;    ///< Back pointer for texture system
 };
 

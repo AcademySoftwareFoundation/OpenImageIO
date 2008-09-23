@@ -100,7 +100,7 @@ private:
 
     // Get a float-oid tiff tag field and put it into extra_params
     void get_float_attribute (const std::string &name, int tag,
-                          ParamBaseType type=PT_FLOAT) {
+                              TypeDesc type=PT_FLOAT) {
         float f[16];
         if (TIFFGetField (m_tif, tag, f))
             m_spec.attribute (name, type, 1, &f);

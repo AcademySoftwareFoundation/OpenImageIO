@@ -171,7 +171,7 @@ TextureFile::open ()
 
 bool
 TextureFile::read_tile (int level, int x, int y, int z,
-                        ParamBaseType format, void *data)
+                        TypeDesc format, void *data)
 {
     open ();
     ImageSpec tmp;

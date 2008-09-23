@@ -55,7 +55,7 @@ public:
     virtual bool open (const char *name, const ImageSpec &spec,
                        bool append=false);
     virtual bool close ();
-    virtual bool write_scanline (int y, int z, ParamBaseType format,
+    virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
 
 private:
@@ -352,7 +352,7 @@ PNGOutput::close ()
 
 
 bool
-PNGOutput::write_scanline (int y, int z, ParamBaseType format,
+PNGOutput::write_scanline (int y, int z, TypeDesc format,
                             const void *data, stride_t xstride)
 {
     // Must call this setjmp in every function that does PNG writes

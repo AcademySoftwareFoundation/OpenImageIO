@@ -52,10 +52,10 @@ public:
     virtual bool open (const char *name, const ImageSpec &spec,
                        bool append=false);
     virtual bool close ();
-    virtual bool write_scanline (int y, int z, ParamBaseType format,
+    virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
     virtual bool write_tile (int x, int y, int z,
-                             ParamBaseType format, const void *data,
+                             TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride);
 
 private:
@@ -389,7 +389,7 @@ TIFFOutput::contig_to_separate (int n, const unsigned char *contig,
 
 
 bool
-TIFFOutput::write_scanline (int y, int z, ParamBaseType format,
+TIFFOutput::write_scanline (int y, int z, TypeDesc format,
                             const void *data, stride_t xstride)
 {
     m_spec.auto_stride (xstride, format, spec().nchannels);
@@ -424,7 +424,7 @@ TIFFOutput::write_scanline (int y, int z, ParamBaseType format,
 
 bool
 TIFFOutput::write_tile (int x, int y, int z,
-                        ParamBaseType format, const void *data,
+                        TypeDesc format, const void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
     m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,

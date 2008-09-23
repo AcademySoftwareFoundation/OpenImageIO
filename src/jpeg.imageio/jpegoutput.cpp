@@ -58,7 +58,7 @@ class JpgOutput : public ImageOutput {
     virtual bool supports (const char *property) const { return false; }
     virtual bool open (const char *name, const ImageSpec &spec,
                        bool append=false);
-    virtual bool write_scanline (int y, int z, ParamBaseType format,
+    virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
     bool close ();
  private:
@@ -146,7 +146,7 @@ JpgOutput::open (const char *name, const ImageSpec &newspec,
 
 
 bool
-JpgOutput::write_scanline (int y, int z, ParamBaseType format,
+JpgOutput::write_scanline (int y, int z, TypeDesc format,
                            const void *data, stride_t xstride)
 {
     y -= m_spec.y;
