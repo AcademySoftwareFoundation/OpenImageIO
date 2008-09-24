@@ -149,7 +149,11 @@ IvImage::longinfo () const
                 chanlist += ", ";
         }
         m_longinfo += html_table_row ("Channel list", chanlist);
+        const char *cspacename [] = { "unknown", "linear", "gamma %g", "sRGB" };
+        m_longinfo += html_table_row ("Color space",
+                  format (cspacename[(int)m_spec.linearity], m_spec.gamma));
 
+        m_longinfo += html_table_row ("File format", file_format_name());
         m_longinfo += html_table_row ("Data format", m_spec.format.c_str());
         m_longinfo += html_table_row ("Data size",
              format("%.2f MB", (float)m_spec.image_bytes() / (1024.0*1024.0)));
@@ -168,8 +172,6 @@ IvImage::longinfo () const
             m_longinfo += html_table_row ("Alpha channel", m_spec.alpha_channel);
         if (m_spec.z_channel >= 0)
             m_longinfo += html_table_row ("Depth (z) channel", m_spec.z_channel);
-        // gamma
-        // image format
 
         BOOST_FOREACH (const ImageIOParameter &p, m_spec.extra_attribs) {
             if (p.type() == PT_STRING)

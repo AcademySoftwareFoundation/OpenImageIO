@@ -99,6 +99,7 @@ ImageBuf::init_spec (const std::string &filename)
         std::cerr << OpenImageIO::error_message() << "\n";
     }
     if (in && in->open (filename.c_str(), m_spec)) {
+        m_fileformat = in->format_name ();
         ImageSpec tempspec;
         m_nsubimages = 1;
         while (in->seek_subimage (m_nsubimages, tempspec))
@@ -129,6 +130,7 @@ ImageBuf::read (int subimage, bool force,
         return false;
     }
     if (in->open (m_name.c_str(), m_spec)) {
+        m_fileformat = in->format_name ();
         ImageSpec tempspec;
         m_nsubimages = 1;
         while (in->seek_subimage (m_nsubimages, tempspec))

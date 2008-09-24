@@ -34,6 +34,7 @@
 #include <boost/foreach.hpp>
 
 #include "argparse.h"
+#include "strutil.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
@@ -92,19 +93,9 @@ print_info (const std::string &filename, ImageInput *input,
                 printf (" x %d", spec.tile_depth);
             printf ("\n");
         }
-        switch (spec.linearity) {
-        case ImageSpec::Linear :
-            printf ("    linear color space\n");
-            break;
-        case ImageSpec::GammaCorrected :
-            printf ("    gamma-corrected: %g\n", spec.gamma);
-            break;
-        case ImageSpec::sRGB :
-            printf ("    sRGB color space\n");
-            break;
-        default:
-            printf ("    unknown color space\n");
-        }
+        const char *cspacename [] = { "unknown", "linear", "gamma %g", "sRGB" };
+        printf ("    Color space: %s\n",
+                Strutil::format(cspacename[(int)spec.linearity], spec.gamma).c_str());
         BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
             printf ("    %s: ", p.name().c_str());
             if (p.type() == PT_STRING)

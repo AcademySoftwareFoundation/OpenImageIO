@@ -84,6 +84,8 @@ public:
 
     const std::string & name (void) const { return m_name; }
 
+    const std::string & file_format_name (void) const { return m_fileformat; }
+
     /// Return the index of the subimage are we currently viewing
     ///
     int subimage () const { return m_current_subimage; }
@@ -150,6 +152,7 @@ public:
 
 protected:
     std::string m_name;          ///< Filename of the image
+    std::string m_fileformat;    ///< File format name
     int m_nsubimages;            ///< How many subimages are there?
     int m_current_subimage;      ///< Current subimage we're viewing
     ImageSpec m_spec;            ///< Describes the image (size, etc)

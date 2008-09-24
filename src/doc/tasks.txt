@@ -55,7 +55,7 @@ Before first alpha release
             iv - annotate
             iv - fg/bg images
             exr - ripmaps
-            iv - put into background mode
+DONE        iv - put into background mode
             iv - save window as
             iv - save selection as
             iv - select all images
