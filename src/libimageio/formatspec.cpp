@@ -76,40 +76,40 @@ set_default_quantize (TypeDesc format,
                       int &quant_min, int &quant_max, float &quant_dither)
 {
     switch (format.basetype) {
-    case PT_INT8:
+    case TypeDesc::INT8:
         set_default_quantize <char> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
-    case PT_UNKNOWN:
-    case PT_UINT8:
+    case TypeDesc::UNKNOWN:
+    case TypeDesc::UINT8:
         set_default_quantize <unsigned char> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
-    case PT_INT16:
+    case TypeDesc::INT16:
         set_default_quantize <short> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
-    case PT_UINT16:
+    case TypeDesc::UINT16:
         set_default_quantize <unsigned short> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
-    case PT_INT:
+    case TypeDesc::INT:
         set_default_quantize <int> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
-    case PT_UINT:
+    case TypeDesc::UINT:
         set_default_quantize <unsigned int> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
-    case PT_HALF:
+    case TypeDesc::HALF:
         set_default_quantize <half> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
-    case PT_FLOAT:
+    case TypeDesc::FLOAT:
         set_default_quantize <float> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
-    case PT_DOUBLE:
+    case TypeDesc::DOUBLE:
         set_default_quantize <double> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
@@ -179,27 +179,27 @@ ImageSpec::format_from_quantize (int quant_black, int quant_white,
         quant_min == 0 && quant_max == 0) {
         // Per RenderMan and Gelato heuristics, if all quantization
         // values are zero, assume they want a float output.
-        return PT_FLOAT;
+        return TypeDesc::FLOAT;
     } else if (quant_min >= std::numeric_limits <unsigned char>::min() && 
                quant_max <= std::numeric_limits <unsigned char>::max()) {
-        return PT_UINT8;
+        return TypeDesc::UINT8;
     } else if (quant_min >= std::numeric_limits <char>::min() && 
                quant_max <= std::numeric_limits <char>::max()) {
-        return PT_INT8;
+        return TypeDesc::INT8;
     } else if (quant_min >= std::numeric_limits <unsigned short>::min() && 
                quant_max <= std::numeric_limits <unsigned short>::max()) {
-        return PT_UINT16;
+        return TypeDesc::UINT16;
     } else if (quant_min >= std::numeric_limits <short>::min() && 
                quant_max <= std::numeric_limits <short>::max()) {
-        return PT_INT16;
+        return TypeDesc::INT16;
     } else if (quant_min >= std::numeric_limits <int>::min() && 
                quant_max <= std::numeric_limits <int>::max()) {
-        return PT_INT;
+        return TypeDesc::INT;
     } else if (quant_min >= std::numeric_limits <unsigned int>::min() && 
                quant_max <= std::numeric_limits <unsigned int>::max()) {
-        return PT_UINT;
+        return TypeDesc::UINT;
     } else {
-        return PT_UNKNOWN;
+        return TypeDesc::UNKNOWN;
     }
 }
 
@@ -266,12 +266,12 @@ ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
     if (casesensitive) {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)
             if (extra_attribs[i].name() == name &&
-                (searchtype == PT_UNKNOWN || searchtype == extra_attribs[i].type()))
+                (searchtype == TypeDesc::UNKNOWN || searchtype == extra_attribs[i].type()))
                 return &extra_attribs[i];
     } else {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)
             if (iequals (extra_attribs[i].name().string(), name) &&
-                (searchtype == PT_UNKNOWN || searchtype == extra_attribs[i].type()))
+                (searchtype == TypeDesc::UNKNOWN || searchtype == extra_attribs[i].type()))
                 return &extra_attribs[i];
     }
     return NULL;
@@ -286,12 +286,12 @@ ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
     if (casesensitive) {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)
             if (extra_attribs[i].name() == name &&
-                (searchtype == PT_UNKNOWN || searchtype == extra_attribs[i].type()))
+                (searchtype == TypeDesc::UNKNOWN || searchtype == extra_attribs[i].type()))
                 return &extra_attribs[i];
     } else {
         for (size_t i = 0;  i < extra_attribs.size();  ++i)
             if (iequals (extra_attribs[i].name().string(), name) &&
-                (searchtype == PT_UNKNOWN || searchtype == extra_attribs[i].type()))
+                (searchtype == TypeDesc::UNKNOWN || searchtype == extra_attribs[i].type()))
                 return &extra_attribs[i];
     }
     return NULL;
