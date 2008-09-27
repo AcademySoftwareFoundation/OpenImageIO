@@ -26,7 +26,7 @@ out its resolution, and read the pixels (converting them into
         yres = spec.height;
         channels = spec.nchannels;
         pixels = new unsigned char [xres*yres*channels];
-        in->read_image (PT_UINT8, pixels);
+        in->read_image (TypeDesc::UINT8, pixels);
         in->close ();
         delete in;
 \end{code}
@@ -69,7 +69,7 @@ out its resolution, and read the pixels (converting them into
   is the native format of the data in the file (in this case, we request
   that it be automatically converted to unsigned 8-bit integers).
   \begin{code}
-        in->read_image (PT_UINT8, pixels);
+        in->read_image (TypeDesc::UINT8, pixels);
   \end{code}
 \item Close the file, destroy and free the \ImageInput we had created,
   and perform all other cleanup and release of any resources used by
@@ -109,7 +109,7 @@ call:
         in->open (filename, spec);
         unsigned char *scanline = new unsigned char [spec.width*spec.channels];
         for (int y = 0;  y < yres;  ++y) {
-            in->read_scanline (y, 0, PT_UINT8, scanline);
+            in->read_scanline (y, 0, TypeDesc::UINT8, scanline);
             ... process data in scanline[0..width*channels-1] ...
         }
         delete [] scanline;
@@ -120,7 +120,7 @@ call:
 The first two arguments to \readscanline specify which scanline
 is being read by its vertical ($y$) scanline number (beginning with 0)
 and, for volume images, its slice ($z$) number (the slice number should
-be 0 for 2D non-volume images).  This is followed by a \ParamBaseType
+be 0 for 2D non-volume images).  This is followed by a \TypeDesc
 describing the data type of the pixel buffer you are supplying, and a
 pointer to the pixel buffer itself.  Additional optional arguments
 describe the data stride, which can be ignored for contiguous data (use
@@ -153,7 +153,7 @@ using \readscanline, not \readtile.
             unsigned char *tile = new unsigned char [tilesize * spec.channels];
             for (int y = 0;  y < yres;  y += spec.tile_height) {
                 for (int x = 0;  x < xres;  x += spec.tile_width) {
-                    in->read_tile (x, y, 0, PT_UINT8, tile);
+                    in->read_tile (x, y, 0, TypeDesc::UINT8, tile);
                     ... process the pixels in tile[] ..
                 }
             }
@@ -166,7 +166,7 @@ using \readscanline, not \readtile.
 The first three arguments to \readtile specify which tile is
 being read by the pixel coordinates of any pixel contained in the
 tile: $x$ (column), $y$ (scanline), and $z$ (slice, which should always
-be 0 for 2D non-volume images).  This is followed by a \ParamBaseType
+be 0 for 2D non-volume images).  This is followed by a \TypeDesc
 describing the data format of the pixel buffer you are supplying, and a
 pointer to the pixel buffer.  Pixel data will be written to your buffer
 in order of increasing slice, increasing
@@ -192,7 +192,7 @@ range).  But \product is significantly more flexible.
 
 You may request that the pixels be stored in any of several formats.
 This is done merely by passing the {\cf read} function the data type
-of your pixel buffer, as one of the enumerated type \ParamBaseType.
+of your pixel buffer, as one of the enumerated type \TypeDesc.
 
 %FIXME
 %Individual file formats, and therefore \ImageInput implementations, may
@@ -221,7 +221,7 @@ float values.
         int numpixels = spec.width * spec.height;
         float pixels = new float [numpixels * channels];
         ...
-        in->read_image (PT_FLOAT, pixels);
+        in->read_image (TypeDesc::FLOAT, pixels);
 \end{code}
 
 \noindent Note that \readscanline and \readtile have a parameter that
@@ -282,7 +282,7 @@ flexible functionality.  A few representative examples follow:
         unsigned char pixels[spec.width * spec.height * spec.nchannels];
         int scanlinesize = spec.width * spec.nchannels * sizeof(pixels[0]);
         ...
-        in->read_image (PT_UINT8,
+        in->read_image (TypeDesc::UINT8,
                         (char *)pixels + (yres-1)*scanlinesize,  // offset to last
                         AutoStride,                      // default x stride
                         -scanlinesize,                   // special y stride
@@ -296,7 +296,7 @@ flexible functionality.  A few representative examples follow:
         int pixelsize = spec.nchannels * sizeof(pixels[0]);
         int scanlinesize = xpec.width * pixelsize;
         ...
-        in->read_tile (x, y, 0, PT_UINT8,
+        in->read_tile (x, y, 0, TypeDesc::UINT8,
                        (char *)pixels + y*scanlinesize + x*pixelsize,
                        pixelsize,
                        scanlinesize);
@@ -404,15 +404,16 @@ should never be transformed by your application.
 \subsubsection{Arbitrary metadata}
 
 All other metadata found in the file will be stored in the
-\ImageSpec's {\cf extra_attribs} field, which is a vector
-of {\cf ImageIOParameter} structures.  Each {\cf ImageIOParameter}
-stores one metadatum consisting of a name, type (specified by 
-a \ParamBaseType), number of values, and data pointer.
+\ImageSpec's {\cf extra_attribs} field, which is a 
+\ParamValueList, which is itself essentially a vector of
+\ParamValue instances.  Each \ParamValue
+stores one meta-datum consisting of a name, type (specified by 
+a \TypeDesc), number of values, and data pointer.
 
 If you know the name of a specific piece of metadata you want to use,
 you can find it using the {\cf ImageSpec::find_attribute()}
-method, which returns a pointer to the matching {\cf ImageIOParameter},
-or {\cf NULL} if no match was found.  An optional {\cf ParamType}
+method, which returns a pointer to the matching \ParamValue,
+or {\cf NULL} if no match was found.  An optional \TypeDesc
 argument can narrow the search to only parameters that match the
 specified type as well as the name.  Below is an
 example that looks for orientation information, expecting it to consist 
@@ -423,7 +424,7 @@ of a single integer:
         ImageSpec spec;
         in->open (filename, spec);
         ...
-        ImageIOParameter *p = spec.find_attribute ("Orientation", PT_INT);
+        ParamValue *p = spec.find_attribute ("Orientation", TypeDesc::INT);
         if (p) {
             int orientation = * (int *) p->data();
         } else {
@@ -432,7 +433,7 @@ of a single integer:
 \end{code}
 
 By convention, \ImageInput plugins will save all integer metadata as
-32-bit integers ({\cf PT_INT} or {\cf PT_UINT}), even if the file format
+32-bit integers ({\cf TypeDesc::INT} or {\cf TypeDesc::UINT}), even if the file format
 dictates that a particular item is stored in the file as a 8- or 16-bit
 integer.  This is just to keep client applications from having to deal
 with all the types.  Since there is relatively little metadata compared
@@ -445,15 +446,15 @@ This can be accomplished using the technique of the following example:
 
 \begin{code}
         for (size_t i = 0;  i < spec.extra_attribs.size();  ++i) {
-            const ImageIOParameter &p (spec.extra_attribs[i]);
+            const ParamValue &p (spec.extra_attribs[i]);
             printf ("    \%s: ", p.name.c_str());
-            if (p.type() == PT_STRING)
+            if (p.type() == TypeDesc::STRING)
                 printf ("\"\%s\"", *(const char **)p.data());
-            else if (p.type() == PT_FLOAT)
+            else if (p.type() == TypeDesc::FLOAT)
                 printf ("\%g", *(const float *)p.data());
-            else if (p.type() == PT_INT)
+            else if (p.type() == TypeDesc::INT)
                 printf ("\%d", *(const int *)p.data());
-            else if (p.type() == PT_UINT)
+            else if (p.type() == TypeDesc::UINT)
                 printf ("\%u", *(const unsigned int *)p.data());
             else
                 printf ("<unknown data type>");
@@ -524,7 +525,7 @@ multi-image files:
             int npixels = spec.width * spec.height;
             int nchannels = spec.nchannels;
             unsigned char *pixels = new unsigned char [npixels * nchannels];
-            in->read_image (PT_UINT8, pixels);
+            in->read_image (TypeDesc::UINT8, pixels);
 
             ... do whatever you want with this level, in pixels ...
 
@@ -612,7 +613,7 @@ elaborated with error checking and reporting:
         channels = spec.nchannels;
         pixels = new unsigned char [xres*yres*channels];
 
-        if (! in->read_image (PT_UINT8, pixels)) {
+        if (! in->read_image (TypeDesc::UINT8, pixels)) {
             std::cerr << "Could read pixels from " << filename 
                       << ", error = " << in->error_message() << "\n";
             delete in;
@@ -688,7 +689,7 @@ transparently close, reopen, and sequentially read through prior
 subimages.
 \apiend
 
-\apiitem{bool {\ce read_scanline} (int y, int z, ParamBaseType format, void *data,\\
+\apiitem{bool {\ce read_scanline} (int y, int z, TypeDesc format, void *data,\\
   \bigspc                      stride_t xstride=AutoStride)}
 
 Read the scanline that includes pixels $(*,y,z)$ into {\kw data},
@@ -696,7 +697,7 @@ converting if necessary from the native data format of the file into the
 {\kw format} specified ($z=0$ for non-volume images).  The {\kw xstride}
 value gives the data spacing of adjacent pixels (in bytes).  Strides set
 to the special value {\kw AutoStride} imply contiguous data, i.e., \\
-  \spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+  \spc {\kw xstride} $=$ {\kw spec.nchannels*format.size()} \\
 The \ImageInput is expected to give the appearance of random access
 --- in other words, if it can't randomly seek to the given scanline, it
 should transparently close, reopen, and sequentially read through prior
@@ -711,7 +712,7 @@ This simplified version of {\kw read_scanline()} reads to contiguous
 float pixels.
 \apiend
 
-\apiitem{bool {\ce read_tile} (int x, int y, int z, ParamBaseType format,
+\apiitem{bool {\ce read_tile} (int x, int y, int z, TypeDesc format,
                             void *data, \\ \bigspc stride_t xstride=AutoStride,
                             stride_t ystride=AutoStride, \\ \bigspc stride_t
                             zstride=AutoStride)}
@@ -721,7 +722,7 @@ if necessary from the native data format of the file into the
 give the data spacing of adjacent pixels, scanlines, and volumetric
 slices, respectively (measured in bytes).  Strides set to the special
 value of {\kw AutoStride} imply contiguous data, i.e., \\
-\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*format.size()} \\
 \spc {\kw ystride} $=$ {\kw xstride*spec.tile_width} \\
 \spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
 The \ImageInput is expected to give the appearance of random access
@@ -737,7 +738,7 @@ so there's no reason for each format plugin to override this method.
 Simple version of {\kw read_tile} that reads to contiguous float pixels.
 \apiend
 
-\apiitem{bool {\ce read_image} (ParamBaseType format, void *data, \\
+\apiitem{bool {\ce read_image} (TypeDesc format, void *data, \\
                              \bigspc stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride, \\
                              \bigspc stride_t zstride=AutoStride, \\
@@ -752,7 +753,7 @@ format.  Read tiles or scanlines automatically.
 
 Strides set to the special value of {\kw AutoStride} imply contiguous
 data, i.e., \\
-\spc {\kw xstride} $=$ {\kw spec.nchannels * ParamBaseTypeSize(format)} \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels * format.size()} \\
 \spc {\kw ystride} $=$ {\kw xstride * spec.width} \\
 \spc {\kw zstride} $=$ {\kw ystride * spec.height} \\
 The function will internally either call {\kw read_scanline} or 
@@ -768,7 +769,7 @@ Periodically, it will be called as follows:\\
 (between 0.0 and 1.0) that has been read thus far.
 \apiend
 
-\apiitem{bool read_image (float *data)}
+\apiitem{bool {\ce read_image} (float *data)}
 Simple version of {\kw read_image()} reads to contiguous float pixels.
 \apiend
 

@@ -51,6 +51,9 @@
 \def\ImageInput{{\codefont ImageInput}\xspace}
 \def\ImageOutput{{\codefont ImageOutput}\xspace}
 \def\ParamBaseType{{\codefont ParamBaseType}\xspace}
+\def\TypeDesc{{\codefont TypeDesc}\xspace}
+\def\ParamValue{{\codefont ParamValue}\xspace}
+\def\ParamValueList{{\codefont ParamValueList}\xspace}
 %\def\opencall{{\codefont open()}\xspace}
 \def\writeimage{{\codefont write\_image()}\xspace}
 \def\writescanline{{\codefont write\_scanline()}\xspace}
@@ -89,6 +92,20 @@ Date: 28 August, 2008
 
 %\include{speccopyr}
 
+\vspace*{2in}
+
+\begin{centering}
+\emph{I kinda like ``Oy-e-oh'' with a bit of a groaning Yiddish accent, as in\\
+``OIIO, did you really write yet another file I/O library?''} \\
+\end{centering}
+\medskip
+\begin{centering}
+\center Dan Wexler \\
+\end{centering}
+
+
+
+
 \setcounter{tocdepth}{1}
 \tableofcontents
 
@@ -113,17 +130,19 @@ Date: 28 August, 2008
 
 \chapter{Image Buffer}
 
-\chapter{Texture System}
+\include{texturesys}
 
 \part{Image Utilities}
 
 \chapter{The {\kw iv} Image Viewer}
 \chapter{Getting Image information With {\kw iinfo}}
 \chapter{Converting Image Formats With {\kw iconvert}}
+\chapter{Creating MIP-mapped texture files with {\cf maketx}}
 
 \part{Appendices}
 \begin{appendix}
 
+%\include{typedesc}
 \chapter{Building OpenImageIO}
 
 %\include{header}

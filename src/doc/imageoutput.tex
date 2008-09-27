@@ -21,9 +21,9 @@ to a file:
         unsigned char pixels[xres*yres*channels];
 
         ImageOutput *out = ImageOutput::create (filename);
-        ImageSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
         out->open (filename, spec);
-        out->write_image (PT_UINT8, pixels);
+        out->write_image (TypeDesc::UINT8, pixels);
         out->close ();
         delete out;
 \end{code}
@@ -43,7 +43,7 @@ to a file:
   480$), number of color channels (3), and data format (unsigned 8-bit
   integer).
   \begin{code}
-        ImageSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
         out->open (filename, spec);
   \end{code}
 \item Write the entire image, hiding all details of the encoding of
@@ -53,7 +53,7 @@ to a file:
   for disk storage, but if they had been different, {\kw write_image()}
   would do all the conversions for us).
   \begin{code}
-        out->write_image (PT_UINT8, &pixels);
+        out->write_image (TypeDesc::UINT8, &pixels);
   \end{code}
 \item Close the file, destroy and free the \ImageOutput we had created,
   and perform all other cleanup and release of any resources needed by
@@ -93,7 +93,7 @@ call:
         int z = 0;   // Always zero for 2D images
         for (int y = 0;  y < yres;  ++y) {
             ... generate data in scanline[0..xres*channels-1] ...
-            out->write_scanline (y, z, PT_UINT8, scanline);
+            out->write_scanline (y, z, TypeDesc::UINT8, scanline);
         }
         out->close ();
         ...
@@ -102,7 +102,7 @@ call:
 The first two arguments to \writescanline specify which scanline is
 being written by its vertical ($y$) scanline number (beginning with 0)
 and, for volume images, its slice ($z$) number (the slice number should
-be 0 for 2D non-volume images).  This is followed by a \ParamBaseType
+be 0 for 2D non-volume images).  This is followed by a \TypeDesc
 describing the data you are supplying, and a pointer to the pixel data
 itself.  Additional optional arguments describe the data stride, which
 can be ignored for contiguous data (use of strides is explained in
@@ -144,7 +144,7 @@ tiled output.
 
 \begin{code}
         int tilesize = 64;
-        ImageSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
         spec.tile_width = tilesize;
         spec.tile_height = tilesize;
         out->open (filename, spec);
@@ -164,7 +164,7 @@ individual plugin.
         for (int y = 0;  y < yres;  y += tilesize) {
             for (int x = 0;  x < xres;  x += tilesize) {
                 ... generate data in tile[] ..
-                out->write_tile (x, y, z, PT_UINT8, tile);
+                out->write_tile (x, y, z, TypeDesc::UINT8, tile);
             }
         }
         out->close ();
@@ -174,7 +174,7 @@ individual plugin.
 The first three arguments to \writetile specify which tile is
 being written by the pixel coordinates of any pixel contained in the
 tile: $x$ (column), $y$ (scanline), and $z$ (slice, which should always
-be 0 for 2D non-volume images).  This is followed by a \ParamBaseType
+be 0 for 2D non-volume images).  This is followed by a \TypeDesc
 describing the data you are supplying, and a pointer to the tile's pixel
 data itself, which should be ordered by increasing slice, increasing
 scanline within each slice, and increasing column within each scanline.
@@ -214,7 +214,7 @@ the {\kw write_rectangle()} API call:
 \begin{code}
         unsigned int rect[...];
         ... generate data in rect[] ..
-        out->write_rectangle (xmin, xmax, ymin, ymax, zmin, zmax, PT_UINT8, rect);
+        out->write_rectangle (xmin, xmax, ymin, ymax, zmin, zmax, TypeDesc::UINT8, rect);
         ...
 \end{code}
 
@@ -226,7 +226,7 @@ is therefore:
 \begin{code}
         (xmax-xmin+1) * (ymax-ymin+1) * (zmax-zmin+1)
 \end{code}
-\noindent This is followed by a \ParamBaseType describing the data you
+\noindent This is followed by a \TypeDesc describing the data you
 are supplying, and a pointer to the rectangle's pixel data itself, which
 should be ordered by increasing slice, increasing scanline within each
 slice, and increasing column within each scanline.  Additional optional
@@ -248,7 +248,7 @@ formats.  This is done by setting the {\kw format} field of the
 construction of the \ImageSpec, as in the following example
 that requests a spec that stores data as 16-bit unsigned integers:
 \begin{code}
-        ImageSpec spec (xres, yres, channels, PT_UINT16);
+        ImageSpec spec (xres, yres, channels, TypeDesc::UINT16);
 \end{code}
 
 \noindent Or, for an \ImageSpec that has already been
@@ -258,7 +258,7 @@ spec to the defaults for the data format you have specified).
 
 \begin{code}
         ImageSpec spec (...);
-        spec.set_format (PT_UINT16);
+        spec.set_format (TypeDesc::UINT16);
 \end{code}
 
 Note that resetting the format must be done \emph{before} passing the
@@ -286,12 +286,12 @@ automatically:
 
 \begin{code}
         ImageOutput *out = ImageOutput::create ("myfile.tif");
-        ImageSpec spec (xres, yres, channels, PT_UINT16);
+        ImageSpec spec (xres, yres, channels, TypeDesc::UINT16);
         out->open (filename, spec);
         ...
         float pixels [xres*yres*channels];
         ...
-        out->write_image (PT_FLOAT, pixels);
+        out->write_image (TypeDesc::FLOAT, pixels);
 \end{code}
 
 \noindent Note that \writescanline, \writetile, and {\cf
@@ -346,7 +346,7 @@ flexible functionality.  A few representative examples follow:
         unsigned char pixels[xres*yres*channels];
         int scanlinesize = xres * channels * sizeof(pixels[0]);
         ...
-        out->write_image (PT_UINT8,
+        out->write_image (TypeDesc::UINT8,
                           (char *)pixels + (yres-1)*scanlinesize,  // offset to last
                           AutoStride,                      // default x stride
                           -scanlinesize,                   // special y stride
@@ -359,7 +359,7 @@ flexible functionality.  A few representative examples follow:
         int pixelsize = channels * sizeof(pixels[0]);
         int scanlinesize = xres * pixelsize;
         ...
-        out->write_tile (x, y, 0, PT_UINT8,
+        out->write_tile (x, y, 0, TypeDesc::UINT8,
                          (char *)pixels + y*scanlinesize + x*pixelsize,
                          pixelsize,
                          scanlinesize);
@@ -376,11 +376,11 @@ flexible functionality.  A few representative examples follow:
 
         // File representation is 1 channel
         ImageOutput *out = ImageOutput::create (filename);
-        ImageSpec spec (xres, yres, 1, PT_UINT8);
+        ImageSpec spec (xres, yres, 1, TypeDesc::UINT8);
         out->open (filename, spec);
 
         // Use strides to write out a one-channel "slice" of the image
-        out->write_image (PT_UINT8,
+        out->write_image (TypeDesc::UINT8,
                           (char *)pixels + 3*channelsize,  // offset to chan 3
                           channels*channelsize,            // 4 channel x stride
                           AutoStride,                      // default y stride
@@ -442,7 +442,7 @@ the full data, if it was all present).
         unsigned char pixels [cropwidth * croplength * channels]; // Crop size!
         ...
         ImageOutput *out = ImageOutput::create (filename);
-        ImageSpec spec (cropwidth, croplength, channels, PT_UINT8);
+        ImageSpec spec (cropwidth, croplength, channels, TypeDesc::UINT8);
         spec.full_width = fullwidth;
         spec.full_length = fulllength;
         spec.x = xorigin;
@@ -451,7 +451,7 @@ the full data, if it was all present).
         ...
         int z = 0;   // Always zero for 2D images
         for (int y = yorigin;  y < yorigin+croplength;  ++y) {
-            out->write_scanline (y, z, PT_UINT8, (y-yorigin)*cropwidth*channels);
+            out->write_scanline (y, z, TypeDesc::UINT8, (y-yorigin)*cropwidth*channels);
         }
         out->close ();
 \end{code}
@@ -495,7 +495,7 @@ as the number of color channels in your image.  Here is an example:
 
 \begin{code}
         int channels = 4;
-        ImageSpec spec (width, length, channels, PT_UINT8);
+        ImageSpec spec (width, length, channels, TypeDesc::UINT8);
         spec.channelnames.clear ();
         spec.channelnames.push_back ("R");
         spec.channelnames.push_back ("G");
@@ -509,7 +509,7 @@ RGB, per-channel opacity, and texture $s,t$ coordinates for each pixel.
 
 \begin{code}
         int channels = 8;
-        ImageSpec spec (width, length, channels, PT_UINT8);
+        ImageSpec spec (width, length, channels, TypeDesc::UINT8);
         spec.channelnames.clear ();
         spec.channelnames.push_back ("R");
         spec.channelnames.push_back ("G");
@@ -650,7 +650,7 @@ These are convenience routines for metadata that consist of a single
 value of one of these common types.  For other data types, or more
 complex arrangements, you can use the more general form of {\cf
   attribute()}, which takes arguments giving the name, type (as a
-\ParamBaseType), number of values (1 for a single value, $>1$ for an
+\TypeDesc), number of values (1 for a single value, $>1$ for an
   array), and then a pointer to the data values.  For example,
 
 \begin{code}
@@ -658,11 +658,11 @@ complex arrangements, you can use the more general form of {\cf
 
         // Attach a 4x4 matrix to describe the camera coordinates
         float mymatrix[16] = { ... };
-        spec.attribute ("worldtocamera", PT_MATRIX, 1, &mymatrix);
+        spec.attribute ("worldtocamera", TypeDesc(FLOAT,MATRIX), 1, &mymatrix);
 
         // Attach an array of two floats giving the CIE neutral color
         float neutral[2] = { ... };
-        spec.attribute ("adoptedNeutral", PT_FLOAT, 2, &neutral);
+        spec.attribute ("adoptedNeutral", TypeDesc::FLOAT, 2, &neutral);
 \end{code}
 
 In general, most image file formats (and therefore most \ImageOutput
@@ -730,16 +730,16 @@ quantization.
 {\bf Data Format} & {\bf black} & {\bf white} & {\bf min} & {\bf max} & {\bf
   dither} \\
 \hline
-{\cf PT_UINT8}  & 0 &        255 &     0 & 255 & 0.5 \\
-{\cf PT_INT8}   & 0 &        127 &  -128 & 127 & 0.5 \\
-{\cf PT_UINT16} & 0 &      65535 &     0 & 65535 & 0.5 \\
-{\cf PT_INT16}  & 0 &      32767 & -32768 & 32767 & 0.5 \\
-{\cf PT_UINT}   & 0 & 4294967295 & 0 & 4294967295 & 0.5 \\
-{\cf PT_INT}    & 0 & 2147483647 & -2147483648 & 2147483647 & 0.5 \\
+{\cf UINT8}  & 0 &        255 &     0 & 255 & 0.5 \\
+{\cf INT8}   & 0 &        127 &  -128 & 127 & 0.5 \\
+{\cf UINT16} & 0 &      65535 &     0 & 65535 & 0.5 \\
+{\cf INT16}  & 0 &      32767 & -32768 & 32767 & 0.5 \\
+{\cf UINT}   & 0 & 4294967295 & 0 & 4294967295 & 0.5 \\
+{\cf INT}    & 0 & 2147483647 & -2147483648 & 2147483647 & 0.5 \\
 \hline
-{\cf PT_FLOAT} & & & & & \\
-{\cf PT_HALF} & 0 & 1 & N/A & N/A & 0 \\
-{\cf PT_DOUBLE} & & & & & \\
+{\cf FLOAT} & & & & & \\
+{\cf HALF} & 0 & 1 & N/A & N/A & 0 \\
+{\cf DOUBLE} & & & & & \\
 \hline
 \end{tabular} \\
 \smallskip
@@ -755,7 +755,7 @@ in which 1.0 maps to 16383 (14 bits of positive range) rather than
 filling the full 16 bit:
 
 \begin{code}
-        ImageSpec spec (width, length, channels, PT_UINT16);
+        ImageSpec spec (width, length, channels, TypeDesc::UINT16);
         spec.quant_black  = 0;
         spec.quant_white  = 16383;
         spec.quant_min    = 0;
@@ -833,13 +833,13 @@ used for texture mapping) that shows how to use multi-image:
         }
 
         // Set up spec for the highest resolution
-        ImageSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
 
         // Write images, halving every time, until we're down to
         // 1 pixel in either dimension
         while (spec.width >= 1 && spec.height >= 1) {
             out->open (filename, spec, true /* append mode */);
-            out->write_image (PT_UINT8, pixels);
+            out->write_image (TypeDesc::UINT8, pixels);
             // Assume halve() resamples the image to half resolution
             halve (pixels, spec.width, spec.height);
             // Don't forget to change spec for the next iteration
@@ -928,7 +928,7 @@ elaborated with error checking and reporting:
                       << OpenImageIO::error_message() << "\n";
             return;
         }
-        ImageSpec spec (xres, yres, channels, PT_UINT8);
+        ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
 
         if (! out->open (filename, spec)) {
             std::cerr << "Could not open " << filename 
@@ -937,7 +937,7 @@ elaborated with error checking and reporting:
             return;
         }
 
-        if (! out->write_image (PT_UINT8, pixels)) {
+        if (! out->write_image (TypeDesc::UINT8, pixels)) {
             std::cerr << "Could write pixels to " << filename 
                       << ", error = " << out->error_message() << "\n";
             delete out;
@@ -1035,7 +1035,7 @@ Closes the currently open file associated with this \ImageOutput
 and frees any memory or resources associated with it.
 \apiend
 
-\apiitem{bool {\ce write_scanline} (int y, int z, ParamBaseType format,
+\apiitem{bool {\ce write_scanline} (int y, int z, TypeDesc format,
      const void *data, \\
 \bigspc stride_t xstride=AutoStride)}
 
@@ -1043,7 +1043,7 @@ Write a full scanline that includes pixels $(*,y,z)$.  For 2D non-volume
 images, $z$ is ignored.  The {\kw xstride} value gives the distance
 between successive pixels (in bytes).  Strides set to the special value
 {\kw AutoStride} imply contiguous data, i.e., \\ \spc {\kw xstride} $=$
-{\kw spec.nchannels*ParamBaseTypeSize(format)} \\ This method
+{\kw spec.nchannels*format.size()} \\ This method
 automatically converts the data from the specified {\kw format} to the
 actual output format of the file.  Return {\kw true} for success, {\kw
   false} for failure.  It is a failure to call \writescanline with an
@@ -1052,7 +1052,7 @@ access.
 
 \apiend
 
-\apiitem{bool {\ce write_tile} (int x, int y, int z, ParamBaseType format,
+\apiitem{bool {\ce write_tile} (int x, int y, int z, TypeDesc format,
                              const void *data, \\ \bigspc stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride, \\ \bigspc stride_t zstride=AutoStride)}
 
@@ -1061,7 +1061,7 @@ non-volume images, $z$ is ignored.  The three stride values give the
 distance (in bytes) between successive pixels, scanlines, and volumetric
 slices, respectively.  Strides set to the special value {\kw AutoStride}
 imply contiguous data, i.e., \\
-\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*format.size()} \\
 \spc {\kw ystride} $=$ {\kw xstride*spec.tile_width} \\
 \spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
 This method automatically converts the
@@ -1073,7 +1073,7 @@ format driver does not support random access.
 \apiend
 
 \apiitem{bool {\ce write_rectangle} ({\small int xmin, int xmax, int ymin, int ymax,
-                                  int zmin, int zmax,} \\ \bigspc ParamBaseType format,
+                                  int zmin, int zmax,} \\ \bigspc TypeDesc format,
                                   const void *data, \\ \bigspc stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride, \\
                                   \bigspc stride_t zstride=AutoStride)}
@@ -1084,7 +1084,7 @@ over {\kw zmin}...{\kw zmax}.  The three stride values give the distance
 (in bytes) between successive pixels, scanlines, and volumetric slices,
 respectively.  Strides set to the special value {\kw AutoStride} imply
 contiguous data, i.e.,\\
-\spc {\kw xstride} $=$ {\kw spec.nchannels*ParamBaseTypeSize(format)} \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels*format.size()} \\
 \spc {\kw ystride} $=$ {\kw xstride*(xmax-xmin+1)} \\
 \spc {\kw zstride} $=$ {\kw ystride*(ymax-ymin+1)}\\
 This method automatically converts the data from the specified 
@@ -1095,7 +1095,7 @@ for success, {\kw false} for failure.  It is a failure to call
 
 \apiend
 
-\apiitem{bool {\ce write_image} (ParamBaseType format, const void *data, \\
+\apiitem{bool {\ce write_image} (TypeDesc format, const void *data, \\
                               \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                               \\ \bigspc stride_t zstride=AutoStride, \\
                               \bigspc ProgressCallback progress_callback=NULL,\\
@@ -1106,7 +1106,7 @@ $\times$ {\kw spec.depth}
 pixels, with the given strides and in the desired format.
 Strides set to the special value {\kw AutoStride} imply contiguous data,
 i.e., \\
-\spc {\kw xstride} $=$ {\kw spec.nchannels * ParamBaseTypeSize(format)} \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels * format.size()} \\
 \spc {\kw ystride} $=$ {\kw xstride * spec.width} \\
 \spc {\kw zstride} $=$ {\kw ystride * spec.height}\\
 The function will internally either call \writescanline or 

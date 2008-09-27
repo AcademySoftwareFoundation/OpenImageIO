@@ -3,9 +3,6 @@
 
 
 
-%\section{Data Formats and \ParamBaseType}
-%\label{sec:dataformats}
-
 Welcome to \product!
 
 \bigskip
@@ -53,7 +50,7 @@ permissive BSD license.  So you should feel free to use any or all of
 source or proprietary, free or commercial.  You may also modify it on
 your own.  You are also encouraged to contribute to the continued
 development of \product and to share any improvements that you make on
-your own.
+your own, though you are by no means required to do so.
 
 \section{Simplifying Assumptions}
 
@@ -62,7 +59,7 @@ are many fine libraries that implement a single image format (including
 the excellent {\fn libtiff}, {\fn jpeg-6b}, and {\fn OpenEXR} that
 \product itself relies on).  Many libraries attempt to present a uniform
 API for reading and writing multiple image file formats.  Most of these
-support a fixed (if vast) set of image formats, though a few of these
+support a fixed set of image formats, though a few of these
 also attempt to provide an extensible set by using the plugin approach.
 
 But in our experience, these libraries are all flawed in one or more
@@ -96,7 +93,7 @@ making simplifying assumptions.  Among them:
     appear to the client as 8-bit unsigned grayscale images.
 
   \item Only fully elaborated, non-compressed data are are accepted
-    are returned by the API.  Compression or special encodings are
+    and returned by the API.  Compression or special encodings are
     handled entirely within an \product plugin.
 
   \item Color space is grayscale or RGB.  Non-spectral data, such as
@@ -136,7 +133,7 @@ for two decades.
 
 In the 1980's, every program I wrote that output images would have a
 simple, custom format and viewer.  I soon graduated to using a standard
-image file format (TIFF) with my own implementation to write it.  Then I
+image file format (TIFF) with my own library implementation.  Then I
 switched to Sam Leffler's stable and complete {\fn libtiff}.
 
 In the mid-to-late-1990's, I worked at Pixar as one of the main
@@ -160,7 +157,7 @@ Wexler, Jonathan Rice, and Eric Enderton, had an API
 called ``ImageIO.''  ImageIO was 
 \emph{much} more powerful and descriptive than ExDisplay, and had an
 API for \emph{reading} as well as writing images.  Gelato was not only
-``image format agnostic'' for its image output, but also for its
+``format agnostic'' for its image output, but also for its
 image input (textures, image viewer, and other image utilities).
 We released the API specification and headers (though not the
 library implementation) using the BSD open source license, firmly

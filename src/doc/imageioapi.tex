@@ -4,9 +4,9 @@
 
 
 
-\section{Data Formats and \ParamBaseType}
+\section{Data Type Descriptions: {\cf TypeDesc}}
 \label{sec:dataformats}
-\label{sec:ParamBaseType}
+\label{sec:TypeDesc}
 \index{data formats}
 
 There are two kinds of data that are important to \product:
@@ -21,45 +21,125 @@ There are two kinds of data that are important to \product:
 
 Both internal and file data is stored in a particular \emph{data format}
 that describes the numerical encoding of the values.  \product
-understands several types of data encodings, and there is an enumerated
-type \ParamBaseType, that provides labels used to describe these data
-types.  \product supports the following data format types:
+understands several types of data encodings, and there is 
+a special type, \TypeDesc, that allows their enumeration.
+A \TypeDesc describes a base data format type, aggregation into simple
+vector and matrix types, and an array length (if
+it's an array).
 
-\begin{description}
-\item[\halfspc\rm {\cf PT_UINT8}] unsigned 8-bit integer values ranging from
-  0..255, corresponding to the C/C++ {\kw unsigned char}.
-\item[\halfspc\rm {\cf PT_INT8}] signed 8-bit integer values ranging from
-  -128..127, corresponding to the C/C++ {\kw char}.
-\item[\halfspc\rm {\cf PT_UINT16}] unsigned 16-bit integer values ranging
-  from 0..65535, corresponding to the C/C++ {\kw unsigned short}.
-\item[\halfspc\rm {\cf PT_INT16}] unsigned 16-bit integer values ranging
-  from -32768..32767, corresponding to the C/C++ {\kw short}.
-\item[\halfspc\rm {\cf PT_UINT}] unsigned 32-bit integer values,
-  corresponding to the C/C++ {\kw unsigned int}.
-\item[\halfspc\rm {\cf PT_INT}] signed 32-bit integer values, corresponding
-  to the C/C++ {\kw int}.
-\item[\halfspc\rm {\cf PT_FLOAT}] 32-bit IEEE floating point values,
-  corresponding to the C/C++ {\kw float}.
-\item[\halfspc\rm {\cf PT_DOUBLE}] 64-bit IEEE floating point values,
-  corresponding to the C/C++ {\kw double}.
-\item[\halfspc\rm {\cf PT_HALF}] 16-bit floating point values in the format
+\TypeDesc supports the following base data format types, given by the
+enumerated type {\cf BASETYPE}:
+
+\medskip
+
+\begin{tabular}{l p{4.75in}}
+{\cf UINT8} &  8-bit integer values ranging from
+  0..255, corresponding to the C/C++ {\cf unsigned char}. \\
+{\cf INT8} &  8-bit integer values ranging from
+  -128..127, corresponding to the C/C++ {\cf char}. \\
+{\cf UINT16} &  16-bit integer values ranging
+  from 0..65535, corresponding to the C/C++ {\cf unsigned short}. \\
+{\cf INT16} &  16-bit integer values ranging
+  from -32768..32767, corresponding to the C/C++ {\cf short}. \\
+{\cf UINT} &  32-bit integer values,
+  corresponding to the C/C++ {\cf unsigned int}. \\
+{\cf INT} &  signed 32-bit integer values, corresponding
+  to the C/C++ {\cf int}. \\
+{\cf FLOAT} &  32-bit IEEE floating point values,
+  corresponding to the C/C++ {\cf float}. \\
+{\cf DOUBLE} &  64-bit IEEE floating point values,
+  corresponding to the C/C++ {\cf double}. \\
+{\cf HALF} &  16-bit floating point values in the format
   supported by OpenEXR and OpenGL.
-\end{description}
+\end{tabular}
+\medskip
+
+\noindent A \TypeDesc can be constructed using just this information, either as
+a single scalar value, or an array of scalar values:
+
+\apiitem{{\ce TypeDesc} (BASETYPE btype) \\
+{\ce TypeDesc} (BASETYPE btype, int arraylength)}
+Construct a type description of a single scalar value of the given base
+type, or an array of such scalars if an array length is supplied.  For
+example, {\cf TypeDesc(UINT8)} describes an unsigned 8-bit integer,
+and {\cf TypeDesc(FLOAT,7)} describes an array of 7 32-bit float values.
+Note also that a non-array \TypeDesc may be implicitly constructed from
+just the {\cf BASETYPE}, so it's okay to pass a {\cf BASETYPE}
+to any function parameter that takes a full \TypeDesc.
+\apiend
+
+
+\medskip
+\noindent In addition, \TypeDesc supports certain aggregate types, described
+by the enumerated type {\cf AGGREGATE}:
+
+\medskip
+\begin{tabular}{l p{4.75in}}
+{\cf SCALAR} & a single scalar value (such as a raw {\cf int}
+  or {\cf float} in C).  This is the default. \\
+{\cf VEC2} & two values representing a 2D vector. \\
+{\cf VEC3} & three values representing a 3D vector. \\
+{\cf VEC4} & four values representing a 4D vector. \\
+{\cf MATRIX44} & two values representing a $4 \times 4$ matrix.
+\end{tabular}
+\medskip
+
+\noindent And optionally, several vector transformation
+semantics, described by the enumerated type {\cf VECSEMANTICS}:
+
+\medskip
+\begin{tabular}{p{1in} p{4.25in}}
+{\cf NOXFORM}, {\cf COLOR} &  synonyms that
+  indicate that the item is not a spatial quantity that undergoes any
+  particular transformation. \\
+{\cf POINT} &  indicates that the item represents a
+  spatial position and should be transformed by a $4 \times 4$ matrix
+  as if it had a 4th component of 1. \\
+{\cf VECTOR} &  indicates that the item represents a
+  spatial direction and should be transformed by a $4 \times 4$ matrix
+  as if it had a 4th component of 0. \\
+{\cf NORMAL} &  indicates that the item represents a
+  surface normal and should be transformed like a vector, but using the
+  inverse-transpose of a $4 \times 4$ matrix.
+\end{tabular}
+\medskip
+
+\noindent These can be combined to fully describe a complex type:
+
+\apiitem{{\ce TypeDesc} (BASETYPE btype, AGGREGATE agg, VECSEMANTICS
+xform=NOXFORM)  \\
+{\ce TypeDesc} (BASETYPE btype, AGGREGATE agg, int arraylen) \\
+{\ce TypeDesc} (BASETYPE btype, AGGREGATE agg, VECSEMANTICS xform, int arraylen)
+}
+Construct a type description of an aggregate (or array of aggregates),
+with optional vector transformation semantics.  For example, 
+{\cf TypeDesc(HALF,COLOR)} describes an aggregate of 3 16-bit floats
+comprising a color, and {\cf TypeDesc(FLOAT,VEC3,POINT)} describes 
+an aggregate of 3 32-bit floats comprising a 3D position.
+
+Note that aggregates and arrays are different.  A {\cf
+  TypeDesc(FLOAT,3)} is an array of three floats, a {\cf
+  TypeDesc(FLOAT,COLOR)} is a single 3-channel color comprised of
+floats, and {\cf TypeDesc(FLOAT,3,COLOR)} is an array of 3 color values,
+each of which is comprised of 3 floats.
+\apiend
+
+\bigskip
 
 Of these, the only ones commonly used to store pixel values in image files
-are {\cf PT_UINT8}, {\cf PT_UINT16}, {\cf PT_FLOAT}, and {\cf PT_HALF}
+are scalars of {\cf UINT8}, {\cf UINT16}, {\cf FLOAT}, and {\cf HALF}
 (the last only used by OpenEXR, to the best of our knowledge).
 
-Note that the \ParamBaseType (which is also used for applications other
-than images) enumerates several other types that are not used by
-\product.  Please ignore them; only the above types are understood by
-\product as pixel storage data types.\footnote{But a few others, including
-{\cf PT_STRING} and {\cf PT_MATRIX}, are occasionally used for
-\emph{metadata} for certain image file formats. See
+Note that the \TypeDesc (which is also used for applications other
+than images) can describe many types not used by
+\product.  Please ignore this extra complexity; only the above simple types are understood by
+\product as pixel storage data types, though a few others, including
+{\cf STRING} and {\cf MATRIX44} aggregates, are occasionally used for
+\emph{metadata} for certain image file formats (see
 Sections~\ref{sec:imageoutput:metadata}, \ref{sec:imageinput:metadata},
-and the documentation of individual ImageIO plugins for details.}
+and the documentation of individual ImageIO plugins for details).
 
-\section{Image Spec}
+\section{Image Specification: {\cf ImageSpec}}
 \indexapi{ImageSpec}
 
 An \ImageSpec is a structure that describes the complete
@@ -98,8 +178,8 @@ fields:
 
 \apiitem{int width, height, depth}
 The size of the data of this image, i.e., the number pixels in each
-dimension.  If {\kw depth} is 0 or 1, it indicates a 2D image, but if
-{\kw depth} is greater than 1, it's actually a 3D ``volumetric'' image.
+dimension.  If {\cf depth} is 0 or 1, it indicates a 2D image, but if
+{\cf depth} is greater than 1, it's actually a 3D ``volumetric'' image.
 \apiend
 
 \apiitem{int x, y, z}
@@ -111,7 +191,7 @@ of a larger surrounding image.
 \apiitem{int full_width, full_height, full_depth}
 The size of the full surrounding image, if this image is a crop window.
 The default is (0,0,0), indicating that this is the ``full'' image data
-(setting these values to {\kw width}, {\kw height}, and {\kw depth},
+(setting these values to {\cf width}, {\cf height}, and {\cf depth},
 respectively, has the same meaning).
 \apiend
 
@@ -122,10 +202,10 @@ rectangular \emph{tiles} of the given dimension.  The default of
 than as tiles.
 \apiend
 
-\apiitem{ParamBaseType format}
+\apiitem{TypeDesc format}
 Indicates the native format of the pixel data values themselves, as a 
-{\kw ParamBaseType} (see \ref{sec:ParamBaseType}).  Typical values would be
-{\kw PT_UINT8} for 8-bit unsigned values, {\kw PT_FLOAT} for 32-bit
+\TypeDesc (see \ref{sec:TypeDesc}).  Typical values would be
+{\cf TypeDesc::UINT8} for 8-bit unsigned values, {\cf TypeDesc::FLOAT} for 32-bit
 floating-point values, etc.
 
 \noindent NOTE: Currently, the implementation of OpenImageIO requires
@@ -157,24 +237,24 @@ is not know which channel represents depth.
 
 \apiitem{LinearitySpec linearity}
 Describes the mapping of pixel values to real-world units.  
-{\kw LinearitySpec} is
+{\cf LinearitySpec} is
 an enumerated type that may take on the following values:
 \begin{itemize}
 \item[] 
-\item {\kw Linear} (the default) indicates that pixel values map
+\item {\cf Linear} (the default) indicates that pixel values map
   linearly.
-\item {\kw GammaCorrected} indicates that the color pixel values have
-  already been gamma corrected, using the exponent given by the {\kw
+\item {\cf GammaCorrected} indicates that the color pixel values have
+  already been gamma corrected, using the exponent given by the {\cf
     gamma} field.  (It is still assumed that non-color values, such as
   alpha and depth, are linear.)
-\item {\kw sRGB} indicates that color values are encoded using the sRGB
+\item {\cf sRGB} indicates that color values are encoded using the sRGB
   mapping.  (It is still assumed that non-color values are linear.)
 \end{itemize}
 \apiend
 
 \apiitem{float gamma}
 The gamma exponent, if the pixel values in the image have already been
-gamma corrected (indicated by {\kw nonlinear} having a value of {\kw
+gamma corrected (indicated by {\cf nonlinear} having a value of {\cf
 GammaCorrected}).  The default of 1.0 indicates that no gamma
 correction has been applied.
 \apiend
@@ -187,11 +267,11 @@ Please refer to Section~\ref{sec:imageoutput:quantization} for
 a more complete explanation of each of these parameters.
 \apiend
 
-\apiitem{ImageIOParameterList extra_attribs}
+\apiitem{ParamValueList extra_attribs}
 A list of arbitrarily-named and arbitrarily-typed additional attributes
 of the image, for any metadata not described by the hard-coded fields
-described above.  This list may be manipulated with the {\kw
-attribute()} and {\kw find_attribute()} methods.
+described above.  This list may be manipulated with the {\cf
+attribute()} and {\cf find_attribute()} methods.
 \apiend
 
 \subsection{\ImageSpec member functions}
@@ -200,7 +280,7 @@ attribute()} and {\kw find_attribute()} methods.
 manipulate format specs or compute useful information about images given
 their format spec:
 
-\apiitem{{\ce ImageSpec} (int xres, int yres, int nchans, ParamBaseType fmt = PT_UINT8)}
+\apiitem{{\ce ImageSpec} (int xres, int yres, int nchans, TypeDesc fmt = UINT8)}
 Constructs an \ImageSpec with the given $x$ and $y$ resolution, number
 of channels, and pixel data format.
 
@@ -214,21 +294,21 @@ quantization (if \emph{fmt} describes an integer type) is done in
 such a way that the maximum positive integer range maps to (0.0, 1.0).
 \apiend
 
-\apiitem{void {\ce set_format} (ParamBaseType fmt)}
+\apiitem{void {\ce set_format} (TypeDesc fmt)}
 Sets the format as described, and also sets all quantization parameters
 to the default for that data type (as explained in 
 Section~\ref{sec:imageoutput:quantization}).
 \apiend
 
 \apiitem{void {\ce default_channel_names} ()}
-Sets the {\kw channelnames} to reasonable defaults for the number of
+Sets the {\cf channelnames} to reasonable defaults for the number of
 channels.  Specifically, channel names are set to ``R'', ``G'', ``B,''
 and ``A'' (up to and including 4 channels, beyond that they are named
 ``channel\emph{n}''.
 \apiend
 
-\apiitem{static ParamBaseType \\
-\spc {\ce format_from_quantize} (int quant_black, int quant_white,\\
+\apiitem{static TypeDesc \\
+{\ce format_from_quantize} (int quant_black, int quant_white,\\
 \bigspc \bigspc                          int quant_min, int quant_max)}
 Utility function that, given quantization parameters, returns a data
 type that may be used without unacceptable loss of significant bits.
@@ -237,7 +317,7 @@ type that may be used without unacceptable loss of significant bits.
 
 \apiitem{size_t {\ce channel_bytes} ()}
 Returns the number of bytes comprising each channel of each pixel (i.e.,
-the size of a single value of the type described by the {\kw format} field).
+the size of a single value of the type described by the {\cf format} field).
 \apiend
 
 \apiitem{size_t {\ce pixel_bytes} ()}
@@ -246,7 +326,7 @@ channels multiplied by the channel size).
 \apiend
 
 \apiitem{size_t {\ce scanline_bytes} ()}
-Returns the number of bytes comprising each scanline (i.e. {\kw width} pixels).
+Returns the number of bytes comprising each scanline (i.e. {\cf width} pixels).
 \apiend
 
 \apiitem{size_t {\ce tile_bytes} ()}
@@ -259,10 +339,10 @@ Returns the number of bytes comprising an image of these dimensions.
 
 % FIXME - document auto_stride() ?
 
-\apiitem{void {\ce attribute} (const std::string \&name, ParamBaseType type, \\
+\apiitem{void {\ce attribute} (const std::string \&name, TypeDesc type, \\
 \bigspc int nvalues, const void *value)}
-Add a metadata attribute to {\kw extra_attribs}, with the given name,
-data type, and number of values.  The {\kw value} pointer specifies
+Add a metadata attribute to {\cf extra_attribs}, with the given name,
+data type, and number of values.  The {\cf value} pointer specifies
 the address of the data to be copied.
 \apiend
 
@@ -275,17 +355,17 @@ Shortcuts for passing attributes comprised of a single integer,
 floating-point value, or string.
 \apiend
 
-\apiitem{ImageIOParameter * {\ce find_attribute} (const std::string \&name,\\
-\bigspc\bigspc\spc                           ParamType searchtype=PT_UNKNOWN,\\
+\apiitem{ParamValue * {\ce find_attribute} (const std::string \&name,\\
+\bigspc\bigspc\spc                           TypeDesc searchtype=UNKNOWN,\\
 \bigspc\bigspc\spc                           bool casesensitive=false)}
 
-Searches {\kw extra_attribs} for an attribute matching {\kw name},
+Searches {\cf extra_attribs} for an attribute matching {\cf name},
 returning a pointer to the attribute record, or NULL if there was no
-match.  If {\kw searchtype} is {\kw PT_UNKNOWN}, the search will be made
-regardless of the data type, whereas other values of {\kw searchtype}
+match.  If {\cf searchtype} is {\cf TypeDesc::UNKNOWN}, the search will be made
+regardless of the data type, whereas other values of {\cf searchtype}
 will reject a matching name if the data type does not also match.  The
-name comparison will be exact if {\kw casesensitive} is true, otherwise
-in a case-insensitive manner if {\kw caseinsensitive} is false.
+name comparison will be exact if {\cf casesensitive} is true, otherwise
+in a case-insensitive manner if {\cf caseinsensitive} is false.
 \apiend
 
 

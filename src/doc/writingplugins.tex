@@ -253,7 +253,7 @@ real-world example of writing a JPEG/JFIF plug-in.
         virtual bool supports (const char *property) const { return false; }
         virtual bool open (const char *name, const ImageSpec &spec,
                            bool append=false);
-        virtual bool write_scanline (int y, int z, ParamBaseType format,
+        virtual bool write_scanline (int y, int z, TypeDesc format,
                                      const void *data, stride_t xstride);
         bool close ();
      private:
@@ -280,7 +280,7 @@ translation.  But don't worry, all the heavy lifting can be accomplished
 with the following helper functions provided as protected member
 functions of \ImageOutput:
 
-\apiitem{const void * {\ce to_native_scanline} (ParamBaseType format,
+\apiitem{const void * {\ce to_native_scanline} (TypeDesc format,
                                     const void *data, \\ \bigspc stride_t xstride,
                                     std::vector<unsigned char>
                                     \&scratch);}
@@ -297,7 +297,7 @@ caller doesn't need to worry about thread safety or freeing any
 allocated memory (other than eventually destroying the scratch vector).
 \apiend
 
-\apiitem{const void * {\ce to_native_tile} (ParamBaseType format, const
+\apiitem{const void * {\ce to_native_tile} (TypeDesc format, const
   void *data,\\ \bigspc
                                 stride_t xstride, stride_t ystride, stride_t zstride,\\ \bigspc
                                 std::vector<unsigned char> \&scratch);}
@@ -318,7 +318,7 @@ allocated memory (other than eventually destroying the scratch vector).
 \apiitem{const void * {\ce to_native_rectangle} (int xmin, int xmax, int
   ymin, int ymax, \\ \bigspc
                                      int zmin, int zmax, 
-                                     ParamBaseType format, const void
+                                     TypeDesc format, const void
                                      *data, \\ \bigspc
                                      stride_t xstride, stride_t ystride,
                                      stride_t zstride, \\ \bigspc

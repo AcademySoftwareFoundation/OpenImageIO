@@ -44,7 +44,7 @@ Before first alpha release
             iv - subtract from last image
             iv - view as random color
             TIFF - double (caspian)
-            iv - why don't I seem to be getting HDR?
+DONE        iv - why don't I seem to be getting HDR?
             iv - new window, new tab ?
             iv - copy/paste
             OpenEXR - YCbCr, subsampling
@@ -59,8 +59,8 @@ DONE        iv - put into background mode
             iv - save window as
             iv - save selection as
             iv - select all images
-            iv - gamma correction (env variable; per-format default gamma)
-            iv - honor sRGB images
+DONE        iv - gamma correction (env variable)
+DONE?       iv - honor sRGB images
             iv - handle images > 4k
 
 
@@ -130,4 +130,27 @@ Idea pool / future feature wish list
             Sound?
             iv slide mode (full screen, fi2w, timed)
             play back sound memos in jpeg images
+            per-format default gamma?
 
+
+operations
+        zoom (in + out)         (ctrl-+/-, alt-left mouse)
+        drag/pan                (always middle mouse)
+        select (a rectangle)    (shift-left mouse)
+        draw (lines)
+        info/pick
+
+selectors
+        none
+        shift
+        ctrl
+        alt
+
+buttons
+        left
+        right
+        middle
+
+middle should always pan
+shift-left should always select
+alt-mouse should always zoom

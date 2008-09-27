@@ -1,0 +1,324 @@
+\chapter{Texture Access: {\cf TextureSystem}}
+\label{chap:texturesystem}
+\index{Texture System|(}
+
+\def\TextureSystem{{\kw TextureSystem}\xspace}
+\def\TextureOptions{{\kw TextureOptions}\xspace}
+
+
+\section{Texture System Introduction and Theory of Operation}
+\label{sec:texturesys:intro}
+
+\section{Helper Classes}
+\label{sec:texturesys:helperclasses}
+
+\subsection{Imath}
+
+The texture functinality of \product uses the excellent open source
+{\cf Ilmbase} package's {\cf Imath} types when it requires 3D vectors
+and transformation matrixes.  Specifically, we use {\cf Imath::V3f}
+for 3D positions and directions, and {\cf Imath::M44f} for $4 \times 4$
+transformation matrices.  To use these yourself, we recommend that you:
+
+\begin{code}
+    #include <ImathVec.h>
+    #include <ImathMatrix.h>
+\end{code}
+
+Please refer to the {\cf Ilmbase} and {\cf OpenEXR}
+documentation and header files for more complete information about
+use of these types in your own application.  However, note that you
+are not strictly required to use these classes in your application ---
+{\cf Imath::V3f} has a memory layout identical to {\cf float[3]}
+and {\cf Imath::M44f} has a memory layout identical to {\cf float[16]},
+so as long as your own internal vectors and matrices have the same
+memory layout, it's ok to just cast pointers to them when passing
+as arguments to \TextureSystem methods.
+
+\subsection{{\cf VaryingRef}: encapsulate uniform and varying}
+
+All of the texture access API routines are designed to loook up
+texture efficiently at many points at once.  Therefore, many of
+the parameters to the API routines, and many of the fields in
+\TextureOptions need to accommodate both uniform and varying values.
+\emph{Uniform} means that a single value may be used for each of
+the many simultaneous texture lookups, whereas \emph{varying} means
+that a different value is provided for each of the positions where
+you are sampling the texture.
+
+Please read the comments in \qkw{varyingref.h} for the full gory 
+details, but here's all you really need to know about it to use the
+texture functionality.  Let's suppose that we have a routine 
+whose prototype looks like this:
+
+\begin{code}
+        void API (int n, VaryingRef<float> x);
+\end{code}
+
+\noindent This means that parameter $x$ may either be a single value
+for use at each of the $n$ texture lookups, or it may have $n$ different
+values of $x$.  
+
+If you want to pas a uniform value, you may do any of the following:
+
+\begin{code}
+      float x;   // just one value
+      API (n, x);   // automatically knows what to do!
+      API (n, &x);  // Also ok to pass the pointer to x
+      API (n, VaryingRef<float>(x));  // Wordy but correct
+      API (n, Uniform(x));  // Shorthand
+\end{code}
+
+If you want to pass a varying value, i.e., an array of values,
+
+\begin{code}
+      float x[n];   // One value for each of n points
+      API (n, VaryingRef<float>(x), sizeof(x));  // Wordy but correct
+      API (n, Varying(x));  // Shorthand if stride is sizeof(x)
+\end{code}
+
+You can also initialize a VaryingRef directly:
+
+\begin{code}
+    float x;     // just one value
+    float y[n];  // array of values
+    VaryingRef<float> r;
+    r.init (&x);                 // Initialize to uniform
+    r.init (&x, 0);              // Initialize to uniform the wordy way
+    r.init (&y, sizeof(float));  // Initialize to varying
+    ...
+    API (n, r);
+\end{code}
+
+\subsection{\TextureOptions}
+
+\TextureOptions is a structure that holds many options controlling
+individual texture lookups.  Because each texture lookup API call takes
+a reference to a \TextureOptions, the call signatures remain uncluttered
+rather than having an ever-growing list of parameters, most of which
+will never vary from their defaults.  Here is a brief description of
+the data members of a \TextureOptions structure:
+
+\apiitem{int nchannels\\
+int firstchannel}
+The number of color channels to look up from the texture --- for
+example, 1 (single channel), or 3 (for an RGB triple) --- and the number
+of channels to look up.  The defaults are firstchannel = 0, nchannels =
+1.
+
+Examples: To retrieve the first three channels (typically RGB), you
+should have nchannels = 3, firstchannel = 0.  To retrieve just the blue
+channel, you should have nchannels = 1, firstchannel = 2.
+\apiend
+
+\apiitem{Wrap swrap, twrap}
+Specify the \emph{wrap mode} for 2D texture lookups (and 3D volume
+texture lookups, using the additional {\cf zwrap} field).  These fields
+are ignored for shadow and environment lookups.
+
+These specify what happens when texture coordinates are found to be
+outside the usual $[0,1]$ range over which the texture is defined.
+{\cf Wrap} is an enumerated type that may take on any of the
+following values:
+\begin{description}
+\item[\spc] \spc
+\item[\rm \kw{WrapBlack}] The texture is black outside the [0,1] range.
+\item[\rm \kw{WrapClamp}] The texture coordinates will be clamped to
+  [0,1], i.e., the value outside [0,1] will be the same as the color
+  at the nearest point on the border.
+\item[\rm \kw{WrapPeriodic}] The texture is periodic, i.e., wraps back
+  to 0 after going past 1.
+\item[\rm \kw{WrapMirror}] The texture presents a mirror image at the
+  edges, i.e., the coordinates go from 0 to 1, then back down to 0, then
+  back up to 1, etc.
+\item[\rm \kw{WrapDefault}] Use whatever wrap might be specified in the
+  texture file itself, or some other suitable default (caveat emptor).
+\end{description}
+
+The wrap mode does not need to be identical in the $s$ and $t$
+directions.
+\apiend
+
+\apiitem{VaryingRef<float> swidth, twidth}
+For each direction, gives a multiplier for the derivatives.  Note that
+a width of 0 indicates a point sampled lookup (assuming that blur is
+also zero).  The default width is 1, indicating that the derivatives
+should guide the amount of blur applied to the texture filtering (not
+counting any additional \emph{blur} specified).
+\apiend
+
+\apiitem{VaryingRef<float> sblur, tblur}
+For each direction, specifies an additional amount of pre-blur to apply
+to the texture (\emph{after} derivatives are taken into account),
+expressed as a portion of the width of the texture.  In other words,
+blur = 0.1 means that the texture lookup should act as if the texture
+was pre-blurred with a filter kernel with a width 1/10 the size of the
+full image.  The default blur amount is 0, indicating a sharp texture
+lookup.
+\apiend
+
+\apiitem{VaryingRef<float> bias}
+For shadow map lookups only, this gives the ``shadow bias'' amount.
+\apiend
+
+\apiitem{VaryingRef<float> fill}
+Specifies the value that will be used for any color channels that are
+requested but not found in the file.  For example, if you perform a
+3-channel lookup on a 1-channel texture, the second two channels will
+get the fill value.
+\apiend
+
+\apiitem{VaryingRef<float> alpha}
+Specifies a \emph{destination} for one additional channel to be looked
+up, the one immediately following the return value (i.e., channel
+$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
+allow a 4-channel lookup, with the 4th channel put in an entirely
+different variable than the 3-channel color.  The default for {\cf
+  alpha} is to point to NULL, indicating that no extra alpha channel
+should be retrieved.
+\apiend
+
+\apiitem{Wrap zwrap \\
+VaryingRef<float> zblur, zwidth}
+Specifies wrap, blur, and width for 3D volume texture lookups only.
+\apiend
+
+
+\section{TextureSystem API}
+\label{sec:texturesys:api}
+
+\subsection{Creating and destroying texture systems}
+\label{sec:texturesys:api:createdestroy}
+
+\TextureSystem is an abstract API described as a pure
+virtual class.  The actual internal implementation is not exposed
+through the external API of \product.  Because of this, you cannot
+construct or destroy the concrete implementation, so two static
+methods of \TextureSystem are provided:
+
+\apiitem{static TextureSystem *TextureSystem::{\ce create}()}
+Creates a new \TextureSystem and returns a pointer to it.
+\apiend
+
+\apiitem{static void TextureSystem::{\ce destroy} (TextureSystem * \&x)}
+Destroys an allocated \TextureSystem, including freeing all system
+resources that it holds.
+
+This is necessary to ensure that the memory is freed in a way that
+matches the way it was allocated within the library.  Note that simply
+using {\cf delete} on the pointer will not always work (at least,
+not on some platforms in which a DSO/DLL can end up using a different
+allocator than the main program).
+\apiend
+
+\subsection{Setting options and limits for the texture system}
+\label{sec:texturesys:api:options}
+
+The following member functions of \TextureSystem allow you to set
+(and in some cases retrieve) options that control the overall
+behavior of the texture system:
+
+\apiitem{void {\ce max_open_files} (int nfiles)}
+Sets the maximum number of file handles that the texture system will
+hold open simultaneously.  (Default = 100)
+\apiend
+
+\apiitem{void {\ce max_memory_MB} (float size)}
+Sets the maximum amount of memory (measured in MB) that the texture
+system will use for its ``tile cache.'' (Default: 50 MB)
+\apiend
+
+\apiitem{void {\ce searchpath} (const std::string \&path)}
+Sets the search path for textures: a colon-separated list of
+directories that will be searched in order for any texture name
+that is not specified as an absolute path.
+\apiend
+
+\apiitem{void {\ce worldtocommon} (const float *mx) \\
+void {\ce worldtocommon} (const Imath::M44f \&w2c)}
+Sets the $4 \times 4$ matrix that provides the spatial transformation
+from ``world'' to a ``common'' coordinate system.  This is used for
+shadow map lookups, in which the shadow map itself encodes the
+world coordinate system, but positions passed to {\cf shadow()} are
+expressed in ``common'' coordinates.
+
+There are two versions of this method: one takes a reference to
+a {\cf Imath:M44f}, the other that takes a pointer to 16 contiguous
+floats.
+\apiend
+
+\apiitem{int {\ce max_open_files} () const}
+Returns the current value of the maximum number of file handles that
+the texture library will hold open.
+\apiend
+
+\apiitem{float {\ce max_memory_MB} () const}
+Returns the current value of the maximum amount of memory (in MB)
+the texture library will use for the tile cache.
+\apiend
+
+\apiitem{std::string {\ce searchpath} () const}
+Returns the current search path for textures.
+\apiend
+
+\subsection{Texture Lookups}
+\label{sec:texturesys:api:texture}
+
+\apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
+\bigspc                   Runflag *runflags, int firstactive, int lastactive,\\
+\bigspc                   VaryingRef<float> s, VaryingRef<float> t,\\
+\bigspc                   VaryingRef<float> dsdx, VaryingRef<float> dtdx,\\
+\bigspc                   VaryingRef<float> dsdy, VaryingRef<float> dtdy,\\
+\bigspc                   float *result)}
+
+Perform filtered 2D texture lookups on a collection of positions defined
+by 2D coordinates $s$ and $t$.
+
+\apiend
+
+\subsection{Volume Texture Lookups}
+\label{sec:texturesys:api:texture3d}
+
+\apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
+\bigspc                          Runflag *runflags, int firstactive, int lastactive,\\
+\bigspc                          VaryingRef<Imath::V3f> P,\\
+\bigspc                          VaryingRef<Imath::V3f> dPdx,\\
+\bigspc                          VaryingRef<Imath::V3f> dPdy,\\
+\bigspc                          float *result)}
+\apiend
+
+\subsection{Shadow Lookups}
+\label{sec:texturesys:api:shadow}
+
+\apiitem{void {\ce shadow} (ustring filename, TextureOptions \&options,\\
+\bigspc                         Runflag *runflags, int firstactive, int lastactive,\\
+\bigspc                         VaryingRef<Imath::V3f> P,\\
+\bigspc                         VaryingRef<Imath::V3f> dPdx,\\
+\bigspc                         VaryingRef<Imath::V3f> dPdy,\\
+\bigspc                         float *result)}
+\apiend
+
+\subsection{Environment Lookups}
+\label{sec:texturesys:api:environment}
+
+\apiitem{void {\ce environment} (ustring filename, TextureOptions \&options,\\
+\bigspc                              short *runflags, int firstactive, int lastactive,\\
+\bigspc                              VaryingRef<Imath::V3f> R,\\
+\bigspc                              VaryingRef<Imath::V3f> dRdx,\\
+\bigspc                              VaryingRef<Imath::V3f> dRdy,\\
+\bigspc                              float *result)}
+\apiend
+
+\subsection{Texture Metadata}
+\label{sec:texturesys:api:gettextureinfo}
+
+\apiitem{bool {\ce gettextureinfo} (ustring filename, ustring dataname, \\
+\bigspc                                 TypeDesc datatype, void *data)}
+\apiend
+
+
+
+
+\index{Texture System|)}
+
+\chapwidthend
