@@ -272,7 +272,9 @@ public:
         m_max_memory_MB = size;
         m_max_memory_bytes = (int)(size * 1024 * 1024);
     }
-    virtual void searchpath (const ustring &path) { m_searchpath = path; }
+    virtual void searchpath (const std::string &path) {
+        m_searchpath = ustring(path);
+    }
     virtual void worldtocommon (const float *mx) {
         m_Mw2c = *(Imath::M44f *)mx;
         m_Mc2w = m_Mw2c.inverse();
@@ -285,7 +287,7 @@ public:
     // Retrieve options
     virtual int max_open_files () const { return m_max_open_files; }
     virtual float max_memory_MB () const { return m_max_memory_MB; }
-    virtual ustring searchpath () const { return m_searchpath; }
+    virtual std::string searchpath () const { return m_searchpath.string(); }
     virtual void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
     }

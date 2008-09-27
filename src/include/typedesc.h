@@ -70,7 +70,7 @@ struct DLLPUBLIC TypeDesc {
     /// type is like a color (raw values) or if it has coordinate
     /// transformation rules similar to a point, vector (direction),
     /// or surface normal.
-    enum VECSEMANTICS { NOXFORM=0, COLOR, POINT, VECTOR, NORMAL };
+    enum VECSEMANTICS { NOXFORM=0, COLOR=0, POINT, VECTOR, NORMAL };
 
     unsigned char basetype;     ///< C data type at the heart of our type
     unsigned char aggregate;    ///< What kind of AGGREGATE is it?
@@ -86,10 +86,24 @@ struct DLLPUBLIC TypeDesc {
           arraylen(0)
           { }
 
-    /// Construct an array from BASETYPE and length, and optional
-    /// aggregateness and transformation rules.
-    TypeDesc (BASETYPE btype, int arraylength,
-              AGGREGATE agg=SCALAR, VECSEMANTICS xform=NOXFORM)
+    /// Construct an array of a non-aggregate BASETYPE.
+    ///
+    TypeDesc (BASETYPE btype, int arraylength)
+        : basetype(btype), aggregate(SCALAR), vecsemantics(NOXFORM),
+          reserved(0), arraylen(arraylength)
+          { }
+
+    /// Construct an array from BASETYPE, AGGREGATE, and array length,
+    /// with unspecified (or moot) vector transformation semantics.
+    TypeDesc (BASETYPE btype, AGGREGATE agg, int arraylength)
+        : basetype(btype), aggregate(agg), vecsemantics(NOXFORM), reserved(0),
+          arraylen(arraylength)
+          { }
+
+    /// Construct an array from BASETYPE, AGGREGATE, VECSEMANTICS, and
+    /// array length.
+    TypeDesc (BASETYPE btype, AGGREGATE agg,
+              VECSEMANTICS xform, int arraylength)
         : basetype(btype), aggregate(agg), vecsemantics(xform), reserved(0),
           arraylen(arraylength)
           { }

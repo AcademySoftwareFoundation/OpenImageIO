@@ -72,11 +72,11 @@ TextureOptions::TextureOptions (bool)
       swidth(default_width), twidth(default_width),
       bias(default_bias),
       fill(default_fill),
+      zwrap(WrapDefault), zblur(NULL), zwidth(NULL),
       alpha(NULL),
       stateful(false),
       swrap_func(NULL), twrap_func(NULL)
 {
-    
 }
 
 

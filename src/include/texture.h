@@ -52,7 +52,7 @@ typedef unsigned char Runflag;
 enum RunFlagVal { RunFlagOff = 0, RunFlagOn = 255 };
 
 
-
+/// Encapsulate all the 
 class TextureOptions {
 public:
     enum Wrap {
@@ -61,32 +61,32 @@ public:
         WrapClamp,          ///< Clamp to [0..1]
         WrapPeriodic,       ///< Periodic mod 1
         WrapMirror,         ///< Mirror the image
-        WrapLast            ///< Mark the end
+        WrapLast            ///< Mark the end -- don't use this!
     };
 
+    /// Create a TextureOptions with all fields initialized to reasonable
+    /// defaults.
     TextureOptions ();
 
     // Options that must be the same for all points we're texturing at once
-    int firstchannel;
-    int nchannels;
-    Wrap swrap;
-    Wrap twrap;
+    int firstchannel;       ///< First channel of the lookup
+    int nchannels;          ///< Number of channels to look up: 1 or 3
+    Wrap swrap;             ///< Wrap mode in the s direction
+    Wrap twrap;             ///< Wrap mode in the t direction
 
     // Options that may be different for each point we're texturing
-    VaryingRef<ustring> filename;
-    VaryingRef<float>   sblur, tblur;
-    VaryingRef<float>   swidth, twidth;
-    VaryingRef<float>   bias;
-    VaryingRef<float>   fill;
+    VaryingRef<float>   sblur, tblur;   ///< Blur amount
+    VaryingRef<float>   swidth, twidth; ///< Multiplier for derivatives
+    VaryingRef<float>   bias;           ///< Bias
+    VaryingRef<float>   fill;           ///< Fill value for missing channels
+
+    // For 3D volume texture lookups only:
+    Wrap zwrap;                ///< Wrap mode in the z direction
+    VaryingRef<float> zblur;   ///< Blur amount in the z direction
+    VaryingRef<float> zwidth;  ///< Multiplier for derivatives in z direction
 
     // Storage for results
-    VaryingRef<float>   alpha;
-
-    // Options set INTERNALLY by libtexture after the options are passed
-    // by the user.  Users should not attempt to alter these!
-    bool stateful;         // False for a new-ish TextureOptions
-    int actualchannels;    // True number of channels read
-
+    VaryingRef<float>   alpha;  ///< If non-null put the alpha channel here
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
@@ -107,6 +107,10 @@ public:
     TextureOptions (bool);
 
 private:
+    // Options set INTERNALLY by libtexture after the options are passed
+    // by the user.  Users should not attempt to alter these!
+    bool stateful;         // False for a new-ish TextureOptions
+    int actualchannels;    // True number of channels read
     typedef bool (*wrap_impl) (int &coord, int width);
     wrap_impl swrap_func, twrap_func;
     friend class OpenImageIO::pvt::TextureSystemImpl;
@@ -129,7 +133,7 @@ public:
     // Set options
     virtual void max_open_files (int nfiles) = 0;
     virtual void max_memory_MB (float size) = 0;
-    virtual void searchpath (const ustring &path) = 0;
+    virtual void searchpath (const std::string &path) = 0;
     virtual void worldtocommon (const float *mx) = 0;
     void worldtocommon (const Imath::M44f &w2c) {
         worldtocommon ((const float *)&w2c);
@@ -138,7 +142,7 @@ public:
     // Retrieve options
     virtual int max_open_files () const = 0;
     virtual float max_memory_MB () const = 0;
-    virtual ustring searchpath () const = 0;
+    virtual std::string searchpath () const = 0;
 
     /// Retrieve filtered (possibly anisotropic) texture lookups for
     /// several points.  s,t are the texture coordinates; dsdx, dtdx,
