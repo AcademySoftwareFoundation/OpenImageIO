@@ -47,6 +47,7 @@ public:
     /// already got a current version of the image in memory, unless
     /// force==true.
     virtual bool read (int subimage=0, bool force=false,
+                       TypeDesc convert=TypeDesc::UNKNOWN,
                        OpenImageIO::ProgressCallback progress_callback=NULL,
                        void *progress_callback_data=NULL);
 

@@ -119,7 +119,7 @@ ImageBuf::init_spec (const std::string &filename)
 
 
 bool
-ImageBuf::read (int subimage, bool force,
+ImageBuf::read (int subimage, bool force, TypeDesc convert,
                OpenImageIO::ProgressCallback progress_callback,
                void *progress_callback_data)
 {
@@ -150,6 +150,9 @@ ImageBuf::read (int subimage, bool force,
         m_current_subimage = subimage;
     else
         m_current_subimage = 0;
+
+    if (convert != TypeDesc::UNKNOWN)
+        m_spec.format = convert;
 
     ImageIOParameter *orient = m_spec.find_attribute ("orientation", PT_UINT);
     m_orientation = orient ? *(unsigned int *)orient->data() : 1;
