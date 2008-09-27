@@ -67,14 +67,10 @@ public:
 
 private:
     char *m_thumbnail;         ///< Thumbnail image
-//    bool m_spec_valid;         ///< Is the spec valid
     bool m_pixels_valid;       ///< Image is valid
     bool m_thumbnail_valid;    ///< Thumbnail is valid
-//    bool m_badfile;            ///< File not found
-//    std::string m_err;         ///< Last error message
     float m_gamma;             ///< Gamma correction of this image
     float m_exposure;          ///< Exposure gain of this image, in stops
-//    int m_orientation;         ///< Orientation of the image
     mutable std::string m_shortinfo;
     mutable std::string m_longinfo;
 
@@ -270,6 +266,7 @@ private:
     float m_zoom;                     ///< Zoom amount (positive maxifies)
     bool m_fullscreen;                ///< Full screen mode
     std::vector<std::string> m_recent_files;  ///< Recently opened files
+    float m_default_gamma;            ///< Default gamma of the display
 
     // What zoom do we need to fit these window dimensions?
     float zoom_needed_to_fit (int w, int h);

@@ -34,6 +34,7 @@
 #include "strutil.h"
 
 #define USE_SHADERS 1
+#define USE_SRGB 1
 
 
 
@@ -558,16 +559,35 @@ IvGL::update (IvImage *img)
     if (! img)
         return;
 
+//    std::cerr << "update image\n";
+
     const ImageSpec &spec (img->spec());
 //    glActiveTexture (GL_TEXTURE0);
 //    glEnable (GL_TEXTURE_2D);
     glBindTexture (GL_TEXTURE_2D, m_texid);
 
+    bool srgb = (USE_SRGB && spec.linearity == ImageSpec::sRGB);
     GLenum glformat = GL_RGB;
-    if (spec.nchannels == 1)
-        glformat = GL_LUMINANCE;
-    else if (spec.nchannels == 4)
+    GLint glinternalformat = spec.nchannels;
+    if (spec.nchannels == 1) {
+        glformat = GL_LUMINANCE32F_ARB;
+    } else if (spec.nchannels == 3) {
+        glformat = GL_RGB;
+        if (spec.format.basetype == PT_FLOAT)
+            glinternalformat = srgb ? GL_SRGB_EXT : GL_RGB32F_ARB;
+        else if (spec.format.basetype == PT_UINT8)
+            glinternalformat = srgb ? GL_SRGB8_EXT : GL_RGB;
+        else if (spec.format.basetype == PT_HALF)
+            glinternalformat = srgb ? GL_SRGB_EXT : GL_RGB16F_ARB;
+    } else if (spec.nchannels == 4) {
         glformat = GL_RGBA;
+        if (spec.format.basetype == PT_FLOAT)
+            glinternalformat = srgb ? GL_SRGB_ALPHA_EXT : GL_RGBA32F_ARB;
+        else if (spec.format.basetype == PT_UINT8)
+            glinternalformat = srgb ? GL_SRGB8_ALPHA8_EXT : GL_RGBA;
+        else if (spec.format.basetype == PT_HALF)
+            glinternalformat = srgb ? GL_SRGB_ALPHA_EXT : GL_RGBA16F_ARB;
+    }
 
     GLenum gltype = GL_UNSIGNED_BYTE;
     switch (spec.format.basetype) {
@@ -585,7 +605,7 @@ IvGL::update (IvImage *img)
     }
 
     glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
-                  spec.nchannels /*internal format - color components */,
+                  glinternalformat,
                   spec.width, spec.height,
                   0 /*border width*/,
                   glformat, gltype, 
@@ -604,6 +624,7 @@ IvGL::update (IvImage *img)
                              (const GLvoid *)img->scanline(y) /*data*/);
         }
     }
+//    std::cerr << "done\n\n";
 }
 
 
@@ -700,6 +721,9 @@ IvGL::mousePressEvent (QMouseEvent *event)
     m_drag_button = event->button();
     switch (event->button()) {
     case Qt::LeftButton :
+        if (event->modifiers() & Qt::AltModifier)
+            m_dragging = true;
+        else
         m_viewer.zoomIn();
         return;
     case Qt::RightButton :
@@ -742,6 +766,16 @@ IvGL::mouseMoveEvent (QMouseEvent *event)
         pan (-dx, -dy);
         break;
         }
+    case Qt::LeftButton : 
+        if (event->modifiers() & Qt::AltModifier) {
+            float dx = (pos.x() - m_mousex);
+            float dy = (pos.y() - m_mousey);
+            float z = m_viewer.zoom() * (1.0 + 0.005 * (dx + dy));
+            z = Imath::clamp (z, 0.01f, 256.0f);
+            m_viewer.zoom (z);
+            m_viewer.fitImageToWindowAct->setChecked (false);
+        }
+        break;
     }
     remember_mouse (pos);
     if (m_viewer.pixelviewOn())

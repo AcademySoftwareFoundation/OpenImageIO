@@ -76,8 +76,8 @@ IvImage::read (int subimage, bool force,
     m_shortinfo.clear();
     m_longinfo.clear();
 
-    bool ok = ImageBuf::read (subimage, force, progress_callback,
-                              progress_callback_data);
+    bool ok = ImageBuf::read (subimage, force, TypeDesc::UNKNOWN,
+                              progress_callback, progress_callback_data);
     m_pixels_valid = ok;
 }
 

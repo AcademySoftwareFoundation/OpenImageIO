@@ -44,8 +44,19 @@
 ImageViewer::ImageViewer ()
     : infoWindow(NULL), preferenceWindow(NULL),
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
-      m_zoom(1), m_fullscreen(false)
+      m_zoom(1), m_fullscreen(false), m_default_gamma(1)
 {
+    const char *gamenv = getenv ("GAMMA");
+    if (gamenv) {
+        float g = atof (gamenv);
+        if (g >= 0.1 && g <= 5)
+            m_default_gamma = g;
+    }
+    // FIXME -- would be nice to have a more nuanced approach to display
+    // color space, in particular knowing whether the display is sRGB.
+    // Also, some time in the future we may want a real 3D LUT for 
+    // "film look", etc.
+
     glwin = new IvGL (this, *this);
     glwin->resize (640, 480);
     setCentralWidget (glwin);
@@ -539,6 +550,7 @@ ImageViewer::add_image (const std::string &filename)
     if (filename.empty())
         return;
     IvImage *newimage = new IvImage(filename);
+    newimage->gamma (m_default_gamma);
     ASSERT (newimage);
     m_images.push_back (newimage);
     addRecentFile (filename);
