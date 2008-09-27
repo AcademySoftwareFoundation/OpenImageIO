@@ -95,12 +95,12 @@ private:
         char *s = NULL;
         TIFFGetField (m_tif, tag, &s);
         if (s && *s)
-            m_spec.attribute (name, PT_STRING, 1, &s);
+            m_spec.attribute (name, TypeDesc::STRING, 1, &s);
     }
 
     // Get a float-oid tiff tag field and put it into extra_params
     void get_float_attribute (const std::string &name, int tag,
-                              TypeDesc type=PT_FLOAT) {
+                              TypeDesc type=TypeDesc::FLOAT) {
         float f[16];
         if (TIFFGetField (m_tif, tag, f))
             m_spec.attribute (name, type, 1, &f);
@@ -110,7 +110,7 @@ private:
     void get_int_attribute (const std::string &name, int tag) {
         int i;
         if (TIFFGetField (m_tif, tag, &i))
-            m_spec.attribute (name, PT_INT, 1, &i);
+            m_spec.attribute (name, TypeDesc::INT, 1, &i);
     }
 
     // Get an int tiff tag field and put it into extra_params
@@ -118,7 +118,7 @@ private:
         unsigned short s;
         if (TIFFGetField (m_tif, tag, &s)) {
             int i = s;
-            m_spec.attribute (name, PT_INT, 1, &i);
+            m_spec.attribute (name, TypeDesc::INT, 1, &i);
         }
     }
 };
@@ -192,7 +192,7 @@ TIFFInput::seek_subimage (int index, ImageSpec &newspec)
         m_subimage = index;
         readspec ();
         newspec = m_spec;
-        if (newspec.format == PT_UNKNOWN) {
+        if (newspec.format == TypeDesc::UNKNOWN) {
             error ("No support for data format of \"%s\"", m_filename.c_str());
             return false;
         }
@@ -256,23 +256,23 @@ TIFFInput::readspec ()
         // Make 4 bpp look like byte images
     case 8:
         if (sampleformat == SAMPLEFORMAT_UINT)
-            m_spec.set_format (PT_UINT8);
+            m_spec.set_format (TypeDesc::UINT8);
         else if (sampleformat == SAMPLEFORMAT_INT)
-            m_spec.set_format (PT_INT8);
-        else m_spec.set_format (PT_UINT8);  // punt
+            m_spec.set_format (TypeDesc::INT8);
+        else m_spec.set_format (TypeDesc::UINT8);  // punt
         break;
     case 16:
         if (sampleformat == SAMPLEFORMAT_UINT)
-            m_spec.set_format (PT_UINT16);
+            m_spec.set_format (TypeDesc::UINT16);
         else if (sampleformat == SAMPLEFORMAT_INT)
-            m_spec.set_format (PT_INT16);
+            m_spec.set_format (TypeDesc::INT16);
         break;
     case 32:
         if (sampleformat == SAMPLEFORMAT_IEEEFP)
-            m_spec.set_format (PT_FLOAT);
+            m_spec.set_format (TypeDesc::FLOAT);
         break;
     default:
-        m_spec.set_format (PT_UNKNOWN);
+        m_spec.set_format (TypeDesc::UNKNOWN);
         break;
     }
 
@@ -463,7 +463,7 @@ void
 TIFFInput::invert_photometric (int n, void *data)
 {
     switch (m_spec.format.basetype) {
-    case PT_UINT8: {
+    case TypeDesc::UINT8: {
         unsigned char *d = (unsigned char *) data;
         for (int i = 0;  i < n;  ++i)
             d[i] = 255 - d[i];

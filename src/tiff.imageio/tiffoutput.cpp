@@ -159,26 +159,26 @@ TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
     
     int bps, sampformat;
     switch (m_spec.format.basetype) {
-    case PT_INT8:
+    case TypeDesc::INT8:
         bps = 8;
         sampformat = SAMPLEFORMAT_INT;
         break;
-    case PT_UINT8:
+    case TypeDesc::UINT8:
         bps = 8;
         sampformat = SAMPLEFORMAT_UINT;
         break;
-    case PT_INT16:
+    case TypeDesc::INT16:
         bps = 16;
         sampformat = SAMPLEFORMAT_INT;
         break;
-    case PT_UINT16:
+    case TypeDesc::UINT16:
         bps = 16;
         sampformat = SAMPLEFORMAT_UINT;
         break;
-    case PT_HALF:
+    case TypeDesc::HALF:
         // Silently change requests for unsupported 'half' to 'float'
-        m_spec.format = PT_FLOAT;
-    case PT_FLOAT:
+        m_spec.format = TypeDesc::FLOAT;
+    case TypeDesc::FLOAT:
         bps = 32;
         sampformat = SAMPLEFORMAT_IEEEFP;
         break;
@@ -208,7 +208,7 @@ TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
 
     // Did the user request separate planar configuration?
     m_planarconfig = PLANARCONFIG_CONTIG;
-    if ((param = m_spec.find_attribute("planarconfig", PT_STRING)) &&
+    if ((param = m_spec.find_attribute("planarconfig", TypeDesc::STRING)) &&
             (str = *(char **)param->data())) {
         if (! strcmp (str, "separate"))
             m_planarconfig = PLANARCONFIG_SEPARATE;
@@ -244,11 +244,11 @@ bool
 TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
                            const void *data)
 {
-    if (iequals(name, "Artist") && type == PT_STRING) {
+    if (iequals(name, "Artist") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_ARTIST, *(char**)data);
         return true;
     }
-    if (iequals(name, "Compression") && type == PT_STRING) {
+    if (iequals(name, "Compression") && type == TypeDesc::STRING) {
         int compress = COMPRESSION_LZW;  // default
         const char *str = *(char **)data;
         if (str) {
@@ -262,43 +262,43 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
         // Use predictor when using compression
         if (compress == COMPRESSION_LZW || compress == COMPRESSION_ADOBE_DEFLATE) {
-            if (m_spec.format == PT_FLOAT || m_spec.format == PT_DOUBLE || m_spec.format == PT_HALF)
+            if (m_spec.format == TypeDesc::FLOAT || m_spec.format == TypeDesc::DOUBLE || m_spec.format == TypeDesc::HALF)
                 TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
             else
                 TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
         }
     }
-    if (iequals(name, "Copyright") && type == PT_STRING) {
+    if (iequals(name, "Copyright") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_COPYRIGHT, *(char**)data);
         return true;
     }
-    if (iequals(name, "DateTime") && type == PT_STRING) {
+    if (iequals(name, "DateTime") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_DATETIME, *(char**)data);
         return true;
     }
-    if ((iequals(name, "name") || iequals(name, "DocumentName")) && type == PT_STRING) {
+    if ((iequals(name, "name") || iequals(name, "DocumentName")) && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_DOCUMENTNAME, *(char**)data);
         return true;
     }
-    if (iequals(name,"fovcot") && type == PT_FLOAT) {
+    if (iequals(name,"fovcot") && type == TypeDesc::FLOAT) {
         double d = *(float *)data;
         TIFFSetField (m_tif, TIFFTAG_PIXAR_FOVCOT, d);
         return true;
     }
-    if ((iequals(name, "host") || iequals(name, "HostComputer")) && type == PT_STRING) {
+    if ((iequals(name, "host") || iequals(name, "HostComputer")) && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_HOSTCOMPUTER, *(char**)data);
         return true;
     }
     if ((iequals(name, "description") || iequals(name, "ImageDescription")) &&
-          type == PT_STRING) {
+          type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_IMAGEDESCRIPTION, *(char**)data);
         return true;
     }
-    if (iequals(name, "tiff:Predictor") && type == PT_INT) {
+    if (iequals(name, "tiff:Predictor") && type == TypeDesc::INT) {
         TIFFSetField (m_tif, TIFFTAG_PREDICTOR, *(int *)data);
         return true;
     }
-    if (iequals(name, "ResolutionUnit") && type == PT_STRING) {
+    if (iequals(name, "ResolutionUnit") && type == TypeDesc::STRING) {
         const char *s = *(char**)data;
         bool ok = true;
         if (! strcmp (s, "none"))
@@ -310,33 +310,33 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         else ok = false;
         return ok;
     }
-    if (iequals(name, "ResolutionUnit") && type == PT_UINT) {
+    if (iequals(name, "ResolutionUnit") && type == TypeDesc::UINT) {
         TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, *(unsigned int *)data);
         return true;
     }
     if (iequals(name, "tiff:RowsPerStrip")) {
-        if (type == PT_INT) {
+        if (type == TypeDesc::INT) {
             TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, *(int*)data);
             return true;
-        } else if (type == PT_STRING) {
+        } else if (type == TypeDesc::STRING) {
             // Back-compatibility with Entropy and PRMan
             TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, atoi(*(char **)data));
             return true;
         }
     }
-    if (iequals(name, "Software") && type == PT_STRING) {
+    if (iequals(name, "Software") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_SOFTWARE, *(char**)data);
         return true;
     }
-    if (iequals(name, "tiff:SubFileType") && type == PT_INT) {
+    if (iequals(name, "tiff:SubFileType") && type == TypeDesc::INT) {
         TIFFSetField (m_tif, TIFFTAG_SUBFILETYPE, *(int*)data);
         return true;
     }
-    if (iequals(name, "textureformat") && type == PT_STRING) {
+    if (iequals(name, "textureformat") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_PIXAR_TEXTUREFORMAT, *(char**)data);
         return true;
     }
-    if (iequals(name, "wrapmodes") && type == PT_STRING) {
+    if (iequals(name, "wrapmodes") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_PIXAR_WRAPMODES, *(char**)data);
         return true;
     }
@@ -348,11 +348,11 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         TIFFSetField (m_tif, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, data);
         return true;
     }
-    if (iequals(name, "XResolution") && type == PT_FLOAT) {
+    if (iequals(name, "XResolution") && type == TypeDesc::FLOAT) {
         TIFFSetField (m_tif, TIFFTAG_XRESOLUTION, *(float *)data);
         return true;
     }
-    if (iequals(name, "YResolution") && type == PT_FLOAT) {
+    if (iequals(name, "YResolution") && type == TypeDesc::FLOAT) {
         TIFFSetField (m_tif, TIFFTAG_YRESOLUTION, *(float *)data);
         return true;
     }
