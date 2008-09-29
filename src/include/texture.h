@@ -75,10 +75,11 @@ public:
     Wrap twrap;             ///< Wrap mode in the t direction
 
     // Options that may be different for each point we're texturing
-    VaryingRef<float>   sblur, tblur;   ///< Blur amount
-    VaryingRef<float>   swidth, twidth; ///< Multiplier for derivatives
-    VaryingRef<float>   bias;           ///< Bias
-    VaryingRef<float>   fill;           ///< Fill value for missing channels
+    VaryingRef<float> sblur, tblur;   ///< Blur amount
+    VaryingRef<float> swidth, twidth; ///< Multiplier for derivatives
+    VaryingRef<float> bias;           ///< Bias
+    VaryingRef<float> fill;           ///< Fill value for missing channels
+    VaryingRef<int>   samples;        ///< Number of samples
 
     // For 3D volume texture lookups only:
     Wrap zwrap;                ///< Wrap mode in the z direction
@@ -86,7 +87,7 @@ public:
     VaryingRef<float> zwidth;  ///< Multiplier for derivatives in z direction
 
     // Storage for results
-    VaryingRef<float>   alpha;  ///< If non-null put the alpha channel here
+    VaryingRef<float> alpha;   ///< If non-null put the alpha channel here
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
@@ -144,13 +145,26 @@ public:
     virtual float max_memory_MB () const = 0;
     virtual std::string searchpath () const = 0;
 
+    /// Filtered 2D texture lookup for a single point.
+    ///
+    /// s,t are the texture coordinates; dsdx, dtdx, dsdy, and dtdy are
+    /// the differentials of s and t change in some canonical directions
+    /// x and y.  The choice of x and y are not important to the
+    /// implementation; it can be any imposed 2D coordinates, such as
+    /// pixels in screen space, adjacent samples in parameter space on a
+    /// surface, etc.
+    virtual void texture (ustring filename, TextureOptions &options,
+                          float s, float t, float dsdx, float dtdx,
+                          float dsdy, float dtdy, float *result) = 0;
+
     /// Retrieve filtered (possibly anisotropic) texture lookups for
-    /// several points.  s,t are the texture coordinates; dsdx, dtdx,
-    /// dsdy, and dtdy are the differentials of s and t change in some
-    /// canonical directions x and y.  The choice of x and y are not
-    /// important to the implementation; it can be any imposed 2D
-    /// coordinates, such as pixels in screen space, adjacent samples in
-    /// parameter space on a surface, etc.
+    /// several points at once.
+    ///
+    /// All of the VaryingRef parameters (and fields in options)
+    /// describe texture lookup parameters at an array of positions.
+    /// But this routine only computes them from indices i where
+    /// firstactive <= i <= lastactive, and ONLY when runflags[i] is
+    /// nonzero.
     virtual void texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int firstactive, int lastactive,
                           VaryingRef<float> s, VaryingRef<float> t,
@@ -158,7 +172,14 @@ public:
                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
                           float *result) = 0;
 
-    /// Retrieve a 3D texture lookup.
+    /// Retrieve a 3D texture lookup at a single point.
+    ///
+    virtual void texture (ustring filename, TextureOptions &options,
+                          const Imath::V3f &P,
+                          const Imath::V3f &dPdx, const Imath::V3f &dPdy,
+                          float *result) = 0;
+
+    /// Retrieve a 3D texture lookup at many points at once.
     ///
     virtual void texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int firstactive, int lastactive,
@@ -167,7 +188,13 @@ public:
                           VaryingRef<Imath::V3f> dPdy,
                           float *result) = 0;
 
-    /// Retrieve a shadow lookup for position P.
+    /// Retrieve a shadow lookup for a single position P.
+    ///
+    virtual void shadow (ustring filename, TextureOptions &options,
+                         const Imath::V3f &P, const Imath::V3f &dPdx,
+                         const Imath::V3f &dPdy, float *result) = 0;
+
+    /// Retrieve a shadow lookup for position P at many points at once.
     ///
     virtual void shadow (ustring filename, TextureOptions &options,
                          Runflag *runflags, int firstactive, int lastactive,
@@ -179,7 +206,13 @@ public:
     /// Retrieve an environment map lookup for direction R.
     ///
     virtual void environment (ustring filename, TextureOptions &options,
-                              short *runflags, int firstactive, int lastactive,
+                              const Imath::V3f &R, const Imath::V3f &dRdx,
+                              const Imath::V3f &dRdy, float *result) = 0;
+
+    /// Retrieve an environment map lookup for direction R, for many
+    /// points at once.
+    virtual void environment (ustring filename, TextureOptions &options,
+                              Runflag *runflags, int firstactive, int lastactive,
                               VaryingRef<Imath::V3f> R,
                               VaryingRef<Imath::V3f> dRdx,
                               VaryingRef<Imath::V3f> dRdy,
@@ -192,28 +225,6 @@ public:
     virtual bool gettextureinfo (ustring filename, ustring dataname,
                                  TypeDesc datatype, void *data) = 0;
     
-
-#if 0
-    // Set an attribute in the graphics state, with name and explicit type
-    virtual void attribute (const char *name, TypeDesc t, const void *val) {}
-    virtual void attribute (const char *name, TypeDesc t, int val) {}
-    virtual void attribute (const char *name, TypeDesc t, float val) {}
-    virtual void attribute (const char *name, TypeDesc t, double val) {}
-    virtual void attribute (const char *name, TypeDesc t, const char *val) {}
-    virtual void attribute (const char *name, TypeDesc t, const int *val) {}
-    virtual void attribute (const char *name, TypeDesc t, const float *val) {}
-    virtual void attribute (const char *name, TypeDesc t, const char **val) {}
-
-    // Set an attribute with type embedded in the name
-    virtual void attribute (const char *typedname, const void *val) {}
-    virtual void attribute (const char *typedname, int val) {}
-    virtual void attribute (const char *typedname, float val) {}
-    virtual void attribute (const char *typedname, double val) {}
-    virtual void attribute (const char *typedname, const char *val) {}
-    virtual void attribute (const char *typedname, const int *val) {}
-    virtual void attribute (const char *typedname, const float *val) {}
-    virtual void attribute (const char *typedname, const char **val) {}
-#endif
 };
 
 

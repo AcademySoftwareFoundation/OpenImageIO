@@ -58,6 +58,7 @@ static float default_blur = 0;
 static float default_width = 1;
 static float default_bias = 0;
 static float default_fill = 0;
+static int   default_samples = 1;
 
 static TextureOptions defaultTextureOptions(true);  // use special ctr
 
@@ -72,7 +73,8 @@ TextureOptions::TextureOptions (bool)
       swidth(default_width), twidth(default_width),
       bias(default_bias),
       fill(default_fill),
-      zwrap(WrapDefault), zblur(NULL), zwidth(NULL),
+      samples(default_samples),
+      zwrap(WrapDefault), zblur(default_blur), zwidth(default_width),
       alpha(NULL),
       stateful(false),
       swrap_func(NULL), twrap_func(NULL)

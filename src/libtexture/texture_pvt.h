@@ -292,7 +292,24 @@ public:
         result = m_Mc2w;
     }
 
-    /// Retrieve filtered texture lookups
+    /// Filtered 2D texture lookup for a single point, no runflags.
+    ///
+    void texture (ustring filename, TextureOptions &options, float s, float t,
+                  float dsdx, float dtdx, float dsdy, float dtdy,
+                  float *result) {
+        Runflag rf = RunFlagOn;
+        texture (filename, options, &rf, 0, 0, s, t,
+                 dsdx, dtdx, dsdy, dtdy, result);
+    }
+
+    /// Retrieve a 3D texture lookup at a single point.
+    ///
+    virtual void texture (ustring filename, TextureOptions &options,
+                          const Imath::V3f &P,
+                          const Imath::V3f &dPdx, const Imath::V3f &dPdy,
+                          float *result) { }
+
+    /// Retrieve a 3D texture lookup at many points at once.
     ///
     virtual void texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int firstactive, int lastactive,
@@ -310,7 +327,13 @@ public:
                           VaryingRef<Imath::V3f> dPdy,
                           float *result) { }
 
-    /// Retrieve a shadow lookup for position P.
+    /// Retrieve a shadow lookup for a single position P.
+    ///
+    virtual void shadow (ustring filename, TextureOptions &options,
+                         const Imath::V3f &P, const Imath::V3f &dPdx,
+                         const Imath::V3f &dPdy, float *result) { }
+
+    /// Retrieve a shadow lookup for position P at many points at once.
     ///
     virtual void shadow (ustring filename, TextureOptions &options,
                          Runflag *runflags, int firstactive, int lastactive,
@@ -322,7 +345,13 @@ public:
     /// Retrieve an environment map lookup for direction R.
     ///
     virtual void environment (ustring filename, TextureOptions &options,
-                              short *runflags, int firstactive, int lastactive,
+                              const Imath::V3f &R, const Imath::V3f &dRdx,
+                              const Imath::V3f &dRdy, float *result) { }
+
+    /// Retrieve an environment map lookup for direction R, for many
+    /// points at once.
+    virtual void environment (ustring filename, TextureOptions &options,
+                              Runflag *runflags, int firstactive, int lastactive,
                               VaryingRef<Imath::V3f> R,
                               VaryingRef<Imath::V3f> dRdx,
                               VaryingRef<Imath::V3f> dRdy,
