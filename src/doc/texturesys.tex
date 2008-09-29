@@ -168,6 +168,11 @@ requested but not found in the file.  For example, if you perform a
 get the fill value.
 \apiend
 
+\apiitem{VaryingRef<int> samples}
+The number of samples to use for each lookup.  Currently this only
+applies for certain types of shadow maps.
+\apiend
+
 \apiitem{VaryingRef<float> alpha}
 Specifies a \emph{destination} for one additional channel to be looked
 up, the one immediately following the return value (i.e., channel
@@ -183,7 +188,33 @@ VaryingRef<float> zblur, zwidth}
 Specifies wrap, blur, and width for 3D volume texture lookups only.
 \apiend
 
+\subsection{SIMD Run Flags}
 
+Most of the texture lookup API routines are written to accommodate
+queries about many points at once.  Furthermore, only a subset of
+points may need to compute.  This is all expressed using three
+parameters:  {\cf Runflag *runflags, int firstactive, int lastactive}.
+There are also {\cf VaryingRef} parameters such as {\cf s} and {\cf t}
+that act as if they are arrays.
+
+The {\cf firstactive} and {\cf lastactive} indices are the first and
+last (inclusive) points that should be computed, and for each point
+{\cf runflags[i]} is nonzero if the point should be computed.  To
+illustrate, here is how a routine might be written that would copy
+values in {\cf arg} to {\cf result} using runflags:
+
+\begin{code}
+        void copy (Runflag *runflags, int firstactive, int lastactive,
+                   VaryingRef<float> arg, VaryingRef <float> result)
+        {
+            for (int i = firstactive; i <= lastactive;  ++i)
+                if (runflags[i])
+                    result[i] = arg[i];
+        }
+\end{code}
+
+
+\newpage
 \section{TextureSystem API}
 \label{sec:texturesys:api}
 
@@ -261,8 +292,82 @@ the texture library will use for the tile cache.
 Returns the current search path for textures.
 \apiend
 
+\newpage
 \subsection{Texture Lookups}
 \label{sec:texturesys:api:texture}
+
+\apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
+\bigspc                   float s, float t, float dsdx, float dtdx,\\
+\bigspc                   float dsdy, float dtdy, float *result)}
+
+Perform a filtered 2D texture lookup on a position centered at 2D
+coordinates ({\cf s}, {\cf t}) from the texture identified by
+{\cf filename}, and using relevant texture {\cf options}.  The filtered
+results will be stored in {\cf result[]}.
+
+We assume that this lookup will be part of an image that has pixel
+coordinates {\cf x} and {\cf y}.  By knowing how {\cf s} and {\cf t}
+change from pixel to pixel in the final image, we can properly
+\emph{filter} or antialias the texture lookups.  This information is
+given via derivatives {\cf dsdx} and {\cf dsdx} that define the change
+in {\cf s} and {\cf t} per unit of {\cf x}, and {\cf dsdy} and {\cf
+  dsdy} that define the change in {\cf s} and {\cf t} per unit of {\cf
+  y}.  If it is impossible to know the derivatives, you may pass 0 for
+them, but in that case you will not receive an antialiased texture lookup.
+
+Fields within {\cf options} that are honored for 2D texture lookups
+include the following:
+
+\vspace{-12pt}
+\apiitem{int nchannels\\
+int firstchannel}
+\vspace{10pt}
+The number of color channels to look up from the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{Wrap swrap, twrap}
+\vspace{10pt}
+Specify the \emph{wrap mode} for each direction, one of: 
+{\cf WrapBlack}, {\cf WrapClamp}, {\cf WrapPeriodic}, {\cf WrapMirror},
+or {\cf WrapDefault}.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> swidth, twidth}
+\vspace{10pt}
+For each direction, gives a multiplier for the derivatives.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> sblur, tblur}
+\vspace{10pt}
+For each direction, specifies an additional amount of pre-blur to apply
+to the texture (\emph{after} derivatives are taken into account),
+expressed as a portion of the width of the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> fill}
+\vspace{10pt}
+Specifies the value that will be used for any color channels that are
+requested but not found in the file.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> alpha}
+\vspace{10pt}
+Specifies a \emph{destination} for one additional channel to be looked
+up, the one immediately following the return value (i.e., channel
+$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
+allow a 4-channel lookup, with the 4th channel put in an entirely
+different variable than the 3-channel color.  The default for {\cf
+  alpha} is to point to NULL, indicating that no extra alpha channel
+should be retrieved.
+\apiend
+
+\apiend
+
 
 \apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
 \bigspc                   Runflag *runflags, int firstactive, int lastactive,\\
@@ -271,13 +376,98 @@ Returns the current search path for textures.
 \bigspc                   VaryingRef<float> dsdy, VaryingRef<float> dtdy,\\
 \bigspc                   float *result)}
 
-Perform filtered 2D texture lookups on a collection of positions defined
-by 2D coordinates $s$ and $t$.
+Perform filtered 2D texture lookups on a collection of positions all at
+once, which may be much more efficient than repeatedly calling the
+single-point version of {\cf texture()}.  The parameters {\cf s},
+{\cf t}, {\cf dsdx}, {\cf dtdx}, and {\cf dsdy}, {\cf dtdy} are now
+{\cf VaryingRef}'s that may refer to either a single or an array of
+values, as are all the fields in the {\cf options}.
+
+Texture will be computed at indices {\cf firstactive} through
+{\cf lastactive}, inclusive, but only at indices where {\cf runflags[i]}
+is nonzero.  Results will be stored at corresponding positions of
+{\cf result}, that is, 
+{\cf result[i*n ... (i+1)*n-1]} where $n$ is the number of channels
+requested by {\cf options.nchannels}.
 
 \apiend
 
+\newpage
 \subsection{Volume Texture Lookups}
 \label{sec:texturesys:api:texture3d}
+
+\apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
+\bigspc                          const Imath::V3f \&P,\\
+\bigspc                          const Imath::V3f \&dPdx,\\
+\bigspc                          const Imath::V3f \&dPdy,\\
+\bigspc                          float *result)}
+
+Perform a filtered 3D volumetric texture lookup on a position centered at
+3D position {\cf P} from the texture identified by
+{\cf filename}, and using relevant texture {\cf options}.  The filtered
+results will be stored in {\cf result[]}.
+
+We assume that this lookup will be part of an image that has pixel
+coordinates {\cf x} and {\cf y}.  By knowing how {\cf P} changes from
+pixel to pixel in the final image, we can properly \emph{filter} or
+antialias the texture lookups.  This information is given via
+derivatives {\cf dPdx} and {\cf dPdy} that define the changes in {\cf P}
+per unit of {\cf x} and {\cf y}, respectively.  If it is impossible to
+know the derivatives, you may pass 0 for them, but in that case you will
+not receive an antialiased texture lookup.
+
+Fields within {\cf options} that are honored for 3D texture lookups
+include the following:
+
+\vspace{-12pt}
+\apiitem{int nchannels\\
+int firstchannel}
+\vspace{10pt}
+The number of color channels to look up from the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{Wrap swrap, twrap, zwrap}
+\vspace{10pt}
+Specify the wrap modes for each direction, one of: 
+{\cf WrapBlack}, {\cf WrapClamp}, {\cf WrapPeriodic}, {\cf WrapMirror},
+or {\cf WrapDefault}.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> swidth, twidth, zwidth}
+\vspace{10pt}
+For each direction, gives a multiplier for the derivatives.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> sblur, tblur, zblur}
+\vspace{10pt}
+For each direction, specifies an additional amount of pre-blur to apply
+to the texture (\emph{after} derivatives are taken into account),
+expressed as a portion of the width of the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> fill}
+\vspace{10pt}
+Specifies the value that will be used for any color channels that are
+requested but not found in the file.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> alpha}
+\vspace{10pt}
+Specifies a \emph{destination} for one additional channel to be looked
+up, the one immediately following the return value (i.e., channel
+$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
+allow a 4-channel lookup, with the 4th channel put in an entirely
+different variable than the 3-channel color.  The default for {\cf
+  alpha} is to point to NULL, indicating that no extra alpha channel
+should be retrieved.
+\apiend
+
+\apiend
 
 \apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
 \bigspc                          Runflag *runflags, int firstactive, int lastactive,\\
@@ -285,10 +475,80 @@ by 2D coordinates $s$ and $t$.
 \bigspc                          VaryingRef<Imath::V3f> dPdx,\\
 \bigspc                          VaryingRef<Imath::V3f> dPdy,\\
 \bigspc                          float *result)}
+
+Perform filtered 3D volumetric texture lookups on a collection of positions all at
+once, which may be much more efficient than repeatedly calling the
+single-point version of {\cf texture()}.  The parameters {\cf P},
+{\cf dPdx}, and {\cf dPdy} are now
+{\cf VaryingRef}'s that may refer to either a single or an array of
+values, as are all the fields in the {\cf options}.
+
+Texture will be computed at indices {\cf firstactive} through
+{\cf lastactive}, inclusive, but only at indices where {\cf runflags[i]}
+is nonzero.  Results will be stored at corresponding positions of
+{\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
+is the number of channels requested by {\cf options.nchannels}.
 \apiend
 
+\newpage
 \subsection{Shadow Lookups}
 \label{sec:texturesys:api:shadow}
+
+\apiitem{void {\ce shadow} (ustring filename, TextureOptions \&options,\\
+\bigspc                         const Imath::V3f \&P,\\
+\bigspc                         const Imath::V3f \&dPdx,\\
+\bigspc                         const Imath::V3f \&dPdy,\\
+\bigspc                         float *result)}
+
+Perform a shadow map lookup on a position centered at 3D
+coordinate {\cf P} (in a designated ``common'' space) from the shadow map identified by
+{\cf filename}, and using relevant texture {\cf options}.  The filtered
+results will be stored in {\cf result[]}.
+
+We assume that this lookup will be part of an image that has pixel
+coordinates {\cf x} and {\cf y}.  By knowing how {\cf P} changes from
+pixel to pixel in the final image, we can properly \emph{filter} or
+antialias the texture lookups.  This information is given via
+derivatives {\cf dPdx} and {\cf dPdy} that define the changes in {\cf P}
+per unit of {\cf x} and {\cf y}, respectively.  If it is impossible to
+know the derivatives, you may pass 0 for them, but in that case you will
+not receive an antialiased texture lookup.
+
+Fields within {\cf options} that are honored for 2D texture lookups
+include the following:
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> swidth, twidth}
+\vspace{10pt}
+For each direction, gives a multiplier for the derivatives.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> sblur, tblur}
+\vspace{10pt}
+For each direction, specifies an additional amount of pre-blur to apply
+to the texture (\emph{after} derivatives are taken into account),
+expressed as a portion of the width of the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> bias}
+\vspace{10pt}
+Specifies the amount of \emph{shadow bias} to use --- this effectively
+ignores shadow occlusion that is closer than the bias amount to the
+surface, helping to eliminate self-shadowing artifacts.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<int> samples}
+\vspace{10pt}
+Specifies the number of samples to use when evaluating the shadow map.
+More samples will give a smoother, less noisy, appearance to the
+shadows, but may also take longer to compute.
+\apiend
+
+
+\apiend
 
 \apiitem{void {\ce shadow} (ustring filename, TextureOptions \&options,\\
 \bigspc                         Runflag *runflags, int firstactive, int lastactive,\\
@@ -296,24 +556,159 @@ by 2D coordinates $s$ and $t$.
 \bigspc                         VaryingRef<Imath::V3f> dPdx,\\
 \bigspc                         VaryingRef<Imath::V3f> dPdy,\\
 \bigspc                         float *result)}
+
+Perform filtered shadow map lookups on a collection of positions all at
+once, which may be much more efficient than repeatedly calling the
+single-point version of {\cf texture()}.  The parameters {\cf P},
+{\cf dPdx}, and {\cf dPdy} are now
+{\cf VaryingRef}'s that may refer to either a single or an array of
+values, as are all the fields in the {\cf options}.
+
+Shadow lookups will be computed at indices {\cf firstactive} through
+{\cf lastactive}, inclusive, but only at indices where {\cf runflags[i]}
+is nonzero.  Results will be stored at corresponding positions of
+{\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
+is the number of channels requested by {\cf options.nchannels}.
 \apiend
 
+\newpage
 \subsection{Environment Lookups}
 \label{sec:texturesys:api:environment}
 
 \apiitem{void {\ce environment} (ustring filename, TextureOptions \&options,\\
-\bigspc                              short *runflags, int firstactive, int lastactive,\\
+\bigspc                              const Imath::V3f \&R,\\
+\bigspc                              const Imath::V3f \&dRdx,\\
+\bigspc                              const Imath::V3f \&dRdy,\\
+\bigspc                              float *result)}
+
+Perform a filtered directional environment map lookup in the direction
+of vector {\cf R}, from the texture identified by {\cf filename}, and
+using relevant texture {\cf options}.  The filtered results will be
+stored in {\cf result[]}.
+
+We assume that this lookup will be part of an image that has pixel
+coordinates {\cf x} and {\cf y}.  By knowing how {\cf R} changes from
+pixel to pixel in the final image, we can properly \emph{filter} or
+antialias the texture lookups.  This information is given via
+derivatives {\cf dRdx} and {\cf dRdy} that define the changes in {\cf R}
+per unit of {\cf x} and {\cf y}, respectively.  If it is impossible to
+know the derivatives, you may pass 0 for them, but in that case you will
+not receive an antialiased texture lookup.
+
+Fields within {\cf options} that are honored for 3D texture lookups
+include the following:
+
+\vspace{-12pt}
+\apiitem{int nchannels\\
+int firstchannel}
+\vspace{10pt}
+The number of color channels to look up from the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> swidth, twidth}
+\vspace{10pt}
+For each direction, gives a multiplier for the derivatives.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> sblur, tblur}
+\vspace{10pt}
+For each direction, specifies an additional amount of pre-blur to apply
+to the texture (\emph{after} derivatives are taken into account),
+expressed as a portion of the width of the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> fill}
+\vspace{10pt}
+Specifies the value that will be used for any color channels that are
+requested but not found in the file.
+\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> alpha}
+\vspace{10pt}
+Specifies a \emph{destination} for one additional channel to be looked
+up, the one immediately following the return value (i.e., channel
+$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
+allow a 4-channel lookup, with the 4th channel put in an entirely
+different variable than the 3-channel color.  The default for {\cf
+  alpha} is to point to NULL, indicating that no extra alpha channel
+should be retrieved.
+\apiend
+
+\apiend
+
+\apiitem{void {\ce environment} (ustring filename, TextureOptions \&options,\\
+\bigspc                              Runflag *runflags, int firstactive, int lastactive,\\
 \bigspc                              VaryingRef<Imath::V3f> R,\\
 \bigspc                              VaryingRef<Imath::V3f> dRdx,\\
 \bigspc                              VaryingRef<Imath::V3f> dRdy,\\
 \bigspc                              float *result)}
+
+Perform filtered directional environment map lookups on a collection of positions all at
+once, which may be much more efficient than repeatedly calling the
+single-point version of {\cf texture()}.  The parameters {\cf R},
+{\cf dRdx}, and {\cf dRdy} are now
+{\cf VaryingRef}'s that may refer to either a single or an array of
+values, as are all the fields in the {\cf options}.
+
+Results will be computed at indices {\cf firstactive} through
+{\cf lastactive}, inclusive, but only at indices where {\cf runflags[i]}
+is nonzero.  Results will be stored at corresponding positions of
+{\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
+is the number of channels requested by {\cf options.nchannels}.
 \apiend
 
+\newpage
 \subsection{Texture Metadata}
 \label{sec:texturesys:api:gettextureinfo}
 
 \apiitem{bool {\ce gettextureinfo} (ustring filename, ustring dataname, \\
 \bigspc                                 TypeDesc datatype, void *data)}
+
+Retrieves information about the texture named by {\cf filename}.
+The {\cf dataname} is a keyword indcating what information should
+be retrieved, {\cf datatype} is the type of data expected, and
+{\cf data} points to caller-owned memory where the results should be
+placed.  It is up to the caller to ensure that {\cf data} contains
+enough space to hold an item of the requested {\cf datatype}.
+
+The return value is {\cf true} if {\cf gettextureinfo()} is able
+to find the requested {\cf dataname} and it matched the requested
+{\cf datatype}.  If the requested data was not found, or was not
+of the right data type, {\cf gettextureinfo()} will return {\cf false}.
+
+Supported {\cf dataname} values include:
+
+\begin{description}
+\item[\spc] \spc
+\vspace{-12pt} \item[\rm \kw{resolution}] The resolution of the texture file, which
+is an array of 2 integers (described as {\cf TypeDesc(INT,2)}).
+
+\item[\rm \kw{texturetype}] A string describing the type of texture
+of the given file.  
+
+\item[\rm \kw{textureformat}] A string describing the format of the
+given file.  
+
+\item[\rm \kw{channels}] The number of color channels in the file 
+(an integer).
+
+\item[\rm \kw{viewingmatrix}] The viewing matrix, which is a
+$4 \times 4$ matrix (an {\cf Imath::M44f}, described as {\cf
+  TypeDesc(FLOAT,MATRIX)}).
+
+\item[\rm \kw{projectionmatrix}] The projection matrix, which is a
+$4 \times 4$ matrix (an {\cf Imath::M44f}, described as {\cf
+  TypeDesc(FLOAT,MATRIX)}).
+
+\item[Anything else] -- For all other data names, the
+the metadata of the image file will be searched for an item that
+matches both the name and data type.
+
+\end{description}
 \apiend
 
 
