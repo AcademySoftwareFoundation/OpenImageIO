@@ -23,7 +23,8 @@ dist_libs     	:= libimageio${SHLIBEXT} \
 		   openexr.imageio${SHLIBEXT} \
 		   png.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
-dist_includes	:= export.h imageio.h paramtype.h
+dist_includes	:= export.h imageio.h typedesc.h imagebuf.h paramlist.h \
+			texture.h typedesc.h ustring.h varyingref.h
 
 
 # Path for including things specific to this project
