@@ -9,6 +9,8 @@
 \section{Texture System Introduction and Theory of Operation}
 \label{sec:texturesys:intro}
 
+Coming soon.
+
 \section{Helper Classes}
 \label{sec:texturesys:helperclasses}
 
@@ -309,9 +311,9 @@ We assume that this lookup will be part of an image that has pixel
 coordinates {\cf x} and {\cf y}.  By knowing how {\cf s} and {\cf t}
 change from pixel to pixel in the final image, we can properly
 \emph{filter} or antialias the texture lookups.  This information is
-given via derivatives {\cf dsdx} and {\cf dsdx} that define the change
+given via derivatives {\cf dsdx} and {\cf dtdx} that define the change
 in {\cf s} and {\cf t} per unit of {\cf x}, and {\cf dsdy} and {\cf
-  dsdy} that define the change in {\cf s} and {\cf t} per unit of {\cf
+  dtdy} that define the change in {\cf s} and {\cf t} per unit of {\cf
   y}.  If it is impossible to know the derivatives, you may pass 0 for
 them, but in that case you will not receive an antialiased texture lookup.
 
@@ -319,10 +321,15 @@ Fields within {\cf options} that are honored for 2D texture lookups
 include the following:
 
 \vspace{-12pt}
-\apiitem{int nchannels\\
-int firstchannel}
+\apiitem{int nchannels}
 \vspace{10pt}
 The number of color channels to look up from the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{int firstchannel}
+\vspace{10pt}
+The index of the first channel to look up from the texture.
 \apiend
 
 \vspace{-24pt}
@@ -420,10 +427,15 @@ Fields within {\cf options} that are honored for 3D texture lookups
 include the following:
 
 \vspace{-12pt}
-\apiitem{int nchannels\\
-int firstchannel}
+\apiitem{int nchannels}
 \vspace{10pt}
 The number of color channels to look up from the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{int firstchannel}
+\vspace{10pt}
+The index of the first channel to look up from the texture.
 \apiend
 
 \vspace{-24pt}
@@ -517,7 +529,7 @@ not receive an antialiased texture lookup.
 Fields within {\cf options} that are honored for 2D texture lookups
 include the following:
 
-\vspace{-24pt}
+\vspace{-12pt}
 \apiitem{VaryingRef<float> swidth, twidth}
 \vspace{10pt}
 For each direction, gives a multiplier for the derivatives.
@@ -559,7 +571,7 @@ shadows, but may also take longer to compute.
 
 Perform filtered shadow map lookups on a collection of positions all at
 once, which may be much more efficient than repeatedly calling the
-single-point version of {\cf texture()}.  The parameters {\cf P},
+single-point version of {\cf shadow()}.  The parameters {\cf P},
 {\cf dPdx}, and {\cf dPdy} are now
 {\cf VaryingRef}'s that may refer to either a single or an array of
 values, as are all the fields in the {\cf options}.
@@ -599,10 +611,15 @@ Fields within {\cf options} that are honored for 3D texture lookups
 include the following:
 
 \vspace{-12pt}
-\apiitem{int nchannels\\
-int firstchannel}
+\apiitem{int nchannels}
 \vspace{10pt}
 The number of color channels to look up from the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{int firstchannel}
+\vspace{10pt}
+The index of the first channel to look up from the texture.
 \apiend
 
 \vspace{-24pt}
@@ -647,12 +664,12 @@ should be retrieved.
 \bigspc                              VaryingRef<Imath::V3f> dRdy,\\
 \bigspc                              float *result)}
 
-Perform filtered directional environment map lookups on a collection of positions all at
-once, which may be much more efficient than repeatedly calling the
-single-point version of {\cf texture()}.  The parameters {\cf R},
-{\cf dRdx}, and {\cf dRdy} are now
-{\cf VaryingRef}'s that may refer to either a single or an array of
-values, as are all the fields in the {\cf options}.
+Perform filtered directional environment map lookups on a collection of
+directions all at once, which may be much more efficient than repeatedly
+calling the single-point version of {\cf environment()}.  The parameters
+{\cf R}, {\cf dRdx}, and {\cf dRdy} are now {\cf VaryingRef}'s that may
+refer to either a single or an array of values, as are all the fields in
+the {\cf options}.
 
 Results will be computed at indices {\cf firstactive} through
 {\cf lastactive}, inclusive, but only at indices where {\cf runflags[i]}
@@ -688,10 +705,19 @@ Supported {\cf dataname} values include:
 is an array of 2 integers (described as {\cf TypeDesc(INT,2)}).
 
 \item[\rm \kw{texturetype}] A string describing the type of texture
-of the given file.  
+of the given file, which describes how the texture may be used (also
+which texture API call is probably the right one for it).
+This currently may return one of: \qkw{unknown}, \qkw{Plain Texture},
+\qkw{Volume Texture}, \qkw{Shadow}, 
+or \qkw{Environment}.
 
 \item[\rm \kw{textureformat}] A string describing the format of the
-given file.  
+given file, which describes the kind of texture stored in the file.
+This currently may return one of: \qkw{unknown}, \qkw{Plain Texture},
+\qkw{Volume Texture}, \qkw{Shadow}, \qkw{CubeFace Shadow}, \qkw{Volume
+  Shadow}, \qkw{LatLong Environment}, or \qkw{CubeFace Environment}.
+Note that there are several kinds of shadows and environment maps,
+all accessible through the same API calls.
 
 \item[\rm \kw{channels}] The number of color channels in the file 
 (an integer).

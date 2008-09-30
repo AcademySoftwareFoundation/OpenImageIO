@@ -135,9 +135,71 @@ Date: 28 August, 2008
 \part{Image Utilities}
 
 \chapter{The {\kw iv} Image Viewer}
+
+The {\cf iv} program is a great interactive image viewer.  Because {\cf
+  iv} is built on top on \product, it can display images of any formats
+readable by \ImageInput plugins on hand.
+
+\medskip
+
+More documentation on this later.
+
+
 \chapter{Getting Image information With {\kw iinfo}}
+
+The {\cf iinfo} program will print either basic information (name,
+resolution, format) or detailed information (including all metadata)
+found in images.  Because {\cf idiff} is built on top on \product, it
+will print information about images of any formats readable by
+\ImageInput plugins on hand.
+
+\medskip
+
+More documentation on this later.
+
+
 \chapter{Converting Image Formats With {\kw iconvert}}
+
+The {\cf iconvert} program will read an image (from any file format for
+which an \ImageInput plugin can be found) and then write the image to a
+new file (in any format for which an \ImageOutput plugin can be found).
+In the process, {\cf iconvert} can optionally change the file format or
+data format (for example, converting floating-point data to 8-bit
+integers), apply gamma dorrection, switch between tiled and scanline
+orientation, or alter or add metadata to the image.
+
+\medskip
+
+More documentation on this later.
+
 \chapter{Creating MIP-mapped texture files with {\cf maketx}}
+
+The {\cf maketx} program will read an image (from any file format for
+which an \ImageInput plugin can be found) and then write the image 
+as a tiled, mip-mapped texture, environment, or shadow map file that
+can be accessed efficiently by \product's texture API.
+
+\medskip
+
+More documentation on this later.
+
+
+\chapter{Comparing Images With {\kw idiff}}
+
+The {\cf idiff} program compares two images, printing a report about how
+different they are and optionally producing a third image that records
+the pixel-by-pixel differences between them.  There are a variety of
+options and ways to compare (absolute pixel difference, various
+thresholds for warnings and errors, and also an optional perceptual
+difference metric).
+
+Because {\cf idiff} is built on top on \product, it can compare two
+images of any formats readable by \ImageInput plugins on hand.  They may
+have any (or different) file formats, data formats, etc.
+
+\medskip
+
+More documentation on this later.
 
 \part{Appendices}
 \begin{appendix}
