@@ -294,73 +294,112 @@ public:
 
     /// Filtered 2D texture lookup for a single point, no runflags.
     ///
-    void texture (ustring filename, TextureOptions &options, float s, float t,
+    virtual bool texture (ustring filename, TextureOptions &options,
+                  float s, float t,
                   float dsdx, float dtdx, float dsdy, float dtdy,
                   float *result) {
         Runflag rf = RunFlagOn;
-        texture (filename, options, &rf, 0, 0, s, t,
-                 dsdx, dtdx, dsdy, dtdy, result);
+        return texture (filename, options, &rf, 0, 0, s, t,
+                        dsdx, dtdx, dsdy, dtdy, result);
     }
 
-    /// Retrieve a 3D texture lookup at a single point.
+    /// Retrieve a 2D texture lookup at many points at once.
     ///
-    virtual void texture (ustring filename, TextureOptions &options,
-                          const Imath::V3f &P,
-                          const Imath::V3f &dPdx, const Imath::V3f &dPdy,
-                          float *result) { }
-
-    /// Retrieve a 3D texture lookup at many points at once.
-    ///
-    virtual void texture (ustring filename, TextureOptions &options,
+    virtual bool texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int firstactive, int lastactive,
                           VaryingRef<float> s, VaryingRef<float> t,
                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
                           float *result);
 
+    /// Retrieve a 3D texture lookup at a single point.
+    ///
+    virtual bool texture (ustring filename, TextureOptions &options,
+                          const Imath::V3f &P,
+                          const Imath::V3f &dPdx, const Imath::V3f &dPdy,
+                          float *result) {
+        Runflag rf = RunFlagOn;
+        return texture (filename, options, &rf, 0, 0, *(Imath::V3f *)&P,
+                        *(Imath::V3f *)&dPdx, *(Imath::V3f *)&dPdy, result);
+    }
+
     /// Retrieve 3D filtered texture lookup
     ///
-    virtual void texture (ustring filename, TextureOptions &options,
+    virtual bool texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int firstactive, int lastactive,
                           VaryingRef<Imath::V3f> P,
                           VaryingRef<Imath::V3f> dPdx,
                           VaryingRef<Imath::V3f> dPdy,
-                          float *result) { }
+                          float *result) {
+        return false;
+    }
 
     /// Retrieve a shadow lookup for a single position P.
     ///
-    virtual void shadow (ustring filename, TextureOptions &options,
+    virtual bool shadow (ustring filename, TextureOptions &options,
                          const Imath::V3f &P, const Imath::V3f &dPdx,
-                         const Imath::V3f &dPdy, float *result) { }
+                         const Imath::V3f &dPdy, float *result) {
+        Runflag rf = RunFlagOn;
+        return shadow (filename, options, &rf, 0, 0, *(Imath::V3f *)&P,
+                       *(Imath::V3f *)&dPdx, *(Imath::V3f *)&dPdy, result);
+    }
 
     /// Retrieve a shadow lookup for position P at many points at once.
     ///
-    virtual void shadow (ustring filename, TextureOptions &options,
+    virtual bool shadow (ustring filename, TextureOptions &options,
                          Runflag *runflags, int firstactive, int lastactive,
                          VaryingRef<Imath::V3f> P,
                          VaryingRef<Imath::V3f> dPdx,
                          VaryingRef<Imath::V3f> dPdy,
-                         float *result) { }
+                         float *result) {
+        return false;
+    }
 
     /// Retrieve an environment map lookup for direction R.
     ///
-    virtual void environment (ustring filename, TextureOptions &options,
+    virtual bool environment (ustring filename, TextureOptions &options,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
-                              const Imath::V3f &dRdy, float *result) { }
+                              const Imath::V3f &dRdy, float *result) {
+        Runflag rf = RunFlagOn;
+        return environment (filename, options, &rf, 0, 0, *(Imath::V3f *)&R,
+                            *(Imath::V3f *)&dRdx, *(Imath::V3f *)&dRdy, result);
+    }
 
     /// Retrieve an environment map lookup for direction R, for many
     /// points at once.
-    virtual void environment (ustring filename, TextureOptions &options,
+    virtual bool environment (ustring filename, TextureOptions &options,
                               Runflag *runflags, int firstactive, int lastactive,
                               VaryingRef<Imath::V3f> R,
                               VaryingRef<Imath::V3f> dRdx,
                               VaryingRef<Imath::V3f> dRdy,
-                              float *result) { }
+                              float *result) {
+        return false;
+    }
 
     /// Get information about the given texture.
     ///
-    virtual bool gettextureinfo (ustring filename, ustring dataname,
-                                 TypeDesc datatype, void *data);
+    virtual bool get_texture_info (ustring filename, ustring dataname,
+                                   TypeDesc datatype, void *data);
+
+    /// Get the ImageSpec associated with the named texture
+    /// (specifically, the first MIP-map level).  If the file is found
+    /// and is an image format that can be read, store a copy of its
+    /// specification in spec and return true.  Return false if the file
+    /// was not found or could not be opened as an image file by any
+    /// available ImageIO plugin.
+    virtual bool get_imagespec (ustring filename, ImageSpec &spec);
+
+    /// Retrieve a rectangle of raw unfiltered texels.
+    ///
+    virtual bool get_texels (ustring filename, TextureOptions &options,
+                             int xmin, int xmax, int ymin, int ymax,
+                             int zmin, int zmax, int level,
+                             TypeDesc format, void *result);
+
+    virtual std::string geterror () const;
+
+private:
+    void init ();
 
     /// Called when a new file is opened, so that the system can track
     /// the number of simultaneously-opened files.  This should only
@@ -371,9 +410,6 @@ public:
     /// the number of simultaneously-opened files.  This should only
     /// be invoked when the caller holds m_texturefiles_mutex.
     void decr_open_files (void) { --m_open_files; }
-
-private:
-    void init ();
 
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
@@ -515,6 +551,10 @@ private:
                        TileRef &tilecache0, TileRef &tilecache1,
                        float weight, float *accum);
 
+    /// Internal error reporting routine, with printf-like arguments.
+    ///
+    void error (const char *message, ...);
+
     int m_max_open_files;
     float m_max_memory_MB;
     size_t m_max_memory_bytes;
@@ -528,6 +568,9 @@ private:
     TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
     size_t m_mem_used;           ///< Memory being used for tiles
+    mutable std::string m_errormessage;   ///< Saved error string.
+    mutable mutex m_errmutex;             ///< error mutex
+    friend class TextureFile;
 };
 
 

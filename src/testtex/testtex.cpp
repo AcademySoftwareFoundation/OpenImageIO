@@ -98,28 +98,28 @@ test_gettextureinfo (ustring filename)
     bool ok;
 
     int res[2];
-    ok = texsys->gettextureinfo (filename, ustring("resolution"),
+    ok = texsys->get_texture_info (filename, ustring("resolution"),
                                  TypeDesc(TypeDesc::INT,2), res);
-    std::cerr << "Result of gettextureinfo resolution = " << ok << ' ' << res[0] << 'x' << res[1] << "\n";
+    std::cerr << "Result of get_texture_info resolution = " << ok << ' ' << res[0] << 'x' << res[1] << "\n";
 
     int chan;
-    ok = texsys->gettextureinfo (filename, ustring("channels"),
+    ok = texsys->get_texture_info (filename, ustring("channels"),
                                  PT_INT, &chan);
-    std::cerr << "Result of gettextureinfo channels = " << ok << ' ' << chan << "\n";
+    std::cerr << "Result of get_texture_info channels = " << ok << ' ' << chan << "\n";
 
     float fchan;
-    ok = texsys->gettextureinfo (filename, ustring("channels"),
+    ok = texsys->get_texture_info (filename, ustring("channels"),
                                  PT_FLOAT, &fchan);
-    std::cerr << "Result of gettextureinfo channels = " << ok << ' ' << fchan << "\n";
+    std::cerr << "Result of get_texture_info channels = " << ok << ' ' << fchan << "\n";
 
     const char *datetime = NULL;
-    ok = texsys->gettextureinfo (filename, ustring("DateTime"),
+    ok = texsys->get_texture_info (filename, ustring("DateTime"),
                                  PT_STRING, &datetime);
-    std::cerr << "Result of gettextureinfo datetime = " << ok << ' ' 
+    std::cerr << "Result of get_texture_info datetime = " << ok << ' ' 
               << (datetime ? datetime : "") << "\n";
 
     const char *texturetype = NULL;
-    ok = texsys->gettextureinfo (filename, ustring("textureformat"),
+    ok = texsys->get_texture_info (filename, ustring("textureformat"),
                                  PT_STRING, &texturetype);
     std::cerr << "Texture type is " << ok << ' '
               << (texturetype ? texturetype : "") << "\n";
@@ -216,8 +216,8 @@ main (int argc, char *argv[])
     test_gettextureinfo (filename);
 
     const char *texturetype = NULL;
-    bool ok = texsys->gettextureinfo (filename, ustring("texturetype"),
-                                      PT_STRING, &texturetype);
+    bool ok = texsys->get_texture_info (filename, ustring("texturetype"),
+                                        PT_STRING, &texturetype);
     if (ok) {
         if (! strcmp (texturetype, "Plain Texture")) {
             test_plain_texture (filename);

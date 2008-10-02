@@ -36,6 +36,7 @@ using namespace std::tr1;
 #include "typedesc.h"
 #include "varyingref.h"
 #include "ustring.h"
+#include "strutil.h"
 #include "hash.h"
 #include "thread.h"
 #include "fmath.h"
@@ -194,16 +195,16 @@ TextureSystemImpl::check_max_mem ()
 
 
 bool
-TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
-                                   TypeDesc datatype, void *data)
+TextureSystemImpl::get_texture_info (ustring filename, ustring dataname,
+                                     TypeDesc datatype, void *data)
 {
     TextureFileRef texfile = find_texturefile (filename);
     if (! texfile) {
-        std::cerr << "   NOT FOUND\n";
+        error ("Texture file \"%s\" not found", filename.c_str());
         return false;
     }
     if (texfile->broken()) {
-        std::cerr << "    Invalid file\n";
+        error ("Invalid texture file \"%s\"", filename.c_str());
         return false;
     }
     const ImageSpec &spec (texfile->spec());
@@ -251,6 +252,76 @@ TextureSystemImpl::gettextureinfo (ustring filename, ustring dataname,
     }
 
     return false;
+}
+
+
+
+bool
+TextureSystemImpl::get_imagespec (ustring filename, ImageSpec &spec)
+{
+    TextureFileRef texfile = find_texturefile (filename);
+    if (! texfile) {
+        error ("Texture file \"%s\" not found", filename.c_str());
+        return false;
+    }
+    if (texfile->broken()) {
+        error ("Invalid texture file \"%s\"", filename.c_str());
+        return false;
+    }
+    spec = texfile->spec();
+    return true;
+}
+
+
+
+bool
+TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
+                               int xmin, int xmax, int ymin, int ymax,
+                               int zmin, int zmax, int level,
+                               TypeDesc format, void *result)
+{
+    TextureFileRef texfile = find_texturefile (filename);
+    if (! texfile) {
+        error ("Texture file \"%s\" not found", filename.c_str());
+        return false;
+    }
+    if (texfile->broken()) {
+        error ("Invalid texture file \"%s\"", filename.c_str());
+        return false;
+    }
+
+    if (level < 0 || level >= texfile->levels()) {
+        error ("get_texel asked for nonexistant level %d of \"%s\"",
+               level, filename.c_str());
+        return false;
+    }
+
+    const ImageSpec &spec (texfile->spec());
+
+    return false;
+}
+
+
+
+std::string
+TextureSystemImpl::geterror () const
+{
+    lock_guard lock (m_errmutex);
+    std::string e = m_errormessage;
+    m_errormessage.clear();
+    return e;
+}
+
+
+
+void
+TextureSystemImpl::error (const char *message, ...)
+{
+    lock_guard lock (m_errmutex);
+    va_list ap;
+    va_start (ap, message);
+    m_errormessage = Strutil::vformat (message, ap);
+    va_end (ap);
 }
 
 
@@ -318,7 +389,7 @@ static const wrap_impl wrap_functions[] = {
 
 
 
-void
+bool
 TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             Runflag *runflags, int firstactive, int lastactive,
                             VaryingRef<float> s, VaryingRef<float> t,
@@ -330,7 +401,6 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 
     TextureFileRef texturefile = find_texturefile (filename);
     if (! texturefile  ||  texturefile->broken()) {
-        std::cerr << "   TEXTURE NOT FOUND " << filename << "\n";
         for (int i = firstactive;  i <= lastactive;  ++i) {
             if (runflags[i]) {
                 for (int c = 0;  c < options.nchannels;  ++c)
@@ -340,7 +410,8 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
             }
             result += options.nchannels;
         }
-        return ;
+        error ("Texture file \"%s\" not found", filename.c_str());
+        return false;
     }
 
     // If options indicate default wrap modes, use the ones in the file
@@ -373,7 +444,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     }
     // Early out if all channels were beyond the highest in the file
     if (options.actualchannels < 1)
-        return;
+        return true;
 
     // FIXME - allow multiple filtered texture implementations
 
@@ -392,6 +463,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             result + i * options.nchannels);
         }
     }
+    return true;
 }
 
 

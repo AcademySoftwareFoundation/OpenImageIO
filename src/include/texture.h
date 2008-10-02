@@ -153,7 +153,10 @@ public:
     /// implementation; it can be any imposed 2D coordinates, such as
     /// pixels in screen space, adjacent samples in parameter space on a
     /// surface, etc.
-    virtual void texture (ustring filename, TextureOptions &options,
+    ///
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool texture (ustring filename, TextureOptions &options,
                           float s, float t, float dsdx, float dtdx,
                           float dsdy, float dtdy, float *result) = 0;
 
@@ -165,7 +168,10 @@ public:
     /// But this routine only computes them from indices i where
     /// firstactive <= i <= lastactive, and ONLY when runflags[i] is
     /// nonzero.
-    virtual void texture (ustring filename, TextureOptions &options,
+    ///
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int firstactive, int lastactive,
                           VaryingRef<float> s, VaryingRef<float> t,
                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
@@ -174,14 +180,18 @@ public:
 
     /// Retrieve a 3D texture lookup at a single point.
     ///
-    virtual void texture (ustring filename, TextureOptions &options,
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool texture (ustring filename, TextureOptions &options,
                           const Imath::V3f &P,
                           const Imath::V3f &dPdx, const Imath::V3f &dPdy,
                           float *result) = 0;
 
     /// Retrieve a 3D texture lookup at many points at once.
     ///
-    virtual void texture (ustring filename, TextureOptions &options,
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool texture (ustring filename, TextureOptions &options,
                           Runflag *runflags, int firstactive, int lastactive,
                           VaryingRef<Imath::V3f> P,
                           VaryingRef<Imath::V3f> dPdx,
@@ -190,13 +200,17 @@ public:
 
     /// Retrieve a shadow lookup for a single position P.
     ///
-    virtual void shadow (ustring filename, TextureOptions &options,
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool shadow (ustring filename, TextureOptions &options,
                          const Imath::V3f &P, const Imath::V3f &dPdx,
                          const Imath::V3f &dPdy, float *result) = 0;
 
     /// Retrieve a shadow lookup for position P at many points at once.
     ///
-    virtual void shadow (ustring filename, TextureOptions &options,
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool shadow (ustring filename, TextureOptions &options,
                          Runflag *runflags, int firstactive, int lastactive,
                          VaryingRef<Imath::V3f> P,
                          VaryingRef<Imath::V3f> dPdx,
@@ -205,13 +219,18 @@ public:
 
     /// Retrieve an environment map lookup for direction R.
     ///
-    virtual void environment (ustring filename, TextureOptions &options,
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool environment (ustring filename, TextureOptions &options,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
                               const Imath::V3f &dRdy, float *result) = 0;
 
     /// Retrieve an environment map lookup for direction R, for many
     /// points at once.
-    virtual void environment (ustring filename, TextureOptions &options,
+    ///
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool environment (ustring filename, TextureOptions &options,
                               Runflag *runflags, int firstactive, int lastactive,
                               VaryingRef<Imath::V3f> R,
                               VaryingRef<Imath::V3f> dRdx,
@@ -222,9 +241,40 @@ public:
     /// and the data has been put in *data.  Return false if the texture
     /// doesn't exist, doesn't have the requested data, if the data
     /// doesn't match the type requested. or some other failure.
-    virtual bool gettextureinfo (ustring filename, ustring dataname,
-                                 TypeDesc datatype, void *data) = 0;
+    virtual bool get_texture_info (ustring filename, ustring dataname,
+                                   TypeDesc datatype, void *data) = 0;
     
+    /// Get the ImageSpec associated with the named texture
+    /// (specifically, the first MIP-map level).  If the file is found
+    /// and is an image format that can be read, store a copy of its
+    /// specification in spec and return true.  Return false if the file
+    /// was not found or could not be opened as an image file by any
+    /// available ImageIO plugin.
+    virtual bool get_imagespec (ustring filename, ImageSpec &spec) = 0;
+
+    /// Retrieve the rectangle of raw unfiltered texels spanning
+    /// [xmin..xmax X ymin..ymax X zmin..zmax] (inclusive, specified as
+    /// integer pixel coordinates), at the named MIP-map level, storing
+    /// the texel values beginning at the address specified by result.
+    /// The texel values will be converted to the type specified by
+    /// format.  It is up to the caller to ensure that result points to
+    /// an area of memory big enough to accommodate the requested
+    /// rectangle (taking into consideration its dimensions, number of
+    /// channels, and data format).
+    ///
+    /// Return true if the file is found and could be opened by an
+    /// available ImageIO plugin, otherwise return false.
+    virtual bool get_texels (ustring filename, TextureOptions &options,
+                             int xmin, int xmax, int ymin, int ymax,
+                             int zmin, int zmax, int level,
+                             TypeDesc format, void *result) = 0;
+
+    /// If any of the API routines returned false indicating an error,
+    /// this routine will return the error string (and clear any error
+    /// flags).  If no error has occurred since the last time geterror()
+    /// was called, it will return an empty string.
+    virtual std::string geterror () const = 0;
+
 };
 
 

@@ -298,7 +298,7 @@ Returns the current search path for textures.
 \subsection{Texture Lookups}
 \label{sec:texturesys:api:texture}
 
-\apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
 \bigspc                   float s, float t, float dsdx, float dtdx,\\
 \bigspc                   float dsdy, float dtdy, float *result)}
 
@@ -373,10 +373,13 @@ different variable than the 3-channel color.  The default for {\cf
 should be retrieved.
 \apiend
 
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
 \apiend
 
 
-\apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
 \bigspc                   Runflag *runflags, int firstactive, int lastactive,\\
 \bigspc                   VaryingRef<float> s, VaryingRef<float> t,\\
 \bigspc                   VaryingRef<float> dsdx, VaryingRef<float> dtdx,\\
@@ -397,13 +400,16 @@ is nonzero.  Results will be stored at corresponding positions of
 {\cf result[i*n ... (i+1)*n-1]} where $n$ is the number of channels
 requested by {\cf options.nchannels}.
 
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
 \apiend
 
 \newpage
 \subsection{Volume Texture Lookups}
 \label{sec:texturesys:api:texture3d}
 
-\apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
 \bigspc                          const Imath::V3f \&P,\\
 \bigspc                          const Imath::V3f \&dPdx,\\
 \bigspc                          const Imath::V3f \&dPdy,\\
@@ -479,9 +485,13 @@ different variable than the 3-channel color.  The default for {\cf
 should be retrieved.
 \apiend
 
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
+
 \apiend
 
-\apiitem{void {\ce texture} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
 \bigspc                          Runflag *runflags, int firstactive, int lastactive,\\
 \bigspc                          VaryingRef<Imath::V3f> P,\\
 \bigspc                          VaryingRef<Imath::V3f> dPdx,\\
@@ -500,13 +510,17 @@ Texture will be computed at indices {\cf firstactive} through
 is nonzero.  Results will be stored at corresponding positions of
 {\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
 is the number of channels requested by {\cf options.nchannels}.
+
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
 \apiend
 
 \newpage
 \subsection{Shadow Lookups}
 \label{sec:texturesys:api:shadow}
 
-\apiitem{void {\ce shadow} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce shadow} (ustring filename, TextureOptions \&options,\\
 \bigspc                         const Imath::V3f \&P,\\
 \bigspc                         const Imath::V3f \&dPdx,\\
 \bigspc                         const Imath::V3f \&dPdy,\\
@@ -559,10 +573,12 @@ More samples will give a smoother, less noisy, appearance to the
 shadows, but may also take longer to compute.
 \apiend
 
-
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
 \apiend
 
-\apiitem{void {\ce shadow} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce shadow} (ustring filename, TextureOptions \&options,\\
 \bigspc                         Runflag *runflags, int firstactive, int lastactive,\\
 \bigspc                         VaryingRef<Imath::V3f> P,\\
 \bigspc                         VaryingRef<Imath::V3f> dPdx,\\
@@ -581,13 +597,17 @@ Shadow lookups will be computed at indices {\cf firstactive} through
 is nonzero.  Results will be stored at corresponding positions of
 {\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
 is the number of channels requested by {\cf options.nchannels}.
+
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
 \apiend
 
 \newpage
 \subsection{Environment Lookups}
 \label{sec:texturesys:api:environment}
 
-\apiitem{void {\ce environment} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce environment} (ustring filename, TextureOptions \&options,\\
 \bigspc                              const Imath::V3f \&R,\\
 \bigspc                              const Imath::V3f \&dRdx,\\
 \bigspc                              const Imath::V3f \&dRdy,\\
@@ -655,9 +675,12 @@ different variable than the 3-channel color.  The default for {\cf
 should be retrieved.
 \apiend
 
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
 \apiend
 
-\apiitem{void {\ce environment} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce environment} (ustring filename, TextureOptions \&options,\\
 \bigspc                              Runflag *runflags, int firstactive, int lastactive,\\
 \bigspc                              VaryingRef<Imath::V3f> R,\\
 \bigspc                              VaryingRef<Imath::V3f> dRdx,\\
@@ -676,13 +699,19 @@ Results will be computed at indices {\cf firstactive} through
 is nonzero.  Results will be stored at corresponding positions of
 {\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
 is the number of channels requested by {\cf options.nchannels}.
+
+This function returns {\cf true} upon success, or {\cf false} if the
+file was not found or could not be opened by any available ImageIO
+plugin.
 \apiend
 
 \newpage
-\subsection{Texture Metadata}
-\label{sec:texturesys:api:gettextureinfo}
+\subsection{Texture Metadata, Raw Texels, and Errors}
+\label{sec:texturesys:api:get_texture_info}
+\label{sec:texturesys:api:get_imagespec}
+\label{sec:texturesys:api:geterror}
 
-\apiitem{bool {\ce gettextureinfo} (ustring filename, ustring dataname, \\
+\apiitem{bool {\ce get_texture_info} (ustring filename, ustring dataname, \\
 \bigspc                                 TypeDesc datatype, void *data)}
 
 Retrieves information about the texture named by {\cf filename}.
@@ -692,10 +721,10 @@ be retrieved, {\cf datatype} is the type of data expected, and
 placed.  It is up to the caller to ensure that {\cf data} contains
 enough space to hold an item of the requested {\cf datatype}.
 
-The return value is {\cf true} if {\cf gettextureinfo()} is able
+The return value is {\cf true} if {\cf get_texture_info()} is able
 to find the requested {\cf dataname} and it matched the requested
 {\cf datatype}.  If the requested data was not found, or was not
-of the right data type, {\cf gettextureinfo()} will return {\cf false}.
+of the right data type, {\cf get_texture_info()} will return {\cf false}.
 
 Supported {\cf dataname} values include:
 
@@ -737,7 +766,22 @@ matches both the name and data type.
 \end{description}
 \apiend
 
+\apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec)}
 
+If the named image is found and able to be opened by an available
+ImageIO plugin, this function copies its image specification into
+{\cf spec} and returns {\cf true}.  Otherwise, if the file is not
+found, could not be opened, or is not of a format readable by any
+ImageIO plugin that could be find, the return value is {\cf false}.
+\apiend
+
+\apiitem{std::string {\ce geterror} ()}
+
+If any other API routines return {\cf false}, indicating that an
+error has occurred, this routine will retrieve the error and clear
+the error status.  If no error has occurred since the last time
+{\cf geterror()} was called, it will return an empty string.
+\apiend
 
 
 \index{Texture System|)}
