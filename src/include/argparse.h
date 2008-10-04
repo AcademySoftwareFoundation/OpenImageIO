@@ -30,7 +30,25 @@
 */
 
 
+/// \file
+/// Simple parsing of program command-line arguments.
+
+
+#ifndef ARGPARSE_H
+#define ARGPARSE_H
+
+#include <vector>
+
+
+// namespace I have no idea... {
+
+
+class ArgOption;   // Forward declaration
+
+
+
 /////////////////////////////////////////////////////////////////////////////
+///
 /// \class ArgParse
 ///
 /// Argument Parsing
@@ -38,6 +56,7 @@
 /// The parse function takes a list of options and variables or functions
 /// for storing option values and return <0 on failure:
 ///
+/// \code
 ///    ArgParse ap(argc, argv);
 ///
 ///    if (ap.parse ("Usage: myapp [options] filename...",
@@ -58,18 +77,18 @@
 ///        ap.usage ();
 ///        return EXIT_FAILURE;
 ///    }
+/// \endcode
 ///
 /// The available argument types are:
-///     %d - 32bit integer
-///     %f - 32bit float
-///     %F - 64bit float (double)
-///     %s - char* (assumed allocated before calling ArgParse::parse())
-///     %S - char* (allocated automatically in ArgParse::parse())
-///     %! (or no % argument) - bool flag
-///     %* - (argc,argv) sublist with callback
+///    - \%d - 32bit integer
+///    - \%f - 32bit float
+///    - \%F - 64bit float (double)
+///    - \%s - std::string
+///    - \%! (or no % argument) - bool flag
+///    - \%* - (argc,argv) sublist with callback
 ///
 /// There are several special format tokens:
-///     "<SEPARATOR>" - not an option at all, just a description to print
+///    - "<SEPARATOR>" - not an option at all, just a description to print
 ///                     in the usage output.
 ///
 /// Notes:
@@ -80,20 +99,6 @@
 ///   - If a sublist function returns -1, parse() will terminate early.
 ///
 /////////////////////////////////////////////////////////////////////////////
-
-
-#ifndef ARGPARSE_H
-#define ARGPARSE_H
-
-#include <vector>
-
-
-// namespace I have no idea... {
-
-
-
-class ArgOption;
-
 
 
 class ArgParse {
@@ -127,52 +132,6 @@ private:
     int parse_command_line();
     void error (const char *format, ...);
     int found (const char *option);      // number of times option was parsed
-};
-
-
-
-class ArgOption {
-public:
-    ArgOption (const char *str);
-    ~ArgOption () { }
-    
-    int initialize ();
-    
-    int parameter_count () const { return count; }
-    const std::string & name() const { return flag; }
-
-    const std::string & fmt() const { return format; }
-
-    bool is_flag () const { return type == Flag; }
-    bool is_sublist () const { return type == Sublist; }
-    bool is_regular () const { return type == Regular; }
-    
-    void add_parameter (int i, void *p);
-
-    void set_parameter (int i, const char *argv);
-
-    void add_argument (char *argv);
-    int invoke_callback () const;
-
-    void found_on_command_line () { repetitions++; }
-    int parsed_count () const { return repetitions; }
-
-    void description (const char *d) { descript = d; }
-    const std::string & description() const { return descript; }
-
-private:
-    enum OptionType { None, Regular, Flag, Sublist };
-
-    std::string format;                         // original format string
-    std::string flag;                           // just the -flag_foo part
-    std::string code;                           // paramter types, eg "df"
-    std::string descript;
-    OptionType type;                    
-    int count;                                  // number of parameters
-    std::vector<void *> param;                  // pointers to app data vars
-    int (*callback) (int argc, char **argv);
-    int repetitions;                            // number of times on cmd line
-    std::vector<std::string> argv;
 };
 
 

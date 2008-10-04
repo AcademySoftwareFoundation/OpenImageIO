@@ -48,6 +48,52 @@
 
 
 
+class ArgOption {
+public:
+    ArgOption (const char *str);
+    ~ArgOption () { }
+    
+    int initialize ();
+    
+    int parameter_count () const { return count; }
+    const std::string & name() const { return flag; }
+
+    const std::string & fmt() const { return format; }
+
+    bool is_flag () const { return type == Flag; }
+    bool is_sublist () const { return type == Sublist; }
+    bool is_regular () const { return type == Regular; }
+    
+    void add_parameter (int i, void *p);
+
+    void set_parameter (int i, const char *argv);
+
+    void add_argument (char *argv);
+    int invoke_callback () const;
+
+    void found_on_command_line () { repetitions++; }
+    int parsed_count () const { return repetitions; }
+
+    void description (const char *d) { descript = d; }
+    const std::string & description() const { return descript; }
+
+private:
+    enum OptionType { None, Regular, Flag, Sublist };
+
+    std::string format;                         // original format string
+    std::string flag;                           // just the -flag_foo part
+    std::string code;                           // paramter types, eg "df"
+    std::string descript;
+    OptionType type;                    
+    int count;                                  // number of parameters
+    std::vector<void *> param;                  // pointers to app data vars
+    int (*callback) (int argc, char **argv);
+    int repetitions;                            // number of times on cmd line
+    std::vector<std::string> argv;
+};
+
+
+
 // Constructor.  Does not do any parsing or error checking.
 // Make sure to call initialize() right after construction.
 ArgOption::ArgOption (const char *str) 
