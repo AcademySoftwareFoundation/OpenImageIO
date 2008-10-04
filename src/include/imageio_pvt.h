@@ -29,7 +29,8 @@
 */
 
 
-// Declarations for things that are used privately by ImageIO.
+/// \file
+/// Declarations for things that are used privately by ImageIO.
 
 
 #ifndef IMAGEIO_PVT_H
@@ -43,13 +44,15 @@
 namespace OpenImageIO {
 namespace pvt {
 
-// Prototype for imageio factory prototype
+/// Prototype for imageio factory prototype
+///
 typedef void* (*create_prototype)();
 
-// Mutex allowing thread safety of ImageOutput internals
+/// Mutex allowing thread safety of ImageOutput internals
+///
 extern recursive_mutex imageio_mutex;
 
-/// Turn potentially non-contiguous-stride data (e.g. "RGB RGB ") into
+/// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values
 /// (measured in bytes).  Caller must pass in a dst pointing to enough
 /// memory to hold the contiguous rectangle.  Return a ptr to where the

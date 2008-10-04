@@ -29,6 +29,12 @@
 */
 
 
+/// \file
+///
+/// Wrapper so that hash_map and hash_set mean what we want regardless
+/// of the compiler.
+///
+
 #ifndef HASH_H
 #define HASH_H
 

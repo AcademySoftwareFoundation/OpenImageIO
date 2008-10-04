@@ -29,7 +29,8 @@
 */
 
 
-/// Simple timer class
+/// \file
+/// Simple timer class.
 
 
 #ifndef TIMER_H
@@ -41,6 +42,25 @@
 #endif
 
 
+/// Simple timer class.
+///
+/// This class allows you to time things, for runtime statistics and the
+/// like.  The simplest usage pattern is illustrated by the following
+/// example:
+///
+/// \code
+///    Timer mytimer;                // automatically starts upon construction
+///    ...do stuff
+///    float t = mytimer();          // seconds elapsed since start
+///
+///    Timer another (false);        // false means don't start ticking yet
+///    another.start ();             // start ticking now
+///    another.stop ();              // stop ticking
+///    another.start ();             // start again where we left off
+///    another.stop ();
+///    another.reset ();             // reset to zero time again
+/// \endcode
+///
 class Timer {
 public:
 #ifdef _WIN32
@@ -138,11 +158,26 @@ private:
 template <class TIMER=Timer>
 class ScopedTimer {
 public:
+    /// Given a reference to a timer, start it when this constructor
+    /// occurs.
     ScopedTimer (TIMER &t) : m_timer(t) { start(); }
+
+    /// Stop the timer from ticking when this object is destroyed (i.e.
+    /// it leaves scope).
     ~ScopedTimer () { stop(); }
+
+    /// Explicit start of the timer.
+    ///
     void start () { m_timer.start(); }
+
+    /// Explicit stop of the timer.
+    ///
     void stop () { m_timer.stop(); }
+
+    /// Explicit reset of the timer.
+    ///
     void reset () { m_timer.reset(); }
+
 private:
     TIMER &m_timer;
 };

@@ -29,9 +29,13 @@
 */
 
 
-// A variety of helper routines for runtime-loadable "plugins",
-// implemented variously as DSO's (traditional Unix/Linux), dynamic
-// libraries (Mac OS X), DLL's (Windows).
+/////////////////////////////////////////////////////////////////////////
+/// \file
+///
+/// Helper routines for managing runtime-loadable "plugins", implemented
+/// variously as DSO's (traditional Unix/Linux), dynamic libraries (Mac
+/// OS X), DLL's (Windows).
+/////////////////////////////////////////////////////////////////////////
 
 
 #ifndef PLUGIN_H
@@ -84,15 +88,6 @@ getsym (Handle plugin_handle, const std::string &symbol_name)
 /// error_message.
 DLLPUBLIC std::string error_message (void);
 
-
-
-DLLPUBLIC
-class DsoLoader {
-public:
-    DsoLoader () { }
-    ~DsoLoader () { }
-private:
-};
 
 
 };  // namespace Plugin

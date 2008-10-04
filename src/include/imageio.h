@@ -31,13 +31,12 @@
 
 
 /////////////////////////////////////////////////////////////////////////////
-// ImageIO
-// -------
-//
-// Provides a simple API that abstracts the reading and writing of
-// images.  Subclasses, which may be found in DSO/DLL's, implement
-// particular formats.
-// 
+/// \file
+///
+/// Provides a simple API that abstracts the reading and writing of
+/// images.  Subclasses, which may be found in DSO/DLL's, implement
+/// particular formats.
+/// 
 /////////////////////////////////////////////////////////////////////////////
 
 

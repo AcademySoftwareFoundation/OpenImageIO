@@ -29,6 +29,10 @@
 */
 
 
+/// \file
+/// Define the VaryingRef class.
+
+
 #ifndef VARYINGREF_H
 #define VARYINGREF_H
 
@@ -46,10 +50,13 @@
 /// different value for each point).
 ///
 /// Here is a concrete example.  Suppose you have the following function:
+/// \code
 ///     void add (int n, float *a, float *b, float *result) {
 ///         for (int i = 0;  i < n;  ++i)
 ///             result[i] = a[i] + b[i];
 ///     }
+/// \endcode
+///
 /// But if the caller of this function has only a single b value (let's
 /// say, you always want to add 3 to every b[i]), you would be forced
 /// to replicate an entire array full of 3's in order to call the function.
@@ -57,33 +64,42 @@
 /// Instead, we may wish to generalize the function so that each operand
 /// may rever to EITHER a single value or an array of values, without
 /// making the code more complicated.  We can do this with VaryingRef:
+/// \code
 ///     void add (int n, VaryingRef<float> a, VaryingRef<float> b,
 ///                      VaryingRef<float> result) {
 ///         for (int i = 0;  i < n;  ++i)
 ///             result[i] = a[i] + b[i];
 ///     }
+/// \endcode
+///
 /// VaryingRef overloads operator [] to properly decode whether it is 
 /// uniform (point to the one value) or varying (index the right array
 /// element).  It also overloads the increment operator ++ and the pointer
 /// indirection operator '*', so you could also write the function 
 /// equivalently as:
+/// \code
 ///     void add (int n, VaryingRef<float> a, VaryingRef<float> b,
 ///                      VaryingRef<float> result) {
 ///         for (int i = 0;  i < n;  ++i, ++a, ++b)   // note increments
 ///             result[i] = (*a) + (*b);
 ///     }
+/// \endcode
 ///
 /// An example of calling this function would be:
+/// \code
 ///     float a[n];
 ///     float b;     // just 1 value
 ///     float result[n];
 ///     add (n, VaryingRef<float>(a,sizeof(a)), VaryingRef<float>(b), result);
+/// \endcode
+///
 /// In this example, we're passing a truly varying 'a' (signified by
 /// giving a step size from element to element), but a uniform 'b' (signified
 /// by no step size, or a step size of zero).
 ///
 /// Now let's take it a step further and fully optimize the 'add' function
 /// for when both operands are uniform:
+/// \code
 ///     void add (int n, VaryingRef<float> a, VaryingRef<float> b,
 ///                      VaryingRef<float> result) {
 ///         if (a.is_uniform() && b.is_uniform()) {
@@ -96,6 +112,7 @@
 ///                 result[i] = (*a) + (*b);
 ///         }
 ///     }
+/// \endcode
 /// This is the basis for handling uniform and varying values efficiently
 /// inside a SIMD shading system.
 
@@ -191,6 +208,8 @@ VaryingRef<T> Varying (T *x) { return VaryingRef<T> (x, sizeof(T)); }
 template<class T>
 VaryingRef<T> Uniform (T *x) { return VaryingRef<T> (x, 0); }
 
+/// Helper function wraps a uniform reference.
+///
 template<class T>
 VaryingRef<T> Uniform (T &x) { return VaryingRef<T> (&x, 0); }
 

@@ -29,14 +29,16 @@
 */
 
 
-// Utilities for dealing with file names and files.  We use
-// boost::filesystem anywhere we can, but that doesn't cover everything
-// we want to do.
-//
-// Some helpful nomenclature:
-//    "filename" - a file or directory name, relative or absolute
-//    "searchpath" - a list of directories separated by ':' or ';'.
-//
+/// \file
+///
+/// Utilities for dealing with file names and files.  We use
+/// boost::filesystem anywhere we can, but that doesn't cover everything
+/// we want to do.
+///
+/// Some helpful nomenclature:
+///    "filename" - a file or directory name, relative or absolute
+///    "searchpath" - a list of directories separated by ':' or ';'.
+///
 
 
 #ifndef FILESYSTEM_H

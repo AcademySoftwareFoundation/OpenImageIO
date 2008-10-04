@@ -33,32 +33,40 @@
 #define DASSERT_H
 
 
-// Handy macros:
-//   ABORT (if not already defined) is defined to print an error message
-//           and then abort().
-//   ASSERT (if not already defined) is defined to check if a condition
-//           is met, and if not, calls ABORT with an error message 
-//           indicating the module and line where it occurred.
-//   DASSERT is the same as ASSERT when in DEBUG mode, but a no-op when
-//           not in debug mode.
-//
-// The presumed usage is that you want ASSERT for dire conditions that 
-// must be checked at runtime even in an optimized build.  DASSERT is
-// for checks we should do for debugging, but that we don't want to 
-// bother with in a shipping optimized build.
-//
-// In both cases, these are NOT a substitute for actual error checking
-// and recovery!  Never ASSERT or DASSERT to check invalid user input,
-// for examples.  They should be used only to verify that there aren't
-// errors in the *code* that are so severe that there is no point even
-// trying to recover gracefully.
+/// \file
+///
+/// Handy macros for debugging assertions.
+///
+///  - ABORT (if not already defined) is defined to print an error message
+///            and then abort().
+///  - ASSERT (if not already defined) is defined to check if a condition
+///            is met, and if not, calls ABORT with an error message 
+///            indicating the module and line where it occurred.
+///  - DASSERT is the same as ASSERT when in DEBUG mode, but a no-op when
+///            not in debug mode.
+///
+/// The presumed usage is that you want ASSERT for dire conditions that 
+/// must be checked at runtime even in an optimized build.  DASSERT is
+/// for checks we should do for debugging, but that we don't want to 
+/// bother with in a shipping optimized build.
+///
+/// In both cases, these are NOT a substitute for actual error checking
+/// and recovery!  Never ASSERT or DASSERT to check invalid user input,
+/// for example.  They should be used only to verify that there aren't
+/// errors in the *code* that are so severe that there is no point even
+/// trying to recover gracefully.
 
 
+/// ABORT(msg) prints the message to stderr and then aborts.
+///
 #ifndef ABORT
 # define ABORT(msg) fprintf(stderr,"%s",msg), abort()
 #endif
 
 
+/// ASSERT(condition) checks if the condition is met, and if not, calls
+/// ABORT with an error message indicating the module and line where
+/// the error occurred.
 #ifndef ASSERT
 # define ASSERT(x)                                                      \
     if (!(x)) {                                                         \
@@ -72,6 +80,9 @@
 #endif
 
 
+/// DASSERT(condition) is just like ASSERT, except that it only is 
+/// functional in DEBUG mode, but does nothing when in a non-DEBUG
+/// (optimized, shipping) build.
 #ifdef DEBUG
 # define DASSERT(x) ASSERT(x)
 #else

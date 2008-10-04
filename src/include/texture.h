@@ -29,6 +29,11 @@
 */
 
 
+/// \file
+/// An API for accessing filtered texture lookups via a system that
+/// automatically manages a cache of resident texture.
+
+
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
@@ -53,13 +58,26 @@ namespace pvt {
 };
 
 
+/// Data type for flags that indicate on a point-by-point basis whether
+/// we want computations to be performed.
 typedef unsigned char Runflag;
+
+/// Pre-defined values for Runflag's.
+///
 enum RunFlagVal { RunFlagOff = 0, RunFlagOn = 255 };
 
 
-/// Encapsulate all the 
+
+/// Encapsulate all the options needed for texture lookups.  Making
+/// these options all separate parameters to the texture API routines is
+/// very ugly and also a big pain whenever we think of new options to
+/// add.  So instead we collect all those little options into one
+/// structure that can just be passed by reference to the texture API
+/// routines.
 class TextureOptions {
 public:
+    /// Wrap mode describes what happens when texture coordinates describe
+    /// a value outside the usual [0,1] range where a texture is defined.
     enum Wrap {
         WrapDefault,        ///< Use the default found in the file
         WrapBlack,          ///< Black outside [0..1]
@@ -124,9 +142,19 @@ private:
 
 
 
+/// Define an API to an abstract class that that manages texture files,
+/// caches of open file handles as well as tiles of texels so that truly
+/// huge amounts of texture may be accessed by an application with low
+/// memory footprint, and ways to perform antialiased texture, shadow
+/// map, and environment map lookups.
 class TextureSystem {
 public:
+    /// Creat a TextureSystem and return a pointer.  This should only be
+    /// freed by passing it to TextureSystem::destroy()!
     static TextureSystem *create ();
+
+    /// Destroy a TextureSystem that was created using
+    /// TextureSystem::create().
     static void destroy (TextureSystem * &x);
 
     TextureSystem (void) { }

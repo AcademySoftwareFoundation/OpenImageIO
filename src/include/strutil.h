@@ -29,7 +29,11 @@
 */
 
 
-// A variety of string helper routines
+/// \file
+///
+/// A variety of string helper routines
+///
+
 
 
 #ifndef STRUTIL_H
@@ -42,11 +46,11 @@
 namespace Strutil {
 
 
-/// Return a std::string formatted from printf arguments
+/// Return a std::string formatted from printf-like arguments.
 ///
 std::string format (const char *fmt, ...);
 
-/// Return a std::string formatted from printf arguments -- passed
+/// Return a std::string formatted from printf-like arguments -- passed
 /// already as a va_list.
 std::string vformat (const char *fmt, va_list ap);
 
@@ -74,12 +78,13 @@ strhash (const char *s)
 /// C++ functor wrapper class for using strhash for hash_map or hash_set.
 /// The way this is used, in conjunction with StringEqual, to build an
 /// efficient hash_map for char*'s is as follows:
+/// \code
 ///   #ifdef WINNT
 ///    hash_map <const char *, Key, Strutil::StringHash>
 ///   #else
 ///    hash_map <const char *, Key, Strutil::StringHash, Strutil::StringEqual>
 ///   #endif
-///
+/// \endcode
 class StringHash
 #ifdef WINNT
     : public hash_compare<const char*>

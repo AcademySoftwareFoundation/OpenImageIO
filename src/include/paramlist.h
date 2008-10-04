@@ -29,6 +29,11 @@
 */
 
 
+/// \file
+///
+/// Define the ParamValue and ParamValueList classes, which are used to
+/// store lists of arbitrary name/data pairs for internal storage of
+/// parameter lists, attributes, geometric primitive data, etc.
 
 
 #ifndef PARAMLIST_H
@@ -41,15 +46,16 @@
 #include "ustring.h"
 
 
-// FIXME: We should clearly put this in a namespace.  But maybe not "Gelato".
-// namespace Gelato {
+// FIXME: We should clearly put this in a namespace.
+// namespace blah {
+
 
 /// ParamValue holds a parameter and a pointer to its value(s)
 ///
 /// Nomenclature: if you have an array of 4 colors for each of 15 points...
-///   There are 15 VALUES
-///   Each value has an array of 4 ELEMENTS, ecah of which is a color
-///   A color has 3 COMPONENTS (R, G, B)
+///  - There are 15 VALUES
+///  - Each value has an array of 4 ELEMENTS, ecah of which is a color
+///  - A color has 3 COMPONENTS (R, G, B)
 ///   
 class DLLPUBLIC ParamValue {
 public:
@@ -126,6 +132,8 @@ private:
 
 
 
+/// A list of ParamValue entries, that can be iterated over or searched.
+///
 class DLLPUBLIC ParamValueList {
     typedef std::vector<ParamValue> Rep;
 public:
@@ -157,10 +165,12 @@ public:
     void resize (size_t newsize) { m_vals.resize (newsize); }
     size_t size () const { return m_vals.size(); }
 
+    /// Remove all the values in the list.
+    ///
     void clear () { m_vals.clear(); }
 
-    // Even more radical than clear, free ALL memory associated with the
-    // list itself.
+    /// Even more radical than clear, free ALL memory associated with the
+    /// list itself.
     void free () { Rep tmp; std::swap (m_vals, tmp); }
 
 private:
@@ -170,7 +180,7 @@ private:
 
 
 
-// FIXME: We should clearly put this in a namespace.  But maybe not "Gelato".
-// }; /* end namespace Gelato */
+// FIXME: We should clearly put this in a namespace.
+// }; /* end namespace blah */
 
 #endif /* !defined(PARAMLIST_H) */

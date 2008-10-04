@@ -29,6 +29,10 @@
 */
 
 
+/// \file
+/// Classes for in-memory storage and simple manipulation of whole images,
+/// which uses ImageInput and ImageOutput underneath for the file access.
+
 
 #ifndef IMAGEBUF_H
 #define IMAGEBUF_H
@@ -38,19 +42,37 @@
 namespace OpenImageIO {
 
 
+/// An ImageBuf is a simple in-memory representation of a 2D image.  It
+/// uses ImageInput and ImageOutput underneath for its file I/O, and has
+/// simple routines for setting and getting individual pixels, that
+/// hides most of the details of memory layout and data representation
+/// (translating to/from float automatically).
 class ImageBuf {
 public:
+    /// Construct an named ImageBuf but allocated pixels.
+    ///
     ImageBuf (const std::string &name);
+
+    /// Construct an Imagebuf given both a name and a proposed spec
+    /// describing the image size and type, and allocate storage for
+    /// the pixels of the image (whose values will be undefined).
     ImageBuf (const std::string &name, const ImageSpec &spec);
+
+    /// Destructor for an ImageBuf.
+    ///
     virtual ~ImageBuf ();
 
     /// Allocate space the right size for an image described by the
-    /// format spec.
+    /// format spec.  If the ImageBuf already has allocated pixels,
+    /// their values will not be preserved if the new spec does not
+    /// describe an image of the same size and data type as it used
+    /// to be.
     virtual void alloc (const ImageSpec &spec);
 
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
-    /// force==true.
+    /// force==true.  This uses ImageInput underneath, so will read any
+    /// file format for which an appropriate imageio plugin can be found.
     virtual bool read (int subimage=0, bool force=false,
                        TypeDesc convert=TypeDesc::UNKNOWN,
                        OpenImageIO::ProgressCallback progress_callback=NULL,
@@ -62,9 +84,11 @@ public:
     /// allocate or read the pixels.
     virtual bool init_spec (const std::string &filename);
 
-    /// Save the image or a subset thereof, with override for filename (""
-    /// means use the original filename) and file format ("" indicates 
-    /// to infer it from the filename).
+    /// Save the image or a subset thereof, with override for filename
+    /// ("" means use the original filename) and file format ("" indicates
+    /// to infer it from the filename).  This uses ImageOutput
+    /// underneath, so will write any file format for which an
+    /// appropriate imageio plugin can be found.
     virtual bool save (const std::string &filename = std::string(),
                        const std::string &fileformat = std::string(),
                        OpenImageIO::ProgressCallback progress_callback=NULL,
@@ -78,7 +102,7 @@ public:
         return e;
     }
 
-    /// Return a reference to the image spec;
+    /// Return a reference to the image spec.
     ///
     const ImageSpec & spec () const { return m_spec; }
 
@@ -88,8 +112,13 @@ public:
         return (void *) (&m_pixels[y * m_spec.scanline_bytes()]);
     }
 
+    /// Return the name of this image.
+    ///
     const std::string & name (void) const { return m_name; }
 
+    /// Return the name of the image file format of the disk file we
+    /// read into this image.  Returns an empty string if this image
+    /// was not the result of a read().
     const std::string & file_format_name (void) const { return m_fileformat; }
 
     /// Return the index of the subimage are we currently viewing
@@ -100,6 +129,8 @@ public:
     ///
     int nsubimages () const { return m_nsubimages; }
 
+    /// Return the number of color channels in the image.
+    ///
     int nchannels () const { return m_spec.nchannels; }
 
     /// Retrieve a single channel of one pixel.
@@ -133,11 +164,25 @@ public:
     int oriented_height () const;
     int orientation () const { return m_orientation; }
 
+    /// Return the minimum x coordinate of the defined image.
+    ///
     int xmin () const { return spec().x; }
+
+    /// Return the maximum x coordinate of the defined image.
+    ///
     int xmax () const { return spec().x + spec().width - 1; }
+
+    /// Return the minimum y coordinate of the defined image.
+    ///
     int ymin () const { return spec().y; }
+
+    /// Return the maximum y coordinate of the defined image.
+    ///
     int ymax () const { return spec().y + spec().height - 1; }
 
+    /// Return the address where pixel (x,y) is stored in the image buffer.
+    /// Use with extreme caution!
+    ///
     const void *pixeladdr (int x, int y) const {
         x -= spec().x;
         y -= spec().y;
@@ -145,6 +190,9 @@ public:
         return &(m_pixels[p]);
     }
 
+    /// Return the address where pixel (x,y) is stored in the image buffer.
+    /// Use with extreme caution!
+    ///
     void *pixeladdr (int x, int y) {
         x -= spec().x;
         y -= spec().y;

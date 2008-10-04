@@ -29,21 +29,8 @@
 */
 
 
-/////////////////////////////////////////////////////////////////////////////
-// \class TypeDesc
-// TypeDesc and related classes
-// -----------------------------
-//
-// It frequently comes up (in my experience, with renderers and image
-// handling programs) that you want a way to describe data that is passed
-// through APIs through blind pointers.  These are some simple classes
-// that provide a simple type descriptor system.  This is not meant to
-// be comprehensive -- for example, there is no provision for structs,
-// unions, pointers, const, or 'nested' type definitions.  Just simple
-// integer and floating point, *common* aggregates such as 3-points,
-// and reasonably-lengthed arrays thereof.
-//
-/////////////////////////////////////////////////////////////////////////////
+/// \file
+/// The TypeDesc class is used to describe simple data types.
 
 
 #ifndef TYPEDESC_H
@@ -60,6 +47,20 @@
 // namespace blah {
 
 
+
+/////////////////////////////////////////////////////////////////////////////
+/// A TypeDesc describes simple data types.
+///
+/// It frequently comes up (in my experience, with renderers and image
+/// handling programs) that you want a way to describe data that is passed
+/// through APIs through blind pointers.  These are some simple classes
+/// that provide a simple type descriptor system.  This is not meant to
+/// be comprehensive -- for example, there is no provision for structs,
+/// unions, pointers, const, or 'nested' type definitions.  Just simple
+/// integer and floating point, *common* aggregates such as 3-points,
+/// and reasonably-lengthed arrays thereof.
+///
+/////////////////////////////////////////////////////////////////////////////
 
 struct DLLPUBLIC TypeDesc {
     /// BASETYPE is a simple enum for the C/C++ built-in types.
@@ -159,10 +160,14 @@ struct DLLPUBLIC TypeDesc {
     /// after the type (presumably the variable name) in shortname.
     int fromstring (const char *typestring, char *shortname=NULL);
 
+    /// Compare two TypeDesc values for equality.
+    ///
     bool operator== (const TypeDesc &t) const {
         return *(const long long*)(this) == *(const long long*)(&t);
     } 
 
+    /// Compare two TypeDesc values for inequality.
+    ///
     bool operator!= (const TypeDesc &t) const {
         return *(const long long*)(this) != *(const long long*)(&t);
     } 

@@ -29,9 +29,11 @@
 */
 
 
-// A variety of floating-point math helper routines (and, slight
-// misnomer, some int stuff as well).
-//
+/// \file
+///
+/// A variety of floating-point math helper routines (and, slight
+/// misnomer, some int stuff as well).
+///
 
 #ifndef FMATH_H
 #define FMATH_H
@@ -100,6 +102,7 @@ inline bool huge (float f) { return (f >= HUGE_FLOAT/2); }
 
 
 /// Quick test for whether an integer is a power of 2.
+///
 inline bool
 ispow2 (int x)
 {
@@ -336,7 +339,12 @@ floorfrac (float x, int *xint)
 
 
 
+/// Convert degrees to radians.
+///
 inline float radians (float deg) { return deg * M_PI / 180.0f; }
+
+/// Convert radians to degrees
+///
 inline float degrees (float rad) { return rad * 180.0 / M_PI; }
 
 
