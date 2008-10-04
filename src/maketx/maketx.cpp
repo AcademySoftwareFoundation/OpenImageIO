@@ -321,6 +321,9 @@ make_mipmap (void)
             dstspec.width /= 2;
         if (dstspec.height > 1)
             dstspec.height /= 2;
+        dstspec.full_width  = dstspec.width;
+        dstspec.full_height = dstspec.height;
+        dstspec.full_depth  = dstspec.depth;
         dst.alloc (dstspec);  // Realocate with new size
         for (int y = 0;  y < dstspec.height;  ++y) {
             for (int x = 0;  x < dstspec.width;  ++x) {
