@@ -28,6 +28,9 @@
   (This is the Modified BSD License)
 */
 
+/// \file
+/// Implementation of ImageBuf class.
+
 #include <iostream>
 
 #include <boost/foreach.hpp>

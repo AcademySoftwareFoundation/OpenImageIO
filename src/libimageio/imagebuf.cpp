@@ -29,6 +29,10 @@
 */
 
 
+/// \file
+/// Implementation of ImageBuf class.
+
+
 #include <iostream>
 
 #include <ImathFun.h>
