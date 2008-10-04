@@ -775,9 +775,74 @@ found, could not be opened, or is not of a format readable by any
 ImageIO plugin that could be find, the return value is {\cf false}.
 \apiend
 
+
+\apiitem{bool {\ce get_texels} (ustring filename, TextureOptions &options,\\
+\bigspc                       int xmin, int xmax, int ymin, int ymax,\\
+\bigspc                       int zmin, int zmax, int level,\\
+\bigspc                       TypeDesc format, void *result)}
+
+Retrieve the rectangle of raw unfiltered texels spanning
+(xmin, ymin, zmin) through (xmax, ymax, zmax) (inclusive, specified as
+integer pixel coordinates), at the named MIP-map level, storing
+the texel values beginning at the address specified by result.
+The texel values will be converted to the type specified by
+format.  It is up to the caller to ensure that result points to
+an area of memory big enough to accommodate the requested
+rectangle (taking into consideration its dimensions, number of
+channels, and data format).
+
+Fields within {\cf options} that are honored for raw texel retieval
+include the following:
+
+\vspace{-12pt}
+\apiitem{int nchannels}
+\vspace{10pt}
+The number of color channels to look up from the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{int firstchannel}
+\vspace{10pt}
+The index of the first channel to look up from the texture.
+\apiend
+
+% FIXME -- we should support this
+%\vspace{-24pt}
+%\apiitem{Wrap swrap, twrap}
+%\vspace{10pt}
+%Specify the \emph{wrap mode} for each direction, one of: 
+%{\cf WrapBlack}, {\cf WrapClamp}, {\cf WrapPeriodic}, {\cf WrapMirror},
+%or {\cf WrapDefault}.
+%\apiend
+
+\vspace{-24pt}
+\apiitem{VaryingRef<float> fill}
+\vspace{10pt}
+Specifies the value that will be used for any color channels that are
+requested but not found in the file.
+\apiend
+
+%\vspace{-24pt}
+%\apiitem{VaryingRef<float> alpha}
+%\vspace{10pt}
+%Specifies a \emph{destination} for one additional channel to be looked
+%up, the one immediately following the return value (i.e., channel
+%$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
+%allow a 4-channel lookup, with the 4th channel put in an entirely
+%different variable than the 3-channel color.  The default for {\cf
+%  alpha} is to point to NULL, indicating that no extra alpha channel
+%should be retrieved.
+%\apiend
+
+Return true if the file is found and could be opened by an
+available ImageIO plugin, otherwise return false.
+
+\apiend
+
 \apiitem{std::string {\ce geterror} ()}
 
-If any other API routines return {\cf false}, indicating that an
+If any other API 
+routines return {\cf false}, indicating that an
 error has occurred, this routine will retrieve the error and clear
 the error status.  If no error has occurred since the last time
 {\cf geterror()} was called, it will return an empty string.

@@ -15,9 +15,7 @@ local_src := texturesys.cpp texoptions.cpp texfile.cpp
 local_libs := 
 
 # Extra objects from other libs we need to compile this library 
-local_extra_objs := ${build_obj_dir}/libutil/typedesc${OEXT} \
-		    ${build_obj_dir}/libutil/strutil${OEXT} \
-		    ${build_obj_dir}/libutil/ustring${OEXT}
+local_extra_objs := 
 
 # Extra shared libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)

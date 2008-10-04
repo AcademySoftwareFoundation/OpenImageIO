@@ -29,6 +29,10 @@
 */
 
 
+/// \file
+/// Non-public classes used internally by TextureSystemImpl.
+
+
 #ifndef TEXTURE_PVT_H
 #define TEXTURE_PVT_H
 
@@ -215,6 +219,10 @@ public:
     /// Return pointer to the floating-point texel data
     ///
     const float *data (void) const { return (const float *)&m_texels[0]; }
+
+    /// Return pointer to the floating-point texel data for a particular
+    /// texel.  Be extremely sure the texel is within this tile!
+    const void *data (int x, int y, int z=0) const;
 
     /// Return a pointer to the character data
     ///

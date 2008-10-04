@@ -28,6 +28,7 @@
   (This is the Modified BSD License)
 */
 
+
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -103,28 +104,28 @@ test_gettextureinfo (ustring filename)
 
     int res[2];
     ok = texsys->get_texture_info (filename, ustring("resolution"),
-                                 TypeDesc(TypeDesc::INT,2), res);
+                                   TypeDesc(TypeDesc::INT,2), res);
     std::cerr << "Result of get_texture_info resolution = " << ok << ' ' << res[0] << 'x' << res[1] << "\n";
 
     int chan;
     ok = texsys->get_texture_info (filename, ustring("channels"),
-                                 PT_INT, &chan);
+                                   PT_INT, &chan);
     std::cerr << "Result of get_texture_info channels = " << ok << ' ' << chan << "\n";
 
     float fchan;
     ok = texsys->get_texture_info (filename, ustring("channels"),
-                                 PT_FLOAT, &fchan);
+                                   PT_FLOAT, &fchan);
     std::cerr << "Result of get_texture_info channels = " << ok << ' ' << fchan << "\n";
 
     const char *datetime = NULL;
     ok = texsys->get_texture_info (filename, ustring("DateTime"),
-                                 PT_STRING, &datetime);
+                                   PT_STRING, &datetime);
     std::cerr << "Result of get_texture_info datetime = " << ok << ' ' 
               << (datetime ? datetime : "") << "\n";
 
     const char *texturetype = NULL;
     ok = texsys->get_texture_info (filename, ustring("textureformat"),
-                                 PT_STRING, &texturetype);
+                                   PT_STRING, &texturetype);
     std::cerr << "Texture type is " << ok << ' '
               << (texturetype ? texturetype : "") << "\n";
     std::cerr << "\n";
@@ -208,6 +209,26 @@ test_environment (ustring filename)
 
 
 
+static void
+test_getimagespec_gettexels (ustring filename)
+{
+    ImageSpec spec;
+    if (! texsys->get_imagespec (filename, spec)) {
+        std::cerr << "Could not get spec for " << filename << "\n";
+        return;
+    }
+    int w = spec.width/2, h = spec.height/2;
+    ImageSpec postagespec (w, h, spec.nchannels, TypeDesc::FLOAT);
+    ImageBuf buf ("postage.exr", postagespec);
+    TextureOptions opt;
+    opt.nchannels = spec.nchannels;
+    texsys->get_texels (filename, opt, w/2, w/2+w-1, h/2, h/2+h-1, 0, 0, 0,
+                        postagespec.format, buf.pixeladdr (0,0));
+    buf.save ();
+}
+
+
+
 int
 main (int argc, char *argv[])
 {
@@ -233,7 +254,9 @@ main (int argc, char *argv[])
             test_environment (filename);
         }
     }
+    test_getimagespec_gettexels (filename);
 
+    
     delete texsys;
     return 0;
 }

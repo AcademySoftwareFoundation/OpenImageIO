@@ -124,6 +124,25 @@ Tile::Tile (const TileID &id)
 
 
 
+const void *
+Tile::data (int x, int y, int z) const
+{
+    const ImageSpec &spec = m_id.texfile().spec (m_id.level());
+    size_t w = spec.tile_width;
+    size_t h = spec.tile_height;
+    size_t d = std::max (1, spec.tile_depth);
+    x -= m_id.x();
+    y -= m_id.y();
+    z -= m_id.z();
+    if (x < 0 || x >= w || y < 0 || y >= h || z < 0 || z >= d)
+        return NULL;
+    size_t pixelsize = spec.nchannels * m_id.texfile().datatype().size();
+    size_t offset = ((z * h + y) * w + x) * pixelsize;
+    return (const void *)&m_texels[offset];
+}
+
+
+
 TextureSystemImpl::TextureSystemImpl ()
     : m_open_files(0), m_file_sweep(m_texturefiles.end()),
       m_tile_sweep(m_tilecache.end())
@@ -294,15 +313,48 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
         error ("Invalid texture file \"%s\"", filename.c_str());
         return false;
     }
-
     if (level < 0 || level >= texfile->levels()) {
         error ("get_texel asked for nonexistant level %d of \"%s\"",
                level, filename.c_str());
         return false;
     }
-
     const ImageSpec &spec (texfile->spec());
 
+    // FIXME -- this could be WAY more efficient than starting from
+    // scratch for each pixel within the rectangle.  Instead, we should
+    // grab a whole tile at a time and memcpy it rapidly.  But no point
+    // doing anything more complicated (not to mention bug-prone) until
+    // somebody reports this routine as being a bottleneck.
+    int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
+    TileRef tile, lasttile;
+    int nc = texfile->spec().nchannels;
+    size_t formatpixelsize = nc * format.size();
+    size_t tilepixelsize = nc * texfile->datatype().size();
+    ASSERT (texfile->datatype() == TypeDesc::FLOAT);  // won't work otherwise
+    float *texel = (float *) alloca (nc * sizeof(float));
+    for (int z = zmin;  z <= zmax;  ++z) {
+        int tz = z - (z % spec.tile_depth);
+        for (int y = ymin;  y <= ymax;  ++y) {
+            int ty = y - (y % spec.tile_height);
+            for (int x = xmin;  x <= xmax;  ++x) {
+                int tx = x - (x % spec.tile_width);
+                TileID tileid (*texfile, level, tx, ty, tz);
+                find_tile (tileid, tile, lasttile);
+                const void *data;
+                texel = (float *)result;
+                if (tile && (data = tile->data (x, y, z))) {
+                    for (int c = 0;  c < actualchannels;  ++c)
+                        texel[c] = ((float *)data)[options.firstchannel + c];
+                    for (int c = actualchannels;  c < options.nchannels;  ++c)
+                        texel[c] = options.fill[0];
+                    convert_types (texfile->datatype(), texel, format, result, nc);
+                } else {
+                    memset (texel, 0, formatpixelsize);
+                }
+                result = (void *) ((char *) result + formatpixelsize);
+            }
+        }
+    }
     return false;
 }
 
