@@ -29,6 +29,10 @@
 */
 
 
+/// \file
+/// Define the ustring class, unique strings with efficient storage and
+/// very fast copy and comparison.
+
 
 /////////////////////////////////////////////////////////////////////////////
 /// \class ustring
@@ -263,8 +267,11 @@ public:
     /// Return a C++ std::string representation of a ustring.
     ///
     const std::string & string () const {
-        const TableRep *rep = (const TableRep *)(m_chars - chars_offset);
-        return rep->str;
+        if (m_chars) {
+            const TableRep *rep = (const TableRep *)(m_chars - chars_offset);
+            return rep->str;
+        }
+        else return empty_std_string;
     }
 
     /// Reset to an empty string.
@@ -423,10 +430,13 @@ private:
     /// representation of the string (creating a new table entry if we
     /// haven't seen this sequence of characters before).
     static const TableRep * _make_unique (const char *str);
+    static std::string empty_std_string;
 };
 
 
 
+/// Functor class to use as a hasher when you want to make a hash_map or
+/// hash_set using ustring as a key.
 class ustringHash
 #ifdef WINNT
     : public hash_compare<ustring>

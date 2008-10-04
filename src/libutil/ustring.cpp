@@ -49,6 +49,8 @@ typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Struti
 static UstringTable ustring_table;
 static mutex ustring_mutex;
 
+std::string ustring::empty_std_string ("");
+
 
 
 const ustring::TableRep *
