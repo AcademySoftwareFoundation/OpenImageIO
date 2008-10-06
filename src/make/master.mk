@@ -200,7 +200,8 @@ build_bins: ${ALL_BINS}
 
 build_docs:
 
-dist: build copy_dist_bins copy_dist_libs copy_dist_includes copy_dist_extra_libs
+dist: build copy_dist_bins copy_dist_libs copy_dist_includes \
+	copy_dist_extra_libs copy_dist_docs copy_dist_root
 
 make_dist_dirs:
 	@ for f in ${dist_dirs}; do ${MKDIR} ${dist_dir}/$$f; done
@@ -232,6 +233,17 @@ copy_dist_extra_libs: make_dist_dirs
 	    ${CP} $$f ${dist_dir}/lib; \
 	  done
 
+copy_dist_docs: make_dist_dirs
+#	@ echo "Copying dist_docs = ${dist_docs}"
+	@ for f in ${dist_docs}; do \
+	    ${CPR} $$f ${dist_dir}/doc; \
+	  done
+
+copy_dist_root: make_dist_dirs
+#	@ echo "Copying dist_root = ${dist_root}"
+	@ for f in ${dist_root}; do \
+	    ${CPR} $$f ${dist_dir}; \
+	  done
 
 
 # end internal targets
