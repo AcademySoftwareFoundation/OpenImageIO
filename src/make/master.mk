@@ -135,7 +135,7 @@ profile:
 clean:
 	${RM_ALL} ${build_dir}
 
-realclean:
+realclean: clean
 	${RM_ALL} ${dist_dir}
 
 nuke:

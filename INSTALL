@@ -1,2 +1,40 @@
 Installation instructions for OpenImageIO
 
+Building OpenImageIO
+--------------------
+
+Supported platforms at present include Linux (32 and 64 bit),
+and Mac OS X.  We intend to support Windows as soon as some brave
+soul fixes up our Makefile's so they work under Windows (hint, hint).
+
+On supported platforms, you can build from source from the top-level
+directory by just typing 'make'.
+
+During the make, various temporary files (object files, etc.) will
+be put in build/PLATFORM, where 'PLATFORM' will be the name of the
+platform you are building for (e.g., linux, linux64, macosx).
+
+The result of the make will be a full binary distribution in 
+dist/PLATFORM.
+
+Sorry, that's as much as it does right now.  This is not ready for
+release!  Soon we'll tar it up, have installers, etc.
+
+Make targets you should know about:
+
+    make                Same as 'make dist'
+    make dist           Build an optimized distro in dist/PLATFORM,
+                            with temp files created while building in
+                            build/PLATFORM.
+    make clean          Get rid of all the temporary files in 
+                            build/PLATFORM
+    make realclean      Get rid of both build/PLATFORM and dist/PLATFORM
+    make nuke           Get rid of all build/ and dist/, for all
+                            platforms
+    make debug          Build a debugging (symbols, not stripped) distro,
+                            will end up in dist/PLATFORM.debug
+    make profile        Build a profilable version on dist/PLATFORM.profile
+    make doxygen        Build the Doxygen docs
+
+
+

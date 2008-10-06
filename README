@@ -1,2 +1,80 @@
 README for OpenImageIO
+======================
 
+
+Introduction
+------------
+
+OpenImageIO consists of:
+
+  * Simple but powerful ImageInput and ImageOutput APIs that provide
+    an abstraction for reading and writing image files of nearly any
+    format, without the calling application needing to know any of the
+    details of these file formats, and indeed without the calling 
+    application needing to be aware of which formats are available.
+
+  * A library that manages subclasses of ImageInput and ImageOutput that
+    implement I/O from specific file formats, with each file format's
+    implementation stored as a plug-in.  Therefore, an application using
+    OpenImageIO's APIs can read and write any image file for which a
+    plugin can be found at runtime.
+
+  * Plugins implementing I/O for several popular image file formats,
+    including TIFF, JPEG/JFIF, OpenEXR, PNG, and HDR/RGBE.
+
+  * An image viewer, iv, that is based on ImageIO plugins and therefore
+    can read images of any format for which an appropriate plugin may be
+    found.
+
+  * Several other image utilities, including image information, 
+    format conversion, image comparison, and others.
+
+  * A library for image texture lookups, included sophisticated cache
+    management so that an application using the library may access
+    thousands of textures totalling hundreds of Gigabytes, all with a
+    runtime memory footprint of merely tens of Megabytes.
+
+
+
+Licensing
+---------
+
+OpenImageIO is (c) Copyright 2008 by Larry Gritz and the other
+contributors.  All Rights Reserved.
+
+OpenImageIO is distributed using the modified BSD license.  Please read
+the "LICENSE" file for the legal wording.  The plain English bottom line
+is that OpenImageIO is free, as well as freely modifiable and
+redistributable (in both source and binary form).  You may use part or
+all of it in your own applications, whether proprietary or open, free or
+commercial or not.  Using it in a commercial or proprietary application
+DOES NOT obligate you to pay us, or to use any particular licensing
+terms in your own application.
+
+
+Web Site
+--------
+
+www.openimageio.org
+
+
+Contact
+-------
+
+info@openimageio.org
+
+
+
+Building and Installation
+-------------------------
+
+Please read the "INSTALL" file for detailed instructions on how to
+build and install OpenImageIO.
+
+
+Documentation
+-------------
+
+The primary user and programmer documentation can be found in
+src/doc/openimageio.pdf (in a source distribution) or in the
+doc/openimageio.pdf file of an installed binary distribution.
