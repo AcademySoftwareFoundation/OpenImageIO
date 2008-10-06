@@ -89,8 +89,10 @@ BOOST_LIB_AREA := ${BOOST_HOME}/lib/boost_${BOOST_VERSION}
 ifeq (${platform},macosx)
   BOOST_SUFFIX := -mt-1_35
 else
-  BOOST_SUFFIX := -gcc41-mt-1_35
+  GCCVERCODE := ${shell gcc --version | grep -o "[0-9]\.[0-9]" | head -1 | tr -d "."}
+  BOOST_SUFFIX := -gcc${GCCVERCODE}-mt-1_35
 endif
+
 LINK_BOOST := ${LD_LIBPATH}${BOOST_LIB_AREA}
 LINK_BOOST += -lboost_filesystem${BOOST_SUFFIX} \
 	      -lboost_system${BOOST_SUFFIX} \
