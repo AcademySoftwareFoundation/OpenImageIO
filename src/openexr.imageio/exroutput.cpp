@@ -443,7 +443,6 @@ OpenEXROutput::write_tile (int x, int y, int z,
                            TypeDesc format, const void *data,
                            stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    std::cerr << "write_tile " << x << ' ' << y << ' ' << z << "\n";
     m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
                         spec().tile_width, spec().tile_height);
     data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
