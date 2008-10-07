@@ -52,7 +52,7 @@ static std::string full_command_line;
 static std::vector<std::string> filenames;
 static std::string outputfilename;
 static std::string dataformatname = "";
-static std::string fileformatname = "tiff";
+static std::string fileformatname = "";
 static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
 static int tile[3] = { 64, 64, 1 };
@@ -103,7 +103,7 @@ getargs (int argc, char *argv[])
                   "-v", &verbose, "Verbose status messages",
                   "-o %s", &outputfilename, "Output directory or filename",
                   "-u", &updatemode, "Update mode",
-                  "--format %s", &fileformatname, "Specify output format (default: tiff)",
+                  "--format %s", &fileformatname, "Specify output format (default: guess from extension)",
                   "-d %s", &dataformatname, "Set the output data format to one of:\n"
                           "\t\t\tuint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
@@ -294,11 +294,12 @@ make_mipmap (void)
     }
 
     // Find an ImageIO plugin that can open the output file, and open it
-    ImageOutput *out = ImageOutput::create (fileformatname.c_str());
+    std::string outformat = fileformatname.empty() ? outputfilename : fileformatname;
+    ImageOutput *out = ImageOutput::create (outformat.c_str());
     if (! out) {
         std::cerr 
             << "maketx ERROR: Could not find an ImageIO plugin to write " 
-            << fileformatname << " files:" << OpenImageIO::error_message() << "\n";
+            << outformat << " files:" << OpenImageIO::error_message() << "\n";
         exit (EXIT_FAILURE);
     }
     if (! out->supports ("tiles") || ! out->supports ("multiimage")) {
