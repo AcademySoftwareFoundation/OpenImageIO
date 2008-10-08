@@ -77,18 +77,24 @@ print_info (const std::string &filename, ImageInput *input,
         }
         printf ("\n");
         if (spec.x || spec.y || spec.z) {
-            printf ("    origin: x=%d, y=%d", spec.x, spec.y);
+            printf ("    pixel data origin: x=%d, y=%d", spec.x, spec.y);
             if (spec.depth > 1)
                 printf (", z=%d\n", spec.x, spec.y, spec.z);
             printf ("\n");
         }
-        if ((spec.full_width != spec.width && spec.full_width != 0) || 
+        if (spec.full_x || spec.full_y || spec.full_z ||
+            (spec.full_width != spec.width && spec.full_width != 0) || 
             (spec.full_height != spec.height && spec.full_height != 0) ||
             (spec.full_depth != spec.depth && spec.full_depth != 0)) {
-            printf ("    full (uncropped) size: %4d x %d",
+            printf ("    full/display size: %d x %d",
                     spec.full_width, spec.full_height);
             if (spec.depth > 1)
                 printf (" x %d", spec.full_depth);
+            printf ("\n");
+            printf ("    full/display origin: %d, %d",
+                    spec.full_x, spec.full_y);
+            if (spec.depth > 1)
+                printf (", %d", spec.full_z);
             printf ("\n");
         }
         if (spec.tile_width) {

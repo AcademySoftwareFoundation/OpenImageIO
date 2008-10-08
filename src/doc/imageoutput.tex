@@ -393,38 +393,41 @@ Please consult Section~\ref{sec:imageoutput:reference} for detailed
 descriptions of the stride parameters to each {\cf write} function.
 
 
-\subsection{Writing a crop window}
+\subsection{Writing a crop window or overscan region}
 \label{sec:imageoutput:cropwindows}
-\index{crop windows}
-
-Some file formats allow you to specify that the pixels they contain
-are a smaller \emph{crop window} within a larger absract \emph{full
-  image}.  Specifying this situation is simple, and merely requires
-a few extra fields in the \ImageSpec to be set:  
+\index{crop windows} \index{overscan}
 
 The \ImageSpec fields {\cf width}, {\cf height}, and {\cf depth}
-describe the dimensions of the image being written, i.e., the size of
-the crop window, not the size of the abstract full image.
+describe the dimensions of the actual pixel data.
+
+At times, it may be useful to also describe an abstract \emph{full} or
+\emph{display} image window, whose position and size may not correspond
+exactly to the data pixels.  For example, a pixel data window that is a
+subset of the full display window might indicate a \emph{crop window}; a
+pixel data window that is a superset of the full display window might
+indicate \emph{overscan} regions (pixels defined outside the eventual
+viewport).
 
 The \ImageSpec fields {\cf full_width}, {\cf full_height}, and
-{\cf full_depth} describe the dimensions of the abstract full image.  If
-these are set equal to {\cf width}, {\cf height}, and {\cf depth},
-respectively, or if they are all set to zero (the default upon
-construction of \ImageSpec), then this image is the full image
-and is not a crop window.
+{\cf full_depth} describe the dimensions of the full display
+window, and {\cf full_x}, {\cf full_y}, {\cf full_z} describe its
+origin (upper left corner).  The fields {\cf x}, {\cf y}, {\cf z}
+describe the origin (upper left corner)
+of the pixel data.
 
-The \ImageSpec fields {\cf x}, {\cf y}, and {\cf z} describe the
-\emph{offset} of the crop window --- that is, the upper left pixel
-coordinates of the abstract full image that correspond to the upper left
-pixel of the crop window.  They default to 0 upon construction of the
-\ImageSpec, indicating that the crop window is the
-upper-left-most portion of the full image.
+These fields collectively describe an abstract full display image
+ranging from [{\cf full_x} ... {\cf full_x+full_width-1}] horizontally,
+[{\cf full_y} ... {\cf full_y+full_height-1}] vertically,
+and [{\cf full_z} ... {\cf full_z+full_depth-1}] in depth (if it is
+a 3D volume), and actual pixel data over the pixel coordinate range 
+[{\cf x} ... {\cf x+width-1}] horizontally,
+[{\cf y} ... {\cf y+height-1}] vertically,
+and [{\cf z} ... {\cf z+depth-1}] in depth (if it is a volume).
 
-Not all image file formats have a way to describe crop windows.
-An \ImageOutput implementation that cannot express crop windows will
-simply write the file as if is a complete image (i.e., the spec settings
-of {\cf x}, {\cf y}, {\cf z}, {\cf full_width}, {\cf full_height}, and
-{\cf full_depth}, will not result in a differently-written file.
+Not all image file formats have a way to describe display windows.  An
+\ImageOutput implementation that cannot express display windows will
+always write out the {\cf width} $\times$ {\cf height} pixel data, may
+upon writing lose information about offsets or crop windows.
 
 Here is a code example that opens an image file that will contain a $32
 \times 32$ pixel crop window within an abstract $640 \times 480$ full
@@ -436,13 +439,15 @@ the actual pixel data being passed (not the the hypothetical start of
 the full data, if it was all present).
 
 \begin{code}
-        int fullwidth = 640, fulllength = 480; // Full image size
+        int fullwidth = 640, fulllength = 480; // Full display image size
         int cropwidth = 16, croplength = 16;  // Crop window size
         int xorigin = 32, yorigin = 128;      // Crop window position
         unsigned char pixels [cropwidth * croplength * channels]; // Crop size!
         ...
         ImageOutput *out = ImageOutput::create (filename);
         ImageSpec spec (cropwidth, croplength, channels, TypeDesc::UINT8);
+        spec.full_x = 0;
+        spec.full_y = 0;
         spec.full_width = fullwidth;
         spec.full_length = fulllength;
         spec.x = xorigin;

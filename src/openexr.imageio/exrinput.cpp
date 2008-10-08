@@ -153,7 +153,6 @@ private:
 
 //        m_map[""] = "";
         // FIXME: Things to consider in the future:
-        // displayWindow
         // preview
         // screenWindowCenter
         // chromaticities whiteLuminance adoptedNeutral
@@ -206,9 +205,13 @@ OpenEXRInput::open (const char *name, ImageSpec &newspec)
     m_spec.depth = 1;
     m_topwidth = m_spec.width;      // Save top-level mipmap dimensions
     m_topheight = m_spec.height;
-    m_spec.full_width = m_spec.width;
-    m_spec.full_height = m_spec.height;
-    m_spec.full_depth = m_spec.depth;
+    Imath::Box2i displaywindow = m_header->displayWindow();
+    m_spec.full_x = displaywindow.min.x;
+    m_spec.full_y = displaywindow.min.y;
+    m_spec.full_z = 0;
+    m_spec.full_width = displaywindow.max.x - displaywindow.min.x + 1;
+    m_spec.full_height = displaywindow.max.y - displaywindow.min.y + 1;
+    m_spec.full_depth = 1;
     if (tiled) {
         m_spec.tile_width = m_input_tiled->tileXSize();
         m_spec.tile_height = m_input_tiled->tileYSize();

@@ -147,9 +147,10 @@ format specification of a single image.  It contains:
 
 \begin{itemize}
 \item The image resolution (number of pixels).
-\item The origin, if it is not located beginning at pixel (0,0).
-\item The full size of any ``surrounding'' image, if this represents a crop
-  window.
+\item The origin, if its upper left corner is not located beginning at
+  pixel (0,0).
+\item The full size and offset of an abstract ``full'' or ``display''
+  image, useful for describing cropping or overscan.
 \item Whether the image is organized into \emph{tiles}, and if so, the
   tile size.
 \item The \emph{native data format} of the pixel values (e.g., float, 8-bit
@@ -176,23 +177,38 @@ arbitrary attributes that can hold metadata that may be user-defined or
 specific to individual file formats.  Here are the hard-coded data
 fields:
 
-\apiitem{int width, height, depth}
-The size of the data of this image, i.e., the number pixels in each
-dimension.  If {\cf depth} is 0 or 1, it indicates a 2D image, but if
-{\cf depth} is greater than 1, it's actually a 3D ``volumetric'' image.
+\apiitem{int width, height, depth \\
+int x, y, z}
+
+{\cf width, height, depth} are the size of the data of this image, i.e.,
+the number of pixels in each dimension.  A {\cf depth} greater than 1
+indicates a 3D ``volumetric'' image.
+
+{\cf x, y, z} indicate the \emph{origin} of the pixel data of the image.
+These default to (0,0,0), but setting them differently may indicate that
+this image is offset from the usual origin.
+
+Therefore the pixel data are defined over pixel coordinates
+[{\cf x} ... {\cf x+width-1}] horizontally, 
+[{\cf y} ... {\cf y+height-1}] vertically, 
+and [{\cf z} ... {\cf z+depth-1}] in depth.
 \apiend
 
-\apiitem{int x, y, z}
-The \emph{origin} of the image.  These default to (0,0,0), but setting
-them differently indicates that this image is actually a \emph{crop window}
-of a larger surrounding image.
-\apiend
+\apiitem{int full_width, full_height, full_depth \\
+int full_x, full_y, full_z}
 
-\apiitem{int full_width, full_height, full_depth}
-The size of the full surrounding image, if this image is a crop window.
-The default is (0,0,0), indicating that this is the ``full'' image data
-(setting these values to {\cf width}, {\cf height}, and {\cf depth},
-respectively, has the same meaning).
+These fields define a ``full'' or ``display'' image window over the
+region [{\cf full_x} ... {\cf full_x+full_width-1}] horizontally, 
+[{\cf full_y} ... {\cf full_y+full_height-1}] vertically, 
+and [{\cf full_z} ... {\cf full_z+full_depth-1}] in depth.
+
+Having the full display window different from the pixel data window can
+be helpful in cases where you want to indicate that your image is a
+\emph{crop window} of a larger image (if the pixel data window is a
+subset of the full display window), or that the pixels include
+\emph{overscan} (if the pixel data is a superset of the full display
+window), or may simply indicate how different non-overlapping images
+piece together.
 \apiend
 
 \apiitem{int tile_width, tile_height, tile_depth}

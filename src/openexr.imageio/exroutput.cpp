@@ -193,11 +193,13 @@ OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
     // FIXME: support float and uint32
     // Big FIXME: support per-channel formats?
 
-
     Imath::Box2i dataWindow (Imath::V2i (m_spec.x, m_spec.y),
                              Imath::V2i (m_spec.width + m_spec.x - 1,
                                          m_spec.height + m_spec.y - 1));
-    m_header = new Imf::Header (m_spec.full_width, m_spec.full_height, dataWindow);
+    Imath::Box2i displayWindow (Imath::V2i (m_spec.full_x, m_spec.full_y),
+                                Imath::V2i (m_spec.full_width+m_spec.full_x-1,
+                                            m_spec.full_height+m_spec.full_y-1));
+    m_header = new Imf::Header (displayWindow, dataWindow);
 
     // Insert channels into the header.  Also give the channels names if
     // the user botched it.

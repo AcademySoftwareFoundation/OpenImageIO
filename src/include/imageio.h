@@ -135,13 +135,16 @@ public:
         sRGB = 3              ///< Color values are in sRGB
     };
 
-    int x, y, z;              ///< image origin (0,0,0)
-    int width;                ///< width of the crop window containing data
-    int height;               ///< height of the crop window containing data
-    int depth;                ///< depth, >1 indicates a "volume"
-    int full_width;           ///< width of entire image (not just cropwindow)
-    int full_height;          ///< height of entire image (not just cropwindow)
-    int full_depth;           ///< depth of entire image (not just cropwindow)
+    int x, y, z;              ///< origin (upper left corner) of pixel data
+    int width;                ///< width of the pixel data window
+    int height;               ///< height of the pixel data window
+    int depth;                ///< depth of pixel data, >1 indicates a "volume"
+    int full_x;               ///< origin of the full (display) window
+    int full_y;               ///< origin of the full (display) window
+    int full_z;               ///< origin of the full (display) window
+    int full_width;           ///< width of the full (display) window
+    int full_height;          ///< height of the full (display) window
+    int full_depth;           ///< depth of the full (display) window
     int tile_width;           ///< tile width (0 for a non-tiled image)
     int tile_height;          ///< tile height (0 for a non-tiled image)
     int tile_depth;           ///< tile depth (0 for a non-tiled image,

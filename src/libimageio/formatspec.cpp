@@ -142,6 +142,7 @@ QuantizationSpec::QuantizationSpec (TypeDesc _type)
 
 ImageSpec::ImageSpec (TypeDesc format)
     : x(0), y(0), z(0), width(0), height(0), depth(1),
+      full_x(0), full_y(0), full_z(0),
       full_width(0), full_height(0), full_depth(0),
       tile_width(0), tile_height(0), tile_depth(1),
       format(format), nchannels(0), alpha_channel(-1), z_channel(-1),
@@ -154,6 +155,7 @@ ImageSpec::ImageSpec (TypeDesc format)
 
 ImageSpec::ImageSpec (int xres, int yres, int nchans, TypeDesc format)
     : x(0), y(0), z(0), width(xres), height(yres), depth(1),
+      full_x(0), full_y(0), full_z(0),
       full_width(xres), full_height(yres), full_depth(1),
       tile_width(0), tile_height(0), tile_depth(1),
       format(format), nchannels(nchans), alpha_channel(-1), z_channel(-1),

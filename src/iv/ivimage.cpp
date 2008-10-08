@@ -165,9 +165,12 @@ IvImage::longinfo () const
              format("%.2f MB", (float)m_spec.image_bytes() / (1024.0*1024.0)));
         m_longinfo += html_table_row ("Image origin", 
                           format ("%d, %d, %d", m_spec.x, m_spec.y, m_spec.z));
-        m_longinfo += html_table_row ("Full uncropped size", 
+        m_longinfo += html_table_row ("Full/display size", 
                           format ("%d x %d x %d", m_spec.full_width,
                                   m_spec.full_height, m_spec.full_depth));
+        m_longinfo += html_table_row ("Full/display origin", 
+                          format ("%d, %d, %d", m_spec.full_x,
+                                  m_spec.full_y, m_spec.full_z));
         if (m_spec.tile_width)
             m_longinfo += html_table_row ("Scanline/tile",
                             format ("tiled %d x %d x %d", m_spec.tile_width,
