@@ -1,2 +1,22 @@
 Changes:
 
+
+In-progress - Interim developer release 0.2:
+
+
+
+Initial developer release 0.1 (9/1/08):
+
+* ImageInput, ImageOutput, TextureSystem APIs pretty mature
+* Plugins: TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/rgbe
+* iv - basic display, multiple images, menus, status bar, info window,
+  basic prefs window, pixel view tool, zoom, pan, open, open recent,
+  close, save as, view subimages, view channels, gamma, exposure,
+  fit window to image, fit image to window, full screen.
+* iconvert
+* idiff
+* maketx
+* API docs for ImageInput, ImageOutput, writing plugins
+* Linux and OSX
+
+
