@@ -25,7 +25,7 @@ dist_libs     	:= libimageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
 dist_includes	:= export.h imageio.h typedesc.h imagebuf.h paramlist.h \
 			texture.h typedesc.h ustring.h varyingref.h
-dist_docs	:= src/doc/CONTRIBUTOR-LICENSE \
+dist_docs	:= src/doc/CLA-INDIVIDUAL src/doc/CLA-CORPORATE \
 		   src/doc/openimageio.pdf
 dist_root	:= LICENSE INSTALL CHANGES
 
