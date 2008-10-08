@@ -132,5 +132,49 @@ Assumptions about in-core image representation (NOT file!):
   follows alpha.  So if a file actually stores ABGR, the plugin is
   expected to rearrange it as RGBA.
 
+---
 
 
+operations
+        zoom (in + out)         (ctrl-+/-, alt-left mouse)
+        drag/pan                (always middle mouse)
+        select (a rectangle)    (shift-left mouse)
+        draw (lines)
+        info/pick
+
+selectors
+        none
+        shift
+        ctrl
+        alt
+
+buttons
+        left
+        right
+        middle
+
+middle should always pan
+shift-left should always select
+alt-mouse should always zoom
+
+operations
+        zoom (in + out)         (ctrl-+/-, alt-left mouse)
+        drag/pan                (always middle mouse)
+        select (a rectangle)    (shift-left mouse)
+        draw (lines)
+        info/pick
+
+selectors
+        none
+        shift
+        ctrl
+        alt
+
+buttons
+        left
+        right
+        middle
+
+middle should always pan
+shift-left should always select
+alt-mouse should always zoom

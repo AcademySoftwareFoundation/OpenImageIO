@@ -12,9 +12,9 @@ DONE        TIFF - separated samples broken (oxford.tif)
 DONE        iv - honor orientation
 DONE        OpenEXR plugin (status: reader works, writer works, scanline/tile)
 DONE        jpeg - EXIF info
-IP          nomenclature - capitalize tags? (pending feedback)
+DONE?       nomenclature - capitalize tags? (pending feedback)
 DONE        imageio.h - add sRGB vs Linear?
-IP          API docs
+DONE        API docs - ImageInput, ImageOutput, writing plugins, intro
 DONE        Linux
 DONE        iv - middle mouse drag
 DONE        iv - mouse wheel zoom
@@ -29,19 +29,19 @@ DONE        iv - full screen
 DONE        iv - prev/next subimage
 DONE        iv - info window - scroll when too much info to fit on screen
 DONE        iv - clamp fit-window-to-image to display size
-hard        iv - Ctrl-W in info window should close info, not close image
 DONE        idiff
 DONE        iv - zoom centered on mouse pixel
 DONE        iv - option for zoom to show non-interpolated pixels
-            iv - change cursor depending on drag mode
-            jpeg - handle changes in linearity
-            iv - crash with 1-channel images?
-            texture bug - crashes with non-tiled image
 
 
 Before first alpha release
 --------------------------
 
+lg/IP       Fully represent exr displayWindow (lacking full_[xyz])
+            iv - handle data vs display windows sensibly
+            Rename 3party (condenders: third_party, external, contrib)
+            Explore unit test strategies (leading condender: Google)
+DONE        API docs - ImageInput, ImageOutput, writing plugins, intro
             iv - subtract from last image
             iv - view as random color
             TIFF - double (caspian)
@@ -63,6 +63,11 @@ DONE        iv - put into background mode
 DONE        iv - gamma correction (env variable)
 DONE?       iv - honor sRGB images
             iv - handle images > 4k
+hard        iv - Ctrl-W in info window should close info, not close image
+            iv - change cursor depending on drag mode
+            jpeg - handle changes in linearity
+            iv - crash with 1-channel images?
+            texture bug - crashes with non-tiled image
 
 
 Before first 1.0 release
@@ -133,25 +138,3 @@ Idea pool / future feature wish list
             play back sound memos in jpeg images
             per-format default gamma?
 
-
-operations
-        zoom (in + out)         (ctrl-+/-, alt-left mouse)
-        drag/pan                (always middle mouse)
-        select (a rectangle)    (shift-left mouse)
-        draw (lines)
-        info/pick
-
-selectors
-        none
-        shift
-        ctrl
-        alt
-
-buttons
-        left
-        right
-        middle
-
-middle should always pan
-shift-left should always select
-alt-mouse should always zoom
