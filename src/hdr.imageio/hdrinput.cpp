@@ -123,7 +123,7 @@ HdrInput::seek_subimage (int index, ImageSpec &newspec)
         return false;
     }
 
-    m_spec = ImageSpec (width, height, 3, PT_FLOAT);
+    m_spec = ImageSpec (width, height, 3, TypeDesc::FLOAT);
 
     if (h.valid & RGBE_VALID_GAMMA)
         m_spec.gamma = h.gamma;

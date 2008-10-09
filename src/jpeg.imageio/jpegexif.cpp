@@ -299,7 +299,7 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
 #if 0
         void *addr = dirp->tdir_count <= 4 ? (void *) &dirp->tdir_offset 
                                            : (void *) &buf[dirp->tdir_offset];
-        spec.attribute (name, PT_UINT8, dirp->tdir_count, addr);
+        spec.attribute (name, TypeDesc::UINT8, dirp->tdir_count, addr);
 #endif
     } else {
         std::cerr << "didn't know how to process type " 
@@ -469,13 +469,13 @@ exif_from_APP1 (ImageSpec &spec, unsigned char *buf)
     if ((p = spec.find_attribute ("exif:ColorSpace")) ||
         (p = spec.find_attribute ("ColorSpace"))) {
         int cs = -1;
-        if (p->type() == PT_UINT) 
+        if (p->type() == TypeDesc::UINT) 
             cs = *(const unsigned int *)p->data();
-        else if (p->type() == PT_INT) 
+        else if (p->type() == TypeDesc::INT) 
             cs = *(const int *)p->data();
-        else if (p->type() == PT_UINT16) 
+        else if (p->type() == TypeDesc::UINT16) 
             cs = *(const unsigned short *)p->data();
-        else if (p->type() == PT_INT16) 
+        else if (p->type() == TypeDesc::INT16) 
             cs = *(const short *)p->data();
         if (cs == 1)
             spec.linearity = ImageSpec::sRGB;
@@ -565,7 +565,7 @@ encode_exif_entry (const ImageIOParameter p, int tag,
 
     switch (type) {
     case TIFF_ASCII :
-        if (p.type() == PT_STRING) {
+        if (p.type() == TypeDesc::STRING) {
             const char *s = *(const char **) p.data();
             int len = strlen(s) + 1;
             append_dir_entry (dirs, data, tag, type, len, s);
@@ -574,7 +574,7 @@ encode_exif_entry (const ImageIOParameter p, int tag,
         break;
     case TIFF_RATIONAL :
     case TIFF_SRATIONAL :
-        if (p.type() == PT_FLOAT) {
+        if (p.type() == TypeDesc::FLOAT) {
             unsigned int rat[2];  // num, den
             float f = *(const float *)p.data();
             float_to_rational (f, rat[0], rat[1], type == TIFF_SRATIONAL);
@@ -583,28 +583,28 @@ encode_exif_entry (const ImageIOParameter p, int tag,
         }
         break;
     case TIFF_SHORT :
-        if (p.type() == PT_UINT || p.type() == PT_INT ||
-                p.type() == PT_UINT16 || p.type() == PT_INT16) {
+        if (p.type() == TypeDesc::UINT || p.type() == TypeDesc::INT ||
+                p.type() == TypeDesc::UINT16 || p.type() == TypeDesc::INT16) {
             unsigned short i;
             switch (p.type().basetype) {
-            case PT_UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
-            case PT_INT:    i = (unsigned short) *(int *)p.data();   break;
-            case PT_UINT16: i = *(unsigned short *)p.data();         break;
-            case PT_INT16:  i = (unsigned short) *(short *)p.data(); break;
+            case TypeDesc::UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
+            case TypeDesc::INT:    i = (unsigned short) *(int *)p.data();   break;
+            case TypeDesc::UINT16: i = *(unsigned short *)p.data();         break;
+            case TypeDesc::INT16:  i = (unsigned short) *(short *)p.data(); break;
             }
             append_dir_entry (dirs, data, tag, type, 1, &i);
             return;
         }
         break;
     case TIFF_LONG :
-        if (p.type() == PT_UINT || p.type() == PT_INT ||
-                p.type() == PT_UINT16 || p.type() == PT_INT16) {
+        if (p.type() == TypeDesc::UINT || p.type() == TypeDesc::INT ||
+                p.type() == TypeDesc::UINT16 || p.type() == TypeDesc::INT16) {
             unsigned int i;
             switch (p.type().basetype) {
-            case PT_UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
-            case PT_INT:    i = (unsigned short) *(int *)p.data();   break;
-            case PT_UINT16: i = *(unsigned short *)p.data();         break;
-            case PT_INT16:  i = (unsigned short) *(short *)p.data(); break;
+            case TypeDesc::UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
+            case TypeDesc::INT:    i = (unsigned short) *(int *)p.data();   break;
+            case TypeDesc::UINT16: i = *(unsigned short *)p.data();         break;
+            case TypeDesc::INT16:  i = (unsigned short) *(short *)p.data(); break;
             }
             append_dir_entry (dirs, data, tag, type, 1, &i);
             return;

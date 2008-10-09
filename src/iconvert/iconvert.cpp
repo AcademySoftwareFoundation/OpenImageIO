@@ -125,19 +125,19 @@ main (int argc, char *argv[])
     outspec.set_format (inspec.format);
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
-            outspec.set_format (PT_UINT8);
+            outspec.set_format (TypeDesc::UINT8);
         else if (dataformatname == "int8")
-            outspec.set_format (PT_INT8);
+            outspec.set_format (TypeDesc::INT8);
         else if (dataformatname == "uint16")
-            outspec.set_format (PT_UINT16);
+            outspec.set_format (TypeDesc::UINT16);
         else if (dataformatname == "int16")
-            outspec.set_format (PT_INT16);
+            outspec.set_format (TypeDesc::INT16);
         else if (dataformatname == "half")
-            outspec.set_format (PT_HALF);
+            outspec.set_format (TypeDesc::HALF);
         else if (dataformatname == "float")
-            outspec.set_format (PT_FLOAT);
+            outspec.set_format (TypeDesc::FLOAT);
         else if (dataformatname == "double")
-            outspec.set_format (PT_DOUBLE);
+            outspec.set_format (TypeDesc::DOUBLE);
     }
     outspec.gamma = gammaval;
 

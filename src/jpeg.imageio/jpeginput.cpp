@@ -111,7 +111,7 @@ JpgInput::open (const char *name, ImageSpec &newspec)
     m_first_scanline = true;                    // start decompressor
 
     m_spec = ImageSpec (m_cinfo.output_width, m_cinfo.output_height,
-                        m_cinfo.output_components, PT_UINT8);
+                        m_cinfo.output_components, TypeDesc::UINT8);
 
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
         if (m->marker == (JPEG_APP0+1))

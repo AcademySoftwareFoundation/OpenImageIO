@@ -136,7 +136,7 @@ JpgOutput::open (const char *name, const ImageSpec &newspec,
 
 //    jpeg_write_marker (&m_cinfo, JPEG_COM, comment, strlen(comment) /* + 1 ? */ );
 
-    m_spec.set_format (PT_UINT8);  // JPG is only 8 bit
+    m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
 
     return true;
 }

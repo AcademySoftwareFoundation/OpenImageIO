@@ -109,14 +109,20 @@ print_info (const std::string &filename, ImageInput *input,
                 Strutil::format(cspacename[(int)spec.linearity], spec.gamma).c_str());
         BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
             printf ("    %s: ", p.name().c_str());
-            if (p.type() == PT_STRING)
+            if (p.type() == TypeDesc::STRING)
                 printf ("\"%s\"", *(const char **)p.data());
-            else if (p.type() == PT_FLOAT)
+            else if (p.type() == TypeDesc::FLOAT)
                 printf ("%g", *(const float *)p.data());
-            else if (p.type() == PT_INT)
+            else if (p.type() == TypeDesc::DOUBLE)
+                printf ("%g", *(const float *)p.data());
+            else if (p.type() == TypeDesc::INT)
                 printf ("%d", *(const int *)p.data());
-            else if (p.type() == PT_UINT)
-                printf ("%u", *(const unsigned int *)p.data());
+            else if (p.type() == TypeDesc::UINT)
+                printf ("%d", *(const unsigned int *)p.data());
+            else if (p.type() == TypeDesc::UINT16)
+                printf ("%u", *(const unsigned short *)p.data());
+            else if (p.type() == TypeDesc::INT16)
+                printf ("%d", *(const short *)p.data());
             else
                 printf ("<unknown data type>");
             printf ("\n");

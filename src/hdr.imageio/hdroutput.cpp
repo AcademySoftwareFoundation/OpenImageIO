@@ -89,7 +89,7 @@ HdrOutput::open (const char *name, const ImageSpec &newspec, bool append)
         return false;
     }
 
-    m_spec.set_format (PT_FLOAT);   // Native rgbe is float32 only
+    m_spec.set_format (TypeDesc::FLOAT);   // Native rgbe is float32 only
 
     m_fd = fopen (name, "wb");
     if (m_fd == NULL) {
@@ -106,7 +106,7 @@ HdrOutput::open (const char *name, const ImageSpec &newspec, bool append)
     strcpy (h.programtype, "RADIANCE");
 
     ImageIOParameter *p;
-    p = m_spec.find_attribute ("Orientation", PT_INT);
+    p = m_spec.find_attribute ("Orientation", TypeDesc::INT);
     if (p) {
         h.valid |= RGBE_VALID_ORIENTATION;
         h.orientation = * (int *)p->data();

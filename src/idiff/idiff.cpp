@@ -148,7 +148,7 @@ read_input (const std::string &filename, ImageSpec &inspec,
     int nvals = npels * inspec.nchannels;
     pixels = new float[nvals];
     bool ret = true;
-    if (! in->read_image (PT_FLOAT, pixels)) {
+    if (! in->read_image (TypeDesc::FLOAT, pixels)) {
         ret = false;
         delete [] pixels;
         pixels = NULL;
@@ -187,7 +187,7 @@ write_diff_image (const std::string &filename, const ImageSpec &spec,
                 for (int i = 0;  i < nvals;  ++i)
                     pixels[i] *= diffscale;
             }
-            out->write_image (PT_FLOAT, &(pixels[0]));
+            out->write_image (TypeDesc::FLOAT, &(pixels[0]));
             out->close ();
         }
         delete out;
