@@ -135,28 +135,28 @@ OpenImageIO::pvt::contiguize (const void *src, int nchannels,
                               TypeDesc format)
 {
     switch (format.basetype) {
-    case PT_FLOAT :
+    case TypeDesc::FLOAT :
         return _contiguize ((const float *)src, nchannels, 
                             xstride, ystride, zstride,
                             (float *)dst, width, height, depth);
-    case PT_DOUBLE :
+    case TypeDesc::DOUBLE :
         return _contiguize ((const double *)src, nchannels, 
                             xstride, ystride, zstride,
                             (double *)dst, width, height, depth);
-    case PT_INT8:
-    case PT_UINT8 :
+    case TypeDesc::INT8:
+    case TypeDesc::UINT8 :
         return _contiguize ((const char *)src, nchannels, 
                             xstride, ystride, zstride,
                             (char *)dst, width, height, depth);
-    case PT_HALF :
+    case TypeDesc::HALF :
         DASSERT (sizeof(half) == sizeof(short));
-    case PT_INT16 :
-    case PT_UINT16 :
+    case TypeDesc::INT16 :
+    case TypeDesc::UINT16 :
         return _contiguize ((const short *)src, nchannels, 
                             xstride, ystride, zstride,
                             (short *)dst, width, height, depth);
-    case PT_INT :
-    case PT_UINT :
+    case TypeDesc::INT :
+    case TypeDesc::UINT :
         return _contiguize ((const int *)src, nchannels, 
                             xstride, ystride, zstride,
                             (int *)dst, width, height, depth);
@@ -174,30 +174,30 @@ OpenImageIO::pvt::convert_to_float (const void *src, float *dst, int nvals,
                                     TypeDesc format)
 {
     switch (format.basetype) {
-    case PT_FLOAT :
+    case TypeDesc::FLOAT :
         return (float *)src;
-    case PT_HALF :
+    case TypeDesc::HALF :
         convert_type ((const half *)src, dst, nvals);
         break;
-    case PT_DOUBLE :
+    case TypeDesc::DOUBLE :
         convert_type ((const double *)src, dst, nvals);
         break;
-    case PT_INT8:
+    case TypeDesc::INT8:
         convert_type ((const char *)src, dst, nvals);
         break;
-    case PT_UINT8 :
+    case TypeDesc::UINT8 :
         convert_type ((const unsigned char *)src, dst, nvals);
         break;
-    case PT_INT16 :
+    case TypeDesc::INT16 :
         convert_type ((const short *)src, dst, nvals);
         break;
-    case PT_UINT16 :
+    case TypeDesc::UINT16 :
         convert_type ((const unsigned short *)src, dst, nvals);
         break;
-    case PT_INT :
+    case TypeDesc::INT :
         convert_type ((const int *)src, dst, nvals);
         break;
-    case PT_UINT :
+    case TypeDesc::UINT :
         convert_type ((const unsigned int *)src, dst, nvals);
         break;
     default:
@@ -254,37 +254,37 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
                                       TypeDesc format)
 {
     switch (format.basetype) {
-    case PT_FLOAT :
+    case TypeDesc::FLOAT :
         return src;
-    case PT_HALF :
+    case TypeDesc::HALF :
         return _from_float<half> (src, (half *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
-    case PT_DOUBLE :
+    case TypeDesc::DOUBLE :
         return _from_float (src, (double *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
-    case PT_INT8:
+    case TypeDesc::INT8:
         return _from_float (src, (char *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
-    case PT_UINT8 :
+    case TypeDesc::UINT8 :
         return _from_float (src, (unsigned char *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
-    case PT_INT16 :
+    case TypeDesc::INT16 :
         return _from_float (src, (short *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
-    case PT_UINT16 :
+    case TypeDesc::UINT16 :
         return _from_float (src, (unsigned short *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
-    case PT_INT :
+    case TypeDesc::INT :
         return _from_float (src, (int *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
-    case PT_UINT :
+    case TypeDesc::UINT :
         return _from_float (src, (unsigned int *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
@@ -312,7 +312,7 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
     bool use_tmp = false;
     boost::scoped_array<float> tmp;
     float *buf;
-    if (src_type == PT_FLOAT && gain == 1.0f && gamma == 1.0f) {
+    if (src_type == TypeDesc::FLOAT && gain == 1.0f && gamma == 1.0f) {
         buf = (float *) src;
     } else {
         tmp.reset (new float[n]);  // Will be freed when tmp exists its scope
@@ -323,15 +323,15 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
     if (use_tmp) {
         // Convert from 'src_type' to float (or nothing, if already float)
         switch (src_type.basetype) {
-        case PT_UINT8 :  convert_type ((const unsigned char *)src, buf, n);  break;
-        case PT_UINT16 : convert_type ((const unsigned short *)src, buf, n); break;
-        case PT_FLOAT :  convert_type ((const float *)src, buf, n);  break;
-        case PT_HALF :   convert_type ((const half *)src, buf, n);   break;
-        case PT_DOUBLE : convert_type ((const double *)src, buf, n); break;
-        case PT_INT8 :   convert_type ((const char *)src, buf, n);   break;
-        case PT_INT16 :  convert_type ((const short *)src, buf, n);  break;
-        case PT_INT :    convert_type ((const int *)src, buf, n);  break;
-        case PT_UINT :   convert_type ((const unsigned int *)src, buf, n);  break;
+        case TypeDesc::UINT8 : convert_type ((const unsigned char *)src, buf, n); break;
+        case TypeDesc::UINT16 : convert_type ((const unsigned short *)src, buf, n); break;
+        case TypeDesc::FLOAT : convert_type ((const float *)src, buf, n); break;
+        case TypeDesc::HALF :  convert_type ((const half *)src, buf, n); break;
+        case TypeDesc::DOUBLE : convert_type ((const double *)src, buf, n); break;
+        case TypeDesc::INT8 :  convert_type ((const char *)src, buf, n);  break;
+        case TypeDesc::INT16 : convert_type ((const short *)src, buf, n); break;
+        case TypeDesc::INT :   convert_type ((const int *)src, buf, n); break;
+        case TypeDesc::UINT :  convert_type ((const unsigned int *)src, buf, n);  break;
         default:         return false;  // unknown format
         }
     }
@@ -344,15 +344,15 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
 
     // Convert float to 'dst_type' (just a copy if dst is float)
     switch (dst_type.basetype) {
-    case PT_FLOAT :  memcpy (dst, buf, n * sizeof(float));       break;
-    case PT_UINT8 :  convert_type (buf, (unsigned char *)dst, n);  break;
-    case PT_UINT16 : convert_type (buf, (unsigned short *)dst, n); break;
-    case PT_HALF :   convert_type (buf, (half *)dst, n);   break;
-    case PT_INT8 :   convert_type (buf, (char *)dst, n);   break;
-    case PT_INT16 :  convert_type (buf, (short *)dst, n);  break;
-    case PT_INT :    convert_type (buf, (int *)dst, n);  break;
-    case PT_UINT :   convert_type (buf, (unsigned int *)dst, n);  break;
-    case PT_DOUBLE : convert_type (buf, (double *)dst, n); break;
+    case TypeDesc::FLOAT :  memcpy (dst, buf, n * sizeof(float));       break;
+    case TypeDesc::UINT8 :  convert_type (buf, (unsigned char *)dst, n);  break;
+    case TypeDesc::UINT16 : convert_type (buf, (unsigned short *)dst, n); break;
+    case TypeDesc::HALF :   convert_type (buf, (half *)dst, n);   break;
+    case TypeDesc::INT8 :   convert_type (buf, (char *)dst, n);   break;
+    case TypeDesc::INT16 :  convert_type (buf, (short *)dst, n);  break;
+    case TypeDesc::INT :    convert_type (buf, (int *)dst, n);  break;
+    case TypeDesc::UINT :   convert_type (buf, (unsigned int *)dst, n);  break;
+    case TypeDesc::DOUBLE : convert_type (buf, (double *)dst, n); break;
     default:         return false;  // unknown format
     }
 

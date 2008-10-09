@@ -67,7 +67,7 @@ ParamValue::init_noclear (ustring _name, TypeDesc _type,
             m_copy = true;
             m_nonlocal = true;
         }
-        if (m_type.basetype == PT_STRING) {
+        if (m_type.basetype == TypeDesc::STRING) {
             ustring *u = (ustring *) data();
             for (int i = 0;  i < n;  ++i)
                 u[i] = ustring(u[i].c_str());

@@ -183,13 +183,13 @@ IvImage::longinfo () const
             m_longinfo += html_table_row ("Depth (z) channel", m_spec.z_channel);
 
         BOOST_FOREACH (const ImageIOParameter &p, m_spec.extra_attribs) {
-            if (p.type() == PT_STRING)
+            if (p.type() == TypeDesc::STRING)
                 m_longinfo += html_table_row (p.name().c_str(), *(const char **)p.data());
-            else if (p.type() == PT_FLOAT)
+            else if (p.type() == TypeDesc::FLOAT)
                 m_longinfo += html_table_row (p.name().c_str(), format("%g",*(const float *)p.data()));
-            else if (p.type() == PT_INT)
+            else if (p.type() == TypeDesc::INT)
                 m_longinfo += html_table_row (p.name().c_str(), *(const int *)p.data());
-            else if (p.type() == PT_UINT)
+            else if (p.type() == TypeDesc::UINT)
                 m_longinfo += html_table_row (p.name().c_str(), format("%u",*(const unsigned int *)p.data()));
             else
                 m_longinfo += html_table_row (p.name().c_str(), "<unknown data type>");
