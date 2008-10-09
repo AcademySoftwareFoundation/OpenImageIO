@@ -243,7 +243,8 @@ ImageOutput::write_image (TypeDesc format, const void *data,
                         }
                     }
 
-                    ok &= write_tile (x, y, z, format, &pels[0]);
+                    ok &= write_tile (x+m_spec.x, y+m_spec.y, z+m_spec.z,
+                                      format, &pels[0]);
                 }
                 if (progress_callback)
                     if (progress_callback (progress_callback_data, (float)y/m_spec.height))
@@ -253,7 +254,7 @@ ImageOutput::write_image (TypeDesc format, const void *data,
         // Scanline image
         for (int z = 0;  z < m_spec.depth;  ++z)
             for (int y = 0;  y < m_spec.height && ok;  ++y) {
-                ok &= write_scanline (y, z, format,
+                ok &= write_scanline (y+m_spec.y, z+m_spec.z, format,
                                       (const char *)data + z*zstride + y*ystride,
                                       xstride);
                 if (progress_callback && !(y & 0x0f))

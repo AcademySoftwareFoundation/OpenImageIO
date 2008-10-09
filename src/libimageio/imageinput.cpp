@@ -139,11 +139,12 @@ ImageInput::read_image (TypeDesc format, void *data,
             for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
                 for (int x = 0;  x < m_spec.width && ok;  x += m_spec.tile_width) {
 #if 0
-                    ok &= read_tile (x, y, z, format,
+                    ok &= read_tile (x+m_spec.x, y+m_spec.y, z+m_spec.z, format,
                                      (char *)data + z*zstride + y*ystride + x*xstride,
                                      xstride, ystride, zstride);
 #endif
-                    ok &= read_tile (x, y, z, format, &pels[0]);
+                    ok &= read_tile (x+m_spec.x, y+m_spec.y, z+m_spec.z,
+                                     format, &pels[0]);
                     // Now copy out the scanlines
                     int ntz = std::min (z+m_spec.tile_depth, m_spec.depth) - z;
                     int nty = std::min (y+m_spec.tile_height, m_spec.height) - y;
@@ -166,7 +167,7 @@ ImageInput::read_image (TypeDesc format, void *data,
         // Scanline image
         for (int z = 0;  z < m_spec.depth;  ++z)
             for (int y = 0;  y < m_spec.height && ok;  ++y) {
-                ok &= read_scanline (y, z, format,
+                ok &= read_scanline (y+m_spec.y, z+m_spec.z, format,
                                      (char *)data + z*zstride + y*ystride,
                                      xstride);
                 if (progress_callback && !(y & 0x0f))

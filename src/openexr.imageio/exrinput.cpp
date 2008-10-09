@@ -73,6 +73,7 @@ private:
     const Imf::Header *m_header;          ///< Ptr to image header
     Imf::InputFile *m_input_scanline;     ///< Input for scanline files
     Imf::TiledInputFile *m_input_tiled;   ///< Input for tiled files
+    Imf::PixelType m_pixeltype;           ///< Imf pixel type
     int m_levelmode;                      ///< The level mode of the file
     int m_roundingmode;                   ///< Rounding mode of the file
     int m_subimage;                       ///< What subimage are we looking at?
@@ -220,8 +221,7 @@ OpenEXRInput::open (const char *name, ImageSpec &newspec)
         m_spec.tile_height = 0;
     }
     m_spec.tile_depth = 1;
-    m_spec.format = PT_HALF;  // FIXME: do the right thing for non-half
-    query_channels ();
+    query_channels ();   // also sets format
 
     if (tiled) {
         // FIXME: levelmode
@@ -366,6 +366,35 @@ OpenEXRInput::query_channels (void)
     }
     ASSERT (m_spec.channelnames.size() == m_spec.nchannels);
     // FIXME: should we also figure out the layers?
+
+    // Figure out data types -- choose the highest range
+    m_spec.format = TypeDesc::UNKNOWN;
+    for (ci = channels.begin();  ci != channels.end();  ++ci) {
+        Imf::PixelType ptype = ci.channel().type;
+        switch (ptype) {
+        case Imf::UINT :
+            if (m_spec.format == TypeDesc::UNKNOWN) {
+                m_spec.format = TypeDesc::UINT;
+                m_pixeltype = Imf::UINT;
+            }
+            break;
+        case Imf::HALF :
+            if (m_spec.format != TypeDesc::FLOAT) {
+                m_spec.format = TypeDesc::HALF;
+                m_pixeltype = Imf::HALF;
+            }
+            break;
+        case Imf::FLOAT :
+            m_pixeltype = Imf::FLOAT;
+            m_spec.format = TypeDesc::FLOAT;
+            break;
+        default: ASSERT (0);
+        }
+    }
+    if (m_spec.format == TypeDesc::UNKNOWN) {
+        m_spec.format = TypeDesc::HALF;
+        m_pixeltype = Imf::HALF;
+    }
 }
 
 
@@ -439,20 +468,18 @@ OpenEXRInput::read_native_scanline (int y, int z, void *data)
     // whole image.
     char *buf = (char *)data
               - m_spec.x * m_spec.pixel_bytes() 
-              - (y + m_spec.y) * m_spec.scanline_bytes();
+              - y * m_spec.scanline_bytes();
 
     try {
         Imf::FrameBuffer frameBuffer;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (Imf::HALF,  // FIXME
+                                Imf::Slice (m_pixeltype,
                                             buf + c * m_spec.channel_bytes(),
                                             m_spec.pixel_bytes(),
                                             m_spec.scanline_bytes()));
-            // FIXME - what if all channels aren't the same data type?
         }
         m_input_scanline->setFrameBuffer (frameBuffer);
-        y -= m_spec.y;
         m_input_scanline->readPixels (y, y);
     }
     catch (const std::exception &e) {
@@ -475,18 +502,17 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
     char *buf = (char *)data
-              - (x + m_spec.x) * m_spec.pixel_bytes() 
-              - (y + m_spec.y) * m_spec.pixel_bytes() * m_spec.tile_width;
+              - x * m_spec.pixel_bytes() 
+              - y * m_spec.pixel_bytes() * m_spec.tile_width;
 
     try {
         Imf::FrameBuffer frameBuffer;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (Imf::HALF,  // FIXME
+                                Imf::Slice (m_pixeltype,
                                             buf + c * m_spec.channel_bytes(),
                                             m_spec.pixel_bytes(),
                                             m_spec.pixel_bytes()*m_spec.tile_width));
-            // FIXME - what if all channels aren't the same data type?
         }
         m_input_tiled->setFrameBuffer (frameBuffer);
         m_input_tiled->readTile ((x - m_spec.x) / m_spec.tile_width,

@@ -83,6 +83,7 @@ private:
     int m_roundingmode;                   ///< Rounding mode of the file
     int m_subimage;                       ///< What subimage we're writing now
     int m_nsubimages;                     ///< How many subimages are there?
+    Imf::PixelType m_pixeltype;           ///< Imf pixel type
     std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
 
     // Initialize private members to pre-opened state
@@ -189,8 +190,28 @@ OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
     if (! m_spec.full_height)
         m_spec.full_height = m_spec.height;
 
-    m_spec.format = PT_HALF;
-    // FIXME: support float and uint32
+    // Force use of one of the three data types that OpenEXR supports
+    switch (m_spec.format.basetype) {
+    case TypeDesc::UINT16:
+    case TypeDesc::INT16:
+    case TypeDesc::UINT:
+    case TypeDesc::INT:
+        m_spec.format = TypeDesc::UINT;
+        m_pixeltype = Imf::UINT;
+        break;
+    case TypeDesc::HALF:
+        m_pixeltype = Imf::HALF;
+        break;
+    case TypeDesc::FLOAT:
+    case TypeDesc::DOUBLE:
+        m_spec.format = TypeDesc::FLOAT;
+        m_pixeltype = Imf::FLOAT;
+        break;
+    default:
+        m_spec.format = TypeDesc::HALF;
+        m_pixeltype = Imf::HALF;
+    }
+
     // Big FIXME: support per-channel formats?
 
     Imath::Box2i dataWindow (Imath::V2i (m_spec.x, m_spec.y),
@@ -210,7 +231,7 @@ OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
             m_spec.channelnames[c] = (c<4) ? default_chan_names[c]
                                            : Strutil::format ("unknown %d", c);
         m_header->channels().insert (m_spec.channelnames[c].c_str(),
-                                     Imf::Channel(Imf::HALF, 1, 1, true));
+                                     Imf::Channel(m_pixeltype, 1, 1, true));
     }
     
     // Default to ZIP compression if no request came with the user spec.
@@ -321,7 +342,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 //    std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
 
     // Special cases
-    if (iequals(xname, "Compression") && type == PT_STRING) {
+    if (iequals(xname, "Compression") && type == TypeDesc::STRING) {
         int compress = Imf::ZIP_COMPRESSION;  // default
         const char *str = *(char **)data;
         m_header->compression() = Imf::ZIP_COMPRESSION;  // Default
@@ -342,23 +363,23 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 
     // General handling of attributes
     // FIXME -- police this if we ever allow arrays
-    if (type == PT_INT || type == PT_UINT) {
+    if (type == TypeDesc::INT || type == TypeDesc::UINT) {
         m_header->insert (xname.c_str(), Imf::IntAttribute (*(int*)data));
         return true;
     }
-    if (type == PT_INT16) {
+    if (type == TypeDesc::INT16) {
         m_header->insert (xname.c_str(), Imf::IntAttribute (*(short*)data));
         return true;
     }
-    if (type == PT_UINT16) {
+    if (type == TypeDesc::UINT16) {
         m_header->insert (xname.c_str(), Imf::IntAttribute (*(unsigned short*)data));
         return true;
     }
-    if (type == PT_FLOAT) {
+    if (type == TypeDesc::FLOAT) {
         m_header->insert (xname.c_str(), Imf::FloatAttribute (*(float*)data));
         return true;
     }
-    if (type == PT_HALF) {
+    if (type == TypeDesc::HALF) {
         m_header->insert (xname.c_str(), Imf::FloatAttribute ((float)*(half*)data));
         return true;
     }
@@ -366,7 +387,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         m_header->insert (xname.c_str(), Imf::M44fAttribute (*(Imath::M44f*)data));
         return true;
     }
-    if (type == PT_STRING) {
+    if (type == TypeDesc::STRING) {
         m_header->insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
         return true;
     }
@@ -400,8 +421,6 @@ bool
 OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
                                const void *data, stride_t xstride)
 {
-    // FIXME: hard-coded for HALF!
-
     m_spec.auto_stride (xstride, format, spec().nchannels);
     data = to_native_scanline (format, data, xstride, m_scratch);
 
@@ -412,14 +431,14 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
     // whole image.
     char *buf = (char *)data
               - m_spec.x * m_spec.pixel_bytes() 
-              - (y + m_spec.y) * m_spec.scanline_bytes();
+              - y * m_spec.scanline_bytes();
     // FIXME: Should it be scanline_bytes, or full_width*pixelsize?
 
     try {
         Imf::FrameBuffer frameBuffer;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (Imf::HALF,  // FIXME
+                                Imf::Slice (m_pixeltype,
                                             buf + c * m_spec.channel_bytes(),
                                             m_spec.pixel_bytes(),
                                             m_spec.scanline_bytes()));
@@ -455,14 +474,14 @@ OpenEXROutput::write_tile (int x, int y, int z,
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
     char *buf = (char *)data
-              - (x + m_spec.x) * m_spec.pixel_bytes() 
-              - (y + m_spec.y) * m_spec.pixel_bytes() * m_spec.tile_width;
+              - x * m_spec.pixel_bytes() 
+              - y * m_spec.pixel_bytes() * m_spec.tile_width;
 
     try {
         Imf::FrameBuffer frameBuffer;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (Imf::HALF,  // FIXME
+                                Imf::Slice (m_pixeltype,
                                             buf + c * m_spec.channel_bytes(),
                                             m_spec.pixel_bytes(),
                                             m_spec.pixel_bytes()*m_spec.tile_width));
