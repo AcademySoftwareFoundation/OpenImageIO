@@ -250,7 +250,7 @@ TIFFInput::readspec ()
 
     m_bitspersample = 8;
     TIFFGetField (m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
-    m_spec.attribute ("BitsPerSample", m_bitspersample);
+    m_spec.attribute ("BitsPerSample", (int)m_bitspersample);
 
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
@@ -283,7 +283,7 @@ TIFFInput::readspec ()
 
     m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
     TIFFGetField (m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
-    m_spec.attribute ("tiff:PhotometricInterpretation", m_photometric);
+    m_spec.attribute ("tiff:PhotometricInterpretation", (int)m_photometric);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
@@ -298,7 +298,7 @@ TIFFInput::readspec ()
     }
 
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
-    m_spec.attribute ("tiff:PlanarConfiguration", m_planarconfig);
+    m_spec.attribute ("tiff:PlanarConfiguration", (int)m_planarconfig);
     if (m_planarconfig == PLANARCONFIG_SEPARATE)
         m_spec.attribute ("planarconfig", "separate");
     else
@@ -306,7 +306,7 @@ TIFFInput::readspec ()
 
     short compress;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
-    m_spec.attribute ("tiff:Compression", compress);
+    m_spec.attribute ("tiff:Compression", (int)compress);
     switch (compress) {
     case COMPRESSION_NONE :
         m_spec.attribute ("compression", "none");

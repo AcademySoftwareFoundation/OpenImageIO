@@ -165,8 +165,8 @@ PNGOutput::open (const char *name, const ImageSpec &userspec, bool append)
     png_set_compression_level (m_png, Z_BEST_COMPRESSION);
 
     // Force either 16 or 8 bit integers
-    if (m_spec.format != PT_UINT16)
-        m_spec.format = PT_UINT8;
+    if (m_spec.format != TypeDesc::UINT16)
+        m_spec.format = TypeDesc::UINT8;
 
     png_set_IHDR (m_png, m_info, m_spec.width, m_spec.height,
                   m_spec.format.size()*8, color_type, PNG_INTERLACE_NONE,
@@ -201,9 +201,9 @@ PNGOutput::open (const char *name, const ImageSpec &userspec, bool append)
 
     ImageIOParameter *unit, *xres, *yres;
     const char *str;
-    if ((unit = m_spec.find_attribute("ResolutionUnit", PT_STRING)) &&
-        (xres = m_spec.find_attribute("XResolution", PT_FLOAT)) &&
-        (yres = m_spec.find_attribute("YResolution", PT_FLOAT))) {
+    if ((unit = m_spec.find_attribute("ResolutionUnit", TypeDesc::STRING)) &&
+        (xres = m_spec.find_attribute("XResolution", TypeDesc::FLOAT)) &&
+        (yres = m_spec.find_attribute("YResolution", TypeDesc::FLOAT))) {
         const char *unitname = *(const char **)unit->data();
         const float x = *(const float *)xres->data();
         const float y = *(const float *)yres->data();
@@ -255,16 +255,16 @@ PNGOutput::put_parameter (const std::string &_name, TypeDesc type,
         return false;
 
     // Remap some names to PNG conventions
-    if (iequals(name, "Artist") && type == PT_STRING)
+    if (iequals(name, "Artist") && type == TypeDesc::STRING)
         name = "Author";
     if ((iequals(name, "name") || iequals(name, "DocumentName")) &&
-          type == PT_STRING)
+          type == TypeDesc::STRING)
         name = "Title";
     if ((iequals(name, "description") || iequals(name, "ImageDescription")) &&
-          type == PT_STRING)
+          type == TypeDesc::STRING)
         name = "Description";
 
-    if (iequals(name, "DateTime") && type == PT_STRING) {
+    if (iequals(name, "DateTime") && type == TypeDesc::STRING) {
         png_time mod_time;
         int year, month, day, hour, minute, second;
         if (sscanf (*(const char **)data, "%4d:%02d:%02d %2d:%02d:%02d",
@@ -283,7 +283,7 @@ PNGOutput::put_parameter (const std::string &_name, TypeDesc type,
     }
 
 #if 0
-    if (iequals(name, "ResolutionUnit") && type == PT_STRING) {
+    if (iequals(name, "ResolutionUnit") && type == TypeDesc::STRING) {
         const char *s = *(char**)data;
         bool ok = true;
         if (! strcmp (s, "none"))
@@ -295,20 +295,20 @@ PNGOutput::put_parameter (const std::string &_name, TypeDesc type,
         else ok = false;
         return ok;
     }
-    if (iequals(name, "ResolutionUnit") && type == PT_UINT) {
+    if (iequals(name, "ResolutionUnit") && type == TypeDesc::UINT) {
         PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, *(unsigned int *)data);
         return true;
     }
-    if (iequals(name, "XResolution") && type == PT_FLOAT) {
+    if (iequals(name, "XResolution") && type == TypeDesc::FLOAT) {
         PNGSetField (m_tif, PNGTAG_XRESOLUTION, *(float *)data);
         return true;
     }
-    if (iequals(name, "YResolution") && type == PT_FLOAT) {
+    if (iequals(name, "YResolution") && type == TypeDesc::FLOAT) {
         PNGSetField (m_tif, PNGTAG_YRESOLUTION, *(float *)data);
         return true;
     }
 #endif
-    if (type == PT_STRING) {
+    if (type == TypeDesc::STRING) {
         png_text t;
         t.compression = PNG_TEXT_COMPRESSION_NONE;
         t.key = (char *)ustring(name).c_str();

@@ -268,7 +268,8 @@ TextureSystemImpl::get_texture_info (ustring filename, ustring dataname,
             return true;
         }
         // If the real data is int but user asks for float, translate it
-        if (p->type().basetype == PT_FLOAT && datatype.basetype == PT_INT) {
+        if (p->type().basetype == TypeDesc::FLOAT &&
+                datatype.basetype == TypeDesc::INT) {
             for (int i = 0;  i < p->type().arraylen;  ++i)
                 ((float *)data)[i] = ((int *)p->data())[i];
             return true;

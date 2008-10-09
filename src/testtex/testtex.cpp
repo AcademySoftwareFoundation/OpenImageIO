@@ -109,23 +109,23 @@ test_gettextureinfo (ustring filename)
 
     int chan;
     ok = texsys->get_texture_info (filename, ustring("channels"),
-                                   PT_INT, &chan);
+                                   TypeDesc::INT, &chan);
     std::cerr << "Result of get_texture_info channels = " << ok << ' ' << chan << "\n";
 
     float fchan;
     ok = texsys->get_texture_info (filename, ustring("channels"),
-                                   PT_FLOAT, &fchan);
+                                   TypeDesc::FLOAT, &fchan);
     std::cerr << "Result of get_texture_info channels = " << ok << ' ' << fchan << "\n";
 
     const char *datetime = NULL;
     ok = texsys->get_texture_info (filename, ustring("DateTime"),
-                                   PT_STRING, &datetime);
+                                   TypeDesc::STRING, &datetime);
     std::cerr << "Result of get_texture_info datetime = " << ok << ' ' 
               << (datetime ? datetime : "") << "\n";
 
     const char *texturetype = NULL;
     ok = texsys->get_texture_info (filename, ustring("textureformat"),
-                                   PT_STRING, &texturetype);
+                                   TypeDesc::STRING, &texturetype);
     std::cerr << "Texture type is " << ok << ' '
               << (texturetype ? texturetype : "") << "\n";
     std::cerr << "\n";
@@ -149,7 +149,7 @@ test_plain_texture (ustring filename)
               << output_filename << "\n";
     const int nchannels = 4;
     const int shadepoints = 32;
-    ImageSpec outspec (output_xres, output_yres, nchannels, PT_HALF);
+    ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     ImageBuf image (output_filename, outspec);
     image.zero ();
 
@@ -242,7 +242,7 @@ main (int argc, char *argv[])
 
     const char *texturetype = NULL;
     bool ok = texsys->get_texture_info (filename, ustring("texturetype"),
-                                        PT_STRING, &texturetype);
+                                        TypeDesc::STRING, &texturetype);
     if (ok) {
         if (! strcmp (texturetype, "Plain Texture")) {
             test_plain_texture (filename);

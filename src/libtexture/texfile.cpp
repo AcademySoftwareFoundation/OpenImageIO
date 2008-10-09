@@ -128,7 +128,7 @@ TextureFile::open ()
     const ImageIOParameter *p;
 
     m_texformat = TexFormatTexture;
-    if (p = spec.find_attribute ("textureformat", PT_STRING)) {
+    if (p = spec.find_attribute ("textureformat", TypeDesc::STRING)) {
         const char *textureformat = (const char *)p->data();
         for (int i = 0;  i < TexFormatLast;  ++i)
             if (! strcmp (textureformat, texture_format_name((TexFormat)i))) {
@@ -137,7 +137,7 @@ TextureFile::open ()
             }
     }
 
-    if (p = spec.find_attribute ("wrapmodes", PT_STRING)) {
+    if (p = spec.find_attribute ("wrapmodes", TypeDesc::STRING)) {
         const char *wrapmodes = (const char *)p->data();
         TextureOptions::parse_wrapmodes (wrapmodes, m_swrap, m_twrap);
     }
@@ -168,7 +168,7 @@ TextureFile::open ()
     }
     // FIXME -- compute Mtex, Mras
 
-    m_datatype = PT_FLOAT;
+    m_datatype = TypeDesc::FLOAT;
     // FIXME -- use 8-bit when that's native?
 }
 

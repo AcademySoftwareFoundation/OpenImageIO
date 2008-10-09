@@ -68,7 +68,8 @@ public:
         INTERP_VERTEX = 3    ///< Interpolated like vertices
     };
 
-    ParamValue () : m_type(PT_UNKNOWN), m_nvalues(0), m_nonlocal(false) { }
+    ParamValue () : m_type(TypeDesc::UNKNOWN), m_nvalues(0), m_nonlocal(false)
+        { }
     ParamValue (const ustring &_name, TypeDesc _type,
                 int _nvalues, const void *_value, bool _copy=true) {
         init_noclear (_name, _type, _nvalues, _value, _copy);

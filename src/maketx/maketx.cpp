@@ -222,19 +222,19 @@ make_mipmap (void)
     dstspec.set_format (src.spec().format);
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
-            dstspec.set_format (PT_UINT8);
+            dstspec.set_format (TypeDesc::UINT8);
         else if (dataformatname == "int8")
-            dstspec.set_format (PT_INT8);
+            dstspec.set_format (TypeDesc::INT8);
         else if (dataformatname == "uint16")
-            dstspec.set_format (PT_UINT16);
+            dstspec.set_format (TypeDesc::UINT16);
         else if (dataformatname == "int16")
-            dstspec.set_format (PT_INT16);
+            dstspec.set_format (TypeDesc::INT16);
         else if (dataformatname == "half")
-            dstspec.set_format (PT_HALF);
+            dstspec.set_format (TypeDesc::HALF);
         else if (dataformatname == "float")
-            dstspec.set_format (PT_FLOAT);
+            dstspec.set_format (TypeDesc::FLOAT);
         else if (dataformatname == "double")
-            dstspec.set_format (PT_DOUBLE);
+            dstspec.set_format (TypeDesc::DOUBLE);
     }
 
     // Make the output not a crop window
@@ -276,7 +276,7 @@ make_mipmap (void)
     // to make it bigger in the other direction to make the total tile
     // size more constant?
 
-    dstspec.set_format (PT_FLOAT);
+    dstspec.set_format (TypeDesc::FLOAT);
     if (! noresize) {
         dstspec.width = pow2roundup (dstspec.width);
         dstspec.height = pow2roundup (dstspec.height);
@@ -315,7 +315,7 @@ make_mipmap (void)
         exit (EXIT_FAILURE);
     }
 
-    out->write_image (PT_FLOAT, dst.pixeladdr(0,0));
+    out->write_image (TypeDesc::FLOAT, dst.pixeladdr(0,0));
     while (dstspec.width > 1 || dstspec.height > 1) {
         ImageBuf tmp = dst;
         if (dstspec.width > 1)
@@ -340,7 +340,7 @@ make_mipmap (void)
                       << "\" : " << out->error_message() << "\n";
             exit (EXIT_FAILURE);
         }
-        out->write_image (PT_FLOAT, dst.pixeladdr(0,0));
+        out->write_image (TypeDesc::FLOAT, dst.pixeladdr(0,0));
     }
 
     out->close ();

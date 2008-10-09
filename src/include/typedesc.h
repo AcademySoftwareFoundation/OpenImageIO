@@ -172,6 +172,24 @@ struct DLLPUBLIC TypeDesc {
         return *(const long long*)(this) != *(const long long*)(&t);
     } 
 
+    /// Compare a TypeDesc to a basetype (it's the same if it has the
+    /// same base type and is not an aggregate or an array).
+    friend bool operator== (const TypeDesc &t, BASETYPE b) {
+        return (BASETYPE)t.basetype == b && (AGGREGATE)t.aggregate == SCALAR && t.arraylen == 0;
+    } 
+    friend bool operator== (BASETYPE b, const TypeDesc &t) {
+        return (BASETYPE)t.basetype == b && (AGGREGATE)t.aggregate == SCALAR && t.arraylen == 0;
+    } 
+
+    /// Compare a TypeDesc to a basetype (it's the same if it has the
+    /// same base type and is not an aggregate or an array).
+    friend bool operator!= (const TypeDesc &t, BASETYPE b) {
+        return (BASETYPE)t.basetype != b || (AGGREGATE)t.aggregate != SCALAR || t.arraylen != 0;
+    } 
+    friend bool operator!= (BASETYPE b, const TypeDesc &t) {
+        return (BASETYPE)t.basetype != b || (AGGREGATE)t.aggregate != SCALAR || t.arraylen != 0;
+    } 
+
     /// Demote the type to a non-array
     ///
     void unarray (void) { arraylen = 0; }

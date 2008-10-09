@@ -177,7 +177,7 @@ PNGInput::open (const char *name, ImageSpec &newspec)
     
     m_spec = ImageSpec ((int)width, (int)height,
                         png_get_channels (m_png, m_info),
-                        m_bit_depth == 16 ? PT_UINT16 : PT_UINT8);
+                        m_bit_depth == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
 
     m_spec.default_channel_names ();
 
@@ -271,7 +271,7 @@ PNGInput::get_background (float *red, float *green, float *blue)
 
     png_color_16p bg;
     png_get_bKGD (m_png, m_info, &bg);
-    if (spec().format == PT_UINT16) {
+    if (spec().format == TypeDesc::UINT16) {
         *red   = bg->red   / 65535.0;
         *green = bg->green / 65535.0;
         *blue  = bg->blue  / 65535.0;
