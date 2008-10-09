@@ -468,12 +468,12 @@ IvGL::paint_pixelview ()
         const void *p = img->pixeladdr (xp+spec.x, yp+spec.y);
         for (int i = 0;  i < spec.nchannels;  ++i) {
             switch (spec.format.basetype) {
-            case PT_UINT8 :
+            case TypeDesc::UINT8 :
                 s = Strutil::format ("%s: %3d  (%5.3f)",
                                      spec.channelnames[i].c_str(),
                                      (int)((unsigned char *)p)[i], fpixel[i]);
                 break;
-            case PT_UINT16 :
+            case TypeDesc::UINT16 :
                 s = Strutil::format ("%s: %3d  (%5.3f)",
                                      spec.channelnames[i].c_str(),
                                      (int)((unsigned short *)p)[i], fpixel[i]);
@@ -578,32 +578,32 @@ IvGL::update (IvImage *img)
         glformat = GL_LUMINANCE32F_ARB;
     } else if (spec.nchannels == 3) {
         glformat = GL_RGB;
-        if (spec.format.basetype == PT_FLOAT)
+        if (spec.format.basetype == TypeDesc::FLOAT)
             glinternalformat = srgb ? GL_SRGB_EXT : GL_RGB32F_ARB;
-        else if (spec.format.basetype == PT_UINT8)
+        else if (spec.format.basetype == TypeDesc::UINT8)
             glinternalformat = srgb ? GL_SRGB8_EXT : GL_RGB;
-        else if (spec.format.basetype == PT_HALF)
+        else if (spec.format.basetype == TypeDesc::HALF)
             glinternalformat = srgb ? GL_SRGB_EXT : GL_RGB16F_ARB;
     } else if (spec.nchannels == 4) {
         glformat = GL_RGBA;
-        if (spec.format.basetype == PT_FLOAT)
+        if (spec.format.basetype == TypeDesc::FLOAT)
             glinternalformat = srgb ? GL_SRGB_ALPHA_EXT : GL_RGBA32F_ARB;
-        else if (spec.format.basetype == PT_UINT8)
+        else if (spec.format.basetype == TypeDesc::UINT8)
             glinternalformat = srgb ? GL_SRGB8_ALPHA8_EXT : GL_RGBA;
-        else if (spec.format.basetype == PT_HALF)
+        else if (spec.format.basetype == TypeDesc::HALF)
             glinternalformat = srgb ? GL_SRGB_ALPHA_EXT : GL_RGBA16F_ARB;
     }
 
     GLenum gltype = GL_UNSIGNED_BYTE;
     switch (spec.format.basetype) {
-    case PT_FLOAT  : gltype = GL_FLOAT;          break;
-    case PT_HALF   : gltype = GL_HALF_FLOAT_ARB; break;
-    case PT_INT8   : gltype = GL_BYTE;           break;
-    case PT_UINT8  : gltype = GL_UNSIGNED_BYTE;  break;
-    case PT_INT16  : gltype = GL_SHORT;          break;
-    case PT_UINT16 : gltype = GL_UNSIGNED_SHORT; break;
-    case PT_INT    : gltype = GL_INT;            break;
-    case PT_UINT   : gltype = GL_UNSIGNED_INT;   break;
+    case TypeDesc::FLOAT  : gltype = GL_FLOAT;          break;
+    case TypeDesc::HALF   : gltype = GL_HALF_FLOAT_ARB; break;
+    case TypeDesc::INT8   : gltype = GL_BYTE;           break;
+    case TypeDesc::UINT8  : gltype = GL_UNSIGNED_BYTE;  break;
+    case TypeDesc::INT16  : gltype = GL_SHORT;          break;
+    case TypeDesc::UINT16 : gltype = GL_UNSIGNED_SHORT; break;
+    case TypeDesc::INT    : gltype = GL_INT;            break;
+    case TypeDesc::UINT   : gltype = GL_UNSIGNED_INT;   break;
     default:
         gltype = GL_UNSIGNED_BYTE;  // punt
         break;

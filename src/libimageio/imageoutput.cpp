@@ -154,7 +154,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     // conversions, use float as an intermediate format, which generally
     // will always preserve enough precision.
     const float *buf;
-    if (format == PT_FLOAT && m_spec.gamma == 1.0f) {
+    if (format == TypeDesc::FLOAT && m_spec.gamma == 1.0f) {
         // Already in float format and no gamma correction is needed --
         // leave it as-is.
         buf = (float *)data;

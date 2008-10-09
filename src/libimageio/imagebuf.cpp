@@ -164,7 +164,7 @@ ImageBuf::read (int subimage, bool force, TypeDesc convert,
     if (convert != TypeDesc::UNKNOWN)
         m_spec.format = convert;
 
-    ImageIOParameter *orient = m_spec.find_attribute ("orientation", PT_UINT);
+    ImageIOParameter *orient = m_spec.find_attribute ("orientation", TypeDesc::UINT);
     m_orientation = orient ? *(unsigned int *)orient->data() : 1;
 
     realloc ();
@@ -218,19 +218,19 @@ ImageBuf::getchannel (int x, int y, int c) const
         return 0.0f;
     const void *pixel = pixeladdr(x,y);
     switch (spec().format.basetype) {
-    case PT_FLOAT:
+    case TypeDesc::FLOAT:
         return ((float *)pixel)[c];
-    case PT_HALF:
+    case TypeDesc::HALF:
         return ((half *)pixel)[c];
-    case PT_DOUBLE:
+    case TypeDesc::DOUBLE:
         return ((double *)pixel)[c];
-    case PT_INT8:
+    case TypeDesc::INT8:
         return ((char *)pixel)[c] / (float)std::numeric_limits<char>::max();
-    case PT_UINT8:
+    case TypeDesc::UINT8:
         return ((unsigned char *)pixel)[c] / (float)std::numeric_limits<unsigned char>::max();
-    case PT_INT16:
+    case TypeDesc::INT16:
         return ((short *)pixel)[c] / (float)std::numeric_limits<short>::max();
-    case PT_UINT16:
+    case TypeDesc::UINT16:
         return ((unsigned short *)pixel)[c] / 
                 (float)std::numeric_limits<unsigned short>::max();
     default:
@@ -246,7 +246,7 @@ ImageBuf::getpixel (int x, int y, float *pixel, int maxchannels) const
 {
     int n = std::min (spec().nchannels, maxchannels);
     OpenImageIO::convert_types (spec().format, pixeladdr(x,y),
-                                PT_FLOAT, pixel, n);
+                                TypeDesc::FLOAT, pixel, n);
 }
 
 
@@ -280,7 +280,7 @@ void
 ImageBuf::setpixel (int x, int y, const float *pixel, int maxchannels)
 {
     int n = std::min (spec().nchannels, maxchannels);
-    OpenImageIO::convert_types (PT_FLOAT, pixel, 
+    OpenImageIO::convert_types (TypeDesc::FLOAT, pixel, 
                                 spec().format, pixeladdr(x,y), n);
 }
 
