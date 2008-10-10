@@ -192,15 +192,9 @@ OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
 
     // Force use of one of the three data types that OpenEXR supports
     switch (m_spec.format.basetype) {
-    case TypeDesc::UINT16:
-    case TypeDesc::INT16:
     case TypeDesc::UINT:
-    case TypeDesc::INT:
         m_spec.format = TypeDesc::UINT;
         m_pixeltype = Imf::UINT;
-        break;
-    case TypeDesc::HALF:
-        m_pixeltype = Imf::HALF;
         break;
     case TypeDesc::FLOAT:
     case TypeDesc::DOUBLE:
@@ -208,6 +202,7 @@ OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
         m_pixeltype = Imf::FLOAT;
         break;
     default:
+        // Everything else defaults to half
         m_spec.format = TypeDesc::HALF;
         m_pixeltype = Imf::HALF;
     }
@@ -351,6 +346,8 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 m_header->compression() = Imf::NO_COMPRESSION;
             else if (! strcmp (str, "deflate") || ! strcmp (str, "zip")) 
                 m_header->compression() = Imf::ZIP_COMPRESSION;
+            else if (! strcmp (str, "rle")) 
+                m_header->compression() = Imf::RLE_COMPRESSION;
             else if (! strcmp (str, "zips")) 
                 m_header->compression() = Imf::ZIPS_COMPRESSION;
             else if (! strcmp (str, "piz")) 
@@ -411,6 +408,10 @@ OpenEXROutput::close ()
         return true;
     }
 
+    delete m_output_scanline;  m_output_scanline = NULL;
+    delete m_output_tiled;  m_output_tiled = NULL;
+    delete m_header;    m_header = NULL;
+
     init ();      // re-initialize
     return true;  // How can we fail?
 }
@@ -445,7 +446,7 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
             // FIXME - what if all channels aren't the same data type?
         }
         m_output_scanline->setFrameBuffer (frameBuffer);
-        m_output_scanline->writePixels (1);  // FIXME - is this the right call?
+        m_output_scanline->writePixels (1);
     }
     catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());
