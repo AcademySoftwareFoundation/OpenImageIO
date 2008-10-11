@@ -422,7 +422,9 @@ public:
     };
     /// Constant defining how far beyond the beginning of a TableRep are
     /// the canonical characters.
-    static const off_t chars_offset = offsetof(TableRep, chars);
+    static const off_t chars_offset = sizeof(std::string)+sizeof(size_t);
+    // N.B. this had better match the fields in TableRep before chars!
+    // FIXME: put an assert somewhere to verify.
 
 private:
     /// Important internal guts of ustring -- given a null-terminated
