@@ -91,14 +91,27 @@ JpgOutput::open (const char *name, const ImageSpec &newspec,
         return false;
     }
 
-    m_fd = fopen (name, "wb");
-    if (m_fd == NULL) {
-        error ("Unable to open file");
+    // Save spec for later use
+    m_spec = newspec;
+
+    // Check for things this format doesn't support
+    if (m_spec.width < 1 || m_spec.height < 1) {
+        error ("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
+        return false;
+    }
+    if (m_spec.depth < 1)
+        m_spec.depth = 1;
+    if (m_spec.depth > 1) {
+        error ("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
 
-    // Save spec for later use
-    m_spec = newspec;
+    m_fd = fopen (name, "wb");
+    if (m_fd == NULL) {
+        error ("Unable to open file \"%s\"", name);
+        return false;
+    }
 
     int quality = 98;
     // FIXME -- see if there's a quality set in the attributes

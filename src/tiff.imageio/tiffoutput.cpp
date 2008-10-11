@@ -136,6 +136,15 @@ TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 
+    // Check for things this format doesn't support
+    if (m_spec.width < 1 || m_spec.height < 1) {
+        error ("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
+        return false;
+    }
+    if (m_spec.depth < 1)
+        m_spec.depth = 1;
+
     // Open the file
     m_tif = TIFFOpen (name, append ? "a" : "w");
     if (! m_tif) {
