@@ -137,6 +137,10 @@ OpenEXROutput::~OpenEXROutput ()
 {
     // Close, if not already done.
     close ();
+
+    delete m_output_scanline;  m_output_scanline = NULL;
+    delete m_output_tiled;  m_output_tiled = NULL;
+    delete m_header;    m_header = NULL;
 }
 
 
@@ -185,9 +189,21 @@ OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
 
     m_spec = userspec;  // Stash the spec
 
-    if (! m_spec.full_width)
+    if (m_spec.width < 1 || m_spec.height < 1) {
+        error ("Image resolution must be at least 1x1, you asked for %d x %d",
+               userspec.width, userspec.height);
+        return false;
+    }
+    if (m_spec.depth < 1)
+        m_spec.depth = 1;
+    if (m_spec.depth > 1) {
+        error ("%s does not support volume images (depth > 1)", format_name());
+        return false;
+    }
+
+    if (m_spec.full_width <= 0)
         m_spec.full_width = m_spec.width;
-    if (! m_spec.full_height)
+    if (m_spec.full_height <= 0)
         m_spec.full_height = m_spec.height;
 
     // Force use of one of the three data types that OpenEXR supports

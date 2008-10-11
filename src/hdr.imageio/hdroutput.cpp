@@ -88,6 +88,17 @@ HdrOutput::open (const char *name, const ImageSpec &newspec, bool append)
         error ("HDR can only support 3-channel images");
         return false;
     }
+    if (m_spec.width < 1 || m_spec.height < 1) {
+        error ("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
+        return false;
+    }
+    if (m_spec.depth < 1)
+        m_spec.depth = 1;
+    if (m_spec.depth > 1) {
+        error ("%s does not support volume images (depth > 1)", format_name());
+        return false;
+    }
 
     m_spec.set_format (TypeDesc::FLOAT);   // Native rgbe is float32 only
 
