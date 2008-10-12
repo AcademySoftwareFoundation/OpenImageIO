@@ -160,9 +160,16 @@ public:
     /// maxchannels (will be clamped to the actual number of channels).
     void setpixel (int x, int y, const float *pixel, int maxchannels=1000);
 
+    int orientation () const { return m_orientation; }
+
     int oriented_width () const;
     int oriented_height () const;
-    int orientation () const { return m_orientation; }
+    int oriented_x () const;
+    int oriented_y () const;
+    int oriented_full_width () const;
+    int oriented_full_height () const;
+    int oriented_full_x () const;
+    int oriented_full_y () const;
 
     /// Return the minimum x coordinate of the defined image.
     ///

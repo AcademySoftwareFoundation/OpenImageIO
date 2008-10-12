@@ -302,6 +302,56 @@ ImageBuf::oriented_height () const
 
 
 
+int
+ImageBuf::oriented_x () const
+{
+    return m_orientation <= 4 ? m_spec.x : m_spec.y;
+}
+
+
+
+int
+ImageBuf::oriented_y () const
+{
+    return m_orientation <= 4 ? m_spec.y : m_spec.x;
+}
+
+
+
+int
+ImageBuf::oriented_full_width () const
+{
+    return m_orientation <= 4 ? m_spec.full_width : m_spec.full_height;
+}
+
+
+
+int
+ImageBuf::oriented_full_height () const
+{
+    return m_orientation <= 4 ? m_spec.full_height : m_spec.full_width;
+}
+
+
+
+int
+ImageBuf::oriented_full_x () const
+{
+    return m_orientation <= 4 ? m_spec.full_x : m_spec.full_y;
+}
+
+
+
+int
+ImageBuf::oriented_full_y () const
+{
+    return m_orientation <= 4 ? m_spec.full_y : m_spec.full_x;
+}
+
+
+
+
+
 void
 ImageBuf::zero ()
 {
