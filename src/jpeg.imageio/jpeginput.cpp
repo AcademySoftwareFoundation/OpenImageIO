@@ -51,7 +51,7 @@ class JpgInput : public ImageInput {
     JpgInput () { init(); }
     virtual ~JpgInput () { close(); }
     virtual const char * format_name (void) const { return "jpeg"; }
-    virtual bool open (const char *name, ImageSpec &spec);
+    virtual bool open (const std::string &name, ImageSpec &spec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool close ();
  private:
@@ -79,12 +79,14 @@ extern "C" {
 
 
 bool
-JpgInput::open (const char *name, ImageSpec &newspec)
+JpgInput::open (const std::string &name, ImageSpec &newspec)
 {
     // Check that file exists and can be opened
-    m_fd = fopen (name, "rb");
-    if (m_fd == NULL)
+    m_fd = fopen (name.c_str(), "rb");
+    if (m_fd == NULL) {
+        error ("Could not open file \"%s\"", name.c_str());
         return false;
+    }
 
     // Check magic number to assure this is a JPEG file
     int magic = 0;

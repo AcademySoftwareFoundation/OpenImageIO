@@ -53,8 +53,8 @@ public:
     TIFFOutput ();
     virtual ~TIFFOutput ();
     virtual const char * format_name (void) const { return "tiff"; }
-    virtual bool supports (const char *feature) const;
-    virtual bool open (const char *name, const ImageSpec &spec,
+    virtual bool supports (const std::string &feature) const;
+    virtual bool open (const std::string &name, const ImageSpec &spec,
                        bool append=false);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
@@ -115,11 +115,11 @@ TIFFOutput::~TIFFOutput ()
 
 
 bool
-TIFFOutput::supports (const char *feature) const
+TIFFOutput::supports (const std::string &feature) const
 {
-    if (! strcmp (feature, "tiles"))
+    if (feature == "tiles")
         return true;
-    if (! strcmp (feature, "multiimage"))
+    if (feature == "multiimage")
         return true;
 
     // FIXME: we could support "volumes" and "empty"
@@ -131,7 +131,7 @@ TIFFOutput::supports (const char *feature) const
 
 
 bool
-TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
+TIFFOutput::open (const std::string &name, const ImageSpec &userspec, bool append)
 {
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
@@ -146,9 +146,9 @@ TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
         m_spec.depth = 1;
 
     // Open the file
-    m_tif = TIFFOpen (name, append ? "a" : "w");
+    m_tif = TIFFOpen (name.c_str(), append ? "a" : "w");
     if (! m_tif) {
-        error ("Can't open \"%s\" for output.", name);
+        error ("Can't open \"%s\" for output.", name.c_str());
         return false;
     }
 
@@ -198,7 +198,7 @@ TIFFOutput::open (const char *name, const ImageSpec &userspec, bool append)
         break;
     default:
         error ("TIFF doesn't support %s images (\"%s\")",
-               m_spec.format.c_str(), name);
+               m_spec.format.c_str(), name.c_str());
         close();
         return false;
     }

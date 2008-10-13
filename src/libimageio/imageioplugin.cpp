@@ -205,9 +205,9 @@ catalog_all_plugins (std::string searchpath)
 
 
 ImageOutput *
-ImageOutput::create (const char *filename, const char *plugin_searchpath)
+ImageOutput::create (const std::string &filename, const std::string &plugin_searchpath)
 {
-    if (!filename || !filename[0]) { // Can't even guess if no filename given
+    if (filename.empty()) { // Can't even guess if no filename given
         OpenImageIO::error ("ImageOutput::create() called with no filename");
         return NULL;
     }
@@ -230,10 +230,11 @@ ImageOutput::create (const char *filename, const char *plugin_searchpath)
     // find to populate the table.
     boost::algorithm::to_lower (format);
     if (output_formats.find (format) == output_formats.end())
-        catalog_all_plugins (plugin_searchpath ? plugin_searchpath : "");
+        catalog_all_plugins (plugin_searchpath);
 
     if (output_formats.find (format) == output_formats.end()) {
-        OpenImageIO::error ("ImageOutput::create_format() could not find a plugin for \"%s\"\n    searchpath = \"%s\"\n", filename, plugin_searchpath);
+        OpenImageIO::error ("ImageOutput::create_format() could not find a plugin for \"%s\"\n    searchpath = \"%s\"\n",
+                            filename.c_str(), plugin_searchpath.c_str());
         return NULL;
     }
 
@@ -245,9 +246,9 @@ ImageOutput::create (const char *filename, const char *plugin_searchpath)
 
 
 ImageInput *
-ImageInput::create (const char *filename, const char *plugin_searchpath)
+ImageInput::create (const std::string &filename, const std::string &plugin_searchpath)
 {
-    if (!filename || !filename[0]) { // Can't even guess if no filename given
+    if (filename.empty()) { // Can't even guess if no filename given
         OpenImageIO::error ("ImageInput::create() called with no filename");
         return NULL;
     }
@@ -270,10 +271,11 @@ ImageInput::create (const char *filename, const char *plugin_searchpath)
     // find to populate the table.
     boost::algorithm::to_lower (format);
     if (input_formats.find (format) == input_formats.end())
-        catalog_all_plugins (plugin_searchpath ? plugin_searchpath : "");
+        catalog_all_plugins (plugin_searchpath);
 
     if (input_formats.find (format) == input_formats.end()) {
-        OpenImageIO::error ("ImageInput::create_format() could not find a plugin for \"%s\"\n    searchpath = \"%s\"\n", filename, plugin_searchpath);
+        OpenImageIO::error ("ImageInput::create_format() could not find a plugin for \"%s\"\n    searchpath = \"%s\"\n",
+                            filename.c_str(), plugin_searchpath.c_str());
         return NULL;
     }
 

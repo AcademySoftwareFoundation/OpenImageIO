@@ -634,8 +634,8 @@ elaborated with error checking and reporting:
 \section{\ImageInput Class Reference}
 \label{sec:imageinput:reference}
 
-\apiitem{ImageInput * {\ce create} (const char *filename, 
-                               const char *plugin_searchpath)}
+\apiitem{ImageInput * {\ce create} (const std::string \&filename, \\
+\bigspc\bigspc\spc   const std::string \&plugin_searchpath="")}
 Create and return an \ImageInput implementation that is able
 to read the given file.  The {\kw plugin_searchpath} parameter is a
 colon-separated list of directories to search for ImageIO plugin
@@ -649,7 +649,7 @@ creates the \ImageInput, it does not open the file.
 Return the name of the format implemented by this class.
 \apiend
 
-\apiitem{bool {\ce open} (const char *name, ImageSpec \&newspec)}
+\apiitem{bool {\ce open} (const std::string \&name, ImageSpec \&newspec)}
 Opens the file with given name.  Various file attributes are put in
 {\kw newspec} and a copy is also saved internally to the
 \ImageInput (retrievable via {\kw spec()}.  From examining

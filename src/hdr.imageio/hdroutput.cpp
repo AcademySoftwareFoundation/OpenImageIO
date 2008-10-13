@@ -45,8 +45,8 @@ class HdrOutput : public ImageOutput {
     HdrOutput () { init(); }
     virtual ~HdrOutput () { close(); }
     virtual const char * format_name (void) const { return "hdr"; }
-    virtual bool supports (const char *property) const { return false; }
-    virtual bool open (const char *name, const ImageSpec &spec,
+    virtual bool supports (const std::string &property) const { return false; }
+    virtual bool open (const std::string &name, const ImageSpec &spec,
                        bool append=false);
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
@@ -73,7 +73,7 @@ extern "C" {
 
 
 bool
-HdrOutput::open (const char *name, const ImageSpec &newspec, bool append)
+HdrOutput::open (const std::string &name, const ImageSpec &newspec, bool append)
 {
     if (append) {
         error ("HDR doesn't support multiple images per file");
@@ -102,7 +102,7 @@ HdrOutput::open (const char *name, const ImageSpec &newspec, bool append)
 
     m_spec.set_format (TypeDesc::FLOAT);   // Native rgbe is float32 only
 
-    m_fd = fopen (name, "wb");
+    m_fd = fopen (name.c_str(), "wb");
     if (m_fd == NULL) {
         error ("Unable to open file");
         return false;

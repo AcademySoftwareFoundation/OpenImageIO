@@ -964,8 +964,8 @@ elaborated with error checking and reporting:
 \section{\ImageOutput Class Reference}
 \label{sec:imageoutput:reference}
 
-\apiitem{static ImageOutput * {\ce create} (const char *filename, \\
-\bigspc\bigspc\spc const char *plugin_searchpath=NULL)}
+\apiitem{static ImageOutput * {\ce create} (const std::string \&filename, \\
+\bigspc\bigspc\spc const std::string \&plugin_searchpath="")}
 
 Create an \ImageOutput that can be used to write an image file.  The
 type of image file (and hence, the particular subclass of \ImageOutput
@@ -981,7 +981,7 @@ Returns the canonical name of the format that this \ImageOutput
 instance is capable of writing.
 \apiend
 
-\apiitem{bool {\ce supports} (const char *feature)}
+\apiitem{bool {\ce supports} (const std::string \&feature)}
 \label{sec:supportsfeaturelist}
 Given the name of a \emph{feature}, tells if this \ImageOutput 
 instance supports that feature.  The following features are recognized
@@ -1018,7 +1018,7 @@ queries does not break ``link compatibility'' with previously-compiled
 plugins.
 \apiend
 
-\apiitem{bool {\ce open} (const char *name, const ImageSpec \&newspec,
+\apiitem{bool {\ce open} (const std::string \&name, const ImageSpec \&newspec,
                        bool append=false)}
 
 Open the file with given {\kw name}, with resolution, and other format

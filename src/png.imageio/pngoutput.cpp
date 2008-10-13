@@ -52,11 +52,11 @@ public:
     PNGOutput ();
     virtual ~PNGOutput ();
     virtual const char * format_name (void) const { return "png"; }
-    virtual bool supports (const char *feature) const {
+    virtual bool supports (const std::string &feature) const {
         // Support nothing nonstandard
         return false;
     }
-    virtual bool open (const char *name, const ImageSpec &spec,
+    virtual bool open (const std::string &name, const ImageSpec &spec,
                        bool append=false);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
@@ -119,7 +119,7 @@ PNGOutput::~PNGOutput ()
 
 
 bool
-PNGOutput::open (const char *name, const ImageSpec &userspec, bool append)
+PNGOutput::open (const std::string &name, const ImageSpec &userspec, bool append)
 {
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
@@ -148,9 +148,9 @@ PNGOutput::open (const char *name, const ImageSpec &userspec, bool append)
         return false;
     }
 
-    m_file = fopen (name, "wb");
+    m_file = fopen (name.c_str(), "wb");
     if (! m_file) {
-        error ("Could not open file");
+        error ("Could not open file \"%s\"", name.c_str());
         return false;
     }
 

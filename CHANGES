@@ -3,6 +3,9 @@ Changes:
 
 In-progress - Interim developer release 0.2:
 
+* Add full_{x,y,z} fields to ImageSpec, to allow full expression of
+  OpenEXR's 'dataWindow'.
+* Change API signatures from char* to std::string.
 
 
 Initial developer release 0.1 (9/1/08):

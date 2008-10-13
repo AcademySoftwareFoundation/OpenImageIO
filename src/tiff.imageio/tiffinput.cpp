@@ -50,7 +50,7 @@ public:
     TIFFInput () { init(); }
     virtual ~TIFFInput () { close(); }
     virtual const char * format_name (void) const { return "tiff"; }
-    virtual bool open (const char *name, ImageSpec &newspec);
+    virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
     virtual bool seek_subimage (int index, ImageSpec &newspec);
@@ -160,7 +160,7 @@ my_error_handler (const char *str, const char *format, va_list ap)
 
 
 bool
-TIFFInput::open (const char *name, ImageSpec &newspec)
+TIFFInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
     m_subimage = -1;
@@ -187,7 +187,7 @@ TIFFInput::seek_subimage (int index, ImageSpec &newspec)
     if (! m_tif) {
         m_tif = TIFFOpen (m_filename.c_str(), "r");
         if (m_tif == NULL) {
-            error ("%s", lasterr.c_str());
+            error ("Could not open file: %s", lasterr.c_str());
             return false;
         }
         m_subimage = 0;

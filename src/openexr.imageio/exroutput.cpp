@@ -65,8 +65,8 @@ public:
     OpenEXROutput ();
     virtual ~OpenEXROutput ();
     virtual const char * format_name (void) const { return "openexr"; }
-    virtual bool supports (const char *feature) const;
-    virtual bool open (const char *name, const ImageSpec &spec,
+    virtual bool supports (const std::string &feature) const;
+    virtual bool open (const std::string &name, const ImageSpec &spec,
                        bool append=false);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
@@ -146,11 +146,11 @@ OpenEXROutput::~OpenEXROutput ()
 
 
 bool
-OpenEXROutput::supports (const char *feature) const
+OpenEXROutput::supports (const std::string &feature) const
 {
-    if (! strcmp (feature, "tiles"))
+    if (feature == "tiles")
         return true;
-    if (! strcmp (feature, "multiimage"))
+    if (feature == "multiimage")
         return true;
 
     // FIXME: we could support "empty"
@@ -163,7 +163,7 @@ OpenEXROutput::supports (const char *feature) const
 
 
 bool
-OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
+OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool append)
 {
     if (append && (m_output_scanline || m_output_tiled)) {
         // Special case for appending to an open file -- we don't need
@@ -306,9 +306,9 @@ OpenEXROutput::open (const char *name, const ImageSpec &userspec, bool append)
                 Imf::TileDescription (m_spec.tile_width, m_spec.tile_height,
                                       Imf::LevelMode(m_levelmode),
                                       Imf::LevelRoundingMode(m_roundingmode)));
-            m_output_tiled = new Imf::TiledOutputFile (name, *m_header);
+            m_output_tiled = new Imf::TiledOutputFile (name.c_str(), *m_header);
         } else {
-            m_output_scanline = new Imf::OutputFile (name, *m_header);
+            m_output_scanline = new Imf::OutputFile (name.c_str(), *m_header);
         }
     }
     catch (const std::exception &e) {

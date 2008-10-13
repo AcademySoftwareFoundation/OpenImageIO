@@ -309,8 +309,8 @@ public:
     /// parameter is a colon-separated list of directories to search for
     /// ImageIO plugin DSO/DLL's.  This just creates the ImageOutput, it
     /// does not open the file.
-    static ImageOutput *create (const char *filename, 
-                                const char *plugin_searchpath=NULL);
+    static ImageOutput *create (const std::string &filename, 
+                                const std::string &plugin_searchpath="");
 
     ImageOutput () { }
     virtual ~ImageOutput () { }
@@ -350,7 +350,7 @@ public:
     /// future expansion of the set of possible queries without changing
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
-    virtual bool supports (const char *feature) const = 0;
+    virtual bool supports (const std::string &feature) const = 0;
 
     /// Open file with given name, with resolution and other format data
     /// as given in newspec.  Open returns true for success, false for
@@ -358,7 +358,7 @@ public:
     /// the same file without a call to close(), if it supports
     /// multiimage and the append flag is true -- this is interpreted as
     /// appending images (such as for MIP-maps).
-    virtual bool open (const char *name, const ImageSpec &newspec,
+    virtual bool open (const std::string &name, const ImageSpec &newspec,
                        bool append=false) = 0;
 
     /// Return a reference to the image format specification of the
@@ -495,8 +495,8 @@ public:
     /// actually just try every imageio plugin it can locate, until it
     /// finds one that's able to open the file without error.  This just
     /// creates the ImageInput, it does not open the file.
-    static ImageInput *create (const char *filename, 
-                               const char *plugin_searchpath);
+    static ImageInput *create (const std::string &filename, 
+                               const std::string &plugin_searchpath="");
 
     ImageInput () { }
     virtual ~ImageInput () { }
@@ -510,7 +510,7 @@ public:
     /// attributes, you can discern the resolution, if it's tiled,
     /// number of channels, and native data format.  Return true if the
     /// file was found and opened okay.
-    virtual bool open (const char *name, ImageSpec &newspec) = 0;
+    virtual bool open (const std::string &name, ImageSpec &newspec) = 0;
 
     /// Return a reference to the image format specification of the
     /// current subimage.  Note that the contents of the spec are

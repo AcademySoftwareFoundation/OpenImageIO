@@ -59,7 +59,7 @@ public:
     PNGInput () { init(); }
     virtual ~PNGInput () { close(); }
     virtual const char * format_name (void) const { return "png"; }
-    virtual bool open (const char *name, ImageSpec &newspec);
+    virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
     virtual bool seek_subimage (int index, ImageSpec &newspec);
@@ -127,14 +127,14 @@ my_error_handler (const char *str, const char *format, va_list ap)
 
 
 bool
-PNGInput::open (const char *name, ImageSpec &newspec)
+PNGInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
     m_subimage = 0;
 
-    m_file = fopen (name, "rb");
+    m_file = fopen (name.c_str(), "rb");
     if (! m_file) {
-        error ("Could not open file %s", name);
+        error ("Could not open file \"%s\"", name.c_str());
         return false;
     }
 

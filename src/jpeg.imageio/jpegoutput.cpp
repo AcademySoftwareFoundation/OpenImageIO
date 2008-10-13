@@ -53,8 +53,8 @@ class JpgOutput : public ImageOutput {
     JpgOutput () { init(); }
     virtual ~JpgOutput () { close(); }
     virtual const char * format_name (void) const { return "jpeg"; }
-    virtual bool supports (const char *property) const { return false; }
-    virtual bool open (const char *name, const ImageSpec &spec,
+    virtual bool supports (const std::string &property) const { return false; }
+    virtual bool open (const std::string &name, const ImageSpec &spec,
                        bool append=false);
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
@@ -83,7 +83,7 @@ extern "C" {
 
 
 bool
-JpgOutput::open (const char *name, const ImageSpec &newspec,
+JpgOutput::open (const std::string &name, const ImageSpec &newspec,
                  bool append)
 {
     if (append) {
@@ -107,9 +107,9 @@ JpgOutput::open (const char *name, const ImageSpec &newspec,
         return false;
     }
 
-    m_fd = fopen (name, "wb");
+    m_fd = fopen (name.c_str(), "wb");
     if (m_fd == NULL) {
-        error ("Unable to open file \"%s\"", name);
+        error ("Unable to open file \"%s\"", name.c_str());
         return false;
     }
 
