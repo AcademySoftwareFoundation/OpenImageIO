@@ -692,9 +692,12 @@ ImageViewer::displayCurrentImage ()
         m_current_image = 0;
     IvImage *img = cur();
     if (img) {
-        const ImageSpec &spec (img->spec());
-        if (! img->read (img->subimage(), false, image_progress_callback, this))
+        if (img->read (img->subimage(), false, image_progress_callback, this)) {
+            glwin->center (img->oriented_full_x()+img->oriented_full_width()/2.0,
+                           img->oriented_full_y()+img->oriented_full_height()/2.0);
+        } else {
             std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
+        }
     } else {
         m_current_image = m_last_image = -1;
     }
@@ -1045,10 +1048,8 @@ void ImageViewer::zoomIn()
 
     float xc, yc;  // Center view position
     glwin->get_center (xc, yc);
-    int xmpel, ympel;  // Mouse position
-    glwin->get_focus_image_pixel (xmpel, ympel);
-    float xm = (float)xmpel / img->oriented_width ();
-    float ym = (float)ympel / img->oriented_height ();
+    int xm, ym;  // Mouse position
+    glwin->get_focus_image_pixel (xm, ym);
     float xoffset = xc - xm;
     float yoffset = yc - ym;
     float maxzoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
@@ -1085,21 +1086,19 @@ void ImageViewer::zoomOut()
         newzoom = 1.0f / z;
     }
 
-    float xc, yc;  // Center view position
-    glwin->get_center (xc, yc);
+    float xcpel, ycpel;  // Center view position
+    glwin->get_center (xcpel, ycpel);
     int xmpel, ympel;  // Mouse position
     glwin->get_focus_image_pixel (xmpel, ympel);
-    float xm = (float)xmpel / img->oriented_width ();
-    float ym = (float)ympel / img->oriented_height ();
-    float xoffset = xc - xm;
-    float yoffset = yc - ym;
+    float xoffset = xcpel - xmpel;
+    float yoffset = ycpel - ympel;
     float maxzoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
     int nsteps = (int) Imath::clamp (20 * (maxzoomratio - 1), 2.0f, 10.0f);
     for (int i = 0;  i <= nsteps;  ++i) {
         float a = (float)i/(float)nsteps;   // Interpolation amount
         float z = Imath::lerp (oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
-        view (xm + xoffset/zoomratio, ym + yoffset/zoomratio, z, false);
+        view (xmpel + xoffset/zoomratio, ympel + yoffset/zoomratio, z, false);
         if (i != nsteps)
             usleep (1000000 / 4 / nsteps);
     }
@@ -1110,8 +1109,14 @@ void ImageViewer::zoomOut()
 
 void ImageViewer::normalSize()
 {
-    zoom (1.0f, true);
+    IvImage *img = cur();
+    if (! img)
+        return;
     fitImageToWindowAct->setChecked (false);
+    float xcenter = img->oriented_full_x() + 0.5 * img->oriented_full_width();
+    float ycenter = img->oriented_full_y() + 0.5 * img->oriented_full_height();
+    view (xcenter, ycenter, 1.0, true);
+    fitWindowToImage ();
 }
 
 
@@ -1147,13 +1152,18 @@ void ImageViewer::fitWindowToImage()
         return;
     // FIXME -- figure out a way to make it exactly right, even for the
     // main window border, etc.
+#ifdef MACOSX
+    int extraw = 0; //12; // width() - minimumWidth();
+    int extrah = statusBar()->height() + 0; //40; // height() - minimumHeight();
+#else
     int extraw = 4; //12; // width() - minimumWidth();
     int extrah = statusBar()->height() + 4; //40; // height() - minimumHeight();
+#endif
 //    std::cerr << "extra wh = " << extraw << ' ' << extrah << '\n';
 
     float z = zoom();
-    int w = (int)(img->oriented_width()  * z)+extraw;
-    int h = (int)(img->oriented_height() * z)+extrah;
+    int w = (int)(img->oriented_full_width()  * z)+extraw;
+    int h = (int)(img->oriented_full_height() * z)+extrah;
     if (! m_fullscreen) {
         QDesktopWidget *desktop = QApplication::desktop ();
         QRect availgeom = desktop->availableGeometry (this);
@@ -1169,8 +1179,8 @@ void ImageViewer::fitWindowToImage()
             h = std::min (h, availheight);
             z = zoom_needed_to_fit (w, h);
             // std::cerr << "must rezoom to " << z << " to fit\n";
-            w = (int)(img->oriented_width()  * z) + extraw;
-            h = (int)(img->oriented_height() * z) + extrah;
+            w = (int)(img->oriented_full_width()  * z) + extraw;
+            h = (int)(img->oriented_full_height() * z) + extrah;
             // std::cerr << "New window geom " << w << "x" << h << "\n";
             int posx = x(), posy = y();
             if (posx + w > availwidth || posy + h > availheight) {
@@ -1185,7 +1195,9 @@ void ImageViewer::fitWindowToImage()
     }
 
     resize (w, h);
-    zoom (z);
+    float midx = img->oriented_full_x() + 0.5 * img->oriented_full_width();
+    float midy = img->oriented_full_y() + 0.5 * img->oriented_full_height();
+    view (midx, midy, z);
 
 #if 0
     QRect g = geometry();

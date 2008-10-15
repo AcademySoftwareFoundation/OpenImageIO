@@ -5,6 +5,7 @@ In-progress - Interim developer release 0.2:
 
 * Add full_{x,y,z} fields to ImageSpec, to allow full expression of
   OpenEXR's 'dataWindow'.
+* iv now properly handles display/full windows.
 * Change API signatures from char* to std::string.
 
 

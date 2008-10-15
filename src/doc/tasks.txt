@@ -39,7 +39,7 @@ Before first alpha release
 
 lg/DONE     Fully represent exr displayWindow (lacking full_[xyz])
 lg/IP       Clean up char* vs std::string
-lg/IP       iv - handle data vs display windows sensibly
+lg/DONE     iv - handle data vs display windows sensibly
             Rename 3party (condenders: third_party, external, contrib)
             Explore unit test strategies (leading condender: Google)
 DONE        API docs - ImageInput, ImageOutput, writing plugins, intro
@@ -106,7 +106,8 @@ DONE        HDR
             iv - socket mode (socket-based "iv.imageio")
             iv - timed frame playback
             iv - sort all images by { name, sequence, date }
-DONE?       idiff - perceptual diff (Yee)
+            iv - handle pixel aspect ratio when displaying images
+DONE        idiff - perceptual diff (Yee)
 
 ============
 

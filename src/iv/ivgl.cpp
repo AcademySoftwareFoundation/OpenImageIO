@@ -53,7 +53,7 @@
 IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
     : QGLWidget(parent), m_viewer(viewer), 
       m_shaders_created(false), m_tex_created(false),
-      m_zoom(1.0), m_centerx(0.5), m_centery(0.5), m_dragging(false)
+      m_zoom(1.0), m_centerx(0), m_centery(0), m_dragging(false)
 {
 #if 0
     QGLFormat format;
@@ -298,46 +298,67 @@ IvGL::paintGL ()
         return;
  
     IvImage *img = m_viewer.cur();
+    const ImageSpec &spec (img->spec());
+    float midx = img->oriented_full_x() + 0.5 * img->oriented_full_width();
+    float midy = img->oriented_full_y() + 0.5 * img->oriented_full_height();
     float z = m_zoom;
 
-    if (z*img->oriented_width() <= width())  // FIXME - ivgl window?
-        m_centerx = 0.5;
-    if (z*img->oriented_height() <= height())
-        m_centery = 0.5;
+#if 0
+    // If the on-screen application window is larger than the full image
+    // size, always center the image.
+    if (z*img->oriented_full_width() <= width())
+        m_centerx = midx;
+    if (z*img->oriented_full_height() <= height())
+        m_centery = midy;
+#endif
 
     glPushAttrib (GL_ALL_ATTRIB_BITS);
     glPushMatrix ();
     glLoadIdentity ();
     // Transform is now same as the main GL viewport -- window pixels as
     // units, with (0,0) at the center of the visible unit.
+    glTranslatef (0, 0, -5.0);
+    // Pushed away from the camera 5 units.
+    glScalef (1, -1, 1);
+    // Flip y, because OGL's y runs from bottom to top.
     glScalef (z, z, 1);
     // Scaled by zoom level.  So now xy units are image pixels as
     // displayed at the current zoom level, with the origin at the
     // center of the visible window.
-    glScalef (img->oriented_width(), img->oriented_height(), 1);
-    // Scaled by image dimensions.  So now xy runs from [-0.5 to 0.5] over
-    // the image data.
-    glTranslatef (-(m_centerx-0.5f), (m_centery-0.5f), 0.0f);
-    // Recentered so that the NDC-space (m_centerx,m_centery) position is
+    glTranslatef (-m_centerx, -m_centery, 0.0f);
+    // Recentered so that the pixel space (m_centerx,m_centery) position is
     // at the center of the visible window.
-    glTranslatef (0, 0, -5.0);
-    // Pushed away from the camera 5 units.
+
+    float xmin = spec.x;
+    float xmax = spec.x + spec.width;
+    float ymin = spec.y;
+    float ymax = spec.y + spec.height;
 
     // Handle orientation
     int orient = img->orientation();
     if (orient != 1) {
         if (orient == 2 || orient == 3 || orient == 5)
-            glScalef (-1, 1, 1);
+            std::swap (xmin, xmax);
         if (orient == 3 || orient == 4)
-            glScalef (1, -1, 1);
-        if (orient == 5 || orient == 8)
-            glRotatef (90, 0, 0, 1);
-        if (orient == 6 || orient == 7)
-            glRotatef (-90, 0, 0, 1);
+            std::swap (ymin, ymax);
+        if (orient == 5 || orient == 8) {
+            float x0 = xmin, x1 = xmax, y0 = ymin, y1 = ymax;
+            xmin = y1;
+            xmax = y0;
+            ymin = x0;
+            ymax = x1;
+        }
+        if (orient == 6 || orient == 7) {
+            float x0 = xmin, x1 = xmax, y0 = ymin, y1 = ymax;
+            xmin = y0;
+            xmax = y1;
+            ymin = x1;
+            ymax = x0;
+        }
     }
 
     useshader ();
-    gl_rect (-0.5, 0.5, 0.5, -0.5);
+    gl_rect (xmin, ymin, xmax, ymax);
 
     glPopMatrix ();
     glPopAttrib ();
@@ -391,7 +412,7 @@ IvGL::paint_pixelview ()
 
     // (xp,yp) are the image-space [0..res-1] position of the mouse.
     int xp, yp;
-    m_viewer.glwin->get_focus_image_pixel (xp, yp);
+    get_focus_image_pixel (xp, yp);
 
     glPushMatrix ();
     glLoadIdentity ();
@@ -438,7 +459,7 @@ IvGL::paint_pixelview ()
     // clearly visible), and also all the way down to cover the area
     // where the text will be printed, so it is very readable.
     int xwin, ywin;
-    m_viewer.glwin->get_focus_image_pixel (xwin, ywin);
+    get_focus_image_pixel (xwin, ywin);
     const int yspacing = 18;
 
     glPushAttrib (GL_ALL_ATTRIB_BITS);
@@ -673,47 +694,40 @@ IvGL::remember_mouse (const QPoint &pos)
 void
 IvGL::clamp_view_to_window ()
 {
+    IvImage *img = m_viewer.cur();
+    if (! img)
+        return;
+    const ImageSpec &spec (img->spec());
     int w = width(), h = height();
-    float zoomedwidth  = m_zoom * m_viewer.curspec()->width;
-    float zoomedheight = m_zoom * m_viewer.curspec()->height;
-    float left    = m_centerx - 0.5 * ((float)w / zoomedwidth);
-    float top     = m_centery - 0.5 * ((float)h / zoomedheight);
-    float right   = m_centerx + 0.5 * ((float)w / zoomedwidth);
-    float bottom  = m_centery + 0.5 * ((float)h / zoomedheight);
+    float zoomedwidth  = m_zoom * img->oriented_full_width();
+    float zoomedheight = m_zoom * img->oriented_full_height();
+    float left    = m_centerx - 0.5 * ((float)w / m_zoom);
+    float top     = m_centery - 0.5 * ((float)h / m_zoom);
+    float right   = m_centerx + 0.5 * ((float)w / m_zoom);
+    float bottom  = m_centery + 0.5 * ((float)h / m_zoom);
 #if 0
     std::cerr << "Window size is " << w << " x " << h << "\n";
-    std::cerr << "Center (normalized coords) is " << m_centerx << ", " << m_centery << "\n";
-    std::cerr << "Top left (normalized coords) is " << left << ", " << top << "\n";
-    std::cerr << "Bottom right (normalized coords) is " << right << ", " << bottom << "\n";
+    std::cerr << "Center (pixel coords) is " << m_centerx << ", " << m_centery << "\n";
+    std::cerr << "Top left (pixel coords) is " << left << ", " << top << "\n";
+    std::cerr << "Bottom right (pixel coords) is " << right << ", " << bottom << "\n";
 #endif
+
+    int xmin = std::min (spec.x, spec.full_x);
+    int xmax = std::max (spec.x+spec.width, spec.full_x+spec.full_width);
+    int ymin = std::min (spec.y, spec.full_y);
+    int ymax = std::max (spec.y+spec.height, spec.full_y+spec.full_height);
 
     // Don't let us scroll off the edges
     if (zoomedwidth >= w) {
-        if (left < 0) {
-            right -= left;
-            m_centerx -= left;
-            left = 0;
-        } else if (right > 1) {
-            m_centerx -= (right-1);
-            left -= (right-1);
-            right = 1;
-        }
+        m_centerx = Imath::clamp (m_centerx, xmin + 0.5f*w/m_zoom, xmax - 0.5f*w/m_zoom);
     } else {
-        m_centerx = 0.5;
+        m_centerx = spec.full_x + spec.full_width/2;
     }
 
     if (zoomedheight >= h) {
-        if (top < 0) {
-            bottom -= top;
-            m_centery -= top;
-            top = 0;
-        } else if (bottom > 1) {
-            m_centery -= (bottom-1);
-            top -= (bottom-1);
-            bottom = 1;
-        }
+        m_centery = Imath::clamp (m_centery, ymin + 0.5f*h/m_zoom, ymax - 0.5f*h/m_zoom);
     } else {
-        m_centery = 0.5;
+        m_centery = spec.full_y + spec.full_height/2;
     }
 }
 
@@ -766,8 +780,8 @@ IvGL::mouseMoveEvent (QMouseEvent *event)
     // myself.
     switch (m_drag_button /*event->button()*/) {
     case Qt::MidButton : {
-        float dx = (pos.x() - m_mousex) / (m_zoom * m_viewer.curspec()->width);
-        float dy = (pos.y() - m_mousey) / (m_zoom * m_viewer.curspec()->height);
+        float dx = (pos.x() - m_mousex) / m_zoom;
+        float dy = (pos.y() - m_mousey) / m_zoom;
         pan (-dx, -dy);
         break;
         }
@@ -830,27 +844,23 @@ IvGL::get_focus_image_pixel (int &x, int &y)
     // w,h are the dimensions of the visible window, in pixels
     int w = width(), h = height();
     float z = m_zoom;
-    // zoomedwidth,zoomedheight are the size of the zoomed-in image, in pixels
-    float zoomedwidth  = z * m_viewer.curspec()->width;
-    float zoomedheight = z * m_viewer.curspec()->height;
-    // left,top,right,bottom are the borders of the visible window,
-    // in image NDC coordintes (in which the full image is [0..1]).
-    float left    = m_centerx - 0.5 * ((float)w / zoomedwidth);
-    float top     = m_centery - 0.5 * ((float)h / zoomedheight);
-    float right   = m_centerx + 0.5 * ((float)w / zoomedwidth);
-    float bottom  = m_centery + 0.5 * ((float)h / zoomedheight);
+    // left,top,right,bottom are the borders of the visible window, in 
+    // pixel coordinates
+    float left    = m_centerx - 0.5 * w / z;
+    float top     = m_centery - 0.5 * h / z;
+    float right   = m_centerx + 0.5 * w / z;
+    float bottom  = m_centery + 0.5 * h / z;
     // normx,normy are the position of the mouse, in normalized (i.e. [0..1])
     // visible window coordinates.
     float normx = (float)(m_mousex + 0.5f) / w;
     float normy = (float)(m_mousey + 0.5f) / h;
-    // imgx,imgy are the position of the mouse, in image NDC coordinates
-    // (full image is [0..1]).
+    // imgx,imgy are the position of the mouse, in pixel coordinates
     float imgx = Imath::lerp (left, right, normx);
     float imgy = Imath::lerp (top, bottom, normy);
     // So finally x,y are the coordinates of the image pixel (on [0,res-1])
     // underneath the mouse cursor.
-    x = imgx * m_viewer.curspec()->width;
-    y = imgy * m_viewer.curspec()->height;
+    x = imgx;
+    y = imgy;
 #if 0
     std::cerr << "get_focus_pixel\n";
     std::cerr << "    mouse window pixel coords " << m_mousex << ' ' << m_mousey << "\n";

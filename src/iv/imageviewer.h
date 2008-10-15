@@ -77,19 +77,6 @@ private:
     float m_exposure;          ///< Exposure gain of this image, in stops
     mutable std::string m_shortinfo;
     mutable std::string m_longinfo;
-
-    // An IvImage can be in one of several states:
-    //   * Uninitialized
-    //         (m_name.empty())
-    //   * Broken -- couldn't ever open the file
-    //         (m_badfile == true)
-    //   * Non-resident, ignorant -- know the name, nothing else
-    //         (! m_name.empty() && ! m_badfile && ! m_spec_valid)
-    //   * Non-resident, know spec, but the spec is valid
-    //         (m_spec_valid && ! m_pixels)
-    //   * Pixels loaded from disk, currently accurate
-    //         (m_pixels && m_pixels_valid)
-
 };
 
 
@@ -132,7 +119,8 @@ public:
 
     /// Set a new view (zoom level and center position).  If smooth is
     /// true, switch to the new view smoothly over many gradual steps,
-    /// otherwise do it all in one step.
+    /// otherwise do it all in one step.  The center position is measured
+    /// in pixel coordinates.
     void view (float xcenter, float ycenter, float zoom, bool smooth=false);
 
     /// Set a new zoom level, keeping the center of view.  If smooth is
@@ -334,7 +322,7 @@ public:
     ///
     virtual void update (IvImage *img);
 
-    /// Update the view -- center and zoom level
+    /// Update the view -- center (in pixel coordinates) and zoom level.
     ///
     virtual void view (float centerx, float centery, float zoom);
 
@@ -342,10 +330,12 @@ public:
     ///
     void zoom (float newzoom) { view (m_centerx, m_centery, newzoom); }
 
-    /// Update just the center, keep the old zoom
+    /// Update just the center (in pixel coordinates), keep the old zoom.
     ///
     void center (float x, float y) { view (x, y, m_viewer.zoom()); }
 
+    /// Get the center of the view, in pixel coordinates.
+    ///
     void get_center (float &x, float &y) {
         x = m_centerx;
         y = m_centery;
@@ -376,7 +366,7 @@ protected:
     bool m_tex_created;               ///< Have the textures been created?
     GLuint m_texid;                   ///< Texture holding current imag
     float m_zoom;                     ///< Zoom ratio
-    float m_centerx, m_centery;       ///< Where is the view centered in the img?
+    float m_centerx, m_centery;       ///< Center of view, in pixel coords
     bool m_dragging;                  ///< Are we dragging?
     int m_mousex, m_mousey;           ///< Last mouse position
     Qt::MouseButton m_drag_button;    ///< Button on when dragging
