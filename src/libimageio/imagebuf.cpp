@@ -53,7 +53,7 @@ namespace OpenImageIO {
 
 ImageBuf::ImageBuf (const std::string &filename)
     : m_name(filename), m_nsubimages(0), m_current_subimage(0),
-      m_spec_valid(false), m_badfile(false), m_orientation(1)
+      m_spec_valid(false), m_badfile(false), m_orientation(1), m_pixelaspect(1)
 {
 }
 
@@ -61,7 +61,7 @@ ImageBuf::ImageBuf (const std::string &filename)
 
 ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
     : m_name(filename), m_nsubimages(0), m_current_subimage(0),
-      m_spec_valid(false), m_badfile(false), m_orientation(1)
+      m_spec_valid(false), m_badfile(false), m_orientation(1), m_pixelaspect(1)
 {
     alloc (spec);
 }
@@ -166,6 +166,9 @@ ImageBuf::read (int subimage, bool force, TypeDesc convert,
 
     ImageIOParameter *orient = m_spec.find_attribute ("orientation", TypeDesc::UINT);
     m_orientation = orient ? *(unsigned int *)orient->data() : 1;
+
+    ImageIOParameter *aspect = m_spec.find_attribute ("pixelaspectratio", TypeDesc::FLOAT);
+    m_pixelaspect = aspect ? *(float *)aspect->data() : 1.0f;
 
     realloc ();
     const OpenImageIO::stride_t as = OpenImageIO::AutoStride;

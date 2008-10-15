@@ -223,6 +223,7 @@ protected:
     bool m_badfile;              ///< File not found
     std::string m_err;           ///< Last error message
     int m_orientation;           ///< Orientation of the image
+    float m_pixelaspect;         ///< Pixel aspect ratio of the image
 
     // An ImageBuf can be in one of several states:
     //   * Uninitialized
