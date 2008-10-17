@@ -82,8 +82,8 @@ private:
 
 // Export version number and create function symbols
 extern "C" {
-    DLLEXPORT int imageio_version = IMAGEIO_VERSION;
-    DLLEXPORT HdrInput *hdr_input_imageio_create () {
+    DLLEXPORT int hdr_imageio_version = IMAGEIO_VERSION;
+    DLLEXPORT ImageInput *hdr_input_imageio_create () {
         return new HdrInput;
     }
     DLLEXPORT const char *hdr_input_extensions[] = {

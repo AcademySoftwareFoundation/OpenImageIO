@@ -58,7 +58,7 @@ namespace OpenImageIO {
 
 
 /// Each imageio DSO/DLL should include this statement:
-///      GELATO_EXPORT int imageio_version = Gelato::IMAGEIO_VERSION;
+///      GELATO_EXPORT int FORMAT_imageio_version = Gelato::IMAGEIO_VERSION;
 /// Applications using imageio DSO/DLL's should check this
 /// variable, to avoid using DSO/DLL's compiled against
 /// incompatible versions of this header file.

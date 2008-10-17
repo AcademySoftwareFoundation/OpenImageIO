@@ -73,6 +73,44 @@ static std::string pattern = Strutil::format (".imageio.%s",
                                               Plugin::plugin_extension());
 
 
+/// Register the input and output 'create' routine and list of file
+/// extensions for a particular format.
+static void
+declare_plugin (const std::string &format_name,
+                create_prototype input_creator, const char **input_extensions,
+                create_prototype output_creator, const char **output_extensions)
+{
+//    std::cerr << "declaring plugin for " << format_name << "\n";
+
+    // Look for input creator and list of supported extensions
+    if (input_creator) {
+        if (input_formats.find(format_name) != input_formats.end())
+            input_formats[format_name] = input_creator;
+        std::string extsym = format_name + "_input_extensions";
+        for (const char **e = input_extensions; e && *e; ++e) {
+            std::string ext (*e);
+            boost::algorithm::to_lower (ext);
+            // std::cerr << "  input extension " << ext << "\n";
+            if (input_formats.find(ext) == input_formats.end())
+                input_formats[ext] = input_creator;
+        }
+    }
+
+    // Look for output creator and list of supported extensions
+    if (output_creator) {
+        if (output_formats.find(format_name) != output_formats.end())
+            output_formats[format_name] = output_creator;
+        for (const char **e = output_extensions; e && *e; ++e) {
+            std::string ext (*e);
+            boost::algorithm::to_lower (ext);
+            // std::cerr << "  output extension " << ext << "\n";
+            if (output_formats.find(ext) == output_formats.end())
+                output_formats[ext] = output_creator;
+        }
+    }
+}
+
+
 
 static void
 catalog_plugin (const std::string &format_name,
@@ -106,10 +144,11 @@ catalog_plugin (const std::string &format_name,
 //        if (verbosity > 1)
 //    std::cerr << "Succeeded in opening " << plugin_fullpath << "\n";
     
-    int *plugin_version = (int *) Plugin::getsym (handle, "imageio_version");
+    std::string version_function = format_name + "_imageio_version";
+    int *plugin_version = (int *) Plugin::getsym (handle, version_function.c_str());
     if (! plugin_version || *plugin_version != IMAGEIO_VERSION) {
-        // OpenImageIO::error ("Plugin \"%s\" did not have 'imageio_version' symbol",
-        //                    plugin_filename.c_str());
+        // OpenImageIO::error ("Plugin \"%s\" did not have '%s_imageio_version' symbol\n",
+        //                    plugin_fullpath.c_str(), format_name.c_str());
         Plugin::close (handle);
         return;
     }
@@ -118,44 +157,66 @@ catalog_plugin (const std::string &format_name,
     plugin_filepaths[format_name] = plugin_fullpath;
     plugin_handles[format_name] = handle;
 
-    // Look for output creator and list of supported extensions
-    bool useful = false;
-    std::string create_name = format_name + "_output_imageio_create";
-    create_prototype create_function = 
-        (create_prototype) Plugin::getsym (handle, create_name);
-    if (create_function) {
-        useful = true;
-        output_formats[format_name] = create_function;
-        std::string extsym = format_name + "_output_extensions";
-        for (char **e = (char **)Plugin::getsym(handle, extsym); e && *e; ++e) {
-            std::string ext (*e);
-            boost::algorithm::to_lower (ext);
-            // std::cerr << "  output extension " << ext << "\n";
-            if (output_formats.find(ext) == output_formats.end())
-                output_formats[ext] = create_function;
-        }
-    }
+    create_prototype input_creator =
+        (create_prototype) Plugin::getsym (handle, format_name+"_input_imageio_create");
+    const char **input_extensions =
+        (const char **) Plugin::getsym (handle, format_name+"_input_extensions");
+    create_prototype output_creator =
+        (create_prototype) Plugin::getsym (handle, format_name+"_output_imageio_create");
+    const char **output_extensions =
+        (const char **) Plugin::getsym (handle, format_name+"_output_extensions");
 
-    // Look for input creator and list of supported extensions
-    create_name = format_name + "_input_imageio_create";
-    create_function = (create_prototype) Plugin::getsym (handle, create_name);
-    if (create_function) {
-        useful = true;
-        input_formats[format_name] = create_function;
-        std::string extsym = format_name + "_input_extensions";
-        for (char **e = (char **)Plugin::getsym(handle, extsym); e && *e; ++e) {
-            std::string ext (*e);
-            boost::algorithm::to_lower (ext);
-            // std::cerr << "  input extension " << ext << "\n";
-            if (input_formats.find(ext) == input_formats.end())
-                input_formats[ext] = create_function;
-        }
-    }
+    if (input_creator || output_creator)
+        declare_plugin (format_name, input_creator, input_extensions,
+                        output_creator, output_extensions);
+    else
+        Plugin::close (handle);   // not useful
+}
 
-    // If we found neither input nor output creation functions, close the
-    // plugin.
-    if (! useful)
-        Plugin::close (handle);
+
+
+// Make extern declarations for the input and output create routines and
+// list of file extensions, for the standard plugins that come with OIIO.
+// These won't be used unless EMBED_PLUGINS is defined.  Use the PLUGENTRY
+// macro to make the declaration compact and easy to read.
+#define PLUGENTRY(name)                                        \
+    extern ImageInput *name ## _input_imageio_create ();       \
+    extern ImageOutput *name ## _output_imageio_create ();     \
+    extern const char *name ## _output_extensions[];           \
+    extern const char *name ## _input_extensions[];
+
+extern "C" {
+    PLUGENTRY (hdr);
+    PLUGENTRY (jpeg);
+    PLUGENTRY (openexr);
+    PLUGENTRY (png);
+    PLUGENTRY (tiff);
+};
+
+
+
+/// Add all the built-in plugins, those compiled right into libimageio,
+/// to the catalogs.  This does nothing if EMBED_PLUGINS is not defined,
+/// in which case they'll be registered only when read from external
+/// DSO/DLL's.
+static void
+catalog_builtin_plugins ()
+{
+#ifdef EMBED_PLUGINS
+    // Use DECLAREPLUG macro to make this more compact and easy to read.
+#define DECLAREPLUG(name)                                               \
+    declare_plugin (#name,                                              \
+                    (create_prototype) name ## _input_imageio_create,   \
+                    name ## _input_extensions,                          \
+                    (create_prototype) name ## _output_imageio_create,  \
+                    name ## _output_extensions)
+
+    DECLAREPLUG (hdr);
+    DECLAREPLUG (jpeg);
+    DECLAREPLUG (openexr);
+    DECLAREPLUG (png);
+    DECLAREPLUG (tiff);
+#endif
 }
 
 
@@ -166,6 +227,8 @@ catalog_plugin (const std::string &format_name,
 static void
 catalog_all_plugins (std::string searchpath)
 {
+    catalog_builtin_plugins ();
+
     const char *imageio_library_path = getenv ("IMAGEIO_LIBRARY_PATH");
     if (imageio_library_path && *imageio_library_path) {
         std::string newpath = imageio_library_path;

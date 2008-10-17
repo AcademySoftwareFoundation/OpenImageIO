@@ -8,6 +8,29 @@
 #########################################################################
 
 
+all:
+
+#########################################################################
+# 'make help' prints important make targets
+help:
+	@echo "Targets:"
+	@echo "  make            (default target is 'all')"
+	@echo "  make all        Build optimized binaries and libraries in ${dist_dir},"
+	@echo "                      temporary build files in ${build_dir}"
+	@echo "  make debug      Build unoptimized with symbols in ${dist_dir}.debug,"
+	@echo "                      temporary build files in ${build_dir}.debug"
+	@echo "  make profile    Build for profiling in ${dist_dir}.profile,"
+	@echo "                      temporary build files in ${build_dir}.profile"
+	@echo "  make clean      Remove the temporary files in ${build_dir}"
+	@echo "  make realclean  Remove both ${build_dir} AND ${dist_dir}"
+	@echo "  make nuke       Remove ALL of build and dist (not just ${platform})"
+	@echo "Helpful modifiers:"
+	@echo "  make EMBEDPLUGINS=1 ...     compile the plugins into libimageio"
+	@echo ""
+
+
+
+#########################################################################
 # dist_files lists (relative to build) all files that end up in an
 # external distribution
 dist_bins    	:= iconvert${BINEXT} \
@@ -16,13 +39,18 @@ dist_bins    	:= iconvert${BINEXT} \
 		   iv${BINEXT} \
 		   maketx${BINEXT} \
 		   testtex${BINEXT}
-dist_libs     	:= libimageio${SHLIBEXT} \
-		   libtexture${SHLIBEXT} \
-		   hdr.imageio${SHLIBEXT} \
+dist_libs     	:= libimageio${SHLIBEXT}
+#		   libtexture${SHLIBEXT}
+
+# Only dist the plugins if we're building without embedded plugins
+ifeq (${EMBEDPLUGINS},)
+dist_libs       += hdr.imageio${SHLIBEXT} \
 		   jpeg.imageio${SHLIBEXT} \
 		   openexr.imageio${SHLIBEXT} \
 		   png.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
+endif
+
 dist_includes	:= export.h imageio.h typedesc.h imagebuf.h paramlist.h \
 			texture.h typedesc.h ustring.h varyingref.h
 dist_docs	:= src/doc/CLA-INDIVIDUAL src/doc/CLA-CORPORATE \
@@ -30,6 +58,17 @@ dist_docs	:= src/doc/CLA-INDIVIDUAL src/doc/CLA-CORPORATE \
 dist_root	:= LICENSE INSTALL CHANGES
 
 
+
+#########################################################################
+# Project-specific make variables
+
+ifneq (${EMBEDPLUGINS},)
+  CFLAGS += -DEMBED_PLUGINS
+endif
+
+
+
+#########################################################################
 # Path for including things specific to this project
 
 ifeq (${THIRD_PARTY_TOOLS_HOME},)

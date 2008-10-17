@@ -1,12 +1,17 @@
 Changes:
 
 
-In-progress - Interim developer release 0.2:
+In-progress - Interim developer release 0.2 (aim for 11/1/08):
 
 * Add full_{x,y,z} fields to ImageSpec, to allow full expression of
   OpenEXR's 'dataWindow'.
 * iv now properly handles display/full windows.
-* Change API signatures from char* to std::string.
+* Change some API signatures from char* to std::string.
+* Move texture functionality inside libimageio.so.
+* Change plugin 'imageio_version' symbol to '<FORMAT>_imageio_version' so
+  that multiple formats can be in a DSO without name clashes.
+* 'make EMBEDPLUGINS=1' will include the built-in format plugins into
+  libimageio.so itself, and not dist the separate plugin DSO's.
 
 
 Initial developer release 0.1 (9/1/08):

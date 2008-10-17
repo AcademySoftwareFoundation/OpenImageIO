@@ -105,13 +105,13 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 extern "C" {
 
-DLLEXPORT OpenEXROutput *
+DLLEXPORT ImageOutput *
 openexr_output_imageio_create ()
 {
     return new OpenEXROutput;
 }
 
-DLLEXPORT int imageio_version = IMAGEIO_VERSION;
+DLLEXPORT int openexr_imageio_version = IMAGEIO_VERSION;
 
 DLLEXPORT const char * openexr_output_extensions[] = {
     "exr", NULL

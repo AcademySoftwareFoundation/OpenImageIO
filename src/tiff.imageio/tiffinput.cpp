@@ -133,9 +133,9 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 extern "C" {
 
-DLLEXPORT TIFFInput *tiff_input_imageio_create () { return new TIFFInput; }
+DLLEXPORT ImageInput *tiff_input_imageio_create () { return new TIFFInput; }
 
-// DLLEXPORT int imageio_version = IMAGEIO_VERSION; // it's in tiffoutput.cpp
+// DLLEXPORT int tiff_imageio_version = IMAGEIO_VERSION; // it's in tiffoutput.cpp
 
 DLLEXPORT const char * tiff_input_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL

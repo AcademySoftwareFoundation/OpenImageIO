@@ -39,7 +39,7 @@ real-world example of writing a JPEG/JFIF plug-in.
 \item Declare three public items:
 
   \begin{enumerate}
-    \item An integer called {\cf imageio_version} that identifies
+    \item An integer called \emph{name}{\cf _imageio_version} that identifies
       the version of the ImageIO protocol implemented by the plugin,
       defined in {\fn imageio.h} as the constant {\cf IMAGEIO_VERSION}.
       This allows the library to be sure it is not loading a plugin
@@ -64,7 +64,7 @@ real-world example of writing a JPEG/JFIF plug-in.
 
   \begin{code}
     extern "C" {
-        DLLEXPORT int imageio_version = IMAGEIO_VERSION;
+        DLLEXPORT int jpeg_imageio_version = IMAGEIO_VERSION;
         DLLEXPORT JpgInput *jpeg_input_imageio_create () {
             return new JpgInput;
         }
@@ -161,7 +161,7 @@ real-world example of writing a JPEG/JFIF plug-in.
 \item Declare three public items:
 
   \begin{enumerate}
-    \item An integer called {\cf imageio_version} that identifies
+    \item An integer called \emph{name}{\cf _imageio_version} that identifies
       the version of the ImageIO protocol implemented by the plugin,
       defined in {\fn imageio.h} as the constant {\cf IMAGEIO_VERSION}.
       This allows the library to be sure it is not loading a plugin
@@ -189,7 +189,7 @@ real-world example of writing a JPEG/JFIF plug-in.
 
   \begin{code}
     extern "C" {
-        DLLEXPORT int imageio_version = IMAGEIO_VERSION;
+        DLLEXPORT int jpeg_imageio_version = IMAGEIO_VERSION;
         DLLEXPORT JpgOutput *jpeg_output_imageio_create () {
             return new JpgOutput;
         }

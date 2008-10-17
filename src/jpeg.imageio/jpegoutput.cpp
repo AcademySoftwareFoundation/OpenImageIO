@@ -71,7 +71,7 @@ class JpgOutput : public ImageOutput {
 
 
 extern "C" {
-    DLLEXPORT JpgOutput *jpeg_output_imageio_create () {
+    DLLEXPORT ImageOutput *jpeg_output_imageio_create () {
         return new JpgOutput;
     }
     DLLEXPORT const char *jpeg_output_extensions[] = {

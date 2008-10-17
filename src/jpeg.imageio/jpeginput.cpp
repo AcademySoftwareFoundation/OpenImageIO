@@ -67,8 +67,8 @@ class JpgInput : public ImageInput {
 
 // Export version number and create function symbols
 extern "C" {
-    DLLEXPORT int imageio_version = IMAGEIO_VERSION;
-    DLLEXPORT JpgInput *jpeg_input_imageio_create () {
+    DLLEXPORT int jpeg_imageio_version = IMAGEIO_VERSION;
+    DLLEXPORT ImageInput *jpeg_input_imageio_create () {
         return new JpgInput;
     }
     DLLEXPORT const char *jpeg_input_extensions[] = {

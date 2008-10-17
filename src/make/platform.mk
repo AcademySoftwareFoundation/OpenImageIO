@@ -34,7 +34,7 @@ endif
 # for, and store its name in ${platform}.
 
 uname := ${shell uname | sed 's/_NT-.*//' | tr '[:upper:]' '[:lower:]'}
-$(info uname = ${uname})
+#$(info uname = ${uname})
 
 # Linux
 ifeq (${uname},linux)

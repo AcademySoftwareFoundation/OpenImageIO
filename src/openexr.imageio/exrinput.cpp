@@ -103,13 +103,13 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 extern "C" {
 
-DLLEXPORT OpenEXRInput *
+DLLEXPORT ImageInput *
 openexr_input_imageio_create ()
 {
     return new OpenEXRInput;
 }
 
-// DLLEXPORT int imageio_version = IMAGEIO_VERSION; // it's in tiffoutput.cpp
+// DLLEXPORT int openexr_imageio_version = IMAGEIO_VERSION; // it's in exroutput.cpp
 
 DLLEXPORT const char * openexr_input_extensions[] = {
     "exr", NULL

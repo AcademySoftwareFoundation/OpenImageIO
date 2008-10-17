@@ -91,9 +91,9 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 extern "C" {
 
-DLLEXPORT PNGOutput *png_output_imageio_create () { return new PNGOutput; }
+DLLEXPORT ImageOutput *png_output_imageio_create () { return new PNGOutput; }
 
-// DLLEXPORT int imageio_version = IMAGEIO_VERSION;   // it's in pngoutput.cpp
+// DLLEXPORT int png_imageio_version = IMAGEIO_VERSION;   // it's in pnginput.cpp
 
 DLLEXPORT const char * png_output_extensions[] = {
     "png", NULL

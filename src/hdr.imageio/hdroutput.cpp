@@ -61,7 +61,7 @@ class HdrOutput : public ImageOutput {
 
 
 extern "C" {
-    DLLEXPORT HdrOutput *hdr_output_imageio_create () {
+    DLLEXPORT ImageOutput *hdr_output_imageio_create () {
         return new HdrOutput;
     }
     DLLEXPORT const char *hdr_output_extensions[] = {
