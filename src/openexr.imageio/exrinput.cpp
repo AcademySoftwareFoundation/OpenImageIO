@@ -264,8 +264,10 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         case Imf::ZIP_COMPRESSION   : comp = "zip"; break;
         case Imf::PIZ_COMPRESSION   : comp = "piz"; break;
         case Imf::PXR24_COMPRESSION : comp = "pxr24"; break;
+#if OPENEXR_VERSION >= 010601
         case Imf::B44_COMPRESSION   : comp = "b44"; break;
         case Imf::B44A_COMPRESSION  : comp = "b44a"; break;
+#endif
         }
         if (comp)
             m_spec.attribute ("compression", comp);

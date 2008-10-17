@@ -40,14 +40,22 @@
 #define THREAD_H
 
 #include <boost/thread.hpp>
-
+#include <boost/version.hpp>
 
 typedef boost::mutex mutex;
 typedef boost::recursive_mutex recursive_mutex;
 
+#if (BOOST_VERSION >= 103500)
+
 typedef boost::lock_guard< boost::mutex > lock_guard;
 typedef boost::lock_guard< boost::recursive_mutex > recursive_lock_guard;
 
+#else
+
+typedef boost::mutex::scoped_lock lock_guard;
+typedef boost::recursive_mutex::scoped_lock recursive_lock_guard;
+
+#endif
 
 #endif // THREAD_H
 

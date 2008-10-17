@@ -40,14 +40,16 @@
 #include "varyingref.h"
 #include "ustring.h"
 
-namespace Imath {
 #ifndef INCLUDED_IMATHVEC_H
+namespace Imath {
     class V3f;
+};
 #endif
 #ifndef INCLUDED_IMATHMATRIX_H
+namespace Imath {
     class M44f;
-#endif
 };
+#endif
 
 
 namespace OpenImageIO {

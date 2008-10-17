@@ -242,7 +242,11 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool ap
             m_spec.channelnames[c] = (c<4) ? default_chan_names[c]
                                            : Strutil::format ("unknown %d", c);
         m_header->channels().insert (m_spec.channelnames[c].c_str(),
-                                     Imf::Channel(m_pixeltype, 1, 1, true));
+                                     Imf::Channel(m_pixeltype, 1, 1
+#if OPENEXR_VERSION >= 010601
+                                     , true
+#endif
+                                     ));
     }
     
     // Default to ZIP compression if no request came with the user spec.
