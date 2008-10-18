@@ -94,6 +94,10 @@ build_dirs := bin lib include doc
 # Directories to create in the distribution
 dist_dirs := bin lib include doc
 
+# default place where includes go in the dist
+dist_include_dir := include
+
+
 
 # Include the file containing all project-specific info
 include ${src_make_dir}/project.mk
@@ -222,9 +226,10 @@ copy_dist_libs: make_dist_dirs
 
 copy_dist_includes: make_dist_dirs
 #	@ echo "Copying dist_includes = ${dist_includes}"
+	@ ${MKDIR} ${dist_dir}/${dist_include_dir}
 	@ for f in ${dist_includes}; do \
-	    ${CP} ${src_include_dir}/$$f ${dist_dir}/include; \
-	    ${CHMOD_RO} ${dist_dir}/include/$$f ; \
+	    ${CP} ${src_include_dir}/$$f ${dist_dir}/${dist_include_dir} ; \
+	    ${CHMOD_RO} ${dist_dir}/${dist_include_dir}/$$f ; \
 	  done
 
 copy_dist_extra_libs: make_dist_dirs

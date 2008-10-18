@@ -51,10 +51,19 @@ dist_libs       += hdr.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT}
 endif
 
+# include files that get included in the compiled distribution
 dist_includes	:= export.h imageio.h typedesc.h imagebuf.h paramlist.h \
 			texture.h typedesc.h ustring.h varyingref.h
+
+# make the public distro have an OpenImageIO subdirectory in include,
+# to avoid name clashes
+dist_include_dir := include/OpenImageIO
+
+# docs files that get copied to dist
 dist_docs	:= src/doc/CLA-INDIVIDUAL src/doc/CLA-CORPORATE \
 		   src/doc/openimageio.pdf
+
+# files at the root level that get copied to dist
 dist_root	:= LICENSE INSTALL CHANGES
 
 
