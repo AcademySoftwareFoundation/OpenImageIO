@@ -555,7 +555,7 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
                 error ("%s", lasterr.c_str());
                 return false;
             }
-        separate_to_contig (m_spec.width, &m_scratch[0], (unsigned char *)data);
+        separate_to_contig (tile_pixels, &m_scratch[0], (unsigned char *)data);
     } else {
         // Contiguous, >= 8 bit per sample -- the "usual" case
         if (TIFFReadTile (m_tif, data, x, y, z, 0) < 0) {
