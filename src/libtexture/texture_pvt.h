@@ -37,6 +37,9 @@
 #define TEXTURE_PVT_H
 
 
+class Filter1D;  // Forward declaration;
+
+
 namespace OpenImageIO {
 namespace pvt {
 
@@ -558,11 +561,30 @@ private:
                          TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-    void accum_sample (float s, float t, int level,
-                       TextureFile &texturefile,
-                       TextureOptions &options, int index,
-                       TileRef &tilecache0, TileRef &tilecache1,
-                       float weight, float *accum);
+    typedef void (TextureSystemImpl::*accum_prototype)
+                              (float s, float t, int level,
+                               TextureFile &texturefile,
+                               TextureOptions &options, int index,
+                               TileRef &tilecache0, TileRef &tilecache1,
+                               float weight, float *accum);
+
+    void accum_sample_closest (float s, float t, int level,
+                               TextureFile &texturefile,
+                               TextureOptions &options, int index,
+                               TileRef &tilecache0, TileRef &tilecache1,
+                               float weight, float *accum);
+
+    void accum_sample_bilinear (float s, float t, int level,
+                                TextureFile &texturefile,
+                                TextureOptions &options, int index,
+                                TileRef &tilecache0, TileRef &tilecache1,
+                                float weight, float *accum);
+
+    void accum_sample_bicubic (float s, float t, int level,
+                               TextureFile &texturefile,
+                               TextureOptions &options, int index,
+                               TileRef &tilecache0, TileRef &tilecache1,
+                               float weight, float *accum);
 
     /// Internal error reporting routine, with printf-like arguments.
     ///
@@ -583,6 +605,7 @@ private:
     size_t m_mem_used;           ///< Memory being used for tiles
     mutable std::string m_errormessage;   ///< Saved error string.
     mutable mutex m_errmutex;             ///< error mutex
+    Filter1D *hq_filter;         ///< Better filter for magnification
     friend class TextureFile;
 };
 

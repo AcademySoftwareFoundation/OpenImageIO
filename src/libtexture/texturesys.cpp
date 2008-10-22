@@ -45,6 +45,7 @@ using namespace std::tr1;
 #include "hash.h"
 #include "thread.h"
 #include "fmath.h"
+#include "filter.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
@@ -145,7 +146,7 @@ Tile::data (int x, int y, int z) const
 
 TextureSystemImpl::TextureSystemImpl ()
     : m_open_files(0), m_file_sweep(m_texturefiles.end()),
-      m_tile_sweep(m_tilecache.end())
+      m_tile_sweep(m_tilecache.end()), hq_filter(NULL)
 {
     init ();
 }
@@ -154,6 +155,7 @@ TextureSystemImpl::TextureSystemImpl ()
 
 TextureSystemImpl::~TextureSystemImpl ()
 {
+    delete hq_filter;
 }
 
 
@@ -164,6 +166,8 @@ TextureSystemImpl::init ()
     max_open_files (100);
     max_memory_MB (50);
     m_Mw2c.makeIdentity();
+    delete hq_filter;
+    hq_filter = Filter1D::create ("b-spline", 4);
 }
 
 
@@ -455,6 +459,16 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             VaryingRef<float> dsdy, VaryingRef<float> dtdy,
                             float *result)
 {
+    static const texture_lookup_prototype lookup_functions[] = {
+        // Must be in the same order as LookupMode enum
+        &TextureSystemImpl::texture_lookup,
+        &TextureSystemImpl::texture_lookup_closest,
+        &TextureSystemImpl::texture_lookup_bilinear,
+        &TextureSystemImpl::texture_lookup_trilinear_mipmap,
+        &TextureSystemImpl::texture_lookup
+    };
+    texture_lookup_prototype lookup = lookup_functions[(int)options.lookupmode];
+
     // FIXME - should we be keeping stats, times?
 
     TextureFileRef texturefile = find_texturefile (filename);
@@ -515,10 +529,10 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     TileRef tilecache0, tilecache1;
     for (int i = firstactive;  i <= lastactive;  ++i) {
         if (runflags[i]) {
-            texture_lookup (*texturefile, options, i,
-                            s, t, dsdx, dtdx, dsdy, dtdy,
-                            tilecache0, tilecache1,
-                            result + i * options.nchannels);
+            (this->*lookup) (*texturefile, options, i,
+                             s, t, dsdx, dtdx, dsdy, dtdy,
+                             tilecache0, tilecache1,
+                             result + i * options.nchannels);
         }
     }
     return true;
@@ -539,6 +553,8 @@ TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
     // all texture lookups in this batch, those computations should be
     // hoisted up to the calling function, texture().
 
+    // FIXME - handle mipmap levels, at least for lod bias
+
     // Initialize results to 0.  We'll add from here on as we sample.
     result += index * options.nchannels;
     for (int c = 0;  c < options.actualchannels;  ++c)
@@ -549,9 +565,9 @@ TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
     const ImageSpec &spec (texturefile.spec (0));
     float s = (floorf (_s[index] * spec.full_width)  + 0.5f) / spec.full_width;
     float t = (floorf (_t[index] * spec.full_height) + 0.5f) / spec.full_height;
-    accum_sample (s, t, 0, texturefile,
-                  options, index, tilecache0, tilecache1,
-                  1.0f, result);
+    accum_sample_closest (s, t, 0, texturefile,
+                          options, index, tilecache0, tilecache1,
+                          1.0f, result);
 }
 
 
@@ -569,6 +585,8 @@ TextureSystemImpl::texture_lookup_bilinear (TextureFile &texturefile,
     // all texture lookups in this batch, those computations should be
     // hoisted up to the calling function, texture().
 
+    // FIXME - handle mipmap levels and lod bias
+
     // Initialize results to 0.  We'll add from here on as we sample.
     result += index * options.nchannels;
     for (int c = 0;  c < options.actualchannels;  ++c)
@@ -576,9 +594,9 @@ TextureSystemImpl::texture_lookup_bilinear (TextureFile &texturefile,
     if (options.alpha)
         options.alpha[index] = 0;
 
-    accum_sample (_s[index], _t[index], 0, texturefile,
-                  options, index, tilecache0, tilecache1,
-                  1.0f, result);
+    accum_sample_bilinear (_s[index], _t[index], 0, texturefile,
+                           options, index, tilecache0, tilecache1,
+                           1.0f, result);
 }
 
 
@@ -604,10 +622,16 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         options.alpha[index] = 0;
 
     // Use the differentials to figure out which MIP-map levels to use.
-    float dsdx = _dsdx ? (_dsdx[index] * options.swidth[index] + options.sblur[index]) : 0;
-    float dtdx = _dtdx ? (_dtdx[index] * options.twidth[index] + options.tblur[index]) : 0;
-    float dsdy = _dsdy ? (_dsdy[index] * options.swidth[index] + options.sblur[index]) : 0;
-    float dtdy = _dtdy ? (_dtdy[index] * options.twidth[index] + options.tblur[index]) : 0;
+    float dsdx = _dsdx ? _dsdx[index] : 0;
+    dsdx = dsdx * options.swidth[index] + options.sblur[index];
+    float dtdx = _dtdx ? _dtdx[index] : 0;
+    dtdx = dtdx * options.twidth[index] + options.tblur[index];
+    float dsdy = _dsdy ? _dsdy[index] : 0;
+    dsdy = dsdy * options.swidth[index] + options.sblur[index];
+    float dtdy = _dtdy ? _dtdy[index] : 0;
+    dtdy = dtdy * options.twidth[index] + options.tblur[index];
+
+    // FIXME - support lod bias
 
     // Determine the MIP-map level(s) we need: we will blend 
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
@@ -651,9 +675,9 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     for (int level = 0;  level < 2;  ++level) {
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
-        accum_sample (_s[index], _t[index], miplevel[level], texturefile,
-                      options, index, tilecache0, tilecache1,
-                      levelweight[level], result);
+        accum_sample_bilinear (_s[index], _t[index], miplevel[level], texturefile,
+                               options, index, tilecache0, tilecache1,
+                               levelweight[level], result);
     }
 }
 
@@ -679,11 +703,25 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     if (options.alpha)
         options.alpha[index] = 0;
 
-    // Use the differentials to figure out which MIP-map levels to use.
-    float dsdx = _dsdx ? (_dsdx[index] * options.swidth[index] + options.sblur[index]) : 0;
-    float dtdx = _dtdx ? (_dtdx[index] * options.twidth[index] + options.tblur[index]) : 0;
-    float dsdy = _dsdy ? (_dsdy[index] * options.swidth[index] + options.sblur[index]) : 0;
-    float dtdy = _dtdy ? (_dtdy[index] * options.twidth[index] + options.tblur[index]) : 0;
+    // Find the differentials, handle the case where user passed NULL
+    // to indicate no derivs were available.
+    float dsdx = _dsdx ? _dsdx[index] : 0;
+    float dtdx = _dtdx ? _dtdx[index] : 0;
+    float dsdy = _dsdy ? _dsdy[index] : 0;
+    float dtdy = _dtdy ? _dtdy[index] : 0;
+    // Compute the natural resolution we want for the bare derivs, this
+    // will be the threshold for knowing we're maxifying (and therefore
+    // wanting cubic interpolation).
+    float sfilt_noblur = std::max (hypotf (dsdx, dtdx), (float)1.0e-8);
+    float tfilt_noblur = std::max (hypotf (dsdy, dtdy), (float)1.0e-8);
+    int naturalres = (int) (1.0f / std::min (sfilt_noblur, tfilt_noblur));
+    // Scale by 'width' and 'blur'
+    dsdx = dsdx * options.swidth[index] + options.sblur[index];
+    dtdx = dtdx * options.twidth[index] + options.tblur[index];
+    dsdy = dsdy * options.swidth[index] + options.sblur[index];
+    dtdy = dtdy * options.twidth[index] + options.tblur[index];
+
+    // FIXME - support lod bias
 
     // Determine the MIP-map level(s) we need: we will blend 
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
@@ -725,14 +763,13 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
             levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
             break;
         }
-    } 
+    }
     if (miplevel[0] < 0) {
         // We wish we had even more resolution than the finest MIP level,
         // but tough for us.
         miplevel[0] = 0;
         miplevel[1] = 0;
         levelblend = 0;
-        // FIXME -- we should use bicubic filtering here
     } else if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
@@ -751,10 +788,13 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
             continue;
         int lev = miplevel[level];
         float w = invsamples * levelweight[level];
+        accum_prototype accumer = &TextureSystemImpl::accum_sample_bilinear;
+        if (level == 0 || texturefile.spec(lev).full_height < naturalres/2)
+            accumer = &TextureSystemImpl::accum_sample_bicubic;
         for (int sample = 0;  sample < nsamples;  ++sample) {
             float pos = (sample + 0.5f) * invsamples - 0.5f;
-            accum_sample (s + pos * smajor, t + pos * tmajor, lev, texturefile,
-                          options, index, tilecache0, tilecache1, w, result);
+            (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
+                        options, index, tilecache0, tilecache1, w, result);
         }
     }
 }
@@ -762,7 +802,58 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
 
 
 void
-TextureSystemImpl::accum_sample (float s, float t, int miplevel,
+TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
+                                 TextureFile &texturefile,
+                                 TextureOptions &options, int index,
+                                 TileRef &tilecache0, TileRef &tilecache1,
+                                 float weight, float *accum)
+{
+    const ImageSpec &spec (texturefile.spec (miplevel));
+    // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
+    // and subtract 0.5 because samples are at texel centers.
+    s = s * spec.width;
+    t = t * spec.height;
+    int stex, ttex;    // Texel coordintes
+    float sfrac = floorfrac (s, &stex);
+    float tfrac = floorfrac (t, &ttex);
+    
+    // Wrap
+    DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
+    bool svalid, tvalid;  // Valid texels?  false means black border
+    svalid = options.swrap_func (stex, spec.full_width);
+    tvalid = options.twrap_func (ttex, spec.full_height);
+    if (! (svalid | tvalid)) {
+        // All texels we need were out of range and using 'black' wrap.
+        return;
+    }
+
+    int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
+    int tileheightmask = spec.tile_height - 1;
+    int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
+    int invtileheightmask = ~tileheightmask;
+    const float *texel = NULL;
+    static float black[4] = { 0, 0, 0, 0 };
+    int tile_s = stex & tilewidthmask;
+    int tile_t = ttex & tileheightmask;
+    TileID id (texturefile, miplevel, stex - tile_s, ttex - tile_t, 0);
+    find_tile (id, tilecache0, tilecache1);
+    if (! tilecache0)
+        return;
+    int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
+    texel = tilecache0->data() + offset + options.firstchannel;
+    DASSERT (offset < spec.tile_pixels());
+    for (int c = 0;  c < options.actualchannels;  ++c)
+        accum[c] += weight * texel[c];
+    if (options.alpha) {
+        int c = options.actualchannels;
+        options.alpha[index] += weight * texel[c];
+    }
+}
+
+
+
+void
+TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  TextureOptions &options, int index,
                                  TileRef &tilecache0, TileRef &tilecache1,
@@ -797,7 +888,6 @@ TextureSystemImpl::accum_sample (float s, float t, int miplevel,
         return;
     }
 
-    // Indices: texels 0, 1, 2, 3.  The sample lies between samples 1 and 2.
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
     int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
@@ -809,8 +899,6 @@ TextureSystemImpl::accum_sample (float s, float t, int miplevel,
     int tile_t = ttex[0] & tileheightmask;
     bool s_onetile = (tile_s != tilewidthmask) & (stex[0]+1 == stex[1]);
     bool t_onetile = (tile_t != tileheightmask) & (ttex[0]+1 == ttex[1]);
-//& invtilewidthmask) == (stex[1] & invtilewidthmask));
-//        bool onetilet = ((ttex[0] & invtileheightmask) == (ttex[1] & invtileheightmask));
     bool onetile = (s_onetile & t_onetile);
     if (onetile && (svalid[0] & svalid[1] & tvalid[0] & tvalid[1])) {
         // Shortcut if all the texels we need are on the same tile
@@ -863,6 +951,148 @@ TextureSystemImpl::accum_sample (float s, float t, int miplevel,
         options.alpha[index] += weight * bilerp (texel[0][0][c], texel[0][1][c],
                                                  texel[1][0][c], texel[1][1][c],
                                                  sfrac, tfrac);
+    }
+}
+
+
+
+void
+TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
+                                 TextureFile &texturefile,
+                                 TextureOptions &options, int index,
+                                 TileRef &tilecache0, TileRef &tilecache1,
+                                 float weight, float *accum)
+{
+    const ImageSpec &spec (texturefile.spec (miplevel));
+    // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
+    // and subtract 0.5 because samples are at texel centers.
+    s = s * spec.width  - 0.5f;
+    t = t * spec.height - 0.5f;
+    int sint, tint;
+    float sfrac = floorfrac (s, &sint);
+    float tfrac = floorfrac (t, &tint);
+    // Now (xint,yint) are the integer coordinates of the texel to the
+    // immediate "upper left" of the lookup point, and (xfrac,yfrac) are
+    // the amount that the lookup point is actually offset from the
+    // texel center (with (1,1) being all the way to the next texel down
+    // and to the right).
+    
+    // We're gathering 4x4 samples and 4x weights.  Indices: texels 0,
+    // 1, 2, 3.  The sample lies between samples 1 and 2.
+
+    // Wrap
+    DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
+    bool svalid[4], tvalid[4];  // Valid texels?  false means black border
+    int stex[4], ttex[4];       // Texel coords
+    bool allsvalid = true, alltvalid = true;
+    bool anyvalid = false;
+    for (int i = 0; i < 4;  ++i) {
+        bool v;
+        stex[i] = sint + i - 1;
+        v = options.swrap_func (stex[i], spec.full_width);
+        svalid[i] = v;
+        allsvalid &= v;
+        anyvalid |= v;
+        ttex[i] = tint + i - 1;
+        v = options.twrap_func (ttex[i], spec.full_height);
+        tvalid[i] = v;
+        alltvalid &= v;
+        anyvalid |= v;
+    }
+    if (! anyvalid) {
+        // All texels we need were out of range and using 'black' wrap.
+        return;
+    }
+
+    int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
+    int tileheightmask = spec.tile_height - 1;
+    int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
+    int invtileheightmask = ~tileheightmask;
+    const float *texel[4][4] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+    TileRef tile[4][4];
+    static float black[4] = { 0, 0, 0, 0 };
+    int tile_s = stex[0] & tilewidthmask;
+    int tile_t = ttex[0] & tileheightmask;
+    bool s_onetile = (tile_s <= tilewidthmask-3);
+    bool t_onetile = (tile_t <= tileheightmask-3);
+    if (s_onetile && t_onetile) {
+        for (int i = 1; i < 4;  ++i) {
+            s_onetile &= (stex[i] == stex[0]);
+            t_onetile &= (ttex[i] == ttex[0]);
+        }
+    }
+    bool onetile = (s_onetile & t_onetile);
+    if (onetile & allsvalid & alltvalid) {
+        // Shortcut if all the texels we need are on the same tile
+        TileID id (texturefile, miplevel,
+                   stex[0] - tile_s, ttex[0] - tile_t, 0);
+        find_tile (id, tilecache0, tilecache1);
+        if (! tilecache0) {
+            return;
+        }
+        int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
+        const float *base = tilecache0->data() + offset + options.firstchannel;
+        for (int j = 0;  j < 4;  ++j)
+            for (int i = 0;  i < 4;  ++i)
+                texel[j][i] = base + spec.nchannels * (i + j*spec.tile_width);
+    } else {
+        for (int j = 0, initialized = 0;  j < 4;  ++j) {
+            for (int i = 0;  i < 4;  ++i) {
+                if (! (svalid[i] && tvalid[j])) {
+                    texel[j][i] = black;
+                    continue;
+                }
+                tile_s = stex[i] & tilewidthmask;
+                tile_t = ttex[j] & tileheightmask;
+                TileID id (texturefile, miplevel,
+                           stex[i] - tile_s, ttex[j] - tile_t, 0);
+                if (0 && initialized)   // Why isn't it faster to do this?
+                    find_tile_same_level (id, tilecache0, tilecache1);
+                else {
+                    find_tile (id, tilecache0, tilecache1);
+                    initialized = true;
+                }
+                tile[j][i] = tilecache0;
+                if (! tile[j][i]) {
+                    return;
+                }
+                DASSERT (tile->id() == id);
+                int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
+                DASSERT (offset < spec.tile_pixels());
+                texel[j][i] = tile[j][i]->data() + offset + options.firstchannel;
+            }
+        }
+    }
+
+    // Weights in x and y
+    DASSERT (hq_filter);
+    float wx[4] = { (*hq_filter)(-1.0f-sfrac), (*hq_filter)(-sfrac),
+                    (*hq_filter)(1.0f-sfrac),  (*hq_filter)(2.0f-sfrac) };
+    float wy[4] = { (*hq_filter)(-1.0f-tfrac), (*hq_filter)(-tfrac),
+                    (*hq_filter)(1.0f-tfrac),  (*hq_filter)(2.0f-tfrac) };
+    float w[4][4];  // 2D filter weights
+    float totalw = 0;  // total filter weight
+    for (int j = 0;  j < 4;  ++j) {
+        for (int i = 0;  i < 4;  ++i) {
+            w[j][i] = wy[j] * wx[i];
+            totalw += w[j][i];
+        }
+    }
+
+    // FIXME -- handle 8 bit textures? float only for now
+    weight /= totalw;
+    for (int j = 0;  j < 4;  ++j)
+        for (int i = 0;  i < 4;  ++i) {
+            for (int c = 0;  c < options.actualchannels;  ++c)
+                accum[c] += (w[j][i] * weight) * texel[j][i][c];
+        }
+    if (options.alpha) {
+        for (int j = 0;  j < 4;  ++j)
+            for (int i = 0;  i < 4;  ++i) {
+                int c = options.actualchannels;
+                accum[c] += (w[j][i] * weight) * texel[j][i][c];
+            }
     }
 }
 

@@ -52,6 +52,7 @@ static std::vector<std::string> filenames;
 static std::string output_filename = "out.exr";
 static bool verbose = false;
 static int output_xres = 512, output_yres = 512;
+static float blur = 0;
 static TextureSystem *texsys = NULL;
 
 
@@ -78,6 +79,7 @@ getargs (int argc, char *argv[])
                   "-o %s", &output_filename, "Output test image",
                   "-res %d %d", &output_xres, &output_yres,
                       "Resolution of output test image",
+                  "--blur %f", &blur, "Add blur to texture lookup",
                   NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
@@ -160,9 +162,8 @@ test_plain_texture (ustring filename)
     xform.invert();
 
     TextureOptions opt;
-//    float blur = 0.1;
-//    opt.sblur = blur;
-//    opt.tblur = blur;
+    opt.sblur = blur;
+    opt.tblur = blur;
     opt.nchannels = 3;
     opt.swrap = opt.twrap = TextureOptions::WrapPeriodic;
 //    opt.twrap = TextureOptions::WrapBlack;

@@ -39,6 +39,7 @@
 
 #include "varyingref.h"
 #include "ustring.h"
+#include "imageio.h"
 
 #ifndef INCLUDED_IMATHVEC_H
 namespace Imath {
@@ -89,6 +90,15 @@ public:
         WrapLast            ///< Mark the end -- don't use this!
     };
 
+    /// Lookup mode
+    enum LookupMode {
+        LookupDefault,      ///< Default high-quality lookup
+        LookupClosest,      ///< Unfiltered closest texel
+        LookupBilinear,     ///< Bilinear, no MIP-map
+        LookupTrilinear,    ///< Trilinear isotropic MIP-map
+        LookupAniso         ///< Anisotropic lookup
+    };
+
     /// Create a TextureOptions with all fields initialized to reasonable
     /// defaults.
     TextureOptions ();
@@ -98,6 +108,7 @@ public:
     int nchannels;          ///< Number of channels to look up: 1 or 3
     Wrap swrap;             ///< Wrap mode in the s direction
     Wrap twrap;             ///< Wrap mode in the t direction
+    LookupMode lookupmode;  ///< Lookup mode
 
     // Options that may be different for each point we're texturing
     VaryingRef<float> sblur, tblur;   ///< Blur amount
@@ -105,6 +116,7 @@ public:
     VaryingRef<float> bias;           ///< Bias
     VaryingRef<float> fill;           ///< Fill value for missing channels
     VaryingRef<int>   samples;        ///< Number of samples
+    VaryingRef<int>   lodbias;        ///< LOD level bias
 
     // For 3D volume texture lookups only:
     Wrap zwrap;                ///< Wrap mode in the z direction
