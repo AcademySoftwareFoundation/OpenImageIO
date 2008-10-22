@@ -90,13 +90,23 @@ public:
         WrapLast            ///< Mark the end -- don't use this!
     };
 
-    /// Lookup mode
-    enum LookupMode {
-        LookupDefault,      ///< Default high-quality lookup
-        LookupClosest,      ///< Unfiltered closest texel
-        LookupBilinear,     ///< Bilinear, no MIP-map
-        LookupTrilinear,    ///< Trilinear isotropic MIP-map
-        LookupAniso         ///< Anisotropic lookup
+    /// Mip mode determines if/how we use mipmaps
+    ///
+    enum MipMode {
+        MipModeDefault,      ///< Default high-quality lookup
+        MipModeNoMIP,        ///< Just use highest-res image, no MIP mapping
+        MipModeOneLevel,     ///< Use just one mipmap level
+        MipModeTrilinear,    ///< Use two MIPmap levels (trilinear)
+        MipModeAniso         ///< Use two MIPmap levels w/ anisotropic
+    };
+
+    /// Interp mode determines how we sample within a mipmap level
+    ///
+    enum InterpMode {
+        InterpClosest,      ///< Force closest texel
+        InterpBilinear,     ///< Force bilinear lookup within a mip level
+        InterpBicubic,      ///< Force cubic lookup within a mip level
+        InterpSmartBicubic  ///< Bicubic when maxifying, else bilinear
     };
 
     /// Create a TextureOptions with all fields initialized to reasonable
@@ -108,7 +118,8 @@ public:
     int nchannels;          ///< Number of channels to look up: 1 or 3
     Wrap swrap;             ///< Wrap mode in the s direction
     Wrap twrap;             ///< Wrap mode in the t direction
-    LookupMode lookupmode;  ///< Lookup mode
+    MipMode mipmode;        ///< Mip mode
+    InterpMode interpmode;  ///< Interpolation mode
 
     // Options that may be different for each point we're texturing
     VaryingRef<float> sblur, tblur;   ///< Blur amount

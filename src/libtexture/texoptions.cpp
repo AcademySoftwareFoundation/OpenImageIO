@@ -74,7 +74,8 @@ static TextureOptions defaultTextureOptions(true);  // use special ctr
 TextureOptions::TextureOptions (bool)
     : firstchannel(0), nchannels(1),
       swrap(WrapDefault), twrap(WrapDefault),
-      lookupmode(LookupDefault),
+      mipmode(MipModeDefault),
+      interpmode(InterpSmartBicubic),
       sblur(default_blur), tblur(default_blur),
       swidth(default_width), twidth(default_width),
       bias(default_bias),

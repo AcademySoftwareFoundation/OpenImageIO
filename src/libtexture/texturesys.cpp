@@ -460,14 +460,14 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             float *result)
 {
     static const texture_lookup_prototype lookup_functions[] = {
-        // Must be in the same order as LookupMode enum
+        // Must be in the same order as Mipmode enum
         &TextureSystemImpl::texture_lookup,
-        &TextureSystemImpl::texture_lookup_closest,
-        &TextureSystemImpl::texture_lookup_bilinear,
+        &TextureSystemImpl::texture_lookup_nomip,
+        &TextureSystemImpl::texture_lookup_trilinear_mipmap,
         &TextureSystemImpl::texture_lookup_trilinear_mipmap,
         &TextureSystemImpl::texture_lookup
     };
-    texture_lookup_prototype lookup = lookup_functions[(int)options.lookupmode];
+    texture_lookup_prototype lookup = lookup_functions[(int)options.mipmode];
 
     // FIXME - should we be keeping stats, times?
 
@@ -518,8 +518,6 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     if (options.actualchannels < 1)
         return true;
 
-    // FIXME - allow multiple filtered texture implementations
-
     // Loop over all the points that are active (as given in the
     // runflags), and for each, call texture_lookup.  The separation of
     // power here is that all possible work that can be done for all
@@ -541,7 +539,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 
 
 void
-TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
+TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
                             TextureOptions &options, int index,
                             VaryingRef<float> _s, VaryingRef<float> _t,
                             VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
@@ -552,8 +550,6 @@ TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
     // N.B. If any computations within this function are identical for
     // all texture lookups in this batch, those computations should be
     // hoisted up to the calling function, texture().
-
-    // FIXME - handle mipmap levels, at least for lod bias
 
     // Initialize results to 0.  We'll add from here on as we sample.
     result += index * options.nchannels;
@@ -565,38 +561,18 @@ TextureSystemImpl::texture_lookup_closest (TextureFile &texturefile,
     const ImageSpec &spec (texturefile.spec (0));
     float s = (floorf (_s[index] * spec.full_width)  + 0.5f) / spec.full_width;
     float t = (floorf (_t[index] * spec.full_height) + 0.5f) / spec.full_height;
-    accum_sample_closest (s, t, 0, texturefile,
-                          options, index, tilecache0, tilecache1,
-                          1.0f, result);
-}
 
-
-
-void
-TextureSystemImpl::texture_lookup_bilinear (TextureFile &texturefile,
-                            TextureOptions &options, int index,
-                            VaryingRef<float> _s, VaryingRef<float> _t,
-                            VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
-                            VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
-                            TileRef &tilecache0, TileRef &tilecache1,
-                            float *result)
-{
-    // N.B. If any computations within this function are identical for
-    // all texture lookups in this batch, those computations should be
-    // hoisted up to the calling function, texture().
-
-    // FIXME - handle mipmap levels and lod bias
-
-    // Initialize results to 0.  We'll add from here on as we sample.
-    result += index * options.nchannels;
-    for (int c = 0;  c < options.actualchannels;  ++c)
-        result[c] = 0;
-    if (options.alpha)
-        options.alpha[index] = 0;
-
-    accum_sample_bilinear (_s[index], _t[index], 0, texturefile,
-                           options, index, tilecache0, tilecache1,
-                           1.0f, result);
+    static const accum_prototype accum_functions[] = {
+        // Must be in the same order as InterpMode enum
+        &TextureSystemImpl::accum_sample_closest,
+        &TextureSystemImpl::accum_sample_bilinear,
+        &TextureSystemImpl::accum_sample_bicubic,
+        &TextureSystemImpl::accum_sample_bilinear,
+    };
+    accum_prototype accumer = accum_functions[(int)options.interpmode];
+    (this->*accumer) (s, t, 0, texturefile,
+                      options, index, tilecache0, tilecache1,
+                      1.0f, result);
 }
 
 
@@ -660,7 +636,6 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         miplevel[0] = 0;
         miplevel[1] = 0;
         levelblend = 0;
-        // FIXME -- we should use bicubic filtering here
     } else if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
@@ -668,16 +643,34 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         miplevel[1] = miplevel[0];
         levelblend = 0;
     }
+    if (options.mipmode == TextureOptions::MipModeOneLevel) {
+        // Force use of just one mipmap level
+        miplevel[0] = miplevel[1];
+        levelblend = 0;
+    }
     float levelweight[2] = { 1.0f - levelblend, levelblend };
-//    levelblend = 0;
 //    std::cerr << "Levels " << miplevel[0] << ' ' << miplevel[1] << ' ' << levelblend << "\n";
+
+    // FIXME -- we should allow bicubic here
+    static const accum_prototype accum_functions[] = {
+        // Must be in the same order as InterpMode enum
+        &TextureSystemImpl::accum_sample_closest,
+        &TextureSystemImpl::accum_sample_bilinear,
+        &TextureSystemImpl::accum_sample_bicubic,
+        &TextureSystemImpl::accum_sample_bilinear,
+    };
+    accum_prototype accumer = accum_functions[(int)options.interpmode];
+//    if (level == 0 || texturefile.spec(lev).full_height < naturalres/2)
+//        accumer = &TextureSystemImpl::accum_sample_bicubic;
+
+    // FIXME -- support for smart cubic?
 
     for (int level = 0;  level < 2;  ++level) {
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
-        accum_sample_bilinear (_s[index], _t[index], miplevel[level], texturefile,
-                               options, index, tilecache0, tilecache1,
-                               levelweight[level], result);
+        (this->*accumer) (_s[index], _t[index], miplevel[level], texturefile,
+                          options, index, tilecache0, tilecache1,
+                          levelweight[level], result);
     }
 }
 
@@ -777,6 +770,10 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         miplevel[1] = miplevel[0];
         levelblend = 0;
     }
+    if (options.mipmode == TextureOptions::MipModeOneLevel) {
+        miplevel[0] = miplevel[1];
+        levelblend = 0;
+    }
     float levelweight[2] = { 1.0f - levelblend, levelblend };
 
     int nsamples = std::max (1, (int) ceilf (aspect - 0.25f));
@@ -789,8 +786,21 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         int lev = miplevel[level];
         float w = invsamples * levelweight[level];
         accum_prototype accumer = &TextureSystemImpl::accum_sample_bilinear;
-        if (level == 0 || texturefile.spec(lev).full_height < naturalres/2)
-            accumer = &TextureSystemImpl::accum_sample_bicubic;
+        switch (options.interpmode) {
+        case TextureOptions::InterpClosest :
+            accumer = &TextureSystemImpl::accum_sample_closest;  break;
+        case TextureOptions::InterpBilinear :
+            accumer = &TextureSystemImpl::accum_sample_bilinear;  break;
+        case TextureOptions::InterpBicubic :
+            accumer = &TextureSystemImpl::accum_sample_bicubic;  break;
+        case TextureOptions::InterpSmartBicubic :
+            if (level == 0 || options.interpmode == TextureOptions::InterpBicubic ||
+                (texturefile.spec(lev).full_height < naturalres/2))
+                accumer = &TextureSystemImpl::accum_sample_bicubic;
+            else 
+                accumer = &TextureSystemImpl::accum_sample_bilinear;
+            break;
+        }
         for (int sample = 0;  sample < nsamples;  ++sample) {
             float pos = (sample + 0.5f) * invsamples - 0.5f;
             (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,

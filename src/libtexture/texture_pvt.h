@@ -537,15 +537,7 @@ private:
                          TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-    void texture_lookup_closest (TextureFile &texfile,
-                         TextureOptions &options, int index,
-                         VaryingRef<float> _s, VaryingRef<float> _t,
-                         VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
-                         VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
-                         TileRef &tilecache0, TileRef &tilecache1,
-                         float *result);
-    
-    void texture_lookup_bilinear (TextureFile &texfile,
+    void texture_lookup_nomip (TextureFile &texfile,
                          TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,

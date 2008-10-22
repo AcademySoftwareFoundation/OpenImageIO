@@ -165,6 +165,8 @@ test_plain_texture (ustring filename)
     opt.sblur = blur;
     opt.tblur = blur;
     opt.nchannels = 3;
+//    opt.interpmode = TextureOptions::InterpSmartBicubic;
+//    opt.mipmode = TextureOptions::MipModeAniso;
     opt.swrap = opt.twrap = TextureOptions::WrapPeriodic;
 //    opt.twrap = TextureOptions::WrapBlack;
     float s[shadepoints], t[shadepoints];
