@@ -88,7 +88,7 @@ $(info platform=${platform}, hw=${hw})
 # makefiles can be minimal
 
 # C and C++ compilation
-CFLAGS := -I${src_include_dir}
+CFLAGS += -I${src_include_dir}
 DASHC := -c #
 DASHO := -o #
 CINCL := -I
@@ -106,7 +106,7 @@ BINEXT :=
 LD := ${CXX}
 BINOUT := -o #
 LD_LIBPATH := -L
-LDFLAGS := -rdynamic
+LDFLAGS += -rdynamic
 #restrict_syms := -Wl,--version-script=${restrict_syms_file}
 
 # Creating a dynamic/shared library
