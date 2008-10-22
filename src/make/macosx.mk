@@ -7,7 +7,7 @@
 
 
 
-CFLAGS += -DMACOSX
+CFLAGS += -DMACOSX -fPIC
 #CFLAGS += -arch i386 -arch x86_64 -mmacosx-version-min=10.5
 
 ifdef DEBUG
