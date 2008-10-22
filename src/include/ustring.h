@@ -239,11 +239,11 @@ public:
 
     /// Assign a null-terminated C string (char *) to a ustring.
     ///
-    const ustring & operator= (const char *str) { assign(str); }
+    const ustring & operator= (const char *str) { return assign(str); }
 
     /// Assign a C++ std::string to a ustring.
     ///
-    const ustring & operator= (const std::string &str) { assign(str); }
+    const ustring & operator= (const std::string &str) { return assign(str); }
 
     /// Assign a single char to a ustring.
     ///
