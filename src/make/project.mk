@@ -147,7 +147,6 @@ LINK_BOOST := ${LD_LIBPATH}${BOOST_LIB_AREA}
 LINK_BOOST += -lboost_filesystem${BOOST_SUFFIX} \
 	      -lboost_system${BOOST_SUFFIX} \
 	      -lboost_thread${BOOST_SUFFIX}
-#-lboost_program_options${BOOST_SUFFIX}
 
 TBB_VERSION := 21_20080605oss
 ifeq (${TBB_HOME},)
@@ -158,8 +157,7 @@ TBB_LIB_AREA := ${TBB_HOME}/lib/tbb${TBB_VERSION}
 LINK_TBB := ${LD_LIBPATH}${TBB_LIB_AREA} -ltbb
 
 
-dist_extra_libs += ${BOOST_LIB_AREA}/libboost_program_options${BOOST_SUFFIX}${SHLIBEXT} \
-		   $(wildcard ${BOOST_LIB_AREA}/libboost_filesystem${BOOST_SUFFIX}${SHLIBEXT}*) \
+dist_extra_libs += $(wildcard ${BOOST_LIB_AREA}/libboost_filesystem${BOOST_SUFFIX}${SHLIBEXT}*) \
 		   $(wildcard ${BOOST_LIB_AREA}/libboost_system${BOOST_SUFFIX}${SHLIBEXT}*) \
 		   $(wildcard ${BOOST_LIB_AREA}/libboost_thread${BOOST_SUFFIX}${SHLIBEXT}*) \
 		   ${ILMBASE_LIB_AREA}/libHalf${SHLIBEXT} \
