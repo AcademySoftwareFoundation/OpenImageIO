@@ -19,6 +19,7 @@ local_libs :=
 # Extra objects from other libs we need to compile this library 
 local_extra_objs := ${build_obj_dir}/libutil/argparse${OEXT} \
 		    ${build_obj_dir}/libutil/filesystem${OEXT} \
+		    ${build_obj_dir}/libutil/filter${OEXT} \
 		    ${build_obj_dir}/libutil/paramlist${OEXT} \
 		    ${build_obj_dir}/libutil/plugin${OEXT} \
 		    ${build_obj_dir}/libutil/strutil${OEXT} \
