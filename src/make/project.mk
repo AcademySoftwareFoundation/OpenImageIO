@@ -132,11 +132,12 @@ LINK_BOOST ?= ${LD_LIBPATH}${BOOST_LIB_AREA} \
               -lboost_system${BOOST_SUFFIX} \
               -lboost_thread${BOOST_SUFFIX}
 
-TBB_VERSION ?= 21_20080605oss
-TBB_HOME ?= ${THIRD_PARTY_TOOLS_HOME}
-TBB_CXX ?= -I${TBB_HOME}/include/tbb${TBB_VERSION}
-TBB_LIB_AREA ?= ${TBB_HOME}/lib/tbb${TBB_VERSION}
-LINK_TBB ?= ${LD_LIBPATH}${TBB_LIB_AREA} -ltbb
+# We don't use TBB currently, but if we did, we'd uncomment this:
+#TBB_VERSION ?= 21_20080605oss
+#TBB_HOME ?= ${THIRD_PARTY_TOOLS_HOME}
+#TBB_CXX ?= -I${TBB_HOME}/include/tbb${TBB_VERSION}
+#TBB_LIB_AREA ?= ${TBB_HOME}/lib/tbb${TBB_VERSION}
+#LINK_TBB ?= ${LD_LIBPATH}${TBB_LIB_AREA} -ltbb
 
 
 dist_extra_libs += $(wildcard ${BOOST_LIB_AREA}/libboost_filesystem${BOOST_SUFFIX}${SHLIBEXT}*) \
