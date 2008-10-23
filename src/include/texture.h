@@ -127,7 +127,6 @@ public:
     VaryingRef<float> bias;           ///< Bias
     VaryingRef<float> fill;           ///< Fill value for missing channels
     VaryingRef<int>   samples;        ///< Number of samples
-    VaryingRef<int>   lodbias;        ///< LOD level bias
 
     // For 3D volume texture lookups only:
     Wrap zwrap;                ///< Wrap mode in the z direction

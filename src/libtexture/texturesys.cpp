@@ -607,8 +607,6 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     float dtdy = _dtdy ? _dtdy[index] : 0;
     dtdy = dtdy * options.twidth[index] + options.tblur[index];
 
-    // FIXME - support lod bias
-
     // Determine the MIP-map level(s) we need: we will blend 
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
     int miplevel[2] = { -1, -1 };
@@ -713,8 +711,6 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     dtdx = dtdx * options.twidth[index] + options.tblur[index];
     dsdy = dsdy * options.swidth[index] + options.sblur[index];
     dtdy = dtdy * options.twidth[index] + options.tblur[index];
-
-    // FIXME - support lod bias
 
     // Determine the MIP-map level(s) we need: we will blend 
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
