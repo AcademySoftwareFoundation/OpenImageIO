@@ -273,17 +273,19 @@ IvGL::resizeGL (int w, int h)
 
 static void
 gl_rect (float xmin, float ymin, float xmax, float ymax, float z = 0,
-         float smin = 0, float tmin = 0, float smax = 1, float tmax = 1)
+         float smin = 0, float tmin = 0, float smax = 1, float tmax = 1,
+         int rotate = 0)
 {
-    glBegin (GL_QUAD_STRIP);
-    glTexCoord2f (smin, tmin);
+    float tex[] = { smin, tmin, smax, tmin, smax, tmax, smin, tmax };
+    glBegin (GL_POLYGON);
+    glTexCoord2f (tex[(0+2*rotate)&7], tex[(1+2*rotate)&7]);
     glVertex3f (xmin,  ymin, z);
-    glTexCoord2f (smax, tmin);
+    glTexCoord2f (tex[(2+2*rotate)&7], tex[(3+2*rotate)&7]);
     glVertex3f (xmax,  ymin, z);
-    glTexCoord2f (smin, tmax);
-    glVertex3f (xmin, ymax, z);
-    glTexCoord2f (smax, tmax);
+    glTexCoord2f (tex[(4+2*rotate)&7], tex[(5+2*rotate)&7]);
     glVertex3f (xmax, ymax, z);
+    glTexCoord2f (tex[(6+2*rotate)&7], tex[(7+2*rotate)&7]);
+    glVertex3f (xmin, ymax, z);
     glEnd ();
 }
 
@@ -329,13 +331,14 @@ IvGL::paintGL ()
     // Recentered so that the pixel space (m_centerx,m_centery) position is
     // at the center of the visible window.
 
+    // Handle orientation
     float xmin = spec.x;
     float xmax = spec.x + spec.width;
     float ymin = spec.y;
     float ymax = spec.y + spec.height;
-
-    // Handle orientation
+    float smin = 0, smax = 1, tmin = 0, tmax = 1;
     int orient = img->orientation();
+    int rotate = 0;
     if (orient != 1) {
         if (orient == 2 || orient == 3 || orient == 5)
             std::swap (xmin, xmax);
@@ -347,18 +350,18 @@ IvGL::paintGL ()
             xmax = y0;
             ymin = x0;
             ymax = x1;
-        }
-        if (orient == 6 || orient == 7) {
+            rotate = 3;
+        } else if (orient == 6 || orient == 7) {
             float x0 = xmin, x1 = xmax, y0 = ymin, y1 = ymax;
             xmin = y0;
             xmax = y1;
             ymin = x1;
             ymax = x0;
+            rotate = 1;
         }
     }
-
     useshader ();
-    gl_rect (xmin, ymin, xmax, ymax);
+    gl_rect (xmin, ymin, xmax, ymax, 0, smin, tmin, smax, tmax, rotate);
 
     glPopMatrix ();
     glPopAttrib ();
@@ -701,33 +704,35 @@ IvGL::clamp_view_to_window ()
     int w = width(), h = height();
     float zoomedwidth  = m_zoom * img->oriented_full_width();
     float zoomedheight = m_zoom * img->oriented_full_height();
+#if 0
     float left    = m_centerx - 0.5 * ((float)w / m_zoom);
     float top     = m_centery - 0.5 * ((float)h / m_zoom);
     float right   = m_centerx + 0.5 * ((float)w / m_zoom);
     float bottom  = m_centery + 0.5 * ((float)h / m_zoom);
-#if 0
     std::cerr << "Window size is " << w << " x " << h << "\n";
     std::cerr << "Center (pixel coords) is " << m_centerx << ", " << m_centery << "\n";
     std::cerr << "Top left (pixel coords) is " << left << ", " << top << "\n";
     std::cerr << "Bottom right (pixel coords) is " << right << ", " << bottom << "\n";
 #endif
 
-    int xmin = std::min (spec.x, spec.full_x);
-    int xmax = std::max (spec.x+spec.width, spec.full_x+spec.full_width);
-    int ymin = std::min (spec.y, spec.full_y);
-    int ymax = std::max (spec.y+spec.height, spec.full_y+spec.full_height);
+    int xmin = std::min (img->oriented_x(), img->oriented_full_x());
+    int xmax = std::max (img->oriented_x()+img->oriented_width(),
+                         img->oriented_full_x()+img->oriented_full_width());
+    int ymin = std::min (img->oriented_y(), img->oriented_full_y());
+    int ymax = std::max (img->oriented_y()+img->oriented_height(),
+                         img->oriented_full_y()+img->oriented_full_height());
 
     // Don't let us scroll off the edges
     if (zoomedwidth >= w) {
         m_centerx = Imath::clamp (m_centerx, xmin + 0.5f*w/m_zoom, xmax - 0.5f*w/m_zoom);
     } else {
-        m_centerx = spec.full_x + spec.full_width/2;
+        m_centerx = img->oriented_full_x() + img->oriented_full_width()/2;
     }
 
     if (zoomedheight >= h) {
         m_centery = Imath::clamp (m_centery, ymin + 0.5f*h/m_zoom, ymax - 0.5f*h/m_zoom);
     } else {
-        m_centery = spec.full_y + spec.full_height/2;
+        m_centery = img->oriented_full_y() + img->oriented_full_height()/2;
     }
 }
 
