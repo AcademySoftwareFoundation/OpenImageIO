@@ -66,7 +66,7 @@
 /// making the code more complicated.  We can do this with VaryingRef:
 /// \code
 ///     void add (int n, VaryingRef<float> a, VaryingRef<float> b,
-///                      VaryingRef<float> result) {
+///                      float *result) {
 ///         for (int i = 0;  i < n;  ++i)
 ///             result[i] = a[i] + b[i];
 ///     }
@@ -79,7 +79,7 @@
 /// equivalently as:
 /// \code
 ///     void add (int n, VaryingRef<float> a, VaryingRef<float> b,
-///                      VaryingRef<float> result) {
+///                      float *result) {
 ///         for (int i = 0;  i < n;  ++i, ++a, ++b)   // note increments
 ///             result[i] = (*a) + (*b);
 ///     }
@@ -90,12 +90,19 @@
 ///     float a[n];
 ///     float b;     // just 1 value
 ///     float result[n];
-///     add (n, VaryingRef<float>(a,sizeof(a)), VaryingRef<float>(b), result);
+///     add (n, VaryingRef<float>(a,sizeof(a[0])),
+///          VaryingRef<float>(b), result);
 /// \endcode
 ///
 /// In this example, we're passing a truly varying 'a' (signified by
 /// giving a step size from element to element), but a uniform 'b' (signified
 /// by no step size, or a step size of zero).
+/// 
+/// There are Varying() and Uniform() templated functions that provide 
+/// a helpful shorthand:
+/// \code
+///     add (n, Varying(a), Uniform(b), result);
+/// \endcode
 ///
 /// Now let's take it a step further and fully optimize the 'add' function
 /// for when both operands are uniform:
