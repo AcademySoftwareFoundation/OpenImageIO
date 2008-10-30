@@ -63,6 +63,7 @@ namespace pvt {   // namespace OpenImageIO::pvt
 
 TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
     : m_filename(filename), m_used(true), m_broken(false),
+      m_untiled(false), m_unmipped(false),
       m_texformat(TexFormatTexture), 
       m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
@@ -81,26 +82,26 @@ TextureFile::~TextureFile ()
 
 
 
-void
+bool
 TextureFile::open ()
 {
     if (m_input)         // Already opened
-        return;
+        return !m_broken;
     if (m_broken)        // Already failed an open -- it's broken
-        return;
-    
+        return false;
+
     m_input.reset (ImageInput::create (m_filename.c_str(),
                                        m_texsys.searchpath().c_str()));
     if (! m_input) {
         m_broken = true;
-        return;
+        return false;
     }
 
     ImageSpec tempspec;
     if (! m_input->open (m_filename.c_str(), tempspec)) {
         m_broken = true;
         m_input.reset ();
-        return;
+        return false;
     }
     m_texsys.incr_open_files ();
     use ();
@@ -109,7 +110,7 @@ TextureFile::open ()
     // before, read the spec, and filled in all the fields.  So now that
     // we've re-opened it, we're done.
     if (m_spec.size())
-        return;
+        return true;
 
     // From here on, we know that we've opened this file for the very
     // first time.  So read all the MIP levels, fill out all the fields
@@ -117,12 +118,25 @@ TextureFile::open ()
     m_spec.reserve (16);
     int nsubimages = 0;
     do {
+        if (nsubimages > 1 && tempspec.nchannels != m_spec[0].nchannels) {
+            // No idea what to do with a subimage that doesn't have the
+            // same number of channels as the others, so just skip it.
+            m_input.reset ();
+            m_texsys.decr_open_files ();
+            m_broken = true;
+            return false;
+        }
+        if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
+            m_untiled = true;
+            tempspec.tile_width = tempspec.width;
+            tempspec.tile_height = tempspec.height;
+        }
         ++nsubimages;
         m_spec.push_back (tempspec);
-        // Sanity checks: all levels need the same num channels
-        ASSERT (tempspec.nchannels == m_spec[0].nchannels);
     } while (m_input->seek_subimage (nsubimages, tempspec));
-    ASSERT (nsubimages = m_spec.size());
+    ASSERT (nsubimages == m_spec.size());
+    if (m_untiled && nsubimages == 1)
+        m_unmipped = true;
 
     const ImageSpec &spec (m_spec[0]);
     const ImageIOParameter *p;
@@ -170,6 +184,8 @@ TextureFile::open ()
 
     m_datatype = TypeDesc::FLOAT;
     // FIXME -- use 8-bit when that's native?
+
+    return !m_broken;
 }
 
 
@@ -178,10 +194,23 @@ bool
 TextureFile::read_tile (int level, int x, int y, int z,
                         TypeDesc format, void *data)
 {
-    open ();
+    bool ok = open ();
+    if (! ok)
+        return false;
+
     ImageSpec tmp;
     if (m_input->current_subimage() != level)
         m_input->seek_subimage (level, tmp);
+
+    // Handle untiled, unmip-mapped
+    if (m_untiled) {
+        ok = m_input->read_image (format, data);
+        m_input->close ();
+        m_input.reset ();
+        return ok;
+    }
+
+    // Ordinary tiled
     return m_input->read_tile (x, y, z, format, data);
 }
 

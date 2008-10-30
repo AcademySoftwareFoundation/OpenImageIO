@@ -115,10 +115,16 @@ Tile::Tile (const TileID &id)
     : m_id (id), m_valid(true), m_used(true)
 {
     TextureFile &texfile = m_id.texfile ();
+    if (texfile.broken()) {
+        m_valid = false;
+        return;
+    }
     m_texels.resize (memsize());
     if (! texfile.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
                              texfile.datatype(), &m_texels[0])) {
-        std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() << "\n";
+        std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() 
+                  << " from " << texfile.filename() << "\n";
+        m_valid = false;
     }
     // FIXME -- for shadow, fill in mindepth, maxdepth
 }
@@ -145,8 +151,8 @@ Tile::data (int x, int y, int z) const
 
 
 TextureSystemImpl::TextureSystemImpl ()
-    : m_open_files(0), m_file_sweep(m_texturefiles.end()),
-      m_tile_sweep(m_tilecache.end()), hq_filter(NULL)
+    : m_file_sweep(m_texturefiles.end()), m_open_files(0), 
+      m_tile_sweep(m_tilecache.end()), m_mem_used(0), hq_filter(NULL)
 {
     init ();
 }
@@ -175,7 +181,6 @@ TextureSystemImpl::init ()
 TileRef
 TextureSystemImpl::find_tile (const TileID &id)
 {
-    DASSERT (id.texfile() != NULL);
     lock_guard guard (m_texturefiles_mutex);
     TileCache::iterator found = m_tilecache.find (id);
     TileRef tile;
@@ -189,7 +194,7 @@ TextureSystemImpl::find_tile (const TileID &id)
     }
     DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
     tile->used ();
-    return tile;
+    return tile->valid() ? tile : TileRef();
 }
 
 
@@ -941,15 +946,15 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                     return;
                 }
                 int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
+                DASSERT (offset < spec.tile_pixels()*spec.nchannels);
                 texel[j][i] = tile[j][i]->data() + offset + options.firstchannel;
-                DASSERT (tile->id() == id);
+                DASSERT (tile[j][i]->id() == id);
             }
         }
     }
     // FIXME -- optimize the above loop by unrolling
 
     // FIXME -- handle 8 bit textures? float only for now
-    DASSERT (offset < spec.tile_pixels());
     bilerp_mad (texel[0][0], texel[0][1], texel[1][0], texel[1][1],
                 sfrac, tfrac, weight, options.actualchannels, accum);
     if (options.alpha) {
@@ -1010,18 +1015,26 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         return;
     }
 
-    int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
-    int tileheightmask = spec.tile_height - 1;
-    int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
-    int invtileheightmask = ~tileheightmask;
     const float *texel[4][4] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
     TileRef tile[4][4];
     static float black[4] = { 0, 0, 0, 0 };
+#if 0
+    // FIXME -- restore this by forcing pow2
+    int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
+    int tileheightmask = spec.tile_height - 1;
+    int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
+    int invtileheightmask = ~tileheightmask;
     int tile_s = stex[0] & tilewidthmask;
     int tile_t = ttex[0] & tileheightmask;
     bool s_onetile = (tile_s <= tilewidthmask-3);
     bool t_onetile = (tile_t <= tileheightmask-3);
+#else
+    int tile_s = stex[0] % spec.tile_width;
+    int tile_t = ttex[0] % spec.tile_height;
+    bool s_onetile = (tile_s < spec.tile_width-3);
+    bool t_onetile = (tile_t < spec.tile_height-3);
+#endif
     if (s_onetile && t_onetile) {
         for (int i = 1; i < 4;  ++i) {
             s_onetile &= (stex[i] == stex[0]);
@@ -1039,6 +1052,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         }
         int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
         const float *base = tilecache0->data() + offset + options.firstchannel;
+        DASSERT (tilecache0->data());
         for (int j = 0;  j < 4;  ++j)
             for (int i = 0;  i < 4;  ++i)
                 texel[j][i] = base + spec.nchannels * (i + j*spec.tile_width);
@@ -1049,8 +1063,14 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                     texel[j][i] = black;
                     continue;
                 }
+#if 0
+                // FIXME -- restore this by forcing pow2
                 tile_s = stex[i] & tilewidthmask;
                 tile_t = ttex[j] & tileheightmask;
+#else
+                tile_s = stex[i] % spec.tile_width;
+                tile_t = ttex[j] % spec.tile_height;
+#endif
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
                 if (0 && initialized)   // Why isn't it faster to do this?
@@ -1060,12 +1080,13 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                     initialized = true;
                 }
                 tile[j][i] = tilecache0;
-                if (! tile[j][i]) {
+                if (! tilecache0 || ! tilecache0->valid()) {
                     return;
                 }
-                DASSERT (tile->id() == id);
+                DASSERT (tile[j][i]->id() == id);
                 int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
-                DASSERT (offset < spec.tile_pixels());
+                DASSERT (offset < spec.tile_pixels() * spec.nchannels);
+                DASSERT (tile[j][i]->data());
                 texel[j][i] = tile[j][i]->data() + offset + options.firstchannel;
             }
         }

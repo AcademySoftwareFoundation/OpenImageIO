@@ -80,6 +80,7 @@ public:
     bool broken () const { return m_broken; }
     int levels () const { return (int)m_spec.size(); }
     const ImageSpec & spec (int level=0) const { return m_spec[level]; }
+    ustring filename (void) const { return m_filename; }
     TexFormat textureformat () const { return m_texformat; }
     TextureOptions::Wrap swrap () const { return m_swrap; }
     TextureOptions::Wrap twrap () const { return m_twrap; }
@@ -87,8 +88,8 @@ public:
     TypeDesc datatype () const { return m_datatype; }
 
     /// We will need to read pixels from the file, so be sure it's
-    /// currently opened.
-    void open ();
+    /// currently opened.  Return true if ok, false if error.
+    bool open ();
 
     /// load new data tile
     ///
@@ -108,6 +109,8 @@ private:
     ustring m_filename;             ///< Filename
     bool m_used;                    ///< Recently used (in the LRU sense)
     bool m_broken;                  ///< has errors; can't be used properly
+    bool m_untiled;                 ///< Not tiled
+    bool m_unmipped;                ///< Not really MIP-mapped
     shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
     std::vector<ImageSpec> m_spec;  ///< Format for each MIP-map level
     TexFormat m_texformat;          ///< Which texture format
@@ -117,9 +120,9 @@ private:
     Imath::M44f m_Mproj;            ///< shadows: world-to-pseudo-NDC
     Imath::M44f m_Mtex;             ///< shadows: world-to-pNDC with camera z
     Imath::M44f m_Mras;             ///< shadows: world-to-raster with camera z
+    TypeDesc m_datatype;            ///< Type of pixels we store internally
     CubeLayout m_cubelayout;        ///< cubemap: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
-    TypeDesc m_datatype;            ///< Type of pixels we store internally
     TextureSystemImpl &m_texsys;    ///< Back pointer for texture system
 };
 
@@ -251,6 +254,8 @@ public:
 
     /// Has this tile been recently used?
     bool used (void) const { return m_used; }
+
+    bool valid (void) const { return m_valid; }
 
 private:
     TileID m_id;                  ///< ID of this tile
