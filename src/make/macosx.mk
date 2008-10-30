@@ -24,11 +24,11 @@ SHLIB_LDFLAGS := -dynamiclib
 #SHLIB_LDFLAGS += -arch x86_64
 # -m64
 
-QT_INCLUDE := -I/Library/Frameworks/QtGui.framework/Headers
+QT_INCLUDE += -I/Library/Frameworks/QtGui.framework/Headers
 QT_INCLUDE += -I/Library/Frameworks/QtOpenGL.framework/Headers
 #QT_INCLUDE := -FQtGui.framework
 #QT_INCLUDE += -FQtOpenGL.framework
-LINK_QT := /Library/Frameworks/QtGui.framework/QtGui
+LINK_QT += /Library/Frameworks/QtGui.framework/QtGui
 LINK_QT += /Library/Frameworks/QtOpenGL.framework/QtOpenGL
 LINK_QT += /Library/Frameworks/QtCore.framework/QtCore
 

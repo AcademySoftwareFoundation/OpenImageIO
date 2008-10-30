@@ -59,6 +59,7 @@ include ${src_make_dir}/platform.mk
 # builds, which we put in their own areas.
 ifdef DEBUG
     variant +=.debug
+    CFLAGS += -DDEBUG
 endif
 ifdef PROFILE
     variant +=.profile
