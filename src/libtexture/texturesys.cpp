@@ -60,9 +60,26 @@ using namespace OpenImageIO::pvt;
 namespace OpenImageIO {
 
 
+namespace pvt {
+    static shared_ptr<TextureSystem> shared_cache;
+    static mutex shared_cache_mutex;
+};
+
+
+
 TextureSystem *
-TextureSystem::create ()
+TextureSystem::create (bool shared)
 {
+    if (shared) {
+        // They requested a shared cache.  If a shared cache already
+        // exists, just return it, otherwise record the shared cache.
+        lock_guard guard (shared_cache_mutex);
+        if (! shared_cache)
+            shared_cache.reset (new TextureSystemImpl);
+        return shared_cache.get ();
+    }
+
+    // Doesn't need a shared cache
     return new TextureSystemImpl;
 }
 
@@ -71,7 +88,16 @@ TextureSystem::create ()
 void
 TextureSystem::destroy (TextureSystem * &x)
 {
-    delete x;
+    // If this is not a shared cache, delete it for real.  But if it is
+    // the same as the shared cache, don't really delete it, since others
+    // may be using it now, or may request a shared cache some time in
+    // the future.  Don't worry that it will leak; because shared_cache
+    // is itself a shared_ptr, when the process ends it will properly 
+    // destroy the shared cache.
+    lock_guard guard (shared_cache_mutex);
+    if (x != shared_cache.get())
+        delete x;
+    // clear the user's pointer (we were passed a reference to the pointer)
     x = NULL;
 }
 

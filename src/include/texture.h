@@ -173,9 +173,12 @@ private:
 /// map, and environment map lookups.
 class TextureSystem {
 public:
-    /// Creat a TextureSystem and return a pointer.  This should only be
+    /// Create a TextureSystem and return a pointer.  This should only be
     /// freed by passing it to TextureSystem::destroy()!
-    static TextureSystem *create ();
+    ///
+    /// If shared==true, it's intended to be shared with other like-minded
+    /// owners in the same process who also ask for a shared cache.
+    static TextureSystem *create (bool shared=false);
 
     /// Destroy a TextureSystem that was created using
     /// TextureSystem::create().
