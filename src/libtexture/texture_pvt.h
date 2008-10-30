@@ -124,6 +124,8 @@ private:
     CubeLayout m_cubelayout;        ///< cubemap: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
     TextureSystemImpl &m_texsys;    ///< Back pointer for texture system
+
+    void close (void);
 };
 
 

@@ -203,7 +203,9 @@ void
 TextureSystemImpl::check_max_mem ()
 {
 #ifdef DEBUG
-    std::cerr << "mem used: " << m_mem_used << ", max = " << m_max_memory_bytes << "\n";
+    static size_t n = 0;
+    if (! (n++ % 16) || m_mem_used >= m_max_memory_bytes)
+        std::cerr << "mem used: " << m_mem_used << ", max = " << m_max_memory_bytes << "\n";
 #endif
     while (m_mem_used >= m_max_memory_bytes) {
         if (m_tile_sweep == m_tilecache.end())
@@ -1019,8 +1021,6 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
     TileRef tile[4][4];
     static float black[4] = { 0, 0, 0, 0 };
-#if 0
-    // FIXME -- restore this by forcing pow2
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
     int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
@@ -1029,12 +1029,6 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     int tile_t = ttex[0] & tileheightmask;
     bool s_onetile = (tile_s <= tilewidthmask-3);
     bool t_onetile = (tile_t <= tileheightmask-3);
-#else
-    int tile_s = stex[0] % spec.tile_width;
-    int tile_t = ttex[0] % spec.tile_height;
-    bool s_onetile = (tile_s < spec.tile_width-3);
-    bool t_onetile = (tile_t < spec.tile_height-3);
-#endif
     if (s_onetile && t_onetile) {
         for (int i = 1; i < 4;  ++i) {
             s_onetile &= (stex[i] == stex[0]);
@@ -1063,14 +1057,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                     texel[j][i] = black;
                     continue;
                 }
-#if 0
-                // FIXME -- restore this by forcing pow2
                 tile_s = stex[i] & tilewidthmask;
                 tile_t = ttex[j] & tileheightmask;
-#else
-                tile_s = stex[i] % spec.tile_width;
-                tile_t = ttex[j] % spec.tile_height;
-#endif
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
                 if (0 && initialized)   // Why isn't it faster to do this?

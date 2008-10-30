@@ -77,7 +77,7 @@ TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
 
 TextureFile::~TextureFile ()
 {
-    release ();
+    close ();
 }
 
 
@@ -128,8 +128,8 @@ TextureFile::open ()
         }
         if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
             m_untiled = true;
-            tempspec.tile_width = tempspec.width;
-            tempspec.tile_height = tempspec.height;
+            tempspec.tile_width = pow2roundup (tempspec.width);
+            tempspec.tile_height = pow2roundup (tempspec.height);
         }
         ++nsubimages;
         m_spec.push_back (tempspec);
@@ -185,6 +185,10 @@ TextureFile::open ()
     m_datatype = TypeDesc::FLOAT;
     // FIXME -- use 8-bit when that's native?
 
+    if (m_untiled || m_unmipped) {
+        close ();
+    }
+
     return !m_broken;
 }
 
@@ -203,10 +207,12 @@ TextureFile::read_tile (int level, int x, int y, int z,
         m_input->seek_subimage (level, tmp);
 
     // Handle untiled, unmip-mapped
-    if (m_untiled) {
-        ok = m_input->read_image (format, data);
-        m_input->close ();
-        m_input.reset ();
+    if (m_untiled || m_unmipped) {
+        stride_t xstride=AutoStride, ystride=AutoStride, zstride=AutoStride;
+        spec().auto_stride (xstride, ystride, zstride, format, spec().nchannels,
+                            spec().tile_width, spec().tile_height);
+        ok = m_input->read_image (format, data, xstride, ystride, zstride);
+        close ();   // Done with it
         return ok;
     }
 
@@ -217,16 +223,24 @@ TextureFile::read_tile (int level, int x, int y, int z,
 
 
 void
-TextureFile::release ()
+TextureFile::close ()
 {
-    if (m_used) {
-        m_used = false;
-    } else if (opened()) {
+    if (opened()) {
         m_input->close ();
         m_input.reset ();
-        m_used = false;
         m_texsys.decr_open_files ();
     }
+}
+
+
+
+void
+TextureFile::release ()
+{
+    if (m_used)
+        m_used = false;
+    else
+        close ();
 }
 
 
@@ -258,7 +272,8 @@ void
 TextureSystemImpl::check_max_files ()
 {
 #ifdef DEBUG
-    std::cerr << "open files " << m_open_files << ", max = " << m_max_open_files << "\n";
+    if (! (m_open_files % 16) || m_open_files >= m_max_open_files)
+        std::cerr << "open files " << m_open_files << ", max = " << m_max_open_files << "\n";
 #endif
     while (m_open_files >= m_max_open_files) {
         if (m_file_sweep == m_texturefiles.end())
