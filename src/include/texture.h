@@ -191,19 +191,31 @@ public:
     ///
     virtual void clear () = 0;
 
-    // Set options
-    virtual void max_open_files (int nfiles) = 0;
-    virtual void max_memory_MB (float size) = 0;
-    virtual void searchpath (const std::string &path) = 0;
-    virtual void worldtocommon (const float *mx) = 0;
-    void worldtocommon (const Imath::M44f &w2c) {
-        worldtocommon ((const float *)&w2c);
-    }
+    /// Set an attribute controlling the texture system.  Return true
+    /// if the name and type were recognized and the attrib was set.
+    /// Documented attributes:
+    ///     int max_open_files : maximum number of file handles held open
+    ///     float max_memory_MB : maximum tile cache size, in MB
+    ///     string searchpath : colon-separated search path for texture files
+    ///     matrix44 worldtocommon : the world-to-common transformation
+    ///     matrix44 commontoworld : the common-to-world transformation
+    ///
+    virtual bool attribute (const std::string &name, TypeDesc type, const void *val) = 0;
+    // Shortcuts for common types
+    virtual bool attribute (const std::string &name, int val) = 0;
+    virtual bool attribute (const std::string &name, float val) = 0;
+    virtual bool attribute (const std::string &name, double val) = 0;
+    virtual bool attribute (const std::string &name, const char *val) = 0;
+    virtual bool attribute (const std::string &name, const std::string &val) = 0;
 
-    // Retrieve options
-    virtual int max_open_files () const = 0;
-    virtual float max_memory_MB () const = 0;
-    virtual std::string searchpath () const = 0;
+    /// Get the named attribute, store it in value.
+    virtual bool getattribute (const std::string &name, TypeDesc type, void *val) = 0;
+    // Shortcuts for common types
+    virtual bool getattribute (const std::string &name, int &val) = 0;
+    virtual bool getattribute (const std::string &name, float &val) = 0;
+    virtual bool getattribute (const std::string &name, double &val) = 0;
+    virtual bool getattribute (const std::string &name, char **val) = 0;
+    virtual bool getattribute (const std::string &name, std::string &val) = 0;
 
     /// Filtered 2D texture lookup for a single point.
     ///

@@ -86,6 +86,7 @@ public:
     TextureOptions::Wrap twrap () const { return m_twrap; }
     bool opened () const { return m_input.get() != NULL; }
     TypeDesc datatype () const { return m_datatype; }
+    TextureSystemImpl &texsys () const { return m_texsys; }
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.  Return true if ok, false if error.
@@ -222,7 +223,7 @@ class Tile {
 public:
     Tile (const TileID &id);
 
-    ~Tile () { }
+    ~Tile ();
 
     /// Return pointer to the floating-point texel data
     ///
@@ -289,29 +290,60 @@ public:
     TextureSystemImpl ();
     virtual ~TextureSystemImpl ();
 
-    // Set options
-    virtual void max_open_files (int nfiles) { m_max_open_files = nfiles; }
-    virtual void max_memory_MB (float size) {
-        m_max_memory_MB = size;
-        m_max_memory_bytes = (int)(size * 1024 * 1024);
+    virtual bool attribute (const std::string &name, TypeDesc type, const void *val);
+    virtual bool attribute (const std::string &name, int val) {
+        return attribute (name, TypeDesc::INT, &val);
     }
-    virtual void searchpath (const std::string &path) {
-        m_searchpath = ustring(path);
+    virtual bool attribute (const std::string &name, float val) {
+        return attribute (name, TypeDesc::FLOAT, &val);
     }
-    virtual void worldtocommon (const float *mx) {
-        m_Mw2c = *(Imath::M44f *)mx;
-        m_Mc2w = m_Mw2c.inverse();
+    virtual bool attribute (const std::string &name, double val) {
+        float f = (float) val;
+        return attribute (name, TypeDesc::FLOAT, &f);
     }
+    virtual bool attribute (const std::string &name, const char *val) {
+        return attribute (name, TypeDesc::STRING, &val);
+    }
+    virtual bool attribute (const std::string &name, const std::string &val) {
+        const char *s = val.c_str();
+        return attribute (name, TypeDesc::INT, &s);
+    }
+
+    virtual bool getattribute (const std::string &name, TypeDesc type, void *val);
+    virtual bool getattribute (const std::string &name, int &val) {
+        return getattribute (name, TypeDesc::INT, &val);
+    }
+    virtual bool getattribute (const std::string &name, float &val) {
+        return getattribute (name, TypeDesc::FLOAT, &val);
+    }
+    virtual bool getattribute (const std::string &name, double &val) {
+        float f;
+        bool ok = getattribute (name, TypeDesc::FLOAT, &f);
+        if (ok)
+            val = f;
+        return ok;
+    }
+    virtual bool getattribute (const std::string &name, char **val) {
+        return getattribute (name, TypeDesc::STRING, val);
+    }
+    virtual bool getattribute (const std::string &name, std::string &val) {
+        const char *s;
+        bool ok = getattribute (name, TypeDesc::STRING, &s);
+        if (ok)
+            val = s;
+        return ok;
+    }
+
 
     /// Close everything, free resources, start from scratch.
     ///
     virtual void clear () { }
 
     // Retrieve options
-    virtual int max_open_files () const { return m_max_open_files; }
-    virtual float max_memory_MB () const { return m_max_memory_MB; }
-    virtual std::string searchpath () const { return m_searchpath.string(); }
-    virtual void get_commontoworld (Imath::M44f &result) const {
+    int max_open_files () const { return m_max_open_files; }
+    float max_memory_MB () const { return m_max_memory_MB; }
+    std::string searchpath () const { return m_searchpath.string(); }
+    void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
     }
 
@@ -459,6 +491,7 @@ private:
     /// If tile is null, so is lasttile.  Inlined for speed.
     void find_tile (const TileID &id,
                     TileRef &tile, TileRef &lasttile) {
+        ++m_stat_find_tile_calls;
         if (tile) {
             if (tile->id() == id)
                 return;    // already have the tile we want
@@ -480,6 +513,7 @@ private:
     }
 
     TileRef find_tile (const TileID &id, TileRef microcache[2]) {
+        ++m_stat_find_tile_calls;
         if (microcache[0]) {
             if (microcache[0]->id() == id)
                 return microcache[0];
@@ -511,6 +545,7 @@ private:
     /// are reading several tiles from the same level.
     void find_tile_same_level (const TileID &id,
                                TileRef &tile, TileRef &lasttile) {
+        ++m_stat_find_tile_calls;
         DASSERT (tile);
         if (equal_same_level (tile->id(), id))
             return;
@@ -605,7 +640,34 @@ private:
     mutable std::string m_errormessage;   ///< Saved error string.
     mutable mutex m_errmutex;             ///< error mutex
     Filter1D *hq_filter;         ///< Better filter for magnification
+    int m_stat_texture_queries;
+    int m_stat_texture_batches;
+    int m_stat_texture3d_queries;
+    int m_stat_texture3d_batches;
+    int m_stat_shadow_queries;
+    int m_stat_shadow_batches;
+    int m_stat_environment_queries;
+    int m_stat_environment_batches;
+    int m_stat_aniso_queries;
+    int m_stat_aniso_probes;
+    int m_stat_closest_interps;
+    int m_stat_bilinear_interps;
+    int m_stat_cubic_interps;
+    int m_stat_find_tile_calls;
+    int m_stat_find_tile_microcache_misses;
+    int m_stat_find_tile_cache_misses;
+    int m_stat_tiles_created;
+    int m_stat_tiles_current;
+    int m_stat_tiles_peak;
+    int m_stat_files_referenced;
+    long long m_stat_files_totalsize;
+    long long m_stat_bytes_read;
+    int m_stat_texfile_records_created;
+    int m_stat_texfile_records_current;
+    int m_stat_texfile_records_peak;
+
     friend class TextureFile;
+    friend class Tile;
 };
 
 

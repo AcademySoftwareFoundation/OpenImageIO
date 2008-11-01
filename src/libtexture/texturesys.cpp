@@ -141,11 +141,18 @@ Tile::Tile (const TileID &id)
     : m_id (id), m_valid(true), m_used(true)
 {
     TextureFile &texfile = m_id.texfile ();
+    TextureSystemImpl &texsys (texfile.texsys());
+    ++texsys.m_stat_tiles_created;
+    ++texsys.m_stat_tiles_current;
+    if (texsys.m_stat_tiles_current > texsys.m_stat_tiles_peak)
+        texsys.m_stat_tiles_peak = texsys.m_stat_tiles_current;
     if (texfile.broken()) {
         m_valid = false;
         return;
     }
-    m_texels.resize (memsize());
+    size_t size = memsize();
+    m_texels.resize (size);
+    texsys.m_mem_used += size;
     if (! texfile.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
                              texfile.datatype(), &m_texels[0])) {
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() 
@@ -153,6 +160,15 @@ Tile::Tile (const TileID &id)
         m_valid = false;
     }
     // FIXME -- for shadow, fill in mindepth, maxdepth
+}
+
+
+
+Tile::~Tile ()
+{
+    DASSERT (memsize() == m_texels.size());
+    m_id.texfile().texsys().m_mem_used -= (int) memsize ();
+    --(m_id.texfile().texsys().m_stat_tiles_current);
 }
 
 
@@ -188,6 +204,116 @@ TextureSystemImpl::TextureSystemImpl ()
 TextureSystemImpl::~TextureSystemImpl ()
 {
     delete hq_filter;
+
+#ifdef DEBUG
+    std::cerr << "OpenImageIO Texture statistics (" << (void*)this << ")\n";
+    std::cerr << "  Queries/batches : \n";
+    std::cerr << "    texture 2d queries :  " << m_stat_texture_queries << "\n";
+    std::cerr << "    texture 2d batches :  " << m_stat_texture_batches << "\n";
+    std::cerr << "    texture 3d queries :  " << m_stat_texture3d_queries << "\n";
+    std::cerr << "    texture 3d batches :  " << m_stat_texture3d_batches << "\n";
+    std::cerr << "    shadow queries :  " << m_stat_shadow_queries << "\n";
+    std::cerr << "    shadow batches :  " << m_stat_shadow_batches << "\n";
+    std::cerr << "    environment queries :  " << m_stat_environment_queries << "\n";
+    std::cerr << "    environment batches :  " << m_stat_environment_batches << "\n";
+    std::cerr << "  Average anisotropy : " << (double)m_stat_aniso_probes/(double)m_stat_aniso_queries << "\n";
+    std::cerr << "  Interpolations :\n";
+    std::cerr << "    closest  : " << m_stat_closest_interps << "\n";
+    std::cerr << "    bilinear : " << m_stat_bilinear_interps << "\n";
+    std::cerr << "    bicubic  : " << m_stat_cubic_interps << "\n";
+    std::cerr << "  Tile requests :\n";
+    std::cerr << "    total tile requests : " << m_stat_find_tile_calls << "\n";
+    std::cerr << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
+    std::cerr << "    cache misses : " << m_stat_find_tile_cache_misses << " (" << 100.0*(double)m_stat_find_tile_cache_misses/(double)m_stat_find_tile_calls << "%)\n";
+    std::cerr << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
+    std::cerr << "  Texture Files :\n";
+    std::cerr << "    Unique textures used : " << m_stat_files_referenced << "\n";
+    std::cerr << "    Total size of all textures referenced : " ;
+    const long long MB = (1<<20);
+    const long long GB = (1<<30);
+    if (m_stat_files_totalsize >= GB)
+        std::cerr << (double)m_stat_files_totalsize/(double)GB << " GB\n";
+    else
+        std::cerr << (double)m_stat_files_totalsize/(double)MB << " MB\n";
+    std::cerr << "    Bytes read from disk : ";
+    if (m_stat_bytes_read >= GB)
+        std::cerr << (double)m_stat_bytes_read/(double)GB << " GB\n";
+    else
+        std::cerr << (double)m_stat_bytes_read/(double)MB << " MB\n";
+    std::cerr << "    Peak cache memory : ";
+    if (m_mem_used >= GB)
+        std::cerr << (double)m_mem_used/(double)GB << " GB\n";
+    else
+        std::cerr << (double)m_mem_used/(double)MB << " MB\n";
+    std::cerr << "  File records: " << m_stat_texfile_records_created << " created, " << m_stat_texfile_records_current << " current, " << m_stat_texfile_records_peak << " peak\n";
+    std::cerr << "\n\n";
+#endif
+}
+
+
+
+bool
+TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
+                              const void *val)
+{
+    if (name == "max_open_files" && type == TypeDesc::INT) {
+        m_max_open_files = *(const int *)val;
+        return true;
+    }
+    if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
+        float size = *(const float *)val;
+        m_max_memory_MB = size;
+        m_max_memory_bytes = (int)(size * 1024 * 1024);
+        return true;
+    }
+    if (name == "searchpath" && type == TypeDesc::STRING) {
+        m_searchpath = ustring (*(const char **)val);
+        return true;
+    }
+    if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
+                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+        m_Mw2c = *(Imath::M44f *)val;
+        m_Mc2w = m_Mw2c.inverse();
+        return true;
+    }
+    if (name == "commontoworld" && (type == TypeDesc::PT_MATRIX ||
+                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+        m_Mc2w = *(Imath::M44f *)val;
+        m_Mw2c = m_Mc2w.inverse();
+        return true;
+    }
+    return false;
+}
+
+
+
+bool
+TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
+                                 void *val)
+{
+    if (name == "max_open_files" && type == TypeDesc::INT) {
+        *(int *)val = m_max_open_files;
+        return true;
+    }
+    if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
+        *(float *)val = m_max_memory_MB;
+        return true;
+    }
+    if (name == "searchpath" && type == TypeDesc::STRING) {
+        *(ustring *)val = m_searchpath;
+        return true;
+    }
+    if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
+                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+        *(Imath::M44f *)val = m_Mw2c;
+        return true;
+    }
+    if (name == "commontoworld" && (type == TypeDesc::PT_MATRIX ||
+                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+        *(Imath::M44f *)val = m_Mc2w;
+        return true;
+    }
+    return false;
 }
 
 
@@ -195,11 +321,37 @@ TextureSystemImpl::~TextureSystemImpl ()
 void
 TextureSystemImpl::init ()
 {
-    max_open_files (100);
-    max_memory_MB (50);
+    m_max_open_files = 100;
+    m_max_memory_MB = 50;
     m_Mw2c.makeIdentity();
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
+    m_mem_used = 0;
+    m_stat_texture_queries = 0;
+    m_stat_texture_batches = 0;
+    m_stat_texture3d_queries = 0;
+    m_stat_texture3d_batches = 0;
+    m_stat_shadow_queries = 0;
+    m_stat_shadow_batches = 0;
+    m_stat_environment_queries = 0;
+    m_stat_environment_batches = 0;
+    m_stat_aniso_queries = 0;
+    m_stat_aniso_probes = 0;
+    m_stat_closest_interps = 0;
+    m_stat_bilinear_interps = 0;
+    m_stat_cubic_interps = 0;
+    m_stat_find_tile_calls = 0;
+    m_stat_find_tile_microcache_misses = 0;
+    m_stat_find_tile_cache_misses = 0;
+    m_stat_tiles_created = 0;
+    m_stat_tiles_current = 0;
+    m_stat_tiles_peak = 0;
+    m_stat_files_referenced = 0;
+    m_stat_files_totalsize = 0;
+    m_stat_bytes_read = 0;
+    m_stat_texfile_records_created = 0;
+    m_stat_texfile_records_current = 0;
+    m_stat_texfile_records_peak = 0;
 }
 
 
@@ -207,16 +359,17 @@ TextureSystemImpl::init ()
 TileRef
 TextureSystemImpl::find_tile (const TileID &id)
 {
+    ++m_stat_find_tile_microcache_misses;
     lock_guard guard (m_texturefiles_mutex);
     TileCache::iterator found = m_tilecache.find (id);
     TileRef tile;
     if (found != m_tilecache.end()) {
         tile = found->second;
     } else {
+        ++m_stat_find_tile_cache_misses;
         check_max_mem ();
         tile.reset (new Tile (id));
         m_tilecache[id] = tile;
-        m_mem_used += tile->memsize();
     }
     DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
     tile->used ();
@@ -241,7 +394,6 @@ TextureSystemImpl::check_max_mem ()
             TileCache::iterator todelete = m_tile_sweep;
             ++m_tile_sweep;
             ASSERT (m_mem_used > todelete->second->memsize ());
-            m_mem_used -= todelete->second->memsize ();
 #ifdef DEBUG
             std::cerr << "  Freeing tile, recovering " 
                       << todelete->second->memsize() << "\n";
@@ -504,10 +656,12 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 
     // FIXME - should we be keeping stats, times?
 
+    ++m_stat_texture_batches;
     TextureFileRef texturefile = find_texturefile (filename);
     if (! texturefile  ||  texturefile->broken()) {
         for (int i = firstactive;  i <= lastactive;  ++i) {
             if (runflags[i]) {
+                ++m_stat_texture_queries;
                 for (int c = 0;  c < options.nchannels;  ++c)
                     result[c] = options.fill;
                 if (options.alpha)
@@ -558,14 +712,17 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     // the loop, and all the work inside texture_lookup should be work
     // that MUST be redone for each individual texture lookup point.
     TileRef tilecache0, tilecache1;
+    int points_on = 0;
     for (int i = firstactive;  i <= lastactive;  ++i) {
         if (runflags[i]) {
+            ++points_on;
             (this->*lookup) (*texturefile, options, i,
                              s, t, dsdx, dtdx, dsdy, dtdy,
                              tilecache0, tilecache1,
                              result + i * options.nchannels);
         }
     }
+    m_stat_texture_queries += points_on;
     return true;
 }
 
@@ -606,6 +763,8 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
     (this->*accumer) (s, t, 0, texturefile,
                       options, index, tilecache0, tilecache1,
                       1.0f, result);
+    ++m_stat_aniso_queries;
+    ++m_stat_aniso_probes;
 }
 
 
@@ -702,6 +861,8 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         (this->*accumer) (_s[index], _t[index], miplevel[level], texturefile,
                           options, index, tilecache0, tilecache1,
                           levelweight[level], result);
+        ++m_stat_aniso_queries;
+        ++m_stat_aniso_probes;
     }
 }
 
@@ -823,7 +984,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         case TextureOptions::InterpBicubic :
             accumer = &TextureSystemImpl::accum_sample_bicubic;  break;
         case TextureOptions::InterpSmartBicubic :
-            if (level == 0 || options.interpmode == TextureOptions::InterpBicubic ||
+            if (lev == 0 || options.interpmode == TextureOptions::InterpBicubic ||
                 (texturefile.spec(lev).full_height < naturalres/2))
                 accumer = &TextureSystemImpl::accum_sample_bicubic;
             else 
@@ -835,6 +996,8 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
             (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
                         options, index, tilecache0, tilecache1, w, result);
         }
+        ++m_stat_aniso_queries;
+        m_stat_aniso_probes += nsamples;
     }
 }
 
@@ -847,6 +1010,7 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
                                  TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
+    ++m_stat_closest_interps;
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
@@ -898,6 +1062,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                                  TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
+    ++m_stat_bilinear_interps;
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
@@ -1002,6 +1167,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
+    ++m_stat_cubic_interps;
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.

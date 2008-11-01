@@ -71,6 +71,9 @@ TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
 {
     m_spec.clear ();
     open ();
+    ++texsys.m_stat_texfile_records_created;
+    if (++texsys.m_stat_texfile_records_current > texsys.m_stat_texfile_records_peak)
+        texsys.m_stat_texfile_records_peak = texsys.m_stat_texfile_records_current;
 }
 
 
@@ -78,6 +81,7 @@ TextureFile::TextureFile (TextureSystemImpl &texsys, ustring filename)
 TextureFile::~TextureFile ()
 {
     close ();
+    --texsys().m_stat_texfile_records_current;
 }
 
 
@@ -115,6 +119,7 @@ TextureFile::open ()
     // From here on, we know that we've opened this file for the very
     // first time.  So read all the MIP levels, fill out all the fields
     // of the TextureFile.
+    ++texsys().m_stat_files_referenced;
     m_spec.reserve (16);
     int nsubimages = 0;
     do {
@@ -133,6 +138,7 @@ TextureFile::open ()
         }
         ++nsubimages;
         m_spec.push_back (tempspec);
+        texsys().m_stat_files_totalsize += (long long)tempspec.image_bytes();
     } while (m_input->seek_subimage (nsubimages, tempspec));
     ASSERT (nsubimages == m_spec.size());
     if (m_untiled && nsubimages == 1)
@@ -212,11 +218,13 @@ TextureFile::read_tile (int level, int x, int y, int z,
         spec().auto_stride (xstride, ystride, zstride, format, spec().nchannels,
                             spec().tile_width, spec().tile_height);
         ok = m_input->read_image (format, data, xstride, ystride, zstride);
+        texsys().m_stat_bytes_read += spec().image_bytes();
         close ();   // Done with it
         return ok;
     }
 
     // Ordinary tiled
+    texsys().m_stat_bytes_read += spec(level).tile_bytes();
     return m_input->read_tile (x, y, z, format, data);
 }
 
