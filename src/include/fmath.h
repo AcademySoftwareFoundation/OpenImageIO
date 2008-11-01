@@ -121,7 +121,7 @@ pow2roundup (int x)
 {
     // There's probably a bit twiddling trick that does this without
     // looping.
-    int p = 1;
+    int p = (x >= 256 ? 256 : 1);   // Skip 8 iterations for larger numbers
     while (p < x)
         p <<= 1;
     return p;
