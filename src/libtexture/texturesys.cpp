@@ -323,6 +323,7 @@ TextureSystemImpl::init ()
 {
     m_max_open_files = 100;
     m_max_memory_MB = 50;
+    m_max_memory_bytes = (int)(max_memory_MB * 1024 * 1024);
     m_Mw2c.makeIdentity();
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
