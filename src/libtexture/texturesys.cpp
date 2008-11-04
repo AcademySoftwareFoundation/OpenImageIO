@@ -53,6 +53,8 @@ using namespace OpenImageIO;
 #include "texture.h"
 #undef DLL_EXPORT_PUBLIC
 
+#include "imagecache.h"
+#include "imagecache_pvt.h"
 #include "texture_pvt.h"
 using namespace OpenImageIO::pvt;
 
@@ -60,51 +62,24 @@ using namespace OpenImageIO::pvt;
 namespace OpenImageIO {
 
 
-namespace pvt {
-    static shared_ptr<TextureSystem> shared_cache;
-    static mutex shared_cache_mutex;
-};
-
-
-
 TextureSystem *
 TextureSystem::create (bool shared)
 {
-    if (shared) {
-        // They requested a shared cache.  If a shared cache already
-        // exists, just return it, otherwise record the shared cache.
-        lock_guard guard (shared_cache_mutex);
-        if (! shared_cache)
-            shared_cache.reset (new TextureSystemImpl);
-        return shared_cache.get ();
-    }
-
-    // Doesn't need a shared cache
-    return new TextureSystemImpl;
+    ImageCache *ic = ImageCache::create (shared);
+    return new TextureSystemImpl (ic);
 }
 
 
 
 void
-TextureSystem::destroy (TextureSystem * &x)
+TextureSystem::destroy (TextureSystem *x)
 {
-    // If this is not a shared cache, delete it for real.  But if it is
-    // the same as the shared cache, don't really delete it, since others
-    // may be using it now, or may request a shared cache some time in
-    // the future.  Don't worry that it will leak; because shared_cache
-    // is itself a shared_ptr, when the process ends it will properly 
-    // destroy the shared cache.
-    lock_guard guard (shared_cache_mutex);
-    if (x != shared_cache.get())
-        delete x;
-    // clear the user's pointer (we were passed a reference to the pointer)
-    x = NULL;
+    delete (TextureSystemImpl *) x;
 }
 
 
 
 namespace pvt {   // namespace OpenImageIO::pvt
-
 
 
 const char *
@@ -137,65 +112,10 @@ texture_type_name (TexFormat f)
 
 
 
-Tile::Tile (const TileID &id)
-    : m_id (id), m_valid(true), m_used(true)
+TextureSystemImpl::TextureSystemImpl (ImageCache *imagecache)
+    : hq_filter(NULL)
 {
-    TextureFile &texfile = m_id.texfile ();
-    TextureSystemImpl &texsys (texfile.texsys());
-    ++texsys.m_stat_tiles_created;
-    ++texsys.m_stat_tiles_current;
-    if (texsys.m_stat_tiles_current > texsys.m_stat_tiles_peak)
-        texsys.m_stat_tiles_peak = texsys.m_stat_tiles_current;
-    if (texfile.broken()) {
-        m_valid = false;
-        return;
-    }
-    size_t size = memsize();
-    m_texels.resize (size);
-    texsys.m_mem_used += size;
-    if (! texfile.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
-                             texfile.datatype(), &m_texels[0])) {
-        std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() 
-                  << " from " << texfile.filename() << "\n";
-        m_valid = false;
-    }
-    // FIXME -- for shadow, fill in mindepth, maxdepth
-}
-
-
-
-Tile::~Tile ()
-{
-    DASSERT (memsize() == m_texels.size());
-    m_id.texfile().texsys().m_mem_used -= (int) memsize ();
-    --(m_id.texfile().texsys().m_stat_tiles_current);
-}
-
-
-
-const void *
-Tile::data (int x, int y, int z) const
-{
-    const ImageSpec &spec = m_id.texfile().spec (m_id.level());
-    size_t w = spec.tile_width;
-    size_t h = spec.tile_height;
-    size_t d = std::max (1, spec.tile_depth);
-    x -= m_id.x();
-    y -= m_id.y();
-    z -= m_id.z();
-    if (x < 0 || x >= w || y < 0 || y >= h || z < 0 || z >= d)
-        return NULL;
-    size_t pixelsize = spec.nchannels * m_id.texfile().datatype().size();
-    size_t offset = ((z * h + y) * w + x) * pixelsize;
-    return (const void *)&m_texels[offset];
-}
-
-
-
-TextureSystemImpl::TextureSystemImpl ()
-    : m_file_sweep(m_texturefiles.end()), m_open_files(0), 
-      m_tile_sweep(m_tilecache.end()), m_mem_used(0), hq_filter(NULL)
-{
+    m_imagecache = (ImageCacheImpl *) imagecache;
     init ();
 }
 
@@ -203,10 +123,9 @@ TextureSystemImpl::TextureSystemImpl ()
 
 TextureSystemImpl::~TextureSystemImpl ()
 {
-    delete hq_filter;
-
 #ifdef DEBUG
-    std::cerr << "OpenImageIO Texture statistics (" << (void*)this << ")\n";
+    std::cerr << "OpenImageIO Texture statistics (" << (void*)this 
+              << ", cache = " << (void *)m_imagecache << ")\n";
     std::cerr << "  Queries/batches : \n";
     std::cerr << "    texture 2d queries :  " << m_stat_texture_queries << "\n";
     std::cerr << "    texture 2d batches :  " << m_stat_texture_batches << "\n";
@@ -221,33 +140,12 @@ TextureSystemImpl::~TextureSystemImpl ()
     std::cerr << "    closest  : " << m_stat_closest_interps << "\n";
     std::cerr << "    bilinear : " << m_stat_bilinear_interps << "\n";
     std::cerr << "    bicubic  : " << m_stat_cubic_interps << "\n";
-    std::cerr << "  Tile requests :\n";
-    std::cerr << "    total tile requests : " << m_stat_find_tile_calls << "\n";
-    std::cerr << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
-    std::cerr << "    cache misses : " << m_stat_find_tile_cache_misses << " (" << 100.0*(double)m_stat_find_tile_cache_misses/(double)m_stat_find_tile_calls << "%)\n";
-    std::cerr << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
-    std::cerr << "  Texture Files :\n";
-    std::cerr << "    Unique textures used : " << m_stat_files_referenced << "\n";
-    std::cerr << "    Total size of all textures referenced : " ;
-    const long long MB = (1<<20);
-    const long long GB = (1<<30);
-    if (m_stat_files_totalsize >= GB)
-        std::cerr << (double)m_stat_files_totalsize/(double)GB << " GB\n";
-    else
-        std::cerr << (double)m_stat_files_totalsize/(double)MB << " MB\n";
-    std::cerr << "    Bytes read from disk : ";
-    if (m_stat_bytes_read >= GB)
-        std::cerr << (double)m_stat_bytes_read/(double)GB << " GB\n";
-    else
-        std::cerr << (double)m_stat_bytes_read/(double)MB << " MB\n";
-    std::cerr << "    Peak cache memory : ";
-    if (m_mem_used >= GB)
-        std::cerr << (double)m_mem_used/(double)GB << " GB\n";
-    else
-        std::cerr << (double)m_mem_used/(double)MB << " MB\n";
-    std::cerr << "  File records: " << m_stat_texfile_records_created << " created, " << m_stat_texfile_records_current << " current, " << m_stat_texfile_records_peak << " peak\n";
-    std::cerr << "\n\n";
+    std::cerr << "\n";
 #endif
+
+    ImageCache::destroy (m_imagecache);
+    m_imagecache = NULL;
+    delete hq_filter;
 }
 
 
@@ -256,20 +154,6 @@ bool
 TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
                               const void *val)
 {
-    if (name == "max_open_files" && type == TypeDesc::INT) {
-        m_max_open_files = *(const int *)val;
-        return true;
-    }
-    if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
-        float size = *(const float *)val;
-        m_max_memory_MB = size;
-        m_max_memory_bytes = (int)(size * 1024 * 1024);
-        return true;
-    }
-    if (name == "searchpath" && type == TypeDesc::STRING) {
-        m_searchpath = ustring (*(const char **)val);
-        return true;
-    }
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
                                     type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
         m_Mw2c = *(Imath::M44f *)val;
@@ -282,7 +166,9 @@ TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
         m_Mw2c = m_Mc2w.inverse();
         return true;
     }
-    return false;
+
+    // Maybe it's meant for the cache?
+    return m_imagecache->attribute (name, type, val);
 }
 
 
@@ -291,18 +177,6 @@ bool
 TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
                                  void *val)
 {
-    if (name == "max_open_files" && type == TypeDesc::INT) {
-        *(int *)val = m_max_open_files;
-        return true;
-    }
-    if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
-        *(float *)val = m_max_memory_MB;
-        return true;
-    }
-    if (name == "searchpath" && type == TypeDesc::STRING) {
-        *(ustring *)val = m_searchpath;
-        return true;
-    }
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
                                     type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
         *(Imath::M44f *)val = m_Mw2c;
@@ -313,6 +187,9 @@ TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
         *(Imath::M44f *)val = m_Mc2w;
         return true;
     }
+    // If not one of these, maybe it's an attribute meant for the image cache?
+    return m_imagecache->getattribute (name, type, val);
+
     return false;
 }
 
@@ -321,13 +198,9 @@ TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
 void
 TextureSystemImpl::init ()
 {
-    m_max_open_files = 100;
-    m_max_memory_MB = 50;
-    m_max_memory_bytes = (int)(m_max_memory_MB * 1024 * 1024);
     m_Mw2c.makeIdentity();
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
-    m_mem_used = 0;
     m_stat_texture_queries = 0;
     m_stat_texture_batches = 0;
     m_stat_texture3d_queries = 0;
@@ -341,69 +214,6 @@ TextureSystemImpl::init ()
     m_stat_closest_interps = 0;
     m_stat_bilinear_interps = 0;
     m_stat_cubic_interps = 0;
-    m_stat_find_tile_calls = 0;
-    m_stat_find_tile_microcache_misses = 0;
-    m_stat_find_tile_cache_misses = 0;
-    m_stat_tiles_created = 0;
-    m_stat_tiles_current = 0;
-    m_stat_tiles_peak = 0;
-    m_stat_files_referenced = 0;
-    m_stat_files_totalsize = 0;
-    m_stat_bytes_read = 0;
-    m_stat_texfile_records_created = 0;
-    m_stat_texfile_records_current = 0;
-    m_stat_texfile_records_peak = 0;
-}
-
-
-
-TileRef
-TextureSystemImpl::find_tile (const TileID &id)
-{
-    ++m_stat_find_tile_microcache_misses;
-    lock_guard guard (m_texturefiles_mutex);
-    TileCache::iterator found = m_tilecache.find (id);
-    TileRef tile;
-    if (found != m_tilecache.end()) {
-        tile = found->second;
-    } else {
-        ++m_stat_find_tile_cache_misses;
-        check_max_mem ();
-        tile.reset (new Tile (id));
-        m_tilecache[id] = tile;
-    }
-    DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
-    tile->used ();
-    return tile->valid() ? tile : TileRef();
-}
-
-
-
-void
-TextureSystemImpl::check_max_mem ()
-{
-#ifdef DEBUG
-    static size_t n = 0;
-    if (! (n++ % 16) || m_mem_used >= m_max_memory_bytes)
-        std::cerr << "mem used: " << m_mem_used << ", max = " << m_max_memory_bytes << "\n";
-#endif
-    while (m_mem_used >= m_max_memory_bytes) {
-        if (m_tile_sweep == m_tilecache.end())
-            m_tile_sweep = m_tilecache.begin();
-        ASSERT (m_tile_sweep != m_tilecache.end());
-        if (! m_tile_sweep->second->used (false)) {
-            TileCache::iterator todelete = m_tile_sweep;
-            ++m_tile_sweep;
-            ASSERT (m_mem_used > todelete->second->memsize ());
-#ifdef DEBUG
-            std::cerr << "  Freeing tile, recovering " 
-                      << todelete->second->memsize() << "\n";
-#endif
-            m_tilecache.erase (todelete);
-        } else {
-            ++m_tile_sweep;
-        }
-    }
 }
 
 
@@ -412,61 +222,10 @@ bool
 TextureSystemImpl::get_texture_info (ustring filename, ustring dataname,
                                      TypeDesc datatype, void *data)
 {
-    TextureFileRef texfile = find_texturefile (filename);
-    if (! texfile) {
-        error ("Texture file \"%s\" not found", filename.c_str());
-        return false;
-    }
-    if (texfile->broken()) {
-        error ("Invalid texture file \"%s\"", filename.c_str());
-        return false;
-    }
-    const ImageSpec &spec (texfile->spec());
-    if (dataname == "resolution" && datatype==TypeDesc(TypeDesc::INT,2)) {
-        int *d = (int *)data;
-        d[0] = spec.width;
-        d[1] = spec.height;
-        return true;
-    }
-    if (dataname == "texturetype" && datatype == TypeDesc::TypeString) {
-        ustring s (texture_type_name (texfile->textureformat()));
-        *(const char **)data = s.c_str();
-        return true;
-    }
-    if (dataname == "textureformat" && datatype == TypeDesc::TypeString) {
-        ustring s (texture_format_name (texfile->textureformat()));
-        *(const char **)data = s.c_str();
-        return true;
-    }
-    if (dataname == "channels" && datatype == TypeDesc::TypeInt) {
-        *(int *)data = spec.nchannels;
-        return true;
-    }
-    if (dataname == "channels" && datatype == TypeDesc::TypeFloat) {
-        *(float *)data = spec.nchannels;
-        return true;
-    }
-    // FIXME - "viewingmatrix"
-    // FIXME - "projectionmatrix"
-
-    // general case
-    const ImageIOParameter *p = spec.find_attribute (dataname.string());
-    if (p && p->type().arraylen == datatype.arraylen) {
-        // First test for exact type match
-        if (p->type() == datatype) {
-            memcpy (data, p->data(), datatype.size());
-            return true;
-        }
-        // If the real data is int but user asks for float, translate it
-        if (p->type().basetype == TypeDesc::FLOAT &&
-                datatype.basetype == TypeDesc::INT) {
-            for (int i = 0;  i < p->type().arraylen;  ++i)
-                ((float *)data)[i] = ((int *)p->data())[i];
-            return true;
-        }
-    }
-
-    return false;
+    bool ok = m_imagecache->get_image_info (filename, dataname, datatype, data);
+    if (! ok)
+        error ("%s", m_imagecache->geterror().c_str());
+    return ok;
 }
 
 
@@ -474,25 +233,18 @@ TextureSystemImpl::get_texture_info (ustring filename, ustring dataname,
 bool
 TextureSystemImpl::get_imagespec (ustring filename, ImageSpec &spec)
 {
-    TextureFileRef texfile = find_texturefile (filename);
-    if (! texfile) {
-        error ("Texture file \"%s\" not found", filename.c_str());
-        return false;
-    }
-    if (texfile->broken()) {
-        error ("Invalid texture file \"%s\"", filename.c_str());
-        return false;
-    }
-    spec = texfile->spec();
-    return true;
+    bool ok = m_imagecache->get_imagespec (filename, spec);
+    if (! ok)
+        error ("%s", m_imagecache->geterror().c_str());
+    return ok;
 }
 
 
 
 bool
 TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
-                               int xmin, int xmax, int ymin, int ymax,
-                               int zmin, int zmax, int level,
+                               int level, int xmin, int xmax,
+                               int ymin, int ymax, int zmin, int zmax, 
                                TypeDesc format, void *result)
 {
     TextureFileRef texfile = find_texturefile (filename);

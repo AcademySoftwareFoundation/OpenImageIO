@@ -51,12 +51,9 @@ using namespace OpenImageIO;
 #include "texture.h"
 #undef DLL_EXPORT_PUBLIC
 
-#include "texture_pvt.h"
-using namespace OpenImageIO::pvt;
 
 
 namespace OpenImageIO {
-
 
 static float default_blur = 0;
 static float default_width = 1;

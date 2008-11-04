@@ -57,8 +57,25 @@ namespace OpenImageIO {
 
 // Forward declaration
 namespace pvt {
-    class TextureSystemImpl;
+
+class TextureSystemImpl;
+
+// Used internally by TextureSystem.  Unfortunately, this is the only
+// clean place to store it.  Sorry, users, this isn't really for you.
+enum TexFormat {
+    TexFormatUnknown, TexFormatTexture, TexFormatTexture3d,
+    TexFormatShadow, TexFormatCubeFaceShadow, TexFormatVolumeShadow,
+    TexFormatLatLongEnv, TexFormatCubeFaceEnv,
+    TexFormatLast
 };
+
+enum CubeLayout {
+    CubeUnknown, CubeThreeByTwo, CubeOneBySix, CubeLast
+};
+
+}; // pvt namespace
+
+
 
 
 /// Data type for flags that indicate on a point-by-point basis whether
@@ -177,12 +194,13 @@ public:
     /// freed by passing it to TextureSystem::destroy()!
     ///
     /// If shared==true, it's intended to be shared with other like-minded
-    /// owners in the same process who also ask for a shared cache.
-    static TextureSystem *create (bool shared=false);
+    /// owners in the same process who also ask for a shared cache.  If
+    /// false, a private image cache will be created.
+    static TextureSystem *create (bool shared=true);
 
     /// Destroy a TextureSystem that was created using
     /// TextureSystem::create().
-    static void destroy (TextureSystem * &x);
+    static void destroy (TextureSystem *x);
 
     TextureSystem (void) { }
     virtual ~TextureSystem () { }
@@ -337,8 +355,8 @@ public:
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool get_texels (ustring filename, TextureOptions &options,
-                             int xmin, int xmax, int ymin, int ymax,
-                             int zmin, int zmax, int level,
+                             int level, int xmin, int xmax,
+                             int ymin, int ymax, int zmin, int zmax, 
                              TypeDesc format, void *result) = 0;
 
     /// If any of the API routines returned false indicating an error,
@@ -346,6 +364,11 @@ public:
     /// flags).  If no error has occurred since the last time geterror()
     /// was called, it will return an empty string.
     virtual std::string geterror () const = 0;
+
+private:
+    // Make delete private and unimplemented in order to prevent apps
+    // from calling it.  Instead, they should call TextureSystem::destroy().
+    void operator delete (void *todel) { }
 
 };
 

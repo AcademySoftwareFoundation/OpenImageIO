@@ -163,14 +163,13 @@ struct DLLPUBLIC TypeDesc {
     /// Compare two TypeDesc values for equality.
     ///
     bool operator== (const TypeDesc &t) const {
-        return *(const long long*)(this) == *(const long long*)(&t);
+        return basetype == t.basetype && aggregate == t.aggregate &&
+            vecsemantics == t.vecsemantics && arraylen == t.arraylen;
     } 
 
     /// Compare two TypeDesc values for inequality.
     ///
-    bool operator!= (const TypeDesc &t) const {
-        return *(const long long*)(this) != *(const long long*)(&t);
-    } 
+    bool operator!= (const TypeDesc &t) const { return ! (*this == t); } 
 
     /// Compare a TypeDesc to a basetype (it's the same if it has the
     /// same base type and is not an aggregate or an array).

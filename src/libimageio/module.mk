@@ -27,7 +27,7 @@ local_extra_objs := ${build_obj_dir}/libutil/argparse${OEXT} \
 		    ${build_obj_dir}/libutil/ustring${OEXT} \
 		    ${build_obj_dir}/libtexture/texturesys${OEXT} \
 		    ${build_obj_dir}/libtexture/texoptions${OEXT} \
-		    ${build_obj_dir}/libtexture/texfile${OEXT}
+		    ${build_obj_dir}/libtexture/imagecache${OEXT}
 
 # Extra shared libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)

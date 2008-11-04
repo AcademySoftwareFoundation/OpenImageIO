@@ -53,6 +53,7 @@ static std::string output_filename = "out.exr";
 static bool verbose = false;
 static int output_xres = 512, output_yres = 512;
 static float blur = 0;
+static int iters = 1;
 static TextureSystem *texsys = NULL;
 
 
@@ -79,6 +80,8 @@ getargs (int argc, char *argv[])
                   "-o %s", &output_filename, "Output test image",
                   "-res %d %d", &output_xres, &output_yres,
                       "Resolution of output test image",
+                  "-iters %d", &iters,
+                      "Iterations for time trials",
                   "--blur %f", &blur, "Add blur to texture lookup",
                   NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
@@ -172,7 +175,7 @@ test_plain_texture (ustring filename)
     float s[shadepoints], t[shadepoints];
     Runflag runflags[shadepoints] = { RunFlagOn };
 
-    for (int iter = 0;  iter < 1;  ++iter) {
+    for (int iter = 0;  iter < iters;  ++iter) {
         for (int y = 0;  y < output_yres;  ++y) {
             for (int x = 0;  x < output_xres;  ++x) {
                 Imath::V3f coord = warp ((float)x/output_xres, (float)y/output_yres, xform);
@@ -225,7 +228,7 @@ test_getimagespec_gettexels (ustring filename)
     ImageBuf buf ("postage.exr", postagespec);
     TextureOptions opt;
     opt.nchannels = spec.nchannels;
-    texsys->get_texels (filename, opt, w/2, w/2+w-1, h/2, h/2+h-1, 0, 0, 0,
+    texsys->get_texels (filename, opt, 0, w/2, w/2+w-1, h/2, h/2+h-1, 0, 0, 
                         postagespec.format, buf.pixeladdr (0,0));
     buf.save ();
 }
@@ -260,6 +263,6 @@ main (int argc, char *argv[])
     test_getimagespec_gettexels (filename);
 
     
-    delete texsys;
+    TextureSystem::destroy (texsys);
     return 0;
 }
