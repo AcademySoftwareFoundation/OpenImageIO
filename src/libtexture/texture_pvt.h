@@ -344,12 +344,15 @@ private:
     ///
     void error (const char *message, ...);
 
+    void printstats ();
+
     ImageCacheImpl *m_imagecache;
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     mutable std::string m_errormessage;   ///< Saved error string.
     mutable mutex m_errmutex;             ///< error mutex
     Filter1D *hq_filter;         ///< Better filter for magnification
+    int m_statslevel;
     int m_stat_texture_queries;
     int m_stat_texture_batches;
     int m_stat_texture3d_queries;

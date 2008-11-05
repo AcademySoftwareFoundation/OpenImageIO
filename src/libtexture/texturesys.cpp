@@ -121,31 +121,62 @@ TextureSystemImpl::TextureSystemImpl (ImageCache *imagecache)
 
 
 
+void
+TextureSystemImpl::init ()
+{
+    m_Mw2c.makeIdentity();
+    delete hq_filter;
+    hq_filter = Filter1D::create ("b-spline", 4);
+    m_statslevel = 0;
+    m_stat_texture_queries = 0;
+    m_stat_texture_batches = 0;
+    m_stat_texture3d_queries = 0;
+    m_stat_texture3d_batches = 0;
+    m_stat_shadow_queries = 0;
+    m_stat_shadow_batches = 0;
+    m_stat_environment_queries = 0;
+    m_stat_environment_batches = 0;
+    m_stat_aniso_queries = 0;
+    m_stat_aniso_probes = 0;
+    m_stat_closest_interps = 0;
+    m_stat_bilinear_interps = 0;
+    m_stat_cubic_interps = 0;
+}
+
+
+
 TextureSystemImpl::~TextureSystemImpl ()
 {
-#ifdef DEBUG
-    std::cerr << "OpenImageIO Texture statistics (" << (void*)this 
-              << ", cache = " << (void *)m_imagecache << ")\n";
-    std::cerr << "  Queries/batches : \n";
-    std::cerr << "    texture 2d queries :  " << m_stat_texture_queries << "\n";
-    std::cerr << "    texture 2d batches :  " << m_stat_texture_batches << "\n";
-    std::cerr << "    texture 3d queries :  " << m_stat_texture3d_queries << "\n";
-    std::cerr << "    texture 3d batches :  " << m_stat_texture3d_batches << "\n";
-    std::cerr << "    shadow queries :  " << m_stat_shadow_queries << "\n";
-    std::cerr << "    shadow batches :  " << m_stat_shadow_batches << "\n";
-    std::cerr << "    environment queries :  " << m_stat_environment_queries << "\n";
-    std::cerr << "    environment batches :  " << m_stat_environment_batches << "\n";
-    std::cerr << "  Average anisotropy : " << (double)m_stat_aniso_probes/(double)m_stat_aniso_queries << "\n";
-    std::cerr << "  Interpolations :\n";
-    std::cerr << "    closest  : " << m_stat_closest_interps << "\n";
-    std::cerr << "    bilinear : " << m_stat_bilinear_interps << "\n";
-    std::cerr << "    bicubic  : " << m_stat_cubic_interps << "\n";
-    std::cerr << "\n";
-#endif
-
+    printstats ();
     ImageCache::destroy (m_imagecache);
     m_imagecache = NULL;
     delete hq_filter;
+}
+
+
+
+void
+TextureSystemImpl::printstats ()
+{
+    if (m_statslevel == 0)
+        return;
+    std::cout << "OpenImageIO Texture statistics (" << (void*)this 
+              << ", cache = " << (void *)m_imagecache << ")\n";
+    std::cout << "  Queries/batches : \n";
+    std::cout << "    texture     :  " << m_stat_texture_queries 
+              << " queries in " << m_stat_texture_batches << " batches\n";
+    std::cout << "    texture 3d  :  " << m_stat_texture3d_queries 
+              << " queries in " << m_stat_texture3d_batches << " batches\n";
+    std::cout << "    shadow      :  " << m_stat_shadow_queries 
+              << " queries in " << m_stat_shadow_batches << " batches\n";
+    std::cout << "    environment :  " << m_stat_environment_queries 
+              << " queries in " << m_stat_environment_batches << " batches\n";
+    std::cout << "  Interpolations :\n";
+    std::cout << "    closest  : " << m_stat_closest_interps << "\n";
+    std::cout << "    bilinear : " << m_stat_bilinear_interps << "\n";
+    std::cout << "    bicubic  : " << m_stat_cubic_interps << "\n";
+    std::cout << "  Average anisotropy : " << (double)m_stat_aniso_probes/(double)m_stat_aniso_queries << "\n";
+    std::cout << "\n";
 }
 
 
@@ -156,15 +187,19 @@ TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
 {
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
                                     type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
-        m_Mw2c = *(Imath::M44f *)val;
+        m_Mw2c = *(const Imath::M44f *)val;
         m_Mc2w = m_Mw2c.inverse();
         return true;
     }
     if (name == "commontoworld" && (type == TypeDesc::PT_MATRIX ||
                                     type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
-        m_Mc2w = *(Imath::M44f *)val;
+        m_Mc2w = *(const Imath::M44f *)val;
         m_Mw2c = m_Mc2w.inverse();
         return true;
+    }
+    if (name == "statistics:level" && type == TypeDesc::INT) {
+        m_statslevel = *(const int *)val;
+        // DO NOT RETURN! pass the same message to the image cache
     }
 
     // Maybe it's meant for the cache?
@@ -191,29 +226,6 @@ TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
     return m_imagecache->getattribute (name, type, val);
 
     return false;
-}
-
-
-
-void
-TextureSystemImpl::init ()
-{
-    m_Mw2c.makeIdentity();
-    delete hq_filter;
-    hq_filter = Filter1D::create ("b-spline", 4);
-    m_stat_texture_queries = 0;
-    m_stat_texture_batches = 0;
-    m_stat_texture3d_queries = 0;
-    m_stat_texture3d_batches = 0;
-    m_stat_shadow_queries = 0;
-    m_stat_shadow_batches = 0;
-    m_stat_environment_queries = 0;
-    m_stat_environment_batches = 0;
-    m_stat_aniso_queries = 0;
-    m_stat_aniso_probes = 0;
-    m_stat_closest_interps = 0;
-    m_stat_bilinear_interps = 0;
-    m_stat_cubic_interps = 0;
 }
 
 

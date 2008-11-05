@@ -446,12 +446,17 @@ private:
     /// Called when a new file is opened, so that the system can track
     /// the number of simultaneously-opened files.  This should only
     /// be invoked when the caller holds m_images_mutex.
-    void incr_open_files (void) { ++m_open_files; }
+    void incr_open_files (void) {
+        ++m_stat_open_files_created;
+        ++m_stat_open_files_current;
+        if (m_stat_open_files_current > m_stat_open_files_peak)
+            m_stat_open_files_peak = m_stat_open_files_current;
+    }
 
-    /// Called when a new file is opened, so that the system can track
+    /// Called when a file is closed, so that the system can track
     /// the number of simultyaneously-opened files.  This should only
     /// be invoked when the caller holds m_images_mutex.
-    void decr_open_files (void) { --m_open_files; }
+    void decr_open_files (void) { --m_stat_open_files_current; }
 
     /// Enforce the max number of open files.  This should only be invoked
     /// when the caller holds m_images_mutex.
@@ -465,6 +470,10 @@ private:
     ///
     void error (const char *message, ...);
 
+    /// Internal statistics printing routine
+    ///
+    void printstats ();
+
     int m_max_open_files;
     float m_max_memory_MB;
     size_t m_max_memory_bytes;
@@ -473,11 +482,11 @@ private:
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's
     FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
-    int m_open_files;            ///< How many files are open?
     mutex m_files_mutex;         ///< Protect filename map
     TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
     size_t m_mem_used;           ///< Memory being used for tiles
+    int m_statslevel;            ///< Statistics level
     mutable std::string m_errormessage;   ///< Saved error string.
     mutable mutex m_errmutex;             ///< error mutex
     int m_stat_find_tile_calls;
@@ -486,12 +495,12 @@ private:
     int m_stat_tiles_created;
     int m_stat_tiles_current;
     int m_stat_tiles_peak;
-    int m_stat_files_referenced;
     long long m_stat_files_totalsize;
     long long m_stat_bytes_read;
-    int m_stat_file_records_created;
-    int m_stat_file_records_current;
-    int m_stat_file_records_peak;
+    int m_stat_open_files_created;
+    int m_stat_open_files_current;
+    int m_stat_open_files_peak;
+    int m_stat_unique_files;
 
     friend class ImageCacheFile;
     friend class ImageCacheTile;

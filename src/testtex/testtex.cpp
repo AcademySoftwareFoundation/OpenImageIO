@@ -242,6 +242,7 @@ main (int argc, char *argv[])
 
     texsys = TextureSystem::create ();
     std::cerr << "Created texture system\n";
+    texsys->attribute ("statistics:level", 1);
 
     ustring filename (filenames[0]);
     test_gettextureinfo (filename);

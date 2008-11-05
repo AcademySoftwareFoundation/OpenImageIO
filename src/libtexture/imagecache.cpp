@@ -45,6 +45,7 @@ using namespace std::tr1;
 #include "thread.h"
 #include "fmath.h"
 #include "strutil.h"
+#include "sysutil.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
@@ -74,9 +75,17 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
 {
     m_spec.clear ();
     open ();
-    ++imagecache.m_stat_file_records_created;
-    if (++imagecache.m_stat_file_records_current > imagecache.m_stat_file_records_peak)
-        imagecache.m_stat_file_records_peak = imagecache.m_stat_file_records_current;
+#if 0
+    static int x=0;
+    if ((++x % 16) == 0) {
+    std::cerr << "Opened " << filename ;
+    std::cerr << ", now mem is " 
+              << Strutil::memformat (Sysutil::memory_used()) 
+              << " virtual, resident = " 
+              << Strutil::memformat (Sysutil::memory_used(true)) 
+              << "\n";
+    }
+#endif
 }
 
 
@@ -84,7 +93,6 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
 ImageCacheFile::~ImageCacheFile ()
 {
     close ();
-    --imagecache().m_stat_file_records_current;
 }
 
 
@@ -122,15 +130,14 @@ ImageCacheFile::open ()
     // From here on, we know that we've opened this file for the very
     // first time.  So read all the MIP levels, fill out all the fields
     // of the ImageCacheFile.
-    ++imagecache().m_stat_files_referenced;
+    ++imagecache().m_stat_unique_files;
     m_spec.reserve (16);
     int nsubimages = 0;
     do {
         if (nsubimages > 1 && tempspec.nchannels != m_spec[0].nchannels) {
             // No idea what to do with a subimage that doesn't have the
             // same number of channels as the others, so just skip it.
-            m_input.reset ();
-            m_imagecache.decr_open_files ();
+            close ();
             m_broken = true;
             return false;
         }
@@ -266,14 +273,13 @@ ImageCacheImpl::find_file (ustring filename)
     if (found == m_files.end()) {
         // We don't already have this file in the table.  Try to
         // open it and create a record.
-        check_max_files ();
         tf.reset (new ImageCacheFile (*this, filename));
         m_files[filename] = tf;
     } else {
         tf = found->second;
     }
-
     tf->use ();
+    check_max_files ();
     return tf;
 }
 
@@ -283,14 +289,16 @@ void
 ImageCacheImpl::check_max_files ()
 {
 #ifdef DEBUG
-    if (! (m_open_files % 16) || m_open_files >= m_max_open_files)
-        std::cerr << "open files " << m_open_files << ", max = " << m_max_open_files << "\n";
+    if (! (m_stat_open_files_created % 16) || m_stat_open_files_current >= m_max_open_files) {
+        std::cerr << "open files " << m_stat_open_files_current << ", max = " << m_max_open_files << "\n";
+    std::cout << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
+    }
 #endif
-    while (m_open_files >= m_max_open_files) {
+    while (m_stat_open_files_current >= m_max_open_files) {
         if (m_file_sweep == m_files.end())
             m_file_sweep = m_files.begin();
         ASSERT (m_file_sweep != m_files.end());
-        m_file_sweep->second->release ();  // May reduce m_open_files
+        m_file_sweep->second->release ();  // May reduce open files
         ++m_file_sweep;
     }
 }
@@ -353,7 +361,7 @@ ImageCacheTile::data (int x, int y, int z) const
 
 
 ImageCacheImpl::ImageCacheImpl ()
-    : m_file_sweep(m_files.end()), m_open_files(0), 
+    : m_file_sweep(m_files.end()), 
       m_tile_sweep(m_tilecache.end()), m_mem_used(0)
 {
     init ();
@@ -361,37 +369,54 @@ ImageCacheImpl::ImageCacheImpl ()
 
 
 
+void
+ImageCacheImpl::init ()
+{
+    m_max_open_files = 100;
+    m_max_memory_MB = 50;
+    m_max_memory_bytes = (int) (m_max_memory_MB * 1024 * 1024);
+    m_Mw2c.makeIdentity();
+    m_mem_used = 0;
+    m_statslevel = 0;
+    m_stat_find_tile_calls = 0;
+    m_stat_find_tile_microcache_misses = 0;
+    m_stat_find_tile_cache_misses = 0;
+    m_stat_tiles_created = 0;
+    m_stat_tiles_current = 0;
+    m_stat_tiles_peak = 0;
+    m_stat_files_totalsize = 0;
+    m_stat_bytes_read = 0;
+    m_stat_open_files_created = 0;
+    m_stat_open_files_current = 0;
+    m_stat_open_files_peak = 0;
+    m_stat_unique_files = 0;
+}
+
+
+
 ImageCacheImpl::~ImageCacheImpl ()
 {
-#ifdef DEBUG
-    std::cerr << "OpenImageIO ImageCache statistics (" << (void*)this << ")\n";
-    std::cerr << "  Tile requests :\n";
-    std::cerr << "    total tile requests : " << m_stat_find_tile_calls << "\n";
-    std::cerr << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
-    std::cerr << "    cache misses : " << m_stat_find_tile_cache_misses << " (" << 100.0*(double)m_stat_find_tile_cache_misses/(double)m_stat_find_tile_calls << "%)\n";
-    std::cerr << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
-    std::cerr << "  Images :\n";
-    std::cerr << "    Unique images used : " << m_stat_files_referenced << "\n";
-    std::cerr << "    Total size of all images referenced : " ;
-    const long long MB = (1<<20);
-    const long long GB = (1<<30);
-    if (m_stat_files_totalsize >= GB)
-        std::cerr << (double)m_stat_files_totalsize/(double)GB << " GB\n";
-    else
-        std::cerr << (double)m_stat_files_totalsize/(double)MB << " MB\n";
-    std::cerr << "    Bytes read from disk : ";
-    if (m_stat_bytes_read >= GB)
-        std::cerr << (double)m_stat_bytes_read/(double)GB << " GB\n";
-    else
-        std::cerr << (double)m_stat_bytes_read/(double)MB << " MB\n";
-    std::cerr << "    Peak cache memory : ";
-    if (m_mem_used >= GB)
-        std::cerr << (double)m_mem_used/(double)GB << " GB\n";
-    else
-        std::cerr << (double)m_mem_used/(double)MB << " MB\n";
-    std::cerr << "  File records: " << m_stat_file_records_created << " created, " << m_stat_file_records_current << " current, " << m_stat_file_records_peak << " peak\n";
-    std::cerr << "\n\n";
-#endif
+    printstats ();
+}
+
+
+
+void
+ImageCacheImpl::printstats ()
+{
+    if (m_statslevel == 0)
+        return;
+    std::cout << "OpenImageIO ImageCache statistics (" << (void*)this << ")\n";
+    std::cout << "  Images : " << m_stat_unique_files << " unique\n";
+    std::cout << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
+    std::cout << "    Total size of all images referenced : " << Strutil::memformat (m_stat_files_totalsize) << "\n";
+    std::cout << "    Read from disk : " << Strutil::memformat (m_stat_bytes_read) << "\n";
+    std::cout << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
+    std::cout << "    total tile requests : " << m_stat_find_tile_calls << "\n";
+    std::cout << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
+    std::cout << "    main cache misses : " << m_stat_find_tile_cache_misses << " (" << 100.0*(double)m_stat_find_tile_cache_misses/(double)m_stat_find_tile_calls << "%)\n";
+    std::cout << "    Peak cache memory : " << Strutil::memformat (m_mem_used) << "\n";
+    std::cout << "\n\n";
 }
 
 
@@ -410,8 +435,18 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         m_max_memory_bytes = (int)(size * 1024 * 1024);
         return true;
     }
+    if (name == "max_memory_MB" && type == TypeDesc::INT) {
+        float size = *(const int *)val;
+        m_max_memory_MB = size;
+        m_max_memory_bytes = (int)(size * 1024 * 1024);
+        return true;
+    }
     if (name == "searchpath" && type == TypeDesc::STRING) {
         m_searchpath = ustring (*(const char **)val);
+        return true;
+    }
+    if (name == "statistics:level" && type == TypeDesc::INT) {
+        m_statslevel = *(const int *)val;
         return true;
     }
     return false;
@@ -446,30 +481,6 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
         return true;
     }
     return false;
-}
-
-
-
-void
-ImageCacheImpl::init ()
-{
-    m_max_open_files = 100;
-    m_max_memory_MB = 50;
-    m_max_memory_bytes = (int) (m_max_memory_MB * 1024 * 1024);
-    m_Mw2c.makeIdentity();
-    m_mem_used = 0;
-    m_stat_find_tile_calls = 0;
-    m_stat_find_tile_microcache_misses = 0;
-    m_stat_find_tile_cache_misses = 0;
-    m_stat_tiles_created = 0;
-    m_stat_tiles_current = 0;
-    m_stat_tiles_peak = 0;
-    m_stat_files_referenced = 0;
-    m_stat_files_totalsize = 0;
-    m_stat_bytes_read = 0;
-    m_stat_file_records_created = 0;
-    m_stat_file_records_current = 0;
-    m_stat_file_records_peak = 0;
 }
 
 
