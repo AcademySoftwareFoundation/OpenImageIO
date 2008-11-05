@@ -296,7 +296,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         else if (type == "float" && 
             (fattr = m_header->findTypedAttribute<Imf::FloatAttribute> (name)))
             m_spec.attribute (oname, fattr->value());
-        else if (type == "M44f" && 
+        else if (type == "m44f" && 
             (mattr = m_header->findTypedAttribute<Imf::M44fAttribute> (name)))
             m_spec.attribute (oname, PT_MATRIX, 1, &(mattr->value()));
         else {
