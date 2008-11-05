@@ -74,6 +74,13 @@ private:
         m_colormap.clear();
     }
 
+    void close_tif () {
+        if (m_tif) {
+            TIFFClose (m_tif);
+            m_tif = NULL;
+        }
+    }
+
     // Read tags from the current directory of m_tif and fill out spec
     void readspec ();
 
@@ -180,12 +187,15 @@ TIFFInput::seek_subimage (int index, ImageSpec &newspec)
         return true;
     }
 
-    // User our own error handler to keep libtiff from spewing to stderr
-    TIFFSetErrorHandler (my_error_handler);
-    TIFFSetWarningHandler (my_error_handler);
+    if (! m_tif) {
+        // Use our own error handler to keep libtiff from spewing to stderr
+        lock_guard lock (lasterr_mutex);
+        TIFFSetErrorHandler (my_error_handler);
+        TIFFSetWarningHandler (my_error_handler);
+    }
 
     if (! m_tif) {
-        m_tif = TIFFOpen (m_filename.c_str(), "r");
+        m_tif = TIFFOpen (m_filename.c_str(), "rm");
         if (m_tif == NULL) {
             error ("Could not open file: %s", lasterr.c_str());
             return false;
@@ -384,8 +394,7 @@ TIFFInput::readspec ()
 bool
 TIFFInput::close ()
 {
-    if (m_tif)
-        TIFFClose (m_tif);
+    close_tif ();
     init();  // Reset to initial state
     return true;
 }
