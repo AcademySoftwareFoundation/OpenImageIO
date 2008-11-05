@@ -7,7 +7,8 @@
 
 
 
-CFLAGS += -DMACOSX -fPIC
+CFLAGS += -fPIC
+#CFLAGS += -D__APPLE__    # the compiler already does this for us
 #CFLAGS += -arch i386 -arch x86_64 -mmacosx-version-min=10.5
 
 ifdef DEBUG

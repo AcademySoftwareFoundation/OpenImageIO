@@ -1152,7 +1152,7 @@ void ImageViewer::fitWindowToImage()
         return;
     // FIXME -- figure out a way to make it exactly right, even for the
     // main window border, etc.
-#ifdef MACOSX
+#ifdef __APPLE__
     int extraw = 0; //12; // width() - minimumWidth();
     int extrah = statusBar()->height() + 0; //40; // height() - minimumHeight();
 #else

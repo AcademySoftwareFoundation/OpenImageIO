@@ -116,7 +116,7 @@ put_in_background (int argc, char *argv[])
 #endif
 
 
-#ifdef MACOSX
+#ifdef __APPLE__
 #if 0
     // Another solution -- But I can't seem to make this work!
     std::vector<char *> newargs;
