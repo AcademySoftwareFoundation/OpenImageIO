@@ -84,3 +84,26 @@ Strutil::vformat (const char *fmt, va_list ap)
         return std::string (&buf[0]);
     }
 }
+
+
+
+std::string
+Strutil::memformat (off_t bytes, int digits)
+{
+    const long long KB = (1<<10);
+    const long long MB = (1<<20);
+    const long long GB = (1<<30);
+    const char *units = "B";
+    double d = bytes;
+    if (bytes >= GB) {
+        units = "GB";
+        d = (double)bytes / GB;
+    } else if (bytes >= MB) {
+        units = "MB";
+        d = (double)bytes / MB;
+    } else if (bytes >= KB) {
+        units = "KB";
+        d = (double)bytes / KB;
+    }
+    return format ("%1.*g %s", digits, d, units);
+}

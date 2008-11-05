@@ -54,6 +54,14 @@ std::string format (const char *fmt, ...);
 /// already as a va_list.
 std::string vformat (const char *fmt, va_list ap);
 
+/// Return a string expressing a number of bytes, in human readable form.
+///  - memformat(153)           -> "153 B"
+///  - memformat(15300)         -> "14.9 KB"
+///  - memformat(15300000)      -> "14.6 MB"
+///  - memformat(15300000000LL) -> "14.2 GB"
+std::string memformat (off_t bytes, int digits=3);
+
+
 
 /// Beautiful little string hasher from Aho, Sethi, and Ullman's 1986
 /// Dragon compiler book.  This depends on sizeof(unsigned int) == 4.
