@@ -17,6 +17,14 @@ else
 CFLAGS += -O3 
 endif
 
+ifdef PROFILE
+# On OS X, use "Shark", not gprof, so don't bother with -pg
+#CFLAGS += -pg
+#LDFLAGS += -pg
+CFLAGS += -g
+STRIP_BINARY := touch
+endif
+
 # ? -fno-common
 
 #LDFLAGS += -arch x86_64

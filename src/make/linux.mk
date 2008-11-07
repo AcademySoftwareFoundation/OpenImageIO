@@ -15,6 +15,13 @@ else
 CFLAGS += -O3 
 endif
 
+ifdef PROFILE
+CFLAGS += -pg
+# also -g?
+LDFLAGS += -pg
+STRIP_BINARY := touch
+endif
+
 CP := cp -uvpf
 
 QT_INCLUDE := -I/usr/include/qt4/QtGui -I/usr/include/qt4/QtOpenGL \
