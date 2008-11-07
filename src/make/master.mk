@@ -63,6 +63,7 @@ ifdef DEBUG
 endif
 ifdef PROFILE
     variant +=.profile
+    CFLAGS += -DNDEBUG
 endif
 
 
