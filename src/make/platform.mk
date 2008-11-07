@@ -15,7 +15,7 @@
 # Figure out which platform we are building on/for
 
 # Start with unknown platform
-platform := "unknown"
+platform ?= unknown
 
 # Use 'uname -m' to determine the hardware architecture.  This should
 # return "x86" or "x86_64"
@@ -24,7 +24,9 @@ hw := ${shell uname -m}
 ifneq (${hw},x86)
   ifneq (${hw},x86_64)
     ifneq (${hw},i386)
-      $(error "ERROR: Unknown hardware architecture")
+      ifneq (${hw},i686)
+        $(error "ERROR: Unknown hardware architecture")
+      endif
     endif
   endif
 endif
@@ -35,40 +37,41 @@ endif
 
 uname := ${shell uname | sed 's/_NT-.*//' | tr '[:upper:]' '[:lower:]'}
 #$(info uname = ${uname})
-
-# Linux
-ifeq (${uname},linux)
-  platform := linux
-  ifeq (${hw},x86_64)
-    platform := linux64
-  endif
-endif
-
-# Windows
-ifeq (${uname},cygwin)
-  platform := win
-  ifeq (${hw},x86_64)
-    platform := win64
-  endif
-endif
-
-# Mac OS X
-ifeq (${uname},darwin)
-  platform := macosx
-endif
-
-# If we haven't been able to determine the platform from uname, use
-# whatever is in $ARCH, if it's set.
 ifeq (${platform},unknown)
-  ifneq (${ARCH},)
-    platform := ${ARCH}
+  # Linux
+  ifeq (${uname},linux)
+    platform := linux
+    ifeq (${hw},x86_64)
+      platform := linux64
+    endif
   endif
-endif
 
-# Manual override: if there's an environment variable $BUILDARCH, use that
-# no matter what
-ifneq (${BUILDARCH},)
-  platform := ${BUILDARCH}
+  # Windows
+  ifeq (${uname},cygwin)
+    platform := win
+    ifeq (${hw},x86_64)
+      platform := win64
+    endif
+  endif
+
+  # Mac OS X
+  ifeq (${uname},darwin)
+    platform := macosx
+  endif
+
+  # If we haven't been able to determine the platform from uname, use
+  # whatever is in $ARCH, if it's set.
+  ifeq (${platform},unknown)
+    ifneq (${ARCH},)
+      platform := ${ARCH}
+    endif
+  endif
+
+  # Manual override: if there's an environment variable $BUILDARCH, use that
+  # no matter what
+  ifneq (${BUILDARCH},)
+    platform := ${BUILDARCH}
+  endif
 endif
 
 # Throw an error if nothing worked
