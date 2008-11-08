@@ -40,7 +40,6 @@
 #define REFCNT_H
 
 #include "thread.h"
-#include "atomic.h"
 
 // Use Boost for shared pointers
 #include <boost/tr1/memory.hpp>
@@ -73,7 +72,7 @@ public:
     const RefCnt & operator= (const RefCnt& r) const { return *this; }
 
 private:
-    mutable AtomicInt m_refcnt;
+    mutable atomic_int m_refcnt;
 };
 
 
