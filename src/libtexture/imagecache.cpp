@@ -263,20 +263,36 @@ ImageCacheFile::release ()
 
 
 
+#ifdef INTRUSIVE_REFS
+ImageCacheFile *
+#else
 ImageCacheFileRef
+#endif
 ImageCacheImpl::find_file (ustring filename)
 {
     lock_guard guard (m_files_mutex);
 
     FilenameMap::iterator found = m_files.find (filename);
+#ifdef INTRUSIVE_REFS
+    ImageCacheFile *tf;
+#else
     ImageCacheFileRef tf;
+#endif
     if (found == m_files.end()) {
         // We don't already have this file in the table.  Try to
         // open it and create a record.
+#ifdef INTRUSIVE_REFS
+        tf = new ImageCacheFile (*this, filename);
+#else
         tf.reset (new ImageCacheFile (*this, filename));
+#endif
         m_files[filename] = tf;
     } else {
+#ifdef INTRUSIVE_REFS
+        tf = found->second.get();
+#else
         tf = found->second;
+#endif
     }
     tf->use ();
     check_max_files ();
@@ -542,7 +558,11 @@ bool
 ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
                                 TypeDesc datatype, void *data)
 {
+#ifdef INTRUSIVE_REFS
+    ImageCacheFile *file = find_file (filename);
+#else
     ImageCacheFileRef file = find_file (filename);
+#endif
     if (! file) {
         error ("Image file \"%s\" not found", filename.c_str());
         return false;
@@ -604,7 +624,11 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
 bool
 ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec, int subimage)
 {
+#ifdef INTRUSIVE_REFS
+    ImageCacheFile *file = find_file (filename);
+#else
     ImageCacheFileRef file = find_file (filename);
+#endif
     if (! file) {
         error ("Image file \"%s\" not found", filename.c_str());
         return false;
@@ -625,7 +649,11 @@ ImageCacheImpl::get_pixels (ustring filename, int level,
                                int zmin, int zmax, 
                                TypeDesc format, void *result)
 {
+#ifdef INTRUSIVE_REFS
+    ImageCacheFile *file = find_file (filename);
+#else
     ImageCacheFileRef file = find_file (filename);
+#endif
     if (! file) {
         error ("Image file \"%s\" not found", filename.c_str());
         return false;
@@ -716,14 +744,13 @@ ImageCache::create (bool shared)
 {
     if (shared) {
         // They requested a shared cache.  If a shared cache already
-        // exists, just return it, otherwise record the shared cache.
+        // exists, just return it, otherwise record the new cache.
         lock_guard guard (shared_image_cache_mutex);
-        if (! shared_image_cache.get()) {
-            ImageCacheImpl *ic = new ImageCacheImpl;
-            shared_image_cache.reset (ic);
-        }
+        if (! shared_image_cache.get())
+            shared_image_cache.reset (new ImageCacheImpl);
 #ifdef DEBUG
-        std::cerr << " shared ImageCache was is " << (void *)shared_image_cache.get() << "\n";
+        std::cerr << " shared ImageCache is " 
+                  << (void *)shared_image_cache.get() << "\n";
 #endif
         return shared_image_cache.get ();
     }
@@ -748,9 +775,8 @@ ImageCache::destroy (ImageCache *x)
     // is itself a shared_ptr, when the process ends it will properly 
     // destroy the shared cache.
     lock_guard guard (shared_image_cache_mutex);
-    if (x != shared_image_cache.get()) {
+    if (x != shared_image_cache.get())
         delete (ImageCacheImpl *) x;
-    }
 }
 
 

@@ -61,11 +61,29 @@ using namespace OpenImageIO::pvt;
 
 namespace OpenImageIO {
 
+static shared_ptr<TextureSystemImpl> shared_texsys;
+static mutex shared_texsys_mutex;
+
+
 
 TextureSystem *
 TextureSystem::create (bool shared)
 {
     ImageCache *ic = ImageCache::create (shared);
+#if 0
+    if (shared) {
+        // They requested a shared texsys.  If a shared texsys already
+        // exists, just return it, otherwise record the new cache.
+        lock_guard guard (shared_texsys_mutex);
+        if (! shared_texsys.get())
+            shared_texsys.reset (new TextureSystemImpl (ic));
+#ifdef DEBUG
+        std::cerr << " shared TextureSystem is "
+                  << (void *)shared_texsys.get() << "\n";
+#endif
+        return shared_texsys.get ();
+    }
+#endif
     return new TextureSystemImpl (ic);
 }
 
@@ -74,7 +92,10 @@ TextureSystem::create (bool shared)
 void
 TextureSystem::destroy (TextureSystem *x)
 {
-    delete (TextureSystemImpl *) x;
+    // Delete only if it's a private one
+//    lock_guard guard (shared_texsys_mutex);
+//    if (x != shared_texsys.get())
+        delete (TextureSystemImpl *) x;
 }
 
 
@@ -438,16 +459,23 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
         return false;
     }
 
-    // If options indicate default wrap modes, use the ones in the file
+    const ImageSpec &spec (texturefile->spec());
+
+    // Figure out the wrap functions
     if (options.swrap == TextureOptions::WrapDefault)
         options.swrap = texturefile->swrap();
+    if (options.swrap == TextureOptions::WrapPeriodic && ispow2(spec.width))
+        options.swrap_func = wrap_periodic2;
+    else
+        options.swrap_func = wrap_functions[(int)options.swrap];
     if (options.twrap == TextureOptions::WrapDefault)
         options.twrap = texturefile->twrap();
+    if (options.twrap == TextureOptions::WrapPeriodic && ispow2(spec.height))
+        options.twrap_func = wrap_periodic2;
+    else
+        options.twrap_func = wrap_functions[(int)options.twrap];
 
-    options.swrap_func = wrap_functions[(int)options.swrap];
-    options.twrap_func = wrap_functions[(int)options.twrap];
-
-    int actualchannels = Imath::clamp (texturefile->spec().nchannels - options.firstchannel, 0, options.nchannels);
+    int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
     options.actualchannels = actualchannels;
 
     // Fill channels requested but not in the file
@@ -847,21 +875,26 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     int stex[2], ttex[2];       // Texel coords
     stex[0] = sint;  stex[1] = sint+1;
     ttex[0] = tint;  ttex[1] = tint+1;
-    bool svalid[2], tvalid[2];  // Valid texels?  false means black border
+//    bool svalid[2], tvalid[2];  // Valid texels?  false means black border
+    unsigned int valid_storage = 0;
+    DASSERT (sizeof(valid_storage) == 4*sizeof(bool));
+    const unsigned int none_valid = 0;
+    const unsigned int all_valid = 0x01010101;
+    bool *svalid = (bool *)&valid_storage;
+    bool *tvalid = ((bool *)&valid_storage) + 2;
     svalid[0] = options.swrap_func (stex[0], spec.full_width);
     svalid[1] = options.swrap_func (stex[1], spec.full_width);
     tvalid[0] = options.twrap_func (ttex[0], spec.full_height);
     tvalid[1] = options.twrap_func (ttex[1], spec.full_height);
-    if (! (svalid[0] | svalid[1] | tvalid[0] | tvalid[1])) {
-        // All texels we need were out of range and using 'black' wrap.
-        return;
-    }
+//    if (! (svalid[0] | svalid[1] | tvalid[0] | tvalid[1]))
+    if (valid_storage == none_valid)
+        return; // All texels we need were out of range and using 'black' wrap
 
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
     int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
     int invtileheightmask = ~tileheightmask;
-    const float *texel[2][2] = { NULL, NULL, NULL, NULL };
+    const float *texel[2][2];
     TileRef tile[2][2];
     static float black[4] = { 0, 0, 0, 0 };
     int tile_s = stex[0] & tilewidthmask;
@@ -869,7 +902,9 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     bool s_onetile = (tile_s != tilewidthmask) & (stex[0]+1 == stex[1]);
     bool t_onetile = (tile_t != tileheightmask) & (ttex[0]+1 == ttex[1]);
     bool onetile = (s_onetile & t_onetile);
-    if (onetile && (svalid[0] & svalid[1] & tvalid[0] & tvalid[1])) {
+    if (onetile && 
+//        (svalid[0] & svalid[1] & tvalid[0] & tvalid[1])) {
+        valid_storage == all_valid) {
         // Shortcut if all the texels we need are on the same tile
         TileID id (texturefile, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
@@ -1018,7 +1053,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                 tile_t = ttex[j] & tileheightmask;
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
-                if (0 && initialized)   // Why isn't it faster to do this?
+                if (initialized)   // Why isn't it faster to do this?
                     find_tile_same_level (id, tilecache0, tilecache1);
                 else {
                     find_tile (id, tilecache0, tilecache1);

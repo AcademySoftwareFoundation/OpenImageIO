@@ -228,7 +228,11 @@ public:
 
 private:
     typedef ImageCacheFile TextureFile;
+#ifdef INTRUSIVE_REFS
+    typedef ImageCacheFile *TextureFileRef;
+#else
     typedef ImageCacheFileRef TextureFileRef;
+#endif
     typedef ImageCacheTile File;
     typedef ImageCacheTileRef TileRef;
 

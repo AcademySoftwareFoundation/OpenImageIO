@@ -165,7 +165,7 @@ private:
 /// A fast_mutex is a spin lock.  It's semantically equivalent to a
 /// regular mutex, except for the following:
 ///  - A fast_mutex is just 4 bytes, whereas a regular mutex is quite
-///    large (24 bytes for pthread). is just 4 bytes.
+///    large (44 bytes for pthread). is just 4 bytes.
 ///  - A fast_mutex is extremely fast to lock and unlock, whereas a regular
 ///    mutex is surprisingly expensive just to acquire a lock.
 ///  - A fast_mutex spins, taking CPU while it waits, so this can be very

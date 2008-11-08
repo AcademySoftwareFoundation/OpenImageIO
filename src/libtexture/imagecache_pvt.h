@@ -37,6 +37,7 @@
 #define IMAGECACHE_PVT_H
 
 #include "texture.h"
+#include "refcnt.h"
 
 namespace OpenImageIO {
 namespace pvt {
@@ -46,8 +47,7 @@ class ImageCacheImpl;
 const char * texture_format_name (TexFormat f);
 const char * texture_type_name (TexFormat f);
 
-
-
+#define INTRUSIVE_REFS 1
 
 
 
@@ -56,7 +56,7 @@ const char * texture_type_name (TexFormat f);
 /// any calling routine use a mutex any time a ImageCacheFile's methods are
 /// being called, including constructing a new ImageCacheFile.
 ///
-class ImageCacheFile {
+class ImageCacheFile : public RefCnt {
 public:
     ImageCacheFile (ImageCacheImpl &imagecache, ustring filename);
     ~ImageCacheFile ();
@@ -117,7 +117,11 @@ private:
 
 /// Reference-counted pointer to a ImageCacheFile
 ///
+#ifdef INTRUSIVE_REFS
+typedef intrusive_ptr<ImageCacheFile> ImageCacheFileRef;
+#else
 typedef shared_ptr<ImageCacheFile> ImageCacheFileRef;
+#endif
 
 
 /// Map file names to file references
@@ -203,7 +207,7 @@ private:
 
 /// Record for a single image tile.
 ///
-class ImageCacheTile {
+class ImageCacheTile : public RefCnt {
 public:
     ImageCacheTile (const TileID &id);
 
@@ -257,7 +261,11 @@ private:
 
 /// Reference-counted pointer to a ImageCacheTile
 /// 
+#ifdef INTRUSIVE_REFS
+typedef intrusive_ptr<ImageCacheTile> ImageCacheTileRef;
+#else
 typedef shared_ptr<ImageCacheTile> ImageCacheTileRef;
+#endif
 
 
 
@@ -351,9 +359,15 @@ public:
                              int ymin, int ymax, int zmin, int zmax, 
                              TypeDesc format, void *result);
 
-    /// Find the ImageCacheFile record for the named image, or NULL if no
-    /// such file can be found.
+    /// Find the ImageCacheFile record for the named image, or NULL if
+    /// no such file can be found.  This returns a plain old pointer,
+    /// which is ok because the file hash table has ref-counted pointers
+    /// and those won't be freed until the texture system is destroyed.
+#ifdef INTRUSIVE_REFS
+    ImageCacheFile *find_file (ustring filename);
+#else
     ImageCacheFileRef find_file (ustring filename);
+#endif
 
     /// Find a tile identified by 'id' in the tile cache, paging it in
     /// if needed, and return a reference to the tile.  Return a NULL
