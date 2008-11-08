@@ -54,7 +54,26 @@ using boost::intrusive_ptr;
 /// counter.
 class RefCnt {
 public:
-    AtomicInt m_refcnt;
+    RefCnt () { }
+
+    /// Define copy constructor to NOT COPY reference counts! Copying a
+    /// struct doesn't change how many other things point to it.
+    RefCnt (RefCnt &r) { }
+
+    /// Add a reference
+    ///
+    void _incref () const { ++m_refcnt; }
+
+    /// Delete a reference, return true if that was the last reference.
+    ///
+    bool _decref () const { return (--m_refcnt) == 0; }
+
+    /// Define operator= to NOT COPY reference counts!  Copying a struct
+    /// doesn't change how many other things point to it.
+    const RefCnt & operator= (const RefCnt& r) const { return *this; }
+
+private:
+    mutable AtomicInt m_refcnt;
 };
 
 
@@ -64,7 +83,7 @@ public:
 template<class T>
 inline void intrusive_ptr_add_ref (T *x)
 {
-    ++ x->m_refcnt;
+    x->_incref ();
 }
 
 /// Generic implementation of intrusive_ptr_release, which is needed for
@@ -72,7 +91,7 @@ inline void intrusive_ptr_add_ref (T *x)
 template<class T>
 inline void intrusive_ptr_release (T *x)
 {
-    if (-- x->m_refcnt == 0)
+    if (x->_decref ())
         delete x;
 }
 
