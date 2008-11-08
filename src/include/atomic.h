@@ -40,14 +40,23 @@
 #define ATOMIC_H
 
 
+
 #if defined(__linux__)
-# include <ext/atomicity.h>
+#  include <ext/atomicity.h>
+#  define USE_INTEL_ASM_ATOMICS
+
 #elif defined(__APPLE__)
-# include <libkern/OSAtomic.h>
+#  if (defined(__i386__) || defined(__x86_64__))
+#    define USE_INTEL_ASM_ATOMICS
+#  else
+#    include <libkern/OSAtomic.h>
+#  endif
+
 #elif defined(_WIN32)
-# include <windows.h>
-# include <winbase.h>
+#  include <windows.h>
+#  include <winbase.h>
 #endif
+
 
 
 /// Atomic integer.  Increment, decrement, add, and subtrace in a
@@ -70,82 +79,66 @@ public:
 
     /// Pre-increment:  ++foo
     ///
-    int operator++ () {
-#if defined(__linux__)
-        return __gnu_cxx::__exchange_and_add (&m_val, 1) + 1;
-#elif defined(__APPLE__)
-        return OSAtomicIncrement32Barrier (&m_val);
-#elif defined(_WIN32)
-        InterlockedIncrement (&m_val);
-#endif
-    }
+    int operator++ () { return exchange_and_add (&m_val, 1) + 1; }
 
     /// Post-increment:  foo++
     ///
-    int operator++ (int) {  // post-increment
-#if defined(__linux__)
-        return __gnu_cxx::__exchange_and_add (&m_val, 1);
-#elif defined(__APPLE__)
-        return OSAtomicIncrement32Barrier (&m_val) - 1;
-#elif defined(_WIN32)
-        return InterlockedExchangeAdd (&m_val, 1);
-#endif
-    }
+    int operator++ (int) {  return exchange_and_add (&m_val, 1); }
 
     /// Pre-decrement:  --foo
     ///
-    int operator-- () {  // pre-decrement
-#if defined(__linux__)
-        return __gnu_cxx::__exchange_and_add (&m_val, -1) - 1;
-#elif defined(__APPLE__)
-        return OSAtomicDecrement32Barrier (&m_val);
-#elif defined(_WIN32)
-        return InterlockedDecrement (&m_val);
-#endif
-    }
+    int operator-- () {  return exchange_and_add (&m_val, -1) - 1; }
 
     /// Post-decrement:  foo--
     ///
-    int operator-- (int) {  // post-decrement
-#if defined(__linux__)
-        return __gnu_cxx::__exchange_and_add (&m_val, -1);
-#elif defined(__APPLE__)
-        return OSAtomicDecrement32Barrier (&m_val) + 1;
-#elif defined(_WIN32)
-        return InterlockedExchangeAdd (&m_val, -1);
-#endif
-    }
+    int operator-- (int) {  return exchange_and_add (&m_val, -1); }
 
-    /// Add to the value, return the new sum
+    /// Add to the value, return the new result
     ///
-    int operator+= (int x) {
-#if defined(__linux__)
-        return __gnu_cxx::__exchange_and_add (&m_val, x) + x;
-#elif defined(__APPLE__)
-        return OSAtomicAdd32Barrier (x, &m_val);
-#elif defined(_WIN32)
-        return InterlockedExchangeAdd (&m_val, x) + x;
-#endif
-    }
+    int operator+= (int x) { return exchange_and_add (&m_val, x) + x; }
 
-    /// Subtrace from the value, return the new value
+    /// Subtract from the value, return the new result
     ///
-    int operator-= (int x) {
-#if defined(__linux__)
-        return __gnu_cxx::__exchange_and_add (&m_val, -x) - x;
-#elif defined(__APPLE__)
-        return OSAtomicAdd32Barrier (-x, &m_val);
-#elif defined(_WIN32)
-        return InterlockedExchangeAdd (&m_val, -x) - x;
-#endif
-    }
+    int operator-= (int x) { return exchange_and_add (&m_val, -x) - x; }
 
 private:
     volatile int m_val;
+
+    /// Atomic version of:  r = *at, *at += x, return r
+    /// For each of several architectures.
+    int exchange_and_add (volatile int *at, int x) {
+#if defined(USE_INTEL_ASM_ATOMICS)
+        // Common case of i386 or x86_64 on either Linux or Mac.
+        // Note slightly different instruction for 32 vs 64 bit.
+        int result;
+#ifdef __i386__
+        __asm__ __volatile__("lock\nxaddl %0,%1"
+                             : "=r"(result), "=m"(*at)
+                             : "0"(x)
+                             : "memory");
+#else
+        __asm__ __volatile__("lock\nxadd %0,%1"
+                             : "=r"(result), "=m"(*at)
+                             : "0"(x)
+                             : "memory");
+#endif
+        return result;
+#elif defined(linux)
+        // Linux, not inline for Intel (does this ever get used?)
+        __gnu_cxx::__exchange_and_add (at, x);
+#elif defined(__APPLE__)
+        // Apple, not inline for Intel (only PPC?)
+        return OSAtomicAdd32Barrier (x, &m_val) - x;
+#elif defined(_WIN32)
+        // Windows
+        return InterlockedExchangeAdd (at, x);
+#endif
+    }
 };
 
 
 
+#undef USE_INTEL_ASM_ATOMICS
 
 
 #endif // ATOMIC_H
