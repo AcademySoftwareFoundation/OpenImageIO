@@ -49,14 +49,11 @@ DONE        API docs - ImageInput, ImageOutput, writing plugins, intro
 DONE        iv - why don't I seem to be getting HDR?
             iv - new window, new tab ?
             iv - copy/paste
-            OpenEXR - YCbCr, subsampling
             Windows port of everything
-            iv - draw overtop image
             iv - thumbnail window
             iv - region of interest (select, clear, prioritize, crop)
             iv - annotate
             iv - fg/bg images
-            exr - ripmaps
 DONE        iv - put into background mode
             iv - save window as
             iv - save selection as
@@ -68,7 +65,7 @@ hard        iv - Ctrl-W in info window should close info, not close image
             iv - change cursor depending on drag mode
             jpeg - handle changes in linearity
             iv - crash with 1-channel images?
-            texture bug - crashes with non-tiled image
+lg/IP       texture - handle non-tiled/non-mipmap images
 
 
 Before first 1.0 release
@@ -108,6 +105,10 @@ DONE        HDR
             iv - sort all images by { name, sequence, date }
             iv - handle pixel aspect ratio when displaying images
 DONE        idiff - perceptual diff (Yee)
+            exr - ripmaps
+            OpenEXR - YCbCr, subsampling
+            iv - draw overtop image
+
 
 ============
 
