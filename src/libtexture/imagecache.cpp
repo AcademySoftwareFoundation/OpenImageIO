@@ -270,7 +270,7 @@ ImageCacheFileRef
 #endif
 ImageCacheImpl::find_file (ustring filename)
 {
-    lock_guard guard (m_files_mutex);
+    lock_guard_t guard (m_files_mutex);
 
     FilenameMap::iterator found = m_files.find (filename);
 #ifdef INTRUSIVE_REFS
@@ -322,27 +322,23 @@ ImageCacheImpl::check_max_files ()
 
 
 ImageCacheTile::ImageCacheTile (const TileID &id)
-    : m_id (id), m_valid(true), m_used(true)
+    : m_id (id), m_used(true)
 {
-    ImageCacheFile &file = m_id.file ();
+    ImageCacheFile &file (m_id.file ());
     ImageCacheImpl &imagecache (file.imagecache());
     ++imagecache.m_stat_tiles_created;
     ++imagecache.m_stat_tiles_current;
     if (imagecache.m_stat_tiles_current > imagecache.m_stat_tiles_peak)
         imagecache.m_stat_tiles_peak = imagecache.m_stat_tiles_current;
-    if (file.broken()) {
-        m_valid = false;
-        return;
-    }
     size_t size = memsize();
     m_pixels.resize (size);
     imagecache.m_mem_used += size;
-    if (! file.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
-                             file.datatype(), &m_pixels[0])) {
+    m_valid = file.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
+                              file.datatype(), &m_pixels[0]);
+    if (! m_valid)
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() 
                   << " from " << file.filename() << "\n";
-        m_valid = false;
-    }
+
     // FIXME -- for shadow, fill in mindepth, maxdepth
 }
 
@@ -504,20 +500,22 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
 ImageCacheTileRef
 ImageCacheImpl::find_tile (const TileID &id)
 {
+    DASSERT (! id.file().broken());
+    lock_guard_t guard (m_tile_mutex);
     ++m_stat_find_tile_microcache_misses;
-    lock_guard guard (m_files_mutex);
     TileCache::iterator found = m_tilecache.find (id);
     ImageCacheTileRef tile;
     if (found != m_tilecache.end()) {
         tile = found->second;
+        tile->used ();
     } else {
         ++m_stat_find_tile_cache_misses;
         check_max_mem ();
         tile.reset (new ImageCacheTile (id));
+        // FIXME -- should we create the ICT above while not locked?
         m_tilecache[id] = tile;
     }
     DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
-    tile->used ();
     return tile->valid() ? tile : ImageCacheTileRef();
 }
 

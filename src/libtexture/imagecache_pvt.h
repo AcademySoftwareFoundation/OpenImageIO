@@ -488,6 +488,15 @@ private:
     ///
     void printstats ();
 
+#if 0
+    // Turns out this isn't really any faster in my tests.
+    typedef fast_mutex mutex_t;
+    typedef fast_mutex::lock_guard lock_guard_t;
+#else
+    typedef mutex mutex_t;
+    typedef lock_guard lock_guard_t;
+#endif
+
     int m_max_open_files;
     float m_max_memory_MB;
     size_t m_max_memory_bytes;
@@ -496,9 +505,10 @@ private:
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's
     FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
-    mutex m_files_mutex;         ///< Protect filename map
+    mutex_t m_files_mutex;       ///< Protect filename map
     TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
+    mutex_t m_tile_mutex;        ///< Protect tiles
     size_t m_mem_used;           ///< Memory being used for tiles
     int m_statslevel;            ///< Statistics level
     mutable std::string m_errormessage;   ///< Saved error string.

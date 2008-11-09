@@ -137,7 +137,7 @@ test_gettextureinfo (ustring filename)
 }
 
 
-Imath::V3f
+inline Imath::V3f
 warp (float x, float y, Imath::M33f &xform)
 {
     Imath::V3f coord (x, y, 1.0f);
