@@ -80,6 +80,72 @@ typedef boost::recursive_mutex::scoped_lock recursive_lock_guard;
 
 
 
+/// Atomic version of:  r = *at, *at = x, return r
+/// For each of several architectures.
+inline int
+atomic_exchange (volatile int *at, int x)
+{
+#if defined(USE_INTEL_ASM_ATOMICS)
+    // Common case of i386 or x86_64 on either Linux or Mac.
+    // Note slightly different instruction for 32 vs 64 bit.
+    int result;
+#ifdef __i386__
+    __asm__ __volatile__("lock\nxchgl %0,%1"
+                         : "=r"(result), "=m"(*at)
+                         : "0"(x)
+                         : "memory");
+#else
+    __asm__ __volatile__("lock\nxchg %0,%1"
+                         : "=r"(result), "=m"(*at)
+                         : "0"(x)
+                         : "memory");
+#endif
+    return result;
+#elif defined(_WIN32)
+    // Windows
+    return InterlockedExchange (at, x);
+#else
+    asfaef  // force compile to fail, I have no idea what to do here
+#endif
+}
+
+
+
+/// Atomic version of:  r = *at, *at += x, return r
+/// For each of several architectures.
+inline int
+atomic_exchange_and_add (volatile int *at, int x)
+{
+#if defined(USE_INTEL_ASM_ATOMICS)
+    // Common case of i386 or x86_64 on either Linux or Mac.
+    // Note slightly different instruction for 32 vs 64 bit.
+    int result;
+#ifdef __i386__
+    __asm__ __volatile__("lock\nxaddl %0,%1"
+                         : "=r"(result), "=m"(*at)
+                         : "0"(x)
+                         : "memory");
+#else
+    __asm__ __volatile__("lock\nxadd %0,%1"
+                         : "=r"(result), "=m"(*at)
+                         : "0"(x)
+                         : "memory");
+#endif
+    return result;
+#elif defined(linux)
+    // Linux, not inline for Intel (does this ever get used?)
+    __gnu_cxx::__exchange_and_add (at, x);
+#elif defined(__APPLE__)
+    // Apple, not inline for Intel (only PPC?)
+    return OSAtomicAdd32Barrier (x, &m_val) - x;
+#elif defined(_WIN32)
+    // Windows
+    return InterlockedExchangeAdd (at, x);
+#endif
+}
+
+
+
 /// Atomic integer.  Increment, decrement, add, and subtract in a
 /// totally thread-safe manner.
 class atomic_int {
@@ -100,61 +166,31 @@ public:
 
     /// Pre-increment:  ++foo
     ///
-    int operator++ () { return exchange_and_add (&m_val, 1) + 1; }
+    int operator++ () { return atomic_exchange_and_add (&m_val, 1) + 1; }
 
     /// Post-increment:  foo++
     ///
-    int operator++ (int) {  return exchange_and_add (&m_val, 1); }
+    int operator++ (int) {  return atomic_exchange_and_add (&m_val, 1); }
 
     /// Pre-decrement:  --foo
     ///
-    int operator-- () {  return exchange_and_add (&m_val, -1) - 1; }
+    int operator-- () {  return atomic_exchange_and_add (&m_val, -1) - 1; }
 
     /// Post-decrement:  foo--
     ///
-    int operator-- (int) {  return exchange_and_add (&m_val, -1); }
+    int operator-- (int) {  return atomic_exchange_and_add (&m_val, -1); }
 
     /// Add to the value, return the new result
     ///
-    int operator+= (int x) { return exchange_and_add (&m_val, x) + x; }
+    int operator+= (int x) { return atomic_exchange_and_add (&m_val, x) + x; }
 
     /// Subtract from the value, return the new result
     ///
-    int operator-= (int x) { return exchange_and_add (&m_val, -x) - x; }
+    int operator-= (int x) { return atomic_exchange_and_add (&m_val, -x) - x; }
 
 private:
     volatile int m_val;
 
-    /// Atomic version of:  r = *at, *at += x, return r
-    /// For each of several architectures.
-    int exchange_and_add (volatile int *at, int x) {
-#if defined(USE_INTEL_ASM_ATOMICS)
-        // Common case of i386 or x86_64 on either Linux or Mac.
-        // Note slightly different instruction for 32 vs 64 bit.
-        int result;
-#ifdef __i386__
-        __asm__ __volatile__("lock\nxaddl %0,%1"
-                             : "=r"(result), "=m"(*at)
-                             : "0"(x)
-                             : "memory");
-#else
-        __asm__ __volatile__("lock\nxadd %0,%1"
-                             : "=r"(result), "=m"(*at)
-                             : "0"(x)
-                             : "memory");
-#endif
-        return result;
-#elif defined(linux)
-        // Linux, not inline for Intel (does this ever get used?)
-        __gnu_cxx::__exchange_and_add (at, x);
-#elif defined(__APPLE__)
-        // Apple, not inline for Intel (only PPC?)
-        return OSAtomicAdd32Barrier (x, &m_val) - x;
-#elif defined(_WIN32)
-        // Windows
-        return InterlockedExchangeAdd (at, x);
-#endif
-    }
 };
 
 #undef USE_INTEL_ASM_ATOMICS
@@ -219,6 +255,16 @@ public:
             return false;
         }
     }
+
+    /// Helper class: scoped lock for a fast_mutex -- grabs the lock upon
+    /// construction, releases the lock when it exits scope.
+    class lock_guard {
+    public:
+        lock_guard (fast_mutex &fm) : m_fm(fm) { m_fm.lock(); }
+        ~lock_guard () { m_fm.unlock(); }
+    private:
+        fast_mutex & m_fm;
+    };
 
 private:
     atomic_int m_locked;  ///< Atomic counter is zero if nobody holds the lock
