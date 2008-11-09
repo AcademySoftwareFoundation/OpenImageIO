@@ -47,8 +47,6 @@ class ImageCacheImpl;
 const char * texture_format_name (TexFormat f);
 const char * texture_type_name (TexFormat f);
 
-#define INTRUSIVE_REFS 1
-
 
 
 /// Unique in-memory record for each image file on disk.  Note that
@@ -117,11 +115,7 @@ private:
 
 /// Reference-counted pointer to a ImageCacheFile
 ///
-#ifdef INTRUSIVE_REFS
 typedef intrusive_ptr<ImageCacheFile> ImageCacheFileRef;
-#else
-typedef shared_ptr<ImageCacheFile> ImageCacheFileRef;
-#endif
 
 
 /// Map file names to file references
@@ -261,11 +255,7 @@ private:
 
 /// Reference-counted pointer to a ImageCacheTile
 /// 
-#ifdef INTRUSIVE_REFS
 typedef intrusive_ptr<ImageCacheTile> ImageCacheTileRef;
-#else
-typedef shared_ptr<ImageCacheTile> ImageCacheTileRef;
-#endif
 
 
 
@@ -363,11 +353,7 @@ public:
     /// no such file can be found.  This returns a plain old pointer,
     /// which is ok because the file hash table has ref-counted pointers
     /// and those won't be freed until the texture system is destroyed.
-#ifdef INTRUSIVE_REFS
     ImageCacheFile *find_file (ustring filename);
-#else
-    ImageCacheFileRef find_file (ustring filename);
-#endif
 
     /// Find a tile identified by 'id' in the tile cache, paging it in
     /// if needed, and return a reference to the tile.  Return a NULL
@@ -449,6 +435,10 @@ public:
         }
         tile = find_tile (id);
     }
+
+    virtual Tile *get_tile (ustring filename, int level, int x, int y, int z);
+    virtual void release_tile (Tile *tile) const;
+    virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
 
     virtual std::string geterror () const;
 

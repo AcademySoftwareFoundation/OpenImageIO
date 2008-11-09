@@ -137,6 +137,29 @@ public:
                              int zmin, int zmax, 
                              TypeDesc format, void *result) = 0;
 
+    /// Define an opaque data type that allows us to have a pointer
+    /// to a tile but without exposing any internals.
+    class Tile;
+
+    /// Find a tile given by an image filename, mipmap level, and pixel
+    /// coordinates.  An opaque pointer to the tile will be returned,
+    /// or NULL if no such file (or tile within the file) exists or can
+    /// be read.  The tile will not be purged from the cache until 
+    /// after release_tile() is called on the tile pointer.  This is
+    /// thread-safe!
+    virtual Tile * get_tile (ustring filename, int level,
+                                int x, int y, int z) = 0;
+
+    /// After finishing with a tile, release_tile will allow it to 
+    /// once again be purged from the tile cache if required.
+    virtual void release_tile (Tile *tile) const = 0;
+
+    /// For a tile retrived by get_tile(), return a pointer to the
+    /// pixel data itself, and also store in 'format' the data type that
+    /// the pixels are internally stored in (which may be different than
+    /// the data type of the pixels in the disk file).
+    virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const = 0;
+
     /// If any of the API routines returned false indicating an error,
     /// this routine will return the error string (and clear any error
     /// flags).  If no error has occurred since the last time geterror()

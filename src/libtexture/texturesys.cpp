@@ -280,7 +280,7 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
                                int ymin, int ymax, int zmin, int zmax, 
                                TypeDesc format, void *result)
 {
-    TextureFileRef texfile = find_texturefile (filename);
+    TextureFile *texfile = find_texturefile (filename);
     if (! texfile) {
         error ("Texture file \"%s\" not found", filename.c_str());
         return false;
@@ -443,7 +443,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     // FIXME - should we be keeping stats, times?
 
     ++m_stat_texture_batches;
-    TextureFileRef texturefile = find_texturefile (filename);
+    TextureFile *texturefile = find_texturefile (filename);
     if (! texturefile  ||  texturefile->broken()) {
         for (int i = firstactive;  i <= lastactive;  ++i) {
             if (runflags[i]) {

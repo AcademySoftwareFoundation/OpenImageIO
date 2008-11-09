@@ -228,19 +228,13 @@ public:
 
 private:
     typedef ImageCacheFile TextureFile;
-#ifdef INTRUSIVE_REFS
-    typedef ImageCacheFile *TextureFileRef;
-#else
-    typedef ImageCacheFileRef TextureFileRef;
-#endif
-    typedef ImageCacheTile File;
     typedef ImageCacheTileRef TileRef;
 
     void init ();
 
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
-    TextureFileRef find_texturefile (ustring filename) {
+    TextureFile *find_texturefile (ustring filename) {
         return m_imagecache->find_file (filename);
     }
 

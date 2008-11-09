@@ -263,36 +263,20 @@ ImageCacheFile::release ()
 
 
 
-#ifdef INTRUSIVE_REFS
 ImageCacheFile *
-#else
-ImageCacheFileRef
-#endif
 ImageCacheImpl::find_file (ustring filename)
 {
     lock_guard_t guard (m_files_mutex);
 
     FilenameMap::iterator found = m_files.find (filename);
-#ifdef INTRUSIVE_REFS
     ImageCacheFile *tf;
-#else
-    ImageCacheFileRef tf;
-#endif
     if (found == m_files.end()) {
         // We don't already have this file in the table.  Try to
         // open it and create a record.
-#ifdef INTRUSIVE_REFS
         tf = new ImageCacheFile (*this, filename);
-#else
-        tf.reset (new ImageCacheFile (*this, filename));
-#endif
         m_files[filename] = tf;
     } else {
-#ifdef INTRUSIVE_REFS
         tf = found->second.get();
-#else
-        tf = found->second;
-#endif
     }
     tf->use ();
     check_max_files ();
@@ -556,11 +540,7 @@ bool
 ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
                                 TypeDesc datatype, void *data)
 {
-#ifdef INTRUSIVE_REFS
     ImageCacheFile *file = find_file (filename);
-#else
-    ImageCacheFileRef file = find_file (filename);
-#endif
     if (! file) {
         error ("Image file \"%s\" not found", filename.c_str());
         return false;
@@ -622,11 +602,7 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
 bool
 ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec, int subimage)
 {
-#ifdef INTRUSIVE_REFS
     ImageCacheFile *file = find_file (filename);
-#else
-    ImageCacheFileRef file = find_file (filename);
-#endif
     if (! file) {
         error ("Image file \"%s\" not found", filename.c_str());
         return false;
@@ -647,11 +623,7 @@ ImageCacheImpl::get_pixels (ustring filename, int level,
                                int zmin, int zmax, 
                                TypeDesc format, void *result)
 {
-#ifdef INTRUSIVE_REFS
     ImageCacheFile *file = find_file (filename);
-#else
-    ImageCacheFileRef file = find_file (filename);
-#endif
     if (! file) {
         error ("Image file \"%s\" not found", filename.c_str());
         return false;
@@ -703,6 +675,47 @@ ImageCacheImpl::get_pixels (ustring filename, int level,
         }
     }
     return false;
+}
+
+
+
+ImageCache::Tile *
+ImageCacheImpl::get_tile (ustring filename, int level, int x, int y, int z)
+{
+    ImageCacheFile *file = find_file (filename);
+    if (! file || file->broken())
+        return NULL;
+    TileID id (*file, level, x, y, z);
+    ImageCacheTileRef tile = find_tile (id);
+    if (! tile || ! tile->valid())
+        return NULL;
+    tile->_incref();   // Fake an extra reference count
+    return (ImageCache::Tile *) tile.get();
+}
+
+
+
+void
+ImageCacheImpl::release_tile (ImageCache::Tile *tile) const
+{
+    if (! tile)
+        return;
+    ImageCacheTileRef tileref((ImageCacheTile *)tile);
+    tileref->used ();
+    tileref->_decref();  // Reduce ref count that we bumped in get_tile
+    // when we exit scope, tileref will do the final dereference
+}
+
+
+
+const void *
+ImageCacheImpl::tile_pixels (ImageCache::Tile *tile, TypeDesc &format) const
+{
+    if (! tile)
+        return NULL;
+    ImageCacheTile * t = (ImageCacheTile *)tile;
+    format = t->file().datatype();
+    return t->data ();
 }
 
 
