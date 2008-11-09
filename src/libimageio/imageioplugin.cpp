@@ -52,15 +52,16 @@ using namespace OpenImageIO;
 using namespace OpenImageIO::pvt;
 
 
+typedef std::map <std::string, create_prototype> PluginMap;
 
 // Map format name to ImageInput creation
-static std::map <std::string, create_prototype> input_formats;
+static PluginMap input_formats;
 // Map format name to ImageOutput creation
-static std::map <std::string, create_prototype> output_formats;
+static PluginMap output_formats;
 // Map file extension to ImageInput creation
-static std::map <std::string, create_prototype> input_extensions;
+static PluginMap input_extensions;
 // Map file extension to ImageOutput creation
-static std::map <std::string, create_prototype> output_extensions;
+static PluginMap output_extensions;
 // Map format name to plugin handle
 static std::map <std::string, Plugin::Handle> plugin_handles;
 // Map format name to full path
@@ -336,17 +337,30 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
     if (input_formats.find (format) == input_formats.end())
         catalog_all_plugins (plugin_searchpath);
 
-    if (input_formats.find (format) == input_formats.end()) {
+    create_prototype create_function = NULL; 
+    if (input_formats.find (format) != input_formats.end()) {
+        create_function = input_formats[format];
+    } else {
+        // If a plugin can't be found that was explicitly designated
+        // for this extension, then just try every one we find and see if
+        // any will open the file.
+        for (PluginMap::const_iterator plugin = input_formats.begin();
+             plugin != input_formats.end(); ++plugin)
+        {
+            ImageSpec test_spec;
+            std::auto_ptr<ImageInput> test_plugin((ImageInput*) plugin->second());
+            if (test_plugin->open(filename, test_spec)) {
+                create_function = plugin->second;
+                break;
+            }
+        }
+    }
+
+    if (create_function == NULL) {
         OpenImageIO::error ("ImageInput::create_format() could not find a plugin for \"%s\"\n    searchpath = \"%s\"\n",
                             filename.c_str(), plugin_searchpath.c_str());
         return NULL;
     }
 
-    // FIXME: if a plugin can't be found that was explicitly designated
-    // for this extension, then just try every one we find and see if
-    // any will open the file.
-
-    create_prototype create_function = input_formats[format];
-    ASSERT (create_function != NULL);
     return (ImageInput *) create_function();
 }
