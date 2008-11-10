@@ -42,6 +42,8 @@ lg/IP       Clean up char* vs std::string
 lg/DONE     iv - handle data vs display windows sensibly
             Rename 3party (condenders: third_party, external, contrib)
             Explore unit test strategies (leading condender: Google)
+            open (name, requests, newspec) - communicate requests
+                 (call it "request"? "settings"? "configuration"?)
 DONE        API docs - ImageInput, ImageOutput, writing plugins, intro
             iv - subtract from last image
             iv - view as random color
@@ -78,6 +80,7 @@ DONE        maketx - plain texture maps
             maketx - latlong env
             maketx - cubeface env
             maketx - shadow cube
+            allow REST spec in texturesystem (texture ("noise?octaves=8"))
             iv socket mode (display in separate process)
             iv imageio plugin
             iv - >4 channels, gray vs color
