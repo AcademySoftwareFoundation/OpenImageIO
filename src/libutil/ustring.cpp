@@ -92,7 +92,7 @@ ustring::format (const char *fmt, ...)
     // Try to vsnprintf into our buffer.
     va_list apcopy;
     va_copy (apcopy, ap);
-    int needed = vsnprintf (&buf[0], size, fmt, ap);
+    size_t needed = (size_t) vsnprintf (&buf[0], size, fmt, ap);
 
     if (needed <= size) {
         // It fit fine the first time, we're done.

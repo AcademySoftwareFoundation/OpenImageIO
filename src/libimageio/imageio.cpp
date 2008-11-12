@@ -112,7 +112,7 @@ _contiguize (const T *src, int nchannels, stride_t xstride, stride_t ystride, st
         return src;
 
     if (depth < 1)     // Safeguard against volume-unaware clients
-        depth == 1;
+        depth = 1;
     T *dstsave = dst;
     for (int z = 0;  z < depth;  ++z, src = (const T *)((char *)src + zstride)) {
         const T *scanline = src;

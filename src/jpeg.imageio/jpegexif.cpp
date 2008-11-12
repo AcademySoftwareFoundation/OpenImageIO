@@ -238,7 +238,7 @@ print_dir_entry (const TIFFDirEntry &dir, const char *datastart)
         break;
     case TIFF_UNDEFINED :
     case TIFF_NOTYPE :
-        for (int i = 0;  i < dir.tdir_count;  ++i)
+        for (size_t i = 0;  i < dir.tdir_count;  ++i)
             std::cerr << (int)((unsigned char *)mydata)[i] << ' ';
     default:
         break;

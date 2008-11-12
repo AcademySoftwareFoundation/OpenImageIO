@@ -69,7 +69,7 @@ ParamValue::init_noclear (ustring _name, TypeDesc _type,
         }
         if (m_type.basetype == TypeDesc::STRING) {
             ustring *u = (ustring *) data();
-            for (int i = 0;  i < n;  ++i)
+            for (size_t i = 0;  i < n;  ++i)
                 u[i] = ustring(u[i].c_str());
         }
     } else {
