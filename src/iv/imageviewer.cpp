@@ -500,7 +500,7 @@ ImageViewer::addRecentFile (const std::string &name)
 {
     removeRecentFile (name);
     m_recent_files.insert (m_recent_files.begin(), name);
-    if (m_recent_files.size() > MaxRecentFiles)
+    if (m_recent_files.size() > (size_t)MaxRecentFiles)
         m_recent_files.resize (MaxRecentFiles);
 }
 
