@@ -12,9 +12,11 @@ CFLAGS += -fPIC
 #CFLAGS += -arch i386 -arch x86_64 -mmacosx-version-min=10.5
 
 ifdef DEBUG
-CFLAGS += -g
+CFLAGS += -g -W
 else
-CFLAGS += -O3 
+CFLAGS += -O3 -funroll-loops
+#helpful? -funroll-loops -fomit-frame-pointer 
+#unhelpful? -march=pentium4 -ffast-math -msse -mfpmath=sse -msse2
 endif
 
 ifdef PROFILE
