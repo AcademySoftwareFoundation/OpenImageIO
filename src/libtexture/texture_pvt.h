@@ -230,19 +230,53 @@ private:
     typedef ImageCacheFile TextureFile;
     typedef ImageCacheTileRef TileRef;
 
+    /// A very small amount of per-thread data that saves us from locking
+    /// the mutex quite as often.
+    struct PerThreadInfo {
+        // Store just a few filename/fileptr pairs
+        static const int nlastfile = 4;
+        ustring last_filename[nlastfile];
+        ImageCacheFile *last_file[nlastfile];
+        int next_last_file;
+        ImageCacheTileRef tilecache0, tilecache1;
+
+        PerThreadInfo () : next_last_file(0) {
+            for (int i = 0;  i < nlastfile;  ++i)
+                last_file[i] = NULL;
+        }
+        // Add a new filename/fileptr pair to our microcache
+        void filename (ustring n, ImageCacheFile *f) {
+            last_filename[next_last_file] = n;
+            last_file[next_last_file] = f;
+            ++next_last_file;
+            next_last_file %= nlastfile;
+        }
+        // See if a filename has a fileptr in the microcache
+        ImageCacheFile *find_file (ustring n) const {
+            for (int i = 0;  i < nlastfile;  ++i)
+                if (last_filename[i] == n)
+                    return last_file[i];
+            return NULL;
+        }
+    };
+
+    /// Get a pointer to the caller's thread's per-thread info, or create
+    /// one in the first place if there isn't one already.
+    PerThreadInfo *get_perthread_info () {
+        PerThreadInfo *p = m_perthread_info.get();
+        if (! p) {
+            p = new PerThreadInfo;
+            m_perthread_info.reset (p);
+        }
+        return p;
+    }
+
     void init ();
 
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
     TextureFile *find_texturefile (ustring filename) {
         return m_imagecache->find_file (filename);
-    }
-
-    /// Find a tile identified by 'id' in the tile cache, paging it in
-    /// if needed, and return a reference to the tile.  Return a NULL
-    /// tile ref if such tile exists in the file.
-    TileRef find_tile (const TileID &id) {
-        return m_imagecache->find_tile (id);
     }
 
     /// Find the tile specified by id and place its reference in 'tile'.
@@ -254,13 +288,7 @@ private:
     void find_tile (const TileID &id,
                     TileRef &tile, TileRef &lasttile)
     {
-        m_imagecache->find_tile (id, tile, lasttile); // XXX
-    }
-
-    TileRef find_tile (const TileID &id,
-                                 TileRef microcache[2])
-    {
-        return m_imagecache->find_tile (id, microcache);
+        m_imagecache->find_tile (id, tile, lasttile);
     }
 
     /// Find the tile specified by id and place its reference in 'tile'.
@@ -345,6 +373,7 @@ private:
     void printstats ();
 
     ImageCacheImpl *m_imagecache;
+    boost::thread_specific_ptr< PerThreadInfo > m_perthread_info;
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     mutable std::string m_errormessage;   ///< Saved error string.

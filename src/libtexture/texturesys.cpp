@@ -32,6 +32,7 @@
 #include <string>
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
+#include <boost/thread/tss.hpp>
 
 #include <ImathVec.h>
 #include <ImathMatrix.h>
@@ -442,8 +443,16 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 
     // FIXME - should we be keeping stats, times?
 
+    // Per-thread microcache that prevents locking of this mutex
+    PerThreadInfo *thread_info = get_perthread_info ();
+    TextureFile *texturefile = thread_info->find_file (filename);
+    if (! texturefile) {
+        // Fall back on the master cache
+        texturefile = find_texturefile (filename);
+        thread_info->filename (filename, texturefile);
+    }
+
     ++m_stat_texture_batches;
-    TextureFile *texturefile = find_texturefile (filename);
     if (! texturefile  ||  texturefile->broken()) {
         for (int i = firstactive;  i <= lastactive;  ++i) {
             if (runflags[i]) {
@@ -504,14 +513,13 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     // "grid points" at once should be done in this function, outside
     // the loop, and all the work inside texture_lookup should be work
     // that MUST be redone for each individual texture lookup point.
-    TileRef tilecache0, tilecache1;
     int points_on = 0;
     for (int i = firstactive;  i <= lastactive;  ++i) {
         if (runflags[i]) {
             ++points_on;
             (this->*lookup) (*texturefile, options, i,
                              s, t, dsdx, dtdx, dsdy, dtdy,
-                             tilecache0, tilecache1,
+                             thread_info->tilecache0, thread_info->tilecache1,
                              result + i * options.nchannels);
         }
     }
@@ -909,9 +917,8 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
         TileID id (texturefile, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
         find_tile (id, tilecache0, tilecache1);
-        if (! tilecache0) {
+        if (! tilecache0->valid())
             return;
-        }
         int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
         texel[0][0] = tilecache0->data() + offset + options.firstchannel;
         texel[0][1] = texel[0][0] + spec.nchannels;
@@ -934,14 +941,13 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                     find_tile (id, tilecache0, tilecache1);
                     initialized = true;
                 }
-                tile[j][i] = tilecache0;
-                if (! tile[j][i]) {
+                if (! tilecache0->valid())
                     return;
-                }
+                tile[j][i] = tilecache0;
                 int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
                 DASSERT (offset < spec.tile_pixels()*spec.nchannels);
-                texel[j][i] = tile[j][i]->data() + offset + options.firstchannel;
-                DASSERT (tile[j][i]->id() == id);
+                texel[j][i] = tilecache0->data() + offset + options.firstchannel;
+                DASSERT (tilecache0->id() == id);
             }
         }
     }
@@ -1053,21 +1059,20 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                 tile_t = ttex[j] & tileheightmask;
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
-                if (initialized)   // Why isn't it faster to do this?
+                if (0 && initialized)   // Why isn't it faster to do this?
                     find_tile_same_level (id, tilecache0, tilecache1);
                 else {
                     find_tile (id, tilecache0, tilecache1);
                     initialized = true;
                 }
-                tile[j][i] = tilecache0;
-                if (! tilecache0 || ! tilecache0->valid()) {
+                if (! tilecache0->valid())
                     return;
-                }
-                DASSERT (tile[j][i]->id() == id);
+                tile[j][i] = tilecache0;
+                DASSERT (tilecache0->id() == id);
                 int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
                 DASSERT (offset < spec.tile_pixels() * spec.nchannels);
-                DASSERT (tile[j][i]->data());
-                texel[j][i] = tile[j][i]->data() + offset + options.firstchannel;
+                DASSERT (tilecache0->data());
+                texel[j][i] = tilecache0->data() + offset + options.firstchannel;
             }
         }
     }

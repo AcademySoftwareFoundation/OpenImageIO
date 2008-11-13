@@ -355,10 +355,10 @@ public:
     /// and those won't be freed until the texture system is destroyed.
     ImageCacheFile *find_file (ustring filename);
 
-    /// Find a tile identified by 'id' in the tile cache, paging it in
-    /// if needed, and return a reference to the tile.  Return a NULL
-    /// tile ref if such tile exists in the file.
-    ImageCacheTileRef find_tile (const TileID &id);
+    /// Find a tile identified by 'id' in the tile cache, paging it in if
+    /// needed, and store a reference to the tile.  Return true if ok,
+    /// false if no such tile exists in the file or could not be read.
+    void find_tile (const TileID &id, ImageCacheTileRef &tile);
 
     /// Find the tile specified by id and place its reference in 'tile'.
     /// Use tile and lasttile as a 2-item cache of tiles to boost our
@@ -372,44 +372,14 @@ public:
         if (tile) {
             if (tile->id() == id)
                 return;    // already have the tile we want
-            if (lasttile) {
-                // Tile didn't match, maybe lasttile will?  Swap tile
-                // and last tile.  Then the new one will either match,
-                // or we'll fall through and replace tile.
-                swap (tile, lasttile);
-                if (tile->id() == id)
-                    return;
-            } else {
-                // Tile didn't match, and there was nothing in lasttile.
-                // Move tile to lasttile, then fall through to page in
-                // to tile.
-                lasttile = tile;
-            }
+            // Tile didn't match, maybe lasttile will?  Swap tile
+            // and last tile.  Then the new one will either match,
+            // or we'll fall through and replace tile.
+            tile.swap (lasttile);
+            if (tile && tile->id() == id)
+                return;
         }
-        tile = find_tile (id);
-    }
-
-    ImageCacheTileRef find_tile (const TileID &id, ImageCacheTileRef microcache[2]) {
-        ++m_stat_find_tile_calls;
-        if (microcache[0]) {
-            if (microcache[0]->id() == id)
-                return microcache[0];
-            if (microcache[1]) {
-                // Tile didn't match, maybe lasttile will?  Swap tile
-                // and last tile.  Then the new one will either match,
-                // or we'll fall through and replace tile.
-                swap (microcache[0], microcache[1]);
-                if (microcache[0]->id() == id)
-                    return microcache[0];
-            } else {
-                // Tile didn't match, and there was nothing in lasttile.
-                // Move tile to lasttile, then fall through to page in
-                // to tile.
-                microcache[1] = microcache[0];
-            }
-        }
-        microcache[0] = find_tile (id);
-        return microcache[0];
+        find_tile (id, tile);
     }
 
     /// Find the tile specified by id and place its reference in 'tile'.
@@ -426,14 +396,10 @@ public:
         DASSERT (tile);
         if (equal_same_level (tile->id(), id))
             return;
-        if (lasttile) {
-            swap (tile, lasttile);
-            if (equal_same_level (tile->id(), id))
-                return;
-        } else {
-            lasttile = tile;
-        }
-        tile = find_tile (id);
+        tile.swap (lasttile);
+        if (tile && equal_same_level (tile->id(), id))
+            return;
+        find_tile (id, tile);
     }
 
     virtual Tile *get_tile (ustring filename, int level, int x, int y, int z);
@@ -495,10 +461,9 @@ private:
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's
     FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
-    mutex_t m_files_mutex;       ///< Protect filename map
+    mutex_t m_mutex;             ///< Thread safety
     TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
-    mutex_t m_tile_mutex;        ///< Protect tiles
     size_t m_mem_used;           ///< Memory being used for tiles
     int m_statslevel;            ///< Statistics level
     mutable std::string m_errormessage;   ///< Saved error string.

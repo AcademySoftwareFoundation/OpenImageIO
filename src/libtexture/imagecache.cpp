@@ -266,7 +266,7 @@ ImageCacheFile::release ()
 ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename)
 {
-    lock_guard_t guard (m_files_mutex);
+    lock_guard_t guard (m_mutex);
 
     FilenameMap::iterator found = m_files.find (filename);
     ImageCacheFile *tf;
@@ -481,14 +481,13 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
 
 
 
-ImageCacheTileRef
-ImageCacheImpl::find_tile (const TileID &id)
+void
+ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
 {
     DASSERT (! id.file().broken());
-    lock_guard_t guard (m_tile_mutex);
+    lock_guard_t guard (m_mutex);
     ++m_stat_find_tile_microcache_misses;
     TileCache::iterator found = m_tilecache.find (id);
-    ImageCacheTileRef tile;
     if (found != m_tilecache.end()) {
         tile = found->second;
         tile->used ();
@@ -500,7 +499,7 @@ ImageCacheImpl::find_tile (const TileID &id)
         m_tilecache[id] = tile;
     }
     DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
-    return tile->valid() ? tile : ImageCacheTileRef();
+    DASSERT (tile);
 }
 
 
@@ -686,11 +685,10 @@ ImageCacheImpl::get_tile (ustring filename, int level, int x, int y, int z)
     if (! file || file->broken())
         return NULL;
     TileID id (*file, level, x, y, z);
-    ImageCacheTileRef tile = find_tile (id);
-    if (! tile || ! tile->valid())
-        return NULL;
+    ImageCacheTileRef tile;
+    find_tile (id, tile);
     tile->_incref();   // Fake an extra reference count
-    return (ImageCache::Tile *) tile.get();
+    return tile->valid() ? (ImageCache::Tile *) tile.get() : NULL;
 }
 
 
