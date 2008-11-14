@@ -37,11 +37,7 @@ SHLIB_LDFLAGS := -dynamiclib
 
 QT_INCLUDE += -I/Library/Frameworks/QtGui.framework/Headers
 QT_INCLUDE += -I/Library/Frameworks/QtOpenGL.framework/Headers
-#QT_INCLUDE := -FQtGui.framework
-#QT_INCLUDE += -FQtOpenGL.framework
-LINK_QT += /Library/Frameworks/QtGui.framework/QtGui
-LINK_QT += /Library/Frameworks/QtOpenGL.framework/QtOpenGL
-LINK_QT += /Library/Frameworks/QtCore.framework/QtCore
+LINK_QT += -framework QtGui -framework QtOpenGL -framework QtCore
 
 OPENGL_INCLUDE := 
-LINK_OPENGL := -L/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/ -lGL
+LINK_OPENGL := -framework OpenGL
