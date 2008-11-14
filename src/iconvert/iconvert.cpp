@@ -50,6 +50,7 @@ static int tile[3] = { 0, 0, 1 };
 static bool scanline = false;
 static bool zfile = false;
 static std::string channellist;
+static std::string compression;
 
 
 
@@ -77,6 +78,7 @@ getargs (int argc, char *argv[])
                   "-g %f", &gammaval, "Set gamma correction (default = 1)",
                   "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
                   "--scanline", &scanline, "Output as a scanline image",
+                  "--compression %s", &compression, "Set the compression method (default = same as input)",
 //FIXME           "-z", &zfile, "Treat input as a depth file",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
                   NULL) < 0) {
@@ -150,6 +152,9 @@ main (int argc, char *argv[])
         outspec.tile_width = 0;
         outspec.tile_height = 0;
         outspec.tile_depth = 0;
+    }
+    if (! compression.empty()) {
+        outspec.attribute ("compression", compression);
     }
 
     // Find an ImageIO plugin that can open the output file, and open it
