@@ -692,7 +692,9 @@ ImageViewer::displayCurrentImage ()
         m_current_image = 0;
     IvImage *img = cur();
     if (img) {
-        if (img->read (img->subimage(), false, image_progress_callback, this)) {
+        if (img->pixels_valid()) {
+            // Don't need to do anything
+        } else if (img->read (img->subimage(), false, image_progress_callback, this)) {
             glwin->center (img->oriented_full_x()+img->oriented_full_width()/2.0,
                            img->oriented_full_y()+img->oriented_full_height()/2.0);
         } else {

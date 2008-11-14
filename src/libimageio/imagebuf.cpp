@@ -53,7 +53,8 @@ namespace OpenImageIO {
 
 ImageBuf::ImageBuf (const std::string &filename)
     : m_name(filename), m_nsubimages(0), m_current_subimage(0),
-      m_spec_valid(false), m_badfile(false), m_orientation(1), m_pixelaspect(1)
+      m_spec_valid(false), m_pixels_valid(false),
+      m_badfile(false), m_orientation(1), m_pixelaspect(1)
 {
 }
 
@@ -61,7 +62,8 @@ ImageBuf::ImageBuf (const std::string &filename)
 
 ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
     : m_name(filename), m_nsubimages(0), m_current_subimage(0),
-      m_spec_valid(false), m_badfile(false), m_orientation(1), m_pixelaspect(1)
+      m_spec_valid(false), m_pixels_valid(false),
+      m_badfile(false), m_orientation(1), m_pixelaspect(1)
 {
     alloc (spec);
 }
@@ -133,6 +135,9 @@ ImageBuf::read (int subimage, bool force, TypeDesc convert,
                OpenImageIO::ProgressCallback progress_callback,
                void *progress_callback_data)
 {
+    if (pixels_valid() && !force)
+        return true;
+
     // Find an ImageIO plugin that can open the input file, and open it.
     boost::scoped_ptr<ImageInput> in (ImageInput::create (m_name.c_str(), "" /* searchpath */));
     if (! in) {
@@ -172,14 +177,14 @@ ImageBuf::read (int subimage, bool force, TypeDesc convert,
 
     realloc ();
     const OpenImageIO::stride_t as = OpenImageIO::AutoStride;
-    bool ok = in->read_image (m_spec.format, &m_pixels[0], as, as, as,
-                              progress_callback, progress_callback_data);
-    if (! ok)
+    m_pixels_valid = in->read_image (m_spec.format, &m_pixels[0], as, as, as,
+                                     progress_callback, progress_callback_data);
+    if (! m_pixels_valid)
         m_err = in->error_message();
     in->close ();
     if (progress_callback)
         progress_callback (progress_callback_data, 0);
-    return ok;
+    return m_pixels_valid;
 }
 
 

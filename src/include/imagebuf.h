@@ -73,6 +73,7 @@ public:
     /// already got a current version of the image in memory, unless
     /// force==true.  This uses ImageInput underneath, so will read any
     /// file format for which an appropriate imageio plugin can be found.
+    /// Return value is true if all is ok, otherwise false.
     virtual bool read (int subimage=0, bool force=false,
                        TypeDesc convert=TypeDesc::UNKNOWN,
                        OpenImageIO::ProgressCallback progress_callback=NULL,
@@ -210,6 +211,8 @@ public:
     /// Zero out (set to 0, black) the entire image.
     ///
     void zero ();
+
+    bool pixels_valid (void) const { return m_pixels_valid; }
 
 protected:
     std::string m_name;          ///< Filename of the image
