@@ -81,7 +81,7 @@ endif
 #########################################################################
 # Path for including things specific to this project
 
-THIRD_PARTY_TOOLS_HOME ?= ../3party/dist/${platform}
+THIRD_PARTY_TOOLS_HOME ?= ../external/dist/${platform}
 
 ILMBASE_VERSION ?= 1.0.1
 ILMBASE_HOME ?= ${THIRD_PARTY_TOOLS_HOME}
