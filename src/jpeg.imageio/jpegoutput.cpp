@@ -114,7 +114,10 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     }
 
     int quality = 98;
-    // FIXME -- see if there's a quality set in the attributes
+    const ImageIOParameter *qual = newspec.find_attribute ("CompressionQuality",
+                                                           TypeDesc::INT);
+    if (qual)
+        quality = * (const int *)qual->data();
 
     m_cinfo.err = jpeg_std_error (&c_jerr);             // set error handler
     jpeg_create_compress (&m_cinfo);                    // create compressor
