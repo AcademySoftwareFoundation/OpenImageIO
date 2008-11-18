@@ -72,6 +72,7 @@ TextureOptions::TextureOptions (bool)
       swrap(WrapDefault), twrap(WrapDefault),
       mipmode(MipModeDefault),
       interpmode(InterpSmartBicubic),
+      anisotropic(32),
       sblur(default_blur), tblur(default_blur),
       swidth(default_width), twidth(default_width),
       bias(default_bias),

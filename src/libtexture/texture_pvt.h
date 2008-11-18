@@ -390,6 +390,7 @@ private:
     int m_stat_environment_batches;
     int m_stat_aniso_queries;
     int m_stat_aniso_probes;
+    float m_stat_max_aniso;
     int m_stat_closest_interps;
     int m_stat_bilinear_interps;
     int m_stat_cubic_interps;

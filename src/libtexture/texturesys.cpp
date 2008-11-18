@@ -29,6 +29,7 @@
 */
 
 
+#include <math.h>
 #include <string>
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
@@ -160,6 +161,7 @@ TextureSystemImpl::init ()
     m_stat_environment_batches = 0;
     m_stat_aniso_queries = 0;
     m_stat_aniso_probes = 0;
+    m_stat_max_aniso = 1;
     m_stat_closest_interps = 0;
     m_stat_bilinear_interps = 0;
     m_stat_cubic_interps = 0;
@@ -199,6 +201,9 @@ TextureSystemImpl::printstats ()
     std::cout << "    bicubic  : " << m_stat_cubic_interps << "\n";
     std::cout << Strutil::format ("  Average anisotropy : %.3g\n",
                                   (double)m_stat_aniso_probes/(double)m_stat_aniso_queries);
+    std::cout << Strutil::format ("  Max anisotropy in the wild : %.3g\n",
+                                  m_stat_max_aniso);
+
     std::cout << "\n";
 }
 
@@ -727,11 +732,27 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         smajor = dsdy;
         tmajor = dtdy;
     }
-    float aspect = (*majorlength) / (*minorlength);
-    const float max_aspect = 16;
-    if (aspect > max_aspect) {
-        aspect = max_aspect;
-        *minorlength = (*majorlength) / max_aspect;
+    float aspect = Imath::clamp ((*majorlength) / (*minorlength), 1.0f, 1.0e6f);
+    if (aspect > m_stat_max_aniso)
+        m_stat_max_aniso = aspect;
+    if (aspect > options.anisotropic) {
+        aspect = options.anisotropic;
+        // We have to clamp the ellipse to the maximum amount of anisotropy
+        // that we allow.  How do we do it?
+        // a. Widen the short axis so we never alias along the major axis,
+        //    but we over-blur along the minor axis:
+        //      *minorlength = (*majorlength) / options.anisotropic;
+        // b. Clamp the long axis so we don't blur, but might alias:
+        //      *majorlength = (*minorlength) * options.anisotropic;
+        // c. Split the difference, take the geometric mean, this makes it
+        //      slightly too blurry along the minor axis, slightly aliasing
+        //      along the major axis.  You can't please everybody.
+        //      *majorlength = sqrtf ((*majorlength) * 
+        //                            (*minorlength * options.anisotropic));
+        //      *minorlength = (*majorlength) / options.anisotropic;
+        *majorlength = sqrtf ((*majorlength) * 
+                              (*minorlength * options.anisotropic));
+        *minorlength = (*majorlength) / options.anisotropic;
     }
 
     float filtwidth = (*minorlength);

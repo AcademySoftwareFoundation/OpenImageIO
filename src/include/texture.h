@@ -137,6 +137,7 @@ public:
     Wrap twrap;             ///< Wrap mode in the t direction
     MipMode mipmode;        ///< Mip mode
     InterpMode interpmode;  ///< Interpolation mode
+    int anisotropic;        ///< Maximum anisotropic ratio
 
     // Options that may be different for each point we're texturing
     VaryingRef<float> sblur, tblur;   ///< Blur amount
