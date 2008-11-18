@@ -197,7 +197,8 @@ TextureSystemImpl::printstats ()
     std::cout << "    closest  : " << m_stat_closest_interps << "\n";
     std::cout << "    bilinear : " << m_stat_bilinear_interps << "\n";
     std::cout << "    bicubic  : " << m_stat_cubic_interps << "\n";
-    std::cout << "  Average anisotropy : " << (double)m_stat_aniso_probes/(double)m_stat_aniso_queries << "\n";
+    std::cout << Strutil::format ("  Average anisotropy : %.3g\n",
+                                  (double)m_stat_aniso_probes/(double)m_stat_aniso_queries);
     std::cout << "\n";
 }
 
