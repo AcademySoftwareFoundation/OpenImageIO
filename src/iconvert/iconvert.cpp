@@ -51,6 +51,7 @@ static bool scanline = false;
 static bool zfile = false;
 static std::string channellist;
 static std::string compression;
+static int quality = -1;
 
 
 
@@ -79,6 +80,7 @@ getargs (int argc, char *argv[])
                   "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
                   "--scanline", &scanline, "Output as a scanline image",
                   "--compression %s", &compression, "Set the compression method (default = same as input)",
+                  "--quality %d", &quality, "Set the compression quality, 1-100",
 //FIXME           "-z", &zfile, "Treat input as a depth file",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
                   NULL) < 0) {
@@ -156,6 +158,9 @@ main (int argc, char *argv[])
     if (! compression.empty()) {
         outspec.attribute ("compression", compression);
     }
+
+    if (quality > 0)
+        outspec.attribute ("CompressionQuality", quality);
 
     // Find an ImageIO plugin that can open the output file, and open it
     ImageOutput *out = ImageOutput::create (filenames[1].c_str());
