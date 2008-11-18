@@ -41,7 +41,7 @@
 
 IvImage::IvImage (const std::string &filename)
     : ImageBuf(filename), m_thumbnail(NULL),
-      m_pixels_valid(false), m_thumbnail_valid(false),
+      m_thumbnail_valid(false),
       m_gamma(1), m_exposure(0)
 {
 }
@@ -84,7 +84,7 @@ IvImage::read (int subimage, bool force,
 
     bool ok = ImageBuf::read (subimage, force, TypeDesc::UNKNOWN,
                               progress_callback, progress_callback_data);
-    m_pixels_valid = ok;
+    return ok;
 }
 
 

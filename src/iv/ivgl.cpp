@@ -193,6 +193,8 @@ IvGL::create_shaders (void)
         "    }\n"
         "    vec4 C = texture2D (imgtex, st);\n"
         "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
+        "    if (pixelview != 0)\n"
+        "        C.a = 1.0;\n"
         "    if (imgchannels == 1)\n"
         "        C = C.xxxx;\n"
         "    if (channelview == -1) {\n"
@@ -206,7 +208,7 @@ IvGL::create_shaders (void)
         "    else if (channelview == 3)\n"
         "        C.xyz = C.www;\n"
         "    else if (channelview == -2) {\n"
-        "        float lum = dot (C.xyz, vec3(0.3086, 0.6094, 0.0820));\n"
+        "        float lum = dot (C.xyz, vec3(0.2126, 0.7152, 0.0722));\n"
         "        C.xyz = vec3 (lum, lum, lum);\n"
         "    }\n"
         "    C.xyz *= gain;\n"
@@ -343,7 +345,7 @@ IvGL::paintGL ()
     if (orient != 1) {
         if (orient == 2 || orient == 3 || orient == 5)
             std::swap (xmin, xmax);
-        if (orient == 3 || orient == 4)
+        if (orient == 3 || orient == 4 || orient == 8)
             std::swap (ymin, ymax);
         if (orient == 5 || orient == 8) {
             float x0 = xmin, x1 = xmax, y0 = ymin, y1 = ymax;
@@ -354,8 +356,13 @@ IvGL::paintGL ()
             rotate = 3;
         } else if (orient == 6 || orient == 7) {
             float x0 = xmin, x1 = xmax, y0 = ymin, y1 = ymax;
-            xmin = y0;
-            xmax = y1;
+            if (orient == 6) {
+                xmin = y1;
+                xmax = y0;
+            } else {
+                xmin = y0;
+                xmax = y1;
+            }
             ymin = x1;
             ymax = x0;
             rotate = 1;
@@ -743,19 +750,25 @@ void
 IvGL::mousePressEvent (QMouseEvent *event)
 {
     remember_mouse (event->pos());
+    int mousemode = m_viewer.mouseModeComboBox->currentIndex ();
+    bool Alt = (event->modifiers() & Qt::AltModifier);
     m_drag_button = event->button();
     switch (event->button()) {
     case Qt::LeftButton :
-        if (event->modifiers() & Qt::AltModifier)
-            m_dragging = true;
+        if (mousemode == ImageViewer::MouseModeZoom && !Alt)
+            m_viewer.zoomIn();
         else
-        m_viewer.zoomIn();
+            m_dragging = true;
         return;
     case Qt::RightButton :
-        m_viewer.zoomOut();
+        if (mousemode == ImageViewer::MouseModeZoom && !Alt)
+            m_viewer.zoomOut();
+        else
+            m_dragging = true;
         return;
     case Qt::MidButton :
         m_dragging = true;
+        // FIXME: should this be return rather than break?
         break;
     }
     parent_t::mousePressEvent (event);
@@ -768,11 +781,7 @@ IvGL::mouseReleaseEvent (QMouseEvent *event)
 {
     remember_mouse (event->pos());
     m_drag_button = Qt::NoButton;
-    switch (event->button()) {
-    case Qt::MidButton :
-        m_dragging = false;
-        break;
-    }
+    m_dragging = false;
     parent_t::mouseReleaseEvent (event);
 }
 
@@ -784,23 +793,53 @@ IvGL::mouseMoveEvent (QMouseEvent *event)
     QPoint pos = event->pos();
     // FIXME - there's probably a better Qt way than tracking the button
     // myself.
-    switch (m_drag_button /*event->button()*/) {
-    case Qt::MidButton : {
+    bool Alt = (event->modifiers() & Qt::AltModifier);
+    int mousemode = m_viewer.mouseModeComboBox->currentIndex ();
+    bool do_pan = false, do_zoom = false, do_wipe = false;
+    bool do_select = false, do_annotate = false;
+    switch (mousemode) {
+    case ImageViewer::MouseModeZoom :
+        if ((m_drag_button == Qt::MidButton) ||
+            (m_drag_button == Qt::LeftButton && Alt)) {
+            do_pan = true;
+        } else if (m_drag_button == Qt::RightButton && Alt) {
+            do_zoom = true;
+        }
+        break;
+    case ImageViewer::MouseModePan :
+        if (m_drag_button != Qt::NoButton)
+            do_pan = true;
+        break;
+    case ImageViewer::MouseModeWipe :
+        if (m_drag_button != Qt::NoButton)
+            do_wipe = true;
+        break;
+    case ImageViewer::MouseModeSelect :
+        if (m_drag_button != Qt::NoButton)
+            do_select = true;
+        break;
+    case ImageViewer::MouseModeAnnotate :
+        if (m_drag_button != Qt::NoButton)
+            do_annotate = true;
+        break;
+    }
+    if (do_pan) {
         float dx = (pos.x() - m_mousex) / m_zoom;
         float dy = (pos.y() - m_mousey) / m_zoom;
         pan (-dx, -dy);
-        break;
-        }
-    case Qt::LeftButton : 
-        if (event->modifiers() & Qt::AltModifier) {
-            float dx = (pos.x() - m_mousex);
-            float dy = (pos.y() - m_mousey);
-            float z = m_viewer.zoom() * (1.0 + 0.005 * (dx + dy));
-            z = Imath::clamp (z, 0.01f, 256.0f);
-            m_viewer.zoom (z);
-            m_viewer.fitImageToWindowAct->setChecked (false);
-        }
-        break;
+    } else if (do_zoom) {
+        float dx = (pos.x() - m_mousex);
+        float dy = (pos.y() - m_mousey);
+        float z = m_viewer.zoom() * (1.0 + 0.005 * (dx + dy));
+        z = Imath::clamp (z, 0.01f, 256.0f);
+        m_viewer.zoom (z);
+        m_viewer.fitImageToWindowAct->setChecked (false);
+    } else if (do_wipe) {
+        // FIXME -- unimplemented
+    } else if (do_select) {
+        // FIXME -- unimplemented
+    } else if (do_annotate) {
+        // FIXME -- unimplemented
     }
     remember_mouse (pos);
     if (m_viewer.pixelviewOn())

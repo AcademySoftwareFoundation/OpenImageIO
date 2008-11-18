@@ -401,6 +401,16 @@ ImageViewer::createStatusBar()
     statusProgress->setRange (0, 100);
     statusProgress->reset ();
     statusBar()->addWidget (statusProgress);
+
+    mouseModeComboBox = new QComboBox;
+    mouseModeComboBox->addItem (tr("Zoom"));
+    mouseModeComboBox->addItem (tr("Pan"));
+    mouseModeComboBox->addItem (tr("Wipe"));
+    mouseModeComboBox->addItem (tr("Select"));
+    mouseModeComboBox->addItem (tr("Annotate"));
+    // Note: the order of the above MUST match the order of enum MouseMode
+    statusBar()->addWidget (mouseModeComboBox);
+    mouseModeComboBox->hide ();
 }
 
 
@@ -692,13 +702,17 @@ ImageViewer::displayCurrentImage ()
         m_current_image = 0;
     IvImage *img = cur();
     if (img) {
-        if (img->pixels_valid()) {
-            // Don't need to do anything
-        } else if (img->read (img->subimage(), false, image_progress_callback, this)) {
-            glwin->center (img->oriented_full_x()+img->oriented_full_width()/2.0,
-                           img->oriented_full_y()+img->oriented_full_height()/2.0);
-        } else {
-            std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
+        if (! img->pixels_valid()) {
+            statusViewInfo->hide ();
+            statusProgress->show ();
+            if (img->read (img->subimage(), false, image_progress_callback, this)) {
+                glwin->center (img->oriented_full_x()+img->oriented_full_width()/2.0,
+                               img->oriented_full_y()+img->oriented_full_height()/2.0);
+            } else {
+                std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
+            }
+            statusProgress->hide ();
+            statusViewInfo->show ();
         }
     } else {
         m_current_image = m_last_image = -1;

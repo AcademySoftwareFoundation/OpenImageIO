@@ -71,7 +71,6 @@ public:
 
 private:
     char *m_thumbnail;         ///< Thumbnail image
-    bool m_pixels_valid;       ///< Image is valid
     bool m_thumbnail_valid;    ///< Thumbnail is valid
     float m_gamma;             ///< Gamma correction of this image
     float m_exposure;          ///< Exposure gain of this image, in stops
@@ -247,7 +246,9 @@ private:
     QMenu *expgamMenu, *channelMenu;
     QLabel *statusImgInfo, *statusViewInfo;
     QProgressBar *statusProgress;
-
+    QComboBox *mouseModeComboBox;
+    enum MouseMode { MouseModeZoom, MouseModePan, MouseModeWipe,
+                     MouseModeSelect, MouseModeAnnotate };
     QCheckBox *pixelviewFollowsMouseBox;
     QCheckBox *linearInterpolationBox;
 
