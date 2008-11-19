@@ -110,12 +110,18 @@ private:
             m_spec.attribute (name, TypeDesc::STRING, 1, &s);
     }
 
-    // Get a float-oid tiff tag field and put it into extra_params
-    void get_float_attribute (const std::string &name, int tag,
-                              TypeDesc type=TypeDesc::FLOAT) {
+    // Get a matrix tiff tag field and put it into extra_params
+    void get_matrix_attribute (const std::string &name, int tag) {
+        float *f;
+        if (TIFFGetField (m_tif, tag, &f))
+            m_spec.attribute (name, TypeDesc::PT_MATRIX, 1, f);
+    }
+
+    // Get a float tiff tag field and put it into extra_params
+    void get_float_attribute (const std::string &name, int tag) {
         float f[16];
         if (TIFFGetField (m_tif, tag, f))
-            m_spec.attribute (name, type, 1, &f);
+            m_spec.attribute (name, TypeDesc::FLOAT, 1, &f);
     }
 
     // Get an int tiff tag field and put it into extra_params
@@ -357,8 +363,8 @@ TIFFInput::readspec ()
     get_short_attribute ("Orientation", TIFFTAG_ORIENTATION);
     get_string_attribute ("Software", TIFFTAG_SOFTWARE);
     get_string_attribute ("textureformat", TIFFTAG_PIXAR_TEXTUREFORMAT);
-    get_float_attribute ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, PT_MATRIX);
-    get_float_attribute ("worldtoscreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, PT_MATRIX);
+    get_matrix_attribute ("worldtocamera", TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA);
+    get_matrix_attribute ("worldtoscreen", TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN);
     get_string_attribute ("wrapmodes", TIFFTAG_PIXAR_WRAPMODES);
     get_float_attribute ("XResolution", TIFFTAG_XRESOLUTION);
     get_float_attribute ("YResolution", TIFFTAG_YRESOLUTION);
