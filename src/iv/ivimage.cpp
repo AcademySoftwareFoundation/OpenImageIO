@@ -187,12 +187,28 @@ IvImage::longinfo () const
                 m_longinfo += html_table_row (p.name().c_str(), *(const char **)p.data());
             else if (p.type() == TypeDesc::FLOAT)
                 m_longinfo += html_table_row (p.name().c_str(), format("%g",*(const float *)p.data()));
+            else if (p.type() == TypeDesc::DOUBLE)
+                m_longinfo += html_table_row (p.name().c_str(), format("%g",*(const double *)p.data()));
             else if (p.type() == TypeDesc::INT)
                 m_longinfo += html_table_row (p.name().c_str(), *(const int *)p.data());
             else if (p.type() == TypeDesc::UINT)
                 m_longinfo += html_table_row (p.name().c_str(), format("%u",*(const unsigned int *)p.data()));
+            else if (p.type() == TypeDesc::INT16)
+                m_longinfo += html_table_row (p.name().c_str(), *(const short *)p.data());
+            else if (p.type() == TypeDesc::UINT16)
+                m_longinfo += html_table_row (p.name().c_str(), format("%u",*(const unsigned short *)p.data()));
+            else if (p.type() == TypeDesc::PT_MATRIX) {
+                const float *m = (const float *)p.data();
+                m_longinfo += html_table_row (p.name().c_str(),
+                    format ("%g %g %g %g<br> %g %g %g %g<br> %g %g %g %g<br> %g %g %g %g",
+                        m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], 
+                        m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]));
+            }
             else
-                m_longinfo += html_table_row (p.name().c_str(), "<unknown data type>");
+                m_longinfo += html_table_row (p.name().c_str(),
+                     format ("(unknown data type (base %d, agg %d vec %d)",
+                             p.type().basetype, p.type().aggregate,
+                             p.type().vecsemantics));
         }
 
         m_longinfo += "</table>";

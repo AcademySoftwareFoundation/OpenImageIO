@@ -123,8 +123,17 @@ print_info (const std::string &filename, ImageInput *input,
                 printf ("%u", *(const unsigned short *)p.data());
             else if (p.type() == TypeDesc::INT16)
                 printf ("%d", *(const short *)p.data());
-            else
-                printf ("<unknown data type>");
+            else if (p.type() == TypeDesc::PT_MATRIX) {
+                const float *m = (const float *)p.data();
+                printf ("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g",
+                        m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], 
+                        m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]);
+            }
+            else {
+                printf ("<unknown data type> (base %d, agg %d vec %d)",
+                        p.type().basetype, p.type().aggregate,
+                        p.type().vecsemantics);
+            }
             printf ("\n");
         }
     }
