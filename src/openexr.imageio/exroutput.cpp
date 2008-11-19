@@ -338,7 +338,9 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     std::string xname = name; // ooio_std_to_exr_tag[name];
 
     if (iequals(xname, "worldtocamera"))
-        xname = "cameraTransform";
+        xname = "worldToCamera";
+    else if (iequals(xname, "worldtoscreen"))
+        xname = "worldToNDC";
     else if (iequals(xname, "DateTime"))
         xname = "capDate";
     else if (iequals(xname, "description") || iequals(xname, "ImageDescription"))
