@@ -576,7 +576,8 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
     // FIXME - "viewingmatrix"
     // FIXME - "projectionmatrix"
 
-    // general case
+    // general case -- handle anything else that's able to be found by
+    // spec.find_attribute().
     const ImageIOParameter *p = spec.find_attribute (dataname.string());
     if (p && p->type().arraylen == datatype.arraylen) {
         // First test for exact type match

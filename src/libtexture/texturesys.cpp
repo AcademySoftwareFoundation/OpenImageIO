@@ -556,8 +556,6 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
         options.alpha[index] = 0;
 
     const ImageSpec &spec (texturefile.spec (0));
-    float s = (floorf (_s[index] * spec.full_width)  + 0.5f) / spec.full_width;
-    float t = (floorf (_t[index] * spec.full_height) + 0.5f) / spec.full_height;
 
     static const accum_prototype accum_functions[] = {
         // Must be in the same order as InterpMode enum
@@ -567,7 +565,7 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
         &TextureSystemImpl::accum_sample_bilinear,
     };
     accum_prototype accumer = accum_functions[(int)options.interpmode];
-    (this->*accumer) (s, t, 0, texturefile,
+    (this->*accumer) (_s[index], _t[index], 0, texturefile,
                       options, index, tilecache0, tilecache1,
                       1.0f, result);
     ++m_stat_aniso_queries;
