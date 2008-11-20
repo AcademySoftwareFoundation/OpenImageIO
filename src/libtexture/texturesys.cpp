@@ -1049,8 +1049,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     bool t_onetile = (tile_t <= tileheightmask-3);
     if (s_onetile && t_onetile) {
         for (int i = 1; i < 4;  ++i) {
-            s_onetile &= (stex[i] == stex[0]);
-            t_onetile &= (ttex[i] == ttex[0]);
+            s_onetile &= (stex[i] == stex[0]+i);
+            t_onetile &= (ttex[i] == ttex[0]+i);
         }
     }
     bool onetile = (s_onetile & t_onetile);
