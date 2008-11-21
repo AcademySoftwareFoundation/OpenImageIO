@@ -192,6 +192,26 @@ swap_endian (T *f, int len=1)
 
 
 
+/// Fast table-based conversion of 8-bit to other types.  Declare this
+/// as static to avoid the expensive ctr being called all the time.
+template <class T=float>
+class EightBitConverter {
+public:
+    EightBitConverter () { init(); }
+    T operator() (unsigned char c) const { return val[c]; }
+private:
+    T val[256];
+    void init () {
+        float scale = 1.0f / 255.0f;
+        if (std::numeric_limits<T>::is_integer)
+            scale *= (float)std::numeric_limits<T>::max();
+        for (int i = 0;  i < 256;  ++i)
+            val[i] = (T)(i * scale);
+    }
+};
+
+
+
 /// Convert n consecutive values from the type of S to the type of D.
 /// The conversion is not a simple cast, but correctly remaps the
 /// 0.0->1.0 range from and to the full positive range of integral
@@ -347,5 +367,18 @@ inline float radians (float deg) { return deg * M_PI / 180.0f; }
 ///
 inline float degrees (float rad) { return rad * 180.0 / M_PI; }
 
+
+
+#ifdef _WINDOWS
+// Windows doesn't define these functions from math.h
+#define copysign(x,y) _copysign(x,y)
+#define copysignf(x,y) copysign(x,y)
+#define isnan(x) _isnan(x)
+#define isfinite(x) _finite(x)
+template<class T>
+inline int isinf (T x) {
+    return (isfinite(x)||isnan(x)) ? 0 : copysign(1.0f, x))
+}
+#endif
 
 #endif // FMATH_H
