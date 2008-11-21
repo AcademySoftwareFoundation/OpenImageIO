@@ -131,13 +131,14 @@ public:
     TextureOptions ();
 
     // Options that must be the same for all points we're texturing at once
-    int firstchannel;       ///< First channel of the lookup
-    int nchannels;          ///< Number of channels to look up: 1 or 3
-    Wrap swrap;             ///< Wrap mode in the s direction
-    Wrap twrap;             ///< Wrap mode in the t direction
-    MipMode mipmode;        ///< Mip mode
-    InterpMode interpmode;  ///< Interpolation mode
-    int anisotropic;        ///< Maximum anisotropic ratio
+    int firstchannel;         ///< First channel of the lookup
+    int nchannels;            ///< Number of channels to look up: 1 or 3
+    Wrap swrap;               ///< Wrap mode in the s direction
+    Wrap twrap;               ///< Wrap mode in the t direction
+    MipMode mipmode;          ///< Mip mode
+    InterpMode interpmode;    ///< Interpolation mode
+    int anisotropic;          ///< Maximum anisotropic ratio
+    bool conservative_filter; ///< True == over-blur rather than alias
 
     // Options that may be different for each point we're texturing
     VaryingRef<float> sblur, tblur;   ///< Blur amount

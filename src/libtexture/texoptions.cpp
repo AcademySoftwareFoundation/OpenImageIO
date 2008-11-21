@@ -72,7 +72,7 @@ TextureOptions::TextureOptions (bool)
       swrap(WrapDefault), twrap(WrapDefault),
       mipmode(MipModeDefault),
       interpmode(InterpSmartBicubic),
-      anisotropic(32),
+      anisotropic(32), conservative_filter(true),
       sblur(default_blur), tblur(default_blur),
       swidth(default_width), twidth(default_width),
       bias(default_bias),

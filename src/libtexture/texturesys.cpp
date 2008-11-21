@@ -627,7 +627,8 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     float levelblend = 0;
     float sfilt = std::max (hypotf (dsdx, dtdx), (float)1.0e-8);
     float tfilt = std::max (hypotf (dsdy, dtdy), (float)1.0e-8);
-    float filtwidth = std::max (sfilt, tfilt);
+    float filtwidth = options.conservative_filter ? std::max (sfilt, tfilt)
+                                                  : std::min (sfilt, tfilt);
     for (int i = 0;  i < texturefile.levels();  ++i) {
         // Compute the filter size in raster space at this MIP level
         float filtwidth_ras = texturefile.spec(i).full_width * filtwidth;
@@ -764,9 +765,13 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         //      *majorlength = sqrtf ((*majorlength) * 
         //                            (*minorlength * options.anisotropic));
         //      *minorlength = (*majorlength) / options.anisotropic;
-        *majorlength = sqrtf ((*majorlength) * 
-                              (*minorlength * options.anisotropic));
-        *minorlength = (*majorlength) / options.anisotropic;
+        if (options.conservative_filter) {
+            *majorlength = sqrtf ((*majorlength) * 
+                                  (*minorlength * options.anisotropic));
+            *minorlength = (*majorlength) / options.anisotropic;
+        } else {
+            *majorlength = (*minorlength) * options.anisotropic;
+        }
     }
 
     float filtwidth = (*minorlength);
