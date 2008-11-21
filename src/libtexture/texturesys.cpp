@@ -31,6 +31,8 @@
 
 #include <math.h>
 #include <string>
+#include <sstream>
+#include <list>
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
 #include <boost/thread/tss.hpp>
@@ -103,6 +105,10 @@ TextureSystem::destroy (TextureSystem *x)
 
 
 namespace pvt {   // namespace OpenImageIO::pvt
+
+
+static EightBitConverter<float> uchar2float;
+
 
 
 const char *
@@ -179,32 +185,46 @@ TextureSystemImpl::~TextureSystemImpl ()
 
 
 
+std::string
+TextureSystemImpl::getstats (int level, bool icstats) const
+{
+    std::ostringstream out;
+    if (level > 0) {
+        out << "OpenImageIO Texture statistics (" << (void*)this 
+            << ", cache = " << (void *)m_imagecache << ")\n";
+        out << "  Queries/batches : \n";
+        out << "    texture     :  " << m_stat_texture_queries 
+            << " queries in " << m_stat_texture_batches << " batches\n";
+        out << "    texture 3d  :  " << m_stat_texture3d_queries 
+            << " queries in " << m_stat_texture3d_batches << " batches\n";
+        out << "    shadow      :  " << m_stat_shadow_queries 
+            << " queries in " << m_stat_shadow_batches << " batches\n";
+        out << "    environment :  " << m_stat_environment_queries 
+            << " queries in " << m_stat_environment_batches << " batches\n";
+        out << "  Interpolations :\n";
+        out << "    closest  : " << m_stat_closest_interps << "\n";
+        out << "    bilinear : " << m_stat_bilinear_interps << "\n";
+        out << "    bicubic  : " << m_stat_cubic_interps << "\n";
+        out << Strutil::format ("  Average anisotropy : %.3g\n",
+                                (double)m_stat_aniso_probes/(double)m_stat_aniso_queries);
+        out << Strutil::format ("  Max anisotropy in the wild : %.3g\n",
+                                m_stat_max_aniso);
+        if (icstats)
+            out << "\n";
+    }
+    if (icstats)
+        out << m_imagecache->getstats (level);
+    return out.str();
+}
+
+
+
 void
-TextureSystemImpl::printstats ()
+TextureSystemImpl::printstats () const
 {
     if (m_statslevel == 0)
         return;
-    std::cout << "OpenImageIO Texture statistics (" << (void*)this 
-              << ", cache = " << (void *)m_imagecache << ")\n";
-    std::cout << "  Queries/batches : \n";
-    std::cout << "    texture     :  " << m_stat_texture_queries 
-              << " queries in " << m_stat_texture_batches << " batches\n";
-    std::cout << "    texture 3d  :  " << m_stat_texture3d_queries 
-              << " queries in " << m_stat_texture3d_batches << " batches\n";
-    std::cout << "    shadow      :  " << m_stat_shadow_queries 
-              << " queries in " << m_stat_shadow_batches << " batches\n";
-    std::cout << "    environment :  " << m_stat_environment_queries 
-              << " queries in " << m_stat_environment_batches << " batches\n";
-    std::cout << "  Interpolations :\n";
-    std::cout << "    closest  : " << m_stat_closest_interps << "\n";
-    std::cout << "    bilinear : " << m_stat_bilinear_interps << "\n";
-    std::cout << "    bicubic  : " << m_stat_cubic_interps << "\n";
-    std::cout << Strutil::format ("  Average anisotropy : %.3g\n",
-                                  (double)m_stat_aniso_probes/(double)m_stat_aniso_queries);
-    std::cout << Strutil::format ("  Max anisotropy in the wild : %.3g\n",
-                                  m_stat_max_aniso);
-
-    std::cout << "\n";
+    std::cout << getstats (m_statslevel, false) << "\n\n";
 }
 
 
@@ -312,9 +332,6 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
     TileRef tile, lasttile;
     int nc = texfile->spec().nchannels;
     size_t formatpixelsize = nc * format.size();
-    size_t tilepixelsize = nc * texfile->datatype().size();
-    ASSERT (texfile->datatype() == TypeDesc::FLOAT);  // won't work otherwise
-    float *texel = (float *) alloca (nc * sizeof(float));
     for (int z = zmin;  z <= zmax;  ++z) {
         int tz = z - (z % spec.tile_depth);
         for (int y = ymin;  y <= ymax;  ++y) {
@@ -323,16 +340,16 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
                 int tx = x - (x % spec.tile_width);
                 TileID tileid (*texfile, level, tx, ty, tz);
                 find_tile (tileid, tile, lasttile);
-                const void *data;
-                texel = (float *)result;
-                if (tile && (data = tile->data (x, y, z))) {
-                    for (int c = 0;  c < actualchannels;  ++c)
-                        texel[c] = ((float *)data)[options.firstchannel + c];
+                const char *data;
+                if (tile && (data = (const char *)tile->data (x, y, z))) {
+                    data += options.firstchannel * texfile->datatype().size();
+                    convert_types (texfile->datatype(), data,
+                                   format, result, actualchannels);
                     for (int c = actualchannels;  c < options.nchannels;  ++c)
-                        texel[c] = options.fill[0];
-                    convert_types (texfile->datatype(), texel, format, result, nc);
+                        convert_types (TypeDesc::FLOAT, &(options.fill[0]),
+                                       format, result, 1);
                 } else {
-                    memset (texel, 0, formatpixelsize);
+                    memset (result, 0, formatpixelsize);
                 }
                 result = (void *) ((char *) result + formatpixelsize);
             }
@@ -646,7 +663,6 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     float levelweight[2] = { 1.0f - levelblend, levelblend };
 //    std::cerr << "Levels " << miplevel[0] << ' ' << miplevel[1] << ' ' << levelblend << "\n";
 
-    // FIXME -- we should allow bicubic here
     static const accum_prototype accum_functions[] = {
         // Must be in the same order as InterpMode enum
         &TextureSystemImpl::accum_sample_closest,
@@ -855,22 +871,34 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     int tileheightmask = spec.tile_height - 1;
     int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
     int invtileheightmask = ~tileheightmask;
-    const float *texel = NULL;
-    static float black[4] = { 0, 0, 0, 0 };
     int tile_s = stex & tilewidthmask;
     int tile_t = ttex & tileheightmask;
     TileID id (texturefile, miplevel, stex - tile_s, ttex - tile_t, 0);
     find_tile (id, tilecache0, tilecache1);
     if (! tilecache0)
         return;
-    int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
-    texel = tilecache0->data() + offset + options.firstchannel;
-    DASSERT (offset < spec.tile_pixels());
-    for (int c = 0;  c < options.actualchannels;  ++c)
-        accum[c] += weight * texel[c];
-    if (options.alpha) {
-        int c = options.actualchannels;
-        options.alpha[index] += weight * texel[c];
+    size_t channelsize = texturefile.channelsize();
+    int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s) + options.firstchannel;
+    if (channelsize == 1) {
+        // special case for 8-bit tiles
+        const unsigned char *texel = tilecache0->bytedata() + offset;
+        DASSERT (offset < spec.tile_pixels());
+        for (int c = 0;  c < options.actualchannels;  ++c)
+            accum[c] += weight * uchar2float(texel[c]);
+        if (options.alpha) {
+            int c = options.actualchannels;
+            options.alpha[index] += weight * uchar2float(texel[c]);
+        }
+    } else {
+        // General case for float tiles
+        const float *texel = tilecache0->data() + offset;
+        DASSERT (offset < spec.tile_pixels());
+        for (int c = 0;  c < options.actualchannels;  ++c)
+            accum[c] += weight * texel[c];
+        if (options.alpha) {
+            int c = options.actualchannels;
+            options.alpha[index] += weight * texel[c];
+        }
     }
 }
 
@@ -922,14 +950,16 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     int tileheightmask = spec.tile_height - 1;
     int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
     int invtileheightmask = ~tileheightmask;
-    const float *texel[2][2];
+    const unsigned char *texel[2][2];
     TileRef tile[2][2];
-    static float black[4] = { 0, 0, 0, 0 };
+    static float black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
     int tile_s = stex[0] & tilewidthmask;
     int tile_t = ttex[0] & tileheightmask;
     bool s_onetile = (tile_s != tilewidthmask) & (stex[0]+1 == stex[1]);
     bool t_onetile = (tile_t != tileheightmask) & (ttex[0]+1 == ttex[1]);
     bool onetile = (s_onetile & t_onetile);
+    size_t channelsize = texturefile.channelsize();
+    size_t pixelsize = texturefile.pixelsize();
     if (onetile && 
 //        (svalid[0] & svalid[1] & tvalid[0] & tvalid[1])) {
         valid_storage == all_valid) {
@@ -939,16 +969,16 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
         find_tile (id, tilecache0, tilecache1);
         if (! tilecache0->valid())
             return;
-        int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
-        texel[0][0] = tilecache0->data() + offset + options.firstchannel;
-        texel[0][1] = texel[0][0] + spec.nchannels;
-        texel[1][0] = texel[0][0] + spec.nchannels * spec.tile_width;
-        texel[1][1] = texel[1][0] + spec.nchannels;
+        int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
+        texel[0][0] = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
+        texel[0][1] = texel[0][0] + pixelsize;
+        texel[1][0] = texel[0][0] + pixelsize * spec.tile_width;
+        texel[1][1] = texel[1][0] + pixelsize;
     } else {
         for (int j = 0, initialized = 0;  j < 2;  ++j) {
             for (int i = 0;  i < 2;  ++i) {
                 if (! (svalid[i] && tvalid[j])) {
-                    texel[j][i] = black;
+                    texel[j][i] = (unsigned char *)black;
                     continue;
                 }
                 tile_s = stex[i] & tilewidthmask;
@@ -964,24 +994,40 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                 if (! tilecache0->valid())
                     return;
                 tile[j][i] = tilecache0;
-                int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
+                int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
                 DASSERT (offset < spec.tile_pixels()*spec.nchannels);
-                texel[j][i] = tilecache0->data() + offset + options.firstchannel;
+                texel[j][i] = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
                 DASSERT (tilecache0->id() == id);
             }
         }
     }
     // FIXME -- optimize the above loop by unrolling
 
-    // FIXME -- handle 8 bit textures? float only for now
-    bilerp_mad (texel[0][0], texel[0][1], texel[1][0], texel[1][1],
-                sfrac, tfrac, weight, options.actualchannels, accum);
-    if (options.alpha) {
-        int c = options.actualchannels;
-        options.alpha[index] += weight * bilerp (texel[0][0][c], texel[0][1][c],
-                                                 texel[1][0][c], texel[1][1][c],
-                                                 sfrac, tfrac);
+    if (channelsize == 1) {
+        // special case for 8-bit tiles
+        int c;
+        for (c = 0;  c < options.actualchannels;  ++c)
+            accum[c] += weight * bilerp (uchar2float(texel[0][0][c]), uchar2float(texel[0][1][c]),
+                                         uchar2float(texel[1][0][c]), uchar2float(texel[1][1][c]),
+                                         sfrac, tfrac);
+        if (options.alpha)
+            options.alpha[index] += weight * bilerp (uchar2float(texel[0][0][c]), uchar2float(texel[0][1][c]),
+                                                     uchar2float(texel[1][0][c]), uchar2float(texel[1][1][c]),
+                                                     sfrac, tfrac);
+    } else {
+        // General case for float tiles
+        bilerp_mad ((float *)texel[0][0], (float *)texel[0][1],
+                    (float *)texel[1][0], (float *)texel[1][1],
+                    sfrac, tfrac, weight, options.actualchannels, accum);
+        if (options.alpha) {
+            int c = options.actualchannels;
+            options.alpha[index] += weight *
+                bilerp (((float *)texel[0][0])[c], ((float *)texel[0][1])[c],
+                        ((float *)texel[1][0])[c], ((float *)texel[1][1])[c],
+                        sfrac, tfrac);
+        }
     }
+
 }
 
 
@@ -1035,7 +1081,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         return;
     }
 
-    const float *texel[4][4] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    const unsigned char *texel[4][4] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
     TileRef tile[4][4];
     static float black[4] = { 0, 0, 0, 0 };
@@ -1054,6 +1100,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         }
     }
     bool onetile = (s_onetile & t_onetile);
+    size_t channelsize = texturefile.channelsize();
+    size_t pixelsize = texturefile.pixelsize();
     if (onetile & allsvalid & alltvalid) {
         // Shortcut if all the texels we need are on the same tile
         TileID id (texturefile, miplevel,
@@ -1062,17 +1110,17 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         if (! tilecache0) {
             return;
         }
-        int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
-        const float *base = tilecache0->data() + offset + options.firstchannel;
+        int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
+        const unsigned char *base = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
         DASSERT (tilecache0->data());
         for (int j = 0;  j < 4;  ++j)
             for (int i = 0;  i < 4;  ++i)
-                texel[j][i] = base + spec.nchannels * (i + j*spec.tile_width);
+                texel[j][i] = base + pixelsize * (i + j*spec.tile_width);
     } else {
         for (int j = 0, initialized = 0;  j < 4;  ++j) {
             for (int i = 0;  i < 4;  ++i) {
                 if (! (svalid[i] && tvalid[j])) {
-                    texel[j][i] = black;
+                    texel[j][i] = (unsigned char *) black;
                     continue;
                 }
                 tile_s = stex[i] & tilewidthmask;
@@ -1089,10 +1137,9 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                     return;
                 tile[j][i] = tilecache0;
                 DASSERT (tilecache0->id() == id);
-                int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s);
-                DASSERT (offset < spec.tile_pixels() * spec.nchannels);
+                int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
                 DASSERT (tilecache0->data());
-                texel[j][i] = tilecache0->data() + offset + options.firstchannel;
+                texel[j][i] = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
             }
         }
     }
@@ -1111,20 +1158,36 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
             totalw += w[j][i];
         }
     }
-
-    // FIXME -- handle 8 bit textures? float only for now
     weight /= totalw;
-    for (int j = 0;  j < 4;  ++j)
-        for (int i = 0;  i < 4;  ++i) {
-            for (int c = 0;  c < options.actualchannels;  ++c)
-                accum[c] += (w[j][i] * weight) * texel[j][i][c];
-        }
-    if (options.alpha) {
+
+    if (texturefile.eightbit()) {
+        // 8-bit texels
         for (int j = 0;  j < 4;  ++j)
             for (int i = 0;  i < 4;  ++i) {
-                int c = options.actualchannels;
-                accum[c] += (w[j][i] * weight) * texel[j][i][c];
+                for (int c = 0;  c < options.actualchannels;  ++c)
+                    accum[c] += (w[j][i] * weight) * uchar2float(texel[j][i][c]);
             }
+        if (options.alpha) {
+            for (int j = 0;  j < 4;  ++j)
+                for (int i = 0;  i < 4;  ++i) {
+                    int c = options.actualchannels;
+                    accum[c] += (w[j][i] * weight) * uchar2float(texel[j][i][c]);
+                }
+        }
+    } else {
+        // float texels
+        for (int j = 0;  j < 4;  ++j)
+            for (int i = 0;  i < 4;  ++i) {
+                for (int c = 0;  c < options.actualchannels;  ++c)
+                    accum[c] += (w[j][i] * weight) * ((float *)texel[j][i])[c];
+            }
+        if (options.alpha) {
+            for (int j = 0;  j < 4;  ++j)
+                for (int i = 0;  i < 4;  ++i) {
+                    int c = options.actualchannels;
+                    accum[c] += (w[j][i] * weight) * ((float *)texel[j][i])[c];
+                }
+        }
     }
 }
 

@@ -88,6 +88,10 @@ public:
     /// file and return true.
     void release (void);
 
+    size_t channelsize () const { return m_channelsize; }
+    size_t pixelsize () const { return m_pixelsize; }
+    bool eightbit (void) const { return m_eightbit; }
+
 private:
     ustring m_filename;             ///< Filename
     bool m_used;                    ///< Recently used (in the LRU sense)
@@ -106,6 +110,10 @@ private:
     TypeDesc m_datatype;            ///< Type of pixels we store internally
     CubeLayout m_cubelayout;        ///< cubemap: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
+    bool m_eightbit;                ///< Eight bit?  (or float)
+    unsigned int m_channelsize;     ///< Channel size, in bytes
+    unsigned int m_pixelsize;       ///< Channel size, in bytes
+
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
 
     void close (void);
@@ -238,6 +246,7 @@ public:
     bool used (bool used=true) { bool r = m_used;  m_used = used;  return r; }
 
     /// Has this tile been recently used?
+    ///
     bool used (void) const { return m_used; }
 
     bool valid (void) const { return m_valid; }
@@ -248,7 +257,6 @@ private:
     bool m_valid;                 ///< Valid pixels
     bool m_used;                  ///< Used recently
     float m_mindepth, m_maxdepth; ///< shadows only: min/max depth of the tile
-
 };
 
 
@@ -407,6 +415,7 @@ public:
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
 
     virtual std::string geterror () const;
+    virtual std::string getstats (int level=1) const;
 
     void operator delete (void *todel) { ::delete ((char *)todel); }
 
@@ -442,7 +451,7 @@ private:
 
     /// Internal statistics printing routine
     ///
-    void printstats ();
+    void printstats () const;
 
 #if 0
     // Turns out this isn't really any faster in my tests.

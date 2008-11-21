@@ -223,6 +223,7 @@ public:
                              TypeDesc format, void *result);
 
     virtual std::string geterror () const;
+    virtual std::string getstats (int level=1, bool icstats=true) const;
 
     void operator delete (void *todel) { ::delete ((char *)todel); }
 
@@ -239,6 +240,7 @@ private:
         ImageCacheFile *last_file[nlastfile];
         int next_last_file;
         ImageCacheTileRef tilecache0, tilecache1;
+        std::list<ImageCacheTileRef> minicache;
 
         PerThreadInfo () : next_last_file(0) {
             for (int i = 0;  i < nlastfile;  ++i)
@@ -370,7 +372,7 @@ private:
     ///
     void error (const char *message, ...);
 
-    void printstats ();
+    void printstats () const;
 
     ImageCacheImpl *m_imagecache;
     boost::thread_specific_ptr< PerThreadInfo > m_perthread_info;

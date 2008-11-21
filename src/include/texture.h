@@ -366,6 +366,10 @@ public:
     /// was called, it will return an empty string.
     virtual std::string geterror () const = 0;
 
+    /// Return the statistics output as a huge string.
+    ///
+    virtual std::string getstats (int level=1, bool icstats=true) const = 0;
+
 private:
     // Make delete private and unimplemented in order to prevent apps
     // from calling it.  Instead, they should call TextureSystem::destroy().

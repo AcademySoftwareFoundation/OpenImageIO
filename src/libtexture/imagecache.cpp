@@ -30,6 +30,7 @@
 
 
 #include <string>
+#include <sstream>
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
 
@@ -200,6 +201,14 @@ ImageCacheFile::open ()
 
     m_datatype = TypeDesc::FLOAT;
     // FIXME -- use 8-bit when that's native?
+#if 1
+    if (spec.format == TypeDesc::UINT8)
+        m_datatype = TypeDesc::UINT8;
+#endif
+
+    m_channelsize = m_datatype.size();
+    m_pixelsize = m_channelsize * spec.nchannels;
+    m_eightbit = (m_datatype == TypeDesc::UINT8);
 
     if (m_untiled || m_unmipped) {
         close ();
@@ -397,22 +406,33 @@ ImageCacheImpl::~ImageCacheImpl ()
 
 
 
+std::string
+ImageCacheImpl::getstats (int level) const
+{
+    std::ostringstream out;
+    if (level > 0) {
+        out << "OpenImageIO ImageCache statistics (" << (void*)this << ")\n";
+        out << "  Images : " << m_stat_unique_files << " unique\n";
+        out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
+        out << "    Total size of all images referenced : " << Strutil::memformat (m_stat_files_totalsize) << "\n";
+        out << "    Read from disk : " << Strutil::memformat (m_stat_bytes_read) << "\n";
+        out << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
+        out << "    total tile requests : " << m_stat_find_tile_calls << "\n";
+        out << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
+        out << "    main cache misses : " << m_stat_find_tile_cache_misses << " (" << 100.0*(double)m_stat_find_tile_cache_misses/(double)m_stat_find_tile_calls << "%)\n";
+        out << "    Peak cache memory : " << Strutil::memformat (m_mem_used) << "\n";
+    }
+    return out.str();
+}
+
+
+
 void
-ImageCacheImpl::printstats ()
+ImageCacheImpl::printstats () const
 {
     if (m_statslevel == 0)
         return;
-    std::cout << "OpenImageIO ImageCache statistics (" << (void*)this << ")\n";
-    std::cout << "  Images : " << m_stat_unique_files << " unique\n";
-    std::cout << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
-    std::cout << "    Total size of all images referenced : " << Strutil::memformat (m_stat_files_totalsize) << "\n";
-    std::cout << "    Read from disk : " << Strutil::memformat (m_stat_bytes_read) << "\n";
-    std::cout << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
-    std::cout << "    total tile requests : " << m_stat_find_tile_calls << "\n";
-    std::cout << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
-    std::cout << "    main cache misses : " << m_stat_find_tile_cache_misses << " (" << 100.0*(double)m_stat_find_tile_cache_misses/(double)m_stat_find_tile_calls << "%)\n";
-    std::cout << "    Peak cache memory : " << Strutil::memformat (m_mem_used) << "\n";
-    std::cout << "\n\n";
+    std::cout << getstats (m_statslevel) << "\n\n";
 }
 
 
@@ -619,9 +639,9 @@ ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec, int subimage)
 
 bool
 ImageCacheImpl::get_pixels (ustring filename, int level,
-                               int xmin, int xmax, int ymin, int ymax,
-                               int zmin, int zmax, 
-                               TypeDesc format, void *result)
+                            int xmin, int xmax, int ymin, int ymax,
+                            int zmin, int zmax, 
+                            TypeDesc format, void *result)
 {
     ImageCacheFile *file = find_file (filename);
     if (! file) {
@@ -648,9 +668,6 @@ ImageCacheImpl::get_pixels (ustring filename, int level,
     ImageCacheTileRef tile, lasttile;
     int nc = file->spec().nchannels;
     size_t formatpixelsize = nc * format.size();
-    size_t tilepixelsize = nc * file->datatype().size();
-    ASSERT (file->datatype() == TypeDesc::FLOAT);  // won't work otherwise
-    float *pixel = (float *) alloca (nc * sizeof(float));
     for (int z = zmin;  z <= zmax;  ++z) {
         int tz = z - (z % spec.tile_depth);
         for (int y = ymin;  y <= ymax;  ++y) {
@@ -659,16 +676,11 @@ ImageCacheImpl::get_pixels (ustring filename, int level,
                 int tx = x - (x % spec.tile_width);
                 TileID tileid (*file, level, tx, ty, tz);
                 find_tile (tileid, tile, lasttile);
-                const void *data;
-                pixel = (float *)result;
-                if (tile && (data = tile->data (x, y, z))) {
-                    for (int c = 0;  c < actualchannels;  ++c)
-                        pixel[c] = ((float *)data)[c];
-                    for (int c = actualchannels;  c < spec.nchannels;  ++c)
-                        pixel[c] = 0;
-                    convert_types (file->datatype(), pixel, format, result, nc);
+                const char *data;
+                if (tile && (data = (const char *)tile->data (x, y, z))) {
+                    convert_types (file->datatype(), data, format, result, nc);
                 } else {
-                    memset (pixel, 0, formatpixelsize);
+                    memset (result, 0, formatpixelsize);
                 }
                 result = (void *) ((char *) result + formatpixelsize);
             }
