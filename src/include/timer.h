@@ -37,6 +37,7 @@
 #define TIMER_H
 
 #ifdef _WIN32
+#include <windows.h>
 #else
 #include <sys/time.h>
 #endif
@@ -63,8 +64,9 @@
 ///
 class Timer {
 public:
-#ifdef _WIN32
-    typedef ??? value_t;
+#ifdef _WINDOWS
+    typedef LARGE_INTEGER value_t;
+    // Sheesh, why can't they use a standard type like stdint's int64_t?
 #else
     typedef struct timeval value_t;
 #endif
@@ -96,8 +98,8 @@ public:
         if (m_ticking) {
             value_t n = now();
             m_elapsed += diff (n, m_starttime);
+            m_ticking = false;
         }
-        m_ticking = false;
     }
 
     /// Reset at zero and stop ticking.
@@ -132,18 +134,23 @@ private:
     /// Platform-dependent grab of current time, expressed as value_t.
     ///
     value_t now (void) const {
-#ifdef _WIN32
-#else
         value_t n;
+#ifdef _WINDOWS
+        QueryPerformanceCounter (&n);   // From MSDN web site
+#else
         gettimeofday (&n, NULL);
-        return n;
 #endif
+        return n;
     }
 
     /// Platform-dependent difference between two times, expressed in
     /// seconds.
     static double diff (const value_t &then, const value_t &now) {
-#ifdef _WIN32
+#ifdef _WINDOWS
+        // From MSDN web site
+        value_t freq;
+        QueryPerformanceFrequency (&freq);
+        return (double)(now.QuadPart - then.QuadPart) / (double)freq.QuadPart;
 #else
         return fabs ((now.tv_sec  - then.tv_sec) +
                      (now.tv_usec - then.tv_usec) / 1e6);
