@@ -884,10 +884,10 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
         return;
     size_t channelsize = texturefile.channelsize();
     int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s) + options.firstchannel;
+    DASSERT (offset < spec.tile_pixels());
     if (channelsize == 1) {
         // special case for 8-bit tiles
         const unsigned char *texel = tilecache0->bytedata() + offset;
-        DASSERT (offset < spec.tile_pixels());
         for (int c = 0;  c < options.actualchannels;  ++c)
             accum[c] += weight * uchar2float(texel[c]);
         if (options.alpha) {
@@ -897,7 +897,6 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     } else {
         // General case for float tiles
         const float *texel = tilecache0->data() + offset;
-        DASSERT (offset < spec.tile_pixels());
         for (int c = 0;  c < options.actualchannels;  ++c)
             accum[c] += weight * texel[c];
         if (options.alpha) {
@@ -1000,7 +999,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                     return;
                 tile[j][i] = tilecache0;
                 int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
-                DASSERT (offset < spec.tile_pixels()*spec.nchannels);
+                DASSERT (offset < spec.tile_bytes()*spec.nchannels);
                 texel[j][i] = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
                 DASSERT (tilecache0->id() == id);
             }
