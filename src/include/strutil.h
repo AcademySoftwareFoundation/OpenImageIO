@@ -61,6 +61,10 @@ std::string vformat (const char *fmt, va_list ap);
 ///  - memformat(15300000000LL) -> "14.2 GB"
 std::string memformat (off_t bytes, int digits=3);
 
+/// Return a string expressing an elapsed time, in human readable form.
+/// e.g. "0:35.2"
+std::string timeintervalformat (double secs, int digits=1);
+
 
 
 /// Beautiful little string hasher from Aho, Sethi, and Ullman's 1986

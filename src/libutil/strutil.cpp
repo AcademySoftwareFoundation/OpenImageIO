@@ -32,8 +32,8 @@
 #include <string>
 #include <cstdarg>
 #include <vector>
-#include <string>
 #include <iostream>
+#include <cmath>
 
 #include "dassert.h"
 
@@ -106,4 +106,32 @@ Strutil::memformat (off_t bytes, int digits)
         d = (double)bytes / KB;
     }
     return format ("%1.*g %s", digits, d, units);
+}
+
+
+
+std::string
+Strutil::timeintervalformat (double secs, int digits)
+{
+    const double mins = 60;
+    const double hours = mins * 60;
+    const double days = hours * 24;
+
+    std::string out;
+    int d = (int) floor (secs / days);
+    secs = fmod (secs, days);
+    int h = (int) floor (secs / hours);
+    secs = fmod (secs, hours);
+    int m = (int) floor (secs / mins);
+    secs = fmod (secs, mins);
+    int s = (int) floor (secs);
+    if (d)
+        out += format ("%dd ", d);
+    if (h || d)
+        out += format ("%2dh ", h);
+    if (m || h || d)
+        out += format ("%dm %1.*fs", m, digits, secs);
+    else
+        out += format ("%1.*fs", digits, secs);
+    return out;
 }
