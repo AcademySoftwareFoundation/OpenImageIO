@@ -489,6 +489,8 @@ private:
     int m_stat_open_files_current;
     int m_stat_open_files_peak;
     int m_stat_unique_files;
+    double m_stat_fileio_time;
+    double m_stat_locking_time;
 
     friend class ImageCacheFile;
     friend class ImageCacheTile;

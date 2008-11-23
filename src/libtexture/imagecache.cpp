@@ -47,6 +47,7 @@ using namespace std::tr1;
 #include "fmath.h"
 #include "strutil.h"
 #include "sysutil.h"
+#include "timer.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
@@ -275,14 +276,18 @@ ImageCacheFile::release ()
 ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename)
 {
+    Timer locktime;
     lock_guard_t guard (m_mutex);
+    m_stat_locking_time += locktime();
 
     FilenameMap::iterator found = m_files.find (filename);
     ImageCacheFile *tf;
     if (found == m_files.end()) {
         // We don't already have this file in the table.  Try to
         // open it and create a record.
+        Timer time;
         tf = new ImageCacheFile (*this, filename);
+        m_stat_fileio_time += time();
         m_files[filename] = tf;
     } else {
         tf = found->second.get();
@@ -395,6 +400,8 @@ ImageCacheImpl::init ()
     m_stat_open_files_current = 0;
     m_stat_open_files_peak = 0;
     m_stat_unique_files = 0;
+    m_stat_fileio_time = 0;
+    m_stat_locking_time = 0;
 }
 
 
@@ -416,6 +423,8 @@ ImageCacheImpl::getstats (int level) const
         out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
         out << "    Total size of all images referenced : " << Strutil::memformat (m_stat_files_totalsize) << "\n";
         out << "    Read from disk : " << Strutil::memformat (m_stat_bytes_read) << "\n";
+        out << "    Total file I/O time : " << Strutil::timeintervalformat (m_stat_fileio_time) << "\n";
+        out << "    Locking time : " << Strutil::timeintervalformat (m_stat_locking_time) << "\n";
         out << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
         out << "    total tile requests : " << m_stat_find_tile_calls << "\n";
         out << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
@@ -505,7 +514,9 @@ void
 ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
 {
     DASSERT (! id.file().broken());
+    Timer locktime;
     lock_guard_t guard (m_mutex);
+    m_stat_locking_time += locktime();
     ++m_stat_find_tile_microcache_misses;
     TileCache::iterator found = m_tilecache.find (id);
     if (found != m_tilecache.end()) {
@@ -514,7 +525,9 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
     } else {
         ++m_stat_find_tile_cache_misses;
         check_max_mem ();
+        Timer time;
         tile.reset (new ImageCacheTile (id));
+        m_stat_fileio_time += time();
         // FIXME -- should we create the ICT above while not locked?
         m_tilecache[id] = tile;
     }
