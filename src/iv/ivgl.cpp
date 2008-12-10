@@ -343,9 +343,9 @@ IvGL::paintGL ()
     int orient = img->orientation();
     int rotate = 0;
     if (orient != 1) {
-        if (orient == 2 || orient == 3 || orient == 5)
+        if (orient == 2 || orient == 3 || orient == 5 || orient == 8)
             std::swap (xmin, xmax);
-        if (orient == 3 || orient == 4 || orient == 8)
+        if (orient == 3 || orient == 4)
             std::swap (ymin, ymax);
         if (orient == 5 || orient == 8) {
             float x0 = xmin, x1 = xmax, y0 = ymin, y1 = ymax;
