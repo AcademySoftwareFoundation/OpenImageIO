@@ -325,15 +325,20 @@ public:
 
     /// Update the view -- center (in pixel coordinates) and zoom level.
     ///
-    virtual void view (float centerx, float centery, float zoom);
+    virtual void view (float centerx, float centery, float zoom,
+                       bool redraw=true);
 
     /// Update just the zoom, keep the old center
     ///
-    void zoom (float newzoom) { view (m_centerx, m_centery, newzoom); }
+    void zoom (float newzoom, bool redraw=true) {
+        view (m_centerx, m_centery, newzoom, redraw);
+    }
 
     /// Update just the center (in pixel coordinates), keep the old zoom.
     ///
-    void center (float x, float y) { view (x, y, m_viewer.zoom()); }
+    void center (float x, float y, bool redraw=true) {
+        view (x, y, m_viewer.zoom(), redraw);
+    }
 
     /// Get the center of the view, in pixel coordinates.
     ///

@@ -667,7 +667,7 @@ IvGL::update (IvImage *img)
 
 
 void
-IvGL::view (float xcenter, float ycenter, float zoom)
+IvGL::view (float xcenter, float ycenter, float zoom, bool redraw)
 {
     m_centerx = xcenter;
     m_centery = ycenter;
@@ -680,7 +680,8 @@ IvGL::view (float xcenter, float ycenter, float zoom)
     } else {
 //        repaint (0, 0, width(), height());
     }
-    trigger_redraw ();
+    if (redraw)
+        trigger_redraw ();
 }
 
 
