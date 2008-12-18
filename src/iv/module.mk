@@ -13,7 +13,7 @@ local_src := imageviewer.cpp moc_imageviewer.cpp ivimage.cpp \
 local_libs := 
 
 # Extra shared libs needed to compile this module
-local_shlibs := libimageio
+local_shlibs := libOpenImageIO
 
 # ld flags needed for this module
 local_ldflags := ${LINK_BOOST} ${LINK_QT} ${LINK_OPENGL} ${LINK_ILMBASE}

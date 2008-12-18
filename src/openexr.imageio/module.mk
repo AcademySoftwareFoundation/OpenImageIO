@@ -13,7 +13,7 @@ local_libs :=
 
 # Extra shared libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)
-local_shlibs := libimageio
+local_shlibs := libOpenImageIO
 
 #local_extra_objs := ${OPENEXR_HOME}/lib/openexr-${OPENEXR_VERSION}/*${OEXT}
 

@@ -196,7 +196,7 @@ extern "C" {
 
 
 
-/// Add all the built-in plugins, those compiled right into libimageio,
+/// Add all the built-in plugins, those compiled right into libOpenImageIO,
 /// to the catalogs.  This does nothing if EMBED_PLUGINS is not defined,
 /// in which case they'll be registered only when read from external
 /// DSO/DLL's.

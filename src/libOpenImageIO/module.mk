@@ -5,7 +5,7 @@
 
 # Name of the binary or library whose source is in this directory.
 # Do NOT include .exe or any other suffix.
-local_name := libimageio
+local_name := libOpenImageIO
 
 # Name of all source files in this directory
 local_src := formatspec.cpp imageinput.cpp imageio.cpp \
@@ -39,7 +39,7 @@ local_ldflags := ${LINK_ILMBASE} ${LINK_BOOST}
 
 
 # If somebody did 'make EMBEDPLUGINS=1', take the object files for all
-# the standard plugins and build them right into libimageio, so that the
+# the standard plugins and build them right into libOpenImageIO, so that the
 # DSO/DLL's don't need to be found at runtime.
 ifneq (${EMBEDPLUGINS},)
 local_extra_objs += \

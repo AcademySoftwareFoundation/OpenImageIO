@@ -25,7 +25,7 @@ help:
 	@echo "  make realclean  Remove both ${build_dir} AND ${dist_dir}"
 	@echo "  make nuke       Remove ALL of build and dist (not just ${platform})"
 	@echo "Helpful modifiers:"
-	@echo "  make EMBEDPLUGINS=1 ...     compile the plugins into libimageio"
+	@echo "  make EMBEDPLUGINS=1 ...     compile the plugins into libOpenImageIO"
 	@echo ""
 
 
@@ -39,7 +39,7 @@ dist_bins    	:= iconvert${BINEXT} \
 		   iv${BINEXT} \
 		   maketx${BINEXT} \
 		   testtex${BINEXT}
-dist_libs     	:= libimageio${SHLIBEXT}
+dist_libs     	:= libOpenImageIO${SHLIBEXT}
 #		   libtexture${SHLIBEXT}
 
 # Only dist the plugins if we're building without embedded plugins
