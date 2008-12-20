@@ -109,7 +109,20 @@ ispow2 (int x)
     // Numerous references for this bit trick are on the web.  The
     // principle is that x is a power of 2 <=> x == 1<<b <=> x-1 is
     // all 1 bits for bits < b.
-    return !(x & (x-1)) && (x > 0);
+    return (x & (x-1)) == 0 && (x >= 0);
+}
+
+
+
+/// Quick test for whether an unsigned integer is a power of 2.
+///
+inline bool
+ispow2 (unsigned int x)
+{
+    // Numerous references for this bit trick are on the web.  The
+    // principle is that x is a power of 2 <=> x == 1<<b <=> x-1 is
+    // all 1 bits for bits < b.
+    return (x & (x-1)) == 0;
 }
 
 
@@ -119,12 +132,20 @@ ispow2 (int x)
 inline int
 pow2roundup (int x)
 {
-    // There's probably a bit twiddling trick that does this without
-    // looping.
-    int p = (x >= 256 ? 256 : 1);   // Skip 8 iterations for larger numbers
-    while (p < x)
-        p <<= 1;
-    return p;
+    // Here's a version with no loops.
+    if (x < 0)
+        return 0;
+    // Subtract 1, then round up to a power of 2, that way if we are
+    // already a power of 2, we end up with the same number.
+    --x;
+    // Make all bits past the first 1 also be 1, i.e. 0001xxxx -> 00011111
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    // Now we have 2^n-1, by adding 1, we make it a power of 2 again
+    return x+1;
 }
 
 
@@ -134,14 +155,15 @@ pow2roundup (int x)
 inline int
 pow2rounddown (int x)
 {
-    // There's probably a bit twiddling trick that does this without
-    // looping.
-    if (x <= 0)
-        return 0;
-    int p = 1;
-    while (2*p <= x)
-        p <<= 1;
-    return p;
+    // Make all bits past the first 1 also be 1, i.e. 0001xxxx -> 00011111
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    // Strip off all but the high bit, i.e. 00011111 -> 00010000
+    // That's the power of two <= the original x
+    return x & ~(x >> 1);
 }
 
 
@@ -340,6 +362,55 @@ bilerp_mad (const T *v0, const T *v1,
     for (int i = 0;  i < n;  ++i)
         result[i] += (T) (scale * (t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s)));
 }
+
+
+
+/// Fast rounding to nearest integer.
+/// See Michael Herf's "Know Your FPU" page:
+/// http://www.stereopsis.com/sree/fpu2006.html
+inline int
+RoundToInt (double val)
+{
+    const double doublemagic = double (6755399441055744.0);
+        // 2^52 * 1.5, uses limited precisicion to floor
+    val += doublemagic;
+    return ((int*)&val)[0];
+}
+
+/// Fast (int)floor(val)
+/// See Michael Herf's "Know Your FPU" page:
+/// http://www.stereopsis.com/sree/fpu2006.html
+inline int
+FloorToInt (double val)
+{
+    const double doublemagicroundeps = (.5f-_xs_doublemagicdelta);
+        // almost .5f = .5f - 1e^(number of exp bit)
+    return RoundToInt (val - doublemagicroundeps);
+}
+
+
+/// Fast (int)ceil(val)
+/// See Michael Herf's "Know Your FPU" page:
+/// http://www.stereopsis.com/sree/fpu2006.html
+inline int
+CeilToInt (double val)
+{
+    const double doublemagicroundeps = (.5f-_xs_doublemagicdelta);
+        // almost .5f = .5f - 1e^(number of exp bit)
+    return RoundToInt (val + doublemagicroundeps);
+}
+
+/// Fast (int)val
+/// See Michael Herf's "Know Your FPU" page:
+/// http://www.stereopsis.com/sree/fpu2006.html
+inline int
+FloatToInt (double val)
+{
+    const double doublemagicroundeps = (.5f-_xs_doublemagicdelta);
+        // almost .5f = .5f - 1e^(number of exp bit)
+    return (val<0) ? CeilToInt(val) : FloorToInt(val);
+}
+
 
 
 
