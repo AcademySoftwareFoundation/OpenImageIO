@@ -38,8 +38,8 @@
 #ifndef FMATH_H
 #define FMATH_H
 
+#include <math.h>
 
-#include <ImathFun.h>
 
 
 #ifndef M_PI
@@ -82,6 +82,17 @@
 /// ln(10)
 ///
 #  define M_LN10 2.3025850929940457
+#endif
+
+
+
+// Some stuff we know easily if we're running on an Intel chip
+#if (defined(_WIN32) || defined(__i386__) || defined(__x86_64__))
+#  define USE_INTEL_MATH_SHORTCUTS 1
+#  ifndef __LITTLE_ENDIAN__
+#    define __LITTLE_ENDIAN__ 1
+#    undef __BIG_ENDIAN__
+#  endif
 #endif
 
 
@@ -234,6 +245,17 @@ private:
 
 
 
+/// clamp a to bounds [l,h].
+///
+template <class T>
+inline T
+clamp (T a, T l, T h)
+{
+    return (a < l)? l : ((a > h)? h : a);
+}
+
+
+
 /// Convert n consecutive values from the type of S to the type of D.
 /// The conversion is not a simple cast, but correctly remaps the
 /// 0.0->1.0 range from and to the full positive range of integral
@@ -265,25 +287,25 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
         scale *= _max;
         // Unroll loop for speed
         for ( ; n >= 16; n -= 16) {
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
         }
         while (n--)
-            *dst++ = (D)(Imath::clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
     } else {
         // Converting to a float-like type, so we don't need to remap
         // the range
@@ -371,11 +393,27 @@ bilerp_mad (const T *v0, const T *v1,
 inline int
 RoundToInt (double val)
 {
+#ifdef USE_INTEL_MATH_SHORTCUTS
     const double doublemagic = double (6755399441055744.0);
         // 2^52 * 1.5, uses limited precisicion to floor
     val += doublemagic;
     return ((int*)&val)[0];
+#else
+    return round (val);
+#endif
 }
+
+
+inline int
+RoundToInt (float val)
+{
+#ifdef USE_INTEL_MATH_SHORTCUTS
+    return RoundToInt (double(val));
+#else
+    return roundf (val);
+#endif
+}
+
 
 /// Fast (int)floor(val)
 /// See Michael Herf's "Know Your FPU" page:
@@ -383,9 +421,26 @@ RoundToInt (double val)
 inline int
 FloorToInt (double val)
 {
-    const double doublemagicroundeps = (.5f-_xs_doublemagicdelta);
+#ifdef USE_INTEL_MATH_SHORTCUTS
+    const double doublemagicdelta = (1.5e-8);
+        // almost .5f = .5f + 1e^(number of exp bit)
+    const double doublemagicroundeps = (0.5f-doublemagicdelta);
         // almost .5f = .5f - 1e^(number of exp bit)
     return RoundToInt (val - doublemagicroundeps);
+#else
+    return (int) floor (val);
+#endif
+}
+
+
+inline int
+FloorToInt (float val)
+{
+#ifdef USE_INTEL_MATH_SHORTCUTS
+    return FloorToInt  (double(val));
+#else
+    return (int) floorf (val);
+#endif
 }
 
 
@@ -395,9 +450,25 @@ FloorToInt (double val)
 inline int
 CeilToInt (double val)
 {
-    const double doublemagicroundeps = (.5f-_xs_doublemagicdelta);
+#ifdef USE_INTEL_MATH_SHORTCUTS
+    const double doublemagicdelta = (1.5e-8);
+        // almost .5f = .5f + 1e^(number of exp bit)
+    const double doublemagicroundeps = (0.5f-doublemagicdelta);
         // almost .5f = .5f - 1e^(number of exp bit)
     return RoundToInt (val + doublemagicroundeps);
+#else
+    return (int) ceil (val);
+#endif
+}
+
+inline int
+CeilToInt (float val)
+{
+#ifdef USE_INTEL_MATH_SHORTCUTS
+    return CeilToInt (double(val));
+#else
+    return (int) ceilf (val);
+#endif
 }
 
 /// Fast (int)val
@@ -406,9 +477,26 @@ CeilToInt (double val)
 inline int
 FloatToInt (double val)
 {
-    const double doublemagicroundeps = (.5f-_xs_doublemagicdelta);
+#ifdef USE_INTEL_MATH_SHORTCUTS
+    const double doublemagicdelta = (1.5e-8);
+        // almost .5f = .5f + 1e^(number of exp bit)
+    const double doublemagicroundeps = (0.5f-doublemagicdelta);
         // almost .5f = .5f - 1e^(number of exp bit)
     return (val<0) ? CeilToInt(val) : FloorToInt(val);
+#else
+    return (int) val;
+#endif
+}
+
+
+inline int
+FloatToInt (float val)
+{
+#ifdef USE_INTEL_MATH_SHORTCUTS
+    return FloatToInt (double(val));
+#else
+    return (int) val;
+#endif
 }
 
 
@@ -423,7 +511,12 @@ floorfrac (float x, int *xint)
 {
     // Find the greatest whole number <= x.  This cast is faster than
     // calling floorf.
+#if 1
     int i = (int) x - (x < 0.0f ? 1 : 0);
+#else
+    // Why isn't this faster than the cast?
+    int i = FloorToInt (x);
+#endif
     *xint = i;
     return x - i;   // Return the fraction left over
 }
@@ -432,11 +525,11 @@ floorfrac (float x, int *xint)
 
 /// Convert degrees to radians.
 ///
-inline float radians (float deg) { return deg * M_PI / 180.0f; }
+inline float radians (float deg) { return deg * (float)(M_PI / 180.0); }
 
 /// Convert radians to degrees
 ///
-inline float degrees (float rad) { return rad * 180.0 / M_PI; }
+inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 
 
 
