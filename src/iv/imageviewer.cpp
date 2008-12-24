@@ -47,10 +47,13 @@
 
 
 ImageViewer::ImageViewer ()
-    : infoWindow(NULL), preferenceWindow(NULL),
+    : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
       m_current_image(-1), m_current_channel(-1), m_last_image(-1),
-      m_zoom(1), m_fullscreen(false), m_default_gamma(1)
+      m_zoom(1), m_fullscreen(false), m_default_gamma(1),
+      m_darkPalette(false)
 {
+    readSettings (false);
+
     const char *gamenv = getenv ("GAMMA");
     if (gamenv) {
         float g = atof (gamenv);
@@ -62,7 +65,15 @@ ImageViewer::ImageViewer ()
     // Also, some time in the future we may want a real 3D LUT for 
     // "film look", etc.
 
+    if (darkPalette())
+        m_palette = QPalette (Qt::darkGray);  // darkGray?
+    else
+        m_palette = QPalette ();
+    QApplication::setPalette (m_palette);  // FIXME -- why not work?
+    this->setPalette (m_palette);
+
     glwin = new IvGL (this, *this);
+    glwin->setPalette (m_palette);
     glwin->resize (640, 480);
     setCentralWidget (glwin);
 
@@ -272,6 +283,8 @@ ImageViewer::createActions()
     pixelviewFollowsMouseBox->setChecked (false);
     linearInterpolationBox = new QCheckBox (tr("Linear interpolation"));
     linearInterpolationBox->setChecked (true);
+    darkPaletteBox = new QCheckBox (tr("Dark palette"));
+    darkPaletteBox->setChecked (true);
 }
 
 
@@ -416,11 +429,15 @@ ImageViewer::createStatusBar()
 
 
 void
-ImageViewer::readSettings()
+ImageViewer::readSettings (bool ui_is_set_up)
 {
     QSettings settings("OpenImageIO", "iv");
+    m_darkPalette = settings.value ("darkPalette").toBool();
+    if (! ui_is_set_up)
+        return;
     pixelviewFollowsMouseBox->setChecked (settings.value ("pixelviewFollowsMouse").toBool());
     linearInterpolationBox->setChecked (settings.value ("linearInterpolation").toBool());
+    darkPaletteBox->setChecked (settings.value ("darkPalette").toBool());
     QStringList recent = settings.value ("RecentFiles").toStringList();
     BOOST_FOREACH (const QString &s, recent)
         addRecentFile (s.toStdString());
@@ -437,6 +454,7 @@ ImageViewer::writeSettings()
                        pixelviewFollowsMouseBox->isChecked());
     settings.setValue ("linearInterpolation",
                        linearInterpolationBox->isChecked());
+    settings.setValue ("darkPalette", darkPaletteBox->isChecked());
     QStringList recent;
     BOOST_FOREACH (const std::string &s, m_recent_files)
         recent.push_front (QString(s.c_str()));
@@ -1319,8 +1337,10 @@ ImageViewer::zoom (float newzoom, bool smooth)
 void
 ImageViewer::showInfoWindow ()
 {
-    if (! infoWindow)
+    if (! infoWindow) {
         infoWindow = new IvInfoWindow (*this, true);
+        infoWindow->setPalette (m_palette);
+    }
     infoWindow->update (cur());
     if (infoWindow->isHidden ())
         infoWindow->show ();
@@ -1341,7 +1361,9 @@ ImageViewer::showPixelviewWindow ()
 void
 ImageViewer::editPreferences ()
 {
-    if (! preferenceWindow)
+    if (! preferenceWindow) {
         preferenceWindow = new IvPreferenceWindow (*this);
+        preferenceWindow->setPalette (m_palette);
+    }
     preferenceWindow->show ();
 }

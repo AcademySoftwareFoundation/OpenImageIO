@@ -154,6 +154,12 @@ public:
         return linearInterpolationBox && linearInterpolationBox->isChecked();
     }
 
+    bool darkPalette (void) const {
+        return darkPaletteBox ? darkPaletteBox->isChecked() : m_darkPalette;
+    }
+
+    QPalette palette (void) const { return m_palette; }
+
 private slots:
     void open();                        ///< Dialog to open new image from file
     void reload();                      ///< Reread current image from disk
@@ -197,7 +203,7 @@ private:
     void createMenus ();
     void createToolBars ();
     void createStatusBar ();
-    void readSettings ();
+    void readSettings (bool ui_is_set_up=true);
     void writeSettings ();
     void updateActions ();
     void addRecentFile (const std::string &name);
@@ -251,6 +257,7 @@ private:
                      MouseModeSelect, MouseModeAnnotate };
     QCheckBox *pixelviewFollowsMouseBox;
     QCheckBox *linearInterpolationBox;
+    QCheckBox *darkPaletteBox;
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
@@ -260,6 +267,8 @@ private:
     bool m_fullscreen;                ///< Full screen mode
     std::vector<std::string> m_recent_files;  ///< Recently opened files
     float m_default_gamma;            ///< Default gamma of the display
+    QPalette m_palette;               ///< Custom palette
+    bool m_darkPalette;               ///< Use dark palette?
 
     // What zoom do we need to fit these window dimensions?
     float zoom_needed_to_fit (int w, int h);

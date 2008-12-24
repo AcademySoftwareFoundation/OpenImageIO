@@ -47,6 +47,7 @@ IvPreferenceWindow::IvPreferenceWindow (ImageViewer &viewer)
     layout = new QVBoxLayout;
     layout->addWidget (viewer.pixelviewFollowsMouseBox);
     layout->addWidget (viewer.linearInterpolationBox);
+    layout->addWidget (viewer.darkPaletteBox);
     layout->addWidget (closeButton);
     setLayout (layout);
 

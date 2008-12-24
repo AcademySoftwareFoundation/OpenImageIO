@@ -41,8 +41,10 @@ IvInfoWindow::IvInfoWindow (ImageViewer &viewer, bool visible)
     : QDialog(&viewer), m_viewer(viewer), m_visible (visible)
 {
     infoLabel = new QLabel;
+    infoLabel->setPalette (viewer.palette());
 
     scrollArea = new QScrollArea;
+    scrollArea->setPalette (viewer.palette());
     scrollArea->setWidgetResizable (true);
     scrollArea->setWidget (infoLabel);
     scrollArea->setSizePolicy (QSizePolicy (QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding, QSizePolicy::Label));
