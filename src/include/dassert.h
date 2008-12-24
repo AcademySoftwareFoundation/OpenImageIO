@@ -71,7 +71,8 @@
 # define ASSERT(x)                                                      \
     if (!(x)) {                                                         \
         char buf[2048];                                                 \
-        snprintf (buf, 4096, "Assertion failed in \"%s\", line %d\n"    \
+        snprintf (buf, sizeof(buf),                                     \
+                 "Assertion failed in \"%s\", line %d\n"                \
                  "\tProbable bug in software.\n",                       \
                  __FILE__, __LINE__);                                   \
         ABORT (buf);                                                    \
