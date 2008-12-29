@@ -74,7 +74,7 @@ public:
     /// currently opened.  Return true if ok, false if error.
     bool open ();
 
-    /// load new data tile
+    /// Load new data tile
     ///
     bool read_tile (int level, int x, int y, int z,
                     TypeDesc format, void *data);
@@ -116,7 +116,15 @@ private:
 
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
 
+    /// Close and delete the ImageInput, if currently open
+    ///
     void close (void);
+
+    /// Load the requested tile, from a file that's not really tiled.
+    /// Preconditions: the ImageInput is already opened, and we already did
+    /// a seek_subimage to the right mip level.
+    bool read_untiled (int level, int x, int y, int z,
+                       TypeDesc format, void *data);
 };
 
 
@@ -333,6 +341,7 @@ public:
     int max_open_files () const { return m_max_open_files; }
     float max_memory_MB () const { return m_max_memory_MB; }
     std::string searchpath () const { return m_searchpath.string(); }
+    int autotile () const { return m_autotile; }
     void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
     }
@@ -466,6 +475,7 @@ private:
     float m_max_memory_MB;
     size_t m_max_memory_bytes;
     ustring m_searchpath;
+    int m_autotile;              ///< if nonzero, pretend tiles of this size
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's

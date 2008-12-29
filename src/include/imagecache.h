@@ -85,6 +85,7 @@ public:
     ///     int max_open_files : maximum number of file handles held open
     ///     float max_memory_MB : maximum tile cache size, in MB
     ///     string searchpath : colon-separated search path for images
+    ///     int autotile : automatically make it appear as tiles of this size
     ///
     virtual bool attribute (const std::string &name, TypeDesc type, const void *val) = 0;
     // Shortcuts for common types

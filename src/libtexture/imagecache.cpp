@@ -145,8 +145,16 @@ ImageCacheFile::open ()
         }
         if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
             m_untiled = true;
-            tempspec.tile_width = pow2roundup (tempspec.width);
-            tempspec.tile_height = pow2roundup (tempspec.height);
+            if (imagecache().autotile()) {
+                // Automatically make it appear as if it's tiled
+                tempspec.tile_width = imagecache().autotile();
+                tempspec.tile_height = imagecache().autotile();
+            } else {
+                // Don't auto-tile -- which really means, make it look like
+                // a single tile that's as big as the whole image
+                tempspec.tile_width = pow2roundup (tempspec.width);
+                tempspec.tile_height = pow2roundup (tempspec.height);
+            }
         }
         ++nsubimages;
         m_spec.push_back (tempspec);
@@ -222,7 +230,7 @@ ImageCacheFile::open ()
 
 bool
 ImageCacheFile::read_tile (int level, int x, int y, int z,
-                        TypeDesc format, void *data)
+                           TypeDesc format, void *data)
 {
     bool ok = open ();
     if (! ok)
@@ -232,20 +240,59 @@ ImageCacheFile::read_tile (int level, int x, int y, int z,
     if (m_input->current_subimage() != level)
         m_input->seek_subimage (level, tmp);
 
-    // Handle untiled, unmip-mapped
-    if (m_untiled || m_unmipped) {
-        stride_t xstride=AutoStride, ystride=AutoStride, zstride=AutoStride;
-        spec().auto_stride (xstride, ystride, zstride, format, spec().nchannels,
-                            spec().tile_width, spec().tile_height);
-        ok = m_input->read_image (format, data, xstride, ystride, zstride);
-        imagecache().m_stat_bytes_read += spec().image_bytes();
-        close ();   // Done with it
-        return ok;
-    }
+    // Special case for untiled, unmip-mapped
+    if (m_untiled | m_unmipped)
+        return read_untiled (level, x, y, z, format, data);
 
     // Ordinary tiled
     imagecache().m_stat_bytes_read += spec(level).tile_bytes();
     return m_input->read_tile (x, y, z, format, data);
+}
+
+
+
+bool
+ImageCacheFile::read_untiled (int level, int x, int y, int z,
+                              TypeDesc format, void *data)
+{
+    stride_t xstride=AutoStride, ystride=AutoStride, zstride=AutoStride;
+    spec().auto_stride (xstride, ystride, zstride, format, spec().nchannels,
+                        spec().tile_width, spec().tile_height);
+
+    bool ok = true;
+    if (imagecache().autotile()) {
+        // Auto-tile is on, with a tile size that isn't the whole image.
+        // Read ine a tile-sized region from individual scanlines.
+        // FIXME -- I don't think this works properly for 3D images
+        int tile = imagecache().autotile();
+        int pixelsize = spec().nchannels * format.size();
+        int tilelinesize = pixelsize * spec().tile_width;
+        std::vector<char> buf (spec().width * pixelsize);
+        int yy = y - spec().y;   // counting from top scanline
+        int y0 = yy - (yy % spec().tile_height);
+        int y1 = std::min (y0 + spec().tile_height - 1, spec().height - 1);
+        y0 += spec().y;
+        y1 += spec().y;
+        int xx = x - spec().x;   // counting from left row
+        int x0 = xx - (xx % spec().tile_width);
+        int xoffset = x0 * pixelsize;
+        for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i) {
+            ok = m_input->read_scanline (scanline, z, format, (void *)&buf[0]);
+            memcpy ((char *)data + tilelinesize * i,
+                    (char *)&buf[xoffset], tilelinesize);
+        }
+        // FIXME -- It's hugely wasteful to read 64 scanlines for one
+        // tile.  We should opportunistically populate the cache with
+        // the whole line of tiles corresponding to this swath of
+        // scanlines, to amortize this cost.
+    } else {
+        // No auto-tile -- the tile is the whole image
+        ok = m_input->read_image (format, data, xstride, ystride, zstride);
+        imagecache().m_stat_bytes_read += spec().image_bytes();
+    }
+
+    close ();   // Done with it
+    return ok;
 }
 
 
@@ -385,6 +432,7 @@ ImageCacheImpl::init ()
     m_max_open_files = 100;
     m_max_memory_MB = 50;
     m_max_memory_bytes = (int) (m_max_memory_MB * 1024 * 1024);
+    m_autotile = 0;
     m_Mw2c.makeIdentity();
     m_mem_used = 0;
     m_statslevel = 0;
@@ -448,7 +496,7 @@ ImageCacheImpl::printstats () const
 
 bool
 ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
-                              const void *val)
+                           const void *val)
 {
     if (name == "max_open_files" && type == TypeDesc::INT) {
         m_max_open_files = *(const int *)val;
@@ -474,6 +522,10 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         m_statslevel = *(const int *)val;
         return true;
     }
+    if (name == "autotile" && type == TypeDesc::INT) {
+        m_autotile = pow2roundup (*(const int *)val);  // guarantee pow2
+        return true;
+    }
     return false;
 }
 
@@ -481,7 +533,7 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
 
 bool
 ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
-                                 void *val)
+                              void *val)
 {
     if (name == "max_open_files" && type == TypeDesc::INT) {
         *(int *)val = m_max_open_files;
@@ -493,6 +545,14 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     }
     if (name == "searchpath" && type == TypeDesc::STRING) {
         *(ustring *)val = m_searchpath;
+        return true;
+    }
+    if (name == "statistics:level" && type == TypeDesc::INT) {
+        *(int *)val = m_statslevel;
+        return true;
+    }
+    if (name == "autotile" && type == TypeDesc::INT) {
+        *(int *)val = m_autotile;
         return true;
     }
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
