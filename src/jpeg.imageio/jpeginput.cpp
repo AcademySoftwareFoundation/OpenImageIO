@@ -52,11 +52,15 @@ class JpgInput : public ImageInput {
     virtual ~JpgInput () { close(); }
     virtual const char * format_name (void) const { return "jpeg"; }
     virtual bool open (const std::string &name, ImageSpec &spec);
+    virtual bool seek_subimage (int index, ImageSpec &newspec) {
+        return (index == 0);   // JPEG has only one subimage
+    }
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool close ();
  private:
     FILE *m_fd;
-    bool m_first_scanline;
+    std::string m_filename;
+    int m_next_scanline;      // Which scanline is the next to read?
     struct jpeg_decompress_struct m_cinfo;
     struct jpeg_error_mgr m_jerr;
 
@@ -82,6 +86,7 @@ bool
 JpgInput::open (const std::string &name, ImageSpec &newspec)
 {
     // Check that file exists and can be opened
+    m_filename = name;
     m_fd = fopen (name.c_str(), "rb");
     if (m_fd == NULL) {
         error ("Could not open file \"%s\"", name.c_str());
@@ -110,7 +115,7 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 
     jpeg_read_header (&m_cinfo, FALSE);         // read the file parameters
     jpeg_start_decompress (&m_cinfo);           // start working
-    m_first_scanline = true;                    // start decompressor
+    m_next_scanline = 0;                        // next scanline we'll read
 
     m_spec = ImageSpec (m_cinfo.output_width, m_cinfo.output_height,
                         m_cinfo.output_components, TypeDesc::UINT8);
@@ -129,10 +134,24 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 bool
 JpgInput::read_native_scanline (int y, int z, void *data)
 {
-    m_first_scanline = false;
-    assert (y == (int)m_cinfo.output_scanline);
-    assert (y < (int)m_cinfo.output_height);
-    jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&data, 1); // read one scanline
+    if (y < 0 || y >= (int)m_cinfo.output_height)   // out of range scanline
+        return false;
+    if (m_next_scanline > y) {
+        // User is trying to read an earlier scanline than the one we're
+        // up to.  Easy fix: close the file and re-open.
+        ImageSpec dummyspec;
+        int subimage = current_subimage();
+        if (! close ()  ||
+            ! open (m_filename, dummyspec)  ||
+            ! seek_subimage (subimage, dummyspec))
+            return false;    // Somehow, the re-open failed
+        assert (m_next_scanline == 0 && current_subimage() == subimage);
+    }
+    while (m_next_scanline <= y) {
+        // Keep reading until we're read the scanline we really need
+        jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&data, 1); // read one scanline
+        ++m_next_scanline;
+    }
     return true;
 }
 
@@ -142,8 +161,18 @@ bool
 JpgInput::close ()
 {
     if (m_fd != NULL) {
-        if (!m_first_scanline)
+        // N.B. don't call finish_decompress if we never read anything
+        if (m_next_scanline > 0) {
+            // But if we've only read some scanlines, read the rest to avoid
+            // errors
+            std::vector<char> buf (spec().scanline_bytes());
+            char *data = &buf[0];
+            while (m_next_scanline < spec().height) {
+                jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&data, 1);
+                ++m_next_scanline;
+            }
             jpeg_finish_decompress (&m_cinfo);
+        }
         jpeg_destroy_decompress (&m_cinfo);
         fclose (m_fd);
     }

@@ -68,12 +68,12 @@ private:
     std::string m_filename;       ///< File name
     FILE *m_fd;                   ///< The open file handle
     int m_subimage;               ///< What subimage are we looking at?
-    int m_nextscanline;           ///< Next scanline to read
+    int m_next_scanline;          ///< Next scanline to read
 
     void init () {
         m_fd = NULL;
         m_subimage = -1;
-        m_nextscanline = 0;
+        m_next_scanline = 0;
     }
 
 };
@@ -105,8 +105,13 @@ HdrInput::open (const std::string &name, ImageSpec &newspec)
 bool
 HdrInput::seek_subimage (int index, ImageSpec &newspec)
 {
+    // HDR doesn't support multiple subimages
     if (index != 0)
         return false;
+
+    // Skip the hard work if we're already on the requested subimage
+    if (index == current_subimage())
+        return true;
 
     close();
 
@@ -136,7 +141,7 @@ HdrInput::seek_subimage (int index, ImageSpec &newspec)
     // pixaspect, primaries?  (N.B. rgbe.c doesn't even handle most of them)
 
     m_subimage = index;
-    m_nextscanline = 0;
+    m_next_scanline = 0;
     newspec = m_spec;
     return true;
 }
@@ -146,11 +151,25 @@ HdrInput::seek_subimage (int index, ImageSpec &newspec)
 bool
 HdrInput::read_native_scanline (int y, int z, void *data)
 {
-    if (y != m_nextscanline)
-        return false;
-    ++m_nextscanline;
-    int r = RGBE_ReadPixels_RLE (m_fd, (float *)data, m_spec.width, 1);
-    return (r == RGBE_RETURN_SUCCESS);
+    if (m_next_scanline > y) {
+        // User is trying to read an earlier scanline than the one we're
+        // up to.  Easy fix: close the file and re-open.
+        ImageSpec dummyspec;
+        int subimage = current_subimage();
+        if (! close ()  ||
+            ! open (m_filename, dummyspec)  ||
+            ! seek_subimage (subimage, dummyspec))
+            return false;    // Somehow, the re-open failed
+        assert (m_next_scanline == 0 && current_subimage() == subimage);
+    }
+    while (m_next_scanline <= y) {
+        // Keep reading until we're read the scanline we really need
+        int r = RGBE_ReadPixels_RLE (m_fd, (float *)data, m_spec.width, 1);
+        ++m_next_scanline;
+        if (r != RGBE_RETURN_SUCCESS)
+            return false;
+    }
+    return true;
 }
 
 
