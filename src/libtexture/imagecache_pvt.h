@@ -91,6 +91,7 @@ public:
     size_t channelsize () const { return m_channelsize; }
     size_t pixelsize () const { return m_pixelsize; }
     bool eightbit (void) const { return m_eightbit; }
+    bool untiled (void) const { return m_untiled; }
 
 private:
     ustring m_filename;             ///< Filename
@@ -219,7 +220,14 @@ private:
 ///
 class ImageCacheTile : public RefCnt {
 public:
+    /// Construct a new tile, read the pixels from disk.
+    ///
     ImageCacheTile (const TileID &id);
+
+    /// Construct a new tile out of the pixels supplied.
+    ///
+    ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
+                    stride_t xstride, stride_t ystride, stride_t zstride);
 
     ~ImageCacheTile ();
 
@@ -372,6 +380,19 @@ public:
     /// and those won't be freed until the texture system is destroyed.
     ImageCacheFile *find_file (ustring filename);
 
+    /// Is the tile specified by the TileID already in the cache?
+    /// Only safe to call when the mutex is held.
+    bool tile_in_cache (const TileID &id) {
+        TileCache::iterator found = m_tilecache.find (id);
+        return (found != m_tilecache.end());
+    }
+
+    /// Add the tile to the cache.  Only safe to call when the mutex is
+    /// held.
+    void add_tile_to_cache (ImageCacheTileRef &tile) {
+        m_tilecache[tile->id()] = tile;
+    }
+
     /// Find a tile identified by 'id' in the tile cache, paging it in if
     /// needed, and store a reference to the tile.  Return true if ok,
     /// false if no such tile exists in the file or could not be read.
@@ -433,7 +454,7 @@ private:
 
     /// Called when a new file is opened, so that the system can track
     /// the number of simultaneously-opened files.  This should only
-    /// be invoked when the caller holds m_images_mutex.
+    /// be invoked when the caller holds m_mutex.
     void incr_open_files (void) {
         ++m_stat_open_files_created;
         ++m_stat_open_files_current;
@@ -443,15 +464,32 @@ private:
 
     /// Called when a file is closed, so that the system can track
     /// the number of simultyaneously-opened files.  This should only
-    /// be invoked when the caller holds m_images_mutex.
+    /// be invoked when the caller holds m_mutex.
     void decr_open_files (void) { --m_stat_open_files_current; }
 
+    /// Called when a new tile is created, to update all the stats.
+    /// This should only be invoked when the caller holds m_mutex.
+    void incr_tiles (size_t size) {
+        ++m_stat_tiles_created;
+        ++m_stat_tiles_current;
+        if (m_stat_tiles_current > m_stat_tiles_peak)
+            m_stat_tiles_peak = m_stat_tiles_current;
+        m_mem_used += size;
+    }
+
+    /// Called when a tile is destroyed, to update all the stats.
+    /// This should only be invoked when the caller holds m_mutex.
+    void decr_tiles (size_t size) {
+        --m_stat_tiles_current;
+        m_mem_used -= size;
+    }
+
     /// Enforce the max number of open files.  This should only be invoked
-    /// when the caller holds m_images_mutex.
+    /// when the caller holds m_mutex.
     void check_max_files ();
 
     /// Enforce the max memory for tile data.  This should only be invoked
-    /// when the caller holds m_images_mutex.
+    /// when the caller holds m_mutex.
     void check_max_mem ();
 
     /// Internal error reporting routine, with printf-like arguments.

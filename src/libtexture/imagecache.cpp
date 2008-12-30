@@ -251,40 +251,67 @@ ImageCacheFile::read_tile (int level, int x, int y, int z,
 
 
 
+// Helper routine for read_tile that handles the rare (but tricky) case
+// of reading a "tile" from a file that's scanline-oriented.
 bool
 ImageCacheFile::read_untiled (int level, int x, int y, int z,
                               TypeDesc format, void *data)
 {
+    // Strides for a single tile
+    int tw = spec().tile_width;
+    int th = spec().tile_height;
     stride_t xstride=AutoStride, ystride=AutoStride, zstride=AutoStride;
     spec().auto_stride (xstride, ystride, zstride, format, spec().nchannels,
-                        spec().tile_width, spec().tile_height);
+                        tw, th);
 
     bool ok = true;
     if (imagecache().autotile()) {
         // Auto-tile is on, with a tile size that isn't the whole image.
-        // Read ine a tile-sized region from individual scanlines.
+        // We're only being asked for one tile, but since it's a
+        // scanline image, we are forced to read (at the very least) a
+        // whole row of tiles.  So we add all those tiles to the cache,
+        // if not already present, on the assumption that it's highly
+        // likely that they will also soon be requested.
         // FIXME -- I don't think this works properly for 3D images
-        int tile = imagecache().autotile();
         int pixelsize = spec().nchannels * format.size();
-        int tilelinesize = pixelsize * spec().tile_width;
-        std::vector<char> buf (spec().width * pixelsize);
+        int scanlinesize = pixelsize * spec().width;
+        int tilelinesize = pixelsize * tw;
+        std::vector<char> buf (scanlinesize * th); // a whole tile-row size
         int yy = y - spec().y;   // counting from top scanline
-        int y0 = yy - (yy % spec().tile_height);
-        int y1 = std::min (y0 + spec().tile_height - 1, spec().height - 1);
-        y0 += spec().y;
+        // [y0,y1] is the range of scanlines to read for a tile-row
+        int y0 = yy - (yy % th);
+        int y1 = std::min (y0 + th - 1, spec().height - 1);
+        y0 += spec().y;   
         y1 += spec().y;
+        // Read the whole tile-row worth of scanlines
+        for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i)
+            ok = m_input->read_scanline (scanline, z, format, (void *)&buf[scanlinesize*i]);
+        // For all tiles in the tile-row, enter them into the cache if not
+        // already there.  Special case for the tile we're actually being
+        // asked for -- save it in 'data' rather than adding a tile.
         int xx = x - spec().x;   // counting from left row
-        int x0 = xx - (xx % spec().tile_width);
-        int xoffset = x0 * pixelsize;
-        for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i) {
-            ok = m_input->read_scanline (scanline, z, format, (void *)&buf[0]);
-            memcpy ((char *)data + tilelinesize * i,
-                    (char *)&buf[xoffset], tilelinesize);
+        int x0 = xx - (xx % tw); // start of the tile we are retrieving
+        for (int i = 0;  i < spec().width;  i += tw) {
+            if (i == xx) {
+                // This is the tile we've been asked for
+                convert_image (spec().nchannels, tw, th, 1,
+                               &buf[x0 * pixelsize], format, pixelsize,
+                               scanlinesize, scanlinesize*th, data, format,
+                               xstride, ystride, zstride);
+            } else {
+                // Not the tile we asked for, but it's in the same
+                // tile-row, so let's put it in the cache anyway so
+                // it'll be there when asked for.
+                TileID id (*this, level, i+spec().x, y0, z);
+                if (! imagecache().tile_in_cache (id)) {
+                    ImageCacheTileRef tile;
+                    tile.reset (new ImageCacheTile (id, &buf[i*pixelsize],
+                                            format, pixelsize,
+                                            scanlinesize, scanlinesize*th));
+                    imagecache().add_tile_to_cache (tile);
+                }
+            }
         }
-        // FIXME -- It's hugely wasteful to read 64 scanlines for one
-        // tile.  We should opportunistically populate the cache with
-        // the whole line of tiles corresponding to this swath of
-        // scanlines, to amortize this cost.
     } else {
         // No auto-tile -- the tile is the whole image
         ok = m_input->read_image (format, data, xstride, ystride, zstride);
@@ -370,14 +397,9 @@ ImageCacheTile::ImageCacheTile (const TileID &id)
     : m_id (id), m_used(true)
 {
     ImageCacheFile &file (m_id.file ());
-    ImageCacheImpl &imagecache (file.imagecache());
-    ++imagecache.m_stat_tiles_created;
-    ++imagecache.m_stat_tiles_current;
-    if (imagecache.m_stat_tiles_current > imagecache.m_stat_tiles_peak)
-        imagecache.m_stat_tiles_peak = imagecache.m_stat_tiles_current;
     size_t size = memsize();
+    file.imagecache().incr_tiles (size);
     m_pixels.resize (size);
-    imagecache.m_mem_used += size;
     m_valid = file.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
                               file.datatype(), &m_pixels[0]);
     if (! m_valid)
@@ -389,11 +411,30 @@ ImageCacheTile::ImageCacheTile (const TileID &id)
 
 
 
+ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
+                    stride_t xstride, stride_t ystride, stride_t zstride)
+    : m_id (id), m_used(true)
+{
+    ImageCacheFile &file (m_id.file ());
+    const ImageSpec &spec (file.spec(id.level()));
+    size_t size = memsize();
+    file.imagecache().incr_tiles (size);
+    m_pixels.resize (size);
+    size_t dst_pelsize = spec.nchannels * file.datatype().size();
+    m_valid = convert_image (spec.nchannels, spec.tile_width, spec.tile_height,
+                             spec.tile_depth, pels, format, xstride, ystride,
+                             zstride, &m_pixels[0], file.datatype(), 
+                             dst_pelsize, dst_pelsize * spec.tile_width,
+                             dst_pelsize * spec.tile_pixels());
+    // FIXME -- for shadow, fill in mindepth, maxdepth
+}
+
+
+
 ImageCacheTile::~ImageCacheTile ()
 {
     DASSERT (memsize() == m_pixels.size());
-    m_id.file().imagecache().m_mem_used -= (int) memsize ();
-    --(m_id.file().imagecache().m_stat_tiles_current);
+    m_id.file().imagecache().decr_tiles (memsize ());
 }
 
 
