@@ -55,6 +55,7 @@ static int output_xres = 512, output_yres = 512;
 static float blur = 0;
 static int iters = 1;
 static int autotile = 0;
+static bool automip = false;
 static TextureSystem *texsys = NULL;
 
 
@@ -85,6 +86,7 @@ getargs (int argc, char *argv[])
                       "Iterations for time trials",
                   "--blur %f", &blur, "Add blur to texture lookup",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
+                  "--automip", &automip, "Set auto-MIPmap for the image cache",
                   NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
@@ -246,6 +248,7 @@ main (int argc, char *argv[])
     std::cerr << "Created texture system\n";
     texsys->attribute ("statistics:level", 1);
     texsys->attribute ("autotile", autotile);
+    texsys->attribute ("automip", (int)automip);
 
     ustring filename (filenames[0]);
     test_gettextureinfo (filename);

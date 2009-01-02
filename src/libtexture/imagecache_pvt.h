@@ -126,6 +126,12 @@ private:
     /// a seek_subimage to the right mip level.
     bool read_untiled (int level, int x, int y, int z,
                        TypeDesc format, void *data);
+
+    /// Load the requested tile, from a file that's not really MIPmapped.
+    /// Preconditions: the ImageInput is already opened, and we already did
+    /// a seek_subimage to the right mip level.
+    bool read_unmipped (int level, int x, int y, int z,
+                        TypeDesc format, void *data);
 };
 
 
@@ -350,6 +356,7 @@ public:
     float max_memory_MB () const { return m_max_memory_MB; }
     std::string searchpath () const { return m_searchpath.string(); }
     int autotile () const { return m_autotile; }
+    bool automip () const { return m_automip; }
     void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
     }
@@ -373,6 +380,12 @@ public:
                              int subimage, int xmin, int xmax,
                              int ymin, int ymax, int zmin, int zmax, 
                              TypeDesc format, void *result);
+
+    /// Retrieve a rectangle of raw unfiltered pixels, from an open valid
+    /// ImageCacheFile.
+    bool get_pixels (ImageCacheFile *file, int subimage, int xmin, int xmax,
+                     int ymin, int ymax, int zmin, int zmax, 
+                     TypeDesc format, void *result);
 
     /// Find the ImageCacheFile record for the named image, or NULL if
     /// no such file can be found.  This returns a plain old pointer,
@@ -505,8 +518,8 @@ private:
     typedef fast_mutex mutex_t;
     typedef fast_mutex::lock_guard lock_guard_t;
 #else
-    typedef mutex mutex_t;
-    typedef lock_guard lock_guard_t;
+    typedef recursive_mutex mutex_t;
+    typedef recursive_lock_guard lock_guard_t;
 #endif
 
     int m_max_open_files;
@@ -514,6 +527,7 @@ private:
     size_t m_max_memory_bytes;
     ustring m_searchpath;
     int m_autotile;              ///< if nonzero, pretend tiles of this size
+    bool m_automip;              ///< auto-mipmap on demand?
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's

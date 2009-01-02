@@ -49,6 +49,7 @@ using namespace std::tr1;
 #include "sysutil.h"
 #include "timer.h"
 #include "imageio.h"
+#include "imagebuf.h"
 using namespace OpenImageIO;
 
 #define DLL_EXPORT_PUBLIC /* Because we are implementing ImageCache */
@@ -161,8 +162,28 @@ ImageCacheFile::open ()
         imagecache().m_stat_files_totalsize += (long long)tempspec.image_bytes();
     } while (m_input->seek_subimage (nsubimages, tempspec));
     ASSERT (nsubimages == m_spec.size());
-    if (m_untiled && nsubimages == 1)
+
+    // Special work for non-MIPmapped images -- but only if "automip" is
+    // on, it's a non-mipmapped image, and it doesn't have a "textureformat"
+    // attribute (because that would indicate somebody constructed it as
+    // texture and specifically wants it un-mipmapped).
+    if (m_untiled && nsubimages == 1 && imagecache().automip() &&
+            ! spec().find_attribute ("textureformat", TypeDesc::PT_STRING)) {
         m_unmipped = true;
+        int w = spec().full_width;
+        int h = spec().full_height;
+        while (w > 1 || h > 1) {
+            w = std::max (1, w/2);
+            h = std::max (1, h/2);
+            ImageSpec s = spec();
+            s.width = w;
+            s.height = h;
+            s.full_width = w;
+            s.full_height = h;
+            ++nsubimages;
+            m_spec.push_back (s);
+        }
+    }
 
     const ImageSpec &spec (m_spec[0]);
     const ImageIOParameter *p;
@@ -236,17 +257,86 @@ ImageCacheFile::read_tile (int level, int x, int y, int z,
     if (! ok)
         return false;
 
-    ImageSpec tmp;
-    if (m_input->current_subimage() != level)
-        m_input->seek_subimage (level, tmp);
+    // Special case for un-MIP-mapped
+    if (m_unmipped && level != 0)
+        return read_unmipped (level, x, y, z, format, data);
 
-    // Special case for untiled, unmip-mapped
-    if (m_untiled | m_unmipped)
+    // Special case for untiled
+    if (m_untiled)
         return read_untiled (level, x, y, z, format, data);
 
     // Ordinary tiled
+    ImageSpec tmp;
+    if (m_input->current_subimage() != level)
+        m_input->seek_subimage (level, tmp);
     imagecache().m_stat_bytes_read += spec(level).tile_bytes();
     return m_input->read_tile (x, y, z, format, data);
+}
+
+
+
+bool
+ImageCacheFile::read_unmipped (int level, int x, int y, int z,
+                               TypeDesc format, void *data)
+{
+    // We need a tile from an unmipmapped file, and it doesn't really
+    // exist.  So generate it out of thin air by interpolating pixels
+    // from the next higher-res level.  Of course, that may also not
+    // exist, but it will be generated recursively, since we call
+    // imagecache->get_pixels(), and it will ask for other tiles, which
+    // will again call read_unmipped... eventually it will hit a level 0
+    // tile that actually exists.
+
+    // Figure out the size and strides for a single tile, make an ImageBuf
+    // to hold it temporarily.
+    const ImageSpec &spec (this->spec(level));
+    int tw = spec.tile_width;
+    int th = spec.tile_height;
+    stride_t xstride=AutoStride, ystride=AutoStride, zstride=AutoStride;
+    spec.auto_stride(xstride, ystride, zstride, format, spec.nchannels, tw, th);
+    ImageSpec lospec (tw, th, spec.nchannels, TypeDesc::FLOAT);
+    ImageBuf lores ("tmp", lospec);
+    lores.alloc (lospec);
+
+    // Figure out the range of texels we need for this tile
+    x -= spec.x;
+    y -= spec.y;
+    z -= spec.z;
+    int x0 = x - (x % spec.tile_width);
+    int x1 = std::min (x0+spec.tile_width-1, spec.full_width-1);
+    int y0 = y - (y % spec.tile_height);
+    int y1 = std::min (y0+spec.tile_height-1, spec.full_height-1);
+    int z0 = z - (z % spec.tile_depth);
+    int z1 = std::min (z0+spec.tile_depth, spec.full_depth-1);
+
+    // Texel by texel, generate the values by interpolating filtered
+    // lookups form the next finer level.
+    const ImageSpec &upspec (this->spec(level-1));  // next higher level
+    float *bilerppels = (float *) alloca (4 * spec.nchannels * sizeof(float));
+    for (int j = y0;  j <= y1;  ++j) {
+        float yf = (j+0.5f) / spec.full_height;
+        int ylow;
+        float yfrac = floorfrac (yf * upspec.full_height - 0.5, &ylow);
+        for (int i = x0;  i <= x1;  ++i) {
+            float xf = (i+0.5f) / spec.full_width;
+            int xlow;
+            float xfrac = floorfrac (xf * upspec.full_width - 0.5, &xlow);
+            imagecache().get_pixels (this, level-1, xlow, xlow+1, ylow, ylow+1,
+                                     0, 0, TypeDesc::FLOAT, bilerppels);
+            bilerp (bilerppels+0, bilerppels+spec.nchannels,
+                    bilerppels+2*spec.nchannels, bilerppels+3*spec.nchannels,
+                    xfrac, yfrac, spec.nchannels, 
+                    (float *)lores.pixeladdr (i-x0, j-y0));
+        }
+    }
+
+    // Now convert those values we computed (as floats) into the native
+    // format, and into the buffer that the caller requested.
+    convert_image (spec.nchannels, tw, th, 1, lores.pixeladdr(0,0),
+                   TypeDesc::FLOAT, lospec.pixel_bytes(),
+                   lospec.scanline_bytes(), lospec.image_bytes(),
+                   data, format, xstride, ystride, zstride);
+    return true;
 }
 
 
@@ -474,6 +564,7 @@ ImageCacheImpl::init ()
     m_max_memory_MB = 50;
     m_max_memory_bytes = (int) (m_max_memory_MB * 1024 * 1024);
     m_autotile = 0;
+    m_automip = false;
     m_Mw2c.makeIdentity();
     m_mem_used = 0;
     m_statslevel = 0;
@@ -567,6 +658,10 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         m_autotile = pow2roundup (*(const int *)val);  // guarantee pow2
         return true;
     }
+    if (name == "automip" && type == TypeDesc::INT) {
+        m_automip = *(const int *)val;
+        return true;
+    }
     return false;
 }
 
@@ -594,6 +689,10 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     }
     if (name == "autotile" && type == TypeDesc::INT) {
         *(int *)val = m_autotile;
+        return true;
+    }
+    if (name == "automip" && type == TypeDesc::INT) {
+        *(int *)val = (int)m_automip;
         return true;
     }
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
@@ -771,6 +870,19 @@ ImageCacheImpl::get_pixels (ustring filename, int level,
                level, filename.c_str());
         return false;
     }
+
+    return get_pixels (file, level, xmin, xmax, ymin, ymax, zmin, zmax,
+                       format, result);
+}
+
+
+
+bool
+ImageCacheImpl::get_pixels (ImageCacheFile *file, int level,
+                            int xmin, int xmax, int ymin, int ymax,
+                            int zmin, int zmax, 
+                            TypeDesc format, void *result)
+{
     const ImageSpec &spec (file->spec());
 
     // FIXME -- this could be WAY more efficient than starting from
@@ -800,7 +912,7 @@ ImageCacheImpl::get_pixels (ustring filename, int level,
             }
         }
     }
-    return false;
+    return true;
 }
 
 
