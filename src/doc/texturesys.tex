@@ -10,6 +10,7 @@
 \label{sec:texturesys:intro}
 
 Coming soon.
+FIXME
 
 \section{Helper Classes}
 \label{sec:texturesys:helperclasses}
@@ -229,11 +230,16 @@ through the external API of \product.  Because of this, you cannot
 construct or destroy the concrete implementation, so two static
 methods of \TextureSystem are provided:
 
-\apiitem{static TextureSystem *TextureSystem::{\ce create}()}
+\apiitem{static TextureSystem *TextureSystem::{\ce create} (bool share=true)}
 Creates a new \TextureSystem and returns a pointer to it.
+If {\cf shared} is {\cf true}, the \TextureSystem created will share its
+underlying \ImageCache with any other \TextureSystem's or \ImageCache's
+that requested shared caches.  If {\cf shared} is {\cf false}, a
+completely unique \ImageCache will be created that is private to this
+particular \TextureSystem.
 \apiend
 
-\apiitem{static void TextureSystem::{\ce destroy} (TextureSystem * \&x)}
+\apiitem{static void TextureSystem::{\ce destroy} (TextureSystem *x)}
 Destroys an allocated \TextureSystem, including freeing all system
 resources that it holds.
 
@@ -251,48 +257,193 @@ The following member functions of \TextureSystem allow you to set
 (and in some cases retrieve) options that control the overall
 behavior of the texture system:
 
-\apiitem{void {\ce max_open_files} (int nfiles)}
-Sets the maximum number of file handles that the texture system will
+\apiitem{bool {\ce attribute} (const std::string \&name, TypeDesc type,
+  const void *val)}
+\indexapi{attribute}
+
+Sets an attribute (i.e., a property or option) of the \TextureSystem.
+The {\cf name} designates the name of the attribute, {\cf type}
+describes the type of data, and {\cf val} is a pointer to memory 
+containing the new value for the attribute.
+
+If the \TextureSystem recognizes a valid attribute name that matches the
+type specified, the attribute will be set to the new value and {\cf
+  attribute()} will return {\cf true}.  If {\cf name} is not recognized
+as a valid attribute name, or if the types do not match (e.g., {\cf
+  type} is {\cf TypeDesc::FLOAT} but the named attribute is a string),
+the attribute will not be modified, and {\cf attribute()} will return
+{\cf false}.
+
+Here are examples:
+
+\begin{code}
+      TextureSystem *ts; 
+      ...
+      int maxfiles = 50;
+      ts->attribute ("max_open_files", TypeDesc::INT, &maxfiles);
+
+      const char *path = "/my/path";
+      ts->attribute ("searchpath", TypeDesc::STRING, &path);
+\end{code}
+
+Note that when passing a string, you need to pass a pointer to the {\cf
+  char*}, not a pointer to the first character.  (Rationale: for an {\cf
+  int} attribute, you pass the address of the {\cf int}.  So for a
+string, which is a {\cf char*}, you need to pass the address of the
+string, i.e., a {\cf char**}).
+
+The complete list of attributes can be found at the end of this section.
+
+\apiend
+
+\apiitem{bool {\ce attribute} (const std::string \&name, int val) \\
+bool {\ce attribute} (const std::string \&name, float val) \\
+bool {\ce attribute} (const std::string \&name, double val) \\
+bool {\ce attribute} (const std::string \&name, const char *val) \\
+bool {\ce attribute} (const std::string \&name, const std::string \& val)}
+Specialized versions of {\cf attribute()} in which the data type is
+implied by the type of the argument.
+
+For example, the following are equivalent to the example above for the
+general (pointer) form of {\cf attribute()}:
+
+\begin{code}
+      ts->attribute ("max_open_files", 50);
+      ts->attribute ("searchpath", "/my/path");
+\end{code}
+
+\apiend
+
+
+\apiitem{bool {\ce getattribute} (const std::string \&name, TypeDesc type,
+  void *val)}
+\indexapi{getattribute}
+
+Gets the current value of an attribute of the \TextureSystem.
+The {\cf name} designates the name of the attribute, {\cf type}
+describes the type of data, and {\cf val} is a pointer to memory 
+where the user would like the value placed.
+
+If the \TextureSystem recognizes a valid attribute name that matches the
+type specified, the attribute value will be stored at address {\cf val}
+and {\cf attribute()} will return {\cf true}.  If {\cf name} is not recognized
+as a valid attribute name, or if the types do not match (e.g., {\cf
+  type} is {\cf TypeDesc::FLOAT} but the named attribute is a string),
+no data will be written to {\cf val}, and {\cf attribute()} will return
+{\cf false}.
+
+Here are examples:
+
+\begin{code}
+      TextureSystem *ts; 
+      ...
+      int maxfiles;
+      ts->getattribute ("max_open_files", TypeDesc::INT, &maxfiles);
+
+      const char *path;
+      ts->getattribute ("searchpath", TypeDesc::STRING, &path);
+\end{code}
+
+Note that when passing a string, you need to pass a pointer to the {\cf
+  char*}, not a pointer to the first character.  Also, the {\cf char*}
+will end up pointing to characters owned by the \TextureSystem; the
+caller does not need to ever free the memory that contains the
+characters.
+
+The complete list of attributes can be found at the end of this section.
+
+
+\apiend
+
+\apiitem{bool {\ce getattribute} (const std::string \&name, int \&val) \\
+bool {\ce getattribute} (const std::string \&name, float \&val) \\
+bool {\ce getattribute} (const std::string \&name, double \&val) \\
+bool {\ce getattribute} (const std::string \&name, char **val) \\
+bool {\ce getattribute} (const std::string \&name, std::string \& val)}
+Specialized versions of {\cf getattribute()} in which the data type is
+implied by the type of the argument.
+
+For example, the following are equivalent to the example above for the
+general (pointer) form of {\cf getattribute()}:
+
+\begin{code}
+      int maxfiles;
+      ts->getattribute ("max_open_files", &maxfiles);
+      const char *path;
+      ts->getattribute ("searchpath", &path);
+\end{code}
+
+\apiend
+
+
+\subsubsection*{Texture system attributes}
+
+Recognized attributes include the following:
+
+\apiitem{int max_open_files}
+The maximum number of file handles that the texture system will
 hold open simultaneously.  (Default = 100)
 \apiend
 
-\apiitem{void {\ce max_memory_MB} (float size)}
-Sets the maximum amount of memory (measured in MB) that the texture
-system will use for its ``tile cache.'' (Default: 50 MB)
+\apiitem{float max_memory_MB}
+The maximum amount of memory (measured in MB) that the texture
+system will use for its ``tile cache.'' (Default: 50.0 MB)
 \apiend
 
-\apiitem{void {\ce searchpath} (const std::string \&path)}
-Sets the search path for textures: a colon-separated list of
+\apiitem{string searchpath}
+The search path for textures: a colon-separated list of
 directories that will be searched in order for any texture name
 that is not specified as an absolute path.
 \apiend
 
-\apiitem{void {\ce worldtocommon} (const float *mx) \\
-void {\ce worldtocommon} (const Imath::M44f \&w2c)}
-Sets the $4 \times 4$ matrix that provides the spatial transformation
+\apiitem{matrix worldtocommon}
+The $4 \times 4$ matrix that provides the spatial transformation
 from ``world'' to a ``common'' coordinate system.  This is used for
 shadow map lookups, in which the shadow map itself encodes the
 world coordinate system, but positions passed to {\cf shadow()} are
 expressed in ``common'' coordinates.
-
-There are two versions of this method: one takes a reference to
-a {\cf Imath:M44f}, the other that takes a pointer to 16 contiguous
-floats.
 \apiend
 
-\apiitem{int {\ce max_open_files} () const}
-Returns the current value of the maximum number of file handles that
-the texture library will hold open.
+\apiitem{matrix commontoworld}
+The $4 \times 4$ matrix that is the inverse of {\cf worldtocommon} ---
+that is, it transforms points from ``common'' to ``world'' coordinates.
+
+You do not need to set {\cf commontoworld} and {\cf worldtocommon}
+separately; just setting either one will implicitly set the other, since
+each is the inverse of the other.
 \apiend
 
-\apiitem{float {\ce max_memory_MB} () const}
-Returns the current value of the maximum amount of memory (in MB)
-the texture library will use for the tile cache.
+\apiitem{int autotile}
+This attributes controls how the texture system deals with images that
+are not ``tiled'' (i.e., are stored as scanlines).
+
+If {\cf autotile} is set to 0 (the default), an untiled image will be
+treated as if it were a single tile of the resolution of the whole
+image.  This is simple and fast, but does not lead to good cache 
+behavior if you are texturing using many large untiled images.
+
+If {\cf autotile} is nonzero (e.g., 64 is a good recommended value), any
+untiled images will be read and cached as if they were constructed in
+tiles of size {\cf autotile} $\times$ {\cf autotile}.  This leads to
+slightly more expensive disk access if you are using only a few
+textures, but if you are using many untiled images, the caching be much
+more efficient.
 \apiend
 
-\apiitem{std::string {\ce searchpath} () const}
-Returns the current search path for textures.
+\apiitem{int automip}
+If {\cf automip} is set to 0 (the default), an untiled single-subimage
+file will only be able to utilize that single subimage, and therefore
+will generally tend to alias its texture lookups.
+
+If {\cf automip} is nonzero, any untiled, single-subimage
+(un-MIP-mapped) images will have lower-resolution versions generated
+on-demand if pixels are requested from the ``upper'' subimage levels
+(which don't really exist in the file).  Essentially this makes the
+\TextureSystem match the texturing quality of MIP-mapped image, although
+at a somewhat higher cost compared to having used {\cf maketx} to
+generate a fully elaborated tiled, MIP-mapped image ahead of time.
 \apiend
+
 
 \newpage
 \subsection{Texture Lookups}
@@ -848,6 +999,15 @@ the error status.  If no error has occurred since the last time
 {\cf geterror()} was called, it will return an empty string.
 \apiend
 
+\apiitem{std::string {\ce getstats} (int level=1, bool icstats=true)}
+Returns a big string containing useful statistics about the \ImageCache
+operations, suitable for saving to a file or outputting to the terminal.
+The {\cf level} indicates the amount of detail in the statistics,
+with higher numbers (up to a maximum of 5) yielding more and more
+esoteric information.  If {\cf icstats} is true, the returned string
+will also contain all the statistics of the underlying \ImageCache,
+but if false will only contain texture-specific statistics.
+\apiend
 
 \index{Texture System|)}
 

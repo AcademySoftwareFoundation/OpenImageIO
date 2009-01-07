@@ -1,0 +1,355 @@
+\chapter{Cached Images: {\cf ImageCache}}
+\label{chap:imagecache}
+\index{Image Cache|(}
+
+\def\ImageCache{{\cf ImageCache}\xspace}
+
+
+\section{Image Cache Introduction and Theory of Operation}
+\label{sec:imagecache:intro}
+
+Coming soon.
+FIXME
+
+\section{ImageCache API}
+\label{sec:imagecache:api}
+
+\subsection{Creating and destroying an image cache}
+\label{sec:imagecache:api:createdestroy}
+
+\ImageCache is an abstract API described as a pure virtual class.  The
+actual internal implementation is not exposed through the external API
+of \product.  Because of this, you cannot construct or destroy the
+concrete implementation, so two static methods of \ImageCache are
+provided:
+
+\apiitem{static ImageCache *ImageCache::{\ce create} (bool shared=true)}
+
+Creates a new \ImageCache and returns a pointer to it.  If 
+{\cf shared} is {\cf true}, {\cf create()} will return a pointer
+to a shared \ImageCache (so that multiple parts of an application
+that request an \ImageCache will all end up with the same one).
+If {\cf shared} is {\cf false}, a completely unique \ImageCache
+will be created and returned.
+
+\apiend
+
+\apiitem{static void ImageCache::{\ce destroy} (ImageCache *x)}
+Destroys an allocated \ImageCache, including freeing all system
+resources that it holds.
+
+This is necessary to ensure that the memory is freed in a way that
+matches the way it was allocated within the library.  Note that simply
+using {\cf delete} on the pointer will not always work (at least,
+not on some platforms in which a DSO/DLL can end up using a different
+allocator than the main program).
+
+It is safe to destroy even a shared \ImageCache, as the implementation
+of {\cf destroy()} will recognize a shared one and only truly release
+its resources if it has been requested to be destroyed as many times as
+shared \ImageCache's were created.
+\apiend
+
+\subsection{Setting options and limits for the image cache}
+\label{sec:imagecache:api:options}
+
+The following member functions of \ImageCache allow you to set
+(and in some cases retrieve) options that control the overall
+behavior of the image cache:
+
+\apiitem{bool {\ce attribute} (const std::string \&name, TypeDesc type,
+  const void *val)}
+\indexapi{attribute}
+
+Sets an attribute (i.e., a property or option) of the \ImageCache.
+The {\cf name} designates the name of the attribute, {\cf type}
+describes the type of data, and {\cf val} is a pointer to memory 
+containing the new value for the attribute.
+
+If the \ImageCache recognizes a valid attribute name that matches the
+type specified, the attribute will be set to the new value and {\cf
+  attribute()} will return {\cf true}.  If {\cf name} is not recognized
+as a valid attribute name, or if the types do not match (e.g., {\cf
+  type} is {\cf TypeDesc::FLOAT} but the named attribute is a string),
+the attribute will not be modified, and {\cf attribute()} will return
+{\cf false}.
+
+Here are examples:
+
+\begin{code}
+      ImageCache *ts; 
+      ...
+      int maxfiles = 50;
+      ts->attribute ("max_open_files", TypeDesc::INT, &maxfiles);
+
+      const char *path = "/my/path";
+      ts->attribute ("searchpath", TypeDesc::STRING, &path);
+\end{code}
+
+Note that when passing a string, you need to pass a pointer to the {\cf
+  char*}, not a pointer to the first character.  (Rationale: for an {\cf
+  int} attribute, you pass the address of the {\cf int}.  So for a
+string, which is a {\cf char*}, you need to pass the address of the
+string, i.e., a {\cf char**}).
+
+The complete list of attributes can be found at the end of this section.
+
+\apiend
+
+\apiitem{bool {\ce attribute} (const std::string \&name, int val) \\
+bool {\ce attribute} (const std::string \&name, float val) \\
+bool {\ce attribute} (const std::string \&name, double val) \\
+bool {\ce attribute} (const std::string \&name, const char *val) \\
+bool {\ce attribute} (const std::string \&name, const std::string \& val)}
+Specialized versions of {\cf attribute()} in which the data type is
+implied by the type of the argument.
+
+For example, the following are equivalent to the example above for the
+general (pointer) form of {\cf attribute()}:
+
+\begin{code}
+      ts->attribute ("max_open_files", 50);
+      ts->attribute ("searchpath", "/my/path");
+\end{code}
+
+\apiend
+
+
+\apiitem{bool {\ce getattribute} (const std::string \&name, TypeDesc type,
+  void *val)}
+\indexapi{getattribute}
+
+Gets the current value of an attribute of the \ImageCache.
+The {\cf name} designates the name of the attribute, {\cf type}
+describes the type of data, and {\cf val} is a pointer to memory 
+where the user would like the value placed.
+
+If the \ImageCache recognizes a valid attribute name that matches the
+type specified, the attribute value will be stored at address {\cf val}
+and {\cf attribute()} will return {\cf true}.  If {\cf name} is not recognized
+as a valid attribute name, or if the types do not match (e.g., {\cf
+  type} is {\cf TypeDesc::FLOAT} but the named attribute is a string),
+no data will be written to {\cf val}, and {\cf attribute()} will return
+{\cf false}.
+
+Here are examples:
+
+\begin{code}
+      ImageCache *ts; 
+      ...
+      int maxfiles;
+      ts->getattribute ("max_open_files", TypeDesc::INT, &maxfiles);
+
+      const char *path;
+      ts->getattribute ("searchpath", TypeDesc::STRING, &path);
+\end{code}
+
+Note that when passing a string, you need to pass a pointer to the {\cf
+  char*}, not a pointer to the first character.  Also, the {\cf char*}
+will end up pointing to characters owned by the \ImageCache; the
+caller does not need to ever free the memory that contains the
+characters.
+
+The complete list of attributes can be found at the end of this section.
+
+
+\apiend
+
+\apiitem{bool {\ce getattribute} (const std::string \&name, int \&val) \\
+bool {\ce getattribute} (const std::string \&name, float \&val) \\
+bool {\ce getattribute} (const std::string \&name, double \&val) \\
+bool {\ce getattribute} (const std::string \&name, char **val) \\
+bool {\ce getattribute} (const std::string \&name, std::string \& val)}
+Specialized versions of {\cf getattribute()} in which the data type is
+implied by the type of the argument.
+
+For example, the following are equivalent to the example above for the
+general (pointer) form of {\cf getattribute()}:
+
+\begin{code}
+      int maxfiles;
+      ts->getattribute ("max_open_files", &maxfiles);
+      const char *path;
+      ts->getattribute ("searchpath", &path);
+\end{code}
+
+\apiend
+
+
+\subsubsection*{Image cache attributes}
+
+Recognized attributes include the following:
+
+\apiitem{int max_open_files}
+The maximum number of file handles that the image cache will
+hold open simultaneously.  (Default = 100)
+\apiend
+
+\apiitem{float max_memory_MB}
+The maximum amount of memory (measured in MB) that the image cache
+will use for its ``tile cache.'' (Default: 50.0 MB)
+\apiend
+
+\apiitem{string searchpath}
+The search path for images: a colon-separated list of
+directories that will be searched in order for any image name
+that is not specified as an absolute path. (Default: no search path.)
+\apiend
+
+\apiitem{int autotile}
+This attributes controls how the image cache deals with images that
+are not ``tiled'' (i.e., are stored as scanlines). 
+
+If {\cf autotile} is set to 0 (the default), an untiled image will be
+treated as if it were a single tile of the resolution of the whole
+image.  This is simple and fast, but can lead to poor cache behavior if
+you are simultaneously accessing many large untiled images.
+
+If {\cf autotile} is nonzero (e.g., 64 is a good recommended value), any
+untiled images will be read and cached as if they were constructed in
+tiles of size {\cf autotile} $\times$ {\cf autotile}.  This leads to
+slightly more expensive disk access if you are using only a few
+images, but if you are using many untiled images, the caching be much
+more efficient.
+\apiend
+
+\apiitem{int automip}
+If {\cf automip} is set to 0 (the default), an untiled single-subimage
+file will only be able to utilize that single subimage.
+
+If {\cf autotile} is nonzero, any untiled, single-subimage
+(un-MIP-mapped) images will have lower-resolution versions generated
+on-demand if pixels are requested from the ``upper'' subimage levels
+(which don't really exist in the file).  Essentially this makes the
+\ImageCache pretend that the file is MIP-mapped even if it isn't.
+\apiend
+
+
+\newpage
+\subsection{Getting information about images}
+\label{sec:imagecache:api:getimageinfo}
+\label{sec:imagecache:api:getimagespec}
+
+\apiitem{bool {\ce get_image_info} (ustring filename, ustring dataname, \\
+  \bigspc\bigspc TypeDesc datatype, void *data)}
+Retrieves information about the image named by {\cf filename}.
+The {\cf dataname} is a keyword indcating what information should
+be retrieved, {\cf datatype} is the type of data expected, and
+{\cf data} points to caller-owned memory where the results should be
+placed.  It is up to the caller to ensure that {\cf data} contains
+enough space to hold an item of the requested {\cf datatype}.
+
+The return value is {\cf true} if {\cf get_image_info()} is able
+to find the requested {\cf dataname} and it matched the requested
+{\cf datatype}.  If the requested data was not found, or was not
+of the right data type, {\cf get_image_info()} will return {\cf false}.
+
+Supported {\cf dataname} values include:
+
+\begin{description}
+\item[\spc] \spc
+\vspace{-12pt} \item[\rm \kw{resolution}] The resolution of the image file, which
+is an array of 2 integers (described as {\cf TypeDesc(INT,2)}).
+
+\item[\rm \kw{texturetype}] A string describing the type of texture
+of the given file, which describes how the texture may be used (also
+which texture API call is probably the right one for it).
+This currently may return one of: \qkw{unknown}, \qkw{Plain Texture},
+\qkw{Volume Texture}, \qkw{Shadow}, 
+or \qkw{Environment}.
+
+\item[\rm \kw{textureformat}] A string describing the format of the
+given file, which describes the kind of texture stored in the file.
+This currently may return one of: \qkw{unknown}, \qkw{Plain Texture},
+\qkw{Volume Texture}, \qkw{Shadow}, \qkw{CubeFace Shadow}, \qkw{Volume
+  Shadow}, \qkw{LatLong Environment}, or \qkw{CubeFace Environment}.
+Note that there are several kinds of shadows and environment maps,
+all accessible through the same API calls.
+
+\item[\rm \kw{channels}] The number of color channels in the file 
+(an integer).
+
+\item[\rm \kw{viewingmatrix}] The viewing matrix, which is a
+$4 \times 4$ matrix (an {\cf Imath::M44f}, described as {\cf
+  TypeDesc(FLOAT,MATRIX)}).
+
+\item[\rm \kw{projectionmatrix}] The projection matrix, which is a
+$4 \times 4$ matrix (an {\cf Imath::M44f}, described as {\cf
+  TypeDesc(FLOAT,MATRIX)}).
+
+\item[Anything else] -- For all other data names, the
+the metadata of the image file will be searched for an item that
+matches both the name and data type.
+
+\end{description}
+\apiend
+
+\apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec,
+  int subimage=0)}
+
+If the named image is found and able to be opened by an available
+ImageIO plugin, and the designated subimage exists, this function copies
+its image specification for that subimage into {\cf spec} and returns
+{\cf true}.  Otherwise, if the file is not found, could not be opened,
+is not of a format readable by any ImageIO plugin that could be find, or
+the designated subimage did not exist in the file, the return value is
+{\cf false} and {\cf spec} will not be modified.
+
+\apiend
+
+\newpage
+\subsection{Getting pixels}
+\label{sec:imagecache:api:getpixels}
+
+\apiitem{bool {\ce get\_pixels} (ustring filename, int level, \\
+         \bigspc int xmin, int xmax, int ymin, int ymax,
+                            int zmin, int zmax, \\
+         \bigspc TypeDesc format, void *result)}
+
+Retrieve the rectangle of raw pixels spanning (xmin, ymin, zmin) through
+(xmax, ymax, zmax) (inclusive, specified as integer pixel coordinates),
+of the designated subimage {\cf level}, storing the pixel values
+beginning at the address specified by result.  The pixel values will be
+converted to the type specified by {\cf format}.  It is up to the caller
+to ensure that result points to an area of memory big enough to
+accommodate the requested rectangle (taking into consideration its
+dimensions, number of channels, and data format).
+
+\apiend
+
+\subsection{Dealing with tiles}
+\label{sec:imagecache:api:tiles}
+
+\apiitem{ImageCache::Tile {\ce get\_tile} (ustring filename, int level, \\
+\bigspc int x, int y, int z)}
+\apiend
+
+\apiitem{void {\ce release\_tile} (ImageCache::Tile *tile)}
+\apiend
+
+\apiitem{const void * {\ce tile_pixels} (ImageCache::Tile *tile, TypeDesc \&format)}
+\apiend
+
+\subsection{Errors and statistics}
+\label{sec:imagecache:api:geterror}
+\label{sec:imagecache:api:getstats}
+
+\apiitem{std::string {\ce geterror} ()}
+If any other API routines return {\cf false}, indicating that an error
+has occurred, this routine will retrieve the error and clear the error
+status.  If no error has occurred since the last time {\cf geterror()}
+was called, it will return an empty string.
+\apiend
+
+\apiitem{std::string {\ce getstats} (int level=1)}
+Returns a big string containing useful statistics about the \ImageCache
+operations, suitable for saving to a file or outputting to the terminal.
+The {\cf level} indicates the amount of detail in the statistics,
+with higher numbers (up to a maximum of 5) yielding more and more
+esoteric information.
+\apiend
+
+
+\index{Image Cache|)}
+
+\chapwidthend

@@ -76,7 +76,7 @@
 }
 \date{{\large 
 %Editor: Larry Gritz \\[2ex]
-Date: 16 October, 2008
+Date: 6 January, 2009
 %\\ (with corrections, 11 July, 2008)
 }}
 
@@ -130,11 +130,15 @@ Date: 16 October, 2008
 
 \chapter{Image Buffer}
 
+\include{imagecache}
+
 \include{texturesys}
 
 \part{Image Utilities}
 
 \chapter{The {\kw iv} Image Viewer}
+\label{chap:iv}
+\indexapi{iv}
 
 The {\cf iv} program is a great interactive image viewer.  Because {\cf
   iv} is built on top on \product, it can display images of any formats
@@ -159,6 +163,8 @@ More documentation on this later.
 
 
 \chapter{Converting Image Formats With {\kw iconvert}}
+\label{chap:iconvert}
+\indexapi{iconvert}
 
 The {\cf iconvert} program will read an image (from any file format for
 which an \ImageInput plugin can be found) and then write the image to a
@@ -173,6 +179,8 @@ orientation, or alter or add metadata to the image.
 More documentation on this later.
 
 \chapter{Creating MIP-mapped texture files with {\cf maketx}}
+\label{chap:maketx}
+\indexapi{maketx}
 
 The {\cf maketx} program will read an image (from any file format for
 which an \ImageInput plugin can be found) and then write the image 
@@ -185,6 +193,8 @@ More documentation on this later.
 
 
 \chapter{Comparing Images With {\kw idiff}}
+\label{chap:idiff}
+\indexapi{idiff}
 
 The {\cf idiff} program compares two images, printing a report about how
 different they are and optionally producing a third image that records
