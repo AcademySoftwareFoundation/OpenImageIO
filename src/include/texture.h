@@ -132,7 +132,7 @@ public:
 
     // Options that must be the same for all points we're texturing at once
     int firstchannel;         ///< First channel of the lookup
-    int nchannels;            ///< Number of channels to look up: 1 or 3
+    int nchannels;            ///< Number of channels to look up
     Wrap swrap;               ///< Wrap mode in the s direction
     Wrap twrap;               ///< Wrap mode in the t direction
     MipMode mipmode;          ///< Mip mode
@@ -219,6 +219,8 @@ public:
     ///     string searchpath : colon-separated search path for texture files
     ///     matrix44 worldtocommon : the world-to-common transformation
     ///     matrix44 commontoworld : the common-to-world transformation
+    ///     int autotile : if >0, tile size to emulate for non-tiled images
+    ///     int automip : if nonzero, emulate mipmap on the fly
     ///
     virtual bool attribute (const std::string &name, TypeDesc type, const void *val) = 0;
     // Shortcuts for common types
