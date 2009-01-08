@@ -173,7 +173,9 @@ private slots:
     void zoomOut();                     ///< Zoom out to next power of 2
     void normalSize();                  ///< Adjust zoom to 1:1
     void fitImageToWindow();            ///< Adjust zoom to fit window exactly
-    void fitWindowToImage();            ///< Resize window to fit image exactly
+    /// Resize window to fit image exactly.  If zoomok is false, do not
+    /// change the zoom, even to fit on screen.
+    void fitWindowToImage(bool zoomok=true);
     void fullScreenToggle();            ///< Toggle full screen mode
     void about();                       ///< Show "about iv" dialog
     void prevImage();                   ///< View previous image in sequence

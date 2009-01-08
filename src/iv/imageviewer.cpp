@@ -1150,7 +1150,7 @@ void ImageViewer::normalSize()
     float xcenter = img->oriented_full_x() + 0.5 * img->oriented_full_width();
     float ycenter = img->oriented_full_y() + 0.5 * img->oriented_full_height();
     view (xcenter, ycenter, 1.0, true);
-    fitWindowToImage ();
+    fitWindowToImage (false);
 }
 
 
@@ -1179,7 +1179,7 @@ void ImageViewer::fitImageToWindow()
 
 
 
-void ImageViewer::fitWindowToImage()
+void ImageViewer::fitWindowToImage (bool zoomok)
 {
     IvImage *img = cur();
     if (! img)
@@ -1211,10 +1211,12 @@ void ImageViewer::fitWindowToImage()
         if (w > availwidth || h > availheight) {
             w = std::min (w, availwidth);
             h = std::min (h, availheight);
-            z = zoom_needed_to_fit (w, h);
-            // std::cerr << "must rezoom to " << z << " to fit\n";
-            w = (int)(img->oriented_full_width()  * z) + extraw;
-            h = (int)(img->oriented_full_height() * z) + extrah;
+            if (zoomok) {
+                z = zoom_needed_to_fit (w, h);
+                w = (int)(img->oriented_full_width()  * z) + extraw;
+                h = (int)(img->oriented_full_height() * z) + extrah;
+                // std::cerr << "must rezoom to " << z << " to fit\n";
+            }
             // std::cerr << "New window geom " << w << "x" << h << "\n";
             int posx = x(), posy = y();
             if (posx + w > availwidth || posy + h > availheight) {
