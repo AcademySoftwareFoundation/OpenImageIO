@@ -380,20 +380,17 @@ general (pointer) form of {\cf getattribute()}:
 
 Recognized attributes include the following:
 
-\apiitem{int max_open_files}
-The maximum number of file handles that the texture system will
-hold open simultaneously.  (Default = 100)
-\apiend
+\apiitem{int max_open_files \\
+float max_memory_MB \\
+string searchpath \\
+int autotile \\
+int automip}
 
-\apiitem{float max_memory_MB}
-The maximum amount of memory (measured in MB) that the texture
-system will use for its ``tile cache.'' (Default: 50.0 MB)
-\apiend
+These attributes are all passed along to the underlying \ImageCache that
+is used internally by the \TextureSystem.  Please consult the
+\ImageCache attribute list in Section~\ref{sec:imagecache:api:attribute}
+for explanations of these attributes.
 
-\apiitem{string searchpath}
-The search path for textures: a colon-separated list of
-directories that will be searched in order for any texture name
-that is not specified as an absolute path.
 \apiend
 
 \apiitem{matrix worldtocommon}
@@ -413,36 +410,6 @@ separately; just setting either one will implicitly set the other, since
 each is the inverse of the other.
 \apiend
 
-\apiitem{int autotile}
-This attributes controls how the texture system deals with images that
-are not ``tiled'' (i.e., are stored as scanlines).
-
-If {\cf autotile} is set to 0 (the default), an untiled image will be
-treated as if it were a single tile of the resolution of the whole
-image.  This is simple and fast, but does not lead to good cache 
-behavior if you are texturing using many large untiled images.
-
-If {\cf autotile} is nonzero (e.g., 64 is a good recommended value), any
-untiled images will be read and cached as if they were constructed in
-tiles of size {\cf autotile} $\times$ {\cf autotile}.  This leads to
-slightly more expensive disk access if you are using only a few
-textures, but if you are using many untiled images, the caching be much
-more efficient.
-\apiend
-
-\apiitem{int automip}
-If {\cf automip} is set to 0 (the default), an untiled single-subimage
-file will only be able to utilize that single subimage, and therefore
-will generally tend to alias its texture lookups.
-
-If {\cf automip} is nonzero, any untiled, single-subimage
-(un-MIP-mapped) images will have lower-resolution versions generated
-on-demand if pixels are requested from the ``upper'' subimage levels
-(which don't really exist in the file).  Essentially this makes the
-\TextureSystem match the texturing quality of MIP-mapped image, although
-at a somewhat higher cost compared to having used {\cf maketx} to
-generate a fully elaborated tiled, MIP-mapped image ahead of time.
-\apiend
 
 
 \newpage

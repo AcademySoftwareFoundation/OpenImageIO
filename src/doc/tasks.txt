@@ -2,56 +2,23 @@ Development tasks
 =================
 
 
-Before letting other developers work on it:
--------------------------------------------
-
-DONE        TIFF - palette
-DONE        TIFF - miniswhite
-DONE        TIFF - 1-bit and 4-bit images
-DONE        TIFF - separated samples broken (oxford.tif)
-DONE        iv - honor orientation
-DONE        OpenEXR plugin (status: reader works, writer works, scanline/tile)
-DONE        jpeg - EXIF info
-DONE?       nomenclature - capitalize tags? (pending feedback)
-DONE        imageio.h - add sRGB vs Linear?
-DONE        API docs - ImageInput, ImageOutput, writing plugins, intro
-DONE        Linux
-DONE        iv - middle mouse drag
-DONE        iv - mouse wheel zoom
-DONE        iv - pixel view window
-DONE        iv - half, float, uint16
-DONE        imageio.h - should ImageIOFormatSpec just be ImageSpec?
-DONE        iv - open recent
-DONE        iv - save as
-DONE        iv - preferences
-DONE        iv - fit image to window
-DONE        iv - full screen
-DONE        iv - prev/next subimage
-DONE        iv - info window - scroll when too much info to fit on screen
-DONE        iv - clamp fit-window-to-image to display size
-DONE        idiff
-DONE        iv - zoom centered on mouse pixel
-DONE        iv - option for zoom to show non-interpolated pixels
-
-
 Before first alpha release
 --------------------------
 
-lg/DONE     Fully represent exr displayWindow (lacking full_[xyz])
+            Windows port of everything
+DONE        Fully represent exr displayWindow (lacking full_[xyz])
 lg/IP       Clean up char* vs std::string
-lg/DONE     iv - handle data vs display windows sensibly
-            Rename 3party (condenders: third_party, external, contrib)
+DONE        iv - handle data vs display windows sensibly
+DONE        Rename 3party -> external
             Explore unit test strategies (leading condender: Google)
             open (name, requests, newspec) - communicate requests
                  (call it "request"? "settings"? "configuration"?)
 DONE        API docs - ImageInput, ImageOutput, writing plugins, intro
             iv - subtract from last image
             iv - view as random color
-            TIFF - double (caspian)
 DONE        iv - why don't I seem to be getting HDR?
             iv - new window, new tab ?
             iv - copy/paste
-            Windows port of everything
             iv - thumbnail window
             iv - region of interest (select, clear, prioritize, crop)
             iv - annotate
@@ -67,7 +34,7 @@ hard        iv - Ctrl-W in info window should close info, not close image
             iv - change cursor depending on drag mode
             jpeg - handle changes in linearity
             iv - crash with 1-channel images?
-lg/IP       texture - handle non-tiled/non-mipmap images
+DONE        texture - handle non-tiled/non-mipmap images
 
 
 Before first 1.0 release
@@ -75,7 +42,7 @@ Before first 1.0 release
 
 DONE        texture - basic texture, tile cache, file handle cache
 DONE        maketx - plain texture maps
-            texture - add statistics (ugh, stats manager?)
+DONE        texture - add statistics
             maketx - shadow map
             maketx - latlong env
             maketx - cubeface env
@@ -91,12 +58,9 @@ DONE        maketx - plain texture maps
 DONE        PNG (Philip request)
             Targa (Wex request)
             PNM/PPM/PBM/PGM
-            XBM/XPM
 DONE        HDR
             IFF?
             null (why?)
-            PIC
-            BMP
             JPEG 2000
             ICO (windows icon files)
             iv - delete image on disk
@@ -110,7 +74,8 @@ DONE        HDR
 DONE        idiff - perceptual diff (Yee)
             exr - ripmaps
             OpenEXR - YCbCr, subsampling
-            iv - draw overtop image
+            iv - draw/annotate overtop image
+            TIFF - double (caspian)
 
 
 ============
@@ -127,6 +92,9 @@ Idea pool / future feature wish list
             TIFF - what's wrong with ladoga.tif?
             PSD (photoshop - Philip request)
             PCD (PhotoCD)
+            XBM/XPM
+            PIC
+            BMP
             Cineon
             DDS
             DPX (?)
