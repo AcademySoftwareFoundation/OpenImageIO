@@ -218,7 +218,7 @@ public:
     /// Retrieve a rectangle of raw unfiltered texels.
     ///
     virtual bool get_texels (ustring filename, TextureOptions &options,
-                             int level, int xmin, int xmax,
+                             int subimage, int xmin, int xmax,
                              int ymin, int ymax, int zmin, int zmax,
                              TypeDesc format, void *result);
 
@@ -297,14 +297,14 @@ private:
     /// Use tile and lasttile as a 2-item cache of tiles to boost our
     /// hit rate over the big cache.  The caller *guarantees* that tile
     /// contains a reference to a tile in the same file and MIP-map
-    /// level as 'id', and so does lasttile (if it contains a reference
+    /// subimage as 'id', and so does lasttile (if it contains a reference
     /// at all).  Thus, it's a slightly simplified and faster version of
     /// find_tile and should be used in loops where it's known that we
-    /// are reading several tiles from the same level.
-    void find_tile_same_level (const TileID &id, TileRef &tile,
+    /// are reading several tiles from the same subimage.
+    void find_tile_same_subimage (const TileID &id, TileRef &tile,
                                TileRef &lasttile)
     {
-        m_imagecache->find_tile_same_level (id, tile, lasttile);
+        m_imagecache->find_tile_same_subimage (id, tile, lasttile);
     }
 
     // Define a prototype of a member function pointer for texture

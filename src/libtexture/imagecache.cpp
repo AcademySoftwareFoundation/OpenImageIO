@@ -131,7 +131,7 @@ ImageCacheFile::open ()
         return true;
 
     // From here on, we know that we've opened this file for the very
-    // first time.  So read all the MIP levels, fill out all the fields
+    // first time.  So read all the subimages, fill out all the fields
     // of the ImageCacheFile.
     ++imagecache().m_stat_unique_files;
     m_spec.reserve (16);
@@ -250,7 +250,7 @@ ImageCacheFile::open ()
 
 
 bool
-ImageCacheFile::read_tile (int level, int x, int y, int z,
+ImageCacheFile::read_tile (int subimage, int x, int y, int z,
                            TypeDesc format, void *data)
 {
     bool ok = open ();
@@ -258,38 +258,38 @@ ImageCacheFile::read_tile (int level, int x, int y, int z,
         return false;
 
     // Special case for un-MIP-mapped
-    if (m_unmipped && level != 0)
-        return read_unmipped (level, x, y, z, format, data);
+    if (m_unmipped && subimage != 0)
+        return read_unmipped (subimage, x, y, z, format, data);
 
     // Special case for untiled
     if (m_untiled)
-        return read_untiled (level, x, y, z, format, data);
+        return read_untiled (subimage, x, y, z, format, data);
 
     // Ordinary tiled
     ImageSpec tmp;
-    if (m_input->current_subimage() != level)
-        m_input->seek_subimage (level, tmp);
-    imagecache().m_stat_bytes_read += spec(level).tile_bytes();
+    if (m_input->current_subimage() != subimage)
+        m_input->seek_subimage (subimage, tmp);
+    imagecache().m_stat_bytes_read += spec(subimage).tile_bytes();
     return m_input->read_tile (x, y, z, format, data);
 }
 
 
 
 bool
-ImageCacheFile::read_unmipped (int level, int x, int y, int z,
+ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
                                TypeDesc format, void *data)
 {
     // We need a tile from an unmipmapped file, and it doesn't really
     // exist.  So generate it out of thin air by interpolating pixels
-    // from the next higher-res level.  Of course, that may also not
+    // from the next higher-res subimage.  Of course, that may also not
     // exist, but it will be generated recursively, since we call
     // imagecache->get_pixels(), and it will ask for other tiles, which
-    // will again call read_unmipped... eventually it will hit a level 0
+    // will again call read_unmipped... eventually it will hit a subimage 0
     // tile that actually exists.
 
     // Figure out the size and strides for a single tile, make an ImageBuf
     // to hold it temporarily.
-    const ImageSpec &spec (this->spec(level));
+    const ImageSpec &spec (this->spec(subimage));
     int tw = spec.tile_width;
     int th = spec.tile_height;
     stride_t xstride=AutoStride, ystride=AutoStride, zstride=AutoStride;
@@ -310,8 +310,8 @@ ImageCacheFile::read_unmipped (int level, int x, int y, int z,
     int z1 = std::min (z0+spec.tile_depth, spec.full_depth-1);
 
     // Texel by texel, generate the values by interpolating filtered
-    // lookups form the next finer level.
-    const ImageSpec &upspec (this->spec(level-1));  // next higher level
+    // lookups form the next finer subimage.
+    const ImageSpec &upspec (this->spec(subimage-1));  // next higher subimage
     float *bilerppels = (float *) alloca (4 * spec.nchannels * sizeof(float));
     for (int j = y0;  j <= y1;  ++j) {
         float yf = (j+0.5f) / spec.full_height;
@@ -321,7 +321,7 @@ ImageCacheFile::read_unmipped (int level, int x, int y, int z,
             float xf = (i+0.5f) / spec.full_width;
             int xlow;
             float xfrac = floorfrac (xf * upspec.full_width - 0.5, &xlow);
-            imagecache().get_pixels (this, level-1, xlow, xlow+1, ylow, ylow+1,
+            imagecache().get_pixels (this, subimage-1, xlow, xlow+1, ylow, ylow+1,
                                      0, 0, TypeDesc::FLOAT, bilerppels);
             bilerp (bilerppels+0, bilerppels+spec.nchannels,
                     bilerppels+2*spec.nchannels, bilerppels+3*spec.nchannels,
@@ -344,7 +344,7 @@ ImageCacheFile::read_unmipped (int level, int x, int y, int z,
 // Helper routine for read_tile that handles the rare (but tricky) case
 // of reading a "tile" from a file that's scanline-oriented.
 bool
-ImageCacheFile::read_untiled (int level, int x, int y, int z,
+ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
                               TypeDesc format, void *data)
 {
     // Strides for a single tile
@@ -392,7 +392,7 @@ ImageCacheFile::read_untiled (int level, int x, int y, int z,
                 // Not the tile we asked for, but it's in the same
                 // tile-row, so let's put it in the cache anyway so
                 // it'll be there when asked for.
-                TileID id (*this, level, i+spec().x, y0, z);
+                TileID id (*this, subimage, i+spec().x, y0, z);
                 if (! imagecache().tile_in_cache (id)) {
                     ImageCacheTileRef tile;
                     tile.reset (new ImageCacheTile (id, &buf[i*pixelsize],
@@ -490,7 +490,7 @@ ImageCacheTile::ImageCacheTile (const TileID &id)
     size_t size = memsize();
     file.imagecache().incr_tiles (size);
     m_pixels.resize (size);
-    m_valid = file.read_tile (m_id.level(), m_id.x(), m_id.y(), m_id.z(),
+    m_valid = file.read_tile (m_id.subimage(), m_id.x(), m_id.y(), m_id.z(),
                               file.datatype(), &m_pixels[0]);
     if (! m_valid)
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() 
@@ -506,7 +506,7 @@ ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
     : m_id (id), m_used(true)
 {
     ImageCacheFile &file (m_id.file ());
-    const ImageSpec &spec (file.spec(id.level()));
+    const ImageSpec &spec (file.spec(id.subimage()));
     size_t size = memsize();
     file.imagecache().incr_tiles (size);
     m_pixels.resize (size);
@@ -532,7 +532,7 @@ ImageCacheTile::~ImageCacheTile ()
 const void *
 ImageCacheTile::data (int x, int y, int z) const
 {
-    const ImageSpec &spec = m_id.file().spec (m_id.level());
+    const ImageSpec &spec = m_id.file().spec (m_id.subimage());
     size_t w = spec.tile_width;
     size_t h = spec.tile_height;
     size_t d = std::max (1, spec.tile_depth);
@@ -851,7 +851,7 @@ ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec, int subimage)
 
 
 bool
-ImageCacheImpl::get_pixels (ustring filename, int level,
+ImageCacheImpl::get_pixels (ustring filename, int subimage,
                             int xmin, int xmax, int ymin, int ymax,
                             int zmin, int zmax, 
                             TypeDesc format, void *result)
@@ -865,20 +865,20 @@ ImageCacheImpl::get_pixels (ustring filename, int level,
         error ("Invalid image file \"%s\"", filename.c_str());
         return false;
     }
-    if (level < 0 || level >= file->levels()) {
-        error ("get_pixels asked for nonexistant level %d of \"%s\"",
-               level, filename.c_str());
+    if (subimage < 0 || subimage >= file->subimages()) {
+        error ("get_pixels asked for nonexistant subimage %d of \"%s\"",
+               subimage, filename.c_str());
         return false;
     }
 
-    return get_pixels (file, level, xmin, xmax, ymin, ymax, zmin, zmax,
+    return get_pixels (file, subimage, xmin, xmax, ymin, ymax, zmin, zmax,
                        format, result);
 }
 
 
 
 bool
-ImageCacheImpl::get_pixels (ImageCacheFile *file, int level,
+ImageCacheImpl::get_pixels (ImageCacheFile *file, int subimage,
                             int xmin, int xmax, int ymin, int ymax,
                             int zmin, int zmax, 
                             TypeDesc format, void *result)
@@ -900,7 +900,7 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file, int level,
             int ty = y - (y % spec.tile_height);
             for (int x = xmin;  x <= xmax;  ++x) {
                 int tx = x - (x % spec.tile_width);
-                TileID tileid (*file, level, tx, ty, tz);
+                TileID tileid (*file, subimage, tx, ty, tz);
                 find_tile (tileid, tile, lasttile);
                 const char *data;
                 if (tile && (data = (const char *)tile->data (x, y, z))) {
@@ -918,12 +918,12 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file, int level,
 
 
 ImageCache::Tile *
-ImageCacheImpl::get_tile (ustring filename, int level, int x, int y, int z)
+ImageCacheImpl::get_tile (ustring filename, int subimage, int x, int y, int z)
 {
     ImageCacheFile *file = find_file (filename);
     if (! file || file->broken())
         return NULL;
-    TileID id (*file, level, x, y, z);
+    TileID id (*file, subimage, x, y, z);
     ImageCacheTileRef tile;
     find_tile (id, tile);
     tile->_incref();   // Fake an extra reference count

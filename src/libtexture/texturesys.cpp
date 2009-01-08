@@ -303,7 +303,7 @@ TextureSystemImpl::get_imagespec (ustring filename, ImageSpec &spec)
 
 bool
 TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
-                               int level, int xmin, int xmax,
+                               int subimage, int xmin, int xmax,
                                int ymin, int ymax, int zmin, int zmax, 
                                TypeDesc format, void *result)
 {
@@ -316,9 +316,9 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
         error ("Invalid texture file \"%s\"", filename.c_str());
         return false;
     }
-    if (level < 0 || level >= texfile->levels()) {
-        error ("get_texel asked for nonexistant level %d of \"%s\"",
-               level, filename.c_str());
+    if (subimage < 0 || subimage >= texfile->subimages()) {
+        error ("get_texel asked for nonexistant subimage %d of \"%s\"",
+               subimage, filename.c_str());
         return false;
     }
     const ImageSpec &spec (texfile->spec());
@@ -338,7 +338,7 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
             int ty = y - (y % spec.tile_height);
             for (int x = xmin;  x <= xmax;  ++x) {
                 int tx = x - (x % spec.tile_width);
-                TileID tileid (*texfile, level, tx, ty, tz);
+                TileID tileid (*texfile, subimage, tx, ty, tz);
                 find_tile (tileid, tile, lasttile);
                 const char *data;
                 if (tile && (data = (const char *)tile->data (x, y, z))) {
@@ -629,7 +629,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     float tfilt = std::max (hypotf (dsdy, dtdy), (float)1.0e-8);
     float filtwidth = options.conservative_filter ? std::max (sfilt, tfilt)
                                                   : std::min (sfilt, tfilt);
-    for (int i = 0;  i < texturefile.levels();  ++i) {
+    for (int i = 0;  i < texturefile.subimages();  ++i) {
         // Compute the filter size in raster space at this MIP level
         float filtwidth_ras = texturefile.spec(i).full_width * filtwidth;
         // Once the filter width is smaller than one texel at this level,
@@ -652,7 +652,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     } else if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
-        miplevel[0] = texturefile.levels() - 1;
+        miplevel[0] = texturefile.subimages() - 1;
         miplevel[1] = miplevel[0];
         levelblend = 0;
     }
@@ -775,7 +775,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     }
 
     float filtwidth = (*minorlength);
-    for (int i = 0;  i < texturefile.levels();  ++i) {
+    for (int i = 0;  i < texturefile.subimages();  ++i) {
         // Compute the filter size in raster space at this MIP level
         float filtwidth_ras = texturefile.spec(i).full_width * filtwidth;
         // Once the filter width is smaller than one texel at this level,
@@ -798,7 +798,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     } else if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
-        miplevel[0] = texturefile.levels() - 1;
+        miplevel[0] = texturefile.subimages() - 1;
         miplevel[1] = miplevel[0];
         levelblend = 0;
     }
@@ -990,7 +990,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
                 if (0 && initialized)   // Why isn't it faster to do this?
-                    find_tile_same_level (id, tilecache0, tilecache1);
+                    find_tile_same_subimage (id, tilecache0, tilecache1);
                 else {
                     find_tile (id, tilecache0, tilecache1);
                     initialized = true;
@@ -1132,7 +1132,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
                 if (0 && initialized)   // Why isn't it faster to do this?
-                    find_tile_same_level (id, tilecache0, tilecache1);
+                    find_tile_same_subimage (id, tilecache0, tilecache1);
                 else {
                     find_tile (id, tilecache0, tilecache1);
                     initialized = true;

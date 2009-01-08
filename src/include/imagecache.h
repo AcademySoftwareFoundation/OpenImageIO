@@ -124,7 +124,7 @@ public:
 
     /// Retrieve the rectangle of pixels spanning
     /// [xmin..xmax X ymin..ymax X zmin..zmax] (inclusive, specified as
-    /// integer pixel coordinates), at the named MIP-map level, storing
+    /// integer pixel coordinates) at the designated subimage, storing
     /// the pixel values beginning at the address specified by result.
     /// The pixel values will be converted to the type specified by
     /// format.  It is up to the caller to ensure that result points to
@@ -134,7 +134,7 @@ public:
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
-    virtual bool get_pixels (ustring filename, int level,
+    virtual bool get_pixels (ustring filename, int subimage,
                              int xmin, int xmax, int ymin, int ymax,
                              int zmin, int zmax, 
                              TypeDesc format, void *result) = 0;
@@ -143,13 +143,13 @@ public:
     /// to a tile but without exposing any internals.
     class Tile;
 
-    /// Find a tile given by an image filename, mipmap level, and pixel
+    /// Find a tile given by an image filename, subimage, and pixel
     /// coordinates.  An opaque pointer to the tile will be returned,
     /// or NULL if no such file (or tile within the file) exists or can
     /// be read.  The tile will not be purged from the cache until 
     /// after release_tile() is called on the tile pointer.  This is
     /// thread-safe!
-    virtual Tile * get_tile (ustring filename, int level,
+    virtual Tile * get_tile (ustring filename, int subimage,
                                 int x, int y, int z) = 0;
 
     /// After finishing with a tile, release_tile will allow it to 

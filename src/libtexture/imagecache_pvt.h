@@ -60,8 +60,8 @@ public:
     ~ImageCacheFile ();
 
     bool broken () const { return m_broken; }
-    int levels () const { return (int)m_spec.size(); }
-    const ImageSpec & spec (int level=0) const { return m_spec[level]; }
+    int subimages () const { return (int)m_spec.size(); }
+    const ImageSpec & spec (int subimage=0) const { return m_spec[subimage]; }
     ustring filename (void) const { return m_filename; }
     TexFormat textureformat () const { return m_texformat; }
     TextureOptions::Wrap swrap () const { return m_swrap; }
@@ -76,7 +76,7 @@ public:
 
     /// Load new data tile
     ///
-    bool read_tile (int level, int x, int y, int z,
+    bool read_tile (int subimage, int x, int y, int z,
                     TypeDesc format, void *data);
 
     /// Mark the file as recently used.
@@ -100,7 +100,7 @@ private:
     bool m_untiled;                 ///< Not tiled
     bool m_unmipped;                ///< Not really MIP-mapped
     shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
-    std::vector<ImageSpec> m_spec;  ///< Format for each MIP-map level
+    std::vector<ImageSpec> m_spec;  ///< Format for each subimage
     TexFormat m_texformat;          ///< Which texture format
     TextureOptions::Wrap m_swrap;   ///< Default wrap modes
     TextureOptions::Wrap m_twrap;   ///< Default wrap modes
@@ -123,14 +123,14 @@ private:
 
     /// Load the requested tile, from a file that's not really tiled.
     /// Preconditions: the ImageInput is already opened, and we already did
-    /// a seek_subimage to the right mip level.
-    bool read_untiled (int level, int x, int y, int z,
+    /// a seek_subimage to the right subimage.
+    bool read_untiled (int subimage, int x, int y, int z,
                        TypeDesc format, void *data);
 
     /// Load the requested tile, from a file that's not really MIPmapped.
     /// Preconditions: the ImageInput is already opened, and we already did
-    /// a seek_subimage to the right mip level.
-    bool read_unmipped (int level, int x, int y, int z,
+    /// a seek_subimage to the right subimage.
+    bool read_unmipped (int subimage, int x, int y, int z,
                         TypeDesc format, void *data);
 };
 
@@ -156,9 +156,9 @@ public:
     TileID ();
 
     /// Initialize a TileID based on full elaboration of image file,
-    /// MIPmap level, and tile x,y,z indices.
-    TileID (ImageCacheFile &file, int level, int x, int y, int z=0)
-        : m_file(file), m_level(level), m_x(x), m_y(y), m_z(z)
+    /// subimage, and tile x,y,z indices.
+    TileID (ImageCacheFile &file, int subimage, int x, int y, int z=0)
+        : m_file(file), m_subimage(subimage), m_x(x), m_y(y), m_z(z)
     { }
 
     /// Destructor is trivial, because we don't hold any resources
@@ -166,7 +166,7 @@ public:
     ~TileID () { }
 
     ImageCacheFile &file (void) const { return m_file; }
-    int level (void) const { return m_level; }
+    int subimage (void) const { return m_subimage; }
     int x (void) const { return m_x; }
     int y (void) const { return m_y; }
     int z (void) const { return m_z; }
@@ -177,14 +177,14 @@ public:
         // Try to speed up by comparing field by field in order of most
         // probable rejection if they really are unequal.
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z &&
-                a.m_level == b.m_level && (&a.m_file == &b.m_file));
+                a.m_subimage == b.m_subimage && (&a.m_file == &b.m_file));
     }
 
     /// Do the two ID's refer to the same tile, given that the
     /// caller *guarantees* that the two tiles point to the same
-    /// file and level (so it only has to compare xyz)?
-    friend bool equal_same_level (const TileID &a, const TileID &b) {
-        DASSERT ((&a.m_file == &b.m_file) && a.m_level == b.m_level);
+    /// file and subimage (so it only has to compare xyz)?
+    friend bool equal_same_subimage (const TileID &a, const TileID &b) {
+        DASSERT ((&a.m_file == &b.m_file) && a.m_subimage == b.m_subimage);
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z);
     }
 
@@ -197,7 +197,7 @@ public:
     /// summing, so that collisions are unlikely.
     size_t hash () const {
         return m_x * 53 + m_y * 97 + m_z * 193 + 
-               m_level * 389 + (size_t)(&m_file) * 769;
+               m_subimage * 389 + (size_t)(&m_file) * 769;
     }
 
     /// Functor that hashes a TileID
@@ -214,8 +214,8 @@ public:
     };
 
 private:
-    int m_x, m_y, m_z;        ///< x,y,z tile index within the mip level
-    int m_level;              ///< MIP-map level
+    int m_x, m_y, m_z;        ///< x,y,z tile index within the subimage
+    int m_subimage;           ///< subimage (usually MIP-map level)
     ImageCacheFile &m_file;   ///< Which ImageCacheFile we refer to
 };
 
@@ -259,7 +259,7 @@ public:
     /// Return the allocated memory size for this tile's pixels.
     ///
     size_t memsize () const {
-        const ImageSpec &spec (file().spec(m_id.level()));
+        const ImageSpec &spec (file().spec(m_id.subimage()));
         return spec.tile_pixels() * spec.nchannels * file().datatype().size();
     }
 
@@ -436,24 +436,24 @@ public:
     /// Find the tile specified by id and place its reference in 'tile'.
     /// Use tile and lasttile as a 2-item cache of tiles to boost our
     /// hit rate over the big cache.  The caller *guarantees* that tile
-    /// contains a reference to a tile in the same file and MIP-map
-    /// level as 'id', and so does lasttile (if it contains a reference
+    /// contains a reference to a tile in the same file and 
+    /// subimage as 'id', and so does lasttile (if it contains a reference
     /// at all).  Thus, it's a slightly simplified and faster version of
     /// find_tile and should be used in loops where it's known that we
-    /// are reading several tiles from the same level.
-    void find_tile_same_level (const TileID &id,
+    /// are reading several tiles from the same subimage.
+    void find_tile_same_subimage (const TileID &id,
                                ImageCacheTileRef &tile, ImageCacheTileRef &lasttile) {
         ++m_stat_find_tile_calls;
         DASSERT (tile);
-        if (equal_same_level (tile->id(), id))
+        if (equal_same_subimage (tile->id(), id))
             return;
         tile.swap (lasttile);
-        if (tile && equal_same_level (tile->id(), id))
+        if (tile && equal_same_subimage (tile->id(), id))
             return;
         find_tile (id, tile);
     }
 
-    virtual Tile *get_tile (ustring filename, int level, int x, int y, int z);
+    virtual Tile *get_tile (ustring filename, int subimage, int x, int y, int z);
     virtual void release_tile (Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
 
