@@ -12,7 +12,7 @@ CFLAGS += -DLINUX
 ifdef DEBUG
 CFLAGS += -g
 else
-CFLAGS += -O3 
+CFLAGS += -O3 -DNDEBUG
 endif
 
 ifdef PROFILE

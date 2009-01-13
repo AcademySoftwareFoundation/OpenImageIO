@@ -14,7 +14,7 @@ CFLAGS += -fPIC
 ifdef DEBUG
 CFLAGS += -g -W
 else
-CFLAGS += -O3 -funroll-loops
+CFLAGS += -O3 -funroll-loops -DNDEBUG
 #helpful? -funroll-loops -fomit-frame-pointer 
 #unhelpful? -march=pentium4 -ffast-math -msse -mfpmath=sse -msse2
 endif

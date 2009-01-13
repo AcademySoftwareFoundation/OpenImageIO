@@ -14,7 +14,7 @@ CFLAGS += -fPIC
 ifdef DEBUG
 CFLAGS += -g
 else
-CFLAGS += -O3 -funroll-loops
+CFLAGS += -O3 -funroll-loops -DNDEBUG
 endif
 
 ifdef PROFILE
