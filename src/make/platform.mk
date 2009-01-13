@@ -48,9 +48,9 @@ ifeq (${platform},unknown)
 
   # Windows
   ifeq (${uname},cygwin)
-    platform := win
+    platform := windows
     ifeq (${hw},x86_64)
-      platform := win64
+      platform := windows64
     endif
   endif
 
@@ -110,6 +110,7 @@ LD := ${CXX}
 BINOUT := -o #
 LD_LIBPATH := -L
 LDFLAGS += -rdynamic
+LINKWITH := -l
 #restrict_syms := -Wl,--version-script=${restrict_syms_file}
 
 # Creating a dynamic/shared library
@@ -120,8 +121,13 @@ SHLIB_LDFLAGS := -Bdynamic -rdynamic -shared ${PIC}
 
 # Making dependency make files (.d)
 MAKEDEPEND := makedepend
-DEPENDFLAGS :=
-DEPENDARGS :=
+DEPENDFLAGS := 
+
+# Making compilers
+FLEX := flex
+FLEXARGS :=
+BISON := bison
+BISONARGS :=
 
 # Miscellaneous shell commands
 RM := rm
