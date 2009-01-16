@@ -25,24 +25,26 @@ popular formats.  Any user may create conforming plugins that implement
 reading and writing capabilities for other image formats, and any
 application that uses \product would be able to use those plugins.
 
-The \product distribution contains several utility programs that operate
-on images, each of which is built atop \ImageInput and \ImageOutput, and
-therefore may read or write any image file type for which an appropriate
-plugin is found at runtime.  Paramount among these utilities is {\fn
-  iv}, a really fantastic and powerful image viewing application.
-
 The library also implements the helper class {\kw ImageBuf}, which is a
 handy way to store and manipulate images in memory.  {\kw ImageBuf}
 itself uses \ImageInput and \ImageOutput for its file I/O, and therefore
 is also agnostic as to image file formats.
 
-Finally, the library implements a {\kw TextureSystem} class that can be
-used for filtered lookups of multiresolution (MIP-map) textures,
-environment maps, and shadow maps.  The texture library not only uses
-\ImageInput to be format-agnostic, but it also transparently manages a
-cache of image data so that it can access truly vast amounts of texture
-(thousands of texture files totaling tens of GB) very efficiently using
-only a tiny amount (tens of megabytes at most) of runtime memory.
+The {\kw ImageCache} class transparently manages a cache so that it can
+access truly vast amounts of image data (thousands of image files
+totaling tens of GB) very efficiently using only a tiny amount (tens of
+megabytes at most) of runtime memory.  Additionally, a {\kw
+  TextureSystem} class provides filtered MIP-map texture lookups, atop
+the nice caching behavior of {\kw ImageCache}.
+
+Finally, the \product distribution contains several utility programs
+that operate on images, each of which is built atop \ImageInput and
+\ImageOutput, and therefore may read or write any image file type for
+which an appropriate plugin is found at runtime.  Paramount among these
+utilities is {\fn iv}, a really fantastic and powerful image viewing
+application.  Additionally, there are programs for converting images
+among different formats, comparing image data between two images, 
+and examining image metadata.
 
 All of this is released as ``open source'' software using the very
 permissive BSD license.  So you should feel free to use any or all of
@@ -78,7 +80,7 @@ sufficiently flexible and has APIs anywhere near as simple to understand
 and use as those of \product.
 
 Good design is usually a matter of deciding what \emph{not} to do, and
-\product is no exception.  We achieve power and simplicity only by
+\product is no exception.  We achieve power and elegance only by
 making simplifying assumptions.  Among them:
 
 \begin{itemize}
@@ -88,7 +90,7 @@ making simplifying assumptions.  Among them:
       with motion picture files.}  At least, not currently.
 
   \item Pixel data are 8- 16- or 32-bit int (signed or unsigned), 16-
-    32- or 16-bit float.  NOTHING ELSE.  No $<8$ bit images, or pixels
+    32- or 64-bit float.  NOTHING ELSE.  No $<8$ bit images, or pixels
     boundaries that aren't byte boundaries.  Files with $<8$ bits will
     appear to the client as 8-bit unsigned grayscale images.
 
