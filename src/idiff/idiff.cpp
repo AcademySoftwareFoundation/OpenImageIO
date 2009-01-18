@@ -611,16 +611,18 @@ main (int argc, char *argv[])
                   << std::setprecision(3) << (100.0*yee_failures / npels) 
                   << std::setprecision(precis)
                   << "%) failed the perceptual test\n";
+
+    int ret = ErrOK;
     if (nfail > (failpercent/100.0 * npels) || maxerror > hardfail ||
             yee_failures > (failpercent/100.0 * npels)) {
         std::cout << "FAILURE\n";
-        return ErrFail;
-    }
-    if (nwarn > (warnpercent/100.0 * npels) || maxerror > hardwarn) {
+        ret = ErrFail;
+    } else if (nwarn > (warnpercent/100.0 * npels) || maxerror > hardwarn) {
         std::cout << "WARNING\n";
-        return ErrWarn;
+        ret = ErrWarn;
+    } else {
+        std::cout << "PASS\n";
     }
-    std::cout << "PASS\n";
 
     // If the user requested that a difference image be output, do that.
     //
@@ -632,5 +634,5 @@ main (int argc, char *argv[])
         write_diff_image (diffimage, inspec[0], pixels0);
     }
 
-    return ErrOK;
+    return ret;
 }
