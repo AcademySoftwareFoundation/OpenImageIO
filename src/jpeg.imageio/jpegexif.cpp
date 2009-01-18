@@ -293,7 +293,10 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
         double db = (double)num / (double)den;
         spec.attribute (name, (float)db);
     } else if (dirp->tdir_type == TIFF_ASCII) {
-        spec.attribute (name, buf+dirp->tdir_offset);
+        int len = tiff_data_size (*dirp);
+        const char *mydata = (len <= 4) ? (const char *)&dirp->tdir_offset 
+                                        : (buf + dirp->tdir_offset);
+        spec.attribute (name, mydata);
     } else if (dirp->tdir_type == TIFF_UNDEFINED) {
         // Add it as bytes
 #if 0
@@ -557,7 +560,7 @@ append_dir_entry (std::vector<TIFFDirEntry> &dirs, std::vector<char> &data,
 /// reside.  Don't worry about it being relative to the start of some
 /// TIFF structure.
 static void
-encode_exif_entry (const ImageIOParameter p, int tag,
+encode_exif_entry (const ImageIOParameter &p, int tag,
                    std::vector<TIFFDirEntry> &dirs,
                    std::vector<char> &data)
 {
@@ -614,7 +617,7 @@ encode_exif_entry (const ImageIOParameter p, int tag,
         break;
     }
 #if DEBUG_EXIF_WRITE
-    std::cerr << "  Don't know how to add " << p.name << ' ' << tag << ' ' << type << ' ' << p.type << "\n";
+    std::cerr << "  Don't know how to add " << p.name() << ' ' << tag << ' ' << type << ' ' << (int)p.type().basetype << "\n";
 #endif
 }
 

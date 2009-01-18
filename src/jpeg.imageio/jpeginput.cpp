@@ -123,9 +123,11 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
         if (m->marker == (JPEG_APP0+1))
             exif_from_APP1 (m_spec, (unsigned char *)m->data);
-        else if (m->marker == JPEG_COM)
-            m_spec.attribute ("ImageDescription",
-                              std::string ((const char *)m->data));
+        else if (m->marker == JPEG_COM) {
+            if (! m_spec.find_attribute ("ImageDescription", TypeDesc::STRING))
+                m_spec.attribute ("ImageDescription",
+                                  std::string ((const char *)m->data));
+        }
     }
 
     newspec = m_spec;
