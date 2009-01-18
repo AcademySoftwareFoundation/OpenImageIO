@@ -150,7 +150,12 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     if (exif.size())
         jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&exif[0], exif.size());
 
-//    jpeg_write_marker (&m_cinfo, JPEG_COM, comment, strlen(comment) /* + 1 ? */ );
+    ImageIOParameter *comment = m_spec.find_attribute ("ImageDescription",
+                                                       TypeDesc::STRING);
+    if (comment && comment->data()) {
+        const char **c = (const char **) comment->data();
+        jpeg_write_marker (&m_cinfo, JPEG_COM, (JOCTET*)*c, strlen(*c) + 1);
+    }
 
     m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
 

@@ -110,8 +110,8 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     jpeg_stdio_src (&m_cinfo, m_fd);            // specify the data source
 
     // Request saving of EXIF and other special tags for later spelunking
-    jpeg_save_markers (&m_cinfo, JPEG_APP0+1, 0xffff);
-    // FIXME - also process JPEG_COM marker
+    jpeg_save_markers (&m_cinfo, JPEG_APP0+1, 0xffff);  // Exif marker in APP1
+    jpeg_save_markers (&m_cinfo, JPEG_COM, 0xffff);     // comment marker
 
     jpeg_read_header (&m_cinfo, FALSE);         // read the file parameters
     jpeg_start_decompress (&m_cinfo);           // start working
@@ -123,6 +123,9 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
         if (m->marker == (JPEG_APP0+1))
             exif_from_APP1 (m_spec, (unsigned char *)m->data);
+        else if (m->marker == JPEG_COM)
+            m_spec.attribute ("ImageDescription",
+                              std::string ((const char *)m->data));
     }
 
     newspec = m_spec;
