@@ -154,10 +154,31 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         jpeg_write_marker (&m_cinfo, JPEG_COM, (JOCTET*)*c, strlen(*c) + 1);
     }
 
+    // Write EXIF info, if we have anything
     std::vector<char> exif;
     encode_exif (m_spec, exif);
     if (exif.size())
         jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&exif[0], exif.size());
+
+    // Write IPTC IIM metadata tags, if we have anything
+    std::vector<char> iptc;
+    encode_iptc_iim (m_spec, iptc);
+    if (iptc.size()) {
+        static char photoshop[] = "Photoshop 3.0";
+        std::vector<char> head (photoshop, photoshop+strlen(photoshop)+1);
+        static char _8BIM[] = "8BIM";
+        head.insert (head.end(), _8BIM, _8BIM+4);
+        head.push_back (4);   // 0x0404
+        head.push_back (4);
+        head.push_back (0);   // four bytes of zeroes
+        head.push_back (0);
+        head.push_back (0);
+        head.push_back (0);
+        head.push_back ((char)(iptc.size() >> 8));  // size of block
+        head.push_back ((char)(iptc.size() & 0xff));
+        iptc.insert (iptc.begin(), head.begin(), head.end());
+        jpeg_write_marker (&m_cinfo, JPEG_APP0+13, (JOCTET*)&iptc[0], iptc.size());
+    }
 
     m_spec.set_format (TypeDesc::UINT8);  // JPG is only 8 bit
 
