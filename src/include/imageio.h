@@ -712,6 +712,14 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
 /// replaced by an XML scheme called XMP.
 DLLPUBLIC bool decode_iptc_iim (const void *exif, int length, ImageSpec &spec);
 
+/// Find all the IPTC-amenable metadata in spec and assemble it into an
+/// IIM data block in iptc.  This is a utility function to make it easy
+/// for multiple format plugins to support embedding IPTC metadata
+/// without having to duplicate functionality within each plugin.  Note
+/// that IIM is actually considered obsolete and is replaced by an XML
+/// scheme called XMP.
+DLLPUBLIC void encode_iptc_iim (ImageSpec &spec, std::vector<char> &iptc);
+
 // to force correct linkage on some systems
 DLLPUBLIC void _ImageIO_force_link ();
 

@@ -31,14 +31,47 @@
 
 #include <iostream>
 
+#include <boost/tokenizer.hpp>
+
 #include "imageio.h"
 using namespace OpenImageIO;
 
-#define DEBUG_IPTC_READ  0
-#define DEBUG_IPTC_WRITE 0
+#define DEBUG_IPTC_READ  1
+#define DEBUG_IPTC_WRITE 1
 
 
 namespace OpenImageIO {
+
+
+namespace {
+
+struct IIMtag {
+    int tag;                  // IIM code
+    const char *name;         // Attribute name we use
+    const char *anothername;  // Optional second name
+};
+
+static IIMtag iimtag [] = {
+    {   5, "IPTC:ObjectName", NULL },
+//    {  25, "Keywords", NULL },
+    {  30, "IPTC:Instructions", NULL },
+    {  80, "IPTC:Creator", "Artist" },  // "Artist"
+    {  85, "IPTC:AuthorsPosition", NULL },
+    {  90, "IPTC:City", NULL },
+    {  95, "IPTC:State", NULL },
+    { 101, "IPTC:Country", NULL },
+    { 105, "IPTC:Headline", NULL },
+    { 110, "IPTC:Provider", NULL },
+    { 115, "IPTC:Source", NULL },
+    { 116, "Copyright", NULL },
+    { 118, "IPTC:Contact", NULL },
+    { 120, "IPTC:Caption_Abstract", "ImageDescription"},
+    { 122, "IPTC:CaptionWriter", NULL },
+    { -1, NULL, NULL }
+};
+
+};   // anonymous namespace
+
 
 
 bool
@@ -80,58 +113,23 @@ decode_iptc_iim (const void *iptc, int length, ImageSpec &spec)
         std::cerr << "\n";
 #endif
 
-        if (secondbyte != 0x02) {
-            buf += tagsize;
-            length -= tagsize;
-            continue;
-        }
+        if (secondbyte == 0x02) {
+            std::string s ((const char *)buf, tagsize);
 
-        std::string s ((const char *)buf, tagsize);
+            for (int i = 0;  iimtag[i].name;  ++i) {
+                if (tagtype == iimtag[i].tag) {
+                    spec.attribute (iimtag[i].name, s);
+                    if (iimtag[i].anothername)
+                        spec.attribute (iimtag[i].anothername, s);
+                }
+            }
 
-        switch (tagtype) {
-        case 25:
-            if (keywords.length())
-                keywords += std::string (", ");
-            keywords += s;
-            break;
-        case 30:
-            spec.attribute ("IPTC:Instructions", s);
-            break;
-        case 80:
-            spec.attribute ("Artist", s);
-            spec.attribute ("IPTC:Creator", s);
-            break;
-        case 85:
-            spec.attribute ("IPTC:AuthorsPosition", s);
-            break;
-        case 90:
-            spec.attribute ("IPTC:City", s);
-            break;
-        case 95:
-            spec.attribute ("IPTC:State", s);
-            break;
-        case 101:
-            spec.attribute ("IPTC:Country", s);
-            break;
-        case 105:
-            spec.attribute ("IPTC:Headline", s);
-            break;
-        case 110:
-            spec.attribute ("IPTC:Provider", s);
-            break;
-        case 115:
-            spec.attribute ("IPTC:Source", s);
-            break;
-        case 116:
-            spec.attribute ("Copyright", s);
-            break;
-        case 120:
-            spec.attribute ("IPTC:Caption_Abstract", s);
-            spec.attribute ("ImageDescription", s);
-            break;
-        case 122:
-            spec.attribute ("IPTC:CaptionWriter", s);
-            break;
+            // Special case for keywords
+            if (tagtype == 25) {
+                if (keywords.length())
+                    keywords += std::string (", ");
+                keywords += s;
+            }
         }
 
         buf += tagsize;
@@ -139,9 +137,66 @@ decode_iptc_iim (const void *iptc, int length, ImageSpec &spec)
     }
 
     if (keywords.length())
-        spec.attribute ("keywords", keywords);
+        spec.attribute ("Keywords", keywords);
 }
 
 
-};  // namespace Jpeg_imageio_pvt
+
+static void
+encode_iptc_iim_one_tag (int tag, const char *name, TypeDesc type,
+                         const void *data, std::vector<char> &iptc)
+{
+    if (type == TypeDesc::STRING) {
+        iptc.push_back ((char)0x1c);
+        iptc.push_back ((char)0x02);
+        iptc.push_back ((char)tag);
+        const char *str = ((const char **)data)[0];
+        int tagsize = strlen(str) + 1;
+        iptc.push_back ((char)(tagsize >> 8));
+        iptc.push_back ((char)(tagsize & 0xff));
+        iptc.insert (iptc.end(), str, str+tagsize);
+    }
+}
+
+
+
+void
+encode_iptc_iim (ImageSpec &spec, std::vector<char> &iptc)
+{
+    iptc.clear ();
+    
+    ImageIOParameter *p;
+    for (int i = 0;  iimtag[i].name;  ++i) {
+        if (p = spec.find_attribute (iimtag[i].name))
+            encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].name,
+                                     p->type(), p->data(), iptc);
+        if (iimtag[i].anothername) {
+            if (p = spec.find_attribute (iimtag[i].anothername))
+                encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].anothername,
+                                         p->type(), p->data(), iptc);
+        }
+    }
+
+    // Special case: Keywords
+    if (p = spec.find_attribute ("Keywords", TypeDesc::STRING)) {
+        std::string allkeywords (*(const char **)p->data());
+        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+        boost::char_separator<char> sep(",");
+        tokenizer tokens (allkeywords, sep);
+        for (tokenizer::iterator tok_iter = tokens.begin();
+                 tok_iter != tokens.end(); ++tok_iter) {
+            std::string t = *tok_iter;
+            while (t.size() && t[0] == ' ')
+                t.erase (t.begin());
+            if (t.size()) {
+                const char *tptr = &t[0];
+                encode_iptc_iim_one_tag (25 /* tag number */, "Keywords",
+                                         TypeDesc::STRING, &tptr, iptc);
+            }
+        }
+    }
+}
+
+
+};  // namespace OpenImageIO
 

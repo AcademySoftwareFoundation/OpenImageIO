@@ -70,8 +70,8 @@ tiff_data_size (const TIFFDirEntry &dir)
 
 
 struct EXIF_tag_info {
-    int tifftag;       // TIFF tag used for this info
-    const char *name;  // Attribute name we use, or NULL to ignore the tag
+    int tifftag;            // TIFF tag used for this info
+    const char *name;       // Attribute name we use
     TIFFDataType tifftype;  // Data type that TIFF wants
 };
 

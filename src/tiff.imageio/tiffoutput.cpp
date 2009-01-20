@@ -247,6 +247,13 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec, bool appen
                        m_spec.extra_attribs[p].type(),
                        m_spec.extra_attribs[p].data());
 
+    std::vector<char> iptc;
+    encode_iptc_iim (m_spec, iptc);
+    if (iptc.size()) {
+        iptc.resize ((iptc.size()+3) & (0xffff-3));  // round up
+        TIFFSetField (m_tif, TIFFTAG_RICHTIFFIPTC, iptc.size()/4, &iptc[0]);
+    }
+
     TIFFCheckpointDirectory (m_tif);  // Ensure the header is written early
 
     return true;
