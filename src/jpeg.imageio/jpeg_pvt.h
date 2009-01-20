@@ -38,16 +38,26 @@
 #define JPEG_PVT_H
 
 
+#ifndef _TIFF_
 struct TIFFDirEntry;
+#endif
 
-void exif_from_APP1 (ImageSpec &spec, unsigned char *buf);
-void read_exif_tag (ImageSpec &spec, TIFFDirEntry *dirp,
-                    const char *buf, bool swab);
-void add_exif_item_to_spec (ImageSpec &spec, const char *name,
-                            TIFFDirEntry *dirp, const char *buf, bool swab);
+namespace Jpeg_imageio_pvt {
 
-void APP1_exif_from_spec (ImageSpec &spec, std::vector<char> &exif);
+/// Decode a raw Exif data block and save all the metadata in an
+/// ImageSpec.  Return true if all is ok, false if the exif block was
+/// somehow malformed.  This is a utility function to make it easy for
+/// multiple format plugins to support embedding Exif metadata without
+/// having to duplicate functionality within each plugin.
+bool decode_exif (const void *buf, int length, ImageSpec &spec);
 
+/// Construct an Exif data block from the ImageSpec, writing the Exif 
+/// data as a big blob to the char vector.  This is a utility function 
+/// to make it easy for multiple format plugins to support embedding
+/// Exif data without having to duplicate functionality within each plugin.
+void encode_exif (const ImageSpec &spec, std::vector<char> &exif);
+
+};
 
 
 #endif /* JPEG_PVT_H */

@@ -370,6 +370,12 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         TIFFSetField (m_tif, TIFFTAG_YRESOLUTION, *(float *)data);
         return true;
     }
+
+    // FIXME -- we don't currently support writing of EXIF fields.  TIFF
+    // in theory allows it, using a custom IFD directory, but at
+    // present, it appears that libtiff only supports reading custom
+    // IFD's, not writing them.
+
     return false;
 }
 

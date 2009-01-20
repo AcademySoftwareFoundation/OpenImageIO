@@ -205,9 +205,9 @@ inline bool bigendian (void)
 
 
 
-/// Change endian-ness of one or more data items that are each either 2
-/// or 4 bytes.  This should work for any of short, unsigned short, int,
-/// unsigned int, float.
+/// Change endian-ness of one or more data items that are each 2, 4,
+/// or 8 bytes.  This should work for any of short, unsigned short, int,
+/// unsigned int, float, long long, pointers.
 template<class T>
 inline void
 swap_endian (T *f, int len=1)
@@ -219,6 +219,12 @@ swap_endian (T *f, int len=1)
             std::swap (c[0], c[3]);
             std::swap (c[1], c[2]);
             c += 4;
+        } else if (sizeof(T) == 8) {
+            std::swap (c[0], c[7]);
+            std::swap (c[1], c[6]);
+            std::swap (c[2], c[5]);
+            std::swap (c[3], c[4]);
+            c += 8;
         }
     }
 }

@@ -40,6 +40,7 @@ extern "C" {
 using namespace OpenImageIO;
 #include "fmath.h"
 #include "jpeg_pvt.h"
+using namespace Jpeg_imageio_pvt;
 
 
 
@@ -65,6 +66,13 @@ class JpgInput : public ImageInput {
     struct jpeg_error_mgr m_jerr;
 
     void init () { m_fd = NULL; }
+
+    // Rummage through the JPEG "APP1" marker pointed to by buf, decoding
+    // IPTC (International Press Telecommunications Council) metadata
+    // information and adding attributes to spec.  This assumes it's in
+    // the form of an IIM (Information Interchange Model), which is actually
+    // considered obsolete and is replaced by an XML scheme called XMP.
+    void jpeg_decode_iptc (const unsigned char *buf);
 };
 
 
@@ -111,6 +119,7 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 
     // Request saving of EXIF and other special tags for later spelunking
     jpeg_save_markers (&m_cinfo, JPEG_APP0+1, 0xffff);  // Exif marker in APP1
+    jpeg_save_markers (&m_cinfo, JPEG_APP0+13, 0xffff); // IPTC marker in APP13
     jpeg_save_markers (&m_cinfo, JPEG_COM, 0xffff);     // comment marker
 
     jpeg_read_header (&m_cinfo, FALSE);         // read the file parameters
@@ -121,8 +130,12 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
                         m_cinfo.output_components, TypeDesc::UINT8);
 
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
-        if (m->marker == (JPEG_APP0+1))
-            exif_from_APP1 (m_spec, (unsigned char *)m->data);
+        if (m->marker == (JPEG_APP0+1) &&
+                ! strcmp ((const char *)m->data, "Exif"))
+            decode_exif ((unsigned char *)m->data, m->data_length, m_spec);
+        else if (m->marker == (JPEG_APP0+13) &&
+                ! strcmp ((const char *)m->data, "Photoshop 3.0"))
+            jpeg_decode_iptc ((unsigned char *)m->data);
         else if (m->marker == JPEG_COM) {
             if (! m_spec.find_attribute ("ImageDescription", TypeDesc::STRING))
                 m_spec.attribute ("ImageDescription",
@@ -185,3 +198,34 @@ JpgInput::close ()
     return true;
 }
 
+
+
+void
+JpgInput::jpeg_decode_iptc (const unsigned char *buf)
+{
+    // APP13 blob doesn't have to be IPTC info.  Look for the IPTC marker,
+    // which is the string "Photoshop 3.0" followed by a null character.
+    if (strcmp ((const char *)buf, "Photoshop 3.0"))
+        return;
+    buf += strlen("Photoshop 3.0") + 1;
+
+    // Next are the 4 bytes "8BIM"
+    if (strncmp ((const char *)buf, "8BIM", 4))
+        return;
+    buf += 4;
+
+    // Next two bytes are the segment type, in big endian.
+    // We expect 1028 to indicate IPTC data block.
+    if (((buf[0] << 8) + buf[1]) != 1028)
+        return;
+    buf += 2;
+
+    // Next are 4 bytes of 0 padding, just skip it.
+    buf += 4;
+
+    // Next is 2 byte (big endian) giving the size of the segment
+    int segmentsize = (buf[0] << 8) + buf[1];
+    buf += 2;
+
+    OpenImageIO::decode_iptc_iim (buf, segmentsize, m_spec);
+}

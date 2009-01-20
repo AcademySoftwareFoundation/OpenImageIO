@@ -702,6 +702,16 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
                               stride_t dst_zstride,
                               float gain=1, float gamma=1);
 
+/// Add metadata to spec based on raw IPTC (International Press
+/// Telecommunications Council) metadata in the form of an IIM
+/// (Information Interchange Model).  Return true if all is ok, false if
+/// the iptc block was somehow malformed.  This is a utility function to
+/// make it easy for multiple format plugins to support embedding IPTC
+/// metadata without having to duplicate functionality within each
+/// plugin.  Note that IIM is actually considered obsolete and is
+/// replaced by an XML scheme called XMP.
+DLLPUBLIC bool decode_iptc_iim (const void *exif, int length, ImageSpec &spec);
+
 // to force correct linkage on some systems
 DLLPUBLIC void _ImageIO_force_link ();
 

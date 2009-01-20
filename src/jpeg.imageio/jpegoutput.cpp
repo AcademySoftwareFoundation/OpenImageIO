@@ -42,6 +42,7 @@ extern "C" {
 using namespace OpenImageIO;
 #include "fmath.h"
 #include "jpeg_pvt.h"
+using namespace Jpeg_imageio_pvt;
 
 
 
@@ -154,7 +155,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     }
 
     std::vector<char> exif;
-    APP1_exif_from_spec (m_spec, exif);
+    encode_exif (m_spec, exif);
     if (exif.size())
         jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&exif[0], exif.size());
 
