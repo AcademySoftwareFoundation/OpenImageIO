@@ -1,0 +1,596 @@
+\chapter{Metadata conventions}
+\label{chap:stdmetadata}
+
+
+The \ImageSpec class, described thoroughly in
+Section~\ref{sec:ImageSpec}, provides the basic description of an image
+that are essential across all formats --- resolution, number of
+channels, pixel data format, etc.  Individual images may have additional
+data, stored as name/value pairs in the {\cf extra_attribs} field.
+Though literally \emph{anything} can be stored in {\cf extra_attribs}
+--- it's specifically designed for format- and user-extensibility ---
+this chapter establishes some guidelines and lays out all of the field
+names that \product understands.
+
+
+\section{Description of the image}
+
+\apiitem{"ImageDescription" : string}
+The image description, title, caption, or comments.
+\apiend
+
+\apiitem{"Keywords" : string}
+
+Semicolon-separated keywords describing the contents of the image.
+(Semicolons are used rather than commas because of the common case
+of a comma being part of a keyword itself, e.g., ``Kurt Vonnegut, Jr.''
+or ``Washington, DC.'')
+\apiend
+
+\apiitem{"Artist" : string}
+The artist, creator, or owner of the image.
+\apiend
+
+\apiitem{"Copyright" : string}
+Any copyright notice or owner of the image.
+\apiend
+
+\apiitem{"DateTime" : string}
+The creation date of the image, in the following format: {\cf YYYY:MM:DD
+  HH:MM:SS} (exactly 19 characters long, not including a terminating
+NULL).  For example, 7:30am on Dec
+31, 2008 is encoded as \qkw{2008:12:31 07:30:00}.
+\apiend
+
+\apiitem{"DocumentName" : string}
+The name of an overall document that this image is a part of.
+\apiend
+
+\apiitem{"Software" : string}
+The software that was used to create the image.
+\apiend
+
+\apiitem{"HostComputer" : string}
+The name or identity of the computer that created the image.
+\apiend
+
+\section{Display hints}
+
+\apiitem{"Orientation" : int}
+By default, image pixels are ordered from the top of the display to the
+bottom, and within each scanline, from left to right (i.e., the same
+ordering as English text and scan progression on a CRT).  But the
+\qkw{Orientation} field can suggest that it should be displayed with
+a different orientation, according to the TIFF/EXIF conventions:
+
+\begin{tabular}{p{0.3in} p{4in}}
+1 & normal (top to bottom, left to right)  \\
+2 & flipped horizontally (top to botom, right to left)  \\
+3 & rotate $180^\circ$ (bottom to top, right to left) \\
+4 & flipped vertically (bottom to top, left to right)  \\
+5 & transposed (left to right, top to bottom) \\
+6 & rotated $90^\circ$ clockwise (right to left, top to bottom) \\
+7 & transverse (left to right, bottom to top) \\
+8 & rotated $90^\circ$ counter-clockwise (left to right, bottom to top) \\
+\end{tabular}
+\apiend
+
+\apiitem{"XResolution" : float \\
+"YResolution" : float \\
+"ResolutionUnit" : string}
+The number of horizontal ($x$) and vertical ($y$) pixels per 
+resolution unit.  This ties the image to a physical size (where 
+applicable, such as with a scanned image, or an image that will
+eventually be printed).
+
+Different file formats may dictate different resolution units.
+For example, the TIFF ImageIO plugin supports \qkw{none}, \qkw{in}, 
+and \qkw{cm}.
+\apiend
+
+\section{Disk file format info/hints}
+
+\apiitem{"BitsPerSample" : int}
+Number of bits per sample \emph{in the file}.  
+
+Note that this may not match the reported {\cf ImageSpec::format}, if
+the plugin is translating from an unsupported format.  For example, if a
+file stores 4 bit grayscale per channel, the {\cf "BitsPerSample"} may
+be 4 but the {\cf format} field may be {\cf TypeDesc::UINT8} (because
+the \product APIs do not support fewer than 8 bits per sample).
+\apiend
+
+\apiitem{"planarconfig" : string}
+\qkw{contig} indicates that the file has contiguous pixels (RGB RGB
+RGB...), whereas \qkw{separate} indicate that the file stores each
+channel separately (RRR...GGG...BBB...).
+
+Note that only contiguous pixels are transmitted through the \product
+APIs, but this metadata indicates how it is (or should be) stored in the
+file, if possible.
+\apiend
+
+\apiitem{"compression" : string}
+Indicates the type of compression the file uses.  Supported compression
+modes will vary from \ImageInput plugin to plugin, and each plugin
+should document the modes it supports.  If {\cf ImageInput::open} is
+called with an \ImageSpec that specifies an compression mode not
+supported by that \ImageInput, it will choose a reasonable default.
+As an example, the TIFF \ImageInput plugin supports \qkw{none},
+\qkw{lzw}, \qkw{ccittrle}, \qkw{zip} (the default), \qkw{packbits}.
+\apiend
+
+\section{Photographs or scanned images}
+
+The following metadata items are specific to photos or captured images.
+
+\apiitem{"Make" : string}
+For captured or scanned image, the make of the camera or scanner.
+\apiend
+
+\apiitem{"Model" : string}
+For captured or scanned image, the model of the camera or scanner.
+\apiend
+
+\apiitem{"ExposureTime" : float}
+The exposure time (in seconds) of the captured image.
+\apiend
+
+\apiitem{"FNumber" : float}
+The f/stop of the camera when it captured the image.
+\apiend
+
+\section{Texture Information}
+
+Several standard metadata are very helpful for images that are intended
+to be used as textures (especially for \product's \TextureSystem).
+
+\apiitem{"textureformat" : string}
+The kind of texture that this image is intended to be.  We suggest the
+following names:
+
+\noindent \begin{tabular}{p{1.75in} p{3.25in}}
+\qkw{Plain Texture} & Ordinary 2D texture \\
+\qkw{Volume Texture} & 3D volumetric texture \\
+\qkw{Shadow} & Ordinary $z$-depth shadow map \\
+\qkw{CubeFace Shadow} & Cube-face shadow map \\
+\qkw{Volume Shadow} & Volumetric (``deep'') shadow map \\
+\qkw{LatLong Environment} & Latitude-longitude (rectangular) environment
+map \\
+\qkw{CubeFace Environment} & Cube-face environment map \\
+\end{tabular}
+\apiend
+
+\apiitem{"wrapmodes" : string}
+Give the intended texture \emph{wrap mode} indicating what happens with
+texture coordinates outside the $[0...1]$ range.  We suggest the
+following names: \qkw{black}, \qkw{periodic}, \qkw{clamp}, \qkw{mirror}.
+If the wrap mode is different in each direction, they should simply be
+separated by a comma.  For example, \qkw{black} means black wrap in both
+directions, whereas \qkw{clamp,periodic} means to clamp in $u$ and be
+periodic in $v$.
+\apiend
+
+\apiitem{"fovcot" : float}
+The cotangent ($x/y$) of the field of view of the original image (which
+may not be the same as the aspect ratio of the pixels of the texture,
+which may have been resized).
+\apiend
+
+\apiitem{"worldtocamera" : matrix44}
+For shadow maps or rendered images this item (of type {\cf TypeDesc::PT_MATRIX})
+is the world-to-camera matrix describing the camera position.
+\apiend
+
+\apiitem{"worldtoscreen" : matrix44}
+For shadow maps or rendered images this item (of type {\cf TypeDesc::PT_MATRIX})
+is the world-to-screen matrix describing the full projection of the 3D
+view onto a $[-1...1] \times [-1...1]$ 2D domain.
+\apiend
+
+
+
+\section{Exif metadata}
+
+% FIXME -- unsupported/undocumented: ExifVersion, FlashpixVersion,
+% ComponentsConfiguration, MakerNote, UserComment, RelatedSoundFile,
+% OECF, SubjectArea, SpatialFrequencyResponse, 
+% CFAPattern, DeviceSettingDescription
+%
+% SubjectLocation -- unsupported, but we could do it
+
+The following Exif metadata tags correspond to items in the ``standard''
+set of metadata.
+
+\medskip
+
+\begin{tabular}{p{1.5in} p{3.5in}}
+{\bf Exif tag} & {\bf \product metadata} \\
+\hline
+ColorSpace & (stored in {\cf ImageSpec::Linearity}) \\
+ExposureTime & \qkw{ExposureTime} \\
+FNumber & \qkw{FNumber} \\
+\end{tabular}
+
+\medskip
+
+The other remaining Exif metadata tags all include the ``Exif:'' prefix
+to keep it from clashing with other names that may be used for other
+purposes.
+
+\apiitem{"Exif:ExposureProgram" : int}
+The exposure program used to set exposure when the picture was taken:
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & unknown \\
+1 & manual \\
+2 & normal program \\
+3 & aperture priority \\
+4 & shutter priority \\
+5 & Creative program (biased toward depth of field) \\
+6 & Action program (biased toward fast shutter speed) \\
+7 & Portrait mode (closeup photo with background out of focus) \\
+8 & Landscape mode (background in focus)
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:SpectralSensitivity" : string}
+The camera's spectral sensitivity, using the ASTM conventions.
+\apiend
+
+\apiitem{"Exif:ISOSpeedRatings" : int}
+The ISO speed and ISO latitude of the camera as specified in ISO 12232.
+\apiend
+
+%\apiitem{"Exif:OECF",	TIFF_NOTYPE }	 // skip it
+%\apiitem{"Exif:ExifVersion",	TIFF_NOTYPE }	 // skip it
+
+\apiitem{"Exif:DateTimeOriginal" : string}
+Date and time that the original image data was generated (in
+\qkw{YYYY:MM:DD HH:MM:SS} format).
+\apiend
+
+\apiitem{"Exif:DateTimeDigitized" : string}
+Date and time that the image was stored as digital data (in
+\qkw{YYYY:MM:DD HH:MM:SS} format).
+\apiend
+
+%\apiitem{"Exif:ComponentsConfiguration",TIFF_UNDEFINED }
+\apiitem{"Exif:CompressedBitsPerPixel" : float }
+The compression mode used, measured in compressed bits per pixel.
+\apiend
+
+\apiitem{"Exif:ShutterSpeedValue" : float }
+Shutter speed, in APEX units: $-\log_2 (\mathit{exposure time})$
+\apiend
+
+\apiitem{"Exif:ApertureValue" : float }
+Aperture, in APEX units: $2 \log_2 (\mathit{fnumber})$
+\apiend
+
+\apiitem{"Exif:BrightnessValue" : float }
+Brightness value, assumed to be in the range of $-99.99$ -- $99.99$.
+\apiend
+
+\apiitem{"Exif:ExposureBiasValue" : float }
+Exposure bias, assumed to be in the range of $-99.99$ -- $99.99$.
+\apiend
+
+\apiitem{"Exif:MaxApertureValue" : float }
+Smallest F number of the lens, in APEX units: $2 \log_2 (\mathit{fnumber})$
+\apiend
+
+\apiitem{"Exif:SubjectDistance" : float }
+Distance to the subject, in meters.
+\apiend
+
+\apiitem{"Exif:MeteringMode" : int}
+The metering mode:
+
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & unknown \\
+1 & average \\
+2 & center-weighted average \\
+3 & spot \\
+4 & multi-spot \\
+5 & pattern \\
+6 & partial \\
+255 & other
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:LightSource" : int}
+The kind of light source:
+
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & unknown \\
+1 & daylight \\
+2 & tungsten (incandescent light) \\
+4 & flash \\
+9 & fine weather \\
+10 & cloudy weather \\
+11 & shade \\
+12 & daylight fluorescent (D 5700-7100K) \\
+13 & day white fluorescent (N 4600-5400K) \\
+14 & cool white fuorescent (W 3900 - 4500K) \\
+15 & white fluorescent (WW 3200 - 3700K) \\
+17 & standard light A \\
+18 & standard light B \\
+19 & standard light C \\
+20 & D55 \\
+21 & D65 \\
+22 & D75 \\
+23 & D50 \\
+24 & ISO studio tungsten \\
+255 & other light source
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:Flash" int}
+A sum of:
+\smallskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+1 & if the flash fired \\
+\hline
+0 & no strobe return detection function \\
+4 & strobe return light was not detected \\
+6 & strobe return light was detected \\
+\hline
+8 & compulsary flash firing \\
+16 & compulsary flash supression \\
+24 & auto-flash mode \\
+\hline 
+32 & no flash function (0 if flash function present) \\
+\hline
+64 & red-eye reduction supported (0 if no red-eye reduction mode) 
+\end{tabular}
+
+\apiend
+
+\apiitem{"Exif:FocalLength" : float }
+Actual focal length of the lens, in mm.
+\apiend
+
+%\apiitem{"Exif:SubjectArea",TIFF_NOTYPE } // skip
+%\apiitem{"Exif:MakerNote",TIFF_NOTYPE } // skip it
+%\apiitem{"Exif:UserComment",TIFF_NOTYPE }// skip it
+
+\apiitem{"Exif:SubsecTime" : string}
+Fractions of a second to augment the \qkw{DateTime} (expressed
+as text of the digits to the right of the decimal).
+\apiend
+
+\apiitem{"Exif:SubsecTimeOriginal" : string}
+Fractions of a second to augment the \qkw{Exif:DateTimeOriginal} (expressed
+as text of the digits to the right of the decimal).
+\apiend
+
+\apiitem{"Exif:SubsecTimeDigitized" : string}
+Fractions of a second to augment the \qkw{Exif:DateTimeDigital} (expressed
+as text of the digits to the right of the decimal).
+\apiend
+
+%\apiitem{"Exif:FlashPixVersion",TIFF_NOTYPE }
+
+\apiitem{"Exif:PixelXDimension" : int \\
+"Exif:PixelYDimension" : int }
+The $x$ and $y$ dimensions of the valid pixel area.
+FIXME -- better explanation?
+\apiend
+
+%\apiitem{"Exif:RelatedSoundFile", TIFF_NOTYPE }// skip
+
+\apiitem{"Exif:FlashEnergy" : float }
+Strobe energy when the image was captures, measured in Beam Candle Power
+Seconds (BCPS).
+\apiend
+
+%\apiitem{"Exif:SpatialFrequencyResponse",TIFF_NOTYPE }
+
+\apiitem{"Exif:FocalPlaneXResolution" : float \\
+"Exif:FocalPlaneYResolution" : float \\
+"Exif:FocalPlaneResolutionUnit" : int} 
+The number of pixels in the $x$ and $y$ dimension, per resolution unit.
+The code for resolution units is: 2 for inches.
+% FIXME? units?
+\apiend
+
+
+%\apiitem{"Exif:SubjectLocation" : int} // FIXME: short[2]
+
+\apiitem{"Exif:ExposureIndex" : float }
+The exposure index selected on the camera.
+\apiend
+
+\apiitem{"Exif:SensingMethod" : int}
+The image sensor type on the camra:
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+1 & undefined \\
+2 & one-chip color area sensor \\
+3 & two-chip color area sensor \\
+4 & three-chip color area sensor \\
+5 & color sequential area sensor \\
+7 & trilinear sensor \\
+8 & color trilinear sensor 
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:FileSource" : int}
+Set to 3, if captured by a digital camera, otherwise it should not be
+present.
+\apiend
+
+\apiitem{"Exif:SceneType" : int}
+Set to 1, if a directly-photographed image, otherwise it should not be
+present.
+\apiend
+
+%\apiitem{"Exif:CFAPattern",TIFF_NOTYPE }
+
+\apiitem{"Exif:CustomRendered" : int}
+Set to 0 for a normal process, 1 if some custom processing has been
+performed on the image data.
+\apiend
+
+\apiitem{"Exif:ExposureMode" : int}
+The exposure mode:
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & auto \\
+1 & manual \\
+2 & auto-bracket
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:WhiteBalance" : int}
+Set to 0 for auto white balance, 1 for manual white balance.
+\apiend
+
+\apiitem{"Exif:DigitalZoomRatio" : float }
+The digital zoom ratio used when the image was shot.
+\apiend
+
+\apiitem{"Exif:FocalLengthIn35mmFilm" : int}
+The equivalent focal length of a 35mm camera, in mm.
+\apiend
+
+\apiitem{"Exif:SceneCaptureType" : int}
+The type of scene that was shot:
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & standard \\
+1 & landscape \\
+2 & portrait \\
+3 & night scene
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:GainControl" : float }
+The degree of overall gain adjustment:
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & none \\
+1 & low gain up \\
+2 & high gain up \\
+3 & low gain down \\
+4 & high gain down
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:Contrast" : int}
+The direction of contrast processing applied by the camera:
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & normal \\
+1 & soft \\
+2 & hard
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:Saturation" : int}
+The direction of saturation processing applied by the camera:
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & normal \\
+1 & low saturation \\
+2 & high saturation
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:Sharpness" : int}
+The direction of sharpness processing applied by the camera:
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & normal \\
+1 & soft \\
+2 & hard
+\end{tabular}
+\apiend
+
+%\apiitem{"Exif:DeviceSettingDescription",TIFF_NOTYPE }
+
+\apiitem{"Exif:SubjectDistanceRange" : int}
+The distance to the subject:
+\medskip
+
+\begin{tabular}{p{0.3in} p{4in}}
+0 & unknown \\
+1 & macro \\
+2 & close \\
+3 & distant
+\end{tabular}
+\apiend
+
+\apiitem{"Exif:ImageUniqueID" : string}
+A unique identifier for the image, as 16 ASCII hexidecimal digits 
+representing a 128-bit number.
+\apiend
+
+
+% FIXME -- GPS metadata
+
+
+\section{IPTC metadata}
+
+
+\apiitem{   5, "IPTC:ObjectName" : string}
+\apiend
+
+% \apiitem{  25, "Keywords" : string}
+%\apiend
+% FIXME
+
+\apiitem{  30, "IPTC:Instructions" : string}
+\apiend
+
+\apiitem{  80, "IPTC:Creator" : string }
+The creator of the image.  This will also be duplicated in the standard
+\qkw{Artist} field.
+% FIXME?
+\apiend
+
+\apiitem{  85, "IPTC:AuthorsPosition" : string}
+\apiend
+\apiitem{  90, "IPTC:City" : string}
+\apiend
+\apiitem{  95, "IPTC:State" : string}
+\apiend
+\apiitem{ 101, "IPTC:Country" : string}
+\apiend
+\apiitem{ 105, "IPTC:Headline" : string}
+\apiend
+\apiitem{ 110, "IPTC:Provider" : string}
+\apiend
+\apiitem{ 115, "IPTC:Source" : string}
+\apiend
+
+%\apiitem{ 116, "Copyright" : string}
+%\apiend
+% FIXME
+
+\apiitem{ 118, "IPTC:Contact" : string}
+\apiend
+\apiitem{ 120, "IPTC:Caption_Abstract", string }
+\apiend
+\apiitem{ 122, "IPTC:CaptionWriter" : string}
+\apiend
+
+
+\section{Extension conventions}
+
+
+\chapwidthend
