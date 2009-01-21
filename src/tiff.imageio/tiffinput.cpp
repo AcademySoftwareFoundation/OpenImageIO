@@ -280,60 +280,60 @@ static const TIFF_tag_info tiff_tag_table[] = {
 static const TIFF_tag_info exif_tag_table[] = {
     { EXIFTAG_EXPOSURETIME,	"ExposureTime",	TIFF_RATIONAL },
     { EXIFTAG_FNUMBER,	        "FNumber",	TIFF_RATIONAL },
-    { EXIFTAG_EXPOSUREPROGRAM,	"exif:ExposureProgram",	TIFF_SHORT }, // ?? translate to ascii names?
-    { EXIFTAG_SPECTRALSENSITIVITY,	"exif:SpectralSensitivity",	TIFF_ASCII },
-    { EXIFTAG_ISOSPEEDRATINGS,	"exif:ISOSpeedRatings",	TIFF_SHORT },
-    { EXIFTAG_OECF,	        "exif:OECF",	TIFF_NOTYPE },	 // skip it
-    { EXIFTAG_EXIFVERSION,	"exif:ExifVersion",	TIFF_NOTYPE },	 // skip it
-    { EXIFTAG_DATETIMEORIGINAL,	"exif:DateTimeOriginal",	TIFF_ASCII },
-    { EXIFTAG_DATETIMEDIGITIZED,"exif:DateTimeDigitized",	TIFF_ASCII },
-    { EXIFTAG_COMPONENTSCONFIGURATION,	"exif:ComponentsConfiguration",	TIFF_UNDEFINED },
-    { EXIFTAG_COMPRESSEDBITSPERPIXEL,	"exif:CompressedBitsPerPixel",	TIFF_RATIONAL },
-    { EXIFTAG_SHUTTERSPEEDVALUE,"exif:ShutterSpeedValue",	TIFF_SRATIONAL }, // APEX units
-    { EXIFTAG_APERTUREVALUE,	"exif:ApertureValue",	TIFF_RATIONAL },	// APEX units
-    { EXIFTAG_BRIGHTNESSVALUE,	"exif:BrightnessValue",	TIFF_SRATIONAL },
-    { EXIFTAG_EXPOSUREBIASVALUE,"exif:ExposureBiasValue",	TIFF_SRATIONAL },
-    { EXIFTAG_MAXAPERTUREVALUE,	"exif:MaxApertureValue",TIFF_RATIONAL },
-    { EXIFTAG_SUBJECTDISTANCE,	"exif:SubjectDistance",	TIFF_RATIONAL },
-    { EXIFTAG_METERINGMODE,	"exif:MeteringMode",	TIFF_SHORT },
-    { EXIFTAG_LIGHTSOURCE,	"exif:LightSource",	TIFF_SHORT },
-    { EXIFTAG_FLASH,	        "exif:Flash",	        TIFF_SHORT },
-    { EXIFTAG_FOCALLENGTH,	"exif:FocalLength",	TIFF_RATIONAL }, // mm
-    { EXIFTAG_SUBJECTAREA,	"exif:SubjectArea",	TIFF_NOTYPE }, // skip
-    { EXIFTAG_MAKERNOTE,	"exif:MakerNote",	TIFF_NOTYPE },	 // skip it
-    { EXIFTAG_USERCOMMENT,	"exif:UserComment",	TIFF_NOTYPE },	// skip it
-    { EXIFTAG_SUBSECTIME,	"exif:SubsecTime",	        TIFF_ASCII },
-    { EXIFTAG_SUBSECTIMEORIGINAL,"exif:SubsecTimeOriginal",	TIFF_ASCII },
-    { EXIFTAG_SUBSECTIMEDIGITIZED,"exif:SubsecTimeDigitized",	TIFF_ASCII },
-    { EXIFTAG_FLASHPIXVERSION,	"exif:FlashPixVersion",	TIFF_NOTYPE },	// skip "exif:FlashPixVesion",	TIFF_NOTYPE },
-    { EXIFTAG_COLORSPACE,	"exif:ColorSpace",	TIFF_SHORT },
-    { EXIFTAG_PIXELXDIMENSION,	"exif:PixelXDimension",	TIFF_LONG },
-    { EXIFTAG_PIXELYDIMENSION,	"exif:PixelYDimension",	TIFF_LONG },
-    { EXIFTAG_RELATEDSOUNDFILE,	"exif:RelatedSoundFile", TIFF_NOTYPE },	// skip
-    { EXIFTAG_FLASHENERGY,	"exif:FlashEnergy",	TIFF_RATIONAL },
-    { EXIFTAG_SPATIALFREQUENCYRESPONSE,	"exif:SpatialFrequencyResponse",	TIFF_NOTYPE },
-    { EXIFTAG_FOCALPLANEXRESOLUTION,	"exif:FocalPlaneXResolution",	TIFF_RATIONAL },
-    { EXIFTAG_FOCALPLANEYRESOLUTION,	"exif:FocalPlaneYResolution",	TIFF_RATIONAL },
-    { EXIFTAG_FOCALPLANERESOLUTIONUNIT,	"exif:FocalPlaneResolutionUnit",	TIFF_SHORT }, // Symbolic?
-    { EXIFTAG_SUBJECTLOCATION,	"exif:SubjectLocation",	TIFF_SHORT }, // FIXME: short[2]
-    { EXIFTAG_EXPOSUREINDEX,	"exif:ExposureIndex",	TIFF_RATIONAL },
-    { EXIFTAG_SENSINGMETHOD,	"exif:SensingMethod",	TIFF_SHORT },
-    { EXIFTAG_FILESOURCE,	"exif:FileSource",	TIFF_NOTYPE },
-    { EXIFTAG_SCENETYPE,	"exif:SceneType",	TIFF_NOTYPE },
-    { EXIFTAG_CFAPATTERN,	"exif:CFAPattern",	TIFF_NOTYPE },
-    { EXIFTAG_CUSTOMRENDERED,	"exif:CustomRendered",	TIFF_SHORT },
-    { EXIFTAG_EXPOSUREMODE,	"exif:ExposureMode",	TIFF_SHORT },
-    { EXIFTAG_WHITEBALANCE,	"exif:WhiteBalance",	TIFF_SHORT },
-    { EXIFTAG_DIGITALZOOMRATIO,	"exif:DigitalZoomRatio",TIFF_RATIONAL },
-    { EXIFTAG_FOCALLENGTHIN35MMFILM,	"exif:FocalLengthIn35mmFilm",	TIFF_SHORT },
-    { EXIFTAG_SCENECAPTURETYPE,	"exif:SceneCaptureType",TIFF_SHORT },
-    { EXIFTAG_GAINCONTROL,	"exif:GainControl",	TIFF_RATIONAL },
-    { EXIFTAG_CONTRAST,	        "exif:Contrast",	TIFF_SHORT },
-    { EXIFTAG_SATURATION,	"exif:Saturation",	TIFF_SHORT },
-    { EXIFTAG_SHARPNESS,	"exif:Sharpness",	TIFF_SHORT },
-    { EXIFTAG_DEVICESETTINGDESCRIPTION,	"exif:DeviceSettingDescription",	TIFF_NOTYPE },
-    { EXIFTAG_SUBJECTDISTANCERANGE,	"exif:SubjectDistanceRange",	TIFF_SHORT },
-    { EXIFTAG_IMAGEUNIQUEID,	"exif:ImageUniqueID",	TIFF_ASCII },
+    { EXIFTAG_EXPOSUREPROGRAM,	"Exif:ExposureProgram",	TIFF_SHORT }, // ?? translate to ascii names?
+    { EXIFTAG_SPECTRALSENSITIVITY,	"Exif:SpectralSensitivity",	TIFF_ASCII },
+    { EXIFTAG_ISOSPEEDRATINGS,	"Exif:ISOSpeedRatings",	TIFF_SHORT },
+    { EXIFTAG_OECF,	        "Exif:OECF",	TIFF_NOTYPE },	 // skip it
+    { EXIFTAG_EXIFVERSION,	"Exif:ExifVersion",	TIFF_NOTYPE },	 // skip it
+    { EXIFTAG_DATETIMEORIGINAL,	"Exif:DateTimeOriginal",	TIFF_ASCII },
+    { EXIFTAG_DATETIMEDIGITIZED,"Exif:DateTimeDigitized",	TIFF_ASCII },
+    { EXIFTAG_COMPONENTSCONFIGURATION,	"Exif:ComponentsConfiguration",	TIFF_UNDEFINED },
+    { EXIFTAG_COMPRESSEDBITSPERPIXEL,	"Exif:CompressedBitsPerPixel",	TIFF_RATIONAL },
+    { EXIFTAG_SHUTTERSPEEDVALUE,"Exif:ShutterSpeedValue",	TIFF_SRATIONAL }, // APEX units
+    { EXIFTAG_APERTUREVALUE,	"Exif:ApertureValue",	TIFF_RATIONAL },	// APEX units
+    { EXIFTAG_BRIGHTNESSVALUE,	"Exif:BrightnessValue",	TIFF_SRATIONAL },
+    { EXIFTAG_EXPOSUREBIASVALUE,"Exif:ExposureBiasValue",	TIFF_SRATIONAL },
+    { EXIFTAG_MAXAPERTUREVALUE,	"Exif:MaxApertureValue",TIFF_RATIONAL },
+    { EXIFTAG_SUBJECTDISTANCE,	"Exif:SubjectDistance",	TIFF_RATIONAL },
+    { EXIFTAG_METERINGMODE,	"Exif:MeteringMode",	TIFF_SHORT },
+    { EXIFTAG_LIGHTSOURCE,	"Exif:LightSource",	TIFF_SHORT },
+    { EXIFTAG_FLASH,	        "Exif:Flash",	        TIFF_SHORT },
+    { EXIFTAG_FOCALLENGTH,	"Exif:FocalLength",	TIFF_RATIONAL }, // mm
+    { EXIFTAG_SUBJECTAREA,	"Exif:SubjectArea",	TIFF_NOTYPE }, // skip
+    { EXIFTAG_MAKERNOTE,	"Exif:MakerNote",	TIFF_NOTYPE },	 // skip it
+    { EXIFTAG_USERCOMMENT,	"Exif:UserComment",	TIFF_NOTYPE },	// skip it
+    { EXIFTAG_SUBSECTIME,	"Exif:SubsecTime",	        TIFF_ASCII },
+    { EXIFTAG_SUBSECTIMEORIGINAL,"Exif:SubsecTimeOriginal",	TIFF_ASCII },
+    { EXIFTAG_SUBSECTIMEDIGITIZED,"Exif:SubsecTimeDigitized",	TIFF_ASCII },
+    { EXIFTAG_FLASHPIXVERSION,	"Exif:FlashPixVersion",	TIFF_NOTYPE },	// skip "Exif:FlashPixVesion",	TIFF_NOTYPE },
+    { EXIFTAG_COLORSPACE,	"Exif:ColorSpace",	TIFF_SHORT },
+    { EXIFTAG_PIXELXDIMENSION,	"Exif:PixelXDimension",	TIFF_LONG },
+    { EXIFTAG_PIXELYDIMENSION,	"Exif:PixelYDimension",	TIFF_LONG },
+    { EXIFTAG_RELATEDSOUNDFILE,	"Exif:RelatedSoundFile", TIFF_NOTYPE },	// skip
+    { EXIFTAG_FLASHENERGY,	"Exif:FlashEnergy",	TIFF_RATIONAL },
+    { EXIFTAG_SPATIALFREQUENCYRESPONSE,	"Exif:SpatialFrequencyResponse",	TIFF_NOTYPE },
+    { EXIFTAG_FOCALPLANEXRESOLUTION,	"Exif:FocalPlaneXResolution",	TIFF_RATIONAL },
+    { EXIFTAG_FOCALPLANEYRESOLUTION,	"Exif:FocalPlaneYResolution",	TIFF_RATIONAL },
+    { EXIFTAG_FOCALPLANERESOLUTIONUNIT,	"Exif:FocalPlaneResolutionUnit",	TIFF_SHORT }, // Symbolic?
+    { EXIFTAG_SUBJECTLOCATION,	"Exif:SubjectLocation",	TIFF_SHORT }, // FIXME: short[2]
+    { EXIFTAG_EXPOSUREINDEX,	"Exif:ExposureIndex",	TIFF_RATIONAL },
+    { EXIFTAG_SENSINGMETHOD,	"Exif:SensingMethod",	TIFF_SHORT },
+    { EXIFTAG_FILESOURCE,	"Exif:FileSource",	TIFF_NOTYPE },
+    { EXIFTAG_SCENETYPE,	"Exif:SceneType",	TIFF_NOTYPE },
+    { EXIFTAG_CFAPATTERN,	"Exif:CFAPattern",	TIFF_NOTYPE },
+    { EXIFTAG_CUSTOMRENDERED,	"Exif:CustomRendered",	TIFF_SHORT },
+    { EXIFTAG_EXPOSUREMODE,	"Exif:ExposureMode",	TIFF_SHORT },
+    { EXIFTAG_WHITEBALANCE,	"Exif:WhiteBalance",	TIFF_SHORT },
+    { EXIFTAG_DIGITALZOOMRATIO,	"Exif:DigitalZoomRatio",TIFF_RATIONAL },
+    { EXIFTAG_FOCALLENGTHIN35MMFILM,	"Exif:FocalLengthIn35mmFilm",	TIFF_SHORT },
+    { EXIFTAG_SCENECAPTURETYPE,	"Exif:SceneCaptureType",TIFF_SHORT },
+    { EXIFTAG_GAINCONTROL,	"Exif:GainControl",	TIFF_RATIONAL },
+    { EXIFTAG_CONTRAST,	        "Exif:Contrast",	TIFF_SHORT },
+    { EXIFTAG_SATURATION,	"Exif:Saturation",	TIFF_SHORT },
+    { EXIFTAG_SHARPNESS,	"Exif:Sharpness",	TIFF_SHORT },
+    { EXIFTAG_DEVICESETTINGDESCRIPTION,	"Exif:DeviceSettingDescription",	TIFF_NOTYPE },
+    { EXIFTAG_SUBJECTDISTANCERANGE,	"Exif:SubjectDistanceRange",	TIFF_SHORT },
+    { EXIFTAG_IMAGEUNIQUEID,	"Exif:ImageUniqueID",	TIFF_ASCII },
     { 0, NULL, TIFF_NOTYPE }
 };
 

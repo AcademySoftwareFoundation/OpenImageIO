@@ -128,7 +128,7 @@ decode_iptc_iim (const void *iptc, int length, ImageSpec &spec)
             // Special case for keywords
             if (tagtype == 25) {
                 if (keywords.length())
-                    keywords.append (std::string(", "));
+                    keywords.append (std::string("; "));
                 keywords.append (s);
             }
         }
@@ -182,7 +182,7 @@ encode_iptc_iim (ImageSpec &spec, std::vector<char> &iptc)
     if (p = spec.find_attribute ("Keywords", TypeDesc::STRING)) {
         std::string allkeywords (*(const char **)p->data());
         typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-        boost::char_separator<char> sep(",");
+        boost::char_separator<char> sep(";");
         tokenizer tokens (allkeywords, sep);
         for (tokenizer::iterator tok_iter = tokens.begin();
                  tok_iter != tokens.end(); ++tok_iter) {
