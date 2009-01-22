@@ -35,6 +35,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <set>
 
 #include <boost/scoped_array.hpp>
 #include <boost/foreach.hpp>
@@ -342,7 +343,7 @@ resunit_tag (const TIFFDirEntry *dirp, const char *buf, bool swab)
 /// endianness of the file.
 static void
 read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
-               const char *buf, bool swab)
+               const char *buf, bool swab, std::set<size_t> &ifd_offsets_seen)
 {
     // Make a copy of the pointed-to TIFF directory, swab the components
     // if necessary.
@@ -366,6 +367,10 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
         unsigned int offset = dirp->tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian (&offset);
+        // Don't recurse if we've already visited this IFD
+        if (ifd_offsets_seen.find (offset) != ifd_offsets_seen.end())
+            return;
+        ifd_offsets_seen.insert (offset);
         const unsigned char *ifd = ((const unsigned char *)buf + offset);
         unsigned short ndirs = *(const unsigned short *)ifd;
         if (swab)
@@ -376,7 +381,7 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
 #endif
         for (int d = 0;  d < ndirs;  ++d)
             read_exif_tag (spec, (const TIFFDirEntry *)(ifd+2+d*sizeof(TIFFDirEntry)),
-                           (const char *)buf, swab);
+                           (const char *)buf, swab, ifd_offsets_seen);
 #if DEBUG_EXIF_READ
         std::cerr << "> End EXIF\n";
 #endif
@@ -386,6 +391,10 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
         unsigned int offset = dirp->tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian (&offset);
+        // Don't recurse if we've already visited this IFD
+        if (ifd_offsets_seen.find (offset) != ifd_offsets_seen.end())
+            return;
+        ifd_offsets_seen.insert (offset);
         const unsigned char *ifd = ((const unsigned char *)buf + offset);
         unsigned short ndirs = *(const unsigned short *)ifd;
         if (swab)
@@ -396,7 +405,7 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
 #endif
         for (int d = 0;  d < ndirs;  ++d)
             read_exif_tag (spec, (const TIFFDirEntry *)(ifd+2+d*sizeof(TIFFDirEntry)),
-                           (const char *)buf, swab);
+                           (const char *)buf, swab, ifd_offsets_seen);
 #if DEBUG_EXIF_READ
         std::cerr << "> End Interoperability\n\n";
 #endif
@@ -473,6 +482,10 @@ decode_exif (const void *exif, int length, ImageSpec &spec)
     if (swab)
         swap_endian (&head->tiff_diroff);
 
+    // keep track of IFD offsets we've already seen to avoid infinite
+    // recursion if there are circular references.
+    std::set<size_t> ifd_offsets_seen;
+
     // Read the directory that the header pointed to.  It should contain
     // some number of directory entries containing tags to process.
     const unsigned char *ifd = (buf + head->tiff_diroff);
@@ -481,7 +494,7 @@ decode_exif (const void *exif, int length, ImageSpec &spec)
         swap_endian (&ndirs);
     for (int d = 0;  d < ndirs;  ++d)
         read_exif_tag (spec, (const TIFFDirEntry *) (ifd+2+d*sizeof(TIFFDirEntry)),
-                       (const char *)buf, swab);
+                       (const char *)buf, swab, ifd_offsets_seen);
 
     // A few tidbits to look for
     ImageIOParameter *p;
