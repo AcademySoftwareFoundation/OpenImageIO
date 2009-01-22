@@ -221,7 +221,7 @@ set of metadata.
 \medskip
 
 \begin{tabular}{p{1.5in} p{3.5in}}
-{\bf Exif tag} & {\bf \product metadata} \\
+{\bf Exif tag} & {\bf \product metadata convention} \\
 \hline
 ColorSpace & (stored in {\cf ImageSpec::Linearity}) \\
 ExposureTime & \qkw{ExposureTime} \\
@@ -562,47 +562,91 @@ representing a 128-bit number.
 
 \section{IPTC metadata}
 
+The IPTC (International Press Telecommunications Council) publishes
+conventions for storing image metadata, and this standard is growing
+in popularity and is commonly used in photo-browsing programs to
+record captions and keywords.
 
-\apiitem{   5, "IPTC:ObjectName" : string}
+The following IPTC metadata items correspond exactly to metadata in the
+\product conventions, so it is recommended that you use the standards
+and that plugins supporting IPTC metadata respond likewise:
+
+\medskip
+
+\begin{tabular}{p{1.5in} p{3.5in}}
+{\bf IPTC tag} & {\bf \product metadata convention} \\
+\hline
+Caption & \qkw{ImageDescription} \\[0.5ex]
+Keyword & IPTC keywords should be concatenated, separated by semicolons
+({\cf ;}), and stored as the \qkw{Keywords} attribute. \\[0.5ex]
+ExposureTime & \qkw{ExposureTime} \\[0.5ex]
+CopyrightNotice & \qkw{Copyright} \\[0.5ex]
+Creator & \qkw{Artist} \\
+\end{tabular}
+
+\medskip
+
+The remainder of IPTC metadata fields should use the following names,
+prefixed with ``IPTC:'' to avoid conflicts with other plugins or
+standards.
+
+\apiitem{"IPTC:ObjectName" : string}
+The name of the object in the picture.
 \apiend
 
 % \apiitem{  25, "Keywords" : string}
 %\apiend
 % FIXME
 
-\apiitem{  30, "IPTC:Instructions" : string}
+\apiitem{"IPTC:Instructions" : string}
+Special instructions for handling the image.
 \apiend
 
-\apiitem{  80, "IPTC:Creator" : string }
-The creator of the image.  This will also be duplicated in the standard
-\qkw{Artist} field.
-% FIXME?
-\apiend
-
-\apiitem{  85, "IPTC:AuthorsPosition" : string}
-\apiend
-\apiitem{  90, "IPTC:City" : string}
-\apiend
-\apiitem{  95, "IPTC:State" : string}
-\apiend
-\apiitem{ 101, "IPTC:Country" : string}
-\apiend
-\apiitem{ 105, "IPTC:Headline" : string}
-\apiend
-\apiitem{ 110, "IPTC:Provider" : string}
-\apiend
-\apiitem{ 115, "IPTC:Source" : string}
-\apiend
-
-%\apiitem{ 116, "Copyright" : string}
+%\apiitem{"IPTC:Creator" : string}
+%The creator of the image.  This is optinal and, If present, 
+%is expected to be the same as the data in the standard \qkw{Artist} field.
 %\apiend
-% FIXME
 
-\apiitem{ 118, "IPTC:Contact" : string}
+\apiitem{"IPTC:AuthorsPosition" : string}
+The job title or position of the creator of the image.
 \apiend
-\apiitem{ 120, "IPTC:Caption_Abstract", string }
+
+\apiitem{"IPTC:City" : string \\
+"IPTC:State" : string \\
+"IPTC:Country" : string}
+The city, state, and country of the location of the image.
 \apiend
-\apiitem{ 122, "IPTC:CaptionWriter" : string}
+
+\apiitem{"IPTC:Headline" : string}
+Any headline that is meant to accompany the image.
+\apiend
+
+\apiitem{"IPTC:Provider" : string}
+The provider of the image, or credit line.
+\apiend
+
+\apiitem{"IPTC:Source" : string}
+The source of the image.
+\apiend
+
+%\apiitem{"IPTC:CopyrightNotice" : string}
+%The copyright notice for the image.  This is optinal and, If present, 
+%is expected to be the same as the data in the standard \qkw{Copyright} field.
+%\apiend
+
+\apiitem{"IPTC:Contact" : string}
+The contact information for the image (possibly including name, address,
+email, etc.).
+\apiend
+
+%\apiitem{"IPTC:Caption", string }
+%The caption, abstract, or description of the image.
+%This is optional and, if present, is expected to be the same as the
+%data in the standard \qkw{ImageDescription} field.
+%\apiend
+
+\apiitem{"IPTC:CaptionWriter" : string}
+The name of the person who wrote the caption or description of the image.
 \apiend
 
 

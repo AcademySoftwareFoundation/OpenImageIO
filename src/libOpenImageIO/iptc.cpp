@@ -54,21 +54,53 @@ struct IIMtag {
 static IIMtag iimtag [] = {
     {   5, "IPTC:ObjectName", NULL },
 //    {  25, "Keywords", NULL },
-    {  30, "IPTC:Instructions", NULL },
-    {  80, "IPTC:Creator", "Artist" },  // "Artist"
-    {  85, "IPTC:AuthorsPosition", NULL },
+    {  40, "IPTC:Instructions", NULL },
+    {  80, "IPTC:Creator", "Artist" },   // N.B. in theory, repeatable
+    {  85, "IPTC:AuthorsPosition", NULL },  // N.B. in theory, repeatable
     {  90, "IPTC:City", NULL },
+    {  92, "IPTC:Sublocation", NULL },
     {  95, "IPTC:State", NULL },
+    { 100, "IPTC:CountryCode", NULL },
     { 101, "IPTC:Country", NULL },
+    { 103, "IPTC:OriginalTransmissionReference", NULL },
     { 105, "IPTC:Headline", NULL },
-    { 110, "IPTC:Provider", NULL },
+    { 110, "IPTC:Provider", NULL }, // aka Credit
     { 115, "IPTC:Source", NULL },
-    { 116, "Copyright", NULL },
+    { 116, "IPTC:CopyrightNotice", "Copyright" },
     { 118, "IPTC:Contact", NULL },
-    { 120, "IPTC:Caption_Abstract", "ImageDescription"},
-    { 122, "IPTC:CaptionWriter", NULL },
+    { 120, "IPTC:Caption", "ImageDescription"},
+    { 122, "IPTC:CaptionWriter", NULL },  // should it be called Writer?
     { -1, NULL, NULL }
 };
+
+// FIXME? others:
+// 15 Category (max 3 bytes)
+// 20 SupplementalCategories (repeatable)
+// 30 ReleaseDate
+// 35 ReleaseTime
+// 37 ExpirationDate
+// 38 ExpirationTime
+// 45 ReferenceService
+// 47 ReferenceDate
+// 50 ReferenceNumber
+// 55 DateCreated (CCYYMMDD, 00 for unknown parts)
+// 60 TimeCreated [11 digs]
+// 62 DigitalCreationDate [8 digs]
+// 63 DigitalCreationTime [11 digs]
+// 65 OriginatingProgram
+// 70 ProgramVersion
+// 121 LocalCaption
+// 150-154 audio stuff
+// 184 JobID
+// 185 MasterDocumentID
+// 186 ShortDocumentID
+// 187 UniqueDocumentID
+// 188 OwnerID
+// 221 Prefs
+// 225 ClassifyState
+// 228 SimilarityIndex
+// 230 DocumentNotes
+// 231 DocumentHistory
 
 };   // anonymous namespace
 
