@@ -75,6 +75,11 @@ a different orientation, according to the TIFF/EXIF conventions:
 \end{tabular}
 \apiend
 
+\apiitem{"PixelAspectRatio" : float}
+The aspect ratio ($x/y$) of the individual pixels, with square pixels
+being 1.0 (the default).
+\apiend
+
 \apiitem{"XResolution" : float \\
 "YResolution" : float \\
 "ResolutionUnit" : string}
@@ -118,6 +123,12 @@ called with an \ImageSpec that specifies an compression mode not
 supported by that \ImageInput, it will choose a reasonable default.
 As an example, the TIFF \ImageInput plugin supports \qkw{none},
 \qkw{lzw}, \qkw{ccittrle}, \qkw{zip} (the default), \qkw{packbits}.
+\apiend
+
+\apiitem{"CompressionQuality" : int}
+Indicates the quality of compression to use (0--100), for those 
+plugins and compression methods that allow a variable amount of 
+compression, with higher numbers indicating higher image fidelity.
 \apiend
 
 \section{Photographs or scanned images}
@@ -188,6 +199,11 @@ is the world-to-screen matrix describing the full projection of the 3D
 view onto a $[-1...1] \times [-1...1]$ 2D domain.
 \apiend
 
+\apiitem{"updirection" : string}
+For environment maps, indicates which direction is ``up'' (valid values
+are \qkw{y} or \qkw{z}), to disambiguate conventions for environment map
+orientation.
+\apiend
 
 
 \section{Exif metadata}

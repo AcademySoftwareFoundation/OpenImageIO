@@ -254,7 +254,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool ap
         m_spec.attribute ("compression", "zip");
 
     // Automatically set date field if the client didn't supply it.
-    if (! m_spec.find_attribute("datetime")) {
+    if (! m_spec.find_attribute("DateTime")) {
         time_t now;
         time (&now);
         struct tm mytm;
@@ -262,7 +262,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool ap
         std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
                                mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                                mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
-        m_spec.attribute ("datetime", date);
+        m_spec.attribute ("DateTime", date);
     }
 
     m_nsubimages = 1;
@@ -347,7 +347,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         xname = "comments";
     else if (iequals(xname, "Copyright"))
         xname = "owner";
-    else if (iequals(xname, "pixelaspectratio"))
+    else if (iequals(xname, "PixelAspectRatio"))
         xname = "pixelAspectRatio";
     else if (iequals(xname, "ExposureTime"))
         xname = "expTime";

@@ -140,7 +140,7 @@ private:
         m_map["capDate"] = "DateTime";
         m_map["comments"] = "ImageDescription";
         m_map["owner"] = "Copyright";
-        m_map["pixelAspectRatio"] = "pixelaspectratio";
+        m_map["pixelAspectRatio"] = "PixelAspectRatio";
         m_map["expTime"] = "ExposureTime";
         // Ones we don't rename -- OpenEXR convention matches ours
         m_map["wrapmodes"] = "wrapmodes";
@@ -247,7 +247,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         m_cubeface = (envmap->value() == Imf::ENVMAP_CUBE);
         m_spec.attribute ("textureformat", m_cubeface ? "CubeFace Environment" : "LatLong Environment");
         // FIXME - detect CubeFace Shadow
-        m_spec.attribute ("up", "y");  // OpenEXR convention
+        m_spec.attribute ("updirection", "y");  // OpenEXR convention
     } else {
         m_cubeface = false;
         if (tiled)
