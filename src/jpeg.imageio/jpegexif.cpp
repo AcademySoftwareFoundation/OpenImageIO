@@ -297,9 +297,14 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
         spec.attribute (name, (float)db);
     } else if (dirp->tdir_type == TIFF_ASCII) {
         int len = tiff_data_size (*dirp);
-        const char *mydata = (len <= 4) ? (const char *)&dirp->tdir_offset 
-                                        : (buf + dirp->tdir_offset);
-        spec.attribute (name, mydata);
+        const char *ptr = (len <= 4) ? (const char *)&dirp->tdir_offset 
+                                     : (buf + dirp->tdir_offset);
+        while (len && ptr[len-1] == 0)  // Don't grab the terminating null
+            --len;
+        std::string str (ptr, len);
+        if (strlen(str.c_str()) < str.length())  // Stray \0 in the middle
+            str = std::string (str.c_str());
+        spec.attribute (name, str);
     } else if (dirp->tdir_type == TIFF_UNDEFINED) {
         // Add it as bytes
 #if 0
@@ -509,7 +514,11 @@ decode_exif (const void *exif, int length, ImageSpec &spec)
             cs = *(const unsigned short *)p->data();
         else if (p->type() == TypeDesc::INT16) 
             cs = *(const short *)p->data();
-        if (cs == 1)
+        // Exif spec says that anything other than 0xffff==uncalibrated
+        // should be interpreted to be sRGB.
+        if (cs == 0xffff)
+            spec.linearity = ImageSpec::UnknownLinearity;
+        else
             spec.linearity = ImageSpec::sRGB;
     }
     return true;
