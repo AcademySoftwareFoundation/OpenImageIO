@@ -75,7 +75,7 @@ getargs (int argc, char *argv[])
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
                   "-d %s", &dataformatname, "Set the output data format to one of:\n"
-                          "\t\t\tuint8, sint8, uint16, sint16, half, float",
+                          "\t\t\tuint8, sint8, uint16, sint16, half, float, double",
                   "-g %f", &gammaval, "Set gamma correction (default = 1)",
                   "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
                   "--scanline", &scanline, "Output as a scanline image",
