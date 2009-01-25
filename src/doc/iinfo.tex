@@ -1,0 +1,117 @@
+\chapter{Getting Image information With {\kw iinfo}}
+\label{chap:iinfo}
+\indexapi{iinfo}
+
+%\section{Overview}
+
+The {\cf iinfo} program will print either basic information (name,
+resolution, format) or detailed information (including all metadata)
+found in images.  Because {\cf iinfo} is built on top on \product, it
+will print information about images of any formats readable by
+\ImageInput plugins on hand.
+
+
+
+\section{Using {\cf iinfo}}
+
+The {\cf iinfo} utility is invoked as follows:
+
+\bigskip
+
+\hspace{0.25in} {\cf iinfo} [\emph{options}] \emph{filename} ...
+
+\medskip
+
+Where \emph{filename} (and any following strings) names the image
+file(s) whose information should be printed.  The image files may be of
+any format recognized by \product (i.e., for which \ImageInput plugins
+are available).
+
+In its most basic usage, it simply prints the resolution, number of
+channels, pixel data type, and file format type of each of the
+files listed:
+
+\begin{code}
+    $ iinfo img_6019m.jpg grid.tif lenna.png
+
+    img_6019m.jpg : 1024 x  683, 3 channel, uint8 jpeg
+    grid.tif      :  512 x  512, 3 channel, uint8 tiff
+    lenna.png     :  120 x  120, 4 channel, uint8 png
+\end{code}
+
+% $
+
+The {\cf -s} flag also prints the uncompressed sizes of each image
+file, plus a sum for all of teh images:
+
+\begin{code}
+    $ iinfo -s img_6019m.jpg grid.tif lenna.png
+
+    img_6019m.jpg : 1024 x  683, 3 channel, uint8 jpeg (2.00 MB)
+    grid.tif      :  512 x  512, 3 channel, uint8 tiff (0.75 MB)
+    lenna.png     :  120 x  120, 4 channel, uint8 png (0.05 MB)
+    Total size: 2.81 MB
+\end{code}
+
+% $
+
+The {\cf -v} option turns on \emph{verbose mode}, which exhaustively
+prints all metadata about each image:
+
+\begin{code}
+    $ iinfo -v img_6019m.jpg
+
+    img_6019m.jpg : 1024 x  683, 3 channel, uint8 jpeg
+        channel list: R, G, B
+        Color space: sRGB
+        ImageDescription: "Family photo"
+        Make: "Canon"
+        Model: "Canon EOS DIGITAL REBEL XT"
+        Orientation: 1
+        XResolution: 72
+        YResolution: 72
+        ResolutionUnit: 2
+        DateTime: "2008:05:04 19:51:19"
+        Exif:YCbCrPositioning: 2
+        ExposureTime: 0.004
+        FNumber: 11
+        Exif:ExposureProgram: 2
+        Exif:ISOSpeedRatings: 400
+        Exif:DateTimeOriginal: "2008:05:04 19:51:19"
+        Exif:DateTimeDigitized: "2008:05:04 19:51:19"
+        Exif:ShutterSpeedValue: 7.96579
+        Exif:ApertureValue: 6.91887
+        Exif:ExposureBiasValue: 0
+        Exif:MeteringMode: 5
+        Exif:Flash: 16
+        Exif:FocalLength: 27
+        Exif:ColorSpace: 1
+        Exif:PixelXDimension: 2496
+        Exif:PixelYDimension: 1664
+        Exif:FocalPlaneXResolution: 2855.84
+        Exif:FocalPlaneYResolution: 2859.11
+        Exif:FocalPlaneResolutionUnit: 2
+        Exif:CustomRendered: 0
+        Exif:ExposureMode: 0
+        Exif:WhiteBalance: 0
+        Exif:SceneCaptureType: 0
+        Keywords: "Carly; Jack"
+\end{code}
+
+% $
+
+
+\section{{\cf iinfo} command-line options}
+
+\apiitem{--help}
+Prints usage information to the terminal.
+\apiend
+
+\apiitem{-v}
+Verbose output --- prints all metadata of the image files.
+\apiend
+
+\apiitem{-s}
+Show the image sizes, including a sum of all the listed images.
+\apiend
+

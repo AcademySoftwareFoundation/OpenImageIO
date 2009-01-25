@@ -76,7 +76,7 @@
 }
 \date{{\large 
 %Editor: Larry Gritz \\[2ex]
-Date: 23 January, 2009
+Date: 25 January, 2009
 %\\ (with corrections, 11 July, 2008)
 }}
 
@@ -148,35 +148,10 @@ readable by \ImageInput plugins on hand.
 
 More documentation on this later.
 
+\include{iinfo}
 
-\chapter{Getting Image information With {\kw iinfo}}
+\include{iconvert}
 
-The {\cf iinfo} program will print either basic information (name,
-resolution, format) or detailed information (including all metadata)
-found in images.  Because {\cf idiff} is built on top on \product, it
-will print information about images of any formats readable by
-\ImageInput plugins on hand.
-
-\medskip
-
-More documentation on this later.
-
-
-\chapter{Converting Image Formats With {\kw iconvert}}
-\label{chap:iconvert}
-\indexapi{iconvert}
-
-The {\cf iconvert} program will read an image (from any file format for
-which an \ImageInput plugin can be found) and then write the image to a
-new file (in any format for which an \ImageOutput plugin can be found).
-In the process, {\cf iconvert} can optionally change the file format or
-data format (for example, converting floating-point data to 8-bit
-integers), apply gamma dorrection, switch between tiled and scanline
-orientation, or alter or add metadata to the image.
-
-\medskip
-
-More documentation on this later.
 
 \chapter{Creating MIP-mapped texture files with {\cf maketx}}
 \label{chap:maketx}

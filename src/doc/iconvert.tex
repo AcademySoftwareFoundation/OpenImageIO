@@ -1,0 +1,152 @@
+\chapter{Converting Image Formats With {\kw iconvert}}
+\label{chap:iconvert}
+\indexapi{iconvert}
+
+\section{Overview}
+
+The {\cf iconvert} program will read an image (from any file format for
+which an \ImageInput plugin can be found) and then write the image to a
+new file (in any format for which an \ImageOutput plugin can be found).
+In the process, {\cf iconvert} can optionally change the file format or
+data format (for example, converting floating-point data to 8-bit
+integers), apply gamma correction, switch between tiled and scanline
+orientation, or alter or add certain metadata to the image.
+
+The {\cf iconvert} utility is invoked as follows:
+
+\medskip
+
+\hspace{0.25in} {\cf iconvert} [\emph{options}] \emph{input} \emph{output}
+
+\medskip
+
+Where \emph{input} and \emph{output} name the input image and desired
+output filename.  The image files may be of any format recognized by
+\product (i.e., for which \ImageInput plugins are available).  The file
+format of the output image will be inferred from the file extension of
+the output filename (e.g., \qkw{foo.tif} will write a TIFF file).
+
+
+\section{{\cf iconvert} Recipes}
+
+This section will give quick examples of common uses of {\cf iconvert}.
+
+\subsection*{Converting between file formats}
+
+It's a snap to converting among image formats supported by \product
+(i.e., for which \ImageInput and \ImageOutput plugins can be found).
+The {\cf iconvert} utility will simply infer the file format from the
+file extension. The following example converts a PNG image to JPEG:
+
+\begin{code}
+    iconvert lena.png lena.jpg
+\end{code}
+
+\subsection*{Changing the data format or bit depth}
+
+Just use the {\cf -d} option to specify a pixel data format.  For
+example, assuming that {\cf in.tif} uses 16-bit unsigned integer
+pixels, the following will convert it to an 8-bit unsigned pixels:
+
+\begin{code}
+    iconvert -d uint8 in.tif out.tif
+\end{code}
+
+\subsection*{Changing the compression}
+
+The following command converts writes a TIFF file, specifically using
+LZW compression:
+
+\begin{code}
+    iconvert --compression lzw in.tif out.tif
+\end{code}
+
+The following command writes its results as a JPEG file at a 
+compression quality of 50 (pretty severe compression):
+
+\begin{code}
+    iconvert --quality 50 big.jpg small.jpg
+\end{code}
+
+\subsection*{Gamma-correcting an image}
+
+The following gamma-corrects the pixels, raising all pixel
+values to $x^{1/2.2}$ upon writing:
+
+\begin{code}
+    iconvert -g 2.2 in.tif out.tif
+\end{code}
+
+\subsection*{Converting between scanline and tiled images}
+
+Convert a scanline file to a tiled file with $16 \times 16$ tiles:
+
+\begin{code}
+    iconvert --tile 16 16 s.tif t.tif
+\end{code}
+
+\noindent Convert a tiled file to scanline:
+
+\begin{code}
+    iconvert --scanline t.tif s.tif
+\end{code}
+
+
+\section{{\cf iconvert} command-line options}
+
+\apiitem{--help}
+Prints usage information to the terminal.
+\apiend
+
+\apiitem{-v}
+Verbose status messages.
+\apiend
+
+\apiitem{-d {\rm \emph{datatype}}}
+
+Attempt to sets the output pixel data type to one of: {\cf uint8}, 
+{\cf sint8}, {\cf uint16}, {\cf sint16}, {\cf half}, {\cf float}, 
+{\cf double}.
+
+If the {\cf -d} option is not supplied, the output data type will
+be the same as the data format of the input file.
+
+In either case, the output file format itself (implied by the file
+extension of the output filename) may trump the request if the file
+format simply does not support the requested data type.
+\apiend
+
+\apiitem{-g {\rm \emph{gamma}}}
+Applies a gamma correction of $1/\mathrm{gamma}$ to the pixels as they
+are output.
+\apiend
+
+\apiitem{--tile {\rm \emph{x}} {\rm \emph{y}}}
+Requests that the output file be tiled, with the given $x \times y$ 
+tile size, if tiled images are supported by the output format.
+By default, the output file will take on the tiledness and tile size
+of the input file.
+\apiend
+
+\apiitem{--scanline}
+Requests that the output file be scanline-oriented (even if the input
+file was tile-oriented), if scanline orientation is supported by the
+output file format.  By default, the output file will be scanline
+if the input is scanline, or tiled if the input is tiled.
+\apiend
+
+\apiitem{--compression {\rm \emph{method}}}
+Sets the compression method for the output image.  Each \ImageOutput
+plugin will have its own set of methods that it supports.
+
+By default, the output image will use the same compression technique as
+the input image (assuming it is supported by the output format,
+otherwise it will use the default compression method of the output
+plugin).  
+\apiend
+
+\apiitem{--quality {\rm \emph{q}}}
+Sets the compression quality, on a 1--100 floating-point scale.
+This only has an effect if the particular compression method supports
+a quality metric (as JPEG does).
+\apiend

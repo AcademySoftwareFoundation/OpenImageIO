@@ -15,14 +15,9 @@ DONE        Rename 3party -> external
                  (call it "request"? "settings"? "configuration"?)
 DONE        API docs - ImageInput, ImageOutput, writing plugins, intro
             iv - subtract from last image
-            iv - view as random color
 DONE        iv - why don't I seem to be getting HDR?
-            iv - new window, new tab ?
             iv - copy/paste
-            iv - thumbnail window
             iv - region of interest (select, clear, prioritize, crop)
-            iv - annotate
-            iv - fg/bg images
 DONE        iv - put into background mode
             iv - save window as
             iv - save selection as
@@ -53,7 +48,12 @@ DONE        texture - add statistics
             iv - >4 channels, gray vs color
             iv - view as depth (gray scale between min/max)
             iv - view as false color
-            wipe between images
+            iv - thumbnail window
+            iv - set keywords, caption
+            iv - fg/bg images
+            iv - view as random color
+            iv - new window, new tab ?
+            iv - wipe between images
             GIF (Wex request)
 DONE        PNG (Philip request)
             Targa (Wex request)
@@ -82,6 +82,7 @@ DONE        idiff - perceptual diff (Yee)
 
 Idea pool / future feature wish list
 
+            iconvert - contig/separate, arbitrary metadata, extract channels
             maketx - lightprobe -> cubemap
             maketx - vertcross -> cubemap
             maketx - latlong -> cubemap
@@ -111,4 +112,4 @@ Idea pool / future feature wish list
             iv slide mode (full screen, fi2w, timed)
             play back sound memos in jpeg images
             per-format default gamma?
-
+            image processing utility
