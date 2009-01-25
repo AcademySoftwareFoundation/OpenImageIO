@@ -52,17 +52,19 @@ static std::vector<std::string> filenames;
 
 
 static void
-print_info (const std::string &filename, ImageInput *input,
-            ImageSpec &spec,
+print_info (const std::string &filename, size_t namefieldlength, 
+            ImageInput *input, ImageSpec &spec,
             bool verbose, bool sum, long long &totalsize)
 {
-    printf ("%s : %4d x %4d", filename.c_str(), 
+    std::string padding (std::max(0UL, namefieldlength - filename.length()), ' ');
+    printf ("%s%s : %4d x %4d", filename.c_str(), padding.c_str(),
             spec.width, spec.height);
     if (spec.depth > 1)
         printf (" x %4d", spec.depth);
     printf (", %d channel, %s%s", spec.nchannels,
             spec.format.c_str(),
             spec.depth > 1 ? " volume" : "");
+    printf (" %s", input->format_name());
     if (sum) {
         totalsize += spec.image_bytes();
         printf (" (%.2f MB)", (float)spec.image_bytes() / (1024.0*1024.0));
@@ -170,6 +172,11 @@ main (int argc, const char *argv[])
         exit (EXIT_FAILURE);
     }
 
+    // Find the longest filename
+    size_t longestname = 0;
+    BOOST_FOREACH (const std::string &s, filenames)
+        longestname = std::max (longestname, s.length());
+
     long long totalsize = 0;
     BOOST_FOREACH (const std::string &s, filenames) {
         ImageInput *in = ImageInput::create (s.c_str(), "" /* searchpath */);
@@ -179,7 +186,7 @@ main (int argc, const char *argv[])
         }
         ImageSpec spec;
         if (in->open (s.c_str(), spec)) {
-            print_info (s, in, spec, verbose, sum, totalsize);
+            print_info (s, longestname, in, spec, verbose, sum, totalsize);
             in->close ();
         } else {
             fprintf (stderr, "iinfo: Could not open \"%s\" : %s\n",
