@@ -36,6 +36,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <algorithm>
 
 #include <boost/scoped_array.hpp>
 #include <boost/foreach.hpp>

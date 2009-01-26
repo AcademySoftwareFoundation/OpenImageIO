@@ -96,7 +96,7 @@ private:
 
     // Convert planar separate to contiguous data format
     void separate_to_contig (int n, const unsigned char *separate,
-                             unsigned char *separate);
+                             unsigned char *contig);
 
     // Convert palette to RGB
     void palette_to_rgb (int n, const unsigned char *palettepels,
