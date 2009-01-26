@@ -38,7 +38,8 @@
 #ifndef FMATH_H
 #define FMATH_H
 
-#include <math.h>
+#include <cmath>
+#include <limits>
 
 
 

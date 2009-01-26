@@ -123,6 +123,7 @@
 
 #include <string>
 #include <iostream>
+#include <cstring>
 #include "export.h"
 
 #ifndef NULL
