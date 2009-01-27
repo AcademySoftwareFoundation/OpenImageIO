@@ -156,13 +156,14 @@ parse_files (int argc, const char *argv[])
 int
 main (int argc, const char *argv[])
 {
-    ArgParse ap (argc, argv);
-    if (ap.parse ("Usage:  iinfo [options] filename...",
-                  "%*", parse_files, "",
-                  "--help", &help, "Print help message",
-                  "-v", &verbose, "Verbose output",
-                  "-s", &sum, "Sum the image sizes",
-                  NULL) < 0) {
+    ArgParse ap;
+    ap.options ("Usage:  iinfo [options] filename...",
+                "%*", parse_files, "",
+                "--help", &help, "Print help message",
+                "-v", &verbose, "Verbose output",
+                "-s", &sum, "Sum the image sizes",
+                NULL);
+    if (ap.parse(argc, argv) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
         return EXIT_FAILURE;

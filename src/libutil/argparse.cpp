@@ -386,14 +386,6 @@ ArgParse::parse_command_line()
 
 
 
-// Primary entry point.  This function accepts a set of format strings
-// and variable pointers.  Each string contains an option name and a
-// scanf-like format string to enumerate the arguments of that option
-// (eg. "-option %d %f %s").  The format string is followed by a list
-// of pointers to the argument variables, just like scanf.  All format
-// strings and arguments are parsed to create a list of ArgOption objects.
-// After all ArgOptions are created, the command line is parsed and
-// the sublist option callbacks are invoked.
 int
 ArgParse::parse (const char *intro, ...)
 {
@@ -439,6 +431,83 @@ ArgParse::parse (const char *intro, ...)
     }
 
     va_end (ap);
+
+    if (parse_command_line() < 0) {
+        return -1;
+    }
+
+    if (invoke_all_sublist_callbacks() < 0) {
+        return -1;
+    }
+    
+    return 0;
+}
+
+
+
+// Primary entry point.  This function accepts a set of format strings
+// and variable pointers.  Each string contains an option name and a
+// scanf-like format string to enumerate the arguments of that option
+// (eg. "-option %d %f %s").  The format string is followed by a list
+// of pointers to the argument variables, just like scanf.  All format
+// strings and arguments are parsed to create a list of ArgOption objects.
+// After all ArgOptions are created, the command line is parsed and
+// the sublist option callbacks are invoked.
+int
+ArgParse::options (const char *intro, ...)
+{
+    va_list ap;
+    va_start (ap, intro);
+
+    this->intro = intro;
+    for (const char *cur = va_arg(ap, char *); cur; cur = va_arg(ap, char *)) {
+        if (find_option (cur) &&
+                strcmp(cur, "<SEPARATOR>")) {
+            error ("Option \"%s\" is multiply defined");
+            return -1;
+        }
+        
+        // Build a new option and then parse the values
+        ArgOption *option = new ArgOption (cur);
+        if (option->initialize() < 0) {
+            return -1;
+        }
+
+        if (cur[0] == '\0' ||
+            (cur[0] == '%' && cur[1] == '*' && cur[2] == '\0')) {
+            // set default global option
+            global = option;
+        }
+        
+        // Grab any parameters and store them with this option
+        for (int i = 0; i < option->parameter_count(); i++) {
+
+            void *p = va_arg (ap, void *);
+            if (p == NULL) {
+                error ("Missing argument parameter for \"%s\"",
+                              option->name().c_str());
+                return -1;
+            }
+            
+            option->add_parameter (i, p);
+        }
+
+        // Last argument is description
+        option->description ((const char *) va_arg (ap, const char *));
+        this->option.push_back(option);
+    }
+
+    va_end (ap);
+    return 0;
+}
+
+
+
+int
+ArgParse::parse (int xargc, const char **xargv)
+{
+    argc = xargc;
+    argv = (char **)xargv;
 
     if (parse_command_line() < 0) {
         return -1;

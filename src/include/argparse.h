@@ -57,9 +57,9 @@ class ArgOption;   // Forward declaration
 /// for storing option values and return <0 on failure:
 ///
 /// \code
-///    ArgParse ap(argc, argv);
+///    ArgParse ap;
 ///
-///    if (ap.parse ("Usage: myapp [options] filename...",
+///    ap.options ("Usage: myapp [options] filename...",
 ///            "%*", parse_objects, "",
 ///            "-camera %f %f %f", &camera[0], &camera[1], &camera[2],
 ///                  "set the camera position",
@@ -72,7 +72,9 @@ class ArgOption;   // Forward declaration
 ///            "-format %d %d %f", &width, &height, &aspect,
 ///                   "set width, height, aspect ratio",
 ///            "-v", &flag, "verbose output",
-///            NULL) < 0) {
+///            NULL);
+///
+///    if (ap.parse (argc, argv) < 0) {
 ///        std::cerr << ap.error_message() << std::endl;
 ///        ap.usage ();
 ///        return EXIT_FAILURE;
@@ -103,11 +105,28 @@ class ArgOption;   // Forward declaration
 
 class ArgParse {
 public:
-    ArgParse (int argc, const char **argv);
+    ArgParse (int argc=0, const char **argv=NULL);
     ~ArgParse ();
-    
-    int parse (const char *intro, ...);  // parse the command line  <0 on error
 
+    /// Declare the command line options.  After the introductory
+    /// message, parameters are a set of format strings and variable
+    /// pointers.  Each string contains an option name and a scanf-like
+    /// format string to enumerate the arguments of that option
+    /// (eg. "-option %d %f %s").  The format string is followed by a
+    /// list of pointers to the argument variables, just like scanf.  A
+    /// NULL terminates the list.
+    int options (const char *intro, ...);
+
+    /// With the options already set up, parse the command line.
+    /// Return 0 if ok, -1 if it's a malformed command line.
+    int parse (int argc, const char **argv);
+
+    /// Deprecated
+    ///
+    int parse (const char *intro, ...);
+
+    /// Return any error messages generated during the course of parse().
+    ///
     std::string error_message () const { return errmessage; }
 
     /// Print the usage message to stdout.  The usage message is
