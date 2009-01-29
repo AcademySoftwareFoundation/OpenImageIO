@@ -57,6 +57,11 @@
 namespace OpenImageIO {
 
 
+// Forward declarations
+class ImageInput;
+
+
+
 /// Each imageio DSO/DLL should include this statement:
 ///      GELATO_EXPORT int FORMAT_imageio_version = Gelato::IMAGEIO_VERSION;
 /// Applications using imageio DSO/DLL's should check this
@@ -436,10 +441,31 @@ public:
     ///   progress_callback (progress_callback_data, float done)
     /// where 'done' gives the portion of the image 
     virtual bool write_image (TypeDesc format, const void *data,
-                              stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                              stride_t xstride=AutoStride,
+                              stride_t ystride=AutoStride,
                               stride_t zstride=AutoStride,
                               ProgressCallback progress_callback=NULL,
                               void *progress_callback_data=NULL);
+
+    /// Read the current subimage of 'in', and write it as the next
+    /// subimage of *this, in a way that is efficient and does not alter
+    /// pixel values, if at all possible.  Both in and this must be
+    /// properly-opened image files (an ImageInput and ImageOutput,
+    /// respectively) and their current images must match in size and
+    /// number of channels.  Return true if it works ok, false if for
+    /// some reason the operation wasn't possible.
+    ///
+    /// If a particular ImageOuput implementation does not supply a
+    /// copy_image method, it will inherit the default implementation,
+    /// which is to simply read scanlines or tiles from 'in' and write
+    /// them to *this.  However, some ImageIO implementations may have a
+    /// special technique for directly copying raw pixel data from the
+    /// input to the output, when both input and output are the SAME
+    /// file type and the same data format.  This can be more efficient 
+    /// than in->read_image followed by out->write_image, and avoids any
+    /// unintended pixel alterations, especially for formats that use
+    /// lossy compression.
+    virtual bool copy_image (ImageInput *in);
 
     /// General message passing between client and image output server
     ///

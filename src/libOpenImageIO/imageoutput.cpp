@@ -35,8 +35,6 @@
 #include <iostream>
 #include <vector>
 
-#include <boost/scoped_array.hpp>
-
 #include "dassert.h"
 #include "typedesc.h"
 #include "filesystem.h"
@@ -223,7 +221,7 @@ ImageOutput::write_image (TypeDesc format, const void *data,
         size_t tilezstride = tileystride * m_spec.tile_height;
         size_t tile_values = (size_t)m_spec.tile_width * (size_t)m_spec.tile_height *
             (size_t)std::max(1,m_spec.tile_depth) * m_spec.nchannels;
-        boost::scoped_array<char> pels (new char [tile_values * format.size()]);
+        std::vector<char> pels (tile_values * format.size());
 
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth)
             for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
@@ -265,5 +263,29 @@ ImageOutput::write_image (TypeDesc format, const void *data,
     if (progress_callback)
         progress_callback (progress_callback_data, 1.0f);
 
+    return ok;
+}
+
+
+
+bool
+ImageOutput::copy_image (ImageInput *in)
+{
+    if (! in)
+        return false;
+
+    // Make sure the images are compatible in size
+    const ImageSpec &inspec (in->spec());
+    if (inspec.width != spec().width || inspec.height != spec().height || 
+        inspec.depth != spec().depth || inspec.nchannels != spec().nchannels)
+        return false;
+
+    // Naive implementation -- read the whole image and write it back out.
+    // FIXME -- a smarter implementation would read scanlines or tiles at
+    // a time, to minimize mem footprint.
+    std::vector<char> pixels (spec().image_bytes());
+    bool ok = in->read_image (spec().format, &pixels[0]);
+    if (ok)
+        ok = write_image (spec().format, &pixels[0]);
     return ok;
 }
