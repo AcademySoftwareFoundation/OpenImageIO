@@ -74,6 +74,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
       m_texformat(TexFormatTexture), 
       m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
+      m_tilesread(0), m_bytesread(0), m_timesopened(0),
       m_imagecache(imagecache)
 {
     m_spec.clear ();
@@ -121,6 +122,7 @@ ImageCacheFile::open ()
         m_input.reset ();
         return false;
     }
+    ++m_timesopened;
     m_imagecache.incr_open_files ();
     use ();
 
@@ -269,7 +271,11 @@ ImageCacheFile::read_tile (int subimage, int x, int y, int z,
     ImageSpec tmp;
     if (m_input->current_subimage() != subimage)
         m_input->seek_subimage (subimage, tmp);
-    imagecache().m_stat_bytes_read += spec(subimage).tile_bytes();
+    size_t b = spec(subimage).tile_bytes();
+    imagecache().m_stat_bytes_read += b;
+    m_bytesread += b;
+    ++m_tilesread;
+
     return m_input->read_tile (x, y, z, format, data);
 }
 
@@ -376,6 +382,11 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
         // Read the whole tile-row worth of scanlines
         for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i)
             ok = m_input->read_scanline (scanline, z, format, (void *)&buf[scanlinesize*i]);
+        size_t b = (y1-y0+1) * spec().scanline_bytes();
+        imagecache().m_stat_bytes_read += b;
+        m_bytesread += b;
+        ++m_tilesread;
+
         // For all tiles in the tile-row, enter them into the cache if not
         // already there.  Special case for the tile we're actually being
         // asked for -- save it in 'data' rather than adding a tile.
@@ -405,7 +416,10 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
     } else {
         // No auto-tile -- the tile is the whole image
         ok = m_input->read_image (format, data, xstride, ystride, zstride);
-        imagecache().m_stat_bytes_read += spec().image_bytes();
+        size_t b = spec().image_bytes();
+        imagecache().m_stat_bytes_read += b;
+        m_bytesread += b;
+        ++m_tilesread;
     }
 
     close ();   // Done with it
@@ -440,24 +454,35 @@ ImageCacheFile::release ()
 ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename)
 {
-    Timer locktime;
+#if IMAGECACHE_TIME_STATS
+    Timer timer;
+#endif
     lock_guard_t guard (m_mutex);
-    m_stat_locking_time += locktime();
+#if IMAGECACHE_TIME_STATS
+    m_stat_locking_time += timer();
+#endif
 
     FilenameMap::iterator found = m_files.find (filename);
     ImageCacheFile *tf;
     if (found == m_files.end()) {
         // We don't already have this file in the table.  Try to
         // open it and create a record.
+#if IMAGECACHE_TIME_STATS
         Timer time;
+#endif
         tf = new ImageCacheFile (*this, filename);
+#if IMAGECACHE_TIME_STATS
         m_stat_fileio_time += time();
+#endif
         m_files[filename] = tf;
     } else {
         tf = found->second.get();
     }
     tf->use ();
     check_max_files ();
+#if IMAGECACHE_TIME_STATS
+    m_stat_find_file_time += timer();
+#endif
     return tf;
 }
 
@@ -596,6 +621,7 @@ ImageCacheImpl::~ImageCacheImpl ()
 std::string
 ImageCacheImpl::getstats (int level) const
 {
+    lock_guard_t guard (m_mutex);
     std::ostringstream out;
     if (level > 0) {
         out << "OpenImageIO ImageCache statistics (" << (void*)this << ")\n";
@@ -603,13 +629,37 @@ ImageCacheImpl::getstats (int level) const
         out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
         out << "    Total size of all images referenced : " << Strutil::memformat (m_stat_files_totalsize) << "\n";
         out << "    Read from disk : " << Strutil::memformat (m_stat_bytes_read) << "\n";
-        out << "    Total file I/O time : " << Strutil::timeintervalformat (m_stat_fileio_time) << "\n";
-        out << "    Locking time : " << Strutil::timeintervalformat (m_stat_locking_time) << "\n";
+        if (m_stat_find_file_time > 0.001)
+            out << "    Find file time : " << Strutil::timeintervalformat (m_stat_find_file_time) << "\n";
+        if (m_stat_fileio_time > 0.001)
+            out << "    File I/O time : " << Strutil::timeintervalformat (m_stat_fileio_time) << "\n";
+        if (m_stat_locking_time > 0.001)
+            out << "    Locking time : " << Strutil::timeintervalformat (m_stat_locking_time) << "\n";
         out << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
         out << "    total tile requests : " << m_stat_find_tile_calls << "\n";
         out << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
         out << "    main cache misses : " << m_stat_find_tile_cache_misses << " (" << 100.0*(double)m_stat_find_tile_cache_misses/(double)m_stat_find_tile_calls << "%)\n";
         out << "    Peak cache memory : " << Strutil::memformat (m_mem_used) << "\n";
+        if (m_stat_find_tile_time > 0.001)
+            out << "    Find tile time : " << Strutil::timeintervalformat (m_stat_find_tile_time) << "\n";
+    }
+    if (level >= 2) {
+        out << "  Image file statistics:\n";
+        out << "      File\t\t\topens\ttiles\tread\n";
+        size_t total_opens = 0, total_tiles = 0, total_bytes = 0;
+        FilenameMap::const_iterator f;
+        int i;
+        for (f = m_files.begin(), i = 0;  f != m_files.end();  ++f, ++i) {
+            const ImageCacheFileRef &file (f->second);
+            out << "      " << (i+1) << ": \"" << file->filename() << "\"\t" 
+                << file->timesopened() << "\t" << file->tilesread() 
+                << "\t" << file->bytesread()/1024 << " KB\n";
+            total_opens += file->timesopened();
+            total_tiles += file->tilesread();
+            total_bytes += file->bytesread();
+        }
+        out << "      Totals:\t\t\t" << total_opens 
+            << "\t" << total_tiles << "\t" << total_bytes/1024 << " KB\n";
     }
     return out.str();
 }
@@ -714,9 +764,13 @@ void
 ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
 {
     DASSERT (! id.file().broken());
-    Timer locktime;
+#if IMAGECACHE_TIME_STATS
+    Timer timer;
+#endif
     lock_guard_t guard (m_mutex);
-    m_stat_locking_time += locktime();
+#if IMAGECACHE_TIME_STATS
+    m_stat_locking_time += timer();
+#endif
     ++m_stat_find_tile_microcache_misses;
     TileCache::iterator found = m_tilecache.find (id);
     if (found != m_tilecache.end()) {
@@ -725,12 +779,19 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
     } else {
         ++m_stat_find_tile_cache_misses;
         check_max_mem ();
-        Timer time;
+#if IMAGECACHE_TIME_STATS
+        Timer readtime;
+#endif
         tile.reset (new ImageCacheTile (id));
-        m_stat_fileio_time += time();
+#if IMAGECACHE_TIME_STATS
+        m_stat_fileio_time += readtime();
+#endif
         // FIXME -- should we create the ICT above while not locked?
         m_tilecache[id] = tile;
     }
+#if IMAGECACHE_TIME_STATS
+    m_stat_find_tile_time += timer();
+#endif
     DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
     DASSERT (tile);
 }
@@ -742,7 +803,7 @@ ImageCacheImpl::check_max_mem ()
 {
 #ifdef DEBUG
     static size_t n = 0;
-    if (! (n++ % 16) || m_mem_used >= m_max_memory_bytes)
+    if (! (n++ % 64) || m_mem_used >= m_max_memory_bytes)
         std::cerr << "mem used: " << m_mem_used << ", max = " << m_max_memory_bytes << "\n";
 #endif
     if (m_tilecache.empty())

@@ -42,6 +42,15 @@
 namespace OpenImageIO {
 namespace pvt {
 
+#ifdef DEBUG
+# define IMAGECACHE_TIME_STATS 1
+#else
+    // Change the following to 1 to get timing statistics even for
+    // optimized runs.  Note that this has some performance penalty.
+# define IMAGECACHE_TIME_STATS 0
+#endif
+
+
 class ImageCacheImpl;
 
 const char * texture_format_name (TexFormat f);
@@ -93,6 +102,10 @@ public:
     bool eightbit (void) const { return m_eightbit; }
     bool untiled (void) const { return m_untiled; }
 
+    size_t timesopened () const { return m_timesopened; }
+    size_t tilesread () const { return m_tilesread; }
+    size_t bytesread () const { return m_bytesread; }
+
 private:
     ustring m_filename;             ///< Filename
     bool m_used;                    ///< Recently used (in the LRU sense)
@@ -114,7 +127,9 @@ private:
     bool m_eightbit;                ///< Eight bit?  (or float)
     unsigned int m_channelsize;     ///< Channel size, in bytes
     unsigned int m_pixelsize;       ///< Channel size, in bytes
-
+    size_t m_tilesread;             ///< Tiles read from this file
+    size_t m_bytesread;             ///< Bytes read from this file
+    size_t m_timesopened;           ///< Separate times we opened this file
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
 
     /// Close and delete the ImageInput, if currently open
@@ -170,6 +185,10 @@ public:
     int x (void) const { return m_x; }
     int y (void) const { return m_y; }
     int z (void) const { return m_z; }
+
+    void x (int v) { m_x = v; }
+    void y (int v) { m_y = v; }
+    void z (int v) { m_z = v; }
 
     /// Do the two ID's refer to the same tile?  
     ///
@@ -532,7 +551,7 @@ private:
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's
     FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
-    mutex_t m_mutex;             ///< Thread safety
+    mutable mutex_t m_mutex;     ///< Thread safety
     TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
     size_t m_mem_used;           ///< Memory being used for tiles
@@ -553,6 +572,8 @@ private:
     int m_stat_unique_files;
     double m_stat_fileio_time;
     double m_stat_locking_time;
+    double m_stat_find_file_time;
+    double m_stat_find_tile_time;
 
     friend class ImageCacheFile;
     friend class ImageCacheTile;

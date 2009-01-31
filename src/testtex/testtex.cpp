@@ -246,7 +246,7 @@ main (int argc, char *argv[])
 
     texsys = TextureSystem::create ();
     std::cerr << "Created texture system\n";
-    texsys->attribute ("statistics:level", 1);
+    texsys->attribute ("statistics:level", 2);
     texsys->attribute ("autotile", autotile);
     texsys->attribute ("automip", (int)automip);
 
