@@ -11,7 +11,7 @@
 #   local_src           package tar filename
 #   local_config        any special flags to give ./configure
 #   local_make_extras   any special flags for make when building the package
-
+#   local_patches       any commands to run after untar but before configure
 
 ${info Reading srcpackage.mk for ${local_name}}
 
@@ -34,6 +34,13 @@ ${name}_obj_dir := ${build_obj_dir}/${name}
 # Config flags
 ${name}_config := ${local_config}
 #${info srcpackage.mk ${name} ${name}_config = ${${name}_config}}
+
+# Patch commands
+ifneq (${local_patches},)
+${name}_patches := ${local_patches}
+else
+${name}_patches := echo "no patches"
+endif
 
 # Extra make flags flags
 ${name}_make_extras := ${local_make_extras}
@@ -58,7 +65,8 @@ ${${name}_depfile}: ${${name}_srcs}
 	${MKDIR} ${build_dir} ${build_obj_dir} ${${notdir ${basename $@}}_obj_dir} ${ALL_BUILD_DIRS}
 	tar -x -z -f ${${notdir ${basename $@}}_srcs} \
 	        -C ${build_obj_dir}
-	(cd ${${notdir ${basename $@}}_obj_dir} ; ./configure --prefix=${working_dir}/${build_obj_dir}/${notdir ${basename $@}} ${${notdir ${basename $@}}_config} ; make ${${notdir ${basename $@}}_make_extras} )
+	${${notdir ${basename $@}}_patches}
+	(cd ${${notdir ${basename $@}}_obj_dir} ; if [ -e ./configure ] ; then ./configure --prefix=${working_dir}/${build_obj_dir}/${notdir ${basename $@}} ${${notdir ${basename $@}}_config} ; fi ; make ${${notdir ${basename $@}}_make_extras} )
 	touch $@
 
 
@@ -87,3 +95,4 @@ local_name :=
 local_src := 
 local_config := 
 local_make_extras := 
+local_patches :=
