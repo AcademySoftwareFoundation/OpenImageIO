@@ -497,6 +497,7 @@ TIFFInput::readspec ()
 
     // Search for an EXIF IFD in the TIFF file, and if found, rummage 
     // around for Exif fields.
+#if TIFFLIB_VERSION > 20050912    /* compat with old TIFF libs - skip Exif */
     int exifoffset = 0;
     if (TIFFGetField (m_tif, TIFFTAG_EXIFIFD, &exifoffset) &&
             TIFFReadEXIFDirectory (m_tif, exifoffset)) {
@@ -509,6 +510,7 @@ TIFFInput::readspec ()
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
         TIFFSetDirectory (m_tif, m_subimage);
     }
+#endif
 
     // Search for IPTC metadata in IIM form
     int iptcsize = 0;
