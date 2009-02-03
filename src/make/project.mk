@@ -25,7 +25,8 @@ help:
 	@echo "  make realclean  Remove both ${build_dir} AND ${dist_dir}"
 	@echo "  make nuke       Remove ALL of build and dist (not just ${platform})"
 	@echo "Helpful modifiers:"
-	@echo "  make EMBEDPLUGINS=1 ...     compile the plugins into libOpenImageIO"
+	@echo "  make SHOWCOMMANDS=1 ...     Show all compilation commands"
+	@echo "  make EMBEDPLUGINS=1 ...     Compile the plugins into libOpenImageIO"
 	@echo ""
 
 

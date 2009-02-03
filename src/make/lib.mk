@@ -56,12 +56,20 @@ endif
 # Action to build the library
 ${${name}_lib}: ${${name}_objs} ${${name}_depfile}
 	@ echo "Building library ${${name}_lib} $@ ..."
+ifeq (${SHOWCOMMANDS},)
 	@ ${AR} ${AROUT}$@ ${${notdir ${basename $@}}_objs} 
+else
+	${AR} ${AROUT}$@ ${${notdir ${basename $@}}_objs} 
+endif
 
 # Action to build the object files
 ${${name}_obj_dir}/%${OEXT}: ${${name}_src_dir}/%.cpp
 	@ echo "  Compiling $@ ..."
+ifeq (${SHOWCOMMANDS},)
 	@ ${CXX} ${CFLAGS} ${CINCL}${${name}_src_dir} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+else
+	${CXX} ${CFLAGS} ${CINCL}${${name}_src_dir} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+endif
 
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}

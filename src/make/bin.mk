@@ -69,7 +69,11 @@ endif
 # Action to build the binary
 ${${name}_bin}: ${${name}_srcs} ${${name}_depfile} ${${name}_objs} ${${name}_needed_libs}
 	@ echo "Building binary $@ ..."
+ifeq (${SHOWCOMMANDS},)
 	@ ${LD} ${LDFLAGS} ${BINOUT}$@ ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${notdir ${basename $@}}_linked_libs} ${${basename ${notdir $@}}_ldflags} ${LINK_OTHER}
+else
+	${LD} ${LDFLAGS} ${BINOUT}$@ ${${notdir ${basename $@}}_objs} ${LD_LIBPATH}${build_dir}/lib ${${notdir ${basename $@}}_linked_libs} ${${basename ${notdir $@}}_ldflags} ${LINK_OTHER}
+endif
 ifndef DEBUG
 	@ ${STRIP_BINARY} $@
 endif
@@ -77,7 +81,11 @@ endif
 # Action to build the object files
 ${${name}_obj_dir}/%${OEXT}: ${${name}_src_dir}/%.cpp
 	@ echo "  Compiling $@ ..."
+ifeq (${SHOWCOMMANDS},)
 	@ ${CXX} ${CFLAGS} ${CINCL}${${name}_src_dir} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+else
+	${CXX} ${CFLAGS} ${CINCL}${${name}_src_dir} ${PROJECT_EXTRA_CXX} ${DASHC} $< ${DASHO}$@
+endif
 
 # Action to build the dependency if any of the src files change
 ${${name}_depfile}: ${${name}_srcs}
