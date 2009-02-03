@@ -406,9 +406,9 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
                 TileID id (*this, subimage, i+spec().x, y0, z);
                 if (! imagecache().tile_in_cache (id)) {
                     ImageCacheTileRef tile;
-                    tile.reset (new ImageCacheTile (id, &buf[i*pixelsize],
+                    tile = new ImageCacheTile (id, &buf[i*pixelsize],
                                             format, pixelsize,
-                                            scanlinesize, scanlinesize*th));
+                                            scanlinesize, scanlinesize*th);
                     imagecache().add_tile_to_cache (tile);
                 }
             }
@@ -782,7 +782,7 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
 #if IMAGECACHE_TIME_STATS
         Timer readtime;
 #endif
-        tile.reset (new ImageCacheTile (id));
+        tile = new ImageCacheTile (id);
 #if IMAGECACHE_TIME_STATS
         m_stat_fileio_time += readtime();
 #endif
