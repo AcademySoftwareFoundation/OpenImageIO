@@ -63,7 +63,6 @@ typedef boost::recursive_mutex::scoped_lock recursive_lock_guard;
 //
 
 #if defined(__linux__)
-#  include <ext/atomicity.h>
 #  define USE_INTEL_ASM_ATOMICS
 
 #elif defined(__APPLE__)
