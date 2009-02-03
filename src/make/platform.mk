@@ -117,7 +117,7 @@ LINKWITH := -l
 SHLIBEXT := .so
 LDSHLIB := ${CXX}
 SHLIB_DASHO := -o #
-SHLIB_LDFLAGS := -Bdynamic -rdynamic -shared ${PIC} 
+SHLIB_LDFLAGS += -Bdynamic -rdynamic -shared ${PIC} 
 
 # Making dependency make files (.d)
 MAKEDEPEND := makedepend
@@ -142,6 +142,7 @@ CPR := cp -vpfr
 SED := sed
 # ld?
 
+QT_MOC ?= moc
 
 #
 #########################################################################

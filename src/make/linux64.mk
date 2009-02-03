@@ -26,13 +26,13 @@ endif
 
 CP := cp -uvpf
 
-QT_PREFIX := /usr/include/qt4
-QT_INCLUDE += -I${QT_PREFIX}/QtGui -I${QT_PREFIX}/QtOpenGL \
+QT_PREFIX ?= /usr/include/qt4
+QT_INCLUDE ?= -I${QT_PREFIX}/QtGui -I${QT_PREFIX}/QtOpenGL \
 	      -I${QT_PREFIX}
-LINK_QT := -lQtOpenGL -lQtGui -lQtCore 
+LINK_QT ?= -lQtOpenGL -lQtGui -lQtCore 
 
-OPENGL_INCLUDE := -I/usr/include/GL
-LINK_OPENGL := 
+OPENGL_INCLUDE ?= -I/usr/include/GL
+LINK_OPENGL ?= 
 
 LINK_OTHER := -ldl
 
