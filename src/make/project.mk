@@ -54,7 +54,7 @@ endif
 
 # include files that get included in the compiled distribution
 dist_includes	:= export.h imageio.h typedesc.h imagebuf.h paramlist.h \
-			imagecache.h refcnt.h texture.h thread.h \
+			imagecache.h refcnt.h strutil.h texture.h thread.h \
 			typedesc.h ustring.h varyingref.h
 
 # make the public distro have an OpenImageIO subdirectory in include,
