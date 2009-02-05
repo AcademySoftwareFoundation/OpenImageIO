@@ -94,7 +94,7 @@ making simplifying assumptions.  Among them:
     boundaries that aren't byte boundaries.  Files with $<8$ bits will
     appear to the client as 8-bit unsigned grayscale images.
 
-  \item Only fully elaborated, non-compressed data are are accepted
+  \item Only fully elaborated, non-compressed data are accepted
     and returned by the API.  Compression or special encodings are
     handled entirely within an \product plugin.
 
@@ -141,7 +141,7 @@ switched to Sam Leffler's stable and complete {\fn libtiff}.
 In the mid-to-late-1990's, I worked at Pixar as one of the main
 implementors of PhotoRealistic RenderMan, which had \emph{display
   drivers} that consisted of an API for opening files and outputting
-pixels, and a set of DSO/DLL plugins that each implemented image output
+pixels, and a set of DSO/DLL plugins that each implement image output
 for each of a dozen or so different file format.  The plugins all
 responded to the same API, so the renderer itself did not need to know
 how to the details of the image file formats, and users could (in

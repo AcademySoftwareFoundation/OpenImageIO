@@ -80,7 +80,7 @@ by the enumerated type {\cf AGGREGATE}:
 {\cf VEC2} & two values representing a 2D vector. \\
 {\cf VEC3} & three values representing a 3D vector. \\
 {\cf VEC4} & four values representing a 4D vector. \\
-{\cf MATRIX44} & two values representing a $4 \times 4$ matrix.
+{\cf MATRIX44} & sixteen values representing a $4 \times 4$ matrix.
 \end{tabular}
 \medskip
 
@@ -162,7 +162,7 @@ format specification of a single image.  It contains:
 \item Any presumed gamma correction or hints about color space of
   the pixel values.
 \item Quantization parameters describing how floating point values
-  should be converted to integers (if cases where users pass real values
+  should be converted to integers (in cases where users pass real values
   but integer values are stored in the file).  This is used only when
   writing images, not when reading them.
 \item A user-extensible (and format-extensible) list of any other
@@ -234,16 +234,16 @@ The number of \emph{channels} (color values) present in each pixel of
 the image.  For example, an RGB image has 3 channels.
 \apiend
 
-\apiitem{std:vector<std::string> channelnames}
+\apiitem{std::vector<std::string> channelnames}
 The names of each channel, in order.  Typically this will be \qkw{R},
 \qkw{G},\qkw{B}, \qkw{A} (alpha), \qkw{Z} (depth), or other arbitrary
 names.
 \apiend
 
 \apiitem{int alpha_channel}
-The index of the channel that respresents \emph{alpha} (pixel coverage
+The index of the channel that represents \emph{alpha} (pixel coverage
 and/or transparency).  It defaults to -1 if no alpha channel is present,
-or if it is not know which channel represents alpha.
+or if it is not known which channel represents alpha.
 \apiend
 
 \apiitem{int z_channel}
@@ -271,7 +271,7 @@ an enumerated type that may take on the following values:
 
 \apiitem{float gamma}
 The gamma exponent, if the pixel values in the image have already been
-gamma corrected (indicated by {\cf nonlinear} having a value of {\cf
+gamma corrected (indicated by {\cf linearity} having a value of {\cf
 GammaCorrected}).  The default of 1.0 indicates that no gamma
 correction has been applied.
 \apiend
