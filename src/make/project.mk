@@ -53,7 +53,8 @@ dist_libs       += hdr.imageio${SHLIBEXT} \
 endif
 
 # include files that get included in the compiled distribution
-dist_includes	:= export.h imageio.h typedesc.h imagebuf.h paramlist.h \
+dist_includes	:= dassert.h export.h imageio.h typedesc.h \
+			imagebuf.h paramlist.h \
 			imagecache.h refcnt.h strutil.h texture.h thread.h \
 			typedesc.h ustring.h varyingref.h
 
