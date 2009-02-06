@@ -108,7 +108,7 @@ itself.  Additional optional arguments describe the data stride, which
 can be ignored for contiguous data (use of strides is explained in
 Section~\ref{sec:imageoutput:strides}).
 
-All \ImageOutput implemenations will accept scanlines in strict order
+All \ImageOutput implementations will accept scanlines in strict order
 (starting with scanline 0, then 1, up to {\kw yres-1}, without skipping
 any).  See Section~\ref{sec:imageoutput:randomrewrite} for details
 on out-of-order or repeated scanlines.
@@ -182,7 +182,7 @@ Additional optional arguments describe the data stride, which can be
 ignored for contiguous data (use of strides is explained in
 Section~\ref{sec:imageoutput:strides}).
 
-All \ImageOutput implemenations that support tiles will accept tiles in
+All \ImageOutput implementations that support tiles will accept tiles in
 strict order of increasing $y$ rows, and within each row, increasing $x$
 column, without missing any tiles.  See
 Section~\ref{sec:imageoutput:randomrewrite} for details on out-of-order
@@ -278,7 +278,7 @@ It is not required that the pixel data passed to \writeimage,
 the same data format as that requested as the native format of the file.
 You can fully mix and match data you pass to the various {\kw write}
 routines and \product will automatically convert from the internal
-format to the native file format.  For example. the following code will
+format to the native file format.  For example, the following code will
 open a TIFF file that stores pixel data as 16-bit unsigned integers
 (values ranging from 0 to 65535), compute internal pixel values as
 floating-point values, with \writeimage performing the conversion
@@ -314,7 +314,7 @@ passed to the {\cf write} functions are \emph{contiguous}, that is:
 \item each pixel in memory consists of a number of data values equal to
   the declared number of channels that are being written to the file;
 \item successive column pixels within a row directly follow each other in
-  memory, with the first channel of pixel $x$ of immediately following
+  memory, with the first channel of pixel $x$ immediately following
   last channel of pixel $x-1$ of the same row;
 \item for whole images, tiles or rectangles, the data for each row
   immediately follows the previous one in memory (the first pixel of row
@@ -336,7 +336,7 @@ columns, rows, and slices, respectively, of the data you are passing.
 For any of these values that are not supplied, or are given as the
 special constant {\cf AutoStride}, contiguity will be assumed.
 
-By passing different stride values, you can achieving some surprisingly
+By passing different stride values, you can achieve some surprisingly
 flexible functionality.  A few representative examples follow:
 
 \begin{itemize}
@@ -396,6 +396,9 @@ descriptions of the stride parameters to each {\cf write} function.
 \subsection{Writing a crop window or overscan region}
 \label{sec:imageoutput:cropwindows}
 \index{crop windows} \index{overscan}
+
+% FIXME -- Marcos suggests adding a figure here to illustrate
+% the w/h/d, xyz, full
 
 The \ImageSpec fields {\cf width}, {\cf height}, and {\cf depth}
 describe the dimensions of the actual pixel data.
@@ -475,7 +478,7 @@ image or saved in the file.
 
 The remainder of this section explains how to store additional metadata
 in the \ImageSpec.  It is up to the \ImageOutput to store these
-in the file, in indeed the file format is able to accept the data.
+in the file, if indeed the file format is able to accept the data.
 Individual \ImageOutput implementations should document which metadata
 they respect.
 
@@ -564,7 +567,7 @@ this manner:
 \item Certain operations that make sense for colors should not apply to
   alpha or $z$.  For example, if your call to {\cf write} reduces
   precision (e.g., converts from {\cf float} to integer pixels) it will
-  will typically add random \emph{dither} to eliminate banding artifacts
+  typically add random \emph{dither} to eliminate banding artifacts
   in the quantization.  But for a variety of reasons, you want to add
   dither only to color channels and not to alpha.  So setting {\cf
     alpha_channel} will cause {\cf write} to not dither that channel.
@@ -592,7 +595,7 @@ following values:
   indicates that you have made no claim about the color space of your
   pixel data.
 \item[\halfspc \rm \kw{ImageSpec::Linear}] indicates that the pixel
-  values you are pssing repesent linear values.
+  values you are passing repesent linear values.
 \item[\halfspc \rm \kw{ImageSpec::GammaCorrected}] indicates that the
   color pixel values (but not alpha or $z$) that you are passing have
   already been gamma corrected (raised to the power $1/\gamma$), and
@@ -705,7 +708,7 @@ Float 0.0 maps to the integer value given by {\cf quant_black}, and
 float 1.0 maps to the integer value given by {\cf quant_white}.  Then,
 for color channels only (not alpha or depth), a random amount is added
 in the range ({\cf -quant_dither..quant_dither}), in order to reduce
-banding artifats.  The result is then clamped to lie within the range of
+banding artifacts.  The result is then clamped to lie within the range of
 {\cf quant_min} and {\cf quant_max}, inclusive.  Finally, this result is
 truncated its integer value for final output.  Here is the code that
 implements this transformation ({\cf T} is the final output integer
@@ -772,7 +775,7 @@ filling the full 16 bit:
 \subsection{Random access and repeated transmission of pixels}
 \label{sec:imageoutput:randomrewrite}
 
-All \ImageOutput implemenations that support scanlines and tiles strict
+All \ImageOutput implementations that support scanlines and tiles in strict
 order of increasing $z$ slice, increasing $y$ scanlines/rows within each
 slice, and increasing $x$ column within each row.  It is generally not
 safe to skip scanlines or tiles, or transmit them out of order, unless
@@ -870,7 +873,7 @@ extension), and dynamic libraries on Mac OS X (with the {\cf .dylib}
 extension).  
 
 \product will look for matching plugins according to
-\emph{searth paths}, which are strings giving a list of directories to
+\emph{search paths}, which are strings giving a list of directories to
 search, with each directory separated by a colon (`{\cf :}').  Within
 a search path, any
 substrings of the form {\cf \$\{FOO\}} will be replaced
@@ -888,11 +891,11 @@ variable, then it will check the custom searchpath passed as the
 optional second argument to {\cf ImageOutput::create()}, searching in
 the order that the directories are listed.  Here is an example:
 
-\begin{code}
-        char *mysearch = "/usr/myapp/lib:\${HOME}/plugins";
+\begin{code} 
+        char *mysearch = "/usr/myapp/lib:${HOME}/plugins";
         ImageOutput *out = ImageOutput::create (filename, mysearch);
         ...
-\end{code}
+\end{code} % $
 
 
 \subsection{Error checking}
@@ -902,7 +905,7 @@ Nearly every \ImageOutput API function returns a {\cf bool} indicating
 whether the operation succeeded ({\cf true}) or failed ({\cf false}).
 In the case of a failure, the \ImageOutput will have saved an error
 message describing in more detail what went wrong, and the latest
-error messages is accessible using the \ImageOutput method 
+error message is accessible using the \ImageOutput method 
 {\cf error_message()}, which returns the message as a {\cf std::string}.
 
 The exception to this rule is {\cf ImageOutput::create}, which returns
@@ -943,7 +946,7 @@ elaborated with error checking and reporting:
         }
 
         if (! out->write_image (TypeDesc::UINT8, pixels)) {
-            std::cerr << "Could write pixels to " << filename 
+            std::cerr << "Could not write pixels to " << filename 
                       << ", error = " << out->error_message() << "\n";
             delete out;
             return;
@@ -971,7 +974,7 @@ Create an \ImageOutput that can be used to write an image file.  The
 type of image file (and hence, the particular subclass of \ImageOutput
 returned, and the plugin that contains its methods) is inferred from the
 extension of the file name.  The {\kw plugin_searchpath} parameter is a
-colon-separated list of directories to search for ImageIO plugin
+colon-separated list of directories to search for \product plugin
 DSO/DLL's.
 
 \apiend
@@ -1071,7 +1074,7 @@ imply contiguous data, i.e., \\
 \spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
 This method automatically converts the
 data from the specified {\kw format} to the actual output format of the
-fil.  Return {\kw true} for success, {\kw false} for failure.  It is a
+file.  Return {\kw true} for success, {\kw false} for failure.  It is a
 failure to call \writetile with an out-of-order tile if this
 format driver does not support random access.
 

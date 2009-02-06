@@ -126,7 +126,7 @@ pointer to the pixel buffer itself.  Additional optional arguments
 describe the data stride, which can be ignored for contiguous data (use
 of strides is explained in Section~\ref{sec:imageinput:strides}).
 
-All \ImageInput implemenations will read scanlines in strict order
+All \ImageInput implementations will read scanlines in strict order
 (starting with scanline 0, then 1, up to {\kw yres-1}, without skipping
 any).  However, it's probably uncommon for an \ImageInput to properly
 allow reading of out-of-order scanlines.
@@ -175,7 +175,7 @@ Additional optional arguments describe the data stride, which can be
 ignored for contiguous data (use of strides is explained in
 Section~\ref{sec:imageinput:strides}).
 
-All \ImageInput implemenations are required to support reading tiles in
+All \ImageInput implementations are required to support reading tiles in
 arbitrary order (i.e., not in strict order of increasing $y$ rows, and
 within each row, increasing $x$ column, without missing any tiles).
 
@@ -208,7 +208,7 @@ It is not required that the pixel data buffer passed to \readimage,
 \readscanline, or \readtile actually be in the same data format as the
 data in the file being read.  \product will automatically convert from
 native data type of the file to the internal data format of your choice.
-For example. the following code will open a TIFF and read pixels into
+For example, the following code will open a TIFF and read pixels into
 your internal buffer represented as {\cf float} values.  This will work
 regardless of whether the TIFF file itself is using 8-bit, 16-bit, or
 float values.
@@ -251,7 +251,7 @@ to be stored) is \emph{contiguous}, that is:
 \item each pixel in memory consists of a number of data values equal to
   the number of channels in the file;
 \item successive column pixels within a row directly follow each other in
-  memory, with the first channel of pixel $x$ of immediately following
+  memory, with the first channel of pixel $x$ immediately following
   last channel of pixel $x-1$ of the same row;
 \item for whole images or tiles, the data for each row
   immediately follows the previous one in memory (the first pixel of row
@@ -272,7 +272,7 @@ respectively, of your pixel buffer.  For any of these values that are
 not supplied, or are given as the special constant {\cf AutoStride},
 contiguity will be assumed.
 
-By passing different stride values, you can achieving some surprisingly
+By passing different stride values, you can achieve some surprisingly
 flexible functionality.  A few representative examples follow:
 
 \begin{itemize}
@@ -557,10 +557,10 @@ passed as the optional second argument to {\cf ImageInput::create()}.
 Here is an example:
 
 \begin{code}
-        char *mysearch = "/usr/myapp/lib:\${HOME}/plugins";
+        char *mysearch = "/usr/myapp/lib:${HOME}/plugins";
         ImageInput *in = ImageInput::create (filename, mysearch);
         ...
-\end{code}
+\end{code} %$
 
 
 \subsection{Error checking}
@@ -570,7 +570,7 @@ Nearly every \ImageInput API function returns a {\cf bool} indicating
 whether the operation succeeded ({\cf true}) or failed ({\cf false}).
 In the case of a failure, the \ImageInput will have saved an error
 message describing in more detail what went wrong, and the latest
-error messages is accessible using the \ImageInput method 
+error message is accessible using the \ImageInput method 
 {\cf error_message()}, which returns the message as a {\cf std::string}.
 
 The exception to this rule is {\cf ImageInput::create}, which returns
@@ -614,7 +614,7 @@ elaborated with error checking and reporting:
         pixels = new unsigned char [xres*yres*channels];
 
         if (! in->read_image (TypeDesc::UINT8, pixels)) {
-            std::cerr << "Could read pixels from " << filename 
+            std::cerr << "Could not read pixels from " << filename 
                       << ", error = " << in->error_message() << "\n";
             delete in;
             return;
@@ -638,7 +638,7 @@ elaborated with error checking and reporting:
 \bigspc\bigspc\spc   const std::string \&plugin_searchpath="")}
 Create and return an \ImageInput implementation that is able
 to read the given file.  The {\kw plugin_searchpath} parameter is a
-colon-separated list of directories to search for ImageIO plugin
+colon-separated list of directories to search for \product plugin
 DSO/DLL's (not a searchpath for the image itself!).  This will
 actually just try every ImageIO plugin it can locate, until it
 finds one that's able to open the file without error.  This just
