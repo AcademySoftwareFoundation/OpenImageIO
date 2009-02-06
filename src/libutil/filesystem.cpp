@@ -159,9 +159,12 @@ Filesystem::searchpath_find (const std::string &filename,
         if (boost::filesystem::is_regular (f))
             return f.string();
     }
+
+#if 0 // NO, don't do this any more.
     // If an absolute filename was not found, we're done.
     if (abs)
         return std::string();
+#endif
 
     // Relative filename, not yet found -- try each directory in turn
     BOOST_FOREACH (const std::string &d, dirs) {
