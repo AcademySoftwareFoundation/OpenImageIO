@@ -194,6 +194,7 @@ struct DLLPUBLIC TypeDesc {
     void unarray (void) { arraylen = 0; }
 
     static const TypeDesc TypeFloat, TypeColor, TypeString, TypeInt;
+    static const TypeDesc TypePoint, TypeVector, TypeNormal, TypeMatrix;
 };
 
 
@@ -214,7 +215,10 @@ typedef TypeDesc ParamBaseType;
 #define PT_MATRIX TypeDesc(TypeDesc::FLOAT,TypeDesc::MATRIX44)
 #define PT_STRING TypeDesc::STRING
 #define PT_UNKNOWN TypeDesc::UNKNOWN
-
+#define PT_COLOR TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::COLOR)
+#define PT_POINT TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::POINT)
+#define PT_VECTOR TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::VECTOR)
+#define PT_NORMAL TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::NORMAL)
 
 
 
