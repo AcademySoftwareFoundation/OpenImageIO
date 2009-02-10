@@ -36,6 +36,7 @@ help:
 # external distribution
 dist_bins    	:= iconvert${BINEXT} \
 		   idiff${BINEXT} \
+		   igrep${BINEXT} \
 		   iinfo${BINEXT} \
 		   iv${BINEXT} \
 		   maketx${BINEXT} \
