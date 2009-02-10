@@ -18,7 +18,7 @@ local_shlibs := libOpenImageIO
 # ld flags needed for this library
 #local_ldflags := ${LINK_PNG} #${PNG_HOME}/lib/png-${PNG_VERSION}/*${OEXT}
 #local_ldflags :=${LINK_PNG} ${JPEG_HOME}/lib/jpeg-${JPEG_VERSION}/*${OEXT}
-local_ldflags := ${LINK_PNG} ${LINK_JPEG} ${LINK_ZLIB} ${LINK_BOOST}
+local_ldflags := ${LINK_PNG} ${LINK_JPEG} ${LINK_ZLIB} 
 
 
 

@@ -36,7 +36,11 @@ local_extra_objs := ${build_obj_dir}/libutil/argparse${OEXT} \
 local_shlibs := 
 
 # ld flags needed for this library
+ifeq (${platform},macosx)
+# Only OSX appears to need to link a dynamic lib against static libs
+# that they will call
 local_ldflags := ${LINK_ILMBASE} ${LINK_BOOST}
+endif
 
 
 # If somebody did 'make EMBEDPLUGINS=1', take the object files for all

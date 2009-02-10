@@ -31,5 +31,5 @@ LINK_QT ?= -lQtOpenGL -lQtGui -lQtCore
 OPENGL_INCLUDE ?= -I/usr/include/GL
 LINK_OPENGL ?= 
 
-LINK_OTHER := -ldl
+LINK_OTHER := -ldl -lpthread
 

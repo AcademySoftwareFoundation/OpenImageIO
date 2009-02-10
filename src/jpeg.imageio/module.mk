@@ -16,7 +16,7 @@ local_libs :=
 local_shlibs := libOpenImageIO
 
 # ld flags needed for this library
-local_ldflags := ${LINK_JPEG} ${LINK_BOOST}
+local_ldflags := ${LINK_JPEG} 
 
 
 

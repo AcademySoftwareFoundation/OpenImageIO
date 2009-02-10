@@ -11,6 +11,9 @@ CFLAGS += -fPIC
 #CFLAGS += -D__APPLE__    # the compiler already does this for us
 #CFLAGS += -arch i386 -arch x86_64 -mmacosx-version-min=10.5
 
+# I don't understand why, but boost::regex crashes when I strip binaries on OSX.
+STRIP_BINARY := touch
+
 ifdef DEBUG
 CFLAGS += -g -W
 else

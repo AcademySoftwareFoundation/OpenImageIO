@@ -20,7 +20,11 @@ local_libs :=
 local_shlibs :=
 
 # ld flags needed for this library
+ifeq (${platform},macosx)
+# Only OSX appears to need to link a dynamic lib against static libs
+# that they will call
 local_ldflags := ${LINK_BOOST}
+endif
 
 
 

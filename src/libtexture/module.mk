@@ -22,7 +22,11 @@ local_extra_objs :=
 local_shlibs := libOpenImageIO
 
 # ld flags needed for this library
+ifeq (${platform},macosx)
+# Only OSX appears to need to link a dynamic lib against static libs
+# that they will call
 local_ldflags := ${LINK_ILMBASE} ${LINK_BOOST}
+endif
 
 
 ## Include ONE of the includes below, depending on whether this module

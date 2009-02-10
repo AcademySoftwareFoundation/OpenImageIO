@@ -89,8 +89,9 @@ ILMBASE_VERSION ?= 1.0.1
 ILMBASE_HOME ?= ${THIRD_PARTY_TOOLS_HOME}
 ILMBASE_LIB_AREA ?= ${ILMBASE_HOME}/lib/ilmbase-${ILMBASE_VERSION}
 ILMBASE_CXX ?= -I${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}/OpenEXR
-LINK_ILMBASE_HALF ?= ${ILMBASE_LIB_AREA}/half${OEXT}
-LINK_ILMBASE ?= ${LD_LIBPATH}${ILMBASE_LIB_AREA} ${LINKWITH}Imath ${LINK_ILMBASE_HALF} ${LINKWITH}IlmThread ${LINKWITH}Iex
+LINK_ILMBASE_HALF ?= ${ILMBASE_LIB_AREA}/${LIBPREFIX}Half${LIBEXT} 
+LINK_ILMBASE ?= ${LD_LIBPATH}${ILMBASE_LIB_AREA} ${ILMBASE_LIB_AREA}/${LIBPREFIX}Imath${LIBEXT} ${LINK_ILMBASE_HALF} ${ILMBASE_LIB_AREA}/${LIBPREFIX}IlmThread${LIBEXT} ${ILMBASE_LIB_AREA}/${LIBPREFIX}Iex${LIBEXT}
+#shared LINK_ILMBASE ?= ${LD_LIBPATH}${ILMBASE_LIB_AREA} ${LINKWITH}Imath ${LINK_ILMBASE_HALF} ${LINKWITH}IlmThread ${LINKWITH}Iex
 
 OPENEXR_VERSION ?= 1.6.1
 OPENEXR_VERSION_DIGITS ?= 0$(subst .,0,${OPENEXR_VERSION})
@@ -120,21 +121,23 @@ ZLIB_HOME ?= ${THIRD_PARTY_TOOLS_HOME}
 ZLIB_CXX ?= -I${ZLIB_HOME}/include/zlib-${ZLIB_VERSION}
 LINK_ZLIB ?= ${LD_LIBPATH}${ZLIB_HOME}/lib/zlib-${ZLIB_VERSION} ${LINKWITH}z
 
-BOOST_VERSION ?= 1_35_0
+BOOST_VERSION ?= 1_38_0
 BOOST_HOME ?= ${THIRD_PARTY_TOOLS_HOME}
 BOOST_CXX ?= -I${BOOST_HOME}/include/boost_${BOOST_VERSION}
 BOOST_LIB_AREA ?= ${BOOST_HOME}/lib/boost_${BOOST_VERSION}
+GCCVERCODE ?= ${shell gcc --version | grep -o "[0-9]\.[0-9]" | head -1 | tr -d "."}
 ifeq (${platform},macosx)
-  BOOST_SUFFIX ?= -mt-1_35
+#OLD  BOOST_SUFFIX ?= -mt-1_35
+  BOOST_SUFFIX ?= -xgcc${GCCVERCODE}-mt-1_38
 else
-  GCCVERCODE ?= ${shell gcc --version | grep -o "[0-9]\.[0-9]" | head -1 | tr -d "."}
-  BOOST_SUFFIX ?= -gcc${GCCVERCODE}-mt-1_35
+  BOOST_SUFFIX ?= -gcc${GCCVERCODE}-mt-1_38
 endif
 
 LINK_BOOST ?= ${LD_LIBPATH}${BOOST_LIB_AREA} \
-              ${LINKWITH}boost_filesystem${BOOST_SUFFIX} \
-              ${LINKWITH}boost_system${BOOST_SUFFIX} \
-              ${LINKWITH}boost_thread${BOOST_SUFFIX}
+              ${BOOST_LIB_AREA}/${LIBPREFIX}boost_filesystem${BOOST_SUFFIX}${LIBEXT} \
+              ${BOOST_LIB_AREA}/${LIBPREFIX}boost_regex${BOOST_SUFFIX}${LIBEXT} \
+              ${BOOST_LIB_AREA}/${LIBPREFIX}boost_system${BOOST_SUFFIX}${LIBEXT} \
+              ${BOOST_LIB_AREA}/${LIBPREFIX}boost_thread${BOOST_SUFFIX}${LIBEXT}
 
 # We don't use TBB currently, but if we did, we'd uncomment this:
 #TBB_VERSION ?= 21_20080605oss
@@ -142,15 +145,6 @@ LINK_BOOST ?= ${LD_LIBPATH}${BOOST_LIB_AREA} \
 #TBB_CXX ?= -I${TBB_HOME}/include/tbb${TBB_VERSION}
 #TBB_LIB_AREA ?= ${TBB_HOME}/lib/tbb${TBB_VERSION}
 #LINK_TBB ?= ${LD_LIBPATH}${TBB_LIB_AREA} ${LINKWITH}tbb
-
-
-dist_extra_libs += $(wildcard ${BOOST_LIB_AREA}/libboost_filesystem${BOOST_SUFFIX}${SHLIBEXT}*) \
-		   $(wildcard ${BOOST_LIB_AREA}/libboost_system${BOOST_SUFFIX}${SHLIBEXT}*) \
-		   $(wildcard ${BOOST_LIB_AREA}/libboost_thread${BOOST_SUFFIX}${SHLIBEXT}*) \
-		   ${ILMBASE_LIB_AREA}/libHalf${SHLIBEXT} \
-		   $(wildcard ${ILMBASE_LIB_AREA}/libImath${SHLIBEXT}*) \
-		   $(wildcard ${ILMBASE_LIB_AREA}/libIex${SHLIBEXT}*) \
-		   $(wildcard ${ILMBASE_LIB_AREA}/libIlmThread${SHLIBEXT}*)
 
 
 PROJECT_EXTRA_CXX ?= ${ILMBASE_CXX} ${OPENEXR_CXX} ${TIFF_CXX} ${JPEG_CXX} \
