@@ -32,6 +32,8 @@
 #ifndef DASSERT_H
 #define DASSERT_H
 
+#include <cstdlib>
+
 
 /// \file
 ///
