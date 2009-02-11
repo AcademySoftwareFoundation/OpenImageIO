@@ -110,6 +110,8 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     if (magic != JPEG_MAGIC && magic != JPEG_MAGIC_OTHER_ENDIAN &&
         magic != JPEG_MAGIC2 && magic != JPEG_MAGIC2_OTHER_ENDIAN) {
         fclose (m_fd);
+        m_fd = NULL;
+        error ("\"%s\" is a JPEG file, magic number doesn't match", name.c_str());
         return false;
     }
 
@@ -193,6 +195,7 @@ JpgInput::close ()
         }
         jpeg_destroy_decompress (&m_cinfo);
         fclose (m_fd);
+        m_fd = NULL;
     }
     init ();   // Reset to initial state
     return true;

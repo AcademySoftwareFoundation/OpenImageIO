@@ -212,6 +212,7 @@ JpgOutput::close ()
     jpeg_finish_compress (&m_cinfo);
     jpeg_destroy_compress (&m_cinfo);
     fclose (m_fd);
+    m_fd = NULL;
     init();
     
     return true;
