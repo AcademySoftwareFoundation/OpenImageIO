@@ -53,6 +53,8 @@ static bool invert_match = false;
 static bool ignore_case = false;
 static bool list_files = false;
 static bool recursive = false;
+static bool file_match = false;
+static bool print_dirs = false;
 static std::string pattern;
 static std::vector<std::string> filenames;
 
@@ -71,7 +73,10 @@ grep_file (const std::string &filename, boost::regex &re,
     if (boost::filesystem::is_directory (path)) {
         if (! recursive)
             return false;
-        // std::cerr << filename << " is directory\n";
+        if (print_dirs) {
+            std::cout << "(" << path << "/)\n";
+            std::cout.flush();
+        }
         bool r = false;
         boost::filesystem::directory_iterator end_itr;  // default is past-end
         for (boost::filesystem::directory_iterator itr(path);  itr != end_itr;  ++itr) {
@@ -82,7 +87,9 @@ grep_file (const std::string &filename, boost::regex &re,
     }
 
     boost::scoped_ptr<ImageInput> in (ImageInput::create (filename.c_str()));
-    if (! in.get()) {
+    if (in.get()) {
+        in->close ();
+    } else {
         if (! ignore_nonimage_files)
             std::cerr << OpenImageIO::error_message() << "\n";
         return false;
@@ -92,6 +99,14 @@ grep_file (const std::string &filename, boost::regex &re,
         std::cerr << "igrep: Could not open \"" << filename << "\" : "
                   << in->error_message() << "\n";
         return false;
+    }
+
+    if (file_match) {
+        bool match = boost::regex_search (filename, re);
+        if (match && ! invert_match) {
+            std::cout << filename << "\n";
+            return true;
+        }
     }
 
     bool found = false;
@@ -147,6 +162,8 @@ main (int argc, const char *argv[])
                 "-l", &list_files, "List the matching files (no detail)",
                 "-r", &recursive, "Recurse into directories",
                 "-v", &invert_match, "Invert match (select non-matching files)",
+                "-f", &file_match, "Match against file name as well as metadata",
+                "-d", &print_dirs, "Print directories (when recursive)",
                 "--help", &help, "Print help message",
                 NULL);
     if (ap.parse(argc, argv) < 0 || pattern.empty() || filenames.empty()) {
