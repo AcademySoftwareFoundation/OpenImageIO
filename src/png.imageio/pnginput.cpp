@@ -335,7 +335,7 @@ PNGInput::readimg ()
 
     std::vector<unsigned char *> row_pointers (m_spec.height);
     for (int i = 0;  i < m_spec.height;  ++i)
-        row_pointers[i] = &m_buf[0] + i * m_spec.scanline_bytes();;
+        row_pointers[i] = &m_buf[0] + i * m_spec.scanline_bytes();
 
     png_read_image (m_png, &row_pointers[0]);
     png_read_end (m_png, NULL);
