@@ -47,6 +47,7 @@ using namespace OpenImageIO;
 //     http://local.wasp.uwa.edu.au/~pbourke/dataformats/pic/
 // The source code in rgbe.{h,cpp} originally came from:
 //     http://www.graphics.cornell.edu/~bjw/rgbe.html
+// But it's been modified in several minor ways by LG.
 // Also see Greg Ward's "Real Pixels" chapter in Graphics Gems II for an
 // explanation of the encoding that's used in Radiance rgba files.
 /////////////////////////////////////////////////////////////////////////////
@@ -69,6 +70,7 @@ private:
     FILE *m_fd;                   ///< The open file handle
     int m_subimage;               ///< What subimage are we looking at?
     int m_next_scanline;          ///< Next scanline to read
+    char rgbe_error[1024];        ///< Buffer for RGBE library error msgs
 
     void init () {
         m_fd = NULL;
@@ -124,8 +126,9 @@ HdrInput::seek_subimage (int index, ImageSpec &newspec)
 
     rgbe_header_info h;
     int width, height;
-    int r = RGBE_ReadHeader (m_fd, &width, &height, &h);
+    int r = RGBE_ReadHeader (m_fd, &width, &height, &h, rgbe_error);
     if (r != RGBE_RETURN_SUCCESS) {
+        error ("%s", rgbe_error);
         close ();
         return false;
     }
@@ -164,10 +167,12 @@ HdrInput::read_native_scanline (int y, int z, void *data)
     }
     while (m_next_scanline <= y) {
         // Keep reading until we're read the scanline we really need
-        int r = RGBE_ReadPixels_RLE (m_fd, (float *)data, m_spec.width, 1);
+        int r = RGBE_ReadPixels_RLE (m_fd, (float *)data, m_spec.width, 1, rgbe_error);
         ++m_next_scanline;
-        if (r != RGBE_RETURN_SUCCESS)
+        if (r != RGBE_RETURN_SUCCESS) {
+            error ("%s", rgbe_error);
             return false;
+        }
     }
     return true;
 }

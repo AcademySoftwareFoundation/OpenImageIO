@@ -54,6 +54,7 @@ class HdrOutput : public ImageOutput {
  private:
     FILE *m_fd;
     std::vector<unsigned char> scratch;
+    char rgbe_error[1024];        ///< Buffer for RGBE library error msgs
 
     void init (void) { m_fd = NULL; }
 };
@@ -126,7 +127,9 @@ HdrOutput::open (const std::string &name, const ImageSpec &newspec, bool append)
     // FIXME -- should we do anything about gamma, exposure, software,
     // pixaspect, primaries?  (N.B. rgbe.c doesn't even handle most of them)
 
-    RGBE_WriteHeader (m_fd, m_spec.width, m_spec.height, &h);
+    int r = RGBE_WriteHeader (m_fd, m_spec.width, m_spec.height, &h, rgbe_error);
+    if (r != RGBE_RETURN_SUCCESS)
+        error ("%s", rgbe_error);
 
     return true;
 }
@@ -138,7 +141,9 @@ HdrOutput::write_scanline (int y, int z, TypeDesc format,
                            const void *data, stride_t xstride)
 {
     data = to_native_scanline (format, data, xstride, scratch);
-    int r = RGBE_WritePixels_RLE (m_fd, (float *)data, m_spec.width, 1);
+    int r = RGBE_WritePixels_RLE (m_fd, (float *)data, m_spec.width, 1, rgbe_error);
+    if (r != RGBE_RETURN_SUCCESS)
+        error ("%s", rgbe_error);
     return (r == RGBE_RETURN_SUCCESS);
 }
 
