@@ -56,7 +56,7 @@ print_info (const std::string &filename, size_t namefieldlength,
             ImageInput *input, ImageSpec &spec,
             bool verbose, bool sum, long long &totalsize)
 {
-    std::string padding (std::max(0UL, namefieldlength - filename.length()), ' ');
+    std::string padding (std::max((size_t)0, namefieldlength - filename.length()), ' ');
     printf ("%s%s : %4d x %4d", filename.c_str(), padding.c_str(),
             spec.width, spec.height);
     if (spec.depth > 1)
