@@ -348,8 +348,12 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
              plugin != input_formats.end(); ++plugin)
         {
             ImageSpec test_spec;
-            std::auto_ptr<ImageInput> test_plugin((ImageInput*) plugin->second());
-            if (test_plugin->open(filename, test_spec)) {
+            ImageInput *test_plugin = (ImageInput*) plugin->second();
+            bool ok = test_plugin->open(filename, test_spec);
+            if (ok)
+                test_plugin->close ();
+            delete test_plugin;
+            if (ok) {
                 create_function = plugin->second;
                 break;
             }
