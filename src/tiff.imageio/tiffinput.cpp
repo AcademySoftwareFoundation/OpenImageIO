@@ -112,40 +112,63 @@ private:
 
     void invert_photometric (int n, void *data);
 
+    // Calling TIFFGetField (tif, tag, &dest) is supposed to work fine for
+    // simple types... as long as the tag types in the file are the correct
+    // advertised types.  But for some types -- which we never expect, but
+    // it turns out can sometimes happen, TIFFGetField will try to pull
+    // a second argument (a void**) off the stack, and that can crash the
+    // program!  Ick.  So to avoid this, we always push a pointer, which
+    // we expect NOT to be altered, and if it is, it's a danger sign (plus
+    // we didn't crash).
+    bool safe_tiffgetfield (const std::string &name, int tag, void *dest) {
+        void *ptr = NULL;  // dummy -- expect it to stay NULL
+        bool ok = TIFFGetField (m_tif, tag, dest, &ptr);
+        if (ptr) {
+#ifdef DEBUG
+            std::cerr << "Error safe_tiffgetfield : did not expect ptr set on "
+                      << name << " " << (void *)ptr << "\n";
+#endif
+//            return false;
+        }
+        return ok;
+    }
+
     // Get a string tiff tag field and put it into extra_params
     void get_string_attribute (const std::string &name, int tag) {
         char *s = NULL;
-        TIFFGetField (m_tif, tag, &s);
-        if (s && *s)
-            m_spec.attribute (name, TypeDesc::STRING, 1, &s);
+        if (safe_tiffgetfield (name, tag, &s))
+            if (s && *s)
+                m_spec.attribute (name, TypeDesc::STRING, 1, &s);
     }
 
     // Get a matrix tiff tag field and put it into extra_params
     void get_matrix_attribute (const std::string &name, int tag) {
         float *f;
-        if (TIFFGetField (m_tif, tag, &f))
+        if (safe_tiffgetfield (name, tag, &f))
             m_spec.attribute (name, TypeDesc::PT_MATRIX, 1, f);
     }
 
     // Get a float tiff tag field and put it into extra_params
     void get_float_attribute (const std::string &name, int tag) {
         float f[16];
-        if (TIFFGetField (m_tif, tag, f))
+        if (safe_tiffgetfield (name, tag, f))
             m_spec.attribute (name, TypeDesc::FLOAT, 1, &f);
     }
 
     // Get an int tiff tag field and put it into extra_params
     void get_int_attribute (const std::string &name, int tag) {
         int i;
-        if (TIFFGetField (m_tif, tag, &i))
+        if (safe_tiffgetfield (name, tag, &i))
             m_spec.attribute (name, TypeDesc::INT, 1, &i);
     }
 
     // Get an int tiff tag field and put it into extra_params
     void get_short_attribute (const std::string &name, int tag) {
-        unsigned short s;
-        if (TIFFGetField (m_tif, tag, &s)) {
-            int i = s;
+        // Make room for two shorts, in case the tag is not the type we
+        // expect, and libtiff writes a long instead.
+        unsigned short s[2] = {0,0};
+        if (safe_tiffgetfield (name, tag, &s)) {
+            int i = s[0];
             m_spec.attribute (name, TypeDesc::INT, 1, &i);
         }
     }
@@ -153,6 +176,14 @@ private:
     // Search for TIFF tag 'tagid' having type 'tifftype', and if found,
     // add it in the obvious way to m_spec under the name 'oiioname'.
     void find_tag (int tifftag, TIFFDataType tifftype, const char *oiioname) {
+        const TIFFFieldInfo *info = TIFFFieldWithTag (m_tif, tifftag);
+        if (info && info->field_type != tifftype) {
+            // Something has gone wrong, libtiff doesn't think the field type
+            // is the same as we do.
+            // std::cerr << "Wow, " << oiioname << " " << info->field_type 
+            //           << " versus " << tifftype << "\n";
+            return;
+        }
         if (tifftype == TIFF_ASCII)
             get_string_attribute (oiioname, tifftag);
         else if (tifftype == TIFF_SHORT)
@@ -509,6 +540,17 @@ TIFFInput::readspec ()
         TIFFClose (m_tif);
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
         TIFFSetDirectory (m_tif, m_subimage);
+
+        // A few tidbits to look for
+        ImageIOParameter *p;
+        if (p = m_spec.find_attribute ("Exif:ColorSpace", TypeDesc::INT)) {
+            // Exif spec says that anything other than 0xffff==uncalibrated
+            // should be interpreted to be sRGB.
+            if (*(const int *)p->data() == 0xffff)
+                m_spec.linearity = ImageSpec::UnknownLinearity;
+            else
+                m_spec.linearity = ImageSpec::sRGB;
+        }
     }
 #endif
 
