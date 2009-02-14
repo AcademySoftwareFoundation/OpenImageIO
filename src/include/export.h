@@ -55,7 +55,7 @@
 ///
 /// DLLPUBLIC - normally, assumes that it's being seen by a client
 ///             of the library, and therefore declare as 'imported'.
-///             But if EXPORT_DLLPUBLIC is defined, change the declaration
+///             But if DLL_EXPORT_PUBLIC is defined, change the declaration
 ///             to 'exported' -- you want to define this macro when
 ///             compiling the module that actually defines the class.
 ///
@@ -64,7 +64,7 @@
 ///             only if you don't need to call the routine from within
 ///             a different compilation module within the same DLL.  Or,
 ///             if you just don't want to worry about the whole
-///             EXPORT_DLLPUBLIC mess, and use this everywhere without
+///             DLL_EXPORT_PUBLIC mess, and use this everywhere without
 ///             fretting about the minor perf hit of not using 'import'.
 ///
 /// Note that on Linux, all symbols are exported so this just isn't a
