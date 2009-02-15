@@ -254,6 +254,10 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec, bool appen
         TIFFSetField (m_tif, TIFFTAG_RICHTIFFIPTC, iptc.size()/4, &iptc[0]);
     }
 
+    std::string xmp = OpenImageIO::encode_xmp (m_spec, true);
+    if (! xmp.empty())
+        TIFFSetField (m_tif, TIFFTAG_XMLPACKET, xmp.size(), xmp.c_str());
+
     TIFFCheckpointDirectory (m_tif);  // Ensure the header is written early
 
     return true;

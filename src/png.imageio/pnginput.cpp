@@ -241,6 +241,8 @@ PNGInput::open (const std::string &name, ImageSpec &newspec)
         // FIXME -- should we do anything with the background color?
     }
 
+    // FIXME -- look for an XMP packet in an iTXt chunk.
+
     newspec = spec ();
     return true;
 }

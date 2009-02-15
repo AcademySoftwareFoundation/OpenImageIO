@@ -53,8 +53,10 @@ struct IIMtag {
 
 static IIMtag iimtag [] = {
     {   5, "IPTC:ObjectName", NULL },
+    {  15, "IPTC:Category", NULL },
 //    {  25, "Keywords", NULL },
     {  40, "IPTC:Instructions", NULL },
+    {  65, "IPTC:OriginatingProgram", "Software" },
     {  80, "IPTC:Creator", "Artist" },   // N.B. in theory, repeatable
     {  85, "IPTC:AuthorsPosition", NULL },  // N.B. in theory, repeatable
     {  90, "IPTC:City", NULL },
@@ -62,7 +64,7 @@ static IIMtag iimtag [] = {
     {  95, "IPTC:State", NULL },
     { 100, "IPTC:CountryCode", NULL },
     { 101, "IPTC:Country", NULL },
-    { 103, "IPTC:OriginalTransmissionReference", NULL },
+    { 103, "IPTC:TransmissionReference", NULL },
     { 105, "IPTC:Headline", NULL },
     { 110, "IPTC:Provider", NULL }, // aka Credit
     { 115, "IPTC:Source", NULL },
@@ -74,8 +76,7 @@ static IIMtag iimtag [] = {
 };
 
 // FIXME? others:
-// 15 Category (max 3 bytes)
-// 20 SupplementalCategories (repeatable)
+// 20 SupplementalCategories (repeatable) [ deprecated by IPTC ]
 // 30 ReleaseDate
 // 35 ReleaseTime
 // 37 ExpirationDate
@@ -87,7 +88,6 @@ static IIMtag iimtag [] = {
 // 60 TimeCreated [11 digs]
 // 62 DigitalCreationDate [8 digs]
 // 63 DigitalCreationTime [11 digs]
-// 65 OriginatingProgram
 // 70 ProgramVersion
 // 121 LocalCaption
 // 150-154 audio stuff
@@ -194,11 +194,11 @@ encode_iptc_iim_one_tag (int tag, const char *name, TypeDesc type,
 
 
 void
-encode_iptc_iim (ImageSpec &spec, std::vector<char> &iptc)
+encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc)
 {
     iptc.clear ();
     
-    ImageIOParameter *p;
+    const ImageIOParameter *p;
     for (int i = 0;  iimtag[i].name;  ++i) {
         if (p = spec.find_attribute (iimtag[i].name))
             encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].name,

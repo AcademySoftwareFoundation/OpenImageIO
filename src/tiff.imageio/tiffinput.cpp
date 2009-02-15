@@ -564,19 +564,16 @@ TIFFInput::readspec ()
         OpenImageIO::decode_iptc_iim (&iptc[0], iptcsize*4, m_spec);
     }
 
-#if 0
-    // Search for IPTC data as XML.
-    // FIXME -- not operational
+    // Search for an XML packet containing XMP (IPTC, Exif, etc.)
     int xmlsize = 0;
     const void *xmldata = NULL;
     if (TIFFGetField (m_tif, TIFFTAG_XMLPACKET, &xmlsize, &xmldata)) {
-        std::cerr << "Found XML data, size " << xmlsize << "\n";
+        // std::cerr << "Found XML data, size " << xmlsize << "\n";
         if (xmldata && xmlsize) {
             std::string xml ((const char *)xmldata, xmlsize);
-            std::cerr << "XML:\n" << xml << "\n---\n";
+            OpenImageIO::decode_xmp (xml, m_spec);
         }
     }
-#endif
 
 #if 0
     // Experimental -- look for photoshop data

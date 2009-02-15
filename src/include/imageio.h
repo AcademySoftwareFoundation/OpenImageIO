@@ -744,7 +744,22 @@ DLLPUBLIC bool decode_iptc_iim (const void *exif, int length, ImageSpec &spec);
 /// without having to duplicate functionality within each plugin.  Note
 /// that IIM is actually considered obsolete and is replaced by an XML
 /// scheme called XMP.
-DLLPUBLIC void encode_iptc_iim (ImageSpec &spec, std::vector<char> &iptc);
+DLLPUBLIC void encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
+
+/// Add metadata to spec based on XMP data in an XML block.  Return true
+/// if all is ok, false if the xml was somehow malformed.  This is a
+/// utility function to make it easy for multiple format plugins to
+/// support embedding XMP metadata without having to duplicate
+/// functionality within each plugin.
+DLLPUBLIC bool decode_xmp (const std::string &xml, ImageSpec &spec);
+
+/// Find all the relavant metadata (IPTC, Exif, etc.) in spec and
+/// assemble it into an XMP XML string.  This is a utility function to
+/// make it easy for multiple format plugins to support embedding XMP
+/// metadata without having to duplicate functionality within each
+/// plugin.  If 'minimal' is true, then don't encode things that would
+/// be part of ordinary TIFF or exif tags.
+DLLPUBLIC std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 
 // to force correct linkage on some systems
 DLLPUBLIC void _ImageIO_force_link ();

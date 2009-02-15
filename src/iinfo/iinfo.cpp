@@ -56,7 +56,8 @@ print_info (const std::string &filename, size_t namefieldlength,
             ImageInput *input, ImageSpec &spec,
             bool verbose, bool sum, long long &totalsize)
 {
-    std::string padding (std::max((size_t)0, namefieldlength - filename.length()), ' ');
+    int padlen = std::max (0, (int)namefieldlength - (int)filename.length());
+    std::string padding (padlen, ' ');
     printf ("%s%s : %4d x %4d", filename.c_str(), padding.c_str(),
             spec.width, spec.height);
     if (spec.depth > 1)
@@ -177,6 +178,7 @@ main (int argc, const char *argv[])
     size_t longestname = 0;
     BOOST_FOREACH (const std::string &s, filenames)
         longestname = std::max (longestname, s.length());
+    longestname = std::min (longestname, (size_t)40);
 
     long long totalsize = 0;
     BOOST_FOREACH (const std::string &s, filenames) {
