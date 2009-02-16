@@ -278,6 +278,14 @@ TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
 
 
 
+std::string
+TextureSystemImpl::resolve_filename (const std::string &filename) const
+{
+    return m_imagecache->resolve_filename (filename);
+}
+
+
+
 bool
 TextureSystemImpl::get_texture_info (ustring filename, ustring dataname,
                                      TypeDesc datatype, void *data)

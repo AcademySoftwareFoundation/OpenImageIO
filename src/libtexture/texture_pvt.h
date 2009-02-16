@@ -80,7 +80,7 @@ public:
     }
     virtual bool attribute (const std::string &name, const std::string &val) {
         const char *s = val.c_str();
-        return attribute (name, TypeDesc::INT, &s);
+        return attribute (name, TypeDesc::STRING, &s);
     }
 
     virtual bool getattribute (const std::string &name, TypeDesc type, void *val);
@@ -201,6 +201,10 @@ public:
                               float *result) {
         return false;
     }
+
+    /// Given possibly-relative 'filename', resolve it using the search
+    /// path rules and return the full resolved filename.
+    virtual std::string resolve_filename (const std::string &filename) const;
 
     /// Get information about the given texture.
     ///

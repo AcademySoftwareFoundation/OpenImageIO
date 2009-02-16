@@ -303,8 +303,8 @@ pretend that the file is MIP-mapped even if it isn't.
 
 \apiend
 
+\bigskip
 
-\newpage
 \subsection{Getting information about images}
 \label{sec:imagecache:api:getimageinfo}
 \label{sec:imagecache:api:getimagespec}
@@ -376,7 +376,11 @@ the designated subimage did not exist in the file, the return value is
 
 \apiend
 
-\newpage
+\apiitem{std::string {\ce resolve_filename} (const std::string \&filename)}
+Returns the true path to the given file name, with searchpath logic
+applied.
+\apiend
+
 \subsection{Getting pixels}
 \label{sec:imagecache:api:getpixels}
 

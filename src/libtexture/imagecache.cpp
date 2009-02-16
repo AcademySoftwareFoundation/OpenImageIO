@@ -31,6 +31,7 @@
 
 #include <string>
 #include <sstream>
+#include <vector>
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
 
@@ -42,6 +43,7 @@ using namespace std::tr1;
 #include "typedesc.h"
 #include "varyingref.h"
 #include "ustring.h"
+#include "filesystem.h"
 #include "hash.h"
 #include "thread.h"
 #include "fmath.h"
@@ -78,6 +80,9 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
       m_imagecache(imagecache)
 {
     m_spec.clear ();
+
+    m_filename = imagecache.resolve_filename (m_filename.string());
+
     open ();
 #if 0
     static int x=0;
@@ -697,7 +702,8 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         return true;
     }
     if (name == "searchpath" && type == TypeDesc::STRING) {
-        m_searchpath = ustring (*(const char **)val);
+        m_searchpath = std::string (*(const char **)val);
+        Filesystem::searchpath_split (m_searchpath, m_searchdirs, true);
         return true;
     }
     if (name == "statistics:level" && type == TypeDesc::INT) {
@@ -825,6 +831,15 @@ ImageCacheImpl::check_max_mem ()
             ++m_tile_sweep;
         }
     }
+}
+
+
+
+std::string
+ImageCacheImpl::resolve_filename (const std::string &filename) const
+{
+    std::string s = Filesystem::searchpath_find (filename, m_searchdirs, true);
+    return s.empty() ? filename : s;
 }
 
 

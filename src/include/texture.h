@@ -331,6 +331,10 @@ public:
                               VaryingRef<Imath::V3f> dRdy,
                               float *result) = 0;
 
+    /// Given possibly-relative 'filename', resolve it using the search
+    /// path rules and return the full resolved filename.
+    virtual std::string resolve_filename (const std::string &filename) const=0;
+
     /// Get information about the given texture.  Return true if found
     /// and the data has been put in *data.  Return false if the texture
     /// doesn't exist, doesn't have the requested data, if the data

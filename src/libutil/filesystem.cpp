@@ -168,12 +168,12 @@ Filesystem::searchpath_find (const std::string &filename,
 
     // Relative filename, not yet found -- try each directory in turn
     BOOST_FOREACH (const std::string &d, dirs) {
-        std::cerr << "\tPath = '" << d << "'\n";
+        // std::cerr << "\tPath = '" << d << "'\n";
         boost::filesystem::path f = d;
         f /= filename;
-        std::cerr << "\tTesting '" << f << "'\n";
+        // std::cerr << "\tTesting '" << f << "'\n";
         if (boost::filesystem::is_regular (f)) {
-            std::cerr << "Found '" << f << "'\n";
+            // std::cerr << "Found '" << f << "'\n";
             return f.string();
         }
     }

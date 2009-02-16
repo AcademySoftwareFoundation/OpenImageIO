@@ -373,12 +373,14 @@ public:
     // Retrieve options
     int max_open_files () const { return m_max_open_files; }
     float max_memory_MB () const { return m_max_memory_MB; }
-    std::string searchpath () const { return m_searchpath.string(); }
+    const std::string &searchpath () const { return m_searchpath; }
     int autotile () const { return m_autotile; }
     bool automip () const { return m_automip; }
     void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
     }
+
+    virtual std::string resolve_filename (const std::string &filename) const;
 
     /// Get information about the given image.
     ///
@@ -393,8 +395,7 @@ public:
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
                                 int subimage=0);
 
-    /// Retrieve a rectangle of raw unfiltered pixels.
-    ///
+    // Retrieve a rectangle of raw unfiltered pixels.
     virtual bool get_pixels (ustring filename, 
                              int subimage, int xmin, int xmax,
                              int ymin, int ymax, int zmin, int zmax, 
@@ -544,7 +545,8 @@ private:
     int m_max_open_files;
     float m_max_memory_MB;
     size_t m_max_memory_bytes;
-    ustring m_searchpath;
+    std::string m_searchpath;    ///< Colon-separated directory list
+    std::vector<std::string> m_searchdirs; ///< Searchpath split into dirs
     int m_autotile;              ///< if nonzero, pretend tiles of this size
     bool m_automip;              ///< auto-mipmap on demand?
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix

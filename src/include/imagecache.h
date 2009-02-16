@@ -105,6 +105,9 @@ public:
     virtual bool getattribute (const std::string &name, char **val) = 0;
     virtual bool getattribute (const std::string &name, std::string &val) = 0;
 
+    /// Given possibly-relative 'filename', resolve it using the search
+    /// path rules and return the full resolved filename.
+    virtual std::string resolve_filename (const std::string &filename) const=0;
 
     /// Get information about the named imagee.  Return true if found
     /// and the data has been put in *data.  Return false if the image

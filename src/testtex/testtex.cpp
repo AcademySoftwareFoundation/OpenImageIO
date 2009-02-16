@@ -57,6 +57,7 @@ static int iters = 1;
 static int autotile = 0;
 static bool automip = false;
 static TextureSystem *texsys = NULL;
+static std::string searchpath;
 
 
 
@@ -87,6 +88,7 @@ getargs (int argc, char *argv[])
                   "--blur %f", &blur, "Add blur to texture lookup",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
                   "--automip", &automip, "Set auto-MIPmap for the image cache",
+                  "--searchpath %s", &searchpath, "Search path for files",
                   NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
@@ -249,6 +251,8 @@ main (int argc, char *argv[])
     texsys->attribute ("statistics:level", 2);
     texsys->attribute ("autotile", autotile);
     texsys->attribute ("automip", (int)automip);
+    if (searchpath.length())
+        texsys->attribute ("searchpath", searchpath);
 
     ustring filename (filenames[0]);
     test_gettextureinfo (filename);
