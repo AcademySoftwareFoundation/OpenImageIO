@@ -72,6 +72,7 @@ public:
     int subimages () const { return (int)m_spec.size(); }
     const ImageSpec & spec (int subimage=0) const { return m_spec[subimage]; }
     ustring filename (void) const { return m_filename; }
+    ustring fileformat (void) const { return m_fileformat; }
     TexFormat textureformat () const { return m_texformat; }
     TextureOptions::Wrap swrap () const { return m_swrap; }
     TextureOptions::Wrap twrap () const { return m_twrap; }
@@ -102,6 +103,11 @@ public:
     bool eightbit (void) const { return m_eightbit; }
     bool untiled (void) const { return m_untiled; }
 
+    void invalidate () {
+        close ();
+        m_spec.clear();
+    }
+
     size_t timesopened () const { return m_timesopened; }
     size_t tilesread () const { return m_tilesread; }
     size_t bytesread () const { return m_bytesread; }
@@ -127,6 +133,7 @@ private:
     bool m_eightbit;                ///< Eight bit?  (or float)
     unsigned int m_channelsize;     ///< Channel size, in bytes
     unsigned int m_pixelsize;       ///< Channel size, in bytes
+    ustring m_fileformat;           ///< File format name
     size_t m_tilesread;             ///< Tiles read from this file
     size_t m_bytesread;             ///< Bytes read from this file
     size_t m_timesopened;           ///< Separate times we opened this file
@@ -479,6 +486,7 @@ public:
 
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1) const;
+    virtual void invalidate (ustring filename);
 
     void operator delete (void *todel) { ::delete ((char *)todel); }
 

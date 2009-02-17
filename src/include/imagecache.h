@@ -175,6 +175,18 @@ public:
     ///
     virtual std::string getstats (int level=1) const = 0;
 
+    /// Invalidate any loaded tiles or open file handles associated with
+    /// the filename, so that any subsequent queries will be forced to
+    /// re-open the file or re-load any tiles (even those that were
+    /// previously loaded and would ordinarily be reused).  A client
+    /// might do this if, for example, they are aware that an image
+    /// being held in the cache has been updated on disk.  This is safe
+    /// to do even if other procedures are currently holding
+    /// reference-counted tile pointers from the named image, but those
+    /// procedures will not get updated pixels until they release the
+    /// tiles they are holding.
+    virtual void invalidate (ustring filename) = 0;
+
 private:
     // Make delete private and unimplemented in order to prevent apps
     // from calling it.  Instead, they should call ImageCache::destroy().

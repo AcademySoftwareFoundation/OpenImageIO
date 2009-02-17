@@ -127,6 +127,7 @@ ImageCacheFile::open ()
         m_input.reset ();
         return false;
     }
+    m_fileformat = ustring (m_input->format_name());
     ++m_timesopened;
     m_imagecache.incr_open_files ();
     use ();
@@ -874,6 +875,10 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
         *(const char **)data = s.c_str();
         return true;
     }
+    if (dataname == "fileformat" && datatype == TypeDesc::TypeString) {
+        *(const char **)data = file->fileformat().c_str();
+        return true;
+    }
     if (dataname == "channels" && datatype == TypeDesc::TypeInt) {
         *(int *)data = spec.nchannels;
         return true;
@@ -1029,6 +1034,29 @@ ImageCacheImpl::tile_pixels (ImageCache::Tile *tile, TypeDesc &format) const
     ImageCacheTile * t = (ImageCacheTile *)tile;
     format = t->file().datatype();
     return t->data ();
+}
+
+
+
+void
+ImageCacheImpl::invalidate (ustring filename)
+{
+    Timer locktime;
+    lock_guard_t guard (m_mutex);
+    m_stat_locking_time += locktime();
+
+    FilenameMap::iterator fileit = m_files.find (filename);
+    if (fileit != m_files.end()) {
+        ImageCacheFile *file = fileit->second.get();
+        for (TileCache::iterator tci = m_tilecache.begin();  tci != m_tilecache.end();  ) {
+            TileCache::iterator todel (tci);
+            ++tci;
+            if (&todel->second->file() == file)
+                m_tilecache.erase (todel);
+        }
+        file->invalidate ();
+        std::cerr << "Invalidated cache entries for " << filename << "\n";
+    }
 }
 
 

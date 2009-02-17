@@ -428,6 +428,19 @@ only be called on a tile that has been requested by
 {\cf get_tile()} but has not yet been released with {\cf release_tile()}.
 \apiend
 
+\apiitem{void {\ce invalidate} (ustring filename)}
+Invalidate any loaded tiles or open file handles associated with
+the filename, so that any subsequent queries will be forced to
+re-open the file or re-load any tiles (even those that were
+previously loaded and would ordinarily be reused).  A client
+might do this if, for example, they are aware that an image
+being held in the cache has been updated on disk.  This is safe
+to do even if other procedures are currently holding 
+reference-counted tile pointers from the named image, but those 
+procedures will not get updated pixels until they release the 
+tiles they are holding.
+\apiend
+
 \subsection{Errors and statistics}
 \label{sec:imagecache:api:geterror}
 \label{sec:imagecache:api:getstats}
