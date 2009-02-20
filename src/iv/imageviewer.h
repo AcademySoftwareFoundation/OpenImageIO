@@ -415,10 +415,4 @@ private:
 
 
 
-// Format name/value pairs as HTML table entries.
-std::string html_table_row (const char *name, const std::string &value);
-std::string html_table_row (const char *name, int value);
-std::string html_table_row (const char *name, float value);
-
-
 #endif // IMAGEVIEWER_H
