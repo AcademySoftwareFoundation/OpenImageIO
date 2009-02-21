@@ -94,13 +94,13 @@ static const EXIF_tag_info exif_tag_table[] = {
     { TIFFTAG_XRESOLUTION,	"XResolution",	TIFF_RATIONAL, 1 },
     { TIFFTAG_YRESOLUTION,	"YResolution",	TIFF_RATIONAL, 1 },
     { TIFFTAG_RESOLUTIONUNIT,	"ResolutionUnit",TIFF_SHORT, 1 },
-    { TIFFTAG_IMAGEDESCRIPTION,	"ImageDescription",	TIFF_ASCII, 1 },
-    { TIFFTAG_MAKE,	        "Make",	        TIFF_ASCII, 1 },
-    { TIFFTAG_MODEL,	        "Model",	TIFF_ASCII, 1 },
-    { TIFFTAG_SOFTWARE,	        "Software",	TIFF_ASCII, 1 },
-    { TIFFTAG_ARTIST,	        "Artist",	TIFF_ASCII, 1 },
-    { TIFFTAG_COPYRIGHT,	"Copyright",	TIFF_ASCII, 1 },
-    { TIFFTAG_DATETIME,	        "DateTime",	TIFF_ASCII, 1 },
+    { TIFFTAG_IMAGEDESCRIPTION,	"ImageDescription",	TIFF_ASCII, 0 },
+    { TIFFTAG_MAKE,	        "Make",	        TIFF_ASCII, 0 },
+    { TIFFTAG_MODEL,	        "Model",	TIFF_ASCII, 0 },
+    { TIFFTAG_SOFTWARE,	        "Software",	TIFF_ASCII, 0 },
+    { TIFFTAG_ARTIST,	        "Artist",	TIFF_ASCII, 0 },
+    { TIFFTAG_COPYRIGHT,	"Copyright",	TIFF_ASCII, 0 },
+    { TIFFTAG_DATETIME,	        "DateTime",	TIFF_ASCII, 0 },
     { TIFFTAG_EXIFIFD,          "Exif:ExifIFD", TIFF_NOTYPE, 1 },
     { TIFFTAG_INTEROPERABILITYIFD, "Exif:InteroperabilityIFD", TIFF_NOTYPE, 1 },
     { TIFFTAG_GPSIFD,           "Exif:GPSIFD",  TIFF_NOTYPE, 1 },
@@ -109,12 +109,12 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_EXPOSURETIME,	"ExposureTime",	TIFF_RATIONAL, 1 },
     { EXIFTAG_FNUMBER,	        "FNumber",	TIFF_RATIONAL, 1 },
     { EXIFTAG_EXPOSUREPROGRAM,	"Exif:ExposureProgram",	TIFF_SHORT, 1 }, // ?? translate to ascii names?
-    { EXIFTAG_SPECTRALSENSITIVITY,	"Exif:SpectralSensitivity",	TIFF_ASCII, 1 },
+    { EXIFTAG_SPECTRALSENSITIVITY,	"Exif:SpectralSensitivity",	TIFF_ASCII, 0 },
     { EXIFTAG_ISOSPEEDRATINGS,	"Exif:ISOSpeedRatings",	TIFF_SHORT, 1 },
     { EXIFTAG_OECF,	        "Exif:OECF",	TIFF_NOTYPE, 1 },	 // skip it
     { EXIFTAG_EXIFVERSION,	"Exif:ExifVersion",	TIFF_NOTYPE, 1 },	 // skip it
-    { EXIFTAG_DATETIMEORIGINAL,	"Exif:DateTimeOriginal",	TIFF_ASCII, 1 },
-    { EXIFTAG_DATETIMEDIGITIZED,"Exif:DateTimeDigitized",	TIFF_ASCII, 1 },
+    { EXIFTAG_DATETIMEORIGINAL,	"Exif:DateTimeOriginal",	TIFF_ASCII, 0 },
+    { EXIFTAG_DATETIMEDIGITIZED,"Exif:DateTimeDigitized",	TIFF_ASCII, 0 },
     { EXIFTAG_COMPONENTSCONFIGURATION,	"Exif:ComponentsConfiguration",	TIFF_UNDEFINED, 1 },
     { EXIFTAG_COMPRESSEDBITSPERPIXEL,	"Exif:CompressedBitsPerPixel",	TIFF_RATIONAL, 1 },
     { EXIFTAG_SHUTTERSPEEDVALUE,"Exif:ShutterSpeedValue",	TIFF_SRATIONAL, 1 }, // APEX units
@@ -130,9 +130,9 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_SUBJECTAREA,	"Exif:SubjectArea",	TIFF_NOTYPE, 1 }, // skip
     { EXIFTAG_MAKERNOTE,	"Exif:MakerNote",	TIFF_NOTYPE, 1 },	 // skip it
     { EXIFTAG_USERCOMMENT,	"Exif:UserComment",	TIFF_NOTYPE, 1 },	// skip it
-    { EXIFTAG_SUBSECTIME,	"Exif:SubsecTime",	        TIFF_ASCII, 1 },
-    { EXIFTAG_SUBSECTIMEORIGINAL,"Exif:SubsecTimeOriginal",	TIFF_ASCII, 1 },
-    { EXIFTAG_SUBSECTIMEDIGITIZED,"Exif:SubsecTimeDigitized",	TIFF_ASCII, 1 },
+    { EXIFTAG_SUBSECTIME,	"Exif:SubsecTime",	        TIFF_ASCII, 0 },
+    { EXIFTAG_SUBSECTIMEORIGINAL,"Exif:SubsecTimeOriginal",	TIFF_ASCII, 0 },
+    { EXIFTAG_SUBSECTIMEDIGITIZED,"Exif:SubsecTimeDigitized",	TIFF_ASCII, 0 },
     { EXIFTAG_FLASHPIXVERSION,	"Exif:FlashPixVersion",	TIFF_NOTYPE, 1 },	// skip "Exif:FlashPixVesion",	TIFF_NOTYPE, 1 },
     { EXIFTAG_COLORSPACE,	"Exif:ColorSpace",	TIFF_SHORT, 1 },
     { EXIFTAG_PIXELXDIMENSION,	"Exif:PixelXDimension",	TIFF_LONG, 1 },
@@ -161,7 +161,7 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_SHARPNESS,	"Exif:Sharpness",	TIFF_SHORT, 1 },
     { EXIFTAG_DEVICESETTINGDESCRIPTION,	"Exif:DeviceSettingDescription",	TIFF_NOTYPE, 1 },
     { EXIFTAG_SUBJECTDISTANCERANGE,	"Exif:SubjectDistanceRange",	TIFF_SHORT, 1 },
-    { EXIFTAG_IMAGEUNIQUEID,	"Exif:ImageUniqueID",	TIFF_ASCII, 1 },
+    { EXIFTAG_IMAGEUNIQUEID,	"Exif:ImageUniqueID",	TIFF_ASCII, 0 },
     { -1, NULL }  // signal end of table
 };
 
@@ -193,35 +193,35 @@ enum GPSTag {
 
 static const EXIF_tag_info gps_tag_table[] = {
     { GPSTAG_VERSIONID,		"GPS:VersionID",	TIFF_BYTE, 4 }, 
-    { GPSTAG_LATITUDEREF,	"GPS:LatitudeRef",	TIFF_ASCII, 1 },
+    { GPSTAG_LATITUDEREF,	"GPS:LatitudeRef",	TIFF_ASCII, 2 },
     { GPSTAG_LATITUDE,		"GPS:Latitude",		TIFF_RATIONAL, 3 },
-    { GPSTAG_LONGITUDEREF,	"GPS:LongitudeRef",	TIFF_ASCII, 1 },
+    { GPSTAG_LONGITUDEREF,	"GPS:LongitudeRef",	TIFF_ASCII, 2 },
     { GPSTAG_LONGITUDE,		"GPS:Longitude",	TIFF_RATIONAL, 3 }, 
-    { GPSTAG_ALTITUDEREF,	"GPS:AltitudeRef",	TIFF_ASCII, 1 },
+    { GPSTAG_ALTITUDEREF,	"GPS:AltitudeRef",	TIFF_BYTE, 1 },
     { GPSTAG_ALTITUDE,		"GPS:Altitude",		TIFF_RATIONAL, 1 },
     { GPSTAG_TIMESTAMP,		"GPS:TimeStamp",	TIFF_RATIONAL, 3 },
-    { GPSTAG_SATELLITES,	"GPS:Satellites",	TIFF_ASCII, 1 },
-    { GPSTAG_STATUS,		"GPS:Status",		TIFF_ASCII, 1 },
-    { GPSTAG_MEASUREMODE,	"GPS:MeasureMode",	TIFF_ASCII, 1 },
+    { GPSTAG_SATELLITES,	"GPS:Satellites",	TIFF_ASCII, 0 },
+    { GPSTAG_STATUS,		"GPS:Status",		TIFF_ASCII, 2 },
+    { GPSTAG_MEASUREMODE,	"GPS:MeasureMode",	TIFF_ASCII, 2 },
     { GPSTAG_DOP,		"GPS:DOP",		TIFF_RATIONAL, 1 },
-    { GPSTAG_SPEEDREF,		"GPS:SpeedRef",		TIFF_ASCII, 1 },
+    { GPSTAG_SPEEDREF,		"GPS:SpeedRef",		TIFF_ASCII, 2 },
     { GPSTAG_SPEED,		"GPS:Speed",		TIFF_RATIONAL, 1 },
-    { GPSTAG_TRACKREF,		"GPS:TrackRef",		TIFF_ASCII, 1 },
+    { GPSTAG_TRACKREF,		"GPS:TrackRef",		TIFF_ASCII, 2 },
     { GPSTAG_TRACK,		"GPS:Track",		TIFF_RATIONAL, 1 },
-    { GPSTAG_IMGDIRECTIONREF,	"GPS:ImgDirectionRef",	TIFF_ASCII, 1 },
+    { GPSTAG_IMGDIRECTIONREF,	"GPS:ImgDirectionRef",	TIFF_ASCII, 2 },
     { GPSTAG_IMGDIRECTION,	"GPS:ImgDirection",	TIFF_RATIONAL, 1 },
-    { GPSTAG_MAPDATUM,		"GPS:MapDatum",		TIFF_ASCII, 1 },
-    { GPSTAG_DESTLATITUDEREF,	"GPS:DestLatitudeRef",	TIFF_ASCII, 1 },
+    { GPSTAG_MAPDATUM,		"GPS:MapDatum",		TIFF_ASCII, 0 },
+    { GPSTAG_DESTLATITUDEREF,	"GPS:DestLatitudeRef",	TIFF_ASCII, 2 },
     { GPSTAG_DESTLATITUDE,	"GPS:DestLatitude",	TIFF_RATIONAL, 3 },
-    { GPSTAG_DESTLONGITUDEREF,	"GPS:DestLongitudeRef",	TIFF_ASCII, 1 },
+    { GPSTAG_DESTLONGITUDEREF,	"GPS:DestLongitudeRef",	TIFF_ASCII, 2 },
     { GPSTAG_DESTLONGITUDE,	"GPS:DestLongitude",	TIFF_RATIONAL, 3 }, 
-    { GPSTAG_DESTBEARINGREF,	"GPS:DestBearingRef",	TIFF_ASCII, 1 },
+    { GPSTAG_DESTBEARINGREF,	"GPS:DestBearingRef",	TIFF_ASCII, 2 },
     { GPSTAG_DESTBEARING,	"GPS:DestBearing",	TIFF_RATIONAL, 1 },
-    { GPSTAG_DESTDISTANCEREF,	"GPS:DestDistanceRef",	TIFF_ASCII, 1 },
+    { GPSTAG_DESTDISTANCEREF,	"GPS:DestDistanceRef",	TIFF_ASCII, 2 },
     { GPSTAG_DESTDISTANCE,	"GPS:DestDistance",	TIFF_RATIONAL, 1 },
     { GPSTAG_PROCESSINGMETHOD,	"GPS:ProcessingMethod",	TIFF_UNDEFINED, 1 },
     { GPSTAG_AREAINFORMATION,	"GPS:AreaInformation",	TIFF_UNDEFINED, 1 },
-    { GPSTAG_DATESTAMP,		"GPS:DateStamp",	TIFF_ASCII, 1 },
+    { GPSTAG_DATESTAMP,		"GPS:DateStamp",	TIFF_ASCII, 0 },
     { GPSTAG_DIFFERENTIAL,	"GPS:Differential",	TIFF_SHORT, 1 },
     { -1, NULL }  // signal end of table
 };
@@ -279,7 +279,7 @@ static TagMap gps_tagmap (gps_tag_table);
 
 
 
-#if DEBUG_EXIF_WRITE
+#if (DEBUG_EXIF_WRITE || DEBUG_EXIF_READ)
 static void
 print_dir_entry (const TagMap &tagmap, 
                  const TIFFDirEntry &dir, const char *datastart)
@@ -453,7 +453,9 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
         swap_endian (&dir.tdir_tag);
         swap_endian (&dir.tdir_type);
         swap_endian (&dir.tdir_count);
-        swap_endian (&dir.tdir_offset);
+        // only swab true offsets, not data embedded in the offset field
+        if (tiff_data_size (dir) > 4)
+            swap_endian (&dir.tdir_offset);
     }
 
 #if DEBUG_EXIF_READ
@@ -672,7 +674,7 @@ float_to_rational (float f, int &num, int &den)
 static void
 append_dir_entry (const TagMap &tagmap,
                   std::vector<TIFFDirEntry> &dirs, std::vector<char> &data,
-                  int tag, TIFFDataType type, int count, const void *mydata)
+                  int tag, TIFFDataType type, size_t count, const void *mydata)
 {
     TIFFDirEntry dir;
     dir.tdir_tag = tag;
@@ -714,7 +716,7 @@ encode_exif_entry (const ImageIOParameter &p, int tag,
                    const TagMap &tagmap)
 {
     TIFFDataType type = tagmap.tifftype (tag);
-    int count = tagmap.tiffcount (tag);
+    size_t count = (size_t) tagmap.tiffcount (tag);
     TypeDesc element = p.type().elementtype();
 
     switch (type) {
@@ -730,7 +732,7 @@ encode_exif_entry (const ImageIOParameter &p, int tag,
         if (element == TypeDesc::FLOAT) {
             unsigned int *rat = (unsigned int *) alloca (2*count*sizeof(unsigned int));
             const float *f = (const float *)p.data();
-            for (int i = 0;  i < count;  ++i)
+            for (size_t i = 0;  i < count;  ++i)
                 float_to_rational (f[i], rat[2*i], rat[2*i+1]);
             append_dir_entry (tagmap, dirs, data, tag, type, count, rat);
             return;
@@ -740,7 +742,7 @@ encode_exif_entry (const ImageIOParameter &p, int tag,
         if (element == TypeDesc::FLOAT) {
             int *rat = (int *) alloca (2*count*sizeof(int));
             const float *f = (const float *)p.data();
-            for (int i = 0;  i < count;  ++i)
+            for (size_t i = 0;  i < count;  ++i)
                 float_to_rational (f[i], rat[2*i], rat[2*i+1]);
             append_dir_entry (tagmap, dirs, data, tag, type, count, rat);
             return;
