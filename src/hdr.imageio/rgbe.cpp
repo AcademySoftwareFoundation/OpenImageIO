@@ -199,7 +199,7 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info,
     }
     else if (strcmp(buf,"FORMAT=32-bit_rle_rgbe\n") == 0) {
         found_FORMAT_line = true;
-        /* LG says no:    break;       /* format found so break out of loop */
+        /* LG says no:    break;       // format found so break out of loop */
     }
     else if (info && (sscanf(buf,"GAMMA=%g",&tempf) == 1)) {
       info->gamma = tempf;

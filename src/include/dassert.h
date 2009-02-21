@@ -71,15 +71,17 @@
 /// the error occurred.
 #ifndef ASSERT
 # define ASSERT(x)                                                      \
-    if (!(x)) {                                                         \
-        char buf[2048];                                                 \
-        snprintf (buf, sizeof(buf),                                     \
-                 "Assertion failed in \"%s\", line %d\n"                \
-                 "\tProbable bug in software.\n",                       \
-                 __FILE__, __LINE__);                                   \
-        ABORT (buf);                                                    \
-    }                                                                   \
-    else   // This 'else' exists to catch the user's following semicolon
+    do {                                                                \
+        if (!(x)) {                                                     \
+            char buf[2048];                                             \
+            snprintf (buf, sizeof(buf),                                 \
+                     "Assertion failed in \"%s\", line %d\n"            \
+                     "\tProbable bug in software.\n",                   \
+                     __FILE__, __LINE__);                               \
+            ABORT (buf);                                                \
+        }                                                               \
+        break;                                                          \
+    } while (1) /* the do-while makes it eat the user's next semicolon */
 #endif
 
 

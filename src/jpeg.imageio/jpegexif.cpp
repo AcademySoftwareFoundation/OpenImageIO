@@ -279,6 +279,7 @@ static TagMap gps_tagmap (gps_tag_table);
 
 
 
+#if DEBUG_EXIF_WRITE
 static void
 print_dir_entry (const TagMap &tagmap, 
                  const TIFFDirEntry &dir, const char *datastart)
@@ -299,7 +300,7 @@ print_dir_entry (const TagMap &tagmap,
     case TIFF_RATIONAL :
         {
             const unsigned int *u = (unsigned int *)mydata;
-            for (int i = 0; i < dir.tdir_count;  ++i)
+            for (size_t i = 0; i < dir.tdir_count;  ++i)
                 std::cerr << u[2*i] << "/" << u[2*i+1] << " = "
                           << (float)u[2*i]/(float)u[2*i+1] << " ";
         }
@@ -307,7 +308,7 @@ print_dir_entry (const TagMap &tagmap,
     case TIFF_SRATIONAL :
         {
             const int *u = (int *)mydata;
-            for (int i = 0; i < dir.tdir_count;  ++i)
+            for (size_t i = 0; i < dir.tdir_count;  ++i)
                 std::cerr << u[2*i] << "/" << u[2*i+1] << " = "
                           << (float)u[2*i]/(float)u[2*i+1] << " ";
         }
@@ -327,6 +328,7 @@ print_dir_entry (const TagMap &tagmap,
     }
     std::cerr << "\n";
 }
+#endif
 
 
 
@@ -454,7 +456,6 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
         swap_endian (&dir.tdir_offset);
     }
 
-    const char *name = tagmap.name (dir.tdir_tag);
 #if DEBUG_EXIF_READ
     std::cerr << "Read ";
     print_dir_entry (tagmap, dir, buf);
@@ -791,16 +792,17 @@ reoffset (std::vector<TIFFDirEntry> &dirs, const TagMap &tagmap,
           size_t offset)
 {
     BOOST_FOREACH (TIFFDirEntry &dir, dirs) {
-        const char *name = tagmap.name (dir.tdir_tag);
         if (tiff_data_size (dir) <= 4 &&
             dir.tdir_tag != TIFFTAG_EXIFIFD && dir.tdir_tag != TIFFTAG_GPSIFD) {
 #if DEBUG_EXIF_WRITE
+            const char *name = tagmap.name (dir.tdir_tag);
             std::cerr << "    NO re-offset of exif entry " << " tag " << dir.tdir_tag << " " << (name ? name : "") << " to " << dir.tdir_offset << '\n';
 #endif
             continue;
         }
         dir.tdir_offset += offset;
 #if DEBUG_EXIF_WRITE
+        const char *name = tagmap.name (dir.tdir_tag);
         std::cerr << "    re-offsetting entry " << " tag " << dir.tdir_tag << " " << (name ? name : "") << " to " << dir.tdir_offset << '\n';
 #endif
     }

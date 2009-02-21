@@ -257,34 +257,6 @@ XYZToLAB (const Color3f xyz)
 
 
 
-static void
-XYZToLAB (float x, float y, float z, float &L, float &A, float &B)
-{
-    // Reference white point
-    const float xw = 0.576700f + 0.185556f + 0.188212f;
-    const float yw = 0.297361f + 0.627355f + 0.0752847f;
-    const float zw = 0.0270328f + 0.0706879f + 0.991248f;
-    const float epsilon = 216.0f / 24389.0f;
-    const float kappa = 24389.0f / 27.0f;
-    float f[3];
-    float r[3];
-    r[0] = x / xw;
-    r[1] = y / yw;
-    r[2] = z / zw;
-    for (int i = 0; i < 3; i++) {
-        if (r[i] > epsilon) {
-            f[i] = powf (r[i], 1.0f / 3.0f);
-        } else {
-            f[i] = (kappa * r[i] + 16.0f) / 116.0f;
-        }
-    }
-    L = 116.0f * f[1] - 16.0f;
-    A = 500.0f * (f[0] - f[1]);
-    B = 200.0f * (f[1] - f[2]);
-}
-
-
-
 #define LAPLACIAN_MAX_LEVELS 8
 
 
@@ -398,7 +370,6 @@ Yee_Compare (const ImageSpec &spec,
 {
     int nscanlines = spec.height * spec.depth;
     int npels = nscanlines * spec.width;
-    int nvals = npels * spec.nchannels;
 
     bool luminanceOnly = false;
 
@@ -546,11 +517,9 @@ main (int argc, char *argv[])
 
     // Compare the two images.
     //
-    int nscanlines = inspec[0].height * inspec[0].depth;
-    int scanlinevals = inspec[0].width * inspec[0].nchannels;
     double totalerror = 0;
-    double maxerror;
-    int maxx, maxy, maxz, maxc;
+    double maxerror = 0;
+    int maxx=0, maxy=0, maxz=0, maxc=0;
     int nfail = 0, nwarn = 0;
     float *p = &pixels0[0];
     float *q = &pixels1[0];

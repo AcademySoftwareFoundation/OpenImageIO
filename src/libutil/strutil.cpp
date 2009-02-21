@@ -68,7 +68,7 @@ Strutil::vformat (const char *fmt, va_list ap)
     va_copy (apcopy, ap);
     int needed = vsnprintf (&buf[0], size, fmt, ap);
 
-    if (needed <= size) {
+    if (needed <= (int)size) {
         // It fit fine the first time, we're done.
         return std::string (&buf[0]);
     } else {
@@ -80,7 +80,7 @@ Strutil::vformat (const char *fmt, va_list ap)
         size = needed;
         buf.resize (size);
         needed = vsnprintf (&buf[0], size, fmt, apcopy);
-        DASSERT (needed <= size);
+        DASSERT (needed <= (int)size);
         return std::string (&buf[0]);
     }
 }
@@ -124,7 +124,6 @@ Strutil::timeintervalformat (double secs, int digits)
     secs = fmod (secs, hours);
     int m = (int) floor (secs / mins);
     secs = fmod (secs, mins);
-    int s = (int) floor (secs);
     if (d)
         out += format ("%dd ", d);
     if (h || d)

@@ -15,9 +15,9 @@ CFLAGS += -fPIC
 STRIP_BINARY := touch
 
 ifdef DEBUG
-CFLAGS += -g -W
+CFLAGS += -g -Wall
 else
-CFLAGS += -O3 -funroll-loops -DNDEBUG
+CFLAGS += -O3 -funroll-loops -DNDEBUG -Wall
 #helpful? -funroll-loops -fomit-frame-pointer 
 #unhelpful? -march=pentium4 -ffast-math -msse -mfpmath=sse -msse2
 endif

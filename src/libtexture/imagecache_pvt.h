@@ -180,7 +180,7 @@ public:
     /// Initialize a TileID based on full elaboration of image file,
     /// subimage, and tile x,y,z indices.
     TileID (ImageCacheFile &file, int subimage, int x, int y, int z=0)
-        : m_file(file), m_subimage(subimage), m_x(x), m_y(y), m_z(z)
+        : m_x(x), m_y(y), m_z(z), m_subimage(subimage), m_file(file)
     { }
 
     /// Destructor is trivial, because we don't hold any resources

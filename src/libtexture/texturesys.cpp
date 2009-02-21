@@ -580,8 +580,6 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
     if (options.alpha)
         options.alpha[index] = 0;
 
-    const ImageSpec &spec (texturefile.spec (0));
-
     static const accum_prototype accum_functions[] = {
         // Must be in the same order as InterpMode enum
         &TextureSystemImpl::accum_sample_closest,
@@ -882,8 +880,6 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
 
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
-    int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
-    int invtileheightmask = ~tileheightmask;
     int tile_s = stex & tilewidthmask;
     int tile_t = ttex & tileheightmask;
     TileID id (texturefile, miplevel, stex - tile_s, ttex - tile_t, 0);
@@ -960,8 +956,6 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
 
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
-    int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
-    int invtileheightmask = ~tileheightmask;
     const unsigned char *texel[2][2];
     TileRef tile[2][2];
     static float black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -1093,14 +1087,12 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         return;
     }
 
-    const unsigned char *texel[4][4] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+    const unsigned char *texel[4][4] = { {NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL},
+                                         {NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL} };
     TileRef tile[4][4];
     static float black[4] = { 0, 0, 0, 0 };
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
-    int invtilewidthmask  = ~tilewidthmask;     // e.g. 64+128+...
-    int invtileheightmask = ~tileheightmask;
     int tile_s = stex[0] & tilewidthmask;
     int tile_t = ttex[0] & tileheightmask;
     bool s_onetile = (tile_s <= tilewidthmask-3);

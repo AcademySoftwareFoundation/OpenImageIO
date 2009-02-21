@@ -485,10 +485,6 @@ inline int
 FloatToInt (double val)
 {
 #ifdef USE_INTEL_MATH_SHORTCUTS
-    const double doublemagicdelta = (1.5e-8);
-        // almost .5f = .5f + 1e^(number of exp bit)
-    const double doublemagicroundeps = (0.5f-doublemagicdelta);
-        // almost .5f = .5f - 1e^(number of exp bit)
     return (val<0) ? CeilToInt(val) : FloorToInt(val);
 #else
     return (int) val;

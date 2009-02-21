@@ -161,7 +161,7 @@ public:
 
     /// Assign new value.
     ///
-    int operator= (int x) { m_val = x; }
+    int operator= (int x) { return (m_val = x); }
 
     /// Pre-increment:  ++foo
     ///

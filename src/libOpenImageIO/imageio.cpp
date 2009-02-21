@@ -216,8 +216,6 @@ _from_float (const float *src, T *dst, size_t nvals,
             int quant_black, int quant_white, int quant_min, int quant_max,
             float quant_dither)
 {
-    T *d = (T *)dst;
-
     if (! src) {
         // If no source pixels, assume zeroes
         memset (dst, 0, nvals * sizeof(T));

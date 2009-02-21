@@ -171,6 +171,7 @@ decode_iptc_iim (const void *iptc, int length, ImageSpec &spec)
 
     if (keywords.length())
         spec.attribute ("Keywords", keywords);
+    return true;
 }
 
 
