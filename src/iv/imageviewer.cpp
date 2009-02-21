@@ -114,7 +114,7 @@ ImageViewer::createActions()
     openAct->setShortcut(tr("Ctrl+O"));
     connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
 
-    for (int i = 0;  i < MaxRecentFiles;  ++i) {
+    for (size_t i = 0;  i < MaxRecentFiles;  ++i) {
         openRecentAct[i] = new QAction (this);
         openRecentAct[i]->setVisible (false);
         connect (openRecentAct[i], SIGNAL(triggered()), this, SLOT(openRecentFile()));
@@ -293,7 +293,7 @@ void
 ImageViewer::createMenus()
 {
     openRecentMenu = new QMenu(tr("Open recent..."), this);
-    for (int i = 0;  i < MaxRecentFiles;  ++i)
+    for (size_t i = 0;  i < MaxRecentFiles;  ++i)
         openRecentMenu->addAction (openRecentAct[i]);
 
     fileMenu = new QMenu(tr("&File"), this);
@@ -528,7 +528,7 @@ ImageViewer::addRecentFile (const std::string &name)
 {
     removeRecentFile (name);
     m_recent_files.insert (m_recent_files.begin(), name);
-    if (m_recent_files.size() > (size_t)MaxRecentFiles)
+    if (m_recent_files.size() > MaxRecentFiles)
         m_recent_files.resize (MaxRecentFiles);
 }
 
@@ -550,7 +550,7 @@ ImageViewer::removeRecentFile (const std::string &name)
 void
 ImageViewer::updateRecentFilesMenu ()
 {
-    for (int i = 0;  i < MaxRecentFiles;  ++i) {
+    for (size_t i = 0;  i < MaxRecentFiles;  ++i) {
         if (i < m_recent_files.size()) {
             boost::filesystem::path fn (m_recent_files[i]);
             openRecentAct[i]->setText (fn.leaf().c_str());
@@ -694,7 +694,7 @@ ImageViewer::updateStatusBar ()
     case channelFullColor: message = "RGB"; break;
     case channelLuminance: message = "Lum"; break;
     default:
-        if (spec->channelnames.size() > m_current_channel &&
+        if ((int)spec->channelnames.size() > m_current_channel &&
                 spec->channelnames[m_current_channel].size())
             message = spec->channelnames[m_current_channel];
         else
@@ -1040,7 +1040,7 @@ ImageViewer::closeImg()
     //   if == m_current_image, wrap to 0 if this was the last image
     //   else if > m_current_image, subtract one
 
-    current_image (current_image() < m_images.size() ? current_image() : 0);
+    current_image (current_image() < (int)m_images.size() ? current_image() : 0);
 }
 
 

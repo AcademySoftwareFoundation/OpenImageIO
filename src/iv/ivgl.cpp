@@ -304,13 +304,13 @@ IvGL::paintGL ()
  
     IvImage *img = m_viewer.cur();
     const ImageSpec &spec (img->spec());
-    float midx = img->oriented_full_x() + 0.5 * img->oriented_full_width();
-    float midy = img->oriented_full_y() + 0.5 * img->oriented_full_height();
     float z = m_zoom;
 
 #if 0
     // If the on-screen application window is larger than the full image
     // size, always center the image.
+    float midx = img->oriented_full_x() + 0.5 * img->oriented_full_width();
+    float midy = img->oriented_full_y() + 0.5 * img->oriented_full_height();
     if (z*img->oriented_full_width() <= width())
         m_centerx = midx;
     if (z*img->oriented_full_height() <= height())
@@ -415,7 +415,6 @@ IvGL::paint_pixelview ()
 
     IvImage *img = m_viewer.cur();
     const ImageSpec &spec (img->spec());
-    float z = m_zoom;
 
     // (xw,yw) are the window coordinates of the mouse.
     int xw, yw;
@@ -489,7 +488,6 @@ IvGL::paint_pixelview ()
 //    font.setFixedPitch (20);
 //    bgfont.setPixelSize (20);
     if (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()) {
-        char *pixel = (char *) alloca (spec.pixel_bytes());
         float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
         int textx = - closeupsize/2 + 4;
         int texty = - closeupsize/2 - yspacing;
@@ -709,7 +707,6 @@ IvGL::clamp_view_to_window ()
     IvImage *img = m_viewer.cur();
     if (! img)
         return;
-    const ImageSpec &spec (img->spec());
     int w = width(), h = height();
     float zoomedwidth  = m_zoom * img->oriented_full_width();
     float zoomedheight = m_zoom * img->oriented_full_height();
@@ -770,6 +767,8 @@ IvGL::mousePressEvent (QMouseEvent *event)
     case Qt::MidButton :
         m_dragging = true;
         // FIXME: should this be return rather than break?
+        break;
+    default:
         break;
     }
     parent_t::mousePressEvent (event);

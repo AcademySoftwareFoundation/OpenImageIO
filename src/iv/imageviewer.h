@@ -227,7 +227,7 @@ private:
 #endif
 
     QAction *openAct, *reloadAct, *closeImgAct;
-    static const int MaxRecentFiles = 10;
+    static const unsigned int MaxRecentFiles = 10;
     QAction *openRecentAct[MaxRecentFiles];
     QAction *saveAsAct, *saveWindowAsAct, *saveSelectionAsAct;
     QAction *printAct;
