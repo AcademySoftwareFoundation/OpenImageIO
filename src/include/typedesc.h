@@ -77,7 +77,7 @@ struct DLLPUBLIC TypeDesc {
     /// type is like a color (raw values) or if it has coordinate
     /// transformation rules similar to a point, vector (direction),
     /// or surface normal.
-    enum VECSEMANTICS { NOXFORM=0, COLOR=0, POINT, VECTOR, NORMAL };
+    enum VECSEMANTICS { NOXFORM=0, COLOR, POINT, VECTOR, NORMAL };
 
     unsigned char basetype;     ///< C data type at the heart of our type
     unsigned char aggregate;    ///< What kind of AGGREGATE is it?
