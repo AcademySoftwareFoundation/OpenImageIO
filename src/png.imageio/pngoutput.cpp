@@ -212,8 +212,7 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         m_spec.attribute ("DateTime", date);
     }
 
-    ImageIOParameter *unit, *xres, *yres;
-    const char *str;
+    ImageIOParameter *unit=NULL, *xres=NULL, *yres=NULL;
     if ((unit = m_spec.find_attribute("ResolutionUnit", TypeDesc::STRING)) &&
         (xres = m_spec.find_attribute("XResolution", TypeDesc::FLOAT)) &&
         (yres = m_spec.find_attribute("YResolution", TypeDesc::FLOAT))) {

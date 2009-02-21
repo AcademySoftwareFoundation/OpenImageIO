@@ -112,20 +112,6 @@ DLLEXPORT const char * png_input_extensions[] = {
 
 
 
-// Someplace to store an error message from the PNG error handler
-static std::string lasterr;
-static mutex lasterr_mutex;
-
-
-static void
-my_error_handler (const char *str, const char *format, va_list ap)
-{
-    lock_guard lock (lasterr_mutex);
-    lasterr = Strutil::vformat (format, ap);
-}
-
-
-
 bool
 PNGInput::open (const std::string &name, ImageSpec &newspec)
 {
