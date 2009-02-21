@@ -260,26 +260,25 @@ public:
 
     /// Add an optional attribute to the extra attribute list
     ///
-    void attribute (const std::string &name, TypeDesc type,
-                    int nvalues, const void *value);
+    void attribute (const std::string &name, TypeDesc type, const void *value);
 
     /// Add an int attribute
     void attribute (const std::string &name, unsigned int value) {
-        attribute (name, TypeDesc::UINT, 1, &value);
+        attribute (name, TypeDesc::UINT, &value);
     }
 
     void attribute (const std::string &name, int value) {
-        attribute (name, TypeDesc::INT, 1, &value);
+        attribute (name, TypeDesc::INT, &value);
     }
 
     /// Add a float attribute
     void attribute (const std::string &name, float value) {
-        attribute (name, TypeDesc::FLOAT, 1, &value);
+        attribute (name, TypeDesc::FLOAT, &value);
     }
 
     /// Add a string attribute
     void attribute (const std::string &name, const char *value) {
-        attribute (name, TypeDesc::STRING, 1, &value);
+        attribute (name, TypeDesc::STRING, &value);
     }
 
     /// Add a string attribute

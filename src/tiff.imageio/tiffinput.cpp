@@ -138,28 +138,28 @@ private:
         char *s = NULL;
         if (safe_tiffgetfield (name, tag, &s))
             if (s && *s)
-                m_spec.attribute (name, TypeDesc::STRING, 1, &s);
+                m_spec.attribute (name, s);
     }
 
     // Get a matrix tiff tag field and put it into extra_params
     void get_matrix_attribute (const std::string &name, int tag) {
         float *f;
         if (safe_tiffgetfield (name, tag, &f))
-            m_spec.attribute (name, TypeDesc::PT_MATRIX, 1, f);
+            m_spec.attribute (name, TypeDesc::PT_MATRIX, f);
     }
 
     // Get a float tiff tag field and put it into extra_params
     void get_float_attribute (const std::string &name, int tag) {
         float f[16];
         if (safe_tiffgetfield (name, tag, f))
-            m_spec.attribute (name, TypeDesc::FLOAT, 1, &f);
+            m_spec.attribute (name, f[0]);
     }
 
     // Get an int tiff tag field and put it into extra_params
     void get_int_attribute (const std::string &name, int tag) {
         int i;
         if (safe_tiffgetfield (name, tag, &i))
-            m_spec.attribute (name, TypeDesc::INT, 1, &i);
+            m_spec.attribute (name, i);
     }
 
     // Get an int tiff tag field and put it into extra_params
@@ -169,7 +169,7 @@ private:
         unsigned short s[2] = {0,0};
         if (safe_tiffgetfield (name, tag, &s)) {
             int i = s[0];
-            m_spec.attribute (name, TypeDesc::INT, 1, &i);
+            m_spec.attribute (name, i);
         }
     }
 
@@ -543,7 +543,7 @@ TIFFInput::readspec ()
 
         // A few tidbits to look for
         ImageIOParameter *p;
-        if (p = m_spec.find_attribute ("Exif:ColorSpace", TypeDesc::INT)) {
+        if ((p = m_spec.find_attribute ("Exif:ColorSpace", TypeDesc::INT))) {
             // Exif spec says that anything other than 0xffff==uncalibrated
             // should be interpreted to be sRGB.
             if (*(const int *)p->data() == 0xffff)

@@ -357,9 +357,9 @@ Returns the number of bytes comprising an image of these dimensions.
 % FIXME - document auto_stride() ?
 
 \apiitem{void {\ce attribute} (const std::string \&name, TypeDesc type, \\
-\bigspc int nvalues, const void *value)}
-Add a metadata attribute to {\cf extra_attribs}, with the given name,
-data type, and number of values.  The {\cf value} pointer specifies
+\bigspc const void *value)}
+Add a metadata attribute to {\cf extra_attribs}, with the given name and
+data type.  The {\cf value} pointer specifies
 the address of the data to be copied.
 \apiend
 

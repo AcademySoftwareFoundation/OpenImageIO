@@ -251,8 +251,7 @@ ImageSpec::default_channel_names ()
 
 
 void
-ImageSpec::attribute (const std::string &name, TypeDesc type,
-                      int nvalues, const void *value)
+ImageSpec::attribute (const std::string &name, TypeDesc type, const void *value)
 {
     // Don't allow duplicates
     ImageIOParameter *f = find_attribute (name);
@@ -260,7 +259,7 @@ ImageSpec::attribute (const std::string &name, TypeDesc type,
         extra_attribs.resize (extra_attribs.size() + 1);
         f = &extra_attribs.back();
     }
-    f->init (name, type, nvalues, value);
+    f->init (name, type, 1, value);
 }
 
 

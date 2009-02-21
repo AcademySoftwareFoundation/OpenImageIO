@@ -372,7 +372,7 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
         if (dirp->tdir_count == 1)
             spec.attribute (name, *f);
         else
-            spec.attribute (name, TypeDesc(TypeDesc::FLOAT, n), 1, f);
+            spec.attribute (name, TypeDesc(TypeDesc::FLOAT, n), f);
     } else if (dirp->tdir_type == TIFF_SRATIONAL) {
         int n = dirp->tdir_count;  // How many
         float *f = (float *) alloca (n * sizeof(float));
@@ -389,7 +389,7 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
         if (dirp->tdir_count == 1)
             spec.attribute (name, *f);
         else
-            spec.attribute (name, TypeDesc(TypeDesc::FLOAT, n), 1, f);
+            spec.attribute (name, TypeDesc(TypeDesc::FLOAT, n), f);
     } else if (dirp->tdir_type == TIFF_ASCII) {
         int len = tiff_data_size (*dirp);
         const char *ptr = (len <= 4) ? (const char *)&dirp->tdir_offset 

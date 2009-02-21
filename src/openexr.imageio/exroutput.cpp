@@ -410,7 +410,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         m_header->insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
         return true;
     }
-    std::cerr << "Don't know what to do with " << type.basetype << ' ' << xname << "\n";
+    std::cerr << "Don't know what to do with " << type.c_str() << ' ' << xname << "\n";
     return false;
 }
 

@@ -261,9 +261,9 @@ make_mipmap (void)
     dstspec.attribute ("textureformat", "Plain Texture");
 
     if (Mcam != Imath::M44f(0.0f))
-        dstspec.attribute ("worldtocamera", PT_MATRIX, 1, &Mcam);
+        dstspec.attribute ("worldtocamera", PT_MATRIX, &Mcam);
     if (Mscr != Imath::M44f(0.0f))
-        dstspec.attribute ("worldtoscreen", PT_MATRIX, 1, &Mscr);
+        dstspec.attribute ("worldtoscreen", PT_MATRIX, &Mscr);
 
     // FIXME - check for valid strings in the wrap mode
     std::string wrapmodes = (swrap.size() ? swrap : wrap) + ',' + 

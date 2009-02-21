@@ -270,6 +270,8 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         case Imf::B44_COMPRESSION   : comp = "b44"; break;
         case Imf::B44A_COMPRESSION  : comp = "b44a"; break;
 #endif
+        default:
+            break;
         }
         if (comp)
             m_spec.attribute ("compression", comp);
@@ -300,7 +302,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
             m_spec.attribute (oname, fattr->value());
         else if (type == "m44f" && 
             (mattr = m_header->findTypedAttribute<Imf::M44fAttribute> (name)))
-            m_spec.attribute (oname, PT_MATRIX, 1, &(mattr->value()));
+            m_spec.attribute (oname, PT_MATRIX, &(mattr->value()));
         else {
 #ifdef DEBUG
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";
@@ -368,7 +370,7 @@ OpenEXRInput::query_channels (void)
         m_spec.channelnames.push_back (ci.name());
         ++nc;
     }
-    ASSERT (m_spec.channelnames.size() == m_spec.nchannels);
+    ASSERT ((int)m_spec.channelnames.size() == m_spec.nchannels);
     // FIXME: should we also figure out the layers?
 
     // Figure out data types -- choose the highest range
