@@ -548,4 +548,51 @@ inline int isinf (T x) {
 }
 #endif
 
+
+
+/// Simple conversion of a (presumably non-negative) float into a 
+/// rational.  This does not attempt to find the simplest fraction
+/// that approximates the float, for example 52.83 will simply
+/// return 5283/100.  This does not attempt to gracefully handle
+/// floats that are out of range that could be easily int/int.
+inline void
+float_to_rational (float f, unsigned int &num, unsigned int &den)
+{
+    if (f <= 0) {   // Trivial case of zero, and handle all negative values
+        num = 0;
+        den = 1;
+    } else if ((int)(1.0/f) == (1.0/f)) { // Exact results for perfect inverses
+        num = 1;
+        den = (int)f;
+    } else {
+        num = (int)f;
+        den = 1;
+        while (fabsf(f-num) > 0.00001 && den < 1000000) {
+            den *= 10;
+            f *= 10;
+            num = (int)f;
+        }
+    }
+}
+
+
+
+/// Simple conversion of a float into a rational.  This does not attempt
+/// to find the simplest fraction that approximates the float, for
+/// example 52.83 will simply return 5283/100.  This does not attempt to
+/// gracefully handle floats that are out of range that could be easily
+/// int/int.
+inline void
+float_to_rational (float f, int &num, int &den)
+{
+    unsigned int n, d;
+    float_to_rational (fabsf(f), n, d);
+    num = (f >= 0) ? (int)n : -(int)n;
+    den = (int) d;
+}
+
+
+
+
+
 #endif // FMATH_H

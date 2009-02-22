@@ -38,6 +38,7 @@ using boost::algorithm::iequals;
 
 #include "thread.h"
 #include "strutil.h"
+#include "fmath.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
@@ -264,42 +265,6 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
     }
 
     return true;
-}
-
-
-
-// Simple utility to turn a float into small-whole-number rational.
-static void
-float_to_rational (float f, unsigned int &num, unsigned int &den,
-                   bool srational=false)
-{
-    if ((int)f == f) {
-        num = (int)f;
-        den = 1;
-        return;
-    }
-    if ((int)(1.0/f) == (1.0/f)) {
-        num = 1;
-        den = (int)f;
-        return;
-    }
-    // Basic algorithm borrowed from libtiff
-    float fv = f;
-    int sign = 1;
-    if (fv < 0) {
-        if (!srational) {
-            // std::cerr << "Lost sign\n";
-        } else {
-            fv = -fv, sign = -1;
-        }
-    }
-    den = 1L;
-    if (fv > 0) {
-        while (fv < 1L<<(31-3) && den < 1L<<(31-3))
-            fv *= 1<<3, den *= 1L<<3;
-    }
-    // Collapse whole numbers so that denominator is 1
-    num = (unsigned int) (sign * (fv + 0.5));
 }
 
 
