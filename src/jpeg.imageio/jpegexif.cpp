@@ -302,7 +302,7 @@ print_dir_entry (const TagMap &tagmap,
             const unsigned int *u = (unsigned int *)mydata;
             for (size_t i = 0; i < dir.tdir_count;  ++i)
                 std::cerr << u[2*i] << "/" << u[2*i+1] << " = "
-                          << (float)u[2*i]/(float)u[2*i+1] << " ";
+                          << (double)u[2*i]/(double)u[2*i+1] << " ";
         }
         break;
     case TIFF_SRATIONAL :
@@ -310,7 +310,7 @@ print_dir_entry (const TagMap &tagmap,
             const int *u = (int *)mydata;
             for (size_t i = 0; i < dir.tdir_count;  ++i)
                 std::cerr << u[2*i] << "/" << u[2*i+1] << " = "
-                          << (float)u[2*i]/(float)u[2*i+1] << " ";
+                          << (double)u[2*i]/(double)u[2*i+1] << " ";
         }
         break;
     case TIFF_SHORT :
@@ -319,11 +319,12 @@ print_dir_entry (const TagMap &tagmap,
     case TIFF_LONG :
         std::cerr << ((unsigned int *)mydata)[0];
         break;
+    case TIFF_BYTE :
     case TIFF_UNDEFINED :
     case TIFF_NOTYPE :
+    default:
         for (size_t i = 0;  i < dir.tdir_count;  ++i)
             std::cerr << (int)((unsigned char *)mydata)[i] << ' ';
-    default:
         break;
     }
     std::cerr << "\n";
@@ -346,7 +347,7 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
     if (dirp->tdir_type == TIFF_SHORT && dirp->tdir_count == 1) {
         unsigned short d;
         d = * (const unsigned short *) &dirp->tdir_offset;  // short stored in offset itself
-        ((unsigned short *)&dirp->tdir_offset)[1] = 0; // clear unused half
+        // huh? ((unsigned short *)&dirp->tdir_offset)[1] = 0; // clear unused half
         if (swab)
             swap_endian (&d);
         spec.attribute (name, (unsigned int)d);
@@ -400,6 +401,12 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
         if (strlen(str.c_str()) < str.length())  // Stray \0 in the middle
             str = std::string (str.c_str());
         spec.attribute (name, str);
+    } else if (dirp->tdir_type == TIFF_BYTE && dirp->tdir_count == 1) {
+        // Not sure how to handle "bytes" generally, but certainly for just
+        // one, add it as an int.
+        unsigned char d;
+        d = * (const unsigned char *) &dirp->tdir_offset;  // byte stored in offset itself
+        spec.attribute (name, (int)d);
     } else if (dirp->tdir_type == TIFF_UNDEFINED || dirp->tdir_type == TIFF_BYTE) {
         // Add it as bytes
 #if 0
@@ -412,23 +419,6 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
                   << dirp->tdir_type << " x " << dirp->tdir_count << "\n";
     }
 }
-
-
-
-#if 0
-static std::string
-resunit_tag (const TIFFDirEntry *dirp, const char *buf, bool swab)
-{
-    if (dirp->tdir_type != TIFF_SHORT)
-        return "none";
-    short s = add_exif_item_to_spec (spec, dirp, buf, swab);
-    if (s == RESUNIT_INCH)
-        return "in";
-    else if (s == RESUNIT_CENTIMETER)
-        return "cm";
-    return "none";
-}
-#endif
 
 
 
@@ -633,45 +623,6 @@ decode_exif (const void *exif, int length, ImageSpec &spec)
 
 
 static void
-float_to_rational (float f, unsigned int &num, unsigned int &den)
-{
-    if (f < 0) {
-        num = 0;
-        den = 1;
-        return;
-    }
-    if ((int)(1.0/f) == (1.0/f)) {    // Exact results for perfect inverses
-        num = 1;
-        den = (int)f;
-        return;
-    }
-
-    // std::cerr << "f2r of " << f << "\n";
-    den = 1;
-    num = (int)f;
-    while (fabsf(f-num) > 0.00001 && den < 1000000) {
-        // std::cerr << "  guess " << num << "/" << den << " = " << (float)num/(float)den << "\n";
-        den *= 10;
-        f *= 10;
-        num = (int)f;
-    }
-}
-
-
-
-// signed version
-static void
-float_to_rational (float f, int &num, int &den)
-{
-    unsigned int n, d;
-    float_to_rational (fabsf(f), n, d);
-    num = (f >= 0) ? n : -n;
-    den = d;
-}
-
-
-
-static void
 append_dir_entry (const TagMap &tagmap,
                   std::vector<TIFFDirEntry> &dirs, std::vector<char> &data,
                   int tag, TIFFDataType type, size_t count, const void *mydata)
@@ -700,6 +651,37 @@ append_dir_entry (const TagMap &tagmap,
         }
     }
     dirs.push_back (dir);
+}
+
+
+
+/// Convert to the desired integer type and then append_dir_entry it.
+///
+template <class T>
+bool
+append_dir_entry_integer (const ImageIOParameter &p, const TagMap &tagmap,
+                          std::vector<TIFFDirEntry> &dirs,
+                          std::vector<char> &data, int tag, TIFFDataType type)
+{
+    T i;
+    switch (p.type().basetype) {
+    case TypeDesc::UINT:
+        i = (T) *(unsigned int *)p.data();
+        break;
+    case TypeDesc::INT:
+        i = (T) *(int *)p.data();
+        break;
+    case TypeDesc::UINT16:
+        i = (T) *(unsigned short *)p.data();
+        break;
+    case TypeDesc::INT16:
+        i = (T) *(short *)p.data();
+        break;
+    default:
+        return false;
+    }
+    append_dir_entry (tagmap, dirs, data, tag, type, 1, &i);
+    return true;
 }
 
 
@@ -749,32 +731,16 @@ encode_exif_entry (const ImageIOParameter &p, int tag,
         }
         break;
     case TIFF_SHORT :
-        if (p.type() == TypeDesc::UINT || p.type() == TypeDesc::INT ||
-                p.type() == TypeDesc::UINT16 || p.type() == TypeDesc::INT16) {
-            unsigned short i;
-            switch (p.type().basetype) {
-            case TypeDesc::UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
-            case TypeDesc::INT:    i = (unsigned short) *(int *)p.data();   break;
-            case TypeDesc::UINT16: i = *(unsigned short *)p.data();         break;
-            case TypeDesc::INT16:  i = (unsigned short) *(short *)p.data(); break;
-            }
-            append_dir_entry (tagmap, dirs, data, tag, type, 1, &i);
+        if (append_dir_entry_integer<unsigned short> (p, tagmap, dirs, data, tag, type))
             return;
-        }
         break;
     case TIFF_LONG :
-        if (p.type() == TypeDesc::UINT || p.type() == TypeDesc::INT ||
-                p.type() == TypeDesc::UINT16 || p.type() == TypeDesc::INT16) {
-            unsigned int i;
-            switch (p.type().basetype) {
-            case TypeDesc::UINT:   i = (unsigned short) *(unsigned int *)p.data(); break;
-            case TypeDesc::INT:    i = (unsigned short) *(int *)p.data();   break;
-            case TypeDesc::UINT16: i = *(unsigned short *)p.data();         break;
-            case TypeDesc::INT16:  i = (unsigned short) *(short *)p.data(); break;
-            }
-            append_dir_entry (tagmap, dirs, data, tag, type, 1, &i);
+        if (append_dir_entry_integer<unsigned int> (p, tagmap, dirs, data, tag, type))
             return;
-        }
+        break;
+    case TIFF_BYTE :
+        if (append_dir_entry_integer<unsigned char> (p, tagmap, dirs, data, tag, type))
+            return;
         break;
     default:
         break;
