@@ -121,13 +121,8 @@ SHLIB_LDFLAGS += -Bdynamic -rdynamic -shared ${PIC}
 
 # Making dependency make files (.d)
 MAKEDEPEND := makedepend
-DEPENDFLAGS := 
-
-# Making compilers
-FLEX := flex
-FLEXARGS :=
-BISON := bison
-BISONARGS :=
+DEPENDFLAGS :=
+DEPENDARGS :=
 
 # Miscellaneous shell commands
 RM := rm
@@ -143,6 +138,8 @@ SED := sed
 # ld?
 
 QT_MOC ?= moc
+FLEX := flex
+BISON := bison
 
 #
 #########################################################################

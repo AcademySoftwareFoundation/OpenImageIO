@@ -88,6 +88,10 @@ dist_dir     := ${top_dist_dir}/${platform}${variant}
 all_makefiles := ${wildcard src/*/module.mk}
 #$(info all_makefiles = "${makefiles}")
 
+# List of all tests to run, by default testsuite/tests/*, but project.mk
+# may amend this
+all_tests := ${wildcard testsuite/tests/*}
+
 
 
 # Making dist
@@ -138,7 +142,7 @@ debug:
 profile:
 	${MAKE} PROFILE=1 --no-print-directory
 
-clean:
+clean: testclean
 	${RM_ALL} ${build_dir}
 
 realclean: clean
@@ -149,6 +153,23 @@ nuke:
 
 doxygen:
 	doxygen src/doc/Doxyfile
+
+test : ${all_tests}
+	@ echo "Running test suite..."
+	@ for f in ${all_tests} ; do \
+	    ( cd $$f ; \
+	      echo "$$f " ; \
+	      PATH=../../../${dist_dir}/bin:${PATH} ./run.py ; \
+	    ) \
+	done
+
+testclean : ${all_tests}
+	@ for f in ${all_tests} ; do \
+	    ( cd $$f ; \
+	      echo "Cleaning test $$f " ; \
+	      PATH=../../../${dist_dir}/bin:${PATH} ./run.py -c ; \
+	    ) \
+	done
 
 # end top level targets
 #########################################################################

@@ -1,0 +1,26 @@
+../../../../oiio-testimages/tahoe-gps.jpg : 2048 x 1536, 3 channel, uint8 jpeg
+    channel list: R, G, B
+    Color space: sRGB
+    Make: "HTC"
+    Model: "T-Mobile G1"
+    Orientation: 1
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2
+    Software: "title;va"
+    Exif:YCbCrPositioning: 1
+    Exif:DateTimeOriginal: "2009:02:21 08:32:04"
+    Exif:DateTimeDigitized: "2009:02:21 08:32:04"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 2048
+    Exif:PixelYDimension: 1536
+    Exif:WhiteBalance: 0
+    GPS:LatitudeRef: "N"
+    GPS:Latitude: 39, 18, 24.4
+    GPS:LongitudeRef: "W"
+    GPS:Longitude: 120, 20, 6.25
+    GPS:AltitudeRef: 0
+    GPS:Altitude: 0
+    GPS:TimeStamp: 17, 56, 33
+    GPS:MapDatum: "WGS-84"
+    GPS:DateStamp: "1915:08:08"

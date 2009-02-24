@@ -24,6 +24,7 @@ help:
 	@echo "  make clean      Remove the temporary files in ${build_dir}"
 	@echo "  make realclean  Remove both ${build_dir} AND ${dist_dir}"
 	@echo "  make nuke       Remove ALL of build and dist (not just ${platform})"
+	@echo "  make test       Run test suite"
 	@echo "Helpful modifiers:"
 	@echo "  make SHOWCOMMANDS=1 ...     Show all compilation commands"
 	@echo "  make EMBEDPLUGINS=1 ...     Compile the plugins into libOpenImageIO"
