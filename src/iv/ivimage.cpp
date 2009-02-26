@@ -132,21 +132,6 @@ html_table_row (const char *name, float value)
 
 
 
-template <class T>
-static std::string
-html_table_row (const char *name, const char *fmt, const T *value, int n)
-{
-    std::string s;
-    for (int i = 0;  i < n;  ++i) {
-        if (i)
-            s += ", ";
-        s += Strutil::format (fmt, value[i]);
-    }
-    return html_table_row (name, s);
-}
-
-
-
 std::string
 IvImage::longinfo () const
 {
@@ -198,38 +183,8 @@ IvImage::longinfo () const
             m_longinfo += html_table_row ("Depth (z) channel", m_spec.z_channel);
 
         BOOST_FOREACH (const ImageIOParameter &p, m_spec.extra_attribs) {
-            TypeDesc element = p.type().elementtype();
-            int n = p.type().numelements() * p.nvalues();
-            if (element == TypeDesc::STRING)
-                m_longinfo += html_table_row (p.name().c_str(), "%s", (const char **)p.data(), n);
-            else if (element == TypeDesc::FLOAT)
-                m_longinfo += html_table_row (p.name().c_str(), "%g", (const float *)p.data(), n);
-            else if (element == TypeDesc::DOUBLE)
-                m_longinfo += html_table_row (p.name().c_str(), "%g", (const double *)p.data(), n);
-            else if (element == TypeDesc::INT)
-                m_longinfo += html_table_row (p.name().c_str(), "%d", (const int *)p.data(), n);
-            else if (element == TypeDesc::UINT)
-                m_longinfo += html_table_row (p.name().c_str(), "%u", (const unsigned int *)p.data(), n);
-            else if (element == TypeDesc::INT16)
-                m_longinfo += html_table_row (p.name().c_str(), "%d", (const short *)p.data(), n);
-            else if (element == TypeDesc::UINT16)
-                m_longinfo += html_table_row (p.name().c_str(), "%u", (const unsigned short *)p.data(), n);
-            else if (element == TypeDesc::PT_MATRIX) {
-                const float *m = (const float *)p.data();
-                std::string s;
-                for (int i = 0;  i < n;  ++i, m += 16)
-                    s += format ("%s%g %g %g %g<br> %g %g %g %g<br> %g %g %g %g<br> %g %g %g %g",
-                         i ? "<br> " : "",
-                         m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], 
-                         m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]);
-                m_longinfo += html_table_row (p.name().c_str(), s);
-            }
-            else
-                m_longinfo += html_table_row (p.name().c_str(),
-                     format ("(unknown data type %s (base %d, agg %d vec %d)",
-                             p.type().c_str(),
-                             p.type().basetype, p.type().aggregate,
-                             p.type().vecsemantics));
+            std::string s = m_spec.metadata_val (p, true);
+            m_longinfo += html_table_row (p.name().c_str(), s);
         }
 
         m_longinfo += "</table>";

@@ -262,26 +262,32 @@ public:
     ///
     void attribute (const std::string &name, TypeDesc type, const void *value);
 
-    /// Add an int attribute
+    /// Add an unsigned int attribute
+    ///
     void attribute (const std::string &name, unsigned int value) {
         attribute (name, TypeDesc::UINT, &value);
     }
 
+    /// Add an int attribute
+    ///
     void attribute (const std::string &name, int value) {
         attribute (name, TypeDesc::INT, &value);
     }
 
     /// Add a float attribute
+    ///
     void attribute (const std::string &name, float value) {
         attribute (name, TypeDesc::FLOAT, &value);
     }
 
     /// Add a string attribute
+    ///
     void attribute (const std::string &name, const char *value) {
         attribute (name, TypeDesc::STRING, &value);
     }
 
     /// Add a string attribute
+    ///
     void attribute (const std::string &name, const std::string &value) {
         attribute (name, value.c_str());
     }
@@ -294,6 +300,13 @@ public:
     const ImageIOParameter *find_attribute (const std::string &name,
                                             TypeDesc searchtype=TypeDesc::UNKNOWN,
                                             bool casesensitive=false) const;
+
+    /// For a given parameter (in this ImageSpec's extra_attribs),
+    /// format the value nicely as a string.  If 'human' is true, use
+    /// especially human-readable with explanations (units, or decoding
+    /// of values) for certain known metadata.
+    std::string metadata_val (const ImageIOParameter &p,
+                              bool human=false) const;
 };
 
 

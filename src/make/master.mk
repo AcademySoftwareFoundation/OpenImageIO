@@ -159,7 +159,10 @@ test : ${all_tests}
 	@ for f in ${all_tests} ; do \
 	    ( cd $$f ; \
 	      echo "$$f " ; \
-	      PATH=../../../${dist_dir}/bin:${PATH} ./run.py ; \
+	      PATH=../../../${build_dir}/bin:${PATH} \
+	      LD_LIBRARY_PATH=../../../${build_dir}/lib:${LD_LIBRARY_PATH} \
+	      DYLD_LIBRARY_PATH=../../../${build_dir}/lib:${DYLD_LIBRARY_PATH} \
+	      ./run.py ; \
 	    ) \
 	done
 
@@ -167,7 +170,7 @@ testclean : ${all_tests}
 	@ for f in ${all_tests} ; do \
 	    ( cd $$f ; \
 	      echo "Cleaning test $$f " ; \
-	      PATH=../../../${dist_dir}/bin:${PATH} ./run.py -c ; \
+	      ./run.py -c ; \
 	    ) \
 	done
 

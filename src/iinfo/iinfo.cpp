@@ -82,7 +82,7 @@ print_info (const std::string &filename, size_t namefieldlength,
         if (spec.x || spec.y || spec.z) {
             printf ("    pixel data origin: x=%d, y=%d", spec.x, spec.y);
             if (spec.depth > 1)
-                printf (", z=%d\n", spec.x, spec.y, spec.z);
+                printf (", z=%d\n", spec.z);
             printf ("\n");
         }
         if (spec.full_x || spec.full_y || spec.full_z ||
@@ -111,43 +111,8 @@ print_info (const std::string &filename, size_t namefieldlength,
         printf ("    Color space: %s\n",
                 Strutil::format(cspacename[(int)spec.linearity], spec.gamma).c_str());
         BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
-            printf ("    %s: ", p.name().c_str());
-            TypeDesc element = p.type().elementtype();
-            int n = p.type().numelements() * p.nvalues();
-            if (element == TypeDesc::STRING) {
-                for (int i = 0;  i < n;  ++i)
-                    printf ("\"%s\"", ((const char **)p.data())[i]);
-            } else if (element == TypeDesc::FLOAT) {
-                for (int i = 0;  i < n;  ++i)
-                    printf ("%s%g", (i ? ", " : ""), ((const float *)p.data())[i]);
-            } else if (element == TypeDesc::DOUBLE) {
-                for (int i = 0;  i < n;  ++i)
-                    printf ("%s%g", (i ? ", " : ""), ((const double *)p.data())[i]);
-            } else if (element == TypeDesc::INT) {
-                for (int i = 0;  i < n;  ++i)
-                    printf ("%s%d", (i ? ", " : ""), ((const int *)p.data())[i]);
-            } else if (element == TypeDesc::UINT) {
-                for (int i = 0;  i < n;  ++i)
-                    printf ("%s%d", (i ? ", " : ""), ((const unsigned int *)p.data())[i]);
-            } else if (element == TypeDesc::UINT16) {
-                for (int i = 0;  i < n;  ++i)
-                    printf ("%s%u", (i ? ", " : ""), ((const unsigned short *)p.data())[i]);
-            } else if (element == TypeDesc::INT16) {
-                for (int i = 0;  i < n;  ++i)
-                    printf ("%s%d", (i ? ", " : ""), ((const short *)p.data())[i]);
-            } else if (element == TypeDesc::TypeMatrix) {
-                const float *m = (const float *)p.data();
-                for (int i = 0;  i < n;  ++i, m += 16)
-                    printf ("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g ",
-                            m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], 
-                            m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]);
-            }
-            else {
-                printf ("<unknown data type> (base %d, agg %d vec %d)",
-                        p.type().basetype, p.type().aggregate,
-                        p.type().vecsemantics);
-            }
-            printf ("\n");
+            std::string s = spec.metadata_val (p, true);
+            printf ("    %s: %s\n", p.name().c_str(), s.c_str());
         }
     }
 }

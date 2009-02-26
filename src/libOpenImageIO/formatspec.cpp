@@ -303,3 +303,303 @@ ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
     }
     return NULL;
 }
+
+
+
+namespace {  // make an anon namespace
+
+
+static std::string
+format_raw_metadata (const ImageIOParameter &p)
+{
+    std::string out;
+    TypeDesc element = p.type().elementtype();
+    int n = p.type().numelements() * p.nvalues();
+    if (element == TypeDesc::STRING) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("\"%s\"", ((const char **)p.data())[i]);
+    } else if (element == TypeDesc::FLOAT) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%g", (i ? ", " : ""), ((const float *)p.data())[i]);
+    } else if (element == TypeDesc::DOUBLE) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%g", (i ? ", " : ""), ((const double *)p.data())[i]);
+    } else if (element == TypeDesc::INT) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%d", (i ? ", " : ""), ((const int *)p.data())[i]);
+    } else if (element == TypeDesc::UINT) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%d", (i ? ", " : ""), ((const unsigned int *)p.data())[i]);
+    } else if (element == TypeDesc::UINT16) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%u", (i ? ", " : ""), ((const unsigned short *)p.data())[i]);
+    } else if (element == TypeDesc::INT16) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%d", (i ? ", " : ""), ((const short *)p.data())[i]);
+    } else if (element == TypeDesc::TypeMatrix) {
+        const float *m = (const float *)p.data();
+        for (int i = 0;  i < n;  ++i, m += 16)
+            out += Strutil::format ("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g ",
+                    m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], 
+                    m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]);
+    }
+    else {
+        out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
+                p.type().basetype, p.type().aggregate,
+                p.type().vecsemantics);
+    }
+    return out;
+}
+
+
+
+struct LabelTable {
+    int value;
+    const char *label;
+};
+
+static std::string
+explain_justprint (const ImageIOParameter &p, const void *extradata)
+{
+    return format_raw_metadata(p) + " " + std::string ((const char *)extradata);
+}
+
+static std::string
+explain_labeltable (const ImageIOParameter &p, const void *extradata)
+{
+    int val;
+    if (p.type() == TypeDesc::INT)
+        val = *(const int *)p.data();
+    else if (p.type() == TypeDesc::UINT)
+        val = (int) *(const unsigned int *)p.data();
+    else if (p.type() == TypeDesc::STRING)
+        val = (int) **(const char **)p.data();
+    else
+        return std::string();
+    for (const LabelTable *lt = (const LabelTable *)extradata; lt->label; ++lt)
+        if (val == lt->value)
+            return std::string (lt->label);
+    return std::string();  // nothing
+}
+
+static std::string
+explain_shutterapex (const ImageIOParameter &p, const void *extradata)
+{
+    if (p.type() == TypeDesc::FLOAT) {
+        double val = pow (2.0, - (double)*(float *)p.data());
+        if (val > 1)
+            return Strutil::format ("%g s", val);
+        else
+            return Strutil::format ("1/%g s", floor(1.0/val));
+    }
+    return std::string();
+}
+
+static std::string
+explain_apertureapex (const ImageIOParameter &p, const void *extradata)
+{
+    if (p.type() == TypeDesc::FLOAT)
+        return Strutil::format ("f/%g", powf (2.0f, *(float *)p.data()/2.0f));
+    return std::string();
+}
+
+static std::string
+explain_ExifFlash (const ImageIOParameter &p, const void *extradata)
+{
+    if (p.type() == TypeDesc::UINT) {
+        unsigned int val = *(unsigned int *)p.data();
+        return Strutil::format ("%s%s%s%s%s%s%s%s",
+                                (val&1) ? "flash fired" : "no flash",
+                                (val&6) == 4 ? ", no strobe return" : "",
+                                (val&6) == 6 ? ", strobe return" : "",
+                                (val&24) == 8 ? ", compulsary flash" : "",
+                                (val&24) == 16 ? ", flash supression" : "",
+                                (val&24) == 24 ? ", auto flash" : "",
+                                (val&32) ? ", no flash available" : "",
+                                (val&64) ? ", red-eye reduction" : "");
+    }
+    return std::string();
+}
+
+static LabelTable ExifExposureProgram_table[] = {
+    { 0, "" }, { 1, "manual" }, { 2, "normal program" },
+    { 3, "aperture priority" }, { 4, "shutter priority" },
+    { 5, "Creative program, biased toward DOF" },
+    { 6, "Action program, biased toward fast shutter" },
+    { 7, "Portrait mode, foreground in focus" },
+    { 8, "Landscape mode, background in focus" },
+    { -1, NULL }
+};
+
+static LabelTable ExifLightSource_table[] = {
+    { 0, "unknown" }, { 1, "daylight" }, { 2, "tungsten/incandescent" },
+    { 4, "flash" }, { 9, "fine weather" }, { 10, "cloudy" }, { 11, "shade" },
+    { 12, "daylight fluorescent D 5700-7100K" },
+    { 13, "day white fluorescent N 4600-5400K" },
+    { 14, "cool white fluorescent W 3900-4500K" },
+    { 15, "white fluorescent WW 3200-3700K" },
+    { 17, "standard light A" }, { 18, "standard light B" },
+    { 19, "standard light C" },
+    { 20, "D55" }, { 21, "D65" }, { 22, "D75" }, { 23, "D50" },
+    { 24, "ISO studio tungsten" }, { 255, "other" }, { -1, NULL }
+};
+
+static LabelTable ExifMeteringMode_table[] = {
+    { 0, "" }, { 1, "average" }, { 2, "center-weighted average" },
+    { 3, "spot" }, { 4, "multi-spot" }, { 5, "pattern" }, { 6, "partial" },
+    { -1, NULL }
+};
+
+static LabelTable ExifSubjectDistanceRange_table[] = {
+    { 0, "unknown" }, { 1, "macro" }, { 2, "close" }, { 3, "distant" },
+    { -1, NULL }
+};
+
+static LabelTable ExifSceneCaptureType_table[] = {
+    { 0, "standard" }, { 1, "landscape" }, { 2, "portrait" }, 
+    { 3, "night scene" }, { -1, NULL }
+};
+
+static LabelTable resunit_table[] = {
+    { 1, "none" }, { 2, "inches" }, { 3, "cm" }, { -1, NULL }
+};
+
+static LabelTable ExifSensingMethod_table[] = {
+    { 1, "undefined" }, { 2, "1-chip color area" }, 
+    { 3, "2-chip color area" }, { 4, "3-chip color area" }, 
+    { 5, "color sequential area" }, { 7, "trilinear" }, 
+    { 8, "color trilinear" }, { -1, NULL }
+};
+
+static LabelTable ExifFileSource_table[] = {
+    { 3, "digital camera" }, { -1, NULL }
+};
+
+static LabelTable ExifSceneType_table[] = {
+    { 1, "directly photographed" }, { -1, NULL }
+};
+
+static LabelTable ExifExposureMode_table[] = {
+    { 0, "auto" }, { 1, "manual" }, { 2, "auto-bracket" }, { -1, NULL }
+};
+
+static LabelTable ExifWhiteBalance_table[] = {
+    { 0, "auto" }, { 1, "manual" }, { -1, NULL }
+};
+
+static LabelTable ExifGainControl_table[] = {
+    { 0, "none" }, { 1, "low gain up" }, { 2, "high gain up" }, 
+    { 3, "low gain down" }, { 4, "high gain down" },
+    { -1, NULL }
+};
+
+static LabelTable yesno_table[] = {
+    { 0, "no" }, { 1, "yes" }, { -1, NULL }
+};
+
+static LabelTable softhard_table[] = {
+    { 0, "normal" }, { 1, "soft" }, { 2, "hard" }, { -1, NULL }
+};
+
+static LabelTable lowhi_table[] = {
+    { 0, "normal" }, { 1, "low" }, { 2, "high" }, { -1, NULL }
+};
+
+static LabelTable GPSAltitudeRef_table[] = {
+    { 0, "above sea level" }, { 1, "below sea level" }, { -1, NULL }
+};
+
+static LabelTable GPSStatus_table[] = {
+    { 'A', "measurement in progress" }, { 'V', "measurement interoperability" },
+    { -1, NULL }
+};
+
+static LabelTable GPSMeasureMode_table[] = {
+    { '2', "2-D" }, { '3', "3-D" }, { -1, NULL }
+};
+
+static LabelTable GPSSpeedRef_table[] = {
+    { 'K', "km/hour" }, { 'M', "miles/hour" }, { 'N', "knots" }, 
+    { -1, NULL }
+};
+
+static LabelTable GPSDestDistanceRef_table[] = {
+    { 'K', "km" }, { 'M', "miles" }, { 'N', "knots" }, 
+    { -1, NULL }
+};
+
+static LabelTable magnetic_table[] = {
+    { 'T', "true direction" }, { 'M', "magnetic direction" }, { -1, NULL }
+};
+
+typedef std::string (*ExplainerFunc) (const ImageIOParameter &p, 
+                                      const void *extradata);
+
+struct ExplanationTableEntry {
+    const char    *oiioname;
+    ExplainerFunc  explainer;
+    const void    *extradata;
+};
+
+static ExplanationTableEntry explanation[] = {
+    { "ResolutionUnit", explain_labeltable, resunit_table },
+    { "Exif:ExposureProgram", explain_labeltable, ExifExposureProgram_table },
+    { "Exif:ShutterSpeedValue", explain_shutterapex, NULL },
+    { "Exif:ApertureValue", explain_apertureapex, NULL },
+    { "Exif:MaxApertureValue", explain_apertureapex, NULL },
+    { "Exif:SubjectDistance", explain_justprint, "m" },
+    { "Exif:MeteringMode", explain_labeltable, ExifMeteringMode_table },
+    { "Exif:LightSource", explain_labeltable, ExifLightSource_table },
+    { "Exif:Flash", explain_ExifFlash, NULL },
+    { "Exif:FocalLength", explain_justprint, "mm" },
+    { "Exif:FlashEnergy", explain_justprint, "BCPS" },
+    { "Exif:FocalPlaneResolutionUnit", explain_labeltable, resunit_table },
+    { "Exif:SensingMethod", explain_labeltable, ExifSensingMethod_table },
+    { "Exif:FileSource", explain_labeltable, ExifFileSource_table },
+    { "Exif:SceneType", explain_labeltable, ExifSceneType_table },
+    { "Exif:CustomRendered", explain_labeltable, yesno_table },
+    { "Exif:ExposureMode", explain_labeltable, ExifExposureMode_table },
+    { "Exif:WhiteBalance", explain_labeltable, ExifWhiteBalance_table },
+    { "Exif:SceneCaptureType", explain_labeltable, ExifSceneCaptureType_table },
+    { "Exif:GainControl", explain_labeltable, ExifGainControl_table },
+    { "Exif:Contrast", explain_labeltable, softhard_table },
+    { "Exif:Saturation", explain_labeltable, lowhi_table },
+    { "Exif:Sharpness", explain_labeltable, softhard_table },
+    { "Exif:SubjectDistanceRange", explain_labeltable, ExifSubjectDistanceRange_table },
+    { "GPS:AltitudeRef", explain_labeltable, GPSAltitudeRef_table },
+    { "GPS:Altitude", explain_justprint, "m" },
+    { "GPS:Status", explain_labeltable, GPSStatus_table },
+    { "GPS:MeasureMode", explain_labeltable, GPSMeasureMode_table },
+    { "GPS:SpeedRef", explain_labeltable, GPSSpeedRef_table },
+    { "GPS:TrackRef", explain_labeltable, magnetic_table },
+    { "GPS:ImgDirectionRef", explain_labeltable, magnetic_table },
+    { "GPS:DestBearingRef", explain_labeltable, magnetic_table },
+    { "GPS:DestDistanceRef", explain_labeltable, GPSDestDistanceRef_table },
+    { "GPS:Differential", explain_labeltable, yesno_table },
+    { NULL, NULL, NULL }
+}; 
+
+}; // end anon namespace
+
+
+
+std::string
+ImageSpec::metadata_val (const ImageIOParameter &p, bool human) const
+{
+    std::string out = format_raw_metadata (p);
+
+    if (human) {
+        std::string nice;
+        for (int e = 0;  explanation[e].oiioname;  ++e) {
+            if (! strcmp (explanation[e].oiioname, p.name().c_str()) &&
+                explanation[e].explainer) {
+                nice = explanation[e].explainer (p, explanation[e].extradata);
+                break;
+            }
+        }
+        if (nice.length())
+            out = out + " (" + nice + ")";
+    }
+
+    return out;
+}
