@@ -120,7 +120,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     int depth = zmax - zmin + 1;
 
     // Do the strides indicate that the data are already contiguous?
-    bool contiguous = (xstride == m_spec.nchannels*format.size() &&
+    bool contiguous = (xstride == m_spec.nchannels*(int)format.size() &&
                        (ystride == xstride*width || height == 1) &&
                        (zstride == ystride*height || depth == 1));
     // Is the only conversion we are doing that of data format?

@@ -53,7 +53,7 @@ ImageInput::read_scanline (int y, int z, TypeDesc format, void *data,
                            stride_t xstride)
 {
     m_spec.auto_stride (xstride, format, m_spec.nchannels);
-    bool contiguous = (xstride == m_spec.nchannels*format.size());
+    bool contiguous = (xstride == m_spec.nchannels*(int)format.size());
     if (contiguous && m_spec.format == format)  // Simple case
         return read_native_scanline (y, z, data);
 
@@ -82,7 +82,7 @@ ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
 {
     m_spec.auto_stride (xstride, ystride, zstride, format,
                         m_spec.nchannels, m_spec.tile_width, m_spec.tile_height);
-    bool contiguous = (xstride == m_spec.nchannels*format.size() &&
+    bool contiguous = (xstride == m_spec.nchannels*(int)format.size() &&
                        ystride == xstride*m_spec.tile_width &&
                        (zstride == ystride*m_spec.tile_height || zstride == 0));
     if (contiguous && m_spec.format == format)  // Simple case

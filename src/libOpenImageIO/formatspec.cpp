@@ -201,8 +201,10 @@ ImageSpec::format_from_quantize (int quant_black, int quant_white,
     } else if (quant_min >= std::numeric_limits <int>::min() && 
                quant_max <= std::numeric_limits <int>::max()) {
         return TypeDesc::INT;
-    } else if (quant_min >= std::numeric_limits <unsigned int>::min() && 
-               quant_max <= std::numeric_limits <unsigned int>::max()) {
+    } else if (quant_min >= 0 && 
+               (unsigned int) quant_min >= std::numeric_limits <unsigned int>::min() && 
+               quant_max >= 0 &&
+               (unsigned int) quant_max <= std::numeric_limits <unsigned int>::max()) {
         return TypeDesc::UINT;
     } else {
         return TypeDesc::UNKNOWN;
