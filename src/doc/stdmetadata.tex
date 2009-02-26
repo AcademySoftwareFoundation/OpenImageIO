@@ -557,7 +557,153 @@ representing a 128-bit number.
 \apiend
 
 
-% FIXME -- GPS metadata
+\section{GPS Exif metadata}
+
+The following GPS-related Exif metadata tags correspond to items in the
+``standard'' set of metadata.
+
+%\apiitem{"GPS:VersionID" : int}
+%\apiend
+
+\apiitem{"GPS:LatitudeRef" : string}
+Whether the \qkw{GPS:Latitude} tag refers to north or south: \qkw{N} or 
+\qkw{S}.
+\apiend
+
+\apiitem{"GPS:Latitude" : float[3]}
+The degrees, minutes, and seconds of latitude (see also \qkw{GPS:LatitudeRef}).
+\apiend
+
+\apiitem{"GPS:LongitudeRef" : string}
+Whether the \qkw{GPS:Longitude} tag refers to east or west: \qkw{E} or 
+\qkw{W}.
+\apiend
+
+\apiitem{"GPS:Longitude" : float[3]}
+The degrees, minutes, and seconds of longitude (see also 
+\qkw{GPS:LongitudeRef}).
+\apiend
+
+\apiitem{"GPS:AltitudeRef" : string}
+A value of 0 indicates that the altitude is above sea level, 1 indicates
+below sea level.
+\apiend
+
+\apiitem{"GPS:Altitude" : float}
+Absolute value of the altitude, in meters, relative to sea level 
+(see \qkw{GPS:AltitudeRef} for whether it's above or below sea level).
+\apiend
+
+\apiitem{"GPS:TimeStamp" : float[3]}
+Gives the hours, minutes, and seconds, in UTC.
+\apiend
+
+\apiitem{"GPS:Satellites" : string}
+Information about what satellites were visible.
+\apiend
+
+\apiitem{"GPS:Status" : string}
+\qkw{A} indicates a measurement in progress, \qkw{V} indicates
+measurement interoperability.
+\apiend
+
+\apiitem{"GPS:MeasureMode" : string}
+\qkw{2} indicates a 2D measurement, \qkw{3} indicates a 3D measurement.
+\apiend
+
+\apiitem{"GPS:DOP" : float}
+Data degree of precision.
+\apiend
+
+\apiitem{"GPS:SpeedRef" : string}
+Indicates the units of the related \qkw{GPS:Speed} tag: 
+\qkw{K} for km/h, \qkw{M} for miles/h, \qkw{N} for knots.
+\apiend
+
+\apiitem{"GPS:Speed" : float}
+Speed of the GPS receiver (see \qkw{GPS:SpeedRef} for the units).
+\apiend
+
+\apiitem{"GPS:TrackRef" : string}
+Describes the meaning of the \qkw{GPS:Track} field: \qkw{T} for true
+direction, \qkw{M} for magnetic direction.
+\apiend
+
+\apiitem{"GPS:Track" : float}
+Direction of the GPS receiver movement (from 0--359.99).  The
+related \qkw{GPS:TrackRef} indicate whether it's true or magnetic.
+\apiend
+
+\apiitem{"GPS:ImgDirectionRef" : string}
+Describes the meaning of the \qkw{GPS:ImgDirection} field: \qkw{T} for true
+direction, \qkw{M} for magnetic direction.
+\apiend
+
+\apiitem{"GPS:ImgDirection" : float}
+Direction of the image when captured (from 0--359.99).  The
+related \qkw{GPS:ImgDirectionRef} indicate whether it's true or magnetic.
+
+\apiend
+
+\apiitem{"GPS:MapDatum" : string}
+The geodetic survey data used by the GPS receiver.
+\apiend
+
+\apiitem{"GPS:DestLatitudeRef" : string}
+Whether the \qkw{GPS:DestLatitude} tag refers to north or south: \qkw{N} or 
+\qkw{S}.
+\apiend
+
+\apiitem{"GPS:DestLatitude" : float[3]}
+The degrees, minutes, and seconds of latitude of the destination (see also 
+\qkw{GPS:DestLatitudeRef}).
+\apiend
+
+\apiitem{"GPS:DestLongitudeRef" : string}
+Whether the \qkw{GPS:DestLongitude} tag refers to east or west: \qkw{E} or 
+\qkw{W}.
+\apiend
+
+\apiitem{"GPS:DestLongitude" : float[3]}
+The degrees, minutes, and seconds of longitude of the destination (see also 
+\qkw{GPS:DestLongitudeRef}).
+\apiend
+
+\apiitem{"GPS:DestBearingRef" : string}
+Describes the meaning of the \qkw{GPS:DestBearing} field: \qkw{T} for true
+direction, \qkw{M} for magnetic direction.
+\apiend
+
+\apiitem{"GPS:DestBearing" : float}
+Bearing to the destination point (from 0--359.99).  The
+related \qkw{GPS:DestBearingRef} indicate whether it's true or magnetic.
+\apiend
+
+\apiitem{"GPS:DestDistanceRef" : string}
+Indicates the units of the related \qkw{GPS:DestDistance} tag: 
+\qkw{K} for km, \qkw{M} for miles, \qkw{N} for knots.
+\apiend
+
+\apiitem{"GPS:DestDistance" : float}
+Distance to the destination (see \qkw{GPS:DestDistanceRef} for the units).
+\apiend
+
+\apiitem{"GPS:ProcessingMethod" : string}
+Processing method information.
+\apiend
+
+\apiitem{"GPS:AreaInformation" : string}
+Name of the GPS area.
+\apiend
+
+\apiitem{"GPS:DateStamp" : string}
+Date according to the GPS device, in format \qkw{YYYY:MM:DD}.
+\apiend
+
+\apiitem{"GPS:Differential" : int}
+If 1, indicates that differential correction was applied.
+\apiend
+
 
 
 \section{IPTC metadata}

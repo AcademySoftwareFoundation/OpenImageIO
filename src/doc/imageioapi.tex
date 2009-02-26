@@ -89,9 +89,10 @@ semantics, described by the enumerated type {\cf VECSEMANTICS}:
 
 \medskip
 \begin{tabular}{p{1in} p{4.25in}}
-{\cf NOXFORM}, {\cf COLOR} &  synonyms that
-  indicate that the item is not a spatial quantity that undergoes any
-  particular transformation. \\
+{\cf NOXFORM} & indicates that the item is not a spatial quantity that
+  undergoes any particular transformation. \\
+{\cf COLOR} & indicates that the item is a ``color,'' not a spatial
+  quantity (and of course therefore does not undergo a transformation). \\
 {\cf POINT} &  indicates that the item represents a
   spatial position and should be transformed by a $4 \times 4$ matrix
   as if it had a 4th component of 1. \\
@@ -385,7 +386,13 @@ name comparison will be exact if {\cf casesensitive} is true, otherwise
 in a case-insensitive manner if {\cf caseinsensitive} is false.
 \apiend
 
-
+\apiitem{std::string {\ce metadata_val} (const ImageIOParamaeter \&p,
+  bool human=true)}
+For a given parameter (in this \ImageSpec's {\cf extra_attribs} field),
+format the value nicely as a string.  If {\cf human} is true, use
+especially human-readable explanations (units, or decoding of
+values) for certain known metadata.
+\apiend
 
 
 \index{Image I/O API|)}
