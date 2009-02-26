@@ -303,8 +303,8 @@ public:
 
     /// For a given parameter (in this ImageSpec's extra_attribs),
     /// format the value nicely as a string.  If 'human' is true, use
-    /// especially human-readable with explanations (units, or decoding
-    /// of values) for certain known metadata.
+    /// especially human-readable explanations (units, or decoding of
+    /// values) for certain known metadata.
     std::string metadata_val (const ImageIOParameter &p,
                               bool human=false) const;
 };
