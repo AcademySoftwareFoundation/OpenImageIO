@@ -61,7 +61,10 @@ local_extra_objs += \
 	${build_obj_dir}/tiff.imageio/tiffinput${OEXT} \
 	${build_obj_dir}/tiff.imageio/tiffoutput${OEXT}
 local_ldflags += ${LINK_OPENEXR} ${LINK_TIFF} ${LINK_PNG} \
-		${LINK_JPEG} ${LINK_ZLIB}
+		${LINK_JPEG} ${LINK_ZLIB} 
+ifeq (${BOOST_DYNAMIC},1)
+local_ldflags += ${LINK_BOOST}
+endif
 endif
 
 

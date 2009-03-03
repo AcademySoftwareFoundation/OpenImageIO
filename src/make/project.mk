@@ -127,6 +127,7 @@ BOOST_VERSION ?= 1_38_0
 BOOST_HOME ?= ${THIRD_PARTY_TOOLS_HOME}
 BOOST_CXX ?= -I${BOOST_HOME}/include/boost_${BOOST_VERSION}
 BOOST_LIB_AREA ?= ${BOOST_HOME}/lib/boost_${BOOST_VERSION}
+BOOST_DYNAMIC ?=
 GCCVERCODE ?= ${shell gcc --version | grep -o "[0-9]\.[0-9]" | head -1 | tr -d "."}
 ifeq (${platform},macosx)
 #OLD  BOOST_SUFFIX ?= -mt-1_35
@@ -135,11 +136,23 @@ else
   BOOST_SUFFIX ?= -gcc${GCCVERCODE}-mt-1_38
 endif
 
+ifeq (${BOOST_DYNAMIC},1)
+LINK_BOOST ?= ${LD_LIBPATH}${BOOST_LIB_AREA} \
+              -lboost_filesystem${BOOST_SUFFIX} \
+              -lboost_regex${BOOST_SUFFIX} \
+              -lboost_system${BOOST_SUFFIX} \
+              -lboost_thread${BOOST_SUFFIX}
+dist_extra_libs += $(wildcard ${BOOST_LIB_AREA}/libboost_filesystem${BOOST_SUFFIX}${SHLIBEXT}*) \
+		   $(wildcard ${BOOST_LIB_AREA}/libboost_regex${BOOST_SUFFIX}${SHLIBEXT}*) \
+		   $(wildcard ${BOOST_LIB_AREA}/libboost_system${BOOST_SUFFIX}${SHLIBEXT}*) \
+		   $(wildcard ${BOOST_LIB_AREA}/libboost_thread${BOOST_SUFFIX}${SHLIBEXT}*)
+else
 LINK_BOOST ?= ${LD_LIBPATH}${BOOST_LIB_AREA} \
               ${BOOST_LIB_AREA}/${LIBPREFIX}boost_filesystem${BOOST_SUFFIX}${LIBEXT} \
               ${BOOST_LIB_AREA}/${LIBPREFIX}boost_regex${BOOST_SUFFIX}${LIBEXT} \
               ${BOOST_LIB_AREA}/${LIBPREFIX}boost_system${BOOST_SUFFIX}${LIBEXT} \
               ${BOOST_LIB_AREA}/${LIBPREFIX}boost_thread${BOOST_SUFFIX}${LIBEXT}
+endif
 
 # We don't use TBB currently, but if we did, we'd uncomment this:
 #TBB_VERSION ?= 21_20080605oss
