@@ -461,13 +461,13 @@ public:
 
     /// Read the current subimage of 'in', and write it as the next
     /// subimage of *this, in a way that is efficient and does not alter
-    /// pixel values, if at all possible.  Both in and this must be
-    /// properly-opened image files (an ImageInput and ImageOutput,
-    /// respectively) and their current images must match in size and
-    /// number of channels.  Return true if it works ok, false if for
-    /// some reason the operation wasn't possible.
+    /// pixel values, if at all possible.  Both in and this must be a
+    /// properly-opened ImageInput and ImageOutput, respectively, and
+    /// their current images must match in size and number of channels.
+    /// Return true if it works ok, false if for some reason the
+    /// operation wasn't possible.
     ///
-    /// If a particular ImageOuput implementation does not supply a
+    /// If a particular ImageOutput implementation does not supply a
     /// copy_image method, it will inherit the default implementation,
     /// which is to simply read scanlines or tiles from 'in' and write
     /// them to *this.  However, some ImageIO implementations may have a
@@ -549,6 +549,14 @@ public:
     /// number of channels, and native data format.  Return true if the
     /// file was found and opened okay.
     virtual bool open (const std::string &name, ImageSpec &newspec) = 0;
+
+    /// Open file with given name, similar to open(name,newspec). The
+    /// 'config' is an ImageSpec giving requests or special
+    /// instructions.  ImageInput implementations are free to not
+    /// respond to any such requests, so the default implementation is
+    /// just to ignore config and call regular open(name,newspec).
+    virtual bool open (const std::string &name, ImageSpec &newspec,
+                       const ImageSpec &config) { return open(name,newspec); }
 
     /// Return a reference to the image format specification of the
     /// current subimage.  Note that the contents of the spec are

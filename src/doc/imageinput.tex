@@ -659,6 +659,20 @@ the image.  Return {\kw true} if the file was found and opened okay,
 otherwise {\kw false}.
 \apiend
 
+\apiitem{bool {\ce open} (const std::string \&name, ImageSpec \&newspec,\\
+\bigspc  const ImageSpec \&config)}
+
+Opens the file with given name, similarly to {\cf open(name, newspec)}.
+However, in this version, any non-default fields of {\cf config},
+including metadata, will be taken to be configuration requests,
+preferences, or hints.  The default implementation of 
+{\cf open (name, newspec, config)} will simply ignore {\cf config} and
+calls the usual {\cf open (name, newspec)}.  But a plugin may choose to
+implement this version of {\cf open} and respond in some way to the
+configuration requests.  Supported configuration requests should be
+documented by each plugin.
+\apiend
+
 \apiitem {const ImageSpec \& {\ce spec} (void) const}
 Returns a reference to the image format specification of the
 current subimage.  Note that the contents of the spec are

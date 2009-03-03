@@ -862,6 +862,61 @@ In this example, we have used \writeimage, but of course \writescanline,
 \writetile, and {\cf write_rectangle()} work as you would expect, on the
 current subimage.
 
+\subsection{Copying an entire image}
+\label{sec:imageoutput:copyimage}
+
+Suppose you want to copy an image, perhaps with alterations to the 
+metadata but not to the pixels.  You could open an \ImageInput and
+perform a {\cf read_image()}, and open another \ImageOutput and
+call {\cf write_image()} to output the pixels from the input image.
+However, for compressed images, this may be inefficient due to the
+unnecessary decompression and subsequent re-compression.  In addition,
+if the compression is \emph{lossy}, the output image may not contain
+pixel values identical to the original input.
+
+A special {\cf copy_image} method of \ImageOutput is available that
+attempts to copy an image from an open \ImageInput (of the same
+format) to the output as efficiently as possible with without altering
+pixel values, if at all possible.
+
+Not all format plugins will provide an implementation of {\cf
+  copy_image} (in fact, most will not), but the default implemenatation
+simply copies pixels one scanline or tile at a time (with
+decompression/recompression) so it's still safe to call.  Furthermore,
+even a provided {\cf copy_image} is expected to fall back on the default
+implementation if the input and output are not able to do an efficient
+copy.  Nevertheless, this method is recommended
+for copying images so that maximal advantage will be taken in cases
+where savings can be had.
+
+The following is an example use of {\cf copy_image} to transfer pixels
+without alteration while modifying the image description metadata:
+
+\begin{code}
+    // Open the input file
+    const char *input = "input.jpg";
+    ImageInput *in = ImageInput::create (input);
+    ImageSpec in_spec;
+    in->open (input, in_spec);
+
+    // Make an output spec, identical to the input except for metadata
+    ImageSpec out_spec = in_spec;
+    out_spec.attribute ("ImageDescription", "My Title");
+
+    // Create the output file and copy the image
+    const char *output = "output.jpg";
+    ImageOutput *out = ImageOutput::create (output);
+    out->open (output, out_spec);
+    out->copy_image (in);
+
+    // Clean up
+    out->close ();
+    delete out;
+    in->close ();
+    delete in;
+\end{code}
+
+
 \subsection{Custom search paths for plugins}
 \label{sec:imageoutput:searchpaths}
 
@@ -1129,6 +1184,27 @@ Periodically, it will be called as follows:
 \noindent where \emph{done} gives the portion of the image 
 (between 0.0 and 1.0) that has been written thus far.
 
+\apiend
+
+\apiitem{bool {\ce copy_image} (ImageInput *in)}
+
+Read the current subimage of {\cf in}, and write it as the next subimage
+of {\cf *this}, in a way that is efficient and does not alter pixel
+values, if at all possible.  Both {\cf in} and {\cf this} must be a
+properly-opened \ImageInput and \ImageOutput, respectively, and their
+current images must match in size and number of channels.  Return {\cf true}
+if it works ok, {\cf false} if for some reason the operation wasn't possible.
+
+If a particular \ImageOutput implementation does not supply a
+{\cf copy_image} method, it will inherit the default implementation,
+which is to simply read scanlines or tiles from {\cf in} and write
+them to {\cf *this}.  However, some format implementations may have a
+special technique for directly copying raw pixel data from the
+input to the output, when both input and output are the same
+file type and the same data format.  This can be more efficient 
+than {\cf in->read_image} followed by {\cf out->write_image}, and avoids any
+unintended pixel alterations, especially for formats that use
+lossy compression.
 \apiend
 
 \apiitem{int {\ce send_to_output} (const char *format, ...)}
