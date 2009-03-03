@@ -8,9 +8,10 @@ Before first alpha release
             Windows port of everything
             iv - handle images > 4k
             Explore unit test strategies (leading condender: Google)
-            open (name, requests, newspec) - communicate requests
+DONE        open (name, newspec, requests) - communicate requests
                  (call it "request"? "settings"? "configuration"?)
-DONE        API docs - ImageBuf, iv, igrep, maketx, plugins, building
+            API docs - ImageBuf, iv, igrep, maketx, plugins, building,
+                iconvert --adjust-time/keyword/clear-keyword/title
             iv - select all images
 DONE        iv - gamma correction (env variable)
 DONE?       iv - honor sRGB images

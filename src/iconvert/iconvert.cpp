@@ -35,12 +35,18 @@
 #include <ctime>
 #include <iostream>
 #include <iterator>
+#include <utime.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+
+#include <boost/tokenizer.hpp>
 
 #include "argparse.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 
 
+static std::string uninitialized = "uninitialized \001 HHRU dfvAS: efjl";
 static std::string dataformatname = "";
 static float gammaval = 1.0f;
 static bool depth = false;
@@ -51,7 +57,12 @@ static bool scanline = false;
 static bool zfile = false;
 static std::string channellist;
 static std::string compression;
+static bool no_copy_image = false;
 static int quality = -1;
+static bool adjust_time = false;
+static std::string caption = uninitialized;
+static std::string keywords = uninitialized;
+static bool clear_keywords = false;
 
 
 
@@ -81,6 +92,11 @@ getargs (int argc, char *argv[])
                   "--scanline", &scanline, "Output as a scanline image",
                   "--compression %s", &compression, "Set the compression method (default = same as input)",
                   "--quality %d", &quality, "Set the compression quality, 1-100",
+                  "--no-copy-image", &no_copy_image, "Do not use ImageOutput copy_image functionality (dbg)",
+                  "--adjust-time", &adjust_time, "Adjust file times to match DateTime metadata",
+                  "--caption %s", &caption, "Set caption (ImageDescription)",
+                  "--keyword %s", &keywords, "Add a keyword",
+                  "--clear-keywords", &clear_keywords, "Clear keywords",
 //FIXME           "-z", &zfile, "Treat input as a depth file",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
                   NULL) < 0) {
@@ -99,6 +115,55 @@ getargs (int argc, char *argv[])
         exit (EXIT_FAILURE);
     }
     std::cout << "Converting " << filenames[0] << " to " << filenames[1] << "\n";
+}
+
+
+
+static bool
+DateTime_to_time_t (const char *datetime, struct timeval times[2])
+{
+    int year, month, day, hour, min, sec;
+    int r = sscanf (datetime, "%d:%d:%d %d:%d:%d",
+                    &year, &month, &day, &hour, &min, &sec);
+    // printf ("%d  %d:%d:%d %d:%d:%d\n", r, year, month, day, hour, min, sec);
+    if (r != 6)
+        return false;
+    struct tm tmtime;
+    time_t now;
+    localtime_r (&now, &tmtime);  // fill in defaults
+    tmtime.tm_sec = sec;
+    tmtime.tm_min = min;
+    tmtime.tm_hour = hour;
+    tmtime.tm_mday = day;
+    tmtime.tm_mon = month-1;
+    tmtime.tm_year = year-1900;
+    time_t t = mktime (&tmtime);
+
+    times[0].tv_sec = t; // new access time
+    times[0].tv_usec = 0;
+    times[1].tv_sec = t; // new modification time
+    times[1].tv_usec = 0;
+
+    return true;
+}
+
+
+
+// Utility: split semicolon-separated list
+static void
+split_list (const std::string &list, std::vector<std::string> &items)
+{
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep(";");
+    tokenizer tokens (list, sep);
+    for (tokenizer::iterator tok_iter = tokens.begin();
+         tok_iter != tokens.end(); ++tok_iter) {
+        std::string t = *tok_iter;
+        while (t.length() && t[0] == ' ')
+            t.erase (t.begin());
+        if (t.length())
+            items.push_back (t);
+    }
 }
 
 
@@ -162,6 +227,32 @@ main (int argc, char *argv[])
     if (quality > 0)
         outspec.attribute ("CompressionQuality", quality);
 
+    if (caption != uninitialized)
+        outspec.attribute ("ImageDescription", caption);
+
+    if (clear_keywords || keywords != uninitialized) {
+        std::string kw;
+        ImageIOParameter *p = outspec.find_attribute ("Keywords", TypeDesc::TypeString);
+
+        if (p)
+            kw = *(const char **)p->data();
+        if (clear_keywords)
+            kw = "";
+        if (keywords != uninitialized && !keywords.empty()) {
+            std::vector<std::string> items;
+            split_list (kw, items);
+            bool dup = false;
+            for (size_t i = 0;  i < items.size();  ++i)
+                dup |= (items[i] == keywords);
+            if (! dup) {
+                if (kw.length() > 1)
+                    kw += "; ";
+                kw += keywords;
+            }
+        }
+        outspec.attribute ("Keywords", kw);
+    }
+
     // Find an ImageIO plugin that can open the output file, and open it
     ImageOutput *out = ImageOutput::create (filenames[1].c_str());
     if (! out) {
@@ -176,15 +267,30 @@ main (int argc, char *argv[])
         exit (EXIT_FAILURE);
     }
 
-    char *pixels = new char [outspec.image_bytes()];
-    in->read_image (outspec.format, pixels);
-    in->close ();
-    delete in;
-    in = NULL;
-    out->write_image (outspec.format, pixels);
+    if (! no_copy_image) {
+        out->copy_image (in);
+    } else {
+        // Need to do it by hand for some reason.  Future expansion in which
+        // only a subset of channels are copied, or some such.
+        std::vector<char> pixels (outspec.image_bytes());
+        in->read_image (outspec.format, &pixels[0]);
+        out->write_image (outspec.format, &pixels[0]);
+    }
+
     out->close ();
     delete out;
-    delete [] pixels;
+    in->close ();
+    delete in;
+
+
+    // If user requested, try to adjust the file's modification time to
+    // the creation time indicated by the file's DateTime metadata.
+    if (adjust_time) {
+        struct timeval times[2];
+        ImageIOParameter *p = outspec.find_attribute ("DateTime", TypeDesc::TypeString);
+        if (p && DateTime_to_time_t (*(const char **)p->data(), times))
+            utimes (filenames[1].c_str(), times);
+    }
 
     return 0;
 }

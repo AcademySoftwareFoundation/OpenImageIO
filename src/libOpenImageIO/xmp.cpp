@@ -131,6 +131,40 @@ static XMPtag xmptag [] = {
 
 
 
+// Utility: split semicolon-separated list
+static void
+split_list (const std::string &list, std::vector<std::string> &items)
+{
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep(";");
+    tokenizer tokens (list, sep);
+    for (tokenizer::iterator tok_iter = tokens.begin();
+         tok_iter != tokens.end(); ++tok_iter) {
+        std::string t = *tok_iter;
+        while (t.size() && t[0] == ' ')
+            t.erase (t.begin());
+        if (t.size())
+            items.push_back (t);
+    }
+}
+
+
+
+// Utility: join list into a single semicolon-separated string
+static std::string
+join_list (const std::vector<std::string> &items)
+{
+    std::string s;
+    for (size_t i = 0;  i < items.size();  ++i) {
+        if (i > 0)
+            s += "; ";
+        s += items[i];
+    }
+    return s;
+}
+
+
+
 // Utility: add an attribute to the spec with the given xml name and
 // value.  Search for it in xmptag, and if found that will tell us what
 // the type is supposed to be, as well as any special handling.  If not
@@ -146,12 +180,18 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
                 std::string val;
                 if (xmptag[i].special & IsList) {
                     // Special case -- append it to a list
-                    ImageIOParameter *p = spec.find_attribute (xmptag[i].oiioname, TypeDesc::STRING);
-                    if (p)
-                        val = *(const char **)p->data();
-                    if (val.length())
-                        val += "; ";
-                    val += xmlvalue;
+                    std::vector<std::string> items;
+                    ImageIOParameter *p = spec.find_attribute (xmptag[i].oiioname, TypeDesc::STRING); 
+                    bool dup = false;
+                    if (p) {
+                        split_list (*(const char **)p->data(), items);
+                        for (size_t i = 0;  i < items.size();  ++i)
+                            dup |= (items[i] == xmlvalue);
+                        dup |= (xmlvalue == std::string(*(const char **)p->data()));
+                    }
+                    if (! dup)
+                        items.push_back (xmlvalue);
+                    val = join_list (items);
                 } else {
                     val = xmlvalue;
                 }
@@ -242,16 +282,20 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
                       nestwhat[2] == "rdf:li") {
                     // It's a list.  Look at each "<rdf:li...</rdf:li>"
                     std::string list = nestwhat[0];
+                    std::string v;
                     for (size_t s = 0, e = 0;
                          extract_middle (list, e, "<rdf:li", "</rdf:li>", s, e); ) {
                         std::string item (list, s, e-s);
                         boost::match_results<std::string::const_iterator> w;
                         if (boost::regex_search (item, w, xml_item_pattern)) {
-                            std::string v = w[2];
                             // OK, we're down to a single list item.
-                            add_attrib (spec, attrib.c_str(), v.c_str());
+                            if (v.length() && w.length())
+                                v += "; ";
+                            v += w[2];
                         }
                     }
+                    if (v.size())
+                        add_attrib (spec, attrib.c_str(), v.c_str());
                 } else {
                     // Not a list -- just a straight-up attribute, add to spec
                     add_attrib (spec, attrib.c_str(), value.c_str());
