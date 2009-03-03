@@ -46,35 +46,7 @@ using namespace Jpeg_imageio_pvt;
 
 // See JPEG library documentation in /usr/share/doc/libjpeg-devel-6b
 
-
-class JpgInput : public ImageInput {
- public:
-    JpgInput () { init(); }
-    virtual ~JpgInput () { close(); }
-    virtual const char * format_name (void) const { return "jpeg"; }
-    virtual bool open (const std::string &name, ImageSpec &spec);
-    virtual bool seek_subimage (int index, ImageSpec &newspec) {
-        return (index == 0);   // JPEG has only one subimage
-    }
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool close ();
- private:
-    FILE *m_fd;
-    std::string m_filename;
-    int m_next_scanline;      // Which scanline is the next to read?
-    struct jpeg_decompress_struct m_cinfo;
-    struct jpeg_error_mgr m_jerr;
-
-    void init () { m_fd = NULL; }
-
-    // Rummage through the JPEG "APP1" marker pointed to by buf, decoding
-    // IPTC (International Press Telecommunications Council) metadata
-    // information and adding attributes to spec.  This assumes it's in
-    // the form of an IIM (Information Interchange Model), which is actually
-    // considered obsolete and is replaced by an XML scheme called XMP.
-    void jpeg_decode_iptc (const unsigned char *buf);
-};
-
+// N.B. The class definition for JpgInput is in jpeg_pvt.h.
 
 
 // Export version number and create function symbols
@@ -87,6 +59,18 @@ extern "C" {
         "jpg", "jpe", "jpeg", NULL
     };
 };
+
+
+
+bool
+JpgInput::open (const std::string &name, ImageSpec &newspec,
+                const ImageSpec &config)
+{
+    const ImageIOParameter *p = config.find_attribute ("_jpeg:raw",
+                                                       TypeDesc::TypeInt);
+    m_raw = p && *(int *)p->data();
+    return open (name, newspec);
+}
 
 
 
@@ -120,12 +104,15 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     jpeg_stdio_src (&m_cinfo, m_fd);            // specify the data source
 
     // Request saving of EXIF and other special tags for later spelunking
-    jpeg_save_markers (&m_cinfo, JPEG_APP0+1, 0xffff);  // Exif marker in APP1
-    jpeg_save_markers (&m_cinfo, JPEG_APP0+13, 0xffff); // IPTC marker in APP13
+    for (int mark = 0;  mark < 16;  ++mark)
+        jpeg_save_markers (&m_cinfo, JPEG_APP0+mark, 0xffff);
     jpeg_save_markers (&m_cinfo, JPEG_COM, 0xffff);     // comment marker
 
     jpeg_read_header (&m_cinfo, FALSE);         // read the file parameters
-    jpeg_start_decompress (&m_cinfo);           // start working
+    if (m_raw)
+        m_coeffs = jpeg_read_coefficients (&m_cinfo);
+    else
+        jpeg_start_decompress (&m_cinfo);       // start working
     m_next_scanline = 0;                        // next scanline we'll read
 
     m_spec = ImageSpec (m_cinfo.output_width, m_cinfo.output_height,
@@ -162,6 +149,8 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 bool
 JpgInput::read_native_scanline (int y, int z, void *data)
 {
+    if (m_raw)
+        return false;
     if (y < 0 || y >= (int)m_cinfo.output_height)   // out of range scanline
         return false;
     if (m_next_scanline > y) {
@@ -199,8 +188,9 @@ JpgInput::close ()
                 jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&data, 1);
                 ++m_next_scanline;
             }
-            jpeg_finish_decompress (&m_cinfo);
         }
+        if (m_next_scanline > 0 || m_raw)
+            jpeg_finish_decompress (&m_cinfo);
         jpeg_destroy_decompress (&m_cinfo);
         fclose (m_fd);
         m_fd = NULL;

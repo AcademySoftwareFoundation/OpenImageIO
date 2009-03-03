@@ -44,6 +44,8 @@ using namespace OpenImageIO;
 #include "jpeg_pvt.h"
 using namespace Jpeg_imageio_pvt;
 
+#define DBG if(0)
+
 
 
 // See JPEG library documentation in /usr/share/doc/libjpeg-devel-6b
@@ -59,14 +61,24 @@ class JpgOutput : public ImageOutput {
                        bool append=false);
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
-    bool close ();
+    virtual bool close ();
+    virtual bool copy_image (ImageInput *in);
+
  private:
     FILE *m_fd;
+    std::string m_filename;
+    int m_next_scanline;             // Which scanline is the next to write?
     std::vector<unsigned char> m_scratch;
     struct jpeg_compress_struct m_cinfo;
     struct jpeg_error_mgr c_jerr;
+    jvirt_barray_ptr *m_copy_coeffs;
+    struct jpeg_decompress_struct *m_copy_decompressor;
 
-    void init (void) { m_fd = NULL; }
+    void init (void) {
+        m_fd = NULL;
+        m_copy_coeffs = NULL;
+        m_copy_decompressor = NULL;
+    }
 };
 
 
@@ -92,7 +104,8 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         return false;
     }
 
-    // Save spec for later use
+    // Save name and spec for later use
+    m_filename = name;
     m_spec = newspec;
 
     // Check for things this format doesn't support
@@ -142,9 +155,22 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     m_cinfo.Y_density = 72;
     m_cinfo.write_JFIF_header = true;
 
-    jpeg_set_defaults (&m_cinfo);                       // default compression
-    jpeg_set_quality (&m_cinfo, quality, TRUE);         // baseline values
-    jpeg_start_compress (&m_cinfo, TRUE);               // start working
+    if (m_copy_coeffs) {
+        // Back door for copy()
+        jpeg_copy_critical_parameters (m_copy_decompressor, &m_cinfo);
+        DBG std::cout << "out open: copy_critical_parameters\n";
+        jpeg_write_coefficients (&m_cinfo, m_copy_coeffs);
+        DBG std::cout << "out open: write_coefficients\n";
+    } else {
+        // normal write of scanlines
+        jpeg_set_defaults (&m_cinfo);                 // default compression
+        DBG std::cout << "out open: set_defaults\n";
+        jpeg_set_quality (&m_cinfo, quality, TRUE);   // baseline values
+        DBG std::cout << "out open: set_quality\n";
+        jpeg_start_compress (&m_cinfo, TRUE);         // start working
+        DBG std::cout << "out open: start_compress\n";
+    }
+    m_next_scanline = 0;    // next scanline we'll write
 
     // Write JPEG comment, if sent an 'ImageDescription'
     ImageIOParameter *comment = m_spec.find_attribute ("ImageDescription",
@@ -201,12 +227,21 @@ JpgOutput::write_scanline (int y, int z, TypeDesc format,
                            const void *data, stride_t xstride)
 {
     y -= m_spec.y;
+    if (y != m_next_scanline) {
+        error ("Attempt to write scanlines out of order to %s",
+               m_filename.c_str());
+        return false;
+    }
+    if (y >= (int)m_cinfo.image_height) {
+        error ("Attempt to write too many scanlines to %s", m_filename.c_str());
+        return false;
+    }
     assert (y == (int)m_cinfo.next_scanline);
-    assert (y < (int)m_cinfo.image_height);
 
     data = to_native_scanline (format, data, xstride, m_scratch);
 
     jpeg_write_scanlines (&m_cinfo, (JSAMPLE**)&data, 1);
+    ++m_next_scanline;
 
     return true;
 }
@@ -218,7 +253,29 @@ JpgOutput::close ()
 {
     if (! m_fd)          // Already closed
         return true;
-    jpeg_finish_compress (&m_cinfo);
+
+    if (m_next_scanline < spec().height && m_copy_coeffs == NULL) {
+        // But if we've only written some scanlines, write the rest to avoid
+        // errors
+        std::vector<char> buf (spec().scanline_bytes());
+        char *data = &buf[0];
+        while (m_next_scanline < spec().height) {
+            jpeg_write_scanlines (&m_cinfo, (JSAMPLE **)&data, 1);
+            // DBG std::cout << "out close: write_scanlines\n";
+            ++m_next_scanline;
+        }
+    }
+
+    if (m_next_scanline >= spec().height || m_copy_coeffs) {
+        DBG std::cout << "out close: about to finish_compress\n";
+        jpeg_finish_compress (&m_cinfo);
+        DBG std::cout << "out close: finish_compress\n";
+    } else {
+        DBG std::cout << "out close: about to abort_compress\n";
+        jpeg_abort_compress (&m_cinfo);
+        DBG std::cout << "out close: abort_compress\n";
+    }
+    DBG std::cout << "out close: about to destroy_compress\n";
     jpeg_destroy_compress (&m_cinfo);
     fclose (m_fd);
     m_fd = NULL;
@@ -227,3 +284,46 @@ JpgOutput::close ()
     return true;
 }
 
+
+
+bool
+JpgOutput::copy_image (ImageInput *in)
+{
+    if (in && !strcmp(in->format_name(), "jpeg")) {
+        JpgInput *jpg_in = dynamic_cast<JpgInput *> (in);
+        std::string in_name = jpg_in->filename ();
+        DBG std::cout << "JPG copy_image from " << in_name << "\n";
+
+        // Save the original input spec and close it
+        ImageSpec orig_in_spec = in->spec();
+        in->close ();
+        DBG std::cout << "Closed old file\n";
+
+        // Re-open the input spec, with special request that the JpgInput
+        // will recognize as a request to merely open, but not start the
+        // decompressor.
+        ImageSpec in_spec;
+        ImageSpec config_spec;
+        config_spec.attribute ("_jpeg:raw", 1);
+        in->open (in_name, in_spec, config_spec);
+
+        // Re-open the output
+        std::string out_name = m_filename;
+        ImageSpec orig_out_spec = spec();
+        close ();
+        m_copy_coeffs = (jvirt_barray_ptr *)jpg_in->coeffs();
+        m_copy_decompressor = &jpg_in->m_cinfo;
+        open (out_name, orig_out_spec);
+
+        // Strangeness -- the write_coefficients somehow sets things up
+        // so that certain writes only happen in close(), which MUST
+        // happen while the input file is still open.  So we go ahead
+        // and close() now, so that the caller of copy_image() doesn't
+        // close the input file first and then wonder why they crashed.
+        close ();
+
+        return true;
+    }
+
+    return ImageOutput::copy_image (in);
+}

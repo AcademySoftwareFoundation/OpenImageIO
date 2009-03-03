@@ -38,9 +38,58 @@
 #define JPEG_PVT_H
 
 
+extern "C" {
+#include "jpeglib.h"
+}
+
+
 #ifndef _TIFF_
 struct TIFFDirEntry;
 #endif
+
+
+class JpgInput : public ImageInput {
+ public:
+    JpgInput () { init(); }
+    virtual ~JpgInput () { close(); }
+    virtual const char * format_name (void) const { return "jpeg"; }
+    virtual bool open (const std::string &name, ImageSpec &spec);
+    virtual bool open (const std::string &name, ImageSpec &spec,
+                       const ImageSpec &config);
+    virtual bool seek_subimage (int index, ImageSpec &newspec) {
+        return (index == 0);   // JPEG has only one subimage
+    }
+    virtual bool read_native_scanline (int y, int z, void *data);
+    virtual bool close ();
+    std::string filename () const { return m_filename; }
+    void * coeffs () const { return m_coeffs; }
+
+ private:
+    FILE *m_fd;
+    std::string m_filename;
+    int m_next_scanline;      // Which scanline is the next to read?
+    bool m_raw;               // Read raw coefficients, not scanlines
+    struct jpeg_decompress_struct m_cinfo;
+    struct jpeg_error_mgr m_jerr;
+    jvirt_barray_ptr *m_coeffs;
+
+    void init () {
+        m_fd = NULL;
+        m_raw = false;
+        m_coeffs = NULL;
+    }
+
+    // Rummage through the JPEG "APP1" marker pointed to by buf, decoding
+    // IPTC (International Press Telecommunications Council) metadata
+    // information and adding attributes to spec.  This assumes it's in
+    // the form of an IIM (Information Interchange Model), which is actually
+    // considered obsolete and is replaced by an XML scheme called XMP.
+    void jpeg_decode_iptc (const unsigned char *buf);
+
+    friend class JpgOutput;
+};
+
+
 
 namespace Jpeg_imageio_pvt {
 
