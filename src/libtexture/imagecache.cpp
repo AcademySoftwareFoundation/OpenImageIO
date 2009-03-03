@@ -523,10 +523,11 @@ ImageCacheTile::ImageCacheTile (const TileID &id)
     m_pixels.resize (size);
     m_valid = file.read_tile (m_id.subimage(), m_id.x(), m_id.y(), m_id.z(),
                               file.datatype(), &m_pixels[0]);
+#if 0
     if (! m_valid)
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() 
-                  << " from " << file.filename() << "\n";
-
+                  << " lev=" << m_id.subimage() << " from " << file.filename() << "\n";
+#endif
     // FIXME -- for shadow, fill in mindepth, maxdepth
 }
 
