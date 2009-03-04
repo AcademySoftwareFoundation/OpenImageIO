@@ -86,6 +86,7 @@ class ArgOption;   // Forward declaration
 ///    - \%f - 32bit float
 ///    - \%F - 64bit float (double)
 ///    - \%s - std::string
+///    - \%L - std::vector<std::string>
 ///    - \%! (or no % argument) - bool flag
 ///    - \%* - (argc,argv) sublist with callback
 ///

@@ -159,9 +159,8 @@ ArgOption::initialize()
                     case 'g':                   // float
                     case 'f':                   // float
                     case 'F':                   // double
-                    case 's':                   // char * 
-                    case 'S':                   // string
-                    case 'L':                   // allocated char * list
+                    case 's':                   // string
+                    case 'L':                   // vector<string>
                         assert (type == Regular);
                         code += *s;
                         break;
@@ -233,9 +232,7 @@ ArgOption::set_parameter (int i, const char *argv)
         break;
 
     case 'L':
-        if (! (*(std::string *)param[i]).empty())
-            *(std::string *)param[i] += " ";
-        *(std::string *)param[i] += argv;
+        ((std::vector<std::string> *)param[i])->push_back (argv);
         break;
 
     case '!':
