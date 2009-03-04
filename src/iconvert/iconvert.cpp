@@ -38,8 +38,11 @@
 #include <utime.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <vector>
+#include <string>
 
 #include <boost/tokenizer.hpp>
+#include <boost/foreach.hpp>
 
 #include "argparse.h"
 #include "imageio.h"
@@ -61,8 +64,9 @@ static bool no_copy_image = false;
 static int quality = -1;
 static bool adjust_time = false;
 static std::string caption = uninitialized;
-static std::string keywords = uninitialized;
+static std::vector<std::string> keywords;
 static bool clear_keywords = false;
+static std::vector<std::string> attribnames, attribvals;
 
 
 
@@ -95,8 +99,9 @@ getargs (int argc, char *argv[])
                   "--no-copy-image", &no_copy_image, "Do not use ImageOutput copy_image functionality (dbg)",
                   "--adjust-time", &adjust_time, "Adjust file times to match DateTime metadata",
                   "--caption %s", &caption, "Set caption (ImageDescription)",
-                  "--keyword %s", &keywords, "Add a keyword",
+                  "--keyword %L", &keywords, "Add a keyword",
                   "--clear-keywords", &clear_keywords, "Clear keywords",
+                  "--attrib %L %L", &attribnames, &attribvals, "Set a string attribute (name, value)",
 //FIXME           "-z", &zfile, "Treat input as a depth file",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
                   NULL) < 0) {
@@ -168,6 +173,21 @@ split_list (const std::string &list, std::vector<std::string> &items)
 
 
 
+// Utility: join list into a single semicolon-separated string
+static std::string
+join_list (const std::vector<std::string> &items)
+{
+    std::string s;
+    for (size_t i = 0;  i < items.size();  ++i) {
+        if (i > 0)
+            s += "; ";
+        s += items[i];
+    }
+    return s;
+}
+
+
+
 int
 main (int argc, char *argv[])
 {
@@ -230,27 +250,28 @@ main (int argc, char *argv[])
     if (caption != uninitialized)
         outspec.attribute ("ImageDescription", caption);
 
-    if (clear_keywords || keywords != uninitialized) {
-        std::string kw;
+    if (clear_keywords)
+        outspec.attribute ("Keywords", "");
+    if (keywords.size()) {
+        std::string oldkw;
         ImageIOParameter *p = outspec.find_attribute ("Keywords", TypeDesc::TypeString);
-
         if (p)
-            kw = *(const char **)p->data();
-        if (clear_keywords)
-            kw = "";
-        if (keywords != uninitialized && !keywords.empty()) {
-            std::vector<std::string> items;
-            split_list (kw, items);
+            oldkw = *(const char **)p->data();
+        std::vector<std::string> oldkwlist;
+        if (! oldkw.empty())
+            split_list (oldkw, oldkwlist);
+        BOOST_FOREACH (const std::string &nk, keywords) {
             bool dup = false;
-            for (size_t i = 0;  i < items.size();  ++i)
-                dup |= (items[i] == keywords);
-            if (! dup) {
-                if (kw.length() > 1)
-                    kw += "; ";
-                kw += keywords;
-            }
+            BOOST_FOREACH (const std::string &ok, oldkwlist)
+                dup |= (ok == nk);
+            if (! dup)
+                oldkwlist.push_back (nk);
         }
-        outspec.attribute ("Keywords", kw);
+        outspec.attribute ("Keywords", join_list (oldkwlist));
+    }
+
+    for (size_t i = 0;  i < attribnames.size();  ++i) {
+        outspec.attribute (attribnames[i].c_str(), attribvals[i].c_str());
     }
 
     // Find an ImageIO plugin that can open the output file, and open it
