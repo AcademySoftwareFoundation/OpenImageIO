@@ -206,8 +206,13 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
     std::string tempname = out_filename;
     if (tempname == in_filename) {
+#if (BOOST_VERSION >= 103700)
         tempname = out_filename + ".tmp" 
                     + boost::filesystem::path(out_filename).extension();
+#else
+        tempname = out_filename + ".tmp" 
+                    + boost::filesystem::extension(out_filename);
+#endif
     }
 
     // Find an ImageIO plugin that can open the input file, and open it.
