@@ -48,8 +48,8 @@ using namespace Filesystem;
 
 #if 0
 
-/// Return just the leaf file name (excluding directories) of a
-/// potentially full file path name.
+// Return just the leaf file name (excluding directories) of a
+// potentially full file path name.
 std::string
 Filesystem::file_leafname (const std::string &filepath)
 {
@@ -59,8 +59,8 @@ Filesystem::file_leafname (const std::string &filepath)
 
 
 
-/// Return just the leaf file name (excluding directories) of a
-/// potentially full file path name.
+// Return just the directory part of the filepath.
+//
 std::string
 Filesystem::file_directory (const std::string &filepath)
 {

@@ -50,14 +50,6 @@
 
 namespace Filesystem {
 
-/// Return just the leaf file name (excluding directories) of a
-/// potentially full file path name.
-DLLPUBLIC std::string file_leafname (const std::string &filepath);
-
-/// Return just the leaf file name (excluding directories) of a
-/// potentially full file path name.
-DLLPUBLIC std::string file_directory (const std::string &filepath);
-
 /// Return the file extension (just the part after the last '.') of a 
 /// filename.
 DLLPUBLIC std::string file_extension (const std::string &filepath);
