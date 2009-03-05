@@ -460,6 +460,18 @@ static LabelTable ExifSceneCaptureType_table[] = {
     { 3, "night scene" }, { -1, NULL }
 };
 
+static LabelTable orientation_table[] = {
+    { 1, "normal" }, 
+    { 2, "flipped horizontally" }, 
+    { 3, "rotated 180 deg" }, 
+    { 4, "flipped vertically" }, 
+    { 5, "transposed top<->left" }, 
+    { 6, "rotated 90 deg CW" }, 
+    { 7, "transverse top<->right" }, 
+    { 8, "rotated 90 deg CCW" }, 
+    { -1, NULL }
+};
+
 static LabelTable resunit_table[] = {
     { 1, "none" }, { 2, "inches" }, { 3, "cm" }, { -1, NULL }
 };
@@ -543,6 +555,7 @@ struct ExplanationTableEntry {
 
 static ExplanationTableEntry explanation[] = {
     { "ResolutionUnit", explain_labeltable, resunit_table },
+    { "Orientation", explain_labeltable, orientation_table },
     { "Exif:ExposureProgram", explain_labeltable, ExifExposureProgram_table },
     { "Exif:ShutterSpeedValue", explain_shutterapex, NULL },
     { "Exif:ApertureValue", explain_apertureapex, NULL },
