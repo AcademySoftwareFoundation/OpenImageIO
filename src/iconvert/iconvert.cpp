@@ -32,17 +32,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <ctime>
 #include <iostream>
 #include <iterator>
-#include <utime.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <vector>
 #include <string>
 
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
+#include <boost/filesystem.hpp>
 
 #include "argparse.h"
 #include "imageio.h"
@@ -67,6 +64,10 @@ static std::string caption = uninitialized;
 static std::vector<std::string> keywords;
 static bool clear_keywords = false;
 static std::vector<std::string> attribnames, attribvals;
+static bool inplace = false;
+static int orientation = 0;
+static bool rotcw = false, rotccw = false, rot180 = false;
+static bool sRGB = false;
 
 
 
@@ -85,7 +86,8 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap (argc, (const char **)argv);
-    if (ap.parse ("Usage:  iconvert [options] inputfile outputfile",
+    if (ap.parse ("Usage:  iconvert [options] inputfile outputfile\n"
+                  "   or:  iconvert --inplace [options] file...\n",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
@@ -102,6 +104,12 @@ getargs (int argc, char *argv[])
                   "--keyword %L", &keywords, "Add a keyword",
                   "--clear-keywords", &clear_keywords, "Clear keywords",
                   "--attrib %L %L", &attribnames, &attribvals, "Set a string attribute (name, value)",
+                  "--orientation %d", &orientation, "Set the orientation",
+                  "--rotcw", &rotcw, "Rotate 90 deg clockwise",
+                  "--rotccw", &rotccw, "Rotate 90 deg counter-clockwise",
+                  "--rot180", &rot180, "Rotate 180 deg",
+                  "--inplace", &inplace, "Do operations in place on images",
+                  "--sRGB", &sRGB, "This file is in sRGB color space",
 //FIXME           "-z", &zfile, "Treat input as a depth file",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
                   NULL) < 0) {
@@ -114,18 +122,27 @@ getargs (int argc, char *argv[])
         exit (EXIT_FAILURE);
     }
 
-    if (filenames.size() != 2) {
+    if (filenames.size() != 2 && ! inplace) {
         std::cerr << "iconvert: Must have both an input and output filename specified.\n";
         ap.usage();
         exit (EXIT_FAILURE);
     }
-    std::cout << "Converting " << filenames[0] << " to " << filenames[1] << "\n";
+    if (filenames.size() == 0 && inplace) {
+        std::cerr << "iconvert: Must have at least one filename\n";
+        ap.usage();
+        exit (EXIT_FAILURE);
+    }
+    if (((int)rotcw + (int)rotccw + (int)rot180 + (orientation>0)) > 1) {
+        std::cerr << "iconvert: more than one of --rotcw, --rotccw, --rot180, --orientation\n";
+        ap.usage();
+        exit (EXIT_FAILURE);
+    }
 }
 
 
 
 static bool
-DateTime_to_time_t (const char *datetime, struct timeval times[2])
+DateTime_to_time_t (const char *datetime, time_t &timet)
 {
     int year, month, day, hour, min, sec;
     int r = sscanf (datetime, "%d:%d:%d %d:%d:%d",
@@ -142,13 +159,7 @@ DateTime_to_time_t (const char *datetime, struct timeval times[2])
     tmtime.tm_mday = day;
     tmtime.tm_mon = month-1;
     tmtime.tm_year = year-1900;
-    time_t t = mktime (&tmtime);
-
-    times[0].tv_sec = t; // new access time
-    times[0].tv_usec = 0;
-    times[1].tv_sec = t; // new modification time
-    times[1].tv_usec = 0;
-
+    timet = mktime (&tmtime);
     return true;
 }
 
@@ -188,25 +199,31 @@ join_list (const std::vector<std::string> &items)
 
 
 
-int
-main (int argc, char *argv[])
+bool
+convert_file (const std::string &in_filename, const std::string &out_filename)
 {
-    getargs (argc, argv);
+    std::cout << "Converting " << in_filename << " to " << out_filename << "\n";
+
+    std::string tempname = out_filename;
+    if (tempname == in_filename) {
+        tempname = out_filename + ".tmp" 
+                    + boost::filesystem::path(out_filename).extension();
+    }
 
     // Find an ImageIO plugin that can open the input file, and open it.
-    ImageInput *in = ImageInput::create (filenames[0].c_str(), "" /* searchpath */);
+    ImageInput *in = ImageInput::create (in_filename.c_str(), "" /* searchpath */);
     if (! in) {
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to read \"" 
-            << filenames[0] << "\" : " << OpenImageIO::error_message() << "\n";
-        exit (EXIT_FAILURE);
+            << in_filename << "\" : " << OpenImageIO::error_message() << "\n";
+        return false;
     }
     ImageSpec inspec;
-    if (! in->open (filenames[0].c_str(), inspec)) {
-        std::cerr << "iconvert ERROR: Could not open \"" << filenames[0]
+    if (! in->open (in_filename.c_str(), inspec)) {
+        std::cerr << "iconvert ERROR: Could not open \"" << in_filename
                   << "\" : " << in->error_message() << "\n";
         delete in;
-        exit (EXIT_FAILURE);
+        return false;
     }
 
     // Copy the spec, with possible change in format
@@ -229,6 +246,12 @@ main (int argc, char *argv[])
             outspec.set_format (TypeDesc::DOUBLE);
     }
     outspec.gamma = gammaval;
+    if (sRGB) {
+        outspec.linearity = ImageSpec::sRGB;
+        if (!strcmp (in->format_name(), "jpeg") ||
+                outspec.find_attribute ("Exif:ColorSpace"))
+            outspec.attribute ("Exif:ColorSpace", 1);
+    }
 
     if (tile[0]) {
         outspec.tile_width = tile[0];
@@ -246,6 +269,29 @@ main (int argc, char *argv[])
 
     if (quality > 0)
         outspec.attribute ("CompressionQuality", quality);
+
+    if (orientation >= 1)
+        outspec.attribute ("Orientation", orientation);
+    else {
+        ImageIOParameter *p;
+        if ((p = outspec.find_attribute ("Orientation", TypeDesc::INT)))
+            orientation = *(int *)p->data();
+        else if ((p = outspec.find_attribute ("Orientation", TypeDesc::UINT)))
+            orientation = *(unsigned int *)p->data();
+        else if ((p = outspec.find_attribute ("Orientation", TypeDesc::UINT16)))
+            orientation = *(unsigned short *)p->data();
+        orientation = p ? *(int *)p->data() : 1;
+        if (orientation >= 1 && orientation <= 8) {
+            static int cw[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
+            if (rotcw || rotccw || rot180)
+                orientation = cw[orientation];
+            if (rotccw || rot180)
+                orientation = cw[orientation];
+            if (rotccw)
+                orientation = cw[orientation];
+            outspec.attribute ("Orientation", orientation);
+        }
+    }
 
     if (caption != uninitialized)
         outspec.attribute ("ImageDescription", caption);
@@ -275,27 +321,40 @@ main (int argc, char *argv[])
     }
 
     // Find an ImageIO plugin that can open the output file, and open it
-    ImageOutput *out = ImageOutput::create (filenames[1].c_str());
+    ImageOutput *out = ImageOutput::create (tempname.c_str());
     if (! out) {
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to write \"" 
-            << filenames[1] << "\" :" << OpenImageIO::error_message() << "\n";
-        exit (EXIT_FAILURE);
+            << out_filename << "\" :" << OpenImageIO::error_message() << "\n";
+        return false;
     }
-    if (! out->open (filenames[1].c_str(), outspec)) {
-        std::cerr << "iconvert ERROR: Could not open \"" << filenames[1]
+    if (! out->open (tempname.c_str(), outspec)) {
+        std::cerr << "iconvert ERROR: Could not open \"" << out_filename
                   << "\" : " << out->error_message() << "\n";
-        exit (EXIT_FAILURE);
+        return false;
     }
 
+    bool ok = true;
     if (! no_copy_image) {
-        out->copy_image (in);
+        ok = out->copy_image (in);
+        if (! ok)
+            std::cerr << "iconvert ERROR copying \"" << in_filename 
+                      << "\" to \"" << in_filename << "\" :\n\t" 
+                      << in->error_message() << "\n";
     } else {
         // Need to do it by hand for some reason.  Future expansion in which
         // only a subset of channels are copied, or some such.
         std::vector<char> pixels (outspec.image_bytes());
-        in->read_image (outspec.format, &pixels[0]);
-        out->write_image (outspec.format, &pixels[0]);
+        ok = in->read_image (outspec.format, &pixels[0]);
+        if (! ok) {
+            std::cerr << "iconvert ERROR reading \"" << in_filename 
+                      << "\" : " << in->error_message() << "\n";
+        } else {
+            ok = out->write_image (outspec.format, &pixels[0]);
+            if (! ok)
+                std::cerr << "iconvert ERROR writing \"" << out_filename 
+                          << "\" : " << out->error_message() << "\n";
+        }
     }
 
     out->close ();
@@ -303,15 +362,43 @@ main (int argc, char *argv[])
     in->close ();
     delete in;
 
+    if (out_filename != tempname) {
+        if (ok) {
+            boost::filesystem::remove (out_filename);
+            boost::filesystem::rename (tempname, out_filename);
+        }
+        else
+            boost::filesystem::remove (tempname);
+    }
 
     // If user requested, try to adjust the file's modification time to
     // the creation time indicated by the file's DateTime metadata.
-    if (adjust_time) {
-        struct timeval times[2];
+    if (ok && adjust_time) {
+        time_t timet;
         ImageIOParameter *p = outspec.find_attribute ("DateTime", TypeDesc::TypeString);
-        if (p && DateTime_to_time_t (*(const char **)p->data(), times))
-            utimes (filenames[1].c_str(), times);
+        if (p && DateTime_to_time_t (*(const char **)p->data(), timet)) {
+            boost::filesystem::last_write_time (out_filename, timet);
+        }
     }
 
-    return 0;
+    return ok;
+}
+
+
+
+int
+main (int argc, char *argv[])
+{
+    getargs (argc, argv);
+
+    bool ok = true;
+
+    if (inplace) {
+        BOOST_FOREACH (const std::string &s, filenames)
+            ok &= convert_file (s, s);
+    } else {
+        ok = convert_file (filenames[0], filenames[1]);
+    }
+
+    return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
