@@ -923,6 +923,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
+//    float orig_s = s, orig_t = t;
     s = s * spec.width  - 0.5f;
     t = t * spec.height - 0.5f;
     int sint, tint;
@@ -973,8 +974,19 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
         TileID id (texturefile, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
         find_tile (id, tilecache0, tilecache1);
-        if (! tilecache0->valid())
+        if (! tilecache0->valid()) {
+#if 0
+            std::cerr << "found it\n";
+            std::cerr << "\trequested " << miplevel << ' ' << id.x() << ' ' << id.y() << ", res is " << texturefile.spec(miplevel).width << ' ' << texturefile.spec(miplevel).height << "\n";
+            std::cerr << "\tstex = " << stex[0] << ", tile_s = " << tile_s << ", ttex = " << ttex[0] << ", tile_t = " << tile_t << "\n";
+            std::cerr << "\torig " << orig_s << ' ' << orig_t << "\n";
+            std::cerr << "\ts,t = " << s << ' ' << t << "\n";
+            std::cerr << "\tsint,tint = " << sint << ' ' << tint << "\n";
+            std::cerr << "\tstfrac = " << sfrac << ' ' << tfrac << "\n";
+            std::cerr << "\tspec full size = " << texturefile.spec(miplevel).full_width << ' ' << texturefile.spec(miplevel).full_height << "\n";
+#endif
             return;
+        }
         int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
         texel[0][0] = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
         texel[0][1] = texel[0][0] + pixelsize;

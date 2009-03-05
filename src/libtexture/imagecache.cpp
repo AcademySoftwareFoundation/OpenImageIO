@@ -169,7 +169,7 @@ ImageCacheFile::open ()
         m_spec.push_back (tempspec);
         imagecache().m_stat_files_totalsize += (long long)tempspec.image_bytes();
     } while (m_input->seek_subimage (nsubimages, tempspec));
-    ASSERT (nsubimages == m_spec.size());
+    ASSERT ((size_t)nsubimages == m_spec.size());
 
     // Special work for non-MIPmapped images -- but only if "automip" is
     // on, it's a non-mipmapped image, and it doesn't have a "textureformat"
@@ -197,16 +197,27 @@ ImageCacheFile::open ()
     const ImageIOParameter *p;
 
     m_texformat = TexFormatTexture;
-    if (p = spec.find_attribute ("textureformat", TypeDesc::STRING)) {
+    if ((p = spec.find_attribute ("textureformat", TypeDesc::STRING))) {
         const char *textureformat = *(const char **)p->data();
         for (int i = 0;  i < TexFormatLast;  ++i)
             if (! strcmp (textureformat, texture_format_name((TexFormat)i))) {
                 m_texformat = (TexFormat) i;
                 break;
             }
+        // For textures marked as such, doctor the full_width/full_height to
+        // not be non-sensical.
+        if (m_texformat == TexFormatTexture) {
+            for (size_t i = 0;  i < m_spec.size();  ++i) {
+                ImageSpec &spec (m_spec[i]);
+                if (spec.full_width > spec.width)
+                    spec.full_width = spec.width;
+                if (spec.full_height > spec.height)
+                    spec.full_height = spec.height;
+            }
+        }
     }
 
-    if (p = spec.find_attribute ("wrapmodes", TypeDesc::STRING)) {
+    if ((p = spec.find_attribute ("wrapmodes", TypeDesc::STRING))) {
         const char *wrapmodes = (const char *)p->data();
         TextureOptions::parse_wrapmodes (wrapmodes, m_swrap, m_twrap);
     }
@@ -227,11 +238,11 @@ ImageCacheFile::open ()
 
     Imath::M44f c2w;
     m_imagecache.get_commontoworld (c2w);
-    if (p = spec.find_attribute ("worldtocamera", PT_MATRIX)) {
+    if ((p = spec.find_attribute ("worldtocamera", PT_MATRIX))) {
         const Imath::M44f *m = (const Imath::M44f *)p->data();
         m_Mlocal = c2w * (*m);
     }
-    if (p = spec.find_attribute ("worldtoscreen", PT_MATRIX)) {
+    if ((p = spec.find_attribute ("worldtoscreen", PT_MATRIX))) {
         const Imath::M44f *m = (const Imath::M44f *)p->data();
         m_Mproj = c2w * (*m);
     }
@@ -276,13 +287,17 @@ ImageCacheFile::read_tile (int subimage, int x, int y, int z,
     // Ordinary tiled
     ImageSpec tmp;
     if (m_input->current_subimage() != subimage)
-        m_input->seek_subimage (subimage, tmp);
-    size_t b = spec(subimage).tile_bytes();
-    imagecache().m_stat_bytes_read += b;
-    m_bytesread += b;
-    ++m_tilesread;
-
-    return m_input->read_tile (x, y, z, format, data);
+        ok = m_input->seek_subimage (subimage, tmp);
+    if (ok)
+        ok = m_input->read_tile (x, y, z, format, data);
+    if (ok) {
+        size_t b = spec(subimage).tile_bytes();
+        imagecache().m_stat_bytes_read += b;
+        m_bytesread += b;
+        ++m_tilesread;
+    }
+    return ok;
+//    return m_input->read_tile (x, y, z, format, data);
 }
 
 
@@ -318,8 +333,8 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
     int x1 = std::min (x0+spec.tile_width-1, spec.full_width-1);
     int y0 = y - (y % spec.tile_height);
     int y1 = std::min (y0+spec.tile_height-1, spec.full_height-1);
-    int z0 = z - (z % spec.tile_depth);
-    int z1 = std::min (z0+spec.tile_depth, spec.full_depth-1);
+//    int z0 = z - (z % spec.tile_depth);
+//    int z1 = std::min (z0+spec.tile_depth, spec.full_depth-1);
 
     // Texel by texel, generate the values by interpolating filtered
     // lookups form the next finer subimage.
@@ -377,7 +392,6 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
         // FIXME -- I don't think this works properly for 3D images
         int pixelsize = spec().nchannels * format.size();
         int scanlinesize = pixelsize * spec().width;
-        int tilelinesize = pixelsize * tw;
         std::vector<char> buf (scanlinesize * th); // a whole tile-row size
         int yy = y - spec().y;   // counting from top scanline
         // [y0,y1] is the range of scanlines to read for a tile-row
@@ -523,11 +537,13 @@ ImageCacheTile::ImageCacheTile (const TileID &id)
     m_pixels.resize (size);
     m_valid = file.read_tile (m_id.subimage(), m_id.x(), m_id.y(), m_id.z(),
                               file.datatype(), &m_pixels[0]);
-#if 0
-    if (! m_valid)
+    if (! m_valid) {
+        m_used = false;  // Don't let it hold mem if invalid
+#if 1
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() 
                   << " lev=" << m_id.subimage() << " from " << file.filename() << "\n";
 #endif
+    }
     // FIXME -- for shadow, fill in mindepth, maxdepth
 }
 
@@ -571,7 +587,7 @@ ImageCacheTile::data (int x, int y, int z) const
     x -= m_id.x();
     y -= m_id.y();
     z -= m_id.z();
-    if (x < 0 || x >= w || y < 0 || y >= h || z < 0 || z >= d)
+    if (x < 0 || x >= (int)w || y < 0 || y >= (int)h || z < 0 || z >= (int)d)
         return NULL;
     size_t pixelsize = spec.nchannels * m_id.file().datatype().size();
     size_t offset = ((z * h + y) * w + x) * pixelsize;
@@ -625,6 +641,14 @@ ImageCacheImpl::~ImageCacheImpl ()
 
 
 
+// Functor to compare filenames
+bool filename_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+{
+    return a->filename() < b->filename();
+}
+
+
+
 std::string
 ImageCacheImpl::getstats (int level) const
 {
@@ -652,21 +676,41 @@ ImageCacheImpl::getstats (int level) const
     }
     if (level >= 2) {
         out << "  Image file statistics:\n";
-        out << "      File\t\t\topens\ttiles\tread\n";
+        out << "        opens   tiles  KB read     res\t\tFile\n";
         size_t total_opens = 0, total_tiles = 0, total_bytes = 0;
-        FilenameMap::const_iterator f;
-        int i;
-        for (f = m_files.begin(), i = 0;  f != m_files.end();  ++f, ++i) {
-            const ImageCacheFileRef &file (f->second);
-            out << "      " << (i+1) << ": \"" << file->filename() << "\"\t" 
-                << file->timesopened() << "\t" << file->tilesread() 
-                << "\t" << file->bytesread()/1024 << " KB\n";
+        std::vector<ImageCacheFileRef> files;
+        for (FilenameMap::const_iterator f = m_files.begin(); f != m_files.end(); ++f)
+            files.push_back (f->second);
+        std::sort (files.begin(), files.end(), filename_compare);
+        for (size_t i = 0;  i < m_files.size();  ++i) {
+            const ImageCacheFileRef &file (files[i]);
+            const ImageSpec &spec (file->spec());
+            const char *formatcode = "u8";
+            switch (spec.format.basetype) {
+            case TypeDesc::UINT8  : formatcode = "u8";  break;
+            case TypeDesc::INT8   : formatcode = "i8";  break;
+            case TypeDesc::UINT16 : formatcode = "u16"; break;
+            case TypeDesc::INT16  : formatcode = "i16"; break;
+            case TypeDesc::UINT   : formatcode = "u32"; break;
+            case TypeDesc::INT    : formatcode = "i32"; break;
+            case TypeDesc::HALF   : formatcode = "f16"; break;
+            case TypeDesc::FLOAT  : formatcode = "f32"; break;
+            case TypeDesc::DOUBLE : formatcode = "f64"; break;
+            default: break;
+            }
+            out << Strutil::format ("%7lu %4lu    %5lu   %6lu  %4dx%4dx%d.%s",
+                                    i+1, file->timesopened(), file->tilesread(),
+                                    file->bytesread()/1024,
+                                    spec.width, spec.height, spec.nchannels,
+                                    formatcode);
+            out << "\t" << file->filename() << "\n";
             total_opens += file->timesopened();
             total_tiles += file->tilesread();
             total_bytes += file->bytesread();
         }
-        out << "      Totals:\t\t\t" << total_opens 
-            << "\t" << total_tiles << "\t" << total_bytes/1024 << " KB\n";
+        out << Strutil::format ("\n  Tot:  %4lu\t%5lu\t%6lu MB\n",
+                                total_opens, total_tiles,
+                                total_bytes/1024/1024);
     }
     return out.str();
 }
@@ -972,7 +1016,6 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file, int subimage,
     // grab a whole tile at a time and memcpy it rapidly.  But no point
     // doing anything more complicated (not to mention bug-prone) until
     // somebody reports this routine as being a bottleneck.
-    int actualchannels = spec.nchannels;
     ImageCacheTileRef tile, lasttile;
     int nc = file->spec().nchannels;
     size_t formatpixelsize = nc * format.size();
