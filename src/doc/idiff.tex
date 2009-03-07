@@ -212,3 +212,21 @@ images that are within the comparison threshold will not write out
 a useless black (or nearly black) difference image.
 \apiend
 
+\subsection*{Process return codes}
+
+The {\cf idiff} program will return a code that can be used by scripts
+to indicate the results:
+
+\medskip
+
+\begin{tabular}{p{0.3in} p{5in}}
+0 & OK: the images match within the warning and error
+thresholds. \\
+1 & Warning: the errors differ a little, but within error thresholds. \\ 
+2 & Failure: the errors differ a lot, outside error thresholds. \\
+3 & The images weren't the same size and couldn't be compared. \\
+4 & File error: could not find or open input files, etc.
+\end{tabular}
+
+\begin{code}
+\end{code}
