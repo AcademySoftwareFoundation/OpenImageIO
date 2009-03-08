@@ -306,6 +306,58 @@ ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
 
 
 
+int
+ImageSpec::get_int_attribute (const std::string &name, int val)
+{
+    ImageIOParameter *p = find_attribute (name);
+    if (p) {
+        if (p->type() == TypeDesc::INT)
+            val = *(const int *)p->data();
+        else if (p->type() == TypeDesc::UINT)
+            val = (int) *(const unsigned int *)p->data();
+        else if (p->type() == TypeDesc::INT16)
+            val = *(const short *)p->data();
+        else if (p->type() == TypeDesc::UINT16)
+            val = *(const unsigned short *)p->data();
+        else if (p->type() == TypeDesc::INT8)
+            val = *(const char *)p->data();
+        else if (p->type() == TypeDesc::UINT8)
+            val = *(const unsigned char *)p->data();
+    }
+    return val;
+}
+
+
+
+float
+ImageSpec::get_float_attribute (const std::string &name, float val)
+{
+    ImageIOParameter *p = find_attribute (name);
+    if (p) {
+        if (p->type() == TypeDesc::FLOAT)
+            val = *(const float *)p->data();
+        else if (p->type() == TypeDesc::HALF)
+            val = *(const half *)p->data();
+        else if (p->type() == TypeDesc::DOUBLE)
+            val = (float) *(const double *)p->data();
+    }
+    return val;
+}
+
+
+
+std::string
+ImageSpec::get_string_attribute (const std::string &name,
+                                 const std::string &val)
+{
+    ImageIOParameter *p = find_attribute (name, TypeDesc::STRING);
+    if (p)
+        return std::string (*(const char **)p->data());
+    else return val;
+}
+
+
+
 namespace {  // make an anon namespace
 
 

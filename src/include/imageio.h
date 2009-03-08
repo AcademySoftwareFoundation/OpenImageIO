@@ -301,6 +301,21 @@ public:
                                             TypeDesc searchtype=TypeDesc::UNKNOWN,
                                             bool casesensitive=false) const;
 
+    /// Simple way to get an integer attribute, with default provided.
+    /// Automatically will return an int even if the data is really
+    /// unsigned, short, or byte.
+    int get_int_attribute (const std::string &name, int defaultval=0);
+
+    /// Simple way to get a float attribute, with default provided.
+    /// Automatically will return a float even if the data is really
+    /// double or half.
+    float get_float_attribute (const std::string &name, float defaultval=0);
+
+    /// Simple way to get a string attribute, with default provided.
+    ///
+    std::string get_string_attribute (const std::string &name,
+                              const std::string &defaultval = std::string());
+
     /// For a given parameter (in this ImageSpec's extra_attribs),
     /// format the value nicely as a string.  If 'human' is true, use
     /// especially human-readable explanations (units, or decoding of
