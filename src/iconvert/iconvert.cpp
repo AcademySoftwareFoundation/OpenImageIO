@@ -249,6 +249,8 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             outspec.set_format (TypeDesc::FLOAT);
         else if (dataformatname == "double")
             outspec.set_format (TypeDesc::DOUBLE);
+        if (outspec.format != inspec.format)
+            no_copy_image = true;
     }
     outspec.gamma = gammaval;
     if (sRGB) {
@@ -268,24 +270,27 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         outspec.tile_height = 0;
         outspec.tile_depth = 0;
     }
+    if (outspec.tile_width != inspec.tile_width ||
+            outspec.tile_height != inspec.tile_height ||
+            outspec.tile_depth != inspec.tile_depth)
+        no_copy_image = true;
+
     if (! compression.empty()) {
         outspec.attribute ("compression", compression);
+        if (compression != inspec.get_string_attribute ("compression"))
+            no_copy_image = true;
     }
 
-    if (quality > 0)
+    if (quality > 0) {
         outspec.attribute ("CompressionQuality", quality);
+        if (quality != inspec.get_int_attribute ("CompressionQuality"))
+            no_copy_image = true;
+    }
 
     if (orientation >= 1)
         outspec.attribute ("Orientation", orientation);
     else {
-        ImageIOParameter *p;
-        if ((p = outspec.find_attribute ("Orientation", TypeDesc::INT)))
-            orientation = *(int *)p->data();
-        else if ((p = outspec.find_attribute ("Orientation", TypeDesc::UINT)))
-            orientation = *(unsigned int *)p->data();
-        else if ((p = outspec.find_attribute ("Orientation", TypeDesc::UINT16)))
-            orientation = *(unsigned short *)p->data();
-        orientation = p ? *(int *)p->data() : 1;
+        orientation = outspec.get_int_attribute ("Orientation", 1);
         if (orientation >= 1 && orientation <= 8) {
             static int cw[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
             if (rotcw || rotccw || rot180)
@@ -304,10 +309,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     if (clear_keywords)
         outspec.attribute ("Keywords", "");
     if (keywords.size()) {
-        std::string oldkw;
-        ImageIOParameter *p = outspec.find_attribute ("Keywords", TypeDesc::TypeString);
-        if (p)
-            oldkw = *(const char **)p->data();
+        std::string oldkw = outspec.get_string_attribute ("Keywords");
         std::vector<std::string> oldkwlist;
         if (! oldkw.empty())
             split_list (oldkw, oldkwlist);
