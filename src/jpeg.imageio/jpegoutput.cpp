@@ -257,7 +257,7 @@ JpgOutput::close ()
     if (m_next_scanline < spec().height && m_copy_coeffs == NULL) {
         // But if we've only written some scanlines, write the rest to avoid
         // errors
-        std::vector<char> buf (spec().scanline_bytes());
+        std::vector<char> buf (spec().scanline_bytes(), 0);
         char *data = &buf[0];
         while (m_next_scanline < spec().height) {
             jpeg_write_scanlines (&m_cinfo, (JSAMPLE **)&data, 1);
