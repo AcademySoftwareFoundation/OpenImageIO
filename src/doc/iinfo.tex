@@ -42,7 +42,7 @@ files listed:
 % $
 
 The {\cf -s} flag also prints the uncompressed sizes of each image
-file, plus a sum for all of teh images:
+file, plus a sum for all of the images:
 
 \begin{code}
     $ iinfo -s img_6019m.jpg grid.tif lenna.png
@@ -110,6 +110,43 @@ Prints usage information to the terminal.
 \apiitem{-v}
 Verbose output --- prints all metadata of the image files.
 \apiend
+
+\apiitem{-f}
+Print the filename as a prefix to every line.  For example,
+
+\begin{code}
+    $ iinfo -v -f img_6019m.jpg
+
+    img_6019m.jpg : 1024 x  683, 3 channel, uint8 jpeg
+    img_6019m.jpg : channel list: R, G, B
+    img_6019m.jpg : Color space: sRGB
+    img_6019m.jpg : ImageDescription: "Family photo"
+    img_6019m.jpg : Make: "Canon"
+    ...
+\end{code}
+%$
+\apiend
+
+\apiitem{-m {\rm \emph{pattern}}}
+Match the \emph{pattern} (specified as an extended regular expression)
+against data metadata field names and print only data fields whose names
+match.  The default is to print all data fields found in the file (if
+{\cf -v} is given).
+
+For example,
+\begin{code}
+    $ iinfo -v -f -m ImageDescription test*.jpg
+
+    test3.jpg :     ImageDescription: "Birthday party"
+    test4.jpg :     ImageDescription: "Hawaii vacation"
+    test5.jpg :     ImageDescription: "Bob's graduation"
+    test6.jpg :     ImageDescription: <unknown>
+\end{code}
+%$
+\apiend
+
+Note: the {\cf -m} option is probably not very useful without also using
+the {\cf -v} and {\cf -f} options.
 
 \apiitem{-s}
 Show the image sizes, including a sum of all the listed images.

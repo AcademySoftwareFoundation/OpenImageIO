@@ -37,6 +37,7 @@
 #include <iterator>
 
 #include <boost/foreach.hpp>
+#include <boost/regex.hpp>
 
 #include "argparse.h"
 #include "strutil.h"
@@ -48,6 +49,9 @@ static bool verbose = false;
 static bool sum = false;
 static bool help = false;
 static std::vector<std::string> filenames;
+static std::string metamatch;
+static bool filenameprefix = false;
+static boost::regex field_re;
 
 
 
@@ -56,64 +60,120 @@ print_info (const std::string &filename, size_t namefieldlength,
             ImageInput *input, ImageSpec &spec,
             bool verbose, bool sum, long long &totalsize)
 {
+    bool printed = false;
     int padlen = std::max (0, (int)namefieldlength - (int)filename.length());
     std::string padding (padlen, ' ');
-    printf ("%s%s : %4d x %4d", filename.c_str(), padding.c_str(),
-            spec.width, spec.height);
-    if (spec.depth > 1)
-        printf (" x %4d", spec.depth);
-    printf (", %d channel, %s%s", spec.nchannels,
-            spec.format.c_str(),
-            spec.depth > 1 ? " volume" : "");
-    printf (" %s", input->format_name());
-    if (sum) {
-        totalsize += spec.image_bytes();
-        printf (" (%.2f MB)", (float)spec.image_bytes() / (1024.0*1024.0));
-    }
-    printf ("\n");
 
-    if (verbose) {
-        printf ("    channel list: ");
-        for (int i = 0;  i < spec.nchannels;  ++i) {
-            printf ("%s%s", spec.channelnames[i].c_str(),
-                    (i == spec.nchannels-1) ? "" : ", ");
+    if (metamatch.empty() ||
+        boost::regex_search ("resolution, width, height, depth, channels", field_re)) {
+        printf ("%s%s : %4d x %4d", filename.c_str(), padding.c_str(),
+                spec.width, spec.height);
+        if (spec.depth > 1)
+            printf (" x %4d", spec.depth);
+        printf (", %d channel, %s%s", spec.nchannels,
+                spec.format.c_str(),
+                spec.depth > 1 ? " volume" : "");
+        printf (" %s", input->format_name());
+        if (sum) {
+            totalsize += spec.image_bytes();
+            printf (" (%.2f MB)", (float)spec.image_bytes() / (1024.0*1024.0));
         }
         printf ("\n");
-        if (spec.x || spec.y || spec.z) {
-            printf ("    pixel data origin: x=%d, y=%d", spec.x, spec.y);
-            if (spec.depth > 1)
-                printf (", z=%d\n", spec.z);
+        printed = true;
+    }
+
+    if (verbose) {
+        if (metamatch.empty() ||
+                boost::regex_search ("channels", field_re) ||
+                boost::regex_search ("channel list", field_re)) {
+            if (filenameprefix)
+                printf ("%s : ", filename.c_str());
+            printf ("    channel list: ");
+            for (int i = 0;  i < spec.nchannels;  ++i) {
+                printf ("%s%s", spec.channelnames[i].c_str(),
+                        (i == spec.nchannels-1) ? "" : ", ");
+            }
             printf ("\n");
+            printed = true;
+        }
+        if (spec.x || spec.y || spec.z) {
+            if (metamatch.empty() ||
+                    boost::regex_search ("pixel data origin", field_re)) {
+                if (filenameprefix)
+                    printf ("%s : ", filename.c_str());
+                printf ("    pixel data origin: x=%d, y=%d", spec.x, spec.y);
+                if (spec.depth > 1)
+                    printf (", z=%d", spec.z);
+                printf ("\n");
+                printed = true;
+            }
         }
         if (spec.full_x || spec.full_y || spec.full_z ||
             (spec.full_width != spec.width && spec.full_width != 0) || 
             (spec.full_height != spec.height && spec.full_height != 0) ||
             (spec.full_depth != spec.depth && spec.full_depth != 0)) {
-            printf ("    full/display size: %d x %d",
-                    spec.full_width, spec.full_height);
-            if (spec.depth > 1)
-                printf (" x %d", spec.full_depth);
-            printf ("\n");
-            printf ("    full/display origin: %d, %d",
-                    spec.full_x, spec.full_y);
-            if (spec.depth > 1)
-                printf (", %d", spec.full_z);
-            printf ("\n");
+            if (metamatch.empty() ||
+                    boost::regex_search ("full/display size", field_re)) {
+                if (filenameprefix)
+                    printf ("%s : ", filename.c_str());
+                printf ("    full/display size: %d x %d",
+                        spec.full_width, spec.full_height);
+                if (spec.depth > 1)
+                    printf (" x %d", spec.full_depth);
+                printf ("\n");
+                printed = true;
+            }
+            if (metamatch.empty() ||
+                    boost::regex_search ("full/display origin", field_re)) {
+                if (filenameprefix)
+                    printf ("%s : ", filename.c_str());
+                printf ("    full/display origin: %d, %d",
+                        spec.full_x, spec.full_y);
+                if (spec.depth > 1)
+                    printf (", %d", spec.full_z);
+                printf ("\n");
+                printed = true;
+            }
         }
         if (spec.tile_width) {
-            printf ("    tile size: %d x %d",
-                    spec.tile_width, spec.tile_height);
-            if (spec.depth > 1)
-                printf (" x %d", spec.tile_depth);
-            printf ("\n");
+            if (metamatch.empty() ||
+                    boost::regex_search ("tile", field_re)) {
+                if (filenameprefix)
+                    printf ("%s : ", filename.c_str());
+                printf ("    tile size: %d x %d",
+                        spec.tile_width, spec.tile_height);
+                if (spec.depth > 1)
+                    printf (" x %d", spec.tile_depth);
+                printf ("\n");
+                printed = true;
+            }
         }
-        const char *cspacename [] = { "unknown", "linear", "gamma %g", "sRGB" };
-        printf ("    Color space: %s\n",
-                Strutil::format(cspacename[(int)spec.linearity], spec.gamma).c_str());
+        if (metamatch.empty() ||
+                boost::regex_search ("Color space", field_re)) {
+            if (filenameprefix)
+                printf ("%s : ", filename.c_str());
+            const char *cspacename [] = { "unknown", "linear", "gamma %g", "sRGB" };
+            printf ("    Color space: %s\n",
+                    Strutil::format(cspacename[(int)spec.linearity], spec.gamma).c_str());
+            printed = true;
+        }
+
         BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
+            if (! metamatch.empty() &&
+                ! boost::regex_search (p.name().c_str(), field_re))
+                continue;
             std::string s = spec.metadata_val (p, true);
+            if (filenameprefix)
+                printf ("%s : ", filename.c_str());
             printf ("    %s: %s\n", p.name().c_str(), s.c_str());
+            printed = true;
         }
+
+        if (! printed && !metamatch.empty()) {
+            if (filenameprefix)
+                printf ("%s : ", filename.c_str());
+            printf ("    %s: <unknown>\n", metamatch.c_str());
+        }            
     }
 }
 
@@ -137,6 +197,8 @@ main (int argc, const char *argv[])
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose output",
+                "-m %s", &metamatch, "Metadata names to print (default: all)",
+                "-f", &filenameprefix, "Prefix each line with the filename",
                 "-s", &sum, "Sum the image sizes",
                 NULL);
     if (ap.parse(argc, argv) < 0) {
@@ -148,6 +210,9 @@ main (int argc, const char *argv[])
         ap.usage ();
         exit (EXIT_FAILURE);
     }
+
+    field_re.assign (metamatch,
+                     boost::regex::extended | boost::regex_constants::icase);
 
     // Find the longest filename
     size_t longestname = 0;
