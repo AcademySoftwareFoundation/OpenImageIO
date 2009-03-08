@@ -55,6 +55,7 @@ static bool list_files = false;
 static bool recursive = false;
 static bool file_match = false;
 static bool print_dirs = false;
+static bool extended_regex = false;
 static std::string pattern;
 static std::vector<std::string> filenames;
 
@@ -159,10 +160,11 @@ main (int argc, const char *argv[])
     ap.options ("Usage:  igrep [options] pattern filename...",
                 "%*", parse_files, "",
                 "-i", &ignore_case, "Ignore upper/lower case distinctions",
+                "-v", &invert_match, "Invert match (select non-matching files)",
+                "-E", &extended_regex, "Pattern is an extended regular expression",
+                "-f", &file_match, "Match against file name as well as metadata",
                 "-l", &list_files, "List the matching files (no detail)",
                 "-r", &recursive, "Recurse into directories",
-                "-v", &invert_match, "Invert match (select non-matching files)",
-                "-f", &file_match, "Match against file name as well as metadata",
                 "-d", &print_dirs, "Print directories (when recursive)",
                 "--help", &help, "Print help message",
                 NULL);
@@ -177,6 +179,8 @@ main (int argc, const char *argv[])
     }
 
     boost::regex_constants::syntax_option_type flag = boost::regex_constants::grep;
+    if (extended_regex)
+        flag = boost::regex::extended;
     if (ignore_case)
         flag |= boost::regex_constants::icase;
     boost::regex re (pattern, flag);
