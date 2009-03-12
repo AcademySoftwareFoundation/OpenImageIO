@@ -211,8 +211,9 @@ main (int argc, const char *argv[])
         exit (EXIT_FAILURE);
     }
 
-    field_re.assign (metamatch,
-                     boost::regex::extended | boost::regex_constants::icase);
+    if (! metamatch.empty())
+        field_re.assign (metamatch,
+                         boost::regex::extended | boost::regex_constants::icase);
 
     // Find the longest filename
     size_t longestname = 0;
