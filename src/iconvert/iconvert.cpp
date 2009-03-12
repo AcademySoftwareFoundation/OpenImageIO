@@ -369,6 +369,14 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     in->close ();
     delete in;
 
+    // Figure out a time for the input file -- either one supplied by
+    // the metadata, or the actual time stamp of the input file.
+    std::time_t in_time;
+    std::string metadatatime = outspec.get_string_attribute ("DateTime");
+    if (metadatatime.empty() ||
+           ! DateTime_to_time_t (metadatatime.c_str(), in_time))
+        in_time = boost::filesystem::last_write_time (in_filename);
+
     if (out_filename != tempname) {
         if (ok) {
             boost::filesystem::remove (out_filename);
@@ -380,13 +388,8 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
     // If user requested, try to adjust the file's modification time to
     // the creation time indicated by the file's DateTime metadata.
-    if (ok && adjust_time) {
-        time_t timet;
-        ImageIOParameter *p = outspec.find_attribute ("DateTime", TypeDesc::TypeString);
-        if (p && DateTime_to_time_t (*(const char **)p->data(), timet)) {
-            boost::filesystem::last_write_time (out_filename, timet);
-        }
-    }
+    if (ok && adjust_time)
+        boost::filesystem::last_write_time (out_filename, in_time);
 
     return ok;
 }
