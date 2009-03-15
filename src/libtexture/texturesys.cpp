@@ -865,8 +865,8 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     s = s * spec.width;
     t = t * spec.height;
     int stex, ttex;    // Texel coordintes
-    float sfrac = floorfrac (s, &stex);
-    float tfrac = floorfrac (t, &ttex);
+    (void) floorfrac (s, &stex);   // don't need fractional result
+    (void) floorfrac (t, &ttex);
     
     // Wrap
     DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
