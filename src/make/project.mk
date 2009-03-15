@@ -40,8 +40,7 @@ dist_bins    	:= iconvert${BINEXT} \
 		   igrep${BINEXT} \
 		   iinfo${BINEXT} \
 		   iv${BINEXT} \
-		   maketx${BINEXT} \
-		   testtex${BINEXT}
+		   maketx${BINEXT}
 dist_libs     	:= libOpenImageIO${SHLIBEXT}
 #		   libtexture${SHLIBEXT}
 
