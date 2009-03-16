@@ -8,10 +8,7 @@ Before first alpha release
             Windows port of everything
             iv - handle images > 4k
             Explore unit test strategies (leading condender: Google)
-DONE        open (name, newspec, requests) - communicate requests
-                 (call it "request"? "settings"? "configuration"?)
-            API docs - ImageBuf, iv, igrep, maketx, plugins, building,
-                iconvert --adjust-time/keyword/clear-keyword/title
+            API docs - ImageBuf, iv, maketx, plugins, building
             iv - select all images
 DONE        iv - gamma correction (env variable)
 DONE?       iv - honor sRGB images
@@ -71,7 +68,7 @@ hard        iv - Ctrl-W in info window should close info, not close image
 
 Idea pool / future feature wish list
 
-            iconvert - contig/separate, arbitrary metadata, extract channels
+            iconvert - contig/separate, extract channels
             maketx - lightprobe -> cubemap
             maketx - vertcross -> cubemap
             maketx - latlong -> cubemap
