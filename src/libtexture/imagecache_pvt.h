@@ -63,6 +63,9 @@ const char * texture_type_name (TexFormat f);
 /// any calling routine use a mutex any time a ImageCacheFile's methods are
 /// being called, including constructing a new ImageCacheFile.
 ///
+/// The public routines of ImageCacheFile are thread-safe!  In
+/// particular, callers do not need to lock around calls to read_tile.
+///
 class ImageCacheFile : public RefCnt {
 public:
     ImageCacheFile (ImageCacheImpl &imagecache, ustring filename);
@@ -76,13 +79,8 @@ public:
     TexFormat textureformat () const { return m_texformat; }
     TextureOptions::Wrap swrap () const { return m_swrap; }
     TextureOptions::Wrap twrap () const { return m_twrap; }
-    bool opened () const { return m_input.get() != NULL; }
     TypeDesc datatype () const { return m_datatype; }
     ImageCacheImpl &imagecache () const { return m_imagecache; }
-
-    /// We will need to read pixels from the file, so be sure it's
-    /// currently opened.  Return true if ok, false if error.
-    bool open ();
 
     /// Load new data tile
     ///
@@ -103,10 +101,7 @@ public:
     bool eightbit (void) const { return m_eightbit; }
     bool untiled (void) const { return m_untiled; }
 
-    void invalidate () {
-        close ();
-        m_spec.clear();
-    }
+    void invalidate ();
 
     size_t timesopened () const { return m_timesopened; }
     size_t tilesread () const { return m_tilesread; }
@@ -138,6 +133,13 @@ private:
     size_t m_bytesread;             ///< Bytes read from this file
     size_t m_timesopened;           ///< Separate times we opened this file
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
+    mutable mutex m_input_mutex;    ///< Mutex protecting the ImageInput
+
+    /// We will need to read pixels from the file, so be sure it's
+    /// currently opened.  Return true if ok, false if error.
+    bool open ();
+
+    bool opened () const { return m_input.get() != NULL; }
 
     /// Close and delete the ImageInput, if currently open
     ///
@@ -289,9 +291,13 @@ public:
         return spec.tile_pixels() * spec.nchannels * file().datatype().size();
     }
 
-    /// Mark the tile as recently used (or not, if used==false).  Return
-    /// its previous value.
-    bool used (bool used=true) { bool r = m_used;  m_used = used;  return r; }
+    /// Mark the tile as recently used.
+    ///
+    void use () { m_used = true; }
+
+    /// Mark the tile as not recently used, return its previous value.
+    ///
+    bool release () { bool r = m_used;  m_used = false;  return r; }
 
     /// Has this tile been recently used?
     ///
@@ -446,7 +452,9 @@ public:
     /// If tile is null, so is lasttile.  Inlined for speed.
     void find_tile (const TileID &id,
                     ImageCacheTileRef &tile, ImageCacheTileRef &lasttile) {
+        m_stats_mutex.lock ();
         ++m_stat_find_tile_calls;
+        m_stats_mutex.unlock ();
         if (tile) {
             if (tile->id() == id)
                 return;    // already have the tile we want
@@ -470,7 +478,9 @@ public:
     /// are reading several tiles from the same subimage.
     void find_tile_same_subimage (const TileID &id,
                                ImageCacheTileRef &tile, ImageCacheTileRef &lasttile) {
+        m_stats_mutex.lock ();
         ++m_stat_find_tile_calls;
+        m_stats_mutex.unlock ();
         DASSERT (tile);
         if (equal_same_subimage (tile->id(), id))
             return;
@@ -490,40 +500,66 @@ public:
 
     void operator delete (void *todel) { ::delete ((char *)todel); }
 
-private:
-    void init ();
-
     /// Called when a new file is opened, so that the system can track
-    /// the number of simultaneously-opened files.  This should only
-    /// be invoked when the caller holds m_mutex.
+    /// the number of simultaneously-opened files.
     void incr_open_files (void) {
+        m_stats_mutex.lock ();
         ++m_stat_open_files_created;
         ++m_stat_open_files_current;
         if (m_stat_open_files_current > m_stat_open_files_peak)
             m_stat_open_files_peak = m_stat_open_files_current;
+        m_stats_mutex.unlock ();
     }
 
     /// Called when a file is closed, so that the system can track
-    /// the number of simultyaneously-opened files.  This should only
-    /// be invoked when the caller holds m_mutex.
-    void decr_open_files (void) { --m_stat_open_files_current; }
+    /// the number of simultyaneously-opened files.
+    void decr_open_files (void) {
+        m_stats_mutex.lock ();
+        --m_stat_open_files_current;
+        m_stats_mutex.unlock ();
+    }
 
     /// Called when a new tile is created, to update all the stats.
-    /// This should only be invoked when the caller holds m_mutex.
+    ///
     void incr_tiles (size_t size) {
+        m_stats_mutex.lock ();
         ++m_stat_tiles_created;
         ++m_stat_tiles_current;
         if (m_stat_tiles_current > m_stat_tiles_peak)
             m_stat_tiles_peak = m_stat_tiles_current;
         m_mem_used += size;
+        m_stats_mutex.unlock ();
     }
 
     /// Called when a tile is destroyed, to update all the stats.
-    /// This should only be invoked when the caller holds m_mutex.
+    ///
     void decr_tiles (size_t size) {
+        m_stats_mutex.lock ();
         --m_stat_tiles_current;
         m_mem_used -= size;
+        m_stats_mutex.unlock ();
     }
+
+    void incr_unique_files () {
+        m_stats_mutex.lock ();
+        ++m_stat_unique_files;
+        m_stats_mutex.unlock ();
+    }
+
+    void incr_files_totalsize (size_t size) {
+        m_stats_mutex.lock ();
+        m_stat_files_totalsize += size;
+        m_stats_mutex.unlock ();
+    }
+
+    void incr_bytes_read (size_t size) {
+        m_stats_mutex.lock ();
+        m_stat_bytes_read += size;
+        m_stats_mutex.unlock ();
+    }
+
+private:
+    void init ();
 
     /// Enforce the max number of open files.  This should only be invoked
     /// when the caller holds m_mutex.
@@ -541,15 +577,6 @@ private:
     ///
     void printstats () const;
 
-#if 0
-    // Turns out this isn't really any faster in my tests.
-    typedef fast_mutex mutex_t;
-    typedef fast_mutex::lock_guard lock_guard_t;
-#else
-    typedef recursive_mutex mutex_t;
-    typedef recursive_lock_guard lock_guard_t;
-#endif
-
     int m_max_open_files;
     float m_max_memory_MB;
     size_t m_max_memory_bytes;
@@ -561,16 +588,20 @@ private:
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's
     FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
-    mutable mutex_t m_mutex;     ///< Thread safety
     TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
     size_t m_mem_used;           ///< Memory being used for tiles
     int m_statslevel;            ///< Statistics level
     mutable std::string m_errormessage;   ///< Saved error string.
-    mutable mutex m_errmutex;             ///< error mutex
+    mutable shared_mutex m_filemutex; ///< Thread safety for file cache
+    mutable shared_mutex m_tilemutex; ///< Thread safety for tile cache
+    mutable fast_mutex m_stats_mutex; ///< Thread safety for stats
+    mutable mutex m_errmutex;         ///< error mutex
+
+private:
     int m_stat_find_tile_calls;
-    int m_stat_find_tile_microcache_misses;
-    int m_stat_find_tile_cache_misses;
+    long long m_stat_find_tile_microcache_misses;
+    long long m_stat_find_tile_cache_misses;
     int m_stat_tiles_created;
     int m_stat_tiles_current;
     int m_stat_tiles_peak;
@@ -581,12 +612,19 @@ private:
     int m_stat_open_files_peak;
     int m_stat_unique_files;
     double m_stat_fileio_time;
-    double m_stat_locking_time;
+    double m_stat_file_locking_time;
+    double m_stat_tile_locking_time;
     double m_stat_find_file_time;
     double m_stat_find_tile_time;
 
-    friend class ImageCacheFile;
-    friend class ImageCacheTile;
+    void incr_time_stat (double &stat, double incr) {
+#if IMAGECACHE_TIME_STATS
+        m_stats_mutex.lock ();
+        stat += incr;
+        m_stats_mutex.unlock ();
+#endif
+    }
+
 };
 
 
