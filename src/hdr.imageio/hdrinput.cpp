@@ -84,7 +84,7 @@ private:
 
 // Export version number and create function symbols
 extern "C" {
-    DLLEXPORT int hdr_imageio_version = IMAGEIO_VERSION;
+    DLLEXPORT int hdr_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *hdr_input_imageio_create () {
         return new HdrInput;
     }

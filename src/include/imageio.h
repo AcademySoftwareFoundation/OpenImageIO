@@ -57,23 +57,33 @@
 namespace OpenImageIO {
 
 
-// Forward declarations
-class ImageInput;
+const int OPENIMAGEIO_VERSION_MAJOR = 0 ;
+const int OPENIMAGEIO_VERSION_MINOR = 5 ;
+const int OPENIMAGEIO_VERSION_PATCH = 0 ;
 
+const int OPENIMAGEIO_VERSION = (10000 * OPENIMAGEIO_VERSION_MAJOR + 
+                                   100 * OPENIMAGEIO_VERSION_MINOR + 
+                                         OPENIMAGEIO_VERSION_PATCH);
 
 
 /// Each imageio DSO/DLL should include this statement:
-///      GELATO_EXPORT int FORMAT_imageio_version = Gelato::IMAGEIO_VERSION;
-/// Applications using imageio DSO/DLL's should check this
-/// variable, to avoid using DSO/DLL's compiled against
-/// incompatible versions of this header file.
+///      DLLPUBLIC int FORMAT_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+/// libOpenImageIO will check for compatibility this way.  
+/// This should get bumped any time we change the API in any way that
+/// will make previously-compiled plugins break.
 ///
+/// History:
 /// Version 3 added supports_rectangles() and write_rectangle() to
 /// ImageOutput, and added stride parameters to the ImageInput read
 /// routines.
 /// Version 10 represents forking from NVIDIA's open source version,
 /// with which we break backwards compatibility.
-const int IMAGEIO_VERSION = 10;
+const int OPENIMAGEIO_PLUGIN_VERSION = 10;
+
+/// Strictly for back-compatibility -- this is deprecated
+///
+const int IMAGEIO_VERSION = OPENIMAGEIO_PLUGIN_VERSION;
+
 
 
 /// Type we use for stride lengths.  It should be 64 bit on all 
@@ -326,9 +336,180 @@ public:
 
 
 
-/// Deprecated, Gelato <= 3 name for what we now call ImageSpec.
-///
-typedef ImageSpec ImageIOFormatSpec;
+
+class DLLPUBLIC ImageInput {
+public:
+    /// Create and return an ImageInput implementation that is willing
+    /// to read the given file.  The plugin_searchpath parameter is a
+    /// colon-separated list of directories to search for ImageIO plugin
+    /// DSO/DLL's (not a searchpath for the image itself!).  This will
+    /// actually just try every imageio plugin it can locate, until it
+    /// finds one that's able to open the file without error.  This just
+    /// creates the ImageInput, it does not open the file.
+    static ImageInput *create (const std::string &filename, 
+                               const std::string &plugin_searchpath="");
+
+    ImageInput () { }
+    virtual ~ImageInput () { }
+
+    /// Return the name of the format implemented by this class.
+    ///
+    virtual const char *format_name (void) const = 0;
+
+    /// Open file with given name.  Various file attributes are put in
+    /// newspec and a copy is also saved in this->spec.  From these
+    /// attributes, you can discern the resolution, if it's tiled,
+    /// number of channels, and native data format.  Return true if the
+    /// file was found and opened okay.
+    virtual bool open (const std::string &name, ImageSpec &newspec) = 0;
+
+    /// Open file with given name, similar to open(name,newspec). The
+    /// 'config' is an ImageSpec giving requests or special
+    /// instructions.  ImageInput implementations are free to not
+    /// respond to any such requests, so the default implementation is
+    /// just to ignore config and call regular open(name,newspec).
+    virtual bool open (const std::string &name, ImageSpec &newspec,
+                       const ImageSpec &config) { return open(name,newspec); }
+
+    /// Return a reference to the image format specification of the
+    /// current subimage.  Note that the contents of the spec are
+    /// invalid before open() or after close().
+    const ImageSpec &spec (void) const { return m_spec; }
+
+    /// Close an image that we are totally done with.
+    ///
+    virtual bool close () = 0;
+
+    /// Returns the index of the subimage that is currently being read.
+    /// The first subimage (or the only subimage, if there is just one)
+    /// is number 0.
+    virtual int current_subimage (void) const { return 0; }
+
+    /// Seek to the given subimage.  THe first subimage of the file has
+    /// index 0.  Return true on success, false on failure (including
+    /// that there is not a subimage with that index).  The new
+    /// subimage's vital statistics are put in newspec (and also saved
+    /// in this->spec).  The reader is expected to give the appearance
+    /// of random access to subimages -- in other words, if it can't
+    /// randomly seek to the given subimage, it should transparently
+    /// close, reopen, and sequentially read through prior subimages.
+    virtual bool seek_subimage (int index, ImageSpec &newspec) {
+        return false;
+    }
+
+    /// Read the scanline that includes pixels (*,y,z) into data,
+    /// converting if necessary from the native data format of the file
+    /// into the 'format' specified (z==0 for non-volume images).  The
+    /// stride value gives the data spacing of adjacent pixels (in
+    /// bytes).  Strides set to AutoStride imply 'contiguous' data, i.e.,
+    ///     xstride == spec.nchannels*format.size()
+    /// The reader is expected to give the appearance of random access --
+    /// in other words, if it can't randomly seek to the given scanline,
+    /// it should transparently close, reopen, and sequentially read
+    /// through prior scanlines.  The base ImageInput class has a
+    /// default implementation that calls read_native_scanline and then
+    /// does appropriate format conversion, so there's no reason for
+    /// each format plugin to override this method.
+    virtual bool read_scanline (int y, int z, TypeDesc format, void *data,
+                                stride_t xstride=AutoStride);
+
+    ///
+    /// Simple read_scanline reads to contiguous float pixels.
+    bool read_scanline (int y, int z, float *data) {
+        return read_scanline (y, z, TypeDesc::FLOAT, data);
+    }
+
+    /// Read the tile that includes pixels (*,y,z) into data, converting
+    /// if necessary from the native data format of the file into the
+    /// 'format' specified.  (z==0 for non-volume images.)  The stride
+    /// values give the data spacing of adjacent pixels, scanlines, and
+    /// volumetric slices (measured in bytes).  Strides set to
+    /// AutoStride imply 'contiguous' data, i.e.,
+    ///     xstride == spec.nchannels*format.size()
+    ///     ystride == xstride*spec.tile_width
+    ///     zstride == ystride*spec.tile_height
+    /// The reader is expected to give the appearance of random access
+    /// -- in other words, if it can't randomly seek to the given tile,
+    /// it should transparently close, reopen, and sequentially read
+    /// through prior tiles.  The base ImageInput class has a default
+    /// implementation that calls read_native_tile and then does
+    /// appropriate format conversion, so there's no reason for each
+    /// format plugin to override this method.
+    virtual bool read_tile (int x, int y, int z, TypeDesc format,
+                            void *data, stride_t xstride=AutoStride,
+                            stride_t ystride=AutoStride, stride_t zstride=AutoStride);
+
+    ///
+    /// Simple read_tile reads to contiguous float pixels.
+    bool read_tile (int x, int y, int z, float *data) {
+        return read_tile (x, y, z, TypeDesc::FLOAT, data, 
+                          AutoStride, AutoStride, AutoStride);
+    }
+
+    /// Read the entire image of spec.width x spec.height x spec.depth
+    /// pixels into data (which must already be sized large enough for
+    /// the entire image) with the given strides and in the desired
+    /// format.  Read tiles or scanlines automatically.  Strides set to
+    /// AutoStride imply 'contiguous' data, i.e.,
+    ///     xstride == spec.nchannels*format.size()
+    ///     ystride == xstride*spec.width
+    ///     zstride == ystride*spec.height
+    /// Because this may be an expensive operation, a progress callback
+    /// may be passed.  Periodically, it will be called as follows:
+    ///     progress_callback (progress_callback_data, float done)
+    /// where 'done' gives the portion of the image 
+    virtual bool read_image (TypeDesc format, void *data,
+                             stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride,
+                             ProgressCallback progress_callback=NULL,
+                             void *progress_callback_data=NULL);
+
+    ///
+    /// Simple read_image reads to contiguous float pixels.
+    bool read_image (float *data) {
+        return read_image (TypeDesc::FLOAT, data);
+    }
+
+    /// read_native_scanline is just like read_scanline, except that it
+    /// keeps the data in the native format of the disk file and always
+    /// read into contiguous memory (no strides).  It's up to the user to
+    /// have enough space allocated and know what to do with the data.
+    /// IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD.
+    virtual bool read_native_scanline (int y, int z, void *data) = 0;
+
+    /// read_native_tile is just like read_tile, except that it
+    /// keeps the data in the native format of the disk file and always
+    /// read into contiguous memory (no strides).  It's up to the user to
+    /// have enough space allocated and know what to do with the data.
+    /// IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD
+    /// IF IT SUPPORTS TILED IMAGES.
+    virtual bool read_native_tile (int x, int y, int z, void *data) {
+        return false;
+    }
+
+    /// General message passing between client and image input server
+    ///
+    virtual int send_to_input (const char *format, ...);
+    int send_to_client (const char *format, ...);
+
+    /// Return the current error string describing what went wrong if
+    /// any of the public methods returned 'false' indicating an error.
+    /// (Hopefully the implementation plugin called error() with a
+    /// helpful error message.)
+    std::string error_message () const { return m_errmessage; }
+
+protected:
+    /// Error reporting for the plugin implementation: call this with
+    /// printf-like arguments.
+    void error (const char *format, ...);
+    
+protected:
+    ImageSpec m_spec;          ///< format spec of the current open subimage
+
+private:
+    std::string m_errmessage;  ///< private storage of error massage
+};
+
 
 
 
@@ -539,181 +720,6 @@ private:
 
 
 
-class DLLPUBLIC ImageInput {
-public:
-    /// Create and return an ImageInput implementation that is willing
-    /// to read the given file.  The plugin_searchpath parameter is a
-    /// colon-separated list of directories to search for ImageIO plugin
-    /// DSO/DLL's (not a searchpath for the image itself!).  This will
-    /// actually just try every imageio plugin it can locate, until it
-    /// finds one that's able to open the file without error.  This just
-    /// creates the ImageInput, it does not open the file.
-    static ImageInput *create (const std::string &filename, 
-                               const std::string &plugin_searchpath="");
-
-    ImageInput () { }
-    virtual ~ImageInput () { }
-
-    /// Return the name of the format implemented by this class.
-    ///
-    virtual const char *format_name (void) const = 0;
-
-    /// Open file with given name.  Various file attributes are put in
-    /// newspec and a copy is also saved in this->spec.  From these
-    /// attributes, you can discern the resolution, if it's tiled,
-    /// number of channels, and native data format.  Return true if the
-    /// file was found and opened okay.
-    virtual bool open (const std::string &name, ImageSpec &newspec) = 0;
-
-    /// Open file with given name, similar to open(name,newspec). The
-    /// 'config' is an ImageSpec giving requests or special
-    /// instructions.  ImageInput implementations are free to not
-    /// respond to any such requests, so the default implementation is
-    /// just to ignore config and call regular open(name,newspec).
-    virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config) { return open(name,newspec); }
-
-    /// Return a reference to the image format specification of the
-    /// current subimage.  Note that the contents of the spec are
-    /// invalid before open() or after close().
-    const ImageSpec &spec (void) const { return m_spec; }
-
-    /// Close an image that we are totally done with.
-    ///
-    virtual bool close () = 0;
-
-    /// Returns the index of the subimage that is currently being read.
-    /// The first subimage (or the only subimage, if there is just one)
-    /// is number 0.
-    virtual int current_subimage (void) const { return 0; }
-
-    /// Seek to the given subimage.  THe first subimage of the file has
-    /// index 0.  Return true on success, false on failure (including
-    /// that there is not a subimage with that index).  The new
-    /// subimage's vital statistics are put in newspec (and also saved
-    /// in this->spec).  The reader is expected to give the appearance
-    /// of random access to subimages -- in other words, if it can't
-    /// randomly seek to the given subimage, it should transparently
-    /// close, reopen, and sequentially read through prior subimages.
-    virtual bool seek_subimage (int index, ImageSpec &newspec) {
-        return false;
-    }
-
-    /// Read the scanline that includes pixels (*,y,z) into data,
-    /// converting if necessary from the native data format of the file
-    /// into the 'format' specified (z==0 for non-volume images).  The
-    /// stride value gives the data spacing of adjacent pixels (in
-    /// bytes).  Strides set to AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    /// The reader is expected to give the appearance of random access --
-    /// in other words, if it can't randomly seek to the given scanline,
-    /// it should transparently close, reopen, and sequentially read
-    /// through prior scanlines.  The base ImageInput class has a
-    /// default implementation that calls read_native_scanline and then
-    /// does appropriate format conversion, so there's no reason for
-    /// each format plugin to override this method.
-    virtual bool read_scanline (int y, int z, TypeDesc format, void *data,
-                                stride_t xstride=AutoStride);
-
-    ///
-    /// Simple read_scanline reads to contiguous float pixels.
-    bool read_scanline (int y, int z, float *data) {
-        return read_scanline (y, z, TypeDesc::FLOAT, data);
-    }
-
-    /// Read the tile that includes pixels (*,y,z) into data, converting
-    /// if necessary from the native data format of the file into the
-    /// 'format' specified.  (z==0 for non-volume images.)  The stride
-    /// values give the data spacing of adjacent pixels, scanlines, and
-    /// volumetric slices (measured in bytes).  Strides set to
-    /// AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    ///     ystride == xstride*spec.tile_width
-    ///     zstride == ystride*spec.tile_height
-    /// The reader is expected to give the appearance of random access
-    /// -- in other words, if it can't randomly seek to the given tile,
-    /// it should transparently close, reopen, and sequentially read
-    /// through prior tiles.  The base ImageInput class has a default
-    /// implementation that calls read_native_tile and then does
-    /// appropriate format conversion, so there's no reason for each
-    /// format plugin to override this method.
-    virtual bool read_tile (int x, int y, int z, TypeDesc format,
-                            void *data, stride_t xstride=AutoStride,
-                            stride_t ystride=AutoStride, stride_t zstride=AutoStride);
-
-    ///
-    /// Simple read_tile reads to contiguous float pixels.
-    bool read_tile (int x, int y, int z, float *data) {
-        return read_tile (x, y, z, TypeDesc::FLOAT, data, 
-                          AutoStride, AutoStride, AutoStride);
-    }
-
-    /// Read the entire image of spec.width x spec.height x spec.depth
-    /// pixels into data (which must already be sized large enough for
-    /// the entire image) with the given strides and in the desired
-    /// format.  Read tiles or scanlines automatically.  Strides set to
-    /// AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    ///     ystride == xstride*spec.width
-    ///     zstride == ystride*spec.height
-    /// Because this may be an expensive operation, a progress callback
-    /// may be passed.  Periodically, it will be called as follows:
-    ///     progress_callback (progress_callback_data, float done)
-    /// where 'done' gives the portion of the image 
-    virtual bool read_image (TypeDesc format, void *data,
-                             stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride,
-                             ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
-
-    ///
-    /// Simple read_image reads to contiguous float pixels.
-    bool read_image (float *data) {
-        return read_image (TypeDesc::FLOAT, data);
-    }
-
-    /// read_native_scanline is just like read_scanline, except that it
-    /// keeps the data in the native format of the disk file and always
-    /// read into contiguous memory (no strides).  It's up to the user to
-    /// have enough space allocated and know what to do with the data.
-    /// IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD.
-    virtual bool read_native_scanline (int y, int z, void *data) = 0;
-
-    /// read_native_tile is just like read_tile, except that it
-    /// keeps the data in the native format of the disk file and always
-    /// read into contiguous memory (no strides).  It's up to the user to
-    /// have enough space allocated and know what to do with the data.
-    /// IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD
-    /// IF IT SUPPORTS TILED IMAGES.
-    virtual bool read_native_tile (int x, int y, int z, void *data) {
-        return false;
-    }
-
-    /// General message passing between client and image input server
-    ///
-    virtual int send_to_input (const char *format, ...);
-    int send_to_client (const char *format, ...);
-
-    /// Return the current error string describing what went wrong if
-    /// any of the public methods returned 'false' indicating an error.
-    /// (Hopefully the implementation plugin called error() with a
-    /// helpful error message.)
-    std::string error_message () const { return m_errmessage; }
-
-protected:
-    /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.
-    void error (const char *format, ...);
-    
-protected:
-    ImageSpec m_spec;          ///< format spec of the current open subimage
-
-private:
-    std::string m_errmessage;  ///< private storage of error massage
-};
-
-
-
 // Utility functions
 
 /// If create() fails, there's no ImageInput/Output to use to
@@ -801,6 +807,11 @@ DLLPUBLIC void _ImageIO_force_link ();
 
 // Use privately only
 DLLPUBLIC void error (const char *format, ...);
+
+/// Deprecated, Gelato <= 3 name for what we now call ImageSpec.
+///
+typedef ImageSpec ImageIOFormatSpec;
+
 
 }; /* end namespace OpenImageIO */
 

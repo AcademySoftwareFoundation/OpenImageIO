@@ -51,7 +51,7 @@ using namespace Jpeg_imageio_pvt;
 
 // Export version number and create function symbols
 extern "C" {
-    DLLEXPORT int jpeg_imageio_version = IMAGEIO_VERSION;
+    DLLEXPORT int jpeg_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *jpeg_input_imageio_create () {
         return new JpgInput;
     }

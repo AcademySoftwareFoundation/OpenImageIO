@@ -203,7 +203,7 @@ extern "C" {
 
 DLLEXPORT ImageInput *tiff_input_imageio_create () { return new TIFFInput; }
 
-// DLLEXPORT int tiff_imageio_version = IMAGEIO_VERSION; // it's in tiffoutput.cpp
+// DLLEXPORT int tiff_imageio_version = OPENIMAGEIO_PLUGIN_VERSION; // it's in tiffoutput.cpp
 
 DLLEXPORT const char * tiff_input_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL

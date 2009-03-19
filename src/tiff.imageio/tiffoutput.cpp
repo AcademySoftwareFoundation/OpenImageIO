@@ -89,7 +89,7 @@ extern "C" {
 
 DLLEXPORT ImageOutput *tiff_output_imageio_create () { return new TIFFOutput; }
 
-DLLEXPORT int tiff_imageio_version = IMAGEIO_VERSION;
+DLLEXPORT int tiff_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * tiff_output_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL

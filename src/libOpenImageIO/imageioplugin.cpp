@@ -147,7 +147,7 @@ catalog_plugin (const std::string &format_name,
     
     std::string version_function = format_name + "_imageio_version";
     int *plugin_version = (int *) Plugin::getsym (handle, version_function.c_str());
-    if (! plugin_version || *plugin_version != IMAGEIO_VERSION) {
+    if (! plugin_version || *plugin_version != OPENIMAGEIO_PLUGIN_VERSION) {
         // OpenImageIO::error ("Plugin \"%s\" did not have '%s_imageio_version' symbol\n",
         //                    plugin_fullpath.c_str(), format_name.c_str());
         Plugin::close (handle);

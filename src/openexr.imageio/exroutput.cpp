@@ -111,7 +111,7 @@ openexr_output_imageio_create ()
     return new OpenEXROutput;
 }
 
-DLLEXPORT int openexr_imageio_version = IMAGEIO_VERSION;
+DLLEXPORT int openexr_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * openexr_output_extensions[] = {
     "exr", NULL

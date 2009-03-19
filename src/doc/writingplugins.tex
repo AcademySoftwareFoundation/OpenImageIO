@@ -41,9 +41,9 @@ real-world example of writing a JPEG/JFIF plug-in.
   \begin{enumerate}
     \item An integer called \emph{name}{\cf _imageio_version} that identifies
       the version of the ImageIO protocol implemented by the plugin,
-      defined in {\fn imageio.h} as the constant {\cf IMAGEIO_VERSION}.
+      defined in {\fn imageio.h} as the constant {\cf OPENIMAGEIO_PLUGIN_VERSION}.
       This allows the library to be sure it is not loading a plugin
-      that was compiled against a different version of \product.
+      that was compiled against an incompatible version of \product.
     \item A function named \emph{name}{\cf _input_imageio_create} that
       takes no arguments and returns a new instance of your \ImageInput
       subclass.  (Note that \emph{name} is the name of your format,
@@ -64,7 +64,7 @@ real-world example of writing a JPEG/JFIF plug-in.
 
   \begin{code}
     extern "C" {
-        DLLEXPORT int jpeg_imageio_version = IMAGEIO_VERSION;
+        DLLEXPORT int jpeg_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
         DLLEXPORT JpgInput *jpeg_input_imageio_create () {
             return new JpgInput;
         }
@@ -163,9 +163,9 @@ real-world example of writing a JPEG/JFIF plug-in.
   \begin{enumerate}
     \item An integer called \emph{name}{\cf _imageio_version} that identifies
       the version of the ImageIO protocol implemented by the plugin,
-      defined in {\fn imageio.h} as the constant {\cf IMAGEIO_VERSION}.
+      defined in {\fn imageio.h} as the constant {\cf OPENIMAGEIO_PLUGIN_VERSION}.
       This allows the library to be sure it is not loading a plugin
-      that was compiled against a different version of \product.
+      that was compiled against an incompatible version of \product.
       Note that if your plugin has both a reader and writer and they
       are compiled as separate modules (C++ source files), you don't
       want to declare this in \emph{both} modules; either one is fine.
@@ -189,7 +189,7 @@ real-world example of writing a JPEG/JFIF plug-in.
 
   \begin{code}
     extern "C" {
-        DLLEXPORT int jpeg_imageio_version = IMAGEIO_VERSION;
+        DLLEXPORT int jpeg_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
         DLLEXPORT JpgOutput *jpeg_output_imageio_create () {
             return new JpgOutput;
         }
