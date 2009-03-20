@@ -1,5 +1,7 @@
 # License and copyright goes here
 
+ifneq (${USE_OPENGL},0)
+
 # Name of the binary or library whose source is in this directory.
 # Do NOT include .exe or any other suffix.
 local_name := iv
@@ -21,3 +23,5 @@ local_ldflags := ${LINK_BOOST} ${LINK_QT} ${LINK_OPENGL} ${LINK_ILMBASE}
 
 
 include ${src_make_dir}/bin.mk
+
+endif

@@ -28,6 +28,7 @@ help:
 	@echo "Helpful modifiers:"
 	@echo "  make SHOWCOMMANDS=1 ...     Show all compilation commands"
 	@echo "  make EMBEDPLUGINS=1 ...     Compile the plugins into libOpenImageIO"
+	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo ""
 
 
