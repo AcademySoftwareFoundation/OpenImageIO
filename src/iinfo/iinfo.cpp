@@ -201,7 +201,7 @@ main (int argc, const char *argv[])
                 "-f", &filenameprefix, "Prefix each line with the filename",
                 "-s", &sum, "Sum the image sizes",
                 NULL);
-    if (ap.parse(argc, argv) < 0) {
+    if (ap.parse(argc, argv) < 0 || filenames.empty()) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
         return EXIT_FAILURE;
