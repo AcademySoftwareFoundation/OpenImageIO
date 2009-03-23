@@ -130,7 +130,7 @@ decode_iptc_iim (const void *iptc, int length, ImageSpec &spec)
     // until we don't find another 1C 02 tag start.  
     // N.B. I don't know why, but Picasa sometimes uses 1C 01 !
     while (length > 0 && buf[0] == 0x1c && (buf[1] == 0x02 || buf[1] == 0x01)) {
-        int firstbyte = buf[0], secondbyte = buf[1];
+        int secondbyte = buf[1];
         int tagtype = buf[2];
         int tagsize = (buf[3] << 8) + buf[4];
         buf += 5;

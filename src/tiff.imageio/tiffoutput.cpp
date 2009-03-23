@@ -218,7 +218,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec, bool appen
         m_spec.attribute ("compression", "lzw");
 
     ImageIOParameter *param;
-    const char *str;
+    const char *str = NULL;
 
     // Did the user request separate planar configuration?
     m_planarconfig = PLANARCONFIG_CONTIG;
