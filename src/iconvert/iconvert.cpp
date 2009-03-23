@@ -85,35 +85,36 @@ static void
 getargs (int argc, char *argv[])
 {
     bool help = false;
-    ArgParse ap (argc, (const char **)argv);
-    if (ap.parse ("Usage:  iconvert [options] inputfile outputfile\n"
-                  "   or:  iconvert --inplace [options] file...\n",
-                  "%*", parse_files, "",
-                  "--help", &help, "Print help message",
-                  "-v", &verbose, "Verbose status messages",
-                  "-d %s", &dataformatname, "Set the output data format to one of:\n"
-                          "\t\t\tuint8, sint8, uint16, sint16, half, float, double",
-                  "-g %f", &gammaval, "Set gamma correction (default = 1)",
-                  "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
-                  "--scanline", &scanline, "Output as a scanline image",
-                  "--compression %s", &compression, "Set the compression method (default = same as input)",
-                  "--quality %d", &quality, "Set the compression quality, 1-100",
-                  "--no-copy-image", &no_copy_image, "Do not use ImageOutput copy_image functionality (dbg)",
-                  "--adjust-time", &adjust_time, "Adjust file times to match DateTime metadata",
-                  "--caption %s", &caption, "Set caption (ImageDescription)",
-                  "--keyword %L", &keywords, "Add a keyword",
-                  "--clear-keywords", &clear_keywords, "Clear keywords",
-                  "--attrib %L %L", &attribnames, &attribvals, "Set a string attribute (name, value)",
-                  "--orientation %d", &orientation, "Set the orientation",
-                  "--rotcw", &rotcw, "Rotate 90 deg clockwise",
-                  "--rotccw", &rotccw, "Rotate 90 deg counter-clockwise",
-                  "--rot180", &rot180, "Rotate 180 deg",
-                  "--inplace", &inplace, "Do operations in place on images",
-                  "--sRGB", &sRGB, "This file is in sRGB color space",
-//FIXME           "-z", &zfile, "Treat input as a depth file",
-//FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
-                  NULL) < 0) {
-        std::cerr << ap.error_message() << std::endl;
+    ArgParse ap;
+    ap.options ("Usage:  iconvert [options] inputfile outputfile\n"
+                "   or:  iconvert --inplace [options] file...\n",
+                "%*", parse_files, "",
+                "--help", &help, "Print help message",
+                "-v", &verbose, "Verbose status messages",
+                "-d %s", &dataformatname, "Set the output data format to one of:\n"
+                        "\t\t\tuint8, sint8, uint16, sint16, half, float, double",
+                "-g %f", &gammaval, "Set gamma correction (default = 1)",
+                "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
+                "--scanline", &scanline, "Output as a scanline image",
+                "--compression %s", &compression, "Set the compression method (default = same as input)",
+                "--quality %d", &quality, "Set the compression quality, 1-100",
+                "--no-copy-image", &no_copy_image, "Do not use ImageOutput copy_image functionality (dbg)",
+                "--adjust-time", &adjust_time, "Adjust file times to match DateTime metadata",
+                "--caption %s", &caption, "Set caption (ImageDescription)",
+                "--keyword %L", &keywords, "Add a keyword",
+                "--clear-keywords", &clear_keywords, "Clear keywords",
+                "--attrib %L %L", &attribnames, &attribvals, "Set a string attribute (name, value)",
+                "--orientation %d", &orientation, "Set the orientation",
+                "--rotcw", &rotcw, "Rotate 90 deg clockwise",
+                "--rotccw", &rotccw, "Rotate 90 deg counter-clockwise",
+                "--rot180", &rot180, "Rotate 180 deg",
+                "--inplace", &inplace, "Do operations in place on images",
+                "--sRGB", &sRGB, "This file is in sRGB color space",
+//FIXME         "-z", &zfile, "Treat input as a depth file",
+//FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
+                NULL);
+    if (ap.parse(argc, (const char**)argv) < 0) {
+	std::cerr << ap.error_message() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
     }

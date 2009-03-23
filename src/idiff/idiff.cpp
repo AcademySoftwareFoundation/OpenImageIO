@@ -91,8 +91,8 @@ static void
 getargs (int argc, char *argv[])
 {
     bool help = false;
-    ArgParse ap (argc, (const char **)argv);
-    if (ap.parse ("Usage:  idiff [options] image1 image2",
+    ArgParse ap;
+    ap.options ("Usage:  idiff [options] image1 image2",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
@@ -109,7 +109,8 @@ getargs (int argc, char *argv[])
                   "-od", &outdiffonly, "Output image only if nonzero difference",
                   "-abs", &diffabs, "Output image of absolute value, not signed difference",
                   "-scale %g", &diffscale, "Scale the output image by this factor",
-                  NULL) < 0) {
+                  NULL);
+    if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
