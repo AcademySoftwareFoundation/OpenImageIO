@@ -227,25 +227,27 @@ make_mipmap (void)
         exit (EXIT_FAILURE);
     }
 
-    // Copy the spec, with possible change in format
-    ImageSpec dstspec = src.spec();
-    dstspec.set_format (src.spec().format);
+    // Figure out which data format we want for output
+    TypeDesc out_dataformat = src.spec().format;
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
-            dstspec.set_format (TypeDesc::UINT8);
+            out_dataformat = TypeDesc::UINT8;
         else if (dataformatname == "int8")
-            dstspec.set_format (TypeDesc::INT8);
+            out_dataformat = TypeDesc::INT8;
         else if (dataformatname == "uint16")
-            dstspec.set_format (TypeDesc::UINT16);
+            out_dataformat = TypeDesc::UINT16;
         else if (dataformatname == "int16")
-            dstspec.set_format (TypeDesc::INT16);
+            out_dataformat = TypeDesc::INT16;
         else if (dataformatname == "half")
-            dstspec.set_format (TypeDesc::HALF);
+            out_dataformat = TypeDesc::HALF;
         else if (dataformatname == "float")
-            dstspec.set_format (TypeDesc::FLOAT);
+            out_dataformat = TypeDesc::FLOAT;
         else if (dataformatname == "double")
-            dstspec.set_format (TypeDesc::DOUBLE);
+            out_dataformat = TypeDesc::DOUBLE;
     }
+
+    // Copy the input spec
+    ImageSpec dstspec = src.spec();
 
     // Make the output not a crop window
     dstspec.x = 0;
@@ -294,6 +296,7 @@ make_mipmap (void)
     // to make it bigger in the other direction to make the total tile
     // size more constant?
 
+    // Force float for the sake of the ImageBuf math
     dstspec.set_format (TypeDesc::FLOAT);
     if (! noresize) {
         dstspec.width = pow2roundup (dstspec.width);
@@ -326,7 +329,7 @@ make_mipmap (void)
         exit (EXIT_FAILURE);
     }
     ImageSpec outspec = dstspec;
-    outspec.set_format (src.spec().format);
+    outspec.set_format (out_dataformat);
     if (! out->open (outputfilename.c_str(), outspec)) {
         std::cerr << "maketx ERROR: Could not open \"" << outputfilename
                   << "\" : " << out->error_message() << "\n";
@@ -353,7 +356,7 @@ make_mipmap (void)
             }
         }
         outspec = dst.spec();
-        outspec.set_format (src.spec().format);
+        outspec.set_format (out_dataformat);
         if (! out->open (outputfilename.c_str(), outspec, true)) {
             std::cerr << "maketx ERROR: Could not append \"" << outputfilename
                       << "\" : " << out->error_message() << "\n";
