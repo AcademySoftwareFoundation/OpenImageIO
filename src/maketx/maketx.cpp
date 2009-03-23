@@ -97,11 +97,11 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap (argc, (const char **)argv);
-    if (ap.parse ("Usage:  maketx [options] inputfile outputfile",
+    if (ap.parse ("Usage:  maketx [options] file...",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
-                  "-o %s", &outputfilename, "Output directory or filename",
+                  "-o %s", &outputfilename, "Output filename",
                   "-u", &updatemode, "Update mode",
                   "--format %s", &fileformatname, "Specify output format (default: guess from extension)",
                   "-d %s", &dataformatname, "Set the output data format to one of:\n"
@@ -132,14 +132,14 @@ getargs (int argc, char *argv[])
 //FIXME           "-debugdso"
 //FIXME           "-note %s", &note, "Append a note to the image comments",
                   "<SEPARATOR>", "Basic modes (default is plain texture):",
-                  "--shadow", &shadowmode, "Create shadow map",
-                  "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz)",
-                  "--volshad", &volshadowmode, "Create volume shadow map",
-                  "--envlatl", &envlatlmode, "Create lat/long environment map",
-                  "--envcube", &envcubemode, "Create cubic env map (file order: px,nx,py,ny,pz,nz)",
-                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map",
-                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map",
-                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map",
+                  "--shadow", &shadowmode, "Create shadow map (UNIMPLEMENTED)",
+                  "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz) (UNIMP)",
+                  "--volshad", &volshadowmode, "Create volume shadow map (UNIMP)",
+                  "--envlatl", &envlatlmode, "Create lat/long environment map (UNIMP)",
+                  "--envcube", &envcubemode, "Create cubic env map (file order: px,nx,py,ny,pz,nz) (UNIMP)",
+                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
+                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
+                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
                   NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
@@ -176,12 +176,10 @@ getargs (int argc, char *argv[])
 
 
 static std::string
-datestring ()
+datestring (time_t t)
 {
-    time_t now;
-    time (&now);
     struct tm mytm;
-    localtime_r (&now, &mytm);
+    localtime_r (&t, &mytm);
     return Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
                             mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                             mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
@@ -193,7 +191,7 @@ static void
 make_mipmap (void)
 {
     if (filenames.size() != 1) {
-        std::cerr << "maketx ERROR: Ordinary texture map requires exactly one filename\n";
+        std::cerr << "maketx ERROR: Ordinary texture map requires exactly one input filename\n";
         exit (EXIT_FAILURE);
     }
 
@@ -207,6 +205,18 @@ make_mipmap (void)
         outputfilename = std::string (filenames[0].begin(),
                                       filenames[0].begin() + notextlen);
         outputfilename += ".tx";
+    }
+
+    // When was the input file last modified?
+    std::time_t in_time = boost::filesystem::last_write_time (filenames[0]);
+
+    // When in update mode, skip making the texture if the output already
+    // exists and has the same file modification time as the input file.
+    if (updatemode && boost::filesystem::exists (outputfilename) &&
+        (in_time == boost::filesystem::last_write_time (outputfilename))) {
+        std::cout << "maketx: no update required for \"" 
+                  << outputfilename << "\"\n";
+        return;
     }
 
     ImageBuf src (filenames[0]);
@@ -256,7 +266,15 @@ make_mipmap (void)
     // Maybe a bug in libtiff zip compression for tiles?  So let's
     // stick to the default compression.
 
-    dstspec.attribute ("DateTime", datestring());
+    // Put a DateTime in the out file, either now, or matching the date
+    // stamp of the input file (if update mode).
+    time_t date;
+    if (updatemode)
+        date = in_time;  // update mode: use the time stamp of the input
+    else
+        time (&date);    // not update: get the time now
+    dstspec.attribute ("DateTime", datestring(date));
+
     dstspec.attribute ("Software", full_command_line);
     dstspec.attribute ("textureformat", "Plain Texture");
 
@@ -315,8 +333,9 @@ make_mipmap (void)
         exit (EXIT_FAILURE);
     }
 
-    out->write_image (TypeDesc::FLOAT, dst.pixeladdr(0,0));
-    while (dstspec.width > 1 || dstspec.height > 1) {
+    bool ok = true;
+    ok &= out->write_image (TypeDesc::FLOAT, dst.pixeladdr(0,0));
+    while (ok && (dstspec.width > 1 || dstspec.height > 1)) {
         ImageBuf tmp = dst;
         if (dstspec.width > 1)
             dstspec.width /= 2;
@@ -340,11 +359,23 @@ make_mipmap (void)
                       << "\" : " << out->error_message() << "\n";
             exit (EXIT_FAILURE);
         }
-        out->write_image (TypeDesc::FLOAT, dst.pixeladdr(0,0));
+        ok &= out->write_image (TypeDesc::FLOAT, dst.pixeladdr(0,0));
     }
 
-    out->close ();
+    if (ok)
+        ok &= out->close ();
     delete out;
+
+    if (! ok) {
+        std::cerr << "maketx ERROR writing \"" << outputfilename
+                  << "\" : " << out->error_message() << "\n";
+        exit (EXIT_FAILURE);
+    }
+
+    // If using update mode, stamp the output file with a modification time
+    // matching that of the input file.
+    if (updatemode)
+        boost::filesystem::last_write_time (outputfilename, in_time);
 }
 
 
