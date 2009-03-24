@@ -14,6 +14,7 @@ DONE        iv - gamma correction (env variable)
 DONE?       iv - honor sRGB images
             jpeg - handle changes in linearity
             iv - crash with 1-channel images?
+DONE        PRMan zfile
 
 
 Before first 1.0 release
@@ -90,7 +91,6 @@ Idea pool / future feature wish list
             RAS Sun Rasterfile
             RLA
             SGI
-            PRMan zfile
             PRMan deep shads
             OpenEXR - support layers
             Movies?

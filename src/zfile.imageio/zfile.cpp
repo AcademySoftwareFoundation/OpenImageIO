@@ -1,0 +1,331 @@
+/*
+  Copyright 2009 Larry Gritz and the other authors and contributors.
+  All Rights Reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are
+  met:
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+  * Neither the name of the software's owners nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+  (This is the Modified BSD License)
+*/
+
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+
+#include "zlib.h"
+
+#include "dassert.h"
+#include "typedesc.h"
+#include "imageio.h"
+#include "thread.h"
+#include "strutil.h"
+#include "fmath.h"
+
+using namespace OpenImageIO;
+
+
+namespace {  // anon namespace
+
+struct ZfileHeader {
+    int magic;
+    short width;
+    short height;
+    float worldtoscreen[16];
+    float worldtocamera[16];
+};
+
+static const int zfile_magic = 0x2f0867ab;
+static const int zfile_magic_endian = 0xab67082f;  // other endianness
+
+};  // end anon namespace
+
+
+
+class ZfileInput : public ImageInput {
+public:
+    ZfileInput () { init(); }
+    virtual ~ZfileInput () { close(); }
+    virtual const char * format_name (void) const { return "zfile"; }
+    virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual bool close ();
+    virtual bool read_native_scanline (int y, int z, void *data);
+    virtual bool seek_subimage (int index, ImageSpec &newspec) {
+        return (index == 0);   // JPEG has only one subimage
+    }
+
+private:
+    std::string m_filename;       ///< Stash the filename
+    gzFile m_gz;                  ///< Handle for compressed files
+    bool m_swab;                  ///< swap bytes for other endianness?
+    int m_next_scanline;          ///< Which scanline is the next to be read?
+
+    // Reset everything to initial state
+    void init () {
+        m_gz = 0;
+        m_swab = false;
+        m_next_scanline = 0;
+    }
+};
+
+
+
+class ZfileOutput : public ImageOutput {
+public:
+    ZfileOutput () { init(); }
+    virtual ~ZfileOutput () { close(); }
+    virtual const char * format_name (void) const { return "zfile"; }
+    virtual bool supports (const std::string &feature) const { return false; }
+    virtual bool open (const std::string &name, const ImageSpec &spec,
+                       bool append=false);
+    virtual bool close ();
+    virtual bool write_scanline (int y, int z, TypeDesc format,
+                                 const void *data, stride_t xstride);
+
+private:
+    std::string m_filename;       ///< Stash the filename
+    FILE *m_file;                 ///< Open image handle for not compresed
+    gzFile m_gz;                  ///< Handle for compressed files
+    std::vector<unsigned char> m_scratch;
+
+    // Initialize private members to pre-opened state
+    void init (void) {
+        m_file = NULL;
+        m_gz = 0;
+    }
+};
+
+
+
+
+// Obligatory material to make this a recognizeable imageio plugin:
+extern "C" {
+
+DLLEXPORT ImageInput *zfile_input_imageio_create () { return new ZfileInput; }
+
+DLLEXPORT int zfile_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+
+DLLEXPORT const char * zfile_input_extensions[] = {
+    "zfile", NULL
+};
+
+DLLEXPORT ImageOutput *zfile_output_imageio_create () { return new ZfileOutput; }
+
+DLLEXPORT const char * zfile_output_extensions[] = {
+    "zfile", NULL
+};
+
+};
+
+
+
+bool
+ZfileInput::open (const std::string &name, ImageSpec &newspec)
+{
+    m_filename = name;
+
+    m_gz = gzopen (name.c_str(), "rb");
+    if (! m_gz) {
+        error ("Could not open file \"%s\"", name.c_str());
+        return false;
+    }
+
+    ZfileHeader header;
+    ASSERT (sizeof(header) == 136);
+    gzread (m_gz, &header, sizeof(header));
+
+    if (header.magic != zfile_magic && header.magic != zfile_magic_endian) {
+        error ("Not a valid Zfile");
+        return false;
+    }
+
+    m_swab = (header.magic == zfile_magic_endian);
+    if (m_swab) {
+        swap_endian (&header.width);
+        swap_endian (&header.height);
+        swap_endian ((float *)&header.worldtoscreen, 16);
+        swap_endian ((float *)&header.worldtocamera, 16);
+    }
+
+    m_spec = ImageSpec (header.width, header.height, 1, TypeDesc::FLOAT);
+    if (m_spec.channelnames.size() == 0)
+        m_spec.channelnames.push_back ("z");
+    else
+        m_spec.channelnames[0] = "z";
+    m_spec.z_channel = 0;
+
+    m_spec.attribute ("worldtoscreen", TypeDesc::TypeMatrix,
+                      (float *)&header.worldtoscreen);
+    m_spec.attribute ("worldtocamera", TypeDesc::TypeMatrix,
+                      (float *)&header.worldtocamera);
+
+    newspec = spec ();
+    return true;
+}
+
+
+
+bool
+ZfileInput::close ()
+{
+    if (m_gz) {
+        gzclose (m_gz);
+        m_gz = 0;
+    }
+
+    init();  // Reset to initial state
+    return true;
+}
+
+
+
+bool
+ZfileInput::read_native_scanline (int y, int z, void *data)
+{
+    if (m_next_scanline > y) {
+        // User is trying to read an earlier scanline than the one we're
+        // up to.  Easy fix: close the file and re-open.
+        ImageSpec dummyspec;
+        int subimage = current_subimage();
+        if (! close ()  ||
+            ! open (m_filename, dummyspec)  ||
+            ! seek_subimage (subimage, dummyspec))
+            return false;    // Somehow, the re-open failed
+        ASSERT (m_next_scanline == 0 && current_subimage() == subimage);
+    }
+    while (m_next_scanline <= y) {
+        // Keep reading until we're read the scanline we really need
+        gzread (m_gz, data, m_spec.width*sizeof(float));
+        ++m_next_scanline;
+    }
+    if (m_swab)
+        swap_endian ((float *)data, m_spec.width);
+    return true;
+}
+
+
+
+
+bool
+ZfileOutput::open (const std::string &name, const ImageSpec &userspec, bool append)
+{
+    close ();  // Close any already-opened file
+    m_gz = 0;
+    m_file = NULL;
+    m_spec = userspec;  // Stash the spec
+
+    // Check for things this format doesn't support
+    if (m_spec.width < 1 || m_spec.height < 1) {
+        error ("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
+        return false;
+    }
+    if (m_spec.depth < 1)
+        m_spec.depth = 1;
+    if (m_spec.depth > 1) {
+        error ("%s does not support volume images (depth > 1)", format_name());
+        return false;
+    }
+
+    if (m_spec.nchannels != 1) {
+        error ("Zfile only supports 1-4 channels, not %d", m_spec.nchannels);
+        return false;
+    }
+
+    // Force float
+    if (m_spec.format != TypeDesc::FLOAT)
+        m_spec.format = TypeDesc::FLOAT;
+
+    ZfileHeader header;
+    header.magic = zfile_magic;
+    header.width = (int)m_spec.width;
+    header.height = (int)m_spec.height;
+
+    ImageIOParameter *p;
+    static float ident[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+    if ((p = m_spec.find_attribute ("worldtocamera", TypeDesc::TypeMatrix)))
+        memcpy (header.worldtocamera, p->data(), 16*sizeof(float));
+    else
+        memcpy (header.worldtocamera, ident, 16*sizeof(float));
+    if ((p = m_spec.find_attribute ("worldtoscreen", TypeDesc::TypeMatrix)))
+        memcpy (header.worldtoscreen, p->data(), 16*sizeof(float));
+    else
+        memcpy (header.worldtoscreen, ident, 16*sizeof(float));
+
+    if (m_spec.get_string_attribute ("compression", "none") != std::string("none"))
+        m_gz = gzopen (name.c_str(), "wb");
+    else
+        m_file = fopen (name.c_str(), "wb");
+    if (! m_file  &&  ! m_gz) {
+        error ("Could not open file \"%s\"", name.c_str());
+        return false;
+    }
+
+    if (m_gz)
+        gzwrite (m_gz, &header, sizeof(header));
+    else
+        fwrite (&header, sizeof(header), 1, m_file);
+
+    return true;
+}
+
+
+
+bool
+ZfileOutput::close ()
+{
+    if (m_gz) {
+        gzclose (m_gz);
+        m_gz = 0;
+    }
+    if (m_file) {
+        fclose (m_file);
+        m_file = NULL;
+    }
+
+    init ();      // re-initialize
+    return true;  // How can we fail?
+}
+
+
+
+bool
+ZfileOutput::write_scanline (int y, int z, TypeDesc format,
+                            const void *data, stride_t xstride)
+{
+    y -= m_spec.y;
+    m_spec.auto_stride (xstride, format, spec().nchannels);
+    const void *origdata = data;
+    data = to_native_scanline (format, data, xstride, m_scratch);
+    if (data == origdata) {
+        m_scratch.assign ((unsigned char *)data,
+                          (unsigned char *)data+m_spec.scanline_bytes());
+        data = &m_scratch[0];
+    }
+
+    if (m_gz)
+	gzwrite (m_gz, data, m_spec.width*sizeof(float));
+    else
+	fwrite (data, sizeof(float), m_spec.width, m_file);
+
+    return true;
+}
