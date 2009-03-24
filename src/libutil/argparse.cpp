@@ -598,7 +598,7 @@ ArgParse::command_line () const
         } else {
             s += argv[i];
         }
-        if (i < argc-i)
+        if (i < argc-1)
             s += ' ';
     }
     return s;
