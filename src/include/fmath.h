@@ -219,13 +219,11 @@ swap_endian (T *f, int len=1)
         } else if (sizeof(T) == 4) {
             std::swap (c[0], c[3]);
             std::swap (c[1], c[2]);
-            c += 4;
         } else if (sizeof(T) == 8) {
             std::swap (c[0], c[7]);
             std::swap (c[1], c[6]);
             std::swap (c[2], c[5]);
             std::swap (c[3], c[4]);
-            c += 8;
         }
     }
 }
