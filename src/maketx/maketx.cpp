@@ -81,6 +81,12 @@ static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
 
 
+// forward decl
+static void write_mipmap (ImageBuf &img, 
+                   std::string outputfilename, std::string outformat,
+                   TypeDesc outputdatatype, bool mipmap);
+
+
 
 static int
 parse_files (int argc, const char *argv[])
@@ -132,8 +138,8 @@ getargs (int argc, char *argv[])
 //FIXME           "-debugdso"
 //FIXME           "-note %s", &note, "Append a note to the image comments",
                   "<SEPARATOR>", "Basic modes (default is plain texture):",
-                  "--shadow", &shadowmode, "Create shadow map (UNIMPLEMENTED)",
-                  "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz) (UNIMP)",
+                  "--shadow", &shadowmode, "Create shadow map",
+                  "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz) (UNIMPLEMENTED)",
                   "--volshad", &volshadowmode, "Create volume shadow map (UNIMP)",
                   "--envlatl", &envlatlmode, "Create lat/long environment map (UNIMP)",
                   "--envcube", &envcubemode, "Create cubic env map (file order: px,nx,py,ny,pz,nz) (UNIMP)",
@@ -188,10 +194,11 @@ datestring (time_t t)
 
 
 static void
-make_mipmap (void)
+make_texturemap (const char *maptypename = "texture map")
 {
     if (filenames.size() != 1) {
-        std::cerr << "maketx ERROR: Ordinary texture map requires exactly one input filename\n";
+        std::cerr << "maketx ERROR: " << maptypename 
+                  << " requires exactly one input filename\n";
         exit (EXIT_FAILURE);
     }
 
@@ -232,11 +239,11 @@ make_mipmap (void)
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
             out_dataformat = TypeDesc::UINT8;
-        else if (dataformatname == "int8")
+        else if (dataformatname == "int8" || dataformatname == "sint8")
             out_dataformat = TypeDesc::INT8;
         else if (dataformatname == "uint16")
             out_dataformat = TypeDesc::UINT16;
-        else if (dataformatname == "int16")
+        else if (dataformatname == "int16" || dataformatname == "sint16")
             out_dataformat = TypeDesc::INT16;
         else if (dataformatname == "half")
             out_dataformat = TypeDesc::HALF;
@@ -244,6 +251,21 @@ make_mipmap (void)
             out_dataformat = TypeDesc::FLOAT;
         else if (dataformatname == "double")
             out_dataformat = TypeDesc::DOUBLE;
+    }
+
+    if (shadowmode) {
+        // Some special checks for shadow maps
+        if (src.spec().nchannels != 1) {
+            std::cerr << "maketx ERROR: shadow maps require 1-channel images,\n"
+                      << "\t\"" << filenames[0] << "\" is " 
+                      << src.spec().nchannels << " channels\n";
+            exit (EXIT_FAILURE);
+        }
+        // Shadow maps only make sense for floating-point data.
+        if (out_dataformat != TypeDesc::FLOAT &&
+              out_dataformat != TypeDesc::HALF &&
+              out_dataformat != TypeDesc::DOUBLE)
+            out_dataformat = TypeDesc::FLOAT;
     }
 
     // Copy the input spec
@@ -263,7 +285,7 @@ make_mipmap (void)
     dstspec.tile_depth  = tile[2];
 
     // Always use ZIP compression
-    // dstspec.attribute ("compression", "zip");
+    dstspec.attribute ("compression", "zip");
     // Ugh, the line above seems to trigger a bug in the tiff library.
     // Maybe a bug in libtiff zip compression for tiles?  So let's
     // stick to the default compression.
@@ -278,7 +300,11 @@ make_mipmap (void)
     dstspec.attribute ("DateTime", datestring(date));
 
     dstspec.attribute ("Software", full_command_line);
-    dstspec.attribute ("textureformat", "Plain Texture");
+
+    if (shadowmode)
+        dstspec.attribute ("textureformat", "Shadow");
+    else
+        dstspec.attribute ("textureformat", "Plain Texture");
 
     if (Mcam != Imath::M44f(0.0f))
         dstspec.attribute ("worldtocamera", PT_MATRIX, &Mcam);
@@ -286,9 +312,11 @@ make_mipmap (void)
         dstspec.attribute ("worldtoscreen", PT_MATRIX, &Mscr);
 
     // FIXME - check for valid strings in the wrap mode
-    std::string wrapmodes = (swrap.size() ? swrap : wrap) + ',' + 
-                            (twrap.size() ? twrap : wrap);
-    dstspec.attribute ("wrapmodes", wrapmodes);
+    if (! shadowmode) {
+        std::string wrapmodes = (swrap.size() ? swrap : wrap) + ',' + 
+                                (twrap.size() ? twrap : wrap);
+        dstspec.attribute ("wrapmodes", wrapmodes);
+    }
     dstspec.attribute ("fovcot", (float)src.spec().width / src.spec().height);
 
     // FIXME -- should we allow tile sizes to reduce if the image is
@@ -298,7 +326,7 @@ make_mipmap (void)
 
     // Force float for the sake of the ImageBuf math
     dstspec.set_format (TypeDesc::FLOAT);
-    if (! noresize) {
+    if (! noresize  &&  ! shadowmode) {
         dstspec.width = pow2roundup (dstspec.width);
         dstspec.height = pow2roundup (dstspec.height);
         dstspec.full_width = dstspec.width;
@@ -314,8 +342,26 @@ make_mipmap (void)
         }
     }
 
-    // Find an ImageIO plugin that can open the output file, and open it
     std::string outformat = fileformatname.empty() ? outputfilename : fileformatname;
+    write_mipmap (dst, outputfilename, outformat, out_dataformat, !shadowmode);
+
+    // If using update mode, stamp the output file with a modification time
+    // matching that of the input file.
+    if (updatemode)
+        boost::filesystem::last_write_time (outputfilename, in_time);
+}
+
+
+
+static void
+write_mipmap (ImageBuf &img, 
+              std::string outputfilename, std::string outformat,
+              TypeDesc outputdatatype, bool mipmap)
+{
+    ImageSpec outspec = img.spec();
+    outspec.set_format (outputdatatype);
+
+    // Find an ImageIO plugin that can open the output file, and open it
     ImageOutput *out = ImageOutput::create (outformat.c_str());
     if (! out) {
         std::cerr 
@@ -323,46 +369,61 @@ make_mipmap (void)
             << outformat << " files:" << OpenImageIO::error_message() << "\n";
         exit (EXIT_FAILURE);
     }
-    if (! out->supports ("tiles") || ! out->supports ("multiimage")) {
+    if (! out->supports ("tiles")) {
         std::cerr << "maketx ERROR: \"" << outputfilename
-                  << "\" format does not support tiled, multires images\n";
+                  << "\" format does not support tiled images\n";
         exit (EXIT_FAILURE);
     }
-    ImageSpec outspec = dstspec;
-    outspec.set_format (out_dataformat);
+    if (mipmap && ! out->supports ("multiimage")) {
+        std::cerr << "maketx ERROR: \"" << outputfilename
+                  << "\" format does not support multires images\n";
+        exit (EXIT_FAILURE);
+    }
     if (! out->open (outputfilename.c_str(), outspec)) {
         std::cerr << "maketx ERROR: Could not open \"" << outputfilename
                   << "\" : " << out->error_message() << "\n";
         exit (EXIT_FAILURE);
     }
 
+    // Write out the image
     bool ok = true;
-    ok &= out->write_image (TypeDesc::FLOAT, dst.pixeladdr(0,0));
-    while (ok && (dstspec.width > 1 || dstspec.height > 1)) {
-        ImageBuf tmp = dst;
-        if (dstspec.width > 1)
-            dstspec.width /= 2;
-        if (dstspec.height > 1)
-            dstspec.height /= 2;
-        dstspec.full_width  = dstspec.width;
-        dstspec.full_height = dstspec.height;
-        dstspec.full_depth  = dstspec.depth;
-        dst.alloc (dstspec);  // Realocate with new size
-        for (int y = 0;  y < dstspec.height;  ++y) {
-            for (int x = 0;  x < dstspec.width;  ++x) {
-                tmp.interppixel_NDC ((x+0.5f)/(float)dstspec.width,
-                                     (y+0.5f)/(float)dstspec.height, pel);
-                dst.setpixel (x, y, pel);
+    ok &= out->write_image (TypeDesc::FLOAT, img.pixeladdr(0,0));
+
+    if (mipmap) {  // Mipmap levels:
+        float *pel = (float *) alloca (outspec.pixel_bytes());
+        while (ok && (outspec.width > 1 || outspec.height > 1)) {
+            // FIXME -- someday might be nice to do this entirely in place,
+            // without making copies.
+
+            // Copy the image into tmp
+            ImageBuf tmp = img;
+            
+            // Resize a factor of two smaller
+            ImageSpec smallspec = img.spec();
+            if (smallspec.width > 1)
+                smallspec.width /= 2;
+            if (smallspec.height > 1)
+                smallspec.height /= 2;
+            smallspec.full_width  = smallspec.width;
+            smallspec.full_height = smallspec.height;
+            smallspec.full_depth  = smallspec.depth;
+            img.alloc (smallspec);  // Realocate with new size
+            for (int y = 0;  y < smallspec.height;  ++y) {
+                for (int x = 0;  x < smallspec.width;  ++x) {
+                    tmp.interppixel_NDC ((x+0.5f)/(float)outspec.width,
+                                         (y+0.5f)/(float)outspec.height, pel);
+                    img.setpixel (x, y, pel);
+                }
             }
+            outspec = smallspec;
+            outspec.set_format (outputdatatype);
+            if (! out->open (outputfilename.c_str(), outspec, true)) {
+                std::cerr << "maketx ERROR: Could not append \"" << outputfilename
+                          << "\" : " << out->error_message() << "\n";
+                exit (EXIT_FAILURE);
+            }
+            ok &= out->write_image (TypeDesc::FLOAT, img.pixeladdr(0,0));
         }
-        outspec = dst.spec();
-        outspec.set_format (out_dataformat);
-        if (! out->open (outputfilename.c_str(), outspec, true)) {
-            std::cerr << "maketx ERROR: Could not append \"" << outputfilename
-                      << "\" : " << out->error_message() << "\n";
-            exit (EXIT_FAILURE);
-        }
-        ok &= out->write_image (TypeDesc::FLOAT, dst.pixeladdr(0,0));
     }
 
     if (ok)
@@ -375,10 +436,6 @@ make_mipmap (void)
         exit (EXIT_FAILURE);
     }
 
-    // If using update mode, stamp the output file with a modification time
-    // matching that of the input file.
-    if (updatemode)
-        boost::filesystem::last_write_time (outputfilename, in_time);
 }
 
 
@@ -389,15 +446,23 @@ main (int argc, char *argv[])
     getargs (argc, argv);
 
     if (mipmapmode) {
-        make_mipmap ();
+        make_texturemap ("texture map");
     } else if (shadowmode) {
+        make_texturemap ("shadow map");
     } else if (shadowcubemode) {
+        std::cerr << "Shadow cubes currently unsupported\n";
     } else if (volshadowmode) {
+        std::cerr << "Volume shadows currently unsupported\n";
     } else if (envlatlmode) {
+        std::cerr << "Latlong environment maps currently unsupported\n";
     } else if (envcubemode) {
+        std::cerr << "Environment cubes currently unsupported\n";
     } else if (lightprobemode) {
+        std::cerr << "Light probes currently unsupported\n";
     } else if (vertcrossmode) {
+        std::cerr << "Vertcross currently unsupported\n";
     } else if (latl2envcubemode) {
+        std::cerr << "Latlong->cube conversion currently unsupported\n";
     }
 
     return 0;
