@@ -63,27 +63,6 @@ using namespace OpenImageIO;
 using namespace OpenImageIO::pvt;
 
 
-// If we're not supposed to be timing, define a do-nothing timer.  It's 
-// a lot less cluttered than #ifdefs everywhere.
-#if (!IMAGECACHE_TIME_STATS)
-namespace {
-class FakeTimer {
-public:
-    FakeTimer (bool startnow=true) { }
-    ~FakeTimer () { }
-    void start () { }
-    void stop () { }
-    void reset (void) { }
-    double operator() (void) const { return 0; }
-    double time_since_start (void) const { return 0; }
-};
-};
-#define Timer FakeTimer
-#endif
-
-
-
-
 
 namespace OpenImageIO {
 
@@ -520,14 +499,19 @@ ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename)
 {
     {
+#if IMAGECACHE_TIME_STATS
         Timer timer;
+#endif
         shared_lock readguard (m_filemutex);
+#if IMAGECACHE_TIME_STATS
         double donelocking = timer();
         incr_time_stat (m_stat_file_locking_time, donelocking);
-
+#endif
         FilenameMap::iterator found = m_files.find (filename);
 
+#if IMAGECACHE_TIME_STATS
         incr_time_stat (m_stat_find_file_time, timer() - donelocking);
+#endif
 
         if (found != m_files.end()) {
             ImageCacheFile *tf = found->second.get();
@@ -550,8 +534,10 @@ ImageCacheImpl::find_file (ustring filename)
     incr_time_stat (m_stat_fileio_time, createtime);
 
     unique_lock writeguard (m_filemutex);
+#if IMAGECACHE_TIME_STATS
     double donelocking = timer();
     incr_time_stat (m_stat_file_locking_time, donelocking-createtime);
+#endif
 
     // Another thread may have created and added the file earlier while
     // we were unlocked.
@@ -567,7 +553,9 @@ ImageCacheImpl::find_file (ustring filename)
     incr_unique_files ();
     tf->use ();
 
+#if IMAGECACHE_TIME_STATS
     incr_time_stat (m_stat_find_file_time, timer()-donelocking);
+#endif
 
     return tf;
 }
@@ -895,12 +883,18 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
     m_stats_mutex.unlock ();
 
     {
+#if IMAGECACHE_TIME_STATS
         Timer timer;
+#endif
         shared_lock readguard (m_tilemutex);
+#if IMAGECACHE_TIME_STATS
         incr_time_stat (m_stat_tile_locking_time, timer());
+#endif
 
         TileCache::iterator found = m_tilecache.find (id);
+#if IMAGECACHE_TIME_STATS
         incr_time_stat (m_stat_find_tile_time, timer());
+#endif
         if (found != m_tilecache.end()) {
             tile = found->second;
             tile->use ();
@@ -928,8 +922,9 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
     incr_time_stat (m_stat_fileio_time, readtime);
     
     unique_lock writeguard (m_tilemutex);
-    double locktime = timer();
-    incr_time_stat (m_stat_tile_locking_time, locktime-readtime);
+#if IMAGECACHE_TIME_STATS
+    incr_time_stat (m_stat_tile_locking_time, timer()-readtime);
+#endif
 
     check_max_mem ();
     m_tilecache[id] = tile;

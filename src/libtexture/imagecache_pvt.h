@@ -618,11 +618,9 @@ private:
     double m_stat_find_tile_time;
 
     void incr_time_stat (double &stat, double incr) {
-#if IMAGECACHE_TIME_STATS
         m_stats_mutex.lock ();
         stat += incr;
         m_stats_mutex.unlock ();
-#endif
     }
 
 };
