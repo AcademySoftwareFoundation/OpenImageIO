@@ -222,9 +222,10 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec, bool appen
 
     // Did the user request separate planar configuration?
     m_planarconfig = PLANARCONFIG_CONTIG;
-    if ((param = m_spec.find_attribute("planarconfig", TypeDesc::STRING)) &&
-            (str = *(char **)param->data())) {
-        if (! strcmp (str, "separate"))
+    if ((param = m_spec.find_attribute("planarconfig", TypeDesc::STRING)) ||
+        (param = m_spec.find_attribute("tiff:planarconfig", TypeDesc::STRING))) {
+        str = *(char **)param->data();
+        if (str && ! strcmp (str, "separate"))
             m_planarconfig = PLANARCONFIG_SEPARATE;
     }
     TIFFSetField (m_tif, TIFFTAG_PLANARCONFIG, m_planarconfig);

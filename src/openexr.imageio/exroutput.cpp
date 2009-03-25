@@ -379,6 +379,10 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         return true;
     }
 
+    // Supress planarconfig!
+    if (iequals (xname, "planarconfig") || iequals (xname, "tiff:planarconfig"))
+        return true;
+
     // General handling of attributes
     // FIXME -- police this if we ever allow arrays
     if (type == TypeDesc::INT || type == TypeDesc::UINT) {

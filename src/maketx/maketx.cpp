@@ -323,6 +323,9 @@ make_texturemap (const char *maptypename = "texture map")
     }
     dstspec.attribute ("fovcot", (float)src.spec().width / src.spec().height);
 
+    if (separate)
+        dstspec.attribute ("planarconfig", "separate");
+
     // FIXME -- should we allow tile sizes to reduce if the image is
     // smaller than the tile size?  And when we do, should we also try
     // to make it bigger in the other direction to make the total tile
