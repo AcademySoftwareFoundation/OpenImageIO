@@ -79,6 +79,7 @@ static bool noresize = false;
 static float opaquewidth = 0;  // should be volume shadow epsilon
 static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
+static bool nomipmap = false;
 
 
 // forward decl
@@ -122,6 +123,7 @@ getargs (int argc, char *argv[])
                   "--swrap %s", &swrap, "Specific s wrap mode separately",
                   "--twrap %s", &twrap, "Specific t wrap mode separately",
                   "--noresize", &noresize, "Do not resize textures to power of 2 resolution",
+                  "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
                           &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3], 
                           &Mcam[1][0], &Mcam[1][1], &Mcam[1][2], &Mcam[1][3], 
@@ -233,6 +235,8 @@ make_texturemap (const char *maptypename = "texture map")
             << filenames[0] << "\" : " << src.error_message() << "\n";
         exit (EXIT_FAILURE);
     }
+    if (verbose)
+        std::cout << "Reading file: " << filenames[0] << std::endl;
 
     // Figure out which data format we want for output
     TypeDesc out_dataformat = src.spec().format;
@@ -331,6 +335,9 @@ make_texturemap (const char *maptypename = "texture map")
         dstspec.height = pow2roundup (dstspec.height);
         dstspec.full_width = dstspec.width;
         dstspec.full_height = dstspec.height;
+        if (verbose)
+            std::cout << "  Resizing image to " << dstspec.width 
+                      << " x " << dstspec.height << std::endl;
     }
     ImageBuf dst ("temp", dstspec);
     float *pel = (float *) alloca (dstspec.pixel_bytes());
@@ -343,7 +350,8 @@ make_texturemap (const char *maptypename = "texture map")
     }
 
     std::string outformat = fileformatname.empty() ? outputfilename : fileformatname;
-    write_mipmap (dst, outputfilename, outformat, out_dataformat, !shadowmode);
+    write_mipmap (dst, outputfilename, outformat, out_dataformat,
+                  !shadowmode && !nomipmap);
 
     // If using update mode, stamp the output file with a modification time
     // matching that of the input file.
@@ -390,6 +398,8 @@ write_mipmap (ImageBuf &img,
     ok &= out->write_image (TypeDesc::FLOAT, img.pixeladdr(0,0));
 
     if (mipmap) {  // Mipmap levels:
+        if (verbose)
+            std::cout << "  Mipmapping...\n";
         float *pel = (float *) alloca (outspec.pixel_bytes());
         while (ok && (outspec.width > 1 || outspec.height > 1)) {
             // FIXME -- someday might be nice to do this entirely in place,
@@ -426,6 +436,8 @@ write_mipmap (ImageBuf &img,
         }
     }
 
+    if (verbose)
+        std::cout << " Wrote file: " << outputfilename << std::endl;
     if (ok)
         ok &= out->close ();
     delete out;
