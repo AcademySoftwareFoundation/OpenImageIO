@@ -460,7 +460,7 @@ ArgParse::options (const char *intro, ...)
     for (const char *cur = va_arg(ap, char *); cur; cur = va_arg(ap, char *)) {
         if (find_option (cur) &&
                 strcmp(cur, "<SEPARATOR>")) {
-            error ("Option \"%s\" is multiply defined");
+            error ("Option \"%s\" is multiply defined", cur);
             return -1;
         }
         
