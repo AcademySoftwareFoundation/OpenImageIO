@@ -220,6 +220,16 @@ output file format.  By default, the output file will be scanline
 if the input is scanline, or tiled if the input is tiled.
 \apiend
 
+\apiitem{--separate \\
+--contig}
+Forces either ``separate'' (e.g., RRR...GGG...BBB) or ``contiguous''
+(e.g., RGBRGBRGB...) packing of channels in the file.  If neither
+of these options are present, the output file will have the same
+kind of channel packing as the input file.  Of course, this is ignored
+if the output file format does not support a choice or does not support
+the particular choice requested.
+\apiend
+
 \apiitem{--compression {\rm \emph{method}}}
 Sets the compression method for the output image.  Each \ImageOutput
 plugin will have its own set of methods that it supports.

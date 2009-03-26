@@ -68,6 +68,7 @@ static bool inplace = false;
 static int orientation = 0;
 static bool rotcw = false, rotccw = false, rot180 = false;
 static bool sRGB = false;
+static bool separate = false, contig = false;
 
 
 
@@ -110,6 +111,8 @@ getargs (int argc, char *argv[])
                 "--rot180", &rot180, "Rotate 180 deg",
                 "--inplace", &inplace, "Do operations in place on images",
                 "--sRGB", &sRGB, "This file is in sRGB color space",
+                "--separate", &separate, "Force planarconfig separate",
+                "--contig", &contig, "Force planarconfig contig",
 //FIXME         "-z", &zfile, "Treat input as a depth file",
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
                 NULL);
@@ -287,6 +290,11 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         if (quality != inspec.get_int_attribute ("CompressionQuality"))
             no_copy_image = true;
     }
+
+    if (contig)
+        outspec.attribute ("planarconfig", "contig");
+    if (separate)
+        outspec.attribute ("planarconfig", "separate");
 
     if (orientation >= 1)
         outspec.attribute ("Orientation", orientation);
