@@ -180,6 +180,9 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         jpeg_write_marker (&m_cinfo, JPEG_COM, (JOCTET*)*c, strlen(*c) + 1);
     }
 
+    if (m_spec.linearity == ImageSpec::sRGB)
+        m_spec.attribute ("Exif:ColorSpace", 1);
+
     // Write EXIF info, if we have anything
     std::vector<char> exif;
     encode_exif (m_spec, exif);
