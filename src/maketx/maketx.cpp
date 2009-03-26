@@ -423,8 +423,8 @@ write_mipmap (ImageBuf &img,
             img.alloc (smallspec);  // Realocate with new size
             for (int y = 0;  y < smallspec.height;  ++y) {
                 for (int x = 0;  x < smallspec.width;  ++x) {
-                    tmp.interppixel_NDC ((x+0.5f)/(float)outspec.width,
-                                         (y+0.5f)/(float)outspec.height, pel);
+                    tmp.interppixel_NDC ((x+0.5f)/(float)smallspec.width,
+                                         (y+0.5f)/(float)smallspec.height, pel);
                     img.setpixel (x, y, pel);
                 }
             }
