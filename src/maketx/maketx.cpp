@@ -103,8 +103,8 @@ static void
 getargs (int argc, char *argv[])
 {
     bool help = false;
-    ArgParse ap (argc, (const char **)argv);
-    if (ap.parse ("Usage:  maketx [options] file...",
+    ArgParse ap;
+    ap.options ("Usage:  maketx [options] file...",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
@@ -148,7 +148,8 @@ getargs (int argc, char *argv[])
                   "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
                   "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
                   "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
-                  NULL) < 0) {
+                  NULL);
+    if (ap.parse (argc, (const char**)argv) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);

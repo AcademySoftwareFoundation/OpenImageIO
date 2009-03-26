@@ -68,13 +68,14 @@ static void
 getargs (int argc, char *argv[])
 {
     bool help = false;
-    ArgParse ap (argc, (const char **)argv);
-    if (ap.parse ("Usage:  iv [options] [filename...]",
+    ArgParse ap;
+    ap.options ("Usage:  iv [options] [filename...]",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
                   "-F", &foreground_mode, "Foreground mode",
-                  NULL) < 0) {
+                  NULL);
+    if (ap.parse (argc, (const char**)argv) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
