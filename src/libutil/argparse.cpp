@@ -525,8 +525,16 @@ ArgParse::find_option(const char *name)
 {
     for (std::vector<ArgOption *>::const_iterator i = option.begin();
          i != option.end(); i++) {
-        if (! strcmp(name, (*i)->name().c_str()))
+        const char *opt = (*i)->name().c_str();
+        if (! strcmp(name, opt))
             return *i;
+        // Match even if the user mixes up one dash or two
+        if (name[0] == '-' && name[1] == '-' && opt[0] == '-' && opt[1] != '-')
+            if (! strcmp (name+1, opt))
+                return *i;
+        if (name[0] == '-' && name[1] != '-' && opt[0] == '-' && opt[1] == '-')
+            if (! strcmp (name, opt+1))
+                return *i;
     }
 
     return NULL;
