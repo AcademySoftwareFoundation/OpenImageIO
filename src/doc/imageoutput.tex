@@ -666,11 +666,11 @@ complex arrangements, you can use the more general form of {\cf
 
         // Attach a 4x4 matrix to describe the camera coordinates
         float mymatrix[16] = { ... };
-        spec.attribute ("worldtocamera", TypeDesc(FLOAT,MATRIX), 1, &mymatrix);
+        spec.attribute ("worldtocamera", TypeDesc::TypeMatrix, &mymatrix);
 
         // Attach an array of two floats giving the CIE neutral color
         float neutral[2] = { ... };
-        spec.attribute ("adoptedNeutral", TypeDesc::FLOAT, 2, &neutral);
+        spec.attribute ("adoptedNeutral", TypeDesc(TypeDesc::FLOAT, 2), &neutral);
 \end{code}
 
 In general, most image file formats (and therefore most \ImageOutput
