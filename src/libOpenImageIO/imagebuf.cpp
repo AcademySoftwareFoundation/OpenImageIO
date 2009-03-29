@@ -260,6 +260,16 @@ ImageBuf::getpixel (int x, int y, float *pixel, int maxchannels) const
 
 
 void
+ImageBuf::getpixel (int i, float *pixel, int maxchannels) const
+{
+    int n = std::min (spec().nchannels, maxchannels);
+    OpenImageIO::convert_types (spec().format, &m_pixels[i*m_spec.pixel_bytes()],
+                                TypeDesc::FLOAT, pixel, n);
+}
+
+
+
+void
 ImageBuf::interppixel (float x, float y, float *pixel) const
 {
     const int maxchannels = 64;  // Reasonable guess
@@ -290,6 +300,16 @@ ImageBuf::setpixel (int x, int y, const float *pixel, int maxchannels)
     int n = std::min (spec().nchannels, maxchannels);
     OpenImageIO::convert_types (TypeDesc::FLOAT, pixel, 
                                 spec().format, pixeladdr(x,y), n);
+}
+
+
+
+void
+ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
+{
+    int n = std::min (spec().nchannels, maxchannels);
+    OpenImageIO::convert_types (TypeDesc::FLOAT, pixel, spec().format,
+                                &m_pixels[i*m_spec.pixel_bytes()], n);
 }
 
 

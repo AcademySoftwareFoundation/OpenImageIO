@@ -49,9 +49,9 @@ namespace OpenImageIO {
 /// (translating to/from float automatically).
 class ImageBuf {
 public:
-    /// Construct an named ImageBuf but allocated pixels.
+    /// Construct an ImageBuf without allocated pixels.
     ///
-    ImageBuf (const std::string &name);
+    ImageBuf (const std::string &name = std::string());
 
     /// Construct an Imagebuf given both a name and a proposed spec
     /// describing the image size and type, and allocate storage for
@@ -103,7 +103,7 @@ public:
         return e;
     }
 
-    /// Return a reference to the image spec.
+    /// Return a read-only (const) reference to the image spec.
     ///
     const ImageSpec & spec () const { return m_spec; }
 
@@ -143,6 +143,11 @@ public:
     /// maxchannels (will be clamped to the actual number of channels).
     void getpixel (int x, int y, float *pixel, int maxchannels=1000) const;
 
+    /// Retrieve the i-th pixel of the image (out of width*height*depth),
+    /// storing the floating point version in pixel[].  Retrieve at most
+    /// maxchannels (will be clamped to the actual number of channels).
+    void getpixel (int i, float *pixel, int maxchannels=1000) const;
+
     /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
     /// the upper left corner, (xres,yres) the lower right corner of
     /// the pixel data.
@@ -160,6 +165,11 @@ public:
     /// from floating-point values in pixel[].  Set at most
     /// maxchannels (will be clamped to the actual number of channels).
     void setpixel (int x, int y, const float *pixel, int maxchannels=1000);
+
+    /// Set the i-th pixel value of the image (out of width*height*depth),
+    /// from floating-point values in pixel[].  Set at most
+    /// maxchannels (will be clamped to the actual number of channels).
+    void setpixel (int i, const float *pixel, int maxchannels=1000);
 
     int orientation () const { return m_orientation; }
 

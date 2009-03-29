@@ -43,9 +43,11 @@
 using Imath::Color3f;
 #include <ImathFun.h>
 
+#include "dassert.h"
 #include "argparse.h"
 #include "imageio.h"
 using namespace OpenImageIO;
+#include "imagebuf.h"
 
 
 
@@ -73,8 +75,10 @@ static float failpercent = 0;
 static bool perceptual = false;
 static float hardfail = std::numeric_limits<float>::max();
 static std::vector<std::string> filenames;
-static ImageSpec inspec[2];
-static float *pixels0 = NULL, *pixels1 = NULL;
+static ImageBuf img0, img1;
+static bool comparemeta = false;
+static bool comparemip = false;
+
 
 
 static int
@@ -109,6 +113,8 @@ getargs (int argc, char *argv[])
                   "-od", &outdiffonly, "Output image only if nonzero difference",
                   "-abs", &diffabs, "Output image of absolute value, not signed difference",
                   "-scale %g", &diffscale, "Scale the output image by this factor",
+//                  "-mip", &comparemip, "Compare all MIP-map levels or subimages",
+//                  "-meta", &comparemeta, "Compare metadata",
                   NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.error_message() << std::endl;
@@ -130,71 +136,15 @@ getargs (int argc, char *argv[])
 
 
 static bool
-read_input (const std::string &filename, ImageSpec &inspec,
-            float * &pixels)
+read_input (const std::string &filename, ImageBuf &img)
 {
-    ImageInput *in = ImageInput::create (filename.c_str(), "" /* searchpath */);
-    if (! in) {
-        std::cerr << "idiff ERROR: Could not find an ImageIO plugin to read \"" 
-                  << filename << "\" : " << OpenImageIO::error_message() << "\n";
-        delete in;
-        return false;
-    }
-    if (! in->open (filename.c_str(), inspec)) {
-        std::cerr << "idiff ERROR: Could not open \"" << filename
-                  << "\" : " << in->error_message() << "\n";
-        delete in;
-        return false;
-    }
+    if (img.init_spec (filename) && 
+        img.read (0, false, TypeDesc::FLOAT))
+        return true;
 
-    int npels = inspec.width * inspec.height * inspec.depth;
-    int nvals = npels * inspec.nchannels;
-    pixels = new float[nvals];
-    bool ret = true;
-    if (! in->read_image (TypeDesc::FLOAT, pixels)) {
-        ret = false;
-        delete [] pixels;
-        pixels = NULL;
-    }
-    in->close ();
-    delete in;
-    return ret;
-}
-
-
-
-static void
-write_diff_image (const std::string &filename, const ImageSpec &spec,
-                  float *pixels)
-{
-    ImageSpec outspec = spec;
-    outspec.extra_attribs.clear();
-
-    // Find an ImageIO plugin that can open the output file, and open it
-    ImageOutput *out = ImageOutput::create (filename.c_str());
-    if (! out) {
-        std::cerr 
-            << "idiff ERROR: Could not find an ImageIO plugin to write \"" 
-            << filename << "\" :" << OpenImageIO::error_message() << "\n";;
-    } else {
-        if (! out->open (filename.c_str(), outspec)) {
-            std::cerr << "idiff ERROR: Could not open \"" << filename
-                      << "\" : " << out->error_message() << "\n";
-        } else {
-            int nvals = spec.width * spec.height * spec.depth * spec.nchannels;
-            if (diffabs) {
-                for (int i = 0;  i < nvals;  ++i)
-                    pixels[i] = fabs(pixels[i]);
-            }
-            if (diffscale != 1) {
-                for (int i = 0;  i < nvals;  ++i)
-                    pixels[i] *= diffscale;
-            }
-            out->write_image (TypeDesc::FLOAT, &(pixels[0]));
-            out->close ();
-        }
-        delete out;
-    }
+    std::cerr << "idiff ERROR: Could not read " << filename << ":\n\t"
+              << img.error_message() << "\n";
+    return false;
 }
 
 
@@ -207,17 +157,6 @@ AdobeRGBToXYZ (const Color3f &rgb)
     return Color3f (rgb[0] * 0.576700f  + rgb[1] * 0.185556f  + rgb[2] * 0.188212f,
                     rgb[0] * 0.297361f  + rgb[1] * 0.627355f  + rgb[2] * 0.0752847f,
                     rgb[0] * 0.0270328f + rgb[1] * 0.0706879f + rgb[2] * 0.991248f);
-}
-
-
-
-inline void
-AdobeRGBToXYZ (float r, float g, float b, float &x, float &y, float &z)
-{
-    // matrix is from http://www.brucelindbloom.com/
-    x = r * 0.576700f + g * 0.185556f + b * 0.188212f;
-    y = r * 0.297361f + g * 0.627355f + b * 0.0752847f;
-    z = r * 0.0270328f + g * 0.0706879f + b * 0.991248f;
 }
 
 
@@ -291,12 +230,8 @@ private:
                 a[index] = 0.0f;
                 for (int i = -2;  i <= 2;  ++i) {
                     for (int j = -2;  j<= 2;  ++j) {
-                        int nx = x+i;
-                        int ny = y+j;
-                        if (nx < 0)
-                            nx = -nx;
-                        if (ny < 0)
-                            ny = -ny;
+                        int nx = abs(x+i);
+                        int ny = abs(y+j);
                         if (nx >= w)
                             nx=2*w-nx-1;
                         if (ny >= h)
@@ -364,11 +299,11 @@ tvi (float adaptation_luminance)
 // fail the comparison.
 /// N.B. - assume pixels are already in linear color space.
 int
-Yee_Compare (const ImageSpec &spec,
-             float *pixels0, float *pixels1,
-             float luminance = 100,
-             float fov = 45)
+Yee_Compare (const ImageBuf &img0, const ImageBuf &img1,
+             float luminance = 100, float fov = 45)
 {
+    const ImageSpec &spec (img0.spec());
+    ASSERT (spec.format == TypeDesc::FLOAT);
     int nscanlines = spec.height * spec.depth;
     int npels = nscanlines * spec.width;
 
@@ -381,12 +316,12 @@ Yee_Compare (const ImageSpec &spec,
     boost::scoped_array<float> bLum (new float[npels]);
     for (int i = 0;  i < npels;  ++i) {
         Color3f RGB, XYZ;
-        RGB = * (Color3f *)(&pixels0[i*spec.nchannels]);
+        img0.getpixel (i, RGB.getValue(), 3);
         XYZ = AdobeRGBToXYZ (RGB);
         aLAB[i] = XYZToLAB (XYZ);
         aLum[i] = XYZ[1] * luminance;
 
-        RGB = * (Color3f *)(&pixels1[i*spec.nchannels]);
+        img1.getpixel (i, RGB.getValue(), 3);
         XYZ = AdobeRGBToXYZ (RGB);
         bLAB[i] = XYZToLAB (XYZ);
         bLum[i] = XYZ[1] * luminance;
@@ -475,6 +410,16 @@ Yee_Compare (const ImageSpec &spec,
 
 
 
+static bool
+same_size (const ImageBuf &A, const ImageBuf &B)
+{
+    const ImageSpec &a (A.spec()), &b (B.spec());
+    return (a.width == b.width && a.height == b.height &&
+            a.depth == b.depth && a.nchannels == b.nchannels);
+}
+ 
+
+
 int
 main (int argc, char *argv[])
 {
@@ -483,38 +428,29 @@ main (int argc, char *argv[])
     std::cout << "Comparing \"" << filenames[0] 
              << "\" and \"" << filenames[1] << "\"\n";
 
-    if (! read_input (filenames[0], inspec[0], pixels0) ||
-        ! read_input (filenames[1], inspec[1], pixels1))
+    if (! read_input (filenames[0], img0) ||
+        ! read_input (filenames[1], img1))
         return ErrFile;
 
     // Compare the dimensions of the images.  Fail if they aren't the
     // same resolution and number of channels.  No problem, though, if
     // they aren't the same data type.
-    if (inspec[0].width != inspec[1].width ||
-        inspec[0].height != inspec[1].height ||
-        inspec[0].depth != inspec[1].depth ||
-        inspec[0].nchannels != inspec[1].nchannels) {
+    if (! same_size (img0, img1)) {
         std::cout << "Images do not match in size: ";
-        std::cout << "(" << inspec[0].width << "x" << inspec[0].height;
-        if (inspec[0].depth > 1)
-            std::cout << "x" << inspec[0].depth;
-        std::cout << "x" << inspec[0].nchannels;
-        std::cout << ")";
+        std::cout << "(" << img0.spec().width << "x" << img0.spec().height;
+        if (img0.spec().depth > 1)
+            std::cout << "x" << img0.spec().depth;
+        std::cout << "x" << img0.spec().nchannels << ")";
         std::cout << " versus ";
-        std::cout << "(" << inspec[1].width << "x" << inspec[1].height;
-        if (inspec[1].depth > 1)
-            std::cout << "x" << inspec[1].depth;
-        std::cout << "x" << inspec[1].nchannels;
-        std::cout << ")\n";
-        delete [] pixels0;
-        pixels0 = NULL;
-        delete [] pixels1;
-        pixels1 = NULL;
+        std::cout << "(" << img1.spec().width << "x" << img1.spec().height;
+        if (img1.spec().depth > 1)
+            std::cout << "x" << img1.spec().depth;
+        std::cout << "x" << img1.spec().nchannels << ")\n";
         return ErrDifferentSize;
     }
 
-    int npels = inspec[0].width * inspec[0].height * inspec[0].depth;
-    int nvals = npels * inspec[0].nchannels;
+    int npels = img0.spec().width * img0.spec().height * img0.spec().depth;
+    int nvals = npels * img0.spec().nchannels;
 
     // Compare the two images.
     //
@@ -522,14 +458,17 @@ main (int argc, char *argv[])
     double maxerror = 0;
     int maxx=0, maxy=0, maxz=0, maxc=0;
     int nfail = 0, nwarn = 0;
-    float *p = &pixels0[0];
-    float *q = &pixels1[0];
-    for (int z = 0;  z < inspec[0].depth;  ++z) {
-        for (int y = 0;  y < inspec[0].height;  ++y) {
+    ASSERT (img0.spec().format == TypeDesc::FLOAT);
+    float *pixels0 = (float *) img0.pixeladdr (img0.spec().x, img0.spec().y);
+    float *pixels1 = (float *) img1.pixeladdr (img0.spec().x, img0.spec().y);
+    float *p = pixels0;
+    float *q = pixels1;
+    for (int z = 0;  z < img0.spec().depth;  ++z) {
+        for (int y = 0;  y < img0.spec().height;  ++y) {
             double scanlineerror = 0;
-            for (int x = 0;  x < inspec[0].width;  ++x) {
+            for (int x = 0;  x < img0.spec().width;  ++x) {
                 bool warned = false, failed = false;  // For this pixel
-                for (int c = 0;  c < inspec[0].nchannels;  ++c, ++p, ++q) {
+                for (int c = 0;  c < img0.spec().nchannels;  ++c, ++p, ++q) {
                     double f = fabs (*p - *q);
                     scanlineerror += f;
                     if (f > maxerror) {
@@ -556,7 +495,7 @@ main (int argc, char *argv[])
 
     int yee_failures = 0;
     if (perceptual)
-        yee_failures = Yee_Compare (inspec[0], pixels0, pixels1);
+        yee_failures = Yee_Compare (img0, img1);
 
     // Print the report
     //
@@ -564,9 +503,9 @@ main (int argc, char *argv[])
     std::cout << "  Max error  = " << maxerror;
     if (maxerror != 0) {
         std::cout << " @ (" << maxx << ", " << maxy;
-        if (inspec[0].depth > 1)
+        if (img0.spec().depth > 1)
             std::cout << ", " << maxz;
-        std::cout << ", " << inspec[0].channelnames[maxc] << ')';
+        std::cout << ", " << img0.spec().channelnames[maxc] << ')';
     }
     std::cout << "\n";
     int precis = std::cout.precision();
@@ -601,9 +540,18 @@ main (int argc, char *argv[])
     if (diffimage.size() && (maxerror != 0 || !outdiffonly)) {
         // Subtract the second image from the first.  At which time we no
         // longer need the second image, so free it.
-        for (int i = 0;  i < nvals;  ++i)
-            pixels0[i] -= pixels1[i];
-        write_diff_image (diffimage, inspec[0], pixels0);
+        if (diffabs)
+            for (int i = 0;  i < nvals;  ++i)
+                pixels0[i] = fabsf (pixels0[i] - pixels1[i]);
+        else
+            for (int i = 0;  i < nvals;  ++i)
+                pixels0[i] = (pixels0[i] - pixels1[i]);
+        if (diffscale != 1) {
+            for (int i = 0;  i < nvals;  ++i)
+                pixels0[i] *= diffscale;
+        }
+
+        img0.save (diffimage);
     }
 
     return ret;
