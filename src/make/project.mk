@@ -29,6 +29,7 @@ help:
 	@echo "  make SHOWCOMMANDS=1 ...     Show all compilation commands"
 	@echo "  make EMBEDPLUGINS=1 ...     Compile the plugins into libOpenImageIO"
 	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
+	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
 	@echo ""
 
 
@@ -40,10 +41,16 @@ dist_bins    	:= iconvert${BINEXT} \
 		   idiff${BINEXT} \
 		   igrep${BINEXT} \
 		   iinfo${BINEXT} \
-		   iv${BINEXT} \
 		   maketx${BINEXT}
 dist_libs     	:= libOpenImageIO${SHLIBEXT}
 #		   libtexture${SHLIBEXT}
+
+# Only dist iv if OpenGL and Qt are enabled
+ifneq (${USE_OPENGL},0)
+ifneq (${USE_QT},0)
+dist_bins    	:= iv${BINEXT}
+endif
+endif
 
 # Only dist the plugins if we're building without embedded plugins
 ifeq (${EMBEDPLUGINS},)

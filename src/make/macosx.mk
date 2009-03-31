@@ -38,9 +38,13 @@ SHLIB_LDFLAGS := -dynamiclib
 #SHLIB_LDFLAGS += -arch x86_64
 # -m64
 
+ifneq (${USE_QT},0)
 QT_INCLUDE += -I/Library/Frameworks/QtGui.framework/Headers
 QT_INCLUDE += -I/Library/Frameworks/QtOpenGL.framework/Headers
 LINK_QT += -framework QtGui -framework QtOpenGL -framework QtCore
+endif
 
+ifneq (${USE_OPENGL},0)
 OPENGL_INCLUDE := 
 LINK_OPENGL := -framework OpenGL
+endif

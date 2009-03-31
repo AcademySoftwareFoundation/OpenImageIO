@@ -27,13 +27,26 @@ endif
 
 CP := cp -uvpf
 
-QT_PREFIX ?= /usr/include/qt4
-QT_INCLUDE ?= -I${QT_PREFIX}/QtGui -I${QT_PREFIX}/QtOpenGL \
-	      -I${QT_PREFIX}
-LINK_QT ?= -lQtOpenGL -lQtGui -lQtCore 
+QT_INCLUDE_DIR ?= ${shell qmake -query QT_INSTALL_HEADERS}
+QT_LIBRARY_DIR ?= ${shell qmake -query QT_INSTALL_LIBS}
 
+ifeq (${QT_INCLUDE_DIR},)
+    $(info )
+    $(info *** Qt not found!)
+    $(info )
+    USE_QT := 0
+endif
+
+ifneq (${USE_QT},0)
+QT_INCLUDE ?= -I${QT_INCLUDE_DIR}/QtGui -I${QT_INCLUDE_DIR}/QtOpenGL \
+             -I${QT_INCLUDE_DIR}
+LINK_QT ?= -L${QT_LIBRARY_DIR} -lQtOpenGL -lQtGui -lQtCore 
+endif
+
+ifneq (${USE_OPENGL},0)
 OPENGL_INCLUDE ?= -I/usr/include/GL
 LINK_OPENGL ?= 
+endif
 
 LINK_OTHER := -ldl -lpthread
 

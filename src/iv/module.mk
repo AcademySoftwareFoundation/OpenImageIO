@@ -1,6 +1,15 @@
 # License and copyright goes here
 
+ifeq (${USE_QT},0)
+    $(info )
+    $(info *** Skipping building iv because no Qt is available.)
+    $(info )
+    USE_QT := 0
+endif
+
+
 ifneq (${USE_OPENGL},0)
+ifneq (${USE_QT},0)
 
 # Name of the binary or library whose source is in this directory.
 # Do NOT include .exe or any other suffix.
@@ -24,4 +33,5 @@ local_ldflags := ${LINK_BOOST} ${LINK_QT} ${LINK_OPENGL} ${LINK_ILMBASE}
 
 include ${src_make_dir}/bin.mk
 
+endif
 endif
