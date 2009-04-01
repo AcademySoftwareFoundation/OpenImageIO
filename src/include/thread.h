@@ -98,18 +98,24 @@ private:
 
 
 //
-// Include files we need for atomic counters
+// Include files we need for atomic counters.
+// Some day, we hope this is all replaced by use of std::atomic<>.
 //
 
-#if defined(__linux__)
-#  define USE_INTEL_ASM_ATOMICS
-
-#elif defined(__APPLE__)
+#ifndef USE_INTEL_ASM_ATOMICS
 #  if (defined(__i386__) || defined(__x86_64__))
-#    define USE_INTEL_ASM_ATOMICS
+#    define USE_INTEL_ASM_ATOMICS 1
 #  else
-#    include <libkern/OSAtomic.h>
+#    define USE_INTEL_ASM_ATOMICS 0
 #  endif
+#endif
+
+#if (USE_INTEL_ASM_ATOMIC == 0)
+#  if defined(__linux__)
+#    include <bits/atomicity.h>
+#  elif defined(__APPLE__)
+#    include <libkern/OSAtomic.h>
+#endif
 
 #elif defined(_WIN32)
 #  include <windows.h>
@@ -118,26 +124,25 @@ private:
 
 
 
+#if 0  /* unused */
 /// Atomic version of:  r = *at, *at = x, return r
 /// For each of several architectures.
 inline int
 atomic_exchange (volatile int *at, int x)
 {
-#if defined(USE_INTEL_ASM_ATOMICS)
+#if USE_INTEL_ASM_ATOMICS
     // Common case of i386 or x86_64 on either Linux or Mac.
     // Note slightly different instruction for 32 vs 64 bit.
     int result;
+    __asm__ __volatile__(
 #ifdef __i386__
-    __asm__ __volatile__("lock\nxchgl %0,%1"
-                         : "=r"(result), "=m"(*at)
-                         : "0"(x)
-                         : "memory");
+                         "lock\nxchgl %0,%1"
 #else
-    __asm__ __volatile__("lock\nxchg %0,%1"
+                         "lock\nxchg %0,%1"
+#endif
                          : "=r"(result), "=m"(*at)
                          : "0"(x)
                          : "memory");
-#endif
     return result;
 #elif defined(_WIN32)
     // Windows
@@ -146,6 +151,7 @@ atomic_exchange (volatile int *at, int x)
     asfaef  // force compile to fail, I have no idea what to do here
 #endif
 }
+#endif
 
 
 
@@ -154,31 +160,66 @@ atomic_exchange (volatile int *at, int x)
 inline int
 atomic_exchange_and_add (volatile int *at, int x)
 {
-#if defined(USE_INTEL_ASM_ATOMICS)
+#if USE_INTEL_ASM_ATOMICS
     // Common case of i386 or x86_64 on either Linux or Mac.
     // Note slightly different instruction for 32 vs 64 bit.
     int result;
+    __asm__ __volatile__(
 #ifdef __i386__
-    __asm__ __volatile__("lock\nxaddl %0,%1"
-                         : "=r"(result), "=m"(*at)
-                         : "0"(x)
-                         : "memory");
+                         "lock\nxaddl %0,%1"
 #else
-    __asm__ __volatile__("lock\nxadd %0,%1"
+                         "lock\nxadd %0,%1"
+#endif
                          : "=r"(result), "=m"(*at)
                          : "0"(x)
                          : "memory");
-#endif
     return result;
 #elif defined(linux)
     // Linux, not inline for Intel (does this ever get used?)
     __gnu_cxx::__exchange_and_add (at, x);
 #elif defined(__APPLE__)
     // Apple, not inline for Intel (only PPC?)
-    return OSAtomicAdd32Barrier (x, &m_val) - x;
+    return OSAtomicAdd32Barrier (x, at) - x;
 #elif defined(_WIN32)
     // Windows
     return InterlockedExchangeAdd (at, x);
+#endif
+}
+
+
+
+/// Atomic version of: 
+///    if (*at == compareval) {
+///        *at = newval;  return true;
+///    } else {
+///        return false;
+///
+inline bool
+atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
+{
+#if USE_INTEL_ASM_ATOMICS
+    // Common case of i386 or x86_64 on either Linux or Mac.
+    // Note slightly different instruction for 32 vs 64 bit.
+    int result;
+    __asm__ __volatile__(
+#ifdef __i386__
+                         "lock\ncmpxchgl %2,%1"
+#else
+                         "lock\ncmpxchg %2,%1"
+#endif
+                         : "=a"(result), "=m"(*at)
+                         : "q"(newval), "0"(compareval)
+                         : "memory");
+    return result;
+#elif defined(linux)
+    // Linux, not inline for Intel (does this ever get used?)
+//    __gnu_cxx::__exchange_and_add (at, x);
+#elif defined(__APPLE__)
+    // Apple, not inline for Intel (only PPC?)
+    return OSAtomicCompareAndSwap32Barrier (compareval, newval, at);
+#elif defined(_WIN32)
+    // Windows
+    return (InterlockedCompareExchange (at, newval, compareval) == compareval);
 #endif
 }
 
@@ -196,11 +237,18 @@ public:
 
     /// Retrieve value
     ///
-    int operator() () { return m_val; }
+    int operator() () const { return atomic_exchange_and_add (&m_val, 0); }
+
+    /// Retrieve value
+    ///
+    operator int() const { return atomic_exchange_and_add (&m_val, 0); }
 
     /// Assign new value.
     ///
-    int operator= (int x) { return (m_val = x); }
+    int operator= (int x) {
+        //better? (void)atomic_exchange (&m_val, x); return x;
+        return (m_val = x);
+    }
 
     /// Pre-increment:  ++foo
     ///
@@ -226,9 +274,17 @@ public:
     ///
     int operator-= (int x) { return atomic_exchange_and_add (&m_val, -x) - x; }
 
-private:
-    volatile int m_val;
+    bool compare_and_exchange (int compareval, int newval) {
+        return atomic_compare_and_exchange (&m_val, compareval, newval);
+    }
 
+private:
+    volatile mutable int m_val;
+
+    // Disallow assignment and copy construction by making private and
+    // unimplemented.
+    atomic_int (atomic_int const &);
+    atomic_int & operator= (atomic_int const &);
 };
 
 #undef USE_INTEL_ASM_ATOMICS
@@ -269,29 +325,33 @@ public:
     /// Acquire the lock, spin until we have it.
     ///
     void lock () {
+#if defined(__APPLE__)
+        // OS X has dedicated spin lock routines, may as well use them.
+        OSSpinLockLock ((OSSpinLock *)&m_locked);
+#else
         while (! try_lock())
             ;
+#endif
     }
 
     /// Release the lock that we hold.
     ///
     void unlock () {
+#if defined(__APPLE__)
+        OSSpinLockUnlock ((OSSpinLock *)&m_locked);
+#else
         --m_locked;
+#endif
     }
 
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
     bool try_lock () {
-        if (++m_locked == 1) {
-            // We incremented it to 1, so we are the ones who hold the lock.
-            return true;
-        } else {
-            // We incremented the atomic counter, but the new value wasn't
-            // 1, so obviously we weren't the ones to incremented to 1 and
-            // hold the lock.  So decrement it again and then return false.
-            --m_locked;
-            return false;
-        }
+#if defined(__APPLE__)
+        return OSSpinLockTry ((OSSpinLock *)&m_locked);
+#else
+        return m_locked.compare_and_exchange (0, 1);
+#endif
     }
 
     /// Helper class: scoped lock for a fast_mutex -- grabs the lock upon

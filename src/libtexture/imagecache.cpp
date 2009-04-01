@@ -550,7 +550,7 @@ ImageCacheImpl::find_file (ustring filename)
 
     check_max_files ();
     m_files[filename] = tf;
-    incr_unique_files ();
+    ++m_stat_unique_files;
     tf->use ();
 
 #if IMAGECACHE_TIME_STATS
@@ -906,9 +906,7 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
 
     // The tile was not found in cache.
 
-    m_stats_mutex.lock ();
-    ++m_stat_find_tile_cache_misses;
-    m_stats_mutex.unlock ();
+    ++m_stat_find_tile_cache_misses;  // safe, it's atomic
 
     // Yes, we're creating and reading a tile with no lock -- this is to
     // prevent all the other threads from blocking because of our

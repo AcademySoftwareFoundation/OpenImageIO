@@ -540,12 +540,6 @@ public:
         m_stats_mutex.unlock ();
     }
 
-    void incr_unique_files () {
-        m_stats_mutex.lock ();
-        ++m_stat_unique_files;
-        m_stats_mutex.unlock ();
-    }
-
     void incr_files_totalsize (size_t size) {
         m_stats_mutex.lock ();
         m_stat_files_totalsize += size;
@@ -601,7 +595,7 @@ private:
 private:
     int m_stat_find_tile_calls;
     long long m_stat_find_tile_microcache_misses;
-    long long m_stat_find_tile_cache_misses;
+    atomic_int m_stat_find_tile_cache_misses;
     int m_stat_tiles_created;
     int m_stat_tiles_current;
     int m_stat_tiles_peak;
@@ -610,7 +604,7 @@ private:
     int m_stat_open_files_created;
     int m_stat_open_files_current;
     int m_stat_open_files_peak;
-    int m_stat_unique_files;
+    atomic_int m_stat_unique_files;
     double m_stat_fileio_time;
     double m_stat_file_locking_time;
     double m_stat_tile_locking_time;
