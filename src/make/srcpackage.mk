@@ -60,8 +60,9 @@ ALL_BUILD_DIRS += ${${name}_obj_dir}
 
 # Rule to make the build dependency -- which, as a side effect, untars
 # the package in the 'obj' area and builds it there.
-${${name}_depfile}: ${${name}_srcs}
+${${name}_depfile}: ${${name}_srcs} ${${name}_src_dir}/module.mk
 	@ echo "Building $@ ..."
+	${RM_ALL} ${${notdir ${basename $@}}_obj_dir}
 	${MKDIR} ${build_dir} ${build_obj_dir} ${${notdir ${basename $@}}_obj_dir} ${ALL_BUILD_DIRS}
 	tar -x -z -f ${${notdir ${basename $@}}_srcs} \
 	        -C ${build_obj_dir}
