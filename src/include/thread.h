@@ -112,7 +112,11 @@ private:
 
 #if (USE_INTEL_ASM_ATOMIC == 0)
 #  if defined(__linux__)
-#    include <bits/atomicity.h>
+#    if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 2))
+#      include <ext/atomicity.h>
+#    else
+#      include <bits/atomicity.h>
+#    endif
 #  elif defined(__APPLE__)
 #    include <libkern/OSAtomic.h>
 #endif
