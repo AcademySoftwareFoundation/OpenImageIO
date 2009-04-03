@@ -48,7 +48,7 @@ dist_libs     	:= libOpenImageIO${SHLIBEXT}
 # Only dist iv if OpenGL and Qt are enabled
 ifneq (${USE_OPENGL},0)
 ifneq (${USE_QT},0)
-dist_bins    	:= iv${BINEXT}
+dist_bins    	+= iv${BINEXT}
 endif
 endif
 
