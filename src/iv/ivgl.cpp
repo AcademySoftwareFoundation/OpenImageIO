@@ -41,6 +41,19 @@
 #define USE_SHADERS 1
 #define USE_SRGB 1
 
+#if ! defined (GL_SRGB_EXT) && defined (GL_SRGB)
+#  define GL_SRGB_EXT GL_SRGB
+#endif
+#if ! defined (GL_SRGB8_EXT) && defined (GL_SRGB8)
+#  define GL_SRGB8_EXT GL_SRGB8
+#endif
+#if ! defined (GL_SRGB_ALPHA_EXT) && defined (GL_SRGB_ALPHA)
+#  define GL_SRGB_ALPHA_EXT GL_SRGB_ALPHA
+#endif
+#if ! defined (GL_SRGB8_ALPHA8_EXT) && defined (GL_SRGB8_ALPHA8)
+#  define GL_SRGB8_ALPHA8_EXT GL_SRGB8_ALPHA8
+#endif
+
 
 
 #define GLERRPRINT(msg)                                           \
