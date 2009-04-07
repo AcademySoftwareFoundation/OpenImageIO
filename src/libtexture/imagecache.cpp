@@ -572,9 +572,10 @@ ImageCacheImpl::check_max_files ()
     }
 #endif
     while (m_stat_open_files_current >= m_max_open_files) {
-        if (m_file_sweep == m_files.end())
-            m_file_sweep = m_files.begin();
-        ASSERT (m_file_sweep != m_files.end());
+        if (m_file_sweep == m_files.end())   // If at the end of list,
+            m_file_sweep = m_files.begin();  //     loop back to beginning
+        if (m_file_sweep == m_files.end())   // If STILL at the end,
+            break;                           //     it must be empty, done
         DASSERT (m_file_sweep->second);
         m_file_sweep->second->release ();  // May reduce open files
         ++m_file_sweep;
@@ -736,6 +737,7 @@ ImageCacheImpl::getstats (int level) const
         out << "  Image file statistics:\n";
         out << "        opens   tiles  KB read     res\t\tFile\n";
         size_t total_opens = 0, total_tiles = 0, total_bytes = 0;
+        int total_untiled = 0, total_unmipped = 0;
         std::vector<ImageCacheFileRef> files;
         {
             shared_lock fileguard (m_filemutex);
@@ -764,7 +766,17 @@ ImageCacheImpl::getstats (int level) const
                                     file->bytesread()/1024,
                                     spec.width, spec.height, spec.nchannels,
                                     formatcode);
-            out << "\t" << file->filename() << "\n";
+            out << "\t" << file->filename();
+            if (file->untiled()) {
+                ++total_untiled;
+                out << " UNTILED";
+            }
+            if (file->unmipped()) {
+                ++total_unmipped;
+                if (automip())
+                    out << " UNMIPPED";
+            }
+            out << "\n";
             total_opens += file->timesopened();
             total_tiles += file->tilesread();
             total_bytes += file->bytesread();
@@ -772,6 +784,9 @@ ImageCacheImpl::getstats (int level) const
         out << Strutil::format ("\n  Tot:  %4lu\t%5lu\t%6lu MB\n",
                                 total_opens, total_tiles,
                                 total_bytes/1024/1024);
+        if (total_untiled || (total_unmipped && automip()))
+            out << "    (" << total_untiled << " not tiled, "
+                << total_unmipped << " not MIP-mapped)\n";
     }
     return out.str();
 }
@@ -937,16 +952,17 @@ void
 ImageCacheImpl::check_max_mem ()
 {
 #ifdef DEBUG
-    static atomic_int n = 0;
+    static atomic_int n (0);
     if (! (n++ % 64) || m_mem_used >= m_max_memory_bytes)
         std::cerr << "mem used: " << m_mem_used << ", max = " << m_max_memory_bytes << "\n";
 #endif
     if (m_tilecache.empty())
         return;
     while (m_mem_used >= m_max_memory_bytes) {
-        if (m_tile_sweep == m_tilecache.end())
-            m_tile_sweep = m_tilecache.begin();
-        ASSERT (m_tile_sweep != m_tilecache.end());
+        if (m_tile_sweep == m_tilecache.end())  // If at the end of list,
+            m_tile_sweep = m_tilecache.begin(); //     loop back to beginning
+        if (m_tile_sweep == m_tilecache.end())  // If STILL at the end,
+            break;                              //      it must be empty, done
         if (! m_tile_sweep->second->release ()) {
             TileCache::iterator todelete = m_tile_sweep;
             ++m_tile_sweep;

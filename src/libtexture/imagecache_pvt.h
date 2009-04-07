@@ -100,6 +100,7 @@ public:
     size_t pixelsize () const { return m_pixelsize; }
     bool eightbit (void) const { return m_eightbit; }
     bool untiled (void) const { return m_untiled; }
+    bool unmipped (void) const { return m_unmipped; }
 
     void invalidate ();
 
