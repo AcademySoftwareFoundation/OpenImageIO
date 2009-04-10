@@ -134,7 +134,7 @@ private:
     size_t m_bytesread;             ///< Bytes read from this file
     size_t m_timesopened;           ///< Separate times we opened this file
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
-    mutable mutex m_input_mutex;    ///< Mutex protecting the ImageInput
+    mutable recursive_mutex m_input_mutex; ///< Mutex protecting the ImageInput
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.  Return true if ok, false if error.
