@@ -387,6 +387,8 @@ protected:
     bool m_dragging;                  ///< Are we dragging?
     int m_mousex, m_mousey;           ///< Last mouse position
     Qt::MouseButton m_drag_button;    ///< Button on when dragging
+    GLenum m_target_texture;          ///< type of the texture
+    bool m_unnormalized_coords;       ///< Are we using unnormalized coords?
 
     virtual void initializeGL ();
     virtual void resizeGL (int w, int h);
@@ -411,6 +413,10 @@ private:
     typedef QGLWidget parent_t;
 
     void clamp_view_to_window ();
+
+    /// checks what OpenGL extensions we have
+    ///
+    void check_gl_extensions (void);
 };
 
 
