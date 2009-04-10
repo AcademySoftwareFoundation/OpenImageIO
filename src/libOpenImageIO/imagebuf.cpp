@@ -116,7 +116,7 @@ ImageBuf::init_spec (const std::string &filename)
         m_nsubimages = 1;
         while (in->seek_subimage (m_nsubimages, tempspec))
             ++m_nsubimages;
-        std::cerr << filename << " has " << m_nsubimages << " subimages\n";
+//        std::cerr << filename << " has " << m_nsubimages << " subimages\n";
         m_current_subimage = 0;
         in->close ();
         m_badfile = false;
