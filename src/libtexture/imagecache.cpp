@@ -82,7 +82,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
 {
     m_spec.clear ();
     m_filename = imagecache.resolve_filename (m_filename.string());
-    lock_guard guard (m_input_mutex);
+    recursive_lock_guard guard (m_input_mutex);
     open ();
 #if 0
     static int x=0;
@@ -111,7 +111,7 @@ ImageCacheFile::open ()
 {
     // N.B. open() does not need to lock the m_input_mutex, because open()
     // itself is only called by routines that hold the lock.
-    // lock_guard_t guard (m_input_mutex);
+    // recursive_lock_guard_t guard (m_input_mutex);
 
     if (m_input)         // Already opened
         return !m_broken;
@@ -161,11 +161,13 @@ ImageCacheFile::open ()
                 // Automatically make it appear as if it's tiled
                 tempspec.tile_width = imagecache().autotile();
                 tempspec.tile_height = imagecache().autotile();
+                tempspec.tile_depth = 1;
             } else {
                 // Don't auto-tile -- which really means, make it look like
                 // a single tile that's as big as the whole image
                 tempspec.tile_width = pow2roundup (tempspec.width);
                 tempspec.tile_height = pow2roundup (tempspec.height);
+                tempspec.tile_depth = 1;
             }
         }
         ++nsubimages;
@@ -275,7 +277,7 @@ bool
 ImageCacheFile::read_tile (int subimage, int x, int y, int z,
                            TypeDesc format, void *data)
 {
-    lock_guard guard (m_input_mutex);
+    recursive_lock_guard guard (m_input_mutex);
 
     bool ok = open ();
     if (! ok)
@@ -476,7 +478,7 @@ ImageCacheFile::close ()
 void
 ImageCacheFile::release ()
 {
-    lock_guard guard (m_input_mutex);
+    recursive_lock_guard guard (m_input_mutex);
     if (m_used)
         m_used = false;
     else
@@ -488,7 +490,7 @@ ImageCacheFile::release ()
 void
 ImageCacheFile::invalidate ()
 {
-    lock_guard guard (m_input_mutex);
+    recursive_lock_guard guard (m_input_mutex);
     close ();
     m_spec.clear();
 }
@@ -1119,7 +1121,7 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file, int subimage,
     int nc = file->spec().nchannels;
     size_t formatpixelsize = nc * format.size();
     for (int z = zmin;  z <= zmax;  ++z) {
-        int tz = z - (z % spec.tile_depth);
+        int tz = z - (z % std::max (1, spec.tile_depth));
         for (int y = ymin;  y <= ymax;  ++y) {
             int ty = y - (y % spec.tile_height);
             for (int x = xmin;  x <= xmax;  ++x) {
