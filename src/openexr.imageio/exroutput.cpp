@@ -153,8 +153,14 @@ OpenEXROutput::supports (const std::string &feature) const
     if (feature == "multiimage")
         return true;
 
+    // EXR supports random write order iff lineOrder is set to 'random Y'
+    if (feature == "random_access") {
+        const ImageIOParameter *param = m_spec.find_attribute("openexr:lineOrder");
+        const char *lineorder = param ? *(char **)param->data() : NULL;
+        return (lineorder && ! strcmp (lineorder, "randomY"));
+    }
+
     // FIXME: we could support "empty"
-    // Can EXR support "random"?
 
     // Everything else, we either don't support or don't know about
     return false;
@@ -252,6 +258,10 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool ap
     // Default to ZIP compression if no request came with the user spec.
     if (! m_spec.find_attribute("compression"))
         m_spec.attribute ("compression", "zip");
+
+    // Default to increasingY line order, same as EXR.
+    if (! m_spec.find_attribute("openexr:lineOrder"))
+        m_spec.attribute ("openexr:lineOrder", "increasingY");
 
     // Automatically set date field if the client didn't supply it.
     if (! m_spec.find_attribute("DateTime")) {
@@ -375,6 +385,18 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 m_header->compression() = Imf::PIZ_COMPRESSION;
             else if (! strcmp (str, "pxr24")) 
                 m_header->compression() = Imf::PXR24_COMPRESSION;
+        }
+        return true;
+    }
+
+    if (iequals (xname, "openexr:lineOrder") && type == TypeDesc::STRING) {
+        const char *str = *(char **)data;
+        m_header->lineOrder() = Imf::INCREASING_Y;   // Default
+        if (str) {
+            if (! strcmp (str, "randomY"))
+                m_header->lineOrder() = Imf::RANDOM_Y;
+            else if (! strcmp (str, "decreasingY"))
+                m_header->lineOrder() = Imf::DECREASING_Y;
         }
         return true;
     }
