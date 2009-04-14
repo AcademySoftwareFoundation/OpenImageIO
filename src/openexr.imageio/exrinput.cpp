@@ -151,8 +151,8 @@ private:
         m_map["dataWindow"] = "";
         m_map["envmap"] = "";
         m_map["tiledesc"] = "";
+        m_map["openexr:lineOrder"] = "";
         // Ones to skip because we consider them irrelevant
-        m_map["lineOrder"] = "";
 
 //        m_map[""] = "";
         // FIXME: Things to consider in the future:
