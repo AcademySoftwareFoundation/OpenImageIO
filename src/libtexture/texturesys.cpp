@@ -483,11 +483,11 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
         thread_info->filename (filename, texturefile);
     }
 
-    ++m_stat_texture_batches;
     if (! texturefile  ||  texturefile->broken()) {
+        int local_stat_texture_queries = 0;
         for (int i = firstactive;  i <= lastactive;  ++i) {
             if (runflags[i]) {
-                ++m_stat_texture_queries;
+                ++local_stat_texture_queries;
                 for (int c = 0;  c < options.nchannels;  ++c)
                     result[c] = options.fill;
                 if (options.alpha)
@@ -496,6 +496,10 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
             result += options.nchannels;
         }
         error ("Texture file \"%s\" not found", filename.c_str());
+        m_stats_mutex.lock ();
+        ++m_stat_texture_batches;
+        m_stat_texture_queries += local_stat_texture_queries;
+        m_stats_mutex.unlock ();
         return false;
     }
 
@@ -535,8 +539,12 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
         options.alpha.init (NULL);  // No need for texture_lookup to care
     }
     // Early out if all channels were beyond the highest in the file
-    if (options.actualchannels < 1)
+    if (options.actualchannels < 1) {
+        m_stats_mutex.lock ();
+        ++m_stat_texture_batches;
+        m_stats_mutex.unlock ();
         return true;
+    }
 
     // Loop over all the points that are active (as given in the
     // runflags), and for each, call texture_lookup.  The separation of
@@ -554,7 +562,13 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                              result + i * options.nchannels);
         }
     }
+
+    // Update stats
+    m_stats_mutex.lock ();
+    ++m_stat_texture_batches;
     m_stat_texture_queries += points_on;
+    m_stats_mutex.unlock ();
+
     return true;
 }
 
@@ -591,8 +605,18 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
     (this->*accumer) (_s[index], _t[index], 0, texturefile,
                       options, index, tilecache0, tilecache1,
                       1.0f, result);
+
+    // Update stats
+    m_stats_mutex.lock ();
     ++m_stat_aniso_queries;
     ++m_stat_aniso_probes;
+    switch (options.interpmode) {
+        case TextureOptions::InterpClosest :  ++m_stat_closest_interps;  break;
+        case TextureOptions::InterpBilinear : ++m_stat_bilinear_interps; break;
+        case TextureOptions::InterpBicubic :  ++m_stat_cubic_interps;  break;
+        case TextureOptions::InterpSmartBicubic : ++m_stat_bilinear_interps; break;
+    }
+    m_stats_mutex.unlock ();
 }
 
 
@@ -631,8 +655,8 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
     int miplevel[2] = { -1, -1 };
     float levelblend = 0;
-    float sfilt = std::max (hypotf (dsdx, dtdx), (float)1.0e-8);
-    float tfilt = std::max (hypotf (dsdy, dtdy), (float)1.0e-8);
+    float sfilt = std::max (std::max (dsdx, dsdy), (float)1.0e-8);
+    float tfilt = std::max (std::max (dtdx, dtdy), (float)1.0e-8);
     float filtwidth = options.conservative_filter ? std::max (sfilt, tfilt)
                                                   : std::min (sfilt, tfilt);
     for (int i = 0;  i < texturefile.subimages();  ++i) {
@@ -683,15 +707,27 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 
     // FIXME -- support for smart cubic?
 
+    int npointson = 0;
     for (int level = 0;  level < 2;  ++level) {
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
         (this->*accumer) (_s[index], _t[index], miplevel[level], texturefile,
                           options, index, tilecache0, tilecache1,
                           levelweight[level], result);
-        ++m_stat_aniso_queries;
-        ++m_stat_aniso_probes;
+        ++npointson;
     }
+
+    // Update stats
+    m_stats_mutex.lock ();
+    m_stat_aniso_queries += npointson;
+    m_stat_aniso_probes += npointson;
+    switch (options.interpmode) {
+        case TextureOptions::InterpClosest :  m_stat_closest_interps += npointson;  break;
+        case TextureOptions::InterpBilinear : m_stat_bilinear_interps += npointson; break;
+        case TextureOptions::InterpBicubic :  m_stat_cubic_interps += npointson;  break;
+        case TextureOptions::InterpSmartBicubic : m_stat_bilinear_interps += npointson; break;
+    }
+    m_stats_mutex.unlock ();
 }
 
 
@@ -718,15 +754,15 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
 
     // Find the differentials, handle the case where user passed NULL
     // to indicate no derivs were available.
-    float dsdx = _dsdx ? _dsdx[index] : 0;
-    float dtdx = _dtdx ? _dtdx[index] : 0;
-    float dsdy = _dsdy ? _dsdy[index] : 0;
-    float dtdy = _dtdy ? _dtdy[index] : 0;
+    float dsdx = _dsdx ? fabsf(_dsdx[index]) : 0;
+    float dtdx = _dtdx ? fabsf(_dtdx[index]) : 0;
+    float dsdy = _dsdy ? fabsf(_dsdy[index]) : 0;
+    float dtdy = _dtdy ? fabsf(_dtdy[index]) : 0;
     // Compute the natural resolution we want for the bare derivs, this
     // will be the threshold for knowing we're maxifying (and therefore
     // wanting cubic interpolation).
-    float sfilt_noblur = std::max (hypotf (dsdx, dtdx), (float)1.0e-8);
-    float tfilt_noblur = std::max (hypotf (dsdy, dtdy), (float)1.0e-8);
+    float sfilt_noblur = std::max (std::max (dsdx, dsdy), (float)1.0e-8);
+    float tfilt_noblur = std::max (std::max (dtdx, dtdy), (float)1.0e-8);
     int naturalres = (int) (1.0f / std::min (sfilt_noblur, tfilt_noblur));
     // Scale by 'width' and 'blur'
     dsdx = dsdx * options.swidth[index] + options.sblur[index];
@@ -738,8 +774,8 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
     int miplevel[2] = { -1, -1 };
     float levelblend = 0;
-    float sfilt = std::max (hypotf (dsdx, dtdx), (float)1.0e-8);
-    float tfilt = std::max (hypotf (dsdy, dtdy), (float)1.0e-8);
+    float sfilt = std::max (std::max (dsdx, dsdy), (float)1.0e-8);
+    float tfilt = std::max (std::max (dtdx, dtdy), (float)1.0e-8);
     float smajor, tmajor;
     float *majorlength, *minorlength;
     if (sfilt > tfilt) {
@@ -754,8 +790,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         tmajor = dtdy;
     }
     float aspect = Imath::clamp ((*majorlength) / (*minorlength), 1.0f, 1.0e6f);
-    if (aspect > m_stat_max_aniso)
-        m_stat_max_aniso = aspect;
+    float trueaspect = aspect;
     if (aspect > options.anisotropic) {
         aspect = options.anisotropic;
         // We have to clamp the ellipse to the maximum amount of anisotropy
@@ -818,25 +853,37 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     float invsamples = 1.0f / nsamples;
 
     float s = _s[index], t = _t[index];
+    int npointson = 0;
+    int closestprobes = 0, bilinearprobes = 0, bicubicprobes = 0;
     for (int level = 0;  level < 2;  ++level) {
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
+        ++npointson;
         int lev = miplevel[level];
         float w = invsamples * levelweight[level];
         accum_prototype accumer = &TextureSystemImpl::accum_sample_bilinear;
         switch (options.interpmode) {
         case TextureOptions::InterpClosest :
-            accumer = &TextureSystemImpl::accum_sample_closest;  break;
+            accumer = &TextureSystemImpl::accum_sample_closest;  
+            ++closestprobes;
+            break;
         case TextureOptions::InterpBilinear :
-            accumer = &TextureSystemImpl::accum_sample_bilinear;  break;
+            accumer = &TextureSystemImpl::accum_sample_bilinear;
+            ++bilinearprobes;
+            break;
         case TextureOptions::InterpBicubic :
-            accumer = &TextureSystemImpl::accum_sample_bicubic;  break;
+            accumer = &TextureSystemImpl::accum_sample_bicubic;
+            ++bicubicprobes;
+            break;
         case TextureOptions::InterpSmartBicubic :
             if (lev == 0 || options.interpmode == TextureOptions::InterpBicubic ||
-                (texturefile.spec(lev).full_height < naturalres/2))
+                (texturefile.spec(lev).full_height < naturalres/2)) {
                 accumer = &TextureSystemImpl::accum_sample_bicubic;
-            else 
+                ++bicubicprobes;
+            } else {
                 accumer = &TextureSystemImpl::accum_sample_bilinear;
+                ++bilinearprobes;
+            }
             break;
         }
         for (int sample = 0;  sample < nsamples;  ++sample) {
@@ -844,9 +891,18 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
             (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
                         options, index, tilecache0, tilecache1, w, result);
         }
-        ++m_stat_aniso_queries;
-        m_stat_aniso_probes += nsamples;
     }
+
+    // Update stats
+    m_stats_mutex.lock ();
+    m_stat_aniso_queries += npointson;
+    m_stat_aniso_probes += npointson * nsamples;
+    if (trueaspect > m_stat_max_aniso)
+        m_stat_max_aniso = trueaspect;
+    m_stat_closest_interps += closestprobes * nsamples;
+    m_stat_bilinear_interps += bilinearprobes * nsamples;
+    m_stat_cubic_interps += bicubicprobes * nsamples;
+    m_stats_mutex.unlock ();
 }
 
 
@@ -858,7 +914,6 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
                                  TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
-    ++m_stat_closest_interps;
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
@@ -919,7 +974,6 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                                  TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
-    ++m_stat_bilinear_interps;
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
@@ -1057,7 +1111,6 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
-    ++m_stat_cubic_interps;
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
