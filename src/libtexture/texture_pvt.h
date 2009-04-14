@@ -383,23 +383,24 @@ private:
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     mutable std::string m_errormessage;   ///< Saved error string.
+    mutable fast_mutex m_stats_mutex;     ///< Thread safety for stats
     mutable mutex m_errmutex;             ///< error mutex
     Filter1D *hq_filter;         ///< Better filter for magnification
     int m_statslevel;
-    int m_stat_texture_queries;
-    int m_stat_texture_batches;
-    int m_stat_texture3d_queries;
-    int m_stat_texture3d_batches;
-    int m_stat_shadow_queries;
-    int m_stat_shadow_batches;
-    int m_stat_environment_queries;
-    int m_stat_environment_batches;
-    int m_stat_aniso_queries;
-    int m_stat_aniso_probes;
+    long long m_stat_texture_queries;
+    long long m_stat_texture_batches;
+    long long m_stat_texture3d_queries;
+    long long m_stat_texture3d_batches;
+    long long m_stat_shadow_queries;
+    long long m_stat_shadow_batches;
+    long long m_stat_environment_queries;
+    long long m_stat_environment_batches;
+    long long m_stat_aniso_queries;
+    long long m_stat_aniso_probes;
     float m_stat_max_aniso;
-    int m_stat_closest_interps;
-    int m_stat_bilinear_interps;
-    int m_stat_cubic_interps;
+    long long m_stat_closest_interps;
+    long long m_stat_bilinear_interps;
+    long long m_stat_cubic_interps;
     friend class ImageCacheFile;
     friend class ImageCacheTile;
 };
