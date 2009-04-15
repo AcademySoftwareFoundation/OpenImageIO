@@ -978,6 +978,7 @@ IvGL::check_gl_extensions (void)
 
             // supported from OpenGL 1.1
             // they are the same extensions: GL_ARB is approved by ARB
+#ifdef GL_TEXTURE_RECTANGLE_ARB
             if (test (extension, "GL_ARB_texture_rectangle") ||
                 test (extension, "GL_EXT_texture_rectangle")) {
                 m_unnormalized_coords = true;
@@ -985,7 +986,17 @@ IvGL::check_gl_extensions (void)
                 glEnable (m_target_texture);
                 return;
             }
-            // add GL_TEXTURE_RECTANGLE_NV?
+#endif
+
+            // supported from OpenGL 1.2.1
+#ifdef GL_TEXTURE_RECTANGLE_NV
+            if (test (extension, "GL_NV_texture_rectangle")) {
+                m_unnormalized_coords = true;
+                m_target_texture = GL_TEXTURE_RECTANGLE_NV;
+                glEnable (m_target_texture);
+                return;
+            }
+#endif
         }
     }
 }
