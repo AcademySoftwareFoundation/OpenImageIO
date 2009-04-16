@@ -42,6 +42,10 @@
 #include <boost/thread.hpp>
 #include <boost/version.hpp>
 
+#if (BOOST_VERSION == 103500)
+#include <boost/thread/shared_mutex.hpp>
+#endif
+
 typedef boost::mutex mutex;
 typedef boost::recursive_mutex recursive_mutex;
 
