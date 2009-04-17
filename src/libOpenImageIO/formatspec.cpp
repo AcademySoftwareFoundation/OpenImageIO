@@ -256,6 +256,8 @@ ImageSpec::default_channel_names ()
 size_t
 ImageSpec::pixel_bytes () const
 {
+    if (nchannels < 0)
+        return 0;
     return clamped_mult32 ((size_t)nchannels, channel_bytes());
 }
 
