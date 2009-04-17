@@ -749,6 +749,11 @@ ImageCacheImpl::getstats (int level) const
         std::sort (files.begin(), files.end(), filename_compare);
         for (size_t i = 0;  i < files.size();  ++i) {
             const ImageCacheFileRef &file (files[i]);
+            ASSERT (file);
+            if (file->broken()) {
+                out << "BROKEN    " << file->filename() << "\n";
+                continue;
+            }
             const ImageSpec &spec (file->spec());
             const char *formatcode = "u8";
             switch (spec.format.basetype) {
