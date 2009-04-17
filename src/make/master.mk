@@ -92,7 +92,8 @@ all_makefiles := ${wildcard src/*/module.mk}
 # may amend this
 all_tests := ${wildcard testsuite/tests/*}
 
-
+# List of all code tests to run.
+all_code_tests := ${subst src/,,${wildcard src/test_*}}
 
 # Making dist
 build_dirs := bin lib include doc
@@ -154,7 +155,22 @@ nuke:
 doxygen:
 	doxygen src/doc/Doxyfile
 
-test : ${all_tests}
+test: code_tests suite_tests
+
+code_tests: dist
+	@ echo "Running code tests..."
+	@ for f in ${all_code_tests} ; do \
+	    ( echo "$$f " ; \
+	      PATH=${build_dir}/bin:${PATH} \
+	      LD_LIBRARY_PATH=${build_dir}/lib:${LD_LIBRARY_PATH} \
+	      DYLD_LIBRARY_PATH=${build_dir}/lib:${DYLD_LIBRARY_PATH} \
+              ${build_dir}/bin/$$f ; \
+	    ) ; \
+        echo "Finished running code tests." ; \
+        echo "" ; \
+	done
+
+suite_tests: ${all_tests}
 	@ echo "Running test suite..."
 	@ for f in ${all_tests} ; do \
 	    ( cd $$f ; \
@@ -163,7 +179,9 @@ test : ${all_tests}
 	      LD_LIBRARY_PATH=../../../${build_dir}/lib:${LD_LIBRARY_PATH} \
 	      DYLD_LIBRARY_PATH=../../../${build_dir}/lib:${DYLD_LIBRARY_PATH} \
 	      ./run.py ; \
-	    ) \
+	    ) ; \
+        echo "Finished running test suite." ; \
+        echo "" ; \
 	done
 
 testclean : ${all_tests}
