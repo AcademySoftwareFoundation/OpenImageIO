@@ -188,6 +188,7 @@ catalog_plugin (const std::string &format_name,
 
 extern "C" {
     PLUGENTRY (hdr);
+    PLUGENTRY (ico);
     PLUGENTRY (jpeg);
     PLUGENTRY (openexr);
     PLUGENTRY (png);
@@ -214,6 +215,7 @@ catalog_builtin_plugins ()
                     name ## _output_extensions)
 
     DECLAREPLUG (hdr);
+    DECLAREPLUG (ico);
     DECLAREPLUG (jpeg);
     DECLAREPLUG (openexr);
     DECLAREPLUG (png);

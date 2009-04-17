@@ -1,0 +1,355 @@
+/*
+  Copyright 2009 Larry Gritz and the other authors and contributors.
+  All Rights Reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are
+  met:
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+  * Neither the name of the software's owners nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+  (This is the Modified BSD License)
+*/
+
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+
+#include "ico.h"
+using namespace ICO_pvt;
+
+#include "dassert.h"
+#include "typedesc.h"
+#include "imageio.h"
+#include "thread.h"
+#include "strutil.h"
+#include "fmath.h"
+
+using namespace OpenImageIO;
+
+class ICOInput : public ImageInput {
+public:
+    ICOInput () { init(); }
+    virtual ~ICOInput () { close(); }
+    virtual const char * format_name (void) const { return "ico"; }
+    virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual bool close ();
+    virtual int current_subimage (void) const { return m_subimage; }
+    virtual bool seek_subimage (int index, ImageSpec &newspec);
+    virtual bool read_native_scanline (int y, int z, void *data);
+
+private:
+    std::string m_filename;           ///< Stash the filename
+    FILE *m_file;                     ///< Open image handle
+    ico_header m_ico;                 ///< ICO header
+    std::vector<unsigned char> m_buf; ///< Buffer the image pixels
+    int m_subimage;                   ///< What subimage are we looking at?
+    int m_bpp;                        ///< Bits per pixel
+    int m_offset;                     ///< Offset to image data
+    int m_subimage_size;              ///< Length (in bytes) of image data
+    int m_palette_size;               ///< Number of colours in palette (0 means 256)
+
+    /// Reset everything to initial state
+    ///
+    void init () {
+        m_subimage = -1;
+        m_file = NULL;
+        memset (&m_ico, 0, sizeof (m_ico));
+        m_buf.clear ();
+    }
+
+    /// Helper function: read the image.
+    ///
+    bool readimg ();
+
+};
+
+
+
+// Obligatory material to make this a recognizeable imageio plugin:
+extern "C" {
+
+DLLEXPORT ImageInput *ico_input_imageio_create () { return new ICOInput; }
+
+DLLEXPORT int ico_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+
+DLLEXPORT const char * ico_input_extensions[] = {
+    "ico", NULL
+};
+
+};
+
+
+
+bool
+ICOInput::open (const std::string &name, ImageSpec &newspec)
+{
+    m_filename = name;
+
+    m_file = fopen (name.c_str(), "rb");
+    if (! m_file) {
+        error ("Could not open file \"%s\"", name.c_str());
+        return false;
+    }
+
+    fread (&m_ico, 1, sizeof(m_ico), m_file);
+    if (bigendian()) {
+        // ICOs are little endian
+        //swap_endian (&m_ico.reserved); // no use flipping, it's 0 anyway
+        swap_endian (&m_ico.type);
+        swap_endian (&m_ico.count);
+    }
+    if (m_ico.reserved != 0 || m_ico.type != 1) {
+        error ("File failed ICO header check");
+        return false;
+    }
+
+    // default to subimage #0, according to convention
+    seek_subimage (0, m_spec);
+
+    newspec = spec ();
+
+    return true;
+}
+
+
+
+bool
+ICOInput::seek_subimage (int index, ImageSpec &newspec)
+{
+    /*std::cerr << "[ico] seeking subimage " << index << " (current "
+              << m_subimage << ") out of " << m_ico.count << "\n";*/
+    if (index == m_subimage) {
+        newspec = spec();
+        return true;
+    }
+
+    if (index < 0 || index >= m_ico.count)
+        return false;
+
+    m_subimage = index;
+
+    // read subimage header
+    fseek (m_file, sizeof(ico_header) + m_subimage * sizeof(ico_subimage), SEEK_SET);
+    ico_subimage subimg;
+    fread (&subimg, 1, sizeof(subimg), m_file);
+    if (bigendian()) {
+        // ICOs are little endian
+        swap_endian (&subimg.bpp);
+        swap_endian (&subimg.width);
+        swap_endian (&subimg.height);
+        swap_endian (&subimg.len);
+        swap_endian (&subimg.ofs);
+        swap_endian (&subimg.numColours);
+    }
+
+    fseek (m_file, subimg.ofs, SEEK_SET);
+
+    // test for a PNG icon
+    char temp[4];
+    fread (temp, 1, sizeof(temp), m_file);
+    if (temp[1] == 'P' && temp[2] == 'N' && temp[3] == 'G') {
+        // TODO
+        error ("PNG icons are not supported yet, please poke Leszek "
+               "in the mailing list");
+        return false;
+    }
+
+    // otherwise it's a plain, ol' windoze DIB (device-independent bitmap)
+    // roll back to where we began and read in the DIB header
+    fseek (m_file, subimg.ofs, SEEK_SET);
+
+    ico_bitmapinfo bmi;
+    fread (&bmi, 1, sizeof(bmi), m_file);
+    if (bigendian()) {
+        // ICOs are little endian
+        // according to MSDN, only these are valid in an ICO DIB header
+        swap_endian (&bmi.size);
+        swap_endian (&bmi.bpp);
+        swap_endian (&bmi.width);
+        swap_endian (&bmi.height);
+        swap_endian (&bmi.len);
+    }
+
+    /*std::cerr << "[ico] " << (int)subimg.width << "x" << (int)subimg.height << "@"
+              << (int)bmi.bpp << " (subimg len=" << (int)subimg.len << ", bm len="
+              << (int)bmi.len << ", ofs=" << (int)subimg.ofs << "), c#"
+              << (int)subimg.numColours << ", p#" << (int)subimg.planes << ":"
+              << (int)bmi.planes << "\n";*/
+
+    // copy off values for later use
+    m_bpp = bmi.bpp;
+    // some sanity checking
+    if (m_bpp != 4 && m_bpp != 8
+        && m_bpp != 16 && m_bpp != 24 && m_bpp != 32) {
+        error ("Unsupported image color depth, probably corrupt file");
+        return false;
+    }
+    m_offset = subimg.ofs;
+    m_subimage_size = subimg.len;
+    // palette size of 0 actually indicates 256 colours
+    m_palette_size = (subimg.numColours == 0 && m_bpp < 16)
+                     ? 256 : (int)subimg.numColours;
+
+    m_spec = ImageSpec ((int)subimg.width, (int)subimg.height,
+                        4, // always RGBA
+                        TypeDesc::UINT8); // 4- and 16-bit are expanded to 8bpp
+    m_spec.default_channel_names ();
+    // according to a discussion I had with Larry, it's not really linear
+    m_spec.linearity = ImageSpec::UnknownLinearity;
+
+    /*std::cerr << "[ico] expected bytes: scanline " << m_spec.scanline_bytes()
+              << ", image " << m_spec.image_bytes() << "\n";*/
+
+    newspec = spec ();
+    return true;
+}
+
+
+
+bool
+ICOInput::readimg ()
+{
+    DASSERT (m_spec.scanline_bytes() == (m_spec.width * 4));
+    m_buf.resize (m_spec.image_bytes());
+
+    // icons < 16bpp are colour-indexed, so load the palette
+    // a palette consists of 4-byte RGB quads, with the last byte unused (reserved)
+    std::vector<ico_palette_entry> palette ((int)m_palette_size);
+    if (m_bpp < 16) { // >= 16-bit icons are unpaletted
+        for (int i = 0; i < m_palette_size; i++)
+            fread (&palette[i], 1, sizeof (ico_palette_entry), m_file);
+    }
+
+    // read the colour data (the 1-bit transparency is added later on)
+    // scanline length in bytes (aligned to a multiple of 32 bits)
+    int slb = (m_spec.width * m_bpp + 7) / 8 // real data bytes
+              + (4 - ((m_spec.width * m_bpp + 7) / 8) % 4) % 4; // padding
+    std::vector<unsigned char> scanline (slb);
+    ico_palette_entry *pe;
+    int k;
+    for (int y = m_spec.height - 1; y >= 0; y--) {
+        fread (&scanline[0], 1, slb, m_file);
+        for (int x = 0; x < m_spec.width; x++) {
+            k = y * m_spec.width * 4 + x * 4;
+            // fill the buffer
+            switch (m_bpp) {
+            case 4:
+                pe = &palette[(scanline[x / 2] & 0xF0) >> 4];
+                m_buf[k + 0] = pe->r;
+                m_buf[k + 1] = pe->g;
+                m_buf[k + 2] = pe->b;
+                // 2 pixels per byte
+                pe = &palette[scanline[x / 2] & 0x0F];
+                if (x == m_spec.width - 1)
+                    break; // avoid buffer overflows
+                x++;
+                m_buf[k + 4] = pe->r;
+                m_buf[k + 5] = pe->g;
+                m_buf[k + 6] = pe->b;
+                /*std::cerr << "[ico] " << y << " 2*4bit pixel: "
+                          << ((int)scanline[x / 2]) << " -> "
+                          << ((int)(scanline[x / 2] & 0xF0) >> 4)
+                          << " & " << ((int)(scanline[x / 2]) & 0x0F)
+                          << "\n";*/
+                break;
+            case 8:
+                pe = &palette[scanline[x]];
+                m_buf[k + 0] = pe->r;
+                m_buf[k + 1] = pe->g;
+                m_buf[k + 2] = pe->b;
+                break;
+            // bpp values >= 16 mean non-indexed BGR(A) images
+            case 16:
+                // FIXME: find out exactly which channel gets the 1 extra
+                // bit; currently I assume it's green: 5B, 6G, 5R
+                // extract and shift the bits
+                m_buf[k + 0] = (scanline[x * 2 + 1] & 0x1F) << 3;
+                m_buf[k + 1] = ((scanline[x * 2 + 1] & 0xE0) >> 3)
+                               | ((scanline[x * 2 + 0] & 0x07) << 5);
+                m_buf[k + 2] = scanline[x * 2 + 0] & 0xF8;
+                break;
+            case 24:
+                m_buf[k + 0] = scanline[x * 3 + 2];
+                m_buf[k + 1] = scanline[x * 3 + 1];
+                m_buf[k + 2] = scanline[x * 3 + 0];
+                break;
+            case 32:
+                m_buf[k + 0] = scanline[x * 4 + 2];
+                m_buf[k + 1] = scanline[x * 4 + 1];
+                m_buf[k + 2] = scanline[x * 4 + 0];
+                m_buf[k + 3] = scanline[x * 4 + 3];
+                break;
+            }
+        }
+    }
+
+    // read the 1-bit transparency for < 32-bit icons
+    if (m_bpp < 32) {
+        // also aligned to a multiple of 32 bits
+        slb = (m_spec.width + 7) / 8 // real data bytes
+              + (4 - ((m_spec.width + 7) / 8) % 4) % 4; // padding
+        scanline.resize (slb);
+        for (int y = m_spec.height -1; y >= 0; y--) {
+            fread (&scanline[0], 1, slb, m_file);
+            for (int x = 0; x < m_spec.width; x += 8) {
+                for (int b = 0; b < 8; b++) {
+                    k = y * m_spec.width * 4 + (x + 7 - b) * 4;
+                    if (scanline[x / 8] & (1 << b))
+                        m_buf[k + 3] = 0;
+                    else
+                        m_buf[k + 3] = 255;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+
+
+bool
+ICOInput::close ()
+{
+    if (m_file) {
+        fclose (m_file);
+        m_file = NULL;
+    }
+
+    init();  // Reset to initial state
+    return true;
+}
+
+
+
+bool
+ICOInput::read_native_scanline (int y, int z, void *data)
+{
+    if (m_buf.empty ()) {
+        if (!readimg ())
+            return false;
+    }
+
+    size_t size = spec().scanline_bytes();
+    //std::cerr << "[ico] reading scanline " << y << " (" << size << " bytes)\n";
+    memcpy (data, &m_buf[y * size], size);
+    return true;
+}

@@ -55,6 +55,7 @@ endif
 # Only dist the plugins if we're building without embedded plugins
 ifeq (${EMBEDPLUGINS},)
 dist_libs       += hdr.imageio${SHLIBEXT} \
+		   ico.imageio${SHLIBEXT} \
 		   jpeg.imageio${SHLIBEXT} \
 		   openexr.imageio${SHLIBEXT} \
 		   png.imageio${SHLIBEXT} \
