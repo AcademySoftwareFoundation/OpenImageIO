@@ -60,7 +60,8 @@ dist_libs       += hdr.imageio${SHLIBEXT} \
 		   openexr.imageio${SHLIBEXT} \
 		   png.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT} \
-		   zfile.imageio${SHLIBEXT}
+		   zfile.imageio${SHLIBEXT} \
+                   bmp.imageio${SHLIBEXT}
 endif
 
 # include files that get included in the compiled distribution
