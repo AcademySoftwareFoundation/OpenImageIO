@@ -79,6 +79,19 @@ struct BmpHeader
 
 
 
+/// structure that store informations about colors used in bitmaps
+/// this structure is used with pictures that have less then 16 bit color depth
+/// it is placed directly after BMPHeader and DibHeader
+///
+struct ColorTable {
+    unsigned char blue;
+    unsigned char green;
+    unsigned char red;
+    unsigned char unused;
+};
+
+
+
 /// Abstract class that represent the DibHeader - it contains detailed
 /// information about bitmap.
 /// DIB stands for device-independent bitmap.

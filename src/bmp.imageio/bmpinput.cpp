@@ -71,6 +71,23 @@ class BmpInput : public ImageInput {
     /// Return true if method read as many byte as is needed by the header.
     bool read_dib_header (void);
 
+    /// read images with 4-bit color depth
+    ///
+    bool read_bmp_image4 (void);
+
+    /// read images with 8-bit color depth
+    ///
+    bool read_bmp_image8 (void);
+
+    /// read images with 24- and 32-bit colors depths
+    ///
+    bool read_bmp_imageRGB (void);
+
+    /// read color table from file
+    /// return pointer to created ColorTable struct
+    ///
+    ColorTable* read_color_table (void);
+
     void init () 
     {
       m_fd = NULL;
@@ -204,9 +221,78 @@ BmpInput::read_dib_header (void)
 bool
 BmpInput::read_bmp_image(void) 
 {
-    fseek(m_fd, m_hbmp.offset , SEEK_SET);
     const int buf_size = m_dbmp->height * m_dbmp->width * m_spec.nchannels;
     m_buf.resize (buf_size);
+
+    if (m_dbmp->bpp == 4)
+        return read_bmp_image4();
+    if (m_dbmp->bpp == 8)
+        return read_bmp_image8();
+    if (m_dbmp->bpp == 24 || m_dbmp->bpp == 32)
+        return read_bmp_imageRGB();
+    return false;
+}
+
+
+
+bool
+BmpInput::read_bmp_image4 (void)
+{
+    ColorTable *colors_table = read_color_table ();
+    // each byte store info about two pixels
+    const int scanline_size = m_dbmp->width >> 1;
+    const int data_size = scanline_size * m_dbmp->height;
+    std::vector<unsigned char> tmp_image (data_size);
+    fread (&tmp_image[0], 1, data_size, m_fd);
+    for (int x = 0; x < data_size; ++x) {
+        // choosing apprioprate color table and then converting
+        // color index to RGB value;
+        ColorTable *current_ct = NULL;
+        current_ct = &colors_table[(tmp_image[x] & 0xF0) >> 4];
+        m_buf[x * 6 + 0] = current_ct->red;
+        m_buf[x * 6 + 1] = current_ct->green;
+        m_buf[x * 6 + 2] = current_ct->blue;
+        // second pixel in this byte
+        current_ct = &colors_table[tmp_image[x] & 0x0F];
+        m_buf[x * 6 + 3] = current_ct->red;
+        m_buf[x * 6 + 4] = current_ct->green;
+        m_buf[x * 6 + 5] = current_ct->blue;
+    }
+    delete colors_table;
+    return true;
+}
+
+
+
+bool
+BmpInput::read_bmp_image8 (void)
+{
+    ColorTable *colors_table = read_color_table ();
+    // each byte store info about two pixels
+    const int scanline_size = m_dbmp->width;
+    const int data_size = scanline_size * m_dbmp->height;
+    std::vector<unsigned char> tmp_image (data_size);
+    fread (&tmp_image[0], 1, data_size, m_fd);
+    for (int x = 0; x < data_size; ++x) {
+        // choosing apprioprate color table and then converting
+        // color index to RGB value;
+        ColorTable *current_ct = NULL;
+        current_ct = &colors_table[(tmp_image[x])];
+        m_buf[x * 3 + 0] = current_ct->red;
+        m_buf[x * 3 + 1] = current_ct->green;
+        m_buf[x * 3 + 2] = current_ct->blue;
+    }
+    delete colors_table;
+    return true;
+}
+
+
+
+bool
+BmpInput::read_bmp_imageRGB (void)
+{
+    fseek(m_fd, m_hbmp.offset , SEEK_SET);
+    const int buf_size = m_dbmp->height * m_dbmp->width * m_spec.nchannels;
 
     // Assuming pixel size of 24- (RGB) or 32-bits (RGBA)
     fread(&m_buf[0], 1, buf_size, m_fd);
@@ -219,6 +305,26 @@ BmpInput::read_bmp_image(void)
         m_buf[j+2] = aux;
         // if m_spec.nchannels==4 the alpha channel is in good place
     }
-
     return true;
+}
+
+
+
+ColorTable*
+BmpInput::read_color_table (void)
+{
+    // size of color table is defined  by m_dbmp->colors
+    // if this field is 0 - color table has max colors: pow(2, m_dbmp->bpp)
+    // otherwise color table have m_dbmp->colors entries
+    const int num_of_colors = (! m_dbmp->colors) ? (1 << m_dbmp->bpp)
+                               : m_dbmp->colors;
+    ColorTable *colors_table = new ColorTable[num_of_colors];
+
+    // color table is stored directly after BMP File header
+    // and DIB header
+    const int color_table_offset = 14 + m_dbmp->size;
+    fseek (m_fd, color_table_offset, SEEK_SET);
+    fread (&colors_table[0], sizeof(ColorTable), num_of_colors, m_fd);
+
+    return colors_table;
 }
