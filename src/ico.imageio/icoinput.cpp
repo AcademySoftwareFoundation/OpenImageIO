@@ -231,7 +231,7 @@ ICOInput::readimg ()
     m_buf.resize (m_spec.image_bytes());
 
     // icons < 16bpp are colour-indexed, so load the palette
-    // a palette consists of 4-byte RGB quads, with the last byte unused (reserved)
+    // a palette consists of 4-byte BGR quads, with the last byte unused (reserved)
     std::vector<ico_palette_entry> palette ((int)m_palette_size);
     if (m_bpp < 16) { // >= 16-bit icons are unpaletted
         for (int i = 0; i < m_palette_size; i++)
