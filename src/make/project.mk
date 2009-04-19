@@ -27,6 +27,7 @@ help:
 	@echo "  make test         Run code tests and test suite tests"
 	@echo "  make code_tests   Run code tests"
 	@echo "  make suite_tests  Run test suite tests"
+	@echo "  make doxygen    Build the Doxygen docs in ${top_build_dir}/doxygen"
 	@echo ""
 	@echo "Helpful modifiers:"
 	@echo "  make SHOWCOMMANDS=1 ...     Show all compilation commands"

@@ -55,7 +55,7 @@ DLLPUBLIC const char *plugin_extension (void);
 
 /// Open the named plugin, return its handle.  If it could not be
 /// opened, return 0 and the next call to error_message() will contain
-/// an explanatory meshsage.
+/// an explanatory message.
 DLLPUBLIC Handle open (const char *plugin_filename);
 
 inline Handle
