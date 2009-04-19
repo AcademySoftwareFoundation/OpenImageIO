@@ -35,6 +35,11 @@
 #include "ico.h"
 using namespace ICO_pvt;
 
+#include <png.h>
+
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+
 #include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
@@ -66,11 +71,17 @@ private:
     int m_subimage_size;              ///< Length (in bytes) of image data
     int m_palette_size;               ///< Number of colours in palette (0 means 256)
 
+    png_structp m_png;                ///< PNG read structure pointer
+    png_infop m_info;                 ///< PNG image info structure pointer
+    int m_color_type;                 ///< PNG color model type
+
     /// Reset everything to initial state
     ///
     void init () {
         m_subimage = -1;
         m_file = NULL;
+        m_png = NULL;
+        m_info = NULL;
         memset (&m_ico, 0, sizeof (m_ico));
         m_buf.clear ();
     }
@@ -144,6 +155,13 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
     if (index < 0 || index >= m_ico.count)
         return false;
 
+    // deinitialize PNG structs, in case they were used
+    if (m_png && m_info) {
+        png_destroy_read_struct (&m_png, &m_info, NULL);
+        m_png = NULL;
+        m_info = NULL;
+    }
+
     m_subimage = index;
 
     // read subimage header
@@ -163,13 +181,111 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
     fseek (m_file, subimg.ofs, SEEK_SET);
 
     // test for a PNG icon
-    char temp[4];
+    char temp[8];
     fread (temp, 1, sizeof(temp), m_file);
     if (temp[1] == 'P' && temp[2] == 'N' && temp[3] == 'G') {
-        // TODO
-        error ("PNG icons are not supported yet, please poke Leszek "
-               "in the mailing list");
-        return false;
+        // most code in here is copied from pnginput.cpp
+        // standard PNG initalization
+        if (! png_check_sig ((png_byte *)temp, sizeof (temp))) {
+            error ("Subimage failed PNG signature check");
+            return false;
+        }
+        m_png = png_create_read_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+        if (! m_png) {
+            error ("Could not create PNG read structure");
+            return false;
+        }
+        m_info = png_create_info_struct (m_png);
+        if (! m_info) {
+            error ("Could not create PNG info structure");
+            return false;
+        }
+
+        // Must call this setjmp in every function that does PNG reads
+        if (setjmp (png_jmpbuf(m_png))) {
+            error ("PNG library error");
+            return false;
+        }
+
+        png_init_io (m_png, m_file);
+        png_set_sig_bytes (m_png, 8);  // already read 8 bytes
+        png_read_info (m_png, m_info);
+
+        unsigned int width, height;
+        png_get_IHDR (m_png, m_info,
+                      (png_uint_32 *)&width, (png_uint_32 *)&height,
+                      &m_bpp, &m_color_type, NULL, NULL, NULL);
+    
+        m_spec = ImageSpec ((int)width, (int)height,
+                            png_get_channels (m_png, m_info),
+                            m_bpp == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
+
+        m_spec.default_channel_names ();
+
+        double gamma;
+        if (png_get_gAMA (m_png, m_info, &gamma)) {
+            m_spec.gamma = (float) gamma;
+            m_spec.linearity = (gamma == 1) ? ImageSpec::Linear 
+                                            : ImageSpec::GammaCorrected;
+        }
+        int srgb_intent;
+        if (png_get_sRGB (m_png, m_info, &srgb_intent)) {
+            m_spec.linearity = ImageSpec::sRGB;
+        }
+        png_timep mod_time;
+        if (png_get_tIME (m_png, m_info, &mod_time)) {
+            std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
+                               mod_time->year, mod_time->month, mod_time->day,
+                               mod_time->hour, mod_time->minute, mod_time->second);
+            m_spec.attribute ("DateTime", date); 
+        }
+    
+        png_textp text_ptr;
+        int num_comments = png_get_text (m_png, m_info, &text_ptr, NULL);
+        if (num_comments) {
+            std::string comments;
+            for (int i = 0;  i < num_comments;  ++i) {
+                if (iequals (text_ptr[i].key, "Description"))
+                    m_spec.attribute ("ImageDescription", text_ptr[i].text);
+                else if (iequals (text_ptr[i].key, "Author"))
+                    m_spec.attribute ("Artist", text_ptr[i].text);
+                else if (iequals (text_ptr[i].key, "Title"))
+                    m_spec.attribute ("DocumentName", text_ptr[i].text);
+                else
+                    m_spec.attribute (text_ptr[i].key, text_ptr[i].text);
+            }
+        }
+        m_spec.x = png_get_x_offset_pixels (m_png, m_info);
+        m_spec.y = png_get_y_offset_pixels (m_png, m_info);
+
+        int unit;
+        png_uint_32 resx, resy;
+        if (png_get_pHYs (m_png, m_info, &resx, &resy, &unit)) {
+            float scale = 1;
+            if (unit == PNG_RESOLUTION_METER) {
+                // Convert to inches, to match most other formats
+                scale = 2.54 / 100.0;
+                m_spec.attribute ("ResolutionUnit", "inch");
+            } else
+                m_spec.attribute ("ResolutionUnit", "unknown");
+            m_spec.attribute ("XResolution", (float)resx*scale);
+            m_spec.attribute ("YResolution", (float)resy*scale);
+        }
+
+        float aspect = (float)png_get_pixel_aspect_ratio (m_png, m_info);
+        if (aspect != 0 && aspect != 1)
+            m_spec.attribute ("PixelAspectRatio", aspect);
+
+        float r, g, b;
+        /*if (get_background (&r, &g, &b)) {
+            m_bg = Imath::Color3f (r, g, b);
+            // FIXME -- should we do anything with the background color?
+        }*/
+
+        // FIXME -- look for an XMP packet in an iTXt chunk.
+
+        newspec = spec ();
+        return true;
     }
 
     // otherwise it's a plain, ol' windoze DIB (device-independent bitmap)
@@ -227,6 +343,58 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
 bool
 ICOInput::readimg ()
 {
+    if (m_png) {
+        // subimage is a PNG
+        // code copied from pnginput.cpp
+
+        // Must call this setjmp in every function that does PNG reads
+        if (setjmp (png_jmpbuf (m_png))) {
+            error ("PNG library error");
+            return false;
+        }
+
+        // Auto-convert palette images to RGB
+        if (m_color_type == PNG_COLOR_TYPE_PALETTE)
+            png_set_palette_to_rgb (m_png);
+        // Auto-convert 1-, 2-, and 4- bit grayscale to 8 bits
+        if (m_color_type == PNG_COLOR_TYPE_GRAY && m_bpp < 8)
+            png_set_gray_1_2_4_to_8 (m_png);
+        // Auto-convert transparency to alpha
+        if (png_get_valid (m_png, m_info, PNG_INFO_tRNS))
+            png_set_tRNS_to_alpha (m_png);
+#if 0
+        // ?? This doesn't seem necessary, but I don't know why
+        // Make the library handle fewer significant bits
+        // png_color_8p sig_bit;
+        // if (png_get_sBIT (m_png, m_info, &sig_bit)) {
+        //        png_set_shift (m_png, sig_bit);
+        // }
+#endif
+
+        // PNG files are naturally big-endian
+        if (littleendian())
+            png_set_swap (m_png);
+
+        double gamma;
+        if (png_get_gAMA (m_png, m_info, &gamma))
+            png_set_gamma (m_png, 1.0, gamma);
+
+        png_read_update_info (m_png, m_info);
+
+        DASSERT (m_spec.scanline_bytes() == png_get_rowbytes(m_png,m_info));
+        m_buf.resize (m_spec.image_bytes());
+
+        std::vector<unsigned char *> row_pointers (m_spec.height);
+        for (int i = 0;  i < m_spec.height;  ++i)
+            row_pointers[i] = &m_buf[0] + i * m_spec.scanline_bytes();
+
+        png_read_image (m_png, &row_pointers[0]);
+        png_read_end (m_png, NULL);
+
+        return true;
+    }
+
+    // otherwise we're dealing with a DIB
     DASSERT (m_spec.scanline_bytes() == (m_spec.width * 4));
     m_buf.resize (m_spec.image_bytes());
 
@@ -329,6 +497,11 @@ ICOInput::readimg ()
 bool
 ICOInput::close ()
 {
+    if (m_png && m_info) {
+        png_destroy_read_struct (&m_png, &m_info, NULL);
+        m_png = NULL;
+        m_info = NULL;
+    }
     if (m_file) {
         fclose (m_file);
         m_file = NULL;

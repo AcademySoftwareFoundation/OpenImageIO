@@ -35,6 +35,11 @@
 #include "ico.h"
 using namespace ICO_pvt;
 
+#include <png.h>
+
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+
 #include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
@@ -59,23 +64,32 @@ public:
 private:
     std::string m_filename;           ///< Stash the filename
     FILE *m_file;                     ///< Open image handle
-    enum {
-        COL_GRAY,
-        COL_GRAY_ALPHA,
-        COL_RGB,
-        COL_RGB_ALPHA
-    } m_colour_type;                  ///< Requested colour type
+    int m_colour_type;                ///< Requested colour type
     bool m_want_png;                  ///< Whether the client requested PNG
-    std::vector<unsigned char> m_scratch;
+    std::vector<unsigned char> m_scratch; ///< Scratch buffer
     int m_offset;                     ///< Offset to subimage data chunk
     int m_xor_slb;                    ///< XOR mask scanline length in bytes
     int m_and_slb;                    ///< AND mask scanline length in bytes
     int m_bpp;                        ///< Bits per pixel
+
+    png_structp m_png;                ///< PNG read structure pointer
+    png_infop m_info;                 ///< PNG image info structure pointer
+    std::vector<png_text> m_pngtext;
     
-    // Initialize private members to pre-opened state
+    /// Initialize private members to pre-opened state
     void init (void) {
         m_file = NULL;
+        m_png = NULL;
+        m_info = NULL;
+        m_pngtext.clear ();
     }
+
+    /// Add a parameter to the output
+    bool put_parameter (const std::string &name, TypeDesc type,
+                        const void *data);
+
+    /// Finish the writing of a PNG subimage
+    void finish_png_image ();
 };
 
 
@@ -133,27 +147,28 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         error ("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
-    if (m_spec.format != TypeDesc::UINT8) {
-        error ("ICO only supports uint8 pixel data");
-        return false;
-    }
 
+    // reuse PNG constants for DIBs as well
     switch (m_spec.nchannels) {
-    case 1 : m_colour_type = COL_GRAY; break;
-    case 2 : m_colour_type = COL_GRAY_ALPHA; break;
-    case 3 : m_colour_type = COL_RGB; break;
-    case 4 : m_colour_type = COL_RGB_ALPHA; break;
+    case 1 : m_colour_type = PNG_COLOR_TYPE_GRAY; break;
+    case 2 : m_colour_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
+    case 3 : m_colour_type = PNG_COLOR_TYPE_RGB; break;
+    case 4 : m_colour_type = PNG_COLOR_TYPE_RGB_ALPHA; break;
     default:
         error ("ICO only supports 1-4 channels, not %d", m_spec.nchannels);
         return false;
     }
 
-    m_bpp = (m_colour_type == COL_GRAY_ALPHA
-            || m_colour_type == COL_RGB_ALPHA) ? 32 : 24;
+    m_bpp = (m_colour_type == PNG_COLOR_TYPE_GRAY_ALPHA
+            || m_colour_type == PNG_COLOR_TYPE_RGB_ALPHA) ? 32 : 24;
     m_xor_slb = (m_spec.width * m_bpp + 7) / 8 // real data bytes
                 + (4 - ((m_spec.width * m_bpp + 7) / 8) % 4) % 4; // padding
     m_and_slb = (m_spec.width + 7) / 8 // real data bytes
                 + (4 - ((m_spec.width + 7) / 8) % 4) % 4; // padding
+
+    // Force either 16 or 8 bit integers
+    if (m_spec.format != TypeDesc::UINT16)
+        m_spec.format = TypeDesc::UINT8;
 
     //std::cerr << "[ico] writing at " << m_bpp << "bpp\n";
 
@@ -221,20 +236,28 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         // their data correctly
         uint32_t temp;
         fseek (m_file, offsetof (ico_subimage, ofs), SEEK_CUR);
-        for (int i = 0; i < subimage - 1; i++) {
+        for (int i = 0; i < subimage; i++) {
             fread (&temp, sizeof (temp), 1, m_file);
             if (bigendian())
                 swap_endian (&temp);
             temp += sizeof (ico_subimage);
             if (bigendian())
                 swap_endian (&temp);
+            // roll back 4 bytes, we need to rewrite the value we just read
             fseek (m_file, -4, SEEK_CUR);
             fwrite (&temp, sizeof (temp), 1, m_file);
+            // skip to the next subimage; subtract 4 bytes because that's how
+            // much we've just written
             fseek (m_file, sizeof (ico_subimage) - 4, SEEK_CUR);
         }
 
         // offset at which we'll be writing new image data
         m_offset = len + sizeof (ico_subimage);
+
+        // next part of code expects the file pointer to be where the new
+        // subimage header is to be written
+        fseek (m_file, sizeof (ico_header) + subimage * sizeof (ico_subimage),
+                                                                    SEEK_SET);
     }
 
     // write subimage header
@@ -257,19 +280,106 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     }
     fwrite (&subimg, 1, sizeof(subimg), m_file);
 
+    fseek (m_file, m_offset, SEEK_SET);
     if (m_want_png) {
-        // TODO
-        error ("PNG icons are not supported yet, please poke Leszek "
-               "in the mailing list");
-        return false;
+        // code mostly copied from pngoutput.cpp
+
+        m_png = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+        if (! m_png) {
+            close ();
+            error ("Could not create PNG write structure");
+            return false;
+        }
+
+        m_info = png_create_info_struct (m_png);
+        if (! m_info) {
+            close ();
+            error ("Could not create PNG info structure");
+            return false;
+        }
+
+        // Must call this setjmp in every function that does PNG writes
+        if (setjmp (png_jmpbuf(m_png))) {
+            close ();
+            error ("PNG library error");
+            return false;
+        }
+
+        png_init_io (m_png, m_file);
+        png_set_compression_level (m_png, Z_BEST_COMPRESSION);
+
+        png_set_IHDR (m_png, m_info, m_spec.width, m_spec.height,
+                      m_spec.format.size()*8, m_colour_type, PNG_INTERLACE_NONE,
+                      PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+
+        png_set_oFFs (m_png, m_info, m_spec.x, m_spec.y, PNG_OFFSET_PIXEL);
+
+        switch (m_spec.linearity) {
+        case ImageSpec::UnknownLinearity :
+            break;
+        case ImageSpec::Linear :
+            png_set_gAMA (m_png, m_info, 1.0);
+            break;
+        case ImageSpec::GammaCorrected :
+            png_set_gAMA (m_png, m_info, m_spec.gamma);
+            break;
+        case ImageSpec::sRGB :
+            png_set_sRGB_gAMA_and_cHRM (m_png, m_info, PNG_sRGB_INTENT_ABSOLUTE);
+            break;
+        }
+
+        if (false && ! m_spec.find_attribute("DateTime")) {
+            time_t now;
+            time (&now);
+            struct tm mytm;
+            localtime_r (&now, &mytm);
+            std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
+                                  mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
+                                  mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
+            m_spec.attribute ("DateTime", date);
+        }
+
+        ImageIOParameter *unit=NULL, *xres=NULL, *yres=NULL;
+        if ((unit = m_spec.find_attribute("ResolutionUnit", TypeDesc::STRING)) &&
+            (xres = m_spec.find_attribute("XResolution", TypeDesc::FLOAT)) &&
+            (yres = m_spec.find_attribute("YResolution", TypeDesc::FLOAT))) {
+            const char *unitname = *(const char **)unit->data();
+            const float x = *(const float *)xres->data();
+            const float y = *(const float *)yres->data();
+            int unittype = PNG_RESOLUTION_UNKNOWN;
+            float scale = 1;
+            if (! strcmp (unitname, "meter") || ! strcmp (unitname, "m"))
+                unittype = PNG_RESOLUTION_METER;
+            else if (! strcmp (unitname, "cm")) {
+                unittype = PNG_RESOLUTION_METER;
+                scale = 100;
+            } else if (! strcmp (unitname, "inch") || ! strcmp (unitname, "in")) {
+                unittype = PNG_RESOLUTION_METER;
+                scale = 100.0/2.54;
+            }
+            png_set_pHYs (m_png, m_info, (png_uint_32)(x*scale),
+                          (png_uint_32)(y*scale), unittype);
+        }
+
+        // Deal with all other params
+        for (size_t p = 0;  p < m_spec.extra_attribs.size();  ++p)
+            put_parameter (m_spec.extra_attribs[p].name().string(),
+                          m_spec.extra_attribs[p].type(),
+                          m_spec.extra_attribs[p].data());
+
+        if (m_pngtext.size())
+            png_set_text (m_png, m_info, &m_pngtext[0], m_pngtext.size());
+
+        png_write_info (m_png, m_info);
+        png_set_packing (m_png);   // Pack 1, 2, 4 bit into bytes
     } else {
-        fseek (m_file, m_offset, SEEK_SET);
         // write DIB header
         ico_bitmapinfo bmi;
         memset (&bmi, 0, sizeof (bmi));
         bmi.size = sizeof (bmi);
         bmi.width = m_spec.width;
-        bmi.height = m_spec.height;
+        // this value is sum of heights of both XOR and AND masks
+        bmi.height = m_spec.height * 2;
         bmi.bpp = m_bpp;
         bmi.planes = 1;
         bmi.len = subimg.len - sizeof (ico_bitmapinfo);
@@ -308,8 +418,109 @@ ICOOutput::supports (const std::string &feature) const
 
 
 bool
+ICOOutput::put_parameter (const std::string &_name, TypeDesc type,
+                           const void *data)
+{
+    std::string name = _name;
+
+    // Things to skip
+    if (iequals(name, "planarconfig"))  // No choice for PNG files
+        return false;
+    if (iequals(name, "compression"))
+        return false;
+    if (iequals(name, "ResolutionUnit") ||
+          iequals(name, "XResolution") || iequals(name, "YResolution"))
+        return false;
+
+    // Remap some names to PNG conventions
+    if (iequals(name, "Artist") && type == TypeDesc::STRING)
+        name = "Author";
+    if ((iequals(name, "name") || iequals(name, "DocumentName")) &&
+          type == TypeDesc::STRING)
+        name = "Title";
+    if ((iequals(name, "description") || iequals(name, "ImageDescription")) &&
+          type == TypeDesc::STRING)
+        name = "Description";
+
+    if (iequals(name, "DateTime") && type == TypeDesc::STRING) {
+        png_time mod_time;
+        int year, month, day, hour, minute, second;
+        if (sscanf (*(const char **)data, "%4d:%02d:%02d %2d:%02d:%02d",
+                    &year, &month, &day, &hour, &minute, &second) == 6) {
+            mod_time.year = year;
+            mod_time.month = month;
+            mod_time.day = day;
+            mod_time.hour = hour;
+            mod_time.minute = minute;
+            mod_time.second = second;
+            png_set_tIME (m_png, m_info, &mod_time);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+#if 0
+    if (iequals(name, "ResolutionUnit") && type == TypeDesc::STRING) {
+        const char *s = *(char**)data;
+        bool ok = true;
+        if (! strcmp (s, "none"))
+            PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, RESUNIT_NONE);
+        else if (! strcmp (s, "in") || ! strcmp (s, "inch"))
+            PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, RESUNIT_INCH);
+        else if (! strcmp (s, "cm"))
+            PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, RESUNIT_CENTIMETER);
+        else ok = false;
+        return ok;
+    }
+    if (iequals(name, "ResolutionUnit") && type == TypeDesc::UINT) {
+        PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, *(unsigned int *)data);
+        return true;
+    }
+    if (iequals(name, "XResolution") && type == TypeDesc::FLOAT) {
+        PNGSetField (m_tif, PNGTAG_XRESOLUTION, *(float *)data);
+        return true;
+    }
+    if (iequals(name, "YResolution") && type == TypeDesc::FLOAT) {
+        PNGSetField (m_tif, PNGTAG_YRESOLUTION, *(float *)data);
+        return true;
+    }
+#endif
+    if (type == TypeDesc::STRING) {
+        png_text t;
+        t.compression = PNG_TEXT_COMPRESSION_NONE;
+        t.key = (char *)ustring(name).c_str();
+        t.text = *(char **)data;   // Already uniquified
+        m_pngtext.push_back (t);
+    }
+
+    return false;
+}
+
+
+
+void
+ICOOutput::finish_png_image ()
+{
+    // Must call this setjmp in every function that does PNG writes
+    if (setjmp (png_jmpbuf(m_png))) {
+        error ("PNG library error");
+        return;
+    }
+    png_write_end (m_png, NULL);
+}
+
+
+
+bool
 ICOOutput::close ()
 {
+    if (m_png && m_info) {
+        finish_png_image ();
+        png_destroy_write_struct (&m_png, &m_info);
+        m_png = NULL;
+        m_info = NULL;
+    }
     if (m_file) {
         fclose (m_file);
         m_file = NULL;
@@ -336,39 +547,47 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
     }
 
     if (m_want_png) {
-        // TODO
-        error ("PNG icons are not supported yet, please poke Leszek "
-               "in the mailing list");
-        return false; // should never actually get here
-        //png_write_row (m_png, (png_byte *)data);
+        // Must call this setjmp in every function that does PNG writes
+        if (setjmp (png_jmpbuf (m_png))) {
+            error ("PNG library error");
+            return false;
+        }
+        png_write_row (m_png, (png_byte *)data);
     } else {
         unsigned char buf[4];
+        // these are used to read the most significant 8 bits only (the
+        // precision loss...), also accounting for byte order
+        int mult = format == TypeDesc::UINT16 ? 2 : 1;
+        int ofs = (mult > 1 && bigendian()) ? 1 : 0;
 
         fseek (m_file, m_offset + sizeof (ico_bitmapinfo)
             + (m_spec.height - y - 1) * m_xor_slb, SEEK_SET);
         // write the XOR mask
         for (int x = 0; x < m_spec.width; x++) {
             switch (m_colour_type) {
-            case COL_GRAY:
-                buf[0] = buf[1] = buf[2] = ((unsigned char *)data)[x];
+             // reuse PNG constants
+            case PNG_COLOR_TYPE_GRAY:
+                buf[0] = buf[1] = buf[2] =
+                    ((unsigned char *)data)[x * mult + ofs];
                 fwrite (buf, 3, 1, m_file);
                 break;
-            case COL_GRAY_ALPHA:
-                buf[0] = buf[1] = buf[2] = ((unsigned char *)data)[x * 2 + 0];
-                buf[3] = ((unsigned char *)data)[x * 2 + 1];
+            case PNG_COLOR_TYPE_GRAY_ALPHA:
+                buf[0] = buf[1] = buf[2] =
+                    ((unsigned char *)data)[mult * (x * 2 + 0) + ofs];
+                buf[3] = ((unsigned char *)data)[mult * (x * 2 + 1) + ofs];
                 fwrite (buf, 4, 1, m_file);
                 break;
-            case COL_RGB:
-                buf[0] = ((unsigned char *)data)[x * 3 + 2];
-                buf[1] = ((unsigned char *)data)[x * 3 + 1];
-                buf[2] = ((unsigned char *)data)[x * 3 + 0];
+            case PNG_COLOR_TYPE_RGB:
+                buf[0] = ((unsigned char *)data)[mult * (x * 3 + 2) + ofs];
+                buf[1] = ((unsigned char *)data)[mult * (x * 3 + 1) + ofs];
+                buf[2] = ((unsigned char *)data)[mult * (x * 3 + 0) + ofs];
                 fwrite (buf, 3, 1, m_file);
                 break;
-            case COL_RGB_ALPHA:
-                buf[0] = ((unsigned char *)data)[x * 4 + 2];
-                buf[1] = ((unsigned char *)data)[x * 4 + 1];
-                buf[2] = ((unsigned char *)data)[x * 4 + 0];
-                buf[3] = ((unsigned char *)data)[x * 4 + 3];
+            case PNG_COLOR_TYPE_RGB_ALPHA:
+                buf[0] = ((unsigned char *)data)[mult * (x * 4 + 2) + ofs];
+                buf[1] = ((unsigned char *)data)[mult * (x * 4 + 1) + ofs];
+                buf[2] = ((unsigned char *)data)[mult * (x * 4 + 0) + ofs];
+                buf[3] = ((unsigned char *)data)[mult * (x * 4 + 3) + ofs];
                 fwrite (buf, 4, 1, m_file);
                 break;
             }
@@ -380,19 +599,20 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
         // write the AND mask
         // only need to do this for images with alpha - 0 is opaque, and we've
         // already filled the file with zeros
-        if (m_colour_type != COL_GRAY && m_colour_type != COL_RGB) {
+        if (m_colour_type != PNG_COLOR_TYPE_GRAY
+            && m_colour_type != PNG_COLOR_TYPE_RGB) {
             for (int x = 0; x < m_spec.width; x += 8) {
                 buf[0] = 0;
-                for (int b = 0; b < 8; b++) {
-                    if (x + b > m_spec.width)
-                        break;
+                for (int b = 0; b < 8 && x + b < m_spec.width; b++) {
                     switch (m_colour_type) {
-                    case COL_GRAY_ALPHA:
-                        buf[0] |= ((unsigned char *)data)[(x + b) * 2 + 1]
+                    case PNG_COLOR_TYPE_GRAY_ALPHA:
+                        buf[0] |= ((unsigned char *)data)
+                                        [mult * ((x + b) * 2 + 1) + ofs]
                                   <= 127 ? (1 << (7 - b)) : 0;
                         break;
-                    case COL_RGB_ALPHA:
-                        buf[0] |= ((unsigned char *)data)[(x + b) * 3 + 1]
+                    case PNG_COLOR_TYPE_RGB_ALPHA:
+                        buf[0] |= ((unsigned char *)data)
+                                        [mult * ((x + b) * 4 + 3) + ofs]
                                   <= 127 ? (1 << (7 - b)) : 0;
                         break;
                     }
