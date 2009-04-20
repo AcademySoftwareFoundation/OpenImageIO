@@ -57,13 +57,13 @@
 namespace OpenImageIO {
 
 
-const int OPENIMAGEIO_VERSION_MAJOR = 0 ;
-const int OPENIMAGEIO_VERSION_MINOR = 5 ;
-const int OPENIMAGEIO_VERSION_PATCH = 0 ;
+#define OPENIMAGEIO_VERSION_MAJOR  0
+#define OPENIMAGEIO_VERSION_MINOR  5
+#define OPENIMAGEIO_VERSION_PATCH  1
 
-const int OPENIMAGEIO_VERSION = (10000 * OPENIMAGEIO_VERSION_MAJOR + 
-                                   100 * OPENIMAGEIO_VERSION_MINOR + 
-                                         OPENIMAGEIO_VERSION_PATCH);
+#define OPENIMAGEIO_VERSION (10000 * OPENIMAGEIO_VERSION_MAJOR + \
+                               100 * OPENIMAGEIO_VERSION_MINOR + \
+                                     OPENIMAGEIO_VERSION_PATCH)
 
 
 /// Each imageio DSO/DLL should include this statement:
@@ -78,11 +78,11 @@ const int OPENIMAGEIO_VERSION = (10000 * OPENIMAGEIO_VERSION_MAJOR +
 /// routines.
 /// Version 10 represents forking from NVIDIA's open source version,
 /// with which we break backwards compatibility.
-const int OPENIMAGEIO_PLUGIN_VERSION = 10;
+#define OPENIMAGEIO_PLUGIN_VERSION 10
 
 /// Strictly for back-compatibility -- this is deprecated
 ///
-const int IMAGEIO_VERSION = OPENIMAGEIO_PLUGIN_VERSION;
+#define IMAGEIO_VERSION OPENIMAGEIO_PLUGIN_VERSION
 
 
 
@@ -721,6 +721,11 @@ private:
 
 
 // Utility functions
+
+/// Retrieve the version of OpenImageIO for the library.  This is so 
+/// plugins can query to be sure they are linked against an adequate
+/// version of the library.
+DLLPUBLIC int openimageio_version ();
 
 /// If create() fails, there's no ImageInput/Output to use to
 /// call error_message(), so call ImageIOErrorMessage().

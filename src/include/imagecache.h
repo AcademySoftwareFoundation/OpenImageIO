@@ -187,6 +187,17 @@ public:
     /// tiles they are holding.
     virtual void invalidate (ustring filename) = 0;
 
+    /// Invalidate all loaded tiles and open file handles.  This is safe
+    /// to do even if other procedures are currently holding
+    /// reference-counted tile pointers from the named image, but those
+    /// procedures will not get updated pixels until they release the
+    /// tiles they are holding.  If force is true, everything will be
+    /// invalidated, no matter how wasteful it is, but if force is
+    /// false, in actuality files will only be invalidated if their
+    /// modification times have been changed since they were first
+    /// opened.
+    virtual void invalidate_all (bool force=false) = 0;
+
 private:
     // Make delete private and unimplemented in order to prevent apps
     // from calling it.  Instead, they should call ImageCache::destroy().

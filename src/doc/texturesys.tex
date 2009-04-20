@@ -824,10 +824,9 @@ plugin.
 \apiend
 
 \newpage
-\subsection{Texture Metadata, Raw Texels, and Errors}
+\subsection{Texture Metadata and Raw Texels}
 \label{sec:texturesys:api:gettextureinfo}
 \label{sec:texturesys:api:getimagespec}
-\label{sec:texturesys:api:geterror}
 
 \apiitem{bool {\ce get_texture_info} (ustring filename, ustring dataname, \\
 \bigspc                                 TypeDesc datatype, void *data)}
@@ -962,10 +961,13 @@ Returns the true path to the given file name, with searchpath logic
 applied.
 \apiend
 
-\apiitem{std::string {\ce geterror} ()}
+\subsection{Miscellaneous -- Statistics, errors, flushing the cache}
+\label{sec:texturesys:api:geterror}
+\label{sec:texturesys:api:getstats}
+\label{sec:texturesys:api:invalidate}
 
-If any other API 
-routines return {\cf false}, indicating that an
+\apiitem{std::string {\ce geterror} ()}
+If any other API routines return {\cf false}, indicating that an
 error has occurred, this routine will retrieve the error and clear
 the error status.  If no error has occurred since the last time
 {\cf geterror()} was called, it will return an empty string.
@@ -979,6 +981,33 @@ with higher numbers (up to a maximum of 5) yielding more and more
 esoteric information.  If {\cf icstats} is true, the returned string
 will also contain all the statistics of the underlying \ImageCache,
 but if false will only contain texture-specific statistics.
+\apiend
+
+\apiitem{void {\ce invalidate} (ustring filename)}
+Invalidate any loaded tiles or open file handles associated with
+the filename, so that any subsequent queries will be forced to
+re-open the file or re-load any tiles (even those that were
+previously loaded and would ordinarily be reused).  A client
+might do this if, for example, they are aware that an image
+being held in the cache has been updated on disk.  This is safe
+to do even if other procedures are currently holding 
+reference-counted tile pointers from the named image, but those 
+procedures will not get updated pixels until they release the 
+tiles they are holding.
+\apiend
+
+\apiitem{void {\ce invalidate_all} (bool force=false)}
+Invalidate all loaded tiles and open file handles, so that any
+subsequent queries will be forced to re-open the file or re-load any
+tiles (even those that were previously loaded and would ordinarily be
+reused).  A client might do this if, for example, they are aware that an
+image being held in the cache has been updated on disk.  This is safe to
+do even if other procedures are currently holding reference-counted tile
+pointers from the named image, but those procedures will not get updated
+pixels until they release the tiles they are holding.  If force is true,
+everything will be invalidated, no matter how wasteful it is, but if
+force is false, in actuality files will only be invalidated if their
+modification times have been changed since they were first opened.
 \apiend
 
 \index{Texture System|)}

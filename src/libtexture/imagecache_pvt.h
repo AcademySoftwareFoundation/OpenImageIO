@@ -108,6 +108,8 @@ public:
     size_t tilesread () const { return m_tilesread; }
     size_t bytesread () const { return m_bytesread; }
 
+    std::time_t mod_time () const { return m_mod_time; }
+
 private:
     ustring m_filename;             ///< Filename
     bool m_used;                    ///< Recently used (in the LRU sense)
@@ -135,6 +137,7 @@ private:
     size_t m_timesopened;           ///< Separate times we opened this file
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
     mutable recursive_mutex m_input_mutex; ///< Mutex protecting the ImageInput
+    std::time_t m_mod_time;         ///< Time file was last updated
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.  Return true if ok, false if error.
@@ -498,6 +501,7 @@ public:
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1) const;
     virtual void invalidate (ustring filename);
+    virtual void invalidate_all (bool force=false);
 
     void operator delete (void *todel) { ::delete ((char *)todel); }
 

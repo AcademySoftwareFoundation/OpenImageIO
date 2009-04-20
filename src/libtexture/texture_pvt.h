@@ -229,6 +229,16 @@ public:
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1, bool icstats=true) const;
 
+    // Implementation of invalidate -- just invalidate the image cache.
+    virtual void invalidate (ustring filename) {
+        m_imagecache->invalidate (filename);
+    }
+
+    // Implementation of invalidate_all -- just invalidate the image cache.
+    virtual void invalidate_all (bool force=false) {
+        m_imagecache->invalidate_all (force);
+    }
+
     void operator delete (void *todel) { ::delete ((char *)todel); }
 
 private:

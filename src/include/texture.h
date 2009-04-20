@@ -377,6 +377,18 @@ public:
     ///
     virtual std::string getstats (int level=1, bool icstats=true) const = 0;
 
+    /// Invalidate any cached information about the named file. A client
+    /// might do this if, for example, they are aware that an image
+    /// being held in the cache has been updated on disk.
+    virtual void invalidate (ustring filename) = 0;
+
+    /// Invalidate all cached data for all textures.  If force is true,
+    /// everything will be invalidated, no matter how wasteful it is,
+    /// but if force is false, in actuality files will only be
+    /// invalidated if their modification times have been changed since
+    /// they were first opened.
+    virtual void invalidate_all (bool force=false) = 0;
+
 private:
     // Make delete private and unimplemented in order to prevent apps
     // from calling it.  Instead, they should call TextureSystem::destroy().
