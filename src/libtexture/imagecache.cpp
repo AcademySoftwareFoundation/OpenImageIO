@@ -32,6 +32,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <boost/foreach.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
 
@@ -84,6 +86,8 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
     m_filename = imagecache.resolve_filename (m_filename.string());
     recursive_lock_guard guard (m_input_mutex);
     open ();
+    if (! broken())
+        m_mod_time = boost::filesystem::last_write_time (m_filename.string());
 #if 0
     static int x=0;
     if ((++x % 16) == 0) {
@@ -493,6 +497,8 @@ ImageCacheFile::invalidate ()
     recursive_lock_guard guard (m_input_mutex);
     close ();
     m_spec.clear();
+    m_broken = false;
+    open ();  // Force reload of spec
 }
 
 
@@ -1214,6 +1220,34 @@ ImageCacheImpl::invalidate (ustring filename)
     {
         unique_lock fileguard (m_filemutex);
         file->invalidate ();
+    }
+}
+
+
+
+void
+ImageCacheImpl::invalidate_all (bool force)
+{
+    // Make a list of all files that need to be invalidated
+    std::vector<ustring> all_files;
+    {
+        shared_lock fileguard (m_filemutex);
+        for (FilenameMap::iterator fileit = m_files.begin();
+                 fileit != m_files.end();  ++fileit) {
+            ustring name = fileit->second->filename();
+            if (fileit->second->broken()) {
+                all_files.push_back (name);
+                continue;
+            }
+            std::time_t t = boost::filesystem::last_write_time (name.string());
+            if (force || (t != fileit->second->mod_time()))
+                all_files.push_back (name);
+        }
+    }
+
+    BOOST_FOREACH (ustring f, all_files) {
+        // fprintf (stderr, "Invalidating %s\n", f.c_str());
+        invalidate (f);
     }
 }
 

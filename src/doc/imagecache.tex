@@ -441,6 +441,20 @@ procedures will not get updated pixels until they release the
 tiles they are holding.
 \apiend
 
+\apiitem{void {\ce invalidate_all} (bool force=false)}
+Invalidate all loaded tiles and open file handles, so that any
+subsequent queries will be forced to re-open the file or re-load any
+tiles (even those that were previously loaded and would ordinarily be
+reused).  A client might do this if, for example, they are aware that an
+image being held in the cache has been updated on disk.  This is safe to
+do even if other procedures are currently holding reference-counted tile
+pointers from the named image, but those procedures will not get updated
+pixels until they release the tiles they are holding.  If force is true,
+everything will be invalidated, no matter how wasteful it is, but if
+force is false, in actuality files will only be invalidated if their
+modification times have been changed since they were first opened.
+\apiend
+
 \subsection{Errors and statistics}
 \label{sec:imagecache:api:geterror}
 \label{sec:imagecache:api:getstats}
