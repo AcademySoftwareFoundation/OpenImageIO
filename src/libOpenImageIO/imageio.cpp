@@ -57,6 +57,14 @@ recursive_mutex OpenImageIO::pvt::imageio_mutex;
 
 
 
+int
+OpenImageIO::openimageio_version ()
+{
+    return OPENIMAGEIO_VERSION;
+}
+
+
+
 /// Error reporting for the plugin implementation: call this with
 /// printf-like arguments.
 void
