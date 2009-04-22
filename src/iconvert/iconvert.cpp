@@ -356,7 +356,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         if (! ok)
             std::cerr << "iconvert ERROR copying \"" << in_filename 
                       << "\" to \"" << in_filename << "\" :\n\t" 
-                      << in->error_message() << "\n";
+                      << out->error_message() << "\n";
     } else {
         // Need to do it by hand for some reason.  Future expansion in which
         // only a subset of channels are copied, or some such.

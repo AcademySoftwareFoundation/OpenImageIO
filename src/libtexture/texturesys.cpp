@@ -385,7 +385,9 @@ TextureSystemImpl::error (const char *message, ...)
     lock_guard lock (m_errmutex);
     va_list ap;
     va_start (ap, message);
-    m_errormessage = Strutil::vformat (message, ap);
+    if (m_errormessage.size())
+        m_errormessage += '\n';
+    m_errormessage += Strutil::vformat (message, ap);
     va_end (ap);
 }
 
@@ -495,7 +497,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
             }
             result += options.nchannels;
         }
-        error ("Texture file \"%s\" not found", filename.c_str());
+//        error ("Texture file \"%s\" not found", filename.c_str());
         m_stats_mutex.lock ();
         ++m_stat_texture_batches;
         m_stat_texture_queries += local_stat_texture_queries;

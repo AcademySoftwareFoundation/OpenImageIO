@@ -557,6 +557,10 @@ public:
         m_stats_mutex.unlock ();
     }
 
+    /// Internal error reporting routine, with printf-like arguments.
+    ///
+    void error (const char *message, ...);
+
 private:
     void init ();
 
@@ -567,10 +571,6 @@ private:
     /// Enforce the max memory for tile data.  This should only be invoked
     /// when the caller holds m_mutex.
     void check_max_mem ();
-
-    /// Internal error reporting routine, with printf-like arguments.
-    ///
-    void error (const char *message, ...);
 
     /// Internal statistics printing routine
     ///

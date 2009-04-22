@@ -125,12 +125,14 @@ ImageCacheFile::open ()
     m_input.reset (ImageInput::create (m_filename.c_str(),
                                        m_imagecache.searchpath().c_str()));
     if (! m_input) {
+        imagecache().error ("%s", OpenImageIO::error_message().c_str());
         m_broken = true;
         return false;
     }
 
     ImageSpec tempspec;
     if (! m_input->open (m_filename.c_str(), tempspec)) {
+        imagecache().error ("%s", m_input->error_message().c_str());
         m_broken = true;
         m_input.reset ();
         return false;
@@ -1270,7 +1272,9 @@ ImageCacheImpl::error (const char *message, ...)
     lock_guard lock (m_errmutex);
     va_list ap;
     va_start (ap, message);
-    m_errormessage = Strutil::vformat (message, ap);
+    if (m_errormessage.size())
+        m_errormessage += '\n';
+    m_errormessage += Strutil::vformat (message, ap);
     va_end (ap);
 }
 
