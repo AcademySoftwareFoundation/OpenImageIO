@@ -135,7 +135,9 @@ BmpInput::open (const std::string &name, ImageSpec &newspec)
     read_dib_header();
     // BMP files have at least 3 channels
     int nchannels = (m_dbmp->bpp == 32) ? 4 : 3;
-    m_spec = ImageSpec (m_dbmp->width, m_dbmp->height, nchannels, TypeDesc::UINT8);
+    // BMP files can have negative height!
+    const int height = (m_dbmp->height >= 0) ? m_dbmp->height : -m_dbmp->height;
+    m_spec = ImageSpec (m_dbmp->width, height, nchannels, TypeDesc::UINT8);
     newspec = m_spec;
     return true;
 }
@@ -163,9 +165,10 @@ BmpInput::read_native_scanline (int y, int z, void *data)
     if (y < 0 || y >= m_spec.height)
         return false;
 
-    // The BMP file is flipped vertically in the disk, 
-    // so for the line y=0 I need to get the line height-y from the disk(buffer)
-    const int bufline = m_spec.height - 1 - y;
+    // if height of the bitmap is negative number BMP data is stored top-down
+    // if height of the bitmap is positive number BMP data is stored bottom-up
+    // so for the line y=0 we need to get the line height-y from the disk(buffer)
+    const int bufline = (m_dbmp->height < 0) ? y : m_spec.height - 1 - y;
     const int scanline_size = m_spec.width * m_spec.nchannels;
     memcpy(data, &m_buf[bufline * scanline_size], scanline_size);
     return true;
