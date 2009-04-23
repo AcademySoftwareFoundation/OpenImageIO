@@ -100,6 +100,56 @@ prints all metadata about each image:
 
 % $
 
+If the input file has multiple subimages, extra information summarizing
+the subimages will be printed:
+
+\begin{code}
+    $ iinfo img_6019m.tx
+
+    img_6019m.tx : 1024 x 1024, 3 channel, uint8 tiff (11 subimages)
+
+    $ iinfo -v img_6019m.tx
+
+    img_6019m.tx : 1024 x 1024, 3 channel, uint8 tiff
+        11 subimages: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1 
+        channel list: R, G, B
+        tile size: 64 x 64
+        ...
+\end{code}
+
+Furthermore, the {\cf -a} option will print information about all 
+individual subimages:
+
+\begin{code}
+    $ iinfo -a ../sample-images/img_6019m.tx
+
+    img_6019m.tx : 1024 x 1024, 3 channel, uint8 tiff (11 subimages)
+     subimage  0: 1024 x 1024, 3 channel, uint8 tiff
+     subimage  1:  512 x  512, 3 channel, uint8 tiff
+     subimage  2:  256 x  256, 3 channel, uint8 tiff
+     subimage  3:  128 x  128, 3 channel, uint8 tiff
+     subimage  4:   64 x   64, 3 channel, uint8 tiff
+     subimage  5:   32 x   32, 3 channel, uint8 tiff
+     subimage  6:   16 x   16, 3 channel, uint8 tiff
+     subimage  7:    8 x    8, 3 channel, uint8 tiff
+     subimage  8:    4 x    4, 3 channel, uint8 tiff
+     subimage  9:    2 x    2, 3 channel, uint8 tiff
+     subimage 10:    1 x    1, 3 channel, uint8 tiff
+
+
+    $ iinfo -v -a img_6019m.tx
+    img_6019m.tx : 1024 x 1024, 3 channel, uint8 tiff
+        11 subimages: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1 
+     subimage  0: 1024 x 1024, 3 channel, uint8 tiff
+        channel list: R, G, B
+        tile size: 64 x 64
+        ...
+     subimage  1:  512 x  512, 3 channel, uint8 tiff
+        channel list: R, G, B
+        ...
+    ...
+\end{code}
+
 
 \section{{\cf iinfo} command-line options}
 
@@ -109,6 +159,10 @@ Prints usage information to the terminal.
 
 \apiitem{-v}
 Verbose output --- prints all metadata of the image files.
+\apiend
+
+\apiitem{-a}
+Print information about all subimages in the file(s).
 \apiend
 
 \apiitem{-f}
