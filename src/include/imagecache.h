@@ -115,7 +115,7 @@ public:
     /// doesn't match the type requested. or some other failure.
     virtual bool get_image_info (ustring filename, ustring dataname,
                                  TypeDesc datatype, void *data) = 0;
-    
+
     /// Get the ImageSpec associated with the named image (the first
     /// subimage, by default, or as set by 'subimage').  If the file is
     /// found and is an image format that can be read, store a copy of
@@ -139,7 +139,7 @@ public:
     /// available ImageIO plugin, otherwise return false.
     virtual bool get_pixels (ustring filename, int subimage,
                              int xmin, int xmax, int ymin, int ymax,
-                             int zmin, int zmax, 
+                             int zmin, int zmax,
                              TypeDesc format, void *result) = 0;
 
     /// Define an opaque data type that allows us to have a pointer
@@ -149,13 +149,13 @@ public:
     /// Find a tile given by an image filename, subimage, and pixel
     /// coordinates.  An opaque pointer to the tile will be returned,
     /// or NULL if no such file (or tile within the file) exists or can
-    /// be read.  The tile will not be purged from the cache until 
+    /// be read.  The tile will not be purged from the cache until
     /// after release_tile() is called on the tile pointer.  This is
     /// thread-safe!
     virtual Tile * get_tile (ustring filename, int subimage,
                                 int x, int y, int z) = 0;
 
-    /// After finishing with a tile, release_tile will allow it to 
+    /// After finishing with a tile, release_tile will allow it to
     /// once again be purged from the tile cache if required.
     virtual void release_tile (Tile *tile) const = 0;
 
