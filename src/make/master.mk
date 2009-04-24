@@ -93,7 +93,12 @@ all_makefiles := ${wildcard src/*/module.mk}
 all_tests := ${wildcard testsuite/tests/*}
 
 # List of all code tests to run.
+ifneq (${USE_GTEST},0)
 all_code_tests := ${subst src/,,${wildcard src/test_*}}
+else
+all_code_test :=
+$(info --> ALERT: Unit tests skipped because USE_GTEST=0)
+endif
 
 # Making dist
 build_dirs := bin lib include doc

@@ -34,6 +34,7 @@ help:
 	@echo "  make EMBEDPLUGINS=1 ...     Compile the plugins into libOpenImageIO"
 	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
+	@echo "  make USE_GTEST=0 ...        Skip anything that needs GTest"
 	@echo ""
 
 

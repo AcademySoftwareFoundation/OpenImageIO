@@ -1,5 +1,7 @@
 # License and copyright goes here
 
+ifneq (${USE_GTEST},0)
+
 # Name of the binary or library whose source is in this directory.
 # Do NOT include .exe or any other suffix.
 
@@ -24,3 +26,6 @@ local_ldflags := ${LINK_BOOST} ${LINK_ILMBASE} ${LINK_GTEST}
 
 
 include ${src_make_dir}/bin.mk
+
+
+endif
