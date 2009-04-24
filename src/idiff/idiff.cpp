@@ -455,9 +455,11 @@ main (int argc, char *argv[])
     // Compare the two images.
     //
     double totalerror = 0;
+    double totalsqrerror = 0;
     double maxerror = 0;
     int maxx=0, maxy=0, maxz=0, maxc=0;
     int nfail = 0, nwarn = 0;
+    float maxval = 1.0f;  // max possible value
     ASSERT (img0.spec().format == TypeDesc::FLOAT);
     float *pixels0 = (float *) img0.pixeladdr (img0.spec().x, img0.spec().y);
     float *pixels1 = (float *) img1.pixeladdr (img0.spec().x, img0.spec().y);
@@ -466,11 +468,14 @@ main (int argc, char *argv[])
     for (int z = 0;  z < img0.spec().depth;  ++z) {
         for (int y = 0;  y < img0.spec().height;  ++y) {
             double scanlineerror = 0;
+            double scanline_sqrerror = 0;
             for (int x = 0;  x < img0.spec().width;  ++x) {
                 bool warned = false, failed = false;  // For this pixel
                 for (int c = 0;  c < img0.spec().nchannels;  ++c, ++p, ++q) {
+                    maxval = std::max (maxval, std::max (*p, *q));
                     double f = fabs (*p - *q);
                     scanlineerror += f;
+                    scanline_sqrerror += f*f;
                     if (f > maxerror) {
                         maxerror = f;
                         maxx = x;
@@ -489,9 +494,12 @@ main (int argc, char *argv[])
                 }
             }
             totalerror += scanlineerror;
+            totalsqrerror += scanline_sqrerror;
         }
     }
-    totalerror /= nvals;
+    float meanerror = totalerror / nvals;
+    float rms_error = sqrt (totalsqrerror / nvals);
+    float PSNR = 20.0f * log10f (maxval / rms_error);
 
     int yee_failures = 0;
     if (perceptual)
@@ -499,7 +507,9 @@ main (int argc, char *argv[])
 
     // Print the report
     //
-    std::cout << "  Mean error = " << totalerror << '\n';
+    std::cout << "  Mean error = " << meanerror << '\n';
+    std::cout << "  RMS error = " << rms_error << '\n';
+    std::cout << "  Peak SNR = " << PSNR << '\n';
     std::cout << "  Max error  = " << maxerror;
     if (maxerror != 0) {
         std::cout << " @ (" << maxx << ", " << maxy;
