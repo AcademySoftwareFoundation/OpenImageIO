@@ -1,0 +1,42 @@
+Converting ../../../../oiio-testimages/oiio.ico to test.ico
+Comparing "../../../../oiio-testimages/oiio.ico" and "test.ico"
+  Mean error = 0
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../oiio-testimages/oiio.ico :   16 x   16, 4 channel, uint8 ico
+    10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
+ subimage  0:   16 x   16, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+ subimage  1:   32 x   32, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+ subimage  2:   16 x   16, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+ subimage  3:   48 x   48, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+ subimage  4:   32 x   32, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+ subimage  5:   16 x   16, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+ subimage  6:  256 x  256, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+ subimage  7:   48 x   48, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+ subimage  8:   32 x   32, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+ subimage  9:   16 x   16, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
+test.ico                             :   16 x   16, 4 channel, uint8 ico
+    channel list: R, G, B, A
+    Color space: unknown
