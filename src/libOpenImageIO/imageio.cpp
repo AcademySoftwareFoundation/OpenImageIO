@@ -68,7 +68,7 @@ OpenImageIO::openimageio_version ()
 /// Error reporting for the plugin implementation: call this with
 /// printf-like arguments.
 void
-OpenImageIO::error (const char *message, ...)
+OpenImageIO::pvt::error (const char *message, ...)
 {
     recursive_lock_guard lock (OpenImageIO::pvt::imageio_mutex);
     va_list ap;

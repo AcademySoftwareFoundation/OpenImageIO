@@ -810,9 +810,6 @@ DLLPUBLIC std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 // to force correct linkage on some systems
 DLLPUBLIC void _ImageIO_force_link ();
 
-// Use privately only
-DLLPUBLIC void error (const char *format, ...);
-
 /// Deprecated, Gelato <= 3 name for what we now call ImageSpec.
 ///
 typedef ImageSpec ImageIOFormatSpec;

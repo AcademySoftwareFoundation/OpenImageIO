@@ -52,6 +52,9 @@ typedef void* (*create_prototype)();
 ///
 extern recursive_mutex imageio_mutex;
 
+// Use privately only
+void error (const char *format, ...);
+
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values
 /// (measured in bytes).  Caller must pass in a dst pointing to enough

@@ -292,7 +292,10 @@ private:
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
     TextureFile *find_texturefile (ustring filename) {
-        return m_imagecache->find_file (filename);
+        TextureFile *tf = m_imagecache->find_file (filename);
+        if (!tf || tf->broken())
+            error ("%s", m_imagecache->geterror().c_str());
+        return tf;
     }
 
     /// Find the tile specified by id and place its reference in 'tile'.

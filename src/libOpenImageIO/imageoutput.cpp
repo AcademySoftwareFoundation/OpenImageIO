@@ -271,20 +271,28 @@ ImageOutput::write_image (TypeDesc format, const void *data,
 bool
 ImageOutput::copy_image (ImageInput *in)
 {
-    if (! in)
+    if (! in) {
+        error ("copy_image: no input supplied");
         return false;
+    }
 
     // Make sure the images are compatible in size
     const ImageSpec &inspec (in->spec());
     if (inspec.width != spec().width || inspec.height != spec().height || 
-        inspec.depth != spec().depth || inspec.nchannels != spec().nchannels)
+        inspec.depth != spec().depth || inspec.nchannels != spec().nchannels) {
+        error ("Could not copy %d x %d x %d channels to %d x %d x %d channels",
+               inspec.width, inspec.height, inspec.nchannels,
+               spec().width, spec().height, spec().nchannels);
         return false;
+    }
 
     // Naive implementation -- read the whole image and write it back out.
     // FIXME -- a smarter implementation would read scanlines or tiles at
     // a time, to minimize mem footprint.
     std::vector<char> pixels (spec().image_bytes());
     bool ok = in->read_image (spec().format, &pixels[0]);
+    if (!ok)
+        error ("%s", in->error_message().c_str());  // copy err from in to out
     if (ok)
         ok = write_image (spec().format, &pixels[0]);
     return ok;
