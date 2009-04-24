@@ -229,15 +229,8 @@ public:
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1, bool icstats=true) const;
 
-    // Implementation of invalidate -- just invalidate the image cache.
-    virtual void invalidate (ustring filename) {
-        m_imagecache->invalidate (filename);
-    }
-
-    // Implementation of invalidate_all -- just invalidate the image cache.
-    virtual void invalidate_all (bool force=false) {
-        m_imagecache->invalidate_all (force);
-    }
+    virtual void invalidate (ustring filename);
+    virtual void invalidate_all (bool force=false);
 
     void operator delete (void *todel) { ::delete ((char *)todel); }
 
@@ -255,10 +248,12 @@ private:
         int next_last_file;
         ImageCacheTileRef tilecache0, tilecache1;
         std::list<ImageCacheTileRef> minicache;
+        atomic_int purge;   // If set, tile ptrs need purging!
 
         PerThreadInfo () : next_last_file(0) {
             for (int i = 0;  i < nlastfile;  ++i)
                 last_file[i] = NULL;
+            purge = 0;
         }
         // Add a new filename/fileptr pair to our microcache
         void filename (ustring n, ImageCacheFile *f) {
@@ -283,6 +278,15 @@ private:
         if (! p) {
             p = new PerThreadInfo;
             m_perthread_info.reset (p);
+            m_perthread_info_mutex.lock ();  // protect all_perthread_info
+            m_all_perthread_info.push_back (p);
+            m_perthread_info_mutex.unlock ();
+        }
+        if (p->purge) {  // has somebody requested a tile purge?
+            // This is safe, because it's our thread.
+            p->tilecache0 = NULL;
+            p->tilecache1 = NULL;
+            p->purge = 0;
         }
         return p;
     }
@@ -393,11 +397,13 @@ private:
 
     ImageCacheImpl *m_imagecache;
     boost::thread_specific_ptr< PerThreadInfo > m_perthread_info;
+    std::vector<PerThreadInfo *> m_all_perthread_info;
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     mutable std::string m_errormessage;   ///< Saved error string.
     mutable fast_mutex m_stats_mutex;     ///< Thread safety for stats
     mutable mutex m_errmutex;             ///< error mutex
+    mutable fast_mutex m_perthread_info_mutex; ///< Thread safety for perthread
     Filter1D *hq_filter;         ///< Better filter for magnification
     int m_statslevel;
     long long m_stat_texture_queries;

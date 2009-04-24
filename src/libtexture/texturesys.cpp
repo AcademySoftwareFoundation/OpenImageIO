@@ -393,6 +393,34 @@ TextureSystemImpl::error (const char *message, ...)
 
 
 
+// Implementation of invalidate -- just invalidate the image cache, but
+// also mark our per-thread microcaches as invalid.
+void
+TextureSystemImpl::invalidate (ustring filename)
+{
+    m_imagecache->invalidate (filename);
+    m_perthread_info_mutex.lock ();
+    for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
+        m_all_perthread_info[i]->purge = 1;
+    m_perthread_info_mutex.unlock ();
+}
+
+
+
+// Implementation of invalidate -- just invalidate the image cache, but
+// also mark our per-thread microcaches as invalid.
+void
+TextureSystemImpl::invalidate_all (bool force)
+{
+    m_imagecache->invalidate_all (force);
+    m_perthread_info_mutex.lock ();
+    for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
+        m_all_perthread_info[i]->purge = 1;
+    m_perthread_info_mutex.unlock ();
+}
+
+
+
 // Wrap functions wrap 'coord' around 'width', and return true if the
 // result is a valid pixel coordinate, false if black should be used
 // instead.
