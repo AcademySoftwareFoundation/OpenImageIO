@@ -51,6 +51,8 @@ local_extra_objs += \
 	${build_obj_dir}/hdr.imageio/hdrinput${OEXT} \
 	${build_obj_dir}/hdr.imageio/hdroutput${OEXT} \
 	${build_obj_dir}/hdr.imageio/rgbe${OEXT} \
+	${build_obj_dir}/ico.imageio/icoinput${OEXT} \
+	${build_obj_dir}/ico.imageio/icooutput${OEXT} \
 	${build_obj_dir}/jpeg.imageio/jpeginput${OEXT} \
 	${build_obj_dir}/jpeg.imageio/jpegoutput${OEXT} \
 	${build_obj_dir}/jpeg.imageio/jpegexif${OEXT} \
