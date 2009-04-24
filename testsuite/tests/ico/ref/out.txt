@@ -1,6 +1,8 @@
 Converting ../../../../oiio-testimages/oiio.ico to test.ico
 Comparing "../../../../oiio-testimages/oiio.ico" and "test.ico"
   Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
