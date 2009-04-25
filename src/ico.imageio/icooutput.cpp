@@ -148,9 +148,12 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     }
 
     // check if the client wants this subimage written as PNG
+    // also force PNG if image size is 256 because ico_header->width and height
+    // are 8-bit
     const ImageIOParameter *p = m_spec.find_attribute ("ico:PNG",
                                                        TypeDesc::TypeInt);
-    m_want_png = p && *(int *)p->data();
+    m_want_png = p && *(int *)p->data()
+                 || m_spec.width == 256 || m_spec.height == 256;
 
     if (m_want_png) {
         std::string s = PNG_pvt::create_write_struct (m_png, m_info,
@@ -185,7 +188,7 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
 
     //std::cerr << "[ico] writing at " << m_bpp << "bpp\n";
 
-    m_file = fopen (name.c_str(), append ? "a+b" : "wb");
+    m_file = fopen (name.c_str(), append ? "r+b" : "wb");
     if (! m_file) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;
@@ -197,17 +200,25 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         memset (&ico, 0, sizeof(ico));
         ico.type = 1;
         ico.count = 1;
+        if (bigendian()) {
+            // ICOs are little endian
+            swap_endian (&ico.type);
+            swap_endian (&ico.count);
+        }
         fwrite (&ico, 1, sizeof(ico), m_file);
         m_offset = sizeof(ico_header) + sizeof(ico_subimage);
     } else {
         // we'll be appending data, so see what's already in the file
-        fseek (m_file, 0, SEEK_END);
         fread (&ico, 1, sizeof(ico), m_file);
         if (bigendian()) {
             // ICOs are little endian
             swap_endian (&ico.type);
             swap_endian (&ico.count);
         }
+
+        /*std::cerr << "[ico] reserved = " << ico.reserved << " type = "
+                  << ico.type << " count = " << ico.count << "\n";*/
+
         if (ico.reserved != 0 || ico.type != 1) {
             error ("File failed ICO header check");
             return false;
@@ -222,15 +233,19 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         fwrite (buf, sizeof (ico_subimage), 1, m_file);
 
         // do the actual moving, 0.5kB per iteration
-        int amount;
-        for (int left = len - sizeof (ico_header) - sizeof (ico_subimage)
-             * (subimage - 1); left > 0; left -= sizeof (buf)) {
-            amount = left < sizeof (buf) ? len % sizeof (buf) : sizeof (buf);
-            fseek (m_file, len - amount, SEEK_SET);
+        int amount, skip = sizeof (ico_header) + sizeof (ico_subimage)
+                           * (subimage - 1);
+        for (int left = len - skip; left > 0; left -= sizeof (buf)) {
+            amount = std::min (left, (int)sizeof (buf));
+            /*std::cerr << "[ico] moving " << amount << " bytes (" << left
+                      << " vs " << sizeof (buf) << ")\n";*/
+            fseek (m_file, skip + left - amount, SEEK_SET);
             fread (buf, amount, 1, m_file);
-            fseek (m_file, len - amount + sizeof (ico_subimage), SEEK_SET);
+            fseek (m_file, skip + left - amount + sizeof (ico_subimage),
+                   SEEK_SET);
             fwrite (buf, amount, 1, m_file);
         }
+
         // update header
         fseek (m_file, 0, SEEK_SET);
         // swap these back to little endian, if needed
@@ -319,7 +334,7 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         char buf[512];
         memset (buf, 0, sizeof (buf));
         for (int left = bmi.len; left > 0; left -= sizeof (buf))
-            fwrite (buf, left > sizeof (buf) ? sizeof (buf) : left, 1, m_file);
+            fwrite (buf, std::min (left, (int)sizeof (buf)), 1, m_file);
         fseek (m_file, m_offset + sizeof (bmi), SEEK_SET);
     }
 
@@ -342,6 +357,7 @@ ICOOutput::supports (const std::string &feature) const
 bool
 ICOOutput::close ()
 {
+    //std::cerr << "[ico] closing\n";
     if (m_png && m_info) {
         PNG_pvt::finish_image (m_png);
         PNG_pvt::destroy_write_struct (m_png, m_info);
@@ -371,9 +387,11 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
         data = &m_scratch[0];
     }
 
-    if (m_want_png && !PNG_pvt::write_row (m_png, (png_byte *)data)) {
-        error ("PNG library error");
-        return false;
+    if (m_want_png) {
+        if (!PNG_pvt::write_row (m_png, (png_byte *)data)) {
+            error ("PNG library error");
+            return false;
+        }
     } else {
         unsigned char buf[4];
         // these are used to read the most significant 8 bits only (the
@@ -418,8 +436,12 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
             + m_spec.height * m_xor_slb
             + (m_spec.height - y - 1) * m_and_slb, SEEK_SET);
         // write the AND mask
-        // only need to do this for images with alpha - 0 is opaque, and we've
-        // already filled the file with zeros
+        // It's required even for 32-bit images because it can be used when
+        // drawing at colour depths lower than 24-bit. If it's not present,
+        // Windows will read out-of-bounds, treating any data that it
+        // encounters as the AND mask, resulting in ugly transparency effects.
+        // Only need to do this for images with alpha, becasue 0 is opaque,
+        // and we've already filled the file with zeros.
         if (m_color_type != PNG_COLOR_TYPE_GRAY
             && m_color_type != PNG_COLOR_TYPE_RGB) {
             for (int x = 0; x < m_spec.width; x += 8) {

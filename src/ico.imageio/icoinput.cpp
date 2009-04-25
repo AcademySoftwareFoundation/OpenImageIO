@@ -156,6 +156,9 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
     if (index < 0 || index >= m_ico.count)
         return false;
 
+    // clear the buffer of previous data
+    m_buf.clear ();
+
     // deinitialize PNG structs, in case they were used
     if (m_png && m_info)
         PNG_pvt::destroy_read_struct (m_png, m_info);
@@ -188,11 +191,15 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
             return false;
         }
 
+        //std::cerr << "[ico] creating PNG read struct\n";
+
         std::string s = PNG_pvt::create_read_struct (m_png, m_info);
         if (s.length ()) {
             error ("%s", s.c_str ());
             return false;
         }
+
+        //std::cerr << "[ico] reading PNG info\n";
 
         png_init_io (m_png, m_file);
         png_set_sig_bytes (m_png, 8);  // already read 8 bytes
@@ -264,6 +271,9 @@ ICOInput::readimg ()
         std::string s = PNG_pvt::read_into_buffer (m_png, m_info, m_spec,
                                                    m_bpp, m_color_type,
                                                    m_buf);
+
+        //std::cerr << "[ico] PNG buffer size = " << m_buf.size () << "\n";
+
         if (s.length ()) {
             error ("%s", s.c_str ());
             return false;
@@ -276,9 +286,11 @@ ICOInput::readimg ()
     DASSERT (m_spec.scanline_bytes() == (m_spec.width * 4));
     m_buf.resize (m_spec.image_bytes());
 
+    //std::cerr << "[ico] DIB buffer size = " << m_buf.size () << "\n";
+
     // icons < 16bpp are colour-indexed, so load the palette
     // a palette consists of 4-byte BGR quads, with the last byte unused (reserved)
-    std::vector<ico_palette_entry> palette ((int)m_palette_size);
+    std::vector<ico_palette_entry> palette (m_palette_size);
     if (m_bpp < 16) { // >= 16-bit icons are unpaletted
         for (int i = 0; i < m_palette_size; i++)
             fread (&palette[i], 1, sizeof (ico_palette_entry), m_file);
