@@ -203,40 +203,14 @@ join_list (const std::vector<std::string> &items)
 
 
 
-bool
-convert_file (const std::string &in_filename, const std::string &out_filename)
+// Adjust the output spec based on the command-line arguments.
+// Return whether the specifics preclude using copy_image.
+static bool
+adjust_spec (ImageInput *in, const ImageSpec &inspec, ImageSpec &outspec)
 {
-    std::cout << "Converting " << in_filename << " to " << out_filename << "\n";
-
-    std::string tempname = out_filename;
-    if (tempname == in_filename) {
-#if (BOOST_VERSION >= 103700)
-        tempname = out_filename + ".tmp" 
-                    + boost::filesystem::path(out_filename).extension();
-#else
-        tempname = out_filename + ".tmp" 
-                    + boost::filesystem::extension(out_filename);
-#endif
-    }
-
-    // Find an ImageIO plugin that can open the input file, and open it.
-    ImageInput *in = ImageInput::create (in_filename.c_str(), "" /* searchpath */);
-    if (! in) {
-        std::cerr 
-            << "iconvert ERROR: Could not find an ImageIO plugin to read \"" 
-            << in_filename << "\" : " << OpenImageIO::error_message() << "\n";
-        return false;
-    }
-    ImageSpec inspec;
-    if (! in->open (in_filename.c_str(), inspec)) {
-        std::cerr << "iconvert ERROR: Could not open \"" << in_filename
-                  << "\" : " << in->error_message() << "\n";
-        delete in;
-        return false;
-    }
+    bool nocopy = no_copy_image;
 
     // Copy the spec, with possible change in format
-    ImageSpec outspec = inspec;
     outspec.set_format (inspec.format);
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
@@ -254,7 +228,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         else if (dataformatname == "double")
             outspec.set_format (TypeDesc::DOUBLE);
         if (outspec.format != inspec.format)
-            no_copy_image = true;
+            nocopy = true;
     }
     outspec.gamma = gammaval;
     if (sRGB) {
@@ -277,18 +251,18 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     if (outspec.tile_width != inspec.tile_width ||
             outspec.tile_height != inspec.tile_height ||
             outspec.tile_depth != inspec.tile_depth)
-        no_copy_image = true;
+        nocopy = true;
 
     if (! compression.empty()) {
         outspec.attribute ("compression", compression);
         if (compression != inspec.get_string_attribute ("compression"))
-            no_copy_image = true;
+            nocopy = true;
     }
 
     if (quality > 0) {
         outspec.attribute ("CompressionQuality", quality);
         if (quality != inspec.get_int_attribute ("CompressionQuality"))
-            no_copy_image = true;
+            nocopy = true;
     }
 
     if (contig)
@@ -336,6 +310,44 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         outspec.attribute (attribnames[i].c_str(), attribvals[i].c_str());
     }
 
+    return nocopy;
+}
+
+
+
+static bool
+convert_file (const std::string &in_filename, const std::string &out_filename)
+{
+    std::cout << "Converting " << in_filename << " to " << out_filename << "\n";
+
+    std::string tempname = out_filename;
+    if (tempname == in_filename) {
+#if (BOOST_VERSION >= 103700)
+        tempname = out_filename + ".tmp" 
+                    + boost::filesystem::path(out_filename).extension();
+#else
+        tempname = out_filename + ".tmp" 
+                    + boost::filesystem::extension(out_filename);
+#endif
+    }
+
+    // Find an ImageIO plugin that can open the input file, and open it.
+    ImageInput *in = ImageInput::create (in_filename.c_str(), "" /* searchpath */);
+    if (! in) {
+        std::cerr 
+            << "iconvert ERROR: Could not find an ImageIO plugin to read \"" 
+            << in_filename << "\" : " << OpenImageIO::error_message() << "\n";
+        return false;
+    }
+    ImageSpec inspec;
+    if (! in->open (in_filename.c_str(), inspec)) {
+        std::cerr << "iconvert ERROR: Could not open \"" << in_filename
+                  << "\" : " << in->error_message() << "\n";
+        delete in;
+        return false;
+    }
+    std::string metadatatime = inspec.get_string_attribute ("DateTime");
+
     // Find an ImageIO plugin that can open the output file, and open it
     ImageOutput *out = ImageOutput::create (tempname.c_str());
     if (! out) {
@@ -344,33 +356,52 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             << out_filename << "\" :" << OpenImageIO::error_message() << "\n";
         return false;
     }
-    if (! out->open (tempname.c_str(), outspec)) {
-        std::cerr << "iconvert ERROR: Could not open \"" << out_filename
-                  << "\" : " << out->error_message() << "\n";
-        return false;
-    }
 
     bool ok = true;
-    if (! no_copy_image) {
-        ok = out->copy_image (in);
-        if (! ok)
-            std::cerr << "iconvert ERROR copying \"" << in_filename 
-                      << "\" to \"" << in_filename << "\" :\n\t" 
-                      << out->error_message() << "\n";
-    } else {
-        // Need to do it by hand for some reason.  Future expansion in which
-        // only a subset of channels are copied, or some such.
-        std::vector<char> pixels (outspec.image_bytes());
-        ok = in->read_image (outspec.format, &pixels[0]);
-        if (! ok) {
-            std::cerr << "iconvert ERROR reading \"" << in_filename 
-                      << "\" : " << in->error_message() << "\n";
-        } else {
-            ok = out->write_image (outspec.format, &pixels[0]);
-            if (! ok)
-                std::cerr << "iconvert ERROR writing \"" << out_filename 
-                          << "\" : " << out->error_message() << "\n";
+    for (int subimage = 0;
+           ok &= in->seek_subimage(subimage,inspec);
+           ++subimage) {
+
+        if (subimage > 0 &&  !out->supports ("multiimage")) {
+            std::cerr << "iconvert WARNING: " << out->format_name()
+                      << " does not support multiple subimages.\n";
+            std::cerr << "\tOnly the first subimage has been copied.\n";
+            break;  // we're done
         }
+
+        // Copy the spec, with possible change in format
+        ImageSpec outspec = inspec;
+        bool nocopy = adjust_spec (in, inspec, outspec);
+
+        if (! out->open (tempname.c_str(), outspec, subimage>0)) {
+            std::cerr << "iconvert ERROR: Could not open \"" << out_filename
+                      << "\" : " << out->error_message() << "\n";
+            ok = false;
+            break;
+        }
+
+        if (! nocopy) {
+            ok = out->copy_image (in);
+            if (! ok)
+                std::cerr << "iconvert ERROR copying \"" << in_filename 
+                          << "\" to \"" << in_filename << "\" :\n\t" 
+                          << out->error_message() << "\n";
+        } else {
+            // Need to do it by hand for some reason.  Future expansion in which
+            // only a subset of channels are copied, or some such.
+            std::vector<char> pixels (outspec.image_bytes());
+            ok = in->read_image (outspec.format, &pixels[0]);
+            if (! ok) {
+                std::cerr << "iconvert ERROR reading \"" << in_filename 
+                          << "\" : " << in->error_message() << "\n";
+            } else {
+                ok = out->write_image (outspec.format, &pixels[0]);
+                if (! ok)
+                    std::cerr << "iconvert ERROR writing \"" << out_filename 
+                              << "\" : " << out->error_message() << "\n";
+            }
+        }
+        
     }
 
     out->close ();
@@ -381,7 +412,6 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     // Figure out a time for the input file -- either one supplied by
     // the metadata, or the actual time stamp of the input file.
     std::time_t in_time;
-    std::string metadatatime = outspec.get_string_attribute ("DateTime");
     if (metadatatime.empty() ||
            ! DateTime_to_time_t (metadatatime.c_str(), in_time))
         in_time = boost::filesystem::last_write_time (in_filename);

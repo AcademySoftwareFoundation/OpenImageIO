@@ -52,7 +52,7 @@ namespace OpenImageIO {
 
 
 ImageBuf::ImageBuf (const std::string &filename)
-    : m_name(filename), m_nsubimages(0), m_current_subimage(0),
+    : m_name(filename), m_nsubimages(0), m_current_subimage(-1),
       m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1)
 {
@@ -61,7 +61,7 @@ ImageBuf::ImageBuf (const std::string &filename)
 
 
 ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
-    : m_name(filename), m_nsubimages(0), m_current_subimage(0),
+    : m_name(filename), m_nsubimages(0), m_current_subimage(-1),
       m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1)
 {
@@ -105,6 +105,9 @@ ImageBuf::alloc (const ImageSpec &spec)
 bool
 ImageBuf::init_spec (const std::string &filename)
 {
+    if (m_current_subimage >= 0 && m_name == filename)
+        return true;   // Already done
+
     m_name = filename;
     boost::scoped_ptr<ImageInput> in (ImageInput::create (filename.c_str(), "" /* searchpath */));
     if (! in) {
