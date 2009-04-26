@@ -152,7 +152,7 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     // are 8-bit
     const ImageIOParameter *p = m_spec.find_attribute ("ico:PNG",
                                                        TypeDesc::TypeInt);
-    m_want_png = p && *(int *)p->data()
+    m_want_png = (p && *(int *)p->data())
                  || m_spec.width == 256 || m_spec.height == 256;
 
     if (m_want_png) {
