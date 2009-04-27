@@ -62,7 +62,6 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
 
 private:
@@ -146,20 +145,6 @@ PNGInput::open (const std::string &name, ImageSpec &newspec)
 
     newspec = spec ();
     return true;
-}
-
-
-
-bool
-PNGInput::seek_subimage (int index, ImageSpec &newspec)
-{
-    if (index == m_subimage) {
-        newspec = spec();
-        return true;
-    } else {
-        // PNG doesn't support multiple images
-        return false;
-    }
 }
 
 

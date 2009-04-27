@@ -69,9 +69,6 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool seek_subimage (int index, ImageSpec &newspec) {
-        return (index == 0);   // JPEG has only one subimage
-    }
 
 private:
     std::string m_filename;       ///< Stash the filename

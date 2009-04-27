@@ -409,7 +409,7 @@ public:
     /// is number 0.
     virtual int current_subimage (void) const { return 0; }
 
-    /// Seek to the given subimage.  THe first subimage of the file has
+    /// Seek to the given subimage.  The first subimage of the file has
     /// index 0.  Return true on success, false on failure (including
     /// that there is not a subimage with that index).  The new
     /// subimage's vital statistics are put in newspec (and also saved
@@ -418,6 +418,10 @@ public:
     /// randomly seek to the given subimage, it should transparently
     /// close, reopen, and sequentially read through prior subimages.
     virtual bool seek_subimage (int index, ImageSpec &newspec) {
+        if (index == current_subimage()) {
+            newspec = spec();
+            return true;
+        }
         return false;
     }
 

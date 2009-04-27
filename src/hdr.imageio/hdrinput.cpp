@@ -112,8 +112,10 @@ HdrInput::seek_subimage (int index, ImageSpec &newspec)
         return false;
 
     // Skip the hard work if we're already on the requested subimage
-    if (index == current_subimage())
+    if (index == current_subimage()) {
+        newspec = spec();
         return true;
+    }
 
     close();
 
