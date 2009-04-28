@@ -3,7 +3,7 @@
 # A command to run
 command = "iconvert ../../../../oiio-testimages/oiio.ico test.ico > out.txt; \
 idiff -a ../../../../oiio-testimages/oiio.ico test.ico >> out.txt; \
-iinfo -v -a ../../../../oiio-testimages/oiio.ico test.ico >> out.txt"
+iinfo -v -a --md5 ../../../../oiio-testimages/oiio.ico test.ico >> out.txt"
 
 # Outputs to check against references
 outputs = [ "out.txt" ]
