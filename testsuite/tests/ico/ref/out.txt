@@ -74,7 +74,7 @@ PASS
 ../../../../oiio-testimages/oiio.ico :   16 x   16, 4 channel, uint8 ico
     10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
  subimage  0:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: 297f95ca6428961553a5c094027104df
+    MD5 digest: 3df4009043d7f8e696897d97c72e008f
     channel list: R, G, B, A
     Color space: unknown
  subimage  1:   32 x   32, 4 channel, uint8 ico
@@ -116,7 +116,7 @@ PASS
 test.ico                             :   16 x   16, 4 channel, uint8 ico
     10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
  subimage  0:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: 297f95ca6428961553a5c094027104df
+    MD5 digest: 3df4009043d7f8e696897d97c72e008f
     channel list: R, G, B, A
     Color space: unknown
  subimage  1:   32 x   32, 4 channel, uint8 ico

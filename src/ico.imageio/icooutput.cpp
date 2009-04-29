@@ -393,6 +393,7 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
             return false;
         }
     } else {
+        unsigned char *bdata = (unsigned char *)data;
         unsigned char buf[4];
         // these are used to read the most significant 8 bits only (the
         // precision loss...), also accounting for byte order
@@ -406,27 +407,25 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
             switch (m_color_type) {
              // reuse PNG constants
             case PNG_COLOR_TYPE_GRAY:
-                buf[0] = buf[1] = buf[2] =
-                    ((unsigned char *)data)[x * mult + ofs];
+                buf[0] = buf[1] = buf[2] = bdata[x * mult + ofs];
                 fwrite (buf, 3, 1, m_file);
                 break;
             case PNG_COLOR_TYPE_GRAY_ALPHA:
-                buf[0] = buf[1] = buf[2] =
-                    ((unsigned char *)data)[mult * (x * 2 + 0) + ofs];
-                buf[3] = ((unsigned char *)data)[mult * (x * 2 + 1) + ofs];
+                buf[0] = buf[1] = buf[2] = bdata[mult * (x * 2 + 0) + ofs];
+                buf[3] = bdata[mult * (x * 2 + 1) + ofs];
                 fwrite (buf, 4, 1, m_file);
                 break;
             case PNG_COLOR_TYPE_RGB:
-                buf[0] = ((unsigned char *)data)[mult * (x * 3 + 2) + ofs];
-                buf[1] = ((unsigned char *)data)[mult * (x * 3 + 1) + ofs];
-                buf[2] = ((unsigned char *)data)[mult * (x * 3 + 0) + ofs];
+                buf[0] = bdata[mult * (x * 3 + 2) + ofs];
+                buf[1] = bdata[mult * (x * 3 + 1) + ofs];
+                buf[2] = bdata[mult * (x * 3 + 0) + ofs];
                 fwrite (buf, 3, 1, m_file);
                 break;
             case PNG_COLOR_TYPE_RGB_ALPHA:
-                buf[0] = ((unsigned char *)data)[mult * (x * 4 + 2) + ofs];
-                buf[1] = ((unsigned char *)data)[mult * (x * 4 + 1) + ofs];
-                buf[2] = ((unsigned char *)data)[mult * (x * 4 + 0) + ofs];
-                buf[3] = ((unsigned char *)data)[mult * (x * 4 + 3) + ofs];
+                buf[0] = bdata[mult * (x * 4 + 2) + ofs];
+                buf[1] = bdata[mult * (x * 4 + 1) + ofs];
+                buf[2] = bdata[mult * (x * 4 + 0) + ofs];
+                buf[3] = bdata[mult * (x * 4 + 3) + ofs];
                 fwrite (buf, 4, 1, m_file);
                 break;
             }
@@ -449,13 +448,11 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
                 for (int b = 0; b < 8 && x + b < m_spec.width; b++) {
                     switch (m_color_type) {
                     case PNG_COLOR_TYPE_GRAY_ALPHA:
-                        buf[0] |= ((unsigned char *)data)
-                                        [mult * ((x + b) * 2 + 1) + ofs]
+                        buf[0] |= bdata[mult * ((x + b) * 2 + 1) + ofs]
                                   <= 127 ? (1 << (7 - b)) : 0;
                         break;
                     case PNG_COLOR_TYPE_RGB_ALPHA:
-                        buf[0] |= ((unsigned char *)data)
-                                        [mult * ((x + b) * 4 + 3) + ofs]
+                        buf[0] |= bdata[mult * ((x + b) * 4 + 3) + ofs]
                                   <= 127 ? (1 << (7 - b)) : 0;
                         break;
                     }

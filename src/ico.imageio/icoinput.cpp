@@ -237,7 +237,7 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
     m_bpp = bmi.bpp;
     // some sanity checking
     if (m_bpp != 1 && m_bpp != 4 && m_bpp != 8
-        && m_bpp != 16 && m_bpp != 24 && m_bpp != 32) {
+        /*&& m_bpp != 16*/ && m_bpp != 24 && m_bpp != 32) {
         error ("Unsupported image color depth, probably corrupt file");
         return false;
     }
@@ -310,7 +310,7 @@ ICOInput::readimg ()
             // fill the buffer
             switch (m_bpp) {
             case 1:
-                pe = &palette[scanline[x / 8] & (1 << (7 - x % 8))];
+                pe = &palette[(scanline[x / 8] & (1 << (7 - x % 8))) != 0];
                 m_buf[k + 0] = pe->r;
                 m_buf[k + 1] = pe->g;
                 m_buf[k + 2] = pe->b;
