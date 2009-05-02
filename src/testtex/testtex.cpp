@@ -58,6 +58,7 @@ static int autotile = 0;
 static bool automip = false;
 static TextureSystem *texsys = NULL;
 static std::string searchpath;
+static int blocksize = 1;
 
 
 
@@ -88,6 +89,7 @@ getargs (int argc, char *argv[])
                   "--blur %f", &blur, "Add blur to texture lookup",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
                   "--automip", &automip, "Set auto-MIPmap for the image cache",
+                  "--blocksize %d", &blocksize, "Set blocksize (n x n) for batches",
                   "--searchpath %s", &searchpath, "Search path for files",
                   NULL) < 0) {
         std::cerr << ap.error_message() << std::endl;
@@ -159,7 +161,6 @@ test_plain_texture (ustring filename)
     std::cerr << "Testing 2d texture " << filename << ", output = " 
               << output_filename << "\n";
     const int nchannels = 4;
-    const int shadepoints = 32;
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     ImageBuf image (output_filename, outspec);
     image.zero ();
@@ -173,29 +174,67 @@ test_plain_texture (ustring filename)
     TextureOptions opt;
     opt.sblur = blur;
     opt.tblur = blur;
-    opt.nchannels = 3;
+    opt.nchannels = nchannels;
+    float fill = 1;
+    opt.fill = fill;
 //    opt.interpmode = TextureOptions::InterpSmartBicubic;
 //    opt.mipmode = TextureOptions::MipModeAniso;
     opt.swrap = opt.twrap = TextureOptions::WrapPeriodic;
 //    opt.twrap = TextureOptions::WrapBlack;
+    int shadepoints = blocksize*blocksize;
     float s[shadepoints], t[shadepoints];
-    Runflag runflags[shadepoints] = { RunFlagOn };
+    Runflag runflags[shadepoints];
+    float dsdx[shadepoints], dtdx[shadepoints];
+    float dsdy[shadepoints], dtdy[shadepoints];
+    float result[shadepoints*nchannels];
 
     for (int iter = 0;  iter < iters;  ++iter) {
-        for (int y = 0;  y < output_yres;  ++y) {
-            for (int x = 0;  x < output_xres;  ++x) {
-                Imath::V3f coord = warp ((float)x/output_xres, (float)y/output_yres, xform);
-                Imath::V3f coordx = warp ((float)(x+1)/output_xres, (float)y/output_yres, xform);
-                Imath::V3f coordy = warp ((float)x/output_xres, (float)(y+1)/output_yres, xform);
-                float s = coord[0], t = coord[1];
-                float dsdx = coordx[0] - s;
-                float dtdx = coordx[1] - t;
-                float dsdy = coordy[0] - s;
-                float dtdy = coordy[1] - t;
-                float val[nchannels] = { 0, 0, 0, 1 };
-                texsys->texture (filename, opt, runflags, 0, 0, s, t,
-                                 dsdx, dtdx, dsdy, dtdy, val);
-                image.setpixel (x, y, val);
+		// Iterate over blocks
+        for (int by = 0;  by < output_yres;  by+=blocksize) {
+            for (int bx = 0;  bx < output_xres;  bx+=blocksize) {
+				// Process pixels within a block.  First save the texture warp
+				// (s,t) and derivatives into SIMD vectors.
+                int idx = 0;
+                for (int y = by; y < by+blocksize; ++y) {
+                    for (int x = bx; x < bx+blocksize; ++x) {
+                        if (x < output_xres && y < output_yres) {
+                            Imath::V3f coord = warp ((float)x/output_xres,
+                                                     (float)y/output_yres,
+                                                     xform);
+                            Imath::V3f coordx = warp ((float)(x+1)/output_xres,
+                                                      (float)y/output_yres,
+                                                      xform);
+                            Imath::V3f coordy = warp ((float)x/output_xres,
+                                                      (float)(y+1)/output_yres,
+                                                      xform);
+                            s[idx] = coord[0];
+                            t[idx] = coord[1];
+                            dsdx[idx] = coordx[0] - coord[0];
+                            dtdx[idx] = coordx[1] - coord[1];
+                            dsdy[idx] = coordy[0] - coord[0];
+                            dtdy[idx] = coordy[1] - coord[1];
+                            runflags[idx] = RunFlagOn;
+                        } else {
+                            runflags[idx] = RunFlagOff;
+                        }
+                        ++idx;
+                    }
+                }
+                // Call the texture system to do the filtering.
+                texsys->texture (filename, opt, runflags, 0, shadepoints-1, 
+                                 Varying(s), Varying(t),
+                                 Varying(dsdx), Varying(dtdx),
+                                 Varying(dsdy), Varying(dtdy), result);
+                // Save filtered pixels back to the image.
+                idx = 0;
+                for (int y = by; y < by+blocksize; ++y) {
+                    for (int x = bx; x < bx+blocksize; ++x) {
+                        if (runflags[idx]) {
+                            image.setpixel (x, y, result + idx*nchannels);
+                        }
+                        ++idx;
+                    }
+                }
             }
         }
     }
