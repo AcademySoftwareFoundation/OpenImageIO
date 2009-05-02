@@ -589,7 +589,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
             (this->*lookup) (*texturefile, options, i,
                              s, t, dsdx, dtdx, dsdy, dtdy,
                              thread_info->tilecache0, thread_info->tilecache1,
-                             result + i * options.nchannels);
+                             result);
         }
     }
 
