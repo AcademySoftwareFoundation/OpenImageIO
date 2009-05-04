@@ -431,17 +431,15 @@ public:
     ImageCacheFile *find_file (ustring filename);
 
     /// Is the tile specified by the TileID already in the cache?
-    /// Only safe to call when the mutex is held.
+    /// Only safe to call when the caller holds tilemutex.
     bool tile_in_cache (const TileID &id) {
         TileCache::iterator found = m_tilecache.find (id);
         return (found != m_tilecache.end());
     }
 
-    /// Add the tile to the cache.  Only safe to call when the mutex is
-    /// held.
-    void add_tile_to_cache (ImageCacheTileRef &tile) {
-        m_tilecache[tile->id()] = tile;
-    }
+    /// Add the tile to the cache.  This will grab a unique lock to the
+    /// tilemutex, and will also enforce cache memory limits.
+    void add_tile_to_cache (ImageCacheTileRef &tile);
 
     /// Find a tile identified by 'id' in the tile cache, paging it in if
     /// needed, and store a reference to the tile.  Return true if ok,
@@ -565,11 +563,11 @@ private:
     void init ();
 
     /// Enforce the max number of open files.  This should only be invoked
-    /// when the caller holds m_mutex.
+    /// when the caller holds m_filemutex.
     void check_max_files ();
 
     /// Enforce the max memory for tile data.  This should only be invoked
-    /// when the caller holds m_mutex.
+    /// when the caller holds m_tilemutex.
     void check_max_mem ();
 
     /// Internal statistics printing routine

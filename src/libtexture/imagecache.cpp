@@ -945,20 +945,29 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
     // no other non-threadsafe side effects.
     Timer timer;
     tile = new ImageCacheTile (id);
+    DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
+    DASSERT (tile);
     incr_tiles (tile->memsize());
     double readtime = timer();
     incr_time_stat (m_stat_fileio_time, readtime);
-    
+
+    add_tile_to_cache (tile);
+}
+
+
+
+void
+ImageCacheImpl::add_tile_to_cache (ImageCacheTileRef &tile)
+{
+#if IMAGECACHE_TIME_STATS
+    Timer timer;
+#endif
     unique_lock writeguard (m_tilemutex);
 #if IMAGECACHE_TIME_STATS
-    incr_time_stat (m_stat_tile_locking_time, timer()-readtime);
+    incr_time_stat (m_stat_tile_locking_time, timer());
 #endif
-
     check_max_mem ();
-    m_tilecache[id] = tile;
-
-    DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
-    DASSERT (tile);
+    m_tilecache[tile->id()] = tile;
 }
 
 
