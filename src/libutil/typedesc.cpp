@@ -122,7 +122,7 @@ TypeDesc::c_str () const
     std::string result;
     if (aggregate == SCALAR)
         result = basetype_name[basetype];
-    else {
+    else if (vecsemantics == NOXFORM) {
         const char *agg = "";
         switch (aggregate) {
         case VEC2 : agg = "vec2"; break;
@@ -131,6 +131,25 @@ TypeDesc::c_str () const
         case MATRIX44 : agg = "matrix44"; break;
         }
         result = std::string (agg) + basetype_code[basetype];
+    } else {
+        // Special names for vector semantics
+        const char *vec = "";
+        switch (vecsemantics) {
+        case COLOR  : vec = "color"; break;
+        case POINT  : vec = "point"; break;
+        case VECTOR : vec = "vector"; break;
+        case NORMAL : vec = "normal"; break;
+        default: ASSERT (0 && "Invalid vector semantics");
+        }
+        const char *agg = "";
+        switch (aggregate) {
+        case VEC2 : agg = "2"; break;
+        case VEC4 : agg = "4"; break;
+        case MATRIX44 : agg = "matrix"; break;
+        }
+        result = std::string (vec) + std::string (agg);
+        if (basetype != FLOAT)
+            result += basetype_code[basetype];
     }
     if (arraylen > 0)
         result += Strutil::format ("[%d]", arraylen);
