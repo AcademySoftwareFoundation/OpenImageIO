@@ -58,7 +58,7 @@
 /// \endcode
 ///
 /// But if the caller of this function has only a single b value (let's
-/// say, you always want to add 3 to every b[i]), you would be forced
+/// say, you always want to add 3 to every a[i]), you would be forced
 /// to replicate an entire array full of 3's in order to call the function.
 ///
 /// Instead, we may wish to generalize the function so that each operand
