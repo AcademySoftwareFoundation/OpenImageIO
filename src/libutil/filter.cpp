@@ -35,6 +35,7 @@
 #include <string>
 
 #include "filter.h"
+#include "fmath.h"
 
 
 // Below are the implementations of several 2D filters.  They all

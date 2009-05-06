@@ -234,13 +234,13 @@ TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
                               const void *val)
 {
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
-                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+                                    type == TypeDesc(TypeDesc::FLOAT,16))) {
         m_Mw2c = *(const Imath::M44f *)val;
         m_Mc2w = m_Mw2c.inverse();
         return true;
     }
     if (name == "commontoworld" && (type == TypeDesc::PT_MATRIX ||
-                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+                                    type == TypeDesc(TypeDesc::FLOAT,16))) {
         m_Mc2w = *(const Imath::M44f *)val;
         m_Mw2c = m_Mc2w.inverse();
         return true;
@@ -261,12 +261,12 @@ TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
                                  void *val)
 {
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
-                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+                                    type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mw2c;
         return true;
     }
     if (name == "commontoworld" && (type == TypeDesc::PT_MATRIX ||
-                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+                                    type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mc2w;
         return true;
     }

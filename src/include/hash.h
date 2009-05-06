@@ -49,8 +49,15 @@ using __gnu_cxx::hash_set;
 
 #include <hash_map>
 #include <hash_set>
+
+#ifdef _WIN32
+using stdext::hash_map;
+using stdext::hash_set;
+using stdext::hash_compare;
+#else
 using std::hash_map;
 using std::hash_set;
+#endif
 
 #endif
 

@@ -154,7 +154,7 @@ atomic_exchange (volatile int *at, int x)
     return result;
 #elif defined(_WIN32)
     // Windows
-    return InterlockedExchange (at, x);
+    return InterlockedExchange ((volatile LONG *)at, x);
 #else
     asfaef  // force compile to fail, I have no idea what to do here
 #endif
@@ -190,7 +190,7 @@ atomic_exchange_and_add (volatile int *at, int x)
     return OSAtomicAdd32Barrier (x, at) - x;
 #elif defined(_WIN32)
     // Windows
-    return InterlockedExchangeAdd (at, x);
+    return InterlockedExchangeAdd ((volatile LONG *)at, x);
 #endif
 }
 

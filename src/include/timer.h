@@ -64,7 +64,7 @@
 ///
 class Timer {
 public:
-#ifdef _WINDOWS
+#ifdef _WIN32
     typedef LARGE_INTEGER value_t;
     // Sheesh, why can't they use a standard type like stdint's int64_t?
 #else
@@ -135,7 +135,7 @@ private:
     ///
     value_t now (void) const {
         value_t n;
-#ifdef _WINDOWS
+#ifdef _WIN32
         QueryPerformanceCounter (&n);   // From MSDN web site
 #else
         gettimeofday (&n, NULL);
@@ -146,7 +146,7 @@ private:
     /// Platform-dependent difference between two times, expressed in
     /// seconds.
     static double diff (const value_t &then, const value_t &now) {
-#ifdef _WINDOWS
+#ifdef _WIN32
         // From MSDN web site
         value_t freq;
         QueryPerformanceFrequency (&freq);

@@ -234,7 +234,7 @@ public:
 
     /// Functor that hashes a TileID
     class Hasher
-#ifdef WINNT
+#ifdef _WIN32
         : public hash_compare<TileID>
 #endif
     {

@@ -571,15 +571,16 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 
 
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 // Windows doesn't define these functions from math.h
+#define hypotf _hypotf
 #define copysign(x,y) _copysign(x,y)
 #define copysignf(x,y) copysign(x,y)
 #define isnan(x) _isnan(x)
 #define isfinite(x) _finite(x)
 template<class T>
 inline int isinf (T x) {
-    return (isfinite(x)||isnan(x)) ? 0 : copysign(1.0f, x))
+    return (isfinite(x)||isnan(x)) ? 0 : copysign(1.0f, x);
 }
 #endif
 

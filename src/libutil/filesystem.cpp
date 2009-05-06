@@ -113,7 +113,7 @@ Filesystem::searchpath_split (const std::string &searchpath,
     for (tokenizer::iterator tok_iter = tokens.begin();
          tok_iter != tokens.end(); last_token = *tok_iter, ++tok_iter) {
         std::string path = *tok_iter;
-#ifdef WINNT
+#ifdef _WIN32
         // On Windows, we might see something like "a:foo" and any human
         // would know that it means drive/directory 'a:foo', NOT
         // separate directories 'a' and 'foo'.  Implement the obvious
@@ -122,8 +122,8 @@ Filesystem::searchpath_split (const std::string &searchpath,
         // consist of a single letter.
         if (last_token.length() == 1 && last_token[0] != '.') {
             // If the last token was a single letter, try prepending it
-            path = lasttoken + ":" + (*tok_iter);
-        else
+            path = last_token + ":" + (*tok_iter);
+        } else
 #endif
             path = *tok_iter;
         // Kill trailing slashes (but not simple "/")
@@ -193,11 +193,11 @@ Filesystem::path_is_absolute (const std::string &path, bool dot_is_absolute)
     return (path[0] == '/')
         || (dot_is_absolute && path[0] == '.' && path[1] == '/')
         || (dot_is_absolute && path[0] == '.' && path[1] == '.' && path[2] == '/')
-#ifdef WINNT
+#ifdef _WIN32
         || path[0] == '\\'
         || (dot_is_absolute && path[0] == '.' && path[1] == '\\')
         || (dot_is_absolute && path[0] == '.' && path[1] == '.' && path[2] == '\\')
-        || (isapha(path[0]) && path[1] == ':')
+        || (isalpha(path[0]) && path[1] == ':')
 #endif
         ;
 }

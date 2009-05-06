@@ -41,8 +41,9 @@
 # include <mach/mach_init.h>
 #endif
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 # include <windows.h>
+# include <Psapi.h>
 #else
 # include <sys/resource.h>
 #endif
@@ -92,11 +93,11 @@ Sysutil::memory_used (bool resident)
     size_t size = (resident ? t_info.resident_size : t_info.virtual_size);
     return size;
 
-#elif defined(_WINDOWS)
+#elif defined(_WIN32)
     // According to MSDN...
     PROCESS_MEMORY_COUNTERS counters;
-    if (GetProcessMemoryInfo (GetCurrentProcess(), &count, sizeof (count)))
-        return count.PagefileUsage;
+    if (GetProcessMemoryInfo (GetCurrentProcess(), &counters, sizeof (counters)))
+        return counters.PagefileUsage;
     else return 0;
 
 #else

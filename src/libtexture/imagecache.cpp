@@ -187,7 +187,7 @@ ImageCacheFile::open ()
     // attribute (because that would indicate somebody constructed it as
     // texture and specifically wants it un-mipmapped).
     if (m_untiled && nsubimages == 1 && imagecache().automip() &&
-            ! spec().find_attribute ("textureformat", TypeDesc::PT_STRING)) {
+            ! spec().find_attribute ("textureformat", TypeDesc::STRING)) {
         m_unmipped = true;
         int w = spec().full_width;
         int h = spec().full_height;
@@ -890,12 +890,12 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
         return true;
     }
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
-                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+                                    type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mw2c;
         return true;
     }
     if (name == "commontoworld" && (type == TypeDesc::PT_MATRIX ||
-                                    type == TypeDesc(TypeDesc::PT_FLOAT,16))) {
+                                    type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mc2w;
         return true;
     }

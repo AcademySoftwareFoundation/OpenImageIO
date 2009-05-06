@@ -31,7 +31,7 @@
 #include <cstdlib>
 #include <string>
 
-#ifdef WINDOWS
+#ifdef _WIN32
 # include <windows.h>
 #else
 # include <dlfcn.h>
@@ -57,7 +57,7 @@ static std::string last_error;
 const char *
 Plugin::plugin_extension (void)
 {
-#if defined(WINDOWS)
+#if defined(_WIN32)
     return "dll";
 #elif defined(__APPLE__)
     return "dylib";
@@ -73,7 +73,7 @@ Plugin::open (const char *plugin_filename)
 {
     lock_guard guard (plugin_mutex);
     last_error.clear ();
-#if defined(WINDOWS)
+#if defined(_WIN32)
     return LoadLibrary (plugin_filename);
 #else
     Handle h = dlopen (plugin_filename, RTLD_LAZY | RTLD_GLOBAL);
@@ -90,8 +90,8 @@ Plugin::close (Handle plugin_handle)
 {
     lock_guard guard (plugin_mutex);
     last_error.clear ();
-#if defined(WINDOWS)
-    FreeLibrary (plugin_handle);
+#if defined(_WIN32)
+    FreeLibrary ((HMODULE)plugin_handle);
 #else
     if (dlclose (plugin_handle)) {
         last_error = dlerror();
@@ -108,8 +108,8 @@ Plugin::getsym (Handle plugin_handle, const char *symbol_name)
 {
     lock_guard guard (plugin_mutex);
     last_error.clear ();
-#if defined(WINDOWS)
-    return GetProcAddress (plugin_handle, symbol_name);
+#if defined(_WIN32)
+    return GetProcAddress ((HMODULE)plugin_handle, symbol_name);
 #else
     void *s = dlsym (plugin_handle, symbol_name);
     if (!s)

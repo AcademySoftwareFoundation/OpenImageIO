@@ -41,7 +41,7 @@
 
 
 
-#ifdef WINNT
+#ifdef _WIN32
 typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash> UstringTable;
 #else
 typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
@@ -68,7 +68,8 @@ ustring::_make_unique (const char *str)
         return found->second;
 
     // This string is not yet in the ustring table.  Create a new entry.
-    size_t size = sizeof(ustring::TableRep) + strlen(str) + 1;
+    size_t size = sizeof(ustring::TableRep)-1 + strlen(str) + 1;
+    // N.B. that first "-1" is because we have chars[1], not chars[0]
     ustring::TableRep *rep = (ustring::TableRep *) malloc (size);
     new (rep) ustring::TableRep (str);
     ustring_table[rep->c_str()] = rep;
@@ -87,11 +88,15 @@ ustring::format (const char *fmt, ...)
     // Allocate a buffer on the stack that's big enough for us almost
     // all the time.
     size_t size = 1024;
-    char buf[size];
+    char buf[1024];
 
     // Try to vsnprintf into our buffer.
     va_list apcopy;
+#ifdef _WIN32
+    apcopy = ap;
+#else
     va_copy (apcopy, ap);
+#endif
     size_t needed = (size_t) vsnprintf (&buf[0], size, fmt, ap);
 
     if (needed <= size) {

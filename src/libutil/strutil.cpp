@@ -61,11 +61,15 @@ Strutil::vformat (const char *fmt, va_list ap)
     // Allocate a buffer on the stack that's big enough for us almost
     // all the time.
     size_t size = 1024;
-    char buf[size];
+    char buf[1024];
 
     // Try to vsnprintf into our buffer.
     va_list apcopy;
+#ifdef _WIN32
+    apcopy = ap;
+#else
     va_copy (apcopy, ap);
+#endif
     int needed = vsnprintf (&buf[0], size, fmt, ap);
 
     if (needed <= (int)size) {

@@ -65,10 +65,10 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 
-struct DLLPUBLIC TypeDesc {
+struct TypeDesc {
     /// BASETYPE is a simple enum for the C/C++ built-in types.
     ///
-    enum BASETYPE { UNKNOWN, VOID,
+    enum BASETYPE { UNKNOWN, NONE, 
                     UCHAR, UINT8=UCHAR, CHAR, INT8=CHAR,
                     USHORT, UINT16=USHORT, SHORT, INT16=SHORT,
                     UINT, INT,
