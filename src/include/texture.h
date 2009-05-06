@@ -165,7 +165,7 @@ public:
     static void parse_wrapmodes (const char *wrapmodes,
                                  TextureOptions::Wrap &swrapcode,
                                  TextureOptions::Wrap &twrapcode);
-    
+
 
     /// Special private ctr that makes a canonical default TextureOptions.
     /// For use internal to libtexture.  Users, don't call this!
@@ -341,7 +341,7 @@ public:
     /// doesn't match the type requested. or some other failure.
     virtual bool get_texture_info (ustring filename, ustring dataname,
                                    TypeDesc datatype, void *data) = 0;
-    
+
     /// Get the ImageSpec associated with the named texture
     /// (specifically, the first MIP-map level).  If the file is found
     /// and is an image format that can be read, store a copy of its
@@ -364,7 +364,7 @@ public:
     /// available ImageIO plugin, otherwise return false.
     virtual bool get_texels (ustring filename, TextureOptions &options,
                              int level, int xmin, int xmax,
-                             int ymin, int ymax, int zmin, int zmax, 
+                             int ymin, int ymax, int zmin, int zmax,
                              TypeDesc format, void *result) = 0;
 
     /// If any of the API routines returned false indicating an error,

@@ -36,7 +36,7 @@
 /// Provides a simple API that abstracts the reading and writing of
 /// images.  Subclasses, which may be found in DSO/DLL's, implement
 /// particular formats.
-/// 
+///
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -485,9 +485,10 @@ public:
     /// Because this may be an expensive operation, a progress callback
     /// may be passed.  Periodically, it will be called as follows:
     ///     progress_callback (progress_callback_data, float done)
-    /// where 'done' gives the portion of the image 
+    /// where 'done' gives the portion of the image
     virtual bool read_image (TypeDesc format, void *data,
-                             stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                             stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
@@ -641,7 +642,8 @@ public:
     /// not support random access.
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride, stride_t zstride=AutoStride)
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride)
         { return false; }
 
     /// Write pixels whose x coords range over xmin..xmax (inclusive), y
@@ -661,7 +663,8 @@ public:
     virtual bool write_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax, TypeDesc format,
                                   const void *data, stride_t xstride=AutoStride,
-                                  stride_t ystride=AutoStride, stride_t zstride=AutoStride)
+                                  stride_t ystride=AutoStride,
+                                  stride_t zstride=AutoStride)
         { return false; }
 
     /// Write the entire image of spec.width x spec.height x spec.depth
@@ -731,12 +734,14 @@ protected:
                                     const void *data, stride_t xstride,
                                     std::vector<unsigned char> &scratch);
     const void *to_native_tile (TypeDesc format, const void *data,
-                                stride_t xstride, stride_t ystride, stride_t zstride,
+                                stride_t xstride, stride_t ystride,
+                                stride_t zstride,
                                 std::vector<unsigned char> &scratch);
     const void *to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                      int zmin, int zmax,
                                      TypeDesc format, const void *data,
-                                     stride_t xstride, stride_t ystride, stride_t zstride,
+                                     stride_t xstride, stride_t ystride,
+                                     stride_t zstride,
                                      std::vector<unsigned char> &scratch);
 
 protected:

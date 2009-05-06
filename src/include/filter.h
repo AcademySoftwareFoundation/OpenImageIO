@@ -56,7 +56,7 @@ public:
 
     // This static function allocates and returns an instance of the
     // specific filter implementation for the name you provide.
-    // Example use: 
+    // Example use:
     //        Filter1D *myfilt = Filter1::create ("box", 1);
     // The caller is responsible for deleting it when it's done.
     // If the name is not recognized, return NULL.
@@ -87,7 +87,7 @@ public:
 
     // This static function allocates and returns an instance of the
     // specific filter implementation for the name you provide.
-    // Example use: 
+    // Example use:
     //        Filter2D *myfilt = Filter2::create ("box", 1, 1);
     // The caller is responsible for deleting it when it's done.
     // If the name is not recognized, return NULL.

@@ -56,7 +56,7 @@
 ///  - There are 15 VALUES
 ///  - Each value has an array of 4 ELEMENTS, ecah of which is a color
 ///  - A color has 3 COMPONENTS (R, G, B)
-///   
+///
 class DLLPUBLIC ParamValue {
 public:
     /// Interpolation types
@@ -115,7 +115,7 @@ public:
         std::swap (a.m_nonlocal, b.m_nonlocal);
     }
 
-private: 
+private:
     ustring m_name;           ///< data name
     TypeDesc m_type;          ///< data type, which may itself be an array
     int m_nvalues;            ///< number of values of the given type

@@ -54,7 +54,7 @@ class ImageCacheImpl;
 
 
 
-/// Define an API to an abstract class that that manages image files,
+/// Define an API to an abstract class that manages image files,
 /// caches of open file handles as well as tiles of pixels so that truly
 /// huge amounts of image data may be accessed by an application with low
 /// memory footprint.
@@ -88,16 +88,19 @@ public:
     ///     int autotile : if >0, tile size to emulate for non-tiled images
     ///     int automip : if nonzero, emulate mipmap on the fly
     ///
-    virtual bool attribute (const std::string &name, TypeDesc type, const void *val) = 0;
+    virtual bool attribute (const std::string &name, TypeDesc type,
+                            const void *val) = 0;
     // Shortcuts for common types
     virtual bool attribute (const std::string &name, int val) = 0;
     virtual bool attribute (const std::string &name, float val) = 0;
     virtual bool attribute (const std::string &name, double val) = 0;
     virtual bool attribute (const std::string &name, const char *val) = 0;
-    virtual bool attribute (const std::string &name, const std::string &val) = 0;
+    virtual bool attribute (const std::string &name,
+                            const std::string &val) = 0;
 
     /// Get the named attribute, store it in value.
-    virtual bool getattribute (const std::string &name, TypeDesc type, void *val) = 0;
+    virtual bool getattribute (const std::string &name, TypeDesc type,
+                               void *val) = 0;
     // Shortcuts for common types
     virtual bool getattribute (const std::string &name, int &val) = 0;
     virtual bool getattribute (const std::string &name, float &val) = 0;
@@ -109,7 +112,7 @@ public:
     /// path rules and return the full resolved filename.
     virtual std::string resolve_filename (const std::string &filename) const=0;
 
-    /// Get information about the named imagee.  Return true if found
+    /// Get information about the named image.  Return true if found
     /// and the data has been put in *data.  Return false if the image
     /// doesn't exist, doesn't have the requested data, if the data
     /// doesn't match the type requested. or some other failure.

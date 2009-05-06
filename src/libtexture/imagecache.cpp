@@ -76,7 +76,7 @@ namespace pvt {   // namespace OpenImageIO::pvt
 ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
     : m_filename(filename), m_used(true), m_broken(false),
       m_untiled(false), m_unmipped(false),
-      m_texformat(TexFormatTexture), 
+      m_texformat(TexFormatTexture),
       m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0),
@@ -92,10 +92,10 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
     static int x=0;
     if ((++x % 16) == 0) {
     std::cerr << "Opened " << filename ;
-    std::cerr << ", now mem is " 
-              << Strutil::memformat (Sysutil::memory_used()) 
-              << " virtual, resident = " 
-              << Strutil::memformat (Sysutil::memory_used(true)) 
+    std::cerr << ", now mem is "
+              << Strutil::memformat (Sysutil::memory_used())
+              << " virtual, resident = "
+              << Strutil::memformat (Sysutil::memory_used(true))
               << "\n";
     }
 #endif
@@ -363,7 +363,7 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
                                      0, 0, TypeDesc::FLOAT, bilerppels);
             bilerp (bilerppels+0, bilerppels+spec.nchannels,
                     bilerppels+2*spec.nchannels, bilerppels+3*spec.nchannels,
-                    xfrac, yfrac, spec.nchannels, 
+                    xfrac, yfrac, spec.nchannels,
                     (float *)lores.pixeladdr (i-x0, j-y0));
         }
     }
@@ -417,7 +417,7 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
         // [y0,y1] is the range of scanlines to read for a tile-row
         int y0 = yy - (yy % th);
         int y1 = std::min (y0 + th - 1, spec().height - 1);
-        y0 += spec().y;   
+        y0 += spec().y;
         y1 += spec().y;
         // Read the whole tile-row worth of scanlines
         for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i)
@@ -606,7 +606,7 @@ ImageCacheTile::ImageCacheTile (const TileID &id)
     if (! m_valid) {
         m_used = false;  // Don't let it hold mem if invalid
 #if 0
-        std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y() 
+        std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y()
                   << " lev=" << m_id.subimage() << " from " << file.filename() << "\n";
 #endif
     }
@@ -626,7 +626,7 @@ ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
     size_t dst_pelsize = spec.nchannels * file.datatype().size();
     m_valid = convert_image (spec.nchannels, spec.tile_width, spec.tile_height,
                              spec.tile_depth, pels, format, xstride, ystride,
-                             zstride, &m_pixels[0], file.datatype(), 
+                             zstride, &m_pixels[0], file.datatype(),
                              dst_pelsize, dst_pelsize * spec.tile_width,
                              dst_pelsize * spec.tile_pixels());
     // FIXME -- for shadow, fill in mindepth, maxdepth
@@ -662,7 +662,7 @@ ImageCacheTile::data (int x, int y, int z) const
 
 
 ImageCacheImpl::ImageCacheImpl ()
-    : m_file_sweep(m_files.end()), 
+    : m_file_sweep(m_files.end()),
       m_tile_sweep(m_tilecache.end()), m_mem_used(0)
 {
     init ();
@@ -1103,7 +1103,7 @@ ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec, int subimage)
 bool
 ImageCacheImpl::get_pixels (ustring filename, int subimage,
                             int xmin, int xmax, int ymin, int ymax,
-                            int zmin, int zmax, 
+                            int zmin, int zmax,
                             TypeDesc format, void *result)
 {
     ImageCacheFile *file = find_file (filename);
@@ -1130,7 +1130,7 @@ ImageCacheImpl::get_pixels (ustring filename, int subimage,
 bool
 ImageCacheImpl::get_pixels (ImageCacheFile *file, int subimage,
                             int xmin, int xmax, int ymin, int ymax,
-                            int zmin, int zmax, 
+                            int zmin, int zmax,
                             TypeDesc format, void *result)
 {
     const ImageSpec &spec (file->spec());
@@ -1307,7 +1307,7 @@ ImageCache::create (bool shared)
         if (! shared_image_cache.get())
             shared_image_cache.reset (new ImageCacheImpl);
 #ifdef DEBUG
-        std::cerr << " shared ImageCache is " 
+        std::cerr << " shared ImageCache is "
                   << (void *)shared_image_cache.get() << "\n";
 #endif
         return shared_image_cache.get ();
@@ -1330,7 +1330,7 @@ ImageCache::destroy (ImageCache *x)
     // the same as the shared cache, don't really delete it, since others
     // may be using it now, or may request a shared cache some time in
     // the future.  Don't worry that it will leak; because shared_image_cache
-    // is itself a shared_ptr, when the process ends it will properly 
+    // is itself a shared_ptr, when the process ends it will properly
     // destroy the shared cache.
     lock_guard guard (shared_image_cache_mutex);
     if (x != shared_image_cache.get())

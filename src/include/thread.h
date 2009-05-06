@@ -196,7 +196,7 @@ atomic_exchange_and_add (volatile int *at, int x)
 
 
 
-/// Atomic version of: 
+/// Atomic version of:
 ///    if (*at == compareval) {
 ///        *at = newval;  return true;
 ///    } else {
@@ -379,4 +379,3 @@ private:
 
 
 #endif // THREAD_H
-

@@ -50,7 +50,7 @@
 
 namespace Filesystem {
 
-/// Return the file extension (just the part after the last '.') of a 
+/// Return the file extension (just the part after the last '.') of a
 /// filename.
 DLLPUBLIC std::string file_extension (const std::string &filepath);
 

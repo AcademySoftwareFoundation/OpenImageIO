@@ -42,14 +42,14 @@
 ///  - ABORT (if not already defined) is defined to print an error message
 ///            and then abort().
 ///  - ASSERT (if not already defined) is defined to check if a condition
-///            is met, and if not, calls ABORT with an error message 
+///            is met, and if not, calls ABORT with an error message
 ///            indicating the module and line where it occurred.
 ///  - DASSERT is the same as ASSERT when in DEBUG mode, but a no-op when
 ///            not in debug mode.
 ///
-/// The presumed usage is that you want ASSERT for dire conditions that 
+/// The presumed usage is that you want ASSERT for dire conditions that
 /// must be checked at runtime even in an optimized build.  DASSERT is
-/// for checks we should do for debugging, but that we don't want to 
+/// for checks we should do for debugging, but that we don't want to
 /// bother with in a shipping optimized build.
 ///
 /// In both cases, these are NOT a substitute for actual error checking
@@ -89,7 +89,7 @@
 #endif
 
 
-/// DASSERT(condition) is just like ASSERT, except that it only is 
+/// DASSERT(condition) is just like ASSERT, except that it only is
 /// functional in DEBUG mode, but does nothing when in a non-DEBUG
 /// (optimized, shipping) build.
 #ifdef DEBUG
