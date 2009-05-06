@@ -270,10 +270,6 @@ ImageCacheFile::open ()
     m_pixelsize = m_channelsize * spec.nchannels;
     m_eightbit = (m_datatype == TypeDesc::UINT8);
 
-    if (m_untiled || m_unmipped) {
-        close ();
-    }
-
     return !m_broken;
 }
 
@@ -392,6 +388,12 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
     // N.B. No need to lock the mutex, since this is only called
     // from read_tile, which already holds the lock.
 
+    if (m_input->current_subimage() != subimage) {
+        ImageSpec tmp;
+        if (! m_input->seek_subimage (subimage, tmp))
+            return false;
+    }
+
     // Strides for a single tile
     int tw = spec().tile_width;
     int th = spec().tile_height;
@@ -461,7 +463,6 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
         ++m_tilesread;
     }
 
-    close ();   // Done with it
     return ok;
 }
 
