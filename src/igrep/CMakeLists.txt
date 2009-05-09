@@ -1,0 +1,8 @@
+SET ( igrep_srcs igrep.cpp )
+ADD_EXECUTABLE ( igrep ${igrep_srcs} )
+LINK_ILMBASE ( igrep )
+TARGET_LINK_LIBRARIES ( igrep OpenImageIO ${Boost_LIBRARIES} )
+INSTALL ( TARGETS igrep RUNTIME DESTINATION bin )
+IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+    TARGET_LINK_LIBRARIES ( igrep dl )
+ENDIF ()

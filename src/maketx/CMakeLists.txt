@@ -1,0 +1,8 @@
+SET ( maketx_srcs maketx.cpp )
+ADD_EXECUTABLE ( maketx ${maketx_srcs} )
+LINK_ILMBASE ( maketx )
+TARGET_LINK_LIBRARIES ( maketx OpenImageIO ${Boost_LIBRARIES} )
+INSTALL ( TARGETS maketx RUNTIME DESTINATION bin )
+IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+    TARGET_LINK_LIBRARIES ( maketx dl )
+ENDIF ()

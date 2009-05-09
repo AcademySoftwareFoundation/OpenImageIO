@@ -1,0 +1,8 @@
+SET ( testtex_srcs testtex.cpp )
+ADD_EXECUTABLE ( testtex ${testtex_srcs} )
+LINK_ILMBASE ( testtex )
+TARGET_LINK_LIBRARIES ( testtex OpenImageIO ${Boost_LIBRARIES} )
+#INSTALL ( TARGETS testtex RUNTIME DESTINATION bin )
+IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+    TARGET_LINK_LIBRARIES ( testtex dl )
+ENDIF ()

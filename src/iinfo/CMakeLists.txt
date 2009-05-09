@@ -1,0 +1,8 @@
+SET ( iinfo_srcs iinfo.cpp md5.cpp )
+ADD_EXECUTABLE ( iinfo ${iinfo_srcs} )
+LINK_ILMBASE ( iinfo )
+TARGET_LINK_LIBRARIES ( iinfo OpenImageIO ${Boost_LIBRARIES} )
+INSTALL ( TARGETS iinfo RUNTIME DESTINATION bin )
+IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+    TARGET_LINK_LIBRARIES ( iinfo dl )
+ENDIF ()

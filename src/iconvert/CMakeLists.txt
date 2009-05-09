@@ -1,0 +1,8 @@
+SET ( iconvert_srcs iconvert.cpp )
+ADD_EXECUTABLE ( iconvert ${iconvert_srcs} )
+LINK_ILMBASE ( iconvert )
+TARGET_LINK_LIBRARIES ( iconvert OpenImageIO ${Boost_LIBRARIES} )
+INSTALL ( TARGETS iconvert RUNTIME DESTINATION bin )
+IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+    TARGET_LINK_LIBRARIES ( iconvert dl )
+ENDIF ()

@@ -1,0 +1,8 @@
+SET ( idiff_srcs idiff.cpp )
+ADD_EXECUTABLE ( idiff ${idiff_srcs} )
+LINK_ILMBASE ( idiff )
+TARGET_LINK_LIBRARIES ( idiff OpenImageIO ${Boost_LIBRARIES} )
+INSTALL ( TARGETS idiff RUNTIME DESTINATION bin )
+IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+    TARGET_LINK_LIBRARIES ( idiff dl )
+ENDIF ()
