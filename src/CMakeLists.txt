@@ -18,37 +18,43 @@ SET(CMAKE_MODULE_PATH
 	"${PROJECT_SOURCE_DIR}/cmake/modules"
 	"${PROJECT_SOURCE_DIR}/cmake")
 
-#SET (CMAKE_VERBOSE_MAKEFILE on)
+INCLUDE ( util_macros )
+
+SET (CMAKE_VERBOSE_MAKEFILE on)
 
 INCLUDE_DIRECTORIES ("include")
 
-
-MACRO (setup_var name defaultval)
-    # If the named variable already has a value (was set by -D...), leave
-    # it alone.  But if it's not yet set...
-    IF ( "${${name}}" STREQUAL "" )
-        # If there's an environment variable of the same name that's
-        # nonempty, use the env variable.  Otherwise, use the default.
-        IF ( NOT $ENV{${name}} STREQUAL "" )
-            SET ( ${name} $ENV{${name}} )
-        ELSE ()
-            SET ( ${name} ${defaultval} )
-        ENDIF ()
-    ENDIF ()
-    MESSAGE ( STATUS "${name} = ${${name}}" )
-ENDMACRO ()
+###########################################################################
+# Platform setup
+IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+    SET (SYSTEM_DL_LIB dl)
+ELSE ()
+    SET (SYSTEM_DL_LIB)
+ENDIF ()
 
 
-setup_var ( THIRD_PARTY_TOOLS_HOME ${PROJECT_SOURCE_DIR}/../external/dist/${OIIO_PLATFORM} )
+###########################################################################
+# Find libraries
 
+setup_path (THIRD_PARTY_TOOLS_HOME 
+            "${PROJECT_SOURCE_DIR}/../../external/dist/${OIIO_PLATFORM}"
+            "Location of third party libraries in the external project" )
 
 
 ###########################################################################
 # IlmBase and OpenEXR setup
 
-setup_var (ILMBASE_VERSION 1.0.1)
-setup_var (ILMBASE_HOME "${THIRD_PARTY_TOOLS_HOME}")
-setup_var (ILMBASE_LIB_AREA "${ILMBASE_HOME}/lib/ilmbase-${ILMBASE_VERSION}")
+# example of using setup_var instead:
+#setup_var (ILMBASE_VERSION 1.0.1 "Version of the ILMBase library" )
+SET ( ILMBASE_VERSION 1.0.1
+     CACHE STRING "Version of the ILMBase library")
+SET (ILMBASE_HOME "${THIRD_PARTY_TOOLS_HOME}"
+     CACHE PATH "Location of the ILMBase library install")
+SET (ILMBASE_LIB_AREA "${ILMBASE_HOME}/lib/ilmbase-${ILMBASE_VERSION}"
+     CACHE PATH "Directory containing IlmBase libraries")
+MARK_AS_ADVANCED (ILMBASE_VERSION)
+MARK_AS_ADVANCED (ILMBASE_HOME)
+MARK_AS_ADVANCED (ILMBASE_LIB_AREA)
 INCLUDE_DIRECTORIES ( "${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}/OpenEXR" )
 LINK_DIRECTORIES ( "${ILMBASE_LIB_AREA}" )
 
@@ -60,13 +66,19 @@ MACRO ( LINK_ILMBASE target )
     TARGET_LINK_LIBRARIES ( ${target} Imath Half IlmThread Iex )
 ENDMACRO ()
 
-setup_var (OPENEXR_VERSION 1.6.1)
-setup_var (OPENEXR_VERSION_DIGITS 10601)
+SET (OPENEXR_VERSION 1.6.1 CACHE STRING "OpenEXR version number")
+SET (OPENEXR_VERSION_DIGITS 10601 CACHE STRING "OpenEXR version preprocessor number")
+MARK_AS_ADVANCED (OPENEXR_VERSION)
+MARK_AS_ADVANCED (OPENEXR_VERSION_DIGITS)
 # FIXME -- should instead do the search & replace automatically, like this
 # way it was done in the old makefiles:
 #     OPENEXR_VERSION_DIGITS ?= 0$(subst .,0,${OPENEXR_VERSION})
-setup_var (OPENEXR_HOME "${THIRD_PARTY_TOOLS_HOME}")
-setup_var (OPENEXR_LIB_AREA "${OPENEXR_HOME}/lib/openexr-${OPENEXR_VERSION}")
+SET (OPENEXR_HOME "${THIRD_PARTY_TOOLS_HOME}"
+     CACHE PATH "Location of the OpenEXR library install")
+SET (OPENEXR_LIB_AREA "${OPENEXR_HOME}/lib/openexr-${OPENEXR_VERSION}"
+     CACHE PATH "Directory containing the OpenEXR libraries")
+MARK_AS_ADVANCED (OPENEXR_HOME)
+MARK_AS_ADVANCED (OPENEXR_LIB_AREA)
 INCLUDE_DIRECTORIES ( "${OPENEXR_HOME}/include/openexr-${OPENEXR_VERSION}" )
 LINK_DIRECTORIES ( "${OPENEXR_LIB_AREA}" )
 ADD_DEFINITIONS ("-DOPENEXR_VERSION=${OPENEXR_VERSION_DIGITS}")
@@ -81,10 +93,21 @@ ENDMACRO ()
 
 
 ###########################################################################
+# zlib setup
+
+SET ( CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include/zlib-1.2.3" )
+SET ( CMAKE_LIBRARY_PATH "${THIRD_PARTY_TOOLS_HOME}/lib/zlib-1.2.3" )
+FIND_PACKAGE ( ZLIB REQUIRED )
+# end zlib setup
+###########################################################################
+
+
+###########################################################################
 # Boost setup
 
 MESSAGE ( STATUS "boost home ${BOOST_ROOT}" )
 
+set(Boost_ADDITIONAL_VERSIONS "1.38" "1.38.0" "1.37" "1.37.0")
 #set (Boost_USE_STATIC_LIBS   ON)
 set (Boost_USE_MULTITHREADED ON)
 #if (APPLE)
@@ -110,6 +133,33 @@ LINK_DIRECTORIES ( "${Boost_LIBRARY_DIRS}" )
 # end Boost setup
 ###########################################################################
 
+# Macro to add a build target for an IO plugin.
+#
+# Usage:
+#
+# ADD_OIIO_PLUGIN ( source1 [source2 ...]
+#                   [LINK_LIBRARIES external_lib1 ...] )
+#
+# The plugin name is deduced from the name of the current directory and the
+# source is automatically linked against OpenImageIO.  Additional libraries
+# (for example, libpng) may be specified after the optionl LINK_LIBRARIES
+# keyword.
+#
+MACRO ( ADD_OIIO_PLUGIN )
+    PARSE_ARGUMENTS(_plugin "LINK_LIBRARIES" "" ${ARGN})
+    SET ( _target_name ${CMAKE_CURRENT_SOURCE_DIR})
+    # Get the name of the current directory and use it as the target name.
+    GET_FILENAME_COMPONENT ( _target_name ${CMAKE_CURRENT_SOURCE_DIR} NAME )
+    ADD_LIBRARY ( ${_target_name} SHARED ${_plugin_DEFAULT_ARGS} )
+    TARGET_LINK_LIBRARIES ( ${_target_name} OpenImageIO ${_plugin_LINK_LIBRARIES} )
+    SET_TARGET_PROPERTIES ( ${_target_name} PROPERTIES PREFIX "" )
+    INSTALL ( TARGETS ${_target_name} LIBRARY DESTINATION lib )
+ENDMACRO ()
+
+
+###########################################################################
+
+
 # Tell CMake to process the sub-directories
 #ADD_SUBDIRECTORY ( libutil )
 ADD_SUBDIRECTORY ( libOpenImageIO )
@@ -120,6 +170,7 @@ ADD_SUBDIRECTORY ( igrep )
 ADD_SUBDIRECTORY ( maketx )
 ADD_SUBDIRECTORY ( testtex )
 ADD_SUBDIRECTORY ( hdr.imageio )
+ADD_SUBDIRECTORY ( png.imageio )
 ADD_SUBDIRECTORY ( include )
 # to do: bmp hdr ico jpeg openexr png tiff zfile
 # to do: doc iv 
