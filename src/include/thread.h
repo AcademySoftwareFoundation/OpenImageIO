@@ -227,7 +227,7 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
     return OSAtomicCompareAndSwap32Barrier (compareval, newval, at);
 #elif defined(_WIN32)
     // Windows
-    return (InterlockedCompareExchange (at, newval, compareval) == compareval);
+    return (InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
 #endif
 }
 

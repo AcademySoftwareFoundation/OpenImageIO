@@ -44,6 +44,12 @@
 #include "imageviewer.h"
 #include "strutil.h"
 
+#ifdef WIN32
+#define GL_GLEXT_PROTOTYPES
+#include <GL/glext.h>
+#include <GL/wglext.h>
+#endif
+
 #define USE_SHADERS 1
 #define USE_SRGB 1
 

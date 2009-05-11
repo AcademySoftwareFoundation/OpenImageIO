@@ -153,6 +153,7 @@ put_in_background (int argc, char *argv[])
     // FIXME: How to do this for win32?  Somebody told me that it's not
     // necessary at all, and we just have to rename 'main' to 'winMain'
     // for it to become a backgrounded app.
+    return false;
 #endif
 }
 

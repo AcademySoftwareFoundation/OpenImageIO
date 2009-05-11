@@ -579,6 +579,9 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 #define copysignf(x,y) copysign(x,y)
 #define isnan(x) _isnan(x)
 #define isfinite(x) _finite(x)
+//#define round(x) RoundToInt(x) // FIXME should be real round, not shortcut
+#define usleep(a) Sleep((a)/1000)
+
 template<class T>
 inline int isinf (T x) {
     return (isfinite(x)||isnan(x)) ? 0 : copysign(1.0f, x);

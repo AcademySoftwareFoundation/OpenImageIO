@@ -31,7 +31,9 @@
 
 #include <iostream>
 #include <cmath>
+#ifndef WIN32
 #include <unistd.h>
+#endif
 #include <vector>
 
 #include <boost/foreach.hpp>
