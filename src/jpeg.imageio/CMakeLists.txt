@@ -1,0 +1,8 @@
+FIND_PACKAGE ( JPEG )
+
+IF ( JPEG_FOUND )
+    INCLUDE_DIRECTORIES ( ${TIFF_INCLUDE_DIR} )
+    INCLUDE_DIRECTORIES ( ${JPEG_INCLUDE_DIR} )
+    ADD_OIIO_PLUGIN ( jpeginput.cpp jpegoutput.cpp jpegexif.cpp
+        LINK_LIBRARIES ${JPEG_LIBRARIES} )
+ENDIF ( )

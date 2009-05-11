@@ -20,7 +20,7 @@ SET(CMAKE_MODULE_PATH
 
 INCLUDE ( util_macros )
 
-SET (CMAKE_VERBOSE_MAKEFILE on)
+#SET (CMAKE_VERBOSE_MAKEFILE on)
 
 INCLUDE_DIRECTORIES ("include")
 
@@ -40,9 +40,27 @@ setup_path (THIRD_PARTY_TOOLS_HOME
             "${PROJECT_SOURCE_DIR}/../../external/dist/${OIIO_PLATFORM}"
             "Location of third party libraries in the external project" )
 
+# Add all third party tool directories to the include and library paths so
+# that they'll be correctly found by the various FIND_PACKAGE() invocations.
+IF ( EXISTS ${THIRD_PARTY_TOOLS_HOME} )
+    # Detect third party tools which have been successfully built using the
+    # lock files which are placed there by the external project Makefile.
+    FILE ( GLOB _external_dir_lockfiles "${THIRD_PARTY_TOOLS_HOME}/*.d" )
+    FOREACH ( _dir_lockfile ${_external_dir_lockfiles} )
+        # Grab the tool directory_name.d
+        GET_FILENAME_COMPONENT ( _ext_dirname ${_dir_lockfile} NAME )
+        # Strip off the .d extension
+        STRING ( REGEX REPLACE "\\.d$" "" _ext_dirname ${_ext_dirname} )
+        SET ( CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include/${_ext_dirname}" ${CMAKE_INCLUDE_PATH} )
+        SET ( CMAKE_LIBRARY_PATH "${THIRD_PARTY_TOOLS_HOME}/lib/${_ext_dirname}" ${CMAKE_LIBRARY_PATH} )
+    ENDFOREACH ()
+ENDIF ()
+
 
 ###########################################################################
 # IlmBase and OpenEXR setup
+
+# TODO: Place the OpenEXR stuff into a separate FindOpenEXR.cmake module.
 
 # example of using setup_var instead:
 #setup_var (ILMBASE_VERSION 1.0.1 "Version of the ILMBase library" )
@@ -79,7 +97,7 @@ SET (OPENEXR_LIB_AREA "${OPENEXR_HOME}/lib/openexr-${OPENEXR_VERSION}"
      CACHE PATH "Directory containing the OpenEXR libraries")
 MARK_AS_ADVANCED (OPENEXR_HOME)
 MARK_AS_ADVANCED (OPENEXR_LIB_AREA)
-INCLUDE_DIRECTORIES ( "${OPENEXR_HOME}/include/openexr-${OPENEXR_VERSION}" )
+INCLUDE_DIRECTORIES ( "${OPENEXR_HOME}/include/openexr-${OPENEXR_VERSION}/OpenEXR" )
 LINK_DIRECTORIES ( "${OPENEXR_LIB_AREA}" )
 ADD_DEFINITIONS ("-DOPENEXR_VERSION=${OPENEXR_VERSION_DIGITS}")
 SET ( OPENEXR_LIBRARIES "IlmImf" )
@@ -90,17 +108,6 @@ ENDMACRO ()
 
 # end IlmBase and OpenEXR setup
 ###########################################################################
-
-
-###########################################################################
-# zlib setup
-
-SET ( CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include/zlib-1.2.3" )
-SET ( CMAKE_LIBRARY_PATH "${THIRD_PARTY_TOOLS_HOME}/lib/zlib-1.2.3" )
-FIND_PACKAGE ( ZLIB REQUIRED )
-# end zlib setup
-###########################################################################
-
 
 ###########################################################################
 # Boost setup
@@ -163,14 +170,23 @@ ENDMACRO ()
 # Tell CMake to process the sub-directories
 #ADD_SUBDIRECTORY ( libutil )
 ADD_SUBDIRECTORY ( libOpenImageIO )
+
 ADD_SUBDIRECTORY ( idiff )
 ADD_SUBDIRECTORY ( iconvert )
 ADD_SUBDIRECTORY ( iinfo )
 ADD_SUBDIRECTORY ( igrep )
 ADD_SUBDIRECTORY ( maketx )
 ADD_SUBDIRECTORY ( testtex )
+
+# Add IO plugin directories
+ADD_SUBDIRECTORY ( bmp.imageio )
 ADD_SUBDIRECTORY ( hdr.imageio )
+ADD_SUBDIRECTORY ( ico.imageio )
+ADD_SUBDIRECTORY ( jpeg.imageio )
+ADD_SUBDIRECTORY ( openexr.imageio )
 ADD_SUBDIRECTORY ( png.imageio )
+ADD_SUBDIRECTORY ( tiff.imageio )
+ADD_SUBDIRECTORY ( zfile.imageio )
+
 ADD_SUBDIRECTORY ( include )
-# to do: bmp hdr ico jpeg openexr png tiff zfile
 # to do: doc iv 

@@ -39,8 +39,6 @@
 using boost::algorithm::iequals;
 using boost::algorithm::istarts_with;
 
-#include <tiffio.h>
-
 #include <ImfOutputFile.h>
 #include <ImfTiledOutputFile.h>
 #include <ImfChannelList.h>
