@@ -554,7 +554,9 @@ TIFFInput::readspec ()
     }
 #endif
 
-    // Search for IPTC metadata in IIM form
+#if TIFFLIB_VERSION >= 20051230
+    // Search for IPTC metadata in IIM form -- but older versions of
+    // libtiff botch the size, so ignore it for very old libtiff.
     int iptcsize = 0;
     const void *iptcdata = NULL;
     if (TIFFGetField (m_tif, TIFFTAG_RICHTIFFIPTC, &iptcsize, &iptcdata)) {
@@ -563,6 +565,7 @@ TIFFInput::readspec ()
             TIFFSwabArrayOfLong ((uint32*)&iptc[0], iptcsize);
         OpenImageIO::decode_iptc_iim (&iptc[0], iptcsize*4, m_spec);
     }
+#endif
 
     // Search for an XML packet containing XMP (IPTC, Exif, etc.)
     int xmlsize = 0;
