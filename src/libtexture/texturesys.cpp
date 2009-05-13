@@ -402,7 +402,8 @@ TextureSystemImpl::invalidate (ustring filename)
     m_imagecache->invalidate (filename);
     lock_guard lock (m_perthread_info_mutex);
     for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
-        m_all_perthread_info[i]->purge = 1;
+        if (m_all_perthread_info[i])
+            m_all_perthread_info[i]->purge = 1;
 }
 
 
@@ -415,7 +416,8 @@ TextureSystemImpl::invalidate_all (bool force)
     m_imagecache->invalidate_all (force);
     lock_guard lock (m_perthread_info_mutex);
     for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
-        m_all_perthread_info[i]->purge = 1;
+        if (m_all_perthread_info[i])
+            m_all_perthread_info[i]->purge = 1;
 }
 
 
