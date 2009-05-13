@@ -142,7 +142,8 @@ texture_type_name (TexFormat f)
 
 
 TextureSystemImpl::TextureSystemImpl (ImageCache *imagecache)
-    : hq_filter(NULL)
+    : m_perthread_info (&cleanup_perthread_info),
+      hq_filter(NULL)
 {
     m_imagecache = (ImageCacheImpl *) imagecache;
     init ();
@@ -399,10 +400,9 @@ void
 TextureSystemImpl::invalidate (ustring filename)
 {
     m_imagecache->invalidate (filename);
-    m_perthread_info_mutex.lock ();
+    lock_guard lock (m_perthread_info_mutex);
     for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
         m_all_perthread_info[i]->purge = 1;
-    m_perthread_info_mutex.unlock ();
 }
 
 
@@ -413,10 +413,9 @@ void
 TextureSystemImpl::invalidate_all (bool force)
 {
     m_imagecache->invalidate_all (force);
-    m_perthread_info_mutex.lock ();
+    lock_guard lock (m_perthread_info_mutex);
     for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
         m_all_perthread_info[i]->purge = 1;
-    m_perthread_info_mutex.unlock ();
 }
 
 

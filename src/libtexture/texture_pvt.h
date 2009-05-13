@@ -247,10 +247,12 @@ private:
         ImageCacheFile *last_file[nlastfile];
         int next_last_file;
         ImageCacheTileRef tilecache0, tilecache1;
-        std::list<ImageCacheTileRef> minicache;
         atomic_int purge;   // If set, tile ptrs need purging!
+        TextureSystemImpl &texturesys;
 
-        PerThreadInfo () : next_last_file(0) {
+        PerThreadInfo (TextureSystemImpl &tex)
+            : next_last_file(0), texturesys(tex)
+        {
             for (int i = 0;  i < nlastfile;  ++i)
                 last_file[i] = NULL;
             purge = 0;
@@ -271,16 +273,23 @@ private:
         }
     };
 
+    static void cleanup_perthread_info (PerThreadInfo *p) {
+        // When the thread dies, don't just release the PerThreadInfo, also
+        // remove its entry from the TextureSystem's m_allperthread_info.
+        p->texturesys.erase_perthread_info (p);
+        delete p;
+    }
+
     /// Get a pointer to the caller's thread's per-thread info, or create
     /// one in the first place if there isn't one already.
     PerThreadInfo *get_perthread_info () {
         PerThreadInfo *p = m_perthread_info.get();
         if (! p) {
-            p = new PerThreadInfo;
+            p = new PerThreadInfo (*this);
             m_perthread_info.reset (p);
-            m_perthread_info_mutex.lock ();  // protect all_perthread_info
+            // printf ("New perthread %p\n", (void *)p);
+            lock_guard lock (m_perthread_info_mutex);
             m_all_perthread_info.push_back (p);
-            m_perthread_info_mutex.unlock ();
         }
         if (p->purge) {  // has somebody requested a tile purge?
             // This is safe, because it's our thread.
@@ -289,6 +298,13 @@ private:
             p->purge = 0;
         }
         return p;
+    }
+
+    void erase_perthread_info (PerThreadInfo *p) {
+        lock_guard lock (m_perthread_info_mutex);
+        for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
+            if (m_all_perthread_info[i] == p)
+                m_all_perthread_info[i] = NULL;
     }
 
     void init ();
@@ -403,7 +419,7 @@ private:
     mutable std::string m_errormessage;   ///< Saved error string.
     mutable fast_mutex m_stats_mutex;     ///< Thread safety for stats
     mutable mutex m_errmutex;             ///< error mutex
-    mutable fast_mutex m_perthread_info_mutex; ///< Thread safety for perthread
+    mutable mutex m_perthread_info_mutex; ///< Thread safety for perthread
     Filter1D *hq_filter;         ///< Better filter for magnification
     int m_statslevel;
     long long m_stat_texture_queries;
@@ -422,6 +438,7 @@ private:
     long long m_stat_cubic_interps;
     friend class ImageCacheFile;
     friend class ImageCacheTile;
+    friend class PerThreadInfo;
 };
 
 
