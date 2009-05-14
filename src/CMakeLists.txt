@@ -140,6 +140,25 @@ LINK_DIRECTORIES ( "${Boost_LIBRARY_DIRS}" )
 # end Boost setup
 ###########################################################################
 
+###########################################################################
+# Qt setup
+
+SET ( QT_USE_QTOPENGL true )
+find_package ( Qt4 )
+
+# end Qt setup
+###########################################################################
+
+###########################################################################
+# OpenGL setup
+
+find_package ( OpenGL )
+
+# end OpenGL setup
+###########################################################################
+
+
+
 # Macro to add a build target for an IO plugin.
 #
 # Usage:
@@ -168,15 +187,15 @@ ENDMACRO ()
 
 
 # Tell CMake to process the sub-directories
-#ADD_SUBDIRECTORY ( libutil )
 ADD_SUBDIRECTORY ( libOpenImageIO )
 
-ADD_SUBDIRECTORY ( idiff )
 ADD_SUBDIRECTORY ( iconvert )
-ADD_SUBDIRECTORY ( iinfo )
+ADD_SUBDIRECTORY ( idiff )
 ADD_SUBDIRECTORY ( igrep )
+ADD_SUBDIRECTORY ( iinfo )
 ADD_SUBDIRECTORY ( maketx )
 ADD_SUBDIRECTORY ( testtex )
+ADD_SUBDIRECTORY ( iv )
 
 # Add IO plugin directories
 ADD_SUBDIRECTORY ( bmp.imageio )
@@ -189,4 +208,19 @@ ADD_SUBDIRECTORY ( tiff.imageio )
 ADD_SUBDIRECTORY ( zfile.imageio )
 
 ADD_SUBDIRECTORY ( include )
-# to do: doc iv 
+# TODO: doc
+
+# Other TODO:
+#  * test_libOpenImageIO
+#  * testsuite
+
+# TODO: equivalents of the old:
+#  * make SHOWCOMMANDS=1
+#  * make EMBEDPLUGINS=1
+#  * make USE_OPENGL=0
+#  * make USE_QT=0
+#  * make USE_GTEST=0
+#  * make debug, profile
+#  * make test, code_tests, suite_tests
+#  * make doxygen
+#  * make help
