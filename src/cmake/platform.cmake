@@ -1,7 +1,9 @@
+###########################################################################
+# Figure out what platform we're on, and set some variables appropriately
+
 MESSAGE (STATUS "CMAKE_SYSTEM_NAME = ${CMAKE_SYSTEM_NAME}")
 MESSAGE (STATUS "CMAKE_SYSTEM_VERSION = ${CMAKE_SYSTEM_VERSION}")
 MESSAGE (STATUS "CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
-
 
 IF ( UNIX )
     MESSAGE (STATUS "Unix! ${CMAKE_SYSTEM_NAME}")
@@ -27,5 +29,16 @@ ENDIF ()
 IF ( platform )
     MESSAGE (STATUS "platform = ${platform}")
 ELSE ()
-    MESSAGE (STATUS "'platform' not defined")
+    MESSAGE (FATAL_ERROR "'platform' not defined")
+ENDIF ()
+
+
+
+###########################################################################
+# Platform-specific definitions
+
+IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+    SET (SYSTEM_DL_LIB dl)
+ELSE ()
+    SET (SYSTEM_DL_LIB)
 ENDIF ()
