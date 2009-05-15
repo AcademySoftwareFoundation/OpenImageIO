@@ -19,6 +19,7 @@ SET(CMAKE_MODULE_PATH
 	"${PROJECT_SOURCE_DIR}/cmake")
 
 INCLUDE ( util_macros )
+INCLUDE ( platform )
 
 #SET (CMAKE_VERBOSE_MAKEFILE on)
 
@@ -37,7 +38,7 @@ ENDIF ()
 # Find libraries
 
 setup_path (THIRD_PARTY_TOOLS_HOME 
-            "${PROJECT_SOURCE_DIR}/../../external/dist/${OIIO_PLATFORM}"
+            "${PROJECT_SOURCE_DIR}/../../external/dist/${platform}"
             "Location of third party libraries in the external project" )
 
 # Add all third party tool directories to the include and library paths so
@@ -64,17 +65,26 @@ ENDIF ()
 
 # example of using setup_var instead:
 #setup_var (ILMBASE_VERSION 1.0.1 "Version of the ILMBase library" )
-SET ( ILMBASE_VERSION 1.0.1
-     CACHE STRING "Version of the ILMBase library")
-SET (ILMBASE_HOME "${THIRD_PARTY_TOOLS_HOME}"
-     CACHE PATH "Location of the ILMBase library install")
-SET (ILMBASE_LIB_AREA "${ILMBASE_HOME}/lib/ilmbase-${ILMBASE_VERSION}"
-     CACHE PATH "Directory containing IlmBase libraries")
+setup_string ( ILMBASE_VERSION 1.0.1
+               "Version of the ILMBase library")
+setup_path ( ILMBASE_HOME "${THIRD_PARTY_TOOLS_HOME}"
+             "Location of the ILMBase library install")
+setup_path ( ILMBASE_INCLUDE_AREA 
+             "${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}/OpenEXR" 
+             "Directory containing IlmBase include files" )
+setup_path ( ILMBASE_LIB_AREA "${ILMBASE_HOME}/lib/ilmbase-${ILMBASE_VERSION}"
+             "Directory containing IlmBase libraries")
 MARK_AS_ADVANCED (ILMBASE_VERSION)
 MARK_AS_ADVANCED (ILMBASE_HOME)
+MARK_AS_ADVANCED (ILMBASE_INCLUDE_AREA)
 MARK_AS_ADVANCED (ILMBASE_LIB_AREA)
-INCLUDE_DIRECTORIES ( "${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}/OpenEXR" )
+INCLUDE_DIRECTORIES ( "${ILMBASE_INCLUDE_AREA}" )
 LINK_DIRECTORIES ( "${ILMBASE_LIB_AREA}" )
+setup_string ( SPECIAL_COMPILE_FLAGS "" 
+               "Custom compilation flags" )
+IF ( SPECIAL_COMPILE_FLAGS )
+    ADD_DEFINITIONS ( ${SPECIAL_COMPILE_FLAGS} )
+ENDIF ()
 
 MACRO ( LINK_ILMBASE_HALF target )
     TARGET_LINK_LIBRARIES ( ${target} Half )
@@ -84,17 +94,17 @@ MACRO ( LINK_ILMBASE target )
     TARGET_LINK_LIBRARIES ( ${target} Imath Half IlmThread Iex )
 ENDMACRO ()
 
-SET (OPENEXR_VERSION 1.6.1 CACHE STRING "OpenEXR version number")
-SET (OPENEXR_VERSION_DIGITS 10601 CACHE STRING "OpenEXR version preprocessor number")
+setup_string (OPENEXR_VERSION 1.6.1 "OpenEXR version number")
+setup_string (OPENEXR_VERSION_DIGITS 010601 "OpenEXR version preprocessor number")
 MARK_AS_ADVANCED (OPENEXR_VERSION)
 MARK_AS_ADVANCED (OPENEXR_VERSION_DIGITS)
 # FIXME -- should instead do the search & replace automatically, like this
 # way it was done in the old makefiles:
 #     OPENEXR_VERSION_DIGITS ?= 0$(subst .,0,${OPENEXR_VERSION})
-SET (OPENEXR_HOME "${THIRD_PARTY_TOOLS_HOME}"
-     CACHE PATH "Location of the OpenEXR library install")
-SET (OPENEXR_LIB_AREA "${OPENEXR_HOME}/lib/openexr-${OPENEXR_VERSION}"
-     CACHE PATH "Directory containing the OpenEXR libraries")
+setup_path (OPENEXR_HOME "${THIRD_PARTY_TOOLS_HOME}"
+            "Location of the OpenEXR library install")
+setup_path (OPENEXR_LIB_AREA "${OPENEXR_HOME}/lib/openexr-${OPENEXR_VERSION}"
+            "Directory containing the OpenEXR libraries")
 MARK_AS_ADVANCED (OPENEXR_HOME)
 MARK_AS_ADVANCED (OPENEXR_LIB_AREA)
 INCLUDE_DIRECTORIES ( "${OPENEXR_HOME}/include/openexr-${OPENEXR_VERSION}/OpenEXR" )
@@ -112,9 +122,9 @@ ENDMACRO ()
 ###########################################################################
 # Boost setup
 
-MESSAGE ( STATUS "boost home ${BOOST_ROOT}" )
+MESSAGE ( STATUS "BOOST_ROOT ${BOOST_ROOT}" )
 
-set(Boost_ADDITIONAL_VERSIONS "1.38" "1.38.0" "1.37" "1.37.0")
+set(Boost_ADDITIONAL_VERSIONS "1.38" "1.38.0" "1.37" "1.37.0" "1.34.1" "1_34_1")
 #set (Boost_USE_STATIC_LIBS   ON)
 set (Boost_USE_MULTITHREADED ON)
 #if (APPLE)
@@ -124,15 +134,18 @@ set (Boost_USE_MULTITHREADED ON)
 #    set (Boost_COMPILER gcc42-mt)
 #    set (BOOST_SUFFIX gcc42-mt-1_38)
 #endif ()
-find_package ( Boost 1.35 REQUIRED 
-               COMPONENTS filesystem program_options regex system thread
-              )
+IF ( BOOST_CUSTOM )
+    SET (BOOST_FOUND true)
+ELSE ()
+    find_package ( Boost 1.34 REQUIRED 
+                   COMPONENTS filesystem program_options regex system thread
+                 )
+ENDIF ()
 
 MESSAGE (STATUS "Boost found ${Boost_FOUND} ")
-MESSAGE (STATUS "Boost libraries ${Boost_LIBRARIES}")
-MESSAGE (STATUS "Boost include ${Boost_INCLUDE_DIRS}")
+MESSAGE (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
 MESSAGE (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}" )
-MESSAGE (STATUS "Boost compiler ${Boost_COMPILER}" )
+MESSAGE (STATUS "Boost libraries    ${Boost_LIBRARIES}")
 
 INCLUDE_DIRECTORIES ( "${Boost_INCLUDE_DIRS}")
 LINK_DIRECTORIES ( "${Boost_LIBRARY_DIRS}" )

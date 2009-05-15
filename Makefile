@@ -10,8 +10,7 @@ $(info "dist_dir = ${dist_dir}")
 cmakesetup:
 	- ${MKDIR} build/${platform}
 	( cd build/${platform} ; \
-	  cmake -DOIIO_PLATFORM=${platform} \
-	        -DCMAKE_INSTALL_PREFIX=${working_dir}/dist/${platform} \
+	  cmake -DCMAKE_INSTALL_PREFIX=${working_dir}/dist/${platform} \
 		-DBOOST_ROOT=${BOOST_HOME} \
 		../../src )
 
