@@ -120,7 +120,10 @@ LINK_DIRECTORIES ( "${Boost_LIBRARY_DIRS}" )
 ###########################################################################
 # OpenGL setup
 
-find_package ( OpenGL )
+IF ( USE_OPENGL )
+    find_package ( OpenGL )
+ENDIF ()
+MESSAGE (STATUS "OPENGL_FOUND=${OPENGL_FOUND} USE_OPENGL=${USE_OPENGL}")
 
 # end OpenGL setup
 ###########################################################################
@@ -128,8 +131,13 @@ find_package ( OpenGL )
 ###########################################################################
 # Qt setup
 
-SET ( QT_USE_QTOPENGL true )
-find_package ( Qt4 )
+IF ( USE_QT )
+    IF ( USE_OPENGL )
+        SET ( QT_USE_QTOPENGL true )
+    ENDIF ()
+    find_package ( Qt4 )
+ENDIF ()
+MESSAGE (STATUS "QT4_FOUND=${QT4_FOUND}")
 
 # end Qt setup
 ###########################################################################

@@ -10,4 +10,6 @@ IF ( QT4_FOUND AND OPENGL_FOUND )
                              ${Boost_LIBRARIES} ${SYSTEM_DL_LIB} )
   INSTALL ( TARGETS iv RUNTIME DESTINATION bin )
 
+ELSE ()
+  MESSAGE (STATUS "\n\n   WARNING: No QT/OpenGL -- 'iv' will not be built!\n")
 ENDIF ()

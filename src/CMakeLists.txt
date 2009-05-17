@@ -1,7 +1,7 @@
 PROJECT (OIIO)
-
 CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
 SET (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
+MESSAGE ( STATUS "Project source dir = ${PROJECT_SOURCE_DIR}" )
 
 IF ( NOT CMAKE_BUILD_TYPE ) 
 #    SET( CMAKE_BUILD_TYPE "RelWithDebInfo" ) 
@@ -13,7 +13,12 @@ ENDIF ()
 #    SET ( CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/dist" ) 
 #ENDIF ( CMAKE_INSTALL_PREFIX STREQUAL "/usr/local" ) 
 
-MESSAGE ( STATUS "Project source dir = ${PROJECT_SOURCE_DIR}" )
+
+SET ( EMBEDPLUGINS OFF CACHE BOOL "Embed format plugins in libOpenImageIO" )
+SET ( USE_OPENGL ON CACHE BOOL "Include OpenGL support" )
+SET ( USE_QT ON CACHE BOOL "Include Qt support" )
+
+
 SET(CMAKE_MODULE_PATH
 	"${PROJECT_SOURCE_DIR}/cmake/modules"
 	"${PROJECT_SOURCE_DIR}/cmake")
@@ -22,7 +27,6 @@ INCLUDE ( util_macros )
 INCLUDE ( platform )
 INCLUDE ( externalpackages )
 
-#SET (CMAKE_VERBOSE_MAKEFILE on)
 
 INCLUDE_DIRECTORIES ("include")
 
@@ -67,29 +71,28 @@ ADD_SUBDIRECTORY ( testtex )
 ADD_SUBDIRECTORY ( iv )
 
 # Add IO plugin directories
-ADD_SUBDIRECTORY ( bmp.imageio )
-ADD_SUBDIRECTORY ( hdr.imageio )
-ADD_SUBDIRECTORY ( ico.imageio )
-ADD_SUBDIRECTORY ( jpeg.imageio )
-ADD_SUBDIRECTORY ( openexr.imageio )
-ADD_SUBDIRECTORY ( png.imageio )
-ADD_SUBDIRECTORY ( tiff.imageio )
-ADD_SUBDIRECTORY ( zfile.imageio )
+IF ( NOT EMBEDPLUGINS )
+    ADD_SUBDIRECTORY ( bmp.imageio )
+    ADD_SUBDIRECTORY ( hdr.imageio )
+    ADD_SUBDIRECTORY ( ico.imageio )
+    ADD_SUBDIRECTORY ( jpeg.imageio )
+    ADD_SUBDIRECTORY ( openexr.imageio )
+    ADD_SUBDIRECTORY ( png.imageio )
+    ADD_SUBDIRECTORY ( tiff.imageio )
+    ADD_SUBDIRECTORY ( zfile.imageio )
+ENDIF ()
 
 ADD_SUBDIRECTORY ( include )
-# TODO: doc
+ADD_SUBDIRECTORY ( doc )
 
 # Other TODO:
 #  * test_libOpenImageIO
 #  * testsuite
 
 # TODO: equivalents of the old:
-#  * make SHOWCOMMANDS=1
-#  * make EMBEDPLUGINS=1
-#  * make USE_OPENGL=0
-#  * make USE_QT=0
 #  * make USE_GTEST=0
 #  * make debug, profile
 #  * make test, code_tests, suite_tests
 #  * make doxygen
 #  * make help
+#  * BOOST_DYNAMIC

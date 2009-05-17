@@ -29,6 +29,12 @@
 */
 
 
+#ifdef __linux__
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
+#endif
+
 #include <iostream>
 
 #include <half.h>
