@@ -388,6 +388,9 @@ public:
         return b.compare(a) != 0;
     }
 
+    /// Test for lexicographic 'less', comes in handy for lots of STL
+    /// containers and algorithms.
+    bool operator< (const ustring &x) const { return compare(x) < 0; }
 
     /// Construct a ustring in a printf-like fashion.  In other words,
     /// something like:

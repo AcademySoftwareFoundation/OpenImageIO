@@ -354,7 +354,7 @@ public:
     }
     virtual bool attribute (const std::string &name, const std::string &val) {
         const char *s = val.c_str();
-        return attribute (name, TypeDesc::INT, &s);
+        return attribute (name, TypeDesc::STRING, &s);
     }
 
     virtual bool getattribute (const std::string &name, TypeDesc type, void *val);
@@ -375,7 +375,7 @@ public:
         return getattribute (name, TypeDesc::STRING, val);
     }
     virtual bool getattribute (const std::string &name, std::string &val) {
-        const char *s;
+        const char *s = NULL;
         bool ok = getattribute (name, TypeDesc::STRING, &s);
         if (ok)
             val = s;
