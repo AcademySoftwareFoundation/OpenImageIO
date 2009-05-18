@@ -697,24 +697,24 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         // we've gone too far, so we know that we want to interpolate the
         // previous level and the current level.  Note that filtwidth_ras
         // is expected to be >= 0.5, or would have stopped one level ago.
-        if (filtwidth_ras < 1) {
+        if (filtwidth_ras <= 1) {
             miplevel[0] = i-1;
             miplevel[1] = i;
             levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
             break;
         }
     }
-    if (miplevel[0] < 0) {
-        // We wish we had even more resolution than the finest MIP level,
-        // but tough for us.
-        miplevel[0] = 0;
-        miplevel[1] = 0;
-        levelblend = 0;
-    } else if (miplevel[1] < 0) {
+    if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
         miplevel[0] = texturefile.subimages() - 1;
         miplevel[1] = miplevel[0];
+        levelblend = 0;
+    } else if (miplevel[0] < 0) {
+        // We wish we had even more resolution than the finest MIP level,
+        // but tough for us.
+        miplevel[0] = 0;
+        miplevel[1] = 0;
         levelblend = 0;
     }
     if (options.mipmode == TextureOptions::MipModeOneLevel) {
@@ -854,24 +854,24 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         // we've gone too far, so we know that we want to interpolate the
         // previous level and the current level.  Note that filtwidth_ras
         // is expected to be >= 0.5, or would have stopped one level ago.
-        if (filtwidth_ras < 1) {
+        if (filtwidth_ras <= 1) {
             miplevel[0] = i-1;
             miplevel[1] = i;
             levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
             break;
         }
     }
-    if (miplevel[0] < 0) {
-        // We wish we had even more resolution than the finest MIP level,
-        // but tough for us.
-        miplevel[0] = 0;
-        miplevel[1] = 0;
-        levelblend = 0;
-    } else if (miplevel[1] < 0) {
+    if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
         miplevel[0] = texturefile.subimages() - 1;
         miplevel[1] = miplevel[0];
+        levelblend = 0;
+    } else if (miplevel[0] < 0) {
+        // We wish we had even more resolution than the finest MIP level,
+        // but tough for us.
+        miplevel[0] = 0;
+        miplevel[1] = 0;
         levelblend = 0;
     }
     if (options.mipmode == TextureOptions::MipModeOneLevel) {
