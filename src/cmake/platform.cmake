@@ -21,7 +21,7 @@ IF ( UNIX )
     ENDIF ()
 ENDIF ()
 
-IF ( WINDOWS )
+IF ( WIN32 )
     MESSAGE (STATUS "Windows!")
     SET ( platform "windows" )
 ENDIF ()
