@@ -37,11 +37,11 @@ $(info OIIO_MAKE_FLAGS = ${OIIO_MAKE_FLAGS})
 
 
 cmakesetup:
-	- ${MKDIR} build/${platform}
+	- ${MKDIR} build/${platform}${variant}
 	( cd build/${platform}${variant} ; \
 	  cmake -DCMAKE_INSTALL_PREFIX=${working_dir}/dist/${platform}${variant} \
+	        ${OIIO_CMAKE_FLAGS} \
 		-DBOOST_ROOT=${BOOST_HOME} \
-		${OIIO_CMAKE_FLAGS} \
 		../../src )
 
 cmake: cmakesetup
@@ -49,6 +49,9 @@ cmake: cmakesetup
 
 cmakeinstall: cmake
 	( cd build/${platform}${variant} ; make ${OIIO_MAKE_FLAGS} install )
+
+cmaketest: cmake
+	( cd build/${platform}${variant} ; make ${OIIO_MAKE_FLAGS} test )
 
 package: cmakeinstall
 	( cd build/${platform}${variant} ; make ${OIIO_MAKE_FLAGS} package )

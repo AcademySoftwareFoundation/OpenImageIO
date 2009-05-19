@@ -31,14 +31,3 @@ IF ( platform )
 ELSE ()
     MESSAGE (FATAL_ERROR "'platform' not defined")
 ENDIF ()
-
-
-
-###########################################################################
-# Platform-specific definitions
-
-IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
-    SET (SYSTEM_DL_LIB dl)
-ELSE ()
-    SET (SYSTEM_DL_LIB)
-ENDIF ()

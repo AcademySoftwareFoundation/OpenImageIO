@@ -1,7 +1,16 @@
 #!/usr/bin/python 
 
+import os
+import sys
+
+path = ""
+command = ""
+if len(sys.argv) > 2 :
+    os.chdir (sys.argv[1])
+    path = sys.argv[2] + "/"
+
 # A command to run
-command = "iinfo -v ../../../../oiio-testimages/tahoe-gps.jpg > out.txt"
+command = path + "iinfo/iinfo -v ../../../../oiio-testimages/tahoe-gps.jpg > out.txt"
 
 # Outputs to check against references
 outputs = [ "out.txt" ]

@@ -1,23 +1,25 @@
-PROJECT (OIIO)
+PROJECT (OpenImageIO)
+SET ( OpenImageIO_VERSION_MAJOR 0 )
+SET ( OpenImageIO_VERSION_MINOR 5 )
+SET ( OpenImageIO_VERSION_PATCH 0 )
+
 CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
 SET (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 MESSAGE ( STATUS "Project source dir = ${PROJECT_SOURCE_DIR}" )
+MESSAGE ( STATUS "Project build dir = ${CMAKE_BINARY_DIR}" )
+
+#PROJECT_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
+#    MESSAGE ( FATAL_ERROR "Not allowed to run in-source build!" )
+#ENDIF ()
+
 
 IF ( NOT CMAKE_BUILD_TYPE ) 
-#    SET( CMAKE_BUILD_TYPE "RelWithDebInfo" ) 
     SET( CMAKE_BUILD_TYPE "Release" ) 
 ENDIF ()
-
-# set default install prefix to project root directory 
-#IF ( CMAKE_INSTALL_PREFIX STREQUAL "/usr/local" ) 
-#    SET ( CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/dist" ) 
-#ENDIF ( CMAKE_INSTALL_PREFIX STREQUAL "/usr/local" ) 
-
 
 SET ( EMBEDPLUGINS OFF CACHE BOOL "Embed format plugins in libOpenImageIO" )
 SET ( USE_OPENGL ON CACHE BOOL "Include OpenGL support" )
 SET ( USE_QT ON CACHE BOOL "Include Qt support" )
-
 
 SET(CMAKE_MODULE_PATH
 	"${PROJECT_SOURCE_DIR}/cmake/modules"
@@ -29,6 +31,12 @@ INCLUDE ( externalpackages )
 
 
 INCLUDE_DIRECTORIES ("include")
+
+IF ( CMAKE_BUILD_TYPE STREQUAL "Debug" )
+    ADD_DEFINITIONS ( "-DDEBUG=1" )
+ENDIF ()
+
+SET (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 
 
@@ -67,7 +75,6 @@ ADD_SUBDIRECTORY ( idiff )
 ADD_SUBDIRECTORY ( igrep )
 ADD_SUBDIRECTORY ( iinfo )
 ADD_SUBDIRECTORY ( maketx )
-ADD_SUBDIRECTORY ( testtex )
 ADD_SUBDIRECTORY ( iv )
 
 # Add IO plugin directories
@@ -85,14 +92,42 @@ ENDIF ()
 ADD_SUBDIRECTORY ( include )
 ADD_SUBDIRECTORY ( doc )
 
-# Other TODO:
-#  * test_libOpenImageIO
-#  * testsuite
+
+
+# Testing
+INCLUDE ( CTest )
+ADD_SUBDIRECTORY ( testtex )
+ADD_SUBDIRECTORY ( test_libOpenImageIO )
+ADD_TEST ( libOpenImageIO ${CMAKE_BINARY_DIR}/test_libOpenImageIO/test_libOpenImageIO )
+# Ugh, I can't seem to ADD_SUBDIRECTORY the testsuite dir if it's not a true
+# subdirectory of source, so we fake it by creating a link.  FIXME!
+EXEC_PROGRAM ( "cmake -E create_symlink ${PROJECT_SOURCE_DIR}/../testsuite ${PROJECT_SOURCE_DIR}/testsuite" )
+ADD_SUBDIRECTORY ( testsuite )
+
+
+# Packaging
+SET ( CPACK_PACKAGE_VERSION_MAJOR ${OpenImageIO_VERSION_MAJOR} )
+SET ( CPACK_PACKAGE_VERSION_MINOR ${OpenImageIO_VERSION_MINOR} )
+SET ( CPACK_PACKAGE_VERSION_PATCH ${OpenImageIO_VERSION_PATCH} )
+#SET ( CPACK_PACKAGE_DESCRIPTION_FILE ...FIXME... )
+#SET ( CPACK_PACKAGE_DESCRIPTION_SUMMARY ...FIXME... )
+#SET ( CPACK_PACKAGE_DESCRIPTION_FILE ...FIXME... )
+SET ( CPACK_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-${platform} )
+#SET ( CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_SOURCE_DIR}/.. )
+#SET ( CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/../LICENSE" )
+#SET ( CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/../README" )
+#SET ( CPACK_RESOURCE_FILE_WELCOME ...FIXME... )
+#SET ( CPACK_PACKAGE_EXECUTABLES iv )
+#SET ( CPACK_STRIP_FILES ...FIXME... )
+SET ( CPACK_SOURCE_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-source )
+#SET ( CPACK_SOURCE_STRIP_FILES ...FIXME... )
+#SET ( CPACK_SOURCE_IGNORE_FILES "\\.svn;\\.#;.*~" )
+SET ( CPACK_SOURCE_IGNORE_FILES ".*~" )
+INCLUDE ( CPack )
 
 # TODO: equivalents of the old:
-#  * make USE_GTEST=0
-#  * make debug, profile
-#  * make test, code_tests, suite_tests
 #  * make doxygen
 #  * make help
 #  * BOOST_DYNAMIC
+
+# Do TIFF, JPEG, PNG actually look in external?

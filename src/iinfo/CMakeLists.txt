@@ -1,5 +1,5 @@
 SET ( iinfo_srcs iinfo.cpp md5.cpp )
 ADD_EXECUTABLE ( iinfo ${iinfo_srcs} )
 LINK_ILMBASE ( iinfo )
-TARGET_LINK_LIBRARIES ( iinfo OpenImageIO ${Boost_LIBRARIES} ${SYSTEM_DL_LIB} )
+TARGET_LINK_LIBRARIES ( iinfo OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS} )
 INSTALL ( TARGETS iinfo RUNTIME DESTINATION bin )

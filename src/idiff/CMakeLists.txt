@@ -1,5 +1,5 @@
 SET ( idiff_srcs idiff.cpp )
 ADD_EXECUTABLE ( idiff ${idiff_srcs} )
 LINK_ILMBASE ( idiff )
-TARGET_LINK_LIBRARIES ( idiff OpenImageIO ${Boost_LIBRARIES} ${SYSTEM_DL_LIB})
+TARGET_LINK_LIBRARIES ( idiff OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 INSTALL ( TARGETS idiff RUNTIME DESTINATION bin )

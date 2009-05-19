@@ -1,5 +1,5 @@
 SET ( maketx_srcs maketx.cpp )
 ADD_EXECUTABLE ( maketx ${maketx_srcs} )
 LINK_ILMBASE ( maketx )
-TARGET_LINK_LIBRARIES ( maketx OpenImageIO ${Boost_LIBRARIES} ${SYSTEM_DL_LIB} )
+TARGET_LINK_LIBRARIES ( maketx OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS} )
 INSTALL ( TARGETS maketx RUNTIME DESTINATION bin )

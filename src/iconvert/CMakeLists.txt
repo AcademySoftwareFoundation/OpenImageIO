@@ -1,5 +1,5 @@
 SET ( iconvert_srcs iconvert.cpp )
 ADD_EXECUTABLE ( iconvert ${iconvert_srcs} )
 LINK_ILMBASE ( iconvert )
-TARGET_LINK_LIBRARIES ( iconvert OpenImageIO ${Boost_LIBRARIES} ${SYSTEM_DL_LIB} )
+TARGET_LINK_LIBRARIES ( iconvert OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS} )
 INSTALL ( TARGETS iconvert RUNTIME DESTINATION bin )

@@ -1,5 +1,5 @@
 SET ( igrep_srcs igrep.cpp )
 ADD_EXECUTABLE ( igrep ${igrep_srcs} )
 LINK_ILMBASE ( igrep )
-TARGET_LINK_LIBRARIES ( igrep OpenImageIO ${Boost_LIBRARIES} ${SYSTEM_DL_LIB} )
+TARGET_LINK_LIBRARIES ( igrep OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS} )
 INSTALL ( TARGETS igrep RUNTIME DESTINATION bin )
