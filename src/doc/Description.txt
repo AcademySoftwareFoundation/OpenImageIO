@@ -1,0 +1,11 @@
+OpenImageIO consists of:
+
+  * Simple APIs for reading and writing image files in a format-agnostic
+    manner, and plugins to read many common image formats including
+    TIFF, JPEG, OpenEXR, PNG, HDR, ICO, and BMP.
+  * Image utilities, including an image viewer, printing image information, 
+    format conversion, image comparison, and others.
+  * A library for image texture lookups, and a managed image cache
+    that allows an application to access hundreds of GB of image data
+    using little runtime RAM.
+

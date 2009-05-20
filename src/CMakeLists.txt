@@ -8,9 +8,9 @@ SET (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 MESSAGE ( STATUS "Project source dir = ${PROJECT_SOURCE_DIR}" )
 MESSAGE ( STATUS "Project build dir = ${CMAKE_BINARY_DIR}" )
 
-#PROJECT_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
-#    MESSAGE ( FATAL_ERROR "Not allowed to run in-source build!" )
-#ENDIF ()
+IF ( ${PROJECT_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
+    MESSAGE ( FATAL_ERROR "Not allowed to run in-source build!" )
+ENDIF ()
 
 
 IF ( NOT CMAKE_BUILD_TYPE ) 
@@ -93,7 +93,7 @@ ADD_SUBDIRECTORY ( include )
 ADD_SUBDIRECTORY ( doc )
 
 
-
+#########################################################################
 # Testing
 INCLUDE ( CTest )
 ADD_SUBDIRECTORY ( testtex )
@@ -105,29 +105,40 @@ EXEC_PROGRAM ( "cmake -E create_symlink ${PROJECT_SOURCE_DIR}/../testsuite ${PRO
 ADD_SUBDIRECTORY ( testsuite )
 
 
+#########################################################################
 # Packaging
 SET ( CPACK_PACKAGE_VERSION_MAJOR ${OpenImageIO_VERSION_MAJOR} )
 SET ( CPACK_PACKAGE_VERSION_MINOR ${OpenImageIO_VERSION_MINOR} )
 SET ( CPACK_PACKAGE_VERSION_PATCH ${OpenImageIO_VERSION_PATCH} )
-#SET ( CPACK_PACKAGE_DESCRIPTION_FILE ...FIXME... )
-#SET ( CPACK_PACKAGE_DESCRIPTION_SUMMARY ...FIXME... )
-#SET ( CPACK_PACKAGE_DESCRIPTION_FILE ...FIXME... )
+# "Vendor" is only used in copyright notices, so we use the same thing that
+# the rest of the copyright notices say.
+SET ( CPACK_PACKAGE_VENDOR "Larry Gritz et al.")
+SET ( CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities." )
+SET ( CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/doc/Description.txt" )
 SET ( CPACK_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-${platform} )
 #SET ( CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_SOURCE_DIR}/.. )
-#SET ( CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/../LICENSE" )
-#SET ( CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/../README" )
-#SET ( CPACK_RESOURCE_FILE_WELCOME ...FIXME... )
-#SET ( CPACK_PACKAGE_EXECUTABLES iv )
-#SET ( CPACK_STRIP_FILES ...FIXME... )
+EXEC_PROGRAM ( "cmake -E copy ${PROJECT_SOURCE_DIR}/../LICENSE ${CMAKE_BINARY_DIR}/License.txt" )
+SET ( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/License.txt" )
+EXEC_PROGRAM ( "cmake -E copy ${PROJECT_SOURCE_DIR}/../README ${CMAKE_BINARY_DIR}/Readme.txt" )
+SET ( CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/Readme.txt" )
+SET ( CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/doc/Welcome.txt" )
+#SET ( CPACK_PACKAGE_EXECUTABLES I'm not sure what this is for )
+#SET ( CPACK_STRIP_FILES Do we need this? )
+IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+    SET ( CPACK_GENERATOR "TGZ;STGZ;RPM;DEB" )
+    SET ( CPACK_SOURCE_GENERATOR "TGZ" )
+ENDIF ()
+IF ( APPLE )
+    SET ( CPACK_GENERATOR "TGZ;STGZ;PackageMaker" )
+    SET ( CPACK_SOURCE_GENERATOR "TGZ" )
+ENDIF ()
 SET ( CPACK_SOURCE_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-source )
-#SET ( CPACK_SOURCE_STRIP_FILES ...FIXME... )
-#SET ( CPACK_SOURCE_IGNORE_FILES "\\.svn;\\.#;.*~" )
+#SET ( CPACK_SOURCE_STRIP_FILES Do we need this? )
 SET ( CPACK_SOURCE_IGNORE_FILES ".*~" )
 INCLUDE ( CPack )
 
 # TODO: equivalents of the old:
 #  * make doxygen
-#  * make help
 #  * BOOST_DYNAMIC
 
 # Do TIFF, JPEG, PNG actually look in external?
