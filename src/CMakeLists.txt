@@ -26,6 +26,7 @@ SET(CMAKE_MODULE_PATH
 	"${PROJECT_SOURCE_DIR}/cmake")
 
 INCLUDE ( util_macros )
+INCLUDE ( oiio_macros )
 INCLUDE ( platform )
 INCLUDE ( externalpackages )
 
@@ -60,7 +61,7 @@ MACRO ( ADD_OIIO_PLUGIN )
     ADD_LIBRARY ( ${_target_name} SHARED ${_plugin_DEFAULT_ARGS} )
     TARGET_LINK_LIBRARIES ( ${_target_name} OpenImageIO ${_plugin_LINK_LIBRARIES} )
     SET_TARGET_PROPERTIES ( ${_target_name} PROPERTIES PREFIX "" )
-    INSTALL ( TARGETS ${_target_name} LIBRARY DESTINATION lib )
+    oiio_install_targets (${_target_name})
 ENDMACRO ()
 
 

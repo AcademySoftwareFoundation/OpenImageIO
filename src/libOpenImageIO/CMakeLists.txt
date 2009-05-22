@@ -49,4 +49,4 @@ IF ( EMBEDPLUGINS )
                           )
 ENDIF ()
 
-INSTALL ( TARGETS OpenImageIO LIBRARY DESTINATION lib )
+oiio_install_targets (OpenImageIO)

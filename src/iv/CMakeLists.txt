@@ -8,7 +8,7 @@ IF ( QT4_FOUND AND OPENGL_FOUND )
   LINK_ILMBASE ( iv )
   TARGET_LINK_LIBRARIES ( iv OpenImageIO ${QT_LIBRARIES} ${OPENGL_LIBRARIES} 
                              ${Boost_LIBRARIES} ${CMAKE_DL_LIBS} )
-  INSTALL ( TARGETS iv RUNTIME DESTINATION bin )
+  oiio_install_targets (iv)
 
 ELSE ()
   MESSAGE (STATUS "\n\n   WARNING: No QT/OpenGL -- 'iv' will not be built!\n")
