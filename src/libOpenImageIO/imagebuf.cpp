@@ -80,7 +80,7 @@ void
 ImageBuf::realloc ()
 {
     size_t newsize = spec().image_bytes ();
-    if (((int)newsize - (int)m_pixels.size()) > 1024*1024) {
+    if (((int)m_pixels.size() - (int)newsize) > 4*1024*1024) {
         // If we are substantially shrinking, try to actually free
         // memory, which std::vector::resize does not do!
         std::vector<char> tmp;      // vector with 0 memory
