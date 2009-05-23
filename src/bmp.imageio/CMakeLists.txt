@@ -1,1 +1,1 @@
-ADD_OIIO_PLUGIN ( bmpinput.cpp bmp.cpp )
+add_oiio_plugin (bmpinput.cpp bmp.cpp)

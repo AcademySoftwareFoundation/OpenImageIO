@@ -1,142 +1,118 @@
-PROJECT (OpenImageIO)
-SET ( OpenImageIO_VERSION_MAJOR 0 )
-SET ( OpenImageIO_VERSION_MINOR 5 )
-SET ( OpenImageIO_VERSION_PATCH 0 )
+project (OpenImageIO)
+set (OpenImageIO_VERSION_MAJOR 0)
+set (OpenImageIO_VERSION_MINOR 5)
+set (OpenImageIO_VERSION_PATCH 0)
 
-CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
-SET (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
-MESSAGE ( STATUS "Project source dir = ${PROJECT_SOURCE_DIR}" )
-MESSAGE ( STATUS "Project build dir = ${CMAKE_BINARY_DIR}" )
+cmake_minimum_required (VERSION 2.6)
+set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
+message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
+message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
 
-IF ( ${PROJECT_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
-    MESSAGE ( FATAL_ERROR "Not allowed to run in-source build!" )
-ENDIF ()
-
-
-IF ( NOT CMAKE_BUILD_TYPE ) 
-    SET( CMAKE_BUILD_TYPE "Release" ) 
-ENDIF ()
-
-SET ( EMBEDPLUGINS OFF CACHE BOOL "Embed format plugins in libOpenImageIO" )
-SET ( USE_OPENGL ON CACHE BOOL "Include OpenGL support" )
-SET ( USE_QT ON CACHE BOOL "Include Qt support" )
-
-SET(CMAKE_MODULE_PATH
-	"${PROJECT_SOURCE_DIR}/cmake/modules"
-	"${PROJECT_SOURCE_DIR}/cmake")
-
-INCLUDE ( util_macros )
-INCLUDE ( oiio_macros )
-INCLUDE ( platform )
-INCLUDE ( externalpackages )
+if (${PROJECT_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+    message (FATAL_ERROR "Not allowed to run in-source build!")
+endif ()
 
 
-INCLUDE_DIRECTORIES ("include")
+if (NOT CMAKE_BUILD_TYPE) 
+    set(CMAKE_BUILD_TYPE "Release") 
+endif ()
 
-IF ( CMAKE_BUILD_TYPE STREQUAL "Debug" )
-    ADD_DEFINITIONS ( "-DDEBUG=1" )
-ENDIF ()
+set (EMBEDPLUGINS OFF CACHE BOOL "Embed format plugins in libOpenImageIO")
+set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
+set (USE_QT ON CACHE BOOL "Include Qt support")
 
-SET (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_MODULE_PATH
+    "${PROJECT_SOURCE_DIR}/cmake/modules"
+    "${PROJECT_SOURCE_DIR}/cmake")
+
+include (util_macros)
+include (oiio_macros)
+include (platform)
+include (externalpackages)
 
 
+include_directories ("include")
 
-# Macro to add a build target for an IO plugin.
-#
-# Usage:
-#
-# ADD_OIIO_PLUGIN ( source1 [source2 ...]
-#                   [LINK_LIBRARIES external_lib1 ...] )
-#
-# The plugin name is deduced from the name of the current directory and the
-# source is automatically linked against OpenImageIO.  Additional libraries
-# (for example, libpng) may be specified after the optionl LINK_LIBRARIES
-# keyword.
-#
-MACRO ( ADD_OIIO_PLUGIN )
-    PARSE_ARGUMENTS(_plugin "LINK_LIBRARIES" "" ${ARGN})
-    SET ( _target_name ${CMAKE_CURRENT_SOURCE_DIR})
-    # Get the name of the current directory and use it as the target name.
-    GET_FILENAME_COMPONENT ( _target_name ${CMAKE_CURRENT_SOURCE_DIR} NAME )
-    ADD_LIBRARY ( ${_target_name} SHARED ${_plugin_DEFAULT_ARGS} )
-    TARGET_LINK_LIBRARIES ( ${_target_name} OpenImageIO ${_plugin_LINK_LIBRARIES} )
-    SET_TARGET_PROPERTIES ( ${_target_name} PROPERTIES PREFIX "" )
-    oiio_install_targets (${_target_name})
-ENDMACRO ()
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions ("-DDEBUG=1")
+endif ()
+
+set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
 
 
 ###########################################################################
 
 
 # Tell CMake to process the sub-directories
-ADD_SUBDIRECTORY ( libOpenImageIO )
+add_subdirectory (libOpenImageIO)
 
-ADD_SUBDIRECTORY ( iconvert )
-ADD_SUBDIRECTORY ( idiff )
-ADD_SUBDIRECTORY ( igrep )
-ADD_SUBDIRECTORY ( iinfo )
-ADD_SUBDIRECTORY ( maketx )
-ADD_SUBDIRECTORY ( iv )
+add_subdirectory (iconvert)
+add_subdirectory (idiff)
+add_subdirectory (igrep)
+add_subdirectory (iinfo)
+add_subdirectory (maketx)
+add_subdirectory (iv)
 
 # Add IO plugin directories
-IF ( NOT EMBEDPLUGINS )
-    ADD_SUBDIRECTORY ( bmp.imageio )
-    ADD_SUBDIRECTORY ( hdr.imageio )
-    ADD_SUBDIRECTORY ( ico.imageio )
-    ADD_SUBDIRECTORY ( jpeg.imageio )
-    ADD_SUBDIRECTORY ( openexr.imageio )
-    ADD_SUBDIRECTORY ( png.imageio )
-    ADD_SUBDIRECTORY ( tiff.imageio )
-    ADD_SUBDIRECTORY ( zfile.imageio )
-ENDIF ()
+if (NOT EMBEDPLUGINS)
+    add_subdirectory (bmp.imageio)
+    add_subdirectory (hdr.imageio)
+    add_subdirectory (ico.imageio)
+    add_subdirectory (jpeg.imageio)
+    add_subdirectory (openexr.imageio)
+    add_subdirectory (png.imageio)
+    add_subdirectory (tiff.imageio)
+    add_subdirectory (zfile.imageio)
+endif ()
 
-ADD_SUBDIRECTORY ( include )
-ADD_SUBDIRECTORY ( doc )
+add_subdirectory (include)
+add_subdirectory (doc)
 
 
 #########################################################################
 # Testing
-INCLUDE ( CTest )
-ADD_SUBDIRECTORY ( testtex )
-ADD_SUBDIRECTORY ( test_libOpenImageIO )
-ADD_TEST ( libOpenImageIO ${CMAKE_BINARY_DIR}/test_libOpenImageIO/test_libOpenImageIO )
+include (CTest)
+add_subdirectory (testtex)
+add_subdirectory (test_libOpenImageIO)
+add_test (libOpenImageIO ${CMAKE_BINARY_DIR}/test_libOpenImageIO/test_libOpenImageIO)
 # Ugh, I can't seem to ADD_SUBDIRECTORY the testsuite dir if it's not a true
 # subdirectory of source, so we fake it by creating a link.  FIXME!
-EXEC_PROGRAM ( "cmake -E create_symlink ${PROJECT_SOURCE_DIR}/../testsuite ${PROJECT_SOURCE_DIR}/testsuite" )
-ADD_SUBDIRECTORY ( testsuite )
+exec_program ("cmake -E create_symlink ${PROJECT_SOURCE_DIR}/../testsuite ${PROJECT_SOURCE_DIR}/testsuite")
+add_subdirectory (testsuite)
 
 
 #########################################################################
 # Packaging
-SET ( CPACK_PACKAGE_VERSION_MAJOR ${OpenImageIO_VERSION_MAJOR} )
-SET ( CPACK_PACKAGE_VERSION_MINOR ${OpenImageIO_VERSION_MINOR} )
-SET ( CPACK_PACKAGE_VERSION_PATCH ${OpenImageIO_VERSION_PATCH} )
+set (CPACK_PACKAGE_VERSION_MAJOR ${OpenImageIO_VERSION_MAJOR})
+set (CPACK_PACKAGE_VERSION_MINOR ${OpenImageIO_VERSION_MINOR})
+set (CPACK_PACKAGE_VERSION_PATCH ${OpenImageIO_VERSION_PATCH})
 # "Vendor" is only used in copyright notices, so we use the same thing that
 # the rest of the copyright notices say.
-SET ( CPACK_PACKAGE_VENDOR "Larry Gritz et al.")
-SET ( CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities." )
-SET ( CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/doc/Description.txt" )
-SET ( CPACK_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-${platform} )
-#SET ( CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_SOURCE_DIR}/.. )
-EXEC_PROGRAM ( "cmake -E copy ${PROJECT_SOURCE_DIR}/../LICENSE ${CMAKE_BINARY_DIR}/License.txt" )
-SET ( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/License.txt" )
-EXEC_PROGRAM ( "cmake -E copy ${PROJECT_SOURCE_DIR}/../README ${CMAKE_BINARY_DIR}/Readme.txt" )
-SET ( CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/Readme.txt" )
-SET ( CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/doc/Welcome.txt" )
-#SET ( CPACK_PACKAGE_EXECUTABLES I'm not sure what this is for )
-#SET ( CPACK_STRIP_FILES Do we need this? )
-IF ( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
-    SET ( CPACK_GENERATOR "TGZ;STGZ;RPM;DEB" )
-    SET ( CPACK_SOURCE_GENERATOR "TGZ" )
-ENDIF ()
-IF ( APPLE )
-    SET ( CPACK_GENERATOR "TGZ;STGZ;PackageMaker" )
-    SET ( CPACK_SOURCE_GENERATOR "TGZ" )
-ENDIF ()
-SET ( CPACK_SOURCE_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-source )
-#SET ( CPACK_SOURCE_STRIP_FILES Do we need this? )
-SET ( CPACK_SOURCE_IGNORE_FILES ".*~" )
-INCLUDE ( CPack )
+set (CPACK_PACKAGE_VENDOR "Larry Gritz et al.")
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities.")
+set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/doc/Description.txt")
+set (CPACK_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-${platform})
+#SET (CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_SOURCE_DIR}/..)
+exec_program ("cmake -E copy ${PROJECT_SOURCE_DIR}/../LICENSE ${CMAKE_BINARY_DIR}/License.txt")
+set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/License.txt")
+exec_program ("cmake -E copy ${PROJECT_SOURCE_DIR}/../README ${CMAKE_BINARY_DIR}/Readme.txt")
+set (CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/Readme.txt")
+set (CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/doc/Welcome.txt")
+#SET (CPACK_PACKAGE_EXECUTABLES I'm not sure what this is for)
+#SET (CPACK_STRIP_FILES Do we need this?)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set (CPACK_GENERATOR "TGZ;STGZ;RPM;DEB")
+    set (CPACK_SOURCE_GENERATOR "TGZ")
+endif ()
+if (APPLE)
+    set (CPACK_GENERATOR "TGZ;STGZ;PackageMaker")
+    set (CPACK_SOURCE_GENERATOR "TGZ")
+endif ()
+set (CPACK_SOURCE_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-source)
+#set (CPACK_SOURCE_STRIP_FILES Do we need this?)
+set (CPACK_SOURCE_IGNORE_FILES ".*~")
+include (CPack)
 
 # TODO: equivalents of the old:
 #  * make doxygen

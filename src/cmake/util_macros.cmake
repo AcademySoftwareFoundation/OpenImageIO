@@ -60,36 +60,36 @@ ENDMACRO(PARSE_ARGUMENTS)
 # If an environment variable of the same name is set, use that value
 # (making it super easy for sites to override external tool locations).
 # If neither of those, then use the default passed.
-MACRO (setup_string name defaultval explanation)
+macro (setup_string name defaultval explanation)
     # If the named variable already has a value (was set by -D...), leave
     # it alone.  But if it's not yet set...
-    IF ( "${${name}}" STREQUAL "" )
+    if ("${${name}}" STREQUAL "")
         # If there's an environment variable of the same name that's
         # nonempty, use the env variable.  Otherwise, use the default.
-        IF ( NOT $ENV{${name}} STREQUAL "" )
-            SET ( ${name} $ENV{${name}} )
-                  # CACHE STRING ${explanation} )
-        ELSE ()
-            SET ( ${name} ${defaultval} )
-                  # CACHE STRING ${explanation} )
-        ENDIF ()
-    ENDIF ()
-    MESSAGE ( STATUS "${name} = ${${name}}" )
-ENDMACRO ()
+        if (NOT $ENV{${name}} STREQUAL "")
+            set (${name} $ENV{${name}})
+                  # CACHE STRING ${explanation})
+        else ()
+            set (${name} ${defaultval})
+                  # CACHE STRING ${explanation})
+        endif ()
+    endif ()
+    message (STATUS "${name} = ${${name}}")
+endmacro ()
 
-MACRO (setup_path name defaultval explanation)
+macro (setup_path name defaultval explanation)
     # If the named variable already has a value (was set by -D...), leave
     # it alone.  But if it's not yet set...
-    IF ( "${${name}}" STREQUAL "" )
+    if ("${${name}}" STREQUAL "")
         # If there's an environment variable of the same name that's
         # nonempty, use the env variable.  Otherwise, use the default.
-        IF ( NOT $ENV{${name}} STREQUAL "" )
-            SET ( ${name} $ENV{${name}} )
-                  # CACHE PATH ${explanation} )
-        ELSE ()
-            SET ( ${name} ${defaultval} )
-                  # CACHE PATH ${explanation} )
-        ENDIF ()
-    ENDIF ()
-    MESSAGE ( STATUS "${name} = ${${name}}" )
-ENDMACRO ()
+        if (NOT $ENV{${name}} STREQUAL "")
+            set (${name} $ENV{${name}})
+                  # CACHE PATH ${explanation})
+        else ()
+            set (${name} ${defaultval})
+                  # CACHE PATH ${explanation})
+        endif ()
+    endif ()
+    message (STATUS "${name} = ${${name}}")
+endmacro ()

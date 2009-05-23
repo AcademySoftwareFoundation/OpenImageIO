@@ -1,6 +1,6 @@
-FIND_PACKAGE ( PNG )
+find_package (PNG)
 
-IF ( PNG_FOUND )
-    INCLUDE_DIRECTORIES ( ${PNG_INCLUDE_DIR} )
-    ADD_OIIO_PLUGIN ( icoinput.cpp icooutput.cpp LINK_LIBRARIES ${PNG_LIBRARIES} )
-ENDIF()
+if (PNG_FOUND)
+    include_directories (${PNG_INCLUDE_DIR})
+    add_oiio_plugin (icoinput.cpp icooutput.cpp LINK_LIBRARIES ${PNG_LIBRARIES})
+endif ()

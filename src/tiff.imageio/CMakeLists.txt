@@ -1,9 +1,9 @@
-FIND_PACKAGE ( TIFF )
-FIND_PACKAGE ( JPEG )
-FIND_PACKAGE ( ZLIB )
+find_package (TIFF)
+find_package (JPEG)
+find_package (ZLIB)
 
-IF ( TIFF_FOUND AND JPEG_FOUND AND ZLIB_FOUND )
-    INCLUDE_DIRECTORIES ( ${TIFF_INCLUDE_DIR} )
-    ADD_OIIO_PLUGIN ( tiffinput.cpp tiffoutput.cpp
-        LINK_LIBRARIES ${TIFF_LIBRARIES} ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES} )
-ENDIF ( )
+if (TIFF_FOUND AND JPEG_FOUND AND ZLIB_FOUND)
+    include_directories (${TIFF_INCLUDE_DIR})
+    add_oiio_plugin (tiffinput.cpp tiffoutput.cpp
+        LINK_LIBRARIES ${TIFF_LIBRARIES} ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES})
+endif ()

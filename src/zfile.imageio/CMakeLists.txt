@@ -1,6 +1,6 @@
-FIND_PACKAGE ( ZLIB )
+find_package (ZLIB)
 
-IF ( ZLIB_FOUND )
-    INCLUDE_DIRECTORIES ( ${ZLIB_INCLUDE_DIR} )
-    ADD_OIIO_PLUGIN ( zfile.cpp LINK_LIBRARIES ${ZLIB_LIBRARIES} )
-ENDIF ()
+if (ZLIB_FOUND)
+    include_directories (${ZLIB_INCLUDE_DIR})
+    add_oiio_plugin (zfile.cpp LINK_LIBRARIES ${ZLIB_LIBRARIES})
+endif ()

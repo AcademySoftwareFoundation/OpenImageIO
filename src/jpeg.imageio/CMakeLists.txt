@@ -1,9 +1,9 @@
-FIND_PACKAGE ( JPEG )
-FIND_PACKAGE ( TIFF )
+find_package (JPEG)
+find_package (TIFF)
 
-IF ( JPEG_FOUND AND TIFF_FOUND )
-    INCLUDE_DIRECTORIES ( ${TIFF_INCLUDE_DIR} )
-    INCLUDE_DIRECTORIES ( ${JPEG_INCLUDE_DIR} )
-    ADD_OIIO_PLUGIN ( jpeginput.cpp jpegoutput.cpp jpegexif.cpp
-        LINK_LIBRARIES ${JPEG_LIBRARIES} )
-ENDIF ( )
+if (JPEG_FOUND AND TIFF_FOUND)
+    include_directories (${TIFF_INCLUDE_DIR})
+    include_directories (${JPEG_INCLUDE_DIR})
+    add_oiio_plugin (jpeginput.cpp jpegoutput.cpp jpegexif.cpp
+        LINK_LIBRARIES ${JPEG_LIBRARIES})
+endif ()

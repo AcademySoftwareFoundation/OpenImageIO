@@ -1,7 +1,7 @@
-IF ( GTEST_FOUND )
-    ADD_EXECUTABLE ( test_libOpenImageIO test_imageio.cpp )
-    INCLUDE_DIRECTORIES ( ${GTEST_INCLUDES} )
-    LINK_ILMBASE ( test_libOpenImageIO )
-    TARGET_LINK_LIBRARIES ( test_libOpenImageIO OpenImageIO ${Boost_LIBRARIES} 
-                                ${GTEST_LIBRARY} ${CMAKE_DL_LIBS} )
-ENDIF ()
+if (GTEST_FOUND)
+    add_executable (test_libOpenImageIO test_imageio.cpp)
+    include_directories (${GTEST_INCLUDES})
+    link_ilmbase (test_libOpenImageIO)
+    target_link_libraries (test_libOpenImageIO OpenImageIO ${Boost_LIBRARIES} 
+                                ${GTEST_LIBRARY} ${CMAKE_DL_LIBS})
+endif ()

@@ -1,4 +1,4 @@
-SET ( testtex_srcs testtex.cpp )
-ADD_EXECUTABLE ( testtex ${testtex_srcs} )
-LINK_ILMBASE ( testtex )
-TARGET_LINK_LIBRARIES ( testtex OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS} )
+set (testtex_srcs testtex.cpp)
+add_executable (testtex ${testtex_srcs})
+link_ilmbase (testtex)
+target_link_libraries (testtex OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})

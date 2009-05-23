@@ -1,1 +1,1 @@
-ADD_OIIO_PLUGIN ( rgbe.cpp hdrinput.cpp hdroutput.cpp )
+add_oiio_plugin (rgbe.cpp hdrinput.cpp hdroutput.cpp)
