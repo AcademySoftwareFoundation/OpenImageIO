@@ -359,7 +359,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
     bool ok = true;
     for (int subimage = 0;
-           ok &= in->seek_subimage(subimage,inspec);
+           ok && in->seek_subimage(subimage,inspec);
            ++subimage) {
 
         if (subimage > 0 &&  !out->supports ("multiimage")) {
