@@ -66,11 +66,11 @@ ifdef DEBUG
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug
 endif
 
-ifdef CC
-MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${CC}
+ifneq (${MYCC},)
+MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER:STRING=${MYCC}
 endif
-ifdef CXX
-MY_CMAKE_FLAGS += -DCMAKE_CXX_COMPILER=${CXX}
+ifneq (${MYCXX},)
+MY_CMAKE_FLAGS += -DCMAKE_CXX_COMPILER:STRING=${MYCXX}
 endif
 
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
@@ -178,6 +178,7 @@ help:
 	@echo "  make EMBEDPLUGINS=1 ...     Compile the plugins into libOpenImageIO"
 	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
+	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
 	@echo ""
 
 
