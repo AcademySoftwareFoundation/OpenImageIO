@@ -107,6 +107,7 @@ public:
     size_t timesopened () const { return m_timesopened; }
     size_t tilesread () const { return m_tilesread; }
     size_t bytesread () const { return m_bytesread; }
+    double & iotime () { return m_iotime; }
 
     std::time_t mod_time () const { return m_mod_time; }
 
@@ -135,6 +136,7 @@ private:
     size_t m_tilesread;             ///< Tiles read from this file
     size_t m_bytesread;             ///< Bytes read from this file
     size_t m_timesopened;           ///< Separate times we opened this file
+    double m_iotime;                ///< I/O time for this file
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
     mutable recursive_mutex m_input_mutex; ///< Mutex protecting the ImageInput
     std::time_t m_mod_time;         ///< Time file was last updated
@@ -574,6 +576,10 @@ private:
     ///
     void printstats () const;
 
+    // Helper function for printstats()
+    std::string onefile_stat_line (const ImageCacheFileRef &file,
+                                   int i, bool includestats=true) const;
+
     int m_max_open_files;
     float m_max_memory_MB;
     size_t m_max_memory_bytes;
@@ -596,7 +602,7 @@ private:
     mutable mutex m_errmutex;         ///< error mutex
 
 private:
-    int m_stat_find_tile_calls;
+    long long m_stat_find_tile_calls;
     long long m_stat_find_tile_microcache_misses;
     atomic_int m_stat_find_tile_cache_misses;
     int m_stat_tiles_created;
