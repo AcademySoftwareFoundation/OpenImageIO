@@ -75,8 +75,9 @@ include_directories ("${OPENEXR_HOME}/include/openexr-${OPENEXR_VERSION}/OpenEXR
 link_directories ("${OPENEXR_LIB_AREA}")
 add_definitions ("-DOPENEXR_VERSION=${OPENEXR_VERSION_DIGITS}")
 set (OPENEXR_LIBRARIES "IlmImf")
+find_package (ZLIB)
 macro (LINK_OPENEXR target)
-    target_link_libraries (${target} IlmImf)
+    target_link_libraries (${target} IlmImf ${ZLIB_LIBRARIES})
 endmacro ()
 
 
@@ -161,3 +162,5 @@ endif ()
 
 # end Gtest setup
 ###########################################################################
+
+
