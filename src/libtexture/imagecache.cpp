@@ -79,7 +79,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
       m_texformat(TexFormatTexture),
       m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
-      m_tilesread(0), m_bytesread(0), m_timesopened(0),
+      m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
       m_imagecache(imagecache)
 {
     m_spec.clear ();
@@ -543,6 +543,7 @@ ImageCacheImpl::find_file (ustring filename)
     ImageCacheFile *tf = new ImageCacheFile (*this, filename);
     double createtime = timer();
     incr_time_stat (m_stat_fileio_time, createtime);
+    incr_time_stat (tf->iotime(), createtime);
 
     unique_lock writeguard (m_filemutex);
 #if IMAGECACHE_TIME_STATS
@@ -710,9 +711,76 @@ ImageCacheImpl::~ImageCacheImpl ()
 
 
 // Functor to compare filenames
-bool filename_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+static bool
+filename_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 {
     return a->filename() < b->filename();
+}
+
+
+// Functor to compare read bytes, sort in descending order
+static bool
+bytesread_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+{
+    return a->bytesread() > b->bytesread();
+}
+
+
+// Functor to compare read times, sort in descending order
+static bool
+iotime_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+{
+    return a->iotime() > b->iotime();
+}
+
+
+// Functor to compare read rate (MB/s), sort in ascending order
+static bool
+iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+{
+    double arate = a->bytesread()/(1024.0*1024.0) / a->iotime();
+    double brate = b->bytesread()/(1024.0*1024.0) / b->iotime();
+    return arate < brate;
+}
+
+
+
+std::string
+ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
+                                   int i, bool includestats) const
+{
+    std::ostringstream out;
+    const ImageSpec &spec (file->spec());
+    const char *formatcode = "u8";
+    switch (spec.format.basetype) {
+    case TypeDesc::UINT8  : formatcode = "u8";  break;
+    case TypeDesc::INT8   : formatcode = "i8";  break;
+    case TypeDesc::UINT16 : formatcode = "u16"; break;
+    case TypeDesc::INT16  : formatcode = "i16"; break;
+    case TypeDesc::UINT   : formatcode = "u32"; break;
+    case TypeDesc::INT    : formatcode = "i32"; break;
+    case TypeDesc::HALF   : formatcode = "f16"; break;
+    case TypeDesc::FLOAT  : formatcode = "f32"; break;
+    case TypeDesc::DOUBLE : formatcode = "f64"; break;
+    default: break;
+    }
+    if (i >= 0)
+        out << Strutil::format ("%7lu ", i);
+//    else
+//        out << "        ";
+    if (includestats)
+        out << Strutil::format ("%4lu    %5lu   %6.1f %9s  ",
+                                file->timesopened(), file->tilesread(),
+                                file->bytesread()/1024.0/1024.0,
+                                Strutil::timeintervalformat(file->iotime()).c_str());
+    out << Strutil::format ("%4dx%4dx%d.%s", spec.width, spec.height,
+                            spec.nchannels, formatcode);
+    out << "  " << file->filename();
+    if (file->untiled())
+        out << " UNTILED";
+    if (file->unmipped() && automip())
+        out << " UNMIPPED";
+    return out.str ();
 }
 
 
@@ -744,17 +812,31 @@ ImageCacheImpl::getstats (int level) const
         if (m_stat_find_tile_time > 0.001)
             out << "    Find tile time : " << Strutil::timeintervalformat (m_stat_find_tile_time) << "\n";
     }
+
+    // Gather file list and statistics
+    size_t total_opens = 0, total_tiles = 0, total_bytes = 0;
+    int total_untiled = 0, total_unmipped = 0;
+    double total_iotime = 0;
+    std::vector<ImageCacheFileRef> files;
+    {
+        shared_lock fileguard (m_filemutex);
+        for (FilenameMap::const_iterator f = m_files.begin(); f != m_files.end(); ++f) {
+            const ImageCacheFileRef &file (f->second);
+            files.push_back (file);
+            total_opens += file->timesopened();
+            total_tiles += file->tilesread();
+            total_bytes += file->bytesread();
+            total_iotime += file->iotime();
+            if (file->untiled())
+                ++total_untiled;
+            if (file->unmipped())
+                ++total_unmipped;
+        }
+    }
+
     if (level >= 2) {
         out << "  Image file statistics:\n";
-        out << "        opens   tiles  KB read     res\t\tFile\n";
-        size_t total_opens = 0, total_tiles = 0, total_bytes = 0;
-        int total_untiled = 0, total_unmipped = 0;
-        std::vector<ImageCacheFileRef> files;
-        {
-            shared_lock fileguard (m_filemutex);
-            for (FilenameMap::const_iterator f = m_files.begin(); f != m_files.end(); ++f)
-                files.push_back (f->second);
-        }
+        out << "        opens   tiles  MB read  I/O time  res             File\n";
         std::sort (files.begin(), files.end(), filename_compare);
         for (size_t i = 0;  i < files.size();  ++i) {
             const ImageCacheFileRef &file (files[i]);
@@ -763,47 +845,71 @@ ImageCacheImpl::getstats (int level) const
                 out << "BROKEN    " << file->filename() << "\n";
                 continue;
             }
-            const ImageSpec &spec (file->spec());
-            const char *formatcode = "u8";
-            switch (spec.format.basetype) {
-            case TypeDesc::UINT8  : formatcode = "u8";  break;
-            case TypeDesc::INT8   : formatcode = "i8";  break;
-            case TypeDesc::UINT16 : formatcode = "u16"; break;
-            case TypeDesc::INT16  : formatcode = "i16"; break;
-            case TypeDesc::UINT   : formatcode = "u32"; break;
-            case TypeDesc::INT    : formatcode = "i32"; break;
-            case TypeDesc::HALF   : formatcode = "f16"; break;
-            case TypeDesc::FLOAT  : formatcode = "f32"; break;
-            case TypeDesc::DOUBLE : formatcode = "f64"; break;
-            default: break;
-            }
-            out << Strutil::format ("%7lu %4lu    %5lu   %6lu  %4dx%4dx%d.%s",
-                                    i+1, file->timesopened(), file->tilesread(),
-                                    file->bytesread()/1024,
-                                    spec.width, spec.height, spec.nchannels,
-                                    formatcode);
-            out << "\t" << file->filename();
-            if (file->untiled()) {
-                ++total_untiled;
-                out << " UNTILED";
-            }
-            if (file->unmipped()) {
-                ++total_unmipped;
-                if (automip())
-                    out << " UNMIPPED";
-            }
-            out << "\n";
-            total_opens += file->timesopened();
-            total_tiles += file->tilesread();
-            total_bytes += file->bytesread();
+            out << onefile_stat_line (file, i+1) << "\n";
         }
-        out << Strutil::format ("\n  Tot:  %4lu\t%5lu\t%6lu MB\n",
+        out << Strutil::format ("\n  Tot:  %4lu    %5lu   %6.1f %9s\n",
                                 total_opens, total_tiles,
-                                total_bytes/1024/1024);
-        if (total_untiled || (total_unmipped && automip()))
-            out << "    (" << total_untiled << " not tiled, "
-                << total_unmipped << " not MIP-mapped)\n";
+                                total_bytes/1024.0/1024.0,
+                                Strutil::timeintervalformat(total_iotime).c_str());
     }
+
+    // Try to point out hot spots
+    if (level > 0) {
+        if (total_untiled || (total_unmipped && automip())) {
+            out << "  " << total_untiled << " not tiled, "
+                << total_unmipped << " not MIP-mapped\n";
+            if (files.size() >= 50) {
+#if 0
+                out << "  Untiled/unmipped files were:\n";
+                for (size_t i = 0;  i < files.size();  ++i) {
+                    const ImageCacheFileRef &file (files[i]);
+                    if (file->untiled() || (file->unmipped() && automip()))
+                        out << onefile_stat_line (file, -1) << "\n";
+                }
+#endif
+                std::sort (files.begin(), files.end(), bytesread_compare);
+                out << "  Top files by bytes read:\n";
+                for (size_t i = 0;  i < std::min (3UL, files.size());  ++i) {
+                    if (files[i]->broken())
+                        continue;
+                    out << Strutil::format ("    %d   %6.1f MB (%4.1f%%)  ", i+1,
+                                            files[i]->bytesread()/1024.0/1024.0,
+                                            100.0 * (files[i]->bytesread() / (double)total_bytes));
+                    out << onefile_stat_line (files[i], -1, false) << "\n";
+                }
+                std::sort (files.begin(), files.end(), iotime_compare);
+                out << "  Top files by I/O time:\n";
+                for (size_t i = 0;  i < std::min (3UL, files.size());  ++i) {
+                    if (files[i]->broken())
+                        continue;
+                    out << Strutil::format ("    %d   %9s (%4.1f%%)   ", i+1,
+                                            Strutil::timeintervalformat (files[i]->iotime()).c_str(),
+                                            100.0 * files[i]->iotime() / total_iotime);
+                    out << onefile_stat_line (files[i], -1, false) << "\n";
+                }
+                std::sort (files.begin(), files.end(), iorate_compare);
+                out << "  Files with slowest I/O rates:\n";
+                int n = 0;
+                BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+                    if (file->broken())
+                        continue;
+                    if (file->iotime() < 0.25)
+                        continue;
+                    double mb = file->bytesread()/(1024.0*1024.0);
+                    double r = mb / file->iotime();
+                    out << Strutil::format ("    %d   %6.2f MB/s (%.2fMB/%.2fs)   ", n+1, r, mb, file->iotime());
+                    out << onefile_stat_line (file, -1, false) << "\n";
+                    if (++n >= 3)
+                        break;
+                }
+                if (n == 0)
+                    out << "    (nothing took more than 0.25s)\n";
+                double fast = files.back()->bytesread()/(1024.0*1024.0) / files.back()->iotime();
+                out << Strutil::format ("    (fastest was %.1f MB/s)\n", fast);
+            }
+        }
+    }
+
     return out.str();
 }
 
@@ -951,6 +1057,7 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
     incr_tiles (tile->memsize());
     double readtime = timer();
     incr_time_stat (m_stat_fileio_time, readtime);
+    incr_time_stat (id.file().iotime(), readtime);
 
     add_tile_to_cache (tile);
 }
