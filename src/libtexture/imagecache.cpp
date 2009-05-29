@@ -858,55 +858,58 @@ ImageCacheImpl::getstats (int level) const
         if (total_untiled || (total_unmipped && automip())) {
             out << "  " << total_untiled << " not tiled, "
                 << total_unmipped << " not MIP-mapped\n";
-            if (files.size() >= 50) {
 #if 0
+            if (files.size() >= 50) {
                 out << "  Untiled/unmipped files were:\n";
                 for (size_t i = 0;  i < files.size();  ++i) {
                     const ImageCacheFileRef &file (files[i]);
                     if (file->untiled() || (file->unmipped() && automip()))
                         out << onefile_stat_line (file, -1) << "\n";
                 }
-#endif
-                std::sort (files.begin(), files.end(), bytesread_compare);
-                out << "  Top files by bytes read:\n";
-                for (size_t i = 0;  i < std::min ((size_t)3, files.size());  ++i) {
-                    if (files[i]->broken())
-                        continue;
-                    out << Strutil::format ("    %d   %6.1f MB (%4.1f%%)  ", i+1,
-                                            files[i]->bytesread()/1024.0/1024.0,
-                                            100.0 * (files[i]->bytesread() / (double)total_bytes));
-                    out << onefile_stat_line (files[i], -1, false) << "\n";
-                }
-                std::sort (files.begin(), files.end(), iotime_compare);
-                out << "  Top files by I/O time:\n";
-                for (size_t i = 0;  i < std::min ((size_t)3, files.size());  ++i) {
-                    if (files[i]->broken())
-                        continue;
-                    out << Strutil::format ("    %d   %9s (%4.1f%%)   ", i+1,
-                                            Strutil::timeintervalformat (files[i]->iotime()).c_str(),
-                                            100.0 * files[i]->iotime() / total_iotime);
-                    out << onefile_stat_line (files[i], -1, false) << "\n";
-                }
-                std::sort (files.begin(), files.end(), iorate_compare);
-                out << "  Files with slowest I/O rates:\n";
-                int n = 0;
-                BOOST_FOREACH (const ImageCacheFileRef &file, files) {
-                    if (file->broken())
-                        continue;
-                    if (file->iotime() < 0.25)
-                        continue;
-                    double mb = file->bytesread()/(1024.0*1024.0);
-                    double r = mb / file->iotime();
-                    out << Strutil::format ("    %d   %6.2f MB/s (%.2fMB/%.2fs)   ", n+1, r, mb, file->iotime());
-                    out << onefile_stat_line (file, -1, false) << "\n";
-                    if (++n >= 3)
-                        break;
-                }
-                if (n == 0)
-                    out << "    (nothing took more than 0.25s)\n";
-                double fast = files.back()->bytesread()/(1024.0*1024.0) / files.back()->iotime();
-                out << Strutil::format ("    (fastest was %.1f MB/s)\n", fast);
             }
+#endif
+        }
+        if (files.size() >= 50) {
+            const size_t topN = 3;
+            std::sort (files.begin(), files.end(), bytesread_compare);
+            out << "  Top files by bytes read:\n";
+            for (size_t i = 0;  i < std::min (topN, files.size());  ++i) {
+                if (files[i]->broken())
+                    continue;
+                out << Strutil::format ("    %d   %6.1f MB (%4.1f%%)  ", i+1,
+                                        files[i]->bytesread()/1024.0/1024.0,
+                                        100.0 * (files[i]->bytesread() / (double)total_bytes));
+                out << onefile_stat_line (files[i], -1, false) << "\n";
+            }
+            std::sort (files.begin(), files.end(), iotime_compare);
+            out << "  Top files by I/O time:\n";
+            for (size_t i = 0;  i < std::min (topN, files.size());  ++i) {
+                if (files[i]->broken())
+                    continue;
+                out << Strutil::format ("    %d   %9s (%4.1f%%)   ", i+1,
+                                        Strutil::timeintervalformat (files[i]->iotime()).c_str(),
+                                        100.0 * files[i]->iotime() / total_iotime);
+                out << onefile_stat_line (files[i], -1, false) << "\n";
+            }
+            std::sort (files.begin(), files.end(), iorate_compare);
+            out << "  Files with slowest I/O rates:\n";
+            size_t n = 0;
+            BOOST_FOREACH (const ImageCacheFileRef &file, files) {
+                if (file->broken())
+                    continue;
+                if (file->iotime() < 0.25)
+                    continue;
+                double mb = file->bytesread()/(1024.0*1024.0);
+                double r = mb / file->iotime();
+                out << Strutil::format ("    %d   %6.2f MB/s (%.2fMB/%.2fs)   ", n+1, r, mb, file->iotime());
+                out << onefile_stat_line (file, -1, false) << "\n";
+                if (++n >= topN)
+                    break;
+            }
+            if (n == 0)
+                out << "    (nothing took more than 0.25s)\n";
+            double fast = files.back()->bytesread()/(1024.0*1024.0) / files.back()->iotime();
+            out << Strutil::format ("    (fastest was %.1f MB/s)\n", fast);
         }
     }
 
