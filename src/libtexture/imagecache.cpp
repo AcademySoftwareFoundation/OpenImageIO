@@ -869,7 +869,7 @@ ImageCacheImpl::getstats (int level) const
 #endif
                 std::sort (files.begin(), files.end(), bytesread_compare);
                 out << "  Top files by bytes read:\n";
-                for (size_t i = 0;  i < std::min (3UL, files.size());  ++i) {
+                for (size_t i = 0;  i < std::min ((size_t)3, files.size());  ++i) {
                     if (files[i]->broken())
                         continue;
                     out << Strutil::format ("    %d   %6.1f MB (%4.1f%%)  ", i+1,
@@ -879,7 +879,7 @@ ImageCacheImpl::getstats (int level) const
                 }
                 std::sort (files.begin(), files.end(), iotime_compare);
                 out << "  Top files by I/O time:\n";
-                for (size_t i = 0;  i < std::min (3UL, files.size());  ++i) {
+                for (size_t i = 0;  i < std::min ((size_t)3, files.size());  ++i) {
                     if (files[i]->broken())
                         continue;
                     out << Strutil::format ("    %d   %9s (%4.1f%%)   ", i+1,
