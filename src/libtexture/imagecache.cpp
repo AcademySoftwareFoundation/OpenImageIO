@@ -37,9 +37,7 @@
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
 
-#include <ImathVec.h>
 #include <ImathMatrix.h>
-#include <half.h>
 
 #include "dassert.h"
 #include "typedesc.h"

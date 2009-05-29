@@ -37,9 +37,7 @@
 using namespace std::tr1;
 #include <boost/thread/tss.hpp>
 
-#include <ImathVec.h>
 #include <ImathMatrix.h>
-#include <half.h>
 
 #include "dassert.h"
 #include "typedesc.h"

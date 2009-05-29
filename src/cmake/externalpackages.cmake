@@ -2,12 +2,14 @@
 # Find libraries
 
 setup_path (THIRD_PARTY_TOOLS_HOME 
-            "${PROJECT_SOURCE_DIR}/../../external/dist/${platform}"
+#            "${PROJECT_SOURCE_DIR}/../../external/dist/${platform}"
+            "unknown"
             "Location of third party libraries in the external project")
 
 # Add all third party tool directories to the include and library paths so
 # that they'll be correctly found by the various FIND_PACKAGE() invocations.
-if (EXISTS ${THIRD_PARTY_TOOLS_HOME})
+if (THIRD_PARTY_TOOLS_HOME AND EXISTS ${THIRD_PARTY_TOOLS_HOME})
+    set (CMAKE_INCLUDE_PATH "${THIRD_PARTY_TOOLS_HOME}/include" ${CMAKE_INCLUDE_PATH})
     # Detect third party tools which have been successfully built using the
     # lock files which are placed there by the external project Makefile.
     file (GLOB _external_dir_lockfiles "${THIRD_PARTY_TOOLS_HOME}/*.d")
@@ -22,6 +24,14 @@ if (EXISTS ${THIRD_PARTY_TOOLS_HOME})
 endif ()
 
 
+setup_string (SPECIAL_COMPILE_FLAGS "" 
+               "Custom compilation flags")
+if (SPECIAL_COMPILE_FLAGS)
+    add_definitions (${SPECIAL_COMPILE_FLAGS})
+endif ()
+
+
+
 ###########################################################################
 # IlmBase and OpenEXR setup
 
@@ -31,31 +41,36 @@ endif ()
 #setup_var (ILMBASE_VERSION 1.0.1 "Version of the ILMBase library")
 setup_string (ILMBASE_VERSION 1.0.1
               "Version of the ILMBase library")
+mark_as_advanced (ILMBASE_VERSION)
 setup_path (ILMBASE_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the ILMBase library install")
-setup_path (ILMBASE_INCLUDE_AREA 
-            "${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}/OpenEXR" 
-            "Directory containing IlmBase include files")
-setup_path (ILMBASE_LIB_AREA "${ILMBASE_HOME}/lib/ilmbase-${ILMBASE_VERSION}"
-            "Directory containing IlmBase libraries")
-mark_as_advanced (ILMBASE_VERSION)
 mark_as_advanced (ILMBASE_HOME)
-mark_as_advanced (ILMBASE_INCLUDE_AREA)
-mark_as_advanced (ILMBASE_LIB_AREA)
-include_directories ("${ILMBASE_INCLUDE_AREA}")
-link_directories ("${ILMBASE_LIB_AREA}")
-setup_string (SPECIAL_COMPILE_FLAGS "" 
-               "Custom compilation flags")
-if (SPECIAL_COMPILE_FLAGS)
-    add_definitions (${SPECIAL_COMPILE_FLAGS})
+find_path (ILMBASE_INCLUDE_AREA half.h
+           ${ILMBASE_HOME}/include
+           ${ILMBASE_HOME}/include/OpenEXR
+           /usr/include/OpenEXR
+           /usr/local/include/OpenEXR
+           /opt/local/include/OpenEXR
+          )
+foreach (_lib Imath Half IlmThread Iex)
+    find_library (ILMBASE_LIBS_${_lib} ${_lib}
+                  PATHS ${ILMBASE_HOME}/lib ${ILMBASE_HOME}/lib64
+                        ${ILMBASE_LIB_AREA}
+                  )
+endforeach ()
+set (ILMBASE_LIBRARIES ${ILMBASE_LIBS_Imath} ${ILMBASE_LIBS_Half}
+                       ${ILMBASE_LIBS_IlmThread} ${ILMBASE_LIBS_Iex})
+message (STATUS "ILMBASE_INCLUDE_AREA = ${ILMBASE_INCLUDE_AREA}")
+message (STATUS "ILMBASE_LIBRARIES = ${ILMBASE_LIBRARIES}")
+if (ILMBASE_INCLUDE_AREA AND ILMBASE_LIBRARIES)
+    set (ILMBASE_FOUND true)
+    include_directories ("${ILMBASE_INCLUDE_AREA}")
+else ()
+    message (FATAL_ERROR "ILMBASE not found!")
 endif ()
 
-macro (LINK_ILMBASE_HALF target)
-    target_link_libraries (${target} Half)
-endmacro ()
-
 macro (LINK_ILMBASE target)
-    target_link_libraries (${target} Imath Half IlmThread Iex)
+    target_link_libraries (${target} ${ILMBASE_LIBRARIES})
 endmacro ()
 
 setup_string (OPENEXR_VERSION 1.6.1 "OpenEXR version number")
@@ -67,17 +82,30 @@ mark_as_advanced (OPENEXR_VERSION_DIGITS)
 #     OPENEXR_VERSION_DIGITS ?= 0$(subst .,0,${OPENEXR_VERSION})
 setup_path (OPENEXR_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the OpenEXR library install")
-setup_path (OPENEXR_LIB_AREA "${OPENEXR_HOME}/lib/openexr-${OPENEXR_VERSION}"
-            "Directory containing the OpenEXR libraries")
 mark_as_advanced (OPENEXR_HOME)
-mark_as_advanced (OPENEXR_LIB_AREA)
-include_directories ("${OPENEXR_HOME}/include/openexr-${OPENEXR_VERSION}/OpenEXR")
-link_directories ("${OPENEXR_LIB_AREA}")
+find_path (OPENEXR_INCLUDE_AREA OpenEXRConfig.h
+           ${OPENEXR_HOME}/include
+           ${OPENEXR_HOME}/include/OpenEXR
+           /usr/include/OpenEXR
+           /usr/local/include/OpenEXR
+           /opt/local/include/OpenEXR )
+find_library (OPENEXR_LIBRARY IlmImf
+              PATHS ${OPENEXR_HOME}/lib
+                    ${OPENEXR_HOME}/lib64
+                    ${OPENEXR_LIB_AREA}
+             )
+message (STATUS "OPENEXR_INCLUDE_AREA = ${OPENEXR_INCLUDE_AREA}")
+message (STATUS "OPENEXR_LIBRARY = ${OPENEXR_LIBRARY}")
+if (OPENEXR_INCLUDE_AREA AND OPENEXR_LIBRARY)
+    set (OPENEXR_FOUND true)
+    include_directories (${OPENEXR_INCLUDE_AREA})
+else ()
+    message (STATUS "OPENEXR not found!")
+endif ()
 add_definitions ("-DOPENEXR_VERSION=${OPENEXR_VERSION_DIGITS}")
-set (OPENEXR_LIBRARIES "IlmImf")
 find_package (ZLIB)
 macro (LINK_OPENEXR target)
-    target_link_libraries (${target} IlmImf ${ZLIB_LIBRARIES})
+    target_link_libraries (${target} ${OPENEXR_LIBRARY} ${ZLIB_LIBRARIES})
 endmacro ()
 
 
@@ -92,15 +120,8 @@ message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
 set(Boost_ADDITIONAL_VERSIONS "1.38" "1.38.0" "1.37" "1.37.0" "1.34.1" "1_34_1")
 #set (Boost_USE_STATIC_LIBS   ON)
 set (Boost_USE_MULTITHREADED ON)
-#if (APPLE)
-#    set (Boost_COMPILER xgcc42-mt)
-#    set (BOOST_SUFFIX xgcc42-mt-1_38)
-#else ()
-#    set (Boost_COMPILER gcc42-mt)
-#    set (BOOST_SUFFIX gcc42-mt-1_38)
-#endif ()
 if (BOOST_CUSTOM)
-    set (BOOST_FOUND true)
+    set (Boost_FOUND true)
 else ()
     find_package (Boost 1.34 REQUIRED 
                   COMPONENTS filesystem program_options regex system thread

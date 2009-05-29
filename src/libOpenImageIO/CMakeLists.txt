@@ -45,8 +45,9 @@ link_ilmbase (OpenImageIO)
 
 if (EMBEDPLUGINS)
     target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
-                               ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES} IlmImf 
+                               ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES}
                           )
+    link_openexr (OpenImageIO)
 endif ()
 
 oiio_install_targets (OpenImageIO)
