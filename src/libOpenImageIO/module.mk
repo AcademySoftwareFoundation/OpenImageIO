@@ -27,6 +27,7 @@ local_extra_objs := ${build_obj_dir}/libutil/argparse${OEXT} \
 		    ${build_obj_dir}/libutil/sysutil${OEXT} \
 		    ${build_obj_dir}/libutil/typedesc${OEXT} \
 		    ${build_obj_dir}/libutil/ustring${OEXT} \
+		    ${build_obj_dir}/libutil/tbb_misc${OEXT} \
 		    ${build_obj_dir}/libtexture/texturesys${OEXT} \
 		    ${build_obj_dir}/libtexture/texoptions${OEXT} \
 		    ${build_obj_dir}/libtexture/imagecache${OEXT}

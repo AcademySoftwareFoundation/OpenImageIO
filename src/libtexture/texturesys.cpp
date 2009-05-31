@@ -525,10 +525,8 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
             result += options.nchannels;
         }
 //        error ("Texture file \"%s\" not found", filename.c_str());
-        m_stats_mutex.lock ();
         ++m_stat_texture_batches;
         m_stat_texture_queries += local_stat_texture_queries;
-        m_stats_mutex.unlock ();
         return false;
     }
 
@@ -569,9 +567,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     }
     // Early out if all channels were beyond the highest in the file
     if (options.actualchannels < 1) {
-        m_stats_mutex.lock ();
         ++m_stat_texture_batches;
-        m_stats_mutex.unlock ();
         return true;
     }
 
@@ -593,10 +589,8 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     }
 
     // Update stats
-    m_stats_mutex.lock ();
     ++m_stat_texture_batches;
     m_stat_texture_queries += points_on;
-    m_stats_mutex.unlock ();
 
     return true;
 }
@@ -636,7 +630,6 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
                       1.0f, result);
 
     // Update stats
-    m_stats_mutex.lock ();
     ++m_stat_aniso_queries;
     ++m_stat_aniso_probes;
     switch (options.interpmode) {
@@ -645,7 +638,6 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
         case TextureOptions::InterpBicubic :  ++m_stat_cubic_interps;  break;
         case TextureOptions::InterpSmartBicubic : ++m_stat_bilinear_interps; break;
     }
-    m_stats_mutex.unlock ();
 }
 
 
@@ -747,7 +739,6 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     }
 
     // Update stats
-    m_stats_mutex.lock ();
     m_stat_aniso_queries += npointson;
     m_stat_aniso_probes += npointson;
     switch (options.interpmode) {
@@ -756,7 +747,6 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         case TextureOptions::InterpBicubic :  m_stat_cubic_interps += npointson;  break;
         case TextureOptions::InterpSmartBicubic : m_stat_bilinear_interps += npointson; break;
     }
-    m_stats_mutex.unlock ();
 }
 
 
@@ -923,15 +913,13 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     }
 
     // Update stats
-    m_stats_mutex.lock ();
     m_stat_aniso_queries += npointson;
     m_stat_aniso_probes += npointson * nsamples;
     if (trueaspect > m_stat_max_aniso)
-        m_stat_max_aniso = trueaspect;
+        m_stat_max_aniso = trueaspect;   // FIXME?
     m_stat_closest_interps += closestprobes * nsamples;
     m_stat_bilinear_interps += bilinearprobes * nsamples;
     m_stat_cubic_interps += bicubicprobes * nsamples;
-    m_stats_mutex.unlock ();
 }
 
 

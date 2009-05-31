@@ -788,7 +788,6 @@ ImageCacheImpl::getstats (int level) const
 {
     std::ostringstream out;
     if (level > 0) {
-        fast_mutex::lock_guard statguard (m_stats_mutex);
         out << "OpenImageIO ImageCache statistics (" << (void*)this << ")\n";
         out << "  Images : " << m_stat_unique_files << " unique\n";
         out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
@@ -1016,9 +1015,7 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
 {
     DASSERT (! id.file().broken());
 
-    m_stats_mutex.lock ();
     ++m_stat_find_tile_microcache_misses;
-    m_stats_mutex.unlock ();
 
     {
 #if IMAGECACHE_TIME_STATS

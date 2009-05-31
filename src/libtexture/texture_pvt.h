@@ -417,25 +417,24 @@ private:
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     mutable std::string m_errormessage;   ///< Saved error string.
-    mutable fast_mutex m_stats_mutex;     ///< Thread safety for stats
     mutable mutex m_errmutex;             ///< error mutex
     mutable mutex m_perthread_info_mutex; ///< Thread safety for perthread
     Filter1D *hq_filter;         ///< Better filter for magnification
     int m_statslevel;
-    long long m_stat_texture_queries;
-    long long m_stat_texture_batches;
-    long long m_stat_texture3d_queries;
-    long long m_stat_texture3d_batches;
-    long long m_stat_shadow_queries;
-    long long m_stat_shadow_batches;
-    long long m_stat_environment_queries;
-    long long m_stat_environment_batches;
-    long long m_stat_aniso_queries;
-    long long m_stat_aniso_probes;
+    atomic_ll m_stat_texture_queries;
+    atomic_ll m_stat_texture_batches;
+    atomic_ll m_stat_texture3d_queries;
+    atomic_ll m_stat_texture3d_batches;
+    atomic_ll m_stat_shadow_queries;
+    atomic_ll m_stat_shadow_batches;
+    atomic_ll m_stat_environment_queries;
+    atomic_ll m_stat_environment_batches;
+    atomic_ll m_stat_aniso_queries;
+    atomic_ll m_stat_aniso_probes;
     float m_stat_max_aniso;
-    long long m_stat_closest_interps;
-    long long m_stat_bilinear_interps;
-    long long m_stat_cubic_interps;
+    atomic_ll m_stat_closest_interps;
+    atomic_ll m_stat_bilinear_interps;
+    atomic_ll m_stat_cubic_interps;
     friend class ImageCacheFile;
     friend class ImageCacheTile;
     friend class PerThreadInfo;

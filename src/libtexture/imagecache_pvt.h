@@ -456,9 +456,7 @@ public:
     /// If tile is null, so is lasttile.  Inlined for speed.
     void find_tile (const TileID &id,
                     ImageCacheTileRef &tile, ImageCacheTileRef &lasttile) {
-        m_stats_mutex.lock ();
         ++m_stat_find_tile_calls;
-        m_stats_mutex.unlock ();
         if (tile) {
             if (tile->id() == id)
                 return;    // already have the tile we want
@@ -482,9 +480,7 @@ public:
     /// are reading several tiles from the same subimage.
     void find_tile_same_subimage (const TileID &id,
                                ImageCacheTileRef &tile, ImageCacheTileRef &lasttile) {
-        m_stats_mutex.lock ();
         ++m_stat_find_tile_calls;
-        m_stats_mutex.unlock ();
         DASSERT (tile);
         if (equal_same_subimage (tile->id(), id))
             return;
@@ -508,53 +504,42 @@ public:
     /// Called when a new file is opened, so that the system can track
     /// the number of simultaneously-opened files.
     void incr_open_files (void) {
-        m_stats_mutex.lock ();
         ++m_stat_open_files_created;
         ++m_stat_open_files_current;
         if (m_stat_open_files_current > m_stat_open_files_peak)
             m_stat_open_files_peak = m_stat_open_files_current;
-        m_stats_mutex.unlock ();
+        // FIXME -- can we make an atomic_max?
     }
 
     /// Called when a file is closed, so that the system can track
     /// the number of simultyaneously-opened files.
     void decr_open_files (void) {
-        m_stats_mutex.lock ();
         --m_stat_open_files_current;
-        m_stats_mutex.unlock ();
     }
 
     /// Called when a new tile is created, to update all the stats.
     ///
     void incr_tiles (size_t size) {
-        m_stats_mutex.lock ();
         ++m_stat_tiles_created;
         ++m_stat_tiles_current;
         if (m_stat_tiles_current > m_stat_tiles_peak)
             m_stat_tiles_peak = m_stat_tiles_current;
         m_mem_used += size;
-        m_stats_mutex.unlock ();
     }
 
     /// Called when a tile is destroyed, to update all the stats.
     ///
     void decr_tiles (size_t size) {
-        m_stats_mutex.lock ();
         --m_stat_tiles_current;
         m_mem_used -= size;
-        m_stats_mutex.unlock ();
     }
 
     void incr_files_totalsize (size_t size) {
-        m_stats_mutex.lock ();
         m_stat_files_totalsize += size;
-        m_stats_mutex.unlock ();
     }
 
     void incr_bytes_read (size_t size) {
-        m_stats_mutex.lock ();
         m_stat_bytes_read += size;
-        m_stats_mutex.unlock ();
     }
 
     /// Internal error reporting routine, with printf-like arguments.
@@ -598,21 +583,20 @@ private:
     mutable std::string m_errormessage;   ///< Saved error string.
     mutable shared_mutex m_filemutex; ///< Thread safety for file cache
     mutable shared_mutex m_tilemutex; ///< Thread safety for tile cache
-    mutable fast_mutex m_stats_mutex; ///< Thread safety for stats
     mutable mutex m_errmutex;         ///< error mutex
 
 private:
-    long long m_stat_find_tile_calls;
-    long long m_stat_find_tile_microcache_misses;
+    atomic_ll m_stat_find_tile_calls;
+    atomic_ll m_stat_find_tile_microcache_misses;
     atomic_int m_stat_find_tile_cache_misses;
-    int m_stat_tiles_created;
-    int m_stat_tiles_current;
-    int m_stat_tiles_peak;
-    long long m_stat_files_totalsize;
-    long long m_stat_bytes_read;
-    int m_stat_open_files_created;
-    int m_stat_open_files_current;
-    int m_stat_open_files_peak;
+    atomic_int m_stat_tiles_created;
+    atomic_int m_stat_tiles_current;
+    atomic_int m_stat_tiles_peak;
+    atomic_ll m_stat_files_totalsize;
+    atomic_ll m_stat_bytes_read;
+    atomic_int m_stat_open_files_created;
+    atomic_int m_stat_open_files_current;
+    atomic_int m_stat_open_files_peak;
     atomic_int m_stat_unique_files;
     double m_stat_fileio_time;
     double m_stat_file_locking_time;
@@ -620,10 +604,22 @@ private:
     double m_stat_find_file_time;
     double m_stat_find_tile_time;
 
+    // Simulate an atomic double with a long long!
     void incr_time_stat (double &stat, double incr) {
-        m_stats_mutex.lock ();
-        stat += incr;
-        m_stats_mutex.unlock ();
+        DASSERT (sizeof (atomic_ll) == sizeof(double));
+        double oldval, newval;
+        long long *lloldval = (long long *)&oldval;
+        long long *llnewval = (long long *)&newval;
+        atomic_ll *llstat = (atomic_ll *)&stat;
+        // Make long long and atomic_ll pointers to the doubles in question.
+        do { 
+            // Grab the double bits, shove into a long long
+            *lloldval = *llstat;
+            // increment
+            newval = oldval + incr;
+            // Now try to atomically swap it, and repeat until we've
+            // done it with nobody else interfering.
+        } while (llstat->compare_and_swap (*llnewval,*lloldval) != *lloldval); 
     }
 
 };

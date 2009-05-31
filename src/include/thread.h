@@ -101,65 +101,32 @@ private:
 #endif
 
 
+#ifndef USE_TBB
+#  define USE_TBB 1
+#endif
+
+#if USE_TBB
+
+#include <tbb/atomic.h>
+using tbb::atomic;
+
+#else /* the following defined only if not USE_TBB */
+
 //
 // Include files we need for atomic counters.
 // Some day, we hope this is all replaced by use of std::atomic<>.
 //
 
-#ifndef USE_INTEL_ASM_ATOMICS
-#  if (defined(__i386__) || defined(__x86_64__))
-#    define USE_INTEL_ASM_ATOMICS 1
-#  else
-#    define USE_INTEL_ASM_ATOMICS 0
-#  endif
-#endif
-
-#if (USE_INTEL_ASM_ATOMIC == 0)
-#  if defined(__linux__)
-#    if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 2))
-#      include <ext/atomicity.h>
-#    else
-#      include <bits/atomicity.h>
-#    endif
+#  if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+     // we're good to go with GCC intrinsics
 #  elif defined(__APPLE__)
 #    include <libkern/OSAtomic.h>
-#endif
-
-#elif defined(_WIN32)
-#  include <windows.h>
-#  include <winbase.h>
-#endif
-
-
-
-#if 0  /* unused */
-/// Atomic version of:  r = *at, *at = x, return r
-/// For each of several architectures.
-inline int
-atomic_exchange (volatile int *at, int x)
-{
-#if USE_INTEL_ASM_ATOMICS
-    // Common case of i386 or x86_64 on either Linux or Mac.
-    // Note slightly different instruction for 32 vs 64 bit.
-    int result;
-    __asm__ __volatile__(
-#ifdef __i386__
-                         "lock\nxchgl %0,%1"
-#else
-                         "lock\nxchg %0,%1"
-#endif
-                         : "=r"(result), "=m"(*at)
-                         : "0"(x)
-                         : "memory");
-    return result;
-#elif defined(_WIN32)
-    // Windows
-    return InterlockedExchange ((volatile LONG *)at, x);
-#else
-    asfaef  // force compile to fail, I have no idea what to do here
-#endif
-}
-#endif
+#  elif defined(_WIN32)
+#    include <windows.h>
+#    include <winbase.h>
+#  else
+#    error "Ouch, no atomics!"
+#  endif
 
 
 
@@ -168,29 +135,30 @@ atomic_exchange (volatile int *at, int x)
 inline int
 atomic_exchange_and_add (volatile int *at, int x)
 {
-#if USE_INTEL_ASM_ATOMICS
-    // Common case of i386 or x86_64 on either Linux or Mac.
-    // Note slightly different instruction for 32 vs 64 bit.
-    int result;
-    __asm__ __volatile__(
-#ifdef __i386__
-                         "lock\nxaddl %0,%1"
-#else
-                         "lock\nxadd %0,%1"
-#endif
-                         : "=r"(result), "=m"(*at)
-                         : "0"(x)
-                         : "memory");
-    return result;
-#elif defined(linux)
-    // Linux, not inline for Intel (does this ever get used?)
-    __gnu_cxx::__exchange_and_add (at, x);
+#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+    return __sync_fetch_and_add ((int *)at, x);
 #elif defined(__APPLE__)
     // Apple, not inline for Intel (only PPC?)
     return OSAtomicAdd32Barrier (x, at) - x;
 #elif defined(_WIN32)
     // Windows
     return InterlockedExchangeAdd ((volatile LONG *)at, x);
+#endif
+}
+
+
+
+inline long long
+atomic_exchange_and_add (volatile long long *at, long long x)
+{
+#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+    return __sync_fetch_and_add (at, x);
+#elif defined(__APPLE__)
+    // Apple, not inline for Intel (only PPC?)
+    return OSAtomicAdd64Barrier (x, at) - x;
+#elif defined(_WIN32)
+    // Windows
+    return InterlockedExchangeAdd64 ((volatile LONGLONG *)at, x);
 #endif
 }
 
@@ -205,29 +173,26 @@ atomic_exchange_and_add (volatile int *at, int x)
 inline bool
 atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 {
-#if USE_INTEL_ASM_ATOMICS
-    // Common case of i386 or x86_64 on either Linux or Mac.
-    // Note slightly different instruction for 32 vs 64 bit.
-    int result;
-    __asm__ __volatile__(
-#ifdef __i386__
-                         "lock\ncmpxchgl %2,%1"
-#else
-                         "lock\ncmpxchg %2,%1"
-#endif
-                         : "=a"(result), "=m"(*at)
-                         : "q"(newval), "0"(compareval)
-                         : "memory");
-    return result;
-#elif defined(linux)
-    // Linux, not inline for Intel (does this ever get used?)
-//    __gnu_cxx::__exchange_and_add (at, x);
+#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+    return __sync_bool_compare_and_swap (at, compareval, newval);
 #elif defined(__APPLE__)
-    // Apple, not inline for Intel (only PPC?)
     return OSAtomicCompareAndSwap32Barrier (compareval, newval, at);
 #elif defined(_WIN32)
-    // Windows
     return (InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
+#endif
+}
+
+
+
+inline bool
+atomic_compare_and_exchange (volatile long long *at, long long compareval, long long newval)
+{
+#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+    return __sync_bool_compare_and_swap (at, compareval, newval);
+#elif defined(__APPLE__)
+    return OSAtomicCompareAndSwap64Barrier (compareval, newval, at);
+#elif defined(_WIN32)
+    return (InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
 #endif
 }
 
@@ -235,147 +200,81 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 
 /// Atomic integer.  Increment, decrement, add, and subtract in a
 /// totally thread-safe manner.
-class atomic_int {
+template<class T>
+class atomic {
 public:
     /// Construct with initial value.
     ///
-    atomic_int (int val=0) : m_val(val) { }
+    atomic (T val=0) : m_val(val) { }
 
-    ~atomic_int () { }
-
-    /// Retrieve value
-    ///
-    int operator() () const { return atomic_exchange_and_add (&m_val, 0); }
+    ~atomic () { }
 
     /// Retrieve value
     ///
-    operator int() const { return atomic_exchange_and_add (&m_val, 0); }
+    T operator() () const { return atomic_exchange_and_add (&m_val, 0); }
+
+    /// Retrieve value
+    ///
+    operator T() const { return atomic_exchange_and_add (&m_val, 0); }
 
     /// Assign new value.
     ///
-    int operator= (int x) {
-        //better? (void)atomic_exchange (&m_val, x); return x;
-        return (m_val = x);
+    T operator= (T x) {
+        //incorrect? return (m_val = x);
+        while (1) {
+            T result = m_val;
+            if (atomic_compare_and_exchange (&m_val, result, x))
+                break;
+        }
+        return x;
     }
 
     /// Pre-increment:  ++foo
     ///
-    int operator++ () { return atomic_exchange_and_add (&m_val, 1) + 1; }
+    T operator++ () { return atomic_exchange_and_add (&m_val, 1) + 1; }
 
     /// Post-increment:  foo++
     ///
-    int operator++ (int) {  return atomic_exchange_and_add (&m_val, 1); }
+    T operator++ (int) {  return atomic_exchange_and_add (&m_val, 1); }
 
     /// Pre-decrement:  --foo
     ///
-    int operator-- () {  return atomic_exchange_and_add (&m_val, -1) - 1; }
+    T operator-- () {  return atomic_exchange_and_add (&m_val, -1) - 1; }
 
     /// Post-decrement:  foo--
     ///
-    int operator-- (int) {  return atomic_exchange_and_add (&m_val, -1); }
+    T operator-- (int) {  return atomic_exchange_and_add (&m_val, -1); }
 
     /// Add to the value, return the new result
     ///
-    int operator+= (int x) { return atomic_exchange_and_add (&m_val, x) + x; }
+    T operator+= (T x) { return atomic_exchange_and_add (&m_val, x) + x; }
 
     /// Subtract from the value, return the new result
     ///
-    int operator-= (int x) { return atomic_exchange_and_add (&m_val, -x) - x; }
+    T operator-= (T x) { return atomic_exchange_and_add (&m_val, -x) - x; }
 
-    bool compare_and_exchange (int compareval, int newval) {
+    bool compare_and_swap (T compareval, T newval) {
         return atomic_compare_and_exchange (&m_val, compareval, newval);
     }
 
-private:
-    volatile mutable int m_val;
-
-    // Disallow assignment and copy construction by making private and
-    // unimplemented.
-    atomic_int (atomic_int const &);
-    atomic_int & operator= (atomic_int const &);
-};
-
-#undef USE_INTEL_ASM_ATOMICS
-
-
-
-
-/// A fast_mutex is a spin lock.  It's semantically equivalent to a
-/// regular mutex, except for the following:
-///  - A fast_mutex is just 4 bytes, whereas a regular mutex is quite
-///    large (44 bytes for pthread). is just 4 bytes.
-///  - A fast_mutex is extremely fast to lock and unlock, whereas a regular
-///    mutex is surprisingly expensive just to acquire a lock.
-///  - A fast_mutex spins, taking CPU while it waits, so this can be very
-///    wasteful compared to a regular mutex that blocks (gives up its CPU
-///    slices until it acquires the lock).
-///
-/// The bottom line is that mutex is the usual choice, but in cases where
-/// you need to acquire locks very frequently, but only need to hold the
-/// lock for a very short period of time, you may save runtime by using
-/// a FastMutex, even though it's non-blocking.
-class fast_mutex {
-public:
-    /// Default constructor -- initialize to unlocked.
-    ///
-    fast_mutex (void) : m_locked(0) { }
-
-    ~fast_mutex (void) { }
-
-    /// Copy constructor -- initialize to unlocked.
-    ///
-    fast_mutex (const fast_mutex &) : m_locked(0) { }
-
-    /// Assignment does not do anything, since lockedness should not
-    /// transfer.
-    const fast_mutex& operator= (const fast_mutex&) { return *this; }
-
-    /// Acquire the lock, spin until we have it.
-    ///
-    void lock () {
-#if defined(__APPLE__)
-        // OS X has dedicated spin lock routines, may as well use them.
-        OSSpinLockLock ((OSSpinLock *)&m_locked);
-#else
-        while (! try_lock())
-            ;
-#endif
+    T operator= (const atomic &x) {
+        T r = x();
+        *this = r;
+        return r;
     }
-
-    /// Release the lock that we hold.
-    ///
-    void unlock () {
-#if defined(__APPLE__)
-        OSSpinLockUnlock ((OSSpinLock *)&m_locked);
-#else
-        --m_locked;
-#endif
-    }
-
-    /// Try to acquire the lock.  Return true if we have it, false if
-    /// somebody else is holding the lock.
-    bool try_lock () {
-#if defined(__APPLE__)
-        return OSSpinLockTry ((OSSpinLock *)&m_locked);
-#else
-        return m_locked.compare_and_exchange (0, 1);
-#endif
-    }
-
-    /// Helper class: scoped lock for a fast_mutex -- grabs the lock upon
-    /// construction, releases the lock when it exits scope.
-    class lock_guard {
-    public:
-        lock_guard (fast_mutex &fm) : m_fm(fm) { m_fm.lock(); }
-        ~lock_guard () { m_fm.unlock(); }
-    private:
-        fast_mutex & m_fm;
-    };
 
 private:
-    atomic_int m_locked;  ///< Atomic counter is zero if nobody holds the lock
+    volatile mutable T m_val;
+
+    // Disallow copy construction by making private and unimplemented.
+    atomic (atomic const &);
 };
 
+
+#endif /* USE_TBB */
+
+typedef atomic<int> atomic_int;
+typedef atomic<long long> atomic_ll;
 
 
 #endif // THREAD_H

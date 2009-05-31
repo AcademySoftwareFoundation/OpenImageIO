@@ -8,6 +8,7 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           ../libutil/plugin.cpp 
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp 
+                          ../libutil/tbb_misc.cpp
                           ../libutil/typedesc.cpp 
                           ../libutil/ustring.cpp 
                           ../libtexture/texturesys.cpp 
