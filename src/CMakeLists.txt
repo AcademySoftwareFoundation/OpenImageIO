@@ -1,6 +1,6 @@
 project (OpenImageIO)
 set (OpenImageIO_VERSION_MAJOR 0)
-set (OpenImageIO_VERSION_MINOR 5)
+set (OpenImageIO_VERSION_MINOR 6)
 set (OpenImageIO_VERSION_PATCH 0)
 
 cmake_minimum_required (VERSION 2.6)
