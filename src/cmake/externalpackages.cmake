@@ -46,7 +46,8 @@ setup_path (ILMBASE_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the ILMBase library install")
 mark_as_advanced (ILMBASE_HOME)
 find_path (ILMBASE_INCLUDE_AREA half.h
-           ${ILMBASE_HOME}/include
+           ${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}
+           ${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}/OpenEXR
            ${ILMBASE_HOME}/include/OpenEXR
            /usr/include/OpenEXR
            /usr/local/include/OpenEXR
@@ -86,6 +87,8 @@ mark_as_advanced (OPENEXR_HOME)
 find_path (OPENEXR_INCLUDE_AREA OpenEXRConfig.h
            ${OPENEXR_HOME}/include
            ${OPENEXR_HOME}/include/OpenEXR
+           ${ILMBASE_HOME}/include/openexr-${OPENEXR_VERSION}
+           ${ILMBASE_HOME}/include/openexr-${OPENEXR_VERSION}/OpenEXR
            /usr/include/OpenEXR
            /usr/local/include/OpenEXR
            /opt/local/include/OpenEXR )
