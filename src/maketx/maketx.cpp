@@ -39,9 +39,12 @@
 #include <ImathMatrix.h>
 
 #include "argparse.h"
+#include "dassert.h"
 #include "filesystem.h"
 #include "fmath.h"
 #include "strutil.h"
+#include "sysutil.h"
+#include "timer.h"
 #include "imageio.h"
 using namespace OpenImageIO;
 #include "imagebuf.h"
@@ -58,6 +61,10 @@ static bool verbose = false;
 static int tile[3] = { 64, 64, 1 };
 static std::string channellist;
 static bool updatemode = false;
+static double stat_readtime = 0;
+static double stat_writetime = 0;
+static double stat_resizetime = 0;
+static double stat_miptime = 0;
 
 // Conversion modes.  If none are true, we just make an ordinary texture.
 static bool mipmapmode = false;
@@ -230,14 +237,16 @@ make_texturemap (const char *maptypename = "texture map")
     }
 
     ImageBuf src (filenames[0]);
+    if (verbose)
+        std::cout << "Reading file: " << filenames[0] << std::endl;
+    Timer readtimer;
     if (! src.read()) {
         std::cerr 
             << "maketx ERROR: Could not find an ImageIO plugin to read \"" 
             << filenames[0] << "\" : " << src.error_message() << "\n";
         exit (EXIT_FAILURE);
     }
-    if (verbose)
-        std::cout << "Reading file: " << filenames[0] << std::endl;
+    stat_readtime += readtimer();
 
     // Figure out which data format we want for output
     TypeDesc out_dataformat = src.spec().format;
@@ -339,22 +348,44 @@ make_texturemap (const char *maptypename = "texture map")
         dstspec.height = pow2roundup (dstspec.height);
         dstspec.full_width = dstspec.width;
         dstspec.full_height = dstspec.height;
+    }
+    Timer resizetimer;
+    ImageBuf dst ("temp", dstspec);
+    ImageBuf *toplevel = &dst;    // Ptr to top level of mipmap
+    float *pel = (float *) alloca (dstspec.pixel_bytes());
+    if (dstspec.width == src.spec().width && 
+        dstspec.height == src.spec().height &&
+        dstspec.depth == src.spec().depth) {
+        // Special case: don't need to resize
+        if (dstspec.format == src.spec().format) {
+            // Even more special case, no format change -- just use
+            // the original copy.
+            toplevel = &src;
+        } else {
+            for (int y = 0;  y < dstspec.height;  ++y) {
+                for (int x = 0;  x < dstspec.width;  ++x) {
+                    src.getpixel (x, y, pel);
+                    dst.setpixel (x, y, pel);
+                }
+            }
+        }
+    } else {
+        // General case: resize
         if (verbose)
             std::cout << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
-    }
-    ImageBuf dst ("temp", dstspec);
-    float *pel = (float *) alloca (dstspec.pixel_bytes());
-    for (int y = 0;  y < dstspec.height;  ++y) {
-        for (int x = 0;  x < dstspec.width;  ++x) {
-            src.interppixel_NDC ((x+0.5f)/(float)dstspec.width,
-                                 (y+0.5f)/(float)dstspec.height, pel);
-            dst.setpixel (x, y, pel);
+        for (int y = 0;  y < dstspec.height;  ++y) {
+            for (int x = 0;  x < dstspec.width;  ++x) {
+                src.interppixel_NDC ((x+0.5f)/(float)dstspec.width,
+                                     (y+0.5f)/(float)dstspec.height, pel);
+                dst.setpixel (x, y, pel);
+            }
         }
     }
+    stat_resizetime += resizetimer();
 
     std::string outformat = fileformatname.empty() ? outputfilename : fileformatname;
-    write_mipmap (dst, outputfilename, outformat, out_dataformat,
+    write_mipmap (*toplevel, outputfilename, outformat, out_dataformat,
                   !shadowmode && !nomipmap);
 
     // If using update mode, stamp the output file with a modification time
@@ -374,6 +405,7 @@ write_mipmap (ImageBuf &img,
     outspec.set_format (outputdatatype);
 
     // Find an ImageIO plugin that can open the output file, and open it
+    Timer writetimer;
     ImageOutput *out = ImageOutput::create (outformat.c_str());
     if (! out) {
         std::cerr 
@@ -400,20 +432,23 @@ write_mipmap (ImageBuf &img,
     // Write out the image
     bool ok = true;
     ok &= out->write_image (TypeDesc::FLOAT, img.pixeladdr(0,0));
+    stat_writetime += writetimer();
 
     if (mipmap) {  // Mipmap levels:
         if (verbose)
             std::cout << "  Mipmapping...\n";
-        float *pel = (float *) alloca (outspec.pixel_bytes());
+        size_t pixelsize = outspec.nchannels * sizeof(float);
+        float *pel = (float *) alloca (pixelsize);
+        float *in0 = (float *) alloca (4 * pixelsize);
+        float *in1 = in0 + outspec.nchannels;
+        float *in2 = in1 + outspec.nchannels;
+        float *in3 = in2 + outspec.nchannels;
+        ImageBuf tmp;
+        ImageBuf *big = &img, *small = &tmp;
         while (ok && (outspec.width > 1 || outspec.height > 1)) {
-            // FIXME -- someday might be nice to do this entirely in place,
-            // without making copies.
-
-            // Copy the image into tmp
-            ImageBuf tmp = img;
-            
+            Timer miptimer;
             // Resize a factor of two smaller
-            ImageSpec smallspec = img.spec();
+            ImageSpec smallspec = big->spec();
             if (smallspec.width > 1)
                 smallspec.width /= 2;
             if (smallspec.height > 1)
@@ -421,29 +456,55 @@ write_mipmap (ImageBuf &img,
             smallspec.full_width  = smallspec.width;
             smallspec.full_height = smallspec.height;
             smallspec.full_depth  = smallspec.depth;
-            img.alloc (smallspec);  // Realocate with new size
-            for (int y = 0;  y < smallspec.height;  ++y) {
-                for (int x = 0;  x < smallspec.width;  ++x) {
-                    tmp.interppixel_NDC ((x+0.5f)/(float)smallspec.width,
-                                         (y+0.5f)/(float)smallspec.height, pel);
-                    img.setpixel (x, y, pel);
+            small->alloc (smallspec);  // Realocate with new size
+            if ((smallspec.width & 1) == 0 && (smallspec.height & 1) == 0) {
+                // Special case -- both dimensions are even resolutions, so
+                // we can just average groups of four pixels.
+                for (int y = 0;  y < smallspec.height;  ++y) {
+                    for (int x = 0;  x < smallspec.width;  ++x) {
+                        big->getpixel (2*x, 2*y, in0);
+                        big->getpixel (2*x+1, 2*y, in1);
+                        big->getpixel (2*x, 2*y+1, in2);
+                        big->getpixel (2*x+1, 2*y+1, in3);
+                        for (int c = 0;  c < outspec.nchannels;  ++c)
+                            pel[c] = 0.25f * (in0[c] + in1[c] + in2[c] + in3[c]);
+                        small->setpixel (x, y, pel);
+                    }
+                }
+            } else {
+                for (int y = 0;  y < smallspec.height;  ++y) {
+                    for (int x = 0;  x < smallspec.width;  ++x) {
+                        big->interppixel_NDC ((x+0.5f)/(float)smallspec.width,
+                                              (y+0.5f)/(float)smallspec.height, pel);
+                        small->setpixel (x, y, pel);
+                    }
                 }
             }
+            stat_miptime += miptimer();
             outspec = smallspec;
             outspec.set_format (outputdatatype);
+            Timer writetimer;
             if (! out->open (outputfilename.c_str(), outspec, true)) {
                 std::cerr << "maketx ERROR: Could not append \"" << outputfilename
                           << "\" : " << out->error_message() << "\n";
                 exit (EXIT_FAILURE);
             }
-            ok &= out->write_image (TypeDesc::FLOAT, img.pixeladdr(0,0));
+            ok &= out->write_image (TypeDesc::FLOAT, small->pixeladdr(0,0));
+            stat_writetime += writetimer();
+            if (verbose)
+                std::cout << "    " << smallspec.width << 'x' 
+                          << smallspec.height << "\n";
+            std::swap (big, small);
         }
     }
 
     if (verbose)
-        std::cout << " Wrote file: " << outputfilename << std::endl;
+        std::cout << "  Wrote file: " << outputfilename << std::endl;
+    writetimer.reset ();
+    writetimer.start ();
     if (ok)
         ok &= out->close ();
+    stat_writetime += writetimer ();
     delete out;
 
     if (! ok) {
@@ -459,6 +520,7 @@ write_mipmap (ImageBuf &img,
 int
 main (int argc, char *argv[])
 {
+    Timer alltimer;
     getargs (argc, argv);
 
     if (mipmapmode) {
@@ -479,6 +541,21 @@ main (int argc, char *argv[])
         std::cerr << "Vertcross currently unsupported\n";
     } else if (latl2envcubemode) {
         std::cerr << "Latlong->cube conversion currently unsupported\n";
+    }
+
+    if (verbose) {
+        std::cout << "maketx Runtime statistics (seconds):\n";
+        double alltime = alltimer();
+        std::cout << Strutil::format ("  total runtime:   %5.2f\n", alltime);
+        std::cout << Strutil::format ("  file read:       %5.2f\n", stat_readtime);
+        std::cout << Strutil::format ("  file write:      %5.2f\n", stat_writetime);
+        std::cout << Strutil::format ("  initial resize:  %5.2f\n", stat_resizetime);
+        std::cout << Strutil::format ("  mip computation: %5.2f\n", stat_miptime);
+        std::cout << Strutil::format ("  unaccounted:     %5.2f\n",
+                                      alltime-stat_readtime-stat_writetime-stat_resizetime-stat_miptime);
+        size_t kb = Sysutil::memory_used() / 1024;
+        std::cout << Strutil::format ("maketx memory used: %5.1f MB\n",
+                                      (double)kb/1024.0);
     }
 
     return 0;
