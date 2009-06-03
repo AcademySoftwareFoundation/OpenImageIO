@@ -41,6 +41,17 @@
 #include <cmath>
 #include <limits>
 
+#if defined(_MSC_VER)
+# ifndef _UINT64_T
+   typedef unsigned __int32 uint32_t;
+   typedef unsigned __int64 uint64_t;
+#  define _UINT32_T
+#  define _UINT64_T
+# endif
+#else
+# include <stdint.h>
+#endif
+
 
 
 #ifndef M_PI
@@ -257,6 +268,32 @@ inline T
 clamp (T a, T l, T h)
 {
     return (a < l)? l : ((a > h)? h : a);
+}
+
+
+
+/// Multiply two unsigned 32-bit ints safely, carefully checking for
+/// overflow, and clamping to uint32_t's maximum value.
+inline uint32_t
+clamped_mult32 (uint32_t a, uint32_t b)
+{
+    const uint32_t Err = std::numeric_limits<uint32_t>::max();
+    uint64_t r = (uint64_t)a * (uint64_t)b;   // Multiply into a bigger int
+    return r < Err ? (uint32_t)r : Err;
+}
+
+
+
+/// Multiply two unsigned 64-bit ints safely, carefully checking for
+/// overflow, and clamping to uint64_t's maximum value.
+inline uint64_t
+clamped_mult64 (uint64_t a, uint64_t b)
+{
+    uint64_t ab = a*b;
+    if (b && ab/b != a)
+        return std::numeric_limits<uint64_t>::max();
+    else
+        return ab;
 }
 
 

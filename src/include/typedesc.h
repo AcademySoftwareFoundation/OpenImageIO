@@ -40,6 +40,9 @@
 #define NULL 0
 #endif
 
+#include <limits>
+#include <cmath>
+
 #include "export.h"
 
 
@@ -132,7 +135,16 @@ struct DLLPUBLIC TypeDesc {
     /// Return the size, in bytes, of this type.
     ///
     size_t size () const {
-        return (arraylen >= 1 ? arraylen : 1) * elementsize();
+        size_t a = (size_t) (arraylen > 0 ? arraylen : 1);
+        if (sizeof(size_t) > sizeof(int)) {
+            // size_t has plenty of room for this multiplication
+            return a * elementsize();
+        } else {
+            // need overflow protection
+            unsigned long long s = (unsigned long long) a * elementsize();
+            const size_t toobig = std::numeric_limits<size_t>::max();
+            return s < toobig ? (size_t)s : toobig;
+        }
     }
 
     /// Return the type of one element, i.e., strip out the array-ness.

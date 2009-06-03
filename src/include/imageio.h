@@ -86,9 +86,21 @@ namespace OpenImageIO {
 
 
 
-/// Type we use for stride lengths.  It should be 64 bit on all 
-/// supported systems.
-typedef off_t stride_t;
+/// Type we use for stride lengths.  This is only used to designate
+/// pixel, scanline, tile, or image plane sizes in user-allocated memory,
+/// so it doesn't need to represent sizes larger than can be malloced,
+/// therefore ptrdiff_t seemed right.
+typedef ptrdiff_t stride_t;
+
+
+/// Type we use to express how many pixels (or bytes) constitute an image,
+/// tile, or scanline.  Needs to be large enough to handle very big images
+/// (which we presume could be > 4GB).
+#if defined(LINUX64) /* add others if we know for sure size_t is ok */
+typedef size_t imagesize_t;
+#else
+typedef unsigned long long imagesize_t;
+#endif
 
 
 
@@ -217,35 +229,46 @@ public:
     /// Return the number of bytes for each channel datum
     size_t channel_bytes() const { return format.size(); }
 
-    ///
-    /// Return the number of bytes for each pixel (counting all channels)
-    size_t pixel_bytes() const { return (size_t)nchannels * channel_bytes(); }
+    /// Return the number of bytes for each pixel (counting all channels).
+    /// This will return std::numeric_limits<size_t>::max() in the
+    /// event of an overflow where it's not representable in a size_t.
+    size_t pixel_bytes() const;
 
-    ///
-    /// Return the number of bytes for each scanline
-    size_t scanline_bytes() const { return (size_t)width * pixel_bytes (); }
+    /// Return the number of bytes for each scanline.  This will return
+    /// std::numeric_limits<imagesize_t>::max() in the event of an
+    /// overflow where it's not representable in an imagesize_t.
+    imagesize_t scanline_bytes() const;
 
-    ///
-    /// Return the number of pixels for a tile
-    size_t tile_pixels() const {
-        return (size_t)tile_width * (size_t)tile_height * 
-               std::max((size_t)tile_depth,(size_t)1);
+    /// Return the number of pixels for a tile.  This will return
+    /// std::numeric_limits<imagesize_t>::max() in the event of an
+    /// overflow where it's not representable in an imagesize_t.
+    imagesize_t tile_pixels() const;
+
+    /// Return the number of bytes for each a tile of the image.  This
+    /// will return std::numeric_limits<imagesize_t>::max() in the event
+    /// of an overflow where it's not representable in an imagesize_t.
+    imagesize_t tile_bytes() const;
+
+    /// Return the number of pixels for an entire image.  This will
+    /// return std::numeric_limits<imagesize_t>::max() in the event of
+    /// an overflow where it's not representable in an imagesize_t.
+    imagesize_t image_pixels() const;
+
+    /// Return the number of bytes for an entire image.  This will
+    /// return std::numeric_limits<image size_t>::max() in the event of
+    /// an overflow where it's not representable in an imagesize_t.
+    imagesize_t image_bytes() const;
+
+    /// Verify that on this platform, a size_t is big enough to hold the
+    /// number of bytes (and pixels) in a scanline, a tile, and the
+    /// whole image.  If this returns false, the image is much too big
+    /// to allocate and read all at once, so client apps beware and check
+    /// these routines for overflows!
+    bool size_t_safe() const {
+        const imagesize_t big = std::numeric_limits<size_t>::max();
+        return image_bytes() < big && scanline_bytes() < big &&
+            tile_bytes() < big;
     }
-
-    ///
-    /// Return the number of bytes for each a tile of the image
-    size_t tile_bytes() const { return tile_pixels() * pixel_bytes (); }
-
-    ///
-    /// Return the number of pixels for an entire image
-    size_t image_pixels() const {
-        return (size_t)width * (size_t)height * 
-               std::max((size_t)depth,(size_t)1);
-    }
-
-    ///
-    /// Return the number of bytes for an entire image
-    size_t image_bytes() const { return image_pixels() * pixel_bytes (); }
 
     /// Adjust the stride values, if set to AutoStride, to be the right
     /// sizes for contiguous data with the given format, channels,
@@ -314,17 +337,18 @@ public:
     /// Simple way to get an integer attribute, with default provided.
     /// Automatically will return an int even if the data is really
     /// unsigned, short, or byte.
-    int get_int_attribute (const std::string &name, int defaultval=0);
+    int get_int_attribute (const std::string &name, int defaultval=0) const;
 
     /// Simple way to get a float attribute, with default provided.
     /// Automatically will return a float even if the data is really
     /// double or half.
-    float get_float_attribute (const std::string &name, float defaultval=0);
+    float get_float_attribute (const std::string &name,
+                               float defaultval=0) const;
 
     /// Simple way to get a string attribute, with default provided.
     ///
     std::string get_string_attribute (const std::string &name,
-                              const std::string &defaultval = std::string());
+                          const std::string &defaultval = std::string()) const;
 
     /// For a given parameter (in this ImageSpec's extra_attribs),
     /// format the value nicely as a string.  If 'human' is true, use

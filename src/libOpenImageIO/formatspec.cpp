@@ -39,6 +39,7 @@ using boost::algorithm::iequals;
 #include "dassert.h"
 #include "typedesc.h"
 #include "strutil.h"
+#include "fmath.h"
 
 #define DLL_EXPORT_PUBLIC /* Because we are implementing ImageIO */
 #include "imageio.h"
@@ -252,6 +253,69 @@ ImageSpec::default_channel_names ()
 
 
 
+size_t
+ImageSpec::pixel_bytes () const
+{
+    if (nchannels < 0)
+        return 0;
+    return clamped_mult32 ((size_t)nchannels, channel_bytes());
+}
+
+
+
+imagesize_t
+ImageSpec::scanline_bytes () const
+{
+    if (width < 0)
+        return 0;
+    return clamped_mult64 ((imagesize_t)width, (imagesize_t)pixel_bytes());
+}
+
+
+
+imagesize_t
+ImageSpec::tile_pixels () const
+{
+    if (tile_width < 0 || tile_height < 0 || tile_depth < 0)
+        return 0;
+    imagesize_t r = clamped_mult64 ((imagesize_t)tile_width,
+                                    (imagesize_t)tile_height);
+    if (tile_depth > 1)
+        r = clamped_mult64 (r, (imagesize_t)tile_depth);
+    return r;
+}
+
+
+
+imagesize_t
+ImageSpec::tile_bytes () const
+{
+    return clamped_mult64 (tile_pixels(), (imagesize_t)pixel_bytes());
+}
+
+
+
+imagesize_t
+ImageSpec::image_pixels () const
+{
+    if (width < 0 || height < 0 || depth < 0)
+        return 0;
+    imagesize_t r = clamped_mult64 ((imagesize_t)width, (imagesize_t)height);
+    if (depth > 1)
+        r = clamped_mult64 (r, (imagesize_t)depth);
+    return r;
+}
+
+
+
+imagesize_t
+ImageSpec::image_bytes () const
+{
+    return clamped_mult64 (image_pixels(), (imagesize_t)pixel_bytes());
+}
+
+
+
 void
 ImageSpec::attribute (const std::string &name, TypeDesc type, const void *value)
 {
@@ -307,9 +371,9 @@ ImageSpec::find_attribute (const std::string &name, TypeDesc searchtype,
 
 
 int
-ImageSpec::get_int_attribute (const std::string &name, int val)
+ImageSpec::get_int_attribute (const std::string &name, int val) const
 {
-    ImageIOParameter *p = find_attribute (name);
+    const ImageIOParameter *p = find_attribute (name);
     if (p) {
         if (p->type() == TypeDesc::INT)
             val = *(const int *)p->data();
@@ -330,9 +394,9 @@ ImageSpec::get_int_attribute (const std::string &name, int val)
 
 
 float
-ImageSpec::get_float_attribute (const std::string &name, float val)
+ImageSpec::get_float_attribute (const std::string &name, float val) const
 {
-    ImageIOParameter *p = find_attribute (name);
+    const ImageIOParameter *p = find_attribute (name);
     if (p) {
         if (p->type() == TypeDesc::FLOAT)
             val = *(const float *)p->data();
@@ -348,9 +412,9 @@ ImageSpec::get_float_attribute (const std::string &name, float val)
 
 std::string
 ImageSpec::get_string_attribute (const std::string &name,
-                                 const std::string &val)
+                                 const std::string &val) const
 {
-    ImageIOParameter *p = find_attribute (name, TypeDesc::STRING);
+    const ImageIOParameter *p = find_attribute (name, TypeDesc::STRING);
     if (p)
         return std::string (*(const char **)p->data());
     else return val;
