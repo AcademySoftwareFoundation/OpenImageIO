@@ -189,11 +189,16 @@ test_plain_texture (ustring filename)
     float result[shadepoints*nchannels];
 
     for (int iter = 0;  iter < iters;  ++iter) {
-		// Iterate over blocks
+        // Iterate over blocks
+
+        // Trick: switch to second texture, if given, for second iteration
+        if (iter && filenames.size() > 1)
+            filename = ustring (filenames[1]);
+
         for (int by = 0;  by < output_yres;  by+=blocksize) {
             for (int bx = 0;  bx < output_xres;  bx+=blocksize) {
-				// Process pixels within a block.  First save the texture warp
-				// (s,t) and derivatives into SIMD vectors.
+                // Process pixels within a block.  First save the texture warp
+                // (s,t) and derivatives into SIMD vectors.
                 int idx = 0;
                 for (int y = by; y < by+blocksize; ++y) {
                     for (int x = bx; x < bx+blocksize; ++x) {

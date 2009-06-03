@@ -34,6 +34,7 @@
 #include <ctime>
 #include <iostream>
 #include <iterator>
+#include <limits>
 
 #include <boost/filesystem.hpp>
 #include <ImathMatrix.h>
@@ -48,6 +49,7 @@
 #include "imageio.h"
 using namespace OpenImageIO;
 #include "imagebuf.h"
+#include "SHA1.h"
 
 
 // Basic runtime options
@@ -87,6 +89,7 @@ static float opaquewidth = 0;  // should be volume shadow epsilon
 static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
 static bool nomipmap = false;
+static bool embed_hash;
 
 
 // forward decl
@@ -143,6 +146,7 @@ getargs (int argc, char *argv[])
                           &Mscr[2][0], &Mscr[2][1], &Mscr[2][2], &Mscr[2][3], 
                           &Mscr[3][0], &Mscr[3][1], &Mscr[3][2], &Mscr[3][3], 
                           "Set the camera matrix",
+                  "--hash", &embed_hash, "Embed SHA-1 hash of pixels in the header",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
 //FIXME           "-debugdso"
 //FIXME           "-note %s", &note, "Append a note to the image comments",
@@ -248,6 +252,23 @@ make_texturemap (const char *maptypename = "texture map")
     }
     stat_readtime += readtimer();
 
+    std::string hash_digest;
+    if (embed_hash) {
+        CSHA1 sha;
+        sha.Reset ();
+        // Do one scanline at a time, to keep to < 2^32 bytes each
+        imagesize_t scanline_bytes = src.spec().scanline_bytes();
+        ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
+        for (int y = src.ymin();  y <= src.ymax();  ++y) {
+            sha.Update ((const unsigned char *) src.pixeladdr (src.xmin(), y),
+                        (unsigned int) scanline_bytes);
+        }
+        sha.Final ();
+        sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
+        if (verbose)
+            std::cout << "  SHA-1: " << hash_digest << "\n";
+    }
+
     // Figure out which data format we want for output
     TypeDesc out_dataformat = src.spec().format;
     if (! dataformatname.empty()) {
@@ -314,6 +335,15 @@ make_texturemap (const char *maptypename = "texture map")
     dstspec.attribute ("DateTime", datestring(date));
 
     dstspec.attribute ("Software", full_command_line);
+
+    if (hash_digest.length()) {
+        std::string desc = dstspec.get_string_attribute ("ImageDescription");
+        if (desc.length())
+            desc += " ";
+        desc += "SHA-1=";
+        desc += hash_digest;
+        dstspec.attribute ("ImageDescription", desc);
+    }
 
     if (shadowmode)
         dstspec.attribute ("textureformat", "Shadow");

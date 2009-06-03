@@ -78,7 +78,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
       m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
-      m_imagecache(imagecache)
+      m_imagecache(imagecache), m_duplicate(NULL)
 {
     m_spec.clear ();
     m_filename = imagecache.resolve_filename (m_filename.string());
@@ -256,6 +256,13 @@ ImageCacheFile::open ()
         m_Mproj = c2w * (*m);
     }
     // FIXME -- compute Mtex, Mras
+
+    // See if there's a SHA-1 hash in the image description
+    std::string desc = spec.get_string_attribute ("ImageDescription");
+    const char *prefix = "SHA-1=";
+    size_t found = desc.rfind (prefix);
+    if (found != std::string::npos)
+        m_fingerprint = ustring (desc, found+strlen(prefix), 40);
 
     m_datatype = TypeDesc::FLOAT;
     // FIXME -- use 8-bit when that's native?
@@ -499,6 +506,8 @@ ImageCacheFile::invalidate ()
     close ();
     m_spec.clear();
     m_broken = false;
+    m_fingerprint.clear ();
+    duplicate (NULL);
     open ();  // Force reload of spec
 }
 
@@ -524,6 +533,9 @@ ImageCacheImpl::find_file (ustring filename)
 
         if (found != m_files.end()) {
             ImageCacheFile *tf = found->second.get();
+            // if this is a duplicate texture, switch to the canonical copy
+            if (tf->duplicate())
+                tf = tf->duplicate();
             tf->use ();
             return tf;
         }
@@ -558,9 +570,41 @@ ImageCacheImpl::find_file (ustring filename)
         return tf;
     }
 
+    // What if we've opened another file, with a different name, but the
+    // SAME pixels?  It can happen!  Bad user, bad!  But let's save them
+    // from their own foolishness.
+    if (tf->fingerprint ()) {
+        // std::cerr << filename << " hash=" << tf->fingerprint() << "\n";
+        FilenameMap::iterator fingerfound = m_fingerprints.find (tf->fingerprint());
+        if (fingerfound == m_fingerprints.end()) {
+            // Not already in the fingerprint list -- add it
+            m_fingerprints[tf->fingerprint()] = tf;
+        } else {
+            // Already in fingerprints -- mark this one as a duplicate, but
+            // ONLY if we don't have other reasons not to consider them true
+            // duplicates (the fingerprint only considers source image 
+            // pixel values).
+            // FIXME -- be sure to add extra tests here if more metadata
+            // have significance later!
+            ImageCacheFile *dup = fingerfound->second.get();
+            if (tf->m_swrap == dup->m_swrap && tf->m_twrap == dup->m_twrap &&
+                  tf->m_datatype == dup->m_datatype && 
+                  tf->m_cubelayout == dup->m_cubelayout &&
+                  tf->m_y_up == dup->m_y_up) {
+                tf->duplicate (dup);
+                tf->close ();
+                // std::cerr << "  duplicates " 
+                //           << fingerfound->second.get()->filename() << "\n";
+            }
+        }
+    }
+
     check_max_files ();
     m_files[filename] = tf;
-    ++m_stat_unique_files;
+    if (tf->duplicate())
+        tf = tf->duplicate();
+    else
+        ++m_stat_unique_files;
     tf->use ();
 
 #if IMAGECACHE_TIME_STATS
@@ -764,8 +808,6 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
     }
     if (i >= 0)
         out << Strutil::format ("%7lu ", i);
-//    else
-//        out << "        ";
     if (includestats)
         out << Strutil::format ("%4lu    %5lu   %6.1f %9s  ",
                                 file->timesopened(), file->tilesread(),
@@ -774,6 +816,10 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
     out << Strutil::format ("%4dx%4dx%d.%s", spec.width, spec.height,
                             spec.nchannels, formatcode);
     out << "  " << file->filename();
+    if (file->duplicate()) {
+        out << " DUPLICATES " << file->duplicate()->filename();
+        return out.str();
+    }
     if (file->untiled())
         out << " UNTILED";
     if (file->unmipped() && automip())
@@ -811,8 +857,9 @@ ImageCacheImpl::getstats (int level) const
     }
 
     // Gather file list and statistics
-    size_t total_opens = 0, total_tiles = 0, total_bytes = 0;
-    int total_untiled = 0, total_unmipped = 0;
+    size_t total_opens = 0, total_tiles = 0;
+    imagesize_t total_bytes = 0;
+    size_t total_untiled = 0, total_unmipped = 0, total_duplicates = 0;
     double total_iotime = 0;
     std::vector<ImageCacheFileRef> files;
     {
@@ -824,6 +871,10 @@ ImageCacheImpl::getstats (int level) const
             total_tiles += file->tilesread();
             total_bytes += file->bytesread();
             total_iotime += file->iotime();
+            if (file->duplicate()) {
+                ++total_duplicates;
+                continue;
+            }
             if (file->untiled())
                 ++total_untiled;
             if (file->unmipped())
@@ -852,6 +903,8 @@ ImageCacheImpl::getstats (int level) const
 
     // Try to point out hot spots
     if (level > 0) {
+        if (total_duplicates)
+            out << "  " << total_duplicates << " were exact duplicates of other images\n";
         if (total_untiled || (total_unmipped && automip())) {
             out << "  " << total_untiled << " not tiled, "
                 << total_unmipped << " not MIP-mapped\n";
@@ -1366,6 +1419,9 @@ ImageCacheImpl::invalidate_all (bool force)
         // fprintf (stderr, "Invalidating %s\n", f.c_str());
         invalidate (f);
     }
+
+    unique_lock fileguard (m_filemutex);
+    m_fingerprints.clear ();  // Clear fingerprint database
 }
 
 
