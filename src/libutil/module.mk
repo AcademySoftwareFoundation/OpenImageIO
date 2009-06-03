@@ -9,7 +9,7 @@ local_name := libutil
 
 # Name of all source files in this directory
 local_src := argparse.cpp filesystem.cpp filter.cpp paramlist.cpp \
-	     plugin.cpp strutil.cpp sysutil.cpp typedesc.cpp ustring.cpp
+	     plugin.cpp SHA1.cpp strutil.cpp sysutil.cpp typedesc.cpp ustring.cpp
 
 # Extra static libs needed to compile this binary (leave blank if this
 # module is not for a binary executable)

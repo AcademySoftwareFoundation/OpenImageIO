@@ -80,7 +80,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
       m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
-      m_imagecache(imagecache)
+      m_mipused(false), m_imagecache(imagecache), m_duplicate(NULL)
 {
     m_spec.clear ();
     m_filename = imagecache.resolve_filename (m_filename.string());
@@ -186,9 +186,10 @@ ImageCacheFile::open ()
     // on, it's a non-mipmapped image, and it doesn't have a "textureformat"
     // attribute (because that would indicate somebody constructed it as
     // texture and specifically wants it un-mipmapped).
-    if (m_untiled && nsubimages == 1 && imagecache().automip() &&
-            ! spec().find_attribute ("textureformat", TypeDesc::PT_STRING)) {
+    if (nsubimages == 1)
         m_unmipped = true;
+    if (m_untiled && m_unmipped && imagecache().automip() &&
+            ! spec().find_attribute ("textureformat", TypeDesc::PT_STRING)) {
         int w = spec().full_width;
         int h = spec().full_height;
         while (w > 1 || h > 1) {
@@ -259,6 +260,13 @@ ImageCacheFile::open ()
     }
     // FIXME -- compute Mtex, Mras
 
+    // See if there's a SHA-1 hash in the image description
+    std::string desc = spec.get_string_attribute ("ImageDescription");
+    const char *prefix = "SHA-1=";
+    size_t found = desc.rfind (prefix);
+    if (found != std::string::npos)
+        m_fingerprint = ustring (desc, found+strlen(prefix), 40);
+
     m_datatype = TypeDesc::FLOAT;
     // FIXME -- use 8-bit when that's native?
 #if 1
@@ -284,6 +292,10 @@ ImageCacheFile::read_tile (int subimage, int x, int y, int z,
     bool ok = open ();
     if (! ok)
         return false;
+
+    // Mark if we ever use a subimage that's not the first
+    if (subimage > 0)
+        m_mipused = true;
 
     // Special case for un-MIP-mapped
     if (m_unmipped && subimage != 0)
@@ -501,6 +513,8 @@ ImageCacheFile::invalidate ()
     close ();
     m_spec.clear();
     m_broken = false;
+    m_fingerprint.clear ();
+    duplicate (NULL);
     open ();  // Force reload of spec
 }
 
@@ -526,6 +540,9 @@ ImageCacheImpl::find_file (ustring filename)
 
         if (found != m_files.end()) {
             ImageCacheFile *tf = found->second.get();
+            // if this is a duplicate texture, switch to the canonical copy
+            if (tf->duplicate())
+                tf = tf->duplicate();
             tf->use ();
             return tf;
         }
@@ -543,6 +560,7 @@ ImageCacheImpl::find_file (ustring filename)
     ImageCacheFile *tf = new ImageCacheFile (*this, filename);
     double createtime = timer();
     incr_time_stat (m_stat_fileio_time, createtime);
+    incr_time_stat (m_stat_fileopen_time, createtime);
     incr_time_stat (tf->iotime(), createtime);
 
     unique_lock writeguard (m_filemutex);
@@ -560,9 +578,41 @@ ImageCacheImpl::find_file (ustring filename)
         return tf;
     }
 
+    // What if we've opened another file, with a different name, but the
+    // SAME pixels?  It can happen!  Bad user, bad!  But let's save them
+    // from their own foolishness.
+    if (tf->fingerprint ()) {
+        // std::cerr << filename << " hash=" << tf->fingerprint() << "\n";
+        FilenameMap::iterator fingerfound = m_fingerprints.find (tf->fingerprint());
+        if (fingerfound == m_fingerprints.end()) {
+            // Not already in the fingerprint list -- add it
+            m_fingerprints[tf->fingerprint()] = tf;
+        } else {
+            // Already in fingerprints -- mark this one as a duplicate, but
+            // ONLY if we don't have other reasons not to consider them true
+            // duplicates (the fingerprint only considers source image 
+            // pixel values).
+            // FIXME -- be sure to add extra tests here if more metadata
+            // have significance later!
+            ImageCacheFile *dup = fingerfound->second.get();
+            if (tf->m_swrap == dup->m_swrap && tf->m_twrap == dup->m_twrap &&
+                  tf->m_datatype == dup->m_datatype && 
+                  tf->m_cubelayout == dup->m_cubelayout &&
+                  tf->m_y_up == dup->m_y_up) {
+                tf->duplicate (dup);
+                tf->close ();
+                // std::cerr << "  duplicates " 
+                //           << fingerfound->second.get()->filename() << "\n";
+            }
+        }
+    }
+
     check_max_files ();
     m_files[filename] = tf;
-    ++m_stat_unique_files;
+    if (tf->duplicate())
+        tf = tf->duplicate();
+    else
+        ++m_stat_unique_files;
     tf->use ();
 
 #if IMAGECACHE_TIME_STATS
@@ -695,6 +745,7 @@ ImageCacheImpl::init ()
     m_stat_open_files_peak = 0;
     m_stat_unique_files = 0;
     m_stat_fileio_time = 0;
+    m_stat_fileopen_time = 0;
     m_stat_file_locking_time = 0;
     m_stat_tile_locking_time = 0;
     m_stat_find_file_time = 0;
@@ -766,8 +817,6 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
     }
     if (i >= 0)
         out << Strutil::format ("%7lu ", i);
-//    else
-//        out << "        ";
     if (includestats)
         out << Strutil::format ("%4lu    %5lu   %6.1f %9s  ",
                                 file->timesopened(), file->tilesread(),
@@ -776,10 +825,16 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
     out << Strutil::format ("%4dx%4dx%d.%s", spec.width, spec.height,
                             spec.nchannels, formatcode);
     out << "  " << file->filename();
+    if (file->duplicate()) {
+        out << " DUPLICATES " << file->duplicate()->filename();
+        return out.str();
+    }
     if (file->untiled())
         out << " UNTILED";
     if (file->unmipped() && automip())
         out << " UNMIPPED";
+    if (! file->unmipped() && ! file->mipused())
+        out << " MIP-UNUSED";
     return out.str ();
 }
 
@@ -798,8 +853,12 @@ ImageCacheImpl::getstats (int level) const
         out << "    Read from disk : " << Strutil::memformat (m_stat_bytes_read) << "\n";
         if (m_stat_find_file_time > 0.001)
             out << "    Find file time : " << Strutil::timeintervalformat (m_stat_find_file_time) << "\n";
-        if (m_stat_fileio_time > 0.001)
-            out << "    File I/O time : " << Strutil::timeintervalformat (m_stat_fileio_time) << "\n";
+        if (m_stat_fileio_time > 0.001) {
+            out << "    File I/O time : " 
+                << Strutil::timeintervalformat (m_stat_fileio_time) << "\n";
+            out << "    File open time only : " 
+                << Strutil::timeintervalformat (m_stat_fileopen_time) << "\n";
+        }
         if (m_stat_file_locking_time > 0.001)
             out << "    File mutex locking time : " << Strutil::timeintervalformat (m_stat_file_locking_time) << "\n";
         out << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
@@ -814,8 +873,9 @@ ImageCacheImpl::getstats (int level) const
     }
 
     // Gather file list and statistics
-    size_t total_opens = 0, total_tiles = 0, total_bytes = 0;
-    int total_untiled = 0, total_unmipped = 0;
+    size_t total_opens = 0, total_tiles = 0;
+    imagesize_t total_bytes = 0;
+    size_t total_untiled = 0, total_unmipped = 0, total_duplicates = 0;
     double total_iotime = 0;
     std::vector<ImageCacheFileRef> files;
     {
@@ -827,9 +887,13 @@ ImageCacheImpl::getstats (int level) const
             total_tiles += file->tilesread();
             total_bytes += file->bytesread();
             total_iotime += file->iotime();
+            if (file->duplicate()) {
+                ++total_duplicates;
+                continue;
+            }
             if (file->untiled())
                 ++total_untiled;
-            if (file->unmipped())
+            if (file->unmipped() && automip())
                 ++total_unmipped;
         }
     }
@@ -855,6 +919,8 @@ ImageCacheImpl::getstats (int level) const
 
     // Try to point out hot spots
     if (level > 0) {
+        if (total_duplicates)
+            out << "  " << total_duplicates << " were exact duplicates of other images\n";
         if (total_untiled || (total_unmipped && automip())) {
             out << "  " << total_untiled << " not tiled, "
                 << total_unmipped << " not MIP-mapped\n";
@@ -1371,6 +1437,9 @@ ImageCacheImpl::invalidate_all (bool force)
         // fprintf (stderr, "Invalidating %s\n", f.c_str());
         invalidate (f);
     }
+
+    unique_lock fileguard (m_filemutex);
+    m_fingerprints.clear ();  // Clear fingerprint database
 }
 
 

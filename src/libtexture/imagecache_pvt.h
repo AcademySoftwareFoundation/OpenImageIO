@@ -101,15 +101,19 @@ public:
     bool eightbit (void) const { return m_eightbit; }
     bool untiled (void) const { return m_untiled; }
     bool unmipped (void) const { return m_unmipped; }
+    bool mipused (void) const { return m_mipused; }
 
     void invalidate ();
 
     size_t timesopened () const { return m_timesopened; }
     size_t tilesread () const { return m_tilesread; }
-    size_t bytesread () const { return m_bytesread; }
+    imagesize_t bytesread () const { return m_bytesread; }
     double & iotime () { return m_iotime; }
 
     std::time_t mod_time () const { return m_mod_time; }
+    ustring fingerprint () const { return m_fingerprint; }
+    void duplicate (ImageCacheFile *dup) { m_duplicate = dup;}
+    ImageCacheFile *duplicate () const { return m_duplicate; }
 
 private:
     ustring m_filename;             ///< Filename
@@ -134,12 +138,15 @@ private:
     unsigned int m_pixelsize;       ///< Channel size, in bytes
     ustring m_fileformat;           ///< File format name
     size_t m_tilesread;             ///< Tiles read from this file
-    size_t m_bytesread;             ///< Bytes read from this file
+    imagesize_t m_bytesread;        ///< Bytes read from this file
     size_t m_timesopened;           ///< Separate times we opened this file
     double m_iotime;                ///< I/O time for this file
+    bool m_mipused;                 ///< MIP level >0 accessed
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
     mutable recursive_mutex m_input_mutex; ///< Mutex protecting the ImageInput
     std::time_t m_mod_time;         ///< Time file was last updated
+    ustring m_fingerprint;          ///< Optional cryptographic fingerprint
+    ImageCacheFile *m_duplicate;    ///< Is this a duplicate?
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.  Return true if ok, false if error.
@@ -162,6 +169,8 @@ private:
     /// a seek_subimage to the right subimage.
     bool read_unmipped (int subimage, int x, int y, int z,
                         TypeDesc format, void *data);
+
+    friend class ImageCacheImpl;
 };
 
 
@@ -591,6 +600,7 @@ private:
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's
     FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
+    FilenameMap m_fingerprints;  ///< Map fingerprints to files
     TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
     size_t m_mem_used;           ///< Memory being used for tiles
@@ -615,6 +625,7 @@ private:
     int m_stat_open_files_peak;
     atomic_int m_stat_unique_files;
     double m_stat_fileio_time;
+    double m_stat_fileopen_time;
     double m_stat_file_locking_time;
     double m_stat_tile_locking_time;
     double m_stat_find_file_time;

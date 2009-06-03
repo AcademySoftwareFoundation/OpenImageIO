@@ -23,6 +23,7 @@ local_extra_objs := ${build_obj_dir}/libutil/argparse${OEXT} \
 		    ${build_obj_dir}/libutil/filter${OEXT} \
 		    ${build_obj_dir}/libutil/paramlist${OEXT} \
 		    ${build_obj_dir}/libutil/plugin${OEXT} \
+		    ${build_obj_dir}/libutil/SHA1${OEXT} \
 		    ${build_obj_dir}/libutil/strutil${OEXT} \
 		    ${build_obj_dir}/libutil/sysutil${OEXT} \
 		    ${build_obj_dir}/libutil/typedesc${OEXT} \
