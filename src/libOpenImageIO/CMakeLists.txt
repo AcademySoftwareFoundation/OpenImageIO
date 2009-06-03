@@ -6,6 +6,7 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           ../libutil/filter.cpp 
                           ../libutil/paramlist.cpp 
                           ../libutil/plugin.cpp 
+                          ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp 
                           ../libutil/tbb_misc.cpp
