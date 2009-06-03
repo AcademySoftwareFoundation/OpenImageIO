@@ -148,12 +148,18 @@ print_info (const std::string &filename, size_t namefieldlength,
             for (int i = 0; i < num_of_subimages; ++i) {
                 print_info_subimage (i, num_of_subimages, spec, input);
                 if (compute_md5 && (metamatch.empty() ||
-                                    boost::regex_search ("md5", field_re)))
+                                    boost::regex_search ("md5", field_re))) {
+                    if (filenameprefix)
+                        printf ("%s : ", filename.c_str());
                     print_md5 (input);
+                }
             }
         } else {
-            if (compute_md5 && !verbose)
+            if (compute_md5 && !verbose) {
+                if (filenameprefix)
+                    printf ("%s : ", filename.c_str());
                 print_md5 (input);
+            }
         }
         printed = true;
     }
@@ -175,8 +181,11 @@ print_info (const std::string &filename, size_t namefieldlength,
         for (int i = 0; i < num_of_subimages; ++i) {
             print_info_subimage (i, num_of_subimages, spec, input);
             if (compute_md5 && (metamatch.empty() ||
-                                boost::regex_search ("md5", field_re)))
+                                boost::regex_search ("md5", field_re))) {
+                if (filenameprefix)
+                    printf ("%s : ", filename.c_str());
                 print_md5 (input);
+            }
             if (metamatch.empty() ||
                     boost::regex_search ("channels", field_re) ||
                     boost::regex_search ("channel list", field_re)) {
