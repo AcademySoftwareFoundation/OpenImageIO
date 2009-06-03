@@ -101,6 +101,7 @@ public:
     bool eightbit (void) const { return m_eightbit; }
     bool untiled (void) const { return m_untiled; }
     bool unmipped (void) const { return m_unmipped; }
+    bool mipused (void) const { return m_mipused; }
 
     void invalidate ();
 
@@ -140,6 +141,7 @@ private:
     imagesize_t m_bytesread;        ///< Bytes read from this file
     size_t m_timesopened;           ///< Separate times we opened this file
     double m_iotime;                ///< I/O time for this file
+    bool m_mipused;                 ///< MIP level >0 accessed
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
     mutable recursive_mutex m_input_mutex; ///< Mutex protecting the ImageInput
     std::time_t m_mod_time;         ///< Time file was last updated
@@ -607,6 +609,7 @@ private:
     atomic_int m_stat_open_files_peak;
     atomic_int m_stat_unique_files;
     double m_stat_fileio_time;
+    double m_stat_fileopen_time;
     double m_stat_file_locking_time;
     double m_stat_tile_locking_time;
     double m_stat_find_file_time;

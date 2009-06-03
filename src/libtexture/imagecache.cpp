@@ -78,7 +78,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache, ustring filename)
       m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
-      m_imagecache(imagecache), m_duplicate(NULL)
+      m_mipused(false), m_imagecache(imagecache), m_duplicate(NULL)
 {
     m_spec.clear ();
     m_filename = imagecache.resolve_filename (m_filename.string());
@@ -184,9 +184,10 @@ ImageCacheFile::open ()
     // on, it's a non-mipmapped image, and it doesn't have a "textureformat"
     // attribute (because that would indicate somebody constructed it as
     // texture and specifically wants it un-mipmapped).
-    if (m_untiled && nsubimages == 1 && imagecache().automip() &&
-            ! spec().find_attribute ("textureformat", TypeDesc::STRING)) {
+    if (nsubimages == 1)
         m_unmipped = true;
+    if (m_untiled && m_unmipped && imagecache().automip() &&
+            ! spec().find_attribute ("textureformat", TypeDesc::PT_STRING)) {
         int w = spec().full_width;
         int h = spec().full_height;
         while (w > 1 || h > 1) {
@@ -289,6 +290,10 @@ ImageCacheFile::read_tile (int subimage, int x, int y, int z,
     bool ok = open ();
     if (! ok)
         return false;
+
+    // Mark if we ever use a subimage that's not the first
+    if (subimage > 0)
+        m_mipused = true;
 
     // Special case for un-MIP-mapped
     if (m_unmipped && subimage != 0)
@@ -553,6 +558,7 @@ ImageCacheImpl::find_file (ustring filename)
     ImageCacheFile *tf = new ImageCacheFile (*this, filename);
     double createtime = timer();
     incr_time_stat (m_stat_fileio_time, createtime);
+    incr_time_stat (m_stat_fileopen_time, createtime);
     incr_time_stat (tf->iotime(), createtime);
 
     unique_lock writeguard (m_filemutex);
@@ -737,6 +743,7 @@ ImageCacheImpl::init ()
     m_stat_open_files_peak = 0;
     m_stat_unique_files = 0;
     m_stat_fileio_time = 0;
+    m_stat_fileopen_time = 0;
     m_stat_file_locking_time = 0;
     m_stat_tile_locking_time = 0;
     m_stat_find_file_time = 0;
@@ -824,6 +831,8 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
         out << " UNTILED";
     if (file->unmipped() && automip())
         out << " UNMIPPED";
+    if (! file->unmipped() && ! file->mipused())
+        out << " MIP-UNUSED";
     return out.str ();
 }
 
@@ -841,8 +850,12 @@ ImageCacheImpl::getstats (int level) const
         out << "    Read from disk : " << Strutil::memformat (m_stat_bytes_read) << "\n";
         if (m_stat_find_file_time > 0.001)
             out << "    Find file time : " << Strutil::timeintervalformat (m_stat_find_file_time) << "\n";
-        if (m_stat_fileio_time > 0.001)
-            out << "    File I/O time : " << Strutil::timeintervalformat (m_stat_fileio_time) << "\n";
+        if (m_stat_fileio_time > 0.001) {
+            out << "    File I/O time : " 
+                << Strutil::timeintervalformat (m_stat_fileio_time) << "\n";
+            out << "    File open time only : " 
+                << Strutil::timeintervalformat (m_stat_fileopen_time) << "\n";
+        }
         if (m_stat_file_locking_time > 0.001)
             out << "    File mutex locking time : " << Strutil::timeintervalformat (m_stat_file_locking_time) << "\n";
         out << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
@@ -877,7 +890,7 @@ ImageCacheImpl::getstats (int level) const
             }
             if (file->untiled())
                 ++total_untiled;
-            if (file->unmipped())
+            if (file->unmipped() && automip())
                 ++total_unmipped;
         }
     }

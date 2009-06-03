@@ -53,6 +53,7 @@ static std::string output_filename = "out.exr";
 static bool verbose = false;
 static int output_xres = 512, output_yres = 512;
 static float blur = 0;
+static float width = 1;
 static int iters = 1;
 static int autotile = 0;
 static bool automip = false;
@@ -87,6 +88,7 @@ getargs (int argc, char *argv[])
                   "-iters %d", &iters,
                       "Iterations for time trials",
                   "--blur %f", &blur, "Add blur to texture lookup",
+                  "--width %f", &width, "Multiply filter width of texture lookup",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
                   "--automip", &automip, "Set auto-MIPmap for the image cache",
                   "--blocksize %d", &blocksize, "Set blocksize (n x n) for batches",
@@ -174,6 +176,8 @@ test_plain_texture (ustring filename)
     TextureOptions opt;
     opt.sblur = blur;
     opt.tblur = blur;
+    opt.swidth = width;
+    opt.twidth = width;
     opt.nchannels = nchannels;
     float fill = 1;
     opt.fill = fill;
