@@ -191,16 +191,16 @@ TextureSystemImpl::getstats (int level, bool icstats) const
 {
     std::ostringstream out;
     if (level > 0) {
-        out << "OpenImageIO Texture statistics (" << (void*)this 
+        out << "OpenImageIO Texture statistics (" << (void*)this
             << ", cache = " << (void *)m_imagecache << ")\n";
         out << "  Queries/batches : \n";
-        out << "    texture     :  " << m_stat_texture_queries 
+        out << "    texture     :  " << m_stat_texture_queries
             << " queries in " << m_stat_texture_batches << " batches\n";
-        out << "    texture 3d  :  " << m_stat_texture3d_queries 
+        out << "    texture 3d  :  " << m_stat_texture3d_queries
             << " queries in " << m_stat_texture3d_batches << " batches\n";
-        out << "    shadow      :  " << m_stat_shadow_queries 
+        out << "    shadow      :  " << m_stat_shadow_queries
             << " queries in " << m_stat_shadow_batches << " batches\n";
-        out << "    environment :  " << m_stat_environment_queries 
+        out << "    environment :  " << m_stat_environment_queries
             << " queries in " << m_stat_environment_batches << " batches\n";
         out << "  Interpolations :\n";
         out << "    closest  : " << m_stat_closest_interps << "\n";
@@ -313,7 +313,7 @@ TextureSystemImpl::get_imagespec (ustring filename, ImageSpec &spec)
 bool
 TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
                                int subimage, int xmin, int xmax,
-                               int ymin, int ymax, int zmin, int zmax, 
+                               int ymin, int ymax, int zmin, int zmax,
                                TypeDesc format, void *result)
 {
     TextureFile *texfile = find_texturefile (filename);
@@ -682,7 +682,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     float dtdy = _dtdy ? _dtdy[index] : 0;
     dtdy = dtdy * options.twidth[index] + options.tblur[index];
 
-    // Determine the MIP-map level(s) we need: we will blend 
+    // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
     int miplevel[2] = { -1, -1 };
     float levelblend = 0;
@@ -703,7 +703,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
             levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
             break;
         }
-    } 
+    }
     if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
@@ -801,7 +801,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     dsdy = dsdy * options.swidth[index] + options.sblur[index];
     dtdy = dtdy * options.twidth[index] + options.tblur[index];
 
-    // Determine the MIP-map level(s) we need: we will blend 
+    // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
     int miplevel[2] = { -1, -1 };
     float levelblend = 0;
@@ -834,11 +834,11 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         // c. Split the difference, take the geometric mean, this makes it
         //      slightly too blurry along the minor axis, slightly aliasing
         //      along the major axis.  You can't please everybody.
-        //      *majorlength = sqrtf ((*majorlength) * 
+        //      *majorlength = sqrtf ((*majorlength) *
         //                            (*minorlength * options.anisotropic));
         //      *minorlength = (*majorlength) / options.anisotropic;
         if (options.conservative_filter) {
-            *majorlength = sqrtf ((*majorlength) * 
+            *majorlength = sqrtf ((*majorlength) *
                                   (*minorlength * options.anisotropic));
             *minorlength = (*majorlength) / options.anisotropic;
         } else {
@@ -895,7 +895,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         accum_prototype accumer = &TextureSystemImpl::accum_sample_bilinear;
         switch (options.interpmode) {
         case TextureOptions::InterpClosest :
-            accumer = &TextureSystemImpl::accum_sample_closest;  
+            accumer = &TextureSystemImpl::accum_sample_closest;
             ++closestprobes;
             break;
         case TextureOptions::InterpBilinear :
@@ -953,7 +953,7 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     int stex, ttex;    // Texel coordintes
     (void) floorfrac (s, &stex);   // don't need fractional result
     (void) floorfrac (t, &ttex);
-    
+
     // Wrap
     DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
     bool svalid, tvalid;  // Valid texels?  false means black border
@@ -1019,7 +1019,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     // the amount that the lookup point is actually offset from the
     // texel center (with (1,1) being all the way to the next texel down
     // and to the right).
-    
+
     // Wrap
     DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
     int stex[2], ttex[2];       // Texel coords
@@ -1052,7 +1052,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     bool onetile = (s_onetile & t_onetile);
     size_t channelsize = texturefile.channelsize();
     size_t pixelsize = texturefile.pixelsize();
-    if (onetile && 
+    if (onetile &&
 //        (svalid[0] & svalid[1] & tvalid[0] & tvalid[1])) {
         valid_storage == all_valid) {
         // Shortcut if all the texels we need are on the same tile
@@ -1155,7 +1155,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     // the amount that the lookup point is actually offset from the
     // texel center (with (1,1) being all the way to the next texel down
     // and to the right).
-    
+
     // We're gathering 4x4 samples and 4x weights.  Indices: texels 0,
     // 1, 2, 3.  The sample lies between samples 1 and 2.
 

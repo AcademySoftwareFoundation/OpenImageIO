@@ -65,7 +65,7 @@
 struct DLLPUBLIC TypeDesc {
     /// BASETYPE is a simple enum for the C/C++ built-in types.
     ///
-    enum BASETYPE { UNKNOWN, VOID, 
+    enum BASETYPE { UNKNOWN, VOID,
                     UCHAR, UINT8=UCHAR, CHAR, INT8=CHAR,
                     USHORT, UINT16=USHORT, SHORT, INT16=SHORT,
                     UINT, INT,
@@ -165,29 +165,29 @@ struct DLLPUBLIC TypeDesc {
     bool operator== (const TypeDesc &t) const {
         return basetype == t.basetype && aggregate == t.aggregate &&
             vecsemantics == t.vecsemantics && arraylen == t.arraylen;
-    } 
+    }
 
     /// Compare two TypeDesc values for inequality.
     ///
-    bool operator!= (const TypeDesc &t) const { return ! (*this == t); } 
+    bool operator!= (const TypeDesc &t) const { return ! (*this == t); }
 
     /// Compare a TypeDesc to a basetype (it's the same if it has the
     /// same base type and is not an aggregate or an array).
     friend bool operator== (const TypeDesc &t, BASETYPE b) {
         return (BASETYPE)t.basetype == b && (AGGREGATE)t.aggregate == SCALAR && t.arraylen == 0;
-    } 
+    }
     friend bool operator== (BASETYPE b, const TypeDesc &t) {
         return (BASETYPE)t.basetype == b && (AGGREGATE)t.aggregate == SCALAR && t.arraylen == 0;
-    } 
+    }
 
     /// Compare a TypeDesc to a basetype (it's the same if it has the
     /// same base type and is not an aggregate or an array).
     friend bool operator!= (const TypeDesc &t, BASETYPE b) {
         return (BASETYPE)t.basetype != b || (AGGREGATE)t.aggregate != SCALAR || t.arraylen != 0;
-    } 
+    }
     friend bool operator!= (BASETYPE b, const TypeDesc &t) {
         return (BASETYPE)t.basetype != b || (AGGREGATE)t.aggregate != SCALAR || t.arraylen != 0;
-    } 
+    }
 
     /// Demote the type to a non-array
     ///

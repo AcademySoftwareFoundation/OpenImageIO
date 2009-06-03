@@ -35,6 +35,12 @@
 #include <ImathFun.h>
 #include <QGLFormat>
 
+#include <boost/foreach.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/compare.hpp>
+
+
 #include "imageviewer.h"
 #include "strutil.h"
 
@@ -66,7 +72,8 @@
 IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
     : QGLWidget(parent), m_viewer(viewer), 
       m_shaders_created(false), m_tex_created(false),
-      m_zoom(1.0), m_centerx(0), m_centery(0), m_dragging(false)
+      m_zoom(1.0), m_centerx(0), m_centery(0), m_dragging(false),
+      m_target_texture(GL_TEXTURE_2D), m_unnormalized_coords(false)
 {
 #if 0
     QGLFormat format;
@@ -101,6 +108,10 @@ IvGL::initializeGL ()
     glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 //    glEnable (GL_TEXTURE_2D);
 
+    // here we check what OpenGL extensions are available, and take action
+    // if needed
+    check_gl_extensions ();
+
     create_textures ();
 #ifdef USE_SHADERS
     create_shaders ();
@@ -119,19 +130,19 @@ IvGL::create_textures (void)
     m_texid = 0;
 //    glActiveTexture (GL_TEXTURE0);
 //    glEnable (GL_TEXTURE_2D);
-    glBindTexture (GL_TEXTURE_2D, m_texid);
+    glBindTexture (m_target_texture, m_texid);
     half pix[4] = {.25, .25, 1, 1};
 #if 1
-    glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
+    glTexImage2D (m_target_texture, 0 /*mip level*/,
                   4 /*internal format - color components */,
                   1 /*width*/, 1 /*height*/, 0 /*border width*/,
                   GL_RGBA /*type - GL_RGB, GL_RGBA, GL_LUMINANCE */,
                   GL_HALF_FLOAT_ARB /*format - GL_FLOAT */,
                   (const GLvoid *)pix /*data*/);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri (m_target_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri (m_target_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri (m_target_texture, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri (m_target_texture, GL_TEXTURE_WRAP_T, GL_CLAMP);
 #endif
 
     GLERRPRINT ("bind tex 1");
@@ -382,6 +393,12 @@ IvGL::paintGL ()
         }
     }
     useshader ();
+
+    // used with GL_TEXTURE_RECTANGLE_ARB textures
+    if (m_unnormalized_coords) {
+        smax = xmax;
+        tmax = ymax;
+    }
     gl_rect (xmin, ymin, xmax, ymax, 0, smin, tmin, smax, tmax, rotate);
 
     glPopMatrix ();
@@ -612,7 +629,7 @@ IvGL::update (IvImage *img)
     const ImageSpec &spec (img->spec());
 //    glActiveTexture (GL_TEXTURE0);
 //    glEnable (GL_TEXTURE_2D);
-    glBindTexture (GL_TEXTURE_2D, m_texid);
+    glBindTexture (m_target_texture, m_texid);
 
     bool srgb = (USE_SRGB && spec.linearity == ImageSpec::sRGB);
     GLenum glformat = GL_RGB;
@@ -652,7 +669,7 @@ IvGL::update (IvImage *img)
         break;
     }
 
-    glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
+    glTexImage2D (m_target_texture, 0 /*mip level*/,
                   glinternalformat,
                   spec.width, spec.height,
                   0 /*border width*/,
@@ -666,7 +683,7 @@ IvGL::update (IvImage *img)
     // maybe my assumption that it's about odd-length width is wrong.
     if (spec.width & 1) {
         for (int y = 0;  y < spec.height;  ++y) {
-            glTexSubImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
+            glTexSubImage2D (m_target_texture, 0 /*mip level*/,
                              0, y, spec.width, 1,
                              glformat, gltype, 
                              (const GLvoid *)img->scanline(y) /*data*/);
@@ -929,4 +946,57 @@ IvGL::get_focus_image_pixel (int &x, int &y)
     std::cerr << "    mouse image coords " << imgx << ' ' << imgy << "\n";
     std::cerr << "    mouse pixel image coords " << x << ' ' << y << "\n";
 #endif
+}
+
+
+
+void
+IvGL::check_gl_extensions (void)
+{
+    // getting OpenGL version
+    const GLubyte *version_string = glGetString(GL_VERSION);
+    double gl_version = 0.0;
+    gl_version = atof((const char*)version_string);
+
+    // OpenGL 2.1 or more implies all the features we need are supported
+    // (NPOT textures, GL_HALF_FLOAT, GL_FLOAT), great!
+    if (gl_version >= 2.1)
+        return;
+
+    // turn on support for NPOT textures - if we can 
+    if (gl_version >= 1.1) {
+        std::string extensions ((const char*)glGetString (GL_EXTENSIONS));
+        std::vector<std::string> allowed_extensions;
+        boost::algorithm::split (allowed_extensions, extensions, boost::is_space());
+        BOOST_FOREACH (const std::string &extension, allowed_extensions) {
+            boost::is_equal test;
+
+            // supported form OpenGL 1.4
+            // NPOT textures are supported, normalized coords are supported
+            if (test (extension, "GL_ARB_texture_non_power_of_two"))
+                return;
+
+            // supported from OpenGL 1.1
+            // they are the same extensions: GL_ARB is approved by ARB
+#ifdef GL_TEXTURE_RECTANGLE_ARB
+            if (test (extension, "GL_ARB_texture_rectangle") ||
+                test (extension, "GL_EXT_texture_rectangle")) {
+                m_unnormalized_coords = true;
+                m_target_texture = GL_TEXTURE_RECTANGLE_ARB;
+                glEnable (m_target_texture);
+                return;
+            }
+#endif
+
+            // supported from OpenGL 1.2.1
+#ifdef GL_TEXTURE_RECTANGLE_NV
+            if (test (extension, "GL_NV_texture_rectangle")) {
+                m_unnormalized_coords = true;
+                m_target_texture = GL_TEXTURE_RECTANGLE_NV;
+                glEnable (m_target_texture);
+                return;
+            }
+#endif
+        }
+    }
 }

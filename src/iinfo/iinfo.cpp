@@ -243,7 +243,7 @@ main (int argc, const char *argv[])
         double t = (double)totalsize / (1024.0*1024.0);
         if (t > 1024.0)
             printf ("Total size: %.2f GB\n", t/1024.0);
-        else 
+        else
             printf ("Total size: %.2f MB\n", t);
     }
 

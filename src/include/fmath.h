@@ -387,7 +387,8 @@ bilerp_mad (const T *v0, const T *v1,
     Q s1 = (Q)1 - s;
     Q t1 = (Q)1 - t;
     for (int i = 0;  i < n;  ++i)
-        result[i] += (T) (scale * (t1*(v0[i]*s1 + v1[i]*s) + t*(v2[i]*s1 + v3[i]*s)));
+        result[i] += (T) (scale * (t1*(v0[i]*s1 + v1[i]*s) +
+                                   t*(v2[i]*s1 + v3[i]*s)));
 }
 
 
@@ -505,7 +506,7 @@ FloatToInt (float val)
 
 /// Return (x-floor(x)) and put (int)floor(x) in *xint.  This is similar
 /// to the built-in modf, but returns a true int, always rounds down
-/// (compared to modf which rounds toward 0), and always returns 
+/// (compared to modf which rounds toward 0), and always returns
 /// frac >= 0 (comapred to modf which can return <0 if x<0).
 inline float
 floorfrac (float x, int *xint)
@@ -548,7 +549,7 @@ inline int isinf (T x) {
 
 
 
-/// Simple conversion of a (presumably non-negative) float into a 
+/// Simple conversion of a (presumably non-negative) float into a
 /// rational.  This does not attempt to find the simplest fraction
 /// that approximates the float, for example 52.83 will simply
 /// return 5283/100.  This does not attempt to gracefully handle

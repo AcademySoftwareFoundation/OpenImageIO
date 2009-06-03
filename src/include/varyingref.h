@@ -58,7 +58,7 @@
 /// \endcode
 ///
 /// But if the caller of this function has only a single b value (let's
-/// say, you always want to add 3 to every b[i]), you would be forced
+/// say, you always want to add 3 to every a[i]), you would be forced
 /// to replicate an entire array full of 3's in order to call the function.
 ///
 /// Instead, we may wish to generalize the function so that each operand
@@ -72,10 +72,10 @@
 ///     }
 /// \endcode
 ///
-/// VaryingRef overloads operator [] to properly decode whether it is 
+/// VaryingRef overloads operator [] to properly decode whether it is
 /// uniform (point to the one value) or varying (index the right array
 /// element).  It also overloads the increment operator ++ and the pointer
-/// indirection operator '*', so you could also write the function 
+/// indirection operator '*', so you could also write the function
 /// equivalently as:
 /// \code
 ///     void add (int n, VaryingRef<float> a, VaryingRef<float> b,
@@ -97,8 +97,8 @@
 /// In this example, we're passing a truly varying 'a' (signified by
 /// giving a step size from element to element), but a uniform 'b' (signified
 /// by no step size, or a step size of zero).
-/// 
-/// There are Varying() and Uniform() templated functions that provide 
+///
+/// There are Varying() and Uniform() templated functions that provide
 /// a helpful shorthand:
 /// \code
 ///     add (n, Varying(a), Uniform(b), result);

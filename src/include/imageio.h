@@ -36,7 +36,7 @@
 /// Provides a simple API that abstracts the reading and writing of
 /// images.  Subclasses, which may be found in DSO/DLL's, implement
 /// particular formats.
-/// 
+///
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -68,7 +68,7 @@ namespace OpenImageIO {
 
 /// Each imageio DSO/DLL should include this statement:
 ///      DLLPUBLIC int FORMAT_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
-/// libOpenImageIO will check for compatibility this way.  
+/// libOpenImageIO will check for compatibility this way.
 /// This should get bumped any time we change the API in any way that
 /// will make previously-compiled plugins break.
 ///
@@ -101,7 +101,7 @@ const stride_t AutoStride = std::numeric_limits<stride_t>::min();
 /// Pointer to a function called periodically by read_image and
 /// write_image.  This can be used to implement progress feedback, etc.
 /// It takes an opaque data pointer (passed to read_image/write_image)
-/// and a float giving the portion of work done so far.  It returns a 
+/// and a float giving the portion of work done so far.  It returns a
 /// bool, which if 'true' will STOP the read or write.
 typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
@@ -346,7 +346,7 @@ public:
     /// actually just try every imageio plugin it can locate, until it
     /// finds one that's able to open the file without error.  This just
     /// creates the ImageInput, it does not open the file.
-    static ImageInput *create (const std::string &filename, 
+    static ImageInput *create (const std::string &filename,
                                const std::string &plugin_searchpath="");
 
     ImageInput () { }
@@ -442,7 +442,7 @@ public:
     ///
     /// Simple read_tile reads to contiguous float pixels.
     bool read_tile (int x, int y, int z, float *data) {
-        return read_tile (x, y, z, TypeDesc::FLOAT, data, 
+        return read_tile (x, y, z, TypeDesc::FLOAT, data,
                           AutoStride, AutoStride, AutoStride);
     }
 
@@ -457,9 +457,10 @@ public:
     /// Because this may be an expensive operation, a progress callback
     /// may be passed.  Periodically, it will be called as follows:
     ///     progress_callback (progress_callback_data, float done)
-    /// where 'done' gives the portion of the image 
+    /// where 'done' gives the portion of the image
     virtual bool read_image (TypeDesc format, void *data,
-                             stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                             stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
@@ -502,7 +503,7 @@ protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.
     void error (const char *format, ...);
-    
+
 protected:
     ImageSpec m_spec;          ///< format spec of the current open subimage
 
@@ -522,7 +523,7 @@ public:
     /// parameter is a colon-separated list of directories to search for
     /// ImageIO plugin DSO/DLL's.  This just creates the ImageOutput, it
     /// does not open the file.
-    static ImageOutput *create (const std::string &filename, 
+    static ImageOutput *create (const std::string &filename,
                                 const std::string &plugin_searchpath="");
 
     ImageOutput () { }
@@ -613,7 +614,8 @@ public:
     /// not support random access.
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride, stride_t zstride=AutoStride)
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride)
         { return false; }
 
     /// Write pixels whose x coords range over xmin..xmax (inclusive), y
@@ -633,7 +635,8 @@ public:
     virtual bool write_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax, TypeDesc format,
                                   const void *data, stride_t xstride=AutoStride,
-                                  stride_t ystride=AutoStride, stride_t zstride=AutoStride)
+                                  stride_t ystride=AutoStride,
+                                  stride_t zstride=AutoStride)
         { return false; }
 
     /// Write the entire image of spec.width x spec.height x spec.depth
@@ -647,7 +650,7 @@ public:
     /// Because this may be an expensive operation, a progress callback
     /// may be passed.  Periodically, it will be called as follows:
     ///   progress_callback (progress_callback_data, float done)
-    /// where 'done' gives the portion of the image 
+    /// where 'done' gives the portion of the image
     virtual bool write_image (TypeDesc format, const void *data,
                               stride_t xstride=AutoStride,
                               stride_t ystride=AutoStride,
@@ -669,7 +672,7 @@ public:
     /// them to *this.  However, some ImageIO implementations may have a
     /// special technique for directly copying raw pixel data from the
     /// input to the output, when both input and output are the SAME
-    /// file type and the same data format.  This can be more efficient 
+    /// file type and the same data format.  This can be more efficient
     /// than in->read_image followed by out->write_image, and avoids any
     /// unintended pixel alterations, especially for formats that use
     /// lossy compression.
@@ -703,12 +706,14 @@ protected:
                                     const void *data, stride_t xstride,
                                     std::vector<unsigned char> &scratch);
     const void *to_native_tile (TypeDesc format, const void *data,
-                                stride_t xstride, stride_t ystride, stride_t zstride,
+                                stride_t xstride, stride_t ystride,
+                                stride_t zstride,
                                 std::vector<unsigned char> &scratch);
     const void *to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
-                                     int zmin, int zmax, 
+                                     int zmin, int zmax,
                                      TypeDesc format, const void *data,
-                                     stride_t xstride, stride_t ystride, stride_t zstride,
+                                     stride_t xstride, stride_t ystride,
+                                     stride_t zstride,
                                      std::vector<unsigned char> &scratch);
 
 protected:
@@ -722,7 +727,7 @@ private:
 
 // Utility functions
 
-/// Retrieve the version of OpenImageIO for the library.  This is so 
+/// Retrieve the version of OpenImageIO for the library.  This is so
 /// plugins can query to be sure they are linked against an adequate
 /// version of the library.
 DLLPUBLIC int openimageio_version ();
@@ -731,7 +736,7 @@ DLLPUBLIC int openimageio_version ();
 /// call error_message(), so call ImageIOErrorMessage().
 DLLPUBLIC std::string error_message ();
 
-/// Helper routine: quantize a value to an integer given the 
+/// Helper routine: quantize a value to an integer given the
 /// quantization parameters.
 DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
                         int quant_min, int quant_max, float quant_dither);
@@ -752,7 +757,7 @@ inline float exposure (float value, float gain, float invgamma)
 /// arbitrary types (specified by TypeDesc's), with optional gain
 /// and gamma correction.  Return true if ok, false if it didn't know
 /// how to do the conversion.
-DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src, 
+DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
                               TypeDesc dst_type, void *to, int n,
                               float gain=1, float gamma=1);
 
@@ -766,7 +771,7 @@ DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
 /// data.  Return true if ok, false if it didn't know how to do the
 /// conversion.
 DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
-                              const void *src, TypeDesc src_type, 
+                              const void *src, TypeDesc src_type,
                               stride_t src_xstride, stride_t src_ystride,
                               stride_t src_zstride,
                               void *dst, TypeDesc dst_type,

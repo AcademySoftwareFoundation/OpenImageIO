@@ -42,6 +42,10 @@
 #include <boost/thread.hpp>
 #include <boost/version.hpp>
 
+#if (BOOST_VERSION == 103500)
+#include <boost/thread/shared_mutex.hpp>
+#endif
+
 typedef boost::mutex mutex;
 typedef boost::recursive_mutex recursive_mutex;
 
@@ -192,7 +196,7 @@ atomic_exchange_and_add (volatile int *at, int x)
 
 
 
-/// Atomic version of: 
+/// Atomic version of:
 ///    if (*at == compareval) {
 ///        *at = newval;  return true;
 ///    } else {
@@ -375,4 +379,3 @@ private:
 
 
 #endif // THREAD_H
-

@@ -137,7 +137,7 @@ public:
     /// Retrieve a single channel of one pixel.
     ///
     float getchannel (int x, int y, int c) const;
-    
+
     /// Retrieve the pixel value by x and y coordintes (on [0,res-1]),
     /// storing the floating point version in pixel[].  Retrieve at most
     /// maxchannels (will be clamped to the actual number of channels).

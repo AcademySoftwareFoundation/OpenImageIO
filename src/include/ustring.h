@@ -64,11 +64,11 @@
 /// other ways it looks and acts like a std::string and so most templated
 /// algorthms that would work on a "const std::string &" will also work
 /// on a ustring.
-/// 
+///
 /// Usage guidelines:
 ///
 /// Compared to standard strings, ustrings have several advantages:
-/// 
+///
 ///   - Each individual ustring is very small -- in fact, we guarantee that
 ///     a ustring is the same size and memory layout as an ordinary char*.
 ///   - Storage is frugal, since there is only one allocated copy of each
@@ -131,7 +131,7 @@
 #endif
 
 
-// FIXME: want a namespace 
+// FIXME: want a namespace
 // namespace blah {
 
 
@@ -210,11 +210,12 @@ public:
     const ustring & assign (const std::string &str) {
         assign (str.c_str());
         return *this;
-    } 
+    }
 
     /// Assign a substring of a std::string to *this.
     ///
-    const ustring & assign (const std::string &str, size_type pos, size_type n=npos)
+    const ustring & assign (const std::string &str, size_type pos,
+                            size_type n=npos)
         { *this = ustring(str,pos,n); return *this; }
 
     /// Assign a null-terminated C string (char*) to *this.
@@ -334,7 +335,7 @@ public:
     // FIXME: implement find, rfind, find_first_of, find_last_of,
     // find_first_not_of, find_last_not_of, substr, compare.
 
-    /// Return 0 if *this is lexicographically equal to str, -1 if 
+    /// Return 0 if *this is lexicographically equal to str, -1 if
     /// *this is lexicographically earlier than str, 1 if *this is
     /// lexicographically after str.
 
@@ -342,7 +343,7 @@ public:
         return c_str() == str.c_str() ? 0 : strcmp (c_str(), str.c_str());
     }
 
-    /// Return 0 if *this is lexicographically equal to str, -1 if 
+    /// Return 0 if *this is lexicographically equal to str, -1 if
     /// *this is lexicographically earlier than str, 1 if *this is
     /// lexicographically after str.
     int compare (const std::string& str) const {
@@ -360,13 +361,17 @@ public:
     /// sequence of characters.  Note that because ustrings are unique,
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
-    bool operator== (const ustring &str) const { return c_str() == str.c_str(); }
+    bool operator== (const ustring &str) const {
+      return c_str() == str.c_str();
+    }
 
     /// Test two ustrings for inequality -- are they comprised of different
     /// sequences of characters.  Note that because ustrings are unique,
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
-    bool operator!= (const ustring &str) const { return c_str() != str.c_str(); }
+    bool operator!= (const ustring &str) const {
+      return c_str() != str.c_str();
+    }
 
     /// Test a ustring (*this) for lexicographic equality with std::string
     /// x.
