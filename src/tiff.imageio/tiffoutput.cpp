@@ -288,8 +288,15 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
         // Use predictor when using compression
         if (compress == COMPRESSION_LZW || compress == COMPRESSION_ADOBE_DEFLATE) {
-            if (m_spec.format == TypeDesc::FLOAT || m_spec.format == TypeDesc::DOUBLE || m_spec.format == TypeDesc::HALF)
-                TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
+            if (m_spec.format == TypeDesc::FLOAT || m_spec.format == TypeDesc::DOUBLE || m_spec.format == TypeDesc::HALF) {
+                // TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
+
+                // Older versions of libtiff did not support this
+                // predictor.  So to prevent us from writing TIFF files
+                // that certain apps can't read, don't use it. Ugh.
+                // FIXME -- lift this restriction when we think the newer
+                // libtiff is widespread enough to no longer worry about this.
+            }
             else
                 TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
         }
