@@ -44,7 +44,7 @@
 #include "imageio.h"
 using namespace OpenImageIO;
 
-#include "md5.h"
+#include "SHA1.h"
 
 
 static bool verbose = false;
@@ -55,29 +55,26 @@ static std::string metamatch;
 static bool filenameprefix = false;
 static boost::regex field_re;
 static bool subimages = false;
-static bool compute_md5 = false;
+static bool compute_sha1 = false;
 
 
 
 static void
-print_md5 (ImageInput *input)
+print_sha1 (ImageInput *input)
 {
     imagesize_t size = input->spec().image_bytes ();
     if (size >= std::numeric_limits<size_t>::max()) {
-        printf ("    MD5 digest: (unable to compute, image is too big)\n");
+        printf ("    SHA1 digest: (unable to compute, image is too big)\n");
         return;
     }
     std::vector<unsigned char> buf (size);
     input->read_image (input->spec().format, &buf[0]);
-    md5_state_t ctx;
-    md5_init (&ctx);
-    md5_append (&ctx, (const md5_byte_t *)&buf[0], size);
-    unsigned char md[16];
-    md5_finish (&ctx, md);
-    printf ("    MD5 digest: ");
-    for (unsigned int i = 0; i < 16; i++)
-        printf ("%02x", md[i]);
-    printf ("\n");
+    CSHA1 sha;
+    sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
+    sha.Final ();
+    std::string digest;
+    sha.ReportHashStl (digest, CSHA1::REPORT_HEX_SHORT);
+    printf ("    SHA-1: %s\n", digest.c_str());
 }
 
 
@@ -92,7 +89,7 @@ print_info_subimage (int current, int max_subimages, ImageSpec &spec,
         return;
 
     if (subimages && max_subimages != 1 && (metamatch.empty() ||
-          boost::regex_search ("resolution, width, height, depth, channels, md5",
+          boost::regex_search ("resolution, width, height, depth, channels, SHA-1",
                                  field_re))) {
         printf (" subimage %2d: ", current);
         printf ("%4d x %4d", spec.width, spec.height);
@@ -147,18 +144,18 @@ print_info (const std::string &filename, size_t namefieldlength,
         if (subimages && ! verbose && num_of_subimages != 1) {
             for (int i = 0; i < num_of_subimages; ++i) {
                 print_info_subimage (i, num_of_subimages, spec, input);
-                if (compute_md5 && (metamatch.empty() ||
-                                    boost::regex_search ("md5", field_re))) {
+                if (compute_sha1 && (metamatch.empty() ||
+                                    boost::regex_search ("sha-1", field_re))) {
                     if (filenameprefix)
                         printf ("%s : ", filename.c_str());
-                    print_md5 (input);
+                    print_sha1 (input);
                 }
             }
         } else {
-            if (compute_md5 && !verbose) {
+            if (compute_sha1 && !verbose) {
                 if (filenameprefix)
                     printf ("%s : ", filename.c_str());
-                print_md5 (input);
+                print_sha1 (input);
             }
         }
         printed = true;
@@ -180,11 +177,11 @@ print_info (const std::string &filename, size_t namefieldlength,
             num_of_subimages = 1;
         for (int i = 0; i < num_of_subimages; ++i) {
             print_info_subimage (i, num_of_subimages, spec, input);
-            if (compute_md5 && (metamatch.empty() ||
-                                boost::regex_search ("md5", field_re))) {
+            if (compute_sha1 && (metamatch.empty() ||
+                                boost::regex_search ("sha-1", field_re))) {
                 if (filenameprefix)
                     printf ("%s : ", filename.c_str());
-                print_md5 (input);
+                print_sha1 (input);
             }
             if (metamatch.empty() ||
                     boost::regex_search ("channels", field_re) ||
@@ -305,7 +302,7 @@ main (int argc, const char *argv[])
                 "-f", &filenameprefix, "Prefix each line with the filename",
                 "-s", &sum, "Sum the image sizes",
                 "-a", &subimages, "Print info about all subimages",
-                "--md5", &compute_md5, "Print MD5 digest of pixel values",
+                "--hash", &compute_sha1, "Print SHA-1 hash of pixel values",
                 NULL);
     if (ap.parse(argc, argv) < 0 || filenames.empty()) {
         std::cerr << ap.error_message() << std::endl;

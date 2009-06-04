@@ -12,7 +12,7 @@ if len(sys.argv) > 2 :
 # A command to run
 command = path + "iconvert/iconvert ../../../../oiio-testimages/oiio.ico test.ico > out.txt; " + \
 path + "idiff/idiff -a ../../../../oiio-testimages/oiio.ico test.ico >> out.txt; " + \
-path + "iinfo/iinfo -v -a --md5 ../../../../oiio-testimages/oiio.ico test.ico >> out.txt"
+path + "iinfo/iinfo -v -a --hash ../../../../oiio-testimages/oiio.ico test.ico >> out.txt"
 
 # Outputs to check against references
 outputs = [ "out.txt" ]

@@ -1,4 +1,4 @@
-set (iinfo_srcs iinfo.cpp md5.cpp)
+set (iinfo_srcs iinfo.cpp)
 add_executable (iinfo ${iinfo_srcs})
 link_ilmbase (iinfo)
 target_link_libraries (iinfo OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})

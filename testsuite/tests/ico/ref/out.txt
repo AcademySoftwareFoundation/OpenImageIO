@@ -74,84 +74,84 @@ PASS
 ../../../../oiio-testimages/oiio.ico :   16 x   16, 4 channel, uint8 ico
     10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
  subimage  0:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: 3df4009043d7f8e696897d97c72e008f
+    SHA-1: 563F978D0860CB8791716CA694AB94EEA83E6E03
     channel list: R, G, B, A
     Color space: unknown
  subimage  1:   32 x   32, 4 channel, uint8 ico
-    MD5 digest: 54c774ab478cbdf471e55098e11207f1
+    SHA-1: C6AC509D1005F1B1377A24F33A77D4ABEE425628
     channel list: R, G, B, A
     Color space: unknown
  subimage  2:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: 7865e83e40c2f61ad2c31df6178e13dd
+    SHA-1: D9F2BA4010F3BC5D0E24FED9D1C9FC2920180AE8
     channel list: R, G, B, A
     Color space: unknown
  subimage  3:   48 x   48, 4 channel, uint8 ico
-    MD5 digest: 9448264c33a52bf6aad6dc916c3f4e36
+    SHA-1: BA341CEBEC4D0FEBC090E329310D2B8BBEAE1F4C
     channel list: R, G, B, A
     Color space: unknown
  subimage  4:   32 x   32, 4 channel, uint8 ico
-    MD5 digest: 082ec93e47be0790932f511a20b0774c
+    SHA-1: F1D395FE75B3E6133ECF456745EC747CBD53941C
     channel list: R, G, B, A
     Color space: unknown
  subimage  5:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: dd220a7f27f164dc5b384e583d942277
+    SHA-1: B39B76D983D11966C8C344506084515AF9A0F40F
     channel list: R, G, B, A
     Color space: unknown
  subimage  6:  256 x  256, 4 channel, uint8 ico
-    MD5 digest: 5d3370dd79ca46e3dbe95459ab3c806f
+    SHA-1: F44C9B94AB7D612F62A4DC29FD9C56FD173F2614
     channel list: R, G, B, A
     Color space: unknown
  subimage  7:   48 x   48, 4 channel, uint8 ico
-    MD5 digest: f4018c0a683aa51c60e943c1d8818e39
+    SHA-1: 127700A3DACBF25FCD800642D78F8EE91EDE24B9
     channel list: R, G, B, A
     Color space: unknown
  subimage  8:   32 x   32, 4 channel, uint8 ico
-    MD5 digest: 61866d9dc1504c9b00c0a7560e4d831c
+    SHA-1: AA61C682F659F487E2E1F559F0D4682B782C6836
     channel list: R, G, B, A
     Color space: unknown
  subimage  9:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: dcd25cf9e7e396dc0544db9096efd631
+    SHA-1: 0196F151853CC595AF7504196C8CCC5B3A3CE446
     channel list: R, G, B, A
     Color space: unknown
 test.ico                             :   16 x   16, 4 channel, uint8 ico
     10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
  subimage  0:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: 3df4009043d7f8e696897d97c72e008f
+    SHA-1: 563F978D0860CB8791716CA694AB94EEA83E6E03
     channel list: R, G, B, A
     Color space: unknown
  subimage  1:   32 x   32, 4 channel, uint8 ico
-    MD5 digest: 54c774ab478cbdf471e55098e11207f1
+    SHA-1: C6AC509D1005F1B1377A24F33A77D4ABEE425628
     channel list: R, G, B, A
     Color space: unknown
  subimage  2:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: 7865e83e40c2f61ad2c31df6178e13dd
+    SHA-1: D9F2BA4010F3BC5D0E24FED9D1C9FC2920180AE8
     channel list: R, G, B, A
     Color space: unknown
  subimage  3:   48 x   48, 4 channel, uint8 ico
-    MD5 digest: 9448264c33a52bf6aad6dc916c3f4e36
+    SHA-1: BA341CEBEC4D0FEBC090E329310D2B8BBEAE1F4C
     channel list: R, G, B, A
     Color space: unknown
  subimage  4:   32 x   32, 4 channel, uint8 ico
-    MD5 digest: 082ec93e47be0790932f511a20b0774c
+    SHA-1: F1D395FE75B3E6133ECF456745EC747CBD53941C
     channel list: R, G, B, A
     Color space: unknown
  subimage  5:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: dd220a7f27f164dc5b384e583d942277
+    SHA-1: B39B76D983D11966C8C344506084515AF9A0F40F
     channel list: R, G, B, A
     Color space: unknown
  subimage  6:  256 x  256, 4 channel, uint8 ico
-    MD5 digest: 5d3370dd79ca46e3dbe95459ab3c806f
+    SHA-1: F44C9B94AB7D612F62A4DC29FD9C56FD173F2614
     channel list: R, G, B, A
     Color space: unknown
  subimage  7:   48 x   48, 4 channel, uint8 ico
-    MD5 digest: f4018c0a683aa51c60e943c1d8818e39
+    SHA-1: 127700A3DACBF25FCD800642D78F8EE91EDE24B9
     channel list: R, G, B, A
     Color space: unknown
  subimage  8:   32 x   32, 4 channel, uint8 ico
-    MD5 digest: 61866d9dc1504c9b00c0a7560e4d831c
+    SHA-1: AA61C682F659F487E2E1F559F0D4682B782C6836
     channel list: R, G, B, A
     Color space: unknown
  subimage  9:   16 x   16, 4 channel, uint8 ico
-    MD5 digest: dcd25cf9e7e396dc0544db9096efd631
+    SHA-1: 0196F151853CC595AF7504196C8CCC5B3A3CE446
     channel list: R, G, B, A
     Color space: unknown
