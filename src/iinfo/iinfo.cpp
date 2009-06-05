@@ -36,6 +36,12 @@
 #include <iostream>
 #include <iterator>
 
+/* This header have to be included before boost/regex.hpp header
+   If it is included after, there is an error
+   "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
+*/
+#include "SHA1.h"
+
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
@@ -43,8 +49,6 @@
 #include "strutil.h"
 #include "imageio.h"
 using namespace OpenImageIO;
-
-#include "SHA1.h"
 
 
 static bool verbose = false;
