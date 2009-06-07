@@ -1148,7 +1148,7 @@ void
 ImageCacheImpl::check_max_mem ()
 {
 #ifdef DEBUG
-    static atomic_int n (0);
+    static atomic_int n;
     if (! (n++ % 64) || m_mem_used >= m_max_memory_bytes)
         std::cerr << "mem used: " << m_mem_used << ", max = " << m_max_memory_bytes << "\n";
 #endif
