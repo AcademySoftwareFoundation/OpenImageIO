@@ -29,13 +29,11 @@
 */
 
 
-#ifdef __linux__
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-#include <GL/glext.h>
-#endif
-
 #include <iostream>
+
+// This needs to be included before GL.h
+// (which is included by QtOpenGL and QGLFormat)
+#include <glew.h>
 
 #include <half.h>
 #include <ImathFun.h>
@@ -46,38 +44,16 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/compare.hpp>
 
-
 #include "imageviewer.h"
 #include "strutil.h"
+#include "fmath.h"
 
-#ifdef WIN32
-#define GL_GLEXT_PROTOTYPES
-#include <GL/glext.h>
-#include <GL/wglext.h>
-#endif
-
-#define USE_SHADERS 1
-#define USE_SRGB 1
-
-#if ! defined (GL_SRGB_EXT) && defined (GL_SRGB)
-#  define GL_SRGB_EXT GL_SRGB
-#endif
-#if ! defined (GL_SRGB8_EXT) && defined (GL_SRGB8)
-#  define GL_SRGB8_EXT GL_SRGB8
-#endif
-#if ! defined (GL_SRGB_ALPHA_EXT) && defined (GL_SRGB_ALPHA)
-#  define GL_SRGB_ALPHA_EXT GL_SRGB_ALPHA
-#endif
-#if ! defined (GL_SRGB8_ALPHA8_EXT) && defined (GL_SRGB8_ALPHA8)
-#  define GL_SRGB8_ALPHA8_EXT GL_SRGB8_ALPHA8
-#endif
 
 
 
 #define GLERRPRINT(msg)                                           \
     for (GLenum err = glGetError();  err != GL_NO_ERROR;  err = glGetError()) \
-        std::cerr << "GL error " << msg << " " << (int)err << "\n";      \
-
+        std::cerr << "GL error " << msg << " " << (int)err <<  " - " << (const char *)gluErrorString(err) << "\n";      \
 
 
 
@@ -85,7 +61,9 @@ IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
     : QGLWidget(parent), m_viewer(viewer), 
       m_shaders_created(false), m_tex_created(false),
       m_zoom(1.0), m_centerx(0), m_centery(0), m_dragging(false),
-      m_target_texture(GL_TEXTURE_2D), m_unnormalized_coords(false)
+      m_use_shaders(false), m_use_halffloat(false), m_use_float(false),
+      m_use_srgb(false), m_texture_height(1), m_texture_width(1),
+      m_shaders_using_extensions(false), m_use_npot_texture(false)
 {
 #if 0
     QGLFormat format;
@@ -110,6 +88,11 @@ IvGL::~IvGL ()
 void
 IvGL::initializeGL ()
 {
+    GLenum glew_error = glewInit ();
+    if (glew_error != GLEW_OK) {
+        std::cerr << "GLEW init error " << glewGetErrorString (glew_error) << "\n";
+    }
+
     glClearColor (0.05, 0.05, 0.05, 1.0);
     glShadeModel (GL_FLAT);
     glEnable (GL_DEPTH_TEST);
@@ -119,15 +102,17 @@ IvGL::initializeGL ()
 //    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 //    glEnable (GL_TEXTURE_2D);
+    // Make sure initial matrix is identity (returning to this stack level loads
+    // back this matrix).
+    glLoadIdentity();
 
     // here we check what OpenGL extensions are available, and take action
     // if needed
     check_gl_extensions ();
 
     create_textures ();
-#ifdef USE_SHADERS
+
     create_shaders ();
-#endif
 }
 
 
@@ -139,25 +124,22 @@ IvGL::create_textures (void)
         return;
 
     glGenTextures (1, &m_texid);
-    m_texid = 0;
-//    glActiveTexture (GL_TEXTURE0);
-//    glEnable (GL_TEXTURE_2D);
-    glBindTexture (m_target_texture, m_texid);
-    half pix[4] = {.25, .25, 1, 1};
-#if 1
-    glTexImage2D (m_target_texture, 0 /*mip level*/,
+    GLERRPRINT ("gen textures");
+    glBindTexture (GL_TEXTURE_2D, m_texid);
+    GLERRPRINT ("bind tex");
+    glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
                   4 /*internal format - color components */,
                   1 /*width*/, 1 /*height*/, 0 /*border width*/,
                   GL_RGBA /*type - GL_RGB, GL_RGBA, GL_LUMINANCE */,
-                  GL_HALF_FLOAT_ARB /*format - GL_FLOAT */,
-                  (const GLvoid *)pix /*data*/);
-    glTexParameteri (m_target_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri (m_target_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri (m_target_texture, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri (m_target_texture, GL_TEXTURE_WRAP_T, GL_CLAMP);
-#endif
+                  GL_FLOAT /*format - GL_FLOAT */,
+                  NULL /*data*/);
+    GLERRPRINT ("tex image 2d");
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    GLERRPRINT ("After tex parameters");
 
-    GLERRPRINT ("bind tex 1");
 #if 0
     GLuint textures[] = { GL_TEXTURE0 };
     GLboolean residences[] = { false };
@@ -174,28 +156,13 @@ IvGL::create_textures (void)
 void
 IvGL::create_shaders (void)
 {
-    if (m_shaders_created)
-        return;
-
-    m_shader_program = glCreateProgram ();
-
     static const GLchar *vertex_source = 
         "varying vec2 vTexCoord;\n"
         "void main ()\n"
         "{\n"
-	"    vTexCoord = gl_MultiTexCoord0.xy;\n"
-	"    gl_Position = ftransform();\n"
+        "    vTexCoord = gl_MultiTexCoord0.xy;\n"
+        "    gl_Position = ftransform();\n"
         "}\n";
-    m_vertex_shader = glCreateShader (GL_VERTEX_SHADER);
-    glShaderSource (m_vertex_shader, 1, &vertex_source, NULL);
-    glCompileShader (m_vertex_shader);
-    GLint status;
-    glGetShaderiv (m_vertex_shader, GL_COMPILE_STATUS, &status);
-    if (! status) {
-        std::cerr << "vertex shader compile status: " << status << "\n";
-    }
-    glAttachShader (m_shader_program, m_vertex_shader);
-    GLERRPRINT ("vertex shader");
 
     static const GLchar *fragment_source = 
         "uniform sampler2D imgtex;\n"
@@ -252,43 +219,104 @@ IvGL::create_shaders (void)
         "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
         "    gl_FragColor = C;\n"
         "}\n";
-    m_fragment_shader = glCreateShader (GL_FRAGMENT_SHADER);
-    glShaderSource (m_fragment_shader, 1, &fragment_source, NULL);
-    glCompileShader (m_fragment_shader);
-    glGetShaderiv (m_fragment_shader, GL_COMPILE_STATUS, &status);
+
+    if (!m_use_shaders) {
+        std::cerr << "Not using shaders!\n";
+        return;
+    }
+    if (m_shaders_created)
+        return;
+
+    // When using extensions to support shaders, we need to load the function
+    // entry points (which is actually done by GLEW) and then call them. So
+    // we have to get the functions through the right symbols otherwise
+    // extension-based shaders won't work.
+    if (m_shaders_using_extensions) {
+        m_shader_program = glCreateProgramObjectARB ();
+    }
+    else {
+        m_shader_program = glCreateProgram ();
+    }
+    GLERRPRINT ("create progam");
+
+    // This holds the compilation status
+    GLint status;
+
+    if (m_shaders_using_extensions) {
+        m_vertex_shader = glCreateShaderObjectARB (GL_VERTEX_SHADER_ARB);
+        glShaderSourceARB (m_vertex_shader, 1, &vertex_source, NULL);
+        glCompileShaderARB (m_vertex_shader);
+        glGetObjectParameterivARB (m_vertex_shader,
+                GL_OBJECT_COMPILE_STATUS_ARB, &status);
+    } else {
+        m_vertex_shader = glCreateShader (GL_VERTEX_SHADER);
+        glShaderSource (m_vertex_shader, 1, &vertex_source, NULL);
+        glCompileShader (m_vertex_shader);
+        glGetShaderiv (m_vertex_shader, GL_COMPILE_STATUS, &status);
+    }
+    if (! status) {
+        // FIXME: How to handle this error?
+        std::cerr << "vertex shader compile status: failed\n";
+    }
+    if (m_shaders_using_extensions) {
+        glAttachObjectARB (m_shader_program, m_vertex_shader);
+    } else {
+        glAttachShader (m_shader_program, m_vertex_shader);
+    }
+    GLERRPRINT ("After attach vertex shader.");
+
+    if (m_shaders_using_extensions) {
+        m_fragment_shader = glCreateShaderObjectARB (GL_FRAGMENT_SHADER_ARB);
+        glShaderSourceARB (m_fragment_shader, 1, &fragment_source, NULL);
+        glCompileShaderARB (m_fragment_shader);
+        glGetObjectParameterivARB (m_fragment_shader,
+                GL_OBJECT_COMPILE_STATUS_ARB, &status);
+    } else {
+        m_fragment_shader = glCreateShader (GL_FRAGMENT_SHADER);
+        glShaderSource (m_fragment_shader, 1, &fragment_source, NULL);
+        glCompileShader (m_fragment_shader);
+        glGetShaderiv (m_fragment_shader, GL_COMPILE_STATUS, &status);
+    }
     if (! status) {
         std::cerr << "fragment shader compile status: " << status << "\n";
         char buf[10000];
         buf[0] = 0;
         GLsizei len;
-        glGetShaderInfoLog (m_fragment_shader, sizeof(buf), &len, buf);
+        if (m_shaders_using_extensions) {
+            glGetInfoLogARB (m_fragment_shader, sizeof(buf), &len, buf);
+        } else {
+            glGetShaderInfoLog (m_fragment_shader, sizeof(buf), &len, buf);
+        }
         std::cerr << "compile log:\n" << buf << "---\n";
+        // FIXME: How to handle this error?
     }
-    glAttachShader (m_shader_program, m_fragment_shader);
-    GLERRPRINT ("fragment shader");
+    if (m_shaders_using_extensions) {
+        glAttachObjectARB (m_shader_program, m_fragment_shader);
+    } else {
+        glAttachShader (m_shader_program, m_fragment_shader);
+    }
+    GLERRPRINT ("After attach fragment shader");
 
-    glLinkProgram (m_shader_program);
+    if (m_shaders_using_extensions) {
+        glLinkProgramARB (m_shader_program);
+    } else {
+        glLinkProgram (m_shader_program);
+    }
     GLERRPRINT ("link");
     GLint linked, attached_shaders;
-    glGetProgramiv (m_shader_program, GL_LINK_STATUS, &linked);
-    if (! linked)
+    if (m_shaders_using_extensions) {
+        glGetObjectParameterivARB (m_shader_program,
+                GL_OBJECT_LINK_STATUS_ARB, &linked);
+    } else {
+        glGetProgramiv (m_shader_program, GL_LINK_STATUS, &linked);
+    }
+    if (! linked) {
         std::cerr << "NOT LINKED\n";
-    GLERRPRINT ("check link");
-    glGetProgramiv (m_shader_program, GL_ATTACHED_SHADERS, &attached_shaders);
-    if (attached_shaders != 2)
-        std::cerr << "attached shaders: " << (int)attached_shaders << "\n";
+        // FIXME: How to handle this error?
+    }
 
     m_shaders_created = true;
 
-#if 0
-//    useshader ();
-
-    GLint loc;
-    loc = glGetUniformLocation (m_shader_program, "imgtex");
-    GLERRPRINT ("use tex 1");
-    glUniform1i (loc, m_texid /*texture sampler number*/);
-    GLERRPRINT ("use tex 2");
-#endif
 }
 
 
@@ -342,20 +370,7 @@ IvGL::paintGL ()
     const ImageSpec &spec (img->spec());
     float z = m_zoom;
 
-#if 0
-    // If the on-screen application window is larger than the full image
-    // size, always center the image.
-    float midx = img->oriented_full_x() + 0.5 * img->oriented_full_width();
-    float midy = img->oriented_full_y() + 0.5 * img->oriented_full_height();
-    if (z*img->oriented_full_width() <= width())
-        m_centerx = midx;
-    if (z*img->oriented_full_height() <= height())
-        m_centery = midy;
-#endif
-
-    glPushAttrib (GL_ALL_ATTRIB_BITS);
     glPushMatrix ();
-    glLoadIdentity ();
     // Transform is now same as the main GL viewport -- window pixels as
     // units, with (0,0) at the center of the visible unit.
     glTranslatef (0, 0, -5.0);
@@ -375,7 +390,8 @@ IvGL::paintGL ()
     float xmax = spec.x + spec.width;
     float ymin = spec.y;
     float ymax = spec.y + spec.height;
-    float smin = 0, smax = 1, tmin = 0, tmax = 1;
+    float smin = 0, smax = spec.width/float (m_texture_width);
+    float tmin = 0, tmax = spec.height/float (m_texture_height);
     int orient = img->orientation();
     int rotate = 0;
     if (orient != 1) {
@@ -406,15 +422,9 @@ IvGL::paintGL ()
     }
     useshader ();
 
-    // used with GL_TEXTURE_RECTANGLE_ARB textures
-    if (m_unnormalized_coords) {
-        smax = xmax;
-        tmax = ymax;
-    }
     gl_rect (xmin, ymin, xmax, ymax, 0, smin, tmin, smax, tmax, rotate);
 
     glPopMatrix ();
-    glPopAttrib ();
 
     if (m_viewer.pixelviewOn()) {
         paint_pixelview ();
@@ -467,7 +477,6 @@ IvGL::paint_pixelview ()
     get_focus_image_pixel (xp, yp);
 
     glPushMatrix ();
-    glLoadIdentity ();
     // Transform is now same as the main GL viewport -- window pixels as
     // units, with (0,0) at the center of the visible window.
 
@@ -492,16 +501,28 @@ IvGL::paint_pixelview ()
 
     // This square is the closeup window itself
     //
-    glPushAttrib (GL_ALL_ATTRIB_BITS);
+    glPushAttrib (GL_ENABLE_BIT | GL_TEXTURE_BIT);
     useshader (true);
-    float xtexsize = 0.5 * (float)ncloseuppixels / img->oriented_width();
-    float ytexsize = 0.5 * (float)ncloseuppixels / img->oriented_height();
+    if (! (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height())) {
+        glDisable (GL_TEXTURE_2D);
+        glColor3f (0.1,0.1,0.1);
+    }
+    if (! m_use_shaders) {
+        glDisable (GL_BLEND);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
+    float oriented_tex_width = (img->orientation() <= 4 ? m_texture_width : m_texture_height);
+    float oriented_tex_height = (img->orientation() <= 4 ? m_texture_height : m_texture_width);
+    float xtexsize = 0.5 * (float)ncloseuppixels / oriented_tex_width;
+    float ytexsize = 0.5 * (float)ncloseuppixels / oriented_tex_height;
     // Make (x,y) be the image space NDC coords of the mouse.
-    float x = (xp+0.5f) / (/* ? z * */ img->oriented_width());
-    float y = (yp+0.5f) / (/* ? z * */ img->oriented_height());
+    float x = (xp+0.5f) / (/* ? z * */ oriented_tex_width);
+    float y = (yp+0.5f) / (/* ? z * */ oriented_tex_height);
+
     gl_rect (-0.5f*closeupsize, 0.5f*closeupsize,
-             0.5f*closeupsize, -0.5f*closeupsize, 0,
-             x - xtexsize, y - ytexsize, x + xtexsize, y + ytexsize);
+            0.5f*closeupsize, -0.5f*closeupsize, 0,
+            x - xtexsize, y - ytexsize, x + xtexsize, y + ytexsize);
     glPopAttrib ();
 
     // Draw a second window, slightly behind the closeup window, as a
@@ -510,26 +531,28 @@ IvGL::paint_pixelview ()
     // extends slightly out from the closeup window (making it more
     // clearly visible), and also all the way down to cover the area
     // where the text will be printed, so it is very readable.
-    int xwin, ywin;
-    get_focus_image_pixel (xwin, ywin);
     const int yspacing = 18;
 
-    glPushAttrib (GL_ALL_ATTRIB_BITS);
-    glUseProgram (0);  // No shader
+    glPushAttrib (GL_ENABLE_BIT);
+    glDisable (GL_TEXTURE_2D);
+    if (m_use_shaders) {
+        // Disable shaders for this.
+        gl_use_program (0);
+    }
     float extraspace = yspacing * (1 + spec.nchannels) + 4;
     glColor4f (0.1, 0.1, 0.1, 0.5);
     gl_rect (-0.5f*closeupsize-2, 0.5f*closeupsize+2,
              0.5f*closeupsize+2, -0.5f*closeupsize - extraspace, -0.1);
 
-    // Now we print text giving the mouse coordinates and the numerical
-    // values of the pixel that the mouse is over.
-    QFont font;
-    font.setFixedPitch (true);
+    if (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()) {
+        // Now we print text giving the mouse coordinates and the numerical
+        // values of the pixel that the mouse is over.
+        QFont font;
+        font.setFixedPitch (true);
 //        std::cerr << "pixel size " << font.pixelSize() << "\n";
 //    font.setPixelSize (16);
 //    font.setFixedPitch (20);
 //    bgfont.setPixelSize (20);
-    if (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()) {
         float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
         int textx = - closeupsize/2 + 4;
         int texty = - closeupsize/2 - yspacing;
@@ -560,7 +583,6 @@ IvGL::paint_pixelview ()
     }
 
     glPopAttrib ();
-  
     glPopMatrix ();
 }
 
@@ -569,63 +591,64 @@ IvGL::paint_pixelview ()
 void
 IvGL::useshader (bool pixelview)
 {
-#if (USE_SHADERS == 0)
-    glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-    return;
-#endif
-
     IvImage *img = m_viewer.cur();
     if (! img)
         return;
+
+    //glActiveTexture (GL_TEXTURE0);
+    glEnable (GL_TEXTURE_2D);
+    //glBindTexture (GL_TEXTURE_2D, m_texid);
+
+    if (!m_use_shaders) {
+        glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+        if (m_viewer.linearInterpolation ()) {
+            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        }
+        else {
+            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        }
+        return;
+    }
+
     const ImageSpec &spec (img->spec());
 
-    glActiveTexture (GL_TEXTURE0);
-    glEnable (GL_TEXTURE_2D);
-    glBindTexture (GL_TEXTURE_2D, m_texid);
-
-    GLERRPRINT ("before use program");
-    glUseProgram (m_shader_program);
-    GLERRPRINT ("use program");
+    gl_use_program (m_shader_program);
+    GLERRPRINT ("After use program");
 
     GLint loc;
-#if 0
-    loc = glGetUniformLocation (m_shader_program, "imgtex");
-    GLERRPRINT ("set param 1");
-    glUniform1i (loc, m_texid);
-    GLERRPRINT ("set param 2");
-#endif
-    loc = glGetUniformLocation (m_shader_program, "gain");
-    GLERRPRINT ("set param 3");
-//    std::cerr << "loc for gain is " << (int)loc << '\n';
-    float gain = powf (2.0, img->exposure());
-    glUniform1f (loc, gain);
-    GLERRPRINT ("set param 4");
-    loc = glGetUniformLocation (m_shader_program, "gamma");
-//    std::cerr << "loc for gamma is " << (int)loc << '\n';
-    glUniform1f (loc, img->gamma());
-    GLERRPRINT ("set param 5");
-    loc = glGetUniformLocation (m_shader_program, "channelview");
-    glUniform1i (loc, m_viewer.current_channel());
-    GLERRPRINT ("set param 5");
 
-    loc = glGetUniformLocation (m_shader_program, "imgchannels");
-    glUniform1i (loc, spec.nchannels);
-    GLERRPRINT ("set param 6");
+    loc = gl_get_uniform_location ("imgtex");
+    // This is the texture unit, not the texture object
+    gl_uniform (loc, 0);
 
-    loc = glGetUniformLocation (m_shader_program, "pixelview");
-    glUniform1i (loc, pixelview);
-    GLERRPRINT ("set param 7");
+    loc = gl_get_uniform_location ("gain");
 
-    loc = glGetUniformLocation (m_shader_program, "linearinterp");
-    glUniform1i (loc, m_viewer.linearInterpolation());
-    GLERRPRINT ("set param 7");
+    float gain = powf (2.0, img->exposure ());
+    gl_uniform (loc, gain);
 
-    loc = glGetUniformLocation (m_shader_program, "width");
-    glUniform1i (loc, spec.width);
-    GLERRPRINT ("set param 8");
-    loc = glGetUniformLocation (m_shader_program, "height");
-    glUniform1i (loc, spec.height);
-    GLERRPRINT ("set param 9");
+    loc = gl_get_uniform_location ("gamma");
+    gl_uniform (loc, img->gamma ());
+
+    loc = gl_get_uniform_location ("channelview");
+    gl_uniform (loc, m_viewer.current_channel ());
+
+    loc = gl_get_uniform_location ("imgchannels");
+    gl_uniform (loc, spec.nchannels);
+
+    loc = gl_get_uniform_location ("pixelview");
+    gl_uniform (loc, pixelview);
+
+    loc = gl_get_uniform_location ("linearinterp");
+    gl_uniform (loc, m_viewer.linearInterpolation ());
+
+    loc = gl_get_uniform_location ("width");
+    gl_uniform (loc, m_texture_width);
+
+    loc = gl_get_uniform_location ("height");
+    gl_uniform (loc, m_texture_height);
+    GLERRPRINT ("After settting uniforms");
 }
 
 
@@ -638,38 +661,88 @@ IvGL::update (IvImage *img)
 
 //    std::cerr << "update image\n";
 
+    if (! is_glsl_capable ()) {
+        img->select_channel (m_viewer.current_channel());
+        if (img->exposure () != 0.0 || img->gamma () != 1.0) {
+            img->apply_corrections ();
+        }
+    }
+
     const ImageSpec &spec (img->spec());
 //    glActiveTexture (GL_TEXTURE0);
 //    glEnable (GL_TEXTURE_2D);
-    glBindTexture (m_target_texture, m_texid);
+//    glBindTexture (GL_TEXTURE_2D, m_texid);
 
-    bool srgb = (USE_SRGB && spec.linearity == ImageSpec::sRGB);
+    bool srgb = false;
+    if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
+        srgb = true;
+    }
+    bool format_float = false;
+    if (m_use_float && spec.format.basetype == TypeDesc::FLOAT) {
+        format_float = true;
+    }
+    bool format_half = false;
+    if (m_use_float && spec.format.basetype == TypeDesc::HALF) {
+        format_half = true;
+    }
+
     GLenum glformat = GL_RGB;
     GLint glinternalformat = spec.nchannels;
     if (spec.nchannels == 1) {
-        glformat = GL_LUMINANCE32F_ARB;
+        glformat = GL_LUMINANCE;
+        if (srgb) {
+            glinternalformat = GL_SLUMINANCE;
+        } else if (format_float) {
+            glinternalformat = GL_LUMINANCE32F_ARB;
+        } else if (format_half) {
+            glinternalformat = GL_LUMINANCE16F_ARB;
+        }
+    } else if (spec.nchannels == 2) {
+        glformat = GL_LUMINANCE_ALPHA;
+        if (srgb) {
+            glinternalformat = GL_SLUMINANCE_ALPHA;
+        } else if (format_float) {
+            glinternalformat = GL_LUMINANCE_ALPHA32F_ARB;
+        } else if (format_half) {
+            glinternalformat = GL_LUMINANCE_ALPHA16F_ARB;
+        }
     } else if (spec.nchannels == 3) {
         glformat = GL_RGB;
-        if (spec.format.basetype == TypeDesc::FLOAT)
-            glinternalformat = srgb ? GL_SRGB_EXT : GL_RGB32F_ARB;
-        else if (spec.format.basetype == TypeDesc::UINT8)
-            glinternalformat = srgb ? GL_SRGB8_EXT : GL_RGB;
-        else if (spec.format.basetype == TypeDesc::HALF)
-            glinternalformat = srgb ? GL_SRGB_EXT : GL_RGB16F_ARB;
+        if (srgb) {
+            glinternalformat = GL_SRGB;
+        } else if (format_float) {
+            glinternalformat = GL_RGB32F_ARB;
+        } else if (format_half) {
+            glinternalformat = GL_RGB16F_ARB;
+        }
     } else if (spec.nchannels == 4) {
         glformat = GL_RGBA;
-        if (spec.format.basetype == TypeDesc::FLOAT)
-            glinternalformat = srgb ? GL_SRGB_ALPHA_EXT : GL_RGBA32F_ARB;
-        else if (spec.format.basetype == TypeDesc::UINT8)
-            glinternalformat = srgb ? GL_SRGB8_ALPHA8_EXT : GL_RGBA;
-        else if (spec.format.basetype == TypeDesc::HALF)
-            glinternalformat = srgb ? GL_SRGB_ALPHA_EXT : GL_RGBA16F_ARB;
+        if (srgb) {
+            glinternalformat = GL_SRGB_ALPHA;
+        } else if (format_float) {
+            glinternalformat = GL_RGBA32F_ARB;
+        } else if (format_half) {
+            glinternalformat = GL_RGBA16F_ARB;
+        }
+    } else {
+        //FIXME: What to do here?
+        std::cerr << "I don't know how to handle more than 4 channels\n";
     }
 
     GLenum gltype = GL_UNSIGNED_BYTE;
     switch (spec.format.basetype) {
     case TypeDesc::FLOAT  : gltype = GL_FLOAT;          break;
-    case TypeDesc::HALF   : gltype = GL_HALF_FLOAT_ARB; break;
+    case TypeDesc::HALF   : if (m_use_halffloat) {
+                                gltype = GL_HALF_FLOAT_ARB;
+                            } else {
+                                // If we reach here then something really wrong
+                                // happened: When half-float is not supported,
+                                // the image should be loaded as UINT8 (no GLSL
+                                // support) or FLOAT (GLSL support).
+                                // See IvImage::loadCurrentImage()
+                                std::cerr << "Tried to load an unsupported half-float image.\n";
+                            }
+                            break;
     case TypeDesc::INT8   : gltype = GL_BYTE;           break;
     case TypeDesc::UINT8  : gltype = GL_UNSIGNED_BYTE;  break;
     case TypeDesc::INT16  : gltype = GL_SHORT;          break;
@@ -681,27 +754,44 @@ IvGL::update (IvImage *img)
         break;
     }
 
-    glTexImage2D (m_target_texture, 0 /*mip level*/,
+    if (! m_use_npot_texture) {
+        m_texture_width = pow2roundup(spec.width);
+        m_texture_height= pow2roundup(spec.height);
+    }
+    else {
+        m_texture_width = spec.width;
+        m_texture_height= spec.height;
+    }
+
+    // FIXME: Investigate problem with odd-sized width/height. Actually,
+    // evidence is that it is not just width, but number of bytes that's
+    // the prolbme.  Meanwhile, uploading one scanline will fix the
+    // problem in some cases, but not all, and also it's slow.
+    // FIXME -- come back to this right away!
+    GLvoid *initial_data = NULL;
+    if (! (spec.width & 1) && /* ! (spec.height & 1) && */
+        m_texture_width == spec.width && m_texture_height == spec.height) {
+        initial_data = (GLvoid *) img->scanline (0);
+    }
+
+    //std::cerr << "Width: " << spec.width << ". Height: " << spec.height << "\n";
+    //std::cerr << "Texture width: " << m_texture_width << ". Texture height: " << m_texture_height << std::endl;
+    glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
                   glinternalformat,
-                  spec.width, spec.height,
+                  m_texture_width,  m_texture_height,
                   0 /*border width*/,
                   glformat, gltype, 
-                  (const GLvoid *)img->scanline(0) /*data*/);
+                  initial_data /*data*/);
 
-    // Work around... bug? ... wherein odd-sized scanlines don't seem to
-    // download the texture correctly, at least in OSX 10.5's OpenGL.
-    // I found an effective workaround is to send each scanline separately.
-    // Keep on the lookout for other conditions that trigger this problem,
-    // maybe my assumption that it's about odd-length width is wrong.
-    if (spec.width & 1) {
-        for (int y = 0;  y < spec.height;  ++y) {
-            glTexSubImage2D (m_target_texture, 0 /*mip level*/,
-                             0, y, spec.width, 1,
-                             glformat, gltype, 
-                             (const GLvoid *)img->scanline(y) /*data*/);
+    if (! initial_data) {
+        for (int y = 0; y < spec.height; ++y) {
+            glTexSubImage2D(GL_TEXTURE_2D, 0 /*mip level*/,
+                            0, y/* x, y within image */,
+                            spec.width, 1 /*width, height of patch*/,
+                            glformat, gltype,
+                            (GLvoid *)(img->scanline(y)));
         }
     }
-//    std::cerr << "done\n\n";
 }
 
 
@@ -946,6 +1036,7 @@ IvGL::get_focus_image_pixel (int &x, int &y)
     float imgy = Imath::lerp (top, bottom, normy);
     // So finally x,y are the coordinates of the image pixel (on [0,res-1])
     // underneath the mouse cursor.
+    //FIXME: Shouldn't this take image rotation into account?
     x = imgx;
     y = imgy;
 #if 0
@@ -962,53 +1053,93 @@ IvGL::get_focus_image_pixel (int &x, int &y)
 
 
 
+inline void
+IvGL::gl_use_program (int program)
+{
+    if (m_shaders_using_extensions) 
+        glUseProgramObjectARB (program);
+    else
+        glUseProgram (program);
+}
+
+
+
+inline GLint
+IvGL::gl_get_uniform_location (const char *uniform)
+{
+    if (m_shaders_using_extensions)
+        return glGetUniformLocationARB (m_shader_program, uniform);
+    else
+        return glGetUniformLocation (m_shader_program, uniform);
+}
+
+
+
+inline void
+IvGL::gl_uniform (GLint location, float value)
+{
+    if (m_shaders_using_extensions)
+        glUniform1fARB (location, value);
+    else
+        glUniform1f (location, value);
+}
+
+
+
+inline void
+IvGL::gl_uniform (GLint location, int value)
+{
+    if (m_shaders_using_extensions)
+        glUniform1iARB (location, value);
+    else
+        glUniform1i (location, value);
+}
+
+
+
 void
 IvGL::check_gl_extensions (void)
 {
-    // getting OpenGL version
-    const GLubyte *version_string = glGetString(GL_VERSION);
-    double gl_version = 0.0;
-    gl_version = atof((const char*)version_string);
+#ifndef FORCE_OPENGL_1
+    m_use_shaders = glewIsSupported("GL_VERSION_2_0");
 
-    // OpenGL 2.1 or more implies all the features we need are supported
-    // (NPOT textures, GL_HALF_FLOAT, GL_FLOAT), great!
-    if (gl_version >= 2.1)
-        return;
-
-    // turn on support for NPOT textures - if we can 
-    if (gl_version >= 1.1) {
-        std::string extensions ((const char*)glGetString (GL_EXTENSIONS));
-        std::vector<std::string> allowed_extensions;
-        boost::algorithm::split (allowed_extensions, extensions, boost::is_space());
-        BOOST_FOREACH (const std::string &extension, allowed_extensions) {
-            boost::is_equal test;
-
-            // supported form OpenGL 1.4
-            // NPOT textures are supported, normalized coords are supported
-            if (test (extension, "GL_ARB_texture_non_power_of_two"))
-                return;
-
-            // supported from OpenGL 1.1
-            // they are the same extensions: GL_ARB is approved by ARB
-#ifdef GL_TEXTURE_RECTANGLE_ARB
-            if (test (extension, "GL_ARB_texture_rectangle") ||
-                test (extension, "GL_EXT_texture_rectangle")) {
-                m_unnormalized_coords = true;
-                m_target_texture = GL_TEXTURE_RECTANGLE_ARB;
-                glEnable (m_target_texture);
-                return;
-            }
-#endif
-
-            // supported from OpenGL 1.2.1
-#ifdef GL_TEXTURE_RECTANGLE_NV
-            if (test (extension, "GL_NV_texture_rectangle")) {
-                m_unnormalized_coords = true;
-                m_target_texture = GL_TEXTURE_RECTANGLE_NV;
-                glEnable (m_target_texture);
-                return;
-            }
-#endif
-        }
+    if (!m_use_shaders && glewIsSupported("GL_ARB_shader_objects "
+                                          "GL_ARB_vertex_shader "
+                                          "GL_ARB_fragment_shader")) {
+        m_use_shaders = true;
+        m_shaders_using_extensions = true;
     }
+
+    m_use_srgb = glewIsSupported("GL_VERSION_2_1") ||
+                 glewIsSupported("GL_EXT_texture_sRGB");
+
+    m_use_halffloat = glewIsSupported("GL_VERSION_3_0") ||
+                      glewIsSupported("GL_ARB_half_float_pixel") ||
+                      glewIsSupported("GL_NV_half_float_pixel");
+
+    m_use_float = glewIsSupported("GL_VERSION_3_0") ||
+                  glewIsSupported("GL_ARB_texture_float") ||
+                  glewIsSupported("GL_ATI_texture_float");
+
+    m_use_npot_texture = glewIsSupported("GL_VERSION_2_0") ||
+                         glewIsSupported("GL_ARB_texture_non_power_of_two");
+#else
+    std::cerr << "Not checking GL extensions\n";
+#endif
+
+    m_max_texture_size = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_max_texture_size);
+
+#ifdef DEBUG
+    // Report back...
+    std::cerr << "OpenGL Shading Language supported: " << m_use_shaders << "\n";
+    if (m_shaders_using_extensions) {
+        std::cerr << "\t(with extensions)\n";
+    }
+    std::cerr << "OpenGL sRGB color space textures supported: " << m_use_srgb << "\n";
+    std::cerr << "OpenGL half-float pixels supported: " << m_use_halffloat << "\n";
+    std::cerr << "OpenGL float texture storage supported: " << m_use_float << "\n";
+    std::cerr << "OpenGL non power of two textures suported: " << m_use_npot_texture << "\n";
+    std::cerr << "OpenGL max texture dimension: " << m_max_texture_size << "\n";
+#endif
 }

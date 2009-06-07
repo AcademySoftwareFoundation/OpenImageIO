@@ -34,6 +34,9 @@
 
 #include <vector>
 
+// This needs to be included before GL.h
+#include <glew.h>
+
 #include <QtGui>
 #include <QGLWidget>
 
@@ -54,9 +57,15 @@ public:
     IvImage (const std::string &filename);
     virtual ~IvImage ();
 
-    virtual bool read (int subimage=0, bool force=false,
+    /// Read the image into ram.
+    /// If secondary buffer is true, and the format is UINT8, then a secondary
+    /// buffer will be created and the apply_corrections(), and
+    /// select_channel() methods will work.
+    /// Also, scanline will return a pointer to that buffer instead of the read
+    /// buffer.
+    virtual bool read (int subimage=0, bool force=false, TypeDesc format = TypeDesc::UNKNOWN,
                        OpenImageIO::ProgressCallback progress_callback=NULL,
-                       void *progress_callback_data=NULL);
+                       void *progress_callback_data=NULL, bool secondary_buffer=false);
     virtual bool init_spec (const std::string &filename);
 
     float gamma (void) const { return m_gamma; }
@@ -69,11 +78,42 @@ public:
 
     void invalidate () { m_pixels_valid = false;  m_thumbnail_valid = false; }
 
+    /// This will apply a sRGB -> linear mapping to the pixels.
+    /// Only works with UINT8 images.
+    void srgb_to_linear();
+
+    /// Return a pointer to the start of scanline #y.
+    ///
+    void *scanline (int y) {
+        if (m_secondary.empty()) {
+            return ImageBuf::scanline(y);
+        }
+        return (void *) (&m_secondary[y * m_spec.scanline_bytes()]);
+    }
+
+    /// Applies exposure and gamma corrections to the image. This works on the 
+    /// secondary buffer, and only when the image is UINT8.
+    void apply_corrections();
+
+    /// Copies data from the read buffer to the secondary buffer, selecting the
+    /// given channel:
+    ///  -2 = luminance
+    ///  -1 = all channels
+    ///   0 = red
+    ///   1 = green
+    ///   2 = blue
+    ///   3 = alpha
+    /// This only works when the image is UINT8 (atm). You should use this
+    /// before apply_corrections()
+    void select_channel(int channel);
+
 private:
+    std::vector<unsigned char> m_secondary; ///< Secondary buffer.
     char *m_thumbnail;         ///< Thumbnail image
     bool m_thumbnail_valid;    ///< Thumbnail is valid
     float m_gamma;             ///< Gamma correction of this image
     float m_exposure;          ///< Exposure gain of this image, in stops
+    TypeDesc m_file_dataformat; ///< TypeDesc of the image on disk (not in ram)
     mutable std::string m_shortinfo;
     mutable std::string m_longinfo;
 };
@@ -211,6 +251,7 @@ private:
     void addRecentFile (const std::string &name);
     void removeRecentFile (const std::string &name);
     void updateRecentFilesMenu ();
+    bool loadCurrentImage(int subimage = 0);
     void displayCurrentImage ();
     void updateTitle ();
     void updateStatusBar ();
@@ -374,6 +415,18 @@ public:
 
     void trigger_redraw (void) { glDraw(); }
 
+    /// Returns true if OpenGL is capable of loading textures in the sRGB color
+    /// space.
+    bool is_srgb_capable (void) { return m_use_srgb; }
+
+    /// Returns true if OpenGL can use GLSL, either with extensions or as
+    /// implementation of version 2.0
+    bool is_glsl_capable (void) { return m_use_shaders; }
+
+    /// Is OpenGL capable of reading half-float textures?
+    ///
+    bool is_half_capable (void) { return m_use_halffloat; }
+    
 protected:
     ImageViewer &m_viewer;            ///< Backpointer to viewer
     bool m_shaders_created;           ///< Have the shaders been created?
@@ -387,8 +440,15 @@ protected:
     bool m_dragging;                  ///< Are we dragging?
     int m_mousex, m_mousey;           ///< Last mouse position
     Qt::MouseButton m_drag_button;    ///< Button on when dragging
-    GLenum m_target_texture;          ///< type of the texture
-    bool m_unnormalized_coords;       ///< Are we using unnormalized coords?
+    bool m_use_shaders;               ///< Are shaders supported?
+    bool m_shaders_using_extensions;  ///< Are we using ARB_*_shader?
+    bool m_use_halffloat;             ///< Are half-float textures supported?
+    bool m_use_float;                 ///< Are float textures supported?
+    bool m_use_srgb;                  ///< Are sRGB-space textures supported?
+    bool m_use_npot_texture;          ///< Can we handle NPOT textures?
+    GLint m_max_texture_size;        ///< Maximum allowed texture dimension.
+    GLsizei m_texture_width;
+    GLsizei m_texture_height;
 
     virtual void initializeGL ();
     virtual void resizeGL (int w, int h);
@@ -413,6 +473,12 @@ private:
     typedef QGLWidget parent_t;
 
     void clamp_view_to_window ();
+
+    // Small wrappers to handle ARB shaders.
+    void gl_use_program (int program);
+    GLint gl_get_uniform_location (const char*);
+    void gl_uniform (GLint location, float value);
+    void gl_uniform (GLint location, int value);
 
     /// checks what OpenGL extensions we have
     ///

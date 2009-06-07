@@ -8,7 +8,6 @@
 
 
 CFLAGS += -DLINUX -DLINUX64 
-CFLAGS += -DGL_GLEXT_PROTOTYPES
 # 64-bit Linux should compile using PIC code
 CFLAGS += -fPIC
 

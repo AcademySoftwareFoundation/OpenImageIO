@@ -573,7 +573,7 @@ ImageViewer::reload()
         return;
     IvImage *newimage = m_images[m_current_image];
     newimage->invalidate ();
-    glwin->trigger_redraw ();
+    //glwin->trigger_redraw ();
     displayCurrentImage ();
 }
 
@@ -715,6 +715,73 @@ ImageViewer::updateStatusBar ()
 
 
 
+bool
+ImageViewer::loadCurrentImage (int subimage)
+{
+    if (m_current_image < 0 || m_current_image >= (int)m_images.size()) {
+        m_current_image = 0;
+    }
+    IvImage *img = cur ();
+    if (img) {
+        // We need the spec available to compare the image format with
+        // opengl's capabilities.
+        if (! img->init_spec (img->name ())) {
+            std::cerr << "Init spec failed in displayCurrentImage: " << img->error_message () << "\n";
+            return false;
+        }
+
+        // Used to check whether we'll need to do adjustments in the
+        // CPU. If true, images should be loaded as UINT8.
+        bool allow_transforms = false;
+
+        // By default, we try to load into OpenGL with the same format,
+        TypeDesc read_format = TypeDesc::UNKNOWN;
+        const ImageSpec &image_spec = img->spec();
+
+        if (glwin->is_glsl_capable ()) {
+            if (image_spec.format.basetype == TypeDesc::HALF &&
+                ! glwin->is_half_capable ()) {
+                //std::cerr << "Loading HALF-FLOAT as FLOAT\n";
+                read_format = TypeDesc::FLOAT;
+            }
+            if (image_spec.linearity == ImageSpec::sRGB &&
+                ! glwin->is_srgb_capable ()) {
+                // If the image is in sRGB, but OpenGL can't load sRGB textures then
+                // we'll need to do the transformation on the CPU after loading the
+                // image. We (so far) can only do this with UINT8 images, so make
+                // sure that it gets loaded in this format.
+                //std::cerr << "Loading as UINT8 to do sRGB\n";
+                read_format = TypeDesc::UINT8;
+            }
+        } else {
+            //std::cerr << "Loading as UINT8\n";
+            read_format = TypeDesc::UINT8;
+            allow_transforms = true;
+        }
+
+        // Do a forced read the image (re-loads from disk), using the given
+        // subimage.
+        if (img->read (subimage, true, read_format, image_progress_callback, this, allow_transforms)) {
+            // The image was read succesfully.
+            // Check if we've got to do sRGB to linear (ie, when not supported
+            // by OpenGL).
+            if (! glwin->is_srgb_capable () && 
+                img->spec().linearity == ImageSpec::sRGB) {
+                //std::cerr << "Doing sRGB to linear\n";
+                img->srgb_to_linear ();
+            }
+            return true;
+        }
+        else {
+            std::cerr << "read failed in loadCurrentImage: " << img->error_message() << "\n";
+            return false;
+        }
+    }
+    return false;
+}
+
+
+
 void
 ImageViewer::displayCurrentImage ()
 {
@@ -723,19 +790,24 @@ ImageViewer::displayCurrentImage ()
     IvImage *img = cur();
     if (img) {
         if (! img->pixels_valid()) {
+            bool load_result = false;
+
             statusViewInfo->hide ();
             statusProgress->show ();
-            if (img->read (img->subimage(), false, image_progress_callback, this)) {
+            load_result = loadCurrentImage (img->subimage ());
+            statusProgress->hide ();
+            statusViewInfo->show ();
+
+            if (load_result) {
                 glwin->center (img->oriented_full_x()+img->oriented_full_width()/2.0,
                                img->oriented_full_y()+img->oriented_full_height()/2.0);
             } else {
-                std::cerr << "read failed in displayCurrentImage: " << img->error_message() << "\n";
+                return;
             }
-            statusProgress->hide ();
-            statusViewInfo->show ();
         }
     } else {
         m_current_image = m_last_image = -1;
+        return;
     }
 
     glwin->update (img);
@@ -761,6 +833,10 @@ ImageViewer::displayCurrentImage ()
 void
 ImageViewer::current_image (int newimage)
 {
+#ifdef DEBUG
+    Timer swap_image_time;
+    swap_image_time.start();
+#endif
     if (m_images.empty() || newimage < 0 || newimage >= (int)m_images.size())
         m_current_image = 0;
     if (m_current_image != newimage) {
@@ -768,6 +844,10 @@ ImageViewer::current_image (int newimage)
         m_current_image = newimage;
     }
     displayCurrentImage ();
+#ifdef DEBUG
+    swap_image_time.stop();
+    std::cerr << "Current Image change elapsed time: " << swap_image_time() << " seconds \n";
+#endif
 }
 
 
@@ -876,6 +956,10 @@ ImageViewer::gammaPlus ()
 void
 ImageViewer::viewChannel (ChannelView c)
 {
+#ifdef DEBUG
+    Timer change_channel_time;
+    change_channel_time.start();
+#endif
     if (m_current_channel != c) {
         m_current_channel = c;
         displayCurrentImage();
@@ -886,6 +970,10 @@ ImageViewer::viewChannel (ChannelView c)
         viewChannelAlphaAct->setChecked (c == channelAlpha);
         viewChannelLuminanceAct->setChecked (c == channelLuminance);
     }
+#ifdef DEBUG
+    change_channel_time.stop();
+    std::cerr << "Change channel elapsed time: " << change_channel_time() << " seconds \n";
+#endif
 }
 
 
@@ -955,10 +1043,17 @@ ImageViewer::viewSubimagePrev ()
     if (! img)
         return;
     if (img->subimage() > 0) {
-        img->read (img->subimage()-1, true, image_progress_callback, this);
-        if (fitImageToWindowAct->isChecked ())
-            fitImageToWindow ();
-        displayCurrentImage ();
+        bool ok = false;
+        statusViewInfo->hide ();
+        statusProgress->show ();
+        ok = loadCurrentImage (img->subimage()-1);
+        statusProgress->hide ();
+        statusViewInfo->show ();
+        if (ok) {
+            if (fitImageToWindowAct->isChecked ())
+                fitImageToWindow ();
+            displayCurrentImage ();
+        }
     }
 }
 
@@ -970,10 +1065,17 @@ ImageViewer::viewSubimageNext ()
     if (! img)
         return;
     if (img->subimage() < img->nsubimages()-1) {
-        img->read (img->subimage()+1, true, image_progress_callback, this);
-        if (fitImageToWindowAct->isChecked ())
-            fitImageToWindow ();
-        displayCurrentImage ();
+        bool ok = false;
+        statusViewInfo->hide ();
+        statusProgress->show ();
+        ok = loadCurrentImage (img->subimage()+1);
+        statusProgress->hide ();
+        statusViewInfo->show ();
+        if (ok) {
+            if (fitImageToWindowAct->isChecked ())
+                fitImageToWindow ();
+            displayCurrentImage ();
+        }
     }
 }
 

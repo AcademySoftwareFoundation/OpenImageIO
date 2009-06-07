@@ -27,7 +27,7 @@ local_libs :=
 local_shlibs := libOpenImageIO
 
 # ld flags needed for this module
-local_ldflags := ${LINK_BOOST} ${LINK_QT} ${LINK_OPENGL} ${LINK_ILMBASE}
+local_ldflags := ${LINK_BOOST} ${LINK_QT} ${LINK_OPENGL} ${LINK_ILMBASE} ${LINK_GLEW}
 
 
 
