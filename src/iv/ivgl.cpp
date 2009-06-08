@@ -105,6 +105,18 @@ IvGL::initializeGL ()
     // Make sure initial matrix is identity (returning to this stack level loads
     // back this matrix).
     glLoadIdentity();
+    // There's this small detail in the OpenGL 2.1 (probably earlier versions
+    // too) spec:
+    //
+    // (For TexImage3D, TexImage2D and TexImage1D):
+    // The values of UNPACK ROW LENGTH and UNPACK ALIGNMENT control the row-to-
+    // row spacing in these images in the same manner as DrawPixels.
+    //
+    // UNPACK_ALIGNMENT has a default value of 4 according to the spec. Which
+    // means that it was expecting images to be Aligned to 4-bytes, and making
+    // several odd "skew-like effects" in the displayed images. Setting the
+    // alignment to 1 byte fixes this problems.
+    glPixelStorei (GL_UNPACK_ALIGNMENT, 1);          
 
     // here we check what OpenGL extensions are available, and take action
     // if needed
@@ -763,15 +775,9 @@ IvGL::update (IvImage *img)
         m_texture_height= spec.height;
     }
 
-    // FIXME: Investigate problem with odd-sized width/height. Actually,
-    // evidence is that it is not just width, but number of bytes that's
-    // the prolbme.  Meanwhile, uploading one scanline will fix the
-    // problem in some cases, but not all, and also it's slow.
-    // FIXME -- come back to this right away!
-    GLvoid *initial_data = NULL;
-    if (! (spec.width & 1) && /* ! (spec.height & 1) && */
-        m_texture_width == spec.width && m_texture_height == spec.height) {
-        initial_data = (GLvoid *) img->scanline (0);
+    GLvoid *full_texture_data = NULL;
+    if (m_texture_width == spec.width && m_texture_height == spec.height) {
+        full_texture_data = (GLvoid *) img->scanline (0);
     }
 
     //std::cerr << "Width: " << spec.width << ". Height: " << spec.height << "\n";
@@ -781,16 +787,14 @@ IvGL::update (IvImage *img)
                   m_texture_width,  m_texture_height,
                   0 /*border width*/,
                   glformat, gltype, 
-                  initial_data /*data*/);
+                  full_texture_data /*data*/);
 
-    if (! initial_data) {
-        for (int y = 0; y < spec.height; ++y) {
-            glTexSubImage2D(GL_TEXTURE_2D, 0 /*mip level*/,
-                            0, y/* x, y within image */,
-                            spec.width, 1 /*width, height of patch*/,
-                            glformat, gltype,
-                            (GLvoid *)(img->scanline(y)));
-        }
+    if (! full_texture_data) {
+        glTexSubImage2D(GL_TEXTURE_2D, 0 /*mip level*/,
+                        0, 0 /* x, y within image */,
+                        spec.width, spec.height /*width, height of patch*/,
+                        glformat, gltype,
+                        (GLvoid *)(img->scanline(0)));
     }
 }
 
