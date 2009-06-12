@@ -193,9 +193,26 @@ ImageBuf::read (int subimage, bool force, TypeDesc convert,
 
 
 bool
+ImageBuf::write (ImageOutput *out,
+                 OpenImageIO::ProgressCallback progress_callback,
+                 void *progress_callback_data) const
+{
+    OpenImageIO::stride_t as = OpenImageIO::AutoStride;
+    bool ok = out->write_image (m_spec.format, &m_pixels[0], as, as, as,
+                                progress_callback, progress_callback_data);
+    // FIXME -- Unsafe!  When IB is backed by an ImageCache, m_pixels
+    // will not be available and we'll need to use copy_pixels.
+    if (! ok)
+        m_err = out->error_message();
+    return ok;
+}
+
+
+
+bool
 ImageBuf::save (const std::string &_filename, const std::string &_fileformat,
                 OpenImageIO::ProgressCallback progress_callback,
-                void *progress_callback_data)
+                void *progress_callback_data) const
 {
     std::string filename = _filename.size() ? _filename : name();
     std::string fileformat = _fileformat.size() ? _fileformat : filename;
@@ -208,16 +225,21 @@ ImageBuf::save (const std::string &_filename, const std::string &_fileformat,
         m_err = out->error_message();
         return false;
     }
-    OpenImageIO::stride_t as = OpenImageIO::AutoStride;
-    if (! out->write_image (m_spec.format, &m_pixels[0], as, as, as,
-                            progress_callback, progress_callback_data)) {
-        m_err = out->error_message();
+    if (! write (out.get(), progress_callback, progress_callback_data))
         return false;
-    }
     out->close ();
     if (progress_callback)
         progress_callback (progress_callback_data, 0);
     return true;
+}
+
+
+
+template<typename T>
+inline float _getchannel (const ImageBuf &buf, int x, int y, int c)
+{
+    ImageBuf::ConstIterator<T> pixel (buf, x, y);
+    return pixel[c];
 }
 
 
@@ -227,23 +249,16 @@ ImageBuf::getchannel (int x, int y, int c) const
 {
     if (c < 0 || c >= spec().nchannels)
         return 0.0f;
-    const void *pixel = pixeladdr(x,y);
     switch (spec().format.basetype) {
-    case TypeDesc::FLOAT:
-        return ((float *)pixel)[c];
-    case TypeDesc::HALF:
-        return ((half *)pixel)[c];
-    case TypeDesc::DOUBLE:
-        return ((double *)pixel)[c];
-    case TypeDesc::INT8:
-        return ((char *)pixel)[c] / (float)std::numeric_limits<char>::max();
-    case TypeDesc::UINT8:
-        return ((unsigned char *)pixel)[c] / (float)std::numeric_limits<unsigned char>::max();
-    case TypeDesc::INT16:
-        return ((short *)pixel)[c] / (float)std::numeric_limits<short>::max();
-    case TypeDesc::UINT16:
-        return ((unsigned short *)pixel)[c] / 
-                (float)std::numeric_limits<unsigned short>::max();
+    case TypeDesc::FLOAT : return _getchannel<float> (*this, x, y, c);
+    case TypeDesc::UINT8 : return _getchannel<unsigned char> (*this, x, y, c);
+    case TypeDesc::INT8  : return _getchannel<char> (*this, x, y, c);
+    case TypeDesc::UINT16: return _getchannel<unsigned short> (*this, x, y, c);
+    case TypeDesc::INT16 : return _getchannel<short> (*this, x, y, c);
+    case TypeDesc::UINT  : return _getchannel<unsigned int> (*this, x, y, c);
+    case TypeDesc::INT   : return _getchannel<int> (*this, x, y, c);
+    case TypeDesc::HALF  : return _getchannel<half> (*this, x, y, c);
+    case TypeDesc::DOUBLE: return _getchannel<double> (*this, x, y, c);
     default:
         ASSERT (0);
         return 0.0f;
@@ -252,12 +267,34 @@ ImageBuf::getchannel (int x, int y, int c) const
 
 
 
+template<typename T>
+inline void
+_getpixel (const ImageBuf &buf, int x, int y, float *result, int chans)
+{
+    ImageBuf::ConstIterator<T> pixel (buf, x, y);
+    for (int i = 0;  i < chans;  ++i)
+        result[i] = pixel[i];
+}
+
+
+
 void
 ImageBuf::getpixel (int x, int y, float *pixel, int maxchannels) const
 {
     int n = std::min (spec().nchannels, maxchannels);
-    OpenImageIO::convert_types (spec().format, pixeladdr(x,y),
-                                TypeDesc::FLOAT, pixel, n);
+    switch (spec().format.basetype) {
+    case TypeDesc::FLOAT : _getpixel<float> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT8 : _getpixel<unsigned char> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT8  : _getpixel<char> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT16: _getpixel<unsigned short> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT16 : _getpixel<short> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT  : _getpixel<unsigned int> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT   : _getpixel<int> (*this, x, y, pixel, n); break;
+    case TypeDesc::HALF  : _getpixel<half> (*this, x, y, pixel, n); break;
+    case TypeDesc::DOUBLE: _getpixel<double> (*this, x, y, pixel, n); break;
+    default:
+        ASSERT (0);
+    }
 }
 
 
@@ -265,9 +302,8 @@ ImageBuf::getpixel (int x, int y, float *pixel, int maxchannels) const
 void
 ImageBuf::getpixel (int i, float *pixel, int maxchannels) const
 {
-    int n = std::min (spec().nchannels, maxchannels);
-    OpenImageIO::convert_types (spec().format, &m_pixels[i*m_spec.pixel_bytes()],
-                                TypeDesc::FLOAT, pixel, n);
+    getpixel (spec().x + (i % spec().width), spec().y + (i / spec().width),
+              pixel, maxchannels);
 }
 
 
@@ -297,12 +333,34 @@ ImageBuf::interppixel (float x, float y, float *pixel) const
 
 
 
+template<typename T>
+inline void
+_setpixel (ImageBuf &buf, int x, int y, const float *data, int chans)
+{
+    ImageBuf::Iterator<T> pixel (buf, x, y);
+    for (int i = 0;  i < chans;  ++i)
+        pixel[i] = data[i];
+}
+
+
+
 void
 ImageBuf::setpixel (int x, int y, const float *pixel, int maxchannels)
 {
     int n = std::min (spec().nchannels, maxchannels);
-    OpenImageIO::convert_types (TypeDesc::FLOAT, pixel, 
-                                spec().format, pixeladdr(x,y), n);
+    switch (spec().format.basetype) {
+    case TypeDesc::FLOAT : _setpixel<float> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT8 : _setpixel<unsigned char> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT8  : _setpixel<char> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT16: _setpixel<unsigned short> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT16 : _setpixel<short> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT  : _setpixel<unsigned int> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT   : _setpixel<int> (*this, x, y, pixel, n); break;
+    case TypeDesc::HALF  : _setpixel<half> (*this, x, y, pixel, n); break;
+    case TypeDesc::DOUBLE: _setpixel<double> (*this, x, y, pixel, n); break;
+    default:
+        ASSERT (0);
+    }
 }
 
 
@@ -310,9 +368,8 @@ ImageBuf::setpixel (int x, int y, const float *pixel, int maxchannels)
 void
 ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 {
-    int n = std::min (spec().nchannels, maxchannels);
-    OpenImageIO::convert_types (TypeDesc::FLOAT, pixel, spec().format,
-                                &m_pixels[i*m_spec.pixel_bytes()], n);
+    setpixel (spec().x + (i % spec().width), spec().y + (i / spec().width),
+              pixel, maxchannels);
 }
 
 
@@ -367,7 +424,6 @@ ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
             result = (void *) ((char *)result + usersize);
         }
 #endif
-    return true;
 }
 
 
@@ -458,10 +514,34 @@ ImageBuf::pixeladdr (int x, int y)
 
 
 
+template<typename T>
+inline void
+_zero (ImageBuf &buf)
+{
+    int chans = buf.nchannels();
+    for (ImageBuf::Iterator<T> pixel (buf);  pixel.valid();  ++pixel)
+        for (int i = 0;  i < chans;  ++i)
+            pixel[i] = 0;
+}
+
+
+
 void
 ImageBuf::zero ()
 {
-    memset (&m_pixels[0], 0, m_pixels.size());
+    switch (spec().format.basetype) {
+    case TypeDesc::FLOAT : _zero<float> (*this); break;
+    case TypeDesc::UINT8 : _zero<unsigned char> (*this); break;
+    case TypeDesc::INT8  : _zero<char> (*this); break;
+    case TypeDesc::UINT16: _zero<unsigned short> (*this); break;
+    case TypeDesc::INT16 : _zero<short> (*this); break;
+    case TypeDesc::UINT  : _zero<unsigned int> (*this); break;
+    case TypeDesc::INT   : _zero<int> (*this); break;
+    case TypeDesc::HALF  : _zero<half> (*this); break;
+    case TypeDesc::DOUBLE: _zero<double> (*this); break;
+    default:
+        ASSERT (0);
+    }
 }
 
 

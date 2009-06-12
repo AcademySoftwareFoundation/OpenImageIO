@@ -222,8 +222,8 @@ public:
     /// Retrieve a rectangle of raw unfiltered texels.
     ///
     virtual bool get_texels (ustring filename, TextureOptions &options,
-                             int subimage, int xmin, int xmax,
-                             int ymin, int ymax, int zmin, int zmax,
+                             int subimage, int xbegin, int xend,
+                             int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result);
 
     virtual std::string geterror () const;

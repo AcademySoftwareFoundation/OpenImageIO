@@ -128,21 +128,21 @@ public:
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
                                 int subimage=0) = 0;
 
-    /// Retrieve the rectangle of pixels spanning
-    /// [xmin..xmax X ymin..ymax X zmin..zmax] (inclusive, specified as
-    /// integer pixel coordinates) at the designated subimage, storing
-    /// the pixel values beginning at the address specified by result.
-    /// The pixel values will be converted to the type specified by
-    /// format.  It is up to the caller to ensure that result points to
-    /// an area of memory big enough to accommodate the requested
-    /// rectangle (taking into consideration its dimensions, number of
-    /// channels, and data format).
+    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
+    /// [ybegin..yend) X [zbegin..zend), with "exclusive end" a la STL,
+    /// specified as integer pixel coordinates in the designated
+    /// subimage, storing the pixel values beginning at the address
+    /// specified by result.  The pixel values will be converted to the
+    /// type specified by format.  It is up to the caller to ensure that
+    /// result points to an area of memory big enough to accommodate the
+    /// requested rectangle (taking into consideration its dimensions,
+    /// number of channels, and data format).
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool get_pixels (ustring filename, int subimage,
-                             int xmin, int xmax, int ymin, int ymax,
-                             int zmin, int zmax,
+                             int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend,
                              TypeDesc format, void *result) = 0;
 
     /// Define an opaque data type that allows us to have a pointer

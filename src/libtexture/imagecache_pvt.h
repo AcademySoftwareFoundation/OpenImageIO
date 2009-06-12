@@ -425,8 +425,8 @@ public:
 
     // Retrieve a rectangle of raw unfiltered pixels.
     virtual bool get_pixels (ustring filename, 
-                             int subimage, int xmin, int xmax,
-                             int ymin, int ymax, int zmin, int zmax, 
+                             int subimage, int xbegin, int xend,
+                             int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result);
 
     /// Retrieve a rectangle of raw unfiltered pixels, from an open valid

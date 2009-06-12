@@ -310,8 +310,8 @@ TextureSystemImpl::get_imagespec (ustring filename, ImageSpec &spec)
 
 bool
 TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
-                               int subimage, int xmin, int xmax,
-                               int ymin, int ymax, int zmin, int zmax,
+                               int subimage, int xbegin, int xend,
+                               int ybegin, int yend, int zbegin, int zend,
                                TypeDesc format, void *result)
 {
     TextureFile *texfile = find_texturefile (filename);
@@ -339,11 +339,11 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
     TileRef tile, lasttile;
     int nc = texfile->spec().nchannels;
     size_t formatpixelsize = nc * format.size();
-    for (int z = zmin;  z <= zmax;  ++z) {
+    for (int z = zbegin;  z < zend;  ++z) {
         int tz = z - (z % spec.tile_depth);
-        for (int y = ymin;  y <= ymax;  ++y) {
+        for (int y = ybegin;  y < yend;  ++y) {
             int ty = y - (y % spec.tile_height);
-            for (int x = xmin;  x <= xmax;  ++x) {
+            for (int x = xbegin;  x < xend;  ++x) {
                 int tx = x - (x % spec.tile_width);
                 TileID tileid (*texfile, subimage, tx, ty, tz);
                 find_tile (tileid, tile, lasttile);

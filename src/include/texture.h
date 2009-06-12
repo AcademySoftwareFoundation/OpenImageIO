@@ -351,9 +351,10 @@ public:
     virtual bool get_imagespec (ustring filename, ImageSpec &spec) = 0;
 
     /// Retrieve the rectangle of raw unfiltered texels spanning
-    /// [xmin..xmax X ymin..ymax X zmin..zmax] (inclusive, specified as
-    /// integer pixel coordinates), at the named MIP-map level, storing
-    /// the texel values beginning at the address specified by result.
+    /// [xbegin..xend) X [ybegin..yend) X [zbegin..zend), with
+    /// "exclusive end" a la STL, specified as integer pixel coordinates
+    /// in the designated MIP-map level, storing the texel values
+    /// beginning at the address specified by result.
     /// The texel values will be converted to the type specified by
     /// format.  It is up to the caller to ensure that result points to
     /// an area of memory big enough to accommodate the requested
@@ -363,8 +364,8 @@ public:
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool get_texels (ustring filename, TextureOptions &options,
-                             int level, int xmin, int xmax,
-                             int ymin, int ymax, int zmin, int zmax,
+                             int level, int xbegin, int xend,
+                             int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result) = 0;
 
     /// If any of the API routines returned false indicating an error,

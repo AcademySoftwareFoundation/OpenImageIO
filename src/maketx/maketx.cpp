@@ -264,9 +264,11 @@ make_texturemap (const char *maptypename = "texture map")
         // Do one scanline at a time, to keep to < 2^32 bytes each
         imagesize_t scanline_bytes = src.spec().scanline_bytes();
         ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
+        std::vector<unsigned char> tmp (scanline_bytes);
         for (int y = src.ymin();  y <= src.ymax();  ++y) {
-            sha.Update ((const unsigned char *) src.pixeladdr (src.xmin(), y),
-                        (unsigned int) scanline_bytes);
+            src.copy_pixels (src.xbegin(), src.xend(), y, y+1,
+                             src.spec().format, &tmp[0]);
+            sha.Update (&tmp[0], (unsigned int) scanline_bytes);
         }
         sha.Final ();
         sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
@@ -466,7 +468,7 @@ write_mipmap (ImageBuf &img,
 
     // Write out the image
     bool ok = true;
-    ok &= out->write_image (TypeDesc::FLOAT, img.pixeladdr(0,0));
+    ok &= img.write (out);
     stat_writetime += writetimer();
 
     if (mipmap) {  // Mipmap levels:
@@ -524,7 +526,7 @@ write_mipmap (ImageBuf &img,
                           << "\" : " << out->error_message() << "\n";
                 exit (EXIT_FAILURE);
             }
-            ok &= out->write_image (TypeDesc::FLOAT, small->pixeladdr(0,0));
+            ok &= small->write (out);
             stat_writetime += writetimer();
             if (verbose)
                 std::cout << "    " << smallspec.width << 'x' 

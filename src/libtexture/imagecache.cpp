@@ -1270,8 +1270,8 @@ ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec, int subimage)
 
 bool
 ImageCacheImpl::get_pixels (ustring filename, int subimage,
-                            int xmin, int xmax, int ymin, int ymax,
-                            int zmin, int zmax,
+                            int xbegin, int xend, int ybegin, int yend,
+                            int zbegin, int zend,
                             TypeDesc format, void *result)
 {
     ImageCacheFile *file = find_file (filename);
@@ -1289,16 +1289,16 @@ ImageCacheImpl::get_pixels (ustring filename, int subimage,
         return false;
     }
 
-    return get_pixels (file, subimage, xmin, xmax, ymin, ymax, zmin, zmax,
-                       format, result);
+    return get_pixels (file, subimage, xbegin, xend, ybegin, yend,
+                       zbegin, zend, format, result);
 }
 
 
 
 bool
 ImageCacheImpl::get_pixels (ImageCacheFile *file, int subimage,
-                            int xmin, int xmax, int ymin, int ymax,
-                            int zmin, int zmax,
+                            int xbegin, int xend, int ybegin, int yend,
+                            int zbegin, int zend,
                             TypeDesc format, void *result)
 {
     const ImageSpec &spec (file->spec());
@@ -1311,11 +1311,11 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file, int subimage,
     ImageCacheTileRef tile, lasttile;
     int nc = file->spec().nchannels;
     size_t formatpixelsize = nc * format.size();
-    for (int z = zmin;  z <= zmax;  ++z) {
+    for (int z = zbegin;  z < zend;  ++z) {
         int tz = z - (z % std::max (1, spec.tile_depth));
-        for (int y = ymin;  y <= ymax;  ++y) {
+        for (int y = ybegin;  y < yend;  ++y) {
             int ty = y - (y % spec.tile_height);
-            for (int x = xmin;  x <= xmax;  ++x) {
+            for (int x = xbegin;  x < xend;  ++x) {
                 int tx = x - (x % spec.tile_width);
                 TileID tileid (*file, subimage, tx, ty, tz);
                 find_tile (tileid, tile, lasttile);

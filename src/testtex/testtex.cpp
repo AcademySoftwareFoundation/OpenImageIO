@@ -282,8 +282,14 @@ test_getimagespec_gettexels (ustring filename)
     ImageBuf buf ("postage.exr", postagespec);
     TextureOptions opt;
     opt.nchannels = spec.nchannels;
-    texsys->get_texels (filename, opt, 0, w/2, w/2+w-1, h/2, h/2+h-1, 0, 0, 
-                        postagespec.format, buf.pixeladdr (0,0));
+    std::vector<float> tmp (w*h*spec.nchannels);
+    texsys->get_texels (filename, opt, 0, w/2, w/2+w, h/2, h/2+h, 0, 0, 
+                        postagespec.format, &tmp[0]);
+    for (int y = 0;  y < h;  ++y)
+        for (int x = 0;  x < w;  ++x) {
+            imagesize_t offset = (y*w + x) * spec.nchannels;
+            buf.setpixel (x, y, &tmp[offset]);
+        }
     buf.save ();
 }
 

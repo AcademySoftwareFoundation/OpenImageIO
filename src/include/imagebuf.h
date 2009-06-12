@@ -94,7 +94,15 @@ public:
     virtual bool save (const std::string &filename = std::string(),
                        const std::string &fileformat = std::string(),
                        OpenImageIO::ProgressCallback progress_callback=NULL,
-                       void *progress_callback_data=NULL);
+                       void *progress_callback_data=NULL) const;
+
+    /// Write the image to the open ImageOutput 'out'.  Return true if
+    /// all went ok, false if there were errors writing.  It does NOT
+    /// close the file when it's done (and so may be called in a loop to
+    /// write a multi-image file).
+    virtual bool write (ImageOutput *out,
+                        OpenImageIO::ProgressCallback progress_callback=NULL,
+                        void *progress_callback_data=NULL) const;
 
     /// Return info on the last error that occurred since error_message()
     /// was called.  This also clears the error message for next time.
@@ -233,14 +241,6 @@ public:
     /// Return the maximum y coordinate of the defined image.
     ///
     int ymax () const { return spec().y + spec().height - 1; }
-
-    /// Return the address where pixel (x,y) is stored in the image buffer.
-    /// Use with extreme caution!
-    const void *pixeladdr (int x, int y) const;
-
-    /// Return the address where pixel (x,y) is stored in the image buffer.
-    /// Use with extreme caution!
-    void *pixeladdr (int x, int y);
 
     /// Zero out (set to 0, black) the entire image.
     ///
@@ -454,7 +454,7 @@ protected:
     bool m_spec_valid;           ///< Is the spec valid
     bool m_pixels_valid;         ///< Image is valid
     bool m_badfile;              ///< File not found
-    std::string m_err;           ///< Last error message
+    mutable std::string m_err;   ///< Last error message
     int m_orientation;           ///< Orientation of the image
     float m_pixelaspect;         ///< Pixel aspect ratio of the image
 
@@ -516,6 +516,13 @@ protected:
 #undef TYPECASE
     }
 
+    // Return the address where pixel (x,y) is stored in the image buffer.
+    // Use with extreme caution!
+    const void *pixeladdr (int x, int y) const;
+
+    // Return the address where pixel (x,y) is stored in the image buffer.
+    // Use with extreme caution!
+    void *pixeladdr (int x, int y);
 };
 
 
