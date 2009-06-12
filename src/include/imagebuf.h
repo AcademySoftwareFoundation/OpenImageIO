@@ -364,22 +364,22 @@ public:
         /// Construct from just an ImageBuf -- iterate over the whole
         /// region, starting with the upper left pixel of the region.
         ConstIterator (const ImageBuf &ib)
-            : m_ib(&ib), m_xbegin(ib.xbegin()), m_ybegin(ib.ybegin()),
-              m_xend(ib.xend()), m_yend(ib.yend())
+            : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()), 
+              m_ybegin(ib.ybegin()), m_yend(ib.yend())
           { pos (m_xbegin,m_ybegin); }
         /// Construct from an ImageBuf and a specific pixel index..
         ///
         ConstIterator (const ImageBuf &ib, int x, int y)
-            : m_ib(&ib), m_xbegin(ib.xbegin()), m_ybegin(ib.ybegin()),
-              m_xend(ib.xend()), m_yend(ib.yend())
+            : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()),
+              m_ybegin(ib.ybegin()), m_yend(ib.yend())
           { pos (x, y); }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
-        ConstIterator (const ImageBuf &ib, int xbegin, int ybegin,
-                       int xend, int yend)
+        ConstIterator (const ImageBuf &ib, int xbegin, int xend,
+                       int ybegin, int yend)
             : m_ib(&ib), m_xbegin(std::max(xbegin,ib.xbegin())), 
-              m_ybegin(std::max(ybegin,ib.ybegin())),
               m_xend(std::min(xend,ib.xend())),
+              m_ybegin(std::max(ybegin,ib.ybegin())),
               m_yend(std::min(yend,ib.yend()))
           { pos (m_xbegin, m_ybegin); }
 
