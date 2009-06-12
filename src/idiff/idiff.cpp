@@ -441,42 +441,44 @@ compare_images (const ImageBuf &A, const ImageBuf &B,
     maxx=0, maxy=0, maxz=0, maxc=0;
     nfail = 0, nwarn = 0;
     float maxval = 1.0;  // max possible value
-    ASSERT (A.spec().format == TypeDesc::FLOAT);
-    const float *pixels0 = (const float *) A.pixeladdr (A.spec().x, A.spec().y);
-    const float *pixels1 = (const float *) B.pixeladdr (A.spec().x, A.spec().y);
-    const float *p = pixels0;
-    const float *q = pixels1;
-    for (int z = 0;  z < A.spec().depth;  ++z) {
-        for (int y = 0;  y < A.spec().height;  ++y) {
-            double scanlineerror = 0;
-            double scanline_sqrerror = 0;
-            for (int x = 0;  x < A.spec().width;  ++x) {
-                bool warned = false, failed = false;  // For this pixel
-                for (int c = 0;  c < A.spec().nchannels;  ++c, ++p, ++q) {
-                    maxval = std::max (maxval, std::max (*p, *q));
-                    double f = fabs (*p - *q);
-                    scanlineerror += f;
-                    scanline_sqrerror += f*f;
-                    if (f > maxerror) {
-                        maxerror = f;
-                        maxx = x;
-                        maxy = y;
-                        maxz = z;
-                        maxc = c;
-                    }
-                    if (! warned && f > warnthresh) {
-                        ++nwarn;
-                        warned = true;
-                    }
-                    if (! failed && f > failthresh) {
-                        ++nfail;
-                        failed = true;
-                    }
+    ASSERT (A.spec().format == TypeDesc::FLOAT &&
+            B.spec().format == TypeDesc::FLOAT);
+    ImageBuf::ConstIterator<float,float> a (A);
+    ImageBuf::ConstIterator<float,float> b (B);
+    // Break up into batches to reduce cancelation errors as the error
+    // sums become too much larger than the error for individual pixels.
+    const int batchsize = 4096;   // As good a guess as any
+    for ( ;  a.valid();  ) {
+        double batcherror = 0;
+        double batch_sqrerror = 0;
+        for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
+            b.pos (a.x(), a.y());  // ensure alignment
+            bool warned = false, failed = false;  // For this pixel
+            for (int c = 0;  c < A.spec().nchannels;  ++c) {
+                float aval = a[c], bval = b[c];
+                maxval = std::max (maxval, std::max (aval, bval));
+                double f = fabs (aval - bval);
+                batcherror += f;
+                batch_sqrerror += f*f;
+                if (f > maxerror) {
+                    maxerror = f;
+                    maxx = a.x();
+                    maxy = a.y();
+                    maxz = 0;  // FIXME -- doesn't work for volume images
+                    maxc = c;
+                }
+                if (! warned && f > warnthresh) {
+                    ++nwarn;
+                    warned = true;
+                }
+                if (! failed && f > failthresh) {
+                    ++nfail;
+                    failed = true;
                 }
             }
-            totalerror += scanlineerror;
-            totalsqrerror += scanline_sqrerror;
         }
+        totalerror += batcherror;
+        totalsqrerror += batch_sqrerror;
     }
     meanerror = totalerror / nvals;
     rms_error = sqrt (totalsqrerror / nvals);
@@ -594,20 +596,27 @@ main (int argc, char *argv[])
         if (diffimage.size() && (maxerror != 0 || !outdiffonly)) {
             ImageBuf diff (diffimage, img0.spec());
             diff.alloc (img0.spec());
-            float *pixels0 = (float *) img0.pixeladdr (img0.spec().x, img0.spec().y);
-            float *pixels1 = (float *) img1.pixeladdr (img1.spec().x, img1.spec().y);
-            float *pixelsdiff = (float *) diff.pixeladdr (diff.spec().x, diff.spec().y);
+            float *pixdiff = (float *) alloca (diff.spec().pixel_bytes());
+            ImageBuf::ConstIterator<float,float> pix0 (img0);
+            ImageBuf::ConstIterator<float,float> pix1 (img1);
             // Subtract the second image from the first.  At which time we no
             // longer need the second image, so free it.
-            if (diffabs)
-                for (int i = 0;  i < nvals;  ++i)
-                    pixelsdiff[i] = fabsf (pixels0[i] - pixels1[i]);
-            else
-                for (int i = 0;  i < nvals;  ++i)
-                    pixelsdiff[i] = (pixels0[i] - pixels1[i]);
-            if (diffscale != 1) {
-                for (int i = 0;  i < nvals;  ++i)
-                    pixelsdiff[i] *= diffscale;
+            if (diffabs) {
+                for (  ;  pix0.valid();  ++pix0) {
+                    pix1.pos (pix0.x(), pix0.y());  // ensure alignment
+                    for (int c = 0;  c < img0.nchannels();  ++c)
+                        pixdiff[c] = diffscale * fabsf (pix0[c] - pix1[c]);
+                    diff.setpixel (pix0.x() + img0.spec().x,
+                                   pix0.y() + img0.spec().y, pixdiff);
+                }
+            } else {
+                for (  ;  pix0.valid();  ++pix0) {
+                    pix1.pos (pix0.x(), pix0.y());  // ensure alignment
+                    for (int c = 0;  c < img0.spec().nchannels;  ++c)
+                        pixdiff[c] = diffscale * (pix0[c] - pix1[c]);
+                    diff.setpixel (pix0.x() + img0.spec().x,
+                                   pix0.y() + img0.spec().y, pixdiff);
+                }
             }
         
             diff.save (diffimage);

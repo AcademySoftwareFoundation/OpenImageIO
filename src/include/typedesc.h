@@ -211,6 +211,40 @@ struct TypeDesc {
 
 
 
+/// A template mechanism for getting the a base type from C type
+///
+template<typename T> struct BaseTypeFromC {};
+template<> struct BaseTypeFromC<unsigned char> { static const TypeDesc::BASETYPE value = TypeDesc::UINT8; };
+template<> struct BaseTypeFromC<char> { static const TypeDesc::BASETYPE value = TypeDesc::INT8; };
+template<> struct BaseTypeFromC<unsigned short> { static const TypeDesc::BASETYPE value = TypeDesc::UINT16; };
+template<> struct BaseTypeFromC<short> { static const TypeDesc::BASETYPE value = TypeDesc::INT16; };
+template<> struct BaseTypeFromC<unsigned int> { static const TypeDesc::BASETYPE value = TypeDesc::UINT; };
+template<> struct BaseTypeFromC<int> { static const TypeDesc::BASETYPE value = TypeDesc::INT; };
+#ifdef _HALF_H_
+template<> struct BaseTypeFromC<half> { static const TypeDesc::BASETYPE value = TypeDesc::HALF; };
+#endif
+template<> struct BaseTypeFromC<float> { static const TypeDesc::BASETYPE value = TypeDesc::FLOAT; };
+template<> struct BaseTypeFromC<double> { static const TypeDesc::BASETYPE value = TypeDesc::DOUBLE; };
+
+
+
+/// A template mechanism for getting C type of TypeDesc::BASETYPE.
+///
+template<int b> struct CType {};
+template<> struct CType<(int)TypeDesc::UINT8> { typedef unsigned char type; };
+template<> struct CType<(int)TypeDesc::INT8> { typedef char type; };
+template<> struct CType<(int)TypeDesc::UINT16> { typedef unsigned short type; };
+template<> struct CType<(int)TypeDesc::INT16> { typedef short type; };
+template<> struct CType<(int)TypeDesc::UINT> { typedef unsigned int type; };
+template<> struct CType<(int)TypeDesc::INT> { typedef int type; };
+#ifdef _HALF_H_
+template<> struct CType<(int)TypeDesc::HALF> { typedef half type; };
+#endif
+template<> struct CType<(int)TypeDesc::FLOAT> { typedef float type; };
+template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
+
+
+
 // Deprecated!  Some back-compatibility with Gelato
 typedef TypeDesc ParamType;
 typedef TypeDesc ParamBaseType;

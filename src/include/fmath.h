@@ -40,6 +40,7 @@
 
 #include <cmath>
 #include <limits>
+#include <typeinfo>
 
 #if defined(_MSC_VER)
 # ifndef _UINT64_T
@@ -298,6 +299,12 @@ clamped_mult64 (uint64_t a, uint64_t b)
 
 
 
+// Helper template to let us tell if two types are the same.
+template<typename T, typename U> struct is_same { static const bool value = false; };
+template<typename T> struct is_same<T,T> { static const bool value = true; };
+
+
+
 /// Convert n consecutive values from the type of S to the type of D.
 /// The conversion is not a simple cast, but correctly remaps the
 /// 0.0->1.0 range from and to the full positive range of integral
@@ -312,14 +319,12 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
                    D _min=std::numeric_limits<D>::min(),
                    D _max=std::numeric_limits<D>::max())
 {
-    if (sizeof(D) == sizeof(S) &&
-        std::numeric_limits<D>::min() == std::numeric_limits<S>::min() &&
-        std::numeric_limits<D>::max() == std::numeric_limits<S>::max()) {
+    if (is_same<S,D>::value) {
         // They must be the same type.  Just memcpy.
         memcpy (dst, src, n*sizeof(D));
         return;
     }
-    typedef float F;
+    typedef double F;
     F scale = std::numeric_limits<S>::is_integer ?
         ((F)1.0)/std::numeric_limits<S>::max() : (F)1.0;
     if (std::numeric_limits<D>::is_integer) {
@@ -374,6 +379,98 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
             *dst++ = (D)((*src++) * scale);
     }
 }
+
+
+
+/// Convert a single value from the type of S to the type of D.
+/// The conversion is not a simple cast, but correctly remaps the
+/// 0.0->1.0 range from and to the full positive range of integral
+/// types.  Take a copy shortcut if both types are the same and no
+/// conversion is necessary.
+template<typename S, typename D>
+D convert_type (const S &src)
+{
+    if (is_same<S,D>::value) {
+        // They must be the same type.  Just return it.
+        return (D)src;
+    }
+    typedef double F;
+    F scale = std::numeric_limits<S>::is_integer ?
+        ((F)1.0)/std::numeric_limits<S>::max() : (F)1.0;
+    if (std::numeric_limits<D>::is_integer) {
+        // Converting to an integer-like type.
+        typedef double F;
+        F min = (F) std::numeric_limits<D>::min();
+        F max = (F) std::numeric_limits<D>::max();
+        scale *= max;
+        return (D)(clamp ((F)src * scale, min, max));
+    } else {
+        // Converting to a float-like type, so we don't need to remap
+        // the range
+        return (D)((F)src * scale);
+    }
+}
+
+
+
+/// A DataProxy<I,E> looks like an (E &), but it really holds an (I &)
+/// and does conversions (via convert_type) as it reads in and out.
+/// (I and E are for INTERNAL and EXTERNAL data types, respectively).
+template<typename I, typename E>
+struct DataProxy {
+    DataProxy (I &data) : m_data(data) { }
+    E operator= (E newval) { m_data = convert_type<E,I>(newval); return newval; }
+    operator E () const { return convert_type<I,E>(m_data); }
+private:
+    I &m_data;
+};
+
+
+
+/// A ConstDataProxy<I,E> looks like a (const E &), but it really holds
+/// a (const I &) and does conversions (via convert_type) as it reads.
+/// (I and E are for INTERNAL and EXTERNAL data types, respectively).
+template<typename I, typename E>
+struct ConstDataProxy {
+    ConstDataProxy (const I &data) : m_data(data) { }
+    operator E () const { return convert_type<E,I>(*m_data); }
+private:
+    const I &m_data;
+};
+
+
+
+/// A DataArrayProxy<I,E> looks like an (E *), but it really holds an (I *)
+/// and does conversions (via convert_type) as it reads in and out.
+/// (I and E are for INTERNAL and EXTERNAL data types, respectively).
+template<typename I, typename E>
+struct DataArrayProxy {
+    DataArrayProxy (I *data=NULL) : m_data(data) { }
+    E operator* () const { return convert_type<I,E>(*m_data); }
+    E operator[] (int i) const { return convert_type<I,E>(m_data[i]); }
+    DataProxy<I,E> operator[] (int i) { return DataProxy<I,E> (m_data[i]); }
+    void set (I *data) { m_data = data; }
+    I * get () const { return m_data; }
+private:
+    I *m_data;
+};
+
+
+
+/// A ConstDataArrayProxy<I,E> looks like an (E *), but it really holds an
+/// (I *) and does conversions (via convert_type) as it reads in and out.
+/// (I and E are for INTERNAL and EXTERNAL data types, respectively).
+template<typename I, typename E>
+struct ConstDataArrayProxy {
+    ConstDataArrayProxy (const I *data=NULL) : m_data(data) { }
+    E operator* () const { return convert_type<I,E>(*m_data); }
+    E operator[] (int i) const { return convert_type<I,E>(m_data[i]); }
+    void set (const I *data) { m_data = data; }
+    const I * get () const { return m_data; }
+private:
+    const I *m_data;
+};
+
 
 
 

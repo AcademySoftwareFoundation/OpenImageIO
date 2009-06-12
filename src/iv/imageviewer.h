@@ -82,15 +82,6 @@ public:
     /// Only works with UINT8 images.
     void srgb_to_linear();
 
-    /// Return a pointer to the start of scanline #y.
-    ///
-    void *scanline (int y) {
-        if (m_secondary.empty()) {
-            return ImageBuf::scanline(y);
-        }
-        return (void *) (&m_secondary[y * m_spec.scanline_bytes()]);
-    }
-
     /// Applies exposure and gamma corrections to the image. This works on the 
     /// secondary buffer, and only when the image is UINT8.
     void apply_corrections();

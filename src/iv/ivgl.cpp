@@ -572,18 +572,21 @@ IvGL::paint_pixelview ()
         shadowed_text (textx, texty, 0.0f, s, font);
         texty -= yspacing;
         img->getpixel (xp+spec.x, yp+spec.y, fpixel);
-        const void *p = img->pixeladdr (xp+spec.x, yp+spec.y);
         for (int i = 0;  i < spec.nchannels;  ++i) {
             switch (spec.format.basetype) {
-            case TypeDesc::UINT8 :
+            case TypeDesc::UINT8 : {
+                ImageBuf::ConstIterator<unsigned char,unsigned char> p (*img, xp+spec.x, yp+spec.y);
                 s = Strutil::format ("%s: %3d  (%5.3f)",
                                      spec.channelnames[i].c_str(),
-                                     (int)((unsigned char *)p)[i], fpixel[i]);
+                                     (int)(p[i]), fpixel[i]);
+                }
                 break;
-            case TypeDesc::UINT16 :
+            case TypeDesc::UINT16 : {
+                ImageBuf::ConstIterator<unsigned short,unsigned short> p (*img, xp+spec.x, yp+spec.y);
                 s = Strutil::format ("%s: %3d  (%5.3f)",
                                      spec.channelnames[i].c_str(),
-                                     (int)((unsigned short *)p)[i], fpixel[i]);
+                                     (int)(p[i]), fpixel[i]);
+                }
                 break;
             default:  // everything else, treat as float
                 s = Strutil::format ("%s: %5.3f",
@@ -775,9 +778,18 @@ IvGL::update (IvImage *img)
         m_texture_height= spec.height;
     }
 
+    // Copy the imagebuf pixels we need, that's the only way we can do
+    // it safely once ImageBuf has a cache underneath and the whole image
+    // may not be resident at once.
+    // FIXME -- when we render in "tiles", this will copy a tile rather 
+    // than the whole image.
+    std::vector<unsigned char> buf;
+    buf.resize (spec.width * spec.height * spec.pixel_bytes());
+    img->copy_pixels (spec.x, spec.x+spec.width, spec.y, spec.y+spec.height,
+                      spec.format, &buf[0]);
     GLvoid *full_texture_data = NULL;
     if (m_texture_width == spec.width && m_texture_height == spec.height) {
-        full_texture_data = (GLvoid *) img->scanline (0);
+        full_texture_data = (GLvoid *) &buf[0];
     }
 
     //std::cerr << "Width: " << spec.width << ". Height: " << spec.height << "\n";
@@ -794,7 +806,7 @@ IvGL::update (IvImage *img)
                         0, 0 /* x, y within image */,
                         spec.width, spec.height /*width, height of patch*/,
                         glformat, gltype,
-                        (GLvoid *)(img->scanline(0)));
+                        (GLvoid *)&buf[0]);
     }
 }
 

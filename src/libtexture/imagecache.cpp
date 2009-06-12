@@ -361,6 +361,7 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
     // lookups form the next finer subimage.
     const ImageSpec &upspec (this->spec(subimage-1));  // next higher subimage
     float *bilerppels = (float *) alloca (4 * spec.nchannels * sizeof(float));
+    float *resultpel = (float *) alloca (spec.nchannels * sizeof(float));
     for (int j = y0;  j <= y1;  ++j) {
         float yf = (j+0.5f) / spec.full_height;
         int ylow;
@@ -373,17 +374,13 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
                                      0, 0, TypeDesc::FLOAT, bilerppels);
             bilerp (bilerppels+0, bilerppels+spec.nchannels,
                     bilerppels+2*spec.nchannels, bilerppels+3*spec.nchannels,
-                    xfrac, yfrac, spec.nchannels,
-                    (float *)lores.pixeladdr (i-x0, j-y0));
+                    xfrac, yfrac, spec.nchannels, resultpel);
+            lores.setpixel (i-x0, j-y0, resultpel);
         }
     }
 
-    // Now convert those values we computed (as floats) into the native
-    // format, and into the buffer that the caller requested.
-    convert_image (spec.nchannels, tw, th, 1, lores.pixeladdr(0,0),
-                   TypeDesc::FLOAT, lospec.pixel_bytes(),
-                   lospec.scanline_bytes(), lospec.image_bytes(),
-                   data, format, xstride, ystride, zstride);
+    // Now convert and copy those values out to the caller's buffer
+    lores.copy_pixels (0, tw-1, 0, th-1, format, data);
     return true;
 }
 

@@ -317,6 +317,61 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 
 
+bool
+ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
+                       TypeDesc format, void *result) const
+{
+#if 0
+    // Fancy method -- for each possible base type that the user
+    // wants for a destination type, call a template specialization.
+    switch (format.basetype) {
+    case TypeDesc::UINT8 :
+        _copy_pixels<unsigned char> (xbegin, xend, ybegin, yend, (unsigned char *)result);
+        break;
+    case TypeDesc::INT8:
+        _copy_pixels<char> (xbegin, xend, ybegin, yend, (char *)result);
+        break;
+    case TypeDesc::UINT16 :
+        _copy_pixels<unsigned short> (xbegin, xend, ybegin, yend, (unsigned short *)result);
+        break;
+    case TypeDesc::INT16 :
+        _copy_pixels<short> (xbegin, xend, ybegin, yend, (short *)result);
+        break;
+    case TypeDesc::UINT :
+        _copy_pixels<unsigned int> (xbegin, xend, ybegin, yend, (unsigned int *)result);
+        break;
+    case TypeDesc::INT :
+        _copy_pixels<int> (xbegin, xend, ybegin, yend, (int *)result);
+        break;
+    case TypeDesc::HALF :
+        _copy_pixels<half> (xbegin, xend, ybegin, yend, (half *)result);
+        break;
+    case TypeDesc::FLOAT :
+        _copy_pixels<float> (xbegin, xend, ybegin, yend, (float *)result);
+        break;
+    case TypeDesc::DOUBLE :
+        _copy_pixels<double> (xbegin, xend, ybegin, yend, (double *)result);
+        break;
+    default:
+        return false;
+    }
+#else
+    // Naive method -- loop over pixels, calling getpixel()
+    size_t usersize = format.size() * nchannels();
+    float *pel = (float *) alloca (nchannels() * sizeof(float));
+    for (int y = ybegin;  y < yend;  ++y)
+        for (int x = xbegin;  x < xend;  ++x) {
+            getpixel (x, y, pel);
+            convert_types (TypeDesc::TypeFloat, pel,
+                           format, result, nchannels());
+            result = (void *) ((char *)result + usersize);
+        }
+#endif
+    return true;
+}
+
+
+
 int
 ImageBuf::oriented_width () const
 {
@@ -380,6 +435,26 @@ ImageBuf::oriented_full_y () const
 }
 
 
+
+const void *
+ImageBuf::pixeladdr (int x, int y) const
+{
+    x -= spec().x;
+    y -= spec().y;
+    size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
+    return &(m_pixels[p]);
+}
+
+
+
+void *
+ImageBuf::pixeladdr (int x, int y)
+{
+    x -= spec().x;
+    y -= spec().y;
+    size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
+    return &(m_pixels[p]);
+}
 
 
 

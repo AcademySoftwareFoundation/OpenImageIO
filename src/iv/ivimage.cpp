@@ -273,14 +273,12 @@ IvImage::srgb_to_linear ()
         color_channels = 3;
     }
 
-    for (int y = 0; y <= ymax(); ++y) {
-        unsigned char *sl = (unsigned char*)ImageBuf::scanline(y);
-        for (int x = 0; x <= xmax(); ++x) {
-            for (int ch = 0; ch < color_channels; ++ch) {
-                unsigned char srgb = sl[x*total_channels + ch];
-                unsigned char linear = srgb_to_linear_lut[srgb];
-                sl[x*total_channels + ch] = linear;
-            }
+    ImageBuf::Iterator<unsigned char, unsigned char> pix (*this);
+    for (  ;  pix.valid();  ++pix) {
+        for (int ch = 0; ch < color_channels; ++ch) {
+            unsigned char srgb = pix[ch];
+            unsigned char linear = srgb_to_linear_lut[srgb];
+            pix[ch] = linear;
         }
     }
 }
@@ -364,40 +362,40 @@ IvImage::select_channel (int channel)
         return;
     }
 
-    for (int y = 0; y <= ymax(); ++y) {
-        unsigned char *sl_src = (unsigned char*) ImageBuf::scanline (y);
-        unsigned char *sl_dest = &m_secondary[y * m_spec.scanline_bytes()];
-        for (int x = 0; x <= xmax(); ++x) {
-            if (channel == -2) {
-                // Convert RGB to luminance, (Rec. 709 luma coefficients).
-                float f_lum = converter (sl_src[x*total_channels + 0])*0.2126f +
-                              converter (sl_src[x*total_channels + 1])*0.7152f +
-                              converter (sl_src[x*total_channels + 2])*0.0722f;
-                unsigned char lum = (unsigned char)RoundToInt (clamp (f_lum, 0.0f, 1.0f) * 255.0);
-                sl_dest[x*total_channels + 0] = lum;
-                sl_dest[x*total_channels + 1] = lum;
-                sl_dest[x*total_channels + 2] = lum;
-
-                // Handle the rest of the channels
-                for (int ch = color_channels; ch < total_channels; ++ch) {
-                    sl_dest[x*total_channels + ch] = sl_src[x*total_channels + ch];
-                }
+    ImageBuf::Iterator<unsigned char, unsigned char> src (*this);
+    for (  ;  src.valid();  ++src) {
+        int x = src.x(), y = src.y();
+        unsigned char *dest = &m_secondary[y * m_spec.scanline_bytes() +
+                                           x * m_spec.pixel_bytes()];
+        if (channel == -2) {
+            // Convert RGB to luminance, (Rec. 709 luma coefficients).
+            float f_lum = converter (src[0])*0.2126f +
+                converter (src[1])*0.7152f +
+                converter (src[2])*0.0722f;
+            unsigned char lum = (unsigned char)RoundToInt (clamp (f_lum, 0.0f, 1.0f) * 255.0);
+            dest[0] = lum;
+            dest[1] = lum;
+            dest[2] = lum;
+            
+            // Handle the rest of the channels
+            for (int ch = color_channels; ch < total_channels; ++ch) {
+                dest[ch] = src[ch];
+            }
+        } else {
+            unsigned char v = 0;
+            if (channel < total_channels) {
+                v = src[channel];
             } else {
-                unsigned char v = 0;
-                if (channel < total_channels) {
-                    v = sl_src[x*total_channels + channel];
-                } else {
-                    // This at least makes sense for the alpha channel when
-                    // there are no alpha values.
-                    v = 255;
-                }
-                int ch = 0;
-                for (; ch < color_channels; ++ch) {
-                    sl_dest[x*total_channels + ch] = v;
-                }
-                for (; ch < total_channels; ++ch) {
-                    sl_dest[x*total_channels + ch] = sl_src[x*total_channels + ch];
-                }
+                // This at least makes sense for the alpha channel when
+                // there are no alpha values.
+                v = 255;
+            }
+            int ch = 0;
+            for (; ch < color_channels; ++ch) {
+                dest[ch] = v;
+            }
+            for (; ch < total_channels; ++ch) {
+                dest[ch] = src[ch];
             }
         }
     }
