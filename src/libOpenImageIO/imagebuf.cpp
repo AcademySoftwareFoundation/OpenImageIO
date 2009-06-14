@@ -236,7 +236,7 @@ ImageBuf::save (const std::string &_filename, const std::string &_fileformat,
 
 
 template<typename T>
-inline float _getchannel (const ImageBuf &buf, int x, int y, int c)
+static inline float getchannel_ (const ImageBuf &buf, int x, int y, int c)
 {
     ImageBuf::ConstIterator<T> pixel (buf, x, y);
     return pixel[c];
@@ -250,15 +250,15 @@ ImageBuf::getchannel (int x, int y, int c) const
     if (c < 0 || c >= spec().nchannels)
         return 0.0f;
     switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : return _getchannel<float> (*this, x, y, c);
-    case TypeDesc::UINT8 : return _getchannel<unsigned char> (*this, x, y, c);
-    case TypeDesc::INT8  : return _getchannel<char> (*this, x, y, c);
-    case TypeDesc::UINT16: return _getchannel<unsigned short> (*this, x, y, c);
-    case TypeDesc::INT16 : return _getchannel<short> (*this, x, y, c);
-    case TypeDesc::UINT  : return _getchannel<unsigned int> (*this, x, y, c);
-    case TypeDesc::INT   : return _getchannel<int> (*this, x, y, c);
-    case TypeDesc::HALF  : return _getchannel<half> (*this, x, y, c);
-    case TypeDesc::DOUBLE: return _getchannel<double> (*this, x, y, c);
+    case TypeDesc::FLOAT : return getchannel_<float> (*this, x, y, c);
+    case TypeDesc::UINT8 : return getchannel_<unsigned char> (*this, x, y, c);
+    case TypeDesc::INT8  : return getchannel_<char> (*this, x, y, c);
+    case TypeDesc::UINT16: return getchannel_<unsigned short> (*this, x, y, c);
+    case TypeDesc::INT16 : return getchannel_<short> (*this, x, y, c);
+    case TypeDesc::UINT  : return getchannel_<unsigned int> (*this, x, y, c);
+    case TypeDesc::INT   : return getchannel_<int> (*this, x, y, c);
+    case TypeDesc::HALF  : return getchannel_<half> (*this, x, y, c);
+    case TypeDesc::DOUBLE: return getchannel_<double> (*this, x, y, c);
     default:
         ASSERT (0);
         return 0.0f;
@@ -268,8 +268,8 @@ ImageBuf::getchannel (int x, int y, int c) const
 
 
 template<typename T>
-inline void
-_getpixel (const ImageBuf &buf, int x, int y, float *result, int chans)
+static inline void
+getpixel_ (const ImageBuf &buf, int x, int y, float *result, int chans)
 {
     ImageBuf::ConstIterator<T> pixel (buf, x, y);
     for (int i = 0;  i < chans;  ++i)
@@ -283,27 +283,18 @@ ImageBuf::getpixel (int x, int y, float *pixel, int maxchannels) const
 {
     int n = std::min (spec().nchannels, maxchannels);
     switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : _getpixel<float> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT8 : _getpixel<unsigned char> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT8  : _getpixel<char> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT16: _getpixel<unsigned short> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT16 : _getpixel<short> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT  : _getpixel<unsigned int> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT   : _getpixel<int> (*this, x, y, pixel, n); break;
-    case TypeDesc::HALF  : _getpixel<half> (*this, x, y, pixel, n); break;
-    case TypeDesc::DOUBLE: _getpixel<double> (*this, x, y, pixel, n); break;
+    case TypeDesc::FLOAT : getpixel_<float> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT8 : getpixel_<unsigned char> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT8  : getpixel_<char> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT16: getpixel_<unsigned short> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT16 : getpixel_<short> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT  : getpixel_<unsigned int> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT   : getpixel_<int> (*this, x, y, pixel, n); break;
+    case TypeDesc::HALF  : getpixel_<half> (*this, x, y, pixel, n); break;
+    case TypeDesc::DOUBLE: getpixel_<double> (*this, x, y, pixel, n); break;
     default:
         ASSERT (0);
     }
-}
-
-
-
-void
-ImageBuf::getpixel (int i, float *pixel, int maxchannels) const
-{
-    getpixel (spec().x + (i % spec().width), spec().y + (i / spec().width),
-              pixel, maxchannels);
 }
 
 
@@ -334,8 +325,8 @@ ImageBuf::interppixel (float x, float y, float *pixel) const
 
 
 template<typename T>
-inline void
-_setpixel (ImageBuf &buf, int x, int y, const float *data, int chans)
+static inline void
+setpixel_ (ImageBuf &buf, int x, int y, const float *data, int chans)
 {
     ImageBuf::Iterator<T> pixel (buf, x, y);
     for (int i = 0;  i < chans;  ++i)
@@ -349,15 +340,15 @@ ImageBuf::setpixel (int x, int y, const float *pixel, int maxchannels)
 {
     int n = std::min (spec().nchannels, maxchannels);
     switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : _setpixel<float> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT8 : _setpixel<unsigned char> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT8  : _setpixel<char> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT16: _setpixel<unsigned short> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT16 : _setpixel<short> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT  : _setpixel<unsigned int> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT   : _setpixel<int> (*this, x, y, pixel, n); break;
-    case TypeDesc::HALF  : _setpixel<half> (*this, x, y, pixel, n); break;
-    case TypeDesc::DOUBLE: _setpixel<double> (*this, x, y, pixel, n); break;
+    case TypeDesc::FLOAT : setpixel_<float> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT8 : setpixel_<unsigned char> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT8  : setpixel_<char> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT16: setpixel_<unsigned short> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT16 : setpixel_<short> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT  : setpixel_<unsigned int> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT   : setpixel_<int> (*this, x, y, pixel, n); break;
+    case TypeDesc::HALF  : setpixel_<half> (*this, x, y, pixel, n); break;
+    case TypeDesc::DOUBLE: setpixel_<double> (*this, x, y, pixel, n); break;
     default:
         ASSERT (0);
     }
@@ -374,40 +365,83 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 
 
+template<typename S, typename D>
+static inline void 
+copy_pixels_ (const ImageBuf &buf, int xbegin, int xend,
+              int ybegin, int yend, D *r)
+{
+    int w = (xend-xbegin);
+    for (ImageBuf::ConstIterator<S,D> p (buf, xbegin, xend, ybegin, yend);
+         p.valid(); ++p) { 
+        imagesize_t offset = ((p.y()-ybegin)*w + (p.x()-xbegin)) * buf.nchannels();
+        for (int c = 0;  c < buf.nchannels();  ++c)
+            r[offset+c] = p[c];
+    }
+}
+
+
+
+template<typename D>
+bool
+ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend, D *r) const
+{
+    // Caveat: serious hack here.  To avoid duplicating code, use a
+    // #define.  Furthermore, exploit the CType<> template to construct
+    // the right C data type for the given BASETYPE.
+#define TYPECASE(B)                                                     \
+    case B : copy_pixels_<CType<B>::type,D>(*this, xbegin, xend, ybegin, yend, (D *)r); return true
+    
+    switch (spec().format.basetype) {
+        TYPECASE (TypeDesc::UINT8);
+        TYPECASE (TypeDesc::INT8);
+        TYPECASE (TypeDesc::UINT16);
+        TYPECASE (TypeDesc::INT16);
+        TYPECASE (TypeDesc::UINT);
+        TYPECASE (TypeDesc::INT);
+        TYPECASE (TypeDesc::HALF);
+        TYPECASE (TypeDesc::FLOAT);
+        TYPECASE (TypeDesc::DOUBLE);
+    }
+    return false;
+#undef TYPECASE
+}
+
+
+
 bool
 ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
                        TypeDesc format, void *result) const
 {
-#if 0
+#if 1
     // Fancy method -- for each possible base type that the user
     // wants for a destination type, call a template specialization.
     switch (format.basetype) {
     case TypeDesc::UINT8 :
-        _copy_pixels<unsigned char> (xbegin, xend, ybegin, yend, (unsigned char *)result);
+        copy_pixels<unsigned char> (xbegin, xend, ybegin, yend, (unsigned char *)result);
         break;
     case TypeDesc::INT8:
-        _copy_pixels<char> (xbegin, xend, ybegin, yend, (char *)result);
+        copy_pixels<char> (xbegin, xend, ybegin, yend, (char *)result);
         break;
     case TypeDesc::UINT16 :
-        _copy_pixels<unsigned short> (xbegin, xend, ybegin, yend, (unsigned short *)result);
+        copy_pixels<unsigned short> (xbegin, xend, ybegin, yend, (unsigned short *)result);
         break;
     case TypeDesc::INT16 :
-        _copy_pixels<short> (xbegin, xend, ybegin, yend, (short *)result);
+        copy_pixels<short> (xbegin, xend, ybegin, yend, (short *)result);
         break;
     case TypeDesc::UINT :
-        _copy_pixels<unsigned int> (xbegin, xend, ybegin, yend, (unsigned int *)result);
+        copy_pixels<unsigned int> (xbegin, xend, ybegin, yend, (unsigned int *)result);
         break;
     case TypeDesc::INT :
-        _copy_pixels<int> (xbegin, xend, ybegin, yend, (int *)result);
+        copy_pixels<int> (xbegin, xend, ybegin, yend, (int *)result);
         break;
     case TypeDesc::HALF :
-        _copy_pixels<half> (xbegin, xend, ybegin, yend, (half *)result);
+        copy_pixels<half> (xbegin, xend, ybegin, yend, (half *)result);
         break;
     case TypeDesc::FLOAT :
-        _copy_pixels<float> (xbegin, xend, ybegin, yend, (float *)result);
+        copy_pixels<float> (xbegin, xend, ybegin, yend, (float *)result);
         break;
     case TypeDesc::DOUBLE :
-        _copy_pixels<double> (xbegin, xend, ybegin, yend, (double *)result);
+        copy_pixels<double> (xbegin, xend, ybegin, yend, (double *)result);
         break;
     default:
         return false;
@@ -424,6 +458,7 @@ ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
             result = (void *) ((char *)result + usersize);
         }
 #endif
+    return true;
 }
 
 
@@ -515,8 +550,8 @@ ImageBuf::pixeladdr (int x, int y)
 
 
 template<typename T>
-inline void
-_zero (ImageBuf &buf)
+static inline void
+zero_ (ImageBuf &buf)
 {
     int chans = buf.nchannels();
     for (ImageBuf::Iterator<T> pixel (buf);  pixel.valid();  ++pixel)
@@ -530,15 +565,15 @@ void
 ImageBuf::zero ()
 {
     switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : _zero<float> (*this); break;
-    case TypeDesc::UINT8 : _zero<unsigned char> (*this); break;
-    case TypeDesc::INT8  : _zero<char> (*this); break;
-    case TypeDesc::UINT16: _zero<unsigned short> (*this); break;
-    case TypeDesc::INT16 : _zero<short> (*this); break;
-    case TypeDesc::UINT  : _zero<unsigned int> (*this); break;
-    case TypeDesc::INT   : _zero<int> (*this); break;
-    case TypeDesc::HALF  : _zero<half> (*this); break;
-    case TypeDesc::DOUBLE: _zero<double> (*this); break;
+    case TypeDesc::FLOAT : zero_<float> (*this); break;
+    case TypeDesc::UINT8 : zero_<unsigned char> (*this); break;
+    case TypeDesc::INT8  : zero_<char> (*this); break;
+    case TypeDesc::UINT16: zero_<unsigned short> (*this); break;
+    case TypeDesc::INT16 : zero_<short> (*this); break;
+    case TypeDesc::UINT  : zero_<unsigned int> (*this); break;
+    case TypeDesc::INT   : zero_<int> (*this); break;
+    case TypeDesc::HALF  : zero_<half> (*this); break;
+    case TypeDesc::DOUBLE: zero_<double> (*this); break;
     default:
         ASSERT (0);
     }

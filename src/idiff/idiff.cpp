@@ -317,14 +317,17 @@ Yee_Compare (const ImageBuf &img0, const ImageBuf &img1,
     boost::scoped_array<Color3f> bLAB (new Color3f[npels]);
     boost::scoped_array<float> aLum (new float[npels]);
     boost::scoped_array<float> bLum (new float[npels]);
-    for (int i = 0;  i < npels;  ++i) {
+    ImageBuf::ConstIterator<float,float> pix0 (img0);
+    ImageBuf::ConstIterator<float,float> pix1 (img1);
+    for (int i = 0;  pix0.valid();  ++i) {
+        pix1.pos (pix0.x(), pix0.y());  // ensure alignment
         Color3f RGB, XYZ;
-        img0.getpixel (i, RGB.getValue(), 3);
+        RGB.setValue (pix0[0], pix0[1], pix0[2]);
         XYZ = AdobeRGBToXYZ (RGB);
         aLAB[i] = XYZToLAB (XYZ);
         aLum[i] = XYZ[1] * luminance;
 
-        img1.getpixel (i, RGB.getValue(), 3);
+        RGB.setValue (pix1[0], pix1[1], pix1[2]);
         XYZ = AdobeRGBToXYZ (RGB);
         bLAB[i] = XYZToLAB (XYZ);
         bLum[i] = XYZ[1] * luminance;
@@ -596,26 +599,24 @@ main (int argc, char *argv[])
         if (diffimage.size() && (maxerror != 0 || !outdiffonly)) {
             ImageBuf diff (diffimage, img0.spec());
             diff.alloc (img0.spec());
-            float *pixdiff = (float *) alloca (diff.spec().pixel_bytes());
             ImageBuf::ConstIterator<float,float> pix0 (img0);
             ImageBuf::ConstIterator<float,float> pix1 (img1);
+            ImageBuf::Iterator<float,float> pixdiff (diff);
             // Subtract the second image from the first.  At which time we no
             // longer need the second image, so free it.
             if (diffabs) {
                 for (  ;  pix0.valid();  ++pix0) {
                     pix1.pos (pix0.x(), pix0.y());  // ensure alignment
+                    pixdiff.pos (pix0.x(), pix0.y());
                     for (int c = 0;  c < img0.nchannels();  ++c)
                         pixdiff[c] = diffscale * fabsf (pix0[c] - pix1[c]);
-                    diff.setpixel (pix0.x() + img0.spec().x,
-                                   pix0.y() + img0.spec().y, pixdiff);
                 }
             } else {
                 for (  ;  pix0.valid();  ++pix0) {
                     pix1.pos (pix0.x(), pix0.y());  // ensure alignment
+                    pixdiff.pos (pix0.x(), pix0.y());
                     for (int c = 0;  c < img0.spec().nchannels;  ++c)
                         pixdiff[c] = diffscale * (pix0[c] - pix1[c]);
-                    diff.setpixel (pix0.x() + img0.spec().x,
-                                   pix0.y() + img0.spec().y, pixdiff);
                 }
             }
         

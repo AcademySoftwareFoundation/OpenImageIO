@@ -146,11 +146,6 @@ public:
     /// maxchannels (will be clamped to the actual number of channels).
     void getpixel (int x, int y, float *pixel, int maxchannels=1000) const;
 
-    /// Retrieve the i-th pixel of the image (out of width*height*depth),
-    /// storing the floating point version in pixel[].  Retrieve at most
-    /// maxchannels (will be clamped to the actual number of channels).
-    void getpixel (int i, float *pixel, int maxchannels=1000) const;
-
     /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
     /// the upper left corner, (xres,yres) the lower right corner of
     /// the pixel data.
@@ -184,6 +179,18 @@ public:
     /// return false.
     bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
                       TypeDesc format, void *result) const;
+
+    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
+    /// [ybegin..yend) (with exclusive 'end'), specified as integer
+    /// pixel coordinates, at the current MIP-map level, storing the
+    /// pixel values beginning at the address specified by result,
+    /// converting to the type <T> in the process.  It is up to the
+    /// caller to ensure that result points to an area of memory big
+    /// enough to accommodate the requested rectangle.  Return true if
+    /// the operation could be completed, otherwise return false.
+    template<typename T>
+    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
+                      T *result) const;
 
     /// Even safer version of copy_pixels: Retrieve the rectangle of
     /// pixels spanning [xbegin..xend) X [ybegin..yend) (with exclusive
@@ -472,50 +479,6 @@ protected:
 
     void realloc ();
 
-    // This is the specialization of _copy_pixels, fully specialized by
-    // both source (ImageBuffer contents) and destination (user) types.
-    template<typename S, typename D>
-    void _copy_pixels2 (int xbegin, int xend, int ybegin, int yend, D *r) const
-    {
-        int w = (xend-xbegin);
-        for (ImageBuf::ConstIterator<S,D> p (*this, xbegin, xend, ybegin, yend);
-             p.valid(); ++p) {
-            imagesize_t offset = ((p.y()-ybegin)*w + (p.x()-xbegin)) * nchannels();
-            for (int c = 0;  c < nchannels();  ++c)
-                r[offset+c] = p[c];
-        }
-    }
-
-    // This is the specialization of copy_pixels, already specialized
-    // for the user's destination type.  Now do more template magic to
-    // further specialize by the data type of the buffer we're reading
-    // from.
-    template<typename D>
-    bool _copy_pixels (int xbegin, int xend, int ybegin, int yend, D *r) const
-    {
-        // Caveat: serious hack here.  To avoid duplicating code, use a
-        // #define.  Furthermore, exploit the CType<> template to construct
-        // the right C data type for the given BASETYPE.
-#define TYPECASE(B) \
-        case B : _copy_pixels2<CType<B>::type,D>(xbegin, xend, ybegin, yend, (D *)r); return true
-
-        switch (spec().format.basetype) {
-            TYPECASE (TypeDesc::UINT8);
-            TYPECASE (TypeDesc::INT8);
-            TYPECASE (TypeDesc::UINT16);
-            TYPECASE (TypeDesc::INT16);
-            TYPECASE (TypeDesc::UINT);
-            TYPECASE (TypeDesc::INT);
-#ifdef _HALF_H_
-            TYPECASE (TypeDesc::HALF);
-#endif
-            TYPECASE (TypeDesc::FLOAT);
-            TYPECASE (TypeDesc::DOUBLE);
-        }
-        return false;
-#undef TYPECASE
-    }
-
     // Return the address where pixel (x,y) is stored in the image buffer.
     // Use with extreme caution!
     const void *pixeladdr (int x, int y) const;
@@ -524,13 +487,6 @@ protected:
     // Use with extreme caution!
     void *pixeladdr (int x, int y);
 };
-
-
-
-//////////////////////////////////////////////////////////////////////////
-// Implementation of ImageBuf internal methods, including 
-// ImageBuf::Iterator
-//
 
 
 
