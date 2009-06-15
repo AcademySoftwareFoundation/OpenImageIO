@@ -64,6 +64,7 @@ dist_libs       += hdr.imageio${SHLIBEXT} \
 		   jpeg.imageio${SHLIBEXT} \
 		   openexr.imageio${SHLIBEXT} \
 		   png.imageio${SHLIBEXT} \
+		   targa.imageio${SHLIBEXT} \
 		   tiff.imageio${SHLIBEXT} \
 		   zfile.imageio${SHLIBEXT} \
                    bmp.imageio${SHLIBEXT}

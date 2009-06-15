@@ -64,6 +64,8 @@ local_extra_objs += \
 	${build_obj_dir}/openexr.imageio/exroutput${OEXT} \
 	${build_obj_dir}/tiff.imageio/tiffinput${OEXT} \
 	${build_obj_dir}/tiff.imageio/tiffoutput${OEXT} \
+	${build_obj_dir}/targa.imageio/targainput${OEXT} \
+	${build_obj_dir}/targa.imageio/targaoutput${OEXT} \
 	${build_obj_dir}/zfile.imageio/zfile${OEXT}
 local_ldflags += ${LINK_OPENEXR} ${LINK_TIFF} ${LINK_PNG} \
 		${LINK_JPEG} ${LINK_ZLIB} 
