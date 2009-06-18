@@ -102,7 +102,11 @@ private:
 
 
 #ifndef USE_TBB
-#  define USE_TBB 1
+#  if defined(_WIN32) && (_MSV_VER >= 1500)
+#    define USE_TBB 0
+#  else
+#    define USE_TBB 1
+#  endif
 #endif
 
 #if USE_TBB

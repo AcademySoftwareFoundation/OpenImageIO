@@ -62,6 +62,10 @@ ifneq (${USE_QT},)
 MY_CMAKE_FLAGS += -DUSE_QT:BOOL=${USE_QT}
 endif
 
+ifneq (${USE_TBB},)
+MY_CMAKE_FLAGS += -DUSE_TBB:BOOL=${USE_TBB}
+endif
+
 ifdef DEBUG
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug
 endif
@@ -179,6 +183,7 @@ help:
 	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
+	@echo "  make USE_TBB=0 ...          Don't use TBB"
 	@echo ""
 
 

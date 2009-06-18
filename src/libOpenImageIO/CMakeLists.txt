@@ -9,13 +9,17 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp 
-                          ../libutil/tbb_misc.cpp
                           ../libutil/typedesc.cpp 
                           ../libutil/ustring.cpp 
                           ../libtexture/texturesys.cpp 
                           ../libtexture/texoptions.cpp 
                           ../libtexture/imagecache.cpp 
                          )
+
+# Include out own TBB if not getting it from an external area
+if (NOT WIN32 AND USE_TBB)
+  set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
+endif ()
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
@@ -28,6 +32,7 @@ if (EMBEDPLUGINS)
           ../jpeg.imageio/jpegexif.cpp
         ../png.imageio/pnginput.cpp ../png.imageio/pngoutput.cpp
         ../openexr.imageio/exrinput.cpp ../openexr.imageio/exroutput.cpp
+        ../targa.imageio/targainput.cpp ../targa.imageio/targaoutput.cpp
         ../tiff.imageio/tiffinput.cpp ../tiff.imageio/tiffoutput.cpp
         ../zfile.imageio/zfile.cpp
         )

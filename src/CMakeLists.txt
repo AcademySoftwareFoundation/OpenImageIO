@@ -21,6 +21,7 @@ set (EMBEDPLUGINS OFF CACHE BOOL "Embed format plugins in libOpenImageIO")
 set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
 set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
+set (USE_TBB ON CACHE BOOL "Use TBB if needed")
 
 set(CMAKE_MODULE_PATH
     "${PROJECT_SOURCE_DIR}/cmake/modules"
