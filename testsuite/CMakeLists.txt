@@ -5,4 +5,6 @@ ENDMACRO ()
 
 RUNTEST ( ico )
 RUNTEST ( gpsread )
+RUNTEST ( tiff-suite )
+RUNTEST ( tiff-depths )
 
