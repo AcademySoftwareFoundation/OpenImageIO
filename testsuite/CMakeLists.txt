@@ -5,6 +5,14 @@ ENDMACRO ()
 
 RUNTEST ( ico )
 RUNTEST ( gpsread )
-RUNTEST ( tiff-suite )
-RUNTEST ( tiff-depths )
+
+if (EXISTS "${PROJECT_SOURCE_DIR}/../../libtiffpic")
+    RUNTEST ( tiff-suite )
+    RUNTEST ( tiff-depths )
+else ()
+    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../libtiffpic")
+    message (STATUS "  -> Will not run tests 'tiff-suite' and 'tiff-depths'")
+    message (STATUS "  -> You can find it at http://www.remotesensing.org/libtiff/images.html\n")
+endif ()
+
 
