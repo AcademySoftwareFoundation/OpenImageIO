@@ -21,7 +21,7 @@ if (EXISTS "${PROJECT_SOURCE_DIR}/../../openexr-images-1.5.0")
     RUNTEST ( openexr-chroma )
 else ()
     message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../openexr-images-1.5.0")
-    message (STATUS "  -> Will not run test 'openexr-suite'")
+    message (STATUS "  -> Will not run tests 'openexr-suite', 'openexr-multires', 'openexr-chroma'")
     message (STATUS "  -> You can find it at http://www.openexr.com/downloads.html\n")
 endif ()
 
