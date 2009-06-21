@@ -15,4 +15,14 @@ else ()
     message (STATUS "  -> You can find it at http://www.remotesensing.org/libtiff/images.html\n")
 endif ()
 
+if (EXISTS "${PROJECT_SOURCE_DIR}/../../openexr-images-1.5.0")
+    RUNTEST ( openexr-suite )
+    RUNTEST ( openexr-multires )
+    RUNTEST ( openexr-chroma )
+else ()
+    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../openexr-images-1.5.0")
+    message (STATUS "  -> Will not run test 'openexr-suite'")
+    message (STATUS "  -> You can find it at http://www.openexr.com/downloads.html\n")
+endif ()
+
 

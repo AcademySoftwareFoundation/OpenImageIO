@@ -1,0 +1,2632 @@
+hi
+../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr :  550 x  832, 3 channel, half openexr
+    10 subimages: 550x832 275x416 137x208 68x104 34x52 17x26 8x13 4x6 2x3 1x1 
+ subimage  0:  550 x  832, 3 channel, half openexr
+    SHA-1: 564202D0616E02C51CBAD01C4FC34A3D5D77861C
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+ subimage  1:  275 x  416, 3 channel, half openexr
+    SHA-1: 8D8D7F1CEE4EECE43D411BD8654CEF57B96F9CDC
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+ subimage  2:  137 x  208, 3 channel, half openexr
+    SHA-1: 3506C45D9B9A5C38919F545565F274A9C24B35BC
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+ subimage  3:   68 x  104, 3 channel, half openexr
+    SHA-1: 5C2E9960FD0E9687D510C7302F8FAE244EE40FC2
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+ subimage  4:   34 x   52, 3 channel, half openexr
+    SHA-1: B9AFEAEA6843EE78E9D7A317FBF0C56006A3FE2E
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+ subimage  5:   17 x   26, 3 channel, half openexr
+    SHA-1: 254DD48B63210E50B94137F8B3561104E3A1B0A5
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+ subimage  6:    8 x   13, 3 channel, half openexr
+    SHA-1: 632707053EF36DA6743963C257ED8C2CF3FCE3CD
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+ subimage  7:    4 x    6, 3 channel, half openexr
+    SHA-1: 9AD4BB96BA0ED1561B3979CFCA2EB1D3718028AD
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+ subimage  8:    2 x    3, 3 channel, half openexr
+    SHA-1: 6868015D9594187792FDF6A26BB9FA30937530B1
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+ subimage  9:    1 x    1, 3 channel, half openexr
+    SHA-1: F43BE3720790586DDF9C978A34D464C292D3CDE2
+    channel list: R, G, B
+    tile size: 128 x 128
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    ImageDescription: "Point Bonita, Marin County, California"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "clamp,clamp"
+Converting ../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr to Bonita.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr" and "Bonita.exr"
+Subimage 0: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 550 x 832, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr :  512 x  512, 4 channel, half openexr
+    10 subimages: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1 
+ subimage  0:  512 x  512, 4 channel, half openexr
+    SHA-1: 3694F36696BA49FBA37BC7D35E7ACB2DFDDED2EC
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  1:  256 x  256, 4 channel, half openexr
+    SHA-1: 05D358B72545FDAAF4582F6D5E44717EAF70849A
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  2:  128 x  128, 4 channel, half openexr
+    SHA-1: FB58AA79671423EADE8B61ACA8AFCC6B94EA75D2
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  3:   64 x   64, 4 channel, half openexr
+    SHA-1: C64BB6DBF0B8613618E472D092262D356411E6E2
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  4:   32 x   32, 4 channel, half openexr
+    SHA-1: 4AF8C09DD4831B7F64A265D36CE474E6C5B2C087
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  5:   16 x   16, 4 channel, half openexr
+    SHA-1: 175366B6FFA4C0C6F840B77756C298D81A967E01
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  6:    8 x    8, 4 channel, half openexr
+    SHA-1: 6A85986D5982D4A75B9642869963469A1BA1365C
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  7:    4 x    4, 4 channel, half openexr
+    SHA-1: F680C33067CE1E151A2F23628ACB07F00C0502E9
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  8:    2 x    2, 4 channel, half openexr
+    SHA-1: 60B1CC77ED9D82E9C70724E054926C3EF6340941
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  9:    1 x    1, 4 channel, half openexr
+    SHA-1: 45728B1CA28D39A3C2BF22DF19863278FE25B1ED
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "pxr24"
+    ImageDescription: "a mip-map image with color-coded levels"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+Converting ../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr to ColorCodedLevels.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
+Subimage 0: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr :  256 x 1536, 4 channel, half openexr
+    11 subimages: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1 
+ subimage  0:  256 x 1536, 4 channel, half openexr
+    SHA-1: FE90067A116E33C65D2C663C1A19ABCCE2C621A4
+    channel list: R, G, B, A
+    full/display size: 256 x 256
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  1:  128 x  768, 4 channel, half openexr
+    SHA-1: 8B3F339B01988C951D29BF86F4081C1ED687AEE6
+    channel list: R, G, B, A
+    full/display size: 128 x 128
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  2:   64 x  384, 4 channel, half openexr
+    SHA-1: 4CB9F78C6E6F642C1946E27AF0793CEF0A4300CC
+    channel list: R, G, B, A
+    full/display size: 64 x 64
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  3:   32 x  192, 4 channel, half openexr
+    SHA-1: 465155C188C861334C9DC6C2ECB46B0727DDC69C
+    channel list: R, G, B, A
+    full/display size: 32 x 32
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  4:   16 x   96, 4 channel, half openexr
+    SHA-1: 475D1DBD6E096F5F08089D93451DCBDC47200A9F
+    channel list: R, G, B, A
+    full/display size: 16 x 16
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  5:    8 x   48, 4 channel, half openexr
+    SHA-1: DBC1ADDD036C9030FBAC5CEDC9C2A823B99DCC68
+    channel list: R, G, B, A
+    full/display size: 8 x 8
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  6:    4 x   24, 4 channel, half openexr
+    SHA-1: 7BDF7D9C2ED55BD9F17DC7DFB86426F4CCFBC64A
+    channel list: R, G, B, A
+    full/display size: 4 x 4
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  7:    2 x   12, 4 channel, half openexr
+    SHA-1: 3F7E15C760B7843CCB267097A3E4FD294CB56786
+    channel list: R, G, B, A
+    full/display size: 2 x 2
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  8:    1 x    6, 4 channel, half openexr
+    SHA-1: C2B5D15B98E2873863C236A1C76E9A0ADE4C52E8
+    channel list: R, G, B, A
+    full/display size: 1 x 1
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  9:    1 x    3, 4 channel, half openexr
+    SHA-1: D3399B7262FB56CB9ED053D68DB9291C410839C4
+    channel list: R, G, B, A
+    full/display size: 1 x 1
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage 10:    1 x    1, 4 channel, half openexr
+    SHA-1: 05FE405753166F125559E7C9AC558654F107C7E9
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+Converting ../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr to KernerEnvCube.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
+Subimage 0: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 10: 256 x 1536, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr : 1024 x  512, 4 channel, half openexr
+    11 subimages: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1 
+ subimage  0: 1024 x  512, 4 channel, half openexr
+    SHA-1: 10D3B289F5E6E0497AC5C297373BEEEEA4F7EEA4
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  1:  512 x  256, 4 channel, half openexr
+    SHA-1: E762454751A9E1211895919EAFD4FDB7F3370A00
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  2:  256 x  128, 4 channel, half openexr
+    SHA-1: 45528AFB34F3E8F0580C134EE4A4F6FCB4D8CB3B
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  3:  128 x   64, 4 channel, half openexr
+    SHA-1: 8F0A84EC061EE9037D291D60C32726AEDE6C002E
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  4:   64 x   32, 4 channel, half openexr
+    SHA-1: 5A2E9CA96E0C1DE4918A13D7E041166E1A5AC2D1
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  5:   32 x   16, 4 channel, half openexr
+    SHA-1: 33E55111FC3A73047DD575BEB6BD69F15FA86CBD
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  6:   16 x    8, 4 channel, half openexr
+    SHA-1: 1C9B3ED9BD0927480CDB98950DCA05D995C6965F
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  7:    8 x    4, 4 channel, half openexr
+    SHA-1: 2E578928BB6F1B39B48C15EA2395781D156D1F92
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  8:    4 x    2, 4 channel, half openexr
+    SHA-1: C55003ECEE775CF4020693749EE10019A5B48D47
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  9:    2 x    1, 4 channel, half openexr
+    SHA-1: 590F333DB14C81B767F22624883C4878A6C0C3F0
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage 10:    1 x    1, 4 channel, half openexr
+    SHA-1: 958966C77AADA8F4CB7738BE97CBE1FC9D9793DD
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+Converting ../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr to KernerEnvLatLong.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
+Subimage 0: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 10: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr :  512 x  512, 3 channel, half openexr
+    10 subimages: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1 
+ subimage  0:  512 x  512, 3 channel, half openexr
+    SHA-1: 1E48D1639C572C689EE82ACA93EEE9FC9EFB24EB
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+ subimage  1:  256 x  256, 3 channel, half openexr
+    SHA-1: ED76CF882673F3249D4F8F2B0C23560BBAEA5BCF
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+ subimage  2:  128 x  128, 3 channel, half openexr
+    SHA-1: 1EFC1EC222D32B6AD309420B461C580C3AA02D14
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+ subimage  3:   64 x   64, 3 channel, half openexr
+    SHA-1: F3720ED19417FE2CBD703AA23EED9237B2E42AD1
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+ subimage  4:   32 x   32, 3 channel, half openexr
+    SHA-1: DE317078512F0C19F7058D5B083504C62BD190D0
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+ subimage  5:   16 x   16, 3 channel, half openexr
+    SHA-1: A83EF9FDE03C9FC6466FB6A258CE317F94EDB506
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+ subimage  6:    8 x    8, 3 channel, half openexr
+    SHA-1: 71BB7C0677DB17D4C1D7AC29BFD58F4D99EC27C6
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+ subimage  7:    4 x    4, 3 channel, half openexr
+    SHA-1: 7CAF86346D5202BA9385CF378EB8FAE6BB1A14C2
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+ subimage  8:    2 x    2, 3 channel, half openexr
+    SHA-1: 616CEF3CC041AB0EEA61E6A7619DE7B89723D93F
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+ subimage  9:    1 x    1, 3 channel, half openexr
+    SHA-1: E98E10A5087ECA2C514D42C92CE9DDBA3FC5BBEC
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "mirror,mirror"
+Converting ../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr to MirrorPattern.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
+Subimage 0: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr :  512 x 3072, 4 channel, half openexr
+    12 subimages: 512x3072 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1 
+ subimage  0:  512 x 3072, 4 channel, half openexr
+    SHA-1: 06D36508E3D76F3288D6B50867812CC6E29C3C5A
+    channel list: R, G, B, A
+    full/display size: 512 x 512
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  1:  256 x 1536, 4 channel, half openexr
+    SHA-1: 07F92463682C4092DF1BF03DC9DB845AE6A049A9
+    channel list: R, G, B, A
+    full/display size: 256 x 256
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  2:  128 x  768, 4 channel, half openexr
+    SHA-1: 6076223F3F1CDEA003AA3CA67D6144D81F38B3B0
+    channel list: R, G, B, A
+    full/display size: 128 x 128
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  3:   64 x  384, 4 channel, half openexr
+    SHA-1: AD02229AAFC99E912B658090E873A8A222521507
+    channel list: R, G, B, A
+    full/display size: 64 x 64
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  4:   32 x  192, 4 channel, half openexr
+    SHA-1: E68408F09A0368B7A36B795AB7A97BBC6C5E62AD
+    channel list: R, G, B, A
+    full/display size: 32 x 32
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  5:   16 x   96, 4 channel, half openexr
+    SHA-1: 3A1D94E68ADE1B16BE77BF32E7801CA837AD1C9C
+    channel list: R, G, B, A
+    full/display size: 16 x 16
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  6:    8 x   48, 4 channel, half openexr
+    SHA-1: FEB9197A5760C4D9384FFFEA9D57B299BC15D2C3
+    channel list: R, G, B, A
+    full/display size: 8 x 8
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  7:    4 x   24, 4 channel, half openexr
+    SHA-1: 7BBD19DA452861C55055C21269F3394DF7631BFE
+    channel list: R, G, B, A
+    full/display size: 4 x 4
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  8:    2 x   12, 4 channel, half openexr
+    SHA-1: C0BA3681C837E55DE737753F325B69D687CB03C8
+    channel list: R, G, B, A
+    full/display size: 2 x 2
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  9:    1 x    6, 4 channel, half openexr
+    SHA-1: 2E0EFC8263762599DE1917DA637FA2BBF989B75B
+    channel list: R, G, B, A
+    full/display size: 1 x 1
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage 10:    1 x    3, 4 channel, half openexr
+    SHA-1: D3399B7262FB56CB9ED053D68DB9291C410839C4
+    channel list: R, G, B, A
+    full/display size: 1 x 1
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage 11:    1 x    1, 4 channel, half openexr
+    SHA-1: 05FE405753166F125559E7C9AC558654F107C7E9
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+Converting ../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr to OrientationCube.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
+Subimage 0: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 10: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 11: 512 x 3072, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr : 1024 x  512, 4 channel, half openexr
+    11 subimages: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1 
+ subimage  0: 1024 x  512, 4 channel, half openexr
+    SHA-1: 91BB1952FB9254759FA0629F40A721C6D461C8FC
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  1:  512 x  256, 4 channel, half openexr
+    SHA-1: 029879637F9B15442C05FE2873C5A436FBC896C3
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  2:  256 x  128, 4 channel, half openexr
+    SHA-1: 9136E1CC724811C1400BCDD1FBD92833AEEBBE8C
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  3:  128 x   64, 4 channel, half openexr
+    SHA-1: 88D4CE458695A9DEAB381F7E1DB0D26FD3EE0CB4
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  4:   64 x   32, 4 channel, half openexr
+    SHA-1: C1EF3953880DE92248E0C2450207F959E362CE24
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  5:   32 x   16, 4 channel, half openexr
+    SHA-1: AE0CCBC76F58940F584DF03E1D68D6D265090538
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  6:   16 x    8, 4 channel, half openexr
+    SHA-1: B4DDCBCAC991F9DAA45AAB9736FAAFD9C83A9351
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  7:    8 x    4, 4 channel, half openexr
+    SHA-1: CB544DDC52B87A616C47C750B4837FAA07D58FFB
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  8:    4 x    2, 4 channel, half openexr
+    SHA-1: ADBAA4631A410DE286B068E6F573916D7C1F4CDC
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  9:    2 x    1, 4 channel, half openexr
+    SHA-1: 1F9D5BEC7CEA27DAAEC9980391B88D278FDC2FD9
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage 10:    1 x    1, 4 channel, half openexr
+    SHA-1: 2D725903DE1F4D99C1AE6F2E1EC40F27526FA11E
+    channel list: R, G, B, A
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+Converting ../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr to OrientationLatLong.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
+Subimage 0: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 10: 1024 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr :  517 x  517, 3 channel, half openexr
+    10 subimages: 517x517 258x258 129x129 64x64 32x32 16x16 8x8 4x4 2x2 1x1 
+ subimage  0:  517 x  517, 3 channel, half openexr
+    SHA-1: B83B67E1FF9B24991A6582C997AA9F629C094ED2
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  1:  258 x  258, 3 channel, half openexr
+    SHA-1: 8AF8E9200F7BCF30F49912A147DBA9FFFCA5D062
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  2:  129 x  129, 3 channel, half openexr
+    SHA-1: 0FCD6730BAFFA20F1814A05A2259D7E9C6E621DF
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  3:   64 x   64, 3 channel, half openexr
+    SHA-1: CDF72DB5F6818232BE8FD2CA1FF8F3A699622FCF
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  4:   32 x   32, 3 channel, half openexr
+    SHA-1: C8FCB37CEDF9F10EB6374D578FF072ACC306A204
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  5:   16 x   16, 3 channel, half openexr
+    SHA-1: 553797071703F42FE0B10DD98D03DC886082C12A
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  6:    8 x    8, 3 channel, half openexr
+    SHA-1: 471EB9508083607E6CC41F706A010CF2C8C94E12
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  7:    4 x    4, 3 channel, half openexr
+    SHA-1: 3E8E0F5575309E9499626C81955A33C08CC378FE
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  8:    2 x    2, 3 channel, half openexr
+    SHA-1: 78EB8ABC066DA154EF3F83D67F166B3869FF0D4F
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+ subimage  9:    1 x    1, 3 channel, half openexr
+    SHA-1: 133460EA695DA519AF2726FA950441894395D2F6
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    wrapmodes: "periodic,periodic"
+Converting ../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr to PeriodicPattern.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
+Subimage 0: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 517 x 517, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr :  256 x 1536, 3 channel, half openexr
+    11 subimages: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1 
+ subimage  0:  256 x 1536, 3 channel, half openexr
+    SHA-1: 12BC1AA3805E1D718263F3118BD3366013E13B97
+    channel list: R, G, B
+    full/display size: 256 x 256
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  1:  128 x  768, 3 channel, half openexr
+    SHA-1: 35B5EEC96A54A8E8EC3562E2F7858463871219BA
+    channel list: R, G, B
+    full/display size: 128 x 128
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  2:   64 x  384, 3 channel, half openexr
+    SHA-1: 7696D9C9D9F7C604DA55B0DE8DEF0A8ACEA70688
+    channel list: R, G, B
+    full/display size: 64 x 64
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  3:   32 x  192, 3 channel, half openexr
+    SHA-1: 479BFA1A2E8F8D096AFB7D6A18BBF5FBF5BD4B32
+    channel list: R, G, B
+    full/display size: 32 x 32
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  4:   16 x   96, 3 channel, half openexr
+    SHA-1: 6061A2326E4C201D2298397A19F2CD01FAFA9300
+    channel list: R, G, B
+    full/display size: 16 x 16
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  5:    8 x   48, 3 channel, half openexr
+    SHA-1: 9C29B5F215AE93451B6A57F644DB54D0FBD5CF87
+    channel list: R, G, B
+    full/display size: 8 x 8
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  6:    4 x   24, 3 channel, half openexr
+    SHA-1: 844F11FBF132EBB482DD705175973FE209DF8D34
+    channel list: R, G, B
+    full/display size: 4 x 4
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  7:    2 x   12, 3 channel, half openexr
+    SHA-1: 55A7C54F8565A44BA4FDD80CE6128D230C6B420D
+    channel list: R, G, B
+    full/display size: 2 x 2
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  8:    1 x    6, 3 channel, half openexr
+    SHA-1: 16DD69C3984E6F509A0010CA173BA6FB320E9D09
+    channel list: R, G, B
+    full/display size: 1 x 1
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  9:    1 x    3, 3 channel, half openexr
+    SHA-1: A770E927C71C77A0A9BA32E12CD7EAE07148F0E7
+    channel list: R, G, B
+    full/display size: 1 x 1
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage 10:    1 x    1, 3 channel, half openexr
+    SHA-1: 7722745105E9E02E8F1AAF17F7B3AAC5C56CD805
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+Converting ../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr to StageEnvCube.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
+Subimage 0: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 10: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr : 1000 x  500, 3 channel, half openexr
+    11 subimages: 1000x500 500x250 250x125 125x63 63x32 32x16 16x8 8x4 4x2 2x1 1x1 
+ subimage  0: 1000 x  500, 3 channel, half openexr
+    SHA-1: 573137DBE0076465729FC3DBE2B586A19330515D
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  1:  500 x  250, 3 channel, half openexr
+    SHA-1: 8D1BB5367A09E16D836E68949CF1CD2638DDC719
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  2:  250 x  125, 3 channel, half openexr
+    SHA-1: 9666385FAF7D5DA792EED681669EF43EA757A25F
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  3:  125 x   63, 3 channel, half openexr
+    SHA-1: 5BABEEAF315BB52AACEA9E21F95EDB2F61C75235
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  4:   63 x   32, 3 channel, half openexr
+    SHA-1: 47FFC3EF8A2B07EAF6FF74E3C7FA52E90C0A142B
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  5:   32 x   16, 3 channel, half openexr
+    SHA-1: 70601EA731E15A991A711A60E712BFD3C32B9A72
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  6:   16 x    8, 3 channel, half openexr
+    SHA-1: 4EB3FF06EDE35F25EC9ACC6C46B4EF7D23989C44
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  7:    8 x    4, 3 channel, half openexr
+    SHA-1: 895D35FFFD4C43A67DC19AB68D5861ED0CE1C4DB
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  8:    4 x    2, 3 channel, half openexr
+    SHA-1: 40375ECD5C5A03CCB11E87C0B61990FB9198A8FB
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  9:    2 x    1, 3 channel, half openexr
+    SHA-1: 35054477F7BE5ADB5E5E63DA2D856E0A04008C1C
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage 10:    1 x    1, 3 channel, half openexr
+    SHA-1: 883801CB63BBA97E707EB7739CA572C7660D44EB
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 1
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+Converting ../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr to StageEnvLatLong.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
+Subimage 0: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 10: 1000 x 500, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr :  256 x 1536, 3 channel, half openexr
+    11 subimages: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1 
+ subimage  0:  256 x 1536, 3 channel, half openexr
+    SHA-1: 2B90F593D0F4188F341438C097DC447D0B4C4A9B
+    channel list: R, G, B
+    full/display size: 256 x 256
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  1:  128 x  768, 3 channel, half openexr
+    SHA-1: 5D547179EDB2F05E2DB3E2EAE1A01DA5FE4544A3
+    channel list: R, G, B
+    full/display size: 128 x 128
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  2:   64 x  384, 3 channel, half openexr
+    SHA-1: EEC4A5AB84807C347695E4DCF8560E79058260F0
+    channel list: R, G, B
+    full/display size: 64 x 64
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  3:   32 x  192, 3 channel, half openexr
+    SHA-1: F6D5A1DCB0C4618424ED6490483502D5C0A7E875
+    channel list: R, G, B
+    full/display size: 32 x 32
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  4:   16 x   96, 3 channel, half openexr
+    SHA-1: 248D6BBD0FEC95688C57D6230F0EA036B92EE8A4
+    channel list: R, G, B
+    full/display size: 16 x 16
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  5:    8 x   48, 3 channel, half openexr
+    SHA-1: A5460B39675DC97D7DDCF6D5EE710460B777F3CC
+    channel list: R, G, B
+    full/display size: 8 x 8
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  6:    4 x   24, 3 channel, half openexr
+    SHA-1: 5C372A3F1B4A19DA7B4AF75984D5642456876E78
+    channel list: R, G, B
+    full/display size: 4 x 4
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  7:    2 x   12, 3 channel, half openexr
+    SHA-1: 6B60921515D1E52E6F65250C9E4285A1D9CD98FA
+    channel list: R, G, B
+    full/display size: 2 x 2
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  8:    1 x    6, 3 channel, half openexr
+    SHA-1: 9050D0B5C641543F2EEBD17A4C8D177A2949FA2B
+    channel list: R, G, B
+    full/display size: 1 x 1
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  9:    1 x    3, 3 channel, half openexr
+    SHA-1: A770E927C71C77A0A9BA32E12CD7EAE07148F0E7
+    channel list: R, G, B
+    full/display size: 1 x 1
+    full/display origin: 0, 0
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage 10:    1 x    1, 3 channel, half openexr
+    SHA-1: 7722745105E9E02E8F1AAF17F7B3AAC5C56CD805
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "CubeFace Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+Converting ../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr to WavyLinesCube.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
+Subimage 0: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 10: 256 x 1536, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr : 1024 x  512, 3 channel, half openexr
+    11 subimages: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1 
+ subimage  0: 1024 x  512, 3 channel, half openexr
+    SHA-1: D7CB49482CFB4D2854089E7FF92690F69337DED0
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  1:  512 x  256, 3 channel, half openexr
+    SHA-1: D288FE6CA4117E85AE7B4B742E3F12854FA96184
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  2:  256 x  128, 3 channel, half openexr
+    SHA-1: DB420DD630D2F73670CAE6A63C689CB1A96F9B95
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  3:  128 x   64, 3 channel, half openexr
+    SHA-1: EBC12DD52D72ABEE29A05BC4E2A15FF0034A084F
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  4:   64 x   32, 3 channel, half openexr
+    SHA-1: 0B0CD29F05B9FF37BFBE0C26BD5C1000D3504295
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  5:   32 x   16, 3 channel, half openexr
+    SHA-1: 58B2D7897467C3783ED33F0681B1D892E2543E84
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  6:   16 x    8, 3 channel, half openexr
+    SHA-1: C1FB4088FDC1025C992C6E9A8F44C24993D3C91D
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  7:    8 x    4, 3 channel, half openexr
+    SHA-1: A8AB5B1DF79DA1A27DE88F01C5F319DB1472ED8D
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  8:    4 x    2, 3 channel, half openexr
+    SHA-1: CEE19513DDF19A78140ACF0B2B5358AC684C57E2
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage  9:    2 x    1, 3 channel, half openexr
+    SHA-1: 66DD6AC9611B11FE00A67C82AE7699CA5B260528
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+ subimage 10:    1 x    1, 3 channel, half openexr
+    SHA-1: 39B4F888CCF3FF79C6A8D1063B2786496875823F
+    channel list: R, G, B
+    tile size: 64 x 64
+    Color space: unknown
+    openexr:roundingmode: 0
+    textureformat: "LatLong Environment"
+    updirection: "y"
+    compression: "zip"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+Converting ../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr to WavyLinesLatLong.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
+Subimage 0: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 1: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 2: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 3: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 4: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 5: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 6: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 7: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 8: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 9: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+Subimage 10: 1024 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
+    SHA-1: E802DC23DA0EEF8EE782CC5D7BA56294C0FA7462
+    channel list: R, G, B, A
+    Color space: unknown
+    compression: "piz"
+    Copyright: "Copyright 2005 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+Converting ../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr to WavyLinesSphere.exr
+Comparing "../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
+Subimage 0: 480 x 480, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS

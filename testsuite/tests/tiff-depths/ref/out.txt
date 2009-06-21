@@ -105,7 +105,7 @@ Subimage 0: 73 x 43, 1 channel
 PASS
 ../../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 52B3033465AA01129BAE149FF96CBB49877DAB7C
-    channel list: A, (null), (null)
+    channel list: R, G, B
     Color space: unknown
     BitsPerSample: 2
     Orientation: 1 (normal)
@@ -131,7 +131,7 @@ Subimage 0: 73 x 43, 3 channel
 PASS
 ../../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: C6E40A3D134F1A29E153FE15459D8DE657CB7F9C
-    channel list: A, (null), (null)
+    channel list: R, G, B
     Color space: unknown
     BitsPerSample: 4
     Orientation: 1 (normal)
@@ -157,7 +157,7 @@ Subimage 0: 73 x 43, 3 channel
 PASS
 ../../../../libtiffpic/depth/flower-palette-08.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 0ADA355BABFE9866F3D88AF7CA3AAC69D7DC036D
-    channel list: A, (null), (null)
+    channel list: R, G, B
     Color space: unknown
     BitsPerSample: 8
     Orientation: 1 (normal)

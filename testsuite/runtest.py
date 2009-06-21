@@ -4,6 +4,11 @@ import os
 import sys
 from optparse import OptionParser
 
+
+# Run 'command'.  For each file in 'outputs', compare it to the copy
+# in 'ref/'.  If all outputs match their reference copies, return 0
+# to pass.  If any outputs do not match their references return 1 to
+# fail.
 def runtest (command, outputs, cleanfiles="") :
     parser = OptionParser()
     parser.add_option("-p", "--path", help="add to executable path",
@@ -49,3 +54,27 @@ def runtest (command, outputs, cleanfiles="") :
             print "FAIL"
 
     return (err)
+
+
+
+# Construct a command that will test the basic ability to read and write
+# an image, appending output to the file "out.txt".  First, iinfo the
+# file, including a hash (VERY unlikely not to match if we've read
+# correctly).  If testwrite is nonzero, also iconvert the file to make a
+# copy (tests writing that format), and then idiff to make sure it
+# matches the original.
+def rw_command (dir, filename, cmdpath, testwrite=1) :
+    cmd = cmdpath + "iinfo/iinfo -v -a --hash " + dir + "/" + filename + " >> out.txt ; "
+    if testwrite :
+        cmd = cmd + cmdpath + "iconvert/iconvert " + dir + "/" + filename + " " + filename + " >> out.txt ; "
+        cmd = cmd + cmdpath + "idiff/idiff -a " + dir + "/" + filename + " " + filename + " >> out.txt "
+    return cmd
+
+
+
+# Construct a command that will compare two images, appending output to
+# the file "out.txt".
+def diff_command (fileA, fileB, cmdpath) :
+    cmd = cmdpath + "idiff/idiff -a " + fileA + " " + fileB + " >> out.txt "
+    return cmd
+

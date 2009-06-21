@@ -105,7 +105,7 @@ Subimage 0: 1728 x 1103, 1 channel
 PASS
 ../../../../libtiffpic/jello.tif :  256 x  192, 3 channel, uint8 tiff
     SHA-1: 41CD2AD5CA87F8CCBF7B181B58BEF136E6C64E1A
-    channel list: A, (null), (null)
+    channel list: R, G, B
     Color space: unknown
     BitsPerSample: 8
     Orientation: 1 (normal)
