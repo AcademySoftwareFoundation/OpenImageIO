@@ -162,9 +162,17 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     tga.bpp = m_spec.nchannels * 8;
     tga.width = m_spec.width;
     tga.height = m_spec.height;
+#if 0   // no one seems to adhere to this part of the spec...
     tga.x_origin = m_spec.x;
     tga.y_origin = m_spec.y;
+#endif
+
+    // handle image comment; save it to disk later on
+    std::string id = m_spec.get_string_attribute ("ImageDescription", "");
+    // the format only allows for 255 bytes
+    tga.idlen = std::min(id.length(), (size_t)255);
     m_idlen = tga.idlen;
+
     if (m_spec.nchannels % 2 == 0)  // if we have alpha
         tga.attr = 8;   // 8 bits of alpha
     // force Y flip when using RLE
@@ -207,6 +215,10 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     WH(bpp);
     WH(attr);
 #undef WH
+
+    // dump comment to file, don't bother about null termination
+    if (tga.idlen)
+        fwrite (id.c_str(), tga.idlen, 1, m_file);
 
     return true;
 }

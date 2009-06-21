@@ -71,6 +71,14 @@ typedef struct {
     uint8_t attr;               ///< attribs (alpha bits and \ref tga_flags)
 } tga_header;
 
+/// TGA 2.0 file footer.
+///
+typedef struct {
+    uint32_t ofs_ext;           ///< offset to the extension area
+    uint32_t ofs_dev;           ///< offset to the developer directory
+    char signature;             ///< should be TRUEVISION-XFILE for a 2.0 TGA
+} tga_footer;
+
 };  // namespace TGA_pvt
 
 

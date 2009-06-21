@@ -70,6 +70,11 @@ private:
     /// Helper function: read the image.
     ///
     bool readimg ();
+
+    /// Helper function: decode a pixel.
+    inline void decode_pixel (unsigned char *in, unsigned char *out,
+                              unsigned char *palette, int& bytespp,
+                              int& palbytespp, int& alphabits);
 };
 
 
@@ -174,16 +179,30 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                         TypeDesc::UINT8);
     m_spec.default_channel_names ();
     m_spec.linearity = ImageSpec::UnknownLinearity;
-    m_spec.x = m_tga.x_origin;
-    m_spec.y = m_tga.y_origin;
+#if 0   // no one seems to adhere to this part of the spec...
+    if (m_tga.attr & FLAG_X_FLIP)
+        m_spec.x = m_spec.width - m_tga.x_origin - 1;
+    else
+        m_spec.x = m_tga.x_origin;
+    if (m_tga.attr & FLAG_Y_FLIP)
+        m_spec.y = m_tga.y_origin;
+    else
+        m_spec.y = m_spec.width - m_tga.y_origin - 1;
+#endif
 
     /*std::cerr << "[tga] " << m_tga.width << "x" << m_tga.height << "@"
               << (int)m_tga.bpp << " (" << m_spec.nchannels
               << ") type " << (int)m_tga.type << "\n";*/
 
-    // skip comment
-    if (m_tga.idlen)
-        fseek (m_file, m_tga.idlen, SEEK_CUR);
+    // load image comment
+    if (m_tga.idlen) {
+        // TGA comments can be at most 255 bytes long, but we add 1 extra byte
+        // in case the comment lacks null termination
+        char id[256];
+        memset (id, 0, sizeof (id));
+        fread (id, m_tga.idlen, 1, m_file);
+        m_spec.attribute ("ImageDescription", id);
+    }
 
     newspec = spec ();
     return true;
@@ -191,20 +210,101 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
 
 
 
+inline void
+TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
+                        unsigned char *palette, int& bytespp,
+                        int& palbytespp, int& alphabits)
+{
+    unsigned int k;
+    // I hate nested switches...
+    switch (m_tga.type) {
+    case TYPE_PALETTED:
+    case TYPE_PALETTED_RLE:
+        switch (bytespp) {
+        case 1:
+            k = in[0];
+            break;
+        case 2:
+            k = *((unsigned int *)in) & 0x0000FFFF;
+            if (bigendian())
+                swap_endian (&k);
+            break;
+        case 3:
+            k = *((unsigned int *)in) & 0x00FFFFFF;
+            if (bigendian())
+                swap_endian (&k);
+            break;
+        case 4:
+            k = *((unsigned int *)in);
+            if (bigendian())
+                swap_endian (&k);
+            break;
+        }
+        k = (m_tga.cmap_first + k) * palbytespp;
+        switch (palbytespp) {
+        case 2:
+            out[0] = palette[k + 1] & 0x3E;
+            out[1] = (palette[k + 1] & 0xC0) >> 5
+                     | (palette[k + 0] & 0x07) << 3;
+            out[2] = (palette[k + 0] & 0xF8) >> 3;
+            break;
+        case 3:
+            out[0] = palette[k + 2];
+            out[1] = palette[k + 1];
+            out[2] = palette[k + 0];
+            break;
+        case 4:
+            out[0] = palette[k + 2];
+            out[1] = palette[k + 1];
+            out[2] = palette[k + 0];
+            out[3] = palette[k + 3];
+            break;
+        }
+        break;
+    case TYPE_RGB:
+    case TYPE_RGB_RLE:
+        switch (bytespp) {
+        case 2:
+            out[0] = in[1] & 0x3E;
+            out[1] = (in[1] & 0xC0) >> 5 | (in[0] & 0x07) << 3;
+            out[2] = (in[0] & 0xF8) >> 3;
+            break;
+        case 3:
+            out[0] = in[2];
+            out[1] = in[1];
+            out[2] = in[0];
+            break;
+        case 4:
+            out[0] = in[2];
+            out[1] = in[1];
+            out[2] = in[0];
+            out[3] = in[3];
+            break;
+        }
+        break;
+    case TYPE_GRAY:
+    case TYPE_GRAY_RLE:
+        // FIXME: byte order for bytespp > 1?
+        memcpy (out, in, bytespp);
+        break;
+    }
+}
+
+
+
 bool
 TGAInput::readimg ()
 {
-    /*std::cerr << "[tga] slb: " << m_spec.scanline_bytes() << " vs "
-              << (m_spec.width * m_tga.bpp / 8) << "\n";*/
-    DASSERT (m_spec.scanline_bytes() == (m_spec.width * m_tga.bpp / 8));
-
-    m_buf.resize (m_spec.image_bytes());
-
     // how many bytes we actually read
     // for 15-bit read 2 bytes and ignore the 16th bit
     int bytespp = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
     int palbytespp = (m_tga.cmap_size == 15) ? 2 : (m_tga.cmap_size / 8);
     int alphabits = m_tga.attr & 0x0F;
+
+    DASSERT (m_spec.scanline_bytes()
+             == (m_spec.width * (m_tga.cmap_type ? palbytespp : bytespp)));
+
+    m_buf.resize (m_spec.image_bytes());
 
     // read palette, if there is any
     unsigned char *palette = NULL;
@@ -213,65 +313,37 @@ TGAInput::readimg ()
         fread (palette, palbytespp, m_tga.cmap_length, m_file);
     }
 
+    unsigned char pixel[4];
     if (m_tga.type < TYPE_PALETTED_RLE) {
         // uncompressed image data
-        unsigned char pixel[4];
-        int k;
+        unsigned char in[4];
         for (int y = m_spec.height - 1; y >= 0; y--) {
             for (int x = 0; x < m_spec.width; x++) {
-                fread (pixel, bytespp, 1, m_file);
-                switch (m_spec.nchannels) {
-                case 1:
-                    m_buf[y * m_spec.width + x] = pixel[0];
-                    break;
-                case 2:
-                    k = y * m_spec.width * 2 + x * 2;
-                    m_buf[k + 0] = pixel[0];
-                    m_buf[k + 1] = pixel[1];
-                    break;
-                case 3:
-                    k = y * m_spec.width * 3 + x * 3;
-                    m_buf[k + 0] = pixel[2];
-                    m_buf[k + 1] = pixel[1];
-                    m_buf[k + 2] = pixel[0];
-                    break;
-                case 4:
-                    k = y * m_spec.width * 4 + x * 4;
-                    m_buf[k + 0] = pixel[2];
-                    m_buf[k + 1] = pixel[1];
-                    m_buf[k + 2] = pixel[0];
-                    m_buf[k + 3] = pixel[3];
-                    break;
-                }
+                fread (in, bytespp, 1, m_file);
+                decode_pixel (in, pixel, palette,
+                              bytespp, palbytespp, alphabits);
+                memcpy (&m_buf[y * m_spec.width * m_spec.nchannels
+                        + x * m_spec.nchannels],
+                        pixel, m_spec.nchannels);
             }
         }
     } else {
         // Run Length Encoded image
-        unsigned char pixel[5];
+        unsigned char in[5];
         int packet_size, k;
         for (int y = m_spec.height - 1; y >= 0; y--) {
             for (int x = 0; x < m_spec.width; x++) {
-                fread (pixel, m_spec.nchannels + 1, 1, m_file);
-                packet_size = 1 + (pixel[0] & 0x7f);
-                if (pixel[0] & 0x80) {  // run length packet
+                fread (in, 1 + bytespp, 1, m_file);
+                packet_size = 1 + (in[0] & 0x7f);
+                decode_pixel (&in[1], pixel, palette,
+                              bytespp, palbytespp, alphabits);
+                if (in[0] & 0x80) {  // run length packet
                     /*std::cerr << "[tga] run length packet "
                               << packet_size << "\n";*/
                     for (int i = 0; i < packet_size; i++) {
-                        switch (m_spec.nchannels) {
-                        case 3:
-                            k = y * m_spec.width * 3 + x * 3;
-                            m_buf[k + 0] = pixel[3];
-                            m_buf[k + 1] = pixel[2];
-                            m_buf[k + 2] = pixel[1];
-                            break;
-                        case 4:
-                            k = y * m_spec.width * 4 + x * 4;
-                            m_buf[k + 0] = pixel[3];
-                            m_buf[k + 1] = pixel[2];
-                            m_buf[k + 2] = pixel[1];
-                            m_buf[k + 3] = pixel[4];
-                            break;
-                        }
+                        memcpy (&m_buf[y * m_spec.width * m_spec.nchannels
+                                + x * m_spec.nchannels],
+                                pixel, m_spec.nchannels);
                         if (i < packet_size - 1) {
                             x++;
                             if (x >= m_spec.width) {
@@ -288,21 +360,9 @@ TGAInput::readimg ()
                     /*std::cerr << "[tga] non-run length packet "
                               << packet_size << "\n";*/
                     for (int i = 0; i < packet_size; i++) {
-                        switch (m_spec.nchannels) {
-                        case 3:
-                            k = y * m_spec.width * 3 + x * 3;
-                            m_buf[k + 0] = pixel[3];
-                            m_buf[k + 1] = pixel[2];
-                            m_buf[k + 2] = pixel[1];
-                            break;
-                        case 4:
-                            k = y * m_spec.width * 4 + x * 4;
-                            m_buf[k + 0] = pixel[3];
-                            m_buf[k + 1] = pixel[2];
-                            m_buf[k + 2] = pixel[1];
-                            m_buf[k + 3] = pixel[4];
-                            break;
-                        }
+                        memcpy (&m_buf[y * m_spec.width * m_spec.nchannels
+                                + x * m_spec.nchannels],
+                                pixel, m_spec.nchannels);
                         if (i < packet_size - 1) {
                             x++;
                             if (x >= m_spec.width) {
@@ -314,7 +374,9 @@ TGAInput::readimg ()
                                     goto loop_break;
                             }
                             // skip the packet header byte
-                            fread (&pixel[1], m_spec.nchannels, 1, m_file);
+                            fread (&in[1], bytespp, 1, m_file);
+                            decode_pixel(&in[1], pixel, palette,
+                                         bytespp, palbytespp, alphabits);
                         }
                     }
                 }
@@ -326,18 +388,35 @@ TGAInput::readimg ()
     delete [] palette;
 
     // flip the image, if necessary
-    if (m_tga.attr & FLAG_Y_FLIP) {
+    if (m_tga.cmap_type)
+        bytespp = palbytespp;
+    // Y-flipping is now done in read_native_scanline instead
+    /*if (m_tga.attr & FLAG_Y_FLIP) {
         //std::cerr << "[tga] y flipping\n";
 
-        std::vector<unsigned char> flip (m_spec.width * m_spec.nchannels);
+        std::vector<unsigned char> flip (m_spec.width * bytespp);
         unsigned char *src, *dst, *tmp = &flip[0];
         for (int y = 0; y < m_spec.height / 2; y++) {
-            src = &m_buf[(m_spec.height - y - 1) * m_spec.width * m_spec.nchannels];
-            dst = &m_buf[y * m_spec.width * m_spec.nchannels];
+            src = &m_buf[(m_spec.height - y - 1) * m_spec.width * bytespp];
+            dst = &m_buf[y * m_spec.width * bytespp];
 
-            memcpy(tmp, src, m_spec.width * m_spec.nchannels);
-            memcpy(src, dst, m_spec.width * m_spec.nchannels);
-            memcpy(dst, tmp, m_spec.width * m_spec.nchannels);
+            memcpy(tmp, src, m_spec.width * bytespp);
+            memcpy(src, dst, m_spec.width * bytespp);
+            memcpy(dst, tmp, m_spec.width * bytespp);
+        }
+    }*/
+    if (m_tga.attr & FLAG_X_FLIP) {
+        //std::cerr << "[tga] x flipping\n";
+
+        std::vector<unsigned char> flip (bytespp * m_spec.width / 2);
+        unsigned char *src, *dst, *tmp = &flip[0];
+        for (int y = 0; y < m_spec.height; y++) {
+            src = &m_buf[y * m_spec.width * bytespp];
+            dst = &m_buf[(y * m_spec.width + m_spec.width / 2) * bytespp];
+
+            memcpy(tmp, src, bytespp * m_spec.width / 2);
+            memcpy(src, dst, bytespp * m_spec.width / 2);
+            memcpy(dst, tmp, bytespp * m_spec.width / 2);
         }
     }
 
@@ -366,7 +445,8 @@ TGAInput::read_native_scanline (int y, int z, void *data)
     if (m_buf.empty ())
         readimg ();
 
-    y -= m_spec.y;
+    if (m_tga.attr & FLAG_Y_FLIP)
+        y = m_spec.height - y - 1;
     size_t size = spec().scanline_bytes();
     memcpy (data, &m_buf[0] + y * size, size);
     return true;
