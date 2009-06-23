@@ -229,13 +229,16 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         // FIXME: levelmode
         m_levelmode = m_input_tiled->levelMode();
         m_roundingmode = m_input_tiled->levelRoundingMode();
-        if (m_levelmode == Imf::MIPMAP_LEVELS)
+        if (m_levelmode == Imf::MIPMAP_LEVELS) {
             m_nsubimages = m_input_tiled->numLevels();
-        else if (m_levelmode == Imf::RIPMAP_LEVELS)
+            m_spec.attribute ("openexr:roundingmode", m_roundingmode);
+        } else if (m_levelmode == Imf::RIPMAP_LEVELS) {
             m_nsubimages = std::max (m_input_tiled->numXLevels(),
                                      m_input_tiled->numYLevels());
-        else
+            m_spec.attribute ("openexr:roundingmode", m_roundingmode);
+        } else {
             m_nsubimages = 1;
+        }
     } else {
         m_levelmode = Imf::ONE_LEVEL;
         m_nsubimages = 1;
@@ -250,7 +253,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         m_spec.attribute ("updirection", "y");  // OpenEXR convention
     } else {
         m_cubeface = false;
-        if (tiled)
+        if (tiled && m_levelmode == Imf::MIPMAP_LEVELS)
             m_spec.attribute ("textureformat", "Plain Texture");
         // FIXME - detect Shadow
     }

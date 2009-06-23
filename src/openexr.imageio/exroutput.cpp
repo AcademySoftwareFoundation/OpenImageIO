@@ -280,7 +280,9 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool ap
     ImageIOParameter *param = m_spec.find_attribute ("textureformat");
     const char *textureformat = param ? *(char **)param->data() : NULL;
     m_levelmode = Imf::ONE_LEVEL;  // Default to no MIP-mapping
-    m_roundingmode = Imf::ROUND_UP;     // Force rounding up mode
+    m_roundingmode = m_spec.get_int_attribute ("openexr:roundingmode",
+                                               Imf::ROUND_DOWN);
+    
     if (textureformat) {
         if (! strcmp (textureformat, "Plain Texture")) {
             m_levelmode = Imf::MIPMAP_LEVELS;
