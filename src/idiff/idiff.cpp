@@ -47,6 +47,7 @@ using Imath::Color3f;
 #include "argparse.h"
 #include "imageio.h"
 using namespace OpenImageIO;
+#include "imagecache.h"
 #include "imagebuf.h"
 
 
@@ -75,7 +76,6 @@ static float failpercent = 0;
 static bool perceptual = false;
 static float hardfail = std::numeric_limits<float>::max();
 static std::vector<std::string> filenames;
-static ImageBuf img0, img1;
 static bool comparemeta = false;
 static bool compareall = false;
 
@@ -136,13 +136,14 @@ getargs (int argc, char *argv[])
 
 
 static bool
-read_input (const std::string &filename, ImageBuf &img, int subimage=0)
+read_input (const std::string &filename, ImageBuf &img, 
+            ImageCache *cache, int subimage=0)
 {
     if (img.subimage() >= 0 && img.subimage() == subimage)
         return true;
 
-    if (img.init_spec (filename) && 
-        img.read (subimage, false, TypeDesc::FLOAT))
+    img.reset (filename, cache);
+    if (img.read (subimage, false, TypeDesc::FLOAT))
         return true;
 
     std::cerr << "idiff ERROR: Could not read " << filename << ":\n\t"
@@ -498,8 +499,18 @@ main (int argc, char *argv[])
     std::cout << "Comparing \"" << filenames[0] 
              << "\" and \"" << filenames[1] << "\"\n";
 
-    if (! read_input (filenames[0], img0) ||
-        ! read_input (filenames[1], img1))
+    // Create a private ImageCache so we can customize its cache size
+    // and instruct it store everything internally as floats.
+    ImageCache *imagecache = ImageCache::create (true);
+    imagecache->attribute ("forcefloat", 1);
+    imagecache->attribute ("max_memory_MB", 100.0);
+#ifdef DEBUG
+    imagecache->attribute ("statistics:level", 2);
+#endif
+
+    ImageBuf img0, img1;
+    if (! read_input (filenames[0], img0, imagecache) ||
+        ! read_input (filenames[1], img1, imagecache))
         return ErrFile;
     ImageSpec spec0 = img0.spec();  // stash it
 
@@ -518,8 +529,8 @@ main (int argc, char *argv[])
             std::cout << ", " << img0.spec().nchannels << " channel\n";
         }
 
-        if (! read_input (filenames[0], img0, subimage) ||
-            ! read_input (filenames[1], img1, subimage))
+        if (! read_input (filenames[0], img0, imagecache, subimage) ||
+            ! read_input (filenames[1], img1, imagecache, subimage))
             return ErrFile;
 
         // Compare the dimensions of the images.  Fail if they aren't the
@@ -598,7 +609,6 @@ main (int argc, char *argv[])
         // ImageBuf doesn't really know how to write subimages.
         if (diffimage.size() && (maxerror != 0 || !outdiffonly)) {
             ImageBuf diff (diffimage, img0.spec());
-            diff.alloc (img0.spec());
             ImageBuf::ConstIterator<float,float> pix0 (img0);
             ImageBuf::ConstIterator<float,float> pix1 (img1);
             ImageBuf::Iterator<float,float> pixdiff (diff);
@@ -646,5 +656,6 @@ main (int argc, char *argv[])
     else
         std::cout << "PASS\n";
 
+    ImageCache::destroy (imagecache);
     return ret;
 }

@@ -266,11 +266,12 @@ ImageCacheFile::open ()
         m_fingerprint = ustring (desc, found+strlen(prefix), 40);
 
     m_datatype = TypeDesc::FLOAT;
-    // FIXME -- use 8-bit when that's native?
-#if 1
-    if (spec.format == TypeDesc::UINT8)
-        m_datatype = TypeDesc::UINT8;
-#endif
+    if (! m_imagecache.forcefloat()) {
+        // If we aren't forcing everything to be float internally, then 
+        // there are a few other types we allow.
+        if (spec.format == TypeDesc::UINT8)
+            m_datatype = spec.format;
+    }
 
     m_channelsize = m_datatype.size();
     m_pixelsize = m_channelsize * spec.nchannels;
@@ -344,7 +345,6 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
     spec.auto_stride(xstride, ystride, zstride, format, spec.nchannels, tw, th);
     ImageSpec lospec (tw, th, spec.nchannels, TypeDesc::FLOAT);
     ImageBuf lores ("tmp", lospec);
-    lores.alloc (lospec);
 
     // Figure out the range of texels we need for this tile
     x -= spec.x;
@@ -724,6 +724,7 @@ ImageCacheImpl::init ()
     m_max_memory_bytes = (int) (m_max_memory_MB * 1024 * 1024);
     m_autotile = 0;
     m_automip = false;
+    m_forcefloat = false;
     m_Mw2c.makeIdentity();
     m_mem_used = 0;
     m_statslevel = 0;
@@ -1025,6 +1026,10 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         m_automip = *(const int *)val;
         return true;
     }
+    if (name == "forcefloat" && type == TypeDesc::INT) {
+        m_forcefloat = *(const int *)val;
+        return true;
+    }
     return false;
 }
 
@@ -1056,6 +1061,10 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     }
     if (name == "automip" && type == TypeDesc::INT) {
         *(int *)val = (int)m_automip;
+        return true;
+    }
+    if (name == "forcefloat" && type == TypeDesc::INT) {
+        *(int *)val = (int)m_forcefloat;
         return true;
     }
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
@@ -1224,6 +1233,10 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
         *(float *)data = spec.nchannels;
         return true;
     }
+    if (dataname == "cachedpixeltype" && datatype == TypeDesc::TypeInt) {
+        *(int *)data = (int) file->m_datatype.basetype;
+        return true;
+    }
     // FIXME - "viewingmatrix"
     // FIXME - "projectionmatrix"
 
@@ -1260,6 +1273,10 @@ ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec, int subimage)
     }
     if (file->broken()) {
         error ("Invalid image file \"%s\"", filename.c_str());
+        return false;
+    }
+    if (subimage < 0 || subimage >= file->subimages()) {
+        error ("Unknown subimage %d (out of %d)", subimage, file->subimages());
         return false;
     }
     spec = file->spec (subimage);
@@ -1340,6 +1357,14 @@ ImageCacheImpl::get_tile (ustring filename, int subimage, int x, int y, int z)
     ImageCacheFile *file = find_file (filename);
     if (! file || file->broken())
         return NULL;
+    const ImageSpec &spec (file->spec());
+    // Snap x,y,z to the corner of the tile
+    int xtile = (x-spec.x) / spec.tile_width;
+    int ytile = (y-spec.y) / spec.tile_height;
+    int ztile = (z-spec.z) / spec.tile_depth;
+    x = spec.x + xtile * spec.tile_width;
+    y = spec.y + ytile * spec.tile_height;
+    z = spec.z + ztile * spec.tile_depth;
     TileID id (*file, subimage, x, y, z);
     ImageCacheTileRef tile;
     find_tile (id, tile);

@@ -147,56 +147,56 @@ Subimage 1: 550 x 832, 3 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 550 x 832, 3 channel
+Subimage 2: 275 x 416, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 550 x 832, 3 channel
+Subimage 3: 137 x 208, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 550 x 832, 3 channel
+Subimage 4: 68 x 104, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 550 x 832, 3 channel
+Subimage 5: 34 x 52, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 550 x 832, 3 channel
+Subimage 6: 17 x 26, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 550 x 832, 3 channel
+Subimage 7: 8 x 13, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 550 x 832, 3 channel
+Subimage 8: 4 x 6, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 550 x 832, 3 channel
+Subimage 9: 2 x 3, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -352,56 +352,56 @@ Subimage 1: 512 x 512, 4 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 512 x 512, 4 channel
+Subimage 2: 256 x 256, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 512 x 512, 4 channel
+Subimage 3: 128 x 128, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 512 x 512, 4 channel
+Subimage 4: 64 x 64, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 512 x 512, 4 channel
+Subimage 5: 32 x 32, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 512 x 512, 4 channel
+Subimage 6: 16 x 16, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 512 x 512, 4 channel
+Subimage 7: 8 x 8, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 512 x 512, 4 channel
+Subimage 8: 4 x 4, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 512 x 512, 4 channel
+Subimage 9: 2 x 2, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -579,63 +579,63 @@ Subimage 1: 256 x 1536, 4 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 256 x 1536, 4 channel
+Subimage 2: 128 x 768, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 256 x 1536, 4 channel
+Subimage 3: 64 x 384, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 256 x 1536, 4 channel
+Subimage 4: 32 x 192, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 256 x 1536, 4 channel
+Subimage 5: 16 x 96, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 256 x 1536, 4 channel
+Subimage 6: 8 x 48, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 256 x 1536, 4 channel
+Subimage 7: 4 x 24, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 256 x 1536, 4 channel
+Subimage 8: 2 x 12, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 256 x 1536, 4 channel
+Subimage 9: 1 x 6, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 10: 256 x 1536, 4 channel
+Subimage 10: 1 x 3, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -793,63 +793,63 @@ Subimage 1: 1024 x 512, 4 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 1024 x 512, 4 channel
+Subimage 2: 512 x 256, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 1024 x 512, 4 channel
+Subimage 3: 256 x 128, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 1024 x 512, 4 channel
+Subimage 4: 128 x 64, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 1024 x 512, 4 channel
+Subimage 5: 64 x 32, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 1024 x 512, 4 channel
+Subimage 6: 32 x 16, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 1024 x 512, 4 channel
+Subimage 7: 16 x 8, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 1024 x 512, 4 channel
+Subimage 8: 8 x 4, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 1024 x 512, 4 channel
+Subimage 9: 4 x 2, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 10: 1024 x 512, 4 channel
+Subimage 10: 2 x 1, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -995,56 +995,56 @@ Subimage 1: 512 x 512, 3 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 512 x 512, 3 channel
+Subimage 2: 256 x 256, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 512 x 512, 3 channel
+Subimage 3: 128 x 128, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 512 x 512, 3 channel
+Subimage 4: 64 x 64, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 512 x 512, 3 channel
+Subimage 5: 32 x 32, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 512 x 512, 3 channel
+Subimage 6: 16 x 16, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 512 x 512, 3 channel
+Subimage 7: 8 x 8, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 512 x 512, 3 channel
+Subimage 8: 4 x 4, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 512 x 512, 3 channel
+Subimage 9: 2 x 2, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -1236,70 +1236,70 @@ Subimage 1: 512 x 3072, 4 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 512 x 3072, 4 channel
+Subimage 2: 256 x 1536, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 512 x 3072, 4 channel
+Subimage 3: 128 x 768, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 512 x 3072, 4 channel
+Subimage 4: 64 x 384, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 512 x 3072, 4 channel
+Subimage 5: 32 x 192, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 512 x 3072, 4 channel
+Subimage 6: 16 x 96, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 512 x 3072, 4 channel
+Subimage 7: 8 x 48, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 512 x 3072, 4 channel
+Subimage 8: 4 x 24, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 512 x 3072, 4 channel
+Subimage 9: 2 x 12, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 10: 512 x 3072, 4 channel
+Subimage 10: 1 x 6, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 11: 512 x 3072, 4 channel
+Subimage 11: 1 x 3, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -1457,63 +1457,63 @@ Subimage 1: 1024 x 512, 4 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 1024 x 512, 4 channel
+Subimage 2: 512 x 256, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 1024 x 512, 4 channel
+Subimage 3: 256 x 128, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 1024 x 512, 4 channel
+Subimage 4: 128 x 64, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 1024 x 512, 4 channel
+Subimage 5: 64 x 32, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 1024 x 512, 4 channel
+Subimage 6: 32 x 16, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 1024 x 512, 4 channel
+Subimage 7: 16 x 8, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 1024 x 512, 4 channel
+Subimage 8: 8 x 4, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 1024 x 512, 4 channel
+Subimage 9: 4 x 2, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 10: 1024 x 512, 4 channel
+Subimage 10: 2 x 1, 4 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -1659,56 +1659,56 @@ Subimage 1: 517 x 517, 3 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 517 x 517, 3 channel
+Subimage 2: 258 x 258, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 517 x 517, 3 channel
+Subimage 3: 129 x 129, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 517 x 517, 3 channel
+Subimage 4: 64 x 64, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 517 x 517, 3 channel
+Subimage 5: 32 x 32, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 517 x 517, 3 channel
+Subimage 6: 16 x 16, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 517 x 517, 3 channel
+Subimage 7: 8 x 8, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 517 x 517, 3 channel
+Subimage 8: 4 x 4, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 517 x 517, 3 channel
+Subimage 9: 2 x 2, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -1886,63 +1886,63 @@ Subimage 1: 256 x 1536, 3 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 256 x 1536, 3 channel
+Subimage 2: 128 x 768, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 256 x 1536, 3 channel
+Subimage 3: 64 x 384, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 256 x 1536, 3 channel
+Subimage 4: 32 x 192, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 256 x 1536, 3 channel
+Subimage 5: 16 x 96, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 256 x 1536, 3 channel
+Subimage 6: 8 x 48, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 256 x 1536, 3 channel
+Subimage 7: 4 x 24, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 256 x 1536, 3 channel
+Subimage 8: 2 x 12, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 256 x 1536, 3 channel
+Subimage 9: 1 x 6, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 10: 256 x 1536, 3 channel
+Subimage 10: 1 x 3, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -2100,63 +2100,63 @@ Subimage 1: 1000 x 500, 3 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 1000 x 500, 3 channel
+Subimage 2: 500 x 250, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 1000 x 500, 3 channel
+Subimage 3: 250 x 125, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 1000 x 500, 3 channel
+Subimage 4: 125 x 63, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 1000 x 500, 3 channel
+Subimage 5: 63 x 32, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 1000 x 500, 3 channel
+Subimage 6: 32 x 16, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 1000 x 500, 3 channel
+Subimage 7: 16 x 8, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 1000 x 500, 3 channel
+Subimage 8: 8 x 4, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 1000 x 500, 3 channel
+Subimage 9: 4 x 2, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 10: 1000 x 500, 3 channel
+Subimage 10: 2 x 1, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -2334,63 +2334,63 @@ Subimage 1: 256 x 1536, 3 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 256 x 1536, 3 channel
+Subimage 2: 128 x 768, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 256 x 1536, 3 channel
+Subimage 3: 64 x 384, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 256 x 1536, 3 channel
+Subimage 4: 32 x 192, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 256 x 1536, 3 channel
+Subimage 5: 16 x 96, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 256 x 1536, 3 channel
+Subimage 6: 8 x 48, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 256 x 1536, 3 channel
+Subimage 7: 4 x 24, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 256 x 1536, 3 channel
+Subimage 8: 2 x 12, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 256 x 1536, 3 channel
+Subimage 9: 1 x 6, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 10: 256 x 1536, 3 channel
+Subimage 10: 1 x 3, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
@@ -2548,63 +2548,63 @@ Subimage 1: 1024 x 512, 3 channel
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 2: 1024 x 512, 3 channel
+Subimage 2: 512 x 256, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 3: 1024 x 512, 3 channel
+Subimage 3: 256 x 128, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 4: 1024 x 512, 3 channel
+Subimage 4: 128 x 64, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 5: 1024 x 512, 3 channel
+Subimage 5: 64 x 32, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 6: 1024 x 512, 3 channel
+Subimage 6: 32 x 16, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 7: 1024 x 512, 3 channel
+Subimage 7: 16 x 8, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 8: 1024 x 512, 3 channel
+Subimage 8: 8 x 4, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 9: 1024 x 512, 3 channel
+Subimage 9: 4 x 2, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf
   Max error  = 0
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
-Subimage 10: 1024 x 512, 3 channel
+Subimage 10: 2 x 1, 3 channel
   Mean error = 0
   RMS error = 0
   Peak SNR = inf

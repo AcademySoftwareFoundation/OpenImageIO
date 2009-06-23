@@ -894,19 +894,19 @@ ImageIO plugin that could be find, the return value is {\cf false}.
 
 
 \apiitem{bool {\ce get_texels} (ustring filename, TextureOptions \&options,\\
-\bigspc                       int xmin, int xmax, int ymin, int ymax,\\
-\bigspc                       int zmin, int zmax, int level,\\
+\bigspc                       int xbegin, int xend, int ybegin, int yend,\\
+\bigspc                       int zbegin, int zend, int level,\\
 \bigspc                       TypeDesc format, void *result)}
 
-Retrieve the rectangle of raw unfiltered texels spanning
-(xmin, ymin, zmin) through (xmax, ymax, zmax) (inclusive, specified as
-integer pixel coordinates), at the named MIP-map level, storing
+Retrieve a rectangle of raw unfiltered texels at the named MIP-map level, storing
 the texel values beginning at the address specified by result.
 The texel values will be converted to the type specified by
 format.  It is up to the caller to ensure that result points to
 an area of memory big enough to accommodate the requested
 rectangle (taking into consideration its dimensions, number of
-channels, and data format).
+channels, and data format).  The rectangular region to be
+retrieved includes {\cf begin} but does not include {\cf end} (much
+like STL begin/end usage).
 
 Fields within {\cf options} that are honored for raw texel retieval
 include the following:

@@ -43,7 +43,9 @@
 #define DLL_EXPORT_PUBLIC /* Because we are implementing ImageBuf */
 #include "imagebuf.h"
 #undef DLL_EXPORT_PUBLIC
+#include "imagecache.h"
 #include "dassert.h"
+#include "strutil.h"
 #include "fmath.h"
 
 
@@ -51,10 +53,12 @@ namespace OpenImageIO {
 
 
 
-ImageBuf::ImageBuf (const std::string &filename)
+ImageBuf::ImageBuf (const std::string &filename,
+                    ImageCache *imagecache)
     : m_name(filename), m_nsubimages(0), m_current_subimage(-1),
-      m_spec_valid(false), m_pixels_valid(false),
-      m_badfile(false), m_orientation(1), m_pixelaspect(1)
+      m_localpixels(false), m_spec_valid(false), m_pixels_valid(false),
+      m_badfile(false), m_orientation(1), m_pixelaspect(1), 
+      m_imagecache(imagecache)
 {
 }
 
@@ -62,8 +66,9 @@ ImageBuf::ImageBuf (const std::string &filename)
 
 ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
     : m_name(filename), m_nsubimages(0), m_current_subimage(-1),
-      m_spec_valid(false), m_pixels_valid(false),
-      m_badfile(false), m_orientation(1), m_pixelaspect(1)
+      m_localpixels(true), m_spec_valid(false), m_pixels_valid(false),
+      m_badfile(false), m_orientation(1), m_pixelaspect(1),
+      m_imagecache(NULL)
 {
     alloc (spec);
 }
@@ -72,6 +77,53 @@ ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
 
 ImageBuf::~ImageBuf ()
 {
+    // Do NOT destroy m_imagecache here -- either it was created
+    // externally and passed to the ImageBuf ctr or reset() method, or
+    // else init_spec requested the system-wide shared cache, which
+    // does not need to be destroyed.
+}
+
+
+
+void
+ImageBuf::clear ()
+{
+    m_name.clear ();
+    m_fileformat.clear ();
+    m_nsubimages = 0;
+    m_current_subimage = -1;
+    m_spec = ImageSpec ();
+    {
+        std::vector<char> tmp;
+        std::swap (m_pixels, tmp);  // clear it with deallocation
+    }
+    m_localpixels = false;
+    m_spec_valid = false;
+    m_pixels_valid = false;
+    m_badfile = false;
+    m_orientation = 1;
+    m_pixelaspect = 1;
+}
+
+
+
+void
+ImageBuf::reset (const std::string &filename, ImageCache *imagecache)
+{
+    clear ();
+    m_name = ustring (filename);
+    if (imagecache)
+        m_imagecache = imagecache;
+}
+
+
+
+void
+ImageBuf::reset (const std::string &filename, const ImageSpec &spec)
+{
+    clear ();
+    m_name = ustring (filename);
+    alloc (spec);
 }
 
 
@@ -88,6 +140,10 @@ ImageBuf::realloc ()
         // As tmp leaves scope, it frees m_pixels's old memory
     }
     m_pixels.resize (newsize);
+    m_localpixels = true;
+#ifdef DEBUG
+    std::cerr << "ImageBuf " << m_name << " local allocation: " << newsize << "\n";
+#endif
 }
 
 
@@ -108,26 +164,31 @@ ImageBuf::init_spec (const std::string &filename)
     if (m_current_subimage >= 0 && m_name == filename)
         return true;   // Already done
 
-    m_name = filename;
-    boost::scoped_ptr<ImageInput> in (ImageInput::create (filename.c_str(), "" /* searchpath */));
-    if (! in) {
-        std::cerr << OpenImageIO::error_message() << "\n";
+    if (! m_imagecache) {
+        m_imagecache = ImageCache::create (true /* shared cache */);
     }
-    if (in && in->open (filename.c_str(), m_spec)) {
-        m_fileformat = in->format_name ();
-        ImageSpec tempspec;
-        m_nsubimages = 1;
-        while (in->seek_subimage (m_nsubimages, tempspec))
-            ++m_nsubimages;
-//        std::cerr << filename << " has " << m_nsubimages << " subimages\n";
-        m_current_subimage = 0;
-        in->close ();
+
+    m_name = filename;
+    m_nsubimages = 0;
+    for (m_nsubimages = 0;  ;  ++m_nsubimages) {
+        ImageSpec spec;
+        if (! m_imagecache->get_imagespec (m_name, spec, m_nsubimages))
+            break;
+        if (m_nsubimages == 0)
+            m_spec = spec;   // Copy the first spec
+    }
+    if (m_nsubimages) {
         m_badfile = false;
         m_spec_valid = true;
+        m_orientation = m_spec.get_int_attribute ("orientation", 1);
+        m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
     } else {
         m_badfile = true;
         m_spec_valid = false;
+        m_err = m_imagecache->geterror ();
+        // std::cerr << "ImageBuf ERROR: " << m_err << "\n";
     }
+
     return !m_badfile;
 }
 
@@ -138,55 +199,60 @@ ImageBuf::read (int subimage, bool force, TypeDesc convert,
                OpenImageIO::ProgressCallback progress_callback,
                void *progress_callback_data)
 {
-    if (pixels_valid() && !force)
+    if (pixels_valid() && !force && subimage == this->subimage())
         return true;
 
-    // Find an ImageIO plugin that can open the input file, and open it.
-    boost::scoped_ptr<ImageInput> in (ImageInput::create (m_name.c_str(), "" /* searchpath */));
-    if (! in) {
-        m_err = OpenImageIO::error_message();
+    if (! init_spec (m_name.string()))
         return false;
-    }
-    if (in->open (m_name.c_str(), m_spec)) {
-        m_fileformat = in->format_name ();
-        ImageSpec tempspec;
-        m_nsubimages = 1;
-        while (in->seek_subimage (m_nsubimages, tempspec))
-            ++m_nsubimages;
-        m_current_subimage = 0;
-        in->seek_subimage (0, m_spec);
-        m_badfile = false;
-        m_spec_valid = true;
-    } else {
-        m_badfile = true;
-        m_spec_valid = false;
-        m_err = in->error_message();
-        return false;
-    }
 
-    if (subimage > 0 &&  in->seek_subimage (subimage, m_spec))
-        m_current_subimage = subimage;
-    else
-        m_current_subimage = 0;
+    // Set our current spec to the requested subimage
+    if (! m_imagecache->get_imagespec (m_name, m_spec, subimage)) {
+        m_err = m_imagecache->geterror ();
+        return false;
+    }
+    m_current_subimage = subimage;
+
+#if 1
+    // If we don't already have "local" pixels, and we aren't asking to
+    // convert the pixels to a specific (and different) type, then take an
+    // early out by relying on the cache.
+    int peltype = TypeDesc::UNKNOWN;
+    m_imagecache->get_image_info (m_name, ustring("cachedpixeltype"),
+                                  TypeDesc::TypeInt, &peltype);
+    m_cachedpixeltype = TypeDesc ((TypeDesc::BASETYPE)peltype);
+    if (! m_localpixels && ! force &&
+        (convert == m_cachedpixeltype || convert == TypeDesc::UNKNOWN)) {
+        m_spec.format = m_cachedpixeltype;
+#ifdef DEBUG
+        std::cerr << "read was not necessary -- using cache\n";
+#endif
+        return true;
+    } else {
+#ifdef DEBUG
+        std::cerr << "going to have to read " << m_name << ": "
+                  << m_spec.format.c_str() << " vs " << convert.c_str() << "\n";
+#endif
+    }        
+#endif
 
     if (convert != TypeDesc::UNKNOWN)
         m_spec.format = convert;
-
-    ImageIOParameter *orient = m_spec.find_attribute ("orientation", TypeDesc::UINT);
-    m_orientation = orient ? *(unsigned int *)orient->data() : 1;
-
-    ImageIOParameter *aspect = m_spec.find_attribute ("pixelaspectratio", TypeDesc::FLOAT);
-    m_pixelaspect = aspect ? *(float *)aspect->data() : 1.0f;
+    m_orientation = m_spec.get_int_attribute ("orientation", 1);
+    m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
 
     realloc ();
-    const OpenImageIO::stride_t as = OpenImageIO::AutoStride;
-    m_pixels_valid = in->read_image (m_spec.format, &m_pixels[0], as, as, as,
-                                     progress_callback, progress_callback_data);
-    if (! m_pixels_valid)
-        m_err = in->error_message();
-    in->close ();
-    if (progress_callback)
-        progress_callback (progress_callback_data, 0);
+    if (m_imagecache->get_pixels (m_name, subimage, 
+                                  m_spec.x, m_spec.x+m_spec.width,
+                                  m_spec.y, m_spec.y+m_spec.height,
+                                  m_spec.z, m_spec.z+m_spec.depth,
+                                  m_spec.format, &m_pixels[0])) {
+        m_pixels_valid = true;
+        m_localpixels = true;
+    } else {
+        m_pixels_valid = false;
+        m_err = m_imagecache->geterror ();
+    }
+
     return m_pixels_valid;
 }
 
@@ -545,6 +611,31 @@ ImageBuf::pixeladdr (int x, int y)
     y -= spec().y;
     size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
     return &(m_pixels[p]);
+}
+
+
+
+const void *
+ImageBuf::retile (int subimage, int x, int y, ImageCache::Tile* &tile,
+                  int &tilexbegin, int &tileybegin) const
+{
+    int tw = spec().tile_width, th = spec().tile_height;
+    if (tile == NULL || x < tilexbegin || x >= (tilexbegin+tw) ||
+                        y < tileybegin || y >= (tileybegin+th)) {
+        // not the same tile as before
+        if (tile)
+            m_imagecache->release_tile (tile);
+        int xtile = (x-spec().x) / tw;
+        int ytile = (y-spec().y) / th;
+        tilexbegin = spec().x + xtile*tw;
+        tileybegin = spec().y + ytile*th;
+        tile = m_imagecache->get_tile (m_name, subimage, x, y, 0);
+    }
+
+    size_t offset = ((y - tileybegin) * tw) + (x - tilexbegin);
+    offset *= spec().pixel_bytes();
+    TypeDesc format;
+    return (const char *)m_imagecache->tile_pixels (tile, format) + offset;
 }
 
 

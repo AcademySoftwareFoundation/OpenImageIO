@@ -60,8 +60,8 @@ Below are some simple code fragments that shows \ImageCache in action:
     // (for brevity of this example, let's assume that 'size' is the
     // number of channels times the number of pixels in the requested region)
     float pixels[size];
-    cache->get_pixels ("file1.jpg", 0, xmin, xmax, ymin, ymax, zmin, zmax,
-                       TypeDesc::FLOAT, pixels);
+    cache->get_pixels ("file1.jpg", 0, xbegin, xend, ybegin, yend,
+                       zbegin, zend, TypeDesc::FLOAT, pixels);
 
     // Get information about a file
     ImageSpec spec;
@@ -385,18 +385,19 @@ applied.
 \label{sec:imagecache:api:getpixels}
 
 \apiitem{bool {\ce get\_pixels} (ustring filename, int subimage, \\
-         \bigspc int xmin, int xmax, int ymin, int ymax,
-                            int zmin, int zmax, \\
+         \bigspc int xbegin, int xend, int ybegin, int yend,
+                            int zbegin, int zend, \\
          \bigspc TypeDesc format, void *result)}
 
-Retrieve the rectangle of raw pixels spanning (xmin, ymin, zmin) through
-(xmax, ymax, zmax) (inclusive, specified as integer pixel coordinates),
+Retrieve the rectangle of raw pixels
 of the designated {\cf subimage}, storing the pixel values
 beginning at the address specified by result.  The pixel values will be
 converted to the type specified by {\cf format}.  It is up to the caller
 to ensure that result points to an area of memory big enough to
 accommodate the requested rectangle (taking into consideration its
 dimensions, number of channels, and data format).
+The rectangular region to be retrieved includes {\cf begin} but does not
+include {\cf end} (much like STL begin/end usage).
 
 \apiend
 

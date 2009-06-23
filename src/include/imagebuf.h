@@ -39,6 +39,7 @@
 
 #include "imageio.h"
 #include "fmath.h"
+#include "imagecache.h"
 
 namespace OpenImageIO {
 
@@ -50,9 +51,11 @@ namespace OpenImageIO {
 /// (translating to/from float automatically).
 class ImageBuf {
 public:
-    /// Construct an ImageBuf without allocated pixels.
-    ///
-    ImageBuf (const std::string &name = std::string());
+    /// Construct an ImageBuf to read the named image.  
+    /// If name is the empty string (the default), it's a completely
+    /// uninitialized ImageBuf.
+    ImageBuf (const std::string &name = std::string(),
+              ImageCache *imagecache = NULL);
 
     /// Construct an Imagebuf given both a name and a proposed spec
     /// describing the image size and type, and allocate storage for
@@ -62,6 +65,19 @@ public:
     /// Destructor for an ImageBuf.
     ///
     virtual ~ImageBuf ();
+
+    /// Restore the ImageBuf to an uninitialized state.
+    ///
+    virtual void clear ();
+
+    /// Forget all previous info, reset this ImageBuf to a new image.
+    ///
+    virtual void reset (const std::string &name = std::string(),
+                        ImageCache *imagecache = NULL);
+
+    /// Forget all previous info, reset this ImageBuf to a blank
+    /// image of the given name and dimensions.
+    virtual void reset (const std::string &name, const ImageSpec &spec);
 
     /// Allocate space the right size for an image described by the
     /// format spec.  If the ImageBuf already has allocated pixels,
@@ -255,6 +271,9 @@ public:
 
     bool pixels_valid (void) const { return m_pixels_valid; }
 
+    bool localpixels () const { return m_localpixels; }
+    ImageCache *imagecache () const { return m_imagecache; }
+
     /// Templated class for referring to an individual pixel in an
     /// ImageBuf, iterating over the pixels of an ImageBuf, or iterating
     /// over the pixels of a specified region of the ImageBuf
@@ -280,13 +299,13 @@ public:
         /// region, starting with the upper left pixel of the region.
         Iterator (ImageBuf &ib)
             : m_ib(&ib), m_xbegin(ib.xbegin()), m_ybegin(ib.ybegin()),
-              m_xend(ib.xend()), m_yend(ib.yend())
+              m_xend(ib.xend()), m_yend(ib.yend()), m_tile(NULL)
           { pos (m_xbegin,m_ybegin); }
         /// Construct from an ImageBuf and a specific pixel index..
         ///
         Iterator (ImageBuf &ib, int x, int y)
             : m_ib(&ib), m_xbegin(ib.xbegin()), m_ybegin(ib.ybegin()),
-              m_xend(ib.xend()), m_yend(ib.yend())
+              m_xend(ib.xend()), m_yend(ib.yend()), m_tile(NULL)
           { pos (x, y); }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
@@ -294,16 +313,30 @@ public:
             : m_ib(&ib), m_xbegin(std::max(xbegin,ib.xbegin())), 
               m_ybegin(std::max(ybegin,ib.ybegin())),
               m_xend(std::min(xend,ib.xend())),
-              m_yend(std::min(yend,ib.yend()))
+              m_yend(std::min(yend,ib.yend())), m_tile(NULL)
           { pos (m_xbegin, m_ybegin); }
+        Iterator (const Iterator &i)
+            : m_ib (i.m_ib), m_xbegin(i.m_xbegin), m_xend(i.m_xend), 
+              m_ybegin(i.m_ybegin), m_yend(i.m_yend), m_tile(NULL)
+        {
+            pos (i.m_x, i.m_y);
+        }
+        ~Iterator () {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+        }
 
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
         void pos (int x, int y) {
+            if (! valid(x,y))
+                m_proxy.set (NULL);
+            else if (m_ib->localpixels())
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y));
+            else
+                m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(), x, y,
+                                         m_tile, m_tilexbegin, m_tileybegin));
             m_x = x;  m_y = y;
-            m_proxy.set (valid() ? (BUFT *)m_ib->pixeladdr (m_x, m_y) : NULL);
-            // FIXME -- this is ok for now, but when ImageBuf is backed by
-            // ImageCache, this should point to the current tile!
         }
 
         /// Increment to the next pixel in the region.
@@ -323,6 +356,17 @@ public:
             (*this)++;
         }
 
+        /// Assign one Iterator to another
+        ///
+        const Iterator & operator= (const Iterator &i) {
+            m_ib = i.m_ib;
+            m_xbegin = i.m_xbegin;  m_xend = i.m_xend;
+            m_ybegin = i.m_ybegin;  m_yend = i.m_yend;
+            m_tile = NULL;
+            pos (i.m_x, i.m_y);
+            return *this;
+        }
+
         /// Retrieve the current x location of the iterator.
         ///
         int x () const { return m_x; }
@@ -336,6 +380,14 @@ public:
         bool valid () const {
             return (m_x >= m_xbegin && m_x < m_xend &&
                     m_y >= m_ybegin && m_y < m_yend);
+        }
+
+        /// Is the location (x,y) valid?  Locations outside the
+        /// designated region are invalid, as is an iterator that has
+        /// completed iterating over the whole region.
+        bool valid (int x, int y) const {
+            return (x >= m_xbegin && x < m_xend &&
+                    y >= m_ybegin && y < m_yend);
         }
 
         /// Dereferencing the iterator gives us a proxy for the pixel,
@@ -358,13 +410,13 @@ public:
         int m_xbegin, m_xend, m_ybegin, m_yend;
         int m_x, m_y;
         DataArrayProxy<BUFT,USERT> m_proxy;
-        // FIXME -- this is ok for now, but when ImageBuf is backed by
-        // ImageCache, this should hold and keep track of the current tile.
+        ImageCache::Tile *m_tile;
+        int m_tilexbegin, m_tileybegin;
     };
 
 
     /// Just like an ImageBuf::Iterator, except that it refers to a
-    /// const ImageBuf.
+    /// const ImageBuf.  If BUFT == void, 
     template<typename BUFT, typename USERT=float>
     class ConstIterator {
     public:
@@ -372,13 +424,13 @@ public:
         /// region, starting with the upper left pixel of the region.
         ConstIterator (const ImageBuf &ib)
             : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()), 
-              m_ybegin(ib.ybegin()), m_yend(ib.yend())
+              m_ybegin(ib.ybegin()), m_yend(ib.yend()), m_tile(NULL)
           { pos (m_xbegin,m_ybegin); }
         /// Construct from an ImageBuf and a specific pixel index..
         ///
         ConstIterator (const ImageBuf &ib, int x, int y)
             : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()),
-              m_ybegin(ib.ybegin()), m_yend(ib.yend())
+              m_ybegin(ib.ybegin()), m_yend(ib.yend()), m_tile(NULL)
           { pos (x, y); }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
@@ -387,16 +439,31 @@ public:
             : m_ib(&ib), m_xbegin(std::max(xbegin,ib.xbegin())), 
               m_xend(std::min(xend,ib.xend())),
               m_ybegin(std::max(ybegin,ib.ybegin())),
-              m_yend(std::min(yend,ib.yend()))
+              m_yend(std::min(yend,ib.yend())), m_tile(NULL)
           { pos (m_xbegin, m_ybegin); }
+        ConstIterator (const ConstIterator &i)
+            : m_ib (i.m_ib), m_xbegin(i.m_xbegin), m_xend(i.m_xend), 
+              m_ybegin(i.m_ybegin), m_yend(i.m_yend), m_tile(NULL)
+        {
+            pos (i.m_x, i.m_y);
+        }
+
+        ~ConstIterator () {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+        }
 
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
         void pos (int x, int y) {
+            if (! valid(x,y))
+                m_proxy.set (NULL);
+            else if (m_ib->localpixels())
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y));
+            else
+                m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(), x, y,
+                                         m_tile, m_tilexbegin, m_tileybegin));
             m_x = x;  m_y = y;
-            m_proxy.set (valid() ? (BUFT *)m_ib->pixeladdr (m_x, m_y) : NULL);
-            // FIXME -- this is ok for now, but when ImageBuf is backed by
-            // ImageCache, this should point to the current tile!
         }
 
         /// Increment to the next pixel in the region.
@@ -416,6 +483,17 @@ public:
             (*this)++;
         }
 
+        /// Assign one ConstIterator to another
+        ///
+        const ConstIterator & operator= (const ConstIterator &i) {
+            m_ib = i.m_ib;
+            m_xbegin = i.m_xbegin;  m_xend = i.m_xend;
+            m_ybegin = i.m_ybegin;  m_yend = i.m_yend;
+            m_tile = NULL;
+            pos (i.m_x, i.m_y);
+            return *this;
+        }
+
         /// Retrieve the current x location of the iterator.
         ///
         int x () const { return m_x; }
@@ -429,6 +507,14 @@ public:
         bool valid () const {
             return (m_x >= m_xbegin && m_x < m_xend &&
                     m_y >= m_ybegin && m_y < m_yend);
+        }
+
+        /// Is the location (x,y) valid?  Locations outside the
+        /// designated region are invalid, as is an iterator that has
+        /// completed iterating over the whole region.
+        bool valid (int x, int y) const {
+            return (x >= m_xbegin && x < m_xend &&
+                    y >= m_ybegin && y < m_yend);
         }
 
         /// Dereferencing the iterator gives us a proxy for the pixel,
@@ -446,8 +532,8 @@ public:
         int m_xbegin, m_xend, m_ybegin, m_yend;
         int m_x, m_y;
         ConstDataArrayProxy<BUFT,USERT> m_proxy;
-        // FIXME -- this is ok for now, but when ImageBuf is backed by
-        // ImageCache, this should hold and keep track of the current tile.
+        ImageCache::Tile *m_tile;
+        int m_tilexbegin, m_tileybegin;
     };
 
 
@@ -458,12 +544,15 @@ protected:
     int m_current_subimage;      ///< Current subimage we're viewing
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     std::vector<char> m_pixels;  ///< Pixel data
+    bool m_localpixels;          ///< Pixels are local, in m_pixels
     bool m_spec_valid;           ///< Is the spec valid
     bool m_pixels_valid;         ///< Image is valid
     bool m_badfile;              ///< File not found
     mutable std::string m_err;   ///< Last error message
     int m_orientation;           ///< Orientation of the image
     float m_pixelaspect;         ///< Pixel aspect ratio of the image
+    ImageCache *m_imagecache;    ///< ImageCache to use
+    TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
 
     // An ImageBuf can be in one of several states:
     //   * Uninitialized
@@ -486,6 +575,12 @@ protected:
     // Return the address where pixel (x,y) is stored in the image buffer.
     // Use with extreme caution!
     void *pixeladdr (int x, int y);
+
+    // Reset the ImageCache::Tile * to reserve and point to the correct
+    // tile for the given pixel, and return the ptr to the actual pixel
+    // within the tile.
+    const void * retile (int subimage, int x, int y, ImageCache::Tile* &tile,
+                         int &tilexbegin, int &tileybegin) const;
 };
 
 
