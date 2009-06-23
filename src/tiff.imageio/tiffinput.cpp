@@ -102,13 +102,9 @@ private:
     void palette_to_rgb (int n, const unsigned char *palettepels,
                          unsigned char *rgb);
 
-    // Convert bilevel (1-bit) to 8-bit
-    void bilevel_to_8bit (int n, const unsigned char *bits,
-                          unsigned char *bytes);
-
-     // Convert bilevel (1-bit) to 8-bit
-    void fourbit_to_8bit (int n, const unsigned char *bits,
-                          unsigned char *bytes);
+    // Convert nbits (1, 2, 4) bits to 8 bit
+    void nbit_to_8bit (int n, const unsigned char *bits,
+                       unsigned char *bytes, int nbits);
 
     void invert_photometric (int n, void *data);
 
@@ -415,9 +411,9 @@ TIFFInput::readspec ()
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
     switch (m_bitspersample) {
     case 1:
-        // Make 1bpp look like byte images
+    case 2:
     case 4:
-        // Make 4 bpp look like byte images
+        // Make 1, 2, 4 bpp look like byte images
     case 8:
         if (sampleformat == SAMPLEFORMAT_UINT)
             m_spec.set_format (TypeDesc::UINT8);
@@ -463,6 +459,7 @@ TIFFInput::readspec ()
         m_colormap.insert (m_colormap.end(), b, b + (1 << m_bitspersample));
         // Palette TIFF images are always 3 channels (to the client)
         m_spec.nchannels = 3;
+        m_spec.default_channel_names ();
     }
 
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
@@ -624,53 +621,34 @@ void
 TIFFInput::palette_to_rgb (int n, const unsigned char *palettepels,
                            unsigned char *rgb)
 {
-    DASSERT (m_spec.nchannels == 3);
+    int vals_per_byte = 8 / m_bitspersample;
     int entries = 1 << m_bitspersample;
+    int highest = entries-1;
+    DASSERT (m_spec.nchannels == 3);
     DASSERT (m_colormap.size() == 3*entries);
-    if (m_bitspersample == 8) {
-        for (int x = 0;  x < n;  ++x) {
-            int i = (*palettepels++);
-            *rgb++ = m_colormap[0*entries+i] / 257;
-            *rgb++ = m_colormap[1*entries+i] / 257;
-            *rgb++ = m_colormap[2*entries+i] / 257;
-        }
-    } else {
-        // 4 bits per sample
-        DASSERT (m_bitspersample == 4);
-        for (int x = 0;  x < n;  ++x) {
-            int i;
-            if ((x & 1) == 0)
-                i = (*palettepels >> 4);
-            else
-                i = (*palettepels++) & 0x0f;
-            *rgb++ = m_colormap[0*entries+i] / 257;
-            *rgb++ = m_colormap[1*entries+i] / 257;
-            *rgb++ = m_colormap[2*entries+i] / 257;
-        }
+    for (int x = 0;  x < n;  ++x) {
+        int i = palettepels[x/vals_per_byte];
+        i >>= (m_bitspersample * (vals_per_byte - 1 - (x % vals_per_byte)));
+        i &= highest;
+        *rgb++ = m_colormap[0*entries+i] / 257;
+        *rgb++ = m_colormap[1*entries+i] / 257;
+        *rgb++ = m_colormap[2*entries+i] / 257;
     }
 }
 
 
 
 void
-TIFFInput::bilevel_to_8bit (int n, const unsigned char *bits,
-                            unsigned char *bytes)
+TIFFInput::nbit_to_8bit (int n, const unsigned char *bits,
+                         unsigned char *bytes, int nbits)
 {
+    int vals_per_byte = 8 / nbits;
+    int highest = (1 << nbits) - 1;
     for (int i = 0;  i < n;  ++i) {
-        int b = bits[i/8] & (1 << (7 - (i&7)));
-        bytes[i] = b ? 255 : 0;
-    }
-}
-
-
-
-void
-TIFFInput::fourbit_to_8bit (int n, const unsigned char *bits,
-                            unsigned char *bytes)
-{
-    for (int i = 0;  i < n;  ++i) {
-        int b = ((i & 1) == 0) ? (bits[i/2] >> 4) : (bits[i/2] & 15);
-        bytes[i] = (unsigned char) ((b * 255) / 15);
+        int b = bits[i/vals_per_byte];
+        b >>= (nbits * (vals_per_byte - 1 - (i % vals_per_byte)));
+        b &= highest;
+        bytes[i] = (unsigned char) ((b * 255) / highest);
     }
 }
 
@@ -715,17 +693,16 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
                 return false;
             }
         separate_to_contig (m_spec.width, &m_scratch[0], (unsigned char *)data);
-    } else if (m_bitspersample == 1 || m_bitspersample == 4) {
-        // Bilevel images
+    } else if (m_bitspersample == 1 || m_bitspersample == 2 || 
+               m_bitspersample == 4) {
+        // <8 bit images
         m_scratch.resize (m_spec.width);
         if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
             error ("%s", lasterr.c_str());
             return false;
         }
-        if (m_bitspersample == 1)
-            bilevel_to_8bit (m_spec.width, &m_scratch[0], (unsigned char *)data);
-        else
-            fourbit_to_8bit (m_spec.width, &m_scratch[0], (unsigned char *)data);
+        nbit_to_8bit (m_spec.width, &m_scratch[0], (unsigned char *)data,
+                      m_bitspersample);
     } else {
         // Contiguous, >= 8 bit per sample -- the "usual" case
         if (TIFFReadScanline (m_tif, data, y) < 0) {

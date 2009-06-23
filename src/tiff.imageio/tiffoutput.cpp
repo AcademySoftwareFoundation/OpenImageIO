@@ -284,6 +284,10 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
                 compress = COMPRESSION_LZW;
             else if (! strcmp (str, "zip") || ! strcmp (str, "deflate"))
                 compress = COMPRESSION_ADOBE_DEFLATE;
+            else if (! strcmp (str, "packbits"))
+                compress = COMPRESSION_PACKBITS;
+            else if (! strcmp (str, "ccittrle"))
+                compress = COMPRESSION_CCITTRLE;
         }
         TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
         // Use predictor when using compression
