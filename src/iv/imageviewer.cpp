@@ -794,7 +794,7 @@ ImageViewer::displayCurrentImage ()
 
             statusViewInfo->hide ();
             statusProgress->show ();
-            load_result = loadCurrentImage (img->subimage ());
+            load_result = loadCurrentImage (std::max (0, img->subimage ()));
             statusProgress->hide ();
             statusViewInfo->show ();
 

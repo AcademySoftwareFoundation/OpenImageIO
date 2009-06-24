@@ -65,7 +65,7 @@ ImageBuf::ImageBuf (const std::string &filename,
 
 
 ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
-    : m_name(filename), m_nsubimages(0), m_current_subimage(-1),
+    : m_name(filename), m_nsubimages(0), m_current_subimage(0),
       m_localpixels(true), m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1),
       m_imagecache(NULL)
@@ -123,6 +123,7 @@ ImageBuf::reset (const std::string &filename, const ImageSpec &spec)
 {
     clear ();
     m_name = ustring (filename);
+    m_current_subimage = 0;
     alloc (spec);
 }
 
@@ -182,6 +183,7 @@ ImageBuf::init_spec (const std::string &filename)
         m_spec_valid = true;
         m_orientation = m_spec.get_int_attribute ("orientation", 1);
         m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
+        m_current_subimage = 0;
     } else {
         m_badfile = true;
         m_spec_valid = false;
