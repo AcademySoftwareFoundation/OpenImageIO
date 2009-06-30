@@ -1,20 +1,185 @@
 Changes:
 
 
-In-progress - Interim developer release 0.2 (aim for 11/1/08):
 
-* Add full_{x,y,z} fields to ImageSpec, to allow full expression of
-  OpenEXR's 'dataWindow'.
-* iv now properly handles display/full windows.
-* Change some API signatures from char* to std::string.
-* Move texture functionality inside libimageio.so.
-* Change plugin 'imageio_version' symbol to '<FORMAT>_imageio_version' so
-  that multiple formats can be in a DSO without name clashes.
-* 'make EMBEDPLUGINS=1' will include the built-in format plugins into
-  libimageio.so itself, and not dist the separate plugin DSO's.
+Release 0.6 (TBD) [updates as of r813]
+-----------------
+
+Features:
+
+* 'maketx --hash' embeds a SHA-1 fingerprint of the source image's
+  pixels in the texture file header's "ImageDescription" field.
+  ImageCache (and TextureSystem) will recognize these and eliminate
+  redundant I/O when it finds multiple files with identical pixels.
+  (r741,742)
+* ImageCache additional statistics: file open time (r743), alert if
+  mip-mapped images are accessed at only their highest-res level (r743).
+* iinfo: eliminate --md5 in favor of --hash (computing SHA-1). (r749)
+* iv: handle older cards or versions of OpenGL, including lack of GLSL,
+  non-pow2 textures, etc.  Generally should now be usable (if slightly
+  degraded functionality) for most OpenGL 1.x implementations. (r764)
+* ImageBuf that only reads images is now automatically backed by
+  ImageCache.  In the process, add Iterator and ConstIterator as "safe"
+  and efficient ways to visit all the pixels within a region of the
+  image, and eliminate the unsafe pixeladdr() method.  Also added
+  ImageCache::attribute("forcefloat") to conveniently force all
+  ImageCache internal storage to be float.  (r770,771,772,775,803,805)
+* In a variety of places that specified pixel rectangles (including
+  ImageCache::get_pixels and TextureSystem::get_texels), specify regions
+  as (xbegin,xend,ybegin,yend) rather than (xmin, ymin, xmax, ymax).
+  Note that 'end' is, like STL, one past the last pixel. (r771)
+* Image plugin for reading and writing Truevision Targa files. (r776,792)
+
+Fixes:
+
+* OpenEXR plugin improvements: don't set "textureformat" attribute
+  unless it really is a mip-mapped texture.  Preserve the mipmap
+  rounding mode when copying OpenEXR files, by using the
+  "openexr:roundingmode" metadata. (r801)
+* TIFF plugin improvements: handle 2 bpp images, properly name channels
+  when reading palette images (r802), no longer uses the
+  PREDICTOR_FLOATINGPOINT, since older versions of libtiff can't read
+  those files (r752).
+* iv: fix problems displaying images whose width was not a multiple of 4
+  bytes. (r767)
+* maketx: in the case where the input texture was already float and needed
+  no pow2 rounding, we didn't get the tiling or other metadata right (r824)
+
+For developers:
+
+* Lots of fixes for Windows compilation (r754)
+* A build option for whether or not to use TBB for atomics.  (r780)
+* New test suite entries: tiff-suite, tiff-depths (r787,788), openexr-suite,
+  openexr-multires, openexr-chroma (r789,790,791).
+
+
+
+Release 0.5 (31 May 2009)
+-------------------------
+
+Features:
+
+* New image format plugins: zfile (r529), ICO (r579,585,588,619,637),
+  BMP (reads only) (r580,584,614,625)
+* Support for multiple subimages in iinfo (r607), iconvert, idiff (r631),
+* ImageCache and TextureSystem: better stats (r528, r717), bug fixes for
+  large untiled images (r558,561), anisotropic improvements, stats
+  improvements, thread safety improvements (r566),
+  invalidate/invalidate_all (r591), better error reporting (r606),
+  thread safety fixes (r650), fix problem when filter size was precisely
+  at a mipmap level it blurred to higher level (r687), avoid problems
+  when blur > 1 and there is no 1x1 mip level (r687).
+* maketx: --shadow (r530), --nomipmap (r531), big speedups (r699).
+* idiff: add RMS error and PSNR (r622).
+* OpenEXR plugin: support "openexr:lineOrder" attribute so
+  random-tile-order files may be written (r569).
+* API: better handling of huge images that could have sizes > 32 bits (r575)
+
+Fixes and minor enhancements:
+
+* iinfo: fix - lack of help message when no files specified (r513).
+* maketx: make -u work properly (r517), wasn't honoring --separate (r532).
+* iconvert: add --separate and --contig (r535).
+* TIFF plugin: work around error in old versions of libtiff for IPTC
+  packets (r674).
+* JPEG plugin: if linearity is sRGB, set Exif:ColorSpace correctly (r536)
+* iv: more robust to certain OpenGL versions (r550), support for OpenGL
+  versions that don't support non-pow2 textures (r563), correct texture
+  mapping when GL_NV_texture_rectangle is the best texture mapping
+  extension we can find (r572).
+* idiff: refactored to use ImageBuf internally (r541)
+
+For developers:
+
+* Switch to CMake for builds.
+* Build enhancements: 'make USE_OPENGL=0' (r512), better handling of
+  certain system OpenGL headers (r512), more robust with Qt location
+  (r542), handle older Boost 1.35 (r574).
+* Tests: test_libOpenImageIO (r581), ico (r621), 
+* More work towards clean windows compilation (r659,672).
+
+
+
+Release 0.4 (15 Mar 2009 - not formally released)
+-------------------------------------------------
+(compared to the 'initial' developer release of 1 Sep 2008)
+
+Features:
+
+* Lots of work on docs.
+* API changes: 
+    - Replaced ParamBaseType/ParamType with TypeDesc.  
+    - ImageSpec: add full_{x,y,z} fields.
+    - Changed ImageInput/ImageOutput create(), open(), and suports() to
+      take std::string instead of char* (r297)
+    - Added ImageOutput::copy_image (r428)
+    - TypeDesc - distinguish COLOR from NOXFORM. (r466)
+    - ImageInput:open(name,newspec,config). (r482)
+* igrep utility searches metadata of images (r447,455,499)
+* iconvert: add --caption, --keyword, --clear-keywords, --adjust-time
+  --attrib, --inplace (r484,488,491), --compression (r354), --quality
+  (r362).
+* iv: put into background after launch unless -F arg (r240),
+  alt-leftmouse zooms, handle sRGB correctly, GAMMA env variable, full
+  HDR for half and float (r243), honor full/display window versus data
+  window (r300), better view re-centering behavior (r355), fix
+  orientation bugs (r363,380,381).
+* TextureSystem: single point texture lookups (r247), have all routines
+  return a bool giving error status, rename gettextureinfo ->
+  get_texture_info, add get_imagespec, get_texels, geterror (r252,265),
+  replace hard-coded get/set routines with generic
+  attribute/getattribute (r321), accept non-tiled and non-mipped
+  textures (r317,319,388,389,390), separate the image cache into a
+  separate ImageCache class that may be used independently of
+  TextureSystem (r326,327,393), better statistics including per-file
+  stats (r333,360,375,429), invalidate method (r460).
+* TIFF plugin: read/write EXIF, IPTC IIM, and IPTC XPM/XML data
+  (r406,407,456,458)
+* JPEG plugin: read/write IPTC IIM, XMP, and GPS metadata
+  (r408,411,458,461), implement ImageOutput::copy_data() can copy images
+  without altering pixel values (r483).
+
+Fixes and minor enhancements:
+
+* ImageBuf: add option to read() that allows data format conversion (r244),
+  add oriented{x,y} and oriented_full_{width,height} methods (r296).
+* TextureSystem: fix bicubic filetering (r309), big memory savings by
+  not having libtiff use memory mapping (r332), lots of performance
+  tuning (r351), anisotropic texture improvements (r364), bug fixes for
+  search paths (r459).
+* iinfo: print color space and file format info (r241), better printing
+  of matrix metadata (r365), new options -f, -m (r501).
+* idiff: bug fix - not producing difference image (r402)
+* maketx: deduce default file format from extension (r275).
+* All format plugins: better error detection in open() for senseless
+  resolutions (r294,295)
+* OpenEXR plugin: handle float as well as half data, fixes when image
+  origin is not (0,0) (r291), fix leak of exr writer (r292), conform to
+  common conventions for camera matrix naming (r367), regularize
+  capitalization of metadata (r412)
+* TIFF plugin: bug fix for combination of tile + separate (r304), fixes
+  to retrieval of matrix tags (r366)
+* HDR plugin: emulate random access of scanlines (r387), better error
+  reporting (r451).
+* JPEG plugin: respect "CompressionQuality" (r361), emulate random
+  access of scanlines (r387), properly read & write JPEG_COM marker for
+  comments (r403), assume sRGB unless the metadata say otherwise (r414).
+
+For developers:
+
+* Preliminary work on Windows port (r398,399)
+* Include all the needed .h files in the dist area (r251)
+* Handle older gcc (r273), older boost (r301,431), older OpenEXR
+  (r301), older libtiff (r432).
+* 'make EMBEDPLUGINS=1' compiles the bundled plugins right into main
+  library (r302).
+* Put header files in dist/ARCH/include/OpenImageIO (r303), rename
+  src/libimageio -> src/libOpenImageIO (r382).
+
 
 
 Initial developer release 0.1 (9/1/08):
+---------------------------------------
 
 * ImageInput, ImageOutput, TextureSystem APIs pretty mature
 * Plugins: TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/rgbe
