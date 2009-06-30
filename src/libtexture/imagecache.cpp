@@ -569,6 +569,9 @@ ImageCacheImpl::find_file (ustring filename)
     if (m_files.find (filename) != m_files.end()) {
         delete tf;   // Don't need that one after all
         tf = m_files[filename].get();
+        // if this is a duplicate texture, switch to the canonical copy
+        if (tf->duplicate())
+            tf = tf->duplicate();
         tf->use();
         return tf;
     }
