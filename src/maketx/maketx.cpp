@@ -98,7 +98,7 @@ static bool embed_hash;
 
 
 // forward decl
-static void write_mipmap (ImageBuf &img, 
+static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                    std::string outputfilename, std::string outformat,
                    TypeDesc outputdatatype, bool mipmap);
 
@@ -422,7 +422,7 @@ make_texturemap (const char *maptypename = "texture map")
     stat_resizetime += resizetimer();
 
     std::string outformat = fileformatname.empty() ? outputfilename : fileformatname;
-    write_mipmap (*toplevel, outputfilename, outformat, out_dataformat,
+    write_mipmap (*toplevel, dstspec, outputfilename, outformat, out_dataformat,
                   !shadowmode && !nomipmap);
 
     // If using update mode, stamp the output file with a modification time
@@ -434,11 +434,11 @@ make_texturemap (const char *maptypename = "texture map")
 
 
 static void
-write_mipmap (ImageBuf &img, 
+write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
               std::string outputfilename, std::string outformat,
               TypeDesc outputdatatype, bool mipmap)
 {
-    ImageSpec outspec = img.spec();
+    ImageSpec outspec = outspec_template;
     outspec.set_format (outputdatatype);
 
     // Find an ImageIO plugin that can open the output file, and open it
@@ -485,7 +485,10 @@ write_mipmap (ImageBuf &img,
         while (ok && (outspec.width > 1 || outspec.height > 1)) {
             Timer miptimer;
             // Resize a factor of two smaller
-            ImageSpec smallspec = big->spec();
+            ImageSpec smallspec = outspec;
+            smallspec.width = big->spec().width;
+            smallspec.height = big->spec().height;
+            smallspec.depth = big->spec().depth;
             if (smallspec.width > 1)
                 smallspec.width /= 2;
             if (smallspec.height > 1)
@@ -493,6 +496,7 @@ write_mipmap (ImageBuf &img,
             smallspec.full_width  = smallspec.width;
             smallspec.full_height = smallspec.height;
             smallspec.full_depth  = smallspec.depth;
+            smallspec.set_format (TypeDesc::FLOAT);
             small->alloc (smallspec);  // Realocate with new size
             if ((smallspec.width & 1) == 0 && (smallspec.height & 1) == 0) {
                 // Special case -- both dimensions are even resolutions, so
