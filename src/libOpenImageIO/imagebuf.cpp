@@ -266,10 +266,19 @@ ImageBuf::write (ImageOutput *out,
                  void *progress_callback_data) const
 {
     OpenImageIO::stride_t as = OpenImageIO::AutoStride;
-    bool ok = out->write_image (m_spec.format, &m_pixels[0], as, as, as,
-                                progress_callback, progress_callback_data);
-    // FIXME -- Unsafe!  When IB is backed by an ImageCache, m_pixels
-    // will not be available and we'll need to use copy_pixels.
+    bool ok = true;
+    if (m_localpixels) {
+        ok = out->write_image (m_spec.format, &m_pixels[0], as, as, as,
+                               progress_callback, progress_callback_data);
+    } else {
+        std::vector<char> tmp (m_spec.image_bytes());
+        copy_pixels (xbegin(), xend(), ybegin(), yend(), m_spec.format,
+                     &tmp[0]);
+        ok = out->write_image (m_spec.format, &tmp[0], as, as, as,
+                               progress_callback, progress_callback_data);
+        // FIXME -- not good for huge images.  Instead, we should read
+        // little bits at a time (scanline or tile blocks).
+    }
     if (! ok)
         m_err = out->error_message();
     return ok;
