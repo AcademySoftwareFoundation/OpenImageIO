@@ -38,10 +38,8 @@
 #include "typedesc.h"
 #include "strutil.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing ImageIO */
 #include "imageio.h"
 #include "imageio_pvt.h"
-#undef DLL_EXPORT_PUBLIC
 
 using namespace OpenImageIO;
 using namespace OpenImageIO::pvt;

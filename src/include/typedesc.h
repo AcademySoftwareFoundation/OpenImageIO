@@ -65,7 +65,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 
-struct TypeDesc {
+struct DLLPUBLIC TypeDesc {
     /// BASETYPE is a simple enum for the C/C++ built-in types.
     ///
     enum BASETYPE { UNKNOWN, NONE, 
@@ -205,8 +205,14 @@ struct TypeDesc {
     ///
     void unarray (void) { arraylen = 0; }
 
-    static const TypeDesc TypeFloat, TypeColor, TypeString, TypeInt;
-    static const TypeDesc TypePoint, TypeVector, TypeNormal, TypeMatrix;
+    static const TypeDesc TypeFloat;
+    static const TypeDesc TypeColor;
+    static const TypeDesc TypeString;
+    static const TypeDesc TypeInt;
+    static const TypeDesc TypePoint;
+    static const TypeDesc TypeVector;
+    static const TypeDesc TypeNormal;
+    static const TypeDesc TypeMatrix;
 };
 
 

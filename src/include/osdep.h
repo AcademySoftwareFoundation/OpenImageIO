@@ -1,5 +1,5 @@
 /*
-  Copyright 2008 Larry Gritz and the other authors and contributors.
+  Copyright 2009 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -27,16 +27,14 @@
 
   (This is the Modified BSD License)
 */
+#ifndef OSDEP_H
+#define OSDEP_H
 
-/// \file
-/// Implementation of ImageBuf class.
+#ifdef _WIN32
+# define WIN32_LEAN_AND_MEAN
+# define VC_EXTRALEAN
+# define NOMINMAX
+# include <windows.h>
+#endif
 
-#include <iostream>
-
-#include <boost/foreach.hpp>
-#include <boost/scoped_ptr.hpp>
-
-#include "strutil.h"
-#include "imagebuf.h"
-
-
+#endif //OSDEP_H

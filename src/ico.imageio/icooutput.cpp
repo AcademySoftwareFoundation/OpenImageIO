@@ -347,8 +347,13 @@ bool
 ICOOutput::supports (const std::string &feature) const
 {
     // advertise our support for subimages
+#ifdef _MSC_VER
+    if(! _stricmp (feature.c_str (), "multiimage"))
+        return true;
+#else
     if (!strcasecmp (feature.c_str (), "multiimage"))
         return true;
+#endif
     return false;
 }
 

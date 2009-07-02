@@ -46,6 +46,7 @@ setup_path (ILMBASE_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the ILMBase library install")
 mark_as_advanced (ILMBASE_HOME)
 find_path (ILMBASE_INCLUDE_AREA half.h
+           ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/include/OpenEXR
            ${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}
            ${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}/OpenEXR
            ${ILMBASE_HOME}/include/OpenEXR
@@ -57,6 +58,7 @@ foreach (_lib Imath Half IlmThread Iex)
     find_library (ILMBASE_LIBS_${_lib} ${_lib}
                   PATHS ${ILMBASE_HOME}/lib ${ILMBASE_HOME}/lib64
                         ${ILMBASE_LIB_AREA}
+                        ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib
                   )
 endforeach ()
 set (ILMBASE_LIBRARIES ${ILMBASE_LIBS_Imath} ${ILMBASE_LIBS_Half}
@@ -84,7 +86,8 @@ mark_as_advanced (OPENEXR_VERSION_DIGITS)
 setup_path (OPENEXR_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the OpenEXR library install")
 mark_as_advanced (OPENEXR_HOME)
-find_path (OPENEXR_INCLUDE_AREA OpenEXRConfig.h
+find_path (OPENEXR_INCLUDE_AREA ImfArray.h OpenEXRConfig.h
+           ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/include/OpenEXR
            ${OPENEXR_HOME}/include
            ${OPENEXR_HOME}/include/OpenEXR
            ${ILMBASE_HOME}/include/openexr-${OPENEXR_VERSION}
@@ -96,6 +99,7 @@ find_library (OPENEXR_LIBRARY IlmImf
               PATHS ${OPENEXR_HOME}/lib
                     ${OPENEXR_HOME}/lib64
                     ${OPENEXR_LIB_AREA}
+                    ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/lib
              )
 message (STATUS "OPENEXR_INCLUDE_AREA = ${OPENEXR_INCLUDE_AREA}")
 message (STATUS "OPENEXR_LIBRARY = ${OPENEXR_LIBRARY}")
@@ -195,11 +199,19 @@ setup_path (TBB_HOME "${THIRD_PARTY_TOOLS_HOME}"
 mark_as_advanced (TBB_HOME)
 if (USE_TBB)
     set (TBB_VERSION 21_20080605oss)
-    find_library (TBB_LIBRARY
-                  NAMES tbb
-                  PATHS ${TBB_HOME}/lib
-                  PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
-                 )
+    if (MSVC)
+        find_library (TBB_LIBRARY
+                      NAMES tbb
+                      PATHS ${TBB_HOME}/lib
+                      PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
+                      ${TBB_HOME}/tbb-${TBB_VERSION}/lib/
+                     )
+        find_library (TBB_DEBUG_LIBRARY
+                      NAMES tbb_debug
+                      PATHS ${TBB_HOME}/lib
+                      PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
+                      ${TBB_HOME}/tbb-${TBB_VERSION}/lib/)
+    endif (MSVC)
     find_path (TBB_INCLUDES tbb/tbb_stddef.h
                ${TBB_HOME}/include/tbb${TBB_VERSION}
                ${THIRD_PARTY_TOOLS}/include/tbb${TBB_VERSION}

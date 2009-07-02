@@ -41,8 +41,15 @@
 #include <cmath>
 #include <limits>
 #include <typeinfo>
+#include <algorithm>
 
 #if defined(_MSC_VER)
+   typedef __int8  int8_t;
+   typedef __int16 int16_t;
+   typedef __int32 int32_t;
+   typedef __int64 int64_t;
+   typedef unsigned __int8  uint8_t;
+   typedef unsigned __int16 uint16_t;
 # ifndef _UINT64_T
    typedef unsigned __int32 uint32_t;
    typedef unsigned __int64 uint64_t;
@@ -676,8 +683,12 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 #define copysignf(x,y) copysign(x,y)
 #define isnan(x) _isnan(x)
 #define isfinite(x) _finite(x)
-//#define round(x) RoundToInt(x) // FIXME should be real round, not shortcut
 #define usleep(a) Sleep((a)/1000)
+
+inline double
+round (float val) {
+    return floor (val + 0.5);
+}
 
 template<class T>
 inline int isinf (T x) {

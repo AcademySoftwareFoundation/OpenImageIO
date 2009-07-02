@@ -31,7 +31,7 @@
 #ifndef ICO_H
 #define ICO_H
 
-#include <boost/cstdint.hpp>   // for the int*_t types
+#include "fmath.h"
 
 
 

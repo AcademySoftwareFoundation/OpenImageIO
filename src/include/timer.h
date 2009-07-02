@@ -37,7 +37,7 @@
 #define TIMER_H
 
 #ifdef _WIN32
-#include <windows.h>
+# include "osdep.h"
 #else
 #include <sys/time.h>
 #endif

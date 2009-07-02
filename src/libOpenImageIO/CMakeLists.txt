@@ -1,3 +1,26 @@
+set (libOpenImageIO_hdrs ../include/argparse.h
+                         ../include/dassert.h
+                         ../include/filesystem.h
+                         ../include/filter.h
+                         ../include/fmath.h
+                         ../include/hash.h
+                         ../include/imagebuf.h
+                         ../include/imagecache.h
+                         ../include/imageio.h
+                         ../include/osdep.h
+                         ../include/paramlist.h
+                         ../include/plugin.h
+                         ../include/SHA1.h
+                         ../include/strutil.h
+                         ../include/sysutil.h
+                         ../include/texture.h
+                         ../include/thread.h
+                         ../include/timer.h
+                         ../include/typedesc.h
+                         ../include/ustring.h
+                         ../include/varyingref.h    
+                         )
+
 set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp 
@@ -13,7 +36,8 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           ../libutil/ustring.cpp 
                           ../libtexture/texturesys.cpp 
                           ../libtexture/texoptions.cpp 
-                          ../libtexture/imagecache.cpp 
+                          ../libtexture/imagecache.cpp
+                          ${libOpenImageIO_hdrs}
                          )
 
 # Include out own TBB if not getting it from an external area
@@ -48,6 +72,16 @@ endif ()
 
 add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
 target_link_libraries (OpenImageIO ${Boost_LIBRARIES})
+if (MSVC)
+    add_definitions (-DOPENEXR_DLL)
+    add_definitions (-DBOOST_ALL_DYN_LINK)
+    set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS psapi.lib)
+endif (MSVC)
+if (WIN32 AND USE_TBB)
+    target_link_libraries (OpenImageIO
+                           optimized ${TBB_LIBRARY}
+                           debug ${TBB_DEBUG_LIBRARY})
+endif (WIN32 AND USE_TBB)
 link_ilmbase (OpenImageIO)
 
 if (EMBEDPLUGINS)

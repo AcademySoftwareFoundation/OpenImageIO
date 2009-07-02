@@ -1,5 +1,8 @@
 set (iconvert_srcs iconvert.cpp)
 add_executable (iconvert ${iconvert_srcs})
+if (MSVC)
+    add_definitions (-DBOOST_ALL_DYN_LINK)
+endif (MSVC)
 link_ilmbase (iconvert)
 target_link_libraries (iconvert OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 oiio_install_targets (iconvert)

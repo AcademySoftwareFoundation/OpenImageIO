@@ -32,7 +32,6 @@
 #include <cstdlib>
 #include <cmath>
 #include <iostream>
-#include <time.h>
 #include <map>
 
 #include <boost/algorithm/string.hpp>
@@ -53,6 +52,7 @@ using boost::algorithm::istarts_with;
 #include "dassert.h"
 #include "imageio.h"
 #include "strutil.h"
+#include "sysutil.h"
 
 
 using namespace OpenImageIO;
@@ -266,7 +266,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool ap
         time_t now;
         time (&now);
         struct tm mytm;
-        localtime_r (&now, &mytm);
+        Sysutil::get_local_time (&now, &mytm);
         std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
                                mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                                mytm.tm_hour, mytm.tm_min, mytm.tm_sec);

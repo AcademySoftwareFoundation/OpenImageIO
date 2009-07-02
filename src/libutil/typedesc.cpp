@@ -37,9 +37,7 @@
 #include "ustring.h"
 #include "strutil.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing TypeDesc */
 #include "typedesc.h"
-#undef DLL_EXPORT_PUBLIC
 
 
 // FIXME: We should clearly be using a namespace.  But maybe not "Gelato".

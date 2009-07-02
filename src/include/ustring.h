@@ -139,7 +139,7 @@
 // namespace blah {
 
 
-class ustring {
+class DLLPUBLIC ustring {
 public:
     typedef char value_type;
     typedef value_type * pointer;

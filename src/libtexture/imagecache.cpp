@@ -54,9 +54,7 @@ using namespace std::tr1;
 #include "imagebuf.h"
 using namespace OpenImageIO;
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing ImageCache */
 #include "imagecache.h"
-#undef DLL_EXPORT_PUBLIC
 
 #include "texture.h"
 #include "imagecache_pvt.h"
@@ -187,7 +185,7 @@ ImageCacheFile::open ()
     if (nsubimages == 1)
         m_unmipped = true;
     if (m_untiled && m_unmipped && imagecache().automip() &&
-            ! spec().find_attribute ("textureformat", TypeDesc::PT_STRING)) {
+            ! spec().find_attribute ("textureformat", TypeDesc::TypeString)) {
         int w = spec().full_width;
         int h = spec().full_height;
         while (w > 1 || h > 1) {

@@ -32,6 +32,9 @@
 #ifndef IMAGEVIEWER_H
 #define IMAGEVIEWER_H
 
+// included to remove std::min/std::max errors
+#include "osdep.h"
+
 #include <vector>
 
 // This needs to be included before GL.h

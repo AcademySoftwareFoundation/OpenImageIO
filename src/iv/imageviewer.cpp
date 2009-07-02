@@ -28,6 +28,7 @@
   (This is the Modified BSD License)
 */
 
+#include "imageviewer.h"
 
 #include <iostream>
 #include <cmath>
@@ -40,7 +41,6 @@
 #include <boost/filesystem.hpp>
 #include <ImathFun.h>
 
-#include "imageviewer.h"
 #include "dassert.h"
 #include "strutil.h"
 #include "timer.h"
@@ -1181,7 +1181,7 @@ void ImageViewer::zoomIn()
     if (zoom() >= 1.0f) {
         newzoom = pow2roundup ((int) round (zoom()) + 1);
     } else {
-        newzoom = 1.0 / std::max (1, pow2rounddown ((int)round(1.0/zoom()) - 1));
+        newzoom = 1.0 / std::max (1, pow2rounddown ((int) round(1.0/zoom()) - 1));
     }
 
     float xc, yc;  // Center view position

@@ -39,6 +39,7 @@
 
 #include <vector>
 
+#include "export.h"
 
 // namespace I have no idea... {
 
@@ -104,7 +105,7 @@ class ArgOption;   // Forward declaration
 /////////////////////////////////////////////////////////////////////////////
 
 
-class ArgParse {
+class DLLPUBLIC ArgParse {
 public:
     ArgParse (int argc=0, const char **argv=NULL);
     ~ArgParse ();

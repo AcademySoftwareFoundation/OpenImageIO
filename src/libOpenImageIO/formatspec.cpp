@@ -41,9 +41,7 @@ using boost::algorithm::iequals;
 #include "strutil.h"
 #include "fmath.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing ImageIO */
 #include "imageio.h"
-#undef DLL_EXPORT_PUBLIC
 
 using namespace OpenImageIO;
 

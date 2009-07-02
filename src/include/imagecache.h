@@ -58,7 +58,7 @@ class ImageCacheImpl;
 /// caches of open file handles as well as tiles of pixels so that truly
 /// huge amounts of image data may be accessed by an application with low
 /// memory footprint.
-class ImageCache {
+class DLLPUBLIC ImageCache {
 public:
     /// Create a ImageCache and return a pointer.  This should only be
     /// freed by passing it to ImageCache::destroy()!

@@ -32,16 +32,14 @@
 #include <string>
 
 #ifdef _WIN32
-# include <windows.h>
+# include "osdep.h"
 #else
 # include <dlfcn.h>
 #endif
 
 #include "thread.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing Plugin */
 #include "plugin.h"
-#undef DLL_EXPORT_PUBLIC
 
 
 using namespace Plugin;

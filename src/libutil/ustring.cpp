@@ -35,9 +35,7 @@
 #include "strutil.h"
 #include "hash.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing ustring */
 #include "ustring.h"
-#undef DLL_EXPORT_PUBLIC
 
 
 

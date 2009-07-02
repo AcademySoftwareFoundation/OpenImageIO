@@ -94,7 +94,7 @@ enum RunFlagVal { RunFlagOff = 0, RunFlagOn = 255 };
 /// add.  So instead we collect all those little options into one
 /// structure that can just be passed by reference to the texture API
 /// routines.
-class TextureOptions {
+class DLLPUBLIC TextureOptions {
 public:
     /// Wrap mode describes what happens when texture coordinates describe
     /// a value outside the usual [0,1] range where a texture is defined.
@@ -190,7 +190,7 @@ private:
 /// huge amounts of texture may be accessed by an application with low
 /// memory footprint, and ways to perform antialiased texture, shadow
 /// map, and environment map lookups.
-class TextureSystem {
+class DLLPUBLIC TextureSystem {
 public:
     /// Create a TextureSystem and return a pointer.  This should only be
     /// freed by passing it to TextureSystem::destroy()!

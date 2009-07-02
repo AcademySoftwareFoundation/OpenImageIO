@@ -47,6 +47,7 @@ using namespace OpenImageIO;
 #include "texture.h"
 #include "fmath.h"
 
+#define ALLOCA(type, size) ((type*)alloca((size) * sizeof (type)))
 
 static std::vector<std::string> filenames;
 static std::string output_filename = "out.exr";
@@ -186,12 +187,15 @@ test_plain_texture (ustring filename)
     opt.swrap = opt.twrap = TextureOptions::WrapPeriodic;
 //    opt.twrap = TextureOptions::WrapBlack;
     int shadepoints = blocksize*blocksize;
-    float s[shadepoints], t[shadepoints];
-    Runflag runflags[shadepoints];
-    float dsdx[shadepoints], dtdx[shadepoints];
-    float dsdy[shadepoints], dtdy[shadepoints];
-    float result[shadepoints*nchannels];
-
+    float *s = ALLOCA (float, shadepoints);
+    float *t = ALLOCA (float, shadepoints);
+    Runflag *runflags = ALLOCA (Runflag, shadepoints);
+    float *dsdx = ALLOCA (float, shadepoints);
+    float *dtdx = ALLOCA (float, shadepoints);
+    float *dsdy = ALLOCA (float, shadepoints);
+    float *dtdy = ALLOCA (float, shadepoints);
+    float *result = ALLOCA (float, shadepoints);
+    
     for (int iter = 0;  iter < iters;  ++iter) {
         // Iterate over blocks
 

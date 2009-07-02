@@ -4,6 +4,9 @@ find_package (ZLIB)
 
 if (TIFF_FOUND AND JPEG_FOUND AND ZLIB_FOUND)
     include_directories (${TIFF_INCLUDE_DIR})
+    if (MSVC)
+        add_definitions (-DBOOST_ALL_DYN_LINK)
+    endif (MSVC)
     add_oiio_plugin (tiffinput.cpp tiffoutput.cpp
         LINK_LIBRARIES ${TIFF_LIBRARIES} ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES})
 endif ()

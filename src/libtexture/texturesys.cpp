@@ -51,9 +51,7 @@ using namespace std::tr1;
 #include "imageio.h"
 using namespace OpenImageIO;
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing TextureSystem */
 #include "texture.h"
-#undef DLL_EXPORT_PUBLIC
 
 #include "imagecache.h"
 #include "imagecache_pvt.h"

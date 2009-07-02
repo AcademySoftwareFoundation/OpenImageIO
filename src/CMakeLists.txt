@@ -45,6 +45,12 @@ set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
 ###########################################################################
+if (MSVC)
+    add_definitions (-D_CRT_SECURE_NO_DEPRECATE)
+    add_definitions (-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions (-D_CRT_NONSTDC_NO_WARNINGS)
+    add_definitions (-D_SCL_SECURE_NO_WARNINGS)
+endif (MSVC)
 
 
 # Tell CMake to process the sub-directories
@@ -82,8 +88,11 @@ add_subdirectory (test_libOpenImageIO)
 add_test (libOpenImageIO ${CMAKE_BINARY_DIR}/test_libOpenImageIO/test_libOpenImageIO)
 # Ugh, I can't seem to ADD_SUBDIRECTORY the testsuite dir if it's not a true
 # subdirectory of source, so we fake it by creating a link.  FIXME!
-exec_program ("cmake -E create_symlink ${PROJECT_SOURCE_DIR}/../testsuite ${PROJECT_SOURCE_DIR}/testsuite")
-add_subdirectory (testsuite)
+# create_symlink doesn't work on Windows. There should be another solution FIXME!
+if (NOT WIN32)
+    exec_program ("cmake -E create_symlink ${PROJECT_SOURCE_DIR}/../testsuite ${PROJECT_SOURCE_DIR}/testsuite")
+    add_subdirectory (testsuite)
+endif ()
 
 
 #########################################################################

@@ -31,7 +31,7 @@
 #ifndef TGA_PVT_H
 #define TGA_PVT_H
 
-#include <boost/cstdint.hpp>   // for the int*_t types
+#include "fmath.h"
 
 
 

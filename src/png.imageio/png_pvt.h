@@ -42,6 +42,7 @@ using boost::algorithm::iequals;
 #include "imageio.h"
 #include "strutil.h"
 #include "fmath.h"
+#include "sysutil.h"
 
 
 
@@ -434,7 +435,7 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
         time_t now;
         time (&now);
         struct tm mytm;
-        localtime_r (&now, &mytm);
+        Sysutil::get_local_time (&now, &mytm);
         std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
                                mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                                mytm.tm_hour, mytm.tm_min, mytm.tm_sec);

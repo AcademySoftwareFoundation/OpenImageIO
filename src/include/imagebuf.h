@@ -49,7 +49,7 @@ namespace OpenImageIO {
 /// simple routines for setting and getting individual pixels, that
 /// hides most of the details of memory layout and data representation
 /// (translating to/from float automatically).
-class ImageBuf {
+class DLLPUBLIC ImageBuf {
 public:
     /// Construct an ImageBuf to read the named image.  
     /// If name is the empty string (the default), it's a completely

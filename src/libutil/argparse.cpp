@@ -42,9 +42,7 @@
 
 #include "strutil.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing ArgParse */
 #include "argparse.h"
-#undef DLL_EXPORT_PUBLIC
 
 
 

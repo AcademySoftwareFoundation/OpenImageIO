@@ -39,6 +39,12 @@
 #ifndef THREAD_H
 #define THREAD_H
 
+// defining NOMINMAX to prevent problems with std::min/std::max
+// and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
+// when boost include windows.h
+#ifdef _WIN32
+# define NOMINMAX
+#endif
 #include <boost/thread.hpp>
 #include <boost/version.hpp>
 

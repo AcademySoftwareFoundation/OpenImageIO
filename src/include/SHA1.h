@@ -74,6 +74,8 @@
 #ifndef ___SHA1_HDR___
 #define ___SHA1_HDR___
 
+#include "export.h"
+
 #if !defined(SHA1_UTILITY_FUNCTIONS) && !defined(SHA1_NO_UTILITY_FUNCTIONS)
 #define SHA1_UTILITY_FUNCTIONS
 #endif
@@ -194,7 +196,7 @@ typedef union
 	UINT_32 l[16];
 } SHA1_WORKSPACE_BLOCK;
 
-class CSHA1
+class DLLPUBLIC CSHA1
 {
 public:
 #ifdef SHA1_UTILITY_FUNCTIONS

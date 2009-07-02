@@ -40,9 +40,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "imageio.h"
-#define DLL_EXPORT_PUBLIC /* Because we are implementing ImageBuf */
 #include "imagebuf.h"
-#undef DLL_EXPORT_PUBLIC
 #include "imagecache.h"
 #include "dassert.h"
 #include "strutil.h"

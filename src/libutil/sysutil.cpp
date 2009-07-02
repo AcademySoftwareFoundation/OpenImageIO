@@ -31,6 +31,7 @@
 #include <cstdlib>
 #include <string>
 #include <iostream>
+#include <ctime>
 
 #ifdef __linux__
 # include <sys/sysinfo.h>
@@ -42,7 +43,7 @@
 #endif
 
 #ifdef _WIN32
-# include <windows.h>
+# include "osdep.h"
 # include <Psapi.h>
 #else
 # include <sys/resource.h>
@@ -50,9 +51,7 @@
 
 #include "dassert.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing Plugin */
 #include "sysutil.h"
-#undef DLL_EXPORT_PUBLIC
 
 using namespace Sysutil;
 
@@ -104,6 +103,18 @@ Sysutil::memory_used (bool resident)
     // No idea what platform this is
     ASSERT (0);
     return 0;   // Punt
+#endif
+}
+
+
+
+void
+Sysutil::get_local_time (time_t *time, struct tm *converted_time)
+{
+#ifdef _MSC_VER
+    localtime_s (converted_time, time);
+#else
+    localtime_r (time, converted_time);
 #endif
 }
 

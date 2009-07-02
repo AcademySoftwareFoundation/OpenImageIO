@@ -84,7 +84,7 @@
 
 #ifndef DLLPUBLIC
 #  if defined(_MSC_VER) && (defined(_WIN32) || defined(_WIN32))
-#    ifdef DLL_EXPORT_PUBLIC
+#    ifdef OpenImageIO_EXPORTS
 #      define DLLPUBLIC __declspec(dllexport)
 #    else
 #      define DLLPUBLIC __declspec(dllimport)

@@ -33,7 +33,6 @@
 #include <cstdlib>
 #include <cmath>
 #include <iostream>
-#include <time.h>
 
 #include <tiffio.h>
 
@@ -43,6 +42,7 @@ using boost::algorithm::iequals;
 #include "dassert.h"
 #include "imageio.h"
 #include "strutil.h"
+#include "sysutil.h"
 
 
 using namespace OpenImageIO;
@@ -235,7 +235,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec, bool appen
         time_t now;
         time (&now);
         struct tm mytm;
-        localtime_r (&now, &mytm);
+        Sysutil::get_local_time (&now, &mytm);
         std::string date = Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
                                mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                                mytm.tm_hour, mytm.tm_min, mytm.tm_sec);

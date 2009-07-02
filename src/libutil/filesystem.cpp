@@ -39,9 +39,7 @@
 
 #include "dassert.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing Filesystem */
 #include "filesystem.h"
-#undef DLL_EXPORT_PUBLIC
 
 
 using namespace Filesystem;

@@ -28,6 +28,7 @@
   (This is the Modified BSD License)
 */
 
+#include "imageviewer.h"
 
 #include <iostream>
 
@@ -44,7 +45,6 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/compare.hpp>
 
-#include "imageviewer.h"
 #include "strutil.h"
 #include "fmath.h"
 

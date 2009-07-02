@@ -1,11 +1,18 @@
 if (QT4_FOUND AND OPENGL_FOUND AND GLEW_FOUND)
     include (${QT_USE_FILE})
     include_directories (${QT_INCLUDES} ${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDES})
-    qt4_generate_moc (imageviewer.h moc_imageviewer.cpp)
+    add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/iv/moc_imageviewer.cpp
+                        COMMAND ${QT_MOC_EXECUTABLE}
+                        ARGS ${PROJECT_SOURCE_DIR}/iv/imageviewer.h
+                           -o ${CMAKE_BINARY_DIR}/iv/moc_imageviewer.cpp
+                        )
     set (iv_srcs imageviewer.cpp ivimage.cpp ivgl.cpp ivinfowin.cpp 
                  ivpref.cpp ivmain.cpp moc_imageviewer.cpp)
     if (FORCE_OPENGL_1)
         add_definitions(-DFORCE_OPENGL_1)
+    endif()
+    if (MSVC)
+        add_definitions (-DBOOST_ALL_DYN_LINK)
     endif()
     add_executable (iv ${iv_srcs})
     link_ilmbase (iv)

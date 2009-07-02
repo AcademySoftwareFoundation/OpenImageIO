@@ -37,9 +37,7 @@
 
 #include "dassert.h"
 
-#define DLL_EXPORT_PUBLIC /* Because we are implementing Strutil */
 #include "strutil.h"
-#undef DLL_EXPORT_PUBLIC
 
 
 

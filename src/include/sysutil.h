@@ -50,6 +50,9 @@ namespace Sysutil {
 DLLPUBLIC size_t memory_used (bool resident=false);
 
 
+DLLPUBLIC void get_local_time (time_t *time, struct tm *converted_time);
+
+
 };  // namespace Sysutils
 
 #endif // SYSUTILS_H

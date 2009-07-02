@@ -34,10 +34,7 @@
 #include "dassert.h"
 #include "ustring.h"
 
-#undef EXPORT_H
-#define DLL_EXPORT_PUBLIC /* Because we are implementing paramlist */
 #include "paramlist.h"
-#undef DLL_EXPORT_PUBLIC
 
 
 // FIXME: We should clearly be using a namespace.  But maybe not "Gelato".
