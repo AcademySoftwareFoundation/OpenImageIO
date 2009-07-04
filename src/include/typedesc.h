@@ -42,6 +42,7 @@
 
 #include <limits>
 #include <cmath>
+#include <cstddef>
 
 #include "export.h"
 
