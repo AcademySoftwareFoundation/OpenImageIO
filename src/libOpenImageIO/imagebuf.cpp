@@ -202,8 +202,11 @@ ImageBuf::read (int subimage, bool force, TypeDesc convert,
     if (pixels_valid() && !force && subimage == this->subimage())
         return true;
 
-    if (! init_spec (m_name.string()))
+    if (! init_spec (m_name.string())) {
+        m_badfile = true;
+        m_spec_valid = false;
         return false;
+    }
 
     // Set our current spec to the requested subimage
     if (! m_imagecache->get_imagespec (m_name, m_spec, subimage)) {
