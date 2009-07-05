@@ -360,10 +360,12 @@ OpenEXRInput::query_channels (void)
     }
     if (alpha >= 0) {
         m_spec.channelnames.push_back ("A");
+        m_spec.alpha_channel = nc;
         m_userchannels[alpha] = nc++;
     }
     if (zee >= 0) {
         m_spec.channelnames.push_back ("Z");
+        m_spec.z_channel = nc;
         m_userchannels[zee] = nc++;
     }
     for (c = 0, ci = channels.begin();  ci != channels.end();  ++c, ++ci) {
