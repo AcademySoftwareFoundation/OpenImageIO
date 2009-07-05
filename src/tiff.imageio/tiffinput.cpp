@@ -139,8 +139,8 @@ private:
 
     // Get a matrix tiff tag field and put it into extra_params
     void get_matrix_attribute (const std::string &name, int tag) {
-        float *f;
-        if (safe_tiffgetfield (name, tag, &f))
+        float *f = NULL;
+        if (safe_tiffgetfield (name, tag, &f) && f)
             m_spec.attribute (name, TypeDesc::PT_MATRIX, f);
     }
 
