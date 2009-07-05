@@ -65,27 +65,15 @@
 # define ABORT(msg) fprintf(stderr,"%s",msg), abort()
 #endif
 
-#ifdef _WIN32
-# define snprintf _snprintf
-#endif
 
-
-/// ASSERT(condition) checks if the condition is met, and if not, calls
-/// ABORT with an error message indicating the module and line where
-/// the error occurred.
+/// ASSERT(condition) checks if the condition is met, and if not, prints
+/// an error message indicating the module and line where the error
+/// occurred and then aborts.
 #ifndef ASSERT
-# define ASSERT(x)                                                      \
-    do {                                                                \
-        if (!(x)) {                                                     \
-            char buf[2048];                                             \
-            snprintf (buf, sizeof(buf),                                 \
-                     "Assertion failed in \"%s\", line %d\n"            \
-                     "\tProbable bug in software.\n",                   \
-                     __FILE__, __LINE__);                               \
-            ABORT (buf);                                                \
-        }                                                               \
-        break;                                                          \
-    } while (1) /* the do-while makes it eat the user's next semicolon */
+# define ASSERT(x)                                              \
+    ((x) ? 0                                                    \
+         : (fprintf (stderr, "%s:%u: Failed assertion '%s'\n",  \
+                     __FILE__, __LINE__, #x), abort(), 0))
 #endif
 
 
@@ -95,7 +83,7 @@
 #ifdef DEBUG
 # define DASSERT(x) ASSERT(x)
 #else
-# define DASSERT(x) /* DASSERT does nothing when not debugging */
+# define DASSERT(x) ((void)0) /* DASSERT does nothing when not debugging */
 #endif
 
 
