@@ -683,4 +683,24 @@ ImageBuf::zero ()
 }
 
 
+
+void
+ImageBuf::fill (const float *pixel)
+{
+    for (int j = 0; j < spec().full_height; j++)
+        for (int i = 0; i < spec().full_width ; i++)
+            setpixel (i, j, pixel);
+}
+  
+
+
+void 
+ImageBuf::fill (const float *pixel, int xbegin, int xend, int ybegin, int yend)
+{
+    for (int j = ybegin; j < yend; j++)
+        for (int i = xbegin; i < xend; i++)
+            setpixel (i, j, pixel);
+}
+
+
 };  // end namespace OpenImageIO

@@ -60,6 +60,7 @@ add_subdirectory (iconvert)
 add_subdirectory (idiff)
 add_subdirectory (igrep)
 add_subdirectory (iinfo)
+add_subdirectory (iprocess)
 add_subdirectory (maketx)
 add_subdirectory (iv)
 
