@@ -14,7 +14,7 @@ endif ()
 
 
 if (NOT CMAKE_BUILD_TYPE) 
-    set(CMAKE_BUILD_TYPE "Release") 
+    set (CMAKE_BUILD_TYPE "Release") 
 endif ()
 
 set (EMBEDPLUGINS OFF CACHE BOOL "Embed format plugins in libOpenImageIO")
@@ -23,15 +23,18 @@ set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
 set (USE_TBB ON CACHE BOOL "Use TBB if needed")
 
-set(CMAKE_MODULE_PATH
-    "${PROJECT_SOURCE_DIR}/cmake/modules"
-    "${PROJECT_SOURCE_DIR}/cmake")
+set (CMAKE_MODULE_PATH
+     "${PROJECT_SOURCE_DIR}/cmake/modules"
+     "${PROJECT_SOURCE_DIR}/cmake")
 
 include (util_macros)
 include (oiio_macros)
 include (platform)
 include (externalpackages)
 
+
+# We want CTest for testing
+include (CTest)
 
 include_directories ("include")
 
@@ -62,6 +65,7 @@ add_subdirectory (igrep)
 add_subdirectory (iinfo)
 add_subdirectory (iprocess)
 add_subdirectory (maketx)
+add_subdirectory (testtex)
 add_subdirectory (iv)
 
 # Add IO plugin directories
@@ -83,10 +87,7 @@ add_subdirectory (doc)
 
 #########################################################################
 # Testing
-include (CTest)
-add_subdirectory (testtex)
-add_subdirectory (test_libOpenImageIO)
-add_test (libOpenImageIO ${CMAKE_BINARY_DIR}/test_libOpenImageIO/test_libOpenImageIO)
+
 # Ugh, I can't seem to ADD_SUBDIRECTORY the testsuite dir if it's not a true
 # subdirectory of source, so we fake it by creating a link.  FIXME!
 # create_symlink doesn't work on Windows. There should be another solution FIXME!
