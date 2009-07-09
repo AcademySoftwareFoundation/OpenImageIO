@@ -58,6 +58,16 @@ class ArgOption;   // Forward declaration
 /// for storing option values and return <0 on failure:
 ///
 /// \code
+///    static int
+///    parse_files (int argc, const char *argv[])
+///    {
+///        for (int i = 0;  i < argc;  i++)
+///            filenames.push_back (argv[i]);
+///        return 0;
+///    }
+/// 
+///    ...
+///
 ///    ArgParse ap;
 ///
 ///    ap.options ("Usage: myapp [options] filename...",
@@ -83,13 +93,14 @@ class ArgOption;   // Forward declaration
 /// \endcode
 ///
 /// The available argument types are:
+///    - no \% argument - bool flag
 ///    - \%d - 32bit integer
 ///    - \%f - 32bit float
 ///    - \%F - 64bit float (double)
 ///    - \%s - std::string
-///    - \%L - std::vector<std::string>
-///    - \%! (or no % argument) - bool flag
-///    - \%* - (argc,argv) sublist with callback
+///    - \%L - std::vector<std::string>  (takes 1 arg, appends to list)
+///    - \%* - catch all non-options and pass individually as an (argc,argv) 
+///            sublist to a callback, each immediately after it's found
 ///
 /// There are several special format tokens:
 ///    - "<SEPARATOR>" - not an option at all, just a description to print
@@ -123,10 +134,6 @@ public:
     /// Return 0 if ok, -1 if it's a malformed command line.
     int parse (int argc, const char **argv);
 
-    /// Deprecated
-    ///
-    int parse (const char *intro, ...);
-
     /// Return any error messages generated during the course of parse().
     ///
     std::string error_message () const { return errmessage; }
@@ -142,15 +149,13 @@ public:
 
 private:
     int argc;                           // a copy of the command line argc
-    char **argv;                        // a copy of the command line argv
+    const char **argv;                  // a copy of the command line argv
     std::string errmessage;             // error message
     ArgOption *global;                  // option for extra cmd line arguments
     std::string intro;
     std::vector<ArgOption *> option;
 
     ArgOption *find_option(const char *name);
-    int invoke_all_sublist_callbacks();
-    int parse_command_line();
     void error (const char *format, ...);
     int found (const char *option);      // number of times option was parsed
 };

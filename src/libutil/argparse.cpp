@@ -48,6 +48,8 @@
 
 class ArgOption {
 public:
+    typedef int (*callback_t) (int, const char**);
+
     ArgOption (const char *str);
     ~ArgOption () { }
     
@@ -66,8 +68,14 @@ public:
 
     void set_parameter (int i, const char *argv);
 
-    void add_argument (char *argv);
+    void add_argument (const char *argv);
     int invoke_callback () const;
+
+    int invoke_callback (int argc, const char **argv) const {
+        return callback ? callback (argc, argv) : 0;
+    }
+
+    void set_callback (callback_t cb) { callback = cb; }
 
     void found_on_command_line () { repetitions++; }
     int parsed_count () const { return repetitions; }
@@ -85,7 +93,7 @@ private:
     OptionType type;                    
     int count;                                  // number of parameters
     std::vector<void *> param;                  // pointers to app data vars
-    int (*callback) (int argc, char **argv);
+    callback_t callback;
     int repetitions;                            // number of times on cmd line
     std::vector<std::string> argv;
 };
@@ -133,7 +141,7 @@ ArgOption::initialize()
             flag = format;
             type = Flag;
             count = 1;
-            code = "!";
+            code = "b";
         } else {
             n = s - (&format[0]);
             flag.assign (format.begin(), format.begin()+n);
@@ -233,7 +241,7 @@ ArgOption::set_parameter (int i, const char *argv)
         ((std::vector<std::string> *)param[i])->push_back (argv);
         break;
 
-    case '!':
+    case 'b':
         *(bool *)param[i] = true;
         break;
         
@@ -259,18 +267,14 @@ ArgOption::invoke_callback () const
     const char **myargv = (const char **) alloca (argc * sizeof(const char *));
     for (int i = 0;  i < argc;  ++i)
         myargv[i] = argv[i].c_str();
-    if (((int (*)(int, const char **))param[0]) (argc, myargv) < 0) {
-        return -1;
-    }
-
-    return 0;
+    return invoke_callback (argc, myargv);
 }
 
 
 
 // Add an argument to this sublist option
 void
-ArgOption::add_argument (char *argv)
+ArgOption::add_argument (const char *argv)
 {
     this->argv.push_back (argv);
 }
@@ -280,7 +284,7 @@ ArgOption::add_argument (char *argv)
 
 
 ArgParse::ArgParse (int argc, const char **argv)
-    : argc(argc), argv((char **)argv), global(NULL)
+    : argc(argc), argv(argv), global(NULL)
 {
 }
 
@@ -294,28 +298,6 @@ ArgParse::~ArgParse()
 
 
 
-// Called after all command line parsing is completed, this function
-// will invoke all callbacks for sublist arguments.  
-inline int
-ArgParse::invoke_all_sublist_callbacks()
-{
-    for (std::vector<ArgOption *>::const_iterator i = option.begin();
-         i != option.end(); i++) {
-        
-        if (!(*i)->is_sublist()) {
-            continue;
-        }
-        
-        if ((*i)->invoke_callback() < 0) {
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-
-
 // Top level command line parsing function called after all options
 // have been parsed and created from the format strings.  This function
 // parses the command line (argc,argv) stored internally in the constructor.
@@ -323,14 +305,15 @@ ArgParse::invoke_all_sublist_callbacks()
 // existing option.  If there is no match, and error is reported and the
 // function returns early.  If there is a match, all the arguments for
 // that option are parsed and the associated variables are set.
-inline int
-ArgParse::parse_command_line()
+int
+ArgParse::parse (int xargc, const char **xargv)
 {
-    for (int i = 1; i < argc; i++) {
+    argc = xargc;
+    argv = xargv;
 
+    for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-' && 
               (isalpha (argv[i][1]) || argv[i][1] == '-')) {         // flag
-
             ArgOption *option = find_option (argv[i]);
             if (option == NULL) {
                 error ("Invalid option \"%s\"", argv[i]);
@@ -341,100 +324,30 @@ ArgParse::parse_command_line()
             
             if (option->is_flag()) {
                 option->set_parameter(0, NULL);
-                if (global != NULL && global->name()[0] != '\0')
-                    global = NULL;                              // disable
-            } else if (option->is_sublist()) {
-                global = option;                                // reset global
             } else {
                 assert (option->is_regular());
-                if (global != NULL && global->name()[0] != '\0')
-                    global = NULL;                              // disable
-                
                 for (int j = 0; j < option->parameter_count(); j++) {
-
                     if (j+i+1 >= argc) {
                         error ("Missing parameter %d from option "
                                       "\"%s\"", j+1, option->name().c_str());
                         return -1;
                     }
-
                     option->set_parameter (j, argv[i+j+1]);
                 }
-
                 i += option->parameter_count();
             }
-            
         } else {
             // not an option nor an option parameter, glob onto global list
-            if (global == NULL) {
+            if (global)
+                global->invoke_callback (1, argv+i);
+            else {
                 error ("Argument \"%s\" does not have an associated "
                     "option", argv[i]);
                 return -1;
             }
-
-            global->add_argument (argv[i]);
         }
     }
 
-    return 0;
-}
-
-
-
-int
-ArgParse::parse (const char *intro, ...)
-{
-    va_list ap;
-    va_start (ap, intro);
-
-    this->intro = intro;
-    for (const char *cur = va_arg(ap, char *); cur; cur = va_arg(ap, char *)) {
-        if (find_option (cur) &&
-                strcmp(cur, "<SEPARATOR>")) {
-            error ("Option \"%s\" is multiply defined");
-            return -1;
-        }
-        
-        // Build a new option and then parse the values
-        ArgOption *option = new ArgOption (cur);
-        if (option->initialize() < 0) {
-            return -1;
-        }
-
-        if (cur[0] == '\0' ||
-            (cur[0] == '%' && cur[1] == '*' && cur[2] == '\0')) {
-            // set default global option
-            global = option;
-        }
-        
-        // Grab any parameters and store them with this option
-        for (int i = 0; i < option->parameter_count(); i++) {
-
-            void *p = va_arg (ap, void *);
-            if (p == NULL) {
-                error ("Missing argument parameter for \"%s\"",
-                              option->name().c_str());
-                return -1;
-            }
-            
-            option->add_parameter (i, p);
-        }
-
-        // Last argument is description
-        option->description ((const char *) va_arg (ap, const char *));
-        this->option.push_back(option);
-    }
-
-    va_end (ap);
-
-    if (parse_command_line() < 0) {
-        return -1;
-    }
-
-    if (invoke_all_sublist_callbacks() < 0) {
-        return -1;
-    }
-    
     return 0;
 }
 
@@ -473,10 +386,9 @@ ArgParse::options (const char *intro, ...)
             // set default global option
             global = option;
         }
-        
+
         // Grab any parameters and store them with this option
         for (int i = 0; i < option->parameter_count(); i++) {
-
             void *p = va_arg (ap, void *);
             if (p == NULL) {
                 error ("Missing argument parameter for \"%s\"",
@@ -485,6 +397,9 @@ ArgParse::options (const char *intro, ...)
             }
             
             option->add_parameter (i, p);
+
+            if (option == global)
+                option->set_callback ((ArgOption::callback_t)p);
         }
 
         // Last argument is description
@@ -498,28 +413,9 @@ ArgParse::options (const char *intro, ...)
 
 
 
-int
-ArgParse::parse (int xargc, const char **xargv)
-{
-    argc = xargc;
-    argv = (char **)xargv;
-
-    if (parse_command_line() < 0) {
-        return -1;
-    }
-
-    if (invoke_all_sublist_callbacks() < 0) {
-        return -1;
-    }
-    
-    return 0;
-}
-
-
-
 // Find an option by name in the option vector
 ArgOption *
-ArgParse::find_option(const char *name)
+ArgParse::find_option (const char *name)
 {
     for (std::vector<ArgOption *>::const_iterator i = option.begin();
          i != option.end(); i++) {

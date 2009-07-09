@@ -75,11 +75,11 @@ parse_files (int argc, const char *argv[])
 
 
 static void
-getargs (int argc, char *argv[])
+getargs (int argc, const char *argv[])
 {
     bool help = false;
-    ArgParse ap (argc, (const char **)argv);
-    if (ap.parse ("Usage:  testtex [options] inputfile",
+    ArgParse ap;
+    ap.options ("Usage:  testtex [options] inputfile",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
@@ -94,7 +94,8 @@ getargs (int argc, char *argv[])
                   "--automip", &automip, "Set auto-MIPmap for the image cache",
                   "--blocksize %d", &blocksize, "Set blocksize (n x n) for batches",
                   "--searchpath %s", &searchpath, "Search path for files",
-                  NULL) < 0) {
+                  NULL);
+    if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.error_message() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
@@ -300,7 +301,7 @@ test_getimagespec_gettexels (ustring filename)
 
 
 int
-main (int argc, char *argv[])
+main (int argc, const char *argv[])
 {
     getargs (argc, argv);
 
