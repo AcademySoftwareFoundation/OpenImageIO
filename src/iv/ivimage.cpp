@@ -44,7 +44,8 @@ IvImage::IvImage (const std::string &filename)
     : ImageBuf(filename), m_thumbnail(NULL),
       m_thumbnail_valid(false),
       m_gamma(1), m_exposure(0),
-      m_file_dataformat(TypeDesc::UNKNOWN)
+      m_file_dataformat(TypeDesc::UNKNOWN), 
+      m_image_valid(false)
 {
 }
 
@@ -81,22 +82,22 @@ IvImage::read (int subimage, bool force, TypeDesc format,
     // Don't read if we already have it in memory, unless force is true.
     // FIXME: should we also check the time on the file to see if it's
     // been updated since we last loaded?
-    if (m_pixels.size() && m_pixels_valid && !force && subimage == m_current_subimage)
+    if (m_image_valid && !force && subimage == m_current_subimage)
         return true;
 
     // invalidate info strings
     m_shortinfo.clear();
     m_longinfo.clear();
 
-    bool ok = ImageBuf::read (subimage, force, format,
+    m_image_valid = ImageBuf::read (subimage, force, format,
                               progress_callback, progress_callback_data);
 
-    if (ok && secondary_data && m_spec.format == TypeDesc::UINT8) {
-        m_secondary.resize (m_spec.image_bytes ());
+    if (m_image_valid && secondary_data && m_spec.format == TypeDesc::UINT8) {
+        m_corrected_pixels.resize (m_spec.image_bytes ());
     } else {
-        m_secondary.clear ();
+        m_corrected_pixels.clear ();
     }
-    return ok;
+    return m_image_valid;
 }
 
 
@@ -258,6 +259,9 @@ IvImage::srgb_to_linear ()
         239, 242, 244, 246, 248, 250, 253, 255
     };
 
+    // FIXME: Now with the iterator and data proxy in place, it should be
+    // trivial to apply the transformation to any kind of data, not just
+    // UINT8.
     if (m_spec.format != TypeDesc::UINT8 || m_spec.linearity != ImageSpec::sRGB) {
         return;
     }
@@ -285,118 +289,100 @@ IvImage::srgb_to_linear ()
 
 
 
-// Used by apply_corrections and select_channel to convert from UINT8 to float.
+// Used by pixel_transform to convert from UINT8 to float.
 static EightBitConverter<float> converter;
 
 
 
-void
-IvImage::apply_corrections ()
+void 
+IvImage::pixel_transform(int select_channel)
 {
-    // FIXME: Merge select_channel and this method together.
-
     unsigned char correction_table[256];
+    int total_channels = m_spec.nchannels;
+    int color_channels = m_spec.nchannels;
 
-    if (m_spec.format != TypeDesc::UINT8 || m_secondary.empty()) {
+    // FIXME: Now with the iterator and data proxy in place, it should be
+    // trivial to apply the transformations to any kind of data, not just
+    // UINT8.
+    if (m_spec.format != TypeDesc::UINT8 || m_corrected_pixels.empty()) {
         return;
     }
 
-    float inv_gamma = 1.0/gamma();
-    float gain = powf (2.0, exposure());
-
-    // first, fill the correction table.
-    for (int pixelvalue = 0; pixelvalue < 256; ++pixelvalue) {
-        float pv_f = converter (pixelvalue);
-        float corrected = clamp (OpenImageIO::exposure (pv_f, gain, inv_gamma),
-                                 0.0f, 1.0f);
-        correction_table[pixelvalue] = (unsigned char)RoundToInt (corrected*255);
+    // This image is Luminance or Luminance + Alpha, and we are asked to show
+    // luminance.
+    if (color_channels == 1 && select_channel == -2) {
+        select_channel = -1;
     }
 
-    int total_channels = m_spec.nchannels;
-    // Number of channels which represent color (and must have its exposure
-    // corrected).
-    int color_channels = total_channels;
-    if (total_channels == 2) {
-        // Two channels is lum+alpha.
-        color_channels = 1;
-    } else if (color_channels > 3) {
-        color_channels = 3;
+    // Happy path:
+    if (select_channel == -1 && m_gamma == 1.0 && m_exposure == 0.0) {
+        copy_pixels (m_spec.x, m_spec.x + m_spec.width, m_spec.y, m_spec.y + m_spec.height,
+                     m_spec.format, &m_corrected_pixels[0]);
+        return;
     }
 
-    for (int y = 0; y <= ymax(); ++y) {
-        unsigned char *sl = &m_secondary[y * m_spec.scanline_bytes()];
-        for (int x = 0; x <= xmax(); ++x) {
-            for (int ch = 0; ch < color_channels; ++ch) {
-                unsigned char value = sl[x*total_channels + ch];
-                unsigned char corrected = correction_table[value];
-                sl[x*total_channels + ch] = corrected;
-            }
+    // fill the correction_table
+    if (gamma() == 1.0 && exposure() == 0.0) {
+        for (int pixelvalue = 0; pixelvalue < 256; ++pixelvalue) {
+            correction_table[pixelvalue] = pixelvalue;
+        }
+    } else {
+        float inv_gamma = 1.0/gamma();
+        float gain = powf (2.0f, exposure());
+        for (int pixelvalue = 0; pixelvalue < 256; ++pixelvalue) {
+            float pv_f = converter (pixelvalue);
+            pv_f = clamp (OpenImageIO::exposure (pv_f, gain, inv_gamma),
+                          0.0f, 1.0f);
+            correction_table[pixelvalue] = (unsigned char) (pv_f*255 + 0.5);
         }
     }
-}
 
-
-
-void
-IvImage::select_channel (int channel)
-{
-    int total_channels = m_spec.nchannels;
-    int color_channels = total_channels;
     if (color_channels > 3) {
         color_channels = 3;
-    }
-    if (m_spec.format.basetype != TypeDesc::UINT8 || m_secondary.empty()) {
-        return;
-    }
-
-    // Show RGB(A) in its whole glory.
-    if (channel == -1 || total_channels == 1) {
-        m_secondary.assign (m_pixels.begin(), m_pixels.end());
-        return;
-    }
-    if (channel == -2 && total_channels < 3) {
-        // does this makes sense?
-        // This is an attempt to convert a 2 channel image to luminance, but
-        // 2 channel image is interpreted as luminance+alpha.
-        m_secondary.assign (m_pixels.begin(), m_pixels.end());
-        return;
+    } else if (color_channels == 2) {
+        color_channels = 1;
     }
 
     ImageBuf::Iterator<unsigned char, unsigned char> src (*this);
-    for (  ;  src.valid();  ++src) {
-        int x = src.x(), y = src.y();
-        unsigned char *dest = &m_secondary[y * m_spec.scanline_bytes() +
-                                           x * m_spec.pixel_bytes()];
-        if (channel == -2) {
+    int bytes_p_row = m_spec.scanline_bytes ();
+    int bytes_p_pix = m_spec.pixel_bytes ();
+    for ( ; src.valid(); ++src) {
+        unsigned char* pixel = &m_corrected_pixels[src.y() * bytes_p_row + src.x() * bytes_p_pix];
+        if (select_channel == -1) {
+            for (int ch = 0; ch < total_channels; ch++) {
+                pixel[ch] = correction_table[src[ch]];
+            }
+        } else if (select_channel == -2) {
             // Convert RGB to luminance, (Rec. 709 luma coefficients).
-            float f_lum = converter (src[0])*0.2126f +
-                converter (src[1])*0.7152f +
-                converter (src[2])*0.0722f;
-            unsigned char lum = (unsigned char)RoundToInt (clamp (f_lum, 0.0f, 1.0f) * 255.0);
-            dest[0] = lum;
-            dest[1] = lum;
-            dest[2] = lum;
-            
+            float luminance = converter (src[0])*0.2126f +
+                              converter (src[1])*0.7152f +
+                              converter (src[2])*0.0722f;
+            unsigned char val = (unsigned char) (clamp (luminance, 0.0f, 1.0f) * 255.0 + 0.5);
+            val = correction_table[val];
+            pixel[0] = val;
+            pixel[1] = val;
+            pixel[2] = val;
+
             // Handle the rest of the channels
-            for (int ch = color_channels; ch < total_channels; ++ch) {
-                dest[ch] = src[ch];
+            for (int ch = 3; ch < total_channels; ++ch) {
+                pixel[ch] = src[ch];
             }
         } else {
-            unsigned char v = 0;
-            if (channel < total_channels) {
-                v = src[channel];
-            } else {
-                // This at least makes sense for the alpha channel when
-                // there are no alpha values.
-                v = 255;
+            // This at least makes sense for the alpha channel when
+            // there are no alpha values.
+            unsigned char v = 255;
+            if (select_channel < color_channels) {
+                v = correction_table[src[select_channel]];
+            } else if (select_channel < total_channels) {
+                v = src[select_channel];
             }
             int ch = 0;
             for (; ch < color_channels; ++ch) {
-                dest[ch] = v;
+                pixel[ch] = v;
             }
             for (; ch < total_channels; ++ch) {
-                dest[ch] = src[ch];
+                pixel[ch] = src[ch];
             }
-        }
+        } 
     }
 }

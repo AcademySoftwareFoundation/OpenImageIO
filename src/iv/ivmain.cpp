@@ -110,7 +110,7 @@ put_in_background (int argc, char *argv[])
     // But it suffers from the same problem on OS X, and seems to just be
     // a wrapper for fork.
 
-#ifdef LINUX
+#ifdef __linux
     // Simplest case:
     daemon (1, 1);
     return true;

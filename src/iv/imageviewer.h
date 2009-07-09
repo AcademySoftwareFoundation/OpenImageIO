@@ -79,15 +79,15 @@ public:
     std::string shortinfo () const;
     std::string longinfo () const;
 
-    void invalidate () { m_pixels_valid = false;  m_thumbnail_valid = false; }
+    void invalidate () { m_pixels_valid = false;  m_thumbnail_valid = false; m_image_valid = false;}
+
+    /// Can we read the pixels of this image already?
+    ///
+    bool image_valid () const { return m_image_valid; }
 
     /// This will apply a sRGB -> linear mapping to the pixels.
     /// Only works with UINT8 images.
     void srgb_to_linear();
-
-    /// Applies exposure and gamma corrections to the image. This works on the 
-    /// secondary buffer, and only when the image is UINT8.
-    void apply_corrections();
 
     /// Copies data from the read buffer to the secondary buffer, selecting the
     /// given channel:
@@ -97,12 +97,24 @@ public:
     ///   1 = green
     ///   2 = blue
     ///   3 = alpha
-    /// This only works when the image is UINT8 (atm). You should use this
-    /// before apply_corrections()
-    void select_channel(int channel);
+    /// Then applies gamma/exposure correction (if any). This only works when
+    /// the image is UINT8 (for now at least).
+    void pixel_transform (int channel);
+
+    void *pixeladdr(int x, int y) {
+        if (m_corrected_pixels.empty())
+            return NULL;
+        x -= spec().x;
+        y -= spec().y;
+        size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
+        return &(m_corrected_pixels[p]);
+    }
 
 private:
-    std::vector<unsigned char> m_secondary; ///< Secondary buffer.
+    // FIXME: Change m_corrected_pixels to use another IB instead.
+    /// m_corrected_pixels is used to do pixel transformations on the original pixels
+    /// when not using GLSL.
+    std::vector<unsigned char> m_corrected_pixels;
     char *m_thumbnail;         ///< Thumbnail image
     bool m_thumbnail_valid;    ///< Thumbnail is valid
     float m_gamma;             ///< Gamma correction of this image
@@ -110,6 +122,7 @@ private:
     TypeDesc m_file_dataformat; ///< TypeDesc of the image on disk (not in ram)
     mutable std::string m_shortinfo;
     mutable std::string m_longinfo;
+    bool m_image_valid;        ///< Image is valid and pixels can be read.
 };
 
 
@@ -246,7 +259,7 @@ private:
     void removeRecentFile (const std::string &name);
     void updateRecentFilesMenu ();
     bool loadCurrentImage(int subimage = 0);
-    void displayCurrentImage ();
+    void displayCurrentImage (bool update = true);
     void updateTitle ();
     void updateStatusBar ();
     void keyPressEvent (QKeyEvent *event);
@@ -367,7 +380,7 @@ public:
 
     /// Update the image texture.
     ///
-    virtual void update (IvImage *img);
+    virtual void update ();
 
     /// Update the view -- center (in pixel coordinates) and zoom level.
     ///
@@ -411,16 +424,19 @@ public:
 
     /// Returns true if OpenGL is capable of loading textures in the sRGB color
     /// space.
-    bool is_srgb_capable (void) { return m_use_srgb; }
+    bool is_srgb_capable (void) const { return m_use_srgb; }
 
     /// Returns true if OpenGL can use GLSL, either with extensions or as
     /// implementation of version 2.0
-    bool is_glsl_capable (void) { return m_use_shaders; }
+    bool is_glsl_capable (void) const { return m_use_shaders; }
 
     /// Is OpenGL capable of reading half-float textures?
     ///
-    bool is_half_capable (void) { return m_use_halffloat; }
-    
+    bool is_half_capable (void) const { return m_use_halffloat; }
+
+    void typespec_to_opengl (const ImageSpec& spec, GLenum &gltype,
+                             GLenum &glformat, GLenum &glinternal) const;
+
 protected:
     ImageViewer &m_viewer;            ///< Backpointer to viewer
     bool m_shaders_created;           ///< Have the shaders been created?
@@ -428,7 +444,6 @@ protected:
     GLuint m_fragment_shader;         ///< Fragment shader id
     GLuint m_shader_program;          ///< GL shader program id
     bool m_tex_created;               ///< Have the textures been created?
-    GLuint m_texid;                   ///< Texture holding current imag
     float m_zoom;                     ///< Zoom ratio
     float m_centerx, m_centery;       ///< Center of view, in pixel coords
     bool m_dragging;                  ///< Are we dragging?
@@ -440,9 +455,30 @@ protected:
     bool m_use_float;                 ///< Are float textures supported?
     bool m_use_srgb;                  ///< Are sRGB-space textures supported?
     bool m_use_npot_texture;          ///< Can we handle NPOT textures?
-    GLint m_max_texture_size;        ///< Maximum allowed texture dimension.
+    bool m_use_pbo;                   ///< Can we use PBO to upload the texture?
+    GLint m_max_texture_size;         ///< Maximum allowed texture dimension.
     GLsizei m_texture_width;
     GLsizei m_texture_height;
+    GLuint m_pbo_objects[2];          ///< Pixel buffer objects
+    int m_last_pbo_used;              ///< Last used pixel buffer object.
+    IvImage *m_current_image;         ///< Image to show on screen.
+    GLuint m_pixelview_tex;           ///< Pixelview's own texture.
+    /// Buffer passed to IvImage::copy_image when not using PBO.
+    ///
+    std::vector<unsigned char> m_tex_buffer;
+
+    /// Represents a texture object being used as a buffer.
+    ///
+    struct TexBuffer {
+        GLuint tex_object;
+        int x;
+        int y;
+        int width;
+        int height;
+    };
+    std::vector<TexBuffer> m_texbufs;
+    int m_last_texbuf_used;
+
 
     virtual void initializeGL ();
     virtual void resizeGL (int w, int h);
@@ -458,13 +494,26 @@ protected:
 
     virtual void create_shaders (void);
     virtual void create_textures (void);
-    virtual void useshader (bool pixelview=false);
+    virtual void useshader (int tex_width, int tex_height, bool pixelview=false);
 
     void shadowed_text (float x, float y, float z, const std::string &s,
                         const QFont &font);
 
 private:
     typedef QGLWidget parent_t;
+    /// ncloseuppixels is the number of big pixels (in each direction)
+    /// visible in our closeup window.
+    const static int ncloseuppixels = 9;
+    /// closeuppixelzoom is the zoom factor we use for closeup pixels --
+    /// i.e. one image pixel will appear in the closeup window as a 
+    /// closeuppixelzoom x closeuppixelzoom square.
+    const static int closeuppixelzoom = 24;
+    /// closeupsize is the size, in pixels, of the closeup window itself --
+    /// just the number of pixels times the width of each closeup pixel.
+    const static int closeupsize = ncloseuppixels * closeuppixelzoom;
+    /// closeuptexsize is the size of the texture used to upload the pixelview
+    /// to OpenGL.
+    const static int closeuptexsize = 16;
 
     void clamp_view_to_window ();
 
@@ -477,8 +526,10 @@ private:
     /// checks what OpenGL extensions we have
     ///
     void check_gl_extensions (void);
+
+    /// Loads the given patch of the image, but first figures if it's already
+    /// been loaded.
+    void load_texture (int x, int y, int width, int height);
 };
-
-
 
 #endif // IMAGEVIEWER_H

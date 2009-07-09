@@ -726,7 +726,7 @@ ImageViewer::loadCurrentImage (int subimage)
         // We need the spec available to compare the image format with
         // opengl's capabilities.
         if (! img->init_spec (img->name ())) {
-            std::cerr << "Init spec failed in displayCurrentImage: " << img->error_message () << "\n";
+            std::cerr << "Init spec failed in loadCurrentImage: " << img->error_message () << "\n";
             return false;
         }
 
@@ -738,6 +738,10 @@ ImageViewer::loadCurrentImage (int subimage)
         TypeDesc read_format = TypeDesc::UNKNOWN;
         const ImageSpec &image_spec = img->spec();
 
+        if (image_spec.format.basetype == TypeDesc::DOUBLE) {
+            // AFAIK, OpenGL doesn't support 64-bit floats as pixel size.
+            read_format = TypeDesc::FLOAT;
+        }
         if (glwin->is_glsl_capable ()) {
             if (image_spec.format.basetype == TypeDesc::HALF &&
                 ! glwin->is_half_capable ()) {
@@ -759,9 +763,8 @@ ImageViewer::loadCurrentImage (int subimage)
             allow_transforms = true;
         }
 
-        // Do a forced read the image (re-loads from disk), using the given
-        // subimage.
-        if (img->read (subimage, true, read_format, image_progress_callback, this, allow_transforms)) {
+        // Read the image from disk or from the ImageCache if available.
+        if (img->read (subimage, false, read_format, image_progress_callback, this, allow_transforms)) {
             // The image was read succesfully.
             // Check if we've got to do sRGB to linear (ie, when not supported
             // by OpenGL).
@@ -770,9 +773,13 @@ ImageViewer::loadCurrentImage (int subimage)
                 //std::cerr << "Doing sRGB to linear\n";
                 img->srgb_to_linear ();
             }
+            // Do the first pixel transform to fill-in the secondary image
+            // buffer.
+            if (! glwin->is_glsl_capable ()) {
+                img->pixel_transform (current_channel());
+            }
             return true;
-        }
-        else {
+        } else {
             std::cerr << "read failed in loadCurrentImage: " << img->error_message() << "\n";
             return false;
         }
@@ -783,13 +790,13 @@ ImageViewer::loadCurrentImage (int subimage)
 
 
 void
-ImageViewer::displayCurrentImage ()
+ImageViewer::displayCurrentImage (bool update)
 {
     if (m_current_image < 0 || m_current_image >= (int)m_images.size())
         m_current_image = 0;
     IvImage *img = cur();
     if (img) {
-        if (! img->pixels_valid()) {
+        if (! img->image_valid()) {
             bool load_result = false;
 
             statusViewInfo->hide ();
@@ -801,6 +808,7 @@ ImageViewer::displayCurrentImage ()
             if (load_result) {
                 glwin->center (img->oriented_full_x()+img->oriented_full_width()/2.0,
                                img->oriented_full_y()+img->oriented_full_height()/2.0);
+                update = true;
             } else {
                 return;
             }
@@ -810,7 +818,9 @@ ImageViewer::displayCurrentImage ()
         return;
     }
 
-    glwin->update (img);
+    if (update) {
+        glwin->update ();
+    }
     float z = zoom();
     if (fitImageToWindowAct->isChecked ())
         z = zoom_needed_to_fit (glwin->width(), glwin->height());
@@ -842,8 +852,10 @@ ImageViewer::current_image (int newimage)
     if (m_current_image != newimage) {
         m_last_image = (m_current_image >= 0) ? m_current_image : newimage;
         m_current_image = newimage;
+        displayCurrentImage ();
+    } else {
+        displayCurrentImage (true);
     }
-    displayCurrentImage ();
 #ifdef DEBUG
     swap_image_time.stop();
     std::cerr << "Current Image change elapsed time: " << swap_image_time() << " seconds \n";
@@ -892,7 +904,12 @@ ImageViewer::exposureMinusOneTenthStop ()
         return;
     IvImage *img = m_images[m_current_image];
     img->exposure (img->exposure() - 0.1);
-    displayCurrentImage();
+    if (! glwin->is_glsl_capable ()) {
+        img->pixel_transform (current_channel());
+        displayCurrentImage ();
+    } else {
+        displayCurrentImage (false);
+    }
 }
 
 
@@ -903,7 +920,12 @@ ImageViewer::exposureMinusOneHalfStop ()
         return;
     IvImage *img = m_images[m_current_image];
     img->exposure (img->exposure() - 0.5);
-    displayCurrentImage();
+    if (! glwin->is_glsl_capable ()) {
+        img->pixel_transform (current_channel());
+        displayCurrentImage ();
+    } else {
+        displayCurrentImage (false);
+    }
 }
 
 
@@ -914,7 +936,12 @@ ImageViewer::exposurePlusOneTenthStop ()
         return;
     IvImage *img = m_images[m_current_image];
     img->exposure (img->exposure() + 0.1);
-    displayCurrentImage();
+    if (! glwin->is_glsl_capable ()) {
+        img->pixel_transform (current_channel());
+        displayCurrentImage ();
+    } else {
+        displayCurrentImage (false);
+    }
 }
 
 
@@ -925,7 +952,12 @@ ImageViewer::exposurePlusOneHalfStop ()
         return;
     IvImage *img = m_images[m_current_image];
     img->exposure (img->exposure() + 0.5);
-    displayCurrentImage();
+    if (! glwin->is_glsl_capable ()) {
+        img->pixel_transform (current_channel());
+        displayCurrentImage ();
+    } else {
+        displayCurrentImage (false);
+    }
 }
 
 
@@ -937,7 +969,12 @@ ImageViewer::gammaMinus ()
         return;
     IvImage *img = m_images[m_current_image];
     img->gamma (img->gamma() - 0.05);
-    displayCurrentImage();
+    if (! glwin->is_glsl_capable ()) {
+        img->pixel_transform (current_channel());
+        displayCurrentImage ();
+    } else {
+        displayCurrentImage (false);
+    }
 }
 
 
@@ -948,7 +985,12 @@ ImageViewer::gammaPlus ()
         return;
     IvImage *img = m_images[m_current_image];
     img->gamma (img->gamma() + 0.05);
-    displayCurrentImage();
+    if (! glwin->is_glsl_capable ()) {
+        img->pixel_transform (current_channel());
+        displayCurrentImage ();
+    } else {
+        displayCurrentImage (false);
+    }
 }
 
 
@@ -962,7 +1004,14 @@ ImageViewer::viewChannel (ChannelView c)
 #endif
     if (m_current_channel != c) {
         m_current_channel = c;
-        displayCurrentImage();
+        if (! glwin->is_glsl_capable ()) {
+            IvImage *img = cur ();
+            if (img)
+                img->pixel_transform (current_channel());
+            displayCurrentImage ();
+        } else {
+            displayCurrentImage (false);
+        }
         viewChannelFullAct->setChecked (c == channelFullColor);
         viewChannelRedAct->setChecked (c == channelRed);
         viewChannelGreenAct->setChecked (c == channelGreen);

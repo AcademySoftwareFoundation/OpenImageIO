@@ -47,7 +47,7 @@
 
 #include "strutil.h"
 #include "fmath.h"
-
+#include "timer.h"
 
 
 
@@ -63,7 +63,8 @@ IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
       m_zoom(1.0), m_centerx(0), m_centery(0), m_dragging(false),
       m_use_shaders(false), m_use_halffloat(false), m_use_float(false),
       m_use_srgb(false), m_texture_height(1), m_texture_width(1),
-      m_shaders_using_extensions(false), m_use_npot_texture(false)
+      m_shaders_using_extensions(false), m_current_image(NULL), 
+      m_last_texbuf_used(0), m_use_pbo(false), m_last_pbo_used(0)
 {
 #if 0
     QGLFormat format;
@@ -97,11 +98,10 @@ IvGL::initializeGL ()
     glShadeModel (GL_FLAT);
     glEnable (GL_DEPTH_TEST);
     glDisable (GL_CULL_FACE);
-    glEnable (GL_ALPHA_TEST);
     glEnable (GL_BLEND);
-//    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable (GL_TEXTURE_2D);
+    // glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-//    glEnable (GL_TEXTURE_2D);
     // Make sure initial matrix is identity (returning to this stack level loads
     // back this matrix).
     glLoadIdentity();
@@ -135,30 +135,54 @@ IvGL::create_textures (void)
     if (m_tex_created)
         return;
 
-    glGenTextures (1, &m_texid);
-    GLERRPRINT ("gen textures");
-    glBindTexture (GL_TEXTURE_2D, m_texid);
-    GLERRPRINT ("bind tex");
-    glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
-                  4 /*internal format - color components */,
-                  1 /*width*/, 1 /*height*/, 0 /*border width*/,
-                  GL_RGBA /*type - GL_RGB, GL_RGBA, GL_LUMINANCE */,
-                  GL_FLOAT /*format - GL_FLOAT */,
-                  NULL /*data*/);
-    GLERRPRINT ("tex image 2d");
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // FIXME: Determine this dynamically.
+    const int total_texbufs = 4;
+    GLuint textures[total_texbufs];
+
+    glGenTextures (total_texbufs, textures);
+
+    // Initialize texture objects
+    for (int i = 0; i < total_texbufs; i++) {
+        m_texbufs.push_back (TexBuffer());
+        glBindTexture (GL_TEXTURE_2D, textures[i]);
+        GLERRPRINT ("bind tex");
+        glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
+                      4 /*internal format - color components */,
+                      1 /*width*/, 1 /*height*/, 0 /*border width*/,
+                      GL_RGBA /*type - GL_RGB, GL_RGBA, GL_LUMINANCE */,
+                      GL_FLOAT /*format - GL_FLOAT */,
+                      NULL /*data*/);
+        GLERRPRINT ("tex image 2d");
+        // Initialize tex parameters.
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+        GLERRPRINT ("After tex parameters");
+        m_texbufs.back().tex_object = textures[i];
+        m_texbufs.back().x = 0;
+        m_texbufs.back().y = 0;
+        m_texbufs.back().width = 0;
+        m_texbufs.back().height = 0;
+    }
+
+    // Create another texture for the pixelview.
+    glGenTextures (1, &m_pixelview_tex);
+    glBindTexture (GL_TEXTURE_2D, m_pixelview_tex);
+    glTexImage2D (GL_TEXTURE_2D, 0, 
+                  4, closeuptexsize, closeuptexsize, 0, 
+                  GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-    GLERRPRINT ("After tex parameters");
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-#if 0
-    GLuint textures[] = { GL_TEXTURE0 };
-    GLboolean residences[] = { false };
-    bool ok = glAreTexturesResident (0, textures, residences);
-    GLERRPRINT ("bind tex 1");
-    std::cerr << "Resident? " << (int)residences[0] << "\n";
-#endif
+    if (m_use_pbo) {
+        glGenBuffersARB(2, m_pbo_objects);
+        glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_pbo_objects[0]);
+        glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_pbo_objects[1]);
+        glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+    }
 
     m_tex_created = true;
 }
@@ -315,7 +339,7 @@ IvGL::create_shaders (void)
         glLinkProgram (m_shader_program);
     }
     GLERRPRINT ("link");
-    GLint linked, attached_shaders;
+    GLint linked;
     if (m_shaders_using_extensions) {
         glGetObjectParameterivARB (m_shader_program,
                 GL_OBJECT_LINK_STATUS_ARB, &linked);
@@ -328,7 +352,6 @@ IvGL::create_shaders (void)
     }
 
     m_shaders_created = true;
-
 }
 
 
@@ -345,6 +368,8 @@ IvGL::resizeGL (int w, int h)
     // (0,0) and with width and height equal to the window dimensions IN
     // PIXEL UNITS.
     glMatrixMode (GL_MODELVIEW);
+
+    clamp_view_to_window ();
     GLERRPRINT ("resizeGL exit");
 }
 
@@ -373,12 +398,16 @@ gl_rect (float xmin, float ymin, float xmax, float ymax, float z = 0,
 void
 IvGL::paintGL ()
 {
-//    std::cerr << "paintGL " << m_viewer.current_image() << " with zoom " << m_zoom << "\n";
+#ifdef DEBUG
+    Timer paint_image_time;
+    paint_image_time.start();
+#endif
+    //std::cerr << "paintGL " << m_viewer.current_image() << " with zoom " << m_zoom << "\n";
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if (! m_viewer.cur())
+    IvImage *img = m_current_image;
+    if (! img || ! img->image_valid())
         return;
- 
-    IvImage *img = m_viewer.cur();
+
     const ImageSpec &spec (img->spec());
     float z = m_zoom;
 
@@ -393,54 +422,103 @@ IvGL::paintGL ()
     // Scaled by zoom level.  So now xy units are image pixels as
     // displayed at the current zoom level, with the origin at the
     // center of the visible window.
-    glTranslatef (-m_centerx, -m_centery, 0.0f);
+
+    // Handle the orientation with OpenGL *before* translating our center.
+    float real_centerx = m_centerx;
+    float real_centery = m_centery;
+    switch (img->orientation()) {
+    case 2: // flipped horizontally
+        glScalef (-1, 1, 1);
+        real_centerx = spec.width - m_centerx;
+        break;
+    case 3: // bottom up, rigth to left (rotated 180).
+        glScalef (-1, -1, 1);
+        real_centerx = spec.width - m_centerx;
+        real_centery = spec.height - m_centery;
+        break;
+    case 4: // flipped vertically.
+        glScalef (1, -1, 1);
+        real_centery = spec.height - m_centery;
+        break;
+    case 5: // transposed (flip horizontal & rotated 90 ccw).
+        glScalef (-1, 1, 1);
+        glRotatef (90, 0, 0, 1);
+        real_centerx = m_centery;
+        real_centery = m_centerx;
+        break;
+    case 6: // rotated 90 cw.
+        glRotatef (-270.0, 0, 0, 1);
+        real_centerx = m_centery;
+        real_centery = spec.height - m_centerx;
+        break;
+    case 7: // transverse, (flip horizontal & rotated 90 cw, r-to-l, b-to-t)
+        glScalef (-1, 1, 1);
+        glRotatef (-90, 0, 0, 1);
+        real_centerx = spec.width - m_centery;
+        real_centery = spec.height - m_centerx;
+        break;
+    case 8: // rotated 90 ccw.
+        glRotatef (-90, 0, 0, 1);
+        real_centerx = spec.width - m_centery;
+        real_centery = m_centerx;
+        break;
+    case 1: // horizontal
+    case 0: // unknown
+    default:
+        break;
+    }
+    glTranslatef (-real_centerx, -real_centery, 0.0f);
     // Recentered so that the pixel space (m_centerx,m_centery) position is
     // at the center of the visible window.
 
-    // Handle orientation
-    float xmin = spec.x;
-    float xmax = spec.x + spec.width;
-    float ymin = spec.y;
-    float ymax = spec.y + spec.height;
-    float smin = 0, smax = spec.width/float (m_texture_width);
-    float tmin = 0, tmax = spec.height/float (m_texture_height);
-    int orient = img->orientation();
-    int rotate = 0;
-    if (orient != 1) {
-        if (orient == 2 || orient == 3 || orient == 5 || orient == 8)
-            std::swap (xmin, xmax);
-        if (orient == 3 || orient == 4)
-            std::swap (ymin, ymax);
-        if (orient == 5 || orient == 8) {
-            float x0 = xmin, x1 = xmax, y0 = ymin, y1 = ymax;
-            xmin = y1;
-            xmax = y0;
-            ymin = x0;
-            ymax = x1;
-            rotate = 3;
-        } else if (orient == 6 || orient == 7) {
-            float x0 = xmin, x1 = xmax, y0 = ymin, y1 = ymax;
-            if (orient == 6) {
-                xmin = y1;
-                xmax = y0;
-            } else {
-                xmin = y0;
-                xmax = y1;
-            }
-            ymin = x1;
-            ymax = x0;
-            rotate = 1;
+    useshader (m_texture_width, m_texture_height);
+
+    float smin = 0, smax = 1.0;
+    float tmin = 0, tmax = 1.0;
+    // Image pixels shown from the center to the edge of the window.
+    float wincenterx = width()/(2*m_zoom);
+    float wincentery = height()/(2*m_zoom);
+    if (img->orientation() > 4) {
+        std::swap (wincenterx, wincentery);
+    }
+
+    int xbegin = std::max (spec.x, ((int) floor (real_centerx - wincenterx)/m_texture_width)*m_texture_width);
+    int ybegin = std::max (spec.y, ((int) floor (real_centery - wincentery)/m_texture_height)*m_texture_height);
+    int xend   = std::min (spec.x+spec.width, ((int) ceil (real_centerx + wincenterx)/m_texture_width + 1)*m_texture_width);
+    int yend   = std::min (spec.y+spec.height, ((int) ceil (real_centery + wincentery)/m_texture_height + 1)*m_texture_height);
+    //std::cerr << "(" << xbegin << ',' << ybegin << ") - (" << xend << ',' << yend << ")\n";
+
+    // FIXME: Load a subimage (if available) according to zoom level.
+    // Also, change the code path so we can take full advantage of async DMA
+    // when using PBO.
+    for (int ystart = ybegin ; ystart < yend; ystart += m_texture_height) {
+        for (int xstart = xbegin ; xstart < xend; xstart += m_texture_width) {
+            int tile_width = std::min (xend - xstart, m_texture_width);
+            int tile_height = std::min (yend - ystart, m_texture_height);
+            smax = tile_width/float (m_texture_width);
+            tmax = tile_height/float (m_texture_height);
+
+            //std::cerr << "xstart: " << xstart << ". ystart: " << ystart << "\n";
+            //std::cerr << "tile_width: " << tile_width << ". tile_height: " << tile_height << "\n";
+
+            // FIXME: This can get too slow. Some ideas: avoid sending the tex
+            // images more than necessary, figure an optimum texture size, use
+            // multiple texture objects.
+            load_texture (xstart, ystart, tile_width, tile_height);
+            gl_rect (xstart, ystart, xstart+tile_width, ystart+tile_height, 0,
+                    smin, tmin, smax, tmax);
         }
     }
-    useshader ();
-
-    gl_rect (xmin, ymin, xmax, ymax, 0, smin, tmin, smax, tmax, rotate);
 
     glPopMatrix ();
 
     if (m_viewer.pixelviewOn()) {
         paint_pixelview ();
     }
+
+#ifdef DEBUG
+    std::cerr << "paintGL elapsed time: " << paint_image_time() << " seconds\n";
+#endif
 }
 
 
@@ -466,23 +544,12 @@ IvGL::shadowed_text (float x, float y, float z, const std::string &s,
 void
 IvGL::paint_pixelview ()
 {
-    // ncloseuppixels is the number of big pixels (in each direction)
-    // visible in our closeup window.
-    const int ncloseuppixels = 9;   // How many pixels to show in each dir
-    // closeuppixelzoom is the zoom factor we use for closeup pixels --
-    // i.e. one image pixel will appear in the closeup window as a 
-    // closeuppixelzoom x closeuppixelzoom square.
-    const int closeuppixelzoom = 24;
-    // closeupsize is the size, in pixels, of the closeup window itself --
-    // just the number of pixels times the width of each closeup pixel.
-    const int closeupsize = ncloseuppixels * closeuppixelzoom;
-
-    IvImage *img = m_viewer.cur();
+    IvImage *img = m_current_image;
     const ImageSpec &spec (img->spec());
 
     // (xw,yw) are the window coordinates of the mouse.
     int xw, yw;
-    m_viewer.glwin->get_focus_window_pixel (xw, yw);
+    get_focus_window_pixel (xw, yw);
 
     // (xp,yp) are the image-space [0..res-1] position of the mouse.
     int xp, yp;
@@ -511,30 +578,61 @@ IvGL::paint_pixelview ()
     // window is going to appear.  All other coordinates from here on
     // (in this procedure) should be relative to the closeup window center.
 
-    // This square is the closeup window itself
-    //
     glPushAttrib (GL_ENABLE_BIT | GL_TEXTURE_BIT);
-    useshader (true);
-    if (! (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height())) {
+    useshader (closeuptexsize, closeuptexsize, true);
+
+    float smin, tmin, smax, tmax;
+    if (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()) {
+        // Keep the view within ncloseuppixels pixels.
+        int xpp = std::min(std::max (xp, ncloseuppixels/2), spec.width - ncloseuppixels/2 - 1);
+        int ypp = std::min(std::max (yp, ncloseuppixels/2), spec.height - ncloseuppixels/2 - 1);
+        // Calculate patch of the image to use for the pixelview.
+        int xbegin = std::max (xpp - ncloseuppixels/2, 0);
+        int ybegin = std::max (ypp - ncloseuppixels/2, 0);
+        int xend   = std::min (xpp + ncloseuppixels/2+1, spec.width);
+        int yend   = std::min (ypp + ncloseuppixels/2+1, spec.height);
+        smin = 0.0;
+        tmin = 0.0;
+        smax = float (xend-xbegin)/closeuptexsize;
+        tmax = float (yend-ybegin)/closeuptexsize;
+        //std::cerr << "img (" << xbegin << "," << ybegin << ") - (" << xend << "," << yend << ")\n";
+        //std::cerr << "tex (" << smin << "," << tmin << ") - (" << smax << "," << tmax << ")\n";
+
+        void *zoombuffer = NULL;
+        if (m_use_shaders) {
+            zoombuffer  = alloca ((xend-xbegin)*(xend-xbegin)*spec.pixel_bytes());
+            img->copy_pixels (spec.x + xbegin, spec.x + xend,
+                              spec.y + ybegin, spec.y + yend,
+                              spec.format, zoombuffer);
+        } else {
+            zoombuffer = img->pixeladdr (spec.x + xbegin, spec.y + ybegin);
+            glPixelStorei (GL_UNPACK_ROW_LENGTH, spec.width);
+        }
+
+        GLenum glformat, gltype, glinternalformat;
+        typespec_to_opengl (spec, gltype, glformat, glinternalformat);
+        // Use pixelview's own texture, and upload the corresponding image patch.
+        if (m_use_pbo) {
+            glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+        }
+        glBindTexture (GL_TEXTURE_2D, m_pixelview_tex);
+        glTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, 
+                         xend-xbegin, yend-ybegin,
+                         glformat, gltype,
+                         zoombuffer);
+        GLERRPRINT ("After tsi2d");
+    } else {
         glDisable (GL_TEXTURE_2D);
         glColor3f (0.1,0.1,0.1);
     }
     if (! m_use_shaders) {
         glDisable (GL_BLEND);
-        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
-    float oriented_tex_width = (img->orientation() <= 4 ? m_texture_width : m_texture_height);
-    float oriented_tex_height = (img->orientation() <= 4 ? m_texture_height : m_texture_width);
-    float xtexsize = 0.5 * (float)ncloseuppixels / oriented_tex_width;
-    float ytexsize = 0.5 * (float)ncloseuppixels / oriented_tex_height;
-    // Make (x,y) be the image space NDC coords of the mouse.
-    float x = (xp+0.5f) / (/* ? z * */ oriented_tex_width);
-    float y = (yp+0.5f) / (/* ? z * */ oriented_tex_height);
 
+    // This square is the closeup window itself
     gl_rect (-0.5f*closeupsize, 0.5f*closeupsize,
             0.5f*closeupsize, -0.5f*closeupsize, 0,
-            x - xtexsize, y - ytexsize, x + xtexsize, y + ytexsize);
+            smin, tmin, smax, tmax);
     glPopAttrib ();
 
     // Draw a second window, slightly behind the closeup window, as a
@@ -561,10 +659,6 @@ IvGL::paint_pixelview ()
         // values of the pixel that the mouse is over.
         QFont font;
         font.setFixedPitch (true);
-//        std::cerr << "pixel size " << font.pixelSize() << "\n";
-//    font.setPixelSize (16);
-//    font.setFixedPitch (20);
-//    bgfont.setPixelSize (20);
         float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
         int textx = - closeupsize/2 + 4;
         int texty = - closeupsize/2 - yspacing;
@@ -604,15 +698,11 @@ IvGL::paint_pixelview ()
 
 
 void
-IvGL::useshader (bool pixelview)
+IvGL::useshader (int tex_width, int tex_height, bool pixelview)
 {
     IvImage *img = m_viewer.cur();
     if (! img)
         return;
-
-    //glActiveTexture (GL_TEXTURE0);
-    glEnable (GL_TEXTURE_2D);
-    //glBindTexture (GL_TEXTURE_2D, m_texid);
 
     if (!m_use_shaders) {
         glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -659,155 +749,67 @@ IvGL::useshader (bool pixelview)
     gl_uniform (loc, m_viewer.linearInterpolation ());
 
     loc = gl_get_uniform_location ("width");
-    gl_uniform (loc, m_texture_width);
+    gl_uniform (loc, tex_width);
 
     loc = gl_get_uniform_location ("height");
-    gl_uniform (loc, m_texture_height);
+    gl_uniform (loc, tex_height);
     GLERRPRINT ("After settting uniforms");
 }
 
 
 
 void
-IvGL::update (IvImage *img)
+IvGL::update ()
 {
+    //std::cerr << "update image\n";
+    
+    IvImage* img = m_viewer.cur();
     if (! img)
         return;
 
-//    std::cerr << "update image\n";
-
-    if (! is_glsl_capable ()) {
-        img->select_channel (m_viewer.current_channel());
-        if (img->exposure () != 0.0 || img->gamma () != 1.0) {
-            img->apply_corrections ();
-        }
-    }
-
     const ImageSpec &spec (img->spec());
-//    glActiveTexture (GL_TEXTURE0);
-//    glEnable (GL_TEXTURE_2D);
-//    glBindTexture (GL_TEXTURE_2D, m_texid);
-
-    bool srgb = false;
-    if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
-        srgb = true;
-    }
-    bool format_float = false;
-    if (m_use_float && spec.format.basetype == TypeDesc::FLOAT) {
-        format_float = true;
-    }
-    bool format_half = false;
-    if (m_use_float && spec.format.basetype == TypeDesc::HALF) {
-        format_half = true;
-    }
-
-    GLenum glformat = GL_RGB;
-    GLint glinternalformat = spec.nchannels;
-    if (spec.nchannels == 1) {
-        glformat = GL_LUMINANCE;
-        if (srgb) {
-            glinternalformat = GL_SLUMINANCE;
-        } else if (format_float) {
-            glinternalformat = GL_LUMINANCE32F_ARB;
-        } else if (format_half) {
-            glinternalformat = GL_LUMINANCE16F_ARB;
-        }
-    } else if (spec.nchannels == 2) {
-        glformat = GL_LUMINANCE_ALPHA;
-        if (srgb) {
-            glinternalformat = GL_SLUMINANCE_ALPHA;
-        } else if (format_float) {
-            glinternalformat = GL_LUMINANCE_ALPHA32F_ARB;
-        } else if (format_half) {
-            glinternalformat = GL_LUMINANCE_ALPHA16F_ARB;
-        }
-    } else if (spec.nchannels == 3) {
-        glformat = GL_RGB;
-        if (srgb) {
-            glinternalformat = GL_SRGB;
-        } else if (format_float) {
-            glinternalformat = GL_RGB32F_ARB;
-        } else if (format_half) {
-            glinternalformat = GL_RGB16F_ARB;
-        }
-    } else if (spec.nchannels == 4) {
-        glformat = GL_RGBA;
-        if (srgb) {
-            glinternalformat = GL_SRGB_ALPHA;
-        } else if (format_float) {
-            glinternalformat = GL_RGBA32F_ARB;
-        } else if (format_half) {
-            glinternalformat = GL_RGBA16F_ARB;
-        }
-    } else {
-        //FIXME: What to do here?
-        std::cerr << "I don't know how to handle more than 4 channels\n";
-    }
 
     GLenum gltype = GL_UNSIGNED_BYTE;
-    switch (spec.format.basetype) {
-    case TypeDesc::FLOAT  : gltype = GL_FLOAT;          break;
-    case TypeDesc::HALF   : if (m_use_halffloat) {
-                                gltype = GL_HALF_FLOAT_ARB;
-                            } else {
-                                // If we reach here then something really wrong
-                                // happened: When half-float is not supported,
-                                // the image should be loaded as UINT8 (no GLSL
-                                // support) or FLOAT (GLSL support).
-                                // See IvImage::loadCurrentImage()
-                                std::cerr << "Tried to load an unsupported half-float image.\n";
-                            }
-                            break;
-    case TypeDesc::INT8   : gltype = GL_BYTE;           break;
-    case TypeDesc::UINT8  : gltype = GL_UNSIGNED_BYTE;  break;
-    case TypeDesc::INT16  : gltype = GL_SHORT;          break;
-    case TypeDesc::UINT16 : gltype = GL_UNSIGNED_SHORT; break;
-    case TypeDesc::INT    : gltype = GL_INT;            break;
-    case TypeDesc::UINT   : gltype = GL_UNSIGNED_INT;   break;
-    default:
-        gltype = GL_UNSIGNED_BYTE;  // punt
-        break;
+    GLenum glformat = GL_RGB;
+    GLenum glinternalformat = GL_RGB;
+    typespec_to_opengl (spec, gltype, glformat, glinternalformat);
+
+    m_texture_width = std::min (pow2roundup(spec.width), m_max_texture_size);
+    m_texture_height= std::min (pow2roundup(spec.height), m_max_texture_size);
+
+    if (m_use_pbo) {
+        // Otherwise OpenGL will confuse the NULL with an index into one of
+        // the PBOs.
+        glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+    }
+    // We need to reupload the texture only when changing images or when not
+    // using GLSL and changing channel/exposure/gamma.
+    BOOST_FOREACH (TexBuffer &tb, m_texbufs) {
+        tb.width = 0;
+        tb.height= 0;
+        glBindTexture (GL_TEXTURE_2D, tb.tex_object);
+        glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
+                      glinternalformat,
+                      m_texture_width,  m_texture_height,
+                      0 /*border width*/,
+                      glformat, gltype, 
+                      NULL /*data*/);
+        GLERRPRINT ("Setting up texture");
     }
 
-    if (! m_use_npot_texture) {
-        m_texture_width = pow2roundup(spec.width);
-        m_texture_height= pow2roundup(spec.height);
-    }
-    else {
-        m_texture_width = spec.width;
-        m_texture_height= spec.height;
-    }
+    // Set the right type for the texture used for pixelview.
+    glBindTexture (GL_TEXTURE_2D, m_pixelview_tex);
+    glTexImage2D (GL_TEXTURE_2D, 0, glinternalformat,
+                  closeuptexsize, closeuptexsize, 0,
+                  glformat, gltype, NULL);
+    GLERRPRINT ("Setting up pixelview texture");
 
-    // Copy the imagebuf pixels we need, that's the only way we can do
-    // it safely once ImageBuf has a cache underneath and the whole image
-    // may not be resident at once.
-    // FIXME -- when we render in "tiles", this will copy a tile rather 
-    // than the whole image.
-    std::vector<unsigned char> buf;
-    buf.resize (spec.width * spec.height * spec.pixel_bytes());
-    img->copy_pixels (spec.x, spec.x+spec.width, spec.y, spec.y+spec.height,
-                      spec.format, &buf[0]);
-    GLvoid *full_texture_data = NULL;
-    if (m_texture_width == spec.width && m_texture_height == spec.height) {
-        full_texture_data = (GLvoid *) &buf[0];
-    }
 
-    //std::cerr << "Width: " << spec.width << ". Height: " << spec.height << "\n";
-    //std::cerr << "Texture width: " << m_texture_width << ". Texture height: " << m_texture_height << std::endl;
-    glTexImage2D (GL_TEXTURE_2D, 0 /*mip level*/,
-                  glinternalformat,
-                  m_texture_width,  m_texture_height,
-                  0 /*border width*/,
-                  glformat, gltype, 
-                  full_texture_data /*data*/);
-
-    if (! full_texture_data) {
-        glTexSubImage2D(GL_TEXTURE_2D, 0 /*mip level*/,
-                        0, 0 /* x, y within image */,
-                        spec.width, spec.height /*width, height of patch*/,
-                        glformat, gltype,
-                        (GLvoid *)&buf[0]);
+    if (m_use_shaders && !m_use_pbo) {
+        // Resize the buffer at once, rather than create one each drawing.
+        m_tex_buffer.resize (m_texture_width * m_texture_height * spec.pixel_bytes());
     }
+    m_current_image = img;
 }
 
 
@@ -822,9 +824,6 @@ IvGL::view (float xcenter, float ycenter, float zoom, bool redraw)
     IvImage *img = m_viewer.cur();
     if (img) {
         clamp_view_to_window ();
-//        repaint (0, 0, img->oriented_width(), img->oriented_height());     // Update the texture
-    } else {
-//        repaint (0, 0, width(), height());
     }
     if (redraw)
         trigger_redraw ();
@@ -852,7 +851,7 @@ IvGL::remember_mouse (const QPoint &pos)
 void
 IvGL::clamp_view_to_window ()
 {
-    IvImage *img = m_viewer.cur();
+    IvImage *img = m_current_image;
     if (! img)
         return;
     int w = width(), h = height();
@@ -1137,8 +1136,8 @@ IvGL::check_gl_extensions (void)
                   glewIsSupported("GL_ARB_texture_float") ||
                   glewIsSupported("GL_ATI_texture_float");
 
-    m_use_npot_texture = glewIsSupported("GL_VERSION_2_0") ||
-                         glewIsSupported("GL_ARB_texture_non_power_of_two");
+    m_use_pbo = glewIsSupported("GL_VERSION_1_5") ||
+                glewIsSupported("GL_ARB_pixel_buffer_object");
 #else
     std::cerr << "Not checking GL extensions\n";
 #endif
@@ -1155,7 +1154,198 @@ IvGL::check_gl_extensions (void)
     std::cerr << "OpenGL sRGB color space textures supported: " << m_use_srgb << "\n";
     std::cerr << "OpenGL half-float pixels supported: " << m_use_halffloat << "\n";
     std::cerr << "OpenGL float texture storage supported: " << m_use_float << "\n";
-    std::cerr << "OpenGL non power of two textures suported: " << m_use_npot_texture << "\n";
+    std::cerr << "OpenGL pixel buffer object supported: " << m_use_pbo << "\n";
     std::cerr << "OpenGL max texture dimension: " << m_max_texture_size << "\n";
 #endif
+}
+
+
+
+void
+IvGL::typespec_to_opengl (const ImageSpec &spec, GLenum &gltype, GLenum &glformat, 
+                          GLenum &glinternalformat) const
+{
+    switch (spec.format.basetype) {
+    case TypeDesc::FLOAT  : gltype = GL_FLOAT;          break;
+    case TypeDesc::HALF   : if (m_use_halffloat) {
+                                gltype = GL_HALF_FLOAT_ARB;
+                            } else {
+                                // If we reach here then something really wrong
+                                // happened: When half-float is not supported,
+                                // the image should be loaded as UINT8 (no GLSL
+                                // support) or FLOAT (GLSL support).
+                                // See IvImage::loadCurrentImage()
+                                std::cerr << "Tried to load an unsupported half-float image.\n";
+                                gltype = GL_INVALID_ENUM;
+                            }
+                            break;
+    case TypeDesc::INT    : gltype = GL_INT;            break;
+    case TypeDesc::UINT   : gltype = GL_UNSIGNED_INT;   break;
+    case TypeDesc::INT16  : gltype = GL_SHORT;          break;
+    case TypeDesc::UINT16 : gltype = GL_UNSIGNED_SHORT; break;
+    case TypeDesc::INT8   : gltype = GL_BYTE;           break;
+    case TypeDesc::UINT8  : gltype = GL_UNSIGNED_BYTE;  break;
+    default:
+        gltype = GL_UNSIGNED_BYTE;  // punt
+        break;
+    }
+
+    glinternalformat = spec.nchannels;
+    if (spec.nchannels == 1) {
+        glformat = GL_LUMINANCE;
+        if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
+            if (spec.format.basetype == TypeDesc::UINT8) {
+                glinternalformat = GL_SLUMINANCE8;
+            } else {
+                glinternalformat = GL_SLUMINANCE;
+            }
+        } else if (spec.format.basetype == TypeDesc::UINT8) {
+            glinternalformat = GL_LUMINANCE8;
+        } else if (spec.format.basetype == TypeDesc::UINT16) {
+            glinternalformat = GL_LUMINANCE16;
+        } else if (m_use_float && spec.format.basetype == TypeDesc::FLOAT) {
+            glinternalformat = GL_LUMINANCE32F_ARB;
+        } else if (m_use_float && spec.format.basetype == TypeDesc::HALF) {
+            glinternalformat = GL_LUMINANCE16F_ARB;
+        }
+    } else if (spec.nchannels == 2) {
+        glformat = GL_LUMINANCE_ALPHA;
+        if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
+            if (spec.format.basetype == TypeDesc::UINT8) {
+                glinternalformat = GL_SLUMINANCE8_ALPHA8;
+            } else {
+                glinternalformat = GL_SLUMINANCE_ALPHA;
+            }
+        } else if (spec.format.basetype == TypeDesc::UINT8) {
+            glinternalformat = GL_LUMINANCE8_ALPHA8;
+        } else if (spec.format.basetype == TypeDesc::UINT16) {
+            glinternalformat = GL_LUMINANCE16_ALPHA16;
+        } else if (m_use_float && spec.format.basetype == TypeDesc::FLOAT) {
+            glinternalformat = GL_LUMINANCE_ALPHA32F_ARB;
+        } else if (m_use_float && spec.format.basetype == TypeDesc::HALF) {
+            glinternalformat = GL_LUMINANCE_ALPHA16F_ARB;
+        }
+    } else if (spec.nchannels == 3) {
+        glformat = GL_RGB;
+        if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
+            if (spec.format.basetype == TypeDesc::UINT8) {
+                glinternalformat = GL_SRGB8;
+            } else {
+                glinternalformat = GL_SRGB;
+            }
+        } else if (spec.format.basetype == TypeDesc::UINT8) {
+            glinternalformat = GL_RGB8;
+        } else if (spec.format.basetype == TypeDesc::UINT16) {
+            glinternalformat = GL_RGB16;
+        } else if (m_use_float && spec.format.basetype == TypeDesc::FLOAT) {
+            glinternalformat = GL_RGB32F_ARB;
+        } else if (m_use_float && spec.format.basetype == TypeDesc::HALF) {
+            glinternalformat = GL_RGB16F_ARB;
+        }
+    } else if (spec.nchannels == 4) {
+        glformat = GL_RGBA;
+        if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
+            if (spec.format.basetype == TypeDesc::UINT8) {
+                glinternalformat = GL_SRGB8_ALPHA8;
+            } else {
+                glinternalformat = GL_SRGB_ALPHA;
+            }
+        } else if (spec.format.basetype == TypeDesc::UINT8) {
+            glinternalformat = GL_RGBA8;
+        } else if (spec.format.basetype == TypeDesc::UINT16) {
+            glinternalformat = GL_RGBA16;
+        } else if (m_use_float && spec.format.basetype == TypeDesc::FLOAT) {
+            glinternalformat = GL_RGBA32F_ARB;
+        } else if (m_use_float && spec.format.basetype == TypeDesc::HALF) {
+            glinternalformat = GL_RGBA16F_ARB;
+        }
+    } else {
+        //FIXME: What to do here?
+        std::cerr << "I don't know how to handle more than 4 channels\n";
+        glformat = GL_INVALID_ENUM;
+        glinternalformat = GL_INVALID_ENUM;
+    }
+}
+
+
+
+void
+IvGL::load_texture (int x, int y, int width, int height)
+{
+    const ImageSpec &spec = m_current_image->spec ();
+    // Find if this has already been loaded.
+    BOOST_FOREACH (TexBuffer &tb, m_texbufs) {
+        if (tb.x == x && tb.y == y && tb.width == width && tb.height == height) {
+            glBindTexture (GL_TEXTURE_2D, tb.tex_object);
+            return;
+        }
+    }
+
+    if (! m_use_shaders) {
+           // Take advantage of the fact that TexSubImage uses               
+           // UNPACK_ROW_LENGTH to make it work for contiguous memory (i.e.,
+           // pixeladdr) 
+           glPixelStorei (GL_UNPACK_ROW_LENGTH, spec.width);                             
+    }
+
+    GLenum gltype, glformat, glinternalformat;
+    typespec_to_opengl (spec, gltype, glformat, glinternalformat);
+
+    TexBuffer &tb = m_texbufs[m_last_texbuf_used];
+    tb.x = x;
+    tb.y = y;
+    tb.width = width;
+    tb.height = height;
+    if (m_use_shaders) {
+        if (m_use_pbo) {
+            // When using PBO the buffer is allocated by the OpenGL driver,
+            // this should help speed up loading of the texture since the copy
+            // from the PBO to the texture can be done asynchronously by the
+            // driver. We use two PBOs so we don't have to wait for the first
+            // transfer to end before starting the second.
+            glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 
+                             m_pbo_objects[m_last_pbo_used]);
+            glBufferDataARB (GL_PIXEL_UNPACK_BUFFER_ARB, 
+                             width * height * spec.pixel_bytes(),
+                             NULL,
+                             GL_STREAM_DRAW_ARB);
+            GLERRPRINT ("After buffer data");
+            void *buffer = glMapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+            if (!buffer) {
+                // FIXME: What to do here?
+                GLERRPRINT ("Couldn't map Pixel memory");
+                return;
+            }
+            m_current_image->copy_pixels (x, x + width, y, y + height,
+                                          spec.format, buffer);
+            glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
+            m_last_pbo_used = (m_last_pbo_used + 1) % 2;
+        } else {
+            // Copy the imagebuf pixels we need, that's the only way we can do
+            // it safely once ImageBuf has a cache underneath and the whole image
+            // may not be resident at once.
+            m_current_image->copy_pixels (x, x + width, y, y + height,
+                                          spec.format, &m_tex_buffer[0]);
+        }
+    }
+
+    void *data;
+    if (m_use_shaders) {
+        if (m_use_pbo) {
+            data = 0;
+        } else {
+            data = &m_tex_buffer[0];
+        }
+    } else {
+        data = m_current_image->pixeladdr(x, y);
+    }
+    glBindTexture (GL_TEXTURE_2D, tb.tex_object);
+    GLERRPRINT ("After bind texture");
+    glTexSubImage2D (GL_TEXTURE_2D, 0,
+                     0, 0,
+                     width, height,
+                     glformat, gltype,
+                     data);
+    GLERRPRINT ("After loading sub image");
+    m_last_texbuf_used = (m_last_texbuf_used + 1) % m_texbufs.size();
 }
