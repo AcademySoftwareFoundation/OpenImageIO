@@ -96,10 +96,17 @@ oiio_install_targets (OpenImageIO)
 
 # Testing
 if (GTEST_FOUND)
-    add_executable (test_libOpenImageIO test_imageio.cpp)
+    add_executable (imagespec_test imagespec_test.cpp)
     include_directories (${GTEST_INCLUDES})
-    link_ilmbase (test_libOpenImageIO)
-    target_link_libraries (test_libOpenImageIO OpenImageIO ${Boost_LIBRARIES} 
+    link_ilmbase (imagespec_test)
+    target_link_libraries (imagespec_test OpenImageIO ${Boost_LIBRARIES} 
+                                ${GTEST_LIBRARY} ${CMAKE_DL_LIBS})
+
+    add_executable (imagebufalgo_test imagebufalgo_test.cpp)
+    include_directories (${GTEST_INCLUDES})
+    link_ilmbase (imagebufalgo_test)
+    target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} 
                                 ${GTEST_LIBRARY} ${CMAKE_DL_LIBS})
 endif ()
-add_test (libOpenImageIO ${CMAKE_BINARY_DIR}/libOpenImageIO/test_libOpenImageIO)
+add_test (imagespec ${CMAKE_BINARY_DIR}/libOpenImageIO/imagespec_test)
+add_test (imagebufalgo ${CMAKE_BINARY_DIR}/libOpenImageIO/imagebufalgo_test)
