@@ -368,8 +368,8 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
             float xf = (i+0.5f) / spec.full_width;
             int xlow;
             float xfrac = floorfrac (xf * upspec.full_width - 0.5, &xlow);
-            imagecache().get_pixels (this, subimage-1, xlow, xlow+1, ylow, ylow+1,
-                                     0, 0, TypeDesc::FLOAT, bilerppels);
+            imagecache().get_pixels (this, subimage-1, xlow, xlow+2, ylow, ylow+2,
+                                     0, 1, TypeDesc::FLOAT, bilerppels);
             bilerp (bilerppels+0, bilerppels+spec.nchannels,
                     bilerppels+2*spec.nchannels, bilerppels+3*spec.nchannels,
                     xfrac, yfrac, spec.nchannels, resultpel);
@@ -378,7 +378,7 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
     }
 
     // Now convert and copy those values out to the caller's buffer
-    lores.copy_pixels (0, tw-1, 0, th-1, format, data);
+    lores.copy_pixels (0, tw, 0, th, format, data);
     return true;
 }
 
