@@ -198,6 +198,10 @@ public:
     ///
     T * ptr () const { return m_ptr; }
 
+    /// Return the raw step underneath.
+    ///
+    int step () const { return m_step; }
+
 private:
     T  *m_ptr;    ///< Pointer to value
     int m_step;   ///< Distance between successive values -- in BYTES!
