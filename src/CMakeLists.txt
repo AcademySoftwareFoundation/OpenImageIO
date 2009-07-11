@@ -88,12 +88,30 @@ add_subdirectory (doc)
 #########################################################################
 # Testing
 
-# Ugh, I can't seem to ADD_SUBDIRECTORY the testsuite dir if it's not a true
-# subdirectory of source, so we fake it by creating a link.  FIXME!
-# create_symlink doesn't work on Windows. There should be another solution FIXME!
-if (NOT WIN32)
-    exec_program ("cmake -E create_symlink ${PROJECT_SOURCE_DIR}/../testsuite ${PROJECT_SOURCE_DIR}/testsuite")
-    add_subdirectory (testsuite)
+macro ( TESTSUITE )
+    foreach (_testname ${ARGN})
+        add_test ( ${_testname} python ${PROJECT_SOURCE_DIR}/../testsuite/tests/${_testname}/run.py ${PROJECT_SOURCE_DIR}/../testsuite/tests/${_testname} ${CMAKE_BINARY_DIR} )
+    endforeach ()
+endmacro ()
+
+# List all the individual testsuite tests here, except those that need
+# special installed tests.
+TESTSUITE ( ico gpsread )
+
+if (EXISTS "${PROJECT_SOURCE_DIR}/../../libtiffpic")
+    TESTSUITE ( tiff-suite tiff-depths )
+else ()
+    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../libtiffpic")
+    message (STATUS "  -> Will not run tests 'tiff-suite' and 'tiff-depths'")
+    message (STATUS "  -> You can find it at http://www.remotesensing.org/libtiff/images.html\n")
+endif ()
+
+if (EXISTS "${PROJECT_SOURCE_DIR}/../../openexr-images-1.5.0")
+    TESTSUITE ( openexr-suite openexr-multires openexr-chroma )
+else ()
+    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../openexr-images-1.5.0")
+    message (STATUS "  -> Will not run tests 'openexr-suite', 'openexr-multires', 'openexr-chroma'")
+    message (STATUS "  -> You can find it at http://www.openexr.com/downloads.html\n")
 endif ()
 
 
