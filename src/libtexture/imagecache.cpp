@@ -1021,6 +1021,13 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
     }
     if (name == "autotile" && type == TypeDesc::INT) {
         m_autotile = pow2roundup (*(const int *)val);  // guarantee pow2
+        // Clamp to minimum 8x8 tiles to protect against stupid user who
+        // think this is a boolean rather than the tile size.  Unless
+        // we're in DEBUG mode, then allow developers to play with fire.
+#ifndef DEBUG
+        if (m_autotile > 0 && m_autotile < 8)
+            m_autotile = 8;
+#endif
         return true;
     }
     if (name == "automip" && type == TypeDesc::INT) {
