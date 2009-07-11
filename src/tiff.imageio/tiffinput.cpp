@@ -72,6 +72,8 @@ private:
     std::string m_filename;          ///< Stash the filename
     std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
     int m_subimage;                  ///< What subimage are we looking at?
+    int m_next_scanline;             ///< Next scanline we'll read
+    bool m_no_random_access;         ///< Should we avoid random access?
     unsigned short m_planarconfig;   ///< Planar config of the file
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
     unsigned short m_photometric;    ///< Of the *file*, not the client's view
@@ -260,6 +262,7 @@ TIFFInput::seek_subimage (int index, ImageSpec &newspec)
         m_subimage = 0;
     }
     
+    m_next_scanline = 0;   // next scanline we'll read
     if (TIFFSetDirectory (m_tif, index)) {
         m_subimage = index;
         readspec ();
@@ -469,6 +472,7 @@ TIFFInput::readspec ()
     else
         m_spec.attribute ("planarconfig", "contig");
 
+    m_no_random_access = false;   // normally allow it
     short compress;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
     m_spec.attribute ("tiff:Compression", (int)compress);
@@ -478,6 +482,7 @@ TIFFInput::readspec ()
         break;
     case COMPRESSION_LZW :
         m_spec.attribute ("compression", "lzw");
+        m_no_random_access = true;   // LZW doesn't support it
         break;
     case COMPRESSION_CCITTRLE :
         m_spec.attribute ("compression", "ccittrle");
@@ -675,6 +680,39 @@ bool
 TIFFInput::read_native_scanline (int y, int z, void *data)
 {
     y -= m_spec.y;
+
+    // For compression modes that don't support random access to scanlines
+    // (which I *think* is only LZW), we need to emulate random access by
+    // re-seeking.
+    if (m_no_random_access) {
+        if (m_next_scanline > y) {
+            // User is trying to read an earlier scanline than the one we're
+            // up to.  Easy fix: start over.
+            // FIXME: I'm too tired to look into it now, but I wonder if
+            // it is able to randomly seek to the first line in any
+            // "strip", in which case we don't need to start from 0, just
+            // start from the beginning of the strip we need.
+            ImageSpec dummyspec;
+            int subimage = current_subimage();
+            if (! close ()  ||
+                ! open (m_filename, dummyspec)  ||
+                ! seek_subimage (subimage, dummyspec)) {
+                return false;    // Somehow, the re-open failed
+            }
+            ASSERT (m_next_scanline == 0 && current_subimage() == subimage);
+        }
+        while (m_next_scanline < y) {
+            // Keep reading until we're read the scanline we really need
+            m_scratch.resize (m_spec.scanline_bytes());
+            if (TIFFReadScanline (m_tif, &m_scratch[0], m_next_scanline) < 0) {
+                error ("%s", lasterr.c_str());
+                return false;
+            }
+            ++m_next_scanline;
+        }
+    }
+    m_next_scanline = y+1;
+
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         m_scratch.resize (m_spec.width);
