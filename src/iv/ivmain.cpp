@@ -173,6 +173,10 @@ main (int argc, char *argv[])
     ImageViewer *mainWin = new ImageViewer;
     mainWin->show();
 
+    // Make sure we are the top window with the focus.
+    mainWin->raise ();
+    mainWin->activateWindow ();
+
     BOOST_FOREACH (const std::string &s, filenames) {
         mainWin->add_image (s);
     }

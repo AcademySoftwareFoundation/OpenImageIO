@@ -221,8 +221,9 @@ private slots:
     void normalSize();                  ///< Adjust zoom to 1:1
     void fitImageToWindow();            ///< Adjust zoom to fit window exactly
     /// Resize window to fit image exactly.  If zoomok is false, do not
-    /// change the zoom, even to fit on screen.
-    void fitWindowToImage(bool zoomok=true);
+    /// change the zoom, even to fit on screen. If minsize is true, do not
+    /// resize smaller than default_width x default_height.
+    void fitWindowToImage(bool zoomok=true, bool minsize=false);
     void fullScreenToggle();            ///< Toggle full screen mode
     void about();                       ///< Show "about iv" dialog
     void prevImage();                   ///< View previous image in sequence
@@ -319,6 +320,9 @@ private:
     float m_default_gamma;            ///< Default gamma of the display
     QPalette m_palette;               ///< Custom palette
     bool m_darkPalette;               ///< Use dark palette?
+
+    static const int m_default_width = 640; ///< The default width of the window.
+    static const int m_default_height = 480; ///< The default height of the window.
 
     // What zoom do we need to fit these window dimensions?
     float zoom_needed_to_fit (int w, int h);

@@ -76,7 +76,7 @@ ImageViewer::ImageViewer ()
 
     glwin = new IvGL (this, *this);
     glwin->setPalette (m_palette);
-    glwin->resize (640, 480);
+    glwin->resize (m_default_width, m_default_height);
     setCentralWidget (glwin);
 
     createActions();
@@ -87,7 +87,7 @@ ImageViewer::ImageViewer ()
     readSettings();
 
     setWindowTitle (tr("Image Viewer"));
-    resize (640, 480);
+    resize (m_default_width, m_default_height);
 //    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
 }
 
@@ -496,7 +496,7 @@ ImageViewer::open()
 //        newimage->read (0, false, image_progress_callback, this);
     }
     current_image (old_lastimage + 1);
-    fitWindowToImage ();
+    fitWindowToImage (true, true);
 }
 
 
@@ -519,7 +519,7 @@ ImageViewer::openRecentFile ()
         // It's not an image we already have loaded
         add_image (filename);
         current_image (m_images.size() - 1);
-        fitWindowToImage ();
+        fitWindowToImage (true, true);
     }
 }
 
@@ -606,7 +606,7 @@ ImageViewer::add_image (const std::string &filename)
     if (m_images.size() == 1) {
         // If this is the first image, resize to fit it
         displayCurrentImage ();
-        fitWindowToImage ();
+        fitWindowToImage (true, true);
     }
 }
 
@@ -1332,10 +1332,12 @@ void ImageViewer::fitImageToWindow()
 
 
 
-void ImageViewer::fitWindowToImage (bool zoomok)
+void ImageViewer::fitWindowToImage (bool zoomok, bool minsize)
 {
     IvImage *img = cur();
-    if (! img)
+    // Don't resize when there's no image or the image hasn't been opened yet
+    // (or we failed to open it).
+    if (! img || ! img->image_valid ())
         return;
     // FIXME -- figure out a way to make it exactly right, even for the
     // main window border, etc.
@@ -1351,6 +1353,15 @@ void ImageViewer::fitWindowToImage (bool zoomok)
     float z = zoom();
     int w = (int)(img->oriented_full_width()  * z)+extraw;
     int h = (int)(img->oriented_full_height() * z)+extrah;
+    if (minsize) {
+        if (w < m_default_width) {
+            w = m_default_width;
+        }
+        if (h < m_default_height) {
+            h = m_default_height;
+        }
+    }
+
     if (! m_fullscreen) {
         QDesktopWidget *desktop = QApplication::desktop ();
         QRect availgeom = desktop->availableGeometry (this);
