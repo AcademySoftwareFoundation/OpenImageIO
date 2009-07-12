@@ -15,7 +15,8 @@ import runtest
 
 
 # Start off
-command = "echo 'hi' > out.txt"
+hi = "echo hi"
+command = hi + "> out.txt"
 
 imagedir = "../../../../libtiffpic"
 

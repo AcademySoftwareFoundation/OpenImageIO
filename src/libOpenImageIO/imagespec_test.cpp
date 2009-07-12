@@ -31,6 +31,7 @@
 // Based on the sample at:
 // http://code.google.com/p/googletest/wiki/GoogleTestPrimer#Writing_the_main()_Function
 
+#define _USE_MATH_DEFINES
 #include "imageio.h"
 #include "imagebuf.h"
 #include <gtest/gtest.h>
@@ -108,12 +109,12 @@ TEST_F (ImageSpecTest, image_pixels) {
     // log (x) / log (2) = log2 (x)
     // log (2^32) / log (2) = log2 (2^32) = 32
     // log (2^32) * M_LOG2E = 32
-    double log2_result = log (expected_bytes) * M_LOG2E;
+    double log2_result = log ((double)expected_bytes) * M_LOG2E;
     EXPECT_LT (40, log2_result);
     EXPECT_EQ (expected_bytes, spec.image_bytes ());
 
     std::cout << "expected_bytes = " << expected_bytes << ", log "
-              << log (expected_bytes) << std::endl;
+              << log ((double)expected_bytes) << std::endl;
 }
 
 

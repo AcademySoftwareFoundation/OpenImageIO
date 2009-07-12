@@ -572,9 +572,26 @@ main (int argc, char *argv[])
 
         // Print the report
         //
-        std::cout << "  Mean error = " << meanerror << '\n';
-        std::cout << "  RMS error = " << rms_error << '\n';
-        std::cout << "  Peak SNR = " << PSNR << '\n';
+        std::cout << "  Mean error = ";
+        if (std::isnan (meanerror))
+            std::cout << "nan";
+        else
+            std::cout << meanerror;
+        std::cout << '\n';
+        std::cout << "  RMS error = ";
+        if (std::isnan (rms_error))
+            std::cout << "nan";
+        else
+            std::cout << rms_error;
+        std::cout << '\n';
+        std::cout << "  Peak SNR = ";
+        if (std::isinf (PSNR))
+            std::cout << "inf";
+        else if (std::isnan (PSNR))
+            std::cout << "nan";
+        else
+            std::cout << PSNR;
+        std::cout << '\n';
         std::cout << "  Max error  = " << maxerror;
         if (maxerror != 0) {
             std::cout << " @ (" << maxx << ", " << maxy;
@@ -583,6 +600,12 @@ main (int argc, char *argv[])
             std::cout << ", " << img0.spec().channelnames[maxc] << ')';
         }
         std::cout << "\n";
+// when Visual Studio is used float values in scientific foramt are 
+// printed with three digit exponent. We change this behaviour to fit
+// Linux way
+#ifdef _MSC_VER
+        _set_output_format(_TWO_DIGIT_EXPONENT);
+#endif
         int precis = std::cout.precision();
         std::cout << "  " << nwarn << " pixels (" 
                   << std::setprecision(3) << (100.0*nwarn / npels) 

@@ -6,8 +6,10 @@
 #    oiio_install_targets (target1 [target2 ...])
 #
 macro (oiio_install_targets)
-    install (TARGETS ${ARGN} RUNTIME DESTINATION bin
-             LIBRARY DESTINATION lib  ARCHIVE DESTINATION lib)
+    install (TARGETS ${ARGN}
+             RUNTIME DESTINATION bin COMPONENT user
+             LIBRARY DESTINATION lib COMPONENT user
+             ARCHIVE DESTINATION lib COMPONENT developer)
 endmacro()
 
 

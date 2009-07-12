@@ -270,7 +270,12 @@ print_info (const std::string &filename, size_t namefieldlength,
                 std::string s = spec.metadata_val (p, true);
                 if (filenameprefix)
                     printf ("%s : ", filename.c_str());
-                printf ("    %s: %s\n", p.name().c_str(), s.c_str());
+                printf ("    %s: ", p.name().c_str());
+                if (! strcmp (s.c_str(), "1.#INF"))
+                    printf ("inf");
+                else
+                    printf ("%s", s.c_str());
+                printf ("\n");
                 printed = true;
             }
 

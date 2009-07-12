@@ -46,8 +46,8 @@ using namespace OpenImageIO;
 #include "imagebuf.h"
 #include "texture.h"
 #include "fmath.h"
+#include "sysutil.h"
 
-#define ALLOCA(type, size) ((type*)alloca((size) * sizeof (type)))
 
 static std::vector<std::string> filenames;
 static std::string output_filename = "out.exr";

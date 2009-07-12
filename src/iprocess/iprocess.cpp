@@ -44,6 +44,7 @@
 #include "argparse.h"
 #include "imageio.h"
 #include "imagebuf.h"
+#include "sysutil.h"
 
 using namespace OpenImageIO;
 using namespace OpenImageIO::ImageBufAlgo;
@@ -166,7 +167,7 @@ DateTime_to_time_t (const char *datetime, time_t &timet)
         return false;
     struct tm tmtime;
     time_t now;
-    localtime_r (&now, &tmtime);  // fill in defaults
+    Sysutil::get_local_time (&now, &tmtime); // fill in defaults
     tmtime.tm_sec = sec;
     tmtime.tm_min = min;
     tmtime.tm_hour = hour;

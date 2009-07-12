@@ -601,11 +601,11 @@ namespace ImageBufAlgo {
 /// not be the same image as A or B, and all three images must have the
 /// same number of channels.  A and B *must* be float images.
 
-bool add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options=0);
+bool DLLPUBLIC add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options=0);
 
 /// Enum describing options to be passed to ImageBufAlgo::add.
 /// Multiple options are allowed simultaneously by "or'ing" together.
-enum AddOptions
+enum DLLPUBLIC AddOptions
 {
     ADD_DEFAULT = 0,
     ADD_RETAIN_DST = 1,     ///< Retain dst pixels outside the region
@@ -622,10 +622,10 @@ enum AddOptions
 /// cropping can be done one of several ways, specified by the options
 /// parameter, one of: CROP_CUT, CROP_WINDOW, CROP_BLACK, CROP_WHITE,
 /// CROP_TRANS.
-bool crop (ImageBuf &dst, const ImageBuf &src,
+bool DLLPUBLIC crop (ImageBuf &dst, const ImageBuf &src,
            int xbegin, int xend, int ybegin, int yend, int options);
 
-enum CropOptions 
+enum DLLPUBLIC CropOptions 
 {
     CROP_CUT, 	  ///< cut out a pixel region to make a new image at the origin
     CROP_WINDOW,  ///< reduce the pixel data window, keep in the same position

@@ -33,6 +33,7 @@
 
 #include "imageio.h"
 #include "imagebuf.h"
+#include "sysutil.h"
 #include <gtest/gtest.h>
 
 #include <string>
@@ -196,9 +197,9 @@ TEST_F (CropTest, crop_cut)
     ASSERT_EQ (B.spec().height, yend-ybegin);
     ASSERT_EQ (B.spec().full_y, 0);
     ASSERT_EQ (B.spec().full_height, yend-ybegin);
+    float *pixel = ALLOCA(float, CHANNELS);
     for (int j = 0;  j < B.spec().height;  ++j) {
         for (int i = 0;  i < B.spec().width;  ++i) {
-            float pixel[CHANNELS];
             B.getpixel (i, j, pixel);
             // Inside the crop region should match what it always was
             for (int c = 0;  c < CHANNELS;  ++c)
@@ -222,9 +223,9 @@ TEST_F (CropTest, crop_window)
     ASSERT_EQ (B.spec().height, yend-ybegin);
     ASSERT_EQ (B.spec().full_y, 0);
     ASSERT_EQ (B.spec().full_height, HEIGHT);
+    float *pixel = ALLOCA(float, CHANNELS);
     for (int j = ybegin;  j < yend;  ++j) {
         for (int i = xbegin;  i < xend;  ++i) {
-            float pixel[CHANNELS];
             B.getpixel (i, j, pixel);
             // Inside the crop region should match what it always was
             for (int c = 0;  c < CHANNELS;  ++c)
@@ -248,9 +249,9 @@ TEST_F (CropTest, crop_black)
     ASSERT_EQ (B.spec().height, HEIGHT);
     ASSERT_EQ (B.spec().full_y, 0);
     ASSERT_EQ (B.spec().full_height, HEIGHT);
+    float *pixel = ALLOCA(float, CHANNELS);
     for (int j = 0;  j < HEIGHT;  ++j) {
         for (int i = 0;  i < WIDTH;  ++i) {
-            float pixel[CHANNELS];
             B.getpixel (i, j, pixel);
             if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
                 // Inside the crop region should match what it always was
@@ -282,9 +283,9 @@ TEST_F (CropTest, crop_white)
     ASSERT_EQ (B.spec().height, HEIGHT);
     ASSERT_EQ (B.spec().full_y, 0);
     ASSERT_EQ (B.spec().full_height, HEIGHT);
+    float *pixel = ALLOCA(float, CHANNELS);
     for (int j = 0;  j < HEIGHT;  ++j) {
         for (int i = 0;  i < WIDTH;  ++i) {
-            float pixel[CHANNELS];
             B.getpixel (i, j, pixel);
             if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
                 // Inside the crop region should match what it always was
@@ -316,9 +317,9 @@ TEST_F (CropTest, crop_trans)
     ASSERT_EQ (B.spec().height, HEIGHT);
     ASSERT_EQ (B.spec().full_y, 0);
     ASSERT_EQ (B.spec().full_height, HEIGHT);
+    float *pixel = ALLOCA(float, CHANNELS);
     for (int j = 0;  j < HEIGHT;  ++j) {
         for (int i = 0;  i < WIDTH;  ++i) {
-            float pixel[CHANNELS];
             B.getpixel (i, j, pixel);
             if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
                 // Inside the crop region should match what it always was

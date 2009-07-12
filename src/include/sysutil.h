@@ -42,6 +42,9 @@
 
 #include "export.h"
 
+/// allocates memory, equivalent of C99 type var_name[size]
+#define ALLOCA(type, size) ((type*)alloca((size) * sizeof (type)))
+
 namespace Sysutil {
 
 /// The amount of memory currently being used by this process, in bytes.
@@ -50,7 +53,9 @@ namespace Sysutil {
 DLLPUBLIC size_t memory_used (bool resident=false);
 
 
-DLLPUBLIC void get_local_time (time_t *time, struct tm *converted_time);
+// Convert calendar time pointed by 'time' into local time and save it in
+// 'converted_time' variable
+DLLPUBLIC void get_local_time (const time_t *time, struct tm *converted_time);
 
 
 };  // namespace Sysutils

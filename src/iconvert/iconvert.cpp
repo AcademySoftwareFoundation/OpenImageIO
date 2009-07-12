@@ -157,7 +157,7 @@ DateTime_to_time_t (const char *datetime, time_t &timet)
         return false;
     struct tm tmtime;
     time_t now;
-    Sysutil::get_local_time (&now, &tmtime);
+    Sysutil::get_local_time (&now, &tmtime); // fill in defaults
     tmtime.tm_sec = sec;
     tmtime.tm_min = min;
     tmtime.tm_hour = hour;

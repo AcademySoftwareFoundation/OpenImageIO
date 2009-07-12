@@ -109,7 +109,7 @@ Sysutil::memory_used (bool resident)
 
 
 void
-Sysutil::get_local_time (time_t *time, struct tm *converted_time)
+Sysutil::get_local_time (const time_t *time, struct tm *converted_time)
 {
 #ifdef _MSC_VER
     localtime_s (converted_time, time);

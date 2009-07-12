@@ -13,7 +13,8 @@ sys.path = ["../.."] + sys.path
 import runtest
 
 # Start off
-command = "echo 'hi' > out.txt"
+hi = "echo hi"
+command = hi + "> out.txt"
 
 
 # ../openexr-images-1.5.0/DisplayWindow:
