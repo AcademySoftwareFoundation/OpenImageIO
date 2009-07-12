@@ -175,7 +175,7 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                         || m_tga.type == TYPE_GRAY_RLE)
                         ? 1 : 3)
                         // have we got alpha?
-                        + (m_tga.attr & 0x0F > 0 ? 1 : 0),
+                        + (m_tga.bpp == 32 || (m_tga.attr & 0x0F > 0 ? 1 : 0)),
                         TypeDesc::UINT8);
     m_spec.default_channel_names ();
     m_spec.linearity = ImageSpec::UnknownLinearity;
@@ -300,9 +300,6 @@ TGAInput::readimg ()
     int bytespp = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
     int palbytespp = (m_tga.cmap_size == 15) ? 2 : (m_tga.cmap_size / 8);
     int alphabits = m_tga.attr & 0x0F;
-
-    DASSERT (m_spec.scanline_bytes()
-             == (m_spec.width * (m_tga.cmap_type ? palbytespp : bytespp)));
 
     m_buf.resize (m_spec.image_bytes());
 
