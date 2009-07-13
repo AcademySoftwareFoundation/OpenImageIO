@@ -50,6 +50,10 @@ using namespace OpenImageIO;
 #include "imagecache.h"
 #include "imagebuf.h"
 
+#ifdef __APPLE__
+ using std::isinf;
+ using std::isnan;
+#endif
 
 
 enum idiffErrors {
@@ -491,6 +495,23 @@ compare_images (const ImageBuf &A, const ImageBuf &B,
 
 
 
+// function that standarize printing NaN and Inf values on
+// Windows (where they are in 1.#INF, 1.#NAN format) and all
+// others platform
+inline void
+safe_double_print (double val)
+{
+    if (isnan (val))
+        std::cout << "nan";
+    else if (isinf (val))
+        std::cout << "inf";
+    else
+        std::cout << val;
+    std::cout << '\n';
+}
+
+
+
 int
 main (int argc, char *argv[])
 {
@@ -573,25 +594,11 @@ main (int argc, char *argv[])
         // Print the report
         //
         std::cout << "  Mean error = ";
-        if (std::isnan (meanerror))
-            std::cout << "nan";
-        else
-            std::cout << meanerror;
-        std::cout << '\n';
+        safe_double_print (meanerror);
         std::cout << "  RMS error = ";
-        if (std::isnan (rms_error))
-            std::cout << "nan";
-        else
-            std::cout << rms_error;
-        std::cout << '\n';
+        safe_double_print (rms_error);
         std::cout << "  Peak SNR = ";
-        if (std::isinf (PSNR))
-            std::cout << "inf";
-        else if (std::isnan (PSNR))
-            std::cout << "nan";
-        else
-            std::cout << PSNR;
-        std::cout << '\n';
+        safe_double_print (PSNR);
         std::cout << "  Max error  = " << maxerror;
         if (maxerror != 0) {
             std::cout << " @ (" << maxx << ", " << maxy;
