@@ -337,6 +337,7 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
     TileRef tile, lasttile;
     int nc = texfile->spec().nchannels;
     size_t formatpixelsize = nc * format.size();
+    bool ok = true;
     for (int z = zbegin;  z < zend;  ++z) {
         int tz = z - (z % spec.tile_depth);
         for (int y = ybegin;  y < yend;  ++y) {
@@ -344,7 +345,7 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
             for (int x = xbegin;  x < xend;  ++x) {
                 int tx = x - (x % spec.tile_width);
                 TileID tileid (*texfile, subimage, tx, ty, tz);
-                find_tile (tileid, tile, lasttile);
+                ok &= find_tile (tileid, tile, lasttile);
                 const char *data;
                 if (tile && (data = (const char *)tile->data (x, y, z))) {
                     data += options.firstchannel * texfile->datatype().size();
@@ -360,7 +361,9 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
             }
         }
     }
-    return false;
+    if (! ok)
+        error ("%s", m_imagecache->geterror().c_str());
+    return ok;
 }
 
 
@@ -575,11 +578,12 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     // "grid points" at once should be done in this function, outside
     // the loop, and all the work inside texture_lookup should be work
     // that MUST be redone for each individual texture lookup point.
+    bool ok = true;
     int points_on = 0;
     for (int i = firstactive;  i <= lastactive;  ++i) {
         if (runflags[i]) {
             ++points_on;
-            (this->*lookup) (*texturefile, options, i,
+            ok &= (this->*lookup) (*texturefile, options, i,
                              s, t, dsdx, dtdx, dsdy, dtdy,
                              thread_info->tilecache0, thread_info->tilecache1,
                              result);
@@ -590,12 +594,12 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     ++m_stat_texture_batches;
     m_stat_texture_queries += points_on;
 
-    return true;
+    return ok;
 }
 
 
 
-void
+bool
 TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
                             TextureOptions &options, int index,
                             VaryingRef<float> _s, VaryingRef<float> _t,
@@ -623,9 +627,9 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
         &TextureSystemImpl::accum_sample_bilinear,
     };
     accum_prototype accumer = accum_functions[(int)options.interpmode];
-    (this->*accumer) (_s[index], _t[index], 0, texturefile,
-                      options, index, tilecache0, tilecache1,
-                      1.0f, result);
+    bool ok = (this->*accumer) (_s[index], _t[index], 0, texturefile,
+                                options, index, tilecache0, tilecache1,
+                                1.0f, result);
 
     // Update stats
     ++m_stat_aniso_queries;
@@ -636,11 +640,12 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
         case TextureOptions::InterpBicubic :  ++m_stat_cubic_interps;  break;
         case TextureOptions::InterpSmartBicubic : ++m_stat_bilinear_interps; break;
     }
+    return ok;
 }
 
 
 
-void
+bool
 TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
                             TextureOptions &options, int index,
                             VaryingRef<float> _s, VaryingRef<float> _t,
@@ -726,11 +731,12 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 
     // FIXME -- support for smart cubic?
 
+    bool ok = true;
     int npointson = 0;
     for (int level = 0;  level < 2;  ++level) {
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
-        (this->*accumer) (_s[index], _t[index], miplevel[level], texturefile,
+        ok &= (this->*accumer) (_s[index], _t[index], miplevel[level], texturefile,
                           options, index, tilecache0, tilecache1,
                           levelweight[level], result);
         ++npointson;
@@ -745,11 +751,12 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         case TextureOptions::InterpBicubic :  m_stat_cubic_interps += npointson;  break;
         case TextureOptions::InterpSmartBicubic : m_stat_bilinear_interps += npointson; break;
     }
+    return ok;
 }
 
 
 
-void
+bool
 TextureSystemImpl::texture_lookup (TextureFile &texturefile,
                             TextureOptions &options, int index,
                             VaryingRef<float> _s, VaryingRef<float> _t,
@@ -869,6 +876,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     int nsamples = std::max (1, (int) ceilf (aspect - 0.25f));
     float invsamples = 1.0f / nsamples;
 
+    bool ok = true;
     float s = _s[index], t = _t[index];
     int npointson = 0;
     int closestprobes = 0, bilinearprobes = 0, bicubicprobes = 0;
@@ -905,8 +913,8 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         }
         for (int sample = 0;  sample < nsamples;  ++sample) {
             float pos = (sample + 0.5f) * invsamples - 0.5f;
-            (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
-                        options, index, tilecache0, tilecache1, w, result);
+            ok &= (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
+                                    options, index, tilecache0, tilecache1, w, result);
         }
     }
 
@@ -918,11 +926,13 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     m_stat_closest_interps += closestprobes * nsamples;
     m_stat_bilinear_interps += bilinearprobes * nsamples;
     m_stat_cubic_interps += bicubicprobes * nsamples;
+
+    return ok;
 }
 
 
 
-void
+bool
 TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  TextureOptions &options, int index,
@@ -945,7 +955,7 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     tvalid = options.twrap_func (ttex, spec.full_height);
     if (! (svalid | tvalid)) {
         // All texels we need were out of range and using 'black' wrap.
-        return;
+        return true;
     }
 
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
@@ -953,9 +963,11 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     int tile_s = stex & tilewidthmask;
     int tile_t = ttex & tileheightmask;
     TileID id (texturefile, miplevel, stex - tile_s, ttex - tile_t, 0);
-    find_tile (id, tilecache0, tilecache1);
-    if (! tilecache0)
-        return;
+    bool ok = find_tile (id, tilecache0, tilecache1);
+    if (! ok)
+        error ("%s", m_imagecache->geterror().c_str());
+    if (! tilecache0  ||  ! ok)
+        return false;
     size_t channelsize = texturefile.channelsize();
     int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s) + options.firstchannel;
     DASSERT (offset < spec.tile_pixels());
@@ -978,11 +990,12 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
             options.alpha[index] += weight * texel[c];
         }
     }
+    return true;
 }
 
 
 
-void
+bool
 TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  TextureOptions &options, int index,
@@ -1022,7 +1035,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     tvalid[1] = options.twrap_func (ttex[1], spec.full_height);
 //    if (! (svalid[0] | svalid[1] | tvalid[0] | tvalid[1]))
     if (valid_storage == none_valid)
-        return; // All texels we need were out of range and using 'black' wrap
+        return true; // All texels we need were out of range and using 'black' wrap
 
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
@@ -1042,7 +1055,9 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
         // Shortcut if all the texels we need are on the same tile
         TileID id (texturefile, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
-        find_tile (id, tilecache0, tilecache1);
+        bool ok = find_tile (id, tilecache0, tilecache1);
+        if (! ok)
+            error ("%s", m_imagecache->geterror().c_str());
         if (! tilecache0->valid()) {
 #if 0
             std::cerr << "found it\n";
@@ -1054,7 +1069,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
             std::cerr << "\tstfrac = " << sfrac << ' ' << tfrac << "\n";
             std::cerr << "\tspec full size = " << texturefile.spec(miplevel).full_width << ' ' << texturefile.spec(miplevel).full_height << "\n";
 #endif
-            return;
+            return false;
         }
         int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
         texel[0][0] = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
@@ -1072,14 +1087,17 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                 tile_t = ttex[j] & tileheightmask;
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
+                bool ok = true;
                 if (0 && initialized)   // Why isn't it faster to do this?
-                    find_tile_same_subimage (id, tilecache0, tilecache1);
+                    ok = find_tile_same_subimage (id, tilecache0, tilecache1);
                 else {
-                    find_tile (id, tilecache0, tilecache1);
+                    ok = find_tile (id, tilecache0, tilecache1);
                     initialized = true;
                 }
+                if (! ok)
+                    error ("%s", m_imagecache->geterror().c_str());
                 if (! tilecache0->valid())
-                    return;
+                    return false;
                 tile[j][i] = tilecache0;
                 int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
                 DASSERT (offset < spec.tile_bytes()*spec.nchannels);
@@ -1115,11 +1133,12 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
         }
     }
 
+    return true;
 }
 
 
 
-void
+bool
 TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  TextureOptions &options, int index,
@@ -1164,7 +1183,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     }
     if (! anyvalid) {
         // All texels we need were out of range and using 'black' wrap.
-        return;
+        return true;
     }
 
     const unsigned char *texel[4][4] = { {NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL},
@@ -1190,9 +1209,11 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         // Shortcut if all the texels we need are on the same tile
         TileID id (texturefile, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
-        find_tile (id, tilecache0, tilecache1);
+        bool ok = find_tile (id, tilecache0, tilecache1);
+        if (! ok)
+            error ("%s", m_imagecache->geterror().c_str());
         if (! tilecache0) {
-            return;
+            return false;
         }
         int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
         const unsigned char *base = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
@@ -1211,14 +1232,17 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                 tile_t = ttex[j] & tileheightmask;
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
+                bool ok = true;
                 if (0 && initialized)   // Why isn't it faster to do this?
-                    find_tile_same_subimage (id, tilecache0, tilecache1);
+                    ok = find_tile_same_subimage (id, tilecache0, tilecache1);
                 else {
-                    find_tile (id, tilecache0, tilecache1);
+                    ok = find_tile (id, tilecache0, tilecache1);
                     initialized = true;
                 }
+                if (! ok)
+                    error ("%s", m_imagecache->geterror().c_str());
                 if (! tilecache0->valid())
-                    return;
+                    return false;
                 tile[j][i] = tilecache0;
                 DASSERT (tilecache0->id() == id);
                 int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
@@ -1273,6 +1297,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                 }
         }
     }
+
+    return true;
 }
 
 

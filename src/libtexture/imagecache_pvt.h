@@ -456,7 +456,7 @@ public:
     /// Find a tile identified by 'id' in the tile cache, paging it in if
     /// needed, and store a reference to the tile.  Return true if ok,
     /// false if no such tile exists in the file or could not be read.
-    void find_tile (const TileID &id, ImageCacheTileRef &tile);
+    bool find_tile (const TileID &id, ImageCacheTileRef &tile);
 
     /// Find the tile specified by id and place its reference in 'tile'.
     /// Use tile and lasttile as a 2-item cache of tiles to boost our
@@ -464,20 +464,20 @@ public:
     /// find_tile(id) and avoids looking to the big cache (and locking)
     /// most of the time for fairly coherent tile access patterns.
     /// If tile is null, so is lasttile.  Inlined for speed.
-    void find_tile (const TileID &id,
+    bool find_tile (const TileID &id,
                     ImageCacheTileRef &tile, ImageCacheTileRef &lasttile) {
         ++m_stat_find_tile_calls;
         if (tile) {
             if (tile->id() == id)
-                return;    // already have the tile we want
+                return true;    // already have the tile we want
             // Tile didn't match, maybe lasttile will?  Swap tile
             // and last tile.  Then the new one will either match,
             // or we'll fall through and replace tile.
             tile.swap (lasttile);
             if (tile && tile->id() == id)
-                return;
+                return true;
         }
-        find_tile (id, tile);
+        return find_tile (id, tile);
     }
 
     /// Find the tile specified by id and place its reference in 'tile'.
@@ -488,16 +488,16 @@ public:
     /// at all).  Thus, it's a slightly simplified and faster version of
     /// find_tile and should be used in loops where it's known that we
     /// are reading several tiles from the same subimage.
-    void find_tile_same_subimage (const TileID &id,
+    bool find_tile_same_subimage (const TileID &id,
                                ImageCacheTileRef &tile, ImageCacheTileRef &lasttile) {
         ++m_stat_find_tile_calls;
         DASSERT (tile);
         if (equal_same_subimage (tile->id(), id))
-            return;
+            return true;
         tile.swap (lasttile);
         if (tile && equal_same_subimage (tile->id(), id))
-            return;
-        find_tile (id, tile);
+            return true;
+        return find_tile (id, tile);
     }
 
     virtual Tile *get_tile (ustring filename, int subimage, int x, int y, int z);

@@ -324,10 +324,10 @@ private:
     /// find_tile(id) and avoids looking to the big cache (and locking)
     /// most of the time for fairly coherent tile access patterns.
     /// If tile is null, so is lasttile.  Inlined for speed.
-    void find_tile (const TileID &id,
+    bool find_tile (const TileID &id,
                     TileRef &tile, TileRef &lasttile)
     {
-        m_imagecache->find_tile (id, tile, lasttile);
+        return m_imagecache->find_tile (id, tile, lasttile);
     }
 
     /// Find the tile specified by id and place its reference in 'tile'.
@@ -338,15 +338,15 @@ private:
     /// at all).  Thus, it's a slightly simplified and faster version of
     /// find_tile and should be used in loops where it's known that we
     /// are reading several tiles from the same subimage.
-    void find_tile_same_subimage (const TileID &id, TileRef &tile,
+    bool find_tile_same_subimage (const TileID &id, TileRef &tile,
                                TileRef &lasttile)
     {
-        m_imagecache->find_tile_same_subimage (id, tile, lasttile);
+        return m_imagecache->find_tile_same_subimage (id, tile, lasttile);
     }
 
     // Define a prototype of a member function pointer for texture
     // lookups.
-    typedef void (TextureSystemImpl::*texture_lookup_prototype)
+    typedef bool (TextureSystemImpl::*texture_lookup_prototype)
             (TextureFile &texfile, TextureOptions &options, int index,
              VaryingRef<float> _s, VaryingRef<float> _t,
              VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
@@ -356,7 +356,7 @@ private:
 
     /// Look up texture from just ONE point
     ///
-    void texture_lookup (TextureFile &texfile,
+    bool texture_lookup (TextureFile &texfile,
                          TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
@@ -364,7 +364,7 @@ private:
                          TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-    void texture_lookup_nomip (TextureFile &texfile,
+    bool texture_lookup_nomip (TextureFile &texfile,
                          TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
@@ -372,7 +372,7 @@ private:
                          TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-    void texture_lookup_trilinear_mipmap (TextureFile &texfile,
+    bool texture_lookup_trilinear_mipmap (TextureFile &texfile,
                          TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
@@ -380,26 +380,26 @@ private:
                          TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-    typedef void (TextureSystemImpl::*accum_prototype)
+    typedef bool (TextureSystemImpl::*accum_prototype)
                               (float s, float t, int level,
                                TextureFile &texturefile,
                                TextureOptions &options, int index,
                                TileRef &tilecache0, TileRef &tilecache1,
                                float weight, float *accum);
 
-    void accum_sample_closest (float s, float t, int level,
+    bool accum_sample_closest (float s, float t, int level,
                                TextureFile &texturefile,
                                TextureOptions &options, int index,
                                TileRef &tilecache0, TileRef &tilecache1,
                                float weight, float *accum);
 
-    void accum_sample_bilinear (float s, float t, int level,
+    bool accum_sample_bilinear (float s, float t, int level,
                                 TextureFile &texturefile,
                                 TextureOptions &options, int index,
                                 TileRef &tilecache0, TileRef &tilecache1,
                                 float weight, float *accum);
 
-    void accum_sample_bicubic (float s, float t, int level,
+    bool accum_sample_bicubic (float s, float t, int level,
                                TextureFile &texturefile,
                                TextureOptions &options, int index,
                                TileRef &tilecache0, TileRef &tilecache1,

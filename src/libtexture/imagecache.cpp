@@ -306,8 +306,11 @@ ImageCacheFile::read_tile (int subimage, int x, int y, int z,
     ImageSpec tmp;
     if (m_input->current_subimage() != subimage)
         ok = m_input->seek_subimage (subimage, tmp);
-    if (ok)
+    if (ok) {
         ok = m_input->read_tile (x, y, z, format, data);
+        if (! ok)
+            imagecache().error ("%s", m_input->error_message().c_str());
+    }
     if (ok) {
         size_t b = spec(subimage).tile_bytes();
         imagecache().incr_bytes_read (b);
@@ -360,6 +363,7 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
     const ImageSpec &upspec (this->spec(subimage-1));  // next higher subimage
     float *bilerppels = (float *) alloca (4 * spec.nchannels * sizeof(float));
     float *resultpel = (float *) alloca (spec.nchannels * sizeof(float));
+    bool ok = true;
     for (int j = y0;  j <= y1;  ++j) {
         float yf = (j+0.5f) / spec.full_height;
         int ylow;
@@ -368,8 +372,8 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
             float xf = (i+0.5f) / spec.full_width;
             int xlow;
             float xfrac = floorfrac (xf * upspec.full_width - 0.5, &xlow);
-            imagecache().get_pixels (this, subimage-1, xlow, xlow+2, ylow, ylow+2,
-                                     0, 1, TypeDesc::FLOAT, bilerppels);
+            ok &= imagecache().get_pixels (this, subimage-1, xlow, xlow+2, ylow, ylow+2,
+                                           0, 1, TypeDesc::FLOAT, bilerppels);
             bilerp (bilerppels+0, bilerppels+spec.nchannels,
                     bilerppels+2*spec.nchannels, bilerppels+3*spec.nchannels,
                     xfrac, yfrac, spec.nchannels, resultpel);
@@ -379,7 +383,7 @@ ImageCacheFile::read_unmipped (int subimage, int x, int y, int z,
 
     // Now convert and copy those values out to the caller's buffer
     lores.copy_pixels (0, tw, 0, th, format, data);
-    return true;
+    return ok;
 }
 
 
@@ -425,8 +429,11 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
         y0 += spec().y;
         y1 += spec().y;
         // Read the whole tile-row worth of scanlines
-        for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i)
+        for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i) {
             ok = m_input->read_scanline (scanline, z, format, (void *)&buf[scanlinesize*i]);
+            if (! ok)
+                imagecache().error ("%s", m_input->error_message().c_str());
+        }
         size_t b = (y1-y0+1) * spec().scanline_bytes();
         imagecache().incr_bytes_read (b);
         m_bytesread += b;
@@ -454,6 +461,7 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
                     tile = new ImageCacheTile (id, &buf[i*pixelsize],
                                             format, pixelsize,
                                             scanlinesize, scanlinesize*th);
+                    ok &= tile->valid ();
                     imagecache().incr_tiles (tile->memsize());
                     imagecache().add_tile_to_cache (tile);
                 }
@@ -462,6 +470,8 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
     } else {
         // No auto-tile -- the tile is the whole image
         ok = m_input->read_image (format, data, xstride, ystride, zstride);
+        if (! ok)
+            imagecache().error ("%s", m_input->error_message().c_str());
         size_t b = spec().image_bytes();
         imagecache().incr_bytes_read (b);
         m_bytesread += b;
@@ -1090,7 +1100,7 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
 
 
 
-void
+bool
 ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
 {
     DASSERT (! id.file().broken());
@@ -1115,7 +1125,7 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
             tile->use ();
             DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
             DASSERT (tile);
-            return;
+            return true;
         }
     }
 
@@ -1130,14 +1140,15 @@ ImageCacheImpl::find_tile (const TileID &id, ImageCacheTileRef &tile)
     // no other non-threadsafe side effects.
     Timer timer;
     tile = new ImageCacheTile (id);
-    DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
     DASSERT (tile);
+    DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
     incr_tiles (tile->memsize());
     double readtime = timer();
     incr_time_stat (m_stat_fileio_time, readtime);
     incr_time_stat (id.file().iotime(), readtime);
 
     add_tile_to_cache (tile);
+    return tile->valid();
 }
 
 
@@ -1327,6 +1338,7 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file, int subimage,
                             TypeDesc format, void *result)
 {
     const ImageSpec &spec (file->spec());
+    bool ok = true;
 
     // FIXME -- this could be WAY more efficient than starting from
     // scratch for each pixel within the rectangle.  Instead, we should
@@ -1343,7 +1355,7 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file, int subimage,
             for (int x = xbegin;  x < xend;  ++x) {
                 int tx = x - (x % spec.tile_width);
                 TileID tileid (*file, subimage, tx, ty, tz);
-                find_tile (tileid, tile, lasttile);
+                ok &= find_tile (tileid, tile, lasttile);
                 const char *data;
                 if (tile && (data = (const char *)tile->data (x, y, z))) {
                     convert_types (file->datatype(), data, format, result, nc);
@@ -1354,7 +1366,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file, int subimage,
             }
         }
     }
-    return true;
+
+    return ok;
 }
 
 
@@ -1375,9 +1388,9 @@ ImageCacheImpl::get_tile (ustring filename, int subimage, int x, int y, int z)
     z = spec.z + ztile * spec.tile_depth;
     TileID id (*file, subimage, x, y, z);
     ImageCacheTileRef tile;
-    find_tile (id, tile);
+    bool ok = find_tile (id, tile);
     tile->_incref();   // Fake an extra reference count
-    return tile->valid() ? (ImageCache::Tile *) tile.get() : NULL;
+    return (ok && tile->valid()) ? (ImageCache::Tile *) tile.get() : NULL;
 }
 
 
