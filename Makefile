@@ -9,15 +9,6 @@
 #########################################################################
 
 
-ifdef NOCMAKE
-#########################################################################
-# When not using CMake, the top-level Makefile is just a stub that
-# merely includes src/make/master.mk
-#########################################################################
-include src/make/master.mk
-
-else
-
 .PHONY: all debug profile clean realclean nuke doxygen
 
 working_dir	:= ${shell pwd}
@@ -190,6 +181,3 @@ help:
 	@echo "  make USE_TBB=0 ...          Don't use TBB"
 	@echo ""
 
-
-
-endif
