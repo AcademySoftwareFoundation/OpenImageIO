@@ -273,7 +273,7 @@ mask (float contrast)
     float a = powf (392.498f * contrast, 0.7f);
     float b = powf (0.0153f * a, 4.0f);
     return powf (1.0f + b, 0.25f); 
-} 
+}
 
 
 
@@ -299,7 +299,7 @@ tvi (float adaptation_luminance)
     else
         r = log_a - 1.255f;
     return powf (10.0f, r); 
-} 
+}
 
 
 
@@ -344,7 +344,7 @@ Yee_Compare (const ImageBuf &img0, const ImageBuf &img1,
 
     float num_one_degree_pixels = (float) (2 * tan(fov * 0.5 * M_PI / 180) * 180 / M_PI);
     float pixels_per_degree = spec.width / num_one_degree_pixels;
-	
+
     unsigned int adaptation_level = 0;
     for (int i = 0, npixels = 1;
              i < LAPLACIAN_MAX_LEVELS && npixels <= num_one_degree_pixels;
@@ -356,11 +356,11 @@ Yee_Compare (const ImageBuf &img0, const ImageBuf &img1,
     for (int i = 1;  i < LAPLACIAN_MAX_LEVELS;  ++i)
         cpd[i] = 0.5f * cpd[i - 1];
     float csf_max = contrast_sensitivity (3.248f, 100.0f);
-    
+
     float F_freq[LAPLACIAN_MAX_LEVELS - 2];
     for (int i = 0; i < LAPLACIAN_MAX_LEVELS - 2;  ++i)
         F_freq[i] = csf_max / contrast_sensitivity (cpd[i], 100.0f);
-	
+
     unsigned int pixels_failed = 0;
     for (int y = 0, index = 0; y < nscanlines;  ++y) {
         for (int x = 0;  x < spec.width;  ++x, ++index) {
@@ -491,7 +491,7 @@ compare_images (const ImageBuf &A, const ImageBuf &B,
     meanerror = totalerror / nvals;
     rms_error = sqrt (totalsqrerror / nvals);
     PSNR = 20.0 * log10 (maxval / rms_error);
-} 
+}
 
 
 
@@ -659,7 +659,7 @@ main (int argc, char *argv[])
                         pixdiff[c] = diffscale * (pix0[c] - pix1[c]);
                 }
             }
-        
+
             diff.save (diffimage);
 
             // Clear diff image name so we only save the first non-matching

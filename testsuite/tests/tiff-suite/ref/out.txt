@@ -10,7 +10,7 @@ hi
     tiff:PhotometricInterpretation: 0
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: -32763
+    tiff:Compression: 32773
     compression: "packbits"
 Converting ../../../../libtiffpic/cramps.tif to cramps.tif
 Comparing "../../../../libtiffpic/cramps.tif" and "cramps.tif"
@@ -112,7 +112,7 @@ PASS
     tiff:PhotometricInterpretation: 3
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
-    tiff:Compression: -32763
+    tiff:Compression: 32773
     compression: "packbits"
 Converting ../../../../libtiffpic/jello.tif to jello.tif
 Comparing "../../../../libtiffpic/jello.tif" and "jello.tif"

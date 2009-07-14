@@ -473,9 +473,9 @@ TIFFInput::readspec ()
         m_spec.attribute ("planarconfig", "contig");
 
     m_no_random_access = false;   // normally allow it
-    short compress;
+    int compress = 0;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
-    m_spec.attribute ("tiff:Compression", (int)compress);
+    m_spec.attribute ("tiff:Compression", compress);
     switch (compress) {
     case COMPRESSION_NONE :
         m_spec.attribute ("compression", "none");

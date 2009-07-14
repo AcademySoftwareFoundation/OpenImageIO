@@ -1,8 +1,5 @@
 set (maketx_srcs maketx.cpp)
 add_executable (maketx ${maketx_srcs})
-if (MSVC)
-    add_definitions (-DBOOST_ALL_DYN_LINK)
-endif (MSVC)
 link_ilmbase (maketx)
 target_link_libraries (maketx OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 oiio_install_targets (maketx)

@@ -1,7 +1,6 @@
 set (iinfo_srcs iinfo.cpp)
 add_executable (iinfo ${iinfo_srcs})
 if (MSVC)
-    add_definitions (-DBOOST_ALL_DYN_LINK)
     set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS psapi.lib)
 endif (MSVC)
 link_ilmbase (iinfo)
