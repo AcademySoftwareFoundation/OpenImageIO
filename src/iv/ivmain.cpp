@@ -45,6 +45,9 @@ using namespace OpenImageIO;
 #include "imageviewer.h"
 #include "timer.h"
 #include "argparse.h"
+#include "sysutil.h"
+#include "strutil.h"
+#include "imagecache.h"
 
 
 
@@ -173,10 +176,16 @@ main (int argc, char *argv[])
     ImageViewer *mainWin = new ImageViewer;
     mainWin->show();
 
+    // Set up the imagecache with parameters that make sense for iv
+    ImageCache *imagecache = ImageCache::create (true);
+    imagecache->attribute ("max_memory_MB", 512.0);  /* Seems fair */
+    imagecache->attribute ("autotile", 256);
+
     // Make sure we are the top window with the focus.
     mainWin->raise ();
     mainWin->activateWindow ();
 
+    // Add the images
     BOOST_FOREACH (const std::string &s, filenames) {
         mainWin->add_image (s);
     }
@@ -185,5 +194,16 @@ main (int argc, char *argv[])
 
     int r = app.exec();
     // OK to clean up here
+
+#ifndef DEBUG
+    if (verbose)
+#endif
+    {
+        size_t mem = Sysutil::memory_used (true);
+        std::cout << "iv total memory used: " << Strutil::memformat (mem) << "\n";
+        std::cout << "\n";
+        std::cout << imagecache->getstats (1+verbose) << "\n";
+    }
+
     return r;
 }
