@@ -203,6 +203,8 @@ ImageInput::error (const char *format, ...)
 {
     va_list ap;
     va_start (ap, format);
+    if (m_errmessage.size())
+        m_errmessage += '\n';
     m_errmessage = Strutil::vformat (format, ap);
     va_end (ap);
 }

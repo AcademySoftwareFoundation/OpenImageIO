@@ -166,7 +166,7 @@ getargs (int argc, char *argv[])
                   "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
                   NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
-        std::cerr << ap.error_message() << std::endl;
+        std::cerr << ap.geterror() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
     }
@@ -252,7 +252,7 @@ make_texturemap (const char *maptypename = "texture map")
     if (! src.read()) {
         std::cerr 
             << "maketx ERROR: Could not find an ImageIO plugin to read \"" 
-            << filenames[0] << "\" : " << src.error_message() << "\n";
+            << filenames[0] << "\" : " << src.geterror() << "\n";
         exit (EXIT_FAILURE);
     }
     stat_readtime += readtimer();
@@ -447,7 +447,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     if (! out) {
         std::cerr 
             << "maketx ERROR: Could not find an ImageIO plugin to write " 
-            << outformat << " files:" << OpenImageIO::error_message() << "\n";
+            << outformat << " files:" << OpenImageIO::geterror() << "\n";
         exit (EXIT_FAILURE);
     }
     if (! out->supports ("tiles")) {
@@ -462,7 +462,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     }
     if (! out->open (outputfilename.c_str(), outspec)) {
         std::cerr << "maketx ERROR: Could not open \"" << outputfilename
-                  << "\" : " << out->error_message() << "\n";
+                  << "\" : " << out->geterror() << "\n";
         exit (EXIT_FAILURE);
     }
 
@@ -527,7 +527,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             Timer writetimer;
             if (! out->open (outputfilename.c_str(), outspec, true)) {
                 std::cerr << "maketx ERROR: Could not append \"" << outputfilename
-                          << "\" : " << out->error_message() << "\n";
+                          << "\" : " << out->geterror() << "\n";
                 exit (EXIT_FAILURE);
             }
             ok &= small->write (out);
@@ -550,7 +550,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
 
     if (! ok) {
         std::cerr << "maketx ERROR writing \"" << outputfilename
-                  << "\" : " << out->error_message() << "\n";
+                  << "\" : " << out->geterror() << "\n";
         exit (EXIT_FAILURE);
     }
 

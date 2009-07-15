@@ -121,7 +121,7 @@ getargs (int argc, char *argv[])
 //                  "-meta", &comparemeta, "Compare metadata",
                   NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.error_message() << std::endl;
+        std::cerr << ap.geterror() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
     }
@@ -151,7 +151,7 @@ read_input (const std::string &filename, ImageBuf &img,
         return true;
 
     std::cerr << "idiff ERROR: Could not read " << filename << ":\n\t"
-              << img.error_message() << "\n";
+              << img.geterror() << "\n";
     return false;
 }
 

@@ -128,7 +128,7 @@ getargs (int argc, char *argv[])
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
-	std::cerr << ap.error_message() << std::endl;
+	std::cerr << ap.geterror() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
     }
@@ -226,7 +226,7 @@ read_input (const std::string &filename, ImageBuf &img, int subimage=0)
         return true;
 
     std::cerr << "iprocess ERROR: Could not read " << filename << ":\n\t"
-              << img.error_message() << "\n";
+              << img.geterror() << "\n";
     return false;
 }
 
@@ -246,7 +246,7 @@ main (int argc, char *argv[])
         }
         ImageBuf A;
         if (! read_input (filenames[0], A)) {
-            std::cerr << "iprocess: read error: " << A.error_message() << "\n";
+            std::cerr << "iprocess: read error: " << A.geterror() << "\n";
             return EXIT_FAILURE;
         }
         ImageBuf out;
@@ -278,11 +278,11 @@ main (int argc, char *argv[])
 	}
 	ImageBuf A, B;
         if (! read_input (filenames[0], A)) {
-            std::cerr << "iprocess: read error: " << A.error_message() << "\n";
+            std::cerr << "iprocess: read error: " << A.geterror() << "\n";
             return EXIT_FAILURE;
         }
         if (! read_input (filenames[0], B)) {
-            std::cerr << "iprocess: read error: " << B.error_message() << "\n";
+            std::cerr << "iprocess: read error: " << B.geterror() << "\n";
             return EXIT_FAILURE;
         }
         ImageBuf out;

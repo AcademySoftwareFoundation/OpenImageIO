@@ -290,7 +290,7 @@ ImageOutput::copy_image (ImageInput *in)
     std::vector<char> pixels (spec().image_bytes());
     bool ok = in->read_image (spec().format, &pixels[0]);
     if (!ok)
-        error ("%s", in->error_message().c_str());  // copy err from in to out
+        error ("%s", in->geterror().c_str());  // copy err from in to out
     if (ok)
         ok = write_image (spec().format, &pixels[0]);
     return ok;

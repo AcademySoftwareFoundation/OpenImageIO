@@ -137,7 +137,7 @@ catalog_plugin (const std::string &format_name,
     if (! handle) {
         // If verbosity > 1
         // std::cerr << "Open of " << plugin_fullpath << " failed:\n" 
-        //          << Plugin::error_message() << "\n";
+        //          << Plugin::geterror() << "\n";
         return;
     }
 //        if (verbosity > 1)

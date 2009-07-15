@@ -86,7 +86,7 @@ class ArgOption;   // Forward declaration
 ///            NULL);
 ///
 ///    if (ap.parse (argc, argv) < 0) {
-///        std::cerr << ap.error_message() << std::endl;
+///        std::cerr << ap.geterror() << std::endl;
 ///        ap.usage ();
 ///        return EXIT_FAILURE;
 ///    }
@@ -134,9 +134,17 @@ public:
     /// Return 0 if ok, -1 if it's a malformed command line.
     int parse (int argc, const char **argv);
 
-    /// Return any error messages generated during the course of parse().
+    /// Return any error messages generated during the course of parse()
+    /// (and clear any error flags).  If no error has occurred since the
+    /// last time geterror() was called, it will return an empty string.
+    std::string geterror () const {
+        std::string e = errmessage;
+        errmessage.clear ();
+        return e;
+    }
+    /// Deprecated
     ///
-    std::string error_message () const { return errmessage; }
+    std::string error_message () const { return geterror (); }
 
     /// Print the usage message to stdout.  The usage message is
     /// generated and formatted automatically based on the command and
@@ -150,7 +158,7 @@ public:
 private:
     int argc;                           // a copy of the command line argc
     const char **argv;                  // a copy of the command line argv
-    std::string errmessage;             // error message
+    mutable std::string errmessage;     // error message
     ArgOption *global;                  // option for extra cmd line arguments
     std::string intro;
     std::vector<ArgOption *> option;

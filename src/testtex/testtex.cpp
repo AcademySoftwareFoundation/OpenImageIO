@@ -96,7 +96,7 @@ getargs (int argc, const char *argv[])
                   "--searchpath %s", &searchpath, "Search path for files",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
-        std::cerr << ap.error_message() << std::endl;
+        std::cerr << ap.geterror() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
     }
@@ -255,7 +255,7 @@ test_plain_texture (ustring filename)
     
     if (! image.save ()) 
         std::cerr << "Error writing " << output_filename 
-                  << " : " << image.error_message() << "\n";
+                  << " : " << image.geterror() << "\n";
 }
 
 

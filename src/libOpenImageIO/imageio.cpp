@@ -78,10 +78,12 @@ OpenImageIO::pvt::error (const char *message, ...)
 
 
 std::string
-OpenImageIO::error_message ()
+OpenImageIO::geterror ()
 {
     recursive_lock_guard lock (OpenImageIO::pvt::imageio_mutex);
-    return create_error_msg;
+    std::string e = create_error_msg;
+    create_error_msg.clear ();
+    return e;
 }
 
 

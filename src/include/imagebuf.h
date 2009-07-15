@@ -120,13 +120,16 @@ public:
                         OpenImageIO::ProgressCallback progress_callback=NULL,
                         void *progress_callback_data=NULL) const;
 
-    /// Return info on the last error that occurred since error_message()
+    /// Return info on the last error that occurred since geterror()
     /// was called.  This also clears the error message for next time.
-    std::string error_message (void) {
+    std::string geterror (void) const {
         std::string e = m_err;
         m_err.clear();
         return e;
     }
+    /// Deprecated
+    ///
+    std::string error_message () const { return geterror (); }
 
     /// Return a read-only (const) reference to the image spec.
     ///

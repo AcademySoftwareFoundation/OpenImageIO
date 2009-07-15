@@ -118,7 +118,7 @@ getargs (int argc, char *argv[])
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
-	std::cerr << ap.error_message() << std::endl;
+	std::cerr << ap.geterror() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
     }
@@ -337,13 +337,13 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     if (! in) {
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to read \"" 
-            << in_filename << "\" : " << OpenImageIO::error_message() << "\n";
+            << in_filename << "\" : " << OpenImageIO::geterror() << "\n";
         return false;
     }
     ImageSpec inspec;
     if (! in->open (in_filename.c_str(), inspec)) {
         std::cerr << "iconvert ERROR: Could not open \"" << in_filename
-                  << "\" : " << in->error_message() << "\n";
+                  << "\" : " << in->geterror() << "\n";
         delete in;
         return false;
     }
@@ -354,7 +354,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     if (! out) {
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to write \"" 
-            << out_filename << "\" :" << OpenImageIO::error_message() << "\n";
+            << out_filename << "\" :" << OpenImageIO::geterror() << "\n";
         return false;
     }
 
@@ -376,7 +376,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
         if (! out->open (tempname.c_str(), outspec, subimage>0)) {
             std::cerr << "iconvert ERROR: Could not open \"" << out_filename
-                      << "\" : " << out->error_message() << "\n";
+                      << "\" : " << out->geterror() << "\n";
             ok = false;
             break;
         }
@@ -386,7 +386,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             if (! ok)
                 std::cerr << "iconvert ERROR copying \"" << in_filename 
                           << "\" to \"" << in_filename << "\" :\n\t" 
-                          << out->error_message() << "\n";
+                          << out->geterror() << "\n";
         } else {
             // Need to do it by hand for some reason.  Future expansion in which
             // only a subset of channels are copied, or some such.
@@ -394,12 +394,12 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             ok = in->read_image (outspec.format, &pixels[0]);
             if (! ok) {
                 std::cerr << "iconvert ERROR reading \"" << in_filename 
-                          << "\" : " << in->error_message() << "\n";
+                          << "\" : " << in->geterror() << "\n";
             } else {
                 ok = out->write_image (outspec.format, &pixels[0]);
                 if (! ok)
                     std::cerr << "iconvert ERROR writing \"" << out_filename 
-                              << "\" : " << out->error_message() << "\n";
+                              << "\" : " << out->geterror() << "\n";
             }
         }
         

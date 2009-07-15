@@ -315,7 +315,7 @@ main (int argc, const char *argv[])
                 "--hash", &compute_sha1, "Print SHA-1 hash of pixel values",
                 NULL);
     if (ap.parse(argc, argv) < 0 || filenames.empty()) {
-        std::cerr << ap.error_message() << std::endl;
+        std::cerr << ap.geterror() << std::endl;
         ap.usage ();
         return EXIT_FAILURE;
     }
@@ -338,7 +338,7 @@ main (int argc, const char *argv[])
     BOOST_FOREACH (const std::string &s, filenames) {
         ImageInput *in = ImageInput::create (s.c_str(), "" /* searchpath */);
         if (! in) {
-            std::cerr << OpenImageIO::error_message() << "\n";
+            std::cerr << OpenImageIO::geterror() << "\n";
             continue;
         }
         ImageSpec spec;
@@ -347,7 +347,7 @@ main (int argc, const char *argv[])
             in->close ();
         } else {
             fprintf (stderr, "iinfo: Could not open \"%s\" : %s\n",
-                     s.c_str(), in->error_message().c_str());
+                     s.c_str(), in->geterror().c_str());
         }
         delete in;
     }

@@ -595,7 +595,7 @@ ImageViewer::add_image (const std::string &filename)
     if (getspec) {
         if (! newimage->init_spec (filename)) {
             QMessageBox::information (this, tr("iv Image Viewer"),
-                              tr("%1").arg(newimage->error_message().c_str()));
+                              tr("%1").arg(newimage->geterror().c_str()));
         } else {
             std::cerr << "Added image " << filename << ": " 
 << newimage->spec().width << " x " << newimage->spec().height << "\n";
@@ -625,7 +625,7 @@ ImageViewer::saveAs()
         return;
     bool ok = img->save (name.toStdString(), "", image_progress_callback, this);
     if (! ok) {
-        std::cerr << "Save failed: " << img->error_message() << "\n";
+        std::cerr << "Save failed: " << img->geterror() << "\n";
     }
 }
 
@@ -726,7 +726,7 @@ ImageViewer::loadCurrentImage (int subimage)
         // We need the spec available to compare the image format with
         // opengl's capabilities.
         if (! img->init_spec (img->name ())) {
-            std::cerr << "Init spec failed in loadCurrentImage: " << img->error_message () << "\n";
+            std::cerr << "Init spec failed in loadCurrentImage: " << img->geterror () << "\n";
             return false;
         }
 
@@ -780,7 +780,7 @@ ImageViewer::loadCurrentImage (int subimage)
             }
             return true;
         } else {
-            std::cerr << "read failed in loadCurrentImage: " << img->error_message() << "\n";
+            std::cerr << "read failed in loadCurrentImage: " << img->geterror() << "\n";
             return false;
         }
     }

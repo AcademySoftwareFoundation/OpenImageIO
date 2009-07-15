@@ -571,12 +571,12 @@ whether the operation succeeded ({\cf true}) or failed ({\cf false}).
 In the case of a failure, the \ImageInput will have saved an error
 message describing in more detail what went wrong, and the latest
 error message is accessible using the \ImageInput method 
-{\cf error_message()}, which returns the message as a {\cf std::string}.
+{\cf geterror()}, which returns the message as a {\cf std::string}.
 
 The exception to this rule is {\cf ImageInput::create}, which returns
 {\cf NULL} if it could not create an appropriate \ImageInput.  And in
 this case, since no \ImageInput exists for which you can call its {\cf
-  error_message()} function, there exists a global {\cf error_message()}
+  geterror()} function, there exists a global {\cf geterror()}
 function (in the {\cf OpenImageIO} namespace) that retrieves the latest
 error message resulting from a call to {\cf create}.
 
@@ -597,14 +597,14 @@ elaborated with error checking and reporting:
         if (! in) {
             std::cerr << "Could not create an ImageInput for " 
                       << filename << ", error = " 
-                      << OpenImageIO::error_message() << "\n";
+                      << OpenImageIO::geterror() << "\n";
             return;
         }
 
         ImageSpec spec;
         if (! in->open (filename, spec)) {
             std::cerr << "Could not open " << filename 
-                      << ", error = " << in->error_message() << "\n";
+                      << ", error = " << in->geterror() << "\n";
             delete in;
             return;
         }
@@ -615,14 +615,14 @@ elaborated with error checking and reporting:
 
         if (! in->read_image (TypeDesc::UINT8, pixels)) {
             std::cerr << "Could not read pixels from " << filename 
-                      << ", error = " << in->error_message() << "\n";
+                      << ", error = " << in->geterror() << "\n";
             delete in;
             return;
         }
 
         if (! in->close ()) {
             std::cerr << "Error closing " << filename 
-                      << ", error = " << in->error_message() << "\n";
+                      << ", error = " << in->geterror() << "\n";
             delete in;
             return;
         }
@@ -816,7 +816,7 @@ General message passing between client and image input server.
 This is currently undefined and is reserved for future use.
 \apiend
 
-\apiitem{std::string {\ce error_message} () const}
+\apiitem{std::string {\ce geterror} () const}
 Returns the current error string describing what went wrong if
 any of the public methods returned {\kw false} indicating an error.
 (Hopefully the implementation plugin called {\kw error()} with a

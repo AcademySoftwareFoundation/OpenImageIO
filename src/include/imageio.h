@@ -521,11 +521,18 @@ public:
     virtual int send_to_input (const char *format, ...);
     int send_to_client (const char *format, ...);
 
-    /// Return the current error string describing what went wrong if
-    /// any of the public methods returned 'false' indicating an error.
-    /// (Hopefully the implementation plugin called error() with a
-    /// helpful error message.)
-    std::string error_message () const { return m_errmessage; }
+    /// If any of the API routines returned false indicating an error,
+    /// this routine will return the error string (and clear any error
+    /// flags).  If no error has occurred since the last time geterror()
+    /// was called, it will return an empty string.
+    std::string geterror () const {
+        std::string e = m_errmessage;
+        m_errmessage.clear ();
+        return e;
+    }
+    /// Deprecated
+    ///
+    std::string error_message () const { return geterror (); }
 
 protected:
     /// Error reporting for the plugin implementation: call this with
@@ -536,7 +543,7 @@ protected:
     ImageSpec m_spec;          ///< format spec of the current open subimage
 
 private:
-    std::string m_errmessage;  ///< private storage of error massage
+    mutable std::string m_errmessage;  ///< private storage of error massage
 };
 
 
@@ -711,11 +718,18 @@ public:
     virtual int send_to_output (const char *format, ...);
     int send_to_client (const char *format, ...);
 
-    /// Return the current error string describing what went wrong if
-    /// any of the public methods returned 'false' indicating an error.
-    /// (Hopefully the implementation plugin called error() with a
-    /// helpful error message.)
-    std::string error_message () const { return m_errmessage; }
+    /// If any of the API routines returned false indicating an error,
+    /// this routine will return the error string (and clear any error
+    /// flags).  If no error has occurred since the last time geterror()
+    /// was called, it will return an empty string.
+    std::string geterror () const {
+        std::string e = m_errmessage;
+        m_errmessage.clear ();
+        return e;
+    }
+    /// Deprecated
+    ///
+    std::string error_message () const { return geterror (); }
 
 protected:
     /// Error reporting for the plugin implementation: call this with
@@ -748,7 +762,7 @@ protected:
     ImageSpec m_spec;           ///< format spec of the currently open image
 
 private:
-    std::string m_errmessage;   ///< private storage of error massage
+    mutable std::string m_errmessage;   ///< private storage of error massage
 };
 
 
@@ -760,9 +774,14 @@ private:
 /// version of the library.
 DLLPUBLIC int openimageio_version ();
 
-/// If create() fails, there's no ImageInput/Output to use to
-/// call error_message(), so call ImageIOErrorMessage().
-DLLPUBLIC std::string error_message ();
+/// Special geterror() called after ImageInput::create or
+/// ImageOutput::create, since if create fails, there's no object on
+/// which call obj->geterror().
+DLLPUBLIC std::string geterror ();
+
+/// Deprecated
+///
+inline std::string error_message () { return OpenImageIO::geterror (); }
 
 /// Helper routine: quantize a value to an integer given the
 /// quantization parameters.

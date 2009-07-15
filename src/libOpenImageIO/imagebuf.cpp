@@ -281,7 +281,7 @@ ImageBuf::write (ImageOutput *out,
         // little bits at a time (scanline or tile blocks).
     }
     if (! ok)
-        m_err = out->error_message();
+        m_err = out->geterror ();
     return ok;
 }
 
@@ -296,11 +296,11 @@ ImageBuf::save (const std::string &_filename, const std::string &_fileformat,
     std::string fileformat = _fileformat.size() ? _fileformat : filename;
     boost::scoped_ptr<ImageOutput> out (ImageOutput::create (fileformat.c_str(), "" /* searchpath */));
     if (! out) {
-        m_err = OpenImageIO::error_message();
+        m_err = OpenImageIO::geterror();
         return false;
     }
     if (! out->open (filename.c_str(), m_spec)) {
-        m_err = out->error_message();
+        m_err = out->geterror ();
         return false;
     }
     if (! write (out.get(), progress_callback, progress_callback_data))

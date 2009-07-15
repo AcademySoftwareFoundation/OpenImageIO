@@ -79,7 +79,7 @@ getargs (int argc, char *argv[])
                   "-F", &foreground_mode, "Foreground mode",
                   NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
-        std::cerr << ap.error_message() << std::endl;
+        std::cerr << ap.geterror() << std::endl;
         ap.usage ();
         exit (EXIT_FAILURE);
     }

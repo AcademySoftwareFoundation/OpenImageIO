@@ -961,12 +961,12 @@ whether the operation succeeded ({\cf true}) or failed ({\cf false}).
 In the case of a failure, the \ImageOutput will have saved an error
 message describing in more detail what went wrong, and the latest
 error message is accessible using the \ImageOutput method 
-{\cf error_message()}, which returns the message as a {\cf std::string}.
+{\cf geterror()}, which returns the message as a {\cf std::string}.
 
 The exception to this rule is {\cf ImageOutput::create}, which returns
 {\cf NULL} if it could not create an appropriate \ImageOutput.  And in
 this case, since no \ImageOutput exists for which you can call its {\cf
-  error_message()} function, there exists a global {\cf error_message()}
+  geterror()} function, there exists a global {\cf geterror()}
 function (in the {\cf OpenImageIO} namespace) that retrieves the latest
 error message resulting from a call to {\cf create}.
 
@@ -988,28 +988,28 @@ elaborated with error checking and reporting:
         if (! out) {
             std::cerr << "Could not create an ImageOutput for " 
                       << filename << ", error = " 
-                      << OpenImageIO::error_message() << "\n";
+                      << OpenImageIO::geterror() << "\n";
             return;
         }
         ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
 
         if (! out->open (filename, spec)) {
             std::cerr << "Could not open " << filename 
-                      << ", error = " << out->error_message() << "\n";
+                      << ", error = " << out->geterror() << "\n";
             delete out;
             return;
         }
 
         if (! out->write_image (TypeDesc::UINT8, pixels)) {
             std::cerr << "Could not write pixels to " << filename 
-                      << ", error = " << out->error_message() << "\n";
+                      << ", error = " << out->geterror() << "\n";
             delete out;
             return;
         }
 
         if (! out->close ()) {
             std::cerr << "Error closing " << filename 
-                      << ", error = " << out->error_message() << "\n";
+                      << ", error = " << out->geterror() << "\n";
             delete out;
             return;
         }
@@ -1217,7 +1217,7 @@ General message passing between client and image output server.
 This is currently undefined and is reserved for future use.
 \apiend
 
-\apiitem{std::string {\ce error_message} ()}
+\apiitem{std::string {\ce geterror} ()}
 Returns the current error string describing what went wrong if
 any of the public methods returned {\kw false} indicating an error.
 (Hopefully the implementation plugin called {\kw error()} with a

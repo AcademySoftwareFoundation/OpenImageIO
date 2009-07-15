@@ -121,14 +121,14 @@ ImageCacheFile::open ()
     m_input.reset (ImageInput::create (m_filename.c_str(),
                                        m_imagecache.searchpath().c_str()));
     if (! m_input) {
-        imagecache().error ("%s", OpenImageIO::error_message().c_str());
+        imagecache().error ("%s", OpenImageIO::geterror().c_str());
         m_broken = true;
         return false;
     }
 
     ImageSpec tempspec;
     if (! m_input->open (m_filename.c_str(), tempspec)) {
-        imagecache().error ("%s", m_input->error_message().c_str());
+        imagecache().error ("%s", m_input->geterror().c_str());
         m_broken = true;
         m_input.reset ();
         return false;

@@ -92,13 +92,13 @@ grep_file (const std::string &filename, boost::regex &re,
         in->close ();
     } else {
         if (! ignore_nonimage_files)
-            std::cerr << OpenImageIO::error_message() << "\n";
+            std::cerr << OpenImageIO::geterror() << "\n";
         return false;
     }
     ImageSpec spec;
     if (! in->open (filename.c_str(), spec)) {
         std::cerr << "igrep: Could not open \"" << filename << "\" : "
-                  << in->error_message() << "\n";
+                  << in->geterror() << "\n";
         return false;
     }
 
@@ -169,7 +169,7 @@ main (int argc, const char *argv[])
                 "--help", &help, "Print help message",
                 NULL);
     if (ap.parse(argc, argv) < 0 || pattern.empty() || filenames.empty()) {
-        std::cerr << ap.error_message() << std::endl;
+        std::cerr << ap.geterror() << std::endl;
         ap.usage ();
         return EXIT_FAILURE;
     }

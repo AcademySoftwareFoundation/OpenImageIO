@@ -54,7 +54,7 @@ typedef void * Handle;
 DLLPUBLIC const char *plugin_extension (void);
 
 /// Open the named plugin, return its handle.  If it could not be
-/// opened, return 0 and the next call to error_message() will contain
+/// opened, return 0 and the next call to geterror() will contain
 /// an explanatory message.
 DLLPUBLIC Handle open (const char *plugin_filename);
 
@@ -66,12 +66,12 @@ open (const std::string &plugin_filename)
 
 /// Close the open plugin with the given handle and return true upon
 /// success.  If some error occurred, return false and the next call to
-/// error_message() will contain an explanatory message.
+/// geterror() will contain an explanatory message.
 DLLPUBLIC bool close (Handle plugin_handle);
 
 /// Get the address of the named symbol from the open plugin handle.  If
 /// some error occurred, return NULL and the next call to
-/// error_message() will contain an explanatory message.
+/// geterror() will contain an explanatory message.
 DLLPUBLIC void * getsym (Handle plugin_handle, const char *symbol_name);
 
 inline void *
@@ -85,8 +85,8 @@ getsym (Handle plugin_handle, const std::string &symbol_name)
 /// it's up to the caller to properly mutex to ensure that no other
 /// thread has called open, close, or getsym (all of which clear or
 /// overwrite the error message) between the error-generating call and
-/// error_message.
-DLLPUBLIC std::string error_message (void);
+/// geterror.
+DLLPUBLIC std::string geterror (void);
 
 
 

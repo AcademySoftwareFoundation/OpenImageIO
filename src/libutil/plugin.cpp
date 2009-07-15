@@ -118,8 +118,10 @@ Plugin::getsym (Handle plugin_handle, const char *symbol_name)
 
 
 std::string
-Plugin::error_message (void)
+Plugin::geterror (void)
 {
     lock_guard guard (plugin_mutex);
-    return last_error;
+    std::string e = last_error;
+    last_error.clear ();
+    return e;
 }
