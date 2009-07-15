@@ -195,7 +195,7 @@ test_plain_texture (ustring filename)
     float *dtdx = ALLOCA (float, shadepoints);
     float *dsdy = ALLOCA (float, shadepoints);
     float *dtdy = ALLOCA (float, shadepoints);
-    float *result = ALLOCA (float, shadepoints);
+    float *result = ALLOCA (float, shadepoints*nchannels);
     
     for (int iter = 0;  iter < iters;  ++iter) {
         // Iterate over blocks
