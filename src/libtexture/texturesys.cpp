@@ -486,7 +486,7 @@ static const wrap_impl wrap_functions[] = {
 
 bool
 TextureSystemImpl::texture (ustring filename, TextureOptions &options,
-                            Runflag *runflags, int firstactive, int lastactive,
+                            Runflag *runflags, int beginactive, int endactive,
                             VaryingRef<float> s, VaryingRef<float> t,
                             VaryingRef<float> dsdx, VaryingRef<float> dtdx,
                             VaryingRef<float> dsdy, VaryingRef<float> dtdy,
@@ -515,7 +515,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 
     if (! texturefile  ||  texturefile->broken()) {
         int local_stat_texture_queries = 0;
-        for (int i = firstactive;  i <= lastactive;  ++i) {
+        for (int i = beginactive;  i < endactive;  ++i) {
             if (runflags[i]) {
                 ++local_stat_texture_queries;
                 for (int c = 0;  c < options.nchannels;  ++c)
@@ -552,7 +552,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 
     // Fill channels requested but not in the file
     if (options.actualchannels < options.nchannels) {
-        for (int i = firstactive;  i <= lastactive;  ++i) {
+        for (int i = beginactive;  i < endactive;  ++i) {
             if (runflags[i]) {
                 float fill = options.fill[i];
                 for (int c = options.actualchannels; c < options.nchannels; ++c)
@@ -562,7 +562,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     }
     // Fill alpha if requested and it's not in the file
     if (options.alpha && options.actualchannels+1 < options.nchannels) {
-        for (int i = firstactive;  i <= lastactive;  ++i)
+        for (int i = beginactive;  i < endactive;  ++i)
             options.alpha[i] = options.fill[i];
         options.alpha.init (NULL);  // No need for texture_lookup to care
     }
@@ -580,7 +580,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     // that MUST be redone for each individual texture lookup point.
     bool ok = true;
     int points_on = 0;
-    for (int i = firstactive;  i <= lastactive;  ++i) {
+    for (int i = beginactive;  i < endactive;  ++i) {
         if (runflags[i]) {
             ++points_on;
             ok &= (this->*lookup) (*texturefile, options, i,

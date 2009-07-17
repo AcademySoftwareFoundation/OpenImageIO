@@ -125,14 +125,14 @@ public:
                   float dsdx, float dtdx, float dsdy, float dtdy,
                   float *result) {
         Runflag rf = RunFlagOn;
-        return texture (filename, options, &rf, 0, 0, s, t,
+        return texture (filename, options, &rf, 0, 1, s, t,
                         dsdx, dtdx, dsdy, dtdy, result);
     }
 
     /// Retrieve a 2D texture lookup at many points at once.
     ///
     virtual bool texture (ustring filename, TextureOptions &options,
-                          Runflag *runflags, int firstactive, int lastactive,
+                          Runflag *runflags, int beginactive, int endactive,
                           VaryingRef<float> s, VaryingRef<float> t,
                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
@@ -145,14 +145,14 @@ public:
                           const Imath::V3f &dPdx, const Imath::V3f &dPdy,
                           float *result) {
         Runflag rf = RunFlagOn;
-        return texture (filename, options, &rf, 0, 0, *(Imath::V3f *)&P,
+        return texture (filename, options, &rf, 0, 1, *(Imath::V3f *)&P,
                         *(Imath::V3f *)&dPdx, *(Imath::V3f *)&dPdy, result);
     }
 
     /// Retrieve 3D filtered texture lookup
     ///
     virtual bool texture (ustring filename, TextureOptions &options,
-                          Runflag *runflags, int firstactive, int lastactive,
+                          Runflag *runflags, int beginactive, int endactive,
                           VaryingRef<Imath::V3f> P,
                           VaryingRef<Imath::V3f> dPdx,
                           VaryingRef<Imath::V3f> dPdy,
@@ -166,14 +166,14 @@ public:
                          const Imath::V3f &P, const Imath::V3f &dPdx,
                          const Imath::V3f &dPdy, float *result) {
         Runflag rf = RunFlagOn;
-        return shadow (filename, options, &rf, 0, 0, *(Imath::V3f *)&P,
+        return shadow (filename, options, &rf, 0, 1, *(Imath::V3f *)&P,
                        *(Imath::V3f *)&dPdx, *(Imath::V3f *)&dPdy, result);
     }
 
     /// Retrieve a shadow lookup for position P at many points at once.
     ///
     virtual bool shadow (ustring filename, TextureOptions &options,
-                         Runflag *runflags, int firstactive, int lastactive,
+                         Runflag *runflags, int beginactive, int endactive,
                          VaryingRef<Imath::V3f> P,
                          VaryingRef<Imath::V3f> dPdx,
                          VaryingRef<Imath::V3f> dPdy,
@@ -187,14 +187,14 @@ public:
                               const Imath::V3f &R, const Imath::V3f &dRdx,
                               const Imath::V3f &dRdy, float *result) {
         Runflag rf = RunFlagOn;
-        return environment (filename, options, &rf, 0, 0, *(Imath::V3f *)&R,
+        return environment (filename, options, &rf, 0, 1, *(Imath::V3f *)&R,
                             *(Imath::V3f *)&dRdx, *(Imath::V3f *)&dRdy, result);
     }
 
     /// Retrieve an environment map lookup for direction R, for many
     /// points at once.
     virtual bool environment (ustring filename, TextureOptions &options,
-                              Runflag *runflags, int firstactive, int lastactive,
+                              Runflag *runflags, int beginactive, int endactive,
                               VaryingRef<Imath::V3f> R,
                               VaryingRef<Imath::V3f> dRdx,
                               VaryingRef<Imath::V3f> dRdy,

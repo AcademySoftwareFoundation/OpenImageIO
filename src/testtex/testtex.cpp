@@ -235,10 +235,16 @@ test_plain_texture (ustring filename)
                     }
                 }
                 // Call the texture system to do the filtering.
-                texsys->texture (filename, opt, runflags, 0, shadepoints-1, 
-                                 Varying(s), Varying(t),
-                                 Varying(dsdx), Varying(dtdx),
-                                 Varying(dsdy), Varying(dtdy), result);
+                bool ok = texsys->texture (filename, opt, runflags, 0, shadepoints,
+                                           Varying(s), Varying(t),
+                                           Varying(dsdx), Varying(dtdx),
+                                           Varying(dsdy), Varying(dtdy), result);
+                if (! ok) {
+                    std::string e = texsys->geterror ();
+                    if (! e.empty())
+                        std::cerr << "ERROR: " << e << "\n";
+                }
+
                 // Save filtered pixels back to the image.
                 idx = 0;
                 for (int y = by; y < by+blocksize; ++y) {
@@ -280,6 +286,9 @@ test_getimagespec_gettexels (ustring filename)
     ImageSpec spec;
     if (! texsys->get_imagespec (filename, spec)) {
         std::cerr << "Could not get spec for " << filename << "\n";
+        std::string e = texsys->geterror ();
+        if (! e.empty())
+            std::cerr << "ERROR: " << e << "\n";
         return;
     }
     int w = spec.width/2, h = spec.height/2;

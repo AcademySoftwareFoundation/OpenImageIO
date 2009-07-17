@@ -260,13 +260,13 @@ public:
     /// All of the VaryingRef parameters (and fields in options)
     /// describe texture lookup parameters at an array of positions.
     /// But this routine only computes them from indices i where
-    /// firstactive <= i <= lastactive, and ONLY when runflags[i] is
+    /// beginactive <= i < endactive, and ONLY when runflags[i] is
     /// nonzero.
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool texture (ustring filename, TextureOptions &options,
-                          Runflag *runflags, int firstactive, int lastactive,
+                          Runflag *runflags, int beginactive, int endactive,
                           VaryingRef<float> s, VaryingRef<float> t,
                           VaryingRef<float> dsdx, VaryingRef<float> dtdx,
                           VaryingRef<float> dsdy, VaryingRef<float> dtdy,
@@ -286,7 +286,7 @@ public:
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool texture (ustring filename, TextureOptions &options,
-                          Runflag *runflags, int firstactive, int lastactive,
+                          Runflag *runflags, int beginactive, int endactive,
                           VaryingRef<Imath::V3f> P,
                           VaryingRef<Imath::V3f> dPdx,
                           VaryingRef<Imath::V3f> dPdy,
@@ -305,7 +305,7 @@ public:
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool shadow (ustring filename, TextureOptions &options,
-                         Runflag *runflags, int firstactive, int lastactive,
+                         Runflag *runflags, int beginactive, int endactive,
                          VaryingRef<Imath::V3f> P,
                          VaryingRef<Imath::V3f> dPdx,
                          VaryingRef<Imath::V3f> dPdy,
@@ -325,7 +325,7 @@ public:
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool environment (ustring filename, TextureOptions &options,
-                              Runflag *runflags, int firstactive, int lastactive,
+                              Runflag *runflags, int beginactive, int endactive,
                               VaryingRef<Imath::V3f> R,
                               VaryingRef<Imath::V3f> dRdx,
                               VaryingRef<Imath::V3f> dRdy,
