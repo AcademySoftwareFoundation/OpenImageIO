@@ -33,8 +33,8 @@
 /// Define the VaryingRef class.
 
 
-#ifndef VARYINGREF_H
-#define VARYINGREF_H
+#ifndef OPENIMAGEIO_VARYINGREF_H
+#define OPENIMAGEIO_VARYINGREF_H
 
 
 /// VaryingRef is a templated class (on class T) that holds either a
@@ -225,4 +225,4 @@ template<class T>
 VaryingRef<T> Uniform (T &x) { return VaryingRef<T> (&x, 0); }
 
 
-#endif // VARYINGREF_H
+#endif // OPENIMAGEIO_VARYINGREF_H

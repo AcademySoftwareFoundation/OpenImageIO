@@ -41,8 +41,8 @@
 ///
 
 
-#ifndef FILESYSTEM_H
-#define FILESYSTEM_H
+#ifndef OPENIMAGEIO_FILESYSTEM_H
+#define OPENIMAGEIO_FILESYSTEM_H
 
 #include <string>
 #include "export.h"
@@ -82,4 +82,4 @@ DLLPUBLIC bool path_is_absolute (const std::string &path,
 
 };  // namespace Filesystem
 
-#endif // FILESYSTEM_H
+#endif // OPENIMAGEIO_FILESYSTEM_H

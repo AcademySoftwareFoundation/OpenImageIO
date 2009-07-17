@@ -36,8 +36,8 @@
 
 
 
-#ifndef STRUTIL_H
-#define STRUTIL_H
+#ifndef OPENIMAGEIO_STRUTIL_H
+#define OPENIMAGEIO_STRUTIL_H
 
 #include <cstdarg>
 #include <string>
@@ -134,4 +134,4 @@ public:
 };  // namespace Strutil
 
 
-#endif // STRUTIL_H
+#endif // OPENIMAGEIO_STRUTIL_H

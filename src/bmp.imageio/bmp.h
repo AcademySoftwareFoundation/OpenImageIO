@@ -49,8 +49,8 @@
 //////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef BMP_H
-#define BMP_H
+#ifndef OPENIMAGEIO_BMP_H
+#define OPENIMAGEIO_BMP_H
 
 #include <cstdio>
 #include <iostream>
@@ -167,4 +167,4 @@ class V1Os2 : public DibHeader {
 
 }; /* end namespace bmp_pvt */ 
 
-#endif ///< BMP_H
+#endif // OPENIMAGEIO_BMP_H

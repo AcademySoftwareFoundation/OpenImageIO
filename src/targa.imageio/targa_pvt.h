@@ -28,8 +28,8 @@
   (This is the Modified BSD License)
 */
 
-#ifndef TGA_PVT_H
-#define TGA_PVT_H
+#ifndef OPENIMAGEIO_TARGA_PVT_H
+#define OPENIMAGEIO_TARGA_PVT_H
 
 #include "fmath.h"
 
@@ -83,4 +83,4 @@ typedef struct {
 
 
 
-#endif // TGA_PVT_H
+#endif // OPENIMAGEIO_TARGA_PVT_H

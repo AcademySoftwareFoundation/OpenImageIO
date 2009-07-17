@@ -34,8 +34,8 @@
 /// automatically manages a cache of resident image data.
 
 
-#ifndef IMAGECACHE_H
-#define IMAGECACHE_H
+#ifndef OPENIMAGEIO_IMAGECACHE_H
+#define OPENIMAGEIO_IMAGECACHE_H
 
 #include "ustring.h"
 #include "imageio.h"
@@ -211,4 +211,4 @@ private:
 };  // end namespace OpenImageIO
 
 
-#endif // IMAGECACHE_H
+#endif // OPENIMAGEIO_IMAGECACHE_H

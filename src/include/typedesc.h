@@ -33,8 +33,8 @@
 /// The TypeDesc class is used to describe simple data types.
 
 
-#ifndef TYPEDESC_H
-#define TYPEDESC_H
+#ifndef OPENIMAGEIO_TYPEDESC_H
+#define OPENIMAGEIO_TYPEDESC_H
 
 #ifndef NULL
 #define NULL 0
@@ -279,4 +279,4 @@ typedef TypeDesc ParamBaseType;
 // FIXME: We should clearly put this in a namespace.
 // }; // end namespace
 
-#endif /* !defined(TYPEDESC_H) */
+#endif /* !defined(OPENIMAGEIO_TYPEDESC_H) */

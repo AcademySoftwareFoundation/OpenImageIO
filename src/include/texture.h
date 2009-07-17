@@ -34,8 +34,8 @@
 /// automatically manages a cache of resident texture.
 
 
-#ifndef TEXTURE_H
-#define TEXTURE_H
+#ifndef OPENIMAGEIO_TEXTURE_H
+#define OPENIMAGEIO_TEXTURE_H
 
 #include "varyingref.h"
 #include "ustring.h"
@@ -401,4 +401,4 @@ private:
 };  // end namespace OpenImageIO
 
 
-#endif // TEXTURE_H
+#endif // OPENIMAGEIO_TEXTURE_H

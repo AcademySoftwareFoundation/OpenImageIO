@@ -36,8 +36,8 @@
 /////////////////////////////////////////////////////////////////////////
 
 
-#ifndef THREAD_H
-#define THREAD_H
+#ifndef OPENIMAGEIO_THREAD_H
+#define OPENIMAGEIO_THREAD_H
 
 // defining NOMINMAX to prevent problems with std::min/std::max
 // and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
@@ -287,4 +287,4 @@ typedef atomic<int> atomic_int;
 typedef atomic<long long> atomic_ll;
 
 
-#endif // THREAD_H
+#endif // OPENIMAGEIO_THREAD_H

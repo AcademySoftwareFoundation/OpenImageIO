@@ -36,8 +36,8 @@
 /////////////////////////////////////////////////////////////////////////
 
 
-#ifndef REFCNT_H
-#define REFCNT_H
+#ifndef OPENIMAGEIO_REFCNT_H
+#define OPENIMAGEIO_REFCNT_H
 
 #include "thread.h"
 
@@ -95,5 +95,5 @@ inline void intrusive_ptr_release (T *x)
 }
 
 
-#endif // REFCNT_H
+#endif // OPENIMAGEIO_REFCNT_H
 

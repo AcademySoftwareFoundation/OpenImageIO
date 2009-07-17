@@ -28,8 +28,8 @@
   (This is the Modified BSD License)
 */
 
-#ifndef ICO_H
-#define ICO_H
+#ifndef OPENIMAGEIO_ICO_H
+#define OPENIMAGEIO_ICO_H
 
 #include "fmath.h"
 
@@ -90,4 +90,4 @@ struct ico_header {
 
 };  // namespace ICO_pvt
 
-#endif  // ICO_H
+#endif  // OPENIMAGEIO_ICO_H

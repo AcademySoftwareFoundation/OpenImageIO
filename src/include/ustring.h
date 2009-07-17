@@ -118,8 +118,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef USTRING_H
-#define USTRING_H
+#ifndef OPENIMAGEIO_USTRING_H
+#define OPENIMAGEIO_USTRING_H
 
 #include <string>
 #include <iostream>
@@ -471,4 +471,4 @@ public:
 
 // };  // end namespace blah
 
-#endif // USTRING_H
+#endif // OPENIMAGEIO_USTRING_H

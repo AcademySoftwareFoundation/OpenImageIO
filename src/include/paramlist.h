@@ -36,8 +36,8 @@
 /// parameter lists, attributes, geometric primitive data, etc.
 
 
-#ifndef PARAMLIST_H
-#define PARAMLIST_H
+#ifndef OPENIMAGEIO_PARAMLIST_H
+#define OPENIMAGEIO_PARAMLIST_H
 
 #include <vector>
 
@@ -184,4 +184,4 @@ private:
 // FIXME: We should clearly put this in a namespace.
 // }; /* end namespace blah */
 
-#endif /* !defined(PARAMLIST_H) */
+#endif /* !defined(OPENIMAGEIO_PARAMLIST_H) */

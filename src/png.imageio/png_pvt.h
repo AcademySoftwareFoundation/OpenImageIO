@@ -28,8 +28,8 @@
   (This is the Modified BSD License)
 */
 
-#ifndef PNG_PVT_H
-#define PNG_PVT_H
+#ifndef OPENIMAGEIO_PNG_PVT_H
+#define OPENIMAGEIO_PNG_PVT_H
 
 #include <png.h>
 
@@ -528,4 +528,4 @@ destroy_write_struct (png_structp& sp, png_infop& ip)
 
 };  // namespace PNG_pvt
 
-#endif  // PNG_PVT_H
+#endif  // OPENIMAGEIO_PNG_PVT_H

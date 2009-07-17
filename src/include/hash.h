@@ -35,8 +35,8 @@
 /// of the compiler.
 ///
 
-#ifndef HASH_H
-#define HASH_H
+#ifndef OPENIMAGEIO_HASH_H
+#define OPENIMAGEIO_HASH_H
 
 #ifdef __GNUC__
 
@@ -62,4 +62,4 @@ using std::hash_set;
 #endif
 
 
-#endif // HASH_H
+#endif // OPENIMAGEIO_HASH_H

@@ -34,8 +34,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef JPEG_PVT_H
-#define JPEG_PVT_H
+#ifndef OPENIMAGEIO_JPEG_PVT_H
+#define OPENIMAGEIO_JPEG_PVT_H
 
 
 extern "C" {
@@ -109,5 +109,5 @@ void encode_exif (const ImageSpec &spec, std::vector<char> &exif);
 };
 
 
-#endif /* JPEG_PVT_H */
+#endif /* OPENIMAGEIO_JPEG_PVT_H */
 

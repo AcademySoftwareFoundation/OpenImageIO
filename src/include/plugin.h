@@ -38,8 +38,8 @@
 /////////////////////////////////////////////////////////////////////////
 
 
-#ifndef PLUGIN_H
-#define PLUGIN_H
+#ifndef OPENIMAGEIO_PLUGIN_H
+#define OPENIMAGEIO_PLUGIN_H
 
 #include "export.h"
 
@@ -92,5 +92,5 @@ DLLPUBLIC std::string geterror (void);
 
 };  // namespace Plugin
 
-#endif // PLUGIN_H
+#endif // OPENIMAGEIO_PLUGIN_H
 

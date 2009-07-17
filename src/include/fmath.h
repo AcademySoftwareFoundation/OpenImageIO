@@ -35,8 +35,8 @@
 /// misnomer, some int stuff as well).
 ///
 
-#ifndef FMATH_H
-#define FMATH_H
+#ifndef OPENIMAGEIO_FMATH_H
+#define OPENIMAGEIO_FMATH_H
 
 #include <cmath>
 #include <limits>
@@ -741,6 +741,4 @@ float_to_rational (float f, int &num, int &den)
 
 
 
-
-
-#endif // FMATH_H
+#endif // OPENIMAGEIO_FMATH_H

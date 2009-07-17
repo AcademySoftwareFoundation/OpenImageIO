@@ -29,8 +29,8 @@
 */
 
 
-#ifndef IMAGEVIEWER_H
-#define IMAGEVIEWER_H
+#ifndef OPENIMAGEIO_IMAGEVIEWER_H
+#define OPENIMAGEIO_IMAGEVIEWER_H
 
 // included to remove std::min/std::max errors
 #include "osdep.h"
@@ -536,4 +536,4 @@ private:
     void load_texture (int x, int y, int width, int height);
 };
 
-#endif // IMAGEVIEWER_H
+#endif // OPENIMAGEIO_IMAGEVIEWER_H

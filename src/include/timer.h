@@ -33,8 +33,8 @@
 /// Simple timer class.
 
 
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef OPENIMAGEIO_TIMER_H
+#define OPENIMAGEIO_TIMER_H
 
 #ifdef _WIN32
 # include "osdep.h"
@@ -190,5 +190,5 @@ private:
 };
 
 
-#endif // TIMER_H
+#endif // OPENIMAGEIO_TIMER_H
 

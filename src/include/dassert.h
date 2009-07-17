@@ -29,8 +29,8 @@
 */
 
 
-#ifndef DASSERT_H
-#define DASSERT_H
+#ifndef OPENIMAGEIO_DASSERT_H
+#define OPENIMAGEIO_DASSERT_H
 
 #include <cstdlib>
 
@@ -87,4 +87,4 @@
 #endif
 
 
-#endif // DASSERT_H
+#endif // OPENIMAGEIO_DASSERT_H

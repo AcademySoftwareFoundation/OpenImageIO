@@ -29,8 +29,8 @@
 */
 
 
-#ifndef EXPORT_H
-#define EXPORT_H
+#ifndef OPENIMAGEIO_EXPORT_H
+#define OPENIMAGEIO_EXPORT_H
 
 /// \file
 /// DLLPUBLIC and DLLEXPORT macros that are necessary for proper symbol
@@ -94,4 +94,4 @@
 #  endif
 #endif
 
-#endif // EXPORT_H
+#endif // OPENIMAGEIO_EXPORT_H

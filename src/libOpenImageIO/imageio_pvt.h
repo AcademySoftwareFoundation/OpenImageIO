@@ -33,8 +33,8 @@
 /// Declarations for things that are used privately by ImageIO.
 
 
-#ifndef IMAGEIO_PVT_H
-#define IMAGEIO_PVT_H
+#ifndef OPENIMAGEIO_IMAGEIO_PVT_H
+#define OPENIMAGEIO_IMAGEIO_PVT_H
 
 #include "imageio.h"
 #include "thread.h"
@@ -83,5 +83,5 @@ const void *convert_from_float (const float *src, void *dst, size_t nvals,
 };  // namespace OpenImageIO::pvt
 };  // namespace OpenImageIO
 
-#endif // IMAGEIO_PVT_H
+#endif // OPENIMAGEIO_IMAGEIO_PVT_H
 

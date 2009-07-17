@@ -37,8 +37,8 @@
 /////////////////////////////////////////////////////////////////////////
 
 
-#ifndef SYSUTILS_H
-#define SYSUTILS_H
+#ifndef OPENIMAGEIO_SYSUTIL_H
+#define OPENIMAGEIO_SYSUTIL_H
 
 #include "export.h"
 
@@ -60,5 +60,5 @@ DLLPUBLIC void get_local_time (const time_t *time, struct tm *converted_time);
 
 };  // namespace Sysutils
 
-#endif // SYSUTILS_H
+#endif // OPENIMAGEIO_SYSUTIL_H
 

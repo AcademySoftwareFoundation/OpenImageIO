@@ -34,8 +34,8 @@
 /// which uses ImageInput and ImageOutput underneath for the file access.
 
 
-#ifndef IMAGEBUF_H
-#define IMAGEBUF_H
+#ifndef OPENIMAGEIO_IMAGEBUF_H
+#define OPENIMAGEIO_IMAGEBUF_H
 
 #include "imageio.h"
 #include "fmath.h"
@@ -644,4 +644,4 @@ enum DLLPUBLIC CropOptions
 };  // namespace OpenImageIO
 
 
-#endif // IMAGEBUF_H
+#endif // OPENIMAGEIO_IMAGEBUF_H

@@ -40,8 +40,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef IMAGEIO_H
-#define IMAGEIO_H
+#ifndef OPENIMAGEIO_IMAGEIO_H
+#define OPENIMAGEIO_IMAGEIO_H
 
 #include <vector>
 #include <string>
@@ -870,4 +870,4 @@ typedef ImageSpec ImageIOFormatSpec;
 }; /* end namespace OpenImageIO */
 
 
-#endif  // IMAGEIO_H
+#endif  // OPENIMAGEIO_IMAGEIO_H

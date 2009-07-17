@@ -33,8 +33,8 @@
 /// Non-public classes used internally by ImgeCacheImpl.
 
 
-#ifndef IMAGECACHE_PVT_H
-#define IMAGECACHE_PVT_H
+#ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
+#define OPENIMAGEIO_IMAGECACHE_PVT_H
 
 #include "texture.h"
 #include "refcnt.h"
@@ -643,4 +643,4 @@ private:
 };  // end namespace OpenImageIO
 
 
-#endif // IMAGECACHE_PVT_H
+#endif // OPENIMAGEIO_IMAGECACHE_PVT_H

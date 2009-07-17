@@ -27,8 +27,8 @@
 
   (This is the Modified BSD License)
 */
-#ifndef OSDEP_H
-#define OSDEP_H
+#ifndef OPENIMAGEIO_OSDEP_H
+#define OPENIMAGEIO_OSDEP_H
 
 #ifdef _WIN32
 # define WIN32_LEAN_AND_MEAN
@@ -37,4 +37,4 @@
 # include <windows.h>
 #endif
 
-#endif //OSDEP_H
+#endif // OPENIMAGEIO_OSDEP_H

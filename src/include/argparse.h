@@ -34,8 +34,8 @@
 /// Simple parsing of program command-line arguments.
 
 
-#ifndef ARGPARSE_H
-#define ARGPARSE_H
+#ifndef OPENIMAGEIO_ARGPARSE_H
+#define OPENIMAGEIO_ARGPARSE_H
 
 #include <vector>
 
@@ -172,4 +172,4 @@ private:
 
 // }; // namespace ???
 
-#endif // ARGPARSE_H
+#endif // OPENIMAGEIO_ARGPARSE_H

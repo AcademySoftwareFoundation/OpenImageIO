@@ -30,8 +30,8 @@
 */
 
 
-#ifndef FILTER_H
-#define FILTER_H
+#ifndef OPENIMAGEIO_FILTER_H
+#define OPENIMAGEIO_FILTER_H
 
 // Filter2D is the abstract data type for a 2D filter.
 // The filters are NOT expected to have their results normalized.
@@ -100,4 +100,4 @@ protected:
 
 
 
-#endif /* !defined(FILTER_H) */
+#endif // OPENIMAGEIO_FILTER_H

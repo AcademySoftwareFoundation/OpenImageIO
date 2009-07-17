@@ -33,8 +33,8 @@
 /// Non-public classes used internally by TextureSystemImpl.
 
 
-#ifndef TEXTURE_PVT_H
-#define TEXTURE_PVT_H
+#ifndef OPENIMAGEIO_TEXTURE_PVT_H
+#define OPENIMAGEIO_TEXTURE_PVT_H
 
 
 class Filter1D;  // Forward declaration;
@@ -48,7 +48,7 @@ namespace pvt {
 
 class TextureSystemImpl;
 
-#ifndef IMAGECACHE_PVT_H
+#ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 class ImageCacheImpl;
 class ImageCacheFile;
 class ImageCacheTile;
@@ -446,4 +446,4 @@ private:
 };  // end namespace OpenImageIO
 
 
-#endif // TEXTURE_PVT_H
+#endif // OPENIMAGEIO_TEXTURE_PVT_H
