@@ -1,5 +1,5 @@
 hi
-../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr :  550 x  832, 3 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/Bonita.exr :  550 x  832, 3 channel, half openexr
     10 subimages: 550x832 275x416 137x208 68x104 34x52 17x26 8x13 4x6 2x3 1x1 
  subimage  0:  550 x  832, 3 channel, half openexr
     SHA-1: 564202D0616E02C51CBAD01C4FC34A3D5D77861C
@@ -131,8 +131,8 @@ hi
     PixelAspectRatio: 1
     screenWindowWidth: 1
     wrapmodes: "clamp,clamp"
-Converting ../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr to Bonita.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr" and "Bonita.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/Bonita.exr to Bonita.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/Bonita.exr" and "Bonita.exr"
 Subimage 0: 550 x 832, 3 channel
   Mean error = 0
   RMS error = 0
@@ -204,7 +204,7 @@ Subimage 9: 2 x 3, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr :  512 x  512, 4 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr :  512 x  512, 4 channel, half openexr
     10 subimages: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1 
  subimage  0:  512 x  512, 4 channel, half openexr
     SHA-1: 3694F36696BA49FBA37BC7D35E7ACB2DFDDED2EC
@@ -336,8 +336,8 @@ PASS
     PixelAspectRatio: 1
     screenWindowWidth: 1
     wrapmodes: "periodic,periodic"
-Converting ../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr to ColorCodedLevels.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr to ColorCodedLevels.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -409,7 +409,7 @@ Subimage 9: 2 x 2, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr :  256 x 1536, 4 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr :  256 x 1536, 4 channel, half openexr
     11 subimages: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1 
  subimage  0:  256 x 1536, 4 channel, half openexr
     SHA-1: FE90067A116E33C65D2C663C1A19ABCCE2C621A4
@@ -563,8 +563,8 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr to KernerEnvCube.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr to KernerEnvCube.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
 Subimage 0: 256 x 1536, 4 channel
   Mean error = 0
   RMS error = 0
@@ -643,7 +643,7 @@ Subimage 10: 1 x 3, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr : 1024 x  512, 4 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr : 1024 x  512, 4 channel, half openexr
     11 subimages: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1 
  subimage  0: 1024 x  512, 4 channel, half openexr
     SHA-1: 10D3B289F5E6E0497AC5C297373BEEEEA4F7EEA4
@@ -777,8 +777,8 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr to KernerEnvLatLong.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr to KernerEnvLatLong.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
 Subimage 0: 1024 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -857,7 +857,7 @@ Subimage 10: 2 x 1, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr :  512 x  512, 3 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr :  512 x  512, 3 channel, half openexr
     10 subimages: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1 
  subimage  0:  512 x  512, 3 channel, half openexr
     SHA-1: 1E48D1639C572C689EE82ACA93EEE9FC9EFB24EB
@@ -979,8 +979,8 @@ PASS
     PixelAspectRatio: 1
     screenWindowWidth: 1
     wrapmodes: "mirror,mirror"
-Converting ../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr to MirrorPattern.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr to MirrorPattern.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
 Subimage 0: 512 x 512, 3 channel
   Mean error = 0
   RMS error = 0
@@ -1052,7 +1052,7 @@ Subimage 9: 2 x 2, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr :  512 x 3072, 4 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr :  512 x 3072, 4 channel, half openexr
     12 subimages: 512x3072 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1 
  subimage  0:  512 x 3072, 4 channel, half openexr
     SHA-1: 06D36508E3D76F3288D6B50867812CC6E29C3C5A
@@ -1220,8 +1220,8 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr to OrientationCube.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr to OrientationCube.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
 Subimage 0: 512 x 3072, 4 channel
   Mean error = 0
   RMS error = 0
@@ -1307,7 +1307,7 @@ Subimage 11: 1 x 3, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr : 1024 x  512, 4 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr : 1024 x  512, 4 channel, half openexr
     11 subimages: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1 
  subimage  0: 1024 x  512, 4 channel, half openexr
     SHA-1: 91BB1952FB9254759FA0629F40A721C6D461C8FC
@@ -1441,8 +1441,8 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr to OrientationLatLong.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr to OrientationLatLong.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
 Subimage 0: 1024 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -1521,7 +1521,7 @@ Subimage 10: 2 x 1, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr :  517 x  517, 3 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr :  517 x  517, 3 channel, half openexr
     10 subimages: 517x517 258x258 129x129 64x64 32x32 16x16 8x8 4x4 2x2 1x1 
  subimage  0:  517 x  517, 3 channel, half openexr
     SHA-1: B83B67E1FF9B24991A6582C997AA9F629C094ED2
@@ -1643,8 +1643,8 @@ PASS
     PixelAspectRatio: 1
     screenWindowWidth: 1
     wrapmodes: "periodic,periodic"
-Converting ../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr to PeriodicPattern.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr to PeriodicPattern.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
 Subimage 0: 517 x 517, 3 channel
   Mean error = 0
   RMS error = 0
@@ -1716,7 +1716,7 @@ Subimage 9: 2 x 2, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr :  256 x 1536, 3 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr :  256 x 1536, 3 channel, half openexr
     11 subimages: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1 
  subimage  0:  256 x 1536, 3 channel, half openexr
     SHA-1: 12BC1AA3805E1D718263F3118BD3366013E13B97
@@ -1870,8 +1870,8 @@ PASS
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr to StageEnvCube.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr to StageEnvCube.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
 Subimage 0: 256 x 1536, 3 channel
   Mean error = 0
   RMS error = 0
@@ -1950,7 +1950,7 @@ Subimage 10: 1 x 3, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr : 1000 x  500, 3 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr : 1000 x  500, 3 channel, half openexr
     11 subimages: 1000x500 500x250 250x125 125x63 63x32 32x16 16x8 8x4 4x2 2x1 1x1 
  subimage  0: 1000 x  500, 3 channel, half openexr
     SHA-1: 573137DBE0076465729FC3DBE2B586A19330515D
@@ -2084,8 +2084,8 @@ PASS
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr to StageEnvLatLong.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr to StageEnvLatLong.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
 Subimage 0: 1000 x 500, 3 channel
   Mean error = 0
   RMS error = 0
@@ -2164,7 +2164,7 @@ Subimage 10: 2 x 1, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr :  256 x 1536, 3 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr :  256 x 1536, 3 channel, half openexr
     11 subimages: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1 
  subimage  0:  256 x 1536, 3 channel, half openexr
     SHA-1: 2B90F593D0F4188F341438C097DC447D0B4C4A9B
@@ -2318,8 +2318,8 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr to WavyLinesCube.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr to WavyLinesCube.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
 Subimage 0: 256 x 1536, 3 channel
   Mean error = 0
   RMS error = 0
@@ -2398,7 +2398,7 @@ Subimage 10: 1 x 3, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr : 1024 x  512, 3 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr : 1024 x  512, 3 channel, half openexr
     11 subimages: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1 
  subimage  0: 1024 x  512, 3 channel, half openexr
     SHA-1: D7CB49482CFB4D2854089E7FF92690F69337DED0
@@ -2532,8 +2532,8 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr to WavyLinesLatLong.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr to WavyLinesLatLong.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
 Subimage 0: 1024 x 512, 3 channel
   Mean error = 0
   RMS error = 0
@@ -2612,7 +2612,7 @@ Subimage 10: 2 x 1, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
+../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
     SHA-1: E802DC23DA0EEF8EE782CC5D7BA56294C0FA7462
     channel list: R, G, B, A
     Color space: unknown
@@ -2620,8 +2620,8 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr to WavyLinesSphere.exr
-Comparing "../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
+Converting ../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr to WavyLinesSphere.exr
+Comparing "../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
 Subimage 0: 480 x 480, 4 channel
   Mean error = 0
   RMS error = 0

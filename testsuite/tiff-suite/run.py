@@ -10,7 +10,7 @@ if len(sys.argv) > 2 :
     os.chdir (sys.argv[1])
     path = sys.argv[2] + "/"
     cmdpath = sys.argv[2] + "/"
-sys.path = ["../.."] + sys.path
+sys.path = [".."] + sys.path
 import runtest
 
 
@@ -18,7 +18,7 @@ import runtest
 hi = "echo hi"
 command = hi + "> out.txt"
 
-imagedir = "../../../../libtiffpic"
+imagedir = "../../../libtiffpic"
 
 
 # caspian.tif	279x220 64-bit floating point (deflate) Caspian Sea from space

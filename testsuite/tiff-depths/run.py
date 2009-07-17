@@ -9,14 +9,14 @@ if len(sys.argv) > 2 :
     os.chdir (sys.argv[1])
     path = sys.argv[2] + "/"
 
-sys.path = ["../.."] + sys.path
+sys.path = [".."] + sys.path
 import runtest
 
 # Start off
 hi = "echo hi"
 command = hi + "> out.txt"
 
-imagedir = "../../../../libtiffpic/depth"
+imagedir = "../../../libtiffpic/depth"
 
 
 # FIXME -- eventually, we want more (all?) of these to work

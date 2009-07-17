@@ -9,7 +9,7 @@ if len(sys.argv) > 2 :
     os.chdir (sys.argv[1])
     path = sys.argv[2] + "/"
 
-sys.path = ["../.."] + sys.path
+sys.path = [".."] + sys.path
 import runtest
 
 # Start off
@@ -21,12 +21,12 @@ command = hi + "> out.txt"
 # README   t03.exr  t06.exr  t09.exr  t12.exr  t15.exr
 # t01.exr  t04.exr  t07.exr  t10.exr  t13.exr  t16.exr
 # t02.exr  t05.exr  t08.exr  t11.exr  t14.exr
-imagedir = "../../../../openexr-images-1.5.0/DisplayWindow"
+imagedir = "../../../openexr-images-1.5.0/DisplayWindow"
 
 # ../openexr-images-1.5.0/ScanLines:
 # Blobbies.exr   Desk.exr       StillLife.exr
 # Cannon.exr     MtTamWest.exr  Tree.exr
-imagedir = "../../../../openexr-images-1.5.0/ScanLines"
+imagedir = "../../../openexr-images-1.5.0/ScanLines"
 #command = command + "; " + runtest.rw_command (imagedir, "Blobbies.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "Desk.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "Cannon.exr", path)
@@ -42,7 +42,7 @@ command = command + "; " + runtest.rw_command (imagedir, "Tree.exr", path)
 # BrightRings.exr          GrayRampsHorizontal.exr  WideColorGamut.exr
 # BrightRingsNanInf.exr    README                   WideFloatRange.exr
 # GammaChart.exr           RgbRampsDiagonal.exr
-imagedir = "../../../../openexr-images-1.5.0/TestImages"
+imagedir = "../../../openexr-images-1.5.0/TestImages"
 command = command + "; " + runtest.rw_command (imagedir, "AllHalfValues.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "BrightRings.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "BrightRingsNanInf.exr", path)
@@ -56,7 +56,7 @@ command = command + "; " + runtest.rw_command (imagedir, "WideFloatRange.exr", p
 
 # ../openexr-images-1.5.0/Tiles:
 # GoldenGate.exr  Ocean.exr       Spirals.exr
-imagedir = "../../../../openexr-images-1.5.0/Tiles"
+imagedir = "../../../openexr-images-1.5.0/Tiles"
 command = command + "; " + runtest.rw_command (imagedir, "GoldenGate.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "Ocean.exr", path)
 #command = command + "; " + runtest.rw_command (imagedir, "Spirals.exr", path)

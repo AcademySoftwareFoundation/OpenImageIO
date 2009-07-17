@@ -9,7 +9,7 @@ if len(sys.argv) > 2 :
     os.chdir (sys.argv[1])
     path = sys.argv[2] + "/"
 
-sys.path = ["../.."] + sys.path
+sys.path = [".."] + sys.path
 import runtest
 
 # Start off
@@ -19,13 +19,13 @@ command = hi + "> out.txt"
 
 # ../openexr-images-1.5.0/Chromaticities:
 # README         Rec709.exr     Rec709_YC.exr  XYZ.exr        XYZ_YC.exr
-imagedir = "../../../../openexr-images-1.5.0/Chromaciticies"
+imagedir = "../../../openexr-images-1.5.0/Chromaciticies"
 # FIXME - we don't currently understand chromaticities
 
 # ../openexr-images-1.5.0/LuminanceChroma:
 # CrissyField.exr  Garden.exr       StarField.exr
 # Flowers.exr      MtTamNorth.exr
-imagedir = "../../../../openexr-images-1.5.0/LuminanceChroma"
+imagedir = "../../../openexr-images-1.5.0/LuminanceChroma"
 #command = command + "; " + runtest.rw_command (imagedir, "CrissyField.exr", path)
 #command = command + "; " + runtest.rw_command (imagedir, "Flowers.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "Garden.exr", path)

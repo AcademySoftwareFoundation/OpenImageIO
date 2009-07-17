@@ -1,5 +1,5 @@
 hi
-../../../../libtiffpic/depth/flower-minisblack-02.tif :   73 x   43, 1 channel, uint8 tiff
+../../../libtiffpic/depth/flower-minisblack-02.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: F6BD9D10FB0DD8E9AC62DEBBB743A78FC48D3C9B
     channel list: A
     Color space: unknown
@@ -15,8 +15,8 @@ hi
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../../libtiffpic/depth/flower-minisblack-02.tif to flower-minisblack-02.tif
-Comparing "../../../../libtiffpic/depth/flower-minisblack-02.tif" and "flower-minisblack-02.tif"
+Converting ../../../libtiffpic/depth/flower-minisblack-02.tif to flower-minisblack-02.tif
+Comparing "../../../libtiffpic/depth/flower-minisblack-02.tif" and "flower-minisblack-02.tif"
 Subimage 0: 73 x 43, 1 channel
   Mean error = 0
   RMS error = 0
@@ -25,7 +25,7 @@ Subimage 0: 73 x 43, 1 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../libtiffpic/depth/flower-minisblack-04.tif :   73 x   43, 1 channel, uint8 tiff
+../../../libtiffpic/depth/flower-minisblack-04.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: 8C0CF14B3B585F4B1F249C681BEDEA4CB63E3EDD
     channel list: A
     Color space: unknown
@@ -41,8 +41,8 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../../libtiffpic/depth/flower-minisblack-04.tif to flower-minisblack-04.tif
-Comparing "../../../../libtiffpic/depth/flower-minisblack-04.tif" and "flower-minisblack-04.tif"
+Converting ../../../libtiffpic/depth/flower-minisblack-04.tif to flower-minisblack-04.tif
+Comparing "../../../libtiffpic/depth/flower-minisblack-04.tif" and "flower-minisblack-04.tif"
 Subimage 0: 73 x 43, 1 channel
   Mean error = 0
   RMS error = 0
@@ -51,7 +51,7 @@ Subimage 0: 73 x 43, 1 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../libtiffpic/depth/flower-minisblack-08.tif :   73 x   43, 1 channel, uint8 tiff
+../../../libtiffpic/depth/flower-minisblack-08.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: 1A909C8E70CC479D8A35BAA9BFEDDCBF4BF46FDC
     channel list: A
     Color space: unknown
@@ -67,8 +67,8 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../../libtiffpic/depth/flower-minisblack-08.tif to flower-minisblack-08.tif
-Comparing "../../../../libtiffpic/depth/flower-minisblack-08.tif" and "flower-minisblack-08.tif"
+Converting ../../../libtiffpic/depth/flower-minisblack-08.tif to flower-minisblack-08.tif
+Comparing "../../../libtiffpic/depth/flower-minisblack-08.tif" and "flower-minisblack-08.tif"
 Subimage 0: 73 x 43, 1 channel
   Mean error = 0
   RMS error = 0
@@ -77,7 +77,7 @@ Subimage 0: 73 x 43, 1 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../libtiffpic/depth/flower-minisblack-16.tif :   73 x   43, 1 channel, uint16 tiff
+../../../libtiffpic/depth/flower-minisblack-16.tif :   73 x   43, 1 channel, uint16 tiff
     SHA-1: 7EBB74E46C869CA0D6D091183732214B6A75173A
     channel list: A
     Color space: unknown
@@ -93,8 +93,8 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../../libtiffpic/depth/flower-minisblack-16.tif to flower-minisblack-16.tif
-Comparing "../../../../libtiffpic/depth/flower-minisblack-16.tif" and "flower-minisblack-16.tif"
+Converting ../../../libtiffpic/depth/flower-minisblack-16.tif to flower-minisblack-16.tif
+Comparing "../../../libtiffpic/depth/flower-minisblack-16.tif" and "flower-minisblack-16.tif"
 Subimage 0: 73 x 43, 1 channel
   Mean error = 0
   RMS error = 0
@@ -103,7 +103,7 @@ Subimage 0: 73 x 43, 1 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint8 tiff
+../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 52B3033465AA01129BAE149FF96CBB49877DAB7C
     channel list: R, G, B
     Color space: unknown
@@ -119,8 +119,8 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../../libtiffpic/depth/flower-palette-02.tif to flower-palette-02.tif
-Comparing "../../../../libtiffpic/depth/flower-palette-02.tif" and "flower-palette-02.tif"
+Converting ../../../libtiffpic/depth/flower-palette-02.tif to flower-palette-02.tif
+Comparing "../../../libtiffpic/depth/flower-palette-02.tif" and "flower-palette-02.tif"
 Subimage 0: 73 x 43, 3 channel
   Mean error = 0
   RMS error = 0
@@ -129,7 +129,7 @@ Subimage 0: 73 x 43, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint8 tiff
+../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: C6E40A3D134F1A29E153FE15459D8DE657CB7F9C
     channel list: R, G, B
     Color space: unknown
@@ -145,8 +145,8 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../../libtiffpic/depth/flower-palette-04.tif to flower-palette-04.tif
-Comparing "../../../../libtiffpic/depth/flower-palette-04.tif" and "flower-palette-04.tif"
+Converting ../../../libtiffpic/depth/flower-palette-04.tif to flower-palette-04.tif
+Comparing "../../../libtiffpic/depth/flower-palette-04.tif" and "flower-palette-04.tif"
 Subimage 0: 73 x 43, 3 channel
   Mean error = 0
   RMS error = 0
@@ -155,7 +155,7 @@ Subimage 0: 73 x 43, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../libtiffpic/depth/flower-palette-08.tif :   73 x   43, 3 channel, uint8 tiff
+../../../libtiffpic/depth/flower-palette-08.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 0ADA355BABFE9866F3D88AF7CA3AAC69D7DC036D
     channel list: R, G, B
     Color space: unknown
@@ -171,8 +171,8 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../../libtiffpic/depth/flower-palette-08.tif to flower-palette-08.tif
-Comparing "../../../../libtiffpic/depth/flower-palette-08.tif" and "flower-palette-08.tif"
+Converting ../../../libtiffpic/depth/flower-palette-08.tif to flower-palette-08.tif
+Comparing "../../../libtiffpic/depth/flower-palette-08.tif" and "flower-palette-08.tif"
 Subimage 0: 73 x 43, 3 channel
   Mean error = 0
   RMS error = 0
@@ -181,7 +181,7 @@ Subimage 0: 73 x 43, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../libtiffpic/depth/flower-rgb-contig-08.tif :   73 x   43, 3 channel, uint8 tiff
+../../../libtiffpic/depth/flower-rgb-contig-08.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 35D01526DE5F904B7978B8EA16192A28389E276F
     channel list: R, G, B
     Color space: unknown
@@ -197,8 +197,8 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../../libtiffpic/depth/flower-rgb-contig-08.tif to flower-rgb-contig-08.tif
-Comparing "../../../../libtiffpic/depth/flower-rgb-contig-08.tif" and "flower-rgb-contig-08.tif"
+Converting ../../../libtiffpic/depth/flower-rgb-contig-08.tif to flower-rgb-contig-08.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-contig-08.tif" and "flower-rgb-contig-08.tif"
 Subimage 0: 73 x 43, 3 channel
   Mean error = 0
   RMS error = 0
@@ -207,7 +207,7 @@ Subimage 0: 73 x 43, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../libtiffpic/depth/flower-rgb-contig-16.tif :   73 x   43, 3 channel, uint16 tiff
+../../../libtiffpic/depth/flower-rgb-contig-16.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: 19F69706D5C52FC9510A3C20F9A43361FEF2AC9D
     channel list: R, G, B
     Color space: unknown
@@ -223,8 +223,8 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../../libtiffpic/depth/flower-rgb-contig-16.tif to flower-rgb-contig-16.tif
-Comparing "../../../../libtiffpic/depth/flower-rgb-contig-16.tif" and "flower-rgb-contig-16.tif"
+Converting ../../../libtiffpic/depth/flower-rgb-contig-16.tif to flower-rgb-contig-16.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-contig-16.tif" and "flower-rgb-contig-16.tif"
 Subimage 0: 73 x 43, 3 channel
   Mean error = 0
   RMS error = 0

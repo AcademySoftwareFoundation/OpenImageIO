@@ -1,5 +1,5 @@
-Converting ../../../../oiio-testimages/oiio.ico to test.ico
-Comparing "../../../../oiio-testimages/oiio.ico" and "test.ico"
+Converting ../../../oiio-testimages/oiio.ico to test.ico
+Comparing "../../../oiio-testimages/oiio.ico" and "test.ico"
 Subimage 0: 16 x 16, 4 channel
   Mean error = 0
   RMS error = 0
@@ -71,7 +71,7 @@ Subimage 9: 32 x 32, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../../oiio-testimages/oiio.ico :   16 x   16, 4 channel, uint8 ico
+../../../oiio-testimages/oiio.ico :   16 x   16, 4 channel, uint8 ico
     10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
  subimage  0:   16 x   16, 4 channel, uint8 ico
     SHA-1: 563F978D0860CB8791716CA694AB94EEA83E6E03
@@ -113,7 +113,7 @@ PASS
     SHA-1: 0196F151853CC595AF7504196C8CCC5B3A3CE446
     channel list: R, G, B, A
     Color space: unknown
-test.ico                             :   16 x   16, 4 channel, uint8 ico
+test.ico                          :   16 x   16, 4 channel, uint8 ico
     10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
  subimage  0:   16 x   16, 4 channel, uint8 ico
     SHA-1: 563F978D0860CB8791716CA694AB94EEA83E6E03

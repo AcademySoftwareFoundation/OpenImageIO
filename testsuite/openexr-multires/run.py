@@ -9,7 +9,7 @@ if len(sys.argv) > 2 :
     os.chdir (sys.argv[1])
     path = sys.argv[2] + "/"
 
-sys.path = ["../.."] + sys.path
+sys.path = [".."] + sys.path
 import runtest
 
 # Start off
@@ -23,7 +23,7 @@ command = hi + "> out.txt"
 # Kapaa.exr               OrientationLatLong.exr  WavyLinesCube.exr
 # KernerEnvCube.exr       PeriodicPattern.exr     WavyLinesLatLong.exr
 # KernerEnvLatLong.exr    README                  WavyLinesSphere.exr
-imagedir = "../../../../openexr-images-1.5.0/MultiResolution"
+imagedir = "../../../openexr-images-1.5.0/MultiResolution"
 command = command + "; " + runtest.rw_command (imagedir, "Bonita.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "ColorCodedLevels.exr", path)
 #command = command + "; " + runtest.rw_command (imagedir, "Kapaa.exr", path)

@@ -92,7 +92,7 @@ add_subdirectory (doc)
 
 macro ( TESTSUITE )
     foreach (_testname ${ARGN})
-        add_test ( ${_testname} python ${PROJECT_SOURCE_DIR}/../testsuite/tests/${_testname}/run.py ${PROJECT_SOURCE_DIR}/../testsuite/tests/${_testname} ${CMAKE_BINARY_DIR} )
+        add_test ( ${_testname} python ${PROJECT_SOURCE_DIR}/../testsuite/${_testname}/run.py ${PROJECT_SOURCE_DIR}/../testsuite/${_testname} ${CMAKE_BINARY_DIR} )
     endforeach ()
 endmacro ()
 
