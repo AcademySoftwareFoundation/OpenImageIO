@@ -201,6 +201,13 @@ ImageCacheFile::open ()
         }
     }
 
+    if (m_untiled && ! imagecache().accept_untiled()) {
+        imagecache().error ("%s was untiled, rejecting", m_filename.c_str());
+        m_broken = true;
+        m_input.reset ();
+        return false;
+    }
+
     const ImageSpec &spec (m_spec[0]);
     const ImageIOParameter *p;
 
@@ -736,6 +743,7 @@ ImageCacheImpl::init ()
     m_autotile = 0;
     m_automip = false;
     m_forcefloat = false;
+    m_accept_untiled = true;
     m_Mw2c.makeIdentity();
     m_mem_used = 0;
     m_statslevel = 0;
@@ -1048,6 +1056,10 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         m_forcefloat = *(const int *)val;
         return true;
     }
+    if (name == "accept_untiled" && type == TypeDesc::INT) {
+        m_accept_untiled = *(const int *)val;
+        return true;
+    }
     return false;
 }
 
@@ -1083,6 +1095,10 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     }
     if (name == "forcefloat" && type == TypeDesc::INT) {
         *(int *)val = (int)m_forcefloat;
+        return true;
+    }
+    if (name == "accept_untiled" && type == TypeDesc::INT) {
+        *(int *)val = (int)m_accept_untiled;
         return true;
     }
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||

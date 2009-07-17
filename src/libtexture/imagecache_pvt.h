@@ -405,6 +405,7 @@ public:
     int autotile () const { return m_autotile; }
     bool automip () const { return m_automip; }
     bool forcefloat () const { return m_forcefloat; }
+    bool accept_untiled () const { return m_accept_untiled; }
     void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
     }
@@ -583,6 +584,7 @@ private:
     int m_autotile;              ///< if nonzero, pretend tiles of this size
     bool m_automip;              ///< auto-mipmap on demand?
     bool m_forcefloat;           ///< force all cache tiles to be float
+    bool m_accept_untiled;       ///< Accept untiled images?
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's
