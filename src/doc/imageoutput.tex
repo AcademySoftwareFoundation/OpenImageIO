@@ -641,7 +641,7 @@ attribute name and a value consisting of a single {\cf int}, {\cf
 shown in the following examples:
 
 \begin{code}
-        ImageIOFormatString spec (...);
+        ImageSpec spec (...);
         ...
 
         unsigned int u = 1;
@@ -662,7 +662,7 @@ complex arrangements, you can use the more general form of {\cf
   array), and then a pointer to the data values.  For example,
 
 \begin{code}
-        ImageIOFormatString spec (...);
+        ImageSpec spec (...);
 
         // Attach a 4x4 matrix to describe the camera coordinates
         float mymatrix[16] = { ... };

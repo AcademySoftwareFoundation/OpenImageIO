@@ -196,21 +196,21 @@ Specifies wrap, blur, and width for 3D volume texture lookups only.
 Most of the texture lookup API routines are written to accommodate
 queries about many points at once.  Furthermore, only a subset of
 points may need to compute.  This is all expressed using three
-parameters:  {\cf Runflag *runflags, int firstactive, int lastactive}.
+parameters:  {\cf Runflag *runflags, int beginactive, int endactive}.
 There are also {\cf VaryingRef} parameters such as {\cf s} and {\cf t}
 that act as if they are arrays.
 
-The {\cf firstactive} and {\cf lastactive} indices are the first and
+The {\cf beginactive} and {\cf endactive} indices are the first and
 last (inclusive) points that should be computed, and for each point
 {\cf runflags[i]} is nonzero if the point should be computed.  To
 illustrate, here is how a routine might be written that would copy
 values in {\cf arg} to {\cf result} using runflags:
 
 \begin{code}
-        void copy (Runflag *runflags, int firstactive, int lastactive,
+        void copy (Runflag *runflags, int beginactive, int endactive,
                    VaryingRef<float> arg, VaryingRef <float> result)
         {
-            for (int i = firstactive; i <= lastactive;  ++i)
+            for (int i = beginactive; i < endactive;  ++i)
                 if (runflags[i])
                     result[i] = arg[i];
         }
@@ -384,7 +384,8 @@ Recognized attributes include the following:
 float max_memory_MB \\
 string searchpath \\
 int autotile \\
-int automip}
+int automip \\
+int accept_untiled}
 
 These attributes are all passed along to the underlying \ImageCache that
 is used internally by the \TextureSystem.  Please consult the
@@ -498,7 +499,7 @@ plugin.
 
 
 \apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
-\bigspc                   Runflag *runflags, int firstactive, int lastactive,\\
+\bigspc                   Runflag *runflags, int beginactive, int endactive,\\
 \bigspc                   VaryingRef<float> s, VaryingRef<float> t,\\
 \bigspc                   VaryingRef<float> dsdx, VaryingRef<float> dtdx,\\
 \bigspc                   VaryingRef<float> dsdy, VaryingRef<float> dtdy,\\
@@ -511,8 +512,8 @@ single-point version of {\cf texture()}.  The parameters {\cf s},
 {\cf VaryingRef}'s that may refer to either a single or an array of
 values, as are all the fields in the {\cf options}.
 
-Texture will be computed at indices {\cf firstactive} through
-{\cf lastactive}, inclusive, but only at indices where {\cf runflags[i]}
+Texture will be computed at indices {\cf beginactive} through
+{\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
 is nonzero.  Results will be stored at corresponding positions of
 {\cf result}, that is, 
 {\cf result[i*n ... (i+1)*n-1]} where $n$ is the number of channels
@@ -610,7 +611,7 @@ plugin.
 \apiend
 
 \apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
-\bigspc                          Runflag *runflags, int firstactive, int lastactive,\\
+\bigspc                          Runflag *runflags, int beginactive, int endactive,\\
 \bigspc                          VaryingRef<Imath::V3f> P,\\
 \bigspc                          VaryingRef<Imath::V3f> dPdx,\\
 \bigspc                          VaryingRef<Imath::V3f> dPdy,\\
@@ -623,8 +624,8 @@ single-point version of {\cf texture()}.  The parameters {\cf P},
 {\cf VaryingRef}'s that may refer to either a single or an array of
 values, as are all the fields in the {\cf options}.
 
-Texture will be computed at indices {\cf firstactive} through
-{\cf lastactive}, inclusive, but only at indices where {\cf runflags[i]}
+Texture will be computed at indices {\cf beginactive} through
+{\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
 is nonzero.  Results will be stored at corresponding positions of
 {\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
 is the number of channels requested by {\cf options.nchannels}.
@@ -697,7 +698,7 @@ plugin.
 \apiend
 
 \apiitem{bool {\ce shadow} (ustring filename, TextureOptions \&options,\\
-\bigspc                         Runflag *runflags, int firstactive, int lastactive,\\
+\bigspc                         Runflag *runflags, int beginactive, int endactive,\\
 \bigspc                         VaryingRef<Imath::V3f> P,\\
 \bigspc                         VaryingRef<Imath::V3f> dPdx,\\
 \bigspc                         VaryingRef<Imath::V3f> dPdy,\\
@@ -710,8 +711,8 @@ single-point version of {\cf shadow()}.  The parameters {\cf P},
 {\cf VaryingRef}'s that may refer to either a single or an array of
 values, as are all the fields in the {\cf options}.
 
-Shadow lookups will be computed at indices {\cf firstactive} through
-{\cf lastactive}, inclusive, but only at indices where {\cf runflags[i]}
+Shadow lookups will be computed at indices {\cf beginactive} through
+{\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
 is nonzero.  Results will be stored at corresponding positions of
 {\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
 is the number of channels requested by {\cf options.nchannels}.
@@ -799,7 +800,7 @@ plugin.
 \apiend
 
 \apiitem{bool {\ce environment} (ustring filename, TextureOptions \&options,\\
-\bigspc                              Runflag *runflags, int firstactive, int lastactive,\\
+\bigspc                              Runflag *runflags, int beginactive, int endactive,\\
 \bigspc                              VaryingRef<Imath::V3f> R,\\
 \bigspc                              VaryingRef<Imath::V3f> dRdx,\\
 \bigspc                              VaryingRef<Imath::V3f> dRdy,\\
@@ -812,8 +813,8 @@ calling the single-point version of {\cf environment()}.  The parameters
 refer to either a single or an array of values, as are all the fields in
 the {\cf options}.
 
-Results will be computed at indices {\cf firstactive} through
-{\cf lastactive}, inclusive, but only at indices where {\cf runflags[i]}
+Results will be computed at indices {\cf beginactive} through
+{\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
 is nonzero.  Results will be stored at corresponding positions of
 {\cf result}, that is, {\cf result[i*n ... (i+1)*n-1]} where $n$ 
 is the number of channels requested by {\cf options.nchannels}.

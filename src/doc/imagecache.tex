@@ -2,9 +2,6 @@
 \label{chap:imagecache}
 \index{Image Cache|(}
 
-\def\ImageCache{{\cf ImageCache}\xspace}
-
-
 \section{Image Cache Introduction and Theory of Operation}
 \label{sec:imagecache:intro}
 
@@ -295,12 +292,29 @@ more efficient.
 If {\cf automip} is set to 0 (the default), an untiled single-subimage
 file will only be able to utilize that single subimage.
 
-If {\cf autotile} is nonzero, any untiled, single-subimage
+If {\cf automip} is nonzero, any untiled, single-subimage
 (un-MIP-mapped) images will have lower-resolution MIP-map levels
 generated on-demand if pixels are requested from the lower-res subimages
 (that don't really exist).  Essentially this makes the \ImageCache
-pretend that the file is MIP-mapped even if it isn't.
+pretends that the file is MIP-mapped even if it isn't.
+\apiend
 
+\apiitem{int forcefloat}
+If set to nonzero, all image tiles will be converted to {\cf float} 
+type when stored in the image cache.  This can be helpful especially
+for users of \ImageBuf who want to simplify their image manipulations
+to only need to consider {\cf float} data.
+
+The default is zero, meaning that image pixels are not forced to
+be {\cf float} when in cache.
+\apiend
+
+\apiitem{int accept_untiled}
+When nonzero (the default), \ImageCache accepts untiled images as
+usual.  When set to zero, \ImageCache will reject untiled images with
+an error condition, as if the file could not be properly read.
+This is sometimes helpful for applications that want to enforce use of
+tiled images only.
 \apiend
 
 \bigskip
