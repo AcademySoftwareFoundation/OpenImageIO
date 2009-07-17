@@ -9,7 +9,7 @@ from optparse import OptionParser
 
 # when we use Visual Studio, built applications are stored
 # in app/Release/ directory
-solution_path = '../../../build/windows/OpenImageIO.sln'
+solution_path = '../../build/windows/OpenImageIO.sln'
 if ((platform.system () == 'Windows') and (os.path.isfile(solution_path) == True)):
     iinfo = "iinfo/Release/iinfo "
     idiff = "idiff/Release/idiff "
