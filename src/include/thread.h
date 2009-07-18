@@ -45,12 +45,48 @@
 #ifdef _WIN32
 # define NOMINMAX
 #endif
+
 #include <boost/thread.hpp>
 #include <boost/version.hpp>
-
 #if (BOOST_VERSION == 103500)
-#include <boost/thread/shared_mutex.hpp>
+#  include <boost/thread/shared_mutex.hpp>
 #endif
+#if (BOOST_VERSION < 103500)
+#  include <pthread.h>
+#endif
+
+#ifndef USE_TBB
+#  if defined(_WIN32) && (_MSV_VER >= 1500)
+#    define USE_TBB 0
+#  else
+#    define USE_TBB 1
+#  endif
+#endif
+
+// Include files we need for atomic counters.
+// Some day, we hope this is all replaced by use of std::atomic<>.
+#if USE_TBB
+#  include <tbb/atomic.h>
+   using tbb::atomic;
+#else
+#  if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+     // we're good to go with GCC intrinsics
+#  elif defined(__APPLE__)
+#    include <libkern/OSAtomic.h>
+#  elif defined(_WIN32)
+#    include <windows.h>
+#    include <winbase.h>
+#  else
+#    error "Ouch, no atomics!"
+#  endif
+#endif
+
+
+
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 
 typedef boost::mutex mutex;
 typedef boost::recursive_mutex recursive_mutex;
@@ -74,7 +110,6 @@ typedef boost::unique_lock< boost::shared_mutex > unique_lock;
 typedef boost::mutex::scoped_lock lock_guard;
 typedef boost::recursive_mutex::scoped_lock recursive_lock_guard;
 
-#include <pthread.h>
 
 class shared_mutex {
 public:
@@ -107,37 +142,12 @@ private:
 #endif
 
 
-#ifndef USE_TBB
-#  if defined(_WIN32) && (_MSV_VER >= 1500)
-#    define USE_TBB 0
-#  else
-#    define USE_TBB 1
-#  endif
-#endif
 
-#if USE_TBB
-
-#include <tbb/atomic.h>
-using tbb::atomic;
-
-#else /* the following defined only if not USE_TBB */
-
-//
-// Include files we need for atomic counters.
-// Some day, we hope this is all replaced by use of std::atomic<>.
-//
-
-#  if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
-     // we're good to go with GCC intrinsics
-#  elif defined(__APPLE__)
-#    include <libkern/OSAtomic.h>
-#  elif defined(_WIN32)
-#    include <windows.h>
-#    include <winbase.h>
-#  else
-#    error "Ouch, no atomics!"
-#  endif
-
+#if (! USE_TBB)
+// If we're not using TBB, we need to define our own atomic<>.  To do
+// that, we first need atomic_exchange_and_add and
+// atomic_compare_and_exchange as primitive operations.  We define
+// those, in turn in one of serveral platform-dependent ways.
 
 
 /// Atomic version of:  r = *at, *at += x, return r
@@ -281,10 +291,15 @@ private:
 };
 
 
-#endif /* USE_TBB */
+#endif /* ! USE_TBB */
 
 typedef atomic<int> atomic_int;
 typedef atomic<long long> atomic_ll;
 
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_THREAD_H

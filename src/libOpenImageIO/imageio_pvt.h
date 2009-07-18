@@ -41,6 +41,10 @@
 
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace OpenImageIO {
 namespace pvt {
 
@@ -83,5 +87,9 @@ const void *convert_from_float (const float *src, void *dst, size_t nvals,
 };  // namespace OpenImageIO::pvt
 };  // namespace OpenImageIO
 
-#endif // OPENIMAGEIO_IMAGEIO_PVT_H
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
+#endif // OPENIMAGEIO_IMAGEIO_PVT_H

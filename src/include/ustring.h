@@ -135,6 +135,10 @@
 #endif
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 // FIXME: want a namespace
 // namespace blah {
 
@@ -470,5 +474,10 @@ public:
 
 
 // };  // end namespace blah
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_USTRING_H

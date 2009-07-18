@@ -35,6 +35,10 @@
 
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace ICO_pvt {
 
 // IneQuation was here
@@ -89,5 +93,10 @@ struct ico_header {
 
 
 };  // namespace ICO_pvt
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif  // OPENIMAGEIO_ICO_H

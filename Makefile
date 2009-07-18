@@ -57,6 +57,10 @@ ifneq (${USE_TBB},)
 MY_CMAKE_FLAGS += -DUSE_TBB:BOOL=${USE_TBB}
 endif
 
+ifneq (${NAMESPACE},)
+MY_CMAKE_FLAGS += -DOPENIMAGEIO_NAMESPACE:STRING=${NAMESPACE}
+endif
+
 ifdef DEBUG
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug
 endif
@@ -179,5 +183,6 @@ help:
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
 	@echo "  make USE_TBB=0 ...          Don't use TBB"
+	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
 	@echo ""
 

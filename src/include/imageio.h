@@ -54,6 +54,10 @@
 
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace OpenImageIO {
 
 
@@ -869,5 +873,10 @@ typedef ImageSpec ImageIOFormatSpec;
 
 }; /* end namespace OpenImageIO */
 
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif  // OPENIMAGEIO_IMAGEIO_H

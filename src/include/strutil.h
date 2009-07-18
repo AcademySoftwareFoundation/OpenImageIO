@@ -49,6 +49,10 @@
 
 #include "export.h"
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace Strutil {
 
 
@@ -133,5 +137,10 @@ public:
 
 };  // namespace Strutil
 
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_STRUTIL_H

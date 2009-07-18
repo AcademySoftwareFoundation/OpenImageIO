@@ -35,6 +35,10 @@
 
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace TGA_pvt {
 
 // IneQuation was here
@@ -81,6 +85,10 @@ typedef struct {
 
 };  // namespace TGA_pvt
 
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 
 #endif // OPENIMAGEIO_TARGA_PVT_H

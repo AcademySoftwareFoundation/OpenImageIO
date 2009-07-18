@@ -42,14 +42,16 @@
 
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace OpenImageIO {
 
-// Forward declaration
 namespace pvt {
-
+// Forward declaration
 class ImageCacheImpl;
 };
-
 
 
 
@@ -210,5 +212,10 @@ private:
 
 };  // end namespace OpenImageIO
 
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_IMAGECACHE_H

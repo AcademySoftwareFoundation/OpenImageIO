@@ -45,9 +45,7 @@
 #include "dassert.h"
 #include "strutil.h"
 #include "fmath.h"
-
-
-namespace OpenImageIO {
+using namespace OpenImageIO;
 
 
 
@@ -701,6 +699,3 @@ ImageBuf::fill (const float *pixel, int xbegin, int xend, int ybegin, int yend)
         for (int i = xbegin; i < xend; i++)
             setpixel (i, j, pixel);
 }
-
-
-};  // end namespace OpenImageIO

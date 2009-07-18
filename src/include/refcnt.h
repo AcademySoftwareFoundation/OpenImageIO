@@ -48,6 +48,11 @@ using std::tr1::shared_ptr;
 using boost::intrusive_ptr;
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
+
 
 /// Mix-in class that adds a reference count, implemented as an atomic
 /// counter.
@@ -95,5 +100,9 @@ inline void intrusive_ptr_release (T *x)
 }
 
 
-#endif // OPENIMAGEIO_REFCNT_H
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
+#endif // OPENIMAGEIO_REFCNT_H

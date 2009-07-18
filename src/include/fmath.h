@@ -61,6 +61,11 @@
 #endif
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
+
 
 #ifndef M_PI
 /// PI
@@ -740,5 +745,10 @@ float_to_rational (float f, int &num, int &den)
 }
 
 
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_FMATH_H

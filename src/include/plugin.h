@@ -45,6 +45,10 @@
 
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace Plugin {
 
 typedef void * Handle;
@@ -92,5 +96,9 @@ DLLPUBLIC std::string geterror (void);
 
 };  // namespace Plugin
 
-#endif // OPENIMAGEIO_PLUGIN_H
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
+#endif // OPENIMAGEIO_PLUGIN_H

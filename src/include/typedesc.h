@@ -47,6 +47,10 @@
 #include "export.h"
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 // FIXME: We should clearly put this in a namespace.
 // namespace blah {
 
@@ -278,5 +282,10 @@ typedef TypeDesc ParamBaseType;
 
 // FIXME: We should clearly put this in a namespace.
 // }; // end namespace
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif /* !defined(OPENIMAGEIO_TYPEDESC_H) */

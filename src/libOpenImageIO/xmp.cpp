@@ -48,6 +48,10 @@ using namespace OpenImageIO;
 #define MY_ENCODING "ISO-8859-1"
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace OpenImageIO {
 
 
@@ -483,4 +487,8 @@ encode_xmp (const ImageSpec &spec, bool minimal)
 
 
 };  // namespace OpenImageIO
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+#endif
 

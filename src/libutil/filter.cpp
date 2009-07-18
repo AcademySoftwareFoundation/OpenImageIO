@@ -36,6 +36,11 @@
 
 #include "filter.h"
 #include "fmath.h"
+using namespace OpenImageIO;
+
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
 
 
 // Below are the implementations of several 2D filters.  They all
@@ -396,3 +401,8 @@ Filter2D::create (const std::string &filtername, float width, float height)
         return new FilterBSpline2D (width, height);
     return NULL;
 }
+
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+#endif

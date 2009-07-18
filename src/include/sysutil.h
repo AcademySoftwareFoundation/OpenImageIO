@@ -45,6 +45,10 @@
 /// allocates memory, equivalent of C99 type var_name[size]
 #define ALLOCA(type, size) ((type*)alloca((size) * sizeof (type)))
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace Sysutil {
 
 /// The amount of memory currently being used by this process, in bytes.
@@ -60,5 +64,9 @@ DLLPUBLIC void get_local_time (const time_t *time, struct tm *converted_time);
 
 };  // namespace Sysutils
 
-#endif // OPENIMAGEIO_SYSUTIL_H
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
+#endif // OPENIMAGEIO_SYSUTIL_H

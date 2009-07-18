@@ -29,6 +29,7 @@
 */
 
 #include "imageviewer.h"
+using namespace OpenImageIO;
 
 #include <iostream>
 #include <cmath>

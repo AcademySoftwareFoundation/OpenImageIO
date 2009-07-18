@@ -37,12 +37,14 @@
 #define OPENIMAGEIO_TEXTURE_PVT_H
 
 
-class Filter1D;  // Forward declaration;
-
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
 
 namespace OpenImageIO {
 
 class ImageCache;
+class Filter1D;
 
 namespace pvt {
 
@@ -445,5 +447,9 @@ private:
 };  // end namespace OpenImageIO::pvt
 };  // end namespace OpenImageIO
 
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_TEXTURE_PVT_H

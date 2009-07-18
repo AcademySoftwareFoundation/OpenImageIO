@@ -47,7 +47,7 @@ using namespace OpenImageIO;
 
 
 
-namespace OpenImageIO {
+namespace {  // anonymous
 
 static float default_blur = 0;
 static float default_width = 1;
@@ -56,6 +56,14 @@ static float default_fill = 0;
 static int   default_samples = 1;
 
 static TextureOptions defaultTextureOptions(true);  // use special ctr
+
+static const char * wrap_type_name[] = {
+    // MUST match the order of TextureOptions::Wrap
+    "default", "black", "clamp", "periodic", "mirror",
+    ""
+};
+
+};  // end anonymous namespace
 
 
 
@@ -88,13 +96,6 @@ TextureOptions::TextureOptions ()
 
 
 
-static const char * wrap_type_name[] = {
-    // MUST match the order of TextureOptions::Wrap
-    "default", "black", "clamp", "periodic", "mirror",
-    ""
-};
-
-
 TextureOptions::Wrap
 TextureOptions::decode_wrapmode (const char *name)
 {
@@ -123,8 +124,3 @@ TextureOptions::parse_wrapmodes (const char *wrapmodes,
     swrapcode = decode_wrapmode (swrap);
     twrapcode = decode_wrapmode (twrap);
 }
-
-
-
-
-};  // end namespace OpenImageIO

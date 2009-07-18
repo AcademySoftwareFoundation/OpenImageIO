@@ -31,6 +31,10 @@
 #include "bmp.h"
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace bmp_pvt {
 
 
@@ -90,3 +94,6 @@ V1Os2::read_header (void)
 
 } /* end namespace bmp_pvt */
 
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+#endif

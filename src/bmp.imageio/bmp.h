@@ -57,6 +57,10 @@
 #include <vector>
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace bmp_pvt {
 
 /// This block of data identify BMP file header
@@ -166,5 +170,10 @@ class V1Os2 : public DibHeader {
 
 
 }; /* end namespace bmp_pvt */ 
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_BMP_H

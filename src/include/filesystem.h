@@ -48,6 +48,10 @@
 #include "export.h"
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace Filesystem {
 
 /// Return the file extension (just the part after the last '.') of a
@@ -81,5 +85,10 @@ DLLPUBLIC bool path_is_absolute (const std::string &path,
 
 
 };  // namespace Filesystem
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_FILESYSTEM_H

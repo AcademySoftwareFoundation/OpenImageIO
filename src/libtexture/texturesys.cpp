@@ -56,14 +56,87 @@ using namespace OpenImageIO;
 #include "imagecache.h"
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
+using namespace OpenImageIO;
 using namespace OpenImageIO::pvt;
 
 
-namespace OpenImageIO {
+namespace {  // anonymous
 
 static shared_ptr<TextureSystemImpl> shared_texsys;
 static mutex shared_texsys_mutex;
+static EightBitConverter<float> uchar2float;
 
+
+// Wrap functions wrap 'coord' around 'width', and return true if the
+// result is a valid pixel coordinate, false if black should be used
+// instead.
+
+typedef bool (*wrap_impl) (int &coord, int width);
+
+static bool wrap_black (int &coord, int width)
+{
+    return (coord >= 0 && coord < width);
+}
+
+
+static bool wrap_clamp (int &coord, int width)
+{
+    if (coord < 0)
+        coord = 0;
+    else if (coord >= width)
+        coord = width-1;
+    return true;
+}
+
+
+static bool wrap_periodic (int &coord, int width)
+{
+    coord %= width;
+    if (coord < 0)       // Fix negative values
+        coord += width;
+    return true;
+}
+
+
+static bool wrap_periodic2 (int &coord, int width)
+{
+    coord &= (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
+    return true;
+}
+
+
+static bool wrap_mirror (int &coord, int width)
+{
+    bool negative = (coord < 0);
+    int iter = coord / width;    // Which iteration of the pattern?
+    coord -= iter * width;
+    bool flip = (iter & 1);
+    if (negative) {
+        coord += width - 1;
+        flip = !flip;
+    }
+    if (flip)
+        coord = width - 1 - coord;
+    DASSERT (coord >= 0 && coord < width);
+    return true;
+}
+
+
+
+static const wrap_impl wrap_functions[] = {
+    // Must be in same order as Wrap enum
+    wrap_black, wrap_black, wrap_clamp, wrap_periodic, wrap_mirror
+};
+
+};  // end anonymous namespace
+
+
+
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
+namespace OpenImageIO {
 
 
 TextureSystem *
@@ -103,7 +176,6 @@ TextureSystem::destroy (TextureSystem *x)
 namespace pvt {   // namespace OpenImageIO::pvt
 
 
-static EightBitConverter<float> uchar2float;
 
 
 
@@ -418,69 +490,6 @@ TextureSystemImpl::invalidate_all (bool force)
         if (m_all_perthread_info[i])
             m_all_perthread_info[i]->purge = 1;
 }
-
-
-
-// Wrap functions wrap 'coord' around 'width', and return true if the
-// result is a valid pixel coordinate, false if black should be used
-// instead.
-
-typedef bool (*wrap_impl) (int &coord, int width);
-
-static bool wrap_black (int &coord, int width)
-{
-    return (coord >= 0 && coord < width);
-}
-
-
-static bool wrap_clamp (int &coord, int width)
-{
-    if (coord < 0)
-        coord = 0;
-    else if (coord >= width)
-        coord = width-1;
-    return true;
-}
-
-
-static bool wrap_periodic (int &coord, int width)
-{
-    coord %= width;
-    if (coord < 0)       // Fix negative values
-        coord += width;
-    return true;
-}
-
-
-static bool wrap_periodic2 (int &coord, int width)
-{
-    coord &= (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
-    return true;
-}
-
-
-static bool wrap_mirror (int &coord, int width)
-{
-    bool negative = (coord < 0);
-    int iter = coord / width;    // Which iteration of the pattern?
-    coord -= iter * width;
-    bool flip = (iter & 1);
-    if (negative) {
-        coord += width - 1;
-        flip = !flip;
-    }
-    if (flip)
-        coord = width - 1 - coord;
-    DASSERT (coord >= 0 && coord < width);
-    return true;
-}
-
-
-
-static const wrap_impl wrap_functions[] = {
-    // Must be in same order as Wrap enum
-    wrap_black, wrap_black, wrap_clamp, wrap_periodic, wrap_mirror
-};
 
 
 
@@ -1304,3 +1313,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
 
 };  // end namespace OpenImageIO::pvt
 };  // end namespace OpenImageIO
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+#endif

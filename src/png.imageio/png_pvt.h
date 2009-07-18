@@ -59,6 +59,10 @@ http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/00058
 http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/000656.html
 */
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace PNG_pvt {
 
 /// Initializes a PNG read struct.
@@ -527,5 +531,10 @@ destroy_write_struct (png_structp& sp, png_infop& ip)
 
 
 };  // namespace PNG_pvt
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif  // OPENIMAGEIO_PNG_PVT_H

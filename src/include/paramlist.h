@@ -46,6 +46,10 @@
 #include "ustring.h"
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 // FIXME: We should clearly put this in a namespace.
 // namespace blah {
 
@@ -183,5 +187,10 @@ private:
 
 // FIXME: We should clearly put this in a namespace.
 // }; /* end namespace blah */
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif /* !defined(OPENIMAGEIO_PARAMLIST_H) */

@@ -41,6 +41,10 @@
 
 #include "export.h"
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 // namespace I have no idea... {
 
 
@@ -171,5 +175,10 @@ private:
 
 
 // }; // namespace ???
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_ARGPARSE_H

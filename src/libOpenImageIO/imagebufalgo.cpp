@@ -34,16 +34,15 @@
 #include <iostream>
 
 #include "imagebuf.h"
+using namespace OpenImageIO;
+using namespace ImageBufAlgo;
 
 #include "dassert.h"
 
 
-namespace OpenImageIO {
-namespace ImageBufAlgo {
-        
 bool 
-crop (ImageBuf &dst, const ImageBuf &src,
-      int xbegin, int xend, int ybegin, int yend, int options) 
+ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
+                    int xbegin, int xend, int ybegin, int yend, int options) 
 {
     const ImageSpec &src_spec (src.spec());
     
@@ -143,7 +142,8 @@ crop (ImageBuf &dst, const ImageBuf &src,
     
     
 bool
-add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options)
+ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   int options)
 {
     // Sanity checks
     
@@ -199,8 +199,4 @@ add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options)
     
     return true;
 }
-
-
-}; // end namespace ImageBufAlgo
-}; // end namespace OpenImageIO
 

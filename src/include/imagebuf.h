@@ -41,6 +41,10 @@
 #include "fmath.h"
 #include "imagecache.h"
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace OpenImageIO {
 
 
@@ -643,5 +647,9 @@ enum DLLPUBLIC CropOptions
 
 };  // namespace OpenImageIO
 
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_IMAGEBUF_H

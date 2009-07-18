@@ -41,8 +41,12 @@
 #include <boost/foreach.hpp>
 
 #include "strutil.h"
-
 #include "argparse.h"
+
+
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
 
 
 
@@ -505,3 +509,9 @@ ArgParse::command_line () const
     }
     return s;
 }
+
+
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+#endif

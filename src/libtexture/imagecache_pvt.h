@@ -39,6 +39,10 @@
 #include "texture.h"
 #include "refcnt.h"
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
+
 namespace OpenImageIO {
 namespace pvt {
 
@@ -644,5 +648,9 @@ private:
 };  // end namespace OpenImageIO::pvt
 };  // end namespace OpenImageIO
 
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
 
 #endif // OPENIMAGEIO_IMAGECACHE_PVT_H

@@ -52,18 +52,58 @@ using namespace std::tr1;
 #include "timer.h"
 #include "imageio.h"
 #include "imagebuf.h"
-using namespace OpenImageIO;
-
 #include "imagecache.h"
-
 #include "texture.h"
 #include "imagecache_pvt.h"
+using namespace OpenImageIO;
 using namespace OpenImageIO::pvt;
+
+
+namespace {  // anonymous
+
+static shared_ptr<ImageCacheImpl> shared_image_cache;
+static mutex shared_image_cache_mutex;
+
+
+// Functor to compare filenames
+static bool
+filename_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+{
+    return a->filename() < b->filename();
+}
+
+
+// Functor to compare read bytes, sort in descending order
+static bool
+bytesread_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+{
+    return a->bytesread() > b->bytesread();
+}
+
+
+// Functor to compare read times, sort in descending order
+static bool
+iotime_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+{
+    return a->iotime() > b->iotime();
+}
+
+
+// Functor to compare read rate (MB/s), sort in ascending order
+static bool
+iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
+{
+    double arate = a->bytesread()/(1024.0*1024.0) / a->iotime();
+    double brate = b->bytesread()/(1024.0*1024.0) / b->iotime();
+    return arate < brate;
+}
+
+
+};  // end anonymous namespace
 
 
 
 namespace OpenImageIO {
-
 
 namespace pvt {   // namespace OpenImageIO::pvt
 
@@ -779,41 +819,6 @@ ImageCacheImpl::~ImageCacheImpl ()
 
 
 
-// Functor to compare filenames
-static bool
-filename_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
-{
-    return a->filename() < b->filename();
-}
-
-
-// Functor to compare read bytes, sort in descending order
-static bool
-bytesread_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
-{
-    return a->bytesread() > b->bytesread();
-}
-
-
-// Functor to compare read times, sort in descending order
-static bool
-iotime_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
-{
-    return a->iotime() > b->iotime();
-}
-
-
-// Functor to compare read rate (MB/s), sort in ascending order
-static bool
-iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
-{
-    double arate = a->bytesread()/(1024.0*1024.0) / a->iotime();
-    double brate = b->bytesread()/(1024.0*1024.0) / b->iotime();
-    return arate < brate;
-}
-
-
-
 std::string
 ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
                                    int i, bool includestats) const
@@ -1525,9 +1530,6 @@ ImageCacheImpl::error (const char *message, ...)
 }
 
 
-
-static shared_ptr<ImageCacheImpl> shared_image_cache;
-static mutex shared_image_cache_mutex;
 
 };  // end namespace OpenImageIO::pvt
 
