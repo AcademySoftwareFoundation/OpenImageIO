@@ -427,7 +427,10 @@ ImageCacheFile::read_untiled (int subimage, int x, int y, int z,
         // likely that they will also soon be requested.
         // FIXME -- I don't think this works properly for 3D images
         int pixelsize = spec(subimage).nchannels * format.size();
-        int scanlinesize = pixelsize * spec(subimage).width;
+        // Because of the way we copy below, we need to allocate the
+        // buffer to be an even multiple of the tile width, so round up.
+        stride_t scanlinesize = tw * ((spec(subimage).width+tw-1)/tw);
+        scanlinesize *= pixelsize;
         std::vector<char> buf (scanlinesize * th); // a whole tile-row size
         int yy = y - spec(subimage).y;   // counting from top scanline
         // [y0,y1] is the range of scanlines to read for a tile-row
