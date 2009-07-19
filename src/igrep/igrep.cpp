@@ -157,7 +157,9 @@ int
 main (int argc, const char *argv[])
 {
     ArgParse ap;
-    ap.options ("Usage:  igrep [options] pattern filename...",
+    ap.options ("igrep -- search images for matching metadata\n"
+                OPENIMAGEIO_INTRO_STRING "\n"
+                "Usage:  igrep [options] pattern filename...",
                 "%*", parse_files, "",
                 "-i", &ignore_case, "Ignore upper/lower case distinctions",
                 "-v", &invert_match, "Invert match (select non-matching files)",

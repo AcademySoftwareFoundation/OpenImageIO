@@ -100,7 +100,9 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options ("Usage:  idiff [options] image1 image2",
+    ap.options ("idiff -- compare two images\n"
+                OPENIMAGEIO_INTRO_STRING "\n"
+                "Usage:  idiff [options] image1 image2",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",

@@ -119,7 +119,9 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options ("Usage:  maketx [options] file...",
+    ap.options ("maketx -- convert images to tiled, MIP-mapped textures\n"
+                OPENIMAGEIO_INTRO_STRING "\n"
+                "Usage:  maketx [options] file...",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",

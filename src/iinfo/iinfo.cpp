@@ -304,7 +304,9 @@ int
 main (int argc, const char *argv[])
 {
     ArgParse ap;
-    ap.options ("Usage:  iinfo [options] filename...",
+    ap.options ("iinfo -- print information about images\n"
+                OPENIMAGEIO_INTRO_STRING "\n"
+                "Usage:  iinfo [options] filename...",
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose output",

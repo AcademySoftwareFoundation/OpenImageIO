@@ -88,7 +88,9 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options ("Usage:  iconvert [options] inputfile outputfile\n"
+    ap.options ("iconvert -- copy images with format conversions and other alterations\n"
+                OPENIMAGEIO_INTRO_STRING "\n"
+                "Usage:  iconvert [options] inputfile outputfile\n"
                 "   or:  iconvert --inplace [options] file...\n",
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",

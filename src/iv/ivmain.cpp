@@ -72,7 +72,9 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options ("Usage:  iv [options] [filename...]",
+    ap.options ("iv -- image viewer\n"
+                OPENIMAGEIO_INTRO_STRING "\n"
+                "Usage:  iv [options] [filename...]",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",

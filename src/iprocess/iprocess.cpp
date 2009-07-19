@@ -94,7 +94,9 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options ("Usage:  iprocess [options] inputfile... -o outputfile\n",
+    ap.options ("iprocess -- simple image processing operations\n"
+                OPENIMAGEIO_INTRO_STRING "\n"
+                "Usage:  iprocess [options] inputfile... -o outputfile\n",
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
 //                "-v", &verbose, "Verbose status messages",
