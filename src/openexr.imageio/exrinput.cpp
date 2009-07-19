@@ -35,6 +35,7 @@
 
 #include <boost/algorithm/string.hpp>
 using boost::algorithm::iequals;
+using boost::algorithm::iends_with;
 
 #include <ImfTestFile.h>
 #include <ImfInputFile.h>
@@ -332,39 +333,44 @@ OpenEXRInput::query_channels (void)
         // std::cerr << "Channel " << ci.name() << '\n';
         std::string name = ci.name();
         m_channelnames.push_back (name);
-        if (iequals(name, "R") || iequals(name, "Red"))
+        if (red < 0 && (iequals(name, "R") || iequals(name, "Red") ||
+                        iends_with(name,".R") || iends_with(name,".Red")))
             red = c;
-        if (iequals(name, "G") || iequals(name, "Green"))
+        if (green < 0 && (iequals(name, "G") || iequals(name, "Green") ||
+                          iends_with(name,".G") || iends_with(name,".Green")))
             green = c;
-        if (iequals(name, "B") || iequals(name, "Blue"))
+        if (blue < 0 && (iequals(name, "B") || iequals(name, "Blue") ||
+                         iends_with(name,".B") || iends_with(name,".Blue")))
             blue = c;
-        if (iequals(name, "A") || iequals(name, "Alpha"))
+        if (alpha < 0 && (iequals(name, "A") || iequals(name, "Alpha") ||
+                          iends_with(name,".A") || iends_with(name,".Alpha")))
             alpha = c;
-        else if (iequals(name, "Z"))
+        if (zee < 0 && (iequals(name, "Z") || iequals(name, "Depth") ||
+                        iends_with(name,".Z") || iends_with(name,".Depth")))
             zee = c;
         ++m_spec.nchannels;
     }
     m_userchannels.resize (m_spec.nchannels);
     int nc = 0;
     if (red >= 0) {
-        m_spec.channelnames.push_back ("R");
+        m_spec.channelnames.push_back (m_channelnames[red]);
         m_userchannels[red] = nc++;
     }
     if (green >= 0) {
-        m_spec.channelnames.push_back ("G");
+        m_spec.channelnames.push_back (m_channelnames[green]);
         m_userchannels[green] = nc++;
     }
     if (blue >= 0) {
-        m_spec.channelnames.push_back ("B");
+        m_spec.channelnames.push_back (m_channelnames[blue]);
         m_userchannels[blue] = nc++;
     }
     if (alpha >= 0) {
-        m_spec.channelnames.push_back ("A");
+        m_spec.channelnames.push_back (m_channelnames[alpha]);
         m_spec.alpha_channel = nc;
         m_userchannels[alpha] = nc++;
     }
     if (zee >= 0) {
-        m_spec.channelnames.push_back ("Z");
+        m_spec.channelnames.push_back (m_channelnames[zee]);
         m_spec.z_channel = nc;
         m_userchannels[zee] = nc++;
     }
