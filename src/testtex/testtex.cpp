@@ -297,7 +297,7 @@ test_getimagespec_gettexels (ustring filename)
     TextureOptions opt;
     opt.nchannels = spec.nchannels;
     std::vector<float> tmp (w*h*spec.nchannels);
-    texsys->get_texels (filename, opt, 0, w/2, w/2+w, h/2, h/2+h, 0, 0, 
+    texsys->get_texels (filename, opt, 0, w/2, w/2+w, h/2, h/2+h, 0, 1, 
                         postagespec.format, &tmp[0]);
     for (int y = 0;  y < h;  ++y)
         for (int x = 0;  x < w;  ++x) {
