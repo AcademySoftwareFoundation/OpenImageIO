@@ -2,6 +2,15 @@ Changes:
 
 
 
+Release 0.7 (TBD)
+--------------------------
+Major new features:
+API changes:
+Fixes and minor enhancements:
+For developers:
+
+
+
 Release 0.6 (Jul 20, 2009)
 --------------------------
 
@@ -67,7 +76,6 @@ Fixes and minor enhancements:
   redundant I/O when it finds multiple files with identical pixels.
   (r741,742)
 * iinfo: eliminate --md5 in favor of --hash (computing SHA-1). (r749)
-
 
 For developers:
 
