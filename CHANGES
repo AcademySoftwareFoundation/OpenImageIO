@@ -2,19 +2,12 @@ Changes:
 
 
 
-Release 0.6 (TBD) [updates as of r813]
------------------
+Release 0.6 (Jul 20, 2009)
+--------------------------
 
-Features:
+Major new features:
 
-* 'maketx --hash' embeds a SHA-1 fingerprint of the source image's
-  pixels in the texture file header's "ImageDescription" field.
-  ImageCache (and TextureSystem) will recognize these and eliminate
-  redundant I/O when it finds multiple files with identical pixels.
-  (r741,742)
-* ImageCache additional statistics: file open time (r743), alert if
-  mip-mapped images are accessed at only their highest-res level (r743).
-* iinfo: eliminate --md5 in favor of --hash (computing SHA-1). (r749)
+* Everything has been ported to Windows.
 * iv: handle older cards or versions of OpenGL, including lack of GLSL,
   non-pow2 textures, etc.  Generally should now be usable (if slightly
   degraded functionality) for most OpenGL 1.x implementations. (r764)
@@ -24,33 +17,73 @@ Features:
   image, and eliminate the unsafe pixeladdr() method.  Also added
   ImageCache::attribute("forcefloat") to conveniently force all
   ImageCache internal storage to be float.  (r770,771,772,775,803,805)
+* iv can now support "big" images, in particular larger than the OpenGL
+  texture limit (4k), and also very big images via the use of ImageCache 
+  (r912).
+* Truevision Targa (TGA) support. (r776,792)
+
+API changes:
 * In a variety of places that specified pixel rectangles (including
   ImageCache::get_pixels and TextureSystem::get_texels), specify regions
   as (xbegin,xend,ybegin,yend) rather than (xmin, ymin, xmax, ymax).
   Note that 'end' is, like STL, one past the last pixel. (r771)
-* Image plugin for reading and writing Truevision Targa files. (r776,792)
+* All classes now query error messages using geterror().  Previously some
+  used geterror() and others used error_message(). The old error_message
+  is deprecated and will be removed in a future release (r957).
 
-Fixes:
+Fixes and minor enhancements:
 
 * OpenEXR plugin improvements: don't set "textureformat" attribute
   unless it really is a mip-mapped texture.  Preserve the mipmap
   rounding mode when copying OpenEXR files, by using the
-  "openexr:roundingmode" metadata. (r801)
+  "openexr:roundingmode" metadata (r801). Properly mark the alpha
+  and z channels in the ImageSpec (r885).
 * TIFF plugin improvements: handle 2 bpp images, properly name channels
   when reading palette images (r802), no longer uses the
   PREDICTOR_FLOATINGPOINT, since older versions of libtiff can't read
-  those files (r752).
+  those files (r752). Properly set the Exif sRGB marker (r888).
+* BMP plugin improvements: allows top-down scanlines as well as bottom-up,
+  correctly reads 4-, 8- and 24-bit images that have scanlines padded to 
+  4-byte boundaries.
+* ImageBuf algorithms: crop, add (r892).
+* EXPERIMENTAL: 'iprocess' utility that lets you do some simple image
+  processing operations (r892).
+* ImageCache additional statistics: file open time (r743), alert if
+  mip-mapped images are accessed at only their highest-res level (r743).
+  Properly emulates random access reads of LZW-compressed files (r920).
 * iv: fix problems displaying images whose width was not a multiple of 4
-  bytes. (r767)
+  bytes (r767), when loading small images, the window starts out a
+  usable minimum size, iv always raises the window upon first opening,
+  fix pixelview of alpha in RGB images (r939).
 * maketx: in the case where the input texture was already float and needed
   no pow2 rounding, we didn't get the tiling or other metadata right (r824)
+* ImageCache and TextureSystem do a better job of reporting low-level
+  ImageInput errors up the chain (r945).
+* ImageCache: new option "accept_untiled", when set to zero, will reject
+  untiled images (r979).
+* 'maketx --hash' embeds a SHA-1 fingerprint of the source image's
+  pixels in the texture file header's "ImageDescription" field.
+  ImageCache (and TextureSystem) will recognize these and eliminate
+  redundant I/O when it finds multiple files with identical pixels.
+  (r741,742)
+* iinfo: eliminate --md5 in favor of --hash (computing SHA-1). (r749)
+
 
 For developers:
 
-* Lots of fixes for Windows compilation (r754)
+* Lots of fixes for Windows compilation (r754, r860)
 * A build option for whether or not to use TBB for atomics.  (r780)
 * New test suite entries: tiff-suite, tiff-depths (r787,788), openexr-suite,
   openexr-multires, openexr-chroma (r789,790,791).
+* New unit tests for ImageBuf::zero, ImageBuf::fill, ImageBufAlgo::crop (r891).
+* Reorganization of unit tests.
+* Improvements to ArgParse internals and interface.
+* All the macros that prevent double-inclusion of header files have had
+  their names changed from FILENAME_H to OPENIMAGEIO_FILENAME_H so that
+  they don't conflict with other package (r967).
+* Reorganized test suite hierarchy.
+* Optionally allow the entire library to be enclosed in a versioned
+  namespace (via 'make NAMESPACE=foo') .
 
 
 

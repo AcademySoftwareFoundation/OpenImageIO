@@ -46,6 +46,11 @@
 \def\producthome{{\codefont \$IMAGEIOHOME}\xspace}
 \def\ivbinary{{\codefont iv}\xspace}
 \def\maketx{{\codefont maketx}\xspace}
+\def\iconvert{{\codefont iconvert}\xspace}
+\def\idiff{{\codefont idiff}\xspace}
+\def\iinfo{{\codefont iinfo}\xspace}
+\def\igrep{{\codefont igrep}\xspace}
+\def\iprocess{{\codefont iprocess}\xspace}
 \def\ImageSpec{{\codefont ImageSpec}\xspace}
 \def\ImageInput{{\codefont ImageInput}\xspace}
 \def\ImageOutput{{\codefont ImageOutput}\xspace}
@@ -78,8 +83,8 @@
 }
 \date{{\large 
 %Editor: Larry Gritz \\[2ex]
-Date: 13 July, 2009
-%\\ (with corrections, 11 July, 2008)
+Date: 20 July, 2009
+%\\ (with corrections, 20 July, 2009)
 }}
 
 
@@ -124,18 +129,22 @@ Date: 13 July, 2009
 \include{writingplugins}
 
 \chapter{Bundled ImageIO Plugins}
+More information will be added soon.
 \section{TIFF}
 \section{JPEG}
 \section{OpenEXR}
 \section{HDR/RGBE}
 \section{PNG}
 \section{Zfile}
-
-\chapter{Image Buffer}
+\section{Targa}
+\section{ICO}
+\section{BMP}
 
 \include{imagecache}
 
 \include{texturesys}
+
+\chapter{Image Buffer}
 
 \part{Image Utilities}
 
@@ -159,19 +168,7 @@ More documentation on this later.
 
 \include{idiff}
 
-\chapter{Creating MIP-mapped texture files with {\cf maketx}}
-\label{chap:maketx}
-\indexapi{maketx}
-
-The {\cf maketx} program will read an image (from any file format for
-which an \ImageInput plugin can be found) and then write the image 
-as a tiled, mip-mapped texture, environment, or shadow map file that
-can be accessed efficiently by \product's texture API.
-
-\medskip
-
-More documentation on this later.
-
+\include{maketx}
 
 
 \part{Appendices}
