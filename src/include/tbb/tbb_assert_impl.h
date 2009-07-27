@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2008 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2009 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -36,8 +36,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#if _WIN32||_WIN64
+#if _MSC_VER
 #include <crtdbg.h>
+#define __TBB_USE_DBGBREAK_DLG TBB_USE_DEBUG
+#endif
+
+#if _MSC_VER >= 1400
+#define __TBB_EXPORTED_FUNC   __cdecl
+#else
+#define __TBB_EXPORTED_FUNC
 #endif
 
 using namespace std;
@@ -48,13 +55,13 @@ namespace tbb {
 
     static assertion_handler_type assertion_handler;
 
-    assertion_handler_type set_assertion_handler( assertion_handler_type new_handler ) {
+    assertion_handler_type __TBB_EXPORTED_FUNC set_assertion_handler( assertion_handler_type new_handler ) {
         assertion_handler_type old_handler = assertion_handler;
         assertion_handler = new_handler;
         return old_handler;
     }
 
-    void assertion_failure( const char* filename, int line, const char* expression, const char* comment ) {
+    void __TBB_EXPORTED_FUNC assertion_failure( const char* filename, int line, const char* expression, const char* comment ) {
         if( assertion_handler_type a = assertion_handler ) {
             (*a)(filename,line,expression,comment);
         } else {
@@ -65,10 +72,11 @@ namespace tbb {
                          expression, line, filename );
                 if( comment )
                     fprintf( stderr, "Detailed description: %s\n", comment );
-#if (_WIN32||_WIN64) && defined(_DEBUG)
+#if __TBB_USE_DBGBREAK_DLG
                 if(1 == _CrtDbgReport(_CRT_ASSERT, filename, line, "tbb_debug.dll", "%s\r\n%s", expression, comment?comment:""))
                         _CrtDbgBreak();
 #else
+                fflush(stderr);
                 abort();
 #endif
             }
@@ -81,7 +89,7 @@ namespace tbb {
 
     namespace internal {
         //! Report a runtime warning.
-        void runtime_warning( const char* format, ... )
+        void __TBB_EXPORTED_FUNC runtime_warning( const char* format, ... )
         {
             char str[1024]; memset(str, 0, 1024);
             va_list args; va_start(args, format);

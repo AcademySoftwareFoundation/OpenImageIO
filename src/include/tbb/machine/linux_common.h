@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2008 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2009 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -69,10 +69,10 @@ namespace internal {
 
 inline int futex_wait( void *futex, int comparand ) {
     int r = ::syscall( SYS_futex,futex,__TBB_FUTEX_WAIT,comparand,NULL,NULL,0 );
-#if TBB_DO_ASSERT
+#if TBB_USE_ASSERT
     int e = errno;
     __TBB_ASSERT( r==0||r==EWOULDBLOCK||(r==-1&&(e==EAGAIN||e==EINTR)), "futex_wait failed." );
-#endif /* TBB_DO_ASSERT */
+#endif /* TBB_USE_ASSERT */
     return r;
 }
 

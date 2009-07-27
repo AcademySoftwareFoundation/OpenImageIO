@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2008 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2009 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -26,7 +26,7 @@
     the GNU General Public License.
 */
 
-// Source file for miscellanous entities that are infrequently referenced by 
+// Source file for miscellaneous entities that are infrequently referenced by 
 // an executing program.
 
 #include "tbb/tbb_stddef.h"
@@ -38,17 +38,14 @@
 #include <cstdlib>
 #include <cstring>
 #if defined(__EXCEPTIONS) || defined(_CPPUNWIND) || defined(__SUNPRO_CC)
-#include <stdexcept>
+    #include "tbb/tbb_exception.h"
+    #include <string> // std::string is used to construct runtime_error
+    #include <stdexcept>
 #endif
-#if !(_WIN32||_WIN64)
-#include <dlfcn.h>
-#endif 
 
 using namespace std;
 
 #include "tbb/tbb_machine.h"
-
-#include <iterator>
 
 namespace tbb {
 
@@ -68,6 +65,11 @@ void handle_perror( int error_code, const char* what ) {
     buf[sizeof(buf)-1] = 0; 
     throw runtime_error(buf);
 }
+
+void throw_bad_last_alloc_exception_v4() 
+{
+    throw bad_last_alloc();
+}
 #endif //__EXCEPTIONS || _CPPUNWIND
 
 bool GetBoolEnvironmentVariable( const char * name ) {
@@ -75,64 +77,6 @@ bool GetBoolEnvironmentVariable( const char * name ) {
         return strcmp(s,"0") != 0;
     return false;
 }
-
-#if __TBB_WEAK_SYMBOLS
-
-bool FillDynamicLinks( const char* /*library*/, const DynamicLinkDescriptor descriptors[], size_t n )
-{
-    size_t k = 0;
-    for ( ; k < n  &&  descriptors[k].ptr; ++k )
-        *descriptors[k].handler = (PointerToHandler) descriptors[k].ptr;
-    return k == n;
-}
-
-#else /* !__TBB_WEAK_SYMBOLS */
-
-bool FillDynamicLinks( void* module, const DynamicLinkDescriptor descriptors[], size_t n )
-{
-    const size_t max_n = 5;
-    __TBB_ASSERT( 0<n && n<=max_n, NULL );
-    PointerToHandler h[max_n];
-    size_t k = 0;
-    for ( ; k < n; ++k ) {
-#if _WIN32||_WIN64
-        h[k] = (PointerToHandler) GetProcAddress( (HMODULE)module, descriptors[k].name );
-#else
-        h[k] = (PointerToHandler) dlsym( module, descriptors[k].name );
-#endif /* _WIN32||_WIN64 */
-        if ( !h[k] )
-            break;
-    }
-    // Commit the entry points if they are all present.
-    if ( k == n ) {
-        // Cannot use memset here, because the writes must be atomic.
-        for( size_t k=0; k<n; ++k )
-            *descriptors[k].handler = h[k];
-        return true;
-    }
-    return false;
-}
-
-bool FillDynamicLinks( const char* library, const DynamicLinkDescriptor descriptors[], size_t n )
-{
-#if _WIN32||_WIN64
-    if ( FillDynamicLinks( GetModuleHandle(NULL), descriptors, n ) )
-        // Target library was statically linked into this executable
-        return true;
-    // Prevent Windows from displaying silly message boxes if it fails to load library
-    // (e.g. because of MS runtime problems - one those crazy manifest related ones)
-    UINT prev_mode = SetErrorMode (SEM_FAILCRITICALERRORS);
-    void* module = LoadLibrary (library);
-    SetErrorMode (prev_mode);
-#else
-    void* module = dlopen( library, RTLD_LAZY ); 
-#endif /* _WIN32||_WIN64 */
-    // Return true if the library is there and it contains all the expected entry points.
-    return module != NULL  &&  FillDynamicLinks( module, descriptors, n );
-}
-
-#endif /* !__TBB_WEAK_SYMBOLS */
-
 
 #include "tbb/tbb_version.h"
 
@@ -153,45 +97,50 @@ void PrintExtraVersionInfo( const char* category, const char* description ) {
 
 } // namespace internal
  
+extern "C" int TBB_runtime_interface_version() {
+    return TBB_INTERFACE_VERSION;
+}
+
 } // namespace tbb
 
 #if __TBB_x86_32
 
 #include "tbb/atomic.h"
 
-namespace tbb {
-namespace internal {
+// in MSVC environment, int64_t defined in tbb::internal namespace only (see tbb_stddef.h)
+#if _MSC_VER
+using tbb::internal::int64_t;
+#endif
 
-//! Handle 8-byte store that crosses a cache line.
-extern "C" void __TBB_machine_store8_slow( volatile void *ptr, int64_t value ) {
-#if TBB_DO_ASSERT
+//! Warn about 8-byte store that crosses a cache line.
+extern "C" void __TBB_machine_store8_slow_perf_warning( volatile void *ptr ) {
     // Report run-time warning unless we have already recently reported warning for that address.
     const unsigned n = 4;
-    static atomic<void*> cache[n];
-    static atomic<unsigned> k;
+    static tbb::atomic<void*> cache[n];
+    static tbb::atomic<unsigned> k;
     for( unsigned i=0; i<n; ++i ) 
         if( ptr==cache[i] ) 
             goto done;
     cache[(k++)%n] = const_cast<void*>(ptr);
-    runtime_warning( "atomic store on misaligned 8-byte location %p is slow", ptr );
+    tbb::internal::runtime_warning( "atomic store on misaligned 8-byte location %p is slow", ptr );
 done:;
-#endif /* TBB_DO_ASSERT */
-    for( AtomicBackoff b;; b.pause() ) {
+}
+
+//! Handle 8-byte store that crosses a cache line.
+extern "C" void __TBB_machine_store8_slow( volatile void *ptr, int64_t value ) {
+    for( tbb::internal::atomic_backoff b;; b.pause() ) {
         int64_t tmp = *(int64_t*)ptr;
         if( __TBB_machine_cmpswp8(ptr,value,tmp)==tmp ) 
             break;
-        b.pause();
     }
 }
 
-} // namespace internal
-} // namespace tbb
 #endif /* __TBB_x86_32 */
 
 #if __TBB_ipf
 extern "C" intptr_t __TBB_machine_lockbyte( volatile unsigned char& flag ) {
     if ( !__TBB_TryLockByte(flag) ) {
-        tbb::internal::AtomicBackoff b;
+        tbb::internal::atomic_backoff b;
         do {
             b.pause();
         } while ( !__TBB_TryLockByte(flag) );

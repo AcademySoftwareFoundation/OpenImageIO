@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2008 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2009 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -38,34 +38,36 @@
 #define __TBB_fence_for_acquire() __asm__ __volatile__("": : :"memory")
 #define __TBB_fence_for_release() __asm__ __volatile__("": : :"memory")
 
+inline void __TBB_rel_acq_fence() { __asm__ __volatile__("mfence": : :"memory"); }
+
 #define __MACHINE_DECL_ATOMICS(S,T,X) \
-static inline T __TBB_machine_cmpswp##S (volatile void *ptr, T value, T comparand )         \
+static inline T __TBB_machine_cmpswp##S (volatile void *ptr, T value, T comparand )  \
 {                                                                                    \
     T result;                                                                        \
                                                                                      \
-    __asm__ __volatile__("lock\ncmpxchg" X " %2,%1"                                       \
-                          : "=a"(result), "=m"(*(T *)ptr)                                             \
-                          : "q"(value), "0"(comparand)               \
+    __asm__ __volatile__("lock\ncmpxchg" X " %2,%1"                                  \
+                          : "=a"(result), "=m"(*(T *)ptr)                            \
+                          : "q"(value), "0"(comparand), "m"(*(T *)ptr)               \
                           : "memory");                                               \
     return result;                                                                   \
 }                                                                                    \
                                                                                      \
-static inline T __TBB_machine_fetchadd##S(volatile void *ptr, T addend)                     \
+static inline T __TBB_machine_fetchadd##S(volatile void *ptr, T addend)              \
 {                                                                                    \
     T result;                                                                        \
-    __asm__ __volatile__("lock\nxadd" X " %0,%1"                                          \
-                          : "=r"(result),"=m"(*(T *)ptr)                                             \
-                          : "0"(addend)                              \
+    __asm__ __volatile__("lock\nxadd" X " %0,%1"                                     \
+                          : "=r"(result),"=m"(*(T *)ptr)                             \
+                          : "0"(addend), "m"(*(T *)ptr)                              \
                           : "memory");                                               \
     return result;                                                                   \
 }                                                                                    \
                                                                                      \
-static inline  T __TBB_machine_fetchstore##S(volatile void *ptr, T value)                   \
+static inline  T __TBB_machine_fetchstore##S(volatile void *ptr, T value)            \
 {                                                                                    \
     T result;                                                                        \
-    __asm__ __volatile__("lock\nxchg" X " %0,%1"                                          \
-                          : "=r"(result),"=m"(*(T *)ptr)                                             \
-                          : "0"(value)                               \
+    __asm__ __volatile__("lock\nxchg" X " %0,%1"                                     \
+                          : "=r"(result),"=m"(*(T *)ptr)                             \
+                          : "0"(value), "m"(*(T *)ptr)                               \
                           : "memory");                                               \
     return result;                                                                   \
 }                                                                                    \
@@ -82,11 +84,11 @@ static inline int64_t __TBB_machine_lg( uint64_t x ) {
 }
 
 static inline void __TBB_machine_or( volatile void *ptr, uint64_t addend ) {
-    __asm__ __volatile__("lock\norq %1,%0" : "=m"(*(uint64_t *)ptr) : "r"(addend) : "memory");
+    __asm__ __volatile__("lock\norq %1,%0" : "=m"(*(uint64_t *)ptr) : "r"(addend), "m"(*(uint64_t *)ptr) : "memory");
 }
 
 static inline void __TBB_machine_and( volatile void *ptr, uint64_t addend ) {
-    __asm__ __volatile__("lock\nandq %1,%0" : "=m"(*(uint64_t *)ptr) : "r"(addend) : "memory");
+    __asm__ __volatile__("lock\nandq %1,%0" : "=m"(*(uint64_t *)ptr) : "r"(addend), "m"(*(uint64_t *)ptr) : "memory");
 }
 
 static inline void __TBB_machine_pause( int32_t delay ) {

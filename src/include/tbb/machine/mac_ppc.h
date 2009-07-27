@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2008 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2009 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -30,27 +30,24 @@
 #error Do not include this file directly; include tbb_machine.h instead
 #endif
 
-#define __TBB_WORDSIZE 8
-#define __TBB_BIG_ENDIAN 1
-
 #include <stdint.h>
 #include <unistd.h>
 
-#include <sched.h>
+#include <sched.h> // sched_yield
 
 inline int32_t __TBB_machine_cmpswp4 (volatile void *ptr, int32_t value, int32_t comparand )
 {
     int32_t result;
 
     __asm__ __volatile__("sync\n"
-                         "0: lwarx %0,0,%1\n\t"  /* load w/ reservation */
-                         "cmpw %0,%3\n\t"        /* compare against comparand */
+                         "0: lwarx %0,0,%2\n\t"  /* load w/ reservation */
+                         "cmpw %0,%4\n\t"        /* compare against comparand */
                          "bne- 1f\n\t"           /* exit if not same */
-                         "stwcx. %2,0,%1\n\t"    /* store new_value */
+                         "stwcx. %3,0,%2\n\t"    /* store new_value */
                          "bne- 0b\n"             /* retry if reservation lost */
                          "1: sync"               /* the exit */
-                          : "=&r"(result)
-                          : "r"(ptr), "r"(value), "r"(comparand)
+                          : "=&r"(result), "=m"(* (int32_t*) ptr)
+                          : "r"(ptr), "r"(value), "r"(comparand), "m"(* (int32_t*) ptr)
                           : "cr0");
     return result;
 }
@@ -59,21 +56,25 @@ inline int64_t __TBB_machine_cmpswp8 (volatile void *ptr, int64_t value, int64_t
 {
     int64_t result;
     __asm__ __volatile__("sync\n"
-                         "0: ldarx %0,0,%1\n\t"  /* load w/ reservation */
-                         "cmpd %0,%3\n\t"        /* compare against comparand */
+                         "0: ldarx %0,0,%2\n\t"  /* load w/ reservation */
+                         "cmpd %0,%4\n\t"        /* compare against comparand */
                          "bne- 1f\n\t"           /* exit if not same */
-                         "stdcx. %2,0,%1\n\t"    /* store new_value */
+                         "stdcx. %3,0,%2\n\t"    /* store new_value */
                          "bne- 0b\n"             /* retry if reservation lost */
                          "1: sync"               /* the exit */
-                          : "=&b"(result)
-                          : "r"(ptr), "r"(value), "r"(comparand)
+                          : "=&b"(result), "=m"(* (int64_t*) ptr)
+                          : "r"(ptr), "r"(value), "r"(comparand), "m"(* (int64_t*) ptr)
                           : "cr0");
     return result;
 }
 
+#define __TBB_BIG_ENDIAN 1
+
 #if defined(powerpc64) || defined(__powerpc64__) || defined(__ppc64__)
+#define __TBB_WORDSIZE 8
 #define __TBB_CompareAndSwapW(P,V,C) __TBB_machine_cmpswp8(P,V,C)
 #else
+#define __TBB_WORDSIZE 4
 #define __TBB_CompareAndSwapW(P,V,C) __TBB_machine_cmpswp4(P,V,C)
 #endif
 
