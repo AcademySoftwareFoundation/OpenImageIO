@@ -598,10 +598,11 @@ private:
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
     size_t m_mem_used;           ///< Memory being used for tiles
     int m_statslevel;            ///< Statistics level
-    mutable std::string m_errormessage;   ///< Saved error string.
+    /// Saved error string, per-thread
+    ///
+    mutable boost::thread_specific_ptr< std::string > m_errormessage;
     mutable shared_mutex m_filemutex; ///< Thread safety for file cache
     mutable shared_mutex m_tilemutex; ///< Thread safety for tile cache
-    mutable mutex m_errmutex;         ///< error mutex
 
 private:
     atomic_ll m_stat_find_tile_calls;

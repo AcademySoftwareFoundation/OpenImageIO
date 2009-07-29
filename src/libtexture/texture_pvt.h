@@ -418,8 +418,9 @@ private:
     std::vector<PerThreadInfo *> m_all_perthread_info;
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
-    mutable std::string m_errormessage;   ///< Saved error string.
-    mutable mutex m_errmutex;             ///< error mutex
+    /// Saved error string, per-thread
+    ///
+    mutable boost::thread_specific_ptr< std::string > m_errormessage;
     mutable mutex m_perthread_info_mutex; ///< Thread safety for perthread
     Filter1D *hq_filter;         ///< Better filter for magnification
     int m_statslevel;

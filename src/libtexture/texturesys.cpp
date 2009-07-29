@@ -443,9 +443,12 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
 std::string
 TextureSystemImpl::geterror () const
 {
-    lock_guard lock (m_errmutex);
-    std::string e = m_errormessage;
-    m_errormessage.clear();
+    std::string e;
+    std::string *errptr = m_errormessage.get ();
+    if (errptr) {
+        e = *errptr;
+        errptr->clear ();
+    }
     return e;
 }
 
@@ -454,12 +457,17 @@ TextureSystemImpl::geterror () const
 void
 TextureSystemImpl::error (const char *message, ...)
 {
-    lock_guard lock (m_errmutex);
+    std::string *errptr = m_errormessage.get ();
+    if (! errptr) {
+        errptr = new std::string;
+        m_errormessage.reset (errptr);
+    }
+    ASSERT (errptr != NULL);
+    if (errptr->size())
+        *errptr += '\n';
     va_list ap;
     va_start (ap, message);
-    if (m_errormessage.size())
-        m_errormessage += '\n';
-    m_errormessage += Strutil::vformat (message, ap);
+    *errptr += Strutil::vformat (message, ap);
     va_end (ap);
 }
 
