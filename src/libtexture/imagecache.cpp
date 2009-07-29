@@ -1412,9 +1412,13 @@ ImageCacheImpl::get_tile (ustring filename, int subimage, int x, int y, int z)
     z = spec.z + ztile * spec.tile_depth;
     TileID id (*file, subimage, x, y, z);
     ImageCacheTileRef tile;
-    bool ok = find_tile (id, tile);
-    tile->_incref();   // Fake an extra reference count
-    return (ok && tile->valid()) ? (ImageCache::Tile *) tile.get() : NULL;
+    if (find_tile (id, tile)) {
+        tile->_incref();   // Fake an extra reference count
+        tile->use ();
+        return (ImageCache::Tile *) tile.get();
+    } else {
+        return NULL;
+    }
 }
 
 

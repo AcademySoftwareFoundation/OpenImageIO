@@ -374,10 +374,12 @@ public:
         /// Assign one Iterator to another
         ///
         const Iterator & operator= (const Iterator &i) {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+            m_tile = NULL;
             m_ib = i.m_ib;
             m_xbegin = i.m_xbegin;  m_xend = i.m_xend;
             m_ybegin = i.m_ybegin;  m_yend = i.m_yend;
-            m_tile = NULL;
             pos (i.m_x, i.m_y);
             return *this;
         }
@@ -501,10 +503,12 @@ public:
         /// Assign one ConstIterator to another
         ///
         const ConstIterator & operator= (const ConstIterator &i) {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+            m_tile = NULL;
             m_ib = i.m_ib;
             m_xbegin = i.m_xbegin;  m_xend = i.m_xend;
             m_ybegin = i.m_ybegin;  m_yend = i.m_yend;
-            m_tile = NULL;
             pos (i.m_x, i.m_y);
             return *this;
         }
