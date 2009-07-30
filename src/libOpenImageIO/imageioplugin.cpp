@@ -188,6 +188,7 @@ extern "C" {
     PLUGENTRY (hdr);
     PLUGENTRY (ico);
     PLUGENTRY (jpeg);
+    PLUGENTRY (jpeg2000);
     PLUGENTRY (openexr);
     PLUGENTRY (png);
     PLUGENTRY (tiff);
@@ -216,6 +217,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (hdr);
     DECLAREPLUG (ico);
     DECLAREPLUG (jpeg);
+    DECLAREPLUG (jpeg2000);
     DECLAREPLUG (openexr);
     DECLAREPLUG (png);
     DECLAREPLUG (tiff);
