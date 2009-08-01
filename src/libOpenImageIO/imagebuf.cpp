@@ -348,8 +348,13 @@ static inline void
 getpixel_ (const ImageBuf &buf, int x, int y, float *result, int chans)
 {
     ImageBuf::ConstIterator<T> pixel (buf, x, y);
-    for (int i = 0;  i < chans;  ++i)
-        result[i] = pixel[i];
+    if (pixel.valid()) {
+        for (int i = 0;  i < chans;  ++i)
+            result[i] = pixel[i];
+    } else {
+        for (int i = 0;  i < chans;  ++i)
+            result[i] = 0.0f;
+    }
 }
 
 
@@ -380,6 +385,8 @@ ImageBuf::interppixel (float x, float y, float *pixel) const
 {
     const int maxchannels = 64;  // Reasonable guess
     float p[4][maxchannels];
+    DASSERT (spec().nchannels <= maxchannels && 
+             "You need to increase maxchannels in ImageBuf::interppixel");
     int n = std::min (spec().nchannels, maxchannels);
     x -= 0.5f;
     y -= 0.5f;
@@ -387,14 +394,10 @@ ImageBuf::interppixel (float x, float y, float *pixel) const
     float xfrac, yfrac;
     xfrac = floorfrac (x, &xtexel);
     yfrac = floorfrac (y, &ytexel);
-    int xtexel0 = Imath::clamp (xtexel, xmin(), xmax());
-    int ytexel0 = Imath::clamp (ytexel, ymin(), ymax());
-    int xtexel1 = Imath::clamp (xtexel+1, xmin(), xmax());
-    int ytexel1 = Imath::clamp (ytexel+1, ymin(), ymax());
-    getpixel (xtexel0, ytexel0, p[0], n);
-    getpixel (xtexel1, ytexel0, p[1], n);
-    getpixel (xtexel0, ytexel1, p[2], n);
-    getpixel (xtexel1, ytexel1, p[3], n);
+    getpixel (xtexel, ytexel, p[0], n);
+    getpixel (xtexel+1, ytexel, p[1], n);
+    getpixel (xtexel, ytexel+1, p[2], n);
+    getpixel (xtexel+1, ytexel+1, p[3], n);
     bilerp (p[0], p[1], p[2], p[3], xfrac, yfrac, n, pixel);
 }
 
@@ -405,8 +408,10 @@ static inline void
 setpixel_ (ImageBuf &buf, int x, int y, const float *data, int chans)
 {
     ImageBuf::Iterator<T> pixel (buf, x, y);
-    for (int i = 0;  i < chans;  ++i)
-        pixel[i] = data[i];
+    if (pixel.valid()) {
+        for (int i = 0;  i < chans;  ++i)
+            pixel[i] = data[i];
+    }
 }
 
 

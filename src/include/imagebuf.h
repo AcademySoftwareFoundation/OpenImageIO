@@ -175,11 +175,19 @@ public:
     void interppixel (float x, float y, float *pixel) const;
 
     /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
-    /// the upper left corner, (1,1) the lower right corner of the pixel
-    /// data.
+    /// the upper left corner of the pixel data window, (1,1) the lower
+    /// right corner of the pixel data.
     void interppixel_NDC (float x, float y, float *pixel) const {
         interppixel (spec().x + x * spec().width,
                      spec().y + y * spec().height, pixel);
+    }
+
+    /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
+    /// the upper left corner of the display window, (1,1) the lower
+    /// right corner of the display window.
+    void interppixel_NDC_full (float x, float y, float *pixel) const {
+        interppixel (spec().full_x + x * spec().full_width,
+                     spec().full_y + y * spec().full_height, pixel);
     }
 
     /// Set the pixel value by x and y coordintes (on [0,res-1]),
