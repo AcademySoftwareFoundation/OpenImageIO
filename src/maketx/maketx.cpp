@@ -313,15 +313,26 @@ make_texturemap (const char *maptypename = "texture map")
     }
 
     // Copy the input spec
-    ImageSpec dstspec = src.spec();
+    const ImageSpec &srcspec = src.spec();
+    ImageSpec dstspec = srcspec;
 
     // Make the output not a crop window
     dstspec.x = 0;
     dstspec.y = 0;
     dstspec.z = 0;
-    dstspec.full_width = 0;
-    dstspec.full_height = 0;
-    dstspec.full_depth = 0;
+    dstspec.width = srcspec.full_width;
+    dstspec.height = srcspec.full_height;
+    dstspec.depth = srcspec.full_depth;
+    dstspec.full_x = 0;
+    dstspec.full_y = 0;
+    dstspec.full_z = 0;
+    dstspec.full_width = dstspec.width;
+    dstspec.full_height = dstspec.height;
+    dstspec.full_depth = dstspec.depth;
+    bool orig_was_crop = (srcspec.x != 0 || srcspec.y != 0 || srcspec.z != 0 ||
+                          srcspec.full_width != srcspec.width ||
+                          srcspec.full_height != srcspec.height ||
+                          srcspec.full_depth != srcspec.depth);
 
     // Make the output tiled, regardless of input
     dstspec.tile_width  = tile[0];
@@ -370,7 +381,7 @@ make_texturemap (const char *maptypename = "texture map")
                                 (twrap.size() ? twrap : wrap);
         dstspec.attribute ("wrapmodes", wrapmodes);
     }
-    dstspec.attribute ("fovcot", (float)src.spec().width / src.spec().height);
+    dstspec.attribute ("fovcot", (float)srcspec.full_width / srcspec.full_height);
 
     if (separate)
         dstspec.attribute ("planarconfig", "separate");
@@ -392,11 +403,11 @@ make_texturemap (const char *maptypename = "texture map")
     ImageBuf dst ("temp", dstspec);
     ImageBuf *toplevel = &dst;    // Ptr to top level of mipmap
     float *pel = (float *) alloca (dstspec.pixel_bytes());
-    if (dstspec.width == src.spec().width && 
-        dstspec.height == src.spec().height &&
-        dstspec.depth == src.spec().depth) {
+    if (dstspec.width == srcspec.width && 
+        dstspec.height == srcspec.height &&
+        dstspec.depth == srcspec.depth && ! orig_was_crop) {
         // Special case: don't need to resize
-        if (dstspec.format == src.spec().format) {
+        if (dstspec.format == srcspec.format) {
             // Even more special case, no format change -- just use
             // the original copy.
             toplevel = &src;
@@ -415,8 +426,8 @@ make_texturemap (const char *maptypename = "texture map")
                       << " x " << dstspec.height << std::endl;
         for (int y = 0;  y < dstspec.height;  ++y) {
             for (int x = 0;  x < dstspec.width;  ++x) {
-                src.interppixel_NDC ((x+0.5f)/(float)dstspec.width,
-                                     (y+0.5f)/(float)dstspec.height, pel);
+                src.interppixel_NDC_full ((x+0.5f)/(float)dstspec.width,
+                                          (y+0.5f)/(float)dstspec.height, pel);
                 dst.setpixel (x, y, pel);
             }
         }

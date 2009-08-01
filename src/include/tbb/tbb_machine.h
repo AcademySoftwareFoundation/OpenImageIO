@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2008 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2009 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -29,7 +29,7 @@
 #ifndef __TBB_machine_H
 #define __TBB_machine_H
 
-#include "tbb/tbb_stddef.h"
+#include "tbb_stddef.h"
 
 #if _WIN32||_WIN64
 
@@ -37,10 +37,14 @@
 #pragma managed(push, off)
 #endif
 
-#if defined(_M_IX86)
-#include "tbb/machine/windows_ia32.h"
+#if __MINGW32__
+#include "machine/linux_ia32.h"
+extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
+#define __TBB_Yield()  SwitchToThread()
+#elif defined(_M_IX86)
+#include "machine/windows_ia32.h"
 #elif defined(_M_AMD64) 
-#include "tbb/machine/windows_em64t.h"
+#include "machine/windows_em64t.h"
 #else
 #error Unsupported platform
 #endif
@@ -52,35 +56,35 @@
 #elif __linux__ || __FreeBSD__
 
 #if __i386__
-#include "tbb/machine/linux_ia32.h"
+#include "machine/linux_ia32.h"
 #elif __x86_64__
-#include "tbb/machine/linux_em64t.h"
+#include "machine/linux_em64t.h"
 #elif __ia64__
-#include "tbb/machine/linux_itanium.h"
+#include "machine/linux_itanium.h"
 #endif
 
 #elif __APPLE__
 
 #if __i386__
-#include "tbb/machine/linux_ia32.h"
+#include "machine/linux_ia32.h"
 #elif __x86_64__
-#include "tbb/machine/linux_em64t.h"
+#include "machine/linux_em64t.h"
 #elif __POWERPC__
-#include "tbb/machine/mac_ppc.h"
+#include "machine/mac_ppc.h"
 #endif
 
 #elif _AIX
 
-#include "tbb/machine/ibm_aix51.h"
+#include "machine/ibm_aix51.h"
 
 #elif __sun || __SUNPRO_CC
 
 #define __asm__ asm 
 #define __volatile__ volatile
 #if __i386  || __i386__
-#include "tbb/machine/linux_ia32.h"
+#include "machine/linux_ia32.h"
 #elif __x86_64__
-#include "tbb/machine/linux_em64t.h"
+#include "machine/linux_em64t.h"
 #endif
 
 #endif
@@ -108,7 +112,7 @@
 #ifdef __TBB_fence_for_release
         __TBB_fence_for_release();
 #endif /* __TBB_fence_for_release */
-        location = value; 
+        location = T(value); 
     }
 #endif
 
@@ -122,15 +126,15 @@ namespace tbb {
 namespace internal {
 
 //! Class that implements exponential backoff.
-/** See implementation of SpinwaitWhileEq for an example. */
-class AtomicBackoff {
+/** See implementation of spin_wait_while_eq for an example. */
+class atomic_backoff {
     //! Time delay, in units of "pause" instructions. 
     /** Should be equal to approximately the number of "pause" instructions
         that take the same time as an context switch. */
     static const int32_t LOOPS_BEFORE_YIELD = 16;
     int32_t count;
 public:
-    AtomicBackoff() : count(1) {}
+    atomic_backoff() : count(1) {}
 
     //! Pause for a while.
     void pause() {
@@ -161,28 +165,49 @@ public:
     }
 };
 
+//! Spin WHILE the value of the variable is equal to a given value
+/** T and U should be comparable types. */
+template<typename T, typename U>
+void spin_wait_while_eq( const volatile T& location, U value ) {
+    atomic_backoff backoff;
+    while( location==value ) backoff.pause();
+}
+
+//! Spin UNTIL the value of the variable is equal to a given value
+/** T and U should be comparable types. */
+template<typename T, typename U>
+void spin_wait_until_eq( const volatile T& location, const U value ) {
+    atomic_backoff backoff;
+    while( location!=value ) backoff.pause();
+}
+
+// T should be unsigned, otherwise sign propagation will break correctness of bit manipulations.
+// S should be either 1 or 2, for the mask calculation to work correctly.
+// Together, these rules limit applicability of Masked CAS to unsigned char and unsigned short.
 template<size_t S, typename T>
-inline intptr_t __TBB_MaskedCompareAndSwap (volatile int32_t *ptr, T value, T comparand ) {
-    T *base = (T *)( (uintptr_t)(ptr) & ~(uintptr_t)(0x3) );
+inline T __TBB_MaskedCompareAndSwap (volatile T *ptr, T value, T comparand ) {
+    volatile uint32_t * base = (uint32_t*)( (uintptr_t)ptr & ~(uintptr_t)0x3 );
 #if __TBB_BIG_ENDIAN
-    const uint8_t bitoffset = ( (4-S) - ( (uint8_t *)ptr - (uint8_t *)base) ) * 8;
+    const uint8_t bitoffset = uint8_t( 8*( 4-S - (uintptr_t(ptr) & 0x3) ) );
 #else
-    const uint8_t bitoffset = ( (uint8_t *)ptr - (uint8_t *)base ) * 8;
+    const uint8_t bitoffset = uint8_t( 8*((uintptr_t)ptr & 0x3) );
 #endif
-    const uint32_t mask = ( (1<<(S*8) ) - 1)<<bitoffset;
-    AtomicBackoff b;
+    const uint32_t mask = ( (1<<(S*8)) - 1 )<<bitoffset;
+    atomic_backoff b;
     uint32_t result;
     for(;;) {
-        result = *(volatile uint32_t *)base;
+        result = *base; // reload the base value which might change during the pause
         uint32_t old_value = ( result & ~mask ) | ( comparand << bitoffset );
         uint32_t new_value = ( result & ~mask ) | ( value << bitoffset );
         // __TBB_CompareAndSwap4 presumed to have full fence. 
-        uint32_t tmp = __TBB_CompareAndSwap4( base, new_value, old_value );
-        if( tmp==old_value || ((tmp^old_value)&mask)!=0 ) 
+        result = __TBB_CompareAndSwap4( base, new_value, old_value );
+        if(  result==old_value               // CAS succeeded
+          || ((result^old_value)&mask)!=0 )  // CAS failed and the bits of interest have changed
             break;
-        b.pause();
+        else                                 // CAS failed but the bits of interest left unchanged
+            b.pause();
     }
-    return (T)((result & mask) >> bitoffset);
+    return T((result & mask) >> bitoffset);
 }
 
 template<size_t S, typename T>
@@ -195,7 +220,7 @@ inline uint8_t __TBB_CompareAndSwapGeneric <1,uint8_t> (volatile void *ptr, uint
 #ifdef __TBB_CompareAndSwap1
     return __TBB_CompareAndSwap1(ptr,value,comparand);
 #else
-    return __TBB_MaskedCompareAndSwap<1,uint8_t>((volatile int32_t *)ptr,value,comparand);
+    return __TBB_MaskedCompareAndSwap<1,uint8_t>((volatile uint8_t *)ptr,value,comparand);
 #endif
 }
 
@@ -204,7 +229,7 @@ inline uint16_t __TBB_CompareAndSwapGeneric <2,uint16_t> (volatile void *ptr, ui
 #ifdef __TBB_CompareAndSwap2
     return __TBB_CompareAndSwap2(ptr,value,comparand);
 #else
-    return __TBB_MaskedCompareAndSwap<2,uint16_t>((volatile int32_t *)ptr,value,comparand);
+    return __TBB_MaskedCompareAndSwap<2,uint16_t>((volatile uint16_t *)ptr,value,comparand);
 #endif
 }
 
@@ -220,7 +245,7 @@ inline uint64_t __TBB_CompareAndSwapGeneric <8,uint64_t> (volatile void *ptr, ui
 
 template<size_t S, typename T>
 inline T __TBB_FetchAndAddGeneric (volatile void *ptr, T addend) {
-    AtomicBackoff b;
+    atomic_backoff b;
     T result;
     for(;;) {
         result = *reinterpret_cast<volatile T *>(ptr);
@@ -234,7 +259,7 @@ inline T __TBB_FetchAndAddGeneric (volatile void *ptr, T addend) {
 
 template<size_t S, typename T>
 inline T __TBB_FetchAndStoreGeneric (volatile void *ptr, T value) {
-    AtomicBackoff b;
+    atomic_backoff b;
     T result;
     for(;;) {
         result = *reinterpret_cast<volatile T *>(ptr);
@@ -489,7 +514,7 @@ struct work_around_alignment_bug {
 // On 32-bit platforms, "atomic.h" requires definition of __TBB_Store8 and __TBB_Load8
 #ifndef __TBB_Store8
 inline void __TBB_Store8 (volatile void *ptr, int64_t value) {
-    tbb::internal::AtomicBackoff b;
+    tbb::internal::atomic_backoff b;
     for(;;) {
         int64_t result = *(int64_t *)ptr;
         if( __TBB_CompareAndSwap8(ptr,value,result)==result ) break;
@@ -509,15 +534,23 @@ inline int64_t __TBB_Load8 (const volatile void *ptr) {
 
 #ifndef __TBB_Log2
 inline intptr_t __TBB_Log2( uintptr_t x ) {
-    long result = -1;
-    for(; x; x>>=1 ) ++result;
-    return result;
+    if( x==0 ) return -1;
+    intptr_t result = 0;
+    uintptr_t tmp;
+#if __TBB_WORDSIZE>=8
+    if( (tmp = x>>32) ) { x=tmp; result += 32; }
+#endif
+    if( (tmp = x>>16) ) { x=tmp; result += 16; }
+    if( (tmp = x>>8) )  { x=tmp; result += 8; }
+    if( (tmp = x>>4) )  { x=tmp; result += 4; }
+    if( (tmp = x>>2) )  { x=tmp; result += 2; }
+    return (x&2)? result+1: result;
 }
 #endif
 
 #ifndef __TBB_AtomicOR
 inline void __TBB_AtomicOR( volatile void *operand, uintptr_t addend ) {
-    tbb::internal::AtomicBackoff b;
+    tbb::internal::atomic_backoff b;
     for(;;) {
         uintptr_t tmp = *(volatile uintptr_t *)operand;
         uintptr_t result = __TBB_CompareAndSwapW(operand, tmp|addend, tmp);
@@ -529,7 +562,7 @@ inline void __TBB_AtomicOR( volatile void *operand, uintptr_t addend ) {
 
 #ifndef __TBB_AtomicAND
 inline void __TBB_AtomicAND( volatile void *operand, uintptr_t addend ) {
-    tbb::internal::AtomicBackoff b;
+    tbb::internal::atomic_backoff b;
     for(;;) {
         uintptr_t tmp = *(volatile uintptr_t *)operand;
         uintptr_t result = __TBB_CompareAndSwapW(operand, tmp&addend, tmp);
@@ -548,7 +581,7 @@ inline bool __TBB_TryLockByte( unsigned char &flag ) {
 #ifndef __TBB_LockByte
 inline uintptr_t __TBB_LockByte( unsigned char& flag ) {
     if ( !__TBB_TryLockByte(flag) ) {
-        tbb::internal::AtomicBackoff b;
+        tbb::internal::atomic_backoff b;
         do {
             b.pause();
         } while ( !__TBB_TryLockByte(flag) );

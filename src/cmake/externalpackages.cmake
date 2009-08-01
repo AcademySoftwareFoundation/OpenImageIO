@@ -200,7 +200,7 @@ setup_path (TBB_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the TBB library install")
 mark_as_advanced (TBB_HOME)
 if (USE_TBB)
-    set (TBB_VERSION 21_20080605oss)
+    set (TBB_VERSION 21_20090511oss)
     if (MSVC)
         find_library (TBB_LIBRARY
                       NAMES tbb

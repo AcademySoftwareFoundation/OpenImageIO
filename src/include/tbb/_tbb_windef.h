@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2008 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2009 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -52,20 +52,20 @@ namespace std {
 #define __TBB_STRING_AUX(x) #x
 #define __TBB_STRING(x) __TBB_STRING_AUX(x)
 
-// Default setting of TBB_DO_ASSERT
-#ifdef TBB_DO_ASSERT
-#    if TBB_DO_ASSERT 
+// Default setting of TBB_USE_DEBUG
+#ifdef TBB_USE_DEBUG
+#    if TBB_USE_DEBUG 
 #        if !defined(_DEBUG)
-#            pragma message(__FILE__ "(" __TBB_STRING(__LINE__) ") : Warning: Recommend using /MDd if compiling with TBB_DO_ASSERT!=0")
+#            pragma message(__FILE__ "(" __TBB_STRING(__LINE__) ") : Warning: Recommend using /MDd if compiling with TBB_USE_DEBUG!=0")
 #        endif
 #    else
 #        if defined(_DEBUG)
-#            pragma message(__FILE__ "(" __TBB_STRING(__LINE__) ") : Warning: Recommend using /MD if compiling with TBB_DO_ASSERT==0")
+#            pragma message(__FILE__ "(" __TBB_STRING(__LINE__) ") : Warning: Recommend using /MD if compiling with TBB_USE_DEBUG==0")
 #        endif
 #    endif
 #else
 #    ifdef _DEBUG
-#        define TBB_DO_ASSERT 1
+#        define TBB_USE_DEBUG 1
 #    endif
 #endif 
 

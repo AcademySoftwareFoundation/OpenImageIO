@@ -1276,7 +1276,12 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
         *(float *)data = spec.nchannels;
         return true;
     }
-    if (dataname == "cachedpixeltype" && datatype == TypeDesc::TypeInt) {
+    if (dataname == "format" && datatype == TypeDesc::TypeInt) {
+        *(int *)data = (int) spec.format.basetype;
+        return true;
+    }
+    if ((dataname == "cachedformat" || dataname == "cachedpixeltype") &&
+            datatype == TypeDesc::TypeInt) {
         *(int *)data = (int) file->m_datatype.basetype;
         return true;
     }
@@ -1412,9 +1417,13 @@ ImageCacheImpl::get_tile (ustring filename, int subimage, int x, int y, int z)
     z = spec.z + ztile * spec.tile_depth;
     TileID id (*file, subimage, x, y, z);
     ImageCacheTileRef tile;
-    bool ok = find_tile (id, tile);
-    tile->_incref();   // Fake an extra reference count
-    return (ok && tile->valid()) ? (ImageCache::Tile *) tile.get() : NULL;
+    if (find_tile (id, tile)) {
+        tile->_incref();   // Fake an extra reference count
+        tile->use ();
+        return (ImageCache::Tile *) tile.get();
+    } else {
+        return NULL;
+    }
 }
 
 
@@ -1509,9 +1518,12 @@ ImageCacheImpl::invalidate_all (bool force)
 std::string
 ImageCacheImpl::geterror () const
 {
-    lock_guard lock (m_errmutex);
-    std::string e = m_errormessage;
-    m_errormessage.clear();
+    std::string e;
+    std::string *errptr = m_errormessage.get ();
+    if (errptr) {
+        e = *errptr;
+        errptr->clear ();
+    }
     return e;
 }
 
@@ -1520,12 +1532,17 @@ ImageCacheImpl::geterror () const
 void
 ImageCacheImpl::error (const char *message, ...)
 {
-    lock_guard lock (m_errmutex);
+    std::string *errptr = m_errormessage.get ();
+    if (! errptr) {
+        errptr = new std::string;
+        m_errormessage.reset (errptr);
+    }
+    ASSERT (errptr != NULL);
+    if (errptr->size())
+        *errptr += '\n';
     va_list ap;
     va_start (ap, message);
-    if (m_errormessage.size())
-        m_errormessage += '\n';
-    m_errormessage += Strutil::vformat (message, ap);
+    *errptr += Strutil::vformat (message, ap);
     va_end (ap);
 }
 

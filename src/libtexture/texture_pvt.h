@@ -276,9 +276,6 @@ private:
     };
 
     static void cleanup_perthread_info (PerThreadInfo *p) {
-        // When the thread dies, don't just release the PerThreadInfo, also
-        // remove its entry from the TextureSystem's m_allperthread_info.
-        p->texturesys.erase_perthread_info (p);
         delete p;
     }
 
@@ -302,11 +299,10 @@ private:
         return p;
     }
 
-    void erase_perthread_info (PerThreadInfo *p) {
+    void erase_perthread_info () {
         lock_guard lock (m_perthread_info_mutex);
         for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
-            if (m_all_perthread_info[i] == p)
-                m_all_perthread_info[i] = NULL;
+            m_all_perthread_info[i] = NULL;
     }
 
     void init ();
@@ -418,8 +414,9 @@ private:
     std::vector<PerThreadInfo *> m_all_perthread_info;
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
-    mutable std::string m_errormessage;   ///< Saved error string.
-    mutable mutex m_errmutex;             ///< error mutex
+    /// Saved error string, per-thread
+    ///
+    mutable boost::thread_specific_ptr< std::string > m_errormessage;
     mutable mutex m_perthread_info_mutex; ///< Thread safety for perthread
     Filter1D *hq_filter;         ///< Better filter for magnification
     int m_statslevel;

@@ -134,6 +134,12 @@ test_gettextureinfo (ustring filename)
                                    TypeDesc::FLOAT, &fchan);
     std::cerr << "Result of get_texture_info channels = " << ok << ' ' << fchan << "\n";
 
+    int dataformat;
+    ok = texsys->get_texture_info (filename, ustring("format"),
+                                   TypeDesc::INT, &dataformat);
+    std::cerr << "Result of get_texture_info data format = " << ok << ' ' 
+              << TypeDesc((TypeDesc::BASETYPE)dataformat).c_str() << "\n";
+
     const char *datetime = NULL;
     ok = texsys->get_texture_info (filename, ustring("DateTime"),
                                    TypeDesc::STRING, &datetime);

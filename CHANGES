@@ -67,6 +67,16 @@ Fixes and minor enhancements:
   redundant I/O when it finds multiple files with identical pixels.
   (r741,742)
 * iinfo: eliminate --md5 in favor of --hash (computing SHA-1). (r749)
+* Fix ImageCache and TextureSystem to have thread-specific error 
+  reporting. (r1045)
+* TextureSystem: fixed subtle bug in destruction order that could
+  double-free per-thread data. (r1057)
+* ImageCache: now get_image_info("format") returns teh native data format
+  of the file. (r1058)
+* maketx: properly handle input files where the data window is not the
+  same as the display window or if the image offset was nonzero.  The
+  correct semantics are that the DISPLAY window is what maps to [0,1] in
+  texture space. (r1059)
 
 
 For developers:
@@ -84,6 +94,8 @@ For developers:
 * Reorganized test suite hierarchy.
 * Optionally allow the entire library to be enclosed in a versioned
   namespace (via 'make NAMESPACE=foo') .
+* Upgraded to a more recent version of TBB that seems to have fixed some
+  bugs with atomic counters. (r1027)
 
 
 

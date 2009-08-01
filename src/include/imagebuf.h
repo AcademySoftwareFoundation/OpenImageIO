@@ -175,11 +175,19 @@ public:
     void interppixel (float x, float y, float *pixel) const;
 
     /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
-    /// the upper left corner, (1,1) the lower right corner of the pixel
-    /// data.
+    /// the upper left corner of the pixel data window, (1,1) the lower
+    /// right corner of the pixel data.
     void interppixel_NDC (float x, float y, float *pixel) const {
         interppixel (spec().x + x * spec().width,
                      spec().y + y * spec().height, pixel);
+    }
+
+    /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
+    /// the upper left corner of the display window, (1,1) the lower
+    /// right corner of the display window.
+    void interppixel_NDC_full (float x, float y, float *pixel) const {
+        interppixel (spec().full_x + x * spec().full_width,
+                     spec().full_y + y * spec().full_height, pixel);
     }
 
     /// Set the pixel value by x and y coordintes (on [0,res-1]),
@@ -374,10 +382,12 @@ public:
         /// Assign one Iterator to another
         ///
         const Iterator & operator= (const Iterator &i) {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+            m_tile = NULL;
             m_ib = i.m_ib;
             m_xbegin = i.m_xbegin;  m_xend = i.m_xend;
             m_ybegin = i.m_ybegin;  m_yend = i.m_yend;
-            m_tile = NULL;
             pos (i.m_x, i.m_y);
             return *this;
         }
@@ -501,10 +511,12 @@ public:
         /// Assign one ConstIterator to another
         ///
         const ConstIterator & operator= (const ConstIterator &i) {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+            m_tile = NULL;
             m_ib = i.m_ib;
             m_xbegin = i.m_xbegin;  m_xend = i.m_xend;
             m_ybegin = i.m_ybegin;  m_yend = i.m_yend;
-            m_tile = NULL;
             pos (i.m_x, i.m_y);
             return *this;
         }

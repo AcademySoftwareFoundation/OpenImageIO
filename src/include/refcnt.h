@@ -58,7 +58,7 @@ namespace OPENIMAGEIO_NAMESPACE {
 /// counter.
 class RefCnt {
 public:
-    RefCnt () { }
+    RefCnt () { m_refcnt = 0; }
 
     /// Define copy constructor to NOT COPY reference counts! Copying a
     /// struct doesn't change how many other things point to it.
