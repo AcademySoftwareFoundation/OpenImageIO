@@ -1276,7 +1276,12 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
         *(float *)data = spec.nchannels;
         return true;
     }
-    if (dataname == "cachedpixeltype" && datatype == TypeDesc::TypeInt) {
+    if (dataname == "format" && datatype == TypeDesc::TypeInt) {
+        *(int *)data = (int) spec.format.basetype;
+        return true;
+    }
+    if ((dataname == "cachedformat" || dataname == "cachedpixeltype") &&
+            datatype == TypeDesc::TypeInt) {
         *(int *)data = (int) file->m_datatype.basetype;
         return true;
     }
