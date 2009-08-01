@@ -276,9 +276,6 @@ private:
     };
 
     static void cleanup_perthread_info (PerThreadInfo *p) {
-        // When the thread dies, don't just release the PerThreadInfo, also
-        // remove its entry from the TextureSystem's m_allperthread_info.
-        p->texturesys.erase_perthread_info (p);
         delete p;
     }
 
@@ -302,11 +299,10 @@ private:
         return p;
     }
 
-    void erase_perthread_info (PerThreadInfo *p) {
+    void erase_perthread_info () {
         lock_guard lock (m_perthread_info_mutex);
         for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
-            if (m_all_perthread_info[i] == p)
-                m_all_perthread_info[i] = NULL;
+            m_all_perthread_info[i] = NULL;
     }
 
     void init ();

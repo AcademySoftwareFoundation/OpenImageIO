@@ -247,6 +247,7 @@ TextureSystemImpl::init ()
 TextureSystemImpl::~TextureSystemImpl ()
 {
     printstats ();
+    erase_perthread_info ();
     ImageCache::destroy (m_imagecache);
     m_imagecache = NULL;
     delete hq_filter;
