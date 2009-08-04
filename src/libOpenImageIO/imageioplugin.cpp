@@ -217,7 +217,9 @@ catalog_builtin_plugins ()
     DECLAREPLUG (hdr);
     DECLAREPLUG (ico);
     DECLAREPLUG (jpeg);
+#ifdef USE_JASPER
     DECLAREPLUG (jpeg2000);
+#endif
     DECLAREPLUG (openexr);
     DECLAREPLUG (png);
     DECLAREPLUG (tiff);

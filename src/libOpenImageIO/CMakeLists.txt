@@ -59,18 +59,26 @@ if (EMBEDPLUGINS)
         ../targa.imageio/targainput.cpp ../targa.imageio/targaoutput.cpp
         ../tiff.imageio/tiffinput.cpp ../tiff.imageio/tiffoutput.cpp
         ../zfile.imageio/zfile.cpp
-        ../jpeg2000.imageio/jpeg2000input.cpp
-        ../jpeg2000.imageio/jpeg2000output.cpp
         )
     find_package (PNG REQUIRED)
     find_package (JPEG REQUIRED)
     find_package (TIFF REQUIRED)
     find_package (ZLIB REQUIRED)
-    find_package (Jasper REQUIRED)
+    find_package (Jasper)
     include_directories (${PNG_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
     include_directories (${TIFF_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
-    include_directories (${JASPER_INCLUDE_DIR})
     add_definitions ("-DEMBED_PLUGINS=1")
+    if (JASPER_FOUND)
+        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+             ../jpeg2000.imageio/jpeg2000input.cpp
+             ../jpeg2000.imageio/jpeg2000output.cpp
+            )
+        include_directories (${JASPER_INCLUDE_DIR})
+        add_definition ("-DUSE_JASPER=1")
+    else (JASPER_FOUND)
+        message (STATUS "Jasper not found: jpeg2000 plugin would no be built")
+        set (JASPER_LIBRARY "")
+    endif (JASPER_FOUND)
 endif ()
 
 
