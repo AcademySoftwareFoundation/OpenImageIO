@@ -74,7 +74,7 @@ if (EMBEDPLUGINS)
              ../jpeg2000.imageio/jpeg2000output.cpp
             )
         include_directories (${JASPER_INCLUDE_DIR})
-        add_definition ("-DUSE_JASPER=1")
+        add_definitions ("-DUSE_JASPER=1")
     else (JASPER_FOUND)
         message (STATUS "Jasper not found: jpeg2000 plugin would no be built")
         set (JASPER_LIBRARY "")
