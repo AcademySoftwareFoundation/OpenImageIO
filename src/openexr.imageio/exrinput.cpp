@@ -48,6 +48,7 @@ using boost::algorithm::iends_with;
 #include <ImfStringAttribute.h>
 #include <ImfEnvmapAttribute.h>
 #include <ImfCompressionAttribute.h>
+#include <ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
 
 #include "dassert.h"
 #include "imageio.h"
@@ -270,7 +271,11 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         case Imf::ZIP_COMPRESSION   : comp = "zip"; break;
         case Imf::PIZ_COMPRESSION   : comp = "piz"; break;
         case Imf::PXR24_COMPRESSION : comp = "pxr24"; break;
-#if OPENEXR_VERSION >= 010601
+#ifdef IMF_B44_COMPRESSION
+            // The enum Imf::B44_COMPRESSION is not defined in older versions
+            // of OpenEXR, and there are no explicit version numbers in the
+            // headers.  BUT this other related #define is present only in
+            // the newer version.
         case Imf::B44_COMPRESSION   : comp = "b44"; break;
         case Imf::B44A_COMPRESSION  : comp = "b44a"; break;
 #endif

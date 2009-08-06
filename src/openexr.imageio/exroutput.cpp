@@ -48,6 +48,10 @@ using boost::algorithm::istarts_with;
 #include <ImfStringAttribute.h>
 #include <ImfEnvmapAttribute.h>
 #include <ImfCompressionAttribute.h>
+#include <ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
+#ifdef IMF_B44_COMPRESSION
+#define OPENEXR_VERSION_IS_1_6_OR_LATER
+#endif
 
 #include "dassert.h"
 #include "imageio.h"
@@ -247,8 +251,8 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool ap
                                            : Strutil::format ("unknown %d", c);
         m_header->channels().insert (m_spec.channelnames[c].c_str(),
                                      Imf::Channel(m_pixeltype, 1, 1
-#if OPENEXR_VERSION >= 010601
-                                     , true
+#ifdef OPENEXR_VERSION_IS_1_6_OR_LATER
+                                     , m_spec.linearity == ImageSpec::Linear
 #endif
                                      ));
     }
@@ -385,6 +389,16 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                 m_header->compression() = Imf::PIZ_COMPRESSION;
             else if (! strcmp (str, "pxr24")) 
                 m_header->compression() = Imf::PXR24_COMPRESSION;
+#ifdef IMF_B44_COMPRESSION
+            // The enum Imf::B44_COMPRESSION is not defined in older versions
+            // of OpenEXR, and there are no explicit version numbers in the
+            // headers.  BUT this other related #define is present only in
+            // the newer version.
+            else if (! strcmp (str, "b44"))
+                m_header->compression() = Imf::B44_COMPRESSION;
+            else if (! strcmp (str, "b44a"))
+                m_header->compression() = Imf::B44A_COMPRESSION;
+#endif
         }
         return true;
     }
