@@ -111,6 +111,9 @@ public:
         return ImageBuf::copy_pixels (xbegin, xend, ybegin, yend, format, result);
     }
 
+    bool auto_subimage (void) const { return m_auto_subimage; }
+    void auto_subimage (bool v) { m_auto_subimage = v; }
+
 private:
     ImageBuf m_corrected_image; ///< Colorspace/gamma/exposure corrected image.
     char *m_thumbnail;         ///< Thumbnail image
@@ -121,6 +124,7 @@ private:
     mutable std::string m_shortinfo;
     mutable std::string m_longinfo;
     bool m_image_valid;        ///< Image is valid and pixels can be read.
+    bool m_auto_subimage;      ///< Automatically use subimages when zooming-in/out.
 };
 
 
@@ -165,7 +169,7 @@ public:
     /// true, switch to the new view smoothly over many gradual steps,
     /// otherwise do it all in one step.  The center position is measured
     /// in pixel coordinates.
-    void view (float xcenter, float ycenter, float zoom, bool smooth=false);
+    void view (float xcenter, float ycenter, float zoom, bool smooth=false, bool redraw=true);
 
     /// Set a new zoom level, keeping the center of view.  If smooth is
     /// true, switch to the new zoom level smoothly over many gradual
@@ -307,6 +311,9 @@ private:
     QCheckBox *pixelviewFollowsMouseBox;
     QCheckBox *linearInterpolationBox;
     QCheckBox *darkPaletteBox;
+    QCheckBox *autoMipmap;
+    QLabel   *maxMemoryICLabel;
+    QSpinBox *maxMemoryIC;
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
@@ -435,6 +442,10 @@ public:
     /// Is OpenGL capable of reading half-float textures?
     ///
     bool is_half_capable (void) const { return m_use_halffloat; }
+
+    /// Returns true if the image is too big to fit within allocated textures
+    /// (i.e., it's recommended to use lower resolution versions when zoomed out).
+    bool is_too_big (float width, float height);
 
     void typespec_to_opengl (const ImageSpec& spec, GLenum &gltype,
                              GLenum &glformat, GLenum &glinternal) const;

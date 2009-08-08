@@ -48,6 +48,13 @@ IvPreferenceWindow::IvPreferenceWindow (ImageViewer &viewer)
     layout->addWidget (viewer.pixelviewFollowsMouseBox);
     layout->addWidget (viewer.linearInterpolationBox);
     layout->addWidget (viewer.darkPaletteBox);
+    layout->addWidget (viewer.autoMipmap);
+    
+    QLayout *inner_layout = new QHBoxLayout;
+    inner_layout->addWidget (viewer.maxMemoryICLabel);
+    inner_layout->addWidget (viewer.maxMemoryIC);
+
+    layout->addLayout (inner_layout);
     layout->addWidget (closeButton);
     setLayout (layout);
 

@@ -288,6 +288,14 @@ ImageViewer::createActions()
     linearInterpolationBox->setChecked (true);
     darkPaletteBox = new QCheckBox (tr("Dark palette"));
     darkPaletteBox->setChecked (true);
+    autoMipmap = new QCheckBox (tr("Generate mipmaps (requires restart)"));
+    autoMipmap->setChecked (false);
+
+    maxMemoryICLabel = new QLabel (tr("Image Cache max memory (requires restart)"));
+    maxMemoryIC = new QSpinBox ();
+    maxMemoryIC->setRange (128, 2048); //2GB seems fair as upper limit.
+    maxMemoryIC->setSingleStep (64);
+    maxMemoryIC->setSuffix (" MB");
 }
 
 
@@ -445,6 +453,12 @@ ImageViewer::readSettings (bool ui_is_set_up)
     BOOST_FOREACH (const QString &s, recent)
         addRecentFile (s.toStdString());
     updateRecentFilesMenu (); // only safe because it's called after menu setup
+
+    autoMipmap->setChecked (settings.value ("autoMipmap", false).toBool());
+    maxMemoryIC->setValue (settings.value ("maxMemoryIC", 512).toInt());
+    ImageCache *imagecache = ImageCache::create (true);
+    imagecache->attribute ("automip", autoMipmap->isChecked());
+    imagecache->attribute ("max_memory_MB", (float) maxMemoryIC->value ());
 }
 
 
@@ -458,6 +472,8 @@ ImageViewer::writeSettings()
     settings.setValue ("linearInterpolation",
                        linearInterpolationBox->isChecked());
     settings.setValue ("darkPalette", darkPaletteBox->isChecked());
+    settings.setValue ("autoMipmap", autoMipmap->isChecked());
+    settings.setValue ("maxMemoryIC", maxMemoryIC->value());
     QStringList recent;
     BOOST_FOREACH (const std::string &s, m_recent_files)
         recent.push_front (QString(s.c_str()));
@@ -496,8 +512,11 @@ ImageViewer::open()
 //        IvImage *newimage = m_images[n];
 //        newimage->read (0, false, image_progress_callback, this);
     }
-    current_image (old_lastimage + 1);
-    fitWindowToImage (true, true);
+    if (old_lastimage >= 0) {
+        // Otherwise, add_image already did this for us.
+        current_image (old_lastimage + 1);
+        fitWindowToImage (true, true);
+    }
 }
 
 
@@ -519,8 +538,11 @@ ImageViewer::openRecentFile ()
         }
         // It's not an image we already have loaded
         add_image (filename);
-        current_image (m_images.size() - 1);
-        fitWindowToImage (true, true);
+        if (m_images.size() > 1) {
+            // Otherwise, add_image already did this for us.
+            current_image (m_images.size() - 1);
+            fitWindowToImage (true, true);
+        }
     }
 }
 
@@ -708,9 +730,15 @@ ImageViewer::updateStatusBar ()
                                 zoom() >= 1 ? zoom() : 1.0f,
                                 zoom() >= 1 ? 1.0f : 1.0f/zoom(),
                                 cur()->exposure(), cur()->gamma());
-    if (cur()->nsubimages() > 1)
-        message += Strutil::format ("  subimg %d/%d",
-                                    cur()->subimage()+1, cur()->nsubimages());
+    if (cur()->nsubimages() > 1) {
+        if (cur()->auto_subimage()) {
+            message += Strutil::format ("  subimg AUTO (%d/%d)",
+                                        cur()->subimage()+1, cur()->nsubimages());
+        } else {
+            message += Strutil::format ("  subimg %d/%d",
+                                        cur()->subimage()+1, cur()->nsubimages());
+        }
+    }
     statusViewInfo->setText(message.c_str()); // tr("iv status"));
 }
 
@@ -770,6 +798,16 @@ ImageViewer::loadCurrentImage (int subimage)
                 ! glwin->is_srgb_capable ())
                 srgb_transform = true;
         }
+
+        // FIXME: This actually won't work since the ImageCacheFile has already
+        // been created when we did the init_spec.
+        // Check whether IvGL recommends generating mipmaps for this image.
+        //ImageCache *imagecache = ImageCache::create (true);
+        //if (glwin->is_too_big (img) && autoMipmap->isChecked ()) {
+        //    imagecache->attribute ("automip", 1);
+        //} else {
+        //    imagecache->attribute ("automip", 0);
+        //}
 
         // Read the image from disk or from the ImageCache if available.
         if (img->read (subimage, false, read_format, image_progress_callback, this, allow_transforms)) {
@@ -857,7 +895,7 @@ ImageViewer::current_image (int newimage)
         m_current_image = newimage;
         displayCurrentImage ();
     } else {
-        displayCurrentImage (true);
+        displayCurrentImage (false);
     }
 #ifdef DEBUG
     swap_image_time.stop();
@@ -1111,11 +1149,15 @@ ImageViewer::viewSubimagePrev ()
         return;
     if (img->subimage() > 0) {
         bool ok = false;
-        statusViewInfo->hide ();
-        statusProgress->show ();
         ok = loadCurrentImage (img->subimage()-1);
-        statusProgress->hide ();
-        statusViewInfo->show ();
+        if (ok) {
+            if (fitImageToWindowAct->isChecked ())
+                fitImageToWindow ();
+            displayCurrentImage ();
+        }
+    } else if (img->nsubimages() > 0) {
+        img->auto_subimage (true);
+        bool ok = loadCurrentImage (0);
         if (ok) {
             if (fitImageToWindowAct->isChecked ())
                 fitImageToWindow ();
@@ -1131,13 +1173,17 @@ ImageViewer::viewSubimageNext ()
     IvImage *img = cur();
     if (! img)
         return;
-    if (img->subimage() < img->nsubimages()-1) {
+    if (img->auto_subimage()) {
+        img->auto_subimage(false);
+        bool ok = loadCurrentImage (0);
+        if (ok) {
+            if (fitImageToWindowAct->isChecked ())
+                fitImageToWindow ();
+            displayCurrentImage ();
+        }
+    } else if (img->subimage() < img->nsubimages()-1) {
         bool ok = false;
-        statusViewInfo->hide ();
-        statusProgress->show ();
         ok = loadCurrentImage (img->subimage()+1);
-        statusProgress->hide ();
-        statusViewInfo->show ();
         if (ok) {
             if (fitImageToWindowAct->isChecked ())
                 fitImageToWindow ();
@@ -1259,7 +1305,7 @@ void ImageViewer::zoomIn()
     float yoffset = yc - ym;
     float maxzoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
     int nsteps = (int) Imath::clamp (20 * (maxzoomratio - 1), 2.0f, 10.0f);
-    for (int i = 0;  i <= nsteps;  ++i) {
+    for (int i = 1;  i <= nsteps;  ++i) {
         float a = (float)i/(float)nsteps;   // Interpolation amount
         float z = Imath::lerp (oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
@@ -1299,7 +1345,7 @@ void ImageViewer::zoomOut()
     float yoffset = ycpel - ympel;
     float maxzoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
     int nsteps = (int) Imath::clamp (20 * (maxzoomratio - 1), 2.0f, 10.0f);
-    for (int i = 0;  i <= nsteps;  ++i) {
+    for (int i = 1;  i <= nsteps;  ++i) {
         float a = (float)i/(float)nsteps;   // Interpolation amount
         float z = Imath::lerp (oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
@@ -1412,10 +1458,10 @@ void ImageViewer::fitWindowToImage (bool zoomok, bool minsize)
         }
     }
 
-    resize (w, h);
     float midx = img->oriented_full_x() + 0.5 * img->oriented_full_width();
     float midy = img->oriented_full_y() + 0.5 * img->oriented_full_height();
-    view (midx, midy, z);
+    view (midx, midy, z, false, false);
+    resize (w, h); // Resize will trigger a repaint.
 
 #if 0
     QRect g = geometry();
@@ -1475,8 +1521,24 @@ void ImageViewer::updateActions()
 
 
 
+static inline void 
+calc_subimage_from_zoom (const IvImage *img, int &subimage, float &zoom, float &xcenter, float &ycenter) 
+{
+    int rel_subimage = Imath::trunc (log2f (1/zoom));
+    subimage = clamp<int> (img->subimage() + rel_subimage, 0, img->nsubimages()-1);
+    if (! (img->subimage() == 0 && zoom > 1) &&
+        ! (img->subimage() == img->nsubimages()-1 && zoom < 1)) {
+        float pow_zoom = powf (2.0f, (float) rel_subimage);
+        zoom *= pow_zoom;
+        xcenter /= pow_zoom;
+        ycenter /= pow_zoom;
+    }
+}
+
+
+
 void
-ImageViewer::view (float xcenter, float ycenter, float newzoom, bool smooth)
+ImageViewer::view (float xcenter, float ycenter, float newzoom, bool smooth, bool redraw)
 {
     IvImage *img = cur();
     if (! img)
@@ -1487,18 +1549,30 @@ ImageViewer::view (float xcenter, float ycenter, float newzoom, bool smooth)
     glwin->get_center (oldxcenter, oldycenter);
     float zoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
     int nsteps = (int) Imath::clamp (20 * (zoomratio - 1), 2.0f, 10.0f);
-    if (! smooth)
+    if (! smooth || ! redraw)
         nsteps = 1;
     for (int i = 1;  i <= nsteps;  ++i) {
         float a = (float)i/(float)nsteps;   // Interpolation amount
-        float z = Imath::lerp (oldzoom, newzoom, a);
         float xc = Imath::lerp (oldxcenter, xcenter, a);
         float yc = Imath::lerp (oldycenter, ycenter, a);
-        glwin->view (xc, yc, z);  // Triggers redraw automatically
+        m_zoom = Imath::lerp (oldzoom, newzoom, a);
+
+        glwin->view (xc, yc, m_zoom, redraw);  // Triggers redraw automatically
         if (i != nsteps)
             usleep (1000000 / 4 / nsteps);
     }
-    m_zoom = newzoom;
+
+    if (img->auto_subimage ()) {
+        int subimage = 0;
+        calc_subimage_from_zoom (img, subimage, m_zoom, xcenter, ycenter);
+        if (subimage != img->subimage ()) {
+            //std::cerr << "Changing to subimage " << subimage;
+            //std::cerr << " With zoom: " << m_zoom << '\n';
+            loadCurrentImage (subimage);
+            glwin->update ();
+            glwin->view (xcenter, ycenter, m_zoom, redraw);
+        }
+    }
 
 //    zoomInAct->setEnabled (zoom() < 64.0);
 //    zoomOutAct->setEnabled (zoom() > 1.0/64);

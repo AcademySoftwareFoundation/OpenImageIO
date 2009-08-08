@@ -1400,3 +1400,14 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
     GLERRPRINT ("After loading sub image");
     m_last_texbuf_used = (m_last_texbuf_used + 1) % m_texbufs.size();
 }
+
+
+
+bool
+IvGL::is_too_big (float width, float height)
+{
+    unsigned int tiles = (unsigned int) (ceilf(width/m_max_texture_size) * 
+                                         ceilf(height/m_max_texture_size));
+    return tiles > m_texbufs.size();
+
+}

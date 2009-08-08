@@ -45,7 +45,7 @@ IvImage::IvImage (const std::string &filename)
       m_thumbnail_valid(false),
       m_gamma(1), m_exposure(0),
       m_file_dataformat(TypeDesc::UNKNOWN), 
-      m_image_valid(false)
+      m_image_valid(false), m_auto_subimage(false)
 {
 }
 

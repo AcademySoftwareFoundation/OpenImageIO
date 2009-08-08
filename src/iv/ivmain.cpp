@@ -180,7 +180,6 @@ main (int argc, char *argv[])
 
     // Set up the imagecache with parameters that make sense for iv
     ImageCache *imagecache = ImageCache::create (true);
-    imagecache->attribute ("max_memory_MB", 512.0);  /* Seems fair */
     imagecache->attribute ("autotile", 256);
 
     // Make sure we are the top window with the focus.

@@ -699,6 +699,11 @@ template<class T>
 inline int isinf (T x) {
     return (isfinite(x)||isnan(x)) ? 0 : copysign(1.0f, x);
 }
+
+inline float
+log2f (float val) {
+    return logf (val)/M_LN2;
+}
 #endif
 
 
