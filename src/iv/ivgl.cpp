@@ -94,7 +94,7 @@ IvGL::initializeGL ()
         std::cerr << "GLEW init error " << glewGetErrorString (glew_error) << "\n";
     }
 
-    glClearColor (0.05, 0.05, 0.05, 1.0);
+    glClearColor (0.05f, 0.05f, 0.05f, 1.0f);
     glShadeModel (GL_FLAT);
     glEnable (GL_DEPTH_TEST);
     glDisable (GL_CULL_FACE);
@@ -396,6 +396,76 @@ gl_rect (float xmin, float ymin, float xmax, float ymax, float z = 0,
 
 
 
+static void
+handle_orientation (int orientation, int width, int height, 
+                    float &scale_x, float &scale_y, 
+                    float &rotate_z, float &point_x, float &point_y,
+                    bool pixel=false)
+{
+    switch (orientation) {
+    case 2: // flipped horizontally
+        scale_x = -1;
+        point_x = width - point_x;
+        if (pixel)
+            // We want to access the pixel at (point_x,pointy), so we have to
+            // substract 1 to get the right index.
+            --point_x;
+        break;
+    case 3: // bottom up, rigth to left (rotated 180).
+        scale_x = -1;
+        scale_y = -1;
+        point_x = width - point_x;
+        point_y = height - point_y;
+        if (pixel) {
+            --point_x;
+            --point_y;
+        }
+        break;
+    case 4: // flipped vertically.
+        scale_y = -1;
+        point_y = height - point_y;
+        if (pixel)
+            --point_y;
+        break;
+    case 5: // transposed (flip horizontal & rotated 90 ccw).
+        scale_x = -1;
+        rotate_z = 90.0;
+        std::swap (point_x, point_y);
+        break;
+    case 6: // rotated 90 cw.
+        rotate_z = -270.0;
+        std::swap (point_x, point_y);
+        point_y = height - point_y;
+        if (pixel)
+            --point_y;
+        break;
+    case 7: // transverse, (flip horizontal & rotated 90 cw, r-to-l, b-to-t)
+        scale_x = -1;
+        rotate_z= -90.0;
+        std::swap (point_x, point_y);
+        point_x = width - point_x;
+        point_y = height - point_y;
+        if (pixel) {
+            --point_x;
+            --point_y;
+        }
+        break;
+    case 8: // rotated 90 ccw.
+        rotate_z = -90.0;
+        std::swap (point_x, point_y);
+        point_x = width - point_x;
+        if (pixel)
+            --point_x;
+        break;
+    case 1: // horizontal
+    case 0: // unknown
+    default:
+        break;
+    }
+}
+
+
+
 void
 IvGL::paintGL ()
 {
@@ -415,7 +485,7 @@ IvGL::paintGL ()
     glPushMatrix ();
     // Transform is now same as the main GL viewport -- window pixels as
     // units, with (0,0) at the center of the visible unit.
-    glTranslatef (0, 0, -5.0);
+    glTranslatef (0, 0, -5);
     // Pushed away from the camera 5 units.
     glScalef (1, -1, 1);
     // Flip y, because OGL's y runs from bottom to top.
@@ -425,49 +495,17 @@ IvGL::paintGL ()
     // center of the visible window.
 
     // Handle the orientation with OpenGL *before* translating our center.
+    float scale_x = 1;
+    float scale_y = 1;
+    float rotate_z= 0;
     float real_centerx = m_centerx;
     float real_centery = m_centery;
-    switch (img->orientation()) {
-    case 2: // flipped horizontally
-        glScalef (-1, 1, 1);
-        real_centerx = spec.width - m_centerx;
-        break;
-    case 3: // bottom up, rigth to left (rotated 180).
-        glScalef (-1, -1, 1);
-        real_centerx = spec.width - m_centerx;
-        real_centery = spec.height - m_centery;
-        break;
-    case 4: // flipped vertically.
-        glScalef (1, -1, 1);
-        real_centery = spec.height - m_centery;
-        break;
-    case 5: // transposed (flip horizontal & rotated 90 ccw).
-        glScalef (-1, 1, 1);
-        glRotatef (90, 0, 0, 1);
-        real_centerx = m_centery;
-        real_centery = m_centerx;
-        break;
-    case 6: // rotated 90 cw.
-        glRotatef (-270.0, 0, 0, 1);
-        real_centerx = m_centery;
-        real_centery = spec.height - m_centerx;
-        break;
-    case 7: // transverse, (flip horizontal & rotated 90 cw, r-to-l, b-to-t)
-        glScalef (-1, 1, 1);
-        glRotatef (-90, 0, 0, 1);
-        real_centerx = spec.width - m_centery;
-        real_centery = spec.height - m_centerx;
-        break;
-    case 8: // rotated 90 ccw.
-        glRotatef (-90, 0, 0, 1);
-        real_centerx = spec.width - m_centery;
-        real_centery = m_centerx;
-        break;
-    case 1: // horizontal
-    case 0: // unknown
-    default:
-        break;
-    }
+    handle_orientation (img->orientation(), spec.width, 
+                        spec.height, scale_x, scale_y, rotate_z, 
+                        real_centerx, real_centery);
+
+    glScalef (scale_x, scale_y, 1);
+    glRotatef (rotate_z, 0, 0, 1);
     glTranslatef (-real_centerx, -real_centery, 0.0f);
     // Recentered so that the pixel space (m_centerx,m_centery) position is
     // at the center of the visible window.
@@ -598,22 +636,35 @@ IvGL::paint_pixelview ()
     glPushAttrib (GL_ENABLE_BIT | GL_TEXTURE_BIT);
     useshader (closeuptexsize, closeuptexsize, true);
 
-    float smin, tmin, smax, tmax;
+    float scale_x = 1.0f;
+    float scale_y = 1.0f;
+    float rotate_z= 0.0f;
+    float real_xp = xp;
+    float real_yp = yp;
+    handle_orientation (img->orientation(), spec.width, 
+                        spec.height, scale_x, scale_y, rotate_z, 
+                        real_xp, real_yp, true);
+
+    float smin = 0;
+    float tmin = 0;
+    float smax = 1.0f;
+    float tmax = 1.0f;
     if (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()) {
         // Keep the view within ncloseuppixels pixels.
-        int xpp = std::min(std::max (xp, ncloseuppixels/2), spec.width - ncloseuppixels/2 - 1);
-        int ypp = std::min(std::max (yp, ncloseuppixels/2), spec.height - ncloseuppixels/2 - 1);
+        int xpp = clamp<int> (real_xp, ncloseuppixels/2, spec.width - ncloseuppixels/2 - 1);
+        int ypp = clamp<int> (real_yp, ncloseuppixels/2, spec.height - ncloseuppixels/2 - 1);
         // Calculate patch of the image to use for the pixelview.
         int xbegin = std::max (xpp - ncloseuppixels/2, 0);
         int ybegin = std::max (ypp - ncloseuppixels/2, 0);
         int xend   = std::min (xpp + ncloseuppixels/2+1, spec.width);
         int yend   = std::min (ypp + ncloseuppixels/2+1, spec.height);
-        smin = 0.0;
-        tmin = 0.0;
+        smin = 0;
+        tmin = 0;
         smax = float (xend-xbegin)/closeuptexsize;
         tmax = float (yend-ybegin)/closeuptexsize;
         //std::cerr << "img (" << xbegin << "," << ybegin << ") - (" << xend << "," << yend << ")\n";
         //std::cerr << "tex (" << smin << "," << tmin << ") - (" << smax << "," << tmax << ")\n";
+        //std::cerr << "center mouse (" << xp << "," << yp << "), real (" << real_xp << "," << real_yp << ")\n";
 
         void *zoombuffer = alloca ((xend-xbegin)*(xend-xbegin)*spec.pixel_bytes());
         img->copy_pixels (spec.x + xbegin, spec.x + xend,
@@ -634,16 +685,22 @@ IvGL::paint_pixelview ()
         GLERRPRINT ("After tsi2d");
     } else {
         glDisable (GL_TEXTURE_2D);
-        glColor3f (0.1,0.1,0.1);
+        glColor3f (0.1f,0.1f,0.1f);
     }
     if (! m_use_shaders) {
         glDisable (GL_BLEND);
     }
 
+    glPushMatrix ();
+    glScalef (1, -1, 1); // Run y from top to bottom.
+    glScalef (scale_x, scale_y, 1);
+    glRotatef (rotate_z, 0, 0, 1);
+
     // This square is the closeup window itself
-    gl_rect (-0.5f*closeupsize, 0.5f*closeupsize,
-            0.5f*closeupsize, -0.5f*closeupsize, 0,
+    gl_rect (-0.5f*closeupsize, -0.5f*closeupsize,
+            0.5f*closeupsize, 0.5f*closeupsize, 0,
             smin, tmin, smax, tmax);
+    glPopMatrix ();
     glPopAttrib ();
 
     // Draw a second window, slightly behind the closeup window, as a
@@ -654,14 +711,14 @@ IvGL::paint_pixelview ()
     // where the text will be printed, so it is very readable.
     const int yspacing = 18;
 
-    glPushAttrib (GL_ENABLE_BIT);
+    glPushAttrib (GL_ENABLE_BIT | GL_CURRENT_BIT);
     glDisable (GL_TEXTURE_2D);
     if (m_use_shaders) {
         // Disable shaders for this.
         gl_use_program (0);
     }
     float extraspace = yspacing * (1 + spec.nchannels) + 4;
-    glColor4f (0.1, 0.1, 0.1, 0.5);
+    glColor4f (0.1f, 0.1f, 0.1f, 0.5f);
     gl_rect (-0.5f*closeupsize-2, 0.5f*closeupsize+2,
              0.5f*closeupsize+2, -0.5f*closeupsize - extraspace, -0.1);
 
@@ -673,21 +730,21 @@ IvGL::paint_pixelview ()
         float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
         int textx = - closeupsize/2 + 4;
         int texty = - closeupsize/2 - yspacing;
-        std::string s = Strutil::format ("(%d, %d)", xp+spec.x, yp+spec.y);
+        std::string s = Strutil::format ("(%d, %d)", (int) real_xp+spec.x, (int) real_yp+spec.y);
         shadowed_text (textx, texty, 0.0f, s, font);
         texty -= yspacing;
-        img->getpixel (xp+spec.x, yp+spec.y, fpixel);
+        img->getpixel ((int) real_xp+spec.x, (int) real_yp+spec.y, fpixel);
         for (int i = 0;  i < spec.nchannels;  ++i) {
             switch (spec.format.basetype) {
             case TypeDesc::UINT8 : {
-                ImageBuf::ConstIterator<unsigned char,unsigned char> p (*img, xp+spec.x, yp+spec.y);
+                ImageBuf::ConstIterator<unsigned char,unsigned char> p (*img, (int) real_xp+spec.x, (int) real_yp+spec.y);
                 s = Strutil::format ("%s: %3d  (%5.3f)",
                                      spec.channelnames[i].c_str(),
                                      (int)(p[i]), fpixel[i]);
                 }
                 break;
             case TypeDesc::UINT16 : {
-                ImageBuf::ConstIterator<unsigned short,unsigned short> p (*img, xp+spec.x, yp+spec.y);
+                ImageBuf::ConstIterator<unsigned short,unsigned short> p (*img, (int) real_xp+spec.x, (int) real_yp+spec.y);
                 s = Strutil::format ("%s: %3d  (%5.3f)",
                                      spec.channelnames[i].c_str(),
                                      (int)(p[i]), fpixel[i]);
