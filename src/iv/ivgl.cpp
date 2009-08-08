@@ -102,6 +102,7 @@ IvGL::initializeGL ()
     glEnable (GL_TEXTURE_2D);
     // glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     // Make sure initial matrix is identity (returning to this stack level loads
     // back this matrix).
     glLoadIdentity();
@@ -722,13 +723,16 @@ IvGL::useshader (int tex_width, int tex_height, bool pixelview)
 
     if (!m_use_shaders) {
         glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-        if (m_viewer.linearInterpolation ()) {
-            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        }
-        else {
-            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        BOOST_FOREACH (TexBuffer &tb, m_texbufs) {
+            glBindTexture (GL_TEXTURE_2D, tb.tex_object);
+            if (m_viewer.linearInterpolation ()) {
+                glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            }
+            else {
+                glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            }
         }
         return;
     }
@@ -1160,6 +1164,10 @@ IvGL::check_gl_extensions (void)
 
     m_max_texture_size = 0;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_max_texture_size);
+    // FIXME: Need a smarter way to handle (video) memory.
+    // Don't assume that systems capable of using 8k^2 textures have enough
+    // resources to use more than one of those at the same time.
+    m_max_texture_size = std::min(m_max_texture_size, 4096);
 
 #ifdef DEBUG
     // Report back...

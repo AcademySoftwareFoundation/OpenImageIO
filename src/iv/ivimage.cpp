@@ -386,3 +386,16 @@ IvImage::pixel_transform(int select_channel)
         } 
     }
 }
+
+
+
+void
+IvImage::invalidate ()
+{ 
+    m_pixels_valid = false;
+    m_thumbnail_valid = false;
+    m_image_valid = false;
+    if (m_imagecache) {
+        m_imagecache->invalidate (m_name);
+    }
+}

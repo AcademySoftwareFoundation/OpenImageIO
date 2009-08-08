@@ -79,7 +79,7 @@ public:
     std::string shortinfo () const;
     std::string longinfo () const;
 
-    void invalidate () { m_pixels_valid = false;  m_thumbnail_valid = false; m_image_valid = false;}
+    void invalidate ();
 
     /// Can we read the pixels of this image already?
     ///
