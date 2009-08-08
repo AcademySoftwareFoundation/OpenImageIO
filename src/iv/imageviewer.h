@@ -98,23 +98,21 @@ public:
     ///   2 = blue
     ///   3 = alpha
     /// Then applies gamma/exposure correction (if any). This only works when
-    /// the image is UINT8 (for now at least).
-    void pixel_transform (int channel);
+    /// the image is UINT8 (for now at least). It also performs sRGB to linear
+    /// color space correction when indicated.
+    void pixel_transform (bool srgb_to_linear,int channel);
 
-    void *pixeladdr(int x, int y) {
-        if (m_corrected_pixels.empty())
-            return NULL;
-        x -= spec().x;
-        y -= spec().y;
-        size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
-        return &(m_corrected_pixels[p]);
+    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
+                      TypeDesc format, void *result) {
+        if (m_corrected_image.localpixels ()) {
+            return m_corrected_image.copy_pixels (xbegin, xend, ybegin, yend,
+                                                  format, result);
+        }
+        return ImageBuf::copy_pixels (xbegin, xend, ybegin, yend, format, result);
     }
 
 private:
-    // FIXME: Change m_corrected_pixels to use another IB instead.
-    /// m_corrected_pixels is used to do pixel transformations on the original pixels
-    /// when not using GLSL.
-    std::vector<unsigned char> m_corrected_pixels;
+    ImageBuf m_corrected_image; ///< Colorspace/gamma/exposure corrected image.
     char *m_thumbnail;         ///< Thumbnail image
     bool m_thumbnail_valid;    ///< Thumbnail is valid
     float m_gamma;             ///< Gamma correction of this image

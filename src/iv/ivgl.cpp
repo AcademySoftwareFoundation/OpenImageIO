@@ -615,16 +615,10 @@ IvGL::paint_pixelview ()
         //std::cerr << "img (" << xbegin << "," << ybegin << ") - (" << xend << "," << yend << ")\n";
         //std::cerr << "tex (" << smin << "," << tmin << ") - (" << smax << "," << tmax << ")\n";
 
-        void *zoombuffer = NULL;
-        if (m_use_shaders) {
-            zoombuffer  = alloca ((xend-xbegin)*(xend-xbegin)*spec.pixel_bytes());
-            img->copy_pixels (spec.x + xbegin, spec.x + xend,
-                              spec.y + ybegin, spec.y + yend,
-                              spec.format, zoombuffer);
-        } else {
-            zoombuffer = img->pixeladdr (spec.x + xbegin, spec.y + ybegin);
-            glPixelStorei (GL_UNPACK_ROW_LENGTH, spec.width);
-        }
+        void *zoombuffer = alloca ((xend-xbegin)*(xend-xbegin)*spec.pixel_bytes());
+        img->copy_pixels (spec.x + xbegin, spec.x + xend,
+                spec.y + ybegin, spec.y + yend,
+                spec.format, zoombuffer);
 
         GLenum glformat, gltype, glinternalformat;
         typespec_to_opengl (spec, gltype, glformat, glinternalformat);
@@ -824,11 +818,8 @@ IvGL::update ()
                   glformat, gltype, NULL);
     GLERRPRINT ("Setting up pixelview texture");
 
-
-    if (m_use_shaders && !m_use_pbo) {
-        // Resize the buffer at once, rather than create one each drawing.
-        m_tex_buffer.resize (m_texture_width * m_texture_height * spec.pixel_bytes());
-    }
+    // Resize the buffer at once, rather than create one each drawing.
+    m_tex_buffer.resize (m_texture_width * m_texture_height * spec.pixel_bytes());
     m_current_image = img;
 }
 
@@ -1299,7 +1290,7 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
     const ImageSpec &spec = m_current_image->spec ();
     // Find if this has already been loaded.
     BOOST_FOREACH (TexBuffer &tb, m_texbufs) {
-        if (tb.x == x && tb.y == y && tb.width == width && tb.height == height) {
+        if (tb.x == x && tb.y == y && tb.width >= width && tb.height >= height) {
             glBindTexture (GL_TEXTURE_2D, tb.tex_object);
             return;
         }
@@ -1321,49 +1312,27 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
     tb.y = y;
     tb.width = width;
     tb.height = height;
-    if (m_use_shaders) {
-        if (m_use_pbo) {
-            // When using PBO the buffer is allocated by the OpenGL driver,
-            // this should help speed up loading of the texture since the copy
-            // from the PBO to the texture can be done asynchronously by the
-            // driver. We use two PBOs so we don't have to wait for the first
-            // transfer to end before starting the second.
-            glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 
-                             m_pbo_objects[m_last_pbo_used]);
-            glBufferDataARB (GL_PIXEL_UNPACK_BUFFER_ARB, 
-                             width * height * spec.pixel_bytes(),
-                             NULL,
-                             GL_STREAM_DRAW_ARB);
-            GLERRPRINT ("After buffer data");
-            void *buffer = glMapBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
-            if (!buffer) {
-                // FIXME: What to do here?
-                GLERRPRINT ("Couldn't map Pixel memory");
-                return;
-            }
-            m_current_image->copy_pixels (x, x + width, y, y + height,
-                                          spec.format, buffer);
-            glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
-            m_last_pbo_used = (m_last_pbo_used + 1) % 2;
-        } else {
-            // Copy the imagebuf pixels we need, that's the only way we can do
-            // it safely once ImageBuf has a cache underneath and the whole image
-            // may not be resident at once.
-            m_current_image->copy_pixels (x, x + width, y, y + height,
-                                          spec.format, &m_tex_buffer[0]);
-        }
+    // Copy the imagebuf pixels we need, that's the only way we can do
+    // it safely since ImageBuf has a cache underneath and the whole image
+    // may not be resident at once.
+    m_current_image->copy_pixels (x, x + width, y, y + height,
+            spec.format, &m_tex_buffer[0]);
+    if (m_use_pbo) {
+        glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 
+                         m_pbo_objects[m_last_pbo_used]);
+        glBufferDataARB (GL_PIXEL_UNPACK_BUFFER_ARB, 
+                         width * height * spec.pixel_bytes(),
+                         &m_tex_buffer[0],
+                         GL_STREAM_DRAW_ARB);
+        GLERRPRINT ("After buffer data");
+        m_last_pbo_used = (m_last_pbo_used + 1) & 1;
     }
 
-    void *data;
-    if (m_use_shaders) {
-        if (m_use_pbo) {
-            data = 0;
-        } else {
-            data = &m_tex_buffer[0];
-        }
-    } else {
-        data = m_current_image->pixeladdr(x, y);
-    }
+    // When using PBO this is the offset within the buffer.
+    void *data = 0;
+    if (! m_use_pbo)
+        data = &m_tex_buffer[0];
+
     glBindTexture (GL_TEXTURE_2D, tb.tex_object);
     GLERRPRINT ("After bind texture");
     glTexSubImage2D (GL_TEXTURE_2D, 0,

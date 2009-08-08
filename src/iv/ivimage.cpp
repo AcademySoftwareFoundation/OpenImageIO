@@ -93,9 +93,9 @@ IvImage::read (int subimage, bool force, TypeDesc format,
                               progress_callback, progress_callback_data);
 
     if (m_image_valid && secondary_data && m_spec.format == TypeDesc::UINT8) {
-        m_corrected_pixels.resize (m_spec.image_bytes ());
+        m_corrected_image.reset ("", m_spec);
     } else {
-        m_corrected_pixels.clear ();
+        m_corrected_image.clear ();
     }
     return m_image_valid;
 }
@@ -207,8 +207,13 @@ IvImage::longinfo () const
 
 
 
-void
-IvImage::srgb_to_linear ()
+// Used by pixel_transform to convert from UINT8 to float.
+static EightBitConverter<float> converter;
+
+
+
+void 
+IvImage::pixel_transform(bool srgb_to_linear, int select_channel)
 {
     /// This table obeys the following function:
     ///
@@ -258,45 +263,6 @@ IvImage::srgb_to_linear ()
         222, 224, 226, 229, 231, 233, 235, 237,
         239, 242, 244, 246, 248, 250, 253, 255
     };
-
-    // FIXME: Now with the iterator and data proxy in place, it should be
-    // trivial to apply the transformation to any kind of data, not just
-    // UINT8.
-    if (m_spec.format != TypeDesc::UINT8 || m_spec.linearity != ImageSpec::sRGB) {
-        return;
-    }
-
-    int total_channels = m_spec.nchannels;
-    // Number of channels which represent color (and must be transformed to
-    // linear)
-    int color_channels = total_channels;
-    // Interpret two channels as luminance + alpha.
-    if (total_channels == 2) {
-        color_channels = 1;
-    } else if (color_channels > 3) {
-        color_channels = 3;
-    }
-
-    ImageBuf::Iterator<unsigned char, unsigned char> pix (*this);
-    for (  ;  pix.valid();  ++pix) {
-        for (int ch = 0; ch < color_channels; ++ch) {
-            unsigned char srgb = pix[ch];
-            unsigned char linear = srgb_to_linear_lut[srgb];
-            pix[ch] = linear;
-        }
-    }
-}
-
-
-
-// Used by pixel_transform to convert from UINT8 to float.
-static EightBitConverter<float> converter;
-
-
-
-void 
-IvImage::pixel_transform(int select_channel)
-{
     unsigned char correction_table[256];
     int total_channels = m_spec.nchannels;
     int color_channels = m_spec.nchannels;
@@ -304,8 +270,14 @@ IvImage::pixel_transform(int select_channel)
     // FIXME: Now with the iterator and data proxy in place, it should be
     // trivial to apply the transformations to any kind of data, not just
     // UINT8.
-    if (m_spec.format != TypeDesc::UINT8 || m_corrected_pixels.empty()) {
+    if (m_spec.format != TypeDesc::UINT8 || ! m_corrected_image.localpixels()) {
         return;
+    }
+
+    if (color_channels > 3) {
+        color_channels = 3;
+    } else if (color_channels == 2) {
+        color_channels = 1;
     }
 
     // This image is Luminance or Luminance + Alpha, and we are asked to show
@@ -315,9 +287,14 @@ IvImage::pixel_transform(int select_channel)
     }
 
     // Happy path:
-    if (select_channel == -1 && m_gamma == 1.0 && m_exposure == 0.0) {
-        copy_pixels (m_spec.x, m_spec.x + m_spec.width, m_spec.y, m_spec.y + m_spec.height,
-                     m_spec.format, &m_corrected_pixels[0]);
+    if (! srgb_to_linear && select_channel == -1 && m_gamma == 1.0 && m_exposure == 0.0) {
+        ImageBuf::ConstIterator<unsigned char, unsigned char> src (*this);
+        ImageBuf::Iterator<unsigned char, unsigned char> dst (m_corrected_image);
+        for ( ; src.valid (); ++src) {
+            dst.pos (src.x(), src.y());
+            for (int i = 0; i < total_channels; i++)
+                dst[i] = src[i];
+        }
         return;
     }
 
@@ -337,51 +314,61 @@ IvImage::pixel_transform(int select_channel)
         }
     }
 
-    if (color_channels > 3) {
-        color_channels = 3;
-    } else if (color_channels == 2) {
-        color_channels = 1;
-    }
-
-    ImageBuf::Iterator<unsigned char, unsigned char> src (*this);
-    int bytes_p_row = m_spec.scanline_bytes ();
-    int bytes_p_pix = m_spec.pixel_bytes ();
+    ImageBuf::ConstIterator<unsigned char, unsigned char> src (*this);
+    ImageBuf::Iterator<unsigned char, unsigned char> dst (m_corrected_image);
     for ( ; src.valid(); ++src) {
-        unsigned char* pixel = &m_corrected_pixels[src.y() * bytes_p_row + src.x() * bytes_p_pix];
+        dst.pos (src.x(), src.y());
         if (select_channel == -1) {
-            for (int ch = 0; ch < total_channels; ch++) {
-                pixel[ch] = correction_table[src[ch]];
+            int ch = 0;
+            for (ch = 0; ch < color_channels; ch++) {
+                if (srgb_to_linear)
+                    dst[ch] = correction_table[srgb_to_linear_lut[src[ch]]];
+                else
+                    dst[ch] = correction_table[src[ch]];
+            }
+            for (; ch < total_channels; ch++) {
+                dst[ch] = src[ch];
             }
         } else if (select_channel == -2) {
             // Convert RGB to luminance, (Rec. 709 luma coefficients).
-            float luminance = converter (src[0])*0.2126f +
-                              converter (src[1])*0.7152f +
-                              converter (src[2])*0.0722f;
+            float luminance;
+            if (srgb_to_linear) {
+                luminance = converter (srgb_to_linear_lut[src[0]])*0.2126f +
+                            converter (srgb_to_linear_lut[src[1]])*0.7152f +
+                            converter (srgb_to_linear_lut[src[2]])*0.0722f;
+            } else {
+                luminance = converter (src[0])*0.2126f +
+                            converter (src[1])*0.7152f +
+                            converter (src[2])*0.0722f;
+            }
             unsigned char val = (unsigned char) (clamp (luminance, 0.0f, 1.0f) * 255.0 + 0.5);
             val = correction_table[val];
-            pixel[0] = val;
-            pixel[1] = val;
-            pixel[2] = val;
+            dst[0] = val;
+            dst[1] = val;
+            dst[2] = val;
 
             // Handle the rest of the channels
             for (int ch = 3; ch < total_channels; ++ch) {
-                pixel[ch] = src[ch];
+                dst[ch] = src[ch];
             }
         } else {
             // This at least makes sense for the alpha channel when
             // there are no alpha values.
             unsigned char v = 255;
             if (select_channel < color_channels) {
-                v = correction_table[src[select_channel]];
+                if (srgb_to_linear)
+                    v = correction_table[srgb_to_linear_lut[src[select_channel]]];
+                else
+                    v = correction_table[src[select_channel]];
             } else if (select_channel < total_channels) {
                 v = src[select_channel];
             }
             int ch = 0;
             for (; ch < color_channels; ++ch) {
-                pixel[ch] = v;
+                dst[ch] = v;
             }
             for (; ch < total_channels; ++ch) {
-                pixel[ch] = src[ch];
+                dst[ch] = src[ch];
             }
         } 
     }
