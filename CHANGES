@@ -55,6 +55,12 @@ Fixes and minor enhancements:
   bytes (r767), when loading small images, the window starts out a
   usable minimum size, iv always raises the window upon first opening,
   fix pixelview of alpha in RGB images (r939).
+* iv: Fix off-by-one error that drew the last scanline incorrectly
+  sometimes (r1089).  Give feedback when doing a slow repaint (r1089).
+* iv improvements: fix skew-like problems with Intel cards, fix non-GLSL
+  texture mapping, limit texture size to 4096^2 to keep GL memory use
+  reasonable make "Reload" work again after breaking a few patches ago
+  (r1090).
 * maketx: in the case where the input texture was already float and needed
   no pow2 rounding, we didn't get the tiling or other metadata right (r824)
 * ImageCache and TextureSystem do a better job of reporting low-level
