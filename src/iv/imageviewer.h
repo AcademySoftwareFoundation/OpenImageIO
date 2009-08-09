@@ -79,7 +79,7 @@ public:
     std::string shortinfo () const;
     std::string longinfo () const;
 
-    void invalidate () { m_pixels_valid = false;  m_thumbnail_valid = false; m_image_valid = false;}
+    void invalidate ();
 
     /// Can we read the pixels of this image already?
     ///
@@ -533,7 +533,7 @@ private:
 
     /// Loads the given patch of the image, but first figures if it's already
     /// been loaded.
-    void load_texture (int x, int y, int width, int height);
+    void load_texture (int x, int y, int width, int height, float percent);
 };
 
 #endif // OPENIMAGEIO_IMAGEVIEWER_H

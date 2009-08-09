@@ -102,6 +102,7 @@ IvGL::initializeGL ()
     glEnable (GL_TEXTURE_2D);
     // glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     // Make sure initial matrix is identity (returning to this stack level loads
     // back this matrix).
     glLoadIdentity();
@@ -476,20 +477,30 @@ IvGL::paintGL ()
     float smin = 0, smax = 1.0;
     float tmin = 0, tmax = 1.0;
     // Image pixels shown from the center to the edge of the window.
-    float wincenterx = width()/(2*m_zoom);
-    float wincentery = height()/(2*m_zoom);
+    int wincenterx = (int) ceil (width()/(2*m_zoom));
+    int wincentery = (int) ceil (height()/(2*m_zoom));
     if (img->orientation() > 4) {
         std::swap (wincenterx, wincentery);
     }
 
-    int xbegin = std::max (spec.x, ((int) floor (real_centerx - wincenterx)/m_texture_width)*m_texture_width);
-    int ybegin = std::max (spec.y, ((int) floor (real_centery - wincentery)/m_texture_height)*m_texture_height);
-    int xend   = std::min (spec.x+spec.width, ((int) ceil (real_centerx + wincenterx)/m_texture_width + 1)*m_texture_width);
-    int yend   = std::min (spec.y+spec.height, ((int) ceil (real_centery + wincentery)/m_texture_height + 1)*m_texture_height);
+    int xbegin = (int) floor (real_centerx) - wincenterx;
+    xbegin = std::max (spec.x, xbegin - (xbegin % m_texture_width));
+    int ybegin = (int) floor (real_centery) - wincentery;
+    ybegin = std::max (spec.y, ybegin - (ybegin % m_texture_height));
+    int xend   = (int) floor (real_centerx) + wincenterx;
+    xend = std::min (spec.x + spec.width, xend + m_texture_width - (xend % m_texture_width));
+    int yend   = (int) floor (real_centery) + wincentery;
+    yend = std::min (spec.y + spec.height, yend + m_texture_height - (yend % m_texture_height));
     //std::cerr << "(" << xbegin << ',' << ybegin << ") - (" << xend << ',' << yend << ")\n";
 
-    // FIXME: Load a subimage (if available) according to zoom level.
-    // Also, change the code path so we can take full advantage of async DMA
+    // Provide some feedback
+    int total_tiles = (int) (ceilf(float(xend-xbegin)/m_texture_width) * ceilf(float(yend-ybegin)/m_texture_height));
+    float tile_advance = 1.0f/total_tiles;
+    float percent = tile_advance;
+    m_viewer.statusViewInfo->hide ();
+    m_viewer.statusProgress->show ();
+
+    // FIXME: change the code path so we can take full advantage of async DMA
     // when using PBO.
     for (int ystart = ybegin ; ystart < yend; ystart += m_texture_height) {
         for (int xstart = xbegin ; xstart < xend; xstart += m_texture_width) {
@@ -504,9 +515,10 @@ IvGL::paintGL ()
             // FIXME: This can get too slow. Some ideas: avoid sending the tex
             // images more than necessary, figure an optimum texture size, use
             // multiple texture objects.
-            load_texture (xstart, ystart, tile_width, tile_height);
+            load_texture (xstart, ystart, tile_width, tile_height, percent);
             gl_rect (xstart, ystart, xstart+tile_width, ystart+tile_height, 0,
-                    smin, tmin, smax, tmax);
+                     smin, tmin, smax, tmax);
+            percent += tile_advance;
         }
     }
 
@@ -515,6 +527,11 @@ IvGL::paintGL ()
     if (m_viewer.pixelviewOn()) {
         paint_pixelview ();
     }
+
+    // Show the status info again.
+    m_viewer.statusProgress->hide ();
+    m_viewer.statusViewInfo->show ();
+    unsetCursor ();
 
 #ifdef DEBUG
     std::cerr << "paintGL elapsed time: " << paint_image_time() << " seconds\n";
@@ -706,13 +723,16 @@ IvGL::useshader (int tex_width, int tex_height, bool pixelview)
 
     if (!m_use_shaders) {
         glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-        if (m_viewer.linearInterpolation ()) {
-            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        }
-        else {
-            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        BOOST_FOREACH (TexBuffer &tb, m_texbufs) {
+            glBindTexture (GL_TEXTURE_2D, tb.tex_object);
+            if (m_viewer.linearInterpolation ()) {
+                glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            }
+            else {
+                glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            }
         }
         return;
     }
@@ -1144,6 +1164,10 @@ IvGL::check_gl_extensions (void)
 
     m_max_texture_size = 0;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_max_texture_size);
+    // FIXME: Need a smarter way to handle (video) memory.
+    // Don't assume that systems capable of using 8k^2 textures have enough
+    // resources to use more than one of those at the same time.
+    m_max_texture_size = std::min(m_max_texture_size, 4096);
 
 #ifdef DEBUG
     // Report back...
@@ -1270,7 +1294,7 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, GLenum &gltype, GLenum &glforma
 
 
 void
-IvGL::load_texture (int x, int y, int width, int height)
+IvGL::load_texture (int x, int y, int width, int height, float percent)
 {
     const ImageSpec &spec = m_current_image->spec ();
     // Find if this has already been loaded.
@@ -1281,12 +1305,13 @@ IvGL::load_texture (int x, int y, int width, int height)
         }
     }
 
-    if (! m_use_shaders) {
-           // Take advantage of the fact that TexSubImage uses               
-           // UNPACK_ROW_LENGTH to make it work for contiguous memory (i.e.,
-           // pixeladdr) 
-           glPixelStorei (GL_UNPACK_ROW_LENGTH, spec.width);                             
-    }
+    // Make it somewhat obvious to the user that some progress is happening
+    // here.
+    m_viewer.statusProgress->setValue ((int)(percent*100));
+    // FIXME: Check whether this works ok (ie, no 'recursive repaint' messages)
+    // on all platforms.
+    m_viewer.statusProgress->repaint ();
+    setCursor (Qt::WaitCursor);
 
     GLenum gltype, glformat, glinternalformat;
     typespec_to_opengl (spec, gltype, glformat, glinternalformat);
