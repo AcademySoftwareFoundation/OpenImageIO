@@ -20,19 +20,26 @@ OpenImageIO consists of:
     plugin can be found at runtime.
 
   * Plugins implementing I/O for several popular image file formats,
-    including TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/RGBE, ICO, BMP.
+    including TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/RGBE, ICO, BMP,
+    Targa, JPEG-2000.
 
   * An image viewer, iv, that is based on ImageIO plugins and therefore
     can read images of any format for which an appropriate plugin may be
     found.
 
-  * Several other image utilities, including image information, 
-    format conversion, image comparison, and others.
+  * Several image tools based on these classes, including iinfo (print
+    detailed info about images), iconvert (convert among formats, data
+    types, or modify metadata), idiff (compare images), igrep (search
+    images for matching metadata). Because these tools are based on
+    ImageInput/ImageOutput, they work with any image formats for which
+    ImageIO plugins are available.
 
-  * A library for image texture lookups, included sophisticated cache
-    management so that an application using the library may access
-    thousands of textures totalling hundreds of Gigabytes, all with a
-    runtime memory footprint of merely tens of Megabytes.
+  * An ImageCache class that transparently manages a cache so that it
+    can access truly vast amounts of image data (thousands of image
+    files totaling hundreds of GB) very efficiently using only a tiny
+    amount (tens of megabytes at most) of runtime memory. Additionally,
+    a TextureSystem class provides filtered MIP-map texture lookups,
+    atop the nice caching behavior of ImageCache.
 
 
 
@@ -52,10 +59,12 @@ DOES NOT obligate you to pay us, or to use any particular licensing
 terms in your own application.
 
 
-Web Site
---------
+Web Resources
+-------------
 
-www.openimageio.org
+Main web page:      http://www.openimageio.org
+Bug/issue tracker:  http://trac.openimageio.org
+Mail lists:         http://lists.openimageio.org
 
 
 Contact
@@ -70,6 +79,10 @@ Building and Installation
 
 Please read the "INSTALL" file for detailed instructions on how to
 build and install OpenImageIO.
+
+Remember that you need to set the environment variable
+IMAGEIO_LIBRARY_PATH to point to the 'lib' directory where OpenImageIO
+is installed, or else it will not be able to find the plugins.
 
 
 Documentation
