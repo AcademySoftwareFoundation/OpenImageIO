@@ -243,10 +243,11 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
         k = (m_tga.cmap_first + k) * palbytespp;
         switch (palbytespp) {
         case 2:
-            out[0] = palette[k + 1] & 0x3E;
-            out[1] = (palette[k + 1] & 0xC0) >> 5
-                     | (palette[k + 0] & 0x07) << 3;
-            out[2] = (palette[k + 0] & 0xF8) >> 3;
+            // see the comment for 16bpp RGB below for an explanation of this
+            out[2] = (palette[k + 1] & 0x7C) << 1;
+            out[1] = ((palette[k + 0] & 0xE0) >> 2)
+                     | ((palette[k + 1] & 0x03) << 6);
+            out[0] = (palette[k + 0] & 0x1F) << 3;
             break;
         case 3:
             out[0] = palette[k + 2];
@@ -265,9 +266,35 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
     case TYPE_RGB_RLE:
         switch (bytespp) {
         case 2:
-            out[0] = in[1] & 0x3E;
-            out[1] = (in[1] & 0xC0) >> 5 | (in[0] & 0x07) << 3;
-            out[2] = (in[0] & 0xF8) >> 3;
+            // This format is pretty funky. It's a 1-5R-5G-5B layout, with the
+            // first bit unused, but thanks to the little-endianness, the order
+            // is pretty bizarre. The bits are non-contiguous, so we have to
+            // extract the relevant ones and synthesize the colour values from
+            // the two bytes.
+            // NOTE: This way of handling the pixel as two independent bytes
+            // (as opposed to a single short int) makes it independent from
+            // endianness.
+            // Here's what the layout looks like:
+            // MSb       unused   LSb
+            //  v           v      v
+            //  GGGBBBBB     RRRRRGG
+            // [||||||||]  [||||||||]
+            // While red and blue channels are quite self-explanatory, the
+            // green one needs a few words. The 5 bits are composed of the
+            // 2 from the second byte as the more significant and the 3 from
+            // the first one as the less significant ones. So much for the
+            // funny bit masks.
+            // As for the bit shifts - we start out with 5 bits and we need to
+            // expand them to 8, so these just move them to the most
+            // significant positions. We're losing a tiny bit of precision
+            // here, though: 5 bits of 1s is 31 in decimal, shifted 3 spaces to
+            // the left (= multiplied by 8) it's 31 * 8 = 248.
+            // FIXME: we could do proper range expansion with floating point
+            // calculations instead of bit hacking, but I'm not really
+            // convinced it's worth it
+            out[0] = (in[1] & 0x7C) << 1;
+            out[1] = ((in[0] & 0xE0) >> 2) | ((in[1] & 0x03) << 6);
+            out[2] = (in[0] & 0x1F) << 3;
             break;
         case 3:
             out[0] = in[2];
@@ -284,8 +311,11 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
         break;
     case TYPE_GRAY:
     case TYPE_GRAY_RLE:
-        // FIXME: byte order for bytespp > 1?
-        memcpy (out, in, bytespp);
+        if (bigendian ()) {
+            for (int i = bytespp - 1; i >= 0; i--)
+                out[i] = in[bytespp - i - 1];
+        } else
+            memcpy (out, in, bytespp);
         break;
     }
 }
@@ -300,6 +330,14 @@ TGAInput::readimg ()
     int bytespp = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
     int palbytespp = (m_tga.cmap_size == 15) ? 2 : (m_tga.cmap_size / 8);
     int alphabits = m_tga.attr & 0x0F;
+    if (alphabits == 0 && m_tga.bpp == 32)
+        alphabits = 8;
+
+    /*std::cerr << "[tga] bytespp = " << bytespp
+              << " palbytespp = " << palbytespp
+              << " alphabits = " << alphabits
+              << " rle = " << (m_tga.type < TYPE_PALETTED_RLE ? "no" : "yes")
+              << "\n";*/
 
     m_buf.resize (m_spec.image_bytes());
 
