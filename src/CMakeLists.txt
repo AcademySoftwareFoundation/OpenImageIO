@@ -122,6 +122,13 @@ else ()
     message (STATUS "  -> You can find it at http://www.openexr.com/downloads.html\n")
 endif ()
 
+if (EXISTS "${PROJECT_SOURCE_DIR}/../../j2kp4files_v1_5")
+    TESTSUITE (jpeg2000)
+else ()
+    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../j2kp4files_v1_5")
+    message (STATUS "  -> Will not run tests 'jpeg2000")
+    message (STATUS "  -> You can find it at http://www.crc.ricoh.com/~gormish/jpeg2000conformance/\n")
+endif ()
 
 #########################################################################
 # Packaging
