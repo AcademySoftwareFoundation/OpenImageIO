@@ -684,13 +684,13 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         options.alpha[index] = 0;
 
     // Use the differentials to figure out which MIP-map levels to use.
-    float dsdx = _dsdx ? _dsdx[index] : 0;
+    float dsdx = _dsdx ? fabsf(_dsdx[index]) : 0;
     dsdx = dsdx * options.swidth[index] + options.sblur[index];
-    float dtdx = _dtdx ? _dtdx[index] : 0;
+    float dtdx = _dtdx ? fabsf(_dtdx[index]) : 0;
     dtdx = dtdx * options.twidth[index] + options.tblur[index];
-    float dsdy = _dsdy ? _dsdy[index] : 0;
+    float dsdy = _dsdy ? fabsf(_dsdy[index]) : 0;
     dsdy = dsdy * options.swidth[index] + options.sblur[index];
-    float dtdy = _dtdy ? _dtdy[index] : 0;
+    float dtdy = _dtdy ? fabsf(_dtdy[index]) : 0;
     dtdy = dtdy * options.twidth[index] + options.tblur[index];
 
     // Determine the MIP-map level(s) we need: we will blend
@@ -796,42 +796,46 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
 
     // Find the differentials, handle the case where user passed NULL
     // to indicate no derivs were available.
-    float dsdx = _dsdx ? fabsf(_dsdx[index]) : 0;
-    float dtdx = _dtdx ? fabsf(_dtdx[index]) : 0;
-    float dsdy = _dsdy ? fabsf(_dsdy[index]) : 0;
-    float dtdy = _dtdy ? fabsf(_dtdy[index]) : 0;
+    float dsdx = _dsdx ? _dsdx[index] : 0;
+    float dtdx = _dtdx ? _dtdx[index] : 0;
+    float dsdy = _dsdy ? _dsdy[index] : 0;
+    float dtdy = _dtdy ? _dtdy[index] : 0;
     // Compute the natural resolution we want for the bare derivs, this
     // will be the threshold for knowing we're maxifying (and therefore
     // wanting cubic interpolation).
-    float sfilt_noblur = std::max (std::max (dsdx, dsdy), (float)1.0e-8);
-    float tfilt_noblur = std::max (std::max (dtdx, dtdy), (float)1.0e-8);
+    float sfilt_noblur = std::max (std::max (fabsf(dsdx), fabsf(dsdy)), 1e-8f);
+    float tfilt_noblur = std::max (std::max (fabsf(dtdx), fabsf(dtdy)), 1e-8f);
     int naturalres = (int) (1.0f / std::min (sfilt_noblur, tfilt_noblur));
     // Scale by 'width' and 'blur'
-    dsdx = dsdx * options.swidth[index] + options.sblur[index];
-    dtdx = dtdx * options.twidth[index] + options.tblur[index];
-    dsdy = dsdy * options.swidth[index] + options.sblur[index];
-    dtdy = dtdy * options.twidth[index] + options.tblur[index];
+    // NOTE: we must preserve the sign of the differentials to avoid "flipping"
+    //       the ellipse
+    dsdx = copysignf(fabsf(dsdx) * options.swidth[index] + options.sblur[index], dsdx);
+    dtdx = copysignf(fabsf(dtdx) * options.twidth[index] + options.tblur[index], dtdx);
+    dsdy = copysignf(fabsf(dsdy) * options.swidth[index] + options.sblur[index], dsdy);
+    dtdy = copysignf(fabsf(dtdy) * options.twidth[index] + options.tblur[index], dtdy);
 
     // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
     int miplevel[2] = { -1, -1 };
     float levelblend = 0;
-    float sfilt = std::max (std::max (dsdx, dsdy), (float)1.0e-8);
-    float tfilt = std::max (std::max (dtdx, dtdy), (float)1.0e-8);
+    // The ellipse is made up of two axes which correspond to the x and y pixel
+    // directions. Pick the longest one and take several samples along it.
+    float xfilt = std::max (std::max (fabsf(dsdx), fabsf(dtdx)), 1e-8f);
+    float yfilt = std::max (std::max (fabsf(dsdy), fabsf(dtdy)), 1e-8f);
     float smajor, tmajor;
-    float *majorlength, *minorlength;
-    if (sfilt > tfilt) {
-        majorlength = &sfilt;
-        minorlength = &tfilt;
+    float majorlength, minorlength;
+    if (xfilt > yfilt) {
+        majorlength = xfilt;
+        minorlength = yfilt;
         smajor = dsdx;
         tmajor = dtdx;
     } else {
-        majorlength = &tfilt;
-        minorlength = &sfilt;
+        majorlength = yfilt;
+        minorlength = xfilt;
         smajor = dsdy;
         tmajor = dtdy;
     }
-    float aspect = Imath::clamp ((*majorlength) / (*minorlength), 1.0f, 1.0e6f);
+    float aspect = Imath::clamp (majorlength / minorlength, 1.0f, 1.0e6f);
     float trueaspect = aspect;
     if (aspect > options.anisotropic) {
         aspect = options.anisotropic;
@@ -849,15 +853,15 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         //                            (*minorlength * options.anisotropic));
         //      *minorlength = (*majorlength) / options.anisotropic;
         if (options.conservative_filter) {
-            *majorlength = sqrtf ((*majorlength) *
-                                  (*minorlength * options.anisotropic));
-            *minorlength = (*majorlength) / options.anisotropic;
+            majorlength = sqrtf ((majorlength) *
+                                 (minorlength * options.anisotropic));
+            minorlength = majorlength / options.anisotropic;
         } else {
-            *majorlength = (*minorlength) * options.anisotropic;
+            majorlength = minorlength * options.anisotropic;
         }
     }
 
-    float filtwidth = (*minorlength);
+    float filtwidth = minorlength;
     for (int i = 0;  i < texturefile.subimages();  ++i) {
         // Compute the filter size in raster space at this MIP level
         float filtwidth_ras = texturefile.spec(i).full_width * filtwidth;
