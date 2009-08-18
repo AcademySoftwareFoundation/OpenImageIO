@@ -76,6 +76,13 @@ public:
     float exposure (void) const { return m_exposure; }
     void exposure (float e) { m_exposure = e; }
 
+    int nchannels () const {
+        if (m_corrected_image.localpixels()) {
+            return m_corrected_image.nchannels();
+        }
+        return m_spec.nchannels;
+    }
+
     std::string shortinfo () const;
     std::string longinfo () const;
 
@@ -84,10 +91,6 @@ public:
     /// Can we read the pixels of this image already?
     ///
     bool image_valid () const { return m_image_valid; }
-
-    /// This will apply a sRGB -> linear mapping to the pixels.
-    /// Only works with UINT8 images.
-    void srgb_to_linear();
 
     /// Copies data from the read buffer to the secondary buffer, selecting the
     /// given channel:
@@ -100,7 +103,7 @@ public:
     /// Then applies gamma/exposure correction (if any). This only works when
     /// the image is UINT8 (for now at least). It also performs sRGB to linear
     /// color space correction when indicated.
-    void pixel_transform (bool srgb_to_linear,int channel);
+    void pixel_transform (bool srgb_to_linear, int color_mode, int channel);
 
     bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
                       TypeDesc format, void *result) {
@@ -114,6 +117,12 @@ public:
     bool auto_subimage (void) const { return m_auto_subimage; }
     void auto_subimage (bool v) { m_auto_subimage = v; }
 
+    /// Copies a rectangular block of pixels into 'result' with the given
+    /// 'format', copying only from channels [chbegin, chend).
+    //FIXME: I really feel this should go somewhere else (i.e., in ImageBuf or as
+    //an ImageBufAlgo).
+    bool copy_pixel_channels  (int xbegin, int xend, int ybegin, int yend,
+                       int chbegin, int chend, TypeDesc format, void *result) const;
 private:
     ImageBuf m_corrected_image; ///< Colorspace/gamma/exposure corrected image.
     char *m_thumbnail;         ///< Thumbnail image
@@ -137,9 +146,12 @@ public:
     ImageViewer();
     ~ImageViewer();
 
-    enum ChannelView {
-        channelRed=0, channelGreen=1, channelBlue=2, channelAlpha=3,
-        channelFullColor = -1, channelLuminance = -2
+    enum COLOR_MODE {
+        RGBA = 0,
+        RGB = 1,
+        SINGLE_CHANNEL = 2,
+        LUMINANCE = 3,
+        HEATMAP = 4
     };
 
     /// Tell the viewer about an image, but don't load it yet.
@@ -155,11 +167,15 @@ public:
 
     /// View a particular channel
     ///
-    void viewChannel (ChannelView c);
+    void viewChannel (int channel, COLOR_MODE colormode);
 
     /// Which channel are we viewing?
     ///
     int current_channel (void) const { return m_current_channel; }
+
+    /// In what color mode are we?
+    ///
+    COLOR_MODE current_color_mode (void) const { return m_color_mode; }
 
     /// Return the current zoom level.  1.0 == 1:1 pixel ratio.  Positive
     /// is a "zoom in" (closer/maxify), negative is zoom out (farther/minify).
@@ -242,9 +258,13 @@ private slots:
     void viewChannelGreen();            ///< View just green as gray
     void viewChannelBlue();             ///< View just blue as gray
     void viewChannelAlpha();            ///< View alpha as gray
-    void viewChannelLuminance();        ///< View luminance as gray
+    void viewChannelLuminance();        ///< View current 3 channels as luminance
     void viewChannelPrev();             ///< View just prev channel as gray
     void viewChannelNext();             ///< View just next channel as gray
+    void viewColorRGBA();               ///< View current 4 channels as RGBA
+    void viewColorRGB();                ///< View current 3 channels as RGB
+    void viewColor1Ch();                ///< View current channel as gray
+    void viewColorHeatmap();            ///< View current channel as heatmap.
     void viewSubimagePrev();            ///< View prev subimage
     void viewSubimageNext();            ///< View next subimage
     void showInfoWindow();              ///< View extended info on image
@@ -287,8 +307,10 @@ private:
     QAction *exposurePlusOneTenthStopAct, *exposurePlusOneHalfStopAct;
     QAction *exposureMinusOneTenthStopAct, *exposureMinusOneHalfStopAct;
     QAction *viewChannelFullAct, *viewChannelRedAct, *viewChannelGreenAct;
-    QAction *viewChannelBlueAct, *viewChannelAlphaAct, *viewChannelLuminanceAct;
+    QAction *viewChannelBlueAct, *viewChannelAlphaAct;
     QAction *viewChannelPrevAct, *viewChannelNextAct;
+    QAction *viewColorRGBAAct, *viewColorRGBAct, *viewColor1ChAct;
+    QAction *viewColorLumAct, *viewColorHeatmapAct;
     QAction *viewSubimagePrevAct, *viewSubimageNextAct;
     QAction *zoomInAct;
     QAction *zoomOutAct;
@@ -302,7 +324,7 @@ private:
     QAction *showPixelviewWindowAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
     QMenu *openRecentMenu;
-    QMenu *expgamMenu, *channelMenu;
+    QMenu *expgamMenu, *channelMenu, *colormodeMenu;
     QLabel *statusImgInfo, *statusViewInfo;
     QProgressBar *statusProgress;
     QComboBox *mouseModeComboBox;
@@ -317,7 +339,8 @@ private:
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
-    int m_current_channel;            ///< Channel we're viewing: ChannelViews
+    int m_current_channel;            ///< Channel we're viewing.
+    COLOR_MODE m_color_mode;          ///< How to show the current channel(s).
     int m_last_image;                 ///< Last image we viewed
     float m_zoom;                     ///< Zoom amount (positive maxifies)
     bool m_fullscreen;                ///< Full screen mode
@@ -447,7 +470,7 @@ public:
     /// (i.e., it's recommended to use lower resolution versions when zoomed out).
     bool is_too_big (float width, float height);
 
-    void typespec_to_opengl (const ImageSpec& spec, GLenum &gltype,
+    void typespec_to_opengl (const ImageSpec& spec, int nchannels, GLenum &gltype,
                              GLenum &glformat, GLenum &glinternal) const;
 
 protected:

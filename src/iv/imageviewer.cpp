@@ -51,9 +51,9 @@ using namespace OpenImageIO;
 
 ImageViewer::ImageViewer ()
     : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
-      m_current_image(-1), m_current_channel(-1), m_last_image(-1),
+      m_current_image(-1), m_current_channel(0), m_last_image(-1),
       m_zoom(1), m_fullscreen(false), m_default_gamma(1),
-      m_darkPalette(false)
+      m_darkPalette(false), m_color_mode(RGBA)
 {
     readSettings (false);
 
@@ -205,10 +205,31 @@ ImageViewer::createActions()
     viewChannelAlphaAct->setCheckable (true);
     connect(viewChannelAlphaAct, SIGNAL(triggered()), this, SLOT(viewChannelAlpha()));
 
-    viewChannelLuminanceAct = new QAction(tr("Luminance"), this);
-    viewChannelLuminanceAct->setShortcut(tr("l"));
-    viewChannelLuminanceAct->setCheckable (true);
-    connect(viewChannelLuminanceAct, SIGNAL(triggered()), this, SLOT(viewChannelLuminance()));
+    viewColorLumAct = new QAction (tr("Luminance"), this);
+    viewColorLumAct->setShortcut (tr("l"));
+    viewColorLumAct->setCheckable (true);
+    connect(viewColorLumAct, SIGNAL(triggered()), this, SLOT(viewChannelLuminance()));
+
+    viewColorRGBAAct = new QAction (tr("RGBA"), this);
+    //viewColorRGBAAct->setShortcut (tr("Ctrl+c"));
+    viewColorRGBAAct->setCheckable (true);
+    viewColorRGBAAct->setChecked (true);
+    connect(viewColorRGBAAct, SIGNAL(triggered()), this, SLOT(viewColorRGBA()));
+
+    viewColorRGBAct = new QAction (tr("RGB"), this);
+    //viewColorRGBAct->setShortcut (tr("Ctrl+a"));
+    viewColorRGBAct->setCheckable (true);
+    connect(viewColorRGBAct, SIGNAL(triggered()), this, SLOT(viewColorRGB()));
+
+    viewColor1ChAct = new QAction (tr("Single channel"), this);
+    viewColor1ChAct->setShortcut (tr("1"));
+    viewColor1ChAct->setCheckable (true);
+    connect(viewColor1ChAct, SIGNAL(triggered()), this, SLOT(viewColor1Ch()));
+
+    viewColorHeatmapAct = new QAction (tr("Single channel (Heatmap)"), this);
+    viewColorHeatmapAct->setShortcut (tr("h"));
+    viewColorHeatmapAct->setCheckable (true);
+    connect(viewColorHeatmapAct, SIGNAL(triggered()), this, SLOT(viewColorHeatmap()));
 
     viewChannelPrevAct = new QAction(tr("Prev Channel"), this);
     viewChannelPrevAct->setShortcut(tr(","));
@@ -348,9 +369,15 @@ ImageViewer::createMenus()
     channelMenu->addAction (viewChannelGreenAct);
     channelMenu->addAction (viewChannelBlueAct);
     channelMenu->addAction (viewChannelAlphaAct);
-    channelMenu->addAction (viewChannelLuminanceAct);
     channelMenu->addAction (viewChannelPrevAct);
     channelMenu->addAction (viewChannelNextAct);
+
+    colormodeMenu = new QMenu(tr("Color mode"));
+    colormodeMenu->addAction (viewColorRGBAAct);
+    colormodeMenu->addAction (viewColorRGBAct);
+    colormodeMenu->addAction (viewColor1ChAct);
+    colormodeMenu->addAction (viewColorLumAct);
+    colormodeMenu->addAction (viewColorHeatmapAct);
 
     viewMenu = new QMenu(tr("&View"), this);
     viewMenu->addAction (prevImageAct);
@@ -367,6 +394,7 @@ ImageViewer::createMenus()
     viewMenu->addAction (viewSubimagePrevAct);
     viewMenu->addAction (viewSubimageNextAct);
     viewMenu->addMenu (channelMenu);
+    viewMenu->addMenu (colormodeMenu);
     viewMenu->addMenu (expgamMenu);
     menuBar()->addMenu (viewMenu);
     // Full screen mode
@@ -715,15 +743,23 @@ ImageViewer::updateStatusBar ()
     message += cur()->shortinfo();
     statusImgInfo->setText (message.c_str());
 
-    switch (m_current_channel) {
-    case channelFullColor: message = "RGB"; break;
-    case channelLuminance: message = "Lum"; break;
-    default:
+    message.clear();
+    switch (m_color_mode) {
+    case RGBA: message = Strutil::format ("RGBA (%d-%d)", m_current_channel, m_current_channel+3); break;
+    case RGB: message = Strutil::format ("RGB (%d-%d)", m_current_channel, m_current_channel+2); break;
+    case LUMINANCE: message = Strutil::format ("Lum (%d-%d)", m_current_channel, m_current_channel+2); break;
+    case HEATMAP: 
+        message = "Heat ";
+    case SINGLE_CHANNEL:
         if ((int)spec->channelnames.size() > m_current_channel &&
                 spec->channelnames[m_current_channel].size())
-            message = spec->channelnames[m_current_channel];
+            message += spec->channelnames[m_current_channel];
         else
-            message = Strutil::format ("chan %d", m_current_channel);
+            if (m_color_mode == HEATMAP) {
+                message += Strutil::format ("%d", m_current_channel);
+            } else {
+                message = Strutil::format ("chan %d", m_current_channel);
+            }
         break;
     }
     message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f",
@@ -817,7 +853,7 @@ ImageViewer::loadCurrentImage (int subimage)
             // Do the first pixel transform to fill-in the secondary image
             // buffer.
             if (allow_transforms) {
-                img->pixel_transform (srgb_transform, current_channel());
+                img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
             }
             return true;
         } else {
@@ -948,7 +984,7 @@ ImageViewer::exposureMinusOneTenthStop ()
     if (! glwin->is_glsl_capable ()) {
         bool srgb_transform = (! glwin->is_srgb_capable () &&
                                img->spec().linearity == ImageSpec::sRGB);
-        img->pixel_transform (srgb_transform, current_channel());
+        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
         displayCurrentImage (false);
@@ -966,7 +1002,7 @@ ImageViewer::exposureMinusOneHalfStop ()
     if (! glwin->is_glsl_capable ()) {
         bool srgb_transform = (! glwin->is_srgb_capable () &&
                                img->spec().linearity == ImageSpec::sRGB);
-        img->pixel_transform (srgb_transform, current_channel());
+        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
         displayCurrentImage (false);
@@ -984,7 +1020,7 @@ ImageViewer::exposurePlusOneTenthStop ()
     if (! glwin->is_glsl_capable ()) {
         bool srgb_transform = (! glwin->is_srgb_capable () &&
                                img->spec().linearity == ImageSpec::sRGB);
-        img->pixel_transform (srgb_transform, current_channel());
+        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
         displayCurrentImage (false);
@@ -1002,7 +1038,7 @@ ImageViewer::exposurePlusOneHalfStop ()
     if (! glwin->is_glsl_capable ()) {
         bool srgb_transform = (! glwin->is_srgb_capable () &&
                                img->spec().linearity == ImageSpec::sRGB);
-        img->pixel_transform (srgb_transform, current_channel());
+        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
         displayCurrentImage (false);
@@ -1021,7 +1057,7 @@ ImageViewer::gammaMinus ()
     if (! glwin->is_glsl_capable ()) {
         bool srgb_transform = (! glwin->is_srgb_capable () &&
                                img->spec().linearity == ImageSpec::sRGB);
-        img->pixel_transform (srgb_transform, current_channel());
+        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
         displayCurrentImage (false);
@@ -1039,7 +1075,7 @@ ImageViewer::gammaPlus ()
     if (! glwin->is_glsl_capable ()) {
         bool srgb_transform = (! glwin->is_srgb_capable () &&
                                img->spec().linearity == ImageSpec::sRGB);
-        img->pixel_transform (srgb_transform, current_channel());
+        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
         displayCurrentImage (false);
@@ -1049,31 +1085,48 @@ ImageViewer::gammaPlus ()
 
 
 void
-ImageViewer::viewChannel (ChannelView c)
+ImageViewer::viewChannel (int c, COLOR_MODE colormode)
 {
 #ifdef DEBUG
     Timer change_channel_time;
     change_channel_time.start();
 #endif
-    if (m_current_channel != c) {
-        m_current_channel = c;
+    if (m_current_channel != c || colormode != m_color_mode) {
+        bool update = true;
         if (! glwin->is_glsl_capable ()) {
             IvImage *img = cur ();
             if (img) {
                 bool srgb_transform = (! glwin->is_srgb_capable () &&
                                        img->spec().linearity == ImageSpec::sRGB);
-                img->pixel_transform (srgb_transform, current_channel());
+                img->pixel_transform (srgb_transform, (int)colormode, c);
             }
-            displayCurrentImage ();
         } else {
-            displayCurrentImage (false);
+            // FIXME: There are even more chances to avoid updating the textures
+            // if we can keep trac of which channels are in the texture.
+            if (m_current_channel == c) {
+                if (m_color_mode == SINGLE_CHANNEL || m_color_mode == HEATMAP) {
+                    if (colormode == HEATMAP || colormode == SINGLE_CHANNEL)
+                        update = false;
+                } else if (m_color_mode == RGB || m_color_mode == LUMINANCE) {
+                    if (colormode == RGB || colormode == LUMINANCE)
+                        update = false;
+                }
+            }
         }
-        viewChannelFullAct->setChecked (c == channelFullColor);
-        viewChannelRedAct->setChecked (c == channelRed);
-        viewChannelGreenAct->setChecked (c == channelGreen);
-        viewChannelBlueAct->setChecked (c == channelBlue);
-        viewChannelAlphaAct->setChecked (c == channelAlpha);
-        viewChannelLuminanceAct->setChecked (c == channelLuminance);
+        m_current_channel = c;
+        m_color_mode = colormode;
+        displayCurrentImage (update);
+
+        viewChannelFullAct->setChecked (c == 0 && m_color_mode == RGBA);
+        viewChannelRedAct->setChecked (c == 0 && m_color_mode == SINGLE_CHANNEL);
+        viewChannelGreenAct->setChecked (c == 1 && m_color_mode == SINGLE_CHANNEL);
+        viewChannelBlueAct->setChecked (c == 2 && m_color_mode == SINGLE_CHANNEL);
+        viewChannelAlphaAct->setChecked (c == 3 && m_color_mode == SINGLE_CHANNEL);
+        viewColorLumAct->setChecked (m_color_mode == LUMINANCE);
+        viewColorRGBAAct->setChecked (m_color_mode == RGBA);
+        viewColorRGBAct->setChecked (m_color_mode == RGB);
+        viewColor1ChAct->setChecked (m_color_mode == SINGLE_CHANNEL);
+        viewColorHeatmapAct->setChecked (m_color_mode == HEATMAP);
     }
 #ifdef DEBUG
     change_channel_time.stop();
@@ -1086,57 +1139,108 @@ ImageViewer::viewChannel (ChannelView c)
 void
 ImageViewer::viewChannelFull ()
 {
-    viewChannel (channelFullColor);
+    viewChannel (0, RGBA);
 }
 
 
 void
 ImageViewer::viewChannelRed ()
 {
-    viewChannel (channelRed);
+    viewChannel (0, SINGLE_CHANNEL);
 }
 
 
 void
 ImageViewer::viewChannelGreen ()
 {
-    viewChannel (channelGreen);
+    viewChannel (1, SINGLE_CHANNEL);
 }
 
 
 void
 ImageViewer::viewChannelBlue ()
 {
-    viewChannel (channelBlue);
+    viewChannel (2, SINGLE_CHANNEL);
 }
 
 
 void
 ImageViewer::viewChannelAlpha ()
 {
-    viewChannel (channelAlpha);
+    viewChannel (3, SINGLE_CHANNEL);
 }
 
 
 void
 ImageViewer::viewChannelLuminance ()
 {
-    viewChannel (channelLuminance);
+    viewChannel (m_current_channel, LUMINANCE);
+}
+
+
+void
+ImageViewer::viewColorRGBA ()
+{
+    viewChannel (m_current_channel, RGBA);
+}
+
+
+void
+ImageViewer::viewColorRGB ()
+{
+    viewChannel (m_current_channel, RGB);
+}
+
+
+void
+ImageViewer::viewColor1Ch ()
+{
+    viewChannel (m_current_channel, SINGLE_CHANNEL);
+}
+
+
+void
+ImageViewer::viewColorHeatmap ()
+{
+    viewChannel (m_current_channel, HEATMAP);
 }
 
 
 void
 ImageViewer::viewChannelPrev ()
 {
-    if ((int)m_current_channel >= 0)
-        viewChannel ((ChannelView)((int)m_current_channel - 1));
+    if (glwin->is_glsl_capable()) {
+        if (m_current_channel > 0)
+            viewChannel (m_current_channel-1, m_color_mode);
+    } else {
+        // Simulate old behavior.
+        if (m_color_mode == RGBA || m_color_mode == RGB) {
+            viewChannel (m_current_channel, LUMINANCE);
+        } else if (m_color_mode == SINGLE_CHANNEL) {
+            if (m_current_channel == 0)
+                viewChannelFull();
+            else
+                viewChannel (m_current_channel-1, SINGLE_CHANNEL);
+        }
+    }
 }
 
 
 void
 ImageViewer::viewChannelNext ()
 {
-    viewChannel ((ChannelView)((int)m_current_channel + 1));
+    if (glwin->is_glsl_capable()) {
+        viewChannel (m_current_channel+1, m_color_mode);
+    } else {
+        // Simulate old behavior.
+        if (m_color_mode == LUMINANCE) {
+            viewChannelFull();
+        } else if (m_color_mode == RGBA || m_color_mode == RGB) {
+            viewChannelRed();
+        } else if (m_color_mode == SINGLE_CHANNEL) {
+            viewChannel (m_current_channel+1, SINGLE_CHANNEL);
+        }
+    }
 }
 
 

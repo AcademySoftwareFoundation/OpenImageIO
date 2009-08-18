@@ -206,12 +206,68 @@ IvGL::create_shaders (void)
         "varying vec2 vTexCoord;\n"
         "uniform float gain;\n"
         "uniform float gamma;\n"
-        "uniform int channelview;\n"
+        "uniform int startchannel;\n"
+        "uniform int colormode;\n"
+        // Remember, if imgchannels == 2, second channel would be channel 4 (a).
         "uniform int imgchannels;\n"
         "uniform int pixelview;\n"
         "uniform int linearinterp;\n"
         "uniform int width;\n"
         "uniform int height;\n"
+        "vec4 rgba_mode (vec4 C)\n"
+        "{\n"
+        "    if (imgchannels <= 2) {\n"
+        "        if (startchannel == 1)\n"
+        "           return vec4(C.aaa, 1.0);\n"
+        "        return C.rrra;\n"
+        "    }\n"
+        "    return C;\n"
+        "}\n"
+        "vec4 rgb_mode (vec4 C)\n"
+        "{\n"
+        "    if (imgchannels <= 2) {\n"
+        "        if (startchannel == 1)\n"
+        "           return vec4(C.aaa, 1.0);\n"
+        "        return vec4 (C.rrr, 1.0);\n"
+        "    }\n"
+        "    float C2[4];\n"
+        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
+        "    return vec4 (C2[startchannel], C2[startchannel+1], C2[startchannel+2], 1.0);\n"
+        "}\n"
+        "vec4 singlechannel_mode (vec4 C)\n"
+        "{\n"
+        "    float C2[4];\n"
+        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
+        "    if (startchannel > imgchannels)\n"
+        "        return vec4 (0.0,0.0,0.0,1.0);\n"
+        "    return vec4 (C2[startchannel], C2[startchannel], C2[startchannel], 1.0);\n"
+        "}\n"
+        "vec4 luminance_mode (vec4 C)\n"
+        "{\n"
+        "    if (imgchannels <= 2)\n"
+        "        return vec4 (C.rrr, C.a);\n"
+        "    float lum = dot (C.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
+        "    return vec4 (lum, lum, lum, C.a);\n"
+        "}\n"
+        "float heat_red(float x)\n"
+        "{\n"
+        "    return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -\n"
+        "           clamp (mix(0.0, 0.5, (x-0.89)/(1-0.89)), 0.0, 1.0);\n"
+        "}\n"
+        "float heat_green(float x)\n"
+        "{\n"
+        "    return clamp (mix(0.0, 1.0, (x-0.125)/(0.375-0.125)), 0.0, 1.0) -\n"
+        "           clamp (mix(0.0, 1.0, (x-0.64)/(0.91-0.64)), 0.0, 1.0);\n"
+        "}\n"
+        "vec4 heatmap_mode (vec4 C)\n"
+        "{\n"
+        "    float C2[4];\n"
+        "    C2[0]=C.x; C2[1]=C.y; C2[2]=C.z; C2[3]=C.w;\n"
+        "    return vec4(heat_red(C2[startchannel]),\n"
+        "                heat_green(C2[startchannel]),\n"
+        "                heat_red(1.0-C2[startchannel]),\n"
+        "                1.0);\n"
+        "}\n"
         "void main ()\n"
         "{\n"
         "    vec2 st = vTexCoord;\n"
@@ -233,24 +289,20 @@ IvGL::create_shaders (void)
         "    }\n"
         "    vec4 C = texture2D (imgtex, st);\n"
         "    C = mix (C, vec4(0.05,0.05,0.05,1.0), black);\n"
+        "    if (startchannel < 0)\n"
+        "        C = vec4(0.0,0.0,0.0,1.0);\n"
+        "    else if (colormode == 0)\n" // RGBA
+        "        C = rgba_mode (C);\n"
+        "    else if (colormode == 1)\n" // RGB (i.e., ignore alpha).
+        "        C = rgb_mode (C);\n"
+        "    else if (colormode == 2)\n" // Single channel.
+        "        C = singlechannel_mode (C);\n"
+        "    else if (colormode == 3)\n" // Luminance.
+        "        C = luminance_mode (C);\n"
+        "    else if (colormode == 4)\n" // Heatmap.
+        "        C = heatmap_mode (C);\n"
         "    if (pixelview != 0)\n"
         "        C.a = 1.0;\n"
-        "    if (imgchannels <= 2)\n"
-        "        C.xyz = C.xxx;\n"
-        "    if (channelview == -1) {\n"
-        "    }\n"
-        "    else if (channelview == 0)\n"
-        "        C.xyz = C.xxx;\n"
-        "    else if (channelview == 1)\n"
-        "        C.xyz = C.yyy;\n"
-        "    else if (channelview == 2)\n"
-        "        C.xyz = C.zzz;\n"
-        "    else if (channelview == 3)\n"
-        "        C.xyz = C.www;\n"
-        "    else if (channelview == -2) {\n"
-        "        float lum = dot (C.xyz, vec3(0.2126, 0.7152, 0.0722));\n"
-        "        C.xyz = vec3 (lum, lum, lum);\n"
-        "    }\n"
         "    C.xyz *= gain;\n"
         "    float invgamma = 1.0/gamma;\n"
         "    C.xyz = pow (C.xyz, vec3 (invgamma, invgamma, invgamma));\n"
@@ -350,6 +402,15 @@ IvGL::create_shaders (void)
     if (! linked) {
         std::cerr << "NOT LINKED\n";
         // FIXME: How to handle this error?
+        char buf[10000];
+        buf[0] = 0;
+        GLsizei len;
+        if (m_shaders_using_extensions) {
+            glGetInfoLogARB (m_shader_program, sizeof(buf), &len, buf);
+        } else {
+            glGetProgramInfoLog (m_shader_program, sizeof(buf), &len, buf);
+        }
+        std::cerr << "compile log:\n" << buf << "---\n";
     }
 
     m_shaders_created = true;
@@ -596,6 +657,26 @@ IvGL::shadowed_text (float x, float y, float z, const std::string &s,
 
 
 
+static int
+num_channels (int current_channel, int nchannels, ImageViewer::COLOR_MODE color_mode)
+{
+    switch (color_mode) {
+    case ImageViewer::RGBA:
+        return clamp (nchannels-current_channel, 0, 4);
+    case ImageViewer::RGB:
+    case ImageViewer::LUMINANCE:
+        return clamp (nchannels-current_channel, 0, 3);
+        break;
+    case ImageViewer::SINGLE_CHANNEL:
+    case ImageViewer::HEATMAP:
+        return 1;
+    default:
+        return nchannels;
+    }
+}
+
+
+
 void
 IvGL::paint_pixelview ()
 {
@@ -666,13 +747,27 @@ IvGL::paint_pixelview ()
         //std::cerr << "tex (" << smin << "," << tmin << ") - (" << smax << "," << tmax << ")\n";
         //std::cerr << "center mouse (" << xp << "," << yp << "), real (" << real_xp << "," << real_yp << ")\n";
 
-        void *zoombuffer = alloca ((xend-xbegin)*(xend-xbegin)*spec.pixel_bytes());
-        img->copy_pixels (spec.x + xbegin, spec.x + xend,
-                spec.y + ybegin, spec.y + yend,
-                spec.format, zoombuffer);
+        int nchannels = img->nchannels();
+        // For simplicity, we don't support more than 4 channels without shaders
+        // (yet).
+        if (m_use_shaders) {
+            nchannels = num_channels(m_viewer.current_channel(), nchannels, m_viewer.current_color_mode());
+        }
+
+        void *zoombuffer = alloca ((xend-xbegin)*(yend-ybegin)*nchannels*spec.channel_bytes());
+        if (! m_use_shaders) {
+            img->copy_pixels (spec.x + xbegin, spec.x + xend,
+                    spec.y + ybegin, spec.y + yend,
+                    spec.format, zoombuffer);
+        } else {
+            img->copy_pixel_channels (spec.x + xbegin, spec.x + xend,
+                    spec.y + ybegin, spec.y + yend,
+                    m_viewer.current_channel(), m_viewer.current_channel()+nchannels,
+                    spec.format, zoombuffer);
+        }
 
         GLenum glformat, gltype, glinternalformat;
-        typespec_to_opengl (spec, gltype, glformat, glinternalformat);
+        typespec_to_opengl (spec, nchannels, gltype, glformat, glinternalformat);
         // Use pixelview's own texture, and upload the corresponding image patch.
         if (m_use_pbo) {
             glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
@@ -684,6 +779,8 @@ IvGL::paint_pixelview ()
                          zoombuffer);
         GLERRPRINT ("After tsi2d");
     } else {
+        smin = -1;
+        smax = -1;
         glDisable (GL_TEXTURE_2D);
         glColor3f (0.1f,0.1f,0.1f);
     }
@@ -790,10 +887,19 @@ IvGL::useshader (int tex_width, int tex_height, bool pixelview)
 
     const ImageSpec &spec (img->spec());
 
+    int nchannels = num_channels(m_viewer.current_channel(), spec.nchannels, m_viewer.current_color_mode());
+
     gl_use_program (m_shader_program);
     GLERRPRINT ("After use program");
 
     GLint loc;
+
+    loc = gl_get_uniform_location ("startchannel");
+    if (m_viewer.current_channel()>=spec.nchannels) {
+        gl_uniform (loc, -1);
+        return;
+    }
+    gl_uniform (loc, 0);
 
     loc = gl_get_uniform_location ("imgtex");
     // This is the texture unit, not the texture object
@@ -807,8 +913,8 @@ IvGL::useshader (int tex_width, int tex_height, bool pixelview)
     loc = gl_get_uniform_location ("gamma");
     gl_uniform (loc, img->gamma ());
 
-    loc = gl_get_uniform_location ("channelview");
-    gl_uniform (loc, m_viewer.current_channel ());
+    loc = gl_get_uniform_location ("colormode");
+    gl_uniform (loc, m_viewer.current_color_mode());
 
     loc = gl_get_uniform_location ("imgchannels");
     gl_uniform (loc, spec.nchannels);
@@ -840,10 +946,20 @@ IvGL::update ()
 
     const ImageSpec &spec (img->spec());
 
+    int nchannels = img->nchannels();
+    // For simplicity, we don't support more than 4 channels without shaders
+    // (yet).
+    if (m_use_shaders) {
+        nchannels = num_channels(m_viewer.current_channel(), nchannels, m_viewer.current_color_mode());
+    }
+
+    if (! nchannels)
+        return; // Don't bother, the shader will show blackness for us.
+
     GLenum gltype = GL_UNSIGNED_BYTE;
     GLenum glformat = GL_RGB;
     GLenum glinternalformat = GL_RGB;
-    typespec_to_opengl (spec, gltype, glformat, glinternalformat);
+    typespec_to_opengl (spec, nchannels, gltype, glformat, glinternalformat);
 
     m_texture_width = std::min (pow2roundup(spec.width), m_max_texture_size);
     m_texture_height= std::min (pow2roundup(spec.height), m_max_texture_size);
@@ -853,8 +969,7 @@ IvGL::update ()
         // the PBOs.
         glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     }
-    // We need to reupload the texture only when changing images or when not
-    // using GLSL and changing channel/exposure/gamma.
+
     BOOST_FOREACH (TexBuffer &tb, m_texbufs) {
         tb.width = 0;
         tb.height= 0;
@@ -876,7 +991,7 @@ IvGL::update ()
     GLERRPRINT ("Setting up pixelview texture");
 
     // Resize the buffer at once, rather than create one each drawing.
-    m_tex_buffer.resize (m_texture_width * m_texture_height * spec.pixel_bytes());
+    m_tex_buffer.resize (m_texture_width * m_texture_height * nchannels * spec.channel_bytes());
     m_current_image = img;
 }
 
@@ -1234,7 +1349,7 @@ IvGL::check_gl_extensions (void)
 
 
 void
-IvGL::typespec_to_opengl (const ImageSpec &spec, GLenum &gltype, GLenum &glformat, 
+IvGL::typespec_to_opengl (const ImageSpec &spec, int nchannels, GLenum &gltype, GLenum &glformat, 
                           GLenum &glinternalformat) const
 {
     switch (spec.format.basetype) {
@@ -1262,8 +1377,8 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, GLenum &gltype, GLenum &glforma
         break;
     }
 
-    glinternalformat = spec.nchannels;
-    if (spec.nchannels == 1) {
+    glinternalformat = nchannels;
+    if (nchannels == 1) {
         glformat = GL_LUMINANCE;
         if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
             if (spec.format.basetype == TypeDesc::UINT8) {
@@ -1280,7 +1395,7 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, GLenum &gltype, GLenum &glforma
         } else if (m_use_float && spec.format.basetype == TypeDesc::HALF) {
             glinternalformat = GL_LUMINANCE16F_ARB;
         }
-    } else if (spec.nchannels == 2) {
+    } else if (nchannels == 2) {
         glformat = GL_LUMINANCE_ALPHA;
         if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
             if (spec.format.basetype == TypeDesc::UINT8) {
@@ -1297,7 +1412,7 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, GLenum &gltype, GLenum &glforma
         } else if (m_use_float && spec.format.basetype == TypeDesc::HALF) {
             glinternalformat = GL_LUMINANCE_ALPHA16F_ARB;
         }
-    } else if (spec.nchannels == 3) {
+    } else if (nchannels == 3) {
         glformat = GL_RGB;
         if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
             if (spec.format.basetype == TypeDesc::UINT8) {
@@ -1314,7 +1429,7 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, GLenum &gltype, GLenum &glforma
         } else if (m_use_float && spec.format.basetype == TypeDesc::HALF) {
             glinternalformat = GL_RGB16F_ARB;
         }
-    } else if (spec.nchannels == 4) {
+    } else if (nchannels == 4) {
         glformat = GL_RGBA;
         if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
             if (spec.format.basetype == TypeDesc::UINT8) {
@@ -1332,8 +1447,6 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, GLenum &gltype, GLenum &glforma
             glinternalformat = GL_RGBA16F_ARB;
         }
     } else {
-        //FIXME: What to do here?
-        std::cerr << "I don't know how to handle more than 4 channels\n";
         glformat = GL_INVALID_ENUM;
         glinternalformat = GL_INVALID_ENUM;
     }
@@ -1361,8 +1474,14 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
     m_viewer.statusProgress->repaint ();
     setCursor (Qt::WaitCursor);
 
+    int nchannels = spec.nchannels;
+    // For simplicity, we don't support more than 4 channels without shaders
+    // (yet).
+    if (m_use_shaders) {
+        nchannels = num_channels(m_viewer.current_channel(), nchannels, m_viewer.current_color_mode());
+    }
     GLenum gltype, glformat, glinternalformat;
-    typespec_to_opengl (spec, gltype, glformat, glinternalformat);
+    typespec_to_opengl (spec, nchannels, gltype, glformat, glinternalformat);
 
     TexBuffer &tb = m_texbufs[m_last_texbuf_used];
     tb.x = x;
@@ -1372,8 +1491,15 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
     // Copy the imagebuf pixels we need, that's the only way we can do
     // it safely since ImageBuf has a cache underneath and the whole image
     // may not be resident at once.
-    m_current_image->copy_pixels (x, x + width, y, y + height,
-            spec.format, &m_tex_buffer[0]);
+    if (! m_use_shaders) {
+        m_current_image->copy_pixels (x, x + width, y, y + height,
+                                      spec.format, &m_tex_buffer[0]);
+    } else {
+        m_current_image->copy_pixel_channels (x, x+width, y, y+height,
+                                              m_viewer.current_channel(), 
+                                              m_viewer.current_channel() + nchannels, 
+                                              spec.format, &m_tex_buffer[0]);
+    }
     if (m_use_pbo) {
         glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 
                          m_pbo_objects[m_last_pbo_used]);

@@ -33,6 +33,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <half.h>
 
 #include "imageviewer.h"
 #include "strutil.h"
@@ -93,7 +94,7 @@ IvImage::read (int subimage, bool force, TypeDesc format,
                               progress_callback, progress_callback_data);
 
     if (m_image_valid && secondary_data && m_spec.format == TypeDesc::UINT8) {
-        m_corrected_image.reset ("", m_spec);
+        m_corrected_image.reset ("", ImageSpec (m_spec.width, m_spec.height, std::min(m_spec.nchannels, 4), m_spec.format));
     } else {
         m_corrected_image.clear ();
     }
@@ -213,7 +214,7 @@ static EightBitConverter<float> converter;
 
 
 void 
-IvImage::pixel_transform(bool srgb_to_linear, int select_channel)
+IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel)
 {
     /// This table obeys the following function:
     ///
@@ -266,6 +267,7 @@ IvImage::pixel_transform(bool srgb_to_linear, int select_channel)
     unsigned char correction_table[256];
     int total_channels = m_spec.nchannels;
     int color_channels = m_spec.nchannels;
+    int max_channels = m_corrected_image.nchannels();
 
     // FIXME: Now with the iterator and data proxy in place, it should be
     // trivial to apply the transformations to any kind of data, not just
@@ -282,17 +284,17 @@ IvImage::pixel_transform(bool srgb_to_linear, int select_channel)
 
     // This image is Luminance or Luminance + Alpha, and we are asked to show
     // luminance.
-    if (color_channels == 1 && select_channel == -2) {
-        select_channel = -1;
+    if (color_channels == 1 && color_mode == 3) {
+        color_mode = 0; // Just copy as usual.
     }
 
     // Happy path:
-    if (! srgb_to_linear && select_channel == -1 && m_gamma == 1.0 && m_exposure == 0.0) {
+    if (! srgb_to_linear && color_mode <= 1 && m_gamma == 1.0 && m_exposure == 0.0) {
         ImageBuf::ConstIterator<unsigned char, unsigned char> src (*this);
         ImageBuf::Iterator<unsigned char, unsigned char> dst (m_corrected_image);
         for ( ; src.valid (); ++src) {
             dst.pos (src.x(), src.y());
-            for (int i = 0; i < total_channels; i++)
+            for (int i = 0; i < max_channels; i++)
                 dst[i] = src[i];
         }
         return;
@@ -318,7 +320,8 @@ IvImage::pixel_transform(bool srgb_to_linear, int select_channel)
     ImageBuf::Iterator<unsigned char, unsigned char> dst (m_corrected_image);
     for ( ; src.valid(); ++src) {
         dst.pos (src.x(), src.y());
-        if (select_channel == -1) {
+        if (color_mode == 0 || color_mode == 1) {
+            // RGBA, RGB modes.
             int ch = 0;
             for (ch = 0; ch < color_channels; ch++) {
                 if (srgb_to_linear)
@@ -326,10 +329,10 @@ IvImage::pixel_transform(bool srgb_to_linear, int select_channel)
                 else
                     dst[ch] = correction_table[src[ch]];
             }
-            for (; ch < total_channels; ch++) {
+            for (; ch < max_channels; ch++) {
                 dst[ch] = src[ch];
             }
-        } else if (select_channel == -2) {
+        } else if (color_mode == 3) {
             // Convert RGB to luminance, (Rec. 709 luma coefficients).
             float luminance;
             if (srgb_to_linear) {
@@ -351,10 +354,8 @@ IvImage::pixel_transform(bool srgb_to_linear, int select_channel)
             for (int ch = 3; ch < total_channels; ++ch) {
                 dst[ch] = src[ch];
             }
-        } else {
-            // This at least makes sense for the alpha channel when
-            // there are no alpha values.
-            unsigned char v = 255;
+        } else { // Single channel, heatmap.
+            unsigned char v = 0;
             if (select_channel < color_channels) {
                 if (srgb_to_linear)
                     v = correction_table[srgb_to_linear_lut[src[select_channel]]];
@@ -367,7 +368,7 @@ IvImage::pixel_transform(bool srgb_to_linear, int select_channel)
             for (; ch < color_channels; ++ch) {
                 dst[ch] = v;
             }
-            for (; ch < total_channels; ++ch) {
+            for (; ch < max_channels; ++ch) {
                 dst[ch] = src[ch];
             }
         } 
@@ -386,3 +387,94 @@ IvImage::invalidate ()
         m_imagecache->invalidate (m_name);
     }
 }
+
+
+
+template<typename S, typename D>
+static inline void 
+copy_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
+              int ybegin, int yend, int chbegin, int chend, D *r)
+{
+    int w = (xend-xbegin);
+    int nc = (chend-chbegin);
+    for (ImageBuf::ConstIterator<S,D> p (buf, xbegin, xend, ybegin, yend);
+         p.valid(); ++p) { 
+        imagesize_t offset = ((p.y()-ybegin)*w + (p.x()-xbegin)) * nc;
+        for (int c = 0;  c < nc;  ++c)
+            r[offset+c] = p[chbegin+c];
+    }
+}
+
+
+
+template<typename D>
+static inline bool
+copy_pixel_channels (const ImageBuf &buf, int xbegin, int xend, 
+              int ybegin, int yend, int chbegin, int chend, D *r)
+{
+    // Caveat: serious hack here.  To avoid duplicating code, use a
+    // #define.  Furthermore, exploit the CType<> template to construct
+    // the right C data type for the given BASETYPE.
+#define TYPECASE(B)                                                     \
+    case B : copy_pixel_channels_<CType<B>::type,D>(buf, xbegin, xend, ybegin, yend, chbegin, chend, (D *)r); return true
+    
+    switch (buf.spec().format.basetype) {
+        TYPECASE (TypeDesc::UINT8);
+        TYPECASE (TypeDesc::INT8);
+        TYPECASE (TypeDesc::UINT16);
+        TYPECASE (TypeDesc::INT16);
+        TYPECASE (TypeDesc::UINT);
+        TYPECASE (TypeDesc::INT);
+        TYPECASE (TypeDesc::HALF);
+        TYPECASE (TypeDesc::FLOAT);
+        TYPECASE (TypeDesc::DOUBLE);
+    }
+    return false;
+#undef TYPECASE
+}
+
+
+
+bool
+IvImage::copy_pixel_channels (int xbegin, int xend, int ybegin, int yend,
+                       int chbegin, int chend, TypeDesc format, void *result) const
+{
+    if (chend > nchannels())
+        return false;
+
+    // Fancy method -- for each possible base type that the user
+    // wants for a destination type, call a template specialization.
+    switch (format.basetype) {
+    case TypeDesc::UINT8 :
+        ::copy_pixel_channels<unsigned char> (*this, xbegin, xend, ybegin, yend, chbegin, chend, (unsigned char *)result);
+        break;
+    case TypeDesc::INT8:
+        ::copy_pixel_channels<char> (*this, xbegin, xend, ybegin, yend, chbegin, chend, (char *)result);
+        break;
+    case TypeDesc::UINT16 :
+        ::copy_pixel_channels<unsigned short> (*this, xbegin, xend, ybegin, yend, chbegin, chend, (unsigned short *)result);
+        break;
+    case TypeDesc::INT16 :
+        ::copy_pixel_channels<short> (*this, xbegin, xend, ybegin, yend, chbegin, chend, (short *)result);
+        break;
+    case TypeDesc::UINT :
+        ::copy_pixel_channels<unsigned int> (*this, xbegin, xend, ybegin, yend, chbegin, chend, (unsigned int *)result);
+        break;
+    case TypeDesc::INT :
+        ::copy_pixel_channels<int> (*this, xbegin, xend, ybegin, yend, chbegin, chend, (int *)result);
+        break;
+    case TypeDesc::HALF :
+        ::copy_pixel_channels<half> (*this, xbegin, xend, ybegin, yend, chbegin, chend, (half *)result);
+        break;
+    case TypeDesc::FLOAT :
+        ::copy_pixel_channels<float> (*this, xbegin, xend, ybegin, yend, chbegin, chend, (float *)result);
+        break;
+    case TypeDesc::DOUBLE :
+        ::copy_pixel_channels<double> (*this, xbegin, xend, ybegin, yend, chbegin, chend, (double *)result);
+        break;
+    default:
+        return false;
+    }
+    return true;
+}
+
