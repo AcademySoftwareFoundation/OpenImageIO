@@ -1,6 +1,11 @@
 Changes:
 
 
+Release 0.6.1
+-------------
+* Fix to texture system that improved filtering of anisotropic cases.
+* Improved installation instructions.
+
 
 Release 0.6 (Jul 20, 2009)
 --------------------------
