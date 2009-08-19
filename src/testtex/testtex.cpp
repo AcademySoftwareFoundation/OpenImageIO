@@ -328,25 +328,25 @@ main (int argc, const char *argv[])
     if (searchpath.length())
         texsys->attribute ("searchpath", searchpath);
 
-    ustring filename (filenames[0]);
-    test_gettextureinfo (filename);
-
-    const char *texturetype = NULL;
-    bool ok = texsys->get_texture_info (filename, ustring("texturetype"),
-                                        TypeDesc::STRING, &texturetype);
-    if (ok) {
-        if (! strcmp (texturetype, "Plain Texture")) {
-            test_plain_texture (filename);
+    if (iters > 0) {
+        ustring filename (filenames[0]);
+        test_gettextureinfo (filename);
+        const char *texturetype = NULL;
+        bool ok = texsys->get_texture_info (filename, ustring("texturetype"),
+                                            TypeDesc::STRING, &texturetype);
+        if (ok) {
+            if (! strcmp (texturetype, "Plain Texture")) {
+                test_plain_texture (filename);
+            }
+            if (! strcmp (texturetype, "Shadow")) {
+                test_shadow (filename);
+            }
+            if (! strcmp (texturetype, "Environment")) {
+                test_environment (filename);
+            }
         }
-        if (! strcmp (texturetype, "Shadow")) {
-            test_shadow (filename);
-        }
-        if (! strcmp (texturetype, "Environment")) {
-            test_environment (filename);
-        }
+        test_getimagespec_gettexels (filename);
     }
-    test_getimagespec_gettexels (filename);
-
     
     TextureSystem::destroy (texsys);
     return 0;
