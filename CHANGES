@@ -4,6 +4,8 @@ Changes:
 Release 0.6.1
 -------------
 * Fix to texture system that improved filtering of anisotropic cases.
+* ImageCache and TextureSystem statistics are abbreviated in cases where
+  no image/texture was actually used.
 * Improved installation instructions.
 
 

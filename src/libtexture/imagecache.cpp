@@ -869,10 +869,14 @@ ImageCacheImpl::getstats (int level) const
     std::ostringstream out;
     if (level > 0) {
         out << "OpenImageIO ImageCache statistics (" << (void*)this << ")\n";
-        out << "  Images : " << m_stat_unique_files << " unique\n";
-        out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
-        out << "    Total size of all images referenced : " << Strutil::memformat (m_stat_files_totalsize) << "\n";
-        out << "    Read from disk : " << Strutil::memformat (m_stat_bytes_read) << "\n";
+        if (m_stat_unique_files) {
+            out << "  Images : " << m_stat_unique_files << " unique\n";
+            out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
+            out << "    Total size of all images referenced : " << Strutil::memformat (m_stat_files_totalsize) << "\n";
+            out << "    Read from disk : " << Strutil::memformat (m_stat_bytes_read) << "\n";
+        } else {
+            out << "  No images opened\n";
+        }
         if (m_stat_find_file_time > 0.001)
             out << "    Find file time : " << Strutil::timeintervalformat (m_stat_find_file_time) << "\n";
         if (m_stat_fileio_time > 0.001) {
@@ -883,10 +887,12 @@ ImageCacheImpl::getstats (int level) const
         }
         if (m_stat_file_locking_time > 0.001)
             out << "    File mutex locking time : " << Strutil::timeintervalformat (m_stat_file_locking_time) << "\n";
-        out << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
-        out << "    total tile requests : " << m_stat_find_tile_calls << "\n";
-        out << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
-        out << "    main cache misses : " << m_stat_find_tile_cache_misses << " (" << 100.0*(double)m_stat_find_tile_cache_misses/(double)m_stat_find_tile_calls << "%)\n";
+        if (m_stat_tiles_created > 0) {
+            out << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
+            out << "    total tile requests : " << m_stat_find_tile_calls << "\n";
+            out << "    micro-cache misses : " << m_stat_find_tile_microcache_misses << " (" << 100.0*(double)m_stat_find_tile_microcache_misses/(double)m_stat_find_tile_calls << "%)\n";
+            out << "    main cache misses : " << m_stat_find_tile_cache_misses << " (" << 100.0*(double)m_stat_find_tile_cache_misses/(double)m_stat_find_tile_calls << "%)\n";
+        }
         out << "    Peak cache memory : " << Strutil::memformat (m_mem_used) << "\n";
         if (m_stat_tile_locking_time > 0.001)
             out << "    Tile mutex locking time : " << Strutil::timeintervalformat (m_stat_tile_locking_time) << "\n";
@@ -920,7 +926,7 @@ ImageCacheImpl::getstats (int level) const
         }
     }
 
-    if (level >= 2) {
+    if (level >= 2 && files.size()) {
         out << "  Image file statistics:\n";
         out << "        opens   tiles  MB read  I/O time  res             File\n";
         std::sort (files.begin(), files.end(), filename_compare);

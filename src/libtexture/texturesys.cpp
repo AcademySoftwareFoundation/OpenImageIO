@@ -259,7 +259,9 @@ std::string
 TextureSystemImpl::getstats (int level, bool icstats) const
 {
     std::ostringstream out;
-    if (level > 0) {
+    bool anytexture = (m_stat_texture_queries + m_stat_texture3d_queries +
+                       m_stat_shadow_queries + m_stat_environment_queries);
+    if (level > 0 && anytexture) {
         out << "OpenImageIO Texture statistics (" << (void*)this
             << ", cache = " << (void *)m_imagecache << ")\n";
         out << "  Queries/batches : \n";
@@ -275,8 +277,11 @@ TextureSystemImpl::getstats (int level, bool icstats) const
         out << "    closest  : " << m_stat_closest_interps << "\n";
         out << "    bilinear : " << m_stat_bilinear_interps << "\n";
         out << "    bicubic  : " << m_stat_cubic_interps << "\n";
-        out << Strutil::format ("  Average anisotropy : %.3g\n",
-                                (double)m_stat_aniso_probes/(double)m_stat_aniso_queries);
+        if (m_stat_aniso_queries)
+            out << Strutil::format ("  Average anisotropy : %.3g\n",
+                                    (double)m_stat_aniso_probes/(double)m_stat_aniso_queries);
+        else
+            out << Strutil::format ("  Average anisotropy : 0\n");
         out << Strutil::format ("  Max anisotropy in the wild : %.3g\n",
                                 m_stat_max_aniso);
         if (icstats)
