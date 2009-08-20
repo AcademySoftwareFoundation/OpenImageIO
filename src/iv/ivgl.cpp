@@ -252,7 +252,7 @@ IvGL::create_shaders (void)
         "float heat_red(float x)\n"
         "{\n"
         "    return clamp (mix(0.0, 1.0, (x-0.35)/(0.66-0.35)), 0.0, 1.0) -\n"
-        "           clamp (mix(0.0, 0.5, (x-0.89)/(1-0.89)), 0.0, 1.0);\n"
+        "           clamp (mix(0.0, 0.5, (x-0.89)/(1.0-0.89)), 0.0, 1.0);\n"
         "}\n"
         "float heat_green(float x)\n"
         "{\n"
