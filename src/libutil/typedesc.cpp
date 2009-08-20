@@ -40,8 +40,8 @@
 #include "typedesc.h"
 
 
-// FIXME: We should clearly be using a namespace.  But maybe not "Gelato".
-// using namespace Gelato;
+// FIXME: We should clearly be using a namespace. 
+// using namespace blah;
 
 
 TypeDesc::TypeDesc (const char *typestring)
@@ -60,6 +60,8 @@ static int basetype_size[] = {
     sizeof(short),           // SHORT
     sizeof(unsigned int),    // UINT
     sizeof(int),             // INT
+    sizeof(unsigned long long), // ULONGLONG
+    sizeof(long long),       // LONGLONG
     sizeof(float)/2,         // HALF
     sizeof(float),           // FLOAT
     sizeof(double),          // DOUBLE
@@ -79,35 +81,39 @@ TypeDesc::basesize () const
 
 
 static const char * basetype_name[] = {
-    "unknown", // UNKNOWN
-    "void", // VOID
-    "uint8",   // UCHAR
+    "unknown",         // UNKNOWN
+    "void",            // VOID/NONE
+    "uint8",           // UCHAR
     "int8",            // CHAR
-    "uint16",  // USHORT
+    "uint16",          // USHORT
     "int16",           // SHORT
-    "uint",    // UINT
+    "uint",            // UINT
     "int",             // INT
-    "half",         // HALF
+    "uint64",          // ULONGLONG
+    "int64",           // LONGLONG
+    "half",            // HALF
     "float",           // FLOAT
     "double",          // DOUBLE
     "string",          // STRING
-    "pointer"         // PTR
+    "pointer"          // PTR
 };
 
 static const char * basetype_code[] = {
-    "unknown", // UNKNOWN
-    "void", // VOID
-    "uc",   // UCHAR
+    "unknown",      // UNKNOWN
+    "void",         // VOID/NONE
+    "uc",           // UCHAR
     "c",            // CHAR
-    "us",  // USHORT
-    "s",           // SHORT
-    "ui",    // UINT
-    "i",             // INT
-    "h",         // HALF
-    "f",           // FLOAT
-    "d",          // DOUBLE
+    "us",           // USHORT
+    "s",            // SHORT
+    "ui",           // UINT
+    "i",            // INT
+    "ull",          // ULONGLONG
+    "ll",           // LONGLONG
+    "h",            // HALF
+    "f",            // FLOAT
+    "d",            // DOUBLE
     "str",          // STRING
-    "ptr"         // PTR
+    "ptr"           // PTR
 };
 
 

@@ -335,6 +335,8 @@ ImageBuf::getchannel (int x, int y, int c) const
     case TypeDesc::INT   : return getchannel_<int> (*this, x, y, c);
     case TypeDesc::HALF  : return getchannel_<half> (*this, x, y, c);
     case TypeDesc::DOUBLE: return getchannel_<double> (*this, x, y, c);
+    case TypeDesc::UINT64: return getchannel_<unsigned long long> (*this, x, y, c);
+    case TypeDesc::INT64 : return getchannel_<long long> (*this, x, y, c);
     default:
         ASSERT (0);
         return 0.0f;
@@ -373,6 +375,8 @@ ImageBuf::getpixel (int x, int y, float *pixel, int maxchannels) const
     case TypeDesc::INT   : getpixel_<int> (*this, x, y, pixel, n); break;
     case TypeDesc::HALF  : getpixel_<half> (*this, x, y, pixel, n); break;
     case TypeDesc::DOUBLE: getpixel_<double> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT64: getpixel_<unsigned long long> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT64 : getpixel_<long long> (*this, x, y, pixel, n); break;
     default:
         ASSERT (0);
     }
@@ -430,6 +434,8 @@ ImageBuf::setpixel (int x, int y, const float *pixel, int maxchannels)
     case TypeDesc::INT   : setpixel_<int> (*this, x, y, pixel, n); break;
     case TypeDesc::HALF  : setpixel_<half> (*this, x, y, pixel, n); break;
     case TypeDesc::DOUBLE: setpixel_<double> (*this, x, y, pixel, n); break;
+    case TypeDesc::UINT64: setpixel_<unsigned long long> (*this, x, y, pixel, n); break;
+    case TypeDesc::INT64 : setpixel_<long long> (*this, x, y, pixel, n); break;
     default:
         ASSERT (0);
     }
@@ -482,6 +488,8 @@ ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend, D *r) const
         TYPECASE (TypeDesc::HALF);
         TYPECASE (TypeDesc::FLOAT);
         TYPECASE (TypeDesc::DOUBLE);
+        TYPECASE (TypeDesc::UINT64);
+        TYPECASE (TypeDesc::INT64);
     }
     return false;
 #undef TYPECASE
@@ -523,6 +531,12 @@ ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
         break;
     case TypeDesc::DOUBLE :
         copy_pixels<double> (xbegin, xend, ybegin, yend, (double *)result);
+        break;
+    case TypeDesc::UINT64 :
+        copy_pixels<unsigned long long> (xbegin, xend, ybegin, yend, (unsigned long long *)result);
+        break;
+    case TypeDesc::INT64 :
+        copy_pixels<long long> (xbegin, xend, ybegin, yend, (long long *)result);
         break;
     default:
         return false;
@@ -678,6 +692,8 @@ ImageBuf::zero ()
     case TypeDesc::INT16 : zero_<short> (*this); break;
     case TypeDesc::UINT  : zero_<unsigned int> (*this); break;
     case TypeDesc::INT   : zero_<int> (*this); break;
+    case TypeDesc::UINT64: zero_<unsigned long long> (*this); break;
+    case TypeDesc::INT64 : zero_<long long> (*this); break;
     case TypeDesc::HALF  : zero_<half> (*this); break;
     case TypeDesc::DOUBLE: zero_<double> (*this); break;
     default:

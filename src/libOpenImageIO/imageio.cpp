@@ -168,6 +168,11 @@ OpenImageIO::pvt::contiguize (const void *src, int nchannels,
         return _contiguize ((const int *)src, nchannels, 
                             xstride, ystride, zstride,
                             (int *)dst, width, height, depth);
+    case TypeDesc::INT64 :
+    case TypeDesc::UINT64 :
+        return _contiguize ((const long long *)src, nchannels, 
+                            xstride, ystride, zstride,
+                            (long long *)dst, width, height, depth);
     default:
         std::cerr << "ERROR OpenImageIO::contiguize : bad format\n";
         ASSERT (0);
@@ -207,6 +212,12 @@ OpenImageIO::pvt::convert_to_float (const void *src, float *dst, int nvals,
         break;
     case TypeDesc::UINT :
         convert_type ((const unsigned int *)src, dst, nvals);
+        break;
+    case TypeDesc::INT64 :
+        convert_type ((const long long *)src, dst, nvals);
+        break;
+    case TypeDesc::UINT64 :
+        convert_type ((const unsigned long long *)src, dst, nvals);
         break;
     default:
         std::cerr << "ERROR to_float: bad format\n";
@@ -294,6 +305,14 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
         return _from_float (src, (unsigned int *)dst, nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
+    case TypeDesc::INT64 :
+        return _from_float (src, (long long *)dst, nvals,
+                           quant_black, quant_white, quant_min,
+                           quant_max, quant_dither);
+    case TypeDesc::UINT64 :
+        return _from_float (src, (unsigned long long *)dst, nvals,
+                           quant_black, quant_white, quant_min,
+                           quant_max, quant_dither);
     default:
         std::cerr << "ERROR from_float: bad format\n";
         ASSERT (0);
@@ -338,6 +357,8 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
         case TypeDesc::INT16 : convert_type ((const short *)src, buf, n); break;
         case TypeDesc::INT :   convert_type ((const int *)src, buf, n); break;
         case TypeDesc::UINT :  convert_type ((const unsigned int *)src, buf, n);  break;
+        case TypeDesc::INT64 : convert_type ((const long long *)src, buf, n); break;
+        case TypeDesc::UINT64 : convert_type ((const unsigned long long *)src, buf, n);  break;
         default:         return false;  // unknown format
         }
     }
@@ -358,6 +379,8 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
     case TypeDesc::INT16 :  convert_type (buf, (short *)dst, n);  break;
     case TypeDesc::INT :    convert_type (buf, (int *)dst, n);  break;
     case TypeDesc::UINT :   convert_type (buf, (unsigned int *)dst, n);  break;
+    case TypeDesc::INT64 :  convert_type (buf, (long long *)dst, n);  break;
+    case TypeDesc::UINT64 : convert_type (buf, (unsigned long long *)dst, n);  break;
     case TypeDesc::DOUBLE : convert_type (buf, (double *)dst, n); break;
     default:         return false;  // unknown format
     }

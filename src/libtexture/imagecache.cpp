@@ -833,6 +833,8 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
     case TypeDesc::INT16  : formatcode = "i16"; break;
     case TypeDesc::UINT   : formatcode = "u32"; break;
     case TypeDesc::INT    : formatcode = "i32"; break;
+    case TypeDesc::UINT64 : formatcode = "i64"; break;
+    case TypeDesc::INT64  : formatcode = "u64"; break;
     case TypeDesc::HALF   : formatcode = "f16"; break;
     case TypeDesc::FLOAT  : formatcode = "f32"; break;
     case TypeDesc::DOUBLE : formatcode = "f64"; break;

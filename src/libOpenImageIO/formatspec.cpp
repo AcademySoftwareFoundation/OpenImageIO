@@ -104,6 +104,14 @@ set_default_quantize (TypeDesc format,
         set_default_quantize <unsigned int> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
         break;
+    case TypeDesc::INT64:
+        set_default_quantize <long long> (quant_black, quant_white,
+                                     quant_min, quant_max, quant_dither);
+        break;
+    case TypeDesc::UINT64:
+        set_default_quantize <unsigned long long> (quant_black, quant_white,
+                                     quant_min, quant_max, quant_dither);
+        break;
     case TypeDesc::HALF:
         set_default_quantize <half> (quant_black, quant_white,
                                      quant_min, quant_max, quant_dither);
@@ -385,6 +393,10 @@ ImageSpec::get_int_attribute (const std::string &name, int val) const
             val = *(const char *)p->data();
         else if (p->type() == TypeDesc::UINT8)
             val = *(const unsigned char *)p->data();
+        else if (p->type() == TypeDesc::INT64)
+            val = *(const long long *)p->data();
+        else if (p->type() == TypeDesc::UINT64)
+            val = *(const unsigned long long *)p->data();
     }
     return val;
 }
@@ -450,6 +462,12 @@ format_raw_metadata (const ImageIOParameter &p)
     } else if (element == TypeDesc::INT16) {
         for (int i = 0;  i < n;  ++i)
             out += Strutil::format ("%s%d", (i ? ", " : ""), ((const short *)p.data())[i]);
+    } else if (element == TypeDesc::UINT64) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%ull", (i ? ", " : ""), ((const unsigned long long *)p.data())[i]);
+    } else if (element == TypeDesc::INT64) {
+        for (int i = 0;  i < n;  ++i)
+            out += Strutil::format ("%s%ll", (i ? ", " : ""), ((const long long *)p.data())[i]);
     } else if (element == TypeDesc::TypeMatrix) {
         const float *m = (const float *)p.data();
         for (int i = 0;  i < n;  ++i, m += 16)

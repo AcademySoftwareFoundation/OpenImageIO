@@ -76,7 +76,8 @@ struct DLLPUBLIC TypeDesc {
     enum BASETYPE { UNKNOWN, NONE, 
                     UCHAR, UINT8=UCHAR, CHAR, INT8=CHAR,
                     USHORT, UINT16=USHORT, SHORT, INT16=SHORT,
-                    UINT, INT,
+                    UINT, UINT32=UINT, INT, INT32=INT,
+                    ULONGLONG, UINT64=ULONGLONG, LONGLONG, INT64=LONGLONG,
                     HALF, FLOAT, DOUBLE, STRING, PTR, LASTBASE };
     /// AGGREGATE describes whether our type is a simple scalar of
     /// one of the BASETYPE's, or one of several simple aggregates.
@@ -231,6 +232,8 @@ template<> struct BaseTypeFromC<unsigned short> { static const TypeDesc::BASETYP
 template<> struct BaseTypeFromC<short> { static const TypeDesc::BASETYPE value = TypeDesc::INT16; };
 template<> struct BaseTypeFromC<unsigned int> { static const TypeDesc::BASETYPE value = TypeDesc::UINT; };
 template<> struct BaseTypeFromC<int> { static const TypeDesc::BASETYPE value = TypeDesc::INT; };
+template<> struct BaseTypeFromC<unsigned long long> { static const TypeDesc::BASETYPE value = TypeDesc::UINT64; };
+template<> struct BaseTypeFromC<long long> { static const TypeDesc::BASETYPE value = TypeDesc::INT64; };
 #ifdef _HALF_H_
 template<> struct BaseTypeFromC<half> { static const TypeDesc::BASETYPE value = TypeDesc::HALF; };
 #endif
@@ -248,6 +251,8 @@ template<> struct CType<(int)TypeDesc::UINT16> { typedef unsigned short type; };
 template<> struct CType<(int)TypeDesc::INT16> { typedef short type; };
 template<> struct CType<(int)TypeDesc::UINT> { typedef unsigned int type; };
 template<> struct CType<(int)TypeDesc::INT> { typedef int type; };
+template<> struct CType<(int)TypeDesc::UINT64> { typedef unsigned long long type; };
+template<> struct CType<(int)TypeDesc::INT64> { typedef long long type; };
 #ifdef _HALF_H_
 template<> struct CType<(int)TypeDesc::HALF> { typedef half type; };
 #endif
