@@ -1,11 +1,13 @@
 Changes:
 
 
-Release 0.6.1
--------------
+Release 0.6.1 (Aug 20, 2009)
+----------------------------
 * Fix to texture system that improved filtering of anisotropic cases.
 * ImageCache and TextureSystem statistics are abbreviated in cases where
   no image/texture was actually used.
+* Greatly improved ImageCache performance and memory for untiled,
+  un-MIP-mapped images when automip is turned on but autotile was not.
 * Improved installation instructions.
 
 
