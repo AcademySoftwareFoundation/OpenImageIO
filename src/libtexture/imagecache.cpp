@@ -236,6 +236,16 @@ ImageCacheFile::open ()
             s.height = h;
             s.full_width = w;
             s.full_height = h;
+            if (imagecache().autotile()) {
+                s.tile_width = std::min (imagecache().autotile(), w);
+                s.tile_height = std::min (imagecache().autotile(), h);
+            } else {
+                s.tile_width = w;
+                s.tile_height = h;
+            }
+            // Texture system requires pow2 tile sizes
+            s.tile_width = pow2roundup (s.tile_width);
+            s.tile_height = pow2roundup (s.tile_height);
             ++nsubimages;
             m_spec.push_back (s);
         }
