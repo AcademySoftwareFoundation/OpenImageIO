@@ -961,8 +961,8 @@ IvGL::update ()
     GLenum glinternalformat = GL_RGB;
     typespec_to_opengl (spec, nchannels, gltype, glformat, glinternalformat);
 
-    m_texture_width = std::min (pow2roundup(spec.width), m_max_texture_size);
-    m_texture_height= std::min (pow2roundup(spec.height), m_max_texture_size);
+    m_texture_width = clamp (pow2roundup(spec.width), 1, m_max_texture_size);
+    m_texture_height= clamp (pow2roundup(spec.height), 1, m_max_texture_size);
 
     if (m_use_pbo) {
         // Otherwise OpenGL will confuse the NULL with an index into one of
