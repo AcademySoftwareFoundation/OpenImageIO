@@ -54,8 +54,8 @@ enum tga_image_type {
 };
 
 enum tga_flags {
-    FLAG_X_FLIP   = 0x10,   ///< right-left image
-    FLAG_Y_FLIP   = 0x20    ///< top-down image
+    FLAG_X_FLIP     = 0x10,   ///< right-left image
+    FLAG_Y_FLIP     = 0x20    ///< top-down image
 };
 
 /// Targa file header.
@@ -80,8 +80,26 @@ typedef struct {
 typedef struct {
     uint32_t ofs_ext;           ///< offset to the extension area
     uint32_t ofs_dev;           ///< offset to the developer directory
-    char signature;             ///< should be TRUEVISION-XFILE for a 2.0 TGA
+    char signature[18];         ///< file signature string
 } tga_footer;
+
+/// TGA 2.0 developer directory entry
+typedef struct {
+    uint16_t tag;               ///< tag
+    uint32_t ofs;               ///< byte offset to the tag data
+    uint32_t size;              ///< tag data length
+} tga_devdir_tag;
+
+// this is used in the extension area
+enum tga_alpha_type {
+    TGA_ALPHA_NONE              = 0,    ///< no alpha data included
+    TGA_ALPHA_UNDEFINED_IGNORE  = 1,    ///< can ignore alpha
+    TGA_ALPHA_UNDEFINED_RETAIN  = 2,    ///< undefined, but should be retained
+    TGA_ALPHA_USEFUL            = 3,    ///< useful alpha data is present
+    TGA_ALPHA_PREMULTIPLIED     = 4     ///< alpha is pre-multiplied (arrrgh!)
+    // values 5-127 are reserved
+    // values 128-255 are unassigned
+};
 
 };  // namespace TGA_pvt
 

@@ -1,0 +1,216 @@
+hi
+../../../TGAUTILS/CBW8.TGA :  128 x  128, 1 channel, uint8 targa
+    SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
+    channel list: A
+    Color space: unknown
+    BitsPerSample: 8
+    compression: "rle"
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 8 bit run length compressed black and white image"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 2.0"
+Converting ../../../TGAUTILS/CBW8.TGA to CBW8.TGA
+Comparing "../../../TGAUTILS/CBW8.TGA" and "CBW8.TGA"
+Subimage 0: 128 x 128, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../TGAUTILS/CCM8.TGA :  128 x  128, 3 channel, uint8 targa
+    SHA-1: AE42D771A290CCCEFDDC944B5DCFE1979EC8FF48
+    channel list: R, G, B
+    Color space: unknown
+    BitsPerSample: 8
+    compression: "rle"
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 8 bit run length compressed color mapped image"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 2.0"
+Converting ../../../TGAUTILS/CCM8.TGA to CCM8.TGA
+Comparing "../../../TGAUTILS/CCM8.TGA" and "CCM8.TGA"
+Subimage 0: 128 x 128, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../TGAUTILS/CTC16.TGA :  128 x  128, 4 channel, uint8 targa
+    SHA-1: D3FA9E93059A299AA0A295FB4D4042F057BAB24A
+    channel list: R, G, B, A
+    Color space: unknown
+    BitsPerSample: 16
+    compression: "rle"
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 16 bit run length compressed true color image"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 2.0"
+Converting ../../../TGAUTILS/CTC16.TGA to CTC16.TGA
+Comparing "../../../TGAUTILS/CTC16.TGA" and "CTC16.TGA"
+Subimage 0: 128 x 128, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../TGAUTILS/CTC24.TGA :  128 x  128, 3 channel, uint8 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    Color space: unknown
+    BitsPerSample: 24
+    compression: "rle"
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 24 bit run length compressed true color image"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 2.0"
+Converting ../../../TGAUTILS/CTC24.TGA to CTC24.TGA
+Comparing "../../../TGAUTILS/CTC24.TGA" and "CTC24.TGA"
+Subimage 0: 128 x 128, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../TGAUTILS/CTC32.TGA :  128 x  128, 4 channel, uint8 targa
+    SHA-1: 10856DDA29920D800808DDF85D4AC7860E0B310C
+    channel list: R, G, B, A
+    Color space: unknown
+    BitsPerSample: 32
+    compression: "rle"
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 32 bit run length compressed true color image"
+    DateTime: "1990:03:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 2.0"
+Converting ../../../TGAUTILS/CTC32.TGA to CTC32.TGA
+Comparing "../../../TGAUTILS/CTC32.TGA" and "CTC32.TGA"
+Subimage 0: 128 x 128, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../TGAUTILS/UBW8.TGA :  128 x  128, 1 channel, uint8 targa
+    SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
+    channel list: A
+    Color space: unknown
+    BitsPerSample: 8
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 8 bit uncompressed black and white image"
+    DateTime: "1990:02:23 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 1.30"
+Converting ../../../TGAUTILS/UBW8.TGA to UBW8.TGA
+Comparing "../../../TGAUTILS/UBW8.TGA" and "UBW8.TGA"
+Subimage 0: 128 x 128, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../TGAUTILS/UCM8.TGA :  128 x  128, 3 channel, uint8 targa
+    SHA-1: AE42D771A290CCCEFDDC944B5DCFE1979EC8FF48
+    channel list: R, G, B
+    Color space: unknown
+    BitsPerSample: 8
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 8 bit uncompressed color mapped image"
+    DateTime: "1990:02:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 1.40"
+Converting ../../../TGAUTILS/UCM8.TGA to UCM8.TGA
+Comparing "../../../TGAUTILS/UCM8.TGA" and "UCM8.TGA"
+Subimage 0: 128 x 128, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../TGAUTILS/UTC16.TGA :  128 x  128, 4 channel, uint8 targa
+    SHA-1: D3FA9E93059A299AA0A295FB4D4042F057BAB24A
+    channel list: R, G, B, A
+    Color space: unknown
+    BitsPerSample: 16
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 16 bit uncompressed true color image"
+    DateTime: "1990:02:23 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 1.30"
+Converting ../../../TGAUTILS/UTC16.TGA to UTC16.TGA
+Comparing "../../../TGAUTILS/UTC16.TGA" and "UTC16.TGA"
+Subimage 0: 128 x 128, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../TGAUTILS/UTC24.TGA :  128 x  128, 3 channel, uint8 targa
+    SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
+    channel list: R, G, B
+    Color space: unknown
+    BitsPerSample: 24
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 24 bit uncompressed true color image"
+    DateTime: "1990:02:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 1.40"
+Converting ../../../TGAUTILS/UTC24.TGA to UTC24.TGA
+Comparing "../../../TGAUTILS/UTC24.TGA" and "UTC24.TGA"
+Subimage 0: 128 x 128, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../TGAUTILS/UTC32.TGA :  128 x  128, 4 channel, uint8 targa
+    SHA-1: 10856DDA29920D800808DDF85D4AC7860E0B310C
+    channel list: R, G, B, A
+    Color space: unknown
+    BitsPerSample: 32
+    targa:ImageID: "Truevision(R) Sample Image"
+    Artist: "Ricky True"
+    ImageDescription: "Sample 32 bit uncompressed true color image"
+    DateTime: "1990:02:24 10:00:00"
+    DocumentName: "TGA Utilities"
+    Software: "TGAEdit 1.40"
+Converting ../../../TGAUTILS/UTC32.TGA to UTC32.TGA
+Comparing "../../../TGAUTILS/UTC32.TGA" and "UTC32.TGA"
+Subimage 0: 128 x 128, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS

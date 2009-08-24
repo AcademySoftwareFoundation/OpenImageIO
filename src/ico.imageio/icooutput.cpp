@@ -36,9 +36,6 @@
 using namespace ICO_pvt;
 #include "../png.imageio/png_pvt.h"
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-
 #include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"

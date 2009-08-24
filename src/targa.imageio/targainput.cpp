@@ -57,7 +57,10 @@ private:
     std::string m_filename;           ///< Stash the filename
     FILE *m_file;                     ///< Open image handle
     tga_header m_tga;                 ///< Targa header
-    int m_bpp;                        ///< Bits per pixel
+    tga_footer m_foot;                ///< Targa 2.0 footer
+    unsigned int m_ofs_colcorr_tbl;   ///< Offset to colour correction table
+    unsigned int m_ofs_thumbnail;     ///< Offset to thumbnail
+    tga_alpha_type m_alpha;           ///< Alpha type
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
 
     /// Reset everything to initial state
@@ -65,6 +68,9 @@ private:
     void init () {
         m_file = NULL;
         m_buf.clear ();
+        m_ofs_colcorr_tbl = 0;
+        m_ofs_thumbnail = 0;
+        m_alpha = TGA_ALPHA_NONE;
     }
 
     /// Helper function: read the image.
@@ -138,7 +144,7 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
         swap_endian (&m_tga.attr);
     }
 
-    if (m_tga.bpp != 8 && m_tga.bpp != 16
+    if (m_tga.bpp != 8 && m_tga.bpp != 15 && m_tga.bpp != 16
         && m_tga.bpp != 24 && m_tga.bpp != 32) {
         error ("Illegal pixel size: %d bits per pixel", m_tga.bpp);
         return false;
@@ -169,14 +175,18 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
+    m_alpha = m_tga.attr & 0x0F > 0 ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
+
     m_spec = ImageSpec ((int)m_tga.width, (int)m_tga.height,
                         // colour channels
                         ((m_tga.type == TYPE_GRAY
                         || m_tga.type == TYPE_GRAY_RLE)
                         ? 1 : 3)
                         // have we got alpha?
-                        + (m_tga.bpp == 32 || (m_tga.attr & 0x0F > 0 ? 1 : 0)),
+                        + (m_tga.bpp == 32
+                        || m_alpha >= TGA_ALPHA_UNDEFINED_RETAIN),
                         TypeDesc::UINT8);
+    m_spec.attribute ("BitsPerSample", m_tga.bpp);
     m_spec.default_channel_names ();
     m_spec.linearity = ImageSpec::UnknownLinearity;
 #if 0   // no one seems to adhere to this part of the spec...
@@ -189,20 +199,169 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
     else
         m_spec.y = m_spec.width - m_tga.y_origin - 1;
 #endif
+    if (m_tga.type >= TYPE_PALETTED_RLE)
+        m_spec.attribute ("compression", "rle");
 
     /*std::cerr << "[tga] " << m_tga.width << "x" << m_tga.height << "@"
               << (int)m_tga.bpp << " (" << m_spec.nchannels
               << ") type " << (int)m_tga.type << "\n";*/
 
-    // load image comment
+    // load image ID
     if (m_tga.idlen) {
         // TGA comments can be at most 255 bytes long, but we add 1 extra byte
         // in case the comment lacks null termination
         char id[256];
         memset (id, 0, sizeof (id));
         fread (id, m_tga.idlen, 1, m_file);
-        m_spec.attribute ("ImageDescription", id);
+        m_spec.attribute ("targa:ImageID", id);
     }
+
+    int ofs = ftell (m_file);
+    // now try and see if it's a TGA 2.0 image
+    fseek (m_file, -26, SEEK_END);
+    fread (&m_foot.ofs_ext, sizeof (m_foot.ofs_ext), 1, m_file);
+    fread (&m_foot.ofs_dev, sizeof (m_foot.ofs_dev), 1, m_file);
+    fread (&m_foot.signature, sizeof (m_foot.signature), 1, m_file);
+    // TGA 2.0 files are identified by a nifty "TRUEVISION-XFILE.\0" signature
+    if (!strncmp (m_foot.signature, "TRUEVISION-XFILE.", 17)) {
+        //std::cerr << "[tga] this is a TGA 2.0 file\n";
+        if (bigendian()) {
+            swap_endian (&m_foot.ofs_ext);
+            swap_endian (&m_foot.ofs_dev);
+        }
+
+        // read the extension area
+        fseek (m_file, m_foot.ofs_ext, SEEK_SET);
+        // check if this is a TGA 2.0 extension area
+        // according to the 2.0 spec, the size for valid 2.0 files is exactly
+        // 495 bytes, and the reader should only read as much as it understands
+        // for < 495, we ignore this section of the file altogether
+        // for > 495, we only read what we know
+        uint16_t s;
+        fread (&s, 2, 1, m_file);
+        if (bigendian())
+            swap_endian (&s);
+        //std::cerr << "[tga] extension area size: " << s << "\n";
+        if (s >= 495) {
+            union {
+                char        c[324]; // so as to accomodate the comments
+                uint16_t    s[6];
+                uint32_t    l;
+            } buf;
+            
+            // load image author
+            fread (buf.c, 41, 1, m_file);
+            if (buf.c[0])
+                m_spec.attribute ("Artist", buf.c);
+            
+            // load image comments
+            fread (buf.c, 324, 1, m_file);
+            // concatenate the lines into a single string
+            buf.c[80] = buf.c[161] = buf.c[242] = '\n';
+            if (buf.c[0])
+                m_spec.attribute ("ImageDescription", buf.c);
+
+            // timestamp
+            fread (buf.s, 2, 6, m_file);
+            if (buf.s[0] || buf.s[1] || buf.s[2]
+                || buf.s[3] || buf.s[4] || buf.s[5]) {
+                if (bigendian()) {
+                    swap_endian (&buf.s[0]);
+                    swap_endian (&buf.s[1]);
+                    swap_endian (&buf.s[2]);
+                    swap_endian (&buf.s[3]);
+                    swap_endian (&buf.s[4]);
+                    swap_endian (&buf.s[5]);
+                }
+                sprintf (&buf.c[12], "%04u:%02u:%02u %02u:%02u:%02u",
+                         buf.s[2], buf.s[0], buf.s[1],
+                         buf.s[3], buf.s[4], buf.s[5]);
+                m_spec.attribute ("DateTime", &buf.c[12]);
+            }
+
+            // job name/ID
+            fread (buf.c, 41, 1, m_file);
+            if (buf.c[0])
+                m_spec.attribute ("DocumentName", buf.c);
+
+            // job time
+            fread (buf.s, 2, 3, m_file);
+            if (buf.s[0] || buf.s[1] || buf.s[2]) {
+                if (bigendian()) {
+                    swap_endian (&buf.s[0]);
+                    swap_endian (&buf.s[1]);
+                    swap_endian (&buf.s[2]);
+                }
+                sprintf (&buf.c[6], "%02u:%02u:%02u",
+                          buf.s[0], buf.s[1], buf.s[2]);
+                m_spec.attribute ("targa:JobTime", &buf.c[6]);
+            }
+
+            // software
+            fread (buf.c, 41, 1, m_file);
+            if (buf.c[0]) {
+                // tack on the version number and letter
+                uint16_t n;
+                char l;
+                fread (&n, 2, 1, m_file);
+                fread (&l, 1, 1, m_file);
+                sprintf (&buf.c[strlen (buf.c)], " %u.%u%c", n / 100, n % 100,
+                         l != ' ' ? l : 0);
+                m_spec.attribute ("Software", buf.c);
+            }
+
+            // background (key) colour
+            fread (buf.c, 4, 1, m_file);
+            // FIXME: what do we do with it?
+
+            // aspect ratio
+            fread (buf.s, 2, 2, m_file);
+            // if the denominator is zero, it's unused
+            if (buf.s[1]) {
+                if (bigendian()) {
+                    swap_endian (&buf.s[0]);
+                    swap_endian (&buf.s[1]);
+                }
+                m_spec.attribute ("PixelAspectRatio", (float)buf.s[0] / (float)buf.s[1]);
+            }
+
+            // gamma
+            fread (buf.s, 2, 2, m_file);
+            // if the denominator is zero, it's unused
+            if (buf.s[1]) {
+                if (bigendian()) {
+                    swap_endian (&buf.s[0]);
+                    swap_endian (&buf.s[1]);
+                }
+                m_spec.linearity = ImageSpec::GammaCorrected;
+                m_spec.gamma = (float)buf.s[0] / (float)buf.s[1];
+            }
+
+            // offset to colour correction table
+            fread (&buf.l, 4, 1, m_file);
+            if (bigendian())
+                swap_endian (&buf.l);
+            m_ofs_colcorr_tbl = buf.l;
+
+            // offset to thumbnail
+            fread (&buf.l, 4, 1, m_file);
+            if (bigendian())
+                swap_endian (&buf.l);
+            m_ofs_thumbnail = buf.l;
+
+            // offset to scan-line table
+            fread (&buf.l, 4, 1, m_file);
+            // TODO: can we find any use for this? we can't advertise random
+            // access anyway, because not all RLE-compressed files will have
+            // this table
+
+            // alpha type
+            fread (buf.c, 1, 1, m_file);
+            m_alpha = (tga_alpha_type)buf.c[0];
+        }
+    }
+
+    fseek (m_file, ofs, SEEK_SET);
 
     newspec = spec ();
     return true;
@@ -336,7 +495,6 @@ TGAInput::readimg ()
     /*std::cerr << "[tga] bytespp = " << bytespp
               << " palbytespp = " << palbytespp
               << " alphabits = " << alphabits
-              << " rle = " << (m_tga.type < TYPE_PALETTED_RLE ? "no" : "yes")
               << "\n";*/
 
     m_buf.resize (m_spec.image_bytes());
