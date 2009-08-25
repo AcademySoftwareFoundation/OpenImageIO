@@ -600,7 +600,7 @@ private:
     int m_statslevel;            ///< Statistics level
     /// Saved error string, per-thread
     ///
-    mutable boost::thread_specific_ptr< std::string > m_errormessage;
+    mutable thread_specific_ptr< std::string > m_errormessage;
     mutable shared_mutex m_filemutex; ///< Thread safety for file cache
     mutable shared_mutex m_tilemutex; ///< Thread safety for tile cache
 
@@ -626,6 +626,9 @@ private:
 
     // Simulate an atomic double with a long long!
     void incr_time_stat (double &stat, double incr) {
+#ifdef NOTHREADS
+        stat += incr;
+#else
         DASSERT (sizeof (atomic_ll) == sizeof(double));
         double oldval, newval;
         long long *lloldval = (long long *)&oldval;
@@ -640,6 +643,7 @@ private:
             // Now try to atomically swap it, and repeat until we've
             // done it with nobody else interfering.
         } while (llstat->compare_and_swap (*llnewval,*lloldval) != *lloldval); 
+#endif
     }
 
 };

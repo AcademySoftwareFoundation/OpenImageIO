@@ -1,6 +1,13 @@
 Changes:
 
 
+Release 0.6.2 (Aug 25, 2009)
+----------------------------
+* Tweak the bicubic texture interpolation to be more numerically stable
+  and faster, too.
+* Greatly improve multithread performance by using a spin lock rather
+  than a full mutex in the 'ustring' internals.
+
 Release 0.6.1 (Aug 20, 2009)
 ----------------------------
 * Fix to texture system that improved filtering of anisotropic cases.

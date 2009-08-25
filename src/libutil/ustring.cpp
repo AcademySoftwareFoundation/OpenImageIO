@@ -45,7 +45,7 @@ typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash> Ustrin
 typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
 #endif
 static UstringTable ustring_table;
-static mutex ustring_mutex;
+static spin_mutex ustring_mutex;
 
 std::string ustring::empty_std_string ("");
 
@@ -60,7 +60,7 @@ ustring::_make_unique (const char *str)
 
     // Check the ustring table to see if this string already exists.  If so,
     // construct from its canonical representation.
-    lock_guard guard(ustring_mutex);
+    spin_lock guard(ustring_mutex);
     UstringTable::const_iterator found = ustring_table.find (str);
     if (found != ustring_table.end())
         return found->second;
