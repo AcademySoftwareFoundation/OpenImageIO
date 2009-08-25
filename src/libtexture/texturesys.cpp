@@ -35,7 +35,6 @@
 #include <list>
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
-#include <boost/thread/tss.hpp>
 
 #include <ImathMatrix.h>
 
@@ -1165,6 +1164,19 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
 
 
 
+template <typename T>
+static inline T evalBSpline(T p0, T p1, T p2, T p3, T t)
+{
+    T t2 = t * t;
+    T t3 = t2 * t;
+    return T(1 / 6.0) * ((    -p0 + 3 * p1 - 3 * p2 + p3) * t3 +
+                         ( 3 * p0 - 6 * p1 + 3 * p2     ) * t2 +
+                         (-3 * p0 + 3 * p2              ) * t  +
+                         (     p0 + 4 * p1 + p2         ));
+}
+
+
+
 bool
 TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  TextureFile &texturefile,
@@ -1279,6 +1291,9 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         }
     }
 
+#define USE_BSPLINE 1
+    int nc = options.actualchannels; // + (options.alpha ? 1 : 0);
+#if (! USE_BSPLINE)
     // Weights in x and y
     DASSERT (hq_filter);
     float wx[4] = { (*hq_filter)(-1.0f-sfrac), (*hq_filter)(-sfrac),
@@ -1294,8 +1309,30 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         }
     }
     weight /= totalw;
+#endif
 
     if (texturefile.eightbit()) {
+#if USE_BSPLINE
+        for (int c = 0;  c < nc; ++c) {
+            float col[4];
+            for (int j = 0;  j < 4; ++j)
+                col[j] = evalBSpline(uchar2float(texel[j][0][c]),
+                                     uchar2float(texel[j][1][c]),
+                                     uchar2float(texel[j][2][c]),
+                                     uchar2float(texel[j][3][c]), sfrac);
+            accum[c] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
+        }
+        if (options.alpha) {
+            int c = options.actualchannels;
+            float col[4];
+            for (int j = 0;  j < 4; ++j)
+                col[j] = evalBSpline(uchar2float(texel[j][0][c]),
+                                     uchar2float(texel[j][1][c]),
+                                     uchar2float(texel[j][2][c]),
+                                     uchar2float(texel[j][3][c]), sfrac);
+            options.alpha[index] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
+        }
+#else
         // 8-bit texels
         for (int j = 0;  j < 4;  ++j)
             for (int i = 0;  i < 4;  ++i) {
@@ -1303,13 +1340,36 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                     accum[c] += (w[j][i] * weight) * uchar2float(texel[j][i][c]);
             }
         if (options.alpha) {
+            int c = options.actualchannels;
             for (int j = 0;  j < 4;  ++j)
                 for (int i = 0;  i < 4;  ++i) {
-                    int c = options.actualchannels;
-                    accum[c] += (w[j][i] * weight) * uchar2float(texel[j][i][c]);
+                    options.alpha[index] += (w[j][i] * weight) * uchar2float(texel[j][i][c]);
                 }
         }
+#endif
     } else {
+#if USE_BSPLINE
+        // float texels
+        for (int c = 0;  c < nc; ++c) {
+            float col[4];
+            for (int j = 0;  j < 4; ++j)
+                col[j] = evalBSpline (((const float*)(texel[j][0]))[c],
+                                      ((const float*)(texel[j][1]))[c],
+                                      ((const float*)(texel[j][2]))[c],
+                                      ((const float*)(texel[j][3]))[c], sfrac);
+            accum[c] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
+        }
+        if (options.alpha) {
+            int c = options.actualchannels;
+            float col[4];
+            for (int j = 0;  j < 4; ++j)
+                col[j] = evalBSpline (((const float*)(texel[j][0]))[c],
+                                      ((const float*)(texel[j][1]))[c],
+                                      ((const float*)(texel[j][2]))[c],
+                                      ((const float*)(texel[j][3]))[c], sfrac);
+            options.alpha[index] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
+        }
+#else
         // float texels
         for (int j = 0;  j < 4;  ++j)
             for (int i = 0;  i < 4;  ++i) {
@@ -1317,12 +1377,13 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                     accum[c] += (w[j][i] * weight) * ((float *)texel[j][i])[c];
             }
         if (options.alpha) {
+            int c = options.actualchannels;
             for (int j = 0;  j < 4;  ++j)
                 for (int i = 0;  i < 4;  ++i) {
-                    int c = options.actualchannels;
-                    accum[c] += (w[j][i] * weight) * ((float *)texel[j][i])[c];
+                    options.alpha[index] += (w[j][i] * weight) * ((float *)texel[j][i])[c];
                 }
         }
+#endif
     }
 
     return true;
