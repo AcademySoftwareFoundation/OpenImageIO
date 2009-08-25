@@ -47,6 +47,7 @@
 #endif
 
 #include <boost/thread.hpp>
+#include <boost/thread/tss.hpp>
 #include <boost/version.hpp>
 #if (BOOST_VERSION == 103500)
 #  include <boost/thread/shared_mutex.hpp>
@@ -81,6 +82,9 @@
 #  endif
 #endif
 
+#ifdef __APPLE__
+#  include <libkern/OSAtomic.h>
+#endif
 
 
 #ifdef OPENIMAGEIO_NAMESPACE
@@ -88,16 +92,79 @@ namespace OPENIMAGEIO_NAMESPACE {
 #endif
 
 
+/// Null mutex that can be substituted for a real one to test how much
+/// overhead is associated with a particular mutex.
+class null_mutex {
+public:
+    null_mutex () { }
+    ~null_mutex () { }
+    void lock () { }
+    void unlock () { }
+    void lock_shared () { }
+    void unlock_shared () { }
+};
+
+/// Null lock that can be substituted for a real one to test how much
+/// overhead is associated with a particular lock.
+template<typename T>
+class null_lock {
+public:
+    null_lock (T &m) { }
+};
+
+
+
+#ifdef NOTHREADS
+
+// Definitions that we use for debugging to turn off all mutexes, locks,
+// and atomics in order to test the performance hit of our thread safety.
+
+// Null thread-specific ptr that just wraps a single ordinary pointer
+//
+template<typename T>
+class thread_specific_ptr {
+public:
+    typedef void (*destructor_t)(T *);
+    thread_specific_ptr (destructor_t dest=NULL)
+        : m_ptr(NULL), m_dest(dest) { }
+    ~thread_specific_ptr () { reset (NULL); }
+    T * get () { return m_ptr; }
+    void reset (T *newptr=NULL) {
+        if (m_ptr) {
+            if (m_dest)
+                (*m_dest) (m_ptr);
+            else
+                delete m_ptr;
+        }
+        m_ptr = newptr;
+    }
+private:
+    T *m_ptr;
+    destructor_t m_dest;
+};
+
+
+typedef null_mutex mutex;
+typedef null_mutex recursive_mutex;
+typedef null_mutex shared_mutex;
+typedef null_lock<mutex> lock_guard;
+typedef null_lock<recursive_mutex> recursive_lock_guard;
+typedef null_lock<shared_mutex> shared_lock;
+typedef null_lock<shared_mutex> unique_lock;
+
+
+#elif (BOOST_VERSION >= 103500)
+
+// Fairly modern Boost has all the mutex and lock types we need.
+
 typedef boost::mutex mutex;
 typedef boost::recursive_mutex recursive_mutex;
-
-#if (BOOST_VERSION >= 103500)
-
 typedef boost::shared_mutex shared_mutex;
 typedef boost::lock_guard< boost::mutex > lock_guard;
 typedef boost::lock_guard< boost::recursive_mutex > recursive_lock_guard;
 typedef boost::shared_lock< boost::shared_mutex > shared_lock;
 typedef boost::unique_lock< boost::shared_mutex > unique_lock;
+using boost::thread_specific_ptr;
 
 #else
 
@@ -107,8 +174,11 @@ typedef boost::unique_lock< boost::shared_mutex > unique_lock;
 // pthreads, so only works on Linux & OSX.  Windows will just have to
 // use a more modern Boost.
 
+typedef boost::mutex mutex;
+typedef boost::recursive_mutex recursive_mutex;
 typedef boost::mutex::scoped_lock lock_guard;
 typedef boost::recursive_mutex::scoped_lock recursive_lock_guard;
+using boost::thread_specific_ptr;
 
 
 class shared_mutex {
@@ -273,7 +343,7 @@ public:
     ///
     T operator-= (T x) { return atomic_exchange_and_add (&m_val, -x) - x; }
 
-    bool compare_and_swap (T compareval, T newval) {
+    bool bool_compare_and_swap (T compareval, T newval) {
         return atomic_compare_and_exchange (&m_val, compareval, newval);
     }
 
@@ -293,8 +363,114 @@ private:
 
 #endif /* ! USE_TBB */
 
+#ifdef NOTHREADS
+
+typedef int atomic_int;
+typedef long long atomic_ll;
+
+typedef null_mutex spin_mutex;
+typedef null_lock<spin_mutex> spin_lock;
+
+#else
+
 typedef atomic<int> atomic_int;
 typedef atomic<long long> atomic_ll;
+
+
+
+/// A spin_mutex is semantically equivalent to a regular mutex, except
+/// for the following:
+///  - A spin_mutex is just 4 bytes, whereas a regular mutex is quite
+///    large (44 bytes for pthread).
+///  - A spin_mutex is extremely fast to lock and unlock, whereas a regular
+///    mutex is surprisingly expensive just to acquire a lock.
+///  - A spin_mutex takes CPU while it waits, so this can be very
+///    wasteful compared to a regular mutex that blocks (gives up its
+///    CPU slices until it acquires the lock).
+///
+/// The bottom line is that mutex is the usual choice, but in cases where
+/// you need to acquire locks very frequently, but only need to hold the
+/// lock for a very short period of time, you may save runtime by using
+/// a spin_mutex, even though it's non-blocking.
+///
+/// N.B. A spin_mutex is only the size of an int.  To avoid "false
+/// sharing", be careful not to put two spin_mutex objects on the same
+/// cache line (within 128 bytes of each other), or the two mutexes may
+/// effectively (and wastefully) lock against each other.
+///
+class spin_mutex {
+public:
+    /// Default constructor -- initialize to unlocked.
+    ///
+    spin_mutex (void) { m_locked = 0; }
+
+    ~spin_mutex (void) { }
+
+    /// Copy constructor -- initialize to unlocked.
+    ///
+    spin_mutex (const spin_mutex &) { m_locked = 0; }
+
+    /// Assignment does not do anything, since lockedness should not
+    /// transfer.
+    const spin_mutex& operator= (const spin_mutex&) { return *this; }
+
+    /// Acquire the lock, spin until we have it.
+    ///
+    void lock () {
+#if defined(__APPLE__)
+        // OS X has dedicated spin lock routines, may as well use them.
+        OSSpinLockLock ((OSSpinLock *)&m_locked);
+#else
+        while (! try_lock())
+            ;
+#endif
+    }
+
+    /// Release the lock that we hold.
+    ///
+    void unlock () {
+#if defined(__APPLE__)
+        OSSpinLockUnlock ((OSSpinLock *)&m_locked);
+#else
+        m_locked = 0;
+#endif
+    }
+
+    /// Try to acquire the lock.  Return true if we have it, false if
+    /// somebody else is holding the lock.
+    bool try_lock () {
+#if defined(__APPLE__)
+        return OSSpinLockTry ((OSSpinLock *)&m_locked);
+#else
+#  ifdef USE_TBB
+        // TBB's compare_and_swap returns the original value
+        return m_locked.compare_and_swap (0, 1) == 0;
+#  else
+        // Our compare_and_swap returns true if it swapped
+        return m_locked.bool_compare_and_swap (0, 1);
+#  endif
+#endif
+    }
+
+    /// Helper class: scoped lock for a spin_mutex -- grabs the lock upon
+    /// construction, releases the lock when it exits scope.
+    class lock_guard {
+    public:
+        lock_guard (spin_mutex &fm) : m_fm(fm) { m_fm.lock(); }
+        ~lock_guard () { m_fm.unlock(); }
+    private:
+        spin_mutex & m_fm;
+    };
+
+private:
+    atomic_int m_locked;  ///< Atomic counter is zero if nobody holds the lock
+};
+
+
+typedef spin_mutex::lock_guard spin_lock;
+
+#endif
+
 
 
 #ifdef OPENIMAGEIO_NAMESPACE

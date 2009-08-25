@@ -22,6 +22,14 @@ set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
 set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
 set (USE_TBB ON CACHE BOOL "Use TBB if needed")
+set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
+
+if (NOTHREADS)
+    message (STATUS "NO THREADS!")
+    add_definitions ("-DNOTHREADS=1")
+else ()
+    message (STATUS "Building with thread support")
+endif ()
 
 set (CMAKE_MODULE_PATH
      "${PROJECT_SOURCE_DIR}/cmake/modules"
