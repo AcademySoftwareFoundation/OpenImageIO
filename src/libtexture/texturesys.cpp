@@ -1165,7 +1165,19 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
 
 
 template <typename T>
-static inline T evalBSpline(T p0, T p1, T p2, T p3, T t)
+static inline void evalBSplineWeights (T w[4], T fraction)
+{
+    T one_frac = 1 - fraction;
+    w[0] = T(1.0 / 6.0) * one_frac * one_frac * one_frac;
+    w[1] = T(2.0 / 3.0) - T(0.5) * fraction * fraction * (2 - fraction);
+    w[2] = T(2.0 / 3.0) - T(0.5) * one_frac * one_frac * (2 - one_frac);
+    w[3] = T(1.0 / 6.0) * fraction * fraction * fraction;
+}
+
+
+
+template <typename T>
+static inline T evalBSpline (T p0, T p1, T p2, T p3, T t)
 {
     T t2 = t * t;
     T t3 = t2 * t;
@@ -1291,15 +1303,50 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         }
     }
 
-#define USE_BSPLINE 1
     int nc = options.actualchannels; // + (options.alpha ? 1 : 0);
-#if (! USE_BSPLINE)
+
+#define USE_BSPLINE 1
+#define USE_BSPLINE_WEIGHTS 1
+#if USE_BSPLINE
+#if USE_BSPLINE_WEIGHTS
+    // We use a formulation of cubic B-spline evaluation that reduces to
+    // lerps.  It's tricky to follow, but the references are:
+    //   * Ruijters, Daniel et al, "Efficient GPU-Based Texture
+    //     Interpolation using Uniform B-Splines", Journal of Graphics
+    //     Tools 13(4), pp. 61-69, 2008.
+    //     http://jgt.akpeters.com/papers/RuijtersEtAl08/
+    //   * Sigg, Christian and Markus Hadwiger, "Fast Third-Order Texture 
+    //     Filtering", in GPU Gems 2 (Chapter 20), Pharr and Fernando, ed.
+    //     http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter20.html
+    // We like this formulation because it's slightly faster than any of
+    // the other B-spline evaluation routines we tried, and also the lerp
+    // guarantees that the filtered results will be non-negative for
+    // non-negative texel values (which we had trouble with before due to
+    // numerical imprecision).
+    float wx[4]; evalBSplineWeights(wx, sfrac);
+    float wy[4]; evalBSplineWeights(wy, tfrac);
+    // figure out lerp weights so we can turn the filter into a sequence of lerp's
+    float g0x = wx[0] + wx[1]; float h0x = (wx[1] / g0x); 
+    float g1x = wx[2] + wx[3]; float h1x = (wx[3] / g1x); 
+    float g0y = wy[0] + wy[1]; float h0y = (wy[1] / g0y);
+    float g1y = wy[2] + wy[3]; float h1y = (wy[3] / g1y);
+#endif
+
+#else
+#if USE_BSPLINE_WEIGHTS
+    // alternative way to compute the weights (no virtual call)
+    float wx[4], wy[4];
+    evalBSplineWeights(wx, sfrac);
+    evalBSplineWeights(wy, tfrac);
+#else
     // Weights in x and y
     DASSERT (hq_filter);
     float wx[4] = { (*hq_filter)(-1.0f-sfrac), (*hq_filter)(-sfrac),
                     (*hq_filter)(1.0f-sfrac),  (*hq_filter)(2.0f-sfrac) };
     float wy[4] = { (*hq_filter)(-1.0f-tfrac), (*hq_filter)(-tfrac),
                     (*hq_filter)(1.0f-tfrac),  (*hq_filter)(2.0f-tfrac) };
+#endif
+    
     float w[4][4];  // 2D filter weights
     float totalw = 0;  // total filter weight
     for (int j = 0;  j < 4;  ++j) {
@@ -1313,6 +1360,31 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
 
     if (texturefile.eightbit()) {
 #if USE_BSPLINE
+#if USE_BSPLINE_WEIGHTS
+        for (int c = 0;  c < nc; ++c) {
+            float col[4];
+            for (int j = 0;  j < 4; ++j) {
+                float lx = Imath::lerp (uchar2float(texel[j][0][c]), uchar2float(texel[j][1][c]), h0x);
+                float rx = Imath::lerp (uchar2float(texel[j][2][c]), uchar2float(texel[j][3][c]), h1x);
+                col[j]   = Imath::lerp (lx, rx, g1x);
+            }
+            float ly = Imath::lerp (col[0], col[1], h0y);
+            float ry = Imath::lerp (col[2], col[3], h1y);
+            accum[c] += weight * Imath::lerp (ly, ry, g1y);
+        }
+        if (options.alpha) {
+            int c = options.actualchannels;
+            float col[4];
+            for (int j = 0;  j < 4; ++j) {
+                float lx = Imath::lerp (uchar2float(texel[j][0][c]), uchar2float(texel[j][1][c]), h0x);
+                float rx = Imath::lerp (uchar2float(texel[j][2][c]), uchar2float(texel[j][3][c]), h1x);
+                col[j]   = Imath::lerp (lx, rx, g1x);
+            }
+            float ly = Imath::lerp (col[0], col[1], h0y);
+            float ry = Imath::lerp (col[2], col[3], h1y);
+            options.alpha[index] += weight * Imath::lerp (ly, ry, g1y);
+        }
+#else
         for (int c = 0;  c < nc; ++c) {
             float col[4];
             for (int j = 0;  j < 4; ++j)
@@ -1332,6 +1404,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                      uchar2float(texel[j][3][c]), sfrac);
             options.alpha[index] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
         }
+#endif
 #else
         // 8-bit texels
         for (int j = 0;  j < 4;  ++j)
@@ -1349,6 +1422,32 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
 #endif
     } else {
 #if USE_BSPLINE
+#if USE_BSPLINE_WEIGHTS
+        // float texels
+        for (int c = 0;  c < nc; ++c) {
+           float col[4];
+           for (int j = 0;  j < 4; ++j) {
+               float lx = Imath::lerp (((const float*)(texel[j][0]))[c], ((const float*)(texel[j][1]))[c], h0x);
+               float rx = Imath::lerp (((const float*)(texel[j][2]))[c], ((const float*)(texel[j][3]))[c], h1x);
+               col[j]     = Imath::lerp (lx, rx, g1x);
+           }
+           float ly = Imath::lerp (col[0], col[1], h0y);
+           float ry = Imath::lerp (col[2], col[3], h1y);
+           accum[c] += weight * Imath::lerp (ly, ry, g1y);
+       }
+       if (options.alpha) {
+           int c = options.actualchannels;
+           float col[4];
+           for (int j = 0;  j < 4; ++j) {
+               float lx = Imath::lerp (((const float*)(texel[j][0]))[c], ((const float*) (texel[j][1]))[c], h0x);
+               float rx = Imath::lerp (((const float*)(texel[j][2]))[c], ((const float*) (texel[j][3]))[c], h1x);
+               col[j]   = Imath::lerp (lx, rx, g1x);
+           }
+           float ly = Imath::lerp (col[0], col[1], h0y);
+           float ry = Imath::lerp (col[2], col[3], h1y);
+           options.alpha[index] += weight * Imath::lerp (ly, ry, g1y);
+       }
+#else
         // float texels
         for (int c = 0;  c < nc; ++c) {
             float col[4];
@@ -1369,6 +1468,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                       ((const float*)(texel[j][3]))[c], sfrac);
             options.alpha[index] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
         }
+#endif
 #else
         // float texels
         for (int j = 0;  j < 4;  ++j)
