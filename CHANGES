@@ -1,6 +1,11 @@
 Changes:
 
 
+Release 0.6.3 (Aug 28, 2009)
+----------------------------
+* One more tweak to bicubic interpolation to be more numerically stable
+  (the tweak in 0.6.2 wasn't really the fix we'd hoped for).
+
 Release 0.6.2 (Aug 25, 2009)
 ----------------------------
 * Tweak the bicubic texture interpolation to be more numerically stable
