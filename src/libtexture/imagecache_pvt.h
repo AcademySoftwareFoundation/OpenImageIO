@@ -56,9 +56,60 @@ namespace pvt {
 
 
 class ImageCacheImpl;
+struct ImageCachePerThreadInfo;
 
 const char * texture_format_name (TexFormat f);
 const char * texture_type_name (TexFormat f);
+
+
+/// Structure to hold IC and TS statistics.  We combine into a single
+/// structure to minimize the number of costly thread_specific_ptr
+/// retrievals.  If somebody is using the ImageCache without a
+/// TextureSystem, a few extra stats come along for the ride, but this
+/// has no performance penalty.
+struct ImageCacheStatistics {
+    // First, the ImageCache-specific fields:
+    long long find_tile_calls;
+    long long find_tile_microcache_misses;
+    int find_tile_cache_misses;
+    long long files_totalsize;
+    long long bytes_read;
+    // These stats are hard to deal with on a per-thread basis, so for
+    // now, they are still atomics shared by the whole IC.
+    // int tiles_created;
+    // int tiles_current;
+    // int tiles_peak;
+    // int open_files_created;
+    // int open_files_current;
+    // int open_files_peak;
+    int unique_files;
+    double fileio_time;
+    double fileopen_time;
+    double file_locking_time;
+    double tile_locking_time;
+    double find_file_time;
+    double find_tile_time;
+
+    // TextureSystem-specific fields below:
+    long long texture_queries;
+    long long texture_batches;
+    long long texture3d_queries;
+    long long texture3d_batches;
+    long long shadow_queries;
+    long long shadow_batches;
+    long long environment_queries;
+    long long environment_batches;
+    long long aniso_queries;
+    long long aniso_probes;
+    float max_aniso;
+    long long closest_interps;
+    long long bilinear_interps;
+    long long cubic_interps;
+    
+    ImageCacheStatistics () { init (); }
+    void init ();
+    void merge (const ImageCacheStatistics &s);
+};
 
 
 
@@ -69,10 +120,13 @@ const char * texture_type_name (TexFormat f);
 ///
 /// The public routines of ImageCacheFile are thread-safe!  In
 /// particular, callers do not need to lock around calls to read_tile.
+/// However, a few of them require passing in a pointer to the
+/// thread-specific IC data including microcache and statistics.
 ///
 class ImageCacheFile : public RefCnt {
 public:
-    ImageCacheFile (ImageCacheImpl &imagecache, ustring filename);
+    ImageCacheFile (ImageCacheImpl &imagecache,
+                    ImageCachePerThreadInfo *thread_info, ustring filename);
     ~ImageCacheFile ();
 
     bool broken () const { return m_broken; }
@@ -88,7 +142,8 @@ public:
 
     /// Load new data tile
     ///
-    bool read_tile (int subimage, int x, int y, int z,
+    bool read_tile (ImageCachePerThreadInfo *thread_info,
+                    int subimage, int x, int y, int z,
                     TypeDesc format, void *data);
 
     /// Mark the file as recently used.
@@ -154,7 +209,7 @@ private:
 
     /// We will need to read pixels from the file, so be sure it's
     /// currently opened.  Return true if ok, false if error.
-    bool open ();
+    bool open (ImageCachePerThreadInfo *thread_info);
 
     bool opened () const { return m_input.get() != NULL; }
 
@@ -165,13 +220,15 @@ private:
     /// Load the requested tile, from a file that's not really tiled.
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage.
-    bool read_untiled (int subimage, int x, int y, int z,
+    bool read_untiled (ImageCachePerThreadInfo *thread_info,
+                       int subimage, int x, int y, int z,
                        TypeDesc format, void *data);
 
     /// Load the requested tile, from a file that's not really MIPmapped.
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage.
-    bool read_unmipped (int subimage, int x, int y, int z,
+    bool read_unmipped (ImageCachePerThreadInfo *thread_info,
+                        int subimage, int x, int y, int z,
                         TypeDesc format, void *data);
 
     friend class ImageCacheImpl;
@@ -274,8 +331,9 @@ private:
 class ImageCacheTile : public RefCnt {
 public:
     /// Construct a new tile, read the pixels from disk.
-    ///
-    ImageCacheTile (const TileID &id);
+    /// Requires a pointer to the thread-specific IC data including
+    /// microcache and statistics.
+    ImageCacheTile (const TileID &id, ImageCachePerThreadInfo *thread_info);
 
     /// Construct a new tile out of the pixels supplied.
     ///
@@ -346,7 +404,53 @@ typedef hash_map<TileID, ImageCacheTileRef, TileID::Hasher> TileCache;
 
 
 
+/// A very small amount of per-thread data that saves us from locking
+/// the mutex quite as often.  We store things here used by both
+/// ImageCache and TextureSystem, so they don't each need a costly
+/// thread_specific_ptr retrieval.  There's no real penalty for this,
+/// even if you are using only ImageCache but not TextureSystem.
+struct ImageCachePerThreadInfo {
+    // Store just a few filename/fileptr pairs
+    static const int nlastfile = 4;
+    ustring last_filename[nlastfile];
+    ImageCacheFile *last_file[nlastfile];
+    int next_last_file;
+    // We have a two-tile "microcache", storing the last two tiles needed.
+    ImageCacheTileRef tile, lasttile;
+    atomic_int purge;   // If set, tile ptrs need purging!
+    ImageCacheStatistics m_stats;
+
+    ImageCachePerThreadInfo ()
+        : next_last_file(0)
+    {
+        for (int i = 0;  i < nlastfile;  ++i)
+            last_file[i] = NULL;
+        purge = 0;
+    }
+
+    // Add a new filename/fileptr pair to our microcache
+    void filename (ustring n, ImageCacheFile *f) {
+        last_filename[next_last_file] = n;
+        last_file[next_last_file] = f;
+        ++next_last_file;
+        next_last_file %= nlastfile;
+    }
+
+    // See if a filename has a fileptr in the microcache
+    ImageCacheFile *find_file (ustring n) const {
+        for (int i = 0;  i < nlastfile;  ++i)
+            if (last_filename[i] == n)
+                return last_file[i];
+        return NULL;
+    }
+};
+
+
+
 /// Working implementation of the abstract ImageCache class.
+///
+/// Some of the methods require a pointer to the thread-specific IC data
+/// including microcache and statistics.
 ///
 class ImageCacheImpl : public ImageCache {
 public:
@@ -437,7 +541,8 @@ public:
 
     /// Retrieve a rectangle of raw unfiltered pixels, from an open valid
     /// ImageCacheFile.
-    bool get_pixels (ImageCacheFile *file, int subimage, int xmin, int xmax,
+    bool get_pixels (ImageCacheFile *file, ImageCachePerThreadInfo *thread_info,
+                     int subimage, int xmin, int xmax,
                      int ymin, int ymax, int zmin, int zmax, 
                      TypeDesc format, void *result);
 
@@ -445,7 +550,8 @@ public:
     /// no such file can be found.  This returns a plain old pointer,
     /// which is ok because the file hash table has ref-counted pointers
     /// and those won't be freed until the texture system is destroyed.
-    ImageCacheFile *find_file (ustring filename);
+    ImageCacheFile *find_file (ustring filename,
+                               ImageCachePerThreadInfo *thread_info);
 
     /// Is the tile specified by the TileID already in the cache?
     /// Only safe to call when the caller holds tilemutex.
@@ -456,53 +562,36 @@ public:
 
     /// Add the tile to the cache.  This will grab a unique lock to the
     /// tilemutex, and will also enforce cache memory limits.
-    void add_tile_to_cache (ImageCacheTileRef &tile);
+    void add_tile_to_cache (ImageCacheTileRef &tile,
+                            ImageCachePerThreadInfo *thread_info);
 
     /// Find a tile identified by 'id' in the tile cache, paging it in if
     /// needed, and store a reference to the tile.  Return true if ok,
     /// false if no such tile exists in the file or could not be read.
-    bool find_tile (const TileID &id, ImageCacheTileRef &tile);
+    bool find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
+                               ImageCachePerThreadInfo *thread_info);
 
-    /// Find the tile specified by id and place its reference in 'tile'.
-    /// Use tile and lasttile as a 2-item cache of tiles to boost our
-    /// hit rate over the big cache.  This is just a wrapper around
-    /// find_tile(id) and avoids looking to the big cache (and locking)
-    /// most of the time for fairly coherent tile access patterns.
-    /// If tile is null, so is lasttile.  Inlined for speed.
-    bool find_tile (const TileID &id,
-                    ImageCacheTileRef &tile, ImageCacheTileRef &lasttile) {
-        ++m_stat_find_tile_calls;
+    /// Find the tile specified by id.  If found, return true and place
+    /// the tile ref in thread_info->tile; if not found, return false.
+    /// This is more efficient than find_tile_main_cache() because it
+    /// avoids looking to the big cache (and locking) most of the time
+    /// for fairly coherent tile access patterns, by using the
+    /// per-thread microcache to boost our hit rate over the big cache.
+    /// Inlined for speed.
+    bool find_tile (const TileID &id, ImageCachePerThreadInfo *thread_info) {
+        ++thread_info->m_stats.find_tile_calls;
+        ImageCacheTileRef &tile (thread_info->tile);
         if (tile) {
             if (tile->id() == id)
                 return true;    // already have the tile we want
             // Tile didn't match, maybe lasttile will?  Swap tile
             // and last tile.  Then the new one will either match,
             // or we'll fall through and replace tile.
-            tile.swap (lasttile);
+            tile.swap (thread_info->lasttile);
             if (tile && tile->id() == id)
                 return true;
         }
-        return find_tile (id, tile);
-    }
-
-    /// Find the tile specified by id and place its reference in 'tile'.
-    /// Use tile and lasttile as a 2-item cache of tiles to boost our
-    /// hit rate over the big cache.  The caller *guarantees* that tile
-    /// contains a reference to a tile in the same file and 
-    /// subimage as 'id', and so does lasttile (if it contains a reference
-    /// at all).  Thus, it's a slightly simplified and faster version of
-    /// find_tile and should be used in loops where it's known that we
-    /// are reading several tiles from the same subimage.
-    bool find_tile_same_subimage (const TileID &id,
-                               ImageCacheTileRef &tile, ImageCacheTileRef &lasttile) {
-        ++m_stat_find_tile_calls;
-        DASSERT (tile);
-        if (equal_same_subimage (tile->id(), id))
-            return true;
-        tile.swap (lasttile);
-        if (tile && equal_same_subimage (tile->id(), id))
-            return true;
-        return find_tile (id, tile);
+        return find_tile_main_cache (id, tile, thread_info);
     }
 
     virtual Tile *get_tile (ustring filename, int subimage, int x, int y, int z);
@@ -513,6 +602,10 @@ public:
     virtual std::string getstats (int level=1) const;
     virtual void invalidate (ustring filename);
     virtual void invalidate_all (bool force=false);
+
+    /// Merge all the per-thread statistics into one set of stats.
+    ///
+    void mergestats (ImageCacheStatistics &merged) const;
 
     void operator delete (void *todel) { ::delete ((char *)todel); }
 
@@ -549,17 +642,39 @@ public:
         m_mem_used -= size;
     }
 
-    void incr_files_totalsize (size_t size) {
-        m_stat_files_totalsize += size;
-    }
-
-    void incr_bytes_read (size_t size) {
-        m_stat_bytes_read += size;
-    }
-
     /// Internal error reporting routine, with printf-like arguments.
     ///
     void error (const char *message, ...);
+
+    /// Get a pointer to the caller's thread's per-thread info, or create
+    /// one in the first place if there isn't one already.
+    ImageCachePerThreadInfo *get_perthread_info () {
+        ImageCachePerThreadInfo *p = m_perthread_info.get();
+        if (! p) {
+            p = new ImageCachePerThreadInfo;
+            m_perthread_info.reset (p);
+            // printf ("New perthread %p\n", (void *)p);
+            lock_guard lock (m_perthread_info_mutex);
+            m_all_perthread_info.push_back (p);
+        }
+        if (p->purge) {  // has somebody requested a tile purge?
+            // This is safe, because it's our thread.
+            p->tile = NULL;
+            p->lasttile = NULL;
+            p->purge = 0;
+        }
+        return p;
+    }
+
+    void erase_perthread_info () {
+        lock_guard lock (m_perthread_info_mutex);
+        for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
+            m_all_perthread_info[i] = NULL;
+    }
+
+    static void cleanup_perthread_info (ImageCachePerThreadInfo *p) {
+        delete p;
+    }
 
 private:
     void init ();
@@ -580,6 +695,9 @@ private:
     std::string onefile_stat_line (const ImageCacheFileRef &file,
                                    int i, bool includestats=true) const;
 
+    thread_specific_ptr< ImageCachePerThreadInfo > m_perthread_info;
+    std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
+    mutable mutex m_perthread_info_mutex; ///< Thread safety for perthread
     int m_max_open_files;
     float m_max_memory_MB;
     size_t m_max_memory_bytes;
@@ -601,31 +719,33 @@ private:
     /// Saved error string, per-thread
     ///
     mutable thread_specific_ptr< std::string > m_errormessage;
-    mutable shared_mutex m_filemutex; ///< Thread safety for file cache
-    mutable shared_mutex m_tilemutex; ///< Thread safety for tile cache
+#if 0
+    // This approach uses regular shared mutexes to protect the caches.
+    typedef shared_mutex ic_mutex;
+    typedef shared_lock  ic_read_lock;
+    typedef unique_lock  ic_write_lock;
+#else
+    // This alternate approach uses spin locks.
+    typedef spin_mutex ic_mutex;
+    typedef spin_lock  ic_read_lock;
+    typedef spin_lock  ic_write_lock;
+#endif
+    mutable ic_mutex m_filemutex; ///< Thread safety for file cache
+    mutable ic_mutex m_tilemutex; ///< Thread safety for tile cache
 
 private:
-    atomic_ll m_stat_find_tile_calls;
-    atomic_ll m_stat_find_tile_microcache_misses;
-    atomic_int m_stat_find_tile_cache_misses;
+    // Statistics that are really hard to track per-thread
     atomic_int m_stat_tiles_created;
     atomic_int m_stat_tiles_current;
     atomic_int m_stat_tiles_peak;
-    atomic_ll m_stat_files_totalsize;
-    atomic_ll m_stat_bytes_read;
     atomic_int m_stat_open_files_created;
     atomic_int m_stat_open_files_current;
     atomic_int m_stat_open_files_peak;
-    atomic_int m_stat_unique_files;
-    double m_stat_fileio_time;
-    double m_stat_fileopen_time;
-    double m_stat_file_locking_time;
-    double m_stat_tile_locking_time;
-    double m_stat_find_file_time;
-    double m_stat_find_tile_time;
 
     // Simulate an atomic double with a long long!
     void incr_time_stat (double &stat, double incr) {
+        stat += incr;
+        return;
 #ifdef NOTHREADS
         stat += incr;
 #else

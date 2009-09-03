@@ -239,168 +239,89 @@ public:
 private:
     typedef ImageCacheFile TextureFile;
     typedef ImageCacheTileRef TileRef;
-
-    /// A very small amount of per-thread data that saves us from locking
-    /// the mutex quite as often.
-    struct PerThreadInfo {
-        // Store just a few filename/fileptr pairs
-        static const int nlastfile = 4;
-        ustring last_filename[nlastfile];
-        ImageCacheFile *last_file[nlastfile];
-        int next_last_file;
-        ImageCacheTileRef tilecache0, tilecache1;
-        atomic_int purge;   // If set, tile ptrs need purging!
-        TextureSystemImpl &texturesys;
-
-        PerThreadInfo (TextureSystemImpl &tex)
-            : next_last_file(0), texturesys(tex)
-        {
-            for (int i = 0;  i < nlastfile;  ++i)
-                last_file[i] = NULL;
-            purge = 0;
-        }
-        // Add a new filename/fileptr pair to our microcache
-        void filename (ustring n, ImageCacheFile *f) {
-            last_filename[next_last_file] = n;
-            last_file[next_last_file] = f;
-            ++next_last_file;
-            next_last_file %= nlastfile;
-        }
-        // See if a filename has a fileptr in the microcache
-        ImageCacheFile *find_file (ustring n) const {
-            for (int i = 0;  i < nlastfile;  ++i)
-                if (last_filename[i] == n)
-                    return last_file[i];
-            return NULL;
-        }
-    };
-
-    static void cleanup_perthread_info (PerThreadInfo *p) {
-        delete p;
-    }
-
-    /// Get a pointer to the caller's thread's per-thread info, or create
-    /// one in the first place if there isn't one already.
-    PerThreadInfo *get_perthread_info () {
-        PerThreadInfo *p = m_perthread_info.get();
-        if (! p) {
-            p = new PerThreadInfo (*this);
-            m_perthread_info.reset (p);
-            // printf ("New perthread %p\n", (void *)p);
-            lock_guard lock (m_perthread_info_mutex);
-            m_all_perthread_info.push_back (p);
-        }
-        if (p->purge) {  // has somebody requested a tile purge?
-            // This is safe, because it's our thread.
-            p->tilecache0 = NULL;
-            p->tilecache1 = NULL;
-            p->purge = 0;
-        }
-        return p;
-    }
-
-    void erase_perthread_info () {
-        lock_guard lock (m_perthread_info_mutex);
-        for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
-            m_all_perthread_info[i] = NULL;
-    }
+    typedef ImageCachePerThreadInfo PerThreadInfo;
 
     void init ();
 
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
-    TextureFile *find_texturefile (ustring filename) {
-        TextureFile *tf = m_imagecache->find_file (filename);
+    TextureFile *find_texturefile (ustring filename, PerThreadInfo *thread_info) {
+        TextureFile *tf = m_imagecache->find_file (filename, thread_info);
         if (!tf || tf->broken())
             error ("%s", m_imagecache->geterror().c_str());
         return tf;
     }
 
-    /// Find the tile specified by id and place its reference in 'tile'.
-    /// Use tile and lasttile as a 2-item cache of tiles to boost our
-    /// hit rate over the big cache.  This is just a wrapper around
-    /// find_tile(id) and avoids looking to the big cache (and locking)
-    /// most of the time for fairly coherent tile access patterns.
-    /// If tile is null, so is lasttile.  Inlined for speed.
-    bool find_tile (const TileID &id,
-                    TileRef &tile, TileRef &lasttile)
+    /// Find the tile specified by id.  If found, return true and place
+    /// the tile ref in thread_info->tile; if not found, return false.
+    /// This is more efficient than find_tile_main_cache() because it
+    /// avoids looking to the big cache (and locking) most of the time
+    /// for fairly coherent tile access patterns, by using the
+    /// per-thread microcache to boost our hit rate over the big cache.
+    /// Inlined for speed.
+    bool find_tile (const TileID &id, PerThreadInfo *thread_info)
     {
-        return m_imagecache->find_tile (id, tile, lasttile);
-    }
-
-    /// Find the tile specified by id and place its reference in 'tile'.
-    /// Use tile and lasttile as a 2-item cache of tiles to boost our
-    /// hit rate over the big cache.  The caller *guarantees* that tile
-    /// contains a reference to a tile in the same file and MIP-map
-    /// subimage as 'id', and so does lasttile (if it contains a reference
-    /// at all).  Thus, it's a slightly simplified and faster version of
-    /// find_tile and should be used in loops where it's known that we
-    /// are reading several tiles from the same subimage.
-    bool find_tile_same_subimage (const TileID &id, TileRef &tile,
-                               TileRef &lasttile)
-    {
-        return m_imagecache->find_tile_same_subimage (id, tile, lasttile);
+        return m_imagecache->find_tile (id, thread_info);
     }
 
     // Define a prototype of a member function pointer for texture
     // lookups.
     typedef bool (TextureSystemImpl::*texture_lookup_prototype)
-            (TextureFile &texfile, TextureOptions &options, int index,
+            (TextureFile &texfile, PerThreadInfo *thread_info,
+             TextureOptions &options, int index,
              VaryingRef<float> _s, VaryingRef<float> _t,
              VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
              VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
-             TileRef &tilecache0, TileRef &tilecache1,
              float *result);
 
     /// Look up texture from just ONE point
     ///
-    bool texture_lookup (TextureFile &texfile,
+    bool texture_lookup (TextureFile &texfile, PerThreadInfo *thread_info, 
                          TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                          VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
-                         TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
-    bool texture_lookup_nomip (TextureFile &texfile,
+    bool texture_lookup_nomip (TextureFile &texfile, 
+                         PerThreadInfo *thread_info, 
                          TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                          VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
-                         TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
     bool texture_lookup_trilinear_mipmap (TextureFile &texfile,
+                         PerThreadInfo *thread_info, 
                          TextureOptions &options, int index,
                          VaryingRef<float> _s, VaryingRef<float> _t,
                          VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                          VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
-                         TileRef &tilecache0, TileRef &tilecache1,
                          float *result);
     
     typedef bool (TextureSystemImpl::*accum_prototype)
                               (float s, float t, int level,
                                TextureFile &texturefile,
+                               PerThreadInfo *thread_info,
                                TextureOptions &options, int index,
-                               TileRef &tilecache0, TileRef &tilecache1,
                                float weight, float *accum);
 
     bool accum_sample_closest (float s, float t, int level,
                                TextureFile &texturefile,
+                               PerThreadInfo *thread_info,
                                TextureOptions &options, int index,
-                               TileRef &tilecache0, TileRef &tilecache1,
                                float weight, float *accum);
 
     bool accum_sample_bilinear (float s, float t, int level,
                                 TextureFile &texturefile,
+                                PerThreadInfo *thread_info,
                                 TextureOptions &options, int index,
-                                TileRef &tilecache0, TileRef &tilecache1,
                                 float weight, float *accum);
 
     bool accum_sample_bicubic (float s, float t, int level,
                                TextureFile &texturefile,
+                               PerThreadInfo *thread_info,
                                TextureOptions &options, int index,
-                               TileRef &tilecache0, TileRef &tilecache1,
                                float weight, float *accum);
 
     /// Internal error reporting routine, with printf-like arguments.
@@ -410,33 +331,15 @@ private:
     void printstats () const;
 
     ImageCacheImpl *m_imagecache;
-    thread_specific_ptr< PerThreadInfo > m_perthread_info;
-    std::vector<PerThreadInfo *> m_all_perthread_info;
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     /// Saved error string, per-thread
     ///
     mutable thread_specific_ptr< std::string > m_errormessage;
-    mutable mutex m_perthread_info_mutex; ///< Thread safety for perthread
     Filter1D *hq_filter;         ///< Better filter for magnification
     int m_statslevel;
-    atomic_ll m_stat_texture_queries;
-    atomic_ll m_stat_texture_batches;
-    atomic_ll m_stat_texture3d_queries;
-    atomic_ll m_stat_texture3d_batches;
-    atomic_ll m_stat_shadow_queries;
-    atomic_ll m_stat_shadow_batches;
-    atomic_ll m_stat_environment_queries;
-    atomic_ll m_stat_environment_batches;
-    atomic_ll m_stat_aniso_queries;
-    atomic_ll m_stat_aniso_probes;
-    float m_stat_max_aniso;
-    atomic_ll m_stat_closest_interps;
-    atomic_ll m_stat_bilinear_interps;
-    atomic_ll m_stat_cubic_interps;
     friend class ImageCacheFile;
     friend class ImageCacheTile;
-    friend class PerThreadInfo;
 };
 
 
