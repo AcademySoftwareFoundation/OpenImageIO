@@ -31,10 +31,10 @@
 
 // Marketing-driven product version
 #define TBB_VERSION_MAJOR 2
-#define TBB_VERSION_MINOR 1
+#define TBB_VERSION_MINOR 2
 
 // Engineering-focused interface version
-#define TBB_INTERFACE_VERSION 3017
+#define TBB_INTERFACE_VERSION 4000
 #define TBB_INTERFACE_VERSION_MAJOR TBB_INTERFACE_VERSION/1000
 
 // The oldest major interface version still supported

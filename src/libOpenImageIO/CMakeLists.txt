@@ -121,3 +121,16 @@ if (GTEST_FOUND)
 endif ()
 add_test (imagespec ${CMAKE_BINARY_DIR}/libOpenImageIO/imagespec_test)
 add_test (imagebufalgo ${CMAKE_BINARY_DIR}/libOpenImageIO/imagebufalgo_test)
+
+
+add_executable (atomic_test atomic_test.cpp)
+target_link_libraries (atomic_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_atomic ${CMAKE_BINARY_DIR}/libOpenImageIO/atomic_test)
+
+add_executable (spinlock_test spinlock_test.cpp)
+target_link_libraries (spinlock_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_spinlock ${CMAKE_BINARY_DIR}/libOpenImageIO/spinlock_test)
+
+add_executable (ustring_test ustring_test.cpp)
+target_link_libraries (ustring_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_ustring ${CMAKE_BINARY_DIR}/libOpenImageIO/ustring_test)

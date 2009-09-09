@@ -95,6 +95,11 @@ void PrintExtraVersionInfo( const char* category, const char* description ) {
         fprintf(stderr, "%s: %s\t%s\n", "TBB", category, description );
 }
 
+void PrintRMLVersionInfo( void* arg, const char* server_info )
+{
+    PrintExtraVersionInfo( server_info, (const char *)arg );
+}
+
 } // namespace internal
  
 extern "C" int TBB_runtime_interface_version() {
@@ -103,6 +108,7 @@ extern "C" int TBB_runtime_interface_version() {
 
 } // namespace tbb
 
+#if !__TBB_RML_STATIC
 #if __TBB_x86_32
 
 #include "tbb/atomic.h"
@@ -136,6 +142,7 @@ extern "C" void __TBB_machine_store8_slow( volatile void *ptr, int64_t value ) {
 }
 
 #endif /* __TBB_x86_32 */
+#endif /* !__TBB_RML_STATIC */
 
 #if __TBB_ipf
 extern "C" intptr_t __TBB_machine_lockbyte( volatile unsigned char& flag ) {

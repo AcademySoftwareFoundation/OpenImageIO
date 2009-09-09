@@ -75,12 +75,12 @@ struct atomic_rep;           // Primary template declared, but never defined.
 template<>
 struct atomic_rep<1> {       // Specialization
     typedef int8_t word;
-    int8_t my_value;
+    int8_t value;
 };
 template<>
 struct atomic_rep<2> {       // Specialization
     typedef int16_t word;
-    __TBB_DECL_ATOMIC_FIELD(int16_t,my_value,2)
+    __TBB_DECL_ATOMIC_FIELD(int16_t,value,2)
 };
 template<>
 struct atomic_rep<4> {       // Specialization
@@ -90,12 +90,12 @@ struct atomic_rep<4> {       // Specialization
 #else
     typedef int32_t word;
 #endif
-    __TBB_DECL_ATOMIC_FIELD(int32_t,my_value,4)
+    __TBB_DECL_ATOMIC_FIELD(int32_t,value,4)
 };
 template<>
 struct atomic_rep<8> {       // Specialization
     typedef int64_t word;
-    __TBB_DECL_ATOMIC_FIELD(int64_t,my_value,8)
+    __TBB_DECL_ATOMIC_FIELD(int64_t,value,8)
 };
 
 template<size_t Size, memory_semantics M>
@@ -159,15 +159,14 @@ __TBB_DECL_ATOMIC_PRIMITIVES(8)
 /** Works for any type T that has the same size as an integral type, has a trivial constructor/destructor, 
     and can be copied/compared by memcpy/memcmp. */
 template<typename T>
-struct atomic_impl: protected atomic_rep<sizeof(T)> {
+struct atomic_impl {
 protected:
-    typedef typename atomic_rep<sizeof(T)>::word word;
-
+    atomic_rep<sizeof(T)> rep;
 private:
     //! Union type used to convert type T to underlying integral type.
     union converter {
         T value;
-        word bits;
+        typename atomic_rep<sizeof(T)>::word bits;
     };
 public:
     typedef T value_type;
@@ -176,7 +175,7 @@ public:
     value_type fetch_and_store( value_type value ) {
         converter u, w;
         u.value = value;
-        w.bits = internal::atomic_traits<sizeof(value_type),M>::fetch_and_store(&this->my_value,u.bits);
+        w.bits = internal::atomic_traits<sizeof(value_type),M>::fetch_and_store(&rep.value,u.bits);
         return w.value;
     }
 
@@ -189,7 +188,7 @@ public:
         converter u, v, w;
         u.value = value;
         v.value = comparand;
-        w.bits = internal::atomic_traits<sizeof(value_type),M>::compare_and_swap(&this->my_value,u.bits,v.bits);
+        w.bits = internal::atomic_traits<sizeof(value_type),M>::compare_and_swap(&rep.value,u.bits,v.bits);
         return w.value;
     }
 
@@ -199,7 +198,7 @@ public:
 
     operator value_type() const volatile {                // volatile qualifier here for backwards compatibility 
         converter w;
-        w.bits = __TBB_load_with_acquire( this->my_value );
+        w.bits = __TBB_load_with_acquire( rep.value );
         return w.value;
     }
 
@@ -207,7 +206,7 @@ protected:
     value_type store_with_release( value_type rhs ) {
         converter u;
         u.value = rhs;
-        __TBB_store_with_release(this->my_value,u.bits);
+        __TBB_store_with_release(rep.value,u.bits);
         return rhs;
     }
 };
@@ -223,7 +222,7 @@ public:
 
     template<memory_semantics M>
     value_type fetch_and_add( D addend ) {
-        return value_type(internal::atomic_traits<sizeof(value_type),M>::fetch_and_add( &this->my_value, addend*sizeof(StepType) ));
+        return value_type(internal::atomic_traits<sizeof(value_type),M>::fetch_and_add( &this->rep.value, addend*sizeof(StepType) ));
     }
 
     value_type fetch_and_add( D addend ) {
@@ -282,23 +281,23 @@ public:
 
 template<>
 inline atomic_impl<__TBB_LONG_LONG>::operator atomic_impl<__TBB_LONG_LONG>::value_type() const volatile {
-    return __TBB_Load8(&this->my_value);
+    return __TBB_Load8(&rep.value);
 }
 
 template<>
 inline atomic_impl<unsigned __TBB_LONG_LONG>::operator atomic_impl<unsigned __TBB_LONG_LONG>::value_type() const volatile {
-    return __TBB_Load8(&this->my_value);
+    return __TBB_Load8(&rep.value);
 }
 
 template<>
 inline atomic_impl<__TBB_LONG_LONG>::value_type atomic_impl<__TBB_LONG_LONG>::store_with_release( value_type rhs ) {
-    __TBB_Store8(&this->my_value,rhs);
+    __TBB_Store8(&rep.value,rhs);
     return rhs;
 }
 
 template<>
 inline atomic_impl<unsigned __TBB_LONG_LONG>::value_type atomic_impl<unsigned __TBB_LONG_LONG>::store_with_release( value_type rhs ) {
-    __TBB_Store8(&this->my_value,rhs);
+    __TBB_Store8(&rep.value,rhs);
     return rhs;
 }
 

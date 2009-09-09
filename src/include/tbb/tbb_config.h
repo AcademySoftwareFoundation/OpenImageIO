@@ -91,6 +91,16 @@
 #define __TBB_TASK_DEQUE 1
 #endif /* !__TBB_TASK_DEQUE */
 
+#if __TBB_TASK_DEQUE
+#ifndef __TBB_RELAXED_OWNERSHIP
+#define __TBB_RELAXED_OWNERSHIP 1
+#endif /* !__TBB_RELAXED_OWNERSHIP */
+#else
+#ifdef __TBB_RELAXED_OWNERSHIP
+#undef __TBB_RELAXED_OWNERSHIP
+#endif /* __TBB_RELAXED_OWNERSHIP */
+#endif /* !__TBB_TASK_DEQUE */
+
 #ifndef __TBB_NEW_ITT_NOTIFY
 #define __TBB_NEW_ITT_NOTIFY 1
 #endif /* !__TBB_NEW_ITT_NOTIFY */
@@ -113,6 +123,16 @@
     #endif
 #endif /* defined TBB_USE_CAPTURED_EXCEPTION */
 
+
+#ifndef __TBB_DEFAULT_PARTITIONER
+#if TBB_DEPRECATED
+/** Default partitioner for parallel loop templates in TBB 1.0-2.1 */
+#define __TBB_DEFAULT_PARTITIONER tbb::simple_partitioner
+#else
+/** Default partitioner for parallel loop templates in TBB 2.2 */
+#define __TBB_DEFAULT_PARTITIONER tbb::auto_partitioner
+#endif /* TBB_DEFAULT_PARTITIONER */
+#endif /* !defined(__TBB_DEFAULT_PARTITIONER */
 
 /** Workarounds presence **/
 

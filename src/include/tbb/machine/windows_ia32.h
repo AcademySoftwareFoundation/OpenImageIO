@@ -31,13 +31,13 @@
 #endif
 
 #if defined(__INTEL_COMPILER)
-#define __TBB_fence_for_acquire() __asm { __asm nop }
-#define __TBB_fence_for_release() __asm { __asm nop }
+#define __TBB_release_consistency_helper() __asm { __asm nop }
 #elif _MSC_VER >= 1300
 extern "C" void _ReadWriteBarrier();
 #pragma intrinsic(_ReadWriteBarrier)
-#define __TBB_fence_for_acquire() _ReadWriteBarrier()
-#define __TBB_fence_for_release() _ReadWriteBarrier()
+#define __TBB_release_consistency_helper() _ReadWriteBarrier()
+#else
+#error Unsupported compiler - need to define __TBB_release_consistency_helper to support it
 #endif
 
 inline void __TBB_rel_acq_fence() { __asm { __asm mfence } }
@@ -57,23 +57,18 @@ extern "C" {
     __int64 __TBB_EXPORTED_FUNC __TBB_machine_fetchstore8 (volatile void *ptr, __int64 value );
     void __TBB_EXPORTED_FUNC __TBB_machine_store8 (volatile void *ptr, __int64 value );
     __int64 __TBB_EXPORTED_FUNC __TBB_machine_load8 (const volatile void *ptr);
-    bool __TBB_EXPORTED_FUNC __TBB_machine_trylockbyte ( volatile unsigned char& flag );
 }
 
 template <typename T, size_t S>
 struct __TBB_machine_load_store {
     static inline T load_with_acquire(const volatile T& location) {
         T to_return = location;
-#ifdef __TBB_fence_for_acquire 
-        __TBB_fence_for_acquire();
-#endif /* __TBB_fence_for_acquire */
+        __TBB_release_consistency_helper();
         return to_return;
     }
 
     static inline void store_with_release(volatile T &location, T value) {
-#ifdef __TBB_fence_for_release
-        __TBB_fence_for_release();
-#endif /* __TBB_fence_for_release */
+        __TBB_release_consistency_helper();
         location = value;
     }
 };
@@ -111,6 +106,7 @@ inline void __TBB_machine_store_with_release(size_t& location, size_t value) {
 static inline T __TBB_machine_cmpswp##S ( volatile void * ptr, U value, U comparand ) { \
     T result; \
     volatile T *p = (T *)ptr; \
+    __TBB_release_consistency_helper(); \
     __asm \
     { \
        __asm mov edx, p \
@@ -119,13 +115,14 @@ static inline T __TBB_machine_cmpswp##S ( volatile void * ptr, U value, U compar
        __asm lock cmpxchg [edx], C \
        __asm mov result, A \
     } \
-   __TBB_load_with_acquire(*(T *)ptr); \
+    __TBB_release_consistency_helper(); \
     return result; \
 } \
 \
 static inline T __TBB_machine_fetchadd##S ( volatile void * ptr, U addend ) { \
     T result; \
     volatile T *p = (T *)ptr; \
+    __TBB_release_consistency_helper(); \
     __asm \
     { \
         __asm mov edx, p \
@@ -133,13 +130,14 @@ static inline T __TBB_machine_fetchadd##S ( volatile void * ptr, U addend ) { \
         __asm lock xadd [edx], A \
         __asm mov result, A \
     } \
-   __TBB_load_with_acquire(*(T *)ptr); \
+    __TBB_release_consistency_helper(); \
     return result; \
 }\
 \
 static inline T __TBB_machine_fetchstore##S ( volatile void * ptr, U value ) { \
     T result; \
     volatile T *p = (T *)ptr; \
+    __TBB_release_consistency_helper(); \
     __asm \
     { \
         __asm mov edx, p \
@@ -147,7 +145,7 @@ static inline T __TBB_machine_fetchstore##S ( volatile void * ptr, U value ) { \
         __asm lock xchg [edx], A \
         __asm mov result, A \
     } \
-   __TBB_load_with_acquire(*(T *)ptr); \
+    __TBB_release_consistency_helper(); \
     return result; \
 }
 
@@ -225,21 +223,9 @@ extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
 #define __TBB_Pause(V) __TBB_machine_pause(V)
 #define __TBB_Log2(V)    __TBB_machine_lg(V)
 
-#define __TBB_TryLockByte(F) __TBB_machine_trylockbyte(F)
-
-#define __TBB_cpuid
-static inline void __TBB_x86_cpuid( __int32 buffer[4], __int32 mode ) {
-    __asm
-    {
-        mov eax,mode
-        cpuid
-        mov edi,buffer
-        mov [edi+0],eax
-        mov [edi+4],ebx
-        mov [edi+8],ecx
-        mov [edi+12],edx
-    }
-}
+// Use generic definitions from tbb_machine.h
+#undef __TBB_TryLockByte
+#undef __TBB_LockByte
 
 #if defined(_MSC_VER)&&_MSC_VER<1400
     static inline void* __TBB_machine_get_current_teb () {
@@ -253,3 +239,4 @@ static inline void __TBB_x86_cpuid( __int32 buffer[4], __int32 mode ) {
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
     #pragma warning (pop)
 #endif // warnings 4244, 4267 are back
+

@@ -44,7 +44,7 @@ extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
 #elif defined(_M_IX86)
 #include "machine/windows_ia32.h"
 #elif defined(_M_AMD64) 
-#include "machine/windows_em64t.h"
+#include "machine/windows_intel64.h"
 #else
 #error Unsupported platform
 #endif
@@ -58,9 +58,9 @@ extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
 #if __i386__
 #include "machine/linux_ia32.h"
 #elif __x86_64__
-#include "machine/linux_em64t.h"
+#include "machine/linux_intel64.h"
 #elif __ia64__
-#include "machine/linux_itanium.h"
+#include "machine/linux_ia64.h"
 #endif
 
 #elif __APPLE__
@@ -68,7 +68,7 @@ extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
 #if __i386__
 #include "machine/linux_ia32.h"
 #elif __x86_64__
-#include "machine/linux_em64t.h"
+#include "machine/linux_intel64.h"
 #elif __POWERPC__
 #include "machine/mac_ppc.h"
 #endif
@@ -84,12 +84,15 @@ extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
 #if __i386  || __i386__
 #include "machine/linux_ia32.h"
 #elif __x86_64__
-#include "machine/linux_em64t.h"
+#include "machine/linux_intel64.h"
 #endif
 
 #endif
 
-#if !defined(__TBB_CompareAndSwap4) || !defined(__TBB_CompareAndSwap8) || !defined(__TBB_Yield)
+#if    !defined(__TBB_CompareAndSwap4) \
+    || !defined(__TBB_CompareAndSwap8) \
+    || !defined(__TBB_Yield)           \
+    || !defined(__TBB_release_consistency_helper)
 #error Minimal requirements for tbb_machine.h not satisfied 
 #endif
 
@@ -98,9 +101,7 @@ extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
     template<typename T>
     inline T __TBB_load_with_acquire(const volatile T& location) {
         T temp = location;
-#ifdef __TBB_fence_for_acquire 
-        __TBB_fence_for_acquire();
-#endif /* __TBB_fence_for_acquire */
+        __TBB_release_consistency_helper();
         return temp;
     }
 #endif
@@ -109,9 +110,7 @@ extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
     //! Store with release semantics; i.e., no prior memory operation can move below the store.
     template<typename T, typename V>
     inline void __TBB_store_with_release(volatile T& location, V value) {
-#ifdef __TBB_fence_for_release
-        __TBB_fence_for_release();
-#endif /* __TBB_fence_for_release */
+        __TBB_release_consistency_helper();
         location = T(value); 
     }
 #endif
