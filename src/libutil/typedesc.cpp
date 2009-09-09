@@ -120,6 +120,8 @@ TypeDesc::c_str () const
     std::string result;
     if (aggregate == SCALAR)
         result = basetype_name[basetype];
+    else if (aggregate == MATRIX44 && basetype == FLOAT)
+        result = "matrix";
     else if (vecsemantics == NOXFORM) {
         const char *agg = "";
         switch (aggregate) {

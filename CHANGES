@@ -1,6 +1,10 @@
 Changes:
 
 
+Release 0.6.4 (Sep 9, 2009)
+---------------------------
+ Minor bug fixes in some internals.
+
 Release 0.6.3 (Aug 28, 2009)
 ----------------------------
 * One more tweak to bicubic interpolation to be more numerically stable

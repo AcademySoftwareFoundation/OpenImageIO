@@ -50,7 +50,7 @@ ParamValue::init_noclear (ustring _name, TypeDesc _type,
     m_nvalues = _nvalues;
     m_interp = INTERP_CONSTANT;
     size_t n = (size_t) (m_nvalues * m_type.numelements());
-    size_t size = (size_t) (n * m_type.size());
+    size_t size = (size_t) (m_nvalues * m_type.size());
     bool small = (size <= sizeof(m_data));
 
     if (_copy || small) {
