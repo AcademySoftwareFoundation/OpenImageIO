@@ -3,7 +3,9 @@ Changes:
 
 Release 0.6.4 (Sep 9, 2009)
 ---------------------------
- Minor bug fixes in some internals.
+* TextureSystem, ImageCache, and ustring threading improvements.  Very
+  big improvements on some platforms and circumstances.
+* Minor bug fixes in some internals.
 
 Release 0.6.3 (Aug 28, 2009)
 ----------------------------

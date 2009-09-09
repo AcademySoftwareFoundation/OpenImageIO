@@ -209,8 +209,7 @@ texture_type_name (TexFormat f)
 
 
 TextureSystemImpl::TextureSystemImpl (ImageCache *imagecache)
-    : m_perthread_info (&cleanup_perthread_info),
-      hq_filter(NULL)
+    : hq_filter(NULL)
 {
     m_imagecache = (ImageCacheImpl *) imagecache;
     init ();
@@ -225,20 +224,6 @@ TextureSystemImpl::init ()
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
     m_statslevel = 0;
-    m_stat_texture_queries = 0;
-    m_stat_texture_batches = 0;
-    m_stat_texture3d_queries = 0;
-    m_stat_texture3d_batches = 0;
-    m_stat_shadow_queries = 0;
-    m_stat_shadow_batches = 0;
-    m_stat_environment_queries = 0;
-    m_stat_environment_batches = 0;
-    m_stat_aniso_queries = 0;
-    m_stat_aniso_probes = 0;
-    m_stat_max_aniso = 1;
-    m_stat_closest_interps = 0;
-    m_stat_bilinear_interps = 0;
-    m_stat_cubic_interps = 0;
 }
 
 
@@ -246,7 +231,6 @@ TextureSystemImpl::init ()
 TextureSystemImpl::~TextureSystemImpl ()
 {
     printstats ();
-    erase_perthread_info ();
     ImageCache::destroy (m_imagecache);
     m_imagecache = NULL;
     delete hq_filter;
@@ -257,32 +241,36 @@ TextureSystemImpl::~TextureSystemImpl ()
 std::string
 TextureSystemImpl::getstats (int level, bool icstats) const
 {
+    // Merge all the threads
+    ImageCacheStatistics stats;
+    m_imagecache->mergestats (stats);
+
     std::ostringstream out;
-    bool anytexture = (m_stat_texture_queries + m_stat_texture3d_queries +
-                       m_stat_shadow_queries + m_stat_environment_queries);
+    bool anytexture = (stats.texture_queries + stats.texture3d_queries +
+                       stats.shadow_queries + stats.environment_queries);
     if (level > 0 && anytexture) {
         out << "OpenImageIO Texture statistics (" << (void*)this
             << ", cache = " << (void *)m_imagecache << ")\n";
         out << "  Queries/batches : \n";
-        out << "    texture     :  " << m_stat_texture_queries
-            << " queries in " << m_stat_texture_batches << " batches\n";
-        out << "    texture 3d  :  " << m_stat_texture3d_queries
-            << " queries in " << m_stat_texture3d_batches << " batches\n";
-        out << "    shadow      :  " << m_stat_shadow_queries
-            << " queries in " << m_stat_shadow_batches << " batches\n";
-        out << "    environment :  " << m_stat_environment_queries
-            << " queries in " << m_stat_environment_batches << " batches\n";
+        out << "    texture     :  " << stats.texture_queries
+            << " queries in " << stats.texture_batches << " batches\n";
+        out << "    texture 3d  :  " << stats.texture3d_queries
+            << " queries in " << stats.texture3d_batches << " batches\n";
+        out << "    shadow      :  " << stats.shadow_queries
+            << " queries in " << stats.shadow_batches << " batches\n";
+        out << "    environment :  " << stats.environment_queries
+            << " queries in " << stats.environment_batches << " batches\n";
         out << "  Interpolations :\n";
-        out << "    closest  : " << m_stat_closest_interps << "\n";
-        out << "    bilinear : " << m_stat_bilinear_interps << "\n";
-        out << "    bicubic  : " << m_stat_cubic_interps << "\n";
-        if (m_stat_aniso_queries)
+        out << "    closest  : " << stats.closest_interps << "\n";
+        out << "    bilinear : " << stats.bilinear_interps << "\n";
+        out << "    bicubic  : " << stats.cubic_interps << "\n";
+        if (stats.aniso_queries)
             out << Strutil::format ("  Average anisotropy : %.3g\n",
-                                    (double)m_stat_aniso_probes/(double)m_stat_aniso_queries);
+                                    (double)stats.aniso_probes/(double)stats.aniso_queries);
         else
             out << Strutil::format ("  Average anisotropy : 0\n");
         out << Strutil::format ("  Max anisotropy in the wild : %.3g\n",
-                                m_stat_max_aniso);
+                                stats.max_aniso);
         if (icstats)
             out << "\n";
     }
@@ -389,7 +377,8 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
                                int ybegin, int yend, int zbegin, int zend,
                                TypeDesc format, void *result)
 {
-    TextureFile *texfile = find_texturefile (filename);
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
+    TextureFile *texfile = find_texturefile (filename, thread_info);
     if (! texfile) {
         error ("Texture file \"%s\" not found", filename.c_str());
         return false;
@@ -411,7 +400,6 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
     // doing anything more complicated (not to mention bug-prone) until
     // somebody reports this routine as being a bottleneck.
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
-    TileRef tile, lasttile;
     int nc = texfile->spec().nchannels;
     size_t formatpixelsize = nc * format.size();
     bool ok = true;
@@ -422,7 +410,8 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
             for (int x = xbegin;  x < xend;  ++x) {
                 int tx = x - (x % spec.tile_width);
                 TileID tileid (*texfile, subimage, tx, ty, tz);
-                ok &= find_tile (tileid, tile, lasttile);
+                ok &= find_tile (tileid, thread_info);
+                TileRef &tile (thread_info->tile);
                 const char *data;
                 if (tile && (data = (const char *)tile->data (x, y, z))) {
                     data += options.firstchannel * texfile->datatype().size();
@@ -478,30 +467,20 @@ TextureSystemImpl::error (const char *message, ...)
 
 
 
-// Implementation of invalidate -- just invalidate the image cache, but
-// also mark our per-thread microcaches as invalid.
+// Implementation of invalidate -- just invalidate the image cache.
 void
 TextureSystemImpl::invalidate (ustring filename)
 {
     m_imagecache->invalidate (filename);
-    lock_guard lock (m_perthread_info_mutex);
-    for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
-        if (m_all_perthread_info[i])
-            m_all_perthread_info[i]->purge = 1;
 }
 
 
 
-// Implementation of invalidate -- just invalidate the image cache, but
-// also mark our per-thread microcaches as invalid.
+// Implementation of invalidate -- just invalidate the image cache.
 void
 TextureSystemImpl::invalidate_all (bool force)
 {
     m_imagecache->invalidate_all (force);
-    lock_guard lock (m_perthread_info_mutex);
-    for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
-        if (m_all_perthread_info[i])
-            m_all_perthread_info[i]->purge = 1;
 }
 
 
@@ -527,11 +506,12 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     // FIXME - should we be keeping stats, times?
 
     // Per-thread microcache that prevents locking of this mutex
-    PerThreadInfo *thread_info = get_perthread_info ();
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
+    ImageCacheStatistics &stats (thread_info->m_stats);
     TextureFile *texturefile = thread_info->find_file (filename);
     if (! texturefile) {
         // Fall back on the master cache
-        texturefile = find_texturefile (filename);
+        texturefile = find_texturefile (filename, thread_info);
         thread_info->filename (filename, texturefile);
     }
 
@@ -548,8 +528,8 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
             result += options.nchannels;
         }
 //        error ("Texture file \"%s\" not found", filename.c_str());
-        ++m_stat_texture_batches;
-        m_stat_texture_queries += local_stat_texture_queries;
+        ++stats.texture_batches;
+        stats.texture_queries += local_stat_texture_queries;
         return false;
     }
 
@@ -590,7 +570,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     }
     // Early out if all channels were beyond the highest in the file
     if (options.actualchannels < 1) {
-        ++m_stat_texture_batches;
+        ++stats.texture_batches;
         return true;
     }
 
@@ -605,16 +585,14 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     for (int i = beginactive;  i < endactive;  ++i) {
         if (runflags[i]) {
             ++points_on;
-            ok &= (this->*lookup) (*texturefile, options, i,
-                             s, t, dsdx, dtdx, dsdy, dtdy,
-                             thread_info->tilecache0, thread_info->tilecache1,
-                             result);
+            ok &= (this->*lookup) (*texturefile, thread_info, options, i,
+                             s, t, dsdx, dtdx, dsdy, dtdy, result);
         }
     }
 
     // Update stats
-    ++m_stat_texture_batches;
-    m_stat_texture_queries += points_on;
+    ++stats.texture_batches;
+    stats.texture_queries += points_on;
 
     return ok;
 }
@@ -623,11 +601,11 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 
 bool
 TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
+                            PerThreadInfo *thread_info, 
                             TextureOptions &options, int index,
                             VaryingRef<float> _s, VaryingRef<float> _t,
                             VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                             VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
-                            TileRef &tilecache0, TileRef &tilecache1,
                             float *result)
 {
     // N.B. If any computations within this function are identical for
@@ -650,17 +628,18 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
     };
     accum_prototype accumer = accum_functions[(int)options.interpmode];
     bool ok = (this->*accumer) (_s[index], _t[index], 0, texturefile,
-                                options, index, tilecache0, tilecache1,
+                                thread_info, options, index, 
                                 1.0f, result);
 
     // Update stats
-    ++m_stat_aniso_queries;
-    ++m_stat_aniso_probes;
+    ImageCacheStatistics &stats (thread_info->m_stats);
+    ++stats.aniso_queries;
+    ++stats.aniso_probes;
     switch (options.interpmode) {
-        case TextureOptions::InterpClosest :  ++m_stat_closest_interps;  break;
-        case TextureOptions::InterpBilinear : ++m_stat_bilinear_interps; break;
-        case TextureOptions::InterpBicubic :  ++m_stat_cubic_interps;  break;
-        case TextureOptions::InterpSmartBicubic : ++m_stat_bilinear_interps; break;
+        case TextureOptions::InterpClosest :  ++stats.closest_interps;  break;
+        case TextureOptions::InterpBilinear : ++stats.bilinear_interps; break;
+        case TextureOptions::InterpBicubic :  ++stats.cubic_interps;  break;
+        case TextureOptions::InterpSmartBicubic : ++stats.bilinear_interps; break;
     }
     return ok;
 }
@@ -669,11 +648,11 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
 
 bool
 TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
+                            PerThreadInfo *thread_info,
                             TextureOptions &options, int index,
                             VaryingRef<float> _s, VaryingRef<float> _t,
                             VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                             VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
-                            TileRef &tilecache0, TileRef &tilecache1,
                             float *result)
 {
     // N.B. If any computations within this function are identical for
@@ -759,19 +738,20 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
         ok &= (this->*accumer) (_s[index], _t[index], miplevel[level], texturefile,
-                          options, index, tilecache0, tilecache1,
+                          thread_info, options, index,
                           levelweight[level], result);
         ++npointson;
     }
 
     // Update stats
-    m_stat_aniso_queries += npointson;
-    m_stat_aniso_probes += npointson;
+    ImageCacheStatistics &stats (thread_info->m_stats);
+    stats.aniso_queries += npointson;
+    stats.aniso_probes += npointson;
     switch (options.interpmode) {
-        case TextureOptions::InterpClosest :  m_stat_closest_interps += npointson;  break;
-        case TextureOptions::InterpBilinear : m_stat_bilinear_interps += npointson; break;
-        case TextureOptions::InterpBicubic :  m_stat_cubic_interps += npointson;  break;
-        case TextureOptions::InterpSmartBicubic : m_stat_bilinear_interps += npointson; break;
+        case TextureOptions::InterpClosest :  stats.closest_interps += npointson;  break;
+        case TextureOptions::InterpBilinear : stats.bilinear_interps += npointson; break;
+        case TextureOptions::InterpBicubic :  stats.cubic_interps += npointson;  break;
+        case TextureOptions::InterpSmartBicubic : stats.bilinear_interps += npointson; break;
     }
     return ok;
 }
@@ -780,11 +760,11 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 
 bool
 TextureSystemImpl::texture_lookup (TextureFile &texturefile,
+                            PerThreadInfo *thread_info,
                             TextureOptions &options, int index,
                             VaryingRef<float> _s, VaryingRef<float> _t,
                             VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
                             VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
-                            TileRef &tilecache0, TileRef &tilecache1,
                             float *result)
 {
     // N.B. If any computations within this function are identical for
@@ -940,18 +920,19 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         for (int sample = 0;  sample < nsamples;  ++sample) {
             float pos = (sample + 0.5f) * invsamples - 0.5f;
             ok &= (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
-                                    options, index, tilecache0, tilecache1, w, result);
+                                    thread_info, options, index, w, result);
         }
     }
 
     // Update stats
-    m_stat_aniso_queries += npointson;
-    m_stat_aniso_probes += npointson * nsamples;
-    if (trueaspect > m_stat_max_aniso)
-        m_stat_max_aniso = trueaspect;   // FIXME?
-    m_stat_closest_interps += closestprobes * nsamples;
-    m_stat_bilinear_interps += bilinearprobes * nsamples;
-    m_stat_cubic_interps += bicubicprobes * nsamples;
+    ImageCacheStatistics &stats (thread_info->m_stats);
+    stats.aniso_queries += npointson;
+    stats.aniso_probes += npointson * nsamples;
+    if (trueaspect > stats.max_aniso)
+        stats.max_aniso = trueaspect;   // FIXME?
+    stats.closest_interps += closestprobes * nsamples;
+    stats.bilinear_interps += bilinearprobes * nsamples;
+    stats.cubic_interps += bicubicprobes * nsamples;
 
     return ok;
 }
@@ -961,8 +942,8 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
 bool
 TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
                                  TextureFile &texturefile,
+                                 PerThreadInfo *thread_info,
                                  TextureOptions &options, int index,
-                                 TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
     const ImageSpec &spec (texturefile.spec (miplevel));
@@ -989,17 +970,18 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     int tile_s = stex & tilewidthmask;
     int tile_t = ttex & tileheightmask;
     TileID id (texturefile, miplevel, stex - tile_s, ttex - tile_t, 0);
-    bool ok = find_tile (id, tilecache0, tilecache1);
+    bool ok = find_tile (id, thread_info);
     if (! ok)
         error ("%s", m_imagecache->geterror().c_str());
-    if (! tilecache0  ||  ! ok)
+    TileRef &tile (thread_info->tile);
+    if (! tile  ||  ! ok)
         return false;
     size_t channelsize = texturefile.channelsize();
     int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s) + options.firstchannel;
     DASSERT (offset < spec.tile_pixels());
     if (channelsize == 1) {
         // special case for 8-bit tiles
-        const unsigned char *texel = tilecache0->bytedata() + offset;
+        const unsigned char *texel = tile->bytedata() + offset;
         for (int c = 0;  c < options.actualchannels;  ++c)
             accum[c] += weight * uchar2float(texel[c]);
         if (options.alpha) {
@@ -1008,7 +990,7 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
         }
     } else {
         // General case for float tiles
-        const float *texel = tilecache0->data() + offset;
+        const float *texel = tile->data() + offset;
         for (int c = 0;  c < options.actualchannels;  ++c)
             accum[c] += weight * texel[c];
         if (options.alpha) {
@@ -1024,8 +1006,8 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
 bool
 TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                                  TextureFile &texturefile,
+                                 PerThreadInfo *thread_info,
                                  TextureOptions &options, int index,
-                                 TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
     const ImageSpec &spec (texturefile.spec (miplevel));
@@ -1066,7 +1048,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
     const unsigned char *texel[2][2];
-    TileRef tile[2][2];
+    TileRef savetile[2][2];
     static float black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
     int tile_s = stex[0] & tilewidthmask;
     int tile_t = ttex[0] & tileheightmask;
@@ -1081,10 +1063,11 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
         // Shortcut if all the texels we need are on the same tile
         TileID id (texturefile, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
-        bool ok = find_tile (id, tilecache0, tilecache1);
+        bool ok = find_tile (id, thread_info);
         if (! ok)
             error ("%s", m_imagecache->geterror().c_str());
-        if (! tilecache0->valid()) {
+        TileRef &tile (thread_info->tile);
+        if (! tile->valid()) {
 #if 0
             std::cerr << "found it\n";
             std::cerr << "\trequested " << miplevel << ' ' << id.x() << ' ' << id.y() << ", res is " << texturefile.spec(miplevel).width << ' ' << texturefile.spec(miplevel).height << "\n";
@@ -1098,12 +1081,12 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
             return false;
         }
         int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
-        texel[0][0] = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
+        texel[0][0] = tile->bytedata() + offset + channelsize * options.firstchannel;
         texel[0][1] = texel[0][0] + pixelsize;
         texel[1][0] = texel[0][0] + pixelsize * spec.tile_width;
         texel[1][1] = texel[1][0] + pixelsize;
     } else {
-        for (int j = 0, initialized = 0;  j < 2;  ++j) {
+        for (int j = 0;  j < 2;  ++j) {
             for (int i = 0;  i < 2;  ++i) {
                 if (! (svalid[i] && tvalid[j])) {
                     texel[j][i] = (unsigned char *)black;
@@ -1113,22 +1096,17 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                 tile_t = ttex[j] & tileheightmask;
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
-                bool ok = true;
-                if (0 && initialized)   // Why isn't it faster to do this?
-                    ok = find_tile_same_subimage (id, tilecache0, tilecache1);
-                else {
-                    ok = find_tile (id, tilecache0, tilecache1);
-                    initialized = true;
-                }
+                bool ok = find_tile (id, thread_info);
                 if (! ok)
                     error ("%s", m_imagecache->geterror().c_str());
-                if (! tilecache0->valid())
+                TileRef &tile (thread_info->tile);
+                if (! tile->valid())
                     return false;
-                tile[j][i] = tilecache0;
+                savetile[j][i] = tile;
                 int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
                 DASSERT (offset < spec.tile_bytes()*spec.nchannels);
-                texel[j][i] = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
-                DASSERT (tilecache0->id() == id);
+                texel[j][i] = tile->bytedata() + offset + channelsize * options.firstchannel;
+                DASSERT (tile->id() == id);
             }
         }
     }
@@ -1192,8 +1170,8 @@ static inline T evalBSpline (T p0, T p1, T p2, T p3, T t)
 bool
 TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  TextureFile &texturefile,
+                                 PerThreadInfo *thread_info,
                                  TextureOptions &options, int index,
-                                 TileRef &tilecache0, TileRef &tilecache1,
                                  float weight, float *accum)
 {
     const ImageSpec &spec (texturefile.spec (miplevel));
@@ -1239,7 +1217,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
 
     const unsigned char *texel[4][4] = { {NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL},
                                          {NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL} };
-    TileRef tile[4][4];
+    TileRef savetile[4][4];
     static float black[4] = { 0, 0, 0, 0 };
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
@@ -1260,20 +1238,21 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         // Shortcut if all the texels we need are on the same tile
         TileID id (texturefile, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
-        bool ok = find_tile (id, tilecache0, tilecache1);
+        bool ok = find_tile (id, thread_info);
         if (! ok)
             error ("%s", m_imagecache->geterror().c_str());
-        if (! tilecache0) {
+        TileRef &tile (thread_info->tile);
+        if (! tile) {
             return false;
         }
         int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
-        const unsigned char *base = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
-        DASSERT (tilecache0->data());
+        const unsigned char *base = tile->bytedata() + offset + channelsize * options.firstchannel;
+        DASSERT (tile->data());
         for (int j = 0;  j < 4;  ++j)
             for (int i = 0;  i < 4;  ++i)
                 texel[j][i] = base + pixelsize * (i + j*spec.tile_width);
     } else {
-        for (int j = 0, initialized = 0;  j < 4;  ++j) {
+        for (int j = 0;  j < 4;  ++j) {
             for (int i = 0;  i < 4;  ++i) {
                 if (! (svalid[i] && tvalid[j])) {
                     texel[j][i] = (unsigned char *) black;
@@ -1283,22 +1262,17 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                 tile_t = ttex[j] & tileheightmask;
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
-                bool ok = true;
-                if (0 && initialized)   // Why isn't it faster to do this?
-                    ok = find_tile_same_subimage (id, tilecache0, tilecache1);
-                else {
-                    ok = find_tile (id, tilecache0, tilecache1);
-                    initialized = true;
-                }
+                bool ok = find_tile (id, thread_info);
                 if (! ok)
                     error ("%s", m_imagecache->geterror().c_str());
-                if (! tilecache0->valid())
+                TileRef &tile (thread_info->tile);
+                if (! tile->valid())
                     return false;
-                tile[j][i] = tilecache0;
-                DASSERT (tilecache0->id() == id);
+                savetile[j][i] = tile;
+                DASSERT (tile->id() == id);
                 int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
-                DASSERT (tilecache0->data());
-                texel[j][i] = tilecache0->bytedata() + offset + channelsize * options.firstchannel;
+                DASSERT (tile->data());
+                texel[j][i] = tile->bytedata() + offset + channelsize * options.firstchannel;
             }
         }
     }

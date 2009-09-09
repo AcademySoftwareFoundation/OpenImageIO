@@ -122,6 +122,8 @@ void PrintVersion();
 //! Print extra TBB version information on stderr
 void PrintExtraVersionInfo( const char* category, const char* description );
 
+//! A callback routine to print RML version information on stderr
+void PrintRMLVersionInfo( void* arg, const char* server_info );
 
 } // namespace internal
 

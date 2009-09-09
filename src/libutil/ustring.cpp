@@ -38,6 +38,28 @@
 #include "ustring.h"
 
 
+#if 0
+// Use reader/writer locks
+typedef shared_mutex ustring_mutex_t;
+typedef shared_lock ustring_read_lock_t;
+typedef unique_lock ustring_write_lock_t;
+#elif 0
+// Use regular mutex
+typedef mutex ustring_mutex_t;
+typedef lock_guard ustring_read_lock_t;
+typedef lock_guard ustring_write_lock_t;
+#elif 1
+// Use spin locks
+typedef spin_mutex ustring_mutex_t;
+typedef spin_lock ustring_read_lock_t;
+typedef spin_lock ustring_write_lock_t;
+#else
+// Use null locks
+typedef null_mutex ustring_mutex_t;
+typedef null_lock<null_mutex> ustring_read_lock_t;
+typedef null_lock<null_mutex> ustring_write_lock_t;
+#endif
+
 
 #ifdef _WIN32
 typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash> UstringTable;
@@ -45,7 +67,7 @@ typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash> Ustrin
 typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
 #endif
 static UstringTable ustring_table;
-static spin_mutex ustring_mutex;
+static ustring_mutex_t ustring_mutex;
 
 std::string ustring::empty_std_string ("");
 
@@ -60,18 +82,46 @@ ustring::_make_unique (const char *str)
 
     // Check the ustring table to see if this string already exists.  If so,
     // construct from its canonical representation.
-    spin_lock guard(ustring_mutex);
-    UstringTable::const_iterator found = ustring_table.find (str);
-    if (found != ustring_table.end())
-        return found->second;
+    {
+        // Grab a read lock on the table.  Hopefully, the string will
+        // already be present, and we can immediately return its rep.
+        // Lots of threads may do this simultaneously, as long as they
+        // are all in the table.
+        ustring_read_lock_t read_lock (ustring_mutex);
+        UstringTable::const_iterator found = ustring_table.find (str);
+        if (found != ustring_table.end())
+           return found->second;
+    }
 
     // This string is not yet in the ustring table.  Create a new entry.
+    // Note that we are speculatively releasing the lock and building the
+    // string locally.  Then we'll lock again to put it in the table.
     size_t size = sizeof(ustring::TableRep)-1 + strlen(str) + 1;
     // N.B. that first "-1" is because we have chars[1], not chars[0]
     ustring::TableRep *rep = (ustring::TableRep *) malloc (size);
     new (rep) ustring::TableRep (str);
-    ustring_table[rep->c_str()] = rep;
-    return rep;
+
+    UstringTable::const_iterator found;
+    {
+        // Now grab a write lock on the table.  This will prevent other
+        // threads from even reading.  Just in case another thread has
+        // already entered this thread while we were unlocked and
+        // constructing its rep, check the table one more time.  If it's
+        // still empty, add it.
+        ustring_write_lock_t write_lock (ustring_mutex);
+        found = ustring_table.find (str);
+        if (found == ustring_table.end()) {
+            ustring_table[rep->c_str()] = rep;
+            return rep;
+        }
+    }
+    // Somebody else added this string to the table in that interval
+    // when we were unlocked and constructing the rep.  Don't use the
+    // new one!  Use the one in the table and disregard the one we
+    // speculatively built.  Note that we've already released the lock
+    // on the table at this point.
+    delete rep;
+    return found->second;
 }
 
 

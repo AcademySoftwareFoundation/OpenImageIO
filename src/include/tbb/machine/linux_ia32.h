@@ -37,8 +37,7 @@
 #define __TBB_WORDSIZE 4
 #define __TBB_BIG_ENDIAN 0
 
-#define __TBB_fence_for_acquire() __asm__ __volatile__("": : :"memory")
-#define __TBB_fence_for_release() __asm__ __volatile__("": : :"memory")
+#define __TBB_release_consistency_helper() __asm__ __volatile__("": : :"memory")
 
 inline void __TBB_rel_acq_fence() { __asm__ __volatile__("mfence": : :"memory"); }
 
@@ -249,22 +248,6 @@ inline void __TBB_machine_store_with_release(volatile T &location, V value) {
 #define __TBB_FetchAndIncrementWacquire(P) __TBB_FetchAndAddW(P,1)
 #define __TBB_FetchAndDecrementWrelease(P) __TBB_FetchAndAddW(P,-1)
 
-// Definition of Lock functions
+// Use generic definitions from tbb_machine.h
 #undef __TBB_TryLockByte
 #undef __TBB_LockByte
-
-#define __TBB_cpuid
-static inline void __TBB_x86_cpuid( int32_t buffer[4], int32_t mode ) {
-    // EBX register saved for compliancy with position-independent code (PIC) rules on IA32
-    __asm__ ("pushl %%ebx\n\t"
-             "cpuid\n\t"
-             "movl  %%ebx,%1\n\t"
-             "popl  %%ebx"
-                    : "=a"(buffer[0]),
-                      "=S"(buffer[1]),
-                      "=c"(buffer[2]),
-                      "=d"(buffer[3])
-                    : "0"(mode)
-                    : "memory" );
-}
-

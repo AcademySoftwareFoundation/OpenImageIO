@@ -35,8 +35,7 @@
 #define __TBB_WORDSIZE 8
 #define __TBB_BIG_ENDIAN 0
 
-#define __TBB_fence_for_acquire() __asm__ __volatile__("": : :"memory")
-#define __TBB_fence_for_release() __asm__ __volatile__("": : :"memory")
+#define __TBB_release_consistency_helper() __asm__ __volatile__("": : :"memory")
 
 inline void __TBB_rel_acq_fence() { __asm__ __volatile__("mfence": : :"memory"); }
 
@@ -133,16 +132,6 @@ static inline void __TBB_machine_pause( int32_t delay ) {
 #define __TBB_FetchAndIncrementWacquire(P) __TBB_FetchAndAddW(P,1)
 #define __TBB_FetchAndDecrementWrelease(P) __TBB_FetchAndAddW(P,-1)
 
-// Definition of Lock functions
+// Use generic definitions from tbb_machine.h
 #undef __TBB_TryLockByte
 #undef __TBB_LockByte
-
-#define __TBB_cpuid
-static inline void __TBB_x86_cpuid( int32_t buffer[4], int32_t mode ) {
-    // NOTE: gcc sometimes fails to compile the following asm.  But icc always succeeds.
-    __asm__ ("cpuid" : "=a"(buffer[0]),
-                       "=b"(buffer[1]),
-                       "=c"(buffer[2]),
-                       "=d"(buffer[3]) : "0"(mode) : "memory" );
-}
-

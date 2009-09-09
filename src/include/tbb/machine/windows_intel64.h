@@ -43,14 +43,12 @@
 #endif /* !defined(__INTEL_COMPILER) */
 
 #if defined(__INTEL_COMPILER)
-#define __TBB_fence_for_acquire() __asm { __asm nop }
-#define __TBB_fence_for_release() __asm { __asm nop }
+#define __TBB_release_consistency_helper() __asm { __asm nop }
 inline void __TBB_rel_acq_fence() { __asm { __asm mfence } }
 #elif _MSC_VER >= 1300
 extern "C" void _ReadWriteBarrier();
 #pragma intrinsic(_ReadWriteBarrier)
-#define __TBB_fence_for_acquire() _ReadWriteBarrier()
-#define __TBB_fence_for_release() _ReadWriteBarrier()
+#define __TBB_release_consistency_helper() _ReadWriteBarrier()
 #pragma intrinsic(_mm_mfence)
 inline void __TBB_rel_acq_fence() { _mm_mfence(); }
 #endif
@@ -129,26 +127,6 @@ extern "C" __declspec(dllimport) int __stdcall SwitchToThread( void );
 #define __TBB_Pause(V) __TBB_machine_pause(V)
 #define __TBB_Log2(V)    __TBB_machine_lg(V)
 
-#if !__INTEL_COMPILER
-extern "C" void __cpuid( int cpuinfo[4], int mode );
-#pragma intrinsic(__cpuid)
-#endif
-
-#define __TBB_cpuid
-inline void __TBB_x86_cpuid( __int32 buffer[4], __int32 mode ) {
-#if __INTEL_COMPILER
-    __asm
-    {
-        mov eax,mode
-        cpuid
-        mov rdi,buffer
-        mov [rdi+0],eax
-        mov [rdi+4],ebx
-        mov [rdi+8],ecx
-        mov [rdi+12],edx
-    }
-#else
-    __cpuid(buffer, mode);
-#endif
-}
-
+// Use generic definitions from tbb_machine.h
+#undef __TBB_TryLockByte
+#undef __TBB_LockByte

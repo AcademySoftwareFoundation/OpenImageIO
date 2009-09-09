@@ -81,5 +81,5 @@ inline int64_t __TBB_machine_cmpswp8 (volatile void *ptr, int64_t value, int64_t
 #define __TBB_CompareAndSwap4(P,V,C) __TBB_machine_cmpswp4(P,V,C)
 #define __TBB_CompareAndSwap8(P,V,C) __TBB_machine_cmpswp8(P,V,C)
 #define __TBB_Yield() sched_yield()
-#define __TBB_fence_for_acquire() __asm__ __volatile__("sync": : :"memory")
-#define __TBB_fence_for_release() __asm__ __volatile__("sync": : :"memory")
+#define __TBB_rel_acq_fence() __asm__ __volatile__("lwsync": : :"memory")
+#define __TBB_release_consistency_helper() __TBB_rel_acq_fence()

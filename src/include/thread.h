@@ -69,6 +69,7 @@
 #if USE_TBB
 #  include <tbb/atomic.h>
    using tbb::atomic;
+#  include <tbb/spin_mutex.h>
 #else
 #  if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
      // we're good to go with GCC intrinsics
@@ -112,6 +113,30 @@ public:
     null_lock (T &m) { }
 };
 
+
+// Null thread-specific ptr that just wraps a single ordinary pointer
+//
+template<typename T>
+class null_thread_specific_ptr {
+public:
+    typedef void (*destructor_t)(T *);
+    null_thread_specific_ptr (destructor_t dest=NULL)
+        : m_ptr(NULL), m_dest(dest) { }
+    ~null_thread_specific_ptr () { reset (NULL); }
+    T * get () { return m_ptr; }
+    void reset (T *newptr=NULL) {
+        if (m_ptr) {
+            if (m_dest)
+                (*m_dest) (m_ptr);
+            else
+                delete m_ptr;
+        }
+        m_ptr = newptr;
+    }
+private:
+    T *m_ptr;
+    destructor_t m_dest;
+};
 
 
 #ifdef NOTHREADS
@@ -363,18 +388,36 @@ private:
 
 #endif /* ! USE_TBB */
 
+
 #ifdef NOTHREADS
 
 typedef int atomic_int;
 typedef long long atomic_ll;
 
-typedef null_mutex spin_mutex;
-typedef null_lock<spin_mutex> spin_lock;
-
 #else
 
 typedef atomic<int> atomic_int;
 typedef atomic<long long> atomic_ll;
+
+#endif
+
+
+
+#ifdef NOTHREADS
+
+typedef null_mutex spin_mutex;
+typedef null_lock<spin_mutex> spin_lock;
+
+#elif defined(USE_TBB)
+
+// Use TBB's spin locks
+typedef tbb::spin_mutex spin_mutex;
+typedef tbb::spin_mutex::scoped_lock spin_lock;
+
+
+#else
+
+// Define our own spin locks.  Do we trust them?
 
 
 
