@@ -668,12 +668,20 @@ public:
 
     void erase_perthread_info () {
         lock_guard lock (m_perthread_info_mutex);
-        for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
+        for (size_t i = 0;  i < m_all_perthread_info.size();  ++i) {
+            delete m_all_perthread_info[i];
             m_all_perthread_info[i] = NULL;
+        }
     }
 
     static void cleanup_perthread_info (ImageCachePerThreadInfo *p) {
-        delete p;
+        // This is called when the thread terminates.  DO NOT delete the
+        // perthread struct, it may still be needed for stats.  DO clear
+        // the tile cache so we aren't hanging onto tiles unnecessarily.
+        if (p) {
+            p->tile = NULL;
+            p->lasttile = NULL;
+        }
     }
 
 private:
