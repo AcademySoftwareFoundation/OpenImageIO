@@ -81,5 +81,6 @@ BOOST_AUTO_TEST_CASE (test_atomic_int)
     }
     std::cout << "Created " << threads.size() << " threads\n";
     threads.join_all ();
-    BOOST_CHECK_EQUAL ((int)accum, (int)(numthreads * iterations));
+    int a = (int) accum;
+    BOOST_CHECK_EQUAL (a, (int)(numthreads * iterations));
 }
