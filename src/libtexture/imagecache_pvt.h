@@ -669,7 +669,12 @@ public:
     void erase_perthread_info () {
         lock_guard lock (m_perthread_info_mutex);
         for (size_t i = 0;  i < m_all_perthread_info.size();  ++i) {
-            delete m_all_perthread_info[i];
+            // printf ("Erase perthread %p\n", (void *)m_all_perthread_info[i]);
+            // Let it leak!  delete m_all_perthread_info[i];
+            // I'm not thrilled that we're leaking a couple hundred bytes
+            // per thread, but I can't seem to guarantee that the threads
+            // will die before the IC is destroyed, or the other way around.
+            // So nobody knows when it's safe to actually delete.
             m_all_perthread_info[i] = NULL;
         }
     }
@@ -678,6 +683,7 @@ public:
         // This is called when the thread terminates.  DO NOT delete the
         // perthread struct, it may still be needed for stats.  DO clear
         // the tile cache so we aren't hanging onto tiles unnecessarily.
+        // printf ("cleanup perthread %p\n", (void *)p);
         if (p) {
             p->tile = NULL;
             p->lasttile = NULL;
