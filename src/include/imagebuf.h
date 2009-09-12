@@ -581,18 +581,6 @@ protected:
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
 
-    // An ImageBuf can be in one of several states:
-    //   * Uninitialized
-    //         (m_name.empty())
-    //   * Broken -- couldn't ever open the file
-    //         (m_badfile == true)
-    //   * Non-resident, ignorant -- know the name, nothing else
-    //         (! m_name.empty() && ! m_badfile && ! m_spec_valid)
-    //   * Non-resident, know spec, but the spec is valid
-    //         (m_spec_valid && ! m_pixels)
-    //   * Pixels loaded from disk, currently accurate
-    //         (m_pixels && m_pixels_valid)
-
     void realloc ();
 
     // Return the address where pixel (x,y) is stored in the image buffer.
