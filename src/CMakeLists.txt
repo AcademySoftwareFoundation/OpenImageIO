@@ -112,7 +112,7 @@ endmacro ()
 
 # List all the individual testsuite tests here, except those that need
 # special installed tests.
-TESTSUITE ( ico gpsread )
+TESTSUITE ( ico gpsread texture-grid )
 
 if (EXISTS "${PROJECT_SOURCE_DIR}/../../libtiffpic")
     TESTSUITE ( tiff-suite tiff-depths )
