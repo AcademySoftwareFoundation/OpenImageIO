@@ -62,7 +62,7 @@ public:
 
     /// Define copy constructor to NOT COPY reference counts! Copying a
     /// struct doesn't change how many other things point to it.
-    RefCnt (RefCnt &r) { }
+    RefCnt (RefCnt &r) { m_refcnt = 0; }
 
     /// Add a reference
     ///
@@ -72,7 +72,7 @@ public:
     ///
     bool _decref () const { return (--m_refcnt) == 0; }
 
-    /// Define operator= to NOT COPY reference counts!  Copying a struct
+    /// Define operator= to NOT COPY reference counts!  Assigning a struct
     /// doesn't change how many other things point to it.
     const RefCnt & operator= (const RefCnt& r) const { return *this; }
 
@@ -82,18 +82,16 @@ private:
 
 
 
-/// Generic implementation of intrusive_ptr_add_ref, which is needed for
+/// Implementation of intrusive_ptr_add_ref, which is needed for
 /// any class that you use with Boost's intrusive_ptr.
-template<class T>
-inline void intrusive_ptr_add_ref (T *x)
+inline void intrusive_ptr_add_ref (RefCnt *x)
 {
     x->_incref ();
 }
 
-/// Generic implementation of intrusive_ptr_release, which is needed for
+/// Implementation of intrusive_ptr_release, which is needed for
 /// any class that you use with Boost's intrusive_ptr.
-template<class T>
-inline void intrusive_ptr_release (T *x)
+inline void intrusive_ptr_release (RefCnt *x)
 {
     if (x->_decref ())
         delete x;
