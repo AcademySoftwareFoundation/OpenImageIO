@@ -871,6 +871,10 @@ ImageCacheTile::data (int x, int y, int z) const
 
 
 
+mutex ImageCacheImpl::m_perthread_info_mutex;
+
+
+
 ImageCacheImpl::ImageCacheImpl ()
     : m_perthread_info (&cleanup_perthread_info),
       m_file_sweep(m_files.end()),
@@ -1650,6 +1654,73 @@ ImageCacheImpl::invalidate_all (bool force)
     for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
         if (m_all_perthread_info[i])
             m_all_perthread_info[i]->purge = 1;
+}
+
+
+
+ImageCachePerThreadInfo *
+ImageCacheImpl::get_perthread_info ()
+{
+    ImageCachePerThreadInfo *p = m_perthread_info.get();
+    if (! p) {
+        p = new ImageCachePerThreadInfo;
+        m_perthread_info.reset (p);
+        // printf ("New perthread %p\n", (void *)p);
+        lock_guard lock (m_perthread_info_mutex);
+        m_all_perthread_info.push_back (p);
+        p->shared = true;  // both the IC and the thread point to it
+    }
+    if (p->purge) {  // has somebody requested a tile purge?
+        // This is safe, because it's our thread.
+        lock_guard lock (m_perthread_info_mutex);
+        p->tile = NULL;
+        p->lasttile = NULL;
+        p->purge = 0;
+    }
+    return p;
+}
+
+
+
+void
+ImageCacheImpl::erase_perthread_info ()
+{
+    lock_guard lock (m_perthread_info_mutex);
+    for (size_t i = 0;  i < m_all_perthread_info.size();  ++i) {
+        ImageCachePerThreadInfo *p = m_all_perthread_info[i];
+        if (p) {
+            // Clear the microcache.
+            p->tile = NULL;
+            p->lasttile = NULL;
+            if (p->shared) {
+                // Pointed to by both thread-specific-ptr and our list.
+                // Just remove from out list, then ownership is only
+                // by the thread-specific-ptr.
+                p->shared = false;
+            } else {
+                // Only pointed to by us -- delete it!
+                delete p;
+            }
+            m_all_perthread_info[i] = NULL;
+        }
+    }
+}
+
+
+
+void
+ImageCacheImpl::cleanup_perthread_info (ImageCachePerThreadInfo *p)
+{
+    lock_guard lock (m_perthread_info_mutex);
+    if (p) {
+        // Clear the microcache.
+        p->tile = NULL;
+        p->lasttile = NULL;
+        if (! p->shared)  // If we own it, delete it
+            delete p;
+        else
+            p->shared = false;  // thread disappearing, no longer shared
+    }
 }
 
 

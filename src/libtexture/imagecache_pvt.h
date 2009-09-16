@@ -419,9 +419,10 @@ struct ImageCachePerThreadInfo {
     ImageCacheTileRef tile, lasttile;
     atomic_int purge;   // If set, tile ptrs need purging!
     ImageCacheStatistics m_stats;
+    bool shared;   // Pointed to both by the IC and the thread_specific_ptr
 
     ImageCachePerThreadInfo ()
-        : next_last_file(0)
+        : next_last_file(0), shared(false)
     {
         for (int i = 0;  i < nlastfile;  ++i)
             last_file[i] = NULL;
@@ -648,47 +649,20 @@ public:
 
     /// Get a pointer to the caller's thread's per-thread info, or create
     /// one in the first place if there isn't one already.
-    ImageCachePerThreadInfo *get_perthread_info () {
-        ImageCachePerThreadInfo *p = m_perthread_info.get();
-        if (! p) {
-            p = new ImageCachePerThreadInfo;
-            m_perthread_info.reset (p);
-            // printf ("New perthread %p\n", (void *)p);
-            lock_guard lock (m_perthread_info_mutex);
-            m_all_perthread_info.push_back (p);
-        }
-        if (p->purge) {  // has somebody requested a tile purge?
-            // This is safe, because it's our thread.
-            p->tile = NULL;
-            p->lasttile = NULL;
-            p->purge = 0;
-        }
-        return p;
-    }
+    ImageCachePerThreadInfo *get_perthread_info ();
 
-    void erase_perthread_info () {
-        lock_guard lock (m_perthread_info_mutex);
-        for (size_t i = 0;  i < m_all_perthread_info.size();  ++i) {
-            // printf ("Erase perthread %p\n", (void *)m_all_perthread_info[i]);
-            // Let it leak!  delete m_all_perthread_info[i];
-            // I'm not thrilled that we're leaking a couple hundred bytes
-            // per thread, but I can't seem to guarantee that the threads
-            // will die before the IC is destroyed, or the other way around.
-            // So nobody knows when it's safe to actually delete.
-            m_all_perthread_info[i] = NULL;
-        }
-    }
+    /// Called when the IC is destroyed.  We have a list of all the 
+    /// perthread pointers -- go through and delete the ones for which we
+    /// hold the only remaining pointer.
+    void erase_perthread_info ();
 
-    static void cleanup_perthread_info (ImageCachePerThreadInfo *p) {
-        // This is called when the thread terminates.  DO NOT delete the
-        // perthread struct, it may still be needed for stats.  DO clear
-        // the tile cache so we aren't hanging onto tiles unnecessarily.
-        // printf ("cleanup perthread %p\n", (void *)p);
-        if (p) {
-            p->tile = NULL;
-            p->lasttile = NULL;
-        }
-    }
+    /// This is called when the thread terminates.  If p->m_imagecache
+    /// is non-NULL, there's still an imagecache alive that might want
+    /// the per-thread info (say, for statistics, though it's safe to
+    /// clear its tile microcache), so don't delete the perthread info
+    /// (it will be owned thereafter by the IC).  If there is no IC still
+    /// depending on it (signalled by m_imagecache == NULL), delete it.
+    static void cleanup_perthread_info (ImageCachePerThreadInfo *p);
 
 private:
     void init ();
@@ -711,7 +685,7 @@ private:
 
     thread_specific_ptr< ImageCachePerThreadInfo > m_perthread_info;
     std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
-    mutable mutex m_perthread_info_mutex; ///< Thread safety for perthread
+    static mutex m_perthread_info_mutex; ///< Thread safety for perthread
     int m_max_open_files;
     float m_max_memory_MB;
     size_t m_max_memory_bytes;
