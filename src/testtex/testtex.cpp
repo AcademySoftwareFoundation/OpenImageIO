@@ -61,6 +61,7 @@ static bool automip = false;
 static TextureSystem *texsys = NULL;
 static std::string searchpath;
 static int blocksize = 1;
+static bool nowarp = false;
 
 
 
@@ -94,6 +95,7 @@ getargs (int argc, const char *argv[])
                   "--automip", &automip, "Set auto-MIPmap for the image cache",
                   "--blocksize %d", &blocksize, "Set blocksize (n x n) for batches",
                   "--searchpath %s", &searchpath, "Search path for files",
+                  "--nowarp", &nowarp, "Do not warp the image->texture mapping",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -218,21 +220,30 @@ test_plain_texture (ustring filename)
                 for (int y = by; y < by+blocksize; ++y) {
                     for (int x = bx; x < bx+blocksize; ++x) {
                         if (x < output_xres && y < output_yres) {
-                            Imath::V3f coord = warp ((float)x/output_xres,
-                                                     (float)y/output_yres,
-                                                     xform);
-                            Imath::V3f coordx = warp ((float)(x+1)/output_xres,
-                                                      (float)y/output_yres,
-                                                      xform);
-                            Imath::V3f coordy = warp ((float)x/output_xres,
-                                                      (float)(y+1)/output_yres,
-                                                      xform);
-                            s[idx] = coord[0];
-                            t[idx] = coord[1];
-                            dsdx[idx] = coordx[0] - coord[0];
-                            dtdx[idx] = coordx[1] - coord[1];
-                            dsdy[idx] = coordy[0] - coord[0];
-                            dtdy[idx] = coordy[1] - coord[1];
+                            if (nowarp) {
+                                s[idx] = (float)x/output_xres;
+                                t[idx] = (float)y/output_yres;
+                                dsdx[idx] = 1.0f/output_xres;
+                                dtdx[idx] = 0;
+                                dsdy[idx] = 0;
+                                dtdy[idx] = 1.0f/output_yres;
+                            } else {
+                                Imath::V3f coord = warp ((float)x/output_xres,
+                                                         (float)y/output_yres,
+                                                         xform);
+                                Imath::V3f coordx = warp ((float)(x+1)/output_xres,
+                                                          (float)y/output_yres,
+                                                          xform);
+                                Imath::V3f coordy = warp ((float)x/output_xres,
+                                                          (float)(y+1)/output_yres,
+                                                          xform);
+                                s[idx] = coord[0];
+                                t[idx] = coord[1];
+                                dsdx[idx] = coordx[0] - coord[0];
+                                dtdx[idx] = coordx[1] - coord[1];
+                                dsdy[idx] = coordy[0] - coord[0];
+                                dtdy[idx] = coordy[1] - coord[1];
+                            }
                             runflags[idx] = RunFlagOn;
                         } else {
                             runflags[idx] = RunFlagOff;
