@@ -1,0 +1,7 @@
+This test verifies that the texture system is choosing the right mip
+levels.  It uses a special texture, miplevels.tx, that uses color codes
+for each mip level, and renders a 256x256 image where the texture
+coordinates are exactly aligned to the pixel grid.  In miplevels, the
+256x256 level is pure green, the 512x512 level is red, the 128x128 is
+blue.  So of course we expect the output of this test to be pure green
+(except for the text "256" in the center).
