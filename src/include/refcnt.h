@@ -84,18 +84,28 @@ private:
 
 /// Implementation of intrusive_ptr_add_ref, which is needed for
 /// any class that you use with Boost's intrusive_ptr.
-inline void intrusive_ptr_add_ref (RefCnt *x)
+template <class T>
+inline void intrusive_ptr_add_ref (T *x)
 {
     x->_incref ();
 }
 
 /// Implementation of intrusive_ptr_release, which is needed for
 /// any class that you use with Boost's intrusive_ptr.
-inline void intrusive_ptr_release (RefCnt *x)
+template <class T>
+inline void intrusive_ptr_release (T *x)
 {
     if (x->_decref ())
         delete x;
 }
+
+// Note that intrusive_ptr_add_ref and intrusive_ptr_release MUST be a
+// templated on the full type, so that they pass the right address to
+// 'delete' and destroy the right type.  If you try to just 
+// 'inline void intrusive_ptr_release (RefCnt *x)', that might seem 
+// clever, but it will end up getting the address of (and destroying)
+// just the inherited RefCnt sub-object, not the full subclass you
+// meant to delete and destroy.
 
 
 #ifdef OPENIMAGEIO_NAMESPACE
