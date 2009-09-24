@@ -136,7 +136,7 @@ public:
     /// (if step == 0 or no step is provided), or of a varying set of
     /// values beginning with ptr and with successive values every 'step'
     /// bytes.
-    VaryingRef (T *ptr, int step=0) { init (ptr,step); }
+    VaryingRef (void *ptr, int step=0) { init ((T *)ptr,step); }
 
     /// Construct a uniform VaryingRef from a single value.
     ///
