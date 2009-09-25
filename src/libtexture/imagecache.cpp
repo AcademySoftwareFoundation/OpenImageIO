@@ -202,7 +202,8 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
-      m_mipused(false), m_imagecache(imagecache), m_duplicate(NULL)
+      m_mipused(false), m_validspec(false), 
+      m_imagecache(imagecache), m_duplicate(NULL)
 {
     m_spec.clear ();
     m_filename = imagecache.resolve_filename (m_filename.string());
@@ -253,6 +254,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     }
 
     ImageSpec tempspec;
+    m_broken = false;
     if (! m_input->open (m_filename.c_str(), tempspec)) {
         imagecache().error ("%s", m_input->geterror().c_str());
         m_broken = true;
@@ -267,12 +269,16 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     // If m_spec has already been filled out, we've opened this file
     // before, read the spec, and filled in all the fields.  So now that
     // we've re-opened it, we're done.
-    if (m_spec.size())
+    if (m_spec.size() && m_validspec)
         return true;
 
     // From here on, we know that we've opened this file for the very
     // first time.  So read all the subimages, fill out all the fields
     // of the ImageCacheFile.
+    m_untiled = false;
+    m_unmipped = false;
+    m_validspec = true;
+    m_spec.clear ();
     m_spec.reserve (16);
     int nsubimages = 0;
     do {
@@ -669,6 +675,9 @@ ImageCacheFile::invalidate ()
     m_fingerprint.clear ();
     duplicate (NULL);
     open (imagecache().get_perthread_info());  // Force reload of spec
+    close ();
+    m_validspec = false;  // force it to read next time
+    m_broken = false;
 }
 
 
@@ -1629,6 +1638,8 @@ ImageCacheImpl::invalidate_all (bool force)
         for (FilenameMap::iterator fileit = m_files.begin();
                  fileit != m_files.end();  ++fileit) {
             ustring name = fileit->second->filename();
+            recursive_lock_guard guard (fileit->second->m_input_mutex);
+            fileit->second->close ();
             if (fileit->second->broken()) {
                 all_files.push_back (name);
                 continue;
@@ -1771,6 +1782,9 @@ ImageCache::create (bool shared)
         lock_guard guard (shared_image_cache_mutex);
         if (! shared_image_cache.get())
             shared_image_cache.reset (new ImageCacheImpl);
+        else
+            shared_image_cache->invalidate_all ();
+
 #ifdef DEBUG
         std::cerr << " shared ImageCache is "
                   << (void *)shared_image_cache.get() << "\n";
@@ -1798,8 +1812,13 @@ ImageCache::destroy (ImageCache *x)
     // is itself a shared_ptr, when the process ends it will properly
     // destroy the shared cache.
     lock_guard guard (shared_image_cache_mutex);
-    if (x != shared_image_cache.get())
+    if (x == shared_image_cache.get()) {
+        // Don't destroy the shared cache, but do invalidate and close the files.
+        ((ImageCacheImpl *)x)->invalidate_all ();
+    } else {
+        // Not a shared cache, we are the only owner, so truly destroy it.
         delete (ImageCacheImpl *) x;
+    }
 }
 
 
