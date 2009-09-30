@@ -62,6 +62,7 @@ static TextureSystem *texsys = NULL;
 static std::string searchpath;
 static int blocksize = 1;
 static bool nowarp = false;
+static float cachesize = -1;
 
 
 
@@ -96,6 +97,7 @@ getargs (int argc, const char *argv[])
                   "--blocksize %d", &blocksize, "Set blocksize (n x n) for batches",
                   "--searchpath %s", &searchpath, "Search path for files",
                   "--nowarp", &nowarp, "Do not warp the image->texture mapping",
+                  "--cachesize %g", &cachesize, "Set cache size, in MB",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -336,6 +338,8 @@ main (int argc, const char *argv[])
     texsys->attribute ("statistics:level", 2);
     texsys->attribute ("autotile", autotile);
     texsys->attribute ("automip", (int)automip);
+    if (cachesize >= 0)
+        texsys->attribute ("max_memory_MB", cachesize);
     if (searchpath.length())
         texsys->attribute ("searchpath", searchpath);
 

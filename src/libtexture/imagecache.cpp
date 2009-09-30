@@ -1155,12 +1155,22 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
     }
     if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
         float size = *(const float *)val;
+#ifndef DEBUG
+        size = std::max (size, 10.0f);  // Don't let users choose < 10 MB
+#else
+        size = std::max (size, 1.0f);   // But let developers debugging do it
+#endif
         m_max_memory_MB = size;
         m_max_memory_bytes = (int)(size * 1024 * 1024);
         return true;
     }
     if (name == "max_memory_MB" && type == TypeDesc::INT) {
         float size = *(const int *)val;
+#ifndef DEBUG
+        size = std::max (size, 10.0f);  // Don't let users choose < 10 MB
+#else
+        size = std::max (size, 1.0f);   // But let developers debugging do it
+#endif
         m_max_memory_MB = size;
         m_max_memory_bytes = (int)(size * 1024 * 1024);
         return true;
