@@ -205,18 +205,18 @@ encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc)
     
     const ImageIOParameter *p;
     for (int i = 0;  iimtag[i].name;  ++i) {
-        if (p = spec.find_attribute (iimtag[i].name))
+        if ((p = spec.find_attribute (iimtag[i].name)))
             encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].name,
                                      p->type(), p->data(), iptc);
         if (iimtag[i].anothername) {
-            if (p = spec.find_attribute (iimtag[i].anothername))
+            if ((p = spec.find_attribute (iimtag[i].anothername)))
                 encode_iptc_iim_one_tag (iimtag[i].tag, iimtag[i].anothername,
                                          p->type(), p->data(), iptc);
         }
     }
 
     // Special case: Keywords
-    if (p = spec.find_attribute ("Keywords", TypeDesc::STRING)) {
+    if ((p = spec.find_attribute ("Keywords", TypeDesc::STRING))) {
         std::string allkeywords (*(const char **)p->data());
         typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
         boost::char_separator<char> sep(";");

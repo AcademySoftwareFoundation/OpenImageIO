@@ -61,10 +61,11 @@ IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
     : QGLWidget(parent), m_viewer(viewer), 
       m_shaders_created(false), m_tex_created(false),
       m_zoom(1.0), m_centerx(0), m_centery(0), m_dragging(false),
-      m_use_shaders(false), m_use_halffloat(false), m_use_float(false),
-      m_use_srgb(false), m_texture_height(1), m_texture_width(1),
-      m_shaders_using_extensions(false), m_current_image(NULL), 
-      m_last_texbuf_used(0), m_use_pbo(false), m_last_pbo_used(0)
+      m_use_shaders(false), m_shaders_using_extensions(false), 
+      m_use_halffloat(false), m_use_float(false),
+      m_use_srgb(false), m_use_pbo(false), 
+      m_texture_width(1), m_texture_height(1), m_last_pbo_used(0), 
+      m_current_image(NULL), m_last_texbuf_used(0)
 {
 #if 0
     QGLFormat format;
@@ -886,8 +887,6 @@ IvGL::useshader (int tex_width, int tex_height, bool pixelview)
     }
 
     const ImageSpec &spec (img->spec());
-
-    int nchannels = num_channels(m_viewer.current_channel(), spec.nchannels, m_viewer.current_color_mode());
 
     gl_use_program (m_shader_program);
     GLERRPRINT ("After use program");

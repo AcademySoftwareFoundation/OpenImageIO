@@ -51,9 +51,9 @@ using namespace OpenImageIO;
 
 ImageViewer::ImageViewer ()
     : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
-      m_current_image(-1), m_current_channel(0), m_last_image(-1),
-      m_zoom(1), m_fullscreen(false), m_default_gamma(1),
-      m_darkPalette(false), m_color_mode(RGBA)
+      m_current_image(-1), m_current_channel(0), m_color_mode(RGBA),
+      m_last_image(-1), m_zoom(1), m_fullscreen(false), m_default_gamma(1),
+      m_darkPalette(false)
 {
     readSettings (false);
 

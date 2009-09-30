@@ -344,7 +344,6 @@ TEST_F (ImageBufTest, ImageBuf_add)
     const int WIDTH = 8;
     const int HEIGHT = 8;
     const int CHANNELS = 4;
-    float pixel[CHANNELS];   // test pixel
     ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     spec.alpha_channel = 3;
 

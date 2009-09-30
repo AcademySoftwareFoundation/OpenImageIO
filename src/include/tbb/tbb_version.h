@@ -36,7 +36,6 @@
 //#include "version_string.tmp"
 
 #ifndef __TBB_VERSION_STRINGS
-#pragma message("Warning: version_string.tmp isn't generated properly by version_info.sh script!")
 // here is an example of macros value:
 #define __TBB_VERSION_STRINGS \
 "TBB: BUILD_HOST\tUnknown\n" \

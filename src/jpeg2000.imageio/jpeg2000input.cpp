@@ -180,7 +180,7 @@ Jpeg2000Input::close (void)
         jas_stream_close (m_stream);
     if (m_image)
         jas_image_destroy (m_image);
-    for (int i = 0; i < m_matrix_chan.size (); ++i) {
+    for (size_t i = 0; i < m_matrix_chan.size (); ++i) {
         if (m_matrix_chan[i])
             jas_matrix_destroy (m_matrix_chan[i]);
     }

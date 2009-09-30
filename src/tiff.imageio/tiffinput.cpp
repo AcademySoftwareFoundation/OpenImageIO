@@ -626,8 +626,8 @@ void
 TIFFInput::palette_to_rgb (int n, const unsigned char *palettepels,
                            unsigned char *rgb)
 {
-    int vals_per_byte = 8 / m_bitspersample;
-    int entries = 1 << m_bitspersample;
+    size_t vals_per_byte = 8 / m_bitspersample;
+    size_t entries = 1 << m_bitspersample;
     int highest = entries-1;
     DASSERT (m_spec.nchannels == 3);
     DASSERT (m_colormap.size() == 3*entries);
@@ -775,7 +775,7 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
     } else if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
         int plane_bytes = tile_pixels * m_spec.format.size();
-        DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
+        DASSERT ((size_t)plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
         m_scratch.resize (m_spec.tile_bytes());
         for (int c = 0;  c < m_spec.nchannels;  ++c)
             if (TIFFReadTile (m_tif, &m_scratch[plane_bytes*c], x, y, z, c) < 0) {

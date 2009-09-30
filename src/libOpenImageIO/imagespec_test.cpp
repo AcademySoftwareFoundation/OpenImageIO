@@ -89,7 +89,7 @@ TEST_F (ImageSpecTest, image_pixels) {
     std::cout << "sizeof (stride_t) = " << sizeof (stride_t) << std::endl;
     std::cout << "sizeof (float) = " << sizeof (float) << std::endl;
 
-    EXPECT_EQ (BYTES_IN_FLOAT, sizeof (float));
+    EXPECT_EQ ((size_t)BYTES_IN_FLOAT, sizeof (float));
     EXPECT_EQ (CHANNELS, spec.nchannels);
     EXPECT_EQ (WIDTH, spec.width);
     EXPECT_EQ (HEIGHT, spec.height);
@@ -99,10 +99,10 @@ TEST_F (ImageSpecTest, image_pixels) {
     EXPECT_EQ (1, spec.full_depth);
     // FIXME(nemec): uncomment after figuring out linking
     //   EXPECT_EQ (TypeDesc::UINT8, spec.format);
-    EXPECT_EQ (BYTES_IN_FLOAT, spec.channel_bytes ());
-    EXPECT_EQ (BYTES_IN_FLOAT*CHANNELS, spec.pixel_bytes ());
-    EXPECT_EQ (BYTES_IN_FLOAT*CHANNELS*WIDTH, spec.scanline_bytes ());
-    EXPECT_EQ (WIDTH*HEIGHT, spec.image_pixels ());
+    EXPECT_EQ ((size_t)BYTES_IN_FLOAT, spec.channel_bytes ());
+    EXPECT_EQ ((size_t)(BYTES_IN_FLOAT*CHANNELS), spec.pixel_bytes ());
+    EXPECT_EQ ((size_t)(BYTES_IN_FLOAT*CHANNELS*WIDTH), spec.scanline_bytes ());
+    EXPECT_EQ ((size_t)(WIDTH*HEIGHT), spec.image_pixels ());
 
     // check that the magnitude is right (not clamped) -- should be about > 2^40
     long long expected_bytes = BYTES_IN_FLOAT*CHANNELS*WIDTH*HEIGHT;
@@ -111,7 +111,7 @@ TEST_F (ImageSpecTest, image_pixels) {
     // log (2^32) * M_LOG2E = 32
     double log2_result = log ((double)expected_bytes) * M_LOG2E;
     EXPECT_LT (40, log2_result);
-    EXPECT_EQ (expected_bytes, spec.image_bytes ());
+    EXPECT_EQ ((size_t)expected_bytes, spec.image_bytes ());
 
     std::cout << "expected_bytes = " << expected_bytes << ", log "
               << log ((double)expected_bytes) << std::endl;

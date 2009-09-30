@@ -432,7 +432,7 @@ public:
 
     private:
         ImageBuf *m_ib;
-        int m_xbegin, m_xend, m_ybegin, m_yend;
+        int m_xbegin, m_ybegin, m_xend, m_yend;
         int m_x, m_y;
         DataArrayProxy<BUFT,USERT> m_proxy;
         ImageCache::Tile *m_tile;

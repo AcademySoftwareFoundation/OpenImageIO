@@ -374,7 +374,7 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
                         unsigned char *palette, int& bytespp,
                         int& palbytespp, int& alphabits)
 {
-    unsigned int k;
+    unsigned int k = 0;
     // I hate nested switches...
     switch (m_tga.type) {
     case TYPE_PALETTED:
@@ -523,7 +523,7 @@ TGAInput::readimg ()
     } else {
         // Run Length Encoded image
         unsigned char in[5];
-        int packet_size, k;
+        int packet_size;
         for (int y = m_spec.height - 1; y >= 0; y--) {
             for (int x = 0; x < m_spec.width; x++) {
                 fread (in, 1 + bytespp, 1, m_file);

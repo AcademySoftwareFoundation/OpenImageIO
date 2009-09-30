@@ -330,8 +330,8 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
         // b is the pixel size in bytes
         // FIXME: optimize runs spanning across multiple scanlines?
         unsigned char buf2[4];
-        bool rlp;
-        int rlcount, rawcount;
+        bool rlp = false;
+        int rlcount = 0, rawcount = 0;
 
         for (int x = 0; x < m_spec.width; x++) {
             // save off previous pixel

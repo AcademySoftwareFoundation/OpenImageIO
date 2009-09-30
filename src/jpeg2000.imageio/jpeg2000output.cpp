@@ -182,14 +182,14 @@ Jpeg2000Output::write_scanline (int y, int z, TypeDesc format,
         // before we save data to file we have to information about
         // component to jas_matrix_t structure (m_scanline) and then
         // write it to the jas_image_t structure (m_image)
-        for (int i = 0; i < m_scanline_size; ++i)
+        for (size_t i = 0; i < m_scanline_size; ++i)
             jas_matrix_set (m_scanline[GREY], 0, i, m_pixels[i]);
         jas_image_writecmpt (m_image, 0, 0, y, m_spec.width, 1, m_scanline[GREY]);
     }
     else if (m_spec.nchannels >= 3) {
         if (!m_scanline[RED] || !m_scanline[GREEN] || !m_scanline[BLUE])
             return false;
-        for (int i = 0, pos=0; i < m_scanline_size; i+=m_spec.nchannels) {
+        for (int i = 0, pos=0; i < (int)m_scanline_size; i+=m_spec.nchannels) {
             jas_matrix_set (m_scanline[RED], 0, pos, m_pixels[i]);
             jas_matrix_set (m_scanline[GREEN], 0, pos, m_pixels[i+1]);
             jas_matrix_set (m_scanline[BLUE], 0, pos, m_pixels[i+2]);
@@ -230,7 +230,7 @@ Jpeg2000Output::close ()
         jas_stream_close(m_stream);
     if (m_image)
         jas_image_destroy (m_image);
-    for (int i = 0; i < m_scanline.size (); ++i) {
+    for (size_t i = 0; i < m_scanline.size (); ++i) {
         if (m_scanline[i])
           jas_matrix_destroy (m_scanline[i]);
     }

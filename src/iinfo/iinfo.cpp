@@ -193,8 +193,8 @@ print_info (const std::string &filename, size_t namefieldlength,
                 if (filenameprefix)
                     printf ("%s : ", filename.c_str());
                 printf ("    channel list: ");
-                for (size_t i = 0;  i < spec.nchannels;  ++i) {
-                    if (i < spec.channelnames.size())
+                for (int i = 0;  i < spec.nchannels;  ++i) {
+                    if (i < (int)spec.channelnames.size())
                         printf ("%s%s", spec.channelnames[i].c_str(),
                                 (i == spec.nchannels-1) ? "" : ", ");
                 }

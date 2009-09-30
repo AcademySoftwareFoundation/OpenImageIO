@@ -159,65 +159,6 @@ getargs (int argc, char *argv[])
 
 
 static bool
-DateTime_to_time_t (const char *datetime, time_t &timet)
-{
-    int year, month, day, hour, min, sec;
-    int r = sscanf (datetime, "%d:%d:%d %d:%d:%d",
-                    &year, &month, &day, &hour, &min, &sec);
-    // printf ("%d  %d:%d:%d %d:%d:%d\n", r, year, month, day, hour, min, sec);
-    if (r != 6)
-        return false;
-    struct tm tmtime;
-    time_t now;
-    Sysutil::get_local_time (&now, &tmtime); // fill in defaults
-    tmtime.tm_sec = sec;
-    tmtime.tm_min = min;
-    tmtime.tm_hour = hour;
-    tmtime.tm_mday = day;
-    tmtime.tm_mon = month-1;
-    tmtime.tm_year = year-1900;
-    timet = mktime (&tmtime);
-    return true;
-}
-
-
-
-// Utility: split semicolon-separated list
-static void
-split_list (const std::string &list, std::vector<std::string> &items)
-{
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    boost::char_separator<char> sep(";");
-    tokenizer tokens (list, sep);
-    for (tokenizer::iterator tok_iter = tokens.begin();
-         tok_iter != tokens.end(); ++tok_iter) {
-        std::string t = *tok_iter;
-        while (t.length() && t[0] == ' ')
-            t.erase (t.begin());
-        if (t.length())
-            items.push_back (t);
-    }
-}
-
-
-
-// Utility: join list into a single semicolon-separated string
-static std::string
-join_list (const std::vector<std::string> &items)
-{
-    std::string s;
-    for (size_t i = 0;  i < items.size();  ++i) {
-        if (i > 0)
-            s += "; ";
-        s += items[i];
-    }
-    return s;
-}
-
-
-
-
-static bool
 read_input (const std::string &filename, ImageBuf &img, int subimage=0)
 {
     if (img.subimage() >= 0 && img.subimage() == subimage)

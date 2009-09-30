@@ -80,7 +80,7 @@ static float failpercent = 0;
 static bool perceptual = false;
 static float hardfail = std::numeric_limits<float>::max();
 static std::vector<std::string> filenames;
-static bool comparemeta = false;
+//static bool comparemeta = false;
 static bool compareall = false;
 
 
@@ -575,7 +575,6 @@ main (int argc, char *argv[])
         }
 
         int npels = img0.spec().width * img0.spec().height * img0.spec().depth;
-        int nvals = npels * img0.spec().nchannels;
         ASSERT (img0.spec().format == TypeDesc::FLOAT);
 
         // Compare the two images.

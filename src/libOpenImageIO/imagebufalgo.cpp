@@ -136,6 +136,7 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
 	    }
 	break;
     }
+    return true;
 }
     
     

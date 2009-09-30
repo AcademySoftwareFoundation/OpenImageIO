@@ -46,6 +46,11 @@ include (CTest)
 
 include_directories ("include")
 
+# Strict warnings
+if (NOT WIN32)
+    add_definitions ("-Wall")
+endif()
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions ("-DDEBUG=1")
 endif ()
