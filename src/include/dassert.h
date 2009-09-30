@@ -71,9 +71,9 @@
 /// occurred and then aborts.
 #ifndef ASSERT
 # define ASSERT(x)                                              \
-    ((x) ? 0                                                    \
+    ((x) ? ((void)0)                                            \
          : (fprintf (stderr, "%s:%u: Failed assertion '%s'\n",  \
-                     __FILE__, __LINE__, #x), abort(), 0))
+                     __FILE__, __LINE__, #x), abort()))
 #endif
 
 
