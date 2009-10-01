@@ -44,4 +44,4 @@ cleanfiles = [ ]
 
 # boilerplate
 ret = runtest.runtest (command, outputs, cleanfiles)
-exit (ret)
+sys.exit (ret)

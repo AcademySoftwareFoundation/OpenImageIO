@@ -20,8 +20,7 @@ cleanfiles = [ ]
 
 
 # boilerplate
-import sys
 sys.path = [".."] + sys.path
 import runtest
 ret = runtest.runtest (command, outputs, cleanfiles)
-exit (ret)
+sys.exit (ret)
