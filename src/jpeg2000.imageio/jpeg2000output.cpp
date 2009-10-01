@@ -213,7 +213,7 @@ Jpeg2000Output::write_scanline (int y, int z, TypeDesc format,
     if (y == m_spec.height - 1) {
         // FIXME (robertm): shoud know if we want jpc or jp2
         // set this in Jpeg2000Input and check here?
-        if (jas_image_encode (m_image, m_stream, jas_image_strtofmt((char*)stream_format.c_str()), "") < 0) {
+        if (jas_image_encode (m_image, m_stream, jas_image_strtofmt((char*)stream_format.c_str()), (char*)"") < 0) {
             error("couldn't encode image");
             return false;
         }
