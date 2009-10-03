@@ -125,6 +125,7 @@
 #include <iostream>
 #include <cstring>
 #include "export.h"
+#include "strutil.h"
 
 #ifdef _WIN32
 #include "hash.h"
@@ -299,6 +300,15 @@ public:
         return rep->length;
     }
 
+    /// Return a hashed version of the string
+    ///
+    size_t hash (void) const {
+         if (! m_chars)
+             return 0;
+         const TableRep *rep = (const TableRep *)(m_chars - chars_offset);
+         return rep->hashed;
+     }
+
     /// Return the number of characters in the string.
     ///
     size_t size (void) const { return length(); }
@@ -430,16 +440,17 @@ public:
     /// ONE OF THESE YOURSELF!
     struct TableRep {
         std::string str;     // String representation
-        size_t length;       // Length of the string
+        unsigned int length; // Length of the string
+        unsigned int hashed; // precomputed Hash value
         char chars[1];       // The characters
-        TableRep (const char *s) : str(s), length(str.size()) {
+        TableRep (const char *s) : str(s), length(str.size()), hashed(Strutil::strhash(s)) {
             strcpy (chars, s);
         }
         const char *c_str () const { return chars; }
     };
     /// Constant defining how far beyond the beginning of a TableRep are
     /// the canonical characters.
-    static const off_t chars_offset = sizeof(std::string)+sizeof(size_t);
+    static const off_t chars_offset = sizeof(std::string)+2*sizeof(unsigned int);
     // N.B. this had better match the fields in TableRep before chars!
     // FIXME: put an assert somewhere to verify.
 
@@ -462,7 +473,7 @@ class ustringHash
 #endif
 {
 public:
-    size_t operator() (const ustring &s) const { return (size_t)s.c_str(); }
+    size_t operator() (const ustring &s) const { return s.hash(); }
 #ifdef _WIN32
     bool operator() (const ustring &a, const ustring &b) {
         return strcmp (a.c_str(), b.c_str()) < 0;

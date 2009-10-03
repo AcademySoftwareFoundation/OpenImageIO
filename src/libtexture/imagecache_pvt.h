@@ -302,7 +302,7 @@ public:
     /// summing, so that collisions are unlikely.
     size_t hash () const {
         return m_x * 53 + m_y * 97 + m_z * 193 + 
-               m_subimage * 389 + (size_t)(&m_file) * 769;
+               m_subimage * 389 + m_file.filename().hash() * 769;
     }
 
     /// Functor that hashes a TileID
