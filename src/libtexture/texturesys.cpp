@@ -371,6 +371,17 @@ TextureSystemImpl::get_imagespec (ustring filename, ImageSpec &spec)
 
 
 
+const ImageSpec *
+TextureSystemImpl::imagespec (ustring filename)
+{
+    const ImageSpec *spec = m_imagecache->imagespec (filename);
+    if (! spec)
+        error ("%s", m_imagecache->geterror().c_str());
+    return spec;
+}
+
+
+
 bool
 TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
                                int subimage, int xbegin, int xend,

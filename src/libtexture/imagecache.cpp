@@ -1457,22 +1457,36 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
 bool
 ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec, int subimage)
 {
+    const ImageSpec *specptr = imagespec (filename, subimage);
+    if (specptr) {
+        spec = *specptr;
+        return true;
+    } else {
+        return false;  // imagespec() already handled the errors
+    }
+}
+
+
+
+const ImageSpec *
+ImageCacheImpl::imagespec (ustring filename, int subimage)
+{
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);
     if (! file) {
         error ("Image file \"%s\" not found", filename.c_str());
-        return false;
+        return NULL;
     }
     if (file->broken()) {
         error ("Invalid image file \"%s\"", filename.c_str());
-        return false;
+        return NULL;
     }
     if (subimage < 0 || subimage >= file->subimages()) {
         error ("Unknown subimage %d (out of %d)", subimage, file->subimages());
-        return false;
+        return NULL;
     }
-    spec = file->spec (subimage);
-    return true;
+    const ImageSpec *spec = & file->spec (subimage);
+    return spec;
 }
 
 

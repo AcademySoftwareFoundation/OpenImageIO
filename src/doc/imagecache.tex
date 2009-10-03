@@ -391,13 +391,30 @@ matches both the name and data type.
   int subimage=0)}
 
 If the named image is found and able to be opened by an available
-ImageIO plugin, and the designated subimage exists, this function copies
+image format plugin, and the designated subimage exists, this function copies
 its image specification for that subimage into {\cf spec} and returns
 {\cf true}.  Otherwise, if the file is not found, could not be opened,
-is not of a format readable by any ImageIO plugin that could be find, or
+is not of a format readable by any plugin that could be found, or
 the designated subimage did not exist in the file, the return value is
 {\cf false} and {\cf spec} will not be modified.
 
+\apiend
+
+\apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int subimage=0)}
+
+If the named image is found and able to be opened by an available
+image format plugin, and the designated subimage exists, this function
+returns a pointer to an \ImageSpec that describes it.  Otherwise, if the
+file is not found, could not be opened, is not of a format readable by
+any plugin that could be find, or the designated subimage did
+not exist in the file, the return value is NULL.
+
+This method is much more efficient than {\cf get_imagespec()}, since it
+just returns a pointer to the spec held internally by the \ImageCache
+(rather than copying the spec to the user's memory).  However, the
+caller must beware that the pointer is only valid as long as nobody
+(even other threads) calls {\cf invalidate()} on the file, or {\cf
+  invalidate_all()}, or destroys the \ImageCache.
 \apiend
 
 \apiitem{std::string {\ce resolve_filename} (const std::string \&filename)}

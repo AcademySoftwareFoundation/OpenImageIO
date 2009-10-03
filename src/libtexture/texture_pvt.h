@@ -221,6 +221,8 @@ public:
     /// available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, ImageSpec &spec);
 
+    virtual const ImageSpec *imagespec (ustring filename);
+
     /// Retrieve a rectangle of raw unfiltered texels.
     ///
     virtual bool get_texels (ustring filename, TextureOptions &options,

@@ -354,6 +354,20 @@ public:
     /// available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, ImageSpec &spec) = 0;
 
+    /// Return a pointer to an ImageSpec associated with the named
+    /// texture (specifically, the first MIP-map level) if the file is
+    /// found and is an image format that can be read, otherwise return
+    /// NULL.
+    ///
+    /// This method is much more efficient than get_imagespec(), since
+    /// it just returns a pointer to the spec held internally by the
+    /// underlying ImageCache (rather than copying the spec to the
+    /// user's memory).  However, the caller must beware that the
+    /// pointer is only valid as long as nobody (even other threads)
+    /// calls invalidate() on the file, or invalidate_all(), or destroys
+    /// the TextureSystem.
+    virtual const ImageSpec *imagespec (ustring filename) = 0;
+
     /// Retrieve the rectangle of raw unfiltered texels spanning
     /// [xbegin..xend) X [ybegin..yend) X [zbegin..zend), with
     /// "exclusive end" a la STL, specified as integer pixel coordinates

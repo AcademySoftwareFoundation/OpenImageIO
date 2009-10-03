@@ -888,12 +888,29 @@ matches both the name and data type.
 \apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec)}
 
 If the named image is found and able to be opened by an available
-ImageIO plugin, this function copies its image specification into
+image format plugin, this function copies its image specification into
 {\cf spec} and returns {\cf true}.  Otherwise, if the file is not
 found, could not be opened, or is not of a format readable by any
-ImageIO plugin that could be find, the return value is {\cf false}.
+plugin that could be found, the return value is {\cf false}.
 \apiend
 
+
+\apiitem{const ImageSpec * {\ce imagespec} (ustring filename)}
+
+If the named image is found and able to be opened by an available
+image format plugin, and the designated subimage exists, this function
+returns a pointer to an \ImageSpec that describes it.  Otherwise, if the
+file is not found, could not be opened, is not of a format readable by
+any plugin that could be find, or the designated subimage did
+not exist in the file, the return value is NULL.
+
+This method is much more efficient than {\cf get_imagespec()}, since it
+just returns a pointer to the spec held internally by the underlying \ImageCache
+(rather than copying the spec to the user's memory).  However, the
+caller must beware that the pointer is only valid as long as nobody
+(even other threads) calls {\cf invalidate()} on the file, or {\cf
+  invalidate_all()}, or destroys the \TextureSystem.
+\apiend
 
 \apiitem{bool {\ce get_texels} (ustring filename, TextureOptions \&options,\\
 \bigspc                       int xbegin, int xend, int ybegin, int yend,\\

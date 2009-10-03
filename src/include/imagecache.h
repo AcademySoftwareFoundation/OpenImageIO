@@ -130,6 +130,19 @@ public:
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
                                 int subimage=0) = 0;
 
+    /// Return a pointer to an ImageSpec associated with the named
+    /// image (the first subimage, by default, or as set by 'subimage')
+    /// if the file is found and is an image format that can be read,
+    /// otherwise return NULL.
+    ///
+    /// This method is much more efficient than get_imagespec(), since
+    /// it just returns a pointer to the spec held internally by the
+    /// ImageCache (rather than copying the spec to the user's memory).
+    /// However, the caller must beware that the pointer is only valid
+    /// as long as nobody (even other threads) calls invalidate() on the
+    /// file, or invalidate_all(), or destroys the ImageCache.
+    virtual const ImageSpec *imagespec (ustring filename, int subimage=0) = 0;
+
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
     /// [ybegin..yend) X [zbegin..zend), with "exclusive end" a la STL,
     /// specified as integer pixel coordinates in the designated

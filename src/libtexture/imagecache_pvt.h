@@ -535,6 +535,8 @@ public:
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
                                 int subimage=0);
 
+    virtual const ImageSpec *imagespec (ustring filename, int subimage=0);
+
     // Retrieve a rectangle of raw unfiltered pixels.
     virtual bool get_pixels (ustring filename, 
                              int subimage, int xbegin, int xend,
