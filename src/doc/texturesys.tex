@@ -200,8 +200,9 @@ parameters:  {\cf Runflag *runflags, int beginactive, int endactive}.
 There are also {\cf VaryingRef} parameters such as {\cf s} and {\cf t}
 that act as if they are arrays.
 
-The {\cf beginactive} and {\cf endactive} indices are the first and
-last (inclusive) points that should be computed, and for each point
+The {\cf beginactive} and {\cf endactive} indices are the first
+(inclusive) and
+last (exclusive) points that should be computed, and for each point
 {\cf runflags[i]} is nonzero if the point should be computed.  To
 illustrate, here is how a routine might be written that would copy
 values in {\cf arg} to {\cf result} using runflags:
