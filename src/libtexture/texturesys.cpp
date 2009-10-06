@@ -532,11 +532,10 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
             if (runflags[i]) {
                 ++local_stat_texture_queries;
                 for (int c = 0;  c < options.nchannels;  ++c)
-                    result[c] = options.fill;
+                    result[i*options.nchannels+c] = options.fill[i];
                 if (options.alpha)
-                    options.alpha[i] = options.fill;
+                    options.alpha[i] = options.fill[i];
             }
-            result += options.nchannels;
         }
 //        error ("Texture file \"%s\" not found", filename.c_str());
         ++stats.texture_batches;
