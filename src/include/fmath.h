@@ -546,10 +546,12 @@ inline int
 RoundToInt (double val)
 {
 #ifdef USE_INTEL_MATH_SHORTCUTS
+    union { int i; double d; } myunion;
+    myunion.d = val;
     const double doublemagic = double (6755399441055744.0);
         // 2^52 * 1.5, uses limited precisicion to floor
-    val += doublemagic;
-    return ((int*)&val)[0];
+    myunion.d += doublemagic;
+    return myunion.i;
 #else
     return round (val);
 #endif
