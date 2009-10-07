@@ -159,9 +159,9 @@ public:
     ///
     bool is_null () const { return (m_ptr == 0); }
 
-    /// Cast to bool returns 'true' if the reference points to anything,
-    /// or 'false' of it just holds a NULL pointer.
-    operator bool() const { return (m_ptr != 0); }
+    /// Cast to void* returns the pointer, but the real purpose is so
+    /// you can use a VaryingRef as if it were a 'bool' value in a test.
+    operator void*() const { return m_ptr; }
 
     /// Is this VaryingRef referring to a varying value, signified by
     /// having a nonzero step size between elements?
