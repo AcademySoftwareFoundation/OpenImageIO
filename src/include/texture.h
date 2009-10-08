@@ -156,9 +156,6 @@ public:
     VaryingRef<float> zblur;   ///< Blur amount in the z direction
     VaryingRef<float> zwidth;  ///< Multiplier for derivatives in z direction
 
-    // Storage for results
-    VaryingRef<float> alpha;   ///< If non-null put the alpha channel here
-
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
     static Wrap decode_wrapmode (const char *name);
@@ -180,7 +177,6 @@ public:
 private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
-    bool stateful;         // False for a new-ish TextureOptions
     int actualchannels;    // True number of channels read
     typedef bool (*wrap_impl) (int &coord, int width);
     wrap_impl swrap_func, twrap_func;

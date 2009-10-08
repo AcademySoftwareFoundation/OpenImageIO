@@ -533,8 +533,6 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                 ++local_stat_texture_queries;
                 for (int c = 0;  c < options.nchannels;  ++c)
                     result[i*options.nchannels+c] = options.fill[i];
-                if (options.alpha)
-                    options.alpha[i] = options.fill[i];
             }
         }
 //        error ("Texture file \"%s\" not found", filename.c_str());
@@ -571,12 +569,6 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                     result[i*options.nchannels+c] = fill;
             }
         }
-    }
-    // Fill alpha if requested and it's not in the file
-    if (options.alpha && options.actualchannels+1 < options.nchannels) {
-        for (int i = beginactive;  i < endactive;  ++i)
-            options.alpha[i] = options.fill[i];
-        options.alpha.init (NULL);  // No need for texture_lookup to care
     }
     // Early out if all channels were beyond the highest in the file
     if (options.actualchannels < 1) {
@@ -626,8 +618,6 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
     result += index * options.nchannels;
     for (int c = 0;  c < options.actualchannels;  ++c)
         result[c] = 0;
-    if (options.alpha)
-        options.alpha[index] = 0;
 
     static const accum_prototype accum_functions[] = {
         // Must be in the same order as InterpMode enum
@@ -673,8 +663,6 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     result += index * options.nchannels;
     for (int c = 0;  c < options.actualchannels;  ++c)
         result[c] = 0;
-    if (options.alpha)
-        options.alpha[index] = 0;
 
     // Use the differentials to figure out which MIP-map levels to use.
     float dsdx = _dsdx ? fabsf(_dsdx[index]) : 0;
@@ -785,8 +773,6 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     result += index * options.nchannels;
     for (int c = 0;  c < options.actualchannels;  ++c)
         result[c] = 0;
-    if (options.alpha)
-        options.alpha[index] = 0;
 
     // Find the differentials, handle the case where user passed NULL
     // to indicate no derivs were available.
@@ -994,19 +980,11 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
         const unsigned char *texel = tile->bytedata() + offset;
         for (int c = 0;  c < options.actualchannels;  ++c)
             accum[c] += weight * uchar2float(texel[c]);
-        if (options.alpha) {
-            int c = options.actualchannels;
-            options.alpha[index] += weight * uchar2float(texel[c]);
-        }
     } else {
         // General case for float tiles
         const float *texel = tile->data() + offset;
         for (int c = 0;  c < options.actualchannels;  ++c)
             accum[c] += weight * texel[c];
-        if (options.alpha) {
-            int c = options.actualchannels;
-            options.alpha[index] += weight * texel[c];
-        }
     }
     return true;
 }
@@ -1129,22 +1107,11 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
             accum[c] += weight * bilerp (uchar2float(texel[0][0][c]), uchar2float(texel[0][1][c]),
                                          uchar2float(texel[1][0][c]), uchar2float(texel[1][1][c]),
                                          sfrac, tfrac);
-        if (options.alpha)
-            options.alpha[index] += weight * bilerp (uchar2float(texel[0][0][c]), uchar2float(texel[0][1][c]),
-                                                     uchar2float(texel[1][0][c]), uchar2float(texel[1][1][c]),
-                                                     sfrac, tfrac);
     } else {
         // General case for float tiles
         bilerp_mad ((float *)texel[0][0], (float *)texel[0][1],
                     (float *)texel[1][0], (float *)texel[1][1],
                     sfrac, tfrac, weight, options.actualchannels, accum);
-        if (options.alpha) {
-            int c = options.actualchannels;
-            options.alpha[index] += weight *
-                bilerp (((float *)texel[0][0])[c], ((float *)texel[0][1])[c],
-                        ((float *)texel[1][0])[c], ((float *)texel[1][1])[c],
-                        sfrac, tfrac);
-        }
     }
 
     return true;
@@ -1356,18 +1323,6 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
             float ry = Imath::lerp (col[2], col[3], h1y);
             accum[c] += weight * Imath::lerp (ly, ry, g1y);
         }
-        if (options.alpha) {
-            int c = options.actualchannels;
-            float col[4];
-            for (int j = 0;  j < 4; ++j) {
-                float lx = Imath::lerp (uchar2float(texel[j][0][c]), uchar2float(texel[j][1][c]), h0x);
-                float rx = Imath::lerp (uchar2float(texel[j][2][c]), uchar2float(texel[j][3][c]), h1x);
-                col[j]   = Imath::lerp (lx, rx, g1x);
-            }
-            float ly = Imath::lerp (col[0], col[1], h0y);
-            float ry = Imath::lerp (col[2], col[3], h1y);
-            options.alpha[index] += weight * Imath::lerp (ly, ry, g1y);
-        }
 #else
         for (int c = 0;  c < nc; ++c) {
             float col[4];
@@ -1378,16 +1333,6 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                      uchar2float(texel[j][3][c]), sfrac);
             accum[c] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
         }
-        if (options.alpha) {
-            int c = options.actualchannels;
-            float col[4];
-            for (int j = 0;  j < 4; ++j)
-                col[j] = evalBSpline(uchar2float(texel[j][0][c]),
-                                     uchar2float(texel[j][1][c]),
-                                     uchar2float(texel[j][2][c]),
-                                     uchar2float(texel[j][3][c]), sfrac);
-            options.alpha[index] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
-        }
 #endif
 #else
         // 8-bit texels
@@ -1396,13 +1341,6 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                 for (int c = 0;  c < options.actualchannels;  ++c)
                     accum[c] += (w[j][i] * weight) * uchar2float(texel[j][i][c]);
             }
-        if (options.alpha) {
-            int c = options.actualchannels;
-            for (int j = 0;  j < 4;  ++j)
-                for (int i = 0;  i < 4;  ++i) {
-                    options.alpha[index] += (w[j][i] * weight) * uchar2float(texel[j][i][c]);
-                }
-        }
 #endif
     } else {
 #if USE_BSPLINE
@@ -1419,18 +1357,6 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
            float ry = Imath::lerp (col[2], col[3], h1y);
            accum[c] += weight * Imath::lerp (ly, ry, g1y);
        }
-       if (options.alpha) {
-           int c = options.actualchannels;
-           float col[4];
-           for (int j = 0;  j < 4; ++j) {
-               float lx = Imath::lerp (((const float*)(texel[j][0]))[c], ((const float*) (texel[j][1]))[c], h0x);
-               float rx = Imath::lerp (((const float*)(texel[j][2]))[c], ((const float*) (texel[j][3]))[c], h1x);
-               col[j]   = Imath::lerp (lx, rx, g1x);
-           }
-           float ly = Imath::lerp (col[0], col[1], h0y);
-           float ry = Imath::lerp (col[2], col[3], h1y);
-           options.alpha[index] += weight * Imath::lerp (ly, ry, g1y);
-       }
 #else
         // float texels
         for (int c = 0;  c < nc; ++c) {
@@ -1442,16 +1368,6 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                       ((const float*)(texel[j][3]))[c], sfrac);
             accum[c] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
         }
-        if (options.alpha) {
-            int c = options.actualchannels;
-            float col[4];
-            for (int j = 0;  j < 4; ++j)
-                col[j] = evalBSpline (((const float*)(texel[j][0]))[c],
-                                      ((const float*)(texel[j][1]))[c],
-                                      ((const float*)(texel[j][2]))[c],
-                                      ((const float*)(texel[j][3]))[c], sfrac);
-            options.alpha[index] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
-        }
 #endif
 #else
         // float texels
@@ -1460,13 +1376,6 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                 for (int c = 0;  c < options.actualchannels;  ++c)
                     accum[c] += (w[j][i] * weight) * ((float *)texel[j][i])[c];
             }
-        if (options.alpha) {
-            int c = options.actualchannels;
-            for (int j = 0;  j < 4;  ++j)
-                for (int i = 0;  i < 4;  ++i) {
-                    options.alpha[index] += (w[j][i] * weight) * ((float *)texel[j][i])[c];
-                }
-        }
 #endif
     }
 

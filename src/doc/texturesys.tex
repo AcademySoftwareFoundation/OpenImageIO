@@ -176,16 +176,6 @@ The number of samples to use for each lookup.  Currently this only
 applies for certain types of shadow maps.
 \apiend
 
-\apiitem{VaryingRef<float> alpha}
-Specifies a \emph{destination} for one additional channel to be looked
-up, the one immediately following the return value (i.e., channel
-$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
-allow a 4-channel lookup, with the 4th channel put in an entirely
-different variable than the 3-channel color.  The default for {\cf
-  alpha} is to point to NULL, indicating that no extra alpha channel
-should be retrieved.
-\apiend
-
 \apiitem{Wrap zwrap \\
 VaryingRef<float> zblur, zwidth}
 Specifies wrap, blur, and width for 3D volume texture lookups only.
@@ -481,18 +471,6 @@ Specifies the value that will be used for any color channels that are
 requested but not found in the file.
 \apiend
 
-\vspace{-24pt}
-\apiitem{VaryingRef<float> alpha}
-\vspace{10pt}
-Specifies a \emph{destination} for one additional channel to be looked
-up, the one immediately following the return value (i.e., channel
-$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
-allow a 4-channel lookup, with the 4th channel put in an entirely
-different variable than the 3-channel color.  The default for {\cf
-  alpha} is to point to NULL, indicating that no extra alpha channel
-should be retrieved.
-\apiend
-
 This function returns {\cf true} upon success, or {\cf false} if the
 file was not found or could not be opened by any available ImageIO
 plugin.
@@ -591,18 +569,6 @@ expressed as a portion of the width of the texture.
 \vspace{10pt}
 Specifies the value that will be used for any color channels that are
 requested but not found in the file.
-\apiend
-
-\vspace{-24pt}
-\apiitem{VaryingRef<float> alpha}
-\vspace{10pt}
-Specifies a \emph{destination} for one additional channel to be looked
-up, the one immediately following the return value (i.e., channel
-$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
-allow a 4-channel lookup, with the 4th channel put in an entirely
-different variable than the 3-channel color.  The default for {\cf
-  alpha} is to point to NULL, indicating that no extra alpha channel
-should be retrieved.
 \apiend
 
 This function returns {\cf true} upon success, or {\cf false} if the
@@ -783,18 +749,6 @@ Specifies the value that will be used for any color channels that are
 requested but not found in the file.
 \apiend
 
-\vspace{-24pt}
-\apiitem{VaryingRef<float> alpha}
-\vspace{10pt}
-Specifies a \emph{destination} for one additional channel to be looked
-up, the one immediately following the return value (i.e., channel
-$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
-allow a 4-channel lookup, with the 4th channel put in an entirely
-different variable than the 3-channel color.  The default for {\cf
-  alpha} is to point to NULL, indicating that no extra alpha channel
-should be retrieved.
-\apiend
-
 This function returns {\cf true} upon success, or {\cf false} if the
 file was not found or could not be opened by any available ImageIO
 plugin.
@@ -957,18 +911,6 @@ The index of the first channel to look up from the texture.
 Specifies the value that will be used for any color channels that are
 requested but not found in the file.
 \apiend
-
-%\vspace{-24pt}
-%\apiitem{VaryingRef<float> alpha}
-%\vspace{10pt}
-%Specifies a \emph{destination} for one additional channel to be looked
-%up, the one immediately following the return value (i.e., channel
-%$\mathit{firstchannel}+\mathit{nchannels}$).  The point of this is to
-%allow a 4-channel lookup, with the 4th channel put in an entirely
-%different variable than the 3-channel color.  The default for {\cf
-%  alpha} is to point to NULL, indicating that no extra alpha channel
-%should be retrieved.
-%\apiend
 
 Return true if the file is found and could be opened by an
 available ImageIO plugin, otherwise return false.

@@ -62,7 +62,7 @@ using namespace OpenImageIO::pvt;
 namespace {  // anonymous
 
 static shared_ptr<ImageCacheImpl> shared_image_cache;
-static mutex shared_image_cache_mutex;
+static spin_mutex shared_image_cache_mutex;
 
 
 // Functor to compare filenames
@@ -1803,7 +1803,7 @@ ImageCache::create (bool shared)
     if (shared) {
         // They requested a shared cache.  If a shared cache already
         // exists, just return it, otherwise record the new cache.
-        lock_guard guard (shared_image_cache_mutex);
+        spin_lock guard (shared_image_cache_mutex);
         if (! shared_image_cache.get())
             shared_image_cache.reset (new ImageCacheImpl);
         else
@@ -1835,7 +1835,7 @@ ImageCache::destroy (ImageCache *x)
     // the future.  Don't worry that it will leak; because shared_image_cache
     // is itself a shared_ptr, when the process ends it will properly
     // destroy the shared cache.
-    lock_guard guard (shared_image_cache_mutex);
+    spin_lock guard (shared_image_cache_mutex);
     if (x == shared_image_cache.get()) {
         // Don't destroy the shared cache, but do invalidate and close the files.
         ((ImageCacheImpl *)x)->invalidate_all ();
