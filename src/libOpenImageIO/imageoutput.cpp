@@ -284,6 +284,14 @@ ImageOutput::copy_image (ImageInput *in)
         return false;
     }
 
+    // in most cases plugins don't allow to copy 0x0 images
+    // but there are some exceptions (like in FITS plugin)
+    // when we want to do this. Because 0x0 means there is no image
+    // data in the file, we simply return true so the application thought
+    // that everything went right
+    if (! spec().image_bytes())
+        return true;
+
     // Naive implementation -- read the whole image and write it back out.
     // FIXME -- a smarter implementation would read scanlines or tiles at
     // a time, to minimize mem footprint.
