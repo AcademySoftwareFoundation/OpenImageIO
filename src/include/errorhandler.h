@@ -148,7 +148,7 @@ public:
     ///
     void verbosity (int v) { m_verbosity = v; }
 
-    /// Return the current verbosit level.
+    /// Return the current verbosity level.
     ///
     int verbosity () const { return m_verbosity; }
 
