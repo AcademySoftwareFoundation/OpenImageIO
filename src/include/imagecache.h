@@ -89,6 +89,8 @@ public:
     ///     string searchpath : colon-separated search path for images
     ///     int autotile : if >0, tile size to emulate for non-tiled images
     ///     int automip : if nonzero, emulate mipmap on the fly
+    ///     int accept_untiled : if nonzero, accept untiled images, but
+    ///                          if zero, reject untiled images (default=1)
     ///
     virtual bool attribute (const std::string &name, TypeDesc type,
                             const void *val) = 0;
