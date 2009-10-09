@@ -64,6 +64,11 @@ namespace {  // anonymous
 static shared_ptr<ImageCacheImpl> shared_image_cache;
 static spin_mutex shared_image_cache_mutex;
 
+// Make some static ustring constants to avoid strcmp's
+static ustring s_resolution ("resolution"), s_texturetype ("texturetype");
+static ustring s_textureformat ("textureformat"), s_fileformat ("fileformat");
+static ustring s_format ("format"), s_cachedformat ("cachedformat");
+static ustring s_channels ("channels"), s_cachedpixeltype ("cachedpixeltype");
 
 // Functor to compare filenames
 static bool
@@ -1399,39 +1404,39 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
         return false;
     }
     const ImageSpec &spec (file->spec());
-    if (dataname == "resolution" && datatype==TypeDesc(TypeDesc::INT,2)) {
+    if (dataname == s_resolution && datatype==TypeDesc(TypeDesc::INT,2)) {
         int *d = (int *)data;
         d[0] = spec.width;
         d[1] = spec.height;
         return true;
     }
-    if (dataname == "texturetype" && datatype == TypeDesc::TypeString) {
+    if (dataname == s_texturetype && datatype == TypeDesc::TypeString) {
         ustring s (texture_type_name (file->textureformat()));
         *(const char **)data = s.c_str();
         return true;
     }
-    if (dataname == "textureformat" && datatype == TypeDesc::TypeString) {
+    if (dataname == s_textureformat && datatype == TypeDesc::TypeString) {
         ustring s (texture_format_name (file->textureformat()));
         *(const char **)data = s.c_str();
         return true;
     }
-    if (dataname == "fileformat" && datatype == TypeDesc::TypeString) {
+    if (dataname == s_fileformat && datatype == TypeDesc::TypeString) {
         *(const char **)data = file->fileformat().c_str();
         return true;
     }
-    if (dataname == "channels" && datatype == TypeDesc::TypeInt) {
+    if (dataname == s_channels && datatype == TypeDesc::TypeInt) {
         *(int *)data = spec.nchannels;
         return true;
     }
-    if (dataname == "channels" && datatype == TypeDesc::TypeFloat) {
+    if (dataname == s_channels && datatype == TypeDesc::TypeFloat) {
         *(float *)data = spec.nchannels;
         return true;
     }
-    if (dataname == "format" && datatype == TypeDesc::TypeInt) {
+    if (dataname == s_format && datatype == TypeDesc::TypeInt) {
         *(int *)data = (int) spec.format.basetype;
         return true;
     }
-    if ((dataname == "cachedformat" || dataname == "cachedpixeltype") &&
+    if ((dataname == s_cachedformat || dataname == s_cachedpixeltype) &&
             datatype == TypeDesc::TypeInt) {
         *(int *)data = (int) file->m_datatype.basetype;
         return true;
