@@ -1,0 +1,21 @@
+# SPI-specific settings
+
+ifeq (${platform},linux64)
+OPENIMAGEIO_SPCOMP2_VERSION=v21
+OPENEXR_VERSION=1.4.0
+BOOST_VERSION=1_34_1
+NAMESPACE:=SPI_OpenImageIO_${OPENIMAGEIO_SPCOMP2_VERSION}
+EMBEDPLUGINS:=1
+
+MY_CMAKE_FLAGS += \
+		-DSPECIAL_COMPILE_FLAGS="-include ${working_dir}/site/spi/include/spi_ns.h -include ${working_dir}/site/spi/include/tiff.h -DTIFF_OLD_VERSION" \
+		-DBOOST_CUSTOM=1 \
+		-DBoost_INCLUDE_DIRS=/usr/local64/include/boost-${BOOST_VERSION} \
+		-DBoost_LIBRARY_DIRS=/usr/local64/lib/boost-${BOOST_VERSION} \
+		-DBoost_LIBRARIES="-lboost_filesystem-gcc34-mt-${BOOST_VERSION} -lboost_regex-gcc34-mt-${BOOST_VERSION} -lboost_thread-gcc34-mt-${BOOST_VERSION} " \
+		-DILMBASE_HOME=/usr/local64/openexr/${OPENEXR_VERSION} \
+		-DOPENEXR_VERSION=${OPENEXR_VERSION} \
+		-DOPENEXR_VERSION_DIGITS="010400" \
+		-DOPENEXR_HOME=/usr/local64/openexr/${OPENEXR_VERSION}
+
+endif

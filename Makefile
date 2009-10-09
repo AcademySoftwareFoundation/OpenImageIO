@@ -36,6 +36,13 @@ $(info dist_dir = ${dist_dir})
 MY_MAKE_FLAGS ?=
 MY_CMAKE_FLAGS ?=
 
+
+# Site-specific build instructions
+ifneq (${shell uname -n | grep imageworks},)
+include ${working_dir}/site/spi/Makefile-bits
+endif
+
+
 VERBOSE := ${SHOWCOMMANDS}
 ifneq (${VERBOSE},)
 MY_MAKE_FLAGS += VERBOSE=${VERBOSE}
