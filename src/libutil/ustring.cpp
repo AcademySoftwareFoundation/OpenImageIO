@@ -66,8 +66,6 @@ typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash> Ustrin
 #else
 typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
 #endif
-static UstringTable ustring_table;
-static ustring_mutex_t ustring_mutex;
 
 std::string ustring::empty_std_string ("");
 
@@ -76,6 +74,9 @@ std::string ustring::empty_std_string ("");
 const ustring::TableRep *
 ustring::_make_unique (const char *str)
 {
+    static UstringTable ustring_table;
+    static ustring_mutex_t ustring_mutex;
+
     // Eliminate NULLs
     if (! str)
         str = "";
