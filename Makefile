@@ -113,7 +113,7 @@ profile:
 # ${build_dir}/Makefile doesn't already exist, in which case we rely on the
 # cmake generated makefiles to regenerate themselves when necessary.
 cmakesetup:
-	(if [ ! -e ${build_dir}/Makefile ] ; then \
+	@ (if [ ! -e ${build_dir}/Makefile ] ; then \
 		cmake -E make_directory ${build_dir} ; \
 		cd ${build_dir} ; \
 		cmake -DCMAKE_INSTALL_PREFIX=${working_dir}/${dist_dir} \
