@@ -31,6 +31,7 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           ../libutil/filter.cpp 
                           ../libutil/paramlist.cpp 
                           ../libutil/plugin.cpp 
+                          ../libutil/pystring.cpp
                           ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp 
@@ -61,6 +62,8 @@ if (EMBEDPLUGINS)
         ../targa.imageio/targainput.cpp ../targa.imageio/targaoutput.cpp
         ../tiff.imageio/tiffinput.cpp ../tiff.imageio/tiffoutput.cpp
         ../zfile.imageio/zfile.cpp
+        ../fits.imageio/fitsinput.cpp ../fits.imageio/fitsoutput.cpp
+        ../fits.imageio/fits_pvt.cpp
         )
     find_package (PNG REQUIRED)
     find_package (JPEG REQUIRED)

@@ -90,6 +90,7 @@ add_subdirectory (iv)
 
 # Add IO plugin directories
 if (NOT EMBEDPLUGINS)
+    add_subdirectory (fits.imageio)
     add_subdirectory (bmp.imageio)
     add_subdirectory (hdr.imageio)
     add_subdirectory (ico.imageio)
@@ -149,6 +150,14 @@ else ()
     message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../TGAUTILS")
     message (STATUS "  -> Will not run tests 'targa-tgautils'")
     message (STATUS "  -> You can find it at http://ineqvation.googlepages.com/TGAUtilities\n")
+endif ()
+
+if (EXISTS "${PROJECT_SOURCE_DIR}/../../fits-images")
+    TESTSUITE (fits)
+else ()
+    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../fits-images")
+    message (STATUS "  -> Will not run test 'fits-images'")
+    message (STATUS "  -> You can find it at http://www.cv.nrao.edu/fits/data/tests/")
 endif ()
 
 #########################################################################

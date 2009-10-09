@@ -1,0 +1,734 @@
+hi
+../../../fits-images/pg93/tst0001.fits :  123 x  321, 1 channel, uint8 fits
+    SHA-1: FC4F635D410B219477B709E4D6F993E9AA42C7B3
+    channel list: A
+    Color space: unknown
+    SIMPLE: "T"
+    Comment (SIMPLE): "Standard FITS file"
+    EXTEND: "T"
+    Comment (EXTEND): "There may be FITS extensions"
+    BLOCKED: "T"
+    Comment (BLOCKED): "The file may be blocked"
+    CDELT1: -2.3
+    Comment (CDELT1): "Coordinate increment"
+    CRVAL1: -73.3
+    Comment (CRVAL1): "Coordinate of reference pixel"
+    CRPIX1: 12
+    Comment (CRPIX1): "Reference pixel in X"
+    CTYPE1: "'PIXEL   '"
+    Comment (CTYPE1): "Coordinate type of X axis"
+    CDELT2: 7.1
+    Comment (CDELT2): "Coordinate increment"
+    CRVAL2: 300.1
+    Comment (CRVAL2): "Coordinate of reference pixel"
+    CRPIX2: -11
+    Comment (CRPIX2): "Reference pixel in Y"
+    CTYPE2: "'PIXEL   '"
+    Comment (CTYPE2): "Coordinate type of Y axis"
+    OBJECT: "'Ramp 8-bit'"
+    Comment (OBJECT): "Name of image"
+    ORIGIN: "'ESO     '"
+    Comment (ORIGIN): "File was prepared at ESO-Garching"
+    DATE: "'19/08/92'"
+    Comment (DATE): "Creation data of this file"
+    COMMENT0: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)"
+    COMMENT1: "Simple 8-bit ramp pattern for testing of FITS readers"
+Converting ../../../fits-images/pg93/tst0001.fits to tst0001.fits
+Comparing "../../../fits-images/pg93/tst0001.fits" and "tst0001.fits"
+Subimage 0: 123 x 321, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../fits-images/pg93/tst0002.fits :   73 x   31, 1 channel, uint16 fits
+    SHA-1: 4FCD0E343956DEA4E792786138651F9D8C81F615
+    channel list: A
+    Color space: unknown
+    SIMPLE: "T"
+    Comment (SIMPLE): "Standard FITS file"
+    CDELT1: -2.3
+    Comment (CDELT1): "Coordinate increment"
+    CRVAL1: -73.5
+    Comment (CRVAL1): "Coordinate of reference pixel"
+    CRPIX1: 12.1
+    Comment (CRPIX1): "Reference pixel in X"
+    CDELT2: 7.1
+    Comment (CDELT2): "Coordinate increment"
+    CRVAL2: 300.9
+    Comment (CRVAL2): "Coordinate of reference pixel"
+    CRPIX2: -11.3
+    Comment (CRPIX2): "Reference pixel in Y"
+    CDELT3: 0.003
+    Comment (CDELT3): "Coordinate increment"
+    CRVAL3: 21.1
+    Comment (CRVAL3): "Coordinate of reference pixel"
+    CRPIX3: 199
+    Comment (CRPIX3): "Reference pixel in Z"
+    CTYPE3: "'VELO    '"
+    Comment (CTYPE3): "Type of Z axis"
+    CUNIT3: "'M/SEC   '"
+    Comment (CUNIT3): "Unit for Z axis"
+    OBJECT: "'Ramp 16-bit'"
+    Comment (OBJECT): "Name of image"
+    ORIGIN: "'ESO     '"
+    Comment (ORIGIN): "File was prepared at ESO-Garching"
+    DATE: "'20/08/92'"
+    Comment (DATE): "Creation data of this file"
+    COMMENT0: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)"
+    COMMENT1: "Simple 16-bit ramp pattern for testing of FITS readers"
+Converting ../../../fits-images/pg93/tst0002.fits to tst0002.fits
+Comparing "../../../fits-images/pg93/tst0002.fits" and "tst0002.fits"
+Subimage 0: 73 x 31, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../fits-images/pg93/tst0003.fits :  137 x  271, 1 channel, uint fits
+    SHA-1: 9D2DEE3C1411AB38B5DBAD0532F3679B797B2374
+    channel list: A
+    Color space: unknown
+    SIMPLE: "T"
+    Comment (SIMPLE): "Standard FITS file"
+    EXTEND: "T"
+    Comment (EXTEND): "There may be FITS extensions"
+    BLOCKED: "T"
+    Comment (BLOCKED): "The file may be blocked"
+    CDELT1: -0.12321
+    Comment (CDELT1): "Coordinate increment"
+    CRVAL1: 15.231
+    Comment (CRVAL1): "Coordinate of reference pixel"
+    CRPIX1: 12
+    Comment (CRPIX1): "Reference pixel in X"
+    CTYPE1: "'RA      '"
+    Comment (CTYPE1): "Right Ascension"
+    CUNIT1: "'DEGREES '"
+    Comment (CUNIT1): "Right Ascension in degrees"
+    CDELT2: 0.001231
+    Comment (CDELT2): "Coordinate increment"
+    CRVAL2: -10.123
+    Comment (CRVAL2): "Coordinate of reference pixel"
+    CRPIX2: -11.1
+    Comment (CRPIX2): "Reference pixel in Y"
+    CTYPE2: "'DEC     '"
+    Comment (CTYPE2): "Declination"
+    CUNIT2: "'DEGREES '"
+    Comment (CUNIT2): "Declination in degrees"
+    OBJECT: "'Ramp 32-bit'"
+    Comment (OBJECT): "Name of image"
+    ORIGIN: "'ESO     '"
+    Comment (ORIGIN): "File was prepared at ESO-Garching"
+    DATE: "'20/08/92'"
+    Comment (DATE): "Creation data of this file"
+    COMMENT0: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)"
+    COMMENT1: "Simple 32-bit ramp pattern for testing of FITS readers"
+Converting ../../../fits-images/pg93/tst0003.fits to tst0003.fits
+Comparing "../../../fits-images/pg93/tst0003.fits" and "tst0003.fits"
+Subimage 0: 137 x 271, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../fits-images/pg93/tst0005.fits :  102 x  109, 1 channel, float fits
+    SHA-1: 763996BCEADB93234A73AD0D714C3E9D874014CE
+    channel list: A
+    Color space: unknown
+    SIMPLE: "T"
+    Comment (SIMPLE): "Standard FITS file"
+    EXTEND: "T"
+    Comment (EXTEND): "There may be FITS extensions"
+    BLOCKED: "T"
+    Comment (BLOCKED): "The file may be blocked"
+    CDELT1: 3.1
+    Comment (CDELT1): "Coordinate increment"
+    CRVAL1: 1299.1
+    Comment (CRVAL1): "Coordinate of reference pixel"
+    CRPIX1: 12.3
+    Comment (CRPIX1): "Reference pixel in X"
+    CDELT2: -0.17
+    Comment (CDELT2): "Coordinate increment"
+    CRVAL2: -102.4
+    Comment (CRVAL2): "Coordinate of reference pixel"
+    CRPIX2: -2031.8
+    Comment (CRPIX2): "Reference pixel in Y"
+    OBJECT: "'Wave 32-bit FP'"
+    Comment (OBJECT): "Name of image"
+    ORIGIN: "'ESO     '"
+    Comment (ORIGIN): "File was prepared at ESO-Garching"
+    DATE: "'20/08/92'"
+    Comment (DATE): "Creation data of this file"
+    COMMENT0: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)"
+    COMMENT1: "Simple 32-bit FP sine wave pattern for testing of FITS readers"
+Converting ../../../fits-images/pg93/tst0005.fits to tst0005.fits
+Comparing "../../../fits-images/pg93/tst0005.fits" and "tst0005.fits"
+Subimage 0: 102 x 109, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../fits-images/pg93/tst0006.fits :   77 x  173, 1 channel, double fits
+    SHA-1: B043726D3F76840AAC84713C1A6C323D85CADC74
+    channel list: A
+    Color space: unknown
+    SIMPLE: "T"
+    Comment (SIMPLE): "Standard FITS file"
+    EXTEND: "T"
+    Comment (EXTEND): "There may be FITS extensions"
+    BLOCKED: "T"
+    Comment (BLOCKED): "The file may be blocked"
+    CDELT1: -0.25
+    Comment (CDELT1): "Coordinate increment"
+    CRVAL1: 1.5
+    Comment (CRVAL1): "Coordinate of reference pixel"
+    CRPIX1: 12.5
+    Comment (CRPIX1): "Reference pixel in X"
+    CDELT2: 1.1
+    Comment (CDELT2): "Coordinate increment"
+    CRVAL2: -3.7
+    Comment (CRVAL2): "Coordinate of reference pixel"
+    CRPIX2: 19.3
+    Comment (CRPIX2): "Reference pixel in Y"
+    OBJECT: "'Wave 64-bit fp'"
+    Comment (OBJECT): "Name of image"
+    ORIGIN: "'ESO     '"
+    Comment (ORIGIN): "File was prepared at ESO-Garching"
+    DATE: "'20/08/92'"
+    Comment (DATE): "Creation data of this file"
+    COMMENT0: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)"
+    COMMENT1: "Simple 64-bit FP sine wave pattern for testing of FITS readers"
+Converting ../../../fits-images/pg93/tst0006.fits to tst0006.fits
+Comparing "../../../fits-images/pg93/tst0006.fits" and "tst0006.fits"
+Subimage 0: 77 x 173, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+Converting ../../../fits-images/pg93/tst0007.fits to tst0007.fits
+Comparing "../../../fits-images/pg93/tst0007.fits" and "tst0007.fits"
+Subimage 0: 38 x 0, 1 channel
+  Mean error = nan
+  RMS error = nan
+  Peak SNR = nan
+  Max error  = 0
+  0 pixels (-1.#J%) over 1e-06
+  0 pixels (-1.#J%) over 1e-06
+PASS
+Converting ../../../fits-images/pg93/tst0008.fits to tst0008.fits
+Comparing "../../../fits-images/pg93/tst0008.fits" and "tst0008.fits"
+Subimage 0: 38 x 0, 1 channel
+  Mean error = nan
+  RMS error = nan
+  Peak SNR = nan
+  Max error  = 0
+  0 pixels (-1.#J%) over 1e-06
+  0 pixels (-1.#J%) over 1e-06
+PASS
+Converting ../../../fits-images/pg93/tst0009.fits to tst0009.fits
+Comparing "../../../fits-images/pg93/tst0009.fits" and "tst0009.fits"
+Subimage 0: 0 x 0, 1 channel
+  Mean error = nan
+  RMS error = nan
+  Peak SNR = nan
+  Max error  = 0
+  0 pixels (-1.#J%) over 1e-06
+  0 pixels (-1.#J%) over 1e-06
+Subimage 1: 0 x 0, 1 channel
+../../../fits-images/pg93/tst0013.fits :  128 x  128, 1 channel, float fits
+    SHA-1: 2DAE86283E1BCB155774A83F88C75B045FB9B28C
+    channel list: A
+    Color space: unknown
+    SIMPLE: "T"
+    Comment (SIMPLE): "Standard FITS format (rev Feb 85)"
+    BLOCKED: "T"
+    Comment (BLOCKED): "Blocked Format"
+    ORIGIN: "'BASIC-UX-LA SILLA '"
+    Comment (ORIGIN): "CREATED IN BASIC UX"
+    OBJECT: "'Test data         '"
+    Comment (OBJECT): "Identifier (16 chars)"
+    DATE: "'13/05/93          '"
+    Comment (DATE): "Date this file was written"
+    DATE-OBS: "'13/05/93          '"
+    Comment (DATE-OBS): "Date this data were created"
+    TM-START: 69932
+    Comment (TM-START): "Measurement start time (sec. UT)"
+    TM-END: 70121
+    Comment (TM-END): "Measurement end time (sec. UT)"
+    TIME-SID: 36564
+    Comment (TIME-SID): "Sideral start time (sec.)"
+    RA: 187.372
+    Comment (RA): "tel. pos. right-ascens."
+    DEC: -21.2211
+    Comment (DEC): "tel. pos. declination"
+    AIRMASS: 1.019
+    Comment (AIRMASS): "Airmass"
+    INSTRUME: "'IRAC-2a           '"
+    Comment (INSTRUME): "System which created data"
+    CRVAL1: 1
+    Comment (CRVAL1): "coordinate of 1. pixel (xstart)"
+    CRPIX1: 1
+    Comment (CRPIX1): "array location of reference pixel"
+    CDELT1: 1
+    Comment (CDELT1): "increment along axis (x-step)"
+    CTYPE1: "' PIXEL  '"
+    Comment (CTYPE1): "coordinate type"
+    CRVAL2: 1
+    Comment (CRVAL2): "coordinate of 1. pixel (ystart)"
+    CRPIX2: 1
+    Comment (CRPIX2): "array location of reference pixel"
+    CDELT2: 1
+    Comment (CDELT2): "increment along axis (y-step)"
+    CTYPE2: "' PIXEL  '"
+    Comment (CTYPE2): "coordinate type"
+    EXPTIME: 2
+    Comment (EXPTIME): "Exposure time"
+    OBSERVER: "'P.Grosbol        '"
+    COMMENT0: "'May 13           ,           / '"
+    HIERARCH0: "ESO GEN ID = 'Unknown '"
+    HIERARCH1: "ESO GEN NO = 12371"
+    HIERARCH2: "ESO GEN TYPE = 'SCI '"
+    HIERARCH3: "ESO GEN LST = 0.36564E+05"
+    HIERARCH4: "ESO TEL ID = 'ESO22I '"
+    HIERARCH5: "ESO TEL LON = -70.7345"
+    HIERARCH6: "ESO TEL LAT = -29.2584"
+    HIERARCH7: "ESO TEL HEIGHT = 2440"
+    HIERARCH8: "ESO TEL FOCUS LENGTH= 77000"
+    HIERARCH9: "ESO TEL BEAMSWITCH = 'OFF '"
+    HIERARCH10: "ESO TEL FOC-POS = 0.29320E+04"
+    HIERARCH11: "ESO INS NAME = 'IRAC-2 '"
+    HIERARCH12: "ESO INS LENS = 'LC 0 '"
+    HIERARCH13: "ESO INS MAGN = '0.49 '"
+    HIERARCH14: "ESO INS FILTER = 'KP '"
+    HIERARCH15: "ESO INS FILT-CUTON = 0.19400E+01"
+    HIERARCH16: "ESO INS FILT-CUTOFF = 0.22800E+01"
+    HIERARCH17: "ESO INS FILT-TRANSM = 0.82000E+00"
+    HIERARCH18: "ESO INS FP-POS = 'OUT '"
+    HIERARCH19: "ESO INS FP-WAVE-LEN = 0.00000E+00"
+    HIERARCH20: "ESO DET NAME = 'ROCK 256^2'"
+    HIERARCH21: "ESO DET PIX_SIZE = 4.E-5"
+    HIERARCH22: "ESO DET BITS = 16"
+    HIERARCH23: "ESO DET DIT = 0.20000E+01"
+    HIERARCH24: "ESO DET NDIT = 90"
+    HIERARCH25: "ESO DET NINT = 1"
+    HIERARCH26: "ESO DET DUMDIT = 0"
+    HIERARCH27: "ESO DET NCORRS = 'Double '"
+Converting ../../../fits-images/pg93/tst0013.fits to tst0013.fits
+Comparing "../../../fits-images/pg93/tst0013.fits" and "tst0013.fits"
+Subimage 0: 128 x 128, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+Converting ../../../fits-images/ftt4b/file001.fits to file001.fits
+Comparing "../../../fits-images/ftt4b/file001.fits" and "file001.fits"
+Subimage 0: 0 x 0, 1 channel
+  Mean error = nan
+  RMS error = nan
+  Peak SNR = nan
+  Max error  = 0
+  0 pixels (-1.#J%) over 1e-06
+  0 pixels (-1.#J%) over 1e-06
+PASS
+Converting ../../../fits-images/ftt4b/file002.fits to file002.fits
+Comparing "../../../fits-images/ftt4b/file002.fits" and "file002.fits"
+Subimage 0: 0 x 0, 1 channel
+  Mean error = nan
+  RMS error = nan
+  Peak SNR = nan
+  Max error  = 0
+  0 pixels (-1.#J%) over 1e-06
+  0 pixels (-1.#J%) over 1e-06
+PASS
+../../../fits-images/ftt4b/file003.fits :  512 x  512, 1 channel, uint16 fits
+    SHA-1: 5CC4340F5D8AB2B776D2E12BFE946CA5CAFA38C6
+    channel list: A
+    Color space: unknown
+    SIMPLE: "T"
+    EXTEND: "T"
+    Comment (EXTEND): "TABLES FOLLOWING MAIN IMAGE"
+    OBJECT: "'3C348   '"
+    Comment (OBJECT): "SOURCE  NAME"
+    TELESCOP: "'        '"
+    INSTRUME: "'        '"
+    OBSERVER: "'LISZ    '"
+    DATE-OBS: "'29/01/84'"
+    Comment (DATE-OBS): "OBSERVATION START DATE DD/MM/YY"
+    DATE-MAP: "'26/03/84'"
+    Comment (DATE-MAP): "DATE OF LAST PROCESSING DD/MM/YY"
+    BSCALE: 2.59397e-005
+    Comment (BSCALE): "REAL = TAPE * BSCALE + BZERO"
+    BZERO: 0.710747
+    BUNIT: "'JY/BEAM '"
+    Comment (BUNIT): "UNITS OF FLUX"
+    EPOCH: 1950
+    Comment (EPOCH): "EPOCH OF RA DEC"
+    BLANK: -32768
+    Comment (BLANK): "TAPE VALUE OF BLANK PIXEL"
+    OBSRA: 252.167
+    Comment (OBSRA): "ANTENNA POINTING RA"
+    OBSDEC: 5.07648
+    Comment (OBSDEC): "ANTENNA POINTING DEC"
+    DATAMAX: 1.56066
+    Comment (DATAMAX): "MAX PIXEL VALUE"
+    DATAMIN: -0.139115
+    Comment (DATAMIN): "MIN PIXEL VALUE"
+    CTYPE1: "'RA---SIN'"
+    CRVAL1: 252.167
+    CDELT1: -0.000305556
+    CRPIX1: 256
+    CROTA1: 0
+    CTYPE2: "'DEC--SIN'"
+    CRVAL2: 5.07648
+    CDELT2: 0.000305556
+    CRPIX2: 257
+    CROTA2: 0
+    CTYPE3: "'FREQ    '"
+    CRVAL3: 1420584192
+    CDELT3: 293000
+    CRPIX3: 1
+    CROTA3: 0
+    CTYPE4: "'STOKES  '"
+    CRVAL4: -1
+    CDELT4: 1
+    CRPIX4: 1
+    CROTA4: 0
+    HISTORY5: "UVLOD RELEASE='15NOV83 '"
+    HISTORY6: "UVLOD OUTNAME='3C348-CONT  '   OUTCLASS='UVTB  '                "
+    HISTORY7: "UVLOD OUTSEQ=    1   OUTDISK=  2                                HISTORY"
+    HISTORY8: "UVLOD  SOURCE='3C348   ' QUAL= -1 BAND='L '                     HISTORY"
+    HISTORY9: "UVLOD"
+    HISTORY10: "AIPS   IMNAME='3C348-CONT  ' IMCLASS='UVTB  ' IMSEQ=   1"
+    HISTORY11: "AIPS   USERNO=  310"
+    HISTORY14: "AIPS WTSCAL =  2.64654192081E-02"
+    HISTORY16: "UVLOD RELEASE= '15MAY84 '"
+    HISTORY17: "UVLOD OUTNAME='            '   OUTCLASS='      '                HISTORY"
+    HISTORY18: "UVLOD OUTSEQ=    1   OUTDISK=  3                                HISTORY"
+    HISTORY19: "UVLOD"
+    HISTORY20: "TABNAME = 'AIPS  AN'"
+    HISTORY21: "TABVER  =                    1"
+    HISTORY22: "TABCOUNT=                   28"
+    HISTORY23: "TABWIDTH=                    5"
+    HISTORY24: "TABCARDS=                    5"
+    HISTORY25: "TTYPE1  = 'ANT NO. '"
+    HISTORY26: "TTYPE2  = 'STATION '"
+    HISTORY27: "TTYPE3  = 'LX      '"
+    HISTORY28: "TTYPE4  = 'LY      '"
+    HISTORY29: "TTYPE5  = 'LZ      '"
+    HISTORY30: "ASCAL RELEASE ='15MAR84 '"
+    HISTORY31: "ASCAL INNAME='3C348-CONT  '   INCLASS='UVTB  '                  HISTORY"
+    HISTORY32: "ASCAL INSEQ=    1   INDISK=  3                                  HISTORY"
+    HISTORY33: "ASCAL IN2NAME='3C348-CONT  '   IN2CLASS='RCLN  '                HISTORY"
+    HISTORY34: "ASCAL IN2SEQ=  102   IN2DISK=  3                                "
+    HISTORY35: "ASCAL OUTNAME='3C348-CONT  '   OUTCLASS='SCTB  '                HISTORY"
+    HISTORY36: "ASCAL OUTSEQ=  102   OUTDISK=  3                                HISTORY"
+    HISTORY37: "ASCAL NITER= 4001 VER=  1"
+    HISTORY38: "ASCAL BLMIN= 0.100E+02 BLMAX= 0.100E+03"
+    HISTORY39: "ASCAL REFANT= 0. MINANT= 3."
+    HISTORY40: "ASCAL"
+    HISTORY41: "ASCAL APARM(7)=    2"
+    HISTORY42: "ASCAL  APARM(10)= 0.00"
+    HISTORY43: "ASCAL"
+    HISTORY44: "ASCAL"
+    HISTORY45: "ASCAL"
+    HISTORY46: "ASCAL"
+    HISTORY47: "ASCAL"
+    HISTORY48: "UVSRT RELEASE ='15MAY84 '"
+    HISTORY49: "UVSRT INNAME='3C348-CONT  '   INCLASS='SCTB  '                  HISTORY"
+    HISTORY50: "UVSRT INSEQ=  102   INDISK=  3                                  HISTORY"
+    HISTORY51: "UVSRT OUTNAME='3C348-CONT  '   OUTCLASS='SCXY  '                HISTORY"
+    HISTORY52: "UVSRT OUTSEQ=  102   OUTDISK=  3                                HISTORY"
+    HISTORY53: "UVSRT  SORT = 'XY'"
+    HISTORY54: "AXDEF INNAME='3C348-CONT  '   INCLASS='SCXY  '                  HISTORY"
+    HISTORY55: "AXDEF INSEQ=  102   INDISK=  3                                  "
+    HISTORY56: "AXDEF CTYPE2  = 'STOKES  '"
+    HISTORY57: "AXDEF CRVAL2  = -1.000000000E+00"
+    HISTORY58: "AXDEF CDELT2  = -1.00000E+00"
+    HISTORY59: "AXDEF CRPIX2  =     1.000"
+    HISTORY60: "AXDEF CTYPE2  = 'FREQ    '"
+    HISTORY61: "AXDEF CRVAL2  =  1.420511000E+09"
+    HISTORY62: "AXDEF CDELT2  =  1.46500E+05"
+    HISTORY63: "AXDEF CRPIX2  =     1.000"
+    HISTORY64: "AXDEF INNAME='3C348-CONT  '   INCLASS='SCXY  '                  HISTORY"
+    HISTORY65: "AXDEF INSEQ=  102   INDISK=  3                                  HISTORY"
+    HISTORY66: "AXDEF CTYPE3  = 'FREQ    '"
+    HISTORY67: "AXDEF CRVAL3  =  1.420511000E+09"
+    HISTORY68: "AXDEF CDELT3  =  4.90000E+04"
+    HISTORY69: "AXDEF CRPIX3  =     1.000"
+    HISTORY70: "AXDEF CTYPE3  = 'STOKES  '"
+    HISTORY71: "AXDEF CRVAL3  = -1.000000000E+00"
+    HISTORY72: "AXDEF CDELT3  = -1.00000E+00"
+    HISTORY73: "AXDEF CRPIX3  =     1.000"
+    HISTORY74: "MX    RELEASE ='15MAY84 '"
+    HISTORY75: "MX    OUTNAME='3C348-CONT  '   OUTCLASS='RMAP  '                HISTORY"
+    HISTORY76: "MX    OUTSEQ=  103   OUTDISK=  3                                "
+    HISTORY77: "MX     SOURCE='3C348   '                                        HISTORY"
+    HISTORY78: "MX"
+    HISTORY79: "MX     CHANNEL1=   1 NOCH=   1"
+    HISTORY80: "MX     ECHAN =   2"
+    HISTORY81: "MX     IMSIZE=  512,   512"
+    HISTORY82: "MX     BOX =     6     6   507   507"
+    HISTORY83: "MX     MAPFLD= 0.56320E+03,  0.56320E+03"
+    HISTORY84: "MX     CELLSIZE=-0.11000E+01,  0.11000E+01"
+    HISTORY85: "MX     FREQ= 0.1420584E+10 STOKES='R   '                        HISTORY"
+    HISTORY86: "MX     SHIFT=    0.0000,     0.0000                             HISTORY"
+    HISTORY87: "MX     UVTAPER= 0.00000E+00,  0.00000E+00"
+    HISTORY88: "MX     UVRANGE= 0.00000E+00,  0.10000E+16"
+    HISTORY89: "MX     UVWTFN='  ' , UVBOX =    0"
+    HISTORY90: "MX"
+    HISTORY91: "MX     XTYPE =  5 XPARM = 0.30000E+01,  0.10000E+01,  0.00000E+0HISTORY"
+    HISTORY92: "MX     ,  0.00000E+00,  0.00000E+00,  0.00000E+00,  0.00000E+00 HISTORY"
+    HISTORY93: "MX     ,  0.00000E+00,  0.00000E+00,  0.00000E+00,              HISTORY"
+    HISTORY94: "MX     YTYPE =  5 YPARM = 0.30000E+01,  0.10000E+01,  0.00000E+0HISTORY"
+    HISTORY95: "MX     ,  0.00000E+00,  0.00000E+00,  0.00000E+00,  0.00000E+00 HISTORY"
+    HISTORY96: "MX     ,  0.00000E+00,  0.00000E+00,  0.00000E+00,              HISTORY"
+    HISTORY97: "MX"
+    HISTORY98: "MX     NITER =      0"
+    HISTORY99: "MX     GAIN =  0.1000"
+    HISTORY100: "MX     FACTOR = 0.00"
+    HISTORY101: "MX     FLUX =  0.00000E+00"
+    HISTORY102: "MX     BMAJS=   4.59602 BMINS=   4.39417 BPAD= -34.714"
+    HISTORY103: "MX     MINPATCH =   52"
+    HISTORY104: "MX"
+    HISTORY105: "MX     DOCAT =    0.00000"
+    HISTORY106: "CNVRT INNAME='3C348-CONT  '   INCLASS='RMAP  '                  HISTORY"
+    HISTORY107: "CNVRT INSEQ=  103   INDISK=  3                                  HISTORY"
+    HISTORY108: "APCLN RELEASE ='15MAY84 '"
+    HISTORY109: "APCLN INNAME='3C348-CONT  '   INCLASS='RMAP  '                  HISTORY"
+    HISTORY110: "APCLN INSEQ=  103   INDISK=  3                                  HISTORY"
+    HISTORY111: "APCLN IN2NAME='3C348-CONT  '   IN2CLASS='RBEAM '                "
+    HISTORY112: "APCLN IN2SEQ=  103   IN2DISK=  3                                HISTORY"
+    HISTORY113: "APCLN OUTNAME='3C348-CONT  '   OUTCLASS='RESID '                HISTORY"
+    HISTORY114: "APCLN OUTSEQ=  103   OUTDISK=  3                                HISTORY"
+    HISTORY115: "APCLN  OUTVER =    1"
+    HISTORY116: "APCLN  NITER =  12000"
+    HISTORY117: "APCLN  BITER =      0"
+    HISTORY118: "APCLN  GAIN =  0.1000"
+    HISTORY119: "APCLN  FACTOR =-0.25"
+    HISTORY120: "APCLN  FLUX =  0.00000E+00"
+    HISTORY121: "APCLN  PHAT =  0.00000E+00"
+    HISTORY122: "APCLN  BMAJS=   4.59602 BMINS=   4.39417 BPAD= -34.714"
+    HISTORY123: "APCLN  NBOXES =   1"
+    HISTORY124: "APCLN  BOX( 1) =   123,   195,   392,   319"
+    HISTORY125: "APCLN  MINPATCH =   51"
+    HISTORY126: "APCLN"
+    HISTORY127: "APCLN"
+    HISTORY128: "APCLN"
+    HISTORY129: "RENAM INNAME='3C348-CONT  '   INCLASS='RESID '                  HISTORY"
+    HISTORY130: "RENAM INSEQ=  103   INDISK=  3                                  HISTORY"
+    HISTORY131: "RENAM OUTNAME='3C348-CONT  '   OUTCLASS='RCLN  '                HISTORY"
+    HISTORY132: "RENAM OUTSEQ=  103   OUTDISK=  3                                "
+    HISTORY133: "AIPS   IMNAME='3C348-CONT  ' IMCLASS='RCLN  ' IMSEQ= 103"
+    HISTORY134: "AIPS   USERNO=  269"
+    HISTORY135: "AIPS   CLEAN BMAJ=  1.2767E-03 BMIN=  1.2206E-03 BPA= -34.71    HISTORY"
+    HISTORY136: "AIPS   CLEAN NITER= 12000 PRODUCT=1"
+    HISTORY139: "IMLOD OUTNAME ='3C348-CONT  '      OUTCLASS ='RCLN  '"
+    HISTORY140: "IMLOD OUTSEQ =    1     INTAPE = 2     OUTDISK= 2"
+    HISTORY141: "IMLOD RELEASE = '15MAY84 '"
+    HISTORY142: "IMLOD"
+    HISTORY143: "IMLOD XTENSION= 'TABLE   '"
+    HISTORY144: "IMLOD NAXIS2  =               12000"
+    HISTORY145: "IMLOD TFIELDS =                   3"
+    HISTORY146: "IMLOD EXTNAME = 'AIPS CC '"
+    HISTORY147: "IMLOD EXTVER  =                   1"
+    HISTORY148: "IMLOD EXTLEV  =                   1"
+    HISTORY149: "IMLOD TTYPE1  = 'FLUX    '"
+    HISTORY150: "IMLOD TUNIT1  = 'JY      '"
+    HISTORY151: "IMLOD TTYPE2  = 'DELTAX  '"
+    HISTORY152: "IMLOD TUNIT2  = 'DEGREES '"
+    HISTORY153: "IMLOD TTYPE3  = 'DELTAY  '"
+    HISTORY154: "IMLOD TUNIT3  = 'DEGREES '"
+    HISTORY155: "CNVRT INNAME='3C348-CONT  '   INCLASS='RCLN  '"
+    HISTORY156: "CNVRT INSEQ=    1   INDISK=  2"
+    HISTORY157: "CNVRT INNAME='3C348-CONT  '   INCLASS='RCLN  '"
+    HISTORY158: "CNVRT INSEQ=    1   INDISK=  2"
+    HISTORY159: "CNVRT INNAME='3C348-CONT  '   INCLASS='RCLN  '"
+    HISTORY160: "CNVRT INSEQ=    1   INDISK=  2"
+    HISTORY161: "CNVRT INNAME='3C348-CONT  '   INCLASS='RCLN  '"
+    HISTORY162: "CNVRT INSEQ=    1   INDISK=  2"
+    HISTORY163: "CNVRT INNAME='3C348-CONT  '   INCLASS='RCLN  '"
+    HISTORY164: "CNVRT INSEQ=    1   INDISK=  2"
+    HISTORY165: "CNVRT INNAME='3C348-CONT  '   INCLASS='RCLN  '"
+    HISTORY166: "CNVRT INSEQ=    1   INDISK=  2"
+    ORIGIN: "'AIPSNRAO node CVAX       15JUL84'"
+    DATE: "'24/05/84'"
+    Comment (DATE): "TAPE WRITTEN ON DD/MM/YY"
+    HISTORY167: "AIPS   IMNAME='3C348-CONT  ' IMCLASS='RCLN  ' IMSEQ=   1"
+    HISTORY168: "AIPS   USERNO=  545"
+    HISTORY169: "AIPS   CLEAN BMAJ=  1.2767E-03 BMIN=  1.2206E-03 BPA= -34.71"
+    HISTORY170: "AIPS   CLEAN NITER= 12000 PRODUCT=1"
+Converting ../../../fits-images/ftt4b/file003.fits to file003.fits
+Comparing "../../../fits-images/ftt4b/file003.fits" and "file003.fits"
+Subimage 0: 512 x 512, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+Comparing "../../../fits-images/ftt4b/file009.fits" and "file009.fits"
+../../../fits-images/ftt4b/file012.fits :  513 x  513, 1 channel, uint16 fits
+    SHA-1: 844CE9474D5C9E91154E41D7ED417173DE57286D
+    channel list: A
+    Color space: unknown
+    SIMPLE: "T"
+    TABLES: 1
+    Comment (TABLES): "# TABLES FOLLOWING IMAGE"
+    OBJECT: "'M84     '"
+    TELESCOP: "'        '"
+    INSTRUME: "'        '"
+    OBSERVER: "'LAIN    '"
+    DATE-OBS: "'16/11/81'"
+    DATE-MAP: "'09/02/82'"
+    BSCALE: 2.85522e-006
+    BZERO: 0.0889426
+    BUNIT: "'JY/BEAM '"
+    CTYPE1: "'LL      '"
+    CTYPE2: "'MM      '"
+    CTYPE3: "'FREQ    '"
+    CTYPE4: "'STOKES  '"
+    CRVAL1: 185.631
+    CRVAL2: 13.1638
+    CRVAL3: 4.8851e+009
+    CRVAL4: 1
+    CDELT1: -0.000277778
+    CDELT2: 0.000277778
+    CDELT3: 50000000
+    CDELT4: 0
+    CRPIX1: 257
+    CRPIX2: 258
+    CRPIX3: 1
+    CRPIX4: 1
+    CROTA1: 0
+    CROTA2: 0
+    CROTA3: 0
+    CROTA4: 0
+    EPOCH: 1950
+    DATAMAX: 0.18248
+    DATAMIN: -0.00459448
+    HISTORY0: "UVLOD"
+    HISTORY1: "UVLOD OUTNAME='M84 6 EC    '   OUTCLASS='UVTB  '"
+    HISTORY2: "UVLOD OUTSEQ=    1   OUTDISK=  3"
+    HISTORY3: "UVLOD  SOURCE='M84     ' QUAL= -1 BAND='C '"
+    HISTORY4: "UVLOD"
+    HISTORY5: "ASCAL"
+    HISTORY6: "ASCAL INNAME='M84 6 EC    '   INCLASS='UVTB  '"
+    HISTORY7: "ASCAL INSEQ=    1   INDISK=  3"
+    HISTORY8: "ASCAL IN2NAME='M84 6C EC   '   IN2CLASS='ICLN  '"
+    HISTORY9: "ASCAL IN2SEQ=    1   IN2DISK=  3"
+    HISTORY10: "ASCAL OUTNAME='M84 6C SC1  '   OUTCLASS='UVTB  '"
+    HISTORY11: "ASCAL OUTSEQ=    1   OUTDISK=  3"
+    HISTORY12: "ASCAL NITER=12000"
+    HISTORY13: "ASCAL BLMIN= 0.000E+00 BLMAX= 0.100E+11"
+    HISTORY14: "ASCAL REFANT= 0. MINANT= 3."
+    HISTORY15: "ASCAL"
+    HISTORY16: "ASCAL"
+    HISTORY17: "ASCAL"
+    HISTORY18: "ASCAL"
+    HISTORY19: "ASCAL"
+    HISTORY20: "ASCAL"
+    HISTORY21: "ASCAL"
+    HISTORY22: "ASCAL"
+    HISTORY23: "ASCAL INNAME='M84 6C SC1  '   INCLASS='UVTB  '"
+    HISTORY24: "ASCAL INSEQ=    1   INDISK=  3"
+    HISTORY25: "ASCAL IN2NAME='M84 6C SC1  '   IN2CLASS='ICLN  '"
+    HISTORY26: "ASCAL IN2SEQ=    1   IN2DISK=  3"
+    HISTORY27: "ASCAL OUTNAME='M84 6C SC2  '   OUTCLASS='UVTB  '"
+    HISTORY28: "ASCAL OUTSEQ=    1   OUTDISK=  3"
+    HISTORY29: "ASCAL NITER=12000"
+    HISTORY30: "ASCAL BLMIN= 0.000E+00 BLMAX= 0.100E+11"
+    HISTORY31: "ASCAL REFANT= 0. MINANT= 3."
+    HISTORY32: "ASCAL"
+    HISTORY33: "ASCAL"
+    HISTORY34: "ASCAL"
+    HISTORY35: "ASCAL"
+    HISTORY36: "ASCAL"
+    HISTORY37: "ASCAL"
+    HISTORY38: "RENAM INNAME='M84 6C SC2  '   INCLASS='UVTB  '"
+    HISTORY39: "RENAM INSEQ=    1   INDISK=  3"
+    HISTORY40: "RENAM OUTNAME='M84 6C SC2  '   OUTCLASS='UV    '"
+    HISTORY41: "RENAM OUTSEQ=    1   OUTDISK=  3"
+    HISTORY42: "UVSRT"
+    HISTORY43: "UVSRT INNAME='M84 6C SC2  '   INCLASS='UV    '"
+    HISTORY44: "UVSRT INSEQ=    1   INDISK=  3"
+    HISTORY45: "UVSRT OUTNAME='M84 6C SC2  '   OUTCLASS='UVXY  '"
+    HISTORY46: "UVSRT OUTSEQ=    1   OUTDISK=  3"
+    HISTORY47: "UVSRT  SORT = 'XY'"
+    HISTORY48: "UVMAP"
+    HISTORY49: "UVMAP"
+    HISTORY50: "UVMAP OUTNAME='M84 6C SC2  '   OUTCLASS='IMAP  '"
+    HISTORY51: "UVMAP OUTSEQ=    1   OUTDISK=  3"
+    HISTORY52: "UVMAP  SOURCE='M84     '"
+    HISTORY53: "UVMAP  CHANNEL =   1"
+    HISTORY54: "UVMAP"
+    HISTORY55: "UVMAP"
+    HISTORY56: "UVMAP  IMSIZE= 1024,  1024 CENTER=  512,   513"
+    HISTORY57: "UVMAP  MAPFLD= 1024.00,  1024.00"
+    HISTORY58: "UVMAP  CELLSIZE=    1.00,     1.00"
+    HISTORY59: "UVMAP  FREQ= 0.4885100E+01 STOKES='I   '"
+    HISTORY60: "UVMAP  SHIFT=    0.0000,     0.0000"
+    HISTORY61: "UVMAP  UVTAPER= 0.00000E+00,  0.00000E+00"
+    HISTORY62: "UVMAP  UVRANGE= 0.00000E+00,  0.10000E+11"
+    HISTORY63: "UVMAP  UVWTFN='  ' , UVBOX =    0"
+    HISTORY64: "UVMAP  WTZSP=30.000"
+    HISTORY65: "UVMAP  ZEROSP=     2.840,      0.000,      0.000,      0.000"
+    HISTORY66: "UVMAP"
+    HISTORY67: "UVMAP  XTYPE =  4 XPARM = 0.30000E+01,  0.15500E+01,  0.25200E+01"
+    HISTORY68: "UVMAP  ,  0.20000E+01,  0.00000E+00,  0.00000E+00,  0.00000E+00"
+    HISTORY69: "UVMAP  ,  0.00000E+00,  0.00000E+00,  0.00000E+00,"
+    HISTORY70: "UVMAP  YTYPE =  4 YPARM = 0.30000E+01,  0.15500E+01,  0.25200E+01"
+    HISTORY71: "UVMAP  ,  0.20000E+01,  0.00000E+00,  0.00000E+00,  0.00000E+00"
+    HISTORY72: "UVMAP  ,  0.00000E+00,  0.00000E+00,  0.00000E+00,"
+    HISTORY73: "UVMAP  DOGRIDCR = 1"
+    HISTORY74: "UVMAP"
+    HISTORY75: "APCLN"
+    HISTORY76: "APCLN INNAME='M84 6C SC2  '   INCLASS='IMAP  '"
+    HISTORY77: "APCLN INSEQ=    1   INDISK=  3"
+    HISTORY78: "APCLN IN2NAME='M84 6C SC2  '   IN2CLASS='IBEM  '"
+    HISTORY79: "APCLN IN2SEQ=    1   IN2DISK=  3"
+    HISTORY80: "APCLN OUTNAME='M84 6C SC2  '   OUTCLASS='ICLN  '"
+    HISTORY81: "APCLN OUTSEQ=    1   OUTDISK=  3"
+    HISTORY82: "APCLN  OUTVER =    1"
+    HISTORY83: "APCLN  NITER =  12000"
+    HISTORY84: "APCLN  BITER =      0"
+    HISTORY85: "APCLN  GAIN =  0.3000"
+    HISTORY86: "APCLN  FACTOR = 0.00"
+    HISTORY87: "APCLN  FLUX =  0.00000E+00"
+    HISTORY88: "APCLN  BMAJS=   3.881 BMINS=   3.848 BPAD= -34.453"
+    HISTORY89: "APCLN  NBOXES =   1"
+    HISTORY90: "APCLN  BOX( 1) =   420,   410,   560,   590"
+    HISTORY91: "APCLN  MINPATCH =  127"
+    HISTORY92: "APCLN"
+    HISTORY93: "APCLN"
+    ORIGIN: "'AIPS  '"
+    DATE: "'02/09/82'"
+    HISTORY94: "AIPS   IMNAME='M84 6C SC2  ' IMCLASS='ICLN  ' IMSEQ=   1"
+    HISTORY95: "AIPS   USERNO=  504"
+    HISTORY96: "AIPS   CLEAN BMAJ=  0.1078E-02 BMIN=  0.1067E-02 BPA= -34.45"
+    HISTORY97: "AIPS   CLEAN NITER= 12000 PRODUCT=1"
+Converting ../../../fits-images/ftt4b/file012.fits to file012.fits
+Comparing "../../../fits-images/ftt4b/file012.fits" and "file012.fits"
+Subimage 0: 513 x 513, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS

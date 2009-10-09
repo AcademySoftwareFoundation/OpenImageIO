@@ -1,0 +1,288 @@
+/*
+  Copyright 2008-2009 Larry Gritz and the other authors and contributors.
+  All Rights Reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are
+  met:
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+  * Neither the name of the software's owners nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+  (This is the Modified BSD License)
+*/
+
+
+#include "fits_pvt.h"
+using namespace fits_pvt;
+
+
+
+// Obligatory material to make this a recognizeable imageio plugin
+extern "C" {
+    DLLEXPORT ImageOutput *fits_output_imageio_create () {
+        return new FitsOutput;
+    }
+    DLLEXPORT const char *fits_output_extensions[] = {
+        "fits", NULL
+    };
+};
+
+
+
+bool
+FitsOutput::open (const std::string &name, const ImageSpec &spec,
+                       bool append)
+{
+    // saving 'name' and 'spec' for later use
+    m_filename = name;
+    m_spec = spec;
+
+    // checking if the file exists and can be opened in WRITE mode
+    m_fd = fopen (m_filename.c_str (), append ? "r+b" : "wb");
+    if (!m_fd) {
+        error ("Unable to open file \"%s\"", m_filename.c_str());
+        return false;
+    }
+
+    create_fits_header ();
+
+    // now we can get the current position in the file
+    // we will need it int the write_native_scanline method
+    fgetpos(m_fd, &m_filepos);
+    return true;
+}
+
+
+
+bool
+FitsOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
+                            stride_t xstride)
+{
+    if (m_spec.width == 0 && m_spec.height == 0)
+        return true;
+    if (y > m_spec.height) {
+        error ("Attempt to write too many scanlines to %s", m_filename.c_str());
+        close ();
+        return false;
+    }
+
+    data = to_native_scanline (format, data, xstride, m_scratch);
+
+    std::vector<unsigned char> data_tmp (m_spec.scanline_bytes (), 0);
+    memcpy (&data_tmp[0], data, m_spec.scanline_bytes ());
+
+    // computing scanline offset
+    long scanline_off = (m_spec.height - y) * m_spec.scanline_bytes ();
+    fseek (m_fd, scanline_off, SEEK_CUR);
+
+    // in FITS image data is stored in big-endian so we have to switch to
+    // big-endian on little-endian machines
+    if (littleendian ()) {
+        if (m_bitpix == 16)
+            swap_endian ((unsigned short*)&data_tmp[0],
+                          data_tmp.size () / sizeof (unsigned short));
+        else if (m_bitpix == 32)
+            swap_endian ((unsigned int*)&data_tmp[0],
+                         data_tmp.size () / sizeof (unsigned int));
+        else if (m_bitpix == -32)
+            swap_endian ((float*)&data_tmp[0],
+                         data_tmp.size () / sizeof (float));
+        else if (m_bitpix == -64)
+            swap_endian ((double*)&data_tmp[0],
+                         data_tmp.size () / sizeof (double));
+    }
+
+    fwrite (&data_tmp[0], 1, data_tmp.size (), m_fd);
+
+    fsetpos (m_fd, &m_filepos);
+    return true;
+}
+
+
+
+bool
+FitsOutput::supports (const std::string &feature) const
+{
+    // for now we only supports IMAGE extensions
+    if (feature == "multiimage")
+        return true;
+    if (feature == "random_access")
+        return true;
+    return false;
+}
+
+
+
+bool
+FitsOutput::close (void)
+{
+    if (m_fd)
+        fclose (m_fd);
+    init ();
+    return true;
+}
+
+
+
+void
+FitsOutput::create_fits_header (void)
+{
+    std::string header;
+    create_basic_header (header);
+
+    //we add all keywords stored in ImageSpec to the FITS file
+    for (size_t i = 0; i < m_spec.extra_attribs.size (); ++i) {
+
+        std::string keyname = m_spec.extra_attribs[i].name().string();
+        // if keyname begin with 'Comment (' it means that this is comment
+        // string; for now we ommit this - we add comment later
+        if (! keyname.substr(0, 9).compare ("Comment ("))
+            continue;
+
+        // we ommit SIMPLE and XTENSION keywords as we add them in
+        // create basic header
+        if (keyname == "SIMPLE" || keyname == "XTENSION")
+            continue;
+
+        std::string value;
+        TypeDesc attr_format = m_spec.extra_attribs[i].type();
+        if (attr_format == TypeDesc::STRING) {
+            value = *(const char**)m_spec.extra_attribs[i].data();
+            // boolean values are placed on byte 30 of the card
+            // (20 of the value field)
+            if (value.size () == 1 && (value[0] == 'T' || value[0] == 'F')) {
+                std::string new_val (19, ' ');
+                new_val += value;
+                value = new_val;
+            }
+            else if (value.substr (0, 7) == "COMMENT"
+                     || value.substr (0, 7) == "HISTORY")
+                value = value.substr (0, 7);
+            else if (value.substr (0, 8) == "HIERARCH")
+                value = "HIERARCH";
+        }
+        else if (attr_format == TypeDesc::INT) {
+            int val = (*(int*)m_spec.extra_attribs[i].data());
+            value = num2str ((float)val);
+        }
+        else if (attr_format == TypeDesc::FLOAT) {
+            float val = (*(float*)m_spec.extra_attribs[i].data());
+            value = num2str (val);
+        }
+
+        // now we search comment for given attribute
+        // comments are stored in 'Comment (KEYNAME)' format
+        std::string comment ("Comment (" + keyname + ")");
+        std::string commval;
+        ImageIOParameter *comm = m_spec.find_attribute (comment,
+                                                        TypeDesc::STRING);
+        if (comm && comm->data())
+            commval = *(char**)comm->data();
+        header += create_card (keyname, value, commval);
+
+        if (header.size () == HEADER_SIZE) {
+            fwrite (&header[0], 1, HEADER_SIZE, m_fd);
+            header.clear ();
+        }
+
+    }
+
+    if (header.size () == HEADER_SIZE) {
+        fwrite (&header[0], 1, HEADER_SIZE, m_fd);
+        header.clear ();
+    }
+    header += "END";
+    header.resize (HEADER_SIZE, ' ');
+    fwrite (&header[0], 1, HEADER_SIZE, m_fd);
+
+}
+
+
+
+void
+FitsOutput::create_basic_header (std::string &header)
+{
+    // the first word in the header is SIMPLE, that informs if given
+    // file is standard FITS file (T) or isn't (F)
+    // we always set this value for T when converting from other formats to FITS
+    // (e.g. we didn't find SIMPLE keyword in ImageSpec
+    // when converting from FITS to FITS we just copy this value from ImageSpec
+    std::string key;
+    if (m_simple) {
+        key = "SIMPLE";
+        m_simple = false;
+    }
+    else
+        key = "XTENSION";
+    ImageIOParameter *attrib = m_spec.find_attribute (key, TypeDesc::STRING);
+    if (attrib && attrib->data ()) {
+        ImageIOParameter *comm = m_spec.find_attribute ("Comment (" + key + ")",
+                                                        TypeDesc::STRING);
+        std::string comment;
+        if (comm && comm->data ())
+            comment = *(const char**)comm->data ();
+        header += create_card (key, *(const char**)attrib->data (), comment);
+    }
+    else {
+        if (key == "SIMPLE")
+            header += create_card("SIMPLE", "T", "Standard FITS file");
+        else
+            header += create_card("XTENSION", "'IMAGE   '", "FITS image extension");
+    }
+    // next, we add BITPIX value that represent how many bpp we need
+    switch (m_spec.format.basetype) {
+        case TypeDesc::CHAR:
+        case TypeDesc::UCHAR:
+            m_bitpix = 8;
+            break;
+        case TypeDesc::SHORT:
+        case TypeDesc::USHORT:
+            m_bitpix = 16;
+            break;
+        case TypeDesc::INT:
+        case TypeDesc::UINT:
+            m_bitpix = 32;
+            break;
+        case TypeDesc::HALF:
+        case TypeDesc::FLOAT:
+            m_bitpix = -32;
+            break;
+        case TypeDesc::DOUBLE:
+        default:
+            m_bitpix = -64;
+            break;
+    }
+    header += create_card ("BITPIX", num2str (m_bitpix), "No. of bpp");
+
+    // NAXIS inform how many dimension have the image.
+    // we deal only with 2D images so this value is always set to 2
+    int axes = 0;
+    if (m_spec.width != 0 || m_spec.height != 0)
+        axes = 2;
+    header += create_card ("NAXIS", num2str (axes),
+                           "No. of axes in matrix");
+
+    // now we save NAXIS1 and NAXIS2
+    // this keywords represents width and height
+    header += create_card ("NAXIS1", num2str (m_spec.width),
+                           "No. of pixels in X");
+    header += create_card ("NAXIS2", num2str (m_spec.height),
+                           "No. of pixels in Y");
+}
