@@ -708,6 +708,14 @@ ImageCacheImpl::find_file (ustring filename,
             if (tf->duplicate())
                 tf = tf->duplicate();
             tf->use ();
+            // If the ICF exists but has no spec, it's because it was
+            // broken and then subsequently invalidated.  Downstream we
+            // assume that the spec exists even for an invalid file, so try
+            // opening it again, it'll either succeed or re-mark as broken.
+            if (tf->m_spec.size() == 0) {
+                recursive_lock_guard guard (tf->m_input_mutex);
+                tf->open (thread_info);
+            }
             return tf;
         }
     }
