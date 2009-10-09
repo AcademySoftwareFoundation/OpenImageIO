@@ -289,15 +289,18 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool ap
     
     if (textureformat) {
         if (! strcmp (textureformat, "Plain Texture")) {
-            m_levelmode = Imf::MIPMAP_LEVELS;
+            m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
+                                                    Imf::MIPMAP_LEVELS);
         } else if (! strcmp (textureformat, "CubeFace Environment")) {
-            m_levelmode = Imf::MIPMAP_LEVELS;
+            m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
+                                                    Imf::MIPMAP_LEVELS);
             m_header->insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_CUBE));
         } else if (! strcmp (textureformat, "LatLong Environment")) {
-            m_levelmode = Imf::MIPMAP_LEVELS;
+            m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
+                                                    Imf::MIPMAP_LEVELS);
             m_header->insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_LATLONG));
         } else if (! strcmp (textureformat, "Shadow")) {
-            m_levelmode = Imf::ONE_LEVEL;
+            m_levelmode = Imf::ONE_LEVEL;  // Force one level for shadow maps
         }
 
         if (m_levelmode == Imf::MIPMAP_LEVELS) {

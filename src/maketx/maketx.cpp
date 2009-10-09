@@ -473,6 +473,12 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                   << "\" format does not support multires images\n";
         exit (EXIT_FAILURE);
     }
+
+    if (! mipmap && ! strcmp (out->format_name(), "openexr")) {
+        // Send hint to OpenEXR driver that we won't specify a MIPmap
+        outspec.attribute ("openexr:levelmode", 0 /* ONE_LEVEL */);
+    }
+
     if (! out->open (outputfilename.c_str(), outspec)) {
         std::cerr << "maketx ERROR: Could not open \"" << outputfilename
                   << "\" : " << out->geterror() << "\n";
