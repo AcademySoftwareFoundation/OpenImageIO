@@ -1342,6 +1342,15 @@ ImageCacheImpl::add_tile_to_cache (ImageCacheTileRef &tile,
 #if IMAGECACHE_TIME_STATS
     thread_info->m_stats.tile_locking_time += timer();
 #endif
+
+    // Protect us from using too much memory if another thread added the
+    // same tile just before us
+    if (m_tilecache.find (tile->id()) != m_tilecache.end ()) {
+        // Already added!  Use the other one, discard ours.
+        tile = m_tilecache[tile->id()];
+        return;
+    }
+
     check_max_mem ();
     m_tilecache[tile->id()] = tile;
 }
