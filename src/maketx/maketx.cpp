@@ -248,6 +248,13 @@ make_texturemap (const char *maptypename = "texture map")
     }
 
     ImageBuf src (filenames[0]);
+    src.init_spec (filenames[0]);  // force it to get the spec, not to read
+
+    // The cache might mess with the apparent data format.  But for the 
+    // purposes of what we should output, figure it out now, before the
+    // file has been read and cached.
+    TypeDesc out_dataformat = src.spec().format;
+
     if (verbose)
         std::cout << "Reading file: " << filenames[0] << std::endl;
     Timer readtimer;
@@ -279,7 +286,6 @@ make_texturemap (const char *maptypename = "texture map")
     }
 
     // Figure out which data format we want for output
-    TypeDesc out_dataformat = src.spec().format;
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
             out_dataformat = TypeDesc::UINT8;
@@ -613,7 +619,7 @@ main (int argc, char *argv[])
         std::cout << Strutil::format ("  mip computation: %5.2f\n", stat_miptime);
         std::cout << Strutil::format ("  unaccounted:     %5.2f\n",
                                       alltime-stat_readtime-stat_writetime-stat_resizetime-stat_miptime);
-        size_t kb = Sysutil::memory_used() / 1024;
+        size_t kb = Sysutil::memory_used(true) / 1024;
         std::cout << Strutil::format ("maketx memory used: %5.1f MB\n",
                                       (double)kb/1024.0);
     }
