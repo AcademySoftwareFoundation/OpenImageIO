@@ -110,55 +110,30 @@ add_subdirectory (doc)
 #########################################################################
 # Testing
 
-macro ( TESTSUITE )
-    foreach (_testname ${ARGN})
-        add_test ( ${_testname} python ${PROJECT_SOURCE_DIR}/../testsuite/${_testname}/run.py ${PROJECT_SOURCE_DIR}/../testsuite/${_testname} ${CMAKE_BINARY_DIR} )
-    endforeach ()
-endmacro ()
+# List all the individual testsuite tests here:
+oiio_add_tests (ico gpsread texture-grid texture-res)
 
-# List all the individual testsuite tests here, except those that need
-# special installed tests.
-TESTSUITE ( ico gpsread texture-grid texture-res )
+# List testsuites which need special external reference images from the web
+# here:
+oiio_add_tests (tiff-suite tiff-depths
+    IMAGEDIR libtiffpic
+    URL http://www.remotesensing.org/libtiff/images.html)
 
-if (EXISTS "${PROJECT_SOURCE_DIR}/../../libtiffpic")
-    TESTSUITE ( tiff-suite tiff-depths )
-else ()
-    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../libtiffpic")
-    message (STATUS "  -> Will not run tests 'tiff-suite' and 'tiff-depths'")
-    message (STATUS "  -> You can find it at http://www.remotesensing.org/libtiff/images.html\n")
-endif ()
+oiio_add_tests (openexr-suite openexr-multires openexr-chroma
+    IMAGEDIR openexr-images-1.5.0
+    URL http://www.openexr.com/downloads.html)
 
-if (EXISTS "${PROJECT_SOURCE_DIR}/../../openexr-images-1.5.0")
-    TESTSUITE ( openexr-suite openexr-multires openexr-chroma )
-else ()
-    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../openexr-images-1.5.0")
-    message (STATUS "  -> Will not run tests 'openexr-suite', 'openexr-multires', 'openexr-chroma'")
-    message (STATUS "  -> You can find it at http://www.openexr.com/downloads.html\n")
-endif ()
+oiio_add_tests (jpeg2000
+    IMAGEDIR j2kp4files_v1_5
+    URL http://www.crc.ricoh.com/~gormish/jpeg2000conformance/)
 
-if (EXISTS "${PROJECT_SOURCE_DIR}/../../j2kp4files_v1_5")
-    TESTSUITE (jpeg2000)
-else ()
-    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../j2kp4files_v1_5")
-    message (STATUS "  -> Will not run tests 'jpeg2000'")
-    message (STATUS "  -> You can find it at http://www.crc.ricoh.com/~gormish/jpeg2000conformance/\n")
-endif ()
+oiio_add_tests (targa-tgautils
+    IMAGEDIR TGAUTILS
+    URL http://ineqvation.googlepages.com/TGAUtilities)
 
-if (EXISTS "${PROJECT_SOURCE_DIR}/../../TGAUTILS")
-    TESTSUITE (targa-tgautils)
-else ()
-    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../TGAUTILS")
-    message (STATUS "  -> Will not run tests 'targa-tgautils'")
-    message (STATUS "  -> You can find it at http://ineqvation.googlepages.com/TGAUtilities\n")
-endif ()
-
-if (EXISTS "${PROJECT_SOURCE_DIR}/../../fits-images")
-    TESTSUITE (fits)
-else ()
-    message (STATUS "\n\nDid not find ${PROJECT_SOURCE_DIR}/../../fits-images")
-    message (STATUS "  -> Will not run test 'fits-images'")
-    message (STATUS "  -> You can find it at http://www.cv.nrao.edu/fits/data/tests/")
-endif ()
+oiio_add_tests (fits
+    IMAGEDIR fits-images
+    URL http://www.cv.nrao.edu/fits/data/tests/)
 
 #########################################################################
 # Packaging

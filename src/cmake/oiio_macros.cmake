@@ -64,3 +64,37 @@ macro (add_dll_files)
                    ${GLEW_INCLUDES}/../lib/glew32.dll
              DESTINATION bin COMPONENT user)
 endmacro ()
+
+
+# oiio_add_tests() - add a set of test cases.
+#
+# Usage:
+#   oiio_add_tests ( test1 [ test2 ... ]
+#                    [ IMAGEDIR name_of_reference_image_directory ]
+#                    [ URL http://find.reference.cases.here.com ] )
+#
+# The optional argument IMAGEDIR is used to check whether external test images
+# (not supplied with OIIO) are present, and to disable the test cases if
+# they're not.  If IMAGEDIR is present, URL should also be included to tell
+# the user where to find such tests.
+#
+macro (oiio_add_tests)
+    parse_arguments (_ats "URL;IMAGEDIR" "" ${ARGN})
+    set (_ats_testdir "${PROJECT_SOURCE_DIR}/../../${_ats_IMAGEDIR}")
+    if (_ats_IMAGEDIR AND NOT EXISTS ${_ats_testdir})
+        # If the directory containig reference data (images) for the test
+        # isn't found, point the user at the URL.
+        message (STATUS "\n\nDid not find ${_ats_testdir}")
+        message (STATUS "  -> Will not run tests ${_ats_DEFAULT_ARGS}")
+        message (STATUS "  -> You can find it at ${_ats_URL}\n")
+    else ()
+        # Add the tests if all is well.
+        foreach (_testname ${_ats_DEFAULT_ARGS})
+            add_test ( ${_testname} python
+                ${PROJECT_SOURCE_DIR}/../testsuite/${_testname}/run.py
+                ${PROJECT_SOURCE_DIR}/../testsuite/${_testname}
+                ${CMAKE_BINARY_DIR} )
+        endforeach ()
+    endif ()
+endmacro ()
+
