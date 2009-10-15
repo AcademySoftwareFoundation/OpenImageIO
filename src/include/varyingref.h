@@ -130,7 +130,7 @@ namespace OPENIMAGEIO_NAMESPACE {
 template<class T>
 class VaryingRef {
 public:
-    VaryingRef () { }
+    VaryingRef () { init (0, 0); }
 
     /// Construct a VaryingRef either of a single value pointed to by ptr
     /// (if step == 0 or no step is provided), or of a varying set of
