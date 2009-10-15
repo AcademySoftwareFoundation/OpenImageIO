@@ -7,11 +7,10 @@
 #
 macro (oiio_install_targets)
     install (TARGETS ${ARGN}
-             RUNTIME DESTINATION bin COMPONENT user
-             LIBRARY DESTINATION lib COMPONENT user
-             ARCHIVE DESTINATION lib COMPONENT developer)
-endmacro()
-
+             RUNTIME DESTINATION "${BINDIR}" COMPONENT user
+             LIBRARY DESTINATION "${LIBDIR}" COMPONENT user
+             ARCHIVE DESTINATION "${LIBDIR}" COMPONENT developer)
+endmacro ()
 
 # Macro to add a build target for an IO plugin.
 #

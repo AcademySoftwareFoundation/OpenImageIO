@@ -59,10 +59,16 @@ if (OPENIMAGEIO_NAMESPACE)
     add_definitions ("-DOPENIMAGEIO_NAMESPACE=${OPENIMAGEIO_NAMESPACE}")
 endif ()
 
-set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+# Exec Install Locations
+set (BINDIR "${CMAKE_INSTALL_PREFIX}/bin")
+set (LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
+if (EXEC_INSTALL_PREFIX)
+    set (BINDIR "${EXEC_INSTALL_PREFIX}/bin")
+    set (LIBDIR "${EXEC_INSTALL_PREFIX}/lib")
+endif ()
+
+set (CMAKE_INSTALL_RPATH "${LIBDIR}")
 set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-
 
 ###########################################################################
 if (MSVC)
