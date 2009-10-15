@@ -170,7 +170,7 @@ public:
     ustring (const char *str, size_type pos, size_type n)
         : m_chars (_make_unique(std::string(str,pos,n).c_str())->c_str()) { }
 
-    /// Construct a ustring from at most n characters beginning at str.
+    /// Construct a ustring from the first n characters of str.
     ///
     ustring (const char *str, size_type n)
         : m_chars (_make_unique(std::string(str,n).c_str())->c_str()) { }
