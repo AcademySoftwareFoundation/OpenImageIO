@@ -167,8 +167,8 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     tga.y_origin = m_spec.y;
 #endif
 
-    // handle image comment; save it to disk later on
-    std::string id = m_spec.get_string_attribute ("ImageDescription", "");
+    // handle image ID; save it to disk later on
+    std::string id = m_spec.get_string_attribute ("targa:ImageID", "");
     // the format only allows for 255 bytes
     tga.idlen = std::min(id.length(), (size_t)255);
     m_idlen = tga.idlen;
@@ -229,6 +229,238 @@ bool
 TGAOutput::close ()
 {
     if (m_file) {
+        // write out the TGA 2.0 data fields
+
+        // FIXME: write out the developer area; according to Larry,
+        // it's probably safe to ignore it altogether until someone complains
+        // that it's missing :)
+
+        fseek (m_file, 0, SEEK_END);
+
+        // write out the thumbnail, if there is one
+        int ofs_thumb = 0;
+        {
+            unsigned char tw = m_spec.get_int_attribute ("thumbnail_width", 0);
+            if (tw) {
+                unsigned char th = m_spec.get_int_attribute ("thumbnail_width",
+                                                             0);
+                if (th) {
+                    int tc = m_spec.get_int_attribute ("thumbnail_nchannels",
+                                                       0);
+                    if (tc == m_spec.nchannels) {
+                        ImageIOParameter *p =
+                            m_spec.find_attribute ("thumbnail_image");
+                        if (p) {
+                            ofs_thumb = ftell (m_file);
+                            if (bigendian())
+                                swap_endian (&ofs_thumb);
+                            // dump thumbnail size
+                            fwrite (&tw, 1, 1, m_file);
+                            fwrite (&th, 1, 1, m_file);
+                            // dump thumbnail data
+                            fwrite (p->data(), p->datasize(), 1, m_file);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // prepare the footer
+        tga_footer foot = {(uint32_t)ftell (m_file), 0, "TRUEVISION-XFILE."};
+        if (bigendian()) {
+            swap_endian (&foot.ofs_ext);
+            swap_endian (&foot.ofs_dev);
+        }
+
+        // write out the extension area
+        // ext area size
+        short tmpint = 495;
+        if (bigendian())
+            swap_endian (&tmpint);
+        fwrite (&tmpint, sizeof (tmpint), 1, m_file);
+
+        tmpint = 0;
+
+        // author
+        std::string tmpstr = m_spec.get_string_attribute ("Artist", "");
+        fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
+                1, m_file);
+        // fill the rest with zeros
+        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
+            fwrite (&tmpint, 1, 1, m_file);
+
+        // image comment
+        tmpstr = m_spec.get_string_attribute ("ImageDescription", "");
+        {
+            char *p = (char *)tmpstr.c_str ();
+            int w = 0;  // number of bytes written
+            for (int pos = 0; w < 324 && pos < tmpstr.length ();
+                 w++, pos++) {
+                // on line breaks, fill the remainder of the line with zeros
+                if (p[pos] == '\n') {
+                    while ((w + 1) % 81 != 0) {
+                        fwrite (&tmpint, 1, 1, m_file);
+                        w++;
+                    }
+                    continue;
+                }
+                fwrite (&p[pos], 1, 1, m_file);
+                // null-terminate each line
+                if ((w + 1) % 81 == 0) {
+                    fwrite (&tmpint, 1, 1, m_file);
+                    w++;
+                }
+            }
+            // fill the rest with zeros
+            for (; w < 324; w++)
+                fwrite (&tmpint, 1, 1, m_file);
+        }
+
+        // timestamp
+        tmpstr = m_spec.get_string_attribute ("DateTime", "");
+        {
+            unsigned short y, m, d, h, i, s;
+            if (tmpstr.length () > 0)
+                sscanf (tmpstr.c_str (), "%04hu:%02hu:%02hu %02hu:%02hu:%02hu",
+                        &y, &m, &d, &h, &i, &s);
+            else
+                y = m = d = h = i = s = 0;
+            if (bigendian()) {
+                swap_endian (&y);
+                swap_endian (&m);
+                swap_endian (&d);
+                swap_endian (&h);
+                swap_endian (&i);
+                swap_endian (&s);
+            }
+            fwrite (&m, sizeof (m), 1, m_file);
+            fwrite (&d, sizeof (d), 1, m_file);
+            fwrite (&y, sizeof (y), 1, m_file);
+            fwrite (&h, sizeof (h), 1, m_file);
+            fwrite (&i, sizeof (i), 1, m_file);
+            fwrite (&s, sizeof (s), 1, m_file);
+        }
+
+        // job ID
+        tmpstr = m_spec.get_string_attribute ("DocumentName", "");
+        fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
+                1, m_file);
+        // fill the rest with zeros
+        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
+            fwrite (&tmpint, 1, 1, m_file);
+
+        // job time
+        tmpstr = m_spec.get_string_attribute ("targa:JobTime", "");
+        {
+            unsigned short h, m, s;
+            if (tmpstr.length () > 0)
+                sscanf (tmpstr.c_str (), "%u:%02u:%02u", &h, &m, &s);
+            else
+                h = m = s = 0;
+            if (bigendian()) {
+                swap_endian (&h);
+                swap_endian (&m);
+                swap_endian (&s);
+            }
+            fwrite (&h, sizeof (h), 1, m_file);
+            fwrite (&m, sizeof (m), 1, m_file);
+            fwrite (&s, sizeof (s), 1, m_file);
+        }
+
+        // software ID - we advertise ourselves
+        tmpstr = "OpenImageIO";
+        fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
+                1, m_file);
+        // fill the rest with zeros
+        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
+            fwrite (&tmpint, 1, 1, m_file);
+
+        // software version
+        {
+            short v = OPENIMAGEIO_VERSION_MAJOR * 100
+                    + OPENIMAGEIO_VERSION_MINOR * 10
+                    + OPENIMAGEIO_VERSION_PATCH;
+            if (bigendian())
+                swap_endian (&v);
+            fwrite (&v, sizeof (v), 1, m_file);
+            fwrite (&tmpint, 1, 1, m_file);
+        }
+
+        // key colour
+        // FIXME: what do we save here?
+        fwrite (&tmpint, 2, 1, m_file);
+        fwrite (&tmpint, 2, 1, m_file);
+
+        // pixel aspect ratio
+        {
+            float ratio = m_spec.get_float_attribute ("PixelAspectRatio", 1.f);
+            // FIXME: use an epsilon here instead of an equality check?
+            if (ratio != 0.f && ratio != 1.f) {
+                // FIXME: invent a smarter way to convert to a vulgar fraction?
+                // numerator
+                tmpint = (unsigned short)(ratio * 10000.f);
+                fwrite (&tmpint, 2, 1, m_file);
+                // denominator
+                tmpint = 10000;
+                fwrite (&tmpint, 2, 1, m_file);
+                // reset tmpint value
+                tmpint = 0;
+            } else {
+                // just dump two zeros in there
+                fwrite (&tmpint, 2, 1, m_file);
+                fwrite (&tmpint, 2, 1, m_file);
+            }
+        }
+
+        // gamma
+        {
+            if (m_spec.linearity == ImageSpec::GammaCorrected) {
+                // FIXME: invent a smarter way to convert to a vulgar fraction?
+                // NOTE: the spec states that only 1 decimal place of precision
+                // is needed, thus the expansion by 10
+                // numerator
+                tmpint = (unsigned short)(m_spec.gamma * 10.f);
+                fwrite (&tmpint, 2, 1, m_file);
+                // denominator
+                tmpint = 10;
+                fwrite (&tmpint, 2, 1, m_file);
+                // reset tmpint value
+                tmpint = 0;
+            } else {
+                // just dump two zeros in there
+                fwrite (&tmpint, 2, 1, m_file);
+                fwrite (&tmpint, 2, 1, m_file);
+            }
+        }
+
+        // offset to colour correction table
+        // FIXME: support this once it becomes clear how it's actually supposed
+        // to be used... the spec is very unclear about this
+        // for the time being just dump four NULL bytes
+        fwrite (&tmpint, 2, 1, m_file);
+        fwrite (&tmpint, 2, 1, m_file);
+
+        // offset to thumbnail (endiannes has already been accounted for)
+        fwrite (&ofs_thumb, 4, 1, m_file);
+
+        // offset to scanline table
+        // not used very widely, don't bother unless someone complains
+        fwrite (&tmpint, 2, 1, m_file);
+        fwrite (&tmpint, 2, 1, m_file);
+
+        // alpha type
+        {
+            unsigned char at = (m_spec.nchannels % 2 == 0)
+                             ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
+            fwrite (&at, 1, 1, m_file);
+        }
+
+        // write out the TGA footer
+        fwrite (&foot.ofs_ext, 1, sizeof (foot.ofs_ext), m_file);
+        fwrite (&foot.ofs_dev, 1, sizeof (foot.ofs_dev), m_file);
+        fwrite (&foot.signature, 1, sizeof (foot.signature), m_file);
+
+        // close the stream
         fclose (m_file);
         m_file = NULL;
     }

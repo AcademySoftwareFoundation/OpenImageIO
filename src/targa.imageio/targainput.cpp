@@ -59,7 +59,6 @@ private:
     tga_header m_tga;                 ///< Targa header
     tga_footer m_foot;                ///< Targa 2.0 footer
     unsigned int m_ofs_colcorr_tbl;   ///< Offset to colour correction table
-    unsigned int m_ofs_thumbnail;     ///< Offset to thumbnail
     tga_alpha_type m_alpha;           ///< Alpha type
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
 
@@ -69,7 +68,6 @@ private:
         m_file = NULL;
         m_buf.clear ();
         m_ofs_colcorr_tbl = 0;
-        m_ofs_thumbnail = 0;
         m_alpha = TGA_ALPHA_NONE;
     }
 
@@ -221,6 +219,10 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
     fseek (m_file, -26, SEEK_END);
     fread (&m_foot.ofs_ext, sizeof (m_foot.ofs_ext), 1, m_file);
     fread (&m_foot.ofs_dev, sizeof (m_foot.ofs_dev), 1, m_file);
+    if (bigendian()) {
+        swap_endian (&m_foot.ofs_ext);
+        swap_endian (&m_foot.ofs_dev);
+    }
     fread (&m_foot.signature, sizeof (m_foot.signature), 1, m_file);
     // TGA 2.0 files are identified by a nifty "TRUEVISION-XFILE.\0" signature
     if (!strncmp (m_foot.signature, "TRUEVISION-XFILE.", 17)) {
@@ -244,22 +246,34 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
         //std::cerr << "[tga] extension area size: " << s << "\n";
         if (s >= 495) {
             union {
-                char        c[324]; // so as to accomodate the comments
-                uint16_t    s[6];
-                uint32_t    l;
+                unsigned char c[324]; // so as to accomodate the comments
+                uint16_t s[6];
+                uint32_t l;
             } buf;
             
             // load image author
             fread (buf.c, 41, 1, m_file);
             if (buf.c[0])
-                m_spec.attribute ("Artist", buf.c);
+                m_spec.attribute ("Artist", (char *)buf.c);
             
             // load image comments
             fread (buf.c, 324, 1, m_file);
             // concatenate the lines into a single string
-            buf.c[80] = buf.c[161] = buf.c[242] = '\n';
-            if (buf.c[0])
-                m_spec.attribute ("ImageDescription", buf.c);
+            std::string tmpstr ((const char *)buf.c);
+            if (buf.c[81]) {
+                tmpstr += "\n";
+                tmpstr += (const char *)&buf.c[81];
+            }
+            if (buf.c[162]) {
+                tmpstr += "\n";
+                tmpstr += (const char *)&buf.c[162];
+            }
+            if (buf.c[243]) {
+                tmpstr += "\n";
+                tmpstr += (const char *)&buf.c[243];
+            }
+            if (tmpstr.length () > 0)
+                m_spec.attribute ("ImageDescription", tmpstr);
 
             // timestamp
             fread (buf.s, 2, 6, m_file);
@@ -273,16 +287,16 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                     swap_endian (&buf.s[4]);
                     swap_endian (&buf.s[5]);
                 }
-                sprintf (&buf.c[12], "%04u:%02u:%02u %02u:%02u:%02u",
+                sprintf ((char *)&buf.c[12], "%04u:%02u:%02u %02u:%02u:%02u",
                          buf.s[2], buf.s[0], buf.s[1],
                          buf.s[3], buf.s[4], buf.s[5]);
-                m_spec.attribute ("DateTime", &buf.c[12]);
+                m_spec.attribute ("DateTime", (char *)&buf.c[12]);
             }
 
             // job name/ID
             fread (buf.c, 41, 1, m_file);
             if (buf.c[0])
-                m_spec.attribute ("DocumentName", buf.c);
+                m_spec.attribute ("DocumentName", (char *)buf.c);
 
             // job time
             fread (buf.s, 2, 3, m_file);
@@ -292,9 +306,9 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                     swap_endian (&buf.s[1]);
                     swap_endian (&buf.s[2]);
                 }
-                sprintf (&buf.c[6], "%02u:%02u:%02u",
+                sprintf ((char *)&buf.c[6], "%u:%02u:%02u",
                           buf.s[0], buf.s[1], buf.s[2]);
-                m_spec.attribute ("targa:JobTime", &buf.c[6]);
+                m_spec.attribute ("targa:JobTime", (char *)&buf.c[6]);
             }
 
             // software
@@ -305,9 +319,9 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                 char l;
                 fread (&n, 2, 1, m_file);
                 fread (&l, 1, 1, m_file);
-                sprintf (&buf.c[strlen (buf.c)], " %u.%u%c", n / 100, n % 100,
-                         l != ' ' ? l : 0);
-                m_spec.attribute ("Software", buf.c);
+                sprintf ((char *)&buf.c[strlen ((char *)buf.c)], " %u.%u%c",
+                         n / 100, n % 100, l != ' ' ? l : 0);
+                m_spec.attribute ("Software", (char *)buf.c);
             }
 
             // background (key) colour
@@ -333,8 +347,11 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                     swap_endian (&buf.s[0]);
                     swap_endian (&buf.s[1]);
                 }
-                m_spec.linearity = ImageSpec::GammaCorrected;
                 m_spec.gamma = (float)buf.s[0] / (float)buf.s[1];
+                if (m_spec.gamma == 1.f)
+                    m_spec.linearity = ImageSpec::Linear;
+                else
+                    m_spec.linearity = ImageSpec::GammaCorrected;
             }
 
             // offset to colour correction table
@@ -342,12 +359,14 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
             if (bigendian())
                 swap_endian (&buf.l);
             m_ofs_colcorr_tbl = buf.l;
+            /*std::cerr << "[tga] colour correction table offset: "
+                      << (int)m_ofs_colcorr_tbl << "\n";*/
 
             // offset to thumbnail
             fread (&buf.l, 4, 1, m_file);
             if (bigendian())
                 swap_endian (&buf.l);
-            m_ofs_thumbnail = buf.l;
+            unsigned int ofs_thumb = buf.l;
 
             // offset to scan-line table
             fread (&buf.l, 4, 1, m_file);
@@ -358,7 +377,63 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
             // alpha type
             fread (buf.c, 1, 1, m_file);
             m_alpha = (tga_alpha_type)buf.c[0];
+
+            // now load the thumbnail
+            if (ofs_thumb) {
+                fseek (m_file, ofs_thumb, SEEK_SET);
+                
+                // most of this code is a dupe of readimg(); according to the
+                // spec, the thumbnail is in the same format as the main image
+                // but uncompressed
+
+                // thumbnail dimensions
+                fread (&buf.c, 2, 1, m_file);
+                m_spec.attribute ("thumbnail_width", (int)buf.c[0]);
+                m_spec.attribute ("thumbnail_height", (int)buf.c[1]);
+                m_spec.attribute ("thumbnail_nchannels", m_spec.nchannels);
+
+                // load image data
+                // reuse the image buffer
+                m_buf.resize (buf.c[0] * buf.c[1] * m_spec.nchannels);
+                int bytespp = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
+                int palbytespp = (m_tga.cmap_size == 15) ? 2 :
+                                 (m_tga.cmap_size / 8);
+                int alphabits = m_tga.attr & 0x0F;
+                if (alphabits == 0 && m_tga.bpp == 32)
+                    alphabits = 8;
+                // read palette, if there is any
+                unsigned char *palette = NULL;
+                if (m_tga.cmap_type) {
+                    fseek (m_file, ofs, SEEK_SET);
+                    palette = new unsigned char[palbytespp
+                                                * m_tga.cmap_length];
+                    fread (palette, palbytespp, m_tga.cmap_length, m_file);
+                    fseek (m_file, ofs_thumb + 2, SEEK_SET);
+                }
+                unsigned char pixel[4];
+                unsigned char in[4];
+                for (int y = buf.c[1] - 1; y >= 0; y--) {
+                    for (int x = 0; x < buf.c[0]; x++) {
+                        fread (in, bytespp, 1, m_file);
+                        decode_pixel (in, pixel, palette,
+                                      bytespp, palbytespp, alphabits);
+                        memcpy (&m_buf[y * buf.c[0] * m_spec.nchannels
+                                + x * m_spec.nchannels],
+                                pixel, m_spec.nchannels);
+                    }
+                }
+                //std::cerr << "[tga] buffer size: " << m_buf.size() << "\n";
+                // finally, add the thumbnail to attributes
+                m_spec.attribute ("thumbnail_image",
+                                  TypeDesc (TypeDesc::UINT8, m_buf.size()),
+                                  &m_buf[0]);
+                m_buf.clear();
+            }
         }
+
+        // FIXME: provide access to the developer area; according to Larry,
+        // it's probably safe to ignore it altogether until someone complains
+        // that it's missing :)
     }
 
     fseek (m_file, ofs, SEEK_SET);
