@@ -637,6 +637,9 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
         ++m_tilesread;
+        // If we read the whole image, presumably we're done, so release
+        // the file handle.
+        close ();
     }
 
     return ok;
