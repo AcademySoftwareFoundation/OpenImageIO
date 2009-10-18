@@ -59,6 +59,15 @@ using namespace OpenImageIO;
 using namespace OpenImageIO::pvt;
 
 
+namespace OpenImageIO { namespace pvt {
+
+// The static perthread mutex needs to outlive the shared_image_cache
+// instance, so must be declared first in this file to avoid static
+// initialization order problems.
+mutex ImageCacheImpl::m_perthread_info_mutex;
+
+}}
+
 namespace {  // anonymous
 
 static shared_ptr<ImageCacheImpl> shared_image_cache;
@@ -893,10 +902,6 @@ ImageCacheTile::data (int x, int y, int z) const
     size_t offset = ((z * h + y) * w + x) * pixelsize;
     return (const void *)&m_pixels[offset];
 }
-
-
-
-mutex ImageCacheImpl::m_perthread_info_mutex;
 
 
 
