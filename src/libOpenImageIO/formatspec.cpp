@@ -464,10 +464,10 @@ format_raw_metadata (const ImageIOParameter &p)
             out += Strutil::format ("%s%d", (i ? ", " : ""), ((const short *)p.data())[i]);
     } else if (element == TypeDesc::UINT64) {
         for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%ull", (i ? ", " : ""), ((const unsigned long long *)p.data())[i]);
+            out += Strutil::format ("%s%llu", (i ? ", " : ""), ((const unsigned long long *)p.data())[i]);
     } else if (element == TypeDesc::INT64) {
         for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%ll", (i ? ", " : ""), ((const long long *)p.data())[i]);
+            out += Strutil::format ("%s%lld", (i ? ", " : ""), ((const long long *)p.data())[i]);
     } else if (element == TypeDesc::TypeMatrix) {
         const float *m = (const float *)p.data();
         for (int i = 0;  i < n;  ++i, m += 16)

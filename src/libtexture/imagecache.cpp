@@ -979,10 +979,11 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
     default: break;
     }
     if (i >= 0)
-        out << Strutil::format ("%7lu ", i);
+        out << Strutil::format ("%7d ", i);
     if (includestats)
         out << Strutil::format ("%4lu    %5lu   %6.1f %9s  ",
-                                file->timesopened(), file->tilesread(),
+                                (unsigned long) file->timesopened(),
+                                (unsigned long) file->tilesread(),
                                 file->bytesread()/1024.0/1024.0,
                                 Strutil::timeintervalformat(file->iotime()).c_str());
     out << Strutil::format ("%4dx%4dx%d.%s", spec.width, spec.height,
@@ -1084,7 +1085,8 @@ ImageCacheImpl::getstats (int level) const
             out << onefile_stat_line (file, i+1) << "\n";
         }
         out << Strutil::format ("\n  Tot:  %4lu    %5lu   %6.1f %9s\n",
-                                total_opens, total_tiles,
+                                (unsigned long) total_opens,
+                                (unsigned long) total_tiles,
                                 total_bytes/1024.0/1024.0,
                                 Strutil::timeintervalformat(total_iotime).c_str());
     }
