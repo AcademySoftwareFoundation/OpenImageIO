@@ -25,7 +25,7 @@ else:
 # in 'ref/'.  If all outputs match their reference copies, return 0
 # to pass.  If any outputs do not match their references return 1 to
 # fail.
-def runtest (command, outputs, cleanfiles="") :
+def runtest (command, outputs, cleanfiles="", failureok=0) :
     parser = OptionParser()
     parser.add_option("-p", "--path", help="add to executable path",
                       action="store", type="string", dest="path", default="")
@@ -54,7 +54,7 @@ def runtest (command, outputs, cleanfiles="") :
     cmdret = os.system (command)
     # print "cmdret = " + str(cmdret)
 
-    if cmdret != 0 :
+    if cmdret != 0 and failureok == 0 :
         print "FAIL"
         return (1)
 
@@ -64,7 +64,14 @@ def runtest (command, outputs, cleanfiles="") :
        diff_cmd = "diff "
     err = 0
     for out in outputs :
-        cmpcommand = diff_cmd + out + " ref/" + out
+        extension = os.path.splitext(out)[1]
+        if extension == ".tif" or extension == ".exr" :
+            # images -- use idiff
+            cmpcommand = (os.path.join (os.environ['IMAGEIOHOME'], "bin", "idiff")
+                          + " " + out + " ref/" + out)
+        else :
+            # anything else, mainly text files
+            cmpcommand = diff_cmd + out + " ref/" + out
         # print "cmpcommand = " + cmpcommand
         cmpresult = os.system (cmpcommand)
         if cmpresult == 0 :
@@ -78,6 +85,15 @@ def runtest (command, outputs, cleanfiles="") :
         else :
             print "FAIL"
 
+    # if everything passed, get rid of the temporary files
+    if err == 0 :
+        for out in outputs+cleanfiles :
+            print "\tremoving " + out
+            try :
+                cmpresult = os.remove (out)
+            except OSError :
+                continue
+            
     return (err)
 
 

@@ -67,8 +67,12 @@ command = command + "; " + runtest.rw_command (imagedir, "Ocean.exr", path)
 outputs = [ "out.txt" ]
 
 # Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ ]
-
+cleanfiles = [ "AllHalfValues.exr", "BrightRings.exr", "BrightRingsNanInf.exr",
+               "Cannon.exr", "Desk.exr", "GammaChart.exr", "GoldenGate.exr",
+               "GrayRampsDiagonal.exr", "GrayRampsHorizontal.exr",
+               "MtTamWest.exr", "Ocean.exr", "RgbRampsDiagonal.exr",
+               "SquaresSwirls.exr", "StillLife.exr", "Tree.exr",
+               "WideColorGamut.exr", "WideFloatRange.exr"]
 
 # boilerplate
 ret = runtest.runtest (command, outputs, cleanfiles)

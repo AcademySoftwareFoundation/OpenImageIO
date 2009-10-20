@@ -46,7 +46,12 @@ command = command + "; " + runtest.rw_command (imagedir, "WavyLinesSphere.exr", 
 outputs = [ "out.txt" ]
 
 # Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ ]
+cleanfiles = [ "Bonita.exr", "ColorCodedLevels.exr", "KernerEnvCube.exr",
+               "KernerEnvLatLong.exr", "MirrorPattern.exr",
+               "OrientationCube.exr", "OrientationLatLong.exr",
+               "PeriodicPattern.exr", "StageEnvCube.exr",
+               "StageEnvLatLong.exr", "WavyLinesCube.exr",
+               "WavyLinesLatLong.exr", "WavyLinesSphere.exr" ]
 
 
 # boilerplate

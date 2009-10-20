@@ -39,7 +39,7 @@ command = command + "; " + runtest.rw_command (imagedir, "Garden.exr", path)
 outputs = [ "out.txt" ]
 
 # Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ ]
+cleanfiles = [ "Garden.exr" ]
 
 
 # boilerplate

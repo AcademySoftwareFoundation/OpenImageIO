@@ -115,7 +115,9 @@ command = command + "; " + runtest.rw_command (imagedir, "oxford.tif", path, 0)
 outputs = [ "out.txt" ]
 
 # Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ ]
+cleanfiles = [ "cramps-tile.tif", "g3test.tif", "quad-lzw.tif",
+               "cramps.tif", "jello.tif", "quad-tile.tif", "strike.tif",
+               "fax2d.tif", "pc260001.tif" ]
 
 
 # boilerplate
