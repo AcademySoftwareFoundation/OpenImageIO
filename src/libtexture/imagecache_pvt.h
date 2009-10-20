@@ -648,7 +648,7 @@ public:
 
     /// Internal error reporting routine, with printf-like arguments.
     ///
-    void error (const char *message, ...);
+    void error (const char *message, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
     /// Get a pointer to the caller's thread's per-thread info, or create
     /// one in the first place if there isn't one already.

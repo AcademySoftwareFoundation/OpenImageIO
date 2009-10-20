@@ -57,7 +57,7 @@ typedef void* (*create_prototype)();
 extern recursive_mutex imageio_mutex;
 
 // Use privately only
-void error (const char *format, ...);
+void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(1,2);
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values

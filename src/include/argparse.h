@@ -41,6 +41,14 @@
 
 #include "export.h"
 
+#ifndef OPENIMAGEIO_PRINTF_ARGS  /* See comments in strutil.h */
+#   ifndef __GNUC__
+#       define __attribute__(x)
+#   endif
+#   define OPENIMAGEIO_PRINTF_ARGS(fmtarg_pos, vararg_pos) \
+        __attribute__ ((format (printf, fmtarg_pos, vararg_pos) ))
+#endif
+
 #ifdef OPENIMAGEIO_NAMESPACE
 namespace OPENIMAGEIO_NAMESPACE {
 #endif
@@ -168,7 +176,7 @@ private:
     std::vector<ArgOption *> option;
 
     ArgOption *find_option(const char *name);
-    void error (const char *format, ...);
+    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
     int found (const char *option);      // number of times option was parsed
 };
 

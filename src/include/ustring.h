@@ -419,7 +419,7 @@ public:
     /// something like:
     ///    ustring s = ustring::format ("blah %d %g", (int)foo, (float)bar);
     ///
-    static ustring format (const char *fmt, ...);
+    static ustring format (const char *fmt, ...) OPENIMAGEIO_PRINTF_ARGS(1,2);
 
     /// Generic stream output of a ustring.
     ///

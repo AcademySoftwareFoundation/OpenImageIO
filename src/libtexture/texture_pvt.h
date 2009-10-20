@@ -328,7 +328,7 @@ private:
 
     /// Internal error reporting routine, with printf-like arguments.
     ///
-    void error (const char *message, ...);
+    void error (const char *message, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
     void printstats () const;
 

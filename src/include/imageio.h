@@ -542,7 +542,7 @@ public:
 protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.
-    void error (const char *format, ...);
+    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
 protected:
     ImageSpec m_spec;          ///< format spec of the current open subimage
@@ -739,7 +739,7 @@ public:
 protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.
-    void error (const char *format, ...);
+    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file

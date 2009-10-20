@@ -49,6 +49,25 @@
 
 #include "export.h"
 
+#ifndef OPENIMAGEIO_PRINTF_ARGS
+#   ifndef __GNUC__
+#       define __attribute__(x)
+#   endif
+    // Enable printf-like warnings with gcc by attaching
+    // OPENIMAGEIO_PRINTF_ARGS to printf-like functions.  Eg:
+    //
+    // void foo (const char* fmt, ...) OPENIMAGEIO_PRINTF_ARGS(1,2);
+    //
+    // The arguments specify the positions of the format string and the the
+    // beginning of the varargs parameter list respectively.
+    //
+    // For member functions with arguments like the example above, you need
+    // OPENIMAGEIO_PRINTF_ARGS(2,3) instead.  (gcc includes the implicit this
+    // pointer when it counts member function arguments.)
+#   define OPENIMAGEIO_PRINTF_ARGS(fmtarg_pos, vararg_pos) \
+        __attribute__ ((format (printf, fmtarg_pos, vararg_pos) ))
+#endif
+
 #ifdef OPENIMAGEIO_NAMESPACE
 namespace OPENIMAGEIO_NAMESPACE {
 #endif
@@ -58,11 +77,13 @@ namespace Strutil {
 
 /// Return a std::string formatted from printf-like arguments.
 ///
-std::string DLLPUBLIC format (const char *fmt, ...);
+std::string DLLPUBLIC format (const char *fmt, ...)
+                                         OPENIMAGEIO_PRINTF_ARGS(1,2);
 
 /// Return a std::string formatted from printf-like arguments -- passed
 /// already as a va_list.
-std::string DLLPUBLIC vformat (const char *fmt, va_list ap);
+std::string DLLPUBLIC vformat (const char *fmt, va_list ap)
+                                         OPENIMAGEIO_PRINTF_ARGS(1,0);
 
 /// Return a string expressing a number of bytes, in human readable form.
 ///  - memformat(153)           -> "153 B"

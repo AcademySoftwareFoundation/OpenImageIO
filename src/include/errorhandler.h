@@ -36,6 +36,14 @@
 
 #include "export.h"
 
+#ifndef OPENIMAGEIO_PRINTF_ARGS  /* See comments in strutil.h */
+#   ifndef __GNUC__
+#       define __attribute__(x)
+#   endif
+#   define OPENIMAGEIO_PRINTF_ARGS(fmtarg_pos, vararg_pos) \
+        __attribute__ ((format (printf, fmtarg_pos, vararg_pos) ))
+#endif
+
 #ifdef OPENIMAGEIO_NAMESPACE
 namespace OPENIMAGEIO_NAMESPACE {
 #endif
@@ -93,33 +101,33 @@ public:
 
     /// Info message with printf-like formatted error message.
     /// Will not print unless verbosity >= VERBOSE.
-    void info (const char *format, ...);
+    void info (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
     /// Warning message with printf-like formatted error message.
     /// Will not print unless verbosity >= NORMAL (i.e. will suppress
     /// for QUIET).
-    void warning (const char *format, ...);
+    void warning (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
     /// Error message with printf-like formatted error message.
     /// Will print regardless of verbosity.
-    void error (const char *format, ...);
+    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
     /// Severe error message with printf-like formatted error message.
     /// Will print regardless of verbosity.
-    void severe (const char *format, ...);
+    void severe (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
     /// Prefix-less message with printf-like formatted error message.
     /// Will not print if verbosity is QUIET.  Also note that unlike
     /// the other routines, message() will NOT append a newline.
-    void message (const char *format, ...);
+    void message (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
     /// Debugging message with printf-like formatted error message.
     /// This will not produce any output if not in DEBUG mode, or
     /// if verbosity is QUIET.
 #ifdef DEBUG
-    void debug (const char *format, ...);
+    void debug (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 #else
-    void debug (const char *format, ...) { }
+    void debug (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3) { }
 #endif
 
     void vInfo    (const char *format, va_list argptr);
