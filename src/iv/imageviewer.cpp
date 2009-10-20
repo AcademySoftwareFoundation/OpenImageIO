@@ -739,7 +739,7 @@ ImageViewer::updateStatusBar ()
         return;
     }
     std::string message;
-    message = Strutil::format ("%d/%d) : ", m_current_image+1, m_images.size());
+    message = Strutil::format ("%d/%d) : ", m_current_image+1, (int) m_images.size());
     message += cur()->shortinfo();
     statusImgInfo->setText (message.c_str());
 

@@ -981,9 +981,9 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
     if (i >= 0)
         out << Strutil::format ("%7d ", i);
     if (includestats)
-        out << Strutil::format ("%4lu    %5lu   %6.1f %9s  ",
-                                (unsigned long) file->timesopened(),
-                                (unsigned long) file->tilesread(),
+        out << Strutil::format ("%4llu    %5llu   %6.1f %9s  ",
+                                (unsigned long long) file->timesopened(),
+                                (unsigned long long) file->tilesread(),
                                 file->bytesread()/1024.0/1024.0,
                                 Strutil::timeintervalformat(file->iotime()).c_str());
     out << Strutil::format ("%4dx%4dx%d.%s", spec.width, spec.height,
@@ -1084,9 +1084,9 @@ ImageCacheImpl::getstats (int level) const
             }
             out << onefile_stat_line (file, i+1) << "\n";
         }
-        out << Strutil::format ("\n  Tot:  %4lu    %5lu   %6.1f %9s\n",
-                                (unsigned long) total_opens,
-                                (unsigned long) total_tiles,
+        out << Strutil::format ("\n  Tot:  %4llu    %5llu   %6.1f %9s\n",
+                                (unsigned long long) total_opens,
+                                (unsigned long long) total_tiles,
                                 total_bytes/1024.0/1024.0,
                                 Strutil::timeintervalformat(total_iotime).c_str());
     }
@@ -1110,10 +1110,10 @@ ImageCacheImpl::getstats (int level) const
 #endif
         }
         if (files.size() >= 50) {
-            const size_t topN = 3;
+            const int topN = 3;
             std::sort (files.begin(), files.end(), bytesread_compare);
             out << "  Top files by bytes read:\n";
-            for (size_t i = 0;  i < std::min (topN, files.size());  ++i) {
+            for (int i = 0;  i < std::min<int> (topN, files.size());  ++i) {
                 if (files[i]->broken())
                     continue;
                 out << Strutil::format ("    %d   %6.1f MB (%4.1f%%)  ", i+1,
@@ -1123,7 +1123,7 @@ ImageCacheImpl::getstats (int level) const
             }
             std::sort (files.begin(), files.end(), iotime_compare);
             out << "  Top files by I/O time:\n";
-            for (size_t i = 0;  i < std::min (topN, files.size());  ++i) {
+            for (int i = 0;  i < std::min<int> (topN, files.size());  ++i) {
                 if (files[i]->broken())
                     continue;
                 out << Strutil::format ("    %d   %9s (%4.1f%%)   ", i+1,
@@ -1133,7 +1133,7 @@ ImageCacheImpl::getstats (int level) const
             }
             std::sort (files.begin(), files.end(), iorate_compare);
             out << "  Files with slowest I/O rates:\n";
-            size_t n = 0;
+            int n = 0;
             BOOST_FOREACH (const ImageCacheFileRef &file, files) {
                 if (file->broken())
                     continue;
