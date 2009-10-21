@@ -294,7 +294,7 @@ TGAOutput::close ()
         {
             char *p = (char *)tmpstr.c_str ();
             int w = 0;  // number of bytes written
-            for (int pos = 0; w < 324 && pos < tmpstr.length ();
+            for (int pos = 0; w < 324 && pos < (int)tmpstr.length ();
                  w++, pos++) {
                 // on line breaks, fill the remainder of the line with zeros
                 if (p[pos] == '\n') {
@@ -354,7 +354,7 @@ TGAOutput::close ()
         {
             unsigned short h, m, s;
             if (tmpstr.length () > 0)
-                sscanf (tmpstr.c_str (), "%u:%02u:%02u", &h, &m, &s);
+                sscanf (tmpstr.c_str (), "%hu:%02hu:%02hu", &h, &m, &s);
             else
                 h = m = s = 0;
             if (bigendian()) {

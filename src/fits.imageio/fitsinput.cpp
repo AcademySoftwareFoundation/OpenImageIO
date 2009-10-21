@@ -124,7 +124,7 @@ FitsInput::read_native_scanline (int y, int z, void *data)
 bool
 FitsInput::seek_subimage (int index, ImageSpec &newspec)
 {
-    if (index < 0 || index >= m_subimages.size ())
+    if (index < 0 || index >= (int)m_subimages.size ())
         return false;
 
     if (index == m_cur_subimage) {
