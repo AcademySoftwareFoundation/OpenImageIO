@@ -35,11 +35,13 @@
 
 #ifdef __linux__
 # include <sys/sysinfo.h>
+# include <unistd.h>
 #endif
 
 #ifdef __APPLE__
 # include <mach/task.h>
 # include <mach/mach_init.h>
+# include <mach-o/dyld.h>
 #endif
 
 #ifdef _WIN32
@@ -116,5 +118,34 @@ Sysutil::get_local_time (const time_t *time, struct tm *converted_time)
 #else
     localtime_r (time, converted_time);
 #endif
+}
+
+
+
+std::string
+Sysutil::this_program_path ()
+{
+    char filename[10240];
+    filename[0] = 0;
+    unsigned int size = sizeof(filename);
+
+#if defined(__linux__)
+    int r = readlink ("/proc/self/exe", filename, size);
+#elif defined(__APPLE__)
+    // For info:  'man 3 dyld'
+    int r = _NSGetExecutablePath (filename, &size);
+    if (r == 0)
+        r = size;
+#elif defined(_WIN32)
+    // According to MSDN...
+    int r = GetModuleFileName (NULL, filename, size);
+#else
+    // No idea what platform this is
+    ASSERT (0);
+#endif
+
+    if (r > 0)
+        return std::string (filename);
+    return std::string();   // Couldn't figure it out
 }
 

@@ -57,10 +57,13 @@ namespace Sysutil {
 DLLPUBLIC size_t memory_used (bool resident=false);
 
 
-// Convert calendar time pointed by 'time' into local time and save it in
-// 'converted_time' variable
+/// Convert calendar time pointed by 'time' into local time and save it in
+/// 'converted_time' variable
 DLLPUBLIC void get_local_time (const time_t *time, struct tm *converted_time);
 
+/// Return the full path of the currently-running executable program.
+///
+DLLPUBLIC std::string this_program_path ();
 
 };  // namespace Sysutils
 
