@@ -71,7 +71,7 @@ print_sha1 (ImageInput *input)
         printf ("    SHA1 digest: (unable to compute, image is too big)\n");
         return;
     }
-    std::vector<unsigned char> buf (size);
+    boost::scoped_array<unsigned char> buf(new unsigned char[size]);
     input->read_image (input->spec().format, &buf[0]);
     CSHA1 sha;
     sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
