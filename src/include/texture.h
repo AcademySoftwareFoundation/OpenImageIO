@@ -150,6 +150,8 @@ public:
     VaryingRef<float> bias;           ///< Bias
     VaryingRef<float> fill;           ///< Fill value for missing channels
     VaryingRef<int>   samples;        ///< Number of samples
+    float *dresultds;                 ///< Gradient of the result along s (if not NULL)
+    float *dresultdt;                 ///< Gradient of the result along t (if not NULL)
 
     // For 3D volume texture lookups only:
     Wrap zwrap;                ///< Wrap mode in the z direction

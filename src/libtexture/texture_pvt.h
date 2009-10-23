@@ -306,25 +306,29 @@ private:
                                TextureFile &texturefile,
                                PerThreadInfo *thread_info,
                                TextureOptions &options, int index,
-                               float weight, float *accum);
+                               float weight, float *accum,
+                               float *daccumds, float *daccumdt);
 
     bool accum_sample_closest (float s, float t, int level,
                                TextureFile &texturefile,
                                PerThreadInfo *thread_info,
                                TextureOptions &options, int index,
-                               float weight, float *accum);
+                               float weight, float *accum,
+                               float *daccumds, float *daccumdt);
 
     bool accum_sample_bilinear (float s, float t, int level,
                                 TextureFile &texturefile,
                                 PerThreadInfo *thread_info,
                                 TextureOptions &options, int index,
-                                float weight, float *accum);
+                                float weight, float *accum,
+                                float *daccumds, float *daccumdt);
 
     bool accum_sample_bicubic (float s, float t, int level,
                                TextureFile &texturefile,
                                PerThreadInfo *thread_info,
                                TextureOptions &options, int index,
-                               float weight, float *accum);
+                               float weight, float *accum,
+                               float *daccumds, float *daccumdt);
 
     /// Internal error reporting routine, with printf-like arguments.
     ///

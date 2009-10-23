@@ -531,8 +531,11 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
         for (int i = beginactive;  i < endactive;  ++i) {
             if (runflags[i]) {
                 ++local_stat_texture_queries;
-                for (int c = 0;  c < options.nchannels;  ++c)
+                for (int c = 0;  c < options.nchannels;  ++c) {
                     result[i*options.nchannels+c] = options.fill[i];
+                    if (options.dresultds) options.dresultds[i*options.nchannels+c] = 0;
+                    if (options.dresultdt) options.dresultdt[i*options.nchannels+c] = 0;
+                }
             }
         }
 //        error ("Texture file \"%s\" not found", filename.c_str());
@@ -546,13 +549,13 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
     // Figure out the wrap functions
     if (options.swrap == TextureOptions::WrapDefault)
         options.swrap = texturefile->swrap();
-    if (options.swrap == TextureOptions::WrapPeriodic && ispow2(spec.width))
+    if (options.swrap == TextureOptions::WrapPeriodic && ispow2(spec.full_width))
         options.swrap_func = wrap_periodic2;
     else
         options.swrap_func = wrap_functions[(int)options.swrap];
     if (options.twrap == TextureOptions::WrapDefault)
         options.twrap = texturefile->twrap();
-    if (options.twrap == TextureOptions::WrapPeriodic && ispow2(spec.height))
+    if (options.twrap == TextureOptions::WrapPeriodic && ispow2(spec.full_height))
         options.twrap_func = wrap_periodic2;
     else
         options.twrap_func = wrap_functions[(int)options.twrap];
@@ -565,8 +568,11 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
         for (int i = beginactive;  i < endactive;  ++i) {
             if (runflags[i]) {
                 float fill = options.fill[i];
-                for (int c = options.actualchannels; c < options.nchannels; ++c)
+                for (int c = options.actualchannels; c < options.nchannels; ++c) {
                     result[i*options.nchannels+c] = fill;
+                    if (options.dresultds) options.dresultds[i*options.nchannels+c] = 0;
+                    if (options.dresultdt) options.dresultdt[i*options.nchannels+c] = 0;
+                }
             }
         }
     }
@@ -616,8 +622,18 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
 
     // Initialize results to 0.  We'll add from here on as we sample.
     result += index * options.nchannels;
-    for (int c = 0;  c < options.actualchannels;  ++c)
+    float* dresultds = options.dresultds ? &options.dresultds[index*options.nchannels] : NULL;
+    float* dresultdt = options.dresultdt ? &options.dresultdt[index*options.nchannels] : NULL;
+    for (int c = 0;  c < options.actualchannels;  ++c) {
         result[c] = 0;
+        if (dresultds) dresultds[c] = 0;
+        if (dresultdt) dresultdt[c] = 0;
+    }
+    // If the user only provided use with one pointer, clear both to simplify
+    // the rest of the code, but only after we zero out the data for them so
+    // they know something went wrong.
+    if (!(dresultds && dresultdt))
+        dresultds = dresultdt = NULL;
 
     static const accum_prototype accum_functions[] = {
         // Must be in the same order as InterpMode enum
@@ -629,7 +645,7 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
     accum_prototype accumer = accum_functions[(int)options.interpmode];
     bool ok = (this->*accumer) (_s[index], _t[index], 0, texturefile,
                                 thread_info, options, index, 
-                                1.0f, result);
+                                1.0f, result, dresultds, dresultdt);
 
     // Update stats
     ImageCacheStatistics &stats (thread_info->m_stats);
@@ -661,8 +677,18 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 
     // Initialize results to 0.  We'll add from here on as we sample.
     result += index * options.nchannels;
-    for (int c = 0;  c < options.actualchannels;  ++c)
+    float* dresultds = options.dresultds ? &options.dresultds[index*options.nchannels] : NULL;
+    float* dresultdt = options.dresultdt ? &options.dresultdt[index*options.nchannels] : NULL;
+    for (int c = 0;  c < options.actualchannels;  ++c) {
         result[c] = 0;
+        if (dresultds) dresultds[c] = 0;
+        if (dresultdt) dresultdt[c] = 0;
+    }
+    // If the user only provided use with one pointer, clear both to simplify
+    // the rest of the code, but only after we zero out the data for them so
+    // they know something went wrong.
+    if (!(dresultds && dresultdt))
+        dresultds = dresultdt = NULL;
 
     // Use the differentials to figure out which MIP-map levels to use.
     float dsdx = _dsdx ? fabsf(_dsdx[index]) : 0;
@@ -737,7 +763,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
             continue;
         ok &= (this->*accumer) (_s[index], _t[index], miplevel[level], texturefile,
                           thread_info, options, index,
-                          levelweight[level], result);
+                          levelweight[level], result, dresultds, dresultdt);
         ++npointson;
     }
 
@@ -771,8 +797,18 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
 
     // Initialize results to 0.  We'll add from here on as we sample.
     result += index * options.nchannels;
-    for (int c = 0;  c < options.actualchannels;  ++c)
+    float* dresultds = options.dresultds ? &options.dresultds[index*options.nchannels] : NULL;
+    float* dresultdt = options.dresultdt ? &options.dresultdt[index*options.nchannels] : NULL;
+    for (int c = 0;  c < options.actualchannels;  ++c) {
         result[c] = 0;
+        if (dresultds) dresultds[c] = 0;
+        if (dresultdt) dresultdt[c] = 0;
+    }
+    // If the user only provided use with one pointer, clear both to simplify
+    // the rest of the code, but only after we zero out the data for them so
+    // they know something went wrong.
+    if (!(dresultds && dresultdt))
+        dresultds = dresultdt = NULL;
 
     // Find the differentials, handle the case where user passed NULL
     // to indicate no derivs were available.
@@ -916,7 +952,8 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         for (int sample = 0;  sample < nsamples;  ++sample) {
             float pos = (sample + 0.5f) * invsamples - 0.5f;
             ok &= (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
-                                    thread_info, options, index, w, result);
+                                    thread_info, options, index, w,
+                                    result, dresultds, dresultdt);
         }
     }
 
@@ -940,13 +977,13 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
                                  TextureOptions &options, int index,
-                                 float weight, float *accum)
+                                 float weight, float *accum, float *daccumds, float *daccumdt)
 {
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
-    s = s * spec.width;
-    t = t * spec.height;
+    s = s * spec.full_width;
+    t = t * spec.full_height;
     int stex, ttex;    // Texel coordintes
     (void) floorfrac (s, &stex);   // don't need fractional result
     (void) floorfrac (t, &ttex);
@@ -996,14 +1033,14 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
                                  TextureOptions &options, int index,
-                                 float weight, float *accum)
+                                 float weight, float *accum, float *daccumds, float *daccumdt)
 {
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
 //    float orig_s = s, orig_t = t;
-    s = s * spec.width  - 0.5f;
-    t = t * spec.height - 0.5f;
+    s = s * spec.full_width  - 0.5f;
+    t = t * spec.full_height - 0.5f;
     int sint, tint;
     float sfrac = floorfrac (s, &sint);
     float tfrac = floorfrac (t, &tint);
@@ -1107,20 +1144,52 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
             accum[c] += weight * bilerp (uchar2float(texel[0][0][c]), uchar2float(texel[0][1][c]),
                                          uchar2float(texel[1][0][c]), uchar2float(texel[1][1][c]),
                                          sfrac, tfrac);
+        if (daccumds) {
+            float scalex = weight * spec.full_width;
+            float scaley = weight * spec.full_height;
+            for (c = 0;  c < options.actualchannels;  ++c) {
+                daccumds[c] += scalex * Imath::lerp(
+                    uchar2float(texel[0][1][c]) - uchar2float(texel[0][0][c]),
+                    uchar2float(texel[1][1][c]) - uchar2float(texel[1][0][c]),
+                    tfrac
+                );
+                daccumdt[c] += scaley * Imath::lerp(
+                    uchar2float(texel[1][0][c]) - uchar2float(texel[0][0][c]),
+                    uchar2float(texel[1][1][c]) - uchar2float(texel[0][1][c]),
+                    sfrac
+                );
+            }
+        }
     } else {
         // General case for float tiles
-        bilerp_mad ((float *)texel[0][0], (float *)texel[0][1],
-                    (float *)texel[1][0], (float *)texel[1][1],
+        bilerp_mad ((const float *)texel[0][0], (const float *)texel[0][1],
+                    (const float *)texel[1][0], (const float *)texel[1][1],
                     sfrac, tfrac, weight, options.actualchannels, accum);
+        if (daccumds) {
+            float scalex = weight * spec.full_width;
+            float scaley = weight * spec.full_height;
+            for (int c = 0;  c < options.actualchannels;  ++c) {
+                daccumds[c] += scalex * Imath::lerp(
+                    ((const float *) texel[0][1])[c] - ((const float *) texel[0][0])[c],
+                    ((const float *) texel[1][1])[c] - ((const float *) texel[1][0])[c],
+                    tfrac
+                );
+                daccumdt[c] += scaley * Imath::lerp(
+                    ((const float *) texel[1][0])[c] - ((const float *) texel[0][0])[c],
+                    ((const float *) texel[1][1])[c] - ((const float *) texel[0][1])[c],
+                    sfrac
+                );
+            }
+        }
     }
 
     return true;
 }
 
-
+namespace {
 
 template <typename T>
-static inline void evalBSplineWeights (T w[4], T fraction)
+inline void evalBSplineWeights (T w[4], T fraction)
 {
     T one_frac = 1 - fraction;
     w[0] = T(1.0 / 6.0) * one_frac * one_frac * one_frac;
@@ -1129,33 +1198,30 @@ static inline void evalBSplineWeights (T w[4], T fraction)
     w[3] = T(1.0 / 6.0) * fraction * fraction * fraction;
 }
 
-
-
 template <typename T>
-static inline T evalBSpline (T p0, T p1, T p2, T p3, T t)
+inline void evalBSplineWeightDerivs (T dw[4], T fraction)
 {
-    T t2 = t * t;
-    T t3 = t2 * t;
-    return T(1 / 6.0) * ((    -p0 + 3 * p1 - 3 * p2 + p3) * t3 +
-                         ( 3 * p0 - 6 * p1 + 3 * p2     ) * t2 +
-                         (-3 * p0 + 3 * p2              ) * t  +
-                         (     p0 + 4 * p1 + p2         ));
+    T one_frac = 1 - fraction;
+    dw[0] = -T(0.5) * one_frac * one_frac;
+    dw[1] =  T(0.5) * fraction * (3 * fraction - 4);
+    dw[2] = -T(0.5) * one_frac * (3 * one_frac - 4);
+    dw[3] =  T(0.5) * fraction * fraction;
 }
 
-
+} // anonymous namesace
 
 bool
 TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
                                  TextureOptions &options, int index,
-                                 float weight, float *accum)
+                                 float weight, float *accum, float *daccumds, float *daccumdt)
 {
     const ImageSpec &spec (texturefile.spec (miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
     // and subtract 0.5 because samples are at texel centers.
-    s = s * spec.width  - 0.5f;
-    t = t * spec.height - 0.5f;
+    s = s * spec.full_width  - 0.5f;
+    t = t * spec.full_height - 0.5f;
     int sint, tint;
     float sfrac = floorfrac (s, &sint);
     float tfrac = floorfrac (t, &tint);
@@ -1254,12 +1320,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         }
     }
 
-    int nc = options.actualchannels; // + (options.alpha ? 1 : 0);
+    int nc = options.actualchannels;
 
-#define USE_BSPLINE 1
-#define USE_BSPLINE_WEIGHTS 1
-#if USE_BSPLINE
-#if USE_BSPLINE_WEIGHTS
     // We use a formulation of cubic B-spline evaluation that reduces to
     // lerps.  It's tricky to follow, but the references are:
     //   * Ruijters, Daniel et al, "Efficient GPU-Based Texture
@@ -1274,44 +1336,15 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     // guarantees that the filtered results will be non-negative for
     // non-negative texel values (which we had trouble with before due to
     // numerical imprecision).
-    float wx[4]; evalBSplineWeights(wx, sfrac);
-    float wy[4]; evalBSplineWeights(wy, tfrac);
+    float wx[4]; evalBSplineWeights (wx, sfrac);
+    float wy[4]; evalBSplineWeights (wy, tfrac);
     // figure out lerp weights so we can turn the filter into a sequence of lerp's
     float g0x = wx[0] + wx[1]; float h0x = (wx[1] / g0x); 
     float g1x = wx[2] + wx[3]; float h1x = (wx[3] / g1x); 
     float g0y = wy[0] + wy[1]; float h0y = (wy[1] / g0y);
     float g1y = wy[2] + wy[3]; float h1y = (wy[3] / g1y);
-#endif
-
-#else
-#if USE_BSPLINE_WEIGHTS
-    // alternative way to compute the weights (no virtual call)
-    float wx[4], wy[4];
-    evalBSplineWeights(wx, sfrac);
-    evalBSplineWeights(wy, tfrac);
-#else
-    // Weights in x and y
-    DASSERT (hq_filter);
-    float wx[4] = { (*hq_filter)(-1.0f-sfrac), (*hq_filter)(-sfrac),
-                    (*hq_filter)(1.0f-sfrac),  (*hq_filter)(2.0f-sfrac) };
-    float wy[4] = { (*hq_filter)(-1.0f-tfrac), (*hq_filter)(-tfrac),
-                    (*hq_filter)(1.0f-tfrac),  (*hq_filter)(2.0f-tfrac) };
-#endif
-    
-    float w[4][4];  // 2D filter weights
-    float totalw = 0;  // total filter weight
-    for (int j = 0;  j < 4;  ++j) {
-        for (int i = 0;  i < 4;  ++i) {
-            w[j][i] = wy[j] * wx[i];
-            totalw += w[j][i];
-        }
-    }
-    weight /= totalw;
-#endif
 
     if (texturefile.eightbit()) {
-#if USE_BSPLINE
-#if USE_BSPLINE_WEIGHTS
         for (int c = 0;  c < nc; ++c) {
             float col[4];
             for (int j = 0;  j < 4; ++j) {
@@ -1323,60 +1356,107 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
             float ry = Imath::lerp (col[2], col[3], h1y);
             accum[c] += weight * Imath::lerp (ly, ry, g1y);
         }
-#else
-        for (int c = 0;  c < nc; ++c) {
-            float col[4];
-            for (int j = 0;  j < 4; ++j)
-                col[j] = evalBSpline(uchar2float(texel[j][0][c]),
-                                     uchar2float(texel[j][1][c]),
-                                     uchar2float(texel[j][2][c]),
-                                     uchar2float(texel[j][3][c]), sfrac);
-            accum[c] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
-        }
-#endif
-#else
-        // 8-bit texels
-        for (int j = 0;  j < 4;  ++j)
-            for (int i = 0;  i < 4;  ++i) {
-                for (int c = 0;  c < options.actualchannels;  ++c)
-                    accum[c] += (w[j][i] * weight) * uchar2float(texel[j][i][c]);
+        if (daccumds) {
+            float dwx[4]; evalBSplineWeightDerivs (dwx, sfrac);
+            float dwy[4]; evalBSplineWeightDerivs (dwy, tfrac);
+            float scalex = weight * spec.full_width;
+            float scaley = weight * spec.full_height;
+            for (int c = 0;  c < nc; ++c) {
+                daccumds[c] += scalex * (
+                    dwx[0] * (wy[0] * uchar2float(texel[0][0][c]) +
+                              wy[1] * uchar2float(texel[1][0][c]) +
+                              wy[2] * uchar2float(texel[2][0][c]) +
+                              wy[3] * uchar2float(texel[3][0][c])) +
+                    dwx[1] * (wy[0] * uchar2float(texel[0][1][c]) +
+                              wy[1] * uchar2float(texel[1][1][c]) +
+                              wy[2] * uchar2float(texel[2][1][c]) +
+                              wy[3] * uchar2float(texel[3][1][c])) +
+                    dwx[2] * (wy[0] * uchar2float(texel[0][2][c]) +
+                              wy[1] * uchar2float(texel[1][2][c]) +
+                              wy[2] * uchar2float(texel[2][2][c]) +
+                              wy[3] * uchar2float(texel[3][2][c])) +
+                    dwx[3] * (wy[0] * uchar2float(texel[0][3][c]) +
+                              wy[1] * uchar2float(texel[1][3][c]) +
+                              wy[2] * uchar2float(texel[2][3][c]) +
+                              wy[3] * uchar2float(texel[3][3][c]))
+                );
+                daccumdt[c] += scaley * (
+                    dwy[0] * (wx[0] * uchar2float(texel[0][0][c]) +
+                              wx[1] * uchar2float(texel[0][1][c]) +
+                              wx[2] * uchar2float(texel[0][2][c]) +
+                              wx[3] * uchar2float(texel[0][3][c])) +
+                    dwy[1] * (wx[0] * uchar2float(texel[1][0][c]) +
+                              wx[1] * uchar2float(texel[1][1][c]) +
+                              wx[2] * uchar2float(texel[1][2][c]) +
+                              wx[3] * uchar2float(texel[1][3][c])) +
+                    dwy[2] * (wx[0] * uchar2float(texel[2][0][c]) +
+                              wx[1] * uchar2float(texel[2][1][c]) +
+                              wx[2] * uchar2float(texel[2][2][c]) +
+                              wx[3] * uchar2float(texel[2][3][c])) +
+                    dwy[3] * (wx[0] * uchar2float(texel[3][0][c]) +
+                              wx[1] * uchar2float(texel[3][1][c]) +
+                              wx[2] * uchar2float(texel[3][2][c]) +
+                              wx[3] * uchar2float(texel[3][3][c]))
+                );
             }
-#endif
+        }
     } else {
-#if USE_BSPLINE
-#if USE_BSPLINE_WEIGHTS
         // float texels
         for (int c = 0;  c < nc; ++c) {
            float col[4];
            for (int j = 0;  j < 4; ++j) {
                float lx = Imath::lerp (((const float*)(texel[j][0]))[c], ((const float*)(texel[j][1]))[c], h0x);
                float rx = Imath::lerp (((const float*)(texel[j][2]))[c], ((const float*)(texel[j][3]))[c], h1x);
-               col[j]     = Imath::lerp (lx, rx, g1x);
+               col[j]   = Imath::lerp (lx, rx, g1x);
            }
            float ly = Imath::lerp (col[0], col[1], h0y);
            float ry = Imath::lerp (col[2], col[3], h1y);
            accum[c] += weight * Imath::lerp (ly, ry, g1y);
-       }
-#else
-        // float texels
-        for (int c = 0;  c < nc; ++c) {
-            float col[4];
-            for (int j = 0;  j < 4; ++j)
-                col[j] = evalBSpline (((const float*)(texel[j][0]))[c],
-                                      ((const float*)(texel[j][1]))[c],
-                                      ((const float*)(texel[j][2]))[c],
-                                      ((const float*)(texel[j][3]))[c], sfrac);
-            accum[c] += weight * evalBSpline(col[0], col[1], col[2], col[3], tfrac);
         }
-#endif
-#else
-        // float texels
-        for (int j = 0;  j < 4;  ++j)
-            for (int i = 0;  i < 4;  ++i) {
-                for (int c = 0;  c < options.actualchannels;  ++c)
-                    accum[c] += (w[j][i] * weight) * ((float *)texel[j][i])[c];
+        if (daccumds) {
+            float dwx[4]; evalBSplineWeightDerivs (dwx, sfrac);
+            float dwy[4]; evalBSplineWeightDerivs (dwy, tfrac);
+            float scalex = weight * spec.full_width;
+            float scaley = weight * spec.full_height;
+            for (int c = 0;  c < nc; ++c) {
+                daccumds[c] += scalex * (
+                    dwx[0] * (wy[0] * ((const float*)(texel[0][0]))[c] +
+                              wy[1] * ((const float*)(texel[1][0]))[c] +
+                              wy[2] * ((const float*)(texel[2][0]))[c] +
+                              wy[3] * ((const float*)(texel[3][0]))[c]) +
+                    dwx[1] * (wy[0] * ((const float*)(texel[0][1]))[c] +
+                              wy[1] * ((const float*)(texel[1][1]))[c] +
+                              wy[2] * ((const float*)(texel[2][1]))[c] +
+                              wy[3] * ((const float*)(texel[3][1]))[c]) +
+                    dwx[2] * (wy[0] * ((const float*)(texel[0][2]))[c] +
+                              wy[1] * ((const float*)(texel[1][2]))[c] +
+                              wy[2] * ((const float*)(texel[2][2]))[c] +
+                              wy[3] * ((const float*)(texel[3][2]))[c]) +
+                    dwx[3] * (wy[0] * ((const float*)(texel[0][3]))[c] +
+                              wy[1] * ((const float*)(texel[1][3]))[c] +
+                              wy[2] * ((const float*)(texel[2][3]))[c] +
+                              wy[3] * ((const float*)(texel[3][3]))[c])
+                );
+                daccumdt[c] += scaley * (
+                    dwy[0] * (wx[0] * ((const float*)(texel[0][0]))[c] +
+                              wx[1] * ((const float*)(texel[0][1]))[c] +
+                              wx[2] * ((const float*)(texel[0][2]))[c] +
+                              wx[3] * ((const float*)(texel[0][3]))[c]) +
+                    dwy[1] * (wx[0] * ((const float*)(texel[1][0]))[c] +
+                              wx[1] * ((const float*)(texel[1][1]))[c] +
+                              wx[2] * ((const float*)(texel[1][2]))[c] +
+                              wx[3] * ((const float*)(texel[1][3]))[c]) +
+                    dwy[2] * (wx[0] * ((const float*)(texel[2][0]))[c] +
+                              wx[1] * ((const float*)(texel[2][1]))[c] +
+                              wx[2] * ((const float*)(texel[2][2]))[c] +
+                              wx[3] * ((const float*)(texel[2][3]))[c]) +
+                    dwy[3] * (wx[0] * ((const float*)(texel[3][0]))[c] +
+                              wx[1] * ((const float*)(texel[3][1]))[c] +
+                              wx[2] * ((const float*)(texel[3][2]))[c] +
+                              wx[3] * ((const float*)(texel[3][3]))[c])
+                );
             }
-#endif
+        }
     }
 
     return true;
