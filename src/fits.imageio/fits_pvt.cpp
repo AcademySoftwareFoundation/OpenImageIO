@@ -45,22 +45,28 @@ std::string num2str (float val)
 
 
 
-std::string create_card (std::string keyname, std::string value,
-                         std::string comment)
+std::string create_card (std::string keyname, std::string value)
 {
+    keyname = pystring::upper (keyname);
+
     if (keyname.substr (0, 7) == "COMMENT" || keyname.substr (0, 7) == "HISTORY")
-        keyname = keyname.substr (0, 7);
+        keyname = keyname.substr (0, 7) + " ";
     else if (keyname.substr (0, 8) == "HIERARCH")
         keyname = "HIERARCH";
+    else {
+        // other keynames are separated from values by "= "
+        keyname.resize (8, ' ');
+        keyname += "= ";
+    }
 
     std::string card = keyname;
-    card.resize (8, ' ');
-    if (keyname != "COMMENT" && keyname != "HISTORY" && keyname != "HIERARCH")
-        card += "= ";
-    if (value.size ())
-        card += value;
-    if (comment.size ())
-        card += " / " + comment;
+    // boolean values are placed on byte 30 of the card
+    // (20 of the value field)
+    if (value.size () == 1) {
+        std::string tmp (19, ' ');
+        value = tmp + value;
+    }
+    card += value;
     card.resize (80, ' ');
     return card;
 }
@@ -68,12 +74,10 @@ std::string create_card (std::string keyname, std::string value,
 
 
 void
-unpack_card (const std::string &card, std::string &keyname, std::string &value,
-             std::string &comment)
+unpack_card (const std::string &card, std::string &keyname, std::string &value)
 {
     keyname.clear ();
     value.clear ();
-    comment.clear ();
 
     // extracting keyname - first 8 bytes of the keyword (always)
     // we strip spaces that are placed after keyword name
@@ -88,28 +92,18 @@ unpack_card (const std::string &card, std::string &keyname, std::string &value,
     std::string card_cpy = card.substr (start, card.size ());
     card_cpy = pystring::strip (card_cpy, "");
 
-    // card value may be simple character string enclosed in a single quote
-    // in that case we have to copy value of the string (with quotes) by hand
-    // to prevent splitting card when the value contains multiple / signs
-    int end_str = 0; // end of the character string
+    // retrieving value and get rid of the comment
+    int begin = 0, end = 0;
+    std::string sep ("/");
     if (card_cpy[0] == '\'') {
-        end_str = pystring::find (card_cpy, "'", 1, card_cpy.size ());
-        value += card_cpy.substr (0, end_str);
+        begin = 1;
+        end = -1;
+        sep = "'";
     }
-
-    // splitting value and comment
-    std::vector<std::string> result;
-    std::string sep("/");
-    pystring::split (card_cpy.substr (end_str, card_cpy.size ()), result,
-                     sep, 1);
-
-    // result[0] - value of the card
-    // result[1] - comment fot the value
-    if (result[0].size() > 0)
-        value += pystring::strip (result[0], "");
-    if (result.size () > 1 && result[1].size() > 0)
-        comment = pystring::strip (result[1], "");
-
-}
+    end += pystring::find (card_cpy, sep, 1, card_cpy.size ());
+    value = card_cpy.substr (begin, end);
+    if (value.size ())
+        value = pystring::strip(value, "");
+ }
 
 } // namespace fits_pvt

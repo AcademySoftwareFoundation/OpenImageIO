@@ -151,32 +151,11 @@ FitsOutput::create_fits_header (void)
     for (size_t i = 0; i < m_spec.extra_attribs.size (); ++i) {
 
         std::string keyname = m_spec.extra_attribs[i].name().string();
-        // if keyname begin with 'Comment (' it means that this is comment
-        // string; for now we ommit this - we add comment later
-        if (! keyname.substr(0, 9).compare ("Comment ("))
-            continue;
-
-        // we ommit SIMPLE and XTENSION keywords as we add them in
-        // create basic header
-        if (keyname == "SIMPLE" || keyname == "XTENSION")
-            continue;
 
         std::string value;
         TypeDesc attr_format = m_spec.extra_attribs[i].type();
         if (attr_format == TypeDesc::STRING) {
             value = *(const char**)m_spec.extra_attribs[i].data();
-            // boolean values are placed on byte 30 of the card
-            // (20 of the value field)
-            if (value.size () == 1 && (value[0] == 'T' || value[0] == 'F')) {
-                std::string new_val (19, ' ');
-                new_val += value;
-                value = new_val;
-            }
-            else if (value.substr (0, 7) == "COMMENT"
-                     || value.substr (0, 7) == "HISTORY")
-                value = value.substr (0, 7);
-            else if (value.substr (0, 8) == "HIERARCH")
-                value = "HIERARCH";
         }
         else if (attr_format == TypeDesc::INT) {
             int val = (*(int*)m_spec.extra_attribs[i].data());
@@ -187,15 +166,15 @@ FitsOutput::create_fits_header (void)
             value = num2str (val);
         }
 
-        // now we search comment for given attribute
-        // comments are stored in 'Comment (KEYNAME)' format
-        std::string comment ("Comment (" + keyname + ")");
-        std::string commval;
-        ImageIOParameter *comm = m_spec.find_attribute (comment,
-                                                        TypeDesc::STRING);
-        if (comm && comm->data())
-            commval = *(char**)comm->data();
-        header += create_card (keyname, value, commval);
+        if (keyname == "DateTime") {
+            keyname = "Date";
+            value = Strutil::format ("%04u-%02u-%02uT%02u:%02u:%02u",
+                                     atoi(&value[0]), atoi(&value[5]),
+                                     atoi(&value[8]), atoi(&value[11]),
+                                     atoi(&value[14]), atoi(&value[17]));
+        }
+
+        header += create_card (keyname, value);
 
         if (header.size () == HEADER_SIZE) {
             fwrite (&header[0], 1, HEADER_SIZE, m_fd);
@@ -221,31 +200,15 @@ FitsOutput::create_basic_header (std::string &header)
 {
     // the first word in the header is SIMPLE, that informs if given
     // file is standard FITS file (T) or isn't (F)
-    // we always set this value for T when converting from other formats to FITS
-    // (e.g. we didn't find SIMPLE keyword in ImageSpec
-    // when converting from FITS to FITS we just copy this value from ImageSpec
+    // we always set this value for T 
     std::string key;
     if (m_simple) {
-        key = "SIMPLE";
+        header += create_card ("SIMPLE", "T");
         m_simple = false;
     }
     else
-        key = "XTENSION";
-    ImageIOParameter *attrib = m_spec.find_attribute (key, TypeDesc::STRING);
-    if (attrib && attrib->data ()) {
-        ImageIOParameter *comm = m_spec.find_attribute ("Comment (" + key + ")",
-                                                        TypeDesc::STRING);
-        std::string comment;
-        if (comm && comm->data ())
-            comment = *(const char**)comm->data ();
-        header += create_card (key, *(const char**)attrib->data (), comment);
-    }
-    else {
-        if (key == "SIMPLE")
-            header += create_card("SIMPLE", "T", "Standard FITS file");
-        else
-            header += create_card("XTENSION", "'IMAGE   '", "FITS image extension");
-    }
+        header += create_card ("XTENSION", "IMAGE   ");
+
     // next, we add BITPIX value that represent how many bpp we need
     switch (m_spec.format.basetype) {
         case TypeDesc::CHAR:
@@ -269,20 +232,17 @@ FitsOutput::create_basic_header (std::string &header)
             m_bitpix = -64;
             break;
     }
-    header += create_card ("BITPIX", num2str (m_bitpix), "No. of bpp");
+    header += create_card ("BITPIX", num2str (m_bitpix));
 
     // NAXIS inform how many dimension have the image.
     // we deal only with 2D images so this value is always set to 2
     int axes = 0;
     if (m_spec.width != 0 || m_spec.height != 0)
         axes = 2;
-    header += create_card ("NAXIS", num2str (axes),
-                           "No. of axes in matrix");
+    header += create_card ("NAXIS", num2str (axes));
 
     // now we save NAXIS1 and NAXIS2
     // this keywords represents width and height
-    header += create_card ("NAXIS1", num2str (m_spec.width),
-                           "No. of pixels in X");
-    header += create_card ("NAXIS2", num2str (m_spec.height),
-                           "No. of pixels in Y");
+    header += create_card ("NAXIS1", num2str (m_spec.width));
+    header += create_card ("NAXIS2", num2str (m_spec.height));
 }

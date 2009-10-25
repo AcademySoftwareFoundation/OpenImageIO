@@ -100,8 +100,7 @@ class FitsInput : public ImageInput {
     void read_fits_header (void);
 
     // add keyword (with comment if exists) to the ImageSpec
-    void add_to_spec (const std::string &keyname, const std::string &value,
-                      const std::string &comment);
+    void add_to_spec (const std::string &keyname, const std::string &value);
 
     // search for subimages: in FITS subimage is a header with SIMPLE keyword
     // or with XTENSION keyword with value 'IMAGE   '. Information about found
@@ -110,7 +109,11 @@ class FitsInput : public ImageInput {
 
     // set basic info (width, height) of subimage
     // add attributes to ImageSpec
-    void setSpecInfo ();
+    void set_spec_info ();
+
+    // converts date in FITS format (YYYY-MM-DD or DD/MM/YY)
+    // to DateTime format
+    std::string convert_date (const std::string &date);
 };
 
 
@@ -160,13 +163,12 @@ std::string num2str (float val);
 
 
 // creates FITS card from given (keyname, value, comment) strings
-std::string create_card (std::string keyname, std::string value,
-                         std::string comment);
+std::string create_card (std::string keyname, std::string value);
 
 
 // retrieving keyname, value and comment from the given card
 void unpack_card (const std::string &card, std::string &keyname,
-                  std::string &value, std::string &comment);
+                  std::string &value);
 
 } // namespace fits_pvt
 

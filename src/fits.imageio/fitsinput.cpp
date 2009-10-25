@@ -74,7 +74,7 @@ FitsInput::open (const std::string &name, ImageSpec &spec)
 
     subimage_search ();
 
-    setSpecInfo ();
+    set_spec_info ();
 
     spec = m_spec;
     return true;
@@ -136,7 +136,7 @@ FitsInput::seek_subimage (int index, ImageSpec &newspec)
     m_cur_subimage = index;
     fseek (m_fd, m_subimages[m_cur_subimage].offset, SEEK_SET);
 
-    setSpecInfo ();
+    set_spec_info ();
 
     newspec = m_spec;
     return true;
@@ -145,7 +145,7 @@ FitsInput::seek_subimage (int index, ImageSpec &newspec)
 
 
 void
-FitsInput::setSpecInfo ()
+FitsInput::set_spec_info ()
 {
     keys.clear ();
     // FITS spec doesn't say anything about color space or
@@ -155,6 +155,13 @@ FitsInput::setSpecInfo ()
 
     // reading info about current subimage
     read_fits_header ();
+
+    // we don't deal with one dimension images
+    // it's some kind of spectral data
+    if (! m_spec.width || ! m_spec.height) {
+        m_spec.width = m_spec.full_width = 0;
+        m_spec.height = m_spec.full_height = 0;
+    }
 
     // now we can get the current position in the file
     // this is the start of the image data
@@ -197,12 +204,15 @@ FitsInput::read_fits_header (void)
         // reading card number i
         memcpy (&card[0], &fits_header[i*CARD_SIZE], CARD_SIZE);
 
-        std::string keyname, value, comment;
-        fits_pvt::unpack_card (card, keyname, value, comment);
+        std::string keyname, value;
+        fits_pvt::unpack_card (card, keyname, value);
 
         // END means that this is end of the FITS header
         if (keyname == "END")
             return;
+
+        if (keyname == "SIMPLE" || keyname == "XTENSION")
+            continue;
 
         // setting up some important fields
         // m_bitpix - format of the data (eg. bpp)
@@ -231,6 +241,16 @@ FitsInput::read_fits_header (void)
             continue;
         }
 
+        if (keyname == "ORIENTAT") {
+            add_to_spec ("Orientation", value);
+            continue;
+        }
+
+        if (keyname == "DATE") {
+            add_to_spec ("DateTime", convert_date (value));
+            continue;
+        }
+
         // Some keywords can occure more than one time: COMMENT, HISTORY,
         // HIERARCH. We can't store more than one key with the same name in
         // ImageSpec. The workaround for this is to append a num to the keyname
@@ -239,8 +259,7 @@ FitsInput::read_fits_header (void)
             || keyname == "HIERARCH")
             keyname += Strutil::format ("%d", keys[keyname]++);
 
-        // adding key to ImageSpec
-        add_to_spec (keyname, value, comment);
+        add_to_spec (pystring::capitalize(keyname), value);
     }
     // if we didn't found END keyword in current header, we read next one
     read_fits_header ();
@@ -249,24 +268,23 @@ FitsInput::read_fits_header (void)
 
 
 void
-FitsInput::add_to_spec (const std::string &keyname, const std::string &value,
-                        const std::string &comment)
+FitsInput::add_to_spec (const std::string &keyname, const std::string &value)
 {
     // we don't add empty keys (or keys with empty values) to ImageSpec
     if (!keyname.size() || !value.size ())
         return;
 
     // COMMENT, HISTORY, HIERARCH keywords we save AS-IS
-    if (keyname.substr(0, 7) == "COMMENT" || keyname.substr(0, 7) == "HISTORY"
-        || keyname.substr(0, 8) == "HIERARCH") {
+    if (keyname.substr (0, 7) == "Comment" || keyname.substr (0, 7) == "History"
+        ||keyname.substr (0, 8) == "Hierarch" || keyname == "DateTime") {
         m_spec.attribute (keyname, value);
         return;
     }
 
-    // this is the easiest way (that I found) to convert
-    // string to float or integer
-    float val = atof (value.c_str ());
-    if (val != 0.0) {
+    // converting string to float or integer
+    bool isNumSign = (value[0] == '+' || value[0] == '-' || value[0] == '.');
+    if (isdigit (value[0]) || isNumSign) {
+        float val = atof (value.c_str ());
         if (val == (int)val)
             m_spec.attribute (keyname, (int)val);
         else
@@ -274,9 +292,6 @@ FitsInput::add_to_spec (const std::string &keyname, const std::string &value,
     }
     else
         m_spec.attribute (keyname, value);
-
-    if (comment.size ())
-        m_spec.attribute ("Comment (" + keyname + ")", comment);
 }
 
 
@@ -307,4 +322,30 @@ FitsInput::subimage_search ()
         offset += HEADER_SIZE;
     }
     fsetpos (m_fd, &fpos);
+}
+
+
+
+std::string
+FitsInput::convert_date (const std::string &date)
+{
+    std::string ndate;
+    if (date[4] == '-') {
+        // YYYY-MM-DDThh:mm:ss convention is used since 1 January 2000
+        ndate = Strutil::format ("%04u:%02u:%02u", atoi(&date[0]),
+                                 atoi(&date[5]), atoi(&date[8]));
+        if (date.size () >= 11 && date[10] == 'T')
+            ndate += Strutil::format ("%02u:%02u:%02u", atoi (&date[11]),
+                                      atoi (&date[14]), atoi (&date[17]));
+        return ndate;
+    }
+
+    if (date[2] == '/') {
+        // DD/MM/YY convention was used before 1 January 2000
+        ndate = Strutil::format ("19%02u:%02u:%02u 00:00:00", atoi(&date[6]),
+                                 atoi(&date[3]), atoi(&date[0]));
+        return ndate;
+    }
+    // unrecognized format
+    return date;
 }

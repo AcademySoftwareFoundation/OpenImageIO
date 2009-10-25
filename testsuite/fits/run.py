@@ -38,10 +38,13 @@ command = command + "; " + runtest.rw_command (imagedir, "file009.fits", path)
 command = command + "; " + runtest.rw_command (imagedir, "file012.fits", path)
 
 # Outputs to check against references
-outputs = [ ]
+outputs = [ "out.txt" ]
 
 # Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ ]
+cleanfiles = [ "tst0001.fits", "tst0002.fits", "tst0003.fits", "tst0005.fits",
+               "tst0006.fits", "tst0007.fits", "tst0008.fits", "tst0009.fits",
+               "tst0013.fits", "file001.fits", "file002.fits", "file003.fits",
+               "file009.fits", "file012.fits" ]
 
 
 # boilerplate
