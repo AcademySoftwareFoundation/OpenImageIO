@@ -335,7 +335,7 @@ FitsInput::convert_date (const std::string &date)
         ndate = Strutil::format ("%04u:%02u:%02u", atoi(&date[0]),
                                  atoi(&date[5]), atoi(&date[8]));
         if (date.size () >= 11 && date[10] == 'T')
-            ndate += Strutil::format ("%02u:%02u:%02u", atoi (&date[11]),
+            ndate += Strutil::format (" %02u:%02u:%02u", atoi (&date[11]),
                                       atoi (&date[14]), atoi (&date[17]));
         return ndate;
     }
