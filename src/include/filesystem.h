@@ -29,15 +29,15 @@
 */
 
 
-/// \file
+/// @file  filesystem.h
 ///
-/// Utilities for dealing with file names and files.  We use
+/// @brief Utilities for dealing with file names and files.  We use
 /// boost::filesystem anywhere we can, but that doesn't cover everything
 /// we want to do.
 ///
 /// Some helpful nomenclature:
-///    "filename" - a file or directory name, relative or absolute
-///    "searchpath" - a list of directories separated by ':' or ';'.
+///  -  "filename" - a file or directory name, relative or absolute
+///  -  "searchpath" - a list of directories separated by ':' or ';'.
 ///
 
 
@@ -51,6 +51,11 @@
 #ifdef OPENIMAGEIO_NAMESPACE
 namespace OPENIMAGEIO_NAMESPACE {
 #endif
+
+/// @namespace Filesystem
+///
+/// @brief Platform-independent utilities for manipulating file names,
+/// files, directories, and other file system miscellany.
 
 namespace Filesystem {
 

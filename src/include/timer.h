@@ -29,8 +29,8 @@
 */
 
 
-/// \file
-/// Simple timer class.
+/// @file timer.h
+/// @brief Simple timer class.
 
 
 #ifndef OPENIMAGEIO_TIMER_H

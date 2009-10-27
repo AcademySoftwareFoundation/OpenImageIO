@@ -29,8 +29,8 @@
 */
 
 
-/// \file
-/// Define the VaryingRef class.
+/// @file varyingref.h
+/// @Brief Define the VaryingRef class.
 
 
 #ifndef OPENIMAGEIO_VARYINGREF_H

@@ -29,10 +29,11 @@
 */
 
 
-/// \file
+/////////////////////////////////////////////////////////////////////////
+/// @file  strutil.h
 ///
-/// A variety of string helper routines
-///
+/// @brief String-related utilities, all in namespace Strutil.
+/////////////////////////////////////////////////////////////////////////
 
 
 
@@ -72,6 +73,9 @@
 namespace OPENIMAGEIO_NAMESPACE {
 #endif
 
+/// @namespace Strutil
+///
+/// @brief     String-related utilities.
 namespace Strutil {
 
 

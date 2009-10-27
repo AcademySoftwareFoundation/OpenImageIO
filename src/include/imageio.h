@@ -58,6 +58,8 @@
 namespace OPENIMAGEIO_NAMESPACE {
 #endif
 
+/// @namespace OpenImageIO
+/// @brief Main namespace enclosing most OpenImageIO functionality.
 namespace OpenImageIO {
 
 
@@ -366,6 +368,8 @@ public:
 
 
 
+/// ImageOutput abstracts the reading of an image file in a file
+/// format-agnostic manner.
 class DLLPUBLIC ImageInput {
 public:
     /// Create and return an ImageInput implementation that is willing

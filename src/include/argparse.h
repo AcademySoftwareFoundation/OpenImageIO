@@ -31,7 +31,7 @@
 
 
 /// \file
-/// Simple parsing of program command-line arguments.
+/// \brief Simple parsing of program command-line arguments.
 
 
 #ifndef OPENIMAGEIO_ARGPARSE_H

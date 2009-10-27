@@ -30,10 +30,10 @@
 
 
 /////////////////////////////////////////////////////////////////////////
-/// \file
+/// @file  sysutil.h
 ///
-/// Various system utilities.
-///
+/// @brief Platform-independent utilities for various OS, hardware, and
+/// system resource functionality, all in namespace Sysutil.
 /////////////////////////////////////////////////////////////////////////
 
 
@@ -49,6 +49,10 @@
 namespace OPENIMAGEIO_NAMESPACE {
 #endif
 
+/// @namespace  Sysutil
+///
+/// @brief Platform-independent utilities for various OS, hardware, and
+/// system resource functionality.
 namespace Sysutil {
 
 /// The amount of memory currently being used by this process, in bytes.
