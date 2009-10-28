@@ -415,11 +415,11 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
     size_t formatpixelsize = nc * format.size();
     bool ok = true;
     for (int z = zbegin;  z < zend;  ++z) {
-        int tz = z - (z % spec.tile_depth);
+        int tz = z - ((z - spec.z) % std::max (1, spec.tile_depth));
         for (int y = ybegin;  y < yend;  ++y) {
-            int ty = y - (y % spec.tile_height);
+            int ty = y - ((y - spec.y) % spec.tile_height);
             for (int x = xbegin;  x < xend;  ++x) {
-                int tx = x - (x % spec.tile_width);
+                int tx = x - ((x - spec.x) % spec.tile_width);
                 TileID tileid (*texfile, subimage, tx, ty, tz);
                 ok &= find_tile (tileid, thread_info);
                 TileRef &tile (thread_info->tile);
