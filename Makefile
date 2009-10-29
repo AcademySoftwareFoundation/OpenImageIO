@@ -125,9 +125,10 @@ cmakesetup:
 cmake: cmakesetup
 	( cd ${build_dir} ; make ${MY_MAKE_FLAGS} )
 
-# 'make cmakeinstall' builds everthing and installs it in 'dist'
+# 'make cmakeinstall' builds everthing and installs it in 'dist'.
+# Suppress pointless output from docs installation.
 cmakeinstall: cmake
-	( cd ${build_dir} ; make ${MY_MAKE_FLAGS} install )
+	( cd ${build_dir} ; make ${MY_MAKE_FLAGS} install | grep -v '^-- \(Installing\|Up-to-date\).*doc/html' )
 
 # 'make dist' is just a synonym for 'make cmakeinstall'
 dist : cmakeinstall

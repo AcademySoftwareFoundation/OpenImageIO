@@ -6,3 +6,6 @@ install (FILES ${PROJECT_SOURCE_DIR}/../LICENSE
                ${PROJECT_SOURCE_DIR}/../INSTALL
                ${PROJECT_SOURCE_DIR}/../CHANGES
          DESTINATION .)
+
+install (DIRECTORY doxygen/html DESTINATION doc
+         PATTERN .svn EXCLUDE)
