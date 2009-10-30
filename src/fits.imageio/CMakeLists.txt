@@ -1,1 +1,2 @@
-add_oiio_plugin (fitsinput.cpp fitsoutput.cpp fits_pvt.cpp)
+add_oiio_plugin (fitsinput.cpp fitsoutput.cpp fits_pvt.cpp
+                 ../libutil/pystring.cpp)
