@@ -208,8 +208,18 @@ FitsInput::read_fits_header (void)
         fits_pvt::unpack_card (card, keyname, value);
 
         // END means that this is end of the FITS header
-        if (keyname == "END")
+        // we can now add to the ImageSpec COMMENT, HISTORY and HIERARCH keys
+        if (keyname == "END") {
+            // removing white spaces that we use to separate lines of comments
+            // from the end ot the string
+            m_comment = m_comment.substr (0, m_comment.size() - m_sep.size ());
+            m_history = m_history.substr (0, m_history.size() - m_sep.size ());
+            m_hierarch = m_hierarch.substr (0, m_hierarch.size() - m_sep.size ());
+            add_to_spec ("Comment", m_comment);
+            add_to_spec ("History", m_history);
+            add_to_spec ("Hierarch", m_hierarch);
             return;
+        }
 
         if (keyname == "SIMPLE" || keyname == "XTENSION")
             continue;
@@ -240,24 +250,26 @@ FitsInput::read_fits_header (void)
         if (keyname.substr (0,5) == "NAXIS") {
             continue;
         }
-
         if (keyname == "ORIENTAT") {
             add_to_spec ("Orientation", value);
             continue;
         }
-
         if (keyname == "DATE") {
             add_to_spec ("DateTime", convert_date (value));
             continue;
         }
-
-        // Some keywords can occure more than one time: COMMENT, HISTORY,
-        // HIERARCH. We can't store more than one key with the same name in
-        // ImageSpec. The workaround for this is to append a num to the keyname
-        // that occurs more then one time
-        if (keyname == "COMMENT" || keyname == "HISTORY"
-            || keyname == "HIERARCH")
-            keyname += Strutil::format ("%d", keys[keyname]++);
+        if (keyname == "COMMENT") {
+            m_comment += (value + m_sep);
+            continue;
+        }
+        if (keyname == "HISTORY") {
+            m_history += (value + m_sep);
+            continue;
+        }
+        if (keyname == "HIERARCH") {
+            m_hierarch += (value + m_sep);
+            continue;
+        }
 
         add_to_spec (pystring::capitalize(keyname), value);
     }
@@ -274,9 +286,9 @@ FitsInput::add_to_spec (const std::string &keyname, const std::string &value)
     if (!keyname.size() || !value.size ())
         return;
 
-    // COMMENT, HISTORY, HIERARCH keywords we save AS-IS
-    if (keyname.substr (0, 7) == "Comment" || keyname.substr (0, 7) == "History"
-        ||keyname.substr (0, 8) == "Hierarch" || keyname == "DateTime") {
+    // COMMENT, HISTORY, HIERARCH and DATE keywords we save AS-IS
+    bool speckey = (keyname == "Comment" || keyname == "History" ||keyname == "Hierarch");
+    if (speckey || keyname == "DateTime") {
         m_spec.attribute (keyname, value);
         return;
     }

@@ -101,7 +101,10 @@ unpack_card (const std::string &card, std::string &keyname, std::string &value)
         sep = "'";
     }
     end += pystring::find (card_cpy, sep, 1, card_cpy.size ());
-    value = card_cpy.substr (begin, end);
+    // after creating substring we strip NULL chars from the end
+    // without this some strings are broken: see HISTORY keywords
+    // in ftt4b/file003.fits test image for example
+    value = card_cpy.substr (begin, end).c_str();
     if (value.size ())
         value = pystring::strip(value, "");
  }

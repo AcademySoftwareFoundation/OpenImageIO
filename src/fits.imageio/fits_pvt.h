@@ -85,7 +85,11 @@ class FitsInput : public ImageInput {
     // here we store informations about subimages,
     // eg. subimage number and subimage offset
     std::vector<fits_pvt::Subimage> m_subimages;
-
+    // here we stores content of COMMENT, HISTORY, HIERARCH keywords. Each line
+    // of comment is separated by m_sep
+    std::string m_comment, m_history, m_hierarch;
+    std::string m_sep;
+    
     void init (void) {
         m_fd = NULL;
         m_filename.clear ();
@@ -93,6 +97,10 @@ class FitsInput : public ImageInput {
         m_bitpix = 0;
         m_naxes = 0;
         m_subimages.clear ();
+        m_comment.clear ();
+        m_history.clear ();
+        m_hierarch.clear ();
+        m_sep = '\n';
     }
 
     // read keywords from FITS header and add them to the ImageSpec
@@ -137,12 +145,14 @@ class FitsOutput : public ImageOutput {
     fpos_t m_filepos; // current position in the file
     bool m_simple; // does the header with SIMPLE key was written?
     std::vector<unsigned char> m_scratch;
+    std::string m_sep;
     void init (void) {
         m_fd = NULL;
         m_filename.clear ();
         m_bitpix = 0;
         m_simple = true;
         m_scratch.clear ();
+        m_sep = '\n';
     }
 
     // save to FITS file all attributes from ImageSpace and after writing last

@@ -166,6 +166,19 @@ FitsOutput::create_fits_header (void)
             value = num2str (val);
         }
 
+        // Comment, History and Hierarch attributes contains multiple line of
+        // COMMENT, HISTORY and HIERARCH keywords, so we have to split them before
+        // adding to the file
+        std::vector<std::string> values;
+        if (keyname == "Comment" || keyname == "History" || keyname == "Hierarch") {
+            pystring::split (value, values, m_sep);
+            for (int i = 0; i < values.size(); ++i)
+                header += create_card (keyname, values[i]);
+            continue;
+        }
+
+        // FITS use Date keyword for dates so we convert our DateTime attribute
+        // to Date format before adding it to the FITS file
         if (keyname == "DateTime") {
             keyname = "Date";
             value = Strutil::format ("%04u-%02u-%02uT%02u:%02u:%02u",
@@ -175,21 +188,14 @@ FitsOutput::create_fits_header (void)
         }
 
         header += create_card (keyname, value);
-
-        if (header.size () == HEADER_SIZE) {
-            fwrite (&header[0], 1, HEADER_SIZE, m_fd);
-            header.clear ();
-        }
-
     }
 
-    if (header.size () == HEADER_SIZE) {
-        fwrite (&header[0], 1, HEADER_SIZE, m_fd);
-        header.clear ();
-    }
     header += "END";
-    header.resize (HEADER_SIZE, ' ');
-    fwrite (&header[0], 1, HEADER_SIZE, m_fd);
+    // header size must be multiple of HEADER_SIZE
+    const int hsize = HEADER_SIZE - header.size () % HEADER_SIZE;
+    if (hsize)
+        header.resize (header.size () + hsize, ' ');
+    fwrite (&header[0], 1, header.size (), m_fd);
 
 }
 
