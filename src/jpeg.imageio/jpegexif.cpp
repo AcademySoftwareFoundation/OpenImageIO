@@ -823,7 +823,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
     // Handy macro -- declare a variable positioned at the current end of
     // blob, and grow blob to accommodate it.
 #define BLOB_ADD(vartype, varname)                          \
-    vartype & varname (* (vartype *) &blob[blob.size()]);   \
+    vartype & varname (* (vartype *) (&blob[0] + blob.size()));   \
     blob.resize (blob.size() + sizeof(vartype));
     
     // Put a TIFF header
@@ -929,8 +929,9 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
     // Exif block, followed by 4 bytes of 0's.
     reoffset (tiffdirs, exif_tagmap, datastart);
     ndirs = tiffdirs.size();
-    blob.insert (blob.end(), (char *)&tiffdirs[0],
-                 (char *)&tiffdirs[tiffdirs.size()]);
+    if (ndirs)
+	    blob.insert (blob.end(), (char *)&tiffdirs[0],
+                 (char *)(&tiffdirs[0] + tiffdirs.size()));
     blob.insert (blob.end(), (char *)&endmarker, (char *)&endmarker + sizeof(int));
 
     // If legit Exif metadata was found, adjust the Exif directory offsets,
