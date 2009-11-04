@@ -69,6 +69,10 @@ DLLPUBLIC void get_local_time (const time_t *time, struct tm *converted_time);
 ///
 DLLPUBLIC std::string this_program_path ();
 
+/// Sleep for the given number of microseconds.
+///
+DLLPUBLIC void usleep (unsigned long useconds);
+
 };  // namespace Sysutils
 
 #ifdef OPENIMAGEIO_NAMESPACE

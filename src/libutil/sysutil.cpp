@@ -42,6 +42,7 @@
 # include <mach/task.h>
 # include <mach/mach_init.h>
 # include <mach-o/dyld.h>
+# include <unistd.h>
 #endif
 
 #ifdef _WIN32
@@ -149,3 +150,14 @@ Sysutil::this_program_path ()
     return std::string();   // Couldn't figure it out
 }
 
+
+
+void
+Sysutil::usleep (unsigned long useconds)
+{
+#ifdef _WIN32
+    Sleep (useconds/1000);   // Win32 Sleep() is milliseconds, not micro
+#else
+    ::usleep (useconds);     // *nix usleep() is in microseconds
+#endif
+}

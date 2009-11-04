@@ -46,6 +46,7 @@ using namespace OpenImageIO;
 #include "strutil.h"
 #include "timer.h"
 #include "fmath.h"
+#include "sysutil.h"
 
 
 
@@ -1415,7 +1416,7 @@ void ImageViewer::zoomIn()
         float zoomratio = z / oldzoom;
         view (xm + xoffset/zoomratio, ym + yoffset/zoomratio, z, false);
         if (i != nsteps)
-            usleep (1000000 / 4 / nsteps);
+            Sysutil::usleep (1000000 / 4 / nsteps);
     }
 
     fitImageToWindowAct->setChecked (false);
@@ -1455,7 +1456,7 @@ void ImageViewer::zoomOut()
         float zoomratio = z / oldzoom;
         view (xmpel + xoffset/zoomratio, ympel + yoffset/zoomratio, z, false);
         if (i != nsteps)
-            usleep (1000000 / 4 / nsteps);
+            Sysutil::usleep (1000000 / 4 / nsteps);
     }
 
     fitImageToWindowAct->setChecked (false);
@@ -1663,7 +1664,7 @@ ImageViewer::view (float xcenter, float ycenter, float newzoom, bool smooth, boo
 
         glwin->view (xc, yc, m_zoom, redraw);  // Triggers redraw automatically
         if (i != nsteps)
-            usleep (1000000 / 4 / nsteps);
+            Sysutil::usleep (1000000 / 4 / nsteps);
     }
 
     if (img->auto_subimage ()) {

@@ -690,7 +690,6 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 #define copysignf(x,y) copysign(x,y)
 #define isnan(x) _isnan(x)
 #define isfinite(x) _finite(x)
-#define usleep(a) Sleep((a)/1000)
 
 inline double
 round (float val) {
