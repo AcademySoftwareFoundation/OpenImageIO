@@ -820,11 +820,11 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
     // relative to this position within the blob.
     int tiffstart = blob.size();
 
-    // Handy macro -- declare a variable positioned at the current end of
-    // blob, and grow blob to accommodate it.
+    // Handy macro -- grow the blob to accommodate a new variable, which
+    // we position at its end.
 #define BLOB_ADD(vartype, varname)                          \
-    vartype & varname (* (vartype *) (&blob[0] + blob.size()));   \
-    blob.resize (blob.size() + sizeof(vartype));
+    blob.resize (blob.size() + sizeof(vartype));            \
+    vartype & varname (* (vartype *) (&blob[0] + blob.size() - sizeof(vartype)));
     
     // Put a TIFF header
     BLOB_ADD (TIFFHeader, head);
