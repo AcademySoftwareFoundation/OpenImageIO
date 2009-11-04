@@ -161,6 +161,8 @@ ImageCacheStatistics::init ()
     closest_interps = 0;
     bilinear_interps = 0;
     cubic_interps = 0;
+    file_retry_success = 0;
+    tile_retry_success = 0;
 }
 
 
@@ -203,6 +205,8 @@ ImageCacheStatistics::merge (const ImageCacheStatistics &s)
     closest_interps += s.closest_interps;
     bilinear_interps += s.bilinear_interps;
     cubic_interps += s.cubic_interps;
+    file_retry_success += s.file_retry_success;
+    tile_retry_success += s.tile_retry_success;
 }
 
 
@@ -269,7 +273,19 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
 
     ImageSpec tempspec;
     m_broken = false;
-    if (! m_input->open (m_filename.c_str(), tempspec)) {
+    bool ok = true;
+    for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
+        ok = m_input->open (m_filename.c_str(), tempspec);
+        if (ok) {
+            if (tries)   // succeeded, but only after a failure!
+                ++thread_info->m_stats.file_retry_success;
+            (void) m_input->geterror ();  // Eat the errors
+            break;
+        }
+        // We failed.  Wait a bit and try again.
+        Sysutil::usleep (1000 * 100);  // 100 ms
+    }
+    if (! ok) {
         imagecache().error ("%s", m_input->geterror().c_str());
         m_broken = true;
         m_input.reset ();
@@ -471,7 +487,18 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
     if (m_input->current_subimage() != subimage)
         ok = m_input->seek_subimage (subimage, tmp);
     if (ok) {
-        ok = m_input->read_tile (x, y, z, format, data);
+        for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
+            ok = m_input->read_tile (x, y, z, format, data);
+            if (ok) {
+                if (tries)   // succeeded, but only after a failure!
+                    ++thread_info->m_stats.tile_retry_success;
+                (void) m_input->geterror ();  // Eat the errors
+                break;
+            }
+            // We failed.  Wait a bit and try again.
+            Sysutil::usleep (1000 * 100);  // 100 ms
+            // TODO: should we attempt to close and re-open the file?
+        }
         if (! ok)
             imagecache().error ("%s", m_input->error_message().c_str());
     }
@@ -925,6 +952,7 @@ ImageCacheImpl::init ()
     m_automip = false;
     m_forcefloat = false;
     m_accept_untiled = true;
+    m_failure_retries = 0;
     m_Mw2c.makeIdentity();
     m_mem_used = 0;
     m_statslevel = 0;
@@ -1043,6 +1071,10 @@ ImageCacheImpl::getstats (int level) const
             out << "    Tile mutex locking time : " << Strutil::timeintervalformat (stats.tile_locking_time) << "\n";
         if (stats.find_tile_time > 0.001)
             out << "    Find tile time : " << Strutil::timeintervalformat (stats.find_tile_time) << "\n";
+        if (stats.file_retry_success || stats.tile_retry_success)
+            out << "    Failure reads followed by unexplained success: "
+                << stats.file_retry_success << " files, "
+                << stats.tile_retry_success << " tiles\n";
     }
 
     // Gather file list and statistics
@@ -1230,6 +1262,10 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         m_accept_untiled = *(const int *)val;
         return true;
     }
+    if (name == "failure_retries" && type == TypeDesc::INT) {
+        m_failure_retries = *(const int *)val;
+        return true;
+    }
     return false;
 }
 
@@ -1269,6 +1305,10 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     }
     if (name == "accept_untiled" && type == TypeDesc::INT) {
         *(int *)val = (int)m_accept_untiled;
+        return true;
+    }
+    if (name == "failure_retries" && type == TypeDesc::INT) {
+        *(int *)val = (int)m_failure_retries;
         return true;
     }
     if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||

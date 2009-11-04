@@ -779,14 +779,16 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
         m_scratch.resize (m_spec.tile_bytes());
         for (int c = 0;  c < m_spec.nchannels;  ++c)
             if (TIFFReadTile (m_tif, &m_scratch[plane_bytes*c], x, y, z, c) < 0) {
-                error ("%s", lasterr.c_str());
+                error ("%s (errno '%s')", lasterr.c_str(),
+                       errno ? strerror(errno) : "unknown");
                 return false;
             }
         separate_to_contig (tile_pixels, &m_scratch[0], (unsigned char *)data);
     } else {
         // Contiguous, >= 8 bit per sample -- the "usual" case
         if (TIFFReadTile (m_tif, data, x, y, z, 0) < 0) {
-            error ("%s", lasterr.c_str());
+            error ("%s (errno '%s')", lasterr.c_str(),
+                   errno ? strerror(errno) : "unknown");
             return false;
         }
     }

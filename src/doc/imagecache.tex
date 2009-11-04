@@ -317,6 +317,14 @@ This is sometimes helpful for applications that want to enforce use of
 tiled images only.
 \apiend
 
+\apiitem{int failure_retries}
+When an {\cf open()} or {\cf read_tile()} calls fails, pause and try
+again, up to {\cf failure_retries} times before truly returning a
+failure.  This is meant to address spooky disk or network failures.  The
+default is zero, meaning that failures of open or tile reading will
+immediately return as a failure.
+\apiend
+
 \bigskip
 
 \subsection{Getting information about images}

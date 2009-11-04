@@ -105,6 +105,8 @@ struct ImageCacheStatistics {
     long long closest_interps;
     long long bilinear_interps;
     long long cubic_interps;
+    int file_retry_success;
+    int tile_retry_success;
     
     ImageCacheStatistics () { init (); }
     void init ();
@@ -516,6 +518,7 @@ public:
     bool automip () const { return m_automip; }
     bool forcefloat () const { return m_forcefloat; }
     bool accept_untiled () const { return m_accept_untiled; }
+    int failure_retries () const { return m_failure_retries; }
     void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
     }
@@ -698,6 +701,7 @@ private:
     bool m_automip;              ///< auto-mipmap on demand?
     bool m_forcefloat;           ///< force all cache tiles to be float
     bool m_accept_untiled;       ///< Accept untiled images?
+    int m_failure_retries;       ///< Times to re-try disk failures
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's
