@@ -198,9 +198,9 @@ texture_type_name (TexFormat f)
 {
     static const char * texture_type_names[] = {
         // MUST match the order of TexFormat
-        "unknown", "texture", "volume",
-        "shadow", "shadow", "shadow",
-        "environment", "environment",
+        "unknown", "Plain Texture", "Volume Texture",
+        "Shadow", "Shadow", "Shadow",
+        "Environment", "Environment",
         ""
     };
     return texture_type_names[(int)f];
