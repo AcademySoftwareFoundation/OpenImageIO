@@ -2,19 +2,81 @@ Changes:
 
 
 
-Release 0.7 (TBD)
+Release 0.7 (Nov ?? 2009)
 --------------------------
+
 Major new features:
+
 * New format plugin: JPEG-2000 (r1050)
+* New format plugin: FITS (r1287 et al)
+* TextureSystem: two new entries to TextureOptions which allow the texture
+  system to return the derivatives in s and t of the texture. (r1308)
 
 API changes:
 
-Fixes and minor enhancements:
-* iv: fix PixelView for rotated images. (r1092)
-* iv: support auto use mipmap level matching zoom level. (r1093)
+* Added imagespec() method to ImageCache and TextureSystem that returns a
+  reference to the internal ImageSpec of the image.  This is much more
+  efficient than get_imagespec, but beware, the pointer is only valid 
+  until somebody calls invalidate() on the file.  (r1266)
+* TextureOptions: eliminated the 'alpha' field.  Added the dresultds and
+  dresultdt fields.
+* Extend TypeDesc to include INT64 and UINT64. (r1145)
+
+Fixes, minor enhancements, and performance improvements:
+
+* Improvements to the Targa plugin, bringing it into compliance with
+  TGA 2.0 (r1163, r1297)
+* iv improvements: support for multichannel images and different color
+  modes (r1129), support auto use mipmap level based on zooming (r1093),
+  correct pixelview for rotated images (r1092), fix off-by-one error
+  with some zoom levels (r1089).
+* maketx: fixed problem where it was sometimes not setting the output
+  data format to match the input data format correctly (r1290), fixed
+  problems with writing EXR files with --nomipmap (r1286), fixed cases
+  where data window was not the same as display window (i.e. crop or
+  overscan).
+* ImageCache/TextureSystem: various threading and performance improvements.
+  (r1188, r1211, r1288, r1299)
+* TS: fixed incorrect "texturetype" results of get_texture_info. (r1314)
+* IC/TS: fixed crasher bugs when doing get_pixels of images that had
+  non-zero data window origin. (r1313)
+* IC/TS: better error messages and recovery from spooky open and read_tile
+  failures. (r1321)
+* When IC/TS reads and entire (untiled) image, the file is closed afterwards.
+  This is especially helpful on Windows where open files are locked to
+  writing by other processes. (r1298)
+* HUGE speedup of ImageCache::get_image_info (and TS::get_texture_info)
+  b replacing strcmp's with ustring == (r1281).
+* IC: fixed various subtle logic errors with broken files and
+  invalidate/invalidate_all. (r1252, r1279)
+* IC/TS: fixed memory leak of per-thread imagecache data and subtle race 
+  conditions. (r1057, r1216, r1222, r1238)
+* TS: fixed problem where missing or broken textures weren't using the 
+  right fill color. (r1268)
+* IC: Clamp cache size to a reasonable lower limit (r1256)
+* TS: improvements to filter estimation (1134) and bicubic interpolation 
+  numerical stability and speed (r1166, r1179).
+* IC: when autotile=0 but automip=1, fixed bug that was wasting HUGE
+  amounts of memory by using the wrong resolution for mip levels! (r1147)
+* IC: fix an edge case where tiles could leak. (r1044)
+* Fixed some hairy static initialization problems with ustring (r1280)
+* Use a spin lock rather than block in ustring constructor gives HUGE 
+  speedup especially on Windows. (r1167)
 
 For developers:
+
 * Build more easily when older OpenEXR versions are found. (r1082)
+* HTML Doxygen documentation on the public APIs. (r1311, r1312, et al)
+* Sysutil::this_program_path finds the full path of the running program.
+  (r1304)
+* Better compiler-side error checking of printf-like functions (r1302)
+* A new site/... area where important users with local build customization 
+  needs can check in (reasonably sized) custom makefiles or other helpful
+  things. (r1284)
+* New ErrorHandler class, currently unused by OIIO itself, but very handy.
+  (r1265)
+* Fixed lots of compiler warnings.
+* Upgraded to a more recent TBB, which fixed some atomic problems. (r1211)
 
 
 
