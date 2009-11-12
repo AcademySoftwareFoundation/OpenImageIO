@@ -32,6 +32,7 @@
 #ifndef OPENIMAGEIO_DASSERT_H
 #define OPENIMAGEIO_DASSERT_H
 
+#include <cstdio>
 #include <cstdlib>
 
 

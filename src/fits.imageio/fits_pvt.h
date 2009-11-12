@@ -31,6 +31,7 @@
 #ifndef OPENIMAGEIO_FITS_PVT_H
 #define OPENIMAGEIO_FITS_PVT_H
 
+#include <cstdio>
 #include <sstream>
 #include <map>
 
