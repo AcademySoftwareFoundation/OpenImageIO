@@ -211,6 +211,18 @@ ImageCacheStatistics::merge (const ImageCacheStatistics &s)
 
 
 
+ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec)
+{
+    full_pixel_range = (spec.x == spec.full_x && spec.y == spec.full_y &&
+                        spec.z == spec.full_z &&
+                        spec.width == spec.full_width &&
+                        spec.height == spec.full_height &&
+                        spec.depth == spec.full_depth);
+    zero_origin = (spec.x == 0 && spec.y == 0 && spec.z == 0);
+}
+
+
+
 ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
                                 ImageCachePerThreadInfo *thread_info,
                                 ustring filename)
@@ -336,6 +348,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         }
         ++nsubimages;
         m_spec.push_back (tempspec);
+        LevelInfo levelinfo (tempspec);
+        m_levels.push_back (levelinfo);
         thread_info->m_stats.files_totalsize += tempspec.image_bytes();
     } while (m_input->seek_subimage (nsubimages, tempspec));
     ASSERT ((size_t)nsubimages == m_spec.size());
@@ -370,6 +384,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             s.tile_height = pow2roundup (s.tile_height);
             ++nsubimages;
             m_spec.push_back (s);
+            LevelInfo levelinfo (s);
+            m_levels.push_back (levelinfo);
         }
     }
 

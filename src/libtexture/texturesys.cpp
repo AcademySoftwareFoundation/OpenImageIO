@@ -980,10 +980,10 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
                                  float weight, float *accum, float *daccumds, float *daccumdt)
 {
     const ImageSpec &spec (texturefile.spec (miplevel));
-    // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
-    // and subtract 0.5 because samples are at texel centers.
-    s = s * spec.full_width;
-    t = t * spec.full_height;
+    const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo (miplevel));
+    // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
+    s = s * spec.full_width  + spec.full_x;
+    t = t * spec.full_height + spec.full_y;
     int stex, ttex;    // Texel coordintes
     (void) floorfrac (s, &stex);   // don't need fractional result
     (void) floorfrac (t, &ttex);
@@ -993,15 +993,19 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     bool svalid, tvalid;  // Valid texels?  false means black border
     svalid = options.swrap_func (stex, spec.full_width);
     tvalid = options.twrap_func (ttex, spec.full_height);
-    if (! (svalid | tvalid)) {
+    if (! levelinfo.full_pixel_range) {
+        svalid &= (stex >= spec.x && stex < (spec.x+spec.width)); // data window
+        tvalid &= (ttex >= spec.y && ttex < (spec.y+spec.height));
+    }
+    if (! (svalid & tvalid)) {
         // All texels we need were out of range and using 'black' wrap.
         return true;
     }
 
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
-    int tile_s = stex & tilewidthmask;
-    int tile_t = ttex & tileheightmask;
+    int tile_s = (stex - spec.x) & tilewidthmask;
+    int tile_t = (ttex - spec.y) & tileheightmask;
     TileID id (texturefile, miplevel, stex - tile_s, ttex - tile_t, 0);
     bool ok = find_tile (id, thread_info);
     if (! ok)
@@ -1011,7 +1015,7 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
         return false;
     size_t channelsize = texturefile.channelsize();
     int offset = spec.nchannels * (tile_t * spec.tile_width + tile_s) + options.firstchannel;
-    DASSERT ((size_t)offset < spec.tile_pixels());
+    DASSERT ((size_t)offset < spec.nchannels*spec.tile_pixels());
     if (channelsize == 1) {
         // special case for 8-bit tiles
         const unsigned char *texel = tile->bytedata() + offset;
@@ -1036,11 +1040,12 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                                  float weight, float *accum, float *daccumds, float *daccumdt)
 {
     const ImageSpec &spec (texturefile.spec (miplevel));
-    // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
+    const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo (miplevel));
+    // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.
 //    float orig_s = s, orig_t = t;
-    s = s * spec.full_width  - 0.5f;
-    t = t * spec.full_height - 0.5f;
+    s = s * spec.full_width  + spec.full_x - 0.5f;
+    t = t * spec.full_height + spec.full_y - 0.5f;
     int sint, tint;
     float sfrac = floorfrac (s, &sint);
     float tfrac = floorfrac (t, &tint);
@@ -1066,6 +1071,13 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     svalid[1] = options.swrap_func (stex[1], spec.full_width);
     tvalid[0] = options.twrap_func (ttex[0], spec.full_height);
     tvalid[1] = options.twrap_func (ttex[1], spec.full_height);
+    // Account for crop windows
+    if (! levelinfo.full_pixel_range) {
+        svalid[0] &= (stex[0] >= spec.x && stex[0] < spec.x+spec.width);
+        svalid[1] &= (stex[1] >= spec.x && stex[1] < spec.x+spec.width);
+        tvalid[0] &= (ttex[0] >= spec.y && ttex[0] < spec.y+spec.height);
+        tvalid[1] &= (ttex[1] >= spec.y && ttex[1] < spec.y+spec.height);
+    }
 //    if (! (svalid[0] | svalid[1] | tvalid[0] | tvalid[1]))
     if (valid_storage == none_valid)
         return true; // All texels we need were out of range and using 'black' wrap
@@ -1075,8 +1087,8 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     const unsigned char *texel[2][2];
     TileRef savetile[2][2];
     static float black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-    int tile_s = stex[0] & tilewidthmask;
-    int tile_t = ttex[0] & tileheightmask;
+    int tile_s = (stex[0] - spec.x) & tilewidthmask;
+    int tile_t = (ttex[0] - spec.y) & tileheightmask;
     bool s_onetile = (tile_s != tilewidthmask) & (stex[0]+1 == stex[1]);
     bool t_onetile = (tile_t != tileheightmask) & (ttex[0]+1 == ttex[1]);
     bool onetile = (s_onetile & t_onetile);
@@ -1117,8 +1129,8 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                     texel[j][i] = (unsigned char *)black;
                     continue;
                 }
-                tile_s = stex[i] & tilewidthmask;
-                tile_t = ttex[j] & tileheightmask;
+                tile_s = (stex[i] - spec.x) & tilewidthmask;
+                tile_t = (ttex[j] - spec.y) & tileheightmask;
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
                 bool ok = find_tile (id, thread_info);
@@ -1218,10 +1230,11 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  float weight, float *accum, float *daccumds, float *daccumdt)
 {
     const ImageSpec &spec (texturefile.spec (miplevel));
-    // As passed in, (s,t) map the texture to (0,1).  Remap to [0,res]
+    const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo (miplevel));
+    // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.
-    s = s * spec.full_width  - 0.5f;
-    t = t * spec.full_height - 0.5f;
+    s = s * spec.full_width  + spec.full_x - 0.5f;
+    t = t * spec.full_height + spec.full_y - 0.5f;
     int sint, tint;
     float sfrac = floorfrac (s, &sint);
     float tfrac = floorfrac (t, &tint);
@@ -1238,20 +1251,35 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
     bool svalid[4], tvalid[4];  // Valid texels?  false means black border
     int stex[4], ttex[4];       // Texel coords
-    bool allsvalid = true, alltvalid = true;
+    bool allvalid = true;
     bool anyvalid = false;
     for (int i = 0; i < 4;  ++i) {
         bool v;
         stex[i] = sint + i - 1;
         v = options.swrap_func (stex[i], spec.full_width);
         svalid[i] = v;
-        allsvalid &= v;
+        allvalid &= v;
         anyvalid |= v;
         ttex[i] = tint + i - 1;
         v = options.twrap_func (ttex[i], spec.full_height);
         tvalid[i] = v;
-        alltvalid &= v;
+        allvalid &= v;
         anyvalid |= v;
+    }
+    if (anyvalid && ! levelinfo.full_pixel_range) {
+        // Handle case of crop windows or overscan
+        anyvalid = false;
+        for (int i = 0; i < 4;  ++i) {
+            bool v;
+            v = (stex[i] >= spec.x && stex[i] < (spec.x+spec.width));
+            svalid[i] &= v;
+            allvalid &= v;
+            anyvalid |= v;
+            v = (ttex[i] >= spec.y && ttex[i] < (spec.y+spec.height));
+            tvalid[i] &= v;
+            allvalid &= v;
+            anyvalid |= v;
+        }
     }
     if (! anyvalid) {
         // All texels we need were out of range and using 'black' wrap.
@@ -1264,8 +1292,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     static float black[4] = { 0, 0, 0, 0 };
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
     int tileheightmask = spec.tile_height - 1;
-    int tile_s = stex[0] & tilewidthmask;
-    int tile_t = ttex[0] & tileheightmask;
+    int tile_s = (stex[0] - spec.x) & tilewidthmask;
+    int tile_t = (ttex[0] - spec.y) & tileheightmask;
     bool s_onetile = (tile_s <= tilewidthmask-3);
     bool t_onetile = (tile_t <= tileheightmask-3);
     if (s_onetile && t_onetile) {
@@ -1277,7 +1305,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     bool onetile = (s_onetile & t_onetile);
     size_t channelsize = texturefile.channelsize();
     size_t pixelsize = texturefile.pixelsize();
-    if (onetile & allsvalid & alltvalid) {
+    if (onetile & allvalid) {
         // Shortcut if all the texels we need are on the same tile
         TileID id (texturefile, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
@@ -1301,8 +1329,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                     texel[j][i] = (unsigned char *) black;
                     continue;
                 }
-                tile_s = stex[i] & tilewidthmask;
-                tile_t = ttex[j] & tileheightmask;
+                tile_s = (stex[i] - spec.x) & tilewidthmask;
+                tile_t = (ttex[j] - spec.y) & tileheightmask;
                 TileID id (texturefile, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
                 bool ok = find_tile (id, thread_info);
