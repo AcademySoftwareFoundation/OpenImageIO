@@ -918,12 +918,12 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     float s = _s[index], t = _t[index];
     int npointson = 0;
     int closestprobes = 0, bilinearprobes = 0, bicubicprobes = 0;
+    float sumw = 0;
     for (int level = 0;  level < 2;  ++level) {
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
         ++npointson;
         int lev = miplevel[level];
-        float w = invsamples * levelweight[level];
         accum_prototype accumer = &TextureSystemImpl::accum_sample_bilinear;
         switch (options.interpmode) {
         case TextureOptions::InterpClosest :
@@ -952,9 +952,19 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         for (int sample = 0;  sample < nsamples;  ++sample) {
             float pos = (sample + 0.5f) * invsamples - 0.5f;
             ok &= (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
-                                    thread_info, options, index, w,
+                                    thread_info, options, index, levelweight[level],
                                     result, dresultds, dresultdt);
+            sumw += levelweight[level];
         }
+    }
+
+    if (sumw > 0) {
+       float invw = 1 / sumw;
+       for (int c = 0;  c < options.actualchannels;  ++c) {
+          result[c] *= invw;
+          if (dresultds) dresultds[c] *= invw;
+          if (dresultdt) dresultdt[c] *= invw;
+       }
     }
 
     // Update stats
