@@ -39,9 +39,9 @@
 
 #include <boost/scoped_array.hpp>
 
-#include <ImathColor.h>
+#include <OpenEXR/ImathColor.h>
 using Imath::Color3f;
-#include <ImathFun.h>
+#include <OpenEXR/ImathFun.h>
 
 #include "dassert.h"
 #include "argparse.h"

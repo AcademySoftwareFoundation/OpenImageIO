@@ -31,8 +31,8 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <half.h>
-#include <ImathFun.h>
+#include <OpenEXR/half.h>
+#include <OpenEXR/ImathFun.h>
 
 #include <boost/scoped_array.hpp>
 

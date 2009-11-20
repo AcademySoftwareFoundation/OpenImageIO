@@ -37,7 +37,7 @@
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
 
-#include <ImathMatrix.h>
+#include <OpenEXR/ImathMatrix.h>
 
 #include "dassert.h"
 #include "typedesc.h"

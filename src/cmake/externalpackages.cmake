@@ -45,14 +45,10 @@ mark_as_advanced (ILMBASE_VERSION)
 setup_path (ILMBASE_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the ILMBase library install")
 mark_as_advanced (ILMBASE_HOME)
-find_path (ILMBASE_INCLUDE_AREA half.h
-           ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/include/OpenEXR
+find_path (ILMBASE_INCLUDE_AREA OpenEXR/half.h
+           ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/include
            ${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}
-           ${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}/OpenEXR
-           ${ILMBASE_HOME}/include/OpenEXR
-           /usr/include/OpenEXR
-           /usr/local/include/OpenEXR
-           /opt/local/include/OpenEXR
+           ${ILMBASE_HOME}/include
           )
 foreach (_lib Imath Half IlmThread Iex)
     find_library (ILMBASE_LIBS_${_lib} ${_lib}
@@ -68,6 +64,7 @@ message (STATUS "ILMBASE_LIBRARIES = ${ILMBASE_LIBRARIES}")
 if (ILMBASE_INCLUDE_AREA AND ILMBASE_LIBRARIES)
     set (ILMBASE_FOUND true)
     include_directories ("${ILMBASE_INCLUDE_AREA}")
+    include_directories ("${ILMBASE_INCLUDE_AREA}/OpenEXR")
 else ()
     message (FATAL_ERROR "ILMBASE not found!")
 endif ()
@@ -86,15 +83,11 @@ mark_as_advanced (OPENEXR_VERSION)
 setup_path (OPENEXR_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the OpenEXR library install")
 mark_as_advanced (OPENEXR_HOME)
-find_path (OPENEXR_INCLUDE_AREA ImfArray.h OpenEXRConfig.h
-           ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/include/OpenEXR
+find_path (OPENEXR_INCLUDE_AREA OpenEXR/OpenEXRConfig.h
+           ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/include
            ${OPENEXR_HOME}/include
-           ${OPENEXR_HOME}/include/OpenEXR
            ${ILMBASE_HOME}/include/openexr-${OPENEXR_VERSION}
-           ${ILMBASE_HOME}/include/openexr-${OPENEXR_VERSION}/OpenEXR
-           /usr/include/OpenEXR
-           /usr/local/include/OpenEXR
-           /opt/local/include/OpenEXR )
+            )
 find_library (OPENEXR_LIBRARY IlmImf
               PATHS ${OPENEXR_HOME}/lib
                     ${OPENEXR_HOME}/lib64
@@ -106,6 +99,7 @@ message (STATUS "OPENEXR_LIBRARY = ${OPENEXR_LIBRARY}")
 if (OPENEXR_INCLUDE_AREA AND OPENEXR_LIBRARY)
     set (OPENEXR_FOUND true)
     include_directories (${OPENEXR_INCLUDE_AREA})
+    include_directories (${OPENEXR_INCLUDE_AREA}/OpenEXR)
 else ()
     message (STATUS "OPENEXR not found!")
 endif ()
@@ -124,14 +118,14 @@ endmacro ()
 
 message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
 
-set(Boost_ADDITIONAL_VERSIONS "1.40" "1.39" "1.38" "1.38.0" "1.37" "1.37.0" "1.34.1" "1_34_1")
+set (Boost_ADDITIONAL_VERSIONS "1.40" "1.39" "1.38" "1.38.0" "1.37" "1.37.0" "1.34.1" "1_34_1")
 #set (Boost_USE_STATIC_LIBS   ON)
 set (Boost_USE_MULTITHREADED ON)
 if (BOOST_CUSTOM)
     set (Boost_FOUND true)
 else ()
     find_package (Boost 1.34 REQUIRED 
-                  COMPONENTS filesystem program_options regex system thread
+                  COMPONENTS filesystem regex system thread
                  )
 endif ()
 

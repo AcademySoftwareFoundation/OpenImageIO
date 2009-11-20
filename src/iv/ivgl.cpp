@@ -36,8 +36,8 @@
 // (which is included by QtOpenGL and QGLFormat)
 #include <glew.h>
 
-#include <half.h>
-#include <ImathFun.h>
+#include <OpenEXR/half.h>
+#include <OpenEXR/ImathFun.h>
 #include <QGLFormat>
 
 #include <boost/foreach.hpp>

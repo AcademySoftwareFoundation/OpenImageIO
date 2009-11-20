@@ -35,7 +35,7 @@
 
 #include <boost/algorithm/string.hpp>
 using boost::algorithm::iequals;
-#include <ImathColor.h>
+#include <OpenEXR/ImathColor.h>
 
 #include "dassert.h"
 #include "typedesc.h"

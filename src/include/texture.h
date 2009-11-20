@@ -41,7 +41,7 @@
 #include "ustring.h"
 #include "imageio.h"
 
-#include <ImathVec.h>       /* because we need V3f */
+#include <OpenEXR/ImathVec.h>       /* because we need V3f */
 
 
 #ifdef OPENIMAGEIO_NAMESPACE
