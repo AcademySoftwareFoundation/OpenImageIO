@@ -131,9 +131,8 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 {
     png_read_info (sp, ip);
 
-    unsigned int width, height;
-    png_get_IHDR (sp, ip,
-                  (png_uint_32 *)&width, (png_uint_32 *)&height,
+    png_uint_32 width, height;
+    png_get_IHDR (sp, ip, &width, &height,
                   &bit_depth, &color_type, NULL, NULL, NULL);
     
     spec = OpenImageIO::ImageSpec ((int)width, (int)height,
