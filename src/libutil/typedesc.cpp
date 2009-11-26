@@ -159,6 +159,8 @@ TypeDesc::c_str () const
     }
     if (arraylen > 0)
         result += Strutil::format ("[%d]", arraylen);
+    else if (arraylen < 0)
+        result += "[]";
     return ustring(result).c_str();
 }
 

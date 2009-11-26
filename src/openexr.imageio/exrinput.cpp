@@ -37,18 +37,18 @@
 using boost::algorithm::iequals;
 using boost::algorithm::iends_with;
 
-#include <ImfTestFile.h>
-#include <ImfInputFile.h>
-#include <ImfTiledInputFile.h>
-#include <ImfChannelList.h>
-#include <ImfEnvmap.h>
-#include <ImfIntAttribute.h>
-#include <ImfFloatAttribute.h>
-#include <ImfMatrixAttribute.h>
-#include <ImfStringAttribute.h>
-#include <ImfEnvmapAttribute.h>
-#include <ImfCompressionAttribute.h>
-#include <ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
+#include <OpenEXR/ImfTestFile.h>
+#include <OpenEXR/ImfInputFile.h>
+#include <OpenEXR/ImfTiledInputFile.h>
+#include <OpenEXR/ImfChannelList.h>
+#include <OpenEXR/ImfEnvmap.h>
+#include <OpenEXR/ImfIntAttribute.h>
+#include <OpenEXR/ImfFloatAttribute.h>
+#include <OpenEXR/ImfMatrixAttribute.h>
+#include <OpenEXR/ImfStringAttribute.h>
+#include <OpenEXR/ImfEnvmapAttribute.h>
+#include <OpenEXR/ImfCompressionAttribute.h>
+#include <OpenEXR/ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
 
 #include "dassert.h"
 #include "imageio.h"

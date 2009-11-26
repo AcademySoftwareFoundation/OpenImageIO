@@ -41,16 +41,7 @@
 #include "ustring.h"
 #include "imageio.h"
 
-#ifndef INCLUDED_IMATHVEC_H
-namespace Imath {
-    class V3f;
-};
-#endif
-#ifndef INCLUDED_IMATHMATRIX_H
-namespace Imath {
-    class M44f;
-};
-#endif
+#include <OpenEXR/ImathVec.h>       /* because we need V3f */
 
 
 #ifdef OPENIMAGEIO_NAMESPACE

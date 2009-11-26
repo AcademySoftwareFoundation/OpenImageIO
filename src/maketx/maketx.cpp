@@ -42,7 +42,7 @@
 #include "SHA1.h"
 
 #include <boost/filesystem.hpp>
-#include <ImathMatrix.h>
+#include <OpenEXR/ImathMatrix.h>
 
 #include "argparse.h"
 #include "dassert.h"

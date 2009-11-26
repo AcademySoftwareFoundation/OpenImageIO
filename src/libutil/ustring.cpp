@@ -28,6 +28,7 @@
   (This is the Modified BSD License)
 */
 
+#include <cstdio>
 #include <string>
 
 #include "export.h"

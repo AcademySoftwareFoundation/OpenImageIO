@@ -37,7 +37,7 @@
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
 
-#include <ImathMatrix.h>
+#include <OpenEXR/ImathMatrix.h>
 
 #include "dassert.h"
 #include "typedesc.h"
@@ -211,6 +211,18 @@ ImageCacheStatistics::merge (const ImageCacheStatistics &s)
 
 
 
+ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec)
+{
+    full_pixel_range = (spec.x == spec.full_x && spec.y == spec.full_y &&
+                        spec.z == spec.full_z &&
+                        spec.width == spec.full_width &&
+                        spec.height == spec.full_height &&
+                        spec.depth == spec.full_depth);
+    zero_origin = (spec.x == 0 && spec.y == 0 && spec.z == 0);
+}
+
+
+
 ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
                                 ImageCachePerThreadInfo *thread_info,
                                 ustring filename)
@@ -268,6 +280,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     if (! m_input) {
         imagecache().error ("%s", OpenImageIO::geterror().c_str());
         m_broken = true;
+        m_validspec = false;
         return false;
     }
 
@@ -336,6 +349,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         }
         ++nsubimages;
         m_spec.push_back (tempspec);
+        LevelInfo levelinfo (tempspec);
+        m_levels.push_back (levelinfo);
         thread_info->m_stats.files_totalsize += tempspec.image_bytes();
     } while (m_input->seek_subimage (nsubimages, tempspec));
     ASSERT ((size_t)nsubimages == m_spec.size());
@@ -370,6 +385,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             s.tile_height = pow2roundup (s.tile_height);
             ++nsubimages;
             m_spec.push_back (s);
+            LevelInfo levelinfo (s);
+            m_levels.push_back (levelinfo);
         }
     }
 
@@ -1204,11 +1221,11 @@ bool
 ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
                            const void *val)
 {
+    bool do_invalidate = false;
     if (name == "max_open_files" && type == TypeDesc::INT) {
         m_max_open_files = *(const int *)val;
-        return true;
     }
-    if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
+    else if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
         float size = *(const float *)val;
 #ifndef DEBUG
         size = std::max (size, 10.0f);  // Don't let users choose < 10 MB
@@ -1217,9 +1234,8 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
 #endif
         m_max_memory_MB = size;
         m_max_memory_bytes = (int)(size * 1024 * 1024);
-        return true;
     }
-    if (name == "max_memory_MB" && type == TypeDesc::INT) {
+    else if (name == "max_memory_MB" && type == TypeDesc::INT) {
         float size = *(const int *)val;
 #ifndef DEBUG
         size = std::max (size, 10.0f);  // Don't let users choose < 10 MB
@@ -1228,18 +1244,16 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
 #endif
         m_max_memory_MB = size;
         m_max_memory_bytes = (int)(size * 1024 * 1024);
-        return true;
     }
-    if (name == "searchpath" && type == TypeDesc::STRING) {
+    else if (name == "searchpath" && type == TypeDesc::STRING) {
         m_searchpath = std::string (*(const char **)val);
         Filesystem::searchpath_split (m_searchpath, m_searchdirs, true);
-        return true;
+        do_invalidate = true;   // in case file can be found with new path
     }
-    if (name == "statistics:level" && type == TypeDesc::INT) {
+    else if (name == "statistics:level" && type == TypeDesc::INT) {
         m_statslevel = *(const int *)val;
-        return true;
     }
-    if (name == "autotile" && type == TypeDesc::INT) {
+    else if (name == "autotile" && type == TypeDesc::INT) {
         m_autotile = pow2roundup (*(const int *)val);  // guarantee pow2
         // Clamp to minimum 8x8 tiles to protect against stupid user who
         // think this is a boolean rather than the tile size.  Unless
@@ -1248,25 +1262,29 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         if (m_autotile > 0 && m_autotile < 8)
             m_autotile = 8;
 #endif
-        return true;
+        do_invalidate = true;
     }
-    if (name == "automip" && type == TypeDesc::INT) {
+    else if (name == "automip" && type == TypeDesc::INT) {
         m_automip = *(const int *)val;
-        return true;
+        do_invalidate = true;
     }
-    if (name == "forcefloat" && type == TypeDesc::INT) {
+    else if (name == "forcefloat" && type == TypeDesc::INT) {
         m_forcefloat = *(const int *)val;
-        return true;
     }
-    if (name == "accept_untiled" && type == TypeDesc::INT) {
+    else if (name == "accept_untiled" && type == TypeDesc::INT) {
         m_accept_untiled = *(const int *)val;
-        return true;
+        do_invalidate = true;
     }
-    if (name == "failure_retries" && type == TypeDesc::INT) {
+    else if (name == "failure_retries" && type == TypeDesc::INT) {
         m_failure_retries = *(const int *)val;
-        return true;
+    } else {
+        // Otherwise, unknown name
+        return false;
     }
-    return false;
+
+    if (do_invalidate)
+        invalidate_all ();
+    return true;
 }
 
 
@@ -1733,16 +1751,26 @@ ImageCacheImpl::invalidate_all (bool force)
         ic_read_lock fileguard (m_filemutex);
         for (FilenameMap::iterator fileit = m_files.begin();
                  fileit != m_files.end();  ++fileit) {
-            ustring name = fileit->second->filename();
-            recursive_lock_guard guard (fileit->second->m_input_mutex);
-            fileit->second->close ();
-            if (fileit->second->broken()) {
+            ImageCacheFileRef &f (fileit->second);
+            ustring name = f->filename();
+            recursive_lock_guard guard (f->m_input_mutex);
+            f->close ();
+            if (f->broken() || ! boost::filesystem::exists(name.string())) {
                 all_files.push_back (name);
                 continue;
             }
             std::time_t t = boost::filesystem::last_write_time (name.string());
-            if (force || (t != fileit->second->mod_time()))
+            // Invalidate the file if...
+            if (force ||   // ...force mode is on
+                // ...the file has been modified since it was last opened
+                (t != f->mod_time()) ||
+                // ...automip is on now but the file didn't automip before
+                (m_automip && f->unmipped() && f->subimages() <= 1) ||
+                // ...automip is off now but the file automipped before
+                (!m_automip && f->unmipped() && f->subimages() > 1))
+            {
                 all_files.push_back (name);
+            }
         }
     }
 
@@ -1783,6 +1811,10 @@ ImageCacheImpl::get_perthread_info ()
         p->tile = NULL;
         p->lasttile = NULL;
         p->purge = 0;
+        for (int i = 0;  i < ImageCachePerThreadInfo::nlastfile;  ++i) {
+            p->last_filename[i] = ustring();
+            p->last_file[i] = NULL;
+        }
     }
     return p;
 }

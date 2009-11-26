@@ -40,7 +40,7 @@ using namespace OpenImageIO;
 
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
-#include <ImathFun.h>
+#include <OpenEXR/ImathFun.h>
 
 #include "dassert.h"
 #include "strutil.h"

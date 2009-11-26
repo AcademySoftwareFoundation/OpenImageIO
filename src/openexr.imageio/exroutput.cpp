@@ -38,17 +38,17 @@
 using boost::algorithm::iequals;
 using boost::algorithm::istarts_with;
 
-#include <ImfOutputFile.h>
-#include <ImfTiledOutputFile.h>
-#include <ImfChannelList.h>
-#include <ImfEnvmap.h>
-#include <ImfIntAttribute.h>
-#include <ImfFloatAttribute.h>
-#include <ImfMatrixAttribute.h>
-#include <ImfStringAttribute.h>
-#include <ImfEnvmapAttribute.h>
-#include <ImfCompressionAttribute.h>
-#include <ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
+#include <OpenEXR/ImfOutputFile.h>
+#include <OpenEXR/ImfTiledOutputFile.h>
+#include <OpenEXR/ImfChannelList.h>
+#include <OpenEXR/ImfEnvmap.h>
+#include <OpenEXR/ImfIntAttribute.h>
+#include <OpenEXR/ImfFloatAttribute.h>
+#include <OpenEXR/ImfMatrixAttribute.h>
+#include <OpenEXR/ImfStringAttribute.h>
+#include <OpenEXR/ImfEnvmapAttribute.h>
+#include <OpenEXR/ImfCompressionAttribute.h>
+#include <OpenEXR/ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
 #ifdef IMF_B44_COMPRESSION
 #define OPENEXR_VERSION_IS_1_6_OR_LATER
 #endif

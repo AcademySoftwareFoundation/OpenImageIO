@@ -358,21 +358,22 @@ public:
     /// lexicographically after str.
 
     int compare (const ustring& str) const {
-        return c_str() == str.c_str() ? 0 : strcmp (c_str(), str.c_str());
+        return (c_str() == str.c_str()) ? 0 
+            : strcmp (c_str() ? c_str() : "", str.c_str() ? str.c_str() : "");
     }
 
     /// Return 0 if *this is lexicographically equal to str, -1 if
     /// *this is lexicographically earlier than str, 1 if *this is
     /// lexicographically after str.
     int compare (const std::string& str) const {
-        return strcmp (c_str(), str.c_str());
+        return strcmp (c_str() ? c_str() : "", str.c_str());
     }
 
     /// Return 0 if a is lexicographically equal to b, -1 if a is
     /// lexicographically earlier than b, 1 if a is lexicographically
     /// after b.
     friend int compare (const std::string& a, const ustring &b) {
-        return strcmp (a.c_str(), b.c_str());
+        return strcmp (a.c_str(), b.c_str() ? b.c_str() : "");
     }
 
     /// Test two ustrings for equality -- are they comprised of the same

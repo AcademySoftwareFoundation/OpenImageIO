@@ -35,8 +35,8 @@
 
 #include <iostream>
 
-#include <ImathFun.h>
-#include <half.h>
+#include <OpenEXR/ImathFun.h>
+#include <OpenEXR/half.h>
 #include <boost/scoped_ptr.hpp>
 
 #include "imageio.h"

@@ -176,6 +176,15 @@ public:
     void duplicate (ImageCacheFile *dup) { m_duplicate = dup;}
     ImageCacheFile *duplicate () const { return m_duplicate; }
 
+    /// Info for each MIP level that isn't in the ImageSpec, or that we
+    /// precompute.
+    struct LevelInfo {
+        bool full_pixel_range;      ///< pixel data window matches image window
+        bool zero_origin;           ///< pixel data origin is (0,0)
+        LevelInfo (const ImageSpec &spec);  ///< Initialize based on spec
+    };
+    const LevelInfo &levelinfo (int subimage) const { return m_levels[subimage]; }
+
 private:
     ustring m_filename;             ///< Filename
     bool m_used;                    ///< Recently used (in the LRU sense)
@@ -184,6 +193,7 @@ private:
     bool m_unmipped;                ///< Not really MIP-mapped
     shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
     std::vector<ImageSpec> m_spec;  ///< Format for each subimage
+    std::vector<LevelInfo> m_levels;///< Extra per-level info for each subimage
     TexFormat m_texformat;          ///< Which texture format
     TextureOptions::Wrap m_swrap;   ///< Default wrap modes
     TextureOptions::Wrap m_twrap;   ///< Default wrap modes
