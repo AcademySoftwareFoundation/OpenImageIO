@@ -2,7 +2,7 @@ Changes:
 
 
 
-Release 0.7 (Nov ?? 2009)
+Release 0.7 (Nov 26 2009)
 --------------------------
 
 Major new features:
@@ -26,6 +26,7 @@ Fixes, minor enhancements, and performance improvements:
 
 * Improvements to the Targa plugin, bringing it into compliance with
   TGA 2.0 (r1163, r1297)
+* Fixed PNG-related crashes on 64 bit machines. (r1336)
 * iv improvements: support for multichannel images and different color
   modes (r1129), support auto use mipmap level based on zooming (r1093),
   correct pixelview for rotated images (r1092), fix off-by-one error
@@ -55,13 +56,20 @@ Fixes, minor enhancements, and performance improvements:
   right fill color. (r1268)
 * IC: Clamp cache size to a reasonable lower limit (r1256)
 * TS: improvements to filter estimation (1134) and bicubic interpolation 
-  numerical stability and speed (r1166, r1179).
+  numerical stability and speed (r1166, r1179, r1333).
 * IC: when autotile=0 but automip=1, fixed bug that was wasting HUGE
   amounts of memory by using the wrong resolution for mip levels! (r1147)
 * IC: fix an edge case where tiles could leak. (r1044)
 * Fixed some hairy static initialization problems with ustring (r1280)
 * Use a spin lock rather than block in ustring constructor gives HUGE 
   speedup especially on Windows. (r1167)
+* TS: Make everything work for textures whose image origin is not (0,0)
+  or whose pixel data window doesn't match the image window (i.e. crop
+  windows or overscan).  (r1332)
+* IC/TS: Correctly invalidate files afected by recently changed "automip"
+  setting. (r1337)
+* IC/TS: fix crash that could occur with non-existant textures in combination
+  with invalidate_all(). (r1338)
 
 For developers:
 
@@ -77,6 +85,10 @@ For developers:
   (r1265)
 * Fixed lots of compiler warnings.
 * Upgraded to a more recent TBB, which fixed some atomic problems. (r1211)
+* ustring: make string comparison safe for empty strings. (r1330)
+* Include file fixes for gcc 4.4. (r1331)
+* Regularize all #include references to Imath and Openexr to 
+  <OpenEXR/blah>. (r1335)
 
 
 
