@@ -280,6 +280,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     if (! m_input) {
         imagecache().error ("%s", OpenImageIO::geterror().c_str());
         m_broken = true;
+        m_validspec = false;
         return false;
     }
 
@@ -1754,7 +1755,7 @@ ImageCacheImpl::invalidate_all (bool force)
             ustring name = f->filename();
             recursive_lock_guard guard (f->m_input_mutex);
             f->close ();
-            if (f->broken()) {
+            if (f->broken() || ! boost::filesystem::exists(name.string())) {
                 all_files.push_back (name);
                 continue;
             }
@@ -1810,6 +1811,10 @@ ImageCacheImpl::get_perthread_info ()
         p->tile = NULL;
         p->lasttile = NULL;
         p->purge = 0;
+        for (int i = 0;  i < ImageCachePerThreadInfo::nlastfile;  ++i) {
+            p->last_filename[i] = ustring();
+            p->last_file[i] = NULL;
+        }
     }
     return p;
 }
