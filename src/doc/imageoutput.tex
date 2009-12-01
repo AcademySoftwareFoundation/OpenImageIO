@@ -21,6 +21,8 @@ to a file:
         unsigned char pixels[xres*yres*channels];
 
         ImageOutput *out = ImageOutput::create (filename);
+        if (! out)
+            return;
         ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
         out->open (filename, spec);
         out->write_image (TypeDesc::UINT8, pixels);

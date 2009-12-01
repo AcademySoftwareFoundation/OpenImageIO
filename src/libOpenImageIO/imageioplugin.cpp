@@ -307,8 +307,17 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
         catalog_all_plugins (plugin_searchpath);
 
     if (output_formats.find (format) == output_formats.end()) {
-        OpenImageIO::pvt::error ("ImageOutput::create_format() could not find a plugin for \"%s\"\n    searchpath = \"%s\"\n",
-                            filename.c_str(), plugin_searchpath.c_str());
+        if (input_formats.empty()) {
+            // This error is so fundamental, we echo it to stderr in
+            // case the app is too dumb to do so.
+            const char *msg = "ImageOutput::create() could not find any ImageOutput plugins!\n"
+                          "    Perhaps you need to set IMAGEIO_LIBRARY_PATH.\n";
+            fprintf (stderr, "%s", msg);
+            OpenImageIO::pvt::error ("%s", msg);
+        }
+        else
+            OpenImageIO::pvt::error ("ImageOutput::create_format() could not find a plugin for \"%s\"\n    searchpath = \"%s\"\n",
+                                     filename.c_str(), plugin_searchpath.c_str());
         return NULL;
     }
 
@@ -371,8 +380,20 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
     }
 
     if (create_function == NULL) {
-        OpenImageIO::pvt::error ("ImageInput::create_format() could not find a plugin for \"%s\"\n    searchpath = \"%s\"\n",
-                            filename.c_str(), plugin_searchpath.c_str());
+        if (input_formats.empty()) {
+            // This error is so fundamental, we echo it to stderr in
+            // case the app is too dumb to do so.
+            const char *msg = "ImageInput::create() could not find any ImageInput plugins!\n"
+                          "    Perhaps you need to set IMAGEIO_LIBRARY_PATH.\n";
+            fprintf (stderr, "%s", msg);
+            OpenImageIO::pvt::error ("%s", msg);
+        }
+        else if (boost::filesystem::exists (filename))
+            OpenImageIO::pvt::error ("ImageInput::create() could not find a plugin for \"%s\"\n    searchpath = \"%s\"\n",
+                                 filename.c_str(), plugin_searchpath.c_str());
+        else
+            OpenImageIO::pvt::error ("ImageInput::create() could not find \"%s\"\n",
+                                     filename.c_str());
         return NULL;
     }
 

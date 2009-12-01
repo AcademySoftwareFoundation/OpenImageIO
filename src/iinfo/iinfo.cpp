@@ -340,7 +340,7 @@ main (int argc, const char *argv[])
     BOOST_FOREACH (const std::string &s, filenames) {
         ImageInput *in = ImageInput::create (s.c_str(), "" /* searchpath */);
         if (! in) {
-            std::cerr << OpenImageIO::geterror() << "\n";
+            std::cerr << "iinfo: " << OpenImageIO::geterror() << "\n";
             continue;
         }
         ImageSpec spec;
@@ -348,8 +348,7 @@ main (int argc, const char *argv[])
             print_info (s, longestname, in, spec, verbose, sum, totalsize);
             in->close ();
         } else {
-            fprintf (stderr, "iinfo: Could not open \"%s\" : %s\n",
-                     s.c_str(), in->geterror().c_str());
+            std::cerr << "iinfo: " << in->geterror() << "\n";
         }
         delete in;
     }

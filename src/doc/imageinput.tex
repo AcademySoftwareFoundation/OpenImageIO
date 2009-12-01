@@ -20,6 +20,8 @@ out its resolution, and read the pixels (converting them into
         unsigned char *pixels;
 
         ImageInput *in = ImageInput::create (filename);
+        if (! in)
+            return;
         ImageSpec spec;
         in->open (filename, spec);
         xres = spec.width;
