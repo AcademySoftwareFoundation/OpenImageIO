@@ -193,7 +193,7 @@ help:
 	@echo ""
 	@echo "Helpful modifiers:"
 	@echo "  make VERBOSE=1 ...          Show all compilation commands"
-	@echo "  make EMBEDPLUGINS=1 ...     Compile the plugins into libOpenImageIO"
+	@echo "  make EMBEDPLUGINS=0 ...     Don't compile the plugins into libOpenImageIO"
 	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"

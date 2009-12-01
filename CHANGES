@@ -1,6 +1,11 @@
 Changes:
 
 
+Release 0.7.1 (???)
+-------------------
+* Make EMBEDPLUGINS=1 the default.
+* Make create() error messages more helpful.
+
 
 Release 0.7 (Nov 26 2009)
 --------------------------
