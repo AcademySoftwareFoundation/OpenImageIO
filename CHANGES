@@ -2,6 +2,15 @@ Changes:
 
 
 
+In-progress Release 0.7 (Nov 26 2009)
+-------------------------------------
+Major new features:
+API changes:
+Fixes, minor enhancements, and performance improvements:
+For developers:
+
+
+
 Release 0.7 (Nov 26 2009)
 --------------------------
 
@@ -24,6 +33,7 @@ API changes:
 
 Fixes, minor enhancements, and performance improvements:
 
+* Make EMBEDPLUGINS=1 the default. (0.7.1)
 * Improvements to the Targa plugin, bringing it into compliance with
   TGA 2.0 (r1163, r1297)
 * Fixed PNG-related crashes on 64 bit machines. (r1336)
@@ -70,6 +80,7 @@ Fixes, minor enhancements, and performance improvements:
   setting. (r1337)
 * IC/TS: fix crash that could occur with non-existant textures in combination
   with invalidate_all(). (r1338)
+* Make create() error messages more helpful. (0.7.1)
 
 For developers:
 
