@@ -387,7 +387,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             ok = out->copy_image (in);
             if (! ok)
                 std::cerr << "iconvert ERROR copying \"" << in_filename 
-                          << "\" to \"" << in_filename << "\" :\n\t" 
+                          << "\" to \"" << out_filename << "\" :\n\t" 
                           << out->geterror() << "\n";
         } else {
             // Need to do it by hand for some reason.  Future expansion in which
