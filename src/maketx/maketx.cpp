@@ -282,7 +282,7 @@ make_texturemap (const char *maptypename = "texture map")
         sha.Final ();
         sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
         if (verbose)
-            std::cout << "  SHA-1: " << hash_digest << "\n";
+            std::cout << "  SHA-1: " << hash_digest << std::endl;
     }
 
     // Figure out which data format we want for output
@@ -498,7 +498,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
 
     if (mipmap) {  // Mipmap levels:
         if (verbose)
-            std::cout << "  Mipmapping...\n";
+            std::cout << "  Mipmapping...\n" << std::flush;
         size_t pixelsize = outspec.nchannels * sizeof(float);
         float *pel = (float *) alloca (pixelsize);
         float *in0 = (float *) alloca (4 * pixelsize);
@@ -559,7 +559,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             stat_writetime += writetimer();
             if (verbose)
                 std::cout << "    " << smallspec.width << 'x' 
-                          << smallspec.height << "\n";
+                          << smallspec.height << "\n" << std::flush;
             std::swap (big, small);
         }
     }
