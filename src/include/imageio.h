@@ -63,14 +63,24 @@ namespace OPENIMAGEIO_NAMESPACE {
 namespace OpenImageIO {
 
 
-#define OPENIMAGEIO_VERSION_STRING "0.7.0"
+// Versioning of the OpenImageIO software
 #define OPENIMAGEIO_VERSION_MAJOR  0
 #define OPENIMAGEIO_VERSION_MINOR  7
 #define OPENIMAGEIO_VERSION_PATCH  0
 #define OPENIMAGEIO_VERSION (10000 * OPENIMAGEIO_VERSION_MAJOR + \
                                100 * OPENIMAGEIO_VERSION_MINOR + \
                                      OPENIMAGEIO_VERSION_PATCH)
+
+// Magic macros to make OPENIMAGEIO_VERSION_STRING that looks like "1.2.3"
+#define OIIO_MAKE_VERSION_STRING2(a,b,c) #a "." #b "." #c
+#define OIIO_MAKE_VERSION_STRING(a,b,c) OIIO_MAKE_VERSION_STRING2(a,b,c)
+#define OPENIMAGEIO_VERSION_STRING \
+    OIIO_MAKE_VERSION_STRING(OPENIMAGEIO_VERSION_MAJOR, \
+                         OPENIMAGEIO_VERSION_MINOR, OPENIMAGEIO_VERSION_PATCH)
+
 #define OPENIMAGEIO_INTRO_STRING "OpenImageIO " OPENIMAGEIO_VERSION_STRING " http://www.openimageio.org"
+
+
 
 
 /// Each imageio DSO/DLL should include this statement:
