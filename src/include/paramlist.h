@@ -173,6 +173,17 @@ public:
     void resize (size_t newsize) { m_vals.resize (newsize); }
     size_t size () const { return m_vals.size(); }
 
+    /// Add space for one more ParamValue to the list, and return a
+    /// reference to its slot.
+    reference grow () {
+        resize (size()+1);
+        return back ();
+    }
+
+    /// Add a ParamValue to the end of the list.
+    ///
+    void push_back (ParamValue &p) { m_vals.push_back (p); }
+
     /// Remove all the values in the list.
     ///
     void clear () { m_vals.clear(); }

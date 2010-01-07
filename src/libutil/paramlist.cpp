@@ -55,12 +55,18 @@ ParamValue::init_noclear (ustring _name, TypeDesc _type,
 
     if (_copy || small) {
         if (small) {
-            memcpy (&m_data, _value, size);
+            if (_value)
+                memcpy (&m_data, _value, size);
+            else
+                m_data.localval = 0;
             m_copy = false;
             m_nonlocal = false;
         } else {
             m_data.ptr = malloc (size);
-            memcpy ((char *)m_data.ptr, _value, size);
+            if (_value)
+                memcpy ((char *)m_data.ptr, _value, size);
+            else
+                memset ((char *)m_data.ptr, 0, size);
             m_copy = true;
             m_nonlocal = true;
         }
