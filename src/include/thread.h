@@ -408,7 +408,7 @@ typedef atomic<long long> atomic_ll;
 typedef null_mutex spin_mutex;
 typedef null_lock<spin_mutex> spin_lock;
 
-#elif defined(USE_TBB)
+#elif USE_TBB
 
 // Use TBB's spin locks
 typedef tbb::spin_mutex spin_mutex;
@@ -485,7 +485,7 @@ public:
 #if defined(__APPLE__)
         return OSSpinLockTry ((OSSpinLock *)&m_locked);
 #else
-#  ifdef USE_TBB
+#  if USE_TBB
         // TBB's compare_and_swap returns the original value
         return m_locked.compare_and_swap (0, 1) == 0;
 #  else
