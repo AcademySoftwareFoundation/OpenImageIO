@@ -1,5 +1,5 @@
 /*
-  Copyright 2009 Larry Gritz and the other authors and contributors.
+  Copyright 2008-2009 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -27,78 +27,12 @@
 
   (This is the Modified BSD License)
 */
-
-#include <cassert>
-#include <cstdio>
-
-#include "imageio.h"
-using namespace OpenImageIO;
-
-#include "bmp.h"
+#include "bmp_pvt.h"
 using namespace bmp_pvt;
 
 
 
-class BmpInput : public ImageInput {
-  public:
-    BmpInput () { init(); }
-    virtual ~BmpInput () { close(); }
-    virtual const char * format_name (void) const { return "bmp"; }
-    virtual bool open (const std::string &name, ImageSpec &spec);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool close ();
-
-  private:
-    FILE *m_fd;                       ///< input file handler
-    std::string m_filename;           ///< input file name
-    BmpHeader m_hbmp;                 ///< BMP Header
-    DibHeader *m_dbmp;                ///< BMP DIB Header
-    std::vector<unsigned char> m_buf; ///< Buffer the image pixels
-
-    /// Read the entire image and store it in m_buf.
-    /// Return true if method read as many bytes as the image contains.
-    bool read_bmp_image(void);
-
-    /// Check the file header.
-    /// Return true if the file is bmp file.
-    bool check_bmp_header (void);
-
-    /// Read the file header.
-    /// Return true if method read as many bytes as is needed by the header.
-    bool read_bmp_header (void);
-
-    /// Read the dib header.
-    /// Return true if method read as many byte as is needed by the header.
-    bool read_dib_header (void);
-
-    /// read images with 4-bit color depth
-    ///
-    bool read_bmp_image4 (void);
-
-    /// read images with 8-bit color depth
-    ///
-    bool read_bmp_image8 (void);
-
-    /// read images with 24- and 32-bit colors depths
-    ///
-    bool read_bmp_imageRGB (void);
-
-    /// read color table from file
-    /// return pointer to created ColorTable struct
-    ///
-    ColorTable* read_color_table (void);
-
-    void init () 
-    {
-      m_fd = NULL;
-      m_dbmp = NULL;
-      m_buf.clear();
-      m_filename.clear();
-    }
-};
-
-
-
+// Obligatory material to make this a recognizeable imageio plugin
 extern "C" {
     DLLEXPORT int bmp_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *bmp_input_imageio_create () {
@@ -107,259 +41,191 @@ extern "C" {
     DLLEXPORT const char *bmp_input_extensions[] = {
         "bmp", NULL
     };
-};
+}
 
 
 
 bool
-BmpInput::open (const std::string &name, ImageSpec &newspec) 
+BmpInput::open (const std::string &name, ImageSpec &spec)
 {
+    // saving 'name' for later use
     m_filename = name;
-    // check if we can open the file
-    m_fd = fopen (name.c_str(), "rb");
-    if (m_fd == NULL) {
+
+    m_fd = fopen (m_filename.c_str (), "rb");
+    if (!m_fd) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;
     }
 
-    // check if file is bmp file
-    if ( ! check_bmp_header()) {
+    // we read header of the file that we think is BMP file
+    if (! m_bmp_header.read_header (m_fd)) {
+        error ("\"%s\": wrong bmp header size", m_filename.c_str());
+        close ();
+        return false;
+    }
+    if (! m_bmp_header.isBmp ()) {
+        error ("\"%s\" is not a BMP file, magic number doesn't match",
+               m_filename.c_str());
+        close ();
+        return false;
+    }
+    if (! m_dib_header.read_header (m_fd)) {
+        error ("\"%s\": wrong bitmap header size", m_filename.c_str());
+        close ();
+        return false;
+    }
+
+    const int nchannels = (m_dib_header.bpp == 32) ? 4 : 3;
+    const int height = (m_dib_header.height >= 0) ? m_dib_header.height
+                                                  : -m_dib_header.height;
+    m_spec = ImageSpec (m_dib_header.width, height, nchannels, TypeDesc::UINT8);
+    m_spec.attribute ("BitsPerSample", (int)m_dib_header.bpp);
+    m_spec.attribute ("XResolution", (int)m_dib_header.hres);
+    m_spec.attribute ("YResolution", (int)m_dib_header.vres);
+    m_spec.attribute ("ResolutionUnits", "pixel per meter");
+        
+
+    // comupting size of one scanline - this is the size of one scanline that
+    // is stored in the file, not in the memory
+    int swidth = 0;
+    switch (m_dib_header.bpp) {
+        case 32 :
+        case 24 :
+            m_scanline_size = ((m_spec.width * m_spec.nchannels) + 3) & ~3;
+            break;
+        case 16 :
+            m_scanline_size = ((m_spec.width << 1) + 3) & ~3;
+            break;
+        case  8 :
+            m_scanline_size = (m_spec.width + 3) & ~3;
+            read_color_table ();
+            break;
+        case 4 :
+            swidth = (m_spec.width + 1) / 2;
+            m_scanline_size = (swidth + 3) & ~3;
+            read_color_table ();
+            break;
+        case 1 :
+            swidth = (m_spec.width + 7) / 8;
+            m_scanline_size = (swidth + 3) & ~3;
+            read_color_table ();
+            break;
+    }
+
+    // file pointer is set to the beginning of image data
+    // we save this position - it will be helpfull in read_native_scanline
+    fgetpos (m_fd, &m_image_start);
+
+    spec = m_spec;
+    return true;
+}
+
+
+
+bool
+BmpInput::read_native_scanline (int y, int z, void *data)
+{
+    if (y < 0 || y > m_spec.height)
+        return false;
+
+    // if the height is positive scanlines are stored bottom-up
+    if (m_dib_header.width >= 0)
+        y = m_spec.height - y - 1;
+    const int scanline_off = y * m_scanline_size;
+
+    std::vector<unsigned char> fscanline (m_scanline_size);
+    fsetpos (m_fd, &m_image_start);
+    fseek (m_fd, scanline_off, SEEK_CUR);
+    fread (&fscanline[0], 1, m_scanline_size, m_fd);
+
+    // in each case we process only first m_spec.scanline_bytes () bytes
+    // as only they contain information about pixels. The rest are just
+    // because scanline size have to be 32-bit boundary
+    if (m_dib_header.bpp == 24 || m_dib_header.bpp == 32) {
+        for (unsigned int i = 0; i < m_spec.scanline_bytes (); i += m_spec.nchannels)
+            std::swap (fscanline[i], fscanline[i+2]);
+        memcpy (data, &fscanline[0], m_spec.scanline_bytes());
+        return true;
+    }
+
+    std::vector<unsigned char> mscanline (m_spec.scanline_bytes());
+    if (m_dib_header.bpp == 16) {
+        const uint16_t RED = 0x7C00;
+        const uint16_t GREEN = 0x03E0;
+        const uint16_t BLUE = 0x001F;
+        for (unsigned int i = 0, j = 0; j < m_spec.scanline_bytes(); i+=2, j+=3) {
+            uint16_t pixel = (uint16_t)*(&fscanline[i]);
+            mscanline[j] = (uint8_t)((pixel & RED) >> 8);
+            mscanline[j+1] = (uint8_t)((pixel & GREEN) >> 4);
+            mscanline[j+2] = (uint8_t)(pixel & BLUE);
+        }
+    }
+    if (m_dib_header.bpp == 8) {
+        for (unsigned int i = 0, j = 0; j < m_spec.scanline_bytes(); ++i, j+=3) {
+            mscanline[j] = m_colortable[fscanline[i]].r;
+            mscanline[j+1] = m_colortable[fscanline[i]].g;
+            mscanline[j+2] = m_colortable[fscanline[i]].b;
+        }
+    }
+    if (m_dib_header.bpp == 4) {
+        for (unsigned int i = 0, j = 0; j + 6 < m_spec.scanline_bytes(); ++i, j+=6) {
+            uint8_t mask = 0xF0;
+            mscanline[j] = m_colortable[(fscanline[i] & mask) >> 4].r;
+            mscanline[j+1] = m_colortable[(fscanline[i] & mask) >> 4].g;
+            mscanline[j+2] = m_colortable[(fscanline[i] & mask) >> 4].b;
+            mask = 0x0F;
+            mscanline[j+3] = m_colortable[fscanline[i] & mask].r;
+            mscanline[j+4] = m_colortable[fscanline[i] & mask].g;
+            mscanline[j+5] = m_colortable[fscanline[i] & mask].b;
+        }
+    }
+    if (m_dib_header.bpp == 1) {
+        for (unsigned int i = 0, k = 0; i < fscanline.size (); ++i) {
+            for (int j = 7; j >= 0; --j, k+=3) {
+                if (k + 2 >= mscanline.size())
+                    break;
+                int index = 0;
+                if (fscanline[i] & (1 << j))
+                    index = 1;
+                mscanline[k] = m_colortable[index].r;
+                mscanline[k+1] = m_colortable[index].g;
+                mscanline[k+2] = m_colortable[index].b;
+            }
+        }
+    }
+    memcpy (data, &mscanline[0], m_spec.scanline_bytes());
+    return true;
+}
+
+
+
+bool inline
+BmpInput::close (void)
+{
+    if (m_fd) {
         fclose (m_fd);
         m_fd = NULL;
-        error ("\"%s\" is a BMP file, magic number doesn't match", name.c_str());
-        return false;
     }
-
-    // read meta-data
-    read_bmp_header();
-    read_dib_header();
-    // BMP files have at least 3 channels
-    int nchannels = (m_dbmp->bpp == 32) ? 4 : 3;
-    // BMP files can have negative height!
-    const int height = (m_dbmp->height >= 0) ? m_dbmp->height : -m_dbmp->height;
-    m_spec = ImageSpec (m_dbmp->width, height, nchannels, TypeDesc::UINT8);
-    newspec = m_spec;
+    init ();
     return true;
 }
 
 
 
-bool
-BmpInput::close (void) 
-{
-   if (m_fd != NULL)
-      fclose(m_fd);
-   delete m_dbmp;
-   init ();    //reset to initial state
-   return true;
-}
-
-
-
-bool
-BmpInput::read_native_scanline (int y, int z, void *data) 
-{ 
-    if (m_buf.empty())
-        read_bmp_image();
-
-    if (y < 0 || y >= m_spec.height)
-        return false;
-
-    // if height of the bitmap is negative number BMP data is stored top-down
-    // if height of the bitmap is positive number BMP data is stored bottom-up
-    // so for the line y=0 we need to get the line height-y from the disk(buffer)
-    const int bufline = (m_dbmp->height < 0) ? y : m_spec.height - 1 - y;
-    const int scanline_size = m_spec.width * m_spec.nchannels;
-    memcpy(data, &m_buf[bufline * scanline_size], scanline_size);
-    return true;
-}
-
-
-
-bool
-BmpInput::check_bmp_header (void) 
-{
-    // magic numbers of bmp file format
-    const short MAGIC1 = 0x424D, MAGIC1_OTHER_ENDIAN = 0x4D42;
-    short magic = 0;
-    fread (&magic, 2, 1, m_fd);
-    rewind (m_fd);
-    if (magic != MAGIC1 && magic != MAGIC1_OTHER_ENDIAN)
-        return false;
-    return true;
-}
-
-
-
-bool
-BmpInput::read_bmp_header (void)
-{
-    size_t bytes = 0;
-    bytes += fread (&m_hbmp.type, 1, 2, m_fd);
-    bytes += fread (&m_hbmp.size, 1, 4, m_fd);
-    bytes += fread (&m_hbmp.reserved1, 1, 2, m_fd);
-    bytes += fread (&m_hbmp.reserved2, 1, 2, m_fd);
-    bytes += fread (&m_hbmp.offset, 1, 4, m_fd);
-
-    return (bytes == 14);
-}
-
-
-
-bool
-BmpInput::read_dib_header (void) 
-{
-    m_dbmp = DibHeader::return_dib_header(m_fd);
-    // if size of the header doesn't match the size of supported headers
-    // either we found unsuported header or it is corrupted
-    if (m_dbmp == NULL)
-        return false;
-
-    m_dbmp->read_header();
-    return true;
-}
-
-
-
-bool
-BmpInput::read_bmp_image(void) 
-{
-    const int buf_size = m_dbmp->height * m_dbmp->width * m_spec.nchannels;
-    m_buf.resize (buf_size);
-
-    if (m_dbmp->bpp == 4)
-        return read_bmp_image4();
-    if (m_dbmp->bpp == 8)
-        return read_bmp_image8();
-    if (m_dbmp->bpp == 24 || m_dbmp->bpp == 32)
-        return read_bmp_imageRGB();
-    return false;
-}
-
-
-
-bool
-BmpInput::read_bmp_image4 (void)
-{
-    ColorTable *colors_table = read_color_table ();
-    // each byte store info about two pixels
-    const int width = (m_spec.width % 2) ? (m_spec.width >> 1) + 1
-                                : m_spec.width >> 1;
-    const int pad_size = (width % 4) ? 4 - (width % 4) : 0;
-    const int scanline_size = width + pad_size;
-    std::vector<unsigned char> scanline (scanline_size);
-    for (int i = 0; i < m_spec.height; ++i) {
-        fread (&scanline[0], 1, scanline_size, m_fd);
-        ColorTable *current_ct = NULL;
-        const int current_scanline_off = i * m_spec.width * m_spec.nchannels;
-        for (int j = 0; j < width - 1; ++j) {
-            // choosing apprioprate color table and then converting
-            // color index to RGB value;
-            current_ct = &colors_table[(scanline[j] & 0xF0) >> 4];
-            m_buf[current_scanline_off + j* 6] = current_ct->red;
-            m_buf[current_scanline_off + j* 6 + 1] = current_ct->green;
-            m_buf[current_scanline_off + j* 6 + 2] = current_ct->blue;
-            // second pixel in this byte
-            current_ct = &colors_table[scanline[j] & 0x0F];
-            m_buf[current_scanline_off + j* 6 + 3] = current_ct->red;
-            m_buf[current_scanline_off + j* 6 + 4] = current_ct->green;
-            m_buf[current_scanline_off + j* 6 + 5] = current_ct->blue;
-        }
-        // last two pixels
-        const int off = current_scanline_off + (width - 1) * 6;
-        current_ct = &colors_table[(scanline[width-1] & 0xF0) >> 4]; 
-        m_buf[off] = current_ct->red;
-        m_buf[off + 1] = current_ct->green;
-        m_buf[off + 2] = current_ct->blue;
-        if ( ! (m_spec.width % 2)){
-           current_ct = &colors_table[scanline[width-1] & 0x0F]; 
-           m_buf[off + 3] = current_ct->red;
-           m_buf[off + 4] = current_ct->green;
-           m_buf[off + 5] = current_ct->blue;
-        }
-    }
-    delete colors_table;
-    return true;
-}
-
-
-
-bool
-BmpInput::read_bmp_image8 (void)
-{
-    ColorTable *colors_table = read_color_table ();
-    //scanlines are padded to 4 byte boundary
-    const int pad_size = (m_spec.width % 4) ? 4 - (m_spec.width % 4) : 0;
-    // each byte store info about one pixels
-    const int scanline_size = m_spec.width + pad_size;
-    std::vector<unsigned char> scanline (scanline_size);
-    ColorTable *current_ct = NULL;
-    for (int i = 0; i < m_spec.height; ++i) {
-        fread (&scanline[0], 1, scanline_size, m_fd);
-        // where to save current scanline in m_buf
-        const int current_scanline_off = i * m_spec.width * m_spec.nchannels;
-        for (int j = 0; j < m_spec.width; ++j) {
-            // choosing apprioprate color table and then converting
-            // color index to RGB value;
-            current_ct = &colors_table[scanline[j]];
-            m_buf[current_scanline_off + j * 3] = current_ct->red;
-            m_buf[current_scanline_off + j * 3 + 1] = current_ct->green;
-            m_buf[current_scanline_off + j * 3 + 2] = current_ct->blue;
-        }
-    }
-    delete colors_table;
-    return true;
-}
-
-
-
-bool
-BmpInput::read_bmp_imageRGB (void)
-{
-    if (fseek(m_fd, m_hbmp.offset , SEEK_SET))
-        return false;
-
-    // scanlines are padded to 4 byte boudary
-    const int pad_size = (m_spec.width % 4) ? 4 - (m_spec.width % 4) : 0;
-    const int scanline_size = (m_spec.width + pad_size) * m_spec.nchannels;
-    std::vector<unsigned char> scanline (scanline_size);
-    //width of the image without padding
-    const int width = m_spec.width * m_spec.nchannels;
-    for (int i = 0; i < m_spec.height; ++i) {
-        fread (&scanline[0], 1, scanline_size, m_fd);
-        // In the disk, the pixel values are in BGR format (3 channels)
-        // or in BGRA (4 channels), so we need to convert to RGB or RGBA
-        const int current_scanline = i * width;
-        for (int j = 0; j < width; j += m_spec.nchannels) {
-            m_buf[current_scanline + j] = scanline[j+2];
-            m_buf[current_scanline + j + 1] = scanline[j+1];
-            m_buf[current_scanline + j + 2] = scanline[j];
-
-            // move this after 'for' loop ?
-            if (m_spec.nchannels == 4)
-                m_buf[current_scanline + j + 4] = scanline[j+4];
-        }
-    }
-    return true;
-}
-
-
-
-ColorTable*
+void
 BmpInput::read_color_table (void)
 {
-    // size of color table is defined  by m_dbmp->colors
-    // if this field is 0 - color table has max colors: pow(2, m_dbmp->bpp)
-    // otherwise color table have m_dbmp->colors entries
-    const int num_of_colors = (! m_dbmp->colors) ? (1 << m_dbmp->bpp)
-                               : m_dbmp->colors;
-    ColorTable *colors_table = new ColorTable[num_of_colors];
-
-    // color table is stored directly after BMP File header
-    // and DIB header
-    const int color_table_offset = 14 + m_dbmp->size;
-    fseek (m_fd, color_table_offset, SEEK_SET);
-    fread (&colors_table[0], sizeof(ColorTable), num_of_colors, m_fd);
-
-    return colors_table;
+    // size of color table is defined  by m_dib_header.cpalete
+    // if this field is 0 - color table has max colors:
+    // pow(2, m_dib_header.cpalete) otherwise color table have
+    // m_dib_header.cpalete entries
+    const int32_t colors = (m_dib_header.cpalete) ? m_dib_header.cpalete :
+                                                    1 << m_dib_header.bpp;
+    int entry_size = 4;
+    // if the file is OS V2 bitmap color table entr has only 3 bytes, not four
+    if (m_dib_header.size == OS2_V1)
+        entry_size = 3;
+    m_colortable.resize (colors);
+    for (int i = 0; i < colors; i++)
+        fread (&m_colortable[i], entry_size, 1, m_fd);
 }

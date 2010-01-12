@@ -52,6 +52,8 @@ endif ()
 # all the plugins into libOpenImageIO.
 if (EMBEDPLUGINS)
     set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+        ../bmp.imageio/bmpinput.cpp ../bmp.imageio/bmpoutput.cpp
+        ../bmp.imageio/bmp_pvt.cpp
         ../hdr.imageio/hdrinput.cpp ../hdr.imageio/hdroutput.cpp
           ../hdr.imageio/rgbe.cpp
         ../ico.imageio/icoinput.cpp ../ico.imageio/icooutput.cpp

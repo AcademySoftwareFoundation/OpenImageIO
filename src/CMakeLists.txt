@@ -96,8 +96,8 @@ add_subdirectory (iv)
 
 # Add IO plugin directories
 if (NOT EMBEDPLUGINS)
-    add_subdirectory (fits.imageio)
     add_subdirectory (bmp.imageio)
+    add_subdirectory (fits.imageio)
     add_subdirectory (hdr.imageio)
     add_subdirectory (ico.imageio)
     add_subdirectory (jpeg.imageio)
@@ -121,6 +121,10 @@ oiio_add_tests (ico gpsread texture-grid texture-res)
 
 # List testsuites which need special external reference images from the web
 # here:
+oiio_add_tests (bmp
+    IMAGEDIR bmpsuite
+    URL http://entropymine.com/jason/bmpsuite/bmpsuite.zip)
+
 oiio_add_tests (tiff-suite tiff-depths
     IMAGEDIR libtiffpic
     URL http://www.remotesensing.org/libtiff/images.html)

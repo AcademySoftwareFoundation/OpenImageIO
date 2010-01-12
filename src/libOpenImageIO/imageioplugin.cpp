@@ -185,7 +185,8 @@ catalog_plugin (const std::string &format_name,
     extern const char *name ## _input_extensions[];
 
 extern "C" {
-    PLUGENTRY (fits)
+    PLUGENTRY (bmp);
+    PLUGENTRY (fits);
     PLUGENTRY (hdr);
     PLUGENTRY (ico);
     PLUGENTRY (jpeg);
@@ -215,6 +216,7 @@ catalog_builtin_plugins ()
                     (create_prototype) name ## _output_imageio_create,  \
                     name ## _output_extensions)
 
+    DECLAREPLUG (bmp);
     DECLAREPLUG (fits);
     DECLAREPLUG (hdr);
     DECLAREPLUG (ico);
