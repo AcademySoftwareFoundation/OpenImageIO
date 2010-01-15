@@ -1,0 +1,109 @@
+I just copy-paste these bits of code to the Python console.
+
+
+
+read-image:    
+import OpenImageIO as o
+import array
+spec = o.ImageSpec()
+pic = o.ImageInput.create("test.jpg", "/home/dgaletic/code/oiio-trunk/dist/linux/lib")
+pic.open("test.jpg", spec)
+desc = spec.format
+arr = array.array("B", "\0" * spec.image_bytes())
+pic.read_image(desc, arr)
+
+
+
+read-image-simple (reads to continuous float pixels):                   
+import OpenImageIO as o
+spec = o.ImageSpec()
+pic = o.ImageInput.create("test.jpg", "/home/dgaletic/code/oiio-trunk/dist/linux/lib")
+pic.open("test.jpg", spec)
+desc = spec.format
+arr = pic.read_image()
+
+
+
+read and write file scanline by scanline:
+import OpenImageIO as o
+import array
+spec = o.ImageSpec()
+pic = o.ImageInput.create("test.jpg", "/home/dgaletic/code/oiio-trunk/dist/linux/lib")
+pic.open("test.jpg", spec)
+out = o.ImageOutput.create("test-scanline.jpg", "/home/dgaletic/code/oiio-trunk/dist/linux/lib")
+out.open("test-scanline.jpg", spec, False)
+desc = spec.format
+for i in range(spec.height):
+    arr = array.array("B", "\0" * spec.width * spec.nchannels)
+    pic.read_scanline(i, 0, desc, arr)
+    out.write_scanline(i, 0, desc, arr)
+
+out.close()
+
+
+
+write-image:
+out = o.ImageOutput.create("test.jpg", "/home/dgaletic/code/oiio-trunk/dist/linux/lib")
+out.open("test-scanline.jpg", spec, False)
+out.write_image(desc, arr)
+out.close()
+
+
+
+brighter:
+for channel in range (len(arr)):
+    if arr[channel] <= 240:
+        arr[channel] += 15
+    else:
+        arr[channel] = 255
+
+darken only the very bright areas of the picture 
+(please don't consider this a serious algorithm):
+for channel in range (0, len(arr), 3):
+    if arr[channel] + arr[channel+1] + arr[channel+2] > 600:
+        arr[channel] += -60
+        arr[channel+1] += -60
+        arr[channel+2] += -60
+
+
+
+To alter which color gets changed, simply change the start value in range()
+function. If there are three channels (RGB) and the step is set to 3, a start
+value of 0 will change all the red pixel values, 1 green, and 2 blue. 
+
+red:
+for channel in range (0, len(arr), 3):
+    if arr[channel] <= 200:
+        arr[channel] += 55
+    else:
+        arr[channel] = 255
+
+The step is set to 4 here because the test was performed on a four channel image (RGBA). 
+only red:
+for channel in range (0, len(arr), 4):
+    arr[channel+1] = 0
+    arr[channel+2] = 0
+
+high red:
+for channel in range (0, len(arr), 4):
+    arr[channel] = 255
+
+gamma:
+for channel in range (len(arr)):
+    value = arr[channel]**0.98
+    arr[channel] = int(value)
+
+        
+random (this one does nothing useful, just changes the RGB values of each pixel by +-50, to a maximum of 0/255 ):
+import random
+for channel in range (len(arr)):
+    value = random.randrange(arr[channel]-50, arr[channel]+50)
+    if value > 255: arr[channel] = 255
+    elif value < 0: arr[channel] = 0
+    else: arr[channel] = value
+
+grayscale:
+for channel in range(0, len(arr), 3):
+    arr[channel] = arr[channel+1] = arr[channel+2] = (arr[channel] + arr[channel+1] + arr[channel+2]) / 3
+
+   

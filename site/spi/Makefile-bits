@@ -9,15 +9,37 @@ NAMESPACE='OpenImageIO_Arnold'
 endif
 EMBEDPLUGINS:=1
 
+Boost_LIBRARIES="-lboost_filesystem-gcc34-mt-${BOOST_VERSION} -lboost_regex-gcc34-mt-${BOOST_VERSION} -lboost_thread-gcc34-mt-${BOOST_VERSION} "
+
 MY_CMAKE_FLAGS += \
 		-DSPECIAL_COMPILE_FLAGS="-include ${working_dir}/site/spi/include/spi_ns.h -include ${working_dir}/site/spi/include/tiff.h -DTIFF_OLD_VERSION" \
 		-DBOOST_CUSTOM=1 \
 		-DBoost_INCLUDE_DIRS=/usr/local64/include/boost-${BOOST_VERSION} \
 		-DBoost_LIBRARY_DIRS=/usr/local64/lib/boost-${BOOST_VERSION} \
-		-DBoost_LIBRARIES="-lboost_filesystem-gcc34-mt-${BOOST_VERSION} -lboost_regex-gcc34-mt-${BOOST_VERSION} -lboost_thread-gcc34-mt-${BOOST_VERSION} " \
+		-DBoost_LIBRARIES=$(Boost_LIBRARIES) \
 		-DILMBASE_HOME=/usr/local64/openexr/${OPENEXR_VERSION} \
 		-DOPENEXR_VERSION=${OPENEXR_VERSION} \
 		-DOPENEXR_VERSION_DIGITS="010400" \
 		-DOPENEXR_HOME=/usr/local64/openexr/${OPENEXR_VERSION}
+
+endif
+
+ifeq (${USE_PYTHON},1)
+PYTHON_VERSION ?= 2.5
+
+ifeq (${PYTHON_VERSION},2.5)
+PYTHONLIB=/usr/local64/lib/libspi-python2.5.so
+Boost_Python_LIBRARIES="-L/net/apps/rhel40m64/boost/1_34_1/gcc34/lib/python25 -Wl,-rpath,/net/apps/rhel40m64/boost/1_34_1/gcc34/lib/python25 -lboost_python-gcc34-mt-${BOOST_VERSION}"
+else
+PYTHONLIB=/usr/local64/lib/libpython${PYTHON_VERSION}.so
+Boost_Python_LIBRARIES="-lboost_python-gcc34-mt-${BOOST_VERSION}"
+endif
+
+Boost_FOUND=TRUE
+MY_CMAKE_FLAGS += \
+		-DBoost_Python_LIBRARIES=${Boost_Python_LIBRARIES} \
+		-DPYTHON_INCLUDE_PATH=/usr/local64/include/python${PYTHON_VERSION} \
+		-DPYTHON_LIBRARIES=${PYTHONLIB} \
+		-DPYTHONLIBS_FOUND=1
 
 endif

@@ -22,7 +22,10 @@ set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
 set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
 set (USE_TBB ON CACHE BOOL "Use TBB if needed")
+set (USE_PYTHON OFF CACHE BOOL "Build the Python bindings")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
+
+set (PYTHON_VERSION 2.6)
 
 if (NOTHREADS)
     message (STATUS "NO THREADS!")
@@ -31,9 +34,9 @@ else ()
     message (STATUS "Building with thread support")
 endif ()
 
-set (CMAKE_MODULE_PATH
-     "${PROJECT_SOURCE_DIR}/cmake/modules"
-     "${PROJECT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH
+    "${PROJECT_SOURCE_DIR}/cmake/modules"
+    "${PROJECT_SOURCE_DIR}/cmake")
 
 include (util_macros)
 include (oiio_macros)
@@ -60,11 +63,13 @@ if (OPENIMAGEIO_NAMESPACE)
 endif ()
 
 # Exec Install Locations
-set (BINDIR "${CMAKE_INSTALL_PREFIX}/bin")
-set (LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
+set (BINDIR   "${CMAKE_INSTALL_PREFIX}/bin")
+set (LIBDIR   "${CMAKE_INSTALL_PREFIX}/lib")
+set (PYLIBDIR "${CMAKE_INSTALL_PREFIX}/python")
 if (EXEC_INSTALL_PREFIX)
-    set (BINDIR "${EXEC_INSTALL_PREFIX}/bin")
-    set (LIBDIR "${EXEC_INSTALL_PREFIX}/lib")
+    set (BINDIR   "${EXEC_INSTALL_PREFIX}/bin")
+    set (LIBDIR   "${EXEC_INSTALL_PREFIX}/lib")
+    set (PYLIBDIR "${EXEC_INSTALL_PREFIX}/python")
 endif ()
 
 set (CMAKE_INSTALL_RPATH "${LIBDIR}")
@@ -107,6 +112,10 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (targa.imageio)
     add_subdirectory (tiff.imageio)
     add_subdirectory (zfile.imageio)
+endif ()
+
+if (USE_PYTHON)
+    add_subdirectory (python)
 endif ()
 
 add_subdirectory (include)
