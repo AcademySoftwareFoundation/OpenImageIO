@@ -1127,8 +1127,9 @@ ImageCacheImpl::getstats (int level) const
         for (size_t i = 0;  i < files.size();  ++i) {
             const ImageCacheFileRef &file (files[i]);
             ASSERT (file);
-            if (file->broken()) {
-                out << "BROKEN    " << file->filename() << "\n";
+            if (file->broken() || file->subimages() == 0) {
+                out << "  BROKEN                                                  " 
+                    << file->filename() << "\n";
                 continue;
             }
             out << onefile_stat_line (file, i+1) << "\n";

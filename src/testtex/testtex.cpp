@@ -63,6 +63,7 @@ static std::string searchpath;
 static int blocksize = 1;
 static bool nowarp = false;
 static float cachesize = -1;
+static float missing[4] = {-1, 0, 0, 0};
 
 
 
@@ -92,6 +93,8 @@ getargs (int argc, const char *argv[])
                       "Iterations for time trials",
                   "--blur %f", &blur, "Add blur to texture lookup",
                   "--width %f", &width, "Multiply filter width of texture lookup",
+                  "--missing %f %f %f", &missing[0], &missing[1], &missing[2],
+                        "Specify missing texture color",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
                   "--automip", &automip, "Set auto-MIPmap for the image cache",
                   "--blocksize %d", &blocksize, "Set blocksize (n x n) for batches",
@@ -193,6 +196,9 @@ test_plain_texture (ustring filename)
     opt.nchannels = nchannels;
     float fill = 1;
     opt.fill = fill;
+    if (missing[0] >= 0)
+        opt.missingcolor.init ((float *)&missing, 0);
+
 //    opt.interpmode = TextureOptions::InterpSmartBicubic;
 //    opt.mipmode = TextureOptions::MipModeAniso;
     opt.swrap = opt.twrap = TextureOptions::WrapPeriodic;
@@ -315,6 +321,8 @@ test_getimagespec_gettexels (ustring filename)
     ImageBuf buf ("postage.exr", postagespec);
     TextureOptions opt;
     opt.nchannels = spec.nchannels;
+    if (missing[0] >= 0)
+        opt.missingcolor.init ((float *)&missing, 0);
     std::vector<float> tmp (w*h*spec.nchannels);
     texsys->get_texels (filename, opt, 0, w/2, w/2+w, h/2, h/2+h, 0, 1, 
                         postagespec.format, &tmp[0]);
@@ -346,19 +354,17 @@ main (int argc, const char *argv[])
     if (iters > 0) {
         ustring filename (filenames[0]);
         test_gettextureinfo (filename);
-        const char *texturetype = NULL;
-        bool ok = texsys->get_texture_info (filename, ustring("texturetype"),
-                                            TypeDesc::STRING, &texturetype);
-        if (ok) {
-            if (! strcmp (texturetype, "Plain Texture")) {
-                test_plain_texture (filename);
-            }
-            if (! strcmp (texturetype, "Shadow")) {
-                test_shadow (filename);
-            }
-            if (! strcmp (texturetype, "Environment")) {
-                test_environment (filename);
-            }
+        const char *texturetype = "Plain Texture";
+        texsys->get_texture_info (filename, ustring("texturetype"),
+                                  TypeDesc::STRING, &texturetype);
+        if (! strcmp (texturetype, "Plain Texture")) {
+            test_plain_texture (filename);
+        }
+        if (! strcmp (texturetype, "Shadow")) {
+            test_shadow (filename);
+        }
+        if (! strcmp (texturetype, "Environment")) {
+            test_environment (filename);
         }
         test_getimagespec_gettexels (filename);
     }

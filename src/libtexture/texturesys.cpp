@@ -532,7 +532,10 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
             if (runflags[i]) {
                 ++local_stat_texture_queries;
                 for (int c = 0;  c < options.nchannels;  ++c) {
-                    result[i*options.nchannels+c] = options.fill[i];
+                    if (options.missingcolor)
+                        result[i*options.nchannels+c] = (&options.missingcolor[i])[c];
+                    else
+                        result[i*options.nchannels+c] = options.fill[i];
                     if (options.dresultds) options.dresultds[i*options.nchannels+c] = 0;
                     if (options.dresultdt) options.dresultdt[i*options.nchannels+c] = 0;
                 }
@@ -541,7 +544,12 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 //        error ("Texture file \"%s\" not found", filename.c_str());
         ++stats.texture_batches;
         stats.texture_queries += local_stat_texture_queries;
-        return false;
+        if (options.missingcolor) {
+            (void) geterror ();   // eat the error
+            return true;
+        } else {
+            return false;
+        }
     }
 
     const ImageSpec &spec (texturefile->spec());

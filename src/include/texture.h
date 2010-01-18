@@ -140,6 +140,7 @@ public:
     VaryingRef<float> swidth, twidth; ///< Multiplier for derivatives
     VaryingRef<float> bias;           ///< Bias
     VaryingRef<float> fill;           ///< Fill value for missing channels
+    VaryingRef<float> missingcolor;   ///< Color for missing texture
     VaryingRef<int>   samples;        ///< Number of samples
     float *dresultds;                 ///< Gradient of the result along s (if not NULL)
     float *dresultdt;                 ///< Gradient of the result along t (if not NULL)
