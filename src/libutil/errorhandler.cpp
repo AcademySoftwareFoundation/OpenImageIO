@@ -62,7 +62,7 @@ ErrorHandler::vInfo (const char *format, va_list argptr)
 {
     if (verbosity() >= VERBOSE) {
         std::string msg = Strutil::vformat (format, argptr);
-        (*this) (INFO, msg);
+        (*this) (EH_INFO, msg);
     }
 }
 
@@ -72,7 +72,7 @@ ErrorHandler::vWarning (const char *format, va_list argptr)
 {
     if (verbosity() >= NORMAL) {
         std::string msg = Strutil::vformat (format, argptr);
-        (*this) (WARNING, msg);
+        (*this) (EH_WARNING, msg);
     }
 }
 
@@ -81,7 +81,7 @@ void
 ErrorHandler::vError (const char *format, va_list argptr)
 {
     std::string msg = Strutil::vformat (format, argptr);
-    (*this) (ERROR, msg);
+    (*this) (EH_ERROR, msg);
 }
 
 
@@ -89,7 +89,7 @@ void
 ErrorHandler::vSevere (const char *format, va_list argptr)
 {
     std::string msg = Strutil::vformat (format, argptr);
-    (*this) (SEVERE, msg);
+    (*this) (EH_SEVERE, msg);
 }
 
 
@@ -98,7 +98,7 @@ ErrorHandler::vMessage (const char *format, va_list argptr)
 {
     if (verbosity() > QUIET) {
         std::string msg = Strutil::vformat (format, argptr);
-        (*this) (MESSAGE, msg);
+        (*this) (EH_MESSAGE, msg);
     }
 }
 
@@ -109,7 +109,7 @@ ErrorHandler::vDebug (const char *format, va_list argptr)
 {
     if (verbosity() > QUIET) {
         std::string msg = Strutil::vformat (format, argptr);
-        (*this) (MESSAGE, msg);
+        (*this) (EH_MESSAGE, msg);
     }
 }
 #endif
@@ -193,21 +193,21 @@ ErrorHandler::operator() (int errcode, const std::string &msg)
 {
     lock_guard guard (err_mutex);
     switch (errcode & 0xffff0000) {
-    case INFO :
+    case EH_INFO :
         if (verbosity() >= VERBOSE)
             fprintf (stdout, "INFO: %s\n", msg.c_str());
         break;
-    case WARNING :
+    case EH_WARNING :
         if (verbosity() >= NORMAL)
             fprintf (stderr, "WARNING: %s\n", msg.c_str());
         break;
-    case ERROR :
+    case EH_ERROR :
         fprintf (stderr, "ERROR: %s\n", msg.c_str());
         break;
-    case SEVERE :
+    case EH_SEVERE :
         fprintf (stderr, "SEVERE ERROR: %s\n", msg.c_str());
         break;
-    case DEBUGOUTPUT :
+    case EH_DEBUG :
 #ifndef DEBUG
         break;
 #endif

@@ -73,13 +73,13 @@ public:
     /// error codes as long as they have the right high bits to designate
     /// their category (file not found = ERROR + 1, etc.).  
     enum ErrCode {
-        NO_ERROR    = 0,    // never sent to handler
-        MESSAGE     = 0 << 16,
-        INFO        = 1 << 16,
-        WARNING     = 2 << 16,
-        ERROR       = 3 << 16,
-        SEVERE      = 4 << 16,
-        DEBUGOUTPUT = 5 << 16
+        EH_NO_ERROR    = 0,    // never sent to handler
+        EH_MESSAGE     = 0 << 16,
+        EH_INFO        = 1 << 16,
+        EH_WARNING     = 2 << 16,
+        EH_ERROR       = 3 << 16,
+        EH_SEVERE      = 4 << 16,
+        EH_DEBUG       = 5 << 16
     };
 
     /// VerbosityLevel controls how much detail the calling app wants.
@@ -141,13 +141,13 @@ public:
     void vDebug   (const char *, va_list) { }
 #endif
 
-    void info    (const std::string &msg) { (*this)(INFO, msg); }
-    void warning (const std::string &msg) { (*this)(WARNING, msg); }
-    void error   (const std::string &msg) { (*this)(ERROR, msg); }
-    void severe  (const std::string &msg) { (*this)(SEVERE, msg); }
-    void message (const std::string &msg) { (*this)(MESSAGE, msg); }
+    void info    (const std::string &msg) { (*this)(EH_INFO, msg); }
+    void warning (const std::string &msg) { (*this)(EH_WARNING, msg); }
+    void error   (const std::string &msg) { (*this)(EH_ERROR, msg); }
+    void severe  (const std::string &msg) { (*this)(EH_SEVERE, msg); }
+    void message (const std::string &msg) { (*this)(EH_MESSAGE, msg); }
 #ifdef DEBUG
-    void debug   (const std::string &msg) { (*this)(DEBUGOUTPUT, msg); }
+    void debug   (const std::string &msg) { (*this)(EH_DEBUG, msg); }
 #else
     void debug   (const std::string &) { }
 #endif
