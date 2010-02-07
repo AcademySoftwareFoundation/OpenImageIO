@@ -182,7 +182,7 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
     fread (temp, 1, sizeof(temp), m_file);
     if (temp[1] == 'P' && temp[2] == 'N' && temp[3] == 'G') {
         // standard PNG initalization
-        if (! png_check_sig ((png_byte *)temp, sizeof (temp))) {
+        if (png_sig_cmp ((png_bytep)temp, 0, 7)) {
             error ("Subimage failed PNG signature check");
             return false;
         }

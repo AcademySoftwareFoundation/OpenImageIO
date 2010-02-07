@@ -217,15 +217,11 @@ read_into_buffer (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
     if (setjmp (png_jmpbuf (sp)))
         return "PNG library error";
 
-    // Auto-convert palette images to RGB
-    if (color_type == PNG_COLOR_TYPE_PALETTE)
-        png_set_palette_to_rgb (sp);
-    // Auto-convert 1-, 2-, and 4- bit grayscale to 8 bits
-    if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
-        png_set_gray_1_2_4_to_8 (sp);
+    // Auto-convert palette images to RGB if image is color image
+    // Auto-convert 1-, 2-, and 4- bit grayscale to 8 bits is image is
+    // grayscale image with bit_depth < 8
     // Auto-convert transparency to alpha
-    if (png_get_valid (sp, ip, PNG_INFO_tRNS))
-        png_set_tRNS_to_alpha (sp);
+    png_set_expand (sp);
 #if 0
     // ?? This doesn't seem necessary, but I don't know why
     // Make the library handle fewer significant bits
