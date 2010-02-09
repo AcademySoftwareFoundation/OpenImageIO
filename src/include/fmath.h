@@ -783,7 +783,7 @@ inline void
 sincos(float x, float* sine, float* cosine)
 {
 #if defined(__GNUC__) && defined(__linux__)
-    __builtin_sincosf(x, sin, cosine);
+    __builtin_sincosf(x, sine, cosine);
 #else
     *sine = std::sin(x);
     *cosine = std::cos(x);
@@ -794,7 +794,7 @@ inline void
 sincos(double x, double* sine, double* cosine)
 {
 #if defined(__GNUC__) && defined(__linux__)
-    __builtin_sincos(x, sin, cosine);
+    __builtin_sincos(x, sine, cosine);
 #else
     *sine = std::sin(x);
     *cosine = std::cos(x);
