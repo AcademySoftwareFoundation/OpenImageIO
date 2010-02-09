@@ -779,6 +779,28 @@ float_to_rational (float f, int &num, int &den)
 }
 
 
+inline void
+sincos(float x, float* sine, float* cosine)
+{
+#if defined(__GNUC__) && defined(__linux__)
+    __builtin_sincosf(x, sin, cosine);
+#else
+    *sine = std::sin(x);
+    *cosine = std::cos(x);
+#endif
+}
+
+inline void
+sincos(double x, double* sine, double* cosine)
+{
+#if defined(__GNUC__) && defined(__linux__)
+    __builtin_sincos(x, sin, cosine);
+#else
+    *sine = std::sin(x);
+    *cosine = std::cos(x);
+#endif
+}
+
 
 #ifdef OPENIMAGEIO_NAMESPACE
 }; // end namespace OPENIMAGEIO_NAMESPACE
