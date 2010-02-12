@@ -63,7 +63,7 @@ static std::string searchpath;
 static int blocksize = 1;
 static bool nowarp = false;
 static float cachesize = -1;
-static float missing[4] = {-1, 0, 0, 0};
+static float missing[4] = {-1, 0, 0, 1};
 
 
 
