@@ -173,7 +173,7 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
-    m_alpha = m_tga.attr & 0x0F > 0 ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
+    m_alpha = (m_tga.attr & 0x0F) > 0 ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
 
     m_spec = ImageSpec ((int)m_tga.width, (int)m_tga.height,
                         // colour channels
@@ -219,10 +219,6 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
     fseek (m_file, -26, SEEK_END);
     fread (&m_foot.ofs_ext, sizeof (m_foot.ofs_ext), 1, m_file);
     fread (&m_foot.ofs_dev, sizeof (m_foot.ofs_dev), 1, m_file);
-    if (bigendian()) {
-        swap_endian (&m_foot.ofs_ext);
-        swap_endian (&m_foot.ofs_dev);
-    }
     fread (&m_foot.signature, sizeof (m_foot.signature), 1, m_file);
     // TGA 2.0 files are identified by a nifty "TRUEVISION-XFILE.\0" signature
     if (!strncmp (m_foot.signature, "TRUEVISION-XFILE.", 17)) {
