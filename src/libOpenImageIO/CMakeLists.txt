@@ -55,11 +55,11 @@ if (EMBEDPLUGINS)
         ../bmp.imageio/bmpinput.cpp ../bmp.imageio/bmpoutput.cpp
         ../bmp.imageio/bmp_pvt.cpp
         ../dds.imageio/ddsinput.cpp ../dds.imageio/ddsoutput.cpp
-          ../dds/squish/alpha.cpp ../dds/squish/clusterfit.cpp
-          ../dds/squish/colourblock.cpp ../dds/squish/colourfit.cpp
-          ../dds/squish/colourset.cpp ../dds/squish/maths.cpp
-          ../dds/squish/rangefit.cpp ../dds/squish/singlecolourfit.cpp
-          ../dds/squish/squish.cpp
+          ../dds.imageio/squish/alpha.cpp ../dds.imageio/squish/clusterfit.cpp
+          ../dds.imageio/squish/colourblock.cpp ../dds.imageio/squish/colourfit.cpp
+          ../dds.imageio/squish/colourset.cpp ../dds.imageio/squish/maths.cpp
+          ../dds.imageio/squish/rangefit.cpp ../dds.imageio/squish/singlecolourfit.cpp
+          ../dds.imageio/squish/squish.cpp
         ../hdr.imageio/hdrinput.cpp ../hdr.imageio/hdroutput.cpp
           ../hdr.imageio/rgbe.cpp
         ../ico.imageio/icoinput.cpp ../ico.imageio/icooutput.cpp
