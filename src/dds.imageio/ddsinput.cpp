@@ -371,7 +371,7 @@ DDSInput::readimg ()
         / (1 << m_subimage));
     if (m_dds.fmt.flags & DDS_PF_FOURCC) {
         // compressed image
-        int flags;
+        int flags = 0;
         switch (m_dds.fmt.fourCC) {
             case DDS_4CC_DXT1:
                 flags = squish::kDxt1;
