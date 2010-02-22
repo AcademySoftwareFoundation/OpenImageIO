@@ -767,7 +767,11 @@ private:
             newval = oldval + incr;
             // Now try to atomically swap it, and repeat until we've
             // done it with nobody else interfering.
-        } while (llstat->compare_and_swap (*llnewval,*lloldval) != *lloldval); 
+#  if USE_TBB
+        } while (llstat->compare_and_swap (*llnewval,*lloldval) != *lloldval);
+#  else
+        } while (llstat->bool_compare_and_swap (*llnewval,*lloldval));
+#  endif
 #endif
     }
 

@@ -476,7 +476,7 @@ class ustringHash
 public:
     size_t operator() (const ustring &s) const { return s.hash(); }
 #ifdef _WIN32
-    bool operator() (const ustring &a, const ustring &b) {
+    bool operator() (const ustring &a, const ustring &b) const {
         return strcmp (a.c_str(), b.c_str()) < 0;
     }
 #endif

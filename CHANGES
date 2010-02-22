@@ -1,10 +1,15 @@
 Changes:
 
-
 Release 0.7.1 (???)
 -------------------
+For developers:
 * Make EMBEDPLUGINS=1 the default.
 * Make create() error messages more helpful.
+* Fixed some error messages in FITS output, iconvert, 
+* Console flushes in maketx status messages to that a calling process
+  will get status messages right away.
+* Fix compiler warnings (mostly under Windows): TBB stuff, ustring, windows.h.
+* Added to fmath.h: sincos, exp2f, log2f
 
 
 Release 0.7 (Nov 26 2009)

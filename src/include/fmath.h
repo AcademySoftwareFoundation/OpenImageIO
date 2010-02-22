@@ -691,6 +691,20 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 #define isnan(x) _isnan(x)
 #define isfinite(x) _finite(x)
 
+#define M_E        2.71828182845904523536
+//#define M_LOG2E    1.44269504088896340736
+//#define M_LOG10E   0.434294481903251827651
+//#define M_LN2      0.693147180559945309417
+//#define M_LN10     2.30258509299404568402
+//#define M_PI       3.14159265358979323846
+//#define M_PI_2     1.57079632679489661923
+#define M_PI_4     0.785398163397448309616
+#define M_1_PI     0.318309886183790671538
+//#define M_2_PI     0.636619772367581343076
+//#define M_2_SQRTPI 1.12837916709551257390
+//#define M_SQRT2    1.41421356237309504880
+//#define M_SQRT1_2  0.707106781186547524401
+
 inline double
 round (float val) {
     return floor (val + 0.5);
@@ -705,6 +719,20 @@ inline float
 log2f (float val) {
     return logf (val)/M_LN2;
 }
+
+
+inline float
+logbf(float val) {
+   // please see http://www.kernel.org/doc/man-pages/online/pages/man3/logb.3.html
+   return logf(val)/logf(FLT_RADIX);
+}
+
+inline float
+exp2f(float val) {
+   // 2^val = e^(val*ln(2))
+   return exp( val*log(2.0f) );
+}
+
 #endif
 
 
@@ -750,6 +778,28 @@ float_to_rational (float f, int &num, int &den)
     den = (int) d;
 }
 
+
+inline void
+sincos(float x, float* sine, float* cosine)
+{
+#if defined(__GNUC__) && defined(__linux__)
+    __builtin_sincosf(x, sine, cosine);
+#else
+    *sine = std::sin(x);
+    *cosine = std::cos(x);
+#endif
+}
+
+inline void
+sincos(double x, double* sine, double* cosine)
+{
+#if defined(__GNUC__) && defined(__linux__)
+    __builtin_sincos(x, sine, cosine);
+#else
+    *sine = std::sin(x);
+    *cosine = std::cos(x);
+#endif
+}
 
 
 #ifdef OPENIMAGEIO_NAMESPACE
