@@ -257,7 +257,7 @@ print_info (const std::string &filename, size_t namefieldlength,
                     boost::regex_search ("Color space", field_re)) {
                 if (filenameprefix)
                     printf ("%s : ", filename.c_str());
-                const char *cspacename [] = { "unknown", "linear", "gamma %g", "sRGB" };
+                const char *cspacename [] = { "unknown", "linear", "gamma %g", "sRGB", "AdobeRGB", "Rec709", "KodakLog" };
                 printf ("    Color space: %s\n",
                         Strutil::format(cspacename[(int)spec.linearity], spec.gamma).c_str());
                 printed = true;
