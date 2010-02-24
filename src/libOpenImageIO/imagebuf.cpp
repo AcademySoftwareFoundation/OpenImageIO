@@ -558,6 +558,44 @@ ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
 
 
 
+template<typename T>
+static inline void
+transfer_pixels_ (ImageBuf &buf, ColorTransfer *tfunc)
+{
+    for (ImageBuf::Iterator<T> pixel (buf); pixel.valid(); ++pixel) {
+        convert_types (buf.spec().format, pixel.rawptr(),
+                       buf.spec().format, pixel.rawptr(),
+                       buf.nchannels(), tfunc,
+                       buf.spec().alpha_channel, buf.spec().z_channel);
+    }
+}
+
+
+
+void
+ImageBuf::transfer_pixels (ColorTransfer *tfunc)
+{
+    if (! tfunc)
+        return;
+    switch (spec().format.basetype) {
+    case TypeDesc::FLOAT : transfer_pixels_<float> (*this, tfunc); break;
+    case TypeDesc::UINT8 : transfer_pixels_<unsigned char> (*this, tfunc); break;
+    case TypeDesc::INT8  : transfer_pixels_<char> (*this, tfunc); break;
+    case TypeDesc::UINT16: transfer_pixels_<unsigned short> (*this, tfunc); break;
+    case TypeDesc::INT16 : transfer_pixels_<short> (*this, tfunc); break;
+    case TypeDesc::UINT  : transfer_pixels_<unsigned int> (*this, tfunc); break;
+    case TypeDesc::INT   : transfer_pixels_<int> (*this, tfunc); break;
+    case TypeDesc::UINT64: transfer_pixels_<unsigned long long> (*this, tfunc); break;
+    case TypeDesc::INT64 : transfer_pixels_<long long> (*this, tfunc); break;
+    case TypeDesc::HALF  : transfer_pixels_<half> (*this, tfunc); break;
+    case TypeDesc::DOUBLE: transfer_pixels_<double> (*this, tfunc); break;
+    default:
+        ASSERT (0);
+    }
+}
+
+
+
 int
 ImageBuf::oriented_width () const
 {

@@ -75,6 +75,7 @@ static std::string outputname;
 static std::string crop_type;
 static int crop_xmin = 0, crop_xmax = 0, crop_ymin = 0, crop_ymax = 0;
 static bool do_add = false;
+static std::string colortransfer_to = "", colortransfer_from = "sRGB";
 static ImageBuf img;
 
 
@@ -103,7 +104,7 @@ getargs (int argc, char *argv[])
                 "-o %s", &outputname, "Set output filename",
                 "<SEPARATOR>", "Image operations:",
                 "--add", &do_add, "Add two images",
-		"--crop %s %d %d %d %d", &crop_type, &crop_xmin, &crop_xmax,
+                "--crop %s %d %d %d %d", &crop_type, &crop_xmin, &crop_xmax,
                     &crop_ymin, &crop_ymax, "Crop an image (type, xmin, xmax, ymin, ymax)\n\t\t\t\ttype = black|white|trans|window|cut",
                 "<SEPARATOR>", "Output options:",
 //                "-d %s", &dataformatname, "Set the output data format to one of:\n"
@@ -128,6 +129,8 @@ getargs (int argc, char *argv[])
 //                "--contig", &contig, "Force planarconfig contig",
 //FIXME         "-z", &zfile, "Treat input as a depth file",
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
+                "--transfer %s", &colortransfer_to, "Transfer outputfile to another colorspace\n\t\t\t\tLinear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
+                "--colorspace %s", &colortransfer_from, "Override colorspace of inputfile\n\t\t\t\tLinear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
 	std::cerr << ap.geterror() << std::endl;
@@ -234,6 +237,45 @@ main (int argc, char *argv[])
         out.save (outputname);
     }//do add
 
+    if (colortransfer_to != "") {
+        if (filenames.size() != 1) {
+            std::cerr << "iprocess: --transfer needs one input filename\n";
+            exit (EXIT_FAILURE);
+        }
+        
+        ImageBuf in;
+        if (! read_input (filenames[0], in)) {
+            std::cerr << "iprocess: read error: " << in.geterror() << "\n";
+            return EXIT_FAILURE;
+        }
+        
+        
+        ColorTransfer *from_func = ColorTransfer::create (colortransfer_from + "_to_linear");
+        if (from_func == NULL) {
+            std::cerr << "iprocess: --colorspace needs a 'colorspace' of "
+                << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
+            return EXIT_FAILURE;
+        }
+        ColorTransfer *to_func = ColorTransfer::create (std::string("linear_to_") + colortransfer_to);
+        if (to_func == NULL) {
+            std::cerr << "iprocess: --transfer needs a 'colorspace' of "
+                << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
+            return EXIT_FAILURE;
+        }
+        std::cout << "Converting [" << colortransfer_from << "] " << filenames[0]
+            << " to [" << colortransfer_to << "] " << outputname << "\n";
+        
+        //
+        ImageBuf linear;
+        ImageBuf out;
+        ImageBufAlgo::colortransfer (linear, in, from_func);
+        ImageBufAlgo::colortransfer (out, linear, to_func);
+        std::cout << "finished color transfer\n";
+        
+        //
+        out.save (outputname);
+        
+    }
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

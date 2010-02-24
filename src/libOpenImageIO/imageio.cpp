@@ -325,10 +325,11 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 bool
 OpenImageIO::convert_types (TypeDesc src_type, const void *src, 
                             TypeDesc dst_type, void *dst, int n,
-                            float gain, float gamma)
+                            ColorTransfer *tfunc,
+                            int alpha_channel, int z_channel)
 {
     // If no conversion is necessary, just memcpy
-    if (src_type == dst_type && gain == 1.0f && gamma == 1.0f) {
+    if (src_type == dst_type && tfunc == NULL) {
         memcpy (dst, src, n * src_type.size());
         return true;
     }
@@ -337,7 +338,7 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
     bool use_tmp = false;
     boost::scoped_array<float> tmp;
     float *buf;
-    if (src_type == TypeDesc::FLOAT && gain == 1.0f && gamma == 1.0f) {
+    if (src_type == TypeDesc::FLOAT && tfunc == NULL) {
         buf = (float *) src;
     } else {
         tmp.reset (new float[n]);  // Will be freed when tmp exists its scope
@@ -361,12 +362,13 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
         case TypeDesc::UINT64 : convert_type ((const unsigned long long *)src, buf, n);  break;
         default:         return false;  // unknown format
         }
-    }
 
-    if (gain != 1.0f || gamma != 1.0f) {
-        ASSERT (use_tmp);
-        for (int i = 0;  i < n;  ++i)
-            buf[i] = exposure (buf[i], gain, gamma);
+        // use a transfer function to encode or decode the image signal
+        if (tfunc) {
+            for (int i = 0;  i < n;  ++i)
+                if (i != alpha_channel && i != z_channel)
+                    buf[i] = (*tfunc) (buf[i]);
+        }
     }
 
     // Convert float to 'dst_type' (just a copy if dst is float)
@@ -391,6 +393,15 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
 
 
 bool
+OpenImageIO::convert_types (TypeDesc src_type, const void *src, 
+                            TypeDesc dst_type, void *dst, int n)
+{
+    return convert_types (src_type, src, dst_type, dst, n, NULL);
+}
+
+
+
+bool
 OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
                             const void *src, TypeDesc src_type,
                             stride_t src_xstride, stride_t src_ystride,
@@ -398,7 +409,8 @@ OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
                             void *dst, TypeDesc dst_type,
                             stride_t dst_xstride, stride_t dst_ystride,
                             stride_t dst_zstride,
-                            float gain, float gamma)
+                            ColorTransfer *tfunc,
+                            int alpha_channel, int z_channel)
 {
     ImageSpec::auto_stride (src_xstride, src_ystride, src_zstride,
                             src_type, nchannels, width, height);
@@ -417,12 +429,16 @@ OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
                 // unit.  (Note that within convert_types, a memcpy will
                 // be used if the formats are identical.)
                 result &= convert_types (src_type, f, dst_type, t,
-                                         nchannels*width, gain, gamma);
+                                         nchannels*width,
+                                         (ColorTransfer *)tfunc,
+                                         alpha_channel, z_channel);
             } else {
                 // General case -- anything goes with strides.
                 for (int x = 0;  x < width;  ++x) {
                     result &= convert_types (src_type, f, dst_type, t,
-                                             nchannels, gain, gamma);
+                                             nchannels,
+                                             (ColorTransfer *)tfunc,
+                                             alpha_channel, z_channel);
                     f += src_xstride;
                     t += dst_xstride;
                 }

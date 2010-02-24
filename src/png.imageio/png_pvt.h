@@ -428,6 +428,8 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
     case OpenImageIO::ImageSpec::sRGB :
         png_set_sRGB_gAMA_and_cHRM (sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
         break;
+    default:
+        break;
     }
 
     if (false && ! spec.find_attribute("DateTime")) {

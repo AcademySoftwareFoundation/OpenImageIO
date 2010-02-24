@@ -1,4 +1,5 @@
 set (libOpenImageIO_hdrs ../include/argparse.h
+                         ../include/colortransfer.h
                          ../include/dassert.h
                          ../include/errorhandler.h
                          ../include/filesystem.h
@@ -25,7 +26,8 @@ set (libOpenImageIO_hdrs ../include/argparse.h
 set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp 
-                          ../libutil/argparse.cpp 
+                          ../libutil/argparse.cpp
+                          ../libutil/colortransfer.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
                           ../libutil/filter.cpp 

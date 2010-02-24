@@ -40,6 +40,7 @@
 #include "imageio.h"
 #include "fmath.h"
 #include "imagecache.h"
+#include "colortransfer.h"
 
 #ifdef OPENIMAGEIO_NAMESPACE
 namespace OPENIMAGEIO_NAMESPACE {
@@ -236,6 +237,10 @@ public:
         result.resize (nchannels() * ((yend-ybegin)*(xend-xbegin)));
         return _copy_pixels (xbegin, xend, ybegin, yend, &result[0]);
     }
+
+    /// Apply a color transfer function to the pixels (in place).
+    ///
+    void transfer_pixels (ColorTransfer *tfunc);
 
     int orientation () const { return m_orientation; }
 
@@ -640,7 +645,13 @@ enum DLLPUBLIC CropOptions
     CROP_WHITE,	  ///< color to white all the pixels outside of the bounds
     CROP_TRANS	  ///< make all pixels out of bounds transparent (zero)
 };
-	
+
+
+
+/// Apply a transfer function to the pixel values.
+///
+bool DLLPUBLIC colortransfer (ImageBuf &dst, const ImageBuf &src,
+                              ColorTransfer *tfunc);
 
 };  // end namespace ImageBufAlgo
 

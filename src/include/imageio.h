@@ -51,6 +51,7 @@
 #include "export.h"
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
+#include "colortransfer.h"
 
 
 
@@ -176,7 +177,10 @@ public:
         UnknownLinearity = 0, ///< Unknown which color space we're in
         Linear = 1,           ///< Color values are linear
         GammaCorrected = 2,   ///< Color values are gamma corrected
-        sRGB = 3              ///< Color values are in sRGB
+        sRGB = 3,             ///< Color values are in sRGB
+        AdobeRGB = 4,         ///< Color values are in AdobeRGB
+        Rec709 = 5,           ///< Color values are in Rec709
+        KodakLog = 6          ///< Color values are in KodakLog
     };
 
     int x, y, z;              ///< origin (upper left corner) of pixel data
@@ -818,14 +822,20 @@ inline float exposure (float value, float gain, float invgamma)
     return gain * value;
 }
 
+/// Helper function: convert contiguous arbitrary data between two
+/// arbitrary types (specified by TypeDesc's).  Return true if ok, false
+/// if it didn't know how to do the conversion.
+DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
+                              TypeDesc dst_type, void *to, int n);
 
 /// Helper function: convert contiguous arbitrary data between two
-/// arbitrary types (specified by TypeDesc's), with optional gain
-/// and gamma correction.  Return true if ok, false if it didn't know
-/// how to do the conversion.
+/// arbitrary types (specified by TypeDesc's), with optional transfer
+/// function. Return true if ok, false if it didn't know how to do the
+/// conversion.
 DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
                               TypeDesc dst_type, void *to, int n,
-                              float gain=1, float gamma=1);
+                              ColorTransfer *tfunc,
+                              int alpha_channel = -1, int z_channel = -1);
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
@@ -843,7 +853,8 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
                               void *dst, TypeDesc dst_type,
                               stride_t dst_xstride, stride_t dst_ystride,
                               stride_t dst_zstride,
-                              float gain=1, float gamma=1);
+                              ColorTransfer *tfunc = NULL,
+                              int alpha_channel = -1, int z_channel = -1);
 
 /// Add metadata to spec based on raw IPTC (International Press
 /// Telecommunications Council) metadata in the form of an IIM
