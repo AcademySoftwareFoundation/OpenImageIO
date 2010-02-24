@@ -1721,10 +1721,16 @@ ImageCacheImpl::invalidate (ustring filename)
     {
         ic_write_lock tileguard (m_tilemutex);
         for (TileCache::iterator tci = m_tilecache.begin();  tci != m_tilecache.end();  ) {
-            TileCache::iterator todel (tci);
+            TileCache::iterator todelete (tci);
             ++tci;
-            if (&todel->second->file() == file)
-                m_tilecache.erase (todel);
+            if (&todelete->second->file() == file) {
+                m_tilecache.erase (todelete);
+                // If the tile we deleted is the current clock sweep
+                // position, that would leave it pointing to an invalid
+                // tile entry, ick!  In this case, just advance it.
+                if (todelete == m_tile_sweep)
+                    m_tile_sweep = tci;
+            }
         }
     }
 
