@@ -96,11 +96,15 @@ if (EMBEDPLUGINS)
     endif (JASPER_FOUND)
 endif ()
 
-
-add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
+if (BUILDSTATIC)
+    add_library (OpenImageIO STATIC ${libOpenImageIO_srcs})
+else ()
+    add_definitions(-DOIIO_SHARED_BUILD=1)
+    add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
+endif ()
 target_link_libraries (OpenImageIO ${Boost_LIBRARIES})
 if (MSVC)
-    set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS psapi.lib)
+    target_link_libraries (OpenImageIO psapi.lib)
 endif (MSVC)
 if (WIN32 AND USE_TBB)
     target_link_libraries (OpenImageIO

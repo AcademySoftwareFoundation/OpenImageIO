@@ -80,6 +80,14 @@ ifneq (${PYTHON_VERSION},)
 MY_CMAKE_FLAGS += -DPYTHON_VERSION:STRING=${PYTHON_VERSION}
 endif
 
+ifneq (${BUILDSTATIC},)
+MY_CMAKE_FLAGS += -DBUILDSTATIC:BOOL=${BUILDSTATIC}
+endif
+
+ifneq (${LINKSTATIC},)
+MY_CMAKE_FLAGS += -DLINKSTATIC:BOOL=${LINKSTATIC}
+endif
+
 ifdef DEBUG
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug
 endif
@@ -207,6 +215,8 @@ help:
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
 	@echo "  make USE_TBB=0 ...          Don't use TBB"
 	@echo "  make USE_PYTHON=1 ...       Build the Python binding"
+	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
+	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
 	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
 	@echo ""
 
