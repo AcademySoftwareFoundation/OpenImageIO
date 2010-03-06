@@ -31,6 +31,8 @@
 #ifndef OPENIMAGEIO_COLORTRANSFER_H
 #define OPENIMAGEIO_COLORTRANSFER_H
 
+#include "export.h"
+
 #ifdef OPENIMAGEIO_NAMESPACE
 namespace OPENIMAGEIO_NAMESPACE {
 #endif
@@ -40,7 +42,7 @@ namespace OpenImageIO {
 
 /// Base class a functor that remaps values accorrding to a color
 /// transfer function.
-class ColorTransfer {
+class DLLPUBLIC ColorTransfer {
 public:
     ColorTransfer (std::string name) { m_name = name; };
     virtual ~ColorTransfer (void) { };
