@@ -171,11 +171,11 @@ requested but not found in the file.  For example, if you perform a
 get the fill value.
 \apiend
 
-\apiitem{VaryingRef<float> missing}
+\apiitem{VaryingRef<float> missingcolor}
 If supplied, indicates that a missing or broken texture should \emph{not}
 be treated as an error, but rather will simply return the supplied color
 as the texture lookup color and {\cf texture()} will return {\cf true}.  
-If the {\cf missing} field is left at its default (a NULL pointer),
+If the {\cf missingcolor} field is left at its default (a NULL pointer),
 a missing or broken texture will be treated as an error and
 {\cf texture()} will return {\cf false}.
 

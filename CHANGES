@@ -2,12 +2,43 @@ Changes:
 
 
 
-In-progress Release 0.7 (Nov 26 2009)
--------------------------------------
+In-progress Release 0.8 (as of Mar 6 2010)
+------------------------------------------
 Major new features:
+
+* Python bindings for the ImageInput, ImageOutput, ImageSpec, ImageBuf, 
+  and ImageCache classes.
+* New format plugin: DDS (currently reading only)
+* New format plugin: Softimage PIC (currently reading only)
+
 API changes:
+
+* New "linearity" tags include AdobeRGB, Rec709, and KodakLog.
+* ColorTransfer helper class can convert among the linearity types, and
+  may be optionally passed to convert_image and convert_types.
+* Added to fmath.h: sincos, exp2f, log2f
+* Renamed ErrHandler::ErrCode enums with EH_ prefix (to fix conflicts
+  with some Windows headers).
+
 Fixes, minor enhancements, and performance improvements:
-For developers:
+
+* ImageInput::create() error messages are more helpful.
+* Fixed some error messages in FITS output, iconvert, 
+* maketx: Console flushes in status messages to that a calling process
+  will get status messages right away.
+* Fix subtle ImageCache bug with invalidate().
+* TextureSystem: new 'missingcolor' texture option that, when provided,
+  can specify a color that will be used for missing textures rather than
+  generating errors.  (If not supplied, missing tex is still an error.)
+
+For developers / build issues:
+
+* EMBEDPLUGINS=1 is now the default.  This means that all the format
+  plugins that come with OIIO are compiled into the main library, so
+  there's no reason for users to set $IMAGEIO_LIBRARY_PATH unless they
+  need custom format plugins not supplied with the main distribution.
+* Fix compiler warnings (mostly under Windows): TBB stuff, ustring, windows.h.
+
 
 
 

@@ -20,8 +20,9 @@ OpenImageIO consists of:
     plugin can be found at runtime.
 
   * Plugins implementing I/O for several popular image file formats,
-    including TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/RGBE, ICO, BMP,
-    Targa, JPEG-2000, FITS.  More are being developed all the time.
+    including TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/RGBE, ICO, BMP, Targa,
+    JPEG-2000, RMan Zfile, FITS, DDS, Softimage PIC.  More are being
+    developed all the time.
 
   * An image viewer, iv, that is based on ImageIO plugins and therefore
     can read images of any format for which an appropriate plugin may be
