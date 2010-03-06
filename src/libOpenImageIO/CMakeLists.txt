@@ -62,6 +62,8 @@ if (EMBEDPLUGINS)
           ../dds.imageio/squish/colourset.cpp ../dds.imageio/squish/maths.cpp
           ../dds.imageio/squish/rangefit.cpp ../dds.imageio/squish/singlecolourfit.cpp
           ../dds.imageio/squish/squish.cpp
+        ../fits.imageio/fitsinput.cpp ../fits.imageio/fitsoutput.cpp
+          ../fits.imageio/fits_pvt.cpp
         ../hdr.imageio/hdrinput.cpp ../hdr.imageio/hdroutput.cpp
           ../hdr.imageio/rgbe.cpp
         ../ico.imageio/icoinput.cpp ../ico.imageio/icooutput.cpp
@@ -69,11 +71,12 @@ if (EMBEDPLUGINS)
           ../jpeg.imageio/jpegexif.cpp
         ../png.imageio/pnginput.cpp ../png.imageio/pngoutput.cpp
         ../openexr.imageio/exrinput.cpp ../openexr.imageio/exroutput.cpp
+        ../softimage.imageio/softimageinput.cpp 
+           ../softimage.imageio/softimageoutput.cpp 
+           ../softimage.imageio/softimage_pvt.cpp
         ../targa.imageio/targainput.cpp ../targa.imageio/targaoutput.cpp
         ../tiff.imageio/tiffinput.cpp ../tiff.imageio/tiffoutput.cpp
         ../zfile.imageio/zfile.cpp
-        ../fits.imageio/fitsinput.cpp ../fits.imageio/fitsoutput.cpp
-        ../fits.imageio/fits_pvt.cpp
         )
     find_package (PNG REQUIRED)
     find_package (JPEG REQUIRED)
