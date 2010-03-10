@@ -157,9 +157,7 @@ SoftimageInput::open (const std::string& name, ImageSpec& spec)
     m_spec.attribute ("BitsPerSample", (int)curPacket.size);
     
     // Build the scanline index
-    int curLine = 0;
     fpos_t curPos;
-    
     fgetpos (m_fd, &curPos);
     m_scanline_markers.push_back(curPos);
 
@@ -173,7 +171,7 @@ bool
 SoftimageInput::read_native_scanline (int y, int z, void* data)
 {
     bool result = false;
-    if (y == m_scanline_markers.size() - 1) {
+    if (y == (int)m_scanline_markers.size() - 1) {
         // we're up to this scanline
         result = read_scanline(data);
         
@@ -183,7 +181,7 @@ SoftimageInput::read_native_scanline (int y, int z, void* data)
             fgetpos(m_fd, &curPos);
             m_scanline_markers.push_back(curPos);
         }
-    } else if (y >= m_scanline_markers.size()) {
+    } else if (y >= (int)m_scanline_markers.size()) {
         // we haven't yet read this far
         fpos_t curPos;
         // Store the ones before this without pulling the pixels
@@ -193,7 +191,7 @@ SoftimageInput::read_native_scanline (int y, int z, void* data)
             
             fgetpos(m_fd, &curPos);
             m_scanline_markers.push_back(curPos);
-        } while (m_scanline_markers.size() <= y);
+        } while ((int)m_scanline_markers.size() <= y);
         
         result = read_scanline(data);
         fgetpos(m_fd, &curPos);
@@ -213,7 +211,7 @@ SoftimageInput::read_native_scanline (int y, int z, void* data)
         // If the index isn't complete let's shift the file pointer back to the latest readline
         if (m_scanline_markers.size() < m_pic_header.height) {
             if (fsetpos (m_fd, &m_scanline_markers[m_scanline_markers.size() - 1])) {
-                error ("Failed to restore to scanline %d in \"%s\"", m_scanline_markers.size() - 1, m_filename.c_str());
+                error ("Failed to restore to scanline %lu in \"%s\"", m_scanline_markers.size() - 1, m_filename.c_str());
                 close();
                 return false;
             }
