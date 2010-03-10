@@ -372,12 +372,12 @@ static const TIFF_tag_info exif_tag_table[] = {
 void
 TIFFInput::readspec ()
 {
-    uint32 width, height, depth;
-    unsigned short nchans;
+    uint32 width = 0, height = 0, depth = 0;
+    unsigned short nchans = 1;
     TIFFGetField (m_tif, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetField (m_tif, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_IMAGEDEPTH, &depth);
-    TIFFGetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
+    TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
 
     m_spec = ImageSpec ((int)width, (int)height, (int)nchans);
 
@@ -433,6 +433,10 @@ TIFFInput::readspec ()
     case 32:
         if (sampleformat == SAMPLEFORMAT_IEEEFP)
             m_spec.set_format (TypeDesc::FLOAT);
+        break;
+    case 64:
+        if (sampleformat == SAMPLEFORMAT_IEEEFP)
+            m_spec.set_format (TypeDesc::DOUBLE);
         break;
     default:
         m_spec.set_format (TypeDesc::UNKNOWN);

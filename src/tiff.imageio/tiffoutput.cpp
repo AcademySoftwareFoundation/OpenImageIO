@@ -196,6 +196,10 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec, bool appen
         bps = 32;
         sampformat = SAMPLEFORMAT_IEEEFP;
         break;
+    case TypeDesc::DOUBLE:
+        bps = 64;
+        sampformat = SAMPLEFORMAT_IEEEFP;
+        break;
     default:
         error ("TIFF doesn't support %s images (\"%s\")",
                m_spec.format.c_str(), name.c_str());
@@ -484,7 +488,7 @@ TIFFOutput::write_tile (int x, int y, int z,
         int tile_pixels = m_spec.tile_width * m_spec.tile_height 
                             * std::max (m_spec.tile_depth, 1);
         int plane_bytes = tile_pixels * m_spec.format.size();
-        DASSERT (plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
+        DASSERT (imagesize_t(plane_bytes*m_spec.nchannels) == m_spec.tile_bytes());
         m_scratch.resize (m_spec.tile_bytes());
         contig_to_separate (tile_pixels, (const unsigned char *)data, &m_scratch[0]);
         for (int c = 0;  c < m_spec.nchannels;  ++c)
