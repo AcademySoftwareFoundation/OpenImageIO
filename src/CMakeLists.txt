@@ -88,6 +88,9 @@ if (MSVC)
         add_definitions (-DBOOST_ALL_DYN_LINK)
         add_definitions (-DOPENEXR_DLL)
     endif ()
+    if (BUILDSTATIC)
+         add_definitions(-DOIIO_STATIC_BUILD=1)
+    endif ()
 endif (MSVC)
 
 

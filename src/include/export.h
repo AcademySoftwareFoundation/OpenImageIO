@@ -83,7 +83,7 @@
 #endif
 
 #ifndef DLLPUBLIC
-#  if defined(_MSC_VER) && defined(_WIN32) && defined (OIIO_SHARED_BUILD)
+#  if defined(_MSC_VER) && defined(_WIN32) && !defined (OIIO_STATIC_BUILD)
 #    ifdef OpenImageIO_EXPORTS
 #      define DLLPUBLIC __declspec(dllexport)
 #    else
