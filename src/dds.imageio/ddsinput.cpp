@@ -63,6 +63,7 @@ private:
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
     int m_subimage;
     int m_nchans;                     ///< Number of colour channels in image
+    int m_nfaces;                     ///< Number of cube map sides in image
     int m_Bpp;                        ///< Number of bytes per pixel
     int m_redL, m_redR;               ///< Bit shifts to extract red channel
     int m_greenL, m_greenR;           ///< Bit shifts to extract green channel
@@ -204,13 +205,6 @@ DDSInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
-    // FIXME: don't try to load stuff we can't handle *yet*
-    if (m_dds.caps.flags2 & (DDS_CAPS2_VOLUME | DDS_CAPS2_CUBEMAP)) {
-        error ("Volume textures and cube maps are not supported yet, please "
-            "poke Leszek in the mailing list");
-        return false;
-    }
-
     // make sure all dimensions are > 0 and that we have at least one channel
     // (for uncompressed images)
     if (!(m_dds.flags & DDS_WIDTH) || !m_dds.width
@@ -256,6 +250,24 @@ DDSInput::open (const std::string &name, ImageSpec &newspec)
         }
     }
 
+    // fix depth, pitch and mipmaps for later use, if needed
+    if (!(m_dds.fmt.flags & DDS_PF_FOURCC && m_dds.flags & DDS_PITCH))
+        m_dds.pitch = m_dds.width * m_Bpp;
+    if (!(m_dds.caps.flags2 & DDS_CAPS2_VOLUME))
+        m_dds.depth = 1;
+    if (!(m_dds.flags & DDS_MIPMAPCOUNT))
+        m_dds.mipmaps = 1;
+    // count cube map faces
+    if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
+        m_nfaces = 0;
+        for (int flag = DDS_CAPS2_CUBEMAP_POSITIVEX;
+            flag <= DDS_CAPS2_CUBEMAP_NEGATIVEZ; flag <<= 1) {
+            if (m_dds.caps.flags2 & flag)
+                m_nfaces++;
+        }
+    } else
+        m_nfaces = 1;
+
     seek_subimage(0, m_spec);
 
     newspec = spec ();
@@ -293,10 +305,8 @@ DDSInput::seek_subimage (int index, ImageSpec &newspec)
 {
     // don't seek if the image doesn't contain mipmaps, isn't 3D or a cube map,
     // and don't seek out of bounds
-    if ((index < 0 || (!(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX) && index != 0))
-        || (m_dds.flags & DDS_MIPMAPCOUNT && m_dds.mipmaps > 0
-            && index >= (int)m_dds.mipmaps)
-        || (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP && index >= 6))
+    if (index < 0 || (!(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX) && index != 0)
+        || index >= (int)(m_nfaces * m_dds.mipmaps))
         return false;
 
     // early out
@@ -308,42 +318,64 @@ DDSInput::seek_subimage (int index, ImageSpec &newspec)
 
     // we can easily calculate the offsets because both compressed and
     // uncompressed images have predictable length
-    unsigned int len, w = m_dds.width, h = m_dds.height, d = m_dds.depth;
-    if (m_dds.fmt.flags & DDS_PF_FOURCC)
-        len = m_dds.pitch;
-    else
-        len = m_dds.pitch * m_dds.height *
-            (m_dds.caps.flags2 & DDS_CAPS2_VOLUME ? m_dds.depth : 1);
     // calculate the offset; start with after the header
-    int ofs = 128;
-    // skip subimages preceding the one we're seeking to
-    for (int i = 1; i <= index; i++) {
-        ofs += len;
-        w >>= 1;
-        if (!w)
-            w = 1;
-        h >>= 1;
-        if (!h)
-            h = 1;
-        d >>= 1;
-        if (!d)
-            d = 1;
-        if (m_dds.fmt.flags & DDS_PF_FOURCC)
-            // only check for DXT1 - all other formats have same block size
-            len = squish::GetStorageRequirements(w, h,
-                m_dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
-                    : squish::kDxt5);
-        else
-            // mipmaps of uncompressed images are 1/4th the previous size
-            //len >>= 2;
-            len = w * h * d * m_Bpp;
+    unsigned int ofs = 128;
+    unsigned int len, w, h, d;
+    // this flag is used to detect the map side correctly
+    unsigned int flag = DDS_CAPS2_CUBEMAP_POSITIVEX;
+    // this loop is used to iterate over cube map sides, or run once in the
+    // case of ordinary 2D or 3D images
+    for (int j = 0; j <= index / (int)m_dds.mipmaps; j++, flag <<= 1) {
+        w = m_dds.width;
+        h = m_dds.height;
+        d = m_dds.depth;
+        // make sure the flag skips faces not included in the file
+        if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
+            while (!(m_dds.caps.flags2 & flag))
+                flag <<= 1;
+        }
+        // skip subimages preceding the one we're seeking to
+        // if we have no mipmaps, the modulo formula doesn't work and we
+        // don't skip at all, so just add the offset and continue
+        if (m_dds.mipmaps < 2) {
+            if (j > 0) {
+                if (m_dds.fmt.flags & DDS_PF_FOURCC)
+                    // only check for DXT1 - all other formats have same block size
+                    len = squish::GetStorageRequirements(w, h,
+                        m_dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
+                        : squish::kDxt5);
+                else
+                    len = w * h * d * m_Bpp;
+                ofs += len;
+            }
+            continue;
+        }
+        for (unsigned int i = 0; i < (index % m_dds.mipmaps); i++) {
+            if (m_dds.fmt.flags & DDS_PF_FOURCC)
+                // only check for DXT1 - all other formats have same block size
+                len = squish::GetStorageRequirements(w, h,
+                    m_dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
+                        : squish::kDxt5);
+            else
+                len = w * h * d * m_Bpp;
+            ofs += len;
+            w >>= 1;
+            if (!w)
+                w = 1;
+            h >>= 1;
+            if (!h)
+                h = 1;
+            d >>= 1;
+            if (!d)
+                d = 1;
+        }
     }
     // seek to the offset we've found
     fseek (m_file, ofs, SEEK_SET);
 
     // create imagespec
     m_spec = ImageSpec (w, h, m_nchans, TypeDesc::UINT8);
-    m_spec.depth = (m_dds.flags & DDS_DEPTH) ? m_dds.depth : 1;
+    m_spec.depth = d;
     if (m_dds.fmt.flags & DDS_PF_FOURCC) {
         std::string tempstr = "";
         tempstr += ((char *)&m_dds.fmt.fourCC)[0];
@@ -356,6 +388,72 @@ DDSInput::seek_subimage (int index, ImageSpec &newspec)
     m_spec.default_channel_names ();
     m_spec.linearity = ImageSpec::UnknownLinearity;
 
+    // detect texture type
+    if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {
+        m_spec.attribute ("texturetype", "Volume Texture");
+        m_spec.attribute ("textureformat", "Volume Texture");
+    } else if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
+        m_spec.attribute ("texturetype", "Environment");
+        m_spec.attribute ("textureformat", "CubeFace Environment");
+        // check available cube map sides
+        std::string sides = "";
+        if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP_POSITIVEX)
+            sides += "+x";
+        if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP_NEGATIVEX) {
+            if (sides.size())
+                sides += " ";
+            sides += "-x";
+        }
+        if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP_POSITIVEY) {
+            if (sides.size())
+                sides += " ";
+            sides += "+y";
+        }
+        if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP_NEGATIVEY) {
+            if (sides.size())
+                sides += " ";
+            sides += "-y";
+        }
+        if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP_POSITIVEZ) {
+            if (sides.size())
+                sides += " ";
+            sides += "+z";
+        }
+        if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP_NEGATIVEZ) {
+            if (sides.size())
+                sides += " ";
+            sides += "-z";
+        }
+        m_spec.attribute ("dds:CubeMapSides", sides);
+        // detect the cube face that this subimage represents; shift the flag
+        // right, because it's 1 bit too far after the last iteration of the
+        // face loop
+        flag >>= 1;
+        switch (flag) {
+            case DDS_CAPS2_CUBEMAP_POSITIVEX:
+                m_spec.attribute ("dds:CubeMapSide", "+x");
+                break;
+            case DDS_CAPS2_CUBEMAP_NEGATIVEX:
+                m_spec.attribute ("dds:CubeMapSide", "-x");
+                break;
+            case DDS_CAPS2_CUBEMAP_POSITIVEY:
+                m_spec.attribute ("dds:CubeMapSide", "+y");
+                break;
+            case DDS_CAPS2_CUBEMAP_NEGATIVEY:
+                m_spec.attribute ("dds:CubeMapSide", "-y");
+                break;
+            case DDS_CAPS2_CUBEMAP_POSITIVEZ:
+                m_spec.attribute ("dds:CubeMapSide", "+z");
+                break;
+            case DDS_CAPS2_CUBEMAP_NEGATIVEZ:
+                m_spec.attribute ("dds:CubeMapSide", "-z");
+                break;
+        }
+    } else {
+        m_spec.attribute ("texturetype", "Plain Texture");
+        m_spec.attribute ("textureformat", "Plain Texture");
+    }
+
     m_subimage = index;
     newspec = spec ();
     return true;
@@ -366,6 +464,7 @@ DDSInput::seek_subimage (int index, ImageSpec &newspec)
 bool
 DDSInput::readimg ()
 {
+    //std::cerr << "[dds] readimg: " << ftell (m_file) << "\n";
     // resize destination buffer
     m_buf.resize (m_spec.scanline_bytes() * m_spec.height * m_spec.depth
         / (1 << m_subimage));
@@ -404,11 +503,14 @@ DDSInput::readimg ()
                 for (int x = 0; x < m_spec.width; x++) {
                     k = (y * m_spec.width + x) * 4;
                     m_buf[k + 0] =
-                        (unsigned char)(m_buf[k + 0] * 255 / m_buf[k + 3]);
+                        (unsigned char)((int)m_buf[k + 0] * 255
+                            / (int)m_buf[k + 3]);
                     m_buf[k + 1] =
-                        (unsigned char)(m_buf[k + 1] * 255 / m_buf[k + 3]);
+                        (unsigned char)((int)m_buf[k + 1] * 255
+                            / (int)m_buf[k + 3]);
                     m_buf[k + 2] =
-                        (unsigned char)(m_buf[k + 2] * 255 / m_buf[k + 3]);
+                        (unsigned char)((int)m_buf[k + 2] * 255
+                            / (int)m_buf[k + 3]);
                 }
             }
         }
@@ -422,19 +524,22 @@ DDSInput::readimg ()
         }
         
         int k, pixel = 0;
-        for (int y = 0; y < m_spec.height; y++) {
-            for (int x = 0; x < m_spec.width; x++) {
-                fread (&pixel, 1, m_Bpp, m_file);
-                k = (y * m_spec.width + x) * m_spec.nchannels;
-                m_buf[k + 0] = ((pixel & m_dds.fmt.rmask) >> m_redR)
-                    << m_redL;
-                m_buf[k + 1] = ((pixel & m_dds.fmt.gmask) >> m_greenR)
-                    << m_greenL;
-                m_buf[k + 2] = ((pixel & m_dds.fmt.bmask) >> m_blueR)
-                    << m_blueL;
-                if (m_dds.fmt.flags & DDS_PF_ALPHA)
-                    m_buf[k + 3] = ((pixel & m_dds.fmt.amask) >> m_alphaR)
-                        << m_alphaL;
+        for (int z = 0; z < m_spec.depth; z++) {
+            for (int y = 0; y < m_spec.height; y++) {
+                for (int x = 0; x < m_spec.width; x++) {
+                    fread (&pixel, 1, m_Bpp, m_file);
+                    k = (z * m_spec.height * m_spec.width
+                        + y * m_spec.width + x) * m_spec.nchannels;
+                    m_buf[k + 0] = ((pixel & m_dds.fmt.rmask) >> m_redR)
+                        << m_redL;
+                    m_buf[k + 1] = ((pixel & m_dds.fmt.gmask) >> m_greenR)
+                        << m_greenL;
+                    m_buf[k + 2] = ((pixel & m_dds.fmt.bmask) >> m_blueR)
+                        << m_blueL;
+                    if (m_dds.fmt.flags & DDS_PF_ALPHA)
+                        m_buf[k + 3] = ((pixel & m_dds.fmt.amask) >> m_alphaR)
+                            << m_alphaL;
+                }
             }
         }
     }
@@ -464,6 +569,6 @@ DDSInput::read_native_scanline (int y, int z, void *data)
         readimg ();
 
     size_t size = spec().scanline_bytes();
-    memcpy (data, &m_buf[0] + y * size, size);
+    memcpy (data, &m_buf[0] + z * m_spec.height * size + y * size, size);
     return true;
 }
