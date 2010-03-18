@@ -38,14 +38,23 @@
 #ifndef OPENIMAGEIO_HASH_H
 #define OPENIMAGEIO_HASH_H
 
+#include <boost/version.hpp>
+
+#if BOOST_VERSION >= 103600
+#define OIIO_HAVE_BOOST_UNORDERED_MAP
+#include <boost/unordered_map.hpp>
+#endif
+
+#ifndef OIIO_HAVE_BOOST_UNORDERED_MAP
+
 #ifdef __GNUC__
 
-#include <ext/hash_map>
-#include <ext/hash_set>
+# include <ext/hash_map>
+# include <ext/hash_set>
 using __gnu_cxx::hash_map;
 using __gnu_cxx::hash_set;
 
-#else
+#else // __GNUC__
 
 #include <hash_map>
 #include <hash_set>
@@ -59,7 +68,8 @@ using std::hash_map;
 using std::hash_set;
 #endif
 
-#endif
+#endif // __GNUC__
 
+#endif // OIIO_HAVE_BOOST_UNORDERED_MAP
 
 #endif // OPENIMAGEIO_HASH_H

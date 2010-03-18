@@ -58,7 +58,9 @@ using namespace std::tr1;
 using namespace OpenImageIO;
 using namespace OpenImageIO::pvt;
 
-
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
 namespace OpenImageIO { namespace pvt {
 
 // The static perthread mutex needs to outlive the shared_image_cache
@@ -67,6 +69,9 @@ namespace OpenImageIO { namespace pvt {
 mutex ImageCacheImpl::m_perthread_info_mutex;
 
 }}
+#ifdef OPENIMAGEIO_NAMESPACE
+}
+#endif
 
 namespace {  // anonymous
 
@@ -116,6 +121,9 @@ iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 };  // end anonymous namespace
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
 
 namespace OpenImageIO {
 
@@ -1958,3 +1966,7 @@ ImageCache::destroy (ImageCache *x)
 
 
 };  // end namespace OpenImageIO
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}
+#endif
