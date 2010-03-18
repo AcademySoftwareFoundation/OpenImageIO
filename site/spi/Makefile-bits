@@ -1,23 +1,5 @@
 # SPI-specific settings
 
-ifeq ($(SP_ARCH), spinux1_x86_64)
-
-ifeq (${NAMESPACE},)
-NAMESPACE='OpenImageIO_Arnold'
-endif
-EMBEDPLUGINS:=1
-USE_OPENGL:=0
-
-#BOOST_VERSION=1_42
-#Boost_LIBRARIES="-lboost_filesystem-gcc44-mt -lboost_regex-gcc44-mt -lboost_thread-gcc44-mt"
-#MY_CMAKE_FLAGS += \
-#		-DBOOST_CUSTOM=1 \
-#		-DBoost_INCLUDE_DIRS=/usr/include/boost-${BOOST_VERSION} \
-#		-DBoost_LIBRARY_DIRS=/usr/lib64 \
-#		-DBoost_LIBRARIES=$(Boost_LIBRARIES) \
-
-else # $SP_ARCH
-
 ifeq (${platform},linux64)
 OPENIMAGEIO_SPCOMP2_VERSION=v21
 OPENEXR_VERSION=1.4.0
@@ -61,5 +43,3 @@ MY_CMAKE_FLAGS += \
 		-DPYTHONLIBS_FOUND=1
 
 endif
-
-endif # $SP_ARCH

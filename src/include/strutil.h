@@ -154,7 +154,7 @@ public:
 /// strings.
 class StringEqual {
 public:
-    bool operator() (const char *a, const char *b) const {
+    bool operator() (const char *a, const char *b) {
         return strcmp (a, b) == 0;
     }
 };
