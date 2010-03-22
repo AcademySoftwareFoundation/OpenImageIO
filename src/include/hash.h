@@ -43,6 +43,7 @@
 #if BOOST_VERSION >= 103600
 #define OIIO_HAVE_BOOST_UNORDERED_MAP
 #include <boost/unordered_map.hpp>
+#include <boost/unordered_set.hpp>
 #endif
 
 #ifndef OIIO_HAVE_BOOST_UNORDERED_MAP
