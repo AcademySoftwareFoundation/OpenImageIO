@@ -70,6 +70,15 @@ using std::hash_set;
 
 #endif // __GNUC__
 
+#else // OIIO_HAVE_BOOST_UNORDERED_MAP
+
+//FIXME (robertm): can we replace hash_compare with something from boost
+//like we replaced hash_map with unordered_map?
+#ifdef _WIN32
+#include <hash_map>
+using stdext::hash_compare;
+#endif
+
 #endif // OIIO_HAVE_BOOST_UNORDERED_MAP
 
 #endif // OPENIMAGEIO_HASH_H
