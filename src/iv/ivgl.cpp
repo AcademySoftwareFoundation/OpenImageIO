@@ -345,8 +345,9 @@ IvGL::create_shaders (void)
         glGetShaderiv (m_vertex_shader, GL_COMPILE_STATUS, &status);
     }
     if (! status) {
+        std::cerr << "vertex shader compile status: " << status << "\n";
+        print_shader_log (std::cerr, m_vertex_shader);
         // FIXME: How to handle this error?
-        std::cerr << "vertex shader compile status: failed\n";
     }
     if (m_shaders_using_extensions) {
         glAttachObjectARB (m_shader_program, m_vertex_shader);
@@ -369,15 +370,7 @@ IvGL::create_shaders (void)
     }
     if (! status) {
         std::cerr << "fragment shader compile status: " << status << "\n";
-        char buf[10000];
-        buf[0] = 0;
-        GLsizei len;
-        if (m_shaders_using_extensions) {
-            glGetInfoLogARB (m_fragment_shader, sizeof(buf), &len, buf);
-        } else {
-            glGetShaderInfoLog (m_fragment_shader, sizeof(buf), &len, buf);
-        }
-        std::cerr << "compile log:\n" << buf << "---\n";
+        print_shader_log(std::cerr, m_fragment_shader);
         // FIXME: How to handle this error?
     }
     if (m_shaders_using_extensions) {
@@ -411,7 +404,7 @@ IvGL::create_shaders (void)
         } else {
             glGetProgramInfoLog (m_shader_program, sizeof(buf), &len, buf);
         }
-        std::cerr << "compile log:\n" << buf << "---\n";
+        std::cerr << "link log:\n" << buf << "---\n";
     }
 
     m_shaders_created = true;
@@ -1290,6 +1283,25 @@ IvGL::gl_uniform (GLint location, int value)
         glUniform1iARB (location, value);
     else
         glUniform1i (location, value);
+}
+
+
+
+void
+IvGL::print_shader_log (std::ostream& out, const GLuint shader_id) const
+{
+    GLint size = 0;
+    glGetShaderiv (shader_id, GL_INFO_LOG_LENGTH, &size);
+    if (size > 0) {    
+        GLchar* log = new GLchar[size];
+        if (m_shaders_using_extensions) {
+            glGetInfoLogARB (shader_id, size, NULL, log);
+        } else {
+            glGetShaderInfoLog (shader_id, size, NULL, log);
+        }
+        out << "compile log:\n" << log << "---\n";
+        delete[] log;
+    }
 }
 
 

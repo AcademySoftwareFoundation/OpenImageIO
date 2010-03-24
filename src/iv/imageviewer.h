@@ -563,6 +563,10 @@ private:
     ///
     void check_gl_extensions (void);
 
+    /// print shader info to out stream
+    ///
+    void print_shader_log (std::ostream& out, const GLuint shader_id) const;
+
     /// Loads the given patch of the image, but first figures if it's already
     /// been loaded.
     void load_texture (int x, int y, int width, int height, float percent);
