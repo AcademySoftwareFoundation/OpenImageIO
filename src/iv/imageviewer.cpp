@@ -280,17 +280,17 @@ ImageViewer::createActions()
     connect(aboutAct, SIGNAL(triggered()), this, SLOT(about()));
 
     prevImageAct = new QAction(tr("Previous Image"), this);
-    prevImageAct->setShortcut(tr("PgUp"));  // FIXME: Does this work?
+    prevImageAct->setShortcut(tr("PgUp"));
 //    prevImageAct->setEnabled(true);
     connect (prevImageAct, SIGNAL(triggered()), this, SLOT(prevImage()));
 
     nextImageAct = new QAction(tr("Next Image"), this);
-    nextImageAct->setShortcut(tr("PageDown"));
+    nextImageAct->setShortcut(tr("PgDown"));
 //    nextImageAct->setEnabled(true);
     connect (nextImageAct, SIGNAL(triggered()), this, SLOT(nextImage()));
 
     toggleImageAct = new QAction(tr("Toggle image"), this);
-    toggleImageAct->setShortcut(tr("t"));
+    toggleImageAct->setShortcut(tr("T"));
 //    toggleImageAct->setEnabled(true);
     connect (toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
