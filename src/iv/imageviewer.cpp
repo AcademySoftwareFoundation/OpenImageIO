@@ -884,8 +884,6 @@ ImageViewer::displayCurrentImage (bool update)
             statusViewInfo->show ();
 
             if (load_result) {
-                glwin->center (img->oriented_full_x()+img->oriented_full_width()/2.0,
-                               img->oriented_full_y()+img->oriented_full_height()/2.0);
                 update = true;
             } else {
                 return;
