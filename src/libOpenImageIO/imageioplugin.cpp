@@ -193,6 +193,7 @@ extern "C" {
     PLUGENTRY (jpeg2000);
     PLUGENTRY (openexr);
     PLUGENTRY (png);
+    PLUGENTRY (sgi);
     PLUGENTRY (softimage);
     PLUGENTRY (tiff);
     PLUGENTRY (targa);
@@ -227,6 +228,7 @@ catalog_builtin_plugins ()
 #endif
     DECLAREPLUG (openexr);
     DECLAREPLUG (png);
+    DECLAREPLUG (sgi);
     DECLAREPLUG (softimage);
     DECLAREPLUG (tiff);
     DECLAREPLUG (targa);

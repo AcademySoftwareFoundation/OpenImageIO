@@ -71,6 +71,7 @@ if (EMBEDPLUGINS)
           ../jpeg.imageio/jpegexif.cpp
         ../png.imageio/pnginput.cpp ../png.imageio/pngoutput.cpp
         ../openexr.imageio/exrinput.cpp ../openexr.imageio/exroutput.cpp
+        ../sgi.imageio/sgiinput.cpp ../sgi.imageio/sgioutput.cpp
         ../softimage.imageio/softimageinput.cpp 
            ../softimage.imageio/softimageoutput.cpp 
            ../softimage.imageio/softimage_pvt.cpp
