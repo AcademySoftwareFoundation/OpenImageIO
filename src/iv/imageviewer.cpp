@@ -792,7 +792,10 @@ ImageViewer::loadCurrentImage (int subimage)
         // We need the spec available to compare the image format with
         // opengl's capabilities.
         if (! img->init_spec (img->name ())) {
-            std::cerr << "Init spec failed in loadCurrentImage: " << img->geterror () << "\n";
+            std::string message;
+            message = Strutil::format ("Could not display image: %s.", img->name().c_str());
+            statusImgInfo->setText (tr(message.c_str()));
+            statusViewInfo->setText (tr(""));
             return false;
         }
 
@@ -858,7 +861,10 @@ ImageViewer::loadCurrentImage (int subimage)
             }
             return true;
         } else {
-            std::cerr << "read failed in loadCurrentImage: " << img->geterror() << "\n";
+            std::string message;
+            message = Strutil::format ("Could not display image: %s.", img->name().c_str());
+            statusImgInfo->setText (tr(message.c_str()));
+            statusViewInfo->setText (tr(""));
             return false;
         }
     }
@@ -1610,8 +1616,8 @@ ImageViewer::about()
 {
     QMessageBox::about(this, tr("About iv"),
             tr("<p><b>iv</b> is the image viewer for OpenImageIO.</p>"
-               "<p>(c) Copyright 2008 Larry Gritz.  All Rights Reserved.</p>"
-               "<p>See URL-GOES-HERE for details.</p>"));
+               "<p>(c) Copyright 2008 Larry Gritz et al.  All Rights Reserved.</p>"
+               "<p>See http://openimageio.org for details.</p>"));
 }
 
 
