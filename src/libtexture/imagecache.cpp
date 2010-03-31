@@ -971,8 +971,7 @@ void
 ImageCacheImpl::init ()
 {
     m_max_open_files = 100;
-    m_max_memory_MB = 50;
-    m_max_memory_bytes = (int) (m_max_memory_MB * 1024 * 1024);
+    m_max_memory_bytes = 100 * 1024 * 1024;   // 100 MB default cache size
     m_autotile = 0;
     m_automip = false;
     m_forcefloat = false;
@@ -1241,18 +1240,16 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
 #else
         size = std::max (size, 1.0f);   // But let developers debugging do it
 #endif
-        m_max_memory_MB = size;
-        m_max_memory_bytes = (int)(size * 1024 * 1024);
+        m_max_memory_bytes = size_t(size * 1024 * 1024);
     }
     else if (name == "max_memory_MB" && type == TypeDesc::INT) {
         float size = *(const int *)val;
 #ifndef DEBUG
         size = std::max (size, 10.0f);  // Don't let users choose < 10 MB
 #else
-        size = std::max (size, 1.0f);   // But let developers debugging do it
+        size = std::max (size, 1);   // But let developers debugging do it
 #endif
-        m_max_memory_MB = size;
-        m_max_memory_bytes = (int)(size * 1024 * 1024);
+        m_max_memory_bytes = size_t(size) * 1024 * 1024;
     }
     else if (name == "searchpath" && type == TypeDesc::STRING) {
         m_searchpath = std::string (*(const char **)val);
@@ -1307,7 +1304,11 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
         return true;
     }
     if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
-        *(float *)val = m_max_memory_MB;
+        *(float *)val = m_max_memory_bytes / (1024.0*1024.0);
+        return true;
+    }
+    if (name == "max_memory_MB" && type == TypeDesc::INT) {
+        *(int *)val = int (m_max_memory_bytes / (1024*1024));
         return true;
     }
     if (name == "searchpath" && type == TypeDesc::STRING) {

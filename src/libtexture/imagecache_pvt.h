@@ -529,7 +529,6 @@ public:
 
     // Retrieve options
     int max_open_files () const { return m_max_open_files; }
-    float max_memory_MB () const { return m_max_memory_MB; }
     const std::string &searchpath () const { return m_searchpath; }
     int autotile () const { return m_autotile; }
     bool automip () const { return m_automip; }
@@ -710,7 +709,6 @@ private:
     std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
     static mutex m_perthread_info_mutex; ///< Thread safety for perthread
     int m_max_open_files;
-    float m_max_memory_MB;
     size_t m_max_memory_bytes;
     std::string m_searchpath;    ///< Colon-separated directory list
     std::vector<std::string> m_searchdirs; ///< Searchpath split into dirs
