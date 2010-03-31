@@ -70,13 +70,15 @@ IvInfoWindow::IvInfoWindow (ImageViewer &viewer, bool visible)
 void
 IvInfoWindow::update (IvImage *img)
 {
-    std::string newtitle = Strutil::format ("%s - iv Info", img->name().c_str());
-    setWindowTitle (newtitle.c_str());
+    std::string newtitle;
     if (img) {
+        newtitle = Strutil::format ("%s - iv Info", img->name().c_str());
         infoLabel->setText (img->longinfo().c_str());
     } else {
+        newtitle = Strutil::format ("iv Info");
         infoLabel->setText (tr("No image loaded."));
     }
+    setWindowTitle (newtitle.c_str());
 }
 
 
