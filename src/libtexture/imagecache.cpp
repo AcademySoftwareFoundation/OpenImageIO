@@ -1247,7 +1247,7 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
 #ifndef DEBUG
         size = std::max (size, 10.0f);  // Don't let users choose < 10 MB
 #else
-        size = std::max (size, 1);   // But let developers debugging do it
+        size = std::max (size, 1.0f);   // But let developers debugging do it
 #endif
         m_max_memory_bytes = size_t(size) * 1024 * 1024;
     }
