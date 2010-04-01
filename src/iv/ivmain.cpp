@@ -155,10 +155,14 @@ put_in_background (int argc, char *argv[])
 #endif
 
 #ifdef WIN32
-    // FIXME: How to do this for win32?  Somebody told me that it's not
-    // necessary at all, and we just have to rename 'main' to 'winMain'
-    // for it to become a backgrounded app.
-    return false;
+    // if we are not in DEBUG mode this code switch the IV to
+    // full windowed mode (no console and no need to define WinMain)
+    // FIXME: this should be done in CMakeLists.txt but first we have to
+    // fix Windows Debug build
+# ifndef DEBUG
+#  pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
+# endif
+    return true;
 #endif
 }
 
