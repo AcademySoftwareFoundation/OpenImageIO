@@ -27,6 +27,9 @@
 
   (This is the Modified BSD License)
 */
+
+#include <cstdio>
+
 #include "sgi_pvt.h"
 
 
