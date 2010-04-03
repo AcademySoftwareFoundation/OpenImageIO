@@ -60,6 +60,10 @@ ifneq (${USE_QT},)
 MY_CMAKE_FLAGS += -DUSE_QT:BOOL=${USE_QT}
 endif
 
+ifneq (${FORCE_OPENGL_1},)
+MY_CMAKE_FLAGS += -DFORCE_OPENGL_1:BOOL=${FORCE_OPENGL_1}
+endif
+
 ifneq (${USE_TBB},)
 MY_CMAKE_FLAGS += -DUSE_TBB:BOOL=${USE_TBB}
 endif
@@ -213,6 +217,7 @@ help:
 	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
+	@echo "  make FORCE_OPENGL_1=1 ...   Force iv to use OpenGL's fixed pipeline"
 	@echo "  make USE_TBB=0 ...          Don't use TBB"
 	@echo "  make USE_PYTHON=1 ...       Build the Python binding"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
@@ -220,3 +225,4 @@ help:
 	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
 	@echo ""
 
+       
