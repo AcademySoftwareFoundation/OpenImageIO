@@ -118,6 +118,47 @@ iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 }
 
 
+#ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
+
+/// Perform "map[key] = value", and set sweep_iter = end() if it is invalidated.
+///
+/// For some reason, unordered_map::insert and operator[] may invalidate
+/// iterators (see the C++ Library Extensions document for C++0x at
+/// http://www.open-std.org/jtc1/sc22/wg21/docs/projects).  This function
+/// sets sweep_iter = end() if we detect it's become invalidated by the
+/// insertion.
+template<typename HashMapT>
+void safe_insert (HashMapT& map, const typename HashMapT::key_type& key,
+                  const typename HashMapT::mapped_type& value,
+                  typename HashMapT::iterator& sweep_iter)
+{
+    size_t nbuckets_pre_insert = map.bucket_count();
+    map[key] = value;
+    // If the bucket count in the map has increased, it's probable that
+    // sweep_iter was invalidated.  Just set it to the end, since the order of
+    // elements has probably become essentially randomized anyway.
+    if (nbuckets_pre_insert != map.bucket_count())
+        sweep_iter = map.end ();
+}
+
+#else
+
+template<typename HashMapT>
+void safe_insert (HashMapT& map, const typename HashMapT::key_type& key,
+                  const typename HashMapT::mapped_type& value,
+                  typename HashMapT::iterator& /*sweep_iter*/)
+{
+    // Traditional implementations of hash_map don't typically invalidate
+    // iterators on insertion.
+    //   - VC++'s stdext::hash_map, according to msdn, and 
+    //   - The implementation coming with g++ according to some vague
+    //     indications in the SGI docs & other places on the web.
+    map[key] = value;
+}
+
+#endif
+
+
 };  // end anonymous namespace
 
 
@@ -852,7 +893,7 @@ ImageCacheImpl::find_file (ustring filename,
     }
 
     check_max_files ();
-    m_files[filename] = tf;
+    safe_insert (m_files, filename, tf, m_file_sweep);
     if (tf->duplicate())
         tf = tf->duplicate();
     else
@@ -1430,7 +1471,7 @@ ImageCacheImpl::add_tile_to_cache (ImageCacheTileRef &tile,
     }
 
     check_max_mem ();
-    m_tilecache[tile->id()] = tile;
+    safe_insert (m_tilecache, tile->id(), tile, m_tile_sweep);
 }
 
 
