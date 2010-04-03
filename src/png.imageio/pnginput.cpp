@@ -49,7 +49,6 @@ using namespace OpenImageIO;
 
 
 // FIXME -- these test images from PNGSuite don't work properly: 
-//   basi3p?? -- 1, 2, 4, 8 bit paletted
 //   basn4a{08,16} -- 8 and 16 bit graycale with alpha
 // 
 

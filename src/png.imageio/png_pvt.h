@@ -135,8 +135,11 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     png_get_IHDR (sp, ip, &width, &height,
                   &bit_depth, &color_type, NULL, NULL, NULL);
     
-    spec = OpenImageIO::ImageSpec ((int)width, (int)height,
-                        png_get_channels (sp, ip),
+    int numChannels = png_get_channels (sp, ip);
+    if (color_type == PNG_COLOR_TYPE_PALETTE)
+        numChannels = 3;
+
+    spec = OpenImageIO::ImageSpec ((int)width, (int)height, numChannels,
                         bit_depth == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
 
     spec.default_channel_names ();
