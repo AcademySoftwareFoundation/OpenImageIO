@@ -123,7 +123,7 @@ get_background (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
 
 
 
-/// Reads information from a PNG file and fills the OpenImageIO::ImageSpec accordingly.
+/// Read information from a PNG file and fill the ImageSpec accordingly.
 ///
 inline void
 read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
@@ -135,6 +135,7 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     png_get_IHDR (sp, ip, &width, &height,
                   &bit_depth, &color_type, NULL, NULL, NULL);
     
+    // Auto-convert palette images to RGB if image is color image
     int numChannels = png_get_channels (sp, ip);
     if (color_type == PNG_COLOR_TYPE_PALETTE)
         numChannels = 3;
@@ -220,7 +221,6 @@ read_into_buffer (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
     if (setjmp (png_jmpbuf (sp)))
         return "PNG library error";
 
-    // Auto-convert palette images to RGB if image is color image
     // Auto-convert 1-, 2-, and 4- bit grayscale to 8 bits is image is
     // grayscale image with bit_depth < 8
     // Auto-convert transparency to alpha
