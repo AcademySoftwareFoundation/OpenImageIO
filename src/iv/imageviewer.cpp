@@ -147,6 +147,10 @@ ImageViewer::createActions()
     printAct->setEnabled(false);
     connect(printAct, SIGNAL(triggered()), this, SLOT(print()));
 
+    deleteCurrentImageAct = new QAction(tr("&Delete from disk"), this);
+    deleteCurrentImageAct->setShortcut(tr("Delete"));
+    connect(deleteCurrentImageAct, SIGNAL(triggered()), this, SLOT(deleteCurrentImage()));
+
     editPreferencesAct = new QAction(tr("&Preferences..."), this);
     editPreferencesAct->setShortcut(tr("Ctrl+,"));
     editPreferencesAct->setEnabled (true);
@@ -340,6 +344,7 @@ ImageViewer::createMenus()
     fileMenu->addAction (saveSelectionAsAct);
     fileMenu->addSeparator ();
     fileMenu->addAction (printAct);
+    fileMenu->addAction (deleteCurrentImageAct);
     fileMenu->addSeparator ();
     fileMenu->addAction (editPreferencesAct);
     fileMenu->addAction (exitAct);
@@ -918,6 +923,28 @@ ImageViewer::displayCurrentImage (bool update)
 //    fitImageToWindowAct->setEnabled(true);
 //    fullScreenAct->setEnabled(true);
     updateActions();
+}
+
+
+
+void
+ImageViewer::deleteCurrentImage()
+{
+    IvImage *img = cur();
+    if (img) {
+        const char *filename = img->name().c_str();
+        QString message ("Are you sure you want to remove <b>");
+        message = message + QString(filename) + QString("</b> file from disk?");
+        QMessageBox::StandardButton button;
+        button = QMessageBox::question (this, "", message, 
+                                        QMessageBox::Yes | QMessageBox::No);
+        if (button == QMessageBox::Yes) {
+            closeImg();
+            int r = remove (filename);
+            if (r)
+                QMessageBox::information (this, "", "Unable to delete file");
+        }
+    }
 }
 
 

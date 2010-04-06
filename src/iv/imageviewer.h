@@ -234,6 +234,7 @@ private slots:
     void saveWindowAs();                ///< Save As... functionality
     void saveSelectionAs();             ///< Save As... functionality
     void print();                       ///< Print current image
+    void deleteCurrentImage();          ///< Deleting displayed image
     void zoomIn();                      ///< Zoom in to next power of 2
     void zoomOut();                     ///< Zoom out to next power of 2
     void normalSize();                  ///< Adjust zoom to 1:1
@@ -302,6 +303,7 @@ private:
     QAction *openRecentAct[MaxRecentFiles];
     QAction *saveAsAct, *saveWindowAsAct, *saveSelectionAsAct;
     QAction *printAct;
+    QAction *deleteCurrentImageAct;
     QAction *exitAct;
     QAction *gammaPlusAct, *gammaMinusAct;
     QAction *exposurePlusOneTenthStopAct, *exposurePlusOneHalfStopAct;
