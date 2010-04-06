@@ -167,6 +167,22 @@ PNGOutput::close ()
 
 
 
+template <class T>
+static void 
+deassociateAlpha (T * data, int size, int channels, int alpha_channel)
+{
+    float max = std::numeric_limits<T>::max();
+    for (int x = 0;  x < size;  ++x, data += channels)
+        if (data[alpha_channel])
+            for (int c = 0;  c < channels;  c++)
+                if (c != alpha_channel) {
+                    float f = data[c] * (max / data[alpha_channel]);
+                    data[c] = (T) std::min (max, f);
+                }
+}
+
+
+
 bool
 PNGOutput::write_scanline (int y, int z, TypeDesc format,
                             const void *data, stride_t xstride)
@@ -179,6 +195,16 @@ PNGOutput::write_scanline (int y, int z, TypeDesc format,
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data+m_spec.scanline_bytes());
         data = &m_scratch[0];
+    }
+
+    // PNG specifically dictates unassociated (un-"premultiplied") alpha
+    if (m_spec.alpha_channel != -1) {
+        if (m_spec.format == TypeDesc::UINT16)
+            deassociateAlpha ((unsigned short *)data, m_spec.width,
+                              m_spec.nchannels, m_spec.alpha_channel);
+        else
+            deassociateAlpha ((unsigned char *)data, m_spec.width,
+                              m_spec.nchannels, m_spec.alpha_channel);
     }
 
     if (!PNG_pvt::write_row (m_png, (png_byte *)data)) {

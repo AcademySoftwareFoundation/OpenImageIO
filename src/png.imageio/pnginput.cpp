@@ -48,10 +48,6 @@ using boost::algorithm::iequals;
 using namespace OpenImageIO;
 
 
-// FIXME -- these test images from PNGSuite don't work properly: 
-//   basn4a{08,16} -- 8 and 16 bit graycale with alpha
-// 
-
 
 class PNGInput : public ImageInput {
 public:
@@ -180,6 +176,19 @@ PNGInput::close ()
 
 
 
+template <class T>
+static void 
+associateAlpha (T * data, int size, int channels, int alpha_channel)
+{
+    float maxinv = 1.0f / std::numeric_limits<T>::max();
+    for (int x = 0;  x < size;  ++x, data += channels)
+        for (int c = 0;  c < channels;  c++)
+            if (c != alpha_channel)
+                data[c] *= (float)data[alpha_channel] * maxinv;
+}
+
+
+
 bool
 PNGInput::read_native_scanline (int y, int z, void *data)
 {
@@ -189,5 +198,16 @@ PNGInput::read_native_scanline (int y, int z, void *data)
     y -= m_spec.y;
     size_t size = spec().scanline_bytes();
     memcpy (data, &m_buf[0] + y * size, size);
+
+    // PNG specifically dictates unassociated (un-"premultiplied") alpha
+    if (m_spec.alpha_channel != -1) {   // Associate alpha
+        if (m_spec.format == TypeDesc::UINT16)
+            associateAlpha ((unsigned short *)data, m_spec.width,
+                            m_spec.nchannels, m_spec.alpha_channel);
+        else
+            associateAlpha ((unsigned char *)data, m_spec.width,
+                            m_spec.nchannels, m_spec.alpha_channel);
+    }
+
     return true;
 }
