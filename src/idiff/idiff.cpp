@@ -326,7 +326,7 @@ Yee_Compare (const ImageBuf &img0, const ImageBuf &img1,
     boost::scoped_array<float> bLum (new float[npels]);
     ImageBuf::ConstIterator<float,float> pix0 (img0);
     ImageBuf::ConstIterator<float,float> pix1 (img1);
-    for (int i = 0;  pix0.valid();  ++i) {
+    for (int i = 0;  pix0.valid();  ++i, pix0++) {
         pix1.pos (pix0.x(), pix0.y());  // ensure alignment
         Color3f RGB, XYZ;
         RGB.setValue (pix0[0], pix0[1], pix0[2]);

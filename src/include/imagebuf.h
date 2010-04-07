@@ -510,7 +510,7 @@ public:
         /// Increment to the next pixel in the region.
         ///
         void operator++ (int) {
-            (*this)++;
+            ++(*this);
         }
 
         /// Assign one ConstIterator to another
