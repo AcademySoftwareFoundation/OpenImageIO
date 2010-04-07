@@ -1241,8 +1241,9 @@ IvGL::get_focus_image_pixel (int &x, int &y)
     // So finally x,y are the coordinates of the image pixel (on [0,res-1])
     // underneath the mouse cursor.
     //FIXME: Shouldn't this take image rotation into account?
-    x = imgx;
-    y = imgy;
+    x = (int) floorf (imgx);
+    y = (int) floorf (imgy);
+    
 #if 0
     std::cerr << "get_focus_pixel\n";
     std::cerr << "    mouse window pixel coords " << m_mousex << ' ' << m_mousey << "\n";
