@@ -76,6 +76,8 @@ IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
     format.setDepth (true);
     setFormat (format);
 #endif
+    m_mouse_activation = false;
+    this->setFocusPolicy (Qt::StrongFocus);
     setMouseTracking (true);
 }
 
@@ -1073,26 +1075,29 @@ IvGL::mousePressEvent (QMouseEvent *event)
     int mousemode = m_viewer.mouseModeComboBox->currentIndex ();
     bool Alt = (event->modifiers() & Qt::AltModifier);
     m_drag_button = event->button();
-    switch (event->button()) {
-    case Qt::LeftButton :
-        if (mousemode == ImageViewer::MouseModeZoom && !Alt)
-            m_viewer.zoomIn();
-        else
+    if (! m_mouse_activation) {
+        switch (event->button()) {
+        case Qt::LeftButton :
+            if (mousemode == ImageViewer::MouseModeZoom && !Alt)
+                m_viewer.zoomIn();
+            else
+                m_dragging = true;
+            return;
+        case Qt::RightButton :
+            if (mousemode == ImageViewer::MouseModeZoom && !Alt)
+                m_viewer.zoomOut();
+            else
+                m_dragging = true;
+            return;
+        case Qt::MidButton :
             m_dragging = true;
-        return;
-    case Qt::RightButton :
-        if (mousemode == ImageViewer::MouseModeZoom && !Alt)
-            m_viewer.zoomOut();
-        else
-            m_dragging = true;
-        return;
-    case Qt::MidButton :
-        m_dragging = true;
-        // FIXME: should this be return rather than break?
-        break;
-    default:
-        break;
-    }
+            // FIXME: should this be return rather than break?
+            break;
+        default:
+            break;
+        }
+    } else
+        m_mouse_activation = false;
     parent_t::mousePressEvent (event);
 }
 
@@ -1174,6 +1179,7 @@ IvGL::mouseMoveEvent (QMouseEvent *event)
 void
 IvGL::wheelEvent (QWheelEvent *event)
 {
+    m_mouse_activation = false;
     if (event->orientation() == Qt::Vertical) {
         int degrees = event->delta() / 8;
         if (true || (event->modifiers() & Qt::AltModifier)) {
@@ -1192,6 +1198,14 @@ IvGL::wheelEvent (QWheelEvent *event)
         }
         event->accept();
     }
+}
+
+
+
+void
+IvGL::focusOutEvent (QFocusEvent *event)
+{
+    m_mouse_activation = true;
 }
 
 

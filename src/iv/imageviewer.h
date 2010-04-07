@@ -516,6 +516,7 @@ protected:
     };
     std::vector<TexBuffer> m_texbufs;
     int m_last_texbuf_used;
+    bool m_mouse_activation;          ///< Can we expect the window to be activated by mouse?
 
 
     virtual void initializeGL ();
@@ -526,6 +527,7 @@ protected:
     virtual void mouseReleaseEvent (QMouseEvent *event);
     virtual void mouseMoveEvent (QMouseEvent *event);
     virtual void wheelEvent (QWheelEvent *event);
+    virtual void focusOutEvent (QFocusEvent *event);
 
     void paint_pixelview ();
     void glSquare (float xmin, float ymin, float xmax, float ymax, float z=0);
