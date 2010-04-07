@@ -165,6 +165,10 @@ public:
     ///
     int current_image (void) const { return m_current_image; }
 
+    /// View slide show (cycle through images with timed interval)
+    ///
+    void slide (long t, bool b);
+
     /// View a particular channel
     ///
     void viewChannel (int channel, COLOR_MODE colormode);
@@ -268,6 +272,15 @@ private slots:
     void viewColorHeatmap();            ///< View current channel as heatmap.
     void viewSubimagePrev();            ///< View prev subimage
     void viewSubimageNext();            ///< View next subimage
+    void slideShow();                   ///< Starts slide show
+    void slide1();                      ///< Slide mode with 1 s interval
+    void slide5();                      ///< Slide mode with 5 s interval
+    void slide15();                     ///< Slide mode with 15 s interval
+    void slide30();                     ///< Slide mode with 30 s interval
+    void slide60();                     ///< Slide mode with 60 s interval
+    void slideLoop();                   ///< Slide show in a loop
+    void slideNoLoop();                 ///< Slide show without loop
+    void slideImages();                 ///< Slide show - move to next image
     void showInfoWindow();              ///< View extended info on image
     void showPixelviewWindow();         ///< View closeup pixel view
     void editPreferences();             ///< Edit viewer preferences
@@ -289,6 +302,10 @@ private:
     void keyPressEvent (QKeyEvent *event);
     void resizeEvent (QResizeEvent *event);
     void closeEvent (QCloseEvent *event);
+
+    QTimer *slideTimer;          ///< Timer to use for slide show mode
+    long slideDuration_ms;       ///< Slide show mode duration (in ms)
+    bool slide_loop;             ///< Do we loop when in slide mode?
 
     IvGL *glwin;
     IvInfoWindow *infoWindow;
@@ -321,12 +338,14 @@ private:
     QAction *fullScreenAct;
     QAction *aboutAct;
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
+    QAction *slideShowAct, *slide1Act, *slide5Act, *slide15Act;
+    QAction *slide30Act, *slide60Act, *slideLoopAct, *slideNoLoopAct;
     QAction *showInfoWindowAct;
     QAction *editPreferencesAct;
     QAction *showPixelviewWindowAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
     QMenu *openRecentMenu;
-    QMenu *expgamMenu, *channelMenu, *colormodeMenu;
+    QMenu *expgamMenu, *channelMenu, *colormodeMenu, *slideMenu;
     QLabel *statusImgInfo, *statusViewInfo;
     QProgressBar *statusProgress;
     QComboBox *mouseModeComboBox;

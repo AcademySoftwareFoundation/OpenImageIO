@@ -76,6 +76,9 @@ ImageViewer::ImageViewer ()
     QApplication::setPalette (m_palette);  // FIXME -- why not work?
     this->setPalette (m_palette);
 
+    slideTimer = new QTimer();
+    slideDuration_ms = 5000;
+    slide_loop = true;
     glwin = new IvGL (this, *this);
     glwin->setPalette (m_palette);
     glwin->resize (m_default_width, m_default_height);
@@ -298,6 +301,39 @@ ImageViewer::createActions()
 //    toggleImageAct->setEnabled(true);
     connect (toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
+    slideShowAct = new QAction(tr("Start Slide Show"), this);
+    connect(slideShowAct, SIGNAL(triggered()), this, SLOT(slideShow()));
+
+    slide1Act = new QAction(tr("1 second"), this);
+    slide1Act->setCheckable (true);
+    connect(slide1Act, SIGNAL(triggered()), this, SLOT(slide1()));
+
+    slide5Act = new QAction(tr("5 seconds"), this);
+    slide5Act->setCheckable (true);
+    slide5Act->setChecked (true);
+    connect(slide5Act, SIGNAL(triggered()), this, SLOT(slide5()));
+
+    slide15Act = new QAction(tr("15 seconds"), this);
+    slide15Act->setCheckable (true);
+    connect(slide15Act, SIGNAL(triggered()), this, SLOT(slide15()));
+
+    slide30Act = new QAction(tr("30 seconds"), this);
+    slide30Act->setCheckable (true);
+    connect(slide30Act, SIGNAL(triggered()), this, SLOT(slide30()));
+
+    slide60Act = new QAction(tr("60 seconds"), this);
+    slide60Act->setCheckable (true);
+    connect(slide60Act, SIGNAL(triggered()), this, SLOT(slide60()));
+
+    slideLoopAct = new QAction(tr("Loop slide show"), this);
+    slideLoopAct->setCheckable (true);
+    slideLoopAct->setChecked (true);
+    connect(slideLoopAct, SIGNAL(triggered()), this, SLOT(slideLoop()));
+
+    slideNoLoopAct = new QAction(tr("Stop at end"), this);
+    slideNoLoopAct->setCheckable (true);
+    connect(slideNoLoopAct, SIGNAL(triggered()), this, SLOT(slideNoLoop()));
+
     showInfoWindowAct = new QAction(tr("&Image info..."), this);
     showInfoWindowAct->setShortcut(tr("Ctrl+I"));
 //    showInfoWindowAct->setEnabled(true);
@@ -367,7 +403,18 @@ ImageViewer::createMenus()
 
 //    imageMenu = new QMenu(tr("&Image"), this);
 //    menuBar()->addMenu (imageMenu);
-    
+    slideMenu = new QMenu(tr("Slide Show"));
+    slideMenu->addAction (slideShowAct);
+    slideMenu->addSeparator ();
+    slideMenu->addAction (slide1Act);
+    slideMenu->addAction (slide5Act);
+    slideMenu->addAction (slide15Act);
+    slideMenu->addAction (slide30Act);
+    slideMenu->addAction (slide60Act);
+    slideMenu->addSeparator ();
+    slideMenu->addAction (slideLoopAct);
+    slideMenu->addAction (slideNoLoopAct);
+
     channelMenu = new QMenu(tr("Channels"));
     // Color mode: true, random, falsegrgbacCrgR
     channelMenu->addAction (viewChannelFullAct);
@@ -411,6 +458,8 @@ ImageViewer::createMenus()
     // Mode: select, zoom, pan, wipe
     toolsMenu->addAction (showInfoWindowAct);
     toolsMenu->addAction (showPixelviewWindowAct);
+    toolsMenu->addMenu (slideMenu);
+    
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -1117,6 +1166,20 @@ ImageViewer::gammaPlus ()
 
 
 void
+ImageViewer::slide (long t, bool b)
+{
+    slide1Act->setChecked (t == 1000);
+    slide5Act->setChecked (t == 5000);
+    slide15Act->setChecked (t == 15000);
+    slide30Act->setChecked (t == 30000);
+    slide60Act->setChecked (t == 60000);
+    slideLoopAct->setChecked (b == true);
+    slideNoLoopAct->setChecked (b == false);
+}
+
+
+
+void
 ImageViewer::viewChannel (int c, COLOR_MODE colormode)
 {
 #ifdef DEBUG
@@ -1166,6 +1229,88 @@ ImageViewer::viewChannel (int c, COLOR_MODE colormode)
 #endif
 }
 
+
+void
+ImageViewer::slideImages()
+{
+    if (m_images.empty())
+        return;
+    if (m_current_image >= (int)m_images.size()-1) {
+        if (slide_loop == true)
+            current_image (0);
+        else {
+            slideTimer->stop();
+            disconnect(slideTimer,0,0,0);
+        }
+    }       
+    else
+        current_image (current_image() + 1);
+}
+
+
+void
+ImageViewer::slideShow ()
+{
+    fullScreenToggle();
+    connect(slideTimer,SIGNAL(timeout()),this,SLOT(slideImages()));
+    slideTimer->start(slideDuration_ms);
+    updateActions();
+}
+
+
+void
+ImageViewer::slide1 ()
+{
+    slideDuration_ms = 1000;
+    slide(1000, slide_loop);
+}
+
+
+void
+ImageViewer::slide5 ()
+{
+    slideDuration_ms = 5000;
+    slide(5000, slide_loop);
+}
+
+
+void
+ImageViewer::slide15 ()
+{
+    slideDuration_ms = 15000;
+    slide(15000, slide_loop);
+}
+
+void
+ImageViewer::slide30 ()
+{
+    slideDuration_ms = 30000;
+    slide(30000, slide_loop);
+}
+
+
+void
+ImageViewer::slide60 ()
+{
+    slideDuration_ms = 60000;
+    slide(60000, slide_loop);
+}
+
+
+void
+ImageViewer::slideLoop ()
+{
+    slide_loop = true;
+    slide(slideDuration_ms, slide_loop);
+}
+
+
+void
+ImageViewer::slideNoLoop ()
+{
+    slide_loop = false;
+    slide(slideDuration_ms, slide_loop);
+}
 
 
 void
@@ -1627,6 +1772,8 @@ void ImageViewer::fullScreenToggle()
         statusBar()->show ();
         showNormal ();
         m_fullscreen = false;
+        slideTimer->stop();
+        disconnect(slideTimer,0,0,0);
     } else {
         menuBar()->hide ();
         statusBar()->hide ();
