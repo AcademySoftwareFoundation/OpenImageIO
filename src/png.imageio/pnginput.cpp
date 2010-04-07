@@ -178,13 +178,28 @@ PNGInput::close ()
 
 template <class T>
 static void 
-associateAlpha (T * data, int size, int channels, int alpha_channel)
+associateAlpha (T * data, int size, int channels, int alpha_channel, float gamma)
 {
-    float maxinv = 1.0f / std::numeric_limits<T>::max();
-    for (int x = 0;  x < size;  ++x, data += channels)
-        for (int c = 0;  c < channels;  c++)
-            if (c != alpha_channel)
-                data[c] *= (float)data[alpha_channel] * maxinv;
+    T max = std::numeric_limits<T>::max();
+    if (gamma == 1) {
+        for (int x = 0;  x < size;  ++x, data += channels)
+            for (int c = 0;  c < channels;  c++)
+                if (c != alpha_channel){
+                    unsigned int f = data[c];
+                    data[c] = (f * data[alpha_channel]) / max;
+                }
+    }
+    else { //With gamma correction
+        float inv_gamma = 1.0 / gamma;
+        for (int x = 0;  x < size;  ++x, data += channels)
+            for (int c = 0;  c < channels;  c++)
+                if (c != alpha_channel){
+                    //FIXME: Would it be worthwhile to do some caching on pow values?
+                    float f = pow(data[c], inv_gamma); //Linearize
+                    f = (f * data[alpha_channel]) / max;
+                    data[c] = pow(f, gamma);
+                }
+    }
 }
 
 
@@ -203,10 +218,12 @@ PNGInput::read_native_scanline (int y, int z, void *data)
     if (m_spec.alpha_channel != -1) {   // Associate alpha
         if (m_spec.format == TypeDesc::UINT16)
             associateAlpha ((unsigned short *)data, m_spec.width,
-                            m_spec.nchannels, m_spec.alpha_channel);
+                            m_spec.nchannels, m_spec.alpha_channel, 
+                            m_spec.gamma);
         else
             associateAlpha ((unsigned char *)data, m_spec.width,
-                            m_spec.nchannels, m_spec.alpha_channel);
+                            m_spec.nchannels, m_spec.alpha_channel, 
+                            m_spec.gamma);
     }
 
     return true;

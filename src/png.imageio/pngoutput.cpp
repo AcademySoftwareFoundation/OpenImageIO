@@ -169,16 +169,31 @@ PNGOutput::close ()
 
 template <class T>
 static void 
-deassociateAlpha (T * data, int size, int channels, int alpha_channel)
+deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gamma)
 {
-    float max = std::numeric_limits<T>::max();
-    for (int x = 0;  x < size;  ++x, data += channels)
-        if (data[alpha_channel])
-            for (int c = 0;  c < channels;  c++)
-                if (c != alpha_channel) {
-                    float f = data[c] * (max / data[alpha_channel]);
-                    data[c] = (T) std::min (max, f);
-                }
+    T max = std::numeric_limits<T>::max();
+    if (gamma == 1){
+        for (int x = 0;  x < size;  ++x, data += channels)
+            if (data[alpha_channel])
+                for (int c = 0;  c < channels;  c++)
+                    if (c != alpha_channel) {
+                        unsigned int f = data[c];
+                        f = (f * max) / data[alpha_channel];
+                        data[c] = std::min (max, (T) f);
+                    }
+    }
+    else {
+        float inv_gamma=1/gamma;
+        for (int x = 0;  x < size;  ++x, data += channels)
+            if (data[alpha_channel])
+                for (int c = 0;  c < channels;  c++)
+                    if (c != alpha_channel) {
+                        //FIXME: Would it be worthwhile to do some caching on pow values??
+                        float f = pow(data[c], inv_gamma); //Lineariz
+                        f = (f * max) / data[alpha_channel]; 
+                        data[c] = std::min (max, (T) pow(f, gamma));
+                    }
+    }
 }
 
 
@@ -201,10 +216,12 @@ PNGOutput::write_scanline (int y, int z, TypeDesc format,
     if (m_spec.alpha_channel != -1) {
         if (m_spec.format == TypeDesc::UINT16)
             deassociateAlpha ((unsigned short *)data, m_spec.width,
-                              m_spec.nchannels, m_spec.alpha_channel);
+                              m_spec.nchannels, m_spec.alpha_channel,
+                              m_spec.gamma);
         else
             deassociateAlpha ((unsigned char *)data, m_spec.width,
-                              m_spec.nchannels, m_spec.alpha_channel);
+                              m_spec.nchannels, m_spec.alpha_channel,
+                              m_spec.gamma);
     }
 
     if (!PNG_pvt::write_row (m_png, (png_byte *)data)) {

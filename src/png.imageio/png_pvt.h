@@ -149,7 +149,7 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     if (png_get_gAMA (sp, ip, &gamma)) {
         spec.gamma = (float) gamma;
         spec.linearity = (gamma == 1) ? OpenImageIO::ImageSpec::Linear 
-                                        : OpenImageIO::ImageSpec::GammaCorrected;
+                                      : OpenImageIO::ImageSpec::GammaCorrected;
     }
     int srgb_intent;
     if (png_get_sRGB (sp, ip, &srgb_intent)) {
@@ -237,10 +237,6 @@ read_into_buffer (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
     // PNG files are naturally big-endian
     if (littleendian())
         png_set_swap (sp);
-
-    double gamma;
-    if (png_get_gAMA (sp, ip, &gamma))
-        png_set_gamma (sp, 1.0, gamma);
 
     png_read_update_info (sp, ip);
 
