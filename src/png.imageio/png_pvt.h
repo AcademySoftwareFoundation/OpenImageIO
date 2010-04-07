@@ -131,16 +131,18 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 {
     png_read_info (sp, ip);
 
+    // Auto-convert 1-, 2-, and 4- bit images to 8 bits, palette to RGB,
+    // and transparency to alpha.
+    png_set_expand (sp);
+    png_read_update_info (sp, ip);
+    
     png_uint_32 width, height;
     png_get_IHDR (sp, ip, &width, &height,
                   &bit_depth, &color_type, NULL, NULL, NULL);
     
-    // Auto-convert palette images to RGB if image is color image
-    int numChannels = png_get_channels (sp, ip);
-    if (color_type == PNG_COLOR_TYPE_PALETTE)
-        numChannels = 3;
 
-    spec = OpenImageIO::ImageSpec ((int)width, (int)height, numChannels,
+    spec = OpenImageIO::ImageSpec ((int)width, (int)height, 
+                        png_get_channels (sp, ip),
                         bit_depth == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
 
     spec.default_channel_names ();
@@ -221,10 +223,6 @@ read_into_buffer (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
     if (setjmp (png_jmpbuf (sp)))
         return "PNG library error";
 
-    // Auto-convert 1-, 2-, and 4- bit grayscale to 8 bits is image is
-    // grayscale image with bit_depth < 8
-    // Auto-convert transparency to alpha
-    png_set_expand (sp);
 #if 0
     // ?? This doesn't seem necessary, but I don't know why
     // Make the library handle fewer significant bits
