@@ -120,8 +120,7 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
     // through JasPer stream
     m_image = jas_image_create (m_spec.nchannels, m_components, JAS_CLRSPC_UNKNOWN);
     if (! m_image) {
-        // FIXME (robertm): should be more descriptive
-        error("Cannot create output image");
+        error("Could not create output image due to error in memory allocation.");
         close ();
         return false;
     }
