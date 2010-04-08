@@ -81,7 +81,7 @@ BmpOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
     }
 
     if (m_spec.width >= 0)
-        y = (m_spec.height - y);
+        y = (m_spec.height - y - 1);
     int scanline_off = y * m_scanline_size;
     fsetpos (m_fd, &m_image_start);
     fseek (m_fd, scanline_off, SEEK_CUR);
