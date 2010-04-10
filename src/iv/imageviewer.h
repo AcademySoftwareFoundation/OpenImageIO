@@ -520,6 +520,7 @@ protected:
     int m_last_pbo_used;              ///< Last used pixel buffer object.
     IvImage *m_current_image;         ///< Image to show on screen.
     GLuint m_pixelview_tex;           ///< Pixelview's own texture.
+    bool m_pixelview_left_corner;     ///< Draw pixelview in upper left or right
     /// Buffer passed to IvImage::copy_image when not using PBO.
     ///
     std::vector<unsigned char> m_tex_buffer;

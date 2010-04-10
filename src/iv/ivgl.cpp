@@ -65,7 +65,8 @@ IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
       m_use_halffloat(false), m_use_float(false),
       m_use_srgb(false), m_use_pbo(false), 
       m_texture_width(1), m_texture_height(1), m_last_pbo_used(0), 
-      m_current_image(NULL), m_last_texbuf_used(0)
+      m_current_image(NULL), m_last_texbuf_used(0),
+      m_pixelview_left_corner(true)
 {
 #if 0
     QGLFormat format;
@@ -700,10 +701,23 @@ IvGL::paint_pixelview ()
         // so that it is centered at the mouse position.
         glTranslatef (xw - width()/2, -yw + height()/2, 0);
     } else {
-        // Display closeup in upper left corner -- translate the coordinate
-        // system so that it is centered near the upper left of the window.
-        glTranslatef (closeupsize*0.5f + 5 - width()/2,
-                      -closeupsize*0.5f - 5 + height()/2, 0);
+        // Display closeup in corner -- translate the coordinate system so that
+        // it is centered near the corner of the window.
+        if (m_pixelview_left_corner) {
+            glTranslatef (closeupsize * 0.5f + 5 - width () / 2,
+                          -closeupsize * 0.5f - 5 + height () / 2, 0);
+            // If the mouse cursor is over the pixelview closeup when it's on
+            // the upper left, switch to the upper right
+            if ((xw < closeupsize + 5)  &&  yw < (closeupsize + 5))
+                m_pixelview_left_corner = false;
+        } else {
+            glTranslatef (-closeupsize * 0.5f - 5 + width () / 2,
+                          -closeupsize * 0.5f + 5 + height () / 2, 0);
+            // If the mouse cursor is over the pixelview closeup when it's on
+            // the upper right, switch to the upper left
+            if (xw > (width() - closeupsize - 5)  &&  yw < (closeupsize + 5))
+                m_pixelview_left_corner = true;
+        }
     }
     // In either case, the GL coordinate system is now scaled to window
     // pixel units, and centered on the middle of where the closeup
