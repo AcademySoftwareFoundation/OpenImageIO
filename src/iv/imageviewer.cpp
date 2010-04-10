@@ -951,7 +951,8 @@ ImageViewer::displayCurrentImage (bool update)
         }
     } else {
         m_current_image = m_last_image = -1;
-        return;
+        repaint(); // add repaint event to Qt queue
+        glwin->trigger_redraw(); // then make sure GL canvas is cleared
     }
 
     if (update) {

@@ -949,8 +949,10 @@ IvGL::update ()
     //std::cerr << "update image\n";
     
     IvImage* img = m_viewer.cur();
-    if (! img)
+    if (! img) {
+        m_current_image = NULL;
         return;
+    }
 
     const ImageSpec &spec (img->spec());
 
