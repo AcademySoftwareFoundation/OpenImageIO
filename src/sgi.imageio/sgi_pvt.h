@@ -32,6 +32,7 @@
 
 // Format reference: ftp://ftp.sgi.com/graphics/SGIIMAGESPEC
 
+#include <cstdio>
 #include "imageio.h"
 using namespace OpenImageIO;
 #include "fmath.h"
@@ -39,6 +40,9 @@ using namespace OpenImageIO;
 
 
 namespace sgi_pvt {
+
+    // magic number identifying SGI file
+    const short SGI_MAGIC = 0x01DA;
 
     // SGI file header - all fields are written in big-endian to file
     struct SgiHeader {
@@ -124,14 +128,22 @@ class SgiOutput : public ImageOutput {
     SgiOutput () { }
     virtual ~SgiOutput () { }
     virtual const char *format_name (void) const { return "sgi"; }
-    virtual bool supports (const std::string &feature) const {return false;}
+    virtual bool supports (const std::string &feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false) { return false; }
-    virtual bool close (void) { return false; }
-    virtual bool write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride) {return false; }
+                       bool append=false);
+    virtual bool close (void);
+    virtual bool write_scanline (int y, int z, TypeDesc format, const void *data,
+                                 stride_t xstride);
  private:
     FILE *m_fd;
+    std::string m_filename;
+    std::vector<unsigned char> m_scratch;
+
+    void init () {
+        m_fd = NULL;
+    }
+
+    void create_and_write_header();
 };
 
 #endif // OPENIMAGEIO_SGI_H

@@ -27,9 +27,6 @@
 
   (This is the Modified BSD License)
 */
-
-#include <cstdio>
-
 #include "sgi_pvt.h"
 
 
@@ -100,7 +97,6 @@ SgiInput::open (const std::string &name, ImageSpec &spec)
     m_spec = ImageSpec (m_sgi_header.xsize, height, nchannels, TypeDesc::UINT8);
     if (strlen (m_sgi_header.imagename))
         m_spec.attribute("ImageDescription", m_sgi_header.imagename);
-
 
     if (m_sgi_header.storage == sgi_pvt::RLE) {
         m_spec.attribute("compression", "rle");
