@@ -350,8 +350,14 @@ public:
         return (size_type)(c-s);
     }
 
+    /// Returns a substring of the ustring object consisting of n
+    /// characters starting at position pos.
+    ustring substr (size_type pos = 0, size_type n = npos) {
+        return ustring (*this, pos, n);
+    }
+
     // FIXME: implement find, rfind, find_first_of, find_last_of,
-    // find_first_not_of, find_last_not_of, substr, compare.
+    // find_first_not_of, find_last_not_of, compare.
 
     /// Return 0 if *this is lexicographically equal to str, -1 if
     /// *this is lexicographically earlier than str, 1 if *this is
