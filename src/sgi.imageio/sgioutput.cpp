@@ -71,8 +71,6 @@ SgiOutput::open (const std::string &name, const ImageSpec &spec, bool append)
 bool
 SgiOutput::supports (const std::string &feature) const
 {
-    if (iequals (feature, "random_access"))
-        return true;
     if (iequals (feature, "rewrite"))
         return true;
     return false;
