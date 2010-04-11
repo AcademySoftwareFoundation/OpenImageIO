@@ -69,16 +69,6 @@ SgiOutput::open (const std::string &name, const ImageSpec &spec, bool append)
 
 
 bool
-SgiOutput::supports (const std::string &feature) const
-{
-    if (iequals (feature, "rewrite"))
-        return true;
-    return false;
-}
-
-
-
-bool
 SgiOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
                            stride_t xstride)
 {

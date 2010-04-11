@@ -128,7 +128,7 @@ class SgiOutput : public ImageOutput {
     SgiOutput () { }
     virtual ~SgiOutput () { }
     virtual const char *format_name (void) const { return "sgi"; }
-    virtual bool supports (const std::string &feature) const;
+    virtual bool supports (const std::string &feature) const { return false; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        bool append=false);
     virtual bool close (void);
