@@ -86,7 +86,7 @@ IvInfoWindow::update (IvImage *img)
 void
 IvInfoWindow::keyPressEvent (QKeyEvent *event)
 {
-    if (event->key() == 'w' && (event->modifiers() & Qt::ControlModifier)) {
+    if (event->key() == Qt::Key_W && (event->modifiers() & Qt::ControlModifier)) {
         event->accept();
         hide();
     } else {
