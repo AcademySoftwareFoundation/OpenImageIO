@@ -352,7 +352,7 @@ public:
 
     /// Returns a substring of the ustring object consisting of n
     /// characters starting at position pos.
-    ustring substr (size_type pos = 0, size_type n = npos) {
+    ustring substr (size_type pos = 0, size_type n = npos) const {
         return ustring (*this, pos, n);
     }
 
