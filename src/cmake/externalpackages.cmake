@@ -50,15 +50,28 @@ find_path (ILMBASE_INCLUDE_AREA OpenEXR/half.h
            ${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION}
            ${ILMBASE_HOME}/include
           )
-foreach (_lib Imath Half IlmThread Iex)
-    find_library (ILMBASE_LIBS_${_lib} ${_lib}
-                  PATHS ${ILMBASE_HOME}/lib ${ILMBASE_HOME}/lib64
+if (ILMBASE_CUSTOM)
+    set (IlmBase_Libraries ${ILMBASE_CUSTOM_LIBRARIES})
+    separate_arguments(IlmBase_Libraries)
+else ()
+    set (IlmBase_Libraries Imath Half IlmThread Iex)
+endif ()
+
+message (STATUS "IlmBase_Libraries: ${IlmBase_Libraries}")
+message (STATUS "ILMBASE_HOME: ${ILMBASE_HOME}")
+
+foreach (_lib ${IlmBase_Libraries})
+    find_library (current_lib ${_lib}
+                  PATHS ${ILMBASE_HOME}/lib 
+                        ${ILMBASE_HOME}/lib64
                         ${ILMBASE_LIB_AREA}
                         ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib
                   )
+    list(APPEND ILMBASE_LIBRARIES ${current_lib})
+    # the following line essentially unsets the ${current_lib} variable
+    # so that find_library() won't cache the results of the previous search
+    set (current_lib current_lib-NOTFOUND) 
 endforeach ()
-set (ILMBASE_LIBRARIES ${ILMBASE_LIBS_Imath} ${ILMBASE_LIBS_Half}
-                       ${ILMBASE_LIBS_IlmThread} ${ILMBASE_LIBS_Iex})
 message (STATUS "ILMBASE_INCLUDE_AREA = ${ILMBASE_INCLUDE_AREA}")
 message (STATUS "ILMBASE_LIBRARIES = ${ILMBASE_LIBRARIES}")
 if (ILMBASE_INCLUDE_AREA AND ILMBASE_LIBRARIES)
@@ -88,12 +101,20 @@ find_path (OPENEXR_INCLUDE_AREA OpenEXR/OpenEXRConfig.h
            ${OPENEXR_HOME}/include
            ${ILMBASE_HOME}/include/openexr-${OPENEXR_VERSION}
             )
-find_library (OPENEXR_LIBRARY IlmImf
-              PATHS ${OPENEXR_HOME}/lib
-                    ${OPENEXR_HOME}/lib64
-                    ${OPENEXR_LIB_AREA}
-                    ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/lib
-             )
+
+if (OPENEXR_CUSTOM)
+    set (OpenExr_Library ${OPENEXR_CUSTOM_LIBRARY})
+else ()
+    set (OpenExr_Library IlmImf)
+endif ()
+    
+find_library (OPENEXR_LIBRARY ${OpenExr_Library}
+                  PATHS ${OPENEXR_HOME}/lib
+                        ${OPENEXR_HOME}/lib64
+                        ${OPENEXR_LIB_AREA}
+                        ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/lib
+                 )
+
 message (STATUS "OPENEXR_INCLUDE_AREA = ${OPENEXR_INCLUDE_AREA}")
 message (STATUS "OPENEXR_LIBRARY = ${OPENEXR_LIBRARY}")
 if (OPENEXR_INCLUDE_AREA AND OPENEXR_LIBRARY)
