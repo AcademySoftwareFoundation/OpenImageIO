@@ -320,7 +320,7 @@ DDSInput::seek_subimage (int index, ImageSpec &newspec)
     // uncompressed images have predictable length
     // calculate the offset; start with after the header
     unsigned int ofs = 128;
-    unsigned int len, w, h, d;
+    unsigned int len, w = 0, h = 0, d = 0;
     // this flag is used to detect the map side correctly
     unsigned int flag = DDS_CAPS2_CUBEMAP_POSITIVEX;
     // this loop is used to iterate over cube map sides, or run once in the
