@@ -145,9 +145,9 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         return false;
     }
 
-    // Force either 16 or 8 bit integers
+    // Force 8 bit integers
     if (m_spec.format != TypeDesc::UINT16)
-        m_spec.format = TypeDesc::UINT8;
+        m_spec.set_format (TypeDesc::UINT8);
 
     // check if the client wants the image to be run length encoded
     // currently only RGB RLE is supported
