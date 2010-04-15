@@ -86,6 +86,7 @@ TEST_F (ImageSpecTest, image_pixels) {
     std::cout << "sizeof (long) = " << sizeof (long) << std::endl;
     std::cout << "sizeof (long long) = " << sizeof (long long) << std::endl;
     std::cout << "sizeof (size_t) = " << sizeof (size_t) << std::endl;
+    std::cout << "sizeof (imagesize_t) = " << sizeof (imagesize_t) << std::endl;
     std::cout << "sizeof (stride_t) = " << sizeof (stride_t) << std::endl;
     std::cout << "sizeof (float) = " << sizeof (float) << std::endl;
 
@@ -101,8 +102,8 @@ TEST_F (ImageSpecTest, image_pixels) {
     //   EXPECT_EQ (TypeDesc::UINT8, spec.format);
     EXPECT_EQ ((size_t)BYTES_IN_FLOAT, spec.channel_bytes ());
     EXPECT_EQ ((size_t)(BYTES_IN_FLOAT*CHANNELS), spec.pixel_bytes ());
-    EXPECT_EQ ((size_t)(BYTES_IN_FLOAT*CHANNELS*WIDTH), spec.scanline_bytes ());
-    EXPECT_EQ ((size_t)(WIDTH*HEIGHT), spec.image_pixels ());
+    EXPECT_EQ ((imagesize_t)(BYTES_IN_FLOAT*CHANNELS*WIDTH), spec.scanline_bytes ());
+    EXPECT_EQ ((imagesize_t)(WIDTH*HEIGHT), spec.image_pixels ());
 
     // check that the magnitude is right (not clamped) -- should be about > 2^40
     long long expected_bytes = BYTES_IN_FLOAT*CHANNELS*WIDTH*HEIGHT;
@@ -111,7 +112,7 @@ TEST_F (ImageSpecTest, image_pixels) {
     // log (2^32) * M_LOG2E = 32
     double log2_result = log ((double)expected_bytes) * M_LOG2E;
     EXPECT_LT (40, log2_result);
-    EXPECT_EQ ((size_t)expected_bytes, spec.image_bytes ());
+    EXPECT_EQ ((imagesize_t)expected_bytes, spec.image_bytes ());
 
     std::cout << "expected_bytes = " << expected_bytes << ", log "
               << log ((double)expected_bytes) << std::endl;
