@@ -141,7 +141,7 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
     }
 
     // forcing UINT8 format
-    m_spec.format = TypeDesc::UINT8;
+    m_spec.set_format (TypeDesc::UINT8);
 
     stream_format = m_spec.get_string_attribute("Stream format", "none");
     if (!strcmp (stream_format.c_str(), "none")) {

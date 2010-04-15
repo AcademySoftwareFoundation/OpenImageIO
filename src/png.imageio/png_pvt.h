@@ -404,8 +404,10 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
             OpenImageIO::ImageSpec& spec, std::vector<png_text>& text)
 {
     // Force either 16 or 8 bit integers
-    if (spec.format != TypeDesc::UINT16)
-        spec.format = TypeDesc::UINT8;
+    if (spec.format == TypeDesc::UINT8 || spec.format == TypeDesc::INT8)
+        spec.set_format (TypeDesc::UINT8);
+    else
+        spec.set_format (TypeDesc::UINT16); // best precision available
 
     png_set_IHDR (sp, ip, spec.width, spec.height,
                   spec.format.size()*8, color_type, PNG_INTERLACE_NONE,
