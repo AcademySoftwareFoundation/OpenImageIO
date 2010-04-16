@@ -10,6 +10,11 @@ if len(sys.argv) > 2 :
     path = sys.argv[2] + "/"
 
 # A command to run
+testtex=""
+if (platform.system() == "Windows"):
+    testtext = "testtex/Release/testtex"
+else:
+    testtex = "testtex/testtex"
 command = path + "testtex/testtex --missing 1 0 0 --res 8 8 missing.tx ; "
 command = command + path + "idiff/idiff out.exr ref/out.exr > out.txt"
 

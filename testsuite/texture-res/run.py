@@ -2,6 +2,7 @@
 
 import os
 import sys
+import platform
 
 path = ""
 command = ""
@@ -10,7 +11,12 @@ if len(sys.argv) > 2 :
     path = sys.argv[2] + "/"
 
 # A command to run
-command = path + "testtex/testtex -res 256 256 --nowarp ../../../oiio-testimages/miplevels.tx -o out.tif; "
+testtex=""
+if (platform.system() == "Windows"):
+    testtext = "testtex/Release/testtex"
+else:
+    testtex = "testtex/testtex"
+command = path + testtex + " -res 256 256 --nowarp ../../../oiio-testimages/miplevels.tx -o out.tif; "
 command = command + path + "idiff/idiff out.tif ref/out.tif > out.txt"
 
 # Outputs to check against references
