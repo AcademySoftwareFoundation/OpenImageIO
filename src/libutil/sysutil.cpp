@@ -32,7 +32,6 @@
 #include <string>
 #include <iostream>
 #include <ctime>
-#include <boost/regex.hpp>
 
 #ifdef __linux__
 # include <sys/sysinfo.h>
@@ -161,64 +160,4 @@ Sysutil::usleep (unsigned long useconds)
 #else
     ::usleep (useconds);     // *nix usleep() is in microseconds
 #endif
-}
-
-
-
-bool
-Sysutil::date_is_valid(const std::string &date,
-        const std::string &date_separator, const std::string &time_separator)
-{
-    if (!boost::regex_search (date_separator.c_str(), boost::regex ("^[-\\s:/]$|^$")) ||
-            !boost::regex_search (time_separator.c_str(), boost::regex ("^[\\s:]$|^$"))) {
-        return false;
-    }
-
-    std::string pattern;
-    pattern = "^[1-9]\\d{3}(" + date_separator + "(0[1-9]|1[0-2])(" +
-            date_separator + "([0-2][1-9]|[1-3][01]))?(Z|\\s::)?"
-            "([T\\s]?([01]\\d|2[0-3])" + time_separator + "[0-5]\\d" +
-            time_separator + "[0-5]\\dZ?(\\.\\d+)?Z?([-+]([01]\\d|2[0-3])" +
-            time_separator + "([0-5]\\d))?)?|(::)?)?$";
-    boost::regex date_pattern (pattern.c_str(), boost::regex::perl);
-    return boost::regex_search (date.c_str(), date_pattern);
-}
-
-
-
-bool
-Sysutil::to_time_t(const std::string &date, time_t &tt)
-{
-    // Erase separators and fractional seconds.
-    boost::regex separator_pattern ("([-:TZ\\s])|(\\.\\d+)", boost::regex::perl);
-    std::string tmp_date = boost::regex_replace (date, separator_pattern, "");
-
-    // Insert removed minus sign, if there was one.
-    if (tmp_date.length() > 14 && tmp_date[14] != '+') {
-        tmp_date = tmp_date.substr(0, 14) + "-" + tmp_date.substr (14);
-    }
-
-    if (!Sysutil::date_is_valid (tmp_date, "", ""))
-        return false;
-
-    // Insert default values into date, if the date is too short.
-    std::string default_date = "19700101000000+0000";
-    tmp_date += default_date.substr (tmp_date.length());
-
-    int h_to_utc, m_to_utc;
-    struct tm tm_date;
-    char sign;
-    sscanf (tmp_date.c_str(), "%4d%2d%2d%2d%2d%2d%c%2d%2d", &tm_date.tm_year,
-            &tm_date.tm_mon, &tm_date.tm_mday, &tm_date.tm_hour,
-            &tm_date.tm_min, &tm_date.tm_sec, &sign, &h_to_utc, &m_to_utc);
-
-    /* Adjust year and month */
-    tm_date.tm_year -= 1900;
-    tm_date.tm_mon -= 1;
-    tm_date.tm_isdst = 0;
-
-    tt = mktime (&tm_date);
-    tt += (sign == '-' ? -1 : 1) * (h_to_utc * 60 * 60 + m_to_utc * 60);
-
-    return true;
 }

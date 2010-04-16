@@ -156,8 +156,3 @@ add_test (unit_spinlock ${CMAKE_BINARY_DIR}/libOpenImageIO/spinlock_test)
 add_executable (ustring_test ustring_test.cpp)
 target_link_libraries (ustring_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (unit_ustring ${CMAKE_BINARY_DIR}/libOpenImageIO/ustring_test)
-
-add_executable (date_test ../libutil/date_test.cpp)
-target_link_libraries (date_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (unit_date ${CMAKE_BINARY_DIR}/libOpenImageIO/date_test)
-

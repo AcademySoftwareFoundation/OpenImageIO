@@ -73,16 +73,6 @@ DLLPUBLIC std::string this_program_path ();
 ///
 DLLPUBLIC void usleep (unsigned long useconds);
 
-/// Checks whether given date is in proper format.
-/// Date_separator might be one of: -, :, /, whitespace, empty string.
-/// Time_separator might be one of :, whitespace, empty string.
-DLLPUBLIC  bool date_is_valid(const std::string &date,
-        const std::string &date_separator, const std::string &time_separator);
-
-/// Converts given date into time_t.
-///
-DLLPUBLIC bool to_time_t(const std::string &date, time_t &tt);
-
 };  // namespace Sysutils
 
 #ifdef OPENIMAGEIO_NAMESPACE
