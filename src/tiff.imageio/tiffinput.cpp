@@ -562,7 +562,7 @@ TIFFInput::readspec ()
     int iptcsize = 0;
     const void *iptcdata = NULL;
     if (TIFFGetField (m_tif, TIFFTAG_RICHTIFFIPTC, &iptcsize, &iptcdata)) {
-        std::vector<long> iptc ((long *)iptcdata, (long *)iptcdata+iptcsize);
+        std::vector<uint32> iptc ((uint32 *)iptcdata, (uint32 *)iptcdata+iptcsize);
         if (TIFFIsByteSwapped (m_tif))
             TIFFSwabArrayOfLong ((uint32*)&iptc[0], iptcsize);
         OpenImageIO::decode_iptc_iim (&iptc[0], iptcsize*4, m_spec);
