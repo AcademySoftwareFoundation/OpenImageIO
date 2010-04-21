@@ -1,7 +1,7 @@
 Changes:
 
-Release 0.7.1 (???)
--------------------
+Release 0.7.1 (Apr 21 2010)
+---------------------------
 * Make EMBEDPLUGINS=1 the default.
 * Make create() error messages more helpful.
 * Fixed some error messages in FITS output, iconvert, 
@@ -10,6 +10,9 @@ Release 0.7.1 (???)
 * Fix compiler warnings (mostly under Windows): TBB stuff, ustring, windows.h.
 * Added to fmath.h: sincos, exp2f, log2f
 * Fix subtle ImageCache bug with invalidate().
+* Format support for reading Softimage PIC files.
+* Bug fix: reading TIFF files with IPTC records could crash on 64 bit 
+  machines.
 
 
 Release 0.7 (Nov 26 2009)
