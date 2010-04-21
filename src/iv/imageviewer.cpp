@@ -846,9 +846,7 @@ ImageViewer::loadCurrentImage (int subimage)
         // We need the spec available to compare the image format with
         // opengl's capabilities.
         if (! img->init_spec (img->name ())) {
-            std::string message;
-            message = Strutil::format ("Could not display image: %s.", img->name().c_str());
-            statusImgInfo->setText (tr(message.c_str()));
+            statusImgInfo->setText (tr ("Could not display image: %1.").arg (img->name().c_str()));
             statusViewInfo->setText (tr(""));
             return false;
         }
@@ -915,9 +913,7 @@ ImageViewer::loadCurrentImage (int subimage)
             }
             return true;
         } else {
-            std::string message;
-            message = Strutil::format ("Could not display image: %s.", img->name().c_str());
-            statusImgInfo->setText (tr(message.c_str()));
+            statusImgInfo->setText (tr ("Could not display image: %1.").arg (img->name().c_str()));
             statusViewInfo->setText (tr(""));
             return false;
         }
