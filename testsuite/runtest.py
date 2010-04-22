@@ -7,17 +7,13 @@ import platform
 from optparse import OptionParser
 
 
-# when we use Visual Studio, built applications are stored
-# in app/Release/ directory
-solution_path = '../../build/windows/OpenImageIO.sln'
-if ((platform.system () == 'Windows') and (os.path.isfile(solution_path) == True)):
-    iinfo = "iinfo/Release/iinfo "
-    idiff = "idiff/Release/idiff "
-    iconvert = "iconvert/Release/iconvert "
-else:
-    iinfo = "iinfo/iinfo "
-    idiff = "idiff/idiff "
-    iconvert = "iconvert/iconvert "
+def oiio_app (app):
+    # when we use Visual Studio, built applications are stored
+    # in app/Release/ directory
+    solution_path = '../../build/windows/OpenImageIO.sln'
+    if ((platform.system () == 'Windows') and (os.path.isfile(solution_path) == True)):
+        return app + "/Release/" + app + " "
+    return app + "/" + app + " "
 
 
 
@@ -48,9 +44,6 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
 
     if (platform.system () == 'Windows'):
         command = command.replace (';', '&')
-    command = command.replace ("iinfo/iinfo", iinfo)
-    command = command.replace ("idiff/idiff", idiff)
-    command = command.replace ("iconvert/iconvert", iconvert)
     cmdret = os.system (command)
     # print "cmdret = " + str(cmdret)
 
@@ -105,10 +98,11 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
 # copy (tests writing that format), and then idiff to make sure it
 # matches the original.
 def rw_command (dir, filename, cmdpath, testwrite=1) :
-    cmd = cmdpath + iinfo + "-v -a --hash " + dir + "/" + filename + " >> out.txt ; "
+    cmd = cmdpath + oiio_app("iinfo") + " -v -a --hash " + dir + "/" + filename + " >> out.txt ; "
+    print (cmd)
     if testwrite :
-        cmd = cmd + cmdpath + iconvert + dir + "/" + filename + " " + filename + " >> out.txt ; "
-        cmd = cmd + cmdpath + idiff + "-a " + dir + "/" + filename + " " + filename + " >> out.txt "
+        cmd = cmd + cmdpath + oiio_app("iconvert") + dir + "/" + filename + " " + filename + " >> out.txt ; "
+        cmd = cmd + cmdpath + oiio_app("idiff") + "-a " + dir + "/" + filename + " " + filename + " >> out.txt "
     return cmd
 
 
@@ -116,6 +110,6 @@ def rw_command (dir, filename, cmdpath, testwrite=1) :
 # Construct a command that will compare two images, appending output to
 # the file "out.txt".
 def diff_command (fileA, fileB, cmdpath) :
-    cmd = cmdpath + idiff + "-a " + fileA + " " + fileB + " >> out.txt "
+    cmd = cmdpath + oiio_app("idiff") + "-a " + fileA + " " + fileB + " >> out.txt "
     return cmd
 

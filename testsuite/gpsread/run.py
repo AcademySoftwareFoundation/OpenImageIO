@@ -9,8 +9,11 @@ if len(sys.argv) > 2 :
     os.chdir (sys.argv[1])
     path = sys.argv[2] + "/"
 
+sys.path = [".."] + sys.path
+import runtest
+
 # A command to run
-command = path + "iinfo/iinfo -v ../../../oiio-testimages/tahoe-gps.jpg > out.txt"
+command = path + runtest.oiio_app("iinfo") + " -v ../../../oiio-testimages/tahoe-gps.jpg > out.txt"
 
 # Outputs to check against references
 outputs = [ "out.txt" ]
@@ -20,7 +23,5 @@ cleanfiles = [ ]
 
 
 # boilerplate
-sys.path = [".."] + sys.path
-import runtest
 ret = runtest.runtest (command, outputs, cleanfiles)
 sys.exit (ret)

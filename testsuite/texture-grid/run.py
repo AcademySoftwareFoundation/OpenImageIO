@@ -9,10 +9,12 @@ if len(sys.argv) > 2 :
     os.chdir (sys.argv[1])
     path = sys.argv[2] + "/"
 
-# A command to run
-command = path + "testtex/testtex ../../../oiio-testimages/grid.tx ; "
-command = command + path + "idiff/idiff out.exr ref/out.exr > out.txt"
+sys.path = [".."] + sys.path
+import runtest
 
+# A command to run
+command = path + runtest.oiio_app("testtex") + " ../../../oiio-testimages/grid.tx ; "
+command = command + path + runtest.oiio_app("idiff") + " out.exr ref/out.exr > out.txt"
 # Outputs to check against references
 outputs = [  ]
 
@@ -21,7 +23,5 @@ cleanfiles = [ "out.txt" "out.exr" ]
 
 
 # boilerplate
-sys.path = [".."] + sys.path
-import runtest
 ret = runtest.runtest (command, outputs, cleanfiles)
 sys.exit (ret)
