@@ -126,22 +126,22 @@ test_gettextureinfo (ustring filename)
 {
     bool ok;
 
-    int res[2];
+    int res[2] = {0};
     ok = texsys->get_texture_info (filename, ustring("resolution"),
                                    TypeDesc(TypeDesc::INT,2), res);
     std::cerr << "Result of get_texture_info resolution = " << ok << ' ' << res[0] << 'x' << res[1] << "\n";
 
-    int chan;
+    int chan = 0;
     ok = texsys->get_texture_info (filename, ustring("channels"),
                                    TypeDesc::INT, &chan);
     std::cerr << "Result of get_texture_info channels = " << ok << ' ' << chan << "\n";
 
-    float fchan;
+    float fchan = 0;
     ok = texsys->get_texture_info (filename, ustring("channels"),
                                    TypeDesc::FLOAT, &fchan);
     std::cerr << "Result of get_texture_info channels = " << ok << ' ' << fchan << "\n";
 
-    int dataformat;
+    int dataformat = 0;
     ok = texsys->get_texture_info (filename, ustring("format"),
                                    TypeDesc::INT, &dataformat);
     std::cerr << "Result of get_texture_info data format = " << ok << ' ' 
