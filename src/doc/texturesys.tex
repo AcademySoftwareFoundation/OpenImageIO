@@ -879,10 +879,9 @@ caller must beware that the pointer is only valid as long as nobody
   invalidate_all()}, or destroys the \TextureSystem.
 \apiend
 
-\apiitem{bool {\ce get_texels} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce get_texels} (ustring filename, TextureOptions \&options, int level, \\
 \bigspc                       int xbegin, int xend, int ybegin, int yend,\\
-\bigspc                       int zbegin, int zend, int level,\\
-\bigspc                       TypeDesc format, void *result)}
+\bigspc                       int zbegin, int zend, TypeDesc format, void *result)}
 
 Retrieve a rectangle of raw unfiltered texels at the named MIP-map level, storing
 the texel values beginning at the address specified by result.
