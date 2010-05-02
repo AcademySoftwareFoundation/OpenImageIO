@@ -159,7 +159,7 @@ oiio_add_tests (jpeg2000
 
 oiio_add_tests (targa-tgautils
     IMAGEDIR TGAUTILS
-    URL http://ineqvation.googlepages.com/TGAUtilities)
+    URL http://tgautils.inequation.org/)
 
 oiio_add_tests (fits
     IMAGEDIR fits-images
