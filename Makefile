@@ -12,6 +12,7 @@
 .PHONY: all debug profile clean realclean nuke doxygen
 
 working_dir	:= ${shell pwd}
+INSTALLDIR       =${working_dir}
 
 # Figure out which architecture we're on
 include ${working_dir}/src/make/detectplatform.mk
@@ -25,22 +26,23 @@ ifdef PROFILE
     variant +=.profile
 endif
 
-# Set up variables holding the names of platform-dependent directories
+MY_MAKE_FLAGS ?=
+MY_CMAKE_FLAGS ?=
+
+# Site-specific build instructions
+ifneq (${shell uname -n | grep imageworks},)
+include ${working_dir}/site/spi/Makefile-bits
+endif
+
+# Set up variables holding the names of platform-dependent directories --
+# set these after evaluating site-specific instructions
 top_build_dir := build
 build_dir     := ${top_build_dir}/${platform}${variant}
 top_dist_dir  := dist
 dist_dir      := ${top_dist_dir}/${platform}${variant}
 
 $(info dist_dir = ${dist_dir})
-
-MY_MAKE_FLAGS ?=
-MY_CMAKE_FLAGS ?=
-
-
-# Site-specific build instructions
-ifneq (${shell uname -n | grep imageworks},)
-include ${working_dir}/site/spi/Makefile-bits
-endif
+$(info INSTALLDIR = ${INSTALLDIR})
 
 
 VERBOSE := ${SHOWCOMMANDS}
@@ -136,7 +138,7 @@ cmakesetup:
 	@ (if [ ! -e ${build_dir}/Makefile ] ; then \
 		cmake -E make_directory ${build_dir} ; \
 		cd ${build_dir} ; \
-		cmake -DCMAKE_INSTALL_PREFIX=${working_dir}/${dist_dir} \
+		cmake -DCMAKE_INSTALL_PREFIX=${INSTALLDIR}/${dist_dir} \
 			${MY_CMAKE_FLAGS} -DBOOST_ROOT=${BOOST_HOME} \
 			../../src ; \
 	 fi)
