@@ -36,6 +36,7 @@
 #include "thread.h"
 #include "strutil.h"
 #include "hash.h"
+#include "dassert.h"
 
 #include "ustring.h"
 
@@ -77,6 +78,58 @@ std::string ustring::empty_std_string ("");
 
 
 
+ustring::TableRep::TableRep (const char *s, size_t len)
+    : hashed(Strutil::strhash(s))
+{
+    strcpy ((char *)c_str(), s);
+    length = len;
+    dummy_capacity = len;
+    dummy_refcount = 1;   // so it never frees
+
+#if defined(__GNUC__)
+    // We don't want the internal 'string str' to redundantly store the
+    // chars, along with our own allocation.  So we use our knowledge of
+    // the internal structure of gcc strings to make it point to our chars!
+    // Note that we've carefully structured the TableRep fields so they
+    // mimic a GCC basic_string::_Rep.
+    //
+    // It turns out that the first field of a gcc std::string is a
+    // pointer to the characters within the basic_string::_Rep.  We
+    // merely redirect that pointer, though for std::string to function
+    // properly, the chars must be preceeded immediately in memory by
+    // the rest of basic_string::_Rep, consisting of length, capacity
+    // and refcount fields.  And we have designed our TableRep to do
+    // just that!  So now we redirect the std::string's pointer to our
+    // own characters and its mocked-up _Rep.  
+    //
+    // See /usr/include/c++/VERSION/bits/basic_string.h for the details
+    // of gcc's std::string implementation.
+
+    *(const char **)&str = c_str();
+    DASSERT (str.c_str() == c_str());
+#else
+    // Not gcc -- just assign the internal string.  This will result in
+    // double allocation for the chars.  If you care about that, do
+    // something special for your platform, much like we did for gcc
+    // above.  (Windows users, I'm talking to you.)
+    str = s;
+#endif
+}
+
+
+
+ustring::TableRep::~TableRep ()
+{
+#if defined(__GNUC__)
+    // Doctor the string to be empty again before destroying.
+    ASSERT (str.c_str() == c_str());
+    std::string empty;
+    memcpy (&str, &empty, sizeof(std::string));
+#endif
+}
+
+
+
 const ustring::TableRep *
 ustring::_make_unique (const char *str)
 {
@@ -103,10 +156,10 @@ ustring::_make_unique (const char *str)
     // This string is not yet in the ustring table.  Create a new entry.
     // Note that we are speculatively releasing the lock and building the
     // string locally.  Then we'll lock again to put it in the table.
-    size_t size = sizeof(ustring::TableRep)-1 + strlen(str) + 1;
-    // N.B. that first "-1" is because we have chars[1], not chars[0]
+    size_t len = strlen(str);
+    size_t size = sizeof(ustring::TableRep) + len + 1;
     ustring::TableRep *rep = (ustring::TableRep *) malloc (size);
-    new (rep) ustring::TableRep (str);
+    new (rep) ustring::TableRep (str, len);
 
     UstringTable::const_iterator found;
     {

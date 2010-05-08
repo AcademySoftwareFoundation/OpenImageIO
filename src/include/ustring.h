@@ -279,7 +279,7 @@ public:
     ///
     const std::string & string () const {
         if (m_chars) {
-            const TableRep *rep = (const TableRep *)(m_chars - chars_offset);
+            const TableRep *rep = (const TableRep *)m_chars - 1;
             return rep->str;
         }
         else return empty_std_string;
@@ -296,7 +296,7 @@ public:
     size_t length (void) const {
         if (! m_chars)
             return 0;
-        const TableRep *rep = (const TableRep *)(m_chars - chars_offset);
+        const TableRep *rep = ((const TableRep *)m_chars) - 1;
         return rep->length;
     }
 
@@ -305,7 +305,7 @@ public:
     size_t hash (void) const {
          if (! m_chars)
              return 0;
-         const TableRep *rep = (const TableRep *)(m_chars - chars_offset);
+         const TableRep *rep = ((const TableRep *)m_chars) - 1;
          return rep->hashed;
      }
 
@@ -438,28 +438,26 @@ public:
 
 private:
 
-    /// Individual ustring internal representation -- the unique characters.
-    ///
+    // Individual ustring internal representation -- the unique characters.
+    //
     const char *m_chars;
 
 public:
-    /// Representation within the hidden string table -- DON'T EVER CREATE
-    /// ONE OF THESE YOURSELF!
+    // Representation within the hidden string table -- DON'T EVER CREATE
+    // ONE OF THESE YOURSELF!
+    // The characters are found directly after the rep.  So that means that
+    // if you know the rep, the chars are at (char *)(rep+1), and if you
+    // know the chars, the rep is at ((TableRep *)chars - 1).
     struct TableRep {
+        size_t hashed;       // precomputed Hash value
         std::string str;     // String representation
-        unsigned int length; // Length of the string
-        unsigned int hashed; // precomputed Hash value
-        char chars[1];       // The characters
-        TableRep (const char *s) : str(s), length(str.size()), hashed(Strutil::strhash(s)) {
-            strcpy (chars, s);
-        }
-        const char *c_str () const { return chars; }
+        size_t length;       // Length of the string; must be right before cap
+        size_t dummy_capacity;  // Dummy field! must be right before refcount
+        int    dummy_refcount;  // Dummy field! must be right before chars
+        TableRep (const char *s, size_t len);
+        ~TableRep ();
+        const char *c_str () const { return (const char *)(this + 1); }
     };
-    /// Constant defining how far beyond the beginning of a TableRep are
-    /// the canonical characters.
-    static const off_t chars_offset = sizeof(std::string)+2*sizeof(unsigned int);
-    // N.B. this had better match the fields in TableRep before chars!
-    // FIXME: put an assert somewhere to verify.
 
 private:
     /// Important internal guts of ustring -- given a null-terminated
