@@ -134,6 +134,11 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     // Auto-convert 1-, 2-, and 4- bit images to 8 bits, palette to RGB,
     // and transparency to alpha.
     png_set_expand (sp);
+
+    // PNG files are naturally big-endian
+    if (littleendian())
+        png_set_swap (sp);
+
     png_read_update_info (sp, ip);
     
     png_uint_32 width, height;
@@ -231,12 +236,6 @@ read_into_buffer (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
     //        png_set_shift (sp, sig_bit);
     // }
 #endif
-
-    // PNG files are naturally big-endian
-    if (littleendian())
-        png_set_swap (sp);
-
-    png_read_update_info (sp, ip);
 
     DASSERT (spec.scanline_bytes() == png_get_rowbytes(sp,ip));
     buffer.resize (spec.image_bytes());

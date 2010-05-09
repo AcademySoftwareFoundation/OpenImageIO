@@ -224,6 +224,10 @@ PNGOutput::write_scanline (int y, int z, TypeDesc format,
                               m_spec.gamma);
     }
 
+    // PNG is always big endian
+    if (littleendian() && m_spec.format == TypeDesc::UINT16)
+        swap_endian ((unsigned short *)data, m_spec.width*m_spec.nchannels);
+
     if (!PNG_pvt::write_row (m_png, (png_byte *)data)) {
         error ("PNG library error");
         return false;
