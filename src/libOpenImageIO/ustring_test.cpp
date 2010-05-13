@@ -78,5 +78,6 @@ BOOST_AUTO_TEST_CASE (test_ustring_lock)
     }
     std::cout << "Created " << threads.size() << " threads\n";
     threads.join_all ();
+    std::cout << "\n" << ustring::getstats() << "\n";
     BOOST_ASSERT (true);  // If we make it here without crashing, pass
 }

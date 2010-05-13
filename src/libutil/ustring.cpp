@@ -77,6 +77,16 @@ typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Struti
 std::string ustring::empty_std_string ("");
 
 
+namespace { // anonymous
+
+static long long ustring_stats_memory = 0;
+static long long ustring_stats_constructed = 0;
+static long long ustring_stats_unique = 0;
+static ustring_mutex_t ustring_mutex;
+
+};          // end anonymous namespace
+
+
 
 ustring::TableRep::TableRep (const char *s, size_t len)
     : hashed(Strutil::strhash(s))
@@ -134,7 +144,6 @@ const ustring::TableRep *
 ustring::_make_unique (const char *str)
 {
     static UstringTable ustring_table;
-    static ustring_mutex_t ustring_mutex;
 
     // Eliminate NULLs
     if (! str)
@@ -148,6 +157,7 @@ ustring::_make_unique (const char *str)
         // Lots of threads may do this simultaneously, as long as they
         // are all in the table.
         ustring_read_lock_t read_lock (ustring_mutex);
+        ++ustring_stats_constructed;
         UstringTable::const_iterator found = ustring_table.find (str);
         if (found != ustring_table.end())
            return found->second;
@@ -172,6 +182,11 @@ ustring::_make_unique (const char *str)
         found = ustring_table.find (str);
         if (found == ustring_table.end()) {
             ustring_table[rep->c_str()] = rep;
+            ++ustring_stats_unique;
+            ustring_stats_memory += size;
+#ifndef __GNUC__
+            ustring_stats_memory += len+1;  // non-GNU replicates the chars
+#endif
             return rep;
         }
     }
@@ -220,4 +235,35 @@ ustring::format (const char *fmt, ...)
         dynamicbuf.resize (size);
         buf = &dynamicbuf[0];
     }
+}
+
+
+
+std::string
+ustring::getstats (bool verbose)
+{
+    ustring_read_lock_t read_lock (ustring_mutex);
+    std::ostringstream out;
+    if (verbose) {
+        out << "ustring statistics:\n";
+        out << "  ustring requests: " << ustring_stats_constructed
+            << ", unique " << ustring_stats_unique << "\n";
+        out << "  ustring memory: " << Strutil::memformat(ustring_stats_memory)
+            << "\n";
+    } else {
+        out << "requests: " << ustring_stats_constructed
+            << ", unique " << ustring_stats_unique
+            << ", " << Strutil::memformat(ustring_stats_memory);
+    }
+    return out.str();
+}
+
+
+
+
+size_t
+ustring::memory ()
+{
+    ustring_read_lock_t read_lock (ustring_mutex);
+    return ustring_stats_memory;
 }

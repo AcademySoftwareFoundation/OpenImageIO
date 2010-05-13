@@ -436,6 +436,14 @@ public:
         return out;
     }
 
+    /// Return the statistics output as a string.
+    ///
+    static std::string getstats (bool verbose = true);
+
+    /// Return the amount of memory consumed by the ustring table.
+    ///
+    static size_t memory ();
+
 private:
 
     // Individual ustring internal representation -- the unique characters.
