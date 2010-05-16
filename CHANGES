@@ -2,12 +2,14 @@ Changes:
 
 
 
-In-progress Release 0.8 (as of Mar 6 2010)
-------------------------------------------
+In-progress Release 0.8 (as of May 15 2010)
+-------------------------------------------
 Major new features:
 
 * Python bindings for the ImageInput, ImageOutput, ImageSpec, ImageBuf, 
   and ImageCache classes.
+* New format plugin: SGI image file
+* New format plugin: PNM/PPM/PGM/PBM
 * New format plugin: DDS (currently reading only)
 * New format plugin: Softimage PIC (currently reading only)
 
@@ -19,17 +21,29 @@ API changes:
 * Added to fmath.h: sincos, exp2f, log2f
 * Renamed ErrHandler::ErrCode enums with EH_ prefix (to fix conflicts
   with some Windows headers).
+* ustring now has getstats() and memory() methods.
 
 Fixes, minor enhancements, and performance improvements:
 
 * ImageInput::create() error messages are more helpful.
-* Fixed some error messages in FITS output, iconvert, 
+* Fixed some error messages in FITS output, iconvert.
 * maketx: Console flushes in status messages to that a calling process
   will get status messages right away.
 * Fix subtle ImageCache bug with invalidate().
 * TextureSystem: new 'missingcolor' texture option that, when provided,
   can specify a color that will be used for missing textures rather than
   generating errors.  (If not supplied, missing tex is still an error.)
+* BMP plugin enhancements.
+* TIFF: support 64-bit float pixels.
+* PNG: properly handle palette images, unassociated alpha, gamma
+  correction, endianness for 16-bit files.
+* iv fixes: fix improper recentering after image reload; fix crash when
+  image info window opened without any image files loaded; better status
+  window message when image reads fail; iv goes into background properly
+  in Windows; "slide show" mode; pixel view display moves if you need to
+  look at pixels underneath it; 
+* ImageCache bug: previously couldn't designate a cache > 2GB (because of
+  integer overflow issues).
 
 For developers / build issues:
 
@@ -38,7 +52,12 @@ For developers / build issues:
   there's no reason for users to set $IMAGEIO_LIBRARY_PATH unless they
   need custom format plugins not supplied with the main distribution.
 * Fix compiler warnings (mostly under Windows): TBB stuff, ustring, windows.h.
-
+* Option to build static libraries (with 'make LINKSTATIC=1').
+* Fixes to make clean compilation with gcc-4.4.2.
+* Allow custom 'platform' designation in the build.
+* Allow custom installation destination ('make INSTALLDIR=...').
+* ustring now takes half the memory (by no longer redundantly storing the
+  characters on Linux and OS X).  
 
 
 
