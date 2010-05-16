@@ -1,0 +1,50 @@
+This is a list of all the authors of OpenImageIO.  Any such list is very
+inexact, and can't convey everybody's precise level of contribution
+(which is constantly shifting, anyway).  However, I've made two tiers:
+(1) major developers who have contributed at least several hundred lines
+of code (noting their main contributions, if easily identifiable); (2)
+everybody else who has contributed any code at all.
+
+
+Major contributors (roughly in order of joining the project):
+
+    Larry Gritz        core classes & API, ImageCache/TextureSystem, iv,
+                         TIFF, JPEG, OpenEXR, HDR, PNG, zfile, docs
+    Philip Nemec       unit testing framework
+    Dan Wexler         Windows port
+    Chris Kulla        texture system improvements
+    Chris Foster       lots of things!
+    Leszek Godlewski   ICO, Targa, DDS
+    David Gordon       build issues, Python bindings
+    Robert Matusewicz  Windows port, BMP, JPEG-2000, FITS, SGI
+    Ismael Cortes      iv improvements
+    Dinko Galetik      Python bindings
+    Malcolm Humphreys  color transfer methods
+    Alan Jones         Softimage PIC
+
+Other contributors (alphabetically):
+
+    Vishal Agrawal
+    Jeph Alapat
+    Krzysztof Blicharski
+    Nuno Cardoso
+    Duncan Chan
+    Irena Damsky
+    Nandan Dubey
+    Marcos Fajardo
+    Vitor Franchi
+    Ananth Garre
+    Puneet Jain
+    Pavel Karneliuk
+    Konrad Kleine
+    Rui Li
+    M Joonas Pihlaja
+    Jeremy Selan
+    Cliff Stein
+    Ott Tinn
+    Wormszer
+    Xo Wang
+
+
+If you know of somebody that I missed, please let me know: 
+lg (at) openimageio.org
