@@ -2,7 +2,7 @@ Changes:
 
 
 
-In-progress Release 0.8 (as of May 15 2010)
+In-progress Release 0.8 (as of May 24 2010)
 -------------------------------------------
 Major new features:
 
@@ -34,7 +34,9 @@ Fixes, minor enhancements, and performance improvements:
   can specify a color that will be used for missing textures rather than
   generating errors.  (If not supplied, missing tex is still an error.)
 * BMP plugin enhancements.
-* TIFF: support 64-bit float pixels.
+* TIFF: support 64-bit float pixels, proper random scanline access emulation
+  for all appropriate compression types, handle incorrectly set-to-zero
+  image_full_width and image_full_height.
 * PNG: properly handle palette images, unassociated alpha, gamma
   correction, endianness for 16-bit files.
 * iv fixes: fix improper recentering after image reload; fix crash when

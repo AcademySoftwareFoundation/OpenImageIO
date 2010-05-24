@@ -391,9 +391,11 @@ TIFFInput::readspec ()
     // What happens if this is not unitless pixels?  Are we interpreting
     // it all wrong?
 
-    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1) 
+    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLWIDTH, &width) == 1
+          && width > 0)
         m_spec.full_width = width;
-    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1)
+    if (TIFFGetField (m_tif, TIFFTAG_PIXAR_IMAGEFULLLENGTH, &height) == 1
+          && height > 0)
         m_spec.full_height = height;
 
     if (TIFFIsTiled (m_tif)) {
@@ -476,7 +478,6 @@ TIFFInput::readspec ()
     else
         m_spec.attribute ("planarconfig", "contig");
 
-    m_no_random_access = false;   // normally allow it
     int compress = 0;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_COMPRESSION, &compress);
     m_spec.attribute ("tiff:Compression", compress);
@@ -486,11 +487,11 @@ TIFFInput::readspec ()
         break;
     case COMPRESSION_LZW :
         m_spec.attribute ("compression", "lzw");
-        m_no_random_access = true;   // LZW doesn't support it
         break;
     case COMPRESSION_CCITTRLE :
         m_spec.attribute ("compression", "ccittrle");
         break;
+    case COMPRESSION_DEFLATE :
     case COMPRESSION_ADOBE_DEFLATE :
         m_spec.attribute ("compression", "zip");
         break;
@@ -500,6 +501,16 @@ TIFFInput::readspec ()
     default:
         break;
     }
+
+    int rowsperstrip = 1;
+    if (! m_spec.tile_width) {
+        TIFFGetField (m_tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
+        m_spec.attribute ("tiff:RowsPerStrip", rowsperstrip);
+    }
+
+    // The libtiff docs say that only uncompressed images, or those with
+    // rowsperstrip==1, support random access to scanlines.
+    m_no_random_access = (compress != COMPRESSION_NONE && rowsperstrip > 1);
 
     short resunit = -1;
     TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
@@ -529,7 +540,7 @@ TIFFInput::readspec ()
     // ExtraSamples
     // GrayResponseCurve GrayResponseUnit
     // MaxSampleValue MinSampleValue
-    // NewSubfileType RowsPerStrip SubfileType(deprecated)
+    // NewSubfileType SubfileType(deprecated)
     // Colorimetry fields
 
     // Search for an EXIF IFD in the TIFF file, and if found, rummage 
