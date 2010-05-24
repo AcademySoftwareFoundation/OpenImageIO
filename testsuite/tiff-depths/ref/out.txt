@@ -15,6 +15,7 @@ hi
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 431
 Converting ../../../libtiffpic/depth/flower-minisblack-02.tif to flower-minisblack-02.tif
 Comparing "../../../libtiffpic/depth/flower-minisblack-02.tif" and "flower-minisblack-02.tif"
 Subimage 0: 73 x 43, 1 channel
@@ -41,6 +42,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 221
 Converting ../../../libtiffpic/depth/flower-minisblack-04.tif to flower-minisblack-04.tif
 Comparing "../../../libtiffpic/depth/flower-minisblack-04.tif" and "flower-minisblack-04.tif"
 Subimage 0: 73 x 43, 1 channel
@@ -67,6 +69,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 112
 Converting ../../../libtiffpic/depth/flower-minisblack-08.tif to flower-minisblack-08.tif
 Comparing "../../../libtiffpic/depth/flower-minisblack-08.tif" and "flower-minisblack-08.tif"
 Subimage 0: 73 x 43, 1 channel
@@ -93,6 +96,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 56
 Converting ../../../libtiffpic/depth/flower-minisblack-16.tif to flower-minisblack-16.tif
 Comparing "../../../libtiffpic/depth/flower-minisblack-16.tif" and "flower-minisblack-16.tif"
 Subimage 0: 73 x 43, 1 channel
@@ -119,6 +123,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 431
 Converting ../../../libtiffpic/depth/flower-palette-02.tif to flower-palette-02.tif
 Comparing "../../../libtiffpic/depth/flower-palette-02.tif" and "flower-palette-02.tif"
 Subimage 0: 73 x 43, 3 channel
@@ -145,6 +150,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 221
 Converting ../../../libtiffpic/depth/flower-palette-04.tif to flower-palette-04.tif
 Comparing "../../../libtiffpic/depth/flower-palette-04.tif" and "flower-palette-04.tif"
 Subimage 0: 73 x 43, 3 channel
@@ -171,6 +177,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 112
 Converting ../../../libtiffpic/depth/flower-palette-08.tif to flower-palette-08.tif
 Comparing "../../../libtiffpic/depth/flower-palette-08.tif" and "flower-palette-08.tif"
 Subimage 0: 73 x 43, 3 channel
@@ -197,6 +204,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 37
 Converting ../../../libtiffpic/depth/flower-rgb-contig-08.tif to flower-rgb-contig-08.tif
 Comparing "../../../libtiffpic/depth/flower-rgb-contig-08.tif" and "flower-rgb-contig-08.tif"
 Subimage 0: 73 x 43, 3 channel
@@ -223,6 +231,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 18
 Converting ../../../libtiffpic/depth/flower-rgb-contig-16.tif to flower-rgb-contig-16.tif
 Comparing "../../../libtiffpic/depth/flower-rgb-contig-16.tif" and "flower-rgb-contig-16.tif"
 Subimage 0: 73 x 43, 3 channel
