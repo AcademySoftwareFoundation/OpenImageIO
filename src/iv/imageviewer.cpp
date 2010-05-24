@@ -334,6 +334,21 @@ ImageViewer::createActions()
     slideNoLoopAct->setCheckable (true);
     connect(slideNoLoopAct, SIGNAL(triggered()), this, SLOT(slideNoLoop()));
 
+    sortByNameAct = new QAction(tr("By Name"), this);
+    connect(sortByNameAct, SIGNAL(triggered()), this, SLOT(sortByName()));
+
+    sortByPathAct = new QAction(tr("By File Path"), this);
+    connect(sortByPathAct, SIGNAL(triggered()), this, SLOT(sortByPath()));
+
+    sortByImageDateAct = new QAction(tr("By Image Date"), this);
+    connect(sortByImageDateAct, SIGNAL(triggered()), this, SLOT(sortByImageDate()));
+
+    sortByFileDateAct = new QAction(tr("By File Date"), this);
+    connect(sortByFileDateAct, SIGNAL(triggered()), this, SLOT(sortByFileDate()));
+
+    sortReverseAct = new QAction(tr("Reverse current order"), this);
+    connect(sortReverseAct, SIGNAL(triggered()), this, SLOT(sortReverse()));
+
     showInfoWindowAct = new QAction(tr("&Image info..."), this);
     showInfoWindowAct->setShortcut(tr("Ctrl+I"));
 //    showInfoWindowAct->setEnabled(true);
@@ -415,6 +430,13 @@ ImageViewer::createMenus()
     slideMenu->addAction (slideLoopAct);
     slideMenu->addAction (slideNoLoopAct);
 
+    sortMenu = new QMenu(tr("Sort"));
+    sortMenu->addAction (sortByNameAct);
+    sortMenu->addAction (sortByPathAct);
+    sortMenu->addAction (sortByImageDateAct);
+    sortMenu->addAction (sortByFileDateAct);
+    sortMenu->addAction (sortReverseAct);
+
     channelMenu = new QMenu(tr("Channels"));
     // Color mode: true, random, falsegrgbacCrgR
     channelMenu->addAction (viewChannelFullAct);
@@ -459,7 +481,8 @@ ImageViewer::createMenus()
     toolsMenu->addAction (showInfoWindowAct);
     toolsMenu->addAction (showPixelviewWindowAct);
     toolsMenu->addMenu (slideMenu);
-    
+    toolsMenu->addMenu (sortMenu);
+        
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -1308,6 +1331,181 @@ ImageViewer::slideNoLoop ()
     slide_loop = false;
     slide(slideDuration_ms, slide_loop);
 }
+
+
+
+static bool
+compName (IvImage *first, IvImage *second)
+{
+    std::string firstFile = boost::filesystem::path(first->name()).leaf();
+    std::string secondFile = boost::filesystem::path(second->name()).leaf();
+    return (firstFile.compare(secondFile) < 0);
+}
+
+
+
+void
+ImageViewer::sortByName ()
+{
+    int numImg = m_images.size();
+    if (numImg < 2)
+        return;
+    std::sort (m_images.begin(), m_images.end(), &compName);
+    current_image (0);
+    displayCurrentImage();
+    // updateActions();
+}
+
+
+
+static bool
+compPath (IvImage *first, IvImage *second)
+{
+    std::string firstFile = first->name ();
+    std::string secondFile = second->name ();
+    return (firstFile.compare(secondFile) < 0);
+}
+
+
+
+void
+ImageViewer::sortByPath ()
+{
+    int numImg = m_images.size();
+    if (numImg < 2)
+        return;
+    std::sort (m_images.begin(), m_images.end(), &compPath);
+    current_image(0);
+    displayCurrentImage();
+    // updateActions();
+}
+
+
+
+static bool
+DateTime_to_time_t (const char *datetime, time_t &timet)
+{
+    int year, month, day, hour, min, sec;
+    int r = sscanf (datetime, "%d:%d:%d %d:%d:%d",
+                    &year, &month, &day, &hour, &min, &sec);
+    // printf ("%d  %d:%d:%d %d:%d:%d\n", r, year, month, day, hour, min, sec);
+    if (r != 6)
+        return false;
+    struct tm tmtime;
+    time_t now;
+    Sysutil::get_local_time (&now, &tmtime); // fill in defaults
+    tmtime.tm_sec = sec;
+    tmtime.tm_min = min;
+    tmtime.tm_hour = hour;
+    tmtime.tm_mday = day;
+    tmtime.tm_mon = month-1;
+    tmtime.tm_year = year-1900;
+    timet = mktime (&tmtime);
+    return true;
+}
+
+
+
+static bool
+compImageDate (IvImage *first, IvImage *second)
+{
+    std::time_t firstFile = NULL, secondFile = NULL;
+    double diff;
+    std::string metadatatime = first->spec ().get_string_attribute ("DateTime");
+    if (metadatatime.empty()) {
+        if(first->init_spec (first->name())) {
+            metadatatime = first->spec ().get_string_attribute ("DateTime");
+            if (metadatatime.empty()){
+                if (! boost::filesystem::exists (first->name ()))
+                    return false;
+                firstFile = boost::filesystem::last_write_time (first->name ());
+            }
+        }
+        else
+            return false;
+    }
+    DateTime_to_time_t (metadatatime.c_str(), firstFile);
+    metadatatime = second->spec().get_string_attribute ("DateTime");
+    if (metadatatime.empty()) {
+        if(second->init_spec(second->name())) {
+            metadatatime = second->spec ().get_string_attribute ("DateTime");
+            if (metadatatime.empty()){
+                if (! boost::filesystem::exists (second->name ()))
+                    return true;
+                secondFile = boost::filesystem::last_write_time (second->name());
+            }
+        }
+        else
+            return true;
+    }
+    DateTime_to_time_t (metadatatime.c_str(), secondFile);
+    diff = difftime(firstFile, secondFile);
+    if (diff == 0)
+        return compName(first,second);
+    return (diff < 0);
+}
+
+
+
+void
+ImageViewer::sortByImageDate ()
+{
+    int numImg = m_images.size();
+    if (numImg < 2)
+        return;
+    std::sort( m_images.begin(), m_images.end(), &compImageDate);
+    current_image(0);
+    displayCurrentImage();
+    // updateActions();
+}
+
+
+
+static bool
+compFileDate (IvImage *first, IvImage *second)
+{
+    std::time_t firstFile, secondFile;
+    double diff;
+    if (! boost::filesystem::exists (first->name ()))
+        return false;
+    firstFile = boost::filesystem::last_write_time (first->name ());
+    if (! boost::filesystem::exists (second->name ()))
+        return true;
+    secondFile = boost::filesystem::last_write_time (second->name ());
+    diff = difftime(firstFile, secondFile);
+    if (diff == 0)
+        return compName(first, second);
+    return (diff < 0);
+}
+
+
+
+void
+ImageViewer::sortByFileDate ()
+{
+    int numImg = m_images.size();
+    if (numImg<2)
+        return;
+    std::sort( m_images.begin(), m_images.end(), &compFileDate);
+    current_image(0);
+    displayCurrentImage();
+    // updateActions();
+}
+
+
+
+void
+ImageViewer::sortReverse ()
+{
+    int numImg = m_images.size();
+    if (numImg < 2)
+        return;
+    std::reverse( m_images.begin(), m_images.end());
+    current_image(0);
+    displayCurrentImage();
+    // updateActions();
+}
+
 
 
 void

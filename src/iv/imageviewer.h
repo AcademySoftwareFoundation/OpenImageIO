@@ -52,8 +52,7 @@ class IvInfoWindow;
 class IvPreferenceWindow;
 class IvCanvas;
 class IvGL;
-
-
+class IvImage;
 
 class IvImage : public ImageBuf {
 public:
@@ -272,6 +271,11 @@ private slots:
     void viewColorHeatmap();            ///< View current channel as heatmap.
     void viewSubimagePrev();            ///< View prev subimage
     void viewSubimageNext();            ///< View next subimage
+    void sortByName();                  ///< Sort images by Name.
+    void sortByPath();                  ///< Sort images based on full file path
+    void sortByImageDate();             ///< Sort images by metadata date
+    void sortByFileDate();              ///< Sort images by file Date Stamp.
+    void sortReverse();                 ///< Reverse the current order of images
     void slideShow();                   ///< Starts slide show
     void slide1();                      ///< Slide mode with 1 s interval
     void slide5();                      ///< Slide mode with 5 s interval
@@ -338,6 +342,8 @@ private:
     QAction *fullScreenAct;
     QAction *aboutAct;
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
+    QAction *sortByNameAct, *sortByPathAct, *sortReverseAct;
+    QAction *sortByImageDateAct, *sortByFileDateAct;
     QAction *slideShowAct, *slide1Act, *slide5Act, *slide15Act;
     QAction *slide30Act, *slide60Act, *slideLoopAct, *slideNoLoopAct;
     QAction *showInfoWindowAct;
@@ -345,7 +351,7 @@ private:
     QAction *showPixelviewWindowAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
     QMenu *openRecentMenu;
-    QMenu *expgamMenu, *channelMenu, *colormodeMenu, *slideMenu;
+    QMenu *expgamMenu, *channelMenu, *colormodeMenu, *slideMenu, *sortMenu;
     QLabel *statusImgInfo, *statusViewInfo;
     QProgressBar *statusProgress;
     QComboBox *mouseModeComboBox;
