@@ -12,6 +12,7 @@ hi
     planarconfig: "contig"
     tiff:Compression: 32773
     compression: "packbits"
+    tiff:RowsPerStrip: 12
 Converting ../../../libtiffpic/cramps.tif to cramps.tif
 Comparing "../../../libtiffpic/cramps.tif" and "cramps.tif"
 Subimage 0: 800 x 607, 1 channel
@@ -68,6 +69,7 @@ PASS
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 3
+    tiff:RowsPerStrip: -1
 Converting ../../../libtiffpic/fax2d.tif to fax2d.tif
 Comparing "../../../libtiffpic/fax2d.tif" and "fax2d.tif"
 Subimage 0: 1728 x 1082, 1 channel
@@ -93,6 +95,7 @@ PASS
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 3
+    tiff:RowsPerStrip: -1
 Converting ../../../libtiffpic/g3test.tif to g3test.tif
 Comparing "../../../libtiffpic/g3test.tif" and "g3test.tif"
 Subimage 0: 1728 x 1103, 1 channel
@@ -114,6 +117,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 32773
     compression: "packbits"
+    tiff:RowsPerStrip: 32
 Converting ../../../libtiffpic/jello.tif to jello.tif
 Comparing "../../../libtiffpic/jello.tif" and "jello.tif"
 Subimage 0: 256 x 192, 3 channel
@@ -143,6 +147,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
+    tiff:RowsPerStrip: 32
     ExposureTime: 0.0125
     FNumber: 5.6
     Exif:ExposureProgram: 2 (normal program)
@@ -184,6 +189,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 5
     compression: "lzw"
+    tiff:RowsPerStrip: 5
 Converting ../../../libtiffpic/quad-lzw.tif to quad-lzw.tif
 Comparing "../../../libtiffpic/quad-lzw.tif" and "quad-lzw.tif"
 Subimage 0: 512 x 384, 3 channel
@@ -238,6 +244,7 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 5
     compression: "lzw"
+    tiff:RowsPerStrip: 8
 Converting ../../../libtiffpic/strike.tif to strike.tif
 Comparing "../../../libtiffpic/strike.tif" and "strike.tif"
 Subimage 0: 256 x 200, 4 channel
@@ -258,3 +265,4 @@ PASS
     planarconfig: "separate"
     tiff:Compression: 5
     compression: "lzw"
+    tiff:RowsPerStrip: 1

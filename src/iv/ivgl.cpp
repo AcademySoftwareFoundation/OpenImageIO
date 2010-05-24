@@ -65,8 +65,8 @@ IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
       m_use_halffloat(false), m_use_float(false),
       m_use_srgb(false), m_use_pbo(false), 
       m_texture_width(1), m_texture_height(1), m_last_pbo_used(0), 
-      m_current_image(NULL), m_last_texbuf_used(0),
-      m_pixelview_left_corner(true)
+      m_current_image(NULL), m_pixelview_left_corner(true),
+      m_last_texbuf_used(0)
 {
 #if 0
     QGLFormat format;
