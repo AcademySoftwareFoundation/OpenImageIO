@@ -502,15 +502,16 @@ TIFFInput::readspec ()
         break;
     }
 
-    int rowsperstrip = 1;
+    int rowsperstrip = -1;
     if (! m_spec.tile_width) {
         TIFFGetField (m_tif, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
-        m_spec.attribute ("tiff:RowsPerStrip", rowsperstrip);
+        if (rowsperstrip > 0)
+            m_spec.attribute ("tiff:RowsPerStrip", rowsperstrip);
     }
 
     // The libtiff docs say that only uncompressed images, or those with
     // rowsperstrip==1, support random access to scanlines.
-    m_no_random_access = (compress != COMPRESSION_NONE && rowsperstrip > 1);
+    m_no_random_access = (compress != COMPRESSION_NONE && rowsperstrip != 1);
 
     short resunit = -1;
     TIFFGetField (m_tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
