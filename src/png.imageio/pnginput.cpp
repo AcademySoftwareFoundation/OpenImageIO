@@ -66,9 +66,11 @@ private:
     png_infop m_info;                 ///< PNG image info structure pointer
     int m_bit_depth;                  ///< PNG bit depth
     int m_color_type;                 ///< PNG color model type
+    int m_interlace_type;             ///< PNG interlace type
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
     int m_subimage;                   ///< What subimage are we looking at?
     Imath::Color3f m_bg;              ///< Background color
+    int m_next_scanline;
 
     /// Reset everything to initial state
     ///
@@ -78,6 +80,7 @@ private:
         m_png = NULL;
         m_info = NULL;
         m_buf.clear ();
+        m_next_scanline = 0;
     }
 
     /// Helper function: read the image.
@@ -135,10 +138,12 @@ PNGInput::open (const std::string &name, ImageSpec &newspec)
     png_init_io (m_png, m_file);
     png_set_sig_bytes (m_png, 8);  // already read 8 bytes
 
-    PNG_pvt::read_info (m_png, m_info, m_bit_depth, m_color_type, m_bg,
-                        m_spec);
+    PNG_pvt::read_info (m_png, m_info, m_bit_depth, m_color_type,
+                        m_interlace_type, m_bg, m_spec);
 
     newspec = spec ();
+    m_next_scanline = 0;
+
     return true;
 }
 
@@ -207,12 +212,41 @@ associateAlpha (T * data, int size, int channels, int alpha_channel, float gamma
 bool
 PNGInput::read_native_scanline (int y, int z, void *data)
 {
-    if (m_buf.empty ())
-        readimg ();
-
     y -= m_spec.y;
-    size_t size = spec().scanline_bytes();
-    memcpy (data, &m_buf[0] + y * size, size);
+    if (y < 0 || y >= m_spec.height)   // out of range scanline
+        return false;
+
+    if (m_interlace_type != 0) {
+        // Interlaced.  Punt and read the whole image
+        if (m_buf.empty ())
+            readimg ();
+        size_t size = spec().scanline_bytes();
+        memcpy (data, &m_buf[0] + y * size, size);
+    } else {
+        // Not an interlaced image -- read just one row
+        if (m_next_scanline > y) {
+            // User is trying to read an earlier scanline than the one we're
+            // up to.  Easy fix: close the file and re-open.
+            ImageSpec dummyspec;
+            int subimage = current_subimage();
+            if (! close ()  ||
+                ! open (m_filename, dummyspec)  ||
+                ! seek_subimage (subimage, dummyspec))
+                return false;    // Somehow, the re-open failed
+            assert (m_next_scanline == 0 && current_subimage() == subimage);
+        }
+        while (m_next_scanline <= y) {
+            // Keep reading until we're read the scanline we really need
+            // std::cerr << "reading scanline " << m_next_scanline << "\n";
+            std::string s = PNG_pvt::read_next_scanline (m_png, data);
+            if (s.length ()) {
+                close ();
+                error ("%s", s.c_str ());
+                return false;
+            }
+            ++m_next_scanline;
+        }
+    }
 
     // PNG specifically dictates unassociated (un-"premultiplied") alpha
     if (m_spec.alpha_channel != -1) {   // Associate alpha
