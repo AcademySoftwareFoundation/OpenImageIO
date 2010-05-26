@@ -67,11 +67,7 @@ typedef null_lock<null_mutex> ustring_write_lock_t;
 #ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
 typedef boost::unordered_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
 #else
-#ifdef _WIN32
-typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash> UstringTable;
-#else // _WIN32
 typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
-#endif // WIN32
 #endif // OIIO_HAVE_BOOST_UNORDERED_MAP
 
 std::string ustring::empty_std_string ("");

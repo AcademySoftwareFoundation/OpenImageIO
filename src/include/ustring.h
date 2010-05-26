@@ -127,10 +127,6 @@
 #include "export.h"
 #include "strutil.h"
 
-#ifdef _WIN32
-#include "hash.h"
-#endif
-
 #ifndef NULL
 #define NULL 0
 #endif
@@ -481,17 +477,9 @@ private:
 /// Functor class to use as a hasher when you want to make a hash_map or
 /// hash_set using ustring as a key.
 class ustringHash
-#ifdef _WIN32
-    : public hash_compare<ustring>
-#endif
 {
 public:
     size_t operator() (const ustring &s) const { return s.hash(); }
-#ifdef _WIN32
-    bool operator() (const ustring &a, const ustring &b) const {
-        return strcmp (a.c_str(), b.c_str()) < 0;
-    }
-#endif
 };
 
 

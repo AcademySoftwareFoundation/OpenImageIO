@@ -47,6 +47,7 @@ using namespace OpenImageIO;
 #include "texture.h"
 #include "fmath.h"
 #include "sysutil.h"
+#include "strutil.h"
 
 
 static std::vector<std::string> filenames;
@@ -369,6 +370,8 @@ main (int argc, const char *argv[])
         test_getimagespec_gettexels (filename);
     }
     
+    std::cout << "Memory use: "
+              << Strutil::memformat (Sysutil::memory_used(true)) << "\n";
     TextureSystem::destroy (texsys);
     return 0;
 }

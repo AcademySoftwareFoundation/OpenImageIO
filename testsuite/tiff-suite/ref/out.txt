@@ -69,7 +69,6 @@ PASS
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 3
-    tiff:RowsPerStrip: -1
 Converting ../../../libtiffpic/fax2d.tif to fax2d.tif
 Comparing "../../../libtiffpic/fax2d.tif" and "fax2d.tif"
 Subimage 0: 1728 x 1082, 1 channel
@@ -95,7 +94,6 @@ PASS
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 3
-    tiff:RowsPerStrip: -1
 Converting ../../../libtiffpic/g3test.tif to g3test.tif
 Comparing "../../../libtiffpic/g3test.tif" and "g3test.tif"
 Subimage 0: 1728 x 1103, 1 channel

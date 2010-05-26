@@ -127,6 +127,7 @@ get_background (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
 ///
 inline void
 read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
+           int& interlace_type,
            Imath::Color3f& bg, OpenImageIO::ImageSpec& spec)
 {
     png_read_info (sp, ip);
@@ -212,6 +213,8 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         // FIXME -- should we do anything with the background color?
     }
 
+    interlace_type = png_get_interlace_type (sp, ip);
+
     // FIXME -- look for an XMP packet in an iTXt chunk.
 }
 
@@ -246,6 +249,24 @@ read_into_buffer (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
 
     png_read_image (sp, &row_pointers[0]);
     png_read_end (sp, NULL);
+
+    // success
+    return "";
+}
+
+
+
+/// Reads the next scanline from an open PNG file into the indicated buffer.
+/// \return empty string on success, error message on failure.
+///
+inline const std::string
+read_next_scanline (png_structp& sp, void *buffer)
+{
+    // Must call this setjmp in every function that does PNG reads
+    if (setjmp (png_jmpbuf (sp)))
+        return "PNG library error";
+
+    png_read_row (sp, (png_bytep)buffer, NULL);
 
     // success
     return "";

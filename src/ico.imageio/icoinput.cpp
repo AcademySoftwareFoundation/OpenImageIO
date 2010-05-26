@@ -70,6 +70,7 @@ private:
     png_structp m_png;                ///< PNG read structure pointer
     png_infop m_info;                 ///< PNG image info structure pointer
     int m_color_type;                 ///< PNG color model type
+    int m_interlace_type;             ///< PNG interlace type
     Imath::Color3f m_bg;              ///< PNG background color
 
     /// Reset everything to initial state
@@ -200,8 +201,8 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
         png_init_io (m_png, m_file);
         png_set_sig_bytes (m_png, 8);  // already read 8 bytes
 
-        PNG_pvt::read_info (m_png, m_info, m_bpp, m_color_type, m_bg,
-                            m_spec);
+        PNG_pvt::read_info (m_png, m_info, m_bpp, m_color_type, 
+                            m_interlace_type, m_bg, m_spec);
 
         m_spec.attribute ("BitsPerSample", m_bpp * m_spec.nchannels);
 

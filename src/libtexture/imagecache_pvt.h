@@ -348,10 +348,11 @@ private:
 ///
 class ImageCacheTile : public RefCnt {
 public:
-    /// Construct a new tile, read the pixels from disk.
+    /// Construct a new tile, read the pixels from disk if read_now is true.
     /// Requires a pointer to the thread-specific IC data including
     /// microcache and statistics.
-    ImageCacheTile (const TileID &id, ImageCachePerThreadInfo *thread_info);
+    ImageCacheTile (const TileID &id, ImageCachePerThreadInfo *thread_info,
+                    bool read_now=true);
 
     /// Construct a new tile out of the pixels supplied.
     ///
@@ -359,6 +360,10 @@ public:
                     stride_t xstride, stride_t ystride, stride_t zstride);
 
     ~ImageCacheTile ();
+
+    /// Actually read the pixels.  The caller had better be the thread
+    /// that constructed the tile.
+    void read (ImageCachePerThreadInfo *thread_info);
 
     /// Return pointer to the floating-point pixel data
     ///
@@ -392,7 +397,13 @@ public:
 
     /// Mark the tile as not recently used, return its previous value.
     ///
-    bool release () { bool r = m_used;  m_used = false;  return r; }
+    bool release () {
+        if (! pixels_ready() || ! valid())
+            return true;  // Don't really release invalid or unready tiles
+        bool r = m_used;
+        m_used = false;
+        return r;
+    }
 
     /// Has this tile been recently used?
     ///
@@ -400,11 +411,20 @@ public:
 
     bool valid (void) const { return m_valid; }
 
+    /// Are the pixels ready for use?  If false, they're still being
+    /// read from disk.
+    bool pixels_ready () const { return m_pixels_ready; }
+
+    /// Spin until the pixels have been read and are ready for use.
+    ///
+    void wait_pixels_ready () const;
+
 private:
     TileID m_id;                  ///< ID of this tile
     std::vector<char> m_pixels;   ///< The pixel data
     bool m_valid;                 ///< Valid pixels
     bool m_used;                  ///< Used recently
+    volatile bool m_pixels_ready; ///< The pixels have been read from disk
     float m_mindepth, m_maxdepth; ///< shadows only: min/max depth of the tile
 };
 
@@ -578,7 +598,10 @@ public:
 
     /// Is the tile specified by the TileID already in the cache?
     /// Only safe to call when the caller holds tilemutex.
-    bool tile_in_cache (const TileID &id) {
+    bool tile_in_cache (const TileID &id,
+                        ImageCachePerThreadInfo *thread_info) {
+        DASSERT (m_tilemutex_holder == thread_info &&
+                 "tile_in_cache should only be called by the tile lock holder");
         TileCache::iterator found = m_tilecache.find (id);
         return (found != m_tilecache.end());
     }
@@ -602,6 +625,8 @@ public:
     /// per-thread microcache to boost our hit rate over the big cache.
     /// Inlined for speed.
     bool find_tile (const TileID &id, ImageCachePerThreadInfo *thread_info) {
+        DASSERT (m_tilemutex_holder != thread_info &&
+                 "find_tile should not be holding the tile mutex when called");
         ++thread_info->m_stats.find_tile_calls;
         ImageCacheTileRef &tile (thread_info->tile);
         if (tile) {
@@ -658,11 +683,18 @@ public:
         m_mem_used += size;
     }
 
+    /// Called when a tile's pixel memory is allocated, but a new tile
+    /// is not created.
+    void incr_mem (size_t size) {
+        m_mem_used += size;
+    }
+
     /// Called when a tile is destroyed, to update all the stats.
     ///
     void decr_tiles (size_t size) {
         --m_stat_tiles_current;
         m_mem_used -= size;
+        DASSERT (m_mem_used >= 0);
     }
 
     /// Internal error reporting routine, with printf-like arguments.
@@ -695,7 +727,7 @@ private:
 
     /// Enforce the max memory for tile data.  This should only be invoked
     /// when the caller holds m_tilemutex.
-    void check_max_mem ();
+    void check_max_mem (ImageCachePerThreadInfo *thread_info);
 
     /// Internal statistics printing routine
     ///
@@ -716,6 +748,7 @@ private:
     bool m_automip;              ///< auto-mipmap on demand?
     bool m_forcefloat;           ///< force all cache tiles to be float
     bool m_accept_untiled;       ///< Accept untiled images?
+    bool m_read_before_insert;   ///< Read tiles before adding to cache?
     int m_failure_retries;       ///< Times to re-try disk failures
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
@@ -724,7 +757,7 @@ private:
     FilenameMap m_fingerprints;  ///< Map fingerprints to files
     TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
-    size_t m_mem_used;           ///< Memory being used for tiles
+    atomic_ll m_mem_used;        ///< Memory being used for tiles
     int m_statslevel;            ///< Statistics level
     /// Saved error string, per-thread
     ///
@@ -742,6 +775,9 @@ private:
 #endif
     mutable ic_mutex m_filemutex; ///< Thread safety for file cache
     mutable ic_mutex m_tilemutex; ///< Thread safety for tile cache
+
+    // For debugging -- keep track of who holds the tile mutex
+    ImageCachePerThreadInfo *m_tilemutex_holder;
 
 private:
     // Statistics that are really hard to track per-thread

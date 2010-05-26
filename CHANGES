@@ -2,7 +2,7 @@ Changes:
 
 
 
-In-progress Release 0.8 (as of May 24 2010)
+In-progress Release 0.8 (as of May 26 2010)
 -------------------------------------------
 Major new features:
 
@@ -30,6 +30,8 @@ Fixes, minor enhancements, and performance improvements:
 * maketx: Console flushes in status messages to that a calling process
   will get status messages right away.
 * Fix subtle ImageCache bug with invalidate().
+* ImageCache/TextureSystem have improved multithreading performance
+  when large untiled files are needed simultaneously by many threads.
 * TextureSystem: new 'missingcolor' texture option that, when provided,
   can specify a color that will be used for missing textures rather than
   generating errors.  (If not supplied, missing tex is still an error.)
@@ -38,7 +40,9 @@ Fixes, minor enhancements, and performance improvements:
   for all appropriate compression types, handle incorrectly set-to-zero
   image_full_width and image_full_height.
 * PNG: properly handle palette images, unassociated alpha, gamma
-  correction, endianness for 16-bit files.
+  correction, endianness for 16-bit files, and has vastly better memory
+  consumption due to reading scanlines individually rather than buffering
+  the whole image.
 * iv fixes: fix improper recentering after image reload; fix crash when
   image info window opened without any image files loaded; better status
   window message when image reads fail; iv goes into background properly
@@ -46,6 +50,8 @@ Fixes, minor enhancements, and performance improvements:
   look at pixels underneath it; 
 * ImageCache bug: previously couldn't designate a cache > 2GB (because of
   integer overflow issues).
+* ImageCache::get_image_info and TextureSystem::get_texture_info now respond
+  to a new "exists" query that merely tests for existance of the file.
 
 For developers / build issues:
 

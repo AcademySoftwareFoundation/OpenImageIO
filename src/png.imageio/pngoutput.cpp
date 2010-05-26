@@ -189,9 +189,9 @@ deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gam
                 for (int c = 0;  c < channels;  c++)
                     if (c != alpha_channel) {
                         //FIXME: Would it be worthwhile to do some caching on pow values??
-                        float f = pow(data[c], inv_gamma); //Lineariz
-                        f = (f * max) / data[alpha_channel]; 
-                        data[c] = std::min (max, (T) pow(f, gamma));
+                        float f = pow(data[c]/max, inv_gamma); //Linearize
+                        f = (f / (data[alpha_channel]/max));
+                        data[c] = std::min (max, (T) (max * pow(f, gamma)));
                     }
     }
 }

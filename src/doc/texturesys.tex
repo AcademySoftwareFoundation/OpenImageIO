@@ -815,8 +815,12 @@ of the right data type, {\cf get_texture_info()} will return {\cf false}.
 Supported {\cf dataname} values include:
 
 \begin{description}
-\item[\spc] \spc
-\vspace{-12pt} \item[\rm \kw{resolution}] The resolution of the texture file, which
+\item[\spc] \spc \vspace{-12pt} 
+\item[\rm \kw{exists}] Return 1 if the file exists and
+is an image format that OpenImageIO knows how to read, otherwise return
+0.  The {\cf data} pointer is not used.
+
+\item[\rm \kw{resolution}] The resolution of the texture file, which
 is an array of 2 integers (described as {\cf TypeDesc(INT,2)}).
 
 \item[\rm \kw{texturetype}] A string describing the type of texture
