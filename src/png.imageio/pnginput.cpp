@@ -200,9 +200,9 @@ associateAlpha (T * data, int size, int channels, int alpha_channel, float gamma
             for (int c = 0;  c < channels;  c++)
                 if (c != alpha_channel){
                     //FIXME: Would it be worthwhile to do some caching on pow values?
-                    float f = pow(data[c], inv_gamma); //Linearize
-                    f = (f * data[alpha_channel]) / max;
-                    data[c] = pow(f, gamma);
+                    float f = pow(data[c]/max, inv_gamma); //Linearize
+                    f = (f * data[alpha_channel]/max);
+                    data[c] = (T) (max * pow(f, gamma));
                 }
     }
 }
