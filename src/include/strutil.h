@@ -44,10 +44,6 @@
 #include <string>
 #include <cstring>
 
-#ifdef _WIN32
-#include "hash.h"
-#endif
-
 #include "export.h"
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS
@@ -124,34 +120,28 @@ strhash (const char *s)
 
 /// C++ functor wrapper class for using strhash for hash_map or hash_set.
 /// The way this is used, in conjunction with StringEqual, to build an
-/// efficient hash_map for char*'s is as follows:
+/// efficient hash_map for char*'s or std::string's is as follows:
 /// \code
-///   #ifdef _WIN32
-///    hash_map <const char *, Key, Strutil::StringHash>
+///   #ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
+///    boost::unordered_map <const char *, Key, Strutil::StringHash, Strutil::StringEqual>
 ///   #else
 ///    hash_map <const char *, Key, Strutil::StringHash, Strutil::StringEqual>
 ///   #endif
 /// \endcode
-class StringHash
-#ifdef _WIN32
-    : public hash_compare<const char*>
-#endif
-{
+class StringHash {
 public:
     size_t operator() (const char *s) const {
         return (size_t)Strutil::strhash(s);
     }
-#ifdef _WIN32
-    bool operator() (const char *a, const char *b) {
-        return strcmp (a, b) < 0;
+    size_t operator() (const std::string &s) const {
+        return (size_t)Strutil::strhash(s.c_str());
     }
-#endif
 };
 
 
 
-/// C++ functor class for comparing two char*'s for equality of their
-/// strings.
+/// C++ functor class for comparing two char*'s or std::string's for
+/// equality of their strings.
 class StringEqual {
 public:
     bool operator() (const char *a, const char *b) const {
