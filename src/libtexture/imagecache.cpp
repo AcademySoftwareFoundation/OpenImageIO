@@ -83,6 +83,7 @@ static ustring s_resolution ("resolution"), s_texturetype ("texturetype");
 static ustring s_textureformat ("textureformat"), s_fileformat ("fileformat");
 static ustring s_format ("format"), s_cachedformat ("cachedformat");
 static ustring s_channels ("channels"), s_cachedpixeltype ("cachedpixeltype");
+static ustring s_exists ("exists");
 
 // Functor to compare filenames
 static bool
@@ -1555,6 +1556,11 @@ ImageCacheImpl::get_image_info (ustring filename, ustring dataname,
     if (file->broken()) {
         error ("Invalid image file \"%s\"", filename.c_str());
         return false;
+    }
+    if (dataname == s_exists && datatype == TypeDesc::TypeInt) {
+        // Just check for existence.
+        *(int *)data = 1;
+        return true;
     }
     const ImageSpec &spec (file->spec());
     if (dataname == s_resolution && datatype==TypeDesc(TypeDesc::INT,2)) {
