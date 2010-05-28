@@ -324,15 +324,9 @@ public:
 
     /// Functor that hashes a TileID
     class Hasher
-#ifdef _WIN32
-        : public hash_compare<TileID>
-#endif
     {
       public:
         size_t operator() (const TileID &a) const { return a.hash(); }
-        bool operator() (const TileID &a, const TileID &b) const {
-            return a.hash() < b.hash();
-        }
     };
 
 private:
