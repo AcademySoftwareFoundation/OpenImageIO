@@ -176,7 +176,9 @@ public:
     /// anything if it's uniform.  In either case, return a reference to
     /// its new state.
     VaryingRef & operator++ () {  // Prefix form ++i
-        *((char **)&m_ptr) += m_step;
+        char *p = (char *)m_ptr;
+        p += m_step;
+        m_ptr = (T *) p;
         return *this;
     }
     /// Post-increment: If this VaryingRef is varying, increment its
@@ -185,7 +187,9 @@ public:
     /// legal to do 'bar = foo++' if foo and bar are VaryingRef's.
     void operator++ (int) {  // Postfix form i++ : return nothing to avoid copy
         // VaryingRef<T> tmp = *this;
-        *((char **)&m_ptr) += m_step;
+        char *p = (char *)m_ptr;
+        p += m_step;
+        m_ptr = (T *) p;
         // return tmp;
     }
 

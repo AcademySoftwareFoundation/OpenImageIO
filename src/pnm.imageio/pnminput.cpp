@@ -182,7 +182,7 @@ inline void
 unpack (const unsigned char * read, unsigned char * write, imagesize_t size)
 {
     imagesize_t w = 0, r = 0;	
-    unsigned char bit = 0x7, byte;
+    unsigned char bit = 0x7, byte = 0;
     for (imagesize_t x = 0; x < size; x++) {	
         if (bit == 0x7)
             byte = ~read[r++];
