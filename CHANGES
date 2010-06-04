@@ -1,9 +1,16 @@
 Changes:
 
 
+Release 0.8.1 (June 4 2010, as compared to 0.8.0)
+-------------------------------------------------
+* Threading logic fix for ImageCache/TextureSystem that could potentially
+  lead to a deadlock (and definitely led to hitting a DASSERT when compiled
+  for DEBUG mode).
 
-In-progress Release 0.8 (as of May 26 2010)
--------------------------------------------
+
+
+Release 0.8.0 (May 26 2010, as compared to 0.7.0)
+-------------------------------------------------
 Major new features:
 
 * Python bindings for the ImageInput, ImageOutput, ImageSpec, ImageBuf, 
