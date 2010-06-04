@@ -378,9 +378,16 @@ public:
     const TileID& id (void) const { return m_id; }
 
     const ImageCacheFile & file () const { return m_id.file(); }
-    /// Return the allocated memory size for this tile's pixels.
+
+    /// Return the actual allocated memory size for this tile's pixels.
     ///
     size_t memsize () const {
+        return m_pixels.size();
+    }
+
+    /// Return the space that will be needed for this tile's pixels.
+    ///
+    size_t memsize_needed () const {
         const ImageSpec &spec (file().spec(m_id.subimage()));
         return spec.tile_pixels() * spec.nchannels * file().datatype().size();
     }
@@ -591,12 +598,29 @@ public:
                                ImageCachePerThreadInfo *thread_info);
 
     /// Is the tile specified by the TileID already in the cache?
-    /// Only safe to call when the caller holds tilemutex.
+    /// Assume the caller holds tilemutex, unless do_lock is true.
     bool tile_in_cache (const TileID &id,
-                        ImageCachePerThreadInfo *thread_info) {
-        DASSERT (m_tilemutex_holder == thread_info &&
-                 "tile_in_cache should only be called by the tile lock holder");
-        TileCache::iterator found = m_tilecache.find (id);
+                        ImageCachePerThreadInfo *thread_info,
+                        bool do_lock = false) {
+        TileCache::iterator found;
+        if (do_lock) {
+            DASSERT (m_tilemutex_holder != thread_info &&
+                "tile_in_cache called with do_lock=true, but already locked!");
+            ic_read_lock lock (m_tilemutex);
+#ifdef DEBUG
+            DASSERT (m_tilemutex_holder == NULL);
+            m_tilemutex_holder = thread_info;
+#endif
+            found = m_tilecache.find (id);
+#ifdef DEBUG
+            m_tilemutex_holder = NULL;
+#endif
+        } else {
+            // Caller already holds the lock
+            DASSERT (m_tilemutex_holder == thread_info &&
+                     "tile_in_cache caller should be the tile lock holder");
+            found = m_tilecache.find (id);
+        }
         return (found != m_tilecache.end());
     }
 
@@ -711,6 +735,8 @@ public:
     /// (it will be owned thereafter by the IC).  If there is no IC still
     /// depending on it (signalled by m_imagecache == NULL), delete it.
     static void cleanup_perthread_info (ImageCachePerThreadInfo *p);
+
+    ImageCachePerThreadInfo* &tilemutex_holder() { return m_tilemutex_holder; }
 
 private:
     void init ();

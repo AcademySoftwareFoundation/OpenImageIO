@@ -697,7 +697,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
                               int subimage, int x, int y, int z,
                               TypeDesc format, void *data)
 {
-    // N.B. No need to lock the mutex, since this is only called
+    // N.B. No need to lock the input mutex, since this is only called
     // from read_tile, which already holds the lock.
 
     if (m_input->current_subimage() != subimage) {
@@ -706,6 +706,10 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
             return false;
     }
 
+    // We should not hold the tile mutex at this point
+    DASSERT (imagecache().tilemutex_holder() != thread_info &&
+             "read_untiled expects NOT to hold the tile lock");
+    
     // Strides for a single tile
     int tw = spec(subimage).tile_width;
     int th = spec(subimage).tile_height;
@@ -762,7 +766,8 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
                 // tile-row, so let's put it in the cache anyway so
                 // it'll be there when asked for.
                 TileID id (*this, subimage, i+spec(subimage).x, y0, z);
-                if (! imagecache().tile_in_cache (id, thread_info)) {
+                if (! imagecache().tile_in_cache (id, thread_info,
+                                                  true /*lock*/)) {
                     ImageCacheTileRef tile;
                     tile = new ImageCacheTile (id, &buf[i*pixelsize],
                                             format, pixelsize,
@@ -1002,8 +1007,8 @@ ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
 {
     ImageCacheFile &file (m_id.file ());
     const ImageSpec &spec (file.spec(id.subimage()));
-    size_t size = memsize();
-    ASSERT (size > 0);
+    size_t size = memsize_needed ();
+    ASSERT (size > 0 && memsize() == 0);
     m_pixels.resize (size);
     size_t dst_pelsize = spec.nchannels * file.datatype().size();
     m_valid = convert_image (spec.nchannels, spec.tile_width, spec.tile_height,
@@ -1028,8 +1033,10 @@ ImageCacheTile::~ImageCacheTile ()
 void
 ImageCacheTile::read (ImageCachePerThreadInfo *thread_info)
 {
-    size_t size = memsize ();
-    ASSERT (size > 0);
+    DASSERT (m_id.file().imagecache().tilemutex_holder() != thread_info &&
+             "ImageCacheTile::read expects to NOT hold the tile lock");
+    size_t size = memsize_needed ();
+    ASSERT (memsize() == 0 && size > 0);
     m_pixels.resize (size);
     ImageCacheFile &file (m_id.file());
     m_valid = file.read_tile (thread_info, m_id.subimage(),
