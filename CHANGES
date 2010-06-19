@@ -66,6 +66,7 @@ For developers / build issues:
 * Allow custom installation destination ('make INSTALLDIR=...').
 * ustring now takes half the memory (by no longer redundantly storing the
   characters on Linux and OS X).  
+* Always use TBB (better performance on Windows for atomics). [0.8.2]
 
 
 

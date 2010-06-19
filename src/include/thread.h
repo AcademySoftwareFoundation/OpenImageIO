@@ -59,11 +59,7 @@
 #endif
 
 #ifndef USE_TBB
-#  if defined(_WIN32) && (_MSV_VER >= 1500)
-#    define USE_TBB 0
-#  else
-#    define USE_TBB 1
-#  endif
+#  define USE_TBB 1
 #endif
 
 // Include files we need for atomic counters.
