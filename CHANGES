@@ -4,10 +4,25 @@ Changes:
 
 In-progress Release 0.9 (as of Jun 20 2010)
 -------------------------------------------
+Major new features:
+
 API changes:
+
 * Filter{1D,2D} class now has a destroy() method to match its create(),
   and create() accepts "bspline" and "catrom" as synonyms for the existing
   "b-spline" and "catmull-rom" fileters.
+
+Fixes, minor enhancements, and performance improvements:
+
+* maketx performance improvements: --noresize is now the default (use
+  --resize if you really want power-of-two resizing); much better
+  performance because it doesn't use ImageCache unless the image being
+  converted is very large; takes advantage of multiple cores by
+  automatically multithreading (the number of threads can be controlled
+  by the "-t" option, with the default to use the same number of threads
+  as hardware cores).
+
+For developers / build issues:
 
 
 
