@@ -345,9 +345,11 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
                        const TIFFDirEntry *dirp, const char *buf, bool swab)
 {
     if (dirp->tdir_type == TIFF_SHORT && dirp->tdir_count == 1) {
-        unsigned short d;
-        d = * (const unsigned short *) &dirp->tdir_offset;  // short stored in offset itself
-        // huh? ((unsigned short *)&dirp->tdir_offset)[1] = 0; // clear unused half
+        union { uint32_t i32; uint16_t i16[2]; } convert;
+        convert.i32 = dirp->tdir_offset;
+        unsigned short d = convert.i16[0];
+        // N.B. The Exif spec says that for a 16 bit value, it's stored in
+        // the *first* 16 bits of the offset area.
         if (swab)
             swap_endian (&d);
         spec.attribute (name, (unsigned int)d);

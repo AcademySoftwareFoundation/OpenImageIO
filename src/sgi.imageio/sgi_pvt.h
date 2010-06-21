@@ -108,17 +108,29 @@ class SgiInput : public ImageInput {
     }
 
     // reads SGI file header (512 bytes) into m_sgi_header
-    void read_header();
+    // Return true if ok, false if there was a read error.
+    bool read_header();
 
     // reads RLE scanline start offset and RLE scanline length tables
     // RLE scanline start offset is stored in start_tab
     // RLE scanline length is stored in length_tab
-    void read_offset_tables();
+    // Return true if ok, false if there was a read error.
+    bool read_offset_tables();
 
     // read channel scanline data from file, uncompress it and save the data to
-    // 'out' buffer; 'out' should be allocate before call to this method
-    void uncompress_rle_channel (int scanline_off, int scanline_len,
+    // 'out' buffer; 'out' should be allocate before call to this method.
+    // Return true if ok, false if there was a read error.
+    bool uncompress_rle_channel (int scanline_off, int scanline_len,
                                  unsigned char *out);
+
+    /// Helper: read, with error detection
+    ///
+    bool fread (void *buf, size_t itemsize, size_t nitems) {
+        size_t n = ::fread (buf, itemsize, nitems, m_fd);
+        if (n != nitems)
+            error ("Read error");
+        return n == nitems;
+    }
 };
 
 

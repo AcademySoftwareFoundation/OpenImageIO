@@ -87,7 +87,11 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 
     // Check magic number to assure this is a JPEG file
     int magic = 0;
-    fread (&magic, 4, 1, m_fd);
+    if (fread (&magic, 4, 1, m_fd) != 1) {
+        error ("Empty file");
+        return false;
+    }
+
     rewind (m_fd);
     const int JPEG_MAGIC = 0xffd8ffe0, JPEG_MAGIC_OTHER_ENDIAN =  0xe0ffd8ff;
     const int JPEG_MAGIC2 = 0xffd8ffe1, JPEG_MAGIC2_OTHER_ENDIAN =  0xe1ffd8ff;

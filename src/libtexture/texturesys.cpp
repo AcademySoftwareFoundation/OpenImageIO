@@ -1079,12 +1079,13 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     stex[0] = sint;  stex[1] = sint+1;
     ttex[0] = tint;  ttex[1] = tint+1;
 //    bool svalid[2], tvalid[2];  // Valid texels?  false means black border
-    unsigned int valid_storage = 0;
+    union { bool bvalid[4]; unsigned int ivalid; } valid_storage;
+    valid_storage.ivalid = 0;
     DASSERT (sizeof(valid_storage) == 4*sizeof(bool));
     const unsigned int none_valid = 0;
     const unsigned int all_valid = 0x01010101;
-    bool *svalid = (bool *)&valid_storage;
-    bool *tvalid = ((bool *)&valid_storage) + 2;
+    bool *svalid = valid_storage.bvalid;
+    bool *tvalid = valid_storage.bvalid + 2;
     svalid[0] = options.swrap_func (stex[0], spec.full_width);
     svalid[1] = options.swrap_func (stex[1], spec.full_width);
     tvalid[0] = options.twrap_func (ttex[0], spec.full_height);
@@ -1097,7 +1098,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
         tvalid[1] &= (ttex[1] >= spec.y && ttex[1] < spec.y+spec.height);
     }
 //    if (! (svalid[0] | svalid[1] | tvalid[0] | tvalid[1]))
-    if (valid_storage == none_valid)
+    if (valid_storage.ivalid == none_valid)
         return true; // All texels we need were out of range and using 'black' wrap
 
     int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
@@ -1114,7 +1115,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     size_t pixelsize = texturefile.pixelsize();
     if (onetile &&
 //        (svalid[0] & svalid[1] & tvalid[0] & tvalid[1])) {
-        valid_storage == all_valid) {
+        valid_storage.ivalid == all_valid) {
         // Shortcut if all the texels we need are on the same tile
         TileID id (texturefile, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);

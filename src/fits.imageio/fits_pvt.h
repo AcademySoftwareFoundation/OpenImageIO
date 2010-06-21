@@ -105,8 +105,9 @@ class FitsInput : public ImageInput {
     }
 
     // read keywords from FITS header and add them to the ImageSpec
-    // sets some ImageSpec fields: width, height, depth
-    void read_fits_header (void);
+    // sets some ImageSpec fields: width, height, depth.
+    // Return true if all is ok, false if there was a read error.
+    bool read_fits_header (void);
 
     // add keyword (with comment if exists) to the ImageSpec
     void add_to_spec (const std::string &keyname, const std::string &value);
@@ -118,7 +119,8 @@ class FitsInput : public ImageInput {
 
     // set basic info (width, height) of subimage
     // add attributes to ImageSpec
-    void set_spec_info ();
+    // return true if ok, false upon error reading the spec from the file.
+    bool set_spec_info ();
 
     // converts date in FITS format (YYYY-MM-DD or DD/MM/YY)
     // to DateTime format

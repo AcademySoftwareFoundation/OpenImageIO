@@ -63,8 +63,12 @@ FitsInput::open (const std::string &name, ImageSpec &spec)
 
     // checking if the file is FITS file
     char magic[6] = {0};
-    fread(magic, 1, 6, m_fd);
-    if(strncmp (magic, "SIMPLE", 6)) {
+    if (fread (magic, 1, 6, m_fd) != 6) {
+        error ("%s isn't a FITS file", m_filename.c_str ());
+        return false;   // Read failed
+    }
+
+    if (strncmp (magic, "SIMPLE", 6)) {
         error ("%s isn't a FITS file", m_filename.c_str ());
         close ();
         return false;
@@ -74,7 +78,8 @@ FitsInput::open (const std::string &name, ImageSpec &spec)
 
     subimage_search ();
 
-    set_spec_info ();
+    if (! set_spec_info ())
+        return false;
 
     spec = m_spec;
     return true;
@@ -93,7 +98,14 @@ FitsInput::read_native_scanline (int y, int z, void *data)
     std::vector<unsigned char> data_tmp (m_spec.scanline_bytes ());
     long scanline_off = (m_spec.height - y) * m_spec.scanline_bytes ();
     fseek (m_fd, scanline_off, SEEK_CUR);
-    fread (&data_tmp[0], 1, m_spec.scanline_bytes(), m_fd);
+    size_t n = fread (&data_tmp[0], 1, m_spec.scanline_bytes(), m_fd);
+    if (n != m_spec.scanline_bytes()) {
+        if (feof (m_fd))
+            error ("Hit end of file unexpectedly");
+        else
+            error ("read error");
+        return false;   // Read failed
+    }
 
     // in FITS image data is stored in big-endian so we have to switch to
     // little-endian on little-endian machines
@@ -136,7 +148,8 @@ FitsInput::seek_subimage (int index, ImageSpec &newspec)
     m_cur_subimage = index;
     fseek (m_fd, m_subimages[m_cur_subimage].offset, SEEK_SET);
 
-    set_spec_info ();
+    if (! set_spec_info ())
+        return false;
 
     newspec = m_spec;
     return true;
@@ -144,7 +157,7 @@ FitsInput::seek_subimage (int index, ImageSpec &newspec)
 
 
 
-void
+bool
 FitsInput::set_spec_info ()
 {
     keys.clear ();
@@ -154,7 +167,8 @@ FitsInput::set_spec_info ()
     m_spec = ImageSpec(0, 0, 1, TypeDesc::UNKNOWN);
 
     // reading info about current subimage
-    read_fits_header ();
+    if (! read_fits_header ())
+        return false;
 
     // we don't deal with one dimension images
     // it's some kind of spectral data
@@ -178,7 +192,10 @@ FitsInput::set_spec_info ()
         m_spec.set_format (TypeDesc::FLOAT);
     else if (m_bitpix == -64)
         m_spec.set_format (TypeDesc::DOUBLE);
+    return true;
 }
+
+
     
 bool
 FitsInput::close (void)
@@ -191,13 +208,19 @@ FitsInput::close (void)
 
 
 
-void
+bool
 FitsInput::read_fits_header (void)
 {
     std::string fits_header (HEADER_SIZE, 0);
 
     // we read whole header at once
-    fread (&fits_header[0], 1, HEADER_SIZE, m_fd);
+    if (fread (&fits_header[0], 1, HEADER_SIZE, m_fd) != HEADER_SIZE) {
+        if (feof (m_fd))
+            error ("Hit end of file unexpectedly");
+        else
+            error ("read error");
+        return false;   // Read failed
+    }
 
     for (int i = 0; i < CARDS_PER_HEADER; ++i) {
         std::string card (CARD_SIZE, 0);
@@ -218,7 +241,7 @@ FitsInput::read_fits_header (void)
             add_to_spec ("Comment", m_comment);
             add_to_spec ("History", m_history);
             add_to_spec ("Hierarch", m_hierarch);
-            return;
+            return true;
         }
 
         if (keyname == "SIMPLE" || keyname == "XTENSION")
@@ -274,7 +297,7 @@ FitsInput::read_fits_header (void)
         add_to_spec (pystring::capitalize(keyname), value);
     }
     // if we didn't found END keyword in current header, we read next one
-    read_fits_header ();
+    return read_fits_header ();
 }
 
 

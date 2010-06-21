@@ -157,7 +157,7 @@ class BmpInput : public ImageInput {
         m_colortable.clear ();
     }
 
-    void read_color_table (void);
+    bool read_color_table (void);
 };
 
 

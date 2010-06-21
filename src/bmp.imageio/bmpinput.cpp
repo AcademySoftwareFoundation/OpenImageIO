@@ -98,17 +98,20 @@ BmpInput::open (const std::string &name, ImageSpec &spec)
             break;
         case  8 :
             m_scanline_size = (m_spec.width + 3) & ~3;
-            read_color_table ();
+            if (! read_color_table ())
+                return false;
             break;
         case 4 :
             swidth = (m_spec.width + 1) / 2;
             m_scanline_size = (swidth + 3) & ~3;
-            read_color_table ();
+            if (! read_color_table ())
+                return false;
             break;
         case 1 :
             swidth = (m_spec.width + 7) / 8;
             m_scanline_size = (swidth + 3) & ~3;
-            read_color_table ();
+            if (! read_color_table ())
+                return false;
             break;
     }
 
@@ -136,7 +139,14 @@ BmpInput::read_native_scanline (int y, int z, void *data)
     std::vector<unsigned char> fscanline (m_scanline_size);
     fsetpos (m_fd, &m_image_start);
     fseek (m_fd, scanline_off, SEEK_CUR);
-    fread (&fscanline[0], 1, m_scanline_size, m_fd);
+    size_t n = fread (&fscanline[0], 1, m_scanline_size, m_fd);
+    if (n != (size_t)m_scanline_size) {
+        if (feof (m_fd))
+            error ("Hit end of file unexpectedly");
+        else
+            error ("read error");
+        return false;   // Read failed
+    }
 
     // in each case we process only first m_spec.scanline_bytes () bytes
     // as only they contain information about pixels. The rest are just
@@ -212,7 +222,7 @@ BmpInput::close (void)
 
 
 
-void
+bool
 BmpInput::read_color_table (void)
 {
     // size of color table is defined  by m_dib_header.cpalete
@@ -221,11 +231,20 @@ BmpInput::read_color_table (void)
     // m_dib_header.cpalete entries
     const int32_t colors = (m_dib_header.cpalete) ? m_dib_header.cpalete :
                                                     1 << m_dib_header.bpp;
-    int entry_size = 4;
+    size_t entry_size = 4;
     // if the file is OS V2 bitmap color table entr has only 3 bytes, not four
     if (m_dib_header.size == OS2_V1)
         entry_size = 3;
     m_colortable.resize (colors);
-    for (int i = 0; i < colors; i++)
-        fread (&m_colortable[i], entry_size, 1, m_fd);
+    for (int i = 0; i < colors; i++) {
+        size_t n = fread (&m_colortable[i], 1, entry_size, m_fd);
+        if (n != entry_size) {
+            if (feof (m_fd))
+                error ("Hit end of file unexpectedly while reading color table");
+            else
+                error ("read error while reading color table");
+            return false;   // Read failed
+        }
+    }
+    return true;  // ok
 }

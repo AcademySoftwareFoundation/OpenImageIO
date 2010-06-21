@@ -88,6 +88,14 @@ private:
     ///
     bool readimg ();
 
+    /// Helper: read, with error detection
+    ///
+    bool fread (void *buf, size_t itemsize, size_t nitems) {
+        size_t n = ::fread (buf, itemsize, nitems, m_file);
+        if (n != nitems)
+            error ("Read error");
+        return n == nitems;
+    }
 };
 
 
@@ -118,7 +126,9 @@ ICOInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
-    fread (&m_ico, 1, sizeof(m_ico), m_file);
+    if (! fread (&m_ico, 1, sizeof(m_ico)))
+        return false;
+
     if (bigendian()) {
         // ICOs are little endian
         //swap_endian (&m_ico.reserved); // no use flipping, it's 0 anyway
@@ -165,7 +175,9 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
     // read subimage header
     fseek (m_file, sizeof(ico_header) + m_subimage * sizeof(ico_subimage), SEEK_SET);
     ico_subimage subimg;
-    fread (&subimg, 1, sizeof(subimg), m_file);
+    if (! fread (&subimg, 1, sizeof(subimg)))
+        return false;
+
     if (bigendian()) {
         // ICOs are little endian
         swap_endian (&subimg.bpp);
@@ -180,7 +192,8 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
 
     // test for a PNG icon
     char temp[8];
-    fread (temp, 1, sizeof(temp), m_file);
+    if (! fread (temp, 1, sizeof(temp)))
+        return false;
     if (temp[1] == 'P' && temp[2] == 'N' && temp[3] == 'G') {
         // standard PNG initalization
         if (png_sig_cmp ((png_bytep)temp, 0, 7)) {
@@ -215,7 +228,8 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
     fseek (m_file, subimg.ofs, SEEK_SET);
 
     ico_bitmapinfo bmi;
-    fread (&bmi, 1, sizeof(bmi), m_file);
+    if (! fread (&bmi, 1, sizeof(bmi)))
+        return false;
     if (bigendian()) {
         // ICOs are little endian
         // according to MSDN, only these are valid in an ICO DIB header
@@ -294,7 +308,8 @@ ICOInput::readimg ()
     std::vector<ico_palette_entry> palette (m_palette_size);
     if (m_bpp < 16) { // >= 16-bit icons are unpaletted
         for (int i = 0; i < m_palette_size; i++)
-            fread (&palette[i], 1, sizeof (ico_palette_entry), m_file);
+            if (! fread (&palette[i], 1, sizeof (ico_palette_entry)))
+                return false;
     }
 
     // read the colour data (the 1-bit transparency is added later on)
@@ -305,7 +320,8 @@ ICOInput::readimg ()
     ico_palette_entry *pe;
     int k;
     for (int y = m_spec.height - 1; y >= 0; y--) {
-        fread (&scanline[0], 1, slb, m_file);
+        if (! fread (&scanline[0], 1, slb))
+            return false;
         for (int x = 0; x < m_spec.width; x++) {
             k = y * m_spec.width * 4 + x * 4;
             // fill the buffer
@@ -377,7 +393,8 @@ ICOInput::readimg ()
               + (4 - ((m_spec.width + 7) / 8) % 4) % 4; // padding
         scanline.resize (slb);
         for (int y = m_spec.height -1; y >= 0; y--) {
-            fread (&scanline[0], 1, slb, m_file);
+            if (! fread (&scanline[0], 1, slb))
+                return false;
             for (int x = 0; x < m_spec.width; x += 8) {
                 for (int b = 0; b < 8; b++) { // bit
                     k = y * m_spec.width * 4 + (x + 7 - b) * 4;

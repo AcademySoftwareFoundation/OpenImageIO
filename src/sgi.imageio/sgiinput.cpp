@@ -56,7 +56,8 @@ SgiInput::open (const std::string &name, ImageSpec &spec)
         return false;
     }
 
-    read_header ();
+    if (! read_header ())
+        return false;
 
     const short SGI_MAGIC = 0x01DA;
     if (m_sgi_header.magic != SGI_MAGIC) {
@@ -100,7 +101,8 @@ SgiInput::open (const std::string &name, ImageSpec &spec)
 
     if (m_sgi_header.storage == sgi_pvt::RLE) {
         m_spec.attribute("compression", "rle");
-        read_offset_tables ();
+        if (! read_offset_tables ())
+            return false;
     }
 
     spec = m_spec;
@@ -161,21 +163,24 @@ SgiInput::read_native_scanline (int y, int z, void *data)
         scanline_off_chan1 = sgi_pvt::SGI_HEADER_LEN + y * m_spec.width;
         fseek (m_fd, scanline_off_chan1, SEEK_SET);
         first_channel.resize (m_spec.width);
-        fread (&first_channel[0], 1, m_spec.width, m_fd);
+        if (! fread (&first_channel[0], 1, m_spec.width))
+            return false;
         if (m_spec.nchannels >= 3) {
             // second channel (breen in RGBA)
             scanline_off_chan2 = sgi_pvt::SGI_HEADER_LEN +  (m_spec.height + y)
                                  * m_spec.width;
             fseek (m_fd, scanline_off_chan2, SEEK_SET);
             second_channel.resize (m_spec.width);
-            fread (&second_channel[0], 1, m_spec.width, m_fd);
+            if (! fread (&second_channel[0], 1, m_spec.width))
+                return false;
             
             // third channel (blue in RGBA)
             scanline_off_chan3 = sgi_pvt::SGI_HEADER_LEN + (2 * m_spec.height + y)
                                  * m_spec.width;
             fseek (m_fd, scanline_off_chan3, SEEK_SET);
             third_channel.resize (m_spec.width);
-            fread (&third_channel[0], 1, m_spec.width, m_fd);
+            if (! fread (&third_channel[0], 1, m_spec.width))
+                return false;
 
             if (m_spec.nchannels == 4) {
                 // fourth channel (alpha in RGBA)
@@ -183,7 +188,8 @@ SgiInput::read_native_scanline (int y, int z, void *data)
                                      * m_spec.width;
                 fseek (m_fd, scanline_off_chan4, SEEK_SET);
                 fourth_channel.resize (m_spec.width);
-                fread (&fourth_channel[0], 1, m_spec.width, m_fd);
+                if (! fread (&fourth_channel[0], 1, m_spec.width))
+                    return false;
             }
         }
     }
@@ -207,13 +213,14 @@ SgiInput::read_native_scanline (int y, int z, void *data)
 
 
 
-void
+bool
 SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
                                  unsigned char *out)
 {
     std::vector<unsigned char> rle_scanline(scanline_len);
     fseek (m_fd, scanline_off, SEEK_SET);
-    fread (&rle_scanline[0], 1, scanline_len, m_fd);
+    if (! fread (&rle_scanline[0], 1, scanline_len))
+        return false;
 
     int i = 0;
     while (i < scanline_len) {
@@ -230,6 +237,7 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             i++;
         }
     }
+    return true;
 }
 
 
@@ -245,23 +253,27 @@ SgiInput::close()
 
 
 
-void
+bool
 SgiInput::read_header()
 {
-    fread(&m_sgi_header.magic, sizeof(m_sgi_header.magic), 1, m_fd);
-    fread(&m_sgi_header.storage, sizeof(m_sgi_header.storage), 1, m_fd);
-    fread(&m_sgi_header.bpc, sizeof(m_sgi_header.bpc), 1, m_fd);
-    fread(&m_sgi_header.dimension, sizeof(m_sgi_header.dimension), 1, m_fd);
-    fread(&m_sgi_header.xsize, sizeof(m_sgi_header.xsize), 1, m_fd);
-    fread(&m_sgi_header.ysize, sizeof(m_sgi_header.ysize), 1, m_fd);
-    fread(&m_sgi_header.zsize, sizeof(m_sgi_header.zsize), 1, m_fd);
-    fread(&m_sgi_header.pixmin, sizeof(m_sgi_header.pixmin), 1, m_fd);
-    fread(&m_sgi_header.pixmax, sizeof(m_sgi_header.pixmax), 1, m_fd);
-    fread(&m_sgi_header.dummy, sizeof(m_sgi_header.dummy), 1, m_fd);
-    fread(&m_sgi_header.imagename, sizeof(m_sgi_header.imagename), 1, m_fd);
+    if (!fread(&m_sgi_header.magic, sizeof(m_sgi_header.magic), 1) ||
+        !fread(&m_sgi_header.storage, sizeof(m_sgi_header.storage), 1) ||
+        !fread(&m_sgi_header.bpc, sizeof(m_sgi_header.bpc), 1) ||
+        !fread(&m_sgi_header.dimension, sizeof(m_sgi_header.dimension), 1) ||
+        !fread(&m_sgi_header.xsize, sizeof(m_sgi_header.xsize), 1) ||
+        !fread(&m_sgi_header.ysize, sizeof(m_sgi_header.ysize), 1) ||
+        !fread(&m_sgi_header.zsize, sizeof(m_sgi_header.zsize), 1) ||
+        !fread(&m_sgi_header.pixmin, sizeof(m_sgi_header.pixmin), 1) ||
+        !fread(&m_sgi_header.pixmax, sizeof(m_sgi_header.pixmax), 1) ||
+        !fread(&m_sgi_header.dummy, sizeof(m_sgi_header.dummy), 1) ||
+        !fread(&m_sgi_header.imagename, sizeof(m_sgi_header.imagename), 1))
+        return false;
+
     m_sgi_header.imagename[79] = '\0';
-    fread(&m_sgi_header.colormap, sizeof(m_sgi_header.colormap), 1, m_fd);
-    //dont' read dummy bytes
+    if (! fread(&m_sgi_header.colormap, sizeof(m_sgi_header.colormap), 1))
+        return false;
+
+    //don't read dummy bytes
     fseek (m_fd, 404, SEEK_CUR);
 
     if (littleendian()) {
@@ -274,21 +286,24 @@ SgiInput::read_header()
         swap_endian(&m_sgi_header.pixmax);
         swap_endian(&m_sgi_header.colormap);
     }
+    return true;
 }
 
 
 
-void
+bool
 SgiInput::read_offset_tables ()
 {
     int tables_size = m_sgi_header.ysize * m_sgi_header.zsize;
     start_tab.resize(tables_size);
     length_tab.resize(tables_size);
-    fread (&start_tab[0], sizeof(uint32_t), tables_size, m_fd);
-    fread (&length_tab[0], sizeof(uint32_t), tables_size, m_fd);
+    if (!fread (&start_tab[0], sizeof(uint32_t), tables_size) ||
+        !fread (&length_tab[0], sizeof(uint32_t), tables_size))
+        return false;
 
     if (littleendian ()) {
         swap_endian (&length_tab[0], length_tab.size ());
         swap_endian (&start_tab[0], start_tab.size());
     }
+    return true;
 }

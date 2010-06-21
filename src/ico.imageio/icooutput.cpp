@@ -86,6 +86,15 @@ private:
 
     /// Finish the writing of a PNG subimage
     void finish_png_image ();
+
+    /// Helper: read, with error detection
+    ///
+    bool fread (void *buf, size_t itemsize, size_t nitems) {
+        size_t n = ::fread (buf, itemsize, nitems, m_file);
+        if (n != nitems)
+            error ("Read error");
+        return n == nitems;
+    }
 };
 
 
@@ -206,7 +215,8 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         m_offset = sizeof(ico_header) + sizeof(ico_subimage);
     } else {
         // we'll be appending data, so see what's already in the file
-        fread (&ico, 1, sizeof(ico), m_file);
+        if (! fread (&ico, 1, sizeof(ico)))
+            return false;
         if (bigendian()) {
             // ICOs are little endian
             swap_endian (&ico.type);
@@ -237,7 +247,8 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
             /*std::cerr << "[ico] moving " << amount << " bytes (" << left
                       << " vs " << sizeof (buf) << ")\n";*/
             fseek (m_file, skip + left - amount, SEEK_SET);
-            fread (buf, amount, 1, m_file);
+            if (! fread (buf, amount, 1))
+                return false;
             fseek (m_file, skip + left - amount + sizeof (ico_subimage),
                    SEEK_SET);
             fwrite (buf, amount, 1, m_file);
@@ -257,7 +268,8 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         uint32_t temp;
         fseek (m_file, offsetof (ico_subimage, ofs), SEEK_CUR);
         for (int i = 0; i < subimage; i++) {
-            fread (&temp, sizeof (temp), 1, m_file);
+            if (! fread (&temp, sizeof (temp), 1))
+                return false;
             if (bigendian())
                 swap_endian (&temp);
             temp += sizeof (ico_subimage);

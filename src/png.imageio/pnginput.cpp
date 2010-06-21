@@ -122,7 +122,11 @@ PNGInput::open (const std::string &name, ImageSpec &newspec)
     }
 
     unsigned char sig[8];
-    fread (sig, 1, sizeof(sig), m_file);
+    if (fread (sig, 1, sizeof(sig), m_file) != sizeof(sig)) {
+        error ("Not a PNG file");
+        return false;   // Read failed
+    }
+
     if (png_sig_cmp (sig, 0, 7)) {
         error ("File failed PNG signature check");
         return false;

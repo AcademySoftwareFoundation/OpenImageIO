@@ -103,6 +103,15 @@ private:
 
     /// Helper function: performs the actual pixel decoding.
     bool internal_readimg (unsigned char *dst, int w, int h, int d);
+
+    /// Helper: read, with error detection
+    ///
+    bool fread (void *buf, size_t itemsize, size_t nitems) {
+        size_t n = ::fread (buf, itemsize, nitems, m_file);
+        if (n != nitems)
+            error ("Read error");
+        return n == nitems;
+    }
 };
 
 
@@ -136,7 +145,9 @@ DDSInput::open (const std::string &name, ImageSpec &newspec)
 // due to struct packing, we may get a corrupt header if we just load the
 // struct from file; to adress that, read every member individually
 // save some typing
-#define RH(memb)    fread (&m_dds.memb, sizeof (m_dds.memb), 1, m_file)
+#define RH(memb)  if (! fread (&m_dds.memb, sizeof (m_dds.memb), 1)) \
+                      return false
+
     RH(fourCC);
     RH(size);
     RH(flags);
@@ -519,7 +530,8 @@ DDSInput::internal_readimg (unsigned char *dst, int w, int h, int d) {
         std::vector<squish::u8> tmp(squish::GetStorageRequirements
                                     (w, h, flags));
         // load image into buffer
-        fread (&tmp[0], tmp.size(), 1, m_file);
+        if (! fread (&tmp[0], tmp.size(), 1))
+            return false;
         // decompress image
         squish::DecompressImage (dst, w, h,
                                  &tmp[0], flags);
@@ -548,15 +560,15 @@ DDSInput::internal_readimg (unsigned char *dst, int w, int h, int d) {
         
         // HACK: shortcut for luminance
         if (m_dds.fmt.flags & DDS_PF_LUMINANCE) {
-            fread (dst, w * m_Bpp, h, m_file);
-            return true;
+            return fread (dst, w * m_Bpp, h);
         }
                         
         int k, pixel = 0;
         for (int z = 0; z < d; z++) {
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
-                    fread (&pixel, 1, m_Bpp, m_file);
+                    if (! fread (&pixel, 1, m_Bpp))
+                        return false;
                     k = (z * h * w + y * w + x) * m_spec.nchannels;
                     dst[k + 0] = ((pixel & m_dds.fmt.rmask) >> m_redR)
                                     << m_redL;

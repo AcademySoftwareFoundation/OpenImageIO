@@ -306,7 +306,7 @@ tvi (float adaptation_luminance)
 
 
 /// Use Hector Yee's perceptual metric.  Return the number of pixels that
-// fail the comparison.
+/// fail the comparison.
 /// N.B. - assume pixels are already in linear color space.
 int
 Yee_Compare (const ImageBuf &img0, const ImageBuf &img1,

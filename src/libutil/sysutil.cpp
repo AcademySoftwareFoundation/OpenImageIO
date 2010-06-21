@@ -79,9 +79,10 @@ Sysutil::memory_used (bool resident)
     FILE *file = fopen("/proc/self/statm", "r");
     if (file) {
         unsigned long vm = 0;
-        fscanf (file, "%lu", &vm);  // Just need the first num: vm size
+        int n = fscanf (file, "%lu", &vm);  // Just need the first num: vm size
+        if (n == 1)
+            size = (size_t)vm * getpagesize();
         fclose (file);
-        size = (size_t)vm * getpagesize();
     }
     return size;
 #endif
