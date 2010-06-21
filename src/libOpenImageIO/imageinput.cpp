@@ -89,16 +89,17 @@ ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
     // Complex case -- either changing data type or stride
     int tile_values = m_spec.tile_width * m_spec.tile_height * 
                       std::max(1,m_spec.tile_depth) * m_spec.nchannels;
-    unsigned char *buf = (unsigned char *) alloca (m_spec.tile_bytes());
-    bool ok = read_native_tile (x, y, z, buf);
+
+    boost::scoped_array<char> buf (new char [m_spec.tile_bytes()]);
+    bool ok = read_native_tile (x, y, z, &buf[0]);
     if (! ok)
         return false;
     // FIXME -- what happens when the last tile of a row or column extends
     // beyond the borders of the image buffer???
     ok = contiguous 
-        ? convert_types (m_spec.format, buf, format, data, tile_values)
+        ? convert_types (m_spec.format, &buf[0], format, data, tile_values)
         : convert_image (m_spec.nchannels, m_spec.tile_width, m_spec.tile_height, m_spec.tile_depth, 
-                         buf, m_spec.format, AutoStride, AutoStride, AutoStride,
+                         &buf[0], m_spec.format, AutoStride, AutoStride, AutoStride,
                          data, format, xstride, ystride, zstride);
     if (! ok)
         error ("ImageInput::read_tile : no support for format %s",
