@@ -69,6 +69,9 @@ public:
     // If the name is not recognized, return NULL.
     static Filter1D *create (const std::string &filtername, float width);
 
+    // Destroy a filter that was created with create().
+    static void destroy (Filter1D *filt);
+
 protected:
     float m_w;
 };
@@ -100,6 +103,9 @@ public:
     // If the name is not recognized, return NULL.
     static Filter2D *create (const std::string &filtername,
                              float width, float height);
+
+    // Destroy a filter that was created with create().
+    static void destroy (Filter2D *filt);
 
 protected:
     float m_w, m_h;

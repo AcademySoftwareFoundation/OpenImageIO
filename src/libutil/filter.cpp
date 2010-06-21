@@ -359,7 +359,7 @@ Filter1D::create (const std::string &filtername, float width)
         return new FilterTriangle1D (width);
     if (filtername == "gaussian")
         return new FilterGaussian1D (width);
-    if (filtername == "catmull-rom")
+    if (filtername == "catmull-rom" || filtername == "catrom")
         return new FilterCatmullRom1D (width);
     if (filtername == "blackman-harris")
         return new FilterBlackmanHarris1D (width);
@@ -367,9 +367,17 @@ Filter1D::create (const std::string &filtername, float width)
         return new FilterSinc1D (width);
     if (filtername == "mitchell")
         return new FilterMitchell1D (width);
-    if (filtername == "b-spline")
+    if (filtername == "b-spline" || filtername == "bspline")
         return new FilterBSpline1D (width);
     return NULL;
+}
+
+
+
+void
+Filter1D::destroy (Filter1D *filt)
+{
+    delete filt;
 }
 
 
@@ -387,7 +395,7 @@ Filter2D::create (const std::string &filtername, float width, float height)
         return new FilterTriangle2D (width, height);
     if (filtername == "gaussian")
         return new FilterGaussian2D (width, height);
-    if (filtername == "catmull-rom")
+    if (filtername == "catmull-rom" || filtername == "catrom")
         return new FilterCatmullRom2D (width, height);
     if (filtername == "blackman-harris")
         return new FilterBlackmanHarris2D (width, height);
@@ -397,10 +405,19 @@ Filter2D::create (const std::string &filtername, float width, float height)
         return new FilterMitchell2D (width, height);
     if (filtername == "disk")
         return new FilterDisk2D (width, height);
-    if (filtername == "b-spline")
+    if (filtername == "b-spline" || filtername == "bspline")
         return new FilterBSpline2D (width, height);
     return NULL;
 }
+
+
+
+void
+Filter2D::destroy (Filter2D *filt)
+{
+    delete filt;
+}
+
 
 
 #ifdef OPENIMAGEIO_NAMESPACE

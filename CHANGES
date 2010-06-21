@@ -2,8 +2,17 @@ Changes:
 
 
 
-In-progress Release 0.8 (as of May 26 2010)
+In-progress Release 0.9 (as of Jun 20 2010)
 -------------------------------------------
+API changes:
+* Filter{1D,2D} class now has a destroy() method to match its create(),
+  and create() accepts "bspline" and "catrom" as synonyms for the existing
+  "b-spline" and "catmull-rom" fileters.
+
+
+
+Release 0.8 (May 26 2010)
+-------------------------
 Major new features:
 
 * Python bindings for the ImageInput, ImageOutput, ImageSpec, ImageBuf, 
