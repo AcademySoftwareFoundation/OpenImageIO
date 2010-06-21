@@ -284,7 +284,7 @@ If {\cf autotile} is nonzero (e.g., 64 is a good recommended value), any
 untiled images will be read and cached as if they were constructed in
 tiles of size {\cf autotile} $\times$ {\cf autotile}.  This leads to
 slightly more expensive disk access if you are using only a few
-images, but if you are using many untiled images, the caching be much
+images, but if you are using many untiled images, the caching will be much
 more efficient.
 \apiend
 
@@ -296,7 +296,7 @@ If {\cf automip} is nonzero, any untiled, single-subimage
 (un-MIP-mapped) images will have lower-resolution MIP-map levels
 generated on-demand if pixels are requested from the lower-res subimages
 (that don't really exist).  Essentially this makes the \ImageCache
-pretends that the file is MIP-mapped even if it isn't.
+pretend that the file is MIP-mapped even if it isn't.
 \apiend
 
 \apiitem{int forcefloat}

@@ -783,7 +783,7 @@ filling the full 16 bit:
 \subsection{Random access and repeated transmission of pixels}
 \label{sec:imageoutput:randomrewrite}
 
-All \ImageOutput implementations that support scanlines and tiles in strict
+All \ImageOutput implementations that support scanlines and tiles should write pixels in strict
 order of increasing $z$ slice, increasing $y$ scanlines/rows within each
 slice, and increasing $x$ column within each row.  It is generally not
 safe to skip scanlines or tiles, or transmit them out of order, unless

@@ -1,6 +1,21 @@
 Changes:
 
 
+Release 0.8.2 (June 21 2010, as compared to 0.8.1)
+--------------------------------------------------
+* maketx performance improvements: --noresize is now the default (use
+  --resize if you really want power-of-two resizing); much better
+  performance because it doesn't use ImageCache unless the image being
+  converted is very large; takes advantage of multiple cores by
+  automatically multithreading (the number of threads can be controlled
+  by the "-t" option, with the default to use the same number of threads
+  as hardware cores).
+* Always use the faster TBB atomics rather than the Windows native ones.
+* Fix potential crash in read_tile for files with tiles so big that they
+  would not fit on the stack (heap allocation used instead).
+* Documentation typos fixed.
+
+
 Release 0.8.1 (June 4 2010, as compared to 0.8.0)
 -------------------------------------------------
 * Threading logic fix for ImageCache/TextureSystem that could potentially
@@ -9,8 +24,8 @@ Release 0.8.1 (June 4 2010, as compared to 0.8.0)
 
 
 
-Release 0.8.0 (May 26 2010, as compared to 0.7.0)
--------------------------------------------------
+Release 0.8 (May 26 2010)
+-------------------------
 Major new features:
 
 * Python bindings for the ImageInput, ImageOutput, ImageSpec, ImageBuf, 
@@ -73,6 +88,7 @@ For developers / build issues:
 * Allow custom installation destination ('make INSTALLDIR=...').
 * ustring now takes half the memory (by no longer redundantly storing the
   characters on Linux and OS X).  
+* Always use TBB (better performance on Windows for atomics). [0.8.2]
 
 
 

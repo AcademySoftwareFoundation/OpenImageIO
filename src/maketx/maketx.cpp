@@ -41,6 +41,8 @@
 */
 #include "SHA1.h"
 
+#include <boost/version.hpp>
+#include <boost/thread/thread.hpp>
 #include <boost/filesystem.hpp>
 #include <OpenEXR/ImathMatrix.h>
 
@@ -65,6 +67,7 @@ static std::string dataformatname = "";
 static std::string fileformatname = "";
 static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
+static int nthreads = 0;
 static int tile[3] = { 64, 64, 1 };
 static std::string channellist;
 static bool updatemode = false;
@@ -89,7 +92,8 @@ static float fov = 90;
 static std::string wrap = "black";
 static std::string swrap;
 static std::string twrap;
-static bool noresize = false;
+static bool doresize = false;
+static bool noresize = true;
 static float opaquewidth = 0;  // should be volume shadow epsilon
 static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
@@ -126,6 +130,7 @@ getargs (int argc, char *argv[])
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
                   "-o %s", &outputfilename, "Output filename",
+                  "-t %d", &nthreads, "Number of threads (default: #cores)",
                   "-u", &updatemode, "Update mode",
                   "--format %s", &fileformatname, "Specify output format (default: guess from extension)",
                   "-d %s", &dataformatname, "Set the output data format to one of:\n"
@@ -139,7 +144,8 @@ getargs (int argc, char *argv[])
                   "--wrap %s", &wrap, "Specify wrap mode (black, clamp, periodic, mirror)",
                   "--swrap %s", &swrap, "Specific s wrap mode separately",
                   "--twrap %s", &twrap, "Specific t wrap mode separately",
-                  "--noresize", &noresize, "Do not resize textures to power of 2 resolution",
+                  "--resize", &doresize, "Resize textures to power of 2 (default: yes)",
+                  "--noresize", &noresize, "Do not resize textures to power of 2 (default: no",
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
                           &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3], 
@@ -191,6 +197,8 @@ getargs (int argc, char *argv[])
     }
     if (optionsum == 0)
         mipmapmode = true;
+    if (doresize)
+        noresize = false;
 
     if (filenames.size() < 1) {
         std::cerr << "maketx ERROR: Must have at least one input filename specified.\n";
@@ -210,6 +218,92 @@ datestring (time_t t)
     return Strutil::format ("%4d:%02d:%02d %2d:%02d:%02d",
                             mytm.tm_year+1900, mytm.tm_mon+1, mytm.tm_mday,
                             mytm.tm_hour, mytm.tm_min, mytm.tm_sec);
+}
+
+
+
+// Run func over all pixels of dst, but split into separate threads for
+// bands of the image.  Assumes that the calling profile of func is:
+//     func (dst, src, xbegin, xend, ybegin, yend);
+// Also assumes that every pixel processed is approximately the same
+// cost, so it just divides the image space into equal-sized bands without
+// worrying about any sophisticated load balancing.
+template <class Func>
+void
+parallel_image (Func func, ImageBuf *dst, const ImageBuf *src, 
+                int xbegin, int xend, int ybegin, int yend, int nthreads)
+{
+    const ImageSpec &dstspec (dst->spec());
+
+    // Don't parallelize with too few pixels
+    if (dstspec.image_pixels() < 1000)
+        nthreads = 1;
+    // nthreads < 1 means try to make enough threads to fill all cores
+    if (nthreads < 1) {
+#if (BOOST_VERSION >= 103500)
+        nthreads = boost::thread::hardware_concurrency();
+#else
+        nthreads = 1;   // hardware_concurrency not supported in Boost < 1.35
+#endif
+    }
+
+    if (nthreads > 1) {
+        boost::thread_group threads;
+        int blocksize = std::max (1, ((xend-xbegin) + nthreads-1) / nthreads);
+        for (int i = 0;  i < nthreads;  ++i) {
+            int x0 = xbegin + i*blocksize;
+            int x1 = std::min (xbegin + (i+1)*blocksize, xend);
+//            std::cerr << "  launching " << x0 << ' ' << x1 << ' '
+//                      << ybegin << ' ' << yend << "\n";
+            threads.add_thread (new boost::thread (func, dst, src,
+                                                   x0, x1,
+                                                   ybegin, yend));
+        }
+        threads.join_all ();
+    } else {
+        func (dst, src, xbegin, xend, ybegin, yend);
+    }
+}
+
+
+
+// Copy src into dst, but only for the range [x0,x1) x [y0,y1).
+static void
+copy_block (ImageBuf *dst, const ImageBuf *src,
+            int x0, int x1, int y0, int y1)
+{
+    const ImageSpec &dstspec (dst->spec());
+    float *pel = (float *) alloca (dstspec.pixel_bytes());
+    x1 = std::min (x1, dstspec.width);
+    y1 = std::min (y1, dstspec.height);
+    for (int y = y0;  y < y1;  ++y) {
+        for (int x = x0;  x < x1;  ++x) {
+            src->getpixel (x, y, pel);
+            dst->setpixel (x, y, pel);
+        }
+    }
+}
+
+
+
+// Resize src into dst, relying on the linear interpolation of
+// interppixel_NDC_full, for the pixel range [x0,x1) x [y0,y1).
+static void
+resize_block (ImageBuf *dst, const ImageBuf *src,
+              int x0, int x1, int y0, int y1)
+{
+    const ImageSpec &dstspec (dst->spec());
+    float *pel = (float *) alloca (dstspec.pixel_bytes());
+    x1 = std::min (x1, dstspec.width);
+    y1 = std::min (y1, dstspec.height);
+    float xscale = 1.0f / (float)dstspec.width;
+    float yscale = 1.0f / (float)dstspec.height;
+    for (int y = y0;  y < y1;  ++y) {
+        for (int x = x0;  x < x1;  ++x) {
+            src->interppixel_NDC_full ((x+0.5f)*xscale, (y+0.5f)*yscale, pel);
+            dst->setpixel (x, y, pel);
+        }
+    }
 }
 
 
@@ -255,10 +349,14 @@ make_texturemap (const char *maptypename = "texture map")
     // file has been read and cached.
     TypeDesc out_dataformat = src.spec().format;
 
+    // Read the full file locally if it's less than 1 GB, otherwise
+    // allow the ImageBuf to use ImageCache to manage memory.
+    bool read_local = (src.spec().image_bytes() < size_t(1024*1024*1024));
+
     if (verbose)
         std::cout << "Reading file: " << filenames[0] << std::endl;
     Timer readtimer;
-    if (! src.read()) {
+    if (! src.read (0, read_local)) {
         std::cerr 
             << "maketx ERROR: Could not find an ImageIO plugin to read \"" 
             << filenames[0] << "\" : " << src.geterror() << "\n";
@@ -408,7 +506,6 @@ make_texturemap (const char *maptypename = "texture map")
     Timer resizetimer;
     ImageBuf dst ("temp", dstspec);
     ImageBuf *toplevel = &dst;    // Ptr to top level of mipmap
-    float *pel = (float *) alloca (dstspec.pixel_bytes());
     if (dstspec.width == srcspec.width && 
         dstspec.height == srcspec.height &&
         dstspec.depth == srcspec.depth && ! orig_was_crop) {
@@ -418,25 +515,18 @@ make_texturemap (const char *maptypename = "texture map")
             // the original copy.
             toplevel = &src;
         } else {
-            for (int y = 0;  y < dstspec.height;  ++y) {
-                for (int x = 0;  x < dstspec.width;  ++x) {
-                    src.getpixel (x, y, pel);
-                    dst.setpixel (x, y, pel);
-                }
-            }
+            parallel_image (copy_block, &dst, &src,
+                            dstspec.x, dstspec.x+dstspec.width,
+                            dstspec.y, dstspec.y+dstspec.height, nthreads);
         }
     } else {
         // General case: resize
         if (verbose)
             std::cout << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
-        for (int y = 0;  y < dstspec.height;  ++y) {
-            for (int x = 0;  x < dstspec.width;  ++x) {
-                src.interppixel_NDC_full ((x+0.5f)/(float)dstspec.width,
-                                          (y+0.5f)/(float)dstspec.height, pel);
-                dst.setpixel (x, y, pel);
-            }
-        }
+        parallel_image (resize_block, &dst, &src,
+                        dstspec.x, dstspec.x+dstspec.width,
+                        dstspec.y, dstspec.y+dstspec.height, nthreads);
     }
     stat_resizetime += resizetimer();
 
@@ -499,12 +589,6 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     if (mipmap) {  // Mipmap levels:
         if (verbose)
             std::cout << "  Mipmapping...\n" << std::flush;
-        size_t pixelsize = outspec.nchannels * sizeof(float);
-        float *pel = (float *) alloca (pixelsize);
-        float *in0 = (float *) alloca (4 * pixelsize);
-        float *in1 = in0 + outspec.nchannels;
-        float *in2 = in1 + outspec.nchannels;
-        float *in3 = in2 + outspec.nchannels;
         ImageBuf tmp;
         ImageBuf *big = &img, *small = &tmp;
         while (ok && (outspec.width > 1 || outspec.height > 1)) {
@@ -523,29 +607,12 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             smallspec.full_depth  = smallspec.depth;
             smallspec.set_format (TypeDesc::FLOAT);
             small->alloc (smallspec);  // Realocate with new size
-            if ((smallspec.width & 1) == 0 && (smallspec.height & 1) == 0) {
-                // Special case -- both dimensions are even resolutions, so
-                // we can just average groups of four pixels.
-                for (int y = 0;  y < smallspec.height;  ++y) {
-                    for (int x = 0;  x < smallspec.width;  ++x) {
-                        big->getpixel (2*x, 2*y, in0);
-                        big->getpixel (2*x+1, 2*y, in1);
-                        big->getpixel (2*x, 2*y+1, in2);
-                        big->getpixel (2*x+1, 2*y+1, in3);
-                        for (int c = 0;  c < outspec.nchannels;  ++c)
-                            pel[c] = 0.25f * (in0[c] + in1[c] + in2[c] + in3[c]);
-                        small->setpixel (x, y, pel);
-                    }
-                }
-            } else {
-                for (int y = 0;  y < smallspec.height;  ++y) {
-                    for (int x = 0;  x < smallspec.width;  ++x) {
-                        big->interppixel_NDC ((x+0.5f)/(float)smallspec.width,
-                                              (y+0.5f)/(float)smallspec.height, pel);
-                        small->setpixel (x, y, pel);
-                    }
-                }
-            }
+
+            parallel_image (resize_block, small, big,
+                            smallspec.x, smallspec.x+smallspec.width,
+                            smallspec.y, smallspec.y+smallspec.height,
+                            nthreads);
+
             stat_miptime += miptimer();
             outspec = smallspec;
             outspec.set_format (outputdatatype);
