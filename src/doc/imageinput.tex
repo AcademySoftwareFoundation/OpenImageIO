@@ -490,13 +490,13 @@ types, and meanings of all metadata attributes that they understand.
 \label{sec:imageinput:multiimage}
 
 Some image file formats support multiple discrete images to be stored
-in one file.  When you {\cf open()} an \ImageOutput, it will by default
+in one file.  When you {\cf open()} an \ImageInput, it will by default
 point to the first (i.e., number 0) subimage in the file.  You can
 switch to viewing another subimage using the {\cf seek_subimage()} 
 function:
 
 \begin{code}
-        ImageInput *in = ImageOutput::create (filename);
+        ImageInput *in = ImageInput::create (filename);
         ImageSpec spec;
         in->open (filename, spec);
         ...
