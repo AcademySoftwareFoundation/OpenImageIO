@@ -247,6 +247,7 @@ parallel_image (Func func, ImageBuf *dst, const ImageBuf *src,
 #endif
     }
 
+#if (BOOST_VERSION >= 103500)
     if (nthreads > 1) {
         boost::thread_group threads;
         int blocksize = std::max (1, ((xend-xbegin) + nthreads-1) / nthreads);
@@ -261,8 +262,11 @@ parallel_image (Func func, ImageBuf *dst, const ImageBuf *src,
         }
         threads.join_all ();
     } else {
+#endif // BOOST_VERSION
         func (dst, src, xbegin, xend, ybegin, yend);
+#if (BOOST_VERSION >= 103500)
     }
+#endif
 }
 
 
