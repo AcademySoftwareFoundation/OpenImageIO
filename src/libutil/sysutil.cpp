@@ -38,6 +38,13 @@
 # include <unistd.h>
 #endif
 
+#ifdef __FreeBSD__
+#include <sys/types.h>
+#include <sys/resource.h>
+#include <sys/sysctl.h>
+#include <sys/wait.h>
+#endif
+
 #ifdef __APPLE__
 # include <mach/task.h>
 # include <mach/mach_init.h>
@@ -141,6 +148,16 @@ Sysutil::this_program_path ()
 #elif defined(_WIN32)
     // According to MSDN...
     int r = GetModuleFileName (NULL, filename, size);
+#elif defined(__FreeBSD__)
+    int mib[4];
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_PROC;
+    mib[2] = KERN_PROC_PATHNAME;
+    mib[3] = -1;
+//  char filename[1024];
+    size_t cb = sizeof(filename);
+    int r=1;
+    sysctl(mib, 4, filename, &cb, NULL, 0);
 #else
     // No idea what platform this is
     ASSERT (0);
