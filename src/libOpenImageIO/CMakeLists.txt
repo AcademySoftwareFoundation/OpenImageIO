@@ -62,6 +62,12 @@ if (EMBEDPLUGINS)
           ../dds.imageio/squish/colourset.cpp ../dds.imageio/squish/maths.cpp
           ../dds.imageio/squish/rangefit.cpp ../dds.imageio/squish/singlecolourfit.cpp
           ../dds.imageio/squish/squish.cpp
+        ../dpx.imageio/dpxinput.cpp ../dpx.imageio/dpxoutput.cpp
+          ../dpx.imageio/libdpx/DPX.cpp ../dpx.imageio/libdpx/OutStream.cpp
+          ../dpx.imageio/libdpx/RunLengthEncoding.cpp ../dpx.imageio/libdpx/Codec.cpp
+          ../dpx.imageio/libdpx/Reader.cpp ../dpx.imageio/libdpx/Writer.cpp
+          ../dpx.imageio/libdpx/DPXHeader.cpp ../dpx.imageio/libdpx/ElementReadStream.cpp
+          ../dpx.imageio/libdpx/InStream.cpp ../dpx.imageio/libdpx/TestFunc.cpp
         ../fits.imageio/fitsinput.cpp ../fits.imageio/fitsoutput.cpp
           ../fits.imageio/fits_pvt.cpp
         ../hdr.imageio/hdrinput.cpp ../hdr.imageio/hdroutput.cpp
