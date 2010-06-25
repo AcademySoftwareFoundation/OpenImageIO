@@ -240,13 +240,96 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
     m_spec.attribute ("Orientation", orientation);
         
     // general metadata
-    m_spec.attribute ("Copyright", m_dpx.header.copyright);
-    m_spec.attribute ("Software", m_dpx.header.creator);
-    m_spec.attribute ("DocumentName", m_dpx.header.project);
+    if (m_dpx.header.copyright[0])
+        m_spec.attribute ("Copyright", m_dpx.header.copyright);
+    if (m_dpx.header.creator[0])
+        m_spec.attribute ("Software", m_dpx.header.creator);
+    if (m_dpx.header.project[0])
+        m_spec.attribute ("DocumentName", m_dpx.header.project);
+    if (m_dpx.header.creationTimeDate[0]) {
+        // libdpx's date/time format is pretty close to OIIO's (libdpx uses
+        // %Y:%m:%d:%H:%M:%S%Z)
+        char date[24];
+        strcpy(date, m_dpx.header.creationTimeDate);
+        date[10] = ' ';
+        date[19] = 0;
+        m_spec.attribute ("DateTime", date);
+    }
+    if (m_dpx.header.ImageEncoding (index) == dpx::kRLE)
+        m_spec.attribute ("compression", "rle");
+    char buf[32 + 1];
+    m_dpx.header.Description (index, buf);
+    if (buf[0])
+        m_spec.attribute ("ImageDescription", buf);
+    m_spec.attribute ("PixelAspectRatio", m_dpx.header.AspectRatio(0)
+         / (float)m_dpx.header.AspectRatio(1));
 
     // DPX-specific metadata
-    m_spec.attribute ("dpx:EncryptKey", m_dpx.header.EncryptKey ());
-    
+    // save some typing by using macros
+    // "internal" macro
+#define _DPX_SET_ATTRIB(x, n)       m_spec.attribute ("dpx:" #x,              \
+                                        m_dpx.header.x (n))
+    // set without checking for bogus attributes
+#define DPX_SET_ATTRIB_N(x)         _DPX_SET_ATTRIB(x, index)
+    // set with checking for bogus attributes
+#define DPX_SET_ATTRIB_INT_N(x)     if (m_dpx.header.x (index) != 0xFFFFFFFF) \
+                                        _DPX_SET_ATTRIB(x, index)
+#define DPX_SET_ATTRIB_INT(x)       if (m_dpx.header.x () != 0xFFFFFFFF)      \
+                                        _DPX_SET_ATTRIB(x, )
+#define DPX_SET_ATTRIB_FLOAT_N(x)   if (! isnanf(m_dpx.header.x (index)))     \
+                                        _DPX_SET_ATTRIB(x, index)
+#define DPX_SET_ATTRIB_FLOAT(x)     if (! isnanf(m_dpx.header.x ()))          \
+                                        _DPX_SET_ATTRIB(x, )
+#define DPX_SET_ATTRIB_STR(X, x)    if (m_dpx.header.x[0])                    \
+                                        m_spec.attribute ("dpx:" #X,          \
+                                            m_dpx.header.x)
+    DPX_SET_ATTRIB_INT(DittoKey);
+    DPX_SET_ATTRIB_INT_N(LowData);
+    DPX_SET_ATTRIB_FLOAT_N(LowQuantity);
+    DPX_SET_ATTRIB_INT_N(HighData);
+    DPX_SET_ATTRIB_FLOAT_N(HighQuantity);
+    DPX_SET_ATTRIB_N(Transfer);
+    DPX_SET_ATTRIB_N(Colorimetric);
+    DPX_SET_ATTRIB_FLOAT(XScannedSize);
+    DPX_SET_ATTRIB_FLOAT(YScannedSize);
+    DPX_SET_ATTRIB_INT(FramePosition);
+    DPX_SET_ATTRIB_INT(SequenceLength);
+    DPX_SET_ATTRIB_INT(HeldCount);
+    DPX_SET_ATTRIB_FLOAT(FrameRate);
+    DPX_SET_ATTRIB_FLOAT(ShutterAngle);
+    DPX_SET_ATTRIB_STR(Version, version);
+    //DPX_SET_ATTRIB_STR(FilmEdgeCode, filmEdgeCode);
+    DPX_SET_ATTRIB_STR(Format, format);
+    DPX_SET_ATTRIB_STR(FrameId, frameId);
+    DPX_SET_ATTRIB_STR(SlateInfo, slateInfo);
+#undef DPX_SET_ATTRIB_STR
+#undef DPX_SET_ATTRIB_FLOAT
+#undef DPX_SET_ATTRIB_FLOAT_N
+#undef DPX_SET_ATTRIB_INT
+#undef DPX_SET_ATTRIB_INT_N
+#undef DPX_SET_ATTRIB_N
+#undef _DPX_SET_ATTRIB
+
+    if (m_dpx.header.EncryptKey () != 0xFFFFFFFF)
+        m_spec.attribute ("dpx:EncryptKey", m_dpx.header.EncryptKey ());
+    if (m_dpx.header.inputDevice[0])
+        m_spec.attribute ("dpx:InputDevice", m_dpx.header.inputDevice);
+    if (m_dpx.header.inputDeviceSerialNumber[0])
+        m_spec.attribute ("dpx:InputDeviceSerialNumber",
+            m_dpx.header.inputDeviceSerialNumber);
+    if (m_dpx.header.sourceTimeDate[0]) {
+        // libdpx's date/time format is pretty close to OIIO's (libdpx uses
+        // %Y:%m:%d:%H:%M:%S%Z)
+        char date[24];
+        strcpy(date, m_dpx.header.sourceTimeDate);
+        date[10] = ' ';
+        date[19] = 0;
+        m_spec.attribute ("dpx:SourceDateTime", date);
+    }
+    m_dpx.header.FilmEdgeCode(buf);
+    if (buf[0])
+        m_spec.attribute ("dpx:FilmEdgeCode", buf);
+
     return true;
 }
 
