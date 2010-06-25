@@ -276,9 +276,9 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
                                         _DPX_SET_ATTRIB(x, index)
 #define DPX_SET_ATTRIB_INT(x)       if (m_dpx.header.x () != 0xFFFFFFFF)      \
                                         _DPX_SET_ATTRIB(x, )
-#define DPX_SET_ATTRIB_FLOAT_N(x)   if (! isnanf(m_dpx.header.x (index)))     \
+#define DPX_SET_ATTRIB_FLOAT_N(x)   if (! std::isnan(m_dpx.header.x (index))) \
                                         _DPX_SET_ATTRIB(x, index)
-#define DPX_SET_ATTRIB_FLOAT(x)     if (! isnanf(m_dpx.header.x ()))          \
+#define DPX_SET_ATTRIB_FLOAT(x)     if (! std::isnan(m_dpx.header.x ()))      \
                                         _DPX_SET_ATTRIB(x, )
 #define DPX_SET_ATTRIB_STR(X, x)    if (m_dpx.header.x[0])                    \
                                         m_spec.attribute ("dpx:" #X,          \
@@ -298,7 +298,6 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
     DPX_SET_ATTRIB_FLOAT(FrameRate);
     DPX_SET_ATTRIB_FLOAT(ShutterAngle);
     DPX_SET_ATTRIB_STR(Version, version);
-    //DPX_SET_ATTRIB_STR(FilmEdgeCode, filmEdgeCode);
     DPX_SET_ATTRIB_STR(Format, format);
     DPX_SET_ATTRIB_STR(FrameId, frameId);
     DPX_SET_ATTRIB_STR(SlateInfo, slateInfo);
