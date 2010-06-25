@@ -92,17 +92,17 @@ bool ImageCacheWrap::getattribute(const std::string &name, TypeDesc type,
 }
 
 //Shortcuts for common types
-bool ImageCacheWrap::getattribute_int(const std::string &name, int val)
+bool ImageCacheWrap::getattribute_int(const std::string &name, int &val)
 {
     return m_cache->getattribute(name, val);
 }
 
-bool ImageCacheWrap::getattribute_float(const std::string &name, float val)
+bool ImageCacheWrap::getattribute_float(const std::string &name, float &val)
 {
     return m_cache->getattribute(name, val);
 }
 
-bool ImageCacheWrap::getattribute_double(const std::string &name, double val)
+bool ImageCacheWrap::getattribute_double(const std::string &name, double &val)
 {
     return m_cache->getattribute(name, val);
 }
