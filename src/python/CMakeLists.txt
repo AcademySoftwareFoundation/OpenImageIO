@@ -8,7 +8,8 @@ if ( BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
 
     set (python_srcs py_imageinput.cpp py_imageoutput.cpp
          py_imagecache.cpp py_imagespec.cpp
-         py_imagebuf.cpp py_typedesc.cpp py_oiio.cpp)
+         py_imagebuf.cpp py_typedesc.cpp py_paramvalue.cpp
+         py_oiio.cpp)
 
     message (STATUS "Python found ${PYTHONLIBS_FOUND} ")
     message (STATUS "Python include dirs ${PYTHON_INCLUDE_PATH}")

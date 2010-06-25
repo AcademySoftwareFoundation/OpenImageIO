@@ -56,6 +56,7 @@ void declare_imageoutput();
 void declare_typedesc();
 void declare_imagecache();
 void declare_imagebuf();
+void declare_paramvalue();
 
 bool PyProgressCallback(void*, float);
 

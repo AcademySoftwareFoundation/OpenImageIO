@@ -191,6 +191,7 @@ BOOST_PYTHON_MODULE(OpenImageIO) {
     declare_typedesc();
     declare_imagecache();
     declare_imagebuf();
+    declare_paramvalue();
 	def("progress_callback_example", &progress_callback_wrapper);   
 	def("create_array", &create_array);
 	def("fill_array",   &fill_array);
