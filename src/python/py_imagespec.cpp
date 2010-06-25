@@ -116,7 +116,8 @@ void declare_imagespec()
         .def_readwrite("quant_min",     &ImageSpec::quant_min)
         .def_readwrite("quant_max",     &ImageSpec::quant_max)
         .def_readwrite("quant_dither",  &ImageSpec::quant_dither) //float
-        .def_readwrite("extra_attribs", &ImageSpec::extra_attribs)//ImageIOParameterList
+        .add_property("extra_attribs", 
+            make_getter(&ImageSpec::extra_attribs))//ImageIOParameterList
         .def(init<int, int, int, TypeDesc>())
         .def(init<TypeDesc>())
         .def(init<const OpenImageIO::ImageSpec&>())

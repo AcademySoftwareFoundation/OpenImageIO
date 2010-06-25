@@ -90,11 +90,12 @@ object ParamValue_getitem(const ParamValue& self, int n) {
 #endif
     ParamValue_convert_dispatch(FLOAT)
     ParamValue_convert_dispatch(DOUBLE)
+    case TypeDesc::STRING:
+        return ParamValue_convert(t, n, (ustring*)self.data());
+    default: return object();
     }
 
 #undef ParamValue_convert_dispatch
-
-    return object();
 }
 
 ustring ParamValue_name(const ParamValue& self)
@@ -102,36 +103,39 @@ ustring ParamValue_name(const ParamValue& self)
     return self.name();
 }
 
-struct ParamValueList_to_python_list {
-    static PyObject* convert(const ParamValueList& s) {
-        list result;
-        for (ParamValueList::const_iterator i = s.begin();
-             i != s.end(); ++i) {
-            result.append(*i);
-        }
-
-        return boost::python::incref(result.ptr());
-    }
-};
+ParamValue& ParamValueList_getitem(ParamValueList& self, int i)
+{
+    return self[i];
+}
 
 void declare_paramvalue()
 {
-    to_python_converter<ParamValueList, ParamValueList_to_python_list>();
 
-    enum_<ParamValue::Interp>("Interp")
-        .value("INTERP_CONSTANT", ParamValue::INTERP_CONSTANT)
-        .value("INTERP_PERPIECE", ParamValue::INTERP_PERPIECE)
-        .value("INTERP_LINEAR",   ParamValue::INTERP_LINEAR)
-        .value("INTERP_VERTEX",   ParamValue::INTERP_VERTEX)
+   enum_<ParamValue::Interp>("Interp")
+       .value("INTERP_CONSTANT", ParamValue::INTERP_CONSTANT)
+       .value("INTERP_PERPIECE", ParamValue::INTERP_PERPIECE)
+       .value("INTERP_LINEAR",   ParamValue::INTERP_LINEAR)
+       .value("INTERP_VERTEX",   ParamValue::INTERP_VERTEX)
+   ;
+
+   class_<ParamValue>("ParamValue")
+       .add_property("name",     &ParamValue_name)
+       .add_property("type",     &ParamValue::type)
+       .def("__getitem__",       &ParamValue_getitem)
+       .def("__len__",           &ParamValue::nvalues)
+   ;
+
+    class_<ParamValueList>("ParamValueList")
+        .def("__getitem__", &ParamValueList_getitem,
+            return_internal_reference<>())
+        .def("__len__",     &ParamValueList::size)
+        .def("grow",        &ParamValueList::grow,
+            return_internal_reference<>())
+        .def("append",      &ParamValueList::push_back)
+        .def("clear",       &ParamValueList::clear)
+        .def("free",        &ParamValueList::free)
+        .def("resize",      &ParamValueList::resize)
     ;
-
-    class_<ParamValue>("ParamValue")
-        .add_property("name",     &ParamValue_name)
-        .add_property("type",     &ParamValue::type)
-        .def("__getitem__",       &ParamValue_getitem)
-        .def("__len__",           &ParamValue::nvalues)
-    ;
-
 }
 
 }
