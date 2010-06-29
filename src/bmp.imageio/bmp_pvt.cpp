@@ -29,6 +29,8 @@
 */
 #include "bmp_pvt.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 
 namespace bmp_pvt {
 
@@ -188,3 +190,7 @@ DibInformationHeader::swap_endian ()
 
 
 } // bmp_pvt namespace
+
+
+OIIO_PLUGIN_NAMESPACE_END
+

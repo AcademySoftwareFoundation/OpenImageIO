@@ -42,12 +42,12 @@ using namespace DDS_pvt;
 
 #include "squish/squish.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
 
 // uncomment the following define to enable 3x2 cube map layout
 //#define DDS_3X2_CUBE_MAP_LAYOUT
-
-
 
 class DDSInput : public ImageInput {
 public:
@@ -117,7 +117,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *dds_input_imageio_create () { return new DDSInput; }
 
@@ -127,7 +127,7 @@ DLLEXPORT const char * dds_input_extensions[] = {
     "dds", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -680,3 +680,6 @@ DDSInput::read_native_tile (int x, int y, int z, void *data)
     memcpy (data, &m_buf[0], m_spec.tile_bytes());
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

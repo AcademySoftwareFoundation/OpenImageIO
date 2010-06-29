@@ -26,8 +26,13 @@ set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
 set (USE_TBB ON CACHE BOOL "Use TBB if needed")
 set (USE_PYTHON OFF CACHE BOOL "Build the Python bindings")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
+set (SOVERSION ${OpenImageIO_VERSION_MAJOR} CACHE STRING "Set the SO version in the SO name of the output library")
 
 set (PYTHON_VERSION 2.6)
+
+if (NOT ${SOVERSION} STREQUAL ${OpenImageIO_VERSION_MAJOR})
+    set (OpenImageIO_VERSION_MAJOR ${SOVERSION})
+endif ()
 
 if (NOTHREADS)
     message (STATUS "NO THREADS!")

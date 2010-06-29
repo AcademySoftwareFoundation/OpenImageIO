@@ -45,6 +45,8 @@ using boost::algorithm::iequals;
 #include "sysutil.h"
 
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
 
 
@@ -85,7 +87,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *tiff_output_imageio_create () { return new TIFFOutput; }
 
@@ -95,7 +97,7 @@ DLLEXPORT const char * tiff_output_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -511,3 +513,6 @@ TIFFOutput::write_tile (int x, int y, int z,
 
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

@@ -35,6 +35,8 @@
 #include "export.h"
 #include "imageio.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
 
 
@@ -59,7 +61,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
     DLLEXPORT ImageInput* pnm_input_imageio_create () { return new PNMInput; }
 
@@ -69,8 +71,7 @@ extern "C" {
         "ppm","pgm","pbm","pnm", NULL
     };
 
-};
-
+OIIO_PLUGIN_EXPORTS_END
 
 
 inline bool
@@ -370,3 +371,5 @@ PNMInput::read_native_scanline (int y, int z, void *data)
         return false;
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END

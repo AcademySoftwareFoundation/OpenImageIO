@@ -39,9 +39,12 @@ extern "C" {
 }
 
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "fmath.h"
 #include "jpeg_pvt.h"
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
 using namespace Jpeg_imageio_pvt;
 
 #define DBG if(0)
@@ -83,15 +86,16 @@ class JpgOutput : public ImageOutput {
 
 
 
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
     DLLEXPORT ImageOutput *jpeg_output_imageio_create () {
         return new JpgOutput;
     }
     DLLEXPORT const char *jpeg_output_extensions[] = {
         "jpg", "jpe", "jpeg", NULL
     };
-};
 
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -330,3 +334,6 @@ JpgOutput::copy_image (ImageInput *in)
 
     return ImageOutput::copy_image (in);
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

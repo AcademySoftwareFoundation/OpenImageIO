@@ -33,12 +33,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "softimage_pvt.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 
 
 // Obligatory material to make this a recognizeable imageio plugin
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
 DLLEXPORT int softimage_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
-};
+
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -93,3 +97,6 @@ ChannelPacket::channels () const
 
 
 }; // namespace softimage_pvt
+
+OIIO_PLUGIN_NAMESPACE_END
+

@@ -46,7 +46,6 @@ extern "C" {
 }
 
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "fmath.h"
 #include "jpeg_pvt.h"
 
@@ -54,6 +53,9 @@ using namespace OpenImageIO;
 #define DEBUG_EXIF_READ  0
 #define DEBUG_EXIF_WRITE 0
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
 
 namespace Jpeg_imageio_pvt {
 
@@ -976,5 +978,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 }
 
 
-};  // namespace Jpeg_imageio_pvt
+}  // namespace Jpeg_imageio_pvt
+
+OIIO_PLUGIN_NAMESPACE_END
 

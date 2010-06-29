@@ -28,12 +28,14 @@
   (This is the Modified BSD License)
 */
 #include "bmp_pvt.h"
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace bmp_pvt;
 
-
-
 // Obligatory material to make this a recognizeable imageio plugin
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
     DLLEXPORT int bmp_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *bmp_input_imageio_create () {
         return new BmpInput;
@@ -41,8 +43,8 @@ extern "C" {
     DLLEXPORT const char *bmp_input_extensions[] = {
         "bmp", NULL
     };
-}
 
+OIIO_PLUGIN_EXPORTS_END
 
 
 bool
@@ -248,3 +250,6 @@ BmpInput::read_color_table (void)
     }
     return true;  // ok
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

@@ -33,16 +33,17 @@ using boost::algorithm::iequals;
 #include "sgi_pvt.h"
 
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
 // Obligatory material to make this a recognizeable imageio plugin
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
     DLLEXPORT ImageOutput *sgi_output_imageio_create () {
         return new SgiOutput;
     }
     DLLEXPORT const char *sgi_output_extensions[] = {
         "sgi", "rgb", "rgba", "bw", "int", "inta", NULL
     };
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -190,3 +191,6 @@ SgiOutput::create_and_write_header()
     char dummy[404] = {0};
     fwrite(dummy, 404, 1, m_fd);
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

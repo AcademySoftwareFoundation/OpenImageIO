@@ -102,7 +102,25 @@ namespace OpenImageIO {
 ///
 #define IMAGEIO_VERSION OPENIMAGEIO_PLUGIN_VERSION
 
+#ifdef OPENIMAGEIO_NAMESPACE
+#define OIIO_NAMESPACE_BEGIN namespace OPENIMAGEIO_NAMESPACE {
+#define OIIO_NAMESPACE_END }
+#else
+#define OIIO_NAMESPACE_BEGIN
+#define OIIO_NAMESPACE_END
+#endif
 
+#ifdef EMBED_PLUGINS
+#define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_BEGIN
+#define OIIO_PLUGIN_NAMESPACE_END OIIO_NAMESPACE_END
+#define OIIO_PLUGIN_EXPORTS_BEGIN
+#define OIIO_PLUGIN_EXPORTS_END
+#else
+#define OIIO_PLUGIN_NAMESPACE_BEGIN
+#define OIIO_PLUGIN_NAMESPACE_END
+#define OIIO_PLUGIN_EXPORTS_BEGIN extern "C" {
+#define OIIO_PLUGIN_EXPORTS_END }
+#endif
 
 /// Type we use for stride lengths.  This is only used to designate
 /// pixel, scanline, tile, or image plane sizes in user-allocated memory,

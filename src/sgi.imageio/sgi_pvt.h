@@ -38,6 +38,9 @@ using namespace OpenImageIO;
 #include "fmath.h"
 
 
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
 
 namespace sgi_pvt {
 
@@ -158,4 +161,10 @@ class SgiOutput : public ImageOutput {
     void create_and_write_header();
 };
 
+#ifdef OPENIMAGEIO_NAMESPACE
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
+
 #endif // OPENIMAGEIO_SGI_H
+

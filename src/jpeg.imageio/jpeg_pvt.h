@@ -47,6 +47,9 @@ extern "C" {
 struct TIFFDirEntry;
 #endif
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
 
 class JpgInput : public ImageInput {
  public:
@@ -107,6 +110,8 @@ bool decode_exif (const void *buf, int length, ImageSpec &spec);
 void encode_exif (const ImageSpec &spec, std::vector<char> &exif);
 
 };
+
+OIIO_PLUGIN_NAMESPACE_END
 
 
 #endif /* OPENIMAGEIO_JPEG_PVT_H */

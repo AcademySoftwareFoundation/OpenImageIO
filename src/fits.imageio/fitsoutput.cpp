@@ -30,19 +30,23 @@
 
 
 #include "fits_pvt.h"
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace fits_pvt;
 
 
-
 // Obligatory material to make this a recognizeable imageio plugin
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
     DLLEXPORT ImageOutput *fits_output_imageio_create () {
         return new FitsOutput;
     }
     DLLEXPORT const char *fits_output_extensions[] = {
         "fits", NULL
     };
-};
+
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -252,3 +256,6 @@ FitsOutput::create_basic_header (std::string &header)
     header += create_card ("NAXIS1", num2str (m_spec.width));
     header += create_card ("NAXIS2", num2str (m_spec.height));
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

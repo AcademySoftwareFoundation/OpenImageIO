@@ -34,11 +34,13 @@
 #include <iostream>
 
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "fmath.h"
 #include "rgbe.h"
 
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
 
 /////////////////////////////////////////////////////////////////////////////
 // .hdr / .rgbe files - HDR files from Radiance
@@ -83,7 +85,8 @@ private:
 
 
 // Export version number and create function symbols
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
     DLLEXPORT int hdr_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *hdr_input_imageio_create () {
         return new HdrInput;
@@ -91,7 +94,8 @@ extern "C" {
     DLLEXPORT const char *hdr_input_extensions[] = {
         "hdr", "rgbe", NULL
     };
-};
+
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -189,4 +193,6 @@ HdrInput::close ()
     init ();   // Reset to initial state
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
 

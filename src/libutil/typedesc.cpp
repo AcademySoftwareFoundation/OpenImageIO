@@ -49,7 +49,7 @@ TypeDesc::TypeDesc (const char *typestring)
     ASSERT (0);
 }
 
-
+namespace {
 
 static int basetype_size[] = {
     0, // UNKNOWN
@@ -69,6 +69,7 @@ static int basetype_size[] = {
     sizeof(void *)           // PTR
 };
 
+}
 
 size_t
 TypeDesc::basesize () const
@@ -78,7 +79,7 @@ TypeDesc::basesize () const
     return basetype_size[basetype];
 }
 
-
+namespace {
 
 static const char * basetype_name[] = {
     "unknown",         // UNKNOWN
@@ -116,7 +117,7 @@ static const char * basetype_code[] = {
     "ptr"           // PTR
 };
 
-
+}
 
 const char *
 TypeDesc::c_str () const

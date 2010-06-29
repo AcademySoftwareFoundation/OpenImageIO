@@ -45,6 +45,8 @@ using boost::algorithm::iequals;
 #include "strutil.h"
 #include "fmath.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
 
 
@@ -95,7 +97,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *png_input_imageio_create () { return new PNGInput; }
 
@@ -105,7 +107,7 @@ DLLEXPORT const char * png_input_extensions[] = {
     "png", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -266,3 +268,6 @@ PNGInput::read_native_scanline (int y, int z, void *data)
 
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

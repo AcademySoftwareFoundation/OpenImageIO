@@ -41,6 +41,8 @@
 #include "strutil.h"
 #include "fmath.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
 
 
@@ -115,7 +117,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *zfile_input_imageio_create () { return new ZfileInput; }
 
@@ -131,7 +133,7 @@ DLLEXPORT const char * zfile_output_extensions[] = {
     "zfile", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -326,3 +328,6 @@ ZfileOutput::write_scanline (int y, int z, TypeDesc format,
 
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

@@ -47,6 +47,10 @@
 #define JPC_STREAM "jpc"
 
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
+
 
 class Jpeg2000Input : public ImageInput {
  public:
@@ -109,5 +113,8 @@ class Jpeg2000Output : public ImageOutput {
     void component_struct_init (jas_image_cmptparm_t *cmpt);
 
 };
+
+OIIO_PLUGIN_NAMESPACE_END
+
 
 #endif // OPENIMAGEIO_JPEG2000_PVT_H

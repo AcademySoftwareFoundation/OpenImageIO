@@ -32,6 +32,8 @@
 
 #include "imageio.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
 
 
@@ -59,7 +61,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
     DLLEXPORT ImageOutput *pnm_output_imageio_create () { return new PNMOutput; }
 
@@ -67,9 +69,7 @@ extern "C" {
         "ppm","pgm","pbm","pnm", NULL
     };
 
-};
-
-
+OIIO_PLUGIN_EXPORTS_END
 
 
 inline void
@@ -218,3 +218,6 @@ PNMOutput::write_scanline (int y, int z, TypeDesc format,
 
     return m_file.good();
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

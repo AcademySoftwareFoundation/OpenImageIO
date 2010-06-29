@@ -29,10 +29,13 @@
 */
 #include "sgi_pvt.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
 
 
-// Obligatory material to make this a recognizeable imageio plugin
-extern "C" {
+// Obligatory material to make this a recognizeable imageio plugin:
+OIIO_PLUGIN_EXPORTS_BEGIN
     DLLEXPORT int sgi_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *sgi_input_imageio_create () {
         return new SgiInput;
@@ -40,7 +43,7 @@ extern "C" {
     DLLEXPORT const char *sgi_input_extensions[] = {
         "sgi", "rgb", "rgba", "bw", "int", "inta", NULL
     };
-}
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -307,3 +310,7 @@ SgiInput::read_offset_tables ()
     }
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+
+

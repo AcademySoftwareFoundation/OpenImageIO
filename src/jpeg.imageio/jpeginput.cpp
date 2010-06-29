@@ -37,11 +37,13 @@ extern "C" {
 }
 
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "fmath.h"
 #include "jpeg_pvt.h"
-using namespace Jpeg_imageio_pvt;
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
+using namespace Jpeg_imageio_pvt;
 
 
 // See JPEG library documentation in /usr/share/doc/libjpeg-devel-6b
@@ -50,7 +52,8 @@ using namespace Jpeg_imageio_pvt;
 
 
 // Export version number and create function symbols
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
     DLLEXPORT int jpeg_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *jpeg_input_imageio_create () {
         return new JpgInput;
@@ -58,8 +61,8 @@ extern "C" {
     DLLEXPORT const char *jpeg_input_extensions[] = {
         "jpg", "jpe", "jpeg", NULL
     };
-};
 
+OIIO_PLUGIN_EXPORTS_END
 
 
 bool
@@ -234,3 +237,6 @@ JpgInput::jpeg_decode_iptc (const unsigned char *buf)
 
     OpenImageIO::decode_iptc_iim (buf, segmentsize, m_spec);
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

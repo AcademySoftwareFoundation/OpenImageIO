@@ -34,10 +34,12 @@
 #include <iostream>
 
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "fmath.h"
 #include "rgbe.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
 
 
 class HdrOutput : public ImageOutput {
@@ -60,17 +62,16 @@ class HdrOutput : public ImageOutput {
 };
 
 
+OIIO_PLUGIN_EXPORTS_BEGIN
 
-extern "C" {
     DLLEXPORT ImageOutput *hdr_output_imageio_create () {
         return new HdrOutput;
     }
     DLLEXPORT const char *hdr_output_extensions[] = {
         "hdr", "rgbe", NULL
     };
-};
 
-
+OIIO_PLUGIN_EXPORTS_END
 
 
 bool
@@ -160,4 +161,6 @@ HdrOutput::close ()
 
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
 

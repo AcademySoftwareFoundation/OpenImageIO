@@ -34,9 +34,12 @@
 #include "fits_pvt.h"
 
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 
 // Obligatory material to make this a recognizeable imageio plugin
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
     DLLEXPORT int fits_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *fits_input_imageio_create () {
         return new FitsInput;
@@ -44,7 +47,8 @@ extern "C" {
     DLLEXPORT const char *fits_input_extensions[] = {
         "fits", NULL
     };
-}
+
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -384,3 +388,6 @@ FitsInput::convert_date (const std::string &date)
     // unrecognized format
     return date;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

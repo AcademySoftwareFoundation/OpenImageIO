@@ -56,8 +56,9 @@ using boost::algorithm::iends_with;
 #include "thread.h"
 #include "strutil.h"
 
-using namespace OpenImageIO;
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
+using namespace OpenImageIO;
 
 
 class OpenEXRInput : public ImageInput {
@@ -104,7 +105,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *
 openexr_input_imageio_create ()
@@ -118,7 +119,7 @@ DLLEXPORT const char * openexr_input_extensions[] = {
     "exr", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -553,3 +554,6 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
 
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

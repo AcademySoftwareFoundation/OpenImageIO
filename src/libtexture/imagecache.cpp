@@ -2209,5 +2209,7 @@ ImageCache::destroy (ImageCache *x)
 };  // end namespace OpenImageIO
 
 #ifdef OPENIMAGEIO_NAMESPACE
-}
+}; // end namespace OPENIMAGEIO_NAMESPACE
+using namespace OPENIMAGEIO_NAMESPACE;
 #endif
+

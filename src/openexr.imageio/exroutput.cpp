@@ -60,6 +60,8 @@ using boost::algorithm::istarts_with;
 #include "sysutil.h"
 
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
 
 
@@ -106,7 +108,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *
 openexr_output_imageio_create ()
@@ -120,7 +122,7 @@ DLLEXPORT const char * openexr_output_extensions[] = {
     "exr", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -570,3 +572,6 @@ OpenEXROutput::write_tile (int x, int y, int z,
 
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

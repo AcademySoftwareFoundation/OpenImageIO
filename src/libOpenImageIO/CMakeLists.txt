@@ -102,7 +102,7 @@ if (EMBEDPLUGINS)
         include_directories (${JASPER_INCLUDE_DIR})
         add_definitions ("-DUSE_JASPER=1")
     else (JASPER_FOUND)
-        message (STATUS "Jasper not found: jpeg2000 plugin would no be built")
+        message (STATUS "Jasper not found: jpeg2000 plugin will not be built")
         set (JASPER_LIBRARY "")
     endif (JASPER_FOUND)
 endif ()
@@ -129,6 +129,14 @@ if (EMBEDPLUGINS)
                                ${JASPER_LIBRARY}
                           )
     link_openexr (OpenImageIO)
+endif ()
+
+if (SOVERSION)
+set_target_properties(OpenImageIO
+                         PROPERTIES
+                         VERSION ${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}
+                         SOVERSION ${OpenImageIO_VERSION_MAJOR}
+                     )
 endif ()
 
 oiio_install_targets (OpenImageIO)

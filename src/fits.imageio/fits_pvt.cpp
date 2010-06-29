@@ -30,6 +30,8 @@
 
 #include "fits_pvt.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 namespace fits_pvt {
 
 
@@ -110,3 +112,6 @@ unpack_card (const std::string &card, std::string &keyname, std::string &value)
  }
 
 } // namespace fits_pvt
+
+OIIO_PLUGIN_NAMESPACE_END
+

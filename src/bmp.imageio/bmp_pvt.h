@@ -32,9 +32,11 @@
 
 #include <cstdio>
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "fmath.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
 
 
 namespace bmp_pvt {
@@ -190,5 +192,9 @@ class BmpOutput : public ImageOutput {
 
     void create_and_write_bitmap_header (void);
 };
+
+
+OIIO_PLUGIN_NAMESPACE_END
+
 
 #endif // OPENIMAGEIO_BMP_H

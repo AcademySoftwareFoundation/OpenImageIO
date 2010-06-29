@@ -47,9 +47,11 @@
 using namespace OpenImageIO;
 using namespace OpenImageIO::pvt;
 
-
+namespace {
 
 static std::string create_error_msg;
+
+}
 
 recursive_mutex OpenImageIO::pvt::imageio_mutex;
 
@@ -101,7 +103,7 @@ OpenImageIO::quantize (float value, int quant_black, int quant_white,
     return Imath::clamp ((int)(value + 0.5f), quant_min, quant_max);
 }
 
-
+namespace {
 
 /// Type-independent template for turning potentially
 /// non-contiguous-stride data (e.g. "RGB RGB ") into contiguous-stride
@@ -134,7 +136,7 @@ _contiguize (const T *src, int nchannels, stride_t xstride, stride_t ystride, st
     return dstsave;
 }
 
-
+}
 
 const void *
 OpenImageIO::pvt::contiguize (const void *src, int nchannels,

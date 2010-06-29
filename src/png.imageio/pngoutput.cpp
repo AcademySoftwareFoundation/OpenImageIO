@@ -43,8 +43,9 @@ using boost::algorithm::iequals;
 #include "imageio.h"
 #include "strutil.h"
 
-using namespace OpenImageIO;
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
+using namespace OpenImageIO;
 
 
 class PNGOutput : public ImageOutput {
@@ -90,7 +91,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *png_output_imageio_create () { return new PNGOutput; }
 
@@ -100,7 +101,7 @@ DLLEXPORT const char * png_output_extensions[] = {
     "png", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -235,3 +236,6 @@ PNGOutput::write_scanline (int y, int z, TypeDesc format,
 
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

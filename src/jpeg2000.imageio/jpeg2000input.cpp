@@ -29,12 +29,15 @@
 */
 
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "jpeg2000_pvt.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+using namespace OpenImageIO;
 
 // Obligatory material to make this a recognizeable imageio plugin
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
     DLLEXPORT int jpeg2000_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *jpeg2000_input_imageio_create () {
         return new Jpeg2000Input;
@@ -42,7 +45,8 @@ extern "C" {
     DLLEXPORT const char *jpeg2000_input_extensions[] = {
         "jp2", "j2k", NULL
     };
-}
+
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -188,3 +192,6 @@ Jpeg2000Input::close (void)
     jas_cleanup ();
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

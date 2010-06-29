@@ -43,6 +43,9 @@
 #include "fmath.h"
 
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
+
 using namespace OpenImageIO;
 
 
@@ -197,7 +200,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *tiff_input_imageio_create () { return new TIFFInput; }
 
@@ -207,7 +210,7 @@ DLLEXPORT const char * tiff_input_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -814,3 +817,6 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
 
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

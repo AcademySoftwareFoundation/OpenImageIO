@@ -32,6 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "softimage_pvt.h"
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace softimage_pvt;
 
 
@@ -82,14 +85,16 @@ private:
 
 
 // symbols required for OpenImageIO plugin
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
     DLLEXPORT ImageInput *softimage_input_imageio_create() {
         return new SoftimageInput;
     }
     DLLEXPORT const char *softimage_input_extensions[] = {
         "pic", NULL
     };
-}
+
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -471,3 +476,6 @@ SoftimageInput::read_pixels_mixed_run_length (const softimage_pvt::ChannelPacket
     }
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

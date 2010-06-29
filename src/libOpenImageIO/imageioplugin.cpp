@@ -52,6 +52,8 @@ using namespace OpenImageIO::pvt;
 
 typedef std::map <std::string, create_prototype> PluginMap;
 
+namespace {
+
 // Map format name to ImageInput creation
 static PluginMap input_formats;
 // Map format name to ImageOutput creation
@@ -70,7 +72,6 @@ static std::map <std::string, std::string> plugin_filepaths;
 
 static std::string pattern = Strutil::format (".imageio.%s",
                                               Plugin::plugin_extension());
-
 
 /// Register the input and output 'create' routine and list of file
 /// extensions for a particular format.
@@ -172,19 +173,24 @@ catalog_plugin (const std::string &format_name,
         Plugin::close (handle);   // not useful
 }
 
+}
 
+#ifdef EMBED_PLUGINS
+
+#ifdef OPENIMAGEIO_NAMESPACE
+namespace OPENIMAGEIO_NAMESPACE {
+#endif
 
 // Make extern declarations for the input and output create routines and
 // list of file extensions, for the standard plugins that come with OIIO.
 // These won't be used unless EMBED_PLUGINS is defined.  Use the PLUGENTRY
 // macro to make the declaration compact and easy to read.
-#define PLUGENTRY(name)                                        \
-    extern ImageInput *name ## _input_imageio_create ();       \
-    extern ImageOutput *name ## _output_imageio_create ();     \
-    extern const char *name ## _output_extensions[];           \
+#define PLUGENTRY(name)                                 \
+    ImageInput *name ## _input_imageio_create ();       \
+    ImageOutput *name ## _output_imageio_create ();     \
+    extern const char *name ## _output_extensions[];    \
     extern const char *name ## _input_extensions[];
 
-extern "C" {
     PLUGENTRY (bmp);
     PLUGENTRY (dds);
     PLUGENTRY (fits);
@@ -200,9 +206,16 @@ extern "C" {
     PLUGENTRY (tiff);
     PLUGENTRY (targa);
     PLUGENTRY (zfile);
-};
+
+#ifdef OPENIMAGEIO_NAMESPACE
+}
+using namespace OPENIMAGEIO_NAMESPACE;
+#endif
+
+#endif // defined(EMBED_PLUGINS)
 
 
+namespace {
 
 /// Add all the built-in plugins, those compiled right into libOpenImageIO,
 /// to the catalogs.  This does nothing if EMBED_PLUGINS is not defined,
@@ -239,8 +252,6 @@ catalog_builtin_plugins ()
     DECLAREPLUG (zfile);
 #endif
 }
-
-
 
 /// Look at ALL imageio plugins in the searchpath and add them to the
 /// catalog.  This routine is not reentrant and should only be called
@@ -286,6 +297,7 @@ catalog_all_plugins (std::string searchpath)
 //    std::cerr << "done catalog_all\n";
 }
 
+}
 
 
 ImageOutput *

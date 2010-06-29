@@ -47,9 +47,12 @@ using namespace Plugin;
 // FIXME: this implementation doesn't set error messages for Windows.
 // Get a Windows expert to fix this.
 
+namespace {
+
 static mutex plugin_mutex;
 static std::string last_error;
 
+}
 
 
 const char *

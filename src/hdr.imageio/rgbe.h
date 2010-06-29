@@ -10,6 +10,10 @@
 
 #include <stdio.h>
 
+#include "imageio.h"
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 typedef struct {
   int valid;            /* indicate which fields are valid */
   char programtype[16]; /* listed at beginning of file to identify it 
@@ -56,6 +60,8 @@ int RGBE_WritePixels_RLE(FILE *fp, float *data, int scanline_width,
 			 int num_scanlines, char *errbuf=NULL);
 int RGBE_ReadPixels_RLE(FILE *fp, float *data, int scanline_width,
 			int num_scanlines, char *errbuf=NULL);
+
+OIIO_PLUGIN_NAMESPACE_END
 
 #endif /* _H_RGBE */
 

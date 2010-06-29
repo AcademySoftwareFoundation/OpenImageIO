@@ -29,19 +29,23 @@
 */
 
 #include "bmp_pvt.h"
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace bmp_pvt;
 
 
-
 // Obligatory material to make this a recognizeable imageio plugin
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
+
     DLLEXPORT ImageOutput *bmp_output_imageio_create () {
         return new BmpOutput;
     }
     DLLEXPORT const char *bmp_output_extensions[] = {
         "bmp", NULL
     };
-};
+
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -161,3 +165,6 @@ BmpOutput::create_and_write_bitmap_header (void)
 
     m_dib_header.write_header (m_fd);
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

@@ -40,6 +40,8 @@ using namespace DDS_pvt;
 #include "imageio.h"
 #include "fmath.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
 
 
@@ -74,7 +76,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *dds_output_imageio_create () { return new DDSOutput; }
 
@@ -84,7 +86,7 @@ DLLEXPORT const char * dds_output_extensions[] = {
     "dds", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -144,3 +146,6 @@ DDSOutput::write_scanline (int y, int z, TypeDesc format,
 {
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

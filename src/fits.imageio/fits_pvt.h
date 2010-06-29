@@ -50,6 +50,8 @@ using namespace OpenImageIO;
 #define CARDS_PER_HEADER 36
 
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 
 namespace fits_pvt {
 
@@ -185,4 +187,7 @@ void unpack_card (const std::string &card, std::string &keyname,
 
 } // namespace fits_pvt
 
+OIIO_PLUGIN_NAMESPACE_END
+
 #endif // OPENIMAGEIO_FITS_PVT_H
+

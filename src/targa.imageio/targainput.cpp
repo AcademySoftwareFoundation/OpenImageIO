@@ -33,15 +33,16 @@
 #include <cmath>
 
 #include "targa_pvt.h"
-using namespace TGA_pvt;
 
 #include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
 #include "fmath.h"
 
-using namespace OpenImageIO;
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
+using namespace OpenImageIO;
+using namespace TGA_pvt;
 
 
 class TGAInput : public ImageInput {
@@ -93,7 +94,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *targa_input_imageio_create () { return new TGAInput; }
 
@@ -103,7 +104,7 @@ DLLEXPORT const char * targa_input_extensions[] = {
     "tga", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -739,3 +740,6 @@ TGAInput::read_native_scanline (int y, int z, void *data)
     memcpy (data, &m_buf[0] + y * size, size);
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

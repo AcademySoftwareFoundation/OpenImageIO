@@ -37,6 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 #include <fmath.h>
 #include <imageio.h>
+
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
 
 
@@ -99,5 +103,7 @@ namespace softimage_pvt
     }; // enum encoding
 
 }; //namespace softimage_pvt
+
+OIIO_PLUGIN_NAMESPACE_END
 
 #endif // OPENIMAGEIO_PIC_H

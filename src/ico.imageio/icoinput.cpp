@@ -33,7 +33,6 @@
 #include <cmath>
 
 #include "ico.h"
-using namespace ICO_pvt;
 #include "../png.imageio/png_pvt.h"
 
 #include "dassert.h"
@@ -43,7 +42,10 @@ using namespace ICO_pvt;
 #include "strutil.h"
 #include "fmath.h"
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 using namespace OpenImageIO;
+using namespace ICO_pvt;
 
 class ICOInput : public ImageInput {
 public:
@@ -101,7 +103,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *ico_input_imageio_create () { return new ICOInput; }
 
@@ -111,7 +113,7 @@ DLLEXPORT const char * ico_input_extensions[] = {
     "ico", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -441,3 +443,6 @@ ICOInput::read_native_scanline (int y, int z, void *data)
     memcpy (data, &m_buf[y * size], size);
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+

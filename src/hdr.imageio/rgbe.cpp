@@ -46,6 +46,8 @@
 /* number of floats per pixel */
 #define RGBE_DATA_SIZE   3
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
+
 enum rgbe_error_codes {
   rgbe_read_error,
   rgbe_write_error,
@@ -490,4 +492,6 @@ int RGBE_ReadPixels_RLE(FILE *fp, float *data, int scanline_width,
   free(scanline_buffer);
   return RGBE_RETURN_SUCCESS;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
 

@@ -94,6 +94,10 @@ ifneq (${LINKSTATIC},)
 MY_CMAKE_FLAGS += -DLINKSTATIC:BOOL=${LINKSTATIC}
 endif
 
+ifneq (${SOVERSION},)
+MY_CMAKE_FLAGS += -DSOVERSION:BOOL=${SOVERSION}
+endif
+
 ifdef DEBUG
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug
 endif
@@ -224,6 +228,7 @@ help:
 	@echo "  make USE_PYTHON=1 ...       Build the Python binding"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
+	@echo "  make SOVERSION=1 ...        Include the major version number in the shared object metadata"
 	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
 	@echo ""
 
