@@ -1,12 +1,18 @@
 # SPI-specific settings
 
+OPENIMAGEIO_SPCOMP2_VERSION=28
+
 ifeq ($(SP_ARCH), spinux1_x86_64)
 platform=spinux1
+
+# used by spcomp2 installer
+COMPILER=gcc44m64
 
 ifeq (${NAMESPACE},)
 NAMESPACE='OpenImageIO_Arnold'
 endif
 EMBEDPLUGINS:=1
+SOVERSION:=${OPENIMAGEIO_SPCOMP2_VERSION}
 USE_OPENGL:=0
 
 MY_CMAKE_FLAGS += \
@@ -18,9 +24,11 @@ MY_CMAKE_FLAGS += \
 else # $SP_ARCH
 ifeq (${SP_ARCH}, rhel40_x86_64)
 platform=rhel40m64
-OPENIMAGEIO_SPCOMP2_VERSION=v21
+# used by spcomp2 installer
+COMPILER=gcc34m64
 OPENEXR_VERSION=1.4.0
 BOOST_VERSION=1_34_1
+QTDIR=/usr/local64/qt-4.4
 ifeq (${NAMESPACE},)
 NAMESPACE='OpenImageIO_Arnold'
 endif
@@ -37,7 +45,9 @@ MY_CMAKE_FLAGS += \
 		-DILMBASE_HOME=/usr/local64/openexr/${OPENEXR_VERSION} \
 		-DOPENEXR_VERSION=${OPENEXR_VERSION} \
 		-DOPENEXR_VERSION_DIGITS="010400" \
-		-DOPENEXR_HOME=/usr/local64/openexr/${OPENEXR_VERSION}
+		-DOPENEXR_HOME=/usr/local64/openexr/${OPENEXR_VERSION} \
+		-DQT_SEARCH_PATH=${QTDIR} \
+		-DQT_QMAKE_EXECUTABLE=${QTDIR}/bin/qmake
 
 endif
 
@@ -62,3 +72,49 @@ MY_CMAKE_FLAGS += \
 endif
 
 endif # $SP_ARCH
+
+all: dist
+
+.PHONY: spcomp2_install spcomp2_install_local clean all
+
+comma:= ,
+empty:=
+space:= $(empty) $(empty)
+
+# spcomp2 command line: make NAMESPACE=SPI_OpenImageIO_v28
+INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
+INSTALL_BIN_LOCATION = /shots/spi/home/bin/$(ARCHITECTURE)
+INSTALL_SPCOMP2_CURRENT = $(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
+
+spcomp2_install_local: INSTALL_SPCOMP2_LOCATION = $(SPCOMP2_LOCAL_PATH)
+spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
+spcomp2_install_local: spcomp2_install
+
+local: dist
+
+spcomp2: MY_CMAKE_FLAGS += \
+		-DCMAKE_SKIP_BUILD_RPATH:BOOL=ON \
+        -DCMAKE_INSTALL_RPATH=$(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
+        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON
+
+spcomp2: NAMESPACE=SPI_OpenImageIO_v$(OPENIMAGEIO_SPCOMP2_VERSION)
+spcomp2: dist
+
+spcomp2_debug: NAMESPACE=SPI_OpenImageIO_v$(OPENIMAGEIO_SPCOMP2_VERSION)
+spcomp2_debug: debug
+
+# This goal can't start with 'install' because something elsewhere picks
+# it up and starts doing bad things
+spcomp2_install: spcomp2 spcomp2_debug 
+	echo $(INSTALL_SPCOMP2_LOCATION)
+	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m compile03.spimageworks.com \
+	--project=OpenImageIO --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
+	--srcdir=${dist_dir}/lib --root=$(INSTALL_SPCOMP2_LOCATION) \
+	--docs=${dist_dir}/doc --arch=$(ARCHITECTURE)-$(COMPILER) \
+	--headers=$(subst $(space),$(comma),$(wildcard ${dist_dir}/include/OpenImageIO/*)) \
+	--cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread" --namespace=${NAMESPACE} --spcomp_depend= --spcomp2_depend= \
+	--builddir_o=${dist_dir}/lib --builddir_d=${dist_dir}.debug/lib
+	-sudo mkdir -p $(INSTALL_SPCOMP2_CURRENT)/bin
+	sudo cp ${dist_dir}/bin/* $(INSTALL_SPCOMP2_CURRENT)/bin
+
+
