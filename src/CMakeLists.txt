@@ -24,7 +24,7 @@ set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
 set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
 set (USE_TBB ON CACHE BOOL "Use TBB if needed")
-set (USE_PYTHON OFF CACHE BOOL "Build the Python bindings")
+set (USE_PYTHON ON CACHE BOOL "Build the Python bindings")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (SOVERSION ${OpenImageIO_VERSION_MAJOR} CACHE STRING "Set the SO version in the SO name of the output library")
 
