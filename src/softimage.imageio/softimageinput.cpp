@@ -216,8 +216,8 @@ SoftimageInput::read_native_scanline (int y, int z, void* data)
         // If the index isn't complete let's shift the file pointer back to the latest readline
         if (m_scanline_markers.size() < m_pic_header.height) {
             if (fsetpos (m_fd, &m_scanline_markers[m_scanline_markers.size() - 1])) {
-                error ("Failed to restore to scanline %lu in \"%s\"",
-                    (long unsigned int)m_scanline_markers.size() - 1, m_filename.c_str());
+                error ("Failed to restore to scanline %llu in \"%s\"",
+                    (long long unsigned int)m_scanline_markers.size() - 1, m_filename.c_str());
                 close();
                 return false;
             }
