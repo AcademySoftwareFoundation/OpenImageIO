@@ -45,9 +45,13 @@
 
 
 TypeDesc::TypeDesc (const char *typestring)
+    : basetype(UNKNOWN), aggregate(SCALAR), vecsemantics(NOXFORM),
+      reserved(0), arraylen(0)
 {
-    ASSERT (0);
+    fromstring (typestring);
 }
+
+
 
 namespace {
 
@@ -167,12 +171,89 @@ TypeDesc::c_str () const
 
 
 
-int
-TypeDesc::fromstring (const char *typestring, char *shortname)
+// Copy src into dst until you hit the end, find a delimiter charcter,
+// or have copied maxlen-1 characters, whichever comes first.  Add a 
+// terminating null charcter.  Return the number of characters copied.
+inline size_t
+copy_until (const char *src, const char *delim, char *dst, size_t maxlen)
 {
-    // FIXME
-    ASSERT(0);
-    return 0;
+    size_t i = 0;
+    while (src[i] && i < maxlen-1) {
+        bool found_delim = false;
+        for (int d = 0;  delim[d];  ++d)
+            if (src[i] == delim[d])
+                found_delim = true;
+        if (found_delim)
+            break;
+        dst[i] = src[i];
+        ++i;
+    }
+    dst[i] = 0;
+    return i;
+}
+
+
+
+size_t
+TypeDesc::fromstring (const char *typestring)
+{
+    TypeDesc t;
+    size_t len = 0;
+    if (! typestring)
+        return 0;
+
+    // The first "word" should be a type name.
+    char type[16];
+    len = copy_until (typestring, " [", type, sizeof(type));
+    // Check the scalar types in our table above
+    for (int i = 0;  i < LASTBASE;  ++i) {
+        if (! strcmp (type, basetype_name[i])) {
+            t.basetype = i;
+            break;
+        }
+    }
+
+    // Some special case names for aggregates
+    if (t.basetype != UNKNOWN) {
+        // already solved
+    }
+    else if (! strcmp (type, "color"))
+        t = TypeColor;
+    else if (! strcmp (type, "point"))
+        t = TypePoint;
+    else if (! strcmp (type, "vector"))
+        t = TypeVector;
+    else if (! strcmp (type, "normal"))
+        t = TypeNormal;
+    else if (! strcmp (type, "matrix"))
+        t = TypeMatrix;
+    else {
+        return 0;  // unknown
+    }
+
+    // Is there an array length following the type name?
+    while (typestring[len] == ' ')
+        ++len;
+    if (typestring[len] == '[') {
+        ++len;
+        while (typestring[len] == ' ')
+            ++len;
+        if (typestring[len] == ']') {   // '[]' indicates array of unknown len
+            t.arraylen = -1;
+        } else {
+            t.arraylen = atoi (typestring+len);
+            while ((typestring[len] >= '0' && typestring[len] <= '9') ||
+                   typestring[len] == ' ')
+                ++len;
+        }
+        if (typestring[len] == ']')
+            ++len;
+        else
+            return 0;
+    }
+
+    *this = t;
+    return len;
 }
 
 

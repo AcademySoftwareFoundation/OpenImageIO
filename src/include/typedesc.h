@@ -174,9 +174,8 @@ struct DLLPUBLIC TypeDesc {
     /// Set *this to the type described in the string.  Return the
     /// length of the part of the string that describes the type.  If
     /// no valid type could be assembled, return 0 and do not modify
-    /// *this.  If shortname is not NULL, store the word(s) in the string
-    /// after the type (presumably the variable name) in shortname.
-    int fromstring (const char *typestring, char *shortname=NULL);
+    /// *this.
+    size_t fromstring (const char *typestring);
 
     /// Compare two TypeDesc values for equality.
     ///
