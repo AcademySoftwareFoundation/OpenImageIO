@@ -1,5 +1,5 @@
 /*
-  Copyright 2009 Larry Gritz and the other authors and contributors.
+  Copyright 2010 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -28,53 +28,19 @@
   (This is the Modified BSD License)
 */
 
-// Based on the sample at:
-// http://code.google.com/p/googletest/wiki/GoogleTestPrimer#Writing_the_main()_Function
 
-#define _USE_MATH_DEFINES
 #include "imageio.h"
-#include "imagebuf.h"
-#include <gtest/gtest.h>
 
-#include <string>
+#define BOOST_TEST_SOURCE
+#define BOOST_TEST_MAIN
+#include <boost/test/included/unit_test.hpp>
 
 using namespace OpenImageIO;
 
-namespace {  // make an anon namespace
-
-// The fixture for testing class ImageSpec.
-class ImageSpecTest : public testing::Test {
-protected:
-    // You can remove any or all of the following functions if its body
-    // is empty.
-
-    ImageSpecTest () {
-        // You can do set-up work for each test here.
-    }
-    virtual ~ImageSpecTest () {
-        // You can do clean-up work that doesn't throw exceptions here.
-    }
-
-    // If the constructor and destructor are not enough for setting up
-    // and cleaning up each test, you can define the following methods:
-
-    virtual void SetUp () {
-        // Code here will be called immediately after the constructor (right
-        // before each test).
-    }
-
-    virtual void TearDown () {
-        // Code here will be called immediately after each test (right
-        // before the destructor).
-    }
-
-    // Objects declared here can be used by all tests in the test case for Foo.
-};
 
 
-
-// Tests that ImageSpec handles huge images.
-TEST_F (ImageSpecTest, image_pixels) {
+BOOST_AUTO_TEST_CASE (test_imagespec_pixels)
+{
     // images with dimensions > 2^16 (65536) on a side have > 2^32 pixels
     const long long WIDTH = 456789;
     const long long HEIGHT = 345678;
@@ -90,20 +56,20 @@ TEST_F (ImageSpecTest, image_pixels) {
     std::cout << "sizeof (stride_t) = " << sizeof (stride_t) << std::endl;
     std::cout << "sizeof (float) = " << sizeof (float) << std::endl;
 
-    EXPECT_EQ ((size_t)BYTES_IN_FLOAT, sizeof (float));
-    EXPECT_EQ (CHANNELS, spec.nchannels);
-    EXPECT_EQ (WIDTH, spec.width);
-    EXPECT_EQ (HEIGHT, spec.height);
-    EXPECT_EQ (1, spec.depth);
-    EXPECT_EQ (WIDTH, spec.full_width);
-    EXPECT_EQ (HEIGHT, spec.full_height);
-    EXPECT_EQ (1, spec.full_depth);
+    BOOST_CHECK_EQUAL ((size_t)BYTES_IN_FLOAT, sizeof (float));
+    BOOST_CHECK_EQUAL (CHANNELS, spec.nchannels);
+    BOOST_CHECK_EQUAL (WIDTH, spec.width);
+    BOOST_CHECK_EQUAL (HEIGHT, spec.height);
+    BOOST_CHECK_EQUAL (1, spec.depth);
+    BOOST_CHECK_EQUAL (WIDTH, spec.full_width);
+    BOOST_CHECK_EQUAL (HEIGHT, spec.full_height);
+    BOOST_CHECK_EQUAL (1, spec.full_depth);
     // FIXME(nemec): uncomment after figuring out linking
-    //   EXPECT_EQ (TypeDesc::UINT8, spec.format);
-    EXPECT_EQ ((size_t)BYTES_IN_FLOAT, spec.channel_bytes ());
-    EXPECT_EQ ((size_t)(BYTES_IN_FLOAT*CHANNELS), spec.pixel_bytes ());
-    EXPECT_EQ ((imagesize_t)(BYTES_IN_FLOAT*CHANNELS*WIDTH), spec.scanline_bytes ());
-    EXPECT_EQ ((imagesize_t)(WIDTH*HEIGHT), spec.image_pixels ());
+    //   BOOST_CHECK_EQUAL (TypeDesc::UINT8, spec.format);
+    BOOST_CHECK_EQUAL ((size_t)BYTES_IN_FLOAT, spec.channel_bytes ());
+    BOOST_CHECK_EQUAL ((size_t)(BYTES_IN_FLOAT*CHANNELS), spec.pixel_bytes ());
+    BOOST_CHECK_EQUAL ((imagesize_t)(BYTES_IN_FLOAT*CHANNELS*WIDTH), spec.scanline_bytes ());
+    BOOST_CHECK_EQUAL ((imagesize_t)(WIDTH*HEIGHT), spec.image_pixels ());
 
     // check that the magnitude is right (not clamped) -- should be about > 2^40
     long long expected_bytes = BYTES_IN_FLOAT*CHANNELS*WIDTH*HEIGHT;
@@ -111,8 +77,8 @@ TEST_F (ImageSpecTest, image_pixels) {
     // log (2^32) / log (2) = log2 (2^32) = 32
     // log (2^32) * M_LOG2E = 32
     double log2_result = log ((double)expected_bytes) * M_LOG2E;
-    EXPECT_LT (40, log2_result);
-    EXPECT_EQ ((imagesize_t)expected_bytes, spec.image_bytes ());
+    BOOST_CHECK_LT (40, log2_result);
+    BOOST_CHECK_EQUAL ((imagesize_t)expected_bytes, spec.image_bytes ());
 
     std::cout << "expected_bytes = " << expected_bytes << ", log "
               << log ((double)expected_bytes) << std::endl;
@@ -120,13 +86,59 @@ TEST_F (ImageSpecTest, image_pixels) {
 
 
 
-}; // end anon namespace
-
-
-
-int
-main (int argc, char **argv)
+void
+metadata_val_test (void *data, int num_elements, TypeDesc type, std::string& val)
 {
-    testing::InitGoogleTest (&argc, argv);
-    return RUN_ALL_TESTS ();
+    static ImageSpec spec;
+    ImageIOParameter p;
+
+    p.init ("name", type, num_elements, data);
+    val = spec.metadata_val (p);
+}
+
+
+
+#include <cstdio>
+BOOST_AUTO_TEST_CASE (test_imagespec_metadata_val)
+{
+    std::string ret;
+
+    int imatrix[] = {100, 200, 300, 400};
+    metadata_val_test (&imatrix[0], 1, TypeDesc::TypeInt, ret);
+    BOOST_CHECK_EQUAL (ret, "100");
+    metadata_val_test (imatrix, sizeof (imatrix)/sizeof(int), TypeDesc::TypeInt, ret);
+    BOOST_CHECK_EQUAL (ret, "100, 200, 300, 400");
+    BOOST_CHECK_NE (ret, "100, 200, 300, 400,");
+
+    float fmatrix[] = {10.12, 200.34, 300.11, 400.9};
+    metadata_val_test (&fmatrix[0], 1, TypeDesc::TypeFloat, ret);
+    BOOST_CHECK_EQUAL (ret, "10.12");
+    metadata_val_test (fmatrix, sizeof (fmatrix) / sizeof (float), TypeDesc::TypeFloat, ret);
+    BOOST_CHECK_EQUAL (ret, "10.12, 200.34, 300.11, 400.9");
+    BOOST_CHECK_NE (ret, "10, 200, 300, 400");
+    BOOST_CHECK_NE (ret, "10.12, 200.34, 300.11, 400.9,");
+
+    unsigned long long ullmatrix[] = {0xffffffffffffffffLL, 0xffffffffffffffffLL};
+    metadata_val_test (&ullmatrix, 1, TypeDesc::UINT64, ret);
+    BOOST_CHECK_EQUAL (ret, "18446744073709551615");
+    metadata_val_test (&ullmatrix, sizeof (ullmatrix) / sizeof (unsigned long long), TypeDesc::UINT64, ret);
+    BOOST_CHECK_EQUAL (ret, "18446744073709551615, 18446744073709551615");
+    BOOST_CHECK_NE (ret, "-1, -1");
+    BOOST_CHECK_NE (ret, "18446744073709551615, 18446744073709551615,");
+
+    std::string smatrix[] = {"this is \"a test\"", "this is another test"};
+    metadata_val_test (&smatrix[0], 1, TypeDesc::TypeString, ret);
+    BOOST_CHECK_EQUAL (ret, "\"this is \"a test\"\"");
+    BOOST_CHECK_NE (ret, smatrix[0]);
+    BOOST_CHECK_NE (ret, "\"this is \"a test\"\",");
+    metadata_val_test (smatrix, sizeof (smatrix) / sizeof (std::string), TypeDesc::TypeString, ret);
+    BOOST_CHECK_EQUAL (ret, "\"this is \"a test\"\", \"this is another test\"");
+
+    float matrix16[2][16] = {{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+                        {10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25}};
+    metadata_val_test (&matrix16[0], 1, TypeDesc::TypeMatrix, ret);
+    BOOST_CHECK_EQUAL (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16");
+    BOOST_CHECK_NE (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16,");
+    metadata_val_test (matrix16, sizeof (matrix16) / (16 * sizeof (float)), TypeDesc::TypeMatrix, ret);
+    BOOST_CHECK_EQUAL (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16, 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25");
 }

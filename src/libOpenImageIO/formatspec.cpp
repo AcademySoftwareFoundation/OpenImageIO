@@ -443,7 +443,7 @@ format_raw_metadata (const ImageIOParameter &p)
     int n = p.type().numelements() * p.nvalues();
     if (element == TypeDesc::STRING) {
         for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("\"%s\"", ((const char **)p.data())[i]);
+            out += Strutil::format ("%s\"%s\"", (i ? ", " : ""), ((const char **)p.data())[i]);
     } else if (element == TypeDesc::FLOAT) {
         for (int i = 0;  i < n;  ++i)
             out += Strutil::format ("%s%g", (i ? ", " : ""), ((const float *)p.data())[i]);
@@ -471,8 +471,8 @@ format_raw_metadata (const ImageIOParameter &p)
     } else if (element == TypeDesc::TypeMatrix) {
         const float *m = (const float *)p.data();
         for (int i = 0;  i < n;  ++i, m += 16)
-            out += Strutil::format ("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g ",
-                    m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], 
+            out += Strutil::format ("%s%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g",
+                    (i ? ", " : ""), m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7],
                     m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]);
     }
     else {
