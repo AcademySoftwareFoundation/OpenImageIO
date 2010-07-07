@@ -368,7 +368,7 @@ TGAOutput::close ()
         }
 
         // software ID - we advertise ourselves
-        tmpstr = "OpenImageIO";
+        tmpstr = OPENIMAGEIO_INTRO_STRING;
         fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
                 1, m_file);
         // fill the rest with zeros

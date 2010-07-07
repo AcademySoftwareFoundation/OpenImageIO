@@ -229,15 +229,12 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
 
     int ofs = ftell (m_file);
     // now try and see if it's a TGA 2.0 image
-    fseek (m_file, -26, SEEK_END);
-    if (!fread (&m_foot.ofs_ext, sizeof (m_foot.ofs_ext), 1) != 1 ||
-        !fread (&m_foot.ofs_dev, sizeof (m_foot.ofs_dev), 1) != 1 ||
-        !fread (&m_foot.signature, sizeof (m_foot.signature), 1) != 1) {
-        return false;
-    }
-
     // TGA 2.0 files are identified by a nifty "TRUEVISION-XFILE.\0" signature
-    if (!strncmp (m_foot.signature, "TRUEVISION-XFILE.", 17)) {
+    fseek (m_file, -26, SEEK_END);
+    if (fread (&m_foot.ofs_ext, sizeof (m_foot.ofs_ext), 1) &&
+        fread (&m_foot.ofs_dev, sizeof (m_foot.ofs_dev), 1) &&
+        fread (&m_foot.signature, sizeof (m_foot.signature), 1) &&
+        !strncmp (m_foot.signature, "TRUEVISION-XFILE.", 17)) {
         //std::cerr << "[tga] this is a TGA 2.0 file\n";
         if (bigendian()) {
             swap_endian (&m_foot.ofs_ext);
@@ -341,7 +338,7 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
             // FIXME: what do we do with it?
 
             // aspect ratio
-            if (fread (buf.s, 2, 2))
+            if (! fread (buf.s, 2, 2))
                 return false;
             // if the denominator is zero, it's unused
             if (buf.s[1]) {
