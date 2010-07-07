@@ -3,7 +3,7 @@ set (public_headers argparse.h dassert.h errorhandler.h export.h
                     imagebuf.h imagecache.h imageio.h osdep.h paramlist.h
                     refcnt.h strutil.h sysutil.h texture.h thread.h timer.h
                     typedesc.h ustring.h varyingref.h
-                    colortransfer.h
+                    colortransfer.h pugixml.hpp
     )
 
 install (FILES ${public_headers} DESTINATION include/OpenImageIO
