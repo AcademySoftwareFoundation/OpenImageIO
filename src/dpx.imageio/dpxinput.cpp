@@ -30,8 +30,11 @@
 
 #include "libdpx/DPX.h"
 
+#include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
+
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace OpenImageIO;
 
@@ -337,12 +340,6 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
 bool
 DPXInput::close ()
 {
-    if (m_stream) {
-        m_stream->Close ();
-        delete m_stream;
-        m_stream = NULL;
-    }
-    
     init();  // Reset to initial state
     return true;
 }
@@ -354,8 +351,11 @@ DPXInput::read_native_scanline (int y, int z, void *data)
 {
     dpx::Block block(0, y, m_dpx.header.Width () - 1, y);
 
-    if (!m_dpx.ReadBlock(data, m_dpx.header.ComponentDataSize(m_subimage),
-        block, m_dpx.header.ImageDescriptor(m_subimage)))
+    if (!m_dpx.ReadBlock(data, m_dpx.header.ComponentDataSize (m_subimage),
+        block, m_dpx.header.ImageDescriptor (m_subimage)))
         return false;
     return true;
 }
+
+OIIO_PLUGIN_NAMESPACE_END
+
