@@ -37,6 +37,7 @@
 #define _DPX_READERINTERNAL_H 1
 
 
+#include <algorithm>
 #include "BaseTypeConverter.h"
 
 
@@ -161,13 +162,17 @@ namespace dpx
 #else					
 			BUF *obuf = data + bufoff;
 			int index = (block.x1 * sizeof(U32)) % numberOfComponents;
-			
+
 			for (int count = (block.x2 - block.x1 + 1) * numberOfComponents - 1; count >= 0; count--)
 			{
 				// unpacking the buffer backwords
 				U16 d1 = U16(readBuf[(count + index) / 3] >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
 
 				BaseTypeConverter(d1, obuf[count]);
+
+				// work-around for 1-channel DPX images - to swap the outlying pixels, otherwise the columns are in the wrong order
+				if (numberOfComponents == 1 && count % 3 == 0)
+					std::swap(obuf[count], obuf[count + 2]);
 			}
 #endif		
 		}
@@ -221,7 +226,7 @@ namespace dpx
 			U16 *d1 = reinterpret_cast<U16 *>(reinterpret_cast<U8 *>(readBuf)+((i * bitDepth) / 8 /*bits*/));
 			
 			// place the component in the MSB and mask it for both 10-bit and 12-bit
-			U16 d2 = (*d1 << (REVERSE - ((count % REMAIN) * MULTIPLIER))) & MASK; 
+			U16 d2 = (*d1 << (REVERSE - ((i % REMAIN) * MULTIPLIER))) & MASK;
 			BaseTypeConverter(d2, obuf[i]);
 		}		
 	}
@@ -235,7 +240,7 @@ namespace dpx
 
 		// get the number of components for this element descriptor
 		const int numberOfComponents = dpxHeader.ImageElementComponentCount(element);
-	
+
 		// end of line padding
 		int eolnPad = dpxHeader.EndOfLinePadding(element);
 
@@ -243,9 +248,8 @@ namespace dpx
 		const int dataSize = dpxHeader.BitDepth(element);
 
 		// number of bytes 
-		const int lineSize = (dpxHeader.Width() * numberOfComponents * dataSize / 32 /*32 bits*/) + 
-			((dpxHeader.Width() * numberOfComponents * dataSize % 32) ? 1 : 0);
-				
+		const int lineSize = (dpxHeader.Width() * numberOfComponents * dataSize + 31) / 32;
+
 		// read in each line at a time directly into the user memory space
 		for (int line = 0; line < height; line++)
 		{
@@ -256,11 +260,10 @@ namespace dpx
 			// calculate read size
 			int readSize = ((block.x2 - block.x1 + 1) * numberOfComponents * dataSize);
 			readSize += (block.x1 * numberOfComponents * dataSize % 32);			// add the bits left over from the beginning of the line
-			readSize = ((readSize / 32) + (readSize % 32 ? 1 : 0)) * sizeof(U32);
+			readSize = ((readSize + 31) / 32) * sizeof(U32);
 
-						
 			// calculate buffer offset
-			int bufoff = line * dpxHeader.Width() * numberOfComponents;		
+			int bufoff = line * dpxHeader.Width() * numberOfComponents;
 	
 			fd->Read(dpxHeader, element, offset, readBuf, readSize);
 
