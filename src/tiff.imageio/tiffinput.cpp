@@ -259,7 +259,8 @@ TIFFInput::seek_subimage (int index, ImageSpec &newspec)
     if (! m_tif) {
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
         if (m_tif == NULL) {
-            error ("Could not open file: %s", lasterr.c_str());
+            error ("Could not open file: %s",
+                   lasterr.length() ? lasterr.c_str() : m_filename.c_str());
             return false;
         }
         m_subimage = 0;
@@ -276,7 +277,7 @@ TIFFInput::seek_subimage (int index, ImageSpec &newspec)
         }
         return true;
     } else {
-        error ("%s", lasterr.c_str());
+        error ("%s", lasterr.length() ? lasterr.c_str() : m_filename.c_str());
         m_subimage = -1;
         return false;
     }
