@@ -65,6 +65,10 @@ private:
             m_stream = NULL;
         }
     }
+
+    /// Helper function - retrieve string for libdpx descriptor
+    ///
+    std::string get_descriptor_string (dpx::Characteristic c);
 };
 
 
@@ -119,13 +123,16 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
     TypeDesc typedesc;
     switch (m_dpx.header.ComponentDataSize(index)) {
         case dpx::kByte:
-            typedesc = TypeDesc::UINT8;
+            typedesc = m_dpx.header.DataSign (index)
+                ? TypeDesc::INT8 : TypeDesc::UINT8;
             break;
         case dpx::kWord:
-            typedesc = TypeDesc::UINT16;
+            typedesc = m_dpx.header.DataSign (index)
+                ? TypeDesc::INT16 : TypeDesc::UINT16;
             break;
         case dpx::kInt:
-            typedesc = TypeDesc::UINT32;
+            typedesc = m_dpx.header.DataSign (index)
+                ? TypeDesc::INT32 : TypeDesc::UINT32;
             break;
         case dpx::kFloat:
             typedesc = TypeDesc::FLOAT;
@@ -241,7 +248,45 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
             break;
     }
     m_spec.attribute ("Orientation", orientation);
-        
+
+    // image linearity
+    switch (m_dpx.header.Transfer (index)) {
+        case dpx::kLinear:
+            m_spec.linearity = ImageSpec::Linear;
+            break;
+        case dpx::kLogarithmic:
+            m_spec.linearity = ImageSpec::KodakLog;
+            break;
+        case dpx::kITUR709:
+            m_spec.linearity = ImageSpec::Rec709;
+            break;
+        case dpx::kUserDefined:
+            if (! std::isnan (m_dpx.header.Gamma ())) {
+                m_spec.linearity = ImageSpec::GammaCorrected;
+                m_spec.gamma = m_dpx.header.Gamma ();
+                break;
+            }
+            // intentional fall-through
+        /*case dpx::kPrintingDensity:
+        case dpx::kUnspecifiedVideo:
+        case dpx::kSMPTE274M:
+        case dpx::kITUR601:
+        case dpx::kITUR602:
+        case dpx::kNTSCCompositeVideo:
+        case dpx::kPALCompositeVideo:
+        case dpx::kZLinear:
+        case dpx::kZHomogeneous:
+        case dpx::kUndefinedCharacteristic:*/
+        default:
+            m_spec.linearity = ImageSpec::UnknownLinearity;
+            break;
+    }
+    m_spec.attribute ("dpx:Transfer",
+        get_descriptor_string (m_dpx.header.Transfer (index)));
+    // colorimetric characteristic
+    m_spec.attribute ("dpx:Colorimetric",
+        get_descriptor_string (m_dpx.header.Colorimetric (index)));
+
     // general metadata
     if (m_dpx.header.copyright[0])
         m_spec.attribute ("Copyright", m_dpx.header.copyright);
@@ -269,30 +314,33 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
 
     // DPX-specific metadata
     // save some typing by using macros
-    // "internal" macro
-#define _DPX_SET_ATTRIB(x, n)       m_spec.attribute ("dpx:" #x,              \
+    // "internal" macros
+#define DPX_SET_ATTRIB_S(x, n, s)   m_spec.attribute (s,                      \
                                         m_dpx.header.x (n))
+#define DPX_SET_ATTRIB(x, n)        DPX_SET_ATTRIB_S(x, n, "dpx:" #x)
     // set without checking for bogus attributes
-#define DPX_SET_ATTRIB_N(x)         _DPX_SET_ATTRIB(x, index)
+#define DPX_SET_ATTRIB_N(x)         DPX_SET_ATTRIB(x, index)
     // set with checking for bogus attributes
+#define DPX_SET_ATTRIB_BYTE(x)      if (m_dpx.header.x () != 0xFF)      \
+                                        DPX_SET_ATTRIB(x, )
 #define DPX_SET_ATTRIB_INT_N(x)     if (m_dpx.header.x (index) != 0xFFFFFFFF) \
-                                        _DPX_SET_ATTRIB(x, index)
+                                        DPX_SET_ATTRIB(x, index)
 #define DPX_SET_ATTRIB_INT(x)       if (m_dpx.header.x () != 0xFFFFFFFF)      \
-                                        _DPX_SET_ATTRIB(x, )
+                                        DPX_SET_ATTRIB(x, )
 #define DPX_SET_ATTRIB_FLOAT_N(x)   if (! std::isnan(m_dpx.header.x (index))) \
-                                        _DPX_SET_ATTRIB(x, index)
+                                        DPX_SET_ATTRIB(x, index)
 #define DPX_SET_ATTRIB_FLOAT(x)     if (! std::isnan(m_dpx.header.x ()))      \
-                                        _DPX_SET_ATTRIB(x, )
+                                        DPX_SET_ATTRIB(x, )
 #define DPX_SET_ATTRIB_STR(X, x)    if (m_dpx.header.x[0])                    \
                                         m_spec.attribute ("dpx:" #X,          \
                                             m_dpx.header.x)
+                                            
+    DPX_SET_ATTRIB_INT(EncryptKey);
     DPX_SET_ATTRIB_INT(DittoKey);
     DPX_SET_ATTRIB_INT_N(LowData);
     DPX_SET_ATTRIB_FLOAT_N(LowQuantity);
     DPX_SET_ATTRIB_INT_N(HighData);
     DPX_SET_ATTRIB_FLOAT_N(HighQuantity);
-    DPX_SET_ATTRIB_N(Transfer);
-    DPX_SET_ATTRIB_N(Colorimetric);
     DPX_SET_ATTRIB_FLOAT(XScannedSize);
     DPX_SET_ATTRIB_FLOAT(YScannedSize);
     DPX_SET_ATTRIB_INT(FramePosition);
@@ -304,6 +352,20 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
     DPX_SET_ATTRIB_STR(Format, format);
     DPX_SET_ATTRIB_STR(FrameId, frameId);
     DPX_SET_ATTRIB_STR(SlateInfo, slateInfo);
+    DPX_SET_ATTRIB_STR(SourceImageFileName, sourceImageFileName);
+    DPX_SET_ATTRIB_STR(InputDevice, inputDevice);
+    DPX_SET_ATTRIB_STR(InputDeviceSerialNumber, inputDeviceSerialNumber);
+    DPX_SET_ATTRIB_BYTE(Interlace);
+    DPX_SET_ATTRIB_BYTE(FieldNumber);
+    DPX_SET_ATTRIB_FLOAT(HorizontalSampleRate);
+    DPX_SET_ATTRIB_FLOAT(VerticalSampleRate);
+    DPX_SET_ATTRIB_FLOAT(TemporalFrameRate);
+    DPX_SET_ATTRIB_FLOAT(TimeOffset);
+    DPX_SET_ATTRIB_FLOAT(BlackLevel);
+    DPX_SET_ATTRIB_FLOAT(BlackGain);
+    DPX_SET_ATTRIB_FLOAT(BreakPoint);
+    DPX_SET_ATTRIB_FLOAT(WhiteLevel);
+    DPX_SET_ATTRIB_FLOAT(IntegrationTimes);
 #undef DPX_SET_ATTRIB_STR
 #undef DPX_SET_ATTRIB_FLOAT
 #undef DPX_SET_ATTRIB_FLOAT_N
@@ -312,13 +374,10 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
 #undef DPX_SET_ATTRIB_N
 #undef _DPX_SET_ATTRIB
 
-    if (m_dpx.header.EncryptKey () != 0xFFFFFFFF)
-        m_spec.attribute ("dpx:EncryptKey", m_dpx.header.EncryptKey ());
-    if (m_dpx.header.inputDevice[0])
-        m_spec.attribute ("dpx:InputDevice", m_dpx.header.inputDevice);
-    if (m_dpx.header.inputDeviceSerialNumber[0])
-        m_spec.attribute ("dpx:InputDeviceSerialNumber",
-            m_dpx.header.inputDeviceSerialNumber);
+    if (m_dpx.header.timeCode != 0xFFFFFFFF)
+        m_spec.attribute ("dpx:TimeCode", m_dpx.header.timeCode);
+    if (m_dpx.header.userBits != 0xFFFFFFFF)
+        m_spec.attribute ("dpx:UserBits", m_dpx.header.userBits);
     if (m_dpx.header.sourceTimeDate[0]) {
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
         // %Y:%m:%d:%H:%M:%S%Z)
@@ -331,6 +390,70 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
     m_dpx.header.FilmEdgeCode(buf);
     if (buf[0])
         m_spec.attribute ("dpx:FilmEdgeCode", buf);
+
+    std::string tmpstr;
+    switch (m_dpx.header.Signal ()) {
+        case dpx::kUndefined:
+            tmpstr = "Undefined";
+            break;
+        case dpx::kNTSC:
+            tmpstr = "NTSC";
+            break;
+        case dpx::kPAL:
+            tmpstr = "PAL";
+            break;
+        case dpx::kPAL_M:
+            tmpstr = "PAL-M";
+            break;
+        case dpx::kSECAM:
+            tmpstr = "SECAM";
+            break;
+        case dpx::k525LineInterlace43AR:
+            tmpstr = "YCbCr ITU-R 601-5 525i, 4:3";
+            break;
+        case dpx::k625LineInterlace43AR:
+            tmpstr = "YCbCr ITU-R 601-5 625i, 4:3";
+            break;
+        case dpx::k525LineInterlace169AR:
+            tmpstr = "YCbCr ITU-R 601-5 525i, 16:9";
+            break;
+        case dpx::k625LineInterlace169AR:
+            tmpstr = "YCbCr ITU-R 601-5 625i, 16:9";
+            break;
+        case dpx::k1050LineInterlace169AR:
+            tmpstr = "YCbCr 1050i, 16:9";
+            break;
+        case dpx::k1125LineInterlace169AR_274:
+            tmpstr = "YCbCr 1125i, 16:9 (SMPTE 274M)";
+            break;
+        case dpx::k1250LineInterlace169AR:
+            tmpstr = "YCbCr 1250i, 16:9";
+            break;
+        case dpx::k1125LineInterlace169AR_240:
+            tmpstr = "YCbCr 1125i, 16:9 (SMPTE 240M)";
+            break;
+        case dpx::k525LineProgressive169AR:
+            tmpstr = "YCbCr 525p, 16:9";
+            break;
+        case dpx::k625LineProgressive169AR:
+            tmpstr = "YCbCr 625p, 16:9";
+            break;
+        case dpx::k750LineProgressive169AR:
+            tmpstr = "YCbCr 750p, 16:9 (SMPTE 296M)";
+            break;
+        case dpx::k1125LineProgressive169AR:
+            tmpstr = "YCbCr 1125p, 16:9 (SMPTE 274M)";
+            break;
+        case 0xFF:
+            // don't set the attribute at all
+            break;
+        default:
+            tmpstr = Strutil::format ("Undefined %d",
+                (int)m_dpx.header.Signal ());
+            break;
+    }
+    if (!tmpstr.empty ())
+        m_spec.attribute ("dpx:Signal", tmpstr);
 
     return true;
 }
@@ -355,6 +478,44 @@ DPXInput::read_native_scanline (int y, int z, void *data)
         block, m_dpx.header.ImageDescriptor (m_subimage)))
         return false;
     return true;
+}
+
+
+
+std::string
+DPXInput::get_descriptor_string (dpx::Characteristic c)
+{
+    switch (c) {
+        case dpx::kUserDefined:
+            return "User defined";
+        case dpx::kPrintingDensity:
+            return "Printing density";
+        case dpx::kLinear:
+            return "Linear";
+        case dpx::kLogarithmic:
+            return "Logarithmic";
+        case dpx::kUnspecifiedVideo:
+            return "Unspecified video";
+        case dpx::kSMPTE274M:
+            return "SMPTE 274M";
+        case dpx::kITUR709:
+            return "ITU-R 709-4";
+        case dpx::kITUR601:
+            return "ITU-R 601-5 system B or G";
+        case dpx::kITUR602:
+            return "ITU-R 601-5 system M";
+        case dpx::kNTSCCompositeVideo:
+            return "NTSC composite video";
+        case dpx::kPALCompositeVideo:
+            return "PAL composite video";
+        case dpx::kZLinear:
+            return "Z depth linear";
+        case dpx::kZHomogeneous:
+            return "Z depth homogeneous";
+        case dpx::kUndefinedCharacteristic:
+        default:
+            return "Undefined";
+    }
 }
 
 OIIO_PLUGIN_NAMESPACE_END
