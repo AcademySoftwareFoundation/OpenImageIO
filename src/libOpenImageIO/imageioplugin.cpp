@@ -193,6 +193,7 @@ namespace OPENIMAGEIO_NAMESPACE {
 
     PLUGENTRY (bmp);
     PLUGENTRY (dds);
+    PLUGENTRY (dpx);
     PLUGENTRY (fits);
     PLUGENTRY (hdr);
     PLUGENTRY (ico);
@@ -235,6 +236,7 @@ catalog_builtin_plugins ()
 
     DECLAREPLUG (bmp);
     DECLAREPLUG (dds);
+    DECLAREPLUG (dpx);
     DECLAREPLUG (fits);
     DECLAREPLUG (hdr);
     DECLAREPLUG (ico);
