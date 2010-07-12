@@ -334,6 +334,10 @@ public:
     ///
     void attribute (const std::string &name, TypeDesc type, const void *value);
 
+    /// Add an optional attribute to the extra attribute list.
+    ///
+    void attribute (const std::string &name, TypeDesc type, const std::string &value);
+
     /// Add an unsigned int attribute
     ///
     void attribute (const std::string &name, unsigned int value) {
@@ -395,6 +399,14 @@ public:
     /// values) for certain known metadata.
     std::string metadata_val (const ImageIOParameter &p,
                               bool human=false) const;
+
+    /// Convert ImageSpec class into XML string.
+    ///
+    std::string to_xml () const;
+
+    /// Get an ImageSpec class from XML string.
+    ///
+    void from_xml (const char *xml);
 };
 
 

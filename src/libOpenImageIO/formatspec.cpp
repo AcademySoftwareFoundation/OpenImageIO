@@ -30,10 +30,14 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <sstream>
 
 #include <half.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/foreach.hpp>
+
 using boost::algorithm::iequals;
 
 #include "dassert.h"
@@ -42,6 +46,7 @@ using boost::algorithm::iequals;
 #include "fmath.h"
 
 #include "imageio.h"
+#include "pugixml.hpp"
 
 using namespace OpenImageIO;
 
@@ -332,6 +337,71 @@ ImageSpec::attribute (const std::string &name, TypeDesc type, const void *value)
         f = &extra_attribs.back();
     }
     f->init (name, type, 1, value);
+}
+
+
+
+template <class T>
+static void
+parse_elements (const std::string &name, TypeDesc type, const std::string &type_code,
+     const std::string &elements, int num_elements, ImageIOParameter &param)
+{
+    void *data = new T[num_elements];
+    char *data_ptr = (char *) data;
+    size_t element_size = type.elementtype().elementsize ();
+
+    boost::char_separator<char> sep (", ");
+    boost::tokenizer<boost::char_separator<char> > tokens (elements, sep);
+    BOOST_FOREACH (std::string element, tokens) {
+        sscanf (element.c_str (), type_code.c_str (), (T *)data_ptr);
+        data_ptr += element_size;
+    }
+
+    param.init (name, type, num_elements/type.numelements (), data, true);
+    delete [] (T *) data;
+}
+
+
+
+void
+ImageSpec::attribute (const std::string &name, TypeDesc type, const std::string &value)
+{
+    ImageIOParameter param;
+    size_t num_elements = std::count (value.begin (), value.end (), ',') + 1;
+    TypeDesc elem_type = type.elementtype();
+
+    if (elem_type == TypeDesc::INT || elem_type == TypeDesc::INT16) {
+        parse_elements<int> (name, type, "%d", value, num_elements, param);
+    } else if (elem_type == TypeDesc::UINT || elem_type == TypeDesc::UINT16) {
+        parse_elements<unsigned int> (name, type, "%d", value, num_elements, param);
+    } else if (elem_type == TypeDesc::FLOAT) {
+        parse_elements<float> (name, type, "%g", value, num_elements, param);
+    } else if (elem_type == TypeDesc::DOUBLE) {
+        parse_elements<double> (name, type, "%g", value, num_elements, param);
+    } else if (elem_type == TypeDesc::INT64) {
+        parse_elements<long long> (name, type, "%lld", value, num_elements, param);
+    } else if (elem_type == TypeDesc::UINT64) {
+        parse_elements<unsigned long long> (name, type, "%llu", value, num_elements, param);
+    } else if (elem_type == TypeDesc::TypeMatrix) {
+        ImageIOParameter tmp_param;
+        num_elements = std::count (value.begin (), value.end (), ' ') + 1;
+        TypeDesc tmp_type = TypeDesc (TypeDesc::FLOAT, 16);
+        parse_elements <float> (name, tmp_type, "%g", value, num_elements, tmp_param);
+        param.init (name, TypeDesc::TypeMatrix, num_elements/16, tmp_param.data());
+    } else if (elem_type == TypeDesc::STRING) {
+        // Remove quotation marks.
+        std::string tmp_value = value.substr (1, value.length () - 2);
+        const char *value_data = tmp_value.data ();
+        param.init (name, TypeDesc::TypeString, 1, &value_data);
+    }
+
+    // Don't allow duplicates
+    ImageIOParameter *f = find_attribute (name);
+    if (f) {
+        *f = param;
+    } else {
+        extra_attribs.push_back (param);
+    }
 }
 
 
@@ -748,3 +818,141 @@ ImageSpec::metadata_val (const ImageIOParameter &p, bool human) const
 
     return out;
 }
+
+
+
+namespace { // Helper functions for from_xml () and to_xml () methods.
+
+using namespace pugi;
+
+static void
+add_node (xml_node &node, const std::string &node_name, const char *val)
+{
+    xml_node newnode = node.append_child();
+    newnode.set_name (node_name.c_str ());
+    newnode.append_child (node_pcdata).set_value (val);
+}
+
+
+
+static void
+add_node (xml_node &node, const std::string &node_name, const int val)
+{
+    char buf[64];
+    sprintf (buf, "%d", val);
+    add_node (node, node_name, buf);
+}
+
+
+
+static void
+add_node (xml_node &node, const std::string &node_name, const float val)
+{
+    char buf[64];
+    sprintf (buf, "%f", val);
+    add_node (node, node_name, buf);
+}
+
+
+
+static void
+add_channelnames_node (xml_document &doc, const std::vector<std::string> &channelnames)
+{
+    xml_node channel_node = doc.child ("ImageSpec").append_child();
+    channel_node.set_name ("channelnames");
+    BOOST_FOREACH (std::string name, channelnames) {
+        add_node (channel_node, "channelname", name.c_str ());
+    }
+}
+
+
+
+static void
+get_channelnames (const xml_node &n, std::vector<std::string> &channelnames)
+{
+    xml_node channel_node = n.child ("channelnames");
+
+    for (xml_node n = channel_node.child ("channelname"); n;
+            n = n.next_sibling ("channelname")) {
+        channelnames.push_back (n.child_value ());
+    }
+}
+
+} // end of anonymous namespace
+
+
+
+std::string
+ImageSpec::to_xml () const
+{
+    xml_document doc;
+
+    doc.append_child ().set_name ("ImageSpec");
+    doc.child ("ImageSpec").append_attribute ("version") = OPENIMAGEIO_PLUGIN_VERSION;
+    xml_node node = doc.child ("ImageSpec");
+
+    add_node (node, "x", x);
+    add_node (node, "y", y);
+    add_node (node, "z", z);
+    add_node (node, "width", width);
+    add_node (node, "height", height);
+    add_node (node, "depth", depth);
+    add_node (node, "full_x", full_x);
+    add_node (node, "full_y", full_y);
+    add_node (node, "full_z", full_z);
+    add_node (node, "full_width", full_width);
+    add_node (node, "full_height", full_height);
+    add_node (node, "full_depth", full_depth);
+    add_node (node, "tile_width", tile_width);
+    add_node (node, "tile_height", tile_height);
+    add_node (node, "tile_depth", tile_depth);
+    add_node (node, "format", format.c_str ());
+    add_node (node, "nchannels", nchannels);
+    add_channelnames_node (doc, channelnames);
+    add_node (node, "alpha_channel", alpha_channel);
+    add_node (node, "z_channel", z_channel);
+    add_node (node, "linearity", linearity);
+    add_node (node, "gamma", gamma);
+
+    std::ostringstream result;
+    doc.print (result, "");
+    return result.str();
+}
+
+
+
+void
+ImageSpec::from_xml (const char *xml)
+{
+    xml_document doc;
+    doc.load (xml);
+    xml_node n = doc.child ("ImageSpec");
+
+    //int version = n.attribute ("version").as_int();
+
+    // Fields for version == 10 (current)
+    x = atoi (n.child_value ("x"));
+    y = atoi (n.child_value ("y"));
+    z = atoi (n.child_value ("z"));
+    width = atoi (n.child_value ("width"));
+    height = atoi (n.child_value ("height"));
+    depth = atoi (n.child_value ("depth"));
+    full_x = atoi (n.child_value ("full_x"));
+    full_y = atoi (n.child_value ("full_y"));
+    full_z = atoi (n.child_value ("full_z"));
+    full_width = atoi (n.child_value ("full_width"));
+    full_height = atoi (n.child_value ("full_height"));
+    full_depth = atoi (n.child_value ("full_depth"));
+    tile_width = atoi (n.child_value ("tile_width"));
+    tile_height = atoi (n.child_value ("tile_height"));
+    tile_depth = atoi (n.child_value ("tile_depth"));
+    format = TypeDesc (n.child_value ("format"));
+    nchannels  = atoi (n.child_value ("nchannels"));
+    get_channelnames (n, channelnames);
+    alpha_channel = atoi (n.child_value ("alpha_channel"));
+    z_channel = atoi (n.child_value ("z_channel"));
+    linearity = (ImageSpec::Linearity) atoi (n.child_value ("linearity"));
+    gamma = atof (n.child_value ("gamma"));
+    // If version == 11 {fill new fields}
+}
+

@@ -153,7 +153,6 @@ if (GTEST_FOUND)
     target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} 
                                 ${GTEST_LIBRARY} ${CMAKE_DL_LIBS})
 endif ()
-add_test (imagespec ${CMAKE_BINARY_DIR}/libOpenImageIO/imagespec_test)
 add_test (imagebufalgo ${CMAKE_BINARY_DIR}/libOpenImageIO/imagebufalgo_test)
 
 
