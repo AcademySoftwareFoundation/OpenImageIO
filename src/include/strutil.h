@@ -43,6 +43,7 @@
 #include <cstdarg>
 #include <string>
 #include <cstring>
+#include <map>
 
 #include "export.h"
 
@@ -97,6 +98,16 @@ std::string DLLPUBLIC memformat (off_t bytes, int digits=3);
 std::string DLLPUBLIC timeintervalformat (double secs, int digits=1);
 
 
+/// Get a map with RESTful arguments extracted from the given string 'str'.
+/// Add it into the 'result' argument (Warning: the 'result' argument may
+/// be changed even if 'get_rest_arguments ()' return an error!).
+/// Return true on success, false on error.
+/// Acceptable forms:
+///  - text?arg1=val1&arg2=val2...
+///  - ?arg1=val1&arg2=val2...
+/// Everything before question mark will be saved into the 'base' argument.
+bool DLLPUBLIC get_rest_arguments (const std::string &str, std::string &base,
+                                   std::map<std::string, std::string> &result);
 
 /// Beautiful little string hasher from Aho, Sethi, and Ullman's 1986
 /// Dragon compiler book.  This depends on sizeof(unsigned int) == 4.

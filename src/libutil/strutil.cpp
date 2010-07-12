@@ -34,6 +34,8 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <boost/tokenizer.hpp>
+#include <boost/foreach.hpp>
 
 #include "dassert.h"
 
@@ -134,3 +136,31 @@ Strutil::timeintervalformat (double secs, int digits)
         out += format ("%1.*fs", digits, secs);
     return out;
 }
+
+
+
+bool
+Strutil::get_rest_arguments (const std::string &str, std::string &base,
+                             std::map<std::string, std::string> &result)
+{
+    std::string::size_type mark_pos = str.find_first_of ("?");
+    if (mark_pos == std::string::npos) {
+        base = str;
+        return true;
+    }
+
+    base = str.substr (0, mark_pos);
+
+    boost::char_separator<char> sep ("&");
+    std::string rest = str.substr (mark_pos + 1);
+    boost::tokenizer<boost::char_separator<char> > rest_tokens (rest, sep);
+    BOOST_FOREACH (std::string keyval, rest_tokens) {
+        mark_pos = keyval.find_first_of ("=");
+        if (mark_pos == std::string::npos)
+            return false;
+        result[keyval.substr (0, mark_pos)] = keyval.substr (mark_pos + 1);
+    }
+
+    return true;
+}
+
