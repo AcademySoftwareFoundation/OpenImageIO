@@ -82,7 +82,7 @@ private:
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
-extern "C" {
+OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *dpx_output_imageio_create () { return new DPXOutput; }
 
@@ -92,7 +92,7 @@ DLLEXPORT const char * dpx_output_extensions[] = {
     "dpx", NULL
 };
 
-};
+OIIO_PLUGIN_EXPORTS_END
 
 
 
