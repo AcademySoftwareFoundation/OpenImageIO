@@ -413,12 +413,32 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
     int nc = texfile->spec().nchannels;
     size_t formatpixelsize = nc * format.size();
+    size_t scanlinesize = (xend-xbegin) * formatpixelsize;
+    size_t zplanesize = (yend-ybegin) * scanlinesize;
     bool ok = true;
     for (int z = zbegin;  z < zend;  ++z) {
+        if (z < spec.z || z >= (spec.z+std::max(spec.depth,1))) {
+            // nonexistant planes
+            memset (result, 0, zplanesize);
+            result = (void *) ((char *) result + zplanesize);
+            continue;
+        }
         int tz = z - ((z - spec.z) % std::max (1, spec.tile_depth));
         for (int y = ybegin;  y < yend;  ++y) {
+            if (y < spec.y || y >= (spec.y+spec.height)) {
+                // nonexistant scanlines
+                memset (result, 0, scanlinesize);
+                result = (void *) ((char *) result + scanlinesize);
+                continue;
+            }
             int ty = y - ((y - spec.y) % spec.tile_height);
             for (int x = xbegin;  x < xend;  ++x) {
+                if (x < spec.x || x >= (spec.x+spec.width)) {
+                    // nonexistant columns
+                    memset (result, 0, formatpixelsize);
+                    result = (void *) ((char *) result + formatpixelsize);
+                    continue;
+                }
                 int tx = x - ((x - spec.x) % spec.tile_width);
                 TileID tileid (*texfile, subimage, tx, ty, tz);
                 ok &= find_tile (tileid, thread_info);

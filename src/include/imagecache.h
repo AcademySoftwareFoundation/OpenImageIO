@@ -156,7 +156,8 @@ public:
     /// type specified by format.  It is up to the caller to ensure that
     /// result points to an area of memory big enough to accommodate the
     /// requested rectangle (taking into consideration its dimensions,
-    /// number of channels, and data format).
+    /// number of channels, and data format).  Requested pixels outside
+    /// the valid pixel data region will be filled in with 0 values.
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
