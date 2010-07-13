@@ -736,6 +736,11 @@ exp2f(float val) {
 #endif
 
 
+// Some systems have isnan & isinf in the std namespace.
+using std::isnan;
+using std::isinf;
+
+
 
 /// Simple conversion of a (presumably non-negative) float into a
 /// rational.  This does not attempt to find the simplest fraction

@@ -33,6 +33,7 @@
 #include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
+#include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -261,7 +262,7 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
             m_spec.linearity = ImageSpec::Rec709;
             break;
         case dpx::kUserDefined:
-            if (! std::isnan (m_dpx.header.Gamma ())) {
+            if (! isnan (m_dpx.header.Gamma ())) {
                 m_spec.linearity = ImageSpec::GammaCorrected;
                 m_spec.gamma = m_dpx.header.Gamma ();
                 break;
@@ -327,9 +328,9 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
                                         DPX_SET_ATTRIB(x, index)
 #define DPX_SET_ATTRIB_INT(x)       if (m_dpx.header.x () != 0xFFFFFFFF)      \
                                         DPX_SET_ATTRIB(x, )
-#define DPX_SET_ATTRIB_FLOAT_N(x)   if (! std::isnan(m_dpx.header.x (index))) \
+#define DPX_SET_ATTRIB_FLOAT_N(x)   if (! isnan(m_dpx.header.x (index))) \
                                         DPX_SET_ATTRIB(x, index)
-#define DPX_SET_ATTRIB_FLOAT(x)     if (! std::isnan(m_dpx.header.x ()))      \
+#define DPX_SET_ATTRIB_FLOAT(x)     if (! isnan(m_dpx.header.x ()))      \
                                         DPX_SET_ATTRIB(x, )
 #define DPX_SET_ATTRIB_STR(X, x)    if (m_dpx.header.x[0])                    \
                                         m_spec.attribute ("dpx:" #X,          \
