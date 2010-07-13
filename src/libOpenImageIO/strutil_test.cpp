@@ -28,15 +28,9 @@
   (This is the Modified BSD License)
 */
 
-
-#define BOOST_TEST_SOURCE
-#define BOOST_TEST_MAIN
-
 #include "imageio.h"
+#include "boosttest.h"
 
-#define BOOST_TEST_SOURCE
-#define BOOST_TEST_MAIN
-#include <boost/test/included/unit_test.hpp>
 
 
 BOOST_AUTO_TEST_CASE (test_get_rest_arguments)

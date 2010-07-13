@@ -139,7 +139,8 @@ endmacro ()
 
 message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
 
-set (Boost_ADDITIONAL_VERSIONS "1.40" "1.39" "1.38" "1.38.0" "1.37" "1.37.0" "1.34.1" "1_34_1")
+set (Boost_ADDITIONAL_VERSIONS "1.43" "1.42" "1.41" "1.40" "1.39" "1.38"
+                               "1.38.0" "1.37" "1.37.0" "1.34.1" "1_34_1")
 if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS   ON)
 endif ()
@@ -148,7 +149,7 @@ if (BOOST_CUSTOM)
     set (Boost_FOUND true)
 else ()
     find_package (Boost 1.34 REQUIRED 
-                  COMPONENTS filesystem regex system thread
+                  COMPONENTS filesystem regex system thread unit_test_framework
                  )
 endif ()
 

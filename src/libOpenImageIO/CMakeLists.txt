@@ -1,5 +1,6 @@
 set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/colortransfer.h
+                         ../include/boosttest.h
                          ../include/dassert.h
                          ../include/errorhandler.h
                          ../include/filesystem.h
@@ -146,6 +147,12 @@ oiio_install_targets (OpenImageIO)
 
 
 # Testing
+
+# Definition needed by boost_unit_test_framework library
+if (NOT LINKSTATIC)
+    add_definitions (-DBOOST_TEST_DYN_LINK)
+endif ()
+
 if (GTEST_FOUND)
     add_executable (imagebufalgo_test imagebufalgo_test.cpp)
     include_directories (${GTEST_INCLUDES})

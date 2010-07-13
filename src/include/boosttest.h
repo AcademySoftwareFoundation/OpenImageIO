@@ -1,5 +1,5 @@
 /*
-  Copyright 2009 Larry Gritz and the other authors and contributors.
+  Copyright 2010 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -29,58 +29,30 @@
 */
 
 
-#include <iostream>
 
-#include "thread.h"
-
-#include <boost/thread/thread.hpp>
-
-#include "boosttest.h"
+// This file is included by all our unit tests in order to include the
+// proper Boost::Test files and do other setup.
 
 
 
-// Test spin locks by creating a bunch of threads that all increment the
-// accumulator many times, protected by spin locks.  If, at the end, the
-// accumulated value is equal to iterations*threads, then the spin locks
-// worked.
+#define BOOST_TEST_SOURCE
+#define BOOST_TEST_MAIN
 
-const int iterations = 1000000;
-const int numthreads = 16;
-
-volatile int accum = 0;
-spin_mutex mymutex;
-
-
-
-static void
-do_int_math ()
-{
-    std::cout << "thread " 
 #if (BOOST_VERSION >= 103500)
-              << boost::this_thread::get_id() 
-#endif
-              << ", accum = " << accum << "\n";
-    for (int i = 0;  i < iterations;  ++i) {
-        spin_lock lock (mymutex);
-        accum += 1;
-    }
-}
-
-
-
-BOOST_AUTO_TEST_CASE (test_atomic_int)
-{
-#if (BOOST_VERSION >= 103500)
-    std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
+# include <boost/test/unit_test.hpp>
+#else
+# include <boost/test/included/unit_test.hpp>
 #endif
 
-    accum = 0;
-    boost::thread_group threads;
-    for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (&do_int_math);
-    }
-    std::cout << "Created " << threads.size() << " threads\n";
-    threads.join_all ();
-    int a = (int) accum;
-    BOOST_CHECK_EQUAL (a, (int)(numthreads * iterations));
-}
+
+
+// Older versions of Boost don't have some of the specialized checks.
+// If they were not provided, define them in terms of plain old BOOST_CHECK.
+
+#ifndef BOOST_CHECK_NE
+#  define BOOST_CHECK_NE(a,b) BOOST_CHECK((a) != (b))
+#endif
+#ifndef BOOST_CHECK_LT
+#  define BOOST_CHECK_LT(a,b) BOOST_CHECK((a) < (b))
+#endif
+

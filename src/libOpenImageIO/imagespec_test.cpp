@@ -30,23 +30,11 @@
 
 
 #include "imageio.h"
-
-#define BOOST_TEST_SOURCE
-#define BOOST_TEST_MAIN
-#include <boost/test/included/unit_test.hpp>
+#include "boosttest.h"
 
 using namespace OpenImageIO;
 
 
-// Older versions of Boost don't have some of the specialized checks.
-// If they were not provided, define them in terms of plain old BOOST_CHECK.
-
-#ifndef BOOST_CHECK_NE
-#  define BOOST_CHECK_NE(a,b) BOOST_CHECK((a) != (b))
-#endif
-#ifndef BOOST_CHECK_LT
-#  define BOOST_CHECK_LT(a,b) BOOST_CHECK((a) < (b))
-#endif
 
 
 
