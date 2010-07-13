@@ -56,6 +56,7 @@ private:
     int m_subimage;
     InStream *m_stream;
     dpx::Reader m_dpx;
+    std::vector<unsigned char> m_userBuf;
 
     /// Reset everything to initial state
     ///
@@ -65,6 +66,7 @@ private:
             delete m_stream;
             m_stream = NULL;
         }
+        m_userBuf.clear ();
     }
 
     /// Helper function - retrieve string for libdpx descriptor
@@ -455,6 +457,17 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
     }
     if (!tmpstr.empty ())
         m_spec.attribute ("dpx:Signal", tmpstr);
+
+    // read in user data; don't bother if the buffer is already filled (user
+    // data is per-file, not per-element)
+    if (m_userBuf.empty () && m_dpx.header.UserSize () != 0
+        && m_dpx.header.UserSize () != 0xFFFFFFFF) {
+        m_userBuf.resize (m_dpx.header.UserSize ());
+        m_dpx.ReadUserData (&m_userBuf[0]);
+    }
+    if (!m_userBuf.empty ())
+        m_spec.attribute ("dpx:UserData", TypeDesc (TypeDesc::UCHAR,
+            m_dpx.header.UserSize ()), &m_userBuf[0]);
 
     return true;
 }

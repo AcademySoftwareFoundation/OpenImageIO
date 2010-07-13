@@ -231,6 +231,20 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         return false;
     }
 
+    // user data
+    ImageIOParameter *user = m_spec.find_attribute ("dpx:UserData");
+    if (user && user->datasize () > 0) {
+        if (user->datasize () > 1024 * 1024) {
+            error ("User data block size exceeds 1 MB");
+            return false;
+        }
+        m_dpx.SetUserData (user->datasize ());
+        if (!m_dpx.WriteUserData ((void *)user->data ())) {
+            error ("Failed to write user data");
+            return false;
+        }
+    }
+
     // reserve space for the image data buffer
     m_buf.reserve (m_spec.height * m_spec.scanline_bytes ());
 
