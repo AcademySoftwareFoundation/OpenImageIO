@@ -1382,6 +1382,7 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
                            const void *val)
 {
     bool do_invalidate = false;
+    bool force_invalidate = false;
     if (name == "max_open_files" && type == TypeDesc::INT) {
         m_max_open_files = *(const int *)val;
     }
@@ -1404,38 +1405,54 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         m_max_memory_bytes = size_t(size) * 1024 * 1024;
     }
     else if (name == "searchpath" && type == TypeDesc::STRING) {
-        m_searchpath = std::string (*(const char **)val);
-        Filesystem::searchpath_split (m_searchpath, m_searchdirs, true);
-        do_invalidate = true;   // in case file can be found with new path
+        std::string s = std::string (*(const char **)val);
+        if (s != m_searchpath) {
+            m_searchpath = s;
+            Filesystem::searchpath_split (m_searchpath, m_searchdirs, true);
+            do_invalidate = true;   // in case file can be found with new path
+            force_invalidate = true;
+        }
     }
     else if (name == "statistics:level" && type == TypeDesc::INT) {
         m_statslevel = *(const int *)val;
     }
     else if (name == "autotile" && type == TypeDesc::INT) {
-        m_autotile = pow2roundup (*(const int *)val);  // guarantee pow2
+        int a = pow2roundup (*(const int *)val);  // guarantee pow2
         // Clamp to minimum 8x8 tiles to protect against stupid user who
         // think this is a boolean rather than the tile size.  Unless
         // we're in DEBUG mode, then allow developers to play with fire.
 #ifndef DEBUG
-        if (m_autotile > 0 && m_autotile < 8)
-            m_autotile = 8;
+        if (a > 0 && a < 8)
+            a = 8;
 #endif
-        do_invalidate = true;
+        if (a != m_autotile) {
+            m_autotile = a;
+            do_invalidate = true;
+        }
     }
     else if (name == "automip" && type == TypeDesc::INT) {
-        m_automip = *(const int *)val;
-        do_invalidate = true;
+        int a = *(const int *)val;
+        if (a != m_automip) {
+            m_automip = a;
+            do_invalidate = true;
+        }
     }
     else if (name == "forcefloat" && type == TypeDesc::INT) {
         m_forcefloat = *(const int *)val;
     }
     else if (name == "accept_untiled" && type == TypeDesc::INT) {
-        m_accept_untiled = *(const int *)val;
-        do_invalidate = true;
+        int a = *(const int *)val;
+        if (a == m_accept_untiled) {
+            m_accept_untiled = a;
+            do_invalidate = true;
+        }
     }
     else if (name == "read_before_insert" && type == TypeDesc::INT) {
-        m_read_before_insert = *(const int *)val;
-        do_invalidate = true;
+        int r = *(const int *)val;
+        if (r != m_read_before_insert) {
+            m_read_before_insert = r;
+            do_invalidate = true;
+        }
     }
     else if (name == "failure_retries" && type == TypeDesc::INT) {
         m_failure_retries = *(const int *)val;
@@ -1445,7 +1462,7 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
     }
 
     if (do_invalidate)
-        invalidate_all ();
+        invalidate_all (force_invalidate);
     return true;
 }
 
