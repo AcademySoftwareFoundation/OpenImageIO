@@ -57,6 +57,7 @@
 using namespace OpenImageIO;
 #include "imagebuf.h"
 #include "sysutil.h"
+#include "thread.h"
 
 
 // Basic runtime options
@@ -75,6 +76,9 @@ static double stat_readtime = 0;
 static double stat_writetime = 0;
 static double stat_resizetime = 0;
 static double stat_miptime = 0;
+static bool checknan = false;
+static int found_nonfinite = 0;
+static spin_mutex maketx_mutex;   // for anything that needs locking
 
 // Conversion modes.  If none are true, we just make an ordinary texture.
 static bool mipmapmode = false;
@@ -147,6 +151,7 @@ getargs (int argc, char *argv[])
                   "--resize", &doresize, "Resize textures to power of 2 (default: no)",
                   "--noresize", &noresize, "Do not resize textures to power of 2 (deprecated)",
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
+                  "--checknan", &checknan, "Check for NaN and Inf values (abort if found)",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
                           &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3], 
                           &Mcam[1][0], &Mcam[1][1], &Mcam[1][2], &Mcam[1][3], 
@@ -278,8 +283,6 @@ copy_block (ImageBuf *dst, const ImageBuf *src,
 {
     const ImageSpec &dstspec (dst->spec());
     float *pel = (float *) alloca (dstspec.pixel_bytes());
-    x1 = std::min (x1, dstspec.width);
-    y1 = std::min (y1, dstspec.height);
     for (int y = y0;  y < y1;  ++y) {
         for (int x = x0;  x < x1;  ++x) {
             src->getpixel (x, y, pel);
@@ -298,14 +301,38 @@ resize_block (ImageBuf *dst, const ImageBuf *src,
 {
     const ImageSpec &dstspec (dst->spec());
     float *pel = (float *) alloca (dstspec.pixel_bytes());
-    x1 = std::min (x1, dstspec.width);
-    y1 = std::min (y1, dstspec.height);
     float xscale = 1.0f / (float)dstspec.width;
     float yscale = 1.0f / (float)dstspec.height;
     for (int y = y0;  y < y1;  ++y) {
         for (int x = x0;  x < x1;  ++x) {
             src->interppixel_NDC_full ((x+0.5f)*xscale, (y+0.5f)*yscale, pel);
             dst->setpixel (x, y, pel);
+        }
+    }
+}
+
+
+
+// Copy src into dst, but only for the range [x0,x1) x [y0,y1).
+static void
+check_nan_block (ImageBuf *dst, const ImageBuf *src,
+                 int x0, int x1, int y0, int y1)
+{
+    const ImageSpec &spec (src->spec());
+    float *pel = (float *) alloca (spec.pixel_bytes());
+    for (int y = y0;  y < y1;  ++y) {
+        for (int x = x0;  x < x1;  ++x) {
+            src->getpixel (x, y, pel);
+            for (int c = 0;  c < spec.nchannels;  ++c) {
+                if (! std::isfinite(pel[c])) {
+                    spin_lock lock (maketx_mutex);
+                    if (found_nonfinite < 3)
+                        std::cerr << "maketx ERROR: Found " << pel[c] 
+                                  << " at (x=" << x << ", y=" << y << ")\n";
+                    ++found_nonfinite;
+                    break;  // skip other channels, there's no point
+                }
+            }
         }
     }
 }
@@ -498,6 +525,23 @@ make_texturemap (const char *maptypename = "texture map")
     // smaller than the tile size?  And when we do, should we also try
     // to make it bigger in the other direction to make the total tile
     // size more constant?
+
+    // If --checknan was used and it's a floating point image, check for
+    // nonfinite (NaN or Inf) values and abort if they are found.
+    if (checknan && (srcspec.format.basetype == TypeDesc::FLOAT ||
+                     srcspec.format.basetype == TypeDesc::HALF ||
+                     srcspec.format.basetype == TypeDesc::DOUBLE)) {
+        found_nonfinite = false;
+        parallel_image (check_nan_block, &src, &src,
+                        dstspec.x, dstspec.x+dstspec.width,
+                        dstspec.y, dstspec.y+dstspec.height, nthreads);
+        if (found_nonfinite) {
+            if (found_nonfinite > 3)
+                std::cerr << "maketx ERROR: ...and Nan/Inf at "
+                          << (found_nonfinite-3) << " other pixels\n";
+            exit (EXIT_FAILURE);
+        }
+    }
 
     // Force float for the sake of the ImageBuf math
     dstspec.set_format (TypeDesc::FLOAT);
