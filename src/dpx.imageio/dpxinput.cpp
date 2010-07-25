@@ -29,6 +29,7 @@
 */
 
 #include "libdpx/DPX.h"
+#include "libdpx/ColorConverter.h"
 
 #include "dassert.h"
 #include "typedesc.h"
