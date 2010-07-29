@@ -71,11 +71,11 @@ namespace dpx {
 			// FIXME: research those constants!
 			//case kPrintingDensity:
 			//case kUnspecifiedVideo:
-			//case kSMPTE274M:
 			case kITUR709:
+			case kSMPTE274M:	// SMPTE 247M has the same chromaticities as Rec709
 				return Rec709;
 			case kITUR601:
-			case kITUR602:	// FIXME? what's up with these two?
+			case kITUR602:
 				return Rec601;
 			//case kUserDefined:
 			//case kNTSCCompositeVideo:
