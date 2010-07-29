@@ -29,7 +29,7 @@
 */
 
 #include "libdpx/DPX.h"
-#include "libdpx/ColorConverter.h"
+#include "libdpx/DPXColorConverter.h"
 
 #include "dassert.h"
 #include "typedesc.h"
@@ -44,7 +44,7 @@ using namespace OpenImageIO;
 
 class DPXInput : public ImageInput {
 public:
-    DPXInput () : m_stream(NULL) { init(); }
+    DPXInput () : m_stream(NULL) { init(); m_dataPtr = NULL; }
     virtual ~DPXInput () { close(); }
     virtual const char * format_name (void) const { return "dpx"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
@@ -58,6 +58,8 @@ private:
     InStream *m_stream;
     dpx::Reader m_dpx;
     std::vector<unsigned char> m_userBuf;
+    bool m_wantRaw;
+    unsigned char *m_dataPtr;
 
     /// Reset everything to initial state
     ///
@@ -67,6 +69,8 @@ private:
             delete m_stream;
             m_stream = NULL;
         }
+        delete m_dataPtr;
+        m_dataPtr = NULL;
         m_userBuf.clear ();
     }
 
@@ -108,7 +112,7 @@ DPXInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
-    seek_subimage (0, m_spec);
+    seek_subimage (0, newspec);
     newspec = spec ();
     return true;
 }
@@ -122,6 +126,9 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
         return false;
 
     m_subimage = index;
+
+    // check if the client asked us for raw data
+    m_wantRaw = newspec.get_int_attribute ("dpx:RawData", 0) != 0;
 
     // create imagespec
     TypeDesc typedesc;
@@ -169,7 +176,9 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
             m_spec.alpha_channel = 0;
             break;
         case dpx::kLuma:
-            m_spec.channelnames.push_back("I");
+            // FIXME: do we treat this as intensity or do we use Y' as per
+            // convention to differentiate it from linear luminance?
+            m_spec.channelnames.push_back("Y'");
             break;
         case dpx::kDepth:
             m_spec.channelnames.push_back("Z");
@@ -179,34 +188,47 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
             break;*/
         case dpx::kRGB:
         case dpx::kRGBA:
+        case dpx::kABGR:    // colour converter will swap the bytes for us
             m_spec.default_channel_names ();
             break;
         case dpx::kCbYCrY:
-            m_spec.channelnames.push_back("Cb");
-            m_spec.channelnames.push_back("Y");
-            m_spec.channelnames.push_back("Cr");
-            //m_spec.channelnames.push_back("Y");
+            if (m_wantRaw) {
+                m_spec.channelnames.push_back("CbCr");
+                m_spec.channelnames.push_back("Y");
+            } else {
+                m_spec.nchannels = 3;
+                m_spec.default_channel_names ();
+            }
             break;
         case dpx::kCbYACrYA:
-            m_spec.channelnames.push_back("Cb");
-            m_spec.channelnames.push_back("Y");
-            m_spec.channelnames.push_back("A");
-            m_spec.channelnames.push_back("Cr");
-            /*m_spec.channelnames.push_back("Y");
-            m_spec.channelnames.push_back("A");*/
-            m_spec.alpha_channel = 2;
+            if (m_wantRaw) {
+                m_spec.channelnames.push_back("CbCr");
+                m_spec.channelnames.push_back("Y");
+                m_spec.channelnames.push_back("A");
+                m_spec.alpha_channel = 2;
+            } else {
+                m_spec.nchannels = 4;
+                m_spec.default_channel_names ();
+            }
             break;
         case dpx::kCbYCr:
-            m_spec.channelnames.push_back("Cb");
-            m_spec.channelnames.push_back("Y");
-            m_spec.channelnames.push_back("Cr");
+            if (m_wantRaw) {
+                m_spec.channelnames.push_back("Cb");
+                m_spec.channelnames.push_back("Y");
+                m_spec.channelnames.push_back("Cr");
+            } else
+                m_spec.default_channel_names ();
             break;
         case dpx::kCbYCrA:
-            m_spec.channelnames.push_back("Cb");
-            m_spec.channelnames.push_back("Y");
-            m_spec.channelnames.push_back("Cr");
-            m_spec.channelnames.push_back("A");
-            m_spec.alpha_channel = 3;
+            if (m_wantRaw) {
+                m_spec.channelnames.push_back("Cb");
+                m_spec.channelnames.push_back("Y");
+                m_spec.channelnames.push_back("Cr");
+                m_spec.channelnames.push_back("A");
+                m_spec.alpha_channel = 3;
+            } else {
+                m_spec.default_channel_names ();
+            }
             break;
         default:
             {
@@ -470,6 +492,19 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
         m_spec.attribute ("dpx:UserData", TypeDesc (TypeDesc::UCHAR,
             m_dpx.header.UserSize ()), &m_userBuf[0]);
 
+    // now that the user data has been handled, we can reuse the helper buffer
+    // for colour conversion
+    dpx::Block block(0, 0, m_dpx.header.Width () - 1, 0);
+    int bufsize = dpx::QueryBufferSize (m_dpx.header, index, block);
+    if (bufsize == 0 && !m_wantRaw) {
+        error ("Unable to deliver RGB data from source data");
+        return false;
+    } else if (bufsize > 0)
+        m_dataPtr = new unsigned char[bufsize];
+    else
+        // no need to allocate another buffer
+        m_dataPtr = NULL;
+
     return true;
 }
 
@@ -489,9 +524,23 @@ DPXInput::read_native_scanline (int y, int z, void *data)
 {
     dpx::Block block(0, y, m_dpx.header.Width () - 1, y);
 
-    if (!m_dpx.ReadBlock(data, m_dpx.header.ComponentDataSize (m_subimage),
-        block, m_dpx.header.ImageDescriptor (m_subimage)))
-        return false;
+    if (m_wantRaw) {
+        // fast path - just read the scanline in
+        if (!m_dpx.ReadBlock (data, m_dpx.header.ComponentDataSize (m_subimage),
+            block, m_dpx.header.ImageDescriptor (m_subimage)))
+            return false;
+    } else {
+        // read the scanline and convert to RGB
+        void *ptr = m_dataPtr == NULL ? data : (void *)m_dataPtr;
+
+        if (!m_dpx.ReadBlock (ptr, m_dpx.header.ComponentDataSize (m_subimage),
+            block, m_dpx.header.ImageDescriptor (m_subimage)))
+            return false;
+
+        if (!dpx::ConvertToRGB (m_dpx.header, m_subimage, ptr, data, block))
+            return false;
+    }
+    
     return true;
 }
 
