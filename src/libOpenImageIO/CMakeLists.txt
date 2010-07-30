@@ -72,6 +72,7 @@ if (EMBEDPLUGINS)
           ../dpx.imageio/libdpx/Reader.cpp ../dpx.imageio/libdpx/Writer.cpp
           ../dpx.imageio/libdpx/DPXHeader.cpp ../dpx.imageio/libdpx/ElementReadStream.cpp
           ../dpx.imageio/libdpx/InStream.cpp ../dpx.imageio/libdpx/TestFunc.cpp
+          ../dpx.imageio/libdpx/DPXColorConverter.cpp
         ../fits.imageio/fitsinput.cpp ../fits.imageio/fitsoutput.cpp
           ../fits.imageio/fits_pvt.cpp
         ../hdr.imageio/hdrinput.cpp ../hdr.imageio/hdroutput.cpp
