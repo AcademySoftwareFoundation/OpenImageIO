@@ -203,6 +203,7 @@ namespace OPENIMAGEIO_NAMESPACE {
     PLUGENTRY (png);
     PLUGENTRY (pnm);
     PLUGENTRY (sgi);
+    PLUGENTRY (socket);
     PLUGENTRY (softimage);
     PLUGENTRY (tiff);
     PLUGENTRY (targa);
@@ -248,6 +249,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
     DECLAREPLUG (sgi);
+    DECLAREPLUG (socket);
     DECLAREPLUG (softimage);
     DECLAREPLUG (tiff);
     DECLAREPLUG (targa);

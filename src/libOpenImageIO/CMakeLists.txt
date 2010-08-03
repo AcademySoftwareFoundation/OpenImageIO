@@ -84,6 +84,8 @@ if (EMBEDPLUGINS)
         ../pnm.imageio/pnminput.cpp ../pnm.imageio/pnmoutput.cpp
         ../openexr.imageio/exrinput.cpp ../openexr.imageio/exroutput.cpp
         ../sgi.imageio/sgiinput.cpp ../sgi.imageio/sgioutput.cpp
+        ../socket.imageio/socketinput.cpp ../socket.imageio/socketoutput.cpp 
+           ../socket.imageio/socket_pvt.cpp 
         ../softimage.imageio/softimageinput.cpp 
            ../softimage.imageio/softimageoutput.cpp 
            ../softimage.imageio/softimage_pvt.cpp
