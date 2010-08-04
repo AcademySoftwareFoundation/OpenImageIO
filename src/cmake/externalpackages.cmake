@@ -139,14 +139,18 @@ endmacro ()
 
 message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
 
-set (Boost_ADDITIONAL_VERSIONS "1.43" "1.42" "1.41" "1.40" "1.39" "1.38"
-                               "1.38.0" "1.37" "1.37.0" "1.34.1" "1_34_1")
+set (Boost_ADDITIONAL_VERSIONS "1.43" "1.43.0" "1.42" "1.42.0" 
+                               "1.41" "1.41.0" "1.40" "1.40.0"
+                               "1.39" "1.39.0" "1.38" "1.38.0"
+                               "1.37" "1.37.0" "1.34.1" "1_34_1")
 if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS   ON)
 endif ()
 set (Boost_USE_MULTITHREADED ON)
 if (BOOST_CUSTOM)
     set (Boost_FOUND true)
+    # N.B. For a custom version, the caller had better set up the variables
+    # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
     find_package (Boost 1.34 REQUIRED 
                   COMPONENTS filesystem regex system thread unit_test_framework
@@ -154,6 +158,7 @@ else ()
 endif ()
 
 message (STATUS "Boost found ${Boost_FOUND} ")
+message (STATUS "Boost version      ${Boost_VERSION}")
 message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
 message (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}")
 message (STATUS "Boost libraries    ${Boost_LIBRARIES}")

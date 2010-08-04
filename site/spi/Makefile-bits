@@ -28,6 +28,7 @@ platform=rhel40m64
 COMPILER=gcc34m64
 OPENEXR_VERSION=1.4.0
 BOOST_VERSION=1_34_1
+Boost_VERSION="103401"
 QTDIR=/usr/local64/qt-4.4
 ifeq (${NAMESPACE},)
 NAMESPACE='OpenImageIO_Arnold'
@@ -42,6 +43,7 @@ MY_CMAKE_FLAGS += \
 		-DBoost_INCLUDE_DIRS=/usr/local64/include/boost-${BOOST_VERSION} \
 		-DBoost_LIBRARY_DIRS=/usr/local64/lib/boost-${BOOST_VERSION} \
 		-DBoost_LIBRARIES=$(Boost_LIBRARIES) \
+		-DBoost_VERSION=$(Boost_VERSION) \
 		-DILMBASE_HOME=/usr/local64/openexr/${OPENEXR_VERSION} \
 		-DOPENEXR_VERSION=${OPENEXR_VERSION} \
 		-DOPENEXR_VERSION_DIGITS="010400" \

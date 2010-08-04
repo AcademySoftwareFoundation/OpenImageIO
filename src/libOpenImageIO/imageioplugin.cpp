@@ -249,7 +249,9 @@ catalog_builtin_plugins ()
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
     DECLAREPLUG (sgi);
+#ifdef USE_BOOST_ASIO
     DECLAREPLUG (socket);
+#endif
     DECLAREPLUG (softimage);
     DECLAREPLUG (tiff);
     DECLAREPLUG (targa);
