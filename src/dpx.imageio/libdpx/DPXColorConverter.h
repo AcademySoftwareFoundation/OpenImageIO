@@ -50,11 +50,11 @@ namespace dpx
 	* \param element image element (0-7)
 	* \param block image area (used only for calculating the amount of pixels,
 	* not an offset into the buffer)
-	* \return zero: conversion impossible or unsupported absolute value: size
+	* \return zero: conversion impossible or unsupported; absolute value: size
 	* of the buffer in bytes; sign: positive - memory needs to be allocated,
 	* negative - allocation is optional, decoded data can replace the input
 	*/
-	int QueryBufferSize(const Header &header, const int element, const Block &block);
+	int QueryRGBBufferSize(const Header &header, const int element, const Block &block);
 
 	/*!
 	* \brief Query the size of the buffer necessary to hold the decoded RGB data
@@ -64,29 +64,75 @@ namespace dpx
 	* of the buffer in bytes; sign: positive - memory needs to be allocated,
 	* negative - allocation is optional, decoded data can replace the input
 	*/
-	int QueryBufferSize(const Header &header, const int element);
+	int QueryRGBBufferSize(const Header &header, const int element);
 
 	/*!
-	* \brief Convert data from the input buffer into RGB in the output buffer
+	* \brief Convert native data from the input buffer into RGB in the output buffer
 	* \param header DPX header
 	* \param element image element (0-7)
-	* \param input input buffer data
-	* \param output output buffer data
+	* \param input input buffer data; can be same as output if \ref QueryRGBBufferSize returns a negative number
+	* \param output output buffer data; can be same as input if \ref QueryRGBBufferSize returns a negative number
 	* \param block image area (used only for calculating the amount of pixels,
 	* not an offset into the buffer)
 	* \return success true/false
 	*/
-	bool ConvertToRGB(const Header &header, const int element, const void *input, const void *output, const Block &block);
+	bool ConvertToRGB(const Header &header, const int element, const void *input, void *output, const Block &block);
 
 	/*!
-	* \brief Convert data from the input buffer into RGB in the output buffer
+	* \brief Convert native data from the input buffer into RGB in the output buffer
 	* \param header DPX header
 	* \param element image element (0-7)
-	* \param input input buffer data
-	* \param output output buffer data
+	* \param input input buffer data; can be same as output if \ref QueryRGBBufferSize returns a negative number
+	* \param output output buffer data; can be same as input if \ref QueryRGBBufferSize returns a negative number
 	* \return success true/false
 	*/
-	bool ConvertToRGB(const Header &header, const int element, const void *input, const void *output);
+	bool ConvertToRGB(const Header &header, const int element, const void *input, void *output);
+
+	/*!
+	* \brief Query the size of the buffer necessary to hold the encoded native data
+	* \param desc descriptor of the target pixel format
+	* \param compSize component data storage data type of the target pixel format
+	* \param block image area (used only for calculating the amount of pixels,
+	* not an offset into the buffer)
+	* \return zero: conversion impossible or unsupported; absolute value: size
+	* of the buffer in bytes; sign: positive - memory needs to be allocated,
+	* negative - allocation is optional, decoded data can replace the input
+	*/
+	int QueryNativeBufferSize(const Descriptor desc, const DataSize compSize, const Block &block);
+
+	/*!
+	* \brief Query the size of the buffer necessary to hold the encoded native data
+	* \param desc descriptor of the target pixel format
+	* \param compSize component data storage data type of the target pixel format
+	* \return zero: conversion impossible or unsupported; absolute value: size
+	* of the buffer in bytes; sign: positive - memory needs to be allocated,
+	* negative - allocation is optional, decoded data can replace the input
+	*/
+	int QueryNativeBufferSize(const Descriptor desc, const DataSize compSize, const int width, const int height);
+
+	/*!
+	* \brief Convert RGB data from the input buffer into native format in the output buffer
+	* \param desc descriptor of the target pixel format
+	* \param compSize component data storage data type of the target pixel format
+	* \param cmetr colorimetric of the target pixel format
+	* \param input input buffer data; can be same as output if \ref QueryNativeBufferSize returns a negative number
+	* \param output output buffer data; can be same as intput if \ref QueryNativeBufferSize returns a negative number
+	* \param block image area (used only for calculating the amount of pixels,
+	* not an offset into the buffer)
+	* \return success true/false
+	*/
+    bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const void *input, void *output, const Block &block);
+
+	/*!
+	* \brief Convert RGB data from the input buffer into native format in the output buffer
+	* \param desc descriptor of the target pixel format
+	* \param compSize component data storage data type of the target pixel format
+	* \param cmetr colorimetric of the target pixel format
+	* \param input input buffer data; can be same as output if \ref QueryNativeBufferSize returns a negative number
+	* \param output output buffer data; can be same as input if \ref QueryNativeBufferSize returns a negative number
+	* \return success true/false
+	*/
+	bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const int width, const int height, const void *input, void *output);
 
 }
 

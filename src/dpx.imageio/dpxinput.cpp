@@ -44,7 +44,7 @@ using namespace OpenImageIO;
 
 class DPXInput : public ImageInput {
 public:
-    DPXInput () : m_stream(NULL) { init(); m_dataPtr = NULL; }
+    DPXInput () : m_stream(NULL), m_dataPtr(NULL) { init(); }
     virtual ~DPXInput () { close(); }
     virtual const char * format_name (void) const { return "dpx"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
@@ -492,14 +492,12 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
         m_spec.attribute ("dpx:UserData", TypeDesc (TypeDesc::UCHAR,
             m_dpx.header.UserSize ()), &m_userBuf[0]);
 
-    // now that the user data has been handled, we can reuse the helper buffer
-    // for colour conversion
     dpx::Block block(0, 0, m_dpx.header.Width () - 1, 0);
-    int bufsize = dpx::QueryBufferSize (m_dpx.header, index, block);
+    int bufsize = dpx::QueryRGBBufferSize (m_dpx.header, index, block);
     if (bufsize == 0 && !m_wantRaw) {
         error ("Unable to deliver RGB data from source data");
         return false;
-    } else if (bufsize > 0)
+    } else if (!m_wantRaw && bufsize > 0)
         m_dataPtr = new unsigned char[bufsize];
     else
         // no need to allocate another buffer

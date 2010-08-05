@@ -33,6 +33,7 @@
 #include <cmath>
 
 #include "libdpx/DPX.h"
+#include "libdpx/DPXColorConverter.h"
 
 #include "dassert.h"
 #include "typedesc.h"
@@ -66,6 +67,11 @@ private:
     std::vector<unsigned char> m_buf;
     std::vector<unsigned char> m_scratch;
     dpx::DataSize m_datasize;
+    dpx::Descriptor m_desc;
+    dpx::Characteristic m_cmetr;
+    bool m_wantRaw;
+    unsigned char *m_dataPtr;
+    int m_bytes;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -74,6 +80,8 @@ private:
             delete m_stream;
             m_stream = NULL;
         }
+        delete m_dataPtr;
+        m_dataPtr = NULL;
         m_buf.clear ();
     }
 };
@@ -96,7 +104,7 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-DPXOutput::DPXOutput ()
+DPXOutput::DPXOutput () : m_stream(NULL), m_dataPtr(NULL)
 {
     init ();
 }
@@ -152,6 +160,9 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         error ("DPX does not support data of this format");
         return false;
     }
+
+    // check if the client is giving us raw data to write
+    m_wantRaw = m_spec.get_int_attribute ("dpx:RawData", 0) != 0;
 
     m_dpx.SetOutStream (m_stream);
 
@@ -221,6 +232,27 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
 
     dpx::Characteristic cmetr = dpx::kUserDefined;
 
+    // FIXME: clean up after the merger of diffs
+    m_desc = desc;
+    m_cmetr = cmetr;
+    
+    // see if we'll need to convert or not
+    m_bytes = dpx::QueryNativeBufferSize (desc, m_datasize, m_spec.width, 1);
+    if (m_bytes == 0 && !m_wantRaw) {
+        error ("Unable to deliver native format data from source data");
+        return false;
+    } else if (!m_wantRaw && m_bytes > 0)
+        m_dataPtr = new unsigned char[m_spec.scanline_bytes ()];
+    else {
+        // no need to allocate another buffer
+        m_dataPtr = NULL;
+        if (!m_wantRaw)
+            m_bytes = m_spec.scanline_bytes ();
+    }
+
+    if (m_bytes < 0)
+        m_bytes = -m_bytes;
+
     m_dpx.SetElement (0, desc, m_spec.format.size () * 8, transfer, cmetr,
         dpx::kFilledMethodA, dpx::kNone, (m_spec.format == TypeDesc::INT8
             || m_spec.format == TypeDesc::INT16) ? 1 : 0);
@@ -246,7 +278,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     }
 
     // reserve space for the image data buffer
-    m_buf.reserve (m_spec.height * m_spec.scanline_bytes ());
+    m_buf.reserve (m_bytes * m_spec.height);
 
     return true;
 }
@@ -281,8 +313,13 @@ DPXOutput::write_scanline (int y, int z, TypeDesc format,
                           data = &m_scratch[0];
     }
 
-    unsigned char *dst = &m_buf[y * m_spec.scanline_bytes ()];
-    memcpy (dst, data, m_spec.scanline_bytes ());
+    unsigned char *dst = &m_buf[y * m_bytes];
+    if (m_wantRaw)
+        // fast path - just dump the scanline into the buffer
+        memcpy (dst, data, m_spec.scanline_bytes ());
+    else if (!dpx::ConvertToNative (m_desc, m_datasize, m_cmetr,
+        m_spec.width, m_spec.height, data, dst))
+        return false;
     
     return true;
 }
