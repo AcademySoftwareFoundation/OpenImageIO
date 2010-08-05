@@ -72,7 +72,6 @@ private:
     dpx::Descriptor m_desc;
     dpx::Characteristic m_cmetr;
     bool m_wantRaw;
-    unsigned char *m_dataPtr;
     int m_bytes;
 
     // Initialize private members to pre-opened state
@@ -82,14 +81,16 @@ private:
             delete m_stream;
             m_stream = NULL;
         }
-        delete m_dataPtr;
-        m_dataPtr = NULL;
         m_buf.clear ();
     }
 
     /// Helper function - retrieve libdpx descriptor for string
     ///
     dpx::Characteristic get_characteristic_from_string (std::string str);
+
+    /// Helper function - retrieve libdpx descriptor for string
+    ///
+    dpx::Descriptor get_descriptor_from_string (std::string str);
 };
 
 
@@ -110,7 +111,7 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-DPXOutput::DPXOutput () : m_stream(NULL), m_dataPtr(NULL)
+DPXOutput::DPXOutput () : m_stream(NULL)
 {
     init ();
 }
@@ -158,13 +159,16 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     else if (m_spec.format == TypeDesc::UINT16
         || m_spec.format == TypeDesc::INT16)
         m_datasize = dpx::kWord;
-    else if (m_spec.format == TypeDesc::FLOAT)
+    else if (m_spec.format == TypeDesc::FLOAT
+        || m_spec.format == TypeDesc::HALF) {
+        m_spec.format = TypeDesc::FLOAT;
         m_datasize = dpx::kFloat;
-    else if (m_spec.format == TypeDesc::DOUBLE)
+    } else if (m_spec.format == TypeDesc::DOUBLE)
         m_datasize = dpx::kDouble;
     else {
-        error ("DPX does not support data of this format");
-        return false;
+        // use 16-bit unsigned integers as a failsafe
+        m_spec.format = TypeDesc::UINT16;
+        m_datasize = dpx::kWord;
     }
 
     // check if the client is giving us raw data to write
@@ -188,34 +192,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     m_dpx.SetImageInfo (m_spec.width, m_spec.height);
 
     // determine descriptor
-    dpx::Descriptor desc;
-    switch (m_spec.nchannels) {
-        case 1:
-            if (m_spec.alpha_channel == 0)
-                desc = dpx::kAlpha;
-            else
-                desc = dpx::kLuma;
-            break;
-        case 2:
-            desc = dpx::kUserDefined2Comp;
-            break;
-        case 3:
-            desc = dpx::kRGB;
-            break;
-        case 4:
-            desc = dpx::kRGBA;
-            break;
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-            desc = dpx::Descriptor((int)dpx::kUserDefined5Comp
-                + m_spec.nchannels - 5);
-            break;
-        default:
-            desc = dpx::kUndefinedDescriptor;
-            break;
-    }
+    m_desc = get_descriptor_from_string
+        (m_spec.get_string_attribute ("dpx:ImageDescriptor", ""));
 
     // transfer function
     std::string tmpstr;
@@ -240,7 +218,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     }
 
     // colorimetric
-    dpx::Characteristic cmetr = get_characteristic_from_string
+    m_cmetr = get_characteristic_from_string
         (m_spec.get_string_attribute ("dpx:Colorimetric", "User defined"));
 
     // select packing method
@@ -255,34 +233,35 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
 
     // calculate target bit depth
     int bitDepth = m_spec.get_int_attribute ("BitsPerSample",
-        m_spec.format.size () * 8 * m_spec.nchannels) / m_spec.nchannels;
+        m_spec.format.size () * 8);
     if (bitDepth % 8 != 0 && bitDepth != 10 && bitDepth != 12) {
         error ("Unsupported bit depth %d", bitDepth);
         return false;
     }
-
-    // FIXME: clean up after the merger of diffs
-    m_desc = desc;
-    m_cmetr = cmetr;
     
     // see if we'll need to convert or not
-    m_bytes = dpx::QueryNativeBufferSize (desc, m_datasize, m_spec.width, 1);
-    if (m_bytes == 0 && !m_wantRaw) {
-        error ("Unable to deliver native format data from source data");
-        return false;
-    } else if (!m_wantRaw && m_bytes > 0)
-        m_dataPtr = new unsigned char[m_spec.scanline_bytes ()];
-    else {
-        // no need to allocate another buffer
-        m_dataPtr = NULL;
-        if (!m_wantRaw)
-            m_bytes = m_spec.scanline_bytes ();
+    if (m_desc == dpx::kRGB || m_desc == dpx::kRGBA) {
+        // shortcut for RGB(A) that gets the job done
+        m_bytes = m_spec.scanline_bytes ();
+        m_wantRaw = true;
+    } else {
+        m_bytes = dpx::QueryNativeBufferSize (m_desc, m_datasize, m_spec.width, 1);
+        if (m_bytes == 0 && !m_wantRaw) {
+            error ("Unable to deliver native format data from source data");
+            return false;
+        } else if (m_bytes < 0) {
+            // no need to allocate another buffer
+            if (!m_wantRaw)
+                m_bytes = m_spec.scanline_bytes ();
+            else
+                m_bytes = -m_bytes;
+        }
     }
 
     if (m_bytes < 0)
         m_bytes = -m_bytes;
 
-    m_dpx.SetElement (0, desc, bitDepth, transfer, cmetr,
+    m_dpx.SetElement (0, m_desc, bitDepth, transfer, m_cmetr,
         packing, dpx::kNone, (m_spec.format == TypeDesc::INT8
             || m_spec.format == TypeDesc::INT16) ? 1 : 0);
 
@@ -299,11 +278,12 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
             error ("User data block size exceeds 1 MB");
             return false;
         }
-        m_dpx.SetUserData (user->datasize ());
+        // FIXME: write the missing libdpx code
+        /*m_dpx.SetUserData (user->datasize ());
         if (!m_dpx.WriteUserData ((void *)user->data ())) {
             error ("Failed to write user data");
             return false;
-        }
+        }*/
     }
 
     // reserve space for the image data buffer
@@ -347,11 +327,13 @@ DPXOutput::write_scanline (int y, int z, TypeDesc format,
         // fast path - just dump the scanline into the buffer
         memcpy (dst, data, m_spec.scanline_bytes ());
     else if (!dpx::ConvertToNative (m_desc, m_datasize, m_cmetr,
-        m_spec.width, m_spec.height, data, dst))
+        m_spec.width, 1, data, dst))
         return false;
     
     return true;
 }
+
+
 
 dpx::Characteristic
 DPXOutput::get_characteristic_from_string (std::string str)
@@ -384,6 +366,66 @@ DPXOutput::get_characteristic_from_string (std::string str)
         return dpx::kZHomogeneous;
     else
         return dpx::kUndefinedCharacteristic;
+}
+
+
+
+dpx::Descriptor
+DPXOutput::get_descriptor_from_string (std::string str)
+{
+    if (str.empty ()) {
+        // try to guess based on the image spec
+        // FIXME: make this more robust (that is, if someone complains)
+        switch (m_spec.nchannels) {
+            case 1:
+                return dpx::kLuma;
+            case 3:
+                return dpx::kRGB;
+            case 4:
+                return dpx::kRGBA;
+            default:
+                if (m_spec.nchannels <= 8)
+                    return (dpx::Descriptor)((int)dpx::kUserDefined2Comp
+                        + m_spec.nchannels - 2);
+                return dpx::kUndefinedDescriptor;
+        }
+    } else if (iequals (str, "User defined")) {
+        if (m_spec.nchannels >= 2 && m_spec.nchannels <= 8)
+            return (dpx::Descriptor)((int)dpx::kUserDefined2Comp
+                + m_spec.nchannels - 2);
+        return dpx::kUserDefinedDescriptor;
+    } else if (iequals (str, "Red"))
+        return dpx::kRed;
+    else if (iequals (str, "Green"))
+        return dpx::kGreen;
+    else if (iequals (str, "Blue"))
+        return dpx::kBlue;
+    else if (iequals (str, "Alpha"))
+        return dpx::kAlpha;
+    else if (iequals (str, "Luma"))
+        return dpx::kLuma;
+    else if (iequals (str, "Color difference"))
+        return dpx::kColorDifference;
+    else if (iequals (str, "Depth"))
+        return dpx::kDepth;
+    else if (iequals (str, "Composite video"))
+        return dpx::kCompositeVideo;
+    else if (iequals (str, "RGB"))
+        return dpx::kRGB;
+    else if (iequals (str, "RGBA"))
+        return dpx::kRGBA;
+    else if (iequals (str, "ABGR"))
+        return dpx::kABGR;
+    else if (iequals (str, "CbYCrY"))
+        return dpx::kCbYCrY;
+    else if (iequals (str, "CbYACrYA"))
+        return dpx::kCbYACrYA;
+    else if (iequals (str, "CbYCr"))
+        return dpx::kCbYCr;
+    else if (iequals (str, "CbYCrA"))
+        return dpx::kCbYCrA;
+    //else if (iequals (str, "Undefined"))
+        return dpx::kUndefinedDescriptor;
 }
 
 OIIO_PLUGIN_NAMESPACE_END

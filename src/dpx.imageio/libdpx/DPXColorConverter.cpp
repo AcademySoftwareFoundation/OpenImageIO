@@ -100,7 +100,8 @@ namespace dpx {
 				+ matrix[i * 3 + 1] * ((float)CbYCr[0] - 0.5f * (float)max)		// Cb
 				+ matrix[i * 3 + 2] * ((float)CbYCr[2] - 0.5f * (float)max);	// Cr
 			// for some reason the R and B channels get swapped, put them back in the correct order
-			RGB[2 - i] = std::max((DATA)0, std::min(static_cast<DATA>(tmp), (DATA)max));
+			// prevent overflow
+			RGB[2 - i] = std::max((DATA)0, static_cast<DATA>(std::min(tmp, (float)max)));
 		}
 	}
 
@@ -398,9 +399,10 @@ namespace dpx {
 				+ matrix[i * 3 + 1] * RGB[1]
 				+ matrix[i * 3 + 2] * RGB[2];
 			// chroma (indices 0 and 2) must be put in the [0; 1] range
-			if (i == 1)
+			if (i != 1)
 				tmp += 0.5f * (float)max;
-			CbYCr[i] = std::max((DATA)0, std::min(static_cast<DATA>(tmp), (DATA)max));
+			// prevent overflow
+			CbYCr[i] = std::max((DATA)0, static_cast<DATA>(std::min(tmp, (float)max)));
 		}
 	}
 
@@ -494,7 +496,6 @@ namespace dpx {
 				}
 				// shouldn't ever get here
 				return false;
-				
 
 			case kCbYCrY:
 				switch (size) {
@@ -633,10 +634,10 @@ namespace dpx {
 	}
 	
 	bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const void *input, void *output, const Block &block) {
-		return ConvertToRGBInternal(desc, compSize, cmetr, input, output, (block.x2 - block.x1 + 1) * (block.y2 - block.y1 + 1));
+		return ConvertToNativeInternal(desc, compSize, cmetr, input, output, (block.x2 - block.x1 + 1) * (block.y2 - block.y1 + 1));
 	}
 	
 	bool ConvertToNative(const Descriptor desc, const DataSize compSize, const Characteristic cmetr, const int width, const int height, const void *input, void *output) {
-		return ConvertToRGBInternal(desc, compSize, cmetr, input, output, width * height);
+		return ConvertToNativeInternal(desc, compSize, cmetr, input, output, width * height);
 	}
 }

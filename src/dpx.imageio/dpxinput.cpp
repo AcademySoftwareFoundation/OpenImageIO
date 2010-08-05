@@ -74,9 +74,13 @@ private:
         m_userBuf.clear ();
     }
 
-    /// Helper function - retrieve string for libdpx descriptor
+    /// Helper function - retrieve string for libdpx characteristic
     ///
     std::string get_characteristic_string (dpx::Characteristic c);
+
+    /// Helper function - retrieve string for libdpx descriptor
+    ///
+    std::string get_descriptor_string (dpx::Descriptor c);
 };
 
 
@@ -240,8 +244,7 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
             }
     }
     // bits per pixel
-    m_spec.attribute ("BitsPerSample", m_dpx.header.BitDepth(index)
-        * m_dpx.header.ImageElementComponentCount(index));
+    m_spec.attribute ("BitsPerSample", m_dpx.header.BitDepth(index));
     // image orientation - see appendix B.2 of the OIIO documentation
     int orientation;
     switch (m_dpx.header.ImageOrientation ()) {
@@ -342,6 +345,8 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
          / (float)m_dpx.header.AspectRatio(1));
 
     // DPX-specific metadata
+    m_spec.attribute ("dpx:ImageDescriptor",
+        get_descriptor_string (m_dpx.header.ImageDescriptor (index)));
     // save some typing by using macros
     // "internal" macros
 #define DPX_SET_ATTRIB_S(x, n, s)   m_spec.attribute (s,                      \
@@ -597,6 +602,57 @@ DPXInput::get_characteristic_string (dpx::Characteristic c)
         case dpx::kZHomogeneous:
             return "Z depth homogeneous";
         case dpx::kUndefinedCharacteristic:
+        default:
+            return "Undefined";
+    }
+}
+
+
+
+std::string
+DPXInput::get_descriptor_string (dpx::Descriptor c)
+{
+    switch (c) {
+        case dpx::kUserDefinedDescriptor:
+        case dpx::kUserDefined2Comp:
+        case dpx::kUserDefined3Comp:
+        case dpx::kUserDefined4Comp:
+        case dpx::kUserDefined5Comp:
+        case dpx::kUserDefined6Comp:
+        case dpx::kUserDefined7Comp:
+        case dpx::kUserDefined8Comp:
+            return "User defined";
+        case dpx::kRed:
+            return "Red";
+        case dpx::kGreen:
+            return "Green";
+        case dpx::kBlue:
+            return "Blue";
+        case dpx::kAlpha:
+            return "Alpha";
+        case dpx::kLuma:
+            return "Luma";
+        case dpx::kColorDifference:
+            return "Color difference";
+        case dpx::kDepth:
+            return "Depth";
+        case dpx::kCompositeVideo:
+            return "Composite video";
+        case dpx::kRGB:
+            return "RGB";
+        case dpx::kRGBA:
+            return "RGBA";
+        case dpx::kABGR:
+            return "ABGR";
+        case dpx::kCbYCrY:
+            return "CbYCrY";
+        case dpx::kCbYACrYA:
+            return "CbYACrYA";
+        case dpx::kCbYCr:
+            return "CbYCr";
+        case dpx::kCbYCrA:
+            return "CbYCrA";
+        //case dpx::kUndefinedDescriptor:
         default:
             return "Undefined";
     }
