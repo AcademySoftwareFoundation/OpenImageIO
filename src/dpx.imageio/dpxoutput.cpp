@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <boost/algorithm/string.hpp>
 
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
@@ -43,6 +44,7 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace OpenImageIO;
+using boost::algorithm::iequals;
 
 
 
@@ -84,6 +86,10 @@ private:
         m_dataPtr = NULL;
         m_buf.clear ();
     }
+
+    /// Helper function - retrieve libdpx descriptor for string
+    ///
+    dpx::Characteristic get_characteristic_from_string (std::string str);
 };
 
 
@@ -175,8 +181,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     m_dpx.SetFileInfo (name.c_str (),                       // filename
         NULL,                                               // TODO: cr. date
         OPENIMAGEIO_INTRO_STRING,                           // creator
-        project.length () > 0 ? project.c_str () : NULL,    // project
-        copyright.length () > 0 ? copyright.c_str () : NULL); // copyright
+        project.empty () ? NULL : project.c_str (),         // project
+        copyright.empty () ? NULL : copyright.c_str ());    // copyright
 
     // image info
     m_dpx.SetImageInfo (m_spec.width, m_spec.height);
@@ -203,7 +209,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         case 6:
         case 7:
         case 8:
-            desc = dpx::Descriptor((int)dpx::kUserDefined5Comp + m_spec.nchannels - 5);
+            desc = dpx::Descriptor((int)dpx::kUserDefined5Comp
+                + m_spec.nchannels - 5);
             break;
         default:
             desc = dpx::kUndefinedDescriptor;
@@ -211,6 +218,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     }
 
     // transfer function
+    std::string tmpstr;
     dpx::Characteristic transfer;
     switch (m_spec.linearity) {
         case ImageSpec::Linear:
@@ -219,18 +227,39 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
         case ImageSpec::GammaCorrected:
             transfer = dpx::kUserDefined;
             break;
-        case ImageSpec::sRGB: // HACK: sRGB is close to Rec709
         case ImageSpec::Rec709:
             transfer = dpx::kITUR709;
             break;
         case ImageSpec::KodakLog:
             transfer = dpx::kLogarithmic;
+        //case ImageSpec::sRGB: // it's close to Rec709, but not the same
         default:
-            transfer = dpx::kUserDefined;
+            tmpstr = m_spec.get_string_attribute ("dpx:Transfer", "");
+            transfer = get_characteristic_from_string (tmpstr);
             break;
     }
 
-    dpx::Characteristic cmetr = dpx::kUserDefined;
+    // colorimetric
+    dpx::Characteristic cmetr = get_characteristic_from_string
+        (m_spec.get_string_attribute ("dpx:Colorimetric", "User defined"));
+
+    // select packing method
+    dpx::Packing packing;
+    tmpstr = m_spec.get_string_attribute ("dpx:ImagePacking", "Filled, method A");
+    if (iequals (tmpstr, "Packed"))
+        packing = dpx::kPacked;
+    else if (iequals (tmpstr, "Filled, method B"))
+        packing = dpx::kFilledMethodB;
+    else
+        packing = dpx::kFilledMethodA;
+
+    // calculate target bit depth
+    int bitDepth = m_spec.get_int_attribute ("BitsPerSample",
+        m_spec.format.size () * 8 * m_spec.nchannels) / m_spec.nchannels;
+    if (bitDepth % 8 != 0 && bitDepth != 10 && bitDepth != 12) {
+        error ("Unsupported bit depth %d", bitDepth);
+        return false;
+    }
 
     // FIXME: clean up after the merger of diffs
     m_desc = desc;
@@ -253,8 +282,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
     if (m_bytes < 0)
         m_bytes = -m_bytes;
 
-    m_dpx.SetElement (0, desc, m_spec.format.size () * 8, transfer, cmetr,
-        dpx::kFilledMethodA, dpx::kNone, (m_spec.format == TypeDesc::INT8
+    m_dpx.SetElement (0, desc, bitDepth, transfer, cmetr,
+        packing, dpx::kNone, (m_spec.format == TypeDesc::INT8
             || m_spec.format == TypeDesc::INT16) ? 1 : 0);
 
     // commit!
@@ -322,6 +351,39 @@ DPXOutput::write_scanline (int y, int z, TypeDesc format,
         return false;
     
     return true;
+}
+
+dpx::Characteristic
+DPXOutput::get_characteristic_from_string (std::string str)
+{
+    if (iequals (str, "User defined"))
+        return dpx::kUserDefined;
+    else if (iequals (str, "Printing density"))
+        return dpx::kPrintingDensity;
+    else if (iequals (str, "Linear"))
+        return dpx::kLinear;
+    else if (iequals (str, "Logarithmic"))
+        return dpx::kLogarithmic;
+    else if (iequals (str, "Unspecified video"))
+        return dpx::kUnspecifiedVideo;
+    else if (iequals (str, "SMPTE 274M"))
+        return dpx::kSMPTE274M;
+    else if (iequals (str, "ITU-R 709-4"))
+        return dpx::kITUR709;
+    else if (iequals (str, "ITU-R 601-5 system B or G"))
+        return dpx::kITUR601;
+    else if (iequals (str, "ITU-R 601-5 system M"))
+        return dpx::kITUR602;
+    else if (iequals (str, "NTSC composite video"))
+        return dpx::kNTSCCompositeVideo;
+    else if (iequals (str, "PAL composite video"))
+        return dpx::kPALCompositeVideo;
+    else if (iequals (str, "Z depth linear"))
+        return dpx::kZLinear;
+    else if (iequals (str, "Z depth homogeneous"))
+        return dpx::kZHomogeneous;
+    else
+        return dpx::kUndefinedCharacteristic;
 }
 
 OIIO_PLUGIN_NAMESPACE_END
