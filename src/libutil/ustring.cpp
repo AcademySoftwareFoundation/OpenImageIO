@@ -78,9 +78,25 @@ namespace { // anonymous
 static long long ustring_stats_memory = 0;
 static long long ustring_stats_constructed = 0;
 static long long ustring_stats_unique = 0;
-static ustring_mutex_t ustring_mutex;
+
+// Wrap our static mutex in a function to guarantee it exists when we
+// need it, regardless of module initialization order.
+static ustring_mutex_t & ustring_mutex ()
+{
+    static ustring_mutex_t the_real_mutex;
+    return the_real_mutex;
+}
 
 };          // end anonymous namespace
+
+
+// Put a ustring in the global scope to force at least one call to
+// make_unique to happen before main(), i.e. before threads are launched,
+// in order to eliminate any possible thread collosion on construction of
+// the ustring_table statically declared within make_unique.
+namespace pvt {
+static ustring ustring_force_make_unique_call("");
+};
 
 
 
@@ -152,7 +168,7 @@ ustring::_make_unique (const char *str)
         // already be present, and we can immediately return its rep.
         // Lots of threads may do this simultaneously, as long as they
         // are all in the table.
-        ustring_read_lock_t read_lock (ustring_mutex);
+        ustring_read_lock_t read_lock (ustring_mutex());
         ++ustring_stats_constructed;
         UstringTable::const_iterator found = ustring_table.find (str);
         if (found != ustring_table.end())
@@ -174,7 +190,7 @@ ustring::_make_unique (const char *str)
         // already entered this thread while we were unlocked and
         // constructing its rep, check the table one more time.  If it's
         // still empty, add it.
-        ustring_write_lock_t write_lock (ustring_mutex);
+        ustring_write_lock_t write_lock (ustring_mutex());
         found = ustring_table.find (str);
         if (found == ustring_table.end()) {
             ustring_table[rep->c_str()] = rep;
@@ -238,7 +254,7 @@ ustring::format (const char *fmt, ...)
 std::string
 ustring::getstats (bool verbose)
 {
-    ustring_read_lock_t read_lock (ustring_mutex);
+    ustring_read_lock_t read_lock (ustring_mutex());
     std::ostringstream out;
     if (verbose) {
         out << "ustring statistics:\n";
@@ -260,6 +276,6 @@ ustring::getstats (bool verbose)
 size_t
 ustring::memory ()
 {
-    ustring_read_lock_t read_lock (ustring_mutex);
+    ustring_read_lock_t read_lock (ustring_mutex());
     return ustring_stats_memory;
 }
