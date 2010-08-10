@@ -388,15 +388,20 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
     if (input_formats.find (format) != input_formats.end()) {
         create_function = input_formats[format];
     } else {
-        // If a plugin can't be found that was explicitly designated
-        // for this extension, then just try every one we find and see if
-        // any will open the file.
+        // If a plugin can't be found that was explicitly designated for
+        // this extension, then just try every one we find and see if
+        // any will open the file.  Pass it a configuration request that
+        // includes a "nowait" option so that it returns immediately if
+        // it's a plugin that might wait for an event, like a socket that
+        // doesn't yet exist).
+        ImageSpec config;
+        config.attribute ("nowait", (int)1);
         for (PluginMap::const_iterator plugin = input_formats.begin();
              plugin != input_formats.end(); ++plugin)
         {
             ImageSpec test_spec;
             ImageInput *test_plugin = (ImageInput*) plugin->second();
-            bool ok = test_plugin->open(filename, test_spec);
+            bool ok = test_plugin->open(filename, test_spec, config);
             if (ok)
                 test_plugin->close ();
             delete test_plugin;

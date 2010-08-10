@@ -60,17 +60,22 @@ SocketInput::SocketInput()
 
 
 bool
-SocketInput::open (const std::string &name, ImageSpec &newspec,
-                   const ImageSpec &config)
+SocketInput::open (const std::string &name, ImageSpec &newspec)
 {
-    return open (name, newspec);
+    return open (name, newspec, ImageSpec());
 }
 
 
 
 bool
-SocketInput::open (const std::string &name, ImageSpec &newspec)
+SocketInput::open (const std::string &name, ImageSpec &newspec,
+                   const ImageSpec &config)
 {
+    // If there is a nonzero "nowait" request in the configuration, just
+    // return immediately.
+    if (config.get_int_attribute ("nowait", 0))
+        return false;
+
     if (! (accept_connection (name) && get_spec_from_client (newspec))) {
         return false;
     }
