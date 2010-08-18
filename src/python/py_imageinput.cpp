@@ -217,6 +217,10 @@ bool ImageInputWrap::read_native_tile(int x, int y, int z, object &buffer)
     return m_input->read_native_tile(x, y, z, write_buf);
 }
 
+std::string ImageInputWrap::geterror()const  {
+    return m_input->geterror();
+}
+
 void declare_imageinput()
 {
     class_<ImageInputWrap>("ImageInput", no_init)
@@ -240,6 +244,7 @@ void declare_imageinput()
         .def("read_tile",        &ImageInputWrap::read_tile_simple)
         .def("read_native_scanline", &ImageInputWrap::read_native_scanline)
         .def("read_native_tile", &ImageInputWrap::read_native_tile)
+        .def("geterror",         &ImageInputWrap::geterror)
     ;
 }
 

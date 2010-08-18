@@ -84,7 +84,7 @@ public:
     bool read_tile_simple(int, int, int, object&);
     bool read_native_scanline(int, int, object&);
     bool read_native_tile(int, int, int, object&);
-
+    std::string geterror()const;
 };
 
 
@@ -109,7 +109,7 @@ public:
     bool copy_image (ImageInputWrap *iiw);
     const char *format_name () const;
     bool supports (const std::string&) const;
-    std::string error_message();
+    std::string geterror()const;
 };
 
 
@@ -189,7 +189,6 @@ public:
     */
 
     bool init_spec (const std::string&);
-    std::string error_message();
     const ImageSpec &spec() const;
     const std::string &name() const;
     const std::string &file_format_name() const;
@@ -243,6 +242,7 @@ public:
     bool localpixels () const;
     //TODO: class Iterator and ConstIterator
 
+    std::string geterror()const;
 };
 
 

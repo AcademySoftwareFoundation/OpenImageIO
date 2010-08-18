@@ -205,9 +205,9 @@ void declare_imagecache()
 //      .def("tile_pixels", &ImageCacheWrap::tile_pixels)
 
 //added _ to the method names for consistency
-        .def("get_error", &ImageCacheWrap::geterror)
-        .def("get_stats", &ImageCacheWrap::getstats)
-        .def("invalidate",  &ImageCacheWrap::invalidate)
+        .def("geterror",       &ImageCacheWrap::geterror)
+        .def("getstats",       &ImageCacheWrap::getstats)
+        .def("invalidate",     &ImageCacheWrap::invalidate)
         .def("invalidate_all", &ImageCacheWrap::invalidate_all)
     ;
 
