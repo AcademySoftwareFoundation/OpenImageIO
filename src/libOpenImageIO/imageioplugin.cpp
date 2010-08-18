@@ -192,6 +192,7 @@ namespace OPENIMAGEIO_NAMESPACE {
     extern const char *name ## _input_extensions[];
 
     PLUGENTRY (bmp);
+    PLUGENTRY (cineon);
     PLUGENTRY (dds);
     PLUGENTRY (dpx);
     PLUGENTRY (fits);
@@ -236,6 +237,7 @@ catalog_builtin_plugins ()
                     name ## _output_extensions)
 
     DECLAREPLUG (bmp);
+    DECLAREPLUG (cineon);
     DECLAREPLUG (dds);
     DECLAREPLUG (dpx);
     DECLAREPLUG (fits);

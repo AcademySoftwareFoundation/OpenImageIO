@@ -114,6 +114,7 @@ add_subdirectory (iv)
 # Add IO plugin directories
 if (NOT EMBEDPLUGINS)
     add_subdirectory (bmp.imageio)
+    add_subdirectory (cineon.imageio)
     add_subdirectory (dds.imageio)
     add_subdirectory (dpx.imageio)
     add_subdirectory (fits.imageio)
