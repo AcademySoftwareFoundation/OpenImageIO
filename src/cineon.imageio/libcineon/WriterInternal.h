@@ -60,10 +60,10 @@ namespace cineon
 			MultiTypeBufferCopy<IB, U8>(dst, reinterpret_cast<U8 *>(src), len);
 		else if (src_size == kWord)
 			MultiTypeBufferCopy<IB, U16>(dst, reinterpret_cast<U16 *>(src), len);
-		else if (src_size == kFloat)
-			MultiTypeBufferCopy<IB, R32>(dst, reinterpret_cast<R32 *>(src), len);
-		else if (src_size == kDouble)
-			MultiTypeBufferCopy<IB, R64>(dst, reinterpret_cast<R64 *>(src), len);
+		else if (src_size == kInt)
+			MultiTypeBufferCopy<IB, U32>(dst, reinterpret_cast<U32 *>(src), len);
+		else if (src_size == kLongLong)
+			MultiTypeBufferCopy<IB, U64>(dst, reinterpret_cast<U64 *>(src), len);
 
 	}
 

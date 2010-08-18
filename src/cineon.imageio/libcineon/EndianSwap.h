@@ -109,12 +109,8 @@ void EndianSwapImageBuffer(void *data, int length)
 		SwapBuffer(reinterpret_cast<U32 *>(data), length);
 		break;
 
-	case cineon::kFloat:
-		SwapBuffer(reinterpret_cast<R32 *>(data), length);
-		break;
-
-	case cineon::kDouble:
-		SwapBuffer(reinterpret_cast<R64 *>(data), length);
+	case cineon::kLongLong:
+		SwapBuffer(reinterpret_cast<U64 *>(data), length);
 		break;
 	}
 }
@@ -135,12 +131,8 @@ inline void EndianSwapImageBuffer(DataSize size, void *data, int length)
 		SwapBuffer(reinterpret_cast<U32 *>(data), length);
 		break;
 
-	case cineon::kFloat:
-		SwapBuffer(reinterpret_cast<R32 *>(data), length);
-		break;
-
-	case cineon::kDouble:
-		SwapBuffer(reinterpret_cast<R64 *>(data), length);
+	case cineon::kLongLong:
+		SwapBuffer(reinterpret_cast<U64 *>(data), length);
 		break;
 	}
 }

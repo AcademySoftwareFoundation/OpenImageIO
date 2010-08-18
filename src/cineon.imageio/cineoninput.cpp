@@ -434,9 +434,14 @@ CineonInput::close ()
 bool
 CineonInput::read_native_scanline (int y, int z, void *data)
 {
-    error ("Cineon data reading is not implemented yet, please poke Leszek in "
-        "the mailing list");
-    return false;
+    cineon::Block block(0, y, m_cin.header.Width () - 1, y);
+
+    // FIXME: un-hardcode the channel from 0
+    if (!m_cin.ReadBlock (data, m_cin.header.ComponentDataSize (0),
+        block))
+        return false;
+
+    return true;
 }
 
 

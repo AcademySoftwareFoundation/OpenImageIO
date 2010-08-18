@@ -53,10 +53,9 @@ void cineon::ElementReadStream::Reset()
 }
 
 
-bool cineon::ElementReadStream::Read(const cineon::Header &dpxHeader, const int element, const long offset, void * buf, const size_t size)
+bool cineon::ElementReadStream::Read(const cineon::Header &dpxHeader, const long offset, void * buf, const size_t size)
 {
-	long position = /*dpxHeader.DataOffset(element) + */offset;
-	assert(!"FIXME");
+	long position = dpxHeader.ImageOffset() + offset;
 
 	// seek to the memory position
 	if (this->fd->Seek(position, InStream::kStart) == false)
@@ -67,16 +66,15 @@ bool cineon::ElementReadStream::Read(const cineon::Header &dpxHeader, const int 
 		return false;
 
 	// swap the bytes if different byte order
-	this->EndianDataCheck(dpxHeader, element, buf, size);
+	this->EndianDataCheck(dpxHeader, buf, size);
 
 	return true;
 }
 
 
-bool cineon::ElementReadStream::ReadDirect(const cineon::Header &dpxHeader, const int element, const long offset, void * buf, const size_t size)
+bool cineon::ElementReadStream::ReadDirect(const cineon::Header &dpxHeader, const long offset, void * buf, const size_t size)
 {
-	long position = /*dpxHeader.DataOffset(element) + */offset;
-	assert(!"FIXME");
+	long position = dpxHeader.ImageOffset() + offset;
 
 	// seek to the memory position
 	if (this->fd->Seek(position, InStream::kStart) == false)
@@ -87,18 +85,19 @@ bool cineon::ElementReadStream::ReadDirect(const cineon::Header &dpxHeader, cons
 		return false;
 
 	// swap the bytes if different byte order
-	this->EndianDataCheck(dpxHeader, element, buf, size);
+	this->EndianDataCheck(dpxHeader, buf, size);
 
 	return true;
 }
 
 
 
-void cineon::ElementReadStream::EndianDataCheck(const cineon::Header &dpxHeader, const int element, void *buf, const size_t size)
+void cineon::ElementReadStream::EndianDataCheck(const cineon::Header &dpxHeader, void *buf, const size_t size)
 {
 	if (dpxHeader.RequiresByteSwap())
 	{
-		switch (dpxHeader.BitDepth(element))
+		// FIXME!!!
+		switch (dpxHeader.BitDepth(0))
 		{
 		case 8:
 			break;

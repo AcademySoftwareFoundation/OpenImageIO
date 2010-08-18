@@ -425,10 +425,10 @@ cineon::DataSize cineon::GenericHeader::ComponentDataSize(const int element) con
 		ret = kWord;
 		break;
 	case 32:
-		ret = kFloat;
+		ret = kInt;
 		break;
 	case 64:
-		ret = kDouble;
+		ret = kLongLong;
 		break;
 	}
 
@@ -481,11 +481,8 @@ int cineon::GenericHeader::DataSizeByteCount(const DataSize ds)
 	case kInt:
 		ret = sizeof(U32);
 		break;
-	case kFloat:
-		ret = sizeof(R32);
-		break;
-	case kDouble:
-		ret = sizeof(R64);
+	case kLongLong:
+		ret = sizeof(U64);
 		break;
 	}
 

@@ -213,27 +213,30 @@ namespace cineon
 		bool ReadHeader();
 
 		/*!
-		 * \brief Read an image element into a buffer
+		 * \brief Read an image element into a buffer that matches the image description type
 		 *
-		 * the size of the buffer must be large enough
-		 * simple calculation would be:
-		 *     width * height * num_of_components * size_of_component
+		 * The DataSize allows the user to specific the buffer DataSize which can differ
+		 * from the image element.  It is possible, for example, to read an 8-bit per
+		 * component (3 components per pixel for RGB) into 16-bits.
 		 *
-		 * \param element element (0-7)
 		 * \param data buffer
+		 * \param size size of the buffer component
+		 * \param desc element description type
 		 * \return success true/false
 		 */
-		bool ReadImage(const int element, void *data);
+		bool ReadImage(void *data, const DataSize size = kWord);
 
 		/*!
-		 * \brief Read a rectangular image block into a buffer from the specified image element
+		 * \brief Read a rectangular image block into a buffer from the image element
+		 * specified by the Descriptor type
 		 *
-		 * \param element element (0-7)
 		 * \param data buffer
+		 * \param size size of the buffer component
 		 * \param block image area to read
+		 * \param desc element description type
 		 * \return success true/false
 		 */
-		bool ReadBlock(const int element, unsigned char *data, Block &block);
+		bool ReadBlock(void *data, const DataSize size, Block &block);
 
 		/*!
 		 * \brief Read the user data into a buffer.
@@ -249,7 +252,7 @@ namespace cineon
 	protected:
 		InStream *fd;
 
-		Codec *codex[MAX_ELEMENTS];
+		Codec *codec;
 		ElementReadStream *rio;
 	};
 

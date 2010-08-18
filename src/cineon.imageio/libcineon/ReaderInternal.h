@@ -60,69 +60,14 @@
 namespace cineon
 {
 
-	// this function is called when the DataSize is 10 bit and the packing method is kFilledMethodA or kFilledMethodB
-	template<typename BUF, int PADDINGBITS>
-	void Unfill10bitFilled(U32 *readBuf, const int x, BUF *data, int count, int bufoff, const int numberOfComponents)
-	{
-		// unpack the words in the buffer
-		BUF *obuf = data + bufoff;
-
-		int index = (x * sizeof(U32)) % numberOfComponents;
-
-		for (int i = count - 1; i >= 0; i--)
-		{
-			// unpacking the buffer backwords
-			register U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
-			register U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
-
-			BaseTypeConverter(d1, obuf[i]);
-		}
-#if 0
-		// NOTE: REVERSE -- is this something we really need to handle?
-		// There were many dpx images that write the components backwords
-		// because of some confusion with DPX v1 spec
-
-		switch (dpxHeader.DatumSwap(element))
-		{
-			case 0:			// no swap
-				for (i = count - 1; i >= 0; i--)
-				{
-					U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
-					U16 d1 = U16(word >> (((i + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
-					BaseTypeConverter(d1, obuf[i]);
-				}
-
-			case 1:			// swap the three datum around so BGR becomes RGB
-				for (i = count - 1; i >= 0; i--)
-				{
-					// unpacking the buffer backwords
-					U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
-					U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
-					BaseTypeConverter(d1, obuf[i]);
-				}
-
-				// NOTE: NOT DONE case 2
-			case 2:			// swap the second two of three datum around so YCrCb becomes YCbCr
-				for (i = count - 1; i >= 0; i--)
-				{
-					// unpacking the buffer backwords
-					U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
-					U16 d1 = U16(word >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
-					BaseTypeConverter(d1, obuf[i]);
-				}
-
-		}
-#endif
-	}
-
 	template <typename IR, typename BUF, int PADDINGBITS>
-	bool Read10bitFilled(const Header &dpxHeader, U32 *readBuf, IR *fd, const int element, const Block &block, BUF *data)
+	bool Read10bitFilled(const Header &dpxHeader, U32 *readBuf, IR *fd, const Block &block, BUF *data)
 	{
 		// image height to read
 		const int height = block.y2 - block.y1 + 1;
 
 		// get the number of components for this element descriptor
-		const int numberOfComponents = dpxHeader.ImageElementComponentCount(element);
+		const int numberOfComponents = dpxHeader.NumberOfElements();
 
 		// end of line padding
 		int eolnPad = dpxHeader.EndOfLinePadding();
@@ -131,8 +76,6 @@ namespace cineon
 		// read in each line at a time directly into the user memory space
 		for (int line = 0; line < height; line++)
 		{
-			// determine offset into image element
-
 			// first get line offset
 			long offset = (line + block.y1) * dpxHeader.Width() * numberOfComponents;
 			offset += offset % 3;
@@ -153,13 +96,9 @@ namespace cineon
 			// determine buffer offset
 			int bufoff = line * dpxHeader.Width() * numberOfComponents;
 
-			fd->Read(dpxHeader, element, offset, readBuf, readSize);
+			fd->Read(dpxHeader, offset, readBuf, readSize);
 
 			// unpack the words in the buffer
-#if RLE_WORKING
-			int count = (block.x2 - block.x1 + 1) * numberOfComponents;
-			Unfill10bitFilled<BUF, PADDINGBITS>(readBuf, block.x1, data, count, bufoff, numberOfComponents);
-#else
 			BUF *obuf = data + bufoff;
 			int index = (block.x1 * sizeof(U32)) % numberOfComponents;
 
@@ -169,12 +108,7 @@ namespace cineon
 				U16 d1 = U16(readBuf[(count + index) / 3] >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
 
 				BaseTypeConverter(d1, obuf[count]);
-
-				// work-around for 1-channel DPX images - to swap the outlying pixels, otherwise the columns are in the wrong order
-				if (numberOfComponents == 1 && count % 3 == 0)
-					std::swap(obuf[count], obuf[count + 2]);
 			}
-#endif
 		}
 
 		return true;
@@ -182,17 +116,17 @@ namespace cineon
 
 
 	template <typename IR, typename BUF>
-	bool Read10bitFilledMethodA(const Header &dpx, U32 *readBuf, IR *fd, const int element, const Block &block, BUF *data)
+	bool Read10bitFilledMethodA(const Header &dpx, U32 *readBuf, IR *fd, const Block &block, BUF *data)
 	{
 		// padding bits for PackedMethodA is 2
-		return Read10bitFilled<IR, BUF, PADDINGBITS_10BITFILLEDMETHODA>(dpx, readBuf, fd, element, block, data);
+		return Read10bitFilled<IR, BUF, PADDINGBITS_10BITFILLEDMETHODA>(dpx, readBuf, fd, block, data);
 	}
 
 
 	template <typename IR, typename BUF>
-	bool Read10bitFilledMethodB(const Header &dpx, U32 *readBuf, IR *fd, const int element, const Block &block, BUF *data)
+	bool Read10bitFilledMethodB(const Header &dpx, U32 *readBuf, IR *fd, const Block &block, BUF *data)
 	{
-		return Read10bitFilled<IR, BUF, PADDINGBITS_10BITFILLEDMETHODB>(dpx, readBuf, fd, element, block, data);
+		return Read10bitFilled<IR, BUF, PADDINGBITS_10BITFILLEDMETHODB>(dpx, readBuf, fd, block, data);
 	}
 
 
@@ -233,19 +167,20 @@ namespace cineon
 
 
 	template <typename IR, typename BUF, U32 MASK, int MULTIPLIER, int REMAIN, int REVERSE>
-	bool ReadPacked(const Header &dpxHeader, U32 *readBuf, IR *fd, const int element, const Block &block, BUF *data)
+	bool ReadPacked(const Header &dpxHeader, U32 *readBuf, IR *fd, const Block &block, BUF *data)
 	{
 		// image height to read
 		const int height = block.y2 - block.y1 + 1;
 
 		// get the number of components for this element descriptor
-		const int numberOfComponents = dpxHeader.ImageElementComponentCount(element);
+		const int numberOfComponents = dpxHeader.NumberOfElements();
 
 		// end of line padding
 		int eolnPad = dpxHeader.EndOfLinePadding();
 
 		// data size in bits
-		const int dataSize = dpxHeader.BitDepth(element);
+		// FIXME!!!
+		const int dataSize = dpxHeader.BitDepth(0);
 
 		// number of bytes
 		const int lineSize = (dpxHeader.Width() * numberOfComponents * dataSize + 31) / 32;
@@ -265,7 +200,7 @@ namespace cineon
 			// calculate buffer offset
 			int bufoff = line * dpxHeader.Width() * numberOfComponents;
 
-			fd->Read(dpxHeader, element, offset, readBuf, readSize);
+			fd->Read(dpxHeader, offset, readBuf, readSize);
 
 			// unpack the words in the buffer
 			int count = (block.x2 - block.x1 + 1) * numberOfComponents;
@@ -277,27 +212,28 @@ namespace cineon
 
 
 	template <typename IR, typename BUF>
-	bool Read10bitPacked(const Header &dpxHeader, U32 *readBuf, IR *fd, const int element, const Block &block, BUF *data)
+	bool Read10bitPacked(const Header &dpxHeader, U32 *readBuf, IR *fd, const Block &block, BUF *data)
 	{
-		return ReadPacked<IR, BUF, MASK_10BITPACKED, MULTIPLIER_10BITPACKED, REMAIN_10BITPACKED, REVERSE_10BITPACKED>(dpxHeader, readBuf, fd, element, block, data);
+		return ReadPacked<IR, BUF, MASK_10BITPACKED, MULTIPLIER_10BITPACKED, REMAIN_10BITPACKED, REVERSE_10BITPACKED>(dpxHeader, readBuf, fd, block, data);
 
 	}
 
 	template <typename IR, typename BUF>
-	bool Read12bitPacked(const Header &dpxHeader, U32 *readBuf, IR *fd, const int element, const Block &block, BUF *data)
+	bool Read12bitPacked(const Header &dpxHeader, U32 *readBuf, IR *fd, const Block &block, BUF *data)
 	{
-		return ReadPacked<IR, BUF, MASK_12BITPACKED, MULTIPLIER_12BITPACKED, REMAIN_12BITPACKED, REVERSE_12BITPACKED>(dpxHeader, readBuf, fd, element, block, data);
+		return ReadPacked<IR, BUF, MASK_12BITPACKED, MULTIPLIER_12BITPACKED, REMAIN_12BITPACKED, REVERSE_12BITPACKED>(dpxHeader, readBuf, fd, block, data);
 	}
 
 
 	template <typename IR, typename SRC, DataSize SRCTYPE, typename BUF, DataSize BUFTYPE>
-	bool ReadBlockTypes(const Header &dpxHeader, SRC *readBuf, IR *fd, const int element, const Block &block, BUF *data)
+	bool ReadBlockTypes(const Header &dpxHeader, SRC *readBuf, IR *fd, const Block &block, BUF *data)
 	{
 		// get the number of components for this element descriptor
-		const int numberOfComponents = dpxHeader.ImageElementComponentCount(element);
+		const int numberOfComponents = dpxHeader.NumberOfElements();
 
 		// byte count component type
-		const int bytes = dpxHeader.ComponentByteCount(element);
+		// FIXME!!!
+		const int bytes = dpxHeader.ComponentByteCount(0);
 
 		// image image/height to read
 		const int width = (block.x2 - block.x1 + 1) * numberOfComponents;
@@ -321,11 +257,11 @@ namespace cineon
 
 			if (BUFTYPE == SRCTYPE)
 			{
-				fd->ReadDirect(dpxHeader, element, offset, reinterpret_cast<unsigned char *>(data + (width*line)), width*bytes);
+				fd->ReadDirect(dpxHeader, offset, reinterpret_cast<unsigned char *>(data + (width*line)), width*bytes);
 			}
 			else
 			{
-				fd->Read(dpxHeader, element, offset, readBuf, width*bytes);
+				fd->Read(dpxHeader, offset, readBuf, width*bytes);
 
 				// convert data
 				for (int i = 0; i < width; i++)
@@ -339,10 +275,10 @@ namespace cineon
 
 
 	template <typename IR, typename BUF>
-	bool Read12bitFilledMethodB(const Header &dpxHeader, U16 *readBuf, IR *fd, const int element, const Block &block, BUF *data)
+	bool Read12bitFilledMethodB(const Header &dpxHeader, U16 *readBuf, IR *fd, const Block &block, BUF *data)
 	{
 		// get the number of components for this element descriptor
-		const int numberOfComponents = dpxHeader.ImageElementComponentCount(element);
+		const int numberOfComponents = dpxHeader.NumberOfElements();
 
 		// image width & height to read
 		const int width = (block.x2 - block.x1 + 1) * numberOfComponents;
@@ -363,7 +299,7 @@ namespace cineon
 			long offset = (line + block.y1) * imageWidth * numberOfComponents * 2 +
 						block.x1 * numberOfComponents * 2 + (line * eolnPad);
 
-			fd->Read(dpxHeader, element, offset, readBuf, width*2);
+			fd->Read(dpxHeader, offset, readBuf, width*2);
 
 			// convert data
 			for (int i = 0; i < width; i++)
@@ -376,175 +312,64 @@ namespace cineon
 		return true;
 	}
 
-#ifdef RLE_WORKING
-	template <typename BUF, DataSize BUFTYPE>
-	void ProcessImageBlock(const Header &dpxHeader,  const int element, U32 *readBuf, const int x, BUF *data, const int bufoff)
-	{
-		const int bitDepth = dpxHeader.BitDepth(element);
-		const int numberOfComponents = dpxHeader.ImageElementComponentCount(element);
-		const Packing packing = dpxHeader.ImagePacking(element);
-
-		if (bitDepth == 10)
-		{
-			if (packing == kFilledMethodA)
-				Read10bitFilledMethodA<IR, BUF>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<BUF *>(data));
-				Unfill10bitFilled<BUF, PADDINGBITS_10BITFILLEDMETHODA>(readBuf, x, data, count, bufoff, numberOfComponents);
-			else if (packing == kFilledMethodB)
-				Read10bitFilledMethodB<IR, BUF>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<BUF *>(data));
-			else if (packing == kPacked)
-				Read10bitPacked<IR, BUF>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<BUF *>(data));
-				UnPackPacked<BUF, MASK_10BITPACKED, MULTIPLIER_10BITPACKED, REMAIN_10BITPACKED, REVERSE_10BITPACKED>(readBuf, dataSize, data, count, bufoff);
-		}
-		else if (bitDepth == 12)
-		{
-			if (packing == kPacked)
-				Read12bitPacked<IR, BUF>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<BUF *>(data));
-			else if (packing == kFilledMethodB)
-				Read12bitFilledMethodB<IR, BUF>(dpxHeader, reinterpret_cast<U16 *>(readBuf), fd, element, block, reinterpret_cast<BUF *>(data));
-		}
-	}
-#endif
-
 	template <typename IR, typename BUF, DataSize BUFTYPE>
-	bool ReadImageBlock(const Header &dpxHeader, U32 *readBuf, IR *fd, const int element, const Block &block, BUF *data)
+	bool ReadImageBlock(const Header &dpxHeader, U32 *readBuf, IR *fd, const Block &block, BUF *data)
 	{
-		const int bitDepth = dpxHeader.BitDepth(element);
-		//const DataSize size = dpxHeader.ComponentDataSize(element);
+		// FIXME!!!
+		const int bitDepth = dpxHeader.BitDepth(0);
+		const DataSize size = dpxHeader.ComponentDataSize(0);
 		const Packing packing = dpxHeader.ImagePacking();
 
 		if (bitDepth == 10)
 		{
-			/*if (packing == kFilledMethodA)
-				return Read10bitFilledMethodA<IR, BUF>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<BUF *>(data));
-			else if (packing == kFilledMethodB)
-				return Read10bitFilledMethodB<IR, BUF>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<BUF *>(data));
-			else*/ if (packing == kPacked)
-				return Read10bitPacked<IR, BUF>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<BUF *>(data));
+			if (packing == kLongWordLeft)
+				return Read10bitFilledMethodA<IR, BUF>(dpxHeader, readBuf, fd, block, reinterpret_cast<BUF *>(data));
+			else if (packing == kLongWordRight)
+				return Read10bitFilledMethodB<IR, BUF>(dpxHeader, readBuf, fd, block, reinterpret_cast<BUF *>(data));
+			else if (packing == kPacked)
+				return Read10bitPacked<IR, BUF>(dpxHeader, readBuf, fd, block, reinterpret_cast<BUF *>(data));
 		}
 		else if (bitDepth == 12)
 		{
 			if (packing == kPacked)
-				return Read12bitPacked<IR, BUF>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<BUF *>(data));
+				return Read12bitPacked<IR, BUF>(dpxHeader, readBuf, fd, block, reinterpret_cast<BUF *>(data));
 			/*else if (packing == kFilledMethodB)
 				// filled method B
 				// 12 bits fill LSB of 16 bits
-				return Read12bitFilledMethodB<IR, BUF>(dpxHeader, reinterpret_cast<U16 *>(readBuf), fd, element, block, reinterpret_cast<BUF *>(data));
+				return Read12bitFilledMethodB<IR, BUF>(dpxHeader, reinterpret_cast<U16 *>(readBuf), fd, block, reinterpret_cast<BUF *>(data));
 			else
 				// filled method A
 				// 12 bits fill MSB of 16 bits
-				return ReadBlockTypes<IR, U16, kWord, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<U16 *>(readBuf), fd, element, block, reinterpret_cast<BUF *>(data));*/
+				return ReadBlockTypes<IR, U16, kWord, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<U16 *>(readBuf), fd, block, reinterpret_cast<BUF *>(data));*/
 		}
-		/*else if (size == cineon::kByte)
-			return ReadBlockTypes<IR, U8, kByte, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<U8 *>(readBuf), fd, element, block, reinterpret_cast<BUF *>(data));
+		else if (size == cineon::kByte)
+			return ReadBlockTypes<IR, U8, kByte, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<U8 *>(readBuf), fd, block, reinterpret_cast<BUF *>(data));
 		else if (size == cineon::kWord)
-			return ReadBlockTypes<IR, U16, kWord, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<U16 *>(readBuf), fd, element, block, reinterpret_cast<BUF *>(data));
+			return ReadBlockTypes<IR, U16, kWord, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<U16 *>(readBuf), fd, block, reinterpret_cast<BUF *>(data));
 		else if (size == cineon::kInt)
-			return ReadBlockTypes<IR, U32, kInt, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<U32 *>(readBuf), fd, element, block, reinterpret_cast<BUF *>(data));
-		else if (size == cineon::kFloat)
-			return ReadBlockTypes<IR, R32, kFloat, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<R32 *>(readBuf), fd, element, block, reinterpret_cast<BUF *>(data));
-		else if (size == cineon::kDouble)
-			return ReadBlockTypes<IR, R64, kDouble, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<R64 *>(readBuf), fd, element, block, reinterpret_cast<BUF *>(data));*/
+			return ReadBlockTypes<IR, U32, kInt, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<U32 *>(readBuf), fd, block, reinterpret_cast<BUF *>(data));
+		else if (size == cineon::kLongLong)
+			return ReadBlockTypes<IR, U64, kLongLong, BUF, BUFTYPE>(dpxHeader, reinterpret_cast<U64 *>(readBuf), fd, block, reinterpret_cast<BUF *>(data));
 
 		// should not reach here
 		return false;
 	}
 
 	template <typename IR>
-	bool ReadImageBlock(const Header &dpxHeader, U32 *readBuf, IR *fd, const int element, const Block &block, void *data, const DataSize size)
+	bool ReadImageBlock(const Header &dpxHeader, U32 *readBuf, IR *fd, const Block &block, void *data, const DataSize size)
 	{
 		if (size == cineon::kByte)
-			return ReadImageBlock<IR, U8, cineon::kByte>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<U8 *>(data));
+			return ReadImageBlock<IR, U8, cineon::kByte>(dpxHeader, readBuf, fd, block, reinterpret_cast<U8 *>(data));
 		else if (size == cineon::kWord)
-			return ReadImageBlock<IR, U16, cineon::kWord>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<U16 *>(data));
+			return ReadImageBlock<IR, U16, cineon::kWord>(dpxHeader, readBuf, fd, block, reinterpret_cast<U16 *>(data));
 		else if (size == cineon::kInt)
-			return ReadImageBlock<IR, U32, cineon::kInt>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<U32 *>(data));
-		else if (size == cineon::kFloat)
-			return ReadImageBlock<IR, R32, cineon::kFloat>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<R32 *>(data));
-		else if (size == cineon::kDouble)
-			return ReadImageBlock<IR, R64, cineon::kDouble>(dpxHeader, readBuf, fd, element, block, reinterpret_cast<R64 *>(data));
+			return ReadImageBlock<IR, U32, cineon::kInt>(dpxHeader, readBuf, fd,  block, reinterpret_cast<U32 *>(data));
+		else if (size == cineon::kLongLong)
+			return ReadImageBlock<IR, U64, cineon::kLongLong>(dpxHeader, readBuf, fd, block, reinterpret_cast<U64 *>(data));
 
 		// should not reach here
 		return false;
 	}
-
-
-#ifdef RLE_WORKING
-	// THIS IS PART OF THE INCOMPLETE RLE CODE
-
-	// src is full image without any eoln padding
-	template <typename SRC, typename DST>
-	void CopyImageBlock(const Header &dpxHeader, const int element, SRC *src, DataSize srcSize, DST *dst, DataSize dstSize, const Block &block)
-	{
-		const int numberOfComponents = dpxHeader.ImageElementComponentCount(element);
-		const int width = dpxHeader.Width();
-		const int byteCount = dpxHeader.ComponentByteCount(element);
-		const int pixelByteCount = numberOfComponents * byteCount;
-
-		int srcoff, dstoff;
-		int x, y, nc;
-
-		if (srcSize == dstSize)
-		{
-			int lineSize = (width * numberOfComponents * byteCount);
-			U8 * srcU8 = reinterpret_cast<U8 *>(src);
-			U8 * dstU8 = reinterpret_cast<U8 *>(dst);
-			for (y = block.y1; y <= block.y2; y++)
-			{
-				int copySize = (block.x2 - block.x1 + 1) * numberOfComponents * byteCount;
-				memcpy(srcU8 + (y * lineSize) + (block.x1 * numberOfComponents * byteCount), dstU8, copySize);
-				outBuf += copySize;
-			}
-			return;
-		}
-
-
-		for (y = block.y1; y <= block.y2; y++)
-		{
-			dstoff = (y - block.y1) * ((block.x2 - block.x1 + 1) * numberOfComponents) - block.x1;
-			for (x = block.x1; x <= block.x2; x++)
-			{
-				for (nc = 0; nc < numberOfComponents; nc++)
-				{
-					SRC d1 = src[(y * width * numberOfComponents) + (x * numberOfComponents) + nc];
-					BaseTypeConverter(d1, dst[dstoff+((x-block.x1)*numberOfComponents) + nc]);
-				}
-			}
-		}
-	}
-
-
-	template<typename SRC>
-	void CopyImageBlock(const Header &dpxHeader, const int element, SRC *src, DataSize srcSize, void *dst, DataSize dstSize, const Block &block)
-	{
-		if (dstSize == cineon::kByte)
-			CopyImageBlock<SRC, U8>(dpxHeader, element, src, srcSize, reinterpret_cast<U8 *>(dst), dstSize, block);
-		else if (dstSize == cineon::kWord)
-			CopyImageBlock<SRC, U16>(dpxHeader, element, src, srcSize, reinterpret_cast<U16 *>(dst), dstSize, block);
-		else if (dstSize == cineon::kInt)
-			CopyImageBlock<SRC, U32>(dpxHeader, element, src, srcSize, reinterpret_cast<U32 *>(dst), dstSize, block);
-		else if (dstSize == cineon::kFloat)
-			CopyImageBlock<SRC, R32>(dpxHeader, element, src, srcSize, reinterpret_cast<R32 *>(dst), dstSize, block);
-		else if (dstSize == cineon::kDouble)
-			CopyImageBlock<SRC, R64>(dpxHeader, element, src, srcSize, reinterpret_cast<R64 *>(dst), dstSize, block);
-
-	}
-
-
-	void CopyImageBlock(const Header &dpxHeader, const int element, void *src, DataSize srcSize, void *dst, DataSize dstSize, const Block &block)
-	{
-		if (srcSize == cineon::kByte)
-			CopyImageBlock<U8, cineon::kByte>(dpxHeader, element, reinterpret_cast<U8 *>(src), srcSize, dst, dstSize, block);
-		else if (srcSize == cineon::kWord)
-			CopyImageBlock<U16, cineon::kWord>(dpxHeader, element, reinterpret_cast<U16 *>(src), srcSize, dst, dstSize, block);
-		else if (srcSize == cineon::kInt)
-			CopyImageBlock<U32, cineon::kInt>(dpxHeader, element, reinterpret_cast<U32 *>(src), srcSize, dst, dstSize, block);
-		else if (srcSize == cineon::kFloat)
-			CopyImageBlock<R32, cineon::kFloat>(dpxHeader, element, reinterpret_cast<R32 *>(src), srcSize, dst, dstSize, block);
-		else if (srcSize == cineon::kDouble)
-			CopyImageBlock<R64, cineon::kDouble>(dpxHeader, element, reinterpret_cast<R64 *>(src), srcSize, dst, dstSize, block);
-
-	}
-#endif
 
 }
 

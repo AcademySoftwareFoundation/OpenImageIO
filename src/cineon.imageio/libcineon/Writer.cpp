@@ -237,8 +237,8 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 	if ((bitDepth == 8 && size == cineon::kByte) ||
 		 (bitDepth == 12 && size == cineon::kWord /*&& packing == kFilledMethodA*/) ||
 		 (bitDepth == 16 && size == cineon::kWord) ||
-		 (bitDepth == 32 && size == cineon::kFloat) ||
-		 (bitDepth == 64 && size == cineon::kDouble))
+		 (bitDepth == 32 && size == cineon::kInt) ||
+		 (bitDepth == 64 && size == cineon::kLongLong))
 	{
 		status = this->WriteThrough(data, width, height, noc, bytes, eolnPad, eoimPad, blank);
 		if (blank)
@@ -282,17 +282,17 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 			break;
 
 		case 32:
-			if (size == cineon::kFloat)
-				this->fileLoc += WriteFloatBuffer<R32, 32, true>(this->fd, size, data, width, height, noc, packing, eolnPad, blank, status);
+			if (size == cineon::kInt)
+				this->fileLoc += WriteBuffer<U32, 32, true>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
 			else
-				this->fileLoc += WriteFloatBuffer<R32, 32, false>(this->fd, size, data, width, height, noc, packing, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U32, 32, false>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
 			break;
 
 		case 64:
-			if (size == cineon::kDouble)
-				this->fileLoc += WriteFloatBuffer<R64, 64, true>(this->fd, size, data, width, height, noc, packing, eolnPad, blank, status);
+			if (size == cineon::kLongLong)
+				this->fileLoc += WriteBuffer<R64, 64, true>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
 			else
-				this->fileLoc += WriteFloatBuffer<R64, 64, false>(this->fd, size, data, width, height, noc, packing, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<R64, 64, false>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
 			break;
 		}
 	}

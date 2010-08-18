@@ -47,8 +47,7 @@
 cineon::Reader::Reader() : fd(0), rio(0)
 {
 	// initialize all of the Codec* to NULL
-	for (int i = 0; i < MAX_ELEMENTS; i++)
-		this->codex[i] = 0;
+	this->codec = 0;
 }
 
 
@@ -61,12 +60,8 @@ cineon::Reader::~Reader()
 void cineon::Reader::Reset()
 {
 	// delete all of the Codec * entries
-	for (int i = 0; i < MAX_ELEMENTS; i++)
-		if (this->codex[i])
-		{
-			delete codex[i];
-			this->codex[i] = 0;
-		}
+	delete this->codec;
+	this->codec = 0;
 
 	// Element Reader
 	if (this->rio)
@@ -92,50 +87,12 @@ bool cineon::Reader::ReadHeader()
 }
 
 
-bool cineon::Reader::ReadImage(const int element, void *data)
-{
-	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
-		return false;
-
-	// make sure the entry is valid
-	if (this->header.ImageDescriptor(element) == kUndefinedDescriptor)
-		return false;
-
-	assert(!"FIXME");
-	return false;
-	//return this->ReadImage(data, this->header.ComponentDataSize(element), this->header.ImageDescriptor(element));
-}
-
-
-/*bool cineon::Reader::ReadImage(void *data, const DataSize size, const Descriptor desc)
+bool cineon::Reader::ReadImage(void *data, const DataSize size)
 {
 	Block block(0, 0, this->header.Width()-1, this->header.Height()-1);
-	return this->ReadBlock(data, size, block, desc);
-}*/
-
-
-
-/**
-	block - this contains the square block of data to read in.  The data elements in this
-		structure need to be normalized Left to Right, Top to Bottom.
-  */
-
-
-bool cineon::Reader::ReadBlock(const int element, unsigned char *data, Block &block)
-{
-	// make sure the range is good
-	if (element < 0 || element >= MAX_ELEMENTS)
-		return false;
-
-	// make sure the entry is valid
-	if (this->header.ImageDescriptor(element) == kUndefinedDescriptor)
-		return false;
-
-	assert(!"FIXME");
-	return false;
-	//return this->ReadBlock(data, this->header.ComponentDataSize(element), block, this->header.ImageDescriptor(element));
+	return this->ReadBlock(data, size, block);
 }
+
 
 
 /*
@@ -148,47 +105,44 @@ bool cineon::Reader::ReadBlock(const int element, unsigned char *data, Block &bl
 
 */
 
-/*bool cineon::Reader::ReadBlock(void *data, const DataSize size, Block &block, const Descriptor desc)
+bool cineon::Reader::ReadBlock(void *data, const DataSize size, Block &block)
 {
 	int i;
-	int element;
 
 	// check the block coordinates
 	block.Check();
 
-	// determine which element we are viewing
-	for (i = 0; i < MAX_ELEMENTS; i++)
-	{
-		if (this->header.ImageDescriptor(i) == desc)
-		{
-			element = i;
-			break;
+	// get the number of components for this element descriptor
+	const int numberOfComponents = this->header.NumberOfElements();
+
+	// check the widths and bit depths of the image elements
+	bool consistentDepth = true;
+	bool consistentWidth = true;
+	const int bitDepth = this->header.BitDepth(0);
+	const int width = this->header.PixelsPerLine(0);
+	for (i = 1; i < numberOfComponents; i++) {
+		if (this->header.BitDepth(i) != bitDepth) {
+			consistentDepth = false;
+			if (!consistentWidth)
+				break;
+		}
+		if (this->header.PixelsPerLine(i) != width) {
+			consistentWidth = false;
+			if (!consistentDepth)
+				break;
 		}
 	}
-	if (i == MAX_ELEMENTS)					// was it found?
-		return false;
-
-
-	// get the number of components for this element descriptor
-	const int numberOfComponents = this->header.ImageElementComponentCount(element);
-
-	// bit depth of the image element
-	const int bitDepth = this->header.BitDepth(element);
-
-	// rle encoding?
-	const bool rle = (this->header.ImageEncoding(element) == kRLE);
-
 
 	// lets see if this can be done in a single fast read
-	if (!rle && this->header.EndOfLinePadding(element) == 0 &&
+	if (consistentDepth && consistentWidth && this->header.EndOfLinePadding() == 0 &&
 		((bitDepth == 8 && size == cineon::kByte) ||
 		 (bitDepth == 16 && size == cineon::kWord) ||
-		 (bitDepth == 32 && size == cineon::kFloat) ||
-		 (bitDepth == 64 && size == cineon::kDouble)) &&
+		 (bitDepth == 32 && size == cineon::kInt) ||
+		 (bitDepth == 64 && size == cineon::kLongLong)) &&
 		block.x1 == 0 && block.x2 == (int)(this->header.Width()-1))
 	{
 		// seek to the beginning of the image block
-		if (this->fd->Seek((this->header.DataOffset(element) + (block.y1 * this->header.Width() * (bitDepth / 8) * numberOfComponents)), InStream::kStart) == false)
+		if (this->fd->Seek((this->header.ImageOffset() + (block.y1 * this->header.Width() * (bitDepth / 8) * numberOfComponents)), InStream::kStart) == false)
 			return false;
 
 		// size of the image
@@ -208,20 +162,13 @@ bool cineon::Reader::ReadBlock(const int element, unsigned char *data, Block &bl
 
 
 	// determine if the encoding system is loaded
-	if (this->codex[element] == 0)
-	{
+	if (this->codec == 0)
 		// this element reader has not been used
-		if (rle)
-			// TODO
-			//this->codex[element] = new RunLengthEncoding;
-			return false;
-		else
-			this->codex[element] = new Codec;
-	}
+		this->codec = new Codec;
 
 	// read the image block
-	return this->codex[element]->Read(this->header, this->rio, element, block, data, size);
-}*/
+	return this->codec->Read(this->header, this->rio, block, data, size);
+}
 
 
 

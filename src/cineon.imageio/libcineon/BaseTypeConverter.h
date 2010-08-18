@@ -56,6 +56,11 @@ namespace cineon
 		dst = src << 24;
 	}
 
+	inline void BaseTypeConverter(U8 &src, U64 &dst)
+	{
+		dst = src << 56;
+	}
+
 	inline void BaseTypeConverter(U8 &src, R32 &dst)
 	{
 		dst = src;
@@ -79,6 +84,11 @@ namespace cineon
 	inline void BaseTypeConverter(U16 &src, U32 &dst)
 	{
 		dst = src << 16;
+	}
+
+	inline void BaseTypeConverter(U16 &src, U64 &dst)
+	{
+		dst = src << 48;
 	}
 
 	inline void BaseTypeConverter(U16 &src, R32 &dst)
@@ -106,12 +116,47 @@ namespace cineon
 		dst = src;
 	}
 
+	inline void BaseTypeConverter(U32 &src, U64 &dst)
+	{
+		dst = src << 32;
+	}
+
 	inline void BaseTypeConverter(U32 &src, R32 &dst)
 	{
 		dst = src;
 	}
 
 	inline void BaseTypeConverter(U32 &src, R64 &dst)
+	{
+		dst = src;
+	}
+
+	inline void BaseTypeConverter(U64 &src, U8 &dst)
+	{
+		dst = src >> 56;
+	}
+
+	inline void BaseTypeConverter(U64 &src, U16 &dst)
+	{
+		dst = src >> 48;
+	}
+
+	inline void BaseTypeConverter(U64 &src, U32 &dst)
+	{
+		dst = src >> 32;
+	}
+
+	inline void BaseTypeConverter(U64 &src, U64 &dst)
+	{
+		dst = src;
+	}
+
+	inline void BaseTypeConverter(U64 &src, R32 &dst)
+	{
+		dst = src;
+	}
+
+	inline void BaseTypeConverter(U64 &src, R64 &dst)
 	{
 		dst = src;
 	}
@@ -127,6 +172,11 @@ namespace cineon
 	}
 
 	inline void BaseTypeConverter(R32 &src, U32 &dst)
+	{
+		dst = src;
+	}
+
+	inline void BaseTypeConverter(R32 &src, U64 &dst)
 	{
 		dst = src;
 	}
@@ -152,6 +202,11 @@ namespace cineon
 	}
 
 	inline void BaseTypeConverter(R64 &src, U32 &dst)
+	{
+		dst = src;
+	}
+
+	inline void BaseTypeConverter(R64 &src, U64 &dst)
 	{
 		dst = src;
 	}

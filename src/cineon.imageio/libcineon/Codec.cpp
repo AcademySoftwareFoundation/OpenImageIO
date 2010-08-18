@@ -62,16 +62,18 @@ void cineon::Codec::Reset()
 }
 
 
-bool cineon::Codec::Read(const Header &dpxHeader, ElementReadStream *fd, const int element, const Block &block, void *data, const DataSize size)
+bool cineon::Codec::Read(const Header &dpxHeader, ElementReadStream *fd, const Block &block, void *data, const DataSize size)
 {
 	// scanline buffer
 	if (this->scanline == 0)
 	{
+		// FIXME: make this flexible enough to change per-channel differences!
+
 		// get the number of components for this element descriptor
-		const int numberOfComponents = dpxHeader.ImageElementComponentCount(element);
+		const int numberOfComponents = dpxHeader.NumberOfElements();
 
 		// bit depth of the image element
-		const int bitDepth = dpxHeader.BitDepth(element);
+		const int bitDepth = dpxHeader.BitDepth(0);
 
 		// size of the scanline buffer is image width * number of components * bytes per component
 		int slsize = ((numberOfComponents * dpxHeader.Width() *
@@ -82,6 +84,6 @@ bool cineon::Codec::Read(const Header &dpxHeader, ElementReadStream *fd, const i
 
 
 	// read the image block
-	return ReadImageBlock<ElementReadStream>(dpxHeader, this->scanline, fd, element, block, data, size);
+	return ReadImageBlock<ElementReadStream>(dpxHeader, this->scanline, fd, block, data, size);
 }
 

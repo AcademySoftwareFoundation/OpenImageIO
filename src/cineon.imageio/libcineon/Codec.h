@@ -69,7 +69,6 @@ namespace cineon
 		 * \brief read data
 		 * \param dpxHeader dpx header information
 		 * \param fd field descriptor
-		 * \param element element (0-7)
 		 * \param block image area to read
 		 * \param data buffer
 		 * \param size size of the buffer component
@@ -77,7 +76,6 @@ namespace cineon
 		 */
 		virtual bool Read(const Header &dpxHeader,
 						  ElementReadStream *fd,
-						  const int element,
 						  const Block &block,
 						  void *data,
 						  const DataSize size);
