@@ -236,13 +236,9 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
     if (m_cin.header.creationDate[0] && m_cin.header.creationTime[0]) {
         // libcineon's date/time format is pretty close to OIIO's (libcineon
         // uses %Y:%m:%d:%H:%M:%S%Z)
-        char date[24];
-        strcpy(date, m_cin.header.creationDate);
-        strcat(date, " ");
-        strcat(date, m_cin.header.creationTime);
-        // FIXME: do something about the time zone instead of cutting it off
-        date[19] = 0;
-        m_spec.attribute ("DateTime", date);
+        m_spec.attribute ("DateTime", Strutil::format ("%s %s",
+            m_cin.header.creationDate, m_cin.header.creationTime));
+        // FIXME: do something about the time zone
     }
 
     // cineon-specific metadata
@@ -384,13 +380,9 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
     if (m_cin.header.sourceDate[0] && m_cin.header.sourceTime[0]) {
         // libcineon's date/time format is pretty close to OIIO's (libcineon
         // uses %Y:%m:%d:%H:%M:%S%Z)
-        char date[24];
-        strcpy(date, m_cin.header.sourceDate);
-        strcat(date, " ");
-        strcat(date, m_cin.header.sourceTime);
-        // FIXME: do something about the time zone instead of cutting it off
-        date[19] = 0;
-        m_spec.attribute ("cineon:SourceDateTime", date);
+        m_spec.attribute ("DateTime", Strutil::format ("%s %s",
+            m_cin.header.sourceDate, m_cin.header.sourceTime));
+        // FIXME: do something about the time zone
     }
     m_cin.header.FilmEdgeCode(buf);
     if (buf[0])
