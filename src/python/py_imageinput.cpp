@@ -54,6 +54,10 @@ ImageInputWrap::~ImageInputWrap()
     delete m_input;
 }
 
+const char* ImageInputWrap::format_name()const {
+    return m_input->format_name();
+}
+
 bool ImageInputWrap::open_regular (const std::string &name, 
                                 ImageSpec &newspec)
 {
@@ -227,6 +231,7 @@ void declare_imageinput()
         .def("create", &ImageInputWrap::create,
              (arg("filename"), arg("plugin_searchpath")=""))
         .staticmethod("create")
+        .def("format_name",      &ImageInputWrap::format_name)
         .def("open",             &ImageInputWrap::open_regular)
         .def("open",             &ImageInputWrap::open_with_config)
         .def("spec",             &ImageInputWrap::spec, 

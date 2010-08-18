@@ -69,6 +69,7 @@ private:
 public:
 	virtual ~ImageInputWrap();
     static boost::python::object create(const std::string&, const std::string&);
+    const char *format_name () const;
     bool open_regular (const std::string&, ImageSpec&);
     bool open_with_config(const std::string&, ImageSpec&, const ImageSpec&);
     const ImageSpec &spec() const;
