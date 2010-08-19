@@ -60,11 +60,11 @@ if (EMBEDPLUGINS)
     set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
         ../bmp.imageio/bmpinput.cpp ../bmp.imageio/bmpoutput.cpp
         ../bmp.imageio/bmp_pvt.cpp
-        ../cineon.imageio/cineoninput.cpp ../cineon.imageio/cineonoutput.cpp
-          ../cineon.imageio/libcineon/Cineon.cpp ../cineon.imageio/libcineon/OutStream.cpp
-          ../cineon.imageio/libcineon/Codec.cpp ../cineon.imageio/libcineon/Reader.cpp
-          ../cineon.imageio/libcineon/Writer.cpp ../cineon.imageio/libcineon/CineonHeader.cpp
-          ../cineon.imageio/libcineon/ElementReadStream.cpp ../cineon.imageio/libcineon/InStream.cpp
+#        ../cineon.imageio/cineoninput.cpp ../cineon.imageio/cineonoutput.cpp
+#          ../cineon.imageio/libcineon/Cineon.cpp 
+#          ../cineon.imageio/libcineon/Codec.cpp ../cineon.imageio/libcineon/Reader.cpp
+#          ../cineon.imageio/libcineon/Writer.cpp ../cineon.imageio/libcineon/CineonHeader.cpp
+#          ../cineon.imageio/libcineon/ElementReadStream.cpp ../cineon.imageio/libcineon/InStream.cpp
         ../dds.imageio/ddsinput.cpp ../dds.imageio/ddsoutput.cpp
           ../dds.imageio/squish/alpha.cpp ../dds.imageio/squish/clusterfit.cpp
           ../dds.imageio/squish/colourblock.cpp ../dds.imageio/squish/colourfit.cpp
