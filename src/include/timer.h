@@ -38,8 +38,11 @@
 
 #ifdef _WIN32
 # include "osdep.h"
+#elif defined(__APPLE__)
+# include <mach/mach_time.h>
 #else
 #include <sys/time.h>
+#include <cstdlib>    // Just for NULL definition
 #endif
 
 
@@ -72,6 +75,8 @@ public:
 #ifdef _WIN32
     typedef LARGE_INTEGER value_t;
     // Sheesh, why can't they use a standard type like stdint's int64_t?
+#elif defined(__APPLE__)
+    typedef unsigned long long value_t;
 #else
     typedef struct timeval value_t;
 #endif
@@ -99,12 +104,13 @@ public:
 
     /// Stop ticking.  Any elapsed time will be saved even though we
     /// aren't currently ticking.
-    void stop () {
+    double stop () {
         if (m_ticking) {
             value_t n = now();
             m_elapsed += diff (n, m_starttime);
             m_ticking = false;
         }
+        return m_elapsed;
     }
 
     /// Reset at zero and stop ticking.
@@ -112,6 +118,19 @@ public:
     void reset (void) {
         m_elapsed = 0;
         m_ticking = false;
+    }
+
+    /// Return the current elapsed time, and reset elapsed time to zero,
+    /// but keep the timer going.
+    double lap () {
+        double r = m_elapsed;
+        m_elapsed = 0;
+        if (m_ticking) {
+            value_t n = now();
+            r += diff (n, m_starttime);
+            m_starttime = n;
+        }
+        return m_elapsed;
     }
 
     /// Operator () returns the elapsed time so far, including both the
@@ -142,6 +161,8 @@ private:
         value_t n;
 #ifdef _WIN32
         QueryPerformanceCounter (&n);   // From MSDN web site
+#elif defined(__APPLE__)
+        n = mach_absolute_time();
 #else
         gettimeofday (&n, NULL);
 #endif
@@ -156,6 +177,18 @@ private:
         value_t freq;
         QueryPerformanceFrequency (&freq);
         return (double)(now.QuadPart - then.QuadPart) / (double)freq.QuadPart;
+#elif defined(__APPLE__)
+        // NOTE(boulos): Both this value and that of the windows
+        // counterpart above only need to be calculated once. In
+        // Manta, we stored this on the side as a scaling factor but
+        // that would require a .cpp file (meaning timer.h can't just
+        // be used as a header). It is also claimed that since
+        // Leopard, Apple returns 1 for both numer and denom.
+        mach_timebase_info_data_t time_info;
+        mach_timebase_info(&time_info);
+        double seconds_per_tick = (1e-9*static_cast<double>(time_info.numer))/
+          static_cast<double>(time_info.denom);
+        return (now - then) * seconds_per_tick;
 #else
         return fabs ((now.tv_sec  - then.tv_sec) +
                      (now.tv_usec - then.tv_usec) / 1e6);
