@@ -172,7 +172,7 @@ template <class T>
 static void 
 deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gamma)
 {
-    T max = std::numeric_limits<T>::max();
+    unsigned int max = std::numeric_limits<T>::max();
     if (gamma == 1){
         for (int x = 0;  x < size;  ++x, data += channels)
             if (data[alpha_channel])
@@ -180,7 +180,7 @@ deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gam
                     if (c != alpha_channel) {
                         unsigned int f = data[c];
                         f = (f * max) / data[alpha_channel];
-                        data[c] = std::min (max, (T) f);
+                        data[c] = (T) std::min (max, f);
                     }
     }
     else {
@@ -192,7 +192,7 @@ deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gam
                         //FIXME: Would it be worthwhile to do some caching on pow values??
                         float f = pow(data[c]/max, inv_gamma); //Linearize
                         f = (f / (data[alpha_channel]/max));
-                        data[c] = std::min (max, (T) (max * pow(f, gamma)));
+                        data[c] = (T) std::min (max, (unsigned int)(max * pow(f, gamma)));
                     }
     }
 }
