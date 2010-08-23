@@ -45,6 +45,7 @@ using boost::algorithm::iends_with;
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
+#include <OpenEXR/ImfVecAttribute.h>
 #include <OpenEXR/ImfStringAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
@@ -292,6 +293,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         const Imf::FloatAttribute *fattr;
         const Imf::StringAttribute *sattr;
         const Imf::M44fAttribute *mattr;
+        const Imf::V3fAttribute *vattr;        
         const char *name = hit.name();
         std::string oname = exr_tag_to_ooio_std[name];
         if (oname.empty())   // Empty string means skip this attrib
@@ -312,6 +314,9 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         else if (type == "m44f" && 
             (mattr = m_header->findTypedAttribute<Imf::M44fAttribute> (name)))
             m_spec.attribute (oname, PT_MATRIX, &(mattr->value()));
+        else if (type == "v3f" &&
+                 (vattr = m_header->findTypedAttribute<Imf::V3fAttribute> (name)))
+            m_spec.attribute (oname, PT_VECTOR, &(vattr->value()));
         else {
 #ifdef DEBUG
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";

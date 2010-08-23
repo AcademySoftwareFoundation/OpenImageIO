@@ -101,17 +101,26 @@ the wrap mode may have an override specified in the texture lookup
 at runtime.
 \apiend
 
-\apiitem{--noresize}
-Ordinarily, the input image will be resized (by rounding up) to be
-a power-of-two resolution in each dimension.  The {\cf --noresize}
-option prevents this from happening, instead keeping the highest
-resolution MIP-map level the same resolution as the original input
-image.
+\apiitem{--resize}
+Causes the highest-resolution level of the MIP-map to be a
+power-of-two resolution in each dimension
+(by rounding up the resolution of the input image).  There is no
+good reason to do this for the sake of OIIO's texture system, but 
+some users may require it in order to create MIP-map images
+that are compatible with both OIIO and other texturing systems that
+require power-of-2 textures.
 \apiend
 
 \apiitem{--nomipmap}
 Causes the output to \emph{not} be MIP-mapped, i.e., only will have
 the highest-resolution level.
+\apiend
+
+\apiitem{--checknan}
+Checks every pixel of the input image to ensure that no NaN or Inf
+values are present.  If such non-finite pixel values are found, 
+an error message will be printed and {\cf maketx} will terminate without
+writing the output image (returning an error code).
 \apiend
 
 \apiitem{--ingamma {\rm \emph{value}} \\

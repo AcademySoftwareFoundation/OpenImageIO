@@ -896,6 +896,8 @@ rectangle (taking into consideration its dimensions, number of
 channels, and data format).  The rectangular region to be
 retrieved includes {\cf begin} but does not include {\cf end} (much
 like STL begin/end usage).
+Requested pixels that are not part of the valid pixel data region of the
+image file will be filled with zero values.
 
 Fields within {\cf options} that are honored for raw texel retieval
 include the following:

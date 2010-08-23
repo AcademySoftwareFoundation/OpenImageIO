@@ -45,6 +45,7 @@ using boost::algorithm::istarts_with;
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
+#include <OpenEXR/ImfVecAttribute.h>
 #include <OpenEXR/ImfStringAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
@@ -452,6 +453,11 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         m_header->insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
         return true;
     }
+    if (type == TypeDesc::PT_VECTOR) {
+        m_header->insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));
+        return true;
+    }
+
     std::cerr << "Don't know what to do with " << type.c_str() << ' ' << xname << "\n";
     return false;
 }
