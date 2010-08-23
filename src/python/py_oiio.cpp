@@ -184,13 +184,54 @@ bool PyProgressCallback(void *function, float data) {
     return boost::python::extract<bool>((*func)(data));
 }
 
+struct ustring_to_python_str {
+    static PyObject* convert(ustring const& s) {
+        return boost::python::incref(boost::python::object(s.string()).ptr());
+    }
+};
+
+struct ustring_from_python_str
+{
+    ustring_from_python_str() {
+        boost::python::converter::registry::push_back(
+                &convertible,
+                &construct,
+                boost::python::type_id<ustring>());
+    }
+
+    static void* convertible(PyObject* obj_ptr) {
+        if (!PyString_Check(obj_ptr)) return 0;
+        return obj_ptr;
+    }
+
+    static void construct(
+            PyObject* obj_ptr,
+            boost::python::converter::rvalue_from_python_stage1_data* data) {
+        const char* value = PyString_AsString(obj_ptr);
+        if (value == 0) boost::python::throw_error_already_set();
+        void* storage = (
+                (boost::python::converter::rvalue_from_python_storage<ustring>*)
+                data)->storage.bytes;
+        new (storage) ustring(value);
+        data->convertible = storage;
+    }
+};
+
 BOOST_PYTHON_MODULE(OpenImageIO) {
+
+    boost::python::to_python_converter<
+        ustring,
+        ustring_to_python_str>();
+
+    ustring_from_python_str();
+
     declare_imageinput();
     declare_imagespec();
     declare_imageoutput();
     declare_typedesc();
     declare_imagecache();
     declare_imagebuf();
+    declare_paramvalue();
 	def("progress_callback_example", &progress_callback_wrapper);   
 	def("create_array", &create_array);
 	def("fill_array",   &fill_array);

@@ -100,9 +100,6 @@ bool ImageBufWrap::write (ImageOutputWrap *out,
 bool ImageBufWrap::init_spec (const std::string &filename) {
     return m_buf->init_spec(filename);
 }
-std::string ImageBufWrap::error_message() {
-    return m_buf->error_message();
-}
 const ImageSpec& ImageBufWrap::spec() const {
     return m_buf->spec();
 }
@@ -232,6 +229,9 @@ bool ImageBufWrap::localpixels () const {
 }
 //TODO: class Iterator and ConstIterator
 
+std::string ImageBufWrap::geterror()const  {
+    return m_buf->geterror();
+}
 
 void declare_imagebuf()
 {
@@ -247,7 +247,6 @@ void declare_imagebuf()
     //cls.def("save", &ImageBufWrap::save);
     //cls.def("write", &ImageBufWrap::write);
     cls.def("init_spec", &ImageBufWrap::init_spec);
-    cls.def("error_message", &ImageBufWrap::error_message);
 
     cls.def("spec", &ImageBufWrap::spec, 
                 return_value_policy<copy_const_reference>());
@@ -290,6 +289,7 @@ void declare_imagebuf()
     cls.def("zero", &ImageBufWrap::zero);
     cls.def("pixels_valid", &ImageBufWrap::pixels_valid);
     cls.def("localpixels", &ImageBufWrap::localpixels);
+    cls.def("geterror",    &ImageBufWrap::geterror);
     
 }
 

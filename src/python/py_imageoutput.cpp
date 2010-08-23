@@ -158,10 +158,10 @@ bool ImageOutputWrap::supports (const std::string &feature) const
     return m_output->supports(feature);
 }
 
-std::string ImageOutputWrap::error_message()
-{
-    return m_output->error_message();
+std::string ImageOutputWrap::geterror()const  {
+    return m_output->geterror();
 }
+
 
 void declare_imageoutput()
 {
@@ -188,7 +188,7 @@ void declare_imageoutput()
               arg("zstride")=AutoStride, arg("function")=object(handle<>(Py_None))))
         .def("print_pointer",   &ImageOutputWrap::print_pointer)//for testing
         .def("copy_image",      &ImageOutputWrap::copy_image)
-        .def("error_message",   &ImageOutputWrap::error_message)
+        .def("geterror",        &ImageOutputWrap::geterror)
     ;
 
     scope().attr("AutoStride") = OpenImageIO::AutoStride;

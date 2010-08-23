@@ -92,17 +92,17 @@ bool ImageCacheWrap::getattribute(const std::string &name, TypeDesc type,
 }
 
 //Shortcuts for common types
-bool ImageCacheWrap::getattribute_int(const std::string &name, int val)
+bool ImageCacheWrap::getattribute_int(const std::string &name, int &val)
 {
     return m_cache->getattribute(name, val);
 }
 
-bool ImageCacheWrap::getattribute_float(const std::string &name, float val)
+bool ImageCacheWrap::getattribute_float(const std::string &name, float &val)
 {
     return m_cache->getattribute(name, val);
 }
 
-bool ImageCacheWrap::getattribute_double(const std::string &name, double val)
+bool ImageCacheWrap::getattribute_double(const std::string &name, double &val)
 {
     return m_cache->getattribute(name, val);
 }
@@ -205,9 +205,9 @@ void declare_imagecache()
 //      .def("tile_pixels", &ImageCacheWrap::tile_pixels)
 
 //added _ to the method names for consistency
-        .def("get_error", &ImageCacheWrap::geterror)
-        .def("get_stats", &ImageCacheWrap::getstats)
-        .def("invalidate",  &ImageCacheWrap::invalidate)
+        .def("geterror",       &ImageCacheWrap::geterror)
+        .def("getstats",       &ImageCacheWrap::getstats)
+        .def("invalidate",     &ImageCacheWrap::invalidate)
         .def("invalidate_all", &ImageCacheWrap::invalidate_all)
     ;
 

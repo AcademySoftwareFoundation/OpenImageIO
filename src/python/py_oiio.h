@@ -56,6 +56,7 @@ void declare_imageoutput();
 void declare_typedesc();
 void declare_imagecache();
 void declare_imagebuf();
+void declare_paramvalue();
 
 bool PyProgressCallback(void*, float);
 
@@ -68,6 +69,7 @@ private:
 public:
 	virtual ~ImageInputWrap();
     static boost::python::object create(const std::string&, const std::string&);
+    const char *format_name () const;
     bool open_regular (const std::string&, ImageSpec&);
     bool open_with_config(const std::string&, ImageSpec&, const ImageSpec&);
     const ImageSpec &spec() const;
@@ -83,7 +85,7 @@ public:
     bool read_tile_simple(int, int, int, object&);
     bool read_native_scanline(int, int, object&);
     bool read_native_tile(int, int, int, object&);
-
+    std::string geterror()const;
 };
 
 
@@ -108,7 +110,7 @@ public:
     bool copy_image (ImageInputWrap *iiw);
     const char *format_name () const;
     bool supports (const std::string&) const;
-    std::string error_message();
+    std::string geterror()const;
 };
 
 
@@ -121,15 +123,15 @@ public:
     static void destroy (ImageCacheWrap*);
     void clear ();     
     bool attribute (const std::string&, TypeDesc, const void*);    
-    bool attribute_int (const std::string&, int );
-    bool attribute_float (const std::string&, float);
+    bool attribute_int    (const std::string&, int );
+    bool attribute_float  (const std::string&, float);
     bool attribute_double (const std::string&, double);
-    bool attribute_char (const std::string&, const char*);
+    bool attribute_char   (const std::string&, const char*);
     bool attribute_string (const std::string&, const std::string&);
     bool getattribute(const std::string&, TypeDesc, void*);
-    bool getattribute_int(const std::string&, int);
-    bool getattribute_float(const std::string&, float);
-    bool getattribute_double(const std::string&, double);
+    bool getattribute_int (const std::string&, int&);
+    bool getattribute_float(const std::string&, float&);
+    bool getattribute_double(const std::string&, double&);
     bool getattribute_char(const std::string&, char**);    
     bool getattribute_string(const std::string&, std::string&);
     std::string resolve_filename (const std::string&);
@@ -188,7 +190,6 @@ public:
     */
 
     bool init_spec (const std::string&);
-    std::string error_message();
     const ImageSpec &spec() const;
     const std::string &name() const;
     const std::string &file_format_name() const;
@@ -242,6 +243,7 @@ public:
     bool localpixels () const;
     //TODO: class Iterator and ConstIterator
 
+    std::string geterror()const;
 };
 
 
