@@ -1,6 +1,26 @@
 Changes:
 
 
+Release 0.8.3 (23 Aug 2010, as compared to 0.8.2)
+-------------------------------------------------
+* OpenEXR support for vector attributes. (r1554)
+* Improve Python bindings: new wrapper for ParamValue and ParamValueList
+  (r1555,1556,1557), remove deprecated error_message and added
+  geterror to main classes (r1596), to/from Python conversion for ustring
+  (r1597), added format_name to ImageInput (r1598).
+* Build Python bindings by default. (r1561)
+* Improve TIFF open error messages. (r1570)
+* Make ImageCache::get_pixels() and TextureSystem::get_texels() safe for
+  crop windows -- fill with zero outside the valid pixel data area. (r1579)
+* In ImageCache::attribute (and by extension, TS::attribute), only
+  invalidate the cache if the attributes actually CHANGED. (r1582)
+* Fix maketx help message to reflect new resize defaults. (r1583)
+* Add a "--checknan" option to maketx. (r1584)
+* Timer improvements: add lap() method, better timer for OS X. (r1604)
+* PNG output: fix clamping/wrapping problem for certain values when
+  alpha > color. (r1605)
+
+
 Release 0.8.2 (June 21 2010, as compared to 0.8.1)
 --------------------------------------------------
 * maketx performance improvements: --noresize is now the default (use
