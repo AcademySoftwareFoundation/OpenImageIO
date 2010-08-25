@@ -30,6 +30,7 @@
 
 
 #include "imageio.h"
+#include "fmath.h"
 #include "boosttest.h"
 
 using namespace OpenImageIO;

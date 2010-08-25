@@ -37,12 +37,13 @@
 #ifndef OPENIMAGEIO_SOCKET_PVT_H
 #define OPENIMAGEIO_SOCKET_PVT_H
 
+#include "imageio.h"
+
 #include <map>
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "imageio.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

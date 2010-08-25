@@ -37,7 +37,6 @@
 
 #include <map>
 
-#include <boost/asio.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 
