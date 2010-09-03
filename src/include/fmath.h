@@ -692,7 +692,7 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 #define isfinite(x) _finite(x)
 
 #define M_E        2.71828182845904523536
-//#define M_LOG2E    1.44269504088896340736
+#define M_LOG2E    1.44269504088896340736
 //#define M_LOG10E   0.434294481903251827651
 //#define M_LN2      0.693147180559945309417
 //#define M_LN10     2.30258509299404568402
@@ -736,6 +736,12 @@ exp2f(float val) {
 #endif
 
 
+// Some systems have isnan, isinf and isfinite in the std namespace.
+#ifndef WIN32
+ using std::isnan;
+ using std::isinf;
+ using std::isfinite;
+#endif
 
 /// Simple conversion of a (presumably non-negative) float into a
 /// rational.  This does not attempt to find the simplest fraction
