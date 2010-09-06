@@ -22,6 +22,15 @@ if ( BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
     set_target_properties (PyOpenImageIO PROPERTIES
                              OUTPUT_NAME OpenImageIO
                              PREFIX "")
-    install (TARGETS PyOpenImageIO DESTINATION ${PYLIBDIR})
+							 
+    if (WIN32)
+        set_target_properties (PyOpenImageIO PROPERTIES
+                               DEBUG_POSTFIX "_d"
+                               SUFFIX ".pyd")
+    endif()
+							 
+    install (TARGETS PyOpenImageIO
+             RUNTIME DESTINATION ${PYLIBDIR} COMPONENT user
+             LIBRARY DESTINATION ${PYLIBDIR} COMPONENT user)
 
 endif ()
