@@ -41,6 +41,14 @@
 
 #include <map>
 
+// The boost::asio library uses functionality only available since Windows XP,
+// thus _WIN32_WINNT must be set to _WIN32_WINNT_WINXP (0x0501) or greater.
+// If _WIN32_WINNT is not defined before including the asio headers, they issue
+// a message warning that _WIN32_WINNT was explicitly set to _WIN32_WINNT_WINXP.
+#if defined(_WIN32) && !defined(_WIN32_WINNT)
+#  define _WIN32_WINNT 0x0501
+#endif
+
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 
