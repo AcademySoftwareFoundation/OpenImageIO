@@ -126,7 +126,7 @@ bool cineon::Reader::ReadBlock(void *data, const DataSize size, Block &block)
 			if (!consistentWidth)
 				break;
 		}
-		if (this->header.PixelsPerLine(i) != width) {
+		if ((int)this->header.PixelsPerLine(i) != width) {
 			consistentWidth = false;
 			if (!consistentDepth)
 				break;

@@ -69,7 +69,7 @@ bool cineon::IdentifyFile(InStream *fp)
 
 bool cineon::IdentifyFile(const void *p)
 {
-	U32 magic = *((U32 *) &p);
+	U32 magic = *((U32 *) p);
 	return cineon::Header::ValidMagicCookie(magic);
 
 }

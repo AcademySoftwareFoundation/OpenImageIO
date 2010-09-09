@@ -69,7 +69,7 @@ bool dpx::IdentifyFile(InStream *fp)
 
 bool dpx::IdentifyFile(const void *p)
 {
-	U32 magic = *((U32 *) &p);
+	U32 magic = *((U32 *) p);
 	return dpx::Header::ValidMagicCookie(magic);
 
 }

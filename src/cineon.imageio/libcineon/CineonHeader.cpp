@@ -34,6 +34,7 @@
 
 
 
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -430,6 +431,10 @@ cineon::DataSize cineon::GenericHeader::ComponentDataSize(const int element) con
 	case 64:
 		ret = kLongLong;
 		break;
+	default:
+		assert(0 && "Unknown bit depth");
+		ret = kLongLong;
+		break;
 	}
 
 	return ret;
@@ -457,6 +462,10 @@ int cineon::GenericHeader::ComponentByteCount(const int element) const
 		ret = sizeof(R32);
 		break;
 	case 64:
+		ret = sizeof(R64);
+		break;
+	default:
+		assert(0 && "Unknown bit depth");
 		ret = sizeof(R64);
 		break;
 	}

@@ -79,7 +79,7 @@ size_t OutStream::Write(void *buf, const size_t size)
 
 bool OutStream::Seek(long offset, Origin origin)
 {
-	int o;
+	int o = 0;
 	switch (origin)
 	{
 	case kCurrent:

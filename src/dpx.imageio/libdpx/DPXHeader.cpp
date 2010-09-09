@@ -34,6 +34,7 @@
  
  
 
+#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
@@ -534,6 +535,10 @@ dpx::DataSize dpx::GenericHeader::ComponentDataSize(const int element) const
 	case 64:
 		ret = kDouble;
 		break;
+	default:
+		assert(0 && "Unknown bit depth");
+		ret = kDouble;
+		break;
 	}
 	
 	return ret;
@@ -563,6 +568,10 @@ int dpx::GenericHeader::ComponentByteCount(const int element) const
 	case 64:
 		ret = sizeof(R64);
 		break;
+	default:
+		assert(0 && "Unknown bit depth");
+		ret = sizeof(R64);
+		break;
 	}
 	
 	return ret;
@@ -589,6 +598,10 @@ int dpx::GenericHeader::DataSizeByteCount(const DataSize ds)
 		ret = sizeof(R32);
 		break;
 	case kDouble:
+		ret = sizeof(R64);
+		break;
+	default:
+		assert(0 && "Unknown data size");
 		ret = sizeof(R64);
 		break;
 	}

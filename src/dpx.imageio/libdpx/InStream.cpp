@@ -79,7 +79,7 @@ void InStream::Rewind()
 
 bool InStream::Seek(long offset, Origin origin)
 {
-	int o;
+	int o = 0;
 	switch (origin)
 	{
 	case kCurrent:

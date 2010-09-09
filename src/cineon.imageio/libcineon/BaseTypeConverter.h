@@ -58,7 +58,7 @@ namespace cineon
 
 	inline void BaseTypeConverter(U8 &src, U64 &dst)
 	{
-		dst = src << 56;
+		dst = static_cast<U64>(src) << 56;
 	}
 
 	inline void BaseTypeConverter(U8 &src, R32 &dst)
@@ -88,7 +88,7 @@ namespace cineon
 
 	inline void BaseTypeConverter(U16 &src, U64 &dst)
 	{
-		dst = src << 48;
+		dst = static_cast<U64>(src) << 48;
 	}
 
 	inline void BaseTypeConverter(U16 &src, R32 &dst)
@@ -118,7 +118,7 @@ namespace cineon
 
 	inline void BaseTypeConverter(U32 &src, U64 &dst)
 	{
-		dst = src << 32;
+		dst = static_cast<U64>(src) << 32;
 	}
 
 	inline void BaseTypeConverter(U32 &src, R32 &dst)
