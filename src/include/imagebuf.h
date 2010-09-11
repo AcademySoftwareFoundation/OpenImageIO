@@ -653,6 +653,23 @@ enum DLLPUBLIC CropOptions
 bool DLLPUBLIC colortransfer (ImageBuf &dst, const ImageBuf &src,
                               ColorTransfer *tfunc);
 
+
+struct PixelStats {
+    std::vector<float> min;
+    std::vector<float> max;
+    std::vector<float> avg;
+    std::vector<float> stddev;
+    std::vector<imagesize_t> nancount;
+    std::vector<imagesize_t> infcount;
+    std::vector<imagesize_t> finitecount;
+};
+
+
+/// Compute statistics on the specified image (over all pixels in the data
+/// window). Upon success, the returned vectors will have size == numchannels.
+/// A FLOAT ImageBuf is required.
+bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
+
 };  // end namespace ImageBufAlgo
 
 

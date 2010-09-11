@@ -48,7 +48,10 @@
 #include "argparse.h"
 #include "strutil.h"
 #include "imageio.h"
+#include "imagebuf.h"
+
 using namespace OpenImageIO;
+using namespace OpenImageIO::ImageBufAlgo;
 
 
 static bool verbose = false;
@@ -60,6 +63,7 @@ static bool filenameprefix = false;
 static boost::regex field_re;
 static bool subimages = false;
 static bool compute_sha1 = false;
+static bool compute_stats = false;
 
 
 
@@ -83,6 +87,155 @@ print_sha1 (ImageInput *input)
 
 
 
+///////////////////////////////////////////////////////////////////////////////
+// Stats
+
+static bool
+read_input (const std::string &filename, ImageBuf &img, int subimage=0)
+{
+    if (img.subimage() >= 0 && img.subimage() == subimage)
+        return true;
+
+    if (img.init_spec (filename) && 
+        img.read (subimage, false, TypeDesc::FLOAT))
+        return true;
+
+    std::cerr << "iinfo ERROR: Could not read " << filename << ":\n\t"
+              << img.geterror() << "\n";
+    return false;
+}
+
+
+
+static void
+print_stats_num (float val, int maxval, bool round)
+{
+    if (maxval == 0) {
+        printf("%f",val);
+    } else {
+        float fval = val * static_cast<float>(maxval);
+        if (round) {
+            int v = static_cast<int>(roundf (fval));
+            printf ("%d", v);
+        } else {
+            printf ("%0.2f", fval);
+        }
+    }
+}
+
+
+// First check BitsPerSample int attribute.  If not set,
+// fall back on the TypeDesc. return 0 for float types
+// or those that exceed the int range (long long, etc)
+static unsigned int
+get_intsample_maxval (const ImageSpec &spec)
+{
+    int bits = spec.get_int_attribute ("BitsPerSample");
+    if (bits>0) {
+        return static_cast<int>(powf (2.0f, bits) - 1.0f);
+    }
+    
+    // These correspond to all the int enums in typedesc.h <= int
+    TypeDesc type = spec.format;
+    if (type.basetype == TypeDesc::UCHAR)        return 0xff;
+    if (type.basetype == TypeDesc::CHAR)         return 0x7f;
+    if (type.basetype == TypeDesc::USHORT)     return 0xffff;
+    if (type.basetype == TypeDesc::SHORT)      return 0x7fff;
+    if (type.basetype == TypeDesc::UINT)   return 0xffffffff;
+    if (type.basetype == TypeDesc::INT)    return 0x7fffffff;
+    
+    return 0;
+}
+
+
+static void
+print_stats_footer (unsigned int maxval)
+{
+    if (maxval==0)
+        printf ("(float)");
+    else
+        printf ("(of %u)", maxval);
+}
+
+
+static void
+print_stats (const std::string &filename,
+             const ImageSpec &originalspec,
+             int subimage=0)
+{
+    ImageBuf input;
+    
+    if (! read_input (filename, input, subimage)) {
+        std::cerr << "Stats: read error: " << input.geterror() << "\n";
+        return;
+    }
+    
+    PixelStats stats;
+    if (! computePixelStats (stats, input)) {
+        printf ("    Stats: (unable to compute)\n");
+        return;
+    }
+    
+    // The original spec is used, otherwise the bit depth will
+    // be reported incorrectly (as FLOAT)
+    unsigned int maxval = get_intsample_maxval (originalspec);
+    
+    printf ("    Stats Min: ");
+    for (unsigned int i=0; i<stats.min.size(); ++i) {
+        print_stats_num (stats.min[i], maxval, true);
+        printf (" ");
+    }
+    print_stats_footer (maxval);
+    printf ("\n");
+    
+    printf ("    Stats Max: ");
+    for (unsigned int i=0; i<stats.max.size(); ++i) {
+        print_stats_num (stats.max[i], maxval, true);
+        printf (" ");
+    }
+    print_stats_footer (maxval);
+    printf ("\n");
+    
+    printf ("    Stats Avg: ");
+    for (unsigned int i=0; i<stats.avg.size(); ++i) {
+        print_stats_num (stats.avg[i], maxval, false);
+        printf (" ");
+    }
+    print_stats_footer (maxval);
+    printf ("\n");
+    
+    printf ("    Stats StdDev: ");
+    for (unsigned int i=0; i<stats.stddev.size(); ++i) {
+        print_stats_num (stats.stddev[i], maxval, false);
+        printf (" ");
+    }
+    print_stats_footer (maxval);
+    printf ("\n");
+    
+    printf ("    Stats NanCount: ");
+    for (unsigned int i=0; i<stats.nancount.size(); ++i) {
+        printf ("%llu ", (unsigned long long)stats.nancount[i]);
+    }
+    printf ("\n");
+    
+    printf ("    Stats InfCount: ");
+    for (unsigned int i=0; i<stats.infcount.size(); ++i) {
+        printf ("%llu ", (unsigned long long)stats.infcount[i]);
+    }
+    printf ("\n");
+    
+    printf ("    Stats FiniteCount: ");
+    for (unsigned int i=0; i<stats.finitecount.size(); ++i) {
+        printf ("%llu ", (unsigned long long)stats.finitecount[i]);
+    }
+    printf ("\n");
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+
+
 // prints basic info (resolution, width, height, depth, channels, data format,
 // and format name) about given subimage.
 static void
@@ -93,7 +246,7 @@ print_info_subimage (int current, int max_subimages, ImageSpec &spec,
         return;
 
     if (subimages && max_subimages != 1 && (metamatch.empty() ||
-          boost::regex_search ("resolution, width, height, depth, channels, SHA-1",
+          boost::regex_search ("resolution, width, height, depth, channels, SHA-1, stats",
                                  field_re))) {
         printf (" subimage %2d: ", current);
         printf ("%4d x %4d", spec.width, spec.height);
@@ -154,12 +307,23 @@ print_info (const std::string &filename, size_t namefieldlength,
                         printf ("%s : ", filename.c_str());
                     print_sha1 (input);
                 }
+                if (compute_stats && (metamatch.empty() ||
+                                    boost::regex_search ("stats", field_re))) {
+                    if (filenameprefix)
+                        printf ("%s : ", filename.c_str());
+                    print_stats(filename, spec, i);
+                }
             }
         } else {
             if (compute_sha1 && !verbose) {
                 if (filenameprefix)
                     printf ("%s : ", filename.c_str());
                 print_sha1 (input);
+            }
+            if (compute_stats && !verbose) {
+                if (filenameprefix)
+                    printf ("%s : ", filename.c_str());
+                print_stats(filename, spec);
             }
         }
         printed = true;
@@ -187,6 +351,14 @@ print_info (const std::string &filename, size_t namefieldlength,
                     printf ("%s : ", filename.c_str());
                 print_sha1 (input);
             }
+            
+            if (compute_stats && (metamatch.empty() ||
+                                boost::regex_search ("stats", field_re))) {
+                if (filenameprefix)
+                    printf ("%s : ", filename.c_str());
+                print_stats (filename, spec, i);
+            }
+            
             if (metamatch.empty() ||
                     boost::regex_search ("channels", field_re) ||
                     boost::regex_search ("channel list", field_re)) {
@@ -315,6 +487,7 @@ main (int argc, const char *argv[])
                 "-s", &sum, "Sum the image sizes",
                 "-a", &subimages, "Print info about all subimages",
                 "--hash", &compute_sha1, "Print SHA-1 hash of pixel values",
+                "--stats", &compute_stats, "Print image pixel statistics (data window)",
                 NULL);
     if (ap.parse(argc, argv) < 0 || filenames.empty()) {
         std::cerr << ap.geterror() << std::endl;
