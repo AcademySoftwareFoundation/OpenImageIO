@@ -262,7 +262,7 @@ ImageBufAlgo::computePixelStats (PixelStats  &stats, const ImageBuf &src)
     // number of pixels / batch.
     
     int PIXELS_PER_BATCH = std::max (1024,
-            static_cast<int>(sqrt(src.spec().image_pixels())));
+            static_cast<int>(sqrt((double)src.spec().image_pixels())));
     
     std::vector<long double> tempsum(nchannels);
     std::vector<long double> tempsum2(nchannels);
@@ -290,11 +290,11 @@ ImageBufAlgo::computePixelStats (PixelStats  &stats, const ImageBuf &src)
         for (c = 0;  c < nchannels;  ++c) {
             value = s[c];
             
-            if (std::isnan (value)) {
+            if (isnan (value)) {
                 ++nancount[c];
                 continue;
             }
-            if (std::isinf (value)) {
+            if (isinf (value)) {
                 ++infcount[c];
                 continue;
             }

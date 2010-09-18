@@ -710,6 +710,11 @@ round (float val) {
     return floor (val + 0.5);
 }
 
+inline float
+roundf (float val) {
+    return static_cast<float>(round (val));
+}
+
 template<class T>
 inline int isinf (T x) {
     return (isfinite(x)||isnan(x)) ? 0 : copysign(1.0f, x);
