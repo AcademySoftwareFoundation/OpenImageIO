@@ -259,6 +259,10 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
     std::cerr << "XMP dump:\n---\n" << xml << "\n---\n";
 #endif
 
+    // FIXME: we should replace this awkward regex matching with actual
+    // XML parsing with pugixml.
+
+    try {
     // Instead of doing a true parse of the XML, we can get away with
     // some simple pattern matching.
     boost::regex xml_item_pattern ("<(\\w+:\\w+)>(.*)</(\\1)>", boost::regex::perl);
@@ -310,6 +314,13 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
                 break;
             }
         }
+    }
+    } /* end of try */
+    catch (const std::exception &e) {
+#ifdef DEBUG
+        std::cerr << "ERROR! '" << e.what() << "'\n";
+#endif
+        return false;
     }
 
     return true;
