@@ -67,7 +67,7 @@ namespace OpenImageIO {
 // Versioning of the OpenImageIO software
 #define OPENIMAGEIO_VERSION_MAJOR  0
 #define OPENIMAGEIO_VERSION_MINOR  8
-#define OPENIMAGEIO_VERSION_PATCH  4
+#define OPENIMAGEIO_VERSION_PATCH  5
 #define OPENIMAGEIO_VERSION (10000 * OPENIMAGEIO_VERSION_MAJOR + \
                                100 * OPENIMAGEIO_VERSION_MINOR + \
                                      OPENIMAGEIO_VERSION_PATCH)

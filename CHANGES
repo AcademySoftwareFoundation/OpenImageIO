@@ -1,6 +1,17 @@
 Changes:
 
 
+Release 0.8.5 (17 Sep 2010, as compared to 0.8.4)
+-------------------------------------------------
+* Fixed crash that could result from certain XML strings embedded in TIFF
+  headers (uncaught exception).
+
+
+Release 0.8.4 (3 Sep 2010, as compared to 0.8.3)
+-------------------------------------------------
+* Fixed compilation problems on Windows from recent merges.
+
+
 Release 0.8.3 (23 Aug 2010, as compared to 0.8.2)
 -------------------------------------------------
 * OpenEXR support for vector attributes. (r1554)
