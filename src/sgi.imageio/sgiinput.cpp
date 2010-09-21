@@ -28,6 +28,7 @@
   (This is the Modified BSD License)
 */
 #include "sgi_pvt.h"
+#include "dassert.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -98,7 +99,8 @@ SgiInput::open (const std::string &name, ImageSpec &spec)
         return false;
     }
 
-    m_spec = ImageSpec (m_sgi_header.xsize, height, nchannels, TypeDesc::UINT8);
+    m_spec = ImageSpec (m_sgi_header.xsize, height, nchannels,
+                        m_sgi_header.bpc == 1 ? TypeDesc::UINT8 : TypeDesc::UINT16);
     if (strlen (m_sgi_header.imagename))
         m_spec.attribute("ImageDescription", m_sgi_header.imagename);
 
@@ -122,7 +124,8 @@ SgiInput::read_native_scanline (int y, int z, void *data)
 
     y = m_spec.height - y - 1;
 
-    std::vector<unsigned char> scanline(m_spec.width * m_spec.nchannels);
+    int bpc = m_sgi_header.bpc;
+    std::vector<unsigned char> scanline (m_spec.scanline_bytes());
     long scanline_off_chan1 = 0;
     long scanline_off_chan2 = 0;
     long scanline_off_chan3 = 0;
@@ -135,27 +138,27 @@ SgiInput::read_native_scanline (int y, int z, void *data)
         // reading and uncompressing first channel (red in RGBA images)
         scanline_off_chan1 = start_tab[y];
         int scanline_len_chan1 = length_tab[y];
-        first_channel.resize (m_spec.width);
+        first_channel.resize (m_spec.width * bpc);
         uncompress_rle_channel (scanline_off_chan1, scanline_len_chan1,
                                 &first_channel[0]);
         if (m_spec.nchannels >= 3) {
             // reading and uncompressing second channel (green in RGBA images)
             scanline_off_chan2 = start_tab[y + m_spec.height];
             int scanline_len_chan2 = length_tab[y + m_spec.height];
-            second_channel.resize (m_spec.width);
+            second_channel.resize (m_spec.width * bpc);
             uncompress_rle_channel (scanline_off_chan2, scanline_len_chan2,
                                     &second_channel[0]);
             // reading and uncompressing third channel (blue in RGBA images)
             scanline_off_chan3 = start_tab[y + m_spec.height * 2];
             int scanline_len_chan3 = length_tab[y + m_spec.height * 2];
-            third_channel.resize (m_spec.width);
+            third_channel.resize (m_spec.width * bpc);
             uncompress_rle_channel (scanline_off_chan3, scanline_len_chan3,
                                     &third_channel[0]);
             if (m_spec.nchannels == 4) {
                 // reading and uncompressing fourth channel (alpha in RGBA images)
                 scanline_off_chan4 = start_tab[y + m_spec.height * 3];
                 int scanline_len_chan4 = length_tab[y + m_spec.height * 3];
-                fourth_channel.resize (m_spec.width);
+                fourth_channel.resize (m_spec.width * bpc);
                 uncompress_rle_channel (scanline_off_chan4, scanline_len_chan4,
                                         &fourth_channel[0]);
             }
@@ -163,35 +166,35 @@ SgiInput::read_native_scanline (int y, int z, void *data)
     }
     else {
         // first channel (red in RGBA)
-        scanline_off_chan1 = sgi_pvt::SGI_HEADER_LEN + y * m_spec.width;
+        scanline_off_chan1 = sgi_pvt::SGI_HEADER_LEN + y * m_spec.width * bpc;
         fseek (m_fd, scanline_off_chan1, SEEK_SET);
-        first_channel.resize (m_spec.width);
-        if (! fread (&first_channel[0], 1, m_spec.width))
+        first_channel.resize (m_spec.width * bpc);
+        if (! fread (&first_channel[0], 1, m_spec.width * bpc))
             return false;
         if (m_spec.nchannels >= 3) {
             // second channel (breen in RGBA)
             scanline_off_chan2 = sgi_pvt::SGI_HEADER_LEN +  (m_spec.height + y)
-                                 * m_spec.width;
+                                 * m_spec.width * bpc;
             fseek (m_fd, scanline_off_chan2, SEEK_SET);
-            second_channel.resize (m_spec.width);
-            if (! fread (&second_channel[0], 1, m_spec.width))
+            second_channel.resize (m_spec.width * bpc);
+            if (! fread (&second_channel[0], 1, m_spec.width * bpc))
                 return false;
             
             // third channel (blue in RGBA)
             scanline_off_chan3 = sgi_pvt::SGI_HEADER_LEN + (2 * m_spec.height + y)
-                                 * m_spec.width;
+                                 * m_spec.width * bpc;
             fseek (m_fd, scanline_off_chan3, SEEK_SET);
-            third_channel.resize (m_spec.width);
-            if (! fread (&third_channel[0], 1, m_spec.width))
+            third_channel.resize (m_spec.width * bpc);
+            if (! fread (&third_channel[0], 1, m_spec.width * bpc))
                 return false;
 
             if (m_spec.nchannels == 4) {
                 // fourth channel (alpha in RGBA)
                 scanline_off_chan4 = sgi_pvt::SGI_HEADER_LEN + (3 * m_spec.height + y)
-                                     * m_spec.width;
+                                     * m_spec.width * bpc;
                 fseek (m_fd, scanline_off_chan4, SEEK_SET);
-                fourth_channel.resize (m_spec.width);
-                if (! fread (&fourth_channel[0], 1, m_spec.width))
+                fourth_channel.resize (m_spec.width * bpc);
+                if (! fread (&fourth_channel[0], 1, m_spec.width * bpc))
                     return false;
             }
         }
@@ -199,18 +202,29 @@ SgiInput::read_native_scanline (int y, int z, void *data)
 
     if (m_spec.nchannels == 1) {
         memcpy (data, &first_channel[0], first_channel.size());
+        if (bpc == 2 && littleendian())
+            swap_endian ((unsigned short *)data, m_spec.width);
         return true;
     }
 
-    for (int i = 0, j = 0; i < m_spec.width; i++, j += m_spec.nchannels) {
-        scanline[j] = first_channel[i];
-        scanline[j+1] = second_channel[i];
-        scanline[j+2] = third_channel[i];
+    for (int i = 0, j = 0; i < m_spec.width; i++, j += m_spec.nchannels*bpc) {
+        scanline[j] = first_channel[i*bpc];
+        scanline[j+1*bpc] = second_channel[i*bpc];
+        scanline[j+2*bpc] = third_channel[i*bpc];
         if (m_spec.nchannels == 4)
-            scanline[j+3] = fourth_channel[i];
+            scanline[j+3*bpc] = fourth_channel[i*bpc];
+        if (bpc == 2) {
+            scanline[j+1] = first_channel[i*bpc+1];
+            scanline[j+1*bpc+1] = second_channel[i*bpc+1];
+            scanline[j+2*bpc+1] = third_channel[i*bpc+1];
+            if (m_spec.nchannels == 4)
+                scanline[j+3*bpc+1] = fourth_channel[i*bpc+1];
+        }
     }
 
     memcpy (data, &scanline[0], scanline.size());
+    if (bpc == 2 && littleendian())
+        swap_endian ((unsigned short *)data, m_spec.width*m_spec.nchannels);
     return true;
 }
 
@@ -220,26 +234,78 @@ bool
 SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
                                  unsigned char *out)
 {
-    std::vector<unsigned char> rle_scanline(scanline_len);
+    int bpc = m_sgi_header.bpc;
+    std::vector<unsigned char> rle_scanline (scanline_len);
     fseek (m_fd, scanline_off, SEEK_SET);
     if (! fread (&rle_scanline[0], 1, scanline_len))
         return false;
-
+    int limit = m_spec.width;
     int i = 0;
-    while (i < scanline_len) {
-        unsigned char byte = rle_scanline[i];
-        int count = byte & 0x7F;
-        i++;
-        if (byte & 0x80) {
-            while (count--)
-                *(out++) = rle_scanline[i++];
+    if (bpc == 1) {
+        // 1 bit per channel
+        while (i < scanline_len) {
+            // Read a byte, it is the count.
+            unsigned char value = rle_scanline[i++];
+            int count = value & 0x7F;
+            // If the count is zero, we're done
+            if (! count)
+                break;
+            // If the high bit is set, we just copy the next 'count' values
+            if (value & 0x80) {
+                while (count--) {
+                    DASSERT (i < scanline_len && limit > 0);
+                    *(out++) = rle_scanline[i++];
+                    --limit;
+                }
+            }
+            // If the high bit is zero, we copy the NEXT value, count times
+            else {
+                value = rle_scanline[i++];
+                while (count--) {
+                    DASSERT (limit > 0);
+                    *(out++) = value;
+                    --limit;
+                }
+            }
         }
-        else {
-            while (count--)
-                *(out++) = rle_scanline[i];
-            i++;
+    } else {
+        // 2 bits per channel
+        ASSERT (bpc == 2);
+        while (i < scanline_len) {
+            // Read a byte, it is the count.
+            unsigned short value = (rle_scanline[i] << 8) | rle_scanline[i+1];
+            i += 2;
+            int count = value & 0x7F;
+            // If the count is zero, we're done
+            if (! count)
+                break;
+            // If the high bit is set, we just copy the next 'count' values
+            if (value & 0x80) {
+                while (count--) {
+                    DASSERT (i+1 < scanline_len && limit > 0);
+                    *(out++) = rle_scanline[i++];
+                    *(out++) = rle_scanline[i++];
+                    --limit;
+                }
+            }
+            // If the high bit is zero, we copy the NEXT value, count times
+            else {
+                value = (rle_scanline[i] << 8) | rle_scanline[i+1];
+                i += 2;
+                while (count--) {
+                    DASSERT (limit > 0);
+                    *(unsigned short *)out = value;
+                    out += 2;
+                    --limit;
+                }
+            }
         }
     }
+    if (i != scanline_len || limit != 0) {
+        error ("Corrupt RLE data");
+        return false;
+    }
+
     return true;
 }
 
