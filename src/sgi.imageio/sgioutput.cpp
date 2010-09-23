@@ -60,7 +60,11 @@ SgiOutput::open (const std::string &name, const ImageSpec &spec, bool append)
         return false;
     }
 
-    m_spec.set_format (TypeDesc::UINT8);
+    // SGI image files only supports UINT8 and UINT16.  If something
+    // else was requested, revert to the one most likely to be readable
+    // by any SGI reader: UINT8
+    if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
+        m_spec.set_format (TypeDesc::UINT8);
 
     create_and_write_header();
 
@@ -75,48 +79,35 @@ SgiOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
 {
     y = m_spec.height - y - 1;
     data = to_native_scanline (format, data, xstride, m_scratch);
-    std::vector<unsigned char> scanline(m_spec.width * m_spec.nchannels);
-    memcpy (&scanline[0], data, m_spec.width * m_spec.nchannels);
-
-    std::vector<unsigned char> first_channel (m_spec.width);
-    std::vector<unsigned char> second_channel (m_spec.width);
-    std::vector<unsigned char> third_channel (m_spec.width);
-    std::vector<unsigned char> fourth_channel (m_spec.width);
-    for (int i = 0, j = 0; i < m_spec.width * m_spec.nchannels; i += m_spec.nchannels, j++) {
-        first_channel[j] = scanline[i];
-        if (m_spec.nchannels >= 3) {
-            second_channel[j] = scanline[i+1];
-            third_channel[j] = scanline[i+2];
-            if (m_spec.nchannels == 4)
-                fourth_channel[j] = scanline[i+3];
-        }
-    }
 
     // In SGI format all channels are saved to file separately: firsty all
     // channel 1 scanlines are saved, then all channel2 scanlines are saved
     // and so on.
-    long scanline_off_chan1 = sgi_pvt::SGI_HEADER_LEN + y * m_spec.width;
-    fseek (m_fd, scanline_off_chan1, SEEK_SET);
-    fwrite (&first_channel[0], 1, first_channel.size(), m_fd);
+    //
+    // Note that since SGI images are pretty archaic and most probably
+    // people won't be too picky about full flexibility writing them, we
+    // content ourselves with only writing uncompressed data, and don't
+    // attempt to write with RLE encoding.
 
-    if (m_spec.nchannels >= 3) {
-        long scanline_off_chan2 = sgi_pvt::SGI_HEADER_LEN + (m_spec.height + y)
-                                  * m_spec.width;
-        fseek (m_fd, scanline_off_chan2, SEEK_SET);
-        fwrite (&second_channel[0], 1, second_channel.size(), m_fd);
+    int bpc = m_spec.format.size();  // bytes per channel
+    std::vector<unsigned char> channeldata (m_spec.width * bpc);
 
-        long scanline_off_chan3 = sgi_pvt::SGI_HEADER_LEN + (2 * m_spec.height + y)
-                                  * m_spec.width;
-        fseek (m_fd, scanline_off_chan3, SEEK_SET);
-        fwrite (&third_channel[0], 1, third_channel.size(), m_fd);
-
-        if (m_spec.nchannels == 4) {
-            long scanline_off_chan4 = sgi_pvt::SGI_HEADER_LEN + (3 * m_spec.height + y)
-                                      * m_spec.width;
-            fseek (m_fd, scanline_off_chan4, SEEK_SET);
-            fwrite (&fourth_channel[0], 1, fourth_channel.size(), m_fd);
+    for (int c = 0;  c < m_spec.nchannels;  ++c) {
+        unsigned char *cdata = (unsigned char *)data + c*bpc;
+        for (int x = 0;  x < m_spec.width;  ++x) {
+            channeldata[x*bpc] = cdata[0];
+            if (bpc == 2)
+                channeldata[x*bpc+1] = cdata[1];
+            cdata += m_spec.nchannels * bpc;  // advance to next pixel
         }
+        if (bpc == 2 && littleendian())
+            swap_endian ((unsigned short *)&channeldata[0], m_spec.width);
+        long scanline_offset = sgi_pvt::SGI_HEADER_LEN + (c * m_spec.height + y)
+                                  * m_spec.width * bpc;
+        fseek (m_fd, scanline_offset, SEEK_SET);
+        fwrite (&channeldata[0], 1, m_spec.width*bpc, m_fd);
     }
+
     return true;    
 }
 
@@ -139,7 +130,7 @@ SgiOutput::create_and_write_header()
     sgi_pvt::SgiHeader sgi_header;
     sgi_header.magic = sgi_pvt::SGI_MAGIC;
     sgi_header.storage = sgi_pvt::VERBATIM;
-    sgi_header.bpc = 1;
+    sgi_header.bpc = m_spec.format.size();
 
     if (m_spec.height == 1 && m_spec.nchannels == 1)
         sgi_header.dimension = sgi_pvt::ONE_SCANLINE_ONE_CHANNEL;
@@ -152,7 +143,7 @@ SgiOutput::create_and_write_header()
     sgi_header.ysize = m_spec.height;
     sgi_header.zsize = m_spec.nchannels;
     sgi_header.pixmin = 0;
-    sgi_header.pixmax = 255;
+    sgi_header.pixmax = (sgi_header.bpc == 1) ? 255 : 65535;
     sgi_header.dummy = 0;
 
     ImageIOParameter *ip = m_spec.find_attribute ("ImageDescription",

@@ -125,106 +125,47 @@ SgiInput::read_native_scanline (int y, int z, void *data)
     y = m_spec.height - y - 1;
 
     int bpc = m_sgi_header.bpc;
-    std::vector<unsigned char> scanline (m_spec.scanline_bytes());
-    long scanline_off_chan1 = 0;
-    long scanline_off_chan2 = 0;
-    long scanline_off_chan3 = 0;
-    long scanline_off_chan4 = 0;
-    std::vector<unsigned char> first_channel;
-    std::vector<unsigned char> second_channel;
-    std::vector<unsigned char> third_channel;
-    std::vector<unsigned char> fourth_channel;
+    std::vector<std::vector<unsigned char> > channeldata (m_spec.nchannels);
     if (m_sgi_header.storage == sgi_pvt::RLE) {
         // reading and uncompressing first channel (red in RGBA images)
-        scanline_off_chan1 = start_tab[y];
-        int scanline_len_chan1 = length_tab[y];
-        first_channel.resize (m_spec.width * bpc);
-        uncompress_rle_channel (scanline_off_chan1, scanline_len_chan1,
-                                &first_channel[0]);
-        if (m_spec.nchannels >= 3) {
-            // reading and uncompressing second channel (green in RGBA images)
-            scanline_off_chan2 = start_tab[y + m_spec.height];
-            int scanline_len_chan2 = length_tab[y + m_spec.height];
-            second_channel.resize (m_spec.width * bpc);
-            uncompress_rle_channel (scanline_off_chan2, scanline_len_chan2,
-                                    &second_channel[0]);
-            // reading and uncompressing third channel (blue in RGBA images)
-            scanline_off_chan3 = start_tab[y + m_spec.height * 2];
-            int scanline_len_chan3 = length_tab[y + m_spec.height * 2];
-            third_channel.resize (m_spec.width * bpc);
-            uncompress_rle_channel (scanline_off_chan3, scanline_len_chan3,
-                                    &third_channel[0]);
-            if (m_spec.nchannels == 4) {
-                // reading and uncompressing fourth channel (alpha in RGBA images)
-                scanline_off_chan4 = start_tab[y + m_spec.height * 3];
-                int scanline_len_chan4 = length_tab[y + m_spec.height * 3];
-                fourth_channel.resize (m_spec.width * bpc);
-                uncompress_rle_channel (scanline_off_chan4, scanline_len_chan4,
-                                        &fourth_channel[0]);
-            }
+        for (int c = 0;  c < m_spec.nchannels;  ++c) {
+            int off = y + c*m_spec.height;  // offset for this scanline/channel
+            int scanline_offset = start_tab[off];
+            int scanline_length = length_tab[off];
+            channeldata[c].resize (m_spec.width * bpc);
+            uncompress_rle_channel (scanline_offset, scanline_length,
+                                    &(channeldata[c][0]));
         }
-    }
-    else {
-        // first channel (red in RGBA)
-        scanline_off_chan1 = sgi_pvt::SGI_HEADER_LEN + y * m_spec.width * bpc;
-        fseek (m_fd, scanline_off_chan1, SEEK_SET);
-        first_channel.resize (m_spec.width * bpc);
-        if (! fread (&first_channel[0], 1, m_spec.width * bpc))
-            return false;
-        if (m_spec.nchannels >= 3) {
-            // second channel (breen in RGBA)
-            scanline_off_chan2 = sgi_pvt::SGI_HEADER_LEN +  (m_spec.height + y)
-                                 * m_spec.width * bpc;
-            fseek (m_fd, scanline_off_chan2, SEEK_SET);
-            second_channel.resize (m_spec.width * bpc);
-            if (! fread (&second_channel[0], 1, m_spec.width * bpc))
+    } else {
+        // non-RLE case -- just read directly into our channel data
+        for (int c = 0;  c < m_spec.nchannels;  ++c) {
+            int off = y + c*m_spec.height;  // offset for this scanline/channel
+            int scanline_offset = sgi_pvt::SGI_HEADER_LEN + off * m_spec.width * bpc;
+            fseek (m_fd, scanline_offset, SEEK_SET);
+            channeldata[c].resize (m_spec.width * bpc);
+            if (! fread (&(channeldata[c][0]), 1, m_spec.width * bpc))
                 return false;
-            
-            // third channel (blue in RGBA)
-            scanline_off_chan3 = sgi_pvt::SGI_HEADER_LEN + (2 * m_spec.height + y)
-                                 * m_spec.width * bpc;
-            fseek (m_fd, scanline_off_chan3, SEEK_SET);
-            third_channel.resize (m_spec.width * bpc);
-            if (! fread (&third_channel[0], 1, m_spec.width * bpc))
-                return false;
-
-            if (m_spec.nchannels == 4) {
-                // fourth channel (alpha in RGBA)
-                scanline_off_chan4 = sgi_pvt::SGI_HEADER_LEN + (3 * m_spec.height + y)
-                                     * m_spec.width * bpc;
-                fseek (m_fd, scanline_off_chan4, SEEK_SET);
-                fourth_channel.resize (m_spec.width * bpc);
-                if (! fread (&fourth_channel[0], 1, m_spec.width * bpc))
-                    return false;
-            }
         }
     }
 
     if (m_spec.nchannels == 1) {
-        memcpy (data, &first_channel[0], first_channel.size());
-        if (bpc == 2 && littleendian())
-            swap_endian ((unsigned short *)data, m_spec.width);
-        return true;
-    }
-
-    for (int i = 0, j = 0; i < m_spec.width; i++, j += m_spec.nchannels*bpc) {
-        scanline[j] = first_channel[i*bpc];
-        scanline[j+1*bpc] = second_channel[i*bpc];
-        scanline[j+2*bpc] = third_channel[i*bpc];
-        if (m_spec.nchannels == 4)
-            scanline[j+3*bpc] = fourth_channel[i*bpc];
-        if (bpc == 2) {
-            scanline[j+1] = first_channel[i*bpc+1];
-            scanline[j+1*bpc+1] = second_channel[i*bpc+1];
-            scanline[j+2*bpc+1] = third_channel[i*bpc+1];
-            if (m_spec.nchannels == 4)
-                scanline[j+3*bpc+1] = fourth_channel[i*bpc+1];
+        // If just one channel, no interleaving is necessary, just memcpy
+        memcpy (data, &(channeldata[0][0]), channeldata[0].size());
+    } else {
+        unsigned char *cdata = (unsigned char *)data;
+        for (int x = 0; x < m_spec.width; ++x) {
+            for (int c = 0;  c < m_spec.nchannels;  ++c) {
+                *cdata++ = channeldata[c][x*bpc];
+                if (bpc == 2)
+                    *cdata++ = channeldata[c][x*bpc+1];
+            }
         }
     }
 
-    memcpy (data, &scanline[0], scanline.size());
+    // Swap endianness if needed
     if (bpc == 2 && littleendian())
         swap_endian ((unsigned short *)data, m_spec.width*m_spec.nchannels);
+
     return true;
 }
 
