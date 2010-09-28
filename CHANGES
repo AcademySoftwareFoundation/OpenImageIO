@@ -1,6 +1,11 @@
 Changes:
 
 
+Release 0.8.6 (28 Sep 2010, as compared to 0.8.5)
+-------------------------------------------------
+* Fixed ImageCache deadlock when using autotile.
+
+
 Release 0.8.5 (21 Sep 2010, as compared to 0.8.4)
 -------------------------------------------------
 * Fixed crash that could result from certain XML strings embedded in TIFF
