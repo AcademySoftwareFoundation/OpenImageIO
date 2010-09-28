@@ -244,6 +244,22 @@ private:
                         int subimage, int x, int y, int z,
                         TypeDesc format, void *data);
 
+    void lock_input_mutex () {
+#if (BOOST_VERSION >= 103500)
+        m_input_mutex.lock ();
+#else
+        boost::detail::thread::lock_ops<recursive_mutex>::lock (m_input_mutex);
+#endif
+    }
+
+    void unlock_input_mutex () {
+#if (BOOST_VERSION >= 103500)
+        m_input_mutex.unlock ();
+#else
+        boost::detail::thread::lock_ops<recursive_mutex>::unlock (m_input_mutex);
+#endif
+    }
+
     friend class ImageCacheImpl;
 };
 
@@ -736,7 +752,11 @@ public:
     /// depending on it (signalled by m_imagecache == NULL), delete it.
     static void cleanup_perthread_info (ImageCachePerThreadInfo *p);
 
+    /// Debugging aid -- which thread holds the tile mutex?
     ImageCachePerThreadInfo* &tilemutex_holder() { return m_tilemutex_holder; }
+
+    /// Debugging aid -- which thread holds the file mutex?
+    ImageCachePerThreadInfo* &filemutex_holder() { return m_filemutex_holder; }
 
 private:
     void init ();
@@ -748,6 +768,23 @@ private:
     /// Enforce the max memory for tile data.  This should only be invoked
     /// when the caller holds m_tilemutex.
     void check_max_mem (ImageCachePerThreadInfo *thread_info);
+
+    /// Debugging aid -- set which thread holds the tile mutex
+    void tilemutex_holder (ImageCachePerThreadInfo *p) {
+#ifdef DEBUG
+        if (p)                                     // if we claim to own it,
+            DASSERT (m_tilemutex_holder == NULL);  // nobody else better!
+        m_tilemutex_holder = p;
+#endif
+    }
+    /// Debugging aid -- set which thread holds the file mutex
+    void filemutex_holder (ImageCachePerThreadInfo *p) {
+#ifdef DEBUG
+        if (p)                                     // if we claim to own it,
+            DASSERT (m_filemutex_holder == NULL);  // nobody else better!
+        m_filemutex_holder = p;
+#endif
+    }
 
     /// Internal statistics printing routine
     ///
@@ -796,8 +833,9 @@ private:
     mutable ic_mutex m_filemutex; ///< Thread safety for file cache
     mutable ic_mutex m_tilemutex; ///< Thread safety for tile cache
 
-    // For debugging -- keep track of who holds the tile mutex
+    // For debugging -- keep track of who holds the tile and file mutex
     ImageCachePerThreadInfo *m_tilemutex_holder;
+    ImageCachePerThreadInfo *m_filemutex_holder;
 
 private:
     // Statistics that are really hard to track per-thread

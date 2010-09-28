@@ -557,17 +557,11 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
         // thread has one of the lower-level tiles and itself blocks on
         // the mutex (it's waiting for our mutex, we're waiting on its
         // tile to get filled with pixels).
-#if (BOOST_VERSION >= 103500)
-        m_input_mutex.unlock ();
-#else
-        boost::detail::thread::lock_ops<recursive_mutex>::unlock (m_input_mutex);
-#endif
+        unlock_input_mutex ();
         bool ok = read_unmipped (thread_info, subimage, x, y, z, format, data);
-#if (BOOST_VERSION >= 103500)
-        m_input_mutex.lock ();
-#else
-        boost::detail::thread::lock_ops<recursive_mutex>::lock (m_input_mutex);
-#endif
+        // The lock_guard at the very top will try to unlock upon
+        // destruction, to to make things right, we need to re-lock.
+        lock_input_mutex ();
         return ok;
     }
 
@@ -748,6 +742,12 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
         ++m_tilesread;
+        // At this point, we aren't reading from the file any longer,
+        // and to avoid deadlock, we MUST release the input lock prior
+        // to any attempt to add_tile_to_cache, lest another thread add
+        // the same tile to the cache before us but need the input mutex
+        // to actually read the texels before marking it as pixels_ready.
+        unlock_input_mutex ();
 
         // For all tiles in the tile-row, enter them into the cache if not
         // already there.  Special case for the tile we're actually being
@@ -777,6 +777,10 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
                 }
             }
         }
+        // The lock_guard inside the calling function, read_tile, passed
+        // us the input_mutex locked, and expects to get it back the
+        // same way, so we need to re-lock.
+        lock_input_mutex ();
     } else {
         // No auto-tile -- the tile is the whole image
         ok = m_input->read_image (format, data, xstride, ystride, zstride);
@@ -853,7 +857,10 @@ ImageCacheImpl::find_file (ustring filename,
 #if IMAGECACHE_TIME_STATS
         Timer timer;
 #endif
+        DASSERT (m_filemutex_holder != thread_info);
         ic_read_lock readguard (m_filemutex);
+        DASSERT (m_filemutex_holder == NULL);
+        filemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
         double donelocking = timer();
         stats.file_locking_time += donelocking;
@@ -878,8 +885,10 @@ ImageCacheImpl::find_file (ustring filename,
                 recursive_lock_guard guard (tf->m_input_mutex);
                 tf->open (thread_info);
             }
+            filemutex_holder (NULL);
             return tf;
         }
+        filemutex_holder (NULL);
     }
 
     // We don't already have this file in the table.  Try to
@@ -897,7 +906,9 @@ ImageCacheImpl::find_file (ustring filename,
     stats.fileopen_time += createtime;
     tf->iotime() += createtime;
 
+    DASSERT (m_filemutex_holder != thread_info); // we better not already hold
     ic_write_lock writeguard (m_filemutex);
+    filemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
     double donelocking = timer();
     stats.file_locking_time += donelocking-createtime;
@@ -912,6 +923,7 @@ ImageCacheImpl::find_file (ustring filename,
         if (tf->duplicate())
             tf = tf->duplicate();
         tf->use();
+        filemutex_holder (NULL);
         return tf;
     }
 
@@ -956,6 +968,7 @@ ImageCacheImpl::find_file (ustring filename,
     stats.find_file_time += timer()-donelocking;
 #endif
 
+    filemutex_holder (NULL);
     return tf;
 }
 
@@ -1120,6 +1133,7 @@ ImageCacheImpl::init ()
     m_stat_open_files_current = 0;
     m_stat_open_files_peak = 0;
     m_tilemutex_holder = NULL;
+    m_filemutex_holder = NULL;
 }
 
 
@@ -1129,6 +1143,7 @@ ImageCacheImpl::~ImageCacheImpl ()
     printstats ();
     erase_perthread_info ();
     DASSERT (m_tilemutex_holder == NULL);
+    DASSERT (m_filemutex_holder == NULL);
 }
 
 
@@ -1546,10 +1561,7 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
 #endif
         DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
         ic_read_lock readguard (m_tilemutex);
-#ifdef DEBUG
-        DASSERT (m_tilemutex_holder == NULL);
-        m_tilemutex_holder = thread_info;
-#endif
+        tilemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
         stats.tile_locking_time += timer();
 #endif
@@ -1564,10 +1576,8 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
             // wait_pixels_ready, or we could end up deadlocked if the
             // other thread reading the pixels needs to lock the cache
             // because it's doing automip.
-#ifdef DEBUG
             DASSERT (m_tilemutex_holder == thread_info); // better still be us
-            m_tilemutex_holder = NULL;
-#endif
+            tilemutex_holder (NULL);
             m_tilemutex.unlock ();
             tile->wait_pixels_ready ();
             tile->use ();
@@ -1582,10 +1592,8 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
             m_tilemutex.lock ();
             return true;
         }
-#ifdef DEBUG
-        DASSERT (m_tilemutex_holder == thread_info); // better still be us
-        m_tilemutex_holder = NULL;
-#endif
+        DASSERT (tilemutex_holder() == thread_info); // better still be us
+        tilemutex_holder (NULL);
     }
 
     DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
@@ -1626,10 +1634,7 @@ ImageCacheImpl::add_tile_to_cache (ImageCacheTileRef &tile,
 #endif
         DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
         ic_write_lock writeguard (m_tilemutex);
-#ifdef DEBUG
-        DASSERT (m_tilemutex_holder == NULL);
-        m_tilemutex_holder = thread_info;
-#endif
+        tilemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
         thread_info->m_stats.tile_locking_time += timer();
 #endif
@@ -1645,10 +1650,8 @@ ImageCacheImpl::add_tile_to_cache (ImageCacheTileRef &tile,
             check_max_mem (thread_info);
             safe_insert (m_tilecache, tile->id(), tile, m_tile_sweep);
         }
-#ifdef DEBUG
-        DASSERT (m_tilemutex_holder == thread_info); // better still be us
-        m_tilemutex_holder = NULL;
-#endif
+        DASSERT (tilemutex_holder() == thread_info); // better still be us
+        tilemutex_holder (NULL);
     }
     DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
 
@@ -1992,17 +1995,19 @@ ImageCacheImpl::invalidate (ustring filename)
     {
         ic_read_lock fileguard (m_filemutex);
         FilenameMap::iterator fileit = m_files.find (filename);
-        if (fileit != m_files.end())
+        if (fileit != m_files.end()) {
             file = fileit->second.get();
-        else
+            filemutex_holder (NULL);
+        } else {
+            filemutex_holder (NULL);
             return;  // no such file
+        }
     }
 
     {
         ic_write_lock tileguard (m_tilemutex);
 #ifdef DEBUG
-        DASSERT (m_tilemutex_holder == NULL);
-        m_tilemutex_holder = get_perthread_info ();
+        tilemutex_holder (get_perthread_info ());
 #endif
         for (TileCache::iterator tci = m_tilecache.begin();  tci != m_tilecache.end();  ) {
             TileCache::iterator todelete (tci);
@@ -2016,9 +2021,7 @@ ImageCacheImpl::invalidate (ustring filename)
                     m_tile_sweep = tci;
             }
         }
-#ifdef DEBUG
-        m_tilemutex_holder = NULL;
-#endif
+        tilemutex_holder (NULL);
     }
 
     {
