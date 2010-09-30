@@ -648,6 +648,12 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
     ImageCacheTileRef oldtile = thread_info->tile;
     ImageCacheTileRef oldlasttile = thread_info->lasttile;
 
+    // Auto-mipping will totally thrash the cache if the user unwisely
+    // sets it to be too small compared to the image file that needs to
+    // automipped.  So we simply override bad decisions by adjusting the
+    // cache size to be a minimum of twice as big as any image we automip.
+    imagecache().set_min_cache_size (2 * (long long)this->spec(0).image_bytes());
+
     // Texel by texel, generate the values by interpolating filtered
     // lookups form the next finer subimage.
     const ImageSpec &upspec (this->spec(subimage-1));  // next higher subimage
@@ -995,6 +1001,20 @@ ImageCacheImpl::check_max_files ()
         DASSERT (m_file_sweep->second);
         m_file_sweep->second->release ();  // May reduce open files
         ++m_file_sweep;
+    }
+}
+
+
+
+void
+ImageCacheImpl::set_min_cache_size (long long newsize)
+{
+    long long oldsize = m_max_memory_bytes;
+    while (newsize > oldsize) {
+	if (atomic_compare_and_exchange ((long long *)&m_max_memory_bytes,
+                                         oldsize, newsize))
+            return;
+        oldsize = m_max_memory_bytes;
     }
 }
 
