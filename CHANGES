@@ -1,6 +1,15 @@
 Changes:
 
 
+Release 0.8.7 (30 Sep 2010, as compared to 0.8.6)
+-------------------------------------------------
+
+* Fixed a longstanding performance issue with ImageCache automip, wherein
+  an unmipped file that is larger than the cache size leads to pathological
+  thrashing.  The solution is to automatically raise the cache size to be
+  large enough to automip the file without danger of thrashing.
+
+
 Release 0.8.6 (28 Sep 2010, as compared to 0.8.5)
 -------------------------------------------------
 * Fixed ImageCache deadlock when using autotile.
