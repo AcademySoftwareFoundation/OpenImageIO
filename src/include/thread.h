@@ -238,13 +238,6 @@ private:
 
 
 
-#if (! USE_TBB)
-// If we're not using TBB, we need to define our own atomic<>.  To do
-// that, we first need atomic_exchange_and_add and
-// atomic_compare_and_exchange as primitive operations.  We define
-// those, in turn in one of serveral platform-dependent ways.
-
-
 /// Atomic version of:  r = *at, *at += x, return r
 /// For each of several architectures.
 inline int
@@ -258,6 +251,11 @@ atomic_exchange_and_add (volatile int *at, int x)
 #elif defined(_WIN32)
     // Windows
     return InterlockedExchangeAdd ((volatile LONG *)at, x);
+#elif defined(USE_TBB)
+    atomic<int> *a = (atomic<int> *)at;
+    return a->fetch_and_add (x);
+#else
+    error ("No atomics on this platform.")
 #endif
 }
 
@@ -274,6 +272,11 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 #elif defined(_WIN32)
     // Windows
     return InterlockedExchangeAdd64 ((volatile LONGLONG *)at, x);
+#elif defined(USE_TBB)
+    atomic<long long> *a = (atomic<long long> *)at;
+    return a->fetch_and_add (x);
+#else
+    error ("No atomics on this platform.")
 #endif
 }
 
@@ -294,6 +297,11 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
     return OSAtomicCompareAndSwap32Barrier (compareval, newval, at);
 #elif defined(_WIN32)
     return (InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
+#elif defined(USE_TBB)
+    atomic<int> *a = (atomic<int> *)at;
+    return a->compare_and_swap (newval, compareval) == newval;
+#else
+    error ("No atomics on this platform.")
 #endif
 }
 
@@ -308,9 +316,18 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
     return OSAtomicCompareAndSwap64Barrier (compareval, newval, at);
 #elif defined(_WIN32)
     return (InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
+#elif defined(USE_TBB)
+    atomic<long long> *a = (atomic<long long> *)at;
+    return a->compare_and_swap (newval, compareval) == newval;
+#else
+    error ("No atomics on this platform.")
 #endif
 }
 
+
+
+#if (! USE_TBB)
+// If we're not using TBB, we need to define our own atomic<>.
 
 
 /// Atomic integer.  Increment, decrement, add, and subtract in a

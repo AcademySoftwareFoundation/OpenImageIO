@@ -758,6 +758,10 @@ public:
     /// Debugging aid -- which thread holds the file mutex?
     ImageCachePerThreadInfo* &filemutex_holder() { return m_filemutex_holder; }
 
+    /// Ensure that the max_memory_bytes is at least newsize bytes.
+    /// Override the previous value if necessary, with thread-safety.
+    void set_min_cache_size (long long newsize);
+
 private:
     void init ();
 
@@ -798,7 +802,7 @@ private:
     std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
     static mutex m_perthread_info_mutex; ///< Thread safety for perthread
     int m_max_open_files;
-    size_t m_max_memory_bytes;
+    atomic_ll m_max_memory_bytes;
     std::string m_searchpath;    ///< Colon-separated directory list
     std::vector<std::string> m_searchdirs; ///< Searchpath split into dirs
     int m_autotile;              ///< if nonzero, pretend tiles of this size
