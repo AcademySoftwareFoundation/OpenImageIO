@@ -133,6 +133,8 @@ if (USE_QT)
     find_package (Qt4)
 endif ()
 message (STATUS "QT4_FOUND=${QT4_FOUND}")
+message (STATUS "QT_INCLUDES=${QT_INCLUDES}")
+message (STATUS "QT_LIBRARIES=${QT_LIBRARIES}")
 
 # end Qt setup
 ###########################################################################
