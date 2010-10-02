@@ -68,17 +68,11 @@
 #  include <tbb/atomic.h>
    using tbb::atomic;
 #  include <tbb/spin_mutex.h>
-#else
-#  if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
-     // we're good to go with GCC intrinsics
-#  elif defined(__APPLE__)
-#    include <libkern/OSAtomic.h>
-#  elif defined(_WIN32)
-#    include <windows.h>
-#    include <winbase.h>
-#  else
-#    error "Ouch, no atomics!"
-#  endif
+#endif
+
+#ifdef _WIN32
+#  include <windows.h>
+#  include <winbase.h>
 #endif
 
 #ifdef __APPLE__
@@ -243,15 +237,15 @@ atomic_exchange_and_add (volatile int *at, int x)
 {
 #if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
     return __sync_fetch_and_add ((int *)at, x);
+#elif defined(USE_TBB)
+    atomic<int> *a = (atomic<int> *)at;
+    return a->fetch_and_add (x);
 #elif defined(__APPLE__)
     // Apple, not inline for Intel (only PPC?)
     return OSAtomicAdd32Barrier (x, at) - x;
 #elif defined(_WIN32)
     // Windows
     return InterlockedExchangeAdd ((volatile LONG *)at, x);
-#elif defined(USE_TBB)
-    atomic<int> *a = (atomic<int> *)at;
-    return a->fetch_and_add (x);
 #else
     error ("No atomics on this platform.")
 #endif
@@ -264,15 +258,15 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 {
 #if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
     return __sync_fetch_and_add (at, x);
+#elif defined(USE_TBB)
+    atomic<long long> *a = (atomic<long long> *)at;
+    return a->fetch_and_add (x);
 #elif defined(__APPLE__)
     // Apple, not inline for Intel (only PPC?)
     return OSAtomicAdd64Barrier (x, at) - x;
 #elif defined(_WIN32)
     // Windows
     return InterlockedExchangeAdd64 ((volatile LONGLONG *)at, x);
-#elif defined(USE_TBB)
-    atomic<long long> *a = (atomic<long long> *)at;
-    return a->fetch_and_add (x);
 #else
     error ("No atomics on this platform.")
 #endif
@@ -291,13 +285,13 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 {
 #if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
     return __sync_bool_compare_and_swap (at, compareval, newval);
+#elif defined(USE_TBB)
+    atomic<int> *a = (atomic<int> *)at;
+    return a->compare_and_swap (newval, compareval) == newval;
 #elif defined(__APPLE__)
     return OSAtomicCompareAndSwap32Barrier (compareval, newval, at);
 #elif defined(_WIN32)
     return (InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
-#elif defined(USE_TBB)
-    atomic<int> *a = (atomic<int> *)at;
-    return a->compare_and_swap (newval, compareval) == newval;
 #else
     error ("No atomics on this platform.")
 #endif
@@ -310,13 +304,13 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
 {
 #if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
     return __sync_bool_compare_and_swap (at, compareval, newval);
+#elif defined(USE_TBB)
+    atomic<long long> *a = (atomic<long long> *)at;
+    return a->compare_and_swap (newval, compareval) == newval;
 #elif defined(__APPLE__)
     return OSAtomicCompareAndSwap64Barrier (compareval, newval, at);
 #elif defined(_WIN32)
     return (InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
-#elif defined(USE_TBB)
-    atomic<long long> *a = (atomic<long long> *)at;
-    return a->compare_and_swap (newval, compareval) == newval;
 #else
     error ("No atomics on this platform.")
 #endif
