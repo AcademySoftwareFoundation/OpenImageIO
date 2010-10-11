@@ -7,7 +7,6 @@ ifeq (${NAMESPACE},)
 NAMESPACE='OpenImageIO_Arnold'
 endif
 EMBEDPLUGINS:=1
-USE_OPENGL:=0
 
 MY_CMAKE_FLAGS += \
 		  -DILMBASE_CUSTOM=1 \
@@ -54,6 +53,7 @@ endif
 
 Boost_FOUND=TRUE
 MY_CMAKE_FLAGS += \
+		-DQT_DIR=/usr/local \
 		-DBoost_Python_LIBRARIES=${Boost_Python_LIBRARIES} \
 		-DPYTHON_INCLUDE_PATH=/usr/local64/include/python${PYTHON_VERSION} \
 		-DPYTHON_LIBRARIES=${PYTHONLIB} \
