@@ -210,6 +210,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec, bool append
             break;
         case ImageSpec::KodakLog:
             transfer = dpx::kLogarithmic;
+            break;
         //case ImageSpec::sRGB: // it's close to Rec709, but not the same
         default:
             tmpstr = m_spec.get_string_attribute ("dpx:Transfer", "");
