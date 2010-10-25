@@ -55,7 +55,7 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageSpec &newspec);
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
 
 private:
@@ -143,7 +143,7 @@ ICOInput::open (const std::string &name, ImageSpec &newspec)
     }
 
     // default to subimage #0, according to convention
-    seek_subimage (0, m_spec);
+    seek_subimage (0, 0, m_spec);
 
     newspec = spec ();
 
@@ -153,16 +153,19 @@ ICOInput::open (const std::string &name, ImageSpec &newspec)
 
 
 bool
-ICOInput::seek_subimage (int index, ImageSpec &newspec)
+ICOInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
     /*std::cerr << "[ico] seeking subimage " << index << " (current "
               << m_subimage << ") out of " << m_ico.count << "\n";*/
-    if (index == m_subimage) {
+    if (miplevel != 0)
+        return false;
+
+    if (subimage == m_subimage) {
         newspec = spec();
         return true;
     }
 
-    if (index < 0 || index >= m_ico.count)
+    if (subimage < 0 || subimage >= m_ico.count)
         return false;
 
     // clear the buffer of previous data
@@ -172,7 +175,7 @@ ICOInput::seek_subimage (int index, ImageSpec &newspec)
     if (m_png && m_info)
         PNG_pvt::destroy_read_struct (m_png, m_info);
 
-    m_subimage = index;
+    m_subimage = subimage;
 
     // read subimage header
     fseek (m_file, sizeof(ico_header) + m_subimage * sizeof(ico_subimage), SEEK_SET);

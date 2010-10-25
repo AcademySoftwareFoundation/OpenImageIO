@@ -62,7 +62,7 @@ SocketOutput::SocketOutput()
 
 bool
 SocketOutput::open (const std::string &name, const ImageSpec &newspec,
-                    bool append)
+                    OpenMode mode)
 {
     if (! (connect_to_server (name) && send_spec_to_server (newspec))) {
         return false;

@@ -349,10 +349,11 @@ TextureSystemImpl::resolve_filename (const std::string &filename) const
 
 
 bool
-TextureSystemImpl::get_texture_info (ustring filename, ustring dataname,
-                                     TypeDesc datatype, void *data)
+TextureSystemImpl::get_texture_info (ustring filename, int subimage,
+                             ustring dataname, TypeDesc datatype, void *data)
 {
-    bool ok = m_imagecache->get_image_info (filename, dataname, datatype, data);
+    bool ok = m_imagecache->get_image_info (filename, subimage, 0,
+                                            dataname, datatype, data);
     if (! ok)
         error ("%s", m_imagecache->geterror().c_str());
     return ok;
@@ -361,9 +362,10 @@ TextureSystemImpl::get_texture_info (ustring filename, ustring dataname,
 
 
 bool
-TextureSystemImpl::get_imagespec (ustring filename, ImageSpec &spec)
+TextureSystemImpl::get_imagespec (ustring filename, int subimage,
+                                  ImageSpec &spec)
 {
-    bool ok = m_imagecache->get_imagespec (filename, spec);
+    bool ok = m_imagecache->get_imagespec (filename, spec, subimage);
     if (! ok)
         error ("%s", m_imagecache->geterror().c_str());
     return ok;
@@ -372,9 +374,9 @@ TextureSystemImpl::get_imagespec (ustring filename, ImageSpec &spec)
 
 
 const ImageSpec *
-TextureSystemImpl::imagespec (ustring filename)
+TextureSystemImpl::imagespec (ustring filename, int subimage)
 {
-    const ImageSpec *spec = m_imagecache->imagespec (filename);
+    const ImageSpec *spec = m_imagecache->imagespec (filename, subimage);
     if (! spec)
         error ("%s", m_imagecache->geterror().c_str());
     return spec;
@@ -384,7 +386,7 @@ TextureSystemImpl::imagespec (ustring filename)
 
 bool
 TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
-                               int subimage, int xbegin, int xend,
+                               int miplevel, int xbegin, int xend,
                                int ybegin, int yend, int zbegin, int zend,
                                TypeDesc format, void *result)
 {
@@ -398,12 +400,18 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
         error ("Invalid texture file \"%s\"", filename.c_str());
         return false;
     }
+    int subimage = options.subimage;
     if (subimage < 0 || subimage >= texfile->subimages()) {
         error ("get_texel asked for nonexistant subimage %d of \"%s\"",
                subimage, filename.c_str());
         return false;
     }
-    const ImageSpec &spec (texfile->spec());
+    if (miplevel < 0 || miplevel >= texfile->miplevels(subimage)) {
+        error ("get_texel asked for nonexistant MIP level %d of \"%s\"",
+               miplevel, filename.c_str());
+        return false;
+    }
+    const ImageSpec &spec (texfile->spec(subimage, miplevel));
 
     // FIXME -- this could be WAY more efficient than starting from
     // scratch for each pixel within the rectangle.  Instead, we should
@@ -411,7 +419,7 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
     // doing anything more complicated (not to mention bug-prone) until
     // somebody reports this routine as being a bottleneck.
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
-    int nc = texfile->spec().nchannels;
+    int nc = spec.nchannels;
     size_t formatpixelsize = nc * format.size();
     size_t scanlinesize = (xend-xbegin) * formatpixelsize;
     size_t zplanesize = (yend-ybegin) * scanlinesize;
@@ -440,7 +448,7 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
                     continue;
                 }
                 int tx = x - ((x - spec.x) % spec.tile_width);
-                TileID tileid (*texfile, subimage, tx, ty, tz);
+                TileID tileid (*texfile, subimage, miplevel, tx, ty, tz);
                 ok &= find_tile (tileid, thread_info);
                 TileRef &tile (thread_info->tile);
                 const char *data;
@@ -572,7 +580,7 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
         }
     }
 
-    const ImageSpec &spec (texturefile->spec());
+    const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
     // Figure out the wrap functions
     if (options.swrap == TextureOptions::WrapDefault)
@@ -736,16 +744,18 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     float tfilt = std::max (std::max (dtdx, dtdy), (float)1.0e-8);
     float filtwidth = options.conservative_filter ? std::max (sfilt, tfilt)
                                                   : std::min (sfilt, tfilt);
-    for (int i = 0;  i < texturefile.subimages();  ++i) {
+    ImageCacheFile::SubimageInfo &subinfo (texturefile.subimageinfo(options.subimage));
+    int nmiplevels = (int)subinfo.levels.size();
+    for (int m = 0;  m < nmiplevels;  ++m) {
         // Compute the filter size in raster space at this MIP level
-        float filtwidth_ras = texturefile.spec(i).full_width * filtwidth;
+        float filtwidth_ras = subinfo.spec(m).full_width * filtwidth;
         // Once the filter width is smaller than one texel at this level,
         // we've gone too far, so we know that we want to interpolate the
         // previous level and the current level.  Note that filtwidth_ras
         // is expected to be >= 0.5, or would have stopped one level ago.
         if (filtwidth_ras <= 1) {
-            miplevel[0] = i-1;
-            miplevel[1] = i;
+            miplevel[0] = m-1;
+            miplevel[1] = m;
             levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
             break;
         }
@@ -753,7 +763,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
-        miplevel[0] = texturefile.subimages() - 1;
+        miplevel[0] = nmiplevels - 1;
         miplevel[1] = miplevel[0];
         levelblend = 0;
     } else if (miplevel[0] < 0) {
@@ -906,24 +916,27 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     }
 
     float filtwidth = minorlength;
-    for (int i = 0;  i < texturefile.subimages();  ++i) {
+    ImageCacheFile::SubimageInfo &subinfo (texturefile.subimageinfo(options.subimage));
+    int nmiplevels = (int)subinfo.levels.size();
+    for (int m = 0;  m < nmiplevels;  ++m) {
         // Compute the filter size in raster space at this MIP level
-        float filtwidth_ras = texturefile.spec(i).full_width * filtwidth;
+        float filtwidth_ras = subinfo.spec(m).full_width * filtwidth;
         // Once the filter width is smaller than one texel at this level,
         // we've gone too far, so we know that we want to interpolate the
         // previous level and the current level.  Note that filtwidth_ras
         // is expected to be >= 0.5, or would have stopped one level ago.
         if (filtwidth_ras <= 1) {
-            miplevel[0] = i-1;
-            miplevel[1] = i;
+            miplevel[0] = m-1;
+            miplevel[1] = m;
             levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
             break;
         }
     }
+
     if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
-        miplevel[0] = texturefile.subimages() - 1;
+        miplevel[0] = nmiplevels - 1;
         miplevel[1] = miplevel[0];
         levelblend = 0;
     } else if (miplevel[0] < 0) {
@@ -968,7 +981,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
             break;
         case TextureOptions::InterpSmartBicubic :
             if (lev == 0 || options.interpmode == TextureOptions::InterpBicubic ||
-                (texturefile.spec(lev).full_height < naturalres/2)) {
+                (texturefile.spec(options.subimage,lev).full_height < naturalres/2)) {
                 accumer = &TextureSystemImpl::accum_sample_bicubic;
                 ++bicubicprobes;
             } else {
@@ -1017,8 +1030,8 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
                                  TextureOptions &options, int index,
                                  float weight, float *accum, float *daccumds, float *daccumdt)
 {
-    const ImageSpec &spec (texturefile.spec (miplevel));
-    const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo (miplevel));
+    const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
+    const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
     s = s * spec.full_width  + spec.full_x;
     t = t * spec.full_height + spec.full_y;
@@ -1044,7 +1057,8 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
     int tileheightmask = spec.tile_height - 1;
     int tile_s = (stex - spec.x) & tilewidthmask;
     int tile_t = (ttex - spec.y) & tileheightmask;
-    TileID id (texturefile, miplevel, stex - tile_s, ttex - tile_t, 0);
+    TileID id (texturefile, options.subimage, miplevel,
+               stex - tile_s, ttex - tile_t, 0);
     bool ok = find_tile (id, thread_info);
     if (! ok)
         error ("%s", m_imagecache->geterror().c_str());
@@ -1077,8 +1091,8 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                                  TextureOptions &options, int index,
                                  float weight, float *accum, float *daccumds, float *daccumdt)
 {
-    const ImageSpec &spec (texturefile.spec (miplevel));
-    const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo (miplevel));
+    const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
+    const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.
 //    float orig_s = s, orig_t = t;
@@ -1137,7 +1151,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
 //        (svalid[0] & svalid[1] & tvalid[0] & tvalid[1])) {
         valid_storage.ivalid == all_valid) {
         // Shortcut if all the texels we need are on the same tile
-        TileID id (texturefile, miplevel,
+        TileID id (texturefile, options.subimage, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
         bool ok = find_tile (id, thread_info);
         if (! ok)
@@ -1170,7 +1184,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                 }
                 tile_s = (stex[i] - spec.x) & tilewidthmask;
                 tile_t = (ttex[j] - spec.y) & tileheightmask;
-                TileID id (texturefile, miplevel,
+                TileID id (texturefile, options.subimage, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
                 bool ok = find_tile (id, thread_info);
                 if (! ok)
@@ -1268,8 +1282,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  TextureOptions &options, int index,
                                  float weight, float *accum, float *daccumds, float *daccumdt)
 {
-    const ImageSpec &spec (texturefile.spec (miplevel));
-    const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo (miplevel));
+    const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
+    const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.
     s = s * spec.full_width  + spec.full_x - 0.5f;
@@ -1346,7 +1360,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     size_t pixelsize = texturefile.pixelsize();
     if (onetile & allvalid) {
         // Shortcut if all the texels we need are on the same tile
-        TileID id (texturefile, miplevel,
+        TileID id (texturefile, options.subimage, miplevel,
                    stex[0] - tile_s, ttex[0] - tile_t, 0);
         bool ok = find_tile (id, thread_info);
         if (! ok)
@@ -1370,7 +1384,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                 }
                 tile_s = (stex[i] - spec.x) & tilewidthmask;
                 tile_t = (ttex[j] - spec.y) & tileheightmask;
-                TileID id (texturefile, miplevel,
+                TileID id (texturefile, options.subimage, miplevel,
                            stex[i] - tile_s, ttex[j] - tile_t, 0);
                 bool ok = find_tile (id, thread_info);
                 if (! ok)

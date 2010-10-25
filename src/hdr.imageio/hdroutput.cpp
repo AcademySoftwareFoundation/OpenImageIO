@@ -49,7 +49,7 @@ class HdrOutput : public ImageOutput {
     virtual const char * format_name (void) const { return "hdr"; }
     virtual bool supports (const std::string &property) const { return false; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode);
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
     bool close ();
@@ -75,10 +75,11 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-HdrOutput::open (const std::string &name, const ImageSpec &newspec, bool append)
+HdrOutput::open (const std::string &name, const ImageSpec &newspec,
+                 OpenMode mode)
 {
-    if (append) {
-        error ("HDR doesn't support multiple images per file");
+    if (mode != Create) {
+        error ("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 

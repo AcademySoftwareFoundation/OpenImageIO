@@ -132,8 +132,16 @@ public:
     ~ImageCacheFile ();
 
     bool broken () const { return m_broken; }
-    int subimages () const { return (int)m_spec.size(); }
-    const ImageSpec & spec (int subimage=0) const { return m_spec[subimage]; }
+    int subimages () const { return (int)m_subimages.size(); }
+    int miplevels (int subimage) const {
+        return (int)m_subimages[subimage].levels.size();
+    }
+    const ImageSpec & spec (int subimage, int miplevel) const {
+        return levelinfo(subimage,miplevel).spec;
+    }
+    ImageSpec & spec (int subimage, int miplevel) {
+        return levelinfo(subimage,miplevel).spec;
+    }
     ustring filename (void) const { return m_filename; }
     ustring fileformat (void) const { return m_fileformat; }
     TexFormat textureformat () const { return m_texformat; }
@@ -145,7 +153,7 @@ public:
     /// Load new data tile
     ///
     bool read_tile (ImageCachePerThreadInfo *thread_info,
-                    int subimage, int x, int y, int z,
+                    int subimage, int miplevel, int x, int y, int z,
                     TypeDesc format, void *data);
 
     /// Mark the file as recently used.
@@ -160,8 +168,6 @@ public:
     size_t channelsize () const { return m_channelsize; }
     size_t pixelsize () const { return m_pixelsize; }
     bool eightbit (void) const { return m_eightbit; }
-    bool untiled (void) const { return m_untiled; }
-    bool unmipped (void) const { return m_unmipped; }
     bool mipused (void) const { return m_mipused; }
 
     void invalidate ();
@@ -179,21 +185,42 @@ public:
     /// Info for each MIP level that isn't in the ImageSpec, or that we
     /// precompute.
     struct LevelInfo {
+        ImageSpec spec;             ///< ImageSpec for the mip level
         bool full_pixel_range;      ///< pixel data window matches image window
         bool zero_origin;           ///< pixel data origin is (0,0)
         LevelInfo (const ImageSpec &spec);  ///< Initialize based on spec
     };
-    const LevelInfo &levelinfo (int subimage) const { return m_levels[subimage]; }
+
+    /// Info for each subimage
+    ///
+    struct SubimageInfo {
+        std::vector<LevelInfo> levels;  ///< Extra per-level info
+        bool untiled;                   ///< Not tiled
+        bool unmipped;                  ///< Not really MIP-mapped
+        SubimageInfo () : untiled(false), unmipped(false) { }
+        ImageSpec &spec (int m) { return levels[m].spec; }
+        const ImageSpec &spec (int m) const { return levels[m].spec; }
+    };
+
+    const SubimageInfo &subimageinfo (int subimage) const {
+        return m_subimages[subimage];
+    }
+
+    SubimageInfo &subimageinfo (int subimage) { return m_subimages[subimage]; }
+
+    const LevelInfo &levelinfo (int subimage, int miplevel) const {
+        return m_subimages[subimage].levels[miplevel];
+    }
+    LevelInfo &levelinfo (int subimage, int miplevel) {
+        return m_subimages[subimage].levels[miplevel];
+    }
 
 private:
     ustring m_filename;             ///< Filename
     bool m_used;                    ///< Recently used (in the LRU sense)
     bool m_broken;                  ///< has errors; can't be used properly
-    bool m_untiled;                 ///< Not tiled
-    bool m_unmipped;                ///< Not really MIP-mapped
     shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
-    std::vector<ImageSpec> m_spec;  ///< Format for each subimage
-    std::vector<LevelInfo> m_levels;///< Extra per-level info for each subimage
+    std::vector<SubimageInfo> m_subimages;  ///< Image on each subimage
     TexFormat m_texformat;          ///< Which texture format
     TextureOptions::Wrap m_swrap;   ///< Default wrap modes
     TextureOptions::Wrap m_twrap;   ///< Default wrap modes
@@ -232,16 +259,16 @@ private:
 
     /// Load the requested tile, from a file that's not really tiled.
     /// Preconditions: the ImageInput is already opened, and we already did
-    /// a seek_subimage to the right subimage.
+    /// a seek_subimage to the right subimage and MIP level.
     bool read_untiled (ImageCachePerThreadInfo *thread_info,
-                       int subimage, int x, int y, int z,
+                       int subimage, int miplevel, int x, int y, int z,
                        TypeDesc format, void *data);
 
     /// Load the requested tile, from a file that's not really MIPmapped.
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage.
     bool read_unmipped (ImageCachePerThreadInfo *thread_info,
-                        int subimage, int x, int y, int z,
+                        int subimage, int miplevel, int x, int y, int z,
                         TypeDesc format, void *data);
 
     void lock_input_mutex () {
@@ -291,8 +318,10 @@ public:
 
     /// Initialize a TileID based on full elaboration of image file,
     /// subimage, and tile x,y,z indices.
-    TileID (ImageCacheFile &file, int subimage, int x, int y, int z=0)
-        : m_x(x), m_y(y), m_z(z), m_subimage(subimage), m_file(file)
+    TileID (ImageCacheFile &file, int subimage, int miplevel,
+            int x, int y, int z=0)
+        : m_x(x), m_y(y), m_z(z), m_subimage(subimage),
+          m_miplevel(miplevel), m_file(file)
     { }
 
     /// Destructor is trivial, because we don't hold any resources
@@ -301,6 +330,7 @@ public:
 
     ImageCacheFile &file (void) const { return m_file; }
     int subimage (void) const { return m_subimage; }
+    int miplevel (void) const { return m_miplevel; }
     int x (void) const { return m_x; }
     int y (void) const { return m_y; }
     int z (void) const { return m_z; }
@@ -315,14 +345,16 @@ public:
         // Try to speed up by comparing field by field in order of most
         // probable rejection if they really are unequal.
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z &&
-                a.m_subimage == b.m_subimage && (&a.m_file == &b.m_file));
+                a.m_subimage == b.m_subimage && 
+                a.m_miplevel == b.m_miplevel && (&a.m_file == &b.m_file));
     }
 
     /// Do the two ID's refer to the same tile, given that the
     /// caller *guarantees* that the two tiles point to the same
-    /// file and subimage (so it only has to compare xyz)?
+    /// file, subimage, and miplevel (so it only has to compare xyz)?
     friend bool equal_same_subimage (const TileID &a, const TileID &b) {
-        DASSERT ((&a.m_file == &b.m_file) && a.m_subimage == b.m_subimage);
+        DASSERT ((&a.m_file == &b.m_file) &&
+                 a.m_subimage == b.m_subimage && a.m_miplevel == b.m_miplevel);
         return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z);
     }
 
@@ -335,7 +367,8 @@ public:
     /// summing, so that collisions are unlikely.
     size_t hash () const {
         return m_x * 53 + m_y * 97 + m_z * 193 + 
-               m_subimage * 389 + m_file.filename().hash() * 769;
+               m_subimage * 389 + m_miplevel * 1543 +
+               m_file.filename().hash() * 769;
     }
 
     /// Functor that hashes a TileID
@@ -347,7 +380,8 @@ public:
 
 private:
     int m_x, m_y, m_z;        ///< x,y,z tile index within the subimage
-    int m_subimage;           ///< subimage (usually MIP-map level)
+    int m_subimage;           ///< subimage
+    int m_miplevel;           ///< MIP-map level
     ImageCacheFile &m_file;   ///< Which ImageCacheFile we refer to
 };
 
@@ -404,7 +438,7 @@ public:
     /// Return the space that will be needed for this tile's pixels.
     ///
     size_t memsize_needed () const {
-        const ImageSpec &spec (file().spec(m_id.subimage()));
+        const ImageSpec &spec (file().spec(m_id.subimage(),m_id.miplevel()));
         return spec.tile_pixels() * spec.nchannels * file().datatype().size();
     }
 
@@ -580,8 +614,8 @@ public:
 
     /// Get information about the given image.
     ///
-    virtual bool get_image_info (ustring filename, ustring dataname,
-                                 TypeDesc datatype, void *data);
+    virtual bool get_image_info (ustring filename, int subimage, int miplevel,
+                         ustring dataname, TypeDesc datatype, void *data);
 
     /// Get the ImageSpec associated with the named image.  If the file
     /// is found and is an image format that can be read, store a copy
@@ -589,20 +623,21 @@ public:
     /// the file was not found or could not be opened as an image file
     /// by any available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
-                                int subimage=0);
+                                int subimage=0, int miplevel=0);
 
-    virtual const ImageSpec *imagespec (ustring filename, int subimage=0);
+    virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
+                                        int miplevel=0);
 
     // Retrieve a rectangle of raw unfiltered pixels.
-    virtual bool get_pixels (ustring filename, 
-                             int subimage, int xbegin, int xend,
+    virtual bool get_pixels (ustring filename, int subimage, int miplevel,
+                             int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result);
 
     /// Retrieve a rectangle of raw unfiltered pixels, from an open valid
     /// ImageCacheFile.
     bool get_pixels (ImageCacheFile *file, ImageCachePerThreadInfo *thread_info,
-                     int subimage, int xmin, int xmax,
+                     int subimage, int miplevel, int xmin, int xmax,
                      int ymin, int ymax, int zmin, int zmax, 
                      TypeDesc format, void *result);
 
@@ -676,7 +711,8 @@ public:
         return find_tile_main_cache (id, tile, thread_info);
     }
 
-    virtual Tile *get_tile (ustring filename, int subimage, int x, int y, int z);
+    virtual Tile *get_tile (ustring filename, int subimage, int miplevel,
+                            int x, int y, int z);
     virtual void release_tile (Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
 

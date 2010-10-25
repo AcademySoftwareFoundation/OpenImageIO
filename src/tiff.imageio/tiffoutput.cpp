@@ -57,7 +57,7 @@ public:
     virtual const char * format_name (void) const { return "tiff"; }
     virtual bool supports (const std::string &feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode=Create);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
@@ -133,8 +133,14 @@ TIFFOutput::supports (const std::string &feature) const
 
 
 bool
-TIFFOutput::open (const std::string &name, const ImageSpec &userspec, bool append)
+TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
+                  OpenMode mode)
 {
+    if (mode == AppendMIPLevel) {
+        error ("%s does not support MIP levels", format_name());
+        return false;
+    }
+
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 
@@ -148,7 +154,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec, bool appen
         m_spec.depth = 1;
 
     // Open the file
-    m_tif = TIFFOpen (name.c_str(), append ? "a" : "w");
+    m_tif = TIFFOpen (name.c_str(), mode == AppendSubimage ? "a" : "w");
     if (! m_tif) {
         error ("Can't open \"%s\" for output.", name.c_str());
         return false;

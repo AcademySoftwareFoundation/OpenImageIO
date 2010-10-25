@@ -285,10 +285,10 @@ flexible functionality.  A few representative examples follow:
         int scanlinesize = spec.width * spec.nchannels * sizeof(pixels[0]);
         ...
         in->read_image (TypeDesc::UINT8,
-                        (char *)pixels + (yres-1)*scanlinesize,  // offset to last
-                        AutoStride,                      // default x stride
-                        -scanlinesize,                   // special y stride
-                        AutoStride);                     // default z stride
+                        (char *)pixels+(yres-1)*scanlinesize, // offset to last
+                        AutoStride,                  // default x stride
+                        -scanlinesize,               // special y stride
+                        AutoStride);                 // default z stride
   \end{code}
 \item Read a tile into its spot in a buffer whose layout matches
   a whole image of pixel data,
@@ -488,35 +488,41 @@ types, and meanings of all metadata attributes that they understand.
 
 \subsection{Multi-image files and MIP-maps}
 \label{sec:imageinput:multiimage}
+\label{sec:imageinput:mipmap}
 
-Some image file formats support multiple discrete images to be stored
-in one file.  When you {\cf open()} an \ImageInput, it will by default
-point to the first (i.e., number 0) subimage in the file.  You can
-switch to viewing another subimage using the {\cf seek_subimage()} 
-function:
+Some image file formats support multiple discrete subimages to be stored
+in one file, and/or miltiple resolutions for each image to form a
+MIPmap.  When you {\cf open()} an \ImageInput, it will by default point
+to the first (i.e., number 0) subimage in the file, and the highest
+resolution (level 0) MIP-map level.  You can switch to viewing another
+subimage or MIP-map level using the {\cf seek_subimage()} function:
 
 \begin{code}
         ImageInput *in = ImageInput::create (filename);
         ImageSpec spec;
         in->open (filename, spec);
         ...
-        int sub = 1;
-        if (in->seek_subimage (sub, spec)) {
+        int subimage = 1;
+        int miplevel = 0;
+        if (in->seek_subimage (subimage, miplevel, spec)) {
             ...
         } else {
-            ... no such subimage ...
+            ... no such subimage/miplevel ...
         }
 \end{code}
 
-The {\cf seek_subimage()} function takes two arguments: the index of the
-subimage to switch to (starting with 0), and a reference to an
+The {\cf seek_subimage()} function takes three arguments: the index of
+the subimage to switch to (starting with 0), the MIPmap level (starting
+with 0 for the highest-resolution level), and a reference to an
 \ImageSpec, into which will be stored the spec of the new
-subimage.  The {\cf seek_subimage()} function returns {\cf true} upon
-success, and {\cf false} if no such subimage existed.  It is legal to
-visit subimages out of order; the \ImageInput is responsible for making
-it work properly.  It is also possible to find out which subimage is
-currently being viewed, using the {\cf current_subimage()} function,
-which returns the index of the current subimage.
+subimage/miplevel.  The {\cf seek_subimage()} function returns {\cf
+  true} upon success, and {\cf false} if no such subimage or MIP level
+existed.  It is legal to visit subimages and MIP levels out of order;
+the \ImageInput is responsible for making it work properly.  It is also
+possible to find out which subimage and MIP level is currently being
+viewed, using the {\cf current_subimage()} and {\cf current_miplevel()}
+functions, which return the index of the current subimage and MIP
+levels, respectively.
 
 Below is pseudocode for reading all the levels of a MIP-map (a
 multi-resolution image used for texture mapping) that shows how to read
@@ -527,9 +533,9 @@ multi-image files:
         ImageSpec spec;
         in->open (filename, spec);
 
-        int num_subimages = 0;
-        while (in->seek_subimage (num_subimages, spec)) {
-            // Note: spec has the format spec of the current subimage
+        int num_miplevels = 0;
+        while (in->seek_subimage (0, num_miplevels, spec)) {
+            // Note: spec has the format of the current subimage/miplevel
             int npixels = spec.width * spec.height;
             int nchannels = spec.nchannels;
             unsigned char *pixels = new unsigned char [npixels * nchannels];
@@ -538,17 +544,18 @@ multi-image files:
             ... do whatever you want with this level, in pixels ...
 
             delete [] pixels;
-            ++num_subimages;
+            ++num_miplevels;
         }
         // Note: we break out of the while loop when seek_subimage fails
-        // to find a next subimage.
+        // to find a next MIP level.
 
         in->close ();
         delete in;
 \end{code}
 
 In this example, we have used \readimage, but of course \readscanline
-and \readtile work as you would expect, on the current subimage.
+and \readtile work as you would expect, on the current subimage and MIP
+level.
 
 
 \subsection{Custom search paths for plugins}
@@ -700,16 +707,20 @@ number 0.
 \apiend
 
 
-\apiitem{bool {\ce seek_subimage} (int index, ImageSpec \&newspec)}
-Seek to the given subimage.  The first subimage in the file has index 0.
-Return {\kw true} on success, {\kw false} on failure (including that
-there is not a subimage with that index).  The new subimage's vital
-statistics are put in {\kw newspec} (and also saved internally in a way
-that can be retrieved via {\kw spec()}).  The \ImageInput is
-expected to give the appearance of random access to subimages --- in
-other words, if it can't randomly seek to the given subimage, it should
-transparently close, reopen, and sequentially read through prior
-subimages.
+\apiitem{bool {\ce seek_subimage} (int subimage, int miplevel, ImageSpec \&newspec)}
+
+Seek to the given subimage and MIP-map level within the open image file.
+The first subimage in the file has index 0, and for each subimage, the
+highest-resolution MIP level has index 0.  Return {\kw true} on success,
+{\kw false} on failure (including that there is not a subimage or MIP
+level with those indices).  The new subimage's vital statistics are put
+in {\kw newspec} (and also saved internally in a way that can be
+retrieved via {\kw spec()}).  The \ImageInput is expected to give the
+appearance of random access to subimages and MIP levels --- in other
+words, if it can't randomly seek to the given subimage or MIP level, it
+should transparently close, reopen, and sequentially read through prior
+subimages and levels.
+
 \apiend
 
 \apiitem{bool {\ce read_scanline} (int y, int z, TypeDesc format, void *data,\\

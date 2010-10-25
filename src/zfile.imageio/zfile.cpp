@@ -95,7 +95,7 @@ public:
     virtual const char * format_name (void) const { return "zfile"; }
     virtual bool supports (const std::string &feature) const { return false; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode=Create);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
@@ -225,8 +225,14 @@ ZfileInput::read_native_scanline (int y, int z, void *data)
 
 
 bool
-ZfileOutput::open (const std::string &name, const ImageSpec &userspec, bool append)
+ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
+                   OpenMode mode)
 {
+    if (mode != Create) {
+        error ("%s does not support subimages or MIP levels", format_name());
+        return false;
+    }
+
     close ();  // Close any already-opened file
     m_gz = 0;
     m_file = NULL;

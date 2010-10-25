@@ -74,7 +74,8 @@ class FitsInput : public ImageInput {
     virtual bool open (const std::string &name, ImageSpec &spec);
     virtual bool close (void);
     virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool seek_subimage (int index, ImageSpec &newspec);
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
+    virtual int current_subimage () const { return m_cur_subimage; }
  private:
     FILE *m_fd;
     std::string m_filename;
@@ -138,7 +139,7 @@ class FitsOutput : public ImageOutput {
     virtual const char *format_name (void) const { return "fits"; }
     virtual bool supports (const std::string &feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode=Create);
     virtual bool close (void);
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);

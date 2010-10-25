@@ -48,8 +48,15 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-SgiOutput::open (const std::string &name, const ImageSpec &spec, bool append)
+SgiOutput::open (const std::string &name, const ImageSpec &spec,
+                 OpenMode mode)
 {
+    if (mode != Create) {
+        error ("%s does not support subimages or MIP levels", format_name());
+        return false;
+    }
+
+    close ();  // Close any already-opened file
     // saving 'name' and 'spec' for later use
     m_filename = name;
     m_spec = spec;

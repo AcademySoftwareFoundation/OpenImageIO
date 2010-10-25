@@ -61,7 +61,7 @@ class JpgOutput : public ImageOutput {
     virtual const char * format_name (void) const { return "jpeg"; }
     virtual bool supports (const std::string &property) const { return false; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode=Create);
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
     virtual bool close ();
@@ -101,10 +101,10 @@ OIIO_PLUGIN_EXPORTS_END
 
 bool
 JpgOutput::open (const std::string &name, const ImageSpec &newspec,
-                 bool append)
+                 OpenMode mode)
 {
-    if (append) {
-        error ("JPG doesn't support multiple images per file");
+    if (mode != Create) {
+        error ("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 

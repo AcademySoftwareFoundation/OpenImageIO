@@ -128,6 +128,7 @@ public:
     // Options that must be the same for all points we're texturing at once
     int firstchannel;         ///< First channel of the lookup
     int nchannels;            ///< Number of channels to look up
+    int subimage;             ///< Subimage or face ID
     Wrap swrap;               ///< Wrap mode in the s direction
     Wrap twrap;               ///< Wrap mode in the t direction
     MipMode mipmode;          ///< Mip mode
@@ -333,8 +334,8 @@ public:
     /// and the data has been put in *data.  Return false if the texture
     /// doesn't exist, doesn't have the requested data, if the data
     /// doesn't match the type requested. or some other failure.
-    virtual bool get_texture_info (ustring filename, ustring dataname,
-                                   TypeDesc datatype, void *data) = 0;
+    virtual bool get_texture_info (ustring filename, int subimage,
+                          ustring dataname, TypeDesc datatype, void *data) = 0;
 
     /// Get the ImageSpec associated with the named texture
     /// (specifically, the first MIP-map level).  If the file is found
@@ -342,7 +343,8 @@ public:
     /// specification in spec and return true.  Return false if the file
     /// was not found or could not be opened as an image file by any
     /// available ImageIO plugin.
-    virtual bool get_imagespec (ustring filename, ImageSpec &spec) = 0;
+    virtual bool get_imagespec (ustring filename, int subimage,
+                                ImageSpec &spec) = 0;
 
     /// Return a pointer to an ImageSpec associated with the named
     /// texture (specifically, the first MIP-map level) if the file is
@@ -356,7 +358,7 @@ public:
     /// pointer is only valid as long as nobody (even other threads)
     /// calls invalidate() on the file, or invalidate_all(), or destroys
     /// the TextureSystem.
-    virtual const ImageSpec *imagespec (ustring filename) = 0;
+    virtual const ImageSpec *imagespec (ustring filename, int subimage=0) = 0;
 
     /// Retrieve the rectangle of raw unfiltered texels spanning
     /// [xbegin..xend) X [ybegin..yend) X [zbegin..zend), with
@@ -373,7 +375,7 @@ public:
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool get_texels (ustring filename, TextureOptions &options,
-                             int level, int xbegin, int xend,
+                             int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result) = 0;
 

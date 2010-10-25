@@ -70,7 +70,7 @@ static const char * wrap_type_name[] = {
 /// Special private ctr that makes a canonical default TextureOptions.
 /// For use internal to libtexture.  Users, don't call this!
 TextureOptions::TextureOptions (bool)
-    : firstchannel(0), nchannels(1),
+    : firstchannel(0), nchannels(1), subimage(0),
       swrap(WrapDefault), twrap(WrapDefault),
       mipmode(MipModeDefault),
       interpmode(InterpSmartBicubic),

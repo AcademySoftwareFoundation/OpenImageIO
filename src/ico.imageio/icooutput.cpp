@@ -54,7 +54,7 @@ public:
     virtual const char * format_name (void) const { return "ico"; }
     virtual bool supports (const std::string &feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode=Create);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
@@ -133,8 +133,14 @@ ICOOutput::~ICOOutput ()
 
 
 bool
-ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append)
+ICOOutput::open (const std::string &name, const ImageSpec &userspec,
+                 OpenMode mode)
 {
+    if (mode == AppendMIPLevel) {
+        error ("%s does not support MIP levels", format_name());
+        return false;
+    }
+
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 
@@ -196,14 +202,14 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec, bool append
 
     //std::cerr << "[ico] writing at " << m_bpp << "bpp\n";
 
-    m_file = fopen (name.c_str(), append ? "r+b" : "wb");
+    m_file = fopen (name.c_str(), mode == AppendSubimage ? "r+b" : "wb");
     if (! m_file) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;
     }
 
     ico_header ico;
-    if (!append) {
+    if (mode == Create) {
         // creating new file, write ICO header
         memset (&ico, 0, sizeof(ico));
         ico.type = 1;

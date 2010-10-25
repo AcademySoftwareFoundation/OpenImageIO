@@ -64,9 +64,9 @@ const ImageSpec& ImageOutputWrap::spec () const
 }
 
 bool ImageOutputWrap::open (const std::string &name, const ImageSpec &newspec,
-                            bool append=false)
+                            ImageOutput::OpenMode mode=ImageOutput::Create)
 {
-    return m_output->open(name, newspec, append);
+    return m_output->open(name, newspec, mode);
 }
 
 bool ImageOutputWrap::close()

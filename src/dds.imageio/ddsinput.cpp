@@ -57,7 +57,8 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageSpec &newspec);
+    virtual int current_miplevel (void) const { return m_miplevel; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
 
@@ -66,6 +67,7 @@ private:
     FILE *m_file;                     ///< Open image handle
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
     int m_subimage;
+    int m_miplevel;
     int m_nchans;                     ///< Number of colour channels in image
     int m_nfaces;                     ///< Number of cube map sides in image
     int m_Bpp;                        ///< Number of bytes per pixel
@@ -81,6 +83,7 @@ private:
     void init () {
         m_file = NULL;
         m_subimage = -1;
+        m_miplevel = -1;
         m_buf.clear ();
     }
 
@@ -295,7 +298,7 @@ DDSInput::open (const std::string &name, ImageSpec &newspec)
     } else
         m_nfaces = 1;
 
-    seek_subimage(0, m_spec);
+    seek_subimage(0, 0, m_spec);
 
     newspec = spec ();
     return true;
@@ -394,17 +397,21 @@ DDSInput::internal_seek_subimage (int cubeface, int miplevel, unsigned int& w,
 
 
 bool
-DDSInput::seek_subimage (int index, ImageSpec &newspec)
+DDSInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
+    // early out
+    if (subimage == current_subimage() && miplevel == current_miplevel()) {
+        newspec = m_spec;
+        return true;
+    }
+
+    if (subimage != 0)
+        return false;
     // don't seek if the image doesn't contain mipmaps, isn't 3D or a cube map,
     // and don't seek out of bounds
-    if (index < 0 || (!(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX) && index != 0)
-        || (unsigned int)index >= m_dds.mipmaps)
+    if (miplevel < 0 || (!(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX) && miplevel != 0)
+        || (unsigned int)miplevel >= m_dds.mipmaps)
         return false;
-
-    // early out
-    if (index == m_subimage)
-        return true;
 
     // clear buffer so that readimage is called
     m_buf.clear();
@@ -416,7 +423,7 @@ DDSInput::seek_subimage (int index, ImageSpec &newspec)
         w = m_dds.width;
         h = m_dds.height;
         d = m_dds.depth;
-        for (int i = 1; i < index; i++) {
+        for (int i = 1; i < miplevel; i++) {
             w >>= 1;
             if (w < 1)
                 w = 1;
@@ -438,7 +445,7 @@ DDSInput::seek_subimage (int index, ImageSpec &newspec)
         m_spec.tile_height  = m_spec.full_height    = h;
         m_spec.tile_depth   = m_spec.full_depth     = d;
     } else {
-        internal_seek_subimage(0, index, w, h, d);
+        internal_seek_subimage(0, miplevel, w, h, d);
         // create imagespec
         m_spec = ImageSpec (w, h, m_nchans, TypeDesc::UINT8);
         m_spec.depth = d;
@@ -499,7 +506,8 @@ DDSInput::seek_subimage (int index, ImageSpec &newspec)
         m_spec.attribute ("textureformat", "Plain Texture");
     }
 
-    m_subimage = index;
+    m_subimage = subimage;
+    m_miplevel = miplevel;
     newspec = spec ();
     return true;
 }
@@ -594,7 +602,7 @@ DDSInput::readimg_scanlines ()
     //std::cerr << "[dds] readimg: " << ftell (m_file) << "\n";
     // resize destination buffer
     m_buf.resize (m_spec.scanline_bytes() * m_spec.height * m_spec.depth
-        /*/ (1 << m_subimage)*/);
+        /*/ (1 << m_miplevel)*/);
 
     return internal_readimg (&m_buf[0], m_spec.width, m_spec.height, m_spec.depth);
 }
@@ -665,10 +673,10 @@ DDSInput::read_native_tile (int x, int y, int z, void *data)
 #ifdef DDS_3X2_CUBE_MAP_LAYOUT
         internal_seek_subimage (((x / m_spec.tile_width) << 1)
                                 + y / m_spec.tile_height,
-                                m_subimage, w, h, d);
+                                m_miplevel, w, h, d);
 #else   // 1x6 layout
         internal_seek_subimage (y / m_spec.tile_height,
-                                m_subimage, w, h, d);
+                                m_miplevel, w, h, d);
 #endif // DDS_3X2_CUBE_MAP_LAYOUT
         if (!w && !h && !d)
             // face not present in file, black-pad the image

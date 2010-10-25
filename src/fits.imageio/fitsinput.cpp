@@ -138,18 +138,20 @@ FitsInput::read_native_scanline (int y, int z, void *data)
 
 
 bool
-FitsInput::seek_subimage (int index, ImageSpec &newspec)
+FitsInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
-    if (index < 0 || index >= (int)m_subimages.size ())
+    if (miplevel != 0)
+        return false;
+    if (subimage < 0 || subimage >= (int)m_subimages.size ())
         return false;
 
-    if (index == m_cur_subimage) {
+    if (subimage == m_cur_subimage) {
         newspec = m_spec;
         return true;
     }
 
     // setting file pointer to the beginning of IMAGE extension
-    m_cur_subimage = index;
+    m_cur_subimage = subimage;
     fseek (m_fd, m_subimages[m_cur_subimage].offset, SEEK_SET);
 
     if (! set_spec_info ())

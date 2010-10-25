@@ -50,7 +50,7 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageSpec &newspec);
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
 
 private:
@@ -116,37 +116,39 @@ DPXInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
-    seek_subimage (0, newspec);
+    bool ok = seek_subimage (0, 0, newspec);
     newspec = spec ();
-    return true;
+    return ok;
 }
 
 
 
 bool
-DPXInput::seek_subimage (int index, ImageSpec &newspec)
+DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
-    if (index < 0 || index >= m_dpx.header.ImageElementCount ())
+    if (miplevel != 0)
+        return false;
+    if (subimage < 0 || subimage >= m_dpx.header.ImageElementCount ())
         return false;
 
-    m_subimage = index;
+    m_subimage = subimage;
 
     // check if the client asked us for raw data
     m_wantRaw = newspec.get_int_attribute ("dpx:RawData", 0) != 0;
 
     // create imagespec
     TypeDesc typedesc;
-    switch (m_dpx.header.ComponentDataSize(index)) {
+    switch (m_dpx.header.ComponentDataSize(subimage)) {
         case dpx::kByte:
-            typedesc = m_dpx.header.DataSign (index)
+            typedesc = m_dpx.header.DataSign (subimage)
                 ? TypeDesc::INT8 : TypeDesc::UINT8;
             break;
         case dpx::kWord:
-            typedesc = m_dpx.header.DataSign (index)
+            typedesc = m_dpx.header.DataSign (subimage)
                 ? TypeDesc::INT16 : TypeDesc::UINT16;
             break;
         case dpx::kInt:
-            typedesc = m_dpx.header.DataSign (index)
+            typedesc = m_dpx.header.DataSign (subimage)
                 ? TypeDesc::INT32 : TypeDesc::UINT32;
             break;
         case dpx::kFloat:
@@ -160,10 +162,10 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
             return false;
     }
     m_spec = ImageSpec (m_dpx.header.Width(), m_dpx.header.Height(),
-        m_dpx.header.ImageElementComponentCount(index), typedesc);
+        m_dpx.header.ImageElementComponentCount(subimage), typedesc);
     // fill channel names
     m_spec.channelnames.clear ();
-    switch (m_dpx.header.ImageDescriptor(index)) {
+    switch (m_dpx.header.ImageDescriptor(subimage)) {
         /*case dpx::kUserDefinedDescriptor:
             break;*/
         case dpx::kRed:
@@ -237,14 +239,14 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
         default:
             {
                 for (int i = 0;
-                    i < m_dpx.header.ImageElementComponentCount(index); i++) {
+                    i < m_dpx.header.ImageElementComponentCount(subimage); i++) {
                     std::string ch = "channel" + i;
                     m_spec.channelnames.push_back(ch);
                 }
             }
     }
     // bits per pixel
-    m_spec.attribute ("BitsPerSample", m_dpx.header.BitDepth(index));
+    m_spec.attribute ("BitsPerSample", m_dpx.header.BitDepth(subimage));
     // image orientation - see appendix B.2 of the OIIO documentation
     int orientation;
     switch (m_dpx.header.ImageOrientation ()) {
@@ -279,7 +281,7 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
     m_spec.attribute ("Orientation", orientation);
 
     // image linearity
-    switch (m_dpx.header.Transfer (index)) {
+    switch (m_dpx.header.Transfer (subimage)) {
         case dpx::kLinear:
             m_spec.linearity = ImageSpec::Linear;
             break;
@@ -311,20 +313,20 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
             break;
     }
     m_spec.attribute ("dpx:Transfer",
-        get_characteristic_string (m_dpx.header.Transfer (index)));
+        get_characteristic_string (m_dpx.header.Transfer (subimage)));
     // colorimetric characteristic
     m_spec.attribute ("dpx:Colorimetric",
-        get_characteristic_string (m_dpx.header.Colorimetric (index)));
+        get_characteristic_string (m_dpx.header.Colorimetric (subimage)));
 
     // general metadata
     // some non-compliant writers will dump a field filled with 0xFF rather
     // than a NULL string termination on the first character, so take that
     // into account, too
-    if (m_dpx.header.copyright[0] && m_dpx.header.copyright[0] != 0xFF)
+    if (m_dpx.header.copyright[0] && m_dpx.header.copyright[0] != (char)0xFF)
         m_spec.attribute ("Copyright", m_dpx.header.copyright);
-    if (m_dpx.header.creator[0] && m_dpx.header.creator[0] != 0xFF)
+    if (m_dpx.header.creator[0] && m_dpx.header.creator[0] != (char)0xFF)
         m_spec.attribute ("Software", m_dpx.header.creator);
-    if (m_dpx.header.project[0] && m_dpx.header.project[0] != 0xFF)
+    if (m_dpx.header.project[0] && m_dpx.header.project[0] != (char)0xFF)
         m_spec.attribute ("DocumentName", m_dpx.header.project);
     if (m_dpx.header.creationTimeDate[0]) {
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
@@ -335,10 +337,10 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
         date[19] = 0;
         m_spec.attribute ("DateTime", date);
     }
-    if (m_dpx.header.ImageEncoding (index) == dpx::kRLE)
+    if (m_dpx.header.ImageEncoding (subimage) == dpx::kRLE)
         m_spec.attribute ("compression", "rle");
     char buf[32 + 1];
-    m_dpx.header.Description (index, buf);
+    m_dpx.header.Description (subimage, buf);
     if (buf[0] && buf[0] != -1)
         m_spec.attribute ("ImageDescription", buf);
     m_spec.attribute ("PixelAspectRatio", m_dpx.header.AspectRatio(0)
@@ -346,23 +348,23 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
 
     // DPX-specific metadata
     m_spec.attribute ("dpx:ImageDescriptor",
-        get_descriptor_string (m_dpx.header.ImageDescriptor (index)));
+        get_descriptor_string (m_dpx.header.ImageDescriptor (subimage)));
     // save some typing by using macros
     // "internal" macros
 #define DPX_SET_ATTRIB_S(x, n, s)   m_spec.attribute (s,                      \
                                         m_dpx.header.x (n))
 #define DPX_SET_ATTRIB(x, n)        DPX_SET_ATTRIB_S(x, n, "dpx:" #x)
     // set without checking for bogus attributes
-#define DPX_SET_ATTRIB_N(x)         DPX_SET_ATTRIB(x, index)
+#define DPX_SET_ATTRIB_N(x)         DPX_SET_ATTRIB(x, subimage)
     // set with checking for bogus attributes
 #define DPX_SET_ATTRIB_BYTE(x)      if (m_dpx.header.x () != 0xFF)      \
                                         DPX_SET_ATTRIB(x, )
-#define DPX_SET_ATTRIB_INT_N(x)     if (m_dpx.header.x (index) != 0xFFFFFFFF) \
-                                        DPX_SET_ATTRIB(x, index)
+#define DPX_SET_ATTRIB_INT_N(x)     if (m_dpx.header.x (subimage) != 0xFFFFFFFF) \
+                                        DPX_SET_ATTRIB(x, subimage)
 #define DPX_SET_ATTRIB_INT(x)       if (m_dpx.header.x () != 0xFFFFFFFF)      \
                                         DPX_SET_ATTRIB(x, )
-#define DPX_SET_ATTRIB_FLOAT_N(x)   if (! isnan(m_dpx.header.x (index)))      \
-                                        DPX_SET_ATTRIB(x, index)
+#define DPX_SET_ATTRIB_FLOAT_N(x)   if (! isnan(m_dpx.header.x (subimage)))      \
+                                        DPX_SET_ATTRIB(x, subimage)
 #define DPX_SET_ATTRIB_FLOAT(x)     if (! isnan(m_dpx.header.x ()))           \
                                         DPX_SET_ATTRIB(x, )
     // see comment above Copyright, Software and DocumentName
@@ -413,7 +415,7 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
 #undef DPX_SET_ATTRIB_S
 
     std::string tmpstr;
-    switch (m_dpx.header.ImagePacking (index)) {
+    switch (m_dpx.header.ImagePacking (subimage)) {
         case dpx::kPacked:
             tmpstr = "Packed";
             break;
@@ -520,7 +522,7 @@ DPXInput::seek_subimage (int index, ImageSpec &newspec)
             m_dpx.header.UserSize ()), &m_userBuf[0]);
 
     dpx::Block block(0, 0, m_dpx.header.Width () - 1, 0);
-    int bufsize = dpx::QueryRGBBufferSize (m_dpx.header, index, block);
+    int bufsize = dpx::QueryRGBBufferSize (m_dpx.header, subimage, block);
     if (bufsize == 0 && !m_wantRaw) {
         error ("Unable to deliver RGB data from source data");
         return false;

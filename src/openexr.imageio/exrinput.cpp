@@ -69,7 +69,8 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageSpec &newspec);
+    virtual int current_miplevel (void) const { return m_miplevel; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
 
@@ -82,6 +83,8 @@ private:
     int m_roundingmode;                   ///< Rounding mode of the file
     int m_subimage;                       ///< What subimage are we looking at?
     int m_nsubimages;                     ///< How many subimages are there?
+    int m_miplevel;                       ///< What MIP level are we looking at?
+    int m_nmiplevels;                     ///< How many MIP levels are there?
     int m_topwidth;                       ///< Width of top mip level
     int m_topheight;                      ///< Height of top mip level
     bool m_cubeface;                      ///< It's a cubeface environment map
@@ -94,6 +97,7 @@ private:
         m_input_scanline = NULL;
         m_input_tiled = NULL;
         m_subimage = -1;
+        m_miplevel = -1;
     }
 
     // Helper for open(): set up m_spec.nchannels, m_spec.channelnames,
@@ -229,23 +233,24 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     m_spec.tile_depth = 1;
     query_channels ();   // also sets format
 
+    m_nsubimages = 1;
     if (tiled) {
         // FIXME: levelmode
         m_levelmode = m_input_tiled->levelMode();
         m_roundingmode = m_input_tiled->levelRoundingMode();
         if (m_levelmode == Imf::MIPMAP_LEVELS) {
-            m_nsubimages = m_input_tiled->numLevels();
+            m_nmiplevels = m_input_tiled->numLevels();
             m_spec.attribute ("openexr:roundingmode", m_roundingmode);
         } else if (m_levelmode == Imf::RIPMAP_LEVELS) {
-            m_nsubimages = std::max (m_input_tiled->numXLevels(),
+            m_nmiplevels = std::max (m_input_tiled->numXLevels(),
                                      m_input_tiled->numYLevels());
             m_spec.attribute ("openexr:roundingmode", m_roundingmode);
         } else {
-            m_nsubimages = 1;
+            m_nmiplevels = 1;
         }
     } else {
         m_levelmode = Imf::ONE_LEVEL;
-        m_nsubimages = 1;
+        m_nmiplevels = 1;
     }
 
     const Imf::EnvmapAttribute *envmap;
@@ -326,6 +331,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     }
 
     m_subimage = 0;
+    m_miplevel = 0;
     newspec = m_spec;
     return true;
 }
@@ -428,22 +434,26 @@ OpenEXRInput::query_channels (void)
 
 
 bool
-OpenEXRInput::seek_subimage (int index, ImageSpec &newspec)
+OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
-    if (index < 0 || index >= m_nsubimages)   // out of range
+    if (subimage < 0 || subimage >= m_nsubimages)   // out of range
         return false;
 
-    m_subimage = index;
+    if (miplevel < 0 || miplevel >= m_nmiplevels)   // out of range
+        return false;
 
-    if (index == 0 && m_levelmode == Imf::ONE_LEVEL) {
+    m_subimage = subimage;
+    m_miplevel = miplevel;
+
+    if (miplevel == 0 && m_levelmode == Imf::ONE_LEVEL) {
         newspec = m_spec;
         return true;
     }
 
-    // Compute the resolution of the requested subimage.
+    // Compute the resolution of the requested mip level.
     int w = m_topwidth, h = m_topheight;
     if (m_levelmode == Imf::MIPMAP_LEVELS) {
-        while (index--) {
+        while (miplevel--) {
             if (w > 1) {
                 if ((w & 1) && m_roundingmode == Imf::ROUND_UP)
                     w = w/2 + 1;

@@ -114,6 +114,13 @@ should have nchannels = 3, firstchannel = 0.  To retrieve just the blue
 channel, you should have nchannels = 1, firstchannel = 2.
 \apiend
 
+\apiitem{int face}
+The face or subimage within the file to use for the texture lookup.
+The default is 0, and larger values only make sense for a texture file
+that supports subimages or separate images per face (such as Ptex).
+This will be ignored if the file does not have separate per-face textures.
+\apiend
+
 \apiitem{Wrap swrap, twrap}
 Specify the \emph{wrap mode} for 2D texture lookups (and 3D volume
 texture lookups, using the additional {\cf zwrap} field).  These fields
@@ -453,6 +460,13 @@ The number of color channels to look up from the texture.
 \apiitem{int firstchannel}
 \vspace{10pt}
 The index of the first channel to look up from the texture.
+\apiend
+
+\vspace{-24pt}
+\apiitem{int face}
+\vspace{10pt}
+The face (subimage) within the file.
+This will be ignored if the file does not have separate per-face textures.
 \apiend
 
 \vspace{-24pt}
@@ -797,8 +811,8 @@ plugin.
 \label{sec:texturesys:api:gettextureinfo}
 \label{sec:texturesys:api:getimagespec}
 
-\apiitem{bool {\ce get_texture_info} (ustring filename, ustring dataname, \\
-\bigspc                                 TypeDesc datatype, void *data)}
+\apiitem{bool {\ce get_texture_info} (ustring filename, int subimage, \\
+\bigspc ustring dataname, TypeDesc datatype, void *data)}
 
 Retrieves information about the texture named by {\cf filename}.
 The {\cf dataname} is a keyword indcating what information should
@@ -820,8 +834,13 @@ Supported {\cf dataname} values include:
 is an image format that OpenImageIO knows how to read, otherwise return
 0.  The {\cf data} pointer is not used.
 
+\item[\rm \kw{subimages}] The number of subimages/faces in the file, as an integer.
+
 \item[\rm \kw{resolution}] The resolution of the texture file, which
 is an array of 2 integers (described as {\cf TypeDesc(INT,2)}).
+
+\item[\rm \kw{miplevels}] The number of MIPmap levels for the specified
+subimage (an integer).
 
 \item[\rm \kw{texturetype}] A string describing the type of texture
 of the given file, which describes how the texture may be used (also
@@ -856,7 +875,7 @@ matches both the name and data type.
 \end{description}
 \apiend
 
-\apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec)}
+\apiitem{bool {\ce get_imagespec} (ustring filename, int subimage, ImageSpec \&spec)}
 
 If the named image is found and able to be opened by an available
 image format plugin, this function copies its image specification into
@@ -866,7 +885,7 @@ plugin that could be found, the return value is {\cf false}.
 \apiend
 
 
-\apiitem{const ImageSpec * {\ce imagespec} (ustring filename)}
+\apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int subimage)}
 
 If the named image is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function
@@ -889,6 +908,7 @@ caller must beware that the pointer is only valid as long as nobody
 
 Retrieve a rectangle of raw unfiltered texels at the named MIP-map level, storing
 the texel values beginning at the address specified by result.
+Note that the face/subimage is communicated through {\kw options.face}.
 The texel values will be converted to the type specified by
 format.  It is up to the caller to ensure that result points to
 an area of memory big enough to accommodate the requested

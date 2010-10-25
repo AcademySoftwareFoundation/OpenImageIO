@@ -162,12 +162,14 @@ getargs (int argc, char *argv[])
 
 
 static bool
-read_input (const std::string &filename, ImageBuf &img, int subimage=0)
+read_input (const std::string &filename, ImageBuf &img,
+            int subimage=0, int miplevel=0)
 {
-    if (img.subimage() >= 0 && img.subimage() == subimage)
+    if (img.subimage() >= 0 && img.subimage() == subimage
+          && img.miplevel() == miplevel)
         return true;
 
-    if (img.init_spec (filename) && 
+    if (img.init_spec (filename, subimage, miplevel) && 
         img.read (subimage, false, TypeDesc::FLOAT))
         return true;
 

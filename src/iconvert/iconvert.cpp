@@ -361,8 +361,9 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     }
 
     bool ok = true;
+    bool mip_to_subimage_warning = false;
     for (int subimage = 0;
-           ok && in->seek_subimage(subimage,inspec);
+           ok && in->seek_subimage(subimage,0,inspec);
            ++subimage) {
 
         if (subimage > 0 &&  !out->supports ("multiimage")) {
@@ -372,39 +373,68 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             break;  // we're done
         }
 
-        // Copy the spec, with possible change in format
-        ImageSpec outspec = inspec;
-        bool nocopy = adjust_spec (in, inspec, outspec);
-
-        if (! out->open (tempname.c_str(), outspec, subimage>0)) {
-            std::cerr << "iconvert ERROR: Could not open \"" << out_filename
-                      << "\" : " << out->geterror() << "\n";
-            ok = false;
-            break;
-        }
-
-        if (! nocopy) {
-            ok = out->copy_image (in);
-            if (! ok)
-                std::cerr << "iconvert ERROR copying \"" << in_filename 
-                          << "\" to \"" << out_filename << "\" :\n\t" 
-                          << out->geterror() << "\n";
-        } else {
-            // Need to do it by hand for some reason.  Future expansion in which
-            // only a subset of channels are copied, or some such.
-            std::vector<char> pixels (outspec.image_bytes());
-            ok = in->read_image (outspec.format, &pixels[0]);
-            if (! ok) {
-                std::cerr << "iconvert ERROR reading \"" << in_filename 
-                          << "\" : " << in->geterror() << "\n";
-            } else {
-                ok = out->write_image (outspec.format, &pixels[0]);
-                if (! ok)
-                    std::cerr << "iconvert ERROR writing \"" << out_filename 
-                              << "\" : " << out->geterror() << "\n";
-            }
-        }
+        int miplevel = 0;
+        do {
+            // Copy the spec, with possible change in format
+            ImageSpec outspec = inspec;
+            bool nocopy = adjust_spec (in, inspec, outspec);
         
+            ImageOutput::OpenMode mode;
+            if (miplevel > 0) {
+                if (out->supports ("mipmap"))
+                    mode = ImageOutput::AppendMIPLevel;
+                else if (out->supports ("multiimage")) {
+                    mode = ImageOutput::AppendSubimage; // use if we must
+                    if (! mip_to_subimage_warning
+                        && strcmp(out->format_name(),"tiff")) {
+                        std::cerr << "iconvert WARNING: " << out->format_name()
+                                  << " does not support MIPmaps.\n";
+                        std::cerr << "\tStoring the MIPmap levels in subimages.\n";
+                    }
+                    mip_to_subimage_warning = true;
+                } else {
+                    std::cerr << "iconvert WARNING: " << out->format_name()
+                              << " does not support MIPmaps.\n";
+                    std::cerr << "\tOnly the first level has been copied.\n";
+                    break;  // on to the next subimage
+                }
+            }
+            else if (subimage > 0)
+                mode = ImageOutput::AppendSubimage;
+            else
+                mode = ImageOutput::Create;
+
+            if (! out->open (tempname.c_str(), outspec, mode)) {
+                std::cerr << "iconvert ERROR: Could not open \"" << out_filename
+                          << "\" : " << out->geterror() << "\n";
+                ok = false;
+                break;
+            }
+
+            if (! nocopy) {
+                ok = out->copy_image (in);
+                if (! ok)
+                    std::cerr << "iconvert ERROR copying \"" << in_filename 
+                              << "\" to \"" << out_filename << "\" :\n\t" 
+                              << out->geterror() << "\n";
+            } else {
+                // Need to do it by hand for some reason.  Future expansion in which
+                // only a subset of channels are copied, or some such.
+                std::vector<char> pixels (outspec.image_bytes());
+                ok = in->read_image (outspec.format, &pixels[0]);
+                if (! ok) {
+                    std::cerr << "iconvert ERROR reading \"" << in_filename 
+                              << "\" : " << in->geterror() << "\n";
+                } else {
+                    ok = out->write_image (outspec.format, &pixels[0]);
+                    if (! ok)
+                        std::cerr << "iconvert ERROR writing \"" << out_filename 
+                                  << "\" : " << out->geterror() << "\n";
+                }
+            }
+        
+            ++miplevel;
+        } while (ok && in->seek_subimage(subimage,miplevel,inspec));
     }
 
     out->close ();

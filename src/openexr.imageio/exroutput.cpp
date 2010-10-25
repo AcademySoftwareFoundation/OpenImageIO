@@ -72,7 +72,7 @@ public:
     virtual const char * format_name (void) const { return "openexr"; }
     virtual bool supports (const std::string &feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode=Create);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
@@ -155,7 +155,7 @@ OpenEXROutput::supports (const std::string &feature) const
 {
     if (feature == "tiles")
         return true;
-    if (feature == "multiimage")
+    if (feature == "mipmap")
         return true;
 
     // EXR supports random write order iff lineOrder is set to 'random Y'
@@ -174,9 +174,15 @@ OpenEXROutput::supports (const std::string &feature) const
 
 
 bool
-OpenEXROutput::open (const std::string &name, const ImageSpec &userspec, bool append)
+OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
+                     OpenMode mode)
 {
-    if (append && (m_output_scanline || m_output_tiled)) {
+    if (mode == AppendSubimage) {
+        error ("%s does not support subimages", format_name());
+        return false;
+    }
+
+    if (mode == AppendMIPLevel && (m_output_scanline || m_output_tiled)) {
         // Special case for appending to an open file -- we don't need
         // to close and reopen
         if (m_spec.tile_width && m_levelmode != Imf::ONE_LEVEL) {

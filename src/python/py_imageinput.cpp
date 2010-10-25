@@ -85,9 +85,9 @@ int ImageInputWrap::current_subimage() const
     return m_input->current_subimage();
 }
 
-bool ImageInputWrap::seek_subimage(int index, ImageSpec &newspec)
+bool ImageInputWrap::seek_subimage(int subimage, int miplevel, ImageSpec &newspec)
 {
-    return m_input->seek_subimage(index, newspec);
+    return m_input->seek_subimage (subimage, miplevel, newspec);
 }
 
 /*      **deprecated**

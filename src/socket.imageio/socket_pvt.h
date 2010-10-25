@@ -67,7 +67,7 @@ class SocketOutput : public ImageOutput {
     virtual const char * format_name (void) const { return "socket"; }
     virtual bool supports (const std::string &property) const { return false; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode=Create);
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
     virtual bool write_tile (int x, int y, int z,

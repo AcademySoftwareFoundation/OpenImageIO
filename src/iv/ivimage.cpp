@@ -60,13 +60,13 @@ IvImage::~IvImage ()
 
 
 bool
-IvImage::init_spec (const std::string &filename)
+IvImage::init_spec (const std::string &filename, int subimage, int miplevel)
 {
     // invalidate info strings
     m_shortinfo.clear ();
     m_longinfo.clear ();
 
-    bool ok = ImageBuf::init_spec (filename);
+    bool ok = ImageBuf::init_spec (filename, subimage, miplevel);
     if (ok && m_file_dataformat.basetype == TypeDesc::UNKNOWN) {
         m_file_dataformat = m_spec.format;
     }
@@ -76,21 +76,22 @@ IvImage::init_spec (const std::string &filename)
 
 
 bool
-IvImage::read (int subimage, bool force, TypeDesc format,
+IvImage::read (int subimage, int miplevel, bool force, TypeDesc format,
                OpenImageIO::ProgressCallback progress_callback,
                void *progress_callback_data, bool secondary_data)
 {
     // Don't read if we already have it in memory, unless force is true.
     // FIXME: should we also check the time on the file to see if it's
     // been updated since we last loaded?
-    if (m_image_valid && !force && subimage == m_current_subimage)
+    if (m_image_valid && !force
+          && subimage == m_current_subimage && miplevel == m_current_miplevel)
         return true;
 
     // invalidate info strings
     m_shortinfo.clear();
     m_longinfo.clear();
 
-    m_image_valid = ImageBuf::read (subimage, force, format,
+    m_image_valid = ImageBuf::read (subimage, miplevel, force, format,
                               progress_callback, progress_callback_data);
 
     if (m_image_valid && secondary_data && m_spec.format == TypeDesc::UINT8) {

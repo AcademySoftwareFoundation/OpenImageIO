@@ -97,8 +97,10 @@ bool ImageBufWrap::write (ImageOutputWrap *out,
 }
 */
 
-bool ImageBufWrap::init_spec (const std::string &filename) {
-    return m_buf->init_spec(filename);
+bool ImageBufWrap::init_spec (const std::string &filename,
+                              int subimage, int miplevel)
+{
+    return m_buf->init_spec(filename, subimage, miplevel);
 }
 const ImageSpec& ImageBufWrap::spec() const {
     return m_buf->spec();

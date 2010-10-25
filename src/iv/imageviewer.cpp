@@ -853,13 +853,18 @@ ImageViewer::updateStatusBar ()
                                         cur()->subimage()+1, cur()->nsubimages());
         }
     }
+    if (cur()->nmiplevels() > 1) {
+        message += Strutil::format ("  MIP %d/%d",
+                                    cur()->miplevel()+1, cur()->nmiplevels());
+    }
+
     statusViewInfo->setText(message.c_str()); // tr("iv status"));
 }
 
 
 
 bool
-ImageViewer::loadCurrentImage (int subimage)
+ImageViewer::loadCurrentImage (int subimage, int miplevel)
 {
     if (m_current_image < 0 || m_current_image >= (int)m_images.size()) {
         m_current_image = 0;
@@ -868,7 +873,7 @@ ImageViewer::loadCurrentImage (int subimage)
     if (img) {
         // We need the spec available to compare the image format with
         // opengl's capabilities.
-        if (! img->init_spec (img->name ())) {
+        if (! img->init_spec (img->name(), subimage, miplevel)) {
             statusImgInfo->setText (tr ("Could not display image: %1.").arg (img->name().c_str()));
             statusViewInfo->setText (tr(""));
             return false;
@@ -925,7 +930,7 @@ ImageViewer::loadCurrentImage (int subimage)
         //}
 
         // Read the image from disk or from the ImageCache if available.
-        if (img->read (subimage, false, read_format, image_progress_callback, this, allow_transforms)) {
+        if (img->read (subimage, miplevel, false, read_format, image_progress_callback, this, allow_transforms)) {
             // The image was read succesfully.
             // Check if we've got to do sRGB to linear (ie, when not supported
             // by OpenGL).
@@ -958,7 +963,8 @@ ImageViewer::displayCurrentImage (bool update)
 
             statusViewInfo->hide ();
             statusProgress->show ();
-            load_result = loadCurrentImage (std::max (0, img->subimage ()));
+            load_result = loadCurrentImage (std::max (0, img->subimage()),
+                                            std::max (0, img->miplevel()));
             statusProgress->hide ();
             statusViewInfo->show ();
 
@@ -1413,7 +1419,7 @@ compImageDate (IvImage *first, IvImage *second)
     double diff;
     std::string metadatatime = first->spec ().get_string_attribute ("DateTime");
     if (metadatatime.empty()) {
-        if(first->init_spec (first->name())) {
+        if (first->init_spec (first->name(), 0, 0)) {
             metadatatime = first->spec ().get_string_attribute ("DateTime");
             if (metadatatime.empty()){
                 if (! boost::filesystem::exists (first->name ()))
@@ -1427,7 +1433,7 @@ compImageDate (IvImage *first, IvImage *second)
     DateTime_to_time_t (metadatatime.c_str(), firstFile);
     metadatatime = second->spec().get_string_attribute ("DateTime");
     if (metadatatime.empty()) {
-        if(second->init_spec(second->name())) {
+        if (second->init_spec(second->name(), 0, 0)) {
             metadatatime = second->spec ().get_string_attribute ("DateTime");
             if (metadatatime.empty()){
                 if (! boost::filesystem::exists (second->name ()))
@@ -1623,22 +1629,19 @@ ImageViewer::viewSubimagePrev ()
     IvImage *img = cur();
     if (! img)
         return;
-    if (img->subimage() > 0) {
-        bool ok = false;
+    bool ok = false;
+    if (img->miplevel() > 0) {
+        ok = loadCurrentImage (img->subimage(), img->miplevel()-1);
+    } else if (img->subimage() > 0) {
         ok = loadCurrentImage (img->subimage()-1);
-        if (ok) {
-            if (fitImageToWindowAct->isChecked ())
-                fitImageToWindow ();
-            displayCurrentImage ();
-        }
     } else if (img->nsubimages() > 0) {
         img->auto_subimage (true);
-        bool ok = loadCurrentImage (0);
-        if (ok) {
-            if (fitImageToWindowAct->isChecked ())
-                fitImageToWindow ();
-            displayCurrentImage ();
-        }
+        ok = loadCurrentImage (0);
+    }
+    if (ok) {
+        if (fitImageToWindowAct->isChecked ())
+            fitImageToWindow ();
+        displayCurrentImage ();
     }
 }
 
@@ -1649,22 +1652,19 @@ ImageViewer::viewSubimageNext ()
     IvImage *img = cur();
     if (! img)
         return;
+    bool ok = false;
     if (img->auto_subimage()) {
         img->auto_subimage(false);
-        bool ok = loadCurrentImage (0);
-        if (ok) {
-            if (fitImageToWindowAct->isChecked ())
-                fitImageToWindow ();
-            displayCurrentImage ();
-        }
+        ok = loadCurrentImage (0);
+    } else if (img->miplevel() < img->nmiplevels()-1) {
+        ok = loadCurrentImage (img->subimage(), img->miplevel()+1);
     } else if (img->subimage() < img->nsubimages()-1) {
-        bool ok = false;
         ok = loadCurrentImage (img->subimage()+1);
-        if (ok) {
-            if (fitImageToWindowAct->isChecked ())
-                fitImageToWindow ();
-            displayCurrentImage ();
-        }
+    }
+    if (ok) {
+        if (fitImageToWindowAct->isChecked ())
+            fitImageToWindow ();
+        displayCurrentImage ();
     }
 }
 

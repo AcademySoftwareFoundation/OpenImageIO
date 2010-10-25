@@ -237,7 +237,7 @@ data (use of strides is explained in
 Section~\ref{sec:imageoutput:strides}).
 
 
-\subsection{Converting formats}
+\subsection{Converting data formats}
 \label{sec:imageoutput:convertingformats}
 
 The code examples of the previous sections all assumed that your
@@ -349,10 +349,10 @@ flexible functionality.  A few representative examples follow:
         int scanlinesize = xres * channels * sizeof(pixels[0]);
         ...
         out->write_image (TypeDesc::UINT8,
-                          (char *)pixels + (yres-1)*scanlinesize,  // offset to last
-                          AutoStride,                      // default x stride
-                          -scanlinesize,                   // special y stride
-                          AutoStride);                     // default z stride
+                          (char *)pixels+(yres-1)*scanlinesize, // offset to last
+                          AutoStride,                  // default x stride
+                          -scanlinesize,               // special y stride
+                          AutoStride);                 // default z stride
   \end{code}
 \item Write a tile that is embedded within a whole image of pixel data,
   rather than having a one-tile-only memory layout:
@@ -383,10 +383,10 @@ flexible functionality.  A few representative examples follow:
 
         // Use strides to write out a one-channel "slice" of the image
         out->write_image (TypeDesc::UINT8,
-                          (char *)pixels + 3*channelsize,  // offset to chan 3
-                          channels*channelsize,            // 4 channel x stride
-                          AutoStride,                      // default y stride
-                          AutoStride);                     // default z stride
+                          (char *)pixels+3*channelsize, // offset to chan 3
+                          channels*channelsize,         // 4 channel x stride
+                          AutoStride,                   // default y stride
+                          AutoStride);                  // default z stride
         ...
   \end{code}
 \end{itemize}
@@ -461,7 +461,8 @@ the full data, if it was all present).
         ...
         int z = 0;   // Always zero for 2D images
         for (int y = yorigin;  y < yorigin+croplength;  ++y) {
-            out->write_scanline (y, z, TypeDesc::UINT8, (y-yorigin)*cropwidth*channels);
+            out->write_scanline (y, z, TypeDesc::UINT8,
+                                 (y-yorigin)*cropwidth*channels);
         }
         out->close ();
 \end{code}
@@ -809,28 +810,34 @@ queried using:
 
 \subsection{Multi-image files and MIP-maps}
 \label{sec:imageoutput:multiimage}
+\label{sec:imageoutput:mipmap}
 
-Some image file formats support multiple discrete images to be stored
-in one file.  Given a created \ImageOutput, you can query whether
-multiple images may be stored in the file:
+Some image file formats support multiple discrete subimages to be stored
+in one file, and/or multiple resolutions (MIP-map levels).  Given a
+created \ImageOutput, you can query whether multiple images may be
+stored in the file:
 
 \begin{code}
         ImageOutput *out = ImageOutput::create (filename);
         if (out->supports ("multiimage"))
             ...
+        if (out->supports ("mipmap"))
+            ...
 \end{code}
 
-If you are working with an \ImageOutput that supports multiple images,
+If you are working with an \ImageOutput that supports multiple images
+or MIP-map levels,
 it is easy to write these images.  All you have to do is, after writing
 all the pixels of one image but before calling {\cf close()}, call {\cf
-  open()} again for the next image and passing {\cf true} as the
-optional third \emph{append} argument.  (See
+  open()} again for the next subimage or MIP level and passing the
+appropriate value for the optional third
+\emph{mode} argument.  (See
 Section~\ref{sec:imageoutput:reference} for the full technical
 description of the arguments to {\cf open()}.)  The {\cf close()}
-routine is called just once, after all subimages are completed.
+routine is called just once, after all subimages and MIP levels are completed.
 
 Below is pseudocode for writing a MIP-map (a multi-resolution image
-used for texture mapping) that shows how to use multi-image:
+used for texture mapping):
 
 \begin{code}
         const char *filename = "foo.tif";
@@ -841,26 +848,35 @@ used for texture mapping) that shows how to use multi-image:
         // Create the ImageOutput
         ImageOutput *out = ImageOutput::create (filename);
 
-        // Be sure we can support multi-res
-        if (! out->supports ("multiimage")) {
+        // Be sure we can support either mipmaps or subimages
+        if (! out->supports ("mipmap") && ! out->supports ("multiimage")) {
             std::cerr << "Cannot write a MIP-map\n";
             delete out;
             return;
         }
-
         // Set up spec for the highest resolution
         ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+
+        // Use Create mode for the first level.
+        ImageOutput::OpenMode appendmode = ImageOutput::Create;
 
         // Write images, halving every time, until we're down to
         // 1 pixel in either dimension
         while (spec.width >= 1 && spec.height >= 1) {
-            out->open (filename, spec, true /* append mode */);
+            out->open (filename, spec, mode);
             out->write_image (TypeDesc::UINT8, pixels);
             // Assume halve() resamples the image to half resolution
             halve (pixels, spec.width, spec.height);
             // Don't forget to change spec for the next iteration
             spec.width /= 2;
             spec.height /= 2;
+            // For subsequent levels, change the append mode argument to
+            // open().  If the format doesn't support MIPmaps directly,
+            // try to emulate it with subimages.
+            if (out->supports("mipmap"))
+                appendmode = ImageOutput::AppendMIPLevel;
+            else
+                appendmode = ImageOutput::AppendSubimage;
         }
         out->close ();
         delete out;
@@ -1062,8 +1078,10 @@ by this query:
   {\kw supports("tiles")} returns true).
 \item[\rm \qkw{random_access}] May tiles or scanlines be written in any
   order?  False indicates that they must be in successive order.
-\item[\rm \qkw{multiimage}] Does this format support multiple images
+\item[\rm \qkw{multiimage}] Does this format support multiple subimages
   within a single file?
+\item[\rm \qkw{mipmap}] Does this format support resolutions per
+  image/subimage (MIP-map levels)?
 \item[\rm \qkw{volumes}] Does this format support ``3D'' pixel arrays
   (a.k.a.\ volume images)?
 \item[\rm \qkw{rewrite}] Does this plugin allow the same scanline or
@@ -1084,15 +1102,17 @@ queries does not break ``link compatibility'' with previously-compiled
 plugins.
 \apiend
 
-\apiitem{bool {\ce open} (const std::string \&name, const ImageSpec \&newspec,
-                       bool append=false)}
+\apiitem{bool {\ce open} (const std::string \&name, const ImageSpec \&newspec,\\
+\bigspc  OpenMode mode=Create)}
 
 Open the file with given {\kw name}, with resolution, and other format
 data as given in {\kw newspec}.  This function returns {\kw true} for
-success, {\kw false} for failure.  Note that it is legal to call {\kw
-open()} multiple times on the same file without a call to {\kw
-close()}, if it supports multiimage and the append flag is {\kw true}
--- this is interpreted as appending images (such as for MIP-maps).
+success, {\kw false} for failure.  Note that it is legal to call 
+{\kw open()} multiple times on the same file without a call to
+{\kw close()}, if it supports multiimage and {\kw mode} is 
+{\kw AppendSubimage}, or if it supports MIP-maps and {\kw mode} is 
+{\kw AppendMIPlevel} -- this is interpreted as appending a subimage, or
+a MIP level to the current subimage, respectively.
 
 \apiend
 

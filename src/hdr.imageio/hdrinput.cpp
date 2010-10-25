@@ -65,7 +65,7 @@ public:
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageSpec &newspec);
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
 
 private:
     std::string m_filename;       ///< File name
@@ -103,20 +103,20 @@ bool
 HdrInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
-    return seek_subimage (0, newspec);
+    return seek_subimage (0, 0, newspec);
 }
 
 
 
 bool
-HdrInput::seek_subimage (int index, ImageSpec &newspec)
+HdrInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
-    // HDR doesn't support multiple subimages
-    if (index != 0)
+    // HDR doesn't support multiple subimages or mipmaps
+    if (subimage != 0 || miplevel != 0)
         return false;
 
     // Skip the hard work if we're already on the requested subimage
-    if (index == current_subimage()) {
+    if (subimage == current_subimage()) {
         newspec = spec();
         return true;
     }
@@ -149,7 +149,7 @@ HdrInput::seek_subimage (int index, ImageSpec &newspec)
     // FIXME -- should we do anything about exposure, software,
     // pixaspect, primaries?  (N.B. rgbe.c doesn't even handle most of them)
 
-    m_subimage = index;
+    m_subimage = subimage;
     m_next_scanline = 0;
     newspec = m_spec;
     return true;
@@ -165,11 +165,13 @@ HdrInput::read_native_scanline (int y, int z, void *data)
         // up to.  Easy fix: close the file and re-open.
         ImageSpec dummyspec;
         int subimage = current_subimage();
+        int miplevel = current_miplevel();
         if (! close ()  ||
             ! open (m_filename, dummyspec)  ||
-            ! seek_subimage (subimage, dummyspec))
+            ! seek_subimage (subimage, miplevel, dummyspec))
             return false;    // Somehow, the re-open failed
-        assert (m_next_scanline == 0 && current_subimage() == subimage);
+        assert (m_next_scanline == 0 && current_subimage() == subimage &&
+                current_miplevel() == miplevel);
     }
     while (m_next_scanline <= y) {
         // Keep reading until we're read the scanline we really need

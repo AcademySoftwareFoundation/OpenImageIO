@@ -57,7 +57,7 @@ Below are some simple code fragments that shows \ImageCache in action:
     // (for brevity of this example, let's assume that 'size' is the
     // number of channels times the number of pixels in the requested region)
     float pixels[size];
-    cache->get_pixels ("file1.jpg", 0, xbegin, xend, ybegin, yend,
+    cache->get_pixels ("file1.jpg", 0, 0, xbegin, xend, ybegin, yend,
                        zbegin, zend, TypeDesc::FLOAT, pixels);
 
     // Get information about a file
@@ -69,7 +69,7 @@ Below are some simple code fragments that shows \ImageCache in action:
 
     // Request and hold a tile, do some work with its pixels, then release
     ImageCache::Tile *tile;
-    tile = cache->get_tile ("file2.exr", 0, x, y, z);
+    tile = cache->get_tile ("file2.exr", 0, 0, x, y, z);
     // The tile won't be freed until we release it, so this is safe:
     TypeDesc format;
     void *p = cache->tile_pixels (tile, format);
@@ -331,8 +331,9 @@ immediately return as a failure.
 \label{sec:imagecache:api:getimageinfo}
 \label{sec:imagecache:api:getimagespec}
 
-\apiitem{bool {\ce get_image_info} (ustring filename, ustring dataname, \\
-  \bigspc\bigspc TypeDesc datatype, void *data)}
+\apiitem{bool {\ce get_image_info} (ustring filename, int subimage, int
+  miplevel, \\
+  \bigspc\bigspc ustring dataname, TypeDesc datatype, void *data)}
 Retrieves information about the image named by {\cf filename}.
 The {\cf dataname} is a keyword indcating what information should
 be retrieved, {\cf datatype} is the type of data expected, and
@@ -354,8 +355,13 @@ Supported {\cf dataname} values include:
 is an image format that OpenImageIO knows how to read, otherwise return
 0.  The {\cf data} pointer is not used.
 
+\item[\rm \kw{subimages}] The number of subimages in the file, as an integer.
+
 \item[\rm \kw{resolution}] The resolution of the image file, which
 is an array of 2 integers (described as {\cf TypeDesc(INT,2)}).
+
+\item[\rm \kw{miplevels}] The number of MIPmap levels for the specified
+subimage (an integer).
 
 \item[\rm \kw{texturetype}] A string describing the type of texture
 of the given file, which describes how the texture may be used (also
@@ -400,10 +406,10 @@ matches both the name and data type.
 \end{description}
 \apiend
 
-\apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec,
-  int subimage=0)}
+\apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec,\\
+\bigspc  int subimage=0, int miplevel=0)}
 
-If the named image is found and able to be opened by an available
+If the named image (and the specific subimage and MIP level) is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function copies
 its image specification for that subimage into {\cf spec} and returns
 {\cf true}.  Otherwise, if the file is not found, could not be opened,
@@ -413,7 +419,8 @@ the designated subimage did not exist in the file, the return value is
 
 \apiend
 
-\apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int subimage=0)}
+\apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int
+  subimage=0, int miplevel=0)}
 
 If the named image is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function
@@ -438,7 +445,7 @@ applied.
 \subsection{Getting pixels}
 \label{sec:imagecache:api:getpixels}
 
-\apiitem{bool {\ce get\_pixels} (ustring filename, int subimage, \\
+\apiitem{bool {\ce get\_pixels} (ustring filename, int subimage, int miplevel, \\
          \bigspc int xbegin, int xend, int ybegin, int yend,
                             int zbegin, int zend, \\
          \bigspc TypeDesc format, void *result)}
@@ -459,7 +466,7 @@ image file will be filled with zero values.
 \subsection{Dealing with tiles}
 \label{sec:imagecache:api:tiles}
 
-\apiitem{ImageCache::Tile {\ce get_tile} (ustring filename, int subimage, \\
+\apiitem{ImageCache::Tile {\ce get_tile} (ustring filename, int subimage, int miplevel, \\
   \bigspc \bigspc int x, int y, int z)}
 Find a tile given by an image {\cf filename}, {\cf subimage}, and pixel
 coordinates.  An opaque pointer to the tile will be returned,

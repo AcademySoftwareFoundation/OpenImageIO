@@ -50,7 +50,7 @@ public:
         return false;
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       ImageOutput::OpenMode mode);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
@@ -96,10 +96,11 @@ CineonOutput::~CineonOutput ()
 
 
 bool
-CineonOutput::open (const std::string &name, const ImageSpec &userspec, bool append)
+CineonOutput::open (const std::string &name, const ImageSpec &userspec,
+                    ImageOutput::OpenMode mode)
 {
     error ("Cineon writer is not implemented yet, please poke Leszek in the "
-        "mailing list");
+           "mailing list");
     return false;
 }
 
@@ -117,10 +118,10 @@ CineonOutput::close ()
 
 bool
 CineonOutput::write_scanline (int y, int z, TypeDesc format,
-                            const void *data, stride_t xstride)
+                              const void *data, stride_t xstride)
 {
     error ("Cineon writer is not implemented yet, please poke Leszek in the "
-        "mailing list");
+           "mailing list");
     return false;
 }
 

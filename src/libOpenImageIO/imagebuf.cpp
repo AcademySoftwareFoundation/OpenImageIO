@@ -51,7 +51,8 @@ using namespace OpenImageIO;
 
 ImageBuf::ImageBuf (const std::string &filename,
                     ImageCache *imagecache)
-    : m_name(filename), m_nsubimages(0), m_current_subimage(-1),
+    : m_name(filename), m_nsubimages(0),
+      m_current_subimage(-1), m_current_miplevel(-1),
       m_localpixels(false), m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1), 
       m_imagecache(imagecache)
@@ -61,7 +62,8 @@ ImageBuf::ImageBuf (const std::string &filename,
 
 
 ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
-    : m_name(filename), m_nsubimages(0), m_current_subimage(0),
+    : m_name(filename), m_nsubimages(0),
+      m_current_subimage(-1), m_current_miplevel(-1),
       m_localpixels(true), m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1),
       m_imagecache(NULL)
@@ -88,6 +90,7 @@ ImageBuf::clear ()
     m_fileformat.clear ();
     m_nsubimages = 0;
     m_current_subimage = -1;
+    m_current_miplevel = -1;
     m_spec = ImageSpec ();
     {
         std::vector<char> tmp;
@@ -120,6 +123,7 @@ ImageBuf::reset (const std::string &filename, const ImageSpec &spec)
     clear ();
     m_name = ustring (filename);
     m_current_subimage = 0;
+    m_current_miplevel = 0;
     alloc (spec);
 }
 
@@ -156,9 +160,11 @@ ImageBuf::alloc (const ImageSpec &spec)
 
 
 bool
-ImageBuf::init_spec (const std::string &filename)
+ImageBuf::init_spec (const std::string &filename, int subimage, int miplevel)
 {
-    if (m_current_subimage >= 0 && m_name == filename)
+    if (m_current_subimage >= 0 && m_current_miplevel >= 0
+            && m_name == filename && m_current_subimage == subimage
+            && m_current_miplevel == miplevel)
         return true;   // Already done
 
     if (! m_imagecache) {
@@ -167,22 +173,25 @@ ImageBuf::init_spec (const std::string &filename)
 
     m_name = filename;
     m_nsubimages = 0;
-    for (m_nsubimages = 0;  ;  ++m_nsubimages) {
-        ImageSpec spec;
-        if (! m_imagecache->get_imagespec (m_name, spec, m_nsubimages))
-            break;
-        if (m_nsubimages == 0)
-            m_spec = spec;   // Copy the first spec
-    }
+    m_nmiplevels = 0;
+    static ustring s_subimages("subimages"), s_miplevels("miplevels");
+    m_imagecache->get_image_info (m_name, subimage, miplevel, s_subimages,
+                                  TypeDesc::TypeInt, &m_nsubimages);
+    m_imagecache->get_image_info (m_name, subimage, miplevel, s_miplevels,
+                                  TypeDesc::TypeInt, &m_nmiplevels);
+    m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel);
     if (m_nsubimages) {
         m_badfile = false;
         m_spec_valid = true;
         m_orientation = m_spec.get_int_attribute ("orientation", 1);
         m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
-        m_current_subimage = 0;
+        m_current_subimage = subimage;
+        m_current_miplevel = miplevel;
     } else {
         m_badfile = true;
         m_spec_valid = false;
+        m_current_subimage = -1;
+        m_current_miplevel = -1;
         m_err = m_imagecache->geterror ();
         // std::cerr << "ImageBuf ERROR: " << m_err << "\n";
     }
@@ -193,32 +202,35 @@ ImageBuf::init_spec (const std::string &filename)
 
 
 bool
-ImageBuf::read (int subimage, bool force, TypeDesc convert,
+ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
                OpenImageIO::ProgressCallback progress_callback,
                void *progress_callback_data)
 {
-    if (pixels_valid() && !force && subimage == this->subimage())
+    if (pixels_valid() && !force &&
+            subimage == this->subimage() && miplevel == this->miplevel())
         return true;
 
-    if (! init_spec (m_name.string())) {
+    if (! init_spec (m_name.string(), subimage, miplevel)) {
         m_badfile = true;
         m_spec_valid = false;
         return false;
     }
 
     // Set our current spec to the requested subimage
-    if (! m_imagecache->get_imagespec (m_name, m_spec, subimage)) {
+    if (! m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel)) {
         m_err = m_imagecache->geterror ();
         return false;
     }
     m_current_subimage = subimage;
+    m_current_miplevel = miplevel;
 
 #if 1
     // If we don't already have "local" pixels, and we aren't asking to
     // convert the pixels to a specific (and different) type, then take an
     // early out by relying on the cache.
     int peltype = TypeDesc::UNKNOWN;
-    m_imagecache->get_image_info (m_name, ustring("cachedpixeltype"),
+    m_imagecache->get_image_info (m_name, subimage, miplevel,
+                                  ustring("cachedpixeltype"),
                                   TypeDesc::TypeInt, &peltype);
     m_cachedpixeltype = TypeDesc ((TypeDesc::BASETYPE)peltype);
     if (! m_localpixels && ! force &&
@@ -242,7 +254,7 @@ ImageBuf::read (int subimage, bool force, TypeDesc convert,
     m_pixelaspect = m_spec.get_float_attribute ("pixelaspectratio", 1.0f);
 
     realloc ();
-    if (m_imagecache->get_pixels (m_name, subimage, 
+    if (m_imagecache->get_pixels (m_name, subimage, miplevel,
                                   m_spec.x, m_spec.x+m_spec.width,
                                   m_spec.y, m_spec.y+m_spec.height,
                                   m_spec.z, m_spec.z+m_spec.depth,
@@ -683,7 +695,8 @@ ImageBuf::pixeladdr (int x, int y)
 
 
 const void *
-ImageBuf::retile (int subimage, int x, int y, ImageCache::Tile* &tile,
+ImageBuf::retile (int subimage, int miplevel,
+                  int x, int y, ImageCache::Tile* &tile,
                   int &tilexbegin, int &tileybegin) const
 {
     int tw = spec().tile_width, th = spec().tile_height;
@@ -696,7 +709,7 @@ ImageBuf::retile (int subimage, int x, int y, ImageCache::Tile* &tile,
         int ytile = (y-spec().y) / th;
         tilexbegin = spec().x + xtile*tw;
         tileybegin = spec().y + ytile*th;
-        tile = m_imagecache->get_tile (m_name, subimage, x, y, 0);
+        tile = m_imagecache->get_tile (m_name, subimage, miplevel, x, y, 0);
     }
 
     size_t offset = ((y - tileybegin) * tw) + (x - tilexbegin);

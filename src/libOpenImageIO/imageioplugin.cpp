@@ -203,6 +203,7 @@ namespace OPENIMAGEIO_NAMESPACE {
     PLUGENTRY (openexr);
     PLUGENTRY (png);
     PLUGENTRY (pnm);
+    PLUGENTRY (ptex);
     PLUGENTRY (sgi);
     PLUGENTRY (socket);
     PLUGENTRY (softimage);
@@ -250,6 +251,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (openexr);
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
+    DECLAREPLUG (ptex);
     DECLAREPLUG (sgi);
 #ifdef USE_BOOST_ASIO
     DECLAREPLUG (socket);

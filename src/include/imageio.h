@@ -96,7 +96,9 @@ namespace OpenImageIO {
 /// routines.
 /// Version 10 represents forking from NVIDIA's open source version,
 /// with which we break backwards compatibility.
-#define OPENIMAGEIO_PLUGIN_VERSION 10
+/// Version 11 teased apart subimage versus miplevel specification in
+/// the APIs (introduced in OIIO 0.9).
+#define OPENIMAGEIO_PLUGIN_VERSION 11
 
 /// Strictly for back-compatibility -- this is deprecated
 ///
@@ -449,8 +451,8 @@ public:
                        const ImageSpec &config) { return open(name,newspec); }
 
     /// Return a reference to the image format specification of the
-    /// current subimage.  Note that the contents of the spec are
-    /// invalid before open() or after close().
+    /// current subimage/MIPlevel.  Note that the contents of the spec
+    /// are invalid before open() or after close().
     const ImageSpec &spec (void) const { return m_spec; }
 
     /// Close an image that we are totally done with.
@@ -462,20 +464,35 @@ public:
     /// is number 0.
     virtual int current_subimage (void) const { return 0; }
 
-    /// Seek to the given subimage.  The first subimage of the file has
-    /// index 0.  Return true on success, false on failure (including
-    /// that there is not a subimage with that index).  The new
+    /// Returns the index of the MIPmap image that is currently being read.
+    /// The highest-res MIP level (or the only level, if there is just
+    /// one) is number 0.
+    virtual int current_miplevel (void) const { return 0; }
+
+    /// Seek to the given subimage and MIP-map level within the open
+    /// image file.  The first subimage of the file has index 0, the
+    /// highest-resolution MIP level has index 0.  Return true on
+    /// success, false on failure (including that there is not a
+    /// subimage or MIP level with the specified index).  The new
     /// subimage's vital statistics are put in newspec (and also saved
     /// in this->spec).  The reader is expected to give the appearance
-    /// of random access to subimages -- in other words, if it can't
-    /// randomly seek to the given subimage, it should transparently
-    /// close, reopen, and sequentially read through prior subimages.
-    virtual bool seek_subimage (int index, ImageSpec &newspec) {
-        if (index == current_subimage()) {
+    /// of random access to subimages and MIP levels -- in other words,
+    /// if it can't randomly seek to the given subimage/level, it should
+    /// transparently close, reopen, and sequentially read through prior
+    /// subimages and levels.
+    virtual bool seek_subimage (int subimage, int miplevel,
+                                ImageSpec &newspec) {
+        if (subimage == current_subimage() && miplevel == current_miplevel()) {
             newspec = spec();
             return true;
         }
         return false;
+    }
+
+    /// Seek to the given subimage -- backwards-compatible call that
+    /// doesn't worry about MIP-map levels at all.
+    bool seek_subimage (int subimage, ImageSpec &newspec) {
+        return seek_subimage (subimage, 0 /* miplevel */, newspec);
     }
 
     /// Read the scanline that includes pixels (*,y,z) into data,
@@ -593,7 +610,7 @@ protected:
     void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 
 protected:
-    ImageSpec m_spec;          ///< format spec of the current open subimage
+    ImageSpec m_spec;  ///< format spec of the current open subimage/MIPlevel
 
 private:
     mutable std::string m_errmessage;  ///< private storage of error massage
@@ -637,6 +654,8 @@ public:
     ///                       be in successive order).
     ///    "multiimage"     Does this format support multiple images
     ///                       within a file?
+    ///    "mipmap"         Does this format support multiple resolutions
+    ///                       for an image/subimage?
     ///    "volumes"        Does this format support "3D" pixel arrays?
     ///    "rewrite"        May the same scanline or tile be sent more than
     ///                       once?  (Generally, this will be true for
@@ -654,14 +673,18 @@ public:
     /// compatibility.
     virtual bool supports (const std::string &feature) const = 0;
 
-    /// Open file with given name, with resolution and other format data
-    /// as given in newspec.  Open returns true for success, false for
-    /// failure.  Note that it is legal to call open multiple times on
-    /// the same file without a call to close(), if it supports
-    /// multiimage and the append flag is true -- this is interpreted as
-    /// appending images (such as for MIP-maps).
+    enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
+
+    /// Open the file with given name, with resolution and other format
+    /// data as given in newspec.  Open returns true for success, false
+    /// for failure.  Note that it is legal to call open multiple times
+    /// on the same file without a call to close(), if it supports
+    /// multiimage and mode is AppendSubimage, or if it supports
+    /// MIP-maps and mode is AppendMIPlevel -- this is interpreted as
+    /// appending a subimage, or a MIP level to the current subimage,
+    /// respectively.
     virtual bool open (const std::string &name, const ImageSpec &newspec,
-                       bool append=false) = 0;
+                       OpenMode mode=Create) = 0;
 
     /// Return a reference to the image format specification of the
     /// current subimage.  Note that the contents of the spec are

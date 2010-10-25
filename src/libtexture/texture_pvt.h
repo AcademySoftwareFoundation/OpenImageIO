@@ -210,23 +210,18 @@ public:
 
     /// Get information about the given texture.
     ///
-    virtual bool get_texture_info (ustring filename, ustring dataname,
-                                   TypeDesc datatype, void *data);
+    virtual bool get_texture_info (ustring filename, int subimage,
+                           ustring dataname, TypeDesc datatype, void *data);
 
-    /// Get the ImageSpec associated with the named texture
-    /// (specifically, the first MIP-map level).  If the file is found
-    /// and is an image format that can be read, store a copy of its
-    /// specification in spec and return true.  Return false if the file
-    /// was not found or could not be opened as an image file by any
-    /// available ImageIO plugin.
-    virtual bool get_imagespec (ustring filename, ImageSpec &spec);
+    virtual bool get_imagespec (ustring filename, int subimage,
+                                ImageSpec &spec);
 
-    virtual const ImageSpec *imagespec (ustring filename);
+    virtual const ImageSpec *imagespec (ustring filename, int subimage=0);
 
     /// Retrieve a rectangle of raw unfiltered texels.
     ///
     virtual bool get_texels (ustring filename, TextureOptions &options,
-                             int subimage, int xbegin, int xend,
+                             int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result);
 

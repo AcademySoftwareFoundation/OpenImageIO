@@ -132,12 +132,12 @@ bool ImageCacheWrap::get_imagespec(ustring filename, ImageSpec &spec, int subima
     return m_cache->get_imagespec(filename, spec, subimage);
 }    
 
-bool ImageCacheWrap::get_pixels (ustring filename, int subimage, int xbegin, 
-                int xend,int ybegin, int yend, int zbegin, 
+bool ImageCacheWrap::get_pixels (ustring filename, int subimage, int miplevel,
+                int xbegin, int xend, int ybegin, int yend, int zbegin, 
                 int zend, TypeDesc format, void *result)
 { 
-    return m_cache->get_pixels(filename, subimage, xbegin, xend, ybegin, 
-                               yend, zbegin, zend, format, result);
+    return m_cache->get_pixels(filename, subimage, miplevel, xbegin, xend,
+                               ybegin, yend, zbegin, zend, format, result);
 }
 
 //Not sure how to expose this to Python. 

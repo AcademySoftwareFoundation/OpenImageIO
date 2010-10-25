@@ -52,14 +52,19 @@ OIIO_PLUGIN_EXPORTS_END
 
 bool
 FitsOutput::open (const std::string &name, const ImageSpec &spec,
-                       bool append)
+                  OpenMode mode)
 {
+    if (mode == AppendMIPLevel) {
+        error ("%s does not support MIP levels", format_name());
+        return false;
+    }
+
     // saving 'name' and 'spec' for later use
     m_filename = name;
     m_spec = spec;
 
     // checking if the file exists and can be opened in WRITE mode
-    m_fd = fopen (m_filename.c_str (), append ? "r+b" : "wb");
+    m_fd = fopen (m_filename.c_str (), mode == AppendSubimage ? "r+b" : "wb");
     if (!m_fd) {
         error ("Unable to open file \"%s\"", m_filename.c_str());
         return false;

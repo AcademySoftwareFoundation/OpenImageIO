@@ -58,6 +58,25 @@ struct TIFF_tag_info {
 
 
 
+// Note about MIP-maps versus subimages: 
+//
+// TIFF files support subimages, but do not explicitly support
+// multiresolution/MIP maps.  So we have always used subimages to store
+// MIP levels.
+//
+// At present, TIFF is the only format people use for multires textures
+// that don't explicitly support it, so rather than make the
+// TextureSystem have to handle both cases, we choose instead to emulate
+// MIP with subimage in a way that's purely within the TIFFInput class.
+// To the outside world, it really does look MIP-mapped.  This only
+// kicks in for TIFF files that have the "textureformat" metadata set.
+//
+// The internal m_subimage really does contain the subimage, but for the
+// MIP emulation case, we report the subimage as the MIP level, and 0 as
+// the subimage.  It is indeed a tangled web of deceit we weave.
+
+
+
 class TIFFInput : public ImageInput {
 public:
     TIFFInput () { init(); }
@@ -65,8 +84,15 @@ public:
     virtual const char * format_name (void) const { return "tiff"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
-    virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int index, ImageSpec &newspec);
+    virtual int current_subimage (void) const {
+        // If m_emulate_mipmap is true, pretend subimages are mipmap levels
+        return m_emulate_mipmap ? 0 : m_subimage;
+    }
+    virtual int current_miplevel (void) const {
+        // If m_emulate_mipmap is true, pretend subimages are mipmap levels
+        return m_emulate_mipmap ? m_subimage : 0;
+    }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
 
@@ -77,6 +103,7 @@ private:
     int m_subimage;                  ///< What subimage are we looking at?
     int m_next_scanline;             ///< Next scanline we'll read
     bool m_no_random_access;         ///< Should we avoid random access?
+    bool m_emulate_mipmap;           ///< Should we emulate mip with subimage?
     unsigned short m_planarconfig;   ///< Planar config of the file
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
     unsigned short m_photometric;    ///< Of the *file*, not the client's view
@@ -86,6 +113,7 @@ private:
     void init () {
         m_tif = NULL;
         m_subimage = -1;
+        m_emulate_mipmap = false;
         m_colormap.clear();
     }
 
@@ -233,17 +261,28 @@ TIFFInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
     m_subimage = -1;
-    return seek_subimage (0, newspec);
+    return seek_subimage (0, 0, newspec);
 }
 
 
 
 bool
-TIFFInput::seek_subimage (int index, ImageSpec &newspec)
+TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
-    if (index < 0)       // Illegal
+    if (subimage < 0)       // Illegal
         return false;
-    if (index == m_subimage) {
+    if (m_emulate_mipmap) {
+        // Emulating MIPmap?  Pretend one subimage, many MIP levels.
+        if (subimage != 0)
+            return false;
+        subimage = miplevel;
+    } else {
+        // No MIPmap emulation
+        if (miplevel != 0)
+            return false;
+    }
+
+    if (subimage == m_subimage) {
         // We're already pointing to the right subimage
         newspec = m_spec;
         return true;
@@ -267,8 +306,8 @@ TIFFInput::seek_subimage (int index, ImageSpec &newspec)
     }
     
     m_next_scanline = 0;   // next scanline we'll read
-    if (TIFFSetDirectory (m_tif, index)) {
-        m_subimage = index;
+    if (TIFFSetDirectory (m_tif, subimage)) {
+        m_subimage = subimage;
         readspec ();
         newspec = m_spec;
         if (newspec.format == TypeDesc::UNKNOWN) {
@@ -536,6 +575,8 @@ TIFFInput::readspec ()
     // Special names for shadow maps
     char *s = NULL;
     TIFFGetField (m_tif, TIFFTAG_PIXAR_TEXTUREFORMAT, &s);
+    if (s)
+        m_emulate_mipmap = true;
     if (s && ! strcmp (s, "Shadow")) {
         for (int c = 0;  c < m_spec.nchannels;  ++c)
             m_spec.channelnames[c] = "z";
@@ -713,13 +754,16 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
             // "strip", in which case we don't need to start from 0, just
             // start from the beginning of the strip we need.
             ImageSpec dummyspec;
-            int subimage = current_subimage();
+            int old_subimage = current_subimage();
+            int old_miplevel = current_miplevel();
             if (! close ()  ||
                 ! open (m_filename, dummyspec)  ||
-                ! seek_subimage (subimage, dummyspec)) {
+                ! seek_subimage (old_subimage, old_miplevel, dummyspec)) {
                 return false;    // Somehow, the re-open failed
             }
-            ASSERT (m_next_scanline == 0 && current_subimage() == subimage);
+            ASSERT (m_next_scanline == 0 &&
+                    current_subimage() == old_subimage &&
+                    current_miplevel() == old_miplevel);
         }
         while (m_next_scanline < y) {
             // Keep reading until we're read the scanline we really need

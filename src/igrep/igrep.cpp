@@ -55,6 +55,7 @@ static bool list_files = false;
 static bool recursive = false;
 static bool file_match = false;
 static bool print_dirs = false;
+static bool all_subimages = false;
 static bool extended_regex = false;
 static std::string pattern;
 static std::vector<std::string> filenames;
@@ -111,24 +112,30 @@ grep_file (const std::string &filename, boost::regex &re,
     }
 
     bool found = false;
-    BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
-        TypeDesc t = p.type();
-        if (t.elementtype() == TypeDesc::STRING) {
-            int n = t.numelements();
-            for (int i = 0;  i < n;  ++i) {
-                bool match = boost::regex_search (((const char **)p.data())[i], re);
-                found |= match;
-                if (match && ! invert_match) {
-                    if (list_files) {
-                        std::cout << filename << "\n";
-                        return found;
+    int subimage = 0;
+    do {
+        if (!all_subimages && subimage > 0)
+            break;
+        BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
+            TypeDesc t = p.type();
+            if (t.elementtype() == TypeDesc::STRING) {
+                int n = t.numelements();
+                for (int i = 0;  i < n;  ++i) {
+                    bool match = boost::regex_search (((const char **)p.data())[i], re);
+                    found |= match;
+                    if (match && ! invert_match) {
+                        if (list_files) {
+                            std::cout << filename << "\n";
+                            return found;
+                        }
+                        std::cout << filename << ": " << p.name() << " = " 
+                                  << ((const char **)p.data())[i] << "\n";
                     }
-                    std::cout << filename << ": " << p.name() << " = " 
-                              << ((const char **)p.data())[i] << "\n";
                 }
             }
         }
-    }
+    } while (in->seek_subimage (++subimage, 0, spec));
+
     if (invert_match) {
         found = !found;
         if (found)
@@ -168,6 +175,7 @@ main (int argc, const char *argv[])
                 "-l", &list_files, "List the matching files (no detail)",
                 "-r", &recursive, "Recurse into directories",
                 "-d", &print_dirs, "Print directories (when recursive)",
+                "-a", &all_subimages, "Search all subimages of each file",
                 "--help", &help, "Print help message",
                 NULL);
     if (ap.parse(argc, argv) < 0 || pattern.empty() || filenames.empty()) {

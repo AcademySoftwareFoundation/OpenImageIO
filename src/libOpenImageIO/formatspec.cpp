@@ -512,8 +512,10 @@ format_raw_metadata (const ImageIOParameter &p)
     TypeDesc element = p.type().elementtype();
     int n = p.type().numelements() * p.nvalues();
     if (element == TypeDesc::STRING) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s\"%s\"", (i ? ", " : ""), ((const char **)p.data())[i]);
+        for (int i = 0;  i < n;  ++i) {
+            const char *s = ((const char **)p.data())[i];
+            out += Strutil::format ("%s\"%s\"", (i ? ", " : ""), s ? s : "");
+        }
     } else if (element == TypeDesc::FLOAT) {
         for (int i = 0;  i < n;  ++i)
             out += Strutil::format ("%s%g", (i ? ", " : ""), ((const float *)p.data())[i]);

@@ -373,7 +373,7 @@ make_texturemap (const char *maptypename = "texture map")
     }
 
     ImageBuf src (filenames[0]);
-    src.init_spec (filenames[0]);  // force it to get the spec, not to read
+    src.init_spec (filenames[0], 0, 0); // force it to get the spec, not read
 
     // The cache might mess with the apparent data format.  But for the 
     // purposes of what we should output, figure it out now, before the
@@ -612,7 +612,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                   << "\" format does not support tiled images\n";
         exit (EXIT_FAILURE);
     }
-    if (mipmap && ! out->supports ("multiimage")) {
+    if (mipmap && !out->supports ("multiimage") && !out->supports ("mipmap")) {
         std::cerr << "maketx ERROR: \"" << outputfilename
                   << "\" format does not support multires images\n";
         exit (EXIT_FAILURE);
@@ -665,7 +665,12 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             outspec = smallspec;
             outspec.set_format (outputdatatype);
             Timer writetimer;
-            if (! out->open (outputfilename.c_str(), outspec, true)) {
+            // If the format explicitly supports MIP-maps, use that,
+            // otherwise try to simulate MIP-mapping with multi-image.
+            bool ok = false;
+            ImageOutput::OpenMode mode = out->supports ("mipmap") ?
+                ImageOutput::AppendMIPLevel : ImageOutput::AppendSubimage;
+            if (! out->open (outputfilename.c_str(), outspec, mode)) {
                 std::cerr << "maketx ERROR: Could not append \"" << outputfilename
                           << "\" : " << out->geterror() << "\n";
                 exit (EXIT_FAILURE);

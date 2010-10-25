@@ -96,7 +96,7 @@ public:
     /// force==true.  This uses ImageInput underneath, so will read any
     /// file format for which an appropriate imageio plugin can be found.
     /// Return value is true if all is ok, otherwise false.
-    virtual bool read (int subimage=0, bool force=false,
+    virtual bool read (int subimage=0, int miplevel=0, bool force=false,
                        TypeDesc convert=TypeDesc::UNKNOWN,
                        OpenImageIO::ProgressCallback progress_callback=NULL,
                        void *progress_callback_data=NULL);
@@ -105,7 +105,8 @@ public:
     /// header to fill out the spec correctly.  Return true if this
     /// succeeded, false if the file could not be read.  But don't
     /// allocate or read the pixels.
-    virtual bool init_spec (const std::string &filename);
+    virtual bool init_spec (const std::string &filename,
+                            int subimage, int miplevel);
 
     /// Save the image or a subset thereof, with override for filename
     /// ("" means use the original filename) and file format ("" indicates
@@ -156,6 +157,14 @@ public:
     /// Return the number of subimages in the file.
     ///
     int nsubimages () const { return m_nsubimages; }
+
+    /// Return the index of the miplevel are we currently viewing
+    ///
+    int miplevel () const { return m_current_miplevel; }
+
+    /// Return the number of miplevels of the current subimage.
+    ///
+    int nmiplevels () const { return m_nmiplevels; }
 
     /// Return the number of color channels in the image.
     ///
@@ -362,7 +371,8 @@ public:
             else if (m_ib->localpixels())
                 m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y));
             else
-                m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(), x, y,
+                m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(), 
+                                         m_ib->miplevel(), x, y,
                                          m_tile, m_tilexbegin, m_tileybegin));
             m_x = x;  m_y = y;
         }
@@ -491,7 +501,8 @@ public:
             else if (m_ib->localpixels())
                 m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y));
             else
-                m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(), x, y,
+                m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(),
+                                         m_ib->miplevel(), x, y,
                                          m_tile, m_tilexbegin, m_tileybegin));
             m_x = x;  m_y = y;
         }
@@ -574,6 +585,8 @@ protected:
     ustring m_fileformat;        ///< File format name
     int m_nsubimages;            ///< How many subimages are there?
     int m_current_subimage;      ///< Current subimage we're viewing
+    int m_current_miplevel;      ///< Current miplevel we're viewing
+    int m_nmiplevels;            ///< # of MIP levels in the current subimage
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     std::vector<char> m_pixels;  ///< Pixel data
     bool m_localpixels;          ///< Pixels are local, in m_pixels
@@ -599,7 +612,8 @@ protected:
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
     // within the tile.
-    const void * retile (int subimage, int x, int y, ImageCache::Tile* &tile,
+    const void * retile (int subimage, int miplevel,
+                         int x, int y, ImageCache::Tile* &tile,
                          int &tilexbegin, int &tileybegin) const;
 };
 

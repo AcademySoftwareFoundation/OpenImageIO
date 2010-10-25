@@ -106,7 +106,7 @@ getargs (int argc, char *argv[])
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
-                  "-a", &compareall, "Compare all subimages",
+                  "-a", &compareall, "Compare all subimages/miplevels",
                   "<SEPARATOR>", "Thresholding and comparison options",
                   "-fail %g", &failthresh, "Failure threshold difference (0.000001)",
                   "-failpercent %g", &failpercent, "Allow this percentage of failures (0)",
@@ -143,13 +143,14 @@ getargs (int argc, char *argv[])
 
 static bool
 read_input (const std::string &filename, ImageBuf &img, 
-            ImageCache *cache, int subimage=0)
+            ImageCache *cache, int subimage=0, int miplevel=0)
 {
-    if (img.subimage() >= 0 && img.subimage() == subimage)
+    if (img.subimage() >= 0 && 
+            img.subimage() == subimage && img.miplevel() == miplevel)
         return true;
 
     img.reset (filename, cache);
-    if (img.read (subimage, false, TypeDesc::FLOAT))
+    if (img.read (subimage, miplevel, false, TypeDesc::TypeFloat))
         return true;
 
     std::cerr << "idiff ERROR: Could not read " << filename << ":\n\t"
@@ -535,13 +536,13 @@ main (int argc, char *argv[])
     if (! read_input (filenames[0], img0, imagecache) ||
         ! read_input (filenames[1], img1, imagecache))
         return ErrFile;
-    ImageSpec spec0 = img0.spec();  // stash it
+//    ImageSpec spec0 = img0.spec();  // stash it
 
     int ret = ErrOK;
     for (int subimage = 0;  subimage < img0.nsubimages();  ++subimage) {
         if (subimage > 0 && !compareall)
             break;
-        if (subimage >= img0.nsubimages())
+        if (subimage >= img1.nsubimages())
             break;
 
         if (compareall) {
@@ -556,116 +557,139 @@ main (int argc, char *argv[])
             ! read_input (filenames[1], img1, imagecache, subimage))
             return ErrFile;
 
-        // Compare the dimensions of the images.  Fail if they aren't the
-        // same resolution and number of channels.  No problem, though, if
-        // they aren't the same data type.
-        if (! same_size (img0, img1)) {
-            std::cout << "Images do not match in size: ";
-            std::cout << "(" << img0.spec().width << "x" << img0.spec().height;
-            if (img0.spec().depth > 1)
-                std::cout << "x" << img0.spec().depth;
-            std::cout << "x" << img0.spec().nchannels << ")";
-            std::cout << " versus ";
-            std::cout << "(" << img1.spec().width << "x" << img1.spec().height;
-            if (img1.spec().depth > 1)
-                std::cout << "x" << img1.spec().depth;
-            std::cout << "x" << img1.spec().nchannels << ")\n";
+        if (img0.nmiplevels() != img1.nmiplevels()) {
+            std::cout << "Files do not 1match in their number of MIPmap levels\n";
             ret = ErrDifferentSize;
             break;
         }
 
-        int npels = img0.spec().width * img0.spec().height * img0.spec().depth;
-        ASSERT (img0.spec().format == TypeDesc::FLOAT);
+        for (int m = 0;  m < img0.nmiplevels();  ++m) {
+            if (m > 0 && !compareall)
+                break;
+            if (! read_input (filenames[0], img0, imagecache, subimage, m) ||
+                ! read_input (filenames[1], img1, imagecache, subimage, m))
+                return ErrFile;
 
-        // Compare the two images.
-        //
-        double meanerror = 0;
-        double maxerror = 0;
-        double rms_error = 0;
-        double PSNR = 0;
-        int maxx=0, maxy=0, maxz=0, maxc=0;
-        int nfail = 0, nwarn = 0;
-        compare_images (img0, img1, meanerror, rms_error, PSNR, maxerror, 
-                        maxx, maxy, maxz, maxc, nwarn, nfail);
+            if (compareall && img0.nmiplevels() > 1) {
+                std::cout << " MIP level " << m << ": ";
+                std::cout << img0.spec().width << " x " << img0.spec().height;
+                if (img0.spec().depth > 1)
+                    std::cout << " x " << img0.spec().depth;
+                std::cout << ", " << img0.spec().nchannels << " channel\n";
+            }
 
-        int yee_failures = 0;
-        if (perceptual)
-            yee_failures = Yee_Compare (img0, img1);
+            // Compare the dimensions of the images.  Fail if they
+            // aren't the same resolution and number of channels.  No
+            // problem, though, if they aren't the same data type.
+            if (! same_size (img0, img1)) {
+                std::cout << "Images do not match in size: ";
+                std::cout << "(" << img0.spec().width << "x" << img0.spec().height;
+                if (img0.spec().depth > 1)
+                    std::cout << "x" << img0.spec().depth;
+                std::cout << "x" << img0.spec().nchannels << ")";
+                std::cout << " versus ";
+                std::cout << "(" << img1.spec().width << "x" << img1.spec().height;
+                if (img1.spec().depth > 1)
+                    std::cout << "x" << img1.spec().depth;
+                std::cout << "x" << img1.spec().nchannels << ")\n";
+                ret = ErrDifferentSize;
+                break;
+            }
 
-        // Print the report
-        //
-        std::cout << "  Mean error = ";
-        safe_double_print (meanerror);
-        std::cout << "  RMS error = ";
-        safe_double_print (rms_error);
-        std::cout << "  Peak SNR = ";
-        safe_double_print (PSNR);
-        std::cout << "  Max error  = " << maxerror;
-        if (maxerror != 0) {
-            std::cout << " @ (" << maxx << ", " << maxy;
-            if (img0.spec().depth > 1)
-                std::cout << ", " << maxz;
-            std::cout << ", " << img0.spec().channelnames[maxc] << ')';
-        }
-        std::cout << "\n";
+            int npels = img0.spec().width * img0.spec().height * img0.spec().depth;
+            ASSERT (img0.spec().format == TypeDesc::FLOAT);
+
+            // Compare the two images.
+            //
+            double meanerror = 0;
+            double maxerror = 0;
+            double rms_error = 0;
+            double PSNR = 0;
+            int maxx=0, maxy=0, maxz=0, maxc=0;
+            int nfail = 0, nwarn = 0;
+            compare_images (img0, img1, meanerror, rms_error, PSNR, maxerror, 
+                            maxx, maxy, maxz, maxc, nwarn, nfail);
+
+            int yee_failures = 0;
+            if (perceptual)
+                yee_failures = Yee_Compare (img0, img1);
+
+            // Print the report
+            //
+            std::cout << "  Mean error = ";
+            safe_double_print (meanerror);
+            std::cout << "  RMS error = ";
+            safe_double_print (rms_error);
+            std::cout << "  Peak SNR = ";
+            safe_double_print (PSNR);
+            std::cout << "  Max error  = " << maxerror;
+            if (maxerror != 0) {
+                std::cout << " @ (" << maxx << ", " << maxy;
+                if (img0.spec().depth > 1)
+                    std::cout << ", " << maxz;
+                std::cout << ", " << img0.spec().channelnames[maxc] << ')';
+            }
+            std::cout << "\n";
 // when Visual Studio is used float values in scientific foramt are 
 // printed with three digit exponent. We change this behaviour to fit
 // Linux way
 #ifdef _MSC_VER
-        _set_output_format(_TWO_DIGIT_EXPONENT);
+            _set_output_format(_TWO_DIGIT_EXPONENT);
 #endif
-        int precis = std::cout.precision();
-        std::cout << "  " << nwarn << " pixels (" 
-                  << std::setprecision(3) << (100.0*nwarn / npels) 
-                  << std::setprecision(precis) << "%) over " << warnthresh << "\n";
-        std::cout << "  " << nfail << " pixels (" 
-                  << std::setprecision(3) << (100.0*nfail / npels) 
-                  << std::setprecision(precis) << "%) over " << failthresh << "\n";
-        if (perceptual)
-            std::cout << "  " << yee_failures << " pixels ("
-                      << std::setprecision(3) << (100.0*yee_failures / npels) 
-                      << std::setprecision(precis)
-                      << "%) failed the perceptual test\n";
+            int precis = std::cout.precision();
+            std::cout << "  " << nwarn << " pixels (" 
+                      << std::setprecision(3) << (100.0*nwarn / npels) 
+                      << std::setprecision(precis) << "%) over " << warnthresh << "\n";
+            std::cout << "  " << nfail << " pixels (" 
+                      << std::setprecision(3) << (100.0*nfail / npels) 
+                      << std::setprecision(precis) << "%) over " << failthresh << "\n";
+            if (perceptual)
+                std::cout << "  " << yee_failures << " pixels ("
+                          << std::setprecision(3) << (100.0*yee_failures / npels) 
+                          << std::setprecision(precis)
+                          << "%) failed the perceptual test\n";
 
-        if (nfail > (failpercent/100.0 * npels) || maxerror > hardfail ||
+            if (nfail > (failpercent/100.0 * npels) || maxerror > hardfail ||
                 yee_failures > (failpercent/100.0 * npels)) {
-            ret = ErrFail;
-        } else if (nwarn > (warnpercent/100.0 * npels) || maxerror > hardwarn) {
-            if (ret != ErrFail)
-                ret = ErrWarn;
-        }
-
-        // If the user requested that a difference image be output, do that.
-        // N.B. we only do this for the first subimage right now, because
-        // ImageBuf doesn't really know how to write subimages.
-        if (diffimage.size() && (maxerror != 0 || !outdiffonly)) {
-            ImageBuf diff (diffimage, img0.spec());
-            ImageBuf::ConstIterator<float,float> pix0 (img0);
-            ImageBuf::ConstIterator<float,float> pix1 (img1);
-            ImageBuf::Iterator<float,float> pixdiff (diff);
-            // Subtract the second image from the first.  At which time we no
-            // longer need the second image, so free it.
-            if (diffabs) {
-                for (  ;  pix0.valid();  ++pix0) {
-                    pix1.pos (pix0.x(), pix0.y());  // ensure alignment
-                    pixdiff.pos (pix0.x(), pix0.y());
-                    for (int c = 0;  c < img0.nchannels();  ++c)
-                        pixdiff[c] = diffscale * fabsf (pix0[c] - pix1[c]);
-                }
-            } else {
-                for (  ;  pix0.valid();  ++pix0) {
-                    pix1.pos (pix0.x(), pix0.y());  // ensure alignment
-                    pixdiff.pos (pix0.x(), pix0.y());
-                    for (int c = 0;  c < img0.spec().nchannels;  ++c)
-                        pixdiff[c] = diffscale * (pix0[c] - pix1[c]);
-                }
+                ret = ErrFail;
+            } else if (nwarn > (warnpercent/100.0 * npels) || maxerror > hardwarn) {
+                if (ret != ErrFail)
+                    ret = ErrWarn;
             }
 
-            diff.save (diffimage);
+            // If the user requested that a difference image be output,
+            // do that.  N.B. we only do this for the first subimage
+            // right now, because ImageBuf doesn't really know how to
+            // write subimages.
+            if (diffimage.size() && (maxerror != 0 || !outdiffonly)) {
+                ImageBuf diff (diffimage, img0.spec());
+                ImageBuf::ConstIterator<float,float> pix0 (img0);
+                ImageBuf::ConstIterator<float,float> pix1 (img1);
+                ImageBuf::Iterator<float,float> pixdiff (diff);
+                // Subtract the second image from the first.  At which
+                // time we no longer need the second image, so free it.
+                if (diffabs) {
+                    for (  ;  pix0.valid();  ++pix0) {
+                        pix1.pos (pix0.x(), pix0.y());  // ensure alignment
+                        pixdiff.pos (pix0.x(), pix0.y());
+                        for (int c = 0;  c < img0.nchannels();  ++c)
+                            pixdiff[c] = diffscale * fabsf (pix0[c] - pix1[c]);
+                    }
+                } else {
+                    for (  ;  pix0.valid();  ++pix0) {
+                        pix1.pos (pix0.x(), pix0.y());  // ensure alignment
+                        pixdiff.pos (pix0.x(), pix0.y());
+                        for (int c = 0;  c < img0.spec().nchannels;  ++c)
+                            pixdiff[c] = diffscale * (pix0[c] - pix1[c]);
+                    }
+                }
 
-            // Clear diff image name so we only save the first non-matching
-            // subimage.
-            diffimage = "";
+                diff.save (diffimage);
+
+                // Clear diff image name so we only save the first
+                // non-matching subimage.
+                diffimage = "";
+            }
         }
     }
 

@@ -171,7 +171,7 @@ class BmpOutput : public ImageOutput {
     virtual const char *format_name (void) const { return "bmp"; }
     virtual bool supports (const std::string &feature) const {return false;}
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode);
     virtual bool close (void);
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);

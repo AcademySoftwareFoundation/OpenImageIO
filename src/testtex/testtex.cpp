@@ -128,34 +128,34 @@ test_gettextureinfo (ustring filename)
     bool ok;
 
     int res[2] = {0};
-    ok = texsys->get_texture_info (filename, ustring("resolution"),
+    ok = texsys->get_texture_info (filename, 0, ustring("resolution"),
                                    TypeDesc(TypeDesc::INT,2), res);
     std::cerr << "Result of get_texture_info resolution = " << ok << ' ' << res[0] << 'x' << res[1] << "\n";
 
     int chan = 0;
-    ok = texsys->get_texture_info (filename, ustring("channels"),
+    ok = texsys->get_texture_info (filename, 0, ustring("channels"),
                                    TypeDesc::INT, &chan);
     std::cerr << "Result of get_texture_info channels = " << ok << ' ' << chan << "\n";
 
     float fchan = 0;
-    ok = texsys->get_texture_info (filename, ustring("channels"),
+    ok = texsys->get_texture_info (filename, 0, ustring("channels"),
                                    TypeDesc::FLOAT, &fchan);
     std::cerr << "Result of get_texture_info channels = " << ok << ' ' << fchan << "\n";
 
     int dataformat = 0;
-    ok = texsys->get_texture_info (filename, ustring("format"),
+    ok = texsys->get_texture_info (filename, 0, ustring("format"),
                                    TypeDesc::INT, &dataformat);
     std::cerr << "Result of get_texture_info data format = " << ok << ' ' 
               << TypeDesc((TypeDesc::BASETYPE)dataformat).c_str() << "\n";
 
     const char *datetime = NULL;
-    ok = texsys->get_texture_info (filename, ustring("DateTime"),
+    ok = texsys->get_texture_info (filename, 0, ustring("DateTime"),
                                    TypeDesc::STRING, &datetime);
     std::cerr << "Result of get_texture_info datetime = " << ok << ' ' 
               << (datetime ? datetime : "") << "\n";
 
     const char *texturetype = NULL;
-    ok = texsys->get_texture_info (filename, ustring("textureformat"),
+    ok = texsys->get_texture_info (filename, 0, ustring("textureformat"),
                                    TypeDesc::STRING, &texturetype);
     std::cerr << "Texture type is " << ok << ' '
               << (texturetype ? texturetype : "") << "\n";
@@ -310,7 +310,7 @@ static void
 test_getimagespec_gettexels (ustring filename)
 {
     ImageSpec spec;
-    if (! texsys->get_imagespec (filename, spec)) {
+    if (! texsys->get_imagespec (filename, 0, spec)) {
         std::cerr << "Could not get spec for " << filename << "\n";
         std::string e = texsys->geterror ();
         if (! e.empty())
@@ -356,7 +356,7 @@ main (int argc, const char *argv[])
         ustring filename (filenames[0]);
         test_gettextureinfo (filename);
         const char *texturetype = "Plain Texture";
-        texsys->get_texture_info (filename, ustring("texturetype"),
+        texsys->get_texture_info (filename, 0, ustring("texturetype"),
                                   TypeDesc::STRING, &texturetype);
         if (! strcmp (texturetype, "Plain Texture")) {
             test_plain_texture (filename);

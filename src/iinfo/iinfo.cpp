@@ -96,7 +96,7 @@ read_input (const std::string &filename, ImageBuf &img, int subimage=0)
     if (img.subimage() >= 0 && img.subimage() == subimage)
         return true;
 
-    if (img.init_spec (filename) && 
+    if (img.init_spec (filename, subimage, 0) && 
         img.read (subimage, false, TypeDesc::FLOAT))
         return true;
 
@@ -242,7 +242,7 @@ static void
 print_info_subimage (int current, int max_subimages, ImageSpec &spec,
                       ImageInput *input)
 {
-    if ( ! input->seek_subimage (current, spec) )
+    if ( ! input->seek_subimage (current, 0, spec) )
         return;
 
     if (subimages && max_subimages != 1 && (metamatch.empty() ||
@@ -254,7 +254,17 @@ print_info_subimage (int current, int max_subimages, ImageSpec &spec,
             printf (" x %4d", spec.depth);
         printf (", %d channel, %s%s", spec.nchannels, spec.format.c_str(),
                  spec.depth > 1 ? " volume" : "");
-        printf (" %s\n", input->format_name());
+        printf (" %s", input->format_name());
+        int nmip = 1;
+        ImageSpec mipspec;
+        while (input->seek_subimage (current, nmip, mipspec)) {
+            printf (nmip == 1 ? " (MIP: " : ", ");
+            printf ("%d x %d", mipspec.width, mipspec.height);
+            ++nmip;
+        }
+        if (nmip > 1)
+            printf (")");
+        printf ("\n");
     }
 }
 
@@ -269,14 +279,30 @@ print_info (const std::string &filename, size_t namefieldlength,
     int padlen = std::max (0, (int)namefieldlength - (int)filename.length());
     std::string padding (padlen, ' ');
 
-    // checking how many subimages are stored in the file
+    // checking how many subimages and mipmap levels are stored in the file
     int num_of_subimages = 1;
-    if (input->seek_subimage (1, spec)) {
-        // maybe we should do this more gently?
-        while (input->seek_subimage (num_of_subimages, spec))
-            ++num_of_subimages;
-        input->seek_subimage (0, spec);
+    bool any_mipmapping = false;
+    std::vector<int> num_of_miplevels;
+    {
+        int nmip = 1;
+        while (input->seek_subimage (input->current_subimage(), nmip, spec)) {
+            ++nmip;
+            any_mipmapping = true;
+        }
+        num_of_miplevels.push_back (nmip);
     }
+    while (input->seek_subimage (num_of_subimages, 0, spec)) {
+        // maybe we should do this more gently?
+        ++num_of_subimages;
+        int nmip = 1;
+        while (input->seek_subimage (input->current_subimage(), nmip, spec)) {
+            ++nmip;
+            any_mipmapping = true;
+        }
+        num_of_miplevels.push_back (nmip);
+    }
+    input->seek_subimage (0, 0, spec);  // re-seek to the first
+
     if (metamatch.empty() ||
         boost::regex_search ("resolution, width, height, depth, channels", field_re)) {
         printf ("%s%s : %4d x %4d", filename.c_str(), padding.c_str(),
@@ -291,10 +317,13 @@ print_info (const std::string &filename, size_t namefieldlength,
             totalsize += spec.image_bytes();
             printf (" (%.2f MB)", (float)spec.image_bytes() / (1024.0*1024.0));
         }
-        // we prints info about how many subimages are stored in file
+        // we print info about how many subimages are stored in file
         // only when we have more then one subimage
         if ( ! verbose && num_of_subimages != 1)
-            printf (" (%d subimages)", num_of_subimages);
+            printf (" (%d subimages%s)", num_of_subimages,
+                    any_mipmapping ? " +mipmap)" : "");
+        if (! verbose && num_of_subimages == 1 && any_mipmapping)
+            printf (" (+mipmap)");
         printf ("\n");
         // we print basic info about subimages when only the option '-a'
         // was used and the file store more then one subimage
@@ -334,7 +363,14 @@ print_info (const std::string &filename, size_t namefieldlength,
         if (num_of_subimages != 1) {
             printf ("    %d subimages: ", num_of_subimages);
             for (int i = 0; i < num_of_subimages; ++i) {
-                input->seek_subimage (i, spec);
+                input->seek_subimage (i, 0, spec);
+                printf ("%dx%d ", spec.width, spec.height);
+            }
+            printf ("\n");
+        } else if (num_of_miplevels[0] > 1) {
+            printf ("    %d mapmap levels: ", num_of_miplevels[0]);
+            for (int i = 0; i < num_of_miplevels[0]; ++i) {
+                input->seek_subimage (0, i, spec);
                 printf ("%dx%d ", spec.width, spec.height);
             }
             printf ("\n");
@@ -513,7 +549,10 @@ main (int argc, const char *argv[])
     BOOST_FOREACH (const std::string &s, filenames) {
         ImageInput *in = ImageInput::create (s.c_str(), "" /* searchpath */);
         if (! in) {
-            std::cerr << "iinfo: " << OpenImageIO::geterror() << "\n";
+            std::string err = OpenImageIO::geterror();
+            if (err.empty())
+                err = Strutil::format ("Could not open \"%s\"", s.c_str());
+            std::cerr << "iinfo: " << err << "\n";
             continue;
         }
         ImageSpec spec;
@@ -521,7 +560,10 @@ main (int argc, const char *argv[])
             print_info (s, longestname, in, spec, verbose, sum, totalsize);
             in->close ();
         } else {
-            std::cerr << "iinfo: " << in->geterror() << "\n";
+            std::string err = in->geterror();
+            if (err.empty())
+                err = Strutil::format ("Could not open \"%s\"", s.c_str());
+            std::cerr << "iinfo: " << err << "\n";
         }
         delete in;
     }

@@ -123,22 +123,28 @@ public:
     /// and the data has been put in *data.  Return false if the image
     /// doesn't exist, doesn't have the requested data, if the data
     /// doesn't match the type requested. or some other failure.
-    virtual bool get_image_info (ustring filename, ustring dataname,
-                                 TypeDesc datatype, void *data) = 0;
+    virtual bool get_image_info (ustring filename, int subimage, int miplevel,
+                         ustring dataname, TypeDesc datatype, void *data) = 0;
+
+    /// Back-compatible version of get_image_info -- temporary
+    bool get_image_info (ustring filename, ustring dataname,
+                         TypeDesc datatype, void *data) {
+        return get_image_info (filename, 0, 0, dataname, datatype, data);
+    }
 
     /// Get the ImageSpec associated with the named image (the first
-    /// subimage, by default, or as set by 'subimage').  If the file is
-    /// found and is an image format that can be read, store a copy of
-    /// its specification in spec and return true.  Return false if the
-    /// file was not found or could not be opened as an image file by
-    /// any available ImageIO plugin.
+    /// subimage & miplevel by default, or as set by 'subimage' and
+    /// 'miplevel').  If the file is found and is an image format that
+    /// can be read, store a copy of its specification in spec and
+    /// return true.  Return false if the file was not found or could
+    /// not be opened as an image file by any available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
-                                int subimage=0) = 0;
+                                int subimage=0, int miplevel=0) = 0;
 
-    /// Return a pointer to an ImageSpec associated with the named
-    /// image (the first subimage, by default, or as set by 'subimage')
-    /// if the file is found and is an image format that can be read,
-    /// otherwise return NULL.
+    /// Return a pointer to an ImageSpec associated with the named image
+    /// (the first subimage & miplevel by default, or as set by
+    /// 'subimage' and 'miplevel') if the file is found and is an image
+    /// format that can be read, otherwise return NULL.
     ///
     /// This method is much more efficient than get_imagespec(), since
     /// it just returns a pointer to the spec held internally by the
@@ -146,22 +152,24 @@ public:
     /// However, the caller must beware that the pointer is only valid
     /// as long as nobody (even other threads) calls invalidate() on the
     /// file, or invalidate_all(), or destroys the ImageCache.
-    virtual const ImageSpec *imagespec (ustring filename, int subimage=0) = 0;
+    virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
+                                        int miplevel=0) = 0;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
     /// [ybegin..yend) X [zbegin..zend), with "exclusive end" a la STL,
     /// specified as integer pixel coordinates in the designated
-    /// subimage, storing the pixel values beginning at the address
-    /// specified by result.  The pixel values will be converted to the
-    /// type specified by format.  It is up to the caller to ensure that
-    /// result points to an area of memory big enough to accommodate the
-    /// requested rectangle (taking into consideration its dimensions,
-    /// number of channels, and data format).  Requested pixels outside
-    /// the valid pixel data region will be filled in with 0 values.
+    /// subimage & miplevel, storing the pixel values beginning at the
+    /// address specified by result.  The pixel values will be converted
+    /// to the type specified by format.  It is up to the caller to
+    /// ensure that result points to an area of memory big enough to
+    /// accommodate the requested rectangle (taking into consideration
+    /// its dimensions, number of channels, and data format).  Requested
+    /// pixels outside the valid pixel data region will be filled in
+    /// with 0 values.
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
-    virtual bool get_pixels (ustring filename, int subimage,
+    virtual bool get_pixels (ustring filename, int subimage, int miplevel,
                              int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend,
                              TypeDesc format, void *result) = 0;
@@ -170,13 +178,13 @@ public:
     /// to a tile but without exposing any internals.
     class Tile;
 
-    /// Find a tile given by an image filename, subimage, and pixel
-    /// coordinates.  An opaque pointer to the tile will be returned,
-    /// or NULL if no such file (or tile within the file) exists or can
-    /// be read.  The tile will not be purged from the cache until
-    /// after release_tile() is called on the tile pointer.  This is
-    /// thread-safe!
-    virtual Tile * get_tile (ustring filename, int subimage,
+    /// Find a tile given by an image filename, subimage & miplevel, and
+    /// pixel coordinates.  An opaque pointer to the tile will be
+    /// returned, or NULL if no such file (or tile within the file)
+    /// exists or can be read.  The tile will not be purged from the
+    /// cache until after release_tile() is called on the tile pointer.
+    /// This is thread-safe!
+    virtual Tile * get_tile (ustring filename, int subimage, int miplevel,
                                 int x, int y, int z) = 0;
 
     /// After finishing with a tile, release_tile will allow it to

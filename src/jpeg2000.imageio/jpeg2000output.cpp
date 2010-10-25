@@ -80,8 +80,13 @@ Jpeg2000Output::component_struct_init (jas_image_cmptparm_t *cmpt) {
 
 bool
 Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
-                      bool append)
+                      OpenMode mode)
 {
+    if (mode != Create) {
+        error ("%s does not support subimages or MIP levels", format_name());
+        return false;
+    }
+
     // saving 'name' and 'spec' for later use
     m_spec = spec;
     m_filename = name;
@@ -100,10 +105,6 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
         m_spec.depth = 1;
     if (m_spec.nchannels > 4) {
         error ("Plugin currently doesn't support images with more then 4 components");
-        return false;
-    }
-    if (append) {
-        error ("%s doesn't support multiple images per file", format_name ());
         return false;
     }
 

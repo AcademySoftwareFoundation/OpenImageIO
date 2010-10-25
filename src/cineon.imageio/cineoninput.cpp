@@ -48,7 +48,6 @@ public:
     virtual const char * format_name (void) const { return "cineon"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
-    virtual bool seek_subimage (int index, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
 
 private:
@@ -399,16 +398,6 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
             m_cin.header.UserSize ()), &m_userBuf[0]);
 
     newspec = spec ();
-    return true;
-}
-
-
-
-bool
-CineonInput::seek_subimage (int index, ImageSpec &newspec)
-{
-    if (index != 0)
-        return false;
     return true;
 }
 

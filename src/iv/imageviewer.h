@@ -65,10 +65,12 @@ public:
     /// select_channel() methods will work.
     /// Also, scanline will return a pointer to that buffer instead of the read
     /// buffer.
-    virtual bool read (int subimage=0, bool force=false, TypeDesc format = TypeDesc::UNKNOWN,
+    virtual bool read (int subimage=0, int miplevel=0,
+                       bool force=false, TypeDesc format = TypeDesc::UNKNOWN,
                        OpenImageIO::ProgressCallback progress_callback=NULL,
                        void *progress_callback_data=NULL, bool secondary_buffer=false);
-    virtual bool init_spec (const std::string &filename);
+    virtual bool init_spec (const std::string &filename,
+                            int subimage, int miplevel);
 
     float gamma (void) const { return m_gamma; }
     void gamma (float e) { m_gamma = e; }
@@ -299,7 +301,7 @@ private:
     void addRecentFile (const std::string &name);
     void removeRecentFile (const std::string &name);
     void updateRecentFilesMenu ();
-    bool loadCurrentImage(int subimage = 0);
+    bool loadCurrentImage (int subimage = 0, int miplevel = 0);
     void displayCurrentImage (bool update = true);
     void updateTitle ();
     void updateStatusBar ();

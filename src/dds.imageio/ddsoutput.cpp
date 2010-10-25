@@ -56,7 +56,7 @@ public:
         return false;
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       bool append=false);
+                       OpenMode mode);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
@@ -106,8 +106,14 @@ DDSOutput::~DDSOutput ()
 
 
 bool
-DDSOutput::open (const std::string &name, const ImageSpec &userspec, bool append)
+DDSOutput::open (const std::string &name, const ImageSpec &userspec,
+                 OpenMode mode)
 {
+    if (mode != Create) {
+        error ("%s does not support subimages or MIP levels", format_name());
+        return false;
+    }
+
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 

@@ -75,7 +75,7 @@ public:
     const ImageSpec &spec() const;
     bool close();
     int current_subimage() const;
-    bool seek_subimage (int, ImageSpec&);
+    bool seek_subimage (int, int, ImageSpec&);
     bool read_image(TypeDesc, object&, stride_t, stride_t, stride_t, object);
     bool read_image_simple(object&);
     bool read_scanline(int, int, TypeDesc, object&, stride_t);
@@ -98,7 +98,7 @@ public:
     virtual ~ImageOutputWrap();
     static boost::python::object create(const std::string&, const std::string&);
     const ImageSpec &spec() const;
-    bool open (const std::string&, const ImageSpec&, bool);
+    bool open (const std::string&, const ImageSpec&, ImageOutput::OpenMode);
     bool close();
     bool write_scanline(int, int, TypeDesc, boost::python::object&, stride_t);
     bool write_tile(int, int, int, TypeDesc, boost::python::object&,
@@ -137,8 +137,8 @@ public:
     std::string resolve_filename (const std::string&);
     bool get_image_info (ustring, ustring, TypeDesc, void*);
     bool get_imagespec(ustring, ImageSpec&, int);
-    bool get_pixels (ustring, int, int, int,int, int, int, 
-                    int, TypeDesc, void*);
+    bool get_pixels (ustring, int, int, int, int, int, int, 
+                     int, int, TypeDesc, void*);
 
     //First needs to be exposed to python in imagecache.cpp
     /*
@@ -189,7 +189,7 @@ public:
                 void *progress_callback_data=NULL) const;  
     */
 
-    bool init_spec (const std::string&);
+    bool init_spec (const std::string&, int, int);
     const ImageSpec &spec() const;
     const std::string &name() const;
     const std::string &file_format_name() const;
