@@ -414,7 +414,7 @@ public:
 
 
 
-/// ImageOutput abstracts the reading of an image file in a file
+/// ImageInput abstracts the reading of an image file in a file
 /// format-agnostic manner.
 class DLLPUBLIC ImageInput {
 public:

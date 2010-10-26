@@ -97,7 +97,7 @@ read_input (const std::string &filename, ImageBuf &img, int subimage=0)
         return true;
 
     if (img.init_spec (filename, subimage, 0) && 
-        img.read (subimage, false, TypeDesc::FLOAT))
+        img.read (subimage, 0, false, TypeDesc::FLOAT))
         return true;
 
     std::cerr << "iinfo ERROR: Could not read " << filename << ":\n\t"
