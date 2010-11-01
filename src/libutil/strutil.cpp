@@ -65,13 +65,21 @@ Strutil::vformat (const char *fmt, va_list ap)
     
     while (1) {
         // Try to vsnprintf into our buffer.
+        va_list apsave;
+#ifdef va_copy
+        va_copy (apsave, ap);
+#else
+        apsave = ap;
+#endif
         int needed = vsnprintf (buf, size, fmt, ap);
+        va_end (ap);
+
         // NB. C99 (which modern Linux and OS X follow) says vsnprintf
         // failure returns the length it would have needed.  But older
         // glibc and current Windows return -1 for failure, i.e., not
         // telling us how much was needed.
 
-        if (needed <= (int)size && needed >= 0) {
+        if (needed < (int)size && needed >= 0) {
             // It fit fine so we're done.
             return std::string (buf, (size_t) needed);
         }
@@ -82,6 +90,11 @@ Strutil::vformat (const char *fmt, va_list ap)
         size = (needed > 0) ? (needed+1) : (size*2);
         dynamicbuf.resize (size);
         buf = &dynamicbuf[0];
+#ifdef va_copy
+        va_copy (ap, apsave);
+#else
+        ap = apsave;
+#endif
     }
 }
 
