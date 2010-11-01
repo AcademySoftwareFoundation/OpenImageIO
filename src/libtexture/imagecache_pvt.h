@@ -798,12 +798,16 @@ public:
     /// Override the previous value if necessary, with thread-safety.
     void set_min_cache_size (long long newsize);
 
+    /// Wrapper around check_max_files that grabs the filemutex while it
+    /// does so.
+    void check_max_files_with_lock (ImageCachePerThreadInfo *thread_info);
+
 private:
     void init ();
 
     /// Enforce the max number of open files.  This should only be invoked
     /// when the caller holds m_filemutex.
-    void check_max_files ();
+    void check_max_files (ImageCachePerThreadInfo *thread_info);
 
     /// Enforce the max memory for tile data.  This should only be invoked
     /// when the caller holds m_tilemutex.

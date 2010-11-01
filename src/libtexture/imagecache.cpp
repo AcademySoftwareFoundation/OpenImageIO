@@ -541,6 +541,13 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
 {
     recursive_lock_guard guard (m_input_mutex);
 
+    if (! m_input && !m_broken) {
+        // The file is already in the file cache, but the handle is
+        // closed.  We will need to re-open, so we must make sure there
+        // will be enough file handles.
+        imagecache().check_max_files_with_lock (thread_info);
+    }
+
     bool ok = open (thread_info);
     if (! ok)
         return false;
@@ -970,7 +977,7 @@ ImageCacheImpl::find_file (ustring filename,
         }
     }
 
-    check_max_files ();
+    check_max_files (thread_info);
     safe_insert (m_files, filename, tf, m_file_sweep);
     if (tf->duplicate())
         tf = tf->duplicate();
@@ -989,8 +996,10 @@ ImageCacheImpl::find_file (ustring filename,
 
 
 void
-ImageCacheImpl::check_max_files ()
+ImageCacheImpl::check_max_files (ImageCachePerThreadInfo *thread_info)
 {
+    DASSERT (m_filemutex_holder == thread_info &&
+             "check_max_files should only be called by file lock holder");
 #ifdef DEBUG
     if (! (m_stat_open_files_created % 16) || m_stat_open_files_current >= m_max_open_files) {
         std::cerr << "open files " << m_stat_open_files_current << ", max = " << m_max_open_files << "\n";
@@ -1010,6 +1019,29 @@ ImageCacheImpl::check_max_files ()
         m_file_sweep->second->release ();  // May reduce open files
         ++m_file_sweep;
     }
+}
+
+
+
+void
+ImageCacheImpl::check_max_files_with_lock (ImageCachePerThreadInfo *thread_info)
+{
+#if IMAGECACHE_TIME_STATS
+    Timer timer;
+#endif
+    DASSERT (m_filemutex_holder != thread_info);
+    ic_read_lock readguard (m_filemutex);
+    DASSERT (m_filemutex_holder == NULL);
+    filemutex_holder (thread_info);
+#if IMAGECACHE_TIME_STATS
+    double donelocking = timer();
+    ImageCacheStatistics &stats (thread_info->m_stats);
+    stats.file_locking_time += donelocking;
+#endif
+
+    check_max_files (thread_info);
+
+    filemutex_holder (NULL);
 }
 
 

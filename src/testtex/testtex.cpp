@@ -64,6 +64,7 @@ static std::string searchpath;
 static int blocksize = 1;
 static bool nowarp = false;
 static float cachesize = -1;
+static int maxfiles = -1;
 static float missing[4] = {-1, 0, 0, 1};
 
 
@@ -102,6 +103,7 @@ getargs (int argc, const char *argv[])
                   "--searchpath %s", &searchpath, "Search path for files",
                   "--nowarp", &nowarp, "Do not warp the image->texture mapping",
                   "--cachesize %g", &cachesize, "Set cache size, in MB",
+                  "--maxfiles %d", &maxfiles, "Set maximum open files",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -174,9 +176,9 @@ warp (float x, float y, Imath::M33f &xform)
 
 
 static void
-test_plain_texture (ustring filename)
+test_plain_texture ()
 {
-    std::cerr << "Testing 2d texture " << filename << ", output = " 
+    std::cerr << "Testing 2d texture " << filenames[0] << ", output = " 
               << output_filename << "\n";
     const int nchannels = 4;
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
@@ -214,15 +216,25 @@ test_plain_texture (ustring filename)
     float *dtdy = ALLOCA (float, shadepoints);
     float *result = ALLOCA (float, shadepoints*nchannels);
     
+    ustring filename = ustring (filenames[0]);
+
     for (int iter = 0;  iter < iters;  ++iter) {
+        if (iters > 1 && filenames.size() > 1) {
+            // Use a different filename for each iteration
+            int texid = std::min (iter, (int)filenames.size()-1);
+            filename = ustring (filenames[texid]);
+            std::cerr << "iter " << iter << " file " << filename << "\n";
+        }
+
         // Iterate over blocks
+        for (int by = 0, b = 0;  by < output_yres;  by+=blocksize) {
+            for (int bx = 0;  bx < output_xres;  bx+=blocksize, ++b) {
+                // Trick: switch to other textures on later iterations, if any
+                if (iters == 1 && filenames.size() > 1) {
+                    // Use a different filename from block to block
+                    filename = ustring (filenames[b % (int)filenames.size()]);
+                }
 
-        // Trick: switch to second texture, if given, for second iteration
-        if (iter && filenames.size() > 1)
-            filename = ustring (filenames[1]);
-
-        for (int by = 0;  by < output_yres;  by+=blocksize) {
-            for (int bx = 0;  bx < output_xres;  bx+=blocksize) {
                 // Process pixels within a block.  First save the texture warp
                 // (s,t) and derivatives into SIMD vectors.
                 int idx = 0;
@@ -325,8 +337,10 @@ test_getimagespec_gettexels (ustring filename)
     if (missing[0] >= 0)
         opt.missingcolor.init ((float *)&missing, 0);
     std::vector<float> tmp (w*h*spec.nchannels);
-    texsys->get_texels (filename, opt, 0, w/2, w/2+w, h/2, h/2+h, 0, 1, 
-                        postagespec.format, &tmp[0]);
+    bool ok = texsys->get_texels (filename, opt, 0, w/2, w/2+w, h/2, h/2+h,
+                                  0, 1, postagespec.format, &tmp[0]);
+    if (! ok)
+        std::cerr << texsys->geterror() << "\n";
     for (int y = 0;  y < h;  ++y)
         for (int x = 0;  x < w;  ++x) {
             imagesize_t offset = (y*w + x) * spec.nchannels;
@@ -349,6 +363,8 @@ main (int argc, const char *argv[])
     texsys->attribute ("automip", (int)automip);
     if (cachesize >= 0)
         texsys->attribute ("max_memory_MB", cachesize);
+    if (maxfiles >= 0)
+        texsys->attribute ("max_open_files", maxfiles);
     if (searchpath.length())
         texsys->attribute ("searchpath", searchpath);
 
@@ -359,7 +375,7 @@ main (int argc, const char *argv[])
         texsys->get_texture_info (filename, 0, ustring("texturetype"),
                                   TypeDesc::STRING, &texturetype);
         if (! strcmp (texturetype, "Plain Texture")) {
-            test_plain_texture (filename);
+            test_plain_texture ();
         }
         if (! strcmp (texturetype, "Shadow")) {
             test_shadow (filename);
