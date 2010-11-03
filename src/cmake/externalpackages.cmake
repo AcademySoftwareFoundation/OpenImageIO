@@ -224,3 +224,61 @@ endif (USE_OPENGL)
 
 # end GL Extension Wrangler library setup
 ###########################################################################
+
+
+###########################################################################
+# Field3d
+
+if (USE_FIELD3D)
+    if (HDF5_CUSTOM)
+        message (STATUS "Using custom HDF5")
+        set (HDF5_FOUND true)
+        # N.B. For a custom version, the caller had better set up the
+        # variables HDF5_INCLUDE_DIRS and HDF5_LIBRARIES.
+    else ()
+        message (STATUS "Looking for system HDF5")
+        find_package (HDF5 COMPONENTS CXX)
+    endif ()
+    message (STATUS "HDF5_FOUND=${HDF5_FOUND}")
+    message (STATUS "HDF5_INCLUDE_DIRS=${HDF5_INCLUDE_DIRS}")
+    message (STATUS "HDF5_C_LIBRARIES=${HDF5_C_LIBRARIES}")
+    message (STATUS "HDF5_CXX_LIBRARIES=${HDF5_CXX_LIBRARIES}")
+    message (STATUS "HDF5_LIBRARIES=${HDF5_LIBRARIES}")
+    message (STATUS "HDF5_LIBRARY_DIRS=${HDF5_LIBRARY_DIRS}")
+endif ()
+if (USE_FIELD3D AND HDF5_FOUND)
+    message (STATUS "FIELD3D_HOME=${FIELD3D_HOME}")
+    find_path (FIELD3D_INCLUDES Field3D/Field.h
+               ${THIRD_PARTY_TOOLS}/include
+               ${PROJECT_SOURCE_DIR}/include
+               ${FIELD3D_HOME}/include
+              )
+    find_library (FIELD3D_LIBRARY
+                  NAMES Field3D
+                  PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
+                  ${FIELD3D_HOME}/lib
+                 )
+    if (FIELD3D_INCLUDES AND FIELD3D_LIBRARY)
+        set (FIELD3D_FOUND TRUE)
+        message (STATUS "Field3D includes = ${FIELD3D_INCLUDES}")
+        message (STATUS "Field3D library = ${FIELD3D_LIBRARY}")
+        add_definitions ("-DUSE_FIELD3D=1")
+        include_directories ("${HDF5_INCLUDE_DIRS}")
+        include_directories ("${FIELD3D_INCLUDES}")
+        # link_directories ("${HDF5_INCLUDE_DIRS}")
+    else ()
+        message (STATUS "Field3D not found")
+        add_definitions ("-UUSE_FIELD3D")
+        set (FIELD3D_FOUND FALSE)
+    endif ()
+    if (FIELD3D_NEW_API)
+        add_definitions ("-DFIELD3D_NEW_API=1")
+    endif ()
+else ()
+    add_definitions ("-UUSE_FIELD3D")
+    message (STATUS "Field3d will not be used")
+endif ()
+
+# end Field3d setup
+###########################################################################
+

@@ -142,25 +142,25 @@ public:
 
     /// Retrieve a 3D texture lookup at a single point.
     ///
-    virtual bool texture (ustring filename, TextureOptions &options,
-                          const Imath::V3f &P,
-                          const Imath::V3f &dPdx, const Imath::V3f &dPdy,
-                          float *result) {
+    virtual bool texture3d (ustring filename, TextureOptions &options,
+                            const Imath::V3f &P, const Imath::V3f &dPdx,
+                            const Imath::V3f &dPdy, const Imath::V3f &dPdz,
+                            float *result) {
         Runflag rf = RunFlagOn;
-        return texture (filename, options, &rf, 0, 1, *(Imath::V3f *)&P,
-                        *(Imath::V3f *)&dPdx, *(Imath::V3f *)&dPdy, result);
+        return texture3d (filename, options, &rf, 0, 1, *(Imath::V3f *)&P,
+                          *(Imath::V3f *)&dPdx, *(Imath::V3f *)&dPdy,
+                          *(Imath::V3f *)&dPdz, result);
     }
 
     /// Retrieve 3D filtered texture lookup
     ///
-    virtual bool texture (ustring filename, TextureOptions &options,
-                          Runflag *runflags, int beginactive, int endactive,
-                          VaryingRef<Imath::V3f> P,
-                          VaryingRef<Imath::V3f> dPdx,
-                          VaryingRef<Imath::V3f> dPdy,
-                          float *result) {
-        return false;
-    }
+    virtual bool texture3d (ustring filename, TextureOptions &options,
+                            Runflag *runflags, int beginactive, int endactive,
+                            VaryingRef<Imath::V3f> P,
+                            VaryingRef<Imath::V3f> dPdx,
+                            VaryingRef<Imath::V3f> dPdy,
+                            VaryingRef<Imath::V3f> dPdz,
+                            float *result);
 
     /// Retrieve a shadow lookup for a single position P.
     ///
@@ -324,6 +324,44 @@ private:
                                TextureOptions &options, int index,
                                float weight, float *accum,
                                float *daccumds, float *daccumdt);
+
+    // Define a prototype of a member function pointer for texture
+    // lookups.
+    typedef bool (TextureSystemImpl::*texture3d_lookup_prototype)
+            (TextureFile &texfile, PerThreadInfo *thread_info,
+             TextureOptions &options, int index,
+             VaryingRef<Imath::V3f> _P, VaryingRef<Imath::V3f> _dPdx,
+             VaryingRef<Imath::V3f> _dPdy, VaryingRef<Imath::V3f> _dPdz,
+             float *result);
+    bool texture3d_lookup_nomip (TextureFile &texfile, 
+                                 PerThreadInfo *thread_info, 
+                                 TextureOptions &options, int index,
+                                 VaryingRef<Imath::V3f> _P, VaryingRef<Imath::V3f> _dPdx,
+                                 VaryingRef<Imath::V3f> _dPdy, VaryingRef<Imath::V3f> _dPdz,
+                                 float *result);
+    typedef bool (TextureSystemImpl::*accum3d_prototype)
+                        (const Imath::V3f &P, int level,
+                         TextureFile &texturefile, PerThreadInfo *thread_info,
+                         TextureOptions &options, int index,
+                         float weight, float *accum,
+                         float *daccumds, float *daccumdt, float *daccumdr);
+    bool accum3d_sample_closest (const Imath::V3f &P, int level,
+                TextureFile &texturefile, PerThreadInfo *thread_info,
+                TextureOptions &options, int index, float weight, float *accum,
+                float *daccumds, float *daccumdt, float *daccumdr);
+    bool accum3d_sample_bilinear (const Imath::V3f &P, int level,
+                TextureFile &texturefile, PerThreadInfo *thread_info,
+                TextureOptions &options, int index, float weight, float *accum,
+                float *daccumds, float *daccumdt, float *daccumdr);
+
+    typedef bool (*wrap_impl) (int &coord, int width);
+    static bool wrap_black (int &coord, int width);
+    static bool wrap_clamp (int &coord, int width);
+    static bool wrap_periodic (int &coord, int width);
+    static bool wrap_periodic2 (int &coord, int width);
+    static bool wrap_mirror (int &coord, int width);
+    static const wrap_impl wrap_functions[];
+
 
     /// Internal error reporting routine, with printf-like arguments.
     ///

@@ -359,9 +359,9 @@ ImageBuf::getchannel (int x, int y, int c) const
 
 template<typename T>
 static inline void
-getpixel_ (const ImageBuf &buf, int x, int y, float *result, int chans)
+getpixel_ (const ImageBuf &buf, int x, int y, int z, float *result, int chans)
 {
-    ImageBuf::ConstIterator<T> pixel (buf, x, y);
+    ImageBuf::ConstIterator<T> pixel (buf, x, y, z);
     if (pixel.valid()) {
         for (int i = 0;  i < chans;  ++i)
             result[i] = pixel[i];
@@ -374,21 +374,21 @@ getpixel_ (const ImageBuf &buf, int x, int y, float *result, int chans)
 
 
 void
-ImageBuf::getpixel (int x, int y, float *pixel, int maxchannels) const
+ImageBuf::getpixel (int x, int y, int z, float *pixel, int maxchannels) const
 {
     int n = std::min (spec().nchannels, maxchannels);
     switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : getpixel_<float> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT8 : getpixel_<unsigned char> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT8  : getpixel_<char> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT16: getpixel_<unsigned short> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT16 : getpixel_<short> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT  : getpixel_<unsigned int> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT   : getpixel_<int> (*this, x, y, pixel, n); break;
-    case TypeDesc::HALF  : getpixel_<half> (*this, x, y, pixel, n); break;
-    case TypeDesc::DOUBLE: getpixel_<double> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT64: getpixel_<unsigned long long> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT64 : getpixel_<long long> (*this, x, y, pixel, n); break;
+    case TypeDesc::FLOAT : getpixel_<float> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::UINT8 : getpixel_<unsigned char> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::INT8  : getpixel_<char> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::UINT16: getpixel_<unsigned short> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::INT16 : getpixel_<short> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::UINT  : getpixel_<unsigned int> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::INT   : getpixel_<int> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::HALF  : getpixel_<half> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::DOUBLE: getpixel_<double> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::UINT64: getpixel_<unsigned long long> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::INT64 : getpixel_<long long> (*this, x, y, z, pixel, n); break;
     default:
         ASSERT (0);
     }
@@ -421,9 +421,9 @@ ImageBuf::interppixel (float x, float y, float *pixel) const
 
 template<typename T>
 static inline void
-setpixel_ (ImageBuf &buf, int x, int y, const float *data, int chans)
+setpixel_ (ImageBuf &buf, int x, int y, int z, const float *data, int chans)
 {
-    ImageBuf::Iterator<T> pixel (buf, x, y);
+    ImageBuf::Iterator<T> pixel (buf, x, y, z);
     if (pixel.valid()) {
         for (int i = 0;  i < chans;  ++i)
             pixel[i] = data[i];
@@ -433,21 +433,21 @@ setpixel_ (ImageBuf &buf, int x, int y, const float *data, int chans)
 
 
 void
-ImageBuf::setpixel (int x, int y, const float *pixel, int maxchannels)
+ImageBuf::setpixel (int x, int y, int z, const float *pixel, int maxchannels)
 {
     int n = std::min (spec().nchannels, maxchannels);
     switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : setpixel_<float> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT8 : setpixel_<unsigned char> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT8  : setpixel_<char> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT16: setpixel_<unsigned short> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT16 : setpixel_<short> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT  : setpixel_<unsigned int> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT   : setpixel_<int> (*this, x, y, pixel, n); break;
-    case TypeDesc::HALF  : setpixel_<half> (*this, x, y, pixel, n); break;
-    case TypeDesc::DOUBLE: setpixel_<double> (*this, x, y, pixel, n); break;
-    case TypeDesc::UINT64: setpixel_<unsigned long long> (*this, x, y, pixel, n); break;
-    case TypeDesc::INT64 : setpixel_<long long> (*this, x, y, pixel, n); break;
+    case TypeDesc::FLOAT : setpixel_<float> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::UINT8 : setpixel_<unsigned char> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::INT8  : setpixel_<char> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::UINT16: setpixel_<unsigned short> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::INT16 : setpixel_<short> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::UINT  : setpixel_<unsigned int> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::INT   : setpixel_<int> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::HALF  : setpixel_<half> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::DOUBLE: setpixel_<double> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::UINT64: setpixel_<unsigned long long> (*this, x, y, z, pixel, n); break;
+    case TypeDesc::INT64 : setpixel_<long long> (*this, x, y, z, pixel, n); break;
     default:
         ASSERT (0);
     }
@@ -673,46 +673,57 @@ ImageBuf::oriented_full_y () const
 
 
 const void *
-ImageBuf::pixeladdr (int x, int y) const
+ImageBuf::pixeladdr (int x, int y, int z) const
 {
     x -= spec().x;
     y -= spec().y;
+    z -= spec().z;
     size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
+    if (z)
+        p += z * clamped_mult64 (m_spec.scanline_bytes(), (imagesize_t)spec().height);
     return &(m_pixels[p]);
 }
 
 
 
 void *
-ImageBuf::pixeladdr (int x, int y)
+ImageBuf::pixeladdr (int x, int y, int z)
 {
     x -= spec().x;
     y -= spec().y;
+    z -= spec().z;
     size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
+    if (z)
+        p += z * m_spec.scanline_bytes() * spec().height;
     return &(m_pixels[p]);
 }
 
 
 
 const void *
-ImageBuf::retile (int subimage, int miplevel,
-                  int x, int y, ImageCache::Tile* &tile,
-                  int &tilexbegin, int &tileybegin) const
+ImageBuf::retile (int subimage, int miplevel, int x, int y, int z,
+                  ImageCache::Tile* &tile,
+                  int &tilexbegin, int &tileybegin, int &tilezbegin) const
 {
     int tw = spec().tile_width, th = spec().tile_height;
+    int td = std::max (1, spec().tile_depth);
     if (tile == NULL || x < tilexbegin || x >= (tilexbegin+tw) ||
-                        y < tileybegin || y >= (tileybegin+th)) {
+                        y < tileybegin || y >= (tileybegin+th) ||
+                        z < tilezbegin || z >= (tilezbegin+td)) {
         // not the same tile as before
         if (tile)
             m_imagecache->release_tile (tile);
         int xtile = (x-spec().x) / tw;
         int ytile = (y-spec().y) / th;
+        int ztile = (z-spec().z) / td;
         tilexbegin = spec().x + xtile*tw;
         tileybegin = spec().y + ytile*th;
-        tile = m_imagecache->get_tile (m_name, subimage, miplevel, x, y, 0);
+        tilezbegin = spec().z + ztile*td;
+        tile = m_imagecache->get_tile (m_name, subimage, miplevel, x, y, z);
     }
 
     size_t offset = ((y - tileybegin) * tw) + (x - tilexbegin);
+    offset += ((z - tilezbegin) * tw * th);
     offset *= spec().pixel_bytes();
     TypeDesc format;
     return (const char *)m_imagecache->tile_pixels (tile, format) + offset;
@@ -757,9 +768,10 @@ ImageBuf::zero ()
 void
 ImageBuf::fill (const float *pixel)
 {
-    for (int j = 0; j < spec().full_height; j++)
-        for (int i = 0; i < spec().full_width ; i++)
-            setpixel (i, j, pixel);
+    for (int k = 0; k < spec().full_depth; k++)
+        for (int j = 0; j < spec().full_height; j++)
+            for (int i = 0; i < spec().full_width ; i++)
+                setpixel (i, j, pixel);
 }
   
 
@@ -770,4 +782,16 @@ ImageBuf::fill (const float *pixel, int xbegin, int xend, int ybegin, int yend)
     for (int j = ybegin; j < yend; j++)
         for (int i = xbegin; i < xend; i++)
             setpixel (i, j, pixel);
+}
+
+
+
+void 
+ImageBuf::fill (const float *pixel, int xbegin, int xend, int ybegin, int yend,
+                int zbegin, int zend)
+{
+    for (int k = zbegin; k < zend; k++)
+        for (int j = ybegin; j < yend; j++)
+            for (int i = xbegin; i < xend; i++)
+                setpixel (i, j, k, pixel);
 }

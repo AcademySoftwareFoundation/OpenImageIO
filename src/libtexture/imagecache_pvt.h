@@ -147,6 +147,7 @@ public:
     TexFormat textureformat () const { return m_texformat; }
     TextureOptions::Wrap swrap () const { return m_swrap; }
     TextureOptions::Wrap twrap () const { return m_twrap; }
+    TextureOptions::Wrap rwrap () const { return m_rwrap; }
     TypeDesc datatype () const { return m_datatype; }
     ImageCacheImpl &imagecache () const { return m_imagecache; }
 
@@ -197,6 +198,7 @@ public:
         std::vector<LevelInfo> levels;  ///< Extra per-level info
         bool untiled;                   ///< Not tiled
         bool unmipped;                  ///< Not really MIP-mapped
+        bool volume;                    ///< It's a volume image
         SubimageInfo () : untiled(false), unmipped(false) { }
         ImageSpec &spec (int m) { return levels[m].spec; }
         const ImageSpec &spec (int m) const { return levels[m].spec; }
@@ -224,6 +226,7 @@ private:
     TexFormat m_texformat;          ///< Which texture format
     TextureOptions::Wrap m_swrap;   ///< Default wrap modes
     TextureOptions::Wrap m_twrap;   ///< Default wrap modes
+    TextureOptions::Wrap m_rwrap;   ///< Default wrap modes
     Imath::M44f m_Mlocal;           ///< shadows: world-to-local (light) matrix
     Imath::M44f m_Mproj;            ///< shadows: world-to-pseudo-NDC
     Imath::M44f m_Mtex;             ///< shadows: world-to-pNDC with camera z
@@ -233,7 +236,7 @@ private:
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
     bool m_eightbit;                ///< Eight bit?  (or float)
     unsigned int m_channelsize;     ///< Channel size, in bytes
-    unsigned int m_pixelsize;       ///< Channel size, in bytes
+    unsigned int m_pixelsize;       ///< Pixel size, in bytes
     ustring m_fileformat;           ///< File format name
     size_t m_tilesread;             ///< Tiles read from this file
     imagesize_t m_bytesread;        ///< Bytes read from this file

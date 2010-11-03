@@ -25,6 +25,7 @@ set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
 set (USE_TBB ON CACHE BOOL "Use TBB if needed")
 set (USE_PYTHON ON CACHE BOOL "Build the Python bindings")
+set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (SOVERSION ${OpenImageIO_VERSION_MAJOR} CACHE STRING "Set the SO version in the SO name of the output library")
 
@@ -117,6 +118,7 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (cineon.imageio)
     add_subdirectory (dds.imageio)
     add_subdirectory (dpx.imageio)
+    add_subdirectory (field3d.imageio)
     add_subdirectory (fits.imageio)
     add_subdirectory (hdr.imageio)
     add_subdirectory (ico.imageio)
@@ -147,7 +149,7 @@ add_subdirectory (doc)
 
 # List all the individual testsuite tests here:
 oiio_add_tests (ico gpsread sgi texture-grid texture-missing texture-res
-                imagecache-files)
+                imagecache-files texture-field3d)
 
 # List testsuites which need special external reference images from the web
 # here:

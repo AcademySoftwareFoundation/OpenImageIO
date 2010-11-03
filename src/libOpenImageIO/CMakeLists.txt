@@ -44,6 +44,7 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           ../libutil/typedesc.cpp 
                           ../libutil/ustring.cpp 
                           ../libtexture/texturesys.cpp 
+                          ../libtexture/texture3d.cpp 
                           ../libtexture/texoptions.cpp 
                           ../libtexture/imagecache.cpp
                           ${libOpenImageIO_hdrs}
@@ -131,6 +132,17 @@ if (EMBEDPLUGINS)
         message (STATUS "Jasper not found: jpeg2000 plugin will not be built")
         set (JASPER_LIBRARY "")
     endif (JASPER_FOUND)
+
+    if (FIELD3D_FOUND)
+        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+             ../field3d.imageio/field3dinput.cpp
+             ../field3d.imageio/field3doutput.cpp
+            )
+        include_directories (${FIELD3D_INCLUDE_DIR})
+    else (FIELD3D_FOUND)
+        message (STATUS "Field3D not found: field3d plugin will not be built")
+        set (FIELD3D_LIBRARY "")
+    endif (FIELD3D_FOUND)
 endif ()
 
 if (BUILDSTATIC)
@@ -153,6 +165,8 @@ if (EMBEDPLUGINS)
     target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
                                ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES}
                                ${JASPER_LIBRARY}
+                               ${FIELD3D_LIBRARY}
+                               ${HDF5_LIBRARIES}
                           )
     link_openexr (OpenImageIO)
 endif ()

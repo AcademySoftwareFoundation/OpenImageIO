@@ -287,7 +287,7 @@ ImageSpec::scanline_bytes () const
 imagesize_t
 ImageSpec::tile_pixels () const
 {
-    if (tile_width < 0 || tile_height < 0 || tile_depth < 0)
+    if (tile_width <= 0 || tile_height <= 0 || tile_depth <= 0)
         return 0;
     imagesize_t r = clamped_mult64 ((imagesize_t)tile_width,
                                     (imagesize_t)tile_height);
@@ -516,12 +516,30 @@ format_raw_metadata (const ImageIOParameter &p)
             const char *s = ((const char **)p.data())[i];
             out += Strutil::format ("%s\"%s\"", (i ? ", " : ""), s ? s : "");
         }
-    } else if (element == TypeDesc::FLOAT) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%g", (i ? ", " : ""), ((const float *)p.data())[i]);
-    } else if (element == TypeDesc::DOUBLE) {
-        for (int i = 0;  i < n;  ++i)
-            out += Strutil::format ("%s%g", (i ? ", " : ""), ((const double *)p.data())[i]);
+    } else if (element.basetype == TypeDesc::FLOAT) {
+        const float *f = (const float *)p.data();
+        for (int i = 0;  i < n;  ++i) {
+            if (i)
+                out += ", ";
+            for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
+                out += Strutil::format ("%s%g", (c ? " " : ""), f[0]);
+        }
+    } else if (element.basetype == TypeDesc::DOUBLE) {
+        const double *f = (const double *)p.data();
+        for (int i = 0;  i < n;  ++i) {
+            if (i)
+                out += ", ";
+            for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
+                out += Strutil::format ("%s%g", (c ? " " : ""), f[0]);
+        }
+    } else if (element.basetype == TypeDesc::HALF) {
+        const half *f = (const half *)p.data();
+        for (int i = 0;  i < n;  ++i) {
+            if (i)
+                out += ", ";
+            for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
+                out += Strutil::format ("%s%g", (c ? " " : ""), (float)f[0]);
+        }
     } else if (element == TypeDesc::INT) {
         for (int i = 0;  i < n;  ++i)
             out += Strutil::format ("%s%d", (i ? ", " : ""), ((const int *)p.data())[i]);
@@ -540,14 +558,7 @@ format_raw_metadata (const ImageIOParameter &p)
     } else if (element == TypeDesc::INT64) {
         for (int i = 0;  i < n;  ++i)
             out += Strutil::format ("%s%lld", (i ? ", " : ""), ((const long long *)p.data())[i]);
-    } else if (element == TypeDesc::TypeMatrix) {
-        const float *m = (const float *)p.data();
-        for (int i = 0;  i < n;  ++i, m += 16)
-            out += Strutil::format ("%s%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g",
-                    (i ? ", " : ""), m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7],
-                    m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]);
-    }
-    else {
+    } else {
         out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
                 p.type().basetype, p.type().aggregate,
                 p.type().vecsemantics);

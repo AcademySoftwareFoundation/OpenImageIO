@@ -1,0 +1,1 @@
+Comparing "out.exr" and "ref/out.exr"

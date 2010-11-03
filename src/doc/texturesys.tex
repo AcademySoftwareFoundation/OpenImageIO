@@ -534,10 +534,11 @@ plugin.
 \subsection{Volume Texture Lookups}
 \label{sec:texturesys:api:texture3d}
 
-\apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce texture3d} (ustring filename, TextureOptions \&options,\\
 \bigspc                          const Imath::V3f \&P,\\
 \bigspc                          const Imath::V3f \&dPdx,\\
 \bigspc                          const Imath::V3f \&dPdy,\\
+\bigspc                          const Imath::V3f \&dPdz,\\
 \bigspc                          float *result)}
 
 Perform a filtered 3D volumetric texture lookup on a position centered at
@@ -546,11 +547,12 @@ Perform a filtered 3D volumetric texture lookup on a position centered at
 results will be stored in {\cf result[]}.
 
 We assume that this lookup will be part of an image that has pixel
-coordinates {\cf x} and {\cf y}.  By knowing how {\cf P} changes from
-pixel to pixel in the final image, we can properly \emph{filter} or
+coordinates {\cf x} and {\cf y} and depth {\cf z}.  
+By knowing how {\cf P} changes from
+pixel to pixel in the final image, and as we step in $z$ depth, we can properly \emph{filter} or
 antialias the texture lookups.  This information is given via
-derivatives {\cf dPdx} and {\cf dPdy} that define the changes in {\cf P}
-per unit of {\cf x} and {\cf y}, respectively.  If it is impossible to
+derivatives {\cf dPdx}, {\cf dPdy}, and {\cf dPdz} that define the changes in {\cf P}
+per unit of {\cf x}, {\cf y}, and {\cf z}, respectively.  If it is impossible to
 know the derivatives, you may pass 0 for them, but in that case you will
 not receive an antialiased texture lookup.
 
@@ -570,7 +572,7 @@ The index of the first channel to look up from the texture.
 \apiend
 
 \vspace{-24pt}
-\apiitem{Wrap swrap, twrap, zwrap}
+\apiitem{Wrap swrap, twrap, rwrap}
 \vspace{10pt}
 Specify the wrap modes for each direction, one of: 
 {\cf WrapBlack}, {\cf WrapClamp}, {\cf WrapPeriodic}, {\cf WrapMirror},
@@ -578,13 +580,13 @@ or {\cf WrapDefault}.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> swidth, twidth, zwidth}
+\apiitem{VaryingRef<float> swidth, twidth, rwidth}
 \vspace{10pt}
 For each direction, gives a multiplier for the derivatives.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> sblur, tblur, zblur}
+\apiitem{VaryingRef<float> sblur, tblur, rblur}
 \vspace{10pt}
 For each direction, specifies an additional amount of pre-blur to apply
 to the texture (\emph{after} derivatives are taken into account),
@@ -604,17 +606,18 @@ plugin.
 
 \apiend
 
-\apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce texture3d} (ustring filename, TextureOptions \&options,\\
 \bigspc                          Runflag *runflags, int beginactive, int endactive,\\
 \bigspc                          VaryingRef<Imath::V3f> P,\\
 \bigspc                          VaryingRef<Imath::V3f> dPdx,\\
 \bigspc                          VaryingRef<Imath::V3f> dPdy,\\
+\bigspc                          VaryingRef<Imath::V3f> dPdz,\\
 \bigspc                          float *result)}
 
 Perform filtered 3D volumetric texture lookups on a collection of positions all at
 once, which may be much more efficient than repeatedly calling the
 single-point version of {\cf texture()}.  The parameters {\cf P},
-{\cf dPdx}, and {\cf dPdy} are now
+{\cf dPdx}, {\cf dPdy}, and {\cf dPdz} are now
 {\cf VaryingRef}'s that may refer to either a single or an array of
 values, as are all the fields in the {\cf options}.
 
@@ -838,6 +841,10 @@ is an image format that OpenImageIO knows how to read, otherwise return
 
 \item[\rm \kw{resolution}] The resolution of the texture file, which
 is an array of 2 integers (described as {\cf TypeDesc(INT,2)}).
+
+\item[\rm \kw{resolution} (int[3])] The 3D resolution of the texture file, which
+is an array of 3 integers (described as {\cf TypeDesc(INT,3)})  The
+third value will e 1 unless it's a volumetric (3D) image.
 
 \item[\rm \kw{miplevels}] The number of MIPmap levels for the specified
 subimage (an integer).

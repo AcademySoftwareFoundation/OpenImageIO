@@ -65,69 +65,9 @@ static shared_ptr<TextureSystemImpl> shared_texsys;
 static mutex shared_texsys_mutex;
 static EightBitConverter<float> uchar2float;
 
-
-// Wrap functions wrap 'coord' around 'width', and return true if the
-// result is a valid pixel coordinate, false if black should be used
-// instead.
-
-typedef bool (*wrap_impl) (int &coord, int width);
-
-static bool wrap_black (int &coord, int width)
-{
-    return (coord >= 0 && coord < width);
-}
-
-
-static bool wrap_clamp (int &coord, int width)
-{
-    if (coord < 0)
-        coord = 0;
-    else if (coord >= width)
-        coord = width-1;
-    return true;
-}
-
-
-static bool wrap_periodic (int &coord, int width)
-{
-    coord %= width;
-    if (coord < 0)       // Fix negative values
-        coord += width;
-    return true;
-}
-
-
-static bool wrap_periodic2 (int &coord, int width)
-{
-    coord &= (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
-    return true;
-}
-
-
-static bool wrap_mirror (int &coord, int width)
-{
-    bool negative = (coord < 0);
-    int iter = coord / width;    // Which iteration of the pattern?
-    coord -= iter * width;
-    bool flip = (iter & 1);
-    if (negative) {
-        coord += width - 1;
-        flip = !flip;
-    }
-    if (flip)
-        coord = width - 1 - coord;
-    DASSERT (coord >= 0 && coord < width);
-    return true;
-}
-
-
-
-static const wrap_impl wrap_functions[] = {
-    // Must be in same order as Wrap enum
-    wrap_black, wrap_black, wrap_clamp, wrap_periodic, wrap_mirror
-};
-
 };  // end anonymous namespace
+
+
 
 
 
@@ -174,6 +114,67 @@ TextureSystem::destroy (TextureSystem *x)
 
 namespace pvt {   // namespace OpenImageIO::pvt
 
+
+
+// Wrap functions wrap 'coord' around 'width', and return true if the
+// result is a valid pixel coordinate, false if black should be used
+// instead.
+
+
+bool TextureSystemImpl::wrap_black (int &coord, int width)
+{
+    return (coord >= 0 && coord < width);
+}
+
+
+bool TextureSystemImpl::wrap_clamp (int &coord, int width)
+{
+    if (coord < 0)
+        coord = 0;
+    else if (coord >= width)
+        coord = width-1;
+    return true;
+}
+
+
+bool TextureSystemImpl::wrap_periodic (int &coord, int width)
+{
+    coord %= width;
+    if (coord < 0)       // Fix negative values
+        coord += width;
+    return true;
+}
+
+
+bool TextureSystemImpl::wrap_periodic2 (int &coord, int width)
+{
+    coord &= (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
+    return true;
+}
+
+
+bool TextureSystemImpl::wrap_mirror (int &coord, int width)
+{
+    bool negative = (coord < 0);
+    int iter = coord / width;    // Which iteration of the pattern?
+    coord -= iter * width;
+    bool flip = (iter & 1);
+    if (negative) {
+        coord += width - 1;
+        flip = !flip;
+    }
+    if (flip)
+        coord = width - 1 - coord;
+    DASSERT (coord >= 0 && coord < width);
+    return true;
+}
+
+
+
+const TextureSystemImpl::wrap_impl TextureSystemImpl::wrap_functions[] = {
+    // Must be in same order as Wrap enum
+    wrap_black, wrap_black, wrap_clamp, wrap_periodic, wrap_mirror
+};
 
 
 
@@ -1095,14 +1096,13 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
     // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
     // and subtract 0.5 because samples are at texel centers.
-//    float orig_s = s, orig_t = t;
     s = s * spec.full_width  + spec.full_x - 0.5f;
     t = t * spec.full_height + spec.full_y - 0.5f;
     int sint, tint;
     float sfrac = floorfrac (s, &sint);
     float tfrac = floorfrac (t, &tint);
-    // Now (xint,yint) are the integer coordinates of the texel to the
-    // immediate "upper left" of the lookup point, and (xfrac,yfrac) are
+    // Now (sint,tint) are the integer coordinates of the texel to the
+    // immediate "upper left" of the lookup point, and (sfrac,tfrac) are
     // the amount that the lookup point is actually offset from the
     // texel center (with (1,1) being all the way to the next texel down
     // and to the right).
@@ -1194,7 +1194,7 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                     return false;
                 savetile[j][i] = tile;
                 int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
-                DASSERT ((size_t)offset < spec.tile_bytes()*spec.nchannels);
+                DASSERT ((size_t)offset < spec.tile_width*spec.tile_height*spec.tile_depth*pixelsize);
                 texel[j][i] = tile->bytedata() + offset + channelsize * options.firstchannel;
                 DASSERT (tile->id() == id);
             }

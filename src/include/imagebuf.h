@@ -177,7 +177,14 @@ public:
     /// Retrieve the pixel value by x and y coordintes (on [0,res-1]),
     /// storing the floating point version in pixel[].  Retrieve at most
     /// maxchannels (will be clamped to the actual number of channels).
-    void getpixel (int x, int y, float *pixel, int maxchannels=1000) const;
+    void getpixel (int x, int y, float *pixel, int maxchannels=1000) const {
+        getpixel (x, y, 0, pixel, maxchannels);
+    }
+
+    /// Retrieve the pixel value by x, y, z coordintes (on [0,res-1]),
+    /// storing the floating point version in pixel[].  Retrieve at most
+    /// maxchannels (will be clamped to the actual number of channels).
+    void getpixel (int x, int y, int z, float *pixel, int maxchannels=1000) const;
 
     /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
     /// the upper left corner, (xres,yres) the lower right corner of
@@ -203,7 +210,15 @@ public:
     /// Set the pixel value by x and y coordintes (on [0,res-1]),
     /// from floating-point values in pixel[].  Set at most
     /// maxchannels (will be clamped to the actual number of channels).
-    void setpixel (int x, int y, const float *pixel, int maxchannels=1000);
+    void setpixel (int x, int y, const float *pixel, int maxchannels=1000) {
+        setpixel (x, y, 0, pixel, maxchannels);
+    }
+
+    /// Set the pixel value by x, y, z coordintes (on [0,res-1]),
+    /// from floating-point values in pixel[].  Set at most
+    /// maxchannels (will be clamped to the actual number of channels).
+    void setpixel (int x, int y, int z,
+                   const float *pixel, int maxchannels=1000);
 
     /// Set the i-th pixel value of the image (out of width*height*depth),
     /// from floating-point values in pixel[].  Set at most
@@ -278,6 +293,14 @@ public:
     ///
     int yend () const { return spec().y + spec().height; }
 
+    /// Return the beginning (minimum) z coordinate of the defined image.
+    ///
+    int zbegin () const { return spec().z; }
+
+    /// Return the end (one past maximum) z coordinate of the defined image.
+    ///
+    int zend () const { return spec().z + std::max(spec().depth,1); }
+
     /// Return the minimum x coordinate of the defined image.
     ///
     int xmin () const { return spec().x; }
@@ -294,6 +317,14 @@ public:
     ///
     int ymax () const { return spec().y + spec().height - 1; }
 
+    /// Return the minimum z coordinate of the defined image.
+    ///
+    int zmin () const { return spec().z; }
+
+    /// Return the maximum z coordinate of the defined image.
+    ///
+    int zmax () const { return spec().z + std::max(spec().depth,1) - 1; }
+
     /// Zero out (set to 0, black) the entire image.
     ///
     void zero ();
@@ -306,6 +337,11 @@ public:
     /// subregion is bounded by [xbegin..xend) X [ybegin..yend).
     void fill (const float *pixel, int xbegin, int xend, int ybegin, int yend);
  
+    /// Fill a subregion of the volume with the given pixel value.  The
+    /// subregion is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).
+    void fill (const float *pixel, int xbegin, int xend, int ybegin, int yend,
+               int zbegin, int zend);
+
     bool pixels_valid (void) const { return m_pixels_valid; }
 
     bool localpixels () const { return m_localpixels; }
@@ -335,28 +371,38 @@ public:
         /// Construct from just an ImageBuf -- iterate over the whole
         /// region, starting with the upper left pixel of the region.
         Iterator (ImageBuf &ib)
-            : m_ib(&ib), m_xbegin(ib.xbegin()), m_ybegin(ib.ybegin()),
-              m_xend(ib.xend()), m_yend(ib.yend()), m_tile(NULL)
-          { pos (m_xbegin,m_ybegin); }
+            : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()), 
+              m_ybegin(ib.ybegin()), m_yend(ib.yend()),
+              m_zbegin(ib.zbegin()), m_zend(ib.zend()),
+              m_tile(NULL)
+          { pos (m_xbegin,m_ybegin,m_zbegin); }
         /// Construct from an ImageBuf and a specific pixel index..
         ///
-        Iterator (ImageBuf &ib, int x, int y)
-            : m_ib(&ib), m_xbegin(ib.xbegin()), m_ybegin(ib.ybegin()),
-              m_xend(ib.xend()), m_yend(ib.yend()), m_tile(NULL)
-          { pos (x, y); }
+        Iterator (ImageBuf &ib, int x, int y, int z=0)
+            : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()),
+              m_ybegin(ib.ybegin()), m_yend(ib.yend()),
+              m_zbegin(ib.zbegin()), m_zend(ib.zend()),
+              m_tile(NULL)
+          { pos (x, y, z); }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
-        Iterator (ImageBuf &ib, int xbegin, int ybegin, int xend, int yend)
+        Iterator (const ImageBuf &ib, int xbegin, int xend,
+                       int ybegin, int yend, int zbegin=0, int zend=1)
             : m_ib(&ib), m_xbegin(std::max(xbegin,ib.xbegin())), 
-              m_ybegin(std::max(ybegin,ib.ybegin())),
               m_xend(std::min(xend,ib.xend())),
-              m_yend(std::min(yend,ib.yend())), m_tile(NULL)
-          { pos (m_xbegin, m_ybegin); }
+              m_ybegin(std::max(ybegin,ib.ybegin())),
+              m_yend(std::min(yend,ib.yend())),
+              m_zbegin(std::max(zbegin,ib.zbegin())),
+              m_zend(std::min(zend,ib.zend())),
+              m_tile(NULL)
+          { pos (m_xbegin, m_ybegin, m_zbegin); }
         Iterator (const Iterator &i)
             : m_ib (i.m_ib), m_xbegin(i.m_xbegin), m_xend(i.m_xend), 
-              m_ybegin(i.m_ybegin), m_yend(i.m_yend), m_tile(NULL)
+              m_ybegin(i.m_ybegin), m_yend(i.m_yend),
+              m_zbegin(i.m_zbegin), m_zend(i.m_zend),
+              m_tile(NULL)
         {
-            pos (i.m_x, i.m_y);
+            pos (i.m_x, i.m_y, i.m_z);
         }
         ~Iterator () {
             if (m_tile)
@@ -365,16 +411,17 @@ public:
 
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
-        void pos (int x, int y) {
-            if (! valid(x,y))
+        void pos (int x, int y, int z=0) {
+            if (! valid(x,y,z))
                 m_proxy.set (NULL);
             else if (m_ib->localpixels())
-                m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y));
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y, z));
             else
-                m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(), 
-                                         m_ib->miplevel(), x, y,
-                                         m_tile, m_tilexbegin, m_tileybegin));
-            m_x = x;  m_y = y;
+                m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(),
+                                                   m_ib->miplevel(), x, y, z,
+                                                   m_tile, m_tilexbegin,
+                                                   m_tileybegin, m_tilezbegin));
+            m_x = x;  m_y = y;  m_z = z;
         }
 
         /// Increment to the next pixel in the region.
@@ -382,9 +429,12 @@ public:
         void operator++ () {
             if (++m_x >= m_xend) {
                 m_x = m_xbegin;
-                ++m_y;
+                if (++m_y >= m_yend) {
+                    m_y = m_ybegin;
+                    ++m_z;
+                }
             }
-            pos (m_x, m_y);
+            pos (m_x, m_y, m_z);
             // FIXME -- we could do the traversal in an even more coherent
             // pattern, and this may help when we're backed by ImageCache.
         }
@@ -403,7 +453,8 @@ public:
             m_ib = i.m_ib;
             m_xbegin = i.m_xbegin;  m_xend = i.m_xend;
             m_ybegin = i.m_ybegin;  m_yend = i.m_yend;
-            pos (i.m_x, i.m_y);
+            m_zbegin = i.m_zbegin;  m_zend = i.m_zend;
+            pos (i.m_x, i.m_y, i.m_z);
             return *this;
         }
 
@@ -413,21 +464,26 @@ public:
         /// Retrieve the current y location of the iterator.
         ///
         int y () const { return m_y; }
+        /// Retrieve the current z location of the iterator.
+        ///
+        int z () const { return m_z; }
 
         /// Is the current location valid?  Locations outside the
         /// designated region are invalid, as is an iterator that has
         /// completed iterating over the whole region.
         bool valid () const {
             return (m_x >= m_xbegin && m_x < m_xend &&
-                    m_y >= m_ybegin && m_y < m_yend);
+                    m_y >= m_ybegin && m_y < m_yend &&
+                    m_z >= m_zbegin && m_z < m_zend);
         }
 
         /// Is the location (x,y) valid?  Locations outside the
         /// designated region are invalid, as is an iterator that has
         /// completed iterating over the whole region.
-        bool valid (int x, int y) const {
+        bool valid (int x, int y, int z=0) const {
             return (x >= m_xbegin && x < m_xend &&
-                    y >= m_ybegin && y < m_yend);
+                    y >= m_ybegin && y < m_yend &&
+                    z >= m_zbegin && z < m_zend);
         }
 
         /// Dereferencing the iterator gives us a proxy for the pixel,
@@ -447,11 +503,11 @@ public:
 
     private:
         ImageBuf *m_ib;
-        int m_xbegin, m_ybegin, m_xend, m_yend;
-        int m_x, m_y;
+        int m_xbegin, m_xend, m_ybegin, m_yend, m_zbegin, m_zend;
+        int m_x, m_y, m_z;
         DataArrayProxy<BUFT,USERT> m_proxy;
         ImageCache::Tile *m_tile;
-        int m_tilexbegin, m_tileybegin;
+        int m_tilexbegin, m_tileybegin, m_tilezbegin;
     };
 
 
@@ -464,28 +520,37 @@ public:
         /// region, starting with the upper left pixel of the region.
         ConstIterator (const ImageBuf &ib)
             : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()), 
-              m_ybegin(ib.ybegin()), m_yend(ib.yend()), m_tile(NULL)
-          { pos (m_xbegin,m_ybegin); }
+              m_ybegin(ib.ybegin()), m_yend(ib.yend()),
+              m_zbegin(ib.zbegin()), m_zend(ib.zend()),
+              m_tile(NULL)
+          { pos (m_xbegin,m_ybegin,m_zbegin); }
         /// Construct from an ImageBuf and a specific pixel index..
         ///
-        ConstIterator (const ImageBuf &ib, int x, int y)
+        ConstIterator (const ImageBuf &ib, int x, int y, int z=0)
             : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()),
-              m_ybegin(ib.ybegin()), m_yend(ib.yend()), m_tile(NULL)
-          { pos (x, y); }
+              m_ybegin(ib.ybegin()), m_yend(ib.yend()),
+              m_zbegin(ib.zbegin()), m_zend(ib.zend()),
+              m_tile(NULL)
+          { pos (x, y, z); }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
         ConstIterator (const ImageBuf &ib, int xbegin, int xend,
-                       int ybegin, int yend)
+                       int ybegin, int yend, int zbegin=0, int zend=1)
             : m_ib(&ib), m_xbegin(std::max(xbegin,ib.xbegin())), 
               m_xend(std::min(xend,ib.xend())),
               m_ybegin(std::max(ybegin,ib.ybegin())),
-              m_yend(std::min(yend,ib.yend())), m_tile(NULL)
-          { pos (m_xbegin, m_ybegin); }
+              m_yend(std::min(yend,ib.yend())),
+              m_zbegin(std::max(zbegin,ib.zbegin())),
+              m_zend(std::min(zend,ib.zend())),
+              m_tile(NULL)
+          { pos (m_xbegin, m_ybegin, m_zbegin); }
         ConstIterator (const ConstIterator &i)
             : m_ib (i.m_ib), m_xbegin(i.m_xbegin), m_xend(i.m_xend), 
-              m_ybegin(i.m_ybegin), m_yend(i.m_yend), m_tile(NULL)
+              m_ybegin(i.m_ybegin), m_yend(i.m_yend),
+              m_zbegin(i.m_zbegin), m_zend(i.m_zend),
+              m_tile(NULL)
         {
-            pos (i.m_x, i.m_y);
+            pos (i.m_x, i.m_y, i.m_z);
         }
 
         ~ConstIterator () {
@@ -495,16 +560,17 @@ public:
 
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
-        void pos (int x, int y) {
-            if (! valid(x,y))
+        void pos (int x, int y, int z=0) {
+            if (! valid(x,y,z))
                 m_proxy.set (NULL);
             else if (m_ib->localpixels())
-                m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y));
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y, z));
             else
                 m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(),
-                                         m_ib->miplevel(), x, y,
-                                         m_tile, m_tilexbegin, m_tileybegin));
-            m_x = x;  m_y = y;
+                                         m_ib->miplevel(), x, y, z,
+                                         m_tile, m_tilexbegin,
+                                         m_tileybegin, m_tilezbegin));
+            m_x = x;  m_y = y;  m_z = z;
         }
 
         /// Increment to the next pixel in the region.
@@ -512,9 +578,12 @@ public:
         void operator++ () {
             if (++m_x >= m_xend) {
                 m_x = m_xbegin;
-                ++m_y;
+                if (++m_y >= m_yend) {
+                    m_y = m_ybegin;
+                    ++m_z;
+                }
             }
-            pos (m_x, m_y);
+            pos (m_x, m_y, m_z);
             // FIXME -- we could do the traversal in an even more coherent
             // pattern, and this may help when we're backed by ImageCache.
         }
@@ -533,7 +602,8 @@ public:
             m_ib = i.m_ib;
             m_xbegin = i.m_xbegin;  m_xend = i.m_xend;
             m_ybegin = i.m_ybegin;  m_yend = i.m_yend;
-            pos (i.m_x, i.m_y);
+            m_zbegin = i.m_zbegin;  m_zend = i.m_zend;
+            pos (i.m_x, i.m_y, i.m_z);
             return *this;
         }
 
@@ -543,21 +613,26 @@ public:
         /// Retrieve the current y location of the iterator.
         ///
         int y () const { return m_y; }
+        /// Retrieve the current z location of the iterator.
+        ///
+        int z () const { return m_z; }
 
         /// Is the current location valid?  Locations outside the
         /// designated region are invalid, as is an iterator that has
         /// completed iterating over the whole region.
         bool valid () const {
             return (m_x >= m_xbegin && m_x < m_xend &&
-                    m_y >= m_ybegin && m_y < m_yend);
+                    m_y >= m_ybegin && m_y < m_yend &&
+                    m_z >= m_zbegin && m_z < m_zend);
         }
 
-        /// Is the location (x,y) valid?  Locations outside the
+        /// Is the location (x,y[,z]) valid?  Locations outside the
         /// designated region are invalid, as is an iterator that has
         /// completed iterating over the whole region.
-        bool valid (int x, int y) const {
+        bool valid (int x, int y, int z=0) const {
             return (x >= m_xbegin && x < m_xend &&
-                    y >= m_ybegin && y < m_yend);
+                    y >= m_ybegin && y < m_yend &&
+                    z >= m_zbegin && z < m_zend);
         }
 
         /// Dereferencing the iterator gives us a proxy for the pixel,
@@ -572,11 +647,11 @@ public:
 
     private:
         const ImageBuf *m_ib;
-        int m_xbegin, m_xend, m_ybegin, m_yend;
-        int m_x, m_y;
+        int m_xbegin, m_xend, m_ybegin, m_yend, m_zbegin, m_zend;
+        int m_x, m_y, m_z;
         ConstDataArrayProxy<BUFT,USERT> m_proxy;
         ImageCache::Tile *m_tile;
-        int m_tilexbegin, m_tileybegin;
+        int m_tilexbegin, m_tileybegin, m_tilezbegin;
     };
 
 
@@ -603,18 +678,26 @@ protected:
 
     // Return the address where pixel (x,y) is stored in the image buffer.
     // Use with extreme caution!
-    const void *pixeladdr (int x, int y) const;
+    const void *pixeladdr (int x, int y) const { return pixeladdr (x, y, 0); }
+
+    // Return the address where pixel (x,y,z) is stored in the image buffer.
+    // Use with extreme caution!
+    const void *pixeladdr (int x, int y, int z) const;
 
     // Return the address where pixel (x,y) is stored in the image buffer.
     // Use with extreme caution!
-    void *pixeladdr (int x, int y);
+    void *pixeladdr (int x, int y) { return pixeladdr (x, y, 0); }
+
+    // Return the address where pixel (x,y,z) is stored in the image buffer.
+    // Use with extreme caution!
+    void *pixeladdr (int x, int y, int z);
 
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
     // within the tile.
-    const void * retile (int subimage, int miplevel,
-                         int x, int y, ImageCache::Tile* &tile,
-                         int &tilexbegin, int &tileybegin) const;
+    const void * retile (int subimage, int miplevel, int x, int y, int z,
+                         ImageCache::Tile* &tile, int &tilexbegin,
+                         int &tileybegin, int &tilezbegin) const;
 };
 
 

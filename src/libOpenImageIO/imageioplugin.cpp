@@ -195,6 +195,7 @@ namespace OPENIMAGEIO_NAMESPACE {
 //    PLUGENTRY (cineon);
     PLUGENTRY (dds);
     PLUGENTRY (dpx);
+    PLUGENTRY (field3d);
     PLUGENTRY (fits);
     PLUGENTRY (hdr);
     PLUGENTRY (ico);
@@ -241,6 +242,9 @@ catalog_builtin_plugins ()
 //    DECLAREPLUG (cineon);
     DECLAREPLUG (dds);
     DECLAREPLUG (dpx);
+#ifdef USE_FIELD3D
+    DECLAREPLUG (field3d);
+#endif
     DECLAREPLUG (fits);
     DECLAREPLUG (hdr);
     DECLAREPLUG (ico);

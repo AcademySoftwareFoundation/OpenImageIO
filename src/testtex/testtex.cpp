@@ -66,6 +66,7 @@ static bool nowarp = false;
 static float cachesize = -1;
 static int maxfiles = -1;
 static float missing[4] = {-1, 0, 0, 1};
+static float scalefactor = 1.0f;
 
 
 
@@ -102,7 +103,8 @@ getargs (int argc, const char *argv[])
                   "--blocksize %d", &blocksize, "Set blocksize (n x n) for batches",
                   "--searchpath %s", &searchpath, "Search path for files",
                   "--nowarp", &nowarp, "Do not warp the image->texture mapping",
-                  "--cachesize %g", &cachesize, "Set cache size, in MB",
+                  "--cachesize %f", &cachesize, "Set cache size, in MB",
+                  "--scale %f", &scalefactor, "Scale intensities",
                   "--maxfiles %d", &maxfiles, "Set maximum open files",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
@@ -173,6 +175,17 @@ warp (float x, float y, Imath::M33f &xform)
     coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
     return coord;
 }
+
+
+inline Imath::V3f
+warp (float x, float y, float z, Imath::M33f &xform)
+{
+    Imath::V3f coord (x, y, z);
+    coord *= xform;
+    coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
+    return coord;
+}
+
 
 
 static void
@@ -282,6 +295,128 @@ test_plain_texture ()
                     if (! e.empty())
                         std::cerr << "ERROR: " << e << "\n";
                 }
+                for (int i = 0;  i < shadepoints*nchannels;  ++i)
+                    result[i] *= scalefactor;
+
+                // Save filtered pixels back to the image.
+                idx = 0;
+                for (int y = by; y < by+blocksize; ++y) {
+                    for (int x = bx; x < bx+blocksize; ++x) {
+                        if (runflags[idx]) {
+                            image.setpixel (x, y, result + idx*nchannels);
+                        }
+                        ++idx;
+                    }
+                }
+            }
+        }
+    }
+    
+    if (! image.save ()) 
+        std::cerr << "Error writing " << output_filename 
+                  << " : " << image.geterror() << "\n";
+}
+
+
+
+static void
+test_texture3d (ustring filename)
+{
+    std::cerr << "Testing 3d texture " << filename << ", output = " 
+              << output_filename << "\n";
+    const int nchannels = 4;
+    ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
+    ImageBuf image (output_filename, outspec);
+    image.zero ();
+
+    Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
+    Imath::M33f rot;    rot.rotate (radians(30.0f));
+    Imath::M33f trans;  trans.translate (Imath::V2f (0.35f, 0.15f));
+    Imath::M33f xform = scale * rot * trans;
+    xform.invert();
+
+    TextureOptions opt;
+    opt.sblur = blur;
+    opt.tblur = blur;
+    opt.rblur = blur;
+    opt.swidth = width;
+    opt.twidth = width;
+    opt.rwidth = width;
+    opt.nchannels = nchannels;
+    float fill = 0;
+    opt.fill = fill;
+    if (missing[0] >= 0)
+        opt.missingcolor.init ((float *)&missing, 0);
+
+    opt.swrap = opt.twrap = opt.rwrap = TextureOptions::WrapPeriodic;
+    int shadepoints = blocksize*blocksize;
+    Imath::V3f *P = ALLOCA (Imath::V3f, shadepoints);
+    Runflag *runflags = ALLOCA (Runflag, shadepoints);
+    Imath::V3f *dPdx = ALLOCA (Imath::V3f, shadepoints);
+    Imath::V3f *dPdy = ALLOCA (Imath::V3f, shadepoints);
+    Imath::V3f *dPdz = ALLOCA (Imath::V3f, shadepoints);
+    float *result = ALLOCA (float, shadepoints*nchannels);
+    
+    for (int iter = 0;  iter < iters;  ++iter) {
+        // Iterate over blocks
+
+        // Trick: switch to second texture, if given, for second iteration
+        if (iter && filenames.size() > 1)
+            filename = ustring (filenames[1]);
+
+        for (int by = 0;  by < output_yres;  by+=blocksize) {
+            for (int bx = 0;  bx < output_xres;  bx+=blocksize) {
+                // Process pixels within a block.  First save the texture warp
+                // (s,t) and derivatives into SIMD vectors.
+                int idx = 0;
+                for (int y = by; y < by+blocksize; ++y) {
+                    for (int x = bx; x < bx+blocksize; ++x) {
+                        if (x < output_xres && y < output_yres) {
+                            if (nowarp) {
+                                P[idx][0] = (float)x/output_xres;
+                                P[idx][1] = (float)y/output_yres;
+                                P[idx][2] = 0.5f;
+                                dPdx[idx][0] = 1.0f/output_xres;
+                                dPdx[idx][1] = 0;
+                                dPdx[idx][2] = 0;
+                                dPdy[idx][0] = 0;
+                                dPdy[idx][1] = 1.0f/output_yres;
+                                dPdy[idx][2] = 0;
+                                dPdz[idx].setValue (0,0,0);
+                            } else {
+                                Imath::V3f coord = warp ((float)x/output_xres,
+                                                         (float)y/output_yres,
+                                                         0.5, xform);
+                                Imath::V3f coordx = warp ((float)(x+1)/output_xres,
+                                                          (float)y/output_yres,
+                                                          0.5, xform);
+                                Imath::V3f coordy = warp ((float)x/output_xres,
+                                                          (float)(y+1)/output_yres,
+                                                          0.5, xform);
+                                P[idx] = coord;
+                                dPdx[idx] = coordx - coord;
+                                dPdy[idx] = coordy - coord;
+                                dPdz[idx].setValue (0,0,0);
+                            }
+                            runflags[idx] = RunFlagOn;
+                        } else {
+                            runflags[idx] = RunFlagOff;
+                        }
+                        ++idx;
+                    }
+                }
+                // Call the texture system to do the filtering.
+                bool ok = texsys->texture3d (filename, opt, runflags, 0, shadepoints,
+                                             Varying(P), Varying(dPdx),
+                                             Varying(dPdy), Varying(dPdz),
+                                             result);
+                if (! ok) {
+                    std::string e = texsys->geterror ();
+                    if (! e.empty())
+                        std::cerr << "ERROR: " << e << "\n";
+                }
+                for (int i = 0;  i < shadepoints*nchannels;  ++i)
+                    result[i] *= scalefactor;
 
                 // Save filtered pixels back to the image.
                 idx = 0;
@@ -376,6 +511,9 @@ main (int argc, const char *argv[])
                                   TypeDesc::STRING, &texturetype);
         if (! strcmp (texturetype, "Plain Texture")) {
             test_plain_texture ();
+        }
+        if (! strcmp (texturetype, "Volume Texture")) {
+            test_texture3d (filename);
         }
         if (! strcmp (texturetype, "Shadow")) {
             test_shadow (filename);

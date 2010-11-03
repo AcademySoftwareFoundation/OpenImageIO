@@ -147,9 +147,10 @@ public:
     float *dresultdt;                 ///< Gradient of the result along t (if not NULL)
 
     // For 3D volume texture lookups only:
-    Wrap zwrap;                ///< Wrap mode in the z direction
-    VaryingRef<float> zblur;   ///< Blur amount in the z direction
-    VaryingRef<float> zwidth;  ///< Multiplier for derivatives in z direction
+    Wrap rwrap;                ///< Wrap mode in the r direction
+    VaryingRef<float> rblur;   ///< Blur amount in the r direction
+    VaryingRef<float> rwidth;  ///< Multiplier for derivatives in r direction
+    float *dresultdr;          ///< Gradient of the result along r (if not NULL)
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
@@ -174,7 +175,7 @@ private:
     // by the user.  Users should not attempt to alter these!
     int actualchannels;    // True number of channels read
     typedef bool (*wrap_impl) (int &coord, int width);
-    wrap_impl swrap_func, twrap_func;
+    wrap_impl swrap_func, twrap_func, rwrap_func;
     friend class OpenImageIO::pvt::TextureSystemImpl;
 };
 
@@ -271,21 +272,22 @@ public:
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
-    virtual bool texture (ustring filename, TextureOptions &options,
-                          const Imath::V3f &P,
-                          const Imath::V3f &dPdx, const Imath::V3f &dPdy,
-                          float *result) = 0;
+    virtual bool texture3d (ustring filename, TextureOptions &options,
+                            const Imath::V3f &P, const Imath::V3f &dPdx,
+                            const Imath::V3f &dPdy, const Imath::V3f &dPdz,
+                            float *result) = 0;
 
     /// Retrieve a 3D texture lookup at many points at once.
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
-    virtual bool texture (ustring filename, TextureOptions &options,
-                          Runflag *runflags, int beginactive, int endactive,
-                          VaryingRef<Imath::V3f> P,
-                          VaryingRef<Imath::V3f> dPdx,
-                          VaryingRef<Imath::V3f> dPdy,
-                          float *result) = 0;
+    virtual bool texture3d (ustring filename, TextureOptions &options,
+                            Runflag *runflags, int beginactive, int endactive,
+                            VaryingRef<Imath::V3f> P,
+                            VaryingRef<Imath::V3f> dPdx,
+                            VaryingRef<Imath::V3f> dPdy,
+                            VaryingRef<Imath::V3f> dPdz,
+                            float *result) = 0;
 
     /// Retrieve a shadow lookup for a single position P.
     ///

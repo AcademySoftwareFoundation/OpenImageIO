@@ -82,8 +82,9 @@ TextureOptions::TextureOptions (bool)
       missingcolor(NULL),
       samples(default_samples),
       dresultds(NULL), dresultdt(NULL),
-      zwrap(WrapDefault), zblur(default_blur), zwidth(default_width),
-      swrap_func(NULL), twrap_func(NULL)
+      rwrap(WrapDefault), rblur(default_blur), rwidth(default_width),
+      dresultdr(NULL),
+      swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
 {
 }
 

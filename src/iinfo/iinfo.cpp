@@ -364,7 +364,10 @@ print_info (const std::string &filename, size_t namefieldlength,
             printf ("    %d subimages: ", num_of_subimages);
             for (int i = 0; i < num_of_subimages; ++i) {
                 input->seek_subimage (i, 0, spec);
-                printf ("%dx%d ", spec.width, spec.height);
+                if (spec.depth > 1)
+                    printf ("%dx%dx%d ", spec.width, spec.height, spec.depth);
+                else
+                    printf ("%dx%d ", spec.width, spec.height);
             }
             printf ("\n");
         } else if (num_of_miplevels[0] > 1) {

@@ -282,6 +282,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
     : m_filename(filename), m_used(true), m_broken(false),
       m_texformat(TexFormatTexture),
       m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
+      m_rwrap(TextureOptions::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
       m_mipused(false), m_validspec(false), 
@@ -376,6 +377,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     do {
         m_subimages.resize (nsubimages+1);
         SubimageInfo &si (subimageinfo(nsubimages));
+        si.volume = (tempspec.width > 1 || tempspec.full_width > 1);
         int nmip = 0;
         do {
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
@@ -384,13 +386,18 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                     // Automatically make it appear as if it's tiled
                     tempspec.tile_width = imagecache().autotile();
                     tempspec.tile_height = imagecache().autotile();
-                    tempspec.tile_depth = 1;
+                    if (tempspec.depth > 1)
+                        tempspec.tile_depth = imagecache().autotile();
+                    else
+                        tempspec.tile_depth = 1;
                 } else {
                     // Don't auto-tile -- which really means, make it look like
                     // a single tile that's as big as the whole image
+                    // FIXME -- is there a good reason to round up pow 2 here?
+                    // Or does that just end up wasting space?
                     tempspec.tile_width = pow2roundup (tempspec.width);
                     tempspec.tile_height = pow2roundup (tempspec.height);
-                    tempspec.tile_depth = 1;
+                    tempspec.tile_depth = pow2roundup(tempspec.depth);
                 }
             }
             thread_info->m_stats.files_totalsize += tempspec.image_bytes();
@@ -411,30 +418,38 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         // is on, it's a non-mipmapped image, and it doesn't have a
         // "textureformat" attribute (because that would indicate somebody
         // constructed it as texture and specifically wants it un-mipmapped).
-        if (nmip == 1)
+        // But not volume textures -- don't auto MIP them for now.
+        if (nmip == 1 && !si.volume)
             si.unmipped = true;
         if (si.untiled && si.unmipped && imagecache().automip() &&
             ! tempspec.find_attribute ("textureformat", TypeDesc::TypeString)) {
             int w = tempspec.full_width;
             int h = tempspec.full_height;
-            while (w > 1 || h > 1) {
+            int d = tempspec.full_depth;
+            while (w > 1 || h > 1 || d > 1) {
                 w = std::max (1, w/2);
                 h = std::max (1, h/2);
+                d = std::max (1, d/2);
                 ImageSpec s = tempspec;
                 s.width = w;
                 s.height = h;
+                s.depth = d;
                 s.full_width = w;
                 s.full_height = h;
+                s.full_depth = d;
                 if (imagecache().autotile()) {
                     s.tile_width = std::min (imagecache().autotile(), w);
                     s.tile_height = std::min (imagecache().autotile(), h);
+                    s.tile_depth = std::min (imagecache().autotile(), d);
                 } else {
                     s.tile_width = w;
                     s.tile_height = h;
+                    s.tile_depth = d;
                 }
                 // Texture system requires pow2 tile sizes
                 s.tile_width = pow2roundup (s.tile_width);
                 s.tile_height = pow2roundup (s.tile_height);
+                s.tile_depth = pow2roundup (s.tile_depth);
                 ++nmip;
                 LevelInfo levelinfo (s);
                 si.levels.push_back (levelinfo);
@@ -456,7 +471,10 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     const ImageIOParameter *p;
 
     // FIXME -- this should really be per-subimage
-    m_texformat = TexFormatTexture;
+    if (spec.depth <= 1 && spec.full_depth <= 1)
+        m_texformat = TexFormatTexture;
+    else
+        m_texformat = TexFormatTexture3d;
     if ((p = spec.find_attribute ("textureformat", TypeDesc::STRING))) {
         const char *textureformat = *(const char **)p->data();
         for (int i = 0;  i < TexFormatLast;  ++i)
@@ -474,6 +492,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                         spec.full_width = spec.width;
                     if (spec.full_height > spec.height)
                         spec.full_height = spec.height;
+                    if (spec.full_depth > spec.depth)
+                        spec.full_depth = spec.depth;
                 }
             }
         }
@@ -482,6 +502,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     if ((p = spec.find_attribute ("wrapmodes", TypeDesc::STRING))) {
         const char *wrapmodes = (const char *)p->data();
         TextureOptions::parse_wrapmodes (wrapmodes, m_swrap, m_twrap);
+        m_rwrap = m_swrap;
+        // FIXME(volume) -- rwrap
     }
 
     m_y_up = false;
@@ -647,7 +669,7 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
     int y0 = y - (y % spec.tile_height);
     int y1 = std::min (y0+spec.tile_height-1, spec.full_height-1);
 //    int z0 = z - (z % spec.tile_depth);
-//    int z1 = std::min (z0+spec.tile_depth, spec.full_depth-1);
+//    int z1 = std::min (z0+spec.tile_depth-1, spec.full_depth-1);
 
     // Save the contents of the per-thread microcache.  This is because
     // a caller several levels up may be retaining a reference to
@@ -672,6 +694,7 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
     float *bilerppels = (float *) alloca (4 * spec.nchannels * sizeof(float));
     float *resultpel = (float *) alloca (spec.nchannels * sizeof(float));
     bool ok = true;
+    // FIXME(volume) -- loop over z, too
     for (int j = y0;  j <= y1;  ++j) {
         float yf = (j+0.5f) / spec.full_height;
         int ylow;
@@ -966,6 +989,7 @@ ImageCacheImpl::find_file (ustring filename,
             // have significance later!
             ImageCacheFile *dup = fingerfound->second.get();
             if (tf->m_swrap == dup->m_swrap && tf->m_twrap == dup->m_twrap &&
+                  tf->m_rwrap == dup->m_rwrap &&
                   tf->m_datatype == dup->m_datatype && 
                   tf->m_cubelayout == dup->m_cubelayout &&
                   tf->m_y_up == dup->m_y_up) {
@@ -1088,7 +1112,7 @@ ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
                              spec.tile_depth, pels, format, xstride, ystride,
                              zstride, &m_pixels[0], file.datatype(),
                              dst_pelsize, dst_pelsize * spec.tile_width,
-                             dst_pelsize * spec.tile_pixels());
+                             dst_pelsize * spec.tile_width * spec.tile_height);
     id.file().imagecache().incr_tiles (size);
     m_pixels_ready = true;
     // FIXME -- for shadow, fill in mindepth, maxdepth
@@ -1120,6 +1144,7 @@ ImageCacheTile::read (ImageCachePerThreadInfo *thread_info)
         m_used = false;  // Don't let it hold mem if invalid
 #if 0
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y()
+                  << ' ' << m_id.z()
                   << " subimg=" << m_id.subimage()
                   << " mip=" << m_id.miplevel()
                   << " from " << file.filename() << "\n";
@@ -1151,7 +1176,8 @@ ImageCacheTile::data (int x, int y, int z) const
     const ImageSpec &spec = m_id.file().spec (m_id.subimage(), m_id.miplevel());
     size_t w = spec.tile_width;
     size_t h = spec.tile_height;
-    size_t d = std::max (1, spec.tile_depth);
+    size_t d = spec.tile_depth;
+    DASSERT (d >= 1);
     x -= m_id.x();
     y -= m_id.y();
     z -= m_id.z();
@@ -1652,7 +1678,7 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
             m_tilemutex.unlock ();
             tile->wait_pixels_ready ();
             tile->use ();
-            DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
+            DASSERT (id == tile->id());
             DASSERT (tile);
             DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
             // Relock -- this shouldn't be necessary, but by golly, if I
@@ -1687,7 +1713,7 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
     id.file().iotime() += readtime;
 
     add_tile_to_cache (tile, thread_info);
-    DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
+    DASSERT (id == tile->id());
     DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
     return tile->valid();
 }
@@ -1825,6 +1851,13 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
         int *d = (int *)data;
         d[0] = spec.width;
         d[1] = spec.height;
+        return true;
+    }
+    if (dataname == s_resolution && datatype==TypeDesc(TypeDesc::INT,3)) {
+        int *d = (int *)data;
+        d[0] = spec.width;
+        d[1] = spec.height;
+        d[2] = spec.depth;
         return true;
     }
     if (dataname == s_texturetype && datatype == TypeDesc::TypeString) {
@@ -1984,14 +2017,15 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
     size_t formatpixelsize = nc * format.size();
     size_t scanlinesize = (xend-xbegin) * formatpixelsize;
     size_t zplanesize = (yend-ybegin) * scanlinesize;
+    DASSERT (spec.depth >= 1 && spec.tile_depth >= 1);
     for (int z = zbegin;  z < zend;  ++z) {
-        if (z < spec.z || z >= (spec.z+std::max(spec.depth,1))) {
+        if (z < spec.z || z >= (spec.z+spec.depth)) {
             // nonexistant planes
             memset (result, 0, zplanesize);
             result = (void *) ((char *) result + zplanesize);
             continue;
         }
-        int tz = z - ((z - spec.z) % std::max (1, spec.tile_depth));
+        int tz = z - ((z - spec.z) % spec.tile_depth);
         for (int y = ybegin;  y < yend;  ++y) {
             if (y < spec.y || y >= (spec.y+spec.height)) {
                 // nonexistant scanlines
@@ -2157,7 +2191,7 @@ ImageCacheImpl::invalidate_all (bool force)
                 // Invalidate if any unmipped subimage:
                 // ... didn't automip, but automip is now on
                 // ... did automip, but automip is now off
-                if (sub.unmipped && 
+                if (sub.unmipped &&
                       ((m_automip && f->miplevels(s) <= 1) ||
                        (!m_automip && f->miplevels(s) > 1)))
                     inval = true;
