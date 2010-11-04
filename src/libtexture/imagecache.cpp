@@ -377,7 +377,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     do {
         m_subimages.resize (nsubimages+1);
         SubimageInfo &si (subimageinfo(nsubimages));
-        si.volume = (tempspec.width > 1 || tempspec.full_width > 1);
+        si.volume = (tempspec.depth > 1 || tempspec.full_depth > 1);
         int nmip = 0;
         do {
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
