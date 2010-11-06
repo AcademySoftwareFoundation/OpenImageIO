@@ -1204,7 +1204,7 @@ void
 ImageCacheImpl::init ()
 {
     m_max_open_files = 100;
-    m_max_memory_bytes = 100 * 1024 * 1024;   // 100 MB default cache size
+    m_max_memory_bytes = 256 * 1024 * 1024;   // 256 MB default cache size
     m_autotile = 0;
     m_automip = false;
     m_forcefloat = false;

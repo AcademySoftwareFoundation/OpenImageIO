@@ -50,7 +50,7 @@ Below are some simple code fragments that shows \ImageCache in action:
 
     // Create an image cache and set some options
     ImageCache *cache = ImageCache::create ();
-    cache->attribute ("max_memory_MB", 50.0);
+    cache->attribute ("max_memory_MB", 500.0);
     cache->attribute ("autotile", 64);
 
     // Get a block of pixels from a file.
@@ -262,7 +262,7 @@ hold open simultaneously.  (Default = 100)
 
 \apiitem{float max_memory_MB}
 The maximum amount of memory (measured in MB) that the image cache
-will use for its ``tile cache.'' (Default: 50.0 MB)
+will use for its ``tile cache.'' (Default: 256.0 MB)
 \apiend
 
 \apiitem{string searchpath}
