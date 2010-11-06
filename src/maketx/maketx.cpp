@@ -387,9 +387,9 @@ make_texturemap (const char *maptypename = "texture map")
     if (verbose)
         std::cout << "Reading file: " << filenames[0] << std::endl;
     Timer readtimer;
-    if (! src.read (0, read_local)) {
+    if (! src.read (0, 0, read_local)) {
         std::cerr 
-            << "maketx ERROR: Could not find an ImageIO plugin to read \"" 
+            << "maketx ERROR: Could not read \"" 
             << filenames[0] << "\" : " << src.geterror() << "\n";
         exit (EXIT_FAILURE);
     }
