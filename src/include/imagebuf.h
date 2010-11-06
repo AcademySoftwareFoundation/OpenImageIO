@@ -386,7 +386,7 @@ public:
           { pos (x, y, z); }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
-        Iterator (const ImageBuf &ib, int xbegin, int xend,
+        Iterator (ImageBuf &ib, int xbegin, int xend,
                        int ybegin, int yend, int zbegin=0, int zend=1)
             : m_ib(&ib), m_xbegin(std::max(xbegin,ib.xbegin())), 
               m_xend(std::min(xend,ib.xend())),
