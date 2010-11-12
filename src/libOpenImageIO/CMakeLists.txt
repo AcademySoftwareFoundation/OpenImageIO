@@ -142,6 +142,7 @@ if (EMBEDPLUGINS)
     else (FIELD3D_FOUND)
         message (STATUS "Field3D not found: field3d plugin will not be built")
         set (FIELD3D_LIBRARY "")
+        set (HDF5_LIBRARIES "")
     endif (FIELD3D_FOUND)
 endif ()
 
