@@ -513,6 +513,8 @@ public:
         lock_guard (spin_mutex &fm) : m_fm(fm) { m_fm.lock(); }
         ~lock_guard () { m_fm.unlock(); }
     private:
+        lock_guard(); // Do not implement (even though TBB does)
+        lock_guard(const lock_guard& other); // Do not implement
         spin_mutex & m_fm;
     };
 
