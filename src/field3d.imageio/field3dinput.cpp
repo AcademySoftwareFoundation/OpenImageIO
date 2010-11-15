@@ -44,9 +44,7 @@
 #include <Field3D/SparseField.h>
 #include <Field3D/InitIO.h>
 #include <Field3D/Field3DFile.h>
-#ifdef FIELD3D_NEW_API
 #include <Field3D/FieldMetadata.h>
-#endif
 #ifndef FIELD3D_NS
 #define FIELD3D_NS Field3D
 #endif
@@ -172,6 +170,31 @@ inline int blocksize (FieldRes::Ptr &f)
 
 
 
+template <class M>
+static void
+read_metadata (const M &meta, ImageSpec &spec)
+{
+    for (typename M::StrMetadata::const_iterator i = meta.strMetadata().begin(),
+             e = meta.strMetadata().end(); i != e;  ++i)
+        spec.attribute (i->first, i->second);
+    for (typename M::IntMetadata::const_iterator i = meta.intMetadata().begin(),
+             e = meta.intMetadata().end(); i != e;  ++i)
+        spec.attribute (i->first, i->second);
+    for (typename M::FloatMetadata::const_iterator i = meta.floatMetadata().begin(),
+             e = meta.floatMetadata().end(); i != e;  ++i)
+        spec.attribute (i->first, i->second);
+    for (typename M::VecIntMetadata::const_iterator i = meta.vecIntMetadata().begin(),
+             e = meta.vecIntMetadata().end(); i != e;  ++i) {
+        spec.attribute (i->first, TypeDesc(TypeDesc::INT,3), &(i->second));
+    }
+    for (typename M::VecFloatMetadata::const_iterator i = meta.vecFloatMetadata().begin(),
+             e = meta.vecFloatMetadata().end(); i != e;  ++i) {
+        spec.attribute (i->first, TypeDesc::TypeVector, &(i->second));
+    }
+}
+
+
+
 void
 Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
                               TypeDesc datatype)
@@ -255,47 +278,8 @@ Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
     }
 
     // Other metadata
-#ifdef FIELD3D_NEW_API
-    // API for accessing metadata will be changing soon.  This will be
-    // the new one.  Once it's pushed to the public Field3D, we'll
-    // eliminate this #ifdef.
-    for (FieldMetadata<FieldBase>::StrMetadata::const_iterator i = field->metadata().strMetadata().begin(),
-             e = field->metadata().strMetadata().end(); i != e;  ++i)
-        lay.spec.attribute (i->first, i->second);
-    for (FieldMetadata<FieldBase>::IntMetadata::const_iterator i = field->metadata().intMetadata().begin(),
-             e = field->metadata().intMetadata().end(); i != e;  ++i)
-        lay.spec.attribute (i->first, i->second);
-    for (FieldMetadata<FieldBase>::FloatMetadata::const_iterator i = field->metadata().floatMetadata().begin(),
-             e = field->metadata().floatMetadata().end(); i != e;  ++i)
-        lay.spec.attribute (i->first, i->second);
-    for (FieldMetadata<FieldBase>::VecIntMetadata::const_iterator i = field->metadata().vecIntMetadata().begin(),
-             e = field->metadata().vecIntMetadata().end(); i != e;  ++i) {
-        lay.spec.attribute (i->first, TypeDesc(TypeDesc::INT,3), &(i->second));
-    }
-    for (FieldMetadata<FieldBase>::VecFloatMetadata::const_iterator i = field->metadata().vecFloatMetadata().begin(),
-             e = field->metadata().vecFloatMetadata().end(); i != e;  ++i) {
-        lay.spec.attribute (i->first, TypeDesc::TypeVector, &(i->second));
-    }
-#else
-    for (FieldBase::StrMetadata::const_iterator i = field->strMetadata().begin(),
-             e = field->strMetadata().end(); i != e;  ++i)
-        lay.spec.attribute (i->first, i->second);
-    for (FieldBase::IntMetadata::const_iterator i = field->intMetadata().begin(),
-             e = field->intMetadata().end(); i != e;  ++i)
-        lay.spec.attribute (i->first, i->second);
-    for (FieldBase::FloatMetadata::const_iterator i = field->floatMetadata().begin(),
-             e = field->floatMetadata().end(); i != e;  ++i)
-        lay.spec.attribute (i->first, i->second);
-    for (FieldBase::VecIntMetadata::const_iterator i = field->vecIntMetadata().begin(),
-             e = field->vecIntMetadata().end(); i != e;  ++i) {
-        lay.spec.attribute (i->first, TypeDesc(TypeDesc::INT,3), &(i->second));
-    }
-    for (FieldBase::VecFloatMetadata::const_iterator i = field->vecFloatMetadata().begin(),
-             e = field->vecFloatMetadata().end(); i != e;  ++i) {
-        lay.spec.attribute (i->first, TypeDesc::TypeVector, &(i->second));
-    }
-#endif
-
+    read_metadata (m_input->metadata(), lay.spec);  // global
+    read_metadata (field->metadata(), lay.spec);    // specific to this field
 }
 
 

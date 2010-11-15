@@ -22,8 +22,7 @@ MY_CMAKE_FLAGS += \
 		  -DHDF5_CUSTOM=1 \
 		  -DHDF5_INCLUDE_DIRS=/usr/include \
 		  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-		  -DFIELD3D_HOME="/shots/spi/home/lib/SpComp2/Field3D/spinux1-gcc44m64/v116" \
-		  -DFIELD3D_NEW_API=1
+		  -DFIELD3D_HOME="/shots/spi/home/lib/SpComp2/Field3D/spinux1-gcc44m64/v116"
 
 else # $SP_ARCH
 ifeq (${SP_ARCH}, rhel40_x86_64)
