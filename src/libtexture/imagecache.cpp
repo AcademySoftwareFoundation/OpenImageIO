@@ -1338,7 +1338,17 @@ ImageCacheImpl::getstats (int level) const
             out << "    Find file time : " << Strutil::timeintervalformat (stats.find_file_time) << "\n";
         if (stats.fileio_time > 0.001) {
             out << "    File I/O time : " 
-                << Strutil::timeintervalformat (stats.fileio_time) << "\n";
+                << Strutil::timeintervalformat (stats.fileio_time);
+            {
+                lock_guard lock (m_perthread_info_mutex);
+                size_t nthreads = m_all_perthread_info.size();
+                if (nthreads > 1) {
+                    double perthreadtime = stats.fileio_time / (float)nthreads;
+                    out << " (" << Strutil::timeintervalformat (perthreadtime)
+                        << " average per thread)";
+                }
+            }
+            out << "\n";
             out << "    File open time only : " 
                 << Strutil::timeintervalformat (stats.fileopen_time) << "\n";
         }
