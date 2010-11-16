@@ -421,7 +421,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         // But not volume textures -- don't auto MIP them for now.
         if (nmip == 1 && !si.volume)
             si.unmipped = true;
-        if (si.untiled && si.unmipped && imagecache().automip() &&
+        if (si.unmipped && imagecache().automip() &&
             ! tempspec.find_attribute ("textureformat", TypeDesc::TypeString)) {
             int w = tempspec.full_width;
             int h = tempspec.full_height;
