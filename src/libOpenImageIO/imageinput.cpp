@@ -204,9 +204,11 @@ ImageInput::error (const char *format, ...)
 {
     va_list ap;
     va_start (ap, format);
+    ASSERT (m_errmessage.size() < 1024*1024*16 &&
+            "Accumulated error messages > 16MB. Try checking return codes!");
     if (m_errmessage.size())
         m_errmessage += '\n';
-    m_errmessage = Strutil::vformat (format, ap);
+    m_errmessage += Strutil::vformat (format, ap);
     va_end (ap);
 }
 

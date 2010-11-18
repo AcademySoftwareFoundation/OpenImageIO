@@ -497,6 +497,8 @@ TextureSystemImpl::error (const char *message, ...)
         m_errormessage.reset (errptr);
     }
     ASSERT (errptr != NULL);
+    ASSERT (errptr->size() < 1024*1024*16 &&
+            "Accumulated error messages > 16MB. Try checking return codes!");
     if (errptr->size())
         *errptr += '\n';
     va_list ap;
