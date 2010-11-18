@@ -487,7 +487,6 @@ OpenEXRInput::close ()
 {
     delete m_input_scanline;
     delete m_input_tiled;
-    m_subimage = -1;
     init ();  // Reset to initial state
     return true;
 }
@@ -555,7 +554,7 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
         m_input_tiled->setFrameBuffer (frameBuffer);
         m_input_tiled->readTile ((x - m_spec.x) / m_spec.tile_width,
                                  (y - m_spec.y) / m_spec.tile_height,
-                                 m_subimage, m_subimage);
+                                 m_miplevel, m_miplevel);
     }
     catch (const std::exception &e) {
         error ("Filed OpenEXR read: %s", e.what());

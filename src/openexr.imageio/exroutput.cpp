@@ -88,6 +88,8 @@ private:
     int m_roundingmode;                   ///< Rounding mode of the file
     int m_subimage;                       ///< What subimage we're writing now
     int m_nsubimages;                     ///< How many subimages are there?
+    int m_miplevel;                       ///< What miplevel we're writing now
+    int m_nmiplevels;                     ///< How many mip levels are there?
     Imf::PixelType m_pixeltype;           ///< Imf pixel type
     std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
 
@@ -97,6 +99,7 @@ private:
         m_output_scanline = NULL;
         m_output_tiled = NULL;
         m_subimage = -1;
+        m_miplevel = -1;
     }
 
     // Add a parameter to the output
@@ -194,12 +197,12 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
                 error ("OpenEXR tiles must have the same size on all MIPmap levels");
                 return false;
             }
-            // Copy the new subimage size.  Keep everything else from the
+            // Copy the new mip level size.  Keep everything else from the
             // original level.
             m_spec.width = userspec.width;
             m_spec.height = userspec.height;
             // N.B. do we need to copy anything else from userspec?
-            ++m_subimage;
+            ++m_miplevel;
             return true;
         }
     }
@@ -288,6 +291,8 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
 
     m_nsubimages = 1;
     m_subimage = 0;
+    m_nmiplevels = 1;
+    m_miplevel = 0;
 
     // Figure out if we are a mipmap or an environment map
     ImageIOParameter *param = m_spec.find_attribute ("textureformat");
@@ -313,13 +318,13 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         }
 
         if (m_levelmode == Imf::MIPMAP_LEVELS) {
-            // Compute how many subimages there will be
+            // Compute how many mip levels there will be
             int w = m_spec.width;
             int h = m_spec.height;
             while (w > 1 && h > 1) {
                 w = (w + 1) / 2;
                 h = (h + 1) / 2;
-                ++m_nsubimages;
+                ++m_nmiplevels;
             }
         }
     }
@@ -569,7 +574,7 @@ OpenEXROutput::write_tile (int x, int y, int z,
         m_output_tiled->setFrameBuffer (frameBuffer);
         m_output_tiled->writeTile ((x - m_spec.x) / m_spec.tile_width,
                                    (y - m_spec.y) / m_spec.tile_height,
-                                   m_subimage, m_subimage);
+                                   m_miplevel, m_miplevel);
     }
     catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());

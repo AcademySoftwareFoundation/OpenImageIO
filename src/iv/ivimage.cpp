@@ -66,6 +66,10 @@ IvImage::init_spec (const std::string &filename, int subimage, int miplevel)
     m_shortinfo.clear ();
     m_longinfo.clear ();
 
+    // If we're changing mip levels or subimages, the pixels will no
+    // longer be valid.
+    if (subimage != m_current_subimage || miplevel != m_current_miplevel)
+        m_image_valid = false;
     bool ok = ImageBuf::init_spec (filename, subimage, miplevel);
     if (ok && m_file_dataformat.basetype == TypeDesc::UNKNOWN) {
         m_file_dataformat = m_spec.format;
