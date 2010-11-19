@@ -319,10 +319,10 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
             m_spec.attribute (oname, fattr->value());
         else if (type == "m44f" && 
             (mattr = m_header->findTypedAttribute<Imf::M44fAttribute> (name)))
-            m_spec.attribute (oname, PT_MATRIX, &(mattr->value()));
+            m_spec.attribute (oname, TypeDesc::TypeMatrix, &(mattr->value()));
         else if (type == "v3f" &&
                  (vattr = m_header->findTypedAttribute<Imf::V3fAttribute> (name)))
-            m_spec.attribute (oname, PT_VECTOR, &(vattr->value()));
+            m_spec.attribute (oname, TypeDesc::TypeVector, &(vattr->value()));
         else {
 #ifdef DEBUG
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";

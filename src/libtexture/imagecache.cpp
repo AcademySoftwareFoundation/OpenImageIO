@@ -522,11 +522,11 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
 
     Imath::M44f c2w;
     m_imagecache.get_commontoworld (c2w);
-    if ((p = spec.find_attribute ("worldtocamera", PT_MATRIX))) {
+    if ((p = spec.find_attribute ("worldtocamera", TypeDesc::TypeMatrix))) {
         const Imath::M44f *m = (const Imath::M44f *)p->data();
         m_Mlocal = c2w * (*m);
     }
-    if ((p = spec.find_attribute ("worldtoscreen", PT_MATRIX))) {
+    if ((p = spec.find_attribute ("worldtoscreen", TypeDesc::TypeMatrix))) {
         const Imath::M44f *m = (const Imath::M44f *)p->data();
         m_Mproj = c2w * (*m);
     }
@@ -1639,12 +1639,12 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
         *(int *)val = (int)m_failure_retries;
         return true;
     }
-    if (name == "worldtocommon" && (type == TypeDesc::PT_MATRIX ||
+    if (name == "worldtocommon" && (type == TypeDesc::TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mw2c;
         return true;
     }
-    if (name == "commontoworld" && (type == TypeDesc::PT_MATRIX ||
+    if (name == "commontoworld" && (type == TypeDesc::TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mc2w;
         return true;

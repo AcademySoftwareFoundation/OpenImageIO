@@ -458,15 +458,15 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         m_header->insert (xname.c_str(), Imf::FloatAttribute ((float)*(half*)data));
         return true;
     }
-    if (type == PT_MATRIX) {
+    if (type == TypeDesc::TypeMatrix) {
         m_header->insert (xname.c_str(), Imf::M44fAttribute (*(Imath::M44f*)data));
         return true;
     }
-    if (type == TypeDesc::STRING) {
+    if (type == TypeDesc::TypeString) {
         m_header->insert (xname.c_str(), Imf::StringAttribute (*(char**)data));
         return true;
     }
-    if (type == TypeDesc::PT_VECTOR) {
+    if (type == TypeDesc::TypeVector) {
         m_header->insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));
         return true;
     }

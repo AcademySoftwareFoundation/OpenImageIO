@@ -506,9 +506,9 @@ make_texturemap (const char *maptypename = "texture map")
         dstspec.attribute ("textureformat", "Plain Texture");
 
     if (Mcam != Imath::M44f(0.0f))
-        dstspec.attribute ("worldtocamera", PT_MATRIX, &Mcam);
+        dstspec.attribute ("worldtocamera", TypeDesc::TypeMatrix, &Mcam);
     if (Mscr != Imath::M44f(0.0f))
-        dstspec.attribute ("worldtoscreen", PT_MATRIX, &Mscr);
+        dstspec.attribute ("worldtoscreen", TypeDesc::TypeMatrix, &Mscr);
 
     // FIXME - check for valid strings in the wrap mode
     if (! shadowmode) {
