@@ -114,11 +114,12 @@ should have nchannels = 3, firstchannel = 0.  To retrieve just the blue
 channel, you should have nchannels = 1, firstchannel = 2.
 \apiend
 
-\apiitem{int face}
-The face or subimage within the file to use for the texture lookup.
+\apiitem{int subimage}
+The subimage or face within the file to use for the texture lookup.
 The default is 0, and larger values only make sense for a texture file
 that supports subimages or separate images per face (such as Ptex).
-This will be ignored if the file does not have separate per-face textures.
+This will be ignored if the file does not have multiple subimages or
+separate per-face textures.
 \apiend
 
 \apiitem{Wrap swrap, twrap}
@@ -463,10 +464,11 @@ The index of the first channel to look up from the texture.
 \apiend
 
 \vspace{-24pt}
-\apiitem{int face}
+\apiitem{int subimage}
 \vspace{10pt}
-The face (subimage) within the file.
-This will be ignored if the file does not have separate per-face textures.
+The subimage or face within the file.
+This will be ignored if the file does not have multiple subimages or
+separate per-face textures.
 \apiend
 
 \vspace{-24pt}
