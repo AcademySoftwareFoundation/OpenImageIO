@@ -32,8 +32,6 @@
 #include <cstdlib>
 #include <cmath>
 
-#include <boost/scoped_array.hpp>
-
 #include "dassert.h"
 #include "typedesc.h"
 #include "strutil.h"
@@ -50,22 +48,47 @@ bool
 ImageInput::read_scanline (int y, int z, TypeDesc format, void *data,
                            stride_t xstride)
 {
-    m_spec.auto_stride (xstride, format, m_spec.nchannels);
-    bool contiguous = (xstride == m_spec.nchannels*(int)format.size());
-    if (contiguous && m_spec.format == format)  // Simple case
+    stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
+    if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
+        xstride = native_pixel_bytes;
+    else
+        m_spec.auto_stride (xstride, format, m_spec.nchannels);
+    bool contiguous = (xstride == native_pixel_bytes);
+
+    // If user's format and strides are set up to accept the native data
+    // layout, read the scanline directly into the user's buffer.
+    bool rightformat = (format == TypeDesc::UNKNOWN) ||
+        (format == m_spec.format && m_spec.channelformats.empty());
+    if (rightformat && contiguous)
         return read_native_scanline (y, z, data);
 
     // Complex case -- either changing data type or stride
     int scanline_values = m_spec.width * m_spec.nchannels;
-    unsigned char *buf = (unsigned char *) alloca (m_spec.scanline_bytes());
+    unsigned char *buf = (unsigned char *) alloca (m_spec.scanline_bytes(true));
     bool ok = read_native_scanline (y, z, buf);
     if (! ok)
         return false;
-    ok = contiguous 
-        ? convert_types (m_spec.format, buf, format, data, scanline_values)
-        : convert_image (m_spec.nchannels, m_spec.width, 1, 1, 
-                         buf, m_spec.format, AutoStride, AutoStride, AutoStride,
-                         data, format, xstride, AutoStride, AutoStride);
+    if (m_spec.channelformats.empty()) {
+        // No per-channel formats -- do the conversion in one shot
+        ok = contiguous 
+            ? convert_types (m_spec.format, buf, format, data, scanline_values)
+            : convert_image (m_spec.nchannels, m_spec.width, 1, 1, 
+                             buf, m_spec.format, AutoStride, AutoStride, AutoStride,
+                             data, format, xstride, AutoStride, AutoStride);
+    } else {
+        // Per-channel formats -- have to convert/copy channels individually
+        size_t offset = 0;
+        for (size_t c = 0;  c < m_spec.channelformats.size();  ++c) {
+            TypeDesc chanformat = m_spec.channelformats[c];
+            ok = convert_image (1 /* channels */, m_spec.width, 1, 1, 
+                                buf+offset, chanformat, 
+                                native_pixel_bytes, AutoStride, AutoStride,
+                                (char *)data + c*m_spec.format.size(),
+                                format, xstride, AutoStride, AutoStride);
+            offset += chanformat.size ();
+        }
+    }
+
     if (! ok)
         error ("ImageInput::read_scanline : no support for format %s",
                m_spec.format.c_str());
@@ -78,29 +101,52 @@ bool
 ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
                        stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    m_spec.auto_stride (xstride, ystride, zstride, format,
-                        m_spec.nchannels, m_spec.tile_width, m_spec.tile_height);
-    bool contiguous = (xstride == m_spec.nchannels*(int)format.size() &&
+    stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
+    if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
+        xstride = native_pixel_bytes;
+    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
+                        m_spec.tile_width, m_spec.tile_height);
+    bool contiguous = (xstride == native_pixel_bytes &&
                        ystride == xstride*m_spec.tile_width &&
                        (zstride == ystride*m_spec.tile_height || zstride == 0));
-    if (contiguous && m_spec.format == format)  // Simple case
-        return read_native_tile (x, y, z, data);
+
+    // If user's format and strides are set up to accept the native data
+    // layout, read the tile directly into the user's buffer.
+    bool rightformat = (format == TypeDesc::UNKNOWN) ||
+        (format == m_spec.format && m_spec.channelformats.empty());
+    if (rightformat && contiguous)
+        return read_native_tile (x, y, z, data);  // Simple case
 
     // Complex case -- either changing data type or stride
     int tile_values = m_spec.tile_width * m_spec.tile_height * 
                       std::max(1,m_spec.tile_depth) * m_spec.nchannels;
 
-    boost::scoped_array<char> buf (new char [m_spec.tile_bytes()]);
+    boost::scoped_array<char> buf (new char [m_spec.tile_bytes(true)]);
     bool ok = read_native_tile (x, y, z, &buf[0]);
     if (! ok)
         return false;
-    // FIXME -- what happens when the last tile of a row or column extends
-    // beyond the borders of the image buffer???
-    ok = contiguous 
-        ? convert_types (m_spec.format, &buf[0], format, data, tile_values)
-        : convert_image (m_spec.nchannels, m_spec.tile_width, m_spec.tile_height, m_spec.tile_depth, 
-                         &buf[0], m_spec.format, AutoStride, AutoStride, AutoStride,
-                         data, format, xstride, ystride, zstride);
+    if (m_spec.channelformats.empty()) {
+        // No per-channel formats -- do the conversion in one shot
+        ok = contiguous 
+            ? convert_types (m_spec.format, &buf[0], format, data, tile_values)
+            : convert_image (m_spec.nchannels, m_spec.tile_width, m_spec.tile_height, m_spec.tile_depth, 
+                             &buf[0], m_spec.format, AutoStride, AutoStride, AutoStride,
+                             data, format, xstride, ystride, zstride);
+    } else {
+        // Per-channel formats -- have to convert/copy channels individually
+        size_t offset = 0;
+        for (size_t c = 0;  c < m_spec.channelformats.size();  ++c) {
+            TypeDesc chanformat = m_spec.channelformats[c];
+            ok = convert_image (1 /* channels */, m_spec.tile_width,
+                                m_spec.tile_height, m_spec.tile_depth,
+                                &buf[offset], chanformat, 
+                                native_pixel_bytes, AutoStride, AutoStride,
+                                (char *)data + c*m_spec.format.size(),
+                                format, xstride, AutoStride, AutoStride);
+            offset += chanformat.size ();
+        }
+    }
+
     if (! ok)
         error ("ImageInput::read_tile : no support for format %s",
                m_spec.format.c_str());
@@ -115,6 +161,10 @@ ImageInput::read_image (TypeDesc format, void *data,
                         OpenImageIO::ProgressCallback progress_callback,
                         void *progress_callback_data)
 {
+    bool native = (format == TypeDesc::UNKNOWN);
+    stride_t pixel_bytes = (stride_t) m_spec.pixel_bytes (native);
+    if (native && xstride == AutoStride)
+        xstride = pixel_bytes;
     m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
                         m_spec.width, m_spec.height);
     bool ok = true;
@@ -128,20 +178,14 @@ ImageInput::read_image (TypeDesc format, void *data,
         // dimensions smaller than a tile, or if one of the tiles runs
         // past the right or bottom edge.  Then we copy from our tile to
         // the user data, only copying valid pixel ranges.
-        size_t tilexstride = m_spec.nchannels * format.size();
-        size_t tileystride = tilexstride * m_spec.tile_width;
-        size_t tilezstride = tileystride * m_spec.tile_height;
-        size_t tile_values = (size_t)m_spec.tile_width * (size_t)m_spec.tile_height *
-            (size_t)std::max(1,m_spec.tile_depth) * m_spec.nchannels;
-        boost::scoped_array<char> pels (new char [tile_values * format.size()]);
+        stride_t tilexstride = pixel_bytes;
+        stride_t tileystride = tilexstride * m_spec.tile_width;
+        stride_t tilezstride = tileystride * m_spec.tile_height;
+        imagesize_t tile_pixels = m_spec.tile_pixels();
+        std::vector<char> pels (tile_pixels * pixel_bytes);
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth)
             for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
                 for (int x = 0;  x < m_spec.width && ok;  x += m_spec.tile_width) {
-#if 0
-                    ok &= read_tile (x+m_spec.x, y+m_spec.y, z+m_spec.z, format,
-                                     (char *)data + z*zstride + y*ystride + x*xstride,
-                                     xstride, ystride, zstride);
-#endif
                     ok &= read_tile (x+m_spec.x, y+m_spec.y, z+m_spec.z,
                                      format, &pels[0]);
                     // Now copy out the scanlines

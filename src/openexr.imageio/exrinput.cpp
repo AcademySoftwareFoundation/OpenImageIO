@@ -78,7 +78,7 @@ private:
     const Imf::Header *m_header;          ///< Ptr to image header
     Imf::InputFile *m_input_scanline;     ///< Input for scanline files
     Imf::TiledInputFile *m_input_tiled;   ///< Input for tiled files
-    Imf::PixelType m_pixeltype;           ///< Imf pixel type
+    std::vector<Imf::PixelType> m_pixeltype; ///< Imf pixel type for each chan
     int m_levelmode;                      ///< The level mode of the file
     int m_roundingmode;                   ///< Rounding mode of the file
     int m_subimage;                       ///< What subimage are we looking at?
@@ -403,32 +403,36 @@ OpenEXRInput::query_channels (void)
 
     // Figure out data types -- choose the highest range
     m_spec.format = TypeDesc::UNKNOWN;
-    for (ci = channels.begin();  ci != channels.end();  ++ci) {
+    std::vector<TypeDesc> chanformat;
+    bool differing_chanformats = false;
+    for (c = 0, ci = channels.begin();  ci != channels.end();  ++c, ++ci) {
         Imf::PixelType ptype = ci.channel().type;
+        TypeDesc fmt = TypeDesc::HALF;
         switch (ptype) {
         case Imf::UINT :
-            if (m_spec.format == TypeDesc::UNKNOWN) {
+            fmt = TypeDesc::UINT;
+            if (m_spec.format == TypeDesc::UNKNOWN)
                 m_spec.format = TypeDesc::UINT;
-                m_pixeltype = Imf::UINT;
-            }
             break;
         case Imf::HALF :
-            if (m_spec.format != TypeDesc::FLOAT) {
+            fmt = TypeDesc::HALF;
+            if (m_spec.format != TypeDesc::FLOAT)
                 m_spec.format = TypeDesc::HALF;
-                m_pixeltype = Imf::HALF;
-            }
             break;
         case Imf::FLOAT :
-            m_pixeltype = Imf::FLOAT;
+            fmt = TypeDesc::FLOAT;
             m_spec.format = TypeDesc::FLOAT;
             break;
         default: ASSERT (0);
         }
+        chanformat.push_back (fmt);
+        m_pixeltype.push_back (ptype);
+        if (fmt != chanformat[0])
+            differing_chanformats = true;
     }
-    if (m_spec.format == TypeDesc::UNKNOWN) {
-        m_spec.format = TypeDesc::HALF;
-        m_pixeltype = Imf::HALF;
-    }
+    ASSERT (m_spec.format != TypeDesc::UNKNOWN);
+    if (differing_chanformats)
+        m_spec.channelformats = chanformat;
 }
 
 
@@ -503,18 +507,24 @@ OpenEXRInput::read_native_scanline (int y, int z, void *data)
     // to put the pixels being read, but OpenEXR's frameBuffer.insert()
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
+    size_t pixelbytes = m_spec.pixel_bytes (true);
+    size_t scanlinebytes = m_spec.scanline_bytes (true);
     char *buf = (char *)data
-              - m_spec.x * m_spec.pixel_bytes() 
-              - y * m_spec.scanline_bytes();
+              - m_spec.x * pixelbytes
+              - y * scanlinebytes;
 
     try {
         Imf::FrameBuffer frameBuffer;
+        size_t chanoffset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
+            size_t chanbytes = m_spec.channelformats.size() 
+                                  ? m_spec.channelformats[c].size() 
+                                  : m_spec.format.size();
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (m_pixeltype,
-                                            buf + c * m_spec.channel_bytes(),
-                                            m_spec.pixel_bytes(),
-                                            m_spec.scanline_bytes()));
+                                Imf::Slice (m_pixeltype[c],
+                                            buf + chanoffset,
+                                            pixelbytes, scanlinebytes));
+            chanoffset += chanbytes;
         }
         m_input_scanline->setFrameBuffer (frameBuffer);
         m_input_scanline->readPixels (y, y);
@@ -538,18 +548,23 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
     // to put the pixels being read, but OpenEXR's frameBuffer.insert()
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
+    size_t pixelbytes = m_spec.pixel_bytes (true);
     char *buf = (char *)data
-              - x * m_spec.pixel_bytes() 
-              - y * m_spec.pixel_bytes() * m_spec.tile_width;
+              - x * pixelbytes
+              - y * pixelbytes * m_spec.tile_width;
 
     try {
         Imf::FrameBuffer frameBuffer;
+        size_t chanoffset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
+            size_t chanbytes = m_spec.channelformats.size() 
+                                  ? m_spec.channelformats[c].size() 
+                                  : m_spec.format.size();
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (m_pixeltype,
-                                            buf + c * m_spec.channel_bytes(),
-                                            m_spec.pixel_bytes(),
-                                            m_spec.pixel_bytes()*m_spec.tile_width));
+                                Imf::Slice (m_pixeltype[c],
+                                            buf + chanoffset, pixelbytes,
+                                            pixelbytes*m_spec.tile_width));
+            chanoffset += chanbytes;
         }
         m_input_tiled->setFrameBuffer (frameBuffer);
         m_input_tiled->readTile ((x - m_spec.x) / m_spec.tile_width,

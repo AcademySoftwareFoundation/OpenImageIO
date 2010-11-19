@@ -886,6 +886,63 @@ In this example, we have used \writeimage, but of course \writescanline,
 \writetile, and {\cf write_rectangle()} work as you would expect, on the
 current subimage.
 
+
+\subsection{Per-channel formats}
+\label{sec:imageoutput:channelformats}
+
+Some image formats allow separate per-channel data formats (for example,
+{\cf half} data for colors and {\cf float} data for depth).  When this
+is desired, the following steps are necessary:
+
+\begin{enumerate}
+\item Verify that the writer supports per-channel formats by checking \\
+  {\cf supports ("channelformats")}.
+\item The \ImageSpec passed to {\cf open()} should have its {\cf
+  channelformats} vector filled with the types for each channel.
+\item The call to {\cf write_scanline}, {\cf write_tile}, or {\cf
+  write_image} should pass a {\cf data} pointer to the raw data, already
+  in the native per-channel format of the file and contiguously packed,
+  and specify that the data is of type {\cf TypeDesc::UNKNOWN}.
+\end{enumerate}
+
+For example, the following code fragment will write a 5-channel image
+to an OpenEXR file, consisting of R/G/B/A channels in {\cf half} and
+a Z channel in {\cf float}:
+
+\begin{code}
+        // Mixed data type for the pixel
+        struct Pixel { half r,g,b,a; float z; };
+        Pixel pixels[xres*yres];
+
+        ImageOutput *out = ImageOutput::create ("foo.exr");
+
+        // Double check that this format accepts per-channel formats
+        if (! out->supports("channelformats")) {
+            delete out;
+            return;
+        }
+
+        // Prepare an ImageSpec with per-channel formats
+        ImageSpec spec (xres, yres, 5, TypeDesc::FLOAT);
+        spec.channelformats.push_back (TypeDesc::HALF);
+        spec.channelformats.push_back (TypeDesc::HALF);
+        spec.channelformats.push_back (TypeDesc::HALF);
+        spec.channelformats.push_back (TypeDesc::HALF);
+        spec.channelformats.push_back (TypeDesc::FLOAT);
+        spec.channelnames.clear ();
+        spec.channelnames.push_back ("R");
+        spec.channelnames.push_back ("G");
+        spec.channelnames.push_back ("B");
+        spec.channelnames.push_back ("A");
+        spec.channelnames.push_back ("Z");
+
+        out->open (filename, spec);
+        out->write_image (TypeDesc::UNKNOWN, /* use channel formats */
+                          pixels,            /* data buffer */
+                          sizeof(Pixel));    /* pixel stride */
+\end{code}
+
+
 \subsection{Copying an entire image}
 \label{sec:imageoutput:copyimage}
 
@@ -1084,6 +1141,10 @@ by this query:
   image/subimage (MIP-map levels)?
 \item[\rm \qkw{volumes}] Does this format support ``3D'' pixel arrays
   (a.k.a.\ volume images)?
+\item[\rm \qkw{channelformats}] Does this format writer support per-channel
+  data formats, respecting the \ImageSpec's {\cf channelformats}
+  field?  (If not, it only accepts a single data format for all
+  channels and will ignore the {\cf channelformats} field of the spec.)
 \item[\rm \qkw{rewrite}] Does this plugin allow the same scanline or
   tile to be sent more than once?  Generally this is true for plugins
   that implement some sort of interactive display, rather than a saved
@@ -1136,7 +1197,11 @@ between successive pixels (in bytes).  Strides set to the special value
 {\kw AutoStride} imply contiguous data, i.e., \\ \spc {\kw xstride} $=$
 {\kw spec.nchannels*format.size()} \\ This method
 automatically converts the data from the specified {\kw format} to the
-actual output format of the file.  Return {\kw true} for success, {\kw
+actual output format of the file.  
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data is assumed to
+already be in the file's native format (including per-channel formats, 
+as specified in the \ImageSpec's {\cf channelformats} field, if applicable).
+Return {\kw true} for success, {\kw
   false} for failure.  It is a failure to call \writescanline with an
 out-of-order scanline if this format driver does not support random
 access.
@@ -1157,7 +1222,11 @@ imply contiguous data, i.e., \\
 \spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
 This method automatically converts the
 data from the specified {\kw format} to the actual output format of the
-file.  Return {\kw true} for success, {\kw false} for failure.  It is a
+file. 
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data is assumed to
+already be in the file's native format (including per-channel formats, 
+as specified in the \ImageSpec's {\cf channelformats} field, if applicable).
+Return {\kw true} for success, {\kw false} for failure.  It is a
 failure to call \writetile with an out-of-order tile if this
 format driver does not support random access.
 
@@ -1179,7 +1248,11 @@ contiguous data, i.e.,\\
 \spc {\kw ystride} $=$ {\kw xstride*(xmax-xmin+1)} \\
 \spc {\kw zstride} $=$ {\kw ystride*(ymax-ymin+1)}\\
 This method automatically converts the data from the specified 
-{\kw format} to the actual output format of the fil.  Return {\kw true}
+{\kw format} to the actual output format of the file.  
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data is assumed to
+already be in the file's native format (including per-channel formats, 
+as specified in the \ImageSpec's {\cf channelformats} field, if applicable).
+Return {\kw true}
 for success, {\kw false} for failure.  It is a failure to call 
 {\kw write_rectangle} for a format plugin that does not return true for
 {\kw supports("rectangles")}.
@@ -1195,6 +1268,9 @@ for success, {\kw false} for failure.  It is a failure to call
 Write the entire image of {\kw spec.width} $\times$ {\kw spec.height}
 $\times$ {\kw spec.depth}
 pixels, with the given strides and in the desired format.
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data is assumed to
+already be in the file's native format (including per-channel formats, 
+as specified in the \ImageSpec's {\cf channelformats} field, if applicable).
 Strides set to the special value {\kw AutoStride} imply contiguous data,
 i.e., \\
 \spc {\kw xstride} $=$ {\kw spec.nchannels * format.size()} \\

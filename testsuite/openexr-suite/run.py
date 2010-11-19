@@ -34,7 +34,7 @@ command = command + "; " + runtest.rw_command (imagedir, "Desk.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "MtTamWest.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "StillLife.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "Tree.exr", path)
-# FIXME - Blobbies: per-channel formats, iv >4 chans
+command = command + "; " + runtest.rw_command (imagedir, "Blobbies.exr", path)
 # FIXME - on all: chromaticies, screenWindowCenter, preview?
 
 # ../openexr-images-1.5.0/TestImages:

@@ -97,7 +97,7 @@ namespace OpenImageIO {
 /// Version 10 represents forking from NVIDIA's open source version,
 /// with which we break backwards compatibility.
 /// Version 11 teased apart subimage versus miplevel specification in
-/// the APIs (introduced in OIIO 0.9).
+/// the APIs and per-channel formats (introduced in OIIO 0.9).
 #define OPENIMAGEIO_PLUGIN_VERSION 11
 
 /// Strictly for back-compatibility -- this is deprecated
@@ -217,10 +217,9 @@ public:
     int tile_height;          ///< tile height (0 for a non-tiled image)
     int tile_depth;           ///< tile depth (0 for a non-tiled image,
                               ///<             1 for a non-volume image)
-    TypeDesc format;          ///< format of data in each channel
-                              ///<   N.B., current implementation assumes that
-                              ///<   all channels are the same data format.
     int nchannels;            ///< number of image channels, e.g., 4 for RGBA
+    TypeDesc format;          ///< data format of the channels
+    std::vector<TypeDesc> channelformats;   ///< Optional per-channel formats
     std::vector<std::string> channelnames;  ///< Names for each channel,
                                             ///< e.g., {"R","G","B","A"}
     int alpha_channel;        ///< Index of alpha channel, or -1 if not known
@@ -271,34 +270,50 @@ public:
     size_t channel_bytes() const { return format.size(); }
 
     /// Return the number of bytes for each pixel (counting all channels).
+    /// If native is false (default), assume all channels are in 
+    /// this->format, but if native is true, compute the size of a pixel
+    /// in the "native" data format of the file (these may differ in
+    /// the case of per-channel formats).
     /// This will return std::numeric_limits<size_t>::max() in the
     /// event of an overflow where it's not representable in a size_t.
-    size_t pixel_bytes() const;
+    size_t pixel_bytes (bool native=false) const;
 
     /// Return the number of bytes for each scanline.  This will return
     /// std::numeric_limits<imagesize_t>::max() in the event of an
     /// overflow where it's not representable in an imagesize_t.
-    imagesize_t scanline_bytes() const;
+    /// If native is false (default), assume all channels are in 
+    /// this->format, but if native is true, compute the size of a pixel
+    /// in the "native" data format of the file (these may differ in
+    /// the case of per-channel formats).
+    imagesize_t scanline_bytes (bool native=false) const;
 
     /// Return the number of pixels for a tile.  This will return
     /// std::numeric_limits<imagesize_t>::max() in the event of an
     /// overflow where it's not representable in an imagesize_t.
-    imagesize_t tile_pixels() const;
+    imagesize_t tile_pixels () const;
 
     /// Return the number of bytes for each a tile of the image.  This
     /// will return std::numeric_limits<imagesize_t>::max() in the event
     /// of an overflow where it's not representable in an imagesize_t.
-    imagesize_t tile_bytes() const;
+    /// If native is false (default), assume all channels are in 
+    /// this->format, but if native is true, compute the size of a pixel
+    /// in the "native" data format of the file (these may differ in
+    /// the case of per-channel formats).
+    imagesize_t tile_bytes (bool native=false) const;
 
     /// Return the number of pixels for an entire image.  This will
     /// return std::numeric_limits<imagesize_t>::max() in the event of
     /// an overflow where it's not representable in an imagesize_t.
-    imagesize_t image_pixels() const;
+    imagesize_t image_pixels () const;
 
     /// Return the number of bytes for an entire image.  This will
     /// return std::numeric_limits<image size_t>::max() in the event of
     /// an overflow where it's not representable in an imagesize_t.
-    imagesize_t image_bytes() const;
+    /// If native is false (default), assume all channels are in 
+    /// this->format, but if native is true, compute the size of a pixel
+    /// in the "native" data format of the file (these may differ in
+    /// the case of per-channel formats).
+    imagesize_t image_bytes (bool native=false) const;
 
     /// Verify that on this platform, a size_t is big enough to hold the
     /// number of bytes (and pixels) in a scanline, a tile, and the
@@ -501,6 +516,9 @@ public:
     /// stride value gives the data spacing of adjacent pixels (in
     /// bytes).  Strides set to AutoStride imply 'contiguous' data, i.e.,
     ///     xstride == spec.nchannels*format.size()
+    /// If format is TypeDesc::UNKNOWN, then rather than converting to
+    /// format, it will just copy pixels in the file's native data layout
+    /// (including, possibly, per-channel data formats).
     /// The reader is expected to give the appearance of random access --
     /// in other words, if it can't randomly seek to the given scanline,
     /// it should transparently close, reopen, and sequentially read
@@ -526,6 +544,9 @@ public:
     ///     xstride == spec.nchannels*format.size()
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height
+    /// If format is TypeDesc::UNKNOWN, then rather than converting to
+    /// format, it will just copy pixels in the file's native data layout
+    /// (including, possibly, per-channel data formats).
     /// The reader is expected to give the appearance of random access
     /// -- in other words, if it can't randomly seek to the given tile,
     /// it should transparently close, reopen, and sequentially read
@@ -552,6 +573,9 @@ public:
     ///     xstride == spec.nchannels*format.size()
     ///     ystride == xstride*spec.width
     ///     zstride == ystride*spec.height
+    /// If format is TypeDesc::UNKNOWN, then rather than converting to
+    /// format, it will just copy pixels in the file's native data layout
+    /// (including, possibly, per-channel data formats).
     /// Because this may be an expensive operation, a progress callback
     /// may be passed.  Periodically, it will be called as follows:
     ///     progress_callback (progress_callback_data, float done)
@@ -663,6 +687,8 @@ public:
     ///    "empty"          Does this plugin support passing a NULL data
     ///                       pointer to write_scanline or write_tile to
     ///                       indicate that the entire data block is zero?
+    ///    "channelformats" Does the plugin/format support per-channel
+    ///                       data formats?
     ///
     /// Note that the earlier incarnation of ImageIO that shipped with
     /// NVIDIA's Gelato 2.x had individual supports_foo functions.  When
@@ -702,9 +728,12 @@ public:
     /// AutoStride imply 'contiguous' data, i.e.,
     ///     xstride == spec.nchannels*format.size()
     /// The data are automatically converted from 'format' to the actual
-    /// output format (as specified to open()) by this method.  Return
-    /// true for success, false for failure.  It is a failure to call
-    /// write_scanline with an out-of-order scanline if this format
+    /// output format (as specified to open()) by this method.  
+    /// If format is TypeDesc::UNKNOWN, then rather than converting from
+    /// format, it will just copy pixels in the file's native data layout
+    /// (including, possibly, per-channel data formats).
+    /// Return true for success, false for failure.  It is a failure to
+    /// call write_scanline with an out-of-order scanline if this format
     /// driver does not support random access.
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride=AutoStride)
@@ -719,10 +748,13 @@ public:
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height
     /// The data are automatically converted from 'format' to the actual
-    /// output format (as specified to open()) by this method.  Return
-    /// true for success, false for failure.  It is a failure to call
-    /// write_tile with an out-of-order tile if this format driver does
-    /// not support random access.
+    /// output format (as specified to open()) by this method.  
+    /// If format is TypeDesc::UNKNOWN, then rather than converting from
+    /// format, it will just copy pixels in the file's native data layout
+    /// (including, possibly, per-channel data formats).
+    /// Return true for success, false for failure.  It is a failure to
+    /// call write_tile with an out-of-order tile if this format driver
+    /// does not support random access.
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
@@ -739,10 +771,13 @@ public:
     ///     ystride == xstride * (xmax-xmin+1)
     ///     zstride == ystride * (ymax-ymin+1)
     /// The data are automatically converted from 'format' to the actual
-    /// output format (as specified to open()) by this method.  Return
-    /// true for success, false for failure.  It is a failure to call
-    /// write_rectangle for a format plugin that does not return true
-    /// for supports("rectangles").
+    /// output format (as specified to open()) by this method.  
+    /// If format is TypeDesc::UNKNOWN, then rather than converting from
+    /// format, it will just copy pixels in the file's native data layout
+    /// (including, possibly, per-channel data formats).
+    /// Return true for success, false for failure.  It is a failure to
+    /// call write_rectangle for a format plugin that does not return
+    /// true for supports("rectangles").
     virtual bool write_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   int zmin, int zmax, TypeDesc format,
                                   const void *data, stride_t xstride=AutoStride,
@@ -758,6 +793,9 @@ public:
     ///     zstride == ystride*spec.height
     /// Depending on spec, write either all tiles or all scanlines.
     /// Assume that data points to a layout in row-major order.
+    /// If format is TypeDesc::UNKNOWN, then rather than converting from
+    /// format, it will just copy pixels in the file's native data layout
+    /// (including, possibly, per-channel data formats).
     /// Because this may be an expensive operation, a progress callback
     /// may be passed.  Periodically, it will be called as follows:
     ///   progress_callback (progress_callback_data, float done)

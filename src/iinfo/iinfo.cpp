@@ -309,13 +309,21 @@ print_info (const std::string &filename, size_t namefieldlength,
                 spec.width, spec.height);
         if (spec.depth > 1)
             printf (" x %4d", spec.depth);
-        printf (", %d channel, %s%s", spec.nchannels,
-                spec.format.c_str(),
-                spec.depth > 1 ? " volume" : "");
+        printf (", %d channel, ", spec.nchannels);
+        if (spec.channelformats.size()) {
+            for (size_t c = 0;  c < spec.channelformats.size();  ++c)
+                printf ("%s%s", c ? "/" : "",
+                        spec.channelformats[c].c_str());
+        } else {
+            printf ("%s", spec.format.c_str());
+        }
+        if (spec.depth > 1)
+            printf (" volume");
         printf (" %s", input->format_name());
         if (sum) {
-            totalsize += spec.image_bytes();
-            printf (" (%.2f MB)", (float)spec.image_bytes() / (1024.0*1024.0));
+            imagesize_t imagebytes = spec.image_bytes (true);
+            totalsize += imagebytes;
+            printf (" (%.2f MB)", (float)imagebytes / (1024.0*1024.0));
         }
         // we print info about how many subimages are stored in file
         // only when we have more then one subimage
@@ -406,8 +414,13 @@ print_info (const std::string &filename, size_t namefieldlength,
                 printf ("    channel list: ");
                 for (int i = 0;  i < spec.nchannels;  ++i) {
                     if (i < (int)spec.channelnames.size())
-                        printf ("%s%s", spec.channelnames[i].c_str(),
-                                (i == spec.nchannels-1) ? "" : ", ");
+                        printf ("%s", spec.channelnames[i].c_str());
+                    else
+                        printf ("unknown");
+                    if (i < (int)spec.channelformats.size())
+                        printf (" (%s)", spec.channelformats[i].c_str());
+                    if (i < spec.nchannels-1)
+                        printf (", ");
                 }
                 printf ("\n");
                 printed = true;

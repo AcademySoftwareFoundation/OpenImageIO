@@ -558,6 +558,47 @@ and \readtile work as you would expect, on the current subimage and MIP
 level.
 
 
+\subsection{Per-channel formats}
+\label{sec:imageinput:channelformats}
+
+Some image formats allow separate per-channel data formats (for example,
+{\cf half} data for colors and {\cf float} data for depth).  If you want
+to read the pixels in their true native per-channel formats,
+the following steps are necessary:
+
+\begin{enumerate}
+\item Check the \ImageSpec's {\cf channelformats} vector.  If non-empty,
+  the channels in the file do not all have the same format.
+\item When calling {\cf read_scanline}, {\cf read_tile}, or {\cf
+  read_image}, pass a format of {\cf TypeDesc::UNKNOWN} to indicate that
+  you would like the raw data in native per-channel format of the file
+  written to your {\cf data} buffer.
+\end{enumerate}
+
+For example, the following code fragment will read a 5-channel image
+to an OpenEXR file, consisting of R/G/B/A channels in {\cf half} and
+a Z channel in {\cf float}:
+
+\begin{code}
+        ImageSpec spec;
+        ImageInput *in = ImageInput::create (filename);
+        in->open (filename, spec);
+
+        // Allocate enough space
+        unsigned char *pixels = new unsigned char [spec.image_bytes(true)];
+
+        in->read_image (TypeDesc::UNKNOWN, /* use native channel formats */
+                        pixels);           /* data buffer */
+
+        if (spec.channelformats.size() > 0) {
+            ... the buffer contains packed data in the native 
+                per-channel formats ...
+        } else {
+            ... the buffer contains all data per spec.format ...
+        }
+\end{code}
+
+
 \subsection{Custom search paths for plugins}
 \label{sec:imageinput:searchpaths}
 
@@ -726,12 +767,16 @@ subimages and levels.
 \apiitem{bool {\ce read_scanline} (int y, int z, TypeDesc format, void *data,\\
   \bigspc                      stride_t xstride=AutoStride)}
 
-Read the scanline that includes pixels $(*,y,z)$ into {\kw data},
+Read the scanline that includes pixels $(*,y,z)$ into {\kw data}
+($z=0$ for non-volume images),
 converting if necessary from the native data format of the file into the
-{\kw format} specified ($z=0$ for non-volume images).  The {\kw xstride}
+{\kw format} specified.
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data will be preserved 
+in its native format (including per-channel formats, if applicable).
+The {\kw xstride}
 value gives the data spacing of adjacent pixels (in bytes).  Strides set
 to the special value {\kw AutoStride} imply contiguous data, i.e., \\
-  \spc {\kw xstride} $=$ {\kw spec.nchannels*format.size()} \\
+  \spc {\kw xstride} $=$ {\kw spec.nchannels * spec.pixel_size()} \\
 The \ImageInput is expected to give the appearance of random access
 --- in other words, if it can't randomly seek to the given scanline, it
 should transparently close, reopen, and sequentially read through prior
@@ -750,15 +795,19 @@ float pixels.
                             void *data, \\ \bigspc stride_t xstride=AutoStride,
                             stride_t ystride=AutoStride, \\ \bigspc stride_t
                             zstride=AutoStride)}
-Read the tile that includes pixels $(*,y,z)$ into {\kw data}, converting
-if necessary from the native data format of the file into the 
-{\kw format} specified ($z=0$ for non-volume images).  The stride values
+Read the tile that includes pixels $(*,y,z)$ into {\kw data}
+($z=0$ for non-volume images),
+converting if necessary from the native data format of the file into the 
+{\kw format} specified.
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data will be preserved 
+in its native format (including per-channel formats, if applicable).
+The stride values
 give the data spacing of adjacent pixels, scanlines, and volumetric
 slices, respectively (measured in bytes).  Strides set to the special
 value of {\kw AutoStride} imply contiguous data, i.e., \\
-\spc {\kw xstride} $=$ {\kw spec.nchannels*format.size()} \\
-\spc {\kw ystride} $=$ {\kw xstride*spec.tile_width} \\
-\spc {\kw zstride} $=$ {\kw ystride*spec.tile_height} \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels * spec.pixel_size()} \\
+\spc {\kw ystride} $=$ {\kw xstride * spec.tile_width} \\
+\spc {\kw zstride} $=$ {\kw ystride * spec.tile_height} \\
 The \ImageInput is expected to give the appearance of random access
 --- in other words, if it can't randomly seek to the given tile, it
 should transparently close, reopen, and sequentially read through prior
@@ -779,15 +828,18 @@ Simple version of {\kw read_tile} that reads to contiguous float pixels.
                              \bigspc ProgressCallback progress_callback=NULL,\\
                              \bigspc void *progress_callback_data=NULL)}
 
-Read the entire image of {\kw spec.width} $\times$ {\kw spec.height}
-$\times$ {\kw spec.depth}
+Read the entire image of {\kw spec.width * spec.height * spec.depth}
 pixels into data (which must already be sized large enough for
-the entire image) with the given strides and in the desired
-format.  Read tiles or scanlines automatically.  
+the entire image) with the given strides, converting into the desired
+data format.  
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data will be preserved 
+in its native format (including per-channel formats, if applicable).
+This function will automatically handle either tiles or scanlines in
+the file.
 
 Strides set to the special value of {\kw AutoStride} imply contiguous
 data, i.e., \\
-\spc {\kw xstride} $=$ {\kw spec.nchannels * format.size()} \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels * pixel_size()} \\
 \spc {\kw ystride} $=$ {\kw xstride * spec.width} \\
 \spc {\kw zstride} $=$ {\kw ystride * spec.height} \\
 The function will internally either call {\kw read_scanline} or 

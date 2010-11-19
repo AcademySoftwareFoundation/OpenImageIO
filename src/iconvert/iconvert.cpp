@@ -209,12 +209,15 @@ join_list (const std::vector<std::string> &items)
 // Adjust the output spec based on the command-line arguments.
 // Return whether the specifics preclude using copy_image.
 static bool
-adjust_spec (ImageInput *in, const ImageSpec &inspec, ImageSpec &outspec)
+adjust_spec (ImageInput *in, ImageOutput *out,
+             const ImageSpec &inspec, ImageSpec &outspec)
 {
     bool nocopy = no_copy_image;
 
     // Copy the spec, with possible change in format
     outspec.set_format (inspec.format);
+    if (inspec.channelformats.size()  &&  ! out->supports("channelformats"))
+        outspec.channelformats.clear ();
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
             outspec.set_format (TypeDesc::UINT8);
@@ -230,8 +233,9 @@ adjust_spec (ImageInput *in, const ImageSpec &inspec, ImageSpec &outspec)
             outspec.set_format (TypeDesc::FLOAT);
         else if (dataformatname == "double")
             outspec.set_format (TypeDesc::DOUBLE);
-        if (outspec.format != inspec.format)
+        if (outspec.format != inspec.format || inspec.channelformats.size())
             nocopy = true;
+        outspec.channelformats.clear ();
     }
     outspec.gamma = gammaval;
     if (sRGB) {
@@ -377,7 +381,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         do {
             // Copy the spec, with possible change in format
             ImageSpec outspec = inspec;
-            bool nocopy = adjust_spec (in, inspec, outspec);
+            bool nocopy = adjust_spec (in, out, inspec, outspec);
         
             ImageOutput::OpenMode mode;
             if (miplevel > 0) {

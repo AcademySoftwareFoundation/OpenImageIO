@@ -224,19 +224,30 @@ rectangular \emph{tiles} of the given dimension.  The default of
 than as tiles.
 \apiend
 
-\apiitem{TypeDesc format}
-Indicates the native format of the pixel data values themselves, as a 
-\TypeDesc (see \ref{sec:TypeDesc}).  Typical values would be
-{\cf TypeDesc::UINT8} for 8-bit unsigned values, {\cf TypeDesc::FLOAT} for 32-bit
-floating-point values, etc.
-
-\noindent NOTE: Currently, the implementation of OpenImageIO requires
-all channels to have the same data format.
-\apiend
-
 \apiitem{int nchannels}
 The number of \emph{channels} (color values) present in each pixel of
 the image.  For example, an RGB image has 3 channels.
+\apiend
+
+\newpage
+%\vspace{24pt}  % make some space
+
+\apiitem{TypeDesc format \\
+std::vector<TypeDesc> channelformats}
+Describes the native format of the pixel data values themselves, as a
+\TypeDesc (see \ref{sec:TypeDesc}).  Typical values would be 
+{\cf TypeDesc::UINT8} for 8-bit unsigned values, {\cf TypeDesc::FLOAT}
+for 32-bit floating-point values, etc.
+
+If all channels of the image have the same data format, that will
+be described by {\cf format} and {\cf channelformats} will be empty
+(zero length).
+
+If there are different data formats for each channel, they will be
+described in the {\cf channelformats} vector, and the {\cf format} field
+will indicate a single default data format for applications that don't
+wish to support per-channel formats (usually this will be the format
+of the channel that has the most precision).
 \apiend
 
 \apiitem{std::vector<std::string> channelnames}
@@ -348,14 +359,19 @@ Returns the number of bytes comprising each channel of each pixel (i.e.,
 the size of a single value of the type described by the {\cf format} field).
 \apiend
 
-\apiitem{size_t {\ce pixel_bytes} () const}
+\apiitem{size_t {\ce pixel_bytes} (bool native=false) const}
 Returns the number of bytes comprising each pixel (i.e. the number of
 channels multiplied by the channel size).
+
+If {\cf native} is true, this will be the sum of all the per-channel
+formats in {\cf channelformats}.  If {\cf native} is false (the
+default), or if all channels use the same format, this will simply be
+the number of channels multiplied by the width (in bytes) of the {\cf format}.
 \apiend
 
-\apiitem{imagesize_t {\ce scanline_bytes} () const}
-Returns the number of bytes comprising each scanline (i.e. {\cf width}
-pixels).  
+\apiitem{imagesize_t {\ce scanline_bytes} (bool native=false) const}
+Returns the number of bytes comprising each scanline,
+i.e., \\ {\cf pixel_bytes(native) * width} \\
 This will return {\cf std::numeric_limits<imagesize_t>::max()} in the event
 of an overflow where it's not representable in an {\cf imagesize_t}.
 \apiend
@@ -366,8 +382,9 @@ This will return {\cf std::numeric_limits<imagesize_t>::max()} in the event
 of an overflow where it's not representable in an {\cf imagesize_t}.
 \apiend
 
-\apiitem{imagesize_t {\ce tile_bytes} () const}
-Returns the number of bytes comprising an image tile (if it's a tiled image).
+\apiitem{imagesize_t {\ce tile_bytes} (bool native=false) const}
+Returns the number of bytes comprising an image tile (if it's a tiled
+image), i.e., \\ {\cf pixel_bytes(native) * tile_width * tile_height * tile_depth } \\
 This will return {\cf std::numeric_limits<imagesize_t>::max()} in the event
 of an overflow where it's not representable in an {\cf imagesize_t}.
 \apiend
@@ -378,8 +395,10 @@ This will return {\cf std::numeric_limits<imagesize_t>::max()} in the event
 of an overflow where it's not representable in an {\cf imagesize_t}.
 \apiend
 
-\apiitem{imagesize_t {\ce image_bytes} () const}
-Returns the number of bytes comprising an entire image of these dimensions.
+\apiitem{imagesize_t {\ce image_bytes} (bool native=false) const}
+Returns the number of bytes comprising an entire image of these
+dimensions, i.e., \\
+{\cf pixel_bytes(native) * width * height * depth } \\
 This will return {\cf std::numeric_limits<imagesize_t>::max()} in the event
 of an overflow where it's not representable in an {\cf imagesize_t}.
 \apiend

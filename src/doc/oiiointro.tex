@@ -101,9 +101,10 @@ making simplifying assumptions.  Among them:
   \item Color space is grayscale or RGB.  Non-spectral data, such as
     XYZ, CMYK, or YUV, are converted to RGB upon reading.\
 
-  \item All color channels have the same data format.  Upon read, an
-    \ImageInput ought to convert all channels to the one with the highest
-    precision in the file.
+  \item All color channels can be treated (by apps or readers/writers)
+    as having the same data format (though there is a way to deal with
+    per-channel formats for apps and readers/writers that truly need
+    it).
 
   \item All image channels in a subimage are sampled at the same
     resolution.  For file formats that allow some channels to be

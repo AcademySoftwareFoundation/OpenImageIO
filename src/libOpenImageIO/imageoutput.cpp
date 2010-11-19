@@ -113,8 +113,11 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   stride_t xstride, stride_t ystride, stride_t zstride,
                                   std::vector<unsigned char> &scratch)
 {
-    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
-                        xmax-xmin+1, ymax-ymin+1);
+    stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
+    if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
+        xstride = native_pixel_bytes;
+    m_spec.auto_stride (xstride, ystride, zstride, format,
+                        m_spec.nchannels, xmax-xmin+1, ymax-ymin+1);
 
     // Compute width and height from the rectangle extents
     int width = xmax - xmin + 1;
@@ -122,26 +125,46 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     int depth = zmax - zmin + 1;
 
     // Do the strides indicate that the data are already contiguous?
-    bool contiguous = (xstride == m_spec.nchannels*(int)format.size() &&
+    bool contiguous = (xstride == native_pixel_bytes &&
                        (ystride == xstride*width || height == 1) &&
                        (zstride == ystride*height || depth == 1));
-    // Is the only conversion we are doing that of data format?
-    bool data_conversion_only =  (contiguous && m_spec.gamma == 1.0f);
-
-    if (format == m_spec.format && data_conversion_only) {
+    // Does the user already have the data in the right format?
+    bool rightformat = (format == TypeDesc::UNKNOWN) ||
+        (format == m_spec.format && m_spec.channelformats.empty());
+    if (rightformat && contiguous && m_spec.gamma == 1.0f) {
         // Data are already in the native format, contiguous, and need
         // no gamma correction -- just return a ptr to the original data.
         return data;
     }
 
-    int rectangle_pixels = width * height * depth;
-    int rectangle_values = rectangle_pixels * m_spec.nchannels;
-    int contiguoussize = contiguous ? 0 
-                             : rectangle_values * format.size();
+    imagesize_t rectangle_pixels = width * height * depth;
+    imagesize_t rectangle_values = rectangle_pixels * m_spec.nchannels;
+    imagesize_t rectangle_bytes = rectangle_pixels * native_pixel_bytes;
+
+    // Handle the per-channel format case
+    if (m_spec.channelformats.size() && supports("channelformats")) {
+        ASSERT (contiguous && "Per-channel output requires contiguous strides");
+        ASSERT (format != TypeDesc::UNKNOWN);
+        scratch.resize (rectangle_bytes);
+        size_t offset = 0;
+        for (int c = 0;  c < (int)m_spec.channelformats.size();  ++c) {
+            TypeDesc chanformat = m_spec.channelformats[c];
+            convert_image (1 /* channels */, width, height, depth,
+                           (char *)data + c*m_spec.format.size(), format,
+                           xstride, ystride, zstride, 
+                           &scratch[offset], chanformat,
+                           native_pixel_bytes, AutoStride, AutoStride, NULL,
+                           c == m_spec.alpha_channel ? 0 : -1,
+                           c == m_spec.z_channel ? 0 : -1);
+            offset = chanformat.size ();
+        }
+        return &scratch[0];
+    }
+
+    imagesize_t contiguoussize = contiguous ? 0 : rectangle_values * native_pixel_bytes;
     contiguoussize = (contiguoussize+3) & (~3); // Round up to 4-byte boundary
     DASSERT ((contiguoussize & 3) == 0);
-    int rectangle_bytes = rectangle_pixels * m_spec.pixel_bytes();
-    int floatsize = rectangle_values * sizeof(float);
+    imagesize_t floatsize = rectangle_values * sizeof(float);
     scratch.resize (contiguoussize + floatsize + rectangle_bytes);
 
     // Force contiguity if not already present
@@ -166,7 +189,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
         if (m_spec.gamma != 1) {
             float invgamma = 1.0 / m_spec.gamma;
             float *f = (float *)buf;
-            for (int p = 0;  p < rectangle_pixels;  ++p)
+            for (imagesize_t p = 0;  p < rectangle_pixels;  ++p)
                 for (int c = 0;  c < m_spec.nchannels;  ++c, ++f)
                     if (c != m_spec.alpha_channel)
                         *f = powf (*f, invgamma);
@@ -192,8 +215,12 @@ ImageOutput::write_image (TypeDesc format, const void *data,
                           OpenImageIO::ProgressCallback progress_callback,
                           void *progress_callback_data)
 {
-    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
-                        m_spec.width, m_spec.height);
+    bool native = (format == TypeDesc::UNKNOWN);
+    stride_t pixel_bytes = (stride_t) m_spec.pixel_bytes (native);
+    if (native && xstride == AutoStride)
+        xstride = pixel_bytes;
+    m_spec.auto_stride (xstride, ystride, zstride, format,
+                        m_spec.nchannels, m_spec.width, m_spec.height);
     if (supports ("rectangles")) {
         // Use a rectangle if we can
         return write_rectangle (0, m_spec.width-1, 0, m_spec.height-1, 0, m_spec.depth-1,
@@ -218,13 +245,12 @@ ImageOutput::write_image (TypeDesc format, const void *data,
         // dimensions smaller than a tile, or if one of the tiles runs
         // past the right or bottom edge.  Then we copy from our tile to
         // the user data, only copying valid pixel ranges.
-        size_t tilexstride = m_spec.nchannels * format.size();
+        size_t tilexstride = pixel_bytes;
         size_t tileystride = tilexstride * m_spec.tile_width;
         size_t tilezstride = tileystride * m_spec.tile_height;
-        size_t tile_values = (size_t)m_spec.tile_width * (size_t)m_spec.tile_height *
-            (size_t)std::max(1,m_spec.tile_depth) * m_spec.nchannels;
-        std::vector<char> pels (tile_values * format.size());
-
+        size_t tile_pixels = (size_t)m_spec.tile_width * (size_t)m_spec.tile_height *
+            (size_t)std::max(1,m_spec.tile_depth);
+        std::vector<char> pels (tile_pixels * pixel_bytes);
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth)
             for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
                 for (int x = 0;  x < m_spec.width && ok;  x += m_spec.tile_width) {
@@ -299,11 +325,13 @@ ImageOutput::copy_image (ImageInput *in)
     // Naive implementation -- read the whole image and write it back out.
     // FIXME -- a smarter implementation would read scanlines or tiles at
     // a time, to minimize mem footprint.
-    std::vector<char> pixels (spec().image_bytes());
-    bool ok = in->read_image (spec().format, &pixels[0]);
+    bool native = supports("channelformats") && inspec.channelformats.size();
+    TypeDesc format = native ? TypeDesc::UNKNOWN : inspec.format;
+    std::vector<char> pixels (inspec.image_bytes(native));
+    bool ok = in->read_image (format, &pixels[0]);
     if (!ok)
         error ("%s", in->geterror().c_str());  // copy err from in to out
     if (ok)
-        ok = write_image (spec().format, &pixels[0]);
+        ok = write_image (format, &pixels[0]);
     return ok;
 }

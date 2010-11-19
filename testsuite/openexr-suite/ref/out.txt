@@ -117,6 +117,30 @@ Subimage 0: 928 x 906, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
+../../../openexr-images-1.5.0/ScanLines/Blobbies.exr : 1040 x 1040, 5 channel, half/half/half/half/float openexr
+    SHA-1: 64C3C765E0D40AA92E066F6EC9198A8053BF1179
+    channel list: R (half), G (half), B (half), A (half), Z (float)
+    pixel data origin: x=-20, y=-20
+    full/display size: 1000 x 1000
+    full/display origin: 0, 0
+    Color space: unknown
+    compression: "zip"
+    DateTime: "2004:01:19 12:55:33"
+    Copyright: "Copyright 2004 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    utcOffset: 28800
+    whiteLuminance: 50
+Converting ../../../openexr-images-1.5.0/ScanLines/Blobbies.exr to Blobbies.exr
+Comparing "../../../openexr-images-1.5.0/ScanLines/Blobbies.exr" and "Blobbies.exr"
+Subimage 0: 1040 x 1040, 5 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
 ../../../openexr-images-1.5.0/TestImages/AllHalfValues.exr :  256 x  256, 3 channel, half openexr
     SHA-1: 4428F325F403515E6B3BF8E290FB7EDBF959ECF7
     channel list: R, G, B

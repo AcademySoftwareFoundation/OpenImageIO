@@ -265,21 +265,28 @@ ImageSpec::default_channel_names ()
 
 
 size_t
-ImageSpec::pixel_bytes () const
+ImageSpec::pixel_bytes (bool native) const
 {
     if (nchannels < 0)
         return 0;
-    return clamped_mult32 ((size_t)nchannels, channel_bytes());
+    if (!native || channelformats.empty())
+        return clamped_mult32 ((size_t)nchannels, channel_bytes());
+    else {
+        size_t sum = 0;
+        for (int i = 0;  i < nchannels;  ++i)
+            sum += channelformats[i].size();
+        return sum;
+    }
 }
 
 
 
 imagesize_t
-ImageSpec::scanline_bytes () const
+ImageSpec::scanline_bytes (bool native) const
 {
     if (width < 0)
         return 0;
-    return clamped_mult64 ((imagesize_t)width, (imagesize_t)pixel_bytes());
+    return clamped_mult64 ((imagesize_t)width, (imagesize_t)pixel_bytes(native));
 }
 
 
@@ -299,9 +306,9 @@ ImageSpec::tile_pixels () const
 
 
 imagesize_t
-ImageSpec::tile_bytes () const
+ImageSpec::tile_bytes (bool native) const
 {
-    return clamped_mult64 (tile_pixels(), (imagesize_t)pixel_bytes());
+    return clamped_mult64 (tile_pixels(), (imagesize_t)pixel_bytes(native));
 }
 
 
@@ -320,9 +327,9 @@ ImageSpec::image_pixels () const
 
 
 imagesize_t
-ImageSpec::image_bytes () const
+ImageSpec::image_bytes (bool native) const
 {
-    return clamped_mult64 (image_pixels(), (imagesize_t)pixel_bytes());
+    return clamped_mult64 (image_pixels(), (imagesize_t)pixel_bytes(native));
 }
 
 

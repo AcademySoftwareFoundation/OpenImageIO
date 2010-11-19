@@ -90,7 +90,7 @@ private:
     int m_nsubimages;                     ///< How many subimages are there?
     int m_miplevel;                       ///< What miplevel we're writing now
     int m_nmiplevels;                     ///< How many mip levels are there?
-    Imf::PixelType m_pixeltype;           ///< Imf pixel type
+    std::vector<Imf::PixelType> m_pixeltype; ///< Imf pixel type for each chan
     std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
 
     // Initialize private members to pre-opened state
@@ -159,6 +159,8 @@ OpenEXROutput::supports (const std::string &feature) const
     if (feature == "tiles")
         return true;
     if (feature == "mipmap")
+        return true;
+    if (feature == "channelformats")
         return true;
 
     // EXR supports random write order iff lineOrder is set to 'random Y'
@@ -230,20 +232,15 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
     switch (m_spec.format.basetype) {
     case TypeDesc::UINT:
         m_spec.format = TypeDesc::UINT;
-        m_pixeltype = Imf::UINT;
         break;
     case TypeDesc::FLOAT:
     case TypeDesc::DOUBLE:
         m_spec.format = TypeDesc::FLOAT;
-        m_pixeltype = Imf::FLOAT;
         break;
     default:
         // Everything else defaults to half
         m_spec.format = TypeDesc::HALF;
-        m_pixeltype = Imf::HALF;
     }
-
-    // Big FIXME: support per-channel formats?
 
     Imath::Box2i dataWindow (Imath::V2i (m_spec.x, m_spec.y),
                              Imath::V2i (m_spec.width + m_spec.x - 1,
@@ -261,14 +258,36 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         if (m_spec.channelnames[c].empty())
             m_spec.channelnames[c] = (c<4) ? default_chan_names[c]
                                            : Strutil::format ("unknown %d", c);
+        TypeDesc format = m_spec.channelformats.size() ?
+                                  m_spec.channelformats[c] : m_spec.format;
+        Imf::PixelType ptype;
+        switch (format.basetype) {
+        case TypeDesc::UINT:
+            ptype = Imf::UINT;
+            format = TypeDesc::UINT;
+            break;
+        case TypeDesc::FLOAT:
+        case TypeDesc::DOUBLE:
+            ptype = Imf::FLOAT;
+            format = TypeDesc::FLOAT;
+            break;
+        default:
+            // Everything else defaults to half
+            ptype = Imf::HALF;
+            format = TypeDesc::HALF;
+        }
+        m_pixeltype.push_back (ptype);
+        if (m_spec.channelformats.size())
+            m_spec.channelformats[c] = format;
         m_header->channels().insert (m_spec.channelnames[c].c_str(),
-                                     Imf::Channel(m_pixeltype, 1, 1
+                                     Imf::Channel(ptype, 1, 1
 #ifdef OPENEXR_VERSION_IS_1_6_OR_LATER
                                      , m_spec.linearity == ImageSpec::Linear
 #endif
                                      ));
     }
-    
+    ASSERT (m_pixeltype.size() == (size_t)m_spec.nchannels);
+
     // Default to ZIP compression if no request came with the user spec.
     if (! m_spec.find_attribute("compression"))
         m_spec.attribute ("compression", "zip");
@@ -505,6 +524,10 @@ bool
 OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
                                const void *data, stride_t xstride)
 {
+    bool native = (format == TypeDesc::UNKNOWN);
+    size_t pixel_bytes = m_spec.pixel_bytes (native);
+    if (native && xstride == AutoStride)
+        xstride = (stride_t) pixel_bytes;
     m_spec.auto_stride (xstride, format, spec().nchannels);
     data = to_native_scanline (format, data, xstride, m_scratch);
 
@@ -513,20 +536,23 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
     // to put the pixels being read, but OpenEXR's frameBuffer.insert()
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
+    imagesize_t scanlinebytes = m_spec.scanline_bytes (native);
     char *buf = (char *)data
-              - m_spec.x * m_spec.pixel_bytes() 
-              - y * m_spec.scanline_bytes();
-    // FIXME: Should it be scanline_bytes, or full_width*pixelsize?
+              - m_spec.x * pixel_bytes
+              - y * scanlinebytes;
 
     try {
         Imf::FrameBuffer frameBuffer;
+        size_t chanoffset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
+            size_t chanbytes = m_spec.channelformats.size() 
+                                  ? m_spec.channelformats[c].size() 
+                                  : m_spec.format.size();
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (m_pixeltype,
-                                            buf + c * m_spec.channel_bytes(),
-                                            m_spec.pixel_bytes(),
-                                            m_spec.scanline_bytes()));
-            // FIXME - what if all channels aren't the same data type?
+                                Imf::Slice (m_pixeltype[c],
+                                            buf + chanoffset,
+                                            pixel_bytes, scanlinebytes));
+            chanoffset += chanbytes;
         }
         m_output_scanline->setFrameBuffer (frameBuffer);
         m_output_scanline->writePixels (1);
@@ -548,6 +574,10 @@ OpenEXROutput::write_tile (int x, int y, int z,
                            TypeDesc format, const void *data,
                            stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    bool native = (format == TypeDesc::UNKNOWN);
+    size_t pixel_bytes = m_spec.pixel_bytes (native);
+    if (native && xstride == AutoStride)
+        xstride = (stride_t) pixel_bytes;
     m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
                         spec().tile_width, spec().tile_height);
     data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
@@ -558,18 +588,21 @@ OpenEXROutput::write_tile (int x, int y, int z,
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
     char *buf = (char *)data
-              - x * m_spec.pixel_bytes() 
-              - y * m_spec.pixel_bytes() * m_spec.tile_width;
+              - x * pixel_bytes
+              - y * pixel_bytes * m_spec.tile_width;
 
     try {
         Imf::FrameBuffer frameBuffer;
+        size_t chanoffset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
+            size_t chanbytes = m_spec.channelformats.size() 
+                                  ? m_spec.channelformats[c].size() 
+                                  : m_spec.format.size();
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
-                                Imf::Slice (m_pixeltype,
-                                            buf + c * m_spec.channel_bytes(),
-                                            m_spec.pixel_bytes(),
-                                            m_spec.pixel_bytes()*m_spec.tile_width));
-            // FIXME - what if all channels aren't the same data type?
+                                Imf::Slice (m_pixeltype[c],
+                                            buf + chanoffset, pixel_bytes,
+                                            pixel_bytes*m_spec.tile_width));
+            chanoffset += chanbytes;
         }
         m_output_tiled->setFrameBuffer (frameBuffer);
         m_output_tiled->writeTile ((x - m_spec.x) / m_spec.tile_width,
