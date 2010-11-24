@@ -145,9 +145,9 @@ public:
     ustring filename (void) const { return m_filename; }
     ustring fileformat (void) const { return m_fileformat; }
     TexFormat textureformat () const { return m_texformat; }
-    TextureOptions::Wrap swrap () const { return m_swrap; }
-    TextureOptions::Wrap twrap () const { return m_twrap; }
-    TextureOptions::Wrap rwrap () const { return m_rwrap; }
+    TextureOpt::Wrap swrap () const { return m_swrap; }
+    TextureOpt::Wrap twrap () const { return m_twrap; }
+    TextureOpt::Wrap rwrap () const { return m_rwrap; }
     TypeDesc datatype () const { return m_datatype; }
     ImageCacheImpl &imagecache () const { return m_imagecache; }
 
@@ -224,9 +224,9 @@ private:
     shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
     std::vector<SubimageInfo> m_subimages;  ///< Image on each subimage
     TexFormat m_texformat;          ///< Which texture format
-    TextureOptions::Wrap m_swrap;   ///< Default wrap modes
-    TextureOptions::Wrap m_twrap;   ///< Default wrap modes
-    TextureOptions::Wrap m_rwrap;   ///< Default wrap modes
+    TextureOpt::Wrap m_swrap;       ///< Default wrap modes
+    TextureOpt::Wrap m_twrap;       ///< Default wrap modes
+    TextureOpt::Wrap m_rwrap;       ///< Default wrap modes
     Imath::M44f m_Mlocal;           ///< shadows: world-to-local (light) matrix
     Imath::M44f m_Mproj;            ///< shadows: world-to-pseudo-NDC
     Imath::M44f m_Mtex;             ///< shadows: world-to-pNDC with camera z

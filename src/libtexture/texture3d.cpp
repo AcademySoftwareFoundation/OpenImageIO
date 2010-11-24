@@ -82,19 +82,18 @@ namespace pvt {   // namespace OpenImageIO::pvt
 
 
 bool
-TextureSystemImpl::texture3d (ustring filename, TextureOptions &options,
-                              Runflag *runflags, int beginactive, int endactive,
-                              VaryingRef<Imath::V3f> P,
-                              VaryingRef<Imath::V3f> dPdx,
-                              VaryingRef<Imath::V3f> dPdy,
-                              VaryingRef<Imath::V3f> dPdz,
+TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
+                              const Imath::V3f &P,
+                              const Imath::V3f &dPdx,
+                              const Imath::V3f &dPdy,
+                              const Imath::V3f &dPdz,
                               float *result)
 {
 #if 0
     // FIXME: currently, no support of actual MIPmapping.  No rush,
     // since the only volume format we currently support, Field3D,
     // doens't support MIPmapping.
-    static const texture_lookup_prototype lookup_functions[] = {
+    static const texture3d_lookup_prototype lookup_functions[] = {
         // Must be in the same order as Mipmode enum
         &TextureSystemImpl::texture3d_lookup,
         &TextureSystemImpl::texture3d_lookup_nomip,
@@ -120,24 +119,18 @@ TextureSystemImpl::texture3d (ustring filename, TextureOptions &options,
     }
 
     if (! texturefile  ||  texturefile->broken()) {
-        int local_stat_texture_queries = 0;
-        for (int i = beginactive;  i < endactive;  ++i) {
-            if (runflags[i]) {
-                ++local_stat_texture_queries;
-                for (int c = 0;  c < options.nchannels;  ++c) {
-                    if (options.missingcolor)
-                        result[i*options.nchannels+c] = (&options.missingcolor[i])[c];
-                    else
-                        result[i*options.nchannels+c] = options.fill[i];
-                    if (options.dresultds) options.dresultds[i*options.nchannels+c] = 0;
-                    if (options.dresultdt) options.dresultdt[i*options.nchannels+c] = 0;
-                    if (options.dresultdr) options.dresultdr[i*options.nchannels+c] = 0;
-                }
-            }
+        for (int c = 0;  c < options.nchannels;  ++c) {
+            if (options.missingcolor)
+                result[c] = options.missingcolor[c];
+            else
+                result[c] = options.fill;
+            if (options.dresultds) options.dresultds[c] = 0;
+            if (options.dresultdt) options.dresultdt[c] = 0;
+            if (options.dresultdr) options.dresultdr[c] = 0;
         }
 //        error ("Texture file \"%s\" not found", filename.c_str());
         ++stats.texture_batches;
-        stats.texture3d_queries += local_stat_texture_queries;
+        ++stats.texture3d_queries;
         if (options.missingcolor) {
             (void) geterror ();   // eat the error
             return true;
@@ -149,21 +142,21 @@ TextureSystemImpl::texture3d (ustring filename, TextureOptions &options,
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
     // Figure out the wrap functions
-    if (options.swrap == TextureOptions::WrapDefault)
+    if (options.swrap == TextureOpt::WrapDefault)
         options.swrap = texturefile->swrap();
-    if (options.swrap == TextureOptions::WrapPeriodic && ispow2(spec.full_width))
+    if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.full_width))
         options.swrap_func = wrap_periodic2;
     else
         options.swrap_func = wrap_functions[(int)options.swrap];
-    if (options.twrap == TextureOptions::WrapDefault)
+    if (options.twrap == TextureOpt::WrapDefault)
         options.twrap = texturefile->twrap();
-    if (options.twrap == TextureOptions::WrapPeriodic && ispow2(spec.full_height))
+    if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.full_height))
         options.twrap_func = wrap_periodic2;
     else
         options.twrap_func = wrap_functions[(int)options.twrap];
-    if (options.rwrap == TextureOptions::WrapDefault)
+    if (options.rwrap == TextureOpt::WrapDefault)
         options.rwrap = texturefile->rwrap();
-    if (options.rwrap == TextureOptions::WrapPeriodic && ispow2(spec.full_depth))
+    if (options.rwrap == TextureOpt::WrapPeriodic && ispow2(spec.full_depth))
         options.rwrap_func = wrap_periodic2;
     else
         options.rwrap_func = wrap_functions[(int)options.rwrap];
@@ -174,16 +167,11 @@ TextureSystemImpl::texture3d (ustring filename, TextureOptions &options,
 
     // Fill channels requested but not in the file
     if (options.actualchannels < options.nchannels) {
-        for (int i = beginactive;  i < endactive;  ++i) {
-            if (runflags[i]) {
-                float fill = options.fill[i];
-                for (int c = options.actualchannels; c < options.nchannels; ++c) {
-                    result[i*options.nchannels+c] = fill;
-                    if (options.dresultds) options.dresultds[i*options.nchannels+c] = 0;
-                    if (options.dresultdt) options.dresultdt[i*options.nchannels+c] = 0;
-                    if (options.dresultdr) options.dresultdr[i*options.nchannels+c] = 0;
-                }
-            }
+        for (int c = options.actualchannels; c < options.nchannels; ++c) {
+            result[c] = options.fill;
+            if (options.dresultds) options.dresultds[c] = 0;
+            if (options.dresultdt) options.dresultdt[c] = 0;
+            if (options.dresultdr) options.dresultdr[c] = 0;
         }
     }
     // Early out if all channels were beyond the highest in the file
@@ -198,20 +186,35 @@ TextureSystemImpl::texture3d (ustring filename, TextureOptions &options,
     // "grid points" at once should be done in this function, outside
     // the loop, and all the work inside texture_lookup should be work
     // that MUST be redone for each individual texture lookup point.
-    bool ok = true;
-    int points_on = 0;
-    for (int i = beginactive;  i < endactive;  ++i) {
-        if (runflags[i]) {
-            ++points_on;
-            ok &= (this->*lookup) (*texturefile, thread_info, options, i,
-                                   P, dPdx, dPdy, dPdz, result);
-        }
-    }
+    bool ok = (this->*lookup) (*texturefile, thread_info, options,
+                               P, dPdx, dPdy, dPdz, result);
 
     // Update stats
     ++stats.texture3d_batches;
-    stats.texture3d_queries += points_on;
+    ++stats.texture3d_queries;
 
+    return ok;
+}
+
+
+
+bool
+TextureSystemImpl::texture3d (ustring filename, TextureOptions &options,
+                              Runflag *runflags, int beginactive, int endactive,
+                              VaryingRef<Imath::V3f> P,
+                              VaryingRef<Imath::V3f> dPdx,
+                              VaryingRef<Imath::V3f> dPdy,
+                              VaryingRef<Imath::V3f> dPdz,
+                              float *result)
+{
+    bool ok = true;
+    for (int i = beginactive;  i < endactive;  ++i) {
+        if (runflags[i]) {
+            TextureOpt opt (options, i);
+            ok &= texture3d (filename, opt, P[i], dPdx[i], dPdy[i], dPdz[i],
+                             result);
+        }
+    }
     return ok;
 }
 
@@ -220,9 +223,9 @@ TextureSystemImpl::texture3d (ustring filename, TextureOptions &options,
 bool
 TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
                             PerThreadInfo *thread_info, 
-                            TextureOptions &options, int index,
-                            VaryingRef<Imath::V3f> _P, VaryingRef<Imath::V3f> _dPdx,
-                            VaryingRef<Imath::V3f> _dPdy, VaryingRef<Imath::V3f> _dPdz,
+                            TextureOpt &options,
+                            const Imath::V3f &_P, const Imath::V3f &_dPdx,
+                            const Imath::V3f &_dPdy, const Imath::V3f &_dPdz,
                             float *result)
 {
     // N.B. If any computations within this function are identical for
@@ -230,10 +233,9 @@ TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
     // hoisted up to the calling function, texture().
 
     // Initialize results to 0.  We'll add from here on as we sample.
-    result += index * options.nchannels;
-    float* dresultds = options.dresultds ? &options.dresultds[index*options.nchannels] : NULL;
-    float* dresultdt = options.dresultdt ? &options.dresultdt[index*options.nchannels] : NULL;
-    float* dresultdr = options.dresultdr ? &options.dresultdr[index*options.nchannels] : NULL;
+    float* dresultds = options.dresultds;
+    float* dresultdt = options.dresultdt;
+    float* dresultdr = options.dresultdr;
     for (int c = 0;  c < options.actualchannels;  ++c) {
         result[c] = 0;
         if (dresultds) dresultds[c] = 0;
@@ -254,8 +256,7 @@ TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
         &TextureSystemImpl::accum3d_sample_bilinear,
     };
     accum3d_prototype accumer = accum_functions[(int)options.interpmode];
-    bool ok = (this->*accumer) (_P[index], 0, texturefile,
-                                thread_info, options, index, 
+    bool ok = (this->*accumer) (_P, 0, texturefile, thread_info, options,
                                 1.0f, result, dresultds, dresultdt, dresultdr);
 
     // Update stats
@@ -263,10 +264,10 @@ TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
     ++stats.aniso_queries;
     ++stats.aniso_probes;
     switch (options.interpmode) {
-        case TextureOptions::InterpClosest :  ++stats.closest_interps;  break;
-        case TextureOptions::InterpBilinear : ++stats.bilinear_interps; break;
-        case TextureOptions::InterpBicubic :  ++stats.cubic_interps;  break;
-        case TextureOptions::InterpSmartBicubic : ++stats.bilinear_interps; break;
+        case TextureOpt::InterpClosest :  ++stats.closest_interps;  break;
+        case TextureOpt::InterpBilinear : ++stats.bilinear_interps; break;
+        case TextureOpt::InterpBicubic :  ++stats.cubic_interps;  break;
+        case TextureOpt::InterpSmartBicubic : ++stats.bilinear_interps; break;
     }
     return ok;
 }
@@ -277,7 +278,7 @@ bool
 TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
-                                 TextureOptions &options, int index,
+                                 TextureOpt &options,
                                  float weight, float *accum, float *daccumds,
                                  float *daccumdt, float *daccumdr)
 {
@@ -347,7 +348,7 @@ bool
 TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
-                                 TextureOptions &options, int index,
+                                 TextureOpt &options,
                                  float weight, float *accum, float *daccumds,
                                  float *daccumdt, float *daccumdr)
 {

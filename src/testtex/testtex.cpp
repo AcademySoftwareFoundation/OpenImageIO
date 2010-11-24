@@ -48,6 +48,7 @@ using namespace OpenImageIO;
 #include "fmath.h"
 #include "sysutil.h"
 #include "strutil.h"
+#include "timer.h"
 
 
 static std::vector<std::string> filenames;
@@ -59,6 +60,7 @@ static float width = 1;
 static int iters = 1;
 static int autotile = 0;
 static bool automip = false;
+static bool test_construction = false;
 static TextureSystem *texsys = NULL;
 static std::string searchpath;
 static int blocksize = 1;
@@ -67,6 +69,7 @@ static float cachesize = -1;
 static int maxfiles = -1;
 static float missing[4] = {-1, 0, 0, 1};
 static float scalefactor = 1.0f;
+void *dummyptr;
 
 
 
@@ -106,6 +109,7 @@ getargs (int argc, const char *argv[])
                   "--cachesize %f", &cachesize, "Set cache size, in MB",
                   "--scale %f", &scalefactor, "Scale intensities",
                   "--maxfiles %d", &maxfiles, "Set maximum open files",
+                  "--ctr", &test_construction, "Test TextureOpt construction time",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -502,6 +506,23 @@ main (int argc, const char *argv[])
         texsys->attribute ("max_open_files", maxfiles);
     if (searchpath.length())
         texsys->attribute ("searchpath", searchpath);
+
+    if (test_construction) {
+        Timer t;
+        for (int i = 0;  i < 1000000000;  ++i) {
+            TextureOpt opt;
+            dummyptr = &opt;  // This forces the optimizer to keep the loop
+        }
+        std::cout << "TextureOpt construction: " << t() << " ns\n";
+        TextureOpt canonical, copy;
+        t.reset();
+        t.start();
+        for (int i = 0;  i < 1000000000;  ++i) {
+            memcpy (&copy, &canonical, sizeof(TextureOpt));
+            dummyptr = &copy;  // This forces the optimizer to keep the loop
+        }
+        std::cout << "TextureOpt memcpy: " << t() << " ns\n";
+    }
 
     if (iters > 0) {
         ustring filename (filenames[0]);

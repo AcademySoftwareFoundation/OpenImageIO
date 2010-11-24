@@ -386,7 +386,7 @@ TextureSystemImpl::imagespec (ustring filename, int subimage)
 
 
 bool
-TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
+TextureSystemImpl::get_texels (ustring filename, TextureOpt &options,
                                int miplevel, int xbegin, int xend,
                                int ybegin, int yend, int zbegin, int zend,
                                TypeDesc format, void *result)
@@ -458,7 +458,7 @@ TextureSystemImpl::get_texels (ustring filename, TextureOptions &options,
                     convert_types (texfile->datatype(), data,
                                    format, result, actualchannels);
                     for (int c = actualchannels;  c < options.nchannels;  ++c)
-                        convert_types (TypeDesc::FLOAT, &(options.fill[0]),
+                        convert_types (TypeDesc::FLOAT, &options.fill,
                                        format, result, 1);
                 } else {
                     memset (result, 0, formatpixelsize);
@@ -528,6 +528,24 @@ TextureSystemImpl::invalidate_all (bool force)
 
 
 bool
+TextureSystemImpl::texture (ustring filename, TextureOpt &options,
+                            float s, float t,
+                            float dsdx, float dtdx, float dsdy, float dtdy,
+                            float *result)
+{
+    // For now, the single point version of texture that takes a TextureOpt
+    // just copies to a TextureOptions and calls the multi-point version.
+    // FIXME: Eventually, THIS will be the main implementation, and the
+    // multi-point version will loop over the points calling this routine.
+    TextureOptions opt (options);
+    Runflag rf = RunFlagOn;
+    return texture (filename, opt, &rf, 0, 1, s, t,
+                    dsdx, dtdx, dsdy, dtdy, result);
+}
+
+
+
+bool
 TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             Runflag *runflags, int beginactive, int endactive,
                             VaryingRef<float> s, VaryingRef<float> t,
@@ -587,13 +605,13 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 
     // Figure out the wrap functions
     if (options.swrap == TextureOptions::WrapDefault)
-        options.swrap = texturefile->swrap();
+        options.swrap = (TextureOptions::Wrap)texturefile->swrap();
     if (options.swrap == TextureOptions::WrapPeriodic && ispow2(spec.full_width))
         options.swrap_func = wrap_periodic2;
     else
         options.swrap_func = wrap_functions[(int)options.swrap];
     if (options.twrap == TextureOptions::WrapDefault)
-        options.twrap = texturefile->twrap();
+        options.twrap = (TextureOptions::Wrap)texturefile->twrap();
     if (options.twrap == TextureOptions::WrapPeriodic && ispow2(spec.full_height))
         options.twrap_func = wrap_periodic2;
     else

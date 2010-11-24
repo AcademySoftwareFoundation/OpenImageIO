@@ -122,6 +122,13 @@ public:
 
     /// Filtered 2D texture lookup for a single point, no runflags.
     ///
+    virtual bool texture (ustring filename, TextureOpt &options,
+                          float s, float t,
+                          float dsdx, float dtdx, float dsdy, float dtdy,
+                          float *result);
+
+    /// Filtered 2D texture lookup for a single point, no runflags.
+    ///
     virtual bool texture (ustring filename, TextureOptions &options,
                   float s, float t,
                   float dsdx, float dtdx, float dsdy, float dtdy,
@@ -142,15 +149,10 @@ public:
 
     /// Retrieve a 3D texture lookup at a single point.
     ///
-    virtual bool texture3d (ustring filename, TextureOptions &options,
+    virtual bool texture3d (ustring filename, TextureOpt &options,
                             const Imath::V3f &P, const Imath::V3f &dPdx,
                             const Imath::V3f &dPdy, const Imath::V3f &dPdz,
-                            float *result) {
-        Runflag rf = RunFlagOn;
-        return texture3d (filename, options, &rf, 0, 1, *(Imath::V3f *)&P,
-                          *(Imath::V3f *)&dPdx, *(Imath::V3f *)&dPdy,
-                          *(Imath::V3f *)&dPdz, result);
-    }
+                            float *result);
 
     /// Retrieve 3D filtered texture lookup
     ///
@@ -167,9 +169,7 @@ public:
     virtual bool shadow (ustring filename, TextureOptions &options,
                          const Imath::V3f &P, const Imath::V3f &dPdx,
                          const Imath::V3f &dPdy, float *result) {
-        Runflag rf = RunFlagOn;
-        return shadow (filename, options, &rf, 0, 1, *(Imath::V3f *)&P,
-                       *(Imath::V3f *)&dPdx, *(Imath::V3f *)&dPdy, result);
+        return false;
     }
 
     /// Retrieve a shadow lookup for position P at many points at once.
@@ -185,12 +185,10 @@ public:
 
     /// Retrieve an environment map lookup for direction R.
     ///
-    virtual bool environment (ustring filename, TextureOptions &options,
+    virtual bool environment (ustring filename, TextureOptions &opt,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
                               const Imath::V3f &dRdy, float *result) {
-        Runflag rf = RunFlagOn;
-        return environment (filename, options, &rf, 0, 1, *(Imath::V3f *)&R,
-                            *(Imath::V3f *)&dRdx, *(Imath::V3f *)&dRdy, result);
+        return false;
     }
 
     /// Retrieve an environment map lookup for direction R, for many
@@ -220,7 +218,7 @@ public:
 
     /// Retrieve a rectangle of raw unfiltered texels.
     ///
-    virtual bool get_texels (ustring filename, TextureOptions &options,
+    virtual bool get_texels (ustring filename, TextureOpt &options,
                              int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result);
@@ -329,29 +327,28 @@ private:
     // lookups.
     typedef bool (TextureSystemImpl::*texture3d_lookup_prototype)
             (TextureFile &texfile, PerThreadInfo *thread_info,
-             TextureOptions &options, int index,
-             VaryingRef<Imath::V3f> _P, VaryingRef<Imath::V3f> _dPdx,
-             VaryingRef<Imath::V3f> _dPdy, VaryingRef<Imath::V3f> _dPdz,
+             TextureOpt &options,
+             const Imath::V3f &_P, const Imath::V3f &_dPdx,
+             const Imath::V3f &_dPdy, const Imath::V3f &_dPdz,
              float *result);
-    bool texture3d_lookup_nomip (TextureFile &texfile, 
+    bool texture3d_lookup_nomip (TextureFile &texfile,
                                  PerThreadInfo *thread_info, 
-                                 TextureOptions &options, int index,
-                                 VaryingRef<Imath::V3f> _P, VaryingRef<Imath::V3f> _dPdx,
-                                 VaryingRef<Imath::V3f> _dPdy, VaryingRef<Imath::V3f> _dPdz,
+                                 TextureOpt &options,
+                                 const Imath::V3f &_P, const Imath::V3f &_dPdx,
+                                 const Imath::V3f &_dPdy, const Imath::V3f &_dPdz,
                                  float *result);
     typedef bool (TextureSystemImpl::*accum3d_prototype)
                         (const Imath::V3f &P, int level,
                          TextureFile &texturefile, PerThreadInfo *thread_info,
-                         TextureOptions &options, int index,
-                         float weight, float *accum,
+                         TextureOpt &options, float weight, float *accum,
                          float *daccumds, float *daccumdt, float *daccumdr);
     bool accum3d_sample_closest (const Imath::V3f &P, int level,
                 TextureFile &texturefile, PerThreadInfo *thread_info,
-                TextureOptions &options, int index, float weight, float *accum,
+                TextureOpt &options, float weight, float *accum,
                 float *daccumds, float *daccumdt, float *daccumdr);
     bool accum3d_sample_bilinear (const Imath::V3f &P, int level,
                 TextureFile &texturefile, PerThreadInfo *thread_info,
-                TextureOptions &options, int index, float weight, float *accum,
+                TextureOpt &options, float weight, float *accum,
                 float *daccumds, float *daccumdt, float *daccumdr);
 
     typedef bool (*wrap_impl) (int &coord, int width);

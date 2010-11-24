@@ -281,8 +281,8 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
                                 ustring filename)
     : m_filename(filename), m_used(true), m_broken(false),
       m_texformat(TexFormatTexture),
-      m_swrap(TextureOptions::WrapBlack), m_twrap(TextureOptions::WrapBlack),
-      m_rwrap(TextureOptions::WrapBlack),
+      m_swrap(TextureOpt::WrapBlack), m_twrap(TextureOpt::WrapBlack),
+      m_rwrap(TextureOpt::WrapBlack),
       m_cubelayout(CubeUnknown), m_y_up(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
       m_mipused(false), m_validspec(false), 
@@ -501,7 +501,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
 
     if ((p = spec.find_attribute ("wrapmodes", TypeDesc::STRING))) {
         const char *wrapmodes = (const char *)p->data();
-        TextureOptions::parse_wrapmodes (wrapmodes, m_swrap, m_twrap);
+        TextureOpt::parse_wrapmodes (wrapmodes, m_swrap, m_twrap);
         m_rwrap = m_swrap;
         // FIXME(volume) -- rwrap
     }

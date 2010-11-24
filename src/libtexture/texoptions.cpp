@@ -55,8 +55,6 @@ static float default_bias = 0;
 static float default_fill = 0;
 static int   default_samples = 1;
 
-static TextureOptions defaultTextureOptions(true);  // use special ctr
-
 static const char * wrap_type_name[] = {
     // MUST match the order of TextureOptions::Wrap
     "default", "black", "clamp", "periodic", "mirror",
@@ -69,11 +67,11 @@ static const char * wrap_type_name[] = {
 
 /// Special private ctr that makes a canonical default TextureOptions.
 /// For use internal to libtexture.  Users, don't call this!
-TextureOptions::TextureOptions (bool)
+TextureOptions::TextureOptions ()
     : firstchannel(0), nchannels(1), subimage(0),
-      swrap(WrapDefault), twrap(WrapDefault),
-      mipmode(MipModeDefault),
-      interpmode(InterpSmartBicubic),
+      swrap(TextureOptions::WrapDefault), twrap(TextureOptions::WrapDefault),
+      mipmode(TextureOptions::MipModeDefault),
+      interpmode(TextureOptions::InterpSmartBicubic),
       anisotropic(32), conservative_filter(true),
       sblur(default_blur), tblur(default_blur),
       swidth(default_width), twidth(default_width),
@@ -82,7 +80,8 @@ TextureOptions::TextureOptions (bool)
       missingcolor(NULL),
       samples(default_samples),
       dresultds(NULL), dresultdt(NULL),
-      rwrap(WrapDefault), rblur(default_blur), rwidth(default_width),
+      rwrap(TextureOptions::WrapDefault),
+      rblur(default_blur), rwidth(default_width),
       dresultdr(NULL),
       swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
 {
@@ -90,28 +89,69 @@ TextureOptions::TextureOptions (bool)
 
 
 
-TextureOptions::TextureOptions ()
+TextureOptions::TextureOptions (const TextureOpt &opt)
+    : firstchannel(opt.firstchannel), nchannels(opt.nchannels),
+      subimage(opt.nchannels),
+      swrap((Wrap)opt.swrap), twrap((Wrap)opt.twrap),
+      mipmode((MipMode)opt.mipmode),
+      interpmode((InterpMode)opt.interpmode),
+      anisotropic(opt.anisotropic),
+      conservative_filter(opt.conservative_filter),
+      sblur((float *)&opt.sblur), tblur((float *)&opt.tblur),
+      swidth((float *)&opt.swidth), twidth((float *)&opt.twidth),
+      bias((float *)&opt.bias),
+      fill((float *)&opt.fill),
+      missingcolor((void *)opt.missingcolor),
+      samples((int *)&opt.samples),
+      dresultds((float *)opt.dresultds), dresultdt((float *)opt.dresultdt),
+      rwrap((Wrap)opt.rwrap), rblur((float *)&opt.rblur),
+      rwidth((float *)&opt.rwidth),
+      dresultdr((float *)opt.dresultdr),
+      swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
 {
-    memcpy (this, &defaultTextureOptions, sizeof(*this));
 }
 
 
 
-TextureOptions::Wrap
-TextureOptions::decode_wrapmode (const char *name)
+TextureOpt::TextureOpt (const TextureOptions &opt, int index)
+    : nchannels(opt.nchannels), firstchannel(opt.firstchannel),
+      subimage(opt.nchannels),
+      swrap((Wrap)opt.swrap), twrap((Wrap)opt.twrap),
+      mipmode((MipMode)opt.mipmode),
+      interpmode((InterpMode)opt.interpmode),
+      anisotropic(opt.anisotropic),
+      conservative_filter(opt.conservative_filter),
+      sblur(opt.sblur[index]), tblur(opt.tblur[index]),
+      swidth(opt.swidth[index]), twidth(opt.twidth[index]),
+      fill(opt.fill[index]),
+      missingcolor(opt.missingcolor.ptr() ? &opt.missingcolor[index] : NULL),
+      dresultds(opt.dresultds), dresultdt(opt.dresultdt),
+      bias(opt.bias[index]),
+      samples(opt.samples[index]),
+      rwrap((Wrap)opt.rwrap),
+      rblur(opt.rblur[index]), rwidth(opt.rwidth[index]),
+      dresultdr(opt.dresultdr),
+      swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
 {
-    for (int i = 0;  i < (int)TextureOptions::WrapLast;  ++i)
+}
+
+
+
+TextureOpt::Wrap
+TextureOpt::decode_wrapmode (const char *name)
+{
+    for (int i = 0;  i < (int)WrapLast;  ++i)
         if (! strcmp (name, wrap_type_name[i]))
-            return (TextureOptions::Wrap) i;
-    return TextureOptions::WrapDefault;
+            return (Wrap) i;
+    return TextureOpt::WrapDefault;
 }
 
 
 
 void
-TextureOptions::parse_wrapmodes (const char *wrapmodes,
-                                 TextureOptions::Wrap &swrapcode,
-                                 TextureOptions::Wrap &twrapcode)
+TextureOpt::parse_wrapmodes (const char *wrapmodes,
+                             TextureOpt::Wrap &swrapcode,
+                             TextureOpt::Wrap &twrapcode)
 {
     char *swrap = (char *) alloca (strlen(wrapmodes)+1);
     const char *twrap;

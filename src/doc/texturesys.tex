@@ -4,6 +4,7 @@
 
 \def\TextureSystem{{\kw TextureSystem}\xspace}
 \def\TextureOptions{{\kw TextureOptions}\xspace}
+\def\TextureOpt{{\kw TextureOpt}\xspace}
 
 
 \section{Texture System Introduction and Theory of Operation}
@@ -38,65 +39,128 @@ so as long as your own internal vectors and matrices have the same
 memory layout, it's ok to just cast pointers to them when passing
 as arguments to \TextureSystem methods.
 
-\subsection{{\cf VaryingRef}: encapsulate uniform and varying}
 
-All of the texture access API routines are designed to loook up
-texture efficiently at many points at once.  Therefore, many of
-the parameters to the API routines, and many of the fields in
-\TextureOptions need to accommodate both uniform and varying values.
-\emph{Uniform} means that a single value may be used for each of
-the many simultaneous texture lookups, whereas \emph{varying} means
-that a different value is provided for each of the positions where
-you are sampling the texture.
+\subsection{\TextureOpt}
+\indexapi{TextureOpt}
 
-Please read the comments in \qkw{varyingref.h} for the full gory 
-details, but here's all you really need to know about it to use the
-texture functionality.  Let's suppose that we have a routine 
-whose prototype looks like this:
+\TextureOpt is a structure that holds many options controlling
+single-point texture lookups.  Because each texture lookup API call takes
+a reference to a \TextureOpt, the call signatures remain uncluttered
+rather than having an ever-growing list of parameters, most of which
+will never vary from their defaults.  Here is a brief description of
+the data members of a \TextureOpt structure:
 
-\begin{code}
-        void API (int n, VaryingRef<float> x);
-\end{code}
+\apiitem{int nchannels\\
+int firstchannel}
+The number of color channels to look up from the texture --- for
+example, 1 (single channel), or 3 (for an RGB triple) --- and the number
+of channels to look up.  The defaults are firstchannel = 0, nchannels =
+1.
 
-\noindent This means that parameter $x$ may either be a single value
-for use at each of the $n$ texture lookups, or it may have $n$ different
-values of $x$.  
+Examples: To retrieve the first three channels (typically RGB), you
+should have nchannels = 3, firstchannel = 0.  To retrieve just the blue
+channel, you should have nchannels = 1, firstchannel = 2.
+\apiend
 
-If you want to pas a uniform value, you may do any of the following:
+\apiitem{int subimage}
+The subimage or face within the file to use for the texture lookup.
+The default is 0, and larger values only make sense for a texture file
+that supports subimages or separate images per face (such as Ptex).
+This will be ignored if the file does not have multiple subimages or
+separate per-face textures.
+\apiend
 
-\begin{code}
-      float x;   // just one value
-      API (n, x);   // automatically knows what to do!
-      API (n, &x);  // Also ok to pass the pointer to x
-      API (n, VaryingRef<float>(x));  // Wordy but correct
-      API (n, Uniform(x));  // Shorthand
-\end{code}
+\apiitem{Wrap swrap, twrap}
+Specify the \emph{wrap mode} for 2D texture lookups (and 3D volume
+texture lookups, using the additional {\cf rwrap} field).  These fields
+are ignored for shadow and environment lookups.
 
-If you want to pass a varying value, i.e., an array of values,
+These specify what happens when texture coordinates are found to be
+outside the usual $[0,1]$ range over which the texture is defined.
+{\cf Wrap} is an enumerated type that may take on any of the
+following values:
+\begin{description}
+\item[\spc] \spc
+\item[\rm \kw{WrapBlack}] The texture is black outside the [0,1] range.
+\item[\rm \kw{WrapClamp}] The texture coordinates will be clamped to
+  [0,1], i.e., the value outside [0,1] will be the same as the color
+  at the nearest point on the border.
+\item[\rm \kw{WrapPeriodic}] The texture is periodic, i.e., wraps back
+  to 0 after going past 1.
+\item[\rm \kw{WrapMirror}] The texture presents a mirror image at the
+  edges, i.e., the coordinates go from 0 to 1, then back down to 0, then
+  back up to 1, etc.
+\item[\rm \kw{WrapDefault}] Use whatever wrap might be specified in the
+  texture file itself, or some other suitable default (caveat emptor).
+\end{description}
 
-\begin{code}
-      float x[n];   // One value for each of n points
-      API (n, VaryingRef<float>(x), sizeof(x));  // Wordy but correct
-      API (n, Varying(x));  // Shorthand if stride is sizeof(x)
-\end{code}
+The wrap mode does not need to be identical in the $s$ and $t$
+directions.
+\apiend
 
-You can also initialize a VaryingRef directly:
+\apiitem{float swidth, twidth}
+For each direction, gives a multiplier for the derivatives.  Note that
+a width of 0 indicates a point sampled lookup (assuming that blur is
+also zero).  The default width is 1, indicating that the derivatives
+should guide the amount of blur applied to the texture filtering (not
+counting any additional \emph{blur} specified).
+\apiend
 
-\begin{code}
-    float x;     // just one value
-    float y[n];  // array of values
-    VaryingRef<float> r;
-    r.init (&x);                 // Initialize to uniform
-    r.init (&x, 0);              // Initialize to uniform the wordy way
-    r.init (&y, sizeof(float));  // Initialize to varying
-    ...
-    API (n, r);
-\end{code}
+\apiitem{float sblur, tblur}
+For each direction, specifies an additional amount of pre-blur to apply
+to the texture (\emph{after} derivatives are taken into account),
+expressed as a portion of the width of the texture.  In other words,
+blur = 0.1 means that the texture lookup should act as if the texture
+was pre-blurred with a filter kernel with a width 1/10 the size of the
+full image.  The default blur amount is 0, indicating a sharp texture
+lookup.
+\apiend
+
+\apiitem{float fill}
+Specifies the value that will be used for any color channels that are
+requested but not found in the file.  For example, if you perform a
+3-channel lookup on a 1-channel texture, the second two channels will
+get the fill value.
+\apiend
+
+\apiitem{const float* missingcolor}
+If not NULL, indicates that a missing or broken texture should \emph{not}
+be treated as an error, but rather will simply return the supplied color
+as the texture lookup color and {\cf texture()} will return {\cf true}.  
+If the {\cf missingcolor} field is left at its default (a NULL pointer),
+a missing or broken texture will be treated as an error and
+{\cf texture()} will return {\cf false}.
+Note: When not NULL, the data must point to \emph{nchannels} contiguous floats.
+\apiend
+
+\apiitem{float *dresultds, *dresultdt}
+If not NULL (the default), these specify locations in which to store
+the \emph{derivatives} of the texture lookup, i.e., the change of the
+filtered texture per unit of $s$ and $t$, respectively.  Each must point
+to {\cf nchannels} contiguous floats.  If either is NULL, the derivative
+computations will not be performed.
+\apiend
+
+\apiitem{float bias}
+For shadow map lookups only, this gives the ``shadow bias'' amount.
+\apiend
+
+\apiitem{int samples}
+For shadow map lookups only, the number of samples to use for the lookup.
+\apiend
+
+\apiitem{Wrap rwrap \\
+float rblur, rwidth \\
+float *dresultdr}
+Specifies wrap, blur, width, and derivative results for the third
+component of 3D volume texture lookups.  These are not used for 2D
+texture lookups.
+\apiend
 
 \subsection{\TextureOptions}
 
 \TextureOptions is a structure that holds many options controlling
-individual texture lookups.  Because each texture lookup API call takes
+batched texture lookups.  Because each texture lookup API call takes
 a reference to a \TextureOptions, the call signatures remain uncluttered
 rather than having an ever-growing list of parameters, most of which
 will never vary from their defaults.  Here is a brief description of
@@ -124,7 +188,7 @@ separate per-face textures.
 
 \apiitem{Wrap swrap, twrap}
 Specify the \emph{wrap mode} for 2D texture lookups (and 3D volume
-texture lookups, using the additional {\cf zwrap} field).  These fields
+texture lookups, using the additional {\cf rwrap} field).  These fields
 are ignored for shadow and environment lookups.
 
 These specify what happens when texture coordinates are found to be
@@ -168,10 +232,6 @@ full image.  The default blur amount is 0, indicating a sharp texture
 lookup.
 \apiend
 
-\apiitem{VaryingRef<float> bias}
-For shadow map lookups only, this gives the ``shadow bias'' amount.
-\apiend
-
 \apiitem{VaryingRef<float> fill}
 Specifies the value that will be used for any color channels that are
 requested but not found in the file.  For example, if you perform a
@@ -192,19 +252,89 @@ Although this is a {\cf VaryingRef<float>}, the data must point to
 be set to {\cf nchannels*sizeof(float)}, not {\cf sizeof(float)}.
 \apiend
 
-\apiitem{VaryingRef<int> samples}
-The number of samples to use for each lookup.  Currently this only
-applies for certain types of shadow maps.
+\apiitem{float *dresultds, *dresultdt}
+If not NULL (the default), these specify locations in which to store
+the \emph{derivatives} of the texture lookup, i.e., the change of the
+filtered texture per unit of $s$ and $t$, respectively.  Each must point
+to {\cf nchannels} contiguous floats.  If either is NULL, the derivative
+computations will not be performed.
 \apiend
 
-\apiitem{Wrap zwrap \\
-VaryingRef<float> zblur, zwidth}
-Specifies wrap, blur, and width for 3D volume texture lookups only.
+\apiitem{VaryingRef<float> bias}
+For shadow map lookups only, this gives the ``shadow bias'' amount.
 \apiend
+
+\apiitem{VaryingRef<int> samples}
+For shadow map lookups only, the number of samples to use for each lookup.
+\apiend
+
+\apiitem{Wrap rwrap \\
+VaryingRef<float> rblur, rwidth \\
+float *dresultdr}
+Specifies wrap, blur, width, and derivative results for the third
+component of 3D volume texture lookups.  These are not used for 2D
+texture lookups.
+\apiend
+
+\subsection{{\cf VaryingRef}: encapsulate uniform and varying}
+
+Many texture access API routines are designed to look up
+texture efficiently at many points at once.  Therefore, many of
+the parameters to the API routines, and many of the fields in
+\TextureOptions need to accommodate both uniform and varying values.
+\emph{Uniform} means that a single value may be used for each of
+the many simultaneous texture lookups, whereas \emph{varying} means
+that a different value is provided for each of the positions where
+you are sampling the texture.
+
+Please read the comments in \qkw{varyingref.h} for the full gory 
+details, but here's all you really need to know about it to use the
+texture functionality.  Let's suppose that we have a routine 
+whose prototype looks like this:
+
+\begin{code}
+        void API (int n, VaryingRef<float> x);
+\end{code}
+
+\noindent This means that parameter $x$ may either be a single value
+for use at each of the $n$ texture lookups, or it may have $n$ different
+values of $x$.  
+
+If you want to pass a uniform value, you may do any of the following:
+
+\begin{code}
+      float x;   // just one value
+      API (n, x);   // automatically knows what to do!
+      API (n, &x);  // Also ok to pass the pointer to x
+      API (n, VaryingRef<float>(x));  // Wordy but correct
+      API (n, Uniform(x));  // Shorthand
+\end{code}
+
+If you want to pass a varying value, i.e., an array of values,
+
+\begin{code}
+      float x[n];   // One value for each of n points
+      API (n, VaryingRef<float>(x), sizeof(x));  // Wordy but correct
+      API (n, Varying(x));  // Shorthand if stride is sizeof(x)
+\end{code}
+
+You can also initialize a VaryingRef directly:
+
+\begin{code}
+    float x;     // just one value
+    float y[n];  // array of values
+    VaryingRef<float> r;
+    r.init (&x);                 // Initialize to uniform
+    r.init (&x, 0);              // Initialize to uniform the wordy way
+    r.init (&y, sizeof(float));  // Initialize to varying
+    ...
+    API (n, r);
+\end{code}
+
 
 \subsection{SIMD Run Flags}
 
-Most of the texture lookup API routines are written to accommodate
+Many of the texture lookup API routines are written to accommodate
 queries about many points at once.  Furthermore, only a subset of
 points may need to compute.  This is all expressed using three
 parameters:  {\cf Runflag *runflags, int beginactive, int endactive}.
@@ -397,7 +527,8 @@ float max_memory_MB \\
 string searchpath \\
 int autotile \\
 int automip \\
-int accept_untiled}
+int accept_untiled \\
+int failure_retries}
 
 These attributes are all passed along to the underlying \ImageCache that
 is used internally by the \TextureSystem.  Please consult the
@@ -429,7 +560,7 @@ each is the inverse of the other.
 \subsection{Texture Lookups}
 \label{sec:texturesys:api:texture}
 
-\apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce texture} (ustring filename, TextureOpt \&options,\\
 \bigspc                   float s, float t, float dsdx, float dtdx,\\
 \bigspc                   float dsdy, float dtdy, float *result)}
 
@@ -480,13 +611,13 @@ or {\cf WrapDefault}.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> swidth, twidth}
+\apiitem{float swidth, twidth}
 \vspace{10pt}
 For each direction, gives a multiplier for the derivatives.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> sblur, tblur}
+\apiitem{float sblur, tblur}
 \vspace{10pt}
 For each direction, specifies an additional amount of pre-blur to apply
 to the texture (\emph{after} derivatives are taken into account),
@@ -494,10 +625,24 @@ expressed as a portion of the width of the texture.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> fill}
+\apiitem{float fill}
 \vspace{10pt}
 Specifies the value that will be used for any color channels that are
 requested but not found in the file.
+\apiend
+
+\vspace{-24pt}
+\apiitem{const float *missingcolor}
+\vspace{10pt}
+If not NULL, specifies the color that will be returned for missing or
+broken textures (rather than being an error).
+\apiend
+
+\vspace{-24pt}
+\apiitem{float *dresultds, *dresultdt}
+\vspace{10pt}
+If not NULL, specifies locations in which to store the $s$ and $t$
+derivatives of the filtered texture lookup.
 \apiend
 
 This function returns {\cf true} upon success, or {\cf false} if the
@@ -518,7 +663,7 @@ once, which may be much more efficient than repeatedly calling the
 single-point version of {\cf texture()}.  The parameters {\cf s},
 {\cf t}, {\cf dsdx}, {\cf dtdx}, and {\cf dsdy}, {\cf dtdy} are now
 {\cf VaryingRef}'s that may refer to either a single or an array of
-values, as are all the fields in the {\cf options}.
+values, as are many of the fields in the {\cf options}.
 
 Texture will be computed at indices {\cf beginactive} through
 {\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
@@ -536,7 +681,7 @@ plugin.
 \subsection{Volume Texture Lookups}
 \label{sec:texturesys:api:texture3d}
 
-\apiitem{bool {\ce texture3d} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce texture3d} (ustring filename, TextureOpt \&options,\\
 \bigspc                          const Imath::V3f \&P,\\
 \bigspc                          const Imath::V3f \&dPdx,\\
 \bigspc                          const Imath::V3f \&dPdy,\\
@@ -582,13 +727,13 @@ or {\cf WrapDefault}.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> swidth, twidth, rwidth}
+\apiitem{float swidth, twidth, rwidth}
 \vspace{10pt}
 For each direction, gives a multiplier for the derivatives.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> sblur, tblur, rblur}
+\apiitem{float sblur, tblur, rblur}
 \vspace{10pt}
 For each direction, specifies an additional amount of pre-blur to apply
 to the texture (\emph{after} derivatives are taken into account),
@@ -596,10 +741,24 @@ expressed as a portion of the width of the texture.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> fill}
+\apiitem{float fill}
 \vspace{10pt}
 Specifies the value that will be used for any color channels that are
 requested but not found in the file.
+\apiend
+
+\vspace{-24pt}
+\apiitem{const float *missingcolor}
+\vspace{10pt}
+If not NULL, specifies the color that will be returned for missing or
+broken textures (rather than being an error).
+\apiend
+
+\vspace{-24pt}
+\apiitem{float *dresultds, *dresultdt, *dresultdr}
+\vspace{10pt}
+If not NULL, specifies locations in which to store the $s$, $t$, and $r$
+derivatives of the filtered texture lookup.
 \apiend
 
 This function returns {\cf true} upon success, or {\cf false} if the
@@ -638,7 +797,7 @@ plugin.
 \subsection{Shadow Lookups}
 \label{sec:texturesys:api:shadow}
 
-\apiitem{bool {\ce shadow} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce shadow} (ustring filename, TextureOptions \&opt,\\
 \bigspc                         const Imath::V3f \&P,\\
 \bigspc                         const Imath::V3f \&dPdx,\\
 \bigspc                         const Imath::V3f \&dPdy,\\
@@ -662,13 +821,13 @@ Fields within {\cf options} that are honored for 2D texture lookups
 include the following:
 
 \vspace{-12pt}
-\apiitem{VaryingRef<float> swidth, twidth}
+\apiitem{float swidth, twidth}
 \vspace{10pt}
 For each direction, gives a multiplier for the derivatives.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> sblur, tblur}
+\apiitem{float sblur, tblur}
 \vspace{10pt}
 For each direction, specifies an additional amount of pre-blur to apply
 to the texture (\emph{after} derivatives are taken into account),
@@ -676,7 +835,7 @@ expressed as a portion of the width of the texture.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> bias}
+\apiitem{float bias}
 \vspace{10pt}
 Specifies the amount of \emph{shadow bias} to use --- this effectively
 ignores shadow occlusion that is closer than the bias amount to the
@@ -684,7 +843,7 @@ surface, helping to eliminate self-shadowing artifacts.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<int> samples}
+\apiitem{int samples}
 \vspace{10pt}
 Specifies the number of samples to use when evaluating the shadow map.
 More samples will give a smoother, less noisy, appearance to the
@@ -708,7 +867,7 @@ once, which may be much more efficient than repeatedly calling the
 single-point version of {\cf shadow()}.  The parameters {\cf P},
 {\cf dPdx}, and {\cf dPdy} are now
 {\cf VaryingRef}'s that may refer to either a single or an array of
-values, as are all the fields in the {\cf options}.
+values, as are many the fields in the {\cf options}.
 
 Shadow lookups will be computed at indices {\cf beginactive} through
 {\cf endactive} (exclusive of the end), but only at indices where {\cf runflags[i]}
@@ -725,7 +884,7 @@ plugin.
 \subsection{Environment Lookups}
 \label{sec:texturesys:api:environment}
 
-\apiitem{bool {\ce environment} (ustring filename, TextureOptions \&options,\\
+\apiitem{bool {\ce environment} (ustring filename, TextureOpt \&options,\\
 \bigspc                              const Imath::V3f \&R,\\
 \bigspc                              const Imath::V3f \&dRdx,\\
 \bigspc                              const Imath::V3f \&dRdy,\\
@@ -761,13 +920,13 @@ The index of the first channel to look up from the texture.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> swidth, twidth}
+\apiitem{float swidth, twidth}
 \vspace{10pt}
 For each direction, gives a multiplier for the derivatives.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> sblur, tblur}
+\apiitem{float sblur, tblur}
 \vspace{10pt}
 For each direction, specifies an additional amount of pre-blur to apply
 to the texture (\emph{after} derivatives are taken into account),
@@ -775,7 +934,7 @@ expressed as a portion of the width of the texture.
 \apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> fill}
+\apiitem{float fill}
 \vspace{10pt}
 Specifies the value that will be used for any color channels that are
 requested but not found in the file.
@@ -797,7 +956,7 @@ Perform filtered directional environment map lookups on a collection of
 directions all at once, which may be much more efficient than repeatedly
 calling the single-point version of {\cf environment()}.  The parameters
 {\cf R}, {\cf dRdx}, and {\cf dRdy} are now {\cf VaryingRef}'s that may
-refer to either a single or an array of values, as are all the fields in
+refer to either a single or an array of values, as are many the fields in
 the {\cf options}.
 
 Results will be computed at indices {\cf beginactive} through

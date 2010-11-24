@@ -81,6 +81,112 @@ typedef unsigned char Runflag;
 ///
 enum RunFlagVal { RunFlagOff = 0, RunFlagOn = 255 };
 
+class TextureOptions;  // forward declaration
+
+
+
+/// Encapsulate all the options needed for texture lookups.  Making
+/// these options all separate parameters to the texture API routines is
+/// very ugly and also a big pain whenever we think of new options to
+/// add.  So instead we collect all those little options into one
+/// structure that can just be passed by reference to the texture API
+/// routines.
+class DLLPUBLIC TextureOpt {
+public:
+    /// Wrap mode describes what happens when texture coordinates describe
+    /// a value outside the usual [0,1] range where a texture is defined.
+    enum Wrap {
+        WrapDefault,        ///< Use the default found in the file
+        WrapBlack,          ///< Black outside [0..1]
+        WrapClamp,          ///< Clamp to [0..1]
+        WrapPeriodic,       ///< Periodic mod 1
+        WrapMirror,         ///< Mirror the image
+        WrapLast            ///< Mark the end -- don't use this!
+    };
+
+    /// Mip mode determines if/how we use mipmaps
+    ///
+    enum MipMode {
+        MipModeDefault,      ///< Default high-quality lookup
+        MipModeNoMIP,        ///< Just use highest-res image, no MIP mapping
+        MipModeOneLevel,     ///< Use just one mipmap level
+        MipModeTrilinear,    ///< Use two MIPmap levels (trilinear)
+        MipModeAniso         ///< Use two MIPmap levels w/ anisotropic
+    };
+
+    /// Interp mode determines how we sample within a mipmap level
+    ///
+    enum InterpMode {
+        InterpClosest,      ///< Force closest texel
+        InterpBilinear,     ///< Force bilinear lookup within a mip level
+        InterpBicubic,      ///< Force cubic lookup within a mip level
+        InterpSmartBicubic  ///< Bicubic when maxifying, else bilinear
+    };
+
+
+    /// Create a TextureOpt with all fields initialized to reasonable
+    /// defaults.
+    TextureOpt () 
+        : nchannels(1), firstchannel(0), subimage(0),
+        swrap(WrapDefault), twrap(WrapDefault),
+        mipmode(MipModeDefault), interpmode(InterpSmartBicubic),
+        anisotropic(32), conservative_filter(true),
+        sblur(0.0f), tblur(0.0f), swidth(1.0f), twidth(1.0f),
+        fill(0.0f), missingcolor(NULL),
+        dresultds(NULL), dresultdt(NULL),
+        bias(0.0f), samples(1),
+        rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f), dresultdr(NULL),
+        swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
+    { }
+
+    /// Convert a TextureOptions for one index into a TextureOpt.
+    ///
+    TextureOpt (const TextureOptions &opt, int index);
+
+    int nchannels;            ///< Number of channels to look up
+    int firstchannel;         ///< First channel of the lookup
+    int subimage;             ///< Subimage or face ID
+    Wrap swrap;               ///< Wrap mode in the s direction
+    Wrap twrap;               ///< Wrap mode in the t direction
+    MipMode mipmode;          ///< Mip mode
+    InterpMode interpmode;    ///< Interpolation mode
+    int anisotropic;          ///< Maximum anisotropic ratio
+    bool conservative_filter; ///< True == over-blur rather than alias
+    float sblur, tblur;       ///< Blur amount
+    float swidth, twidth;     ///< Multiplier for derivatives
+    float fill;               ///< Fill value for missing channels
+    const float *missingcolor;///< Color for missing texture
+    float *dresultds;         ///< Deriv of the result along s (if not NULL)
+    float *dresultdt;         ///< Deriv of the result along t (if not NULL)
+    float bias;               ///< Bias for shadows
+    int   samples;            ///< Number of samples for shadows
+
+    // For 3D volume texture lookups only:
+    Wrap rwrap;               ///< Wrap mode in the r direction
+    float rblur;              ///< Blur amount in the r direction
+    float rwidth;             ///< Multiplier for derivatives in r direction
+    float *dresultdr;         ///< Deriv of the result along r (if not NULL)
+
+    /// Utility: Return the Wrap enum corresponding to a wrap name:
+    /// "default", "black", "clamp", "periodic", "mirror".
+    static Wrap decode_wrapmode (const char *name);
+
+    /// Utility: Parse a single wrap mode (e.g., "periodic") or a
+    /// comma-separated wrap modes string (e.g., "black,clamp") into
+    /// separate Wrap enums for s and t.
+    static void parse_wrapmodes (const char *wrapmodes,
+                                 TextureOpt::Wrap &swrapcode,
+                                 TextureOpt::Wrap &twrapcode);
+
+private:
+    // Options set INTERNALLY by libtexture after the options are passed
+    // by the user.  Users should not attempt to alter these!
+    int actualchannels;    // True number of channels read
+    typedef bool (*wrap_impl) (int &coord, int width);
+    wrap_impl swrap_func, twrap_func, rwrap_func;
+    friend class OpenImageIO::pvt::TextureSystemImpl;
+};
+
 
 
 /// Encapsulate all the options needed for texture lookups.  Making
@@ -125,6 +231,10 @@ public:
     /// defaults.
     TextureOptions ();
 
+    /// Convert a TextureOpt for one point into a TextureOptions with
+    /// uninform values.
+    TextureOptions (const TextureOpt &opt);
+
     // Options that must be the same for all points we're texturing at once
     int firstchannel;         ///< First channel of the lookup
     int nchannels;            ///< Number of channels to look up
@@ -143,32 +253,31 @@ public:
     VaryingRef<float> fill;           ///< Fill value for missing channels
     VaryingRef<float> missingcolor;   ///< Color for missing texture
     VaryingRef<int>   samples;        ///< Number of samples
-    float *dresultds;                 ///< Gradient of the result along s (if not NULL)
-    float *dresultdt;                 ///< Gradient of the result along t (if not NULL)
+    float *dresultds;                 ///< Deriv of the result along s (if not NULL)
+    float *dresultdt;                 ///< Deriv of the result along t (if not NULL)
 
     // For 3D volume texture lookups only:
     Wrap rwrap;                ///< Wrap mode in the r direction
     VaryingRef<float> rblur;   ///< Blur amount in the r direction
     VaryingRef<float> rwidth;  ///< Multiplier for derivatives in r direction
-    float *dresultdr;          ///< Gradient of the result along r (if not NULL)
+    float *dresultdr;          ///< Deriv of the result along r (if not NULL)
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
-    static Wrap decode_wrapmode (const char *name);
+    static Wrap decode_wrapmode (const char *name) {
+        return (Wrap)TextureOpt::decode_wrapmode (name);
+    }
 
     /// Utility: Parse a single wrap mode (e.g., "periodic") or a
     /// comma-separated wrap modes string (e.g., "black,clamp") into
     /// separate Wrap enums for s and t.
     static void parse_wrapmodes (const char *wrapmodes,
                                  TextureOptions::Wrap &swrapcode,
-                                 TextureOptions::Wrap &twrapcode);
-
-
-    /// Special private ctr that makes a canonical default TextureOptions.
-    /// For use internal to libtexture.  Users, don't call this!
-    /// Though, there is no harm.  It's just not as efficient as the
-    /// default ctr that memcpy's a canonical pre-constructed default.
-    TextureOptions (bool);
+                                 TextureOptions::Wrap &twrapcode) {
+        TextureOpt::parse_wrapmodes (wrapmodes,
+                                     *(TextureOpt::Wrap *)*&swrapcode,
+                                     *(TextureOpt::Wrap *)*&twrapcode);
+    }
 
 private:
     // Options set INTERNALLY by libtexture after the options are passed
@@ -177,6 +286,7 @@ private:
     typedef bool (*wrap_impl) (int &coord, int width);
     wrap_impl swrap_func, twrap_func, rwrap_func;
     friend class OpenImageIO::pvt::TextureSystemImpl;
+    friend class TextureOpt;
 };
 
 
@@ -246,6 +356,12 @@ public:
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
+    virtual bool texture (ustring filename, TextureOpt &options,
+                          float s, float t, float dsdx, float dtdx,
+                          float dsdy, float dtdy, float *result) = 0;
+
+    /// Deprecated version that uses old TextureOptions for a single-point
+    /// lookup.
     virtual bool texture (ustring filename, TextureOptions &options,
                           float s, float t, float dsdx, float dtdx,
                           float dsdy, float dtdy, float *result) = 0;
@@ -272,10 +388,20 @@ public:
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
-    virtual bool texture3d (ustring filename, TextureOptions &options,
+    virtual bool texture3d (ustring filename, TextureOpt &options,
                             const Imath::V3f &P, const Imath::V3f &dPdx,
                             const Imath::V3f &dPdy, const Imath::V3f &dPdz,
                             float *result) = 0;
+
+    /// Deprecated
+    ///
+    virtual bool texture3d (ustring filename, TextureOptions &options,
+                            const Imath::V3f &P, const Imath::V3f &dPdx,
+                            const Imath::V3f &dPdy, const Imath::V3f &dPdz,
+                            float *result) {
+        TextureOpt opt (options, 0);
+        return texture3d (filename, opt, P, dPdx, dPdy, dPdz, result);
+    }
 
     /// Retrieve a 3D texture lookup at many points at once.
     ///
@@ -376,10 +502,21 @@ public:
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
-    virtual bool get_texels (ustring filename, TextureOptions &options,
+    virtual bool get_texels (ustring filename, TextureOpt &options,
                              int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result) = 0;
+
+    /// Deprecated
+    ///
+    virtual bool get_texels (ustring filename, TextureOptions &options,
+                             int miplevel, int xbegin, int xend,
+                             int ybegin, int yend, int zbegin, int zend,
+                             TypeDesc format, void *result) {
+        TextureOpt opt (options, 0);
+        return get_texels (filename, opt, miplevel, xbegin, xend,
+                           ybegin, yend, zbegin, zend, format, result);
+    }
 
     /// If any of the API routines returned false indicating an error,
     /// this routine will return the error string (and clear any error
