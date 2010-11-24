@@ -117,10 +117,13 @@ Strutil::memformat (off_t bytes, int digits)
         units = "MB";
         d = (double)bytes / MB;
     } else if (bytes >= KB) {
-        units = "KB";
-        d = (double)bytes / KB;
+        // Just KB, don't bother with decimalization
+        return format ("%lld KB", (long long)bytes/KB);
+    } else {
+        // Just bytes, don't bother with decimalization
+        return format ("%lld B", (long long)bytes);
     }
-    return format ("%1.*g %s", digits, d, units);
+    return format ("%1.*f %s", digits, d, units);
 }
 
 

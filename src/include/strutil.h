@@ -91,7 +91,7 @@ std::string DLLPUBLIC vformat (const char *fmt, va_list ap)
 ///  - memformat(15300)         -> "14.9 KB"
 ///  - memformat(15300000)      -> "14.6 MB"
 ///  - memformat(15300000000LL) -> "14.2 GB"
-std::string DLLPUBLIC memformat (off_t bytes, int digits=3);
+std::string DLLPUBLIC memformat (off_t bytes, int digits=1);
 
 /// Return a string expressing an elapsed time, in human readable form.
 /// e.g. "0:35.2"
