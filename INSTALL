@@ -39,13 +39,13 @@ Make targets you should know about:
     make                Build an optimized distro in dist/PLATFORM,
                             with temp files created while building in
                             build/PLATFORM.
+    make debug          Build a debugging (symbols, not stripped) distro,
+                            will end up in dist/PLATFORM.debug
     make clean          Get rid of all the temporary files in 
                             build/PLATFORM
     make realclean      Get rid of both build/PLATFORM and dist/PLATFORM
     make nuke           Get rid of all build/ and dist/, for all
                             platforms
-    make debug          Build a debugging (symbols, not stripped) distro,
-                            will end up in dist/PLATFORM.debug
     make profile        Build a profilable version on dist/PLATFORM.profile
     make doxygen        Build the Doxygen docs
     make help           Print all the make options
@@ -53,12 +53,19 @@ Make targets you should know about:
 Additionally, a few helpful modifiers alter some build-time options:
 
   make VERBOSE=1 ...          Show all compilation commands
-  make EMBEDPLUGINS=1 ...     Compile the plugins into libOpenImageIO
+  make EMBEDPLUGINS=0 ...     Don't compile the plugins into libOpenImageIO
   make USE_OPENGL=0 ...       Skip anything that needs OpenGL
   make USE_QT=0 ...           Skip anything that needs Qt
   make MYCC=xx MYCXX=yy ...   Use custom compilers
+  make FORCE_OPENGL_1=1 ...   Force iv to use OpenGL's fixed pipeline
   make USE_TBB=0 ...          Don't use TBB
+  make USE_PYTHON=1 ...       Build the Python binding
+  make BUILDSTATIC=1 ...      Build static library instead of shared
+  make LINKSTATIC=1 ...       Link with static external libraries when possible
+  make SOVERSION=1 ...        Include the major version number in the 
+                                  shared object metadata
   make NAMESPACE=name         Wrap everything in another namespace
+
 
 
 Building on Windows

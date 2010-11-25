@@ -8,26 +8,28 @@ everybody else who has contributed any code at all.
 
 Major contributors (roughly in order of joining the project):
 
-    Larry Gritz        core classes & API, ImageCache/TextureSystem, iv,
-                         TIFF, JPEG, OpenEXR, HDR, PNG, zfile, docs
-    Philip Nemec       unit testing framework
-    Dan Wexler         Windows port
-    Chris Kulla        texture system improvements
-    Chris Foster       lots of things!
-    Leszek Godlewski   ICO, Targa, DDS
-    David Gordon       build issues, Python bindings
-    Robert Matusewicz  Windows port, BMP, JPEG-2000, FITS, SGI
-    Ismael Cortes      iv improvements
-    Dinko Galetik      Python bindings
-    Malcolm Humphreys  color transfer methods
-    Alan Jones         Softimage PIC
+    Larry Gritz          core classes & API, ImageCache/TextureSystem, iv,
+                           TIFF, JPEG, OpenEXR, HDR, PNG, zfile, Field3D, docs
+    Philip Nemec         unit testing framework
+    Dan Wexler           Windows port
+    Chris Kulla          texture system improvements
+    Chris Foster         lots of things, best code reviewer!
+    Leszek Godlewski     ICO, Targa, DDS, DPX, Cineon
+    David Gordon         build issues, Python bindings
+    Robert Matusewicz    Windows port, BMP, JPEG-2000, FITS, SGI
+    Ismael Cortes        iv improvements
+    Dinko Galetik        Python bindings
+    Malcolm Humphreys    color transfer methods
+    Alan Jones           Softimage PIC
+    Krzysztof Blicharski sockets
+    Nuno Cardoso         PNM
 
 Other contributors (alphabetically):
 
     Vishal Agrawal
     Jeph Alapat
     Krzysztof Blicharski
-    Nuno Cardoso
+    Solomon Boulos
     Duncan Chan
     Irena Damsky
     Nandan Dubey
@@ -38,10 +40,12 @@ Other contributors (alphabetically):
     Pavel Karneliuk
     Konrad Kleine
     Rui Li
+    Ryen
     M Joonas Pihlaja
     Jeremy Selan
     Cliff Stein
     Ott Tinn
+    Edgar Velazquez-Armendariz
     Wormszer
     Xo Wang
 
