@@ -187,7 +187,7 @@ TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
     // knowledge of the few volume reader internals to the back doors.
     Imath::V3f Plocal;
     if (texturefile->fileformat() == s_field3d) {
-        Field3DInput_Interface *f3di = dynamic_cast<Field3DInput_Interface *>(texturefile->imageinput());
+        Field3DInput_Interface *f3di = (Field3DInput_Interface *)texturefile->imageinput();
         ASSERT (f3di);
         f3di->worldToLocal (P, Plocal, options.time);
     } else {
