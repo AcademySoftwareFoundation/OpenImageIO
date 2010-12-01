@@ -69,6 +69,8 @@ static float cachesize = -1;
 static int maxfiles = -1;
 static float missing[4] = {-1, 0, 0, 1};
 static float scalefactor = 1.0f;
+static Imath::V3f offset (0,0,0);
+static float scalest = 1.0f;
 void *dummyptr;
 
 
@@ -110,6 +112,8 @@ getargs (int argc, const char *argv[])
                   "--scale %f", &scalefactor, "Scale intensities",
                   "--maxfiles %d", &maxfiles, "Set maximum open files",
                   "--ctr", &test_construction, "Test TextureOpt construction time",
+                  "--offset %f %f %f", &offset[0], &offset[1], &offset[2], "Offset texture coordinates",
+                  "--scalest %f", &scalest, "Scale st coordinates",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -259,22 +263,28 @@ test_plain_texture ()
                     for (int x = bx; x < bx+blocksize; ++x) {
                         if (x < output_xres && y < output_yres) {
                             if (nowarp) {
-                                s[idx] = (float)x/output_xres;
-                                t[idx] = (float)y/output_yres;
-                                dsdx[idx] = 1.0f/output_xres;
+                                s[idx] = (float)x/output_xres * scalest + offset[0];
+                                t[idx] = (float)y/output_yres + offset[1];
+                                dsdx[idx] = 1.0f/output_xres * scalest * scalest;
                                 dtdx[idx] = 0;
                                 dsdy[idx] = 0;
-                                dtdy[idx] = 1.0f/output_yres;
+                                dtdy[idx] = 1.0f/output_yres * scalest;
                             } else {
                                 Imath::V3f coord = warp ((float)x/output_xres,
                                                          (float)y/output_yres,
                                                          xform);
+                                coord *= scalest;
+                                coord += offset;
                                 Imath::V3f coordx = warp ((float)(x+1)/output_xres,
                                                           (float)y/output_yres,
                                                           xform);
+                                coordx *= scalest;
+                                coordx += offset;
                                 Imath::V3f coordy = warp ((float)x/output_xres,
                                                           (float)(y+1)/output_yres,
                                                           xform);
+                                coordy *= scalest;
+                                coordy += offset;
                                 s[idx] = coord[0];
                                 t[idx] = coord[1];
                                 dsdx[idx] = coordx[0] - coord[0];
@@ -377,26 +387,33 @@ test_texture3d (ustring filename)
                     for (int x = bx; x < bx+blocksize; ++x) {
                         if (x < output_xres && y < output_yres) {
                             if (nowarp) {
-                                P[idx][0] = (float)x/output_xres;
-                                P[idx][1] = (float)y/output_yres;
-                                P[idx][2] = 0.5f;
-                                dPdx[idx][0] = 1.0f/output_xres;
+                                P[idx][0] = (float)x/output_xres * scalest;
+                                P[idx][1] = (float)y/output_yres * scalest;
+                                P[idx][2] = 0.5f * scalest;
+                                P[idx] += offset;
+                                dPdx[idx][0] = 1.0f/output_xres * scalest;
                                 dPdx[idx][1] = 0;
                                 dPdx[idx][2] = 0;
                                 dPdy[idx][0] = 0;
-                                dPdy[idx][1] = 1.0f/output_yres;
+                                dPdy[idx][1] = 1.0f/output_yres * scalest;
                                 dPdy[idx][2] = 0;
                                 dPdz[idx].setValue (0,0,0);
                             } else {
                                 Imath::V3f coord = warp ((float)x/output_xres,
                                                          (float)y/output_yres,
                                                          0.5, xform);
+                                coord *= scalest;
+                                coord += offset;
                                 Imath::V3f coordx = warp ((float)(x+1)/output_xres,
                                                           (float)y/output_yres,
                                                           0.5, xform);
+                                coordx *= scalest;
+                                coordx += offset;
                                 Imath::V3f coordy = warp ((float)x/output_xres,
                                                           (float)(y+1)/output_yres,
                                                           0.5, xform);
+                                coordy *= scalest;
+                                coordy += offset;
                                 P[idx] = coord;
                                 dPdx[idx] = coordx - coord;
                                 dPdy[idx] = coordy - coord;

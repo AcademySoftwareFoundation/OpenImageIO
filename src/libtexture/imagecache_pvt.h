@@ -150,6 +150,7 @@ public:
     TextureOpt::Wrap rwrap () const { return m_rwrap; }
     TypeDesc datatype () const { return m_datatype; }
     ImageCacheImpl &imagecache () const { return m_imagecache; }
+    ImageInput *imageinput () const { return m_input.get(); }
 
     /// Load new data tile
     ///

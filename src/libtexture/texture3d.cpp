@@ -55,15 +55,17 @@ using namespace OpenImageIO;
 #include "imagecache.h"
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
+#include "../field3d.imageio/field3d_pvt.h"
 using namespace OpenImageIO;
 using namespace OpenImageIO::pvt;
-
 
 namespace {  // anonymous
 
 static shared_ptr<TextureSystemImpl> shared_texsys;
 static mutex shared_texsys_mutex;
 static EightBitConverter<float> uchar2float;
+static ustring s_field3d ("field3d");
+
 
 };  // end anonymous namespace
 
@@ -180,6 +182,23 @@ TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
         return true;
     }
 
+    // Do the volume lookup in local space.  There's not actually a way
+    // to ask for point transforms via the ImageInput interface, so use
+    // knowledge of the few volume reader internals to the back doors.
+    Imath::V3f Plocal;
+    if (texturefile->fileformat() == s_field3d) {
+        Field3DInput_Interface *f3di = dynamic_cast<Field3DInput_Interface *>(texturefile->imageinput());
+        ASSERT (f3di);
+        f3di->worldToLocal (P, Plocal, options.time);
+    } else {
+        Plocal = P;
+    }
+
+    // FIXME: we don't bother with this for dPdx, dPdy, and dPdz only
+    // because we know that we don't currently filter volume lookups and
+    // therefore don't actually use the derivs.  If/when we do, we'll
+    // need to transform them into local space as well.
+
     // Loop over all the points that are active (as given in the
     // runflags), and for each, call texture_lookup.  The separation of
     // power here is that all possible work that can be done for all
@@ -187,7 +206,7 @@ TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
     // the loop, and all the work inside texture_lookup should be work
     // that MUST be redone for each individual texture lookup point.
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
-                               P, dPdx, dPdy, dPdz, result);
+                               Plocal, dPdx, dPdy, dPdz, result);
 
     // Update stats
     ++stats.texture3d_batches;

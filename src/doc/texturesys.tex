@@ -703,6 +703,12 @@ per unit of {\cf x}, {\cf y}, and {\cf z}, respectively.  If it is impossible to
 know the derivatives, you may pass 0 for them, but in that case you will
 not receive an antialiased texture lookup.
 
+The {\cf P} coordinate and {\cf dPdx}, {\cf dPdy}, and {\cf dPdz}
+derivatives are assumed to be in some kind of common global coordinate
+system (usually \qkw{world} space) and will be automatically transformed
+into volume local coordinates, if such a transormation is specified in
+the volume file itself.
+
 Fields within {\cf options} that are honored for 3D texture lookups
 include the following:
 
@@ -753,6 +759,13 @@ requested but not found in the file.
 If not NULL, specifies the color that will be returned for missing or
 broken textures (rather than being an error).
 \apiend
+
+\apiitem{float time}
+\vspace{10pt}
+A time value to use if the volume texture specifies a time-varying
+local transformation (default: 0).
+\apiend
+\vspace{-16pt}
 
 \vspace{-24pt}
 \apiitem{float *dresultds, *dresultdt, *dresultdr}

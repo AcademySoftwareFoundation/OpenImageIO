@@ -51,6 +51,7 @@ namespace {  // anonymous
 
 static float default_blur = 0;
 static float default_width = 1;
+static float default_time = 0;
 static float default_bias = 0;
 static float default_fill = 0;
 static int   default_samples = 1;
@@ -75,6 +76,7 @@ TextureOptions::TextureOptions ()
       anisotropic(32), conservative_filter(true),
       sblur(default_blur), tblur(default_blur),
       swidth(default_width), twidth(default_width),
+      time(default_time),
       bias(default_bias),
       fill(default_fill),
       missingcolor(NULL),
@@ -91,7 +93,7 @@ TextureOptions::TextureOptions ()
 
 TextureOptions::TextureOptions (const TextureOpt &opt)
     : firstchannel(opt.firstchannel), nchannels(opt.nchannels),
-      subimage(opt.nchannels),
+      subimage(opt.subimage),
       swrap((Wrap)opt.swrap), twrap((Wrap)opt.twrap),
       mipmode((MipMode)opt.mipmode),
       interpmode((InterpMode)opt.interpmode),
@@ -99,6 +101,7 @@ TextureOptions::TextureOptions (const TextureOpt &opt)
       conservative_filter(opt.conservative_filter),
       sblur((float *)&opt.sblur), tblur((float *)&opt.tblur),
       swidth((float *)&opt.swidth), twidth((float *)&opt.twidth),
+      time((float *)&opt.time),
       bias((float *)&opt.bias),
       fill((float *)&opt.fill),
       missingcolor((void *)opt.missingcolor),
@@ -115,7 +118,7 @@ TextureOptions::TextureOptions (const TextureOpt &opt)
 
 TextureOpt::TextureOpt (const TextureOptions &opt, int index)
     : nchannels(opt.nchannels), firstchannel(opt.firstchannel),
-      subimage(opt.nchannels),
+      subimage(opt.subimage),
       swrap((Wrap)opt.swrap), twrap((Wrap)opt.twrap),
       mipmode((MipMode)opt.mipmode),
       interpmode((InterpMode)opt.interpmode),
@@ -126,6 +129,7 @@ TextureOpt::TextureOpt (const TextureOptions &opt, int index)
       fill(opt.fill[index]),
       missingcolor(opt.missingcolor.ptr() ? &opt.missingcolor[index] : NULL),
       dresultds(opt.dresultds), dresultdt(opt.dresultdt),
+      time(opt.time[index]),
       bias(opt.bias[index]),
       samples(opt.samples[index]),
       rwrap((Wrap)opt.rwrap),

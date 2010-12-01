@@ -35,7 +35,8 @@
 #include "dassert.h"
 #include "imageio.h"
 #include "thread.h"
-#include "strutil.h"
+
+#include <OpenEXR/ImathVec.h>
 
 #include <boost/foreach.hpp>
 
@@ -50,18 +51,27 @@
 #endif
 using namespace FIELD3D_NS;
 
+#include "field3d_pvt.h"
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace OpenImageIO;
 
 
-namespace field3d_pvt {
-mutex field3d_mutex;
-};
+namespace OpenImageIO {
+namespace pvt {
+
+spin_mutex &field3d_mutex () {
+    static spin_mutex m;
+    return m;
+}
+
+}; };
+using namespace OpenImageIO::pvt;
 
 
 
-class Field3DInput : public ImageInput {
+class Field3DInput : public Field3DInput_Interface {
 public:
     Field3DInput () { init(); }
     virtual ~Field3DInput () { close(); }
@@ -72,6 +82,11 @@ public:
     virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
+
+    /// Transform a world space position to local coordinates, using the
+    /// mapping of the current subimage.
+    virtual void worldToLocal (const Imath::V3f &wsP, Imath::V3f &lsP,
+                               float time) const;
 
 private:
     enum FieldType { Dense, Sparse, MAC };
@@ -138,10 +153,9 @@ void
 oiio_field3d_initialize ()
 {
     static volatile bool initialized = false;
-    static spin_mutex mutex;
 
     if (! initialized) {
-        spin_lock lock (mutex);
+        spin_lock lock (field3d_mutex());
         if (! initialized) {
             initIO ();
             // Minimize Field3D's own internal caching
@@ -339,7 +353,7 @@ Field3DInput::open (const std::string &name, ImageSpec &newspec)
         close();
 
     {
-        lock_guard lock (field3d_pvt::field3d_mutex);
+        spin_lock lock (field3d_mutex());
         m_input = new Field3DInputFile;
         if (! m_input->open (name)) {
             delete m_input;
@@ -386,7 +400,7 @@ Field3DInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 bool
 Field3DInput::close ()
 {
-    lock_guard lock (field3d_pvt::field3d_mutex);
+    spin_lock lock (field3d_mutex());
     if (m_input) {
         m_input->close ();
         delete m_input;   // implicity closes
@@ -459,7 +473,7 @@ bool Field3DInput::readtile (int x, int y, int z, T *data)
 bool
 Field3DInput::read_native_tile (int x, int y, int z, void *data)
 {
-    lock_guard lock (field3d_pvt::field3d_mutex);
+    spin_lock lock (field3d_mutex());
     layerrecord &lay (m_layers[m_subimage]);
     if (lay.datatype == TypeDesc::FLOAT) {
         if (lay.vecfield)
@@ -479,6 +493,22 @@ Field3DInput::read_native_tile (int x, int y, int z, void *data)
     }
 
     return false;
+}
+
+
+
+void
+Field3DInput::worldToLocal (const Imath::V3f &wsP, Imath::V3f &lsP,
+                            float time) const
+{
+    spin_lock lock (field3d_mutex());
+    const layerrecord &lay (m_layers[m_subimage]);
+    V3d Pw (wsP[0], wsP[1], wsP[2]);
+    V3d Pl;
+    lay.field->mapping()->worldToLocal(Pw, Pl, time);
+    lsP[0] = (float) Pl[0];
+    lsP[1] = (float) Pl[1];
+    lsP[2] = (float) Pl[2];
 }
 
 

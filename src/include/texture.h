@@ -134,8 +134,9 @@ public:
         sblur(0.0f), tblur(0.0f), swidth(1.0f), twidth(1.0f),
         fill(0.0f), missingcolor(NULL),
         dresultds(NULL), dresultdt(NULL),
-        bias(0.0f), samples(1),
+        time(0.0f), bias(0.0f), samples(1),
         rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f), dresultdr(NULL),
+        actualchannels(0),
         swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
     { }
 
@@ -158,6 +159,7 @@ public:
     const float *missingcolor;///< Color for missing texture
     float *dresultds;         ///< Deriv of the result along s (if not NULL)
     float *dresultdt;         ///< Deriv of the result along t (if not NULL)
+    float time;               ///< Time (for time-dependent texture lookups)
     float bias;               ///< Bias for shadows
     int   samples;            ///< Number of samples for shadows
 
@@ -249,6 +251,7 @@ public:
     // Options that may be different for each point we're texturing
     VaryingRef<float> sblur, tblur;   ///< Blur amount
     VaryingRef<float> swidth, twidth; ///< Multiplier for derivatives
+    VaryingRef<float> time;           ///< Time
     VaryingRef<float> bias;           ///< Bias
     VaryingRef<float> fill;           ///< Fill value for missing channels
     VaryingRef<float> missingcolor;   ///< Color for missing texture
