@@ -212,10 +212,29 @@ public:
     SubimageInfo &subimageinfo (int subimage) { return m_subimages[subimage]; }
 
     const LevelInfo &levelinfo (int subimage, int miplevel) const {
+        DASSERT (validspec());
+        DASSERT ((int)m_subimages.size() > subimage);
+        DASSERT ((int)m_subimages[subimage].levels.size() > miplevel);
         return m_subimages[subimage].levels[miplevel];
     }
     LevelInfo &levelinfo (int subimage, int miplevel) {
+        DASSERT (validspec());
+        DASSERT ((int)m_subimages.size() > subimage);
+        DASSERT ((int)m_subimages[subimage].levels.size() > miplevel);
         return m_subimages[subimage].levels[miplevel];
+    }
+
+    /// Do we currently have a valid spec?
+    bool validspec () const {
+        DASSERT ((m_subimages.size() > 0) == m_validspec &&
+                 "subimages array size doesn't match validity");
+        return m_validspec;
+    }
+
+    /// Forget the specs we know
+    void invalidate_spec () {
+        m_validspec = false;
+        m_subimages.clear ();
     }
 
 private:

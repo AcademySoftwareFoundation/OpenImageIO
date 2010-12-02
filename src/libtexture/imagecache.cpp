@@ -332,7 +332,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     if (! m_input) {
         imagecache().error ("%s", OpenImageIO::geterror().c_str());
         m_broken = true;
-        m_validspec = false;
+        invalidate_spec ();
         return false;
     }
 
@@ -361,17 +361,14 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_imagecache.incr_open_files ();
     use ();
 
-    // If m_subimages has already been filled out, we've opened this file
-    // before, read the specs, and filled in all the fields.  So now that
-    // we've re-opened it, we're done.
-    if (m_subimages.size() && m_validspec) {
+    // If we are simply re-opening a closed file, and the spec is still
+    // valid, we're done, no need to reread the subimage and mip headers.
+    if (validspec())
         return true;
-    }
 
     // From here on, we know that we've opened this file for the very
     // first time.  So read all the subimages, fill out all the fields
     // of the ImageCacheFile.
-    m_validspec = true;
     m_subimages.clear ();
     int nsubimages = 0;
     do {
@@ -407,6 +404,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 // same number of channels as the others, so just skip it.
                 close ();
                 m_broken = true;
+                invalidate_spec ();
                 return false;
             }
             LevelInfo levelinfo (tempspec);
@@ -459,12 +457,14 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             imagecache().error ("%s was untiled, rejecting",
                                 m_filename.c_str());
             m_broken = true;
+            invalidate_spec ();
             m_input.reset ();
             return false;
         }
 
         ++nsubimages;
     } while (m_input->seek_subimage (nsubimages, 0, tempspec));
+    m_validspec = true;
     ASSERT ((size_t)nsubimages == m_subimages.size());
 
     const ImageSpec &spec (this->spec(0,0));
@@ -875,16 +875,22 @@ ImageCacheFile::invalidate ()
 {
     recursive_lock_guard guard (m_input_mutex);
     close ();
-    m_subimages.clear();
+    invalidate_spec ();
     m_broken = false;
     m_fingerprint.clear ();
     duplicate (NULL);
+#if 0
+    // Old code
+    // FIXME -- why do we need to reopen here?  Why reload the spec?
+    // LG thinks this was  broken because we still had m_subimages intact
+    // but still set m_validspec=true.  Weird, and led to subtle bugs.
     open (imagecache().get_perthread_info());  // Force reload of spec
     close ();
     if (m_broken)
         m_subimages.clear ();
     m_validspec = false;  // force it to read next time
     m_broken = false;
+#endif
     // Eat any errors that occurred in the open/close
     while (! imagecache().geterror().empty())
         ;
@@ -925,9 +931,10 @@ ImageCacheImpl::find_file (ustring filename,
             // broken and then subsequently invalidated.  Downstream we
             // assume that the spec exists even for an invalid file, so try
             // opening it again, it'll either succeed or re-mark as broken.
-            if (tf->m_subimages.size() == 0) {
+            if (! tf->validspec()) {
                 recursive_lock_guard guard (tf->m_input_mutex);
                 tf->open (thread_info);
+                DASSERT (tf->m_broken || tf->validspec());
             }
             filemutex_holder (NULL);
             return tf;
