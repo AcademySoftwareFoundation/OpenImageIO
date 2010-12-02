@@ -187,6 +187,11 @@ TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
     // knowledge of the few volume reader internals to the back doors.
     Imath::V3f Plocal;
     if (texturefile->fileformat() == s_field3d) {
+        if (! texturefile->opened()) {
+            // We need a valid ImageInput pointer below.  If the handle
+            // has been invalidated, force it open again.
+            texturefile->forceopen (thread_info);
+        }
         Field3DInput_Interface *f3di = (Field3DInput_Interface *)texturefile->imageinput();
         ASSERT (f3di);
         f3di->worldToLocal (P, Plocal, options.time);

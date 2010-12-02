@@ -257,6 +257,12 @@ private:
 
     bool opened () const { return m_input.get() != NULL; }
 
+    /// Force the file to open, thread-safe.
+    bool forceopen (ImageCachePerThreadInfo *thread_info) {
+        recursive_lock_guard guard (m_input_mutex);
+        return open (thread_info);
+    }
+
     /// Close and delete the ImageInput, if currently open
     ///
     void close (void);
@@ -292,6 +298,7 @@ private:
     }
 
     friend class ImageCacheImpl;
+    friend class TextureSystemImpl;
 };
 
 
