@@ -1190,6 +1190,8 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
 #endif
             return false;
         }
+        // N.B. thread_info->tile will keep holding a ref-counted pointer
+        // to the tile for the duration that we're using the tile data.
         int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
         texel[0][0] = tile->bytedata() + offset + channelsize * options.firstchannel;
         texel[0][1] = texel[0][0] + pixelsize;
@@ -1389,6 +1391,8 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
         if (! tile) {
             return false;
         }
+        // N.B. thread_info->tile will keep holding a ref-counted pointer
+        // to the tile for the duration that we're using the tile data.
         int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
         const unsigned char *base = tile->bytedata() + offset + channelsize * options.firstchannel;
         DASSERT (tile->data());
