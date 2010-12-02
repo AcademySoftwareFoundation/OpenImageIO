@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Parse the options the user provided from the command line
 # -i takes three arguments: x and y coordinates and filename;

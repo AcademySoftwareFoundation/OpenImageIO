@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # Parse the options the user provided from the command line
 def option_parser():
     parser = OptionParser()
@@ -120,7 +120,7 @@ def adjust_spec(inp, inspec, outspec):
     #outspec.set_format(inspec.format)
     if options.data_format_name != "":
         if data_format_name == "uint8":
-            outspec.set_format(oiio.BASETYPE.UNIT8)
+            outspec.set_format(oiio.BASETYPE.UINT8)
         elif data_format_name == "int8":
             outspec.set_format(oiio.BASETYPE.INT8)
         elif data_format_name == "uint16":

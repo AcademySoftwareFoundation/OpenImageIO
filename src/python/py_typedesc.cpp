@@ -80,6 +80,8 @@ void declare_typedesc() {
         .def_readwrite("vecsemantics",  &TypeDesc::vecsemantics)
         .def_readwrite("arraylen",      &TypeDesc::arraylen)
 
+        .def(init<TypeDesc::BASETYPE>())
+        .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE>())
         .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, TypeDesc::VECSEMANTICS>())
         .def(init<TypeDesc::BASETYPE, int>())
         .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, int>())

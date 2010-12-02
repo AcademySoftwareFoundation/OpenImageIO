@@ -1,7 +1,10 @@
-
 if (NOT BOOST_CUSTOM)
     find_package (PythonLibs ${PYTHON_VERSION} REQUIRED)
     find_package (Boost 1.34 REQUIRED COMPONENTS filesystem program_options regex system thread python)
+endif ()
+
+if (APPLE)
+#    set (PYTHON_LIBRARIES /opt/local/lib)
 endif ()
 
 if ( BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
@@ -22,7 +25,11 @@ if ( BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
     set_target_properties (PyOpenImageIO PROPERTIES
                              OUTPUT_NAME OpenImageIO
                              PREFIX "")
-							 
+    if (APPLE)
+        # Python seems to only look for plugins that end in .so, not .dylib
+        set_target_properties (PyOpenImageIO PROPERTIES SUFFIX ".so")
+    endif ()
+
     if (WIN32)
         set_target_properties (PyOpenImageIO PROPERTIES
                                DEBUG_POSTFIX "_d"
