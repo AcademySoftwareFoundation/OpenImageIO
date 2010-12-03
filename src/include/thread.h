@@ -235,9 +235,9 @@ private:
 inline int
 atomic_exchange_and_add (volatile int *at, int x)
 {
-#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+#if defined(__GNUC__) && __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
     return __sync_fetch_and_add ((int *)at, x);
-#elif defined(USE_TBB)
+#elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
     return a->fetch_and_add (x);
 #elif defined(__APPLE__)
@@ -256,9 +256,9 @@ atomic_exchange_and_add (volatile int *at, int x)
 inline long long
 atomic_exchange_and_add (volatile long long *at, long long x)
 {
-#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+#if defined(__GNUC__) && __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
     return __sync_fetch_and_add (at, x);
-#elif defined(USE_TBB)
+#elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
     return a->fetch_and_add (x);
 #elif defined(__APPLE__)
@@ -283,9 +283,9 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 inline bool
 atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 {
-#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+#if defined(__GNUC__) && __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
     return __sync_bool_compare_and_swap (at, compareval, newval);
-#elif defined(USE_TBB)
+#elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
     return a->compare_and_swap (newval, compareval) == newval;
 #elif defined(__APPLE__)
@@ -302,9 +302,9 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 inline bool
 atomic_compare_and_exchange (volatile long long *at, long long compareval, long long newval)
 {
-#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+#if defined(__GNUC__) && __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
     return __sync_bool_compare_and_swap (at, compareval, newval);
-#elif defined(USE_TBB)
+#elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
     return a->compare_and_swap (newval, compareval) == newval;
 #elif defined(__APPLE__)
@@ -454,13 +454,13 @@ class spin_mutex {
 public:
     /// Default constructor -- initialize to unlocked.
     ///
-    spin_mutex (void) { m_locked = 0; }
+    spin_mutex (void) : m_locked(0) { }
 
     ~spin_mutex (void) { }
 
     /// Copy constructor -- initialize to unlocked.
     ///
-    spin_mutex (const spin_mutex &) { m_locked = 0; }
+    spin_mutex (const spin_mutex &) : m_locked(0) { }
 
     /// Assignment does not do anything, since lockedness should not
     /// transfer.

@@ -45,7 +45,7 @@
 // accumulated value is equal to iterations*threads, then the spin locks
 // worked.
 
-const int iterations = 1000000;
+const int iterations = 100000;
 const int numthreads = 16;
 
 volatile int accum = 0;
@@ -56,15 +56,21 @@ spin_mutex mymutex;
 static void
 do_int_math ()
 {
-    std::cout << "thread " 
+    std::cout << "thread "
 #if (BOOST_VERSION >= 103500)
-              << boost::this_thread::get_id() 
+              << boost::this_thread::get_id()
 #endif
-              << ", accum = " << accum << "\n";
+              << " starting, accum = " << accum << "\n";
     for (int i = 0;  i < iterations;  ++i) {
         spin_lock lock (mymutex);
         accum += 1;
     }
+    std::cout << "thread "
+#if (BOOST_VERSION >= 103500)
+              << boost::this_thread::get_id()
+#endif
+              << " finishing, accum = " << accum << "\n";
+
 }
 
 
