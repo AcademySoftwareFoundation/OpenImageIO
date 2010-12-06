@@ -101,6 +101,12 @@ little at a time and do not wish to retain the entire image in memory
 as you process it.  \product allows you to read images
 one scanline at a time or one tile at a time.
 
+Examining the \ImageSpec reveals whether the file is scanline or
+tile-oriented: a scanline image will have {\cf spec.tile_width} 
+and {\cf spec.tile_height} set to 0, whereas a tiled images will
+have nonzero values for the tile dimensions.
+
+
 \subsubsection{Reading individual scanlines}
 
 Individual scanlines may be read using the \readscanline API
@@ -109,12 +115,16 @@ call:
 \begin{code}
         ...
         in->open (filename, spec);
-        unsigned char *scanline = new unsigned char [spec.width*spec.channels];
-        for (int y = 0;  y < yres;  ++y) {
-            in->read_scanline (y, 0, TypeDesc::UINT8, scanline);
-            ... process data in scanline[0..width*channels-1] ...
+        if (spec.tile_width == 0) {
+            unsigned char *scanline = new unsigned char [spec.width*spec.channels];
+            for (int y = 0;  y < yres;  ++y) {
+                in->read_scanline (y, 0, TypeDesc::UINT8, scanline);
+                ... process data in scanline[0..width*channels-1] ...
+            }
+            delete [] scanline;
+        } else {
+            ... handle tiles, or reject the file ...
         }
-        delete [] scanline;
         in->close ();
         ...
 \end{code}
@@ -128,10 +138,12 @@ pointer to the pixel buffer itself.  Additional optional arguments
 describe the data stride, which can be ignored for contiguous data (use
 of strides is explained in Section~\ref{sec:imageinput:strides}).
 
-All \ImageInput implementations will read scanlines in strict order
-(starting with scanline 0, then 1, up to {\kw yres-1}, without skipping
-any).  However, it's probably uncommon for an \ImageInput to properly
-allow reading of out-of-order scanlines.
+Nearly all \ImageInput implementations will be most efficient reading
+scanlines in strict order (starting with scanline 0, then 1, up to {\kw
+  yres-1}, without skipping any).  An \ImageInput is required to accept
+\readscanline requests in arbitrary order, but depending on the file
+format and reader implementation, out-of-order scanline reads may be
+inefficient.
 
 The full description of the \readscanline function may be found
 in Section~\ref{sec:imageinput:reference}.
