@@ -125,6 +125,13 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         return false;
     }
 
+    if (m_spec.nchannels != 1 && m_spec.nchannels != 3 &&
+            m_spec.nchannels != 4) {
+        error ("%s does not support %d-channel images\n",
+               format_name(), m_spec.nchannels);
+        return false;
+    }
+
     m_fd = fopen (name.c_str(), "wb");
     if (m_fd == NULL) {
         error ("Unable to open file \"%s\"", name.c_str());
@@ -148,8 +155,6 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     if (m_spec.nchannels == 3 || m_spec.nchannels == 4) {
         m_cinfo.input_components = 3;
         m_cinfo.in_color_space = JCS_RGB;
-        m_spec.nchannels = 3;  // Force RGBA -> RGB
-        m_spec.alpha_channel = -1;  // No alpha channel
     } else if (m_spec.nchannels == 1) {
         m_cinfo.input_components = 1;
         m_cinfo.in_color_space = JCS_GRAYSCALE;
@@ -245,7 +250,23 @@ JpgOutput::write_scanline (int y, int z, TypeDesc format,
     }
     assert (y == (int)m_cinfo.next_scanline);
 
+    // It's so common to want to write RGBA data out as JPEG (which only
+    // supports RGB) than it would be too frustrating to reject it.
+    // Instead, we just silently drop the alpha.  Here's where we do the
+    // dirty work, temporarily doctoring the spec so that
+    // to_native_scanline properly contiguizes the first three channels,
+    // then we restore it.  The call to to_native_scanline below needs
+    // m_spec.nchannels to be set to the true number of channels we're
+    // writing, or it won't arrange the data properly.  But if we
+    // doctored m_spec.nchannels = 3 permanently, then subsequent calls
+    // to write_scanline (including any surrounding call to write_image)
+    // with stride=AutoStride would screw up the strides since the
+    // user's stride is actually not 3 channels.
+    int save_nchannels = m_spec.nchannels;
+    m_spec.nchannels = m_cinfo.input_components;
+
     data = to_native_scanline (format, data, xstride, m_scratch);
+    m_spec.nchannels = save_nchannels;
 
     jpeg_write_scanlines (&m_cinfo, (JSAMPLE**)&data, 1);
     ++m_next_scanline;
