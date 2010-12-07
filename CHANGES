@@ -2,7 +2,7 @@ Changes:
 
 
 
-Release 0.9 (Nov 24 2010)
+Release 0.9 (Dec 6 2010)
 -------------------------
 Major new features:
 
@@ -35,6 +35,8 @@ Fixes, minor enhancements, and performance improvements:
 * SGI: add support for files with any number of channels (r1630).
 * PNG: improve PNG write speed by 4x by adjusting compression tradeoffs
   (r1677)
+* JPEG: assume sRGB unles EXIF says otherwise (r1693); fix broken JPEG
+  4-channel to 3-channel conversion (r1696).
 * iinfo: add --stats option (r1618)
 * iv: Now can sort the image list by file date, metadata date, name, or
   file path (r1514).
