@@ -1,64 +1,57 @@
 # SPI-specific settings
 
+ifeq (${NAMESPACE},)
+    NAMESPACE='OpenImageIO_Arnold'
+endif
+EMBEDPLUGINS:=1
+
+## OS X machines
+ifeq (${platform}, macosx)
+    USE_PYTHON ?= 0
+    MY_CMAKE_FLAGS += \
+        -DBUILD_WITH_INSTALL_RPATH=1 \
+        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
+endif
+
+## Spinux (current)
 ifeq ($(SP_ARCH), spinux1_x86_64)
-platform=spinux1
-
-ifeq (${NAMESPACE},)
-NAMESPACE='OpenImageIO_Arnold'
+    platform=spinux1
+    MY_CMAKE_FLAGS += \
+        -DILMBASE_CUSTOM=1 \
+        -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
+        -DOPENEXR_CUSTOM=1 \
+        -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf" \
+        -DOPENGL_gl_LIBRARY=/usr/lib64/xorg.nvidia.3d/libGL.so
 endif
-EMBEDPLUGINS:=1
 
-MY_CMAKE_FLAGS += \
-		  -DILMBASE_CUSTOM=1 \
-		  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
-		  -DOPENEXR_CUSTOM=1 \
-		  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
-
-else # $SP_ARCH
+## CentOS (deprecated)
 ifeq (${SP_ARCH}, rhel40_x86_64)
-platform=rhel40m64
-OPENIMAGEIO_SPCOMP2_VERSION=v21
-OPENEXR_VERSION=1.4.0
-BOOST_VERSION=1_34_1
-ifeq (${NAMESPACE},)
-NAMESPACE='OpenImageIO_Arnold'
-endif
-EMBEDPLUGINS:=1
+    platform=rhel40m64
+    OPENIMAGEIO_SPCOMP2_VERSION=v21
+    OPENEXR_VERSION=1.4.0
+    BOOST_VERSION=1_34_1
 
-Boost_LIBRARIES="-lboost_filesystem-gcc34-mt-${BOOST_VERSION} -lboost_regex-gcc34-mt-${BOOST_VERSION} -lboost_thread-gcc34-mt-${BOOST_VERSION} "
+    Boost_LIBRARIES="-lboost_filesystem-gcc34-mt-${BOOST_VERSION} -lboost_regex-gcc34-mt-${BOOST_VERSION} -lboost_thread-gcc34-mt-${BOOST_VERSION} "
 
-MY_CMAKE_FLAGS += \
-		-DSPECIAL_COMPILE_FLAGS="-include ${working_dir}/site/spi/include/spi_ns.h -include ${working_dir}/site/spi/include/tiff.h -DTIFF_OLD_VERSION" \
-		-DBOOST_CUSTOM=1 \
-		-DBoost_INCLUDE_DIRS=/usr/local64/include/boost-${BOOST_VERSION} \
-		-DBoost_LIBRARY_DIRS=/usr/local64/lib/boost-${BOOST_VERSION} \
-		-DBoost_LIBRARIES=$(Boost_LIBRARIES) \
-		-DILMBASE_HOME=/usr/local64/openexr/${OPENEXR_VERSION} \
-		-DOPENEXR_VERSION=${OPENEXR_VERSION} \
-		-DOPENEXR_VERSION_DIGITS="010400" \
-		-DOPENEXR_HOME=/usr/local64/openexr/${OPENEXR_VERSION}
+    MY_CMAKE_FLAGS += \
+        -DSPECIAL_COMPILE_FLAGS="-include ${working_dir}/site/spi/include/spi_ns.h -include ${working_dir}/site/spi/include/tiff.h -DTIFF_OLD_VERSION" \
+        -DBOOST_CUSTOM=1 \
+        -DBoost_INCLUDE_DIRS=/usr/local64/include/boost-${BOOST_VERSION} \
+        -DBoost_LIBRARY_DIRS=/usr/local64/lib/boost-${BOOST_VERSION} \
+        -DBoost_LIBRARIES=$(Boost_LIBRARIES) \
+        -DILMBASE_HOME=/usr/local64/openexr/${OPENEXR_VERSION} \
+        -DOPENEXR_VERSION=${OPENEXR_VERSION} \
+        -DOPENEXR_VERSION_DIGITS="010400" \
+        -DOPENEXR_HOME=/usr/local64/openexr/${OPENEXR_VERSION}
 
-endif
-
-ifeq (${USE_PYTHON},1)
-PYTHON_VERSION ?= 2.5
-
-ifeq (${PYTHON_VERSION},2.5)
-PYTHONLIB=/usr/local64/lib/libspi-python2.5.so
-Boost_Python_LIBRARIES="-L/net/apps/rhel40m64/boost/1_34_1/gcc34/lib/python25 -Wl,-rpath,/net/apps/rhel40m64/boost/1_34_1/gcc34/lib/python25 -lboost_python-gcc34-mt-${BOOST_VERSION}"
-else
-PYTHONLIB=/usr/local64/lib/libpython${PYTHON_VERSION}.so
-Boost_Python_LIBRARIES="-lboost_python-gcc34-mt-${BOOST_VERSION}"
-endif
-
-Boost_FOUND=TRUE
-MY_CMAKE_FLAGS += \
-		-DQT_DIR=/usr/local \
-		-DBoost_Python_LIBRARIES=${Boost_Python_LIBRARIES} \
-		-DPYTHON_INCLUDE_PATH=/usr/local64/include/python${PYTHON_VERSION} \
-		-DPYTHON_LIBRARIES=${PYTHONLIB} \
-		-DPYTHONLIBS_FOUND=1
-
-endif
-
+    PYTHON_VERSION ?= 2.5
+    ifeq (${PYTHON_VERSION},2.5)
+        PYTHONLIB=/usr/local64/lib/libspi-python2.5.so
+        Boost_Python_LIBRARIES="-L/net/apps/rhel40m64/boost/1_34_1/gcc34/lib/python25 -Wl,-rpath,/net/apps/rhel40m64/boost/1_34_1/gcc34/lib/python25 -lboost_python-gcc34-mt-${BOOST_VERSION}"
+    else
+        PYTHONLIB=/usr/local64/lib/libpython${PYTHON_VERSION}.so
+        Boost_Python_LIBRARIES="-lboost_python-gcc34-mt-${BOOST_VERSION}"
+    endif
 endif # $SP_ARCH
+
+$(info MY_CMAKE_FLAGS: $(MY_CMAKE_FLAGS))
