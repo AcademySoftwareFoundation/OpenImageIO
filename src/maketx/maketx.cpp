@@ -42,7 +42,6 @@
 #include "SHA1.h"
 
 #include <boost/version.hpp>
-#include <boost/thread/thread.hpp>
 #include <boost/filesystem.hpp>
 #include <OpenEXR/ImathMatrix.h>
 
