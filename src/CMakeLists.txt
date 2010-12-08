@@ -125,7 +125,7 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (zfile.imageio)
 endif ()
 
-if (USE_PYTHON)
+if (USE_PYTHON AND Boost_PYTHON_FOUND)
     add_subdirectory (python)
 endif ()
 

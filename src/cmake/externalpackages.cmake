@@ -139,23 +139,51 @@ endmacro ()
 
 message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
 
-set (Boost_ADDITIONAL_VERSIONS "1.40" "1.39" "1.38" "1.38.0" "1.37" "1.37.0" "1.34.1" "1_34_1")
+set (Boost_ADDITIONAL_VERSIONS "1.45" "1.44" 
+                               "1.43" "1.43.0" "1.42" "1.42.0" 
+                               "1.41" "1.41.0" "1.40" "1.40.0"
+                               "1.39" "1.39.0" "1.38" "1.38.0"
+                               "1.37" "1.37.0" "1.34.1" "1_34_1")
 if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS   ON)
 endif ()
 set (Boost_USE_MULTITHREADED ON)
 if (BOOST_CUSTOM)
     set (Boost_FOUND true)
+    # N.B. For a custom version, the caller had better set up the variables
+    # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
     find_package (Boost 1.34 REQUIRED 
                   COMPONENTS filesystem regex system thread
                  )
+    # Try to figure out if this boost distro has Boost::python.  If we
+    # include python in the component list above, cmake will abort if
+    # it's not found.  So we resort to checking for the boost_python
+    # library's existance to get a soft failure.
+    find_library (my_boost_python_lib boost_python
+                  PATHS ${Boost_LIBRARY_DIRS})
+    if (my_boost_python_lib)
+        set (Boost_PYTHON_FOUND ON)
+    else ()
+        set (Boost_PYTHON_FOUND OFF)
+    endif ()
 endif ()
 
 message (STATUS "Boost found ${Boost_FOUND} ")
+message (STATUS "Boost version      ${Boost_VERSION}")
 message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
 message (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}")
 message (STATUS "Boost libraries    ${Boost_LIBRARIES}")
+message (STATUS "Boost_python_FOUND ${Boost_PYTHON_FOUND}")
+if ( NOT Boost_PYTHON_FOUND )
+    # If Boost python components were not found, turn off all python support.
+    message (STATUS "Boost python support not found -- will not build python components!")
+    if (APPLE AND USE_PYTHON)
+        message (STATUS "   If your Boost is from Macports, you need the +python26 variant to get Python support.")
+    endif ()
+    set (USE_PYTHON OFF)
+    set (PYTHONLIBS_FOUND OFF)
+endif ()
 
 include_directories ("${Boost_INCLUDE_DIRS}")
 link_directories ("${Boost_LIBRARY_DIRS}")
