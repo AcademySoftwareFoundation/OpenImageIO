@@ -30,7 +30,11 @@ MY_MAKE_FLAGS ?=
 MY_CMAKE_FLAGS ?=
 
 # Site-specific build instructions
-ifneq (${shell uname -n | grep imageworks},)
+ifndef OPENIMAGEIO_SITE
+    OPENIMAGEIO_SITE := ${shell uname -n}
+endif
+$(info OPENIMAGEIO_SITE = ${OPENIMAGEIO_SITE})
+ifneq (${shell echo ${OPENIMAGEIO_SITE} | grep imageworks},)
 include ${working_dir}/site/spi/Makefile-bits
 endif
 
