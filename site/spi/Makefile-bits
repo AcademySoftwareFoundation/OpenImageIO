@@ -7,7 +7,6 @@ EMBEDPLUGINS:=1
 
 ## OS X machines
 ifeq (${platform}, macosx)
-    USE_PYTHON ?= 0
     MY_CMAKE_FLAGS += \
         -DBUILD_WITH_INSTALL_RPATH=1 \
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
