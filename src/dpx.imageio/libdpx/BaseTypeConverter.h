@@ -40,7 +40,23 @@
 namespace dpx
 {
 	// convert between all of the DPX base types in a controllable way
-
+	
+	// Note: These bit depth promotions (low precision -> high) use
+	// a combination of bitshift and the 'or' operator in order to
+	// fully populate the output coding space
+	// 
+	// For example, when converting 8->16 bits, the 'simple' method
+	// (shifting 8 bits) maps 255 to 65280. This result is not ideal
+	// (uint16 'max' of 65535 is preferable). Overall, the best conversion
+	// is one that approximates the 'true' floating-point scale factor.
+	// 8->16 : 65535.0 / 255.0. 10->16 : 65535.0 / 1023.0.
+	// For performance considerations, we choose to emulate this
+	// floating-poing scaling with pure integer math, using a trick
+	// where we duplicate portions of the MSB in the LSB.
+	//
+	// For bit depth demotions, simple truncation is used.
+	//
+	
 	inline void BaseTypeConverter(U8 &src, U8 &dst)
 	{
 		dst = src;
@@ -48,12 +64,12 @@ namespace dpx
 	
 	inline void BaseTypeConverter(U8 &src, U16 &dst)
 	{
-		dst = src << 8;
+		dst = (src << 8) | src;
 	}
 	
 	inline void BaseTypeConverter(U8 &src, U32 &dst)
 	{
-		dst = src << 24;
+		dst = (src << 24) | (src << 16) | (src << 8) | src;
 	}
 	
 	inline void BaseTypeConverter(U8 &src, R32 &dst)
@@ -78,7 +94,7 @@ namespace dpx
 	
 	inline void BaseTypeConverter(U16 &src, U32 &dst)
 	{
-		dst = src << 16;
+		dst = (src << 16) | src;
 	}
 	
 	inline void BaseTypeConverter(U16 &src, R32 &dst)
@@ -164,6 +180,16 @@ namespace dpx
 	inline void BaseTypeConverter(R64 &src, R64 &dst)
 	{
 		dst = src;
+	}
+	
+	inline void BaseTypeConvertU10ToU16(U16 &src, U16 &dst)
+	{
+		dst = (src << 6) | (src >> 4);
+	}
+	
+	inline void BaseTypeConvertU12ToU16(U16 &src, U16 &dst)
+	{
+		dst = (src << 4) | (src >> 8);
 	}
 	
 }
