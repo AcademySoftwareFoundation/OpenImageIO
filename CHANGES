@@ -1,6 +1,20 @@
 Changes:
 
 
+Release 0.8.8 (9 Dec 2010, as compared to 0.8.7)
+-------------------------------------------------
+* ImageCache: call check_max_files when re-opening a closed file, not
+  just when opening for the first time, or we may exceed max_open_files,
+  and thus possibly hit fundamental OS limits.
+* ImageCache: fix bug wherein an invalidated and modified file would
+  continue to flush in subsequent
+* Build fix: gracefully omit python components if Boost_python is not
+  found (even if Python is present and the rest of Boost is present).
+* PNG: improve PNG write speed by 4x by adjusting compression tradeoffs.
+* Print the OIIO version in the ImageCache stats so we don't guess
+  when somebody sends us a log file with complaints.
+
+
 Release 0.8.7 (30 Sep 2010, as compared to 0.8.6)
 -------------------------------------------------
 
