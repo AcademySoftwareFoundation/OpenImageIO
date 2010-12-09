@@ -297,8 +297,6 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
     m_filename = imagecache.resolve_filename (m_filename.string());
     recursive_lock_guard guard (m_input_mutex);
     open (thread_info);
-    if (! broken())
-        m_mod_time = boost::filesystem::last_write_time (m_filename.string());
 #if 0
     static int x=0;
     if ((++x % 16) == 0) {
@@ -528,8 +526,10 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_channelsize = m_datatype.size();
     m_pixelsize = m_channelsize * spec.nchannels;
     m_eightbit = (m_datatype == TypeDesc::UINT8);
+    m_mod_time = boost::filesystem::last_write_time (m_filename.string());
+    DASSERT (! m_broken);
 
-    return !m_broken;
+    return true;
 }
 
 
