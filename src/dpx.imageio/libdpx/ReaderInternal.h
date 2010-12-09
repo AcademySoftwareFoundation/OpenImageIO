@@ -73,8 +73,8 @@ namespace dpx
 		{
 			// unpacking the buffer backwords
 			register U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
-			register U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
-			
+			register U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
+			BaseTypeConvertU10ToU16(d1, d1);
 			BaseTypeConverter(d1, obuf[i]);
 		}
 #if 0
@@ -88,7 +88,8 @@ namespace dpx
 				for (i = count - 1; i >= 0; i--)
 				{
 					U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
-					U16 d1 = U16(word >> (((i + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
+					U16 d1 = U16(word >> (((i + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
+					BaseTypeConvertU10ToU16(d1, d1);
 					BaseTypeConverter(d1, obuf[i]);
 				}
 				
@@ -97,7 +98,8 @@ namespace dpx
 				{
 					// unpacking the buffer backwords
 					U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
-					U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
+					U16 d1 = U16(word >> ((2 - (i + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
+					BaseTypeConvertU10ToU16(d1, d1);
 					BaseTypeConverter(d1, obuf[i]);
 				}
 				
@@ -107,7 +109,8 @@ namespace dpx
 				{
 					// unpacking the buffer backwords
 					U32 word = readBuf[(i + index) / 3 / sizeof(U32)];
-					U16 d1 = U16(word >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
+					U16 d1 = U16(word >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
+					BaseTypeConvertU10ToU16(d1, d1);
 					BaseTypeConverter(d1, obuf[i]);
 				}
 				
@@ -166,7 +169,8 @@ namespace dpx
 			for (int count = (block.x2 - block.x1 + 1) * numberOfComponents - 1; count >= 0; count--)
 			{
 				// unpacking the buffer backwords
-				U16 d1 = U16(readBuf[(count + index) / 3] >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff) << 6;
+				U16 d1 = U16(readBuf[(count + index) / 3] >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
+				BaseTypeConvertU10ToU16(d1, d1);
 
 				BaseTypeConverter(d1, obuf[count]);
 
@@ -227,6 +231,20 @@ namespace dpx
 			
 			// place the component in the MSB and mask it for both 10-bit and 12-bit
 			U16 d2 = (*d1 << (REVERSE - ((i % REMAIN) * MULTIPLIER))) & MASK;
+			
+			// For the 10/12 bit cases, specialize the 16-bit conversion by
+			// repacking into the LSB and using a specialized conversion
+			if(bitDepth == 10)
+			{
+				d2 = d2 >> REVERSE;
+				BaseTypeConvertU10ToU16(d2, d2);
+			}
+			else if(bitDepth == 12)
+			{
+				d2 = d2 >> REVERSE;
+				BaseTypeConvertU12ToU16(d2, d2);
+			}
+			
 			BaseTypeConverter(d2, obuf[i]);
 		}		
 	}
@@ -368,7 +386,8 @@ namespace dpx
 			// convert data		
 			for (int i = 0; i < width; i++)
 			{
-				U16 d1 = readBuf[i] << 4;
+				U16 d1 = readBuf[i];
+				BaseTypeConvertU12ToU16(d1, d1);
 				BaseTypeConverter(d1, data[width*line+i]);
 			}
 		}
