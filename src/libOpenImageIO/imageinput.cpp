@@ -32,6 +32,8 @@
 #include <cstdlib>
 #include <cmath>
 
+#include <boost/scoped_array.hpp>
+
 #include "dassert.h"
 #include "typedesc.h"
 #include "strutil.h"

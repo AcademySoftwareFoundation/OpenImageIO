@@ -77,7 +77,7 @@ write_ascii_binary (std::ostream & file, const unsigned char * data,
                     const stride_t stride, const ImageSpec & spec)
 {
     for (int x = 0; x < spec.width; x++) 
-        file << (data[x * stride] ? 0 : 1) << "\n"; 
+        file << (data[x * stride] ? '1' : '0') << "\n"; 
 }
 
 
@@ -90,7 +90,7 @@ write_raw_binary (std::ostream & file, const unsigned char * data,
     for (int x = 0; x < spec.width;) {
         val=0;
         for (int bit=7; bit >= 0 && x < spec.width; x++, bit--) 
-            val += (data[x * stride] ? 0 : (1 << bit));
+            val += (data[x * stride] ? (1 << bit) : 0);
         file.write ((char*)&val, sizeof (char));
     }
 }
@@ -120,13 +120,28 @@ inline void
 write_raw (std::ostream &file, const T *data, const stride_t stride, 
            const ImageSpec &spec, unsigned int max_val)
 {
+    unsigned char byte;
     unsigned int pixel, val;
     for (int x = 0; x < spec.width; x++) {
         pixel = x * stride;
         for (int c = 0; c < spec.nchannels; c++) {
             val = data[pixel + c];
             val = val * max_val / std::numeric_limits<T>::max();
-            file.write ((char*)&val, sizeof (T));
+            if (sizeof(T) == 2)
+            {
+                // Writing a 16bit ppm file
+                // I'll adopt the practice of Netpbm and write the MSB first
+                byte = static_cast<unsigned char>(val >> 8);
+                file.write ((char*)&byte, 1);
+                byte = static_cast<unsigned char>(val & 0xff);
+                file.write ((char*)&byte, 1);
+            }
+            else
+            {
+                // This must be an 8bit ppm file
+                byte = static_cast<unsigned char>(val);
+                file.write ((char*)&byte, 1);
+            }
         }
     }
 }
@@ -152,10 +167,6 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 
-    m_file.open (name.c_str());
-    if (!m_file.is_open())
-        return false;
-
     int bits_per_sample = m_spec.get_int_attribute ("BitsPerSample", 8);
 
     if (bits_per_sample == 1)
@@ -165,7 +176,15 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
     else 
         m_pnm_type = 6;
     if (!m_spec.get_int_attribute ("pnm:binary", 1)) 
+    {
         m_pnm_type -= 3;
+        m_file.open (name.c_str());
+    }
+    else
+        m_file.open (name.c_str(), std::ios::out|std::ios::binary);
+
+    if (!m_file.is_open())
+       return false;
 
     m_max_val = (1 << bits_per_sample) - 1;
     // Write header
