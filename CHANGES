@@ -2,7 +2,7 @@ Changes:
 
 
 
-Release 0.9 (Dec 6 2010)
+Release 0.9 (Dec 9 2010)
 -------------------------
 Major new features:
 
@@ -37,12 +37,17 @@ Fixes, minor enhancements, and performance improvements:
   (r1677)
 * JPEG: assume sRGB unles EXIF says otherwise (r1693); fix broken JPEG
   4-channel to 3-channel conversion (r1696).
+* PNM: monochrome data was output incorrectly in both binary & ascii forms;
+  adopt the Netbpm convention for endianness in the 16 bit case; open binary
+  image files in binary mode to avoid newline mangling (r1709).
 * iinfo: add --stats option (r1618)
 * iv: Now can sort the image list by file date, metadata date, name, or
   file path (r1514).
 * ImageCache: fixed bug that allowed the max_open_files limit to be
   exceeded (r1657); raise the default IC cache size to 256 MB (r1663);
-  automip unmipped files even if they are tiled (r1670);
+  automip unmipped files even if they are tiled (r1670); fix bug wherein
+  an invalidated and modified file would continue to flush in subsequent
+  invalidations, even if the file was not modified again (r1712/0.8.8).
 * New ImageBuf algorithm: computePixelStats (r1618)
 * Fixes in ImageCache and ImageBuf to allow correct handling of
   3D (volumetric) files. (r1659,1660)
@@ -50,6 +55,8 @@ Fixes, minor enhancements, and performance improvements:
   exceeds 16 MB (which means somebody is failing to call geterror) (1672)
 * Fix subtle Strutil::format and ustring::format crasher bugs with long
   strings (r1654 - 0.8.8).
+* Print the OIIO version in the ImageCache stats so we don't guess
+  when somebody sends us a log file with complaints.
 
 For developers / build issues:
 
@@ -59,6 +66,7 @@ For developers / build issues:
 * Incorporate PugiXML for XML parsing/writing needs (r1569).
 * In-progress socket I/O plugin is in the code base, but not yet fully
   supported.
+* Disable python support if boost_python is not found. (r1701)
 
 
 
