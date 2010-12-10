@@ -367,6 +367,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     // From here on, we know that we've opened this file for the very
     // first time.  So read all the subimages, fill out all the fields
     // of the ImageCacheFile.
+    m_validspec = true;
     m_subimages.clear ();
     int nsubimages = 0;
     do {
@@ -462,7 +463,6 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
 
         ++nsubimages;
     } while (m_input->seek_subimage (nsubimages, 0, tempspec));
-    m_validspec = true;
     ASSERT ((size_t)nsubimages == m_subimages.size());
 
     const ImageSpec &spec (this->spec(0,0));
