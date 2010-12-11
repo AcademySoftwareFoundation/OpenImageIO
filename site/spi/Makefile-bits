@@ -1,5 +1,31 @@
 # SPI-specific settings
 
+# READ THIS FIRST
+#
+# If you are building for Arnold, just make.
+# If you are building for installation as an SpComp2, make like this:
+# make NAMESPACE=SPI_OpenImageIO_v28 SOVERSION=28
+# make spcomp2_install
+#
+# Sadly, make spcomp2_install doesn't *quite* work alone. It gets the
+# namespace right, but not the SOVERSION. I don't know why. If you're
+# bored, ambitious, enjoy suffering, or know more about make than me,
+# please figure out why the SOVERSION isn't getting passed through and
+# fix it. It might actually be as simple as having make call itself...
+#
+# Even though we are passing the version explicitly in the command line,
+# please keep OPENIMAGEIO_SPCOMP2_VERSION up to date - both for reference
+# and for the spcomp2 install script.
+#
+# Other notes about the SpComp2:
+# - it also tries to install OIIO's binaries alongside the libs. It would
+#   be really nice if somebody would either appwrap those binaries or
+#   symlink them to an spi show path on each install. For the moment
+#   though, they are just there for people who know.
+# - it would also be nice if we had a convention for tagging SpComp2
+#   release versions on the svn server.
+#
+
 OPENIMAGEIO_SPCOMP2_VERSION=28
 
 # Default namespace
@@ -85,6 +111,8 @@ INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
 INSTALL_BIN_LOCATION = /shots/spi/home/bin/$(ARCHITECTURE)
 INSTALL_SPCOMP2_CURRENT = $(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
 
+spcomp2_install_local: NAMESPACE=SPI_OpenImageIO_v$(OPENIMAGEIO_SPCOMP2_VERSION)
+spcomp2_install_local: SOVERSION=${OPENIMAGEIO_SPCOMP2_VERSION}
 spcomp2_install_local: INSTALL_SPCOMP2_LOCATION = $(SPCOMP2_LOCAL_PATH)
 spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
 spcomp2_install_local: spcomp2_install
@@ -97,15 +125,17 @@ spcomp2: MY_CMAKE_FLAGS += \
         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON
 
 spcomp2: NAMESPACE=SPI_OpenImageIO_v$(OPENIMAGEIO_SPCOMP2_VERSION)
-spcomp2: SOVERSION:=${OPENIMAGEIO_SPCOMP2_VERSION}
+spcomp2: SOVERSION=${OPENIMAGEIO_SPCOMP2_VERSION}
 spcomp2: dist
 
 spcomp2_debug: NAMESPACE=SPI_OpenImageIO_v$(OPENIMAGEIO_SPCOMP2_VERSION)
-spcomp2_debug: SOVERSION:=${OPENIMAGEIO_SPCOMP2_VERSION}
+spcomp2_debug: SOVERSION=${OPENIMAGEIO_SPCOMP2_VERSION}
 spcomp2_debug: debug
 
 # This goal can't start with 'install' because something elsewhere picks
 # it up and starts doing bad things
+spcomp2_install: NAMESPACE=SPI_OpenImageIO_v$(OPENIMAGEIO_SPCOMP2_VERSION)
+spcomp2_install: SOVERSION=${OPENIMAGEIO_SPCOMP2_VERSION}
 spcomp2_install: spcomp2 spcomp2_debug 
 	echo $(INSTALL_SPCOMP2_LOCATION)
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m compile03.spimageworks.com \
