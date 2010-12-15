@@ -57,6 +57,8 @@ Fixes, minor enhancements, and performance improvements:
   strings (r1654 - 0.8.8).
 * Print the OIIO version in the ImageCache stats so we don't guess
   when somebody sends us a log file with complaints.
+* ImageCache::getattribute can retrieve its interesting internal
+  statistics individually by name. (r1721)
 
 For developers / build issues:
 
