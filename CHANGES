@@ -64,6 +64,8 @@ Fixes, minor enhancements, and performance improvements:
   immediately failed, whereas they should have compared their top
   levels, and only fail if the "-a" flag was used; (2) some failure
   modes incorrectly printed a "PASS" message despite actually failing. (r1722)
+* Changed the environment variable that contains the plugin search path
+  from IMAGEIO_LIBRARY_PATH to OPENIMAGEIO_LIBRARY_PATH. (r1723)
 
 For developers / build issues:
 

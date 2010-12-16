@@ -275,7 +275,7 @@ catalog_all_plugins (std::string searchpath)
 {
     catalog_builtin_plugins ();
 
-    const char *imageio_library_path = getenv ("IMAGEIO_LIBRARY_PATH");
+    const char *imageio_library_path = getenv ("OPENIMAGEIO_LIBRARY_PATH");
     if (imageio_library_path && *imageio_library_path) {
         std::string newpath = imageio_library_path;
         if (searchpath.length())
@@ -346,7 +346,7 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
         if (input_formats.empty()) {
             // This error is so fundamental, we echo it to stderr in
             // case the app is too dumb to do so.
-            const char *msg = "ImageOutput::create() could not find any ImageOutput plugins!  Perhaps you need to set IMAGEIO_LIBRARY_PATH.\n";
+            const char *msg = "ImageOutput::create() could not find any ImageOutput plugins!  Perhaps you need to set OPENIMAGEIO_LIBRARY_PATH.\n";
             fprintf (stderr, "%s", msg);
             OpenImageIO::pvt::error ("%s", msg);
         }
@@ -425,7 +425,7 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
             // This error is so fundamental, we echo it to stderr in
             // case the app is too dumb to do so.
             const char *msg = "ImageInput::create() could not find any ImageInput plugins!\n"
-                          "    Perhaps you need to set IMAGEIO_LIBRARY_PATH.\n";
+                          "    Perhaps you need to set OPENIMAGEIO_LIBRARY_PATH.\n";
             fprintf (stderr, "%s", msg);
             OpenImageIO::pvt::error ("%s", msg);
         }
