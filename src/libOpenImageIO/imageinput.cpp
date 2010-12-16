@@ -164,11 +164,8 @@ ImageInput::read_image (TypeDesc format, void *data,
                         void *progress_callback_data)
 {
     bool native = (format == TypeDesc::UNKNOWN);
-    stride_t pixel_bytes;
-    if (native)
-        pixel_bytes = (stride_t) m_spec.pixel_bytes (native);
-    else
-        pixel_bytes = (stride_t) (format.size() * m_spec.nchannels);
+    stride_t pixel_bytes = native ? (stride_t) m_spec.pixel_bytes (native)
+                                  : (stride_t) (format.size()*m_spec.nchannels);
     if (native && xstride == AutoStride)
         xstride = pixel_bytes;
     m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
