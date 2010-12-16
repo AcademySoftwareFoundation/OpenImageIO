@@ -176,8 +176,7 @@ OpenImageIO::pvt::contiguize (const void *src, int nchannels,
                             xstride, ystride, zstride,
                             (long long *)dst, width, height, depth);
     default:
-        std::cerr << "ERROR OpenImageIO::contiguize : bad format\n";
-        ASSERT (0);
+        ASSERT (0 && "OpenImageIO::contiguize : bad format");
         return NULL;
     }
 }
@@ -222,8 +221,7 @@ OpenImageIO::pvt::convert_to_float (const void *src, float *dst, int nvals,
         convert_type ((const unsigned long long *)src, dst, nvals);
         break;
     default:
-        std::cerr << "ERROR to_float: bad format\n";
-        ASSERT (0);
+        ASSERT (0 && "ERROR to_float: bad format");
         return NULL;
     }
     return dst;
@@ -316,8 +314,7 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
                            quant_black, quant_white, quant_min,
                            quant_max, quant_dither);
     default:
-        std::cerr << "ERROR from_float: bad format\n";
-        ASSERT (0);
+        ASSERT (0 && "ERROR from_float: bad format");
         return NULL;
     }
 }
