@@ -66,6 +66,8 @@ Fixes, minor enhancements, and performance improvements:
   modes incorrectly printed a "PASS" message despite actually failing. (r1722)
 * Changed the environment variable that contains the plugin search path
   from IMAGEIO_LIBRARY_PATH to OPENIMAGEIO_LIBRARY_PATH. (r1723)
+* Bug fix to ImageInput::read_image -- could crash due to an internal
+  buffer allocated as the wrong size. (r1724)
 
 For developers / build issues:
 
