@@ -561,7 +561,10 @@ ImageViewer::readSettings (bool ui_is_set_up)
     updateRecentFilesMenu (); // only safe because it's called after menu setup
 
     autoMipmap->setChecked (settings.value ("autoMipmap", false).toBool());
-    maxMemoryIC->setValue (settings.value ("maxMemoryIC", 512).toInt());
+    if (sizeof(void *) == 4)  // 32 bit or 64?
+        maxMemoryIC->setValue (settings.value ("maxMemoryIC", 512).toInt());
+    else
+        maxMemoryIC->setValue (settings.value ("maxMemoryIC", 2048).toInt());
     ImageCache *imagecache = ImageCache::create (true);
     imagecache->attribute ("automip", autoMipmap->isChecked());
     imagecache->attribute ("max_memory_MB", (float) maxMemoryIC->value ());

@@ -59,6 +59,11 @@ Fixes, minor enhancements, and performance improvements:
   when somebody sends us a log file with complaints.
 * ImageCache::getattribute can retrieve its interesting internal
   statistics individually by name. (r1721)
+* idiff and iv increased their IC cache size. (r1722)
+* idiff bug fixes: (1) files with different number of MIPmap levels
+  immediately failed, whereas they should have compared their top
+  levels, and only fail if the "-a" flag was used; (2) some failure
+  modes incorrectly printed a "PASS" message despite actually failing. (r1722)
 
 For developers / build issues:
 

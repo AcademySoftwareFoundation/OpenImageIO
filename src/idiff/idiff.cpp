@@ -527,7 +527,11 @@ main (int argc, char *argv[])
     // and instruct it store everything internally as floats.
     ImageCache *imagecache = ImageCache::create (true);
     imagecache->attribute ("forcefloat", 1);
-    imagecache->attribute ("max_memory_MB", 100.0);
+    if (sizeof(void *) == 4)  // 32 bit or 64?
+        imagecache->attribute ("max_memory_MB", 512.0);
+    else
+        imagecache->attribute ("max_memory_MB", 2048.0);
+    imagecache->attribute ("autotile", 256);
 #ifdef DEBUG
     imagecache->attribute ("statistics:level", 2);
 #endif
@@ -558,14 +562,18 @@ main (int argc, char *argv[])
             return ErrFile;
 
         if (img0.nmiplevels() != img1.nmiplevels()) {
-            std::cout << "Files do not 1match in their number of MIPmap levels\n";
-            ret = ErrDifferentSize;
-            break;
+            std::cout << "Files do not match in their number of MIPmap levels\n";
         }
 
         for (int m = 0;  m < img0.nmiplevels();  ++m) {
             if (m > 0 && !compareall)
                 break;
+            if (m > 0 && img0.nmiplevels() != img1.nmiplevels()) {
+                std::cout << "Files do not match in their number of MIPmap levels\n";
+                ret = ErrDifferentSize;
+                break;
+            }
+
             if (! read_input (filenames[0], img0, imagecache, subimage, m) ||
                 ! read_input (filenames[1], img1, imagecache, subimage, m))
                 return ErrFile;
@@ -704,12 +712,12 @@ main (int argc, char *argv[])
                   << ", respectively)\n";
     }
 
-    if (ret == ErrFail)
-        std::cout << "FAILURE\n";
+    if (ret == ErrOK)
+        std::cout << "PASS\n";
     else if (ret == ErrWarn)
         std::cout << "WARNING\n";
     else
-        std::cout << "PASS\n";
+        std::cout << "FAILURE\n";
 
     ImageCache::destroy (imagecache);
     return ret;
