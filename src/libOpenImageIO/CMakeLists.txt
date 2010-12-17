@@ -13,6 +13,7 @@ set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/osdep.h
                          ../include/paramlist.h
                          ../include/plugin.h
+                         ../include/pugiconfig.hpp
                          ../include/pugixml.hpp
                          ../include/SHA1.h
                          ../include/strutil.h
@@ -37,7 +38,6 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           ../libutil/plugin.cpp 
                           ../libutil/pystring.cpp
                           ../libutil/pugixml.cpp
-                          ../libutil/pugixpath.cpp
                           ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp 
