@@ -80,8 +80,6 @@ declare_plugin (const std::string &format_name,
                 create_prototype input_creator, const char **input_extensions,
                 create_prototype output_creator, const char **output_extensions)
 {
-//    std::cerr << "declaring plugin for " << format_name << "\n";
-
     // Look for input creator and list of supported extensions
     if (input_creator) {
         if (input_formats.find(format_name) != input_formats.end())
@@ -90,7 +88,6 @@ declare_plugin (const std::string &format_name,
         for (const char **e = input_extensions; e && *e; ++e) {
             std::string ext (*e);
             boost::algorithm::to_lower (ext);
-            // std::cerr << "  input extension " << ext << "\n";
             if (input_formats.find(ext) == input_formats.end())
                 input_formats[ext] = input_creator;
         }
@@ -103,7 +100,6 @@ declare_plugin (const std::string &format_name,
         for (const char **e = output_extensions; e && *e; ++e) {
             std::string ext (*e);
             boost::algorithm::to_lower (ext);
-            // std::cerr << "  output extension " << ext << "\n";
             if (output_formats.find(ext) == output_formats.end())
                 output_formats[ext] = output_creator;
         }
@@ -126,29 +122,24 @@ catalog_plugin (const std::string &format_name,
             return;
         }
         // if (verbosity > 1)
-        std::cerr << "ImageIO WARNING: " << format_name << " had multiple plugins:\n"
+#ifdef DEBUG
+        std::cerr << "OpenImageIO WARNING: " << format_name << " had multiple plugins:\n"
                   << "\t\"" << found_path->second << "\"\n"
                   << "    as well as\n"
                   << "\t\"" << plugin_fullpath << "\"\n"
                   << "    Ignoring all but the first one.\n";
+#endif
         return;
     }
 
     Plugin::Handle handle = Plugin::open (plugin_fullpath);
     if (! handle) {
-        // If verbosity > 1
-        // std::cerr << "Open of " << plugin_fullpath << " failed:\n" 
-        //          << Plugin::geterror() << "\n";
         return;
     }
-//        if (verbosity > 1)
-//    std::cerr << "Succeeded in opening " << plugin_fullpath << "\n";
     
     std::string version_function = format_name + "_imageio_version";
     int *plugin_version = (int *) Plugin::getsym (handle, version_function.c_str());
     if (! plugin_version || *plugin_version != OPENIMAGEIO_PLUGIN_VERSION) {
-        // OpenImageIO::error ("Plugin \"%s\" did not have '%s_imageio_version' symbol\n",
-        //                    plugin_fullpath.c_str(), format_name.c_str());
         Plugin::close (handle);
         return;
     }
@@ -275,40 +266,31 @@ catalog_all_plugins (std::string searchpath)
 {
     catalog_builtin_plugins ();
 
-    const char *imageio_library_path = getenv ("IMAGEIO_LIBRARY_PATH");
+    const char *imageio_library_path = getenv ("OPENIMAGEIO_LIBRARY_PATH");
     if (imageio_library_path && *imageio_library_path) {
         std::string newpath = imageio_library_path;
         if (searchpath.length())
             newpath = newpath + ':' + searchpath;
         searchpath = newpath;
     }
-//    std::cerr << "catalog_all_plugins: searchpath = '" << searchpath << "'\n";
 
     size_t patlen = pattern.length();
-//    std::cerr << "pattern is " << pattern << ", length=" << patlen << "\n";
     std::vector<std::string> dirs;
     Filesystem::searchpath_split (searchpath, dirs, true);
     BOOST_FOREACH (std::string &dir, dirs) {
-//        std::cerr << "Directory " << dir << "\n";
         boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
         for (boost::filesystem::directory_iterator itr (dir);
               itr != end_itr;  ++itr) {
             std::string full_filename = itr->path().string();
             std::string leaf = itr->path().leaf();
-//            std::cerr << "\tfound file " << full_filename << ", leaf = '" << leaf << "'\n";
             size_t found = leaf.find (pattern);
             if (found != std::string::npos &&
                 (found == leaf.length() - patlen)) {
                 std::string pluginname (leaf.begin(), leaf.begin() + leaf.length() - patlen);
-//                std::cerr << "\t\tFound imageio plugin " << full_filename << "\n";
-//                std::cerr << "\t\t\tplugin name = '" << pluginname << "'\n";
                 catalog_plugin (pluginname, full_filename);
-//                plugin_names.push_back (full_filename);
-//                plugin_handles.push_back (0);
             }
         }
     }
-//    std::cerr << "done catalog_all\n";
 }
 
 }
@@ -330,8 +312,6 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
     } else {
         if (format[0] == '.')
             format.erase (format.begin());  // Erase leading dot
-        // if (verbose > 1)
-        // std::cerr << "extension of '" << filename << "' is '" << format << "'\n";
     }
 
     recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
@@ -346,7 +326,7 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
         if (input_formats.empty()) {
             // This error is so fundamental, we echo it to stderr in
             // case the app is too dumb to do so.
-            const char *msg = "ImageOutput::create() could not find any ImageOutput plugins!  Perhaps you need to set IMAGEIO_LIBRARY_PATH.\n";
+            const char *msg = "ImageOutput::create() could not find any ImageOutput plugins!  Perhaps you need to set OPENIMAGEIO_LIBRARY_PATH.\n";
             fprintf (stderr, "%s", msg);
             OpenImageIO::pvt::error ("%s", msg);
         }
@@ -380,8 +360,6 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
     } else {
         if (format[0] == '.')
             format.erase (format.begin());  // Erase leading dot
-        // if (verbose > 1)
-        // std::cerr << "extension of '" << filename << "' is '" << format << "'\n";
     }
 
     recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
@@ -425,7 +403,7 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
             // This error is so fundamental, we echo it to stderr in
             // case the app is too dumb to do so.
             const char *msg = "ImageInput::create() could not find any ImageInput plugins!\n"
-                          "    Perhaps you need to set IMAGEIO_LIBRARY_PATH.\n";
+                          "    Perhaps you need to set OPENIMAGEIO_LIBRARY_PATH.\n";
             fprintf (stderr, "%s", msg);
             OpenImageIO::pvt::error ("%s", msg);
         }

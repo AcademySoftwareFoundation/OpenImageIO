@@ -57,6 +57,17 @@ Fixes, minor enhancements, and performance improvements:
   strings (r1654 - 0.8.8).
 * Print the OIIO version in the ImageCache stats so we don't guess
   when somebody sends us a log file with complaints.
+* ImageCache::getattribute can retrieve its interesting internal
+  statistics individually by name. (r1721)
+* idiff and iv increased their IC cache size. (r1722)
+* idiff bug fixes: (1) files with different number of MIPmap levels
+  immediately failed, whereas they should have compared their top
+  levels, and only fail if the "-a" flag was used; (2) some failure
+  modes incorrectly printed a "PASS" message despite actually failing. (r1722)
+* Changed the environment variable that contains the plugin search path
+  from IMAGEIO_LIBRARY_PATH to OPENIMAGEIO_LIBRARY_PATH. (r1723)
+* Bug fix to ImageInput::read_image -- could crash due to an internal
+  buffer allocated as the wrong size. (r1724)
 
 For developers / build issues:
 

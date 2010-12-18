@@ -34,6 +34,7 @@
 #include <vector>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/tr1/memory.hpp>
 using namespace std::tr1;
 
@@ -367,6 +368,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     // From here on, we know that we've opened this file for the very
     // first time.  So read all the subimages, fill out all the fields
     // of the ImageCacheFile.
+    m_validspec = true;
     m_subimages.clear ();
     int nsubimages = 0;
     do {
@@ -462,7 +464,6 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
 
         ++nsubimages;
     } while (m_input->seek_subimage (nsubimages, 0, tempspec));
-    m_validspec = true;
     ASSERT ((size_t)nsubimages == m_subimages.size());
 
     const ImageSpec &spec (this->spec(0,0));
@@ -1602,48 +1603,26 @@ bool
 ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
                               void *val)
 {
-    if (name == "max_open_files" && type == TypeDesc::INT) {
-        *(int *)val = m_max_open_files;
-        return true;
+#define ATTR_DECODE(_name,_ctype,_src)                                  \
+    if (name == _name && type == BaseTypeFromC<_ctype>::value) {        \
+        *(_ctype *)(val) = (_ctype)(_src);                              \
+        return true;                                                    \
     }
-    if (name == "max_memory_MB" && type == TypeDesc::FLOAT) {
-        *(float *)val = m_max_memory_bytes / (1024.0*1024.0);
-        return true;
-    }
-    if (name == "max_memory_MB" && type == TypeDesc::INT) {
-        *(int *)val = int (m_max_memory_bytes / (1024*1024));
-        return true;
-    }
+
+    ATTR_DECODE ("max_open_files", int, m_max_open_files);
+    ATTR_DECODE ("max_memory_MB", float, m_max_memory_bytes/(1024.0*1024.0));
+    ATTR_DECODE ("max_memory_MB", int, m_max_memory_bytes/(1024*1024));
+    ATTR_DECODE ("statistics:level", int, m_statslevel);
+    ATTR_DECODE ("autotile", int, m_autotile);
+    ATTR_DECODE ("automip", int, m_automip);
+    ATTR_DECODE ("forcefloat", int, m_forcefloat);
+    ATTR_DECODE ("accept_untiled", int, m_accept_untiled);
+    ATTR_DECODE ("read_before_insert", int, m_read_before_insert);
+    ATTR_DECODE ("failure_retries", int, m_failure_retries);
+
+    // The cases that don't fit in the simple ATTR_DECODE scheme
     if (name == "searchpath" && type == TypeDesc::STRING) {
         *(ustring *)val = m_searchpath;
-        return true;
-    }
-    if (name == "statistics:level" && type == TypeDesc::INT) {
-        *(int *)val = m_statslevel;
-        return true;
-    }
-    if (name == "autotile" && type == TypeDesc::INT) {
-        *(int *)val = m_autotile;
-        return true;
-    }
-    if (name == "automip" && type == TypeDesc::INT) {
-        *(int *)val = (int)m_automip;
-        return true;
-    }
-    if (name == "forcefloat" && type == TypeDesc::INT) {
-        *(int *)val = (int)m_forcefloat;
-        return true;
-    }
-    if (name == "accept_untiled" && type == TypeDesc::INT) {
-        *(int *)val = (int)m_accept_untiled;
-        return true;
-    }
-    if (name == "read_before_insert" && type == TypeDesc::INT) {
-        *(int *)val = (int)m_read_before_insert;
-        return true;
-    }
-    if (name == "failure_retries" && type == TypeDesc::INT) {
-        *(int *)val = (int)m_failure_retries;
         return true;
     }
     if (name == "worldtocommon" && (type == TypeDesc::TypeMatrix ||
@@ -1656,7 +1635,37 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
         *(Imath::M44f *)val = m_Mc2w;
         return true;
     }
+
+    // Stats we can just grab
+    ATTR_DECODE ("stat:cache_memory_used", long long, m_mem_used);
+    ATTR_DECODE ("stat:tiles_created", int, m_stat_tiles_created);
+    ATTR_DECODE ("stat:tiles_current", int, m_stat_tiles_current);
+    ATTR_DECODE ("stat:tiles_peak", int, m_stat_tiles_peak);
+    ATTR_DECODE ("stat:open_files_created", int, m_stat_open_files_created);
+    ATTR_DECODE ("stat:open_files_current", int, m_stat_open_files_current);
+    ATTR_DECODE ("stat:open_files_peak", int, m_stat_open_files_peak);
+
+    if (boost::algorithm::starts_with(name, "stat:")) {
+        // All the other stats are those that need to be summed from all
+        // the threads.
+        ImageCacheStatistics stats;
+        mergestats (stats);
+        ATTR_DECODE ("stat:find_tile_calls", long long, stats.find_tile_calls);
+        ATTR_DECODE ("stat:find_tile_microcache_misses", long long, stats.find_tile_microcache_misses);
+        ATTR_DECODE ("stat:find_tile_cache_misses", int, stats.find_tile_cache_misses);
+        ATTR_DECODE ("stat:files_totalsize", long long, stats.files_totalsize);
+        ATTR_DECODE ("stat:bytes_read", long long, stats.bytes_read);
+        ATTR_DECODE ("stat:unique_files", int, stats.unique_files);
+        ATTR_DECODE ("stat:fileio_time", float, stats.fileio_time);
+        ATTR_DECODE ("stat:fileopen_time", float, stats.fileopen_time);
+        ATTR_DECODE ("stat:file_locking_time", float, stats.file_locking_time);
+        ATTR_DECODE ("stat:tile_locking_time", float, stats.tile_locking_time);
+        ATTR_DECODE ("stat:find_file_time", float, stats.find_file_time);
+        ATTR_DECODE ("stat:find_tile_time", float, stats.find_tile_time);
+    }
+
     return false;
+#undef ATTR_DECODE
 }
 
 

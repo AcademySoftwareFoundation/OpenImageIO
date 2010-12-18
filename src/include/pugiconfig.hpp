@@ -1,8 +1,8 @@
 /**
- * pugixml parser - version 0.5
+ * pugixml parser - version 1.0
  * --------------------------------------------------------
- * Copyright (C) 2006-2009, by Arseny Kapoulkine (arseny.kapoulkine@gmail.com)
- * Report bugs and download new versions at http://code.google.com/p/pugixml/
+ * Copyright (C) 2006-2010, by Arseny Kapoulkine (arseny.kapoulkine@gmail.com)
+ * Report bugs and download new versions at http://pugixml.org/
  *
  * This library is distributed under the MIT License. See notice at the end
  * of this file.
@@ -14,11 +14,15 @@
 #ifndef HEADER_PUGICONFIG_HPP
 #define HEADER_PUGICONFIG_HPP
 
-// Uncomment this to disable STL
-// #define PUGIXML_NO_STL
+// Uncomment this to enable wchar_t mode
+// #define PUGIXML_WCHAR_MODE
 
 // Uncomment this to disable XPath
 // #define PUGIXML_NO_XPATH
+
+// Uncomment this to disable STL
+// Note: you can't use XPath with PUGIXML_NO_STL
+// #define PUGIXML_NO_STL
 
 // Uncomment this to disable exceptions
 // Note: you can't use XPath with PUGIXML_NO_EXCEPTIONS
@@ -33,7 +37,7 @@
 #endif
 
 /**
- * Copyright (c) 2006-2009 Arseny Kapoulkine
+ * Copyright (c) 2006-2010 Arseny Kapoulkine
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
