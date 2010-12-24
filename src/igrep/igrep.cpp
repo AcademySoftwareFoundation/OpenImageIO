@@ -45,8 +45,8 @@ using namespace boost::filesystem;
 #include "argparse.h"
 #include "strutil.h"
 #include "imageio.h"
-using namespace OpenImageIO;
 
+OIIO_NAMESPACE_USING;
 
 static bool help = false;
 static bool invert_match = false;
@@ -93,7 +93,7 @@ grep_file (const std::string &filename, boost::regex &re,
         in->close ();
     } else {
         if (! ignore_nonimage_files)
-            std::cerr << OpenImageIO::geterror() << "\n";
+            std::cerr << geterror() << "\n";
         return false;
     }
     ImageSpec spec;
@@ -165,7 +165,7 @@ main (int argc, const char *argv[])
 {
     ArgParse ap;
     ap.options ("igrep -- search images for matching metadata\n"
-                OPENIMAGEIO_INTRO_STRING "\n"
+                OIIO_INTRO_STRING "\n"
                 "Usage:  igrep [options] pattern filename...",
                 "%*", parse_files, "",
                 "-i", &ignore_case, "Ignore upper/lower case distinctions",

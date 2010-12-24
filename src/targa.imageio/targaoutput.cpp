@@ -42,7 +42,6 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace TGA_pvt;
-using namespace OpenImageIO;
 
 
 class TGAOutput : public ImageOutput {
@@ -90,7 +89,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *targa_output_imageio_create () { return new TGAOutput; }
 
-// DLLEXPORT int tga_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;   // it's in tgainput.cpp
+// DLLEXPORT int tga_imageio_version = OIIO_PLUGIN_VERSION;   // it's in tgainput.cpp
 
 DLLEXPORT const char * targa_output_extensions[] = {
     "tga", NULL
@@ -374,7 +373,7 @@ TGAOutput::close ()
         }
 
         // software ID - we advertise ourselves
-        tmpstr = OPENIMAGEIO_INTRO_STRING;
+        tmpstr = OIIO_INTRO_STRING;
         fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
                 1, m_file);
         // fill the rest with zeros
@@ -383,9 +382,9 @@ TGAOutput::close ()
 
         // software version
         {
-            short v = OPENIMAGEIO_VERSION_MAJOR * 100
-                    + OPENIMAGEIO_VERSION_MINOR * 10
-                    + OPENIMAGEIO_VERSION_PATCH;
+            short v = OIIO_VERSION_MAJOR * 100
+                    + OIIO_VERSION_MINOR * 10
+                    + OIIO_VERSION_PATCH;
             if (bigendian())
                 swap_endian (&v);
             fwrite (&v, sizeof (v), 1, m_file);

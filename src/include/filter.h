@@ -33,12 +33,10 @@
 #ifndef OPENIMAGEIO_FILTER_H
 #define OPENIMAGEIO_FILTER_H
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
+#include "version.h"
 
-namespace OpenImageIO {
-
+OIIO_NAMESPACE_ENTER
+{
 
 // Filter2D is the abstract data type for a 2D filter.
 // The filters are NOT expected to have their results normalized.
@@ -112,11 +110,7 @@ protected:
 };
 
 
-};  // end namespace OpenImageIO
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_FILTER_H

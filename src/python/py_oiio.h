@@ -40,6 +40,7 @@
 #include "imagecache.h"
 #include "imagebuf.h"
 
+
 #if PY_MAJOR_VERSION < 2 || (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 5)
 #define Py_ssize_t int
 #endif
@@ -48,7 +49,8 @@ namespace PyOpenImageIO
 {
 
 using namespace boost::python;
-using namespace OpenImageIO;
+
+OIIO_NAMESPACE_USING
 
 void declare_imagespec(); 
 void declare_imageinput();

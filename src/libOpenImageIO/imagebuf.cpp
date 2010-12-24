@@ -45,9 +45,9 @@
 #include "dassert.h"
 #include "strutil.h"
 #include "fmath.h"
-using namespace OpenImageIO;
 
-
+OIIO_NAMESPACE_ENTER
+{
 
 ImageBuf::ImageBuf (const std::string &filename,
                     ImageCache *imagecache)
@@ -203,7 +203,7 @@ ImageBuf::init_spec (const std::string &filename, int subimage, int miplevel)
 
 bool
 ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
-               OpenImageIO::ProgressCallback progress_callback,
+               ProgressCallback progress_callback,
                void *progress_callback_data)
 {
     if (pixels_valid() && !force &&
@@ -273,10 +273,10 @@ ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
 
 bool
 ImageBuf::write (ImageOutput *out,
-                 OpenImageIO::ProgressCallback progress_callback,
+                 ProgressCallback progress_callback,
                  void *progress_callback_data) const
 {
-    OpenImageIO::stride_t as = OpenImageIO::AutoStride;
+    stride_t as = AutoStride;
     bool ok = true;
     if (m_localpixels) {
         ok = out->write_image (m_spec.format, &m_pixels[0], as, as, as,
@@ -299,14 +299,14 @@ ImageBuf::write (ImageOutput *out,
 
 bool
 ImageBuf::save (const std::string &_filename, const std::string &_fileformat,
-                OpenImageIO::ProgressCallback progress_callback,
+                ProgressCallback progress_callback,
                 void *progress_callback_data) const
 {
     std::string filename = _filename.size() ? _filename : name();
     std::string fileformat = _fileformat.size() ? _fileformat : filename;
     boost::scoped_ptr<ImageOutput> out (ImageOutput::create (fileformat.c_str(), "" /* searchpath */));
     if (! out) {
-        m_err = OpenImageIO::geterror();
+        m_err = geterror();
         return false;
     }
     if (! out->open (filename.c_str(), m_spec)) {
@@ -795,3 +795,6 @@ ImageBuf::fill (const float *pixel, int xbegin, int xend, int ybegin, int yend,
             for (int i = xbegin; i < xend; i++)
                 setpixel (i, j, k, pixel);
 }
+
+}
+OIIO_NAMESPACE_EXIT

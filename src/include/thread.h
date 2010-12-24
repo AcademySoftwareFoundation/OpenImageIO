@@ -39,6 +39,8 @@
 #ifndef OPENIMAGEIO_THREAD_H
 #define OPENIMAGEIO_THREAD_H
 
+#include "version.h"
+
 // defining NOMINMAX to prevent problems with std::min/std::max
 // and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
 // when boost include windows.h
@@ -95,10 +97,8 @@
 #endif
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
+OIIO_NAMESPACE_ENTER
+{
 
 /// Null mutex that can be substituted for a real one to test how much
 /// overhead is associated with a particular mutex.
@@ -541,10 +541,7 @@ typedef spin_mutex::lock_guard spin_lock;
 #endif
 
 
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_THREAD_H

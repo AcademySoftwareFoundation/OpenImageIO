@@ -42,12 +42,8 @@
 #include "imagecache.h"
 #include "colortransfer.h"
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-namespace OpenImageIO {
-
+OIIO_NAMESPACE_ENTER
+{
 
 /// An ImageBuf is a simple in-memory representation of a 2D image.  It
 /// uses ImageInput and ImageOutput underneath for its file I/O, and has
@@ -98,7 +94,7 @@ public:
     /// Return value is true if all is ok, otherwise false.
     virtual bool read (int subimage=0, int miplevel=0, bool force=false,
                        TypeDesc convert=TypeDesc::UNKNOWN,
-                       OpenImageIO::ProgressCallback progress_callback=NULL,
+                       ProgressCallback progress_callback=NULL,
                        void *progress_callback_data=NULL);
 
     /// Initialize this ImageBuf with the named image file, and read its
@@ -115,7 +111,7 @@ public:
     /// appropriate imageio plugin can be found.
     virtual bool save (const std::string &filename = std::string(),
                        const std::string &fileformat = std::string(),
-                       OpenImageIO::ProgressCallback progress_callback=NULL,
+                       ProgressCallback progress_callback=NULL,
                        void *progress_callback_data=NULL) const;
 
     /// Write the image to the open ImageOutput 'out'.  Return true if
@@ -123,7 +119,7 @@ public:
     /// close the file when it's done (and so may be called in a loop to
     /// write a multi-image file).
     virtual bool write (ImageOutput *out,
-                        OpenImageIO::ProgressCallback progress_callback=NULL,
+                        ProgressCallback progress_callback=NULL,
                         void *progress_callback_data=NULL) const;
 
     /// Return info on the last error that occurred since geterror()
@@ -770,11 +766,7 @@ bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
 };  // end namespace ImageBufAlgo
 
 
-};  // namespace OpenImageIO
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_IMAGEBUF_H

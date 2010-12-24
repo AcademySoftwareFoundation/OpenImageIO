@@ -44,7 +44,6 @@ extern "C" {
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
 using namespace Jpeg_imageio_pvt;
 
 #define DBG if(0)
@@ -219,7 +218,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     }
 
     // Write XMP packet, if we have anything
-    std::string xmp = OpenImageIO::encode_xmp (m_spec, true);
+    std::string xmp = encode_xmp (m_spec, true);
     if (! xmp.empty()) {
         static char prefix[] = "http://ns.adobe.com/xap/1.0/";
         std::vector<char> block (prefix, prefix+strlen(prefix)+1);

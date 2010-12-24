@@ -56,23 +56,19 @@ using namespace std::tr1;
 #include "imagecache.h"
 #include "texture.h"
 #include "imagecache_pvt.h"
-using namespace OpenImageIO;
-using namespace OpenImageIO::pvt;
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-namespace OpenImageIO { namespace pvt {
+OIIO_NAMESPACE_ENTER
+{
+    using namespace pvt;
+
+namespace pvt {
 
 // The static perthread mutex needs to outlive the shared_image_cache
 // instance, so must be declared first in this file to avoid static
 // initialization order problems.
 mutex ImageCacheImpl::m_perthread_info_mutex;
 
-}}
-#ifdef OPENIMAGEIO_NAMESPACE
 }
-#endif
 
 namespace {  // anonymous
 
@@ -166,13 +162,7 @@ void safe_insert (HashMapT& map, const typename HashMapT::key_type& key,
 };  // end anonymous namespace
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-namespace OpenImageIO {
-
-namespace pvt {   // namespace OpenImageIO::pvt
+namespace pvt {   // namespace pvt
 
 
 
@@ -329,7 +319,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_input.reset (ImageInput::create (m_filename.c_str(),
                                        m_imagecache.searchpath().c_str()));
     if (! m_input) {
-        imagecache().error ("%s", OpenImageIO::geterror().c_str());
+        imagecache().error ("%s", geterror().c_str());
         m_broken = true;
         invalidate_spec ();
         return false;
@@ -1333,7 +1323,7 @@ ImageCacheImpl::getstats (int level) const
     std::ostringstream out;
     if (level > 0) {
         out << "OpenImageIO ImageCache statistics (" << (void*)this 
-            << ") ver " << OPENIMAGEIO_VERSION_STRING << "\n";
+            << ") ver " << OIIO_VERSION_STRING << "\n";
         if (stats.unique_files) {
             out << "  Images : " << stats.unique_files << " unique\n";
             out << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
@@ -2353,7 +2343,7 @@ ImageCacheImpl::error (const char *message, ...)
 
 
 
-};  // end namespace OpenImageIO::pvt
+};  // end namespace pvt
 
 
 
@@ -2405,11 +2395,5 @@ ImageCache::destroy (ImageCache *x)
     }
 }
 
-
-};  // end namespace OpenImageIO
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
-
+}
+OIIO_NAMESPACE_EXIT

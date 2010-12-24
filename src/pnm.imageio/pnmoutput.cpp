@@ -34,9 +34,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
-
 
 class PNMOutput : public ImageOutput {
 public:

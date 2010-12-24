@@ -46,9 +46,10 @@
 #include "imageio.h"
 #include "imageio_pvt.h"
 
-using namespace OpenImageIO;
-using namespace OpenImageIO::pvt;
 
+OIIO_NAMESPACE_ENTER
+{
+    using namespace pvt;
 
 typedef std::map <std::string, create_prototype> PluginMap;
 
@@ -139,7 +140,7 @@ catalog_plugin (const std::string &format_name,
     
     std::string version_function = format_name + "_imageio_version";
     int *plugin_version = (int *) Plugin::getsym (handle, version_function.c_str());
-    if (! plugin_version || *plugin_version != OPENIMAGEIO_PLUGIN_VERSION) {
+    if (! plugin_version || *plugin_version != OIIO_PLUGIN_VERSION) {
         Plugin::close (handle);
         return;
     }
@@ -167,10 +168,6 @@ catalog_plugin (const std::string &format_name,
 }
 
 #ifdef EMBED_PLUGINS
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
 
 // Make extern declarations for the input and output create routines and
 // list of file extensions, for the standard plugins that come with OIIO.
@@ -203,10 +200,6 @@ namespace OPENIMAGEIO_NAMESPACE {
     PLUGENTRY (targa);
     PLUGENTRY (zfile);
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
 
 #endif // defined(EMBED_PLUGINS)
 
@@ -266,9 +259,9 @@ catalog_all_plugins (std::string searchpath)
 {
     catalog_builtin_plugins ();
 
-    const char *imageio_library_path = getenv ("OPENIMAGEIO_LIBRARY_PATH");
-    if (imageio_library_path && *imageio_library_path) {
-        std::string newpath = imageio_library_path;
+    const char *oiio_library_path = getenv ("OIIO_LIBRARY_PATH");
+    if (oiio_library_path && *oiio_library_path) {
+        std::string newpath = oiio_library_path;
         if (searchpath.length())
             newpath = newpath + ':' + searchpath;
         searchpath = newpath;
@@ -300,7 +293,7 @@ ImageOutput *
 ImageOutput::create (const std::string &filename, const std::string &plugin_searchpath)
 {
     if (filename.empty()) { // Can't even guess if no filename given
-        OpenImageIO::pvt::error ("ImageOutput::create() called with no filename");
+        pvt::error ("ImageOutput::create() called with no filename");
         return NULL;
     }
 
@@ -326,14 +319,14 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
         if (input_formats.empty()) {
             // This error is so fundamental, we echo it to stderr in
             // case the app is too dumb to do so.
-            const char *msg = "ImageOutput::create() could not find any ImageOutput plugins!  Perhaps you need to set OPENIMAGEIO_LIBRARY_PATH.\n";
+            const char *msg = "ImageOutput::create() could not find any ImageOutput plugins!  Perhaps you need to set OIIO_LIBRARY_PATH.\n";
             fprintf (stderr, "%s", msg);
-            OpenImageIO::pvt::error ("%s", msg);
+            pvt::error ("%s", msg);
         }
         else
-            OpenImageIO::pvt::error ("OpenImageIO could not find a format writer for \"%s\". "
-                                     "Is it a file format that OpenImageIO doesn't know about?\n",
-                                     filename.c_str());
+            pvt::error ("OpenImageIO could not find a format writer for \"%s\". "
+                        "Is it a file format that OpenImageIO doesn't know about?\n",
+                         filename.c_str());
         return NULL;
     }
 
@@ -348,7 +341,7 @@ ImageInput *
 ImageInput::create (const std::string &filename, const std::string &plugin_searchpath)
 {
     if (filename.empty()) { // Can't even guess if no filename given
-        OpenImageIO::pvt::error ("ImageInput::create() called with no filename");
+        pvt::error ("ImageInput::create() called with no filename");
         return NULL;
     }
 
@@ -403,19 +396,22 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
             // This error is so fundamental, we echo it to stderr in
             // case the app is too dumb to do so.
             const char *msg = "ImageInput::create() could not find any ImageInput plugins!\n"
-                          "    Perhaps you need to set OPENIMAGEIO_LIBRARY_PATH.\n";
+                          "    Perhaps you need to set OIIO_LIBRARY_PATH.\n";
             fprintf (stderr, "%s", msg);
-            OpenImageIO::pvt::error ("%s", msg);
+            pvt::error ("%s", msg);
         }
         else if (boost::filesystem::exists (filename))
-            OpenImageIO::pvt::error ("OpenImageIO could not find a format reader for \"%s\". "
-                                     "Is it a file format that OpenImageIO doesn't know about?\n",
-                                     filename.c_str());
+            pvt::error ("OpenImageIO could not find a format reader for \"%s\". "
+                        "Is it a file format that OpenImageIO doesn't know about?\n",
+                         filename.c_str());
         else
-            OpenImageIO::pvt::error ("Image \"%s\" does not exist. Also, it is not the name of an image format that OpenImageIO recognizes.\n",
-                                     filename.c_str());
+            pvt::error ("Image \"%s\" does not exist. Also, it is not the name of an image format that OpenImageIO recognizes.\n",
+                         filename.c_str());
         return NULL;
     }
 
     return (ImageInput *) create_function();
 }
+
+}
+OIIO_NAMESPACE_EXIT

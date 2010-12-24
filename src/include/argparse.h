@@ -40,6 +40,7 @@
 #include <vector>
 
 #include "export.h"
+#include "version.h"
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS  /* See comments in strutil.h */
 #   ifndef __GNUC__
@@ -49,11 +50,9 @@
         __attribute__ ((format (printf, fmtarg_pos, vararg_pos) ))
 #endif
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
 
-// namespace I have no idea... {
+OIIO_NAMESPACE_ENTER
+{
 
 
 class ArgOption;   // Forward declaration
@@ -181,12 +180,8 @@ private:
 };
 
 
+}
+OIIO_NAMESPACE_EXIT
 
-// }; // namespace ???
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
 
 #endif // OPENIMAGEIO_ARGPARSE_H

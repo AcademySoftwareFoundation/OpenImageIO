@@ -31,7 +31,7 @@
 #include "imageio.h"
 #include "boosttest.h"
 
-
+OIIO_NAMESPACE_USING;
 
 BOOST_AUTO_TEST_CASE (test_get_rest_arguments)
 {
@@ -96,4 +96,3 @@ BOOST_AUTO_TEST_CASE (test_get_rest_arguments)
     BOOST_CHECK_EQUAL (result["arg1"], "value1");
     BOOST_CHECK_EQUAL (result["arg2"], "somevalue");
 }
-

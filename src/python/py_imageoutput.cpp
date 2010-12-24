@@ -38,7 +38,6 @@ namespace PyOpenImageIO
 {
 
 using namespace boost::python;
-using namespace OpenImageIO;
 
 object ImageOutputWrap::create (const std::string &filename, 
                             const std::string& plugin_searchpath="")
@@ -191,7 +190,7 @@ void declare_imageoutput()
         .def("geterror",        &ImageOutputWrap::geterror)
     ;
 
-    scope().attr("AutoStride") = OpenImageIO::AutoStride;
+    scope().attr("AutoStride") = AutoStride;
 }
 
 } // namespace PyOpenImageIO

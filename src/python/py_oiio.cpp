@@ -33,7 +33,6 @@
 namespace PyOpenImageIO
 {
 using namespace boost::python;
-using namespace OpenImageIO;
 
 // This our stand-in ProgressCallback which allows oiio to call a Python function.
 bool PythonProgressCallback(void* opaque_data, float portion_done)

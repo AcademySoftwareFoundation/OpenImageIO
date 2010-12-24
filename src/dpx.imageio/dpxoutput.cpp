@@ -43,7 +43,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
 using boost::algorithm::iequals;
 
 
@@ -101,7 +100,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *dpx_output_imageio_create () { return new DPXOutput; }
 
-// DLLEXPORT int dpx_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;   // it's in dpxinput.cpp
+// DLLEXPORT int dpx_imageio_version = OIIO_PLUGIN_VERSION;   // it's in dpxinput.cpp
 
 DLLEXPORT const char * dpx_output_extensions[] = {
     "dpx", NULL
@@ -191,7 +190,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     std::string copyright = m_spec.get_string_attribute ("Copyright", "");
     m_dpx.SetFileInfo (name.c_str (),                       // filename
         NULL,                                               // TODO: cr. date
-        OPENIMAGEIO_INTRO_STRING,                           // creator
+        OIIO_INTRO_STRING,                                  // creator
         project.empty () ? NULL : project.c_str (),         // project
         copyright.empty () ? NULL : copyright.c_str ());    // copyright
 

@@ -46,13 +46,8 @@
 #include "ustring.h"
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-// FIXME: We should clearly put this in a namespace.
-// namespace blah {
-
+OIIO_NAMESPACE_ENTER
+{
 
 /// ParamValue holds a parameter and a pointer to its value(s)
 ///
@@ -197,14 +192,7 @@ private:
 };
 
 
-
-
-// FIXME: We should clearly put this in a namespace.
-// }; /* end namespace blah */
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif /* !defined(OPENIMAGEIO_PARAMLIST_H) */

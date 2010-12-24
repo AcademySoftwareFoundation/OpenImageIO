@@ -43,8 +43,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 
 class Field3DOutput : public ImageOutput {
 public:
@@ -87,7 +85,7 @@ field3d_output_imageio_create ()
     return new Field3DOutput;
 }
 
-DLLEXPORT int field3d_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int field3d_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * field3d_output_extensions[] = {
     "f3d", NULL

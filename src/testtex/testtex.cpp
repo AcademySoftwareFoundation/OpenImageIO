@@ -41,7 +41,6 @@
 
 #include "argparse.h"
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "ustring.h"
 #include "imagebuf.h"
 #include "texture.h"
@@ -50,6 +49,7 @@ using namespace OpenImageIO;
 #include "strutil.h"
 #include "timer.h"
 
+OIIO_NAMESPACE_USING
 
 static std::vector<std::string> filenames;
 static std::string output_filename = "out.exr";

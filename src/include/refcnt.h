@@ -40,6 +40,7 @@
 #define OPENIMAGEIO_REFCNT_H
 
 #include "thread.h"
+#include "version.h"
 
 // Use Boost for shared pointers
 #include <boost/tr1/memory.hpp>
@@ -48,11 +49,8 @@ using std::tr1::shared_ptr;
 using boost::intrusive_ptr;
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-
+OIIO_NAMESPACE_ENTER
+{
 
 /// Mix-in class that adds a reference count, implemented as an atomic
 /// counter.
@@ -108,9 +106,7 @@ inline void intrusive_ptr_release (T *x)
 // meant to delete and destroy.
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_REFCNT_H

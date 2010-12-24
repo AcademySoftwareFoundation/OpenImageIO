@@ -37,9 +37,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
-
 
 class PtexInput : public ImageInput {
 public:
@@ -85,7 +82,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *ptex_input_imageio_create () { return new PtexInput; }
 
-DLLEXPORT int ptex_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int ptex_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * ptex_input_extensions[] = {
     "ptex", "ptx", NULL

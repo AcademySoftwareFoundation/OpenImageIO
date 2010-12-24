@@ -55,7 +55,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
 using namespace boost::asio;
 
 

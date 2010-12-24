@@ -63,6 +63,9 @@
 
 #include "sysutil.h"
 
+OIIO_NAMESPACE_ENTER
+{
+
 using namespace Sysutil;
 
 
@@ -179,3 +182,6 @@ Sysutil::usleep (unsigned long useconds)
     ::usleep (useconds);     // *nix usleep() is in microseconds
 #endif
 }
+
+}
+OIIO_NAMESPACE_EXIT

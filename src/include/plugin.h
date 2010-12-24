@@ -42,12 +42,11 @@
 #define OPENIMAGEIO_PLUGIN_H
 
 #include "export.h"
+#include "version.h"
 
 
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
+OIIO_NAMESPACE_ENTER
+{
 
 namespace Plugin {
 
@@ -96,9 +95,7 @@ DLLPUBLIC std::string geterror (void);
 
 };  // namespace Plugin
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_PLUGIN_H

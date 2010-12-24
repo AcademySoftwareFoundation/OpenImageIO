@@ -126,19 +126,14 @@
 #include <cstring>
 #include "export.h"
 #include "strutil.h"
+#include "version.h"
 
 #ifndef NULL
 #define NULL 0
 #endif
 
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-// FIXME: want a namespace
-// namespace blah {
-
+OIIO_NAMESPACE_ENTER
+{
 
 class DLLPUBLIC ustring {
 public:
@@ -483,13 +478,7 @@ public:
 };
 
 
-
-
-// };  // end namespace blah
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_USTRING_H

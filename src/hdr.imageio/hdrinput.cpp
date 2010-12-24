@@ -40,8 +40,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 /////////////////////////////////////////////////////////////////////////////
 // .hdr / .rgbe files - HDR files from Radiance
 //
@@ -87,7 +85,7 @@ private:
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int hdr_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+    DLLEXPORT int hdr_imageio_version = OIIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *hdr_input_imageio_create () {
         return new HdrInput;
     }

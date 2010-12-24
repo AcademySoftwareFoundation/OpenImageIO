@@ -41,11 +41,9 @@
 
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
+OIIO_NAMESPACE_ENTER
+{
 
-namespace OpenImageIO {
 namespace pvt {
 
 /// Prototype for imageio factory prototype
@@ -84,12 +82,9 @@ const void *convert_from_float (const float *src, void *dst, size_t nvals,
                                 int quant_min, int quant_max, float quant_dither, 
                                 TypeDesc format);
 
-};  // namespace OpenImageIO::pvt
-};  // namespace OpenImageIO
+};  // namespace pvt
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_IMAGEIO_PVT_H

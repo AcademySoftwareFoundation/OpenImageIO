@@ -34,10 +34,7 @@
 #include "fmath.h"
 
 
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace ICO_pvt {
 
@@ -94,9 +91,7 @@ struct ico_header {
 
 };  // namespace ICO_pvt
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+
+OIIO_PLUGIN_NAMESPACE_END
 
 #endif  // OPENIMAGEIO_ICO_H

@@ -48,7 +48,6 @@ using namespace std::tr1;
 #include "fmath.h"
 #include "filter.h"
 #include "imageio.h"
-using namespace OpenImageIO;
 
 #include "texture.h"
 
@@ -56,8 +55,10 @@ using namespace OpenImageIO;
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
 #include "../field3d.imageio/field3d_pvt.h"
-using namespace OpenImageIO;
-using namespace OpenImageIO::pvt;
+
+OIIO_NAMESPACE_ENTER
+{
+    using namespace pvt;
 
 namespace {  // anonymous
 
@@ -69,17 +70,7 @@ static ustring s_field3d ("field3d");
 
 };  // end anonymous namespace
 
-
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-namespace OpenImageIO {
-
-
-
-namespace pvt {   // namespace OpenImageIO::pvt
+namespace pvt {   // namespace pvt
 
 
 
@@ -585,9 +576,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
 
 
 
-};  // end namespace OpenImageIO::pvt
-};  // end namespace OpenImageIO
+};  // end namespace pvt
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-#endif
+}
+OIIO_NAMESPACE_EXIT

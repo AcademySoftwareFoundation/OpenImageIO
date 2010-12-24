@@ -38,6 +38,7 @@
 #include "boosttest.h"
 
 
+OIIO_NAMESPACE_USING;
 
 // Test spin locks by creating a bunch of threads that all increment the
 // accumulator many times, protected by spin locks.  If, at the end, the

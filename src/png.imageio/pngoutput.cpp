@@ -45,8 +45,6 @@ using boost::algorithm::iequals;
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 
 class PNGOutput : public ImageOutput {
 public:
@@ -95,7 +93,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *png_output_imageio_create () { return new PNGOutput; }
 
-// DLLEXPORT int png_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;   // it's in pnginput.cpp
+// DLLEXPORT int png_imageio_version = OIIO_PLUGIN_VERSION;   // it's in pnginput.cpp
 
 DLLEXPORT const char * png_output_extensions[] = {
     "png", NULL

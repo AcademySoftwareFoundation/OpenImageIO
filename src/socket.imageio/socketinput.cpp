@@ -34,13 +34,10 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-
-using namespace OpenImageIO;
-
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int socket_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+    DLLEXPORT int socket_imageio_version = OIIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *socket_input_imageio_create () {
         return new SocketInput;
     }

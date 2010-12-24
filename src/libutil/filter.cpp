@@ -36,12 +36,10 @@
 
 #include "filter.h"
 #include "fmath.h"
-using namespace OpenImageIO;
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
 
+OIIO_NAMESPACE_ENTER
+{
 
 // Below are the implementations of several 2D filters.  They all
 // inherit their interface from Filter2D.  Each must redefine two
@@ -419,7 +417,5 @@ Filter2D::destroy (Filter2D *filt)
 }
 
 
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-#endif
+}
+OIIO_NAMESPACE_EXIT

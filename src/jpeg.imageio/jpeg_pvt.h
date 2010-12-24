@@ -49,8 +49,6 @@ struct TIFFDirEntry;
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 class JpgInput : public ImageInput {
  public:
     JpgInput () { init(); }

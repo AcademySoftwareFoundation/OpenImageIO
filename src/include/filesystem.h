@@ -45,12 +45,13 @@
 #define OPENIMAGEIO_FILESYSTEM_H
 
 #include <string>
+
 #include "export.h"
+#include "version.h"
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
+OIIO_NAMESPACE_ENTER
+{
 
 /// @namespace Filesystem
 ///
@@ -91,9 +92,7 @@ DLLPUBLIC bool path_is_absolute (const std::string &path,
 
 };  // namespace Filesystem
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_FILESYSTEM_H

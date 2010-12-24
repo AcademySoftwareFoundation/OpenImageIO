@@ -75,6 +75,7 @@
 #define ___SHA1_HDR___
 
 #include "export.h"
+#include "version.h"
 
 #if !defined(SHA1_UTILITY_FUNCTIONS) && !defined(SHA1_NO_UTILITY_FUNCTIONS)
 #define SHA1_UTILITY_FUNCTIONS
@@ -190,6 +191,9 @@
 ///////////////////////////////////////////////////////////////////////////
 // Declare SHA-1 workspace
 
+OIIO_NAMESPACE_ENTER
+{
+
 typedef union
 {
 	UINT_8 c[64];
@@ -252,5 +256,8 @@ private:
 	UINT_8 m_workspace[64];
 	SHA1_WORKSPACE_BLOCK* m_block; // SHA1 pointer to the byte array above
 };
+
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // ___SHA1_HDR___

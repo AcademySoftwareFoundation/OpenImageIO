@@ -38,9 +38,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
-
 
 class DPXInput : public ImageInput {
 public:
@@ -90,7 +87,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *dpx_input_imageio_create () { return new DPXInput; }
 
-DLLEXPORT int dpx_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int dpx_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * dpx_input_extensions[] = {
     "dpx", NULL

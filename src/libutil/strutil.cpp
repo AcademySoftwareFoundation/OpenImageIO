@@ -42,6 +42,8 @@
 #include "strutil.h"
 
 
+OIIO_NAMESPACE_ENTER
+{
 
 std::string
 Strutil::format (const char *fmt, ...)
@@ -180,3 +182,6 @@ Strutil::get_rest_arguments (const std::string &str, std::string &base,
     return true;
 }
 
+
+}
+OIIO_NAMESPACE_EXIT

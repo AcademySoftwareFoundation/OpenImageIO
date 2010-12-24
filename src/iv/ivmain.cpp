@@ -41,7 +41,6 @@
 #include <boost/foreach.hpp>
 
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "imageviewer.h"
 #include "timer.h"
 #include "argparse.h"
@@ -49,6 +48,7 @@ using namespace OpenImageIO;
 #include "strutil.h"
 #include "imagecache.h"
 
+OIIO_NAMESPACE_USING;
 
 
 static bool verbose = false;
@@ -73,7 +73,7 @@ getargs (int argc, char *argv[])
     bool help = false;
     ArgParse ap;
     ap.options ("iv -- image viewer\n"
-                OPENIMAGEIO_INTRO_STRING "\n"
+                OIIO_INTRO_STRING "\n"
                 "Usage:  iv [options] [filename...]",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",

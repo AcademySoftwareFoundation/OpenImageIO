@@ -38,7 +38,8 @@
 
 #include <string>
 
-using namespace OpenImageIO;
+OIIO_NAMESPACE_USING;
+
 
 namespace {  // make an anon namespace
 
@@ -795,7 +796,6 @@ TEST_F (ColorTransferTest, ColourTransferKodakLog)
 
 
 }; // end anon namespace
-
 
 
 int

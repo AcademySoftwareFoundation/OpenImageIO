@@ -11,9 +11,10 @@ Mac OS X, and Windows.
 Our build system is based upon 'CMake'.  If you don't already have it
 installed on your system, you can get it from http://www.cmake.org
 
-After you build OpenImageIO, you need to set the environment variable
-IMAGEIO_LIBRARY_PATH to point to the 'lib' directory where OpenImageIO
-is installed, or else it will not be able to find the plugins.
+After you build OpenImageIO, if you compiled with the EMBEDPLUGINS=0 flag
+you will need to set the environment variable OIIO_LIBRARY_PATH to point
+to the 'lib' directory where OpenImageIO is installed, or else it will
+not be able to find the plugins.
 
 
 
@@ -62,8 +63,8 @@ Additionally, a few helpful modifiers alter some build-time options:
   make USE_PYTHON=1 ...       Build the Python binding
   make BUILDSTATIC=1 ...      Build static library instead of shared
   make LINKSTATIC=1 ...       Link with static external libraries when possible
-  make SOVERSION=1 ...        Include the major version number in the 
-                                  shared object metadata
+  make SOVERSION=nn ...       Include the specifed major version number in the
+                                shared object metadata
   make NAMESPACE=name         Wrap everything in another namespace
 
 

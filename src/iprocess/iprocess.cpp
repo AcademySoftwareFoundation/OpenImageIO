@@ -46,8 +46,10 @@
 #include "imagebuf.h"
 #include "sysutil.h"
 
-using namespace OpenImageIO;
-using namespace OpenImageIO::ImageBufAlgo;
+
+OIIO_NAMESPACE_USING
+
+using namespace ImageBufAlgo;
 
 static std::string uninitialized = "uninitialized \001 HHRU dfvAS: efjl";
 //static std::string dataformatname = "";
@@ -96,7 +98,7 @@ getargs (int argc, char *argv[])
     bool help = false;
     ArgParse ap;
     ap.options ("iprocess -- simple image processing operations\n"
-                OPENIMAGEIO_INTRO_STRING "\n"
+                OIIO_INTRO_STRING "\n"
                 "Usage:  iprocess [options] inputfile... -o outputfile\n",
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",

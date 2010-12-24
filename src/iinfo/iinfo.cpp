@@ -50,8 +50,9 @@
 #include "imageio.h"
 #include "imagebuf.h"
 
-using namespace OpenImageIO;
-using namespace OpenImageIO::ImageBufAlgo;
+OIIO_NAMESPACE_USING;
+
+using namespace ImageBufAlgo;
 
 
 static bool verbose = false;
@@ -529,7 +530,7 @@ main (int argc, const char *argv[])
 {
     ArgParse ap;
     ap.options ("iinfo -- print information about images\n"
-                OPENIMAGEIO_INTRO_STRING "\n"
+                OIIO_INTRO_STRING "\n"
                 "Usage:  iinfo [options] filename...",
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
@@ -565,7 +566,7 @@ main (int argc, const char *argv[])
     BOOST_FOREACH (const std::string &s, filenames) {
         ImageInput *in = ImageInput::create (s.c_str(), "" /* searchpath */);
         if (! in) {
-            std::string err = OpenImageIO::geterror();
+            std::string err = geterror();
             if (err.empty())
                 err = Strutil::format ("Could not open \"%s\"", s.c_str());
             std::cerr << "iinfo: " << err << "\n";

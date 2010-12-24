@@ -31,6 +31,8 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+namespace OIIO = OIIO_NAMESPACE;
+
 
 namespace bmp_pvt {
 
@@ -89,9 +91,9 @@ BmpFileHeader::isBmp () const
 void
 BmpFileHeader::swap_endian (void)
 {
-    ::swap_endian (&magic);
-    ::swap_endian (&fsize);
-    ::swap_endian (&offset);
+    OIIO::swap_endian (&magic);
+    OIIO::swap_endian (&fsize);
+    OIIO::swap_endian (&offset);
 }
 
 
@@ -174,17 +176,17 @@ DibInformationHeader::write_header (FILE *fd)
 void
 DibInformationHeader::swap_endian ()
 {
-    ::swap_endian (&size);
-    ::swap_endian (&width);
-    ::swap_endian (&height);
-    ::swap_endian (&cplanes);
-    ::swap_endian (&bpp);
-    ::swap_endian (&compression);
-    ::swap_endian (&isize);
-    ::swap_endian (&hres);
-    ::swap_endian (&vres);
-    ::swap_endian (&cpalete);
-    ::swap_endian (&important);
+    OIIO::swap_endian (&size);
+    OIIO::swap_endian (&width);
+    OIIO::swap_endian (&height);
+    OIIO::swap_endian (&cplanes);
+    OIIO::swap_endian (&bpp);
+    OIIO::swap_endian (&compression);
+    OIIO::swap_endian (&isize);
+    OIIO::swap_endian (&hres);
+    OIIO::swap_endian (&vres);
+    OIIO::swap_endian (&cpalete);
+    OIIO::swap_endian (&important);
 }
 
 

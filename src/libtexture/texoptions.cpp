@@ -41,10 +41,12 @@ using namespace std::tr1;
 #include "thread.h"
 #include "fmath.h"
 #include "imageio.h"
-using namespace OpenImageIO;
 
 #include "texture.h"
 
+
+OIIO_NAMESPACE_ENTER
+{
 
 
 namespace {  // anonymous
@@ -169,3 +171,6 @@ TextureOpt::parse_wrapmodes (const char *wrapmodes,
     swrapcode = decode_wrapmode (swrap);
     twrapcode = decode_wrapmode (twrap);
 }
+
+}
+OIIO_NAMESPACE_EXIT

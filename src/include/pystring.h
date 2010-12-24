@@ -37,6 +37,11 @@
 #include <string>
 #include <vector>
 
+#include "version.h"
+
+OIIO_NAMESPACE_ENTER
+{
+
 namespace pystring
 {
     
@@ -286,6 +291,11 @@ namespace pystring
     ///
     /// @ }
     ///
+} // pystring namespace
+
 }
+OIIO_NAMESPACE_EXIT
+
+
 
 #endif // OPENIMAGEIO_PYSTRING_H

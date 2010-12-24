@@ -41,9 +41,9 @@
 #include "imageio.h"
 #include "imageio_pvt.h"
 
-using namespace OpenImageIO;
-using namespace OpenImageIO::pvt;
-
+OIIO_NAMESPACE_ENTER
+{
+    using namespace pvt;
 
 
 bool 
@@ -160,7 +160,7 @@ ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
 bool
 ImageInput::read_image (TypeDesc format, void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride,
-                        OpenImageIO::ProgressCallback progress_callback,
+                        ProgressCallback progress_callback,
                         void *progress_callback_data)
 {
     bool native = (format == TypeDesc::UNKNOWN);
@@ -259,3 +259,6 @@ ImageInput::error (const char *format, ...)
     va_end (ap);
 }
 
+
+}
+OIIO_NAMESPACE_EXIT

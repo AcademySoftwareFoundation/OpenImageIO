@@ -46,7 +46,6 @@ using Imath::Color3f;
 #include "dassert.h"
 #include "argparse.h"
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "imagecache.h"
 #include "imagebuf.h"
 
@@ -54,6 +53,9 @@ using namespace OpenImageIO;
  using std::isinf;
  using std::isnan;
 #endif
+
+
+OIIO_NAMESPACE_USING
 
 
 enum idiffErrors {
@@ -101,7 +103,7 @@ getargs (int argc, char *argv[])
     bool help = false;
     ArgParse ap;
     ap.options ("idiff -- compare two images\n"
-                OPENIMAGEIO_INTRO_STRING "\n"
+                OIIO_INTRO_STRING "\n"
                 "Usage:  idiff [options] image1 image2",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",

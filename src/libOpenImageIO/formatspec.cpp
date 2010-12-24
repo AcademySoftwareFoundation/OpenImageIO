@@ -48,9 +48,9 @@ using boost::algorithm::iequals;
 #include "imageio.h"
 #include "pugixml.hpp"
 
-using namespace OpenImageIO;
 
-
+OIIO_NAMESPACE_ENTER
+{
 
 // Generate the default quantization parameters, templated on the data
 // type.
@@ -908,7 +908,7 @@ ImageSpec::to_xml () const
     xml_document doc;
 
     doc.append_child ().set_name ("ImageSpec");
-    doc.child ("ImageSpec").append_attribute ("version") = OPENIMAGEIO_PLUGIN_VERSION;
+    doc.child ("ImageSpec").append_attribute ("version") = OIIO_PLUGIN_VERSION;
     xml_node node = doc.child ("ImageSpec");
 
     add_node (node, "x", x);
@@ -975,4 +975,8 @@ ImageSpec::from_xml (const char *xml)
     gamma = atof (n.child_value ("gamma"));
     // If version == 11 {fill new fields}
 }
+
+
+}
+OIIO_NAMESPACE_EXIT
 

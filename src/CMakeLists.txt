@@ -1,7 +1,7 @@
 project (OpenImageIO)
-set (OpenImageIO_VERSION_MAJOR 0)
-set (OpenImageIO_VERSION_MINOR 7)
-set (OpenImageIO_VERSION_PATCH 0)
+set (OIIO_VERSION_MAJOR 0)
+set (OIIO_VERSION_MINOR 9)
+set (OIIO_VERSION_PATCH 0)
 
 cmake_minimum_required (VERSION 2.6)
 set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
@@ -27,12 +27,13 @@ set (USE_TBB ON CACHE BOOL "Use TBB if needed")
 set (USE_PYTHON ON CACHE BOOL "Build the Python bindings")
 set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
-set (SOVERSION ${OpenImageIO_VERSION_MAJOR} CACHE STRING "Set the SO version in the SO name of the output library")
-
 set (PYTHON_VERSION 2.6)
 
-if (NOT ${SOVERSION} STREQUAL ${OpenImageIO_VERSION_MAJOR})
-    set (OpenImageIO_VERSION_MAJOR ${SOVERSION})
+if (NOT SOVERSION)
+    set (SOVERSION ${OIIO_VERSION_MAJOR} CACHE STRING "Set the SO version in the SO name of the output library")
+endif ()
+if (NOT ${SOVERSION} STREQUAL ${OIIO_VERSION_MAJOR})
+    set (OIIO_VERSION_MAJOR ${SOVERSION})
 endif ()
 
 if (NOTHREADS)
@@ -46,6 +47,16 @@ set(CMAKE_MODULE_PATH
     "${PROJECT_SOURCE_DIR}/cmake/modules"
     "${PROJECT_SOURCE_DIR}/cmake")
 
+# Set the default namespace
+if(NOT OIIO_NAMESPACE)
+  set(OIIO_NAMESPACE OpenImageIO CACHE STRING
+      "Specify the master OpenImageIO C++ namespace: Options include OpenImageIO OpenImageIO_<YOURFACILITY> etc."
+      FORCE)
+endif(NOT OIIO_NAMESPACE)
+
+message(STATUS "Setting Namespace to: ${OIIO_NAMESPACE}")
+
+
 include (util_macros)
 include (oiio_macros)
 include (platform)
@@ -55,7 +66,10 @@ include (externalpackages)
 # We want CTest for testing
 include (CTest)
 
-include_directories ("include")
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include/
+    ${CMAKE_BINARY_DIR}/include/
+)
 
 # Strict warnings
 if (NOT WIN32)
@@ -64,10 +78,6 @@ endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions ("-DDEBUG=1")
-endif ()
-
-if (OPENIMAGEIO_NAMESPACE)
-    add_definitions ("-DOPENIMAGEIO_NAMESPACE=${OPENIMAGEIO_NAMESPACE}")
 endif ()
 
 # Exec Install Locations
@@ -179,15 +189,15 @@ oiio_add_tests (fits
 
 #########################################################################
 # Packaging
-set (CPACK_PACKAGE_VERSION_MAJOR ${OpenImageIO_VERSION_MAJOR})
-set (CPACK_PACKAGE_VERSION_MINOR ${OpenImageIO_VERSION_MINOR})
-set (CPACK_PACKAGE_VERSION_PATCH ${OpenImageIO_VERSION_PATCH})
+set (CPACK_PACKAGE_VERSION_MAJOR ${OIIO_VERSION_MAJOR})
+set (CPACK_PACKAGE_VERSION_MINOR ${OIIO_VERSION_MINOR})
+set (CPACK_PACKAGE_VERSION_PATCH ${OIIO_VERSION_PATCH})
 # "Vendor" is only used in copyright notices, so we use the same thing that
 # the rest of the copyright notices say.
 set (CPACK_PACKAGE_VENDOR "Larry Gritz et al.")
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities.")
 set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/doc/Description.txt")
-set (CPACK_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-${platform})
+set (CPACK_PACKAGE_FILE_NAME OpenImageIO-${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}-${platform})
 #SET (CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_SOURCE_DIR}/..)
 exec_program ("cmake -E copy ${PROJECT_SOURCE_DIR}/../LICENSE ${CMAKE_BINARY_DIR}/License.txt")
 set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/License.txt")
@@ -211,7 +221,7 @@ if (WIN32)
     add_dll_files ()
     include (InstallRequiredSystemLibraries)
 endif ()
-set (CPACK_SOURCE_PACKAGE_FILE_NAME OpenImageIO-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}-source)
+set (CPACK_SOURCE_PACKAGE_FILE_NAME OpenImageIO-${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}-source)
 #set (CPACK_SOURCE_STRIP_FILES Do we need this?)
 set (CPACK_SOURCE_IGNORE_FILES ".*~")
 set (CPACK_COMPONENT_UNSPECIFIED_HIDDEN TRUE)

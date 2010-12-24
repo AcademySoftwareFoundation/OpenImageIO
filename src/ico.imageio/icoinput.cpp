@@ -44,7 +44,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
 using namespace ICO_pvt;
 
 class ICOInput : public ImageInput {
@@ -107,7 +106,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *ico_input_imageio_create () { return new ICOInput; }
 
-DLLEXPORT int ico_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int ico_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * ico_input_extensions[] = {
     "ico", NULL

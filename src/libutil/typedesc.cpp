@@ -40,9 +40,8 @@
 #include "typedesc.h"
 
 
-// FIXME: We should clearly be using a namespace. 
-// using namespace blah;
-
+OIIO_NAMESPACE_ENTER
+{
 
 TypeDesc::TypeDesc (const char *typestring)
     : basetype(UNKNOWN), aggregate(SCALAR), vecsemantics(NOXFORM),
@@ -267,3 +266,6 @@ const TypeDesc TypeDesc::TypeMatrix (TypeDesc::FLOAT,TypeDesc::MATRIX44);
 const TypeDesc TypeDesc::TypeString (TypeDesc::STRING);
 const TypeDesc TypeDesc::TypeInt (TypeDesc::INT);
 
+
+}
+OIIO_NAMESPACE_EXIT

@@ -29,7 +29,6 @@
 */
 
 #include "imageviewer.h"
-using namespace OpenImageIO;
 
 #include <iostream>
 #include <cmath>
@@ -47,7 +46,6 @@ using namespace OpenImageIO;
 #include "timer.h"
 #include "fmath.h"
 #include "sysutil.h"
-
 
 
 ImageViewer::ImageViewer ()

@@ -6,6 +6,10 @@ set (public_headers argparse.h dassert.h errorhandler.h export.h
                     colortransfer.h pugixml.hpp pugiconfig.hpp
     )
 
+message(STATUS "Create version.h from version.h.in")
+configure_file(version.h.in ${CMAKE_BINARY_DIR}/include/version.h @ONLY)
+list(APPEND public_headers ${CMAKE_BINARY_DIR}/include/version.h)
+
 install (FILES ${public_headers} DESTINATION include/OpenImageIO
          COMPONENT developer)
 

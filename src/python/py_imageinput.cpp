@@ -34,7 +34,6 @@ namespace PyOpenImageIO
 {
 
 using namespace boost::python;
-using namespace OpenImageIO;
 
 object ImageInputWrap::create(const std::string &filename, 
                 const std::string &plugin_searchpath="") 

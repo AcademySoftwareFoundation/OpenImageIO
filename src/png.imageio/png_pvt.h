@@ -59,9 +59,7 @@ http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/00058
 http://lists.openimageio.org/pipermail/oiio-dev-openimageio.org/2009-April/000656.html
 */
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace PNG_pvt {
 
@@ -92,7 +90,7 @@ create_read_struct (png_structp& sp, png_infop& ip)
 /// Helper function - reads background colour.
 ///
 inline bool
-get_background (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
+get_background (png_structp& sp, png_infop& ip, ImageSpec& spec,
                 int& bit_depth, float *red, float *green, float *blue)
 {
     if (setjmp (png_jmpbuf (sp)))
@@ -128,7 +126,7 @@ get_background (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
 inline void
 read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
            int& interlace_type,
-           Imath::Color3f& bg, OpenImageIO::ImageSpec& spec)
+           Imath::Color3f& bg, ImageSpec& spec)
 {
     png_read_info (sp, ip);
 
@@ -147,21 +145,21 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                   &bit_depth, &color_type, NULL, NULL, NULL);
     
 
-    spec = OpenImageIO::ImageSpec ((int)width, (int)height, 
-                        png_get_channels (sp, ip),
-                        bit_depth == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
+    spec = ImageSpec ((int)width, (int)height, 
+                       png_get_channels (sp, ip),
+                       bit_depth == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
 
     spec.default_channel_names ();
 
     double gamma;
     if (png_get_gAMA (sp, ip, &gamma)) {
         spec.gamma = (float) gamma;
-        spec.linearity = (gamma == 1) ? OpenImageIO::ImageSpec::Linear 
-                                      : OpenImageIO::ImageSpec::GammaCorrected;
+        spec.linearity = (gamma == 1) ? ImageSpec::Linear 
+                                      : ImageSpec::GammaCorrected;
     }
     int srgb_intent;
     if (png_get_sRGB (sp, ip, &srgb_intent)) {
-        spec.linearity = OpenImageIO::ImageSpec::sRGB;
+        spec.linearity = ImageSpec::sRGB;
     }
     png_timep mod_time;
     if (png_get_tIME (sp, ip, &mod_time)) {
@@ -224,7 +222,7 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 /// \return empty string on success, error message on failure.
 ///
 inline const std::string
-read_into_buffer (png_structp& sp, png_infop& ip, OpenImageIO::ImageSpec& spec,
+read_into_buffer (png_structp& sp, png_infop& ip, ImageSpec& spec,
                   int& bit_depth, int& color_type, std::vector<unsigned char>& buffer)
 {
     // Must call this setjmp in every function that does PNG reads
@@ -293,7 +291,7 @@ destroy_read_struct (png_structp& sp, png_infop& ip)
 ///
 inline const std::string
 create_write_struct (png_structp& sp, png_infop& ip, int& color_type,
-                     OpenImageIO::ImageSpec& spec)
+                     ImageSpec& spec)
 {
     // Check for things this format doesn't support
     if (spec.width < 1 || spec.height < 1)
@@ -417,11 +415,11 @@ put_parameter (png_structp& sp, png_infop& ip, const std::string &_name,
 
 
 
-/// Writes PNG header according to the OpenImageIO::ImageSpec.
+/// Writes PNG header according to the ImageSpec.
 ///
 inline void
 write_info (png_structp& sp, png_infop& ip, int& color_type,
-            OpenImageIO::ImageSpec& spec, std::vector<png_text>& text)
+            ImageSpec& spec, std::vector<png_text>& text)
 {
     // Force either 16 or 8 bit integers
     if (spec.format == TypeDesc::UINT8 || spec.format == TypeDesc::INT8)
@@ -436,15 +434,15 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
     png_set_oFFs (sp, ip, spec.x, spec.y, PNG_OFFSET_PIXEL);
 
     switch (spec.linearity) {
-    case OpenImageIO::ImageSpec::UnknownLinearity :
+    case ImageSpec::UnknownLinearity :
         break;
-    case OpenImageIO::ImageSpec::Linear :
+    case ImageSpec::Linear :
         png_set_gAMA (sp, ip, 1.0);
         break;
-    case OpenImageIO::ImageSpec::GammaCorrected :
+    case ImageSpec::GammaCorrected :
         png_set_gAMA (sp, ip, spec.gamma);
         break;
-    case OpenImageIO::ImageSpec::sRGB :
+    case ImageSpec::sRGB :
         png_set_sRGB_gAMA_and_cHRM (sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
         break;
     default:
@@ -462,7 +460,7 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
         spec.attribute ("DateTime", date);
     }
 
-    OpenImageIO::ImageIOParameter *unit=NULL, *xres=NULL, *yres=NULL;
+    ImageIOParameter *unit=NULL, *xres=NULL, *yres=NULL;
     if ((unit = spec.find_attribute("ResolutionUnit", TypeDesc::STRING)) &&
         (xres = spec.find_attribute("XResolution", TypeDesc::FLOAT)) &&
         (yres = spec.find_attribute("YResolution", TypeDesc::FLOAT))) {
@@ -548,9 +546,6 @@ destroy_write_struct (png_structp& sp, png_infop& ip)
 
 };  // namespace PNG_pvt
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+OIIO_PLUGIN_NAMESPACE_END
 
 #endif  // OPENIMAGEIO_PNG_PVT_H

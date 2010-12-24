@@ -35,10 +35,11 @@
 #include <limits>
 
 #include "imagebuf.h"
-using namespace OpenImageIO;
-using namespace ImageBufAlgo;
-
 #include "dassert.h"
+
+OIIO_NAMESPACE_ENTER
+{
+    using namespace ImageBufAlgo;
 
 
 bool 
@@ -347,3 +348,6 @@ ImageBufAlgo::computePixelStats (PixelStats  &stats, const ImageBuf &src)
     
     return true;
 };
+
+}
+OIIO_NAMESPACE_EXIT

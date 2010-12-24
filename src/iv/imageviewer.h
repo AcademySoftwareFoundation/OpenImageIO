@@ -45,7 +45,8 @@
 
 #include "imageio.h"
 #include "imagebuf.h"
-using namespace OpenImageIO;
+
+OIIO_NAMESPACE_USING;
 
 class IvMainWindow;
 class IvInfoWindow;
@@ -67,7 +68,7 @@ public:
     /// buffer.
     virtual bool read (int subimage=0, int miplevel=0,
                        bool force=false, TypeDesc format = TypeDesc::UNKNOWN,
-                       OpenImageIO::ProgressCallback progress_callback=NULL,
+                       ProgressCallback progress_callback=NULL,
                        void *progress_callback_data=NULL, bool secondary_buffer=false);
     virtual bool init_spec (const std::string &filename,
                             int subimage, int miplevel);

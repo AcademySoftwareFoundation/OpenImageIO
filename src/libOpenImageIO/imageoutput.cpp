@@ -45,9 +45,10 @@
 #include "imageio.h"
 #include "imageio_pvt.h"
 
-using namespace OpenImageIO;
-using namespace OpenImageIO::pvt;
 
+OIIO_NAMESPACE_ENTER
+{
+    using namespace pvt;
 
 
 int
@@ -212,7 +213,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
 bool
 ImageOutput::write_image (TypeDesc format, const void *data,
                           stride_t xstride, stride_t ystride, stride_t zstride,
-                          OpenImageIO::ProgressCallback progress_callback,
+                          ProgressCallback progress_callback,
                           void *progress_callback_data)
 {
     bool native = (format == TypeDesc::UNKNOWN);
@@ -335,3 +336,6 @@ ImageOutput::copy_image (ImageInput *in)
         ok = write_image (format, &pixels[0]);
     return ok;
 }
+
+}
+OIIO_NAMESPACE_EXIT

@@ -39,7 +39,9 @@
 #include "thread.h"
 
 
-using namespace OpenImageIO;
+
+OIIO_NAMESPACE_ENTER
+{
 
 
 
@@ -219,3 +221,6 @@ ErrorHandler::operator() (int errcode, const std::string &msg)
     fflush (stdout);
     fflush (stderr);
 }
+
+}
+OIIO_NAMESPACE_EXIT

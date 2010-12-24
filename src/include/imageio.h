@@ -52,77 +52,10 @@
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
 #include "colortransfer.h"
+#include "version.h"
 
-
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-/// @namespace OpenImageIO
-/// @brief Main namespace enclosing most OpenImageIO functionality.
-namespace OpenImageIO {
-
-
-// Versioning of the OpenImageIO software
-#define OPENIMAGEIO_VERSION_MAJOR  0
-#define OPENIMAGEIO_VERSION_MINOR  9
-#define OPENIMAGEIO_VERSION_PATCH  0
-#define OPENIMAGEIO_VERSION (10000 * OPENIMAGEIO_VERSION_MAJOR + \
-                               100 * OPENIMAGEIO_VERSION_MINOR + \
-                                     OPENIMAGEIO_VERSION_PATCH)
-
-// Magic macros to make OPENIMAGEIO_VERSION_STRING that looks like "1.2.3"
-#define OIIO_MAKE_VERSION_STRING2(a,b,c) #a "." #b "." #c
-#define OIIO_MAKE_VERSION_STRING(a,b,c) OIIO_MAKE_VERSION_STRING2(a,b,c)
-#define OPENIMAGEIO_VERSION_STRING \
-    OIIO_MAKE_VERSION_STRING(OPENIMAGEIO_VERSION_MAJOR, \
-                         OPENIMAGEIO_VERSION_MINOR, OPENIMAGEIO_VERSION_PATCH)
-
-#define OPENIMAGEIO_INTRO_STRING "OpenImageIO " OPENIMAGEIO_VERSION_STRING " http://www.openimageio.org"
-
-
-
-
-/// Each imageio DSO/DLL should include this statement:
-///      DLLPUBLIC int FORMAT_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
-/// libOpenImageIO will check for compatibility this way.
-/// This should get bumped any time we change the API in any way that
-/// will make previously-compiled plugins break.
-///
-/// History:
-/// Version 3 added supports_rectangles() and write_rectangle() to
-/// ImageOutput, and added stride parameters to the ImageInput read
-/// routines.
-/// Version 10 represents forking from NVIDIA's open source version,
-/// with which we break backwards compatibility.
-/// Version 11 teased apart subimage versus miplevel specification in
-/// the APIs and per-channel formats (introduced in OIIO 0.9).
-#define OPENIMAGEIO_PLUGIN_VERSION 11
-
-/// Strictly for back-compatibility -- this is deprecated
-///
-#define IMAGEIO_VERSION OPENIMAGEIO_PLUGIN_VERSION
-
-#ifdef OPENIMAGEIO_NAMESPACE
-#define OIIO_NAMESPACE_BEGIN namespace OPENIMAGEIO_NAMESPACE {
-#define OIIO_NAMESPACE_END }
-#else
-#define OIIO_NAMESPACE_BEGIN
-#define OIIO_NAMESPACE_END
-#endif
-
-#ifdef EMBED_PLUGINS
-#define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_BEGIN
-#define OIIO_PLUGIN_NAMESPACE_END OIIO_NAMESPACE_END
-#define OIIO_PLUGIN_EXPORTS_BEGIN
-#define OIIO_PLUGIN_EXPORTS_END
-#else
-#define OIIO_PLUGIN_NAMESPACE_BEGIN
-#define OIIO_PLUGIN_NAMESPACE_END
-#define OIIO_PLUGIN_EXPORTS_BEGIN extern "C" {
-#define OIIO_PLUGIN_EXPORTS_END }
-#endif
+OIIO_NAMESPACE_ENTER
+{
 
 /// Type we use for stride lengths.  This is only used to designate
 /// pixel, scanline, tile, or image plane sizes in user-allocated memory,
@@ -895,7 +828,7 @@ DLLPUBLIC std::string geterror ();
 
 /// Deprecated
 ///
-inline std::string error_message () { return OpenImageIO::geterror (); }
+inline std::string error_message () { return geterror (); }
 
 /// Helper routine: quantize a value to an integer given the
 /// quantization parameters.
@@ -988,12 +921,7 @@ DLLPUBLIC void _ImageIO_force_link ();
 typedef ImageSpec ImageIOFormatSpec;
 
 
-}; /* end namespace OpenImageIO */
-
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif  // OPENIMAGEIO_IMAGEIO_H
