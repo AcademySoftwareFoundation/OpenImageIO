@@ -28,6 +28,9 @@ API changes:
   existing "b-spline" and "catmull-rom" fileters. (r1542)
 * Add methods to ImageSpec to read/write an XML representation of the
   ImageSpec (r1574).
+* Finally put all the helper classes (ustring, TypeDesc, etc.) that were
+  in the main OpenImageIO namespace, as well as centralized version numbering
+  and custom namespace control.
 
 Fixes, minor enhancements, and performance improvements:
 
