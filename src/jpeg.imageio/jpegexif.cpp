@@ -55,8 +55,6 @@ extern "C" {
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 namespace Jpeg_imageio_pvt {
 
 

@@ -33,7 +33,6 @@
 #include <cmath>
 
 #include "dds_pvt.h"
-using namespace DDS_pvt;
 
 #include "dassert.h"
 #include "typedesc.h"
@@ -44,7 +43,7 @@ using namespace DDS_pvt;
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
+using namespace DDS_pvt;
 
 // uncomment the following define to enable 3x2 cube map layout
 //#define DDS_3X2_CUBE_MAP_LAYOUT
@@ -124,7 +123,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *dds_input_imageio_create () { return new DDSInput; }
 
-DLLEXPORT int dds_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int dds_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * dds_input_extensions[] = {
     "dds", NULL

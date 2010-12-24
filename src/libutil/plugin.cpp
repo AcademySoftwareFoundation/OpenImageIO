@@ -42,6 +42,9 @@
 #include "plugin.h"
 
 
+OIIO_NAMESPACE_ENTER
+{
+
 using namespace Plugin;
 
 // FIXME: this implementation doesn't set error messages for Windows.
@@ -128,3 +131,6 @@ Plugin::geterror (void)
     last_error.clear ();
     return e;
 }
+
+}
+OIIO_NAMESPACE_EXIT

@@ -32,13 +32,10 @@
 #define OPENIMAGEIO_COLORTRANSFER_H
 
 #include "export.h"
+#include "version.h"
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-namespace OpenImageIO {
-
+OIIO_NAMESPACE_ENTER
+{
 
 /// Base class a functor that remaps values accorrding to a color
 /// transfer function.
@@ -86,11 +83,8 @@ protected:
     
 };
 
-};  // end namespace OpenImageIO
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_COLORTRANSFER_H

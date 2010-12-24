@@ -173,10 +173,11 @@ if (EMBEDPLUGINS)
 endif ()
 
 if (SOVERSION)
+message(STATUS "Setting SOVERSION to: ${SOVERSION}")
 set_target_properties(OpenImageIO
                          PROPERTIES
-                         VERSION ${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR}.${OpenImageIO_VERSION_PATCH}
-                         SOVERSION ${OpenImageIO_VERSION_MAJOR}
+                         VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
+                         SOVERSION ${SOVERSION}
                      )
 endif ()
 

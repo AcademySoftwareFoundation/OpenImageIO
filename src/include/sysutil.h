@@ -41,13 +41,13 @@
 #define OPENIMAGEIO_SYSUTIL_H
 
 #include "export.h"
+#include "version.h"
 
 /// allocates memory, equivalent of C99 type var_name[size]
 #define ALLOCA(type, size) ((type*)alloca((size) * sizeof (type)))
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
+OIIO_NAMESPACE_ENTER
+{
 
 /// @namespace  Sysutil
 ///
@@ -75,9 +75,7 @@ DLLPUBLIC void usleep (unsigned long useconds);
 
 };  // namespace Sysutils
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_SYSUTIL_H

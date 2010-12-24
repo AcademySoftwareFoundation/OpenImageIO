@@ -33,7 +33,6 @@
 namespace PyOpenImageIO
 {
 using namespace boost::python;
-using namespace OpenImageIO;
 
 // constructors
 ImageBufWrap::ImageBufWrap (const std::string &name, 

@@ -41,7 +41,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
 using namespace TGA_pvt;
 
 
@@ -98,7 +97,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *targa_input_imageio_create () { return new TGAInput; }
 
-DLLEXPORT int targa_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int targa_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * targa_input_extensions[] = {
     "tga", NULL

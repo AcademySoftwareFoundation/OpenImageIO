@@ -619,7 +619,7 @@ about search paths for finding plugins that implement \ImageOutput.
 
 In a similar fashion, calls to {\cf ImageOutput::create()}
 will search for plugins in each directory listed in the environment
-variable {\cf OPENIMAGEIO_LIBRARY_PATH}, in the order that they are listed.
+variable {\cf OIIO_LIBRARY_PATH}, in the order that they are listed.
 If no adequate plugin is found, then it will check the custom searchpath
 passed as the optional second argument to {\cf ImageInput::create()}.
 Here is an example:

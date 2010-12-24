@@ -32,14 +32,13 @@
 /// @file varyingref.h
 /// @Brief Define the VaryingRef class.
 
-
 #ifndef OPENIMAGEIO_VARYINGREF_H
 #define OPENIMAGEIO_VARYINGREF_H
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
+#include "version.h"
 
+OIIO_NAMESPACE_ENTER
+{
 
 /// VaryingRef is a templated class (on class T) that holds either a
 /// pointer to a single T value, or an "array" of T values, each
@@ -233,9 +232,7 @@ template<class T>
 VaryingRef<T> Uniform (T &x) { return VaryingRef<T> (&x, 0); }
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_VARYINGREF_H

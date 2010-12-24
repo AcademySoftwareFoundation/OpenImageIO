@@ -42,7 +42,6 @@ extern "C" {
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
 using namespace Jpeg_imageio_pvt;
 
 
@@ -54,7 +53,7 @@ using namespace Jpeg_imageio_pvt;
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int jpeg_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+    DLLEXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *jpeg_input_imageio_create () {
         return new JpgInput;
     }
@@ -138,7 +137,7 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
             std::cerr << "Found APP1 XMP! length " << m->data_length << "\n";
 #endif
             std::string xml ((const char *)m->data, m->data_length);
-            OpenImageIO::decode_xmp (xml, m_spec);
+            decode_xmp (xml, m_spec);
         }
         else if (m->marker == (JPEG_APP0+13) &&
                 ! strcmp ((const char *)m->data, "Photoshop 3.0"))
@@ -238,7 +237,7 @@ JpgInput::jpeg_decode_iptc (const unsigned char *buf)
     int segmentsize = (buf[0] << 8) + buf[1];
     buf += 2;
 
-    OpenImageIO::decode_iptc_iim (buf, segmentsize, m_spec);
+    decode_iptc_iim (buf, segmentsize, m_spec);
 }
 
 OIIO_PLUGIN_NAMESPACE_END

@@ -62,8 +62,6 @@ using boost::algorithm::istarts_with;
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 
 class OpenEXROutput : public ImageOutput {
 public:
@@ -119,7 +117,7 @@ openexr_output_imageio_create ()
     return new OpenEXROutput;
 }
 
-DLLEXPORT int openexr_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * openexr_output_extensions[] = {
     "exr", NULL

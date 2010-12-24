@@ -47,8 +47,6 @@ using boost::algorithm::iequals;
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 
 class TIFFOutput : public ImageOutput {
 public:
@@ -91,7 +89,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *tiff_output_imageio_create () { return new TIFFOutput; }
 
-DLLEXPORT int tiff_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * tiff_output_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
@@ -270,7 +268,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         TIFFSetField (m_tif, TIFFTAG_RICHTIFFIPTC, iptc.size()/4, &iptc[0]);
     }
 
-    std::string xmp = OpenImageIO::encode_xmp (m_spec, true);
+    std::string xmp = encode_xmp (m_spec, true);
     if (! xmp.empty())
         TIFFSetField (m_tif, TIFFTAG_XMLPACKET, xmp.size(), xmp.c_str());
 

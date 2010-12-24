@@ -38,6 +38,8 @@
 #include "boosttest.h"
 
 
+OIIO_NAMESPACE_USING;
+
 // How do we test atomics?  Run a whole bunch of threads, incrementing
 // and decrementing the crap out of it, and make sure it has the right
 // value at the end.

@@ -45,16 +45,11 @@
 #include <cstddef>
 
 #include "export.h"
+#include "version.h"
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-// FIXME: We should clearly put this in a namespace.
-// namespace blah {
-
-
+OIIO_NAMESPACE_ENTER
+{
 
 /////////////////////////////////////////////////////////////////////////////
 /// A TypeDesc describes simple data types.
@@ -281,15 +276,7 @@ typedef TypeDesc ParamBaseType;
 #define PT_VECTOR TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::VECTOR)
 #define PT_NORMAL TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC3,TypeDesc::NORMAL)
 
-
-
-
-// FIXME: We should clearly put this in a namespace.
-// }; // end namespace
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif /* !defined(OPENIMAGEIO_TYPEDESC_H) */

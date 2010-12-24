@@ -33,12 +33,10 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int jpeg2000_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+    DLLEXPORT int jpeg2000_imageio_version = OIIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *jpeg2000_input_imageio_create () {
         return new Jpeg2000Input;
     }

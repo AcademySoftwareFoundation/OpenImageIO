@@ -37,9 +37,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
-
 
 class CineonInput : public ImageInput {
 public:
@@ -78,7 +75,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *cineon_input_imageio_create () { return new CineonInput; }
 
-DLLEXPORT int cineon_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int cineon_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * cineon_input_extensions[] = {
     "cin", NULL

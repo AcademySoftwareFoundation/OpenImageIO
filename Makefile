@@ -79,7 +79,7 @@ MY_CMAKE_FLAGS += -DNOTHREADS:BOOL=${NOTHREADS}
 endif
 
 ifneq (${NAMESPACE},)
-MY_CMAKE_FLAGS += -DOPENIMAGEIO_NAMESPACE:STRING=${NAMESPACE}
+MY_CMAKE_FLAGS += -DOIIO_NAMESPACE:STRING=${NAMESPACE}
 endif
 
 ifneq (${USE_PYTHON},)
@@ -99,7 +99,7 @@ MY_CMAKE_FLAGS += -DLINKSTATIC:BOOL=${LINKSTATIC}
 endif
 
 ifneq (${SOVERSION},)
-MY_CMAKE_FLAGS += -DSOVERSION:BOOL=${SOVERSION}
+MY_CMAKE_FLAGS += -DSOVERSION:STRING=${SOVERSION}
 endif
 
 ifdef DEBUG
@@ -232,7 +232,7 @@ help:
 	@echo "  make USE_PYTHON=1 ...       Build the Python binding"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
-	@echo "  make SOVERSION=1 ...        Include the major version number in the shared object metadata"
+	@echo "  make SOVERSION=nn ...        Include the specifed major version number in the shared object metadata"
 	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
 	@echo ""
 

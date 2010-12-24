@@ -46,9 +46,6 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-using namespace OpenImageIO;
-
-
 // Helper struct for constructing tables of TIFF tags
 struct TIFF_tag_info {
     int tifftag;       // TIFF tag used for this info
@@ -232,7 +229,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *tiff_input_imageio_create () { return new TIFFInput; }
 
-// DLLEXPORT int tiff_imageio_version = OPENIMAGEIO_PLUGIN_VERSION; // it's in tiffoutput.cpp
+// DLLEXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION; // it's in tiffoutput.cpp
 
 DLLEXPORT const char * tiff_input_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
@@ -626,7 +623,7 @@ TIFFInput::readspec ()
         std::vector<uint32> iptc ((uint32 *)iptcdata, (uint32 *)iptcdata+iptcsize);
         if (TIFFIsByteSwapped (m_tif))
             TIFFSwabArrayOfLong ((uint32*)&iptc[0], iptcsize);
-        OpenImageIO::decode_iptc_iim (&iptc[0], iptcsize*4, m_spec);
+        decode_iptc_iim (&iptc[0], iptcsize*4, m_spec);
     }
 #endif
 
@@ -637,7 +634,7 @@ TIFFInput::readspec ()
         // std::cerr << "Found XML data, size " << xmlsize << "\n";
         if (xmldata && xmlsize) {
             std::string xml ((const char *)xmldata, xmlsize);
-            OpenImageIO::decode_xmp (xml, m_spec);
+            decode_xmp (xml, m_spec);
         }
     }
 

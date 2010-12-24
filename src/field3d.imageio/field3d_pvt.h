@@ -29,14 +29,10 @@
 */
 
 
-OIIO_PLUGIN_NAMESPACE_BEGIN
+OIIO_NAMESPACE_ENTER
+{
 
-using namespace OpenImageIO;
-namespace OpenImageIO {
 namespace pvt {
-
-
-
 
 // Define an abstract interface that allows us to get special information
 // from the Field3DInput.
@@ -49,9 +45,8 @@ public:
                                float time) const = 0;
 };
 
-
-
 }; // end namespace pvt
-}; // end namespace OpenImageIO
-OIIO_PLUGIN_NAMESPACE_END
+
+}
+OIIO_NAMESPACE_EXIT
 

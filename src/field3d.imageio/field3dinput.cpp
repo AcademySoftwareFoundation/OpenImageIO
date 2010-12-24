@@ -55,10 +55,6 @@ using namespace FIELD3D_NS;
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
-
-namespace OpenImageIO {
 namespace pvt {
 
 spin_mutex &field3d_mutex () {
@@ -66,8 +62,9 @@ spin_mutex &field3d_mutex () {
     return m;
 }
 
-}; };
-using namespace OpenImageIO::pvt;
+};
+
+using namespace pvt;
 
 
 
@@ -139,7 +136,7 @@ field3d_input_imageio_create ()
     return new Field3DInput;
 }
 
-// DLLEXPORT int field3d_imageio_version = OPENIMAGEIO_PLUGIN_VERSION; // it's in field3doutput.cpp
+// DLLEXPORT int field3d_imageio_version = OIIO_PLUGIN_VERSION; // it's in field3doutput.cpp
 
 DLLEXPORT const char * field3d_input_extensions[] = {
     "f3d", NULL

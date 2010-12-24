@@ -35,6 +35,7 @@
 #include <cstdarg>
 
 #include "export.h"
+#include "version.h"
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS  /* See comments in strutil.h */
 #   ifndef __GNUC__
@@ -44,12 +45,8 @@
         __attribute__ ((format (printf, fmtarg_pos, vararg_pos) ))
 #endif
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-namespace OpenImageIO {
-
+OIIO_NAMESPACE_ENTER
+{
 
 /// ErrorHandler is a simple class that accepts error messages
 /// (classified as errors, severe errors, warnings, info, messages, or
@@ -169,14 +166,7 @@ private:
     int m_verbosity;
 };
 
-
-
-};  // namespace OpenImageIO
-
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif /* !defined(OPENIMAGEIO_ERRORMANAGER_H) */

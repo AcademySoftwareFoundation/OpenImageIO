@@ -37,8 +37,8 @@
 #include "paramlist.h"
 
 
-// FIXME: We should clearly be using a namespace.  But maybe not "Gelato".
-// using namespace Gelato;
+OIIO_NAMESPACE_ENTER
+{
 
 
 void
@@ -95,3 +95,6 @@ ParamValue::clear_value ()
     m_copy = false;
     m_nonlocal = false;
 }
+
+}
+OIIO_NAMESPACE_EXIT

@@ -33,10 +33,7 @@
 #include "fmath.h"
 #include "boosttest.h"
 
-using namespace OpenImageIO;
-
-
-
+OIIO_NAMESPACE_USING;
 
 
 BOOST_AUTO_TEST_CASE (test_imagespec_pixels)

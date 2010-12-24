@@ -39,6 +39,7 @@
 #include "boosttest.h"
 
 
+OIIO_NAMESPACE_USING;
 
 // Test ustring's internal locks by creating a bunch of strings in many
 // threads simultaneously.  Hopefully something will crash if the 

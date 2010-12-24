@@ -34,10 +34,8 @@
 #include "fmath.h"
 
 
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
 
 namespace DDS_pvt {
 
@@ -134,10 +132,8 @@ typedef struct {
 
 };  // namespace DDS_pvt
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+
+OIIO_PLUGIN_NAMESPACE_END
 
 
 #endif // OPENIMAGEIO_DDS_PVT_H

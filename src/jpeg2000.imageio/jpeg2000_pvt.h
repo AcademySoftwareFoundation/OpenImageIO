@@ -49,8 +49,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 
 class Jpeg2000Input : public ImageInput {
  public:

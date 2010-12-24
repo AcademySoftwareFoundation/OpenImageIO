@@ -35,12 +35,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+namespace OIIO = OIIO_NAMESPACE;
+
 
 
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT int softimage_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int softimage_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -52,12 +54,12 @@ namespace softimage_pvt {
 void
 PicFileHeader::swap_endian()
 {
-    ::swap_endian (&magic);
-    ::swap_endian (&width);
-    ::swap_endian (&height);
-    ::swap_endian (&version);
-    ::swap_endian (&ratio);
-    ::swap_endian (&fields);
+    OIIO::swap_endian (&magic);
+    OIIO::swap_endian (&width);
+    OIIO::swap_endian (&height);
+    OIIO::swap_endian (&version);
+    OIIO::swap_endian (&ratio);
+    OIIO::swap_endian (&fields);
 }
 
 

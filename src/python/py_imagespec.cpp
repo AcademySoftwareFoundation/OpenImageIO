@@ -33,7 +33,6 @@
 namespace PyOpenImageIO
 {
 using namespace boost::python;
-using namespace OpenImageIO;
 using namespace std;
 
 /// Accessor for channelnames, converts a vector<string> to a tuple
@@ -120,7 +119,7 @@ void declare_imagespec()
             make_getter(&ImageSpec::extra_attribs))//ImageIOParameterList
         .def(init<int, int, int, TypeDesc>())
         .def(init<TypeDesc>())
-        .def(init<const OpenImageIO::ImageSpec&>())
+        .def(init<const ImageSpec&>())
         .def("set_format",              &ImageSpec::set_format)
         .def("default_channel_names",   &ImageSpec::default_channel_names)
         .def("format_from_quantize",    &ImageSpec::format_from_quantize)

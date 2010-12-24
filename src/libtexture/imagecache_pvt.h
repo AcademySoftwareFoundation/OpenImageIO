@@ -39,11 +39,10 @@
 #include "texture.h"
 #include "refcnt.h"
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
 
-namespace OpenImageIO {
+OIIO_NAMESPACE_ENTER
+{
+
 namespace pvt {
 
 #ifdef DEBUG
@@ -952,12 +951,10 @@ private:
 
 
 
-};  // end namespace OpenImageIO::pvt
-};  // end namespace OpenImageIO
+};  // end namespace pvt
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
+
 
 #endif // OPENIMAGEIO_IMAGECACHE_PVT_H

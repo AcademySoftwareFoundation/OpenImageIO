@@ -48,15 +48,16 @@ using namespace std::tr1;
 #include "fmath.h"
 #include "filter.h"
 #include "imageio.h"
-using namespace OpenImageIO;
 
 #include "texture.h"
 
 #include "imagecache.h"
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
-using namespace OpenImageIO;
-using namespace OpenImageIO::pvt;
+
+OIIO_NAMESPACE_ENTER
+{
+    using namespace pvt;
 
 
 namespace {  // anonymous
@@ -66,16 +67,6 @@ static mutex shared_texsys_mutex;
 static EightBitConverter<float> uchar2float;
 
 };  // end anonymous namespace
-
-
-
-
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-namespace OpenImageIO {
 
 
 TextureSystem *
@@ -112,7 +103,7 @@ TextureSystem::destroy (TextureSystem *x)
 
 
 
-namespace pvt {   // namespace OpenImageIO::pvt
+namespace pvt {   // namespace pvt
 
 
 
@@ -1568,9 +1559,7 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
 }
 
 
-};  // end namespace OpenImageIO::pvt
-};  // end namespace OpenImageIO
+};  // end namespace pvt
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-#endif
+}
+OIIO_NAMESPACE_EXIT

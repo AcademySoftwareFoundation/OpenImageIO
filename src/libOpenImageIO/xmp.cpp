@@ -40,20 +40,14 @@ using boost::algorithm::iequals;
 #include "strutil.h"
 #include "fmath.h"
 #include "imageio.h"
-using namespace OpenImageIO;
 
 #define DEBUG_XMP_READ  0
 #define DEBUG_XMP_WRITE 0
 
 #define MY_ENCODING "ISO-8859-1"
 
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-namespace OpenImageIO {
-
+OIIO_NAMESPACE_ENTER
+{
 
 namespace {  // anonymous
 
@@ -497,9 +491,6 @@ encode_xmp (const ImageSpec &spec, bool minimal)
 }
 
 
-};  // namespace OpenImageIO
-
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-#endif
+}
+OIIO_NAMESPACE_EXIT
 

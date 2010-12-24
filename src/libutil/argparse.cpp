@@ -43,12 +43,8 @@
 #include "strutil.h"
 #include "argparse.h"
 
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-
+OIIO_NAMESPACE_ENTER
+{
 
 class ArgOption {
 public:
@@ -512,6 +508,5 @@ ArgParse::command_line () const
 
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-#endif
+}
+OIIO_NAMESPACE_EXIT

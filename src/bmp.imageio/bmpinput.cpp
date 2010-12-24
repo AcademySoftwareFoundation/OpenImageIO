@@ -36,7 +36,7 @@ using namespace bmp_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int bmp_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+    DLLEXPORT int bmp_imageio_version = OIIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *bmp_input_imageio_create () {
         return new BmpInput;
     }

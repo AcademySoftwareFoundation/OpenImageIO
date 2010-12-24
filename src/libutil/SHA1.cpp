@@ -40,6 +40,10 @@
 #define _R3(v,w,x,y,z,i) {z+=(((w|x)&y)|(w&x))+SHABLK(i)+0x8F1BBCDC+ROL32(v,5);w=ROL32(w,30);}
 #define _R4(v,w,x,y,z,i) {z+=(w^x^y)+SHABLK(i)+0xCA62C1D6+ROL32(v,5);w=ROL32(w,30);}
 
+
+OIIO_NAMESPACE_ENTER
+{
+
 CSHA1::CSHA1()
 {
 	m_block = (SHA1_WORKSPACE_BLOCK*)m_workspace;
@@ -256,3 +260,6 @@ bool CSHA1::GetHash(UINT_8* pbDest) const
 	memcpy(pbDest, m_digest, 20);
 	return true;
 }
+
+}
+OIIO_NAMESPACE_EXIT

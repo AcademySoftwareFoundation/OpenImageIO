@@ -37,6 +37,9 @@
 #include <algorithm>
 #include "pystring.h"
 
+OIIO_NAMESPACE_ENTER
+{
+
 namespace pystring
 {
 
@@ -1048,3 +1051,6 @@ namespace pystring
     
     
 }//namespace pystring
+
+}
+OIIO_NAMESPACE_EXIT

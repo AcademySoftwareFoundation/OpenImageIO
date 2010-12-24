@@ -44,8 +44,9 @@
 #include "imageio.h"
 #include "imageio_pvt.h"
 
-using namespace OpenImageIO;
-using namespace OpenImageIO::pvt;
+OIIO_NAMESPACE_ENTER
+{
+    using namespace pvt;
 
 namespace {
 
@@ -53,14 +54,14 @@ static std::string create_error_msg;
 
 }
 
-recursive_mutex OpenImageIO::pvt::imageio_mutex;
+recursive_mutex pvt::imageio_mutex;
 
 
 
 int
-OpenImageIO::openimageio_version ()
+openimageio_version ()
 {
-    return OPENIMAGEIO_VERSION;
+    return OIIO_VERSION;
 }
 
 
@@ -68,9 +69,9 @@ OpenImageIO::openimageio_version ()
 /// Error reporting for the plugin implementation: call this with
 /// printf-like arguments.
 void
-OpenImageIO::pvt::error (const char *message, ...)
+pvt::error (const char *message, ...)
 {
-    recursive_lock_guard lock (OpenImageIO::pvt::imageio_mutex);
+    recursive_lock_guard lock (pvt::imageio_mutex);
     va_list ap;
     va_start (ap, message);
     create_error_msg = Strutil::vformat (message, ap);
@@ -80,9 +81,9 @@ OpenImageIO::pvt::error (const char *message, ...)
 
 
 std::string
-OpenImageIO::geterror ()
+geterror ()
 {
-    recursive_lock_guard lock (OpenImageIO::pvt::imageio_mutex);
+    recursive_lock_guard lock (pvt::imageio_mutex);
     std::string e = create_error_msg;
     create_error_msg.clear ();
     return e;
@@ -91,7 +92,7 @@ OpenImageIO::geterror ()
 
 
 int
-OpenImageIO::quantize (float value, int quant_black, int quant_white,
+quantize (float value, int quant_black, int quant_white,
                        int quant_min, int quant_max, float quant_dither)
 {
     value = Imath::lerp (quant_black, quant_white, value);
@@ -139,10 +140,10 @@ _contiguize (const T *src, int nchannels, stride_t xstride, stride_t ystride, st
 }
 
 const void *
-OpenImageIO::pvt::contiguize (const void *src, int nchannels,
-                              stride_t xstride, stride_t ystride, stride_t zstride, 
-                              void *dst, int width, int height, int depth,
-                              TypeDesc format)
+pvt::contiguize (const void *src, int nchannels,
+                 stride_t xstride, stride_t ystride, stride_t zstride, 
+                 void *dst, int width, int height, int depth,
+                 TypeDesc format)
 {
     switch (format.basetype) {
     case TypeDesc::FLOAT :
@@ -184,8 +185,8 @@ OpenImageIO::pvt::contiguize (const void *src, int nchannels,
 
 
 const float *
-OpenImageIO::pvt::convert_to_float (const void *src, float *dst, int nvals,
-                                    TypeDesc format)
+pvt::convert_to_float (const void *src, float *dst, int nvals,
+                       TypeDesc format)
 {
     switch (format.basetype) {
     case TypeDesc::FLOAT :
@@ -265,10 +266,10 @@ _from_float (const float *src, T *dst, size_t nvals,
 
 
 const void *
-OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
-                                      int quant_black, int quant_white,
-                                      int quant_min, int quant_max, float quant_dither, 
-                                      TypeDesc format)
+pvt::convert_from_float (const float *src, void *dst, size_t nvals,
+                         int quant_black, int quant_white,
+                         int quant_min, int quant_max, float quant_dither, 
+                         TypeDesc format)
 {
     switch (format.basetype) {
     case TypeDesc::FLOAT :
@@ -322,10 +323,10 @@ OpenImageIO::pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 
 
 bool
-OpenImageIO::convert_types (TypeDesc src_type, const void *src, 
-                            TypeDesc dst_type, void *dst, int n,
-                            ColorTransfer *tfunc,
-                            int alpha_channel, int z_channel)
+convert_types (TypeDesc src_type, const void *src, 
+               TypeDesc dst_type, void *dst, int n,
+               ColorTransfer *tfunc,
+               int alpha_channel, int z_channel)
 {
     // If no conversion is necessary, just memcpy
     if (src_type == dst_type && tfunc == NULL) {
@@ -392,8 +393,8 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
 
 
 bool
-OpenImageIO::convert_types (TypeDesc src_type, const void *src, 
-                            TypeDesc dst_type, void *dst, int n)
+convert_types (TypeDesc src_type, const void *src, 
+               TypeDesc dst_type, void *dst, int n)
 {
     return convert_types (src_type, src, dst_type, dst, n, NULL);
 }
@@ -401,15 +402,15 @@ OpenImageIO::convert_types (TypeDesc src_type, const void *src,
 
 
 bool
-OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
-                            const void *src, TypeDesc src_type,
-                            stride_t src_xstride, stride_t src_ystride,
-                            stride_t src_zstride,
-                            void *dst, TypeDesc dst_type,
-                            stride_t dst_xstride, stride_t dst_ystride,
-                            stride_t dst_zstride,
-                            ColorTransfer *tfunc,
-                            int alpha_channel, int z_channel)
+convert_image (int nchannels, int width, int height, int depth,
+               const void *src, TypeDesc src_type,
+               stride_t src_xstride, stride_t src_ystride,
+               stride_t src_zstride,
+               void *dst, TypeDesc dst_type,
+               stride_t dst_xstride, stride_t dst_ystride,
+               stride_t dst_zstride,
+               ColorTransfer *tfunc,
+               int alpha_channel, int z_channel)
 {
     ImageSpec::auto_stride (src_xstride, src_ystride, src_zstride,
                             src_type, nchannels, width, height);
@@ -446,3 +447,6 @@ OpenImageIO::convert_image (int nchannels, int width, int height, int depth,
     }
     return result;
 }
+
+}
+OIIO_NAMESPACE_EXIT

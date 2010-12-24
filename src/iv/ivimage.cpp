@@ -39,7 +39,7 @@
 #include "strutil.h"
 #include "fmath.h"
 
-
+namespace OIIO = OIIO_NAMESPACE;
 
 IvImage::IvImage (const std::string &filename)
     : ImageBuf(filename), m_thumbnail(NULL),
@@ -81,7 +81,7 @@ IvImage::init_spec (const std::string &filename, int subimage, int miplevel)
 
 bool
 IvImage::read (int subimage, int miplevel, bool force, TypeDesc format,
-               OpenImageIO::ProgressCallback progress_callback,
+               ProgressCallback progress_callback,
                void *progress_callback_data, bool secondary_data)
 {
     // Don't read if we already have it in memory, unless force is true.
@@ -315,7 +315,7 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
         float gain = powf (2.0f, exposure());
         for (int pixelvalue = 0; pixelvalue < 256; ++pixelvalue) {
             float pv_f = converter (pixelvalue);
-            pv_f = clamp (OpenImageIO::exposure (pv_f, gain, inv_gamma),
+            pv_f = clamp (OIIO::exposure (pv_f, gain, inv_gamma),
                           0.0f, 1.0f);
             correction_table[pixelvalue] = (unsigned char) (pv_f*255 + 0.5);
         }

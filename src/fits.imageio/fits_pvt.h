@@ -36,8 +36,6 @@
 #include <map>
 
 #include "imageio.h"
-using namespace OpenImageIO;
-
 #include "fmath.h"
 #include "pystring.h"
 

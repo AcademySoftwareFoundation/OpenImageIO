@@ -34,7 +34,6 @@
 namespace PyOpenImageIO
 {
 using namespace boost::python;
-using namespace OpenImageIO;
 
 ImageCacheWrap* ImageCacheWrap::create (bool shared=true)
 {

@@ -33,7 +33,6 @@
 namespace PyOpenImageIO
 {
 using namespace boost::python;
-using namespace OpenImageIO;
 using namespace std;
 
 template <typename BaseType>

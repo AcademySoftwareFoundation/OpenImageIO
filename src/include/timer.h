@@ -36,6 +36,8 @@
 #ifndef OPENIMAGEIO_TIMER_H
 #define OPENIMAGEIO_TIMER_H
 
+#include "version.h"
+
 #ifdef _WIN32
 # include "osdep.h"
 #elif defined(__APPLE__)
@@ -45,11 +47,8 @@
 #include <cstdlib>    // Just for NULL definition
 #endif
 
-
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
+OIIO_NAMESPACE_ENTER
+{
 
 /// Simple timer class.
 ///
@@ -228,9 +227,7 @@ private:
 };
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_TIMER_H

@@ -43,8 +43,10 @@
 
 #include "argparse.h"
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "sysutil.h"
+
+
+OIIO_NAMESPACE_USING;
 
 
 static std::string uninitialized = "uninitialized \001 HHRU dfvAS: efjl";
@@ -89,7 +91,7 @@ getargs (int argc, char *argv[])
     bool help = false;
     ArgParse ap;
     ap.options ("iconvert -- copy images with format conversions and other alterations\n"
-                OPENIMAGEIO_INTRO_STRING "\n"
+                OIIO_INTRO_STRING "\n"
                 "Usage:  iconvert [options] inputfile outputfile\n"
                 "   or:  iconvert --inplace [options] file...\n",
                 "%*", parse_files, "",
@@ -343,7 +345,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     if (! in) {
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to read \"" 
-            << in_filename << "\" : " << OpenImageIO::geterror() << "\n";
+            << in_filename << "\" : " << geterror() << "\n";
         return false;
     }
     ImageSpec inspec;
@@ -360,7 +362,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     if (! out) {
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to write \"" 
-            << out_filename << "\" :" << OpenImageIO::geterror() << "\n";
+            << out_filename << "\" :" << geterror() << "\n";
         return false;
     }
 

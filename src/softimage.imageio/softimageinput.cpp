@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+namespace OIIO = OIIO_NAMESPACE;
+
 using namespace softimage_pvt;
 
 
@@ -433,7 +435,7 @@ SoftimageInput::read_pixels_mixed_run_length (const softimage_pvt::ChannelPacket
                 // longCount is in big endian format - if we're not
                 // let's swap it
                 if (littleendian())
-                    ::swap_endian (&longCount);
+                    OIIO::swap_endian (&longCount);
             } else {
                 longCount = curCount - 127;
             }

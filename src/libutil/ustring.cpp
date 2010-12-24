@@ -40,6 +40,8 @@
 
 #include "ustring.h"
 
+OIIO_NAMESPACE_ENTER
+{
 
 #if 0
 // Use reader/writer locks
@@ -279,3 +281,6 @@ ustring::memory ()
     ustring_read_lock_t read_lock (ustring_mutex());
     return ustring_stats_memory;
 }
+
+}
+OIIO_NAMESPACE_EXIT

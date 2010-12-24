@@ -15,6 +15,7 @@
 #define HEADER_PUGIXML_HPP
 
 #include "pugiconfig.hpp"
+#include "version.h"
 
 #ifndef PUGIXML_NO_STL
 namespace std
@@ -89,12 +90,8 @@ namespace std
 
 
 // Added by LG for OpenImageIO:
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-namespace OpenImageIO {
-
-
+OIIO_NAMESPACE_ENTER
+{
 
 namespace pugi
 {
@@ -1097,13 +1094,8 @@ namespace pugi
 
 
 // Added by LG for OpenImageIO:
-} // end namespace OpenImageIO
-#ifdef OPENIMAGEIO_NAMESPACE
-} // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
-
-
+}
+OIIO_NAMESPACE_EXIT
 
 #if !defined(PUGIXML_NO_STL) && (defined(_MSC_VER) || defined(__ICC))
 namespace std

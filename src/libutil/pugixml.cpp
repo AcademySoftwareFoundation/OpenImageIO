@@ -92,10 +92,11 @@ typedef __int32 int32_t;
 #	define DMC_VOLATILE
 #endif
 
+namespace OIIO = OIIO_NAMESPACE;
 
 // Added by LG for OpenImageIO:
-using namespace OpenImageIO;
-using namespace OpenImageIO::pugi;
+using namespace OIIO;
+using namespace OIIO::pugi;
 using namespace pugi;
 
 // Memory allocation
@@ -407,8 +408,8 @@ namespace
 
 
 // Added by LG for OpenImageIO:
-OIIO_NAMESPACE_BEGIN
-namespace OpenImageIO {
+OIIO_NAMESPACE_ENTER
+{
 
 namespace pugi
 {
@@ -455,8 +456,8 @@ namespace pugi
 }
 
 // Added by LG for OpenImageIO:
-} // end namespace OpenImageIO
-OIIO_NAMESPACE_END
+}
+OIIO_NAMESPACE_EXIT
 
 
 namespace
@@ -3258,8 +3259,8 @@ namespace
 
 
 // Added by LG for OpenImageIO:
-OIIO_NAMESPACE_BEGIN
-namespace OpenImageIO {
+OIIO_NAMESPACE_ENTER
+{
 
 namespace pugi
 {
@@ -4792,8 +4793,8 @@ namespace pugi
 }
 
 // Added by LG for OpenImageIO:
-} // end namespace OpenImageIO
-OIIO_NAMESPACE_END
+}
+OIIO_NAMESPACE_EXIT
 
 
 #if !defined(PUGIXML_NO_STL) && (defined(_MSC_VER) || defined(__ICC))
@@ -9021,8 +9022,8 @@ namespace
 
 
 // Added by LG for OpenImageIO:
-OIIO_NAMESPACE_BEGIN
-namespace OpenImageIO {
+OIIO_NAMESPACE_ENTER
+{
 
 namespace pugi
 {
@@ -9585,8 +9586,8 @@ namespace pugi
 
 
 // Added by LG for OpenImageIO:
-} // end namespace OpenImageIO
-OIIO_NAMESPACE_END
+}
+OIIO_NAMESPACE_EXIT
 
 
 /**

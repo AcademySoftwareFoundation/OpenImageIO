@@ -53,10 +53,12 @@
 #include "sysutil.h"
 #include "timer.h"
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "imagebuf.h"
 #include "sysutil.h"
 #include "thread.h"
+
+
+OIIO_NAMESPACE_USING
 
 
 // Basic runtime options
@@ -127,7 +129,7 @@ getargs (int argc, char *argv[])
     bool help = false;
     ArgParse ap;
     ap.options ("maketx -- convert images to tiled, MIP-mapped textures\n"
-                OPENIMAGEIO_INTRO_STRING "\n"
+                OIIO_INTRO_STRING "\n"
                 "Usage:  maketx [options] file...",
                   "%*", parse_files, "",
                   "--help", &help, "Print help message",
@@ -603,7 +605,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     if (! out) {
         std::cerr 
             << "maketx ERROR: Could not find an ImageIO plugin to write " 
-            << outformat << " files:" << OpenImageIO::geterror() << "\n";
+            << outformat << " files:" << geterror() << "\n";
         exit (EXIT_FAILURE);
     }
     if (! out->supports ("tiles")) {

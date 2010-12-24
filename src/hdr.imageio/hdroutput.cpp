@@ -39,9 +39,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
-
 class HdrOutput : public ImageOutput {
  public:
     HdrOutput () { init(); }

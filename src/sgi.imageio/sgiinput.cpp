@@ -32,12 +32,9 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
-
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
-    DLLEXPORT int sgi_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+    DLLEXPORT int sgi_imageio_version = OIIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *sgi_input_imageio_create () {
         return new SgiInput;
     }

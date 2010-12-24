@@ -42,7 +42,8 @@
 #include "filesystem.h"
 
 
-using namespace Filesystem;
+OIIO_NAMESPACE_ENTER
+{
 
 #if 0
 
@@ -199,3 +200,6 @@ Filesystem::path_is_absolute (const std::string &path, bool dot_is_absolute)
 #endif
         ;
 }
+
+}
+OIIO_NAMESPACE_EXIT

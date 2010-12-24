@@ -33,8 +33,6 @@
 #include <cmath>
 
 #include "dds_pvt.h"
-using namespace DDS_pvt;
-
 #include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
@@ -42,9 +40,7 @@ using namespace DDS_pvt;
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
-
+using namespace DDS_pvt;
 
 class DDSOutput : public ImageOutput {
 public:
@@ -80,7 +76,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *dds_output_imageio_create () { return new DDSOutput; }
 
-// DLLEXPORT int dds_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;   // it's in tgainput.cpp
+// DLLEXPORT int dds_imageio_version = OIIO_PLUGIN_VERSION;   // it's in tgainput.cpp
 
 DLLEXPORT const char * dds_output_extensions[] = {
     "dds", NULL

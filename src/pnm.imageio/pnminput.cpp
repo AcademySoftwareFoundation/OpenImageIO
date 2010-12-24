@@ -37,9 +37,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
-
 class PNMInput : public ImageInput {
 public:
     virtual const char* format_name (void) const { return "pnm"; }
@@ -65,7 +62,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
     DLLEXPORT ImageInput* pnm_input_imageio_create () { return new PNMInput; }
 
-    DLLEXPORT int pnm_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+    DLLEXPORT int pnm_imageio_version = OIIO_PLUGIN_VERSION;
 
     DLLEXPORT const char* pnm_input_extensions[] = {
         "ppm","pgm","pbm","pnm", NULL
@@ -311,10 +308,10 @@ PNMInput::read_file_header ()
         return false;
 
     if (m_pnm_type == 3 || m_pnm_type == 6)
-        m_spec =  OpenImageIO::ImageSpec (width, height, 3, 
+        m_spec =  ImageSpec (width, height, 3, 
                 (m_max_val > 255) ? TypeDesc::UINT16 : TypeDesc::UINT8);
     else    
-        m_spec =  OpenImageIO::ImageSpec (width, height, 1, 
+        m_spec =  ImageSpec (width, height, 1, 
                 (m_max_val > 255) ? TypeDesc::UINT16 : TypeDesc::UINT8);
 
     if (m_spec.nchannels == 1)

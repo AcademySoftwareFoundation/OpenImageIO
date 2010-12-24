@@ -60,12 +60,10 @@
 # include <stdint.h>
 #endif
 
+#include "version.h"
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
-
-
+OIIO_NAMESPACE_ENTER
+{
 
 #ifndef M_PI
 /// PI
@@ -869,9 +867,7 @@ sincos(double x, double* sine, double* cosine)
 }
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+}
+OIIO_NAMESPACE_EXIT
 
 #endif // OPENIMAGEIO_FMATH_H

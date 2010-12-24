@@ -36,8 +36,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 

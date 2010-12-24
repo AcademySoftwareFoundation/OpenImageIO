@@ -43,8 +43,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace OpenImageIO;
-
 
 namespace {  // anon namespace
 
@@ -121,7 +119,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageInput *zfile_input_imageio_create () { return new ZfileInput; }
 
-DLLEXPORT int zfile_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+DLLEXPORT int zfile_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * zfile_input_extensions[] = {
     "zfile", NULL
