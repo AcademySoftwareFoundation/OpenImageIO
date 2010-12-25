@@ -760,12 +760,12 @@ If not NULL, specifies the color that will be returned for missing or
 broken textures (rather than being an error).
 \apiend
 
+\vspace{-24pt}
 \apiitem{float time}
 \vspace{10pt}
 A time value to use if the volume texture specifies a time-varying
 local transformation (default: 0).
 \apiend
-\vspace{-16pt}
 
 \vspace{-24pt}
 \apiitem{float *dresultds, *dresultdt, *dresultdr}
@@ -1083,13 +1083,13 @@ caller must beware that the pointer is only valid as long as nobody
   invalidate_all()}, or destroys the \TextureSystem.
 \apiend
 
-\apiitem{bool {\ce get_texels} (ustring filename, TextureOptions \&options, int level, \\
+\apiitem{bool {\ce get_texels} (ustring filename, TextureOpt \&options, int level, \\
 \bigspc                       int xbegin, int xend, int ybegin, int yend,\\
 \bigspc                       int zbegin, int zend, TypeDesc format, void *result)}
 
 Retrieve a rectangle of raw unfiltered texels at the named MIP-map level, storing
 the texel values beginning at the address specified by result.
-Note that the face/subimage is communicated through {\kw options.face}.
+Note that the face/subimage is communicated through {\kw options.subimage}.
 The texel values will be converted to the type specified by
 format.  It is up to the caller to ensure that result points to
 an area of memory big enough to accommodate the requested
@@ -1104,6 +1104,12 @@ Fields within {\cf options} that are honored for raw texel retieval
 include the following:
 
 \vspace{-12pt}
+\apiitem{int subiamge}
+\vspace{10pt}
+The subimage to retrieve.
+\apiend
+
+\vspace{-24pt}
 \apiitem{int nchannels}
 \vspace{10pt}
 The number of color channels to look up from the texture.
@@ -1125,7 +1131,7 @@ The index of the first channel to look up from the texture.
 %\apiend
 
 \vspace{-24pt}
-\apiitem{VaryingRef<float> fill}
+\apiitem{float fill}
 \vspace{10pt}
 Specifies the value that will be used for any color channels that are
 requested but not found in the file.

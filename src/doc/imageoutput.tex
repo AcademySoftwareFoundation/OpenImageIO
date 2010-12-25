@@ -11,8 +11,8 @@ Here is the simplest sequence required to write the pixels of a 2D image
 to a file:
 
 \begin{code}
-        #include "imageio.h"
-        using namespace OpenImageIO;
+        #include <OpenImageIO/imageio.h>
+        OIIO_NAMESPACE_USING
         ...
 
         const char *filename = "foo.jpg";
@@ -1056,8 +1056,8 @@ Section~\ref{sec:imageoutput:simple}, but this time it is fully
 elaborated with error checking and reporting:
 
 \begin{code}
-        #include "imageio.h"
-        using namespace OpenImageIO;
+        #include <OpenImageIO/imageio.h>
+        OIIO_NAMESPACE_USING
         ...
 
         const char *filename = "foo.jpg";
