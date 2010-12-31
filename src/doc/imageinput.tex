@@ -11,8 +11,8 @@ out its resolution, and read the pixels (converting them into
 8-bit values in memory, even if that's not the way they're stored in the file):
 
 \begin{code}
-        #include "imageio.h"
-        using namespace OpenImageIO;
+        #include <OpenImageIO/imageio.h>
+        OIIO_NAMESPACE_USING
         ...
 
         const char *filename = "foo.jpg";
@@ -653,8 +653,8 @@ Section~\ref{sec:imageinput:simple}, but this time it is fully
 elaborated with error checking and reporting:
 
 \begin{code}
-        #include "imageio.h"
-        using namespace OpenImageIO;
+        #include <OpenImageIO/imageio.h>
+        OIIO_NAMESPACE_USING
         ...
 
         const char *filename = "foo.jpg";

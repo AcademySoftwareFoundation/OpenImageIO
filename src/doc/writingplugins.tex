@@ -28,12 +28,16 @@ real-world example of writing a JPEG/JFIF plug-in.
 
 \begin{enumerate}
 \item Read the base class definition from {\fn imageio.h}.  It may also
-  be helpful to just use the {\cf OpenImageIO} namespace, just to 
-  make your code a little less verbose.
+  be helpful to enclose the contents of your plugin in the same
+  namespace that the \product library uses:
 
   \begin{code}
-    #include "imageio.h"
-    using namespace OpenImageIO;
+    #include <OpenImageIO/imageio.h>
+    OIIO_PLUGIN_NAMESPACE_BEGIN
+
+    ... everything else ...
+
+    OIIO_PLUGIN_NAMESPACE_END
   \end{code}
 
 \item Declare three public items:
@@ -55,7 +59,9 @@ real-world example of writing a JPEG/JFIF plug-in.
   \end{enumerate}
 
   All of these items must be inside an `{\cf extern "C"}' block in order
-  to avoid name mangling by the C++ compiler.  Depending on your
+  to avoid name mangling by the C++ compiler, and we provide handy
+  macros {\cf OIIO_PLUGIN_EXPORTS_BEGIN} and {\cf OIIO_PLUGIN_EXPORTS_END}
+  to mamke this easy.  Depending on your
   compiler, you may need to use special commands to dictate that the
   symbols will be exported in the DSO; we provide a special {\cf
   DLLEXPORT} macro for this purpose, defined in {\fn export.h}.
@@ -63,7 +69,7 @@ real-world example of writing a JPEG/JFIF plug-in.
   Putting this all together, we get the following for our JPEG example:
 
   \begin{code}
-    extern "C" {
+    OIIO_PLUGIN_EXPORTS_BEGIN
         DLLEXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
         DLLEXPORT JpgInput *jpeg_input_imageio_create () {
             return new JpgInput;
@@ -71,7 +77,7 @@ real-world example of writing a JPEG/JFIF plug-in.
         DLLEXPORT const char *jpeg_input_extensions[] = {
             "jpg", "jpe", "jpeg", NULL
         };
-    };
+    OIIO_PLUGIN_EXPORTS_END
   \end{code}
 
 \item The definition and implementation of an \ImageInput subclass for
@@ -180,7 +186,9 @@ real-world example of writing a JPEG/JFIF plug-in.
   \end{enumerate}
 
   All of these items must be inside an `{\cf extern "C"}' block in order
-  to avoid name mangling by the C++ compiler.  Depending on your
+  to avoid name mangling by the C++ compiler, and we provide handy
+  macros {\cf OIIO_PLUGIN_EXPORTS_BEGIN} and {\cf OIIO_PLUGIN_EXPORTS_END}
+  to mamke this easy.  Depending on your
   compiler, you may need to use special commands to dictate that the
   symbols will be exported in the DSO; we provide a special {\cf
   DLLEXPORT} macro for this purpose, defined in {\fn export.h}.
@@ -188,7 +196,7 @@ real-world example of writing a JPEG/JFIF plug-in.
   Putting this all together, we get the following for our JPEG example:
 
   \begin{code}
-    extern "C" {
+    OIIO_PLUGIN_EXPORTS_BEGIN
         DLLEXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
         DLLEXPORT JpgOutput *jpeg_output_imageio_create () {
             return new JpgOutput;
@@ -196,7 +204,7 @@ real-world example of writing a JPEG/JFIF plug-in.
         DLLEXPORT const char *jpeg_input_extensions[] = {
             "jpg", "jpe", "jpeg", NULL
         };
-    };
+    OIIO_PLUGIN_EXPORTS_END
   \end{code}
 
 \item The definition and implementation of an \ImageOutput subclass for
@@ -347,6 +355,69 @@ our JPEG writer, which relies heavily on the open source {\fn jpeg-6b}
 library to perform the actual JPEG encoding.
 
 \includedcode{../jpeg.imageio/jpegoutput.cpp}
+
+
+\section{Tips and Conventions}
+\label{sec:plugintipsconventions}
+
+\product's main goal is to hide all the pesky details of individual file
+formats from the client application.  This inevitably leads to various
+mismatches between a file format's true capabilities and requests that
+may be made through the \product APIs.  This section outlines
+conventions, tips, and rules of thumb that we recommend for image file
+support.
+
+\subsection*{Readers}
+\begin{itemize}
+\item If the file format stores images in a non-spectral color space
+  (for example, YUV), the reader should automatically convert to RGB to
+  pass through the OIIO APIs.  In such a case, the reader should signal
+  the file's true color space via a \qkw{Foo:colorspace} attribute in
+  the \ImageSpec.
+\item ``Palette'' images should be automatically converted by the reader
+  to RGB.
+\item If the file supports thumbnail images in its header, the reader
+  should store the thumbnail dimensions in attributes
+  \qkw{thumbnail_width}, \qkw{thumbnail_height}, and
+  \qkw{thumbnail_nchannels} (all of which should be {\cf int}), and the
+  thumbnail pixels themselves in \qkw{thumbnail_image} as an array of
+  channel values (the array length is the total number of channel
+  samples in the thumbnail).
+\end{itemize}
+
+\subsection*{Writers}
+
+The overall rule of thumb is: try to always ``succeed'' at writing the
+file, outputting the closest approximation of the user's data as
+possible.  But it is permissible to fail the {\cf open()} call if it is
+clearly nonsensical or there is no possible way to output a decent
+approximation of the user's data.  Some tips:
+
+\begin{itemize}
+\item If the client application requests a data format not directly
+  supported by the file type, silently write the supported data format
+  that will result in the least precision or range loss.
+\item It is customary to fail a call to {\cf open()} if the \ImageSpec
+  requested a number of color channels plainly not supported by the
+  file format.  As an exception to this rule, it is permissible for a
+  file format that does not support alpha channels to silently drop
+  the fourth (alpha) channel of a 4-channel output request.
+\item If the app requests a \qkw{Compression} not supported by the file
+  format, you may choose as a default any lossless compression
+  supported.  Do not use a lossy compression unless you are fairly 
+  certain that the app wanted a lossy compression.
+\item If the file format is able to store images in a non-spectral color
+  space (for example, YUV), the writer may accept a \qkw{Foo:colorspace}
+  attribute in the \ImageSpec as a request to automatically convert and
+  store the data in that format (but it will always be passed as RGB
+  through the OIIO APIs).
+\item If the file format can support thumbnail images in its header, and
+  the \ImageSpec contain attributes \qkw{thumbnail_width},
+  \qkw{thumbnail_height}, \qkw{thumbnail_nchannels}, and
+  \qkw{thumbnail_image}, the writer should attempt to store the
+  thumbnail if possible.
+\end{itemize}
+
 
 
 \section{Building ImageIO Plugins}

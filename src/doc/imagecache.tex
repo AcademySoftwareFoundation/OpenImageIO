@@ -46,7 +46,8 @@ Below are some simple code fragments that shows \ImageCache in action:
 \medskip
 
 \begin{code}
-    #include "OpenImageIO/imagecache.h"
+    #include <OpenImageIO/imagecache.h>
+    OIIO_NAMESPACE_USING
 
     // Create an image cache and set some options
     ImageCache *cache = ImageCache::create ();
