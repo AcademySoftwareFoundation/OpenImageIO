@@ -187,8 +187,10 @@ oiio_install_targets (OpenImageIO)
 # Testing
 
 # Definition needed by boost_unit_test_framework library
+# and by PTEX DLL
 if (NOT LINKSTATIC)
     add_definitions (-DBOOST_TEST_DYN_LINK)
+    add_definitions (-DPTEX_EXPORTS)
 endif ()
 
 if (GTEST_FOUND)
