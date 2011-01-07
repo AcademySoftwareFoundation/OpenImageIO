@@ -1,6 +1,5 @@
 set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/colortransfer.h
-                         ../include/boosttest.h
                          ../include/dassert.h
                          ../include/errorhandler.h
                          ../include/filesystem.h
@@ -193,13 +192,9 @@ if (NOT LINKSTATIC)
     add_definitions (-DPTEX_EXPORTS)
 endif ()
 
-if (GTEST_FOUND)
-    add_executable (imagebufalgo_test imagebufalgo_test.cpp)
-    include_directories (${GTEST_INCLUDES})
-    link_ilmbase (imagebufalgo_test)
-    target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} 
-                                ${GTEST_LIBRARY} ${CMAKE_DL_LIBS})
-endif ()
+add_executable (imagebufalgo_test imagebufalgo_test.cpp)
+link_ilmbase (imagebufalgo_test)
+target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (imagebufalgo ${CMAKE_BINARY_DIR}/libOpenImageIO/imagebufalgo_test)
 
 

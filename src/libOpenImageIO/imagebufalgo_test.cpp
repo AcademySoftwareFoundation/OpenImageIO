@@ -34,45 +34,17 @@
 #include "imageio.h"
 #include "imagebuf.h"
 #include "sysutil.h"
-#include <gtest/gtest.h>
+#include "unittest.h"
 
+#include <iostream>
+#include <iomanip>
 #include <string>
 
 OIIO_NAMESPACE_USING;
 
 
-namespace {  // make an anon namespace
-
-
-
-// The fixture for testing class ImageBuf.
-class ImageBufTest : public testing::Test {
-protected:
-    // You can remove any or all of the following functions if its body
-    // is empty.
-    ImageBufTest () {
-        // You can do set-up work for each test here.
-    }
-    virtual ~ImageBufTest () {
-        // You can do clean-up work that doesn't throw exceptions here.
-    }
-    // If the constructor and destructor are not enough for setting up
-    // and cleaning up each test, you can define the following methods:
-    virtual void SetUp () {
-        // Code here will be called immediately after the constructor (right
-        // before each test).
-    }
-    virtual void TearDown () {
-        // Code here will be called immediately after each test (right
-        // before the destructor).
-    }
-    // Objects declared here can be used by all tests in the test case for Foo.
-};
-
-
-
 // Test ImageBuf::zero and ImageBuf::fill
-TEST_F (ImageBufTest, ImageBuf_zero_fill)
+void ImageBuf_zero_fill ()
 {
     const int WIDTH = 8;
     const int HEIGHT = 6;
@@ -89,7 +61,7 @@ TEST_F (ImageBufTest, ImageBuf_zero_fill)
     float pixel[CHANNELS];   // test pixel
     A.getpixel (1, 1, pixel);
     for (int c = 0;  c < CHANNELS;  ++c)
-        EXPECT_EQ (pixel[c], arbitrary1[c]) << "bad ImageBuf::setpixel";
+        OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
 
     // Zero out and test that it worked
     A.zero ();
@@ -98,7 +70,7 @@ TEST_F (ImageBufTest, ImageBuf_zero_fill)
             float pixel[CHANNELS];
             A.getpixel (i, j, pixel);
             for (int c = 0;  c < CHANNELS;  ++c)
-                EXPECT_EQ (pixel[c], 0.0f) << "bad ImageBuf::zero";
+                OIIO_CHECK_EQUAL (pixel[c], 0.0f);
         }
     }
 
@@ -110,7 +82,7 @@ TEST_F (ImageBufTest, ImageBuf_zero_fill)
             float pixel[CHANNELS];
             A.getpixel (i, j, pixel);
             for (int c = 0;  c < CHANNELS;  ++c)
-                EXPECT_EQ (pixel[c], arbitrary2[c]) << "bad ImageBuf::fill";
+                OIIO_CHECK_EQUAL (pixel[c], arbitrary2[c]);
         }
     }
 
@@ -125,10 +97,10 @@ TEST_F (ImageBufTest, ImageBuf_zero_fill)
                 A.getpixel (i, j, pixel);
                 if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
                     for (int c = 0;  c < CHANNELS;  ++c)
-                        EXPECT_EQ (pixel[c], arbitrary3[c]) << "bad ImageBuf::fill";
+                        OIIO_CHECK_EQUAL (pixel[c], arbitrary3[c]);
                 } else {
                     for (int c = 0;  c < CHANNELS;  ++c)
-                        EXPECT_EQ (pixel[c], arbitrary2[c]) << "bad ImageBuf::fill";
+                        OIIO_CHECK_EQUAL (pixel[c], arbitrary2[c]);
                 }
             }
         }
@@ -137,119 +109,120 @@ TEST_F (ImageBufTest, ImageBuf_zero_fill)
 
 
 
-// The fixture for testing class ImageBufAlgo::Crop.
-class CropTest : public testing::Test {
-protected:
-    // You can remove any or all of the following functions if its body
-    // is empty.
-    CropTest () {
-        // You can do set-up work for each test here.
-        WIDTH = 8;
-        HEIGHT = 6;
-        CHANNELS = 4;
-        // Crop region we'll work with
-        xbegin = 3, xend = 5, ybegin = 0, yend = 4;
-        ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-        spec.alpha_channel = 3;
-        A.reset ("A", spec);
-        B.reset ("B", spec);
-        arbitrary1[0] = 0.2;
-        arbitrary1[1] = 0.3;
-        arbitrary1[2] = 0.4;
-        arbitrary1[3] = 0.5;
-    }
-    virtual ~CropTest () {
-        // You can do clean-up work that doesn't throw exceptions here.
-    }
-    // If the constructor and destructor are not enough for setting up
-    // and cleaning up each test, you can define the following methods:
-    virtual void SetUp () {
-        // Code here will be called immediately after the constructor (right
-        // before each test).
-        A.fill (arbitrary1);
-    }
-    virtual void TearDown () {
-        // Code here will be called immediately after each test (right
-        // before the destructor).
-    }
-    // Objects declared here can be used by all tests in the test case for Foo.
-    int WIDTH, HEIGHT, CHANNELS;
-    // Crop region we'll work with
-    int xbegin, xend, ybegin, yend;
-    ImageSpec spec;
-    ImageBuf A, B;
-    float arbitrary1[4];
-};
-
-
-
 // Test ImageBuf::crop
-TEST_F (CropTest, crop_cut)
+void crop_cut ()
 {
+    int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
+    // Crop region we'll work with
+    int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    spec.alpha_channel = 3;
+    ImageBuf A, B;
+    A.reset ("A", spec);
+    B.reset ("B", spec);
+    float arbitrary1[4];
+    arbitrary1[0] = 0.2;
+    arbitrary1[1] = 0.3;
+    arbitrary1[2] = 0.4;
+    arbitrary1[3] = 0.5;
+    A.fill (arbitrary1);
+
     // Test CUT crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
                         ImageBufAlgo::CROP_CUT);
     // Should have changed the data window (origin and width/height)
-    ASSERT_EQ (B.spec().x, 0);
-    ASSERT_EQ (B.spec().width, xend-xbegin);
-    ASSERT_EQ (B.spec().full_x, 0);
-    ASSERT_EQ (B.spec().full_width, xend-xbegin);
-    ASSERT_EQ (B.spec().y, 0);
-    ASSERT_EQ (B.spec().height, yend-ybegin);
-    ASSERT_EQ (B.spec().full_y, 0);
-    ASSERT_EQ (B.spec().full_height, yend-ybegin);
+    OIIO_CHECK_EQUAL (B.spec().x, 0);
+    OIIO_CHECK_EQUAL (B.spec().width, xend-xbegin);
+    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_width, xend-xbegin);
+    OIIO_CHECK_EQUAL (B.spec().y, 0);
+    OIIO_CHECK_EQUAL (B.spec().height, yend-ybegin);
+    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_height, yend-ybegin);
     float *pixel = ALLOCA(float, CHANNELS);
     for (int j = 0;  j < B.spec().height;  ++j) {
         for (int i = 0;  i < B.spec().width;  ++i) {
             B.getpixel (i, j, pixel);
             // Inside the crop region should match what it always was
             for (int c = 0;  c < CHANNELS;  ++c)
-                EXPECT_EQ (pixel[c], arbitrary1[c]) << "bad ImageBuf::crop BLACK";
+                OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
         }
     }
 }
 
 
-TEST_F (CropTest, crop_window)
+
+void crop_window ()
 {
+    int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
+    // Crop region we'll work with
+    int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    spec.alpha_channel = 3;
+    ImageBuf A, B;
+    A.reset ("A", spec);
+    B.reset ("B", spec);
+    float arbitrary1[4];
+    arbitrary1[0] = 0.2;
+    arbitrary1[1] = 0.3;
+    arbitrary1[2] = 0.4;
+    arbitrary1[3] = 0.5;
+    A.fill (arbitrary1);
+
     // Test WINDOW crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
                         ImageBufAlgo::CROP_WINDOW);
     // Should have changed the data window (origin and width/height)
-    ASSERT_EQ (B.spec().x, xbegin);
-    ASSERT_EQ (B.spec().width, xend-xbegin);
-    ASSERT_EQ (B.spec().full_x, 0);
-    ASSERT_EQ (B.spec().full_width, WIDTH);
-    ASSERT_EQ (B.spec().y, ybegin);
-    ASSERT_EQ (B.spec().height, yend-ybegin);
-    ASSERT_EQ (B.spec().full_y, 0);
-    ASSERT_EQ (B.spec().full_height, HEIGHT);
+    OIIO_CHECK_EQUAL (B.spec().x, xbegin);
+    OIIO_CHECK_EQUAL (B.spec().width, xend-xbegin);
+    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_width, WIDTH);
+    OIIO_CHECK_EQUAL (B.spec().y, ybegin);
+    OIIO_CHECK_EQUAL (B.spec().height, yend-ybegin);
+    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_height, HEIGHT);
     float *pixel = ALLOCA(float, CHANNELS);
     for (int j = ybegin;  j < yend;  ++j) {
         for (int i = xbegin;  i < xend;  ++i) {
             B.getpixel (i, j, pixel);
             // Inside the crop region should match what it always was
             for (int c = 0;  c < CHANNELS;  ++c)
-                EXPECT_EQ (pixel[c], arbitrary1[c]) << "bad ImageBuf::crop BLACK";
+                OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
         }
     }
 }
 
 
-TEST_F (CropTest, crop_black)
+
+void crop_black ()
 {
+    int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
+    // Crop region we'll work with
+    int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    spec.alpha_channel = 3;
+    ImageBuf A, B;
+    A.reset ("A", spec);
+    B.reset ("B", spec);
+    float arbitrary1[4];
+    arbitrary1[0] = 0.2;
+    arbitrary1[1] = 0.3;
+    arbitrary1[2] = 0.4;
+    arbitrary1[3] = 0.5;
+    A.fill (arbitrary1);
+
     // Test BLACK crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
                         ImageBufAlgo::CROP_BLACK);
     // Should be full size
-    ASSERT_EQ (B.spec().x, 0);
-    ASSERT_EQ (B.spec().width, WIDTH);
-    ASSERT_EQ (B.spec().full_x, 0);
-    ASSERT_EQ (B.spec().full_width, WIDTH);
-    ASSERT_EQ (B.spec().y, 0);
-    ASSERT_EQ (B.spec().height, HEIGHT);
-    ASSERT_EQ (B.spec().full_y, 0);
-    ASSERT_EQ (B.spec().full_height, HEIGHT);
+    OIIO_CHECK_EQUAL (B.spec().x, 0);
+    OIIO_CHECK_EQUAL (B.spec().width, WIDTH);
+    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_width, WIDTH);
+    OIIO_CHECK_EQUAL (B.spec().y, 0);
+    OIIO_CHECK_EQUAL (B.spec().height, HEIGHT);
+    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_height, HEIGHT);
     float *pixel = ALLOCA(float, CHANNELS);
     for (int j = 0;  j < HEIGHT;  ++j) {
         for (int i = 0;  i < WIDTH;  ++i) {
@@ -257,33 +230,49 @@ TEST_F (CropTest, crop_black)
             if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
                 // Inside the crop region should match what it always was
                 for (int c = 0;  c < CHANNELS;  ++c)
-                    EXPECT_EQ (pixel[c], arbitrary1[c]) << "bad ImageBuf::crop BLACK";
+                    OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
             } else {
                 // Outside the crop region should be black
-                EXPECT_EQ (pixel[0], 0) << "bad ImageBuf::crop BLACK";
-                EXPECT_EQ (pixel[1], 0) << "bad ImageBuf::crop BLACK";
-                EXPECT_EQ (pixel[2], 0) << "bad ImageBuf::crop BLACK";
-                EXPECT_EQ (pixel[3], 1) << "bad ImageBuf::crop BLACK";
+                OIIO_CHECK_EQUAL (pixel[0], 0);
+                OIIO_CHECK_EQUAL (pixel[1], 0);
+                OIIO_CHECK_EQUAL (pixel[2], 0);
+                OIIO_CHECK_EQUAL (pixel[3], 1);
             }
         }
     }
 }
 
 
-TEST_F (CropTest, crop_white)
+
+void crop_white ()
 {
+    int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
+    // Crop region we'll work with
+    int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    spec.alpha_channel = 3;
+    ImageBuf A, B;
+    A.reset ("A", spec);
+    B.reset ("B", spec);
+    float arbitrary1[4];
+    arbitrary1[0] = 0.2;
+    arbitrary1[1] = 0.3;
+    arbitrary1[2] = 0.4;
+    arbitrary1[3] = 0.5;
+    A.fill (arbitrary1);
+
     // Test WHITE crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
                         ImageBufAlgo::CROP_WHITE);
     // Should be full size
-    ASSERT_EQ (B.spec().x, 0);
-    ASSERT_EQ (B.spec().width, WIDTH);
-    ASSERT_EQ (B.spec().full_x, 0);
-    ASSERT_EQ (B.spec().full_width, WIDTH);
-    ASSERT_EQ (B.spec().y, 0);
-    ASSERT_EQ (B.spec().height, HEIGHT);
-    ASSERT_EQ (B.spec().full_y, 0);
-    ASSERT_EQ (B.spec().full_height, HEIGHT);
+    OIIO_CHECK_EQUAL (B.spec().x, 0);
+    OIIO_CHECK_EQUAL (B.spec().width, WIDTH);
+    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_width, WIDTH);
+    OIIO_CHECK_EQUAL (B.spec().y, 0);
+    OIIO_CHECK_EQUAL (B.spec().height, HEIGHT);
+    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_height, HEIGHT);
     float *pixel = ALLOCA(float, CHANNELS);
     for (int j = 0;  j < HEIGHT;  ++j) {
         for (int i = 0;  i < WIDTH;  ++i) {
@@ -291,33 +280,49 @@ TEST_F (CropTest, crop_white)
             if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
                 // Inside the crop region should match what it always was
                 for (int c = 0;  c < CHANNELS;  ++c)
-                    EXPECT_EQ (pixel[c], arbitrary1[c]) << "bad ImageBuf::crop WHITE";
+                    OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
             } else {
                 // Outside the crop region should be black
-                EXPECT_EQ (pixel[0], 1) << "bad ImageBuf::crop WHITE";
-                EXPECT_EQ (pixel[1], 1) << "bad ImageBuf::crop WHITE";
-                EXPECT_EQ (pixel[2], 1) << "bad ImageBuf::crop WHITE";
-                EXPECT_EQ (pixel[3], 1) << "bad ImageBuf::crop WHITE";
+                OIIO_CHECK_EQUAL (pixel[0], 1);
+                OIIO_CHECK_EQUAL (pixel[1], 1);
+                OIIO_CHECK_EQUAL (pixel[2], 1);
+                OIIO_CHECK_EQUAL (pixel[3], 1);
             }
         }
     }
 }
 
 
-TEST_F (CropTest, crop_trans)
+
+void crop_trans ()
 {
+    int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
+    // Crop region we'll work with
+    int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    spec.alpha_channel = 3;
+    ImageBuf A, B;
+    A.reset ("A", spec);
+    B.reset ("B", spec);
+    float arbitrary1[4];
+    arbitrary1[0] = 0.2;
+    arbitrary1[1] = 0.3;
+    arbitrary1[2] = 0.4;
+    arbitrary1[3] = 0.5;
+    A.fill (arbitrary1);
+
     // Test TRANS crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
                         ImageBufAlgo::CROP_TRANS);
     // Should be ful size
-    ASSERT_EQ (B.spec().x, 0);
-    ASSERT_EQ (B.spec().width, WIDTH);
-    ASSERT_EQ (B.spec().full_x, 0);
-    ASSERT_EQ (B.spec().full_width, WIDTH);
-    ASSERT_EQ (B.spec().y, 0);
-    ASSERT_EQ (B.spec().height, HEIGHT);
-    ASSERT_EQ (B.spec().full_y, 0);
-    ASSERT_EQ (B.spec().full_height, HEIGHT);
+    OIIO_CHECK_EQUAL (B.spec().x, 0);
+    OIIO_CHECK_EQUAL (B.spec().width, WIDTH);
+    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_width, WIDTH);
+    OIIO_CHECK_EQUAL (B.spec().y, 0);
+    OIIO_CHECK_EQUAL (B.spec().height, HEIGHT);
+    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
+    OIIO_CHECK_EQUAL (B.spec().full_height, HEIGHT);
     float *pixel = ALLOCA(float, CHANNELS);
     for (int j = 0;  j < HEIGHT;  ++j) {
         for (int i = 0;  i < WIDTH;  ++i) {
@@ -325,13 +330,13 @@ TEST_F (CropTest, crop_trans)
             if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
                 // Inside the crop region should match what it always was
                 for (int c = 0;  c < CHANNELS;  ++c)
-                    EXPECT_EQ (pixel[c], arbitrary1[c]) << "bad ImageBuf::crop TRANS";
+                    OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
             } else {
                 // Outside the crop region should be black
-                EXPECT_EQ (pixel[0], 0) << "bad ImageBuf::crop TRANS";
-                EXPECT_EQ (pixel[1], 0) << "bad ImageBuf::crop TRANS";
-                EXPECT_EQ (pixel[2], 0) << "bad ImageBuf::crop TRANS";
-                EXPECT_EQ (pixel[3], 0) << "bad ImageBuf::crop TRANS";
+                OIIO_CHECK_EQUAL (pixel[0], 0);
+                OIIO_CHECK_EQUAL (pixel[1], 0);
+                OIIO_CHECK_EQUAL (pixel[2], 0);
+                OIIO_CHECK_EQUAL (pixel[3], 0);
             }
         }
     }
@@ -340,7 +345,7 @@ TEST_F (CropTest, crop_trans)
 
 
 // Tests ImageBufAlgo::add
-TEST_F (ImageBufTest, ImageBuf_add)
+void ImageBuf_add ()
 {
     const int WIDTH = 8;
     const int HEIGHT = 8;
@@ -364,9 +369,17 @@ TEST_F (ImageBufTest, ImageBuf_add)
             float pixel[CHANNELS];
             C.getpixel (i, j, pixel);
             for (int c = 0;  c < CHANNELS;  ++c)
-                EXPECT_EQ (pixel[c], Aval[c]+Bval[c]) << "bad ImageBufAlgo::add";
+                OIIO_CHECK_EQUAL (pixel[c], Aval[c]+Bval[c]);
         }
     }
+}
+
+
+
+// check if two float values match
+inline bool
+is_equal (float x, float y) {
+    return std::abs(x - y) <= 1e-05 * std::abs(x); // 1e-05
 }
 
 
@@ -397,12 +410,12 @@ static float LUMINANCE_LINEAR[142] = {
 };
 
 // The fixture for testing class ImageBufAlgo::ColorTransfer.
-class ColorTransferTest : public testing::Test {
+class ColorTransferTest {
     
-protected:
+public:
     
     // You can do set-up work for each test here.
-    ColorTransferTest () {
+    ColorTransferTest () : tfunc(NULL) {
         CHANNELS = 4;
         ALPHA = 1.f;
         STEPS = sizeof(LUMINANCE_LINEAR) / sizeof(float);
@@ -413,32 +426,16 @@ protected:
         reverse.reset ("reverse", spec);
         PRINT_OUTPUT = false;
         PRINT_REVERSE = false;
-    }
-    
-    // You can do clean-up work that doesn't throw exceptions here.
-    virtual
-    ~ColorTransferTest () {
-    }
-    
-    // Code here will be called immediately after the constructor (right
-    // before each test).
-    virtual void
-    SetUp () {
-        
+
         // Create an input ramp from the LUMINANCE_LINEAR array
         for(int y = 0; y < STEPS; y++) {
             float pixel[4] = {LUMINANCE_LINEAR[y], LUMINANCE_LINEAR[y],
                               LUMINANCE_LINEAR[y], ALPHA};
             input.setpixel (0, y, pixel);
         }
-        
     }
     
-    // Code here will be called immediately after each test (right
-    // before the destructor).
-    virtual void
-    TearDown () {
-        
+    ~ColorTransferTest () {
         // Print the output ramp for when you need to change the
         // LUMINANCE_<COLORSPACE> array values
         if(PRINT_OUTPUT) {
@@ -463,7 +460,8 @@ protected:
             }
             std::cerr << std::endl;
         }
-        
+
+        delete tfunc;
     }
     
     void
@@ -477,14 +475,9 @@ protected:
             for (int c = 0; c < CHANNELS; ++c) {
                 if (c == in.spec().alpha_channel ||
                     c == in.spec().z_channel)
-                    EXPECT_EQ (pixel[c], ALPHA) << "bad ImageBufAlgo::colortransfer "
-                        << tfunc->name() << " ALPHA";
+                    OIIO_CHECK_EQUAL (pixel[c], ALPHA);
                 else
-                    EXPECT_TRUE (is_equal(pixel[c], table[y]))
-                        << "bad ImageBufAlgo::colortransfer "
-                        << tfunc->name() << " TRANSFER "
-                        << "chan[" << c << "] ramp[" << y << "] "
-                        << pixel[c] << " != " << table[y];
+                    OIIO_CHECK_ASSERT (is_equal(pixel[c], table[y]));
             }
         }
     }
@@ -506,24 +499,22 @@ protected:
 };
 
 
-
-TEST_F (ColorTransferTest, ColourTransferLinear)
+void ColourTransferLinear ()
 {
+    ColorTransferTest t;
+
     // uncomment this if you want to print the output luminance table
-    //PRINT_OUTPUT = true;
-    //PRINT_REVERSE = true;
+    //t.PRINT_OUTPUT = true;
+    //t.PRINT_REVERSE = true;
     
     // create a color transfer function and use it
-    tfunc = ColorTransfer::create ("null");
-    ImageBufAlgo::colortransfer (output, input, tfunc);
+    t.tfunc = ColorTransfer::create ("null");
+    ImageBufAlgo::colortransfer (t.output, t.input, t.tfunc);
     
     // check the transfer was done correctly
-    check_transfer (output, LUMINANCE_LINEAR,
-                    sizeof(LUMINANCE_LINEAR) / sizeof(float));
-    
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.output, LUMINANCE_LINEAR,
+                      sizeof(LUMINANCE_LINEAR) / sizeof(float));
 }
-
 
 
 // Gamma 2.2 luminance ramp
@@ -551,29 +542,31 @@ static float LUMINANCE_Gamma22[142] = {
 3.307898,  3.318694
 };
 
-TEST_F (ColorTransferTest, ColourTransferGamma22)
+
+void ColourTransferGamma22 ()
 {
+    ColorTransferTest t;
+
     // uncomment this if you want to print the output luminance table
-    //PRINT_OUTPUT = true;
-    //PRINT_REVERSE = true;
+    //t.PRINT_OUTPUT = true;
+    //t.PRINT_REVERSE = true;
     
     // create a color transfer function and use it
-    tfunc = ColorTransfer::create ("gamma");
-    (*tfunc).set("gamma", 1/2.2);
-    ImageBufAlgo::colortransfer (output, input, tfunc);
+    t.tfunc = ColorTransfer::create ("gamma");
+    (*t.tfunc).set("gamma", 1/2.2);
+    ImageBufAlgo::colortransfer (t.output, t.input, t.tfunc);
     
     // check the transfer was done correctly
-    check_transfer (output, LUMINANCE_Gamma22,
+    t.check_transfer (t.output, LUMINANCE_Gamma22,
                     sizeof(LUMINANCE_Gamma22) / sizeof(float));
     
     // do the reverse transfer
-    (*tfunc).set("gamma", 2.2);
-    ImageBufAlgo::colortransfer (reverse, output, tfunc);
+    (*t.tfunc).set("gamma", 2.2);
+    ImageBufAlgo::colortransfer (t.reverse, t.output, t.tfunc);
     
     // check reverse transfer with LUMINANCE_LINEAR values
-    check_transfer (reverse, LUMINANCE_LINEAR,
-                    sizeof(LUMINANCE_LINEAR) / sizeof(float));
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.reverse, LUMINANCE_LINEAR,
+                      sizeof(LUMINANCE_LINEAR) / sizeof(float));
 }
 
 
@@ -603,29 +596,30 @@ static float LUMINANCE_SRGB[142] = {
 3.103701,  3.113150
 };
 
-TEST_F (ColorTransferTest, ColourTransferSRGB)
+
+void ColourTransferSRGB ()
 {
+    ColorTransferTest t;
+
     // uncomment this if you want to print the output luminance table
-    //PRINT_OUTPUT = true;
-    //PRINT_REVERSE = true;
+    //t.PRINT_OUTPUT = true;
+    //t.PRINT_REVERSE = true;
     
     // create a color transfer function and use it
-    tfunc = ColorTransfer::create ("linear_to_sRGB");
-    ImageBufAlgo::colortransfer (output, input, tfunc);
+    t.tfunc = ColorTransfer::create ("linear_to_sRGB");
+    ImageBufAlgo::colortransfer (t.output, t.input, t.tfunc);
 
     // check the transfer was done correctly
-    check_transfer (output, LUMINANCE_SRGB,
-                    sizeof(LUMINANCE_SRGB) / sizeof(float));
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.output, LUMINANCE_SRGB,
+                      sizeof(LUMINANCE_SRGB) / sizeof(float));
     
     // do the reverse transfer
-    tfunc = ColorTransfer::create ("sRGB_to_linear");
-    ImageBufAlgo::colortransfer (reverse, output, tfunc);
+    t.tfunc = ColorTransfer::create ("sRGB_to_linear");
+    ImageBufAlgo::colortransfer (t.reverse, t.output, t.tfunc);
     
     // check reverse transfer with LUMINANCE_LINEAR values
-    check_transfer (reverse, LUMINANCE_LINEAR,
-                    sizeof(LUMINANCE_LINEAR) / sizeof(float));
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.reverse, LUMINANCE_LINEAR,
+                      sizeof(LUMINANCE_LINEAR) / sizeof(float));
 }
 
 
@@ -655,29 +649,31 @@ static float LUMINANCE_AdobeRGB[142] = {
 3.309305,  3.320109
 };
 
-TEST_F (ColorTransferTest, ColourTransferAdobeRGB)
+
+
+void ColourTransferAdobeRGB ()
 {
+    ColorTransferTest t;
+
     // uncomment this if you want to print the output luminance table
-    //PRINT_OUTPUT = true;
-    //PRINT_REVERSE = true;
+    //t.PRINT_OUTPUT = true;
+    //t.PRINT_REVERSE = true;
     
     // create a color transfer function and use it
-    tfunc = ColorTransfer::create ("linear_to_AdobeRGB");
-    ImageBufAlgo::colortransfer (output, input, tfunc);
+    t.tfunc = ColorTransfer::create ("linear_to_AdobeRGB");
+    ImageBufAlgo::colortransfer (t.output, t.input, t.tfunc);
 
     // check the transfer was done correctly
-    check_transfer (output, LUMINANCE_AdobeRGB,
-                    sizeof(LUMINANCE_AdobeRGB) / sizeof(float));
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.output, LUMINANCE_AdobeRGB,
+                      sizeof(LUMINANCE_AdobeRGB) / sizeof(float));
     
     // do the reverse transfer
-    tfunc = ColorTransfer::create ("AdobeRGB_to_linear");
-    ImageBufAlgo::colortransfer (reverse, output, tfunc);
+    t.tfunc = ColorTransfer::create ("AdobeRGB_to_linear");
+    ImageBufAlgo::colortransfer (t.reverse, t.output, t.tfunc);
     
     // check reverse transfer with LUMINANCE_LINEAR values
-    check_transfer (reverse, LUMINANCE_LINEAR,
-                    sizeof(LUMINANCE_LINEAR) / sizeof(float));
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.reverse, LUMINANCE_LINEAR,
+                      sizeof(LUMINANCE_LINEAR) / sizeof(float));
 }
 
 
@@ -707,30 +703,29 @@ static float LUMINANCE_Rec709[142] = {
 3.493149,  3.504755
 };
 
-TEST_F (ColorTransferTest, ColourTransferRec709)
+void ColourTransferRec709 ()
 {
-    
+    ColorTransferTest t;
+
     // uncomment this if you want to print the output luminance table
     //PRINT_OUTPUT = true;
     //PRINT_REVERSE = true;
     
     // create a color transfer function and use it
-    tfunc = ColorTransfer::create ("linear_to_Rec709");
-    ImageBufAlgo::colortransfer (output, input, tfunc);
+    t.tfunc = ColorTransfer::create ("linear_to_Rec709");
+    ImageBufAlgo::colortransfer (t.output, t.input, t.tfunc);
     
     // check the transfer was done correctly
-    check_transfer (output, LUMINANCE_Rec709,
-                    sizeof(LUMINANCE_Rec709) / sizeof(float));
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.output, LUMINANCE_Rec709,
+                      sizeof(LUMINANCE_Rec709) / sizeof(float));
     
     // do the reverse transfer
-    tfunc = ColorTransfer::create ("Rec709_to_linear");
-    ImageBufAlgo::colortransfer (reverse, output, tfunc);
+    t.tfunc = ColorTransfer::create ("Rec709_to_linear");
+    ImageBufAlgo::colortransfer (t.reverse, t.output, t.tfunc);
     
     // check reverse transfer with LUMINANCE_LINEAR values
-    check_transfer (reverse, LUMINANCE_LINEAR,
-                    sizeof(LUMINANCE_LINEAR) / sizeof(float));
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.reverse, LUMINANCE_LINEAR,
+                      sizeof(LUMINANCE_LINEAR) / sizeof(float));
 }
 
 
@@ -760,47 +755,57 @@ static float LUMINANCE_KodakLog[142] = {
 1.003511,  1.004424
 };
 
-TEST_F (ColorTransferTest, ColourTransferKodakLog)
+void ColourTransferKodakLog ()
 {
+    ColorTransferTest t;
+
     // uncomment this if you want to print the output luminance table
-    //PRINT_OUTPUT = true;
-    //PRINT_REVERSE = true;
+    //t.PRINT_OUTPUT = true;
+    //t.PRINT_REVERSE = true;
     
     // create a color transfer function and use it
-    tfunc = ColorTransfer::create ("linear_to_KodakLog");
-    (*tfunc).set("refBlack", 95.f);
-    (*tfunc).set("refWhite", 685.f);
-    (*tfunc).set("dispGamma", 1.7f);
-    (*tfunc).set("negGamma", 0.6f);
-    ImageBufAlgo::colortransfer (output, input, tfunc);
+    t.tfunc = ColorTransfer::create ("linear_to_KodakLog");
+    (*t.tfunc).set("refBlack", 95.f);
+    (*t.tfunc).set("refWhite", 685.f);
+    (*t.tfunc).set("dispGamma", 1.7f);
+    (*t.tfunc).set("negGamma", 0.6f);
+    ImageBufAlgo::colortransfer (t.output, t.input, t.tfunc);
 
     // check the transfer was done correctly
-    check_transfer (output, LUMINANCE_KodakLog,
-                    sizeof(LUMINANCE_KodakLog) / sizeof(float));
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.output, LUMINANCE_KodakLog,
+                      sizeof(LUMINANCE_KodakLog) / sizeof(float));
     
     // do the reverse transfer
-    tfunc = ColorTransfer::create ("KodakLog_to_linear");
-    (*tfunc).set("refBlack", 95.f);
-    (*tfunc).set("refWhite", 685.f);
-    (*tfunc).set("dispGamma", 1.7f);
-    (*tfunc).set("negGamma", 0.6f);
-    ImageBufAlgo::colortransfer (reverse, output, tfunc);
+    t.tfunc = ColorTransfer::create ("KodakLog_to_linear");
+    (*t.tfunc).set("refBlack", 95.f);
+    (*t.tfunc).set("refWhite", 685.f);
+    (*t.tfunc).set("dispGamma", 1.7f);
+    (*t.tfunc).set("negGamma", 0.6f);
+    ImageBufAlgo::colortransfer (t.reverse, t.output, t.tfunc);
     
     // check reverse transfer with LUMINANCE_LINEAR values
-    check_transfer (reverse, LUMINANCE_LINEAR,
-                    sizeof(LUMINANCE_LINEAR) / sizeof(float));
-    delete tfunc;  tfunc = NULL;
+    t.check_transfer (t.reverse, LUMINANCE_LINEAR,
+                      sizeof(LUMINANCE_LINEAR) / sizeof(float));
 }
 
-
-
-}; // end anon namespace
 
 
 int
 main (int argc, char **argv)
 {
-    testing::InitGoogleTest (&argc, argv);
-    return RUN_ALL_TESTS ();
+    ImageBuf_zero_fill ();
+    crop_cut ();
+    crop_window ();
+    crop_black ();
+    crop_white ();
+    crop_trans ();
+    ImageBuf_add ();
+    ColourTransferLinear ();
+    ColourTransferGamma22 ();
+    ColourTransferSRGB ();
+    ColourTransferAdobeRGB ();
+    ColourTransferRec709 ();
+    ColourTransferKodakLog ();
+
+    return unit_test_failures;
 }
