@@ -28,6 +28,9 @@
   (This is the Modified BSD License)
 */
 
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+
 #include "bmp_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -154,10 +157,11 @@ BmpOutput::create_and_write_bitmap_header (void)
     m_dib_header.important = 0;
 
     ImageIOParameter *p = NULL;
-    p = m_spec.find_attribute ("ResolutionUnits", TypeDesc::STRING);
+    p = m_spec.find_attribute ("ResolutionUnit", TypeDesc::STRING);
     if (p && p->data()) {
         std::string res_units = *(char**)p->data ();
-        if (res_units.compare ("pixel per meter") == 0) {
+        if (iequals (res_units, "m") ||
+              iequals (res_units, "pixel per meter")) {
             ImageIOParameter *resx = NULL, *resy = NULL;
             resx = m_spec.find_attribute ("XResolution", TypeDesc::INT32);
             if (resx && resx->data())

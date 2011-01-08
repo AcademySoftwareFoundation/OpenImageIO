@@ -92,7 +92,7 @@ DLLEXPORT ImageOutput *targa_output_imageio_create () { return new TGAOutput; }
 // DLLEXPORT int tga_imageio_version = OIIO_PLUGIN_VERSION;   // it's in tgainput.cpp
 
 DLLEXPORT const char * targa_output_extensions[] = {
-    "tga", NULL
+    "tga", "tpic", NULL
 };
 
 OIIO_PLUGIN_EXPORTS_END

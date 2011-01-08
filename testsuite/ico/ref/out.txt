@@ -5,52 +5,52 @@ hi
     SHA-1: 563F978D0860CB8791716CA694AB94EEA83E6E03
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 2
+    BitsPerSample: 1
  subimage  1:   32 x   32, 4 channel, uint8 ico
     SHA-1: C6AC509D1005F1B1377A24F33A77D4ABEE425628
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 5
+    BitsPerSample: 2
  subimage  2:   16 x   16, 4 channel, uint8 ico
     SHA-1: D9F2BA4010F3BC5D0E24FED9D1C9FC2920180AE8
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 5
+    BitsPerSample: 2
  subimage  3:   48 x   48, 4 channel, uint8 ico
     SHA-1: BA341CEBEC4D0FEBC090E329310D2B8BBEAE1F4C
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 9
+    BitsPerSample: 3
  subimage  4:   32 x   32, 4 channel, uint8 ico
     SHA-1: F1D395FE75B3E6133ECF456745EC747CBD53941C
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 9
+    BitsPerSample: 3
  subimage  5:   16 x   16, 4 channel, uint8 ico
     SHA-1: B39B76D983D11966C8C344506084515AF9A0F40F
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 9
+    BitsPerSample: 3
  subimage  6:  256 x  256, 4 channel, uint8 ico
     SHA-1: F44C9B94AB7D612F62A4DC29FD9C56FD173F2614
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 32
+    BitsPerSample: 2
  subimage  7:   48 x   48, 4 channel, uint8 ico
     SHA-1: 127700A3DACBF25FCD800642D78F8EE91EDE24B9
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 32
+    BitsPerSample: 8
  subimage  8:   32 x   32, 4 channel, uint8 ico
     SHA-1: AA61C682F659F487E2E1F559F0D4682B782C6836
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 32
+    BitsPerSample: 8
  subimage  9:   16 x   16, 4 channel, uint8 ico
     SHA-1: 0196F151853CC595AF7504196C8CCC5B3A3CE446
     channel list: R, G, B, A
     Color space: unknown
-    BitsPerSample: 32
+    BitsPerSample: 8
 Converting ../../../oiio-testimages/oiio.ico to oiio.ico
 Comparing "../../../oiio-testimages/oiio.ico" and "oiio.ico"
 Subimage 0: 16 x 16, 4 channel

@@ -146,11 +146,11 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
     // forcing UINT8 format
     m_spec.set_format (TypeDesc::UINT8);
 
-    stream_format = m_spec.get_string_attribute("Stream format", "none");
+    stream_format = m_spec.get_string_attribute("jpeg2000:streamformat", "none");
     if (!strcmp (stream_format.c_str(), "none")) {
         stream_format.erase (stream_format.begin(), stream_format.end());
         stream_format.assign("jpc", 3);
-        m_spec.attribute ("Stream format", stream_format.c_str());
+        m_spec.attribute ("jpeg2000:streamformat", stream_format.c_str());
     }
 
     // stuff used in write_scanline() method

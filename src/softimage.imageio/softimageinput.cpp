@@ -163,6 +163,13 @@ SoftimageInput::open (const std::string& name, ImageSpec& spec)
     m_spec = ImageSpec (m_pic_header.width, m_pic_header.height, nchannels, chanType);
     m_spec.attribute ("BitsPerSample", (int)curPacket.size);
     
+    if (m_pic_header.comment[0] != 0) {
+        char comment[81];
+        strncpy (comment, m_pic_header.comment, 80);
+        comment[80] = 0;
+        m_spec.attribute ("ImageDescription", comment);
+    }
+
     // Build the scanline index
     fpos_t curPos;
     fgetpos (m_fd, &curPos);

@@ -84,8 +84,7 @@ BmpInput::open (const std::string &name, ImageSpec &spec)
     m_spec.attribute ("BitsPerSample", (int)m_dib_header.bpp);
     m_spec.attribute ("XResolution", (int)m_dib_header.hres);
     m_spec.attribute ("YResolution", (int)m_dib_header.vres);
-    m_spec.attribute ("ResolutionUnits", "pixel per meter");
-        
+    m_spec.attribute ("ResolutionUnit", "m");
 
     // comupting size of one scanline - this is the size of one scanline that
     // is stored in the file, not in the memory
