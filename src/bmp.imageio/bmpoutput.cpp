@@ -65,6 +65,8 @@ BmpOutput::open (const std::string &name, const ImageSpec &spec,
     m_filename = name;
     m_spec = spec;
 
+    // TODO: Figure out what to do with nchannels.
+
     m_fd = fopen (m_filename.c_str (), "wb");
     if (! m_fd) {
         error ("Unable to open file \"%s\"", m_filename.c_str ());
@@ -74,8 +76,12 @@ BmpOutput::open (const std::string &name, const ImageSpec &spec,
     create_and_write_file_header ();
     create_and_write_bitmap_header ();
 
+    // Scanline size is rounded up to align to 4-byte boundary
     m_scanline_size = ((m_spec.width * m_spec.nchannels) + 3) & ~3;
     fgetpos (m_fd, &m_image_start);
+
+    // Only support 8 bit channels for now.
+    m_spec.set_format (TypeDesc::UINT8);
 
     return true;
 }
@@ -101,11 +107,12 @@ BmpOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
     std::vector<unsigned char> scratch;
     data = to_native_scanline (format, data, xstride, scratch);
     std::vector<unsigned char> buf (m_scanline_size);
-    memcpy (&buf[0], data, m_spec.scanline_bytes ());
+    memcpy (&buf[0], data, m_scanline_size);
 
-    for (unsigned int i = 0; i < buf.size (); i += m_spec.nchannels)
-        std::swap (buf[i], buf[i+1]);
-    
+    // Swap RGB pixels into BGR format
+    for (int i = 0, iend = buf.size() - 2; i < iend; i += m_spec.nchannels)
+        std::swap (buf[i], buf[i+2]);
+
     fwrite (&buf[0], 1, buf.size (), m_fd);
     return true;
 }
