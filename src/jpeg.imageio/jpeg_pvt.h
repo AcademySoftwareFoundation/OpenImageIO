@@ -43,10 +43,6 @@ extern "C" {
 }
 
 
-#ifndef _TIFF_
-struct TIFFDirEntry;
-#endif
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class JpgInput : public ImageInput {
