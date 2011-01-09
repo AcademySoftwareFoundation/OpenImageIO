@@ -202,12 +202,14 @@ private:
     // Search for TIFF tag 'tagid' having type 'tifftype', and if found,
     // add it in the obvious way to m_spec under the name 'oiioname'.
     void find_tag (int tifftag, TIFFDataType tifftype, const char *oiioname) {
-        const TIFFFieldInfo *info = TIFFFieldWithTag (m_tif, tifftag);
-        if (info && info->field_type != tifftype) {
+#ifdef TIFF_VERSION_BIG
+        const TIFFField *info = TIFFFindField (m_tif, tifftag, tifftype);
+#else
+        const TIFFFieldInfo *info = TIFFFindFieldInfo (m_tif, tifftag, tifftype);
+#endif
+        if (! info) {
             // Something has gone wrong, libtiff doesn't think the field type
             // is the same as we do.
-            // std::cerr << "Wow, " << oiioname << " " << info->field_type 
-            //           << " versus " << tifftype << "\n";
             return;
         }
         if (tifftype == TIFF_ASCII)

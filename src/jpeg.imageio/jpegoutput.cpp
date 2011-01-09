@@ -91,7 +91,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
         return new JpgOutput;
     }
     DLLEXPORT const char *jpeg_output_extensions[] = {
-        "jpg", "jpe", "jpeg", NULL
+        "jpg", "jpe", "jpeg", "jif", "jfif", ".jfi", NULL
     };
 
 OIIO_PLUGIN_EXPORTS_END

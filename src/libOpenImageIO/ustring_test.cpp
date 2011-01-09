@@ -36,7 +36,7 @@
 #include "ustring.h"
 #include "strutil.h"
 
-#include "boosttest.h"
+#include "unittest.h"
 
 
 OIIO_NAMESPACE_USING;
@@ -63,7 +63,7 @@ create_lotso_ustrings ()
 
 
 
-BOOST_AUTO_TEST_CASE (test_ustring_lock)
+void test_ustring_lock ()
 {
 #if (BOOST_VERSION >= 103500)
     std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
@@ -77,5 +77,14 @@ BOOST_AUTO_TEST_CASE (test_ustring_lock)
     std::cout << "Created " << threads.size() << " threads\n";
     threads.join_all ();
     std::cout << "\n" << ustring::getstats() << "\n";
-    BOOST_ASSERT (true);  // If we make it here without crashing, pass
+    OIIO_CHECK_ASSERT (true);  // If we make it here without crashing, pass
+}
+
+
+
+int main (int argc, char *argv[])
+{
+    test_ustring_lock ();
+
+    return unit_test_failures;
 }

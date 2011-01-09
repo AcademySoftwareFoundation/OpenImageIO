@@ -1085,8 +1085,9 @@ ImageCacheImpl::set_min_cache_size (long long newsize)
 ImageCacheTile::ImageCacheTile (const TileID &id,
                                 ImageCachePerThreadInfo *thread_info,
                                 bool read_now)
-    : m_id (id), m_valid(true), m_used(true)
+    : m_id (id), m_valid(true) // , m_used(true)
 {
+    m_used = true;
     m_pixels_ready = false;
     if (read_now) {
         read (thread_info);
@@ -1098,8 +1099,9 @@ ImageCacheTile::ImageCacheTile (const TileID &id,
 
 ImageCacheTile::ImageCacheTile (const TileID &id, void *pels, TypeDesc format,
                     stride_t xstride, stride_t ystride, stride_t zstride)
-    : m_id (id), m_used(true)
+    : m_id (id) // , m_used(true)
 {
+    m_used = true;
     ImageCacheFile &file (m_id.file ());
     const ImageSpec &spec (file.spec(id.subimage(), id.miplevel()));
     size_t size = memsize_needed ();
@@ -1723,6 +1725,7 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
     // no other non-threadsafe side effects.
     Timer timer;
     tile = new ImageCacheTile (id, thread_info, m_read_before_insert);
+    // N.B. the ImageCacheTile ctr starts the tile out as 'used'
     DASSERT (tile);
     DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
     double readtime = timer();

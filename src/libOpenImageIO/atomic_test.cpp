@@ -35,7 +35,7 @@
 
 #include <boost/thread/thread.hpp>
 
-#include "boosttest.h"
+#include "unittest.h"
 
 
 OIIO_NAMESPACE_USING;
@@ -75,7 +75,7 @@ do_int_math ()
 
 
 
-BOOST_AUTO_TEST_CASE (test_atomic_int)
+void test_atomic_int ()
 {
 #if (BOOST_VERSION >= 103500)
     std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE (test_atomic_int)
     }
     std::cout << "Created " << threads.size() << " threads\n";
     threads.join_all ();
-    BOOST_CHECK_EQUAL (ai, 42);
+    OIIO_CHECK_EQUAL (ai, 42);
 }
 
 
@@ -117,7 +117,7 @@ do_int64_math ()
 
 
 
-BOOST_AUTO_TEST_CASE (test_atomic_int64)
+void test_atomic_int64 ()
 {
     all = 0;
     boost::thread_group threads;
@@ -126,5 +126,15 @@ BOOST_AUTO_TEST_CASE (test_atomic_int64)
     }
     threads.join_all ();
     do_int64_math ();
-    BOOST_CHECK_EQUAL (all, 0);
+    OIIO_CHECK_EQUAL (all, 0);
+}
+
+
+
+int main (int argc, char *argv[])
+{
+    test_atomic_int ();
+    test_atomic_int64 ();
+
+    return unit_test_failures;
 }

@@ -29,70 +29,79 @@
 */
 
 #include "imageio.h"
-#include "boosttest.h"
+#include "unittest.h"
 
 OIIO_NAMESPACE_USING;
 
-BOOST_AUTO_TEST_CASE (test_get_rest_arguments)
+void test_get_rest_arguments ()
 {
     int ret;
     std::map <std::string, std::string> result;
     std::string base;
     std::string url = "someplace?arg1=value1&arg2=value2";
     ret = Strutil::get_rest_arguments (url, base, result);
-    BOOST_CHECK_EQUAL (ret, true);
-    BOOST_CHECK_EQUAL (base, "someplace");
-    BOOST_CHECK_EQUAL (result["arg1"], "value1");
-    BOOST_CHECK_EQUAL (result["arg2"], "value2");
-    BOOST_CHECK_EQUAL (result["arg3"], "");
+    OIIO_CHECK_EQUAL (ret, true);
+    OIIO_CHECK_EQUAL (base, "someplace");
+    OIIO_CHECK_EQUAL (result["arg1"], "value1");
+    OIIO_CHECK_EQUAL (result["arg2"], "value2");
+    OIIO_CHECK_EQUAL (result["arg3"], "");
 
     result.clear();
     url = "?arg1=value1&arg2=value2";
     ret = Strutil::get_rest_arguments (url, base, result);
-    BOOST_CHECK_EQUAL (ret, true);
-    BOOST_CHECK_EQUAL (base, "");
-    BOOST_CHECK_EQUAL (result["arg1"], "value1");
-    BOOST_CHECK_EQUAL (result["arg2"], "value2");
+    OIIO_CHECK_EQUAL (ret, true);
+    OIIO_CHECK_EQUAL (base, "");
+    OIIO_CHECK_EQUAL (result["arg1"], "value1");
+    OIIO_CHECK_EQUAL (result["arg2"], "value2");
 
     result.clear();
     url = "arg1=value1&arg2=value2";
     ret = Strutil::get_rest_arguments (url, base, result);
-    BOOST_CHECK_EQUAL (ret, true);
-    BOOST_CHECK_EQUAL (base, "arg1=value1&arg2=value2");
-    BOOST_CHECK_EQUAL (result["arg1"], "");
-    BOOST_CHECK_EQUAL (result["arg2"], "");
+    OIIO_CHECK_EQUAL (ret, true);
+    OIIO_CHECK_EQUAL (base, "arg1=value1&arg2=value2");
+    OIIO_CHECK_EQUAL (result["arg1"], "");
+    OIIO_CHECK_EQUAL (result["arg2"], "");
 
     result.clear();
     url = "";
     ret = Strutil::get_rest_arguments (url, base, result);
-    BOOST_CHECK_EQUAL (ret, true);
-    BOOST_CHECK_EQUAL (base, "");
-    BOOST_CHECK_EQUAL (result["arg1"], "");
-    BOOST_CHECK_EQUAL (result["arg2"], "");
+    OIIO_CHECK_EQUAL (ret, true);
+    OIIO_CHECK_EQUAL (base, "");
+    OIIO_CHECK_EQUAL (result["arg1"], "");
+    OIIO_CHECK_EQUAL (result["arg2"], "");
 
     result.clear();
     url = "sometextwithoutasense????&&&&&arg4=val1";
     ret = Strutil::get_rest_arguments (url, base, result);
-    BOOST_CHECK_EQUAL (ret, false);
-    BOOST_CHECK_EQUAL (base, "sometextwithoutasense");
-    BOOST_CHECK_EQUAL (result["arg1"], "");
-    BOOST_CHECK_EQUAL (result["arg2"], "");
-    BOOST_CHECK_EQUAL (result["arg4"], "");
+    OIIO_CHECK_EQUAL (ret, false);
+    OIIO_CHECK_EQUAL (base, "sometextwithoutasense");
+    OIIO_CHECK_EQUAL (result["arg1"], "");
+    OIIO_CHECK_EQUAL (result["arg2"], "");
+    OIIO_CHECK_EQUAL (result["arg4"], "");
 
     result.clear();
     url = "atext?arg1value1&arg2value2";
     ret = Strutil::get_rest_arguments (url, base, result);
-    BOOST_CHECK_EQUAL (ret, false);
-    BOOST_CHECK_EQUAL (base, "atext");
-    BOOST_CHECK_EQUAL (result["arg1"], "");
-    BOOST_CHECK_EQUAL (result["arg2"], "");
+    OIIO_CHECK_EQUAL (ret, false);
+    OIIO_CHECK_EQUAL (base, "atext");
+    OIIO_CHECK_EQUAL (result["arg1"], "");
+    OIIO_CHECK_EQUAL (result["arg2"], "");
 
     result.clear();
     url = "atext?arg1=value1&arg2value2";
     result["arg2"] = "somevalue";
     ret = Strutil::get_rest_arguments (url, base, result);
-    BOOST_CHECK_EQUAL (ret, false);
-    BOOST_CHECK_EQUAL (base, "atext");
-    BOOST_CHECK_EQUAL (result["arg1"], "value1");
-    BOOST_CHECK_EQUAL (result["arg2"], "somevalue");
+    OIIO_CHECK_EQUAL (ret, false);
+    OIIO_CHECK_EQUAL (base, "atext");
+    OIIO_CHECK_EQUAL (result["arg1"], "value1");
+    OIIO_CHECK_EQUAL (result["arg2"], "somevalue");
+}
+
+
+
+int main (int argc, char *argv[])
+{
+    test_get_rest_arguments ();
+
+    return unit_test_failures;
 }

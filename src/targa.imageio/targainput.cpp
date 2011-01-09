@@ -100,7 +100,7 @@ DLLEXPORT ImageInput *targa_input_imageio_create () { return new TGAInput; }
 DLLEXPORT int targa_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * targa_input_extensions[] = {
-    "tga", NULL
+    "tga", "tpic", NULL
 };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -195,7 +195,7 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                         + (m_tga.bpp == 32
                         || m_alpha >= TGA_ALPHA_UNDEFINED_RETAIN),
                         TypeDesc::UINT8);
-    m_spec.attribute ("BitsPerSample", m_tga.bpp);
+    m_spec.attribute ("BitsPerSample", m_tga.bpp/m_spec.nchannels);
     m_spec.default_channel_names ();
     m_spec.linearity = ImageSpec::UnknownLinearity;
 #if 0   // no one seems to adhere to this part of the spec...

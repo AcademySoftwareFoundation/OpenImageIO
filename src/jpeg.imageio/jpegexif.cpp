@@ -41,12 +41,31 @@
 #include <boost/scoped_array.hpp>
 #include <boost/foreach.hpp>
 
+#include "fmath.h"
+
 extern "C" {
 #include "tiff.h"
 }
 
+#ifdef TIFF_VERSION_BIG
+// In old versions of TIFF, this was defined in tiff.h.  It's gone from
+// "BIG TIFF" (libtiff 4.x), so we just define it here.
+
+struct TIFFHeader {
+    uint16_t tiff_magic;  /* magic number (defines byte order) */
+    uint16_t tiff_version;/* TIFF version number */
+    uint32_t tiff_diroff; /* byte offset to first directory */
+};
+
+struct TIFFDirEntry {
+    uint16_t tdir_tag;    /* tag ID */
+    uint16_t tdir_type;   /* data type -- see TIFFDataType enum */
+    uint32_t tdir_count;  /* number of items; length in spec */
+    uint32_t tdir_offset; /* byte offset to field data */
+};
+#endif
+
 #include "imageio.h"
-#include "fmath.h"
 #include "jpeg_pvt.h"
 
 

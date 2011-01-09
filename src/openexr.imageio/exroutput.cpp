@@ -165,7 +165,7 @@ OpenEXROutput::supports (const std::string &feature) const
     if (feature == "random_access") {
         const ImageIOParameter *param = m_spec.find_attribute("openexr:lineOrder");
         const char *lineorder = param ? *(char **)param->data() : NULL;
-        return (lineorder && ! strcmp (lineorder, "randomY"));
+        return (lineorder && iequals (lineorder, "randomY"));
     }
 
     // FIXME: we could support "empty"
@@ -319,18 +319,18 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
                                                Imf::ROUND_DOWN);
     
     if (textureformat) {
-        if (! strcmp (textureformat, "Plain Texture")) {
+        if (iequals (textureformat, "Plain Texture")) {
             m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
                                                     Imf::MIPMAP_LEVELS);
-        } else if (! strcmp (textureformat, "CubeFace Environment")) {
+        } else if (iequals (textureformat, "CubeFace Environment")) {
             m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
                                                     Imf::MIPMAP_LEVELS);
             m_header->insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_CUBE));
-        } else if (! strcmp (textureformat, "LatLong Environment")) {
+        } else if (iequals (textureformat, "LatLong Environment")) {
             m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
                                                     Imf::MIPMAP_LEVELS);
             m_header->insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_LATLONG));
-        } else if (! strcmp (textureformat, "Shadow")) {
+        } else if (iequals (textureformat, "Shadow")) {
             m_levelmode = Imf::ONE_LEVEL;  // Force one level for shadow maps
         }
 
@@ -411,26 +411,26 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         const char *str = *(char **)data;
         m_header->compression() = Imf::ZIP_COMPRESSION;  // Default
         if (str) {
-            if (! strcmp (str, "none"))
+            if (iequals (str, "none"))
                 m_header->compression() = Imf::NO_COMPRESSION;
-            else if (! strcmp (str, "deflate") || ! strcmp (str, "zip")) 
+            else if (iequals (str, "deflate") || iequals (str, "zip")) 
                 m_header->compression() = Imf::ZIP_COMPRESSION;
-            else if (! strcmp (str, "rle")) 
+            else if (iequals (str, "rle")) 
                 m_header->compression() = Imf::RLE_COMPRESSION;
-            else if (! strcmp (str, "zips")) 
+            else if (iequals (str, "zips")) 
                 m_header->compression() = Imf::ZIPS_COMPRESSION;
-            else if (! strcmp (str, "piz")) 
+            else if (iequals (str, "piz")) 
                 m_header->compression() = Imf::PIZ_COMPRESSION;
-            else if (! strcmp (str, "pxr24")) 
+            else if (iequals (str, "pxr24")) 
                 m_header->compression() = Imf::PXR24_COMPRESSION;
 #ifdef IMF_B44_COMPRESSION
             // The enum Imf::B44_COMPRESSION is not defined in older versions
             // of OpenEXR, and there are no explicit version numbers in the
             // headers.  BUT this other related #define is present only in
             // the newer version.
-            else if (! strcmp (str, "b44"))
+            else if (iequals (str, "b44"))
                 m_header->compression() = Imf::B44_COMPRESSION;
-            else if (! strcmp (str, "b44a"))
+            else if (iequals (str, "b44a"))
                 m_header->compression() = Imf::B44A_COMPRESSION;
 #endif
         }
@@ -441,9 +441,9 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         const char *str = *(char **)data;
         m_header->lineOrder() = Imf::INCREASING_Y;   // Default
         if (str) {
-            if (! strcmp (str, "randomY"))
+            if (iequals (str, "randomY"))
                 m_header->lineOrder() = Imf::RANDOM_Y;
-            else if (! strcmp (str, "decreasingY"))
+            else if (iequals (str, "decreasingY"))
                 m_header->lineOrder() = Imf::DECREASING_Y;
         }
         return true;
@@ -488,7 +488,10 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         return true;
     }
 
+#ifdef DEBUG
     std::cerr << "Don't know what to do with " << type.c_str() << ' ' << xname << "\n";
+#endif
+
     return false;
 }
 

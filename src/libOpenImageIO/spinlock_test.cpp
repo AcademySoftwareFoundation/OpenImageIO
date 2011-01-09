@@ -35,7 +35,7 @@
 
 #include <boost/thread/thread.hpp>
 
-#include "boosttest.h"
+#include "unittest.h"
 
 
 OIIO_NAMESPACE_USING;
@@ -54,7 +54,7 @@ spin_mutex mymutex;
 
 
 static void
-do_int_math ()
+do_accum ()
 {
     std::cout << "thread " 
 #if (BOOST_VERSION >= 103500)
@@ -69,7 +69,7 @@ do_int_math ()
 
 
 
-BOOST_AUTO_TEST_CASE (test_atomic_int)
+void test_spinlock ()
 {
 #if (BOOST_VERSION >= 103500)
     std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
@@ -78,10 +78,19 @@ BOOST_AUTO_TEST_CASE (test_atomic_int)
     accum = 0;
     boost::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (&do_int_math);
+        threads.create_thread (&do_accum);
     }
     std::cout << "Created " << threads.size() << " threads\n";
     threads.join_all ();
     int a = (int) accum;
-    BOOST_CHECK_EQUAL (a, (int)(numthreads * iterations));
+    OIIO_CHECK_EQUAL (a, (int)(numthreads * iterations));
+}
+
+
+
+int main (int argc, char *argv[])
+{
+    test_spinlock ();
+
+    return unit_test_failures;
 }

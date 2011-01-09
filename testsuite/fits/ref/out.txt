@@ -204,8 +204,8 @@ Subimage 0: 0 x 0, 1 channel
   RMS error = nan
   Peak SNR = nan
   Max error  = 0
-  0 pixels (-1.#J%) over 1e-06
-  0 pixels (-1.#J%) over 1e-06
+  0 pixels (nan%) over 1e-06
+  0 pixels (nan%) over 1e-06
 PASS
 ../../../fits-images/pg93/tst0008.fits :    0 x    0, 1 channel, double fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
@@ -267,8 +267,8 @@ Subimage 0: 0 x 0, 1 channel
   RMS error = nan
   Peak SNR = nan
   Max error  = 0
-  0 pixels (-1.#J%) over 1e-06
-  0 pixels (-1.#J%) over 1e-06
+  0 pixels (nan%) over 1e-06
+  0 pixels (nan%) over 1e-06
 PASS
 ../../../fits-images/pg93/tst0009.fits :    0 x    0, 1 channel, uint8 fits
     2 subimages: 0x0 73x31 
@@ -316,14 +316,6 @@ FITS extensions may come after this header.This test file was created by P.Grosb
 Simple 16-bit ramp wave pattern for testing of FITS readers"
 Converting ../../../fits-images/pg93/tst0009.fits to tst0009.fits
 Comparing "../../../fits-images/pg93/tst0009.fits" and "tst0009.fits"
-Subimage 0: 0 x 0, 1 channel
-  Mean error = nan
-  RMS error = nan
-  Peak SNR = nan
-  Max error  = 0
-  0 pixels (-1.#J%) over 1e-06
-  0 pixels (-1.#J%) over 1e-06
-Subimage 1: 0 x 0, 1 channel
 ../../../fits-images/pg93/tst0013.fits :  128 x  128, 1 channel, float fits
     SHA-1: 2DAE86283E1BCB155774A83F88C75B045FB9B28C
     channel list: A
@@ -404,8 +396,8 @@ Subimage 0: 0 x 0, 1 channel
   RMS error = nan
   Peak SNR = nan
   Max error  = 0
-  0 pixels (-1.#J%) over 1e-06
-  0 pixels (-1.#J%) over 1e-06
+  0 pixels (nan%) over 1e-06
+  0 pixels (nan%) over 1e-06
 PASS
 ../../../fits-images/ftt4b/file002.fits :    0 x    0, 1 channel, uint8 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
@@ -422,8 +414,8 @@ Subimage 0: 0 x 0, 1 channel
   RMS error = nan
   Peak SNR = nan
   Max error  = 0
-  0 pixels (-1.#J%) over 1e-06
-  0 pixels (-1.#J%) over 1e-06
+  0 pixels (nan%) over 1e-06
+  0 pixels (nan%) over 1e-06
 PASS
 ../../../fits-images/ftt4b/file003.fits :  512 x  512, 1 channel, uint16 fits
     SHA-1: 5CC4340F5D8AB2B776D2E12BFE946CA5CAFA38C6
@@ -434,7 +426,7 @@ PASS
     Observer: "LISZ"
     Date-obs: 29
     Date-map: 26
-    Bscale: 2.59397e-005
+    Bscale: 2.59397e-05
     Bzero: 0.710747
     Bunit: "JY/BEAM"
     Epoch: 1950
@@ -675,7 +667,7 @@ PASS
     Cdelt3: 1
     Ctype4: "FREQ"
     Crpix4: 1
-    Crval4: 4.8851e+009
+    Crval4: 4.8851e+09
     Cdelt4: 0
     Ctype5: "RA"
     Crpix5: 1
@@ -692,13 +684,13 @@ PASS
     Pscal2: 0.00549316
     Pzero2: 0
     Ptype3: "UU"
-    Pscal3: 4e-009
+    Pscal3: 4e-09
     Pzero3: 0
     Ptype4: "VV"
-    Pscal4: 4e-009
+    Pscal4: 4e-09
     Pzero4: 0
     Ptype5: "WW"
-    Pscal5: 4e-009
+    Pscal5: 4e-09
     Pzero5: 0
     Comment: "FORMULA FOR BASELINE # FROM ANTENNA PAIR I < J
 B = (256 * I)  +  J
@@ -733,8 +725,8 @@ Subimage 0: 0 x 0, 1 channel
   RMS error = nan
   Peak SNR = nan
   Max error  = 0
-  0 pixels (-1.#J%) over 1e-06
-  0 pixels (-1.#J%) over 1e-06
+  0 pixels (nan%) over 1e-06
+  0 pixels (nan%) over 1e-06
 PASS
 ../../../fits-images/ftt4b/file012.fits :  513 x  513, 1 channel, uint16 fits
     SHA-1: 844CE9474D5C9E91154E41D7ED417173DE57286D
@@ -745,7 +737,7 @@ PASS
     Observer: "LAIN"
     Date-obs: 16
     Date-map: 9
-    Bscale: 2.85522e-006
+    Bscale: 2.85522e-06
     Bzero: 0.0889426
     Bunit: "JY/BEAM"
     Ctype1: "LL"
@@ -754,7 +746,7 @@ PASS
     Ctype4: "STOKES"
     Crval1: 185.631
     Crval2: 13.1638
-    Crval3: 4.8851e+009
+    Crval3: 4.8851e+09
     Crval4: 1
     Cdelt1: -0.000277778
     Cdelt2: 0.000277778

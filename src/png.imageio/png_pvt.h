@@ -196,7 +196,7 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
             scale = 2.54 / 100.0;
             spec.attribute ("ResolutionUnit", "inch");
         } else
-            spec.attribute ("ResolutionUnit", "unknown");
+            spec.attribute ("ResolutionUnit", "none");
         spec.attribute ("XResolution", (float)resx*scale);
         spec.attribute ("YResolution", (float)resy*scale);
     }
@@ -380,11 +380,11 @@ put_parameter (png_structp& sp, png_infop& ip, const std::string &_name,
     if (iequals(name, "ResolutionUnit") && type == TypeDesc::STRING) {
         const char *s = *(char**)data;
         bool ok = true;
-        if (! strcmp (s, "none"))
+        if (iequals (s, "none"))
             PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, RESUNIT_NONE);
-        else if (! strcmp (s, "in") || ! strcmp (s, "inch"))
+        else if (iequals (s, "in") || iequals (s, "inch"))
             PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, RESUNIT_INCH);
-        else if (! strcmp (s, "cm"))
+        else if (iequals (s, "cm"))
             PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, RESUNIT_CENTIMETER);
         else ok = false;
         return ok;
@@ -469,12 +469,12 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
         const float y = *(const float *)yres->data();
         int unittype = PNG_RESOLUTION_UNKNOWN;
         float scale = 1;
-        if (! strcmp (unitname, "meter") || ! strcmp (unitname, "m"))
+        if (iequals (unitname, "meter") || iequals (unitname, "m"))
             unittype = PNG_RESOLUTION_METER;
-        else if (! strcmp (unitname, "cm")) {
+        else if (iequals (unitname, "cm")) {
             unittype = PNG_RESOLUTION_METER;
             scale = 100;
-        } else if (! strcmp (unitname, "inch") || ! strcmp (unitname, "in")) {
+        } else if (iequals (unitname, "inch") || iequals (unitname, "in")) {
             unittype = PNG_RESOLUTION_METER;
             scale = 100.0/2.54;
         }

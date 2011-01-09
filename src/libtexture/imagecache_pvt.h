@@ -473,21 +473,21 @@ public:
 
     /// Mark the tile as recently used.
     ///
-    void use () { m_used = true; }
+    void use () { m_used = 1; }
 
     /// Mark the tile as not recently used, return its previous value.
     ///
     bool release () {
         if (! pixels_ready() || ! valid())
             return true;  // Don't really release invalid or unready tiles
-        bool r = m_used;
-        m_used = false;
-        return r;
+        // If m_used is 1, set it to zero and return true.  If it was already
+        // zero, it's fine and return false.
+        return atomic_compare_and_exchange ((volatile int *)&m_used, 1, 0);
     }
 
     /// Has this tile been recently used?
     ///
-    bool used (void) const { return m_used; }
+    int used (void) const { return m_used; }
 
     bool valid (void) const { return m_valid; }
 
@@ -503,7 +503,7 @@ private:
     TileID m_id;                  ///< ID of this tile
     std::vector<char> m_pixels;   ///< The pixel data
     bool m_valid;                 ///< Valid pixels
-    bool m_used;                  ///< Used recently
+    atomic_int m_used;            ///< Used recently
     volatile bool m_pixels_ready; ///< The pixels have been read from disk
     float m_mindepth, m_maxdepth; ///< shadows only: min/max depth of the tile
 };
@@ -709,35 +709,33 @@ public:
     void add_tile_to_cache (ImageCacheTileRef &tile,
                             ImageCachePerThreadInfo *thread_info);
 
-    /// Find a tile identified by 'id' in the tile cache, paging it in if
-    /// needed, and store a reference to the tile.  Return true if ok,
-    /// false if no such tile exists in the file or could not be read.
-    bool find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
-                               ImageCachePerThreadInfo *thread_info);
-
     /// Find the tile specified by id.  If found, return true and place
     /// the tile ref in thread_info->tile; if not found, return false.
-    /// This is more efficient than find_tile_main_cache() because it
-    /// avoids looking to the big cache (and locking) most of the time
-    /// for fairly coherent tile access patterns, by using the
+    /// Try to avoid looking to the big cache (and locking) most of the
+    /// time for fairly coherent tile access patterns, by using the
     /// per-thread microcache to boost our hit rate over the big cache.
-    /// Inlined for speed.
+    /// Inlined for speed.  The tile is marked as 'used'.
     bool find_tile (const TileID &id, ImageCachePerThreadInfo *thread_info) {
         DASSERT (m_tilemutex_holder != thread_info &&
                  "find_tile should not be holding the tile mutex when called");
         ++thread_info->m_stats.find_tile_calls;
         ImageCacheTileRef &tile (thread_info->tile);
         if (tile) {
-            if (tile->id() == id)
+            if (tile->id() == id) {
+                tile->use ();
                 return true;    // already have the tile we want
+            }
             // Tile didn't match, maybe lasttile will?  Swap tile
             // and last tile.  Then the new one will either match,
             // or we'll fall through and replace tile.
             tile.swap (thread_info->lasttile);
-            if (tile && tile->id() == id)
+            if (tile && tile->id() == id) {
+                tile->use ();
                 return true;
+            }
         }
         return find_tile_main_cache (id, tile, thread_info);
+        // N.B. find_tile_main_cache marks the tile as used
     }
 
     virtual Tile *get_tile (ustring filename, int subimage, int miplevel,
@@ -833,6 +831,12 @@ public:
 
 private:
     void init ();
+
+    /// Find a tile identified by 'id' in the tile cache, paging it in if
+    /// needed, and store a reference to the tile.  Return true if ok,
+    /// false if no such tile exists in the file or could not be read.
+    bool find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
+                               ImageCachePerThreadInfo *thread_info);
 
     /// Enforce the max number of open files.  This should only be invoked
     /// when the caller holds m_filemutex.

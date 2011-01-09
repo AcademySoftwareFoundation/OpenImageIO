@@ -235,7 +235,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     if ((param = m_spec.find_attribute("planarconfig", TypeDesc::STRING)) ||
         (param = m_spec.find_attribute("tiff:planarconfig", TypeDesc::STRING))) {
         str = *(char **)param->data();
-        if (str && ! strcmp (str, "separate"))
+        if (str && iequals (str, "separate"))
             m_planarconfig = PLANARCONFIG_SEPARATE;
     }
     TIFFSetField (m_tif, TIFFTAG_PLANARCONFIG, m_planarconfig);
@@ -291,15 +291,15 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         int compress = COMPRESSION_LZW;  // default
         const char *str = *(char **)data;
         if (str) {
-            if (! strcmp (str, "none"))
+            if (iequals (str, "none"))
                 compress = COMPRESSION_NONE;
-            else if (! strcmp (str, "lzw"))
+            else if (iequals (str, "lzw"))
                 compress = COMPRESSION_LZW;
-            else if (! strcmp (str, "zip") || ! strcmp (str, "deflate"))
+            else if (iequals (str, "zip") || iequals (str, "deflate"))
                 compress = COMPRESSION_ADOBE_DEFLATE;
-            else if (! strcmp (str, "packbits"))
+            else if (iequals (str, "packbits"))
                 compress = COMPRESSION_PACKBITS;
-            else if (! strcmp (str, "ccittrle"))
+            else if (iequals (str, "ccittrle"))
                 compress = COMPRESSION_CCITTRLE;
         }
         TIFFSetField (m_tif, TIFFTAG_COMPRESSION, compress);
@@ -351,11 +351,11 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
     if (iequals(name, "ResolutionUnit") && type == TypeDesc::STRING) {
         const char *s = *(char**)data;
         bool ok = true;
-        if (! strcmp (s, "none"))
+        if (iequals (s, "none"))
             TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_NONE);
-        else if (! strcmp (s, "in") || ! strcmp (s, "inch"))
+        else if (iequals (s, "in") || iequals (s, "inch"))
             TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_INCH);
-        else if (! strcmp (s, "cm"))
+        else if (iequals (s, "cm"))
             TIFFSetField (m_tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_CENTIMETER);
         else ok = false;
         return ok;

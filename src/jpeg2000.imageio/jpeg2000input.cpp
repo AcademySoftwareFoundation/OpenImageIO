@@ -135,7 +135,7 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
         return false;
     }
     m_spec = ImageSpec (width, height, channels, TypeDesc::UINT8);
-    m_spec.attribute("Stream format", format);
+    m_spec.attribute("jpeg2000:streamformat", format);
 
     // what family of color space was used
     m_fam_clrspc = jas_clrspc_fam (jas_image_clrspc(m_image));

@@ -97,7 +97,7 @@ if (BOOST_CUSTOM)
     # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
     find_package (Boost 1.34 REQUIRED 
-                  COMPONENTS filesystem regex system thread unit_test_framework
+                  COMPONENTS filesystem regex system thread
                  )
     # Try to figure out if this boost distro has Boost::python.  If we
     # include python in the component list above, cmake will abort if
@@ -159,28 +159,6 @@ message (STATUS "QT_INCLUDES=${QT_INCLUDES}")
 message (STATUS "QT_LIBRARIES=${QT_LIBRARIES}")
 
 # end Qt setup
-###########################################################################
-
-###########################################################################
-# Gtest (Google Test) setup
-
-set (GTEST_VERSION 1.3.0)
-find_library (GTEST_LIBRARY
-              NAMES gtest
-              PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
-                    ${THIRD_PARTY_TOOLS_HOME}/gtest-${GTEST_VERSION}/lib)
-find_path (GTEST_INCLUDES gtest/gtest.h
-           ${THIRD_PARTY_TOOLS}/include/gtest-${GTEST_VERSION}
-           ${THIRD_PARTY_TOOLS_HOME}/gtest-${GTEST_VERSION}/include)
-if (GTEST_INCLUDES AND GTEST_LIBRARY)
-    set (GTEST_FOUND TRUE)
-    message (STATUS "Gtest includes = ${GTEST_INCLUDES}")
-    message (STATUS "Gtest library = ${GTEST_LIBRARY}")
-else ()
-    message (STATUS "Gtest not found")
-endif ()
-
-# end Gtest setup
 ###########################################################################
 
 ###########################################################################
