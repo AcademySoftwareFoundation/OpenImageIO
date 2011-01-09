@@ -120,29 +120,29 @@ if (EMBEDPLUGINS)
     include_directories (${PNG_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
     include_directories (${TIFF_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
     add_definitions ("-DEMBED_PLUGINS=1")
-    if (JASPER_FOUND)
+    if (JASPER_FOUND AND USE_JASPER)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
              ../jpeg2000.imageio/jpeg2000input.cpp
              ../jpeg2000.imageio/jpeg2000output.cpp
             )
         include_directories (${JASPER_INCLUDE_DIR})
         add_definitions ("-DUSE_JASPER=1")
-    else (JASPER_FOUND)
+    else (JASPER_FOUND AND USE_JASPER)
         message (STATUS "Jasper not found: jpeg2000 plugin will not be built")
         set (JASPER_LIBRARY "")
-    endif (JASPER_FOUND)
+    endif (JASPER_FOUND AND USE_JASPER)
 
-    if (FIELD3D_FOUND)
+    if (FIELD3D_FOUND AND USE_FIELD3D)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
              ../field3d.imageio/field3dinput.cpp
              ../field3d.imageio/field3doutput.cpp
             )
         include_directories (${FIELD3D_INCLUDE_DIR})
-    else (FIELD3D_FOUND)
-        message (STATUS "Field3D not found: field3d plugin will not be built")
+    else ()
+        message (STATUS "Field3D plugin will not be built")
         set (FIELD3D_LIBRARY "")
         set (HDF5_LIBRARIES "")
-    endif (FIELD3D_FOUND)
+    endif ()
 endif ()
 
 if (BUILDSTATIC)

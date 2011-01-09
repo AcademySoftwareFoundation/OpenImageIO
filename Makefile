@@ -90,6 +90,14 @@ ifneq (${PYTHON_VERSION},)
 MY_CMAKE_FLAGS += -DPYTHON_VERSION:STRING=${PYTHON_VERSION}
 endif
 
+ifneq (${USE_FIELD3D},)
+MY_CMAKE_FLAGS += -DUSE_FIELD3D:BOOL=${USE_FIELD3D}
+endif
+
+ifneq (${USE_JASPER},)
+MY_CMAKE_FLAGS += -DUSE_JASPER:BOOL=${USE_JASPER}
+endif
+
 ifneq (${BUILDSTATIC},)
 MY_CMAKE_FLAGS += -DBUILDSTATIC:BOOL=${BUILDSTATIC}
 endif
@@ -223,17 +231,20 @@ help:
 	@echo ""
 	@echo "Helpful modifiers:"
 	@echo "  make VERBOSE=1 ...          Show all compilation commands"
+	@echo "  make SOVERSION=nn ...       Include the specifed major version number "
+	@echo "                                in the shared object metadata"
+	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
 	@echo "  make EMBEDPLUGINS=0 ...     Don't compile the plugins into libOpenImageIO"
-	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
-	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
+	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"
+	@echo "  make USE_OPENGL=0 ...       Skip anything that needs OpenGL"
 	@echo "  make FORCE_OPENGL_1=1 ...   Force iv to use OpenGL's fixed pipeline"
 	@echo "  make USE_TBB=0 ...          Don't use TBB"
-	@echo "  make USE_PYTHON=1 ...       Build the Python binding"
+	@echo "  make USE_PYTHON=0 ...       Don't build the Python binding"
+	@echo "  make PYTHON_VERSION=2.6 ... Specify the Python version"
+	@echo "  make USE_FIELD3D=0 ...      Don't build the Field3D plugin"
+	@echo "  make USE_JASPER=0 ...       Don't use Jasper or build the JPEG-2000 plugin"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
-	@echo "  make SOVERSION=nn ...        Include the specifed major version number in the shared object metadata"
-	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
 	@echo ""
 
-       
