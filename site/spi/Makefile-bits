@@ -31,6 +31,13 @@ OPENIMAGEIO_SPCOMP2_VERSION=28
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_Arnold'
 
+## OS X machines
+ifeq (${platform}, macosx)
+    MY_CMAKE_FLAGS += \
+        -DBUILD_WITH_INSTALL_RPATH=1 \
+        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
+endif
+
 ## Spinux (current)
 ifeq ($(SP_ARCH), spinux1_x86_64)
     platform=spinux1
