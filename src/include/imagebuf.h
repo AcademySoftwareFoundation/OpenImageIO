@@ -191,16 +191,18 @@ public:
     /// the upper left corner of the pixel data window, (1,1) the lower
     /// right corner of the pixel data.
     void interppixel_NDC (float x, float y, float *pixel) const {
-        interppixel (spec().x + x * spec().width,
-                     spec().y + y * spec().height, pixel);
+        interppixel (static_cast<float>(spec().x) + x * static_cast<float>(spec().width),
+                     static_cast<float>(spec().y) + y * static_cast<float>(spec().height),
+                     pixel);
     }
 
     /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
     /// the upper left corner of the display window, (1,1) the lower
     /// right corner of the display window.
     void interppixel_NDC_full (float x, float y, float *pixel) const {
-        interppixel (spec().full_x + x * spec().full_width,
-                     spec().full_y + y * spec().full_height, pixel);
+        interppixel (static_cast<float>(spec().full_x) + x * static_cast<float>(spec().full_width),
+                     static_cast<float>(spec().full_y) + y * static_cast<float>(spec().full_height),
+                     pixel);
     }
 
     /// Set the pixel value by x and y coordintes (on [0,res-1]),
@@ -251,11 +253,11 @@ public:
     /// (even allocating the right size).  Return true if the operation
     /// could be completed, otherwise return false.
     template<typename T>
-    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
+    bool copy_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
                       std::vector<T> &result) const
     {
-        result.resize (nchannels() * ((yend-ybegin)*(xend-xbegin)));
-        return _copy_pixels (xbegin, xend, ybegin, yend, &result[0]);
+        result.resize (nchannels() * ((yend_-ybegin_)*(xend_-xbegin_)));
+        return _copy_pixels (xbegin_, xend_, ybegin_, yend_, &result[0]);
     }
 
     /// Apply a color transfer function to the pixels (in place).
@@ -374,12 +376,12 @@ public:
           { pos (m_xbegin,m_ybegin,m_zbegin); }
         /// Construct from an ImageBuf and a specific pixel index..
         ///
-        Iterator (ImageBuf &ib, int x, int y, int z=0)
+        Iterator (ImageBuf &ib, int x_, int y_, int z_=0)
             : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()),
               m_ybegin(ib.ybegin()), m_yend(ib.yend()),
               m_zbegin(ib.zbegin()), m_zend(ib.zend()),
               m_tile(NULL)
-          { pos (x, y, z); }
+          { pos (x_, y_, z_); }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
         Iterator (ImageBuf &ib, int xbegin, int xend,
@@ -407,17 +409,17 @@ public:
 
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
-        void pos (int x, int y, int z=0) {
-            if (! valid(x,y,z))
+        void pos (int x_, int y_, int z_=0) {
+            if (! valid(x_,y_,z_))
                 m_proxy.set (NULL);
             else if (m_ib->localpixels())
-                m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y, z));
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
             else
                 m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(),
-                                                   m_ib->miplevel(), x, y, z,
+                                                   m_ib->miplevel(), x_, y_, z_,
                                                    m_tile, m_tilexbegin,
                                                    m_tileybegin, m_tilezbegin));
-            m_x = x;  m_y = y;  m_z = z;
+            m_x = x_;  m_y = y_;  m_z = z_;
         }
 
         /// Increment to the next pixel in the region.
@@ -476,10 +478,10 @@ public:
         /// Is the location (x,y) valid?  Locations outside the
         /// designated region are invalid, as is an iterator that has
         /// completed iterating over the whole region.
-        bool valid (int x, int y, int z=0) const {
-            return (x >= m_xbegin && x < m_xend &&
-                    y >= m_ybegin && y < m_yend &&
-                    z >= m_zbegin && z < m_zend);
+        bool valid (int x_, int y_, int z_=0) const {
+            return (x_ >= m_xbegin && x_ < m_xend &&
+                    y_ >= m_ybegin && y_ < m_yend &&
+                    z_ >= m_zbegin && z_ < m_zend);
         }
 
         /// Dereferencing the iterator gives us a proxy for the pixel,
@@ -522,12 +524,12 @@ public:
           { pos (m_xbegin,m_ybegin,m_zbegin); }
         /// Construct from an ImageBuf and a specific pixel index..
         ///
-        ConstIterator (const ImageBuf &ib, int x, int y, int z=0)
+        ConstIterator (const ImageBuf &ib, int x_, int y_, int z_=0)
             : m_ib(&ib), m_xbegin(ib.xbegin()), m_xend(ib.xend()),
               m_ybegin(ib.ybegin()), m_yend(ib.yend()),
               m_zbegin(ib.zbegin()), m_zend(ib.zend()),
               m_tile(NULL)
-          { pos (x, y, z); }
+          { pos (x_, y_, z_); }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
         ConstIterator (const ImageBuf &ib, int xbegin, int xend,
@@ -556,17 +558,17 @@ public:
 
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
-        void pos (int x, int y, int z=0) {
-            if (! valid(x,y,z))
+        void pos (int x_, int y_, int z_=0) {
+            if (! valid(x_,y_,z_))
                 m_proxy.set (NULL);
             else if (m_ib->localpixels())
-                m_proxy.set ((BUFT *)m_ib->pixeladdr (x, y, z));
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
             else
                 m_proxy.set ((BUFT *)m_ib->retile (m_ib->subimage(),
-                                         m_ib->miplevel(), x, y, z,
+                                         m_ib->miplevel(), x_, y_, z_,
                                          m_tile, m_tilexbegin,
                                          m_tileybegin, m_tilezbegin));
-            m_x = x;  m_y = y;  m_z = z;
+            m_x = x_;  m_y = y_;  m_z = z_;
         }
 
         /// Increment to the next pixel in the region.
@@ -625,10 +627,10 @@ public:
         /// Is the location (x,y[,z]) valid?  Locations outside the
         /// designated region are invalid, as is an iterator that has
         /// completed iterating over the whole region.
-        bool valid (int x, int y, int z=0) const {
-            return (x >= m_xbegin && x < m_xend &&
-                    y >= m_ybegin && y < m_yend &&
-                    z >= m_zbegin && z < m_zend);
+        bool valid (int x_, int y_, int z_=0) const {
+            return (x_ >= m_xbegin && x_ < m_xend &&
+                    y_ >= m_ybegin && y_ < m_yend &&
+                    z_ >= m_zbegin && z_ < m_zend);
         }
 
         /// Dereferencing the iterator gives us a proxy for the pixel,

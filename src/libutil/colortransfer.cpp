@@ -40,6 +40,19 @@ using boost::algorithm::iequals;
 OIIO_NAMESPACE_ENTER
 {
 
+bool
+ColorTransfer::set (std::string name_, float param)
+{
+    return false;
+}
+
+bool
+ColorTransfer::get (std::string name_, float &param)
+{
+    return false;
+}
+
+
 namespace {  // anonymous
 
 

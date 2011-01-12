@@ -542,7 +542,7 @@ public:
 private:
     // Make delete private and unimplemented in order to prevent apps
     // from calling it.  Instead, they should call TextureSystem::destroy().
-    void operator delete (void *todel) { }
+    void operator delete (void * /*todel*/) { }
 
 };
 

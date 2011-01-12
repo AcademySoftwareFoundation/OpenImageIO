@@ -50,6 +50,32 @@ OIIO_NAMESPACE_ENTER
 {
     using namespace pvt;
 
+bool
+ImageOutput::write_scanline (int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride)
+{
+    return false;
+}
+
+bool
+ImageOutput::write_tile (int x, int y, int z, TypeDesc format,
+                         const void *data, stride_t xstride,
+                         stride_t ystride,
+                         stride_t zstride)
+{
+    return false;
+}
+
+
+bool
+ImageOutput::write_rectangle (int xmin, int xmax, int ymin, int ymax,
+                              int zmin, int zmax, TypeDesc format,
+                              const void *data, stride_t xstride,
+                              stride_t ystride,
+                              stride_t zstride)
+{
+    return false;
+}
 
 int
 ImageOutput::send_to_output (const char *format, ...)
