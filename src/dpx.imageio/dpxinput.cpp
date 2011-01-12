@@ -528,7 +528,8 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     else
         // no need to allocate another buffer
         m_dataPtr = NULL;
-
+    
+    newspec = m_spec;
     return true;
 }
 
