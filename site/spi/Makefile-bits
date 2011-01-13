@@ -1,11 +1,22 @@
 # SPI-specific settings
 $(info Including spi/Makefile-bits)
 
+use_spcomp2_bits := 0
 # Is the string literal 'spcomp2' in the command goals?
-# If so, use the spcomp2 makefile instead of arnold
+# If so, use the spcomp2 makefile instead of arnold.
 ifneq (,$(findstring spcomp2,$(MAKECMDGOALS)))
-include ${working_dir}/site/spi/Makefile-bits-spcomp2
+  use_spcomp2_bits := 1
+  # Export a variable that can be checked for in sub-makes to know
+  # to stay in spcomp2 mode.
+  export TARGETING_SPCOMP2 = 1
+endif
+ifeq (1,$(TARGETING_SPCOMP2))
+  use_spcomp2_bits := 1
+endif
+
+ifeq (1,$(use_spcomp2_bits))
+  include ${working_dir}/site/spi/Makefile-bits-spcomp2
 else
-include ${working_dir}/site/spi/Makefile-bits-arnold
+  include ${working_dir}/site/spi/Makefile-bits-arnold
 endif
 
