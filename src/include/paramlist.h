@@ -178,7 +178,15 @@ public:
     /// Add a ParamValue to the end of the list.
     ///
     void push_back (ParamValue &p) { m_vals.push_back (p); }
-
+    
+    /// Removes from the ParamValueList container a single element.
+    /// 
+    iterator erase (iterator position) { return m_vals.erase (position); }
+    
+    /// Removes from the ParamValueList container a range of elements ([first,last)).
+    /// 
+    iterator erase (iterator first, iterator last) { return m_vals.erase (first, last); }
+    
     /// Remove all the values in the list.
     ///
     void clear () { m_vals.clear(); }
