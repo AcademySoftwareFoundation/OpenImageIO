@@ -101,13 +101,12 @@ public:
     int quant_white;          ///< quantization of white (1.0) level
     int quant_min;            ///< quantization minimum clamp value
     int quant_max;            ///< quantization maximum clamp value
-    float quant_dither;       ///< dither amplitude for quantization
 
     /// Construct a QuantizationSpec from the quantization parameters.
     ///
-    QuantizationSpec (int _black, int _white, int _min, int _max, float _dither)
+    QuantizationSpec (int _black, int _white, int _min, int _max)
         : quant_black(_black), quant_white(_white),
-          quant_min(_min), quant_max(_max), quant_dither(_dither)
+          quant_min(_min), quant_max(_max)
     { }
 
     /// Construct the "obvious" QuantizationSpec appropriate for the
@@ -159,12 +158,11 @@ public:
     int z_channel;            ///< Index of depth channel, or -1 if not known
     Linearity linearity;      ///< Value mapping of color channels
     float gamma;              ///< gamma exponent of the values in the file
-    // quantize, dither are only used for ImageOutput
+    // quantize is used for ImageOutput
     int quant_black;          ///< quantization of black (0.0) level
     int quant_white;          ///< quantization of white (1.0) level
     int quant_min;            ///< quantization minimum clamp value
     int quant_max;            ///< quantization maximum clamp value
-    float quant_dither;       ///< dither amplitude for quantization
 
     /// The above contains all the information that is likely needed for
     /// every image file, and common to all formats.  Rather than bloat
@@ -178,14 +176,14 @@ public:
     ImageIOParameterList extra_attribs;  ///< Additional attributes
 
     /// Constructor: given just the data format, set the default quantize
-    /// and dither and set all other channels to something reasonable.
+    /// and set all other channels to something reasonable.
     ImageSpec (TypeDesc format = TypeDesc::UNKNOWN);
 
     /// Constructor for simple 2D scanline image with nothing special.
     /// If fmt is not supplied, default to unsigned 8-bit data.
     ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeDesc::UINT8);
 
-    /// Set the data format, and as a side effect set quantize & dither
+    /// Set the data format, and as a side effect set quantize
     /// to good defaults for that format
     void set_format (TypeDesc fmt);
 
@@ -834,7 +832,7 @@ inline std::string error_message () { return geterror (); }
 /// Helper routine: quantize a value to an integer given the
 /// quantization parameters.
 DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
-                        int quant_min, int quant_max, float quant_dither);
+                        int quant_min, int quant_max);
 
 /// Helper routine: compute (gain*value)^invgamma
 ///

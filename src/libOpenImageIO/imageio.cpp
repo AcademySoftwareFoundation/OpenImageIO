@@ -93,14 +93,9 @@ geterror ()
 
 int
 quantize (float value, int quant_black, int quant_white,
-                       int quant_min, int quant_max, float quant_dither)
+                       int quant_min, int quant_max)
 {
     value = Imath::lerp (quant_black, quant_white, value);
-#if 0
-    // FIXME
-    if (quant_dither)
-        value += quant_dither * (2.0f * rand() - 1.0f);
-#endif
     return Imath::clamp ((int)(value + 0.5f), quant_min, quant_max);
 }
 
@@ -233,21 +228,20 @@ pvt::convert_to_float (const void *src, float *dst, int nvals,
 template<typename T>
 const void *
 _from_float (const float *src, T *dst, size_t nvals,
-            int quant_black, int quant_white, int quant_min, int quant_max,
-            float quant_dither)
+            int quant_black, int quant_white, int quant_min, int quant_max)
 {
     if (! src) {
         // If no source pixels, assume zeroes
         memset (dst, 0, nvals * sizeof(T));
         T z = (T) quantize (0, quant_black, quant_white,
-                            quant_min, quant_max, quant_dither);
+                            quant_min, quant_max);
         for (size_t p = 0;  p < nvals;  ++p)
             dst[p] = z;
     } else if (std::numeric_limits <T>::is_integer) {
         // Convert float to non-float native format, with quantization
         for (size_t p = 0;  p < nvals;  ++p)
             dst[p] = (T) quantize (src[p], quant_black, quant_white,
-                                   quant_min, quant_max, quant_dither);
+                                   quant_min, quant_max);
     } else {
         // It's a floating-point type of some kind -- we don't apply 
         // quantization
@@ -268,7 +262,7 @@ _from_float (const float *src, T *dst, size_t nvals,
 const void *
 pvt::convert_from_float (const float *src, void *dst, size_t nvals,
                          int quant_black, int quant_white,
-                         int quant_min, int quant_max, float quant_dither, 
+                         int quant_min, int quant_max,
                          TypeDesc format)
 {
     switch (format.basetype) {
@@ -277,43 +271,43 @@ pvt::convert_from_float (const float *src, void *dst, size_t nvals,
     case TypeDesc::HALF :
         return _from_float<half> (src, (half *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     case TypeDesc::DOUBLE :
         return _from_float (src, (double *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     case TypeDesc::INT8:
         return _from_float (src, (char *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     case TypeDesc::UINT8 :
         return _from_float (src, (unsigned char *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     case TypeDesc::INT16 :
         return _from_float (src, (short *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     case TypeDesc::UINT16 :
         return _from_float (src, (unsigned short *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     case TypeDesc::INT :
         return _from_float (src, (int *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     case TypeDesc::UINT :
         return _from_float (src, (unsigned int *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     case TypeDesc::INT64 :
         return _from_float (src, (long long *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     case TypeDesc::UINT64 :
         return _from_float (src, (unsigned long long *)dst, nvals,
                            quant_black, quant_white, quant_min,
-                           quant_max, quant_dither);
+                           quant_max);
     default:
         ASSERT (0 && "ERROR from_float: bad format");
         return NULL;
