@@ -346,7 +346,7 @@ OpenEXRInput::query_channels (void)
     int red = -1, green = -1, blue = -1, alpha = -1, zee = -1;
     for (c = 0, ci = channels.begin();  ci != channels.end();  ++c, ++ci) {
         // std::cerr << "Channel " << ci.name() << '\n';
-        std::string name = ci.name();
+        const char* name = ci.name();
         m_channelnames.push_back (name);
         if (red < 0 && (iequals(name, "R") || iequals(name, "Red") ||
                         iends_with(name,".R") || iends_with(name,".Red")))
