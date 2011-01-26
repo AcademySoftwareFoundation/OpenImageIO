@@ -81,7 +81,7 @@ BmpInput::open (const std::string &name, ImageSpec &spec)
     const int height = (m_dib_header.height >= 0) ? m_dib_header.height
                                                   : -m_dib_header.height;
     m_spec = ImageSpec (m_dib_header.width, height, nchannels, TypeDesc::UINT8);
-    m_spec.attribute ("BitsPerSample", (int)m_dib_header.bpp);
+    m_spec.attribute ("oiio:BitsPerSample", (int)m_dib_header.bpp);
     m_spec.attribute ("XResolution", (int)m_dib_header.hres);
     m_spec.attribute ("YResolution", (int)m_dib_header.vres);
     m_spec.attribute ("ResolutionUnit", "m");

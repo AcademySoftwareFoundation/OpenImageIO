@@ -195,7 +195,7 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                         + (m_tga.bpp == 32
                         || m_alpha >= TGA_ALPHA_UNDEFINED_RETAIN),
                         TypeDesc::UINT8);
-    m_spec.attribute ("BitsPerSample", m_tga.bpp/m_spec.nchannels);
+    m_spec.attribute ("oiio:BitsPerSample", m_tga.bpp/m_spec.nchannels);
     m_spec.default_channel_names ();
 #if 0   // no one seems to adhere to this part of the spec...
     if (m_tga.attr & FLAG_X_FLIP)

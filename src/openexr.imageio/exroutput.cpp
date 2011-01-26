@@ -393,9 +393,10 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
                               const void *data)
 {
     // Translate
-    std::string xname = name; // ooio_std_to_exr_tag[name];
-
-    if (iequals(xname, "worldtocamera"))
+    std::string xname = name;
+    if (istarts_with (xname, "oiio:"))
+        return false;
+    else if (iequals(xname, "worldtocamera"))
         xname = "worldToCamera";
     else if (iequals(xname, "worldtoscreen"))
         xname = "worldToNDC";

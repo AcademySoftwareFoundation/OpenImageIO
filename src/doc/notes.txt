@@ -63,7 +63,7 @@ Help
 
 Standard tags:
 
-    int bitspersample - for the *file* -- may differ from what format implies)
+    int oiio:bitspersample - for the *file* -- may differ from what format implies)
     string compression - name of compression scheme to use
     string planarconfig - "separate" or "contiguous"
     string datetime - "yyyy:mm:dd hh:mm:ss" (TIFF DateTime, OpenEXR capDate)

@@ -229,7 +229,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         packing = dpx::kFilledMethodA;
 
     // calculate target bit depth
-    int bitDepth = m_spec.get_int_attribute ("BitsPerSample",
+    int bitDepth = m_spec.get_int_attribute ("oiio:BitsPerSample",
         m_spec.format.size () * 8);
     if (bitDepth % 8 != 0 && bitDepth != 10 && bitDepth != 12) {
         error ("Unsupported bit depth %d", bitDepth);

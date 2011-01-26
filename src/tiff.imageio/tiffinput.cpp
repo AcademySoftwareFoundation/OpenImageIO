@@ -452,7 +452,7 @@ TIFFInput::readspec ()
 
     m_bitspersample = 8;
     TIFFGetField (m_tif, TIFFTAG_BITSPERSAMPLE, &m_bitspersample);
-    m_spec.attribute ("BitsPerSample", (int)m_bitspersample);
+    m_spec.attribute ("oiio:BitsPerSample", (int)m_bitspersample);
 
     unsigned short sampleformat = SAMPLEFORMAT_UINT;
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);

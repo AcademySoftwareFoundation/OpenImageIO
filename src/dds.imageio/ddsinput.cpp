@@ -459,7 +459,7 @@ DDSInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         tempstr += ((char *)&m_dds.fmt.fourCC)[3];
         m_spec.attribute ("compression", tempstr);
     }
-    m_spec.attribute ("BitsPerSample", m_dds.fmt.bpp);
+    m_spec.attribute ("oiio:BitsPerSample", m_dds.fmt.bpp);
     m_spec.default_channel_names ();
 
     // detect texture type

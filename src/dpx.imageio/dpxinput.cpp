@@ -243,7 +243,7 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
             }
     }
     // bits per pixel
-    m_spec.attribute ("BitsPerSample", m_dpx.header.BitDepth(subimage));
+    m_spec.attribute ("oiio:BitsPerSample", m_dpx.header.BitDepth(subimage));
     // image orientation - see appendix B.2 of the OIIO documentation
     int orientation;
     switch (m_dpx.header.ImageOrientation ()) {
