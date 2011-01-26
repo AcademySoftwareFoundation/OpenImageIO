@@ -461,7 +461,6 @@ DDSInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
     m_spec.attribute ("BitsPerSample", m_dds.fmt.bpp);
     m_spec.default_channel_names ();
-    m_spec.linearity = ImageSpec::UnknownLinearity;
 
     // detect texture type
     if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {

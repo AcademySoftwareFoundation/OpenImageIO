@@ -635,10 +635,8 @@ decode_exif (const void *exif, int length, ImageSpec &spec)
             cs = *(const short *)p->data();
         // Exif spec says that anything other than 0xffff==uncalibrated
         // should be interpreted to be sRGB.
-        if (cs == 0xffff)
-            spec.linearity = ImageSpec::UnknownLinearity;
-        else
-            spec.linearity = ImageSpec::sRGB;
+        if (cs != 0xffff)
+            spec.attribute ("oiio:ColorSpace", "sRGB");
     }
     return true;
 }

@@ -31,6 +31,8 @@
 
 #include <iostream>
 
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
 #include <boost/foreach.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <half.h>
@@ -174,10 +176,6 @@ IvImage::longinfo () const
                 chanlist += ", ";
         }
         m_longinfo += html_table_row ("Channel list", chanlist);
-        const char *cspacename [] = { "unknown", "linear", "gamma %g", "sRGB" };
-        m_longinfo += html_table_row ("Color space",
-                  format (cspacename[(int)m_spec.linearity], m_spec.gamma));
-
         m_longinfo += html_table_row ("File format", file_format_name());
         m_longinfo += html_table_row ("Data format", m_file_dataformat.c_str());
         m_longinfo += html_table_row ("Data size",

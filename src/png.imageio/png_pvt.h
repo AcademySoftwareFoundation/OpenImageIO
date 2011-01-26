@@ -153,13 +153,12 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     double gamma;
     if (png_get_gAMA (sp, ip, &gamma)) {
-        spec.gamma = (float) gamma;
-        spec.linearity = (gamma == 1) ? ImageSpec::Linear 
-                                      : ImageSpec::GammaCorrected;
+        spec.attribute ("oiio:Gamma", (float) gamma);
+        spec.attribute ("oiio:ColorSpace", (gamma == 1) ? "Linear" : "GammaCorrected");
     }
     int srgb_intent;
     if (png_get_sRGB (sp, ip, &srgb_intent)) {
-        spec.linearity = ImageSpec::sRGB;
+        spec.attribute ("oiio:ColorSpace", "sRGB");
     }
     png_timep mod_time;
     if (png_get_tIME (sp, ip, &mod_time)) {
@@ -433,22 +432,18 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
 
     png_set_oFFs (sp, ip, spec.x, spec.y, PNG_OFFSET_PIXEL);
 
-    switch (spec.linearity) {
-    case ImageSpec::UnknownLinearity :
-        break;
-    case ImageSpec::Linear :
+    std::string colorspace = spec.get_string_attribute ("oiio:ColorSpace");
+    if (iequals (colorspace, "Linear")) {
         png_set_gAMA (sp, ip, 1.0);
-        break;
-    case ImageSpec::GammaCorrected :
-        png_set_gAMA (sp, ip, spec.gamma);
-        break;
-    case ImageSpec::sRGB :
-        png_set_sRGB_gAMA_and_cHRM (sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
-        break;
-    default:
-        break;
     }
-
+    else if (iequals (colorspace, "GammaCorrected")) {
+        float gamma = spec.get_float_attribute ("oiio:Gamma", 1.0);
+        png_set_gAMA (sp, ip, gamma);
+    }
+    else if (iequals (colorspace, "sRGB")) {
+        png_set_sRGB_gAMA_and_cHRM (sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
+    }
+    
     if (false && ! spec.find_attribute("DateTime")) {
         time_t now;
         time (&now);

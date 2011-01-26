@@ -239,9 +239,10 @@ adjust_spec (ImageInput *in, ImageOutput *out,
             nocopy = true;
         outspec.channelformats.clear ();
     }
-    outspec.gamma = gammaval;
+    
+    outspec.attribute ("oiio:Gamma", gammaval);
     if (sRGB) {
-        outspec.linearity = ImageSpec::sRGB;
+        outspec.attribute ("oiio:ColorSpace", "sRGB");
         if (!strcmp (in->format_name(), "jpeg") ||
                 outspec.find_attribute ("Exif:ColorSpace"))
             outspec.attribute ("Exif:ColorSpace", 1);

@@ -253,14 +253,15 @@ PNGInput::read_native_scanline (int y, int z, void *data)
 
     // PNG specifically dictates unassociated (un-"premultiplied") alpha
     if (m_spec.alpha_channel != -1) {   // Associate alpha
+        float gamma = m_spec.get_float_attribute ("oiio:Gamma", 1.0f);
         if (m_spec.format == TypeDesc::UINT16)
             associateAlpha ((unsigned short *)data, m_spec.width,
                             m_spec.nchannels, m_spec.alpha_channel, 
-                            m_spec.gamma);
+                            gamma);
         else
             associateAlpha ((unsigned char *)data, m_spec.width,
                             m_spec.nchannels, m_spec.alpha_channel, 
-                            m_spec.gamma);
+                            gamma);
     }
 
     return true;

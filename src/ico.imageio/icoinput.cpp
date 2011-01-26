@@ -268,8 +268,6 @@ ICOInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                         4, // always RGBA
                         TypeDesc::UINT8); // 4- and 16-bit are expanded to 8bpp
     m_spec.default_channel_names ();
-    // according to a discussion I had with Larry, it's not really linear
-    m_spec.linearity = ImageSpec::UnknownLinearity;
     // add 1 bit for < 32bpp images due to the 1-bit alpha mask
     m_spec.attribute ("BitsPerSample", m_bpp/m_spec.nchannels + (m_bpp == 32 ? 0 : 1));
 

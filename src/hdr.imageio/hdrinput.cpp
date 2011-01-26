@@ -140,7 +140,7 @@ HdrInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     m_spec = ImageSpec (width, height, 3, TypeDesc::FLOAT);
 
     if (h.valid & RGBE_VALID_GAMMA)
-        m_spec.gamma = h.gamma;
+        m_spec.attribute ("oiio:Gamma", h.gamma);
     if (h.valid & RGBE_VALID_ORIENTATION)
         m_spec.attribute ("Orientation", h.orientation);
 

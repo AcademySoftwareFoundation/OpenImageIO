@@ -78,15 +78,6 @@ stride_t ImageSpec_auto_stride_2(const TypeDesc& format, int nchannels)
 
 void declare_imagespec()
 {
-    enum_<ImageSpec::Linearity>("Linearity")
-        .value("UnknownLinearity",  ImageSpec::UnknownLinearity)
-        .value("Linear", ImageSpec::Linear)
-        .value("GammaCorrected", ImageSpec::GammaCorrected)
-        .value("sRGB", ImageSpec::sRGB)
-        .value("AdobeRGB", ImageSpec::AdobeRGB)
-        .value("Rec709", ImageSpec::Rec709)
-        .value("KodakLog", ImageSpec::KodakLog)
-    ;
     class_<ImageSpec>("ImageSpec")
         .def_readwrite("x",             &ImageSpec::x)
         .def_readwrite("y",             &ImageSpec::y)
@@ -108,8 +99,6 @@ void declare_imagespec()
                                         &ImageSpec_set_channelnames)
         .def_readwrite("alpha_channel", &ImageSpec::alpha_channel)
         .def_readwrite("z_channel",     &ImageSpec::z_channel)
-        .def_readwrite("linearity",     &ImageSpec::linearity)//Linearity
-        .def_readwrite("gamma",         &ImageSpec::gamma)//float
         .def_readwrite("quant_black",   &ImageSpec::quant_black)
         .def_readwrite("quant_white",   &ImageSpec::quant_white)
         .def_readwrite("quant_min",     &ImageSpec::quant_min)

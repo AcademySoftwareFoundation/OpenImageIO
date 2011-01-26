@@ -252,7 +252,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         m_spec.attribute ("DateTime", date);
     }
 
-    if (m_spec.linearity == ImageSpec::sRGB)
+    if (iequals (m_spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"))
         m_spec.attribute ("Exif:ColorSpace", 1);
 
     // Deal with all other params
