@@ -4,7 +4,7 @@ $(info Including spi/Makefile-bits-spcomp2)
 # READ THIS FIRST
 #
 # If you are building for installation as an SpComp2, make like this:
-# 1) setenv OIIOSPCOMP2 1
+# 1) Your must be setshot, for patchelf to be found.
 # 2) make spcomp2_install_local
 # or 2) make spcomp2_install
 #
@@ -27,6 +27,8 @@ SOVERSION ?= ${OPENIMAGEIO_SPCOMP2_VERSION}
 ifeq ($(SP_ARCH), spinux1_x86_64)
     platform=spinux1
     COMPILER=gcc44m64
+    FIELD3D_HOME="/shots/spi/home/lib/SpComp2/Field3D/spinux1-gcc44m64/v116"
+    SPCOMP2_RPATH=$(FIELD3D_HOME)/lib
     MY_CMAKE_FLAGS += \
 	  -DILMBASE_CUSTOM=1 \
 	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
@@ -35,7 +37,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
 	  -DHDF5_CUSTOM=1 \
 	  -DHDF5_INCLUDE_DIRS=/usr/include \
 	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-	  -DFIELD3D_HOME="/shots/spi/home/lib/SpComp2/Field3D/spinux1-gcc44m64/v116"
+	  -DFIELD3D_HOME=$(FIELD3D_HOME)
 endif  # endif spinux1_x86_64
 
 
@@ -49,7 +51,7 @@ ifeq (${SP_ARCH}, rhel40_x86_64)
     Boost_VERSION="103401"
     QTDIR=/usr/local64/qt-4.4
     Boost_LIBRARIES="-lboost_filesystem-gcc34-mt-${BOOST_VERSION} -lboost_regex-gcc34-mt-${BOOST_VERSION} -lboost_thread-gcc34-mt-${BOOST_VERSION} "
-
+    SPCOMP2_RPATH=/usr/local64/lib/boost-${BOOST_VERSION}:/usr/local64/openexr/${OPENEXR_VERSION}/lib64
     MY_CMAKE_FLAGS += \
 	-DSPECIAL_COMPILE_FLAGS="-include ${working_dir}/site/spi/include/spi_ns.h -include ${working_dir}/site/spi/include/tiff.h -DTIFF_OLD_VERSION" \
 	-DBOOST_CUSTOM=1 \
@@ -110,8 +112,8 @@ local: dist
 
 spcomp2: MY_CMAKE_FLAGS += \
 		-DCMAKE_SKIP_BUILD_RPATH:BOOL=ON \
-        -DCMAKE_INSTALL_RPATH=$(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
-        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON
+		-DCMAKE_INSTALL_RPATH=$(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(ARCHITECTURE)-$(COMPILER)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
+		-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON
 
 spcomp2: dist
 
@@ -121,6 +123,15 @@ spcomp2_debug: debug
 # it up and starts doing bad things
 spcomp2_install: spcomp2 spcomp2_debug 
 	echo $(INSTALL_SPCOMP2_LOCATION)
+	
+	patchelf \
+	--set-rpath $(SPCOMP2_RPATH) \
+	${dist_dir}/lib/libOpenImageIO.so
+	
+	patchelf \
+	--set-rpath $(SPCOMP2_RPATH) \
+	${dist_dir}.debug/lib/libOpenImageIO.so
+	
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m compile03.spimageworks.com \
 	--project=OpenImageIO --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
 	--srcdir=${dist_dir}/lib --root=$(INSTALL_SPCOMP2_LOCATION) \
