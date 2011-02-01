@@ -860,7 +860,7 @@ class PtexWriter {
 class PtexFilter {
  protected:
     /// Destructor not for public use.  Use release() instead.
-    virtual ~PtexFilter() {}; 
+    virtual ~PtexFilter() {}
 
  public:
     /// Filter types

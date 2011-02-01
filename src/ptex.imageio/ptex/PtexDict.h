@@ -204,11 +204,13 @@ public:  // Public Member Interfce
 private: // Private Member Interface
        
     /// @brief This internal structure is used to store the dictionary elements
-    struct Entry {
+    class Entry {
     public: // Public Member Interface
 	/// Default constructor initiaizes val with the defaul value
 	Entry() : _next(0), _hashval(0), _keylen(0),
-		  _val(_key,T()), _pad(0) {}	
+		  _val(_u._key,T())
+        { _u._pad = 0; }	
+        ~Entry() {}
     private: // Private Member Interface	
 	/// Copy constructor prohibited by design.
 	Entry(const Entry&);
@@ -223,7 +225,7 @@ private: // Private Member Interface
 	union {
 	    int  _pad;	 ///< for integer align of _key, for fast compares
 	    char _key[1];///< 1 is dummy length - actual size will be allocated
-	};
+	} _u;
     };
 
     /// Copy constructor prohibited by design.
@@ -250,7 +252,7 @@ private: // Private Member Interface
 	if (!_buckets) return 0;
 	for (Entry** e = &_buckets[hashval & _bucketMask]; *e; e=&(*e)->_next)
 	    if ((*e)->_hashval == hashval && (*e)->_keylen == keylen &&
-		streq(key, (*e)->_key, keylen)) 
+		streq(key, (*e)->_u._key, keylen)) 
 		return e;
 	return 0;
     }
@@ -517,8 +519,8 @@ T& PtexDict<T>::operator[](const char* key)
     ne->_keylen = keylen;
     
     // copy the string given into the new location
-    memcpy(ne->_key, key, keylen);
-    ne->_key[keylen] = '\0';
+    memcpy(ne->_u._key, key, keylen);
+    ne->_u._key[keylen] = '\0';
     return ne->_val.second;
 }
 
