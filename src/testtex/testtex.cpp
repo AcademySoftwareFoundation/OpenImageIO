@@ -565,5 +565,7 @@ main (int argc, const char *argv[])
     std::cout << "Memory use: "
               << Strutil::memformat (Sysutil::memory_used(true)) << "\n";
     TextureSystem::destroy (texsys);
+
+    std::cout << "\nustrings: " << ustring::getstats(false) << "\n\n";
     return 0;
 }

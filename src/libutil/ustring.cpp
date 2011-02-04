@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "export.h"
 #include "thread.h"
@@ -87,6 +88,12 @@ static ustring_mutex_t & ustring_mutex ()
 {
     static ustring_mutex_t the_real_mutex;
     return the_real_mutex;
+}
+
+static UstringTable & ustring_table ()
+{
+    static UstringTable table;
+    return table;
 }
 
 };          // end anonymous namespace
@@ -157,7 +164,7 @@ ustring::TableRep::~TableRep ()
 const ustring::TableRep *
 ustring::_make_unique (const char *str)
 {
-    static UstringTable ustring_table;
+    UstringTable &table (ustring_table());
 
     // Eliminate NULLs
     if (! str)
@@ -172,8 +179,8 @@ ustring::_make_unique (const char *str)
         // are all in the table.
         ustring_read_lock_t read_lock (ustring_mutex());
         ++ustring_stats_constructed;
-        UstringTable::const_iterator found = ustring_table.find (str);
-        if (found != ustring_table.end())
+        UstringTable::const_iterator found = table.find (str);
+        if (found != table.end())
            return found->second;
     }
 
@@ -193,9 +200,9 @@ ustring::_make_unique (const char *str)
         // constructing its rep, check the table one more time.  If it's
         // still empty, add it.
         ustring_write_lock_t write_lock (ustring_mutex());
-        found = ustring_table.find (str);
-        if (found == ustring_table.end()) {
-            ustring_table[rep->c_str()] = rep;
+        found = table.find (str);
+        if (found == table.end()) {
+            table[rep->c_str()] = rep;
             ++ustring_stats_unique;
             ustring_stats_memory += size;
 #ifndef __GNUC__
@@ -269,6 +276,43 @@ ustring::getstats (bool verbose)
             << ", unique " << ustring_stats_unique
             << ", " << Strutil::memformat(ustring_stats_memory);
     }
+
+    // See if our hashing is pathological by checking if there are multiple
+    // strings that ended up with the same hash.
+    UstringTable &table (ustring_table());
+    std::map<size_t,int> hashes;
+    int collisions = 0;
+    int collision_max = 0;
+    size_t most_common_hash = 0;
+    for (UstringTable::const_iterator s = table.begin(), e = table.end();
+         s != e;  ++s) {
+        // Pretend the (const char *) in the string table is a ustring (it is!)
+        const ustring &us = *((ustring *)(&s->first));
+        int &c (hashes[us.hash()]);  // Find/create the count for this hash
+        if (++c > 1) {               // Increment it, and if it's shared...
+            ++collisions;            //     register a collision
+            if (c > collision_max) { //     figure out the largest number
+                collision_max = c;   //         of shared collisions
+                most_common_hash = us.hash();
+            }
+        }
+    }
+    out << (verbose ? "  " : ", ") << collisions << " hash collisions (max " 
+        << collision_max << (verbose ? ")\n" : ")");
+#ifdef DEBUG
+    // DEBUG renders only -- reveal the strings sharing the most common hash
+    if (collision_max > 2) {
+        out << (verbose ? "" : "\n") << "  Most common hash " 
+            << most_common_hash << " was shared by:\n";
+        for (UstringTable::const_iterator s = table.begin(), e = table.end();
+             s != e;  ++s) {
+            const ustring &us = *((ustring *)(&s->first));
+            if (us.hash() == most_common_hash)
+                out << "      \"" << us << "\"\n";
+        }
+    }
+#endif
+
     return out.str();
 }
 
