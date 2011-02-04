@@ -119,12 +119,14 @@ iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 }
 
 
+#if 0
 // Functor to compare filename hashes
 static bool
 filename_hash_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 {
     return a->filename().hash() < b->filename().hash();
 }
+#endif
 
 
 #ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
@@ -1413,6 +1415,7 @@ ImageCacheImpl::getstats (int level) const
         }
     }
 
+#if 0
     if (files.size()) {
         std::sort (files.begin(), files.end(), filename_hash_compare);
         bool dupes = false;
@@ -1429,6 +1432,7 @@ ImageCacheImpl::getstats (int level) const
         if (! dupes)
             out << "  No hash collisions among the texture filenames\n";
     }
+#endif
 
     return out.str();
 }
