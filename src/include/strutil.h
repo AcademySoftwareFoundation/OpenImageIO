@@ -109,21 +109,23 @@ std::string DLLPUBLIC timeintervalformat (double secs, int digits=1);
 bool DLLPUBLIC get_rest_arguments (const std::string &str, std::string &base,
                                    std::map<std::string, std::string> &result);
 
-/// Beautiful little string hasher from Aho, Sethi, and Ullman's 1986
-/// Dragon compiler book.  This depends on sizeof(unsigned int) == 4.
-inline unsigned int
+/// Hash a string without pre-known length.  We use the Jenkins
+/// one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
+/// which seems to be a good speed/quality/requirements compromise.
+inline size_t
 strhash (const char *s)
 {
-    if (!s) return 0;
-    unsigned int h=0, g;
+    if (! s) return 0;
+    unsigned int h = 0;
     while (*s) {
-        h = (h<<4) + (unsigned char)(*s);
-        if ((g = (h & 0xf0000000))) {
-            h ^= g>>24;
-            h ^= g;
-        }
+        h += (unsigned char)(*s);
+        h += h << 10;
+        h ^= h >> 6;
         ++s;
     }
+    h += h << 3;
+    h ^= h >> 11;
+    h += h << 15;
     return h;
 }
 
