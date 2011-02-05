@@ -51,7 +51,6 @@ macro (add_dll_files)
                    ${QT_BINARY_DIR}/QtCore4.dll
                    ${QT_BINARY_DIR}/QtGui4.dll
                    ${QT_BINARY_DIR}/QtOpenGL4.dll
-                   ${TBB_HOME}/tbb-${TBB_VERSION}/lib/tbb.dll
                    ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/Imath.dll
                    ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/Half.dll
                    ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib/IlmThread.dll
