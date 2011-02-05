@@ -50,9 +50,13 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           ${libOpenImageIO_hdrs}
                          )
 
-# Include out own TBB if not getting it from an external area
-if (NOT WIN32 AND USE_TBB)
-  set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
+# Include our own TBB if using it
+if (USE_TBB)
+    add_definitions ("-DUSE_TBB=1")
+    set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
+else ()
+    add_definitions ("-DUSE_TBB=0")
+    message (STATUS "TBB will not be used")
 endif ()
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
@@ -155,11 +159,6 @@ target_link_libraries (OpenImageIO ${Boost_LIBRARIES})
 if (MSVC)
     target_link_libraries (OpenImageIO psapi.lib)
 endif (MSVC)
-if (WIN32 AND USE_TBB)
-    target_link_libraries (OpenImageIO
-                           optimized ${TBB_LIBRARY}
-                           debug ${TBB_DEBUG_LIBRARY})
-endif (WIN32 AND USE_TBB)
 link_ilmbase (OpenImageIO)
 
 if (EMBEDPLUGINS)
