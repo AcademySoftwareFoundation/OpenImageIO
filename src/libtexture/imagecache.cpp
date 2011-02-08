@@ -943,18 +943,14 @@ ImageCacheImpl::find_file (ustring filename,
             bool was_duplicate = false;
             if (tf->fingerprint ()) {
                 // std::cerr << filename << " hash=" << tf->fingerprint() << "\n";
-                FilenameMap::iterator fingerfound = m_fingerprints.find (tf->fingerprint());
-                if (fingerfound == m_fingerprints.end()) {
-                    // Not already in the fingerprint list -- add it
-                    m_fingerprints[tf->fingerprint()] = tf;
-                } else {
+                ImageCacheFile *dup = find_fingerprint (tf->fingerprint(), tf);
+                if (dup != tf) {
                     // Already in fingerprints -- mark this one as a
                     // duplicate, but ONLY if we don't have other
                     // reasons not to consider them true duplicates (the
                     // fingerprint only considers source image pixel values.
                     // FIXME -- be sure to add extra tests
                     // here if more metadata have significance later!
-                    ImageCacheFile *dup = fingerfound->second.get();
                     if (tf->m_swrap == dup->m_swrap && tf->m_twrap == dup->m_twrap &&
                         tf->m_rwrap == dup->m_rwrap &&
                         tf->m_datatype == dup->m_datatype && 
@@ -985,6 +981,32 @@ ImageCacheImpl::find_file (ustring filename,
 
     tf->use ();  // Mark it as recently used
     return tf;
+}
+
+
+
+ImageCacheFile *
+ImageCacheImpl::find_fingerprint (ustring finger, ImageCacheFile *file)
+{
+    spin_lock lock (m_fingerprints_mutex);
+    FilenameMap::iterator found = m_fingerprints.find (finger);
+    if (found == m_fingerprints.end()) {
+        // Not already in the fingerprint list -- add it
+        m_fingerprints[finger] = file;
+    } else {
+        // In the list -- return its mapping
+        file = found->second.get();
+    }
+    return file;
+}
+
+
+
+void
+ImageCacheImpl::clear_fingerprints ()
+{
+    spin_lock lock (m_fingerprints_mutex);
+    m_fingerprints.clear ();
 }
 
 
@@ -2198,10 +2220,7 @@ ImageCacheImpl::invalidate_all (bool force)
         invalidate (f);
     }
 
-    {
-        ic_write_lock fileguard (m_filemutex);
-        m_fingerprints.clear ();  // Clear fingerprint database
-    }
+    clear_fingerprints ();
 
     // Mark the per-thread microcaches as invalid
     lock_guard lock (m_perthread_info_mutex);
