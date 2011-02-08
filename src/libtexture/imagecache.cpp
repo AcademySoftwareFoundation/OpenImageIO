@@ -280,19 +280,8 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_imagecache(imagecache), m_duplicate(NULL)
 {
     m_filename = imagecache.resolve_filename (m_filename.string());
-    recursive_lock_guard guard (m_input_mutex);
-    open (thread_info);
-#if 0
-    static int x=0;
-    if ((++x % 16) == 0) {
-    std::cerr << "Opened " << filename ;
-    std::cerr << ", now mem is "
-              << Strutil::memformat (Sysutil::memory_used())
-              << " virtual, resident = "
-              << Strutil::memformat (Sysutil::memory_used(true))
-              << "\n";
-    }
-#endif
+    // N.B. the file is not opened, the ImageInput is NULL.  This is
+    // reflected by the fact that m_validspec is false.
 }
 
 
@@ -358,7 +347,6 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     // From here on, we know that we've opened this file for the very
     // first time.  So read all the subimages, fill out all the fields
     // of the ImageCacheFile.
-    m_validspec = true;
     m_subimages.clear ();
     int nsubimages = 0;
     do {
@@ -542,6 +530,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_mod_time = boost::filesystem::last_write_time (m_filename.string());
 
     DASSERT (! m_broken);
+    m_validspec = true;
     return true;
 }
 
@@ -894,6 +883,11 @@ ImageCacheImpl::find_file (ustring filename,
                            ImageCachePerThreadInfo *thread_info)
 {
     ImageCacheStatistics &stats (thread_info->m_stats);
+    ImageCacheFile *tf = NULL;
+    bool newfile = false;
+
+    // Part 1 - make sure the ImageCacheFile entry exists and is in the
+    // file cache.  For this part, we need to lock the file cache.
     {
 #if IMAGECACHE_TIME_STATS
         Timer timer;
@@ -913,105 +907,83 @@ ImageCacheImpl::find_file (ustring filename,
 #endif
 
         if (found != m_files.end()) {
-            ImageCacheFile *tf = found->second.get();
-            // if this is a duplicate texture, switch to the canonical copy
-            if (tf->duplicate())
-                tf = tf->duplicate();
-            tf->use ();
-            // If the ICF exists but has no spec, it's because it was
-            // broken and then subsequently invalidated.  Downstream we
-            // assume that the spec exists even for an invalid file, so try
-            // opening it again, it'll either succeed or re-mark as broken.
-            if (! tf->validspec()) {
-                recursive_lock_guard guard (tf->m_input_mutex);
-                tf->open (thread_info);
-                DASSERT (tf->m_broken || tf->validspec());
-            }
-            filemutex_holder (NULL);
-            return tf;
-        }
-        filemutex_holder (NULL);
-    }
-
-    // We don't already have this file in the table.  Try to
-    // open it and create a record.
-
-    // Yes, we're creating an ImageCacheFile with no lock -- this is to
-    // prevent all the other threads from blocking because of our
-    // expensive disk read.  We believe this is safe, since underneath
-    // the ImageCacheFile will lock itself for the open and there are
-    // no other non-threadsafe side effects.
-    Timer timer;
-    ImageCacheFile *tf = new ImageCacheFile (*this, thread_info, filename);
-    double createtime = timer();
-    stats.fileio_time += createtime;
-    stats.fileopen_time += createtime;
-    tf->iotime() += createtime;
-
-    DASSERT (m_filemutex_holder != thread_info); // we better not already hold
-    ic_write_lock writeguard (m_filemutex);
-    filemutex_holder (thread_info);
-#if IMAGECACHE_TIME_STATS
-    double donelocking = timer();
-    stats.file_locking_time += donelocking-createtime;
-#endif
-
-    // Another thread may have created and added the file earlier while
-    // we were unlocked.
-    if (m_files.find (filename) != m_files.end()) {
-        delete tf;   // Don't need that one after all
-        tf = m_files[filename].get();
-        // if this is a duplicate texture, switch to the canonical copy
-        if (tf->duplicate())
-            tf = tf->duplicate();
-        tf->use();
-        filemutex_holder (NULL);
-        return tf;
-    }
-
-    // What if we've opened another file, with a different name, but the
-    // SAME pixels?  It can happen!  Bad user, bad!  But let's save them
-    // from their own foolishness.
-    if (tf->fingerprint ()) {
-        // std::cerr << filename << " hash=" << tf->fingerprint() << "\n";
-        FilenameMap::iterator fingerfound = m_fingerprints.find (tf->fingerprint());
-        if (fingerfound == m_fingerprints.end()) {
-            // Not already in the fingerprint list -- add it
-            m_fingerprints[tf->fingerprint()] = tf;
+            tf = found->second.get();
         } else {
-            // Already in fingerprints -- mark this one as a duplicate, but
-            // ONLY if we don't have other reasons not to consider them true
-            // duplicates (the fingerprint only considers source image 
-            // pixel values).
-            // FIXME -- be sure to add extra tests here if more metadata
-            // have significance later!
-            ImageCacheFile *dup = fingerfound->second.get();
-            if (tf->m_swrap == dup->m_swrap && tf->m_twrap == dup->m_twrap &&
-                  tf->m_rwrap == dup->m_rwrap &&
-                  tf->m_datatype == dup->m_datatype && 
-                  tf->m_cubelayout == dup->m_cubelayout &&
-                  tf->m_y_up == dup->m_y_up) {
-                tf->duplicate (dup);
-                tf->close ();
-                // std::cerr << "  duplicates " 
-                //           << fingerfound->second.get()->filename() << "\n";
+            // No such entry in the file cache.  Add it, but don't open yet.
+            tf = new ImageCacheFile (*this, thread_info, filename);
+            check_max_files (thread_info);
+            safe_insert (m_files, filename, tf, m_file_sweep);
+            newfile = true;
+        }
+
+        filemutex_holder (NULL);
+#if IMAGECACHE_TIME_STATS
+        stats.find_file_time += timer()-donelocking;
+#endif
+    }
+    DASSERT (m_filemutex_holder != thread_info); // we better not hold
+
+    // Part 2 - open tihe file if it's never been opened before.
+    // No need to have the file cache locked for this, though we lock
+    // the tf->m_input_mutex if we need to open it.
+    if (! tf->validspec()) {
+        Timer timer;
+        recursive_lock_guard guard (tf->m_input_mutex);
+        if (! tf->validspec()) {
+            tf->open (thread_info);
+            DASSERT (tf->m_broken || tf->validspec());
+            double createtime = timer();
+            stats.fileio_time += createtime;
+            stats.fileopen_time += createtime;
+            tf->iotime() += createtime;
+
+            // What if we've opened another file, with a different name,
+            // but the SAME pixels?  It can happen!  Bad user, bad!  But
+            // let's save them from their own foolishness.
+            bool was_duplicate = false;
+            if (tf->fingerprint ()) {
+                // std::cerr << filename << " hash=" << tf->fingerprint() << "\n";
+                FilenameMap::iterator fingerfound = m_fingerprints.find (tf->fingerprint());
+                if (fingerfound == m_fingerprints.end()) {
+                    // Not already in the fingerprint list -- add it
+                    m_fingerprints[tf->fingerprint()] = tf;
+                } else {
+                    // Already in fingerprints -- mark this one as a
+                    // duplicate, but ONLY if we don't have other
+                    // reasons not to consider them true duplicates (the
+                    // fingerprint only considers source image pixel values.
+                    // FIXME -- be sure to add extra tests
+                    // here if more metadata have significance later!
+                    ImageCacheFile *dup = fingerfound->second.get();
+                    if (tf->m_swrap == dup->m_swrap && tf->m_twrap == dup->m_twrap &&
+                        tf->m_rwrap == dup->m_rwrap &&
+                        tf->m_datatype == dup->m_datatype && 
+                        tf->m_cubelayout == dup->m_cubelayout &&
+                        tf->m_y_up == dup->m_y_up) {
+                        tf->duplicate (dup);
+                        tf->close ();
+                        was_duplicate = true;
+                        // std::cerr << "  duplicates " 
+                        //   << fingerfound->second.get()->filename() << "\n";
+                    }
+                }
             }
+#if IMAGECACHE_TIME_STATS
+            stats.find_file_time += timer()-createtime;
+#endif
         }
     }
 
-    check_max_files (thread_info);
-    safe_insert (m_files, filename, tf, m_file_sweep);
+    // if this is a duplicate texture, switch to the canonical copy
     if (tf->duplicate())
         tf = tf->duplicate();
-    else
-        ++stats.unique_files;
-    tf->use ();
+    else {
+        // not a duplicate -- if opening the first time, count as unique
+        if (newfile)
+            ++stats.unique_files;
+    }
 
-#if IMAGECACHE_TIME_STATS
-    stats.find_file_time += timer()-donelocking;
-#endif
-
-    filemutex_holder (NULL);
+    tf->use ();  // Mark it as recently used
     return tf;
 }
 
