@@ -116,7 +116,7 @@ inline size_t
 strhash (const char *s)
 {
     if (! s) return 0;
-    unsigned int h = 0;
+    size_t h = 0;
     while (*s) {
         h += (unsigned char)(*s);
         h += h << 10;

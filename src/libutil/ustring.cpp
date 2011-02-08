@@ -288,7 +288,10 @@ ustring::getstats (bool verbose)
          s != e;  ++s) {
         // Pretend the (const char *) in the string table is a ustring (it is!)
         const ustring &us = *((ustring *)(&s->first));
+        bool init = (hashes.find(us.hash()) == hashes.end());
         int &c (hashes[us.hash()]);  // Find/create the count for this hash
+        if (init)
+            c = 0;
         if (++c > 1) {               // Increment it, and if it's shared...
             ++collisions;            //     register a collision
             if (c > collision_max) { //     figure out the largest number
