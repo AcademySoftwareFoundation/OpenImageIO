@@ -211,13 +211,11 @@ public:
     SubimageInfo &subimageinfo (int subimage) { return m_subimages[subimage]; }
 
     const LevelInfo &levelinfo (int subimage, int miplevel) const {
-        DASSERT (validspec());
         DASSERT ((int)m_subimages.size() > subimage);
         DASSERT ((int)m_subimages[subimage].levels.size() > miplevel);
         return m_subimages[subimage].levels[miplevel];
     }
     LevelInfo &levelinfo (int subimage, int miplevel) {
-        DASSERT (validspec());
         DASSERT ((int)m_subimages.size() > subimage);
         DASSERT ((int)m_subimages[subimage].levels.size() > miplevel);
         return m_subimages[subimage].levels[miplevel];
