@@ -33,6 +33,7 @@
 
 #include "imageio.h"
 #include "imagebuf.h"
+#include "imagebufalgo.h"
 #include "sysutil.h"
 #include "unittest.h"
 
@@ -64,7 +65,7 @@ void ImageBuf_zero_fill ()
         OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
 
     // Zero out and test that it worked
-    A.zero ();
+    ImageBufAlgo::zero (A);
     for (int j = 0;  j < HEIGHT;  ++j) {
         for (int i = 0;  i < WIDTH;  ++i) {
             float pixel[CHANNELS];
@@ -76,7 +77,7 @@ void ImageBuf_zero_fill ()
 
     // Test fill of whole image
     const float arbitrary2[CHANNELS] = { 0.6, 0.7, 0.3, 0.9 };
-    A.fill (arbitrary2);
+    ImageBufAlgo::fill (A, arbitrary2);
     for (int j = 0;  j < HEIGHT;  ++j) {
         for (int i = 0;  i < WIDTH;  ++i) {
             float pixel[CHANNELS];
@@ -90,7 +91,7 @@ void ImageBuf_zero_fill ()
     const float arbitrary3[CHANNELS] = { 0.42, 0.43, 0.44, 0.45 };
     {
         const int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
-        A.fill (arbitrary3, xbegin, xend, ybegin, yend);
+        ImageBufAlgo::fill (A, arbitrary3, xbegin, xend, ybegin, yend);
         for (int j = 0;  j < HEIGHT;  ++j) {
             for (int i = 0;  i < WIDTH;  ++i) {
                 float pixel[CHANNELS];
@@ -125,7 +126,7 @@ void crop_cut ()
     arbitrary1[1] = 0.3;
     arbitrary1[2] = 0.4;
     arbitrary1[3] = 0.5;
-    A.fill (arbitrary1);
+    ImageBufAlgo::fill (A, arbitrary1);
 
     // Test CUT crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
@@ -167,7 +168,7 @@ void crop_window ()
     arbitrary1[1] = 0.3;
     arbitrary1[2] = 0.4;
     arbitrary1[3] = 0.5;
-    A.fill (arbitrary1);
+    ImageBufAlgo::fill (A, arbitrary1);
 
     // Test WINDOW crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
@@ -209,7 +210,7 @@ void crop_black ()
     arbitrary1[1] = 0.3;
     arbitrary1[2] = 0.4;
     arbitrary1[3] = 0.5;
-    A.fill (arbitrary1);
+    ImageBufAlgo::fill (A, arbitrary1);
 
     // Test BLACK crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
@@ -259,7 +260,7 @@ void crop_white ()
     arbitrary1[1] = 0.3;
     arbitrary1[2] = 0.4;
     arbitrary1[3] = 0.5;
-    A.fill (arbitrary1);
+    ImageBufAlgo::fill (A, arbitrary1);
 
     // Test WHITE crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
@@ -309,7 +310,7 @@ void crop_trans ()
     arbitrary1[1] = 0.3;
     arbitrary1[2] = 0.4;
     arbitrary1[3] = 0.5;
-    A.fill (arbitrary1);
+    ImageBufAlgo::fill (A, arbitrary1);
 
     // Test TRANS crop
     ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
@@ -356,10 +357,10 @@ void ImageBuf_add ()
     // Create buffers
     ImageBuf A ("A", spec);
     const float Aval[CHANNELS] = { 0.1, 0.2, 0.3, 0.4 };
-    A.fill (Aval);
+    ImageBufAlgo::fill (A, Aval);
     ImageBuf B ("B", spec);
     const float Bval[CHANNELS] = { 0.01, 0.02, 0.03, 0.04 };
-    B.fill (Bval);
+    ImageBufAlgo::fill (B, Bval);
 
     ImageBuf C ("C", spec);
     ImageBufAlgo::add (C, A, B);

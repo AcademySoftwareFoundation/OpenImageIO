@@ -49,6 +49,7 @@
 #include "strutil.h"
 #include "imageio.h"
 #include "imagebuf.h"
+#include "imagebufalgo.h"
 
 OIIO_NAMESPACE_USING;
 

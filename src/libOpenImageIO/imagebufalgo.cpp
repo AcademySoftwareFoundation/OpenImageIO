@@ -31,15 +31,119 @@
 /// \file
 /// Implementation of ImageBuf class.
 
+#include <OpenEXR/ImathFun.h>
+#include <OpenEXR/half.h>
+
 #include <iostream>
 #include <limits>
 
 #include "imagebuf.h"
+#include "imagebufalgo.h"
 #include "dassert.h"
 
 OIIO_NAMESPACE_ENTER
 {
-    using namespace ImageBufAlgo;
+
+namespace
+{
+
+template<typename T>
+static inline void
+zero_ (ImageBuf &buf)
+{
+    int chans = buf.nchannels();
+    for (ImageBuf::Iterator<T> pixel (buf);  pixel.valid();  ++pixel)
+        for (int i = 0;  i < chans;  ++i)
+            pixel[i] = 0;
+}
+
+}
+
+bool
+ImageBufAlgo::zero (ImageBuf &dst)
+{
+    switch (dst.spec().format.basetype) {
+    case TypeDesc::FLOAT : zero_<float> (dst); break;
+    case TypeDesc::UINT8 : zero_<unsigned char> (dst); break;
+    case TypeDesc::INT8  : zero_<char> (dst); break;
+    case TypeDesc::UINT16: zero_<unsigned short> (dst); break;
+    case TypeDesc::INT16 : zero_<short> (dst); break;
+    case TypeDesc::UINT  : zero_<unsigned int> (dst); break;
+    case TypeDesc::INT   : zero_<int> (dst); break;
+    case TypeDesc::UINT64: zero_<unsigned long long> (dst); break;
+    case TypeDesc::INT64 : zero_<long long> (dst); break;
+    case TypeDesc::HALF  : zero_<half> (dst); break;
+    case TypeDesc::DOUBLE: zero_<double> (dst); break;
+    default:
+        return false;
+    }
+    
+    return true;
+}
+
+
+bool
+ImageBufAlgo::fill (ImageBuf &dst,
+                    const float *pixel)
+{
+    for (int k = 0; k < dst.spec().full_depth; k++)
+        for (int j = 0; j < dst.spec().full_height; j++)
+            for (int i = 0; i < dst.spec().full_width ; i++)
+                dst.setpixel (i, j, pixel);
+    
+    return true;
+}
+
+
+/// return true on success.
+bool
+ImageBufAlgo::fill (ImageBuf &dst,
+                    const float *pixel,
+                    int xbegin, int xend,
+                    int ybegin, int yend)
+{
+    if (xbegin >= xend) {
+        return false;
+    }
+    if (ybegin >= yend) {
+        return false;
+    }
+    
+    for (int j = ybegin; j < yend; j++)
+        for (int i = xbegin; i < xend; i++)
+            dst.setpixel (i, j, pixel);
+    
+    return true;
+}
+
+
+bool
+ImageBufAlgo::fill (ImageBuf &dst,
+                    const float *pixel,
+                    int xbegin, int xend,
+                    int ybegin, int yend,
+                    int zbegin, int zend)
+{
+
+    if (xbegin >= xend) {
+        return false;
+    }
+    if (ybegin >= yend) {
+        return false;
+    }
+    if (zbegin >= zend) {
+        return false;
+    }
+    
+    for (int k = zbegin; k < zend; k++)
+        for (int j = ybegin; j < yend; j++)
+            for (int i = xbegin; i < xend; i++)
+                dst.setpixel (i, j, k, pixel);
+    
+    return true;
+}
+
+
 
 
 bool 
@@ -114,7 +218,7 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
                 pixel[k]=0;
 	    break;
         }
-        dst.fill(pixel);
+        fill (dst, pixel);
     }
     //copy the cropping area pixel
     switch(options)
@@ -170,7 +274,7 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     }
     // Clear dst pixels if instructed to do so
     if (options & ADD_CLEAR_DST) {
-        dst.zero ();
+        zero (dst);
     }
       
     ASSERT (A.spec().format == TypeDesc::FLOAT &&
