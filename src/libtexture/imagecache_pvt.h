@@ -211,13 +211,11 @@ public:
     SubimageInfo &subimageinfo (int subimage) { return m_subimages[subimage]; }
 
     const LevelInfo &levelinfo (int subimage, int miplevel) const {
-        DASSERT (validspec());
         DASSERT ((int)m_subimages.size() > subimage);
         DASSERT ((int)m_subimages[subimage].levels.size() > miplevel);
         return m_subimages[subimage].levels[miplevel];
     }
     LevelInfo &levelinfo (int subimage, int miplevel) {
-        DASSERT (validspec());
         DASSERT ((int)m_subimages.size() > subimage);
         DASSERT ((int)m_subimages[subimage].levels.size() > miplevel);
         return m_subimages[subimage].levels[miplevel];
@@ -225,8 +223,8 @@ public:
 
     /// Do we currently have a valid spec?
     bool validspec () const {
-        DASSERT ((m_subimages.size() > 0) == m_validspec &&
-                 "subimages array size doesn't match validity");
+        DASSERT ((m_validspec == false || m_subimages.size() > 0) &&
+                 "validspec is true, but subimages are empty");
         return m_validspec;
     }
 
@@ -262,7 +260,7 @@ private:
     size_t m_timesopened;           ///< Separate times we opened this file
     double m_iotime;                ///< I/O time for this file
     bool m_mipused;                 ///< MIP level >0 accessed
-    bool m_validspec;               ///< If false, reread spec upon open
+    volatile bool m_validspec;      ///< If false, reread spec upon open
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
     mutable recursive_mutex m_input_mutex; ///< Mutex protecting the ImageInput
     std::time_t m_mod_time;         ///< Time file was last updated
@@ -871,6 +869,22 @@ private:
     std::string onefile_stat_line (const ImageCacheFileRef &file,
                                    int i, bool includestats=true) const;
 
+    /// Search the fingerprint table for the given fingerprint.  If it
+    /// doesn't already have an entry in the fingerprint map, then add
+    /// one, mapping the it to file.  In either case, return the file it
+    /// maps to (the caller can tell if it was newly added to the table
+    /// by whether the return value is the same as the passed-in file).
+    /// All the while, properly maintain thread safety on the
+    /// fingerprint table.
+    ImageCacheFile *find_fingerprint (ustring finger, ImageCacheFile *file);
+
+    /// Clear the fingerprint list, thread-safe.
+    void clear_fingerprints ();
+
+    typedef spin_mutex ic_mutex;
+    typedef spin_lock  ic_read_lock;
+    typedef spin_lock  ic_write_lock;
+
     thread_specific_ptr< ImageCachePerThreadInfo > m_perthread_info;
     std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
     static mutex m_perthread_info_mutex; ///< Thread safety for perthread
@@ -886,33 +900,28 @@ private:
     int m_failure_retries;       ///< Times to re-try disk failures
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
+
+    mutable ic_mutex m_filemutex; ///< Thread safety for file cache
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's
     FilenameMap::iterator m_file_sweep; ///< Sweeper for "clock" paging algorithm
+    ImageCachePerThreadInfo *m_filemutex_holder; // debugging
+
+    spin_mutex m_fingerprints_mutex; ///< Protect m_fingerprints
     FilenameMap m_fingerprints;  ///< Map fingerprints to files
+
+    mutable ic_mutex m_tilemutex; ///< Thread safety for tile cache
     TileCache m_tilecache;       ///< Our in-memory tile cache
     TileCache::iterator m_tile_sweep; ///< Sweeper for "clock" paging algorithm
+    ImageCachePerThreadInfo *m_tilemutex_holder;   // debugging
+
     atomic_ll m_mem_used;        ///< Memory being used for tiles
     int m_statslevel;            ///< Statistics level
+
     /// Saved error string, per-thread
     ///
     mutable thread_specific_ptr< std::string > m_errormessage;
-#if 0
-    // This approach uses regular shared mutexes to protect the caches.
-    typedef shared_mutex ic_mutex;
-    typedef shared_lock  ic_read_lock;
-    typedef unique_lock  ic_write_lock;
-#else
-    // This alternate approach uses spin locks.
-    typedef spin_mutex ic_mutex;
-    typedef spin_lock  ic_read_lock;
-    typedef spin_lock  ic_write_lock;
-#endif
-    mutable ic_mutex m_filemutex; ///< Thread safety for file cache
-    mutable ic_mutex m_tilemutex; ///< Thread safety for tile cache
 
     // For debugging -- keep track of who holds the tile and file mutex
-    ImageCachePerThreadInfo *m_tilemutex_holder;
-    ImageCachePerThreadInfo *m_filemutex_holder;
 
 private:
     // Statistics that are really hard to track per-thread
