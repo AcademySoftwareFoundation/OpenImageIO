@@ -223,8 +223,8 @@ public:
 
     /// Do we currently have a valid spec?
     bool validspec () const {
-        DASSERT ((m_subimages.size() > 0) == m_validspec &&
-                 "subimages array size doesn't match validity");
+        DASSERT ((m_validspec == false || m_subimages.size() > 0) &&
+                 "validspec is true, but subimages are empty");
         return m_validspec;
     }
 
