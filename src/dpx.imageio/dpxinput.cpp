@@ -31,7 +31,6 @@
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 
-#include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
 #include "fmath.h"
