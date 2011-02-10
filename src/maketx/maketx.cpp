@@ -35,12 +35,6 @@
 #include <iterator>
 #include <limits>
 
-/* This header have to be included before boost/regex.hpp header
-   If it is included after, there is an error
-   "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
-*/
-#include "SHA1.h"
-
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
 #include <OpenEXR/ImathMatrix.h>
@@ -54,6 +48,7 @@
 #include "timer.h"
 #include "imageio.h"
 #include "imagebuf.h"
+#include "imagebufalgo.h"
 #include "sysutil.h"
 #include "thread.h"
 
@@ -70,7 +65,8 @@ static std::string fileformatname = "";
 static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
 static int nthreads = 0;
-static int tile[3] = { 64, 64, 1 };
+static const int DEFAULT_TILE_SIZE = 64;
+static int tile[3] = { -1, -1, 1 };  // A negative tile size is unset
 static std::string channellist;
 static bool updatemode = false;
 static double stat_readtime = 0;
@@ -94,6 +90,7 @@ static bool latl2envcubemode = false;
 
 // Options controlling file metadata or mipmap creation
 static float fov = 90;
+static float fovcot = 0.0f;
 static std::string wrap = "black";
 static std::string swrap;
 static std::string twrap;
@@ -103,8 +100,10 @@ static float opaquewidth = 0;  // should be volume shadow epsilon
 static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
 static bool nomipmap = false;
-static bool embed_hash;
-
+static bool embed_hash = false;
+static bool prman_metadata = false;
+static bool constant_color_detect = false;
+static bool monochrome_detect = false;
 
 // forward decl
 static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
@@ -126,7 +125,10 @@ parse_files (int argc, const char *argv[])
 static void
 getargs (int argc, char *argv[])
 {
+    bool prman = false;
+    bool oiio = false;
     bool help = false;
+    
     ArgParse ap;
     ap.options ("maketx -- convert images to tiled, MIP-mapped textures\n"
                 OIIO_INTRO_STRING "\n"
@@ -137,7 +139,7 @@ getargs (int argc, char *argv[])
                   "-o %s", &outputfilename, "Output filename",
                   "-t %d", &nthreads, "Number of threads (default: #cores)",
                   "-u", &updatemode, "Update mode",
-                  "--format %s", &fileformatname, "Specify output format (default: guess from extension)",
+                  "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
                   "-d %s", &dataformatname, "Set the output data format to one of:\n"
                           "\t\t\tuint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
@@ -146,6 +148,7 @@ getargs (int argc, char *argv[])
                   "--outgamma %f", &outgamma, "Specify gamma of output files (default: 1)",
                   "--opaquewidth %f", &opaquewidth, "Set z fudge factor for volume shadows",
                   "--fov %f", &fov, "Field of view for envcube/shadcube/twofish",
+                  "--fovcot %f", &fovcot, "Override the pixel aspect ratio correction factor. Default is width/height.",
                   "--wrap %s", &wrap, "Specify wrap mode (black, clamp, periodic, mirror)",
                   "--swrap %s", &swrap, "Specific s wrap mode separately",
                   "--twrap %s", &twrap, "Specific t wrap mode separately",
@@ -166,6 +169,9 @@ getargs (int argc, char *argv[])
                           &Mscr[3][0], &Mscr[3][1], &Mscr[3][2], &Mscr[3][3], 
                           "Set the camera matrix",
                   "--hash", &embed_hash, "Embed SHA-1 hash of pixels in the header",
+                  "--prman-metadata", &prman_metadata, "Add prman specific metadata",
+                  "--constant-color-detect", &constant_color_detect, "Detect constant color images, create single-tile image when found.",
+                  "--monochrome-detect", &monochrome_detect, "Detect monochrome images, create single-channel image when found.",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
 //FIXME           "-debugdso"
 //FIXME           "-note %s", &note, "Append a note to the image comments",
@@ -178,6 +184,9 @@ getargs (int argc, char *argv[])
                   "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
                   "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
                   "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
+                  "<SEPARATOR>", "Configuration Presets",
+                  "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata",
+                  "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, and metadata",
                   NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -205,7 +214,67 @@ getargs (int argc, char *argv[])
         mipmapmode = true;
     if (doresize)
         noresize = false;
-
+    
+    // Do prman-specific munging
+    // But... if a tile size has been specified explicitly, obey it
+    if (prman) {
+        // Force planar image handling, and also emit prman metadata
+        separate = true;
+        prman_metadata = true;
+        
+        // 8-bit : 64x64
+        if (dataformatname == "uint8" ||
+            dataformatname == "int8" ||
+            dataformatname == "sint8") {
+            
+            if(tile[0]<0) tile[0] = 64;
+            if(tile[1]<0) tile[1] = 64;
+        }
+        
+        // 16-bit : 64x32
+        
+        // Force u16 -> s16
+        // In prman's txmake (last tested in 15.0)
+        // specifying -short creates a signed int representation
+        if (dataformatname == "uint16") {
+            dataformatname = "sint16";
+        }
+        
+        if (dataformatname == "uint16" ||
+            dataformatname == "int16" ||
+            dataformatname == "sint16") {
+            if(tile[0]<0) tile[0] = 64;
+            if(tile[1]<0) tile[1] = 32;
+        }
+        
+        // Float: 32x32
+        // In prman's txmake (last tested in 15.0)
+        // specifying -half or -float make 32x32 tile size
+        if (dataformatname == "half" ||
+            dataformatname == "float" ||
+            dataformatname == "double") {
+            if(tile[0]<0) tile[0] = 32;
+            if(tile[1]<0) tile[1] = 32;
+        }
+    }
+    
+    // Do OpenImageIO specific optimizations
+    // But... if a tile size has been specified explicitly, obey it
+    if(oiio) {
+        // Interleaved channels are faster to read
+        separate = false;
+        
+        // Enable constant color optimizations
+        constant_color_detect = true;
+        
+        if(tile[0]<0) tile[0] = 64;
+        if(tile[1]<0) tile[1] = 64;
+    }
+    
+    // If tile-size is still unset, use the defaults.
+    if(tile[0]<0) tile[0] = DEFAULT_TILE_SIZE;
+    if(tile[1]<0) tile[1] = DEFAULT_TILE_SIZE;
+    
     if (filenames.size() < 1) {
         std::cerr << "maketx ERROR: Must have at least one input filename specified.\n";
         ap.usage();
@@ -395,22 +464,55 @@ make_texturemap (const char *maptypename = "texture map")
         exit (EXIT_FAILURE);
     }
     stat_readtime += readtimer();
-
+    
+    // If requested - and we're a constant color - make a tiny texture instead
+    // FIXME: Add the appropriate metadata to also advertise this fact.
+    std::vector<float> constantColor(src.nchannels());
+    if (constant_color_detect && ImageBufAlgo::isConstantColor (&constantColor[0], src)) {
+        int newwidth = std::max (1, std::min (src.spec().width, tile[0]));
+        int newheight = std::max (1, std::min (src.spec().height, tile[1]));
+        
+        ImageSpec newspec = src.spec();
+        newspec.x = 0;
+        newspec.y = 0;
+        newspec.z = 0;
+        newspec.width = newwidth;
+        newspec.height = newheight;
+        newspec.depth = 1;
+        newspec.full_x = 0;
+        newspec.full_y = 0;
+        newspec.full_z = 0;
+        newspec.full_width = newspec.width;
+        newspec.full_height = newspec.height;
+        newspec.full_depth = newspec.depth;
+        
+        // Reset the image, to a new image, at the new size
+        std::string name = src.name() + ".constant_color";
+        src.reset(name, newspec);
+        
+        ImageBufAlgo::fill (src, &constantColor[0]);
+        
+        if (verbose) {
+            std::cout << "  Constant color image detected. ";
+            std::cout << "Creating " << newspec.width << "x" << newspec.height << " texture instead.\n";
+        }
+    }
+    
+    // If requested - and we're a monochrome image - drop the extra channels
+    if (monochrome_detect && (src.nchannels() > 1) && ImageBufAlgo::isMonochrome(src)) {
+        ImageBuf newsrc(src.name() + ".monochrome", src.spec());
+        ImageBufAlgo::setNumChannels(newsrc, src, 1);
+        src = newsrc;
+        if (verbose) {
+            std::cout << "  Monochrome image detected. Converting to single channel texture.\n";
+        }
+    }
+    
+    
     std::string hash_digest;
     if (embed_hash) {
-        CSHA1 sha;
-        sha.Reset ();
-        // Do one scanline at a time, to keep to < 2^32 bytes each
-        imagesize_t scanline_bytes = src.spec().scanline_bytes();
-        ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
-        std::vector<unsigned char> tmp (scanline_bytes);
-        for (int y = src.ymin();  y <= src.ymax();  ++y) {
-            src.copy_pixels (src.xbegin(), src.xend(), y, y+1,
-                             src.spec().format, &tmp[0]);
-            sha.Update (&tmp[0], (unsigned int) scanline_bytes);
-        }
-        sha.Final ();
-        sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
+        hash_digest = ImageBufAlgo::computePixelHashSHA1(src);
+        
         if (verbose)
             std::cout << "  SHA-1: " << hash_digest << std::endl;
     }
@@ -501,10 +603,17 @@ make_texturemap (const char *maptypename = "texture map")
         dstspec.attribute ("ImageDescription", desc);
     }
 
-    if (shadowmode)
+    if (shadowmode) {
         dstspec.attribute ("textureformat", "Shadow");
+        if(prman_metadata)
+            dstspec.attribute ("PixarTextureFormat", "Shadow");
+    }
     else
+    {
         dstspec.attribute ("textureformat", "Plain Texture");
+        if(prman_metadata)
+            dstspec.attribute ("PixarTextureFormat", "Plain Texture");
+    }
 
     if (Mcam != Imath::M44f(0.0f))
         dstspec.attribute ("worldtocamera", TypeDesc::TypeMatrix, &Mcam);
@@ -517,7 +626,12 @@ make_texturemap (const char *maptypename = "texture map")
                                 (twrap.size() ? twrap : wrap);
         dstspec.attribute ("wrapmodes", wrapmodes);
     }
-    dstspec.attribute ("fovcot", (float)srcspec.full_width / srcspec.full_height);
+    
+    if(fovcot == 0.0f) {
+        fovcot = static_cast<float>(srcspec.full_width) / 
+            static_cast<float>(srcspec.full_height);
+    }
+    dstspec.attribute ("fovcot", fovcot);
 
     if (separate)
         dstspec.attribute ("planarconfig", "separate");
@@ -631,6 +745,8 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     }
 
     // Write out the image
+    if (verbose)
+        std::cout << "  Writing file: " << outputfilename << std::endl;
     bool ok = true;
     ok &= img.write (out);
     stat_writetime += writetimer();
