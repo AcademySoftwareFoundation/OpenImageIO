@@ -418,7 +418,7 @@ public:
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
-    virtual bool shadow (ustring filename, TextureOptions &options,
+    virtual bool shadow (ustring filename, TextureOpt &options,
                          const Imath::V3f &P, const Imath::V3f &dPdx,
                          const Imath::V3f &dPdy, float *result) = 0;
 
@@ -437,7 +437,7 @@ public:
     ///
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
-    virtual bool environment (ustring filename, TextureOptions &options,
+    virtual bool environment (ustring filename, TextureOpt &options,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
                               const Imath::V3f &dRdy, float *result) = 0;
 
