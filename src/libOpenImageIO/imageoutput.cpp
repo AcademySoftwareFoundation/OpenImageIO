@@ -229,11 +229,13 @@ ImageOutput::write_image (TypeDesc format, const void *data,
                           void *progress_callback_data)
 {
     bool native = (format == TypeDesc::UNKNOWN);
-    stride_t pixel_bytes = (stride_t) m_spec.pixel_bytes (native);
-    if (native && xstride == AutoStride)
+    stride_t pixel_bytes = native ? (stride_t) m_spec.pixel_bytes (native)
+                                  : format.size() * m_spec.nchannels;
+    if (xstride == AutoStride)
         xstride = pixel_bytes;
     m_spec.auto_stride (xstride, ystride, zstride, format,
                         m_spec.nchannels, m_spec.width, m_spec.height);
+
     if (supports ("rectangles")) {
         // Use a rectangle if we can
         return write_rectangle (0, m_spec.width-1, 0, m_spec.height-1, 0, m_spec.depth-1,
@@ -275,10 +277,17 @@ ImageOutput::write_image (TypeDesc format, const void *data,
                     int ntx = std::min (x+m_spec.tile_width, m_spec.width) - x;
                     for (int tz = 0;  tz < ntz;  ++tz) {
                         for (int ty = 0;  ty < nty;  ++ty) {
-                            // FIXME -- doesn't work for non-contiguous scanlines
-                            memcpy (&pels[ty*tileystride+tz*tilezstride],
-                                    (char *)data + x*xstride + (y+ty)*ystride + (z+tz)*zstride,
-                                    ntx*tilexstride);
+                            if (pixel_bytes == xstride) {
+                                memcpy (&pels[ty*tileystride+tz*tilezstride],
+                                        (char *)data + x*xstride + (y+ty)*ystride + (z+tz)*zstride,
+                                        ntx*tilexstride);
+                            } else {
+                                for (int tx = 0;  tx < ntx;  ++tx) {
+                                    memcpy (&pels[tx*tilexstride+ty*tileystride+tz*tilezstride],
+                                            (char *)data + (x+tx)*xstride + (y+ty)*ystride + (z+tz)*zstride,
+                                            pixel_bytes);
+                                }
+                            }
                         }
                     }
 
