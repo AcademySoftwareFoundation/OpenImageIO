@@ -98,7 +98,7 @@ getargs (int argc, char *argv[])
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose status messages",
                 "-d %s", &dataformatname, "Set the output data format to one of:\n"
-                        "\t\t\tuint8, sint8, uint16, sint16, half, float, double",
+                        "\t\t\tuint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
                 "-g %f", &gammaval, "Set gamma correction (default = 1)",
                 "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
                 "--scanline", &scanline, "Output as a scanline image",
@@ -225,6 +225,14 @@ adjust_spec (ImageInput *in, ImageOutput *out,
             outspec.set_format (TypeDesc::UINT8);
         else if (dataformatname == "int8")
             outspec.set_format (TypeDesc::INT8);
+        else if (dataformatname == "uint10") {
+            outspec.attribute ("oiio:BitsPerSample", 10);
+            outspec.set_format (TypeDesc::UINT16);
+        }
+        else if (dataformatname == "uint12") {
+            outspec.attribute ("oiio:BitsPerSample", 12);
+            outspec.set_format (TypeDesc::UINT16);
+        }
         else if (dataformatname == "uint16")
             outspec.set_format (TypeDesc::UINT16);
         else if (dataformatname == "int16")

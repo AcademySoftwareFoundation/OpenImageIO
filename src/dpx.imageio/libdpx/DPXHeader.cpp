@@ -473,6 +473,12 @@ int dpx::GenericHeader::ImageElementComponentCount(const int element) const
 
 int dpx::GenericHeader::ImageElementCount() const
 {
+	if(this->numberOfElements>0 && this->numberOfElements<=MAX_ELEMENTS)
+		return this->numberOfElements;
+	
+	// If the image header does not list a valid number of elements,
+	// count how many defined image descriptors we have...
+	
 	int i = 0;
 	
 	while (i < MAX_ELEMENTS )
@@ -488,6 +494,7 @@ int dpx::GenericHeader::ImageElementCount() const
 
 void dpx::GenericHeader::CalculateNumberOfElements()
 {
+	this->numberOfElements = 0xffff;
 	int i = this->ImageElementCount();
 	
 	if (i == 0)
