@@ -200,15 +200,24 @@ Otherwise, the tile size will be the size of the entire volume.
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
-\noindent\begin{tabular}{p{1.6in}|p{0.6in}|p{3.0in}}
+\noindent\begin{tabular}{p{1.8in}|p{0.6in}|p{2.8in}}
 \ImageSpec Attribute & Type & Field3d header data or explanation \\
 \hline
 \qkw{ImageDescription} & string & layer name + ``.'' + attribute name \\
 \qkw{field3d:name} & string & the layer name \\
 \qkw{field3d:attribute} & string & the layer attribute name \\
 \qkw{field3d:fieldtype} & string & field type, one of:
-   \qkw{dense}, \qkw{sparse}, or \qkw{MAC} \\
+   \qkw{DenseField}, \qkw{SparseField}, or \qkw{MACField} \\
+\qkw{field3d:fielddatatype} & string & native data type of the field, as
+   a string, one of: \qkw{half}, \qkw{float}, \qkw{double}. \\
 \qkw{field3d:mapping} & string & the coordinate mapping type \\
+{\small \qkw{field3d:sparseregions}} & float[] & If it's a sparse field, will be
+    a float array of length $6 r$, where $r$ is the number of sparse
+    regions, and each {\cf b[6*i...6*i+5]} contains the bounding box
+    of sparse region $i$ (min x, y, z; max x, y, z), expressed in
+    local coordinates (i.e., 0--1 corresponds to the field extents). \\
+\qkw{field3d:fieldresptr} & pointer & A raw pointer to the FieldRes ---
+    use with extreme caution, if at all! \\
 \qkws{field3d:localtoworld} & matrix of doubles & if a
   matrixMapping, the local-to-world transformation matrix \\
 \qkw{worldtocamera} & matrix & if a matrixMapping, the

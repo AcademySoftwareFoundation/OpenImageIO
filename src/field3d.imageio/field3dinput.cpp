@@ -206,6 +206,29 @@ read_metadata (const M &meta, ImageSpec &spec)
 
 
 
+template<typename T>
+static void
+get_sparse_regions (FieldRes::Ptr &f, ImageSpec &spec,
+                    std::vector<float> &boxes)
+{
+    typename SparseField<T>::Ptr sf (field_dynamic_cast<SparseField<T> >(f));
+    if (! sf)
+        return;
+    typename SparseField<T>::block_iterator i (sf->blockBegin());
+    typename SparseField<T>::block_iterator e (sf->blockEnd());
+    for ( ; i != e;  ++i) {
+        const FIELD3D_NS::Box3i &b (i.blockBoundingBox());
+        boxes.push_back ((float)(b.min.x - spec.full_x) / spec.full_width);
+        boxes.push_back ((float)(b.min.y - spec.full_y) / spec.full_height);
+        boxes.push_back ((float)(b.min.z - spec.full_z) / spec.full_depth);
+        boxes.push_back ((float)(b.max.x - spec.full_x) / spec.full_width);
+        boxes.push_back ((float)(b.max.y - spec.full_y) / spec.full_height);
+        boxes.push_back ((float)(b.max.z - spec.full_z) / spec.full_depth);
+    }
+}
+
+
+
 void
 Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
                               TypeDesc datatype)
@@ -270,7 +293,9 @@ Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
     lay.spec.attribute ("field3d:name", lay.name);
     lay.spec.attribute ("field3d:attribute", lay.attribute);
     lay.spec.attribute ("field3d:fieldtype", field->className());
-
+    lay.spec.attribute ("field3d:fielddatatype", lay.spec.format.c_str());
+    void *resptr = (void *) field.get();
+    lay.spec.attribute ("field3d:fieldresptr", TypeDesc::PTR, &resptr);
 
     FieldMapping::Ptr mapping = field->mapping();
     lay.spec.attribute ("field3d:mapping", mapping->className());
@@ -287,6 +312,21 @@ Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
         m = m.inverse();
         lay.spec.attribute ("worldtocamera", TypeDesc::TypeMatrix, &m);
     }
+
+    if (lay.fieldtype == Sparse) {
+        std::vector<float> boxes;
+        if (lay.datatype == TypeDesc::HALF)
+            get_sparse_regions<Field3D::half> (field, lay.spec, boxes);
+        else if (lay.datatype == TypeDesc::FLOAT)
+            get_sparse_regions<float> (field, lay.spec, boxes);
+        else if (lay.datatype == TypeDesc::DOUBLE)
+            get_sparse_regions<double> (field, lay.spec, boxes);
+        if (boxes.size())
+            lay.spec.attribute ("field3d:sparseregions", 
+                                TypeDesc(TypeDesc::FLOAT, (int)boxes.size()),
+                                &boxes[0]);
+    }
+
 
     // Other metadata
     read_metadata (m_input->metadata(), lay.spec);  // global

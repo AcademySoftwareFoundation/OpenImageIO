@@ -578,6 +578,10 @@ format_raw_metadata (const ImageIOParameter &p)
                 out += ", ";
             for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
                 out += Strutil::format ("%s%g", (c ? " " : ""), f[0]);
+            if (i >= 15 && n > 1024) {
+                out += Strutil::format (", ...%d more values...", n-i-1);
+                break;
+            }
         }
     } else if (element.basetype == TypeDesc::DOUBLE) {
         const double *f = (const double *)p.data();
@@ -586,6 +590,10 @@ format_raw_metadata (const ImageIOParameter &p)
                 out += ", ";
             for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
                 out += Strutil::format ("%s%g", (c ? " " : ""), f[0]);
+            if (i >= 15 && n > 1024) {
+                out += Strutil::format (", ...%d more values...", n-i-1);
+                break;
+            }
         }
     } else if (element.basetype == TypeDesc::HALF) {
         const half *f = (const half *)p.data();
@@ -594,25 +602,64 @@ format_raw_metadata (const ImageIOParameter &p)
                 out += ", ";
             for (int c = 0;  c < (int)element.aggregate;  ++c, ++f)
                 out += Strutil::format ("%s%g", (c ? " " : ""), (float)f[0]);
+            if (i >= 15 && n > 1024) {
+                out += Strutil::format (", ...%d more values...", n-i-1);
+                break;
+            }
         }
     } else if (element == TypeDesc::INT) {
-        for (int i = 0;  i < n;  ++i)
+        for (int i = 0;  i < n;  ++i) {
             out += Strutil::format ("%s%d", (i ? ", " : ""), ((const int *)p.data())[i]);
+            if (i >= 15 && n > 1024) {
+                out += Strutil::format (", ...%d more values...", n-i-1);
+                break;
+            }
+        }
     } else if (element == TypeDesc::UINT) {
-        for (int i = 0;  i < n;  ++i)
+        for (int i = 0;  i < n;  ++i) {
             out += Strutil::format ("%s%d", (i ? ", " : ""), ((const unsigned int *)p.data())[i]);
+            if (i >= 15 && n > 1024) {
+                out += Strutil::format (", ...%d more values...", n-i-1);
+                break;
+            }
+        }
     } else if (element == TypeDesc::UINT16) {
-        for (int i = 0;  i < n;  ++i)
+        for (int i = 0;  i < n;  ++i) {
             out += Strutil::format ("%s%u", (i ? ", " : ""), ((const unsigned short *)p.data())[i]);
+            if (i >= 15 && n > 1024) {
+                out += Strutil::format (", ...%d more values...", n-i-1);
+                break;
+            }
+        }
     } else if (element == TypeDesc::INT16) {
-        for (int i = 0;  i < n;  ++i)
+        for (int i = 0;  i < n;  ++i) {
             out += Strutil::format ("%s%d", (i ? ", " : ""), ((const short *)p.data())[i]);
+            if (i >= 15 && n > 1024) {
+                out += Strutil::format (", ...%d more values...", n-i-1);
+                break;
+            }
+        }
     } else if (element == TypeDesc::UINT64) {
-        for (int i = 0;  i < n;  ++i)
+        for (int i = 0;  i < n;  ++i) {
             out += Strutil::format ("%s%llu", (i ? ", " : ""), ((const unsigned long long *)p.data())[i]);
+            if (i >= 15 && n > 1024) {
+                out += Strutil::format (", ...%d more values...", n-i-1);
+                break;
+            }
+        }
     } else if (element == TypeDesc::INT64) {
-        for (int i = 0;  i < n;  ++i)
+        for (int i = 0;  i < n;  ++i) {
             out += Strutil::format ("%s%lld", (i ? ", " : ""), ((const long long *)p.data())[i]);
+            if (i >= 15 && n > 1024) {
+                out += Strutil::format (", ...%d more values...", n-i-1);
+                break;
+            }
+        }
+    } else if (element == TypeDesc::PTR) {
+        for (int i = 0;  i < n;  ++i) {
+            const void *ptr = ((const void **)p.data())[i];
+            out += Strutil::format ("%s%p", (i ? ", " : ""), ptr);
+        }
     } else {
         out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
                 p.type().basetype, p.type().aggregate,
