@@ -37,6 +37,7 @@
 #ifndef OPENIMAGEIO_JPEG_PVT_H
 #define OPENIMAGEIO_JPEG_PVT_H
 
+#include <csetjmp>
 
 extern "C" {
 #include "jpeglib.h"
@@ -58,22 +59,35 @@ class JpgInput : public ImageInput {
     }
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool close ();
-    std::string filename () const { return m_filename; }
+    const std::string &filename () const { return m_filename; }
     void * coeffs () const { return m_coeffs; }
+
+    struct my_error_mgr {
+        struct jpeg_error_mgr pub;    /* "public" fields */
+        jmp_buf setjmp_buffer;        /* for return to caller */
+        JpgInput *jpginput;           /* back pointer to *this */
+    };
+    typedef struct my_error_mgr * my_error_ptr;
+
+    // Called by my_error_exit
+    void jpegerror (my_error_ptr myerr, bool fatal=false);
 
  private:
     FILE *m_fd;
     std::string m_filename;
     int m_next_scanline;      // Which scanline is the next to read?
     bool m_raw;               // Read raw coefficients, not scanlines
+    bool m_fatalerr;          // JPEG reader hit a fatal error
     struct jpeg_decompress_struct m_cinfo;
-    struct jpeg_error_mgr m_jerr;
+    my_error_mgr m_jerr;
     jvirt_barray_ptr *m_coeffs;
 
     void init () {
         m_fd = NULL;
         m_raw = false;
+        m_fatalerr = false;
         m_coeffs = NULL;
+        m_jerr.jpginput = this;
     }
 
     // Rummage through the JPEG "APP1" marker pointed to by buf, decoding
@@ -82,6 +96,12 @@ class JpgInput : public ImageInput {
     // the form of an IIM (Information Interchange Model), which is actually
     // considered obsolete and is replaced by an XML scheme called XMP.
     void jpeg_decode_iptc (const unsigned char *buf);
+
+    void close_file () {
+        if (m_fd)
+            fclose (m_fd);   // N.B. the init() will set m_fd to NULL
+        init ();
+    }
 
     friend class JpgOutput;
 };

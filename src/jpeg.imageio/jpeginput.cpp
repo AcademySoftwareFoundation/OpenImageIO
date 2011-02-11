@@ -45,8 +45,6 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 using namespace Jpeg_imageio_pvt;
 
 
-// See JPEG library documentation in /usr/share/doc/libjpeg-devel-6b
-
 // N.B. The class definition for JpgInput is in jpeg_pvt.h.
 
 
@@ -62,6 +60,54 @@ OIIO_PLUGIN_EXPORTS_BEGIN
     };
 
 OIIO_PLUGIN_EXPORTS_END
+
+
+// For explanations of the error handling, see the "example.c" in the
+// libjpeg distribution.
+
+
+static void
+my_error_exit (j_common_ptr cinfo)
+{
+  /* cinfo->err really points to a my_error_mgr struct, so coerce pointer */
+    JpgInput::my_error_ptr myerr = (JpgInput::my_error_ptr) cinfo->err;
+
+  /* Always display the message. */
+  /* We could postpone this until after returning, if we chose. */
+//  (*cinfo->err->output_message) (cinfo);
+    myerr->jpginput->jpegerror (myerr, true);
+
+  /* Return control to the setjmp point */
+  longjmp(myerr->setjmp_buffer, 1);
+}
+
+
+
+static void
+my_output_message (j_common_ptr cinfo)
+{
+    JpgInput::my_error_ptr myerr = (JpgInput::my_error_ptr) cinfo->err;
+    myerr->jpginput->jpegerror (myerr, true);
+}
+
+
+
+void
+JpgInput::jpegerror (my_error_ptr myerr, bool fatal)
+{
+    // Send the error message to the ImageInput
+    char errbuf[JMSG_LENGTH_MAX];
+    (*m_cinfo.err->format_message) ((j_common_ptr)&m_cinfo, errbuf);
+    error ("JPEG error: %s (\"%s\")", errbuf, filename().c_str());
+
+    // Shut it down and clean it up
+    if (fatal) {
+        m_fatalerr = true;
+        close ();
+        m_fatalerr = true;   // because close() will reset it
+    }
+}
+
 
 
 bool
@@ -90,7 +136,8 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     // Check magic number to assure this is a JPEG file
     int magic = 0;
     if (fread (&magic, 4, 1, m_fd) != 1) {
-        error ("Empty file");
+        error ("Empty file \"%s\"", name.c_str());
+        close_file ();
         return false;
     }
 
@@ -99,14 +146,33 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     const int JPEG_MAGIC2 = 0xffd8ffe1, JPEG_MAGIC2_OTHER_ENDIAN =  0xe1ffd8ff;
     if (magic != JPEG_MAGIC && magic != JPEG_MAGIC_OTHER_ENDIAN &&
         magic != JPEG_MAGIC2 && magic != JPEG_MAGIC2_OTHER_ENDIAN) {
-        fclose (m_fd);
-        m_fd = NULL;
+        close_file ();
         error ("\"%s\" is a JPEG file, magic number doesn't match", name.c_str());
         return false;
     }
 
-    m_cinfo.err = jpeg_std_error (&m_jerr);
+    // Set up the normal JPEG error routines, then override error_exit and
+    // output_message so we intercept all the errors.
+    m_cinfo.err = jpeg_std_error ((jpeg_error_mgr *)&m_jerr);
+    m_jerr.pub.error_exit = my_error_exit;
+    m_jerr.pub.output_message = my_output_message;
+    if (setjmp (m_jerr.setjmp_buffer)) {
+        // Jump to here if there's a libjpeg internal error
+        // don't jpeg_destroy_decompress, because we haven't initialized it
+        close_file ();
+        return false;
+    }
+
     jpeg_create_decompress (&m_cinfo);          // initialize decompressor
+
+    // Now that we initialized the decompressor, re-jigger our setjmp
+    if (setjmp (m_jerr.setjmp_buffer)) {
+        // Jump to here if there's a libjpeg internal error
+        jpeg_destroy_decompress (&m_cinfo);
+        close_file ();
+        return false;
+    }
+
     jpeg_stdio_src (&m_cinfo, m_fd);            // specify the data source
 
     // Request saving of EXIF and other special tags for later spelunking
@@ -114,11 +180,17 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
         jpeg_save_markers (&m_cinfo, JPEG_APP0+mark, 0xffff);
     jpeg_save_markers (&m_cinfo, JPEG_COM, 0xffff);     // comment marker
 
-    jpeg_read_header (&m_cinfo, FALSE);         // read the file parameters
+    // read the file parameters
+    if (jpeg_read_header (&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
+        error ("Bad JPEG header for \"%s\"", filename().c_str());
+        return false;
+    }
     if (m_raw)
         m_coeffs = jpeg_read_coefficients (&m_cinfo);
     else
         jpeg_start_decompress (&m_cinfo);       // start working
+    if (m_fatalerr)
+        return false;
     m_next_scanline = 0;                        // next scanline we'll read
 
     m_spec = ImageSpec (m_cinfo.output_width, m_cinfo.output_height,
@@ -173,11 +245,22 @@ JpgInput::read_native_scanline (int y, int z, void *data)
             return false;    // Somehow, the re-open failed
         assert (m_next_scanline == 0 && current_subimage() == subimage);
     }
-    while (m_next_scanline <= y) {
-        // Keep reading until we're read the scanline we really need
-        jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&data, 1); // read one scanline
-        ++m_next_scanline;
+
+    // Set up our custom error handler
+    if (setjmp (m_jerr.setjmp_buffer)) {
+        // Jump to here if there's a libjpeg internal error
+        return false;
     }
+
+    for (  ;  m_next_scanline <= y;  ++m_next_scanline) {
+        // Keep reading until we've read the scanline we really need
+        if (jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&data, 1) != 1
+            || m_fatalerr) {
+            error ("JPEG failed scanline read (\"%s\")", filename().c_str());
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -187,22 +270,9 @@ bool
 JpgInput::close ()
 {
     if (m_fd != NULL) {
-        // N.B. don't call finish_decompress if we never read anything
-        if (m_next_scanline > 0) {
-            // But if we've only read some scanlines, read the rest to avoid
-            // errors
-            std::vector<char> buf (spec().scanline_bytes());
-            char *data = &buf[0];
-            while (m_next_scanline < spec().height) {
-                jpeg_read_scanlines (&m_cinfo, (JSAMPLE **)&data, 1);
-                ++m_next_scanline;
-            }
-        }
-        if (m_next_scanline > 0 || m_raw)
-            jpeg_finish_decompress (&m_cinfo);
+        // unnecessary?  jpeg_abort_decompress (&m_cinfo);
         jpeg_destroy_decompress (&m_cinfo);
-        fclose (m_fd);
-        m_fd = NULL;
+        close_file ();
     }
     init ();   // Reset to initial state
     return true;
