@@ -135,11 +135,11 @@ spcomp2_install: spcomp2 spcomp2_debug
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m compile03.spimageworks.com \
 	--project=OpenImageIO --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
 	--srcdir=${dist_dir}/lib --root=$(INSTALL_SPCOMP2_LOCATION) \
-	--docs=${dist_dir}/doc --arch=$(ARCHITECTURE)-$(COMPILER) \
+	--arch=$(ARCHITECTURE)-$(COMPILER) \
 	--headers=$(subst $(space),$(comma),$(wildcard ${dist_dir}/include/OpenImageIO/*)) \
 	--cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread" --namespace=${NAMESPACE} --spcomp_depend= --spcomp2_depend= \
 	--builddir_o=${dist_dir}/lib --builddir_d=${dist_dir}.debug/lib
 #	-sudo mkdir -p $(INSTALL_SPCOMP2_CURRENT)/bin
 #	sudo cp ${dist_dir}/bin/* $(INSTALL_SPCOMP2_CURRENT)/bin
-
+# --docs=${dist_dir}/doc 
 
