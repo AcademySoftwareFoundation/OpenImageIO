@@ -32,6 +32,9 @@
 #include <cstdlib>
 #include <cmath>
 
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+
 #include "targa_pvt.h"
 
 #include "dassert.h"
@@ -419,12 +422,14 @@ TGAOutput::close ()
 
         // gamma
         {
-            if (m_spec.linearity == ImageSpec::GammaCorrected) {
+            if (iequals (m_spec.get_string_attribute ("oiio:ColorSpace"), "GammaCorrected")) {
+                float gamma = m_spec.get_float_attribute ("oiio:Gamma", 1.0);
+                
                 // FIXME: invent a smarter way to convert to a vulgar fraction?
                 // NOTE: the spec states that only 1 decimal place of precision
                 // is needed, thus the expansion by 10
                 // numerator
-                tmpint = (unsigned short)(m_spec.gamma * 10.f);
+                tmpint = (unsigned short)(gamma * 10.f);
                 fwrite (&tmpint, 2, 1, m_file);
                 // denominator
                 tmpint = 10;

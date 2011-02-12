@@ -34,6 +34,9 @@
 #include <cstdio>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+
 extern "C" {
 #include "jpeglib.h"
 }
@@ -187,8 +190,8 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         const char **c = (const char **) comment->data();
         jpeg_write_marker (&m_cinfo, JPEG_COM, (JOCTET*)*c, strlen(*c) + 1);
     }
-
-    if (m_spec.linearity == ImageSpec::sRGB)
+    
+    if (iequals (m_spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"))
         m_spec.attribute ("Exif:ColorSpace", 1);
 
     // Write EXIF info, if we have anything

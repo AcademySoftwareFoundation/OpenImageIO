@@ -187,6 +187,10 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         return false;
 
     m_spec = ImageSpec(); // Clear everything with default constructor
+    
+    // Unless otherwise specified, exr files are assumed to be linear.
+    m_spec.attribute ("oiio:ColorSpace", "Linear");
+    
     try {
         if (tiled) {
             m_input_tiled = new Imf::TiledInputFile (name.c_str());

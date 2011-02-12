@@ -37,8 +37,12 @@
 #endif
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+
 #include <OpenEXR/ImathFun.h>
 
 #include "dassert.h"
@@ -47,6 +51,13 @@
 #include "fmath.h"
 #include "sysutil.h"
 
+namespace
+{
+    bool IsSpecSrgb(const ImageSpec & spec) {
+        return (iequals (spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"));
+    }
+
+}
 
 ImageViewer::ImageViewer ()
     : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
@@ -899,8 +910,7 @@ ImageViewer::loadCurrentImage (int subimage, int miplevel)
                 //std::cerr << "Loading HALF-FLOAT as FLOAT\n";
                 read_format = TypeDesc::FLOAT;
             }
-            if (image_spec.linearity == ImageSpec::sRGB &&
-                ! glwin->is_srgb_capable ()) {
+            if (IsSpecSrgb(image_spec) && !glwin->is_srgb_capable ()) {
                 // If the image is in sRGB, but OpenGL can't load sRGB textures then
                 // we'll need to do the transformation on the CPU after loading the
                 // image. We (so far) can only do this with UINT8 images, so make
@@ -915,8 +925,7 @@ ImageViewer::loadCurrentImage (int subimage, int miplevel)
             read_format = TypeDesc::UINT8;
             allow_transforms = true;
 
-            if (image_spec.linearity == ImageSpec::sRGB &&
-                ! glwin->is_srgb_capable ())
+            if (IsSpecSrgb(image_spec) && !glwin->is_srgb_capable ())
                 srgb_transform = true;
         }
 
@@ -1090,8 +1099,7 @@ ImageViewer::exposureMinusOneTenthStop ()
     IvImage *img = m_images[m_current_image];
     img->exposure (img->exposure() - 0.1);
     if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () &&
-                               img->spec().linearity == ImageSpec::sRGB);
+        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
         img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
@@ -1108,8 +1116,7 @@ ImageViewer::exposureMinusOneHalfStop ()
     IvImage *img = m_images[m_current_image];
     img->exposure (img->exposure() - 0.5);
     if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () &&
-                               img->spec().linearity == ImageSpec::sRGB);
+        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
         img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
@@ -1126,8 +1133,7 @@ ImageViewer::exposurePlusOneTenthStop ()
     IvImage *img = m_images[m_current_image];
     img->exposure (img->exposure() + 0.1);
     if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () &&
-                               img->spec().linearity == ImageSpec::sRGB);
+        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
         img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
@@ -1144,8 +1150,7 @@ ImageViewer::exposurePlusOneHalfStop ()
     IvImage *img = m_images[m_current_image];
     img->exposure (img->exposure() + 0.5);
     if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () &&
-                               img->spec().linearity == ImageSpec::sRGB);
+        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
         img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
@@ -1163,8 +1168,7 @@ ImageViewer::gammaMinus ()
     IvImage *img = m_images[m_current_image];
     img->gamma (img->gamma() - 0.05);
     if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () &&
-                               img->spec().linearity == ImageSpec::sRGB);
+        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
         img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
@@ -1181,8 +1185,7 @@ ImageViewer::gammaPlus ()
     IvImage *img = m_images[m_current_image];
     img->gamma (img->gamma() + 0.05);
     if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () &&
-                               img->spec().linearity == ImageSpec::sRGB);
+        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
         img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
         displayCurrentImage ();
     } else {
@@ -1218,8 +1221,7 @@ ImageViewer::viewChannel (int c, COLOR_MODE colormode)
         if (! glwin->is_glsl_capable ()) {
             IvImage *img = cur ();
             if (img) {
-                bool srgb_transform = (! glwin->is_srgb_capable () &&
-                                       img->spec().linearity == ImageSpec::sRGB);
+                bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
                 img->pixel_transform (srgb_transform, (int)colormode, c);
             }
         } else {

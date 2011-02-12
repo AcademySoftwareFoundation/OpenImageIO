@@ -280,18 +280,18 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     // image linearity
     switch (m_dpx.header.Transfer (subimage)) {
         case dpx::kLinear:
-            m_spec.linearity = ImageSpec::Linear;
+            m_spec.attribute ("oiio:ColorSpace", "Linear");
             break;
         case dpx::kLogarithmic:
-            m_spec.linearity = ImageSpec::KodakLog;
+            m_spec.attribute ("oiio:ColorSpace", "KodakLog");
             break;
         case dpx::kITUR709:
-            m_spec.linearity = ImageSpec::Rec709;
+            m_spec.attribute ("oiio:ColorSpace", "Rec709");
             break;
         case dpx::kUserDefined:
-            if (! isnan (m_dpx.header.Gamma ())) {
-                m_spec.linearity = ImageSpec::GammaCorrected;
-                m_spec.gamma = m_dpx.header.Gamma ();
+            if (! isnan (m_dpx.header.Gamma ()) && m_dpx.header.Gamma () != 0) {
+                m_spec.attribute ("oiio:ColorSpace", "GammaCorrected");
+                m_spec.attribute ("oiio:Gamma", (float) m_dpx.header.Gamma ());
                 break;
             }
             // intentional fall-through
@@ -306,7 +306,6 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         case dpx::kZHomogeneous:
         case dpx::kUndefinedCharacteristic:*/
         default:
-            m_spec.linearity = ImageSpec::UnknownLinearity;
             break;
     }
     m_spec.attribute ("dpx:Transfer",

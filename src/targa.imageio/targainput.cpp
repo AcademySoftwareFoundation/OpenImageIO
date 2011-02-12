@@ -197,7 +197,6 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
                         TypeDesc::UINT8);
     m_spec.attribute ("BitsPerSample", m_tga.bpp/m_spec.nchannels);
     m_spec.default_channel_names ();
-    m_spec.linearity = ImageSpec::UnknownLinearity;
 #if 0   // no one seems to adhere to this part of the spec...
     if (m_tga.attr & FLAG_X_FLIP)
         m_spec.x = m_spec.width - m_tga.x_origin - 1;
@@ -353,11 +352,15 @@ TGAInput::open (const std::string &name, ImageSpec &newspec)
             if (buf.s[1]) {
                 if (bigendian())
                     swap_endian (&buf.s[0], 2);
-                m_spec.gamma = (float)buf.s[0] / (float)buf.s[1];
-                if (m_spec.gamma == 1.f)
-                    m_spec.linearity = ImageSpec::Linear;
-                else
-                    m_spec.linearity = ImageSpec::GammaCorrected;
+                float gamma = (float)buf.s[0] / (float)buf.s[1];
+                
+                if (gamma == 1.f) {
+                    m_spec.attribute ("oiio:ColorSpace", "Linear");
+                }
+                else {
+                    m_spec.attribute ("oiio:ColorSpace", "GammaCorrected");
+                    m_spec.attribute ("oiio:Gamma", gamma);
+                }
             }
 
             // offset to colour correction table

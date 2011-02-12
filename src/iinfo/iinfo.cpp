@@ -478,16 +478,7 @@ print_info (const std::string &filename, size_t namefieldlength,
                     printed = true;
                 }
             }
-            if (metamatch.empty() ||
-                    boost::regex_search ("Color space", field_re)) {
-                if (filenameprefix)
-                    printf ("%s : ", filename.c_str());
-                const char *cspacename [] = { "unknown", "linear", "gamma %g", "sRGB", "AdobeRGB", "Rec709", "KodakLog" };
-                printf ("    Color space: %s\n",
-                        Strutil::format(cspacename[(int)spec.linearity], spec.gamma).c_str());
-                printed = true;
-            }
-
+            
             BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
                 if (! metamatch.empty() &&
                     ! boost::regex_search (p.name().c_str(), field_re))

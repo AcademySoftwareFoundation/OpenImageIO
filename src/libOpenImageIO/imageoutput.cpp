@@ -158,9 +158,9 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     // Does the user already have the data in the right format?
     bool rightformat = (format == TypeDesc::UNKNOWN) ||
         (format == m_spec.format && m_spec.channelformats.empty());
-    if (rightformat && contiguous && m_spec.gamma == 1.0f) {
-        // Data are already in the native format, contiguous, and need
-        // no gamma correction -- just return a ptr to the original data.
+    if (rightformat && contiguous) {
+        // Data are already in the native format and contiguous
+        // just return a ptr to the original data.
         return data;
     }
 
@@ -204,29 +204,15 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     // conversions, use float as an intermediate format, which generally
     // will always preserve enough precision.
     const float *buf;
-    if (format == TypeDesc::FLOAT && m_spec.gamma == 1.0f) {
-        // Already in float format and no gamma correction is needed --
-        // leave it as-is.
+    if (format == TypeDesc::FLOAT) {
+        // Already in float format -- leave it as-is.
         buf = (float *)data;
     } else {
         // Convert to from 'format' to float.
         buf = convert_to_float (data, (float *)&scratch[contiguoussize],
                                 rectangle_values, format);
-        // Now buf points to float
-        if (m_spec.gamma != 1) {
-            float invgamma = 1.0 / m_spec.gamma;
-            float *f = (float *)buf;
-            for (imagesize_t p = 0;  p < rectangle_pixels;  ++p)
-                for (int c = 0;  c < m_spec.nchannels;  ++c, ++f)
-                    if (c != m_spec.alpha_channel)
-                        *f = powf (*f, invgamma);
-            // FIXME: we should really move the gamma correction to
-            // happen immediately after contiguization.  That way,
-            // byte->byte with gamma can use a table shortcut instead
-            // of having to go through float just for gamma.
-        }
-        // Now buf points to gamma-corrected float
     }
+    
     // Convert from float to native format.
     return convert_from_float (buf, &scratch[contiguoussize+floatsize], 
                        rectangle_values, m_spec.quant_black, m_spec.quant_white,

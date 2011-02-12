@@ -125,16 +125,6 @@ public:
 /// dimensions, layout, number and meanings of image channels.
 class DLLPUBLIC ImageSpec {
 public:
-    enum Linearity {
-        UnknownLinearity = 0, ///< Unknown which color space we're in
-        Linear = 1,           ///< Color values are linear
-        GammaCorrected = 2,   ///< Color values are gamma corrected
-        sRGB = 3,             ///< Color values are in sRGB
-        AdobeRGB = 4,         ///< Color values are in AdobeRGB
-        Rec709 = 5,           ///< Color values are in Rec709
-        KodakLog = 6          ///< Color values are in KodakLog
-    };
-
     int x, y, z;              ///< origin (upper left corner) of pixel data
     int width;                ///< width of the pixel data window
     int height;               ///< height of the pixel data window
@@ -156,8 +146,7 @@ public:
                                             ///< e.g., {"R","G","B","A"}
     int alpha_channel;        ///< Index of alpha channel, or -1 if not known
     int z_channel;            ///< Index of depth channel, or -1 if not known
-    Linearity linearity;      ///< Value mapping of color channels
-    float gamma;              ///< gamma exponent of the values in the file
+    
     // quantize is used for ImageOutput
     int quant_black;          ///< quantization of black (0.0) level
     int quant_white;          ///< quantization of white (1.0) level

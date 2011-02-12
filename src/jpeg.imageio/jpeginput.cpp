@@ -125,7 +125,7 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
                         m_cinfo.output_components, TypeDesc::UINT8);
 
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
-    m_spec.linearity = ImageSpec::sRGB;
+    m_spec.attribute ("oiio:ColorSpace", "sRGB");
 
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
         if (m->marker == (JPEG_APP0+1) &&

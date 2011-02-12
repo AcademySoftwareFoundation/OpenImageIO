@@ -154,8 +154,7 @@ ImageSpec::ImageSpec (TypeDesc format)
       full_x(0), full_y(0), full_z(0),
       full_width(0), full_height(0), full_depth(0),
       tile_width(0), tile_height(0), tile_depth(1),
-      nchannels(0), format(format), alpha_channel(-1), z_channel(-1),
-      linearity(UnknownLinearity), gamma(1)
+      nchannels(0), format(format), alpha_channel(-1), z_channel(-1)
 {
     set_format (format);
 }
@@ -167,8 +166,7 @@ ImageSpec::ImageSpec (int xres, int yres, int nchans, TypeDesc format)
       full_x(0), full_y(0), full_z(0),
       full_width(xres), full_height(yres), full_depth(1),
       tile_width(0), tile_height(0), tile_depth(1),
-      nchannels(nchans), format(format), alpha_channel(-1), z_channel(-1),
-      linearity(UnknownLinearity), gamma(1)
+      nchannels(nchans), format(format), alpha_channel(-1), z_channel(-1)
 {
     set_format (format);
     default_channel_names ();
@@ -981,9 +979,9 @@ ImageSpec::to_xml () const
     add_channelnames_node (doc, channelnames);
     add_node (node, "alpha_channel", alpha_channel);
     add_node (node, "z_channel", z_channel);
-    add_node (node, "linearity", linearity);
-    add_node (node, "gamma", gamma);
-
+    
+    // FIXME: What about extra attributes?
+    
     std::ostringstream result;
     doc.print (result, "");
     return result.str();
@@ -1021,8 +1019,9 @@ ImageSpec::from_xml (const char *xml)
     get_channelnames (n, channelnames);
     alpha_channel = atoi (n.child_value ("alpha_channel"));
     z_channel = atoi (n.child_value ("z_channel"));
-    linearity = (ImageSpec::Linearity) atoi (n.child_value ("linearity"));
-    gamma = atof (n.child_value ("gamma"));
+    
+    // FIXME: What about extra attributes?
+    
     // If version == 11 {fill new fields}
 }
 

@@ -608,10 +608,8 @@ TIFFInput::readspec ()
         if ((p = m_spec.find_attribute ("Exif:ColorSpace", TypeDesc::INT))) {
             // Exif spec says that anything other than 0xffff==uncalibrated
             // should be interpreted to be sRGB.
-            if (*(const int *)p->data() == 0xffff)
-                m_spec.linearity = ImageSpec::UnknownLinearity;
-            else
-                m_spec.linearity = ImageSpec::sRGB;
+            if (*(const int *)p->data() != 0xffff)
+                m_spec.attribute ("oiio::ColorSpace", "sRGB");
         }
     }
 #endif

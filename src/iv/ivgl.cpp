@@ -40,6 +40,8 @@
 #include <OpenEXR/ImathFun.h>
 #include <QGLFormat>
 
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -1419,10 +1421,12 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, int nchannels, GLenum &gltype, 
         break;
     }
 
+    bool issrgb = iequals (spec.get_string_attribute ("oiio:ColorSpace"), "sRGB");
+    
     glinternalformat = nchannels;
     if (nchannels == 1) {
         glformat = GL_LUMINANCE;
-        if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
+        if (m_use_srgb && issrgb) {
             if (spec.format.basetype == TypeDesc::UINT8) {
                 glinternalformat = GL_SLUMINANCE8;
             } else {
@@ -1439,7 +1443,7 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, int nchannels, GLenum &gltype, 
         }
     } else if (nchannels == 2) {
         glformat = GL_LUMINANCE_ALPHA;
-        if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
+        if (m_use_srgb && issrgb) {
             if (spec.format.basetype == TypeDesc::UINT8) {
                 glinternalformat = GL_SLUMINANCE8_ALPHA8;
             } else {
@@ -1456,7 +1460,7 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, int nchannels, GLenum &gltype, 
         }
     } else if (nchannels == 3) {
         glformat = GL_RGB;
-        if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
+        if (m_use_srgb && issrgb) {
             if (spec.format.basetype == TypeDesc::UINT8) {
                 glinternalformat = GL_SRGB8;
             } else {
@@ -1473,7 +1477,7 @@ IvGL::typespec_to_opengl (const ImageSpec &spec, int nchannels, GLenum &gltype, 
         }
     } else if (nchannels == 4) {
         glformat = GL_RGBA;
-        if (m_use_srgb && spec.linearity == ImageSpec::sRGB) {
+        if (m_use_srgb && issrgb) {
             if (spec.format.basetype == TypeDesc::UINT8) {
                 glinternalformat = GL_SRGB8_ALPHA8;
             } else {

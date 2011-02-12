@@ -202,35 +202,25 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         (m_spec.get_string_attribute ("dpx:ImageDescriptor", ""));
 
     // transfer function
-    std::string tmpstr;
     dpx::Characteristic transfer;
-    switch (m_spec.linearity) {
-        case ImageSpec::Linear:
-            transfer = dpx::kLinear;
-            break;
-        case ImageSpec::GammaCorrected:
-            transfer = dpx::kUserDefined;
-            break;
-        case ImageSpec::Rec709:
-            transfer = dpx::kITUR709;
-            break;
-        case ImageSpec::KodakLog:
-            transfer = dpx::kLogarithmic;
-            break;
-        //case ImageSpec::sRGB: // it's close to Rec709, but not the same
-        default:
-            tmpstr = m_spec.get_string_attribute ("dpx:Transfer", "");
-            transfer = get_characteristic_from_string (tmpstr);
-            break;
+    
+    std::string colorspace = m_spec.get_string_attribute ("oiio:ColorSpace", "");
+    if (iequals (colorspace, "Linear"))  transfer = dpx::kLinear;
+    else if (iequals (colorspace, "GammaCorrected")) transfer = dpx::kUserDefined;
+    else if (iequals (colorspace, "Rec709")) transfer = dpx::kITUR709;
+    else if (iequals (colorspace, "KodakLog")) transfer = dpx::kLogarithmic;
+    else {
+        std::string dpxtransfer = m_spec.get_string_attribute ("dpx:Transfer", "");
+        transfer = get_characteristic_from_string (dpxtransfer);
     }
-
+    
     // colorimetric
     m_cmetr = get_characteristic_from_string
         (m_spec.get_string_attribute ("dpx:Colorimetric", "User defined"));
 
     // select packing method
     dpx::Packing packing;
-    tmpstr = m_spec.get_string_attribute ("dpx:ImagePacking", "Filled, method A");
+    std::string tmpstr = m_spec.get_string_attribute ("dpx:ImagePacking", "Filled, method A");
     if (iequals (tmpstr, "Packed"))
         packing = dpx::kPacked;
     else if (iequals (tmpstr, "Filled, method B"))

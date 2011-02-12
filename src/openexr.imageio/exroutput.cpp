@@ -274,13 +274,23 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
             ptype = Imf::HALF;
             format = TypeDesc::HALF;
         }
+        
+#ifdef OPENEXR_VERSION_IS_1_6_OR_LATER
+        // Hint to lossy compression methods that indicates whether
+        // human perception of the quantity represented by this channel
+        // is closer to linear or closer to logarithmic.  Compression
+        // methods may optimize image quality by adjusting pixel data
+        // quantization acording to this hint.
+        
+        bool pLinear = iequals (m_spec.get_string_attribute ("oiio:ColorSpace", "Linear"), "Linear");
+#endif
         m_pixeltype.push_back (ptype);
         if (m_spec.channelformats.size())
             m_spec.channelformats[c] = format;
         m_header->channels().insert (m_spec.channelnames[c].c_str(),
                                      Imf::Channel(ptype, 1, 1
 #ifdef OPENEXR_VERSION_IS_1_6_OR_LATER
-                                     , m_spec.linearity == ImageSpec::Linear
+                                     , pLinear
 #endif
                                      ));
     }
