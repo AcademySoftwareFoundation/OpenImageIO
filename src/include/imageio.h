@@ -318,6 +318,12 @@ public:
         attribute (name, value.c_str());
     }
 
+    /// Remove the specified attribute from the list of extra
+    /// attributes. If not found, do nothing.
+    void erase_attribute (const std::string &name,
+                          TypeDesc searchtype=TypeDesc::UNKNOWN,
+                          bool casesensitive=false);
+
     /// Search for a attribute of the given name in the list of extra
     /// attributes.
     ImageIOParameter * find_attribute (const std::string &name,
