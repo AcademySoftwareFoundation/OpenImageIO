@@ -43,6 +43,7 @@
 #include "imageio.h"
 #include "ustring.h"
 #include "imagebuf.h"
+#include "imagebufalgo.h"
 #include "texture.h"
 #include "fmath.h"
 #include "sysutil.h"
@@ -204,7 +205,7 @@ test_plain_texture ()
     const int nchannels = 4;
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     ImageBuf image (output_filename, outspec);
-    image.zero ();
+    ImageBufAlgo::zero (image);
 
     Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
     Imath::M33f rot;    rot.rotate (radians(30.0f));
@@ -341,7 +342,7 @@ test_texture3d (ustring filename)
     const int nchannels = 4;
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     ImageBuf image (output_filename, outspec);
-    image.zero ();
+    ImageBufAlgo::zero (image);
 
     Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
     Imath::M33f rot;    rot.rotate (radians(30.0f));

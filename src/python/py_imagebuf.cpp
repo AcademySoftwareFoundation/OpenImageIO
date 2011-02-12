@@ -218,10 +218,6 @@ int ImageBufWrap::ymin() {
 int ImageBufWrap::ymax() {
     return m_buf->ymax();
 }
-
-void ImageBufWrap::zero() {
-    m_buf->zero();
-}
 bool ImageBufWrap::pixels_valid () const {
     return m_buf->pixels_valid();
 }
@@ -287,7 +283,6 @@ void declare_imagebuf()
     cls.def("xmax", &ImageBufWrap::xmax);
     cls.def("ymin", &ImageBufWrap::ymin);
     cls.def("ymax", &ImageBufWrap::ymax);
-    cls.def("zero", &ImageBufWrap::zero);
     cls.def("pixels_valid", &ImageBufWrap::pixels_valid);
     cls.def("localpixels", &ImageBufWrap::localpixels);
     cls.def("geterror",    &ImageBufWrap::geterror);

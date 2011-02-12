@@ -44,6 +44,7 @@
 #include "argparse.h"
 #include "imageio.h"
 #include "imagebuf.h"
+#include "imagebufalgo.h"
 #include "sysutil.h"
 
 
