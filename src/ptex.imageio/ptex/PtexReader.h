@@ -79,8 +79,8 @@ public:
     virtual const char* path() { return _path.c_str(); }
     virtual Ptex::MeshType meshType() { return MeshType(_header.meshtype); }
     virtual Ptex::DataType dataType() { return DataType(_header.datatype); }
-    virtual Ptex::BorderMode uBorderMode() { return BorderMode(_extheader.ubordermode); };
-    virtual Ptex::BorderMode vBorderMode() { return BorderMode(_extheader.vbordermode); };
+    virtual Ptex::BorderMode uBorderMode() { return BorderMode(_extheader.ubordermode); }
+    virtual Ptex::BorderMode vBorderMode() { return BorderMode(_extheader.vbordermode); }
     virtual int alphaChannel() { return _header.alphachan; }
     virtual int numChannels() { return _header.nchannels; }
     virtual int numFaces() { return _header.nfaces; }
@@ -309,10 +309,10 @@ public:
 	{
 	    memcpy(result, (char*)_data + (v*_res.u() + u) * _pixelsize, _pixelsize);
 	}
-	virtual void* getData() { return _data; };
+	virtual void* getData() { return _data; }
 	virtual bool isTiled() { return false; }
-	virtual Ptex::Res tileRes() { return _res; };
-	virtual PtexFaceData* getTile(int) { return 0; };
+	virtual Ptex::Res tileRes() { return _res; }
+	virtual PtexFaceData* getTile(int) { return 0; }
 	virtual void reduce(FaceData*&, PtexReader*,
 			    Res newres, PtexUtils::ReduceFn);
 
@@ -365,7 +365,7 @@ public:
 	virtual void getPixel(int u, int v, void* result);
 	virtual void* getData() { return 0; }
 	virtual bool isTiled() { return true; }
-	virtual Ptex::Res tileRes() { return _tileres; };
+	virtual Ptex::Res tileRes() { return _tileres; }
 	virtual void reduce(FaceData*&, PtexReader*,
 			    Res newres, PtexUtils::ReduceFn);
 	Res tileres() const { return _tileres; }
