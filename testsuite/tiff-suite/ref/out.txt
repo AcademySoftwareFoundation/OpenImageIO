@@ -2,8 +2,7 @@ hi
 ../../../libtiffpic/cramps.tif :  800 x  607, 1 channel, uint8 tiff
     SHA-1: A1CA337CBB22D84410BBE710BB31D5D6646CF839
     channel list: A
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -27,8 +26,7 @@ PASS
     SHA-1: A1CA337CBB22D84410BBE710BB31D5D6646CF839
     channel list: A
     tile size: 256 x 256
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     tiff:PhotometricInterpretation: 0
     tiff:PlanarConfiguration: 1
@@ -57,8 +55,7 @@ PASS
 ../../../libtiffpic/fax2d.tif : 1728 x 1082, 1 channel, uint8 tiff
     SHA-1: A57ECEDA78607AE81ABA344E4456EDB1E34A6CB0
     channel list: A
-    Color space: unknown
-    BitsPerSample: 1
+    oiio:BitsPerSample: 1
     Orientation: 1 (normal)
     XResolution: 204
     YResolution: 98
@@ -82,8 +79,7 @@ PASS
 ../../../libtiffpic/g3test.tif : 1728 x 1103, 1 channel, uint8 tiff
     SHA-1: D674B2BB7707525F8DD678E81CAF50EE3A15D1E8
     channel list: A
-    Color space: unknown
-    BitsPerSample: 1
+    oiio:BitsPerSample: 1
     Orientation: 1 (normal)
     XResolution: 204
     YResolution: 98
@@ -107,8 +103,7 @@ PASS
 ../../../libtiffpic/jello.tif :  256 x  192, 3 channel, uint8 tiff
     SHA-1: 41CD2AD5CA87F8CCBF7B181B58BEF136E6C64E1A
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     tiff:PhotometricInterpretation: 3
     tiff:PlanarConfiguration: 1
@@ -129,8 +124,7 @@ PASS
 ../../../libtiffpic/pc260001.tif :  640 x  480, 3 channel, uint8 tiff
     SHA-1: F34868893B33383BE653ADA9FC054C8EA61BAC53
     channel list: R, G, B
-    Color space: sRGB
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     ImageDescription: "OLYMPUS DIGITAL CAMERA         "
     Orientation: 1 (normal)
     XResolution: 72
@@ -167,6 +161,7 @@ PASS
     Exif:Contrast: 2 (hard)
     Exif:Saturation: 0 (normal)
     Exif:Sharpness: 2 (hard)
+    oiio::ColorSpace: "sRGB"
 Converting ../../../libtiffpic/pc260001.tif to pc260001.tif
 Comparing "../../../libtiffpic/pc260001.tif" and "pc260001.tif"
 Subimage 0: 640 x 480, 3 channel
@@ -180,8 +175,7 @@ PASS
 ../../../libtiffpic/quad-lzw.tif :  512 x  384, 3 channel, uint8 tiff
     SHA-1: EAE4D1FB2E60558747B8DDA9E93F0217191491A9
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
@@ -202,8 +196,7 @@ PASS
     SHA-1: EAE4D1FB2E60558747B8DDA9E93F0217191491A9
     channel list: R, G, B
     tile size: 128 x 128
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
@@ -232,8 +225,7 @@ PASS
 ../../../libtiffpic/strike.tif :  256 x  200, 4 channel, uint8 tiff
     SHA-1: C764170BDD3B192C3F0D16EB761E690A3128C520
     channel list: R, G, B, A
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     XResolution: 1
     YResolution: 1
     ResolutionUnit: "none"
@@ -256,8 +248,7 @@ PASS
 ../../../libtiffpic/oxford.tif :  601 x   81, 3 channel, uint8 tiff
     SHA-1: 6158BC605553813CD61D99900DAE389EEC3763D8
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
     planarconfig: "separate"

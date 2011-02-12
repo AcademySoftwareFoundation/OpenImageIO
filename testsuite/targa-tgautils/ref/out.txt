@@ -2,8 +2,7 @@ hi
 ../../../TGAUTILS/CBW8.TGA :  128 x  128, 1 channel, uint8 targa
     SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
     channel list: A
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     compression: "rle"
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
@@ -28,8 +27,7 @@ PASS
 ../../../TGAUTILS/CCM8.TGA :  128 x  128, 3 channel, uint8 targa
     SHA-1: AE42D771A290CCCEFDDC944B5DCFE1979EC8FF48
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 2
+    oiio:BitsPerSample: 2
     compression: "rle"
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
@@ -54,8 +52,7 @@ PASS
 ../../../TGAUTILS/CTC16.TGA :  128 x  128, 4 channel, uint8 targa
     SHA-1: D070AEE8139A7B3AFA74CFB30A15F3C8103E61CB
     channel list: R, G, B, A
-    Color space: unknown
-    BitsPerSample: 4
+    oiio:BitsPerSample: 4
     compression: "rle"
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
@@ -80,8 +77,7 @@ PASS
 ../../../TGAUTILS/CTC24.TGA :  128 x  128, 3 channel, uint8 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     compression: "rle"
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
@@ -106,8 +102,7 @@ PASS
 ../../../TGAUTILS/CTC32.TGA :  128 x  128, 4 channel, uint8 targa
     SHA-1: 10856DDA29920D800808DDF85D4AC7860E0B310C
     channel list: R, G, B, A
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     compression: "rle"
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
@@ -132,8 +127,7 @@ PASS
 ../../../TGAUTILS/UBW8.TGA :  128 x  128, 1 channel, uint8 targa
     SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
     channel list: A
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
     ImageDescription: "Sample 8 bit uncompressed black and white image"
@@ -157,8 +151,7 @@ PASS
 ../../../TGAUTILS/UCM8.TGA :  128 x  128, 3 channel, uint8 targa
     SHA-1: AE42D771A290CCCEFDDC944B5DCFE1979EC8FF48
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 2
+    oiio:BitsPerSample: 2
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
     ImageDescription: "Sample 8 bit uncompressed color mapped image"
@@ -182,8 +175,7 @@ PASS
 ../../../TGAUTILS/UTC16.TGA :  128 x  128, 4 channel, uint8 targa
     SHA-1: D070AEE8139A7B3AFA74CFB30A15F3C8103E61CB
     channel list: R, G, B, A
-    Color space: unknown
-    BitsPerSample: 4
+    oiio:BitsPerSample: 4
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
     ImageDescription: "Sample 16 bit uncompressed true color image"
@@ -207,8 +199,7 @@ PASS
 ../../../TGAUTILS/UTC24.TGA :  128 x  128, 3 channel, uint8 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
     ImageDescription: "Sample 24 bit uncompressed true color image"
@@ -232,8 +223,7 @@ PASS
 ../../../TGAUTILS/UTC32.TGA :  128 x  128, 4 channel, uint8 targa
     SHA-1: 10856DDA29920D800808DDF85D4AC7860E0B310C
     channel list: R, G, B, A
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
     Artist: "Ricky True"
     ImageDescription: "Sample 32 bit uncompressed true color image"

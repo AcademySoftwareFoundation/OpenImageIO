@@ -4,7 +4,7 @@ hi
     SHA-1: 564202D0616E02C51CBAD01C4FC34A3D5D77861C
     channel list: R, G, B
     tile size: 128 x 128
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "Plain Texture"
     compression: "zip"
@@ -92,7 +92,7 @@ PASS
     SHA-1: 3694F36696BA49FBA37BC7D35E7ACB2DFDDED2EC
     channel list: R, G, B, A
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "Plain Texture"
     compression: "pxr24"
@@ -182,7 +182,7 @@ PASS
     full/display size: 256 x 256
     full/display origin: 0, 0
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "CubeFace Environment"
     updirection: "y"
@@ -276,7 +276,7 @@ PASS
     SHA-1: 10D3B289F5E6E0497AC5C297373BEEEEA4F7EEA4
     channel list: R, G, B, A
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "LatLong Environment"
     updirection: "y"
@@ -370,7 +370,7 @@ PASS
     SHA-1: 1E48D1639C572C689EE82ACA93EEE9FC9EFB24EB
     channel list: R, G, B
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "Plain Texture"
     compression: "zip"
@@ -459,7 +459,7 @@ PASS
     full/display size: 512 x 512
     full/display origin: 0, 0
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "CubeFace Environment"
     updirection: "y"
@@ -560,7 +560,7 @@ PASS
     SHA-1: 91BB1952FB9254759FA0629F40A721C6D461C8FC
     channel list: R, G, B, A
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "LatLong Environment"
     updirection: "y"
@@ -654,7 +654,7 @@ PASS
     SHA-1: B83B67E1FF9B24991A6582C997AA9F629C094ED2
     channel list: R, G, B
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "Plain Texture"
     compression: "zip"
@@ -743,7 +743,7 @@ PASS
     full/display size: 256 x 256
     full/display origin: 0, 0
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "CubeFace Environment"
     updirection: "y"
@@ -837,7 +837,7 @@ PASS
     SHA-1: 573137DBE0076465729FC3DBE2B586A19330515D
     channel list: R, G, B
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 1
     textureformat: "LatLong Environment"
     updirection: "y"
@@ -933,7 +933,7 @@ PASS
     full/display size: 256 x 256
     full/display origin: 0, 0
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "CubeFace Environment"
     updirection: "y"
@@ -1027,7 +1027,7 @@ PASS
     SHA-1: D7CB49482CFB4D2854089E7FF92690F69337DED0
     channel list: R, G, B
     tile size: 64 x 64
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     openexr:roundingmode: 0
     textureformat: "LatLong Environment"
     updirection: "y"
@@ -1119,7 +1119,7 @@ PASS
 ../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
     SHA-1: E802DC23DA0EEF8EE782CC5D7BA56294C0FA7462
     channel list: R, G, B, A
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "piz"
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1

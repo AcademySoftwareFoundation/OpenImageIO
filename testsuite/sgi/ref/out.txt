@@ -2,7 +2,6 @@ hi
 ref/norle-8.sgi :  100 x   63, 4 channel, uint8 sgi
     SHA-1: AB45F4C8F7DC146D019C1B6C5FCF45EB86884C81
     channel list: R, G, B, A
-    Color space: unknown
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
 Converting ref/norle-8.sgi to norle-8.sgi
 Comparing "ref/norle-8.sgi" and "norle-8.sgi"
@@ -17,7 +16,6 @@ PASS
 ref/rle-8.sgi :  100 x   63, 4 channel, uint8 sgi
     SHA-1: AB45F4C8F7DC146D019C1B6C5FCF45EB86884C81
     channel list: R, G, B, A
-    Color space: unknown
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
     compression: "rle"
 Converting ref/rle-8.sgi to rle-8.sgi
@@ -33,7 +31,6 @@ PASS
 ref/norle-16.sgi :  100 x   63, 4 channel, uint16 sgi
     SHA-1: 883A9F68264340CD10BDCC2D12E487E36EDCFC64
     channel list: R, G, B, A
-    Color space: unknown
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
 Converting ref/norle-16.sgi to norle-16.sgi
 Comparing "ref/norle-16.sgi" and "norle-16.sgi"
@@ -48,7 +45,6 @@ PASS
 ref/rle-16.sgi :  100 x   63, 4 channel, uint16 sgi
     SHA-1: 883A9F68264340CD10BDCC2D12E487E36EDCFC64
     channel list: R, G, B, A
-    Color space: unknown
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
     compression: "rle"
 Converting ref/rle-16.sgi to rle-16.sgi

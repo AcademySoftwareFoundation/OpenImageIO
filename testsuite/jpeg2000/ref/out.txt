@@ -2,7 +2,6 @@ hi
 ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_01.j2k :  128 x  128, 1 channel, uint8 jpeg2000
     SHA-1: A2163520C5E739A780CD63A92CAAA1D665DFF74B
     channel list: A
-    Color space: unknown
     jpeg2000:streamformat: "jpc"
 Converting ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_01.j2k to p0_01.j2k
 Comparing "../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_01.j2k" and "p0_01.j2k"
@@ -17,7 +16,6 @@ PASS
 ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_03.j2k :  256 x  256, 1 channel, uint8 jpeg2000
     SHA-1: A0F0816029340C5AEDB4124333DF915F37B72B81
     channel list: A
-    Color space: unknown
     jpeg2000:streamformat: "jpc"
 Converting ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_03.j2k to p0_03.j2k
 Comparing "../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_03.j2k" and "p0_03.j2k"
@@ -32,7 +30,6 @@ PASS
 ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_04.j2k :  640 x  480, 3 channel, uint8 jpeg2000
     SHA-1: 70F39FAFE3E9A6FC25FF05D8311557B3BFA3CB3C
     channel list: R, G, B
-    Color space: unknown
     jpeg2000:streamformat: "jpc"
 Converting ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_04.j2k to p0_04.j2k
 Comparing "../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_04.j2k" and "p0_04.j2k"
@@ -47,7 +44,6 @@ PASS
 ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_05.j2k : 1024 x 1024, 4 channel, uint8 jpeg2000
     SHA-1: 7B364BA2B635B295BC975D2480BE5B2DD69D3795
     channel list: R, G, B, A
-    Color space: unknown
     jpeg2000:streamformat: "jpc"
 Converting ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_05.j2k to p0_05.j2k
 Comparing "../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_05.j2k" and "p0_05.j2k"
@@ -62,7 +58,6 @@ PASS
 ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_09.j2k :   17 x   37, 1 channel, uint8 jpeg2000
     SHA-1: 2DAED5830B8E574B284AAFD7B0359082ED034B7D
     channel list: A
-    Color space: unknown
     jpeg2000:streamformat: "jpc"
 Converting ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_09.j2k to p0_09.j2k
 Comparing "../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_09.j2k" and "p0_09.j2k"
@@ -77,7 +72,6 @@ PASS
 ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_11.j2k :  128 x    1, 1 channel, uint8 jpeg2000
     SHA-1: 57FA1018D62FC617E9200676A54D6610E5A58663
     channel list: A
-    Color space: unknown
     jpeg2000:streamformat: "jpc"
 Converting ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_11.j2k to p0_11.j2k
 Comparing "../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_11.j2k" and "p0_11.j2k"
@@ -92,7 +86,6 @@ PASS
 ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_12.j2k :    3 x    5, 1 channel, uint8 jpeg2000
     SHA-1: D5943D1CD45BB7DCE98B33E1FE2875EFA94B1A19
     channel list: A
-    Color space: unknown
     jpeg2000:streamformat: "jpc"
 Converting ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_12.j2k to p0_12.j2k
 Comparing "../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_12.j2k" and "p0_12.j2k"
@@ -107,7 +100,6 @@ PASS
 ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_14.j2k :   49 x   49, 3 channel, uint8 jpeg2000
     SHA-1: 243375ADAB26B1DB226E328F98C8B98B6B7CFD5B
     channel list: R, G, B
-    Color space: unknown
     jpeg2000:streamformat: "jpc"
 Converting ../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_14.j2k to p0_14.j2k
 Comparing "../../../j2kp4files_v1_5/J2KP4files/codestreams_profile0/p0_14.j2k" and "p0_14.j2k"
