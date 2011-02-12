@@ -169,7 +169,7 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
         }
     }
     // bits per sample
-    m_spec.attribute ("BitsPerSample", maxbits);
+    m_spec.attribute ("oiio:BitsPerSample", maxbits);
     // image orientation - see appendix B.2 of the OIIO documentation
     int orientation;
     switch (m_cin.header.ImageOrientation ()) {

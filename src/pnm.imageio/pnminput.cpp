@@ -324,7 +324,7 @@ PNMInput::read_file_header ()
     else
         m_spec.attribute ("pnm:binary", 1);
 
-    m_spec.attribute ("BitsPerSample", ceilf (logf (m_max_val + 1)/logf (2)));
+    m_spec.attribute ("oiio:BitsPerSample", ceilf (logf (m_max_val + 1)/logf (2)));
     return true;
 }
 

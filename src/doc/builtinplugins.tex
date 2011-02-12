@@ -73,7 +73,7 @@ these compression modes.  Alas.
 \ImageSpec Attribute & Type & DDS header data or explanation \\
 \hline
 \qkw{compression} & string & compression type \\
-\qkw{BitsPerSample} & int & bits per sample \\
+\qkw{oiio:BitsPerSample} & int & bits per sample \\
 \qkw{textureformat} & string & Set correctly to one of \qkws{Plain
   Texture}, \qkws{Volume Texture}, or \qkws{CubeFace Environment}. \\
 \qkw{texturetype} & string & Set correctly to one of \qkws{Plain
@@ -113,7 +113,7 @@ OIIO Attribute & Type & DPX header data or explanation \\
 \qkw{DateTime} & string & Creation date/time \\
 \qkw{Orientation} & int & the orientation of the DPX image data (see
   \ref{metadata:orientation}) \\
-\qkw{BitsPerSample} & int & the true bits per sample of the DPX file. \\
+\qkw{oiio:BitsPerSample} & int & the true bits per sample of the DPX file. \\
 \qkw{compression} & string & The compression type \\
 \qkw{PixelAspectRatio} & float & pixel aspect ratio \\
 \end{tabular} 
@@ -308,7 +308,7 @@ Windows.  ICO files use the file extension {\cf .ico}.
 \noindent\begin{tabular}{p{1.5in}|p{0.5in}|p{3.25in}}
 \ImageSpec Attribute & Type & ICO header data or explanation \\
 \hline
-\qkw{BitsPerSample} & int & the true bits per sample in the ICO file. \\
+\qkw{oiio:BitsPerSample} & int & the true bits per sample in the ICO file. \\
 \qkw{ico:PNG} & int & if nonzero, will cause the ICO to be written
   out using PNG format.
 \end{tabular}
@@ -549,7 +549,7 @@ It's not a smart choice unless you are sending your images back to the
 \noindent\begin{tabular}{p{1.3in}|p{0.5in}|p{3.50in}}
 \ImageSpec Attribute & Type & PNG header data or explanation \\
 \hline
-\qkw{BitsPerSample} & int & the true bits per sample of the file
+\qkw{oiio:BitsPerSample} & int & the true bits per sample of the file
   (1 for true PBM files, even though OIIO will report the {\cf format}
   as UINT8). \\
 \qkw{pnm:binary} & int & nonzero if the file itself used the PNM
@@ -641,7 +641,7 @@ files and is unable to write them.
 \ImageSpec Attribute & Type & PIC header data or explanation \\
 \hline
 \qkw{ImageDescription} & string & comment \\
-\qkw{BitsPerSample} & int & the true bits per sample in the PIC file.
+\qkw{oiio:BitsPerSample} & int & the true bits per sample in the PIC file.
 \end{tabular}
 
 
@@ -676,7 +676,7 @@ The official Targa format specification may be found at\\
   compression methods are requested. \\
 \qkw{targa:ImageID} & string & Image ID \\
 \qkw{PixelAspectRatio} & float & pixel aspect ratio \\
-\qkw{BitsPerSample} & int & the true (in the file) bits per sample. \\
+\qkw{oiio:BitsPerSample} & int & the true (in the file) bits per sample. \\
 \end{tabular}
 \\ 
 \vspace{.25in}
@@ -761,7 +761,7 @@ metadata if present.
 \qkw{Model} & string & Model \\
 \qkw{DocumentName} & string & DocumentName \\
 \qkw{HostComputer} & string & HostComputer \\
-\qkw{BitsPerSample} & int & The actual bits per sample in the file (may
+\qkw{oiio:BitsPerSample} & int & The actual bits per sample in the file (may
   differ from {\cf ImageSpec::format}).\\
 \qkws{XResultion} \qkws{YResolution} & float & XResolution, YResolution \\
 \qkws{ResolutionUnit} & string & ResolutionUnit (\qkw{in} or
@@ -799,7 +799,7 @@ aware of:
 \item Only multiples of 8 bits per pixel may be passed through
   \product's APIs, e.g., 1-, 2-, and 4-bits per pixel will be reported
   by OIIO as 8 bit images; 12 bits per pixel will be reported as 16,
-  etc.  But the \qkw{BitsPerSample} attribute in the \ImageSpec
+  etc.  But the \qkw{oiio:BitsPerSample} attribute in the \ImageSpec
   will correctly report the original bit depth of the file.  Note that
   the TIFF specification itself does not support 16-bit floating point
   pixels ({\cf half} data).

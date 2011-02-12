@@ -221,7 +221,7 @@ ICOInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         PNG_pvt::read_info (m_png, m_info, m_bpp, m_color_type, 
                             m_interlace_type, m_bg, m_spec);
 
-        m_spec.attribute ("BitsPerSample", m_bpp / m_spec.nchannels);
+        m_spec.attribute ("oiio:BitsPerSample", m_bpp / m_spec.nchannels);
 
         newspec = spec ();
         return true;
@@ -269,7 +269,7 @@ ICOInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                         TypeDesc::UINT8); // 4- and 16-bit are expanded to 8bpp
     m_spec.default_channel_names ();
     // add 1 bit for < 32bpp images due to the 1-bit alpha mask
-    m_spec.attribute ("BitsPerSample", m_bpp/m_spec.nchannels + (m_bpp == 32 ? 0 : 1));
+    m_spec.attribute ("oiio:BitsPerSample", m_bpp/m_spec.nchannels + (m_bpp == 32 ? 0 : 1));
 
     /*std::cerr << "[ico] expected bytes: scanline " << m_spec.scanline_bytes()
               << ", image " << m_spec.image_bytes() << "\n";*/

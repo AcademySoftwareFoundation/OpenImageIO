@@ -164,7 +164,7 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
     close ();  // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 
-    int bits_per_sample = m_spec.get_int_attribute ("BitsPerSample", 8);
+    int bits_per_sample = m_spec.get_int_attribute ("oiio:BitsPerSample", 8);
 
     if (bits_per_sample == 1)
         m_pnm_type = 4;

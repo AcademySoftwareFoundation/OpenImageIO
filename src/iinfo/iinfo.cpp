@@ -125,13 +125,13 @@ print_stats_num (float val, int maxval, bool round)
 }
 
 
-// First check BitsPerSample int attribute.  If not set,
+// First check oiio:BitsPerSample int attribute.  If not set,
 // fall back on the TypeDesc. return 0 for float types
 // or those that exceed the int range (long long, etc)
 static unsigned int
 get_intsample_maxval (const ImageSpec &spec)
 {
-    int bits = spec.get_int_attribute ("BitsPerSample");
+    int bits = spec.get_int_attribute ("oiio:BitsPerSample");
     if (bits>0) {
         return static_cast<int>(powf (2.0f, bits) - 1.0f);
     }

@@ -99,12 +99,12 @@ and \qkw{cm}.
 
 \section{Disk file format info/hints}
 
-\apiitem{"BitsPerSample" : int}
+\apiitem{"oiio:BitsPerSample" : int}
 Number of bits per sample \emph{in the file}.  
 
 Note that this may not match the reported {\cf ImageSpec::format}, if
 the plugin is translating from an unsupported format.  For example, if a
-file stores 4 bit grayscale per channel, the {\cf "BitsPerSample"} may
+file stores 4 bit grayscale per channel, the {\cf "oiio:BitsPerSample"} may
 be 4 but the {\cf format} field may be {\cf TypeDesc::UINT8} (because
 the \product APIs do not support fewer than 8 bits per sample).
 \apiend
