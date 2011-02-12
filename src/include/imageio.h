@@ -396,7 +396,7 @@ public:
     /// respond to any such requests, so the default implementation is
     /// just to ignore config and call regular open(name,newspec).
     virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config) { return open(name,newspec); }
+                       const ImageSpec & /*config*/) { return open(name,newspec); }
 
     /// Return a reference to the image format specification of the
     /// current subimage/MIPlevel.  Note that the contents of the spec
@@ -539,9 +539,7 @@ public:
     /// have enough space allocated and know what to do with the data.
     /// IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD
     /// IF IT SUPPORTS TILED IMAGES.
-    virtual bool read_native_tile (int x, int y, int z, void *data) {
-        return false;
-    }
+    virtual bool read_native_tile (int x, int y, int z, void *data);
 
     /// General message passing between client and image input server
     ///
@@ -669,8 +667,7 @@ public:
     /// call write_scanline with an out-of-order scanline if this format
     /// driver does not support random access.
     virtual bool write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride=AutoStride)
-        { return false; }
+                                 const void *data, stride_t xstride=AutoStride);
 
     /// Write the tile with (x,y,z) as the upper left corner.  (z is
     /// ignored for 2D non-volume images.)  The three stride values give
@@ -691,8 +688,7 @@ public:
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride)
-        { return false; }
+                             stride_t zstride=AutoStride);
 
     /// Write pixels whose x coords range over xmin..xmax (inclusive), y
     /// coords over ymin..ymax, and z coords over zmin...zmax.  The
@@ -715,8 +711,7 @@ public:
                                   int zmin, int zmax, TypeDesc format,
                                   const void *data, stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride,
-                                  stride_t zstride=AutoStride)
-        { return false; }
+                                  stride_t zstride=AutoStride);
 
     /// Write the entire image of spec.width x spec.height x spec.depth
     /// pixels, with the given strides and in the desired format.

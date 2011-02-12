@@ -135,24 +135,24 @@ public:
     /// (if step == 0 or no step is provided), or of a varying set of
     /// values beginning with ptr and with successive values every 'step'
     /// bytes.
-    VaryingRef (void *ptr, int step=0) { init ((T *)ptr,step); }
+    VaryingRef (void *ptr_, int step_=0) { init ((T *)ptr_,step_); }
 
     /// Construct a uniform VaryingRef from a single value.
     ///
-    VaryingRef (T &ptr) { init (&ptr, 0); }
+    VaryingRef (T &ptr_) { init (&ptr_, 0); }
 
     /// Initialize this VaryingRef to either of a single value pointed
     /// to by ptr (if step == 0 or no step is provided), or of a varying
     /// set of values beginning with ptr and with successive values
     /// every 'step' bytes.
-    void init (T *ptr, int step=0) {
-        m_ptr = ptr;
-        m_step = step;
+    void init (T *ptr_, int step_=0) {
+        m_ptr = ptr_;
+        m_step = step_;
     }
 
     /// Initialize this VaryingRef to be uniform and point to a particular
     /// value reference.
-    const VaryingRef & operator= (T &ptr) { init (&ptr); return *this; }
+    const VaryingRef & operator= (T &ptr_) { init (&ptr_); return *this; }
 
     /// Is this reference pointing nowhere?
     ///

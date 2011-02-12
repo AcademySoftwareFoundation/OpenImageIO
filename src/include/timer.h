@@ -189,8 +189,8 @@ private:
           static_cast<double>(time_info.denom);
         return (now - then) * seconds_per_tick;
 #else
-        return fabs ((now.tv_sec  - then.tv_sec) +
-                     (now.tv_usec - then.tv_usec) / 1e6);
+        return fabs (static_cast<double>(now.tv_sec  - then.tv_sec) +
+                     static_cast<double>(now.tv_usec - then.tv_usec) / 1e6);
 #endif
     }
 };

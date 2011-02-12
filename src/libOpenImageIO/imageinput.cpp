@@ -259,6 +259,11 @@ ImageInput::error (const char *format, ...)
     va_end (ap);
 }
 
+bool
+ImageInput::read_native_tile (int x, int y, int z, void * data)
+{
+    return false;
+}
 
 }
 OIIO_NAMESPACE_EXIT

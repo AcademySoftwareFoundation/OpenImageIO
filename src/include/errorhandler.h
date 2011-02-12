@@ -124,7 +124,7 @@ public:
 #ifdef DEBUG
     void debug (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
 #else
-    void debug (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3) { }
+    void debug (const char * /*format*/, ...) OPENIMAGEIO_PRINTF_ARGS(2,3) { }
 #endif
 
     void vInfo    (const char *format, va_list argptr);

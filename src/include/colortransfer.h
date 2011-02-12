@@ -41,7 +41,7 @@ OIIO_NAMESPACE_ENTER
 /// transfer function.
 class DLLPUBLIC ColorTransfer {
 public:
-    ColorTransfer (std::string name) { m_name = name; };
+    ColorTransfer (std::string name_) { m_name = name_; };
     virtual ~ColorTransfer (void) { };
     
     /// Return the name of the color transfer function, e.g., "sRGB_to_linear",
@@ -54,11 +54,11 @@ public:
     
     /// Set a transfer function paramater If the name is not recognized,
     /// return false.
-    virtual bool set (std::string name, float param) { return false; }
+    virtual bool set (std::string name_, float param);
     
     /// Get a transfer function paramater
     /// If the name is not recognized, return false.
-    virtual bool get (std::string name, float &param) { return false; }
+    virtual bool get (std::string name_, float &param);
     
     /// Evalutate the transfer function.
     virtual float operator() (float x) = 0;
@@ -76,8 +76,8 @@ protected:
     std::vector<std::string> m_params;
     
     // Add transfer function paramater
-    bool add_paramater (std:: string name) {
-        m_params.push_back (name);
+    bool add_paramater (const std:: string &name_) {
+        m_params.push_back (name_);
         return true;
     };
     

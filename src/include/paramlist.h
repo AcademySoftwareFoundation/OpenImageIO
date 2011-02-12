@@ -106,7 +106,7 @@ public:
     TypeDesc type () const { return m_type; }
     int nvalues () const { return m_nvalues; }
     const void *data () const { return m_nonlocal ? m_data.ptr : &m_data; }
-    int datasize () const { return m_nvalues * m_type.size(); }
+    int datasize () const { return m_nvalues * static_cast<int>(m_type.size()); }
 
     friend void swap (ParamValue &a, ParamValue &b) {
         std::swap (a.m_name,     b.m_name);

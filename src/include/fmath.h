@@ -720,7 +720,7 @@ floorfrac (float x, int *xint)
     int i = FloorToInt (x);
 #endif
     *xint = i;
-    return x - i;   // Return the fraction left over
+    return x - static_cast<float>(i);   // Return the fraction left over
 }
 
 
@@ -819,7 +819,7 @@ float_to_rational (float f, unsigned int &num, unsigned int &den)
     } else {
         num = (int)f;
         den = 1;
-        while (fabsf(f-num) > 0.00001 && den < 1000000) {
+        while (fabsf(f-static_cast<float>(num)) > 0.00001f && den < 1000000) {
             den *= 10;
             f *= 10;
             num = (int)f;
