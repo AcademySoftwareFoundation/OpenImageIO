@@ -148,11 +148,8 @@ public:
     /// Return any error messages generated during the course of parse()
     /// (and clear any error flags).  If no error has occurred since the
     /// last time geterror() was called, it will return an empty string.
-    std::string geterror () const {
-        std::string e = errmessage;
-        errmessage.clear ();
-        return e;
-    }
+    std::string geterror () const;
+    
     /// Deprecated
     ///
     std::string error_message () const { return geterror (); }
@@ -167,12 +164,12 @@ public:
     std::string command_line () const;
 
 private:
-    int argc;                           // a copy of the command line argc
-    const char **argv;                  // a copy of the command line argv
-    mutable std::string errmessage;     // error message
-    ArgOption *global;                  // option for extra cmd line arguments
-    std::string intro;
-    std::vector<ArgOption *> option;
+    int m_argc;                           // a copy of the command line argc
+    const char **m_argv;                  // a copy of the command line argv
+    mutable std::string m_errmessage;     // error message
+    ArgOption *m_global;                  // option for extra cmd line arguments
+    std::string m_intro;
+    std::vector<ArgOption *> m_option;
 
     ArgOption *find_option(const char *name);
     void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
