@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
   @brief Portable fixed-width integer types
 */
 
-#if defined(_WIN32) || defined(_WINDOWS) || defined(_MSC_VER)
+#if defined(_MSC_VER) && _MSC_VER < 1600
 typedef __int8            int8_t;
 typedef __int16           int16_t;
 typedef __int32           int32_t;
