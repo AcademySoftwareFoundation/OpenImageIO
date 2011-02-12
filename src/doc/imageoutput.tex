@@ -567,13 +567,6 @@ this manner:
 \item Some file formats may require that these channels be stored in a
   particular order, with a particular precision, or the \ImageOutput may
   in some other way need to know about these special channels.
-\item Certain operations that make sense for colors should not apply to
-  alpha or $z$.  For example, if your call to {\cf write} reduces
-  precision (e.g., converts from {\cf float} to integer pixels) it will
-  typically add random \emph{dither} to eliminate banding artifacts
-  in the quantization.  But for a variety of reasons, you want to add
-  dither only to color channels and not to alpha.  So setting {\cf
-    alpha_channel} will cause {\cf write} to not dither that channel.
 \end{itemize}
 
 \subsubsection{Linearity hints}
@@ -711,22 +704,15 @@ integers.
 The conversion from floating-point formats to integer formats (or from
 higher to lower integer, which is done by first converting to float) is
 controlled by five fields within the \ImageSpec: {\cf
-  quant_black}, {\cf quant_white}, {\cf quant_min}, {\cf quant_max},
-and {\cf quant_dither}.
+  quant_black}, {\cf quant_white}, {\cf quant_min}, and {\cf quant_max}
 Float 0.0 maps to the integer value given by {\cf quant_black}, and
-float 1.0 maps to the integer value given by {\cf quant_white}.  Then,
-for color channels only (not alpha or depth), a random amount is added
-in the range ({\cf -quant_dither..quant_dither}), in order to reduce
-banding artifacts.  The result is then clamped to lie within the range of
-{\cf quant_min} and {\cf quant_max}, inclusive.  Finally, this result is
-truncated its integer value for final output.  Here is the code that
-implements this transformation ({\cf T} is the final output integer
-type):
+float 1.0 maps to the integer value given by {\cf quant_white}. Finally,
+this result is truncated its integer value for final output.  Here is
+the code that implements this transformation ({\cf T} is the final
+output integer type):
 
 \begin{code}
         float value = quant_black * (1 - input) + quant_white * input;
-        if (it's a color channel)
-            value += quant_dither * (2 * random() - 1);
         T output = (T) clamp ((int)(value + 0.5), quant_min, quant_max);
 \end{code}
 
@@ -744,8 +730,8 @@ quantization.
 \smallskip
 \begin{tabular}{|l|r|r|r|r|r|}
 \hline
-{\bf Data Format} & {\bf black} & {\bf white} & {\bf min} & {\bf max} & {\bf
-  dither} \\
+{\bf Data Format} & {\bf black} & {\bf white} & {\bf min} & {\bf max}
+} \\
 \hline
 {\cf UINT8}  & 0 &        255 &     0 & 255 & 0.5 \\
 {\cf INT8}   & 0 &        127 &  -128 & 127 & 0.5 \\
@@ -763,7 +749,7 @@ quantization.
 
 \noindent Note that the default is to use the entire positive range
 of each integer type to represent the floating-point (0..1) range.
-Floating-point types do not attempt to remap values, do not add dither,
+Floating-point types do not attempt to remap values,
 and do not clamp (except to their full floating-point range).
 
 The default will almost always be what you want.  But just as an
@@ -777,7 +763,6 @@ filling the full 16 bit:
         spec.quant_white  = 16383;
         spec.quant_min    = 0;
         spec.quant_max    = 16383;
-        spec.quant_dither = 0.5;
 \end{code}
 
 

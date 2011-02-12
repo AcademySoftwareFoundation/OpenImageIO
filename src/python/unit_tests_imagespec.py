@@ -173,11 +173,6 @@ def is_data_members_test():
         print "Test 22 failed"
     else:
         print "Test 21 passed"
-    # test 22
-    if spec.quant_dither != 0.5:
-        print "Test 22 failed"
-    else:
-        print "Test 22 passed"
 
     # test 23
     if spec.nchannels != 0:

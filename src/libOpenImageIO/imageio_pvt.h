@@ -79,7 +79,7 @@ const float *convert_to_float (const void *src, float *dst, int nvals,
 /// necessary).
 const void *convert_from_float (const float *src, void *dst, size_t nvals,
                                 int quant_black, int quant_white,
-                                int quant_min, int quant_max, float quant_dither, 
+                                int quant_min, int quant_max,
                                 TypeDesc format);
 
 };  // namespace pvt

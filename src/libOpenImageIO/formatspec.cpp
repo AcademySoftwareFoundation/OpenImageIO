@@ -57,20 +57,18 @@ OIIO_NAMESPACE_ENTER
 template <class T>
 static void
 set_default_quantize (int &quant_black, int &quant_white,
-                      int &quant_min, int &quant_max, float &quant_dither)
+                      int &quant_min, int &quant_max)
 {
     if (std::numeric_limits <T>::is_integer) {
         quant_black  = 0;
         quant_white  = (int) std::numeric_limits <T>::max();
         quant_min    = (int) std::numeric_limits <T>::min();
         quant_max    = (int) std::numeric_limits <T>::max();
-        quant_dither = 0.5f;
     } else {
         quant_black  = 0;
         quant_white  = 0;
         quant_min    = 0;
         quant_max    = 0;
-        quant_dither = 0.0f;
     }
 }
 
@@ -81,53 +79,53 @@ set_default_quantize (int &quant_black, int &quant_white,
 static void
 set_default_quantize (TypeDesc format,
                       int &quant_black, int &quant_white,
-                      int &quant_min, int &quant_max, float &quant_dither)
+                      int &quant_min, int &quant_max)
 {
     switch (format.basetype) {
     case TypeDesc::INT8:
         set_default_quantize <char> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::UNKNOWN:
     case TypeDesc::UINT8:
         set_default_quantize <unsigned char> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::INT16:
         set_default_quantize <short> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::UINT16:
         set_default_quantize <unsigned short> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::INT:
         set_default_quantize <int> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::UINT:
         set_default_quantize <unsigned int> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::INT64:
         set_default_quantize <long long> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::UINT64:
         set_default_quantize <unsigned long long> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::HALF:
         set_default_quantize <half> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::FLOAT:
         set_default_quantize <float> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     case TypeDesc::DOUBLE:
         set_default_quantize <double> (quant_black, quant_white,
-                                     quant_min, quant_max, quant_dither);
+                                     quant_min, quant_max);
         break;
     default: ASSERT(0);
     }
@@ -139,15 +137,14 @@ QuantizationSpec
     QuantizationSpec::quantize_default (std::numeric_limits<stride_t>::min(),
                                         std::numeric_limits<stride_t>::min(),
                                         std::numeric_limits<stride_t>::min(),
-                                        std::numeric_limits<stride_t>::min(),
-                                        0);
+                                        std::numeric_limits<stride_t>::min());
 
 
 
 QuantizationSpec::QuantizationSpec (TypeDesc _type)
 {
     set_default_quantize (_type, quant_black, quant_white,
-                          quant_min, quant_max, quant_dither);
+                          quant_min, quant_max);
 }
 
 
@@ -184,7 +181,7 @@ ImageSpec::set_format (TypeDesc fmt)
 {
     format = fmt;
     set_default_quantize (fmt, quant_black, quant_white,
-                          quant_min, quant_max, quant_dither);
+                          quant_min, quant_max);
 }
 
 
