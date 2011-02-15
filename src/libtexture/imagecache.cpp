@@ -263,6 +263,10 @@ ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec_)
                         spec.height == spec.full_height &&
                         spec.depth == spec.full_depth);
     zero_origin = (spec.x == 0 && spec.y == 0 && spec.z == 0);
+    onetile = (spec.width <= spec.tile_width &&
+               spec.height <= spec.tile_height &&
+               spec.depth <= spec.tile_depth);
+    polecolorcomputed = false;
 }
 
 
@@ -274,7 +278,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_texformat(TexFormatTexture),
       m_swrap(TextureOpt::WrapBlack), m_twrap(TextureOpt::WrapBlack),
       m_rwrap(TextureOpt::WrapBlack),
-      m_cubelayout(CubeUnknown), m_y_up(false),
+      m_envlayout(LayoutTexture), m_y_up(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
       m_mipused(false), m_validspec(false), 
       m_imagecache(imagecache), m_duplicate(NULL)
@@ -484,17 +488,23 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     }
 
     m_y_up = false;
-    if (m_texformat == TexFormatCubeFaceEnv) {
-        if (! strcmp (m_input->format_name(), "openexr"))
+    if (m_texformat == TexFormatLatLongEnv ||
+        m_texformat == TexFormatCubeFaceEnv ||
+        m_texformat == TexFormatCubeFaceShadow) {
+        if (spec.get_string_attribute ("updirection") == "y")
             m_y_up = true;
+    }
+
+    if (m_texformat == TexFormatCubeFaceEnv ||
+        m_texformat == TexFormatCubeFaceShadow) {
         int w = std::max (spec.full_width, spec.tile_width);
         int h = std::max (spec.full_height, spec.tile_height);
         if (spec.width == 3*w && spec.height == 2*h)
-            m_cubelayout = CubeThreeByTwo;
+            m_envlayout = LayoutCubeThreeByTwo;
         else if (spec.width == w && spec.height == 6*h)
-            m_cubelayout = CubeOneBySix;
+            m_envlayout = LayoutCubeOneBySix;
         else
-            m_cubelayout = CubeLast;
+            m_envlayout = LayoutTexture;
     }
 
     Imath::M44f c2w;
@@ -954,7 +964,7 @@ ImageCacheImpl::find_file (ustring filename,
                     if (tf->m_swrap == dup->m_swrap && tf->m_twrap == dup->m_twrap &&
                         tf->m_rwrap == dup->m_rwrap &&
                         tf->m_datatype == dup->m_datatype && 
-                        tf->m_cubelayout == dup->m_cubelayout &&
+                        tf->m_envlayout == dup->m_envlayout &&
                         tf->m_y_up == dup->m_y_up) {
                         tf->duplicate (dup);
                         tf->close ();

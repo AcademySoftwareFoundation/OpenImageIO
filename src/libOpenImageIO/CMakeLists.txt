@@ -44,6 +44,7 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
                           ../libutil/ustring.cpp 
                           ../libtexture/texturesys.cpp 
                           ../libtexture/texture3d.cpp 
+                          ../libtexture/environment.cpp 
                           ../libtexture/texoptions.cpp 
                           ../libtexture/imagecache.cpp
                           ${libOpenImageIO_hdrs}

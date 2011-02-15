@@ -83,6 +83,18 @@ OIIO_NAMESPACE_ENTER
 #  define M_TWO_PI (M_PI * 2.0)
 #endif
 
+#ifndef M_1_PI
+/// 1/PI
+///
+#  define M_1_PI 0.31830988618379067
+#endif
+
+#ifndef M_2_PI
+/// 2/PI
+///
+#  define M_2_PI 0.63661977236758134
+#endif
+
 #ifndef M_SQRT2
 /// sqrt(2)
 ///
@@ -864,6 +876,28 @@ sincos(double x, double* sine, double* cosine)
     *sine = std::sin(x);
     *cosine = std::cos(x);
 #endif
+}
+
+
+
+/// Safe (clamping) arcsine.
+///
+inline float
+safe_asinf (float x)
+{
+    if (x >=  1.0f) return  M_PI/2;
+    if (x <= -1.0f) return -M_PI/2;
+    return std::asin (x);
+}
+
+
+/// Safe (clamping) arccosine.
+///
+inline float
+safe_acosf (float x) {
+    if (x >=  1.0f) return 0.0f;
+    if (x <= -1.0f) return M_PI;
+    return std::acos (x);
 }
 
 

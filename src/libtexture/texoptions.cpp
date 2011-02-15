@@ -137,7 +137,8 @@ TextureOpt::TextureOpt (const TextureOptions &opt, int index)
       rwrap((Wrap)opt.rwrap),
       rblur(opt.rblur[index]), rwidth(opt.rwidth[index]),
       dresultdr(opt.dresultdr),
-      swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
+      swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL),
+      envlayout(0)
 {
 }
 

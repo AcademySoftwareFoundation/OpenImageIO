@@ -62,8 +62,6 @@ OIIO_NAMESPACE_ENTER
 
 namespace {  // anonymous
 
-static shared_ptr<TextureSystemImpl> shared_texsys;
-static mutex shared_texsys_mutex;
 static EightBitConverter<float> uchar2float;
 static ustring s_field3d ("field3d");
 
@@ -122,7 +120,7 @@ TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
             if (options.dresultdr) options.dresultdr[c] = 0;
         }
 //        error ("Texture file \"%s\" not found", filename.c_str());
-        ++stats.texture_batches;
+        ++stats.texture3d_batches;
         ++stats.texture3d_queries;
         if (options.missingcolor) {
             (void) geterror ();   // eat the error
@@ -195,12 +193,6 @@ TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
     // therefore don't actually use the derivs.  If/when we do, we'll
     // need to transform them into local space as well.
 
-    // Loop over all the points that are active (as given in the
-    // runflags), and for each, call texture_lookup.  The separation of
-    // power here is that all possible work that can be done for all
-    // "grid points" at once should be done in this function, outside
-    // the loop, and all the work inside texture_lookup should be work
-    // that MUST be redone for each individual texture lookup point.
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
                                Plocal, dPdx, dPdy, dPdz, result);
 
@@ -227,7 +219,7 @@ TextureSystemImpl::texture3d (ustring filename, TextureOptions &options,
         if (runflags[i]) {
             TextureOpt opt (options, i);
             ok &= texture3d (filename, opt, P[i], dPdx[i], dPdy[i], dPdz[i],
-                             result);
+                             result + i*options.nchannels);
         }
     }
     return ok;
@@ -243,10 +235,6 @@ TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
                             const Imath::V3f &_dPdy, const Imath::V3f &_dPdz,
                             float *result)
 {
-    // N.B. If any computations within this function are identical for
-    // all texture lookups in this batch, those computations should be
-    // hoisted up to the calling function, texture().
-
     // Initialize results to 0.  We'll add from here on as we sample.
     float* dresultds = options.dresultds;
     float* dresultdt = options.dresultdt;
@@ -257,7 +245,7 @@ TextureSystemImpl::texture3d_lookup_nomip (TextureFile &texturefile,
         if (dresultdt) dresultdt[c] = 0;
         if (dresultdr) dresultdr[c] = 0;
     }
-    // If the user only provided use with one pointer, clear both to simplify
+    // If the user only provided us with one pointer, clear all to simplify
     // the rest of the code, but only after we zero out the data for them so
     // they know something went wrong.
     if (!(dresultds && dresultdt && dresultdr))

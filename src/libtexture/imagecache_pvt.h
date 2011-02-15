@@ -189,6 +189,9 @@ public:
         ImageSpec spec;             ///< ImageSpec for the mip level
         bool full_pixel_range;      ///< pixel data window matches image window
         bool zero_origin;           ///< pixel data origin is (0,0)
+        bool onetile;               ///< Whole level fits on one tile
+        mutable bool polecolorcomputed;     ///< Pole color was computed
+        mutable std::vector<float> polecolor;///< Pole colors
         LevelInfo (const ImageSpec &spec);  ///< Initialize based on spec
     };
 
@@ -249,7 +252,7 @@ private:
     Imath::M44f m_Mtex;             ///< shadows: world-to-pNDC with camera z
     Imath::M44f m_Mras;             ///< shadows: world-to-raster with camera z
     TypeDesc m_datatype;            ///< Type of pixels we store internally
-    CubeLayout m_cubelayout;        ///< cubemap: which layout?
+    EnvLayout m_envlayout;          ///< env map: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
     bool m_eightbit;                ///< Eight bit?  (or float)
     unsigned int m_channelsize;     ///< Channel size, in bytes
