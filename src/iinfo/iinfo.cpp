@@ -233,7 +233,7 @@ print_stats (const std::string &filename,
     printf ("\n");
     
     std::vector<float> constantValues(input.spec().nchannels);
-    if(isConstantColor(&constantValues[0], input)) {
+    if(isConstantColor(input, &constantValues[0])) {
         printf ("    Constant: Yes\n");
         printf ("    Constant Color: ");
         for (unsigned int i=0; i<constantValues.size(); ++i) {
@@ -243,8 +243,7 @@ print_stats (const std::string &filename,
         print_stats_footer (maxval);
         printf ("\n");
     }
-    else
-    {
+    else {
         printf ("    Constant: No\n");
     }
     
