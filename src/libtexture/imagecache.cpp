@@ -2205,7 +2205,6 @@ ImageCacheImpl::invalidate_all (bool force)
             ImageCacheFileRef &f (fileit->second);
             ustring name = f->filename();
             recursive_lock_guard guard (f->m_input_mutex);
-            f->close ();
             if (f->broken() || ! boost::filesystem::exists(name.string())) {
                 all_files.push_back (name);
                 continue;
