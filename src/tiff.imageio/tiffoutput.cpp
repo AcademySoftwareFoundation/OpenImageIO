@@ -43,10 +43,21 @@ using boost::algorithm::iequals;
 #include "imageio.h"
 #include "strutil.h"
 #include "sysutil.h"
+#include "timer.h"
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+namespace
+{
+    // This is the default interval between checkpoints.
+    // While these are cheap, we need to throttle them
+    // so we don't checkpoint too often... (each checkpoint
+    // re-writes the tiff header and any new tiles / scanlines)
+    
+    static double DEFAULT_CHECKPOINT_INTERVAL_SECONDS = 15.0;
+    static int MIN_SCANLINES_OR_TILES_PER_CHECKPOINT = 16;
+}
 
 class TIFFOutput : public ImageOutput {
 public:
@@ -67,10 +78,13 @@ private:
     TIFF *m_tif;
     std::vector<unsigned char> m_scratch;
     int m_planarconfig;
+    Timer m_checkpointTimer;
+    int m_checkpointItems;
 
     // Initialize private members to pre-opened state
     void init (void) {
         m_tif = NULL;
+        m_checkpointItems = 0;
     }
 
     // Convert planar contiguous to planar separate data format
@@ -271,9 +285,11 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     std::string xmp = encode_xmp (m_spec, true);
     if (! xmp.empty())
         TIFFSetField (m_tif, TIFFTAG_XMLPACKET, xmp.size(), xmp.c_str());
-
+    
     TIFFCheckpointDirectory (m_tif);  // Ensure the header is written early
-
+    m_checkpointTimer.start(); // Initialize the to the fileopen time
+    m_checkpointItems = 0; // Number of tiles or scanlines we've written
+    
     return true;
 }
 
@@ -469,10 +485,18 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
         }
         TIFFWriteScanline (m_tif, (tdata_t)data, y);
     }
-    // Every 16 scanlines, checkpoint (write partial file)
-    if ((y % 16) == 0)
+    
+    // Should we checkpoint? Only if we have enough scanlines and enough time has passed
+    if (m_checkpointTimer() > DEFAULT_CHECKPOINT_INTERVAL_SECONDS && 
+        m_checkpointItems >= MIN_SCANLINES_OR_TILES_PER_CHECKPOINT) {
         TIFFCheckpointDirectory (m_tif);
-
+        m_checkpointTimer.lap();
+        m_checkpointItems = 0;
+    }
+    else {
+        ++m_checkpointItems;
+    }
+    
     return true;
 }
 
@@ -510,11 +534,18 @@ TIFFOutput::write_tile (int x, int y, int z,
         }
         TIFFWriteTile (m_tif, (tdata_t)data, x, y, z, 0);
     }
-
-    // Every row of tiles, checkpoint (write partial file)
-    if ((y % m_spec.tile_height) == 0)
+    
+    // Should we checkpoint? Only if we have enough tiles and enough time has passed
+    if (m_checkpointTimer() > DEFAULT_CHECKPOINT_INTERVAL_SECONDS && 
+        m_checkpointItems >= MIN_SCANLINES_OR_TILES_PER_CHECKPOINT) {
         TIFFCheckpointDirectory (m_tif);
-
+        m_checkpointTimer.lap();
+        m_checkpointItems = 0;
+    }
+    else {
+        ++m_checkpointItems;
+    }
+    
     return true;
 }
 
