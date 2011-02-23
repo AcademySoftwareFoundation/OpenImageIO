@@ -165,7 +165,7 @@ public:
 
     /// Retrieve a shadow lookup for a single position P.
     ///
-    virtual bool shadow (ustring filename, TextureOptions &options,
+    virtual bool shadow (ustring filename, TextureOpt &options,
                          const Imath::V3f &P, const Imath::V3f &dPdx,
                          const Imath::V3f &dPdy, float *result) {
         return false;
@@ -184,7 +184,7 @@ public:
 
     /// Retrieve an environment map lookup for direction R.
     ///
-    virtual bool environment (ustring filename, TextureOptions &opt,
+    virtual bool environment (ustring filename, TextureOpt &opt,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
                               const Imath::V3f &dRdy, float *result) {
         return false;
