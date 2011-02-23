@@ -34,6 +34,7 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <sstream>
 
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
@@ -56,6 +57,8 @@
 OIIO_NAMESPACE_USING
 
 
+// # FIXME: REfactor all statics into a struct
+
 // Basic runtime options
 static std::string full_command_line;
 static std::vector<std::string> filenames;
@@ -65,8 +68,7 @@ static std::string fileformatname = "";
 static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
 static int nthreads = 0;
-static const int DEFAULT_TILE_SIZE = 64;
-static int tile[3] = { -1, -1, 1 };  // A negative tile size is unset
+static int tile[3] = { 64, 64, 1 };
 static std::string channellist;
 static bool updatemode = false;
 static double stat_readtime = 0;
@@ -105,6 +107,9 @@ static bool prman_metadata = false;
 static bool constant_color_detect = false;
 static bool monochrome_detect = false;
 
+static bool prman = false;
+static bool oiio = false;
+
 // forward decl
 static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                    std::string outputfilename, std::string outformat,
@@ -121,14 +126,9 @@ parse_files (int argc, const char *argv[])
 }
 
 
-static void set_prman_options();
-static void set_oiio_options();
-
 static void
 getargs (int argc, char *argv[])
 {
-    bool prman = false;
-    bool oiio = false;
     bool help = false;
     
     ArgParse ap;
@@ -187,7 +187,7 @@ getargs (int argc, char *argv[])
                   "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
                   "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
                   "<SEPARATOR>", "Configuration Presets",
-                  "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata",
+                  "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata.",
                   "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, metadata, and constant-color optimizations.",
                   NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
@@ -224,12 +224,6 @@ getargs (int argc, char *argv[])
         ap.usage ();
         exit (EXIT_FAILURE);
     }
-    else if (prman) set_prman_options();
-    else if (oiio) set_oiio_options();
-    
-    // If tile-size is still unset, use the defaults.
-    if(tile[0]<0) tile[0] = DEFAULT_TILE_SIZE;
-    if(tile[1]<0) tile[1] = DEFAULT_TILE_SIZE;
     
     if (filenames.size() < 1) {
         std::cerr << "maketx ERROR: Must have at least one input filename specified.\n";
@@ -239,50 +233,49 @@ getargs (int argc, char *argv[])
 //    std::cout << "Converting " << filenames[0] << " to " << outputfilename << "\n";
 }
 
-static void
-set_prman_options()
+TypeDesc
+set_prman_options(TypeDesc out_dataformat)
 {
     // Force planar image handling, and also emit prman metadata
     separate = true;
     prman_metadata = true;
     
     // 8-bit : 64x64
-    if (dataformatname == "uint8" ||
-        dataformatname == "int8" ||
-        dataformatname == "sint8") {
-        if(tile[0]<0) tile[0] = 64;
-        if(tile[1]<0) tile[1] = 64;
+    if (out_dataformat == TypeDesc::UINT8 ||
+        out_dataformat == TypeDesc::INT8) {
+        tile[0] = 64;
+        tile[1] = 64;
     }
-
+    
     // 16-bit : 64x32
     // Force u16 -> s16
     // In prman's txmake (last tested in 15.0)
     // specifying -short creates a signed int representation
-    if (dataformatname == "uint16") {
-        dataformatname = "sint16";
+    if (out_dataformat == TypeDesc::UINT16) {
+        out_dataformat = TypeDesc::INT16;
     }
-
-    if (dataformatname == "uint16" ||
-        dataformatname == "int16" ||
-        dataformatname == "sint16") {
-        if(tile[0]<0) tile[0] = 64;
-        if(tile[1]<0) tile[1] = 32;
+    
+    if (out_dataformat == TypeDesc::UINT16 ||
+        out_dataformat == TypeDesc::INT16) {
+        tile[0] = 64;
+        tile[1] = 32;
     }
-
+    
     // Float: 32x32
     // In prman's txmake (last tested in 15.0)
     // specifying -half or -float make 32x32 tile size
-    if (dataformatname == "half" ||
-        dataformatname == "float" ||
-        dataformatname == "double") {
-        if(tile[0]<0) tile[0] = 32;
-        if(tile[1]<0) tile[1] = 32;
+    if (out_dataformat == TypeDesc::HALF ||
+        out_dataformat == TypeDesc::FLOAT ||
+        out_dataformat == TypeDesc::DOUBLE) {
+        tile[0] = 32;
+        tile[1] = 32;
     }
+    
+    return out_dataformat;
 }
 
-
-static void
-set_oiio_options()
+TypeDesc
+set_oiio_options(TypeDesc out_dataformat)
 {
     // Interleaved channels are faster to read
     separate = false;
@@ -290,8 +283,11 @@ set_oiio_options()
     // Enable constant color optimizations
     constant_color_detect = true;
     
-    if(tile[0]<0) tile[0] = 64;
-    if(tile[1]<0) tile[1] = 64;
+    // Force fixed tile-size across the board
+    tile[0] = 64;
+    tile[1] = 64;
+    
+    return out_dataformat;
 }
 
 static std::string
@@ -459,6 +455,32 @@ make_texturemap (const char *maptypename = "texture map")
     // file has been read and cached.
     TypeDesc out_dataformat = src.spec().format;
 
+    // Figure out which data format we want for output
+    if (! dataformatname.empty()) {
+        if (dataformatname == "uint8")
+            out_dataformat = TypeDesc::UINT8;
+        else if (dataformatname == "int8" || dataformatname == "sint8")
+            out_dataformat = TypeDesc::INT8;
+        else if (dataformatname == "uint16")
+            out_dataformat = TypeDesc::UINT16;
+        else if (dataformatname == "int16" || dataformatname == "sint16")
+            out_dataformat = TypeDesc::INT16;
+        else if (dataformatname == "half")
+            out_dataformat = TypeDesc::HALF;
+        else if (dataformatname == "float")
+            out_dataformat = TypeDesc::FLOAT;
+        else if (dataformatname == "double")
+            out_dataformat = TypeDesc::DOUBLE;
+    }
+    
+    
+    // We cannot compute the prman / oiio options until after out_dataformat
+    // has been determined, as it's required (and can potentially change 
+    // out_dataformat too!)
+    
+    if (prman) out_dataformat = set_prman_options(out_dataformat);
+    else if (oiio) out_dataformat = set_oiio_options(out_dataformat);
+    
     // Read the full file locally if it's less than 1 GB, otherwise
     // allow the ImageBuf to use ImageCache to manage memory.
     bool read_local = (src.spec().image_bytes() < size_t(1024*1024*1024));
@@ -477,7 +499,9 @@ make_texturemap (const char *maptypename = "texture map")
     // If requested - and we're a constant color - make a tiny texture instead
     // FIXME: Add the appropriate metadata to also advertise this fact.
     std::vector<float> constantColor(src.nchannels());
-    if (constant_color_detect && ImageBufAlgo::isConstantColor (src, &constantColor[0])) {
+    bool isConstantColor = (constant_color_detect && ImageBufAlgo::isConstantColor (src, &constantColor[0]));
+    
+    if (isConstantColor) {
         int newwidth = std::max (1, std::min (src.spec().width, tile[0]));
         int newheight = std::max (1, std::min (src.spec().height, tile[1]));
         
@@ -524,24 +548,6 @@ make_texturemap (const char *maptypename = "texture map")
         
         if (verbose)
             std::cout << "  SHA-1: " << hash_digest << std::endl;
-    }
-
-    // Figure out which data format we want for output
-    if (! dataformatname.empty()) {
-        if (dataformatname == "uint8")
-            out_dataformat = TypeDesc::UINT8;
-        else if (dataformatname == "int8" || dataformatname == "sint8")
-            out_dataformat = TypeDesc::INT8;
-        else if (dataformatname == "uint16")
-            out_dataformat = TypeDesc::UINT16;
-        else if (dataformatname == "int16" || dataformatname == "sint16")
-            out_dataformat = TypeDesc::INT16;
-        else if (dataformatname == "half")
-            out_dataformat = TypeDesc::HALF;
-        else if (dataformatname == "float")
-            out_dataformat = TypeDesc::FLOAT;
-        else if (dataformatname == "double")
-            out_dataformat = TypeDesc::DOUBLE;
     }
 
     if (shadowmode) {
@@ -602,13 +608,46 @@ make_texturemap (const char *maptypename = "texture map")
     dstspec.attribute ("DateTime", datestring(date));
 
     dstspec.attribute ("Software", full_command_line);
-
+    
+    // Update the ImageDescription
+    std::string desc = dstspec.get_string_attribute ("ImageDescription");
+    bool updatedDesc = false;
+    
+    // FIXME: We need to do real dictionary style partial updates on the
+    //        ImageDescription. I.e., set one key without affecting the
+    //        other keys. But in the meantime, just clear it out if
+    //        it appears the incoming image was a maketx style texture.
+    
+    if ((desc.find("SHA-1=") != std::string::npos) || 
+        (desc.find("ConstantColor=") != std::string::npos)) {
+        desc = "";
+    }
+    
     if (hash_digest.length()) {
-        std::string desc = dstspec.get_string_attribute ("ImageDescription");
         if (desc.length())
             desc += " ";
         desc += "SHA-1=";
         desc += hash_digest;
+        updatedDesc = true;
+    }
+    
+    if (isConstantColor) {
+        std::ostringstream os; // Emulate a JSON array
+        os << "[";
+        for(unsigned int i=0; i<constantColor.size(); ++i) {
+            if (i!=0) os << ",";
+            os << constantColor[i];
+        }
+        os << "]";
+        
+        if (desc.length())
+            desc += " ";
+        desc += "ConstantColor=";
+        desc += os.str();
+        updatedDesc = true;
+    }
+    
+    if (updatedDesc) {
         dstspec.attribute ("ImageDescription", desc);
     }
 
