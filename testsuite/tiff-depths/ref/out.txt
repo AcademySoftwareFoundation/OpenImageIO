@@ -2,8 +2,7 @@ hi
 ../../../libtiffpic/depth/flower-minisblack-02.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: F6BD9D10FB0DD8E9AC62DEBBB743A78FC48D3C9B
     channel list: A
-    Color space: unknown
-    BitsPerSample: 2
+    oiio:BitsPerSample: 2
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -29,8 +28,7 @@ PASS
 ../../../libtiffpic/depth/flower-minisblack-04.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: 8C0CF14B3B585F4B1F249C681BEDEA4CB63E3EDD
     channel list: A
-    Color space: unknown
-    BitsPerSample: 4
+    oiio:BitsPerSample: 4
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -56,8 +54,7 @@ PASS
 ../../../libtiffpic/depth/flower-minisblack-08.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: 1A909C8E70CC479D8A35BAA9BFEDDCBF4BF46FDC
     channel list: A
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -83,8 +80,7 @@ PASS
 ../../../libtiffpic/depth/flower-minisblack-16.tif :   73 x   43, 1 channel, uint16 tiff
     SHA-1: 7EBB74E46C869CA0D6D091183732214B6A75173A
     channel list: A
-    Color space: unknown
-    BitsPerSample: 16
+    oiio:BitsPerSample: 16
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -110,8 +106,7 @@ PASS
 ../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 52B3033465AA01129BAE149FF96CBB49877DAB7C
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 2
+    oiio:BitsPerSample: 2
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -137,8 +132,7 @@ PASS
 ../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: C6E40A3D134F1A29E153FE15459D8DE657CB7F9C
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 4
+    oiio:BitsPerSample: 4
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -164,8 +158,7 @@ PASS
 ../../../libtiffpic/depth/flower-palette-08.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 0ADA355BABFE9866F3D88AF7CA3AAC69D7DC036D
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -191,8 +184,7 @@ PASS
 ../../../libtiffpic/depth/flower-rgb-contig-08.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 35D01526DE5F904B7978B8EA16192A28389E276F
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 8
+    oiio:BitsPerSample: 8
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
@@ -218,8 +210,7 @@ PASS
 ../../../libtiffpic/depth/flower-rgb-contig-16.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: 19F69706D5C52FC9510A3C20F9A43361FEF2AC9D
     channel list: R, G, B
-    Color space: unknown
-    BitsPerSample: 16
+    oiio:BitsPerSample: 16
     Orientation: 1 (normal)
     XResolution: 72
     YResolution: 72
