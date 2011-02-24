@@ -28,6 +28,12 @@
   (This is the Modified BSD License)
 */
 
+/* This header have to be included before boost/regex.hpp header
+   If it is included after, there is an error
+   "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
+*/
+#include "SHA1.h"
+
 /// \file
 /// Implementation of ImageBuf class.
 
@@ -40,6 +46,7 @@
 #include "imagebuf.h"
 #include "imagebufalgo.h"
 #include "dassert.h"
+#include <stdexcept>
 
 OIIO_NAMESPACE_ENTER
 {
@@ -247,7 +254,80 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
     
     
     
+
+
+
+bool
+ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels)
+{
+    // Not intended to create 0-channel images.
+    if (numChannels <= 0)
+        return false;
+    // If we dont have a single source channel,
+    // hard to know how big to make the additional channels
+    if (src.spec().nchannels == 0)
+        return false;
     
+    if (numChannels == src.spec().nchannels) {
+        dst = src;
+        return true;
+    }
+    
+    // Update the ImageSpec
+    // (should this be moved to a helper function in the imagespec.h?
+    ImageSpec dst_spec = src.spec();
+    dst_spec.nchannels = numChannels;
+    
+    if (numChannels < src.spec().nchannels) {
+        // Reduce the number of formats, and names, if needed
+        if (static_cast<int>(dst_spec.channelformats.size()) == src.spec().nchannels)
+            dst_spec.channelformats.resize(numChannels);
+        if (static_cast<int>(dst_spec.channelnames.size()) == src.spec().nchannels)
+            dst_spec.channelnames.resize(numChannels);
+        
+        if (dst_spec.alpha_channel < numChannels-1) {
+            dst_spec.alpha_channel = -1;
+        }
+        if (dst_spec.z_channel < numChannels-1) {
+            dst_spec.z_channel = -1;
+        }
+    }
+    else {
+        // Increase the number of formats, and names, if needed
+        if (static_cast<int>(dst_spec.channelformats.size()) == src.spec().nchannels) {
+            for (int c = dst_spec.channelnames.size();  c < numChannels;  ++c) {
+                dst_spec.channelformats.push_back(dst_spec.format);
+            }
+        }
+        if (static_cast<int>(dst_spec.channelnames.size()) == src.spec().nchannels) {
+            for (int c = dst_spec.channelnames.size();  c < numChannels;  ++c) {
+                dst_spec.channelnames.push_back (Strutil::format("channel%d", c));
+            }
+        }
+    }
+    
+    // Update the image (realloc with the new spec)
+    dst.alloc (dst_spec);
+    
+    std::vector<float> pixel(numChannels, 0.0f);
+    
+    // FIXME: This is the pattern commonly used for walking through the image,
+    //        but shouldn't we actually use the data window?
+    for (int k = 0; k < dst_spec.full_depth; k++) {
+        for (int j = 0; j < dst_spec.full_height; j++) {
+            for (int i = 0; i < dst_spec.full_width ; i++) {
+                src.getpixel (i, j, k, &pixel[0]);
+                dst.setpixel (i, j, k, &pixel[0]);
+            }
+        }
+    }
+    
+    return true;
+}
+
+
+
+
 bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    int options)
@@ -452,6 +532,141 @@ ImageBufAlgo::computePixelStats (PixelStats  &stats, const ImageBuf &src)
     
     return true;
 };
+
+namespace
+{
+
+template<typename T>
+static inline bool
+isConstantColor_ (float *color, const ImageBuf &src)
+{
+    int nchannels = src.nchannels();
+    if (nchannels == 0)
+        return true;
+    
+    bool firstpixel = true;
+    int c = 0;
+    
+    // Iterate using the native typing (for speed).
+    ImageBuf::ConstIterator<T,T> s (src);
+    std::vector<T> constval (src.spec().nchannels);
+    
+    // Loop over all pixels ...
+    for ( ; s.valid ();  ++s) {
+        if(firstpixel) {
+            for (c = 0;  c < nchannels;  ++c) {
+                constval[c] = s[c];
+            }
+            if(color) {
+                src.getpixel (s.x(), s.y(), s.z(), color);
+            }
+            firstpixel = false;
+        }
+        else {
+            for (c = 0;  c < nchannels;  ++c) {
+                if(constval[c]!=s[c]) {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    return true;
+}
+
+}
+
+bool
+ImageBufAlgo::isConstantColor (float *color, const ImageBuf &src)
+{
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT : return isConstantColor_<float> (color, src); break;
+    case TypeDesc::UINT8 : return isConstantColor_<unsigned char> (color, src); break;
+    case TypeDesc::INT8  : return isConstantColor_<char> (color, src); break;
+    case TypeDesc::UINT16: return isConstantColor_<unsigned short> (color, src); break;
+    case TypeDesc::INT16 : return isConstantColor_<short> (color, src); break;
+    case TypeDesc::UINT  : return isConstantColor_<unsigned int> (color, src); break;
+    case TypeDesc::INT   : return isConstantColor_<int> (color, src); break;
+    case TypeDesc::UINT64: return isConstantColor_<unsigned long long> (color, src); break;
+    case TypeDesc::INT64 : return isConstantColor_<long long> (color, src); break;
+    case TypeDesc::HALF  : return isConstantColor_<half> (color, src); break;
+    case TypeDesc::DOUBLE: return isConstantColor_<double> (color, src); break;
+    default:
+        return false;
+    }
+};
+
+namespace
+{
+
+template<typename T>
+static inline bool
+isMonochrome_ (const ImageBuf &src)
+{
+    int nchannels = src.nchannels();
+    if (nchannels < 2) return true;
+    
+    int c = 0;
+    T constvalue;
+    ImageBuf::ConstIterator<T,T> s (src);
+    
+    // Loop over all pixels ...
+    for ( ; s.valid();  ++s) {
+        constvalue = s[0];
+        for (c = 1;  c < nchannels;  ++c) {
+            if(s[c] != constvalue) {
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+}
+
+
+bool
+ImageBufAlgo::isMonochrome(const ImageBuf &src)
+{
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT : return isMonochrome_<float> (src); break;
+    case TypeDesc::UINT8 : return isMonochrome_<unsigned char> (src); break;
+    case TypeDesc::INT8  : return isMonochrome_<char> (src); break;
+    case TypeDesc::UINT16: return isMonochrome_<unsigned short> (src); break;
+    case TypeDesc::INT16 : return isMonochrome_<short> (src); break;
+    case TypeDesc::UINT  : return isMonochrome_<unsigned int> (src); break;
+    case TypeDesc::INT   : return isMonochrome_<int> (src); break;
+    case TypeDesc::UINT64: return isMonochrome_<unsigned long long> (src); break;
+    case TypeDesc::INT64 : return isMonochrome_<long long> (src); break;
+    case TypeDesc::HALF  : return isMonochrome_<half> (src); break;
+    case TypeDesc::DOUBLE: return isMonochrome_<double> (src); break;
+    default:
+        return false;
+    }
+};
+
+std::string
+ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
+{
+    std::string hash_digest;
+    
+    CSHA1 sha;
+    sha.Reset ();
+    // Do one scanline at a time, to keep to < 2^32 bytes each
+    imagesize_t scanline_bytes = src.spec().scanline_bytes();
+    ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
+    std::vector<unsigned char> tmp (scanline_bytes);
+    for (int y = src.ymin();  y <= src.ymax();  ++y) {
+        src.copy_pixels (src.xbegin(), src.xend(), y, y+1,
+                         src.spec().format, &tmp[0]);
+        sha.Update (&tmp[0], (unsigned int) scanline_bytes);
+    }
+    sha.Final ();
+    sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
+    
+    return hash_digest;
+}
 
 }
 OIIO_NAMESPACE_EXIT

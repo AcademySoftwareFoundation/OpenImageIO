@@ -231,6 +231,28 @@ print_stats (const std::string &filename,
         printf ("%llu ", (unsigned long long)stats.finitecount[i]);
     }
     printf ("\n");
+    
+    std::vector<float> constantValues(input.spec().nchannels);
+    if(isConstantColor(&constantValues[0], input)) {
+        printf ("    Constant: Yes\n");
+        printf ("    Constant Color: ");
+        for (unsigned int i=0; i<constantValues.size(); ++i) {
+            print_stats_num (constantValues[i], maxval, false);
+            printf (" ");
+        }
+        print_stats_footer (maxval);
+        printf ("\n");
+    }
+    else
+    {
+        printf ("    Constant: No\n");
+    }
+    
+    if(isMonochrome(input)) {
+        printf ("    Monochrome: Yes\n");
+    } else {
+        printf ("    Monochrome: No\n");
+    }
 }
 
 

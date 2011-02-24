@@ -71,6 +71,13 @@ bool DLLPUBLIC fill (ImageBuf &dst,
                      int zbegin, int zend);
 
 
+/// Change the number of channels in the specified imagebuf.
+/// This is done by either dropping them, or synthesizing additional ones
+/// return true on success.
+/// Does not support in-place operation.
+
+bool DLLPUBLIC setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
+
 /// Add the pixels of two images A and B, putting the sum in dst.
 /// The 'options' flag controls behaviors, particular of what happens
 /// when A, B, and dst have differing data windows.  Note that dst must
@@ -132,7 +139,21 @@ struct DLLPUBLIC PixelStats {
 /// Compute statistics on the specified image (over all pixels in the data
 /// window). Upon success, the returned vectors will have size == numchannels.
 /// A FLOAT ImageBuf is required.
+/// (current subimage, and current mipmap level)
 bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
+
+/// You can optionally query the constantvalue'd color
+/// (current subimage, and current mipmap level)
+bool DLLPUBLIC isConstantColor (float *color, const ImageBuf &src);
+
+/// Is the image monochrome? (i.e., are all channels the same value?)
+/// zero and one channel images always return true
+/// (current subimage, and current mipmap level)
+bool DLLPUBLIC isMonochrome(const ImageBuf &src);
+
+/// Compute the sha1 byte hash for all the pixels in the image.
+/// (current subimage, and current mipmap level)
+std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src);
 
 };  // end namespace ImageBufAlgo
 
