@@ -116,6 +116,13 @@ Causes the output to \emph{not} be MIP-mapped, i.e., only will have
 the highest-resolution level.
 \apiend
 
+\apiitem{--nchannels {\rm \emph{n}}}
+Sets the number of output channels.  If \emph{n} is less than the 
+number of channels in the input image, the extra channels will simply
+be ignored.  If \emph{n} is greater than the number of channels in the
+input image, the additional channels will be filled with 0 values.
+\apiend
+
 \apiitem{--checknan}
 Checks every pixel of the input image to ensure that no NaN or Inf
 values are present.  If such non-finite pixel values are found, 
