@@ -981,7 +981,7 @@ TextureSystemImpl::pole_color (TextureFile &texturefile,
             size_t width = spec.width;
             float scale = 1.0f / width;
             for (int pole = 0;  pole <= 1;  ++pole, p += spec.nchannels) {
-                int y = pole==0 ? 0 : spec.height-1;
+                int y = pole * (spec.height-1);   // 0 or height-1
                 for (int c = 0;  c < spec.nchannels;  ++c)
                     p[c] = 0.0f;
                 const unsigned char *texel = tile->bytedata() + y*spec.tile_width*pixelsize;
