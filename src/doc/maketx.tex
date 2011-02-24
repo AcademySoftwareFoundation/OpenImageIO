@@ -123,10 +123,10 @@ an error message will be printed and {\cf maketx} will terminate without
 writing the output image (returning an error code).
 \apiend
 
-\apiitem{--ingamma {\rm \emph{value}} \\
---outgamma {\rm \emph{value}}}
-Not currently implemented
-\apiend
+%\apiitem{--ingamma {\rm \emph{value}} \\
+%--outgamma {\rm \emph{value}}}
+%Not currently implemented
+%\apiend
 
 \apiitem{--Mcamera {\rm \emph{...16 floats...}} \\
 --Mscreen {\rm \emph{...16 floats...}}}
@@ -142,6 +142,65 @@ in the ``ImageDescription'' metadata of the output texture.  This is
 useful in helping the \TextureSystem identify duplicate textures at
 runtime.
 \apiend
+
+\apiitem{--prman-metadata}
+Causes metadata \qkw{PixarTextureFormat} to be set, which is useful if
+you intend to create an OpenEXR texture or environment map that can be
+used with PRMan as well as OIIO.
+\apiend
+
+\apiitem{--constant-color-detect}
+Detects images in which all pixels are identical, and outputs the
+texture at a reduced resolution equal to the tile size, rather than
+filling endless tiles with the same constant color.  That is, by
+substituting a low-res texture for a high-res texture if it's a constant
+color, you could save a lot of save disk space, I/O, and texture cache size.
+It also sets the \qkw{ImageDescription} to contain a
+special message of the form \qkw{ConstantColor=[r,g,...]}.  
+\apiend
+
+\apiitem{--monochrome-detect}
+Detects multi-channel images in which all color components are
+identical, and outputs the texture as a single-channel image instead.
+That is, it changes RGB images that are gray into single-channel gray
+scale images.
+
+Use with caution!  This is a great optimization if such textures will
+only have their first channel accessed, but may cause unexpected behavior
+if the ``client'' application will attempt to access those other
+channels that will no longer exist.
+\apiend
+
+\apiitem{--prman}
+PRMan is will crash in strange ways if given textures that don't have
+its quirky set of tile sizes and other specific metadata.  If you want
+\maketx to generate textures that may be used with either \OpenImageIO
+or PRMan, you should use the {\cf --prman} option, which will set
+several options to make PRMan happy, overriding any contradictory
+settings on the command line or in the input texture.  
+
+Specifically, this option sets the tile size (to 64x64 for 8 bit,
+64x32 for 16 bit integer, and 32x32 for float or {\cf half} images),
+uses ``separate'' planar configuration ({\cf --separate}), and sets
+PRMan-specific metadata ({\cf --prman-metadata}).  It also outputs 
+sint16 textures if uint16 is requested (because PRMan for some reason
+does not accept true uint16 textures).
+
+\OpenImageIO will happily accept textures that conform to PRMan's
+expectations, but not vice versa.  But \OpenImageIO's \TextureSystem
+has better performance with textures that use \maketx's default settings
+rather than these oddball choices.  You have been warned!
+\apiend
+
+\apiitem{--oiio}
+This sets several options that we have determined are the 
+optimal values for \OpenImageIO's \TextureSystem, overriding any
+contradictory settings on the command line or in the input texture.
+
+Specifically, this is the equivalent to using \\
+ {\cf --separate --tile 64 64 --constant-color-detect}.
+\apiend
+
 
 % --shadow --shadcube
 % --volshad --envlatl --envcube --lightprobe --latl2envcube --vertcross

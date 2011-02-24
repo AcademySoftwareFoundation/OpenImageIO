@@ -183,12 +183,17 @@ Attempt to sets the output pixel data type to one of: {\cf uint8},
 {\cf sint8}, {\cf uint16}, {\cf sint16}, {\cf half}, {\cf float}, 
 {\cf double}.
 
-If the {\cf -d} option is not supplied, the output data type will
-be the same as the data format of the input file.
+The types {\cf uint10} and {\cf uint12} may be used to request 10- or
+12-bit unsigned integers.  If the output file format does not support
+them, {\cf uint16} will be substituted.
 
-In either case, the output file format itself (implied by the file
-extension of the output filename) may trump the request if the file
-format simply does not support the requested data type.
+If the {\cf -d} option is not supplied, the output data type will
+be the same as the data format of the input file, if possible.
+
+In any case, if the output file type does not support the requested
+data type, it will instead use whichever supported data type results
+in the least amount of precision lost.
+
 \apiend
 
 % FIXME -- no it doesn't!
