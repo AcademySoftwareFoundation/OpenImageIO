@@ -2,8 +2,8 @@ Changes:
 
 
 
-Release 0.9 (Dec 9 2010)
--------------------------
+Release 0.9 (Dec 9 2010, updated Feb 23, 2011)
+----------------------------------------------
 Major new features:
 
 * New format plugin: DPX
@@ -31,6 +31,13 @@ API changes:
 * Finally put all the helper classes (ustring, TypeDesc, etc.) that were
   in the main OpenImageIO namespace, as well as centralized version numbering
   and custom namespace control.
+* ParamList now has a method to remove attributes.
+* Color handling change: color space now is a metadata string,
+  "oiio:ColorSpace", not 'linearity' data member of ImageSpec; remnants of 
+  bad 'dither' ideas have been removed; "BitsPerSample" metadata has been
+  renamed "oiio:BitsPerSample" and several bugs have been fixed related to
+  it in some of the image plugins.
+* Moved some ImageBuf methods into functions in imagebufalgo.h.
 
 Fixes, minor enhancements, and performance improvements:
 
@@ -43,6 +50,7 @@ Fixes, minor enhancements, and performance improvements:
 * PNM: monochrome data was output incorrectly in both binary & ascii forms;
   adopt the Netbpm convention for endianness in the 16 bit case; open binary
   image files in binary mode to avoid newline mangling (r1709).
+* TIFF: more sensible checkpointing logic greatly reduces header rewriting.
 * iinfo: add --stats option (r1618)
 * iv: Now can sort the image list by file date, metadata date, name, or
   file path (r1514).
@@ -54,6 +62,8 @@ Fixes, minor enhancements, and performance improvements:
 * New ImageBuf algorithm: computePixelStats (r1618)
 * Fixes in ImageCache and ImageBuf to allow correct handling of
   3D (volumetric) files. (r1659,1660)
+* ImageCache fixed to ensure that multiple threads don't try to concurrently
+  open the same file.
 * Properly append error messages; ASSERT if the error message buffer
   exceeds 16 MB (which means somebody is failing to call geterror) (1672)
 * Fix subtle Strutil::format and ustring::format crasher bugs with long
@@ -71,6 +81,10 @@ Fixes, minor enhancements, and performance improvements:
   from IMAGEIO_LIBRARY_PATH to OPENIMAGEIO_LIBRARY_PATH. (r1723)
 * Bug fix to ImageInput::read_image -- could crash due to an internal
   buffer allocated as the wrong size. (r1724)
+* Bug fixes to write_image(), related to subtle stride errors.
+* Improved strhash, fewer ustring hash collisions.
+* New maketx functionality: --constant-color-detect, --monochrome-detect,
+  --prman, --oiio (look in docs for explanation).
 
 For developers / build issues:
 
@@ -81,7 +95,6 @@ For developers / build issues:
 * In-progress socket I/O plugin is in the code base, but not yet fully
   supported.
 * Disable python support if boost_python is not found. (r1701)
-
 
 
 Release 0.8 (May 26 2010)
