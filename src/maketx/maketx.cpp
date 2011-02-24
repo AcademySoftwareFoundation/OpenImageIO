@@ -121,6 +121,8 @@ parse_files (int argc, const char *argv[])
 }
 
 
+static void set_prman_options();
+static void set_oiio_options();
 
 static void
 getargs (int argc, char *argv[])
@@ -148,7 +150,7 @@ getargs (int argc, char *argv[])
                   "--outgamma %f", &outgamma, "Specify gamma of output files (default: 1)",
                   "--opaquewidth %f", &opaquewidth, "Set z fudge factor for volume shadows",
                   "--fov %f", &fov, "Field of view for envcube/shadcube/twofish",
-                  "--fovcot %f", &fovcot, "Override the pixel aspect ratio correction factor. Default is width/height.",
+                  "--fovcot %f", &fovcot, "Override the frame aspect ratio. Default is width/height.",
                   "--wrap %s", &wrap, "Specify wrap mode (black, clamp, periodic, mirror)",
                   "--swrap %s", &swrap, "Specific s wrap mode separately",
                   "--twrap %s", &twrap, "Specific t wrap mode separately",
@@ -186,7 +188,7 @@ getargs (int argc, char *argv[])
                   "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
                   "<SEPARATOR>", "Configuration Presets",
                   "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata",
-                  "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, and metadata",
+                  "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, metadata, and constant-color optimizations.",
                   NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -215,61 +217,15 @@ getargs (int argc, char *argv[])
     if (doresize)
         noresize = false;
     
-    // Do prman-specific munging
-    // But... if a tile size has been specified explicitly, obey it
-    if (prman) {
-        // Force planar image handling, and also emit prman metadata
-        separate = true;
-        prman_metadata = true;
-        
-        // 8-bit : 64x64
-        if (dataformatname == "uint8" ||
-            dataformatname == "int8" ||
-            dataformatname == "sint8") {
-            
-            if(tile[0]<0) tile[0] = 64;
-            if(tile[1]<0) tile[1] = 64;
-        }
-        
-        // 16-bit : 64x32
-        
-        // Force u16 -> s16
-        // In prman's txmake (last tested in 15.0)
-        // specifying -short creates a signed int representation
-        if (dataformatname == "uint16") {
-            dataformatname = "sint16";
-        }
-        
-        if (dataformatname == "uint16" ||
-            dataformatname == "int16" ||
-            dataformatname == "sint16") {
-            if(tile[0]<0) tile[0] = 64;
-            if(tile[1]<0) tile[1] = 32;
-        }
-        
-        // Float: 32x32
-        // In prman's txmake (last tested in 15.0)
-        // specifying -half or -float make 32x32 tile size
-        if (dataformatname == "half" ||
-            dataformatname == "float" ||
-            dataformatname == "double") {
-            if(tile[0]<0) tile[0] = 32;
-            if(tile[1]<0) tile[1] = 32;
-        }
+    if (prman && oiio) {
+        std::cerr << "maketx ERROR: '--prman' compatibility, and '--oiio' optimizations are mutually exclusive.\n";
+        std::cerr << "\tIf you'd like both prman and oiio compatibility, you should choose --prman\n";
+        std::cerr << "\t(at the expense of oiio-specific optimizations)\n";
+        ap.usage ();
+        exit (EXIT_FAILURE);
     }
-    
-    // Do OpenImageIO specific optimizations
-    // But... if a tile size has been specified explicitly, obey it
-    if(oiio) {
-        // Interleaved channels are faster to read
-        separate = false;
-        
-        // Enable constant color optimizations
-        constant_color_detect = true;
-        
-        if(tile[0]<0) tile[0] = 64;
-        if(tile[1]<0) tile[1] = 64;
-    }
+    else if (prman) set_prman_options();
+    else if (oiio) set_oiio_options();
     
     // If tile-size is still unset, use the defaults.
     if(tile[0]<0) tile[0] = DEFAULT_TILE_SIZE;
@@ -283,7 +239,60 @@ getargs (int argc, char *argv[])
 //    std::cout << "Converting " << filenames[0] << " to " << outputfilename << "\n";
 }
 
+static void
+set_prman_options()
+{
+    // Force planar image handling, and also emit prman metadata
+    separate = true;
+    prman_metadata = true;
+    
+    // 8-bit : 64x64
+    if (dataformatname == "uint8" ||
+        dataformatname == "int8" ||
+        dataformatname == "sint8") {
+        if(tile[0]<0) tile[0] = 64;
+        if(tile[1]<0) tile[1] = 64;
+    }
 
+    // 16-bit : 64x32
+    // Force u16 -> s16
+    // In prman's txmake (last tested in 15.0)
+    // specifying -short creates a signed int representation
+    if (dataformatname == "uint16") {
+        dataformatname = "sint16";
+    }
+
+    if (dataformatname == "uint16" ||
+        dataformatname == "int16" ||
+        dataformatname == "sint16") {
+        if(tile[0]<0) tile[0] = 64;
+        if(tile[1]<0) tile[1] = 32;
+    }
+
+    // Float: 32x32
+    // In prman's txmake (last tested in 15.0)
+    // specifying -half or -float make 32x32 tile size
+    if (dataformatname == "half" ||
+        dataformatname == "float" ||
+        dataformatname == "double") {
+        if(tile[0]<0) tile[0] = 32;
+        if(tile[1]<0) tile[1] = 32;
+    }
+}
+
+
+static void
+set_oiio_options()
+{
+    // Interleaved channels are faster to read
+    separate = false;
+    
+    // Enable constant color optimizations
+    constant_color_detect = true;
+    
+    if(tile[0]<0) tile[0] = 64;
+    if(tile[1]<0) tile[1] = 64;
+}
 
 static std::string
 datestring (time_t t)
@@ -468,7 +477,7 @@ make_texturemap (const char *maptypename = "texture map")
     // If requested - and we're a constant color - make a tiny texture instead
     // FIXME: Add the appropriate metadata to also advertise this fact.
     std::vector<float> constantColor(src.nchannels());
-    if (constant_color_detect && ImageBufAlgo::isConstantColor (&constantColor[0], src)) {
+    if (constant_color_detect && ImageBufAlgo::isConstantColor (src, &constantColor[0])) {
         int newwidth = std::max (1, std::min (src.spec().width, tile[0]));
         int newheight = std::max (1, std::min (src.spec().height, tile[1]));
         
@@ -607,9 +616,7 @@ make_texturemap (const char *maptypename = "texture map")
         dstspec.attribute ("textureformat", "Shadow");
         if(prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Shadow");
-    }
-    else
-    {
+    } else {
         dstspec.attribute ("textureformat", "Plain Texture");
         if(prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Plain Texture");

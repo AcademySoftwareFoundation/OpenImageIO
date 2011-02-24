@@ -93,9 +93,11 @@ bool
 ImageBufAlgo::fill (ImageBuf &dst,
                     const float *pixel)
 {
-    for (int k = 0; k < dst.spec().full_depth; k++)
-        for (int j = 0; j < dst.spec().full_height; j++)
-            for (int i = 0; i < dst.spec().full_width ; i++)
+    // Walk through all data in our buffer. (i.e., crop or overscan)
+    // The display window is irrelevant
+    for (int k = dst.spec().z; k < dst.spec().z+dst.spec().depth; k++)
+        for (int j = dst.spec().y; j <  dst.spec().y+dst.spec().height; j++)
+            for (int i = dst.spec().x; i < dst.spec().x+dst.spec().width ; i++)
                 dst.setpixel (i, j, pixel);
     
     return true;
@@ -291,8 +293,7 @@ ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
         if (dst_spec.z_channel < numChannels-1) {
             dst_spec.z_channel = -1;
         }
-    }
-    else {
+    } else {
         // Increase the number of formats, and names, if needed
         if (static_cast<int>(dst_spec.channelformats.size()) == src.spec().nchannels) {
             for (int c = dst_spec.channelnames.size();  c < numChannels;  ++c) {
@@ -311,11 +312,11 @@ ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
     
     std::vector<float> pixel(numChannels, 0.0f);
     
-    // FIXME: This is the pattern commonly used for walking through the image,
-    //        but shouldn't we actually use the data window?
-    for (int k = 0; k < dst_spec.full_depth; k++) {
-        for (int j = 0; j < dst_spec.full_height; j++) {
-            for (int i = 0; i < dst_spec.full_width ; i++) {
+    // Walk though the data window. I.e., the crop window in a small image
+    // or the overscanned area in a large image.
+    for (int k = dst_spec.z; k < dst_spec.z+dst_spec.depth; k++) {
+        for (int j = dst_spec.y; j < dst_spec.y+dst_spec.height; j++) {
+            for (int i = dst_spec.x; i < dst_spec.x+dst_spec.width ; i++) {
                 src.getpixel (i, j, k, &pixel[0]);
                 dst.setpixel (i, j, k, &pixel[0]);
             }
@@ -538,7 +539,7 @@ namespace
 
 template<typename T>
 static inline bool
-isConstantColor_ (float *color, const ImageBuf &src)
+isConstantColor_ (const ImageBuf &src, float *color)
 {
     int nchannels = src.nchannels();
     if (nchannels == 0)
@@ -561,8 +562,7 @@ isConstantColor_ (float *color, const ImageBuf &src)
                 src.getpixel (s.x(), s.y(), s.z(), color);
             }
             firstpixel = false;
-        }
-        else {
+        } else {
             for (c = 0;  c < nchannels;  ++c) {
                 if(constval[c]!=s[c]) {
                     return false;
@@ -577,20 +577,20 @@ isConstantColor_ (float *color, const ImageBuf &src)
 }
 
 bool
-ImageBufAlgo::isConstantColor (float *color, const ImageBuf &src)
+ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
 {
     switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return isConstantColor_<float> (color, src); break;
-    case TypeDesc::UINT8 : return isConstantColor_<unsigned char> (color, src); break;
-    case TypeDesc::INT8  : return isConstantColor_<char> (color, src); break;
-    case TypeDesc::UINT16: return isConstantColor_<unsigned short> (color, src); break;
-    case TypeDesc::INT16 : return isConstantColor_<short> (color, src); break;
-    case TypeDesc::UINT  : return isConstantColor_<unsigned int> (color, src); break;
-    case TypeDesc::INT   : return isConstantColor_<int> (color, src); break;
-    case TypeDesc::UINT64: return isConstantColor_<unsigned long long> (color, src); break;
-    case TypeDesc::INT64 : return isConstantColor_<long long> (color, src); break;
-    case TypeDesc::HALF  : return isConstantColor_<half> (color, src); break;
-    case TypeDesc::DOUBLE: return isConstantColor_<double> (color, src); break;
+    case TypeDesc::FLOAT : return isConstantColor_<float> (src, color); break;
+    case TypeDesc::UINT8 : return isConstantColor_<unsigned char> (src, color); break;
+    case TypeDesc::INT8  : return isConstantColor_<char> (src, color); break;
+    case TypeDesc::UINT16: return isConstantColor_<unsigned short> (src, color); break;
+    case TypeDesc::INT16 : return isConstantColor_<short> (src, color); break;
+    case TypeDesc::UINT  : return isConstantColor_<unsigned int> (src, color); break;
+    case TypeDesc::INT   : return isConstantColor_<int> (src, color); break;
+    case TypeDesc::UINT64: return isConstantColor_<unsigned long long> (src, color); break;
+    case TypeDesc::INT64 : return isConstantColor_<long long> (src, color); break;
+    case TypeDesc::HALF  : return isConstantColor_<half> (src, color); break;
+    case TypeDesc::DOUBLE: return isConstantColor_<double> (src, color); break;
     default:
         return false;
     }

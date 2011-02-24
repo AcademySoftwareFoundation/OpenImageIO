@@ -72,9 +72,10 @@ bool DLLPUBLIC fill (ImageBuf &dst,
 
 
 /// Change the number of channels in the specified imagebuf.
-/// This is done by either dropping them, or synthesizing additional ones
-/// return true on success.
+/// This is done by either dropping them, or synthesizing additional ones.
+/// If channels are added, they are cleared to a value of 0.0.
 /// Does not support in-place operation.
+/// return true on success.
 
 bool DLLPUBLIC setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
 
@@ -144,7 +145,7 @@ bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
 
 /// You can optionally query the constantvalue'd color
 /// (current subimage, and current mipmap level)
-bool DLLPUBLIC isConstantColor (float *color, const ImageBuf &src);
+bool DLLPUBLIC isConstantColor (const ImageBuf &src, float *color = NULL);
 
 /// Is the image monochrome? (i.e., are all channels the same value?)
 /// zero and one channel images always return true
