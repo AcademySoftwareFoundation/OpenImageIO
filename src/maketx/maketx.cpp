@@ -57,7 +57,7 @@
 OIIO_NAMESPACE_USING
 
 
-// # FIXME: REfactor all statics into a struct
+// # FIXME: Refactor all statics into a struct
 
 // Basic runtime options
 static std::string full_command_line;
@@ -106,7 +106,7 @@ static bool embed_hash = false;
 static bool prman_metadata = false;
 static bool constant_color_detect = false;
 static bool monochrome_detect = false;
-
+static int nchannels = -1;
 static bool prman = false;
 static bool oiio = false;
 
@@ -142,6 +142,7 @@ getargs (int argc, char *argv[])
                   "-t %d", &nthreads, "Number of threads (default: #cores)",
                   "-u", &updatemode, "Update mode",
                   "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
+                  "--nchannels %d", &nchannels, "Specify the number of output image channels.",
                   "-d %s", &dataformatname, "Set the output data format to one of:\n"
                           "\t\t\tuint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
@@ -478,8 +479,8 @@ make_texturemap (const char *maptypename = "texture map")
     // has been determined, as it's required (and can potentially change 
     // out_dataformat too!)
     
-    if (prman) out_dataformat = set_prman_options(out_dataformat);
-    else if (oiio) out_dataformat = set_oiio_options(out_dataformat);
+    if (prman) out_dataformat = set_prman_options (out_dataformat);
+    else if (oiio) out_dataformat = set_oiio_options (out_dataformat);
     
     // Read the full file locally if it's less than 1 GB, otherwise
     // allow the ImageBuf to use ImageCache to manage memory.
@@ -534,17 +535,27 @@ make_texturemap (const char *maptypename = "texture map")
     // If requested - and we're a monochrome image - drop the extra channels
     if (monochrome_detect && (src.nchannels() > 1) && ImageBufAlgo::isMonochrome(src)) {
         ImageBuf newsrc(src.name() + ".monochrome", src.spec());
-        ImageBufAlgo::setNumChannels(newsrc, src, 1);
+        ImageBufAlgo::setNumChannels (newsrc, src, 1);
         src = newsrc;
         if (verbose) {
             std::cout << "  Monochrome image detected. Converting to single channel texture.\n";
+        }
+    }
+    // Or, if we've otherwise explicitly requested to write out a
+    // specific number of channels, do it.
+    else if ((nchannels > 0) && (nchannels != src.nchannels())) {
+        ImageBuf newsrc(src.name() + ".channels", src.spec());
+        ImageBufAlgo::setNumChannels (newsrc, src, nchannels);
+        src = newsrc;
+        if (verbose) {
+            std::cout << "  Overriding number of channels to " << nchannels << "\n";
         }
     }
     
     
     std::string hash_digest;
     if (embed_hash) {
-        hash_digest = ImageBufAlgo::computePixelHashSHA1(src);
+        hash_digest = ImageBufAlgo::computePixelHashSHA1 (src);
         
         if (verbose)
             std::cout << "  SHA-1: " << hash_digest << std::endl;
