@@ -664,14 +664,15 @@ make_texturemap (const char *maptypename = "texture map")
 
     if (shadowmode) {
         dstspec.attribute ("textureformat", "Shadow");
-    else if (envlatlmode) {
+        if (prman_metadata)
+            dstspec.attribute ("PixarTextureFormat", "Shadow");
+    } else if (envlatlmode) {
         dstspec.attribute ("textureformat", "LatLong Environment");
         swrap = "periodic";
         twrap = "clamp";
         if (prman_metadata)
-            dstspec.attribute ("PixarTextureFormat", "Shadow");
-    }
-    else
+            dstspec.attribute ("PixarTextureFormat", "Latlong Environment");
+    } else {
         dstspec.attribute ("textureformat", "Plain Texture");
         if(prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Plain Texture");
