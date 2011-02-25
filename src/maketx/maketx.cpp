@@ -65,7 +65,7 @@ static std::vector<std::string> filenames;
 static std::string outputfilename;
 static std::string dataformatname = "";
 static std::string fileformatname = "";
-static float ingamma = 1.0f, outgamma = 1.0f;
+//static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
 static int nthreads = 0;
 static int tile[3] = { 64, 64, 1 };
@@ -98,7 +98,7 @@ static std::string swrap;
 static std::string twrap;
 static bool doresize = false;
 static bool noresize = true;
-static float opaquewidth = 0;  // should be volume shadow epsilon
+//static float opaquewidth = 0;  // should be volume shadow epsilon
 static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
 static bool nomipmap = false;
