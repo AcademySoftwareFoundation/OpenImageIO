@@ -524,14 +524,81 @@ TextureSystemImpl::texture (ustring filename, TextureOpt &options,
                             float dsdx, float dtdx, float dsdy, float dtdy,
                             float *result)
 {
-    // For now, the single point version of texture that takes a TextureOpt
-    // just copies to a TextureOptions and calls the multi-point version.
-    // FIXME: Eventually, THIS will be the main implementation, and the
-    // multi-point version will loop over the points calling this routine.
-    TextureOptions opt (options);
-    Runflag rf = RunFlagOn;
-    return texture (filename, opt, &rf, 0, 1, s, t,
-                    dsdx, dtdx, dsdy, dtdy, result);
+    static const texture_lookup_prototype lookup_functions[] = {
+        // Must be in the same order as Mipmode enum
+        &TextureSystemImpl::texture_lookup,
+        &TextureSystemImpl::texture_lookup_nomip,
+        &TextureSystemImpl::texture_lookup_trilinear_mipmap,
+        &TextureSystemImpl::texture_lookup_trilinear_mipmap,
+        &TextureSystemImpl::texture_lookup
+    };
+    texture_lookup_prototype lookup = lookup_functions[(int)options.mipmode];
+
+    // Per-thread microcache that prevents locking of this mutex
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
+    ImageCacheStatistics &stats (thread_info->m_stats);
+    ++stats.texture_batches;
+    TextureFile *texturefile = thread_info->find_file (filename);
+    if (! texturefile) {
+        // Fall back on the master cache
+        texturefile = find_texturefile (filename, thread_info);
+        thread_info->filename (filename, texturefile);
+    }
+
+    if (! texturefile  ||  texturefile->broken()) {
+        for (int c = 0;  c < options.nchannels;  ++c) {
+            if (options.missingcolor)
+                result[c] = options.missingcolor[c];
+            else
+                result[c] = options.fill;
+            if (options.dresultds) options.dresultds[c] = 0;
+            if (options.dresultdt) options.dresultdt[c] = 0;
+        }
+//        error ("Texture file \"%s\" not found", filename.c_str());
+        ++stats.texture_queries;
+        if (options.missingcolor) {
+            (void) geterror ();   // eat the error
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    const ImageSpec &spec (texturefile->spec(options.subimage, 0));
+
+    // Figure out the wrap functions
+    if (options.swrap == TextureOpt::WrapDefault)
+        options.swrap = (TextureOpt::Wrap)texturefile->swrap();
+    if (options.swrap == TextureOpt::WrapPeriodic && ispow2(spec.full_width))
+        options.swrap_func = wrap_periodic2;
+    else
+        options.swrap_func = wrap_functions[(int)options.swrap];
+    if (options.twrap == TextureOpt::WrapDefault)
+        options.twrap = (TextureOpt::Wrap)texturefile->twrap();
+    if (options.twrap == TextureOpt::WrapPeriodic && ispow2(spec.full_height))
+        options.twrap_func = wrap_periodic2;
+    else
+        options.twrap_func = wrap_functions[(int)options.twrap];
+
+    int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
+    options.actualchannels = actualchannels;
+
+    // Fill channels requested but not in the file
+    if (options.actualchannels < options.nchannels) {
+        for (int c = options.actualchannels; c < options.nchannels; ++c) {
+            result[c] = options.fill;
+            if (options.dresultds) options.dresultds[c] = 0;
+            if (options.dresultdt) options.dresultdt[c] = 0;
+        }
+    }
+    // Early out if all channels were beyond the highest in the file
+    if (options.actualchannels < 1) {
+        return true;
+    }
+
+    ++stats.texture_queries;
+    return (this->*lookup) (*texturefile, thread_info, options,
+                            s, t, dsdx, dtdx, dsdy, dtdy, result);
 }
 
 
@@ -544,112 +611,14 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
                             VaryingRef<float> dsdy, VaryingRef<float> dtdy,
                             float *result)
 {
-    static const texture_lookup_prototype lookup_functions[] = {
-        // Must be in the same order as Mipmode enum
-        &TextureSystemImpl::texture_lookup,
-        &TextureSystemImpl::texture_lookup_nomip,
-        &TextureSystemImpl::texture_lookup_trilinear_mipmap,
-        &TextureSystemImpl::texture_lookup_trilinear_mipmap,
-        &TextureSystemImpl::texture_lookup
-    };
-    texture_lookup_prototype lookup = lookup_functions[(int)options.mipmode];
-
-    // FIXME - should we be keeping stats, times?
-
-    // Per-thread microcache that prevents locking of this mutex
-    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
-    ImageCacheStatistics &stats (thread_info->m_stats);
-    TextureFile *texturefile = thread_info->find_file (filename);
-    if (! texturefile) {
-        // Fall back on the master cache
-        texturefile = find_texturefile (filename, thread_info);
-        thread_info->filename (filename, texturefile);
-    }
-
-    if (! texturefile  ||  texturefile->broken()) {
-        int local_stat_texture_queries = 0;
-        for (int i = beginactive;  i < endactive;  ++i) {
-            if (runflags[i]) {
-                ++local_stat_texture_queries;
-                for (int c = 0;  c < options.nchannels;  ++c) {
-                    if (options.missingcolor)
-                        result[i*options.nchannels+c] = (&options.missingcolor[i])[c];
-                    else
-                        result[i*options.nchannels+c] = options.fill[i];
-                    if (options.dresultds) options.dresultds[i*options.nchannels+c] = 0;
-                    if (options.dresultdt) options.dresultdt[i*options.nchannels+c] = 0;
-                }
-            }
-        }
-//        error ("Texture file \"%s\" not found", filename.c_str());
-        ++stats.texture_batches;
-        stats.texture_queries += local_stat_texture_queries;
-        if (options.missingcolor) {
-            (void) geterror ();   // eat the error
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    const ImageSpec &spec (texturefile->spec(options.subimage, 0));
-
-    // Figure out the wrap functions
-    if (options.swrap == TextureOptions::WrapDefault)
-        options.swrap = (TextureOptions::Wrap)texturefile->swrap();
-    if (options.swrap == TextureOptions::WrapPeriodic && ispow2(spec.full_width))
-        options.swrap_func = wrap_periodic2;
-    else
-        options.swrap_func = wrap_functions[(int)options.swrap];
-    if (options.twrap == TextureOptions::WrapDefault)
-        options.twrap = (TextureOptions::Wrap)texturefile->twrap();
-    if (options.twrap == TextureOptions::WrapPeriodic && ispow2(spec.full_height))
-        options.twrap_func = wrap_periodic2;
-    else
-        options.twrap_func = wrap_functions[(int)options.twrap];
-
-    int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
-    options.actualchannels = actualchannels;
-
-    // Fill channels requested but not in the file
-    if (options.actualchannels < options.nchannels) {
-        for (int i = beginactive;  i < endactive;  ++i) {
-            if (runflags[i]) {
-                float fill = options.fill[i];
-                for (int c = options.actualchannels; c < options.nchannels; ++c) {
-                    result[i*options.nchannels+c] = fill;
-                    if (options.dresultds) options.dresultds[i*options.nchannels+c] = 0;
-                    if (options.dresultdt) options.dresultdt[i*options.nchannels+c] = 0;
-                }
-            }
-        }
-    }
-    // Early out if all channels were beyond the highest in the file
-    if (options.actualchannels < 1) {
-        ++stats.texture_batches;
-        return true;
-    }
-
-    // Loop over all the points that are active (as given in the
-    // runflags), and for each, call texture_lookup.  The separation of
-    // power here is that all possible work that can be done for all
-    // "grid points" at once should be done in this function, outside
-    // the loop, and all the work inside texture_lookup should be work
-    // that MUST be redone for each individual texture lookup point.
     bool ok = true;
-    int points_on = 0;
     for (int i = beginactive;  i < endactive;  ++i) {
         if (runflags[i]) {
-            ++points_on;
-            ok &= (this->*lookup) (*texturefile, thread_info, options, i,
-                             s, t, dsdx, dtdx, dsdy, dtdy, result);
+            TextureOpt opt (options, i);
+            ok &= texture (filename, opt, s[i], t[i], dsdx[i], dtdx[i],
+                           dsdy[i], dtdy[i], result+i*options.nchannels);
         }
     }
-
-    // Update stats
-    ++stats.texture_batches;
-    stats.texture_queries += points_on;
-
     return ok;
 }
 
@@ -658,26 +627,21 @@ TextureSystemImpl::texture (ustring filename, TextureOptions &options,
 bool
 TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
                             PerThreadInfo *thread_info, 
-                            TextureOptions &options, int index,
-                            VaryingRef<float> _s, VaryingRef<float> _t,
-                            VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
-                            VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                            TextureOpt &options,
+                            float s, float t,
+                            float dsdx, float dtdx,
+                            float dsdy, float dtdy,
                             float *result)
 {
-    // N.B. If any computations within this function are identical for
-    // all texture lookups in this batch, those computations should be
-    // hoisted up to the calling function, texture().
-
     // Initialize results to 0.  We'll add from here on as we sample.
-    result += index * options.nchannels;
-    float* dresultds = options.dresultds ? &options.dresultds[index*options.nchannels] : NULL;
-    float* dresultdt = options.dresultdt ? &options.dresultdt[index*options.nchannels] : NULL;
+    float* dresultds = options.dresultds;
+    float* dresultdt = options.dresultdt;
     for (int c = 0;  c < options.actualchannels;  ++c) {
         result[c] = 0;
         if (dresultds) dresultds[c] = 0;
         if (dresultdt) dresultdt[c] = 0;
     }
-    // If the user only provided use with one pointer, clear both to simplify
+    // If the user only provided us with one pointer, clear both to simplify
     // the rest of the code, but only after we zero out the data for them so
     // they know something went wrong.
     if (!(dresultds && dresultdt))
@@ -691,8 +655,8 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
         &TextureSystemImpl::accum_sample_bilinear,
     };
     accum_prototype accumer = accum_functions[(int)options.interpmode];
-    bool ok = (this->*accumer) (_s[index], _t[index], 0, texturefile,
-                                thread_info, options, index, 
+    bool ok = (this->*accumer) (s, t, 0, texturefile,
+                                thread_info, options,
                                 1.0f, result, dresultds, dresultdt);
 
     // Update stats
@@ -700,10 +664,10 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
     ++stats.aniso_queries;
     ++stats.aniso_probes;
     switch (options.interpmode) {
-        case TextureOptions::InterpClosest :  ++stats.closest_interps;  break;
-        case TextureOptions::InterpBilinear : ++stats.bilinear_interps; break;
-        case TextureOptions::InterpBicubic :  ++stats.cubic_interps;  break;
-        case TextureOptions::InterpSmartBicubic : ++stats.bilinear_interps; break;
+        case TextureOpt::InterpClosest :  ++stats.closest_interps;  break;
+        case TextureOpt::InterpBilinear : ++stats.bilinear_interps; break;
+        case TextureOpt::InterpBicubic :  ++stats.cubic_interps;  break;
+        case TextureOpt::InterpSmartBicubic : ++stats.bilinear_interps; break;
     }
     return ok;
 }
@@ -713,40 +677,35 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
 bool
 TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
                             PerThreadInfo *thread_info,
-                            TextureOptions &options, int index,
-                            VaryingRef<float> _s, VaryingRef<float> _t,
-                            VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
-                            VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                            TextureOpt &options,
+                            float _s, float _t,
+                            float _dsdx, float _dtdx,
+                            float _dsdy, float _dtdy,
                             float *result)
 {
-    // N.B. If any computations within this function are identical for
-    // all texture lookups in this batch, those computations should be
-    // hoisted up to the calling function, texture().
-
     // Initialize results to 0.  We'll add from here on as we sample.
-    result += index * options.nchannels;
-    float* dresultds = options.dresultds ? &options.dresultds[index*options.nchannels] : NULL;
-    float* dresultdt = options.dresultdt ? &options.dresultdt[index*options.nchannels] : NULL;
+    float* dresultds = options.dresultds;
+    float* dresultdt = options.dresultdt;
     for (int c = 0;  c < options.actualchannels;  ++c) {
         result[c] = 0;
         if (dresultds) dresultds[c] = 0;
         if (dresultdt) dresultdt[c] = 0;
     }
-    // If the user only provided use with one pointer, clear both to simplify
+    // If the user only provided us with one pointer, clear both to simplify
     // the rest of the code, but only after we zero out the data for them so
     // they know something went wrong.
     if (!(dresultds && dresultdt))
         dresultds = dresultdt = NULL;
 
     // Use the differentials to figure out which MIP-map levels to use.
-    float dsdx = _dsdx ? fabsf(_dsdx[index]) : 0;
-    dsdx = dsdx * options.swidth[index] + options.sblur[index];
-    float dtdx = _dtdx ? fabsf(_dtdx[index]) : 0;
-    dtdx = dtdx * options.twidth[index] + options.tblur[index];
-    float dsdy = _dsdy ? fabsf(_dsdy[index]) : 0;
-    dsdy = dsdy * options.swidth[index] + options.sblur[index];
-    float dtdy = _dtdy ? fabsf(_dtdy[index]) : 0;
-    dtdy = dtdy * options.twidth[index] + options.tblur[index];
+    float dsdx = fabsf(_dsdx);
+    dsdx = dsdx * options.swidth + options.sblur;
+    float dtdx = fabsf(_dtdx);
+    dtdx = dtdx * options.twidth + options.tblur;
+    float dsdy = fabsf(_dsdy);
+    dsdy = dsdy * options.swidth + options.sblur;
+    float dtdy = fabsf(_dtdy);
+    dtdy = dtdy * options.twidth + options.tblur;
 
     // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
@@ -785,7 +744,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         miplevel[1] = 0;
         levelblend = 0;
     }
-    if (options.mipmode == TextureOptions::MipModeOneLevel) {
+    if (options.mipmode == TextureOpt::MipModeOneLevel) {
         // Force use of just one mipmap level
         miplevel[0] = miplevel[1];
         levelblend = 0;
@@ -811,8 +770,8 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     for (int level = 0;  level < 2;  ++level) {
         if (! levelweight[level])  // No contribution from this level, skip it
             continue;
-        ok &= (this->*accumer) (_s[index], _t[index], miplevel[level], texturefile,
-                          thread_info, options, index,
+        ok &= (this->*accumer) (_s, _t, miplevel[level], texturefile,
+                          thread_info, options,
                           levelweight[level], result, dresultds, dresultdt);
         ++npointson;
     }
@@ -822,10 +781,10 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     stats.aniso_queries += npointson;
     stats.aniso_probes += npointson;
     switch (options.interpmode) {
-        case TextureOptions::InterpClosest :  stats.closest_interps += npointson;  break;
-        case TextureOptions::InterpBilinear : stats.bilinear_interps += npointson; break;
-        case TextureOptions::InterpBicubic :  stats.cubic_interps += npointson;  break;
-        case TextureOptions::InterpSmartBicubic : stats.bilinear_interps += npointson; break;
+        case TextureOpt::InterpClosest :  stats.closest_interps += npointson;  break;
+        case TextureOpt::InterpBilinear : stats.bilinear_interps += npointson; break;
+        case TextureOpt::InterpBicubic :  stats.cubic_interps += npointson;  break;
+        case TextureOpt::InterpSmartBicubic : stats.bilinear_interps += npointson; break;
     }
     return ok;
 }
@@ -835,37 +794,26 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 bool
 TextureSystemImpl::texture_lookup (TextureFile &texturefile,
                             PerThreadInfo *thread_info,
-                            TextureOptions &options, int index,
-                            VaryingRef<float> _s, VaryingRef<float> _t,
-                            VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
-                            VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                            TextureOpt &options,
+                            float s, float t,
+                            float dsdx, float dtdx,
+                            float dsdy, float dtdy,
                             float *result)
 {
-    // N.B. If any computations within this function are identical for
-    // all texture lookups in this batch, those computations should be
-    // hoisted up to the calling function, texture().
-
     // Initialize results to 0.  We'll add from here on as we sample.
-    result += index * options.nchannels;
-    float* dresultds = options.dresultds ? &options.dresultds[index*options.nchannels] : NULL;
-    float* dresultdt = options.dresultdt ? &options.dresultdt[index*options.nchannels] : NULL;
+    float* dresultds = options.dresultds;
+    float* dresultdt = options.dresultdt;
     for (int c = 0;  c < options.actualchannels;  ++c) {
         result[c] = 0;
         if (dresultds) dresultds[c] = 0;
         if (dresultdt) dresultdt[c] = 0;
     }
-    // If the user only provided use with one pointer, clear both to simplify
+    // If the user only provided us with one pointer, clear both to simplify
     // the rest of the code, but only after we zero out the data for them so
     // they know something went wrong.
     if (!(dresultds && dresultdt))
         dresultds = dresultdt = NULL;
 
-    // Find the differentials, handle the case where user passed NULL
-    // to indicate no derivs were available.
-    float dsdx = _dsdx ? _dsdx[index] : 0;
-    float dtdx = _dtdx ? _dtdx[index] : 0;
-    float dsdy = _dsdy ? _dsdy[index] : 0;
-    float dtdy = _dtdy ? _dtdy[index] : 0;
     // Compute the natural resolution we want for the bare derivs, this
     // will be the threshold for knowing we're maxifying (and therefore
     // wanting cubic interpolation).
@@ -875,10 +823,10 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     // Scale by 'width' and 'blur'
     // NOTE: we must preserve the sign of the differentials to avoid "flipping"
     //       the ellipse
-    dsdx = copysignf(fabsf(dsdx) * options.swidth[index] + options.sblur[index], dsdx);
-    dtdx = copysignf(fabsf(dtdx) * options.twidth[index] + options.tblur[index], dtdx);
-    dsdy = copysignf(fabsf(dsdy) * options.swidth[index] + options.sblur[index], dsdy);
-    dtdy = copysignf(fabsf(dtdy) * options.twidth[index] + options.tblur[index], dtdy);
+    dsdx = copysignf(fabsf(dsdx) * options.swidth + options.sblur, dsdx);
+    dtdx = copysignf(fabsf(dtdx) * options.twidth + options.tblur, dtdx);
+    dsdy = copysignf(fabsf(dsdy) * options.swidth + options.sblur, dsdy);
+    dtdy = copysignf(fabsf(dtdy) * options.twidth + options.tblur, dtdy);
 
     // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
@@ -901,31 +849,8 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         smajor = dsdy;
         tmajor = dtdy;
     }
-    float aspect = Imath::clamp (majorlength / minorlength, 1.0f, 1.0e6f);
-    float trueaspect = aspect;
-    if (aspect > options.anisotropic) {
-        aspect = options.anisotropic;
-        // We have to clamp the ellipse to the maximum amount of anisotropy
-        // that we allow.  How do we do it?
-        // a. Widen the short axis so we never alias along the major axis,
-        //    but we over-blur along the minor axis:
-        //      *minorlength = (*majorlength) / options.anisotropic;
-        // b. Clamp the long axis so we don't blur, but might alias:
-        //      *majorlength = (*minorlength) * options.anisotropic;
-        // c. Split the difference, take the geometric mean, this makes it
-        //      slightly too blurry along the minor axis, slightly aliasing
-        //      along the major axis.  You can't please everybody.
-        //      *majorlength = sqrtf ((*majorlength) *
-        //                            (*minorlength * options.anisotropic));
-        //      *minorlength = (*majorlength) / options.anisotropic;
-        if (options.conservative_filter) {
-            majorlength = sqrtf ((majorlength) *
-                                 (minorlength * options.anisotropic));
-            minorlength = majorlength / options.anisotropic;
-        } else {
-            majorlength = minorlength * options.anisotropic;
-        }
-    }
+    float aspect, trueaspect;
+    aspect = anisotropic_aspect (majorlength, minorlength, options, trueaspect);
 
     float filtwidth = minorlength;
     ImageCacheFile::SubimageInfo &subinfo (texturefile.subimageinfo(options.subimage));
@@ -958,7 +883,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         miplevel[1] = 0;
         levelblend = 0;
     }
-    if (options.mipmode == TextureOptions::MipModeOneLevel) {
+    if (options.mipmode == TextureOpt::MipModeOneLevel) {
         miplevel[0] = miplevel[1];
         levelblend = 0;
     }
@@ -968,7 +893,6 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     float invsamples = 1.0f / nsamples;
 
     bool ok = true;
-    float s = _s[index], t = _t[index];
     int npointson = 0;
     int closestprobes = 0, bilinearprobes = 0, bicubicprobes = 0;
     float sumw = 0;
@@ -979,20 +903,20 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         int lev = miplevel[level];
         accum_prototype accumer = &TextureSystemImpl::accum_sample_bilinear;
         switch (options.interpmode) {
-        case TextureOptions::InterpClosest :
+        case TextureOpt::InterpClosest :
             accumer = &TextureSystemImpl::accum_sample_closest;
             ++closestprobes;
             break;
-        case TextureOptions::InterpBilinear :
+        case TextureOpt::InterpBilinear :
             accumer = &TextureSystemImpl::accum_sample_bilinear;
             ++bilinearprobes;
             break;
-        case TextureOptions::InterpBicubic :
+        case TextureOpt::InterpBicubic :
             accumer = &TextureSystemImpl::accum_sample_bicubic;
             ++bicubicprobes;
             break;
-        case TextureOptions::InterpSmartBicubic :
-            if (lev == 0 || options.interpmode == TextureOptions::InterpBicubic ||
+        case TextureOpt::InterpSmartBicubic :
+            if (lev == 0 || options.interpmode == TextureOpt::InterpBicubic ||
                 (texturefile.spec(options.subimage,lev).full_height < naturalres/2)) {
                 accumer = &TextureSystemImpl::accum_sample_bicubic;
                 ++bicubicprobes;
@@ -1005,7 +929,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         for (int sample = 0;  sample < nsamples;  ++sample) {
             float pos = (sample + 0.5f) * invsamples - 0.5f;
             ok &= (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
-                                    thread_info, options, index, levelweight[level],
+                                    thread_info, options, levelweight[level],
                                     result, dresultds, dresultdt);
             sumw += levelweight[level];
         }
@@ -1035,11 +959,90 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
 
 
 
+const float *
+TextureSystemImpl::pole_color (TextureFile &texturefile,
+                               PerThreadInfo *thread_info,
+                               const ImageCacheFile::LevelInfo &levelinfo,
+                               TileRef &tile,
+                               int subimage, int miplevel, int pole)
+{
+    if (! levelinfo.onetile)
+        return NULL;   // Only compute color for one-tile MIP levels
+    const ImageSpec &spec (levelinfo.spec);
+    size_t pixelsize = texturefile.pixelsize();
+    if (! levelinfo.polecolorcomputed) {
+        static spin_mutex mutex;   // Protect everybody's polecolor
+        spin_lock lock (mutex);
+        if (! levelinfo.polecolorcomputed) {
+            DASSERT (levelinfo.polecolor.size() == 0);
+            levelinfo.polecolor.resize (2*spec.nchannels);
+            // We store north and south poles adjacently in polecolor
+            float *p = &(levelinfo.polecolor[0]);
+            size_t width = spec.width;
+            float scale = 1.0f / width;
+            for (int pole = 0;  pole <= 1;  ++pole, p += spec.nchannels) {
+                int y = pole==0 ? 0 : spec.height-1;
+                for (int c = 0;  c < spec.nchannels;  ++c)
+                    p[c] = 0.0f;
+                const unsigned char *texel = tile->bytedata() + y*spec.tile_width*pixelsize;
+                for (size_t i = 0;  i < width;  ++i, texel += pixelsize)
+                    for (int c = 0;  c < spec.nchannels;  ++c)
+                        if (texturefile.eightbit())
+                            p[c] += uchar2float(texel[c]);
+                        else
+                            p[c] += ((const float *)texel)[c];
+                for (int c = 0;  c < spec.nchannels;  ++c)
+                    p[c] *= scale;
+            }            
+            levelinfo.polecolorcomputed = true;
+        }
+    }
+    return &(levelinfo.polecolor[pole*spec.nchannels]);
+}
+
+
+
+void
+TextureSystemImpl::fade_to_pole (float t, float *accum, float &weight,
+                                 TextureFile &texturefile,
+                                 PerThreadInfo *thread_info,
+                                 const ImageCacheFile::LevelInfo &levelinfo,
+                                 TextureOpt &options,  int miplevel,
+                                 int nchannels)
+{
+    // N.B. We want to fade to pole colors right at texture
+    // boundaries t==0 and t==height, but at the very top of this
+    // function, we subtracted another 0.5 from t, so we need to
+    // undo that here.
+    float tt = t + 0.5f;
+    float pole;
+    const float *polecolor;
+    if (tt < 1.0f) {
+        pole = (1.0f - tt);
+        polecolor = pole_color (texturefile, thread_info, levelinfo,
+                                thread_info->tile, options.subimage,
+                                miplevel, 0);
+    } else {
+        pole = tt - (levelinfo.spec.height-1.0f);
+        polecolor = pole_color (texturefile, thread_info, levelinfo,
+                                thread_info->tile, options.subimage,
+                                miplevel, 1);
+    }
+    pole = Imath::clamp (pole, 0.0f, 1.0f);
+    pole *= pole;  // squaring makes more pleasing appearance
+    polecolor += options.firstchannel;
+    for (int c = 0;  c < nchannels;  ++c)
+        accum[c] += weight * pole * polecolor[c];
+    weight *= 1.0f - pole;
+}
+
+
+
 bool
 TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
-                                 TextureOptions &options, int index,
+                                 TextureOpt &options,
                                  float weight, float *accum, float *daccumds, float *daccumdt)
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
@@ -1100,7 +1103,7 @@ bool
 TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
-                                 TextureOptions &options, int index,
+                                 TextureOpt &options,
                                  float weight, float *accum, float *daccumds, float *daccumdt)
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
@@ -1135,6 +1138,9 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     svalid[1] = options.swrap_func (stex[1], spec.full_width);
     tvalid[0] = options.twrap_func (ttex[0], spec.full_height);
     tvalid[1] = options.twrap_func (ttex[1], spec.full_height);
+
+    // FIXME -- we've got crop windows all wrong
+
     // Account for crop windows
     if (! levelinfo.full_pixel_range) {
         svalid[0] &= (stex[0] >= spec.x && stex[0] < spec.x+spec.width);
@@ -1215,17 +1221,27 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
     }
     // FIXME -- optimize the above loop by unrolling
 
+    int nc = options.actualchannels;
+
+    // When we're on the lowest res mipmap levels, it's more pleasing
+    // if we converge to a single pole color right at the pole.
+    if (options.envlayout == LayoutLatLong && levelinfo.onetile &&
+          (t < 0.5f || t > (spec.height-1.5f))) {
+        fade_to_pole (t, accum, weight, texturefile, thread_info,
+                      levelinfo, options, miplevel, nc);
+    }
+
     if (channelsize == 1) {
         // special case for 8-bit tiles
         int c;
-        for (c = 0;  c < options.actualchannels;  ++c)
+        for (c = 0;  c < nc;  ++c)
             accum[c] += weight * bilerp (uchar2float(texel[0][0][c]), uchar2float(texel[0][1][c]),
                                          uchar2float(texel[1][0][c]), uchar2float(texel[1][1][c]),
                                          sfrac, tfrac);
         if (daccumds) {
             float scalex = weight * spec.full_width;
             float scaley = weight * spec.full_height;
-            for (c = 0;  c < options.actualchannels;  ++c) {
+            for (c = 0;  c < nc;  ++c) {
                 daccumds[c] += scalex * Imath::lerp(
                     uchar2float(texel[0][1][c]) - uchar2float(texel[0][0][c]),
                     uchar2float(texel[1][1][c]) - uchar2float(texel[1][0][c]),
@@ -1242,11 +1258,11 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
         // General case for float tiles
         bilerp_mad ((const float *)texel[0][0], (const float *)texel[0][1],
                     (const float *)texel[1][0], (const float *)texel[1][1],
-                    sfrac, tfrac, weight, options.actualchannels, accum);
+                    sfrac, tfrac, weight, nc, accum);
         if (daccumds) {
             float scalex = weight * spec.full_width;
             float scaley = weight * spec.full_height;
-            for (int c = 0;  c < options.actualchannels;  ++c) {
+            for (int c = 0;  c < nc;  ++c) {
                 daccumds[c] += scalex * Imath::lerp(
                     ((const float *) texel[0][1])[c] - ((const float *) texel[0][0])[c],
                     ((const float *) texel[1][1])[c] - ((const float *) texel[1][0])[c],
@@ -1292,7 +1308,7 @@ bool
 TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                                  TextureFile &texturefile,
                                  PerThreadInfo *thread_info,
-                                 TextureOptions &options, int index,
+                                 TextureOpt &options,
                                  float weight, float *accum, float *daccumds, float *daccumdt)
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
@@ -1397,10 +1413,11 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
                     texel[j][i] = (unsigned char *) black;
                     continue;
                 }
-                tile_s = (stex[i] - spec.x) & tilewidthmask;
+                int stex_i = stex[i];
+                tile_s = (stex_i - spec.x) & tilewidthmask;
                 tile_t = (ttex[j] - spec.y) & tileheightmask;
                 TileID id (texturefile, options.subimage, miplevel,
-                           stex[i] - tile_s, ttex[j] - tile_t, 0);
+                           stex_i - tile_s, ttex[j] - tile_t, 0);
                 bool ok = find_tile (id, thread_info);
                 if (! ok)
                     error ("%s", m_imagecache->geterror().c_str());
@@ -1417,6 +1434,14 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
     }
 
     int nc = options.actualchannels;
+
+    // When we're on the lowest res mipmap levels, it's more pleasing
+    // if we converge to a single pole color right at the pole.
+    if (options.envlayout == LayoutLatLong && levelinfo.onetile &&
+          (t < 0.5f || t > (spec.height-1.5f))) {
+        fade_to_pole (t, accum, weight, texturefile, thread_info,
+                      levelinfo, options, miplevel, nc);
+    }
 
     // We use a formulation of cubic B-spline evaluation that reduces to
     // lerps.  It's tricky to follow, but the references are:

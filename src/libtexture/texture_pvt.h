@@ -186,9 +186,7 @@ public:
     ///
     virtual bool environment (ustring filename, TextureOpt &opt,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
-                              const Imath::V3f &dRdy, float *result) {
-        return false;
-    }
+                              const Imath::V3f &dRdy, float *result);
 
     /// Retrieve an environment map lookup for direction R, for many
     /// points at once.
@@ -197,9 +195,7 @@ public:
                               VaryingRef<Imath::V3f> R,
                               VaryingRef<Imath::V3f> dRdx,
                               VaryingRef<Imath::V3f> dRdy,
-                              float *result) {
-        return false;
-    }
+                              float *result);
 
     /// Given possibly-relative 'filename', resolve it using the search
     /// path rules and return the full resolved filename.
@@ -262,67 +258,67 @@ private:
     // lookups.
     typedef bool (TextureSystemImpl::*texture_lookup_prototype)
             (TextureFile &texfile, PerThreadInfo *thread_info,
-             TextureOptions &options, int index,
-             VaryingRef<float> _s, VaryingRef<float> _t,
-             VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
-             VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+             TextureOpt &options,
+             float _s, float _t,
+             float _dsdx, float _dtdx,
+             float _dsdy, float _dtdy,
              float *result);
 
     /// Look up texture from just ONE point
     ///
     bool texture_lookup (TextureFile &texfile, PerThreadInfo *thread_info, 
-                         TextureOptions &options, int index,
-                         VaryingRef<float> _s, VaryingRef<float> _t,
-                         VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
-                         VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                         TextureOpt &options,
+                         float _s, float _t,
+                         float _dsdx, float _dtdx,
+                         float _dsdy, float _dtdy,
                          float *result);
     
     bool texture_lookup_nomip (TextureFile &texfile, 
                          PerThreadInfo *thread_info, 
-                         TextureOptions &options, int index,
-                         VaryingRef<float> _s, VaryingRef<float> _t,
-                         VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
-                         VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                         TextureOpt &options,
+                         float _s, float _t,
+                         float _dsdx, float _dtdx,
+                         float _dsdy, float _dtdy,
                          float *result);
     
     bool texture_lookup_trilinear_mipmap (TextureFile &texfile,
                          PerThreadInfo *thread_info, 
-                         TextureOptions &options, int index,
-                         VaryingRef<float> _s, VaryingRef<float> _t,
-                         VaryingRef<float> _dsdx, VaryingRef<float> _dtdx,
-                         VaryingRef<float> _dsdy, VaryingRef<float> _dtdy,
+                         TextureOpt &options,
+                         float _s, float _t,
+                         float _dsdx, float _dtdx,
+                         float _dsdy, float _dtdy,
                          float *result);
     
     typedef bool (TextureSystemImpl::*accum_prototype)
                               (float s, float t, int level,
                                TextureFile &texturefile,
                                PerThreadInfo *thread_info,
-                               TextureOptions &options, int index,
+                               TextureOpt &options,
                                float weight, float *accum,
                                float *daccumds, float *daccumdt);
 
     bool accum_sample_closest (float s, float t, int level,
                                TextureFile &texturefile,
                                PerThreadInfo *thread_info,
-                               TextureOptions &options, int index,
+                               TextureOpt &options,
                                float weight, float *accum,
                                float *daccumds, float *daccumdt);
 
     bool accum_sample_bilinear (float s, float t, int level,
                                 TextureFile &texturefile,
                                 PerThreadInfo *thread_info,
-                                TextureOptions &options, int index,
+                                TextureOpt &options,
                                 float weight, float *accum,
                                 float *daccumds, float *daccumdt);
 
     bool accum_sample_bicubic (float s, float t, int level,
                                TextureFile &texturefile,
                                PerThreadInfo *thread_info,
-                               TextureOptions &options, int index,
+                               TextureOpt &options,
                                float weight, float *accum,
                                float *daccumds, float *daccumdt);
 
-    // Define a prototype of a member function pointer for texture
+    // Define a prototype of a member function pointer for texture3d
     // lookups.
     typedef bool (TextureSystemImpl::*texture3d_lookup_prototype)
             (TextureFile &texfile, PerThreadInfo *thread_info,
@@ -350,6 +346,12 @@ private:
                 TextureOpt &options, float weight, float *accum,
                 float *daccumds, float *daccumdt, float *daccumdr);
 
+    /// Helper function to calculate the anisotropic aspect ratio from
+    /// the major and minor ellipse axis lengths.  This also clamps the
+    /// anisotropy, possibly adjusting the apparent axis lengths.
+    float anisotropic_aspect (float &majorlength, float &minorlength,
+                              TextureOpt& options, float &trueaspect);
+
     typedef bool (*wrap_impl) (int &coord, int width);
     static bool wrap_black (int &coord, int width);
     static bool wrap_clamp (int &coord, int width);
@@ -358,6 +360,23 @@ private:
     static bool wrap_mirror (int &coord, int width);
     static const wrap_impl wrap_functions[];
 
+    /// Helper function for lat-long environment maps: compute a "pole"
+    /// pixel that's the average of all of row y.  This will only be
+    /// called for levels where the whole mipmap level fits on one tile.
+    const float *pole_color (TextureFile &texturefile,
+                             PerThreadInfo *thread_info,
+                             const ImageCacheFile::LevelInfo &levelinfo,
+                             TileRef &tile,
+                             int subimage, int miplevel, int pole);
+    /// Helper function for lat-long environment maps: called near pole
+    /// regions, this figures out the average pole color and fades to it
+    /// right at the pole, and also adjusts weight so that the regular
+    /// interpolated texture color will be added in correctly.
+    /// This should only be called on the edge texels.
+    void fade_to_pole (float t, float *accum, float &weight,
+                       TextureFile &texturefile, PerThreadInfo *thread_info,
+                       const ImageCacheFile::LevelInfo &levelinfo,
+                       TextureOpt &options, int miplevel, int nchannels);
 
     /// Internal error reporting routine, with printf-like arguments.
     ///
@@ -376,6 +395,45 @@ private:
     friend class ImageCacheFile;
     friend class ImageCacheTile;
 };
+
+
+
+
+/// Helper function to calculate the anisotropic aspect ratio from the
+/// major and minor ellipse axis lengths.  The "clamped" aspect ratio is
+/// returned (possibly adjusting major and minorlength to conform to the
+/// aniso limits) but the true aspect is stored in 'trueaspect'.
+inline float
+TextureSystemImpl::anisotropic_aspect (float &majorlength, float &minorlength,
+                                       TextureOpt& options, float &trueaspect)
+{
+    float aspect = Imath::clamp (majorlength / minorlength, 1.0f, 1.0e6f);
+    trueaspect = aspect;
+    if (aspect > options.anisotropic) {
+        aspect = options.anisotropic;
+        // We have to clamp the ellipse to the maximum amount of anisotropy
+        // that we allow.  How do we do it?
+        // a. Widen the short axis so we never alias along the major axis,
+        //    but we over-blur along the minor axis:
+        //      *minorlength = (*majorlength) / options.anisotropic;
+        // b. Clamp the long axis so we don't blur, but might alias:
+        //      *majorlength = (*minorlength) * options.anisotropic;
+        // c. Split the difference, take the geometric mean, this makes it
+        //      slightly too blurry along the minor axis, slightly aliasing
+        //      along the major axis.  You can't please everybody.
+        //      *majorlength = sqrtf ((*majorlength) *
+        //                            (*minorlength * options.anisotropic));
+        //      *minorlength = (*majorlength) / options.anisotropic;
+        if (options.conservative_filter) {
+            majorlength = sqrtf ((majorlength) *
+                                 (minorlength * options.anisotropic));
+            minorlength = majorlength / options.anisotropic;
+        } else {
+            majorlength = minorlength * options.anisotropic;
+        }
+    }
+    return aspect;
+}
 
 
 

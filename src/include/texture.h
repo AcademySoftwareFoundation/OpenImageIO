@@ -60,8 +60,9 @@ enum TexFormat {
     TexFormatLast
 };
 
-enum CubeLayout {
-    CubeUnknown, CubeThreeByTwo, CubeOneBySix, CubeLast
+enum EnvLayout {
+    LayoutTexture=0 /* ordinary texture - no special env wrap */,
+    LayoutLatLong, LayoutCubeThreeByTwo, LayoutCubeOneBySix, EnvLayoutLast
 };
 
 }; // pvt namespace
@@ -182,6 +183,7 @@ private:
     int actualchannels;    // True number of channels read
     typedef bool (*wrap_impl) (int &coord, int width);
     wrap_impl swrap_func, twrap_func, rwrap_func;
+    int envlayout;    // Layout for environment wrap
     friend class pvt::TextureSystemImpl;
 };
 

@@ -182,7 +182,7 @@ getargs (int argc, char *argv[])
                   "--shadow", &shadowmode, "Create shadow map",
                   "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz) (UNIMPLEMENTED)",
                   "--volshad", &volshadowmode, "Create volume shadow map (UNIMP)",
-                  "--envlatl", &envlatlmode, "Create lat/long environment map (UNIMP)",
+                  "--envlatl", &envlatlmode, "Create lat/long environment map",
                   "--envcube", &envcubemode, "Create cubic env map (file order: px,nx,py,ny,pz,nz) (UNIMP)",
                   "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
                   "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
@@ -664,9 +664,14 @@ make_texturemap (const char *maptypename = "texture map")
 
     if (shadowmode) {
         dstspec.attribute ("textureformat", "Shadow");
-        if(prman_metadata)
+    else if (envlatlmode) {
+        dstspec.attribute ("textureformat", "LatLong Environment");
+        swrap = "periodic";
+        twrap = "clamp";
+        if (prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Shadow");
-    } else {
+    }
+    else
         dstspec.attribute ("textureformat", "Plain Texture");
         if(prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Plain Texture");
@@ -895,7 +900,7 @@ main (int argc, char *argv[])
     } else if (volshadowmode) {
         std::cerr << "Volume shadows currently unsupported\n";
     } else if (envlatlmode) {
-        std::cerr << "Latlong environment maps currently unsupported\n";
+        make_texturemap ("latlong environment map");
     } else if (envcubemode) {
         std::cerr << "Environment cubes currently unsupported\n";
     } else if (lightprobemode) {
