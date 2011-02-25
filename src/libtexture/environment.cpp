@@ -337,11 +337,10 @@ TextureSystemImpl::environment (ustring filename, TextureOpt &options,
                                     thread_info, options,
                                     levelweight[level]*invsamples, result,
                                     dresultds, dresultdt);
-            ++stats.aniso_probes;
-            if (sample == 0)
-                ++stats.aniso_queries;
         }
     }
+    stats.aniso_probes += nsamples;
+    ++stats.aniso_queries;
 
     return ok;
 }
