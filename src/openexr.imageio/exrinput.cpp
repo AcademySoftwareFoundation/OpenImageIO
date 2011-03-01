@@ -260,8 +260,11 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     if (envmap) {
         m_cubeface = (envmap->value() == Imf::ENVMAP_CUBE);
         m_spec.attribute ("textureformat", m_cubeface ? "CubeFace Environment" : "LatLong Environment");
-        // FIXME - detect CubeFace Shadow
-        m_spec.attribute ("updirection", "y");  // OpenEXR convention
+        // OpenEXR conventions for env maps
+        if (! m_cubeface)
+            m_spec.attribute ("oiio:updirection", "y");
+        m_spec.attribute ("oiio:sampleborder", 1);
+        // FIXME - detect CubeFace Shadow?
     } else {
         m_cubeface = false;
         if (tiled && m_levelmode == Imf::MIPMAP_LEVELS)
@@ -460,16 +463,15 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     int w = m_topwidth, h = m_topheight;
     if (m_levelmode == Imf::MIPMAP_LEVELS) {
         while (miplevel--) {
-            if (w > 1) {
-                if ((w & 1) && m_roundingmode == Imf::ROUND_UP)
-                    w = w/2 + 1;
-                else w /= 2;
+            if (m_roundingmode == Imf::ROUND_DOWN) {
+                w = w / 2;
+                h = h / 2;
+            } else {
+                w = (w + 1) / 2;
+                h = (h + 1) / 2;
             }
-            if (h > 1) {
-                if ((h & 1) && m_roundingmode == Imf::ROUND_UP)
-                    h = h/2 + 1;
-                else h /= 2;
-            }
+            w = std::max (1, w);
+            h = std::max (1, h);
         }
     } else if (m_levelmode == Imf::RIPMAP_LEVELS) {
         // FIXME

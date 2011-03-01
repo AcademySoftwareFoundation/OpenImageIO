@@ -55,6 +55,181 @@ using namespace std::tr1;
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
 
+
+/*
+Discussion about environment map issues and conventions:
+
+Latlong maps (spherical parameterization) come in two varieties
+that OIIO supports:
+
+(a) Our default follows the RenderMan convention of "z is up" and
+left-handed, with the north pole (t=0) pointing toward +z and the
+"center" (0.5,0.5) pointing toward +y:
+
+          --s-->         (0,0,1)
+  (0,0) +---------------------------------------+ (1,0)
+        |                                       |
+     |  |                                       |
+     t  |(-1,0,0)        (1,0,0)                |
+     |  +         +         +         +         |
+     V  |      (0,-1,0)            (0,1,0)      |
+        |                                       |
+        |                                       |
+  (0,1) +---------------------------------------+ (1,1)
+                         (0,0,-1)
+
+(b) If the metadata "oiio:updirection" is "y", the map is assumed to use
+the OpenEXR convention where the +y axis is "up", and the coordinate
+system is right-handed, and the center pixel points toward the +x axis:
+
+          --s-->         (0,1,0)
+  (0,0) +---------------------------------------+ (1,0)
+        |                                       |
+     |  |                                       |
+     t  |(0,0,-1)        (0,0,1)                |
+     |  +         +         +         +         |
+     V  |      (1,0,0)            (0,-1,0)      |
+        |                                       |
+        |                                       |
+  (0,1) +---------------------------------------+ (1,1)
+                         (0,-1,0)
+
+
+
+By default, we assume the conversion between pixel coordinates and
+texture coordinates is the same as for 2D textures; that is, pixel (i,j)
+is located at s,t = ( (i+0.5)/xres, (j+0.5)/yres ).  We believe that
+this is the usual interpretation of latlong maps.
+
+However, if the metadata "oiio:sampleborder" is present and nonzero,
+we assume instead that pixel (i,j) has st coordinates ( i/(xres-1),
+j/(yres-1) ), in other words, that the edge texels correspond exactly to
+the pole or median seam, and therefore that pixel (0,j) and (xres-1,j)
+should be identical for all j, pixel (i,0) should be identical for all
+i, and pixel (i,yres-1) should be identical for all i.  This latter
+convention is dictated by OpenEXR.
+
+
+
+Cubeface environment maps are composed of six orthogonal faces (that
+we name px, nx, py, ny, pz, nz).  
+
+               major   +s dir   +t dir     
+       Face    axis    (right)  (down)
+       ----    -----   -------  ------
+        px      +x       -z       -y
+        nx      -x       +z       -y
+        py      +y       +x       +z
+        ny      -y       +x       -z
+        pz      +z       +x       -y
+        nz      -z       -x       -y
+
+The cubeface layout is easily visualized by "unwrapping":
+
+                    +-------------+
+                    |py           |
+                    |             |
+                    |     +y->+x  |
+                    |      |      |
+                    |      V      |
+                    |     +z      |
+      +-------------|-------------|-------------+-------------+
+      |nx           |pz           |px           |nz           |
+      |             |             |             |             |
+      |     -x->+z  |     +z->+x  |     +x->-z  |     -z->-x  |
+      |      |      |      |      |      |      |      |      |
+      |      V      |      V      |      V      |      V      |
+      |     -y      |     -y      |     -y      |     -y      |
+      +-------------+-------------+-------------+-------------+
+                    |ny           |
+                    |             |
+                    |    -y->+x   |
+                    |     |       |
+                    |     V       |
+                    |    -z       |
+                    +-------------+
+
+But that's just for visualization.  The way it's actually stored in a
+file varies by convention of the file format.  Here are the two
+conventions that we support natively:
+
+(a) "2x3" (a.k.a. the RenderMan/BMRT convention) wherein all six faces
+are arranged within a single image:
+
+      +-------------+-------------+-------------+
+      |px           |py           |pz           |
+      |             |             |             |
+      |    +x->-z   |    +y->+x   |    +z->+x   |
+      |     |       |     |       |     |       |
+      |     V       |     V       |     V       |
+      |    -y       |    +z       |    -y       |
+      |-------------|-------------|-------------|
+      |nx           |ny           |nz           |
+      |             |             |             |
+      |    -x->+z   |    -y->+x   |    -z->-x   |
+      |     |       |     |       |     |       |
+      |     V       |     V       |     V       |
+      |    -y       |    -z       |    -y       |
+      +-------------+-------------+-------------+
+
+The space for each "face" is an integer multiple of the tile size,
+padded by black pixels if necessary (i.e. if the face res is not a
+full multiple of the tile size).  For example,
+
+      +--------+--------+--------+
+      |px|     |py|     |pz|     |
+      |--+     |--+     |--+     |
+      | (black)|        |        |
+      |--------+--------+--------|
+      |nx|     |ny|     |nz|     |
+      |--+     |--+     |--+     |
+      |        |        |        |
+      +--------+--------+--------+
+
+This might happen on low-res MIP levels if the tile size is 64x64 but
+each face is only 8x8, say.
+
+The way we signal these things is for the ImageSpec width,height to be
+the true data window size (3 x res, 2 x res), but for 
+full_width,full_height to be the size of the valid area of each face.
+
+(b) "6x1" (the OpenEXR convention) wherein the six faces are arranged
+in a vertical stack like this:
+
+      +--+
+      |px|
+      +--+
+      |nx|
+      +--+
+      |py|
+      +--+
+      |ny|
+      +--+
+      |pz|
+      +--+
+      |nz|
+      +--+
+
+Which of these conventions is being followed in a particular cubeface
+environment map file should be obvious merely by looking at the aspect
+ratio -- 3:2 or 1:6.
+
+As with latlong maps, by default we assume the conversion between pixel
+coordinates and texture coordinates within a face is the same as for 2D
+textures; that is, pixel (i,j) is located at s,t = ( (i+0.5)/faceres,
+(j+0.5)/faceres ).
+
+However, if the metadata "oiio:sampleborder" is present and nonzero, we
+assume instead that pixel (i,j) has st coordinates ( i/(faceres-1),
+j/(faceres-1) ), in other words, that the edge texels correspond exactly
+to the cube edge itself, and therefore that each cube face's edge texels
+are identical to the bordering face, and that any corner pixel values
+are identical for all three faces that share the corner.  This
+convention is dictated by OpenEXR.
+
+*/
+
+
 OIIO_NAMESPACE_ENTER
 {
     using namespace pvt;

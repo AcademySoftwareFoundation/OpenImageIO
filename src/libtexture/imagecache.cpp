@@ -278,7 +278,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_texformat(TexFormatTexture),
       m_swrap(TextureOpt::WrapBlack), m_twrap(TextureOpt::WrapBlack),
       m_rwrap(TextureOpt::WrapBlack),
-      m_envlayout(LayoutTexture), m_y_up(false),
+      m_envlayout(LayoutTexture), m_y_up(false), m_sample_border(false),
       m_tilesread(0), m_bytesread(0), m_timesopened(0), m_iotime(0),
       m_mipused(false), m_validspec(false), 
       m_imagecache(imagecache), m_duplicate(NULL)
@@ -488,11 +488,14 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     }
 
     m_y_up = false;
+    m_sample_border = false;
     if (m_texformat == TexFormatLatLongEnv ||
         m_texformat == TexFormatCubeFaceEnv ||
         m_texformat == TexFormatCubeFaceShadow) {
-        if (spec.get_string_attribute ("updirection") == "y")
+        if (spec.get_string_attribute ("oiio:updirection") == "y")
             m_y_up = true;
+        if (spec.get_int_attribute ("oiio:sampleborder") != 0)
+            m_sample_border = true;
     }
 
     if (m_texformat == TexFormatCubeFaceEnv ||
@@ -965,7 +968,8 @@ ImageCacheImpl::find_file (ustring filename,
                         tf->m_rwrap == dup->m_rwrap &&
                         tf->m_datatype == dup->m_datatype && 
                         tf->m_envlayout == dup->m_envlayout &&
-                        tf->m_y_up == dup->m_y_up) {
+                        tf->m_y_up == dup->m_y_up &&
+                        tf->m_sample_border == dup->m_sample_border) {
                         tf->duplicate (dup);
                         tf->close ();
                         was_duplicate = true;

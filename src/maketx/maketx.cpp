@@ -38,6 +38,9 @@
 
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+using boost::algorithm::iends_with;
 #include <OpenEXR/ImathMatrix.h>
 
 #include "argparse.h"
@@ -109,6 +112,7 @@ static bool monochrome_detect = false;
 static int nchannels = -1;
 static bool prman = false;
 static bool oiio = false;
+static bool src_samples_border = false; // are src edge samples on the border?
 
 // forward decl
 static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
@@ -173,20 +177,20 @@ getargs (int argc, char *argv[])
                           "Set the camera matrix",
                   "--hash", &embed_hash, "Embed SHA-1 hash of pixels in the header",
                   "--prman-metadata", &prman_metadata, "Add prman specific metadata",
-                  "--constant-color-detect", &constant_color_detect, "Detect constant color images, create single-tile image when found.",
-                  "--monochrome-detect", &monochrome_detect, "Detect monochrome images, create single-channel image when found.",
+                  "--constant-color-detect", &constant_color_detect, "Create 1-tile textures from constant color inputs",
+                  "--monochrome-detect", &monochrome_detect, "Create 1-channel textures from monochrome inputs",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
 //FIXME           "-debugdso"
 //FIXME           "-note %s", &note, "Append a note to the image comments",
                   "<SEPARATOR>", "Basic modes (default is plain texture):",
                   "--shadow", &shadowmode, "Create shadow map",
-                  "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz) (UNIMPLEMENTED)",
-                  "--volshad", &volshadowmode, "Create volume shadow map (UNIMP)",
+//                  "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz) (UNIMPLEMENTED)",
+//                  "--volshad", &volshadowmode, "Create volume shadow map (UNIMP)",
                   "--envlatl", &envlatlmode, "Create lat/long environment map",
                   "--envcube", &envcubemode, "Create cubic env map (file order: px,nx,py,ny,pz,nz) (UNIMP)",
-                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
-                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
-                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
+//                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
+//                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
+//                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
                   "<SEPARATOR>", "Configuration Presets",
                   "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata.",
                   "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, metadata, and constant-color optimizations.",
@@ -234,7 +238,9 @@ getargs (int argc, char *argv[])
 //    std::cout << "Converting " << filenames[0] << " to " << outputfilename << "\n";
 }
 
-TypeDesc
+
+
+static TypeDesc
 set_prman_options(TypeDesc out_dataformat)
 {
     // Force planar image handling, and also emit prman metadata
@@ -275,7 +281,9 @@ set_prman_options(TypeDesc out_dataformat)
     return out_dataformat;
 }
 
-TypeDesc
+
+
+static TypeDesc
 set_oiio_options(TypeDesc out_dataformat)
 {
     // Interleaved channels are faster to read
@@ -290,6 +298,8 @@ set_oiio_options(TypeDesc out_dataformat)
     
     return out_dataformat;
 }
+
+
 
 static std::string
 datestring (time_t t)
@@ -369,6 +379,55 @@ copy_block (ImageBuf *dst, const ImageBuf *src,
 
 
 
+static void
+interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel)
+{
+
+    int fx = buf.spec().full_x;
+    int fy = buf.spec().full_y;
+    int fw = buf.spec().full_width;
+    int fh = buf.spec().full_height;
+    x = static_cast<float>(fx) + x * static_cast<float>(fw);
+    y = static_cast<float>(fy) + y * static_cast<float>(fh);
+
+    const int maxchannels = 64;  // Reasonable guess
+    float p[4][maxchannels];
+    DASSERT (buf.spec().nchannels <= maxchannels && 
+             "You need to increase maxchannels");
+    int n = std::min (buf.spec().nchannels, maxchannels);
+    x -= 0.5f;
+    y -= 0.5f;
+    int xtexel, ytexel;
+    float xfrac, yfrac;
+    xfrac = floorfrac (x, &xtexel);
+    yfrac = floorfrac (y, &ytexel);
+    // Clamp
+    int xnext = Imath::clamp (xtexel+1, fx, fx+fw-1);
+    int ynext = Imath::clamp (ytexel+1, fy, fy+fh-1);
+    xtexel = std::max (xtexel, fx);
+    ytexel = std::max (ytexel, fy);
+    // Get the four texels
+    buf.getpixel (xtexel, ytexel, p[0], n);
+    buf.getpixel (xnext, ytexel, p[1], n);
+    buf.getpixel (xtexel, ynext, p[2], n);
+    buf.getpixel (xnext, ynext, p[3], n);
+    if (envlatlmode) {
+        // For latlong environment maps, in order to conserve energy, we
+        // must weight the pixels by sin(t*PI) because pixels closer to
+        // the pole are actually less area on the sphere. Doing this
+        // wrong will tend to over-represent the high latitudes in
+        // low-res MIP levels.  We fold the area weighting into our
+        // linear interpolation by adjusting yfrac.
+        float w0 = (1.0f - yfrac) * sinf (M_PI * (ytexel+0.5f)/(float)fh);
+        float w1 = yfrac * sinf (M_PI * (ynext+0.5f)/(float)fh);
+        yfrac = w0 / (w0 + w1);
+    }
+    // Bilinearly interpolate
+    bilerp (p[0], p[1], p[2], p[3], xfrac, yfrac, n, pixel);
+}
+
+
+
 // Resize src into dst, relying on the linear interpolation of
 // interppixel_NDC_full, for the pixel range [x0,x1) x [y0,y1).
 static void
@@ -380,8 +439,10 @@ resize_block (ImageBuf *dst, const ImageBuf *src,
     float xscale = 1.0f / (float)dstspec.width;
     float yscale = 1.0f / (float)dstspec.height;
     for (int y = y0;  y < y1;  ++y) {
+        float t = (y+0.5f)*yscale;
         for (int x = x0;  x < x1;  ++x) {
-            src->interppixel_NDC_full ((x+0.5f)*xscale, (y+0.5f)*yscale, pel);
+            float s = (x+0.5f)*xscale;
+            interppixel_NDC_clamped (*src, s, t, pel);
             dst->setpixel (x, y, pel);
         }
     }
@@ -410,6 +471,49 @@ check_nan_block (ImageBuf *dst, const ImageBuf *src,
                 }
             }
         }
+    }
+}
+
+
+
+static void
+fix_latl_edges (ImageBuf &buf)
+{
+    ASSERT (envlatlmode && "only call fix_latl_edges for latlong maps");
+    int n = buf.nchannels();
+    float *left = ALLOCA (float, n);
+    float *right = ALLOCA (float, n);
+
+    // Make the whole first and last row be solid, since they are exactly
+    // on the pole
+    float wscale = 1.0f / (buf.spec().width);
+    for (int j = 0;  j <= 1;  ++j) {
+        int y = (j==0) ? buf.ybegin() : buf.yend()-1;
+        // use left for the sum, right for each new pixel
+        for (int c = 0;  c < n;  ++c)
+            left[c] = 0.0f;
+        for (int x = buf.xbegin();  x < buf.xend();  ++x) {
+            buf.getpixel (x, y, right);
+            for (int c = 0;  c < n;  ++c)
+                left[c] += right[c];
+        }
+        for (int c = 0;  c < n;  ++c)
+            left[c] += right[c];
+        for (int c = 0;  c < n;  ++c)
+            left[c] *= wscale;
+        for (int x = buf.xbegin();  x < buf.xend();  ++x)
+            buf.setpixel (x, y, left);
+    }
+
+    // Make the left and right match, since they are both right on the
+    // prime meridian.
+    for (int y = buf.ybegin();  y < buf.yend();  ++y) {
+        buf.getpixel (buf.xbegin(), y, left);
+        buf.getpixel (buf.xend()-1, y, right);
+        for (int c = 0;  c < n;  ++c)
+            left[c] = 0.5f * left[c] + 0.5f * right[c];
+        buf.setpixel (buf.xbegin(), y, left);
+        buf.setpixel (buf.xend()-1, y, left);
     }
 }
 
@@ -552,11 +656,9 @@ make_texturemap (const char *maptypename = "texture map")
         }
     }
     
-    
     std::string hash_digest;
     if (embed_hash) {
         hash_digest = ImageBufAlgo::computePixelHashSHA1 (src);
-        
         if (verbose)
             std::cout << "  SHA-1: " << hash_digest << std::endl;
     }
@@ -726,19 +828,33 @@ make_texturemap (const char *maptypename = "texture map")
 
     // Force float for the sake of the ImageBuf math
     dstspec.set_format (TypeDesc::FLOAT);
+
+    // Handle resize to power of two, if called for
     if (! noresize  &&  ! shadowmode) {
         dstspec.width = pow2roundup (dstspec.width);
         dstspec.height = pow2roundup (dstspec.height);
         dstspec.full_width = dstspec.width;
         dstspec.full_height = dstspec.height;
     }
+
+    bool do_resize = false;
+    // Resize if we're up-resing for pow2
+    if (dstspec.width != srcspec.width && dstspec.height != srcspec.height &&
+            dstspec.depth != srcspec.depth)
+        do_resize = true;
+    // resize if the original was a crop
+    if (orig_was_crop)
+        do_resize = true;
+    // resize if we're converting from non-border sampling to border sampling
+    if (envlatlmode && ! src_samples_border && 
+        (iequals(fileformatname,"openexr") || iends_with(outputfilename,".exr")))
+        do_resize = true;
+
     Timer resizetimer;
     ImageBuf dst ("temp", dstspec);
     ImageBuf *toplevel = &dst;    // Ptr to top level of mipmap
-    if (dstspec.width == srcspec.width && 
-        dstspec.height == srcspec.height &&
-        dstspec.depth == srcspec.depth && ! orig_was_crop) {
-        // Special case: don't need to resize
+    if (! do_resize) {
+        // Don't need to resize
         if (dstspec.format == srcspec.format) {
             // Even more special case, no format change -- just use
             // the original copy.
@@ -749,7 +865,7 @@ make_texturemap (const char *maptypename = "texture map")
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
         }
     } else {
-        // General case: resize
+        // Resize
         if (verbose)
             std::cout << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
@@ -804,6 +920,20 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
         outspec.attribute ("openexr:levelmode", 0 /* ONE_LEVEL */);
     }
 
+    if (mipmap && ! strcmp (out->format_name(), "openexr")) {
+        outspec.attribute ("openexr:roundingmode", 0 /* ROUND_DOWN */);
+    }
+
+    // OpenEXR always uses border sampling for environment maps
+    if ((envlatlmode || envcubemode) &&
+            !strcmp(out->format_name(), "openexr")) {
+        src_samples_border = true;
+        outspec.attribute ("oiio:updirection", "y");
+        outspec.attribute ("oiio:sampleborder", 1);
+    }
+    if (envlatlmode && src_samples_border)
+        fix_latl_edges (img);
+
     if (! out->open (outputfilename.c_str(), outspec)) {
         std::cerr << "maketx ERROR: Could not open \"" << outputfilename
                   << "\" : " << out->geterror() << "\n";
@@ -847,6 +977,9 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             stat_miptime += miptimer();
             outspec = smallspec;
             outspec.set_format (outputdatatype);
+            if (envlatlmode && src_samples_border)
+                fix_latl_edges (*small);
+
             Timer writetimer;
             // If the format explicitly supports MIP-maps, use that,
             // otherwise try to simulate MIP-mapping with multi-image.

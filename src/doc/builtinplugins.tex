@@ -444,18 +444,21 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 \qkw{PixelAspectRatio} & float & pixelAspectRatio \\
 \qkw{ExposureTime} & float & expTime \\
 \qkw{FNumber} & float & aperture \\
-\qkw{textureformat} & string & set to \qkw{Plain Texture} for
-  MIP-mapped OpenEXR files, \qkw{CubeFace Environment} or \qkw{Latlong
-    Environment} for OpenEXR environment maps.  Non-environment
-  non-MIP-mapped OpenEXR files will not set this attribute. \\
-\qkw{updirection} & string & set to \qkw{y} for OpenEXR
-  environment maps, to indicate OpenEXR's convention that the ``up''
-  direction is $+y$. \\
-\qkw{wrapmodes} & string & wrapmodes \\
 \qkw{compression} & string & one of: \qkw{none}, \qkw{rle},
   \qkw{zip}, \qkw{piz}, \qkw{pxr24}, \qkw{b44}, or \qkw{b44a}.  If the
   writer receives a request for a compression type it does not
   recognize, it will use \qkw{zip} by default. \\
+\qkw{textureformat} & string & set to \qkw{Plain Texture} for
+  MIP-mapped OpenEXR files, \qkw{CubeFace Environment} or \qkw{Latlong
+    Environment} for OpenEXR environment maps.  Non-environment
+  non-MIP-mapped OpenEXR files will not set this attribute. \\
+\qkw{wrapmodes} & string & wrapmodes \\
+%\qkw{oiio:updirection} & string & Will be set to \qkw{y} for OpenEXR
+% latlong environment maps to indicate that OpenEXR dictates a
+% right-handed, ``$y$ is up'' coordinate system. \\
+%\qkw{oiio:sampleborder} & int & Will be set to 1 for OpenEXR environment
+% maps to indicate that OpenEXR dictates that boundary texels sample exactly
+% on the texture border (pole, meridian, or cube edge).\\[2ex]
 \qkw{openexr:lineOrder} & string & the OpenEXR lineOrder attribute
   (set to \qkws{increasingY}, \qkws{randomY}, or \qkws{decreasingY}).
  \\
