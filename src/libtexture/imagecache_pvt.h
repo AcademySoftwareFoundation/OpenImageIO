@@ -254,6 +254,7 @@ private:
     TypeDesc m_datatype;            ///< Type of pixels we store internally
     EnvLayout m_envlayout;          ///< env map: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
+    bool m_sample_border;           ///< are edge samples exactly on the border?
     bool m_eightbit;                ///< Eight bit?  (or float)
     unsigned int m_channelsize;     ///< Channel size, in bytes
     unsigned int m_pixelsize;       ///< Pixel size, in bytes

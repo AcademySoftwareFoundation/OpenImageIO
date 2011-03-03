@@ -347,10 +347,22 @@ private:
                 float *daccumds, float *daccumdt, float *daccumdr);
 
     /// Helper function to calculate the anisotropic aspect ratio from
-    /// the major and minor ellipse axis lengths.  This also clamps the
-    /// anisotropy, possibly adjusting the apparent axis lengths.
+    /// the major and minor ellipse axis lengths.  The "clamped" aspect
+    /// ratio is returned (possibly adjusting major and minorlength to
+    /// conform to the aniso limits) but the true aspect is stored in
+    /// 'trueaspect'.
     float anisotropic_aspect (float &majorlength, float &minorlength,
                               TextureOpt& options, float &trueaspect);
+
+    /// Convert texture coordinates (s,t), which range on 0-1 for the
+    /// "full" image boundary, to texel coordinates (i+ifrac,j+jfrac)
+    /// where (i,j) is the texel to the immediate upper left of the
+    /// sample position, and ifrac and jfrac are the fractional (0-1)
+    /// portion of the way to the next texel to the right or down,
+    /// respectively.
+    void st_to_texel (float s, float t, TextureFile &texturefile,
+                      const ImageSpec &spec, int &i, int &j,
+                      float &ifrac, float &jfrac);
 
     typedef bool (*wrap_impl) (int &coord, int width);
     static bool wrap_black (int &coord, int width);
@@ -399,10 +411,6 @@ private:
 
 
 
-/// Helper function to calculate the anisotropic aspect ratio from the
-/// major and minor ellipse axis lengths.  The "clamped" aspect ratio is
-/// returned (possibly adjusting major and minorlength to conform to the
-/// aniso limits) but the true aspect is stored in 'trueaspect'.
 inline float
 TextureSystemImpl::anisotropic_aspect (float &majorlength, float &minorlength,
                                        TextureOpt& options, float &trueaspect)
@@ -433,6 +441,34 @@ TextureSystemImpl::anisotropic_aspect (float &majorlength, float &minorlength,
         }
     }
     return aspect;
+}
+
+
+
+inline void
+TextureSystemImpl::st_to_texel (float s, float t, TextureFile &texturefile,
+                                const ImageSpec &spec, int &i, int &j,
+                                float &ifrac, float &jfrac)
+{
+    // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
+    // Note that we have two modes, depending on the m_sample_border.
+    if (texturefile.m_sample_border == 0) {
+        // texel samples are at 0.5/res, 1.5/res, ..., (res-0.5)/res,
+        s = s * spec.full_width  + spec.full_x - 0.5f;
+        t = t * spec.full_height + spec.full_y - 0.5f;
+    } else {
+        // first and last rows/columns are *exactly* on the boundary,
+        // so samples are at 0, 1/(res-1), ..., 1.
+        s = s * (spec.full_width-1)  + spec.full_x;
+        t = t * (spec.full_height-1) + spec.full_y;
+    }
+    ifrac = floorfrac (s, &i);
+    jfrac = floorfrac (t, &j);
+    // Now (i,j) are the integer coordinates of the texel to the
+    // immediate "upper left" of the lookup point, and (ifrac,jfrac) are
+    // the amount that the lookup point is actually offset from the
+    // texel center (with (1,1) being all the way to the next texel down
+    // and to the right).
 }
 
 

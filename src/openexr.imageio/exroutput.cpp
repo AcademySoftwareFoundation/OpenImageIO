@@ -327,7 +327,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
     m_levelmode = Imf::ONE_LEVEL;  // Default to no MIP-mapping
     m_roundingmode = m_spec.get_int_attribute ("openexr:roundingmode",
                                                Imf::ROUND_DOWN);
-    
+
     if (textureformat) {
         if (iequals (textureformat, "Plain Texture")) {
             m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
@@ -349,8 +349,15 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
             int w = m_spec.width;
             int h = m_spec.height;
             while (w > 1 && h > 1) {
-                w = (w + 1) / 2;
-                h = (h + 1) / 2;
+                if (m_roundingmode == Imf::ROUND_DOWN) {
+                    w = w / 2;
+                    h = h / 2;
+                } else {
+                    w = (w + 1) / 2;
+                    h = (h + 1) / 2;
+                }
+                w = std::max (1, w);
+                h = std::max (1, h);
                 ++m_nmiplevels;
             }
         }

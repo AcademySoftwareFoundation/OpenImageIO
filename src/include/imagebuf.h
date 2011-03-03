@@ -187,16 +187,19 @@ public:
     /// the pixel data.
     void interppixel (float x, float y, float *pixel) const;
 
-    /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
+    /// Linearly interpolate at image data NDC coordinates (x,y), where (0,0) is
     /// the upper left corner of the pixel data window, (1,1) the lower
     /// right corner of the pixel data.
+    /// FIXME -- lg thinks that this is stupid, and the only useful NDC
+    /// space is the one used by interppixel_NDC_full.  We should deprecate
+    /// this in the future.
     void interppixel_NDC (float x, float y, float *pixel) const {
         interppixel (static_cast<float>(spec().x) + x * static_cast<float>(spec().width),
                      static_cast<float>(spec().y) + y * static_cast<float>(spec().height),
                      pixel);
     }
 
-    /// Linearly interpolate at pixel coordinates (x,y), where (0,0) is
+    /// Linearly interpolate at NDC (image) coordinates (x,y), where (0,0) is
     /// the upper left corner of the display window, (1,1) the lower
     /// right corner of the display window.
     void interppixel_NDC_full (float x, float y, float *pixel) const {

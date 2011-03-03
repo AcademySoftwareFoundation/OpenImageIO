@@ -203,10 +203,19 @@ is the world-to-screen matrix describing the full projection of the 3D
 view onto a $[-1...1] \times [-1...1]$ 2D domain.
 \apiend
 
-\apiitem{"updirection" : string}
+\apiitem{"oiio:updirection" : string}
 For environment maps, indicates which direction is ``up'' (valid values
 are \qkw{y} or \qkw{z}), to disambiguate conventions for environment map
 orientation.
+\apiend
+
+\apiitem{"oiio:sampleborder" : int}
+If not present or 0 (the default), the conversion from pixel integer
+coordinates $(i,j)$ to texture coordinates $(s,t)$ follows the usual
+convention of $s = (i+0.5)/\mathit{xres}$ and $t = (j+0.5)/\mathit{yres}$.
+However, if this attribute is present and nonzero, the first and last
+row/column of pixels lie exactly at the $s$ or $t = 0$ or $1$
+boundaries, i.e., $s = i/(\mathit{xres}-1)$ and $t = j/(\mathit{yres}-1)$.
 \apiend
 
 

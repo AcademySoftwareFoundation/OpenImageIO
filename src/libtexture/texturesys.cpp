@@ -1014,16 +1014,15 @@ TextureSystemImpl::fade_to_pole (float t, float *accum, float &weight,
     // boundaries t==0 and t==height, but at the very top of this
     // function, we subtracted another 0.5 from t, so we need to
     // undo that here.
-    float tt = t + 0.5f;
     float pole;
     const float *polecolor;
-    if (tt < 1.0f) {
-        pole = (1.0f - tt);
+    if (t < 1.0f) {
+        pole = (1.0f - t);
         polecolor = pole_color (texturefile, thread_info, levelinfo,
                                 thread_info->tile, options.subimage,
                                 miplevel, 0);
     } else {
-        pole = tt - (levelinfo.spec.height-1.0f);
+        pole = t - floorf(t);
         polecolor = pole_color (texturefile, thread_info, levelinfo,
                                 thread_info->tile, options.subimage,
                                 miplevel, 1);
@@ -1047,13 +1046,14 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
     const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
-    // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords.
-    s = s * spec.full_width  + spec.full_x;
-    t = t * spec.full_height + spec.full_y;
     int stex, ttex;    // Texel coordintes
-    (void) floorfrac (s, &stex);   // don't need fractional result
-    (void) floorfrac (t, &ttex);
-
+    float sfrac, tfrac;
+    st_to_texel (s, t, texturefile, spec, stex, ttex, sfrac, tfrac);
+    if (sfrac > 0.5f)
+        ++stex;
+    if (tfrac > 0.5f)
+        ++ttex;
+    
     // Wrap
     DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
     bool svalid, tvalid;  // Valid texels?  false means black border
@@ -1108,18 +1108,9 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
     const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
-    // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
-    // and subtract 0.5 because samples are at texel centers.
-    s = s * spec.full_width  + spec.full_x - 0.5f;
-    t = t * spec.full_height + spec.full_y - 0.5f;
     int sint, tint;
-    float sfrac = floorfrac (s, &sint);
-    float tfrac = floorfrac (t, &tint);
-    // Now (sint,tint) are the integer coordinates of the texel to the
-    // immediate "upper left" of the lookup point, and (sfrac,tfrac) are
-    // the amount that the lookup point is actually offset from the
-    // texel center (with (1,1) being all the way to the next texel down
-    // and to the right).
+    float sfrac, tfrac;
+    st_to_texel (s, t, texturefile, spec, sint, tint, sfrac, tfrac);
 
     // Wrap
     DASSERT (options.swrap_func != NULL && options.twrap_func != NULL);
@@ -1223,12 +1214,17 @@ TextureSystemImpl::accum_sample_bilinear (float s, float t, int miplevel,
 
     int nc = options.actualchannels;
 
-    // When we're on the lowest res mipmap levels, it's more pleasing
-    // if we converge to a single pole color right at the pole.
-    if (options.envlayout == LayoutLatLong && levelinfo.onetile &&
-          (t < 0.5f || t > (spec.height-1.5f))) {
-        fade_to_pole (t, accum, weight, texturefile, thread_info,
-                      levelinfo, options, miplevel, nc);
+    // When we're on the lowest res mipmap levels, it's more pleasing if
+    // we converge to a single pole color right at the pole.  Fade to
+    // the average color over the texel height right next to the pole.
+    if (options.envlayout == LayoutLatLong && levelinfo.onetile) {
+        float height = spec.full_height;
+        if (texturefile.m_sample_border)
+            height -= 1.0f;
+        float tt = t * height;
+        if (tt < 1.0f || tt > (height-1.0f))
+            fade_to_pole (tt, accum, weight, texturefile, thread_info,
+                          levelinfo, options, miplevel, nc);
     }
 
     if (channelsize == 1) {
@@ -1313,18 +1309,9 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
 {
     const ImageSpec &spec (texturefile.spec (options.subimage, miplevel));
     const ImageCacheFile::LevelInfo &levelinfo (texturefile.levelinfo(options.subimage,miplevel));
-    // As passed in, (s,t) map the texture to (0,1).  Remap to texel coords
-    // and subtract 0.5 because samples are at texel centers.
-    s = s * spec.full_width  + spec.full_x - 0.5f;
-    t = t * spec.full_height + spec.full_y - 0.5f;
     int sint, tint;
-    float sfrac = floorfrac (s, &sint);
-    float tfrac = floorfrac (t, &tint);
-    // Now (xint,yint) are the integer coordinates of the texel to the
-    // immediate "upper left" of the lookup point, and (xfrac,yfrac) are
-    // the amount that the lookup point is actually offset from the
-    // texel center (with (1,1) being all the way to the next texel down
-    // and to the right).
+    float sfrac, tfrac;
+    st_to_texel (s, t, texturefile, spec, sint, tint, sfrac, tfrac);
 
     // We're gathering 4x4 samples and 4x weights.  Indices: texels 0,
     // 1, 2, 3.  The sample lies between samples 1 and 2.
@@ -1435,12 +1422,17 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
 
     int nc = options.actualchannels;
 
-    // When we're on the lowest res mipmap levels, it's more pleasing
-    // if we converge to a single pole color right at the pole.
-    if (options.envlayout == LayoutLatLong && levelinfo.onetile &&
-          (t < 0.5f || t > (spec.height-1.5f))) {
-        fade_to_pole (t, accum, weight, texturefile, thread_info,
-                      levelinfo, options, miplevel, nc);
+    // When we're on the lowest res mipmap levels, it's more pleasing if
+    // we converge to a single pole color right at the pole.  Fade to
+    // the average color over the texel height right next to the pole.
+    if (options.envlayout == LayoutLatLong && levelinfo.onetile) {
+        float height = spec.full_height;
+        if (texturefile.m_sample_border)
+            height -= 1.0f;
+        float tt = t * height;
+        if (tt < 1.0f || tt > (height-1.0f))
+            fade_to_pole (tt, accum, weight, texturefile, thread_info,
+                          levelinfo, options, miplevel, nc);
     }
 
     // We use a formulation of cubic B-spline evaluation that reduces to
