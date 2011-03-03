@@ -144,6 +144,21 @@ bool TextureSystemImpl::wrap_periodic2 (int &coord, int width)
 }
 
 
+bool TextureSystemImpl::wrap_periodic_sharedborder (int &coord, int width)
+{
+    // Like periodic, but knowing that the first column and last are
+    // actually the same position, so we essentially skip the first
+    // column in the next cycle.  We only need this to work for one wrap
+    // in each direction since it's only used for latlong maps.
+    if (coord >= width) {
+        coord = coord - width + 1;
+    } else if (coord < 0) {
+        coord = coord + width - 1;
+    }
+    return true;
+}
+
+
 bool TextureSystemImpl::wrap_mirror (int &coord, int width)
 {
     bool negative = (coord < 0);

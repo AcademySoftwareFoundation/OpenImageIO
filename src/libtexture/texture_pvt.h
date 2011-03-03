@@ -369,6 +369,7 @@ private:
     static bool wrap_clamp (int &coord, int width);
     static bool wrap_periodic (int &coord, int width);
     static bool wrap_periodic2 (int &coord, int width);
+    static bool wrap_periodic_sharedborder (int &coord, int width);
     static bool wrap_mirror (int &coord, int width);
     static const wrap_impl wrap_functions[];
 
