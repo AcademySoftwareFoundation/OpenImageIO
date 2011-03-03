@@ -324,7 +324,8 @@ TextureSystemImpl::environment (ustring filename, TextureOpt &options,
 
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
-    options.swrap_func = wrap_periodic;
+    options.swrap_func = texturefile->m_sample_border ?
+        wrap_periodic_sharedborder : wrap_periodic;
     options.twrap_func = wrap_clamp;
     options.envlayout = LayoutLatLong;
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel,
