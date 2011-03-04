@@ -266,7 +266,12 @@ main (int argc, char *argv[])
                 << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
             return EXIT_FAILURE;
         }
-        ColorTransfer *to_func = ColorTransfer::create (std::string("linear_to_") + colortransfer_to);
+        ColorTransfer *to_func;
+	if(colortransfer_to=="Gamma")
+	        to_func = ColorTransfer::create (colortransfer_to);		
+	else
+	        to_func = ColorTransfer::create (std::string("linear_to_") + colortransfer_to);
+
         if (to_func == NULL) {
             std::cerr << "iprocess: --transfer needs a 'colorspace' of "
                 << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
