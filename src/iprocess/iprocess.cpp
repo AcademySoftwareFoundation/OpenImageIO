@@ -188,8 +188,11 @@ main (int argc, char *argv[])
     getargs (argc, argv);
 
     bool ok = true;
+    
+    bool flag = false; //Will be set to true when atleast one of options is called
 
     if (crop_type.size()) {
+	flag = true;
         std::cout << "Cropping " << filenames[0] << " to  " << outputname << "\n";
         if (filenames.size() != 1) {
             std::cerr << "iprocess: --crop needs one input filename\n";
@@ -221,6 +224,7 @@ main (int argc, char *argv[])
         out.save (outputname);
     }
     if (do_add) {
+	flag = true;
 	std::cout << "Adding " << filenames[0] << " and " << filenames[1] 
 		<< " result will be saved at " << outputname << "\n";
 	if (filenames.size() != 2) {
@@ -243,6 +247,7 @@ main (int argc, char *argv[])
     }//do add
 
     if (colortransfer_to != "") {
+	flag = true;
         if (filenames.size() != 1) {
             std::cerr << "iprocess: --transfer needs one input filename\n";
             exit (EXIT_FAILURE);
@@ -280,6 +285,11 @@ main (int argc, char *argv[])
         //
         out.save (outputname);
         
+    }
+    if(!flag){
+            std::cerr << "iprocess: No options specified. Doing nothing. \n";
+            exit (EXIT_FAILURE);
+
     }
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
