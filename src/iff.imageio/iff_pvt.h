@@ -59,81 +59,81 @@ namespace iff_pvt {
     
     // store informations about IFF file
     class IffFileHeader {
-      public:
-          // reads information about IFF file
-          bool read_header (FILE *fd);
+    public:
+        // reads information about IFF file
+        bool read_header (FILE *fd);
+        
+        // writes information about iff file to give file
+        bool write_header (FILE *fd);
           
-          // writes information about iff file to give file
-          bool write_header (FILE *fd);
-          
-          // header information
-          uint32_t x;
-          uint32_t y;
-          uint32_t width;
-          uint32_t height;
-          uint32_t compression;
-          uint8_t pixel_bits;
-          uint8_t pixel_channels;
-          uint16_t tiles;          
-          uint16_t tile_width;
-          uint16_t tile_height;
+        // header information
+        uint32_t x;
+        uint32_t y;
+        uint32_t width;
+        uint32_t height;
+        uint32_t compression;
+        uint8_t pixel_bits;
+        uint8_t pixel_channels;
+        uint16_t tiles;          
+        uint16_t tile_width;
+        uint16_t tile_height;
 
-          // author string
-          std::string author;
+        // author string
+        std::string author;
           
-          // date string
-          std::string date;
+        // date string
+        std::string date;
           
-          // tbmp start
-          fpos_t tbmp_start;
+        // tbmp start
+        fpos_t tbmp_start;
           
-          // for4 start
-          fpos_t for4_start;
+        // for4 start
+        fpos_t for4_start;
     };
     
     // align size
     inline uint32_t
     align_size (uint32_t size, uint32_t alignment)
     {
-      uint32_t mod = size % alignment;
-      if (mod)
-      {
-        mod = alignment - mod;
-        size += mod;
-      }
-      return size;
+        uint32_t mod = size % alignment;
+        if (mod)
+        {
+            mod = alignment - mod;
+            size += mod;
+        }
+        return size;
     }
 
     // tile width
     inline const int & 
     tile_width()
     {
-      static int tile_w = 64;
-      return tile_w;
+        static int tile_w = 64;
+        return tile_w;
     }
 
     // tile height
     inline const int & 
     tile_height()
     {
-      static int tile_h = 64;
-      return tile_h;
+        static int tile_h = 64;
+        return tile_h;
     }
     
     // tile width size
     inline uint32_t
     tile_width_size (uint32_t width)
     {
-      uint32_t tw = tile_width();
-      return (width + tw - 1) / tw;
+        uint32_t tw = tile_width();
+        return (width + tw - 1) / tw;
     }
     
     // tile height size
     inline uint32_t
     tile_height_size (uint32_t height)
     {
-      uint32_t th = tile_height();
-      return (height + th - 1) / th;
+        uint32_t th = tile_height();
+        return (height + th - 1) / th;
     }
     
     
@@ -142,7 +142,7 @@ namespace iff_pvt {
 
 
 class IffInput : public ImageInput {
- public:
+public:
     IffInput () { init(); }
     virtual ~IffInput () { }
     virtual const char *format_name (void) const { return "iff"; }
@@ -150,7 +150,7 @@ class IffInput : public ImageInput {
     virtual bool close (void);
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
- private:
+private:
     FILE *m_fd;
     std::string m_filename;
     iff_pvt::IffFileHeader m_iff_header;
@@ -170,14 +170,14 @@ class IffInput : public ImageInput {
     
     // helper to uncompress a rle channel
     size_t uncompress_rle_channel(
-      const uint8_t * in, uint8_t * out, int size
-      );
+        const uint8_t * in, uint8_t * out, int size
+    );
 };
 
 
 
 class IffOutput : public ImageOutput {
- public:
+public:
     IffOutput () { init (); }
     virtual ~IffOutput () { close (); }
     virtual const char *format_name (void) const { return "iff"; }
@@ -190,7 +190,7 @@ class IffOutput : public ImageOutput {
     virtual bool write_tile (int x, int y, int z,
                              TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride);
- private:
+private:
     FILE *m_fd;
     std::string m_filename;
     iff_pvt::IffFileHeader m_iff_header;
@@ -203,17 +203,18 @@ class IffOutput : public ImageOutput {
     
     // helper to compress verbatim
     void compress_verbatim (
-      const uint8_t *& in, uint8_t *& out, int size
-      );
+        const uint8_t *& in, uint8_t *& out, int size
+    );
       
     // helper to compress duplicate
     void compress_duplicate (
-      const uint8_t *&in, uint8_t *& out, int size
-      );
+        const uint8_t *&in, uint8_t *& out, int size
+    );
       
     // helper to compress a rle channel
     size_t compress_rle_channel (
-      const uint8_t *in, uint8_t *out, int size);
+        const uint8_t *in, uint8_t *out, int size
+    );
 };
 
 #ifdef OPENIMAGEIO_NAMESPACE
