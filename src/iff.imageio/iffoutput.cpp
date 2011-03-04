@@ -511,7 +511,8 @@ IffOutput::close (void)
 
 
 void
-IffOutput::compress_verbatim (const uint8_t *& in, uint8_t *& out, int size)
+IffOutput::compress_verbatim (
+    const uint8_t *& in, uint8_t *& out, int size)
 {
     int count = 1;
     unsigned char byte;
@@ -541,7 +542,8 @@ IffOutput::compress_verbatim (const uint8_t *& in, uint8_t *& out, int size)
 
 
 void
-IffOutput::compress_duplicate (const uint8_t *& in, uint8_t *& out, int size)
+IffOutput::compress_duplicate (
+    const uint8_t *& in, uint8_t *& out, int size)
 {
     int count = 1;
     for (; count < size; ++count)
@@ -563,7 +565,8 @@ IffOutput::compress_duplicate (const uint8_t *& in, uint8_t *& out, int size)
 
 
 size_t 
-IffOutput::compress_rle_channel (const uint8_t * in, uint8_t * out, int size)
+IffOutput::compress_rle_channel (
+    const uint8_t * in, uint8_t * out, int size)
 {
     const uint8_t * const _out = out;
     const uint8_t * const end = in + size;

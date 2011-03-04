@@ -78,8 +78,7 @@ IffFileHeader::read_header (FILE *fd)
                 type[3] == 'G') {
                 
                 // read TBHD.
-                for (;;)
-                {
+                for (;;) {
                     // get type
                     if (!fread (&type, 1, sizeof (type), fd) ||
                         // get length

@@ -488,7 +488,7 @@ IffInput::readimg()
 
 size_t
 IffInput::uncompress_rle_channel(
-  const uint8_t * in, uint8_t * out, int size
+    const uint8_t * in, uint8_t * out, int size
 )
 {
     const uint8_t * const _in = in;
