@@ -137,7 +137,7 @@ IffFileHeader::read_header (FILE *fd)
                             swap_endian (&tiles);
                             swap_endian (&compression);
                         }
-                        
+
                         // tiles
                         if (tiles == 0)
                             return false; // non-tiles not supported

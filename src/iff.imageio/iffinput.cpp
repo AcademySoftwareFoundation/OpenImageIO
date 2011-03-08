@@ -38,7 +38,7 @@ using namespace iff_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int iff_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;
+    DLLEXPORT int iff_imageio_version = OIIO_PLUGIN_VERSION;
     DLLEXPORT ImageInput *iff_input_imageio_create () {
         return new IffInput;
     }
@@ -103,9 +103,6 @@ IffInput::open (const std::string &name, ImageSpec &spec)
     // set full width, height
     m_spec.full_width = m_iff_header.width;
     m_spec.full_height = m_iff_header.height; 
-    
-    // set linearity
-    m_spec.linearity = ImageSpec::UnknownLinearity;  
     
     // tiles
     if (m_iff_header.tile_width > 0 ||
