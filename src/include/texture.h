@@ -134,7 +134,8 @@ public:
         time(0.0f), bias(0.0f), samples(1),
         rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f), dresultdr(NULL),
         actualchannels(0),
-        swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL)
+        swrap_func(NULL), twrap_func(NULL), rwrap_func(NULL),
+        envlayout(0)
     { }
 
     /// Convert a TextureOptions for one index into a TextureOpt.
