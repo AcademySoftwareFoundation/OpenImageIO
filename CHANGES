@@ -1,6 +1,12 @@
 Changes:
 
 
+Release 0.9.1 (3 Mar 2011)
+--------------------------
+* Texure: Fixes to make latlong environment maps more correct for OpenEXR
+  files, which have some particular unique conventions.
+* Fix USE_TBB macro on Windows build.
+
 
 Release 0.9 (Dec 9 2010, updated Feb 23, 2011)
 ----------------------------------------------
