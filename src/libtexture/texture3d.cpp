@@ -363,7 +363,7 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     valid_storage.ivalid = 0;
     DASSERT (sizeof(valid_storage) >= 6*sizeof(bool));
     const unsigned long long none_valid = 0;
-    const unsigned long long all_valid = 0x010101010101;
+    const unsigned long long all_valid = 0x010101010101LL;
     DASSERT (__LITTLE_ENDIAN__ && "this trick won't work with big endian");
     bool *svalid = valid_storage.bvalid;
     bool *tvalid = valid_storage.bvalid + 2;
