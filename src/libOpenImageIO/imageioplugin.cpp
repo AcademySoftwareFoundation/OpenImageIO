@@ -187,6 +187,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (fits);
     PLUGENTRY (hdr);
     PLUGENTRY (ico);
+    PLUGENTRY (iff);
     PLUGENTRY (jpeg);
     PLUGENTRY (jpeg2000);
     PLUGENTRY (openexr);
@@ -232,6 +233,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (fits);
     DECLAREPLUG (hdr);
     DECLAREPLUG (ico);
+    DECLAREPLUG (iff);
     DECLAREPLUG (jpeg);
 #ifdef USE_JASPER
     DECLAREPLUG (jpeg2000);

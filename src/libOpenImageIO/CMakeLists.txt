@@ -83,6 +83,9 @@ if (EMBEDPLUGINS)
         ../hdr.imageio/hdrinput.cpp ../hdr.imageio/hdroutput.cpp
           ../hdr.imageio/rgbe.cpp
         ../ico.imageio/icoinput.cpp ../ico.imageio/icooutput.cpp
+		../iff.imageio/iffinput.cpp
+		  ../iff.imageio/iffoutput.cpp
+		  ../iff.imageio/iff_pvt.cpp
         ../jpeg.imageio/jpeginput.cpp ../jpeg.imageio/jpegoutput.cpp
           ../jpeg.imageio/jpegexif.cpp
         ../png.imageio/pnginput.cpp ../png.imageio/pngoutput.cpp
