@@ -539,6 +539,22 @@ TextureSystemImpl::texture (ustring filename, TextureOpt &options,
                             float dsdx, float dtdx, float dsdy, float dtdy,
                             float *result)
 {
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
+    TextureFile *texturefile = find_texturefile (filename, thread_info);
+    return texture ((TextureHandle *)texturefile, (Perthread *)thread_info,
+                    options, s, t, dsdx, dtdx, dsdy, dtdy, result);
+}
+
+
+
+bool
+TextureSystemImpl::texture (TextureHandle *texture_handle_,
+                            Perthread *thread_info_,
+                            TextureOpt &options,
+                            float s, float t,
+                            float dsdx, float dtdx, float dsdy, float dtdy,
+                            float *result)
+{
     static const texture_lookup_prototype lookup_functions[] = {
         // Must be in the same order as Mipmode enum
         &TextureSystemImpl::texture_lookup,
@@ -549,16 +565,10 @@ TextureSystemImpl::texture (ustring filename, TextureOpt &options,
     };
     texture_lookup_prototype lookup = lookup_functions[(int)options.mipmode];
 
-    // Per-thread microcache that prevents locking of this mutex
-    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
+    PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
+    TextureFile *texturefile = (TextureFile *)texture_handle_;
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture_batches;
-    TextureFile *texturefile = thread_info->find_file (filename);
-    if (! texturefile) {
-        // Fall back on the master cache
-        texturefile = find_texturefile (filename, thread_info);
-        thread_info->filename (filename, texturefile);
-    }
 
     if (! texturefile  ||  texturefile->broken()) {
         for (int c = 0;  c < options.nchannels;  ++c) {

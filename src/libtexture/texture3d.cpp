@@ -80,6 +80,24 @@ TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
                               const Imath::V3f &dPdz,
                               float *result)
 {
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
+    TextureFile *texturefile = find_texturefile (filename, thread_info);
+    return texture3d ((TextureHandle *)texturefile, (Perthread *)thread_info,
+                      options, P, dPdx, dPdy, dPdz, result);
+}
+
+
+
+bool
+TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
+                              Perthread *thread_info_,
+                              TextureOpt &options,
+                              const Imath::V3f &P,
+                              const Imath::V3f &dPdx,
+                              const Imath::V3f &dPdy,
+                              const Imath::V3f &dPdz,
+                              float *result)
+{
 #if 0
     // FIXME: currently, no support of actual MIPmapping.  No rush,
     // since the only volume format we currently support, Field3D,
@@ -97,17 +115,10 @@ TextureSystemImpl::texture3d (ustring filename, TextureOpt &options,
     texture3d_lookup_prototype lookup = &TextureSystemImpl::texture3d_lookup_nomip;
 #endif
 
-    // FIXME - should we be keeping stats, times?
-
-    // Per-thread microcache that prevents locking of this mutex
-    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
+    PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
+    TextureFile *texturefile = (TextureFile *)texture_handle_;
     ImageCacheStatistics &stats (thread_info->m_stats);
-    TextureFile *texturefile = thread_info->find_file (filename);
-    if (! texturefile) {
-        // Fall back on the master cache
-        texturefile = find_texturefile (filename, thread_info);
-        thread_info->filename (filename, texturefile);
-    }
+    ++stats.texture3d_batches;
 
     if (! texturefile  ||  texturefile->broken()) {
         for (int c = 0;  c < options.nchannels;  ++c) {
