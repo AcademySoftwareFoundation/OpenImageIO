@@ -119,6 +119,26 @@ public:
         result = m_Mc2w;
     }
 
+    virtual Perthread *get_perthread_info (void) {
+        return (Perthread *)m_imagecache->get_perthread_info ();
+    }
+
+    virtual TextureHandle *get_texture_handle (ustring filename,
+                                               Perthread *thread) {
+        PerThreadInfo *thread_info = thread ? (PerThreadInfo *)thread
+                                       : m_imagecache->get_perthread_info ();
+        return (TextureHandle *) find_texturefile (filename, thread_info);
+    }
+
+    /// Filtered 2D texture lookup for a single point, no runflags.
+    ///
+    virtual bool texture (TextureHandle *texture_handle, Perthread *thread_info,
+                          TextureOpt &options,
+                          float s, float t,
+                          float dsdx, float dtdx, float dsdy, float dtdy,
+                          float *result);
+
+
     /// Filtered 2D texture lookup for a single point, no runflags.
     ///
     virtual bool texture (ustring filename, TextureOpt &options,
@@ -153,8 +173,12 @@ public:
                             const Imath::V3f &dPdy, const Imath::V3f &dPdz,
                             float *result);
 
-    /// Retrieve 3D filtered texture lookup
-    ///
+    virtual bool texture3d (TextureHandle *texture_handle,
+                            Perthread *thread_info, TextureOpt &options,
+                            const Imath::V3f &P, const Imath::V3f &dPdx,
+                            const Imath::V3f &dPdy, const Imath::V3f &dPdz,
+                            float *result);
+
     virtual bool texture3d (ustring filename, TextureOptions &options,
                             Runflag *runflags, int beginactive, int endactive,
                             VaryingRef<Imath::V3f> P,
@@ -166,6 +190,13 @@ public:
     /// Retrieve a shadow lookup for a single position P.
     ///
     virtual bool shadow (ustring filename, TextureOpt &options,
+                         const Imath::V3f &P, const Imath::V3f &dPdx,
+                         const Imath::V3f &dPdy, float *result) {
+        return false;
+    }
+
+    virtual bool shadow (TextureHandle *texture_handle, Perthread *thread_info,
+                         TextureOpt &options,
                          const Imath::V3f &P, const Imath::V3f &dPdx,
                          const Imath::V3f &dPdy, float *result) {
         return false;
@@ -185,6 +216,11 @@ public:
     /// Retrieve an environment map lookup for direction R.
     ///
     virtual bool environment (ustring filename, TextureOpt &opt,
+                              const Imath::V3f &R, const Imath::V3f &dRdx,
+                              const Imath::V3f &dRdy, float *result);
+
+    virtual bool environment (TextureHandle *texture_handle,
+                              Perthread *thread_info, TextureOpt &options,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
                               const Imath::V3f &dRdy, float *result);
 
@@ -236,10 +272,17 @@ private:
     /// Find the TextureFile record for the named texture, or NULL if no
     /// such file can be found.
     TextureFile *find_texturefile (ustring filename, PerThreadInfo *thread_info) {
-        TextureFile *tf = m_imagecache->find_file (filename, thread_info);
-        if (!tf || tf->broken())
-            error ("%s", m_imagecache->geterror().c_str());
-        return tf;
+        // Per-thread microcache that prevents locking of the file mutex
+        TextureFile *texturefile = thread_info->find_file (filename);
+        if (! texturefile) {
+            // Fall back on the master cache
+            texturefile = m_imagecache->find_file (filename, thread_info);
+            if (!texturefile || texturefile->broken())
+                error ("%s", m_imagecache->geterror().c_str());
+            thread_info->filename (filename, texturefile);
+        }
+        return texturefile;
+
     }
 
     /// Find the tile specified by id.  If found, return true and place

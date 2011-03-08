@@ -66,6 +66,7 @@ static TextureSystem *texsys = NULL;
 static std::string searchpath;
 static int blocksize = 1;
 static bool nowarp = false;
+static bool use_handle = false;
 static float cachesize = -1;
 static int maxfiles = -1;
 static float missing[4] = {-1, 0, 0, 1};
@@ -107,6 +108,7 @@ getargs (int argc, const char *argv[])
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
                   "--automip", &automip, "Set auto-MIPmap for the image cache",
                   "--blocksize %d", &blocksize, "Set blocksize (n x n) for batches",
+                  "--handle", &use_handle, "Use texture handle rather than name lookup",
                   "--searchpath %s", &searchpath, "Search path for files",
                   "--nowarp", &nowarp, "Do not warp the image->texture mapping",
                   "--cachesize %f", &cachesize, "Set cache size, in MB",
@@ -223,11 +225,24 @@ test_plain_texture ()
     opt.fill = fill;
     if (missing[0] >= 0)
         opt.missingcolor.init ((float *)&missing, 0);
-
 //    opt.interpmode = TextureOptions::InterpSmartBicubic;
 //    opt.mipmode = TextureOptions::MipModeAniso;
     opt.swrap = opt.twrap = TextureOptions::WrapPeriodic;
 //    opt.twrap = TextureOptions::WrapBlack;
+
+#if 1
+    TextureOpt opt1;
+    opt1.sblur = blur;
+    opt1.tblur = blur;
+    opt1.swidth = width;
+    opt1.twidth = width;
+    opt1.nchannels = nchannels;
+    opt1.fill = fill;
+    if (missing[0] >= 0)
+        opt1.missingcolor = (float *)&missing;
+    opt1.swrap = opt1.twrap = TextureOpt::WrapPeriodic;
+#endif
+
     int shadepoints = blocksize*blocksize;
     float *s = ALLOCA (float, shadepoints);
     float *t = ALLOCA (float, shadepoints);
@@ -239,6 +254,8 @@ test_plain_texture ()
     float *result = ALLOCA (float, shadepoints*nchannels);
     
     ustring filename = ustring (filenames[0]);
+    TextureSystem::Perthread *perthread_info = texsys->get_perthread_info ();
+    TextureSystem::TextureHandle *texture_handle = texsys->get_texture_handle (filename);
 
     for (int iter = 0;  iter < iters;  ++iter) {
         if (iters > 1 && filenames.size() > 1) {
@@ -300,11 +317,24 @@ test_plain_texture ()
                         ++idx;
                     }
                 }
+
                 // Call the texture system to do the filtering.
-                bool ok = texsys->texture (filename, opt, runflags, 0, shadepoints,
-                                           Varying(s), Varying(t),
-                                           Varying(dsdx), Varying(dtdx),
-                                           Varying(dsdy), Varying(dtdy), result);
+                bool ok;
+                if (blocksize == 1) {
+                    if (use_handle)
+                        ok = texsys->texture (texture_handle, perthread_info, opt1,
+                                              s[0], t[0], dsdx[0], dtdx[0],
+                                              dsdy[0], dtdy[0], result);
+                    else
+                        ok = texsys->texture (filename, opt1,
+                                              s[0], t[0], dsdx[0], dtdx[0],
+                                              dsdy[0], dtdy[0], result);
+                } else {
+                    ok = texsys->texture (filename, opt, runflags, 0,
+                                          shadepoints, Varying(s), Varying(t),
+                                          Varying(dsdx), Varying(dtdx),
+                                          Varying(dsdy), Varying(dtdy), result);
+                }
                 if (! ok) {
                     std::string e = texsys->geterror ();
                     if (! e.empty())

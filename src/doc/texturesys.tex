@@ -555,14 +555,37 @@ each is the inverse of the other.
 \apiend
 
 
+\subsection{Opaque data for performance lookups}
+\label{sec:texturesys:api:opaque}
 
-\newpage
+\apiitem{Perthread * {\ce get_perthread_info} ()}
+\indexapi{get_perthread_info}
+
+Retrieves an opaque handle for per-thread info, to be used for
+{\cf get_texture_handle()} and the texture routines that take handles
+directly.
+\apiend
+
+\apiitem{TextureHandle * {\ce get_texture_handle} (ustring filename,\\
+\bigspc\bigspc\bigspc  Perthread *thread_info=NULL)}
+\indexapi{get_texture_handle}
+
+Retrieve an opaque handle for fast texture lookups.  The opaque
+pointer {\cf thread_info} is thread-specific information returned by
+{\cf get_perthread_info()}.  Return {\cf NULL} if something has gone
+horribly wrong.
+
+\apiend
+
+
+%\newpage
 \subsection{Texture Lookups}
 \label{sec:texturesys:api:texture}
 
 \apiitem{bool {\ce texture} (ustring filename, TextureOpt \&options,\\
 \bigspc                   float s, float t, float dsdx, float dtdx,\\
 \bigspc                   float dsdy, float dtdy, float *result)}
+\indexapi{texture}
 
 Perform a filtered 2D texture lookup on a position centered at 2D
 coordinates ({\cf s}, {\cf t}) from the texture identified by
@@ -651,6 +674,18 @@ plugin.
 \apiend
 
 
+\apiitem{bool {\ce texture} (TextureHandle *texture_handle,
+                          Perthread *thread_info, \\
+\bigspc                   TextureOpt \&options,\\
+\bigspc                   float s, float t, float dsdx, float dtdx,\\
+\bigspc                   float dsdy, float dtdy, float *result)}
+A slightly faster {\cf texture} call for applications that are willing
+to do the extra housekeeping of knowing the handle of the texture they
+are accessing and the per-thread info for the curent thread.  These
+may be retrieved by the {\cf get_texture_handle()} and 
+{\cf get_perthread_info()} methods, respectively.
+\apiend
+
 \apiitem{bool {\ce texture} (ustring filename, TextureOptions \&options,\\
 \bigspc                   Runflag *runflags, int beginactive, int endactive,\\
 \bigspc                   VaryingRef<float> s, VaryingRef<float> t,\\
@@ -677,16 +712,15 @@ file was not found or could not be opened by any available ImageIO
 plugin.
 \apiend
 
-\newpage
+%\newpage
 \subsection{Volume Texture Lookups}
 \label{sec:texturesys:api:texture3d}
 
 \apiitem{bool {\ce texture3d} (ustring filename, TextureOpt \&options,\\
-\bigspc                          const Imath::V3f \&P,\\
-\bigspc                          const Imath::V3f \&dPdx,\\
-\bigspc                          const Imath::V3f \&dPdy,\\
-\bigspc                          const Imath::V3f \&dPdz,\\
-\bigspc                          float *result)}
+\bigspc\spc                    const Imath::V3f \&P, const Imath::V3f \&dPdx,\\
+\bigspc\spc                    const Imath::V3f \&dPdy, const Imath::V3f \&dPdz,\\
+\bigspc\spc                    float *result)}
+\indexapi{texture3d}
 
 Perform a filtered 3D volumetric texture lookup on a position centered at
 3D position {\cf P} from the texture identified by
@@ -780,6 +814,21 @@ plugin.
 
 \apiend
 
+\apiitem{bool {\ce texture3d} (TextureHandle *texture_handle,
+                          Perthread *thread_info, \\
+\bigspc                   TextureOpt \&opt,\\
+\bigspc                          const Imath::V3f \&P,\\
+\bigspc                          const Imath::V3f \&dPdx,\\
+\bigspc                          const Imath::V3f \&dPdy,\\
+\bigspc                          const Imath::V3f \&dPdz,\\
+\bigspc                          float *result)}
+A slightly faster {\cf texture3d} call for applications that are willing
+to do the extra housekeeping of knowing the handle of the texture they
+are accessing and the per-thread info for the curent thread.  These
+may be retrieved by the {\cf get_texture_handle()} and 
+{\cf get_perthread_info()} methods, respectively.
+\apiend
+
 \apiitem{bool {\ce texture3d} (ustring filename, TextureOptions \&options,\\
 \bigspc                          Runflag *runflags, int beginactive, int endactive,\\
 \bigspc                          VaryingRef<Imath::V3f> P,\\
@@ -806,15 +855,14 @@ file was not found or could not be opened by any available ImageIO
 plugin.
 \apiend
 
-\newpage
+%\newpage
 \subsection{Shadow Lookups}
 \label{sec:texturesys:api:shadow}
 
 \apiitem{bool {\ce shadow} (ustring filename, TextureOpt \&opt,\\
-\bigspc                         const Imath::V3f \&P,\\
-\bigspc                         const Imath::V3f \&dPdx,\\
-\bigspc                         const Imath::V3f \&dPdy,\\
-\bigspc                         float *result)}
+\bigspc                         const Imath::V3f \&P, const Imath::V3f \&dPdx,\\
+\bigspc                         const Imath::V3f \&dPdy, float *result)}
+\indexapi{shadow}
 
 Perform a shadow map lookup on a position centered at 3D
 coordinate {\cf P} (in a designated ``common'' space) from the shadow map identified by
@@ -868,6 +916,20 @@ file was not found or could not be opened by any available ImageIO
 plugin.
 \apiend
 
+\apiitem{bool {\ce shadow} (TextureHandle *texture_handle,
+                          Perthread *thread_info, \\
+\bigspc                   TextureOpt \&opt,\\
+\bigspc                         const Imath::V3f \&P,\\
+\bigspc                         const Imath::V3f \&dPdx,\\
+\bigspc                         const Imath::V3f \&dPdy,\\
+\bigspc                         float *result)}
+A slightly faster {\cf shadow} call for applications that are willing
+to do the extra housekeeping of knowing the handle of the texture they
+are accessing and the per-thread info for the curent thread.  These
+may be retrieved by the {\cf get_texture_handle()} and 
+{\cf get_perthread_info()} methods, respectively.
+\apiend
+
 \apiitem{bool {\ce shadow} (ustring filename, TextureOptions \&options,\\
 \bigspc                         Runflag *runflags, int beginactive, int endactive,\\
 \bigspc                         VaryingRef<Imath::V3f> P,\\
@@ -893,15 +955,14 @@ file was not found or could not be opened by any available ImageIO
 plugin.
 \apiend
 
-\newpage
+%\newpage
 \subsection{Environment Lookups}
 \label{sec:texturesys:api:environment}
 
 \apiitem{bool {\ce environment} (ustring filename, TextureOpt \&options,\\
-\bigspc                              const Imath::V3f \&R,\\
-\bigspc                              const Imath::V3f \&dRdx,\\
-\bigspc                              const Imath::V3f \&dRdy,\\
-\bigspc                              float *result)}
+\bigspc                              const Imath::V3f \&R, const Imath::V3f \&dRdx,\\
+\bigspc                              const Imath::V3f \&dRdy, float *result)}
+\indexapi{environment}
 
 Perform a filtered directional environment map lookup in the direction
 of vector {\cf R}, from the texture identified by {\cf filename}, and
@@ -958,6 +1019,20 @@ file was not found or could not be opened by any available ImageIO
 plugin.
 \apiend
 
+\apiitem{bool {\ce environment} (TextureHandle *texture_handle,
+                          Perthread *thread_info, \\
+\bigspc                   TextureOpt \&opt,\\
+\bigspc                              const Imath::V3f \&R,\\
+\bigspc                              const Imath::V3f \&dRdx,\\
+\bigspc                              const Imath::V3f \&dRdy,\\
+\bigspc                              float *result)}
+A slightly faster {\cf environment} call for applications that are willing
+to do the extra housekeeping of knowing the handle of the texture they
+are accessing and the per-thread info for the curent thread.  These
+may be retrieved by the {\cf get_texture_handle()} and 
+{\cf get_perthread_info()} methods, respectively.
+\apiend
+
 \apiitem{bool {\ce environment} (ustring filename, TextureOptions \&options,\\
 \bigspc                              Runflag *runflags, int beginactive, int endactive,\\
 \bigspc                              VaryingRef<Imath::V3f> R,\\
@@ -983,13 +1058,13 @@ file was not found or could not be opened by any available ImageIO
 plugin.
 \apiend
 
-\newpage
+%\newpage
 \subsection{Texture Metadata and Raw Texels}
 \label{sec:texturesys:api:gettextureinfo}
 \label{sec:texturesys:api:getimagespec}
 
 \apiitem{bool {\ce get_texture_info} (ustring filename, int subimage, \\
-\bigspc ustring dataname, TypeDesc datatype, void *data)}
+\bigspc\spc\spc ustring dataname, TypeDesc datatype, void *data)}
 
 Retrieves information about the texture named by {\cf filename}.
 The {\cf dataname} is a keyword indcating what information should

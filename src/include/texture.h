@@ -347,6 +347,27 @@ public:
     virtual bool getattribute (const std::string &name, char **val) = 0;
     virtual bool getattribute (const std::string &name, std::string &val) = 0;
 
+    /// Define an opaque data type that allows us to have a pointer
+    /// to certain per-thread information that the TextureSystem maintains.
+    class Perthread;
+
+    /// Retrieve an opaque handle for per-thread info, to be used for
+    /// get_texture_handle and the texture routines that take handles
+    /// directly.
+    virtual Perthread * get_perthread_info () = 0;
+
+    /// Define an opaque data type that allows us to have a handle to a
+    /// texture (already having its name resolved) but without exposing
+    /// any internals.
+    class TextureHandle;
+
+    /// Retrieve an opaque handle for fast texture lookups.  The opaque
+    /// point thread_info is thread-specific information returned by
+    /// get_perthread_info().  Return NULL if something has gone
+    /// horribly wrong.
+    virtual TextureHandle * get_texture_handle (ustring filename,
+                                            Perthread *thread_info=NULL) = 0;
+
     /// Filtered 2D texture lookup for a single point.
     ///
     /// s,t are the texture coordinates; dsdx, dtdx, dsdy, and dtdy are
@@ -359,6 +380,13 @@ public:
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool texture (ustring filename, TextureOpt &options,
+                          float s, float t, float dsdx, float dtdx,
+                          float dsdy, float dtdy, float *result) = 0;
+
+    /// Slightly faster version of 2D texture() lookup if the app already
+    /// has a texture handle and per-thread info.
+    virtual bool texture (TextureHandle *texture_handle,
+                          Perthread *thread_info, TextureOpt &options,
                           float s, float t, float dsdx, float dtdx,
                           float dsdy, float dtdy, float *result) = 0;
 
@@ -395,6 +423,14 @@ public:
                             const Imath::V3f &dPdy, const Imath::V3f &dPdz,
                             float *result) = 0;
 
+    /// Slightly faster version of texture3d() lookup if the app already
+    /// has a texture handle and per-thread info.
+    virtual bool texture3d (TextureHandle *texture_handle,
+                            Perthread *thread_info, TextureOpt &options,
+                            const Imath::V3f &P, const Imath::V3f &dPdx,
+                            const Imath::V3f &dPdy, const Imath::V3f &dPdz,
+                            float *result) = 0;
+
     /// Deprecated
     ///
     virtual bool texture3d (ustring filename, TextureOptions &options,
@@ -425,6 +461,13 @@ public:
                          const Imath::V3f &P, const Imath::V3f &dPdx,
                          const Imath::V3f &dPdy, float *result) = 0;
 
+    /// Slightly faster version of shadow() lookup if the app already
+    /// has a texture handle and per-thread info.
+    virtual bool shadow (TextureHandle *texture_handle, Perthread *thread_info,
+                         TextureOpt &options,
+                         const Imath::V3f &P, const Imath::V3f &dPdx,
+                         const Imath::V3f &dPdy, float *result) = 0;
+
     /// Retrieve a shadow lookup for position P at many points at once.
     ///
     /// Return true if the file is found and could be opened by an
@@ -441,6 +484,13 @@ public:
     /// Return true if the file is found and could be opened by an
     /// available ImageIO plugin, otherwise return false.
     virtual bool environment (ustring filename, TextureOpt &options,
+                              const Imath::V3f &R, const Imath::V3f &dRdx,
+                              const Imath::V3f &dRdy, float *result) = 0;
+
+    /// Slightly faster version of environment() lookup if the app already
+    /// has a texture handle and per-thread info.
+    virtual bool environment (TextureHandle *texture_handle,
+                              Perthread *thread_info, TextureOpt &options,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
                               const Imath::V3f &dRdy, float *result) = 0;
 

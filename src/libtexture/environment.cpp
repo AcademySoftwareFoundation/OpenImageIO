@@ -288,20 +288,29 @@ vector_to_latlong (const Imath::V3f& R, bool y_is_up, float &s, float &t)
 
 bool
 TextureSystemImpl::environment (ustring filename, TextureOpt &options,
-                                const Imath::V3f &_R,
+                                const Imath::V3f &R,
+                                const Imath::V3f &dRdx, const Imath::V3f &dRdy,
+                                float *result)
+{
+    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
+    TextureFile *texturefile = find_texturefile (filename, thread_info);
+    return environment ((TextureHandle *)texturefile, (Perthread *)thread_info,
+                        options, R, dRdx, dRdy, result);
+}
+
+
+
+bool
+TextureSystemImpl::environment (TextureHandle *texture_handle_,
+                                Perthread *thread_info_,
+                                TextureOpt &options, const Imath::V3f &_R,
                                 const Imath::V3f &_dRdx, const Imath::V3f &_dRdy,
                                 float *result)
 {
-    // Per-thread microcache that prevents locking of this mutex
-    PerThreadInfo *thread_info = m_imagecache->get_perthread_info ();
+    PerThreadInfo *thread_info = (PerThreadInfo *)thread_info_;
+    TextureFile *texturefile = (TextureFile *)texture_handle_;
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.environment_batches;
-    TextureFile *texturefile = thread_info->find_file (filename);
-    if (! texturefile) {
-        // Fall back on the master cache
-        texturefile = find_texturefile (filename, thread_info);
-        thread_info->filename (filename, texturefile);
-    }
 
     if (! texturefile  ||  texturefile->broken()) {
         for (int c = 0;  c < options.nchannels;  ++c) {
