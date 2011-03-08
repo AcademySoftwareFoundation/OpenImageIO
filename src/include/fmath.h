@@ -802,6 +802,72 @@ exp2f(float val) {
    return exp( val*log(2.0f) );
 }
 
+// from http://www.johndcook.com/cpp_expm1.html
+inline double
+expm1(double val)
+{
+    // exp(x) - 1 without loss of precision for small values of x.
+    if (fabs(val) < 1e-5)
+        return val + 0.5*val*val;
+    else
+        return exp(val) - 1.0;
+}
+
+inline float
+expm1f(float val)
+{
+    return (float)expm1(val);
+}
+
+// from http://www.johndcook.com/cpp_erf.html
+inline double
+erf(double x)
+{
+    // constants
+    double a1 =  0.254829592;
+    double a2 = -0.284496736;
+    double a3 =  1.421413741;
+    double a4 = -1.453152027;
+    double a5 =  1.061405429;
+    double p  =  0.3275911;
+
+    // Save the sign of x
+    int sign = 1;
+    if (x < 0)
+        sign = -1;
+    x = fabs(x);
+
+    // A&S formula 7.1.26
+    double t = 1.0/(1.0 + p*x);
+    double y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp(-x*x);
+
+    return sign*y;
+}
+
+inline float
+erff(float val)
+{
+    return (float)erf(val);
+}
+
+inline double
+erfc(double val)
+{
+    return 1.0 - erf(val);
+}
+
+inline float
+erfcf(float val)
+{
+    return (float)erfc(val);
+}
+
+inline float
+truncf(float val)
+{
+    return (float)(int)val;
+}
+
 #endif
 
 
