@@ -161,6 +161,10 @@ IffOutput::write_tile (int x, int y, int z,
     // auto stride
     m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
                         spec().tile_width, spec().tile_height);
+    
+    // native tile
+    std::vector<uint8_t> scratch;    
+    data = to_native_tile (format, data, xstride, ystride, zstride, scratch);   
                         
     x -= m_spec.x;   // Account for offset, so x,y are file relative, not 
     y -= m_spec.y;   // image relative  
