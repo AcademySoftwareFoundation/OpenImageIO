@@ -251,7 +251,7 @@ IffInput::readimg()
         // get tile width/height
         uint32_t tw = xmax - xmin + 1;
         uint32_t th = ymax - ymin + 1;
-      
+
         // get image size
         // skip coordinates, uint16_t (2) * 4 = 8
         uint32_t image_size = chunksize - 8;
@@ -306,7 +306,7 @@ IffInput::readimg()
 
                 // map BGR(A) to RGB(A)
                 for (int c =(channels * m_spec.channel_bytes()) - 1; c>=0; --c) {
-                    std::vector<uint8_t> in (tw * th * 4);
+                    std::vector<uint8_t> in (tw * th);
                     uint8_t *in_p = &in[0];
           
                     // uncompress and increment
@@ -368,92 +368,95 @@ IffInput::readimg()
             if (tile_compress) {
 
                 // set map
-                int* map = NULL;
+                std::vector<uint8_t> map;
                 if (littleendian()) {
                     int rgb16[] = { 0, 2, 4, 1, 3, 5 };
                     int rgba16[] = { 0, 2, 4, 7, 1, 3, 5, 6 };
-                    if (m_iff_header.pixel_channels == 3)
-                        map = rgb16;
-                    else
-                        map = rgba16;
-                
-            } else {
-                int rgb16[] = { 1, 3, 5, 0, 2, 4 };
-                int rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
-                if (m_iff_header.pixel_channels == 3)
-                    map = rgb16;
-                else
-                    map = rgba16;
-            }
-            
-            // map BGR(A)BGR(A) to RRGGBB(AA)
-            for (int c =(channels * m_spec.channel_bytes()) - 1; c>=0; --c) {
-                int mc = map[c];
-            
-                std::vector<uint8_t> in (tw * th * 2);
-                uint8_t *in_p = &in[0];
-              
-                // uncompress and increment
-                p += uncompress_rle_channel (p, in_p, tw * th);
-              
-                // set tile
-                for (uint16_t py=ymin; py<=ymax; py++) {
-                    uint8_t *out_dy = static_cast<uint8_t*> (&m_buf[0]) + 
-                                      (py * m_spec.width) * 
-                                      m_spec.pixel_bytes();
-                                   
-                    for (uint16_t px=xmin; px<=xmax; px++) {
-                        uint8_t *out_p = out_dy + px * m_spec.pixel_bytes() + mc;
-                        *out_p++ = *in_p++;
+                    if (m_iff_header.pixel_channels == 3) {
+                        map = std::vector<uint8_t>( rgb16, &rgb16[6] );
+                    } else {
+                        map = std::vector<uint8_t>( rgba16, &rgba16[8] );
                     }
-                }                  
-            }
-        }
-        else
-        {
-            int sy=0;
-            for (uint16_t py=ymin; py<=ymax; py++) {
-                uint8_t *out_dy = static_cast<uint8_t*>(&m_buf[0]) + 
-                                  (py * m_spec.width + xmin) * 
-                                  m_spec.pixel_bytes();
-                       
-                // set scanline, make copy easier   
-                std::vector<uint16_t> scanline (tw * m_spec.pixel_bytes());
-                uint16_t * sl_p = &scanline[0];
-                  
-                // set tile
-                int sx=0;
-                for (uint16_t px=xmin; px<=xmax; px++) {
-                    uint8_t *in_p = p + 
-                                    (sy * tw + sx) * 
-                                    m_spec.pixel_bytes();
-                
-                    // map BGR(A) to RGB(A)
-                    for (int c=channels - 1; c>=0; --c) {
-                        uint16_t pixel;
-                        uint8_t * out_p = in_p + (c * m_spec.channel_bytes());
-                        memcpy (&pixel, out_p, 2);
-                        // swap endianness
-                        if (littleendian()) {
-                            swap_endian (&pixel);
-                        }
-                        *sl_p++ = pixel;
+                    
+                } else {
+                    int rgb16[] = { 1, 3, 5, 0, 2, 4 };
+                    int rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
+                    if (m_iff_header.pixel_channels == 3) {
+                        map = std::vector<uint8_t>( rgb16, &rgb16[6] );
+                    } else {
+                        map = std::vector<uint8_t>( rgba16, &rgba16[8] );
                     }
-                    sx++;
+                    
                 }
-                // copy data
-                memcpy (out_dy, &scanline[0], tw * m_spec.pixel_bytes());
-                sy++;
-            }
-        }
-          
-    } else {
-        error ("\"%s\": unsupported number of bits per pixel for tile", m_filename.c_str());
-        return false;
-    }
+            
+                // map BGR(A)BGR(A) to RRGGBB(AA)
+                for (int c =(channels * m_spec.channel_bytes()) - 1; c>=0; --c) {
+                    int mc = map[c];
 
-    // tile
-    t++;
+                    std::vector<uint8_t> in (tw * th);
+                    uint8_t *in_p = &in[0];
+              
+                    // uncompress and increment
+                    p += uncompress_rle_channel (p, in_p, tw * th);
+
+                    // set tile
+                    for (uint16_t py=ymin; py<=ymax; py++) {
+                        uint8_t *out_dy = static_cast<uint8_t*> (&m_buf[0]) + 
+                                          (py * m_spec.width) * 
+                                          m_spec.pixel_bytes();
+                                   
+                        for (uint16_t px=xmin; px<=xmax; px++) {
+                            uint8_t *out_p = out_dy + px * m_spec.pixel_bytes() + mc;
+                            *out_p++ = *in_p++;
+                        }
+                    }                  
+                }
+            }
+            else
+            {
+                int sy=0;
+                for (uint16_t py=ymin; py<=ymax; py++) {
+                    uint8_t *out_dy = static_cast<uint8_t*>(&m_buf[0]) + 
+                                      (py * m_spec.width + xmin) * 
+                                      m_spec.pixel_bytes();
+                       
+                    // set scanline, make copy easier   
+                    std::vector<uint16_t> scanline (tw * m_spec.pixel_bytes());
+                    uint16_t * sl_p = &scanline[0];
+                  
+                    // set tile
+                    int sx=0;
+                    for (uint16_t px=xmin; px<=xmax; px++) {
+                        uint8_t *in_p = p + 
+                                        (sy * tw + sx) * 
+                                        m_spec.pixel_bytes();
+                
+                        // map BGR(A) to RGB(A)
+                        for (int c=channels - 1; c>=0; --c) {
+                            uint16_t pixel;
+                            uint8_t * out_p = in_p + (c * m_spec.channel_bytes());
+                            memcpy (&pixel, out_p, 2);
+                            // swap endianness
+                            if (littleendian()) {
+                                swap_endian (&pixel);
+                            }
+                            *sl_p++ = pixel;
+                        }
+                        sx++;
+                    }
+                    // copy data
+                    memcpy (out_dy, &scanline[0], tw * m_spec.pixel_bytes());
+                    sy++;
+                }
+            }
+          
+        } else {
+            error ("\"%s\": unsupported number of bits per pixel for tile", m_filename.c_str());
+            return false;
+        }
+
+        // tile
+        t++;
         
     } else { 
         // skip to the next block

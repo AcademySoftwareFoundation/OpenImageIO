@@ -373,21 +373,24 @@ IffOutput::close (void)
                         tmp.resize (tile_length * 2);      
                   
                         // set map
-                        int* map = NULL;
+                        std::vector<uint8_t> map;
                         if (littleendian()) {
                             int rgb16[] = { 0, 2, 4, 1, 3, 5 };
                             int rgba16[] = { 0, 2, 4, 7, 1, 3, 5, 6 };
-                            if (m_iff_header.pixel_channels == 3)
-                                map = rgb16;
-                            else
-                                map = rgba16;
+                            if (m_iff_header.pixel_channels == 3) {
+                                map = std::vector<uint8_t>( rgb16, &rgb16[6] );
+                            } else {
+                                map = std::vector<uint8_t>( rgba16, &rgba16[8] );
+                            }
+                          
                         } else {
                             int rgb16[] = { 1, 3, 5, 0, 2, 4 };
                             int rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
-                            if (m_iff_header.pixel_channels == 3)
-                                map = rgb16;
-                            else
-                                map = rgba16;
+                            if (m_iff_header.pixel_channels == 3) {
+                                map = std::vector<uint8_t>( rgb16, &rgb16[6] );
+                            } else {
+                                map = std::vector<uint8_t>( rgba16, &rgba16[8] );
+                            }
                         }
 
                         // map: RRGGBB(AA) to BGR(A)BGR(A)
@@ -551,7 +554,7 @@ IffOutput::compress_verbatim (
     const uint8_t *& in, uint8_t *& out, int size)
 {
     int count = 1;
-    unsigned char byte;
+    unsigned char byte = 0;
 
     // two in a row or count
     for (; count < size; ++count)
