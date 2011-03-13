@@ -171,10 +171,6 @@ IffFileHeader::read_header (FILE *fd)
                             } else {
                                 pixel_bits = 16; // 16bit
                         }            
-
-                        // test bits.
-                        const int bits = pixel_channels * pixel_bits;
-                        DASSERT (bits == (pixel_channels * pixel_bits) && (bits % pixel_bits) == 0);
                     }
 
                     // Z format.

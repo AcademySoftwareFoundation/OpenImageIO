@@ -35,13 +35,10 @@
 
 #include <cstdio>
 #include "imageio.h"
-using namespace OpenImageIO;
 #include "fmath.h"
 
 
-#ifdef OPENIMAGEIO_NAMESPACE
-namespace OPENIMAGEIO_NAMESPACE {
-#endif
+OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace iff_pvt {
 
@@ -217,9 +214,6 @@ private:
     );
 };
 
-#ifdef OPENIMAGEIO_NAMESPACE
-}; // end namespace OPENIMAGEIO_NAMESPACE
-using namespace OPENIMAGEIO_NAMESPACE;
-#endif
+OIIO_PLUGIN_NAMESPACE_END
 
 #endif // OPENIMAGEIO_IFF_H
