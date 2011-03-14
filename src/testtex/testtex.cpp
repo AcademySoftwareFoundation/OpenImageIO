@@ -72,6 +72,7 @@ static float missing[4] = {-1, 0, 0, 1};
 static float scalefactor = 1.0f;
 static Imath::V3f offset (0,0,0);
 static float scalest = 1.0f;
+static bool nountiled = false;
 void *dummyptr;
 
 
@@ -112,6 +113,7 @@ getargs (int argc, const char *argv[])
                   "--cachesize %f", &cachesize, "Set cache size, in MB",
                   "--scale %f", &scalefactor, "Scale intensities",
                   "--maxfiles %d", &maxfiles, "Set maximum open files",
+                  "--nountiled", &nountiled, "Reject untiled images",
                   "--ctr", &test_construction, "Test TextureOpt construction time",
                   "--offset %f %f %f", &offset[0], &offset[1], &offset[2], "Offset texture coordinates",
                   "--scalest %f", &scalest, "Scale st coordinates",
@@ -524,6 +526,8 @@ main (int argc, const char *argv[])
         texsys->attribute ("max_open_files", maxfiles);
     if (searchpath.length())
         texsys->attribute ("searchpath", searchpath);
+    if (nountiled)
+        texsys->attribute ("accept_untiled", 0);
 
     if (test_construction) {
         Timer t;
