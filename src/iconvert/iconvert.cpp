@@ -218,8 +218,17 @@ adjust_spec (ImageInput *in, ImageOutput *out,
 
     // Copy the spec, with possible change in format
     outspec.set_format (inspec.format);
-    if (inspec.channelformats.size()  &&  ! out->supports("channelformats"))
-        outspec.channelformats.clear ();
+    if (inspec.channelformats.size()) {
+        // Input file has mixed channels
+        if (out->supports("channelformats")) {
+            // Output supports mixed formats -- so request it
+            outspec.set_format (TypeDesc::UNKNOWN);
+        } else {
+            // Input had mixed formats, output did not, so just use a fixed
+            // format and forget the per-channel formats for output.
+            outspec.channelformats.clear ();
+        }
+    }
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
             outspec.set_format (TypeDesc::UINT8);
@@ -435,7 +444,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             } else {
                 // Need to do it by hand for some reason.  Future expansion in which
                 // only a subset of channels are copied, or some such.
-                std::vector<char> pixels (outspec.image_bytes());
+                std::vector<char> pixels (outspec.image_bytes(true));
                 ok = in->read_image (outspec.format, &pixels[0]);
                 if (! ok) {
                     std::cerr << "iconvert ERROR reading \"" << in_filename 
