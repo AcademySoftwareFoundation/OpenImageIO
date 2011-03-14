@@ -1573,7 +1573,7 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
     }
     else if (name == "accept_untiled" && type == TypeDesc::INT) {
         int a = *(const int *)val;
-        if (a == m_accept_untiled) {
+        if (a != m_accept_untiled) {
             m_accept_untiled = a;
             do_invalidate = true;
         }
