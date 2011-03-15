@@ -214,6 +214,16 @@ pow2rounddown (int x)
 
 
 
+/// Round up to the next even multiple of m.
+///
+inline int
+round_to_multiple (int x, int m)
+{
+    return ((x + m - 1) / m) * m;
+}
+
+
+
 /// Return true if the architecture we are running on is little endian
 ///
 inline bool littleendian (void)

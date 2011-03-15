@@ -55,13 +55,14 @@ using boost::algorithm::iends_with;
 #include "imageio.h"
 #include "thread.h"
 #include "strutil.h"
+#include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
 class OpenEXRInput : public ImageInput {
 public:
-    OpenEXRInput () { init(); }
+    OpenEXRInput ();
     virtual ~OpenEXRInput () { close(); }
     virtual const char * format_name (void) const { return "openexr"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
@@ -70,7 +71,10 @@ public:
     virtual int current_miplevel (void) const { return m_miplevel; }
     virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
+    virtual bool read_native_scanlines (int ybegin, int yend, int z, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
+    virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
+                                    int zbegin, int zend, void *data);
 
 private:
     const Imf::Header *m_header;          ///< Ptr to image header
@@ -175,6 +179,33 @@ private:
 };
 
 static StringMap exr_tag_to_ooio_std;
+
+
+namespace pvt {
+
+void set_exr_threads ()
+{
+#if (BOOST_VERSION >= 103500)
+    static int exr_threads = 0;  // lives in exrinput.cpp
+    static spin_mutex exr_threads_mutex;  
+    spin_lock lock (exr_threads_mutex);
+    if (! exr_threads) {
+        exr_threads = boost::thread::hardware_concurrency();
+        Imf::setGlobalThreadCount (exr_threads);
+    }
+#endif
+}
+
+} // namespace pvt
+
+
+
+OpenEXRInput::OpenEXRInput ()
+{
+    pvt::set_exr_threads ();
+
+    init ();
+}
 
 
 
@@ -504,6 +535,15 @@ OpenEXRInput::close ()
 bool
 OpenEXRInput::read_native_scanline (int y, int z, void *data)
 {
+    return read_native_scanlines (y, y+1, z, data);
+}
+
+
+
+bool
+OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
+{
+//    std::cerr << "rns " << ybegin << ' ' << yend << "\n";
     ASSERT (m_input_scanline != NULL);
 
     // Compute where OpenEXR needs to think the full buffers starts.
@@ -515,7 +555,7 @@ OpenEXRInput::read_native_scanline (int y, int z, void *data)
     size_t scanlinebytes = m_spec.scanline_bytes (true);
     char *buf = (char *)data
               - m_spec.x * pixelbytes
-              - y * scanlinebytes;
+              - ybegin * scanlinebytes;
 
     try {
         Imf::FrameBuffer frameBuffer;
@@ -531,7 +571,7 @@ OpenEXRInput::read_native_scanline (int y, int z, void *data)
             chanoffset += chanbytes;
         }
         m_input_scanline->setFrameBuffer (frameBuffer);
-        m_input_scanline->readPixels (y, y);
+        m_input_scanline->readPixels (ybegin, yend-1);
     }
     catch (const std::exception &e) {
         error ("Failed OpenEXR read: %s", e.what());
@@ -545,6 +585,17 @@ OpenEXRInput::read_native_scanline (int y, int z, void *data)
 bool
 OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
 {
+    return read_native_tiles (x, x+m_spec.tile_width, y, y+m_spec.tile_height,
+                              z, z+m_spec.tile_depth, data);
+}
+
+
+
+bool
+OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
+                                 int zbegin, int zend, void *data)
+{
+    // std::cerr << "openexr rnt " << xbegin << ' ' << xend << ' ' << ybegin << ' ' << yend << "\n";
     ASSERT (m_input_tiled != NULL);
 
     // Compute where OpenEXR needs to think the full buffers starts.
@@ -553,9 +604,23 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
     size_t pixelbytes = m_spec.pixel_bytes (true);
+    int firstxtile = (xbegin-m_spec.x) / m_spec.tile_width;
+    int firstytile = (ybegin-m_spec.y) / m_spec.tile_height;
+    int nxtiles = (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width;
+    int nytiles = (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height;
+    int whole_width = nxtiles * m_spec.tile_width;
+    int whole_height = nytiles * m_spec.tile_height;
+    std::vector<char> tmpbuf;
+    void *origdata = data;
+    if (whole_width != (xend-xbegin) || whole_height != (yend-ybegin)) {
+        // Deal with the case of reading not a whole number of tiles --
+        // OpenEXR will happily overwrite user memory in this case.
+        tmpbuf.resize (nxtiles * nytiles * m_spec.tile_bytes(true));
+        data = &tmpbuf[0];
+    }
     char *buf = (char *)data
-              - x * pixelbytes
-              - y * pixelbytes * m_spec.tile_width;
+              - xbegin * pixelbytes
+              - ybegin * pixelbytes * m_spec.tile_width * nxtiles;
 
     try {
         Imf::FrameBuffer frameBuffer;
@@ -567,16 +632,24 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
                                 Imf::Slice (m_pixeltype[c],
                                             buf + chanoffset, pixelbytes,
-                                            pixelbytes*m_spec.tile_width));
+                                            pixelbytes*m_spec.tile_width*nxtiles));
             chanoffset += chanbytes;
         }
         m_input_tiled->setFrameBuffer (frameBuffer);
-        m_input_tiled->readTile ((x - m_spec.x) / m_spec.tile_width,
-                                 (y - m_spec.y) / m_spec.tile_height,
-                                 m_miplevel, m_miplevel);
+        m_input_tiled->readTiles (firstxtile, firstxtile+nxtiles-1,
+                                  firstytile, firstytile+nytiles-1,
+                                  m_miplevel, m_miplevel);
+        if (data != origdata) {
+            stride_t user_scanline_bytes = (xend-xbegin) * pixelbytes;
+            stride_t tmp_scanline_stride = nxtiles*m_spec.tile_width*pixelbytes;
+            for (int y = ybegin;  y < yend;  ++y)
+                memcpy ((char *)origdata+(y-ybegin)*user_scanline_bytes,
+                        (char *)data+(y-ybegin)*tmp_scanline_stride,
+                        user_scanline_bytes);
+        }
     }
     catch (const std::exception &e) {
-        error ("Filed OpenEXR read: %s", e.what());
+        error ("Failed OpenEXR read: %s", e.what());
         return false;
     }
 

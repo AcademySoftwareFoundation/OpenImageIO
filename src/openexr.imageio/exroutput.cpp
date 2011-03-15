@@ -56,6 +56,7 @@ using boost::algorithm::istarts_with;
 
 #include "dassert.h"
 #include "imageio.h"
+#include "thread.h"
 #include "strutil.h"
 #include "sysutil.h"
 
@@ -74,9 +75,16 @@ public:
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
-    virtual bool write_tile (int x, int y, int z,
-                             TypeDesc format, const void *data,
-                             stride_t xstride, stride_t ystride, stride_t zstride);
+    virtual bool write_scanlines (int ybegin, int yend, int z,
+                                  TypeDesc format, const void *data,
+                                  stride_t xstride, stride_t ystride);
+    virtual bool write_tile (int x, int y, int z, TypeDesc format,
+                             const void *data, stride_t xstride,
+                             stride_t ystride, stride_t zstride);
+    virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend, TypeDesc format,
+                              const void *data, stride_t xstride,
+                              stride_t ystride, stride_t zstride);
 
 private:
     Imf::Header *m_header;                ///< Ptr to image header
@@ -131,9 +139,15 @@ static std::string format_string ("openexr");
 static std::string format_prefix ("openexr_");
 
 
+namespace pvt {
+    void set_exr_threads ();
+}
+
+
 
 OpenEXROutput::OpenEXROutput ()
 {
+    pvt::set_exr_threads ();
     init ();
 }
 
@@ -589,26 +603,146 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
 
 
 bool
+OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
+                                TypeDesc format, const void *data,
+                                stride_t xstride, stride_t ystride)
+{
+    yend = std::min (yend, spec().y+spec().height);
+    bool native = (format == TypeDesc::UNKNOWN);
+    imagesize_t scanlinebytes = spec().scanline_bytes(native);
+    size_t pixel_bytes = m_spec.pixel_bytes (native);
+    if (native && xstride == AutoStride)
+        xstride = (stride_t) pixel_bytes;
+    stride_t zstride = AutoStride;
+    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
+                        m_spec.width, m_spec.height);
+
+    const imagesize_t limit = 16*1024*1024;   // Allocate 16 MB, or 1 scanline
+    int chunk = std::max (1, int(limit / scanlinebytes));
+
+    bool ok = true;
+    for ( ;  ok && ybegin < yend;  ybegin += chunk) {
+        int y1 = std::min (ybegin+chunk, yend);
+        int nscanlines = y1 - ybegin;
+        
+        const void *d = to_native_rectangle (m_spec.x, m_spec.x+m_spec.width-1,
+                                             ybegin, y1-1, z, z, format, data,
+                                             xstride, ystride, zstride,
+                                             m_scratch);
+
+        // Compute where OpenEXR needs to think the full buffers starts.
+        // OpenImageIO requires that 'data' points to where the client wants
+        // to put the pixels being read, but OpenEXR's frameBuffer.insert()
+        // wants where the address of the "virtual framebuffer" for the
+        // whole image.
+        char *buf = (char *)d
+                  - m_spec.x * pixel_bytes
+                  - ybegin * scanlinebytes;
+        try {
+            Imf::FrameBuffer frameBuffer;
+            size_t chanoffset = 0;
+            for (int c = 0;  c < m_spec.nchannels;  ++c) {
+                size_t chanbytes = m_spec.channelformats.size() 
+                                      ? m_spec.channelformats[c].size() 
+                                      : m_spec.format.size();
+                frameBuffer.insert (m_spec.channelnames[c].c_str(),
+                                    Imf::Slice (m_pixeltype[c],
+                                                buf + chanoffset,
+                                                pixel_bytes, scanlinebytes));
+                chanoffset += chanbytes;
+            }
+            m_output_scanline->setFrameBuffer (frameBuffer);
+            m_output_scanline->writePixels (nscanlines);
+        }
+        catch (const std::exception &e) {
+            std::cerr << "except " << e.what() << "\n";
+            error ("Failed OpenEXR write: %s", e.what());
+            return false;
+        }
+
+        data = (const char *)data + ystride*nscanlines;
+    }
+
+    // If we allocated more than 1M, free the memory.  It's not wasteful,
+    // because it means we're writing big chunks at a time, and therefore
+    // there will be few allocations and deletions.
+    if (m_scratch.size() > 1*1024*1024) {
+        std::vector<unsigned char> dummy;
+        std::swap (m_scratch, dummy);
+    }
+    return true;
+}
+
+
+
+bool
 OpenEXROutput::write_tile (int x, int y, int z,
                            TypeDesc format, const void *data,
                            stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    bool native = (format == TypeDesc::UNKNOWN);
-    size_t pixel_bytes = m_spec.pixel_bytes (true);  // native
-    if (native && xstride == AutoStride)
-        xstride = (stride_t) pixel_bytes;
-    m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
-                        spec().tile_width, spec().tile_height);
-    data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
+    return write_tiles (x, x+m_spec.tile_width,
+                        y, y+m_spec.tile_height,
+                        z, z+m_spec.tile_depth,
+                        format, data, xstride, ystride, zstride);
+}
+
+
+
+bool
+OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
+                            int zbegin, int zend, TypeDesc format,
+                            const void *data, stride_t xstride,
+                            stride_t ystride, stride_t zstride)
+{
+//    std::cerr << "exr::write_tiles " << xbegin << ' ' << xend 
+//              << ' ' << ybegin << ' ' << yend << "\n";
+    ASSERT (m_output_tiled != NULL);
 
     // Compute where OpenEXR needs to think the full buffers starts.
     // OpenImageIO requires that 'data' points to where the client wants
     // to put the pixels being read, but OpenEXR's frameBuffer.insert()
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
+    bool native = (format == TypeDesc::UNKNOWN);
+    size_t user_pixelbytes = m_spec.pixel_bytes (native);
+    size_t pixelbytes = m_spec.pixel_bytes (true);
+    if (native && xstride == AutoStride)
+        xstride = (stride_t) user_pixelbytes;
+    m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
+                        (xend-xbegin), (yend-ybegin));
+
+    // FIXME -- to_native_rectangle really needs to use begin/end notation,
+    // rather than min/max.
+    data = to_native_rectangle (xbegin, xend-1, ybegin, yend-1, zbegin, zend-1,
+                                format, data, xstride, ystride, zstride,
+                                m_scratch);
+
+    int firstxtile = (xbegin-m_spec.x) / m_spec.tile_width;
+    int firstytile = (ybegin-m_spec.y) / m_spec.tile_height;
+    int nxtiles = (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width;
+    int nytiles = (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height;
+
+    std::vector<char> padded;
+    int width = nxtiles*m_spec.tile_width;
+    int height = nytiles*m_spec.tile_height;
+    stride_t widthbytes = width * pixelbytes;
+    if (width != (xend-xbegin) || height != (yend-ybegin)) {
+        // If the image region is not an even multiple of the tile size,
+        // we need to copy and add padding.
+        padded.resize (pixelbytes * width * height, 0);
+        OIIO_NAMESPACE::copy_image (m_spec.nchannels, xend-xbegin,
+                                    yend-ybegin, 1, data, pixelbytes,
+                                    pixelbytes, (xend-xbegin)*pixelbytes,
+                                    (xend-xbegin)*(yend-ybegin)*pixelbytes,
+                                    &padded[0], pixelbytes, widthbytes,
+                                    height*widthbytes);
+        data = &padded[0];
+    }
+
+
     char *buf = (char *)data
-              - x * pixel_bytes
-              - y * pixel_bytes * m_spec.tile_width;
+              - xbegin * pixelbytes
+              - ybegin * widthbytes;
 
     try {
         Imf::FrameBuffer frameBuffer;
@@ -619,14 +753,14 @@ OpenEXROutput::write_tile (int x, int y, int z,
                                   : m_spec.format.size();
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
                                 Imf::Slice (m_pixeltype[c],
-                                            buf + chanoffset, pixel_bytes,
-                                            pixel_bytes*m_spec.tile_width));
+                                            buf + chanoffset, pixelbytes,
+                                            widthbytes));
             chanoffset += chanbytes;
         }
         m_output_tiled->setFrameBuffer (frameBuffer);
-        m_output_tiled->writeTile ((x - m_spec.x) / m_spec.tile_width,
-                                   (y - m_spec.y) / m_spec.tile_height,
-                                   m_miplevel, m_miplevel);
+        m_output_tiled->writeTiles (firstxtile, firstxtile+nxtiles-1,
+                                    firstytile, firstytile+nytiles-1,
+                                    m_miplevel, m_miplevel);
     }
     catch (const std::exception &e) {
         error ("Failed OpenEXR write: %s", e.what());
@@ -635,6 +769,7 @@ OpenEXROutput::write_tile (int x, int y, int z,
 
     return true;
 }
+
 
 OIIO_PLUGIN_NAMESPACE_END
 
