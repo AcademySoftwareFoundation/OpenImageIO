@@ -7,6 +7,11 @@ if (APPLE)
 #    set (PYTHON_LIBRARIES /opt/local/lib)
 endif ()
 
+# Disable some warnings for Clang, it's a little too picky with boost
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    add_definitions ("-Wno-array-bounds")
+endif ()
+
 if ( BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
 
     set (python_srcs py_imageinput.cpp py_imageoutput.cpp

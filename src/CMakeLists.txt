@@ -77,6 +77,14 @@ if (NOT WIN32)
     add_definitions ("-Wall")
 endif()
 
+# Disable some warnings for Clang, it's a little too picky with boost
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    add_definitions ("-Wno-parentheses")
+    add_definitions ("-Wno-char-subscripts")
+    add_definitions ("-Wno-unused-function")
+    add_definitions ("-Wno-overloaded-virtual")
+endif ()
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions ("-DDEBUG=1")
 endif ()
