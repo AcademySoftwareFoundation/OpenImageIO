@@ -54,8 +54,8 @@ class JpgInput : public ImageInput {
     virtual bool open (const std::string &name, ImageSpec &spec);
     virtual bool open (const std::string &name, ImageSpec &spec,
                        const ImageSpec &config);
-    virtual bool seek_subimage (int index, ImageSpec &newspec) {
-        return (index == 0);   // JPEG has only one subimage
+    virtual bool seek_subimage (int index, int miplevel, ImageSpec &newspec) {
+        return (index == 0 && miplevel == 0);   // JPEG has only one subimage
     }
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool close ();
