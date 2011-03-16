@@ -37,16 +37,19 @@
 #include <vector>
 #include <string>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+
+using boost::algorithm::iequals;
+
 
 #include "argparse.h"
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
 #include "sysutil.h"
-
 
 OIIO_NAMESPACE_USING
 
@@ -75,6 +78,8 @@ static std::string outputname;
 //static bool rotcw = false, rotccw = false, rot180 = false;
 //static bool sRGB = false;
 //static bool separate = false, contig = false;
+static bool flip = false;
+static bool flop = false;
 static std::string crop_type;
 static int crop_xmin = 0, crop_xmax = 0, crop_ymin = 0, crop_ymax = 0;
 static bool do_add = false;
@@ -109,6 +114,8 @@ getargs (int argc, char *argv[])
                 "--add", &do_add, "Add two images",
                 "--crop %s %d %d %d %d", &crop_type, &crop_xmin, &crop_xmax,
                     &crop_ymin, &crop_ymax, "Crop an image (type, xmin, xmax, ymin, ymax)\n\t\t\t\ttype = black|white|trans|window|cut",
+                "--flip", &flip, "Flip the Image (upside-down)",
+                "--flop", &flop, "Flop the Image (left/right mirror)",
                 "<SEPARATOR>", "Output options:",
 //                "-d %s", &dataformatname, "Set the output data format to one of:\n"
 //                        "\t\t\tuint8, sint8, uint16, sint16, half, float, double",
@@ -220,6 +227,7 @@ main (int argc, char *argv[])
 	std::cout << "finished cropping\n";
         out.save (outputname);
     }
+    
     if (do_add) {
 	std::cout << "Adding " << filenames[0] << " and " << filenames[1] 
 		<< " result will be saved at " << outputname << "\n";
@@ -242,6 +250,34 @@ main (int argc, char *argv[])
         out.save (outputname);
     }//do add
 
+    if(flip || flop)
+    {
+        ImageBufAlgo::AlignedTransform t = ImageBufAlgo::TRANSFORM_NONE;
+        
+        if (flip && flop) t = ImageBufAlgo::TRANSFORM_FLIPFLOP;
+        else if (flip) t = ImageBufAlgo::TRANSFORM_FLIP;
+        else if (flop) t = ImageBufAlgo::TRANSFORM_FLOP;
+        
+        if (filenames.size() != 1) {
+            std::cerr << "iprocess: --orient needs one input filename\n";
+            exit (EXIT_FAILURE);
+        }
+        
+        ImageBuf in;
+        if (! read_input (filenames[0], in)) {
+            std::cerr << "iprocess: read error: " << in.geterror() << "\n";
+            return EXIT_FAILURE;
+        }
+        
+        ImageBuf out;
+        if (! ImageBufAlgo::transform( out, in, t )) {
+            std::cerr << "iprocess: orient error: " << in.geterror() << "\n";
+            return EXIT_FAILURE;
+        }
+        
+        out.save (outputname);
+    }
+    
     if (colortransfer_to != "") {
         if (filenames.size() != 1) {
             std::cerr << "iprocess: --transfer needs one input filename\n";
