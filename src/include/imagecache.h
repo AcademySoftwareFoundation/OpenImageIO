@@ -88,6 +88,7 @@ public:
     ///     int automip : if nonzero, emulate mipmap on the fly
     ///     int accept_untiled : if nonzero, accept untiled images, but
     ///                          if zero, reject untiled images (default=1)
+    ///     int accept_unmipped : if nonzero, accept unmipped images (def=1)
     ///     int statistics:level : verbosity of statistics auto-printed.
     ///     int forcefloat : if nonzero, convert all to float.
     ///     int failure_retries : number of times to retry a read before fail.

@@ -318,6 +318,14 @@ This is sometimes helpful for applications that want to enforce use of
 tiled images only.
 \apiend
 
+\apiitem{int accept_unmipped}
+When nonzero (the default), \ImageCache accepts un-MIPmapped images as
+usual.  When set to zero, \ImageCache will reject un-MIPmapped images with
+an error condition, as if the file could not be properly read.
+This is sometimes helpful for applications that want to enforce use of
+MIP-mapped images only.
+\apiend
+
 \apiitem{int failure_retries}
 When an {\cf open()} or {\cf read_tile()} calls fails, pause and try
 again, up to {\cf failure_retries} times before truly returning a

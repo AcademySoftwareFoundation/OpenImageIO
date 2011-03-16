@@ -399,7 +399,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         // "textureformat" attribute (because that would indicate somebody
         // constructed it as texture and specifically wants it un-mipmapped).
         // But not volume textures -- don't auto MIP them for now.
-        if (nmip == 1 && !si.volume)
+        if (nmip == 1 && !si.volume && 
+            (tempspec.width > 1 || tempspec.height > 1 || tempspec.depth > 1))
             si.unmipped = true;
         if (si.unmipped && imagecache().automip() &&
             ! tempspec.find_attribute ("textureformat", TypeDesc::TypeString)) {
@@ -437,6 +438,14 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         }
         if (si.untiled && ! imagecache().accept_untiled()) {
             imagecache().error ("%s was untiled, rejecting",
+                                m_filename.c_str());
+            m_broken = true;
+            invalidate_spec ();
+            m_input.reset ();
+            return false;
+        }
+        if (si.unmipped && ! imagecache().accept_unmipped()) {
+            imagecache().error ("%s was not MIP-mapped, rejecting",
                                 m_filename.c_str());
             m_broken = true;
             invalidate_spec ();
@@ -1217,6 +1226,7 @@ ImageCacheImpl::init ()
     m_automip = false;
     m_forcefloat = false;
     m_accept_untiled = true;
+    m_accept_unmipped = true;
     m_read_before_insert = false;
     m_failure_retries = 0;
     m_Mw2c.makeIdentity();
@@ -1578,6 +1588,13 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
             do_invalidate = true;
         }
     }
+    else if (name == "accept_unmipped" && type == TypeDesc::INT) {
+        int a = *(const int *)val;
+        if (a != m_accept_unmipped) {
+            m_accept_unmipped = a;
+            do_invalidate = true;
+        }
+    }
     else if (name == "read_before_insert" && type == TypeDesc::INT) {
         int r = *(const int *)val;
         if (r != m_read_before_insert) {
@@ -1617,6 +1634,7 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     ATTR_DECODE ("automip", int, m_automip);
     ATTR_DECODE ("forcefloat", int, m_forcefloat);
     ATTR_DECODE ("accept_untiled", int, m_accept_untiled);
+    ATTR_DECODE ("accept_unmipped", int, m_accept_unmipped);
     ATTR_DECODE ("read_before_insert", int, m_read_before_insert);
     ATTR_DECODE ("failure_retries", int, m_failure_retries);
 
@@ -1813,6 +1831,8 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
         std::cerr << "mem used: " << m_mem_used << ", max = " << m_max_memory_bytes << "\n";
 #endif
     if (m_tilecache.empty())
+        return;
+    if (m_mem_used < (long long)m_max_memory_bytes)
         return;
     int full_loops = 0;
     while (m_mem_used >= (long long)m_max_memory_bytes) {

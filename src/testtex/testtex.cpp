@@ -74,6 +74,7 @@ static float scalefactor = 1.0f;
 static Imath::V3f offset (0,0,0);
 static float scalest = 1.0f;
 static bool nountiled = false;
+static bool nounmipped = false;
 void *dummyptr;
 
 
@@ -116,6 +117,7 @@ getargs (int argc, const char *argv[])
                   "--scale %f", &scalefactor, "Scale intensities",
                   "--maxfiles %d", &maxfiles, "Set maximum open files",
                   "--nountiled", &nountiled, "Reject untiled images",
+                  "--nounmipped", &nounmipped, "Reject unmipped images",
                   "--ctr", &test_construction, "Test TextureOpt construction time",
                   "--offset %f %f %f", &offset[0], &offset[1], &offset[2], "Offset texture coordinates",
                   "--scalest %f", &scalest, "Scale st coordinates",
@@ -558,6 +560,8 @@ main (int argc, const char *argv[])
         texsys->attribute ("searchpath", searchpath);
     if (nountiled)
         texsys->attribute ("accept_untiled", 0);
+    if (nounmipped)
+        texsys->attribute ("accept_unmipped", 0);
 
     if (test_construction) {
         Timer t;
