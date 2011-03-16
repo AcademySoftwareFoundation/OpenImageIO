@@ -25,7 +25,8 @@ set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/varyingref.h    
                          )
 
-set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp imagebufalgo.cpp
+set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
+                         imagebufalgo.cpp imagebufalgo_orient.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp 
                           ../libutil/argparse.cpp
