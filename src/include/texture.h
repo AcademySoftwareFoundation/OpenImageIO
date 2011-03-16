@@ -329,6 +329,9 @@ public:
     ///     matrix44 commontoworld : the common-to-world transformation
     ///     int autotile : if >0, tile size to emulate for non-tiled images
     ///     int automip : if nonzero, emulate mipmap on the fly
+    ///     int accept_untiled : if nonzero, accept untiled images
+    ///     int accept_unmipped : if nonzero, accept unmipped images
+    ///     int failure_retries : how many times to retry a read failure
     ///
     virtual bool attribute (const std::string &name, TypeDesc type, const void *val) = 0;
     // Shortcuts for common types

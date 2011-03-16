@@ -636,6 +636,7 @@ public:
     bool automip () const { return m_automip; }
     bool forcefloat () const { return m_forcefloat; }
     bool accept_untiled () const { return m_accept_untiled; }
+    bool accept_unmipped () const { return m_accept_unmipped; }
     int failure_retries () const { return m_failure_retries; }
     void get_commontoworld (Imath::M44f &result) const {
         result = m_Mc2w;
@@ -900,6 +901,7 @@ private:
     bool m_automip;              ///< auto-mipmap on demand?
     bool m_forcefloat;           ///< force all cache tiles to be float
     bool m_accept_untiled;       ///< Accept untiled images?
+    bool m_accept_unmipped;      ///< Accept unmipped images?
     bool m_read_before_insert;   ///< Read tiles before adding to cache?
     int m_failure_retries;       ///< Times to re-try disk failures
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
