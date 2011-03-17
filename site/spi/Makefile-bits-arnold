@@ -21,6 +21,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
     platform=spinux1
     COMPILER=gcc44m64
     MY_CMAKE_FLAGS += \
+     -DOPENGL_gl_LIBRARY=/usr/lib64/xorg.nvidia.3d/libGL.so \
 	  -DILMBASE_CUSTOM=1 \
 	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
 	  -DOPENEXR_CUSTOM=1 \
