@@ -41,7 +41,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
         return new Jpeg2000Input;
     }
     DLLEXPORT const char *jpeg2000_input_extensions[] = {
-        "jp2", "j2k", NULL
+        "jp2", "j2k", "j2c", NULL
     };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -129,12 +129,39 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
     int width = jas_image_width (m_image);
     int height = jas_image_height (m_image);
     int channels = jas_image_numcmpts (m_image);
+    // Assume that all channels are same bit-depth
+    precision = jas_image_cmptprec (m_image, 0);
     if (channels > 4) {
         error ("plugin currently desn't support images with more than 4 channels");
         close ();
         return false;
     }
-    m_spec = ImageSpec (width, height, channels, TypeDesc::UINT8);
+
+    switch (precision) {
+
+        case 8:
+            m_spec = ImageSpec (width, height, channels, TypeDesc::UINT8);
+            break;
+
+        case 10:
+            m_spec = ImageSpec (width, height, channels, TypeDesc::UINT16);
+            break;
+
+        case 12:
+            m_spec = ImageSpec ( width, height, channels, TypeDesc::UINT16);
+            break; 
+
+        case 16:
+            m_spec = ImageSpec (width, height, channels, TypeDesc::UINT16);
+            break;
+
+        default:
+            error ("Bit-depth not supported.");
+            return false;
+    }
+
+    m_spec.attribute ("oiio:BitsPerSample", (unsigned int) precision);
+
     m_spec.attribute("jpeg2000:streamformat", format);
 
     // what family of color space was used
@@ -161,14 +188,40 @@ Jpeg2000Input::read_native_scanline (int y, int z, void *data)
             m_pixels[i] = jas_matrix_get (m_matrix_chan[GREY], y, i);
     }
     else if (m_fam_clrspc == JAS_CLRSPC_FAM_RGB) {
-        for (int i = 0, pos = 0; i < m_spec.width; i++) {
-            m_pixels[pos++] = jas_matrix_get (m_matrix_chan[RED], y, i);
-            m_pixels[pos++] = jas_matrix_get (m_matrix_chan[GREEN], y, i);
-            m_pixels[pos++] = jas_matrix_get (m_matrix_chan[BLUE], y, i);
-            if (m_spec.nchannels == 4)
-                pos++;
-        }
-    }
+
+        switch (precision) {
+
+            case 10:
+                for (int i = 0, pos = 0; i < m_spec.width; i++) {
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[RED], y, i) >> 6;
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[GREEN], y, i) >> 6;
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[BLUE], y, i) >> 6;
+                    if (m_spec.nchannels == 4)
+                        pos++;
+                };
+               break;
+
+            case 12:
+               for (int i = 0, pos = 0; i < m_spec.width; i++) {
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[RED], y, i) >> 4;
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[GREEN], y, i) >> 4;
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[BLUE], y, i) >> 4;
+                    if (m_spec.nchannels == 4)
+                        pos++;
+                };
+                break;
+            default: 
+               for (int i = 0, pos = 0; i < m_spec.width; i++) {
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[RED], y, i);
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[GREEN], y, i);
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[BLUE], y, i);
+                    if (m_spec.nchannels == 4)
+                        pos++;
+                };
+                break;
+
+        };
+    };
     memcpy(data, &m_pixels[0], m_scanline_size);
     return true;
 }

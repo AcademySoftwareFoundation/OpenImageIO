@@ -72,6 +72,7 @@ class Jpeg2000Input : public ImageInput {
     std::vector<int> m_cmpt_id; //ids of the components
     std::vector<char> m_pixels;
     size_t m_scanline_size;
+    long  precision;
 
     void init (void);
     // read informations about all channels of the given image
@@ -105,6 +106,7 @@ class Jpeg2000Output : public ImageOutput {
     std::vector<jas_matrix_t*> m_scanline;
     size_t m_scanline_size;
     std::string stream_format;
+
 
     void init (void);
     // initializing information about component
