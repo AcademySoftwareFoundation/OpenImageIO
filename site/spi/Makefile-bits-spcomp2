@@ -30,6 +30,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
     FIELD3D_HOME="/shots/spi/home/lib/SpComp2/Field3D/spinux1-gcc44m64/v116"
     SPCOMP2_RPATH=$(FIELD3D_HOME)/lib
     MY_CMAKE_FLAGS += \
+     -DOPENGL_gl_LIBRARY=/usr/lib64/xorg.nvidia.3d/libGL.so \
 	  -DILMBASE_CUSTOM=1 \
 	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
 	  -DOPENEXR_CUSTOM=1 \
