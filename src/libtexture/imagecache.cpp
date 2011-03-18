@@ -1039,7 +1039,7 @@ ImageCacheImpl::check_max_files (ImageCachePerThreadInfo *thread_info)
 {
     DASSERT (m_filemutex_holder == thread_info &&
              "check_max_files should only be called by file lock holder");
-#ifdef DEBUG
+#if 0
     if (! (m_stat_open_files_created % 16) || m_stat_open_files_current >= m_max_open_files) {
         std::cerr << "open files " << m_stat_open_files_current << ", max = " << m_max_open_files << "\n";
     std::cout << "    ImageInputs : " << m_stat_open_files_created << " created, " << m_stat_open_files_current << " current, " << m_stat_open_files_peak << " peak\n";
@@ -1825,7 +1825,7 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
     DASSERT (m_tilemutex_holder == thread_info &&
              "check_max_mem should only be called by tile lock holder");
     DASSERT (m_mem_used < (long long)m_max_memory_bytes*10); // sanity
-#ifdef DEBUG
+#if 0
     static atomic_int n;
     if (! (n++ % 64) || m_mem_used >= (long long)m_max_memory_bytes)
         std::cerr << "mem used: " << m_mem_used << ", max = " << m_max_memory_bytes << "\n";
@@ -2387,8 +2387,8 @@ ImageCache::create (bool shared)
             shared_image_cache->invalidate_all ();
 
 #ifdef DEBUG
-        std::cerr << " shared ImageCache is "
-                  << (void *)shared_image_cache.get() << "\n";
+//        std::cerr << " shared ImageCache is "
+//                  << (void *)shared_image_cache.get() << "\n";
 #endif
         return shared_image_cache.get ();
     }
@@ -2396,7 +2396,7 @@ ImageCache::create (bool shared)
     // Doesn't need a shared cache
     ImageCacheImpl *ic = new ImageCacheImpl;
 #ifdef DEBUG
-    std::cerr << "creating new ImageCache " << (void *)ic << "\n";
+    //std::cerr << "creating new ImageCache " << (void *)ic << "\n";
 #endif
     return ic;
 }
