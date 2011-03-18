@@ -1848,8 +1848,8 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
             ++m_tile_sweep;
             size_t size = todelete->second->memsize();
             ASSERT (m_mem_used >= (long long)size);
-#ifdef DEBUG
-//            std::cerr << "  Freeing tile, recovering " << size << "\n";
+#if 0
+            std::cerr << "  Freeing tile, recovering " << size << "\n";
 #endif
             m_tilecache.erase (todelete);
         } else {
@@ -2386,17 +2386,17 @@ ImageCache::create (bool shared)
         else
             shared_image_cache->invalidate_all ();
 
-#ifdef DEBUG
-//        std::cerr << " shared ImageCache is "
-//                  << (void *)shared_image_cache.get() << "\n";
+#if 0
+        std::cerr << " shared ImageCache is "
+                  << (void *)shared_image_cache.get() << "\n";
 #endif
         return shared_image_cache.get ();
     }
 
     // Doesn't need a shared cache
     ImageCacheImpl *ic = new ImageCacheImpl;
-#ifdef DEBUG
-    //std::cerr << "creating new ImageCache " << (void *)ic << "\n";
+#if 0
+    std::cerr << "creating new ImageCache " << (void *)ic << "\n";
 #endif
     return ic;
 }
