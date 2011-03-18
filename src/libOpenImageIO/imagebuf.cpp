@@ -142,7 +142,7 @@ ImageBuf::realloc ()
     }
     m_pixels.resize (newsize);
     m_localpixels = true;
-#ifdef DEBUG
+#if 0
     std::cerr << "ImageBuf " << m_name << " local allocation: " << newsize << "\n";
 #endif
 }

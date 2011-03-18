@@ -329,7 +329,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
                  (vattr = m_header->findTypedAttribute<Imf::V3fAttribute> (name)))
             m_spec.attribute (oname, TypeDesc::TypeVector, &(vattr->value()));
         else {
-#ifdef DEBUG
+#if 0
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";
 #endif
         }
