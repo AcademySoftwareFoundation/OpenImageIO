@@ -37,6 +37,8 @@
 #endif
 #include <vector>
 
+#define BOOST_FILESYSTEM_VERSION 2
+
 #include <boost/algorithm/string.hpp>
 using boost::algorithm::iequals;
 
