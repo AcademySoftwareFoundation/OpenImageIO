@@ -1,13 +1,17 @@
 Changes:
 
 
-Release 0.9.1 (7 Mar 2011)
---------------------------
+Release 0.9.1 updates (21 Mar 2011)
+-----------------------------------
 * Texure: Fixes to make latlong environment maps more correct for OpenEXR
   files, which have some particular unique conventions.
 * Fix USE_TBB macro on Windows build.
 * Bug fix to TextureOpt default initializer that could screw up texture
   lookups.
+* Fixes required for Windows compile in conjunction with OSL.
+* ImageCache option "accept_untiled" wasn't properly recognized.
+* Removed some pointless debugging output to the console.
+* Added ImageBufAlgo::transform to allow for 'flip' & 'flop' in iprocess.
 
 
 Release 0.9 (Dec 9 2010, updated Feb 23, 2011)
