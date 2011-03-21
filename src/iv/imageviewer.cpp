@@ -829,7 +829,7 @@ ImageViewer::updateStatusBar ()
         return;
     }
     std::string message;
-    message = Strutil::format ("%d/%d) : ", m_current_image+1, (int) m_images.size());
+    message = Strutil::format ("(%d/%d) : ", m_current_image+1, (int) m_images.size());
     message += cur()->shortinfo();
     statusImgInfo->setText (message.c_str());
 
@@ -1346,8 +1346,14 @@ ImageViewer::slideNoLoop ()
 static bool
 compName (IvImage *first, IvImage *second)
 {
+#if BOOST_FILESYSTEM_VERSION == 3
+    std::string firstFile = boost::filesystem3::path(first->name()).leaf().string();
+    std::string secondFile = boost::filesystem3::path(second->name()).leaf().string();
+#else
     std::string firstFile = boost::filesystem::path(first->name()).leaf();
     std::string secondFile = boost::filesystem::path(second->name()).leaf();
+#endif
+    
     return (firstFile.compare(secondFile) < 0);
 }
 
@@ -1418,7 +1424,8 @@ DateTime_to_time_t (const char *datetime, time_t &timet)
 static bool
 compImageDate (IvImage *first, IvImage *second)
 {
-    std::time_t firstFile = NULL, secondFile = NULL;
+    std::time_t firstFile = time(NULL);
+    std::time_t secondFile = time(NULL);
     double diff;
     std::string metadatatime = first->spec ().get_string_attribute ("DateTime");
     if (metadatatime.empty()) {
@@ -1738,8 +1745,6 @@ ImageViewer::closeImg()
 
     current_image (current_image() < (int)m_images.size() ? current_image() : 0);
 }
-
-
 
 void
 ImageViewer::print()
