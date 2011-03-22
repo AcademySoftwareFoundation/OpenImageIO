@@ -1424,7 +1424,8 @@ DateTime_to_time_t (const char *datetime, time_t &timet)
 static bool
 compImageDate (IvImage *first, IvImage *second)
 {
-    std::time_t firstFile = NULL, secondFile = NULL;
+    std::time_t firstFile = time(NULL);
+    std::time_t secondFile = time(NULL);
     double diff;
     std::string metadatatime = first->spec ().get_string_attribute ("DateTime");
     if (metadatatime.empty()) {
