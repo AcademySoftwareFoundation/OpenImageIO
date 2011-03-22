@@ -34,8 +34,6 @@
 #include <string>
 #include <vector>
 
-#define BOOST_FILESYSTEM_VERSION 2
-
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
@@ -277,7 +275,13 @@ catalog_all_plugins (std::string searchpath)
         for (boost::filesystem::directory_iterator itr (dir);
               itr != end_itr;  ++itr) {
             std::string full_filename = itr->path().string();
-            std::string leaf = itr->path().leaf();
+            
+            #if BOOST_FILESYSTEM_VERSION == 3
+                std::string leaf = itr->path().leaf().string();
+            #else
+                std::string leaf = itr->path().leaf();
+            #endif
+                
             size_t found = leaf.find (pattern);
             if (found != std::string::npos &&
                 (found == leaf.length() - patlen)) {

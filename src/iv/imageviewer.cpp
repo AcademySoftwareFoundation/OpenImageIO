@@ -37,8 +37,6 @@
 #endif
 #include <vector>
 
-#define BOOST_FILESYSTEM_VERSION 2
-
 #include <boost/algorithm/string.hpp>
 using boost::algorithm::iequals;
 
@@ -1348,8 +1346,14 @@ ImageViewer::slideNoLoop ()
 static bool
 compName (IvImage *first, IvImage *second)
 {
-    std::string firstFile = boost::filesystem::path(first->name()).leaf();
-    std::string secondFile = boost::filesystem::path(second->name()).leaf();
+    #if BOOST_FILESYSTEM_VERSION == 3
+        std::string firstFile = boost::filesystem::path(first->name()).leaf().string();
+        std::string secondFile = boost::filesystem::path(second->name()).leaf().string();
+    #else
+        std::string firstFile = boost::filesystem::path(first->name()).leaf();
+        std::string secondFile = boost::filesystem::path(second->name()).leaf();
+    #endif
+    
     return (firstFile.compare(secondFile) < 0);
 }
 
@@ -1741,8 +1745,6 @@ ImageViewer::closeImg()
     current_image (current_image() < (int)m_images.size() ? current_image() : 0);
 }
 
-
-
 void
 ImageViewer::print()
 {
@@ -1977,7 +1979,7 @@ void ImageViewer::fullScreenToggle()
     } else {
         menuBar()->hide ();
         statusBar()->hide ();
-        showFullScreen ();
+        showFullScreen ();   
         m_fullscreen = true;
         fitImageToWindow ();
     }
