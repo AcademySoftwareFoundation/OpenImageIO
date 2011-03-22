@@ -1347,8 +1347,8 @@ static bool
 compName (IvImage *first, IvImage *second)
 {
     #if BOOST_FILESYSTEM_VERSION == 3
-        std::string firstFile = boost::filesystem::path(first->name()).leaf().string();
-        std::string secondFile = boost::filesystem::path(second->name()).leaf().string();
+        std::string firstFile = boost::filesystem3::path(first->name()).leaf().string();
+        std::string secondFile = boost::filesystem3::path(second->name()).leaf().string();
     #else
         std::string firstFile = boost::filesystem::path(first->name()).leaf();
         std::string secondFile = boost::filesystem::path(second->name()).leaf();
