@@ -621,10 +621,13 @@ ImageViewer::open()
         return;
     int old_lastimage = m_images.size()-1;
     QStringList list = names;
+        
     for (QStringList::Iterator it = list.begin();  it != list.end();  ++it) {
-        std::string filename = it->toStdString();
+        std::string filename = it->toUtf8().data();
+         
         if (filename.empty())
             continue;
+                
         add_image (filename);
 //        int n = m_images.size()-1;
 //        IvImage *newimage = m_images[n];
@@ -814,7 +817,7 @@ ImageViewer::updateTitle ()
     }
     std::string message;
     message = Strutil::format ("%s - iv Image Viewer", img->name().c_str());
-    setWindowTitle (message.c_str());
+    setWindowTitle (QString::fromLocal8Bit(message.c_str()));
 }
 
 
@@ -1346,13 +1349,13 @@ ImageViewer::slideNoLoop ()
 static bool
 compName (IvImage *first, IvImage *second)
 {
-#if BOOST_FILESYSTEM_VERSION == 3
-    std::string firstFile = boost::filesystem3::path(first->name()).leaf().string();
-    std::string secondFile = boost::filesystem3::path(second->name()).leaf().string();
-#else
-    std::string firstFile = boost::filesystem::path(first->name()).leaf();
-    std::string secondFile = boost::filesystem::path(second->name()).leaf();
-#endif
+    #if BOOST_FILESYSTEM_VERSION == 3
+        std::string firstFile = boost::filesystem3::path(first->name()).leaf().string();
+        std::string secondFile = boost::filesystem3::path(second->name()).leaf().string();
+    #else
+        std::string firstFile = boost::filesystem::path(first->name()).leaf();
+        std::string secondFile = boost::filesystem::path(second->name()).leaf();
+    #endif
     
     return (firstFile.compare(secondFile) < 0);
 }
@@ -1746,6 +1749,8 @@ ImageViewer::closeImg()
     current_image (current_image() < (int)m_images.size() ? current_image() : 0);
 }
 
+
+
 void
 ImageViewer::print()
 {
@@ -1980,7 +1985,7 @@ void ImageViewer::fullScreenToggle()
     } else {
         menuBar()->hide ();
         statusBar()->hide ();
-        showFullScreen ();
+        showFullScreen ();   
         m_fullscreen = true;
         fitImageToWindow ();
     }
