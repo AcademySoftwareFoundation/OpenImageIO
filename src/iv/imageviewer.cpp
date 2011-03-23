@@ -1746,6 +1746,8 @@ ImageViewer::closeImg()
     current_image (current_image() < (int)m_images.size() ? current_image() : 0);
 }
 
+
+
 void
 ImageViewer::print()
 {
