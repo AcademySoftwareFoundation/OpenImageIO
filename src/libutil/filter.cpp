@@ -67,6 +67,9 @@ public:
     float operator() (float x, float y) const {
         return (fabsf(x) <= m_w*0.5f && fabsf(y) <= m_h*0.5f) ? 1.0f : 0.0f;
     }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const { return fabsf(x) <= m_w*0.5f ? 1.0f : 0.0f; }
+    float yfilt (float y) const { return fabsf(y) <= m_h*0.5f ? 1.0f : 0.0f; }
     const std::string name (void) const { return "box"; }
 };
 
@@ -74,70 +77,97 @@ public:
 
 class FilterTriangle1D : public Filter1D {
 public:
-    FilterTriangle1D (float width) : Filter1D(width) { }
+    FilterTriangle1D (float width) : Filter1D(width), m_rad_inv(2.0f/width) { }
     ~FilterTriangle1D (void) { }
     float operator() (float x) const {
-        return tri1d (x / (m_w*0.5f));
+        return tri1d (x * m_rad_inv);
     }
     const std::string name (void) const { return "triangle"; }
-private:
+
     static float tri1d (float x) {
         x = fabsf(x);
         return (x < 1.0f) ? (1.0f - x) : 0.0f;
     }
+private:
+    float m_rad_inv;
 };
 
 
 
 class FilterTriangle2D : public Filter2D {
 public:
-    FilterTriangle2D (float width, float height) : Filter2D(width,height) { }
+    FilterTriangle2D (float width, float height)
+        : Filter2D(width,height), m_wrad_inv(2.0f/width),
+          m_hrad_inv(2.0f/height) { }
     ~FilterTriangle2D (void) { }
     float operator() (float x, float y) const {
-        return tri1d (x / (m_w*0.5f)) * tri1d (y / (m_h*0.5f));
+        return FilterTriangle1D::tri1d (x * m_wrad_inv)
+             * FilterTriangle1D::tri1d (y * m_hrad_inv);
+    }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const {
+        return FilterTriangle1D::tri1d (x * m_wrad_inv);
+    }
+    float yfilt (float y) const {
+        return FilterTriangle1D::tri1d (y * m_hrad_inv);
     }
     const std::string name (void) const { return "triangle"; }
 private:
-    static float tri1d (float x) {
-        x = fabsf(x);
-        return (x < 1.0f) ? (1.0f - x) : 0.0f;
-    }
+    float m_wrad_inv, m_hrad_inv;
 };
 
 
 
 class FilterGaussian1D : public Filter1D {
 public:
-    FilterGaussian1D (float width) : Filter1D(width) { }
+    FilterGaussian1D (float width) : Filter1D(width), m_rad_inv(2.0f/width) { }
     ~FilterGaussian1D (void) { }
     float operator() (float x) const {
-        x = 2.0f * fabsf(x) / m_w;
+        return gauss1d (x * m_rad_inv);
+    }
+    static float gauss1d (float x) {
+        x = fabsf(x);
         return (x < 1.0f) ? expf (-2.0f * (x*x)) : 0.0f;
     }
     const std::string name (void) const { return "gaussian"; }
+private:
+    float m_rad_inv;
 };
 
 
 
 class FilterGaussian2D : public Filter2D {
 public:
-    FilterGaussian2D (float width, float height) : Filter2D(width,height) { }
+    FilterGaussian2D (float width, float height) 
+        : Filter2D(width,height), m_wrad_inv(2.0f/width),
+          m_hrad_inv(2.0f/height) { }
     ~FilterGaussian2D (void) { }
     float operator() (float x, float y) const {
-        x = 2.0f * fabsf(x) / m_w;
-        y = 2.0f * fabsf(y) / m_h;
-        return (x < 1.0 && y < 1.0) ? expf (-2.0f * (x*x+y*y)) : 0.0f;
+        return FilterGaussian1D::gauss1d (x * m_wrad_inv)
+             * FilterGaussian1D::gauss1d (y * m_hrad_inv);
+    }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const {
+        return FilterGaussian1D::gauss1d (x * m_wrad_inv);
+    }
+    float yfilt (float y) const {
+        return FilterGaussian1D::gauss1d (y * m_hrad_inv);
     }
     const std::string name (void) const { return "gaussian"; }
+private:
+    float m_wrad_inv, m_hrad_inv;
 };
 
 
 
 class FilterCatmullRom1D : public Filter1D {
 public:
-    FilterCatmullRom1D (float width) : Filter1D(width) { }
+    FilterCatmullRom1D (float width) : Filter1D(4.0f) { }
     ~FilterCatmullRom1D (void) { }
-    float operator() (float x) const {
+    float operator() (float x) const { return catrom1d(x); }
+    const std::string name (void) const { return "catmull-rom"; }
+
+    static float catrom1d (float x) {
         x = fabsf(x);
         float x2 = x * x;
         float x3 = x * x2;
@@ -145,18 +175,21 @@ public:
                                       (3.0f * x3 - 5.0f * x2 + 2.0f) :
                                       (-x3 + 5.0f * x2 - 8.0f * x + 4.0f) );
     }
-    const std::string name (void) const { return "catmull-rom"; }
 };
 
 
 
 class FilterCatmullRom2D : public Filter2D {
 public:
-    FilterCatmullRom2D (float width, float height) : Filter2D(width,height) { }
+    FilterCatmullRom2D (float width, float height) : Filter2D(4.0f,4.0f) { }
     ~FilterCatmullRom2D (void) { }
     float operator() (float x, float y) const {
-        return catrom1d(x) * catrom1d(y);
+        return FilterCatmullRom1D::catrom1d(x)
+             * FilterCatmullRom1D::catrom1d(y);
     }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const { return FilterCatmullRom1D::catrom1d(x); }
+    float yfilt (float y) const { return FilterCatmullRom1D::catrom1d(y); }
     const std::string name (void) const { return "catmull-rom"; }
 private :
     static float catrom1d (float x) {
@@ -173,13 +206,13 @@ private :
 
 class FilterBlackmanHarris1D : public Filter1D {
 public:
-    FilterBlackmanHarris1D (float width) : Filter1D(width) { }
+    FilterBlackmanHarris1D (float width)
+        : Filter1D(width), m_rad_inv(2.0f/width) { }
     ~FilterBlackmanHarris1D (void) { }
     float operator() (float x) const {
-        return bh1d (x / (m_w*0.5f));
+        return bh1d (x * m_rad_inv);
     }
     const std::string name (void) const { return "blackman-harris"; }
-private:
     static float bh1d (float x) {
 	if (x < -1.0f || x > 1.0f)  // Early out if outside filter range
             return 0.0f;
@@ -194,6 +227,8 @@ private:
         return A0 + A1 * cosf(2.f * m_pi * x) 
              + A2 * cosf(4.f * m_pi * x) + A3 * cosf(6.f * m_pi * x);
     }
+private:
+    float m_rad_inv;
 };
 
 
@@ -201,30 +236,39 @@ private:
 class FilterBlackmanHarris2D : public Filter2D {
 public:
     FilterBlackmanHarris2D (float width, float height) 
-        : Filter2D(width,height), bx(width), by(height) { }
+        : Filter2D(width,height),
+          m_wrad_inv(2.0f/width), m_hrad_inv(2.0f/height) { }
     ~FilterBlackmanHarris2D (void) { }
     float operator() (float x, float y) const {
-        return bx(x) * by(y);
+        return FilterBlackmanHarris1D::bh1d (x*m_wrad_inv)
+             * FilterBlackmanHarris1D::bh1d (y*m_hrad_inv);
     }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const { return FilterBlackmanHarris1D::bh1d(x); }
+    float yfilt (float y) const { return FilterBlackmanHarris1D::bh1d(y); }
     const std::string name (void) const { return "blackman-harris"; }
 private:
-    FilterBlackmanHarris1D bx, by;
+    float m_wrad_inv, m_hrad_inv;
 };
 
 
 
 class FilterSinc1D : public Filter1D {
 public:
-    FilterSinc1D (float width) : Filter1D(width) { }
+    FilterSinc1D (float width) : Filter1D(width), m_rad(width/2.0f) { }
     ~FilterSinc1D (void) { }
-    float operator() (float x) const {
+    float operator() (float x) const { return sinc1d (x, m_rad); }
+    const std::string name (void) const { return "sinc"; }
+
+    static float sinc1d (float x, float rad) {
         x = fabsf(x);
-        if (x > 0.5f*m_w)
+        if (x > rad)
              return 0.0f;
         const float m_pi = float (M_PI);
         return (x < 0.0001f) ? 1.0f : sinf (m_pi*x)/(m_pi*x);
     }
-    const std::string name (void) const { return "sinc"; }
+private:
+    float m_rad;
 };
 
 
@@ -232,15 +276,75 @@ public:
 class FilterSinc2D : public Filter2D {
 public:
     FilterSinc2D (float width, float height)
-        : Filter2D(width,height), sx(width), sy(height)
-    { }
+        : Filter2D(width,height),
+          m_wrad(2.0f/width), m_hrad(2.0f/height) { }
     ~FilterSinc2D (void) { }
     float operator() (float x, float y) const {
-        return sx(x) * sy(y);
+        return FilterSinc1D::sinc1d(x,m_wrad) * FilterSinc1D::sinc1d(y,m_hrad);
     }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const { return FilterSinc1D::sinc1d(x,m_wrad); }
+    float yfilt (float y) const { return FilterSinc1D::sinc1d(y,m_hrad); }
     const std::string name (void) const { return "sinc"; }
 private:
-    FilterSinc1D sx, sy;
+    float m_wrad, m_hrad;
+};
+
+
+
+class FilterLanczos3_1D : public Filter1D {
+public:
+    FilterLanczos3_1D (float /*width*/) : Filter1D(6.0f) { }
+    ~FilterLanczos3_1D (void) { }
+    float operator() (float x) const {
+        return lanczos3 (x);
+    }
+    const std::string name (void) const { return "lanczos3"; }
+
+    static float lanczos3 (float x) {
+        const float a = 3.0f;  // Lanczos 3 lobe
+        x = fabsf(x);
+        if (x > a)
+             return 0.0f;
+        if (x < 0.0001f)
+            return 1.0f;
+        const float m_pi = float (M_PI);
+        const float m_piinv = 1.0f / m_pi;
+        const float ainv = 1.0f/a;
+        float pix = m_pi * x;
+        return (a*m_piinv*m_piinv)/(x*x) * sinf(pix)*sinf(pix*ainv);
+    }
+};
+
+
+
+class FilterLanczos3_2D : public Filter2D {
+public:
+    FilterLanczos3_2D (float /*width*/, float /*height*/)
+        : Filter2D(6.0f,6.0f)
+    { }
+    ~FilterLanczos3_2D (void) { }
+    float operator() (float x, float y) const {
+        return FilterLanczos3_1D::lanczos3(x) * FilterLanczos3_1D::lanczos3(y);
+    }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const { return FilterLanczos3_1D::lanczos3(x); }
+    float yfilt (float y) const { return FilterLanczos3_1D::lanczos3(y); }
+    const std::string name (void) const { return "lanczos3"; }
+};
+
+
+
+class FilterRadialLanczos3_2D : public FilterLanczos3_2D {
+public:
+    FilterRadialLanczos3_2D (float /*width*/, float /*height*/)
+        : FilterLanczos3_2D(6.0f,6.0f)
+    { }
+    float operator() (float x, float y) const {
+        return FilterLanczos3_1D::lanczos3(sqrtf(x*x + y*y));
+    }
+    bool separable (void) const { return false; }
+    const std::string name (void) const { return "radial-lanczos3"; }
 };
 
 
@@ -250,7 +354,12 @@ public:
     FilterMitchell1D (float width) : Filter1D(width) { }
     ~FilterMitchell1D (void) { }
     float operator() (float x) const {
-        x = fabsf (x / (m_w * 0.5f));
+        return mitchell1d (x * m_rad_inv);
+    }
+    const std::string name (void) const { return "mitchell"; }
+
+    static float mitchell1d (float x) {
+        x = fabsf (x);
         if (x > 1.0f)
             return 0.0f;
         // Computation stright out of the classic Mitchell paper.
@@ -267,7 +376,8 @@ public:
             return ((12.0f - 9.0f*B - 6.0f*C)*x*x2 + 
                     (-18.0f + 12.0f*B + 6.0f*C)*x2 + (6.0f - 2.0f*B)) * SIXTH;
     }
-    const std::string name (void) const { return "mitchell"; }
+private:
+    float m_rad_inv;
 };
 
 
@@ -275,15 +385,23 @@ public:
 class FilterMitchell2D : public Filter2D {
 public:
     FilterMitchell2D (float width, float height) 
-        : Filter2D(width,height), mx(width), my(height)
-    { }
+        : Filter2D(width,height),
+          m_wrad_inv(2.0f/width), m_hrad_inv(2.0f/height) { }
     ~FilterMitchell2D (void) { }
     float operator() (float x, float y) const {
-        return mx(x) * my(y);
+        return FilterMitchell1D::mitchell1d (x * m_wrad_inv)
+             * FilterMitchell1D::mitchell1d (y * m_hrad_inv);
+    }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const {
+        return FilterMitchell1D::mitchell1d (x * m_wrad_inv);
+    }
+    float yfilt (float y) const {
+        return FilterMitchell1D::mitchell1d (y * m_hrad_inv);
     }
     const std::string name (void) const { return "mitchell"; }
 private:
-    FilterMitchell1D mx, my;
+    float m_wrad_inv, m_hrad_inv;
 };
 
 
@@ -292,22 +410,26 @@ private:
 class FilterBSpline1D : public Filter1D {
 public:
     FilterBSpline1D (float width)
-        : Filter1D(width), wscale(4.0f/width)
+        : Filter1D(width), m_wscale(4.0f/width)
     { }
     ~FilterBSpline1D (void) { }
     float operator() (float x) const {
-        x = fabsf (x*wscale);
+        return bspline1d (x*m_wscale);
+    }
+    const std::string name (void) const { return "b-spline"; }
+
+    static float bspline1d (float x) {
+        x = fabsf (x);
         if (x <= 1.0f)
             return b1 (1.0f-x);
         else if (x < 2.0f)
             return b0 (2.0f-x);
         else return 0.0f;
     }
-    const std::string name (void) const { return "b-spline"; }
 private:
-    float wscale;  // width scale factor
-    float b0 (float t) const { return t*t*t / 6.0f; }
-    float b1 (float t) const {
+    float m_wscale;  // width scale factor
+    static float b0 (float t) { return t*t*t / 6.0f; }
+    static float b1 (float t) {
         return 0.5f * t * (t * (1.0f - t) + 1.0f) + 1.0f/6.0f;
     }
 };
@@ -317,15 +439,23 @@ private:
 class FilterBSpline2D : public Filter2D {
 public:
     FilterBSpline2D (float width, float height) 
-        : Filter2D(width,height), bx(width), by(height)
+        : Filter2D(width,height), m_wscale(4.0f/width), m_hscale(4.0f/height)
     { }
     ~FilterBSpline2D (void) { }
     float operator() (float x, float y) const {
-        return bx(x) * by(y);
+        return FilterBSpline1D::bspline1d (x * m_wscale)
+             * FilterBSpline1D::bspline1d (y * m_hscale);
+    }
+    bool separable (void) const { return true; }
+    float xfilt (float x) const {
+        return FilterBSpline1D::bspline1d(x*m_wscale);
+    }
+    float yfilt (float y) const {
+        return FilterBSpline1D::bspline1d(y*m_hscale);
     }
     const std::string name (void) const { return "b-spline"; }
 private:
-    FilterBSpline1D bx, by;
+    float m_wscale, m_hscale;
 };
 
 
@@ -363,6 +493,8 @@ Filter1D::create (const std::string &filtername, float width)
         return new FilterBlackmanHarris1D (width);
     if (filtername == "sinc")
         return new FilterSinc1D (width);
+    if (filtername == "lanczos3" || filtername == "lanczos")
+        return new FilterLanczos3_1D (width);
     if (filtername == "mitchell")
         return new FilterMitchell1D (width);
     if (filtername == "b-spline" || filtername == "bspline")
@@ -399,12 +531,16 @@ Filter2D::create (const std::string &filtername, float width, float height)
         return new FilterBlackmanHarris2D (width, height);
     if (filtername == "sinc")
         return new FilterSinc2D (width, height);
+    if (filtername == "lanczos3" || filtername == "lanczos")
+        return new FilterLanczos3_2D (width, height);
+    if (filtername == "radial-lanczos3" || filtername == "radial-lanczos")
+        return new FilterRadialLanczos3_2D (width, height);
     if (filtername == "mitchell")
         return new FilterMitchell2D (width, height);
-    if (filtername == "disk")
-        return new FilterDisk2D (width, height);
     if (filtername == "b-spline" || filtername == "bspline")
         return new FilterBSpline2D (width, height);
+    if (filtername == "disk")
+        return new FilterDisk2D (width, height);
     return NULL;
 }
 
