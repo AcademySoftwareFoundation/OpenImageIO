@@ -622,7 +622,7 @@ ImageViewer::open()
     int old_lastimage = m_images.size()-1;
     QStringList list = names;
     for (QStringList::Iterator it = list.begin();  it != list.end();  ++it) {
-        std::string filename = it->toStdString();
+        std::string filename = it->toUtf8().data();
         if (filename.empty())
             continue;
         add_image (filename);
@@ -814,7 +814,7 @@ ImageViewer::updateTitle ()
     }
     std::string message;
     message = Strutil::format ("%s - iv Image Viewer", img->name().c_str());
-    setWindowTitle (message.c_str());
+    setWindowTitle (QString::fromLocal8Bit(message.c_str()));
 }
 
 
@@ -1745,6 +1745,8 @@ ImageViewer::closeImg()
 
     current_image (current_image() < (int)m_images.size() ? current_image() : 0);
 }
+
+
 
 void
 ImageViewer::print()
