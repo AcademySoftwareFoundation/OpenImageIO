@@ -245,6 +245,46 @@ private:
 
 
 
+class FilterLanczos3_1D : public Filter1D {
+public:
+    FilterLanczos3_1D (float /*width*/) : Filter1D(6.0f) { }
+    ~FilterLanczos3_1D (void) { }
+    float operator() (float x) const {
+        return lanczos3 (x);
+    }
+    const std::string name (void) const { return "lanczos3"; }
+
+    static float lanczos3 (float x) {
+        const float a = 3.0f;  // Lanczos 3 lobe
+        x = fabsf(x);
+        if (x > a)
+             return 0.0f;
+        if (x < 0.0001f)
+            return 1.0f;
+        const float m_pi = float (M_PI);
+        const float m_piinv = 1.0f / m_pi;
+        const float ainv = 1.0f/a;
+        float pix = m_pi * x;
+        return (a*m_piinv*m_piinv)/(x*x) * sinf(pix)*sinf(pix*ainv);
+    }
+};
+
+
+
+class FilterLanczos3_2D : public Filter2D {
+public:
+    FilterLanczos3_2D (float /*width*/, float /*height*/)
+        : Filter2D(6.0f,6.0f)
+    { }
+    ~FilterLanczos3_2D (void) { }
+    float operator() (float x, float y) const {
+        return FilterLanczos3_1D::lanczos3(x) * FilterLanczos3_1D::lanczos3(y);
+    }
+    const std::string name (void) const { return "lanczos3"; }
+};
+
+
+
 class FilterMitchell1D : public Filter1D {
 public:
     FilterMitchell1D (float width) : Filter1D(width) { }
@@ -363,6 +403,8 @@ Filter1D::create (const std::string &filtername, float width)
         return new FilterBlackmanHarris1D (width);
     if (filtername == "sinc")
         return new FilterSinc1D (width);
+    if (filtername == "lanczos3" || filtername == "lanczos")
+        return new FilterLanczos3_1D (width);
     if (filtername == "mitchell")
         return new FilterMitchell1D (width);
     if (filtername == "b-spline" || filtername == "bspline")
@@ -399,6 +441,8 @@ Filter2D::create (const std::string &filtername, float width, float height)
         return new FilterBlackmanHarris2D (width, height);
     if (filtername == "sinc")
         return new FilterSinc2D (width, height);
+    if (filtername == "lanczos3" || filtername == "lanczos")
+        return new FilterLanczos3_2D (width, height);
     if (filtername == "mitchell")
         return new FilterMitchell2D (width, height);
     if (filtername == "disk")
