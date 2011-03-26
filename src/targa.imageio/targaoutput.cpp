@@ -46,6 +46,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace TGA_pvt;
 
+#define EPS 1E-5f
 
 class TGAOutput : public ImageOutput {
 public:
@@ -402,8 +403,7 @@ TGAOutput::close ()
         // pixel aspect ratio
         {
             float ratio = m_spec.get_float_attribute ("PixelAspectRatio", 1.f);
-            // FIXME: use an epsilon here instead of an equality check?
-            if (ratio != 0.f && ratio != 1.f) {
+            if (ratio >= (0.f+EPS) && ((ratio <= (1.f-EPS))||(ratio >= (1.f+EPS)))) {
                 // FIXME: invent a smarter way to convert to a vulgar fraction?
                 // numerator
                 tmpint = (unsigned short)(ratio * 10000.f);
