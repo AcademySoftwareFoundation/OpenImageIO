@@ -65,6 +65,7 @@ ImageViewer::ImageViewer ()
       m_last_image(-1), m_zoom(1), m_fullscreen(false), m_default_gamma(1),
       m_darkPalette(false)
 {
+    center_window(this);
     readSettings (false);
 
     const char *gamenv = getenv ("GAMMA");
@@ -2112,4 +2113,23 @@ ImageViewer::editPreferences ()
         preferenceWindow->setPalette (m_palette);
     }
     preferenceWindow->show ();
+}
+
+
+
+void 
+ImageViewer::center_window(QWidget* widget)
+{
+    QDesktopWidget *desktop = QApplication::desktop();
+
+    int screenWidth = desktop->width();
+    int screenHeight = desktop->height();
+
+    int x = 0;
+    int y = 0;
+
+    x = (screenWidth - 600) / 2;
+    y = (screenHeight - 400) / 2;
+
+    widget->setGeometry(x, y, 600, 400);
 }
