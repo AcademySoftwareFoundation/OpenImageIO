@@ -65,7 +65,7 @@ ImageViewer::ImageViewer ()
       m_last_image(-1), m_zoom(1), m_fullscreen(false), m_default_gamma(1),
       m_darkPalette(false)
 {
-    center_window(this);
+    centerWindow(this);
     readSettings (false);
 
     const char *gamenv = getenv ("GAMMA");
@@ -2118,7 +2118,7 @@ ImageViewer::editPreferences ()
 
 
 void 
-ImageViewer::center_window(QWidget* widget)
+ImageViewer::centerWindow(QWidget* widget)
 {
     QDesktopWidget *desktop = QApplication::desktop();
 

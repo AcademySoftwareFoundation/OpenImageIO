@@ -232,7 +232,7 @@ public:
     QPalette palette (void) const { return m_palette; }
     
     /// Set main window in destop center at startup
-    void center_window(QWidget* widget);
+    void centerWindow(QWidget* widget);
 
 private slots:
     void open();                        ///< Dialog to open new image from file
