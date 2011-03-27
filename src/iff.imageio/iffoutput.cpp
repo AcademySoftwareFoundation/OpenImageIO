@@ -474,7 +474,7 @@ IffOutput::close (void)
                                     }
                                     // set pixel
                                     *out_p++ = pixel;
-                                    *out_p++;
+                                    (*out_p)++; // avoid gcc4.x warning
                                 }
                             }
                         }
@@ -510,15 +510,15 @@ IffOutput::close (void)
         }
       
         // set sizes
-        fpos_t pos, tmppos;
-        fgetpos (m_fd, &pos);
+        uint32_t pos, tmppos;
+        pos = ftell (m_fd);
 
         uint32_t p0 = pos - 8;
         uint32_t p1 = p0 - m_iff_header.for4_start;
 
         // set pos
         tmppos = 4;
-        fsetpos (m_fd, &tmppos);
+        fseek (m_fd, tmppos, SEEK_SET);
     
         // write FOR4 <size> CIMG
         if (littleendian()) {
@@ -530,7 +530,7 @@ IffOutput::close (void)
 
         // set pos
         tmppos = m_iff_header.for4_start + 4;
-        fsetpos (m_fd, &tmppos);
+        fseek (m_fd, tmppos, SEEK_SET);
     
         // write FOR4 <size> TBMP
         if (littleendian()) {

@@ -208,7 +208,7 @@ IffInput::readimg()
   
     // seek pos
     // set position tile may be called randomly
-    fsetpos (m_fd, &m_tbmp_start);
+    fseek (m_fd, m_tbmp_start, SEEK_SET);
   
     // resize buffer
     m_buf.resize (m_spec.image_bytes());

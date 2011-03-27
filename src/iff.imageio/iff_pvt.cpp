@@ -201,23 +201,23 @@ IffFileHeader::read_header (FILE *fd)
                             type[2] == 'T' &&
                             type[3] == 'H') {
                            
-                            char str[chunksize];
-                            if (!fread (&str, 1, sizeof(str), fd))
+                            std::vector<char> str (chunksize);
+                            if (!fread (&str[0], 1, str.size(), fd))
                                 return false;
                                   
                             // get author
-                            author = std::string (str, chunksize);
+                            author = std::string (&str[0], chunksize);
                         } else if (type[0] == 'D' &&
                                    type[1] == 'A' &&
                                    type[2] == 'T' &&
                                    type[3] == 'E') {
                        
-                            char str[chunksize];
-                            if (!fread(&str, 1, sizeof (str), fd))
+                            std::vector<char> str (chunksize);
+                            if (!fread (&str[0], 1, str.size(), fd))
                                 return false;
                                   
                             // get date
-                            date = std::string (str, chunksize);                
+                            date = std::string (&str[0], chunksize);                
                         } else if (type[0] == 'F' &&
                                    type[1] == 'O' &&
                                    type[2] == 'R' &&
@@ -236,7 +236,7 @@ IffFileHeader::read_header (FILE *fd)
                                 // tbmp position for later user in in 
                                 // read_native_tile
                             
-                                fgetpos (fd, &tbmp_start);
+                                tbmp_start = ftell (fd);
                                   
                                 // read first RGBA block to detect tile size.
                                   
@@ -442,7 +442,7 @@ IffFileHeader::write_header (FILE *fd)
     // for4 position for later user in
     // close
             
-    fgetpos (fd, &for4_start);
+    for4_start = ftell (fd);
 
     // write 'FOR4' type
     tmpstr = "FOR4";

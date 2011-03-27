@@ -82,10 +82,10 @@ namespace iff_pvt {
         std::string date;
           
         // tbmp start
-        fpos_t tbmp_start;
+        uint32_t tbmp_start;
           
         // for4 start
-        fpos_t for4_start;
+        uint32_t for4_start;
     };
     
     // align size
@@ -153,7 +153,7 @@ private:
     iff_pvt::IffFileHeader m_iff_header;
     std::vector<uint8_t> m_buf;
     
-    fpos_t m_tbmp_start;
+    uint32_t m_tbmp_start;
     
     // init to initialize state
     void init (void) {
