@@ -51,6 +51,12 @@ using boost::algorithm::iequals;
 #include "fmath.h"
 #include "sysutil.h"
 
+#include "argparse.h"
+#include "imageio.h"
+#include "imagebuf.h"
+#include "imagebufalgo.h"
+#include "sysutil.h"
+
 namespace
 {
     bool IsSpecSrgb(const ImageSpec & spec) {
@@ -65,7 +71,7 @@ ImageViewer::ImageViewer ()
       m_last_image(-1), m_zoom(1), m_fullscreen(false), m_default_gamma(1),
       m_darkPalette(false)
 {
-    centerWindow(this);
+    center_window(this);
     readSettings (false);
 
     const char *gamenv = getenv ("GAMMA");
@@ -264,6 +270,12 @@ ImageViewer::createActions()
     viewSubimageNextAct = new QAction(tr("Next Subimage"), this);
     viewSubimageNextAct->setShortcut(tr(">"));
     connect(viewSubimageNextAct, SIGNAL(triggered()), this, SLOT(viewSubimageNext()));
+        
+    flipAct = new QAction(tr("Flip image"), this);
+    connect(flipAct, SIGNAL(triggered()), this, SLOT(imageFlip()));
+    
+    flopAct = new QAction(tr("Flop image"), this);
+    connect(flopAct, SIGNAL(triggered()), this, SLOT(imageFlop()));
 
     zoomInAct = new QAction(tr("Zoom &In"), this);
     zoomInAct->setShortcut(tr("Ctrl++"));
@@ -469,6 +481,8 @@ ImageViewer::createMenus()
     viewMenu->addAction (nextImageAct);
     viewMenu->addAction (toggleImageAct);
     viewMenu->addSeparator ();
+    viewMenu->addAction (flipAct);
+    viewMenu->addAction (flopAct);
     viewMenu->addAction (zoomInAct);
     viewMenu->addAction (zoomOutAct);
     viewMenu->addAction (normalSizeAct);
@@ -2118,7 +2132,7 @@ ImageViewer::editPreferences ()
 
 
 void 
-ImageViewer::centerWindow(QWidget* widget)
+ImageViewer::center_window(QWidget* widget)
 {
     QDesktopWidget *desktop = QApplication::desktop();
 
@@ -2132,4 +2146,77 @@ ImageViewer::centerWindow(QWidget* widget)
     y = (screenHeight - 400) / 2;
 
     widget->setGeometry(x, y, 600, 400);
+}
+
+
+
+static bool
+read_input (const std::string &filename, ImageBuf &img,
+            int subimage=0, int miplevel=0)
+{
+    if (img.subimage() >= 0 && img.subimage() == subimage
+          && img.miplevel() == miplevel)
+        return true;
+
+    if (img.init_spec (filename, subimage, miplevel) && 
+        img.read (subimage, false, TypeDesc::FLOAT))
+        return true;
+
+    std::cerr << "iprocess ERROR: Could not read " << filename << ":\n\t"
+              << img.geterror() << "\n";
+    return false;
+}
+
+
+
+void
+ImageViewer::imageFlip()
+{   
+    IvImage *img = cur();
+    
+    std::string fliping_image;
+    fliping_image = img->name().c_str();
+    
+    ImageBufAlgo::AlignedTransform t = ImageBufAlgo::TRANSFORM_NONE;
+    t = ImageBufAlgo::TRANSFORM_FLIP;
+            
+    ImageBuf in;
+    if (! read_input (fliping_image, in)) {
+        std::cerr << "Read error: " << in.geterror() << "\n";
+    }
+   
+    ImageBuf out;
+    if (!ImageBufAlgo::transform( out, in, t )) {
+        std::cerr << "orient error: " << in.geterror() << "\n";
+    }
+    
+    out.save(fliping_image);
+    reload();
+}
+
+
+
+void
+ImageViewer::imageFlop()
+{   
+    IvImage *img = cur();
+    
+    std::string floping_image;
+    floping_image = img->name().c_str();
+    
+    ImageBufAlgo::AlignedTransform t = ImageBufAlgo::TRANSFORM_NONE;
+    t = ImageBufAlgo::TRANSFORM_FLOP;
+            
+    ImageBuf in;
+    if (! read_input (floping_image, in)) {
+        std::cerr << "Read error: " << in.geterror() << "\n";
+    }
+   
+    ImageBuf out;
+    if (!ImageBufAlgo::transform( out, in, t )) {
+        std::cerr << "orient error: " << in.geterror() << "\n";
+    }
+    
+    out.save(floping_image);
+    reload();
 }

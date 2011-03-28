@@ -232,7 +232,7 @@ public:
     QPalette palette (void) const { return m_palette; }
     
     /// Set main window in destop center at startup
-    void centerWindow(QWidget* widget);
+    void center_window(QWidget* widget);
 
 private slots:
     void open();                        ///< Dialog to open new image from file
@@ -294,6 +294,8 @@ private slots:
     void showInfoWindow();              ///< View extended info on image
     void showPixelviewWindow();         ///< View closeup pixel view
     void editPreferences();             ///< Edit viewer preferences
+    void imageFlip();                   ///< Flip image
+    void imageFlop();                   ///< Flop image
 private:
     void createActions ();
     void createMenus ();
@@ -332,6 +334,7 @@ private:
     QAction *printAct;
     QAction *deleteCurrentImageAct;
     QAction *exitAct;
+    QAction *flipAct, *flopAct;
     QAction *gammaPlusAct, *gammaMinusAct;
     QAction *exposurePlusOneTenthStopAct, *exposurePlusOneHalfStopAct;
     QAction *exposureMinusOneTenthStopAct, *exposureMinusOneHalfStopAct;
