@@ -50,12 +50,7 @@ using boost::algorithm::iequals;
 #include "timer.h"
 #include "fmath.h"
 #include "sysutil.h"
-
-#include "argparse.h"
-#include "imageio.h"
-#include "imagebuf.h"
 #include "imagebufalgo.h"
-#include "sysutil.h"
 
 namespace
 {

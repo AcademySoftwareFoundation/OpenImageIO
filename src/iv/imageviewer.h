@@ -231,7 +231,6 @@ public:
 
     QPalette palette (void) const { return m_palette; }
     
-
 private slots:
     void open();                        ///< Dialog to open new image from file
     void reload();                      ///< Reread current image from disk
