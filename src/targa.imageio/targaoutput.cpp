@@ -46,8 +46,6 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace TGA_pvt;
 
-#define EPS 1E-5f
-
 class TGAOutput : public ImageOutput {
 public:
     TGAOutput ();
@@ -403,6 +401,7 @@ TGAOutput::close ()
         // pixel aspect ratio
         {
             float ratio = m_spec.get_float_attribute ("PixelAspectRatio", 1.f);
+            float EPS = 1E-5f;
             if (ratio >= (0.f+EPS) && ((ratio <= (1.f-EPS))||(ratio >= (1.f+EPS)))) {
                 // FIXME: invent a smarter way to convert to a vulgar fraction?
                 // numerator
