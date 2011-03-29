@@ -53,7 +53,6 @@ using boost::algorithm::iends_with;
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
-#include "sysutil.h"
 #include "thread.h"
 #include "filter.h"
 
@@ -84,7 +83,7 @@ static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
 static std::string filtername = "box";
 static float filterwidth = 1.0f;
-//static Filter1D *filter = NULL;
+static Filter2D *filter = NULL;
 
 // Conversion modes.  If none are true, we just make an ordinary texture.
 static bool mipmapmode = false;
@@ -243,13 +242,11 @@ getargs (int argc, char *argv[])
         exit (EXIT_FAILURE);
     }
 
-#if 0
-    filter = Filter1D::create (filtername, filterwidth);
+    filter = Filter2D::create (filtername, filterwidth, filterwidth);
     if (! filter) {
         std::cerr << "maketx ERROR: could not make filter '" << filtername << "\n";
         exit (EXIT_FAILURE);
     }
-#endif
 
 //    std::cout << "Converting " << filenames[0] << " to " << outputfilename << "\n";
 }
@@ -410,24 +407,23 @@ resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
     int srcfw = srcspec.full_width;
     int srcfh = srcspec.full_height;
 
-    int filterwidth = ::filterwidth;
-    Filter1D *filter = Filter1D::create (filtername, filterwidth);
-    if (! filter) {
-        std::cerr << "maketx ERROR: could not make filter '" << filtername << "\n";
-        exit (EXIT_FAILURE);
-    }
-
     const ImageSpec &dstspec (dst->spec());
+    int nchannels = dstspec.nchannels;
     float xratio = float(dstspec.full_width) / float(srcfw);
     float yratio = float(dstspec.full_height) / float(srcfh);
     float xscale = 1.0f / (float)dstspec.width;
     float yscale = 1.0f / (float)dstspec.height;
-    float *srcpel = (float *) alloca (dstspec.pixel_bytes());
-    float *pel = (float *) alloca (dstspec.pixel_bytes());
+    float *srcpel = ALLOCA (float, nchannels);
+    float *pel = ALLOCA (float, nchannels);
     float filterrad = filter->width() / 2.0f;
     int radi = (int) ceilf (filterrad + 1);
+    bool separable = filter->separable();
+    float *row = NULL;
+    if (separable) {
+        // Allocate one row for the first horizontal filter pass
+        row = ALLOCA (float, 2 * radi * nchannels);
+    }
 
-    int n = dstspec.nchannels;
     for (int y = y0;  y < y1;  ++y) {
         // s,t are NDC space
         float t = (y+0.5f)*yscale;
@@ -436,46 +432,86 @@ resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
         // src_x, src_y are image space integer coordinates of the floor
         int src_y;
         float src_yf_frac = floorfrac (src_yf, &src_y);
-        // int src_y = (int) floorf (src_yf);
         for (int x = x0;  x < x1;  ++x) {
             float s = (x+0.5f)*xscale;
             float src_xf = float(srcfx) + s * float(srcfw) - 0.5f;
             int src_x;
             float src_xf_frac = floorfrac (src_xf, &src_x);
-            //int src_x = (int) floorf (src_xf);
-            float totalweight = 0.0f;
-            for (int c = 0;  c < n;  ++c)
+            for (int c = 0;  c < nchannels;  ++c)
                 pel[c] = 0.0f;
-            for (int j = -radi;  j < radi;  ++j) {
-                if ((y+j) < srcspec.y || (y+j) >= src->ymax())
-                    continue;
-                float wj = (*filter)(yratio * (j-src_yf_frac)); //filterweight[abs(j)];
-                for (int i = -radi;  i <= radi;  ++i) {
-                    if ((x+i) < srcspec.x || (x+i) >= src->xmax())
+            float totalweight = 0.0f;
+
+            if (separable) {
+                // First, filter horizontally
+                memset (row, 0, 2*radi*nchannels*sizeof(float));
+                float *p = row;
+                for (int j = -radi;  j <= radi;  ++j, p += nchannels) {
+                    if ((y+j) < srcspec.y || (y+j) > src->ymax())
                         continue;
-                    float wi = (*filter)(xratio * (i-src_xf_frac));  // filterweight[abs(i)];
-                    float w = wj * wi;
-                    src->getpixel (src_x+i, src_y+j, srcpel);
-                    for (int c = 0;  c < n;  ++c)
-                        pel[c] += w * srcpel[c];
-                    totalweight += w;
+                    totalweight = 0.0f;
+                    for (int i = -radi;  i <= radi;  ++i) {
+                        if ((x+i) < srcspec.x || (x+i) > src->xmax())
+                            continue;
+                        float w = filter->xfilt (xratio * (i-src_xf_frac));
+                        src->getpixel (src_x+i, src_y+j, srcpel);
+                        for (int c = 0;  c < nchannels;  ++c)
+                            p[c] += w * srcpel[c];
+                        totalweight += w;
+                    }
+                    if (totalweight != 0.0f) {
+                        float winv = 1.0f / totalweight;
+                        for (int c = 0;  c < nchannels;  ++c)
+                            p[c] *= winv;
+                    }
+                }
+                // Now filter vertically
+                totalweight = 0.0f;
+                p = row;
+                for (int j = -radi;  j <= radi;  ++j, p += nchannels) {
+                    if ((y+j) < srcspec.y || (y+j) > src->ymax())
+                        continue;
+                    float w = filter->yfilt (yratio * (j-src_yf_frac));
+                    for (int c = 0;  c < nchannels;  ++c) {
+                        pel[c] += w * p[c];
+                        totalweight += w;
+                    }
+                }
+
+            } else {
+                // Non-separable
+                for (int c = 0;  c < nchannels;  ++c)
+                    srcpel[c] = 0.0f;
+                for (int j = -radi;  j <= radi;  ++j) {
+                    if ((y+j) < srcspec.y || (y+j) > src->ymax())
+                        continue;
+                    for (int i = -radi;  i <= radi;  ++i) {
+                        if ((x+i) < srcspec.x || (x+i) > src->xmax())
+                            continue;
+                        float w = (*filter)(xratio * (i-src_xf_frac),
+                                            yratio * (j-src_yf_frac));
+                        src->getpixel (src_x+i, src_y+j, srcpel);
+                        for (int c = 0;  c < nchannels;  ++c)
+                            pel[c] += w * srcpel[c];
+                        totalweight += w;
+                    }
                 }
             }
+
+            // Rescale pel to normalize the filter, then write it to the
+            // image.
             if (fabsf(totalweight) < 1.0e-6) {
                 // zero it out
-                for (int c = 0;  c < n;  ++c)
+                for (int c = 0;  c < nchannels;  ++c)
                     pel[c] = 0.0f;
                 dst->setpixel (x, y, pel);
-                continue;
+            } else {
+                float winv = 1.0f / totalweight;
+                for (int c = 0;  c < nchannels;  ++c)
+                    pel[c] *= winv;
+                dst->setpixel (x, y, pel);
             }
-            float winv = 1.0f / totalweight;
-            for (int c = 0;  c < n;  ++c)
-                pel[c] *= winv;
-
-            dst->setpixel (x, y, pel);
         }
     }
-    Filter1D::destroy (filter);
 }
 
 
@@ -970,7 +1006,7 @@ make_texturemap (const char *maptypename = "texture map")
         if (verbose)
             std::cout << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
-        if (filtername == "box")
+        if (filtername == "box" && filterwidth == 1.0f)
             parallel_image (resize_block, &dst, &src,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
@@ -1075,7 +1111,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             smallspec.set_format (TypeDesc::FLOAT);
             small->alloc (smallspec);  // Realocate with new size
 
-            if (filtername == "box")
+            if (filtername == "box" && filterwidth == 1.0f)
                 parallel_image (resize_block, small, big,
                                 smallspec.x, smallspec.x+smallspec.width,
                                 smallspec.y, smallspec.y+smallspec.height,
@@ -1137,6 +1173,13 @@ main (int argc, char *argv[])
     Timer alltimer;
     getargs (argc, argv);
 
+    if (stats) {
+        ImageCache *ic = ImageCache::create ();  // get the shared one
+        ic->attribute ("forcefloat", 1);   // Force float upon read
+        ic->attribute ("max_memory_MB", 1024.0);  // 1 GB cache
+        // N.B. This will apply to the default IC that any ImageBuf's get.
+    }
+
     if (mipmapmode) {
         make_texturemap ("texture map");
     } else if (shadowmode) {
@@ -1172,7 +1215,7 @@ main (int argc, char *argv[])
                                       (double)kb/1024.0);
     }
 
-//    Filter1D::destroy (filter);
+    Filter2D::destroy (filter);
 
     if (stats) {
         ImageCache *ic = ImageCache::create ();  // get the shared one
