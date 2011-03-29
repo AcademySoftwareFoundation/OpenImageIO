@@ -1,6 +1,13 @@
 Changes:
 
 
+Release 0.9.2 updates (29 Mar 2011)
+-----------------------------------
+* Texture/ImageCache: New attribute "accept_unmipped" (default to 1),
+  when set to zero, will treat any un-MIPmapped file as an error
+  (analogous to the existing "accept_untiled").
+
+
 Release 0.9.1 updates (21 Mar 2011)
 -----------------------------------
 * Texure: Fixes to make latlong environment maps more correct for OpenEXR
