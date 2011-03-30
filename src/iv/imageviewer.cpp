@@ -382,6 +382,14 @@ ImageViewer::createActions()
     maxMemoryIC->setRange (128, 2048); //2GB seems fair as upper limit.
     maxMemoryIC->setSingleStep (64);
     maxMemoryIC->setSuffix (" MB");
+
+    slideShowDurationLabel = new QLabel (tr("Slide Show delay"));
+    slideShowDuration = new QSpinBox ();
+    slideShowDuration->setRange (1, 3600);
+    slideShowDuration->setSingleStep (1);
+    slideShowDuration->setSuffix (" s");
+    slideShowDuration->setAccelerated (true);
+    connect(slideShowDuration, SIGNAL(valueChanged(int)), this, SLOT(setSlideShowDuration(int)));
 }
 
 
@@ -574,6 +582,7 @@ ImageViewer::readSettings (bool ui_is_set_up)
         maxMemoryIC->setValue (settings.value ("maxMemoryIC", 512).toInt());
     else
         maxMemoryIC->setValue (settings.value ("maxMemoryIC", 2048).toInt());
+    slideShowDuration-> setValue (settings.value ("slideShowDuration").toInt());
     ImageCache *imagecache = ImageCache::create (true);
     imagecache->attribute ("automip", autoMipmap->isChecked());
     imagecache->attribute ("max_memory_MB", (float) maxMemoryIC->value ());
@@ -592,6 +601,7 @@ ImageViewer::writeSettings()
     settings.setValue ("darkPalette", darkPaletteBox->isChecked());
     settings.setValue ("autoMipmap", autoMipmap->isChecked());
     settings.setValue ("maxMemoryIC", maxMemoryIC->value());
+    settings.setValue ("slideShowDuration", slideShowDuration->value());
     QStringList recent;
     BOOST_FOREACH (const std::string &s, m_recent_files)
         recent.push_front (QString(s.c_str()));
@@ -1339,6 +1349,13 @@ ImageViewer::slideNoLoop ()
 {
     slide_loop = false;
     slide(slideDuration_ms, slide_loop);
+}
+
+
+void
+ImageViewer::setSlideShowDuration (int seconds)
+{
+    slideDuration_ms = seconds * 1000;
 }
 
 
