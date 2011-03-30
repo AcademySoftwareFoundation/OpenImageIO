@@ -41,7 +41,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
         return new Jpeg2000Input;
     }
     DLLEXPORT const char *jpeg2000_input_extensions[] = {
-        "jp2", "j2k", NULL
+        "jp2", "j2k", "j2c", NULL
     };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -142,6 +142,18 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
 
     read_channels ();
 
+    // getting number of bits per channel and maximum number of bits
+    m_max_prec = 0;
+    for(int i = 0; i < m_spec.nchannels; i++){
+        m_prec[i] = jas_image_cmptprec(m_image, m_cmpt_id[i]);
+        m_max_prec = (m_prec[i] > m_max_prec)? m_prec[i] : m_max_prec;
+    }
+
+    m_spec.attribute ("oiio:BitsPerSample", (unsigned int) m_max_prec);
+
+    if(m_max_prec == 10 || m_max_prec == 12 || m_max_prec == 16)
+        m_spec.set_format(TypeDesc::UINT16);
+
     // stuff used in read_native_scanline
     m_scanline_size = m_spec.scanline_bytes();
     m_pixels.resize (m_scanline_size, 0);
@@ -155,6 +167,8 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
 bool
 Jpeg2000Input::read_native_scanline (int y, int z, void *data)
 {
+    // bitdepth conversion result
+    uint conv_res;
     memset (&m_pixels[0], 0, m_pixels.size ());
     if (m_fam_clrspc == JAS_CLRSPC_FAM_GRAY) {
         for (int i = 0; i < m_spec.width; ++i)
@@ -162,11 +176,38 @@ Jpeg2000Input::read_native_scanline (int y, int z, void *data)
     }
     else if (m_fam_clrspc == JAS_CLRSPC_FAM_RGB) {
         for (int i = 0, pos = 0; i < m_spec.width; i++) {
-            m_pixels[pos++] = jas_matrix_get (m_matrix_chan[RED], y, i);
-            m_pixels[pos++] = jas_matrix_get (m_matrix_chan[GREEN], y, i);
-            m_pixels[pos++] = jas_matrix_get (m_matrix_chan[BLUE], y, i);
-            if (m_spec.nchannels == 4)
-                pos++;
+            for(int ch = 0; ch < m_spec.nchannels; ch++){
+                if (ch == OPACITY){
+                    if(m_max_prec == 8)
+                        pos++;
+                    else
+                        pos+=2;
+                    continue;
+                }
+
+                if(m_prec[ch] == 8){
+                    // checking if we save channel value to UINT16
+                    if(m_max_prec > 8)
+                        m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i);
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i);
+                }
+                else if(m_prec[ch] == 10){
+                    BaseTypeConvertU10ToU16(jas_matrix_get (m_matrix_chan[ch], y, i), conv_res);
+                    m_pixels[pos++] = conv_res;
+                    m_pixels[pos++] = conv_res >> 8;
+                }
+                else if(m_prec[ch] == 12){
+                    BaseTypeConvertU12ToU16(jas_matrix_get (m_matrix_chan[ch], y, i), conv_res);
+                    m_pixels[pos++] = conv_res;
+                    m_pixels[pos++] = conv_res >> 8;
+                }
+                else if(m_prec[ch] == 16){
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i);
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) >> 8;
+                }
+
+            }
+
         }
     }
     memcpy(data, &m_pixels[0], m_scanline_size);
