@@ -142,6 +142,12 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
 
     read_channels ();
 
+    // getting number of bits per channel
+    m_prec = jas_image_cmptprec(m_image, m_cmpt_id[RED]);
+
+    if(m_prec == 12 || m_prec == 16)
+        m_spec.set_format(TypeDesc::UINT16);
+
     // stuff used in read_native_scanline
     m_scanline_size = m_spec.scanline_bytes();
     m_pixels.resize (m_scanline_size, 0);
@@ -155,6 +161,8 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
 bool
 Jpeg2000Input::read_native_scanline (int y, int z, void *data)
 {
+    uint r,g,b;
+
     memset (&m_pixels[0], 0, m_pixels.size ());
     if (m_fam_clrspc == JAS_CLRSPC_FAM_GRAY) {
         for (int i = 0; i < m_spec.width; ++i)
@@ -162,11 +170,45 @@ Jpeg2000Input::read_native_scanline (int y, int z, void *data)
     }
     else if (m_fam_clrspc == JAS_CLRSPC_FAM_RGB) {
         for (int i = 0, pos = 0; i < m_spec.width; i++) {
-            m_pixels[pos++] = jas_matrix_get (m_matrix_chan[RED], y, i);
-            m_pixels[pos++] = jas_matrix_get (m_matrix_chan[GREEN], y, i);
-            m_pixels[pos++] = jas_matrix_get (m_matrix_chan[BLUE], y, i);
-            if (m_spec.nchannels == 4)
-                pos++;
+
+            r = jas_matrix_get (m_matrix_chan[RED], y, i);
+            g = jas_matrix_get (m_matrix_chan[GREEN], y, i);
+            b = jas_matrix_get (m_matrix_chan[BLUE], y, i);
+
+
+            if(m_prec == 8){
+               m_pixels[pos++] = r;
+               m_pixels[pos++] = g;
+               m_pixels[pos++] = b;
+
+               if (m_spec.nchannels == 4)
+                    pos++;
+            }
+            else if(m_prec == 12){
+                m_pixels[pos++] = r & 0xF;
+                m_pixels[pos++] = r>>4;
+                m_pixels[pos++] = g & 0xF;
+                m_pixels[pos++] = g>>4;
+                m_pixels[pos++] = b & 0xF;
+                m_pixels[pos++] = b>>4;
+
+                if (m_spec.nchannels == 4)
+                    pos+=2;
+            }
+            else if(m_prec == 16){
+                m_pixels[pos++] = r & 0xFF;
+                m_pixels[pos++] = r>>8;
+                m_pixels[pos++] = g & 0xFF;
+                m_pixels[pos++] = g>>8;
+                m_pixels[pos++] = b & 0xFF;
+                m_pixels[pos++] = b>>8;
+
+                printf("good %d", r & 0xFF);
+
+                if (m_spec.nchannels == 4)
+                    pos+=2;
+            }
+
         }
     }
     memcpy(data, &m_pixels[0], m_scanline_size);
