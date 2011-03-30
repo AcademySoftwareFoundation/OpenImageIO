@@ -72,6 +72,7 @@ static int orientation = 0;
 static bool rotcw = false, rotccw = false, rot180 = false;
 static bool sRGB = false;
 static bool separate = false, contig = false;
+static bool noclobber = false;
 
 
 
@@ -118,6 +119,7 @@ getargs (int argc, char *argv[])
                 "--sRGB", &sRGB, "This file is in sRGB color space",
                 "--separate", &separate, "Force planarconfig separate",
                 "--contig", &contig, "Force planarconfig contig",
+                "--no-clobber", &noclobber, "Do no overwrite existing files",
 //FIXME         "-z", &zfile, "Treat input as a depth file",
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
                 NULL);
@@ -345,7 +347,7 @@ adjust_spec (ImageInput *in, ImageOutput *out,
 static bool
 convert_file (const std::string &in_filename, const std::string &out_filename)
 {
-    if (boost::filesystem::exists(out_filename)) {
+    if (noclobber && boost::filesystem::exists(out_filename)) {
         std::cerr << "iconvert ERROR: Output file already exists \""
                   << out_filename << "\"\n";
         return false;
