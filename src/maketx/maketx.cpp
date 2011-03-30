@@ -292,6 +292,9 @@ set_oiio_options(TypeDesc out_dataformat)
     // Enable constant color optimizations
     constant_color_detect = true;
     
+    // Always embed the image hash info
+    embed_hash = true;
+    
     // Force fixed tile-size across the board
     tile[0] = 64;
     tile[1] = 64;
