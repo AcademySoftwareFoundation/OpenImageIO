@@ -345,12 +345,6 @@ adjust_spec (ImageInput *in, ImageOutput *out,
 static bool
 convert_file (const std::string &in_filename, const std::string &out_filename)
 {
-    if (boost::filesystem::exists(out_filename)) {
-        std::cerr << "iconvert ERROR: Output file already exists \""
-                  << out_filename << "\"\n";
-        return false;
-    }
-
     std::cout << "Converting " << in_filename << " to " << out_filename << "\n";
 
     std::string tempname = out_filename;
