@@ -446,11 +446,11 @@ resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
                 memset (row, 0, 2*radi*nchannels*sizeof(float));
                 float *p = row;
                 for (int j = -radi;  j <= radi;  ++j, p += nchannels) {
-                    if ((y+j) < srcspec.y || (y+j) > src->ymax())
+                    if ((src_y+j) < srcspec.y || (src_y+j) > src->ymax())
                         continue;
                     totalweight = 0.0f;
                     for (int i = -radi;  i <= radi;  ++i) {
-                        if ((x+i) < srcspec.x || (x+i) > src->xmax())
+                        if ((src_x+i) < srcspec.x || (src_x+i) > src->xmax())
                             continue;
                         float w = filter->xfilt (xratio * (i-src_xf_frac));
                         src->getpixel (src_x+i, src_y+j, srcpel);
@@ -468,33 +468,30 @@ resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
                 totalweight = 0.0f;
                 p = row;
                 for (int j = -radi;  j <= radi;  ++j, p += nchannels) {
-                    if ((y+j) < srcspec.y || (y+j) > src->ymax())
-                        continue;
                     float w = filter->yfilt (yratio * (j-src_yf_frac));
-                    for (int c = 0;  c < nchannels;  ++c) {
+                    totalweight += w;
+                    for (int c = 0;  c < nchannels;  ++c)
                         pel[c] += w * p[c];
-                        totalweight += w;
-                    }
                 }
 
             } else {
                 // Non-separable
-                for (int c = 0;  c < nchannels;  ++c)
-                    srcpel[c] = 0.0f;
+                ImageBuf::ConstIterator<float> srcpel (*src, src_x-radi, src_x+radi+1,
+                                                       src_y-radi, src_y+radi+1,
+                                                       0, 1, true);
                 for (int j = -radi;  j <= radi;  ++j) {
-                    if ((y+j) < srcspec.y || (y+j) > src->ymax())
-                        continue;
-                    for (int i = -radi;  i <= radi;  ++i) {
-                        if ((x+i) < srcspec.x || (x+i) > src->xmax())
+                    for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
+                        ASSERT (! srcpel.done());
+                        if (! srcpel.exists())
                             continue;
                         float w = (*filter)(xratio * (i-src_xf_frac),
                                             yratio * (j-src_yf_frac));
-                        src->getpixel (src_x+i, src_y+j, srcpel);
+                        totalweight += w;
                         for (int c = 0;  c < nchannels;  ++c)
                             pel[c] += w * srcpel[c];
-                        totalweight += w;
                     }
                 }
+                ASSERT (srcpel.done());
             }
 
             // Rescale pel to normalize the filter, then write it to the

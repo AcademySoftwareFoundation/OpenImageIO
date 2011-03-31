@@ -701,8 +701,7 @@ ImageBuf::pixeladdr (int x, int y, int z)
 
 
 const void *
-ImageBuf::retile (int subimage, int miplevel, int x, int y, int z,
-                  ImageCache::Tile* &tile,
+ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
                   int &tilexbegin, int &tileybegin, int &tilezbegin) const
 {
     int tw = spec().tile_width, th = spec().tile_height;
@@ -719,7 +718,7 @@ ImageBuf::retile (int subimage, int miplevel, int x, int y, int z,
         tilexbegin = spec().x + xtile*tw;
         tileybegin = spec().y + ytile*th;
         tilezbegin = spec().z + ztile*td;
-        tile = m_imagecache->get_tile (m_name, subimage, miplevel, x, y, z);
+        tile = m_imagecache->get_tile (m_name, subimage(), miplevel(), x, y, z);
     }
 
     size_t offset = ((y - tileybegin) * tw) + (x - tilexbegin);
