@@ -395,8 +395,8 @@ copy_block (ImageBuf *dst, const ImageBuf *src,
 
 
 
-// Resize src into dst, relying on the linear interpolation of
-// interppixel_NDC_full, for the pixel range [x0,x1) x [y0,y1).
+// Resize src into dst using a good quality filter, 
+// for the pixel range [x0,x1) x [y0,y1).
 static void
 resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
                  int x0, int x1, int y0, int y1)
@@ -413,7 +413,6 @@ resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
     float yratio = float(dstspec.full_height) / float(srcfh);
     float xscale = 1.0f / (float)dstspec.width;
     float yscale = 1.0f / (float)dstspec.height;
-    float *srcpel = ALLOCA (float, nchannels);
     float *pel = ALLOCA (float, nchannels);
     float filterrad = filter->width() / 2.0f;
     int radi = (int) ceilf (filterrad + 1);
@@ -449,11 +448,13 @@ resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
                     if ((src_y+j) < srcspec.y || (src_y+j) > src->ymax())
                         continue;
                     totalweight = 0.0f;
-                    for (int i = -radi;  i <= radi;  ++i) {
-                        if ((src_x+i) < srcspec.x || (src_x+i) > src->xmax())
+                    ImageBuf::ConstIterator<float> srcpel (*src, src_x-radi, src_x+radi+1,
+                                                           src_y+j, src_y+j+1,
+                                                           0, 1, true);
+                    for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
+                        if (! srcpel.exists())
                             continue;
                         float w = filter->xfilt (xratio * (i-src_xf_frac));
-                        src->getpixel (src_x+i, src_y+j, srcpel);
                         for (int c = 0;  c < nchannels;  ++c)
                             p[c] += w * srcpel[c];
                         totalweight += w;
@@ -500,13 +501,12 @@ resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
                 // zero it out
                 for (int c = 0;  c < nchannels;  ++c)
                     pel[c] = 0.0f;
-                dst->setpixel (x, y, pel);
             } else {
                 float winv = 1.0f / totalweight;
                 for (int c = 0;  c < nchannels;  ++c)
                     pel[c] *= winv;
-                dst->setpixel (x, y, pel);
             }
+            dst->setpixel (x, y, pel);
         }
     }
 }
