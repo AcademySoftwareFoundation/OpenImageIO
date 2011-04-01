@@ -713,23 +713,24 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     float dstpixelheight = 1.0f / (float)dstspec.full_height;
     float *pel = ALLOCA (float, nchannels);
     float filterrad = filter->width() / 2.0f;
-    // radi is the filter radius, as an integer, in source pixels.  We
-    // will filter the source over [x-radi, x+radi] X [y-radi,y+radi].
-    int radi = (int) ceilf (filterrad/maxratio) + 1;
+    // radi,radj is the filter radius, as an integer, in source pixels.  We
+    // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
+    int radi = (int) ceilf (filterrad/xratio) + 1;
+    int radj = (int) ceilf (filterrad/yratio) + 1;
 
 #if 0
     std::cerr << "Resizing " << srcspec.full_width << "x" << srcspec.full_height
               << " to " << dstspec.full_width << "x" << dstspec.full_height << "\n";
     std::cerr << "ratios = " << xratio << ", " << yratio << "\n";
-    std::cerr << "examining src filter support radius of " << radi << " pixels\n";
+    std::cerr << "examining src filter support radius of " << radi << " x " << radj << " pixels\n";
     std::cerr << "dst range " << xbegin << ' ' << xend << " x " << ybegin << ' ' << yend << "\n";
 #endif
 
     bool separable = filter->separable();
-    float *row = NULL;
+    float *column = NULL;
     if (separable) {
-        // Allocate one row for the first horizontal filter pass
-        row = ALLOCA (float, (2 * radi + 1) * nchannels);
+        // Allocate one column for the first horizontal filter pass
+        column = ALLOCA (float, (2 * radj + 1) * nchannels);
     }
 
     for (int y = ybegin;  y < yend;  ++y) {
@@ -750,9 +751,9 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
             float totalweight = 0.0f;
             if (separable) {
                 // First, filter horizontally
-                memset (row, 0, (2*radi+1)*nchannels*sizeof(float));
-                float *p = row;
-                for (int j = -radi;  j <= radi;  ++j, p += nchannels) {
+                memset (column, 0, (2*radj+1)*nchannels*sizeof(float));
+                float *p = column;
+                for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
                     if ((src_y+j) < srcspec.y || (src_y+j) > src.ymax())
                         continue;
                     totalweight = 0.0f;
@@ -775,8 +776,8 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                 }
                 // Now filter vertically
                 totalweight = 0.0f;
-                p = row;
-                for (int j = -radi;  j <= radi;  ++j, p += nchannels) {
+                p = column;
+                for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
                     float w = filter->yfilt (yratio * (j-src_yf_frac));
                     totalweight += w;
                     for (int c = 0;  c < nchannels;  ++c)
@@ -788,7 +789,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                 ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                        src_y-radi, src_y+radi+1,
                                                        0, 1, true);
-                for (int j = -radi;  j <= radi;  ++j) {
+                for (int j = -radj;  j <= radj;  ++j) {
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         DASSERT (! srcpel.done());
                         if (! srcpel.exists())
