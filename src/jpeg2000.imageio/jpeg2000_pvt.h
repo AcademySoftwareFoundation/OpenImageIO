@@ -73,7 +73,7 @@ class Jpeg2000Input : public ImageInput {
     std::vector<char> m_pixels;
     size_t m_scanline_size;
     // number of bits per channel
-    size_t m_prec;
+    size_t m_prec[4];
 
     void init (void);
     // read informations about all channels of the given image

@@ -41,7 +41,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
         return new Jpeg2000Input;
     }
     DLLEXPORT const char *jpeg2000_input_extensions[] = {
-        "jp2", "j2k", NULL
+        "jp2", "j2k", "j2c", NULL
     };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -142,10 +142,16 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
 
     read_channels ();
 
-    // getting number of bits per channel
-    m_prec = jas_image_cmptprec(m_image, m_cmpt_id[RED]);
+    // getting number of bits per channel and maximum number of bits
+    int max_prec = 0;
+    for(int i = 0; i < m_spec.nchannels; i++){
+        m_prec[i] = jas_image_cmptprec(m_image, m_cmpt_id[i]);
+        max_prec = (m_prec[i] > max_prec)? m_prec[i] : max_prec;
+    }
+    
+    m_spec.attribute ("oiio:BitsPerSample", max_prec);
 
-    if(m_prec == 12 || m_prec == 16)
+    if(max_prec == 10 || max_prec == 12 || max_prec == 16)
         m_spec.set_format(TypeDesc::UINT16);
 
     // stuff used in read_native_scanline
@@ -161,8 +167,6 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
 bool
 Jpeg2000Input::read_native_scanline (int y, int z, void *data)
 {
-    uint r,g,b;
-
     memset (&m_pixels[0], 0, m_pixels.size ());
     if (m_fam_clrspc == JAS_CLRSPC_FAM_GRAY) {
         for (int i = 0; i < m_spec.width; ++i)
@@ -170,43 +174,30 @@ Jpeg2000Input::read_native_scanline (int y, int z, void *data)
     }
     else if (m_fam_clrspc == JAS_CLRSPC_FAM_RGB) {
         for (int i = 0, pos = 0; i < m_spec.width; i++) {
-
-            r = jas_matrix_get (m_matrix_chan[RED], y, i);
-            g = jas_matrix_get (m_matrix_chan[GREEN], y, i);
-            b = jas_matrix_get (m_matrix_chan[BLUE], y, i);
-
-
-            if(m_prec == 8){
-               m_pixels[pos++] = r;
-               m_pixels[pos++] = g;
-               m_pixels[pos++] = b;
-
-               if (m_spec.nchannels == 4)
-                    pos++;
-            }
-            else if(m_prec == 12){
-                m_pixels[pos++] = r & 0xF;
-                m_pixels[pos++] = r>>4;
-                m_pixels[pos++] = g & 0xF;
-                m_pixels[pos++] = g>>4;
-                m_pixels[pos++] = b & 0xF;
-                m_pixels[pos++] = b>>4;
-
-                if (m_spec.nchannels == 4)
-                    pos+=2;
-            }
-            else if(m_prec == 16){
-                m_pixels[pos++] = r & 0xFF;
-                m_pixels[pos++] = r>>8;
-                m_pixels[pos++] = g & 0xFF;
-                m_pixels[pos++] = g>>8;
-                m_pixels[pos++] = b & 0xFF;
-                m_pixels[pos++] = b>>8;
-
-                printf("good %d", r & 0xFF);
-
-                if (m_spec.nchannels == 4)
-                    pos+=2;
+            for(int ch = 0; ch < m_spec.nchannels; ch++){
+                if(m_prec[ch] == 8){
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i);
+                    if (ch == OPACITY)
+                        pos++;
+                }
+                else if(m_prec[ch] == 10){
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) & 0x3;
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) >> 2;
+                    if (ch == OPACITY)
+                        pos+=2;
+                }
+                else if(m_prec[ch] == 12){
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i)  & 0xF;
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i)  >> 4;
+                    if (ch == OPACITY)
+                        pos+=2;
+                }
+                else if(m_prec[ch] == 16){
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) & 0xFF;
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) >> 8;
+                    if (ch == OPACITY)
+                        pos+=2;
+                }
             }
 
         }
