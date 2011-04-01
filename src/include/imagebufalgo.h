@@ -183,8 +183,8 @@ std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src);
 /// resized version of src (mapping such that the "full" image window of
 /// each correspond to each other, regardless of resolution).  The
 /// caller may explicitly pass a reconstruction filter, or resize() will
-/// choose a reasonable default if NULL is passed.  A FLOAT ImageBuf is
-/// required.
+/// choose a reasonable default if NULL is passed.  The dst buffer must
+/// be of type FLOAT.
 bool DLLPUBLIC resize (ImageBuf &dst, const ImageBuf &src,
                        int xbegin, int xend, int ybegin, int yend,
                        Filter2D *filter=NULL, float filterwidth=1.0);

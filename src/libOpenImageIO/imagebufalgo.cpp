@@ -672,19 +672,21 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
 
 
 
-bool
-ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
-                      int xbegin, int xend, int ybegin, int yend,
-                      Filter2D *filter, float filterwidth)
+namespace { // anonymous namespace
+
+template<typename SRCTYPE>
+bool resize_ (ImageBuf &dst, const ImageBuf &src,
+              int xbegin, int xend, int ybegin, int yend,
+              Filter2D *filter, float filterwidth)
 {
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
     int nchannels = dstspec.nchannels;
 
-    if (srcspec.format.basetype != TypeDesc::FLOAT ||
-        dstspec.format.basetype != TypeDesc::FLOAT ||
-        nchannels != srcspec.nchannels)
+    if (dstspec.format.basetype != TypeDesc::FLOAT ||
+        nchannels != srcspec.nchannels) {
         return false;
+    }
 
     bool allocfilter = (filter == NULL);
     if (allocfilter) {
@@ -754,7 +756,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                     if ((src_y+j) < srcspec.y || (src_y+j) > src.ymax())
                         continue;
                     totalweight = 0.0f;
-                    ImageBuf::ConstIterator<float> srcpel (src, src_x-radi, src_x+radi+1,
+                    ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                            src_y+j, src_y+j+1,
                                                            0, 1, true);
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
@@ -783,7 +785,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
             } else {
                 // Non-separable
-                ImageBuf::ConstIterator<float> srcpel (src, src_x-radi, src_x+radi+1,
+                ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
                                                        src_y-radi, src_y+radi+1,
                                                        0, 1, true);
                 for (int j = -radi;  j <= radi;  ++j) {
@@ -819,6 +821,53 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     if (allocfilter)
         Filter2D::destroy (filter);
     return true;
+}
+
+} // end anonymous namespace
+
+
+bool
+ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
+                      int xbegin, int xend, int ybegin, int yend,
+                      Filter2D *filter, float filterwidth)
+{
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT :
+        return resize_<float> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::UINT8 :
+        return resize_<unsigned char> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::INT8  :
+        return resize_<char> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::UINT16:
+        return resize_<unsigned short> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::INT16 :
+        return resize_<short> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::UINT  :
+        return resize_<unsigned int> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::INT   :
+        return resize_<int> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::UINT64:
+        return resize_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::INT64 :
+        return resize_<long long> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::HALF  :
+        return resize_<half> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::DOUBLE:
+        return resize_<double> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    default:
+        return false;
+    }
 }
 
 
