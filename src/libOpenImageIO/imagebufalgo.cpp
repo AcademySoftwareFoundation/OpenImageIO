@@ -715,11 +715,13 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     // will filter the source over [x-radi, x+radi] X [y-radi,y+radi].
     int radi = (int) ceilf (filterrad/maxratio) + 1;
 
+#if 0
     std::cerr << "Resizing " << srcspec.full_width << "x" << srcspec.full_height
               << " to " << dstspec.full_width << "x" << dstspec.full_height << "\n";
     std::cerr << "ratios = " << xratio << ", " << yratio << "\n";
     std::cerr << "examining src filter support radius of " << radi << " pixels\n";
     std::cerr << "dst range " << xbegin << ' ' << xend << " x " << ybegin << ' ' << yend << "\n";
+#endif
 
     bool separable = filter->separable();
     float *row = NULL;
