@@ -50,6 +50,7 @@ using boost::algorithm::iequals;
 #include "imagebuf.h"
 #include "imagebufalgo.h"
 #include "sysutil.h"
+#include "filter.h"
 
 OIIO_NAMESPACE_USING
 
@@ -84,7 +85,9 @@ static std::string crop_type;
 static int crop_xmin = 0, crop_xmax = 0, crop_ymin = 0, crop_ymax = 0;
 static bool do_add = false;
 static std::string colortransfer_to = "", colortransfer_from = "sRGB";
-static ImageBuf img;
+static std::string filtername;
+static float filterwidth = 1.0f;
+static int resize_x = 0, resize_y = 0;
 
 
 
@@ -141,6 +144,8 @@ getargs (int argc, char *argv[])
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
                 "--transfer %s", &colortransfer_to, "Transfer outputfile to another colorspace\n\t\t\t\tLinear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
                 "--colorspace %s", &colortransfer_from, "Override colorspace of inputfile\n\t\t\t\tLinear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
+                "--filter %s %f", &filtername, &filterwidth, "Set the filter to use for resize",
+                "--resize %d %d", &resize_x, &resize_y, "Resize the image to x by y pixels",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
 	std::cerr << ap.geterror() << std::endl;
@@ -316,6 +321,43 @@ main (int argc, char *argv[])
         //
         out.save (outputname);
         
+    }
+
+    if (resize_x && resize_y) {
+        if (filenames.size() != 1) {
+            std::cerr << "iprocess: --resize needs one input filename\n";
+            exit (EXIT_FAILURE);
+        }
+        
+        Filter2D *filter = NULL;
+        if (! filtername.empty()) {
+            filter = Filter2D::create (filtername, filterwidth, filterwidth);
+            if (! filter) {
+                std::cerr << "iprocess: unknown filter " << filtername << "\n";
+                return EXIT_FAILURE;
+            }
+        }
+
+        ImageBuf in;
+        if (! read_input (filenames[0], in)) {
+            std::cerr << "iprocess: read error: " << in.geterror() << "\n";
+            return EXIT_FAILURE;
+        }
+
+        ImageSpec outspec = in.spec();
+        outspec.width = resize_x;
+        outspec.height = resize_y;
+        outspec.full_width = resize_x;
+        outspec.full_height = resize_y;
+        ImageBuf out (outputname, outspec);
+        float pixel[3] = { .1, .1, .1 };
+        ImageBufAlgo::fill (out, pixel);
+        bool ok = ImageBufAlgo::resize (out, in, out.xbegin(), out.xend(),
+                              out.ybegin(), out.yend(), filter, filterwidth);
+        ASSERT (ok);
+        out.save ();
+        if (filter)
+            Filter2D::destroy (filter);
     }
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
