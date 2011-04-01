@@ -143,15 +143,15 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
     read_channels ();
 
     // getting number of bits per channel and maximum number of bits
-    int max_prec = 0;
+    m_max_prec = 0;
     for(int i = 0; i < m_spec.nchannels; i++){
         m_prec[i] = jas_image_cmptprec(m_image, m_cmpt_id[i]);
-        max_prec = (m_prec[i] > max_prec)? m_prec[i] : max_prec;
+        m_max_prec = (m_prec[i] > m_max_prec)? m_prec[i] : m_max_prec;
     }
     
-    m_spec.attribute ("oiio:BitsPerSample", max_prec);
+    m_spec.attribute ("oiio:BitsPerSample", m_max_prec);
 
-    if(max_prec == 10 || max_prec == 12 || max_prec == 16)
+    if(m_max_prec == 10 || m_max_prec == 12 || m_max_prec == 16)
         m_spec.set_format(TypeDesc::UINT16);
 
     // stuff used in read_native_scanline
@@ -176,26 +176,28 @@ Jpeg2000Input::read_native_scanline (int y, int z, void *data)
         for (int i = 0, pos = 0; i < m_spec.width; i++) {
             for(int ch = 0; ch < m_spec.nchannels; ch++){
                 if(m_prec[ch] == 8){
-                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i);
-                    if (ch == OPACITY)
+                    // checking if we save channel value to UINT16
+                    if(m_max_prec > 8)
                         pos++;
+                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i);
                 }
                 else if(m_prec[ch] == 10){
                     m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) & 0x3;
                     m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) >> 2;
-                    if (ch == OPACITY)
-                        pos+=2;
                 }
                 else if(m_prec[ch] == 12){
                     m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i)  & 0xF;
                     m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i)  >> 4;
-                    if (ch == OPACITY)
-                        pos+=2;
                 }
                 else if(m_prec[ch] == 16){
                     m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) & 0xFF;
                     m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) >> 8;
-                    if (ch == OPACITY)
+                }
+
+                if (ch == OPACITY){
+                    if(m_max_prec == 8)
+                        pos++;
+                    else
                         pos+=2;
                 }
             }

@@ -74,6 +74,8 @@ class Jpeg2000Input : public ImageInput {
     size_t m_scanline_size;
     // number of bits per channel
     size_t m_prec[4];
+    // maximal precision of channels
+    size_t m_max_prec;
 
     void init (void);
     // read informations about all channels of the given image
@@ -118,3 +120,4 @@ OIIO_PLUGIN_NAMESPACE_END
 
 
 #endif // OPENIMAGEIO_JPEG2000_PVT_H
+
