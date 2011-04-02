@@ -206,7 +206,7 @@ IffFileHeader::read_header (FILE *fd)
                                 return false;
                                   
                             // get author
-                            author = std::string (&str[0], chunksize);
+                            author = std::string (&str[0], str.size());
                         } else if (type[0] == 'D' &&
                                    type[1] == 'A' &&
                                    type[2] == 'T' &&
@@ -217,7 +217,7 @@ IffFileHeader::read_header (FILE *fd)
                                 return false;
                                   
                             // get date
-                            date = std::string (&str[0], chunksize);                
+                            date = std::string (&str[0], str.size());                
                         } else if (type[0] == 'F' &&
                                    type[1] == 'O' &&
                                    type[2] == 'R' &&
