@@ -149,7 +149,7 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
         m_max_prec = (m_prec[i] > m_max_prec)? m_prec[i] : m_max_prec;
     }
 
-    m_spec.attribute ("oiio:BitsPerSample", m_max_prec);
+    m_spec.attribute ("oiio:BitsPerSample", (unsigned int) m_max_prec);
 
     if(m_max_prec == 10 || m_max_prec == 12 || m_max_prec == 16)
         m_spec.set_format(TypeDesc::UINT16);
