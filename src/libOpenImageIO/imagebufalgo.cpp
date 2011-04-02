@@ -707,7 +707,6 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     // high frequencies.
     float xratio = float(dstspec.full_width) / srcfw; // 2 upsize, 0.5 downsize
     float yratio = float(dstspec.full_height) / srcfh;
-    float maxratio = std::max (xratio, yratio);
 
     float dstpixelwidth = 1.0f / (float)dstspec.full_width;
     float dstpixelheight = 1.0f / (float)dstspec.full_height;
@@ -754,19 +753,28 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                 memset (column, 0, (2*radj+1)*nchannels*sizeof(float));
                 float *p = column;
                 for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
-                    if ((src_y+j) < srcspec.y || (src_y+j) > src.ymax())
-                        continue;
                     totalweight = 0.0f;
+                    int yclamped = Imath::clamp (src_y+j, src.ymin(), src.ymax());
                     ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
-                                                           src_y+j, src_y+j+1,
+                                                           yclamped, yclamped+1,
                                                            0, 1, true);
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
-                        if (! srcpel.exists())
-                            continue;
                         float w = filter->xfilt (xratio * (i-src_xf_frac));
-                        for (int c = 0;  c < nchannels;  ++c)
-                            p[c] += w * srcpel[c];
+                        if (fabsf(w) < 1.0e-6)
+                            continue;
                         totalweight += w;
+                        if (srcpel.exists()) {
+                            for (int c = 0;  c < nchannels;  ++c)
+                                p[c] += w * srcpel[c];
+                        } else {
+                            // Outside data window -- construct a clamped
+                            // iterator for just that pixel
+                            int xclamped = Imath::clamp (src_x+i, src.xmin(), src.xmax());
+                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
+                            clamped.pos (xclamped, yclamped);
+                            for (int c = 0;  c < nchannels;  ++c)
+                                p[c] += w * clamped[c];
+                        }
                     }
                     if (fabsf(totalweight) >= 1.0e-6) {
                         float winv = 1.0f / totalweight;
@@ -791,14 +799,24 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                                                        0, 1, true);
                 for (int j = -radj;  j <= radj;  ++j) {
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
-                        DASSERT (! srcpel.done());
-                        if (! srcpel.exists())
-                            continue;
                         float w = (*filter)(xratio * (i-src_xf_frac),
                                             yratio * (j-src_yf_frac));
+                        if (fabsf(w) < 1.0e-6)
+                            continue;
                         totalweight += w;
-                        for (int c = 0;  c < nchannels;  ++c)
-                            pel[c] += w * srcpel[c];
+                        DASSERT (! srcpel.done());
+                        if (srcpel.exists()) {
+                            for (int c = 0;  c < nchannels;  ++c)
+                                pel[c] += w * srcpel[c];
+                        } else {
+                            // Outside data window -- construct a clamped
+                            // iterator for just that pixel
+                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
+                            clamped.pos (Imath::clamp (srcpel.x(), src.xmin(), src.xmax()),
+                                         Imath::clamp (srcpel.y(), src.ymin(), src.ymax()));
+                            for (int c = 0;  c < nchannels;  ++c)
+                                pel[c] += w * clamped[c];
+                        }
                     }
                 }
                 DASSERT (srcpel.done());
