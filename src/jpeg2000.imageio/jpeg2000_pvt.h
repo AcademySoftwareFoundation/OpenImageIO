@@ -81,6 +81,14 @@ class Jpeg2000Input : public ImageInput {
     // read informations about all channels of the given image
     // stored in private filed 'm_image'
     bool read_channels (void);
+
+    // bitdepth coversion
+    inline void BaseTypeConvertU10ToU16(jas_seqent_t &src, uint &dst){
+        dst = (src << 6) | (src >> 4);
+    }
+    inline void BaseTypeConvertU12ToU16(jas_seqent_t &src, uint &dst){
+        dst = (src << 4) | (src >> 8);
+    }
 };
 
 
