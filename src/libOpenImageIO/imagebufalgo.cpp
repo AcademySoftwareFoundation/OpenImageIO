@@ -48,6 +48,7 @@
 #include "imagebufalgo.h"
 #include "dassert.h"
 #include "sysutil.h"
+#include "filter.h"
 
 
 OIIO_NAMESPACE_ENTER

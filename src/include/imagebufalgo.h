@@ -36,10 +36,11 @@
 #include "imagebuf.h"
 #include "fmath.h"
 #include "colortransfer.h"
-#include "filter.h"
 
 OIIO_NAMESPACE_ENTER
 {
+
+class Filter2D;  // forward declaration
 
 namespace ImageBufAlgo {
 
