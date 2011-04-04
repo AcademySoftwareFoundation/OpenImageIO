@@ -842,7 +842,7 @@ make_texturemap (const char *maptypename = "texture map")
 
     bool do_resize = false;
     // Resize if we're up-resing for pow2
-    if (dstspec.width != srcspec.width && dstspec.height != srcspec.height &&
+    if (dstspec.width != srcspec.width || dstspec.height != srcspec.height ||
             dstspec.depth != srcspec.depth)
         do_resize = true;
     // resize if the original was a crop
