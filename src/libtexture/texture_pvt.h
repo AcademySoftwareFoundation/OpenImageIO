@@ -474,22 +474,20 @@ TextureSystemImpl::anisotropic_aspect (float &majorlength, float &minorlength,
         aspect = options.anisotropic;
         // We have to clamp the ellipse to the maximum amount of anisotropy
         // that we allow.  How do we do it?
-        // a. Widen the short axis so we never alias along the major axis,
-        //    but we over-blur along the minor axis:
-        //      *minorlength = (*majorlength) / options.anisotropic;
-        // b. Clamp the long axis so we don't blur, but might alias:
-        //      *majorlength = (*minorlength) * options.anisotropic;
-        // c. Split the difference, take the geometric mean, this makes it
-        //      slightly too blurry along the minor axis, slightly aliasing
-        //      along the major axis.  You can't please everybody.
-        //      *majorlength = sqrtf ((*majorlength) *
-        //                            (*minorlength * options.anisotropic));
-        //      *minorlength = (*majorlength) / options.anisotropic;
+        // a. Widen the short axis so we never alias along the major
+        //    axis, but we over-blur along the minor axis.  I've never
+        //    been happy with this, it visibly overblurs.
+        // b. Clamp the long axis so we don't blur, but might alias.
+        // c. Split the difference, take the geometric mean, this makes
+        //    it slightly too blurry along the minor axis, slightly
+        //    aliasing along the major axis.  You can't please everybody.
         if (options.conservative_filter) {
+            // Solution (c) -- this is our default, usually a nice balance.
             majorlength = sqrtf ((majorlength) *
                                  (minorlength * options.anisotropic));
             minorlength = majorlength / options.anisotropic;
         } else {
+            // Solution (b) -- alias slightly, never overblur
             majorlength = minorlength * options.anisotropic;
         }
     }
