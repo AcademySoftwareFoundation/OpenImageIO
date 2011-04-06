@@ -13,7 +13,7 @@ sys.path = [".."] + sys.path
 import runtest
 
 # A command to run
-command = path + runtest.oiio_app("testtex") + " --nowarp --offset -1 -1 -1 --scalest 2 2 sparse_half.f3d ; "
+command = path + runtest.oiio_app("testtex") + " -width 0 ../../../oiio-testimages/grid.tx ; "
 command = command + path + runtest.oiio_app("idiff") + " out.exr ref/out.exr > out.txt"
 # Outputs to check against references
 outputs = [  ]
