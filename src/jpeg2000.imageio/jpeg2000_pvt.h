@@ -72,11 +72,23 @@ class Jpeg2000Input : public ImageInput {
     std::vector<int> m_cmpt_id; //ids of the components
     std::vector<char> m_pixels;
     size_t m_scanline_size;
+    // number of bits per channel
+    size_t m_prec[4];
+    // maximal precision of channels
+    size_t m_max_prec;
 
     void init (void);
     // read informations about all channels of the given image
     // stored in private filed 'm_image'
     bool read_channels (void);
+
+    // bitdepth coversion
+    inline void BaseTypeConvertU10ToU16(jas_seqent_t &src, uint &dst){
+        dst = (src << 6) | (src >> 4);
+    }
+    inline void BaseTypeConvertU12ToU16(jas_seqent_t &src, uint &dst){
+        dst = (src << 4) | (src >> 8);
+    }
 };
 
 
@@ -116,3 +128,4 @@ OIIO_PLUGIN_NAMESPACE_END
 
 
 #endif // OPENIMAGEIO_JPEG2000_PVT_H
+

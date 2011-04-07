@@ -53,9 +53,8 @@ using boost::algorithm::iends_with;
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
-#include "sysutil.h"
 #include "thread.h"
-
+#include "filter.h"
 
 OIIO_NAMESPACE_USING
 
@@ -70,6 +69,7 @@ static std::string dataformatname = "";
 static std::string fileformatname = "";
 //static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
+static bool stats = false;
 static int nthreads = 0;
 static int tile[3] = { 64, 64, 1 };
 static std::string channellist;
@@ -81,6 +81,9 @@ static double stat_miptime = 0;
 static bool checknan = false;
 static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
+static std::string filtername = "box";
+static float filterwidth = 1.0f;
+static Filter2D *filter = NULL;
 
 // Conversion modes.  If none are true, we just make an ordinary texture.
 static bool mipmapmode = false;
@@ -161,6 +164,8 @@ getargs (int argc, char *argv[])
                   "--twrap %s", &twrap, "Specific t wrap mode separately",
                   "--resize", &doresize, "Resize textures to power of 2 (default: no)",
                   "--noresize", &noresize, "Do not resize textures to power of 2 (deprecated)",
+                  "--filter %s %f", &filtername, &filterwidth,
+                        "Select filter and width (default: box 1)",
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN and Inf values (abort if found)",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
@@ -179,6 +184,7 @@ getargs (int argc, char *argv[])
                   "--prman-metadata", &prman_metadata, "Add prman specific metadata",
                   "--constant-color-detect", &constant_color_detect, "Create 1-tile textures from constant color inputs",
                   "--monochrome-detect", &monochrome_detect, "Create 1-channel textures from monochrome inputs",
+                  "--stats", &stats, "Print runtime statistics",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
 //FIXME           "-debugdso"
 //FIXME           "-note %s", &note, "Append a note to the image comments",
@@ -229,12 +235,19 @@ getargs (int argc, char *argv[])
         ap.usage ();
         exit (EXIT_FAILURE);
     }
-    
+
     if (filenames.size() < 1) {
         std::cerr << "maketx ERROR: Must have at least one input filename specified.\n";
         ap.usage();
         exit (EXIT_FAILURE);
     }
+
+    filter = Filter2D::create (filtername, filterwidth, filterwidth);
+    if (! filter) {
+        std::cerr << "maketx ERROR: could not make filter '" << filtername << "\n";
+        exit (EXIT_FAILURE);
+    }
+
 //    std::cout << "Converting " << filenames[0] << " to " << outputfilename << "\n";
 }
 
@@ -378,6 +391,17 @@ copy_block (ImageBuf *dst, const ImageBuf *src,
             dst->setpixel (x, y, pel);
         }
     }
+}
+
+
+
+// Resize src into dst using a good quality filter, 
+// for the pixel range [x0,x1) x [y0,y1).
+static void
+resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
+                 int x0, int x1, int y0, int y1)
+{
+    ImageBufAlgo::resize (*dst, *src, x0, x1, y0, y1, filter, filterwidth);
 }
 
 
@@ -842,7 +866,7 @@ make_texturemap (const char *maptypename = "texture map")
 
     bool do_resize = false;
     // Resize if we're up-resing for pow2
-    if (dstspec.width != srcspec.width && dstspec.height != srcspec.height &&
+    if (dstspec.width != srcspec.width || dstspec.height != srcspec.height ||
             dstspec.depth != srcspec.depth)
         do_resize = true;
     // resize if the original was a crop
@@ -872,9 +896,14 @@ make_texturemap (const char *maptypename = "texture map")
         if (verbose)
             std::cout << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
-        parallel_image (resize_block, &dst, &src,
-                        dstspec.x, dstspec.x+dstspec.width,
-                        dstspec.y, dstspec.y+dstspec.height, nthreads);
+        if (filtername == "box" && filterwidth == 1.0f)
+            parallel_image (resize_block, &dst, &src,
+                            dstspec.x, dstspec.x+dstspec.width,
+                            dstspec.y, dstspec.y+dstspec.height, nthreads);
+        else
+            parallel_image (resize_block_HQ, &dst, &src,
+                            dstspec.x, dstspec.x+dstspec.width,
+                            dstspec.y, dstspec.y+dstspec.height, nthreads);
     }
     stat_resizetime += resizetimer();
 
@@ -972,10 +1001,16 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             smallspec.set_format (TypeDesc::FLOAT);
             small->alloc (smallspec);  // Realocate with new size
 
-            parallel_image (resize_block, small, big,
-                            smallspec.x, smallspec.x+smallspec.width,
-                            smallspec.y, smallspec.y+smallspec.height,
-                            nthreads);
+            if (filtername == "box" && filterwidth == 1.0f)
+                parallel_image (resize_block, small, big,
+                                smallspec.x, smallspec.x+smallspec.width,
+                                smallspec.y, smallspec.y+smallspec.height,
+                                nthreads);
+            else
+                parallel_image (resize_block_HQ, small, big,
+                                smallspec.x, smallspec.x+smallspec.width,
+                                smallspec.y, smallspec.y+smallspec.height,
+                                nthreads);
 
             stat_miptime += miptimer();
             outspec = smallspec;
@@ -1028,6 +1063,13 @@ main (int argc, char *argv[])
     Timer alltimer;
     getargs (argc, argv);
 
+    if (stats) {
+        ImageCache *ic = ImageCache::create ();  // get the shared one
+        ic->attribute ("forcefloat", 1);   // Force float upon read
+        ic->attribute ("max_memory_MB", 1024.0);  // 1 GB cache
+        // N.B. This will apply to the default IC that any ImageBuf's get.
+    }
+
     if (mipmapmode) {
         make_texturemap ("texture map");
     } else if (shadowmode) {
@@ -1048,7 +1090,7 @@ main (int argc, char *argv[])
         std::cerr << "Latlong->cube conversion currently unsupported\n";
     }
 
-    if (verbose) {
+    if (verbose || stats) {
         std::cout << "maketx Runtime statistics (seconds):\n";
         double alltime = alltimer();
         std::cout << Strutil::format ("  total runtime:   %5.2f\n", alltime);
@@ -1061,6 +1103,13 @@ main (int argc, char *argv[])
         size_t kb = Sysutil::memory_used(true) / 1024;
         std::cout << Strutil::format ("maketx memory used: %5.1f MB\n",
                                       (double)kb/1024.0);
+    }
+
+    Filter2D::destroy (filter);
+
+    if (stats) {
+        ImageCache *ic = ImageCache::create ();  // get the shared one
+        std::cout << "\n" << ic->getstats();
     }
 
     return 0;

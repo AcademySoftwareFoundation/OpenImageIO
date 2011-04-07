@@ -35,11 +35,12 @@
 #include "imageio.h"
 #include "imagebuf.h"
 #include "fmath.h"
-#include "imagecache.h"
 #include "colortransfer.h"
 
 OIIO_NAMESPACE_ENTER
 {
+
+class Filter2D;  // forward declaration
 
 namespace ImageBufAlgo {
 
@@ -177,6 +178,18 @@ bool DLLPUBLIC isMonochrome(const ImageBuf &src);
 /// Compute the sha1 byte hash for all the pixels in the image.
 /// (current subimage, and current mipmap level)
 std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src);
+
+
+/// Set dst, over the pixel range [xbegin,xend) x [ybegin,yend), to be a
+/// resized version of src (mapping such that the "full" image window of
+/// each correspond to each other, regardless of resolution).  The
+/// caller may explicitly pass a reconstruction filter, or resize() will
+/// choose a reasonable default if NULL is passed.  The dst buffer must
+/// be of type FLOAT.
+bool DLLPUBLIC resize (ImageBuf &dst, const ImageBuf &src,
+                       int xbegin, int xend, int ybegin, int yend,
+                       Filter2D *filter=NULL, float filterwidth=1.0);
+
 
 };  // end namespace ImageBufAlgo
 

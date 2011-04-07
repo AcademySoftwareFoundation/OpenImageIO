@@ -28,25 +28,28 @@
   (This is the Modified BSD License)
 */
 
-/* This header have to be included before boost/regex.hpp header
+/* This header has to be included before boost/regex.hpp header
    If it is included after, there is an error
    "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
 */
 #include "SHA1.h"
 
 /// \file
-/// Implementation of ImageBuf class.
+/// Implementation of ImageBufAlgo algorithms.
 
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
 
 #include <iostream>
 #include <limits>
+#include <stdexcept>
 
 #include "imagebuf.h"
 #include "imagebufalgo.h"
 #include "dassert.h"
-#include <stdexcept>
+#include "sysutil.h"
+#include "filter.h"
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -667,6 +670,226 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
     
     return hash_digest;
 }
+
+
+
+namespace { // anonymous namespace
+
+template<typename SRCTYPE>
+bool resize_ (ImageBuf &dst, const ImageBuf &src,
+              int xbegin, int xend, int ybegin, int yend,
+              Filter2D *filter, float filterwidth)
+{
+    const ImageSpec &srcspec (src.spec());
+    const ImageSpec &dstspec (dst.spec());
+    int nchannels = dstspec.nchannels;
+
+    if (dstspec.format.basetype != TypeDesc::FLOAT ||
+        nchannels != srcspec.nchannels) {
+        return false;
+    }
+
+    bool allocfilter = (filter == NULL);
+    if (allocfilter) {
+        filterwidth = 2.0f;
+        filter = Filter2D::create ("triangle", filterwidth, filterwidth);
+    }
+
+    // Local copies of the source image window, converted to float
+    float srcfx = srcspec.full_x;
+    float srcfy = srcspec.full_y;
+    float srcfw = srcspec.full_width;
+    float srcfh = srcspec.full_height;
+
+    // Ratios of dst/src size.  Values larger than 1 indicate that we
+    // are maximizing (enlarging the image), and thus want to smoothly
+    // interpolate.  Values less than 1 indicate that we are minimizing
+    // (shrinking the image), and thus want to properly filter out the
+    // high frequencies.
+    float xratio = float(dstspec.full_width) / srcfw; // 2 upsize, 0.5 downsize
+    float yratio = float(dstspec.full_height) / srcfh;
+
+    float dstpixelwidth = 1.0f / (float)dstspec.full_width;
+    float dstpixelheight = 1.0f / (float)dstspec.full_height;
+    float *pel = ALLOCA (float, nchannels);
+    float filterrad = filter->width() / 2.0f;
+    // radi,radj is the filter radius, as an integer, in source pixels.  We
+    // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
+    int radi = (int) ceilf (filterrad/xratio) + 1;
+    int radj = (int) ceilf (filterrad/yratio) + 1;
+
+#if 0
+    std::cerr << "Resizing " << srcspec.full_width << "x" << srcspec.full_height
+              << " to " << dstspec.full_width << "x" << dstspec.full_height << "\n";
+    std::cerr << "ratios = " << xratio << ", " << yratio << "\n";
+    std::cerr << "examining src filter support radius of " << radi << " x " << radj << " pixels\n";
+    std::cerr << "dst range " << xbegin << ' ' << xend << " x " << ybegin << ' ' << yend << "\n";
+#endif
+
+    bool separable = filter->separable();
+    float *column = NULL;
+    if (separable) {
+        // Allocate one column for the first horizontal filter pass
+        column = ALLOCA (float, (2 * radj + 1) * nchannels);
+    }
+
+    for (int y = ybegin;  y < yend;  ++y) {
+        // s,t are NDC space
+        float t = (y+0.5f)*dstpixelheight;
+        // src_xf, src_xf are image space float coordinates
+        float src_yf = srcfy + t * srcfh - 0.5f;
+        // src_x, src_y are image space integer coordinates of the floor
+        int src_y;
+        float src_yf_frac = floorfrac (src_yf, &src_y);
+        for (int x = xbegin;  x < xend;  ++x) {
+            float s = (x+0.5f)*dstpixelwidth;
+            float src_xf = srcfx + s * srcfw - 0.5f;
+            int src_x;
+            float src_xf_frac = floorfrac (src_xf, &src_x);
+            for (int c = 0;  c < nchannels;  ++c)
+                pel[c] = 0.0f;
+            float totalweight = 0.0f;
+            if (separable) {
+                // First, filter horizontally
+                memset (column, 0, (2*radj+1)*nchannels*sizeof(float));
+                float *p = column;
+                for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
+                    totalweight = 0.0f;
+                    int yclamped = Imath::clamp (src_y+j, src.ymin(), src.ymax());
+                    ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
+                                                           yclamped, yclamped+1,
+                                                           0, 1, true);
+                    for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
+                        float w = filter->xfilt (xratio * (i-src_xf_frac));
+                        if (fabsf(w) < 1.0e-6)
+                            continue;
+                        totalweight += w;
+                        if (srcpel.exists()) {
+                            for (int c = 0;  c < nchannels;  ++c)
+                                p[c] += w * srcpel[c];
+                        } else {
+                            // Outside data window -- construct a clamped
+                            // iterator for just that pixel
+                            int xclamped = Imath::clamp (src_x+i, src.xmin(), src.xmax());
+                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
+                            clamped.pos (xclamped, yclamped);
+                            for (int c = 0;  c < nchannels;  ++c)
+                                p[c] += w * clamped[c];
+                        }
+                    }
+                    if (fabsf(totalweight) >= 1.0e-6) {
+                        float winv = 1.0f / totalweight;
+                        for (int c = 0;  c < nchannels;  ++c)
+                            p[c] *= winv;
+                    }
+                }
+                // Now filter vertically
+                totalweight = 0.0f;
+                p = column;
+                for (int j = -radj;  j <= radj;  ++j, p += nchannels) {
+                    float w = filter->yfilt (yratio * (j-src_yf_frac));
+                    totalweight += w;
+                    for (int c = 0;  c < nchannels;  ++c)
+                        pel[c] += w * p[c];
+                }
+
+            } else {
+                // Non-separable
+                ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
+                                                       src_y-radi, src_y+radi+1,
+                                                       0, 1, true);
+                for (int j = -radj;  j <= radj;  ++j) {
+                    for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
+                        float w = (*filter)(xratio * (i-src_xf_frac),
+                                            yratio * (j-src_yf_frac));
+                        if (fabsf(w) < 1.0e-6)
+                            continue;
+                        totalweight += w;
+                        DASSERT (! srcpel.done());
+                        if (srcpel.exists()) {
+                            for (int c = 0;  c < nchannels;  ++c)
+                                pel[c] += w * srcpel[c];
+                        } else {
+                            // Outside data window -- construct a clamped
+                            // iterator for just that pixel
+                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
+                            clamped.pos (Imath::clamp (srcpel.x(), src.xmin(), src.xmax()),
+                                         Imath::clamp (srcpel.y(), src.ymin(), src.ymax()));
+                            for (int c = 0;  c < nchannels;  ++c)
+                                pel[c] += w * clamped[c];
+                        }
+                    }
+                }
+                DASSERT (srcpel.done());
+            }
+
+            // Rescale pel to normalize the filter, then write it to the
+            // image.
+            if (fabsf(totalweight) < 1.0e-6) {
+                // zero it out
+                for (int c = 0;  c < nchannels;  ++c)
+                    pel[c] = 0.0f;
+            } else {
+                float winv = 1.0f / totalweight;
+                for (int c = 0;  c < nchannels;  ++c)
+                    pel[c] *= winv;
+            }
+            dst.setpixel (x, y, pel);
+        }
+    }
+
+    if (allocfilter)
+        Filter2D::destroy (filter);
+    return true;
+}
+
+} // end anonymous namespace
+
+
+bool
+ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
+                      int xbegin, int xend, int ybegin, int yend,
+                      Filter2D *filter, float filterwidth)
+{
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT :
+        return resize_<float> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::UINT8 :
+        return resize_<unsigned char> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::INT8  :
+        return resize_<char> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::UINT16:
+        return resize_<unsigned short> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::INT16 :
+        return resize_<short> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::UINT  :
+        return resize_<unsigned int> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::INT   :
+        return resize_<int> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::UINT64:
+        return resize_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::INT64 :
+        return resize_<long long> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::HALF  :
+        return resize_<half> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    case TypeDesc::DOUBLE:
+        return resize_<double> (dst, src, xbegin, xend, ybegin, yend,
+                               filter, filterwidth);
+    default:
+        return false;
+    }
+}
+
 
 }
 OIIO_NAMESPACE_EXIT

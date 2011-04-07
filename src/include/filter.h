@@ -87,8 +87,21 @@ public:
     float height (void) const { return m_h; }
     void height (float newheight) { m_h = newheight; }
 
-    // Evalutate the filter at an x and y position (relative to filter center)
+    /// Is the filter separable?
+    ///
+    virtual bool separable () const { return false; }
+
+    /// Evalutate the filter at an x and y position (relative to filter
+    /// center).
     virtual float operator() (float x, float y) const = 0;
+
+    /// Evaluate just the horizontal filter (if separable; for non-separable
+    /// it just evaluates at (x,0).
+    virtual float xfilt (float x) const { return (*this)(x,0.0f); }
+
+    /// Evaluate just the vertical filter (if separable; for non-separable
+    /// it just evaluates at (0,y).
+    virtual float yfilt (float y) const { return (*this)(0.0f,y); }
 
     // Return the name of the filter, e.g., "box", "gaussian"
     virtual const std::string name (void) const = 0;

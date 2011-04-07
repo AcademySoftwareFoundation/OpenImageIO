@@ -473,6 +473,9 @@ struct DataArrayProxy {
     DataProxy<I,E> operator[] (int i) { return DataProxy<I,E> (m_data[i]); }
     void set (I *data) { m_data = data; }
     I * get () const { return m_data; }
+    const DataArrayProxy<I,E> & operator+= (int i) {
+        m_data += i;  return *this;
+    }
 private:
     I *m_data;
 };
@@ -489,6 +492,9 @@ struct ConstDataArrayProxy {
     E operator[] (int i) const { return convert_type<I,E>(m_data[i]); }
     void set (const I *data) { m_data = data; }
     const I * get () const { return m_data; }
+    const ConstDataArrayProxy<I,E> & operator+= (int i) {
+        m_data += i;  return *this;
+    }
 private:
     const I *m_data;
 };
