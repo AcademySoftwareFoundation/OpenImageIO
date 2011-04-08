@@ -289,13 +289,9 @@ private slots:
     void sortByFileDate();              ///< Sort images by file Date Stamp.
     void sortReverse();                 ///< Reverse the current order of images
     void slideShow();                   ///< Starts slide show
-    void slide1();                      ///< Slide mode with 1 s interval
-    void slide5();                      ///< Slide mode with 5 s interval
-    void slide15();                     ///< Slide mode with 15 s interval
-    void slide30();                     ///< Slide mode with 30 s interval
-    void slide60();                     ///< Slide mode with 60 s interval
     void slideLoop();                   ///< Slide show in a loop
     void slideNoLoop();                 ///< Slide show without loop
+    void setSlideShowDuration(int seconds); ///< Set the slide show duration in seconds
     void slideImages();                 ///< Slide show - move to next image
     void showInfoWindow();              ///< View extended info on image
     void showPixelviewWindow();         ///< View closeup pixel view
@@ -356,8 +352,7 @@ private:
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
     QAction *sortByNameAct, *sortByPathAct, *sortReverseAct;
     QAction *sortByImageDateAct, *sortByFileDateAct;
-    QAction *slideShowAct, *slide1Act, *slide5Act, *slide15Act;
-    QAction *slide30Act, *slide60Act, *slideLoopAct, *slideNoLoopAct;
+    QAction *slideShowAct, *slideLoopAct, *slideNoLoopAct;
     QAction *showInfoWindowAct;
     QAction *editPreferencesAct;
     QAction *showPixelviewWindowAct;
@@ -375,6 +370,8 @@ private:
     QCheckBox *autoMipmap;
     QLabel   *maxMemoryICLabel;
     QSpinBox *maxMemoryIC;
+    QLabel   *slideShowDurationLabel;
+    QSpinBox *slideShowDuration;
 
     std::vector<IvImage *> m_images;  ///< List of images
     int m_current_image;              ///< Index of current image, -1 if none
