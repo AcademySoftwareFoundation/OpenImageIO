@@ -280,11 +280,11 @@ private slots:
     void sortByFileDate();              ///< Sort images by file Date Stamp.
     void sortReverse();                 ///< Reverse the current order of images
     void slideShow();                   ///< Starts slide show
-    void slide1();                      ///< Slide mode with 1 s interval
-    void slide5();                      ///< Slide mode with 5 s interval
-    void slide15();                     ///< Slide mode with 15 s interval
-    void slide30();                     ///< Slide mode with 30 s interval
-    void slide60();                     ///< Slide mode with 60 s interval
+//    void slide1();                      ///< Slide mode with 1 s interval
+//    void slide5();                      ///< Slide mode with 5 s interval
+//    void slide15();                     ///< Slide mode with 15 s interval
+//    void slide30();                     ///< Slide mode with 30 s interval
+//    void slide60();                     ///< Slide mode with 60 s interval
     void slideLoop();                   ///< Slide show in a loop
     void slideNoLoop();                 ///< Slide show without loop
     void setSlideShowDuration(int seconds); ///< Set the slide show duration in seconds
