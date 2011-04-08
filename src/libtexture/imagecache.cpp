@@ -2092,6 +2092,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                 int tx = x - ((x - spec.x) % spec.tile_width);
                 TileID tileid (*file, subimage, miplevel, tx, ty, tz);
                 ok &= find_tile (tileid, thread_info);
+                if (! ok)
+                    return false;  // Just stop if file read failed
                 ImageCacheTileRef &tile (thread_info->tile);
                 const char *data;
                 if (tile && (data = (const char *)tile->data (x, y, z))) {
