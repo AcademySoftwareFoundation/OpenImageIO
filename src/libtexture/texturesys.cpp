@@ -228,6 +228,7 @@ void
 TextureSystemImpl::init ()
 {
     m_Mw2c.makeIdentity();
+    m_gray_to_rgb = false;
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
     m_statslevel = 0;
@@ -314,6 +315,11 @@ TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
         m_Mw2c = m_Mc2w.inverse();
         return true;
     }
+    if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
+        (type == TypeDesc::TypeInt)) {
+        m_gray_to_rgb = *(const int *)val;
+        return true;
+    }
     if (name == "statistics:level" && type == TypeDesc::TypeInt) {
         m_statslevel = *(const int *)val;
         // DO NOT RETURN! pass the same message to the image cache
@@ -339,6 +345,12 @@ TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
         *(Imath::M44f *)val = m_Mc2w;
         return true;
     }
+    if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
+        (type == TypeDesc::TypeInt)) {
+        *(int *)val = m_gray_to_rgb;
+        return true;
+    }
+
     // If not one of these, maybe it's an attribute meant for the image cache?
     return m_imagecache->getattribute (name, type, val);
 
@@ -534,6 +546,69 @@ TextureSystemImpl::invalidate_all (bool force)
 
 
 bool
+TextureSystemImpl::missing_texture (TextureOpt &options, float *result)
+{
+    for (int c = 0;  c < options.nchannels;  ++c) {
+        if (options.missingcolor)
+            result[c] = options.missingcolor[c];
+        else
+            result[c] = options.fill;
+        if (options.dresultds) options.dresultds[c] = 0;
+        if (options.dresultdt) options.dresultdt[c] = 0;
+        if (options.dresultdr) options.dresultdr[c] = 0;
+    }
+    if (options.missingcolor) {
+        // don't treat it as an error if missingcolor was supplied
+        (void) geterror ();   // eat the error
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+
+void
+TextureSystemImpl::fill_channels (int nfilechannels, TextureOpt &options,
+                                  float *result)
+{
+    // Starting channel to deal with is the first beyond what we actually
+    // got from the texture lookup.
+    int c = options.actualchannels;
+
+    // Special case: multi-channel texture reads from single channel
+    // files propagate their grayscale value to G and B.
+    if (nfilechannels == 1 && m_gray_to_rgb && 
+            options.firstchannel == 0 && options.nchannels >= 3) {
+        result[1] = result[0];
+        result[2] = result[0];
+        if (options.dresultds) {
+            options.dresultds[1] = options.dresultds[0];
+            options.dresultds[2] = options.dresultds[0];
+        }
+        if (options.dresultdt) {
+            options.dresultdt[1] = options.dresultdt[0];
+            options.dresultdt[2] = options.dresultdt[0];
+        }
+        if (options.dresultdr) {
+            options.dresultdr[1] = options.dresultdr[0];
+            options.dresultdr[2] = options.dresultdr[0];
+        }
+        c = 3; // we're done with channels 0-2, work on 3 next
+    }
+
+    // Fill in the remaining files with the fill color
+    for ( ; c < options.nchannels; ++c) {
+        result[c] = options.fill;
+        if (options.dresultds) options.dresultds[c] = 0;
+        if (options.dresultdt) options.dresultdt[c] = 0;
+        if (options.dresultdr) options.dresultdr[c] = 0;
+    }
+}
+
+
+
+bool
 TextureSystemImpl::texture (ustring filename, TextureOpt &options,
                             float s, float t,
                             float dsdx, float dtdx, float dsdy, float dtdy,
@@ -569,25 +644,10 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     TextureFile *texturefile = (TextureFile *)texture_handle_;
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture_batches;
+    ++stats.texture_queries;
 
-    if (! texturefile  ||  texturefile->broken()) {
-        for (int c = 0;  c < options.nchannels;  ++c) {
-            if (options.missingcolor)
-                result[c] = options.missingcolor[c];
-            else
-                result[c] = options.fill;
-            if (options.dresultds) options.dresultds[c] = 0;
-            if (options.dresultdt) options.dresultdt[c] = 0;
-        }
-//        error ("Texture file \"%s\" not found", filename.c_str());
-        ++stats.texture_queries;
-        if (options.missingcolor) {
-            (void) geterror ();   // eat the error
-            return true;
-        } else {
-            return false;
-        }
-    }
+    if (! texturefile  ||  texturefile->broken())
+        return missing_texture (options, result);
 
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
@@ -608,22 +668,11 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
     options.actualchannels = actualchannels;
 
-    // Fill channels requested but not in the file
-    if (options.actualchannels < options.nchannels) {
-        for (int c = options.actualchannels; c < options.nchannels; ++c) {
-            result[c] = options.fill;
-            if (options.dresultds) options.dresultds[c] = 0;
-            if (options.dresultdt) options.dresultdt[c] = 0;
-        }
-    }
-    // Early out if all channels were beyond the highest in the file
-    if (options.actualchannels < 1) {
-        return true;
-    }
-
-    ++stats.texture_queries;
-    return (this->*lookup) (*texturefile, thread_info, options,
-                            s, t, dsdx, dtdx, dsdy, dtdy, result);
+    bool ok = (this->*lookup) (*texturefile, thread_info, options,
+                               s, t, dsdx, dtdx, dsdy, dtdy, result);
+    if (actualchannels < options.nchannels)
+        fill_channels (spec.nchannels, options, result);
+    return ok;
 }
 
 

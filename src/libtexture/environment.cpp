@@ -311,25 +311,10 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     TextureFile *texturefile = (TextureFile *)texture_handle_;
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.environment_batches;
+    ++stats.environment_queries;
 
-    if (! texturefile  ||  texturefile->broken()) {
-        for (int c = 0;  c < options.nchannels;  ++c) {
-            if (options.missingcolor)
-                result[c] = options.missingcolor[c];
-            else
-                result[c] = options.fill;
-            if (options.dresultds) options.dresultds[c] = 0;
-            if (options.dresultdt) options.dresultdt[c] = 0;
-        }
-//        error ("Texture file \"%s\" not found", filename.c_str());
-        ++stats.environment_queries;
-        if (options.missingcolor) {
-            (void) geterror ();   // eat the error
-            return true;
-        } else {
-            return false;
-        }
-    }
+    if (! texturefile  ||  texturefile->broken())
+        return missing_texture (options, result);
 
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
@@ -340,21 +325,6 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel,
                                        0, options.nchannels);
     options.actualchannels = actualchannels;
-
-    // Fill channels requested but not in the file
-    if (options.actualchannels < options.nchannels) {
-        for (int c = options.actualchannels; c < options.nchannels; ++c) {
-            result[c] = options.fill;
-            if (options.dresultds) options.dresultds[c] = 0;
-            if (options.dresultdt) options.dresultdt[c] = 0;
-        }
-    }
-    // Early out if all channels were beyond the highest in the file
-    if (options.actualchannels < 1) {
-        return true;
-    }
-
-    ++stats.environment_queries;
 
     // Initialize results to 0.  We'll add from here on as we sample.
     float* dresultds = options.dresultds;
@@ -526,6 +496,9 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     }
     stats.aniso_probes += nsamples;
     ++stats.aniso_queries;
+
+    if (actualchannels < options.nchannels)
+        fill_channels (spec.nchannels, options, result);
 
     return ok;
 }
