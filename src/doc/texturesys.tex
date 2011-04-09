@@ -119,8 +119,10 @@ lookup.
 \apiitem{float fill}
 Specifies the value that will be used for any color channels that are
 requested but not found in the file.  For example, if you perform a
-3-channel lookup on a 1-channel texture, the second two channels will
-get the fill value.
+4-channel lookup on a 3-channel texture, the last channel will
+get the fill value.  (Note: this behavior is affected by the
+\qkw{gray_to_rgb} attribute described in 
+Section~\ref{sec:texturesys:attributes}.)
 \apiend
 
 \apiitem{const float* missingcolor}
@@ -235,8 +237,10 @@ lookup.
 \apiitem{VaryingRef<float> fill}
 Specifies the value that will be used for any color channels that are
 requested but not found in the file.  For example, if you perform a
-3-channel lookup on a 1-channel texture, the second two channels will
-get the fill value.
+4-channel lookup on a 3-channel texture, the lsat channel will
+get the fill value.  (Note: this behavior is affected by the
+\qkw{gray_to_rgb} attribute described in 
+Section~\ref{sec:texturesys:attributes}.)
 \apiend
 
 \apiitem{VaryingRef<float> missingcolor}
@@ -519,6 +523,7 @@ general (pointer) form of {\cf getattribute()}:
 
 
 \subsubsection*{Texture system attributes}
+\label{sec:texturesys:attributes}
 
 Recognized attributes include the following:
 
@@ -553,6 +558,17 @@ that is, it transforms points from ``common'' to ``world'' coordinates.
 You do not need to set {\cf commontoworld} and {\cf worldtocommon}
 separately; just setting either one will implicitly set the other, since
 each is the inverse of the other.
+\apiend
+
+\apiitem{int gray_to_rgb}
+If set to nonzero, texture lookups of single-channel (grayscale) 
+images will replicate the sole channel's values into the next two
+channels, making it behave like an RGB image that happens to have all
+three channels with identical pixel values.  (Channels beyond the third
+will get the ``fill'' value.)
+
+The default value of zero means that all missing channels will get
+the ``fill'' color.
 \apiend
 
 
@@ -652,7 +668,11 @@ expressed as a portion of the width of the texture.
 \apiitem{float fill}
 \vspace{10pt}
 Specifies the value that will be used for any color channels that are
-requested but not found in the file.
+requested but not found in the file.  For example, if you perform a
+4-channel lookup on a 3-channel texture, the last channel will
+get the fill value.  (Note: this behavior is affected by the
+\qkw{gray_to_rgb} attribute described in 
+Section~\ref{sec:texturesys:attributes}.)
 \apiend
 
 \vspace{-24pt}
@@ -785,7 +805,11 @@ expressed as a portion of the width of the texture.
 \apiitem{float fill}
 \vspace{10pt}
 Specifies the value that will be used for any color channels that are
-requested but not found in the file.
+requested but not found in the file.  For example, if you perform a
+4-channel lookup on a 3-channel texture, the last channel will
+get the fill value.  (Note: this behavior is affected by the
+\qkw{gray_to_rgb} attribute described in 
+Section~\ref{sec:texturesys:attributes}.)
 \apiend
 
 \vspace{-24pt}
@@ -1012,7 +1036,11 @@ expressed as a portion of the width of the texture.
 \apiitem{float fill}
 \vspace{10pt}
 Specifies the value that will be used for any color channels that are
-requested but not found in the file.
+requested but not found in the file.  For example, if you perform a
+4-channel lookup on a 3-channel texture, the last channel will
+get the fill value.  (Note: this behavior is affected by the
+\qkw{gray_to_rgb} attribute described in 
+Section~\ref{sec:texturesys:attributes}.)
 \apiend
 
 This function returns {\cf true} upon success, or {\cf false} if the
@@ -1210,7 +1238,11 @@ The index of the first channel to look up from the texture.
 \apiitem{float fill}
 \vspace{10pt}
 Specifies the value that will be used for any color channels that are
-requested but not found in the file.
+requested but not found in the file.  For example, if you perform a
+4-channel lookup on a 3-channel texture, the last channel will
+get the fill value.  (Note: this behavior is affected by the
+\qkw{gray_to_rgb} attribute described in 
+Section~\ref{sec:texturesys:attributes}.)
 \apiend
 
 Return true if the file is found and could be opened by an
