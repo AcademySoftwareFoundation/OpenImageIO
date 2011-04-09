@@ -70,11 +70,13 @@ static bool use_handle = false;
 static float cachesize = -1;
 static int maxfiles = -1;
 static float missing[4] = {-1, 0, 0, 1};
+static float fill = -1;  // -1 signifies unset
 static float scalefactor = 1.0f;
 static Imath::V3f offset (0,0,0);
 static float scalest = 1.0f;
 static bool nountiled = false;
 static bool nounmipped = false;
+static bool gray_to_rgb = false;
 void *dummyptr;
 
 
@@ -105,6 +107,7 @@ getargs (int argc, const char *argv[])
                       "Iterations for time trials",
                   "--blur %f", &blur, "Add blur to texture lookup",
                   "--width %f", &width, "Multiply filter width of texture lookup",
+                  "--fill %f", &fill, "Set fill value for missing channels",
                   "--missing %f %f %f", &missing[0], &missing[1], &missing[2],
                         "Specify missing texture color",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
@@ -121,6 +124,7 @@ getargs (int argc, const char *argv[])
                   "--ctr", &test_construction, "Test TextureOpt construction time",
                   "--offset %f %f %f", &offset[0], &offset[1], &offset[2], "Offset texture coordinates",
                   "--scalest %f", &scalest, "Scale st coordinates",
+                  "--graytorgb", &gray_to_rgb, "Convert grayscale textures to RGB",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -225,8 +229,9 @@ test_plain_texture ()
     opt.swidth = width;
     opt.twidth = width;
     opt.nchannels = nchannels;
-    float fill = 1;
-    opt.fill = fill;
+    
+    float localfill = (fill >= 0.0f) ? fill : 1.0f;
+    opt.fill = localfill;
     if (missing[0] >= 0)
         opt.missingcolor.init ((float *)&missing, 0);
 //    opt.interpmode = TextureOptions::InterpSmartBicubic;
@@ -241,7 +246,7 @@ test_plain_texture ()
     opt1.swidth = width;
     opt1.twidth = width;
     opt1.nchannels = nchannels;
-    opt1.fill = fill;
+    opt1.fill = localfill;
     if (missing[0] >= 0)
         opt1.missingcolor = (float *)&missing;
     opt1.swrap = opt1.twrap = TextureOpt::WrapPeriodic;
@@ -392,8 +397,8 @@ test_texture3d (ustring filename)
     opt.twidth = width;
     opt.rwidth = width;
     opt.nchannels = nchannels;
-    float fill = 0;
-    opt.fill = fill;
+    float localfill = (fill >= 0 ? fill : 0.0f);
+    opt.fill = localfill;
     if (missing[0] >= 0)
         opt.missingcolor.init ((float *)&missing, 0);
 
@@ -562,6 +567,7 @@ main (int argc, const char *argv[])
         texsys->attribute ("accept_untiled", 0);
     if (nounmipped)
         texsys->attribute ("accept_unmipped", 0);
+    texsys->attribute ("gray_to_rgb", gray_to_rgb);
 
     if (test_construction) {
         Timer t;

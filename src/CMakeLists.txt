@@ -159,7 +159,9 @@ add_subdirectory (doc)
 # Testing
 
 # List all the individual testsuite tests here:
-oiio_add_tests (ico gpsread sgi texture-grid texture-missing texture-res
+oiio_add_tests (ico gpsread sgi 
+                texture-fill texture-gray texture-grid
+                texture-missing texture-res
                 imagecache-files texture-field3d)
 
 # List testsuites which need special external reference images from the web

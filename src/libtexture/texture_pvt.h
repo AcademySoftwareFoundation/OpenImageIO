@@ -407,6 +407,14 @@ private:
                       const ImageSpec &spec, int &i, int &j,
                       float &ifrac, float &jfrac);
 
+    /// Called when the requested texture is missing, fills in the
+    /// results.
+    bool missing_texture (TextureOpt &options, float *result);
+
+    /// Correctly fill in channels that were requested but not present
+    /// in the file.
+    void fill_channels (int nfilechannels, TextureOpt &options, float *result);
+
     typedef bool (*wrap_impl) (int &coord, int width);
     static bool wrap_black (int &coord, int width);
     static bool wrap_clamp (int &coord, int width);
@@ -443,6 +451,7 @@ private:
     ImageCacheImpl *m_imagecache;
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
+    bool m_gray_to_rgb;          ///< automatically copy gray to rgb channels?
     /// Saved error string, per-thread
     ///
     mutable thread_specific_ptr< std::string > m_errormessage;
