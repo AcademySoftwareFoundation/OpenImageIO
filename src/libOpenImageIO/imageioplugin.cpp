@@ -202,6 +202,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (targa);
     PLUGENTRY (webp);
     PLUGENTRY (zfile);
+    PLUGENTRY (xpm);
 
 
 #endif // defined(EMBED_PLUGINS)
@@ -257,6 +258,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (webp);
 #endif
     DECLAREPLUG (zfile);
+    DECLAREPLUG (xpm);
 #endif
 }
 

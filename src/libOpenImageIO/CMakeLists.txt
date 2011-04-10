@@ -118,6 +118,7 @@ if (EMBEDPLUGINS)
         ../targa.imageio/targainput.cpp ../targa.imageio/targaoutput.cpp
         ../tiff.imageio/tiffinput.cpp ../tiff.imageio/tiffoutput.cpp
         ../zfile.imageio/zfile.cpp
+        ../xpm.imageio/xpminput.cpp ../xpm.imageio/xpmoutput.cpp
         )
     if (NOT Boost_VERSION LESS "103500")
         # Boost < 1.35 is too old to support asio that socket needs
