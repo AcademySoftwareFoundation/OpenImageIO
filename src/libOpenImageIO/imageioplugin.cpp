@@ -199,6 +199,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (tiff);
     PLUGENTRY (targa);
     PLUGENTRY (zfile);
+    PLUGENTRY (xpm);
 
 
 #endif // defined(EMBED_PLUGINS)
@@ -248,6 +249,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (tiff);
     DECLAREPLUG (targa);
     DECLAREPLUG (zfile);
+    DECLAREPLUG (xpm);
 #endif
 }
 
