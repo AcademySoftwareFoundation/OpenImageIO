@@ -119,27 +119,10 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     TextureFile *texturefile = (TextureFile *)texture_handle_;
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture3d_batches;
+    ++stats.texture3d_queries;
 
-    if (! texturefile  ||  texturefile->broken()) {
-        for (int c = 0;  c < options.nchannels;  ++c) {
-            if (options.missingcolor)
-                result[c] = options.missingcolor[c];
-            else
-                result[c] = options.fill;
-            if (options.dresultds) options.dresultds[c] = 0;
-            if (options.dresultdt) options.dresultdt[c] = 0;
-            if (options.dresultdr) options.dresultdr[c] = 0;
-        }
-//        error ("Texture file \"%s\" not found", filename.c_str());
-        ++stats.texture3d_batches;
-        ++stats.texture3d_queries;
-        if (options.missingcolor) {
-            (void) geterror ();   // eat the error
-            return true;
-        } else {
-            return false;
-        }
-    }
+    if (! texturefile  ||  texturefile->broken())
+        return missing_texture (options, result);
 
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
@@ -167,21 +150,6 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
                                        0, options.nchannels);
     options.actualchannels = actualchannels;
 
-    // Fill channels requested but not in the file
-    if (options.actualchannels < options.nchannels) {
-        for (int c = options.actualchannels; c < options.nchannels; ++c) {
-            result[c] = options.fill;
-            if (options.dresultds) options.dresultds[c] = 0;
-            if (options.dresultdt) options.dresultdt[c] = 0;
-            if (options.dresultdr) options.dresultdr[c] = 0;
-        }
-    }
-    // Early out if all channels were beyond the highest in the file
-    if (options.actualchannels < 1) {
-        ++stats.texture3d_batches;
-        return true;
-    }
-
     // Do the volume lookup in local space.  There's not actually a way
     // to ask for point transforms via the ImageInput interface, so use
     // knowledge of the few volume reader internals to the back doors.
@@ -206,10 +174,10 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
 
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
                                Plocal, dPdx, dPdy, dPdz, result);
+    if (actualchannels < options.nchannels)
+        fill_channels (spec.nchannels, options, result);
+    return ok;
 
-    // Update stats
-    ++stats.texture3d_batches;
-    ++stats.texture3d_queries;
 
     return ok;
 }

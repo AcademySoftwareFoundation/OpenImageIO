@@ -332,6 +332,7 @@ public:
     ///     int accept_untiled : if nonzero, accept untiled images
     ///     int accept_unmipped : if nonzero, accept unmipped images
     ///     int failure_retries : how many times to retry a read failure
+    ///     int gray_to_rgb : make 1-channel images fill RGB lookups
     ///
     virtual bool attribute (const std::string &name, TypeDesc type, const void *val) = 0;
     // Shortcuts for common types

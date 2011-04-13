@@ -34,6 +34,7 @@
 #define OPENIMAGEIO_FILTER_H
 
 #include "version.h"
+#include "export.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -44,7 +45,7 @@ OIIO_NAMESPACE_ENTER
 // We haven't implemented the analogous Filter1D for now, just because
 // we don't know if we'll need it.  But it should be very straightforward.
 
-class Filter1D {
+class DLLPUBLIC Filter1D {
 public:
     Filter1D (float width) : m_w(width) { }
     virtual ~Filter1D (void) { };
@@ -76,7 +77,7 @@ protected:
 
 
 
-class Filter2D {
+class DLLPUBLIC Filter2D {
 public:
     Filter2D (float width, float height) : m_w(width), m_h(height) { }
     virtual ~Filter2D (void) { };
