@@ -44,6 +44,7 @@ using namespace boost::filesystem;
 
 #include "argparse.h"
 #include "strutil.h"
+#include "filesystem.h"
 #include "imageio.h"
 
 OIIO_NAMESPACE_USING;
@@ -66,20 +67,20 @@ static bool
 grep_file (const std::string &filename, boost::regex &re,
            bool ignore_nonimage_files=false)
 {
-    boost::filesystem::path path (filename);
-    if (! boost::filesystem::exists (path)) {
+    if (! Filesystem::exists (filename)) {
         std::cerr << "igrep: " << filename << ": No such file or directory\n";
         return false;
     }
 
-    if (boost::filesystem::is_directory (path)) {
+    if (Filesystem::is_directory (filename)) {
         if (! recursive)
             return false;
         if (print_dirs) {
-            std::cout << "(" << path << "/)\n";
+            std::cout << "(" << filename << "/)\n";
             std::cout.flush();
         }
         bool r = false;
+        boost::filesystem::path path (filename);
         boost::filesystem::directory_iterator end_itr;  // default is past-end
         for (boost::filesystem::directory_iterator itr(path);  itr != end_itr;  ++itr) {
             // std::cout << "  rec " << itr->path() << "\n";

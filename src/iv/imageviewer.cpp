@@ -50,6 +50,8 @@ using boost::algorithm::iequals;
 #include "timer.h"
 #include "fmath.h"
 #include "sysutil.h"
+#include "filesystem.h"
+
 
 namespace
 {
@@ -1432,7 +1434,7 @@ compImageDate (IvImage *first, IvImage *second)
         if (first->init_spec (first->name(), 0, 0)) {
             metadatatime = first->spec ().get_string_attribute ("DateTime");
             if (metadatatime.empty()){
-                if (! boost::filesystem::exists (first->name ()))
+                if (! Filesystem::exists (first->name ()))
                     return false;
                 firstFile = boost::filesystem::last_write_time (first->name ());
             }
@@ -1446,7 +1448,7 @@ compImageDate (IvImage *first, IvImage *second)
         if (second->init_spec(second->name(), 0, 0)) {
             metadatatime = second->spec ().get_string_attribute ("DateTime");
             if (metadatatime.empty()){
-                if (! boost::filesystem::exists (second->name ()))
+                if (! Filesystem::exists (second->name ()))
                     return true;
                 secondFile = boost::filesystem::last_write_time (second->name());
             }
@@ -1482,10 +1484,10 @@ compFileDate (IvImage *first, IvImage *second)
 {
     std::time_t firstFile, secondFile;
     double diff;
-    if (! boost::filesystem::exists (first->name ()))
+    if (! Filesystem::exists (first->name ()))
         return false;
     firstFile = boost::filesystem::last_write_time (first->name ());
-    if (! boost::filesystem::exists (second->name ()))
+    if (! Filesystem::exists (second->name ()))
         return true;
     secondFile = boost::filesystem::last_write_time (second->name ());
     diff = difftime(firstFile, secondFile);
