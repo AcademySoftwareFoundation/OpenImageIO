@@ -389,6 +389,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to write \"" 
             << out_filename << "\" :" << geterror() << "\n";
+        delete in;
         return false;
     }
 
