@@ -437,15 +437,14 @@ D convert_type (const S &src)
 
 /// Helper function to expand sub-byte depth channel values to full
 /// bytes in order to allow maximum values to utilize the entire type
-/// domain (e.g. a 5-bit 31 shifted 3 bits to the left becomes 248,
-/// after range expansion becomes 255). This is done by repeating
-/// the (sizeof(T) * 8 - FROM_BITS) least significant of the existing
+/// domain (e.g. a 5-bit 31 shifted 3 bits to the left becomes 248;
+/// after range expansion it becomes 255). This is done by repeating
+/// the (TO_BITS - FROM_BITS) least significant of the existing
 /// bits on the least significant positions of the byte. It is
 /// assumed that the FROM_BITS existing bits are already in the most
 /// significant position (i.e. shifted fully to the left).
-template<unsigned int FROM_BITS, typename T>
+template<unsigned int FROM_BITS, unsigned int TO_BITS, typename T>
 inline void range_expand (T& val) {
-    static const unsigned int TO_BITS = sizeof(T) * 8;
     // this code requires the bytes to be bitwise contiguous, so make
     // sure that they are on little endian machines; we're restoring
     // the byte order later on

@@ -500,9 +500,9 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
             out[0] = (palette[k + 0] & 0x1F) << 3;
 	    // expand the ranges so that we utilize the full type domain (248
 	    // becomes 255)
-	    range_expand<5, unsigned char>(out[0]);
-	    range_expand<5, unsigned char>(out[1]);
-	    range_expand<5, unsigned char>(out[2]);
+	    range_expand<5, 8, unsigned char>(out[0]);
+	    range_expand<5, 8, unsigned char>(out[1]);
+	    range_expand<5, 8, unsigned char>(out[2]);
             break;
         case 3:
             out[0] = palette[k + 2];
@@ -551,9 +551,9 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
             out[2] = (in[0] & 0x1F) << 3;
 	    // expand the ranges so that we utilize the full type domain (248
 	    // becomes 255)
-	    range_expand<5, unsigned char>(out[0]);
-	    range_expand<5, unsigned char>(out[1]);
-	    range_expand<5, unsigned char>(out[2]);
+	    range_expand<5, 8, unsigned char>(out[0]);
+	    range_expand<5, 8, unsigned char>(out[1]);
+	    range_expand<5, 8, unsigned char>(out[2]);
             break;
         case 3:
             out[0] = in[2];
