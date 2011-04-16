@@ -77,6 +77,14 @@ if (NOT WIN32)
     add_definitions ("-Wall")
 endif()
 
+# Disable some warnings for Clang, it's a little too picky with boost
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    add_definitions ("-Wno-parentheses")
+    add_definitions ("-Wno-char-subscripts")
+    add_definitions ("-Wno-unused-function")
+    add_definitions ("-Wno-overloaded-virtual")
+endif ()
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions ("-DDEBUG=1")
 endif ()
@@ -161,7 +169,8 @@ add_subdirectory (doc)
 # List all the individual testsuite tests here:
 oiio_add_tests (ico gpsread sgi 
                 texture-fill texture-gray texture-grid
-                texture-missing texture-res
+                texture-missing texture-pointsample texture-res
+                texture-skinny texture-fat
                 imagecache-files texture-field3d)
 
 # List testsuites which need special external reference images from the web
