@@ -455,7 +455,7 @@ inline void range_expand (T& val) {
         val &= ~(1 << i);
         // read the bit we're copying, shift it to the target
         // position and OR it in; wrap the source bit sequence if more
-	// are required to fill the byte up to TO_BITS than FROM_BITS
+        // are required to fill the byte up to TO_BITS than FROM_BITS
         val |= (val & (1 << ((i % FROM_BITS) + TO_BITS - FROM_BITS)))
             >> (((i % FROM_BITS) + TO_BITS - FROM_BITS - i));
     }
