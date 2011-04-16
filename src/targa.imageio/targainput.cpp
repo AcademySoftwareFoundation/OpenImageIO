@@ -498,6 +498,11 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
             out[1] = ((palette[k + 0] & 0xE0) >> 2)
                      | ((palette[k + 1] & 0x03) << 6);
             out[0] = (palette[k + 0] & 0x1F) << 3;
+	    // expand the ranges so that we utilize the full type domain (248
+	    // becomes 255)
+	    range_expand<5, unsigned char>(out[0]);
+	    range_expand<5, unsigned char>(out[1]);
+	    range_expand<5, unsigned char>(out[2]);
             break;
         case 3:
             out[0] = palette[k + 2];
@@ -539,13 +544,16 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
             // significant positions. We're losing a tiny bit of precision
             // here, though: 5 bits of 1s is 31 in decimal, shifted 3 spaces to
             // the left (= multiplied by 8) it's 31 * 8 = 248.
-            // The funny bit hacking on the lower bits below has been suggested
-            // in the mailing list as a way to make sure that maximum channel
-            // values utilize the entire domain.
-            out[0] = ((in[1] & 0x7C) << 1) | ((in[1] & 0x1C) >> 2);
-            out[1] = ((in[0] & 0xE0) >> 2) | ((in[1] & 0x03) << 6)
-                                           | ((in[0] & 0xE0) >> 5);
-            out[2] = ((in[0] & 0x1F) << 3) | (in[0] & 0x07);
+	    
+            // shift the 5 bits to the most significant positions
+            out[0] = (in[1] & 0x7C) << 1;
+            out[1] = ((in[0] & 0xE0) >> 2) | ((in[1] & 0x03) << 6);
+            out[2] = (in[0] & 0x1F) << 3;
+	    // expand the ranges so that we utilize the full type domain (248
+	    // becomes 255)
+	    range_expand<5, unsigned char>(out[0]);
+	    range_expand<5, unsigned char>(out[1]);
+	    range_expand<5, unsigned char>(out[2]);
             break;
         case 3:
             out[0] = in[2];
