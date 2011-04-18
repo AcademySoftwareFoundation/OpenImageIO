@@ -109,6 +109,12 @@ be 4 but the {\cf format} field may be {\cf TypeDesc::UINT8} (because
 the \product APIs do not support fewer than 8 bits per sample).
 \apiend
 
+\apiitem{"oiio:UnassociatedAlpha" : int}
+Whether the data in the file stored alpha channels (if any) that were
+unassociated with the color (i.e., color not ``premultiplied'' by the
+alpha coverage value).
+\apiend
+
 \apiitem{"planarconfig" : string}
 \qkw{contig} indicates that the file has contiguous pixels (RGB RGB
 RGB...), whereas \qkw{separate} indicate that the file stores each

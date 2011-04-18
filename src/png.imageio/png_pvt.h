@@ -212,6 +212,9 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     interlace_type = png_get_interlace_type (sp, ip);
 
+    // PNG files are always "unassociated alpha"
+    spec.attribute ("oiio:UnassociatedAlpha", (int)1);
+
     // FIXME -- look for an XMP packet in an iTXt chunk.
 }
 

@@ -54,6 +54,8 @@ public:
     virtual ~PNGInput () { close(); }
     virtual const char * format_name (void) const { return "png"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual bool open (const std::string &name, ImageSpec &newspec,
+                       const ImageSpec &config);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
     virtual bool read_native_scanline (int y, int z, void *data);
@@ -70,6 +72,7 @@ private:
     int m_subimage;                   ///< What subimage are we looking at?
     Imath::Color3f m_bg;              ///< Background color
     int m_next_scanline;
+    bool m_keep_unassociated_alpha;   ///< Do not convert unassociated alpha
 
     /// Reset everything to initial state
     ///
@@ -80,6 +83,7 @@ private:
         m_info = NULL;
         m_buf.clear ();
         m_next_scanline = 0;
+        m_keep_unassociated_alpha = false;
     }
 
     /// Helper function: read the image.
@@ -148,6 +152,18 @@ PNGInput::open (const std::string &name, ImageSpec &newspec)
     m_next_scanline = 0;
 
     return true;
+}
+
+
+
+bool
+PNGInput::open (const std::string &name, ImageSpec &newspec,
+                const ImageSpec &config)
+{
+    // Check 'config' for any special requests
+    if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
+        m_keep_unassociated_alpha = true;
+    return open (name, newspec);
 }
 
 
@@ -251,8 +267,9 @@ PNGInput::read_native_scanline (int y, int z, void *data)
         }
     }
 
-    // PNG specifically dictates unassociated (un-"premultiplied") alpha
-    if (m_spec.alpha_channel != -1) {   // Associate alpha
+    // PNG specifically dictates unassociated (un-"premultiplied") alpha.
+    // Convert to associated unless we were requested not to do so.
+    if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
         float gamma = m_spec.get_float_attribute ("oiio:Gamma", 1.0f);
         if (m_spec.format == TypeDesc::UINT16)
             associateAlpha ((unsigned short *)data, m_spec.width,
