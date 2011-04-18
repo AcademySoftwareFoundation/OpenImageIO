@@ -80,6 +80,8 @@ public:
     virtual ~TIFFInput () { close(); }
     virtual const char * format_name (void) const { return "tiff"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual bool open (const std::string &name, ImageSpec &newspec,
+                       const ImageSpec &config);
     virtual bool close ();
     virtual int current_subimage (void) const {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
@@ -101,6 +103,9 @@ private:
     int m_next_scanline;             ///< Next scanline we'll read
     bool m_no_random_access;         ///< Should we avoid random access?
     bool m_emulate_mipmap;           ///< Should we emulate mip with subimage?
+    bool m_keep_unassociated_alpha;  ///< If the image is unassociated, please
+                                     ///  try to keep it that way!
+    bool m_convert_alpha;            ///< Do we need to associate alpha?
     unsigned short m_planarconfig;   ///< Planar config of the file
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
     unsigned short m_photometric;    ///< Of the *file*, not the client's view
@@ -111,6 +116,8 @@ private:
         m_tif = NULL;
         m_subimage = -1;
         m_emulate_mipmap = false;
+        m_keep_unassociated_alpha = false;
+        m_convert_alpha = false;
         m_colormap.clear();
     }
 
@@ -137,6 +144,22 @@ private:
                        unsigned char *bytes, int nbits);
 
     void invert_photometric (int n, void *data);
+
+    // Convert from unassociated/non-premultiplied alpha to
+    // associated/premultiplied
+    template <class T>
+    void unassociate (T *data, int size, int nchannels, int alpha_channel) {
+        double scale = std::numeric_limits<T>::is_integer ?
+            1.0/std::numeric_limits<T>::max() : 1.0;
+        for ( ;  size;  --size, data += nchannels)
+            for (int c = 0;  c < nchannels;  c++)
+                if (c != alpha_channel) {
+                    double f = data[c];
+                    data[c] = T (f * (data[alpha_channel] * scale));
+                }
+    }
+
+    void unassalpha_to_assocalpha (int n, void *data);
 
     // Calling TIFFGetField (tif, tag, &dest) is supposed to work fine for
     // simple types... as long as the tag types in the file are the correct
@@ -261,6 +284,18 @@ TIFFInput::open (const std::string &name, ImageSpec &newspec)
     m_filename = name;
     m_subimage = -1;
     return seek_subimage (0, 0, newspec);
+}
+
+
+
+bool
+TIFFInput::open (const std::string &name, ImageSpec &newspec,
+                 const ImageSpec &config)
+{
+    // Check 'config' for any special requests
+    if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
+        m_keep_unassociated_alpha = true;
+    return open (name, newspec);
 }
 
 
@@ -511,6 +546,8 @@ TIFFInput::readspec ()
         // Palette TIFF images are always 3 channels (to the client)
         m_spec.nchannels = 3;
         m_spec.default_channel_names ();
+        // FIXME - what about palette + extra (alpha?) channels?  Is that
+        // allowed?  And if so, ever encountered in the wild?
     }
 
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
@@ -581,8 +618,49 @@ TIFFInput::readspec ()
             m_spec.channelnames[c] = "z";
     }
 
+    unsigned short *sampleinfo = NULL;
+    unsigned short extrasamples = 0;
+    TIFFGetFieldDefaulted (m_tif, TIFFTAG_EXTRASAMPLES, &extrasamples, &sampleinfo);
+    // std::cerr << "Extra samples = " << extrasamples << "\n";
+    bool alpha_is_unassociated = false;  // basic assumption
+    if (extrasamples) {
+        // If the TIFF ExtraSamples tag was specified, use that to figure
+        // out the meaning of alpha.
+        int colorchannels = 3;
+        if (m_photometric == PHOTOMETRIC_MINISWHITE ||
+              m_photometric == PHOTOMETRIC_MINISBLACK ||
+              m_photometric == PHOTOMETRIC_PALETTE ||
+              m_photometric == PHOTOMETRIC_MASK)
+            colorchannels = 1;
+        for (int i = 0, c = colorchannels;
+             i < extrasamples && c < m_spec.nchannels;  ++i, ++c) {
+            // std::cerr << "   extra " << i << " " << sampleinfo[i] << "\n";
+            if (sampleinfo[i] == EXTRASAMPLE_ASSOCALPHA) {
+                // This is the alpha channel, associated as usual
+                m_spec.alpha_channel = c;
+            } else if (sampleinfo[i] == EXTRASAMPLE_UNASSALPHA) {
+                // This is the alpha channel, but color is unassociated
+                m_spec.alpha_channel = c;
+                alpha_is_unassociated = true;
+                m_spec.attribute ("oiio:UnassociatedAlpha", 1);
+            } else {
+                DASSERT (sampleinfo[i] == EXTRASAMPLE_UNSPECIFIED);
+                // This extra channel is not alpha at all.  Undo any
+                // assumptions we previously made about this channel.
+                if (m_spec.alpha_channel == c) {
+                    m_spec.channelnames[c] = Strutil::format("channel%d", c);
+                    m_spec.alpha_channel = -1;
+                }
+            }
+        }
+        if (m_spec.alpha_channel >= 0)
+            m_spec.channelnames[m_spec.alpha_channel] = "A";
+    }
+    // Will we need to do alpha conversions?
+    m_convert_alpha = (m_spec.alpha_channel >= 0 && alpha_is_unassociated &&
+                       ! m_keep_unassociated_alpha);
+
     // N.B. we currently ignore the following TIFF fields:
-    // ExtraSamples
     // GrayResponseCurve GrayResponseUnit
     // MaxSampleValue MinSampleValue
     // NewSubfileType SubfileType(deprecated)
@@ -734,6 +812,35 @@ TIFFInput::invert_photometric (int n, void *data)
 
 
 
+void
+TIFFInput::unassalpha_to_assocalpha (int n, void *data)
+{
+    switch (m_spec.format.basetype) {
+    case TypeDesc::UINT8:
+        unassociate ((unsigned char *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
+    case TypeDesc::INT8:
+        unassociate ((char *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
+    case TypeDesc::UINT16:
+        unassociate ((unsigned short *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
+    case TypeDesc::INT16:
+        unassociate ((short *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
+    case TypeDesc::FLOAT:
+        unassociate ((float *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
+    case TypeDesc::DOUBLE:
+        unassociate ((double *)data, n, m_spec.nchannels, m_spec.alpha_channel);
+        break;
+    default:
+        break;
+    }
+}
+
+
+
 bool
 TIFFInput::read_native_scanline (int y, int z, void *data)
 {
@@ -813,6 +920,12 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     if (m_photometric == PHOTOMETRIC_MINISWHITE)
         invert_photometric (m_spec.width * m_spec.nchannels, data);
 
+    // If alpha is unassociated and we aren't requested to keep it that
+    // way, multiply the colors by alpha per the usual OIIO conventions
+    // to deliver associated color & alpha.
+    if (m_convert_alpha)
+        unassalpha_to_assocalpha (m_spec.width, data);
+
     return true;
 }
 
@@ -856,6 +969,12 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
 
     if (m_photometric == PHOTOMETRIC_MINISWHITE)
         invert_photometric (tile_pixels, data);
+
+    // If alpha is unassociated and we aren't requested to keep it that
+    // way, multiply the colors by alpha per the usual OIIO conventions
+    // to deliver associated color & alpha.
+    if (m_convert_alpha)
+        unassalpha_to_assocalpha (tile_pixels, data);
 
     return true;
 }

@@ -764,8 +764,6 @@ metadata if present.
 \qkw{Model} & string & Model \\
 \qkw{DocumentName} & string & DocumentName \\
 \qkw{HostComputer} & string & HostComputer \\
-\qkw{oiio:BitsPerSample} & int & The actual bits per sample in the file (may
-  differ from {\cf ImageSpec::format}).\\
 \qkws{XResultion} \qkws{YResolution} & float & XResolution, YResolution \\
 \qkws{ResolutionUnit} & string & ResolutionUnit (\qkw{in} or
   \qkw{cm}). \\
@@ -786,10 +784,13 @@ metadata if present.
 \qkw{tiff:PageName} & string & PageName \\
 \qkw{tiff:PageNumber} & int & PageNumber \\
 \qkw{tiff:RowsPerStrip} & int & RowsPerStrip \\
-
 \qkw{tiff:subfiletype} & 1 & SubfileType \\
 \qkw{Exif:*} & & A wide variety of EXIF data are honored, and are all prefixed
   with \qkw{Exif:}.\\
+\qkw{oiio:BitsPerSample} & int & The actual bits per sample in the file (may
+  differ from {\cf ImageSpec::format}).\\
+\qkw{oiio:UnassociatedAlpha} & int & Nonzero if the alpha channel
+  contained ``unassociated'' alpha. \\
 \end{tabular}
 
 \subsubsection*{Limitations}
