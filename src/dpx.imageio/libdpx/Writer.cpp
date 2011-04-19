@@ -58,7 +58,7 @@ void dpx::Writer::Start()
 
 
 void dpx::Writer::SetFileInfo(const char *fileName, const char *creationTimeDate, const char *creator,
-			const char *project, const char *copyright, const U32 encryptKey)
+			const char *project, const char *copyright, const U32 encryptKey, const bool swapEndian)
 {
 	if (fileName)
 		this->header.SetFileName(fileName);
@@ -81,6 +81,9 @@ void dpx::Writer::SetFileInfo(const char *fileName, const char *creationTimeDate
 	if (copyright)
 		this->header.SetCopyright(copyright);
 	this->header.SetEncryptKey(encryptKey);
+	
+	if (swapEndian)
+	    this->header.magicNumber = SwapBytes(this->header.magicNumber);
 }
 
 

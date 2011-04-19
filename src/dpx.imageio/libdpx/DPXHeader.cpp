@@ -224,6 +224,9 @@ bool dpx::Header::Check()
 
 bool dpx::Header::Write(OutStream *io)
 {
+	// validate
+	return this->Validate();
+
 	// write the header to the file
 	size_t r = sizeof(GenericHeader) + sizeof(IndustryHeader);
 	if (io->Write(&(this->magicNumber), r) != r)
