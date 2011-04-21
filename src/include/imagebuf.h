@@ -395,7 +395,7 @@ public:
         /// image boundary, so you must use done() to test whether the
         /// iteration is complete, versus valid() to test whether it's
         /// pointing to a valid image pixel.
-        Iterator (const ImageBuf &ib, int xbegin, int xend,
+        Iterator (ImageBuf &ib, int xbegin, int xend,
                   int ybegin, int yend, int zbegin, int zend,
                   bool unclamped)
             : m_ib(&ib), m_tile(NULL)
@@ -420,7 +420,7 @@ public:
         }
         /// Copy constructor.
         ///
-        Iterator (const Iterator &i)
+        Iterator (Iterator &i)
             : m_ib (i.m_ib),
               m_rng_xbegin(i.m_rng_xbegin), m_rng_xend(i.m_rng_xend), 
               m_rng_ybegin(i.m_rng_ybegin), m_rng_yend(i.m_rng_yend),
