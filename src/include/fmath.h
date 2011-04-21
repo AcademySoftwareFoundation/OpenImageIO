@@ -435,6 +435,29 @@ D convert_type (const S &src)
 
 
 
+/// Helper function to convert channel values between different bit depths.
+/// Roughly equivalent to:
+///
+/// out = round (in * (pow (2, TO_BITS) - 1) / (pow (2, FROM_BITS) - 1));
+///
+/// but utilizes an integer math trick for speed. It can be proven that the
+/// absolute error of this method is less or equal to 1, with an average error
+/// (with respect to the entire domain) below 0.2.
+///
+/// It is assumed that the original value is a valid FROM_BITS integer, i.e.
+/// shifted fully to the right.
+template<unsigned int FROM_BITS, unsigned int TO_BITS>
+inline unsigned int bit_range_convert(unsigned int in) {
+    unsigned int out = 0;
+    int shift = TO_BITS - FROM_BITS;
+    for (; shift > 0; shift -= FROM_BITS)
+        out |= in << shift;
+    out |= in >> -shift;
+    return out;
+}
+
+
+
 /// A DataProxy<I,E> looks like an (E &), but it really holds an (I &)
 /// and does conversions (via convert_type) as it reads in and out.
 /// (I and E are for INTERNAL and EXTERNAL data types, respectively).
