@@ -202,6 +202,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         OIIO_INTRO_STRING,                                  // creator
         project.empty () ? NULL : project.c_str (),         // project
         copyright.empty () ? NULL : copyright.c_str (),     // copyright
+        ~0,                                                 // TODO: encryption
         m_wantSwap);
 
     // image info
@@ -337,24 +338,6 @@ DPXOutput::write_scanline (int y, int z, TypeDesc format,
         m_spec.width, 1, data, dst))
         return false;
 
-    // do the endain swap, if necessary
-    if (m_wantSwap && m_datasize > dpx::kByte) {
-        switch (m_datasize) {
-            case dpx::kWord:
-                swap_endian<short> ((short *)dst, m_spec.width);
-                break;
-            case dpx::kInt:
-            case dpx::kFloat:
-                swap_endian<int> ((int *)dst, m_spec.width);
-                break;
-            case dpx::kDouble:
-                swap_endian<double> ((double *)dst, m_spec.width);
-                break;
-            default: // shut up compiler
-                break;
-        }
-    }
-    
     return true;
 }
 

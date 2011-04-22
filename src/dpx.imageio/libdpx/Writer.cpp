@@ -258,7 +258,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 	{
 		int bsize = eolnPad > eoimPad ? eolnPad : eoimPad;
 		blank = new char[bsize];
-		memset(blank, bsize, sizeof(char));
+		memset(blank, 0, bsize * sizeof(char));
 	}
 
 	// can we write the entire memory chunk at once without any additional processing
@@ -280,9 +280,9 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 		{
 		case 8:
 			if (size == dpx::kByte)
-				this->fileLoc += WriteBuffer<U8, 8, true>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U8, 8, true>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status, this->header.RequiresByteSwap());
 			else
-				this->fileLoc += WriteBuffer<U8, 8, false>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U8, 8, false>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status, this->header.RequiresByteSwap());
 			break;
 
 		case 10:
@@ -291,37 +291,37 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 				reverse = true;
 
 			if (size == dpx::kWord)
-				this->fileLoc += WriteBuffer<U16, 10, true>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U16, 10, true>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status, this->header.RequiresByteSwap());
 			else
-				this->fileLoc += WriteBuffer<U16, 10, false>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U16, 10, false>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status, this->header.RequiresByteSwap());
 			break;
 
 		case 12:
 			if (size == dpx::kWord)
-				this->fileLoc += WriteBuffer<U16, 12, true>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U16, 12, true>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status, this->header.RequiresByteSwap());
 			else
-				this->fileLoc += WriteBuffer<U16, 12, false>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U16, 12, false>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status, this->header.RequiresByteSwap());
 			break;
 
 		case 16:
 			if (size == dpx::kWord)
-				this->fileLoc += WriteBuffer<U16, 16, true>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U16, 16, true>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status, this->header.RequiresByteSwap());
 			else
-				this->fileLoc += WriteBuffer<U16, 16, false>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U16, 16, false>(this->fd, size, data, width, height, noc, packing, rle, reverse, eolnPad, blank, status, this->header.RequiresByteSwap());
 			break;
 
 		case 32:
 			if (size == dpx::kFloat)
-				this->fileLoc += WriteFloatBuffer<R32, 32, true>(this->fd, size, data, width, height, noc, packing, rle, eolnPad, blank, status);
+				this->fileLoc += WriteFloatBuffer<R32, 32, true>(this->fd, size, data, width, height, noc, packing, rle, eolnPad, blank, status, this->header.RequiresByteSwap());
 			else
-				this->fileLoc += WriteFloatBuffer<R32, 32, false>(this->fd, size, data, width, height, noc, packing, rle, eolnPad, blank, status);
+				this->fileLoc += WriteFloatBuffer<R32, 32, false>(this->fd, size, data, width, height, noc, packing, rle, eolnPad, blank, status, this->header.RequiresByteSwap());
 			break;
 
 		case 64:
 			if (size == dpx::kDouble)
-				this->fileLoc += WriteFloatBuffer<R64, 64, true>(this->fd, size, data, width, height, noc, packing, rle, eolnPad, blank, status);
+				this->fileLoc += WriteFloatBuffer<R64, 64, true>(this->fd, size, data, width, height, noc, packing, rle, eolnPad, blank, status, this->header.RequiresByteSwap());
 			else
-				this->fileLoc += WriteFloatBuffer<R64, 64, false>(this->fd, size, data, width, height, noc, packing, rle, eolnPad, blank, status);
+				this->fileLoc += WriteFloatBuffer<R64, 64, false>(this->fd, size, data, width, height, noc, packing, rle, eolnPad, blank, status, this->header.RequiresByteSwap());
 			break;
 		}
 	}

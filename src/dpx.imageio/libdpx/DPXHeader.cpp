@@ -224,13 +224,17 @@ bool dpx::Header::Check()
 
 bool dpx::Header::Write(OutStream *io)
 {
-	// validate
-	return this->Validate();
+	// validate and byte swap, if necessary
+	if (!this->Validate())
+		return false;
 
 	// write the header to the file
 	size_t r = sizeof(GenericHeader) + sizeof(IndustryHeader);
 	if (io->Write(&(this->magicNumber), r) != r)
 		return false;
+
+	// swap back - data is in file, now we need it native again
+	this->Validate();
 	return true;
 }
 
@@ -244,23 +248,35 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 	const long FIELD2 = 4;			// offset to image in header
 	if (io->Seek(FIELD2, OutStream::kStart) == false)
 		return false;
+	if (this->RequiresByteSwap())
+		SwapBytes(this->imageOffset);
 	if (io->Write(&this->imageOffset, sizeof(U32)) == false)
 		return false;
+	if (this->RequiresByteSwap())
+		SwapBytes(this->imageOffset);
 			
 	
 	// write the file size
 	const long FIELD4 = 16;			// offset to total image file size in header
 	if (io->Seek(FIELD4, OutStream::kStart) == false)
 		return false;
+	if (this->RequiresByteSwap())
+		SwapBytes(this->fileSize);
 	if (io->Write(&this->fileSize, sizeof(U32)) == false)
 		return false;
+	if (this->RequiresByteSwap())
+		SwapBytes(this->fileSize);
 			
 	// write the number of elements
 	const long FIELD19 = 770;		// offset to number of image elements in header
 	if (io->Seek(FIELD19, OutStream::kStart) == false)
 		return false;
+	if (this->RequiresByteSwap())
+		SwapBytes(this->numberOfElements);
 	if (io->Write(&this->numberOfElements, sizeof(U16)) == false)
 		return false;
+	if (this->RequiresByteSwap())
+		SwapBytes(this->numberOfElements);
 	
 	// write the image offsets
 	const long FIELD21_12 = 808;	// offset to image offset in image element data structure
@@ -278,8 +294,12 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 				return false;
 
 			// write
+			if (this->RequiresByteSwap())
+				SwapBytes(this->chan[i].dataOffset);
 			if (io->Write(&this->chan[i].dataOffset, sizeof(U32)) == false)
 				return false;
+			if (this->RequiresByteSwap())
+				SwapBytes(this->chan[i].dataOffset);
 
 	}
 	
