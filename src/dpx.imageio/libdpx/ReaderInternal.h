@@ -138,7 +138,8 @@ namespace dpx
 
 			// first get line offset
 			long offset = (line + block.y1) * dpxHeader.Width() * numberOfComponents;
-			offset += offset % 3;
+			for (int i = 1; i <= (line + block.y1); ++i)
+			    offset += (i * dpxHeader.Width() * numberOfComponents) % 3;
 			offset = offset / 3 * 4;
 			
 			// add in eoln padding
