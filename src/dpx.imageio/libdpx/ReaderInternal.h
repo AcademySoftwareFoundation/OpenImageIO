@@ -130,16 +130,26 @@ namespace dpx
 		// end of line padding
 		int eolnPad = dpxHeader.EndOfLinePadding(element);
 		
+		// number of datums in one row
+		int datums = dpxHeader.Width() * numberOfComponents;
 		
 		// read in each line at a time directly into the user memory space
 		for (int line = 0; line < height; line++)
 		{
 			// determine offset into image element
 
+			int actline = line + block.y1;
+
 			// first get line offset
-			long offset = (line + block.y1) * dpxHeader.Width() * numberOfComponents;
-			for (int i = 1; i <= (line + block.y1); ++i)
-			    offset += (i * dpxHeader.Width() * numberOfComponents) % 3;
+			long offset = (actline) * dpxHeader.Width() * numberOfComponents;
+			
+			// add in the accumulated round-up offset - the following magical formula is
+			// just an unrolling of a loop that does the same work in constant time:
+			// for (int i = 1; i <= (line + block.y1); ++i)
+			//     offset += (i * dpxHeader.Width() * numberOfComponents) % 3;
+			offset += datums % 3 * ((actline + 2) / 3) + (3 - datums % 3) % 3 * ((actline + 1) / 3);
+			
+			// round up to the 32-bit boundary
 			offset = offset / 3 * 4;
 			
 			// add in eoln padding
@@ -155,7 +165,7 @@ namespace dpx
 			readSize = readSize / 3 * 4;
 			
 			// determine buffer offset
-			int bufoff = line * dpxHeader.Width() * numberOfComponents;
+			int bufoff = line * datums;
 	
 			fd->Read(dpxHeader, element, offset, readBuf, readSize);
 	
