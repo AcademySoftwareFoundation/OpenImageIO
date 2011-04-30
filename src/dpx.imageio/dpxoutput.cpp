@@ -69,7 +69,7 @@ private:
     dpx::DataSize m_datasize;
     dpx::Descriptor m_desc;
     dpx::Characteristic m_cmetr;
-    bool m_wantRaw;
+    bool m_wantRaw, m_wantSwap;
     int m_bytes;
 
     // Initialize private members to pre-opened state
@@ -178,6 +178,16 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
 
     // check if the client is giving us raw data to write
     m_wantRaw = m_spec.get_int_attribute ("dpx:RawData", 0) != 0;
+    
+    // check if the client wants endianness reverse to native
+    // assume big endian per Jeremy's request
+    std::string endianness = m_spec.get_string_attribute ("oiio:Endian", "big");
+    if (iequals (endianness, "little"))
+        m_wantSwap = bigendian ();
+    else if (iequals (endianness, "big"))
+        m_wantSwap = littleendian ();
+    else // native
+        m_wantSwap = false;
 
     m_dpx.SetOutStream (m_stream);
 
@@ -191,7 +201,9 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         NULL,                                               // TODO: cr. date
         OIIO_INTRO_STRING,                                  // creator
         project.empty () ? NULL : project.c_str (),         // project
-        copyright.empty () ? NULL : copyright.c_str ());    // copyright
+        copyright.empty () ? NULL : copyright.c_str (),     // copyright
+        ~0,                                                 // TODO: encryption
+        m_wantSwap);
 
     // image info
     m_dpx.SetImageInfo (m_spec.width, m_spec.height);
@@ -325,7 +337,7 @@ DPXOutput::write_scanline (int y, int z, TypeDesc format,
     else if (!dpx::ConvertToNative (m_desc, m_datasize, m_cmetr,
         m_spec.width, 1, data, dst))
         return false;
-    
+
     return true;
 }
 
