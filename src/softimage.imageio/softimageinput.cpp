@@ -63,7 +63,7 @@ private:
     void init ();
     /// Read a scanline from m_fd.
     ///
-    bool read_scanline (void * data);
+    bool read_next_scanline (void * data);
     /// Read uncompressed pixel data from m_fd.
     ///
     bool read_pixels_uncompressed (const softimage_pvt::ChannelPacket & curPacket,
@@ -187,7 +187,7 @@ SoftimageInput::read_native_scanline (int y, int z, void* data)
     bool result = false;
     if (y == (int)m_scanline_markers.size() - 1) {
         // we're up to this scanline
-        result = read_scanline(data);
+        result = read_next_scanline(data);
         
         // save the marker for the next scanline if we haven't got the who images
         if (m_scanline_markers.size() < m_pic_header.height) {
@@ -200,14 +200,14 @@ SoftimageInput::read_native_scanline (int y, int z, void* data)
         fpos_t curPos;
         // Store the ones before this without pulling the pixels
         do {
-            if (!read_scanline(NULL))
+            if (!read_next_scanline(NULL))
                 return false;
             
             fgetpos(m_fd, &curPos);
             m_scanline_markers.push_back(curPos);
         } while ((int)m_scanline_markers.size() <= y);
         
-        result = read_scanline(data);
+        result = read_next_scanline(data);
         fgetpos(m_fd, &curPos);
         m_scanline_markers.push_back(curPos);
     } else {
@@ -220,7 +220,7 @@ SoftimageInput::read_native_scanline (int y, int z, void* data)
             return false;
         }
 
-        result = read_scanline(data);
+        result = read_next_scanline(data);
 
         // If the index isn't complete let's shift the file pointer back to the latest readline
         if (m_scanline_markers.size() < m_pic_header.height) {
@@ -252,7 +252,7 @@ SoftimageInput::close()
 
 
 inline bool
-SoftimageInput::read_scanline (void * data)
+SoftimageInput::read_next_scanline (void * data)
 {
     // Each scanline is stored using one or more channel packets.
     // We go through each of those to pull the data

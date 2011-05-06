@@ -241,7 +241,7 @@ JpgInput::read_native_scanline (int y, int z, void *data)
         int subimage = current_subimage();
         if (! close ()  ||
             ! open (m_filename, dummyspec)  ||
-            ! seek_subimage (subimage, dummyspec))
+            ! seek_subimage (subimage, 0, dummyspec))
             return false;    // Somehow, the re-open failed
         assert (m_next_scanline == 0 && current_subimage() == subimage);
     }

@@ -228,6 +228,7 @@ void
 TextureSystemImpl::init ()
 {
     m_Mw2c.makeIdentity();
+    m_gray_to_rgb = false;
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
     m_statslevel = 0;
@@ -314,6 +315,11 @@ TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
         m_Mw2c = m_Mc2w.inverse();
         return true;
     }
+    if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
+        (type == TypeDesc::TypeInt)) {
+        m_gray_to_rgb = *(const int *)val;
+        return true;
+    }
     if (name == "statistics:level" && type == TypeDesc::TypeInt) {
         m_statslevel = *(const int *)val;
         // DO NOT RETURN! pass the same message to the image cache
@@ -339,6 +345,12 @@ TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
         *(Imath::M44f *)val = m_Mc2w;
         return true;
     }
+    if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
+        (type == TypeDesc::TypeInt)) {
+        *(int *)val = m_gray_to_rgb;
+        return true;
+    }
+
     // If not one of these, maybe it's an attribute meant for the image cache?
     return m_imagecache->getattribute (name, type, val);
 
@@ -534,6 +546,69 @@ TextureSystemImpl::invalidate_all (bool force)
 
 
 bool
+TextureSystemImpl::missing_texture (TextureOpt &options, float *result)
+{
+    for (int c = 0;  c < options.nchannels;  ++c) {
+        if (options.missingcolor)
+            result[c] = options.missingcolor[c];
+        else
+            result[c] = options.fill;
+        if (options.dresultds) options.dresultds[c] = 0;
+        if (options.dresultdt) options.dresultdt[c] = 0;
+        if (options.dresultdr) options.dresultdr[c] = 0;
+    }
+    if (options.missingcolor) {
+        // don't treat it as an error if missingcolor was supplied
+        (void) geterror ();   // eat the error
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+
+void
+TextureSystemImpl::fill_channels (int nfilechannels, TextureOpt &options,
+                                  float *result)
+{
+    // Starting channel to deal with is the first beyond what we actually
+    // got from the texture lookup.
+    int c = options.actualchannels;
+
+    // Special case: multi-channel texture reads from single channel
+    // files propagate their grayscale value to G and B.
+    if (nfilechannels == 1 && m_gray_to_rgb && 
+            options.firstchannel == 0 && options.nchannels >= 3) {
+        result[1] = result[0];
+        result[2] = result[0];
+        if (options.dresultds) {
+            options.dresultds[1] = options.dresultds[0];
+            options.dresultds[2] = options.dresultds[0];
+        }
+        if (options.dresultdt) {
+            options.dresultdt[1] = options.dresultdt[0];
+            options.dresultdt[2] = options.dresultdt[0];
+        }
+        if (options.dresultdr) {
+            options.dresultdr[1] = options.dresultdr[0];
+            options.dresultdr[2] = options.dresultdr[0];
+        }
+        c = 3; // we're done with channels 0-2, work on 3 next
+    }
+
+    // Fill in the remaining files with the fill color
+    for ( ; c < options.nchannels; ++c) {
+        result[c] = options.fill;
+        if (options.dresultds) options.dresultds[c] = 0;
+        if (options.dresultdt) options.dresultdt[c] = 0;
+        if (options.dresultdr) options.dresultdr[c] = 0;
+    }
+}
+
+
+
+bool
 TextureSystemImpl::texture (ustring filename, TextureOpt &options,
                             float s, float t,
                             float dsdx, float dtdx, float dsdy, float dtdy,
@@ -569,25 +644,10 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     TextureFile *texturefile = (TextureFile *)texture_handle_;
     ImageCacheStatistics &stats (thread_info->m_stats);
     ++stats.texture_batches;
+    ++stats.texture_queries;
 
-    if (! texturefile  ||  texturefile->broken()) {
-        for (int c = 0;  c < options.nchannels;  ++c) {
-            if (options.missingcolor)
-                result[c] = options.missingcolor[c];
-            else
-                result[c] = options.fill;
-            if (options.dresultds) options.dresultds[c] = 0;
-            if (options.dresultdt) options.dresultdt[c] = 0;
-        }
-//        error ("Texture file \"%s\" not found", filename.c_str());
-        ++stats.texture_queries;
-        if (options.missingcolor) {
-            (void) geterror ();   // eat the error
-            return true;
-        } else {
-            return false;
-        }
-    }
+    if (! texturefile  ||  texturefile->broken())
+        return missing_texture (options, result);
 
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
@@ -608,22 +668,11 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel, 0, options.nchannels);
     options.actualchannels = actualchannels;
 
-    // Fill channels requested but not in the file
-    if (options.actualchannels < options.nchannels) {
-        for (int c = options.actualchannels; c < options.nchannels; ++c) {
-            result[c] = options.fill;
-            if (options.dresultds) options.dresultds[c] = 0;
-            if (options.dresultdt) options.dresultdt[c] = 0;
-        }
-    }
-    // Early out if all channels were beyond the highest in the file
-    if (options.actualchannels < 1) {
-        return true;
-    }
-
-    ++stats.texture_queries;
-    return (this->*lookup) (*texturefile, thread_info, options,
-                            s, t, dsdx, dtdx, dsdy, dtdy, result);
+    bool ok = (this->*lookup) (*texturefile, thread_info, options,
+                               s, t, dsdx, dtdx, dsdy, dtdy, result);
+    if (actualchannels < options.nchannels)
+        fill_channels (spec.nchannels, options, result);
+    return ok;
 }
 
 
@@ -699,13 +748,55 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
 
 
 
+// Scale the derivs as dictated by 'width' and 'blur', and also make sure
+// they are all some minimum value to make the subsequent math clean.
+inline void
+adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
+                   float swidth, float twidth, float sblur, float tblur)
+{
+    // Trust user not to use nonsensical width<0 or blur<0
+    dsdx *= swidth;
+    dtdx *= twidth;
+    dsdy *= swidth;
+    dtdy *= twidth;
+
+#if 1
+    // Clamp degenerate derivatives so they don't cause mathematical problems
+    static const float eps = 1.0e-8f;
+    if (fabsf(dsdx) < eps)
+        dsdx = copysignf (eps, dsdx);
+    if (fabsf(dtdx) < eps)
+        dtdx = copysignf (eps, dtdx);
+    if (fabsf(dsdy) < eps)
+        dsdy = copysignf (eps, dsdy);
+    if (fabsf(dtdy) < eps)
+        dtdy = copysignf (eps, dtdy);
+#endif
+
+    if (sblur+tblur != 0.0f /* avoid the work when blur is zero */) {
+        // Carefully add blur to the right derivative components in the
+        // right proportions -- meerely adding the same amount of blur
+        // to all four derivatives blurs too much at some angles.
+        // FIXME -- we should benchmark whether a fast approximate rsqrt
+        // here could have any detectable performance improvement.
+        float dxlen_inv = 1.0f / sqrtf (dsdx*dsdx + dtdx*dtdx);
+        float dylen_inv = 1.0f / sqrtf (dsdy*dsdy + dtdy*dtdy);
+        dsdx += sblur * dsdx * dxlen_inv;
+        dtdx += tblur * dtdx * dxlen_inv;
+        dsdy += sblur * dsdy * dylen_inv;
+        dtdy += tblur * dtdy * dylen_inv;
+    }
+}
+
+
+
 bool
 TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
                             PerThreadInfo *thread_info,
                             TextureOpt &options,
                             float _s, float _t,
-                            float _dsdx, float _dtdx,
-                            float _dsdy, float _dtdy,
+                            float dsdx, float dtdx,
+                            float dsdy, float dtdy,
                             float *result)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
@@ -723,21 +814,15 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
         dresultds = dresultdt = NULL;
 
     // Use the differentials to figure out which MIP-map levels to use.
-    float dsdx = fabsf(_dsdx);
-    dsdx = dsdx * options.swidth + options.sblur;
-    float dtdx = fabsf(_dtdx);
-    dtdx = dtdx * options.twidth + options.tblur;
-    float dsdy = fabsf(_dsdy);
-    dsdy = dsdy * options.swidth + options.sblur;
-    float dtdy = fabsf(_dtdy);
-    dtdy = dtdy * options.twidth + options.tblur;
+    adjust_width_blur (dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth,
+                       options.sblur, options.tblur);
 
     // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
     int miplevel[2] = { -1, -1 };
     float levelblend = 0;
-    float sfilt = std::max (std::max (dsdx, dsdy), (float)1.0e-8);
-    float tfilt = std::max (std::max (dtdx, dtdy), (float)1.0e-8);
+    float sfilt = std::max (fabsf(dsdx), fabsf(dsdy));
+    float tfilt = std::max (fabsf(dtdx), fabsf(dtdy));
     float filtwidth = options.conservative_filter ? std::max (sfilt, tfilt)
                                                   : std::min (sfilt, tfilt);
     ImageCacheFile::SubimageInfo &subinfo (texturefile.subimageinfo(options.subimage));
@@ -816,6 +901,60 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 
 
 
+// Calculate major and minor axis lengths of the ellipse specified by the
+// s and t derivatives.  See Greene's EWA paper.  Return value is 0 if
+// the 'x' axis was the major axis, 1 if the 'y' axis was major.
+inline int
+ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
+              float &majorlength, float &minorlength)
+{
+    float dsdx2 = dsdx*dsdx;
+    float dtdx2 = dtdx*dtdx;
+    float dsdy2 = dsdy*dsdy;
+    float dtdy2 = dtdy*dtdy;
+    float A = dtdx2 + dtdy2;
+    float B = -2.0f * (dsdx * dtdx + dsdy * dtdy);
+    float C = dsdx2 + dsdy2;
+    float F = A*C - B*B*0.25f;
+    if (fabsf(F) < 1.0e-12f) {
+        // Something wrong, minuscule derivs?  Punt.
+        // std::cerr << "too small ABCF " << A << ' ' << B << ' ' << C << ' ' << F << "\n";
+        // std::cerr << "derivs " << dsdx << ' ' << dtdx << ' ' << dsdy << ' ' << dtdy << "\n";
+        if ((dsdy2+dtdy2) > (dsdx2+dtdx2)) {
+            majorlength = std::max (sqrtf(dsdy2+dtdy2), 1.0e-8f);
+            minorlength = 1.0e-8f;
+            return 1;
+        } else {
+            majorlength = std::max (sqrtf(dsdx2+dtdx2), 1.0e-8f);
+            minorlength = 1.0e-8f;
+            return 0;
+        }
+    }
+    float F_inv = 1.0f / F;
+    A *= F_inv;
+    B *= F_inv;
+    C *= F_inv;
+    float root = hypotf (A-C, B);
+    float Aprime = (A + C - root) * 0.5f;
+    float Cprime = (A + C + root) * 0.5f;
+    // FIXME -- look into whether a "fast rsqrt" would help here, or if
+    // these couple of sqrtfs are insignificant comapred to everything else.
+    majorlength = sqrtf (1.0f / Aprime);
+    minorlength = sqrtf (1.0f / Cprime);
+    // N.B. Various papers (including the FELINE ones, imply that the
+    // above calculations is the major and minor radii, but we treat
+    // them as the diameter.  Tests indicate that we are filtering just
+    // right, so I suspect that we are off by a factor of 2 elsewhere as
+    // well, compensating perfectly for this error.  Or maybe I just
+    // don't understand the situation at all.
+    if ((dsdy2+dtdy2) > (dsdx2+dtdx2))
+        return 1;
+    else
+        return 0;
+}
+
+
+
 bool
 TextureSystemImpl::texture_lookup (TextureFile &texturefile,
                             PerThreadInfo *thread_info,
@@ -844,14 +983,12 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     // wanting cubic interpolation).
     float sfilt_noblur = std::max (std::max (fabsf(dsdx), fabsf(dsdy)), 1e-8f);
     float tfilt_noblur = std::max (std::max (fabsf(dtdx), fabsf(dtdy)), 1e-8f);
-    int naturalres = (int) (1.0f / std::min (sfilt_noblur, tfilt_noblur));
+    int naturalsres = (int) (1.0f / sfilt_noblur);
+    int naturaltres = (int) (1.0f / tfilt_noblur);
+
     // Scale by 'width' and 'blur'
-    // NOTE: we must preserve the sign of the differentials to avoid "flipping"
-    //       the ellipse
-    dsdx = copysignf(fabsf(dsdx) * options.swidth + options.sblur, dsdx);
-    dtdx = copysignf(fabsf(dtdx) * options.twidth + options.tblur, dtdx);
-    dsdy = copysignf(fabsf(dsdy) * options.swidth + options.sblur, dsdy);
-    dtdy = copysignf(fabsf(dtdy) * options.twidth + options.tblur, dtdy);
+    adjust_width_blur (dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth,
+                       options.sblur, options.tblur);
 
     // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
@@ -859,35 +996,68 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     float levelblend = 0;
     // The ellipse is made up of two axes which correspond to the x and y pixel
     // directions. Pick the longest one and take several samples along it.
-    float xfilt = std::max (std::max (fabsf(dsdx), fabsf(dtdx)), 1e-8f);
-    float yfilt = std::max (std::max (fabsf(dsdy), fabsf(dtdy)), 1e-8f);
-    float smajor, tmajor;
+    float smajor, tmajor, sminor, tminor;
     float majorlength, minorlength;
+
+#if 0
+    // OLD code -- I thought this approximation was a good try, but it
+    // severely underestimates anisotropy for grazing angles, and
+    // therefore overblurs the texture lookups compared to the
+    // ellipse_axis code below...
+    float xfilt = std::max (fabsf(dsdx), fabsf(dtdx));
+    float yfilt = std::max (fabsf(dsdy), fabsf(dtdy));
     if (xfilt > yfilt) {
         majorlength = xfilt;
         minorlength = yfilt;
         smajor = dsdx;
         tmajor = dtdx;
+        sminor = dsdy;
+        tminor = dtdy;
     } else {
         majorlength = yfilt;
         minorlength = xfilt;
         smajor = dsdy;
         tmajor = dtdy;
+        sminor = dsdx;
+        tminor = dtdx;
     }
+#else
+    // Do a bit more math and get the exact ellipse axis lengths, and
+    // therefore a more accurate aspect ratio as well.  Looks much MUCH
+    // better, but for scenes with lots of grazing angles, it can greatly
+    // increase the average anisotropy, therefore the number of bilinear
+    // or bicubic texture probes, and therefore runtime!
+    // FIXME -- come back and improve performance to compensate.
+    int axis = ellipse_axes (dsdx, dtdx, dsdy, dtdy, majorlength, minorlength);
+    if (axis) {
+        smajor = dsdy;
+        tmajor = dtdy;
+        sminor = dsdx;
+        tminor = dtdx;
+    } else {
+        smajor = dsdx;
+        tmajor = dtdx;
+        sminor = dsdy;
+        tminor = dtdy;
+    }
+#endif
+
     float aspect, trueaspect;
     aspect = anisotropic_aspect (majorlength, minorlength, options, trueaspect);
 
-    float filtwidth = minorlength;
     ImageCacheFile::SubimageInfo &subinfo (texturefile.subimageinfo(options.subimage));
     int nmiplevels = (int)subinfo.levels.size();
     for (int m = 0;  m < nmiplevels;  ++m) {
-        // Compute the filter size in raster space at this MIP level
-        float filtwidth_ras = subinfo.spec(m).full_width * filtwidth;
+        // Compute the filter size (minor axis) in raster space at this
+        // MIP level.  We use the smaller of the two texture resolutions,
+        // which is better than just using one, but a more principled
+        // approach is desired but remains elusive.  FIXME.
+        float filtwidth_ras = minorlength * std::min (subinfo.spec(m).full_width, subinfo.spec(m).full_height);
         // Once the filter width is smaller than one texel at this level,
         // we've gone too far, so we know that we want to interpolate the
         // previous level and the current level.  Note that filtwidth_ras
         // is expected to be >= 0.5, or would have stopped one level ago.
-        if (filtwidth_ras <= 1) {
+        if (filtwidth_ras <= 1.0f) {
             miplevel[0] = m-1;
             miplevel[1] = m;
             levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
@@ -941,8 +1111,9 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
             ++bicubicprobes;
             break;
         case TextureOpt::InterpSmartBicubic :
-            if (lev == 0 || options.interpmode == TextureOpt::InterpBicubic ||
-                (texturefile.spec(options.subimage,lev).full_height < naturalres/2)) {
+            if (lev == 0 || 
+                (texturefile.spec(options.subimage,lev).full_width < naturalsres/2) ||
+                (texturefile.spec(options.subimage,lev).full_height < naturaltres/2)) {
                 accumer = &TextureSystemImpl::accum_sample_bicubic;
                 ++bicubicprobes;
             } else {

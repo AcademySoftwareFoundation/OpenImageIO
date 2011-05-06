@@ -44,6 +44,26 @@ namespace dpx
 {
 	
 
+	void EndianBufferSwap(int bitdepth, dpx::Packing packing, void *buf, const size_t size)
+	{
+		switch (bitdepth)
+		{
+		case 8:
+			break;
+		case 12:
+			if (packing == dpx::kPacked)
+				dpx::EndianSwapImageBuffer<dpx::kInt>(buf, size / sizeof(U32));
+			else
+				dpx::EndianSwapImageBuffer<dpx::kWord>(buf, size / sizeof(U16));
+			break;
+		case 16:
+			dpx::EndianSwapImageBuffer<dpx::kWord>(buf, size / sizeof(U16));
+			break;
+		default:		// 10-bit, 32-bit, 64-bit
+			dpx::EndianSwapImageBuffer<dpx::kInt>(buf, size / sizeof(U32));
+		}	
+	}
+
 
 	template <typename T1, typename T2>
 	void MultiTypeBufferCopy(T1 *dst, T2 *src, const int len)
@@ -235,7 +255,7 @@ namespace dpx
 	
 	template <typename IB, int BITDEPTH, bool SAMEBUFTYPE>
 	int WriteBuffer(OutStream *fd, DataSize src_size, void *src_buf, const U32 width, const U32 height, const int noc, const Packing packing, 
-					const bool rle, const bool reverse, const int eolnPad, char *blank, bool &status)
+					const bool rle, const bool reverse, const int eolnPad, char *blank, bool &status, bool swapEndian)
 	{
 		int fileOffset = 0;
 		
@@ -315,6 +335,8 @@ namespace dpx
 			
 			// write line
 			fileOffset += (bufaccess.length * sizeof(IB));
+			if (swapEndian)
+			    EndianBufferSwap(BITDEPTH, packing, dst + bufaccess.offset, bufaccess.length * sizeof(IB));
 			if (fd->Write(dst+bufaccess.offset, (bufaccess.length * sizeof(IB))) == false)
 			{
 				status = false;
@@ -343,7 +365,7 @@ namespace dpx
 
 	template <typename IB, int BITDEPTH, bool SAMEBUFTYPE>
 	int WriteFloatBuffer(OutStream *fd, DataSize src_size, void *src_buf, const U32 width, const U32 height, const int noc, const Packing packing, 
-					const bool rle, const int eolnPad, char *blank, bool &status)
+					const bool rle, const int eolnPad, char *blank, bool &status, bool swapEndian)
 	{
 		int fileOffset = 0;
 		
@@ -388,6 +410,8 @@ namespace dpx
 			
 			// write line
 			fileOffset += (bufaccess.length * sizeof(IB));
+			if (swapEndian)
+			    EndianBufferSwap(BITDEPTH, packing, dst + bufaccess.offset, bufaccess.length * sizeof(IB));
 			if (fd->Write(dst+bufaccess.offset, (bufaccess.length * sizeof(IB))) == false)
 			{
 				status = false;
@@ -411,8 +435,7 @@ namespace dpx
 		delete [] dst;
 		
 		return fileOffset;
-	}
-	
+	}	
 }
 
 #endif

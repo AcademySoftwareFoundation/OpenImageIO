@@ -569,7 +569,15 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
         // The file is already in the file cache, but the handle is
         // closed.  We will need to re-open, so we must make sure there
         // will be enough file handles.
+        // But wait, it's possible that somebody else is holding the
+        // filemutex that will be needed by check_max_files_with_lock,
+        // and they are waiting on our m_input_mutex, which we locked
+        // above.  To avoid deadlock, we need to release m_input_mutex
+        // while we close files.
+        m_input_mutex.unlock ();
         imagecache().check_max_files_with_lock (thread_info);
+        // Now we're back, whew!  Grab the lock again.
+        m_input_mutex.lock ();
     }
 
     bool ok = open (thread_info);
@@ -2092,6 +2100,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                 int tx = x - ((x - spec.x) % spec.tile_width);
                 TileID tileid (*file, subimage, miplevel, tx, ty, tz);
                 ok &= find_tile (tileid, thread_info);
+                if (! ok)
+                    return false;  // Just stop if file read failed
                 ImageCacheTileRef &tile (thread_info->tile);
                 const char *data;
                 if (tile && (data = (const char *)tile->data (x, y, z))) {

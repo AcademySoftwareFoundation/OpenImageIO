@@ -347,8 +347,127 @@ public:
         return ustring (*this, pos, n);
     }
 
-    // FIXME: implement find, rfind, find_first_of, find_last_of,
-    // find_first_not_of, find_last_not_of, compare.
+    // FIXME: implement compare.
+
+    size_type find(const ustring &str, size_type pos = 0) const {
+        return string().find(str.string(), pos);
+    }
+
+    size_type find(const std::string &str, size_type pos = 0) const {
+        return string().find(str, pos);
+    }
+
+    size_type find(const char *s, size_type pos, size_type n) const {
+        return string().find(s, pos, n);
+    }
+
+    size_type find(const char *s, size_type pos = 0) const {
+        return string().find(s, pos);
+    }
+
+    size_type find(char c, size_type pos = 0) const {
+        return string().find(c, pos);
+    }
+
+    size_type rfind(const ustring &str, size_type pos = npos) const {
+        return string().rfind(str.string(), pos);
+    }
+
+    size_type rfind(const std::string &str, size_type pos = npos) const {
+        return string().rfind(str, pos);
+    }
+
+    size_type rfind(const char *s, size_type pos, size_type n) const {
+        return string().rfind(s, pos, n);
+    }
+
+    size_type rfind(const char *s, size_type pos = npos) const {
+        return string().rfind(s, pos);
+    }
+
+    size_type rfind(char c, size_type pos = npos) const {
+        return string().rfind(c, pos);
+    }
+
+    size_type find_first_of(const ustring &str, size_type pos = 0) const {
+        return string().find_first_of(str.string(), pos);
+    }
+
+    size_type find_first_of(const std::string &str, size_type pos = 0) const {
+        return string().find_first_of(str, pos);
+    }
+
+    size_type find_first_of(const char *s, size_type pos, size_type n) const {
+        return string().find_first_of(s, pos, n);
+    }
+
+    size_type find_first_of(const char *s, size_type pos = 0) const {
+        return string().find_first_of(s, pos);
+    }
+
+    size_type find_first_of(char c, size_type pos = 0) const {
+        return string().find_first_of(c, pos);
+    }
+
+    size_type find_last_of(const ustring &str, size_type pos = npos) const {
+        return string().find_last_of(str.string(), pos);
+    }
+
+    size_type find_last_of(const std::string &str, size_type pos = npos) const {
+        return string().find_last_of(str, pos);
+    }
+
+    size_type find_last_of(const char *s, size_type pos, size_type n) const {
+        return string().find_last_of(s, pos, n);
+    }
+
+    size_type find_last_of(const char *s, size_type pos = npos) const {
+        return string().find_last_of(s, pos);
+    }
+
+    size_type find_last_of(char c, size_type pos = npos) const {
+        return string().find_last_of(c, pos);
+    }
+
+    size_type find_first_not_of(const ustring &str, size_type pos = 0) const {
+        return string().find_first_not_of(str.string(), pos);
+    }
+
+    size_type find_first_not_of(const std::string &str, size_type pos = 0) const {
+        return string().find_first_not_of(str, pos);
+    }
+
+    size_type find_first_not_of(const char *s, size_type pos, size_type n) const {
+        return string().find_first_not_of(s, pos, n);
+    }
+
+    size_type find_first_not_of(const char *s, size_type pos = 0) const {
+        return string().find_first_not_of(s, pos);
+    }
+
+    size_type find_first_not_of(char c, size_type pos = 0) const {
+        return string().find_first_not_of(c, pos);
+    }
+
+    size_type find_last_not_of(const ustring &str, size_type pos = npos) const {
+        return string().find_last_not_of(str.string(), pos);
+    }
+
+    size_type find_last_not_of(const std::string &str, size_type pos = npos) const {
+        return string().find_last_not_of(str, pos);
+    }
+
+    size_type find_last_not_of(const char *s, size_type pos, size_type n) const {
+        return string().find(s, pos, n);
+    }
+
+    size_type find_last_not_of(const char *s, size_type pos = npos) const {
+        return string().find_last_not_of(s, pos);
+    }
+
+    size_type find_last_not_of(char c, size_type pos = npos) const {
+        return string().find_last_not_of(c, pos);
+    }
 
     /// Return 0 if *this is lexicographically equal to str, -1 if
     /// *this is lexicographically earlier than str, 1 if *this is

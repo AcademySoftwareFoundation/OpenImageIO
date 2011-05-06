@@ -914,16 +914,6 @@ add_node (xml_node &node, const std::string &node_name, const int val)
 
 
 static void
-add_node (xml_node &node, const std::string &node_name, const float val)
-{
-    char buf[64];
-    sprintf (buf, "%f", val);
-    add_node (node, node_name, buf);
-}
-
-
-
-static void
 add_channelnames_node (xml_document &doc, const std::vector<std::string> &channelnames)
 {
     xml_node channel_node = doc.child ("ImageSpec").append_child();

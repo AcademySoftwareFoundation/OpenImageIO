@@ -232,9 +232,18 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     int photo = (m_spec.nchannels > 1 ? PHOTOMETRIC_RGB : PHOTOMETRIC_MINISBLACK);
     TIFFSetField (m_tif, TIFFTAG_PHOTOMETRIC, photo);
 
-    if (m_spec.nchannels == 4 && m_spec.alpha_channel == m_spec.nchannels-1) {
-        unsigned short s = EXTRASAMPLE_ASSOCALPHA;
-        TIFFSetField (m_tif, TIFFTAG_EXTRASAMPLES, 1, &s);
+    // ExtraSamples tag
+    if (m_spec.nchannels > 3) {
+        bool unass = m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
+        short e = m_spec.nchannels-3;
+        std::vector<unsigned short> extra (e);
+        for (int c = 0;  c < e;  ++c) {
+            if (m_spec.alpha_channel == (c+3))
+                extra[c] = unass ? EXTRASAMPLE_UNASSALPHA : EXTRASAMPLE_ASSOCALPHA;
+            else
+                extra[c] = EXTRASAMPLE_UNSPECIFIED;
+        }
+        TIFFSetField (m_tif, TIFFTAG_EXTRASAMPLES, e, &extra[0]);
     }
 
     // Default to LZW compression if no request came with the user spec
