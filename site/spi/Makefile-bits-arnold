@@ -16,6 +16,12 @@ ifeq (${platform}, macosx)
         -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
 endif
 
+ifeq (${COMPILER}, clang)
+    MY_CMAKE_FLAGS += \
+         -DCMAKE_C_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_2.9/bin/clang \
+         -DCMAKE_CXX_COMPILER=/shots/spi/home/lib/arnold/spinux1/llvm_2.9/bin/clang++
+endif
+
 ## Spinux (current)
 ifeq ($(SP_ARCH), spinux1_x86_64)
     platform=spinux1
