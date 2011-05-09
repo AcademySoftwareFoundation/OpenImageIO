@@ -1761,7 +1761,7 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
     tile = new ImageCacheTile (id, thread_info, m_read_before_insert);
     // N.B. the ImageCacheTile ctr starts the tile out as 'used'
     DASSERT (tile);
-    DASSERT (id == tile->id() && !memcmp(&id, &tile->id(), sizeof(TileID)));
+    DASSERT (id == tile->id());
     double readtime = timer();
     stats.fileio_time += readtime;
     id.file().iotime() += readtime;
