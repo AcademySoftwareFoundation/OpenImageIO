@@ -571,6 +571,13 @@ The default value of zero means that all missing channels will get
 the ``fill'' color.
 \apiend
 
+\apiitem{string latlong_up}
+Sets the default ``up'' direction for latlong environment maps (only
+applies if the map itself doesn't specify a format or is in a format
+that explicitly requires a particular orientation).  The default is
+\qkw{y}.  (Currently any other value will result in $z$ being ``up.'')
+\apiend
+
 
 \subsection{Opaque data for performance lookups}
 \label{sec:texturesys:api:opaque}
