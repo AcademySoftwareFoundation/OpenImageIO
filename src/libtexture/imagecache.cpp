@@ -496,13 +496,15 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         // FIXME(volume) -- rwrap
     }
 
-    m_y_up = false;
+    m_y_up = m_imagecache.latlong_y_up_default();
     m_sample_border = false;
     if (m_texformat == TexFormatLatLongEnv ||
         m_texformat == TexFormatCubeFaceEnv ||
         m_texformat == TexFormatCubeFaceShadow) {
         if (spec.get_string_attribute ("oiio:updirection") == "y")
             m_y_up = true;
+        else if (spec.get_string_attribute ("oiio:updirection") == "z")
+            m_y_up = false;
         if (spec.get_int_attribute ("oiio:sampleborder") != 0)
             m_sample_border = true;
     }
@@ -1237,6 +1239,7 @@ ImageCacheImpl::init ()
     m_accept_unmipped = true;
     m_read_before_insert = false;
     m_failure_retries = 0;
+    m_latlong_y_up_default = true;
     m_Mw2c.makeIdentity();
     m_mem_used = 0;
     m_statslevel = 0;
@@ -1587,7 +1590,11 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
         }
     }
     else if (name == "forcefloat" && type == TypeDesc::INT) {
-        m_forcefloat = *(const int *)val;
+        int a = *(const int *)val;
+        if (a != m_forcefloat) {
+            m_forcefloat = a;
+            do_invalidate = true;
+        }
     }
     else if (name == "accept_untiled" && type == TypeDesc::INT) {
         int a = *(const int *)val;
@@ -1612,6 +1619,13 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
     }
     else if (name == "failure_retries" && type == TypeDesc::INT) {
         m_failure_retries = *(const int *)val;
+    }
+    else if (name == "latlong_up" && type == TypeDesc::STRING) {
+        bool y_up = ! strcmp ("y", *(const char **)val);
+        if (y_up != m_latlong_y_up_default) {
+            m_latlong_y_up_default = y_up;
+            do_invalidate = true;
+        }
     } else {
         // Otherwise, unknown name
         return false;
@@ -1659,6 +1673,10 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     if (name == "commontoworld" && (type == TypeDesc::TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mc2w;
+        return true;
+    }
+    if (name == "latlong_up" && type == TypeDesc::STRING) {
+        *(const char **)val = ustring (m_latlong_y_up_default ? "y" : "z").c_str();
         return true;
     }
 
