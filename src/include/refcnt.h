@@ -55,13 +55,21 @@ OIIO_NAMESPACE_ENTER
 /// Mix-in class that adds a reference count, implemented as an atomic
 /// counter.
 class RefCnt {
-public:
+protected:
+    // Declare RefCnt constructors and destructors protected because they
+    // should only be called implicitly from within child class constructors or
+    // destructors.  In particular, this prevents users from deleting a RefCnt*
+    // which is important because the destructor is non-virtual.
+
     RefCnt () { m_refcnt = 0; }
 
     /// Define copy constructor to NOT COPY reference counts! Copying a
     /// struct doesn't change how many other things point to it.
     RefCnt (RefCnt &r) { m_refcnt = 0; }
 
+    ~RefCnt () {}
+
+public:
     /// Add a reference
     ///
     void _incref () const { ++m_refcnt; }
