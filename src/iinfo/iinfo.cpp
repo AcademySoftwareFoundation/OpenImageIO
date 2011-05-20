@@ -129,16 +129,23 @@ print_stats_num (float val, int maxval, bool round)
 // First check oiio:BitsPerSample int attribute.  If not set,
 // fall back on the TypeDesc. return 0 for float types
 // or those that exceed the int range (long long, etc)
-static unsigned int
+static unsigned long long
 get_intsample_maxval (const ImageSpec &spec)
 {
+    TypeDesc type = spec.format;
     int bits = spec.get_int_attribute ("oiio:BitsPerSample");
-    if (bits>0) {
-        return static_cast<int>(powf (2.0f, bits) - 1.0f);
+    if (bits > 0) {
+        if (type.basetype == TypeDesc::UINT8 ||
+              type.basetype == TypeDesc::UINT16 ||
+              type.basetype == TypeDesc::UINT32)
+            return ((1LL) << bits) - 1;
+        if (type.basetype == TypeDesc::INT8 ||
+              type.basetype == TypeDesc::INT16 ||
+              type.basetype == TypeDesc::INT32)
+            return ((1LL) << (bits-1)) - 1;
     }
     
     // These correspond to all the int enums in typedesc.h <= int
-    TypeDesc type = spec.format;
     if (type.basetype == TypeDesc::UCHAR)        return 0xff;
     if (type.basetype == TypeDesc::CHAR)         return 0x7f;
     if (type.basetype == TypeDesc::USHORT)     return 0xffff;
