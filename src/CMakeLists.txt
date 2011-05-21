@@ -199,6 +199,10 @@ oiio_add_tests (fits
     IMAGEDIR fits-images
     URL http://www.cv.nrao.edu/fits/data/tests/)
 
+oiio_add_tests (webp
+    IMAGEDIR webp-images
+    URL http://code.google.com/speed/webp/gallery.html)
+
 #########################################################################
 # Packaging
 set (CPACK_PACKAGE_VERSION_MAJOR ${OIIO_VERSION_MAJOR})
