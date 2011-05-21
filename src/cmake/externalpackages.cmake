@@ -237,3 +237,25 @@ endif ()
 # end Field3d setup
 ###########################################################################
 
+###########################################################################
+# WebP setup
+    message (STATUS "WEBP_HOME=${WEBP_HOME}")
+    find_path (WEBP_INCLUDE_DIR webp/encode.h
+               ${THIRD_PARTY_TOOLS}/include
+               ${PROJECT_SOURCE_DIR}/include  
+               ${WEBP_HOME}/)
+    find_library (WEBP_LIBRARY
+                  NAMES webp
+                  PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
+                  ${WEBP_HOME}/
+                 )
+    if (WEBP_INCLUDE_DIR AND WEBP_LIBRARY)
+        set (WEBP_FOUND TRUE)
+        message (STATUS "WEBP includes = ${WEBP_INCLUDE_DIR} ")
+        message (STATUS "WEBP library = ${WEBP_LIBRARY} ")
+    else()
+        set (WEBP_FOUND FALSE)
+        message (STATUS "WebP library not found")
+    endif()
+# end Webp setup
+###########################################################################

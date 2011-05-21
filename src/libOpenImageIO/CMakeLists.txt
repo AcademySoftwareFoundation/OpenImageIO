@@ -152,6 +152,18 @@ if (EMBEDPLUGINS)
         set (FIELD3D_LIBRARY "")
         set (HDF5_LIBRARIES "")
     endif ()
+
+    if (WEBP_FOUND)
+        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+             ../webp.imageio/webpinput.cpp
+             ../webp.imageio/webpoutput.cpp
+            )
+        include_directories (${WEBP_INCLUDE_DIR})
+        add_definitions ("-DUSE_WEBP=1")
+    else ()
+        message (STATUS "WebP plugin will not be built")
+        set (WEBP_LIBRARY "")
+    endif ()
 endif ()
 
 if (BUILDSTATIC)
@@ -171,6 +183,7 @@ if (EMBEDPLUGINS)
                                ${JASPER_LIBRARY}
                                ${FIELD3D_LIBRARY}
                                ${HDF5_LIBRARIES}
+                               ${WEBP_LIBRARY}
                           )
     link_openexr (OpenImageIO)
 endif ()

@@ -199,6 +199,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (softimage);
     PLUGENTRY (tiff);
     PLUGENTRY (targa);
+    PLUGENTRY (webp);
     PLUGENTRY (zfile);
 
 
@@ -249,6 +250,9 @@ catalog_builtin_plugins ()
     DECLAREPLUG (softimage);
     DECLAREPLUG (tiff);
     DECLAREPLUG (targa);
+#ifdef USE_WEBP
+    DECLAREPLUG (webp);
+#endif
     DECLAREPLUG (zfile);
 #endif
 }
