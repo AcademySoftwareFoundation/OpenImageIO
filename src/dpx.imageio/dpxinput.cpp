@@ -374,6 +374,8 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     DPX_SET_ATTRIB_FLOAT_N(LowQuantity);
     DPX_SET_ATTRIB_INT_N(HighData);
     DPX_SET_ATTRIB_FLOAT_N(HighQuantity);
+    DPX_SET_ATTRIB_INT_N(EndOfLinePadding);
+    DPX_SET_ATTRIB_INT_N(EndOfImagePadding);
     DPX_SET_ATTRIB_FLOAT(XScannedSize);
     DPX_SET_ATTRIB_FLOAT(YScannedSize);
     DPX_SET_ATTRIB_INT(FramePosition);
@@ -424,10 +426,14 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     if (!tmpstr.empty ())
         m_spec.attribute ("dpx:Packing", tmpstr);
 
-    if (m_dpx.header.timeCode != 0xFFFFFFFF)
-        m_spec.attribute ("dpx:TimeCode", m_dpx.header.timeCode);
-    if (m_dpx.header.userBits != 0xFFFFFFFF)
-        m_spec.attribute ("dpx:UserBits", m_dpx.header.userBits);
+    if (m_dpx.header.timeCode != 0xFFFFFFFF) {
+        m_dpx.header.TimeCode(buf);
+        m_spec.attribute ("dpx:TimeCode", buf);
+    }
+    if (m_dpx.header.userBits != 0xFFFFFFFF) {
+        m_dpx.header.UserBits(buf);
+        m_spec.attribute ("dpx:UserBits", buf);
+    }
     if (m_dpx.header.sourceTimeDate[0]) {
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
         // %Y:%m:%d:%H:%M:%S%Z)

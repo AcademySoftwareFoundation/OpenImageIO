@@ -38,6 +38,7 @@
 #define _DPX_H 1
 
 #include <cstdio>
+#include <limits>
 
 #include "DPXHeader.h"
 #include "DPXStream.h"
@@ -381,8 +382,8 @@ namespace dpx
 			const Packing packing = kFilledMethodA, 
 			const Encoding encoding = kNone,
 			const U32 dataSign = 0, 
-			const U32 lowData = ~0, const R32 lowQuantity = ~0,
-			const U32 highData = ~0, const R32 highQuantity = ~0,
+			const U32 lowData = ~0, const R32 lowQuantity = std::numeric_limits<float>::quiet_NaN(),
+			const U32 highData = ~0, const R32 highQuantity = std::numeric_limits<float>::quiet_NaN(),
 			const U32 eolnPadding = 0, const U32 eoimPadding = 0);
 
 		/*!
