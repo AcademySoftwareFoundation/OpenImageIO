@@ -38,6 +38,7 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <limits>
 
 
 #include "DPXHeader.h"
@@ -114,7 +115,7 @@ void dpx::GenericHeader::Reset()
 
 	// Image Orientation
 	this->xOffset = this->yOffset = 0xffffffff;
-	this->xCenter = this->yCenter = 0xffffffff;
+	this->xCenter = this->yCenter = std::numeric_limits<float>::quiet_NaN();
 	this->xOriginalSize = this->yOriginalSize = 0xffffffff;
 	EmptyString(this->sourceImageFileName, 100);
 	EmptyString(this->sourceTimeDate, 24);
@@ -122,7 +123,7 @@ void dpx::GenericHeader::Reset()
 	EmptyString(this->inputDeviceSerialNumber, 32);
 	this->border[0] = this->border[1] = this->border[2] = this->border[3] = 0xffff;
 	this->aspectRatio[0] = this->aspectRatio[1] = 0xffffffff;
-	this->xScannedSize = this->yScannedSize = 0xffffffff;
+	this->xScannedSize = this->yScannedSize = std::numeric_limits<float>::quiet_NaN();
 	EmptyString(this->reserved3, 28);
 }
 
@@ -143,7 +144,7 @@ void dpx::IndustryHeader::Reset()
 	EmptyString(this->count, 4);
 	EmptyString(this->format, 32);
 	this->framePosition = this->sequenceLength = this->heldCount = 0xffffffff;
-	this->frameRate = this->shutterAngle = 0xffffffff;
+	this->frameRate = this->shutterAngle = std::numeric_limits<float>::quiet_NaN();
 	EmptyString(this->frameId, 32);
 	EmptyString(this->slateInfo, 200);
 	EmptyString(this->reserved4, 56);
@@ -153,10 +154,10 @@ void dpx::IndustryHeader::Reset()
 	this->interlace = this->fieldNumber = 0xff;
 	this->videoSignal = kUndefined;
 	this->zero = 0xff;
-	this->horizontalSampleRate = this->verticalSampleRate = this->temporalFrameRate = 0xffffffff;
-	this->timeOffset = this->gamma = 0xffffffff;
-	this->blackLevel = this->blackGain = 0xffffffff;
-	this->breakPoint = this->whiteLevel = this->integrationTimes = 0xffffffff;
+	this->horizontalSampleRate = this->verticalSampleRate = this->temporalFrameRate = std::numeric_limits<float>::quiet_NaN();
+	this->timeOffset = this->gamma = std::numeric_limits<float>::quiet_NaN();
+	this->blackLevel = this->blackGain = std::numeric_limits<float>::quiet_NaN();
+	this->breakPoint = this->whiteLevel = this->integrationTimes = std::numeric_limits<float>::quiet_NaN();
 	EmptyString(this->reserved5, 76);
 }
 

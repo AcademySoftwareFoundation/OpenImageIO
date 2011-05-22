@@ -271,7 +271,13 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
 
     m_dpx.SetElement (0, m_desc, bitDepth, transfer, m_cmetr,
         packing, dpx::kNone, (m_spec.format == TypeDesc::INT8
-            || m_spec.format == TypeDesc::INT16) ? 1 : 0);
+            || m_spec.format == TypeDesc::INT16) ? 1 : 0,
+        m_spec.get_int_attribute ("dpx:LowData", 0xFFFFFFFF),
+        m_spec.get_float_attribute ("dpx:LowQuantity", std::numeric_limits<float>::quiet_NaN()),
+        m_spec.get_int_attribute ("dpx:HighData", 0xFFFFFFFF),
+        m_spec.get_float_attribute ("dpx:HighQuantity", std::numeric_limits<float>::quiet_NaN()),
+        m_spec.get_int_attribute ("dpx:EndOfLinePadding", 0),
+        m_spec.get_int_attribute ("dpx:EndOfImagePadding", 0));
 
     // commit!
     if (!m_dpx.WriteHeader ()) {

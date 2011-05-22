@@ -374,6 +374,8 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     DPX_SET_ATTRIB_FLOAT_N(LowQuantity);
     DPX_SET_ATTRIB_INT_N(HighData);
     DPX_SET_ATTRIB_FLOAT_N(HighQuantity);
+    DPX_SET_ATTRIB_INT_N(EndOfLinePadding);
+    DPX_SET_ATTRIB_INT_N(EndOfImagePadding);
     DPX_SET_ATTRIB_FLOAT(XScannedSize);
     DPX_SET_ATTRIB_FLOAT(YScannedSize);
     DPX_SET_ATTRIB_INT(FramePosition);
