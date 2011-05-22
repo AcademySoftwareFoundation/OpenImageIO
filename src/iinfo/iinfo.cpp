@@ -93,13 +93,14 @@ print_sha1 (ImageInput *input)
 // Stats
 
 static bool
-read_input (const std::string &filename, ImageBuf &img, int subimage=0)
+read_input (const std::string &filename, ImageBuf &img,
+            int subimage=0, int miplevel=0)
 {
     if (img.subimage() >= 0 && img.subimage() == subimage)
         return true;
 
-    if (img.init_spec (filename, subimage, 0) && 
-        img.read (subimage, 0, false, TypeDesc::FLOAT))
+    if (img.init_spec (filename, subimage, miplevel) && 
+        img.read (subimage, miplevel, false, TypeDesc::FLOAT))
         return true;
 
     std::cerr << "iinfo ERROR: Could not read " << filename << ":\n\t"
@@ -170,18 +171,19 @@ print_stats_footer (unsigned int maxval)
 static void
 print_stats (const std::string &filename,
              const ImageSpec &originalspec,
-             int subimage=0)
+             int subimage=0, int miplevel=0, bool indentmip=false)
 {
+    const char *indent = indentmip ? "      " : "    ";
     ImageBuf input;
     
-    if (! read_input (filename, input, subimage)) {
+    if (! read_input (filename, input, subimage, miplevel)) {
         std::cerr << "Stats: read error: " << input.geterror() << "\n";
         return;
     }
     
     PixelStats stats;
     if (! computePixelStats (stats, input)) {
-        printf ("    Stats: (unable to compute)\n");
+        printf ("%sStats: (unable to compute)\n", indent);
         return;
     }
     
@@ -189,7 +191,7 @@ print_stats (const std::string &filename,
     // be reported incorrectly (as FLOAT)
     unsigned int maxval = get_intsample_maxval (originalspec);
     
-    printf ("    Stats Min: ");
+    printf ("%sStats Min: ", indent);
     for (unsigned int i=0; i<stats.min.size(); ++i) {
         print_stats_num (stats.min[i], maxval, true);
         printf (" ");
@@ -197,7 +199,7 @@ print_stats (const std::string &filename,
     print_stats_footer (maxval);
     printf ("\n");
     
-    printf ("    Stats Max: ");
+    printf ("%sStats Max: ", indent);
     for (unsigned int i=0; i<stats.max.size(); ++i) {
         print_stats_num (stats.max[i], maxval, true);
         printf (" ");
@@ -205,7 +207,7 @@ print_stats (const std::string &filename,
     print_stats_footer (maxval);
     printf ("\n");
     
-    printf ("    Stats Avg: ");
+    printf ("%sStats Avg: ", indent);
     for (unsigned int i=0; i<stats.avg.size(); ++i) {
         print_stats_num (stats.avg[i], maxval, false);
         printf (" ");
@@ -213,7 +215,7 @@ print_stats (const std::string &filename,
     print_stats_footer (maxval);
     printf ("\n");
     
-    printf ("    Stats StdDev: ");
+    printf ("%sStats StdDev: ", indent);
     for (unsigned int i=0; i<stats.stddev.size(); ++i) {
         print_stats_num (stats.stddev[i], maxval, false);
         printf (" ");
@@ -221,19 +223,19 @@ print_stats (const std::string &filename,
     print_stats_footer (maxval);
     printf ("\n");
     
-    printf ("    Stats NanCount: ");
+    printf ("%sStats NanCount: ", indent);
     for (unsigned int i=0; i<stats.nancount.size(); ++i) {
         printf ("%llu ", (unsigned long long)stats.nancount[i]);
     }
     printf ("\n");
     
-    printf ("    Stats InfCount: ");
+    printf ("%sStats InfCount: ", indent);
     for (unsigned int i=0; i<stats.infcount.size(); ++i) {
         printf ("%llu ", (unsigned long long)stats.infcount[i]);
     }
     printf ("\n");
     
-    printf ("    Stats FiniteCount: ");
+    printf ("%sStats FiniteCount: ", indent);
     for (unsigned int i=0; i<stats.finitecount.size(); ++i) {
         printf ("%llu ", (unsigned long long)stats.finitecount[i]);
     }
@@ -241,8 +243,8 @@ print_stats (const std::string &filename,
     
     std::vector<float> constantValues(input.spec().nchannels);
     if(isConstantColor(input, &constantValues[0])) {
-        printf ("    Constant: Yes\n");
-        printf ("    Constant Color: ");
+        printf ("%sConstant: Yes\n", indent);
+        printf ("%sConstant Color: ", indent);
         for (unsigned int i=0; i<constantValues.size(); ++i) {
             print_stats_num (constantValues[i], maxval, false);
             printf (" ");
@@ -251,51 +253,188 @@ print_stats (const std::string &filename,
         printf ("\n");
     }
     else {
-        printf ("    Constant: No\n");
+        printf ("%sConstant: No\n", indent);
     }
     
     if(isMonochrome(input)) {
-        printf ("    Monochrome: Yes\n");
+        printf ("%sMonochrome: Yes\n", indent);
     } else {
-        printf ("    Monochrome: No\n");
+        printf ("%sMonochrome: No\n", indent);
     }
 }
 
 
-///////////////////////////////////////////////////////////////////////////////
+
+static void
+print_metadata (const ImageSpec &spec, const std::string &filename)
+{
+    bool printed = false;
+    if (metamatch.empty() ||
+          boost::regex_search ("channels", field_re) ||
+          boost::regex_search ("channel list", field_re)) {
+        if (filenameprefix)
+            printf ("%s : ", filename.c_str());
+        printf ("    channel list: ");
+        for (int i = 0;  i < spec.nchannels;  ++i) {
+            if (i < (int)spec.channelnames.size())
+                printf ("%s", spec.channelnames[i].c_str());
+            else
+                printf ("unknown");
+            if (i < (int)spec.channelformats.size())
+                printf (" (%s)", spec.channelformats[i].c_str());
+            if (i < spec.nchannels-1)
+                printf (", ");
+        }
+        printf ("\n");
+        printed = true;
+    }
+    if (spec.x || spec.y || spec.z) {
+        if (metamatch.empty() ||
+            boost::regex_search ("pixel data origin", field_re)) {
+            if (filenameprefix)
+                printf ("%s : ", filename.c_str());
+            printf ("    pixel data origin: x=%d, y=%d", spec.x, spec.y);
+            if (spec.depth > 1)
+                printf (", z=%d", spec.z);
+            printf ("\n");
+            printed = true;
+        }
+    }
+    if (spec.full_x || spec.full_y || spec.full_z ||
+          (spec.full_width != spec.width && spec.full_width != 0) || 
+          (spec.full_height != spec.height && spec.full_height != 0) ||
+          (spec.full_depth != spec.depth && spec.full_depth != 0)) {
+        if (metamatch.empty() ||
+              boost::regex_search ("full/display size", field_re)) {
+            if (filenameprefix)
+                printf ("%s : ", filename.c_str());
+            printf ("    full/display size: %d x %d",
+                    spec.full_width, spec.full_height);
+            if (spec.depth > 1)
+                printf (" x %d", spec.full_depth);
+            printf ("\n");
+            printed = true;
+        }
+        if (metamatch.empty() ||
+            boost::regex_search ("full/display origin", field_re)) {
+            if (filenameprefix)
+                printf ("%s : ", filename.c_str());
+            printf ("    full/display origin: %d, %d",
+                    spec.full_x, spec.full_y);
+            if (spec.depth > 1)
+                printf (", %d", spec.full_z);
+            printf ("\n");
+            printed = true;
+        }
+    }
+    if (spec.tile_width) {
+        if (metamatch.empty() ||
+            boost::regex_search ("tile", field_re)) {
+            if (filenameprefix)
+                printf ("%s : ", filename.c_str());
+            printf ("    tile size: %d x %d",
+                    spec.tile_width, spec.tile_height);
+            if (spec.depth > 1)
+                printf (" x %d", spec.tile_depth);
+            printf ("\n");
+            printed = true;
+        }
+    }
+    
+    BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
+        if (! metamatch.empty() &&
+            ! boost::regex_search (p.name().c_str(), field_re))
+            continue;
+        std::string s = spec.metadata_val (p, true);
+        if (filenameprefix)
+            printf ("%s : ", filename.c_str());
+        printf ("    %s: ", p.name().c_str());
+        if (! strcmp (s.c_str(), "1.#INF"))
+            printf ("inf");
+        else
+            printf ("%s", s.c_str());
+        printf ("\n");
+        printed = true;
+    }
+
+    if (! printed && !metamatch.empty()) {
+        if (filenameprefix)
+            printf ("%s : ", filename.c_str());
+        printf ("    %s: <unknown>\n", metamatch.c_str());
+    }
+}
 
 
 
 // prints basic info (resolution, width, height, depth, channels, data format,
 // and format name) about given subimage.
 static void
-print_info_subimage (int current, int max_subimages, ImageSpec &spec,
-                      ImageInput *input)
+print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
+                     ImageInput *input, const std::string &filename)
 {
-    if ( ! input->seek_subimage (current, 0, spec) )
+    if ( ! input->seek_subimage (current_subimage, 0, spec) )
         return;
 
-    if (subimages && max_subimages != 1 && (metamatch.empty() ||
-          boost::regex_search ("resolution, width, height, depth, channels, SHA-1, stats",
-                                 field_re))) {
-        printf (" subimage %2d: ", current);
+    if (! metamatch.empty() &&
+        ! boost::regex_search ("resolution, width, height, depth, channels, sha-1, stats", field_re)) {
+        // nothing to do here
+        return;
+    }
+
+    int nmip = 1;
+
+    bool printres = verbose && (metamatch.empty() ||
+                                boost::regex_search ("resolution, width, height, depth, channels", field_re));
+    if (printres && max_subimages > 1 && subimages) {
+        printf (" subimage %2d: ", current_subimage);
         printf ("%4d x %4d", spec.width, spec.height);
         if (spec.depth > 1)
             printf (" x %4d", spec.depth);
         printf (", %d channel, %s%s", spec.nchannels, spec.format.c_str(),
-                 spec.depth > 1 ? " volume" : "");
+                spec.depth > 1 ? " volume" : "");
         printf (" %s", input->format_name());
-        int nmip = 1;
-        ImageSpec mipspec;
-        while (input->seek_subimage (current, nmip, mipspec)) {
-            printf (nmip == 1 ? " (MIP: " : ", ");
-            printf ("%d x %d", mipspec.width, mipspec.height);
-            ++nmip;
-        }
-        if (nmip > 1)
-            printf (")");
         printf ("\n");
     }
+    // Count MIP levels
+    ImageSpec mipspec;
+    while (input->seek_subimage (current_subimage, nmip, mipspec)) {
+        if (printres) {
+            if (nmip == 1)
+                printf ("    MIP-map levels: %dx%d", spec.width, spec.height);
+            printf (" %dx%d", mipspec.width, mipspec.height);
+        }
+        ++nmip;
+    }
+    if (printres && nmip > 1)
+        printf ("\n");
+
+    if (compute_sha1 && (metamatch.empty() ||
+                         boost::regex_search ("sha-1", field_re))) {
+        if (filenameprefix)
+            printf ("%s : ", filename.c_str());
+        print_sha1 (input);
+    }
+
+    if (verbose)
+        print_metadata (spec, filename);
+
+    if (compute_stats && (metamatch.empty() ||
+                          boost::regex_search ("stats", field_re))) {
+        for (int m = 0;  m < nmip;  ++m) {
+            ImageSpec mipspec;
+            input->seek_subimage (current_subimage, m, mipspec);
+            if (filenameprefix)
+                printf ("%s : ", filename.c_str());
+            if (nmip > 1 && (subimages || m == 0)) {
+                printf ("    MIP %d of %d (%d x %d):\n",
+                        m, nmip, mipspec.width, mipspec.height);
+                print_stats (filename, spec, current_subimage, m, nmip>1);
+            }
+        }
+    }
+
+    if ( ! input->seek_subimage (current_subimage, 0, spec) )
+        return;
 }
 
 
@@ -363,173 +502,28 @@ print_info (const std::string &filename, size_t namefieldlength,
         if (! verbose && num_of_subimages == 1 && any_mipmapping)
             printf (" (+mipmap)");
         printf ("\n");
-        // we print basic info about subimages when only the option '-a'
-        // was used and the file store more then one subimage
-        if (subimages && ! verbose && num_of_subimages != 1) {
-            for (int i = 0; i < num_of_subimages; ++i) {
-                print_info_subimage (i, num_of_subimages, spec, input);
-                if (compute_sha1 && (metamatch.empty() ||
-                                    boost::regex_search ("sha-1", field_re))) {
-                    if (filenameprefix)
-                        printf ("%s : ", filename.c_str());
-                    print_sha1 (input);
-                }
-                if (compute_stats && (metamatch.empty() ||
-                                    boost::regex_search ("stats", field_re))) {
-                    if (filenameprefix)
-                        printf ("%s : ", filename.c_str());
-                    print_stats(filename, spec, i);
-                }
-            }
-        } else {
-            if (compute_sha1 && !verbose) {
-                if (filenameprefix)
-                    printf ("%s : ", filename.c_str());
-                print_sha1 (input);
-            }
-            if (compute_stats && !verbose) {
-                if (filenameprefix)
-                    printf ("%s : ", filename.c_str());
-                print_stats(filename, spec);
-            }
-        }
         printed = true;
     }
 
-    if (verbose) {
+    if (verbose && num_of_subimages != 1) {
         // info about num of subimages and their resolutions
-        if (num_of_subimages != 1) {
-            printf ("    %d subimages: ", num_of_subimages);
-            for (int i = 0; i < num_of_subimages; ++i) {
-                input->seek_subimage (i, 0, spec);
-                if (spec.depth > 1)
-                    printf ("%dx%dx%d ", spec.width, spec.height, spec.depth);
-                else
-                    printf ("%dx%d ", spec.width, spec.height);
-            }
-            printf ("\n");
-        } else if (num_of_miplevels[0] > 1) {
-            printf ("    %d mapmap levels: ", num_of_miplevels[0]);
-            for (int i = 0; i < num_of_miplevels[0]; ++i) {
-                input->seek_subimage (0, i, spec);
-                printf ("%dx%d ", spec.width, spec.height);
-            }
-            printf ("\n");
-        }
-        // if the '-a' flag is not set we print info
-        // about first subimage only
-        if ( ! subimages)
-            num_of_subimages = 1;
+        printf ("    %d subimages: ", num_of_subimages);
         for (int i = 0; i < num_of_subimages; ++i) {
-            print_info_subimage (i, num_of_subimages, spec, input);
-            if (compute_sha1 && (metamatch.empty() ||
-                                boost::regex_search ("sha-1", field_re))) {
-                if (filenameprefix)
-                    printf ("%s : ", filename.c_str());
-                print_sha1 (input);
-            }
-            
-            if (compute_stats && (metamatch.empty() ||
-                                boost::regex_search ("stats", field_re))) {
-                if (filenameprefix)
-                    printf ("%s : ", filename.c_str());
-                print_stats (filename, spec, i);
-            }
-            
-            if (metamatch.empty() ||
-                    boost::regex_search ("channels", field_re) ||
-                    boost::regex_search ("channel list", field_re)) {
-                if (filenameprefix)
-                    printf ("%s : ", filename.c_str());
-                printf ("    channel list: ");
-                for (int i = 0;  i < spec.nchannels;  ++i) {
-                    if (i < (int)spec.channelnames.size())
-                        printf ("%s", spec.channelnames[i].c_str());
-                    else
-                        printf ("unknown");
-                    if (i < (int)spec.channelformats.size())
-                        printf (" (%s)", spec.channelformats[i].c_str());
-                    if (i < spec.nchannels-1)
-                        printf (", ");
-                }
-                printf ("\n");
-                printed = true;
-            }
-            if (spec.x || spec.y || spec.z) {
-                if (metamatch.empty() ||
-                        boost::regex_search ("pixel data origin", field_re)) {
-                    if (filenameprefix)
-                        printf ("%s : ", filename.c_str());
-                    printf ("    pixel data origin: x=%d, y=%d", spec.x, spec.y);
-                    if (spec.depth > 1)
-                        printf (", z=%d", spec.z);
-                    printf ("\n");
-                    printed = true;
-                }
-            }
-            if (spec.full_x || spec.full_y || spec.full_z ||
-                (spec.full_width != spec.width && spec.full_width != 0) || 
-                (spec.full_height != spec.height && spec.full_height != 0) ||
-                (spec.full_depth != spec.depth && spec.full_depth != 0)) {
-                if (metamatch.empty() ||
-                        boost::regex_search ("full/display size", field_re)) {
-                    if (filenameprefix)
-                        printf ("%s : ", filename.c_str());
-                    printf ("    full/display size: %d x %d",
-                            spec.full_width, spec.full_height);
-                    if (spec.depth > 1)
-                        printf (" x %d", spec.full_depth);
-                    printf ("\n");
-                    printed = true;
-                }
-                if (metamatch.empty() ||
-                       boost::regex_search ("full/display origin", field_re)) {
-                    if (filenameprefix)
-                        printf ("%s : ", filename.c_str());
-                    printf ("    full/display origin: %d, %d",
-                            spec.full_x, spec.full_y);
-                    if (spec.depth > 1)
-                        printf (", %d", spec.full_z);
-                    printf ("\n");
-                    printed = true;
-                }
-            }
-            if (spec.tile_width) {
-                if (metamatch.empty() ||
-                        boost::regex_search ("tile", field_re)) {
-                    if (filenameprefix)
-                        printf ("%s : ", filename.c_str());
-                    printf ("    tile size: %d x %d",
-                            spec.tile_width, spec.tile_height);
-                    if (spec.depth > 1)
-                        printf (" x %d", spec.tile_depth);
-                    printf ("\n");
-                    printed = true;
-                }
-            }
-            
-            BOOST_FOREACH (const ImageIOParameter &p, spec.extra_attribs) {
-                if (! metamatch.empty() &&
-                    ! boost::regex_search (p.name().c_str(), field_re))
-                    continue;
-                std::string s = spec.metadata_val (p, true);
-                if (filenameprefix)
-                    printf ("%s : ", filename.c_str());
-                printf ("    %s: ", p.name().c_str());
-                if (! strcmp (s.c_str(), "1.#INF"))
-                    printf ("inf");
-                else
-                    printf ("%s", s.c_str());
-                printf ("\n");
-                printed = true;
-            }
-
-            if (! printed && !metamatch.empty()) {
-                if (filenameprefix)
-                    printf ("%s : ", filename.c_str());
-                printf ("    %s: <unknown>\n", metamatch.c_str());
-            }
+            input->seek_subimage (i, 0, spec);
+            if (spec.depth > 1)
+                printf ("%dx%dx%d ", spec.width, spec.height, spec.depth);
+            else
+                printf ("%dx%d ", spec.width, spec.height);
         }
+        printf ("\n");
+    }
+
+    // if the '-a' flag is not set we print info
+    // about first subimage only
+    if ( ! subimages)
+        num_of_subimages = 1;
+    for (int i = 0; i < num_of_subimages; ++i) {
+        print_info_subimage (i, num_of_subimages, spec, input, filename);
     }
 }
 
