@@ -383,28 +383,30 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
 
     int nmip = 1;
 
-    if (verbose && (metamatch.empty() ||
-                    boost::regex_search ("resolution, width, height, depth, channels", field_re))) {
-        if (max_subimages > 1 && subimages) {
-            printf (" subimage %2d: ", current_subimage);
-            printf ("%4d x %4d", spec.width, spec.height);
-            if (spec.depth > 1)
-                printf (" x %4d", spec.depth);
-            printf (", %d channel, %s%s", spec.nchannels, spec.format.c_str(),
-                    spec.depth > 1 ? " volume" : "");
-            printf (" %s", input->format_name());
-            printf ("\n");
-        }
-        ImageSpec mipspec;
-        while (input->seek_subimage (current_subimage, nmip, mipspec)) {
+    bool printres = verbose && (metamatch.empty() ||
+                                boost::regex_search ("resolution, width, height, depth, channels", field_re));
+    if (printres && max_subimages > 1 && subimages) {
+        printf (" subimage %2d: ", current_subimage);
+        printf ("%4d x %4d", spec.width, spec.height);
+        if (spec.depth > 1)
+            printf (" x %4d", spec.depth);
+        printf (", %d channel, %s%s", spec.nchannels, spec.format.c_str(),
+                spec.depth > 1 ? " volume" : "");
+        printf (" %s", input->format_name());
+        printf ("\n");
+    }
+    // Count MIP levels
+    ImageSpec mipspec;
+    while (input->seek_subimage (current_subimage, nmip, mipspec)) {
+        if (printres) {
             if (nmip == 1)
                 printf ("    MIP-map levels: %dx%d", spec.width, spec.height);
             printf (" %dx%d", mipspec.width, mipspec.height);
-            ++nmip;
         }
-        if (nmip > 1)
-            printf ("\n");
+        ++nmip;
     }
+    if (printres && nmip > 1)
+        printf ("\n");
 
     if (compute_sha1 && (metamatch.empty() ||
                          boost::regex_search ("sha-1", field_re))) {
@@ -423,10 +425,11 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
             input->seek_subimage (current_subimage, m, mipspec);
             if (filenameprefix)
                 printf ("%s : ", filename.c_str());
-            if (nmip > 1)
+            if (nmip > 1 && (subimages || m == 0)) {
                 printf ("    MIP %d of %d (%d x %d):\n",
                         m, nmip, mipspec.width, mipspec.height);
-            print_stats (filename, spec, current_subimage, m, nmip>1);
+                print_stats (filename, spec, current_subimage, m, nmip>1);
+            }
         }
     }
 
