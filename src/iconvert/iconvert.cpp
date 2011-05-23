@@ -44,6 +44,7 @@
 #include "argparse.h"
 #include "imageio.h"
 #include "sysutil.h"
+#include "filesystem.h"
 
 
 OIIO_NAMESPACE_USING;
@@ -347,7 +348,7 @@ adjust_spec (ImageInput *in, ImageOutput *out,
 static bool
 convert_file (const std::string &in_filename, const std::string &out_filename)
 {
-    if (noclobber && boost::filesystem::exists(out_filename)) {
+    if (noclobber && Filesystem::exists(out_filename)) {
         std::cerr << "iconvert ERROR: Output file already exists \""
                   << out_filename << "\"\n";
         return false;

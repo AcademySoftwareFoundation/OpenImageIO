@@ -90,6 +90,15 @@ DLLPUBLIC bool path_is_absolute (const std::string &path,
                                  bool dot_is_absolute=false);
 
 
+/// Return true if the file exists.
+///
+DLLPUBLIC bool exists (const std::string &path);
+
+
+/// Return true if the file exists and is a directory.
+///
+DLLPUBLIC bool is_directory (const std::string &path);
+
 };  // namespace Filesystem
 
 }

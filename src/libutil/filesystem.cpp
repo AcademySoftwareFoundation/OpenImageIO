@@ -131,7 +131,7 @@ Filesystem::searchpath_split (const std::string &searchpath,
             path.erase (--len);
         // If it's a valid directory, or if validonly is false, add it
         // to the list
-        if (!validonly || boost::filesystem::is_directory (path))
+        if (!validonly || Filesystem::is_directory (path))
             dirs.push_back (path);
     }
 #if 0
@@ -200,6 +200,35 @@ Filesystem::path_is_absolute (const std::string &path, bool dot_is_absolute)
 #endif
         ;
 }
+
+
+
+bool
+Filesystem::exists (const std::string &path)
+{
+    bool r = false;
+    try {
+        r = boost::filesystem::exists (path);
+    } catch (const std::exception &e) {
+        r = false;
+    }
+    return r;
+}
+
+
+
+bool
+Filesystem::is_directory (const std::string &path)
+{
+    bool r = false;
+    try {
+        r = boost::filesystem::is_directory (path);
+    } catch (const std::exception &e) {
+        r = false;
+    }
+    return r;
+}
+
 
 }
 OIIO_NAMESPACE_EXIT

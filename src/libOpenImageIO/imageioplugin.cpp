@@ -406,7 +406,7 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
             fprintf (stderr, "%s", msg);
             pvt::error ("%s", msg);
         }
-        else if (boost::filesystem::exists (filename))
+        else if (Filesystem::exists (filename))
             pvt::error ("OpenImageIO could not find a format reader for \"%s\". "
                         "Is it a file format that OpenImageIO doesn't know about?\n",
                          filename.c_str());

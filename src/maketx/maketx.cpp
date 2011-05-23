@@ -555,7 +555,7 @@ make_texturemap (const char *maptypename = "texture map")
         exit (EXIT_FAILURE);
     }
 
-    if (! boost::filesystem::exists (filenames[0])) {
+    if (! Filesystem::exists (filenames[0])) {
         std::cerr << "maketx ERROR: \"" << filenames[0] << "\" does not exist\n";
         exit (EXIT_FAILURE);
     }
@@ -572,7 +572,7 @@ make_texturemap (const char *maptypename = "texture map")
 
     // When in update mode, skip making the texture if the output already
     // exists and has the same file modification time as the input file.
-    if (updatemode && boost::filesystem::exists (outputfilename) &&
+    if (updatemode && Filesystem::exists (outputfilename) &&
         (in_time == boost::filesystem::last_write_time (outputfilename))) {
         std::cout << "maketx: no update required for \"" 
                   << outputfilename << "\"\n";
