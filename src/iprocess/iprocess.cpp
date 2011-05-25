@@ -200,8 +200,11 @@ main (int argc, char *argv[])
     getargs (argc, argv);
 
     bool ok = true;
+    
+    bool flag = false; //Will be set to true when atleast one of options is called
 
     if (crop_type.size()) {
+	flag = true;
         std::cout << "Cropping " << filenames[0] << " to  " << outputname << "\n";
         if (filenames.size() != 1) {
             std::cerr << "iprocess: --crop needs one input filename\n";
@@ -234,6 +237,7 @@ main (int argc, char *argv[])
     }
     
     if (do_add) {
+	flag = true;
 	std::cout << "Adding " << filenames[0] << " and " << filenames[1] 
 		<< " result will be saved at " << outputname << "\n";
 	if (filenames.size() != 2) {
@@ -284,6 +288,7 @@ main (int argc, char *argv[])
     }
     
     if (colortransfer_to != "") {
+	flag = true;
         if (filenames.size() != 1) {
             std::cerr << "iprocess: --transfer needs one input filename\n";
             exit (EXIT_FAILURE);
@@ -302,7 +307,12 @@ main (int argc, char *argv[])
                 << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
             return EXIT_FAILURE;
         }
-        ColorTransfer *to_func = ColorTransfer::create (std::string("linear_to_") + colortransfer_to);
+        ColorTransfer *to_func;
+	if(colortransfer_to=="Gamma")
+	        to_func = ColorTransfer::create (colortransfer_to);		
+	else
+	        to_func = ColorTransfer::create (std::string("linear_to_") + colortransfer_to);
+
         if (to_func == NULL) {
             std::cerr << "iprocess: --transfer needs a 'colorspace' of "
                 << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
@@ -321,6 +331,11 @@ main (int argc, char *argv[])
         //
         out.save (outputname);
         
+    }
+    if(!flag){
+            std::cerr << "iprocess: No options specified. Doing nothing. \n";
+            exit (EXIT_FAILURE);
+
     }
 
     if (resize_x && resize_y) {
