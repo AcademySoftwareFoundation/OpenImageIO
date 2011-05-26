@@ -158,21 +158,13 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
     m_jerr.pub.output_message = my_output_message;
     if (setjmp (m_jerr.setjmp_buffer)) {
         // Jump to here if there's a libjpeg internal error
-        // don't jpeg_destroy_decompress, because we haven't initialized it
-        close_file ();
-        return false;
-    }
-
-    jpeg_create_decompress (&m_cinfo);          // initialize decompressor
-
-    // Now that we initialized the decompressor, re-jigger our setjmp
-    if (setjmp (m_jerr.setjmp_buffer)) {
-        // Jump to here if there's a libjpeg internal error
+        // Prevent memory leaks, see example.c in jpeg distribution
         jpeg_destroy_decompress (&m_cinfo);
         close_file ();
         return false;
     }
 
+    jpeg_create_decompress (&m_cinfo);          // initialize decompressor
     jpeg_stdio_src (&m_cinfo, m_fd);            // specify the data source
 
     // Request saving of EXIF and other special tags for later spelunking
