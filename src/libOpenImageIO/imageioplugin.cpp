@@ -194,6 +194,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (png);
     PLUGENTRY (pnm);
     PLUGENTRY (ptex);
+    PLUGENTRY (rla);
     PLUGENTRY (sgi);
     PLUGENTRY (socket);
     PLUGENTRY (softimage);
@@ -243,6 +244,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
     DECLAREPLUG (ptex);
+    DECLAREPLUG (rla);
     DECLAREPLUG (sgi);
 #ifdef USE_BOOST_ASIO
     DECLAREPLUG (socket);
