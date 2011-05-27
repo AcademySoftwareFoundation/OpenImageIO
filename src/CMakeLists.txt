@@ -200,6 +200,7 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (pnm.imageio)
     add_subdirectory (psd.imageio)
     add_subdirectory (ptex.imageio)
+    add_subdirectory (rla.imageio)
     add_subdirectory (sgi.imageio)
     add_subdirectory (socket.imageio)
     add_subdirectory (softimage.imageio)
@@ -220,7 +221,7 @@ add_subdirectory (doc)
 # Testing
 
 # List all the individual testsuite tests here:
-oiio_add_tests (ico gpsread oiiotool sgi 
+oiio_add_tests (ico gpsread oiiotool sgi rla
                 texture-fill texture-gray texture-grid
                 texture-missing texture-pointsample texture-res
                 texture-skinny texture-fat

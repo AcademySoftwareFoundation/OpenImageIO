@@ -114,6 +114,7 @@ if (EMBEDPLUGINS)
         ../ptex.imageio/ptex/PtexTriangleKernel.cpp
         ../ptex.imageio/ptex/PtexUtils.cpp ../ptex.imageio/ptex/PtexWriter.cpp
         ../openexr.imageio/exrinput.cpp ../openexr.imageio/exroutput.cpp
+        ../rla.imageio/rlainput.cpp ../rla.imageio/rlaoutput.cpp
         ../sgi.imageio/sgiinput.cpp ../sgi.imageio/sgioutput.cpp
         ../softimage.imageio/softimageinput.cpp 
            ../softimage.imageio/softimageoutput.cpp 
