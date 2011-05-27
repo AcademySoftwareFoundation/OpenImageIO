@@ -427,11 +427,11 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         m_spec.attribute ("dpx:Packing", tmpstr);
 
     if (m_dpx.header.timeCode != 0xFFFFFFFF) {
-	m_dpx.header.TimeCode(buf);
+        m_dpx.header.TimeCode(buf);
         m_spec.attribute ("dpx:TimeCode", buf);
     }
     if (m_dpx.header.userBits != 0xFFFFFFFF) {
-	m_dpx.header.UserBits(buf);
+        m_dpx.header.UserBits(buf);
         m_spec.attribute ("dpx:UserBits", buf);
     }
     if (m_dpx.header.sourceTimeDate[0]) {
