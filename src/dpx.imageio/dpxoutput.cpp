@@ -202,7 +202,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         OIIO_INTRO_STRING,                                  // creator
         project.empty () ? NULL : project.c_str (),         // project
         copyright.empty () ? NULL : copyright.c_str (),     // copyright
-        ~0,                                                 // TODO: encryption
+        m_spec.get_int_attribute ("dpx:EncryptKey", ~0),    // encryption key
         m_wantSwap);
 
     // image info
@@ -279,6 +279,70 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         m_spec.get_int_attribute ("dpx:EndOfLinePadding", 0),
         m_spec.get_int_attribute ("dpx:EndOfImagePadding", 0));
 
+    m_dpx.header.SetXScannedSize (m_spec.get_float_attribute
+        ("dpx:XScannedSize", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetYScannedSize (m_spec.get_float_attribute
+        ("dpx:YScannedSize", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetFramePosition (m_spec.get_int_attribute
+        ("dpx:FramePosition", 0xFFFFFFFF));
+    m_dpx.header.SetSequenceLength (m_spec.get_int_attribute
+        ("dpx:SequenceLength", 0xFFFFFFFF));
+    m_dpx.header.SetHeldCount (m_spec.get_int_attribute
+        ("dpx:HeldCount", 0xFFFFFFFF));
+    m_dpx.header.SetFrameRate (m_spec.get_float_attribute
+        ("dpx:FrameRate", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetShutterAngle (m_spec.get_float_attribute
+        ("dpx:ShutterAngle", std::numeric_limits<float>::quiet_NaN()));
+    // FIXME: should we write the input version through or always default to 2.0?
+    /*tmpstr = m_spec.get_string_attribute ("dpx:Version", "");
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetVersion (tmpstr.c_str ());*/
+    tmpstr = m_spec.get_string_attribute ("dpx:Format", "");
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetFormat (tmpstr.c_str ());
+    tmpstr = m_spec.get_string_attribute ("dpx:FrameId", "");
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetFrameId (tmpstr.c_str ());
+    tmpstr = m_spec.get_string_attribute ("dpx:SlateInfo", "");
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetSlateInfo (tmpstr.c_str ());
+    tmpstr = m_spec.get_string_attribute ("dpx:SourceImageFileName", "");
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetSourceImageFileName (tmpstr.c_str ());
+    tmpstr = m_spec.get_string_attribute ("dpx:InputDevice", "");
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetInputDevice (tmpstr.c_str ());
+    tmpstr = m_spec.get_string_attribute ("dpx:InputDeviceSerialNumber", "");
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetInputDeviceSerialNumber (tmpstr.c_str ());
+    m_dpx.header.SetInterlace (m_spec.get_int_attribute ("dpx:Interlace", 0xFF));
+    m_dpx.header.SetFieldNumber (m_spec.get_int_attribute ("dpx:FieldNumber", 0xFF));
+    m_dpx.header.SetHorizontalSampleRate (m_spec.get_float_attribute
+        ("dpx:HorizontalSampleRate", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetVerticalSampleRate (m_spec.get_float_attribute
+        ("dpx:VerticalSampleRate", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetTemporalFrameRate (m_spec.get_float_attribute
+        ("dpx:TemporalFrameRate", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetTimeOffset (m_spec.get_float_attribute
+        ("dpx:TimeOffset", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetBlackLevel (m_spec.get_float_attribute
+        ("dpx:BlackLevel", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetBlackGain (m_spec.get_float_attribute
+        ("dpx:BlackGain", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetBreakPoint (m_spec.get_float_attribute
+        ("dpx:BreakPoint", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetWhiteLevel (m_spec.get_float_attribute
+        ("dpx:WhiteLevel", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetIntegrationTimes (m_spec.get_float_attribute
+        ("dpx:IntegrationTimes", std::numeric_limits<float>::quiet_NaN()));
+    
+    tmpstr = m_spec.get_string_attribute ("dpx:TimeCode", "");
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetTimeCode (tmpstr.c_str ());
+    tmpstr = m_spec.get_string_attribute ("dpx:UserBits", "");
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetUserBits (tmpstr.c_str ());
+    
     // commit!
     if (!m_dpx.WriteHeader ()) {
         error ("Failed to write DPX header");

@@ -713,14 +713,14 @@ dpx::U32 dpx::IndustryHeader::TCFromString(const char *str) const
 		return U32(~0);
 
 	U32 tc = 0;
-	int i, idx;
+	int i, idx = 0;
 	U8 ch;
 	U32 value, mask;
 
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < 8; i++, idx++)
 	{
 		// determine string index skipping :
-		idx = i + ((i + 1) / 3);
+		idx += idx % 3 == 2 ? 1 : 0;
 		ch = str[idx];
 
 		// error check
@@ -750,7 +750,7 @@ void dpx::IndustryHeader::SetUserBits(const char *str)
 {
 	U32 ub = this->TCFromString(str);
 	if (ub != 0xffffffff)
-		this->timeCode = ub;
+		this->userBits = ub;
 }
 		
 
