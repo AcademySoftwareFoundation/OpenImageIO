@@ -164,6 +164,76 @@ PSDColorModeData::swap_endian ()
 }
 
 
+const char *
+PSDImageResourceBlock::read (std::ifstream &inf)
+{
+    inf.read (signature, 4);
+    inf.read ((char *)&id, 2);
+    read_pascal_string (inf, name, 2);
+    inf.read ((char *)&length, 4);
+    swap_endian ();
+
+    // swap endian before interpreting length
+    data.resize(length);
+    inf.read (&data[0], length);
+
+    // image resource blocks are padded to an even size, so skip padding
+    if (length % 2 != 0)
+        inf.seekg(1, std::ios::cur);
+
+    if (!inf)
+        return "read error";
+
+    if (std::memcmp (signature, "8BIM", 4) != 0)
+        return "invalid signature";
+
+    return NULL;
+}
+
+
+
+void
+PSDImageResourceBlock::swap_endian ()
+{
+    if (!OIIO::bigendian ()) {
+        OIIO::swap_endian (&id);
+        OIIO::swap_endian (&length);
+    }
+}
+
+
+
+const char *
+PSDImageResourceSection::read (std::ifstream &inf)
+{
+    resource_blocks.clear();
+    if (inf.read ((char *)&length, 4)) {
+        swap_endian ();
+
+        std::streampos section_start = inf.tellg();
+        std::streampos section_end = section_start + (std::streampos)length;
+        PSDImageResourceBlock block;
+        const char *err;
+        while (inf && inf.tellg () < section_end) {
+            err = block.read (inf);
+            if (err)
+                return err;
+
+            resource_blocks.push_back(block);
+        }
+    }
+    return NULL;
+}
+
+
+
+void
+PSDImageResourceSection::swap_endian ()
+{
+    if (!OIIO::bigendian()) {
+        OIIO::swap_endian (&length);
+    }
+}
 
 } // psd_pvt namespace
 

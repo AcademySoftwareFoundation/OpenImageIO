@@ -32,6 +32,7 @@
 #define OPENIMAGEIO_PSD_PVT_H
 
 #include <iosfwd>
+#include <vector>
 #include "imageio.h"
 #include "fmath.h"
 
@@ -77,6 +78,35 @@ namespace psd_pvt {
 
      private:
         void swap_endian ();
+    };
+
+    class PSDImageResourceBlock {
+     public:
+        const char *read (std::ifstream &inf);
+
+        char signature[4];
+        uint16_t id;
+        std::string name;
+        uint32_t length;
+        std::string data;
+
+     private:
+        void swap_endian ();
+    };
+
+    class PSDImageResourceSection {
+     public:
+        const char *read (std::ifstream &inf);
+
+        uint32_t length;
+
+        typedef std::vector<PSDImageResourceBlock> PSDImageResourceList;
+        PSDImageResourceList resource_blocks;
+
+     private:
+        void swap_endian ();
+
+        PSDImageResourceList::iterator find_resource_by_id (uint16_t id);
     };
 
 };  // namespace PSD_pvt
