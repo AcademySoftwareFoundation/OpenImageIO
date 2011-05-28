@@ -48,6 +48,8 @@ public:
 private:
     std::string m_filename;           ///< Stash the filename
     std::ifstream m_file;             ///< Open image handle
+    psd_pvt::PSDFileHeader m_header;        ///< File header
+
     /// Reset everything to initial state
     ///
     void init () {
@@ -72,8 +74,20 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 PSDInput::open (const std::string &name, ImageSpec &newspec)
 {
+    const char *err = NULL;
     m_filename = name;
-    return false;
+    m_file.open (name.c_str(), std::ios::binary);
+    if (!m_file.is_open ()) {
+        error ("\"%s\": failed to open file", name.c_str());
+        return false;
+    }
+    // file header
+    err = m_header.read (m_file);
+    if (err) {
+        error ("\"%s\": [file header] %s", name.c_str(), err);
+        return false;
+    }
+    return true;
 }
 
 
