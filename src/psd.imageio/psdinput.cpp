@@ -49,6 +49,7 @@ private:
     std::string m_filename;           ///< Stash the filename
     std::ifstream m_file;             ///< Open image handle
     psd_pvt::PSDFileHeader m_header;        ///< File header
+    psd_pvt::PSDColorModeData m_color_mode; ///< Color mode data
 
     /// Reset everything to initial state
     ///
@@ -85,6 +86,12 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     err = m_header.read (m_file);
     if (err) {
         error ("\"%s\": [file header] %s", name.c_str(), err);
+        return false;
+    }
+    // color mode data
+    err = m_color_mode.read (m_file, m_header);
+    if (err) {
+        error ("\"%s\": [color mode data] %s", name.c_str(), err);
         return false;
     }
     return true;
