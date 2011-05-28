@@ -136,6 +136,35 @@ PSDFileHeader::swap_endian ()
 
 
 
+const char *
+PSDColorModeData::read (std::ifstream &inf, const PSDFileHeader &header)
+{
+    inf.read ((char *)&length, 4);
+    //swap endian before interpreting length
+    swap_endian ();
+    data.resize (length);
+    inf.read (&data[0], length);
+
+    if (!inf)
+        return "read error";
+
+    if (header.color_mode == COLOR_MODE_INDEXED && length != 768)
+        return "length should be 768 for indexed color mode";
+
+    return NULL;
+}
+
+
+
+void
+PSDColorModeData::swap_endian ()
+{
+    if (!OIIO::bigendian ())
+        OIIO::swap_endian (&length);
+}
+
+
+
 } // psd_pvt namespace
 
 
