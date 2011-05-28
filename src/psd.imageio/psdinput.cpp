@@ -50,6 +50,7 @@ private:
     std::ifstream m_file;             ///< Open image handle
     psd_pvt::PSDFileHeader m_header;        ///< File header
     psd_pvt::PSDColorModeData m_color_mode; ///< Color mode data
+    psd_pvt::PSDImageResourceSection m_image_resources; ///< Image resources section
 
     /// Reset everything to initial state
     ///
@@ -92,6 +93,12 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     err = m_color_mode.read (m_file, m_header);
     if (err) {
         error ("\"%s\": [color mode data] %s", name.c_str(), err);
+        return false;
+    }
+    // image resources
+    err = m_image_resources.read (m_file);
+    if (err) {
+        error ("\"%s\": [image resources] %s", name.c_str(), err);
         return false;
     }
     return true;
