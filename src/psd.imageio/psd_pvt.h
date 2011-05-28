@@ -68,6 +68,17 @@ namespace psd_pvt {
         void swap_endian ();
     };
 
+    class PSDColorModeData {
+     public:
+        const char *read (std::ifstream &inf, const PSDFileHeader &header);
+
+        uint32_t length;
+        std::string data;
+
+     private:
+        void swap_endian ();
+    };
+
 };  // namespace PSD_pvt
 
 OIIO_PLUGIN_NAMESPACE_END
