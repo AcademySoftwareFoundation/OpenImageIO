@@ -28,10 +28,112 @@
   (This is the Modified BSD License)
 */
 #include "psd_pvt.h"
+#include <fstream>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+namespace OIIO = OIIO_NAMESPACE;
+
 namespace psd_pvt {
+
+
+
+int
+read_pascal_string (std::ifstream &inf, std::string &s, uint16_t mod_padding)
+{
+    s.clear();
+    uint8_t length;
+    int bytes = 0;
+    if (inf.read ((char *)&length, 1)) {
+        bytes = 1;
+        if (length == 0) {
+            if (inf.seekg (mod_padding - 1, std::ios::cur))
+                bytes += mod_padding - 1;
+        } else {
+            s.resize (length);
+            if (inf.read (&s[0], length)) {
+                bytes += length;
+                if (mod_padding > 0) {
+                    for (int padded_length = length + 1; padded_length % mod_padding != 0; padded_length++) {
+                        if (!inf.seekg(1, std::ios::cur))
+                            break;
+
+                        bytes++;
+                    }
+                }
+            }
+        }
+    }
+    return bytes;
+}
+
+
+
+const char *
+PSDFileHeader::read (std::ifstream &inf)
+{
+    inf.read (signature, 4);
+    inf.read ((char *)&version, 2);
+    // skip reserved bytes
+    inf.seekg (6, std::ios::cur);
+    inf.read ((char *)&channels, 2);
+    inf.read ((char *)&height, 4);
+    inf.read ((char *)&width, 4);
+    inf.read ((char *)&depth, 2);
+    inf.read ((char *)&color_mode, 2);
+    swap_endian ();
+
+    if (!inf) return "read error";
+
+    if (std::memcmp (signature, "8BPS", 4) != 0)
+        return "invalid signature";
+
+    if (version != 1 && version != 2)
+        return "invalid version";
+
+    if (channels < 1 || channels > 56)
+        return "invalid channel count";
+
+    if (height < 1 || ((version == 1 && height > 30000) || (version == 2 && height > 300000)))
+        return "invalid image height";
+
+    if (width < 1 || ((version == 1 && width > 30000) || (version == 2 && width > 300000)))
+        return "invalid image width";
+
+    if (depth != 1 && depth != 8 && depth != 16 && depth != 32)
+        return "invalid depth";
+
+    switch (color_mode) {
+        case COLOR_MODE_BITMAP :
+        case COLOR_MODE_GRAYSCALE :
+        case COLOR_MODE_INDEXED :
+        case COLOR_MODE_RGB :
+        case COLOR_MODE_CMYK :
+        case COLOR_MODE_MULTICHANNEL :
+        case COLOR_MODE_DUOTONE :
+        case COLOR_MODE_LAB :
+            break;
+        default:
+            return "invalid color mode";
+    }
+    return NULL;
+}
+
+
+
+void
+PSDFileHeader::swap_endian ()
+{
+    if (!OIIO::bigendian ()) {
+        OIIO::swap_endian (&version);
+        OIIO::swap_endian (&channels);
+        OIIO::swap_endian (&height);
+        OIIO::swap_endian (&width);
+        OIIO::swap_endian (&depth);
+        OIIO::swap_endian (&color_mode);
+    }
+}
+
 
 
 } // psd_pvt namespace
