@@ -108,7 +108,7 @@ static bool noresize = true;
 static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
 static bool nomipmap = false;
-static bool embed_hash = false;
+static bool embed_hash = false; // Ignored.
 static bool prman_metadata = false;
 static bool constant_color_detect = false;
 static bool monochrome_detect = false;
@@ -247,7 +247,11 @@ getargs (int argc, char *argv[])
         std::cerr << "maketx ERROR: could not make filter '" << filtername << "\n";
         exit (EXIT_FAILURE);
     }
-
+    if (embed_hash && verbose) {
+        std::cerr << "maketx WARNING: The --embed_hash option is deprecated, and no longer necessary.\n";
+        std::cerr << "                 (Hashes are always computed.)\n";
+    }
+    
 //    std::cout << "Converting " << filenames[0] << " to " << outputfilename << "\n";
 }
 
@@ -304,9 +308,6 @@ set_oiio_options(TypeDesc out_dataformat)
     
     // Enable constant color optimizations
     constant_color_detect = true;
-    
-    // Always embed the image hash info
-    embed_hash = true;
     
     // Force fixed tile-size across the board
     tile[0] = 64;
@@ -629,11 +630,10 @@ make_texturemap (const char *maptypename = "texture map")
     stat_readtime += readtimer();
     
     // If requested - and we're a constant color - make a tiny texture instead
-    // FIXME: Add the appropriate metadata to also advertise this fact.
     std::vector<float> constantColor(src.nchannels());
-    bool isConstantColor = (constant_color_detect && ImageBufAlgo::isConstantColor (src, &constantColor[0]));
+    bool isConstantColor = ImageBufAlgo::isConstantColor (src, &constantColor[0]);
     
-    if (isConstantColor) {
+    if (isConstantColor && constant_color_detect) {
         int newwidth = std::max (1, std::min (src.spec().width, tile[0]));
         int newheight = std::max (1, std::min (src.spec().height, tile[1]));
         
@@ -683,13 +683,6 @@ make_texturemap (const char *maptypename = "texture map")
         }
     }
     
-    std::string hash_digest;
-    if (embed_hash) {
-        hash_digest = ImageBufAlgo::computePixelHashSHA1 (src);
-        if (verbose)
-            std::cout << "  SHA-1: " << hash_digest << std::endl;
-    }
-
     if (shadowmode) {
         // Some special checks for shadow maps
         if (src.spec().nchannels != 1) {
@@ -749,48 +742,6 @@ make_texturemap (const char *maptypename = "texture map")
 
     dstspec.attribute ("Software", full_command_line);
     
-    // Update the ImageDescription
-    std::string desc = dstspec.get_string_attribute ("ImageDescription");
-    bool updatedDesc = false;
-    
-    // FIXME: We need to do real dictionary style partial updates on the
-    //        ImageDescription. I.e., set one key without affecting the
-    //        other keys. But in the meantime, just clear it out if
-    //        it appears the incoming image was a maketx style texture.
-    
-    if ((desc.find("SHA-1=") != std::string::npos) || 
-        (desc.find("ConstantColor=") != std::string::npos)) {
-        desc = "";
-    }
-    
-    if (hash_digest.length()) {
-        if (desc.length())
-            desc += " ";
-        desc += "SHA-1=";
-        desc += hash_digest;
-        updatedDesc = true;
-    }
-    
-    if (isConstantColor) {
-        std::ostringstream os; // Emulate a JSON array
-        os << "[";
-        for(unsigned int i=0; i<constantColor.size(); ++i) {
-            if (i!=0) os << ",";
-            os << constantColor[i];
-        }
-        os << "]";
-        
-        if (desc.length())
-            desc += " ";
-        desc += "ConstantColor=";
-        desc += os.str();
-        updatedDesc = true;
-    }
-    
-    if (updatedDesc) {
-        dstspec.attribute ("ImageDescription", desc);
-    }
-
     if (shadowmode) {
         dstspec.attribute ("textureformat", "Shadow");
         if (prman_metadata)
@@ -907,6 +858,68 @@ make_texturemap (const char *maptypename = "texture map")
     }
     stat_resizetime += resizetimer();
 
+    
+    // Update the toplevel ImageDescription with the sha1 pixel hash and constant color
+    std::string desc = dstspec.get_string_attribute ("ImageDescription");
+    bool updatedDesc = false;
+    
+    // FIXME: We need to do real dictionary style partial updates on the
+    //        ImageDescription. I.e., set one key without affecting the
+    //        other keys. But in the meantime, just clear it out if
+    //        it appears the incoming image was a maketx style texture.
+    
+    if ((desc.find ("SHA-1=") != std::string::npos) || 
+        (desc.find ("ConstantColor=") != std::string::npos)) {
+        desc = "";
+    }
+    
+    
+    // The hash is only computed for the top mipmap level of pixel data.
+    // Thus, any additional information that will effect the lower levels
+    // (such as filtering information) needs to be manually added into the
+    // hash.
+    std::ostringstream addlHashData;
+    addlHashData << filtername << " ";
+    addlHashData << filterwidth << " ";
+    
+    std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel,
+        addlHashData.str());
+    if (hash_digest.length()) {
+        if (desc.length())
+            desc += " ";
+        desc += "SHA-1=";
+        desc += hash_digest;
+        if (verbose)
+            std::cout << "  SHA-1: " << hash_digest << std::endl;
+        updatedDesc = true;
+    }
+    
+    if (isConstantColor) {
+        std::ostringstream os; // Emulate a JSON array
+        os << "[";
+        for (unsigned int i=0; i<constantColor.size(); ++i) {
+            if (i!=0) os << ",";
+            os << constantColor[i];
+        }
+        os << "]";
+        
+        if (desc.length())
+            desc += " ";
+        desc += "ConstantColor=";
+        desc += os.str();
+        if (verbose)
+            std::cout << "  ConstantColor: " << os.str() << std::endl;
+        updatedDesc = true;
+    }
+    
+    if (updatedDesc) {
+        dstspec.attribute ("ImageDescription", desc);
+    }
+
+
+
+    // Write out, and compute, the mipmap levels for the speicifed image
+    
     std::string outformat = fileformatname.empty() ? outputfilename : fileformatname;
     write_mipmap (*toplevel, dstspec, outputfilename, outformat, out_dataformat,
                   !shadowmode && !nomipmap);
