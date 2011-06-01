@@ -179,6 +179,12 @@ bool DLLPUBLIC isMonochrome(const ImageBuf &src);
 /// (current subimage, and current mipmap level)
 std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src);
 
+/// Compute the sha1 byte hash for all the pixels in the image.
+/// (current subimage, and current mipmap level)
+std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src,
+                                           const std::string & extrainfo);
+
+
 
 /// Set dst, over the pixel range [xbegin,xend) x [ybegin,yend), to be a
 /// resized version of src (mapping such that the "full" image window of
