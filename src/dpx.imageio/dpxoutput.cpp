@@ -1,4 +1,4 @@
-		no/*
+/*
   Copyright 2010 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
