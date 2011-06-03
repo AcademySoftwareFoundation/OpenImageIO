@@ -180,14 +180,10 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     m_wantRaw = m_spec.get_int_attribute ("dpx:RawData", 0) != 0;
     
     // check if the client wants endianness reverse to native
-    // assume big endian per Jeremy's request
+    // assume big endian per Jeremy's request, unless little endian is
+    // explicitly specified
     std::string tmpstr = m_spec.get_string_attribute ("oiio:Endian", "big");
-    if (iequals (tmpstr, "little"))
-        m_wantSwap = bigendian ();
-    else if (iequals (tmpstr, "big"))
-        m_wantSwap = littleendian ();
-    else // native
-        m_wantSwap = false;
+    m_wantSwap = (littleendian() != iequals (tmpstr, "little"));
 
     m_dpx.SetOutStream (m_stream);
 
