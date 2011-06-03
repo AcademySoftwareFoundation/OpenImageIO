@@ -1,4 +1,4 @@
-/*
+		no/*
   Copyright 2010 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
@@ -357,6 +357,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         // assume UTC for simplicity's sake, fix it if someone complains
         tmpstr[10] = ':';
         tmpstr.replace (19, -1, "Z");
+        m_dpx.header.SetSourceTimeDate (tmpstr.c_str ());
     }
     
     // commit!
