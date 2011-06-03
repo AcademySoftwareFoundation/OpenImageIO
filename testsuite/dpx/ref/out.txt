@@ -1,0 +1,95 @@
+hi
+../../../oiio-testimages/dpx_nuke_10bits_rgb.dpx :  512 x  512, 3 channel, uint16 dpx
+    SHA-1: D63D2EC8C60AB41B1C0F72A65AE8FF27DA8A620E
+    channel list: R, G, B
+    oiio:BitsPerSample: 10
+    Orientation: 1 (normal)
+    dpx:Transfer: "User defined"
+    dpx:Colorimetric: "User defined"
+    Software: "Nuke"
+    DateTime: "2011:03:08 14:47:25"
+    PixelAspectRatio: 1
+    dpx:ImageDescriptor: "RGB"
+    dpx:DittoKey: 1
+    dpx:LowQuantity: 2.1391e+09
+    dpx:HighQuantity: 2.1391e+09
+    dpx:EndOfLinePadding: 0
+    dpx:EndOfImagePadding: 0
+    dpx:XScannedSize: 0
+    dpx:YScannedSize: 0
+    dpx:FramePosition: 32895
+    dpx:FrameRate: 0
+    dpx:ShutterAngle: 0
+    dpx:Version: "V1.0"
+    dpx:Interlace: 0
+    dpx:FieldNumber: 0
+    dpx:HorizontalSampleRate: 0
+    dpx:VerticalSampleRate: 0
+    dpx:TemporalFrameRate: 0
+    dpx:TimeOffset: 0
+    dpx:BlackLevel: 0
+    dpx:BlackGain: 0
+    dpx:BreakPoint: 0
+    dpx:WhiteLevel: 0
+    dpx:IntegrationTimes: 0
+    dpx:Packing: "Filled, method A"
+    dpx:TimeCode: "00:00:00:00"
+    dpx:UserBits: 0
+    dpx:Signal: "Undefined"
+Converting ../../../oiio-testimages/dpx_nuke_10bits_rgb.dpx to dpx_nuke_10bits_rgb.dpx
+Comparing "../../../oiio-testimages/dpx_nuke_10bits_rgb.dpx" and "dpx_nuke_10bits_rgb.dpx"
+Subimage 0: 512 x 512, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../oiio-testimages/dpx_nuke_16bits_rgba.dpx :  512 x  512, 4 channel, uint16 dpx
+    SHA-1: E9FECE70CD875C5654F58DA9EC576399F089D855
+    channel list: R, G, B, A
+    oiio:BitsPerSample: 10
+    Orientation: 1 (normal)
+    dpx:Transfer: "User defined"
+    dpx:Colorimetric: "User defined"
+    Software: "Nuke"
+    DateTime: "2011:03:08 14:47:01"
+    PixelAspectRatio: 1
+    dpx:ImageDescriptor: "RGBA"
+    dpx:DittoKey: 1
+    dpx:LowQuantity: 2.1391e+09
+    dpx:HighQuantity: 2.1391e+09
+    dpx:EndOfLinePadding: 0
+    dpx:EndOfImagePadding: 0
+    dpx:XScannedSize: 0
+    dpx:YScannedSize: 0
+    dpx:FramePosition: 32895
+    dpx:FrameRate: 0
+    dpx:ShutterAngle: 0
+    dpx:Version: "V1.0"
+    dpx:Interlace: 0
+    dpx:FieldNumber: 0
+    dpx:HorizontalSampleRate: 0
+    dpx:VerticalSampleRate: 0
+    dpx:TemporalFrameRate: 0
+    dpx:TimeOffset: 0
+    dpx:BlackLevel: 0
+    dpx:BlackGain: 0
+    dpx:BreakPoint: 0
+    dpx:WhiteLevel: 0
+    dpx:IntegrationTimes: 0
+    dpx:Packing: "Filled, method A"
+    dpx:TimeCode: "00:00:00:00"
+    dpx:UserBits: 0
+    dpx:Signal: "Undefined"
+Converting ../../../oiio-testimages/dpx_nuke_16bits_rgba.dpx to dpx_nuke_16bits_rgba.dpx
+Comparing "../../../oiio-testimages/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16bits_rgba.dpx"
+Subimage 0: 512 x 512, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS

@@ -102,7 +102,7 @@ namespace dpx
 	template <typename IB, int BITDEPTH>
 	void RleCompress(IB *src, IB *dst, const int bufsize, const int len, BufferAccess &access)
 	{
-		IB ch;
+		/*IB ch;
 		int count;
 		int i;
 		int index = bufsize - 1;
@@ -136,7 +136,7 @@ namespace dpx
 		}
 		
 		access.offset = index;
-		access.length = bufsize - index;
+		access.length = bufsize - index;*/
 	}
 
 
@@ -255,7 +255,7 @@ namespace dpx
 	
 	template <typename IB, int BITDEPTH, bool SAMEBUFTYPE>
 	int WriteBuffer(OutStream *fd, DataSize src_size, void *src_buf, const U32 width, const U32 height, const int noc, const Packing packing, 
-					const bool rle, const bool reverse, const int eolnPad, char *blank, bool &status, bool swapEndian)
+					const bool rle, bool reverse, const int eolnPad, char *blank, bool &status, bool swapEndian)
 	{
 		int fileOffset = 0;
 		
@@ -273,6 +273,10 @@ namespace dpx
 		// allocate one line
 		IB *src;
 		IB *dst = new IB[(width * noc) + 1 + rleBufAdd];
+
+		// not exactly sure why, but the datum order is wrong when writing 4-channel images, so reverse it
+		if (noc == 4 && BITDEPTH == 10)
+			reverse = !reverse;
 
 		// each line in the buffer
 		for (U32 h = 0; h < height; h++)
