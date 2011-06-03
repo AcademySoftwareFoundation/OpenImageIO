@@ -181,10 +181,10 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     
     // check if the client wants endianness reverse to native
     // assume big endian per Jeremy's request
-    std::string endianness = m_spec.get_string_attribute ("oiio:Endian", "big");
-    if (iequals (endianness, "little"))
+    std::string tmpstr = m_spec.get_string_attribute ("oiio:Endian", "big");
+    if (iequals (tmpstr, "little"))
         m_wantSwap = bigendian ();
-    else if (iequals (endianness, "big"))
+    else if (iequals (tmpstr, "big"))
         m_wantSwap = littleendian ();
     else // native
         m_wantSwap = false;
@@ -197,8 +197,18 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     // some metadata
     std::string project = m_spec.get_string_attribute ("DocumentName", "");
     std::string copyright = m_spec.get_string_attribute ("Copyright", "");
+    tmpstr = m_spec.get_string_attribute ("DateTime", "");
+    if (tmpstr.size () >= 19) {
+        // libdpx's date/time format is pretty close to OIIO's (libdpx uses
+        // %Y:%m:%d:%H:%M:%S%Z)
+        // NOTE: the following code relies on the DateTime attribute being properly
+        // formatted!
+        // assume UTC for simplicity's sake, fix it if someone complains
+        tmpstr[10] = ':';
+        tmpstr.replace (19, -1, "Z");
+    }
     m_dpx.SetFileInfo (name.c_str (),                       // filename
-        NULL,                                               // TODO: cr. date
+        tmpstr.c_str (),                                    // cr. date
         OIIO_INTRO_STRING,                                  // creator
         project.empty () ? NULL : project.c_str (),         // project
         copyright.empty () ? NULL : copyright.c_str (),     // copyright
@@ -231,7 +241,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
 
     // select packing method
     dpx::Packing packing;
-    std::string tmpstr = m_spec.get_string_attribute ("dpx:ImagePacking", "Filled, method A");
+    tmpstr = m_spec.get_string_attribute ("dpx:ImagePacking", "Filled, method A");
     if (iequals (tmpstr, "Packed"))
         packing = dpx::kPacked;
     else if (iequals (tmpstr, "Filled, method B"))
@@ -336,12 +346,18 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     m_dpx.header.SetIntegrationTimes (m_spec.get_float_attribute
         ("dpx:IntegrationTimes", std::numeric_limits<float>::quiet_NaN()));
     
-    tmpstr = m_spec.get_string_attribute ("dpx:TimeCode", "");
-    if (tmpstr.size () > 0)
-        m_dpx.header.SetTimeCode (tmpstr.c_str ());
-    tmpstr = m_spec.get_string_attribute ("dpx:UserBits", "");
-    if (tmpstr.size () > 0)
-        m_dpx.header.SetUserBits (tmpstr.c_str ());
+    m_dpx.header.timeCode = m_spec.get_int_attribute ("dpx:TimeCode", ~0);
+    m_dpx.header.userBits = m_spec.get_int_attribute ("dpx:UserBits", ~0);
+    tmpstr = m_spec.get_string_attribute ("dpx:SourceDateTime", "");
+    if (tmpstr.size () >= 19) {
+        // libdpx's date/time format is pretty close to OIIO's (libdpx uses
+        // %Y:%m:%d:%H:%M:%S%Z)
+        // NOTE: the following code relies on the DateTime attribute being properly
+        // formatted!
+        // assume UTC for simplicity's sake, fix it if someone complains
+        tmpstr[10] = ':';
+        tmpstr.replace (19, -1, "Z");
+    }
     
     // commit!
     if (!m_dpx.WriteHeader ()) {
