@@ -41,6 +41,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+#include <float.h>
 
 using boost::algorithm::iequals;
 
@@ -88,6 +89,8 @@ static std::string colortransfer_to = "", colortransfer_from = "sRGB";
 static std::string filtername;
 static float filterwidth = 1.0f;
 static int resize_x = 0, resize_y = 0;
+static float rotation_angle = 0;
+static float centx = FLT_MAX, centy = FLT_MAX; //transformation center
 
 
 
@@ -146,6 +149,8 @@ getargs (int argc, char *argv[])
                 "--colorspace %s", &colortransfer_from, "Override colorspace of inputfile\n\t\t\t\tLinear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
                 "--filter %s %f", &filtername, &filterwidth, "Set the filter to use for resize",
                 "--resize %d %d", &resize_x, &resize_y, "Resize the image to x by y pixels",
+                "--rotate %f", &rotation_angle, "Rotates the image by x degrres",
+                "--center %f %f", &centx, &centy, "Set the transformation center x y",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
 	std::cerr << ap.geterror() << std::endl;
@@ -358,6 +363,50 @@ main (int argc, char *argv[])
         out.save ();
         if (filter)
             Filter2D::destroy (filter);
+    }
+
+    if (rotation_angle) {
+         if (filenames.size() != 1) {
+            std::cerr << "iprocess: --rotate needs one input filename\n";
+            exit (EXIT_FAILURE);
+        }
+
+        Filter2D *filter = NULL;
+        if (! filtername.empty()) {
+            filter = Filter2D::create (filtername, filterwidth, filterwidth);
+            if (! filter) {
+                std::cerr << "iprocess: unknown filter " << filtername << "\n";
+                return EXIT_FAILURE;
+            }
+        }
+
+        ImageBuf in;
+        if (! read_input (filenames[0], in)) {
+            std::cerr << "iprocess: read error: " << in.geterror() << "\n";
+            return EXIT_FAILURE;
+        }
+
+        ImageSpec outspec = in.spec();
+        ImageBuf out (outputname, outspec);
+        float pixel[3] = { .1, .1, .1 };
+        ImageBufAlgo::fill (out, pixel);
+
+        if(centx == FLT_MAX && centy == FLT_MAX){
+            centx = ImageBuf(in).spec().full_width / 2.0f;
+            centy = ImageBuf(in).spec().full_height / 2.0f;
+
+         //   std::cout << centx << " " << centy << std::endl;
+        }
+
+        RotationTrans rt(rotation_angle, centx, centy);
+        
+        bool ok = ImageBufAlgo::transform(out, in, filter, filterwidth, &rt);
+
+        ASSERT (ok);
+        out.save ();
+        if (filter)
+            Filter2D::destroy (filter);
+
     }
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;

@@ -49,6 +49,7 @@
 #include "dassert.h"
 #include "sysutil.h"
 #include "filter.h"
+//#include "transformation.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -684,7 +685,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     const ImageSpec &dstspec (dst.spec());
     int nchannels = dstspec.nchannels;
 
-    if (dstspec.format.basetype != TypeDesc::FLOAT ||
+    if ( //dstspec.format.basetype != TypeDesc::FLOAT ||
         nchannels != srcspec.nchannels) {
         return false;
     }
@@ -843,6 +844,168 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     return true;
 }
 
+template<typename SRCTYPE, typename TRANSTYPE>
+bool transform_ (ImageBuf &dst, const ImageBuf &src,
+              Filter2D *filter, float filterwidth, TRANSTYPE* trans)
+{
+    const ImageSpec &srcspec (src.spec());
+    const ImageSpec &dstspec (dst.spec());
+    int nchannels = dstspec.nchannels;
+
+    std::cout << "starting transform\n";
+
+    if (//dstspec.format.basetype != TypeDesc::FLOAT ||
+        nchannels != srcspec.nchannels) {
+        std::cout << "fail\n";
+        return false;
+    }
+
+
+    bool allocfilter = (filter == NULL);
+    if (allocfilter) {
+        filterwidth = 2.0f;
+     //   filter = Filter2D::create ("triangle", filterwidth, filterwidth);
+        filter = Filter2D::create ("lanczos", filterwidth, filterwidth);
+    }
+
+    float *pel = ALLOCA (float, nchannels);
+    float filterrad = filter->width() / 2.0f;
+    // radi,radj is the filter radius, as an integer, in source pixels.  We
+    // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
+    int radi = (int) ceilf (filterrad) + 1;
+    int radj = (int) ceilf (filterrad) + 1;
+
+    bool separable = filter->separable();
+    float *column = NULL;
+    if (separable)
+    {
+        // Allocate one column for the first horizontal filter pass
+        column = ALLOCA (float, (2 * radj + 1) * nchannels);
+    }
+
+    for (int y = 0;  y < dstspec.full_height;  ++y)
+    {
+
+        for (int x = 0;  x < dstspec.full_width;  ++x)
+        {
+
+            // s,t are NDC space
+            float s, t, dsdx, dtdx, dsdy, dtdy;
+
+            trans->mapping(x, y, &s, &t ,&dsdx, &dtdx, &dsdy, &dtdy);
+
+            float src_yf = t;  // src_xf, src_xf are image space float coordinates
+            int src_y;         // src_x, src_y are image space integer coordinates of the floor
+            float src_yf_frac = floorfrac (src_yf, &src_y);
+
+            float src_xf = s;
+            int src_x;
+            float src_xf_frac = floorfrac (src_xf, &src_x);
+
+            for (int c = 0;  c < nchannels;  ++c)
+                pel[c] = 0.0f;
+
+            float totalweight = 0.0f;
+
+            if (separable) {
+
+                // First, filter horizontally
+                memset (column, 0, (2*radj+1)*nchannels*sizeof(float));
+                float *p = column;
+                for (int j = -radj;  j <= radj;  ++j, p += nchannels)
+                {
+                    totalweight = 0.0f;
+                    ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
+                                                           src_y+j, src_y+j+1,
+                                                           0, 1, true);
+                    for (int i = -radi;  i <= radi;  ++i, ++srcpel)
+                    {
+                        float w = filter->xfilt (i-src_xf_frac);
+                        if (fabsf(w) < 1.0e-6)
+                            continue;
+                        totalweight += w;
+                        if (srcpel.exists())
+                        {
+                            for (int c = 0;  c < nchannels;  ++c)
+                                p[c] += w * srcpel[c];
+                        } else {
+                            // Outside data window
+                            for (int c = 0;  c < nchannels;  ++c)
+                                p[c] += 0;
+                        }
+                    }
+                    if (fabsf(totalweight) >= 1.0e-6)
+                    {
+                        float winv = 1.0f / totalweight;
+                        for (int c = 0;  c < nchannels;  ++c)
+                            p[c] *= winv;
+                    }
+                }
+                // Now filter vertically
+                totalweight = 0.0f;
+                p = column;
+                for (int j = -radj;  j <= radj;  ++j, p += nchannels)
+                {
+                    float w = filter->yfilt (j-src_yf_frac);
+                    totalweight += w;
+                    for (int c = 0;  c < nchannels;  ++c)
+                        pel[c] += w * p[c];
+                }
+
+            } else {
+                // Non-separable
+                ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
+                                                       src_y-radi, src_y+radi+1,
+                                                       0, 1, true);
+                for (int j = -radj;  j <= radj;  ++j)
+                {
+                    for (int i = -radi;  i <= radi;  ++i, ++srcpel)
+                    {
+                        float w = (*filter)(i-src_xf_frac, j-src_yf_frac);
+                        if (fabsf(w) < 1.0e-6)
+                            continue;
+                        totalweight += w;
+                        DASSERT (! srcpel.done());
+                        if (srcpel.exists())
+                        {
+                            for (int c = 0;  c < nchannels;  ++c)
+                                pel[c] += w * srcpel[c];
+                        } else {
+                            // Outside data window -- construct a clamped
+                            // iterator for just that pixel
+                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
+                            clamped.pos (Imath::clamp (srcpel.x(), src.xmin(), src.xmax()),
+                                         Imath::clamp (srcpel.y(), src.ymin(), src.ymax()));
+                            for (int c = 0;  c < nchannels;  ++c)
+                                pel[c] += w * clamped[c];
+                        }
+                    }
+                }
+                DASSERT (srcpel.done());
+            }
+
+            // Rescale pel to normalize the filter, then write it to the
+            // image.
+            if (fabsf(totalweight) < 1.0e-6)
+            {
+                // zero it out
+                for (int c = 0;  c < nchannels;  ++c)
+                    pel[c] = 0.0f;
+            } else {
+                float winv = 1.0f / totalweight;
+                for (int c = 0;  c < nchannels;  ++c)
+                    pel[c] *= winv;
+            }
+            dst.setpixel (x, y, pel);
+        }
+    }
+
+    if (allocfilter)
+        Filter2D::destroy (filter);
+    return true;
+}
+
+
 } // end anonymous namespace
 
 
@@ -886,10 +1049,59 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
         return resize_<double> (dst, src, xbegin, xend, ybegin, yend,
                                filter, filterwidth);
     default:
+        std::cout << "aaaaa\n";
         return false;
     }
 }
 
+template bool ImageBufAlgo::transform<RotationTrans>(ImageBuf &dst, const ImageBuf &src,
+                      Filter2D *filter, float filterwidth,
+                        RotationTrans *t);
+
+template <typename TRANSTYPE>
+bool ImageBufAlgo::transform(ImageBuf &dst, const ImageBuf &src,
+                      Filter2D *filter, float filterwidth,
+                        TRANSTYPE *t)
+{
+    switch (src.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            return transform_<float> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::UINT8 :
+            return transform_<unsigned char> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::INT8  :
+            return transform_<char> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::UINT16:
+            return transform_<unsigned short> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::INT16 :
+            return transform_<short> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::UINT  :
+            return transform_<unsigned int> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::INT   :
+            return transform_<int> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::UINT64:
+            return transform_<unsigned long long> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::INT64 :
+            return transform_<long long> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::HALF  :
+            return transform_<half> (dst, src,
+                                   filter, filterwidth, t);
+        case TypeDesc::DOUBLE:
+            return transform_<double> (dst, src,
+                                   filter, filterwidth, t);
+        default:
+            return false;
+
+    }
+}
 
 }
 OIIO_NAMESPACE_EXIT

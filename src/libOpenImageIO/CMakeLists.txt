@@ -20,6 +20,7 @@ set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/texture.h
                          ../include/thread.h
                          ../include/timer.h
+                         ../include/transformation.h
                          ../include/typedesc.h
                          ../include/ustring.h
                          ../include/varyingref.h    
@@ -40,7 +41,8 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
                           ../libutil/pugixml.cpp
                           ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
-                          ../libutil/sysutil.cpp 
+                          ../libutil/sysutil.cpp
+                          ../libutil/transformation.cpp
                           ../libutil/typedesc.cpp 
                           ../libutil/ustring.cpp 
                           ../libtexture/texturesys.cpp 

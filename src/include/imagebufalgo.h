@@ -24,7 +24,7 @@
   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+#include "transformation.h"
   (This is the Modified BSD License)
 */
 
@@ -36,6 +36,8 @@
 #include "imagebuf.h"
 #include "fmath.h"
 #include "colortransfer.h"
+#include "filter.h"
+#include "transformation.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -190,11 +192,19 @@ bool DLLPUBLIC resize (ImageBuf &dst, const ImageBuf &src,
                        int xbegin, int xend, int ybegin, int yend,
                        Filter2D *filter=NULL, float filterwidth=1.0);
 
+template <typename TRANSTYPE>
+bool DLLPUBLIC transform(ImageBuf &dst, const ImageBuf &src,
+                        Filter2D *filter, float filterwidth,
+                        TRANSTYPE *trans
+                        );
+
 
 };  // end namespace ImageBufAlgo
 
 
 }
 OIIO_NAMESPACE_EXIT
+
+
 
 #endif // OPENIMAGEIO_IMAGEBUF_H
