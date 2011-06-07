@@ -356,25 +356,25 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
         scale *= _max;
         // Unroll loop for speed
         for ( ; n >= 16; n -= 16) {
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
         }
         while (n--)
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = (D)(clamp ((F)(*src++) * scale + (F)0.5, min, max));
     } else {
         // Converting to a float-like type, so we don't need to remap
         // the range
@@ -425,7 +425,7 @@ D convert_type (const S &src)
         F min = (F) std::numeric_limits<D>::min();
         F max = (F) std::numeric_limits<D>::max();
         scale *= max;
-        return (D)(clamp ((F)src * scale, min, max));
+        return (D)(clamp ((F)src * scale + (F)0.5, min, max));
     } else {
         // Converting to a float-like type, so we don't need to remap
         // the range
