@@ -45,7 +45,7 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
                           ../libutil/pystring.cpp
                           ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
-                          ../libutil/sysutil.cpp 
+                          ../libutil/sysutil.cpp
                           ../libutil/typedesc.cpp 
                           ../libutil/ustring.cpp 
                           ../libtexture/texturesys.cpp 
