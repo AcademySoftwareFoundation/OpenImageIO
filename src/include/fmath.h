@@ -327,6 +327,23 @@ template<typename T> struct is_same<T,T> { static const bool value = true; };
 
 
 
+/// Multiply src by scale, clamp to [min,max], and round to the nearest D
+/// (presumed to be integer).  This is just a helper for the convert_type
+/// templates, it probably has no other use.
+template<typename S, typename D, typename F>
+D scaled_conversion (const S &src, F scale, F min, F max)
+{
+    if (std::numeric_limits<S>::is_signed) {
+        F s = src * scale;
+        s += (s < 0 ? (F)-0.5 : (F)0.5);
+        return (D) clamp (s, min, max);
+    } else {
+        return (D) clamp ((F)src * scale + (F)0.5, min, max);
+    }
+}
+
+
+
 /// Convert n consecutive values from the type of S to the type of D.
 /// The conversion is not a simple cast, but correctly remaps the
 /// 0.0->1.0 range from and to the full positive range of integral
@@ -356,25 +373,25 @@ void convert_type (const S *src, D *dst, size_t n, D _zero=0, D _one=1,
         scale *= _max;
         // Unroll loop for speed
         for ( ; n >= 16; n -= 16) {
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
         }
         while (n--)
-            *dst++ = (D)(clamp ((F)(*src++) * scale, min, max));
+            *dst++ = scaled_conversion<S,D,F> (*src++, scale, min, max);
     } else {
         // Converting to a float-like type, so we don't need to remap
         // the range
@@ -425,7 +442,7 @@ D convert_type (const S &src)
         F min = (F) std::numeric_limits<D>::min();
         F max = (F) std::numeric_limits<D>::max();
         scale *= max;
-        return (D)(clamp ((F)src * scale, min, max));
+        return scaled_conversion<S,D,F> (src, scale, min, max);
     } else {
         // Converting to a float-like type, so we don't need to remap
         // the range
