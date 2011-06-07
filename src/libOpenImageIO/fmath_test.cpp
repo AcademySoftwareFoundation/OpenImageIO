@@ -39,7 +39,8 @@ template<typename T, typename F>
 void test_convert_type ()
 {
     if (std::numeric_limits<T>::is_integer) {
-        for (long long i = 0;  i <= std::numeric_limits<T>::max();  ++i) {
+        for (long long i = std::numeric_limits<T>::min();
+                 i <= std::numeric_limits<T>::max();  ++i) {
             T in = (T)i;
             F f = convert_type<T,F> (in);
             T out = convert_type<F,T> (f);
