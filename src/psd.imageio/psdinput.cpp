@@ -29,8 +29,9 @@
 */
 
 #include <fstream>
-
+#include <vector>
 #include "psd_pvt.h"
+#include <boost/foreach.hpp>
 
 #include "imageio.h"
 
@@ -38,7 +39,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class PSDInput : public ImageInput {
 public:
-    PSDInput () { init(); }
+    PSDInput ();
     virtual ~PSDInput () { close(); }
     virtual const char * format_name (void) const { return "psd"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
@@ -51,11 +52,12 @@ private:
     psd_pvt::PSDFileHeader m_header;        ///< File header
     psd_pvt::PSDColorModeData m_color_mode; ///< Color mode data
     psd_pvt::PSDImageResourceSection m_image_resources; ///< Image resources section
-
     /// Reset everything to initial state
     ///
     void init () {
     }
+
+    void load_resources (ImageSpec &spec);
 };
 
 // Obligatory material to make this a recognizeable imageio plugin:
@@ -73,36 +75,37 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
+PSDInput::PSDInput () : m_color_mode (m_header)
+{
+    init();
+}
+
+
+
+#define READ_SECTION(section)                               \
+    err = (section).read (m_file);                          \
+    if (!err.empty()) {                                     \
+        error ("\"%s\": %s", name.c_str(), err.c_str());    \
+        return false;                                       \
+    }
+
 bool
 PSDInput::open (const std::string &name, ImageSpec &newspec)
 {
-    const char *err = NULL;
     m_filename = name;
     m_file.open (name.c_str(), std::ios::binary);
     if (!m_file.is_open ()) {
         error ("\"%s\": failed to open file", name.c_str());
         return false;
     }
-    // file header
-    err = m_header.read (m_file);
-    if (err) {
-        error ("\"%s\": [file header] %s", name.c_str(), err);
-        return false;
-    }
-    // color mode data
-    err = m_color_mode.read (m_file, m_header);
-    if (err) {
-        error ("\"%s\": [color mode data] %s", name.c_str(), err);
-        return false;
-    }
-    // image resources
-    err = m_image_resources.read (m_file);
-    if (err) {
-        error ("\"%s\": [image resources] %s", name.c_str(), err);
-        return false;
-    }
-    return true;
+    std::string err;
+    READ_SECTION (m_header)
+    READ_SECTION (m_color_mode);
+    READ_SECTION (m_image_resources);
+    return m_file;
 }
+
+#undef READ_SECTION
 
 
 
@@ -120,6 +123,24 @@ PSDInput::read_native_scanline (int y, int z, void *data)
 {
     return false;
 }
+
+
+
+void
+PSDInput::load_resources (ImageSpec &spec)
+{
+    const psd_pvt::PSDImageResourceMap &resources = m_image_resources.resources;
+    for (std::size_t i = 0; i < psd_pvt::resource_handlers_count; ++i) {
+        const psd_pvt::ImageResourceHandler &handler = psd_pvt::resource_handlers[i];
+        const psd_pvt::PSDImageResourceMap::const_iterator it (resources.find (handler.id));
+        if (it != resources.end()) {
+            handler.handler (m_file, it->second, spec);
+        }
+
+    }
+}
+
+
 
 OIIO_PLUGIN_NAMESPACE_END
 

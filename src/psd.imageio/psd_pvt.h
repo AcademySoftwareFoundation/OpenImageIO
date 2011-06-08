@@ -32,30 +32,40 @@
 #define OPENIMAGEIO_PSD_PVT_H
 
 #include <iosfwd>
-#include <vector>
+#include <map>
 #include "imageio.h"
 #include "fmath.h"
+#include <boost/function.hpp>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace psd_pvt {
 
     enum PSDColorMode {
-        COLOR_MODE_BITMAP = 0,
-        COLOR_MODE_GRAYSCALE = 1,
-        COLOR_MODE_INDEXED = 2,
-        COLOR_MODE_RGB = 3,
-        COLOR_MODE_CMYK = 4,
-        COLOR_MODE_MULTICHANNEL = 7,
-        COLOR_MODE_DUOTONE = 8,
-        COLOR_MODE_LAB = 9
+        ColorMode_Bitmap = 0,
+        ColorMode_Grayscale = 1,
+        ColorMode_Indexed = 2,
+        ColorMode_RGB = 3,
+        ColorMode_CMYK = 4,
+        ColorMode_Multichannel = 7,
+        ColorMode_Duotone = 8,
+        ColorMode_Lab = 9
     };
 
-    int read_pascal_string (std::ifstream &inf, std::string &s, uint16_t mod_padding);
+    enum PSDThumbnailFormat {
+        kJpegRGB = 1,
+        kRawRGB = 0
+    };
+
+    enum PSDResourceID {
+        Resource_Thumbnail_V5 = 1036,
+        Resource_Thumbnail_V4 = 1033
+    };
 
     class PSDFileHeader {
      public:
-        const char *read (std::ifstream &inf);
+        std::string read (std::ifstream &inf);
+        std::string validate () const;
 
         char signature[4];
         uint16_t version;
@@ -64,49 +74,51 @@ namespace psd_pvt {
         uint32_t width;
         uint16_t depth;
         uint16_t color_mode;
-
-     private:
-        void swap_endian ();
     };
 
     class PSDColorModeData {
      public:
-        const char *read (std::ifstream &inf, const PSDFileHeader &header);
+        PSDColorModeData (const PSDFileHeader &header);
+
+        std::string read (std::ifstream &inf);
+        std::string validate () const;
 
         uint32_t length;
-        std::string data;
+        std::streampos pos;
 
      private:
-        void swap_endian ();
+        const PSDFileHeader &m_header;
     };
 
     class PSDImageResourceBlock {
      public:
-        const char *read (std::ifstream &inf);
+        std::string read (std::ifstream &inf);
+        std::string validate () const;
 
         char signature[4];
         uint16_t id;
         std::string name;
         uint32_t length;
-        std::string data;
-
-     private:
-        void swap_endian ();
+        std::streampos pos;
     };
+
+    struct ImageResourceHandler {
+        uint16_t id;
+        boost::function<bool (std::ifstream &inf, const PSDImageResourceBlock &, ImageSpec &)> handler;
+    };
+
+    extern const ImageResourceHandler resource_handlers[];
+    extern const std::size_t resource_handlers_count;
+
+    typedef std::map<uint16_t, PSDImageResourceBlock> PSDImageResourceMap;
 
     class PSDImageResourceSection {
      public:
-        const char *read (std::ifstream &inf);
+        std::string read (std::ifstream &inf);
 
         uint32_t length;
 
-        typedef std::vector<PSDImageResourceBlock> PSDImageResourceList;
-        PSDImageResourceList resource_blocks;
-
-     private:
-        void swap_endian ();
-
-        PSDImageResourceList::iterator find_resource_by_id (uint16_t id);
+        PSDImageResourceMap resources;
     };
 
 };  // namespace PSD_pvt
