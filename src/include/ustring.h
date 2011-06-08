@@ -96,7 +96,7 @@
 ///   - if you tend to have (relatively) few unique strings, but many
 ///     copies of those strings;
 ///   - if the creation of strings from raw characters is relatively
-///     rare compared to copying existing strings;
+///     rare compared to copying or comparing to existing strings;
 ///   - if you tend to make the same strings over and over again, and
 ///     if it's relatively rare that a single unique character sequence
 ///     is used only once in the entire lifetime of the program;
@@ -126,6 +126,7 @@
 #include <cstring>
 #include "export.h"
 #include "strutil.h"
+#include "dassert.h"
 #include "version.h"
 
 #ifndef NULL
@@ -153,23 +154,23 @@ public:
     /// Construct a ustring from a null-terminated C string (char *).
     ///
     explicit ustring (const char *str) {
-        m_chars = str ? _make_unique(str)->c_str() : NULL;
+        m_chars = str ? make_unique(str) : NULL;
     }
 
     /// Construct a ustring from at most n characters of str, starting at
     /// position pos.
     ustring (const char *str, size_type pos, size_type n)
-        : m_chars (_make_unique(std::string(str,pos,n).c_str())->c_str()) { }
+        : m_chars (make_unique(std::string(str,pos,n).c_str())) { }
 
     /// Construct a ustring from the first n characters of str.
     ///
     ustring (const char *str, size_type n)
-        : m_chars (_make_unique(std::string(str,n).c_str())->c_str()) { }
+        : m_chars (make_unique(std::string(str,n).c_str())) { }
 
     /// Construct a ustring from n copies of character c.
     ///
     ustring (size_type n, char c)
-        : m_chars (_make_unique(std::string(n,c).c_str())->c_str()) { }
+        : m_chars (make_unique(std::string(n,c).c_str())) { }
 
     /// Construct a ustring from a C++ std::string.
     ///
@@ -178,7 +179,7 @@ public:
     /// Construct a ustring from an indexed substring of a std::string.
     ///
     ustring (const std::string &str, size_type pos, size_type n=npos)
-        : m_chars (_make_unique(std::string(str, pos, n).c_str())->c_str()) { }
+        : m_chars (make_unique(std::string(str, pos, n).c_str())) { }
 
     /// Copy construct a ustring from another ustring.
     ///
@@ -187,7 +188,7 @@ public:
     /// Construct a ustring from an indexed substring of a ustring.
     ///
     ustring (const ustring &str, size_type pos, size_type n=npos)
-        : m_chars (_make_unique(std::string(str.c_str(),pos,n).c_str())->c_str()) { }
+        : m_chars (make_unique(std::string(str.c_str(),pos,n).c_str())) { }
 
     /// ustring destructor.
     ///
@@ -221,7 +222,7 @@ public:
     /// Assign a null-terminated C string (char*) to *this.
     ///
     const ustring & assign (const char *str) {
-        m_chars = str ? _make_unique(str)->c_str() : NULL;
+        m_chars = str ? make_unique(str) : NULL;
         return *this;
     }
 
@@ -337,6 +338,10 @@ public:
     /// Dump into character array s the characters of this ustring,
     /// beginning with position pos and copying at most n characters.
     size_type copy (char* s, size_type n, size_type pos = 0) const {
+        if (m_chars == NULL)  {
+            s[0] = 0;
+            return 0;
+        }
         char *c = strncpy (s, c_str()+pos, n);
         return (size_type)(c-s);
     }
@@ -554,6 +559,30 @@ public:
     ///
     static size_t memory ();
 
+    /// Given a null-terminated string, return a pointer to the unique
+    /// version kept in the internal table (creating a new table entry
+    /// if we haven't seen this sequence of characters before).  
+    /// N.B.: this is equivalent to ustring(str).c_str().  It's also the
+    /// routine that is used directly by ustring's internals to generate
+    /// the canonical unique copy of the characters.
+    static const char * make_unique (const char *str);
+
+    /// Is this character pointer a unique ustring representation of
+    /// those characters?  Useful for diagnostics and debugging.
+    static bool is_unique (const char *str) {
+        return str == NULL || make_unique(str) == str;
+    }
+
+    /// Create a ustring from characters guaranteed to already be
+    /// ustring-clean, without having to run through the hash yet
+    /// again. Use with extreme caution!!!
+    static ustring from_unique (const char *unique) {
+        DASSERT (is_unique(unique));  // DEBUG builds -- check it!
+        ustring u;
+        u.m_chars = unique;
+        return u;
+    }
+
 private:
 
     // Individual ustring internal representation -- the unique characters.
@@ -578,11 +607,6 @@ public:
     };
 
 private:
-    /// Important internal guts of ustring -- given a null-terminated
-    /// string, return a pointer to the unique internal table
-    /// representation of the string (creating a new table entry if we
-    /// haven't seen this sequence of characters before).
-    static const TableRep * _make_unique (const char *str);
     static std::string empty_std_string;
 };
 

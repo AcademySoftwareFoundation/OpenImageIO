@@ -161,8 +161,8 @@ ustring::TableRep::~TableRep ()
 
 
 
-const ustring::TableRep *
-ustring::_make_unique (const char *str)
+const char *
+ustring::make_unique (const char *str)
 {
     UstringTable &table (ustring_table());
 
@@ -181,7 +181,7 @@ ustring::_make_unique (const char *str)
         ++ustring_stats_constructed;
         UstringTable::const_iterator found = table.find (str);
         if (found != table.end())
-           return found->second;
+            return found->second->c_str();
     }
 
     // This string is not yet in the ustring table.  Create a new entry.
@@ -208,7 +208,7 @@ ustring::_make_unique (const char *str)
 #ifndef __GNUC__
             ustring_stats_memory += len+1;  // non-GNU replicates the chars
 #endif
-            return rep;
+            return rep->c_str();
         }
     }
     // Somebody else added this string to the table in that interval
@@ -217,7 +217,7 @@ ustring::_make_unique (const char *str)
     // speculatively built.  Note that we've already released the lock
     // on the table at this point.
     delete rep;
-    return found->second;
+    return found->second->c_str();
 }
 
 
