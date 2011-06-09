@@ -127,12 +127,12 @@ IffInput::open (const std::string &name, ImageSpec &spec)
     
     // author
     if (m_iff_header.author.size()) {
-        m_spec.attribute ("author", m_iff_header.author);
+        m_spec.attribute ("Artist", m_iff_header.author);
     }
     
     // date
     if (m_iff_header.date.size()) {
-        m_spec.attribute ("date", m_iff_header.date);
+        m_spec.attribute ("DateTime", m_iff_header.date);
     }
     
     // file pointer is set to the beginning of tbmp data
