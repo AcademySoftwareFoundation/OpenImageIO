@@ -49,11 +49,10 @@ public:
     static void destroy (Transformation *t);
 };
 
-class RotationTrans /*: public Transformation */{
-public:
-    RotationTrans () { }
-    ~RotationTrans (void) { }
 
+
+class RotationTrans {
+public:
     RotationTrans(float _rotangle, float _originx = 0, float _originy = 0)
     {
         rotangle = - _rotangle * M_PI / 180.0f;
@@ -65,12 +64,88 @@ public:
     {
         *s = originx + (x+0.5f-originx) * cos(rotangle) - (y+0.5f-originy) * sin (rotangle);
         *t = originy + (x+0.5f-originx) * sin(rotangle)  +  (y+0.5f-originy)  * cos(rotangle);
+
+        *dsdy = 1.0f;
+        *dtdy = 1.0f;
+        *dsdy = 0;
+        *dtdx = 0;
     }
 
 private:
     float rotangle;
     float originx, originy;
 };
+
+
+
+
+class ResizeTrans {
+public:
+
+    ResizeTrans(float _new_width, float _new_height, float orig_width, float orig_height)
+    {
+        new_width = _new_width;
+        new_height = _new_height;
+        xscale = new_width / orig_width;
+        yscale = new_height / orig_height;
+    }
+
+    ResizeTrans(float _xscale, float _yscale)
+    {
+        xscale = _xscale;
+        yscale = _yscale;
+    }
+
+    void mapping(int x, int y, float* s, float* t, float *dsdx, float *dtdx, float *dsdy, float *dtdy)
+    {
+        *s = (x + 0.5f) / xscale;
+        *t = (y + 0.5f) / yscale;
+
+        *dsdx = 1.0f / xscale;
+        *dtdy = 1.0f / yscale;
+        *dsdy = 0;
+        *dtdx = 0;
+    }
+
+private:
+    float new_width, new_height;
+    float xscale, yscale;
+};
+
+
+
+
+class ShearTrans {
+public:
+    ShearTrans(float _m, float _n, float _originx = 0, float _originy = 0)
+    {
+        m = _m;
+        n = _n;
+        originx = _originx;
+        originy = _originy;
+    }
+
+    void mapping(int x, int y, float* s, float* t, float *dsdx, float *dtdx, float *dsdy, float *dtdy)
+    {
+        if(1 - m*n == 0)
+            return;
+
+        *s = (x - m*y) / (1 - m*n);
+        *t = y - n*(*s);
+
+        *dsdy = 1.0f;
+        *dtdy = 1.0f;
+        *dsdy = 0;
+        *dtdx = 0;
+    }
+
+private:
+    float m, n;
+    float originx, originy;
+};
+
+
+
 
 
 }

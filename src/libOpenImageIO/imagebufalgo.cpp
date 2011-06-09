@@ -860,7 +860,6 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
         return false;
     }
 
-
     bool allocfilter = (filter == NULL);
     if (allocfilter) {
         filterwidth = 2.0f;
@@ -872,8 +871,8 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
     float filterrad = filter->width() / 2.0f;
     // radi,radj is the filter radius, as an integer, in source pixels.  We
     // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
-    int radi = (int) ceilf (filterrad) + 1;
-    int radj = (int) ceilf (filterrad) + 1;
+    int radi = 0; // TODO
+    int radj = 100;
 
     bool separable = filter->separable();
     float *column = NULL;
@@ -885,14 +884,15 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
 
     for (int y = 0;  y < dstspec.full_height;  ++y)
     {
-
         for (int x = 0;  x < dstspec.full_width;  ++x)
         {
-
             // s,t are NDC space
-            float s, t, dsdx, dtdx, dsdy, dtdy;
+            float s = 0, t = 0, dsdx = 1.0f, dtdx = 0, dsdy = 0, dtdy = 1.0;
 
             trans->mapping(x, y, &s, &t ,&dsdx, &dtdx, &dsdy, &dtdy);
+
+            radi = (int) ceilf (filterrad * dsdx) + 1;
+            radj = (int) ceilf (filterrad * dtdy) + 1;
 
             float src_yf = t;  // src_xf, src_xf are image space float coordinates
             int src_y;         // src_x, src_y are image space integer coordinates of the floor
@@ -907,8 +907,8 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
 
             float totalweight = 0.0f;
 
-            if (separable) {
-
+            if (separable)
+            {
                 // First, filter horizontally
                 memset (column, 0, (2*radj+1)*nchannels*sizeof(float));
                 float *p = column;
@@ -920,7 +920,7 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
                                                            0, 1, true);
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel)
                     {
-                        float w = filter->xfilt (i-src_xf_frac);
+                        float w = filter->xfilt ((i-src_xf_frac) / dsdx);
                         if (fabsf(w) < 1.0e-6)
                             continue;
                         totalweight += w;
@@ -930,8 +930,8 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
                                 p[c] += w * srcpel[c];
                         } else {
                             // Outside data window
-                            for (int c = 0;  c < nchannels;  ++c)
-                                p[c] += 0;
+                            //for (int c = 0;  c < nchannels;  ++c)
+                            //    p[c] += 0;
                         }
                     }
                     if (fabsf(totalweight) >= 1.0e-6)
@@ -946,7 +946,7 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
                 p = column;
                 for (int j = -radj;  j <= radj;  ++j, p += nchannels)
                 {
-                    float w = filter->yfilt (j-src_yf_frac);
+                    float w = filter->yfilt ((j-src_yf_frac) / dtdy);
                     totalweight += w;
                     for (int c = 0;  c < nchannels;  ++c)
                         pel[c] += w * p[c];
@@ -961,7 +961,7 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
                 {
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel)
                     {
-                        float w = (*filter)(i-src_xf_frac, j-src_yf_frac);
+                        float w = (*filter)((i-src_xf_frac) / dsdx, (j-src_yf_frac) / dtdy);
                         if (fabsf(w) < 1.0e-6)
                             continue;
                         totalweight += w;
@@ -970,14 +970,6 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
                         {
                             for (int c = 0;  c < nchannels;  ++c)
                                 pel[c] += w * srcpel[c];
-                        } else {
-                            // Outside data window -- construct a clamped
-                            // iterator for just that pixel
-                            ImageBuf::ConstIterator<SRCTYPE> clamped = srcpel;
-                            clamped.pos (Imath::clamp (srcpel.x(), src.xmin(), src.xmax()),
-                                         Imath::clamp (srcpel.y(), src.ymin(), src.ymax()));
-                            for (int c = 0;  c < nchannels;  ++c)
-                                pel[c] += w * clamped[c];
                         }
                     }
                 }
@@ -1057,6 +1049,14 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 template bool ImageBufAlgo::transform<RotationTrans>(ImageBuf &dst, const ImageBuf &src,
                       Filter2D *filter, float filterwidth,
                         RotationTrans *t);
+
+template bool ImageBufAlgo::transform<ShearTrans>(ImageBuf &dst, const ImageBuf &src,
+                      Filter2D *filter, float filterwidth,
+                        ShearTrans *t);
+
+template bool ImageBufAlgo::transform<ResizeTrans>(ImageBuf &dst, const ImageBuf &src,
+                      Filter2D *filter, float filterwidth,
+                        ResizeTrans *t);
 
 template <typename TRANSTYPE>
 bool ImageBufAlgo::transform(ImageBuf &dst, const ImageBuf &src,

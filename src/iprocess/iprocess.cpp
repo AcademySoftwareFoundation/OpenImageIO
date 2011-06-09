@@ -90,7 +90,9 @@ static std::string filtername;
 static float filterwidth = 1.0f;
 static int resize_x = 0, resize_y = 0;
 static float rotation_angle = 0;
-static float centx = FLT_MAX, centy = FLT_MAX; //transformation center
+static float cent_x = FLT_MAX, cent_y = FLT_MAX; //transformation center
+static float scale_x = 0, scale_y = 0; //used for scale transformation
+static float shear_m = 0, shear_n = 0; //used for shear transformation
 
 
 
@@ -150,7 +152,9 @@ getargs (int argc, char *argv[])
                 "--filter %s %f", &filtername, &filterwidth, "Set the filter to use for resize",
                 "--resize %d %d", &resize_x, &resize_y, "Resize the image to x by y pixels",
                 "--rotate %f", &rotation_angle, "Rotates the image by x degrres",
-                "--center %f %f", &centx, &centy, "Set the transformation center x y",
+                "--center %f %f", &cent_x, &cent_y, "Set the transformation center x y",
+                "--scale %f %f", &scale_x, &scale_y, "Scale the image to x and y original width and height",
+                "--shear %f %f", &shear_m, &shear_n, "Shear the image with m and n coefficients (m - horizontal, n - vertical)",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
 	std::cerr << ap.geterror() << std::endl;
@@ -365,7 +369,11 @@ main (int argc, char *argv[])
             Filter2D::destroy (filter);
     }
 
-    if (rotation_angle) {
+    bool transformation =   rotation_angle ||
+                            (shear_m || shear_n) ||
+                            (scale_x && scale_y);
+
+    if (transformation) {
          if (filenames.size() != 1) {
             std::cerr << "iprocess: --rotate needs one input filename\n";
             exit (EXIT_FAILURE);
@@ -387,20 +395,35 @@ main (int argc, char *argv[])
         }
 
         ImageSpec outspec = in.spec();
+        if(scale_x && scale_y) {
+            outspec.width = in.spec().width * scale_x;
+            outspec.height = in.spec().height * scale_y;
+            outspec.full_width = in.spec().width * scale_x;
+            outspec.full_height = in.spec().height * scale_y;
+        }
         ImageBuf out (outputname, outspec);
         float pixel[3] = { .1, .1, .1 };
         ImageBufAlgo::fill (out, pixel);
 
-        if(centx == FLT_MAX && centy == FLT_MAX){
-            centx = ImageBuf(in).spec().full_width / 2.0f;
-            centy = ImageBuf(in).spec().full_height / 2.0f;
+        bool ok = false;
 
-         //   std::cout << centx << " " << centy << std::endl;
+        if(cent_x == FLT_MAX && cent_y == FLT_MAX){
+            cent_x = ImageBuf(in).spec().full_width / 2.0f;
+            cent_y = ImageBuf(in).spec().full_height / 2.0f;
         }
 
-        RotationTrans rt(rotation_angle, centx, centy);
-        
-        bool ok = ImageBufAlgo::transform(out, in, filter, filterwidth, &rt);
+        if(rotation_angle) {
+            RotationTrans t(rotation_angle, cent_x, cent_y);
+            ok = ImageBufAlgo::transform(out, in, filter, filterwidth, &t);
+        }
+        else if(shear_m || shear_n) {
+            ShearTrans t(shear_m, shear_n, cent_x, cent_y);
+            ok = ImageBufAlgo::transform(out, in, filter, filterwidth, &t);
+        }
+        else if(scale_x && scale_y) {
+            ResizeTrans t(scale_x, scale_y);
+            ok = ImageBufAlgo::transform(out, in, filter, filterwidth, &t);
+        }
 
         ASSERT (ok);
         out.save ();
@@ -408,6 +431,8 @@ main (int argc, char *argv[])
             Filter2D::destroy (filter);
 
     }
+
+
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
