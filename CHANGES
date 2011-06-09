@@ -1,6 +1,18 @@
 Changes:
 
 
+Release 0.9.3 updates (9 June 2011)
+-----------------------------------
+* ImageCache/TextureSystem: fix deadlock when file handles are exhausted.
+* maketx fixes: the -oiio command line option also enables hash generation;
+  resize properly if any of the dimensions change (previously only did
+  if ALL dimensions changed).
+* Fix for DPX file reading when number of channels not equal to 3.
+* Fix subtle bug in convert_type utility function that was causing a slight
+  incorrect rounding when converting float to a signed integer type.
+* Fix to compile properly against Boost 1.46.
+
+
 Release 0.9.2 updates (29 Mar 2011)
 -----------------------------------
 * Texture/ImageCache: New attribute "accept_unmipped" (default to 1),
@@ -64,7 +76,7 @@ Fixes, minor enhancements, and performance improvements:
 * SGI: add support for files with any number of channels (r1630).
 * PNG: improve PNG write speed by 4x by adjusting compression tradeoffs
   (r1677)
-* JPEG: assume sRGB unles EXIF says otherwise (r1693); fix broken JPEG
+* JPEG: assume sRGB unless EXIF says otherwise (r1693); fix broken JPEG
   4-channel to 3-channel conversion (r1696).
 * PNM: monochrome data was output incorrectly in both binary & ascii forms;
   adopt the Netbpm convention for endianness in the 16 bit case; open binary
