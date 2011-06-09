@@ -127,6 +127,8 @@ IffOutput::open (const std::string &name, const ImageSpec &spec,
     m_iff_header.tiles = tile_width_size (m_spec.width) * tile_height_size (m_spec.height);
     m_iff_header.pixel_bits = m_spec.format == TypeDesc::UINT8 ? 8 : 16;
     m_iff_header.pixel_channels = m_spec.nchannels;
+    m_iff_header.author = m_spec.get_string_attribute ("Artist");
+    m_iff_header.date = m_spec.get_string_attribute ("DateTime");
     
     if (!m_iff_header.write_header (m_fd)) {
         error ("\"%s\": could not write iff header", m_filename.c_str ());
