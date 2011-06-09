@@ -569,70 +569,6 @@ this manner:
   in some other way need to know about these special channels.
 \end{itemize}
 
-\subsubsection{Linearity hints}
-
-We certainly hope that you are using only modern file formats that
-support high precision and extended range pixels (such as OpenEXR) and
-keeping all your images in a linear color space.  But you may have to
-work with file formats that dictate the use of nonlinear color values.
-This is prevalent in formats that store pixels only as 8-bit values,
-since 256 values are not enough to linearly represent colors without
-banding artifacts in the dim values.
-
-Since this can (and probably will) happen, the \ImageSpec has
-fields that allow you to explain what color space your image pixels are
-in.  Each individual \ImageOutput should document how it uses this (or
-not).
-
-The \ImageSpec field {\cf linearity} can take on any of the
-following values:
-\begin{description}
-\item[\halfspc \rm \kw{ImageSpec::UnknownLinearity}] the default,
-  indicates that you have made no claim about the color space of your
-  pixel data.
-\item[\halfspc \rm \kw{ImageSpec::Linear}] indicates that the pixel
-  values you are passing repesent linear values.
-\item[\halfspc \rm \kw{ImageSpec::GammaCorrected}] indicates that the
-  color pixel values (but not alpha or $z$) that you are passing have
-  already been gamma corrected (raised to the power $1/\gamma$), and
-  that the gamma exponent may be found in the {\cf gamma} field of the
-  \ImageSpec.
-\item[\halfspc \rm \kw{ImageSpec::sRGB}] indicates that the color pixel
-  values that you are passing are already in sRGB color space.
-\item[\halfspc \rm \kw{ImageSpec::AdobeRGB}] indicates that the color pixel
-  values that you are passing are already in Adobe RGB color space.
-\item[\halfspc \rm \kw{ImageSpec::Rec709}] indicates that the color pixel
-  values that you are passing are already in Rec709 color space.
-\item[\halfspc \rm \kw{ImageSpec::KodakLog}] indicates that the color pixel
-  values that you are passing are already in Kodak logarithmic color space.
-\end{description}
-
-\noindent Here is a simple example of setting up the \ImageSpec
-when you know that the pixel values you are writing are linear:
-
-\begin{code}
-        ImageSpec spec (width, length, channels, format);
-        spec.linearity = ImageSpec::Linear;
-        ...
-\end{code}
-
-If a particular \ImageOutput implementation is required (by the rules of
-the file format it writes) to have pixels in a particular color space,
-then it will convert the color values of your image to the right color
-space if it is not already in that space.  For example, JPEG images
-must be in sRGB space, so if you declare your pixels to be {\kw Linear},
-the JPEG \ImageOutput will convert to sRGB.
-
-If you leave the linearity set to the default of {\cf UnknownLinearity},
-the values will not be transformed, since the plugin can't be sure that
-it's not in the correct space to begin with.  
-
-The linearity only describes color channels.  An \ImageOutput plugin
-will assume that alpha or depth ($z$) channels (designated by the {\cf
-  alpha_channel} and {\cf z_channel} fields, respectively) always
-represent linear values and should never be transformed.
-
-
 \subsubsection{Arbitrary metadata}
 
 For all other metadata that you wish to save in the file, you can attach
@@ -685,6 +621,68 @@ be saved with the file.
 
 Each individual \ImageOutput implementation should document the names,
 types, and meanings of all metadata attributes that they understand.
+
+
+\subsubsection{Color space hints}
+
+We certainly hope that you are using only modern file formats that
+support high precision and extended range pixels (such as OpenEXR) and
+keeping all your images in a linear color space.  But you may have to
+work with file formats that dictate the use of nonlinear color values.
+This is prevalent in formats that store pixels only as 8-bit values,
+since 256 values are not enough to linearly represent colors without
+banding artifacts in the dim values.
+
+Since this can (and probably will) happen, we have a convention
+for explaining what color space your image pixels are
+in.  Each individual \ImageOutput should document how it uses this (or
+not).
+
+The {\cf ImageSpec::extra_attribs} field should store metadata that
+reveals the color space of the pixels you are sending the ImageOutput.
+The \qkw{oiio:ColorSpace} attribute may take on any of the following
+values:
+
+\begin{description}
+\item[\halfspc \rm \qkw{Linear}] indicates that the
+  color pixel values are known to be linear.
+\item[\halfspc \rm \qkw{GammaCorrected}] indicates
+  that the color pixel values (but not alpha or $z$) have
+  already been gamma corrected (raised to the power $1/\gamma$), and
+  that the gamma exponent may be found in the \qkw{oiio:Gamma} metadata.
+\item[\halfspc \rm \qkw{sRGB}] indicates that the
+  color pixel values are in sRGB color space.
+\item[\halfspc \rm \qkw{AdobeRGB}] indicates that the
+  color pixel values are in Adobe RGB color space.
+\item[\halfspc \rm \qkw{Rec709}] indicates that the
+  color pixel values are in Rec709 color space.
+\item[\halfspc \rm \qkw{KodakLog}] indicates that the
+  color pixel values are in Kodak logarithmic color space.
+\end{description}
+
+\noindent The color space hints only describe color channels.  You should always
+pass alpha, depth, or other non-color channels with linear values.
+
+Here is a simple example of setting up the \ImageSpec
+when you know that the pixel values you are writing are linear:
+
+\begin{code}
+        ImageSpec spec (width, length, channels, format);
+        spec.attribute ("oiio:ColorSpace", "Linear");
+        ...
+\end{code}
+
+If a particular \ImageOutput implementation is required (by the rules of
+the file format it writes) to have pixels in a particular color space,
+then it should try to convert the color values of your image to the right color
+space if it is not already in that space.  For example, JPEG images
+must be in sRGB space, so if you declare your pixels to be \qkw{Linear},
+the JPEG \ImageOutput will convert to sRGB.
+
+If you leave the \qkw{oiio:ColorSpace} unset, the values will not be
+transformed, since the plugin can't be sure that it's not in the correct
+space to begin with.
+
 
 
 \subsection{Controlling quantization}

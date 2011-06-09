@@ -373,54 +373,6 @@ safer to respect the {\cf alpha_channel} and {\cf z_channel}
 designations (if not set to {\cf -1}) rather than merely assuming that,
 for example, channel 3 is always the alpha channel.
 
-\subsubsection{Linearity hints}
-
-We certainly hope that you are using only modern file formats that
-support high precision and extended range pixels (such as OpenEXR) and
-keeping all your images in a linear color space.  But you may have to
-work with file formats that dictate the use of nonlinear color values.
-This is prevalent in formats that store pixels only as 8-bit values,
-since 256 values are not enough to linearly represent colors without
-banding artifacts in the dim values.
-
-The \ImageSpec has a field that reveals what color space the
-image file is using.  Each individual \ImageInput is responsible for
-setting this properly.
-
-The \ImageSpec field {\cf linearity} can take on any of the
-following values:
-\begin{description}
-\item[\halfspc \rm \kw{ImageSpec::UnknownLinearity}] indicates
-  indicates it's unkown what color space the image file is using.
-\item[\halfspc \rm \kw{ImageSpec::Linear}] indicates that the
-  color pixel values are known to be linear.
-\item[\halfspc \rm \kw{ImageSpec::GammaCorrected}] indicates
-  that the color pixel values (but not alpha or $z$) in the file have
-  already been gamma corrected (raised to the power $1/\gamma$), and
-  that the gamma exponent may be found in the {\cf gamma} field of the
-  \ImageSpec.
-\item[\halfspc \rm \kw{ImageSpec::sRGB}] indicates that the
-  color pixel values in the file are in sRGB color space.
-\item[\halfspc \rm \kw{ImageSpec::AdobeRGB}] indicates that the
-  color pixel values in the file are in Adobe RGB color space.
-\item[\halfspc \rm \kw{ImageSpec::Rec709}] indicates that the
-  color pixel values in the file are in Rec709 color space.
-\item[\halfspc \rm \kw{ImageSpec::Kodak}] indicates that the
-  color pixel values in the file are in Kodak logarithmic color space.
-\end{description}
-
-The \ImageInput sets the {\cf ImageSpec::linearity} field in a
-purely advisory capacity --- the {\cf read} will not convert pixel
-values among color spaces.  Many image file formats only support
-nonlinear color spaces (for example, JPEG/JFIF dictates use of sRGB).
-So your application should intelligently deal with gamma-corrected and
-sRGB input.
-
-The linearity only describes color channels.  You should assume that
-alpha or depth ($z$) channels (designated by the {\cf alpha_channel} and
-{\cf z_channel} fields, respectively) always represent linear values and
-should never be transformed by your application.
-
 \subsubsection{Arbitrary metadata}
 
 All other metadata found in the file will be stored in the
@@ -484,6 +436,49 @@ This can be accomplished using the technique of the following example:
 
 Each individual \ImageInput implementation should document the names,
 types, and meanings of all metadata attributes that they understand.
+
+\subsubsection{Color space hints}
+
+We certainly hope that you are using only modern file formats that
+support high precision and extended range pixels (such as OpenEXR) and
+keeping all your images in a linear color space.  But you may have to
+work with file formats that dictate the use of nonlinear color values.
+This is prevalent in formats that store pixels only as 8-bit values,
+since 256 values are not enough to linearly represent colors without
+banding artifacts in the dim values.
+
+The {\cf ImageSpec::extra_attribs} field may store metadata that reveals
+the color space the image file in the \qkw{oiio:ColorSpace}
+attribute, which may take on any of the following values:
+
+\begin{description}
+\item[\halfspc \rm \qkw{Linear}] indicates that the
+  color pixel values are known to be linear.
+\item[\halfspc \rm \qkw{GammaCorrected}] indicates
+  that the color pixel values (but not alpha or $z$) have
+  already been gamma corrected (raised to the power $1/\gamma$), and
+  that the gamma exponent may be found in the \qkw{oiio:Gamma} metadata.
+\item[\halfspc \rm \qkw{sRGB}] indicates that the
+  color pixel values are in sRGB color space.
+\item[\halfspc \rm \qkw{AdobeRGB}] indicates that the
+  color pixel values are in Adobe RGB color space.
+\item[\halfspc \rm \qkw{Rec709}] indicates that the
+  color pixel values are in Rec709 color space.
+\item[\halfspc \rm \qkw{KodakLog}] indicates that the
+  color pixel values are in Kodak logarithmic color space.
+\end{description}
+
+The \ImageInput sets the \qkw{oiio:ColorSpace} metadata in a
+purely advisory capacity --- the {\cf read} will not convert pixel
+values among color spaces.  Many image file formats only support
+nonlinear color spaces (for example, JPEG/JFIF dictates use of sRGB).
+So your application should intelligently deal with gamma-corrected and
+sRGB input, at the very least.
+
+The color space hints only describe color channels.  You should assume that
+alpha or depth ($z$) channels (designated by the {\cf alpha_channel} and
+{\cf z_channel} fields, respectively) always represent linear values and
+should never be transformed by your application.
 
 
 %\subsection{Controlling quantization and encoding}
@@ -698,12 +693,12 @@ elaborated with error checking and reporting:
 \end{code}
 
 
-
+\newpage
 \section{\ImageInput Class Reference}
 \label{sec:imageinput:reference}
 
 \apiitem{ImageInput * {\ce create} (const std::string \&filename, \\
-\bigspc\bigspc\spc   const std::string \&plugin_searchpath="")}
+\bigspc\bigspc   const std::string \&plugin_searchpath="")}
 Create and return an \ImageInput implementation that is able
 to read the given file.  The {\kw plugin_searchpath} parameter is a
 colon-separated list of directories to search for \product plugin
@@ -777,7 +772,7 @@ subimages and levels.
 \apiend
 
 \apiitem{bool {\ce read_scanline} (int y, int z, TypeDesc format, void *data,\\
-  \bigspc                      stride_t xstride=AutoStride)}
+  \bigspc\spc\spc                      stride_t xstride=AutoStride)}
 
 Read the scanline that includes pixels $(*,y,z)$ into {\kw data}
 ($z=0$ for non-volume images),

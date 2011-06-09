@@ -164,8 +164,6 @@ format specification of a single image.  It contains:
 \item The number of color channels in the image (e.g., 3 for RGB
   images), names of the channels, and whether any particular channels
   represent \emph{alpha} and \emph{depth}.
-\item Any presumed gamma correction or hints about color space of
-  the pixel values.
 \item Quantization parameters describing how floating point values
   should be converted to integers (in cases where users pass real values
   but integer values are stored in the file).  This is used only when
@@ -266,36 +264,6 @@ or if it is not known which channel represents alpha.
 The index of the channel that respresents \emph{z} or \emph{depth} (from
 the camera).  It defaults to -1 if no depth channel is present, or if it
 is not know which channel represents depth.
-\apiend
-
-\apiitem{LinearitySpec linearity}
-Describes the mapping of pixel values to real-world units.  
-{\cf LinearitySpec} is
-an enumerated type that may take on the following values:
-\begin{itemize}
-\item[] 
-\item {\cf Linear} (the default) indicates that pixel values map
-  linearly.
-\item {\cf GammaCorrected} indicates that the color pixel values have
-  already been gamma corrected, using the exponent given by the {\cf
-    gamma} field.  (It is still assumed that non-color values, such as
-  alpha and depth, are linear.)
-\item {\cf sRGB} indicates that color values are encoded using the sRGB
-  mapping.  (It is still assumed that non-color values are linear.)
-\item {\cf AdobeRGB} indictes that the values are encoded in the
-Adobe RGB color space. (It is still assumed that non-color values are linear.)
-\item {\cf Rec709} indicates that color values are encoded using the 
-  Rec709 mapping.  (It is still assumed that non-color values are linear.)
-\item {\cf KodakLog} indicates that color values are encoded using the 
-  Kodak logaithmic mapping.  (It is still assumed that non-color values are linear.)
-\end{itemize}
-\apiend
-
-\apiitem{float gamma}
-The gamma exponent, if the pixel values in the image have already been
-gamma corrected (indicated by {\cf linearity} having a value of {\cf
-GammaCorrected}).  The default of 1.0 indicates that no gamma
-correction has been applied.
 \apiend
 
 \apiitem{int quant_black, quant_white, quant_min, quant_max;}
