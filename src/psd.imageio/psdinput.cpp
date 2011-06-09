@@ -1,5 +1,5 @@
 /*
-  Copyright 2008 Larry Gritz and the other authors and contributors.
+  Copyright 2011 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
