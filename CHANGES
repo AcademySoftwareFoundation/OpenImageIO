@@ -1,6 +1,92 @@
 Changes:
 
 
+Release 0.10 (June 9 2010)
+--------------------------
+
+Major new features and improvements:
+
+* TextureSystem: fix longstanding texture quality issues: underestimation
+  of anisotropic filter footprint, improved metric for determining when to
+  switch to bicubic filtering, better MIP level selection for non-square
+  images.
+* maketx --filter allows you to specify the filter for resizing and 
+  downsizing to generate MIPmap levels (this lets you choose a filter
+  that is better than the default "box").
+* TextureSystem option "gray_to_rgb", when set to nonzero, promotes 
+  grayscale (single channel) texture lookups to RGB (rather than using
+  the fill color for missing channel.
+* IFF (Maya) support from Mikael Sundell.
+
+API changes:
+
+* TextureSystem has additional API entry points for apps that want to
+  retrieve an opaque texture handle and per-thread info and then pass it
+  back to texture lookups, saving some name resolution and per-thread
+  retrieval time.  (The old routines that do this all automatically still
+  work just fine.)
+* New ImageBufAlgo utilities: setNumChannels, isConstantColor, isMonochrome,
+  computePixelHashSHA1, transform.
+
+Fixes, minor enhancements, and performance improvements:
+
+* ImageCache/TextuerSystem:
+  - option "accept_untiled" wasn't properly recognized (0.9.1); new
+    attribute "accept_unmipped" (default to 1), when set to zero, will
+    treat any un-MIPmapped file as an error (analogous to the existing
+    "accept_untiled") (0.9.2);
+  - fix deadlock when file handles are exhausted (0.9.3);
+    invalidate_all() no longer closes all files unconditionally, only
+    the ones actually invalidated;
+  - fix longstanding problem where multiple threads could redundantly
+    open and read the same file if they need it simultaneously and it
+    isn't in cache already;
+  - get_pixels issues a single error from a corrupt file, rather than
+    reporting error after error on the same file.
+* Texture: Fixes to make latlong environment maps more correct for OpenEXR
+  files, which have some particular unique conventions. (0.9.1); 
+  bug fix to TextureOpt default initializer that could screw up texture
+  lookups. (0.9.1)
+* maketx fixes: the -oiio command line option also enables hash generation;
+  resize properly if any of the dimensions change (previously only did
+  if ALL dimensions changed) (0.9.3); --nchannels lets you set the number 
+  of output channels.
+
+* Added ImageBufAlgo::transform to allow for 'flip' & 'flop' in iprocess.
+  (0.9.1)
+* DPX: fix file reading when number of channels not equal to 3 (0.9.3);
+  support for endianness specification, fix lots of problems writing metadata.
+* BMP: RGB-to-BGR conversion fixed, force UINT8 output; scanline size was
+  incorrect when copying to temporary buffers.
+* JPEG: reader is more robust to corrupted files and other problems.
+* JPEG-2000: support files with more than 8 bits per channel.
+* Targa: properly expand 5 bit per channel to full bytes.
+* Fixed incorrectly set "ResolutionUnit" and "BitsPerSample" usage in several
+  format plugins.
+* Improved handling of file formats that allow unassociated alpha.
+* iv: display non-Latin filenames properly.
+* iconvert --noclobber option ensures that existing files aren't overwritten.
+* iinfo: fixes to properly print subimage and mipmap statistics.
+
+For developers / build issues:
+
+* Fix USE_TBB macro on Windows build. (0.9.1)
+* Fixes required for Windows compile in conjunction with OSL. (0.9.1)
+* Removed some pointless debugging output to the console. (0.9.1)
+* Fix subtle bug in convert_type utility function that was causing a slight
+  incorrect rounding when converting float to a signed integer type. (0.9.3)
+* Fix to compile properly against Boost 1.46. (0.9.3)
+* Update pugixml from 0.5 to 1.0.
+* Remove boost::test and gtest as dependencies, use our own macros.
+* Fixes to allow use of libtiff 4.0.
+* make USE_JASPER=0 USE_FIELD3D=0 make it easy to disable Jasper and
+  Field3D as dependencies.
+* Various fixes to make cleaner compiles with clang.
+* ustring: Added find* methods that match those of std::string, expose
+  make_unique, is_unique, and from_unique helper functions.
+* Add Filesystem::exists and Filesystem::is_directory.
+
+
 
 Release 0.9 (Dec 9 2010, updated Feb 23, 2011)
 ----------------------------------------------
@@ -18,6 +104,7 @@ Major new features:
 * Support for per-channel data formats via the new ImageSpec::channelformats
   vector and interpreting read_foo/write_foo format parameter of UKNOWN
   as a request for the true native format.  (r1674)
+* Full support of TextureSystem environment() for lat-long maps.
 
 API changes:
 
@@ -45,7 +132,7 @@ Fixes, minor enhancements, and performance improvements:
 * SGI: add support for files with any number of channels (r1630).
 * PNG: improve PNG write speed by 4x by adjusting compression tradeoffs
   (r1677)
-* JPEG: assume sRGB unles EXIF says otherwise (r1693); fix broken JPEG
+* JPEG: assume sRGB unless EXIF says otherwise (r1693); fix broken JPEG
   4-channel to 3-channel conversion (r1696).
 * PNM: monochrome data was output incorrectly in both binary & ascii forms;
   adopt the Netbpm convention for endianness in the 16 bit case; open binary

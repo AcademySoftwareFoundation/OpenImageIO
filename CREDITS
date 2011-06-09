@@ -23,11 +23,15 @@ Major contributors (roughly in order of joining the project):
     Alan Jones           Softimage PIC
     Krzysztof Blicharski sockets
     Nuno Cardoso         PNM
+    Mikael Sundell       IFF
+    Jeremy Selan         Color space issues, maketx improvements
 
 Other contributors (alphabetically):
 
     Vishal Agrawal
     Jeph Alapat
+    Jeremy Selan
+    Basileios Anastasatos
     Krzysztof Blicharski
     Solomon Boulos
     Duncan Chan
@@ -35,18 +39,25 @@ Other contributors (alphabetically):
     Nandan Dubey
     Marcos Fajardo
     Vitor Franchi
+    Manuel Gamito
     Ananth Garre
     Puneet Jain
+    Saket Jalan
     Pavel Karneliuk
+    Vinod Khare
     Konrad Kleine
+    Alexander Kuleshov
+    Lukasz Maliszewski
     Rui Li
     Ryen
     M Joonas Pihlaja
-    Jeremy Selan
+    Carl Rand
     Cliff Stein
     Ott Tinn
     Edgar Velazquez-Armendariz
+    Brecht Van Lommel
     Wormszer
+    Daniel Wyatt
     Xo Wang
 
 
