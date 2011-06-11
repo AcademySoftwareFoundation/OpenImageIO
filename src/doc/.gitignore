@@ -3,3 +3,5 @@
 *.log
 *.out
 *.toc
+/openimageio.ilg
+/openimageio.ind
