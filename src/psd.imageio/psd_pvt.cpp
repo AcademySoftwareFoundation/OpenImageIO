@@ -195,17 +195,17 @@ PSDFileHeader::validate () const
         return "[header] invalid depth";
 
     switch (color_mode) {
-        case COLOR_MODE_BITMAP :
-        case COLOR_MODE_GRAYSCALE :
-        case COLOR_MODE_INDEXED :
-        case COLOR_MODE_RGB :
-        case COLOR_MODE_CMYK :
-        case COLOR_MODE_MULTICHANNEL :
-        case COLOR_MODE_DUOTONE :
-        case COLOR_MODE_LAB :
+        case ColorMode_Bitmap :
+        case ColorMode_Grayscale :
+        case ColorMode_Indexed :
+        case ColorMode_RGB :
+        case ColorMode_CMYK :
+        case ColorMode_Multichannel :
+        case ColorMode_Duotone :
+        case ColorMode_Lab :
             break;
         default:
-            return "[header] invalid color mode";
+            return "[header] unrecognized color mode";
     }
     return "";
 }
@@ -235,10 +235,10 @@ PSDColorModeData::read (std::ifstream &inf)
 std::string
 PSDColorModeData::validate () const
 {
-    if (m_header.color_mode == COLOR_MODE_DUOTONE && length == 0)
+    if (m_header.color_mode == ColorMode_Duotone && length == 0)
         return "[color mode data] color mode data should be present for duotone image";
 
-    if (m_header.color_mode == COLOR_MODE_INDEXED && length != 768)
+    if (m_header.color_mode == ColorMode_Indexed && length != 768)
         return "[color mode data] length should be 768 for indexed color mode";
 
     return "";
@@ -346,9 +346,6 @@ bool load_resource_1036 (std::ifstream &inf, const PSDImageResourceBlock &resour
     read_bige<uint16_t> (inf, bpp);
     read_bige<uint16_t> (inf, planes);
     inf.read (&data[0], jpeg_length);
-    spec.attribute ("thumbnail_width", (int)width);
-    spec.attribute ("thumbnail_height", (int)height);
-    spec.attribute ("thumbnail_nchannels", 3);
     if (!inf)
         return false;
 
@@ -380,6 +377,9 @@ bool load_resource_1036 (std::ifstream &inf, const PSDImageResourceBlock &resour
     }
     jpeg_finish_decompress (&cinfo);
     jpeg_destroy_decompress (&cinfo);
+    spec.attribute ("thumbnail_width", (int)width);
+    spec.attribute ("thumbnail_height", (int)height);
+    spec.attribute ("thumbnail_nchannels", 3);
     return true;
 }
 
