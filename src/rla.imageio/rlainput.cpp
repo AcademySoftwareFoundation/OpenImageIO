@@ -56,6 +56,7 @@ public:
 private:
     std::string m_filename;           ///< Stash the filename
     FILE *m_file;                     ///< Open image handle
+    WAVEFRONT m_rla;                  ///< Wavefront RLA header
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
 
     /// Reset everything to initial state
@@ -106,8 +107,116 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
         error ("Could not open file \"%s\"", name.c_str());
         return false;
     }
+    
+    // due to struct packing, we may get a corrupt header if we just load the
+    // struct from file; to adress that, read every member individually
+    // save some typing
+#define RH(memb)  if (! fread (&m_rla.memb, sizeof (m_rla.memb), 1)) \
+                      return false
+    RH(WindowLeft);
+    RH(WindowRight);
+    RH(WindowBottom);
+    RH(WindowTop);
+    RH(ActiveLeft);
+    RH(ActiveRight);
+    RH(ActiveBottom);
+    RH(ActiveTop);
+    RH(FrameNumber);
+    RH(ColorChannelType);
+    RH(NumOfColorChannels);
+    RH(NumOfMatteChannels);
+    RH(NumOfAuxChannels);
+    RH(Revision);
+    RH(Gamma);
+    RH(RedChroma);
+    RH(GreenChroma);
+    RH(BlueChroma);
+    RH(WhitePoint);
+    RH(JobNumber);
+    RH(FileName);
+    RH(Description);
+    RH(ProgramName);
+    RH(MachineName);
+    RH(UserName);
+    RH(DateCreated);
+    RH(Aspect);
+    RH(AspectRatio);
+    RH(ColorChannel);
+    RH(Field);
+    RH(Time);
+    RH(Filter);
+    RH(NumOfChannelBits);
+    RH(MatteChannelType);
+    RH(NumOfMatteBits);
+    RH(AuxChannelType);
+    RH(NumOfAuxBits);
+    RH(AuxData);
+    RH(Reserved);
+    RH(NextOffset);
+#undef RH
+    if (littleendian()) {
+        // RLAs are big-endian
+        swap_endian (&m_rla.WindowLeft);
+        swap_endian (&m_rla.WindowRight);
+        swap_endian (&m_rla.WindowBottom);
+        swap_endian (&m_rla.WindowTop);
+        swap_endian (&m_rla.ActiveLeft);
+        swap_endian (&m_rla.ActiveRight);
+        swap_endian (&m_rla.ActiveBottom);
+        swap_endian (&m_rla.ActiveTop);
+        swap_endian (&m_rla.FrameNumber);
+        swap_endian (&m_rla.ColorChannelType);
+        swap_endian (&m_rla.NumOfColorChannels);
+        swap_endian (&m_rla.NumOfMatteChannels);
+        swap_endian (&m_rla.NumOfAuxChannels);
+        swap_endian (&m_rla.Revision);
+        swap_endian (&m_rla.JobNumber);
+        swap_endian (&m_rla.Field);
+        swap_endian (&m_rla.NumOfChannelBits);
+        swap_endian (&m_rla.MatteChannelType);
+        swap_endian (&m_rla.NumOfMatteBits);
+        swap_endian (&m_rla.AuxChannelType);
+        swap_endian (&m_rla.NumOfAuxBits);
+        swap_endian (&m_rla.NextOffset);
+    }
+    
+    if (m_rla.ColorChannelType > CT_FLOAT) {
+        error ("Illegal color channel type: %d", m_rla.ColorChannelType);
+        return false;
+    }
+    
+    if (m_rla.MatteChannelType > CT_FLOAT) {
+        error ("Illegal matte channel type: %d", m_rla.MatteChannelType);
+        return false;
+    }
+    
+    if (m_rla.AuxChannelType > CT_FLOAT) {
+        error ("Illegal auxiliary channel type: %d", m_rla.AuxChannelType);
+        return false;
+    }
+    
+    // pick the highest-precision type
+    int ct = std::max (m_rla.ColorChannelType, std::max (m_rla.MatteChannelType,
+                                                         m_rla.AuxChannelType));
+    
+    m_spec = ImageSpec (std::abs (m_rla.ActiveRight - m_rla.ActiveLeft) + 1,
+                        std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1,
+                        m_rla.NumOfColorChannels
+                            + m_rla.NumOfMatteChannels
+                            + m_rla.NumOfAuxChannels,
+                        ct == CT_BYTE ? TypeDesc::UINT8
+                            : (ct == CT_WORD ? TypeDesc::UINT16
+                                : (ct == CT_DWORD ? TypeDesc::UINT32
+                                    : TypeDesc::FLOAT)));
+    m_spec.attribute ("oiio:BitsPerSample", m_spec.nchannels
+                                            * 8 * std::min (32, 1 << ct));
+    // make a guess at channel names for the time being
+    m_spec.default_channel_names ();
+    // this is always true
+    m_spec.attribute ("compression", "rle");
 
-    return false;
+    newspec = spec ();
+    return true;
 }
 
 
