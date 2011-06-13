@@ -39,6 +39,9 @@
 #include "imageio.h"
 #include "fmath.h"
 
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::iequals;
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace RLA_pvt;
@@ -78,6 +81,10 @@ private:
             error ("Read error");
         return n == nitems;
     }
+    
+    /// Helper function: translate 3-letter month abbreviation to number.
+    ///
+    inline int get_month_number (const char *s);
 };
 
 
@@ -198,6 +205,8 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
     // pick the highest-precision type
     int ct = std::max (m_rla.ColorChannelType, std::max (m_rla.MatteChannelType,
                                                          m_rla.AuxChannelType));
+    int bits = std::max (m_rla.NumOfChannelBits, std::max (m_rla.NumOfMatteBits,
+                                                           m_rla.NumOfAuxBits));
     
     m_spec = ImageSpec (std::abs (m_rla.ActiveRight - m_rla.ActiveLeft) + 1,
                         std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1,
@@ -208,12 +217,105 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
                             : (ct == CT_WORD ? TypeDesc::UINT16
                                 : (ct == CT_DWORD ? TypeDesc::UINT32
                                     : TypeDesc::FLOAT)));
-    m_spec.attribute ("oiio:BitsPerSample", m_spec.nchannels
-                                            * 8 * std::min (32, 1 << ct));
+    m_spec.attribute ("oiio:BitsPerSample", m_spec.nchannels * bits);
     // make a guess at channel names for the time being
     m_spec.default_channel_names ();
     // this is always true
     m_spec.attribute ("compression", "rle");
+    
+    if (m_rla.DateCreated[0]) {
+        char month[4] = {0, 0, 0, 0};
+        int d, h, M, m, y;
+        if (sscanf (m_rla.DateCreated, "%c%c%c %d %d:%d %d",
+            month + 0, month + 1, month + 2, &d, &h, &m, &y) == 7) {
+            M = get_month_number (month);
+            if (M > 0) {
+                // construct a date/time marker in OIIO convention
+                char buf[20];
+                sprintf(buf, "%4d:%02d:%02d %02d:%02d:00", y, M, d, h, m);
+                m_spec.attribute ("DateTime", buf);
+            }
+        }
+    }
+    
+    if (m_rla.Description[0])
+        m_spec.attribute ("ImageDescription", m_rla.Description);
+    
+    // save some typing by using macros
+#define RLA_SET_ATTRIB(x)               if (m_rla.x > 0) \
+                                            m_spec.attribute ("rla:"#x, m_rla.x)
+#define RLA_SET_ATTRIB_STR(x)           if (m_rla.x[0]) \
+                                            m_spec.attribute ("rla:"#x, m_rla.x)
+    RLA_SET_ATTRIB(FrameNumber);
+    RLA_SET_ATTRIB(Revision);
+    RLA_SET_ATTRIB(JobNumber);
+    RLA_SET_ATTRIB(Field);
+    RLA_SET_ATTRIB_STR(FileName);
+    RLA_SET_ATTRIB_STR(ProgramName);
+    RLA_SET_ATTRIB_STR(MachineName);
+    RLA_SET_ATTRIB_STR(UserName);
+    RLA_SET_ATTRIB_STR(Aspect);
+    RLA_SET_ATTRIB_STR(ColorChannel);
+    RLA_SET_ATTRIB_STR(Time);
+    RLA_SET_ATTRIB_STR(Filter);
+    RLA_SET_ATTRIB_STR(AuxData);
+#undef RLA_SET_ATTRIB_STR
+#undef RLA_SET_ATTRIB
+
+    float f[2]; // variable will be reused for chroma, thus the array
+    f[0] = atof (m_rla.Gamma);
+    if (f[0] > 0.f) {
+        if (f[0] == 1.f)
+            m_spec.attribute ("oiio:ColorSpace", "Linear");
+        else {
+            m_spec.attribute ("oiio:ColorSpace", "GammaCorrected");
+            m_spec.attribute ("oiio:Gamma", f[0]);
+        }
+    }
+    
+    f[0] = atof (m_rla.AspectRatio);
+    if (f[0] > 0.f)
+        m_spec.attribute ("rla:AspectRatio", f[0]);
+    
+    // read chromaticity points
+    // FIXME: handle 3D points for XYZ space as well
+    char *p;
+    if (m_rla.RedChroma[0]) {
+        p = strchr (m_rla.RedChroma, ' ');
+        if (p && p - m_rla.RedChroma < (ptrdiff_t)sizeof(m_rla.RedChroma))
+            *p++ = 0;
+        f[0] = atof (m_rla.RedChroma);
+        f[1] = atof (p);
+        m_spec.attribute ("rla:RedChroma", TypeDesc(TypeDesc::FLOAT,
+                          TypeDesc::VEC2, TypeDesc::POINT), f);
+    }
+    if (m_rla.GreenChroma[0]) {
+        p = strchr (m_rla.GreenChroma, ' ');
+        if (p && p - m_rla.GreenChroma < (ptrdiff_t)sizeof(m_rla.GreenChroma))
+            *p++ = 0;
+        f[0] = atof (m_rla.GreenChroma);
+        f[1] = atof (p);
+        m_spec.attribute ("rla:GreenChroma", TypeDesc(TypeDesc::FLOAT,
+                          TypeDesc::VEC2, TypeDesc::POINT), f);
+    }
+    if (m_rla.BlueChroma[0]) {
+        p = strchr (m_rla.BlueChroma, ' ');
+        if (p && p - m_rla.BlueChroma < (ptrdiff_t)sizeof(m_rla.BlueChroma))
+            *p++ = 0;
+        f[0] = atof (m_rla.BlueChroma);
+        f[1] = atof (p);
+        m_spec.attribute ("rla:BlueChroma", TypeDesc(TypeDesc::FLOAT,
+                          TypeDesc::VEC2, TypeDesc::POINT), f);
+    }
+    if (m_rla.WhitePoint[0]) {
+        p = strchr (m_rla.WhitePoint, ' ');
+        if (p && p - m_rla.WhitePoint < (ptrdiff_t)sizeof(m_rla.WhitePoint))
+            *p++ = 0;
+        f[0] = atof (m_rla.WhitePoint);
+        f[1] = atof (p);
+        m_spec.attribute ("rla:WhitePoint", TypeDesc(TypeDesc::FLOAT,
+                          TypeDesc::VEC2, TypeDesc::POINT), f);
+    }
 
     newspec = spec ();
     return true;
@@ -252,6 +354,38 @@ RLAInput::read_native_scanline (int y, int z, void *data)
     size_t size = spec().scanline_bytes();
     memcpy (data, &m_buf[0] + y * size, size);
     return true;
+}
+
+
+
+inline int
+RLAInput::get_month_number (const char *s)
+{
+    if (iequals (s, "jan"))
+        return 1;
+    if (iequals (s, "feb"))
+        return 2;
+    if (iequals (s, "mar"))
+        return 3;
+    if (iequals (s, "apr"))
+        return 4;
+    if (iequals (s, "may"))
+        return 5;
+    if (iequals (s, "jun"))
+        return 6;
+    if (iequals (s, "jul"))
+        return 7;
+    if (iequals (s, "aug"))
+        return 8;
+    if (iequals (s, "sep"))
+        return 9;
+    if (iequals (s, "oct"))
+        return 10;
+    if (iequals (s, "nov"))
+        return 11;
+    if (iequals (s, "dec"))
+        return 12;
+    return -1;
 }
 
 OIIO_PLUGIN_NAMESPACE_END
