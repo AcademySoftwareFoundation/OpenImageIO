@@ -54,8 +54,7 @@ private:
     psd_pvt::PSDImageResourceSection m_image_resources; ///< Image resources section
     /// Reset everything to initial state
     ///
-    void init () {
-    }
+    void init ();
 
     void load_resources (ImageSpec &spec);
 };
@@ -102,7 +101,7 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     READ_SECTION (m_header)
     READ_SECTION (m_color_mode);
     READ_SECTION (m_image_resources);
-    return m_file;
+    return true;
 }
 
 #undef READ_SECTION
@@ -122,6 +121,14 @@ bool
 PSDInput::read_native_scanline (int y, int z, void *data)
 {
     return false;
+}
+
+
+
+void
+PSDInput::init ()
+{
+    m_file.close ();
 }
 
 
