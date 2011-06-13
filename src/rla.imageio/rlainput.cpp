@@ -242,10 +242,21 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
         m_spec.attribute ("ImageDescription", m_rla.Description);
     
     // save some typing by using macros
+#define RLA_SET_ATTRIB_NOCHECK(x)       m_spec.attribute ("rla:"#x, m_rla.x)
 #define RLA_SET_ATTRIB(x)               if (m_rla.x > 0) \
-                                            m_spec.attribute ("rla:"#x, m_rla.x)
+                                            RLA_SET_ATTRIB_NOCHECK(x)
 #define RLA_SET_ATTRIB_STR(x)           if (m_rla.x[0]) \
-                                            m_spec.attribute ("rla:"#x, m_rla.x)
+                                            RLA_SET_ATTRIB_NOCHECK(x)
+    // zeroes are perfectly fine values for these
+    RLA_SET_ATTRIB_NOCHECK(WindowLeft);
+    RLA_SET_ATTRIB_NOCHECK(WindowRight);
+    RLA_SET_ATTRIB_NOCHECK(WindowBottom);
+    RLA_SET_ATTRIB_NOCHECK(WindowTop);
+    RLA_SET_ATTRIB_NOCHECK(ActiveLeft);
+    RLA_SET_ATTRIB_NOCHECK(ActiveRight);
+    RLA_SET_ATTRIB_NOCHECK(ActiveBottom);
+    RLA_SET_ATTRIB_NOCHECK(ActiveTop);
+    
     RLA_SET_ATTRIB(FrameNumber);
     RLA_SET_ATTRIB(Revision);
     RLA_SET_ATTRIB(JobNumber);
