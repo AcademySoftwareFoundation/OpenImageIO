@@ -245,7 +245,13 @@ endif ()
 # end Field3d setup
 ###########################################################################
 
+# OpenJpeg
+if (USE_OPENJPEG)
+    find_package (OpenJpeg)
+endif()
+# end OpenJpeg setup_path
 ###########################################################################
+
 # WebP setup
     message (STATUS "WEBP_HOME=${WEBP_HOME}")
     find_path (WEBP_INCLUDE_DIR webp/encode.h

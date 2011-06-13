@@ -1,5 +1,5 @@
 /*
-  Copyright 2008 Larry Gritz and the other authors and contributors.
+  Copyright 2011 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -27,11 +27,97 @@
 
   (This is the Modified BSD License)
 */
-
+#include <cstdio>
+#include <vector>
+#include <openjpeg.h>
+#include "fmath.h"
 #include "imageio.h"
-#include "jpeg2000_pvt.h"
+
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
+
+
+static void openjpeg_dummy_callback(const char*, void*) {}
+
+
+class Jpeg2000Input : public ImageInput {
+ public:
+    Jpeg2000Input () { init (); }
+    virtual ~Jpeg2000Input () { close (); }
+    virtual const char *format_name (void) const { return "jpeg2000"; }
+    virtual bool open (const std::string &name, ImageSpec &spec);
+    virtual bool close (void);
+    virtual bool read_native_scanline (int y, int z, void *data);
+
+ private:
+    std::string m_filename;
+    int m_maxPrecision;
+    opj_image_t *m_image;
+    FILE *m_file;
+
+    void init (void);
+
+    bool isJp2File(const int* const p_magicTable) const;
+
+    opj_dinfo_t* create_decompressor();
+
+    template<typename T>
+    void read_scanline(int y, int z, void *data);
+
+    uint16_t read_pixel(int p_precision, int p_PixelData);
+
+    uint16_t baseTypeConvertU10ToU16(int src)
+    {
+        return (uint16_t)((src << 6) | (src >> 4));
+    }
+
+    uint16_t baseTypeConvertU12ToU16(int src)
+    {
+        return (uint16_t)((src << 4) | (src >> 8));
+    }
+
+    size_t get_file_length(FILE *p_file)
+    {
+        fseek(p_file, 0, SEEK_END);
+        const size_t fileLength = ftell(p_file);
+        rewind(m_file);
+        return fileLength;
+    }
+
+    template<typename T>
+    void yuv_to_rgb(T *p_scanline)
+    {
+        const imagesize_t scanline_size = m_spec.scanline_bytes();
+        for (imagesize_t i = 0; i < scanline_size; i += 3)
+        {
+            T red = 1.164f * (p_scanline[i+2] - 16.0f) + 1.596f * (p_scanline[i] - 128.0f);
+            T green = 1.164f * (p_scanline[i+2] - 16.0f) - 0.813 * (p_scanline[i] - 128.0f) - 0.391f * (p_scanline[i+1] - 128.0f);
+            T blue = 1.164f * (p_scanline[i+2] - 16.0f) + 2.018f * (p_scanline[i+1] - 128.0f);
+            p_scanline[i] = red;
+            p_scanline[i+1] = green;
+            p_scanline[i+2] = blue;
+        } 
+    }
+
+    void setup_event_mgr(opj_dinfo_t* p_decompressor)
+    {
+        opj_event_mgr_t event_mgr;
+        event_mgr.error_handler = openjpeg_dummy_callback;
+        event_mgr.warning_handler = openjpeg_dummy_callback;
+        event_mgr.info_handler = openjpeg_dummy_callback;
+        opj_set_event_mgr((opj_common_ptr) p_decompressor, &event_mgr, NULL);
+    }
+
+    bool fread (void *p_buf, size_t p_itemSize, size_t p_nitems)
+    {
+        size_t n = ::fread (p_buf, p_itemSize, p_nitems, m_file);
+        if (n != p_nitems)
+            error ("Read error");
+        return n == p_nitems;
+    }
+};
+
 
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -47,170 +133,92 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 OIIO_PLUGIN_EXPORTS_END
 
 
-
 void
 Jpeg2000Input::init (void)
 {
-    m_scanline_size = 0;
-    m_stream = NULL;
+    m_file = NULL;
     m_image = NULL;
-    m_fam_clrspc = JAS_CLRSPC_UNKNOWN;
-    m_cmpt_id.clear ();
-    m_matrix_chan.clear ();
-    m_pixels.clear ();
-    jas_init ();
 }
-
 
 
 bool
-Jpeg2000Input::read_channels (void)
+Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
 {
-    m_cmpt_id.resize(m_spec.nchannels, 0);
-    m_matrix_chan.resize (m_spec.nchannels, NULL);
+    m_filename = p_name;
+    m_file = fopen(m_filename.c_str(), "rb");
+    if (!m_file) {
+        error ("Could not open file \"%s\"", m_filename.c_str());
+        return false;
+    }
 
-    // RGB family color space
-    if (m_fam_clrspc == JAS_CLRSPC_FAM_RGB) {
-        for (int i = 0; i < m_spec.nchannels; ++i)
-            m_matrix_chan[i] = jas_matrix_create (m_spec.height, m_spec.width);
-        m_cmpt_id[RED] = jas_image_getcmptbytype (m_image, JAS_IMAGE_CT_RGB_R);
-        m_cmpt_id[GREEN] = jas_image_getcmptbytype (m_image, JAS_IMAGE_CT_RGB_G);
-        m_cmpt_id[BLUE] = jas_image_getcmptbytype (m_image, JAS_IMAGE_CT_RGB_B);
-        // reading red, green and blue component
-        jas_image_readcmpt (m_image, m_cmpt_id[RED], 0, 0, m_spec.width,
-                            m_spec.height, m_matrix_chan[RED]);
-        jas_image_readcmpt (m_image, m_cmpt_id[GREEN], 0, 0, m_spec.width,
-                            m_spec.height, m_matrix_chan[GREEN]);
-        jas_image_readcmpt (m_image, m_cmpt_id[BLUE], 0, 0, m_spec.width,
-                            m_spec.height, m_matrix_chan[BLUE]);
+    opj_dinfo_t* decompressor = create_decompressor();
+    if (!decompressor) {
+        error ("Could not create Jpeg2000 stream decompressor");
+        close();
+        return false;
     }
-    // Greyscale
-    else if (m_fam_clrspc == JAS_CLRSPC_FAM_GRAY) {
-        m_matrix_chan[GREY] = jas_matrix_create (m_spec.height, m_spec.width);
-        m_cmpt_id[GREY] = jas_image_getcmptbytype (m_image, JAS_IMAGE_CT_GRAY_Y);
-        // reading greyscale component
-        jas_image_readcmpt (m_image, m_cmpt_id[GREY], 0, 0, m_spec.width,
-                            m_spec.height, m_matrix_chan[GREY]);
+
+    setup_event_mgr(decompressor);
+
+    opj_dparameters_t parameters;
+    opj_set_default_decoder_parameters(&parameters);
+    opj_setup_decoder(decompressor, &parameters);
+
+    const size_t fileLength = get_file_length(m_file);
+    std::vector<uint8_t> fileContent(fileLength+1, 0);
+    fread(&fileContent[0], sizeof(uint8_t), fileLength);
+
+    opj_cio_t *cio = opj_cio_open((opj_common_ptr)decompressor, &fileContent[0], fileLength);
+    if (!cio) { 
+        error ("Could not open Jpeg2000 stream");
+        opj_destroy_decompress(decompressor);
+        close();
+        return false;
     }
+
+    m_image = opj_decode(decompressor, cio);
+    opj_cio_close(cio);
+    opj_destroy_decompress(decompressor);
+    if (!m_image) {
+        error ("Could not decode Jpeg2000 stream");
+        close();
+        return false;
+    }
+
+    // we support only one, three or four components in image
+    const int channelCount = m_image->numcomps;
+    if (channelCount != 1 && channelCount != 3 && channelCount != 4) {
+        error ("Only images with one, three or four components are supported");
+        close();
+        return false;
+    }
+
+    m_maxPrecision = 0;
+    for(int i = 0; i < channelCount; i++)
+    {
+        m_maxPrecision = std::max(m_image->comps[i].prec, m_maxPrecision);
+    }
+
+    const TypeDesc format = (m_maxPrecision <= 8) ? TypeDesc::UINT8
+                                                  : TypeDesc::UINT16;
+
+
+    m_spec = ImageSpec(m_image->comps[0].w, m_image->comps[0].h, channelCount, format);
+    m_spec.attribute ("oiio:BitsPerSample", (unsigned int)m_maxPrecision);
+    m_spec.attribute ("oiio:Orientation", (unsigned int)1);
+
+    p_spec = m_spec;
     return true;
 }
-
-
-
-bool
-Jpeg2000Input::open (const std::string &name, ImageSpec &spec)
-{
-    // saving 'name' and 'spec' for later use
-    m_filename = name;
-
-    // check if file exist and can be opened as JasPer stream
-    m_stream = jas_stream_fopen ( name.c_str(), "rb");
-    if (! m_stream) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
-    }
-    // checking if the file is JPEG2000 file
-    int fmt = jas_image_getfmt (m_stream);
-    const char *format = jas_image_fmttostr (fmt);
-    if (! format || (strcmp (format, JP2_STREAM) && strcmp (format, JPC_STREAM))) {
-        error ("%s is not a %s file", name.c_str (), format_name());
-        close ();
-        return false;
-    }
-
-    // decompressing the image
-    m_image = jas_image_decode (m_stream, fmt, NULL);
-    if (! m_image) {
-        error ("Could not decode image");
-        close ();
-        return false;
-    }
-    // getting basic information about image
-    int width = jas_image_width (m_image);
-    int height = jas_image_height (m_image);
-    int channels = jas_image_numcmpts (m_image);
-    if (channels > 4) {
-        error ("plugin currently desn't support images with more than 4 channels");
-        close ();
-        return false;
-    }
-    m_spec = ImageSpec (width, height, channels, TypeDesc::UINT8);
-    m_spec.attribute("jpeg2000:streamformat", format);
-
-    // what family of color space was used
-    m_fam_clrspc = jas_clrspc_fam (jas_image_clrspc(m_image));
-
-    read_channels ();
-
-    // getting number of bits per channel and maximum number of bits
-    m_max_prec = 0;
-    for(int i = 0; i < m_spec.nchannels; i++){
-        m_prec[i] = jas_image_cmptprec(m_image, m_cmpt_id[i]);
-        m_max_prec = (m_prec[i] > m_max_prec)? m_prec[i] : m_max_prec;
-    }
-
-    m_spec.attribute ("oiio:BitsPerSample", (unsigned int) m_max_prec);
-
-    if(m_max_prec == 10 || m_max_prec == 12 || m_max_prec == 16)
-        m_spec.set_format(TypeDesc::UINT16);
-
-    // stuff used in read_native_scanline
-    m_scanline_size = m_spec.scanline_bytes();
-    m_pixels.resize (m_scanline_size, 0);
-
-    spec = m_spec;
-    return true;
-}
-
 
 
 bool
 Jpeg2000Input::read_native_scanline (int y, int z, void *data)
 {
-    // bitdepth conversion result
-    uint conv_res;
-    memset (&m_pixels[0], 0, m_pixels.size ());
-    if (m_fam_clrspc == JAS_CLRSPC_FAM_GRAY) {
-        for (int i = 0; i < m_spec.width; ++i)
-            m_pixels[i] = jas_matrix_get (m_matrix_chan[GREY], y, i);
-    }
-    else if (m_fam_clrspc == JAS_CLRSPC_FAM_RGB) {
-        for (int i = 0, pos = 0; i < m_spec.width; i++) {
-            for(int ch = 0; ch < m_spec.nchannels; ch++){
-                if (ch == OPACITY){
-                    if(m_max_prec == 8)
-                        pos++;
-                    else
-                        pos+=2;
-                    continue;
-                }
-
-                if(m_prec[ch] == 8){
-                    // checking if we save channel value to UINT16
-                    if(m_max_prec > 8)
-                        m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i);
-                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i);
-                }
-                else if(m_prec[ch] == 10){
-                    BaseTypeConvertU10ToU16(jas_matrix_get (m_matrix_chan[ch], y, i), conv_res);
-                    m_pixels[pos++] = conv_res;
-                    m_pixels[pos++] = conv_res >> 8;
-                }
-                else if(m_prec[ch] == 12){
-                    BaseTypeConvertU12ToU16(jas_matrix_get (m_matrix_chan[ch], y, i), conv_res);
-                    m_pixels[pos++] = conv_res;
-                    m_pixels[pos++] = conv_res >> 8;
-                }
-                else if(m_prec[ch] == 16){
-                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i);
-                    m_pixels[pos++] = jas_matrix_get (m_matrix_chan[ch], y, i) >> 8;
-                }
-
-            }
-
-        }
-    }
-    memcpy(data, &m_pixels[0], m_scanline_size);
+    if (m_spec.format == TypeDesc::UINT8)
+        read_scanline<uint8_t>(y, z, data);
+    else
+        read_scanline<uint16_t>(y, z, data);
     return true;
 }
 
@@ -219,18 +227,118 @@ Jpeg2000Input::read_native_scanline (int y, int z, void *data)
 inline bool
 Jpeg2000Input::close (void)
 {
-    if (m_stream)
-        jas_stream_close (m_stream);
-    if (m_image)
-        jas_image_destroy (m_image);
-    for (size_t i = 0; i < m_matrix_chan.size (); ++i) {
-        if (m_matrix_chan[i])
-            jas_matrix_destroy (m_matrix_chan[i]);
+    if (m_file) {
+        fclose(m_file);
+        m_file = NULL;
     }
-    init ();
-    jas_cleanup ();
+    if (m_image) {
+        opj_image_destroy(m_image);
+        m_image = NULL;
+    }
     return true;
 }
+
+
+bool Jpeg2000Input::isJp2File(const int* const p_magicTable) const
+{
+    const int32_t JP2_MAGIC = 0x0000000C, JP2_MAGIC2 = 0x0C000000;
+    if (p_magicTable[0] == JP2_MAGIC || p_magicTable[0] == JP2_MAGIC2) {
+        const int32_t JP2_SIG1_MAGIC = 0x6A502020, JP2_SIG1_MAGIC2 = 0x2020506A;
+        const int32_t JP2_SIG2_MAGIC = 0x0D0A870A, JP2_SIG2_MAGIC2 = 0x0A870A0D;
+        if ((p_magicTable[1] == JP2_SIG1_MAGIC || p_magicTable[1] == JP2_SIG1_MAGIC2)
+            &&  (p_magicTable[2] == JP2_SIG2_MAGIC || p_magicTable[2] == JP2_SIG2_MAGIC2))
+	{
+            return true;
+        }
+    }
+    return false;
+}
+
+
+opj_dinfo_t*
+Jpeg2000Input::create_decompressor()
+{
+    int magic[3];
+    if (::fread (&magic, 4, 3, m_file) != 3) {
+        error ("Empty file \"%s\"", m_filename.c_str());
+        return false;
+    }
+    opj_dinfo_t* dinfo = NULL;
+    if (isJp2File(magic))
+        dinfo = opj_create_decompress(CODEC_JP2);
+    else
+        dinfo = opj_create_decompress(CODEC_J2K);
+    rewind(m_file);
+    return dinfo;
+}
+
+
+inline uint16_t
+Jpeg2000Input::read_pixel(int p_nativePrecision, int p_pixelData)
+{
+    if (p_nativePrecision == 10)
+        return baseTypeConvertU10ToU16(p_pixelData);
+    if (p_nativePrecision == 12)
+        return baseTypeConvertU12ToU16(p_pixelData);
+    return p_pixelData;
+}
+
+
+template<typename T>
+void
+Jpeg2000Input::read_scanline(int y, int z, void *data)
+{
+    T* scanline = static_cast<T*>(data);
+    if (m_spec.nchannels == 1) {
+        for (int i = 0; i < m_spec.width; i++)
+        {
+            scanline[i] = read_pixel(m_image->comps[0].prec, m_image->comps[0].data[y*m_spec.width + i]);
+        }
+        return;
+    }
+
+    for (int i = 0, j = 0; i < m_spec.width; i++)
+    {
+        if (y % m_image->comps[0].dy == 0 && i % m_image->comps[0].dx == 0) {
+            const size_t data_offset = y/m_image->comps[0].dy * m_spec.width/m_image->comps[0].dx + i/m_image->comps[0].dx;
+            scanline[j++] = read_pixel(m_image->comps[0].prec, m_image->comps[0].data[data_offset]);
+        }
+        else {
+            scanline[j++] = 0;
+        }
+
+        if (y % m_image->comps[1].dy == 0 && i % m_image->comps[1].dx == 0) {
+            const size_t data_offset = y/m_image->comps[1].dy * m_spec.width/m_image->comps[1].dx + i/m_image->comps[1].dx;
+            scanline[j++] = read_pixel(m_image->comps[1].prec, m_image->comps[1].data[data_offset]);
+        }
+        else {
+            scanline[j++] = 0;
+        }
+
+        if (y % m_image->comps[2].dy == 0 && i % m_image->comps[2].dx == 0) {
+            const size_t data_offset = y/m_image->comps[2].dy * m_spec.width/m_image->comps[2].dx + i/m_image->comps[2].dx;
+            scanline[j++] = read_pixel(m_image->comps[2].prec, m_image->comps[2].data[data_offset]);
+        }
+        else {
+            scanline[j++] = 0;
+        }
+
+        if (m_spec.nchannels < 4) {
+            continue;
+        }
+
+        if (y % m_image->comps[3].dy == 0 && i % m_image->comps[3].dx == 0) {
+            const size_t data_offset = y/m_image->comps[3].dy * m_spec.width/m_image->comps[3].dx + i/m_image->comps[3].dx;
+            scanline[j++] = read_pixel(m_image->comps[3].prec, m_image->comps[3].data[data_offset]);
+        }
+        else {
+            scanline[j++] = 0;
+        }
+    }
+    if (m_image->color_space == CLRSPC_SYCC)
+        yuv_to_rgb(scanline);
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
 
