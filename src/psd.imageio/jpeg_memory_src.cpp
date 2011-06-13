@@ -54,14 +54,15 @@ skip_input (j_decompress_ptr cinfo, long num_bytes)
 {
     struct jpeg_source_mgr *src = cinfo->src;
 
-    if (num_bytes > 0) {
-        while (num_bytes > (long)src->bytes_in_buffer) {
-          num_bytes -= (long)src->bytes_in_buffer;
-          (*src->fill_input_buffer)(cinfo);
-        }
-        src->next_input_byte += (size_t)num_bytes;
-        src->bytes_in_buffer -= (size_t)num_bytes;
+    if (!num_bytes)
+        return;
+
+    while (num_bytes > (long)src->bytes_in_buffer) {
+      num_bytes -= (long)src->bytes_in_buffer;
+      (*src->fill_input_buffer)(cinfo);
     }
+    src->next_input_byte += (size_t)num_bytes;
+    src->bytes_in_buffer -= (size_t)num_bytes;
 }
 
 

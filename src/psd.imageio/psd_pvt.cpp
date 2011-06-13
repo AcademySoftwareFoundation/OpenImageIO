@@ -29,7 +29,6 @@
 */
 #include "psd_pvt.h"
 #include <fstream>
-#include <boost/foreach.hpp>
 
 #include <setjmp.h>
 #include "jpeg_memory_src.h"
