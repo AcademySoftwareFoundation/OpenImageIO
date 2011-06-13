@@ -107,7 +107,7 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
                 cmpresult = os.remove (out)
             except OSError :
                 continue
-            
+
     return (err)
 
 

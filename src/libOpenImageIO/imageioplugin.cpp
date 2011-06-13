@@ -238,7 +238,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (ico);
     DECLAREPLUG (iff);
     DECLAREPLUG (jpeg);
-#ifdef USE_JASPER
+#ifdef USE_OPENJPEG
     DECLAREPLUG (jpeg2000);
 #endif
     DECLAREPLUG (openexr);
