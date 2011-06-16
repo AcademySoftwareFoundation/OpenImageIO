@@ -354,8 +354,8 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     // N.B. naturalres formulated for latlong
 
     // Account for width and blur
-    float xfilt = xfilt_noblur * options.swidth + options.sblur;
-    float yfilt = yfilt_noblur * options.twidth + options.tblur;
+    float xfilt = xfilt_noblur * options.swidth * m_texsharp + options.sblur;
+    float yfilt = yfilt_noblur * options.twidth * m_texsharp + options.tblur;
 
     // Figure out major versus minor, and aspect ratio
     Imath::V3f Rmajor;   // major axis

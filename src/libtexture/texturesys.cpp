@@ -228,6 +228,7 @@ void
 TextureSystemImpl::init ()
 {
     m_Mw2c.makeIdentity();
+    m_texsharp = 1.0f;
     m_gray_to_rgb = false;
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
@@ -315,6 +316,10 @@ TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
         m_Mw2c = m_Mc2w.inverse();
         return true;
     }
+    if ((name == "texsharp") && (type == TypeDesc::TypeFloat)) {
+        m_texsharp = *(const float *)val;
+        return true;
+    }
     if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
         (type == TypeDesc::TypeInt)) {
         m_gray_to_rgb = *(const int *)val;
@@ -343,6 +348,10 @@ TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
     if (name == "commontoworld" && (type == TypeDesc::TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mc2w;
+        return true;
+    }
+    if ((name == "texsharp") && (type == TypeDesc::TypeFloat)) {
+        *(float *)val = m_texsharp;
         return true;
     }
     if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
@@ -752,13 +761,14 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
 // they are all some minimum value to make the subsequent math clean.
 inline void
 adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
-                   float swidth, float twidth, float sblur, float tblur)
+                   float swidth, float twidth, float sblur, float tblur,
+                   float texsharp)
 {
     // Trust user not to use nonsensical width<0 or blur<0
-    dsdx *= swidth;
-    dtdx *= twidth;
-    dsdy *= swidth;
-    dtdy *= twidth;
+    dsdx *= swidth*texsharp;
+    dtdx *= twidth*texsharp;
+    dsdy *= swidth*texsharp;
+    dtdy *= twidth*texsharp;
 
 #if 1
     // Clamp degenerate derivatives so they don't cause mathematical problems
@@ -815,7 +825,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 
     // Use the differentials to figure out which MIP-map levels to use.
     adjust_width_blur (dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth,
-                       options.sblur, options.tblur);
+                       options.sblur, options.tblur, m_texsharp);
 
     // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
@@ -988,7 +998,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
 
     // Scale by 'width' and 'blur'
     adjust_width_blur (dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth,
-                       options.sblur, options.tblur);
+                       options.sblur, options.tblur, m_texsharp);
 
     // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend

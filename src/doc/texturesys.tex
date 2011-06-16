@@ -560,6 +560,17 @@ separately; just setting either one will implicitly set the other, since
 each is the inverse of the other.
 \apiend
 
+\apiitem{float texsharp}
+Multiplies all texture derivative estimates by this global sharpness 
+value --- as if all texture lookups had their {\cf swidth} and {\cf twidth} 
+options multipled by {\cf texsharp}.  Thus, setting this to 0.75, say,
+would slightly sharpen all texture lookups (though it might visibly
+alias slightly, compared to the ``correct'' filter sizes, as well
+as hurt performance by requiring slightly higher-resolution MIP
+levels for all texture lookups).
+The default value of {\cf texsharp} is 1.0.  
+\apiend
+
 \apiitem{int gray_to_rgb}
 If set to nonzero, texture lookups of single-channel (grayscale) 
 images will replicate the sole channel's values into the next two
