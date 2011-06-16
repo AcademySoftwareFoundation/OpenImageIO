@@ -200,6 +200,12 @@ getargs (int argc, char *argv[])
                   "<SEPARATOR>", "Configuration Presets",
                   "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata.",
                   "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, metadata, and constant-color optimizations.",
+                  
+                  "<SEPARATOR>", "Filter Types:\n"
+                  "\tbox, triangle, gaussian, catmull-rom, catrom,\n"
+                  "\tblackman-harris, sinc, lanczos3 / lanczos,\n"
+                  "\tradial-lanczos3 / radial-lanczos, mitchell, \n"
+                  "\tb-spline / bspline, disk",
                   NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
