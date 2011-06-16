@@ -873,7 +873,17 @@ make_texturemap (const char *maptypename = "texture map")
         desc = "";
     }
     
-    std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel);
+    
+    // The hash is only computed for the top mipmap level of pixel data.
+    // Thus, any additional information that will effect the lower levels
+    // (such as filtering information) needs to be manually added into the
+    // hash.
+    std::ostringstream addlHashData;
+    addlHashData << filtername << " ";
+    addlHashData << filterwidth << " ";
+    
+    std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel,
+        addlHashData.str());
     if (hash_digest.length()) {
         if (desc.length())
             desc += " ";
