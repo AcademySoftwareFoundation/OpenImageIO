@@ -53,6 +53,8 @@ public:
     virtual ~RLAInput () { close(); }
     virtual const char * format_name (void) const { return "rla"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual int current_subimage (void) const { return m_subimage; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool close ();
     virtual bool read_native_scanline (int y, int z, void *data);
 
@@ -61,6 +63,7 @@ private:
     FILE *m_file;                     ///< Open image handle
     WAVEFRONT m_rla;                  ///< Wavefront RLA header
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
+    int m_subimage;                   ///< Current subimage index
 
     /// Reset everything to initial state
     ///
@@ -85,6 +88,10 @@ private:
     /// Helper function: translate 3-letter month abbreviation to number.
     ///
     inline int get_month_number (const char *s);
+    
+    /// Helper: read the RLA header.
+    ///
+    inline bool read_header ();
 };
 
 
@@ -115,6 +122,18 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
     
+    // set a bogus subimage index so that seek_subimage actually seeks
+    m_subimage = 1;
+    seek_subimage (0, 0, newspec);
+    
+    return true;
+}
+
+
+
+inline bool
+RLAInput::read_header ()
+{
     // due to struct packing, we may get a corrupt header if we just load the
     // struct from file; to adress that, read every member individually
     // save some typing
@@ -186,7 +205,41 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
         swap_endian (&m_rla.NumOfAuxBits);
         swap_endian (&m_rla.NextOffset);
     }
+    return true;
+}
+
+
+
+bool
+RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+{
+    if (miplevel != 0 || subimage < 0)
+        return false;
     
+    int diff = subimage - current_subimage ();
+    
+    if (diff == 0)
+        // don't need to do anything
+        return true;
+    if (subimage - current_subimage () < 0) {
+        // need to start seeking from the beginning
+        fseek (m_file, 0, SEEK_SET);
+        if (!read_header ())
+            return false;
+        diff = subimage;
+    }
+    // forward scrolling
+    while (diff > 0 && m_rla.NextOffset != 0) {
+        fseek (m_file, m_rla.NextOffset, SEEK_SET);
+        if (!read_header ())
+            return false;
+        --diff;
+    }
+    if (diff > 0 && m_rla.NextOffset == 0)
+        // no more subimages to read
+        return false;
+    
+    // now read metadata
     if (m_rla.ColorChannelType > CT_FLOAT) {
         error ("Illegal color channel type: %d", m_rla.ColorChannelType);
         return false;
@@ -273,7 +326,7 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
 #undef RLA_SET_ATTRIB_STR
 #undef RLA_SET_ATTRIB
 
-    float f[2]; // variable will be reused for chroma, thus the array
+    float f[3]; // variable will be reused for chroma, thus the array
     f[0] = atof (m_rla.Gamma);
     if (f[0] > 0.f) {
         if (f[0] == 1.f)
@@ -289,46 +342,38 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
         m_spec.attribute ("rla:AspectRatio", f[0]);
     
     // read chromaticity points
-    // FIXME: handle 3D points for XYZ space as well
-    char *p;
     if (m_rla.RedChroma[0]) {
-        p = strchr (m_rla.RedChroma, ' ');
-        if (p && p - m_rla.RedChroma < (ptrdiff_t)sizeof(m_rla.RedChroma))
-            *p++ = 0;
-        f[0] = atof (m_rla.RedChroma);
-        f[1] = atof (p);
-        m_spec.attribute ("rla:RedChroma", TypeDesc(TypeDesc::FLOAT,
-                          TypeDesc::VEC2, TypeDesc::POINT), f);
+        int num = sscanf(m_rla.RedChroma, "%f %f %f", f + 0, f + 1, f + 2);
+        if (num >= 2)
+            m_spec.attribute ("rla:RedChroma", TypeDesc(TypeDesc::FLOAT,
+                              num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                              TypeDesc::POINT), f);
     }
     if (m_rla.GreenChroma[0]) {
-        p = strchr (m_rla.GreenChroma, ' ');
-        if (p && p - m_rla.GreenChroma < (ptrdiff_t)sizeof(m_rla.GreenChroma))
-            *p++ = 0;
-        f[0] = atof (m_rla.GreenChroma);
-        f[1] = atof (p);
-        m_spec.attribute ("rla:GreenChroma", TypeDesc(TypeDesc::FLOAT,
-                          TypeDesc::VEC2, TypeDesc::POINT), f);
+        int num = sscanf(m_rla.GreenChroma, "%f %f %f", f + 0, f + 1, f + 2);
+        if (num >= 2)
+            m_spec.attribute ("rla:GreenChroma", TypeDesc(TypeDesc::FLOAT,
+                              num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                              TypeDesc::POINT), f);
     }
     if (m_rla.BlueChroma[0]) {
-        p = strchr (m_rla.BlueChroma, ' ');
-        if (p && p - m_rla.BlueChroma < (ptrdiff_t)sizeof(m_rla.BlueChroma))
-            *p++ = 0;
-        f[0] = atof (m_rla.BlueChroma);
-        f[1] = atof (p);
-        m_spec.attribute ("rla:BlueChroma", TypeDesc(TypeDesc::FLOAT,
-                          TypeDesc::VEC2, TypeDesc::POINT), f);
+        int num = sscanf(m_rla.BlueChroma, "%f %f %f", f + 0, f + 1, f + 2);
+        if (num >= 2)
+            m_spec.attribute ("rla:BlueChroma", TypeDesc(TypeDesc::FLOAT,
+                              num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                              TypeDesc::POINT), f);
     }
     if (m_rla.WhitePoint[0]) {
-        p = strchr (m_rla.WhitePoint, ' ');
-        if (p && p - m_rla.WhitePoint < (ptrdiff_t)sizeof(m_rla.WhitePoint))
-            *p++ = 0;
-        f[0] = atof (m_rla.WhitePoint);
-        f[1] = atof (p);
-        m_spec.attribute ("rla:WhitePoint", TypeDesc(TypeDesc::FLOAT,
-                          TypeDesc::VEC2, TypeDesc::POINT), f);
+        int num = sscanf(m_rla.WhitePoint, "%f %f %f", f + 0, f + 1, f + 2);
+        if (num >= 2)
+            m_spec.attribute ("rla:WhitePoint", TypeDesc(TypeDesc::FLOAT,
+                              num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                              TypeDesc::POINT), f);
     }
 
-    newspec = spec ();
+    newspec = spec ();    
+    m_subimage = subimage;
+    
     return true;
 }
 
