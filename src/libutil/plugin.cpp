@@ -73,14 +73,17 @@ Plugin::plugin_extension (void)
 
 
 Handle
-Plugin::open (const char *plugin_filename)
+Plugin::open (const char *plugin_filename, bool global)
 {
     lock_guard guard (plugin_mutex);
     last_error.clear ();
 #if defined(_WIN32)
     return LoadLibrary (plugin_filename);
 #else
-    Handle h = dlopen (plugin_filename, RTLD_LAZY | RTLD_GLOBAL);
+    int mode = RTLD_LAZY;
+    if (global)
+        mode |= RTLD_GLOBAL;
+    Handle h = dlopen (plugin_filename, mode);
     if (!h)
         last_error = dlerror();
     return h;

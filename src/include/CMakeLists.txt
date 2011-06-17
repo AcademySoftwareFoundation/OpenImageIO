@@ -1,7 +1,7 @@
 set (public_headers argparse.h dassert.h errorhandler.h export.h 
                     filesystem.h filter.h fmath.h hash.h
                     imagebuf.h imagebufalgo.h 
-                    imagecache.h imageio.h osdep.h paramlist.h
+                    imagecache.h imageio.h osdep.h paramlist.h plugin.h
                     refcnt.h strutil.h sysutil.h texture.h thread.h timer.h
                     typedesc.h ustring.h varyingref.h
                     colortransfer.h pugixml.hpp pugiconfig.hpp
