@@ -64,6 +64,7 @@ private:
     WAVEFRONT m_rla;                  ///< Wavefront RLA header
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
     int m_subimage;                   ///< Current subimage index
+    long m_sot;                       ///< Scanline offset table offset in file
 
     /// Reset everything to initial state
     ///
@@ -71,10 +72,6 @@ private:
         m_file = NULL;
         m_buf.clear ();
     }
-
-    /// Helper function: read the image.
-    ///
-    bool readimg ();
 
     /// Helper: read, with error detection
     ///
@@ -205,6 +202,8 @@ RLAInput::read_header ()
         swap_endian (&m_rla.NumOfAuxBits);
         swap_endian (&m_rla.NextOffset);
     }
+    // set offset to scanline offset table
+    m_sot = ftell (m_file);
     return true;
 }
 
@@ -380,14 +379,6 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
 
 bool
-RLAInput::readimg ()
-{
-    return false;
-}
-
-
-
-bool
 RLAInput::close ()
 {
     if (m_file) {
@@ -404,8 +395,16 @@ RLAInput::close ()
 bool
 RLAInput::read_native_scanline (int y, int z, void *data)
 {
-    if (m_buf.empty ())
-        readimg ();
+    m_buf.resize (m_spec.scanline_bytes());
+    // seek to scanline offset table
+    fseek (m_file, m_sot + y * 4, SEEK_SET);
+    unsigned int ofs;
+    if (!fread (&ofs, 1, 4))
+        return false;
+    // seek to scanline start
+    fseek (m_file, ofs, SEEK_SET);
+    if (!fread (&m_buf[0], 1, m_buf.size ()))
+        return false;
 
     size_t size = spec().scanline_bytes();
     memcpy (data, &m_buf[0] + y * size, size);
