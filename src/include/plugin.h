@@ -41,6 +41,8 @@
 #ifndef OPENIMAGEIO_PLUGIN_H
 #define OPENIMAGEIO_PLUGIN_H
 
+#include <string>
+
 #include "export.h"
 #include "version.h"
 
@@ -58,13 +60,15 @@ DLLPUBLIC const char *plugin_extension (void);
 
 /// Open the named plugin, return its handle.  If it could not be
 /// opened, return 0 and the next call to geterror() will contain
-/// an explanatory message.
-DLLPUBLIC Handle open (const char *plugin_filename);
+/// an explanatory message.  If the 'global' parameter is true, all
+/// symbols from the plugin will be available to the app (on Unix-like
+/// platforms; this has no effect on Windows).
+DLLPUBLIC Handle open (const char *plugin_filename, bool global=true);
 
 inline Handle
-open (const std::string &plugin_filename)
+open (const std::string &plugin_filename, bool global=true)
 {
-    return open (plugin_filename.c_str());
+    return open (plugin_filename.c_str(), global);
 }
 
 /// Close the open plugin with the given handle and return true upon
