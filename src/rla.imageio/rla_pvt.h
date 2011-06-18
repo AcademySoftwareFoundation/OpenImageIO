@@ -92,8 +92,8 @@ namespace RLA_pvt {
                                      file */
     } WAVEFRONT;
 
-    /// format of the colour data
-    enum rla_colour_channel_type {
+    /// format of data
+    enum rla_channel_type {
         CT_BYTE = 0,
         CT_WORD = 1,
         CT_DWORD = 2,

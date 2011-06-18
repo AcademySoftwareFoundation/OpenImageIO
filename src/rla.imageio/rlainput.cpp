@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <cassert>
 
 #include "rla_pvt.h"
 
@@ -65,6 +66,9 @@ private:
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
     int m_subimage;                   ///< Current subimage index
     long m_sot;                       ///< Scanline offset table offset in file
+    int m_stride;                     ///< Number of bytes a contig pixel takes
+    bool m_Yflip;                     ///< Some non fully spec-compliant files
+                                      ///  will have their Y axis inverted
 
     /// Reset everything to initial state
     ///
@@ -89,6 +93,9 @@ private:
     /// Helper: read the RLA header.
     ///
     inline bool read_header ();
+    
+    /// Helper: read and decode a single colour plane.
+    bool decode_plane (short chan_type, short num_channels, int offset);
 };
 
 
@@ -221,17 +228,21 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         // don't need to do anything
         return true;
     if (subimage - current_subimage () < 0) {
-        // need to start seeking from the beginning
+        // need to rewind to the beginning
         fseek (m_file, 0, SEEK_SET);
-        if (!read_header ())
+        if (!read_header ()) {
+            error ("Corrupt RLA header");
             return false;
+        }
         diff = subimage;
     }
     // forward scrolling
     while (diff > 0 && m_rla.NextOffset != 0) {
         fseek (m_file, m_rla.NextOffset, SEEK_SET);
-        if (!read_header ())
+        if (!read_header ()) {
+            error ("Corrupt RLA header");
             return false;
+        }
         --diff;
     }
     if (diff > 0 && m_rla.NextOffset == 0)
@@ -259,8 +270,12 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                                                          m_rla.AuxChannelType));
     int bits = std::max (m_rla.NumOfChannelBits, std::max (m_rla.NumOfMatteBits,
                                                            m_rla.NumOfAuxBits));
+    m_stride = m_rla.NumOfColorChannels * std::min (1 << m_rla.ColorChannelType, 4)
+        + m_rla.NumOfMatteChannels * std::min (1 << m_rla.MatteChannelType, 4)
+        + m_rla.NumOfAuxChannels * std::min (1 << m_rla.AuxChannelType, 4);
+    m_Yflip = m_rla.ActiveBottom - m_rla.ActiveTop < 0;
     
-    m_spec = ImageSpec (std::abs (m_rla.ActiveRight - m_rla.ActiveLeft) + 1,
+    m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
                         std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1,
                         m_rla.NumOfColorChannels
                             + m_rla.NumOfMatteChannels
@@ -393,21 +408,77 @@ RLAInput::close ()
 
 
 bool
+RLAInput::decode_plane (short chan_type, short num_channels, int offset)
+{
+    int chsize = std::min (1 << chan_type, 4);
+    unsigned short eb; // number of encoded bytes
+    char rc; // run count
+    int k;
+    std::vector<unsigned char> record;
+    for (int i = 0; i < num_channels; ++i) {
+        int x = 0; // index of pixel inside the scanline
+        if (!fread (&eb, 2, 1))
+            return false;
+        if (littleendian ())
+            swap_endian (&eb);
+        record.resize (std::max (record.size (), (size_t)eb));
+        if (!fread (&record[0], 1, eb))
+            return false;
+        k = 0;
+        while (k < eb) {
+            *(&rc) = *(&record[k++]);
+            if (rc > 0) {
+                // replicate value run count + 1 times
+                for (; rc >= 0; --rc, ++x) {
+                    assert(x * m_stride + i * chsize + offset < (int)m_buf.size ());
+                    m_buf[x * m_stride + i * chsize + offset] = record[k];
+                }
+                ++k;
+            } else {
+                // copy raw values run count times
+                for (rc = -rc; rc > 0; --rc, ++x, ++k) {
+                    assert(x * m_stride + i * chsize + offset < (int)m_buf.size ());
+                    m_buf[x * m_stride + i * chsize + offset] = record[k];
+                }
+            }
+        }
+        // make sure we haven't gone way off range
+        assert(k - eb < 1);
+    }
+    return true;
+}
+
+
+
+bool
 RLAInput::read_native_scanline (int y, int z, void *data)
 {
+    if (m_Yflip)
+        y = m_spec.height - y - 1;
     m_buf.resize (m_spec.scanline_bytes());
     // seek to scanline offset table
     fseek (m_file, m_sot + y * 4, SEEK_SET);
     unsigned int ofs;
-    if (!fread (&ofs, 1, 4))
+    if (!fread (&ofs, 4, 1))
         return false;
+    if (littleendian ())
+        swap_endian (&ofs);
     // seek to scanline start
     fseek (m_file, ofs, SEEK_SET);
-    if (!fread (&m_buf[0], 1, m_buf.size ()))
+    
+    ofs = 0;
+    // now decode and interleave the planes
+    if (!decode_plane(m_rla.ColorChannelType, m_rla.NumOfColorChannels, ofs))
+        return false;
+    ofs += m_rla.NumOfColorChannels * std::min (1 << m_rla.ColorChannelType, 4);
+    if (!decode_plane(m_rla.MatteChannelType, m_rla.NumOfMatteChannels, ofs))
+        return false;
+    ofs += m_rla.NumOfMatteChannels * std::min (1 << m_rla.MatteChannelType, 4);
+    if (!decode_plane(m_rla.AuxChannelType, m_rla.NumOfAuxChannels, ofs))
         return false;
 
     size_t size = spec().scanline_bytes();
-    memcpy (data, &m_buf[0] + y * size, size);
+    memcpy (data, &m_buf[0], size);
     return true;
 }
 
