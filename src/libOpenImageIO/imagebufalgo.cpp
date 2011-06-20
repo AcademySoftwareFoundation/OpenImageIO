@@ -650,12 +650,14 @@ ImageBufAlgo::isMonochrome(const ImageBuf &src)
 };
 
 std::string
-ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
+ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
+                                   const std::string & extrainfo)
 {
     std::string hash_digest;
     
     CSHA1 sha;
     sha.Reset ();
+    
     // Do one scanline at a time, to keep to < 2^32 bytes each
     imagesize_t scanline_bytes = src.spec().scanline_bytes();
     ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
@@ -665,10 +667,22 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
                          src.spec().format, &tmp[0]);
         sha.Update (&tmp[0], (unsigned int) scanline_bytes);
     }
+    
+    // If extra info is specified, also include it in the sha computation
+    if(!extrainfo.empty()) {
+        sha.Update ((const unsigned char*) extrainfo.c_str(), extrainfo.size());
+    }
+    
     sha.Final ();
     sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
     
     return hash_digest;
+}
+
+std::string
+ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src)
+{
+    return computePixelHashSHA1 (src, "");
 }
 
 
