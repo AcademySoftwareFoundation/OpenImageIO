@@ -24,14 +24,14 @@ public:
 private:
     GifFileType *GifFile;
     GifRecordType * Type;
-    std::string m_filename;           ///< Stash the filename
-    FILE *m_file;                     ///< Open image handle
-    int m_subimage;                   ///< What subimage are we looking at?
+    std::string m_filename; ///< Stash the filename
+    FILE *m_file; ///< Open image handle
+    int m_subimage; ///< What subimage are we looking at?
     int m_next_scanline;
-    int m_bit_depth; 
-    GifPixelType *Line;                 ///< PNG bit depth
+    int m_bit_depth;
+    //GifPixelType *Line; ///< PNG bit depth
     int m_interlace_type;
-    bool m_raw; 
+    bool m_raw;
     
     /// Reset everything to initial state
     ///
@@ -82,10 +82,10 @@ GIFInput::open (const std::string &name, ImageSpec &newspec)
     PrintGifError();
     // DGifCloseFile(GifFile);
     return false;
-   }  
+   }
    m_interlace_type = GifFile->Image.Interlace;
    m_bit_depth = GifFile->Image.ColorMap->BitsPerPixel;
-   newspec = ImageSpec (GifFile->Image.Width, GifFile->Image.Height, 
+   newspec = ImageSpec (GifFile->Image.Width, GifFile->Image.Height,
                        GifFile->Image.ColorMap->ColorCount,
                        m_bit_depth == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
                       
@@ -95,14 +95,14 @@ GIFInput::open (const std::string &name, ImageSpec &newspec)
    printf("opened ");
     return true;
 }
-bool 
+bool
 GIFInput::close ()
 {
   if(DGifCloseFile(GifFile)==1)
    return true;
   PrintGifError();
-  return false; 
-}  
+  return false;
+}
 
 bool
 GIFInput::open (const std::string &name, ImageSpec &newspec,
@@ -120,22 +120,22 @@ bool
 GIFInput::read_native_scanline (int y, int z, void *data)
 {
     
-    if (y < 0 || y >= GifFile->Image.Height)   // out of range scanline
+    if (y < 0 || y >= GifFile->Image.Height) // out of range scanline
         return false;
     if (m_next_scanline > y) {
         // User is trying to read an earlier scanline than the one we're
-        // up to.  Easy fix: close the file and re-open.
+        // up to. Easy fix: close the file and re-open.
         ImageSpec dummyspec;
         int subimage = current_subimage();
-        if (! close ()  ||
-            ! open (m_filename, dummyspec)  ||
+        if (! close () ||
+            ! open (m_filename, dummyspec) ||
             ! seek_subimage (subimage, 0, dummyspec))
-            return false;    // Somehow, the re-open failed
+            return false; // Somehow, the re-open failed
         assert (m_next_scanline == 0 && current_subimage() == subimage);
     }
-    for (  ;  m_next_scanline <= y;  ++m_next_scanline) {
+    for ( ; m_next_scanline <= y; ++m_next_scanline) {
         // Keep reading until we've read the scanline we really need
-        if (DGifGetLine(GifFile,Line,z) != 1) {
+        if (DGifGetLine(GifFile,(GifPixelType *)data,z) != 1) {
             PrintGifError();
             return false;
         }
@@ -146,8 +146,5 @@ GIFInput::read_native_scanline (int y, int z, void *data)
   }
 }
 }
-
-
-
 
 

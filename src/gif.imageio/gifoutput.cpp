@@ -25,9 +25,9 @@ public:
 
 private:
     GifFileType * GifFile;
-    std::string m_filename;           ///< Stash the filename
-    FILE *m_file;                     ///< Open image handle
-    int m_color_type;                 ///< PNG color model type
+    std::string m_filename; ///< Stash the filename
+    FILE *m_file; ///< Open image handle
+    int m_color_type; ///< PNG color model type
     ColorMapObject *ColorMap;
     std::vector<unsigned char> m_scratch;
     
@@ -50,7 +50,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 DLLEXPORT ImageOutput *gif_output_imageio_create () { return new GIFOutput; }
 
-// DLLEXPORT int gif_imageio_version = OIIO_PLUGIN_VERSION;   // it's in gifinput.cpp
+// DLLEXPORT int gif_imageio_version = OIIO_PLUGIN_VERSION; // it's in gifinput.cpp
 
 DLLEXPORT const char * gif_output_extensions[] = {
     "gif", NULL
@@ -79,9 +79,9 @@ GIFOutput::open (const std::string &name, const ImageSpec &userspec,
         return false;
     }
 
-    close ();  // Close any already-opened file
+    close (); // Close any already-opened file
     m_filename = name;
-    m_spec = userspec;  // Stash the spec
+    m_spec = userspec; // Stash the spec
     GifFile = EGifOpenFileName(name.c_str(),1);
     //EGifSetGifVersion(const char *Version);
     if(EGifPutScreenDesc(GifFile,m_spec.full_width, m_spec.full_height, 0,0,NULL)!=1)
@@ -92,18 +92,18 @@ GIFOutput::open (const std::string &name, const ImageSpec &userspec,
     printf("open 2");
     ColorMap->ColorCount = m_spec.nchannels;
     ColorMap->BitsPerPixel = (int)m_spec.channel_bytes ();
-    ColorMap->Colors[0] = (char)m_spec.channelnames[0];
-    ColorMap->Colors[1] = (char)m_spec.channelnames[1];
-    ColorMap->Colors[2] = (char)m_spec.channelnames[2];
-    if(EGifPutImageDesc(GifFile, m_spec.x, m_spec.y,
+    /*ColorMap->Colors[0] = (char)m_spec.channelnames[0];
+ColorMap->Colors[1] = (char)m_spec.channelnames[1];
+ColorMap->Colors[2] = (char)m_spec.channelnames[2];
+*/if(EGifPutImageDesc(GifFile, m_spec.x, m_spec.y,
                      m_spec.width, m_spec.height, 0,
                      ColorMap)!=1)
     {
       PrintGifError();
       return false;
     }
-    printf("open 3"); 
-    return true;                  
+    printf("open 3");
+    return true;
 }
 
 bool
@@ -139,6 +139,6 @@ GIFOutput::close ()
     }
     printf("close");
     return true;
-}  
 }
-}  
+}
+} 
