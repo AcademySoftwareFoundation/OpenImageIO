@@ -49,7 +49,6 @@
 #include "dassert.h"
 #include "sysutil.h"
 #include "filter.h"
-//#include "transformation.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -844,9 +843,12 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     return true;
 }
 
-template<typename SRCTYPE, typename TRANSTYPE>
+
+
+template<typename SRCTYPE>
 bool transform_ (ImageBuf &dst, const ImageBuf &src,
-              Filter2D *filter, float filterwidth, TRANSTYPE* trans)
+                 const ImageBufAlgo::Mapping &mapping,
+                 Filter2D *filter, float filterwidth)
 {
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
@@ -889,7 +891,7 @@ bool transform_ (ImageBuf &dst, const ImageBuf &src,
             // s,t are NDC space
             float s = 0, t = 0, dsdx = 1.0f, dtdx = 0, dsdy = 0, dtdy = 1.0;
 
-            trans->mapping(x, y, &s, &t ,&dsdx, &dtdx, &dsdy, &dtdy);
+            mapping.map (x, y, &s, &t, &dsdx, &dtdx, &dsdy, &dtdy);
 
             radi = (int) ceilf (filterrad * dsdx) + 1;
             radj = (int) ceilf (filterrad * dtdy) + 1;
@@ -1046,62 +1048,87 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     }
 }
 
-template bool ImageBufAlgo::transform<RotationTrans>(ImageBuf &dst, const ImageBuf &src,
-                      Filter2D *filter, float filterwidth,
-                        RotationTrans *t);
 
-template bool ImageBufAlgo::transform<ShearTrans>(ImageBuf &dst, const ImageBuf &src,
-                      Filter2D *filter, float filterwidth,
-                        ShearTrans *t);
 
-template bool ImageBufAlgo::transform<ResizeTrans>(ImageBuf &dst, const ImageBuf &src,
-                      Filter2D *filter, float filterwidth,
-                        ResizeTrans *t);
-
-template <typename TRANSTYPE>
-bool ImageBufAlgo::transform(ImageBuf &dst, const ImageBuf &src,
-                      Filter2D *filter, float filterwidth,
-                        TRANSTYPE *t)
+bool
+ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src,
+                         const Mapping &mapping,
+                         Filter2D *filter, float filterwidth)
 {
     switch (src.spec().format.basetype) {
-        case TypeDesc::FLOAT :
-            return transform_<float> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::UINT8 :
-            return transform_<unsigned char> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::INT8  :
-            return transform_<char> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::UINT16:
-            return transform_<unsigned short> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::INT16 :
-            return transform_<short> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::UINT  :
-            return transform_<unsigned int> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::INT   :
-            return transform_<int> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::UINT64:
-            return transform_<unsigned long long> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::INT64 :
-            return transform_<long long> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::HALF  :
-            return transform_<half> (dst, src,
-                                   filter, filterwidth, t);
-        case TypeDesc::DOUBLE:
-            return transform_<double> (dst, src,
-                                   filter, filterwidth, t);
-        default:
-            return false;
-
+    case TypeDesc::FLOAT :
+        return transform_<float> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::UINT8 :
+        return transform_<unsigned char> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::INT8  :
+        return transform_<char> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::UINT16:
+        return transform_<unsigned short> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::INT16 :
+        return transform_<short> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::UINT  :
+        return transform_<unsigned int> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::INT   :
+        return transform_<int> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::UINT64:
+        return transform_<unsigned long long> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::INT64 :
+        return transform_<long long> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::HALF  :
+        return transform_<half> (dst, src, mapping, filter, filterwidth);
+    case TypeDesc::DOUBLE:
+        return transform_<double> (dst, src, mapping, filter, filterwidth);
+    default:
+        return false;
     }
 }
+
+
+
+void
+ImageBufAlgo::RotationMapping::map (float x, float y, float* s, float* t,
+                      float *dsdx, float *dtdx, float *dsdy, float *dtdy) const
+{
+    *s = originx + (x+0.5f-originx) * cos(rotangle) - (y+0.5f-originy) * sin (rotangle);
+    *t = originy + (x+0.5f-originx) * sin(rotangle)  +  (y+0.5f-originy)  * cos(rotangle);
+    // Simplifying assumption: rotation doesn't change pixel "size."
+    *dsdx = 1.0f;
+    *dtdx = 0;
+    *dsdy = 0;
+    *dtdy = 1.0f;
+}
+
+
+void
+ImageBufAlgo::ResizeMapping::map (float x, float y, float* s, float* t,
+                    float *dsdx, float *dtdx, float *dsdy, float *dtdy) const
+{
+    *s = (x + 0.5f) / xscale;
+    *t = (y + 0.5f) / yscale;
+    *dsdx = 1.0f / xscale;
+    *dtdx = 0;
+    *dsdy = 0;
+    *dtdy = 1.0f / yscale;
+}
+
+
+void
+ImageBufAlgo::ShearMapping::map (float x, float y, float* s, float* t,
+                   float *dsdx, float *dtdx, float *dsdy, float *dtdy) const
+{
+    if (1 - m*n == 0)
+        return;   // FIXME.  What's going on here?
+
+    *s = (x - m*y) / (1 - m*n);
+    *t = y - n*(*s);
+
+    // FIXME -- fix the incorrect derivatives later
+    *dsdx = 1.0f;
+    *dtdx = 0;
+    *dsdy = 0;
+    *dtdy = 1.0f;
+}
+
 
 }
 OIIO_NAMESPACE_EXIT

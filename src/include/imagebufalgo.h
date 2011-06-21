@@ -36,7 +36,6 @@
 #include "fmath.h"
 #include "colortransfer.h"
 #include "filter.h"
-#include "transformation.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -191,11 +190,74 @@ bool DLLPUBLIC resize (ImageBuf &dst, const ImageBuf &src,
                        int xbegin, int xend, int ybegin, int yend,
                        Filter2D *filter=NULL, float filterwidth=1.0);
 
-template <typename TRANSTYPE>
-bool DLLPUBLIC transform(ImageBuf &dst, const ImageBuf &src,
-                        Filter2D *filter, float filterwidth,
-                        TRANSTYPE *trans
-                        );
+
+class Mapping;
+
+bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src,
+                          const Mapping &mapping,
+                          Filter2D *filter, float filterwidth);
+
+
+/// A Mapping is a class/functor that implements a mapping of pixels
+/// (x,y) in one image to pixels (s,t) and their derivatives in a second
+/// image with the following method:
+///    void map (float x, float y, // pixel-space positions in image A
+///              float *s, float *t, // corresponding positions in image B
+///              float *dsdx, float *dtdx, // s & t derivs with respect to x
+///              float *dsdy, float *dtdy) // s & t derivs with respect to y
+/// 
+/// This is the signature needed to be able to use a Mapping with the
+/// ImageBufAlgo::transform function.
+class Mapping {
+public:
+    Mapping () { }
+    virtual ~Mapping () { }
+    virtual void map (float x, float y, float *s, float *t, float *dsdx,
+                      float *dtdx, float *dsdy, float *dtdy)  const = 0;
+};
+
+
+class RotationMapping : public Mapping {
+public:
+    RotationMapping (float _rotangle, float _originx = 0, float _originy = 0)
+        : rotangle(-_rotangle*M_PI / 180.0f), originx(_originx), originy(_originy)
+    { }
+    void map (float x, float y, float* s, float* t,
+              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+private:
+    float rotangle, originx, originy;
+};
+
+
+
+class ResizeMapping : public Mapping {
+public:
+    ResizeMapping (float _new_width, float _new_height, float orig_width, float orig_height)
+        : new_width(_new_width), new_height(_new_height), 
+          xscale(new_width / orig_width), yscale(new_height / orig_height)
+    { }
+    ResizeMapping (float _xscale, float _yscale) 
+        : xscale(_xscale), yscale(_yscale)
+    { }
+    void map (float x, float y, float* s, float* t,
+              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+private:
+    float new_width, new_height, xscale, yscale;
+};
+
+
+
+class ShearMapping : public Mapping {
+public:
+    ShearMapping(float _m, float _n, float _originx = 0, float _originy = 0)
+        : m(_m), n(_n), originx(_originx), originy(_originy)
+    { }
+    void map (float x, float y, float* s, float* t,
+              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+private:
+    float m, n, originx, originy;
+};
+
 
 
 };  // end namespace ImageBufAlgo

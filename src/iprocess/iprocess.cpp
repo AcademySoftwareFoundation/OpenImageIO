@@ -151,7 +151,7 @@ getargs (int argc, char *argv[])
                 "--colorspace %s", &colortransfer_from, "Override colorspace of inputfile\n\t\t\t\tLinear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
                 "--filter %s %f", &filtername, &filterwidth, "Set the filter to use for resize",
                 "--resize %d %d", &resize_x, &resize_y, "Resize the image to x by y pixels",
-                "--rotate %f", &rotation_angle, "Rotates the image by x degrres",
+                "--rotate %f", &rotation_angle, "Rotates the image by x degrees",
                 "--center %f %f", &cent_x, &cent_y, "Set the transformation center x y",
                 "--scale %f %f", &scale_x, &scale_y, "Scale the image to x and y original width and height",
                 "--shear %f %f", &shear_m, &shear_n, "Shear the image with m and n coefficients (m - horizontal, n - vertical)",
@@ -407,22 +407,22 @@ main (int argc, char *argv[])
 
         bool ok = false;
 
-        if(cent_x == FLT_MAX && cent_y == FLT_MAX){
+        if (cent_x == FLT_MAX && cent_y == FLT_MAX) {
             cent_x = ImageBuf(in).spec().full_width / 2.0f;
             cent_y = ImageBuf(in).spec().full_height / 2.0f;
         }
 
-        if(rotation_angle) {
-            RotationTrans t(rotation_angle, cent_x, cent_y);
-            ok = ImageBufAlgo::transform(out, in, filter, filterwidth, &t);
+        if (rotation_angle) {
+            ImageBufAlgo::RotationMapping m (rotation_angle, cent_x, cent_y);
+            ok = ImageBufAlgo::transform(out, in, m, filter, filterwidth);
         }
-        else if(shear_m || shear_n) {
-            ShearTrans t(shear_m, shear_n, cent_x, cent_y);
-            ok = ImageBufAlgo::transform(out, in, filter, filterwidth, &t);
+        else if (shear_m || shear_n) {
+            ImageBufAlgo::ShearMapping m (shear_m, shear_n, cent_x, cent_y);
+            ok = ImageBufAlgo::transform (out, in, m, filter, filterwidth);
         }
-        else if(scale_x && scale_y) {
-            ResizeTrans t(scale_x, scale_y);
-            ok = ImageBufAlgo::transform(out, in, filter, filterwidth, &t);
+        else if (scale_x && scale_y) {
+            ImageBufAlgo::ResizeMapping m (scale_x, scale_y);
+            ok = ImageBufAlgo::transform (out, in, m, filter, filterwidth);
         }
 
         ASSERT (ok);
@@ -431,8 +431,6 @@ main (int argc, char *argv[])
             Filter2D::destroy (filter);
 
     }
-
-
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

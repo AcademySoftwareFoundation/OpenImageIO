@@ -5,7 +5,6 @@ set (public_headers argparse.h dassert.h errorhandler.h export.h
                     refcnt.h strutil.h sysutil.h texture.h thread.h timer.h
                     typedesc.h ustring.h varyingref.h
                     colortransfer.h pugixml.hpp pugiconfig.hpp
-                    transformation.h
     )
 
 message(STATUS "Create version.h from version.h.in")
