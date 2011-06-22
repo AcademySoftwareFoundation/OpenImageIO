@@ -1,2 +1,0 @@
-add_oiio_plugin (gifinput.cpp gifoutput.cpp 
-                 ../libutil/pystring.cpp)
