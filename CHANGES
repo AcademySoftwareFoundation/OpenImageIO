@@ -1,6 +1,14 @@
 Changes:
 
 
+Release 0.8.9 (21 Jun 2011, as compared to 0.8.8)
+-------------------------------------------------
+* Critical bug fix: fix ImageCache/TextureSystem multithread deadlock
+  when file handle cache was full.
+* Removed unhelpful stats complaining about texture hash collisions (was
+  always harmless, but confusing).
+
+
 Release 0.8.8 (9 Dec 2010, as compared to 0.8.7)
 -------------------------------------------------
 * ImageCache: call check_max_files when re-opening a closed file, not
