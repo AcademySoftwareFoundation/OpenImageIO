@@ -124,6 +124,24 @@ static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
 
 
 
+static std::string
+filter_help_string ()
+{
+    std::string s ("Select filter (default: box)\n\t\t(choices:");
+    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+        FilterDesc d;
+        Filter2D::get_filterdesc (i, &d);
+        s.append (" ");
+        s.append (d.name);
+        if ((i%6) == 5 && i < (e-1))
+            s.append ("\n\t\t");
+    }
+    s.append (")");
+    return s;
+}
+
+
+
 static int
 parse_files (int argc, const char *argv[])
 {
@@ -131,6 +149,7 @@ parse_files (int argc, const char *argv[])
         filenames.push_back (argv[i]);
     return 0;
 }
+
 
 
 static void
@@ -151,7 +170,7 @@ getargs (int argc, char *argv[])
                   "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
                   "--nchannels %d", &nchannels, "Specify the number of output image channels.",
                   "-d %s", &dataformatname, "Set the output data format to one of:\n"
-                          "\t\t\tuint8, sint8, uint16, sint16, half, float",
+                          "\t\t\t\tuint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
                   "--separate", &separate, "Use planarconfig separate (default: contiguous)",
 //                  "--ingamma %f", &ingamma, "Specify gamma of input files (default: 1)",
@@ -165,7 +184,7 @@ getargs (int argc, char *argv[])
                   "--resize", &doresize, "Resize textures to power of 2 (default: no)",
                   "--noresize", &noresize, "Do not resize textures to power of 2 (deprecated)",
                   "--filter %s %f", &filtername, &filterwidth,
-                        "Select filter and width (default: box 1)",
+                                    filter_help_string().c_str(),
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN and Inf values (abort if found)",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
