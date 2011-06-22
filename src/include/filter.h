@@ -39,37 +39,51 @@
 OIIO_NAMESPACE_ENTER
 {
 
-// Filter2D is the abstract data type for a 2D filter.
-// The filters are NOT expected to have their results normalized.
+/// Quick structure that describes a filter.
+///
+class DLLPUBLIC FilterDesc {
+public:
+    const char *name; ///< name of the filter
+    int dim;          ///< dimensionality: 1 or 2 
+    float width;      ///< Recommended width or window
+    bool fixedwidth;  ///< Is the width the only one that makes sense?
+    bool scalable;    ///< Is it scalable (otherwise, the width is a window)?
+    bool separable;   ///< Is it separable?  (only matters if dim==2)
+};
 
-// We haven't implemented the analogous Filter1D for now, just because
-// we don't know if we'll need it.  But it should be very straightforward.
 
+
+/// Filter1D is the abstract data type for a 1D filter.
+/// The filters are NOT expected to have their results normalized.
 class DLLPUBLIC Filter1D {
 public:
     Filter1D (float width) : m_w(width) { }
     virtual ~Filter1D (void) { };
 
-    // Set and get the width and height of the filter
+    /// Get the width of the filter
     float width (void) const { return m_w; }
-    void width (float newwidth) { m_w = newwidth; }
 
-    // Evalutate the filter at an x position (relative to filter center)
+    /// Evalutate the filter at an x position (relative to filter center)
     virtual float operator() (float x) const = 0;
 
-    // Return the name of the filter, e.g., "box", "gaussian"
+    /// Return the name of the filter, e.g., "box", "gaussian"
     virtual const std::string name (void) const = 0;
 
-    // This static function allocates and returns an instance of the
-    // specific filter implementation for the name you provide.
-    // Example use:
-    //        Filter1D *myfilt = Filter1::create ("box", 1);
-    // The caller is responsible for deleting it when it's done.
-    // If the name is not recognized, return NULL.
+    /// This static function allocates and returns an instance of the
+    /// specific filter implementation for the name you provide.
+    /// Example use:
+    ///        Filter1D *myfilt = Filter1::create ("box", 1);
+    /// The caller is responsible for deleting it when it's done.
+    /// If the name is not recognized, return NULL.
     static Filter1D *create (const std::string &filtername, float width);
 
-    // Destroy a filter that was created with create().
+    /// Destroy a filter that was created with create().
     static void destroy (Filter1D *filt);
+
+    /// Get the number of filters supported.
+    static int num_filters ();
+    /// Get the info for a particular index (0..num_filters()-1).
+    static void get_filterdesc (int filternum, FilterDesc *filterdesc);
 
 protected:
     float m_w;
@@ -77,16 +91,17 @@ protected:
 
 
 
+/// Filter2D is the abstract data type for a 2D filter.
+/// The filters are NOT expected to have their results normalized.
 class DLLPUBLIC Filter2D {
 public:
     Filter2D (float width, float height) : m_w(width), m_h(height) { }
     virtual ~Filter2D (void) { };
 
-    // Set and get the width and height of the filter
+    /// Get the width of the filter
     float width (void) const { return m_w; }
-    void width (float newwidth) { m_w = newwidth; }
+    /// Get the height of the filter
     float height (void) const { return m_h; }
-    void height (float newheight) { m_h = newheight; }
 
     /// Is the filter separable?
     ///
@@ -104,20 +119,25 @@ public:
     /// it just evaluates at (0,y).
     virtual float yfilt (float y) const { return (*this)(0.0f,y); }
 
-    // Return the name of the filter, e.g., "box", "gaussian"
+    /// Return the name of the filter, e.g., "box", "gaussian"
     virtual const std::string name (void) const = 0;
 
-    // This static function allocates and returns an instance of the
-    // specific filter implementation for the name you provide.
-    // Example use:
-    //        Filter2D *myfilt = Filter2::create ("box", 1, 1);
-    // The caller is responsible for deleting it when it's done.
-    // If the name is not recognized, return NULL.
+    /// This static function allocates and returns an instance of the
+    /// specific filter implementation for the name you provide.
+    /// Example use:
+    ///        Filter2D *myfilt = Filter2::create ("box", 1, 1);
+    /// The caller is responsible for deleting it when it's done.
+    /// If the name is not recognized, return NULL.
     static Filter2D *create (const std::string &filtername,
                              float width, float height);
 
-    // Destroy a filter that was created with create().
+    /// Destroy a filter that was created with create().
     static void destroy (Filter2D *filt);
+
+    /// Get the number of filters supported.
+    static int num_filters ();
+    /// Get the info for a particular index (0..num_filters()-1).
+    static void get_filterdesc (int filternum, FilterDesc *filterdesc);
 
 protected:
     float m_w, m_h;
