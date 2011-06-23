@@ -412,8 +412,7 @@ RLAInput::decode_plane (short chan_type, short num_channels, int offset)
 {
     int chsize = std::min (1 << chan_type, 4);
     unsigned short eb; // number of encoded bytes
-    char rc; // run count
-    int k;
+    int rc, k; // run count
     std::vector<unsigned char> record;
     for (int i = 0; i < num_channels; ++i) {
         int x = 0; // index of pixel inside the scanline
@@ -426,19 +425,23 @@ RLAInput::decode_plane (short chan_type, short num_channels, int offset)
             return false;
         k = 0;
         while (k < eb) {
-            *(&rc) = *(&record[k++]);
+            rc = *((char *)&record[k++]);
             if (rc > 0) {
                 // replicate value run count + 1 times
-                for (; rc >= 0; --rc, ++x) {
+                ++rc;
+                for (; rc > 0; --rc, ++x) {
                     assert(x * m_stride + i * chsize + offset < (int)m_buf.size ());
                     m_buf[x * m_stride + i * chsize + offset] = record[k];
                 }
+                // advance pointer by 1 datum
                 ++k;
             } else {
                 // copy raw values run count times
-                for (rc = -rc; rc > 0; --rc, ++x, ++k) {
+                for (; rc < 0; ++rc, ++x) {
                     assert(x * m_stride + i * chsize + offset < (int)m_buf.size ());
                     m_buf[x * m_stride + i * chsize + offset] = record[k];
+                    // advance pointer by 1 datum
+                    ++k;
                 }
             }
         }
