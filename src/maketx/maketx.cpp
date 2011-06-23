@@ -82,7 +82,6 @@ static bool checknan = false;
 static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
 static std::string filtername = "box";
-static float filterwidth = 1.0f;
 static Filter2D *filter = NULL;
 
 // Conversion modes.  If none are true, we just make an ordinary texture.
@@ -124,6 +123,45 @@ static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
 
 
 
+static std::string
+filter_help_string ()
+{
+    std::string s ("Select filter for resizeing (default: box)\n\t\t(choices:");
+    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+        FilterDesc d;
+        Filter2D::get_filterdesc (i, &d);
+        s.append (" ");
+        s.append (d.name);
+        if ((i%6) == 5 && i < (e-1))
+            s.append ("\n\t\t");
+    }
+    s.append (")");
+    return s;
+}
+
+
+
+static Filter2D *
+setup_filter (const std::string &filtername)
+{
+    // Figure out the recommended filter width for the named filter
+    float filterwidth = 1.0f;
+    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+        FilterDesc d;
+        Filter2D::get_filterdesc (i, &d);
+        if (filtername == d.name) {
+            filterwidth = d.width;
+            break;
+        }
+    }
+
+    Filter2D *filter = Filter2D::create (filtername, filterwidth, filterwidth);
+
+    return filter;
+}
+
+
+
 static int
 parse_files (int argc, const char *argv[])
 {
@@ -131,6 +169,7 @@ parse_files (int argc, const char *argv[])
         filenames.push_back (argv[i]);
     return 0;
 }
+
 
 
 static void
@@ -151,7 +190,7 @@ getargs (int argc, char *argv[])
                   "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
                   "--nchannels %d", &nchannels, "Specify the number of output image channels.",
                   "-d %s", &dataformatname, "Set the output data format to one of:\n"
-                          "\t\t\tuint8, sint8, uint16, sint16, half, float",
+                          "\t\t\t\tuint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
                   "--separate", &separate, "Use planarconfig separate (default: contiguous)",
 //                  "--ingamma %f", &ingamma, "Specify gamma of input files (default: 1)",
@@ -164,8 +203,7 @@ getargs (int argc, char *argv[])
                   "--twrap %s", &twrap, "Specific t wrap mode separately",
                   "--resize", &doresize, "Resize textures to power of 2 (default: no)",
                   "--noresize", &noresize, "Do not resize textures to power of 2 (deprecated)",
-                  "--filter %s %f", &filtername, &filterwidth,
-                        "Select filter and width (default: box 1)",
+                  "--filter %s", &filtername, filter_help_string().c_str(),
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN and Inf values (abort if found)",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
@@ -242,11 +280,12 @@ getargs (int argc, char *argv[])
         exit (EXIT_FAILURE);
     }
 
-    filter = Filter2D::create (filtername, filterwidth, filterwidth);
+    filter = setup_filter (filtername);
     if (! filter) {
         std::cerr << "maketx ERROR: could not make filter '" << filtername << "\n";
         exit (EXIT_FAILURE);
     }
+
     if (embed_hash && verbose) {
         std::cerr << "maketx WARNING: The --embed_hash option is deprecated, and no longer necessary.\n";
         std::cerr << "                 (Hashes are always computed.)\n";
@@ -402,7 +441,7 @@ static void
 resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
                  int x0, int x1, int y0, int y1)
 {
-    ImageBufAlgo::resize (*dst, *src, x0, x1, y0, y1, filter, filterwidth);
+    ImageBufAlgo::resize (*dst, *src, x0, x1, y0, y1, filter);
 }
 
 
@@ -847,7 +886,7 @@ make_texturemap (const char *maptypename = "texture map")
         if (verbose)
             std::cout << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
-        if (filtername == "box" && filterwidth == 1.0f)
+        if (filtername == "box" && filter->width() == 1.0f)
             parallel_image (resize_block, &dst, &src,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
@@ -879,8 +918,8 @@ make_texturemap (const char *maptypename = "texture map")
     // (such as filtering information) needs to be manually added into the
     // hash.
     std::ostringstream addlHashData;
-    addlHashData << filtername << " ";
-    addlHashData << filterwidth << " ";
+    addlHashData << filter->name() << " ";
+    addlHashData << filter->width() << " ";
     
     std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel,
         addlHashData.str());
@@ -986,8 +1025,12 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     }
 
     // Write out the image
-    if (verbose)
+    if (verbose) {
         std::cout << "  Writing file: " << outputfilename << std::endl;
+        std::cout << "  Filter \"" << filter->name() << "\" width = " 
+                  << filter->width() << "\n";
+    }
+
     bool ok = true;
     ok &= img.write (out);
     stat_writetime += writetimer();
@@ -1014,7 +1057,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             smallspec.set_format (TypeDesc::FLOAT);
             small->alloc (smallspec);  // Realocate with new size
 
-            if (filtername == "box" && filterwidth == 1.0f)
+            if (filtername == "box" && filter->width() == 1.0f)
                 parallel_image (resize_block, small, big,
                                 smallspec.x, smallspec.x+smallspec.width,
                                 smallspec.y, smallspec.y+smallspec.height,

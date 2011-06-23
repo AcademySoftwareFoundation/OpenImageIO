@@ -692,7 +692,7 @@ namespace { // anonymous namespace
 template<typename SRCTYPE>
 bool resize_ (ImageBuf &dst, const ImageBuf &src,
               int xbegin, int xend, int ybegin, int yend,
-              Filter2D *filter, float filterwidth)
+              Filter2D *filter)
 {
     const ImageSpec &srcspec (src.spec());
     const ImageSpec &dstspec (dst.spec());
@@ -705,8 +705,8 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
 
     bool allocfilter = (filter == NULL);
     if (allocfilter) {
-        filterwidth = 2.0f;
-        filter = Filter2D::create ("triangle", filterwidth, filterwidth);
+        // If no filter was provided, punt and just linearly interpolate
+        filter = Filter2D::create ("triangle", 2.0f, 2.0f);
     }
 
     // Local copies of the source image window, converted to float
@@ -863,42 +863,31 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
 bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       int xbegin, int xend, int ybegin, int yend,
-                      Filter2D *filter, float filterwidth)
+                      Filter2D *filter)
 {
     switch (src.spec().format.basetype) {
     case TypeDesc::FLOAT :
-        return resize_<float> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<float> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::UINT8 :
-        return resize_<unsigned char> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<unsigned char> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::INT8  :
-        return resize_<char> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<char> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::UINT16:
-        return resize_<unsigned short> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<unsigned short> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::INT16 :
-        return resize_<short> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<short> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::UINT  :
-        return resize_<unsigned int> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<unsigned int> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::INT   :
-        return resize_<int> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<int> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::UINT64:
-        return resize_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::INT64 :
-        return resize_<long long> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<long long> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::HALF  :
-        return resize_<half> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<half> (dst, src, xbegin, xend, ybegin, yend, filter);
     case TypeDesc::DOUBLE:
-        return resize_<double> (dst, src, xbegin, xend, ybegin, yend,
-                               filter, filterwidth);
+        return resize_<double> (dst, src, xbegin, xend, ybegin, yend, filter);
     default:
         return false;
     }

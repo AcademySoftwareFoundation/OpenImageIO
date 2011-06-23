@@ -34,8 +34,9 @@
 #include <cstring>
 #include <string>
 
-#include "filter.h"
 #include "fmath.h"
+#include "filter.h"
+#include "dassert.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -474,6 +475,36 @@ public:
 
 
 
+namespace {
+FilterDesc filter1d_list[] = {
+    // name             dim width fixedwidth scalable separable
+    { "box",             1,   1,    false,    true,     true },
+    { "triangle",        1,   2,    false,    true,     true },
+    { "gaussian",        1,   2,    false,    true,     true },
+    { "catrom",          1,   4,    false,    false,    true },
+    { "blackman-harris", 1,   3,    false,    true,     true },
+    { "sinc",            1,   6,    false,    false,    true },
+    { "lanczos3",        1,   6,    false,    false,    true },
+    { "mitchell",        1,   3,    false,    true,     true },
+    { "bspline",         1,   4,    false,    true,     true }
+};
+}
+
+int
+Filter1D::num_filters ()
+{
+    return sizeof(filter1d_list)/sizeof(filter1d_list[0]);
+}
+
+void
+Filter1D::get_filterdesc (int filternum, FilterDesc *filterdesc)
+{
+    ASSERT (filternum >= 0 && filternum < num_filters());
+    *filterdesc = filter1d_list[filternum];
+}
+
+
+
 // Filter1D::create is the static method that, given a filter name,
 // width, and height, returns an allocated and instantiated filter of
 // the correct implementation.  If the name is not recognized, return
@@ -508,6 +539,36 @@ void
 Filter1D::destroy (Filter1D *filt)
 {
     delete filt;
+}
+
+
+
+static FilterDesc filter2d_list[] = {
+    // name             dim width fixedwidth scalable separable
+    { "box",             2,   1,    false,    true,     true  },
+    { "triangle",        2,   2,    false,    true,     true  },
+    { "gaussian",        2,   2,    false,    true,     true  },
+    { "catrom",          2,   4,    true,     false,    true  },
+    { "blackman-harris", 2,   3,    false,    true,     true  },
+    { "sinc",            2,   6,    false,    false,    true  },
+    { "lanczos3",        2,   6,    true,     false,    true  },
+    { "radial-lanczos3", 2,   6,    true,     false,    false },
+    { "mitchell",        2,   3,    false,    true,     true  },
+    { "bspline",         2,   4,    false,    true,     true  },
+    { "disk",            2,   1,    false,    true,     false }
+};
+
+int
+Filter2D::num_filters ()
+{
+    return sizeof(filter2d_list)/sizeof(filter2d_list[0]);
+}
+
+void
+Filter2D::get_filterdesc (int filternum, FilterDesc *filterdesc)
+{
+    ASSERT (filternum >= 0 && filternum < num_filters());
+    *filterdesc = filter2d_list[filternum];
 }
 
 
