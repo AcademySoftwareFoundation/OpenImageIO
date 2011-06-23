@@ -181,6 +181,7 @@ catalog_plugin (const std::string &format_name,
 
     PLUGENTRY (bmp);
 //    PLUGENTRY (cineon);
+    PLUGENTRY (gif);
     PLUGENTRY (dds);
     PLUGENTRY (dpx);
     PLUGENTRY (field3d);
@@ -226,6 +227,7 @@ catalog_builtin_plugins ()
 
     DECLAREPLUG (bmp);
 //    DECLAREPLUG (cineon);
+    DECLAREPLUG (gif);
     DECLAREPLUG (dds);
     DECLAREPLUG (dpx);
 #ifdef USE_FIELD3D
