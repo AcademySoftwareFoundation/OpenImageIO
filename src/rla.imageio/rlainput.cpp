@@ -95,7 +95,10 @@ private:
     inline bool read_header ();
     
     /// Helper: read and decode a single colour plane.
-    bool decode_plane (short chan_type, short num_channels, int offset);
+    bool decode_plane (int first_channel, short num_channels);
+    
+    /// Helper: determine channel TypeDesc
+    inline TypeDesc get_channel_typedesc (short chan_type, short chan_bits);
 };
 
 
@@ -264,27 +267,34 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         error ("Illegal auxiliary channel type: %d", m_rla.AuxChannelType);
         return false;
     }
-    
-    // pick the highest-precision type
-    int ct = std::max (m_rla.ColorChannelType, std::max (m_rla.MatteChannelType,
-                                                         m_rla.AuxChannelType));
-    int bits = std::max (m_rla.NumOfChannelBits, std::max (m_rla.NumOfMatteBits,
-                                                           m_rla.NumOfAuxBits));
-    m_stride = m_rla.NumOfColorChannels * std::min (1 << m_rla.ColorChannelType, 4)
-        + m_rla.NumOfMatteChannels * std::min (1 << m_rla.MatteChannelType, 4)
-        + m_rla.NumOfAuxChannels * std::min (1 << m_rla.AuxChannelType, 4);
+
     m_Yflip = m_rla.ActiveBottom - m_rla.ActiveTop < 0;
     
     m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
                         std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1,
                         m_rla.NumOfColorChannels
                             + m_rla.NumOfMatteChannels
-                            + m_rla.NumOfAuxChannels,
-                        ct == CT_BYTE ? TypeDesc::UINT8
-                            : (ct == CT_WORD ? TypeDesc::UINT16
-                                : (ct == CT_DWORD ? TypeDesc::UINT32
-                                    : TypeDesc::FLOAT)));
-    m_spec.attribute ("oiio:BitsPerSample", m_spec.nchannels * bits);
+                            + m_rla.NumOfAuxChannels);
+    
+    // set channel formats and stride
+    m_stride = 0;
+    TypeDesc t = get_channel_typedesc (m_rla.ColorChannelType, m_rla.NumOfChannelBits);
+    for (int i = 0; i < m_rla.NumOfColorChannels; ++i)
+        m_spec.channelformats.push_back (t);
+    m_stride += m_rla.NumOfColorChannels * t.size ();
+    t = get_channel_typedesc (m_rla.MatteChannelType, m_rla.NumOfMatteBits);
+    for (int i = 0; i < m_rla.NumOfMatteChannels; ++i)
+        m_spec.channelformats.push_back (t);
+    m_stride += m_rla.NumOfMatteChannels * t.size ();
+    t = get_channel_typedesc (m_rla.AuxChannelType, m_rla.NumOfAuxBits);
+    for (int i = 0; i < m_rla.NumOfAuxChannels; ++i)
+        m_spec.channelformats.push_back (t);
+    m_stride += m_rla.NumOfAuxChannels * t.size ();
+
+    m_spec.attribute ("oiio:BitsPerSample",
+                      m_rla.NumOfChannelBits * m_rla.NumOfColorChannels
+                      + m_rla.NumOfMatteBits * m_rla.NumOfMatteChannels
+                      + m_rla.NumOfAuxBits * m_rla.NumOfAuxChannels);
     // make a guess at channel names for the time being
     m_spec.default_channel_names ();
     // this is always true
@@ -408,45 +418,67 @@ RLAInput::close ()
 
 
 bool
-RLAInput::decode_plane (short chan_type, short num_channels, int offset)
+RLAInput::decode_plane (int first_channel, short num_channels)
 {
-    int chsize = std::min (1 << chan_type, 4);
-    unsigned short eb; // number of encoded bytes
-    int rc, k; // run count
+    int chsize = m_spec.channelformats[first_channel].size ();
+    int offset = 0;
+    for (int i = 0; i < first_channel; ++i)
+        offset += m_spec.channelformats[i].size ();
+    unsigned short length; // number of encoded bytes
+    char rc; // run count
+    unsigned char *p; // pointer to current byte
     std::vector<unsigned char> record;
-    for (int i = 0; i < num_channels; ++i) {
+    for (int i = 0; i < num_channels * chsize; ++i) {
         int x = 0; // index of pixel inside the scanline
-        if (!fread (&eb, 2, 1))
+        if (!fread (&length, 2, 1))
             return false;
         if (littleendian ())
-            swap_endian (&eb);
-        record.resize (std::max (record.size (), (size_t)eb));
-        if (!fread (&record[0], 1, eb))
+            swap_endian (&length);
+        record.resize (std::max (record.size (), (size_t)length));
+        if (!fread (&record[0], 1, length))
             return false;
-        k = 0;
-        while (k < eb) {
-            rc = *((char *)&record[k++]);
+        p = &record[0];
+        while (p - &record[0] < length) {
+            rc = *((char *)p++);
             if (rc > 0) {
                 // replicate value run count + 1 times
-                ++rc;
-                for (; rc > 0; --rc, ++x) {
-                    assert(x * m_stride + i * chsize + offset < (int)m_buf.size ());
-                    m_buf[x * m_stride + i * chsize + offset] = record[k];
+                for (; rc >= 0; --rc, ++x) {
+                    assert(x * m_stride + i + offset < (int)m_buf.size ());
+                    m_buf[x * m_stride + i + offset] = *p;
                 }
                 // advance pointer by 1 datum
-                ++k;
-            } else {
+                ++p;
+            } else if (rc < 0) {
                 // copy raw values run count times
                 for (; rc < 0; ++rc, ++x) {
-                    assert(x * m_stride + i * chsize + offset < (int)m_buf.size ());
-                    m_buf[x * m_stride + i * chsize + offset] = record[k];
+                    assert(x * m_stride + i + offset < (int)m_buf.size ());
+                    m_buf[x * m_stride + i + offset] = *p;
                     // advance pointer by 1 datum
-                    ++k;
+                    ++p;
                 }
+            } else // if (rc == 0)
+                break;
+            // exceeding the width while remaining inside the record means that
+            // the less significant byte pass begins
+            if (x >= m_spec.width && p - &record[0] < length) {
+                x = 0;
+                ++i;
+                if (i >= num_channels * chsize)
+                    break;
             }
         }
         // make sure we haven't gone way off range
-        assert(k - eb < 1);
+        assert(p - &record[0] <= length);
+    }
+    // reverse byte order if needed (RLA is always big-endian)
+    if (chsize > 1 && littleendian ()) {
+        for (int i = 0; i < m_spec.width; ++i) {
+            switch (chsize) {
+                case 2: swap_endian ((short *)&m_buf[i * chsize]); break;
+                case 4: swap_endian ((int *)&m_buf[i * chsize]); break;
+                default: assert (!"Invalid channel size!");
+            }
+        }
     }
     return true;
 }
@@ -458,7 +490,7 @@ RLAInput::read_native_scanline (int y, int z, void *data)
 {
     if (m_Yflip)
         y = m_spec.height - y - 1;
-    m_buf.resize (m_spec.scanline_bytes());
+    m_buf.resize (m_spec.scanline_bytes (true));
     // seek to scanline offset table
     fseek (m_file, m_sot + y * 4, SEEK_SET);
     unsigned int ofs;
@@ -469,16 +501,17 @@ RLAInput::read_native_scanline (int y, int z, void *data)
     // seek to scanline start
     fseek (m_file, ofs, SEEK_SET);
     
-    ofs = 0;
     // now decode and interleave the planes
-    if (!decode_plane(m_rla.ColorChannelType, m_rla.NumOfColorChannels, ofs))
-        return false;
-    ofs += m_rla.NumOfColorChannels * std::min (1 << m_rla.ColorChannelType, 4);
-    if (!decode_plane(m_rla.MatteChannelType, m_rla.NumOfMatteChannels, ofs))
-        return false;
-    ofs += m_rla.NumOfMatteChannels * std::min (1 << m_rla.MatteChannelType, 4);
-    if (!decode_plane(m_rla.AuxChannelType, m_rla.NumOfAuxChannels, ofs))
-        return false;
+    if (m_rla.NumOfColorChannels > 0)
+        if (!decode_plane(0, m_rla.NumOfColorChannels))
+            return false;
+    if (m_rla.NumOfMatteChannels > 0)
+        if (!decode_plane(m_rla.NumOfColorChannels, m_rla.NumOfMatteChannels))
+            return false;
+    if (m_rla.NumOfAuxChannels > 0)
+        if (!decode_plane(m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels,
+            m_rla.NumOfAuxChannels))
+            return false;
 
     size_t size = spec().scanline_bytes();
     memcpy (data, &m_buf[0], size);
@@ -515,6 +548,40 @@ RLAInput::get_month_number (const char *s)
     if (iequals (s, "dec"))
         return 12;
     return -1;
+}
+
+
+
+inline TypeDesc
+RLAInput::get_channel_typedesc (short chan_type, short chan_bits)
+{
+    switch (chan_type) {
+        case CT_BYTE:
+            // some non-spec-compliant images > 8bpc will have it set to
+            // byte anyway, so try guessing by bit depth instead
+            if (chan_bits > 8) {
+                switch ((chan_bits + 7) / 8) {
+                    case 2:
+                        return TypeDesc::UINT16;                        
+                    case 3:
+                    case 4:
+                        return TypeDesc::UINT32;
+                    default:
+                        assert(!"Invalid colour channel type");
+                }
+            } else
+                return TypeDesc::UINT8;            
+        case CT_WORD:
+            return TypeDesc::UINT16;            
+        case CT_DWORD:
+            return TypeDesc::UINT32;            
+        case CT_FLOAT:
+            return TypeDesc::FLOAT;            
+        default:
+            assert(!"Invalid colour channel type");
+    }
+    // shut up compiler
+    return TypeDesc::UINT8;
 }
 
 OIIO_PLUGIN_NAMESPACE_END
