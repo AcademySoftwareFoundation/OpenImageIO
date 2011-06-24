@@ -863,7 +863,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
 bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       int xbegin, int xend, int ybegin, int yend,
-                      Filter2D *filter)
+                      Filter2D *filter, float filterwidth)
 {
     switch (src.spec().format.basetype) {
     case TypeDesc::FLOAT :

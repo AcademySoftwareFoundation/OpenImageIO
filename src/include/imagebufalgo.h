@@ -194,7 +194,7 @@ std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src,
 /// be of type FLOAT.
 bool DLLPUBLIC resize (ImageBuf &dst, const ImageBuf &src,
                        int xbegin, int xend, int ybegin, int yend,
-                       Filter2D *filter=NULL);
+                       Filter2D *filter=NULL, float filterwidth=1.0);
 
 
 };  // end namespace ImageBufAlgo
