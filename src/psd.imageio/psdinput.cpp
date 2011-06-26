@@ -128,6 +128,9 @@ private:
     //Alpha channel names
     bool load_resource_1006 (uint32_t length, ImageSpec &spec);
 
+    //Pixel aspect ratio
+    bool load_resource_1064 (uint32_t length, ImageSpec &spec);
+
     //For thumbnail loading
     struct thumbnail_error_mgr {
         jpeg_error_mgr pub;
@@ -190,7 +193,8 @@ const PSDInput::ResourceLoader PSDInput::resource_loaders[] = {
     ADD_LOADER(1033),
     ADD_LOADER(1036),
     ADD_LOADER(1005),
-    ADD_LOADER(1006)
+    ADD_LOADER(1006),
+    ADD_LOADER(1064)
 };
 #undef ADD_LOADER
 
@@ -703,6 +707,24 @@ PSDInput::load_resource_1006 (uint32_t length, ImageSpec &spec)
         bytes_remaining -= read_pascal_string (name, 1);
         spec.channelnames.push_back (name);
     }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1064 (uint32_t length, ImageSpec &spec)
+{
+    uint32_t version;
+    read_bige<uint32_t> (version);
+    if (version != 1 && version != 2) {
+        error ("[Image Resource] [Pixel Aspect Ratio] Unrecognized version");
+        return false;
+    }
+    double aspect_ratio;
+    read_bige<double> (aspect_ratio);
+    //TODO warn on loss of precision?
+    spec.attribute ("PixelAspectRatio", (float)aspect_ratio);
     return true;
 }
 
