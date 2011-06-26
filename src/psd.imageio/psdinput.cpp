@@ -147,6 +147,9 @@ private:
     //Global layer mask info
     bool load_global_mask_info (ImageSpec &spec);
 
+    //Global additional layer info
+    bool load_global_additional (ImageSpec &spec);
+
     //These are AdditionalInfo entries that, for PSBs, have an 8-byte length
     static const char *additional_info_psb[];
     static const std::size_t additional_info_psb_count;
@@ -258,6 +261,9 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
         return false;
 
     if (!load_global_mask_info (newspec))
+        return false;
+
+    if (!load_global_additional (newspec))
         return false;
 
     return true;
@@ -959,6 +965,53 @@ PSDInput::load_global_mask_info (ImageSpec &spec)
     read_bige<uint16_t> (m_global_mask_info.opacity);
     read_bige<int16_t> (m_global_mask_info.kind);
     m_file.seekg (end);
+    if (!m_file)
+        return false;
+
+    return true;
+}
+
+
+
+bool
+PSDInput::load_global_additional (ImageSpec &spec)
+{
+    char signature[4];
+    char key[4];
+    uint64_t length;
+    uint64_t remaining = m_layer_mask_info.length - (m_file.tellg () - m_layer_mask_info.pos);
+    while (m_file && remaining >= 12) {
+        m_file.read (signature, 4);
+        if (std::memcmp (signature, "8BIM", 4) != 0) {
+            error ("[Global Additional Layer Info] invalid signature");
+            return false;
+        }
+        m_file.read (key, 4);
+        if (!m_file)
+            return false;
+
+        remaining -= 8;
+        if (m_header.version == 2 && is_additional_info_psb (key)) {
+            read_bige<uint64_t> (length);
+            remaining -= 8;
+        } else {
+            read_bige<uint32_t> (length);
+            remaining -= 4;
+        }
+        //This is irritating and I was puzzled until I saw comments in
+        //the code of XeePhotoshopLoader.m.
+        //
+        //Long story short these are aligned to 4 bytes but that is not
+        //included in the stored length and the specs do not mention it.
+
+        //round up to multiple of 4
+        length = (length + 3) & ~3;
+        remaining -= length;
+        //skip it for now
+        m_file.seekg (length, std::ios::cur);
+        if (!m_file)
+            return false;
+    }
     if (!m_file)
         return false;
 
