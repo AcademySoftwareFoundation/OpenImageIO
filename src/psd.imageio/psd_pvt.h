@@ -41,7 +41,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace psd_pvt {
 
-    enum PSDColorMode {
+    enum ColorMode {
         ColorMode_Bitmap = 0,
         ColorMode_Grayscale = 1,
         ColorMode_Indexed = 2,
@@ -52,73 +52,40 @@ namespace psd_pvt {
         ColorMode_Lab = 9
     };
 
-    enum PSDThumbnailFormat {
+
+
+    enum ThumbnailFormat {
         kJpegRGB = 1,
         kRawRGB = 0
     };
 
-    enum PSDResourceID {
-        Resource_Thumbnail_V5 = 1036,
-        Resource_Thumbnail_V4 = 1033
-    };
 
-    class PSDFileHeader {
-     public:
-        std::string read (std::ifstream &inf);
-        std::string validate () const;
 
+    struct FileHeader {
         char signature[4];
         uint16_t version;
-        uint16_t channels;
+        uint16_t channel_count;
         uint32_t height;
         uint32_t width;
         uint16_t depth;
         uint16_t color_mode;
     };
 
-    class PSDColorModeData {
-     public:
-        PSDColorModeData (const PSDFileHeader &header);
 
-        std::string read (std::ifstream &inf);
-        std::string validate () const;
 
+    struct ColorModeData {
         uint32_t length;
         std::streampos pos;
-
-     private:
-        const PSDFileHeader &m_header;
     };
 
-    class PSDImageResourceBlock {
-     public:
-        std::string read (std::ifstream &inf);
-        std::string validate () const;
 
+
+    struct ImageResourceBlock {
         char signature[4];
         uint16_t id;
         std::string name;
         uint32_t length;
         std::streampos pos;
-    };
-
-    struct ImageResourceHandler {
-        uint16_t id;
-        boost::function<bool (std::ifstream &inf, const PSDImageResourceBlock &, ImageSpec &)> handler;
-    };
-
-    extern const ImageResourceHandler resource_handlers[];
-    extern const std::size_t resource_handlers_count;
-
-    typedef std::map<uint16_t, PSDImageResourceBlock> PSDImageResourceMap;
-
-    class PSDImageResourceSection {
-     public:
-        std::string read (std::ifstream &inf);
-
-        uint32_t length;
-
-        PSDImageResourceMap resources;
     };
 
 };  // namespace PSD_pvt
