@@ -87,6 +87,7 @@ private:
 	ColorModeData m_color_data;
 	LayerMaskInfo m_layer_mask_info;
 	std::vector<Layer> m_layers;
+	GlobalMaskInfo m_global_mask_info;
     /// Reset everything to initial state
     ///
     void init ();
@@ -142,6 +143,9 @@ private:
     bool load_layer_image (Layer &layer);
     bool load_layer_channel (Layer &layer, Layer::ChannelInfo &channel_info);
     bool read_rle_lengths (Layer &layer, Layer::ChannelInfo &channel_info);
+
+    //Global layer mask info
+    bool load_global_mask_info (ImageSpec &spec);
 
     //These are AdditionalInfo entries that, for PSBs, have an 8-byte length
     static const char *additional_info_psb[];
@@ -249,6 +253,12 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
 
     if (newspec.channelnames.empty ())
         newspec.default_channel_names ();
+
+    if (!load_layers (newspec))
+        return false;
+
+    if (!load_global_mask_info (newspec))
+        return false;
 
     return true;
 }
@@ -923,6 +933,35 @@ PSDInput::read_rle_lengths (Layer &layer, Layer::ChannelInfo &channel_info)
         else
             read_bige<uint32_t> (rle_lengths[row]);
     }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_global_mask_info (ImageSpec &spec)
+{
+    m_file.seekg (m_layer_mask_info.layer_info.pos + (std::streampos)m_layer_mask_info.layer_info.length);
+    uint32_t length;
+    read_bige<uint32_t> (length);
+    std::streampos start = m_file.tellg ();
+    std::streampos end = start + (std::streampos)length;
+    if (!m_file)
+        return false;
+
+    if (!length)
+        return true;
+
+    read_bige<uint16_t> (m_global_mask_info.overlay_color_space);
+    for (int i = 0; i < 4; ++i)
+        read_bige<uint16_t> (m_global_mask_info.color_components[i]);
+
+    read_bige<uint16_t> (m_global_mask_info.opacity);
+    read_bige<int16_t> (m_global_mask_info.kind);
+    m_file.seekg (end);
+    if (!m_file)
+        return false;
+
     return true;
 }
 
