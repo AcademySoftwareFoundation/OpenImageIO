@@ -150,6 +150,9 @@ private:
     //Global additional layer info
     bool load_global_additional (ImageSpec &spec);
 
+    //Merged image data
+    bool load_merged_image (ImageSpec &spec);
+
     //These are AdditionalInfo entries that, for PSBs, have an 8-byte length
     static const char *additional_info_psb[];
     static const std::size_t additional_info_psb_count;
@@ -264,6 +267,9 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
         return false;
 
     if (!load_global_additional (newspec))
+        return false;
+
+    if (!load_merged_image (newspec))
         return false;
 
     return true;
@@ -1015,6 +1021,14 @@ PSDInput::load_global_additional (ImageSpec &spec)
     if (!m_file)
         return false;
 
+    return true;
+}
+
+
+
+bool
+PSDInput::load_merged_image (ImageSpec &spec)
+{
     return true;
 }
 
