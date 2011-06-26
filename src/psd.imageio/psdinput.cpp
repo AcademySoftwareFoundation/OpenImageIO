@@ -95,6 +95,9 @@ private:
     bool load_resource_1033 (uint32_t length, ImageSpec &spec);
     bool load_resource_thumbnail (uint32_t length, ImageSpec &spec, bool isBGR);
 
+    //ResolutionInfo
+    bool load_resource_1005 (uint32_t length, ImageSpec &spec);
+
     //For thumbnail loading
     struct thumbnail_error_mgr {
         jpeg_error_mgr pub;
@@ -145,7 +148,8 @@ private:
 #define ADD_LOADER(id) {id, boost::bind (&PSDInput::load_resource_##id, _1, _2, _3)}
 const PSDInput::ResourceLoader PSDInput::resource_loaders[] = {
     ADD_LOADER(1033),
-    ADD_LOADER(1036)
+    ADD_LOADER(1036),
+    ADD_LOADER(1005)
 };
 #undef ADD_LOADER
 
@@ -578,6 +582,41 @@ PSDInput::load_resource_thumbnail (uint32_t length, ImageSpec &spec, bool isBGR)
     spec.attribute ("thumbnail_width", (int)width);
     spec.attribute ("thumbnail_height", (int)height);
     spec.attribute ("thumbnail_nchannels", 3);
+    return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1005 (uint32_t length, ImageSpec &spec)
+{
+    ResolutionInfo resinfo;
+    //Fixed 16.16
+    read_bige<uint32_t> (resinfo.hRes);
+    resinfo.hRes /= 65536.0f;
+    read_bige<int16_t> (resinfo.hResUnit);
+    read_bige<int16_t> (resinfo.widthUnit);
+    //Fixed 16.16
+    read_bige<uint32_t> (resinfo.vRes);
+    resinfo.vRes /= 65536.0f;
+    read_bige<int16_t> (resinfo.vResUnit);
+    read_bige<int16_t> (resinfo.heightUnit);
+    if (!(resinfo.hResUnit == resinfo.vResUnit
+          && (resinfo.hResUnit == ResolutionInfo::PixelsPerInch
+          || resinfo.hResUnit == ResolutionInfo::PixelsPerCentimeter))) {
+          error ("[Image Resource] [ResolutionInfo] Unrecognized resolution unit");
+          return false;
+    }
+    spec.attribute ("XResolution", resinfo.hRes);
+    spec.attribute ("YResolution", resinfo.vRes);
+    switch (resinfo.hResUnit) {
+        case ResolutionInfo::PixelsPerInch:
+            spec.attribute ("ResolutionUnit", "in");
+            break;
+        case ResolutionInfo::PixelsPerCentimeter:
+            spec.attribute ("ResolutionUnit", "cm");
+            break;
+    };
     return true;
 }
 

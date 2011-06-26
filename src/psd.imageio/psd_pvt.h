@@ -88,6 +88,31 @@ namespace psd_pvt {
         std::streampos pos;
     };
 
+
+
+    struct ResolutionInfo {
+        float hRes;
+        int16_t hResUnit;
+        int16_t widthUnit;
+        float vRes;
+        int16_t vResUnit;
+        int16_t heightUnit;
+        
+        enum ResolutionUnit {
+            PixelsPerInch = 1,
+            PixelsPerCentimeter = 2
+        };
+
+        enum Unit {
+            Inches = 1,
+            Centimeters = 2,
+            Points = 3,
+            Picas = 4,
+            Columns = 5
+        };
+
+    };
+
 };  // namespace PSD_pvt
 
 OIIO_PLUGIN_NAMESPACE_END
