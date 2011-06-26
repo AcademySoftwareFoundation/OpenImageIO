@@ -98,6 +98,9 @@ private:
     //ResolutionInfo
     bool load_resource_1005 (uint32_t length, ImageSpec &spec);
 
+    //Alpha channel names
+    bool load_resource_1006 (uint32_t length, ImageSpec &spec);
+
     //For thumbnail loading
     struct thumbnail_error_mgr {
         jpeg_error_mgr pub;
@@ -149,7 +152,8 @@ private:
 const PSDInput::ResourceLoader PSDInput::resource_loaders[] = {
     ADD_LOADER(1033),
     ADD_LOADER(1036),
-    ADD_LOADER(1005)
+    ADD_LOADER(1005),
+    ADD_LOADER(1006)
 };
 #undef ADD_LOADER
 
@@ -617,6 +621,20 @@ PSDInput::load_resource_1005 (uint32_t length, ImageSpec &spec)
             spec.attribute ("ResolutionUnit", "cm");
             break;
     };
+    return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1006 (uint32_t length, ImageSpec &spec)
+{
+    int32_t bytes_remaining = length;
+    std::string name;
+    while (m_file && bytes_remaining >= 2) {
+        bytes_remaining -= read_pascal_string (name, 1);
+        spec.channelnames.push_back (name);
+    }
     return true;
 }
 
