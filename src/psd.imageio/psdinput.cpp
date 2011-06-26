@@ -55,12 +55,38 @@ public:
     virtual bool read_native_scanline (int y, int z, void *data);
 
 private:
+    struct LayerMaskInfo {
+        uint64_t length;
+        std::streampos pos;
+
+        struct LayerInfo {
+            uint64_t length;
+            int16_t layer_count;
+            std::streampos pos;
+        };
+
+        LayerInfo layer_info;
+    };
+
+    enum ColorMode {
+        ColorMode_Bitmap = 0,
+        ColorMode_Grayscale = 1,
+        ColorMode_Indexed = 2,
+        ColorMode_RGB = 3,
+        ColorMode_CMYK = 4,
+        ColorMode_Multichannel = 7,
+        ColorMode_Duotone = 8,
+        ColorMode_Lab = 9
+    };
+
     std::string m_filename;           ///< Stash the filename
     std::ifstream m_file;             ///< Open image handle
 	int m_subimage;
 	int m_subimage_count;
 	FileHeader m_header;
 	ColorModeData m_color_data;
+	LayerMaskInfo m_layer_mask_info;
+	std::vector<Layer> m_layers;
     /// Reset everything to initial state
     ///
     void init ();
@@ -110,16 +136,17 @@ private:
     METHODDEF (void)
     thumbnail_error_exit (j_common_ptr cinfo);
 
-    enum ColorMode {
-        ColorMode_Bitmap = 0,
-        ColorMode_Grayscale = 1,
-        ColorMode_Indexed = 2,
-        ColorMode_RGB = 3,
-        ColorMode_CMYK = 4,
-        ColorMode_Multichannel = 7,
-        ColorMode_Duotone = 8,
-        ColorMode_Lab = 9
-    };
+    //Layers
+    bool load_layers (ImageSpec &spec);
+    bool load_layer (Layer &layer);
+    bool load_layer_image (Layer &layer);
+    bool load_layer_channel (Layer &layer, Layer::ChannelInfo &channel_info);
+    bool read_rle_lengths (Layer &layer, Layer::ChannelInfo &channel_info);
+
+    //These are AdditionalInfo entries that, for PSBs, have an 8-byte length
+    static const char *additional_info_psb[];
+    static const std::size_t additional_info_psb_count;
+    bool is_additional_info_psb (const char *key);
 
     //Pascal string has length stored first, then bytes of the string
     int read_pascal_string (std::string &s, uint16_t mod_padding);
@@ -157,6 +184,25 @@ const PSDInput::ResourceLoader PSDInput::resource_loaders[] = {
 };
 #undef ADD_LOADER
 
+const char *
+PSDInput::additional_info_psb[] =
+{
+    "LMsk",
+    "Lr16",
+    "Lr32",
+    "Layr",
+    "Mt16",
+    "Mt32",
+    "Mtrn",
+    "Alph",
+    "FMsk",
+    "Ink2",
+    "FEid",
+    "FXid",
+    "PxSD"
+};
+const std::size_t
+PSDInput::additional_info_psb_count = sizeof(additional_info_psb) / sizeof(additional_info_psb[0]);
 
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -647,6 +693,249 @@ PSDInput::thumbnail_error_exit (j_common_ptr cinfo)
     //nothing here so far
 
     longjmp (mgr->setjmp_buffer, 1);
+}
+
+
+
+bool
+PSDInput::load_layers (ImageSpec &spec)
+{
+    if (m_header.version == 1)
+        read_bige<uint32_t> (m_layer_mask_info.length);
+    else
+        read_bige<uint64_t> (m_layer_mask_info.length);
+
+    m_layer_mask_info.pos = m_file.tellg ();
+    if (!m_file) {
+        error ("[Layer Mask Info] I/O error");
+        return false;
+    }
+    if (!m_layer_mask_info.length)
+        return true;
+
+    LayerMaskInfo::LayerInfo &layer_info = m_layer_mask_info.layer_info;
+    if (m_header.version == 1)
+        read_bige<uint32_t> (layer_info.length);
+    else
+        read_bige<uint64_t> (layer_info.length);
+
+    layer_info.pos = m_file.tellg ();
+    if (!m_file)
+        return false;
+
+    if (!layer_info.length)
+        return true;
+
+    read_bige<int16_t> (layer_info.layer_count);
+    //FIXME we will need to save this elsewhere
+    bool transparency = false;
+    if (layer_info.layer_count < 0) {
+        transparency = true;
+        layer_info.layer_count = -layer_info.layer_count;
+    }
+    m_layers.resize (layer_info.layer_count);
+    for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count; ++layer_nbr) {
+        Layer &layer = m_layers[layer_nbr];
+        if (!load_layer (layer))
+            return false;
+    }
+    for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count; ++layer_nbr) {
+        Layer &layer = m_layers[layer_nbr];
+        if (!load_layer_image (layer))
+            return false;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_layer (Layer &layer)
+{
+    read_bige<uint32_t> (layer.top);
+    read_bige<uint32_t> (layer.left);
+    read_bige<uint32_t> (layer.bottom);
+    read_bige<uint32_t> (layer.right);
+    read_bige<uint16_t> (layer.channel_count);
+    if (!m_file)
+        return false;
+
+    layer.channel_info.resize (layer.channel_count);
+    for(uint16_t channel = 0; channel < layer.channel_count; channel++) {
+        Layer::ChannelInfo &channel_info = layer.channel_info[channel];
+        read_bige<int16_t> (channel_info.channel_id);
+        if (m_header.version == 1)
+            read_bige<uint32_t> (channel_info.data_length);
+        else
+            read_bige<uint64_t> (channel_info.data_length);
+    }
+    char bm_signature[4];
+    m_file.read (bm_signature, 4);
+    if (!m_file)
+        return false;
+
+    if (std::memcmp (bm_signature, "8BIM", 4) != 0) {
+        error ("[Layer Record] Invalid blend mode signature");
+        return false;
+    }
+    m_file.read (layer.bm_key, 4);
+    read_bige<uint8_t> (layer.opacity);
+    read_bige<uint8_t> (layer.clipping);
+    read_bige<uint8_t> (layer.flags);
+    //skip filler
+    m_file.seekg(1, std::ios::cur);
+    read_bige<uint32_t> (layer.extra_length);
+    uint32_t extra_remaining = layer.extra_length;
+    //layer mask data length
+    uint32_t lmd_length;
+    read_bige<uint32_t> (lmd_length);
+    switch (lmd_length) {
+        case 0:
+            break;
+        case 20:
+            read_bige<uint32_t> (layer.mask_data.top);
+            read_bige<uint32_t> (layer.mask_data.left);
+            read_bige<uint32_t> (layer.mask_data.bottom);
+            read_bige<uint32_t> (layer.mask_data.right);
+            read_bige<uint8_t> (layer.mask_data.default_color);
+            read_bige<uint8_t> (layer.mask_data.flags);
+            //skip padding
+            m_file.seekg(2, std::ios::cur);
+            break;
+        case 36:
+            m_file.seekg (18, std::ios::cur);
+            read_bige<uint8_t> (layer.mask_data.flags);
+            read_bige<uint8_t> (layer.mask_data.default_color);
+            read_bige<uint32_t> (layer.mask_data.top);
+            read_bige<uint32_t> (layer.mask_data.left);
+            read_bige<uint32_t> (layer.mask_data.bottom);
+            read_bige<uint32_t> (layer.mask_data.right);
+            break;
+        default:
+            error ("[Layer Mask Data] invalid size");
+            //Actually, we could just skip this block
+            return false;
+            break;
+    };
+    extra_remaining -= (lmd_length + 4);
+
+    //layer blending ranges length
+    uint32_t lbr_length;
+    read_bige<uint32_t> (lbr_length);
+    //skip block
+    m_file.seekg (lbr_length, std::ios::cur);
+    extra_remaining -= (lbr_length + 4);
+    
+    extra_remaining -= read_pascal_string(layer.name, 4);
+    while (m_file && extra_remaining >= 12) {
+        layer.additional_info.push_back (Layer::AdditionalInfo());
+        Layer::AdditionalInfo &info = layer.additional_info.back();
+
+        char signature[4];
+        m_file.read (signature, 4);
+        m_file.read (info.key, 4);
+        if (std::memcmp (signature, "8BIM", 4) != 0
+            && std::memcmp (signature, "8B64", 4) != 0) {
+            error ("[Additional Layer Info] invalid signature");
+            return false;
+        }
+        extra_remaining -= 8;
+        if (m_header.version == 2 && is_additional_info_psb (info.key)) {
+            read_bige<uint64_t> (info.length);
+            extra_remaining -= 8;
+        } else {
+            read_bige<uint32_t> (info.length);
+            extra_remaining -= 4;
+        }
+        m_file.seekg (info.length, std::ios::cur);
+        extra_remaining -= info.length;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_layer_image (Layer &layer)
+{
+    for (uint16_t channel = 0; channel < layer.channel_count; ++channel) {
+        Layer::ChannelInfo &channel_info = layer.channel_info[channel];
+        if (!load_layer_channel (layer, channel_info))
+            return false;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_layer_channel (Layer &layer, Layer::ChannelInfo &channel_info)
+{
+    std::streampos start_pos = m_file.tellg ();
+    if (channel_info.data_length >= 2) {
+        if (!read_bige<uint16_t> (channel_info.compression))
+            return false;
+    }
+    //No data at all or just compression
+    if (channel_info.data_length <= 2)
+        return true;
+
+    switch (channel_info.compression) {
+        case Compression_Raw:
+            //TODO
+            return false;
+            break;
+        case Compression_RLE:
+            if (!read_rle_lengths (layer, channel_info))
+                return false;
+            break;
+        case Compression_ZIP:
+            //TODO
+            return false;
+            break;
+        case Compression_ZIP_Predict:
+            //TODO
+            return false;
+            break;
+    }
+    if (!m_file)
+        return false;
+
+    channel_info.data_pos = m_file.tellg ();
+    //FIXME check this over
+    channel_info.data_length = channel_info.data_length - (channel_info.data_pos - start_pos);
+    m_file.seekg (channel_info.data_length, std::ios::cur);
+    return true;
+
+}
+
+
+
+bool
+PSDInput::read_rle_lengths (Layer &layer, Layer::ChannelInfo &channel_info)
+{
+    std::vector<uint32_t> &rle_lengths = channel_info.rle_lengths;
+    uint32_t row_count = (layer.bottom - layer.top);
+    rle_lengths.resize (row_count);
+    for (uint32_t row = 0; row < row_count; ++row) {
+        if (m_header.version == 1)
+            read_bige<uint16_t> (rle_lengths[row]);
+        else
+            read_bige<uint32_t> (rle_lengths[row]);
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::is_additional_info_psb (const char *key)
+{
+    for (std::size_t i = 0; i < additional_info_psb_count; ++i)
+        if (std::memcmp (additional_info_psb[i], key, 4) == 0)
+            return true;
+
+    return false;
 }
 
 

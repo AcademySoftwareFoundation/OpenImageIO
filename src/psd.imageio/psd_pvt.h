@@ -31,15 +31,22 @@
 #ifndef OPENIMAGEIO_PSD_PVT_H
 #define OPENIMAGEIO_PSD_PVT_H
 
-#include <iosfwd>
-#include <map>
+#include <vector>
 #include "imageio.h"
 #include "fmath.h"
-#include <boost/function.hpp>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace psd_pvt {
+
+    enum Compression {
+        Compression_Raw = 0,
+        Compression_RLE = 1,
+        Compression_ZIP = 2,
+        Compression_ZIP_Predict = 3
+    };
+
+
 
     enum ColorMode {
         ColorMode_Bitmap = 0,
@@ -111,6 +118,60 @@ namespace psd_pvt {
             Columns = 5
         };
 
+    };
+
+
+
+    struct Layer {
+        ImageSpec spec;
+        
+        uint32_t top, left, bottom, right;
+        uint16_t channel_count;
+        
+        struct ChannelInfo {
+            int16_t channel_id;
+            uint64_t data_length;
+            std::streampos data_pos;
+            uint16_t compression;
+            std::vector<uint32_t> rle_lengths;
+        };
+        
+        std::vector<ChannelInfo> channel_info;
+        
+        char bm_key[4];
+        uint8_t opacity;
+        uint8_t clipping;
+        uint8_t flags;
+        uint32_t extra_length;
+
+        struct MaskData {
+            uint32_t top, left, bottom, right;
+            uint8_t default_color;
+            uint8_t flags;
+        };
+        
+        MaskData mask_data;
+        
+        //TODO layer blending ranges?
+        
+        std::string name;
+        
+        struct AdditionalInfo {
+            char key[4];
+            uint64_t length;
+            std::streampos pos;
+        };
+
+        std::vector<AdditionalInfo> additional_info;
+    };
+
+
+
+    struct GlobalMaskInfo {
+        uint16_t overlay_color_space;
+        uint16_t color_components[4];
+        uint16_t opacity;
+        int8_t kind;
     };
 
 };  // namespace PSD_pvt
