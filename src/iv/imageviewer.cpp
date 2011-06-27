@@ -381,7 +381,10 @@ ImageViewer::createActions()
 
     maxMemoryICLabel = new QLabel (tr("Image Cache max memory (requires restart)"));
     maxMemoryIC = new QSpinBox ();
-    maxMemoryIC->setRange (128, 2048); //2GB seems fair as upper limit.
+    if (sizeof (void *) == 4)
+        maxMemoryIC->setRange (128, 2048); //2GB is enough for 32 bit machines
+    else
+        maxMemoryIC->setRange (128, 8192); //8GB probably ok for 64 bit
     maxMemoryIC->setSingleStep (64);
     maxMemoryIC->setSuffix (" MB");
 }
