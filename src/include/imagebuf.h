@@ -360,6 +360,27 @@ public:
     bool localpixels () const { return m_localpixels; }
     ImageCache *imagecache () const { return m_imagecache; }
 
+    /// Return the address where pixel (x,y) is stored in the image buffer.
+    /// Use with extreme caution!  Will return NULL if the pixel values
+    /// aren't local.
+    const void *pixeladdr (int x, int y) const { return pixeladdr (x, y, 0); }
+
+    /// Return the address where pixel (x,y,z) is stored in the image buffer.
+    /// Use with extreme caution!  Will return NULL if the pixel values
+    /// aren't local.
+    const void *pixeladdr (int x, int y, int z) const;
+
+    /// Return the address where pixel (x,y) is stored in the image buffer.
+    /// Use with extreme caution!  Will return NULL if the pixel values
+    /// aren't local.
+    void *pixeladdr (int x, int y) { return pixeladdr (x, y, 0); }
+
+    /// Return the address where pixel (x,y,z) is stored in the image buffer.
+    /// Use with extreme caution!  Will return NULL if the pixel values
+    /// aren't local.
+    void *pixeladdr (int x, int y, int z);
+
+
     /// Templated class for referring to an individual pixel in an
     /// ImageBuf, iterating over the pixels of an ImageBuf, or iterating
     /// over the pixels of a specified region of the ImageBuf
@@ -922,22 +943,6 @@ protected:
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
 
     void realloc ();
-
-    // Return the address where pixel (x,y) is stored in the image buffer.
-    // Use with extreme caution!
-    const void *pixeladdr (int x, int y) const { return pixeladdr (x, y, 0); }
-
-    // Return the address where pixel (x,y,z) is stored in the image buffer.
-    // Use with extreme caution!
-    const void *pixeladdr (int x, int y, int z) const;
-
-    // Return the address where pixel (x,y) is stored in the image buffer.
-    // Use with extreme caution!
-    void *pixeladdr (int x, int y) { return pixeladdr (x, y, 0); }
-
-    // Return the address where pixel (x,y,z) is stored in the image buffer.
-    // Use with extreme caution!
-    void *pixeladdr (int x, int y, int z);
 
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
