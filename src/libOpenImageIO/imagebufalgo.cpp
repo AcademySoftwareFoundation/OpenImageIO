@@ -537,6 +537,71 @@ ImageBufAlgo::computePixelStats (PixelStats  &stats, const ImageBuf &src)
     return true;
 };
 
+
+
+bool
+ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
+                       float failthresh, float warnthresh,
+                       ImageBufAlgo::CompareResults &result)
+{
+    int npels = A.spec().width * A.spec().height * A.spec().depth;
+    int nvals = npels * A.spec().nchannels;
+
+    // Compare the two images.
+    //
+    double totalerror = 0;
+    double totalsqrerror = 0;
+    result.maxerror = 0;
+    result.maxx=0, result.maxy=0, result.maxz=0, result.maxc=0;
+    result.nfail = 0, result.nwarn = 0;
+    float maxval = 1.0;  // max possible value
+    ASSERT (A.spec().format == TypeDesc::FLOAT &&
+            B.spec().format == TypeDesc::FLOAT);
+    ImageBuf::ConstIterator<float,float> a (A);
+    ImageBuf::ConstIterator<float,float> b (B);
+    // Break up into batches to reduce cancelation errors as the error
+    // sums become too much larger than the error for individual pixels.
+    const int batchsize = 4096;   // As good a guess as any
+    for ( ;  a.valid();  ) {
+        double batcherror = 0;
+        double batch_sqrerror = 0;
+        for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
+            b.pos (a.x(), a.y());  // ensure alignment
+            bool warned = false, failed = false;  // For this pixel
+            for (int c = 0;  c < A.spec().nchannels;  ++c) {
+                float aval = a[c], bval = b[c];
+                maxval = std::max (maxval, std::max (aval, bval));
+                double f = fabs (aval - bval);
+                batcherror += f;
+                batch_sqrerror += f*f;
+                if (f > result.maxerror) {
+                    result.maxerror = f;
+                    result.maxx = a.x();
+                    result.maxy = a.y();
+                    result.maxz = 0;  // FIXME -- doesn't work for volume images
+                    result.maxc = c;
+                }
+                if (! warned && f > warnthresh) {
+                    ++result.nwarn;
+                    warned = true;
+                }
+                if (! failed && f > failthresh) {
+                    ++result.nfail;
+                    failed = true;
+                }
+            }
+        }
+        totalerror += batcherror;
+        totalsqrerror += batch_sqrerror;
+    }
+    result.meanerror = totalerror / nvals;
+    result.rms_error = sqrt (totalsqrerror / nvals);
+    result.PSNR = 20.0 * log10 (maxval / result.rms_error);
+    return result.nfail == 0;
+}
+
+
+
 namespace
 {
 

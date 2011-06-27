@@ -27,6 +27,7 @@ set (libOpenImageIO_hdrs ../include/argparse.h
 
 set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
                          imagebufalgo.cpp imagebufalgo_orient.cpp
+                         imagebufalgo_yee.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp 
                           ../libutil/argparse.cpp
