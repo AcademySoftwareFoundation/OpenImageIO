@@ -31,6 +31,23 @@ the alteration), or in some cases will pull more than one image off the
 stack (such as the current image and the next item on the stack) and
 then push a new image.
 
+Some commands stand completely on their own (like {\cf --flip}), others
+take one or more arguments (like {\cf --resize} or {\cf -o}):
+
+\smallskip
+\hspace{0.25in} {\cf oiiotool foo.jpg --flip --resize 640x480 -o out.tif}
+\smallskip
+
+A few commands take optional modifiers for options that are so
+rarely-used or confusing that they should not be required arguments.
+In these cases, they are appended to the command name, after a colon
+(``{\cf :}''), and with a \emph{name}{\cf =}\emph{value} format.  As
+an example:
+
+\smallskip
+\hspace{0.25in} {\cf oiiotool --capture:camera=1 -o out.tif}
+\smallskip
+
 
 
 
@@ -532,6 +549,25 @@ If the offset is omitted, it will be $x=0,y=0$.
 \end{tabular}
 \apiend
 
+\apiitem{--capture}
+
+Capture a frame from a camera device, pushing it onto the image stack
+and making it the new current image.  Optional appended arguments
+include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.5in}}
+  & {\cf camera=}\emph{num} & Select which camera number to capture
+  (default: 0).
+\end{tabular}
+
+\noindent Examples:
+
+\begin{tabular}{p{2in} p{4in}}
+    {\cf --capture}  &      Capture from the default camera. \\
+    {\cf --capture:camera=1}  & Capture from camera 2. \\
+\end{tabular}
+\apiend
+
 \apiitem{--unmip}
 If the current image is MIP-mapped, discard all but the top level
 (i.e., replacing the current image with a new image consisting of only the
@@ -610,6 +646,14 @@ Replace the current image with a new image that is resized to the
 given pixel data resolution.  The size is in the form 
 \\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
 \\ or~~~~ \spc \emph{scale}{\verb|%|} \\
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf filter=}\emph{name} & Filter name. The default is {\cf
+  blackman-harris} when increasing resolution, {\cf lanczos3} when
+decreasing resolution. \\
+\end{tabular}
 
 \noindent Examples: 
 
