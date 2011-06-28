@@ -270,6 +270,7 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     m_Yflip = m_rla.ActiveBottom - m_rla.ActiveTop < 0;
     
+#if 0   // it seems that per-channel formats are currently broken, reenable when fixed
     m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
                         std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1,
                         m_rla.NumOfColorChannels
@@ -290,6 +291,24 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     for (int i = 0; i < m_rla.NumOfAuxChannels; ++i)
         m_spec.channelformats.push_back (t);
     m_stride += m_rla.NumOfAuxChannels * t.size ();
+#else
+    // pick maximum precision for the time being
+    int max = (std::max (m_rla.NumOfChannelBits * (m_rla.NumOfColorChannels > 0 ? 1 : 0),
+              std::max (m_rla.NumOfMatteBits * (m_rla.NumOfMatteChannels > 0 ? 1 : 0),
+                        m_rla.NumOfAuxBits * (m_rla.NumOfAuxChannels > 0 ? 1 : 0)))
+              + 7) / 8;
+    m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
+                        std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1,
+                        m_rla.NumOfColorChannels
+                            + m_rla.NumOfMatteChannels
+                            + m_rla.NumOfAuxChannels,
+                        max == 4 ? TypeDesc::UINT32
+                        : (max == 2 ? TypeDesc::UINT16
+                            : TypeDesc::UINT8));
+    m_stride = (m_rla.NumOfChannelBits * m_rla.NumOfColorChannels
+              + m_rla.NumOfMatteBits * m_rla.NumOfMatteChannels
+              + m_rla.NumOfAuxBits * m_rla.NumOfAuxChannels + 7) / 8;
+#endif
 
     m_spec.attribute ("oiio:BitsPerSample",
                       m_rla.NumOfChannelBits * m_rla.NumOfColorChannels
@@ -420,10 +439,17 @@ RLAInput::close ()
 bool
 RLAInput::decode_plane (int first_channel, short num_channels)
 {
+// reenable when per-channel formats are fixed
+#if 0
     int chsize = m_spec.channelformats[first_channel].size ();
     int offset = 0;
     for (int i = 0; i < first_channel; ++i)
         offset += m_spec.channelformats[i].size ();
+#else
+    int chsize = m_spec.format.size ();
+    int offset = first_channel * chsize;
+#endif
+    
     unsigned short length; // number of encoded bytes
     char rc; // run count
     unsigned char *p; // pointer to current byte
