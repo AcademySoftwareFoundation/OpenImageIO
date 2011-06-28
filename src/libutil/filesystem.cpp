@@ -154,9 +154,8 @@ Filesystem::searchpath_find (const std::string &filename,
     // If it's an absolute filename, or if we want to check "." first,
     // then start by checking filename outright.
     if (testcwd || abs) {
-        boost::filesystem::path f = filename;
-        if (boost::filesystem::is_regular (f))
-            return f.string();
+        if (Filesystem::is_regular (filename))
+            return filename;
     }
 
 #if 0 // NO, don't do this any more.
@@ -171,7 +170,7 @@ Filesystem::searchpath_find (const std::string &filename,
         boost::filesystem::path f = d;
         f /= filename;
         // std::cerr << "\tTesting '" << f << "'\n";
-        if (boost::filesystem::is_regular (f)) {
+        if (Filesystem::is_regular (f.string())) {
             // std::cerr << "Found '" << f << "'\n";
             return f.string();
         }
@@ -223,6 +222,20 @@ Filesystem::is_directory (const std::string &path)
     bool r = false;
     try {
         r = boost::filesystem::is_directory (path);
+    } catch (const std::exception &e) {
+        r = false;
+    }
+    return r;
+}
+
+
+
+bool
+Filesystem::is_regular (const std::string &path)
+{
+    bool r = false;
+    try {
+        r = boost::filesystem::is_regular (path);
     } catch (const std::exception &e) {
         r = false;
     }
