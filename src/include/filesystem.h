@@ -99,6 +99,10 @@ DLLPUBLIC bool exists (const std::string &path);
 ///
 DLLPUBLIC bool is_directory (const std::string &path);
 
+/// Return true if the file exists and is a regular file.
+///
+DLLPUBLIC bool is_regular (const std::string &path);
+
 };  // namespace Filesystem
 
 }
