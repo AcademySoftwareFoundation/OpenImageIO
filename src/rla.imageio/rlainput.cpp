@@ -498,11 +498,19 @@ RLAInput::decode_plane (int first_channel, short num_channels)
     }
     // reverse byte order if needed (RLA is always big-endian)
     if (chsize > 1 && littleendian ()) {
-        for (int i = 0; i < m_spec.width; ++i) {
-            switch (chsize) {
-                case 2: swap_endian ((short *)&m_buf[i * chsize]); break;
-                case 4: swap_endian ((int *)&m_buf[i * chsize]); break;
-                default: assert (!"Invalid channel size!");
+        for (int i = 0; i < num_channels; ++i) {
+            for (int x = 0; x < m_spec.width; ++x) {
+                switch (chsize) {
+                    case 2:
+                        swap_endian ((short *)&m_buf[x * m_stride
+                                                       + i * chsize + offset]);
+                        break;
+                    case 4:
+                        swap_endian ((int *)&m_buf[x * m_stride
+                                                     + i * chsize + offset]);
+                        break;
+                    default: assert (!"Invalid channel size!");
+                }
             }
         }
     }
