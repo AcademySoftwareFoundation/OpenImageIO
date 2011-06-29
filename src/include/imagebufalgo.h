@@ -166,6 +166,36 @@ struct DLLPUBLIC PixelStats {
 /// (current subimage, and current mipmap level)
 bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
 
+/// Struct holding all the results computed by ImageBufAlgo::compare().
+/// (maxx,maxy,maxz,maxc) gives the pixel coordintes (x,y,z) and color
+/// channel of the pixel that differed maximally between the two images.
+/// nwarn and nfail are the number of "warnings" and "failures",
+/// respectively.
+struct CompareResults {
+    double meanerror, rms_error, PSNR, maxerror;
+    int maxx, maxy, maxz, maxc;
+    int nwarn, nfail;
+};
+
+/// Numerically compare two images.  The images must be the same size
+/// and number of channels, and must both be FLOAT data.  The difference
+/// threshold (for any individual color channel in any pixel) for a
+/// "failure" is failthresh, and for a "warning" is warnthresh.  The
+/// results are stored in result.
+bool DLLPUBLIC compare (const ImageBuf &A, const ImageBuf &B,
+                        float failthresh, float warnthresh,
+                        CompareResults &result);
+
+/// Compare two images using Hector Yee's perceptual metric, returning
+/// the number of pixels that fail the comparison.  The images must be
+/// the same size, FLOAT, and in a linear color space.  Only the first
+/// three channels are compared.  Free parameters are the ambient
+/// luminance in the room and the field of view of the image display;
+/// our defaults are probably reasonable guesses for an office
+/// environment.
+int DLLPUBLIC compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
+                           float luminance = 100, float fov = 45);
+
 /// You can optionally query the constantvalue'd color
 /// (current subimage, and current mipmap level)
 bool DLLPUBLIC isConstantColor (const ImageBuf &src, float *color = NULL);
