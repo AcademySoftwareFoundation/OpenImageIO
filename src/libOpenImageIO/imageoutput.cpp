@@ -140,9 +140,23 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
                                   stride_t xstride, stride_t ystride, stride_t zstride,
                                   std::vector<unsigned char> &scratch)
 {
+    // native_pixel_bytes is the size of a pixel in the FILE, including
+    // the per-channel format, if specified when the file was opened.
     stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
-    if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
+    // perchanfile is true if the file has different per-channel formats
+    bool perchanfile = m_spec.channelformats.size() && supports("channelformats");
+    // It's an error to pass per-channel data formats to a writer that
+    // doesn't support it.
+    if (m_spec.channelformats.size() && !perchanfile)
+        return NULL;
+    // native_data is true if the user is passing data in the native format
+    bool native_data = (format == TypeDesc::UNKNOWN ||
+                        (format == m_spec.format && !perchanfile));
+    // If the user is passing native data and they've left xstride set
+    // to Auto, then we know it's the native pixel size.
+    if (native_data && xstride == AutoStride)
         xstride = native_pixel_bytes;
+    // Fill in the rest of the strides that haven't been set.
     m_spec.auto_stride (xstride, ystride, zstride, format,
                         m_spec.nchannels, xmax-xmin+1, ymax-ymin+1);
 
@@ -151,14 +165,13 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     int height = ymax - ymin + 1;
     int depth = zmax - zmin + 1;
 
-    // Do the strides indicate that the data are already contiguous?
-    bool contiguous = (xstride == native_pixel_bytes &&
-                       (ystride == xstride*width || height == 1) &&
-                       (zstride == ystride*height || depth == 1));
-    // Does the user already have the data in the right format?
-    bool rightformat = (format == TypeDesc::UNKNOWN) ||
-        (format == m_spec.format && m_spec.channelformats.empty());
-    if (rightformat && contiguous) {
+    // Do the strides indicate that the data area is contiguous?
+    bool contiguous = (native_data && xstride == native_pixel_bytes) ||
+        (!native_data && xstride == (stride_t)m_spec.pixel_bytes(false));
+    contiguous &= ((ystride == xstride*width || height == 1) &&
+                   (zstride == ystride*height || depth == 1));
+
+    if (native_data && contiguous) {
         // Data are already in the native format and contiguous
         // just return a ptr to the original data.
         return data;
@@ -168,26 +181,41 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     imagesize_t rectangle_values = rectangle_pixels * m_spec.nchannels;
     imagesize_t rectangle_bytes = rectangle_pixels * native_pixel_bytes;
 
-    // Handle the per-channel format case
-    if (m_spec.channelformats.size() && supports("channelformats")) {
-        ASSERT (contiguous && "Per-channel output requires contiguous strides");
+    // Cases to handle:
+    // 1. File has per-channel data, user passes native data -- this has
+    //    already returned above, since the data didn't need munging.
+    // 2. File has per-channel data, user passes some other data type
+    // 3. File has uniform data, user passes some other data type
+    // 4. File has uniform data, user passes the right data -- note that
+    //    this case already returned if the user data was contiguous
+
+    // Handle the per-channel format case (#2) where the user is passing
+    // a non-native buffer.
+    if (perchanfile) {
+        if (native_data) {
+            ASSERT (contiguous && "Per-channel native output requires contiguous strides");
+        }
         ASSERT (format != TypeDesc::UNKNOWN);
+        ASSERT (m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         scratch.resize (rectangle_bytes);
         size_t offset = 0;
-        for (int c = 0;  c < (int)m_spec.channelformats.size();  ++c) {
+        for (int c = 0;  c < m_spec.nchannels;  ++c) {
             TypeDesc chanformat = m_spec.channelformats[c];
             convert_image (1 /* channels */, width, height, depth,
-                           (char *)data + c*m_spec.format.size(), format,
+                           (char *)data + c*format.size(), format,
                            xstride, ystride, zstride, 
                            &scratch[offset], chanformat,
                            native_pixel_bytes, AutoStride, AutoStride, NULL,
                            c == m_spec.alpha_channel ? 0 : -1,
                            c == m_spec.z_channel ? 0 : -1);
-            offset = chanformat.size ();
+            offset += chanformat.size ();
         }
         return &scratch[0];
     }
 
+    // The remaining code is where all channels in the file have the
+    // same data type, which may or may not be what the user passed in
+    // (cases #3 and #4 above).
     imagesize_t contiguoussize = contiguous ? 0 : rectangle_values * native_pixel_bytes;
     contiguoussize = (contiguoussize+3) & (~3); // Round up to 4-byte boundary
     DASSERT ((contiguoussize & 3) == 0);
