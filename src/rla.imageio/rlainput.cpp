@@ -270,13 +270,19 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     m_Yflip = m_rla.ActiveBottom - m_rla.ActiveTop < 0;
     
-#if 0   // it seems that per-channel formats are currently broken, reenable when fixed
+    // pick maximum precision for the time being
+    int maxbits = (std::max (m_rla.NumOfChannelBits * (m_rla.NumOfColorChannels > 0 ? 1 : 0),
+                             std::max (m_rla.NumOfMatteBits * (m_rla.NumOfMatteChannels > 0 ? 1 : 0),
+                                       m_rla.NumOfAuxBits * (m_rla.NumOfAuxChannels > 0 ? 1 : 0)))
+                   + 7) / 8;
+    TypeDesc maxtype = (maxbits == 4) ? TypeDesc::UINT32
+                     : (maxbits == 2 ? TypeDesc::UINT16 : TypeDesc::UINT8);
     m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
                         std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1,
                         m_rla.NumOfColorChannels
-                            + m_rla.NumOfMatteChannels
-                            + m_rla.NumOfAuxChannels);
-    
+                        + m_rla.NumOfMatteChannels
+                        + m_rla.NumOfAuxChannels, maxtype);
+
     // set channel formats and stride
     m_stride = 0;
     TypeDesc t = get_channel_typedesc (m_rla.ColorChannelType, m_rla.NumOfChannelBits);
@@ -291,29 +297,19 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     for (int i = 0; i < m_rla.NumOfAuxChannels; ++i)
         m_spec.channelformats.push_back (t);
     m_stride += m_rla.NumOfAuxChannels * t.size ();
-#else
-    // pick maximum precision for the time being
-    int max = (std::max (m_rla.NumOfChannelBits * (m_rla.NumOfColorChannels > 0 ? 1 : 0),
-              std::max (m_rla.NumOfMatteBits * (m_rla.NumOfMatteChannels > 0 ? 1 : 0),
-                        m_rla.NumOfAuxBits * (m_rla.NumOfAuxChannels > 0 ? 1 : 0)))
-              + 7) / 8;
-    m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
-                        std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1,
-                        m_rla.NumOfColorChannels
-                            + m_rla.NumOfMatteChannels
-                            + m_rla.NumOfAuxChannels,
-                        max == 4 ? TypeDesc::UINT32
-                        : (max == 2 ? TypeDesc::UINT16
-                            : TypeDesc::UINT8));
-    m_stride = (m_rla.NumOfChannelBits * m_rla.NumOfColorChannels
-              + m_rla.NumOfMatteBits * m_rla.NumOfMatteChannels
-              + m_rla.NumOfAuxBits * m_rla.NumOfAuxChannels + 7) / 8;
-#endif
 
-    m_spec.attribute ("oiio:BitsPerSample",
-                      m_rla.NumOfChannelBits * m_rla.NumOfColorChannels
-                      + m_rla.NumOfMatteBits * m_rla.NumOfMatteChannels
-                      + m_rla.NumOfAuxBits * m_rla.NumOfAuxChannels);
+    // But if all channels turned out the same, just use 'format' and don't
+    // bother sending back channelformats at all.
+    bool allsame = true;
+    for (int c = 1;  c < m_spec.nchannels;  ++c)
+        allsame &= (m_spec.channelformats[c] == m_spec.channelformats[0]);
+    if (allsame) {
+        m_spec.format = m_spec.channelformats[0];
+        m_spec.channelformats.clear();
+        m_spec.attribute ("oiio:BitsPerSample", maxbits);
+        // N.B. don't set bps for mixed formats, it isn't well defined
+    }
+
     // make a guess at channel names for the time being
     m_spec.default_channel_names ();
     // this is always true
@@ -439,17 +435,17 @@ RLAInput::close ()
 bool
 RLAInput::decode_plane (int first_channel, short num_channels)
 {
-// reenable when per-channel formats are fixed
-#if 0
-    int chsize = m_spec.channelformats[first_channel].size ();
-    int offset = 0;
-    for (int i = 0; i < first_channel; ++i)
-        offset += m_spec.channelformats[i].size ();
-#else
-    int chsize = m_spec.format.size ();
-    int offset = first_channel * chsize;
-#endif
-    
+    int chsize, offset;
+    if (m_spec.channelformats.size()) {
+        chsize = m_spec.channelformats[first_channel].size ();
+        offset = 0;
+        for (int i = 0; i < first_channel; ++i)
+            offset += m_spec.channelformats[i].size ();
+    } else {
+        chsize = m_spec.format.size ();
+        offset = first_channel * chsize;
+    }
+
     unsigned short length; // number of encoded bytes
     char rc; // run count
     unsigned char *p; // pointer to current byte
@@ -469,7 +465,7 @@ RLAInput::decode_plane (int first_channel, short num_channels)
             if (rc > 0) {
                 // replicate value run count + 1 times
                 for (; rc >= 0; --rc, ++x) {
-                    assert(x * m_stride + i + offset < (int)m_buf.size ());
+                    ASSERT(x * m_stride + i + offset < (int)m_buf.size ());
                     m_buf[x * m_stride + i + offset] = *p;
                 }
                 // advance pointer by 1 datum
@@ -477,7 +473,7 @@ RLAInput::decode_plane (int first_channel, short num_channels)
             } else if (rc < 0) {
                 // copy raw values run count times
                 for (; rc < 0; ++rc, ++x) {
-                    assert(x * m_stride + i + offset < (int)m_buf.size ());
+                    ASSERT(x * m_stride + i + offset < (int)m_buf.size ());
                     m_buf[x * m_stride + i + offset] = *p;
                     // advance pointer by 1 datum
                     ++p;
@@ -494,7 +490,7 @@ RLAInput::decode_plane (int first_channel, short num_channels)
             }
         }
         // make sure we haven't gone way off range
-        assert(p - &record[0] <= length);
+        ASSERT(p - &record[0] <= length);
     }
     // reverse byte order if needed (RLA is always big-endian)
     if (chsize > 1 && littleendian ()) {
@@ -509,7 +505,7 @@ RLAInput::decode_plane (int first_channel, short num_channels)
                         swap_endian ((int *)&m_buf[x * m_stride
                                                      + i * chsize + offset]);
                         break;
-                    default: assert (!"Invalid channel size!");
+                    default: ASSERT (!"Invalid channel size!");
                 }
             }
         }
@@ -526,6 +522,8 @@ RLAInput::read_native_scanline (int y, int z, void *data)
         y = m_spec.height - y - 1;
     m_buf.resize (m_spec.scanline_bytes (true));
     // seek to scanline offset table
+    // FIXME -- we should read the offset table just once, so we don't need
+    // to do an extra 'fseek' and tiny read every time we read a scanline.
     fseek (m_file, m_sot + y * 4, SEEK_SET);
     unsigned int ofs;
     if (!fread (&ofs, 4, 1))
@@ -547,7 +545,7 @@ RLAInput::read_native_scanline (int y, int z, void *data)
             m_rla.NumOfAuxChannels))
             return false;
 
-    size_t size = spec().scanline_bytes();
+    size_t size = spec().scanline_bytes(true);
     memcpy (data, &m_buf[0], size);
     return true;
 }
@@ -601,7 +599,7 @@ RLAInput::get_channel_typedesc (short chan_type, short chan_bits)
                     case 4:
                         return TypeDesc::UINT32;
                     default:
-                        assert(!"Invalid colour channel type");
+                        ASSERT(!"Invalid colour channel type");
                 }
             } else
                 return TypeDesc::UINT8;            
@@ -612,7 +610,7 @@ RLAInput::get_channel_typedesc (short chan_type, short chan_bits)
         case CT_FLOAT:
             return TypeDesc::FLOAT;            
         default:
-            assert(!"Invalid colour channel type");
+            ASSERT(!"Invalid colour channel type");
     }
     // shut up compiler
     return TypeDesc::UINT8;
