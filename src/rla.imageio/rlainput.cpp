@@ -175,7 +175,7 @@ RLAInput::read_header ()
     RH(Aspect);
     RH(AspectRatio);
     RH(ColorChannel);
-    RH(Field);
+    RH(FieldRendered);
     RH(Time);
     RH(Filter);
     RH(NumOfChannelBits);
@@ -204,7 +204,7 @@ RLAInput::read_header ()
         swap_endian (&m_rla.NumOfAuxChannels);
         swap_endian (&m_rla.Revision);
         swap_endian (&m_rla.JobNumber);
-        swap_endian (&m_rla.Field);
+        swap_endian (&m_rla.FieldRendered);
         swap_endian (&m_rla.NumOfChannelBits);
         swap_endian (&m_rla.MatteChannelType);
         swap_endian (&m_rla.NumOfMatteBits);
@@ -287,7 +287,8 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     TypeDesc maxtype = (maxbits == 4) ? TypeDesc::UINT32
                      : (maxbits == 2 ? TypeDesc::UINT16 : TypeDesc::UINT8);
     m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
-                        std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1,
+                        std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1
+                            / (m_rla.FieldRendered ? 2 : 1), // interlaced image?
                         m_rla.NumOfColorChannels
                         + m_rla.NumOfMatteChannels
                         + m_rla.NumOfAuxChannels, maxtype);
@@ -361,7 +362,7 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     RLA_SET_ATTRIB(FrameNumber);
     RLA_SET_ATTRIB(Revision);
     RLA_SET_ATTRIB(JobNumber);
-    RLA_SET_ATTRIB(Field);
+    RLA_SET_ATTRIB(FieldRendered);
     RLA_SET_ATTRIB_STR(FileName);
     RLA_SET_ATTRIB_STR(ProgramName);
     RLA_SET_ATTRIB_STR(MachineName);
@@ -445,64 +446,92 @@ bool
 RLAInput::decode_plane (int first_channel, short num_channels)
 {
     int chsize, offset;
+    bool is_float; // float channels are not RLEd
     if (m_spec.channelformats.size()) {
         chsize = m_spec.channelformats[first_channel].size ();
+        is_float = m_spec.channelformats[first_channel] == TypeDesc::FLOAT;
         offset = 0;
         for (int i = 0; i < first_channel; ++i)
             offset += m_spec.channelformats[i].size ();
     } else {
         chsize = m_spec.format.size ();
+        is_float = m_spec.format == TypeDesc::FLOAT;
         offset = first_channel * chsize;
     }
 
-    unsigned short length; // number of encoded bytes
-    char rc; // run count
-    unsigned char *p; // pointer to current byte
-    std::vector<unsigned char> record;
-    for (int i = 0; i < num_channels * chsize; ++i) {
-        int x = 0; // index of pixel inside the scanline
-        if (!fread (&length, 2, 1))
-            return false;
-        if (littleendian ())
-            swap_endian (&length);
-        record.resize (std::max (record.size (), (size_t)length));
-        if (!fread (&record[0], 1, length))
-            return false;
-        p = &record[0];
-        while (p - &record[0] < length) {
-            rc = *((char *)p++);
-            if (rc > 0) {
-                // replicate value run count + 1 times
-                for (; rc >= 0; --rc, ++x) {
-                    ASSERT(x * m_stride + i + offset < (int)m_buf.size ());
-                    m_buf[x * m_stride + i + offset] = *p;
-                }
-                // advance pointer by 1 datum
-                ++p;
-            } else if (rc < 0) {
-                // copy raw values run count times
-                for (; rc < 0; ++rc, ++x) {
-                    ASSERT(x * m_stride + i + offset < (int)m_buf.size ());
-                    m_buf[x * m_stride + i + offset] = *p;
-                    // advance pointer by 1 datum
-                    ++p;
-                }
-            } else // if (rc == 0)
-                break;
-            // exceeding the width while remaining inside the record means that
-            // the less significant byte pass begins
-            if (x >= m_spec.width && p - &record[0] < length) {
-                x = 0;
-                ++i;
-                if (i >= num_channels * chsize)
-                    break;
+    if (is_float) {
+        // floats are not run-length encoded, but simply dumped, all of them
+        unsigned short length; // number of encoded bytes
+        std::vector<float> record;
+        float *out;
+        for (int i = 0; i < num_channels; ++i) {
+            if (!fread (&length, 2, 1))
+                return false;
+            if (littleendian ())
+                swap_endian (&length);
+            record.resize (std::max (record.size (), (size_t)length / sizeof (float)));
+            ASSERT(length <= m_buf.size ());
+            if (!fread (&record[0], 1, length))
+                return false;
+            out = (float *)&m_buf[i * chsize + offset];
+            for (std::vector<float>::iterator it = record.begin ();
+                it != record.end ();
+                ++it, out = (float *)((unsigned char *)(out) + m_stride)) {
+                ASSERT((unsigned char *)out - &m_buf[0] < (int)m_buf.size ());
+                *out = *it;
             }
         }
-        // make sure we haven't gone way off range
-        ASSERT(p - &record[0] <= length);
+    } else {
+        // integer values, run-length encoded
+        unsigned short length; // number of encoded bytes
+        char rc; // run count
+        unsigned char *p; // pointer to current byte
+        std::vector<unsigned char> record;
+        for (int i = 0; i < num_channels * chsize; ++i) {
+            int x = 0; // index of pixel inside the scanline
+            if (!fread (&length, 2, 1))
+                return false;
+            if (littleendian ())
+                swap_endian (&length);
+            record.resize (std::max (record.size (), (size_t)length));
+            if (!fread (&record[0], 1, length))
+                return false;
+            p = &record[0];
+            while (p - &record[0] < length) {
+                rc = *((char *)p++);
+                if (rc > 0) {
+                    // replicate value run count + 1 times
+                    for (; rc >= 0; --rc, ++x) {
+                        ASSERT(x * m_stride + i + offset < (int)m_buf.size ());
+                        m_buf[x * m_stride + i + offset] = *p;
+                    }
+                    // advance pointer by 1 datum
+                    ++p;
+                } else if (rc < 0) {
+                    // copy raw values run count times
+                    for (; rc < 0; ++rc, ++x) {
+                        ASSERT(x * m_stride + i + offset < (int)m_buf.size ());
+                        m_buf[x * m_stride + i + offset] = *p;
+                        // advance pointer by 1 datum
+                        ++p;
+                    }
+                } else // if (rc == 0)
+                    break;
+                // exceeding the width while remaining inside the record means that
+                // the less significant byte pass begins
+                if (x >= m_spec.width && p - &record[0] < length) {
+                    x = 0;
+                    ++i;
+                    if (i >= num_channels * chsize)
+                        break;
+                }
+            }
+            // make sure we haven't gone way off range
+            ASSERT(p - &record[0] <= length);
+        }
     }
     // reverse byte order if needed (RLA is always big-endian)
-    if (chsize > 1 && littleendian ()) {
+    if (chsize > 1 && littleendian () != is_float) {
         for (int i = 0; i < num_channels; ++i) {
             for (int x = 0; x < m_spec.width; ++x) {
                 switch (chsize) {

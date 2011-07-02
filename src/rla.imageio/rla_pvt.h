@@ -76,7 +76,7 @@ namespace RLA_pvt {
         CHAR  Aspect[24];         /* Aspect format of the image */
         CHAR  AspectRatio[8];     /* Aspect ratio of the image */
         CHAR  ColorChannel[32];   /* Format of color channel data */
-        SHORT Field;              /* Image contains field-rendered data */
+        SHORT FieldRendered;      /* Image contains field-rendered data */
         CHAR  Time[12];           /* Length of time used to create the image
                                      file */
         CHAR  Filter[32];         /* Name of post-processing filter */
@@ -97,7 +97,7 @@ namespace RLA_pvt {
         CT_BYTE = 0,
         CT_WORD = 1,
         CT_DWORD = 2,
-        CT_FLOAT = 3
+        CT_FLOAT = 4
     };
 
 };  // namespace RLA_pvt
