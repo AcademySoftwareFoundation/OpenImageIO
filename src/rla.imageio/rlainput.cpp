@@ -95,7 +95,7 @@ private:
     inline bool read_header ();
     
     /// Helper: read and decode a single colour plane.
-    bool decode_plane (int first_channel, short num_channels);
+    bool decode_plane (int first_channel, short num_channels, short num_bits);
     
     /// Helper: determine channel TypeDesc
     inline TypeDesc get_channel_typedesc (short chan_type, short chan_bits);
@@ -443,7 +443,7 @@ RLAInput::close ()
 
 
 bool
-RLAInput::decode_plane (int first_channel, short num_channels)
+RLAInput::decode_plane (int first_channel, short num_channels, short num_bits)
 {
     int chsize, offset;
     bool is_float; // float channels are not RLEd
@@ -530,7 +530,7 @@ RLAInput::decode_plane (int first_channel, short num_channels)
             ASSERT(p - &record[0] <= length);
         }
     }
-    // reverse byte order if needed (RLA is always big-endian)
+    // reverse byte order (RLA is always big-endian) and expand bit range if needed
     if (chsize > 1 && littleendian () != is_float) {
         for (int i = 0; i < num_channels; ++i) {
             for (int x = 0; x < m_spec.width; ++x) {
@@ -538,6 +538,10 @@ RLAInput::decode_plane (int first_channel, short num_channels)
                     case 2:
                         swap_endian ((short *)&m_buf[x * m_stride
                                                        + i * chsize + offset]);
+                        if (!is_float && num_bits == 10)
+                            *(short *)&m_buf[x * m_stride + i * chsize + offset] =
+                                bit_range_convert<10, 16>(*(short *)&m_buf
+                                    [x * m_stride + i * chsize + offset]);
                         break;
                     case 4:
                         swap_endian ((int *)&m_buf[x * m_stride
@@ -565,14 +569,15 @@ RLAInput::read_native_scanline (int y, int z, void *data)
     
     // now decode and interleave the planes
     if (m_rla.NumOfColorChannels > 0)
-        if (!decode_plane(0, m_rla.NumOfColorChannels))
+        if (!decode_plane(0, m_rla.NumOfColorChannels, m_rla.NumOfChannelBits))
             return false;
     if (m_rla.NumOfMatteChannels > 0)
-        if (!decode_plane(m_rla.NumOfColorChannels, m_rla.NumOfMatteChannels))
+        if (!decode_plane(m_rla.NumOfColorChannels, m_rla.NumOfMatteChannels,
+            m_rla.NumOfMatteBits))
             return false;
     if (m_rla.NumOfAuxChannels > 0)
         if (!decode_plane(m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels,
-            m_rla.NumOfAuxChannels))
+            m_rla.NumOfAuxChannels, m_rla.NumOfAuxBits))
             return false;
 
     size_t size = spec().scanline_bytes(true);
