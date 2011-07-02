@@ -65,7 +65,7 @@ private:
     WAVEFRONT m_rla;                  ///< Wavefront RLA header
     std::vector<unsigned char> m_buf; ///< Buffer the image pixels
     int m_subimage;                   ///< Current subimage index
-    long m_sot;                       ///< Scanline offset table offset in file
+    std::vector<long> m_sot;          ///< Scanline offsets table
     int m_stride;                     ///< Number of bytes a contig pixel takes
     bool m_Yflip;                     ///< Some non fully spec-compliant files
                                       ///  will have their Y axis inverted
@@ -212,8 +212,17 @@ RLAInput::read_header ()
         swap_endian (&m_rla.NumOfAuxBits);
         swap_endian (&m_rla.NextOffset);
     }
-    // set offset to scanline offset table
-    m_sot = ftell (m_file);
+    // load the scanline offset table
+    m_sot.clear ();
+    m_sot.resize (std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1);
+    long ofs;
+    for (unsigned int y = 0; y < m_sot.size (); ++y) {
+        if (!fread (&ofs, 4, 1))
+            return false;
+        if (littleendian ())
+            swap_endian (&ofs);
+        m_sot[y] = ofs;
+    }
     return true;
 }
 
@@ -521,17 +530,9 @@ RLAInput::read_native_scanline (int y, int z, void *data)
     if (m_Yflip)
         y = m_spec.height - y - 1;
     m_buf.resize (m_spec.scanline_bytes (true));
-    // seek to scanline offset table
-    // FIXME -- we should read the offset table just once, so we don't need
-    // to do an extra 'fseek' and tiny read every time we read a scanline.
-    fseek (m_file, m_sot + y * 4, SEEK_SET);
-    unsigned int ofs;
-    if (!fread (&ofs, 4, 1))
-        return false;
-    if (littleendian ())
-        swap_endian (&ofs);
+    
     // seek to scanline start
-    fseek (m_file, ofs, SEEK_SET);
+    fseek (m_file, m_sot[y], SEEK_SET);
     
     // now decode and interleave the planes
     if (m_rla.NumOfColorChannels > 0)
