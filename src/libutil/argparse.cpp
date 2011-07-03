@@ -39,6 +39,9 @@
 #include <iterator>
 #include <string>
 #include <sstream>
+#if defined(__linux__) || defined(__APPLE__) 
+#  include <sys/ioctl.h>
+#endif
 
 #include "strutil.h"
 #include "argparse.h"
@@ -554,10 +557,15 @@ ArgParse::usage () const
             maxlen = std::max (maxlen, fmtlen);
     }
 
+    // Try to figure out how wide the terminal is, so we can word wrap.
     int columns = 80;
-    const char *columnstring = getenv ("COLUMNS");
-    if (columnstring)
-        columns = std::max (40, atoi(columnstring));
+#if defined(__linux__) || defined(__APPLE__) 
+    struct winsize w;
+    ioctl (0, TIOCGWINSZ, &w);
+    // std::cout << "terminal is " << w.ws_col << "x" << w.ws_row << "\n";
+    columns = w.ws_col;
+    // FIXME: is there a Windows equivalent?
+#endif
 
     for (unsigned int i=0; i<m_option.size(); ++i) {
         ArgOption *opt = m_option[i];

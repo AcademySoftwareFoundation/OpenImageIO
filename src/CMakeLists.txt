@@ -128,6 +128,7 @@ add_subdirectory (igrep)
 add_subdirectory (iinfo)
 add_subdirectory (iprocess)
 add_subdirectory (maketx)
+add_subdirectory (oiiotool)
 add_subdirectory (testtex)
 add_subdirectory (iv)
 
