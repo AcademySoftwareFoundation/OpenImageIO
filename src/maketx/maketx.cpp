@@ -126,16 +126,14 @@ static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
 static std::string
 filter_help_string ()
 {
-    std::string s ("Select filter for resizeing (default: box)\n\t\t(choices:");
+    std::string s ("Select filter for resizing (choices:");
     for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
         FilterDesc d;
         Filter2D::get_filterdesc (i, &d);
         s.append (" ");
         s.append (d.name);
-        if ((i%6) == 5 && i < (e-1))
-            s.append ("\n\t\t");
     }
-    s.append (")");
+    s.append (", default=box)");
     return s;
 }
 
@@ -189,8 +187,8 @@ getargs (int argc, char *argv[])
                   "-u", &updatemode, "Update mode",
                   "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
                   "--nchannels %d", &nchannels, "Specify the number of output image channels.",
-                  "-d %s", &dataformatname, "Set the output data format to one of:\n"
-                          "\t\t\t\tuint8, sint8, uint16, sint16, half, float",
+                  "-d %s", &dataformatname, "Set the output data format to one of: "
+                          "uint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
                   "--separate", &separate, "Use planarconfig separate (default: contiguous)",
 //                  "--ingamma %f", &ingamma, "Specify gamma of input files (default: 1)",
@@ -231,7 +229,7 @@ getargs (int argc, char *argv[])
 //                  "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz) (UNIMPLEMENTED)",
 //                  "--volshad", &volshadowmode, "Create volume shadow map (UNIMP)",
                   "--envlatl", &envlatlmode, "Create lat/long environment map",
-                  "--envcube", &envcubemode, "Create cubic env map (file order: px,nx,py,ny,pz,nz) (UNIMP)",
+                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
 //                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
 //                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
 //                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",

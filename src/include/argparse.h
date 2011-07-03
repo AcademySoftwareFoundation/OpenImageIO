@@ -69,11 +69,16 @@ class ArgOption;   // Forward declaration
 /// for storing option values and return <0 on failure:
 ///
 /// \code
-///    static int
-///    parse_files (int argc, const char *argv[])
+///    static int parse_files (int argc, const char *argv[])
 ///    {
 ///        for (int i = 0;  i < argc;  i++)
 ///            filenames.push_back (argv[i]);
+///        return 0;
+///    }
+///
+///    static int blah_callback (int argc, const char *argv[])
+///    {
+///        std::cout << "blah argument was " << argv[1] << "\n";
 ///        return 0;
 ///    }
 /// 
@@ -93,7 +98,9 @@ class ArgOption;   // Forward declaration
 ///                   "set aperture, focal distance, focal length",
 ///            "-format %d %d %f", &width, &height, &aspect,
 ///                   "set width, height, aspect ratio",
-///            "-v", &flag, "verbose output",
+///            "-v", &verbose, "verbose output",
+///            "-q %!", &verbose, "quiet mode",
+///            "--blah %@ %s", blahcallback, "Make the callback",
 ///            NULL);
 ///
 ///    if (ap.parse (argc, argv) < 0) {
@@ -105,11 +112,15 @@ class ArgOption;   // Forward declaration
 ///
 /// The available argument types are:
 ///    - no \% argument - bool flag
+///    - \%! - a bool flag, but set it to false if the option is set
 ///    - \%d - 32bit integer
 ///    - \%f - 32bit float
 ///    - \%F - 64bit float (double)
 ///    - \%s - std::string
 ///    - \%L - std::vector<std::string>  (takes 1 arg, appends to list)
+///    - \%@ - a function pointer for a callback function will be invoked
+///            immediately.  The prototype for the callback is
+///                  int callback (int argc, char *argv[])
 ///    - \%* - catch all non-options and pass individually as an (argc,argv) 
 ///            sublist to a callback, each immediately after it's found
 ///
@@ -118,11 +129,16 @@ class ArgOption;   // Forward declaration
 ///                     in the usage output.
 ///
 /// Notes:
-///   - If an option doesn't have any arguments, a flag argument is assumed.
-///   - Flags are initialized to false.  No other variables are initialized.
+///   - If an option doesn't have any arguments, a bool flag argument is
+///     assumed.
+///   - No argument destinations are initialized.
 ///   - The empty string, "", is used as a global sublist (ie. "%*").
 ///   - Sublist functions are all of the form "int func(int argc, char **argv)".
 ///   - If a sublist function returns -1, parse() will terminate early.
+///   - It is perfectly legal for the user to append ':' and more characters
+///     to the end of an option name, it will match only the portion before
+///     the semicolon (but a callback can detect the full string, this is
+///     useful for making arguments:  myprog --flag:myopt=1 foobar
 ///
 /////////////////////////////////////////////////////////////////////////////
 
@@ -138,7 +154,8 @@ public:
     /// format string to enumerate the arguments of that option
     /// (eg. "-option %d %f %s").  The format string is followed by a
     /// list of pointers to the argument variables, just like scanf.  A
-    /// NULL terminates the list.
+    /// NULL terminates the list.  Multiple calls to options() will
+    /// append additional options.
     int options (const char *intro, ...);
 
     /// With the options already set up, parse the command line.
@@ -150,10 +167,6 @@ public:
     /// last time geterror() was called, it will return an empty string.
     std::string geterror () const;
     
-    /// Deprecated
-    ///
-    std::string error_message () const { return geterror (); }
-
     /// Print the usage message to stdout.  The usage message is
     /// generated and formatted automatically based on the command and
     /// description arguments passed to parse().
