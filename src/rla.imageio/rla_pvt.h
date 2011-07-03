@@ -41,8 +41,8 @@ namespace RLA_pvt {
 
     // type mappings
     typedef char CHAR;
-    typedef short SHORT;
-    typedef int LONG; // always 32-bit
+    typedef int16_t SHORT;
+    typedef int32_t LONG; // always 32-bit
 
     // code below comes from http://www.fileformat.info/format/wavefrontrla/egff.htm
     typedef struct _WavefrontHeader

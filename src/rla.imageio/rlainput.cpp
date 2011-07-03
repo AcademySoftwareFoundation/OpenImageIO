@@ -374,6 +374,7 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     RLA_SET_ATTRIB_STR(AuxData);
 #undef RLA_SET_ATTRIB_STR
 #undef RLA_SET_ATTRIB
+#undef RLA_SET_ATTRIB_NOCHECK
 
     float f[3]; // variable will be reused for chroma, thus the array
     f[0] = atof (m_rla.Gamma);
