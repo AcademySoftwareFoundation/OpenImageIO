@@ -675,6 +675,8 @@ ImageBuf::oriented_full_y () const
 const void *
 ImageBuf::pixeladdr (int x, int y, int z) const
 {
+    if (! m_localpixels)
+        return NULL;
     x -= spec().x;
     y -= spec().y;
     z -= spec().z;
@@ -689,6 +691,8 @@ ImageBuf::pixeladdr (int x, int y, int z) const
 void *
 ImageBuf::pixeladdr (int x, int y, int z)
 {
+    if (! m_localpixels)
+        return NULL;
     x -= spec().x;
     y -= spec().y;
     z -= spec().z;

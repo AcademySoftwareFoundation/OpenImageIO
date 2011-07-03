@@ -87,7 +87,7 @@ enum DLLPUBLIC AlignedTransform
 /// Transform the image, as specified in the options. All transforms are done
 /// with respect the display winow (full_size / full_origin), though data
 /// outside this area (overscan) is preserved.  This operation does not
-///.filter pixel values; all operations are pixel aligned. In-place operation
+/// filter pixel values; all operations are pixel aligned. In-place operation
 /// (dst == src) is not supported.
 /// return true on success.
 
