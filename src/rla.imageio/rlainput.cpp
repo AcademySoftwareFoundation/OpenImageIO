@@ -499,7 +499,7 @@ RLAInput::decode_plane (int first_channel, short num_channels, short num_bits)
             p = &record[0];
             while (p - &record[0] < length) {
                 rc = *((char *)p++);
-                if (rc > 0) {
+                if (rc >= 0) {
                     // replicate value run count + 1 times
                     for (; rc >= 0; --rc, ++x) {
                         ASSERT(x * m_stride + i + offset < (int)m_buf.size ());
@@ -515,8 +515,7 @@ RLAInput::decode_plane (int first_channel, short num_channels, short num_bits)
                         // advance pointer by 1 datum
                         ++p;
                     }
-                } else // if (rc == 0)
-                    break;
+                }
                 // exceeding the width while remaining inside the record means that
                 // the less significant byte pass begins
                 if (x >= m_spec.width && p - &record[0] < length) {
