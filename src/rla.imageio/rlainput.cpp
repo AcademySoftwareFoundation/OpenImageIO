@@ -280,12 +280,12 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     m_Yflip = m_rla.ActiveBottom - m_rla.ActiveTop < 0;
     
     // pick maximum precision for the time being
-    int maxbits = (std::max (m_rla.NumOfChannelBits * (m_rla.NumOfColorChannels > 0 ? 1 : 0),
+    int maxbytes = (std::max (m_rla.NumOfChannelBits * (m_rla.NumOfColorChannels > 0 ? 1 : 0),
                              std::max (m_rla.NumOfMatteBits * (m_rla.NumOfMatteChannels > 0 ? 1 : 0),
                                        m_rla.NumOfAuxBits * (m_rla.NumOfAuxChannels > 0 ? 1 : 0)))
                    + 7) / 8;
-    TypeDesc maxtype = (maxbits == 4) ? TypeDesc::UINT32
-                     : (maxbits == 2 ? TypeDesc::UINT16 : TypeDesc::UINT8);
+    TypeDesc maxtype = (maxbytes == 4) ? TypeDesc::UINT32
+                     : (maxbytes == 2 ? TypeDesc::UINT16 : TypeDesc::UINT8);
     m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
                         std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1
                             / (m_rla.FieldRendered ? 2 : 1), // interlaced image?
@@ -316,7 +316,7 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     if (allsame) {
         m_spec.format = m_spec.channelformats[0];
         m_spec.channelformats.clear();
-        m_spec.attribute ("oiio:BitsPerSample", maxbits);
+        m_spec.attribute ("oiio:BitsPerSample", m_rla.NumOfChannelBits);
         // N.B. don't set bps for mixed formats, it isn't well defined
     }
 
