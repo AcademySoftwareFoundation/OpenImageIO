@@ -67,8 +67,6 @@ private:
     int m_subimage;                   ///< Current subimage index
     std::vector<long> m_sot;          ///< Scanline offsets table
     int m_stride;                     ///< Number of bytes a contig pixel takes
-    bool m_Yflip;                     ///< Some non fully spec-compliant files
-                                      ///  will have their Y axis inverted
 
     /// Reset everything to initial state
     ///
@@ -277,8 +275,6 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         return false;
     }
 
-    m_Yflip = m_rla.ActiveBottom - m_rla.ActiveTop < 0;
-    
     // pick maximum precision for the time being
     int maxbytes = (std::max (m_rla.NumOfChannelBits * (m_rla.NumOfColorChannels > 0 ? 1 : 0),
                              std::max (m_rla.NumOfMatteBits * (m_rla.NumOfMatteChannels > 0 ? 1 : 0),
@@ -559,8 +555,7 @@ RLAInput::decode_plane (int first_channel, short num_channels, short num_bits)
 bool
 RLAInput::read_native_scanline (int y, int z, void *data)
 {
-    if (m_Yflip)
-        y = m_spec.height - y - 1;
+    y = m_spec.height - y - 1;
     m_buf.resize (m_spec.scanline_bytes (true));
     
     // seek to scanline start

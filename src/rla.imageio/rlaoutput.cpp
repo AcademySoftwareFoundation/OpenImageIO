@@ -72,6 +72,10 @@ private:
     void init (void) {
         m_file = NULL;
     }
+    
+    /// Helper - sets a chromaticity from attribute
+    inline void set_chromaticity (const ImageIOParameter *p, char *dst,
+                                  size_t field_size, const char *default_val);
 };
 
 
@@ -142,16 +146,17 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     WAVEFRONT rla;
     memset (&rla, 0, sizeof (rla));
     // frame and window coordinates
-    rla.WindowLeft = m_spec.get_int_attribute ("WindowLeft", 0);
-    rla.WindowRight = m_spec.get_int_attribute ("WindowRight", m_spec.width - 1);
-    rla.WindowBottom = m_spec.get_int_attribute ("WindowBottom", 0);
-    rla.WindowTop = m_spec.get_int_attribute ("WindowTop", m_spec.height - 1);
-    rla.ActiveLeft = m_spec.get_int_attribute ("ActiveLeft", 0);
-    rla.ActiveRight = m_spec.get_int_attribute ("ActiveRight", m_spec.width - 1);
-    rla.ActiveBottom = m_spec.get_int_attribute ("ActiveBottom", 0);
-    rla.ActiveTop = m_spec.get_int_attribute ("ActiveTop", m_spec.height - 1);
+    rla.WindowLeft = m_spec.full_x;
+    rla.WindowRight = m_spec.full_x + m_spec.full_width - 1;
+    rla.WindowBottom = -m_spec.full_y;
+    rla.WindowTop = m_spec.full_height - m_spec.full_y - 1;
+    
+    rla.ActiveLeft = m_spec.x;
+    rla.ActiveRight = m_spec.x + m_spec.width - 1;
+    rla.ActiveBottom = -m_spec.y;
+    rla.ActiveTop = m_spec.height - m_spec.y - 1;
 
-    rla.FrameNumber = m_spec.get_int_attribute ("FrameNumber", 0);
+    rla.FrameNumber = m_spec.get_int_attribute ("rla:FrameNumber", 0);
 
     // figure out what's going on with the channels
     int remaining = m_spec.nchannels;
@@ -219,9 +224,19 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     if (iequals(s, "Linear"))
         strcpy (rla.Gamma, "1.0");
     else if (iequals(s, "GammaCorrected"))
-        sprintf (rla.Gamma, "%.10f", m_spec.get_float_attribute ("oiio:Gamma", 1.f));
+        snprintf (rla.Gamma, sizeof(rla.Gamma), "%.10f",
+            m_spec.get_float_attribute ("oiio:Gamma", 1.f));
     
-    // TODO: chromaticities
+    const ImageIOParameter *p;
+    // default NTSC chromaticities
+    p = m_spec.find_attribute ("rla:RedChroma");
+    set_chromaticity (p, rla.RedChroma, sizeof (rla.RedChroma), "0.67 0.08");
+    p = m_spec.find_attribute ("rla:GreenChroma");
+    set_chromaticity (p, rla.GreenChroma, sizeof (rla.GreenChroma), "0.21 0.71");
+    p = m_spec.find_attribute ("rla:BlueChroma");
+    set_chromaticity (p, rla.BlueChroma, sizeof (rla.BlueChroma), "0.14 0.33");
+    p = m_spec.find_attribute ("rla:WhitePoint");
+    set_chromaticity (p, rla.WhitePoint, sizeof (rla.WhitePoint), "0.31 0.316");
 
     rla.JobNumber = m_spec.get_int_attribute ("rla:JobNumber", 0);
     strncpy (rla.FileName, name.c_str (), sizeof (rla.FileName));
@@ -235,7 +250,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     
     s = m_spec.get_string_attribute ("rla:MachineName", "");
     if (s.length ())
-        strncpy (rla.UserName, s.c_str (), sizeof (rla.MachineName));
+        strncpy (rla.MachineName, s.c_str (), sizeof (rla.MachineName));
     s = m_spec.get_string_attribute ("rla:UserName", "");
     if (s.length ())
         strncpy (rla.UserName, s.c_str (), sizeof (rla.UserName));
@@ -259,9 +274,14 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
         case 12: memcpy(rla.DateCreated, "DEC", 3); break;
     }
     
-    // TODO: aspect
+    // FIXME: it appears that Wavefront have defined a set of aspect names;
+    // I think it's safe not to care until someone complains
+    s = m_spec.get_string_attribute ("rla:Aspect", "");
+    if (s.length ())
+        strncpy (rla.Aspect, s.c_str (), sizeof (rla.Aspect));
     
-    sprintf (rla.AspectRatio, "%-3.3f", m_spec.width / (float)m_spec.height);
+    snprintf (rla.AspectRatio, sizeof(rla.AspectRatio), "%.10f",
+        m_spec.width / (float)m_spec.height);
     strcpy (rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
         "rgb").c_str ());
     rla.FieldRendered = m_spec.get_int_attribute ("rla:FieldRendered", 0);
@@ -355,6 +375,28 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
         fwrite(&temp, sizeof(temp), 1, m_file);
 
     return true;
+}
+
+
+
+inline void
+RLAOutput::set_chromaticity (const ImageIOParameter *p, char *dst,
+                             size_t field_size, const char *default_val)
+{
+    if (p && p->type().basetype == TypeDesc::FLOAT) {
+        switch (p->type().aggregate) {
+            case TypeDesc::VEC2:
+                snprintf (dst, field_size, "%.4f %.4f",
+                    ((float *)p->data ())[0], ((float *)p->data ())[1]);
+                break;
+            case TypeDesc::VEC3:
+                snprintf (dst, field_size, "%.4f %.4f %.4f",
+                    ((float *)p->data ())[0], ((float *)p->data ())[1],
+                        ((float *)p->data ())[2]);
+                break;
+        }
+    } else
+        strcpy (dst, default_val);
 }
 
 
