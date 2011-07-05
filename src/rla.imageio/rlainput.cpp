@@ -287,11 +287,20 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     TypeDesc maxtype = (maxbytes == 4) ? TypeDesc::UINT32
                      : (maxbytes == 2 ? TypeDesc::UINT16 : TypeDesc::UINT8);
     m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
-                        std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1
+                        (m_rla.ActiveTop - m_rla.ActiveBottom + 1)
                             / (m_rla.FieldRendered ? 2 : 1), // interlaced image?
                         m_rla.NumOfColorChannels
                         + m_rla.NumOfMatteChannels
                         + m_rla.NumOfAuxChannels, maxtype);
+    
+    // set window dimensions etc.
+    m_spec.x = m_rla.ActiveLeft;
+    m_spec.y = m_spec.height - m_rla.ActiveTop - 1;
+    m_spec.full_width = m_rla.WindowRight - m_rla.WindowLeft + 1;
+    m_spec.full_height = m_rla.WindowTop - m_rla.WindowBottom + 1;
+    m_spec.full_depth = 1;
+    m_spec.full_x = m_rla.WindowLeft;
+    m_spec.full_y = m_spec.full_height - m_rla.WindowTop - 1;
 
     // set channel formats and stride
     m_stride = 0;
@@ -349,16 +358,6 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                                             RLA_SET_ATTRIB_NOCHECK(x)
 #define RLA_SET_ATTRIB_STR(x)           if (m_rla.x[0]) \
                                             RLA_SET_ATTRIB_NOCHECK(x)
-    // zeroes are perfectly fine values for these
-    RLA_SET_ATTRIB_NOCHECK(WindowLeft);
-    RLA_SET_ATTRIB_NOCHECK(WindowRight);
-    RLA_SET_ATTRIB_NOCHECK(WindowBottom);
-    RLA_SET_ATTRIB_NOCHECK(WindowTop);
-    RLA_SET_ATTRIB_NOCHECK(ActiveLeft);
-    RLA_SET_ATTRIB_NOCHECK(ActiveRight);
-    RLA_SET_ATTRIB_NOCHECK(ActiveBottom);
-    RLA_SET_ATTRIB_NOCHECK(ActiveTop);
-    
     RLA_SET_ATTRIB(FrameNumber);
     RLA_SET_ATTRIB(Revision);
     RLA_SET_ATTRIB(JobNumber);
