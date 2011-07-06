@@ -207,14 +207,12 @@ if (EMBEDPLUGINS)
     link_openexr (OpenImageIO)
 endif ()
 
-if (SOVERSION)
 message(STATUS "Setting SOVERSION to: ${SOVERSION}")
 set_target_properties(OpenImageIO
                          PROPERTIES
                          VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
                          SOVERSION ${SOVERSION}
                      )
-endif ()
 
 oiio_install_targets (OpenImageIO)
 
