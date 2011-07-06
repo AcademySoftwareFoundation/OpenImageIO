@@ -259,20 +259,24 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     time_t t = time (NULL);
     strftime (rla.DateCreated, sizeof (rla.DateCreated), "%m  %d %H:%M %Y",
         localtime (&t));
-    switch (atoi (rla.DateCreated)) {
-        case 1:  memcpy(rla.DateCreated, "JAN", 3); break;
-        case 2:  memcpy(rla.DateCreated, "FEB", 3); break;
-        case 3:  memcpy(rla.DateCreated, "MAR", 3); break;
-        case 4:  memcpy(rla.DateCreated, "APR", 3); break;
-        case 5:  memcpy(rla.DateCreated, "MAY", 3); break;
-        case 6:  memcpy(rla.DateCreated, "JUN", 3); break;
-        case 7:  memcpy(rla.DateCreated, "JUL", 3); break;
-        case 8:  memcpy(rla.DateCreated, "AUG", 3); break;
-        case 9:  memcpy(rla.DateCreated, "SEP", 3); break;
-        case 10: memcpy(rla.DateCreated, "OCT", 3); break;
-        case 11: memcpy(rla.DateCreated, "NOV", 3); break;
-        case 12: memcpy(rla.DateCreated, "DEC", 3); break;
-    }
+    // nice little trick - atoi() will convert the month number to integer,
+    // which we then use to index this array of constants, and copy the
+    // abbreviation back into the date string
+    static const char months[12][4] = {
+        "JAN",
+        "FEB",
+        "MAR",
+        "APR",
+        "MAY",
+        "JUN",
+        "JUL",
+        "AUG",
+        "SEP",
+        "OCT",
+        "NOV",
+        "DEC"
+    };
+    memcpy(rla.DateCreated, months[atoi (rla.DateCreated) - 1], 3);
     
     // FIXME: it appears that Wavefront have defined a set of aspect names;
     // I think it's safe not to care until someone complains
