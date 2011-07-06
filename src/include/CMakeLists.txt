@@ -8,6 +8,10 @@ set (public_headers argparse.h dassert.h errorhandler.h export.h
     )
 
 message(STATUS "Create version.h from version.h.in")
+# Mangle the SOVERSION so that it's a valid C++ identifier for the versioning
+# namespace defined in version.h
+string (REGEX REPLACE "\\." "_" MANGLED_SOVERSION ${SOVERSION})
+set (OIIO_VERSION_NS "v${MANGLED_SOVERSION}")
 configure_file(version.h.in ${CMAKE_BINARY_DIR}/include/version.h @ONLY)
 list(APPEND public_headers ${CMAKE_BINARY_DIR}/include/version.h)
 

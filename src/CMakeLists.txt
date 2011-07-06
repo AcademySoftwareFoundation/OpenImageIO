@@ -32,12 +32,8 @@ set (USE_JASPER ON CACHE BOOL "Use Jasper for JPEG-2000 if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
 
-if (NOT SOVERSION)
-    set (SOVERSION ${OIIO_VERSION_MAJOR} CACHE STRING "Set the SO version in the SO name of the output library")
-endif ()
-if (NOT ${SOVERSION} STREQUAL ${OIIO_VERSION_MAJOR})
-    set (OIIO_VERSION_MAJOR ${SOVERSION})
-endif ()
+set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
+     CACHE STRING "Set the SO version in the SO name of the output library")
 
 if (NOTHREADS)
     message (STATUS "NO THREADS!")
