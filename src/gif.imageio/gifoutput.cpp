@@ -73,7 +73,7 @@ bool
 GIFOutput::open (const std::string &name, const ImageSpec &userspec,
                  OpenMode mode)
 {
-    printf("open1");
+    std::cout << "open1";
     if (mode != Create) {
         error ("%s does not support subimages or MIP levels", format_name());
         return false;
@@ -83,19 +83,26 @@ GIFOutput::open (const std::string &name, const ImageSpec &userspec,
     m_filename = name;
     m_spec = userspec; // Stash the spec
     GifFile = EGifOpenFileName(name.c_str(),1);
+    if(GifFile == NULL)
+    {
+    std::cerr << "open failed";
+    return false;
+    }
+    std:: cout << "file opened";
     //EGifSetGifVersion(const char *Version);
     if(EGifPutScreenDesc(GifFile,m_spec.full_width, m_spec.full_height, 0,0,NULL)!=1)
     {
       PrintGifError();
       return false;
     }
-    printf("open 2");
+    std::cout << "screen desc";
     ColorMap->ColorCount = m_spec.nchannels;
     ColorMap->BitsPerPixel = (int)m_spec.channel_bytes ();
     /*ColorMap->Colors[0] = (char)m_spec.channelnames[0];
 ColorMap->Colors[1] = (char)m_spec.channelnames[1];
 ColorMap->Colors[2] = (char)m_spec.channelnames[2];
-*/if(EGifPutImageDesc(GifFile, m_spec.x, m_spec.y,
+*/
+    if(EGifPutImageDesc(GifFile, m_spec.x, m_spec.y,
                      m_spec.width, m_spec.height, 0,
                      ColorMap)!=1)
     {

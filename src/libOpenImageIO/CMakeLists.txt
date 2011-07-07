@@ -85,6 +85,7 @@ if (EMBEDPLUGINS)
           ../dpx.imageio/libdpx/InStream.cpp ../dpx.imageio/libdpx/DPXColorConverter.cpp
         ../fits.imageio/fitsinput.cpp ../fits.imageio/fitsoutput.cpp
           ../fits.imageio/fits_pvt.cpp
+         ../gif.imageio/gifinput.cpp ../gif.imageio/gifoutput.cpp 
         ../hdr.imageio/hdrinput.cpp ../hdr.imageio/hdroutput.cpp
           ../hdr.imageio/rgbe.cpp
         ../ico.imageio/icoinput.cpp ../ico.imageio/icooutput.cpp
@@ -122,12 +123,14 @@ if (EMBEDPLUGINS)
         add_definitions ("-DUSE_BOOST_ASIO=1")
     endif ()
     find_package (PNG REQUIRED)
+    find_package (GIF REQUIRED)
     find_package (JPEG REQUIRED)
     find_package (TIFF REQUIRED)
     find_package (ZLIB REQUIRED)
     find_package (Jasper)
     include_directories (${PNG_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
     include_directories (${TIFF_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
+    include_directories  (${GIF_INCLUDE_DIR})
     add_definitions ("-DEMBED_PLUGINS=1")
     if (JASPER_FOUND AND USE_JASPER)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
@@ -183,7 +186,7 @@ if (EMBEDPLUGINS)
                                ${JASPER_LIBRARY}
                                ${FIELD3D_LIBRARY}
                                ${HDF5_LIBRARIES}
-                               ${WEBP_LIBRARY}
+                               ${WEBP_LIBRARY} ${GIF_LIBRARY}
                           )
     link_openexr (OpenImageIO)
 endif ()
