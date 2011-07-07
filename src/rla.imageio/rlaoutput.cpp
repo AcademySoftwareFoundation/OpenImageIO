@@ -67,15 +67,21 @@ private:
     FILE *m_file;                     ///< Open image handle
     std::vector<unsigned char> m_scratch;
     WAVEFRONT m_rla;                  ///< Wavefront RLA header
+    std::vector<int32_t> m_sot;       ///< Scanline offset table
 
     // Initialize private members to pre-opened state
     void init (void) {
         m_file = NULL;
+        m_sot.clear ();
     }
     
     /// Helper - sets a chromaticity from attribute
     inline void set_chromaticity (const ImageIOParameter *p, char *dst,
                                   size_t field_size, const char *default_val);
+    
+    /// Helper - handles the repetitive work of encoding and writing a channel
+    bool encode_plane (const unsigned char *data, stride_t xstride,
+                       bool is_float);
 };
 
 
@@ -143,121 +149,121 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     // prepare and write the RLA header
-    WAVEFRONT rla;
-    memset (&rla, 0, sizeof (rla));
+    memset (&m_rla, 0, sizeof (m_rla));
     // frame and window coordinates
-    rla.WindowLeft = m_spec.full_x;
-    rla.WindowRight = m_spec.full_x + m_spec.full_width - 1;
-    rla.WindowBottom = -m_spec.full_y;
-    rla.WindowTop = m_spec.full_height - m_spec.full_y - 1;
+    m_rla.WindowLeft = m_spec.full_x;
+    m_rla.WindowRight = m_spec.full_x + m_spec.full_width - 1;
+    m_rla.WindowBottom = -m_spec.full_y;
+    m_rla.WindowTop = m_spec.full_height - m_spec.full_y - 1;
     
-    rla.ActiveLeft = m_spec.x;
-    rla.ActiveRight = m_spec.x + m_spec.width - 1;
-    rla.ActiveBottom = -m_spec.y;
-    rla.ActiveTop = m_spec.height - m_spec.y - 1;
+    m_rla.ActiveLeft = m_spec.x;
+    m_rla.ActiveRight = m_spec.x + m_spec.width - 1;
+    m_rla.ActiveBottom = -m_spec.y;
+    m_rla.ActiveTop = m_spec.height - m_spec.y - 1;
 
-    rla.FrameNumber = m_spec.get_int_attribute ("rla:FrameNumber", 0);
+    m_rla.FrameNumber = m_spec.get_int_attribute ("rla:FrameNumber", 0);
 
     // figure out what's going on with the channels
     int remaining = m_spec.nchannels;
     if (m_spec.channelformats.size ()) {
         int streak;
         // accomodate first 3 channels of the same type as colour ones
-        for (streak = 1; streak < 3 && remaining > 0; ++streak, --remaining)
+        for (streak = 1; streak <= 3 && remaining > 0; ++streak, --remaining)
             if (m_spec.channelformats[streak] != m_spec.channelformats[0])
                 break;
-        rla.ColorChannelType = m_spec.channelformats[0] == TypeDesc::FLOAT
+        m_rla.ColorChannelType = m_spec.channelformats[0] == TypeDesc::FLOAT
             ? CT_FLOAT : CT_BYTE;
-        rla.NumOfChannelBits = m_spec.channelformats[0].size () * 8;
-        rla.NumOfColorChannels = streak;
+        m_rla.NumOfChannelBits = m_spec.channelformats[0].size () * 8;
+        // limit to 3 in case the loop went further
+        m_rla.NumOfColorChannels = std::min (streak, 3);
         // if we have anything left, treat it as alpha
         if (remaining) {
             for (streak = 1; remaining > 0; ++streak, --remaining)
-                if (m_spec.channelformats[rla.NumOfColorChannels + streak]
-                    != m_spec.channelformats[rla.NumOfColorChannels])
+                if (m_spec.channelformats[m_rla.NumOfColorChannels + streak]
+                    != m_spec.channelformats[m_rla.NumOfColorChannels])
                     break;
-            rla.MatteChannelType = m_spec.channelformats[rla.NumOfColorChannels]
+            m_rla.MatteChannelType = m_spec.channelformats[m_rla.NumOfColorChannels]
                 == TypeDesc::FLOAT ? CT_FLOAT : CT_BYTE;
-            rla.NumOfMatteBits = m_spec.channelformats[rla.NumOfColorChannels].size () * 8;
-            rla.NumOfMatteChannels = streak;
+            m_rla.NumOfMatteBits = m_spec.channelformats[m_rla.NumOfColorChannels].size () * 8;
+            m_rla.NumOfMatteChannels = streak;
         }
         // and if there's something more left, put it in auxiliary
         if (remaining) {
             for (streak = 1; remaining > 0; ++streak, --remaining)
-                if (m_spec.channelformats[rla.NumOfColorChannels
-                        + rla.NumOfMatteChannels + streak]
-                    != m_spec.channelformats[rla.NumOfColorChannels
-                        + rla.NumOfMatteChannels])
+                if (m_spec.channelformats[m_rla.NumOfColorChannels
+                        + m_rla.NumOfMatteChannels + streak]
+                    != m_spec.channelformats[m_rla.NumOfColorChannels
+                        + m_rla.NumOfMatteChannels])
                     break;
-            rla.MatteChannelType = m_spec.channelformats[rla.NumOfColorChannels
-                    + rla.NumOfMatteChannels]
+            m_rla.MatteChannelType = m_spec.channelformats[m_rla.NumOfColorChannels
+                    + m_rla.NumOfMatteChannels]
                 == TypeDesc::FLOAT ? CT_FLOAT : CT_BYTE;
-            rla.NumOfAuxBits = m_spec.channelformats[rla.NumOfColorChannels
-                + rla.NumOfMatteChannels].size () * 8;
-            rla.NumOfAuxChannels = streak;
+            m_rla.NumOfAuxBits = m_spec.channelformats[m_rla.NumOfColorChannels
+                + m_rla.NumOfMatteChannels].size () * 8;
+            m_rla.NumOfAuxChannels = streak;
         }
     } else {
-        rla.ColorChannelType = rla.MatteChannelType = rla.AuxChannelType =
+        m_rla.ColorChannelType = m_rla.MatteChannelType = m_rla.AuxChannelType =
             m_spec.format == TypeDesc::FLOAT ? CT_FLOAT : CT_BYTE;
-        rla.NumOfChannelBits = rla.NumOfMatteBits = rla.NumOfAuxBits =
+        m_rla.NumOfChannelBits = m_rla.NumOfMatteBits = m_rla.NumOfAuxBits =
             m_spec.format.size () * 8;
         if (remaining >= 3) {
             // if we have at least 3 channels, treat them as colour
-            rla.NumOfColorChannels = 3;
+            m_rla.NumOfColorChannels = 3;
             remaining -= 3;
         } else {
             // otherwise let's say it's luminosity
-            rla.NumOfColorChannels = 1;
+            m_rla.NumOfColorChannels = 1;
             --remaining;
         }
         // if there's at least 1 more channel, it's alpha
         if (remaining-- > 0)
-            ++rla.NumOfMatteChannels;
+            ++m_rla.NumOfMatteChannels;
         // anything left is auxiliary
         if (remaining > 0)
-            rla.NumOfAuxChannels = remaining;
+            m_rla.NumOfAuxChannels = remaining;
     }
     
-    rla.Revision = 0xFFFE;
+    m_rla.Revision = 0xFFFE;
     
     std::string s = m_spec.get_string_attribute ("oiio:ColorSpace", "Unknown");
     if (iequals(s, "Linear"))
-        strcpy (rla.Gamma, "1.0");
+        strcpy (m_rla.Gamma, "1.0");
     else if (iequals(s, "GammaCorrected"))
-        snprintf (rla.Gamma, sizeof(rla.Gamma), "%.10f",
+        snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f",
             m_spec.get_float_attribute ("oiio:Gamma", 1.f));
     
     const ImageIOParameter *p;
     // default NTSC chromaticities
     p = m_spec.find_attribute ("rla:RedChroma");
-    set_chromaticity (p, rla.RedChroma, sizeof (rla.RedChroma), "0.67 0.08");
+    set_chromaticity (p, m_rla.RedChroma, sizeof (m_rla.RedChroma), "0.67 0.08");
     p = m_spec.find_attribute ("rla:GreenChroma");
-    set_chromaticity (p, rla.GreenChroma, sizeof (rla.GreenChroma), "0.21 0.71");
+    set_chromaticity (p, m_rla.GreenChroma, sizeof (m_rla.GreenChroma), "0.21 0.71");
     p = m_spec.find_attribute ("rla:BlueChroma");
-    set_chromaticity (p, rla.BlueChroma, sizeof (rla.BlueChroma), "0.14 0.33");
+    set_chromaticity (p, m_rla.BlueChroma, sizeof (m_rla.BlueChroma), "0.14 0.33");
     p = m_spec.find_attribute ("rla:WhitePoint");
-    set_chromaticity (p, rla.WhitePoint, sizeof (rla.WhitePoint), "0.31 0.316");
+    set_chromaticity (p, m_rla.WhitePoint, sizeof (m_rla.WhitePoint), "0.31 0.316");
 
-    rla.JobNumber = m_spec.get_int_attribute ("rla:JobNumber", 0);
-    strncpy (rla.FileName, name.c_str (), sizeof (rla.FileName));
+    m_rla.JobNumber = m_spec.get_int_attribute ("rla:JobNumber", 0);
+    strncpy (m_rla.FileName, name.c_str (), sizeof (m_rla.FileName));
     
     s = m_spec.get_string_attribute ("ImageDescription", "");
     if (s.length ())
-        strncpy (rla.Description, s.c_str (), sizeof (rla.Description));
+        strncpy (m_rla.Description, s.c_str (), sizeof (m_rla.Description));
     
     // yay for advertising!
-    strcpy (rla.ProgramName, OIIO_INTRO_STRING);
+    strcpy (m_rla.ProgramName, OIIO_INTRO_STRING);
     
     s = m_spec.get_string_attribute ("rla:MachineName", "");
     if (s.length ())
-        strncpy (rla.MachineName, s.c_str (), sizeof (rla.MachineName));
+        strncpy (m_rla.MachineName, s.c_str (), sizeof (m_rla.MachineName));
     s = m_spec.get_string_attribute ("rla:UserName", "");
     if (s.length ())
-        strncpy (rla.UserName, s.c_str (), sizeof (rla.UserName));
+        strncpy (m_rla.UserName, s.c_str (), sizeof (m_rla.UserName));
     
     // the month number will be replaced with the 3-letter abbreviation
     time_t t = time (NULL);
-    strftime (rla.DateCreated, sizeof (rla.DateCreated), "%m  %d %H:%M %Y",
+    strftime (m_rla.DateCreated, sizeof (m_rla.DateCreated), "%m  %d %H:%M %Y",
         localtime (&t));
     // nice little trick - atoi() will convert the month number to integer,
     // which we then use to index this array of constants, and copy the
@@ -276,61 +282,61 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
         "NOV",
         "DEC"
     };
-    memcpy(rla.DateCreated, months[atoi (rla.DateCreated) - 1], 3);
+    memcpy(m_rla.DateCreated, months[atoi (m_rla.DateCreated) - 1], 3);
     
     // FIXME: it appears that Wavefront have defined a set of aspect names;
     // I think it's safe not to care until someone complains
     s = m_spec.get_string_attribute ("rla:Aspect", "");
     if (s.length ())
-        strncpy (rla.Aspect, s.c_str (), sizeof (rla.Aspect));
+        strncpy (m_rla.Aspect, s.c_str (), sizeof (m_rla.Aspect));
     
-    snprintf (rla.AspectRatio, sizeof(rla.AspectRatio), "%.10f",
+    snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.10f",
         m_spec.width / (float)m_spec.height);
-    strcpy (rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
+    strcpy (m_rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
         "rgb").c_str ());
-    rla.FieldRendered = m_spec.get_int_attribute ("rla:FieldRendered", 0);
+    m_rla.FieldRendered = m_spec.get_int_attribute ("rla:FieldRendered", 0);
     
     s = m_spec.get_string_attribute ("rla:Time", "");
     if (s.length ())
-        strncpy (rla.Time, s.c_str (), sizeof (rla.Time));
+        strncpy (m_rla.Time, s.c_str (), sizeof (m_rla.Time));
         
     s = m_spec.get_string_attribute ("rla:Filter", "");
     if (s.length ())
-        strncpy (rla.Filter, s.c_str (), sizeof (rla.Filter));
+        strncpy (m_rla.Filter, s.c_str (), sizeof (m_rla.Filter));
     
     s = m_spec.get_string_attribute ("rla:AuxData", "");
     if (s.length ())
-        strncpy (rla.AuxData, s.c_str (), sizeof (rla.AuxData));
+        strncpy (m_rla.AuxData, s.c_str (), sizeof (m_rla.AuxData));
     
     if (littleendian()) {
         // RLAs are big-endian
-        swap_endian (&rla.WindowLeft);
-        swap_endian (&rla.WindowRight);
-        swap_endian (&rla.WindowBottom);
-        swap_endian (&rla.WindowTop);
-        swap_endian (&rla.ActiveLeft);
-        swap_endian (&rla.ActiveRight);
-        swap_endian (&rla.ActiveBottom);
-        swap_endian (&rla.ActiveTop);
-        swap_endian (&rla.FrameNumber);
-        swap_endian (&rla.ColorChannelType);
-        swap_endian (&rla.NumOfColorChannels);
-        swap_endian (&rla.NumOfMatteChannels);
-        swap_endian (&rla.NumOfAuxChannels);
-        swap_endian (&rla.Revision);
-        swap_endian (&rla.JobNumber);
-        swap_endian (&rla.FieldRendered);
-        swap_endian (&rla.NumOfChannelBits);
-        swap_endian (&rla.MatteChannelType);
-        swap_endian (&rla.NumOfMatteBits);
-        swap_endian (&rla.AuxChannelType);
-        swap_endian (&rla.NumOfAuxBits);
-        swap_endian (&rla.NextOffset);
+        swap_endian (&m_rla.WindowLeft);
+        swap_endian (&m_rla.WindowRight);
+        swap_endian (&m_rla.WindowBottom);
+        swap_endian (&m_rla.WindowTop);
+        swap_endian (&m_rla.ActiveLeft);
+        swap_endian (&m_rla.ActiveRight);
+        swap_endian (&m_rla.ActiveBottom);
+        swap_endian (&m_rla.ActiveTop);
+        swap_endian (&m_rla.FrameNumber);
+        swap_endian (&m_rla.ColorChannelType);
+        swap_endian (&m_rla.NumOfColorChannels);
+        swap_endian (&m_rla.NumOfMatteChannels);
+        swap_endian (&m_rla.NumOfAuxChannels);
+        swap_endian (&m_rla.Revision);
+        swap_endian (&m_rla.JobNumber);
+        swap_endian (&m_rla.FieldRendered);
+        swap_endian (&m_rla.NumOfChannelBits);
+        swap_endian (&m_rla.MatteChannelType);
+        swap_endian (&m_rla.NumOfMatteBits);
+        swap_endian (&m_rla.AuxChannelType);
+        swap_endian (&m_rla.NumOfAuxBits);
+        swap_endian (&m_rla.NextOffset);
     }
     // due to struct packing, we may get a corrupt header if we just dump the
     // struct to the file; to adress that, write every member individually
     // save some typing
-#define WH(memb)    fwrite (&rla.memb, sizeof (rla.memb), 1, m_file)
+#define WH(memb)    fwrite (&m_rla.memb, sizeof (m_rla.memb), 1, m_file)
     WH(WindowLeft);
     WH(WindowRight);
     WH(WindowBottom);
@@ -373,10 +379,17 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     WH(NextOffset);
 #undef WH
     
-    // FIXME
-    int32_t temp = 0;
-    for (int i = 0; i < m_spec.height; ++i)
-        fwrite(&temp, sizeof(temp), 1, m_file);
+    // write placeholder values - not all systems may expand the file with
+    // zeroes upon seek
+    m_sot.resize (m_spec.height, (int32_t)0);
+    fwrite (&m_sot[0], sizeof(int32_t), m_sot.size (), m_file);
+    
+    // flip back the endianness of some things we will need again
+    if (littleendian ()) {
+        swap_endian (&m_rla.NumOfColorChannels);
+        swap_endian (&m_rla.NumOfMatteChannels);
+        swap_endian (&m_rla.NumOfAuxChannels);
+    }
 
     return true;
 }
@@ -409,6 +422,10 @@ bool
 RLAOutput::close ()
 {
     if (m_file) {
+        // dump the scanline offset table to file
+        fseek (m_file, 740, SEEK_SET);
+        fwrite (&m_sot[0], sizeof(int32_t), m_sot.size (), m_file);
+
         // close the stream
         fclose (m_file);
         m_file = NULL;
@@ -417,6 +434,31 @@ RLAOutput::close ()
     init ();      // re-initialize
     return true;  // How can we fail?
                   // Epicly. -- IneQuation
+}
+
+
+
+bool
+RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
+                         bool is_float)
+{
+    short length;
+    if (is_float) {
+        // fast path - just dump the plane into the file
+        float f;            
+        length = m_spec.width * sizeof(float);
+        if (littleendian ())
+            swap_endian (&length);
+        fwrite (&length, sizeof (length), 1, m_file);
+        for (int x = 0; x < m_spec.width; ++x) {
+            f = *((float *)(data + x * xstride));
+            if (bigendian ())
+                swap_endian (&length);
+            fwrite (&f, sizeof (float), 1, m_file);
+        }
+        return true;
+    }
+    return false;
 }
 
 
@@ -432,6 +474,45 @@ RLAOutput::write_scanline (int y, int z, TypeDesc format,
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data+m_spec.scanline_bytes());
         data = &m_scratch[0];
+    }
+    
+    // store the offset to the scanline
+    m_sot[m_spec.height - y - 1] = (int32_t)ftell (m_file);
+    if (littleendian ())
+        swap_endian (&m_sot[m_spec.height - y - 1]);
+    
+    bool allsame = !m_spec.channelformats.size ();
+    bool is_float = (allsame ? m_spec.format : m_spec.channelformats[0])
+        == TypeDesc::FLOAT;        
+    int offset = 0;
+    // colour channels
+    int chsize = allsame ? m_spec.format.size ()
+                         : m_spec.channelformats[0].size ();
+    for (int i = 0; i < m_rla.NumOfColorChannels; ++i, offset += chsize) {
+        if (!encode_plane ((unsigned char *)data + offset, xstride, is_float))
+            return false;
+    }
+    // alpha (matte) channels
+    is_float = (allsame ? m_spec.format
+                        : m_spec.channelformats[m_rla.NumOfColorChannels])
+        == TypeDesc::FLOAT;
+    chsize = allsame ? m_spec.format.size ()
+                     : m_spec.channelformats[m_rla.NumOfColorChannels].size ();
+    for (int i = 0; i < m_rla.NumOfMatteChannels; ++i, offset += chsize) {
+        if (!encode_plane ((unsigned char *)data + offset, xstride, is_float))
+            return false;
+    }
+    // aux (depth) channels
+    is_float = (allsame ? m_spec.format
+                        : m_spec.channelformats[m_rla.NumOfColorChannels
+                            + m_rla.NumOfMatteChannels])
+        == TypeDesc::FLOAT;
+    chsize = allsame ? m_spec.format.size ()
+                     : m_spec.channelformats[m_rla.NumOfColorChannels
+                         + m_rla.NumOfMatteChannels].size ();
+    for (int i = 0; i < m_rla.NumOfAuxChannels; ++i, offset += chsize) {
+        if (!encode_plane ((unsigned char *)data + offset, xstride, is_float))
+            return false;
     }
 
     return true;
