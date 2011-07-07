@@ -49,9 +49,11 @@ private:
         m_file = NULL;
         m_next_scanline = 0;
         m_raw=false;
-        
+        ScreenBuffer =NULL;
     
     }
+    void DumpRow2RGB(GifPixelType *RowBuffer,
+               int ScreenWidth);
      
 };
 
@@ -73,10 +75,7 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 GIFInput::open (const std::string &name, ImageSpec &newspec)
 {
-    int ExtCode , DelayTime, Terminator;
-    char* Comment;
-    char *BlockSize, *PackedField, *ColorIndex, *AuthentCode , *Identifier;
-    int c ,f=0;
+    int ExtCode;
     
     
     std::cout << "Open file\n";
@@ -95,10 +94,11 @@ GIFInput::open (const std::string &name, ImageSpec &newspec)
    std::cout << sizeof(GifFileType);
    std::cout << "\n File opened\n";
    
-   Comment = (char*) malloc(1);
-    strcpy(Comment, "\0");
+   
      std:: cout << "Initial image count" << GifFile->ImageCount << "\n";
-   do {
+    
+   for(; ;)
+    {
          if(DGifGetRecordType(GifFile, &Type)== GIF_ERROR)
          {
           std::cerr << "Record type err" << GIF_ERROR << Type <<"\n";
@@ -107,9 +107,38 @@ GIFInput::open (const std::string &name, ImageSpec &newspec)
          //return false;
          }
         std::cout << "/n record type complete" << Type << "\n";
+         
+    
+	   if(Type == EXTENSION_RECORD_TYPE)
+	   {
+		/* Skip any extension blocks in file except comments: */
+		if (DGifGetExtension(GifFile, &ExtCode, &Extension) == GIF_ERROR) {
+		    PrintGifError();
+		    exit(EXIT_FAILURE);
+		}
+		std::cout << "checking extension \n"; 
+		while (Extension != NULL) {
+		    std::cout << "extension code" << ExtCode <<"\n";
+		    if (DGifGetExtensionNext(GifFile, &Extension) == GIF_ERROR) {
+			PrintGifError();
+			std:: cerr << "Extension block failure";
+		       }
+		      
+		}
+		
+	   }	
+	   else if(Type == TERMINATE_RECORD_TYPE)
+		break;
+           else if(Type == IMAGE_DESC_RECORD_TYPE)
+                break;		
+	   else		    /* Should be traps by DGifGetRecordType. */
+		continue;
+	}
+	
    
-        switch (Type) {
-	    case IMAGE_DESC_RECORD_TYPE:
+   
+   if(Type== IMAGE_DESC_RECORD_TYPE)
+   {
               if(DGifGetImageDesc(GifFile)!=1)
               {
                 PrintGifError();
@@ -117,72 +146,25 @@ GIFInput::open (const std::string &name, ImageSpec &newspec)
                 std::cerr << "Image desc err";
                 return false;
               }
-              f=1;
+              //m_bit_depth = GifFile->Image.ColorMap->BitsPerPixel;
               m_spec = ImageSpec (GifFile->Image.Width, GifFile->Image.Height,
-                       3,(m_bit_depth+1) == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
+                       3,TypeDesc::UINT8);
                       
               std::cout << "image desc complete"<< GifFile->ImageCount;
-              break;
-	    case EXTENSION_RECORD_TYPE:
-		/* Skip any extension blocks in file except comments: */
-		if (DGifGetExtension(GifFile, &ExtCode, &Extension) == GIF_ERROR) {
-		    PrintGifError();
-		    exit(EXIT_FAILURE);
-		}
-		while (Extension != NULL) {
-		    std::cout << "extension code" << ExtCode <<"\n";
-		    switch(ExtCode)
-		     {
-		     case COMMENT_EXT_FUNC_CODE:
-		        
-		        /*Extension[Extension[0]+1] = '\000';   
-			Comment = (char*) realloc(Comment, strlen(Comment) + Extension[0] + 1);
-			strcat(Comment, (char*)Extension+1);
-			*/
-			break;
-		     case GRAPHICS_EXT_FUNC_CODE: 
-		        /*strcat(BlockSize, (char*)Extension+1);
-		        strcat(PackedField, (char*)Extension+2); 
-		        DelayTime = (int)Extension[3];
-		        strcat(ColorIndex, (char*)Extension+4);
-		        */break;
-		     case PLAINTEXT_EXT_FUNC_CODE: 
-		        
-		        break;
-		     case APPLICATION_EXT_FUNC_CODE:
-		        /*for(c=0;c<=7;c++)
-		         strcat((Identifier+c),(char*)Extension[c+1]);
-		        for(c=0;c<=2;c++)
-		         strcat((AuthentCode+c),(char*)Extension[9+c]);
-		         Terminator =0;
-		         */
-		        
-		         break;
-		    }
-		    if (DGifGetExtensionNext(GifFile, &Extension) == GIF_ERROR) {
-			PrintGifError();
-			std:: cerr << "Extension block failure";
-		    }
-		    std::cout <<"\n" << Type << Extension;
-		}
-		break;
-	    case TERMINATE_RECORD_TYPE:
-		break;
-	    default:		    /* Should be traps by DGifGetRecordType. */
-		break;
-	}
-	
-   }
-   while ((Type!=TERMINATE_RECORD_TYPE && GifFile->ImageCount==0));
-           
+              
+    }
+    
+    
    //m_interlace_type = GifFile->Image.Interlace;
    //m_bit_depth = GifFile->Image.ColorMap->BitsPerPixel;
    std::cout <<"\n image count" <<GifFile->ImageCount;
-   
+   std::cout << "\nInterlace value" << GifFile->Image.Interlace;
+   std::cout << "\nResolution" << GifFile->Image.Width << GifFile->Image.Height;
+   //std::cout << "\n bit depth"<<m_bit_depth;
    m_spec.default_channel_names ();
    m_spec.attribute ("oiio:ColorSpace", "sRGB");
    m_next_scanline = 0;
-   newspec= m_spec;
+   newspec= spec();
    std::cout << "open function complete";
     return true;
 }
@@ -223,8 +205,10 @@ GIFInput::read_native_scanline (int y, int z, void *data)
     std::cerr << "out of range\n"; // out of range scanline
         return false;
     }
+    std::cout << "value of y"<<y;
     std::cout << "\nInterlace value" << GifFile->Image.Interlace;
     if (GifFile->Image.Interlace) {
+    if(ScreenBuffer == NULL){
                     if ((ScreenBuffer = (GifRowType *)
 	malloc(GifFile->SHeight * sizeof(GifRowType *))) == NULL)
 	    std::cerr << "Failed to allocate memory required, aborted.";  
@@ -236,17 +220,20 @@ GIFInput::read_native_scanline (int y, int z, void *data)
 		    for (Count = i = 0; i < 4; i++)
 			for (j = Row + InterlacedOffset[i]; j < Row + Height;
 						 j += InterlacedJumps[i]) {
-			    //GifQprintf("\b\b\b\b%-4d", Count++);
+			    //GifQprintf("std::cout << "\nInterlace value" << GifFile->Image.Interlace;\b\b\b\b%-4d", Count++);
 			    if (DGifGetLine(GifFile, &ScreenBuffer[j][Col],
 				Width) == GIF_ERROR) {
 				PrintGifError();
 				//exit(EXIT_FAILURE);
 				return false;
 			    }
-			}
+			}}
+			size_t size = spec().scanline_bytes();
+                        memcpy (data, &ScreenBuffer[0] + y * size, size);
 		}
 		else {
-		if (m_next_scanline > y) {
+		if (m_next_scanline > y) 
+		{
                       // User is trying to read an earlier scanline than the one we're
                      // up to. Easy fix: close the file and re-open.
                     std::cout << "dummy spec\n";
@@ -257,23 +244,65 @@ GIFInput::read_native_scanline (int y, int z, void *data)
                    ! seek_subimage (subimage, 0, dummyspec))
                    return false; // Somehow, the re-open failed
                    assert (m_next_scanline == 0 && current_subimage() == subimage);
-                   }
+                }
 		   for (; m_next_scanline <= y; ++m_next_scanline) {
+		       
 			//GifQprintf("\b\b\b\b%-4d", i);
-			if (DGifGetLine(GifFile, (GifPixelType *)data,
-				z) == GIF_ERROR) {
+			if (DGifGetLine(GifFile, (GifPixelType *)data,z) == GIF_ERROR) {
 			    PrintGifError();
 			    //exit(EXIT_FAILURE);
 			    return false;
 			}
+			std::cout<< "Pixel read";					
 		    }
 		}
     
-     
+       //DumpRow2RGB((GifPixelType *)data,GifFile->SWidth);
        
        return true;
   }
+/* void GIFInput::DumpRow2RGB(GifPixelType *RowBuffer,
+               int ScreenWidth)
+{
+    int i, j;
+    GifPixelType GifPixel;
+    static GifColorType *ColorMapEntry;
+    unsigned char* BufferP;
+    ColorMapObject *ColorMap;
+    
+    ColorMap = (GifFile->Image.ColorMap
+		? GifFile->Image.ColorMap
+		: GifFile->SColorMap);
+    if (ColorMap == NULL) {
+        fprintf(stderr, "Gif Image does not have a colormap\n");
+        exit(EXIT_FAILURE);
+    }
 
+    std::cout << "Color map present";
+
+        if ((BufferP = (unsigned char *) malloc(ScreenWidth * 3)) == NULL)
+            std::cerr << "Failed to allocate memory";
+            //GIF_EXIT("Failed to allocate memory required, aborted.");
+         
+            GifPixel = *RowBuffer;
+            RowBuffer = BufferP;
+            //GifQprintf("\b\b\b\b%-4d", ScreenHeight - i);
+            for (j = 0 ; j < ScreenWidth; j++) {
+                ColorMapEntry = &ColorMap->Colors[GifPixel+j];
+                *BufferP++ = ColorMapEntry->Red;
+                *BufferP++ = ColorMapEntry->Green;
+                *BufferP++ = ColorMapEntry->Blue;
+            }
+            /*if (fwrite(Buffer, ScreenWidth * 3, 1, f[0]) != 1)
+                std::cerr << "Write failed";
+              */  //GIF_EXIT("Write to file(s) failed.");
+        std::cout<< "Success";
+
+        //free((char *) BufferP);
+        
+    
+ }
+ */
 }
 }
 
