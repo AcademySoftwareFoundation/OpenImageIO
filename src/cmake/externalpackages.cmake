@@ -103,12 +103,42 @@ else ()
     # include python in the component list above, cmake will abort if
     # it's not found.  So we resort to checking for the boost_python
     # library's existance to get a soft failure.
-    find_library (my_boost_python_lib boost_python
-                  PATHS ${Boost_LIBRARY_DIRS})
-    if (my_boost_python_lib)
-        set (Boost_PYTHON_FOUND ON)
+    find_library (oiio_boost_python_lib boost_python
+                  PATHS ${Boost_LIBRARY_DIRS} NO_DEFAULT_PATH)
+    mark_as_advanced (oiio_boost_python_lib)
+    if (NOT oiio_boost_python_lib AND Boost_SYSTEM_LIBRARY_RELEASE)
+        get_filename_component (oiio_boost_PYTHON_rel
+                                ${Boost_SYSTEM_LIBRARY_RELEASE} NAME
+                               )
+        string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
+                oiio_boost_PYTHON_rel ${oiio_boost_PYTHON_rel}
+               )
+        find_library (oiio_boost_PYTHON_LIBRARY_RELEASE
+                      NAMES ${oiio_boost_PYTHON_rel} lib${oiio_boost_PYTHON_rel}
+                      HINTS ${Boost_LIBRARY_DIRS}
+                      NO_DEFAULT_PATH
+                     )
+        mark_as_advanced (oiio_boost_PYTHON_LIBRARY_RELEASE)
+    endif ()
+    if (NOT oiio_boost_python_lib AND Boost_SYSTEM_LIBRARY_DEBUG)
+        get_filename_component (oiio_boost_PYTHON_dbg
+                                ${Boost_SYSTEM_LIBRARY_DEBUG} NAME
+                               )
+        string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
+                oiio_boost_PYTHON_dbg ${oiio_boost_PYTHON_dbg}
+               )
+        find_library (oiio_boost_PYTHON_LIBRARY_DEBUG
+                      NAMES ${oiio_boost_PYTHON_dbg} lib${oiio_boost_PYTHON_dbg}
+                      HINTS ${Boost_LIBRARY_DIRS}
+                      NO_DEFAULT_PATH
+                     )
+        mark_as_advanced (oiio_boost_PYTHON_LIBRARY_DEBUG)
+    endif ()
+    if (oiio_boost_python_lib OR
+        oiio_boost_PYTHON_LIBRARY_RELEASE OR oiio_boost_PYTHON_LIBRARY_DEBUG)
+        set (oiio_boost_PYTHON_FOUND ON)
     else ()
-        set (Boost_PYTHON_FOUND OFF)
+        set (oiio_boost_PYTHON_FOUND OFF)
     endif ()
 endif ()
 
@@ -117,8 +147,8 @@ message (STATUS "Boost version      ${Boost_VERSION}")
 message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
 message (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}")
 message (STATUS "Boost libraries    ${Boost_LIBRARIES}")
-message (STATUS "Boost_python_FOUND ${Boost_PYTHON_FOUND}")
-if ( NOT Boost_PYTHON_FOUND )
+message (STATUS "Boost_python_FOUND ${oiio_boost_PYTHON_FOUND}")
+if (NOT oiio_boost_PYTHON_FOUND)
     # If Boost python components were not found, turn off all python support.
     message (STATUS "Boost python support not found -- will not build python components!")
     if (APPLE AND USE_PYTHON)
