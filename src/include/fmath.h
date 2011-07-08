@@ -218,15 +218,15 @@ pow2rounddown (int x)
 ///
 inline bool littleendian (void)
 {
-#ifdef __BIG_ENDIAN__
+#if defined(__BIG_ENDIAN__)
     return false;
-#endif
-#ifdef __LITTLE_ENDIAN__
+#elif defined(__LITTLE_ENDIAN__)
     return true;
-#endif
+#else
     // Otherwise, do something quick to compute it
     int i = 1;
     return *((char *) &i);
+#endif
 }
 
 
