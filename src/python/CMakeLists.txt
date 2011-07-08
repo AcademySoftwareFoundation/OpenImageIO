@@ -12,7 +12,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     add_definitions ("-Wno-array-bounds")
 endif ()
 
-if ( BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
+if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
 
     set (python_srcs py_imageinput.cpp py_imageoutput.cpp
          py_imagecache.cpp py_imagespec.cpp
