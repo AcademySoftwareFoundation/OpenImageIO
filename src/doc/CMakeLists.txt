@@ -13,7 +13,7 @@ install (DIRECTORY doxygen/html DESTINATION doc
 
 # generate man pages using txt2man and a tiny python script to munge the
 # result of "tool --help"
-find_program(txt2man txt2man)
+find_program(TXT2MAN txt2man)
 find_package(PythonInterp)
 if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
     message (STATUS "Generating manual page docs")
@@ -25,7 +25,7 @@ if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
         add_custom_command (OUTPUT ${outfile}
             COMMAND ${tool} --help |
             ${PYTHON_EXECUTABLE} ${documentation_SOURCE_DIR}/help2man_preformat.py |
-            ${txt2man} -v OpenImageIO -s 1 -t ${tool} > ${outfile}
+            ${TXT2MAN} -v OpenImageIO -s 1 -t ${tool} > ${outfile}
             DEPENDS ${tool} help2man_preformat.py)
     endforeach()
 
