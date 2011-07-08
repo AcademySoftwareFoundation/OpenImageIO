@@ -165,7 +165,25 @@ if (EMBEDPLUGINS)
         message (STATUS "WebP plugin will not be built")
         set (WEBP_LIBRARY "")
     endif ()
+
+    # Organize the embedded plugins into source folders
+    set (plugin_types "")
+    foreach (src ${libOpenImageIO_srcs})
+        if (src MATCHES "^.+/([^/]+)\\.imageio/.+$")
+            set (plugin_types ${plugin_types} ${CMAKE_MATCH_1})
+        endif ()
+    endforeach ()
+    list (REMOVE_DUPLICATES plugin_types)
+    foreach (plugin ${plugin_types})
+        source_group ("Plugins\\${plugin}"
+                      REGULAR_EXPRESSION "^.+/${plugin}\\.imageio/.+$"
+                     )
+    endforeach ()
 endif ()
+
+# Source groups for libutil and libtexture
+source_group ("libutil"    REGULAR_EXPRESSION ".+/libutil/.+")
+source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
 
 if (BUILDSTATIC)
     add_library (OpenImageIO STATIC ${libOpenImageIO_srcs})
