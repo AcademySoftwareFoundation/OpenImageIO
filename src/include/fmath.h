@@ -86,7 +86,7 @@ OIIO_NAMESPACE_ENTER
 #ifndef M_1_PI
 /// 1/PI
 ///
-#  define M_1_PI 0.31830988618379067
+#  define M_1_PI 0.318309886183790671538
 #endif
 
 #ifndef M_2_PI
@@ -809,7 +809,7 @@ inline float degrees (float rad) { return rad * (float)(180.0 / M_PI); }
 //#define M_PI       3.14159265358979323846
 //#define M_PI_2     1.57079632679489661923
 #define M_PI_4     0.785398163397448309616
-#define M_1_PI     0.318309886183790671538
+//#define M_1_PI     0.318309886183790671538
 //#define M_2_PI     0.636619772367581343076
 //#define M_2_SQRTPI 1.12837916709551257390
 //#define M_SQRT2    1.41421356237309504880
