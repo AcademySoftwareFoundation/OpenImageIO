@@ -104,8 +104,38 @@ else ()
     # it's not found.  So we resort to checking for the boost_python
     # library's existance to get a soft failure.
     find_library (my_boost_python_lib boost_python
-                  PATHS ${Boost_LIBRARY_DIRS})
-    if (my_boost_python_lib)
+                  PATHS ${Boost_LIBRARY_DIRS} NO_DEFAULT_PATH)
+    mark_as_advanced (my_boost_python_lib)
+    if (NOT my_boost_python_lib AND Boost_SYSTEM_LIBRARY_RELEASE)
+        get_filename_component (my_boost_PYTHON_rel
+                                ${Boost_SYSTEM_LIBRARY_RELEASE} NAME
+                               )
+        string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
+                my_boost_PYTHON_rel ${my_boost_PYTHON_rel}
+               )
+        find_library (my_boost_PYTHON_LIBRARY_RELEASE
+                      NAMES ${my_boost_PYTHON_rel} lib${my_boost_PYTHON_rel}
+                      HINTS ${Boost_LIBRARY_DIRS}
+                      NO_DEFAULT_PATH
+                     )
+        mark_as_advanced (my_boost_PYTHON_LIBRARY_RELEASE)
+    endif ()
+    if (NOT my_boost_python_lib AND Boost_SYSTEM_LIBRARY_DEBUG)
+        get_filename_component (my_boost_PYTHON_dbg
+                                ${Boost_SYSTEM_LIBRARY_DEBUG} NAME
+                               )
+        string (REGEX REPLACE "^(lib)?(.+)_system(.+)$" "\\2_python\\3"
+                my_boost_PYTHON_dbg ${my_boost_PYTHON_dbg}
+               )
+        find_library (my_boost_PYTHON_LIBRARY_DEBUG
+                      NAMES ${my_boost_PYTHON_dbg} lib${my_boost_PYTHON_dbg}
+                      HINTS ${Boost_LIBRARY_DIRS}
+                      NO_DEFAULT_PATH
+                     )
+        mark_as_advanced (my_boost_PYTHON_LIBRARY_DEBUG)
+    endif ()
+    if (my_boost_python_lib OR
+        my_boost_PYTHON_LIBRARY_RELEASE OR my_boost_PYTHON_LIBRARY_DEBUG)
         set (Boost_PYTHON_FOUND ON)
     else ()
         set (Boost_PYTHON_FOUND OFF)
