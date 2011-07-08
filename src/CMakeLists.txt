@@ -4,6 +4,9 @@ set (OIIO_VERSION_MINOR 11)
 set (OIIO_VERSION_PATCH 0)
 
 cmake_minimum_required (VERSION 2.6)
+if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
+    cmake_policy (SET CMP0017 NEW)
+endif ()
 message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
 message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
 
