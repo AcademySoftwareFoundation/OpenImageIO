@@ -4,7 +4,6 @@ set (OIIO_VERSION_MINOR 11)
 set (OIIO_VERSION_PATCH 0)
 
 cmake_minimum_required (VERSION 2.6)
-set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
 message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
 
