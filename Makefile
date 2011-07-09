@@ -27,7 +27,7 @@ ifdef PROFILE
 endif
 
 MY_MAKE_FLAGS ?=
-MY_CMAKE_FLAGS ?=
+MY_CMAKE_FLAGS ?= -DSELF_CONTAINED_INSTALL_TREE:BOOL=TRUE
 
 # Site-specific build instructions
 ifndef OPENIMAGEIO_SITE

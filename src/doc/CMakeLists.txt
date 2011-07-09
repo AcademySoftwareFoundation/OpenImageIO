@@ -1,22 +1,22 @@
 project(documentation)
-set (public_docs openimageio.pdf CLA-INDIVIDUAL CLA-CORPORATE)
 
-install (FILES ${public_docs} DESTINATION doc COMPONENT documentation)
+if (INSTALL_DOCS)
+    install (FILES openimageio.pdf DESTINATION ${DOC_INSTALL_DIR}
+            COMPONENT documentation)
 
-install (FILES ${OpenImageIO_SOURCE_DIR}/../LICENSE
-               ${OpenImageIO_SOURCE_DIR}/../INSTALL
-               ${OpenImageIO_SOURCE_DIR}/../CHANGES
-         DESTINATION .)
+    install (FILES ${OpenImageIO_SOURCE_DIR}/../LICENSE
+                ${OpenImageIO_SOURCE_DIR}/../CHANGES
+            DESTINATION ${DOC_INSTALL_DIR})
 
-install (DIRECTORY doxygen/html DESTINATION doc
-         PATTERN .svn EXCLUDE)
+    install (DIRECTORY doxygen/html DESTINATION ${DOC_INSTALL_DIR})
+endif ()
 
 # generate man pages using txt2man and a tiny python script to munge the
 # result of "tool --help"
 find_program(TXT2MAN txt2man)
 find_package(PythonInterp)
 if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
-    message (STATUS "Generating manual page docs")
+    message (STATUS "Unix man page documentation will be generated")
     set (cli_tools iinfo maketx idiff iv igrep iprocess iconvert)
 
     foreach (tool ${cli_tools})
@@ -32,6 +32,8 @@ if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
     # force man page build before install
     add_custom_target (man_pages ALL DEPENDS ${manpage_files})
 
-    install (FILES ${manpage_files}
-             DESTINATION doc/man COMPONENT documentation)
+    if (INSTALL_DOCS)
+        install (FILES ${manpage_files}
+                DESTINATION ${MAN_INSTALL_DIR} COMPONENT documentation)
+    endif ()
 endif()

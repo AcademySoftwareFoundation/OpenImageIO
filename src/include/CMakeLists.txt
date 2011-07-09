@@ -15,15 +15,11 @@ set (OIIO_VERSION_NS "v${MANGLED_SOVERSION}")
 configure_file(version.h.in ${CMAKE_BINARY_DIR}/include/version.h @ONLY)
 list(APPEND public_headers ${CMAKE_BINARY_DIR}/include/version.h)
 
-install (FILES ${public_headers} DESTINATION include/OpenImageIO
+install (FILES ${public_headers} DESTINATION ${INCLUDE_INSTALL_DIR}
          COMPONENT developer)
 
 if (USE_TBB)
-    file (GLOB tbb_headers tbb/*.h)
-    file (GLOB tbb_headers2 tbb/machine/*.h)
-    install (FILES ${tbb_headers} DESTINATION include/OpenImageIO/tbb
-             COMPONENT developer)
-    install (FILES ${tbb_headers2} DESTINATION include/OpenImageIO/tbb/machine
+    install (DIRECTORY tbb DESTINATION ${INCLUDE_INSTALL_DIR}
              COMPONENT developer)
 endif ()
 
