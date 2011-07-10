@@ -4,8 +4,12 @@ set (public_headers argparse.h dassert.h errorhandler.h export.h
                     imagecache.h imageio.h osdep.h paramlist.h plugin.h
                     refcnt.h strutil.h sysutil.h texture.h thread.h timer.h
                     typedesc.h ustring.h varyingref.h
-                    colortransfer.h pugixml.hpp pugiconfig.hpp
+                    colortransfer.h
     )
+
+if (NOT USE_EXTERNAL_PUGIXML)
+    list (APPEND public_headers pugixml.hpp pugiconfig.hpp)
+endif()
 
 message(STATUS "Create version.h from version.h.in")
 # Mangle the SOVERSION so that it's a valid C++ identifier for the versioning
