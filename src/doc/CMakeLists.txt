@@ -1,18 +1,18 @@
 project(documentation)
 
+set (public_docs
+     openimageio.pdf
+     ${OpenImageIO_SOURCE_DIR}/../LICENSE
+     ${OpenImageIO_SOURCE_DIR}/../CHANGES
+)
+
 if (INSTALL_DOCS)
-    install (FILES openimageio.pdf DESTINATION ${DOC_INSTALL_DIR}
-            COMPONENT documentation)
-
-    install (FILES ${OpenImageIO_SOURCE_DIR}/../LICENSE
-                ${OpenImageIO_SOURCE_DIR}/../CHANGES
-            DESTINATION ${DOC_INSTALL_DIR})
-
-    install (DIRECTORY doxygen/html DESTINATION ${DOC_INSTALL_DIR})
+    install (FILES ${public_docs} DESTINATION ${DOC_INSTALL_DIR}
+             COMPONENT documentation)
 endif ()
 
 # generate man pages using txt2man and a tiny python script to munge the
-# result of "tool --help"
+# result of "$tool --help"
 find_program(TXT2MAN txt2man)
 find_package(PythonInterp)
 if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
@@ -34,6 +34,6 @@ if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
 
     if (INSTALL_DOCS)
         install (FILES ${manpage_files}
-                DESTINATION ${MAN_INSTALL_DIR} COMPONENT documentation)
+                 DESTINATION ${MAN_INSTALL_DIR} COMPONENT documentation)
     endif ()
 endif()
