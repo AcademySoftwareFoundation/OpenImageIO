@@ -31,6 +31,8 @@ set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (USE_JASPER ON CACHE BOOL "Use Jasper for JPEG-2000 if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
+set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
+     "Use an externally built shared library version of the pugixml library")
 
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")

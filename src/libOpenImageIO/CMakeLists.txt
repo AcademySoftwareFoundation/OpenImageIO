@@ -12,8 +12,6 @@ set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/osdep.h
                          ../include/paramlist.h
                          ../include/plugin.h
-                         ../include/pugiconfig.hpp
-                         ../include/pugixml.hpp
                          ../include/SHA1.h
                          ../include/strutil.h
                          ../include/sysutil.h
@@ -24,6 +22,13 @@ set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/ustring.h
                          ../include/varyingref.h    
                          )
+
+if (NOT USE_EXTERNAL_PUGIXML)
+    list (APPEND libOpenImageIO_hdrs
+          ../include/pugiconfig.hpp
+          ../include/pugixml.hpp
+    )
+endif()
 
 set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
                          imagebufalgo.cpp imagebufalgo_orient.cpp
@@ -38,7 +43,6 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
                           ../libutil/paramlist.cpp 
                           ../libutil/plugin.cpp 
                           ../libutil/pystring.cpp
-                          ../libutil/pugixml.cpp
                           ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp 
@@ -51,6 +55,10 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
                           ../libtexture/imagecache.cpp
                           ${libOpenImageIO_hdrs}
                          )
+
+if (NOT USE_EXTERNAL_PUGIXML)
+    list (APPEND libOpenImageIO_srcs ../libutil/pugixml.cpp)
+endif ()
 
 # Include our own TBB if using it
 if (USE_TBB)
@@ -205,6 +213,10 @@ if (EMBEDPLUGINS)
                                ${WEBP_LIBRARY}
                           )
     link_openexr (OpenImageIO)
+endif ()
+
+if (USE_EXTERNAL_PUGIXML)
+    target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
 endif ()
 
 message(STATUS "Setting SOVERSION to: ${SOVERSION}")
