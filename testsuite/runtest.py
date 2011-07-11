@@ -3,6 +3,7 @@
 import os
 import sys
 import platform
+import subprocess
 
 from optparse import OptionParser
 
@@ -44,12 +45,13 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
 
     if (platform.system () == 'Windows'):
         command = command.replace (';', '&')
-    cmdret = os.system (command)
-    # print "cmdret = " + str(cmdret)
 
-    if cmdret != 0 and failureok == 0 :
-        print "FAIL"
-        return (1)
+    for sub_command in command.split(';'):
+        cmdret = subprocess.call (sub_command, shell=True)
+        if cmdret != 0 and failureok == 0 :
+            print "#### Error: this command failed: ", sub_command
+            print "FAIL"
+            return (1)
 
     if (platform.system () == 'Windows'):
        diff_cmd = "fc "
