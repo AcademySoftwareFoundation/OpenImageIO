@@ -8,7 +8,7 @@ if (APPLE)
 endif ()
 
 # Disable some warnings for Clang, it's a little too picky with boost
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     add_definitions ("-Wno-array-bounds")
 endif ()
 
