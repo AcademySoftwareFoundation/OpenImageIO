@@ -80,7 +80,7 @@ if (NOT WIN32)
 endif()
 
 # Disable some warnings for Clang, it's a little too picky with boost
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     add_definitions ("-Wno-parentheses")
     add_definitions ("-Wno-char-subscripts")
     add_definitions ("-Wno-unused-function")
