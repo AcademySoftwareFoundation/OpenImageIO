@@ -7,7 +7,7 @@ set (public_headers argparse.h dassert.h errorhandler.h export.h
                     colortransfer.h
     )
 
-if (USE_EXTERNAL_PUGIXML)
+if (NOT USE_EXTERNAL_PUGIXML)
     list (APPEND public_headers pugixml.hpp pugiconfig.hpp)
 endif()
 
