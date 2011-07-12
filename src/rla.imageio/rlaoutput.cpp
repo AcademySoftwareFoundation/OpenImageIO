@@ -68,6 +68,7 @@ private:
     std::vector<unsigned char> m_scratch;
     WAVEFRONT m_rla;                  ///< Wavefront RLA header
     std::vector<int32_t> m_sot;       ///< Scanline offset table
+    std::vector<unsigned char> m_buf; ///< Run record buffer for RLE
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -81,7 +82,16 @@ private:
     
     /// Helper - handles the repetitive work of encoding and writing a channel
     bool encode_plane (const unsigned char *data, stride_t xstride,
-                       bool is_float);
+                       int chsize, bool is_float);
+    
+    /// Helper - flushes the current RLE run into the record buffer
+    inline void flush_run (int& rawcount, int& rlecount,
+                           std::vector<unsigned char>::iterator& it);
+    
+    /// Helper - flushes the current RLE record into file
+    inline bool flush_record (int& rawcount, int& rlecount,
+                              unsigned short& length, 
+                              std::vector<unsigned char>::iterator& it);
 };
 
 
@@ -389,7 +399,14 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
         swap_endian (&m_rla.NumOfColorChannels);
         swap_endian (&m_rla.NumOfMatteChannels);
         swap_endian (&m_rla.NumOfAuxChannels);
+        swap_endian (&m_rla.NumOfChannelBits);
+        swap_endian (&m_rla.NumOfMatteBits);
+        swap_endian (&m_rla.NumOfAuxBits);
     }
+    
+    // resize run record buffer to accomodate a worst-case scenario
+    // 2 bytes for record length, 1 byte per 1 longest run
+    m_buf.resize (2 + (size_t)ceil((1.0 + 1.0 / 128.0) * m_spec.width));
 
     return true;
 }
@@ -430,6 +447,8 @@ RLAOutput::close ()
         fclose (m_file);
         m_file = NULL;
     }
+    
+    m_buf.clear ();
 
     init ();      // re-initialize
     return true;  // How can we fail?
@@ -438,13 +457,51 @@ RLAOutput::close ()
 
 
 
+inline void
+RLAOutput::flush_run (int& rawcount, int& rlecount,
+                      std::vector<unsigned char>::iterator& it)
+{
+    if (rawcount > 0) {
+        // take advantage of two's complement arithmetic
+        *(it - rawcount - 1) = ~((unsigned char)rawcount) + 1;
+        rawcount = 0;
+    } else if (rlecount > 0) {
+        *(it - 2) = (unsigned char)(rlecount - 1);
+        rlecount = 0;
+    }
+}
+
+
+
+inline bool
+RLAOutput::flush_record (int& rawcount, int& rlecount, unsigned short& length,
+                         std::vector<unsigned char>::iterator& it)
+{
+    flush_run (rawcount, rlecount, it);
+    it = m_buf.begin ();
+    if (littleendian ()) {
+        *it++ == ((unsigned char *)&length)[1];
+        *it++ == ((unsigned char *)&length)[0];
+    } else {
+        *it++ == ((unsigned char *)&length)[0];
+        *it++ == ((unsigned char *)&length)[1];
+    }
+    if (fwrite (&m_buf[0], 1, length, m_file) != length)
+        return false;
+    it = m_buf.begin ();
+    length = 0;
+    return true;
+}
+
+
+
 bool
 RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
-                         bool is_float)
+                         int chsize, bool is_float)
 {
-    short length;
+    unsigned short length;
     if (is_float) {
-        // fast path - just dump the plane into the file
+        // fast path for floats - just dump the plane into the file
         float f;            
         length = m_spec.width * sizeof(float);
         if (littleendian ())
@@ -457,6 +514,96 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
             fwrite (&f, sizeof (float), 1, m_file);
         }
         return true;
+    }
+    // integer values - RLE
+    unsigned char first;
+    int rawcount = 0, rlecount = 0;
+    // keeps track of the record buffer position
+    // reserve 2 bytes for the record length
+    std::vector<unsigned char>::iterator it = m_buf.begin () + 2;
+    for (int i = 0; i < chsize; ++i) {
+        // ensure correct byte order
+        if (littleendian ())
+            i = chsize - i - 1;
+        for (int x = 0; x < m_spec.width; ++x) {
+            ASSERT (it < m_buf.end ());
+            bool contig = first == data[x * xstride];
+            
+            // if the record has ended, flush it run and start anew
+            if (length == (1 << (sizeof (length) * 8)) - 1
+                && !flush_record (rawcount, rlecount, length, it))
+                return false;
+            
+            if ((rawcount == rlecount) == 0) {
+                // start of record
+                ++it;   // run length placeholder
+                *it++ = first = data[x * xstride];
+                rlecount = 1;
+                length += 2;
+            } else if (rawcount > 0) {
+                // raw packet
+                if (rawcount == 128) {
+                    // max run length reached, flush
+                    flush_run (rawcount, rlecount, it);
+                    // start a new RLE run
+                    ++it;       // run length placeholder
+                    *it++ = first = data[x * xstride];
+                    rlecount = 1;
+                    length += 2;
+                } else {
+                    ++rawcount;
+                    if (contig) {
+                        if (rlecount == 0)
+                            rlecount = 2; // we wouldn't have noticed the 1st one
+                        else
+                            ++rlecount;
+                        // we have 3 contiguous bytes, flush and start RLE
+                        if (rlecount >= 3) {
+                            // rewind the iterator and counter
+                            it -= rlecount - 1;
+                            rawcount -= rlecount;
+                            // flush the raw run
+                            flush_run (rawcount, rlecount, it);
+                            // start the RLE run; the code below will advance
+                            // these by 1, that's why we're not doing it here
+                            it += rlecount - 1;
+                            length += rlecount;
+                        }
+                    } else
+                        // reset contiguity counter
+                        rlecount = 0;
+                    // also reset the comparison base
+                    *it++ = first = data[x * xstride];
+                    ++length;
+                }
+            } else {
+                // RLE packet
+                if (rlecount == 128 || (!contig && rlecount >= 3)) {
+                    // run ended, flush
+                    flush_run (rawcount, rlecount, it);
+                    // start a new RLE run
+                    ++it;       // run length placeholder
+                    *it++ = first = data[x * xstride];
+                    rlecount = 1;
+                    length += 2;
+                } else if (contig)
+                    // another same byte
+                    ++rlecount;
+                else {
+                    // not contiguous, turn the remainder into a raw run
+                    for (int j = 1; j < rlecount; ++j, ++it, ++length)
+                        *it = first;
+                    rawcount = rlecount + 1;
+                    rlecount = 0;
+                    // also reset the comparison base
+                    *it++ = first = data[x * xstride];
+                    ++length;
+                }
+            }
+        }
+        // restore index for proper loop functioning
+        if (littleendian ())
+            i = chsize - i - 1;
     }
     return false;
 }
@@ -489,7 +636,8 @@ RLAOutput::write_scanline (int y, int z, TypeDesc format,
     int chsize = allsame ? m_spec.format.size ()
                          : m_spec.channelformats[0].size ();
     for (int i = 0; i < m_rla.NumOfColorChannels; ++i, offset += chsize) {
-        if (!encode_plane ((unsigned char *)data + offset, xstride, is_float))
+        if (!encode_plane ((unsigned char *)data + offset, xstride, chsize,
+            is_float))
             return false;
     }
     // alpha (matte) channels
@@ -499,7 +647,8 @@ RLAOutput::write_scanline (int y, int z, TypeDesc format,
     chsize = allsame ? m_spec.format.size ()
                      : m_spec.channelformats[m_rla.NumOfColorChannels].size ();
     for (int i = 0; i < m_rla.NumOfMatteChannels; ++i, offset += chsize) {
-        if (!encode_plane ((unsigned char *)data + offset, xstride, is_float))
+        if (!encode_plane ((unsigned char *)data + offset, xstride, chsize,
+            is_float))
             return false;
     }
     // aux (depth) channels
@@ -511,7 +660,8 @@ RLAOutput::write_scanline (int y, int z, TypeDesc format,
                      : m_spec.channelformats[m_rla.NumOfColorChannels
                          + m_rla.NumOfMatteChannels].size ();
     for (int i = 0; i < m_rla.NumOfAuxChannels; ++i, offset += chsize) {
-        if (!encode_plane ((unsigned char *)data + offset, xstride, is_float))
+        if (!encode_plane ((unsigned char *)data + offset, xstride, chsize,
+            is_float))
             return false;
     }
 
