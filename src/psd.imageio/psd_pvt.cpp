@@ -28,10 +28,6 @@
   (This is the Modified BSD License)
 */
 #include "psd_pvt.h"
-#include <fstream>
-
-#include <setjmp.h>
-#include "jpeg_memory_src.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -43,4 +39,3 @@ namespace psd_pvt {
 
 
 OIIO_PLUGIN_NAMESPACE_END
-
