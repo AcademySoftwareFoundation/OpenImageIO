@@ -480,11 +480,11 @@ RLAOutput::flush_record (int& rawcount, int& rlecount, unsigned short& length,
     flush_run (rawcount, rlecount, it);
     it = m_buf.begin ();
     if (littleendian ()) {
-        *it++ == ((unsigned char *)&length)[1];
-        *it++ == ((unsigned char *)&length)[0];
+        *it++ = ((unsigned char *)&length)[1];
+        *it++ = ((unsigned char *)&length)[0];
     } else {
-        *it++ == ((unsigned char *)&length)[0];
-        *it++ == ((unsigned char *)&length)[1];
+        *it++ = ((unsigned char *)&length)[0];
+        *it++ = ((unsigned char *)&length)[1];
     }
     if (fwrite (&m_buf[0], 1, length, m_file) != length)
         return false;
@@ -518,6 +518,7 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
     // integer values - RLE
     unsigned char first;
     int rawcount = 0, rlecount = 0;
+    length = 0;
     // keeps track of the record buffer position
     // reserve 2 bytes for the record length
     std::vector<unsigned char>::iterator it = m_buf.begin () + 2;
@@ -534,7 +535,7 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
                 && !flush_record (rawcount, rlecount, length, it))
                 return false;
             
-            if ((rawcount == rlecount) == 0) {
+            if (rawcount == 0 && rlecount == 0) {
                 // start of record
                 ++it;   // run length placeholder
                 *it++ = first = data[x * xstride];
@@ -559,15 +560,15 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
                             ++rlecount;
                         // we have 3 contiguous bytes, flush and start RLE
                         if (rlecount >= 3) {
-                            // rewind the iterator and counter
+                            // rewind the iterator and the counters
                             it -= rlecount - 1;
                             rawcount -= rlecount;
+                            length -= rlecount - 2; // will be incremented below
                             // flush the raw run
                             flush_run (rawcount, rlecount, it);
-                            // start the RLE run; the code below will advance
-                            // these by 1, that's why we're not doing it here
-                            it += rlecount - 1;
-                            length += rlecount;
+                            // start the RLE run
+                            // will be incremented below
+                            ++it;
                         }
                     } else
                         // reset contiguity counter
@@ -591,8 +592,8 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
                     ++rlecount;
                 else {
                     // not contiguous, turn the remainder into a raw run
-                    for (int j = 1; j < rlecount; ++j, ++it, ++length)
-                        *it = first;
+                    for (int j = 1; j < rlecount; ++j, ++length)
+                        *it++ = first;
                     rawcount = rlecount + 1;
                     rlecount = 0;
                     // also reset the comparison base
@@ -605,7 +606,10 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
         if (littleendian ())
             i = chsize - i - 1;
     }
-    return false;
+    // if there's anything left in the buffer, flush it
+    if (length > 0)
+        return flush_record (rawcount, rlecount, length, it);
+    return true;
 }
 
 
