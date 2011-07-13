@@ -37,9 +37,12 @@
 #include <iostream>
 #include <cstdarg>
 #include <iterator>
+#include <string>
+#include <sstream>
 
 #include "strutil.h"
 #include "argparse.h"
+#include "dassert.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -59,8 +62,10 @@ public:
     const std::string & fmt() const { return m_format; }
 
     bool is_flag () const { return m_type == Flag; }
+    bool is_reverse_flag () const { return m_type == ReverseFlag; }
     bool is_sublist () const { return m_type == Sublist; }
     bool is_regular () const { return m_type == Regular; }
+    bool has_callback () const { return m_has_callback; }
     
     void add_parameter (int i, void *p);
 
@@ -82,7 +87,7 @@ public:
     const std::string & description() const { return m_descript; }
 
 private:
-    enum OptionType { None, Regular, Flag, Sublist };
+    enum OptionType { None, Regular, Flag, ReverseFlag, Sublist };
 
     std::string m_format;                         // original format string
     std::string m_flag;                           // just the -flag_foo part
@@ -93,6 +98,7 @@ private:
     std::vector<void *> m_param;                  // pointers to app data vars
     callback_t m_callback;
     int m_repetitions;                            // number of times on cmd line
+    bool m_has_callback;                          // needs a callback?
     std::vector<std::string> m_argv;
 };
 
@@ -102,7 +108,7 @@ private:
 // Make sure to call initialize() right after construction.
 ArgOption::ArgOption (const char *str) 
     : m_format(str), m_type(None), m_count(0),
-      m_callback(NULL), m_repetitions(0)
+      m_callback(NULL), m_repetitions(0), m_has_callback(false)
 {
 }
 
@@ -165,16 +171,25 @@ ArgOption::initialize()
                     case 'f':                   // float
                     case 'F':                   // double
                     case 's':                   // string
-                    case 'L':                   // vector<string>
                         assert (m_type == Regular);
                         m_code += *s;
                         break;
-
+                    case 'L':                   // vector<string>
+                        assert (m_type == Regular);
+                        m_code += 's';
+                        break;
+                    case '!':
+                        m_type = ReverseFlag;
+                        m_code += *s;
+                        break;
                     case '*':
                         assert(m_count == 1);
                         m_type = Sublist;
                         break;
-                        
+                    case '@':
+                        m_has_callback = true;
+                        --m_count;
+                        break;
                     default:
                         std::cerr << "Programmer error:  Unknown option ";
                         std::cerr << "type string \"" << *s << "\"" << "\n";
@@ -184,9 +199,26 @@ ArgOption::initialize()
         
                 s++;
             }
+
+            // Catch the case where only a callback was given, it's still
+            // a bool.
+            if (! *s && m_count == 0 && m_has_callback) {
+                m_type = Flag;
+                m_count = 1;
+                m_code = "b";
+            }
         }
     }
     
+    // A few replacements to tidy up the format string for printing
+    size_t loc;
+    while ((loc = m_format.find("%L")) != std::string::npos)
+        m_format.replace (loc, 2, "%s");
+    while ((loc = m_format.find("%!")) != std::string::npos)
+        m_format.replace (loc, 2, "");
+    while ((loc = m_format.find("%@")) != std::string::npos)
+        m_format.replace (loc, 2, "");
+
     // Allocate space for the parameter pointers and initialize to NULL
     m_param.resize (m_count, NULL);
 
@@ -242,6 +274,9 @@ ArgOption::set_parameter (int i, const char *argv)
 
     case 'b':
         *(bool *)m_param[i] = true;
+        break;
+    case '!':
+        *(bool *)m_param[i] = false;
         break;
         
     case '*':
@@ -314,8 +349,13 @@ ArgParse::parse (int xargc, const char **xargv)
 
     for (int i = 1; i < m_argc; i++) {
         if (m_argv[i][0] == '-' && 
-              (isalpha (m_argv[i][1]) || m_argv[i][1] == '-')) {         // flag
-            ArgOption *option = find_option (m_argv[i]);
+              (isalpha (m_argv[i][1]) || m_argv[i][1] == '-')) {     // flag
+            // Look up only the part before a ':'
+            std::string argname = m_argv[i];
+            size_t colon = argname.find_first_of (':');
+            if (colon != std::string::npos)
+                argname.erase (colon, std::string::npos);
+            ArgOption *option = find_option (argname.c_str());
             if (option == NULL) {
                 error ("Invalid option \"%s\"", m_argv[i]);
                 return -1;
@@ -323,10 +363,12 @@ ArgParse::parse (int xargc, const char **xargv)
 
             option->found_on_command_line();
             
-            if (option->is_flag()) {
+            if (option->is_flag() || option->is_reverse_flag()) {
                 option->set_parameter(0, NULL);
+                if (option->has_callback())
+                    option->invoke_callback (1, m_argv+i);
             } else {
-                assert (option->is_regular());
+                ASSERT (option->is_regular());
                 for (int j = 0; j < option->parameter_count(); j++) {
                     if (j+i+1 >= m_argc) {
                         error ("Missing parameter %d from option "
@@ -335,6 +377,8 @@ ArgParse::parse (int xargc, const char **xargv)
                     }
                     option->set_parameter (j, m_argv[i+j+1]);
                 }
+                if (option->has_callback())
+                    option->invoke_callback (1+option->parameter_count(), m_argv+i);
                 i += option->parameter_count();
             }
         } else {
@@ -368,7 +412,7 @@ ArgParse::options (const char *intro, ...)
     va_list ap;
     va_start (ap, intro);
 
-    m_intro = intro;
+    m_intro += intro;
     for (const char *cur = va_arg(ap, char *); cur; cur = va_arg(ap, char *)) {
         if (find_option (cur) &&
                 strcmp(cur, "<SEPARATOR>")) {
@@ -387,6 +431,9 @@ ArgParse::options (const char *intro, ...)
             // set default global option
             m_global = option;
         }
+
+        if (option->has_callback())
+            option->set_callback ((ArgOption::callback_t)va_arg(ap,void*));
 
         // Grab any parameters and store them with this option
         for (int i = 0; i < option->parameter_count(); i++) {
@@ -465,10 +512,40 @@ ArgParse::geterror () const
 }
 
 
+
+// Word-wrap string 'src' to no more than columns width, splitting at
+// space characters.  It assumes that 'prefix' characters are already
+// printed, and furthermore, if it should need to wrap, it prefixes that
+// number of spaces in front of subsequent lines.  By illustration, 
+// wordwrap("0 1 2 3 4 5 6 7 8", 4, 10) should return:
+// "0 1 2\n    3 4 5\n    6 7 8"
+static std::string
+wordwrap (std::string src, int prefix, int columns)
+{
+    std::ostringstream out;
+    if (columns < prefix+20)
+        return src;   // give up, no way to make it wrap
+    columns -= prefix;  // now columns is the real width we have to work with
+    while ((int)src.length() > columns) {
+        // break the string in two
+        size_t breakpoint = src.find_last_of (' ', columns);
+        if (breakpoint == std::string::npos)
+            breakpoint = columns;
+        out << src.substr(0, breakpoint) << "\n" << std::string (prefix, ' ');
+        src = src.substr (breakpoint);
+        while (src[0] == ' ')
+            src.erase (0, 1);
+    }
+    out << src;
+    return out.str();
+}
+
+
+
 void
 ArgParse::usage () const
 {
-    const size_t longline = 40;
+    const size_t longline = 35;
     std::cout << m_intro << '\n';
     size_t maxlen = 0;
     
@@ -479,21 +556,26 @@ ArgParse::usage () const
         if (fmtlen < longline)
             maxlen = std::max (maxlen, fmtlen);
     }
-    
+
+    int columns = 80;
+    const char *columnstring = getenv ("COLUMNS");
+    if (columnstring)
+        columns = std::max (40, atoi(columnstring));
+
     for (unsigned int i=0; i<m_option.size(); ++i) {
         ArgOption *opt = m_option[i];
         if (opt->description().length()) {
             size_t fmtlen = opt->fmt().length();
-            if (opt->fmt() == "<SEPARATOR>")
-                std::cout << opt->description() << '\n';
-            else if (fmtlen < longline)
-                std::cout << "    " << opt->fmt() 
-                          << std::string (maxlen + 2 - fmtlen, ' ')
-                          << opt->description() << '\n';
-            else
-                std::cout << "    " << opt->fmt() << "\n    "
-                          << std::string (maxlen + 2, ' ')
-                          << opt->description() << '\n';
+            if (opt->fmt() == "<SEPARATOR>") {
+                std::cout << wordwrap(opt->description(), 0, columns-2) << '\n';
+            } else {
+                std::cout << "    " << opt->fmt();
+                if (fmtlen < longline)
+                    std::cout << std::string (maxlen + 2 - fmtlen, ' ');
+                else
+                    std::cout << "\n    " << std::string (maxlen + 2, ' ');
+                std::cout << wordwrap(opt->description(), maxlen+2+4+2, columns-2) << '\n';
+            }
         }
     }
 }
