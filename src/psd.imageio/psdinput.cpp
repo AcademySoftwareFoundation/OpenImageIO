@@ -1023,10 +1023,11 @@ PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
     channel_info.row_length = (layer.width * m_header.depth + 7) / 8;
     switch (channel_info.compression) {
         case Compression_Raw:
-            channel_info.row_pos[0] = channel_info.data_pos;
-            for (uint32_t i = 1; i < layer.height; ++i)
-                channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.row_length;
-
+            if (layer.height) {
+                channel_info.row_pos[0] = channel_info.data_pos;
+                for (uint32_t i = 1; i < layer.height; ++i)
+                    channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.row_length;
+            }
             channel_info.data_length = channel_info.row_length * layer.height;
             break;
         case Compression_RLE:
@@ -1038,10 +1039,11 @@ PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
             channel_info.data_pos = m_file.tellg ();
             //subtract the RLE lengths read above
             channel_info.data_length = channel_info.data_length - (channel_info.data_pos - start_pos);
-            channel_info.row_pos[0] = channel_info.data_pos;
-            for (uint32_t i = 1; i < layer.height; ++i)
-                channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.rle_lengths[i - 1];
-
+            if (layer.height) {
+                channel_info.row_pos[0] = channel_info.data_pos;
+                for (uint32_t i = 1; i < layer.height; ++i)
+                    channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.rle_lengths[i - 1];
+            }
             break;
         case Compression_ZIP:
             return false;
