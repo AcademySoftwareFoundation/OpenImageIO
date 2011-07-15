@@ -344,6 +344,11 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     if (!load_header ())
         return false;
 
+    if (m_header.depth != 8) {
+        error ("Error: Only 8-bit images are currently supported");
+        return false;
+    }
+
     //Color Mode Data
     if (!load_color_data ())
         return false;
