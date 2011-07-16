@@ -486,9 +486,11 @@ RLAOutput::flush_record (int& rawcount, int& rlecount, unsigned short& length,
         *it++ = ((unsigned char *)&length)[0];
         *it++ = ((unsigned char *)&length)[1];
     }
+    length += 2;        // account for the record length
     if (fwrite (&m_buf[0], 1, length, m_file) != length)
         return false;
-    it = m_buf.begin ();
+    // reserve 2 bytes for the record length
+    it = m_buf.begin () + 2;
     length = 0;
     return true;
 }
