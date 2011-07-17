@@ -406,7 +406,8 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     
     // resize run record buffer to accomodate a worst-case scenario
     // 2 bytes for record length, 1 byte per 1 longest run
-    m_buf.resize (2 + (size_t)ceil((1.0 + 1.0 / 128.0) * m_spec.width));
+    m_buf.resize (2 + (size_t)ceil((1.0 + 1.0 / 128.0)
+        * m_spec.scanline_bytes(true)));
 
     return true;
 }
@@ -519,6 +520,7 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
     }
     // integer values - RLE
     unsigned char first;
+    const unsigned char *d;
     int rawcount = 0, rlecount = 0;
     length = 0;
     // keeps track of the record buffer position
@@ -530,7 +532,8 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
             i = chsize - i - 1;
         for (int x = 0; x < m_spec.width; ++x) {
             ASSERT (it < m_buf.end ());
-            bool contig = first == data[x * xstride];
+            d = data + x * xstride + i;
+            bool contig = first == *d;
             
             // if the record has ended, flush it run and start anew
             if (length == (1 << (sizeof (length) * 8)) - 1
@@ -540,7 +543,7 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
             if (rawcount == 0 && rlecount == 0) {
                 // start of record
                 ++it;   // run length placeholder
-                *it++ = first = data[x * xstride];
+                *it++ = first = *d;
                 rlecount = 1;
                 length += 2;
             } else if (rawcount > 0) {
@@ -550,7 +553,7 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
                     flush_run (rawcount, rlecount, it);
                     // start a new RLE run
                     ++it;       // run length placeholder
-                    *it++ = first = data[x * xstride];
+                    *it++ = first = *d;
                     rlecount = 1;
                     length += 2;
                 } else {
@@ -576,7 +579,7 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
                         // reset contiguity counter
                         rlecount = 0;
                     // also reset the comparison base
-                    *it++ = first = data[x * xstride];
+                    *it++ = first = *d;
                     ++length;
                 }
             } else {
@@ -586,7 +589,7 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
                     flush_run (rawcount, rlecount, it);
                     // start a new RLE run
                     ++it;       // run length placeholder
-                    *it++ = first = data[x * xstride];
+                    *it++ = first = *d;
                     rlecount = 1;
                     length += 2;
                 } else if (contig)
@@ -599,11 +602,13 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
                     rawcount = rlecount + 1;
                     rlecount = 0;
                     // also reset the comparison base
-                    *it++ = first = data[x * xstride];
+                    *it++ = first = *d;
                     ++length;
                 }
             }
         }
+        // if there's anything left in the run, flush it
+        flush_run (rawcount, rlecount, it);
         // restore index for proper loop functioning
         if (littleendian ())
             i = chsize - i - 1;
