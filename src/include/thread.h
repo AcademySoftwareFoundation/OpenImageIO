@@ -541,6 +541,98 @@ typedef spin_mutex::lock_guard spin_lock;
 #endif
 
 
+
+/// Spinning reader/writer mutex.  This is just like spin_mutex, except
+/// that there are separate locking mechanisms for "writers" (exclusive
+/// holders of the lock, presumably because they are modifying whatever
+/// the lock is protecting) and "readers" (non-exclusive, non-modifying
+/// tasks that may access the protectee simultaneously).
+class spin_rw_mutex {
+public:
+    /// Default constructor -- initialize to unlocked.
+    ///
+    spin_rw_mutex (void) { m_readers = 0; }
+
+    ~spin_rw_mutex (void) { }
+
+    /// Copy constructor -- initialize to unlocked.
+    ///
+    spin_rw_mutex (const spin_rw_mutex &) { m_readers = 0; }
+
+    /// Assignment does not do anything, since lockedness should not
+    /// transfer.
+    const spin_rw_mutex& operator= (const spin_rw_mutex&) { return *this; }
+
+    /// Acquire the reader lock.
+    ///
+    void read_lock () {
+        // Spin until there are no writers active
+        m_locked.lock();
+        // Register ourself as a reader
+        ++m_readers;
+        // Release the lock, to let other readers work
+        m_locked.unlock();
+    }
+
+    /// Release the reader lock.
+    ///
+    void read_unlock () {
+        --m_readers;  // it's atomic, no need to lock to release
+    }
+
+    /// Acquire the writer lock.
+    ///
+    void write_lock () {
+        // Make sure no new readers (or writers) can start
+        m_locked.lock();
+        // Spin until the last reader is done, at which point we will be
+        // the sole owners and nobody else (reader or writer) can acquire
+        // the resource until we release it.
+        while (m_readers > 0)
+                ;
+    }
+
+    /// Release the writer lock.
+    ///
+    void write_unlock () {
+        // Let other readers or writers get the lock
+        m_locked.unlock ();
+    }
+
+    /// Helper class: scoped read lock for a spin_rw_mutex -- grabs the
+    /// read lock upon construction, releases the lock when it exits scope.
+    class read_lock_guard {
+    public:
+        read_lock_guard (spin_rw_mutex &fm) : m_fm(fm) { m_fm.read_lock(); }
+        ~read_lock_guard () { m_fm.read_unlock(); }
+    private:
+        read_lock_guard(); // Do not implement
+        read_lock_guard(const read_lock_guard& other); // Do not implement
+        spin_rw_mutex & m_fm;
+    };
+
+    /// Helper class: scoped write lock for a spin_rw_mutex -- grabs the
+    /// read lock upon construction, releases the lock when it exits scope.
+    class write_lock_guard {
+    public:
+        write_lock_guard (spin_rw_mutex &fm) : m_fm(fm) { m_fm.write_lock(); }
+        ~write_lock_guard () { m_fm.write_unlock(); }
+    private:
+        write_lock_guard(); // Do not implement
+        write_lock_guard(const write_lock_guard& other); // Do not implement
+        spin_rw_mutex & m_fm;
+    };
+
+private:
+    spin_mutex m_locked;   // write lock
+    atomic_int m_readers;  // number of readers
+};
+
+
+typedef spin_rw_mutex::read_lock_guard spin_rw_read_lock;
+typedef spin_rw_mutex::write_lock_guard spin_rw_write_lock;
+
+
 }
 OIIO_NAMESPACE_EXIT
 
