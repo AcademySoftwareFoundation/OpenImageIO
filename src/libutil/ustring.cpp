@@ -54,11 +54,16 @@ typedef unique_lock ustring_write_lock_t;
 typedef mutex ustring_mutex_t;
 typedef lock_guard ustring_read_lock_t;
 typedef lock_guard ustring_write_lock_t;
-#elif 1
+#elif 0
 // Use spin locks
 typedef spin_mutex ustring_mutex_t;
 typedef spin_lock ustring_read_lock_t;
 typedef spin_lock ustring_write_lock_t;
+#elif 1
+// Use rw spin locks
+typedef spin_rw_mutex ustring_mutex_t;
+typedef spin_rw_read_lock ustring_read_lock_t;
+typedef spin_rw_write_lock ustring_write_lock_t;
 #else
 // Use null locks
 typedef null_mutex ustring_mutex_t;
