@@ -102,7 +102,7 @@ namespace dpx
 	template <typename IB, int BITDEPTH>
 	void RleCompress(IB *src, IB *dst, const int bufsize, const int len, BufferAccess &access)
 	{
-		IB ch;
+		/*IB ch;
 		int count;
 		int i;
 		int index = bufsize - 1;
@@ -136,7 +136,7 @@ namespace dpx
 		}
 		
 		access.offset = index;
-		access.length = bufsize - index;
+		access.length = bufsize - index;*/
 	}
 
 
