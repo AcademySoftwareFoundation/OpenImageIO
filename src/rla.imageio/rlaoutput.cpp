@@ -264,7 +264,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     // yay for advertising!
     strcpy (m_rla.ProgramName, OIIO_INTRO_STRING);
     
-    s = m_spec.get_string_attribute ("rla:MachineName", "");
+    s = m_spec.get_string_attribute ("HostComputer", "");
     if (s.length ())
         strncpy (m_rla.MachineName, s.c_str (), sizeof (m_rla.MachineName));
     s = m_spec.get_string_attribute ("rla:UserName", "");

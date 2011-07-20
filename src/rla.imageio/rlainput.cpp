@@ -359,7 +359,6 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     RLA_SET_ATTRIB(JobNumber);
     RLA_SET_ATTRIB(FieldRendered);
     RLA_SET_ATTRIB_STR(FileName);
-    RLA_SET_ATTRIB_STR(ProgramName);
     RLA_SET_ATTRIB_STR(MachineName);
     RLA_SET_ATTRIB_STR(UserName);
     RLA_SET_ATTRIB_STR(Aspect);
@@ -370,6 +369,11 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 #undef RLA_SET_ATTRIB_STR
 #undef RLA_SET_ATTRIB
 #undef RLA_SET_ATTRIB_NOCHECK
+    
+    if (m_rla.ProgramName[0])
+        m_spec.attribute ("Software", m_rla.ProgramName);
+    if (m_rla.MachineName[0])
+        m_spec.attribute ("HostComputer", m_rla.MachineName);
 
     float f[3]; // variable will be reused for chroma, thus the array
     f[0] = atof (m_rla.Gamma);
