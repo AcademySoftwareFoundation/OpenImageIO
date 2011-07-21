@@ -246,12 +246,15 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         packing = dpx::kFilledMethodA;
 
     // calculate target bit depth
-    int bitDepth = m_spec.get_int_attribute ("oiio:BitsPerSample",
-        m_spec.format.size () * 8);
-    if (bitDepth % 8 != 0 && bitDepth != 10 && bitDepth != 12 && bitDepth != 16) {
-        error ("Unsupported bit depth %d", bitDepth);
-        return false;
+    int bitDepth = m_spec.format.size () * 8;
+    if (m_spec.format == TypeDesc::UINT16) {
+        bitDepth = m_spec.get_int_attribute ("oiio:BitsPerSample", 16);
+        if (bitDepth != 10 && bitDepth != 12 && bitDepth != 16) {
+            error ("Unsupported bit depth %d", bitDepth);
+            return false;
+        }
     }
+    m_dpx.header.SetBitDepth (0, bitDepth);
     
     // see if we'll need to convert or not
     if (m_desc == dpx::kRGB || m_desc == dpx::kRGBA) {
