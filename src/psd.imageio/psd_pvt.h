@@ -32,10 +32,21 @@
 #define OPENIMAGEIO_PSD_PVT_H
 
 #include "imageio.h"
+#include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace psd_pvt {
+
+    struct FileHeader {
+        char signature[4];
+        uint16_t version;
+        uint16_t channel_count;
+        uint32_t height;
+        uint32_t width;
+        uint16_t depth;
+        uint16_t color_mode;
+    };
 
 };  // namespace psd_pvt
 
