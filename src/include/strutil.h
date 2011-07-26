@@ -109,6 +109,15 @@ std::string DLLPUBLIC timeintervalformat (double secs, int digits=1);
 bool DLLPUBLIC get_rest_arguments (const std::string &str, std::string &base,
                                    std::map<std::string, std::string> &result);
 
+/// Take a string that may have embedded newlines, tabs, etc., and turn
+/// those characters into escape sequences like \n, \t, \v, \b, \r, \f,
+/// \a, \\, \".
+std::string DLLPUBLIC escape_chars (const std::string &unescaped);
+
+/// Take a string that has embedded escape sequences (\\, \", \n, etc.)
+/// and collapse them into the 'real' characters.
+std::string DLLPUBLIC unescape_chars (const std::string &escaped);
+
 /// Hash a string without pre-known length.  We use the Jenkins
 /// one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
 /// which seems to be a good speed/quality/requirements compromise.
