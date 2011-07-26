@@ -36,6 +36,7 @@
 #include <iterator>
 #include <vector>
 #include <string>
+#include <iomanip>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
