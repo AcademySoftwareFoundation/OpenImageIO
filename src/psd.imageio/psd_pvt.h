@@ -48,6 +48,13 @@ namespace psd_pvt {
         uint16_t color_mode;
     };
 
+
+
+    struct ColorModeData {
+        uint32_t length;
+        std::string data;
+    };
+
 };  // namespace psd_pvt
 
 OIIO_PLUGIN_NAMESPACE_END

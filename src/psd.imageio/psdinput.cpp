@@ -66,8 +66,8 @@ private:
 	//Subimage count (1 + layer count)
 	int m_subimage_count;
 
-    //File header structure
 	FileHeader m_header;
+	ColorModeData m_color_data;
 
     //Reset to initial state
     void init ();
@@ -76,6 +76,10 @@ private:
     bool load_header ();
     bool read_header ();
     bool validate_header ();
+
+    //Color Mode Data
+    bool load_color_data ();
+    bool validate_color_data ();
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -130,6 +134,9 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     }
     //File Header
     if (!load_header ())
+        return false;
+
+    if (!load_color_data ())
         return false;
 
     return false;
@@ -265,12 +272,49 @@ PSDInput::validate_header ()
         case ColorMode_Multichannel :
         case ColorMode_Duotone :
         case ColorMode_Lab :
-            error ("[Header] unsupported color mode");
-            return false;
+            //FIXME For testing purposes, we'll pretend we support these
+            //error ("[Header] unsupported color mode");
+            return true;
             break;
         default:
             error ("[Header] unrecognized color mode");
             return false;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_color_data ()
+{
+    read_bige<uint32_t> (m_color_data.length);
+    if (!check_io ())
+        return false;
+
+    if (!validate_color_data ())
+        return false;
+
+    m_color_data.data.resize (m_color_data.length);
+    m_file.read (&m_color_data.data[0], m_color_data.length);
+    if (!check_io ())
+        return false;
+
+    return true;
+}
+
+
+
+bool
+PSDInput::validate_color_data ()
+{
+    if (m_header.color_mode == ColorMode_Duotone && m_color_data.length == 0) {
+        error ("[Color Mode Data] color mode data should be present for duotone image");
+        return false;
+    }
+    if (m_header.color_mode == ColorMode_Indexed && m_color_data.length != 768) {
+        error ("[Color Mode Data] length should be 768 for indexed color mode");
+        return false;
     }
     return true;
 }
