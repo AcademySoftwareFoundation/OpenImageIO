@@ -99,9 +99,20 @@ void test_get_rest_arguments ()
 
 
 
+void test_escape_sequences ()
+{
+    OIIO_CHECK_EQUAL (Strutil::unescape_chars("\\\\ \\n \\r \\017"),
+                      "\\ \n \r \017");
+    OIIO_CHECK_EQUAL (Strutil::escape_chars("\\ \n \r"),
+                      "\\\\ \\n \\r");
+}
+
+
+
 int main (int argc, char *argv[])
 {
     test_get_rest_arguments ();
+    test_escape_sequences ();
 
     return unit_test_failures;
 }
