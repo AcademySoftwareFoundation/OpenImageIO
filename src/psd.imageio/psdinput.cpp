@@ -35,6 +35,8 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/foreach.hpp>
+#include "jpeg_memory_src.h"
+#include <setjmp.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -137,6 +139,17 @@ private:
     bool load_resource_1064 (uint32_t length);
     //ResolutionInfo
     bool load_resource_1005 (uint32_t length);
+    //JPEG thumbnail
+    bool load_resource_1033 (uint32_t length);
+    bool load_resource_1036 (uint32_t length);
+    bool load_resource_thumbnail (uint32_t length, bool isBGR);
+    //For thumbnail loading
+    struct thumbnail_error_mgr {
+        jpeg_error_mgr pub;
+        jmp_buf setjmp_buffer;
+    };
+    METHODDEF (void)
+    thumbnail_error_exit (j_common_ptr cinfo);
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -204,7 +217,9 @@ private:
 const PSDInput::ResourceLoader PSDInput::resource_loaders[] =
 {
     ADD_LOADER(1064),
-    ADD_LOADER(1005)
+    ADD_LOADER(1005),
+    ADD_LOADER(1033),
+    ADD_LOADER(1036)
 };
 #undef ADD_LOADER
 
@@ -586,6 +601,117 @@ PSDInput::load_resource_1005 (uint32_t length)
             break;
     };
     return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1033 (uint32_t length)
+{
+    return load_resource_thumbnail (length, true);
+}
+
+
+
+bool
+PSDInput::load_resource_1036 (uint32_t length)
+{
+    return load_resource_thumbnail (length, false);
+}
+
+
+
+bool
+PSDInput::load_resource_thumbnail (uint32_t length, bool isBGR)
+{
+    enum ThumbnailFormat {
+        kJpegRGB = 1,
+        kRawRGB = 0
+    };
+
+    uint32_t format;
+    uint32_t width, height;
+    uint32_t widthbytes;
+    uint32_t total_size;
+    uint32_t compressed_size;
+    uint16_t bpp;
+    uint16_t planes;
+    int stride;
+    jpeg_decompress_struct cinfo;
+    thumbnail_error_mgr jerr;
+    uint32_t jpeg_length = length - 28;
+
+    read_bige<uint32_t> (format);
+    read_bige<uint32_t> (width);
+    read_bige<uint32_t> (height);
+    read_bige<uint32_t> (widthbytes);
+    read_bige<uint32_t> (total_size);
+    read_bige<uint32_t> (compressed_size);
+    read_bige<uint16_t> (bpp);
+    read_bige<uint16_t> (planes);
+    if (!m_file)
+        return false;
+
+    //We only support kJpegRGB since I don't have any test images with kRawRGB
+    if (format != kJpegRGB || bpp != 24 || planes != 1) {
+        error ("[Image Resource] [JPEG Thumbnail] invalid or unsupported format");
+        return false;
+    }
+
+    cinfo.err = jpeg_std_error (&jerr.pub);
+    jerr.pub.error_exit = thumbnail_error_exit;
+    if (setjmp (jerr.setjmp_buffer)) {
+        jpeg_destroy_decompress (&cinfo);
+        error ("[Image Resource] [JPEG Thumbnail] libjpeg error");
+        return false;
+    }
+    std::string jpeg_data (jpeg_length, '\0');
+    if (!m_file.read (&jpeg_data[0], jpeg_length))
+        return false;
+
+    jpeg_create_decompress (&cinfo);
+    jpeg_memory_src (&cinfo, (unsigned char *)&jpeg_data[0], jpeg_length);
+    jpeg_read_header (&cinfo, TRUE);
+    jpeg_start_decompress (&cinfo);
+    stride = cinfo.output_width * cinfo.output_components;
+    unsigned int thumbnail_bytes = cinfo.output_width * cinfo.output_height * cinfo.output_components;
+    std::string thumbnail_image (thumbnail_bytes, '\0');
+    //jpeg_destroy_decompress will deallocate this
+    JSAMPLE **buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo, JPOOL_IMAGE, stride, 1);
+    while (cinfo.output_scanline < cinfo.output_height) {
+        if (jpeg_read_scanlines (&cinfo, buffer, 1) != 1) {
+            jpeg_finish_decompress (&cinfo);
+            jpeg_destroy_decompress (&cinfo);
+            error ("[Image Resource] [JPEG Thumbnail] libjpeg error");
+            return false;
+        }
+        std::memcpy (&thumbnail_image[(cinfo.output_scanline - 1) * stride],
+                    (char *)buffer[0],
+                    stride);
+    }
+    jpeg_finish_decompress (&cinfo);
+    jpeg_destroy_decompress (&cinfo);
+    //Set these attributes for the merged composite only (subimage 0)
+    composite_attribute ("thumbnail_width", (int)width);
+    composite_attribute ("thumbnail_height", (int)height);
+    composite_attribute ("thumbnail_nchannels", 3);
+    if (isBGR) {
+        for (unsigned int i = 0; i < thumbnail_bytes - 2; i += 3)
+            std::swap (thumbnail_image[i], thumbnail_image[i + 2]);
+    }
+    composite_attribute ("thumbnail_image",
+                   TypeDesc (TypeDesc::UINT8, thumbnail_image.size ()),
+                   &thumbnail_image[0]);
+    return true;
+}
+
+
+
+void
+PSDInput::thumbnail_error_exit (j_common_ptr cinfo)
+{
+    thumbnail_error_mgr *mgr = (thumbnail_error_mgr *)cinfo->err;
+    longjmp (mgr->setjmp_buffer, 1);
 }
 
 
