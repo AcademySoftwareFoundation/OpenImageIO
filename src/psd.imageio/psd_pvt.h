@@ -55,6 +55,16 @@ namespace psd_pvt {
         std::string data;
     };
 
+
+
+    struct ImageResourceBlock {
+        char signature[4];
+        uint16_t id;
+        std::string name;
+        uint32_t length;
+        std::streampos pos;
+    };
+
 };  // namespace psd_pvt
 
 OIIO_PLUGIN_NAMESPACE_END
