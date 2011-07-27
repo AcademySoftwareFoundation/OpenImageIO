@@ -78,6 +78,29 @@ private:
         ImageResourceMap resources;
     };
 
+    struct ResolutionInfo {
+        float hRes;
+        int16_t hResUnit;
+        int16_t widthUnit;
+        float vRes;
+        int16_t vResUnit;
+        int16_t heightUnit;
+
+        enum ResolutionUnit {
+            PixelsPerInch = 1,
+            PixelsPerCentimeter = 2
+        };
+
+        enum Unit {
+            Inches = 1,
+            Centimeters = 2,
+            Points = 3,
+            Picas = 4,
+            Columns = 5
+        };
+
+    };
+
     std::string m_filename;
     std::ifstream m_file;
     //Current subimage
@@ -112,6 +135,8 @@ private:
     bool handle_resources ();
     //Pixel Aspect Ratio
     bool load_resource_1064 (uint32_t length);
+    //ResolutionInfo
+    bool load_resource_1005 (uint32_t length);
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -178,7 +203,8 @@ private:
 #define ADD_LOADER(id) {id, boost::bind (&PSDInput::load_resource_##id, _1, _2)}
 const PSDInput::ResourceLoader PSDInput::resource_loaders[] =
 {
-    ADD_LOADER(1064)
+    ADD_LOADER(1064),
+    ADD_LOADER(1005)
 };
 #undef ADD_LOADER
 
@@ -511,6 +537,54 @@ PSDInput::load_resource_1064 (uint32_t length)
 
     //FIXME(dewyatt): loss of precision?
     common_attribute ("PixelAspectRatio", (float)aspect_ratio);
+    return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1005 (uint32_t length)
+{
+    ResolutionInfo resinfo;
+    //Fixed 16.16
+    read_bige<uint32_t> (resinfo.hRes);
+    resinfo.hRes /= 65536.0f;
+    read_bige<int16_t> (resinfo.hResUnit);
+    read_bige<int16_t> (resinfo.widthUnit);
+    //Fixed 16.16
+    read_bige<uint32_t> (resinfo.vRes);
+    resinfo.vRes /= 65536.0f;
+    read_bige<int16_t> (resinfo.vResUnit);
+    read_bige<int16_t> (resinfo.heightUnit);
+    if (!m_file)
+        return false;
+
+    //Make sure the same unit is used both horizontally and vertically
+    //FIXME(dewyatt): I don't know for sure that the unit can differ. However,
+    //if it can, perhaps we should be using ResolutionUnitH/ResolutionUnitV or
+    //something similar.
+    if (resinfo.hResUnit != resinfo.vResUnit) {
+        error ("[Image Resource] [ResolutionInfo] Resolutions must have the same unit");
+        return false;
+    }
+    //Make sure the unit is supported
+    //Note: This relies on the above check that the units are the same.
+    if (resinfo.hResUnit != ResolutionInfo::PixelsPerInch
+        && resinfo.hResUnit != ResolutionInfo::PixelsPerCentimeter) {
+          error ("[Image Resource] [ResolutionInfo] Unrecognized resolution unit");
+          return false;
+    }
+    common_attribute ("XResolution", resinfo.hRes);
+    common_attribute ("XResolution", resinfo.hRes);
+    common_attribute ("YResolution", resinfo.vRes);
+    switch (resinfo.hResUnit) {
+        case ResolutionInfo::PixelsPerInch:
+            common_attribute ("ResolutionUnit", "in");
+            break;
+        case ResolutionInfo::PixelsPerCentimeter:
+            common_attribute ("ResolutionUnit", "cm");
+            break;
+    };
     return true;
 }
 
