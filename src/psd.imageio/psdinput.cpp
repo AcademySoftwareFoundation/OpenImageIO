@@ -66,6 +66,13 @@ private:
         ColorMode_Lab = 9
     };
 
+    enum Compression {
+        Compression_Raw = 0,
+        Compression_RLE = 1,
+        Compression_ZIP = 2,
+        Compression_ZIP_Predict = 3
+    };
+
     //Image resource loaders to handle loading certain image resources into ImageSpec
     struct ResourceLoader {
         uint16_t resource_id;
@@ -222,6 +229,9 @@ private:
     //Layers
     bool load_layers ();
     bool load_layer (Layer &layer);
+    bool load_layer_channels (Layer &layer);
+    bool load_layer_channel (Layer &layer, ChannelInfo &channel_info);
+    bool read_rle_lengths (uint32_t height, std::vector<uint32_t> &rle_lengths);
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -978,6 +988,97 @@ PSDInput::load_layer (Layer &layer)
         }
         m_file.seekg (info.length, std::ios::cur);
         extra_remaining -= info.length;
+    }
+    if (!check_io ())
+        return false;
+
+    return true;
+}
+
+
+
+bool
+PSDInput::load_layer_channels (Layer &layer)
+{
+    for (uint16_t channel = 0; channel < layer.channel_count; ++channel) {
+        ChannelInfo &channel_info = layer.channel_info[channel];
+        if (!load_layer_channel (layer, channel_info))
+            return false;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
+{
+    std::streampos start_pos = m_file.tellg ();
+    if (channel_info.data_length >= 2) {
+        read_bige<uint16_t> (channel_info.compression);
+        if (!check_io ())
+            return false;
+    }
+    //No data at all or just compression
+    if (channel_info.data_length <= 2)
+        return true;
+
+    channel_info.data_pos = m_file.tellg ();
+    channel_info.row_pos.resize (layer.height);
+    channel_info.row_length = (layer.width * m_header.depth + 7) / 8;
+    switch (channel_info.compression) {
+        case Compression_Raw:
+            if (layer.height) {
+                channel_info.row_pos[0] = channel_info.data_pos;
+                for (uint32_t i = 1; i < layer.height; ++i)
+                    channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.row_length;
+            }
+            channel_info.data_length = channel_info.row_length * layer.height;
+            break;
+        case Compression_RLE:
+            //RLE lengths are stored before the channel data
+            if (!read_rle_lengths (layer.height, channel_info.rle_lengths))
+                return false;
+
+            //channel data is located after the RLE lengths
+            channel_info.data_pos = m_file.tellg ();
+            //subtract the RLE lengths read above
+            channel_info.data_length = channel_info.data_length - (channel_info.data_pos - start_pos);
+            if (layer.height) {
+                channel_info.row_pos[0] = channel_info.data_pos;
+                for (uint32_t i = 1; i < layer.height; ++i)
+                    channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.rle_lengths[i - 1];
+            }
+            break;
+        //These two aren't currently supported. They would likely require large
+        //changes in the code as they probably don't support random access like
+        //the other modes. I doubt these are used much and I haven't found
+        //any test images.
+        case Compression_ZIP:
+        case Compression_ZIP_Predict:
+        default:
+            return false;
+            break;
+    }
+    m_file.seekg (channel_info.data_length, std::ios::cur);
+    if (!check_io ())
+        return false;
+
+    return true;
+
+}
+
+
+
+bool
+PSDInput::read_rle_lengths (uint32_t height, std::vector<uint32_t> &rle_lengths)
+{
+    rle_lengths.resize (height);
+    for (uint32_t row = 0; row < height && m_file; ++row) {
+        if (m_header.version == 1)
+            read_bige<uint16_t> (rle_lengths[row]);
+        else
+            read_bige<uint32_t> (rle_lengths[row]);
     }
     if (!check_io ())
         return false;
