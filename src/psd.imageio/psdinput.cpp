@@ -103,6 +103,71 @@ private:
 
     };
 
+    struct LayerMaskInfo {
+        uint64_t length;
+        std::streampos begin;
+        std::streampos end;
+
+        struct LayerInfo {
+            uint64_t length;
+            int16_t layer_count;
+            std::streampos begin;
+            std::streampos end;
+        };
+
+        LayerInfo layer_info;
+    };
+
+    struct ChannelInfo {
+        uint32_t row_length;
+        int16_t channel_id;
+        uint64_t data_length;
+        std::streampos data_pos;
+        uint16_t compression;
+        std::vector<uint32_t> rle_lengths;
+        std::vector<std::streampos> row_pos;
+    };
+
+    struct Layer {
+        uint32_t top, left, bottom, right;
+        uint32_t width, height;
+        uint16_t channel_count;
+
+        std::vector<ChannelInfo> channel_info;
+        std::map<int16_t, ChannelInfo *> channel_id_map;
+
+        char bm_key[4];
+        uint8_t opacity;
+        uint8_t clipping;
+        uint8_t flags;
+        uint32_t extra_length;
+
+        struct MaskData {
+            uint32_t top, left, bottom, right;
+            uint8_t default_color;
+            uint8_t flags;
+        };
+
+        MaskData mask_data;
+
+        //TODO: layer blending ranges?
+
+        std::string name;
+
+        struct AdditionalInfo {
+            char key[4];
+            uint64_t length;
+            std::streampos pos;
+        };
+
+        std::vector<AdditionalInfo> additional_info;
+    };
+
+    struct ImageDataSection {
+        std::vector<ChannelInfo> channel_info;
+        bool transparency;
+    };
+
     std::string m_filename;
     std::ifstream m_file;
     //Current subimage
@@ -115,6 +180,9 @@ private:
 	FileHeader m_header;
 	ColorModeData m_color_data;
     ImageResourcesSection m_image_resources;
+    LayerMaskInfo m_layer_mask_info;
+    std::vector<Layer> m_layers;
+    ImageDataSection m_image_data;
 
     //Reset to initial state
     void init ();
@@ -151,6 +219,10 @@ private:
     METHODDEF (void)
     thumbnail_error_exit (j_common_ptr cinfo);
 
+    //Layers
+    bool load_layers ();
+    bool load_layer (Layer &layer);
+
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
 
@@ -171,6 +243,11 @@ private:
     }
 
     int read_pascal_string (std::string &s, uint16_t mod_padding);
+
+    //These are AdditionalInfo entries that, for PSBs, have an 8-byte length
+    static const char *additional_info_psb[];
+    static const unsigned int additional_info_psb_count;
+    bool is_additional_info_psb (const char *key);
 
     //Some attributes may apply to only the merged composite.
     //Others may apply to all subimages.
@@ -223,6 +300,26 @@ const PSDInput::ResourceLoader PSDInput::resource_loaders[] =
 };
 #undef ADD_LOADER
 
+const char *
+PSDInput::additional_info_psb[] =
+{
+    "LMsk",
+    "Lr16",
+    "Lr32",
+    "Layr",
+    "Mt16",
+    "Mt32",
+    "Mtrn",
+    "Alph",
+    "FMsk",
+    "Ink2",
+    "FEid",
+    "FXid",
+    "PxSD"
+};
+const unsigned int
+PSDInput::additional_info_psb_count = sizeof(additional_info_psb) / sizeof(additional_info_psb[0]);
+
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
@@ -264,6 +361,10 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
 
     //Image Resources
     if (!load_resources ())
+        return false;
+
+    //Layers
+    if (!load_layers ())
         return false;
 
     return false;
@@ -717,6 +818,176 @@ PSDInput::thumbnail_error_exit (j_common_ptr cinfo)
 
 
 bool
+PSDInput::load_layers ()
+{
+    if (m_header.version == 1)
+        read_bige<uint32_t> (m_layer_mask_info.length);
+    else
+        read_bige<uint64_t> (m_layer_mask_info.length);
+
+    m_layer_mask_info.begin = m_file.tellg ();
+    m_layer_mask_info.end = m_layer_mask_info.begin
+                          + (std::streampos)m_layer_mask_info.length;
+    if (!check_io ())
+        return false;
+
+    if (!m_layer_mask_info.length)
+        return true;
+
+    LayerMaskInfo::LayerInfo &layer_info = m_layer_mask_info.layer_info;
+    if (m_header.version == 1)
+        read_bige<uint32_t> (layer_info.length);
+    else
+        read_bige<uint64_t> (layer_info.length);
+
+    layer_info.begin = m_file.tellg ();
+    layer_info.end = layer_info.begin + (std::streampos)layer_info.length;
+    if (!check_io ())
+        return false;
+
+    if (!layer_info.length)
+        return true;
+
+    read_bige<int16_t> (layer_info.layer_count);
+    if (layer_info.layer_count < 0) {
+        m_image_data.transparency = true;
+        layer_info.layer_count = -layer_info.layer_count;
+    }
+    else
+        m_image_data.transparency = false;
+
+    m_layers.resize (layer_info.layer_count);
+    for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count; ++layer_nbr) {
+        Layer &layer = m_layers[layer_nbr];
+        if (!load_layer (layer))
+            return false;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_layer (Layer &layer)
+{
+    read_bige<uint32_t> (layer.top);
+    read_bige<uint32_t> (layer.left);
+    read_bige<uint32_t> (layer.bottom);
+    read_bige<uint32_t> (layer.right);
+    read_bige<uint16_t> (layer.channel_count);
+    if (!check_io ())
+        return false;
+
+    layer.width = std::abs(layer.right - layer.left);
+    layer.height = std::abs(layer.bottom - layer.top);
+    layer.channel_info.resize (layer.channel_count);
+    for(uint16_t channel = 0; channel < layer.channel_count; channel++) {
+        ChannelInfo &channel_info = layer.channel_info[channel];
+        read_bige<int16_t> (channel_info.channel_id);
+        if (m_header.version == 1)
+            read_bige<uint32_t> (channel_info.data_length);
+        else
+            read_bige<uint64_t> (channel_info.data_length);
+
+        layer.channel_id_map[channel_info.channel_id] = &channel_info;
+    }
+    char bm_signature[4];
+    m_file.read (bm_signature, 4);
+    if (!check_io ())
+        return false;
+
+    if (std::memcmp (bm_signature, "8BIM", 4) != 0) {
+        error ("[Layer Record] Invalid blend mode signature");
+        return false;
+    }
+    m_file.read (layer.bm_key, 4);
+    read_bige<uint8_t> (layer.opacity);
+    read_bige<uint8_t> (layer.clipping);
+    read_bige<uint8_t> (layer.flags);
+    //skip filler
+    m_file.seekg(1, std::ios::cur);
+    read_bige<uint32_t> (layer.extra_length);
+    uint32_t extra_remaining = layer.extra_length;
+    //layer mask data length
+    uint32_t lmd_length;
+    read_bige<uint32_t> (lmd_length);
+    if (!check_io ())
+        return false;
+
+    switch (lmd_length) {
+        case 0:
+            break;
+        case 20:
+            read_bige<uint32_t> (layer.mask_data.top);
+            read_bige<uint32_t> (layer.mask_data.left);
+            read_bige<uint32_t> (layer.mask_data.bottom);
+            read_bige<uint32_t> (layer.mask_data.right);
+            read_bige<uint8_t> (layer.mask_data.default_color);
+            read_bige<uint8_t> (layer.mask_data.flags);
+            //skip padding
+            m_file.seekg(2, std::ios::cur);
+            break;
+        case 36:
+            //In this case, we skip the above (lmd_length == 20) fields
+            //to read the "real" fields.
+            m_file.seekg (18, std::ios::cur);
+            read_bige<uint8_t> (layer.mask_data.flags);
+            read_bige<uint8_t> (layer.mask_data.default_color);
+            read_bige<uint32_t> (layer.mask_data.top);
+            read_bige<uint32_t> (layer.mask_data.left);
+            read_bige<uint32_t> (layer.mask_data.bottom);
+            read_bige<uint32_t> (layer.mask_data.right);
+            break;
+        default:
+            //The size should always be 0,20, or 36
+            error ("[Layer Mask Data] invalid size");
+            return false;
+            break;
+    };
+    extra_remaining -= (lmd_length + 4);
+
+    //layer blending ranges length
+    uint32_t lbr_length;
+    read_bige<uint32_t> (lbr_length);
+    //skip block
+    m_file.seekg (lbr_length, std::ios::cur);
+    extra_remaining -= (lbr_length + 4);
+    if (!check_io ())
+        return false;
+
+    extra_remaining -= read_pascal_string(layer.name, 4);
+    while (m_file && extra_remaining >= 12) {
+        layer.additional_info.push_back (Layer::AdditionalInfo());
+        Layer::AdditionalInfo &info = layer.additional_info.back();
+
+        char signature[4];
+        m_file.read (signature, 4);
+        m_file.read (info.key, 4);
+        if (std::memcmp (signature, "8BIM", 4) != 0
+            && std::memcmp (signature, "8B64", 4) != 0) {
+            error ("[Additional Layer Info] invalid signature");
+            return false;
+        }
+        extra_remaining -= 8;
+        if (m_header.version == 2 && is_additional_info_psb (info.key)) {
+            read_bige<uint64_t> (info.length);
+            extra_remaining -= 8;
+        } else {
+            read_bige<uint32_t> (info.length);
+            extra_remaining -= 4;
+        }
+        m_file.seekg (info.length, std::ios::cur);
+        extra_remaining -= info.length;
+    }
+    if (!check_io ())
+        return false;
+
+    return true;
+}
+
+
+
+bool
 PSDInput::check_io ()
 {
     if (!m_file) {
@@ -755,6 +1026,18 @@ PSDInput::read_pascal_string (std::string &s, uint16_t mod_padding)
         }
     }
     return bytes;
+}
+
+
+
+bool
+PSDInput::is_additional_info_psb (const char *key)
+{
+    for (unsigned int i = 0; i < additional_info_psb_count; ++i)
+        if (std::memcmp (additional_info_psb[i], key, 4) == 0)
+            return true;
+
+    return false;
 }
 
 OIIO_PLUGIN_NAMESPACE_END
