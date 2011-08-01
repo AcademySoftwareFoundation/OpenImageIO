@@ -257,6 +257,8 @@ public:
         add_paramater ("refWhite");
         add_paramater ("dispGamma");
         add_paramater ("negGamma");
+        compute_kodak_coeff (m_refBlack, m_refWhite, m_dispGamma, m_negGamma,
+                                     m_black, m_white, m_gamma, m_gain, m_offset);
     };
     
     ~ColorTransfer_KodakLog_to_linear (void) { };
@@ -314,6 +316,8 @@ public:
         add_paramater ("refWhite");
         add_paramater ("dispGamma");
         add_paramater ("negGamma");
+        compute_kodak_coeff (m_refBlack, m_refWhite, m_dispGamma, m_negGamma,
+                                     m_black, m_white, m_gamma, m_gain, m_offset);
     }
     
     ~ColorTransfer_linear_to_KodakLog (void) { };
