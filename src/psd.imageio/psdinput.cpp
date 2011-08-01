@@ -243,6 +243,8 @@ private:
 
     bool load_global_mask_info ();
 
+    bool load_global_additional ();
+
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
 
@@ -389,6 +391,10 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
 
     //Global Mask Info
     if (!load_global_mask_info ())
+        return false;
+
+    //Global Additional Layer Info
+    if (!load_global_additional ())
         return false;
 
     return false;
@@ -1124,6 +1130,51 @@ PSDInput::load_global_mask_info ()
     read_bige<uint16_t> (m_global_mask_info.opacity);
     read_bige<int16_t> (m_global_mask_info.kind);
     m_file.seekg (end);
+    if (!check_io ())
+        return false;
+
+    return true;
+}
+
+
+
+bool
+PSDInput::load_global_additional ()
+{
+    char signature[4];
+    char key[4];
+    uint64_t length;
+    uint64_t remaining = m_layer_mask_info.length - (m_file.tellg () - m_layer_mask_info.begin);
+    while (m_file && remaining >= 12) {
+        m_file.read (signature, 4);
+        if (!check_io ())
+            return false;
+
+        if (std::memcmp (signature, "8BIM", 4) != 0) {
+            error ("[Global Additional Layer Info] invalid signature");
+            return false;
+        }
+        m_file.read (key, 4);
+        if (!check_io ())
+            return false;
+
+        remaining -= 8;
+        if (m_header.version == 2 && is_additional_info_psb (key)) {
+            read_bige<uint64_t> (length);
+            remaining -= 8;
+        } else {
+            read_bige<uint32_t> (length);
+            remaining -= 4;
+        }
+        //Long story short these are aligned to 4 bytes but that is not
+        //included in the stored length and the specs do not mention it.
+
+        //round up to multiple of 4
+        length = (length + 3) & ~3;
+        remaining -= length;
+        //skip it for now
+        m_file.seekg (length, std::ios::cur);
+    }
     if (!check_io ())
         return false;
 
