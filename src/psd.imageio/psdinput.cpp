@@ -170,6 +170,13 @@ private:
         std::vector<AdditionalInfo> additional_info;
     };
 
+    struct GlobalMaskInfo {
+        uint16_t overlay_color_space;
+        uint16_t color_components[4];
+        uint16_t opacity;
+        int8_t kind;
+    };
+
     struct ImageDataSection {
         std::vector<ChannelInfo> channel_info;
         bool transparency;
@@ -189,6 +196,7 @@ private:
     ImageResourcesSection m_image_resources;
     LayerMaskInfo m_layer_mask_info;
     std::vector<Layer> m_layers;
+    GlobalMaskInfo m_global_mask_info;
     ImageDataSection m_image_data;
 
     //Reset to initial state
@@ -232,6 +240,8 @@ private:
     bool load_layer_channels (Layer &layer);
     bool load_layer_channel (Layer &layer, ChannelInfo &channel_info);
     bool read_rle_lengths (uint32_t height, std::vector<uint32_t> &rle_lengths);
+
+    bool load_global_mask_info ();
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -375,6 +385,10 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
 
     //Layers
     if (!load_layers ())
+        return false;
+
+    //Global Mask Info
+    if (!load_global_mask_info ())
         return false;
 
     return false;
@@ -1080,6 +1094,36 @@ PSDInput::read_rle_lengths (uint32_t height, std::vector<uint32_t> &rle_lengths)
         else
             read_bige<uint32_t> (rle_lengths[row]);
     }
+    if (!check_io ())
+        return false;
+
+    return true;
+}
+
+
+
+bool
+PSDInput::load_global_mask_info ()
+{
+    m_file.seekg (m_layer_mask_info.layer_info.end);
+    uint32_t length;
+    read_bige<uint32_t> (length);
+    std::streampos start = m_file.tellg ();
+    std::streampos end = start + (std::streampos)length;
+    if (!check_io ())
+        return false;
+
+    //this can be empty
+    if (!length)
+        return true;
+
+    read_bige<uint16_t> (m_global_mask_info.overlay_color_space);
+    for (int i = 0; i < 4; ++i)
+        read_bige<uint16_t> (m_global_mask_info.color_components[i]);
+
+    read_bige<uint16_t> (m_global_mask_info.opacity);
+    read_bige<int16_t> (m_global_mask_info.kind);
+    m_file.seekg (end);
     if (!check_io ())
         return false;
 
