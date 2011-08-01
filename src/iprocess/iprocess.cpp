@@ -185,8 +185,8 @@ read_input (const std::string &filename, ImageBuf &img,
         return true;
 
     if (img.init_spec (filename, subimage, miplevel) && 
-        img.read (subimage, false, TypeDesc::FLOAT))
-        return true;
+        img.read (subimage, 0, false, TypeDesc::FLOAT))
+    	 return true;
 
     std::cerr << "iprocess ERROR: Could not read " << filename << ":\n\t"
               << img.geterror() << "\n";
