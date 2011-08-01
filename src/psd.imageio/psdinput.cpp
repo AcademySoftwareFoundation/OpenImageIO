@@ -241,9 +241,14 @@ private:
     bool load_layer_channel (Layer &layer, ChannelInfo &channel_info);
     bool read_rle_lengths (uint32_t height, std::vector<uint32_t> &rle_lengths);
 
+    //Global Mask Info
     bool load_global_mask_info ();
 
+    //Global Additional Layer Info
     bool load_global_additional ();
+    
+    //Image Data Section
+    bool load_image_data ();
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -397,6 +402,11 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     if (!load_global_additional ())
         return false;
 
+    //Image Data
+    if (!load_image_data ())
+        return false;
+
+    m_subimage_count = m_layers.size () + 1;
     return false;
 }
 
@@ -1077,8 +1087,9 @@ PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
         case Compression_ZIP:
         case Compression_ZIP_Predict:
         default:
+            error ("[Layer Channel] unsupported compression");
             return false;
-            break;
+;
     }
     m_file.seekg (channel_info.data_length, std::ios::cur);
     if (!check_io ())
@@ -1174,6 +1185,61 @@ PSDInput::load_global_additional ()
         remaining -= length;
         //skip it for now
         m_file.seekg (length, std::ios::cur);
+    }
+    if (!check_io ())
+        return false;
+
+    return true;
+}
+
+
+
+bool
+PSDInput::load_image_data ()
+{
+    uint16_t compression;
+    uint32_t row_length = (m_header.width * m_header.depth + 7) / 8;
+    int16_t id = 0;
+    read_bige<uint16_t> (compression);
+    if (!check_io ())
+        return false;
+
+    if (compression != Compression_Raw && compression != Compression_RLE) {
+        error ("[Image Data Section] unsupported compression");
+        return false;
+    }
+    m_image_data.channel_info.resize (m_header.channel_count);
+    //setup some generic properties and read any RLE lengths
+    //Image Data Section has RLE lengths for all channels stored first
+    BOOST_FOREACH (ChannelInfo &channel_info, m_image_data.channel_info) {
+        channel_info.compression = compression;
+        channel_info.channel_id = id++;
+        channel_info.data_length = row_length * m_header.height;
+        if (compression == Compression_RLE) {
+            if (!read_rle_lengths (m_header.height, channel_info.rle_lengths))
+                return false;
+        }
+    }
+    BOOST_FOREACH (ChannelInfo &channel_info, m_image_data.channel_info) {
+        channel_info.row_pos.resize (m_header.height);
+        channel_info.data_pos = m_file.tellg ();
+        channel_info.row_length = (m_header.width * m_header.depth + 7) / 8;
+        switch (compression) {
+            case Compression_Raw:
+                channel_info.row_pos[0] = channel_info.data_pos;
+                for (uint32_t i = 1; i < m_header.height; ++i)
+                    channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)row_length;
+
+                m_file.seekg (channel_info.row_pos.back () + (std::streampos)row_length);
+                break;
+            case Compression_RLE:
+                channel_info.row_pos[0] = channel_info.data_pos;
+                for (uint32_t i = 1; i < m_header.height; ++i)
+                    channel_info.row_pos[i] = channel_info.row_pos[i - 1] + (std::streampos)channel_info.rle_lengths[i - 1];
+
+                m_file.seekg (channel_info.row_pos.back () + (std::streampos)channel_info.rle_lengths.back ());
+                break;
+        }
     }
     if (!check_io ())
         return false;
