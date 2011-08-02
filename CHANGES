@@ -1,7 +1,29 @@
 Changes:
 
 
-Release 0.10 (June 9 2010)
+Release 0.10.1 (August 2, 2011)
+-------------------------------
+* Fix TextureSystem::get_texture_info(file,"exists") (and the equivalent for
+  ImageCache), it was previously incorrectly giving an error if the file 
+  didn't exist.
+* Fixed an error where we were losing the error message if ImageInput::create
+  failed.
+* maketx: --hash is deprecated, the SHA-1 hash is always computed; the
+  hash takes into account upstream image changes, such as resizing; the
+  --filter command line argument only takes the filter name, the width
+  is now automatically computed.
+* Add static methods to Filter classes allowing queries about the names
+  and vital info about all available filters.
+* New Filesystem::is_regular() wraps the boost is_regular and catches
+  exceptions.
+* iv: raise the maximum ImageCache settable in the UI from 2GB to 8GB.
+* Bug fixes with per-channel data formats.
+* Add Strutil::escape_chars() and unescape_chars() utility functions.
+* TextureOpt: add ustring-aware versions of the decode_wrapmode() utility.
+  
+
+
+Release 0.10 (June 9 2011)
 --------------------------
 
 Major new features and improvements:
