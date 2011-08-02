@@ -58,10 +58,11 @@ static float default_bias = 0;
 static float default_fill = 0;
 static int   default_samples = 1;
 
-static const char * wrap_type_name[] = {
+static const ustring wrap_type_name[] = {
     // MUST match the order of TextureOptions::Wrap
-    "default", "black", "clamp", "periodic", "mirror",
-    ""
+    ustring("default"), ustring("black"), ustring("clamp"),
+    ustring("periodic"), ustring("mirror"),
+    ustring()
 };
 
 };  // end anonymous namespace
@@ -148,7 +149,18 @@ TextureOpt::Wrap
 TextureOpt::decode_wrapmode (const char *name)
 {
     for (int i = 0;  i < (int)WrapLast;  ++i)
-        if (! strcmp (name, wrap_type_name[i]))
+        if (! strcmp (name, wrap_type_name[i].c_str()))
+            return (Wrap) i;
+    return TextureOpt::WrapDefault;
+}
+
+
+
+TextureOpt::Wrap
+TextureOpt::decode_wrapmode (ustring name)
+{
+    for (int i = 0;  i < (int)WrapLast;  ++i)
+        if (name == wrap_type_name[i])
             return (Wrap) i;
     return TextureOpt::WrapDefault;
 }
