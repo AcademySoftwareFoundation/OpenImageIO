@@ -243,7 +243,7 @@ DDSInput::open (const std::string &name, ImageSpec &newspec)
             && !((m_dds.fmt.flags & DDS_PF_RGB)
             | (m_dds.fmt.flags & DDS_PF_LUMINANCE)
             | (m_dds.fmt.flags & DDS_PF_ALPHA)))) {
-        error ("Image with no data");
+        error ("Image with no data, possibly corrupt file");
         return false;
     }
 
@@ -459,7 +459,9 @@ DDSInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         tempstr += ((char *)&m_dds.fmt.fourCC)[3];
         m_spec.attribute ("compression", tempstr);
     }
-    m_spec.attribute ("oiio:BitsPerSample", m_dds.fmt.bpp);
+    // this only makes sense for plain RGB files
+    if ((m_dds.fmt.flags & (DDS_PF_RGB | DDS_PF_ALPHA)) == DDS_PF_RGB)
+        m_spec.attribute ("oiio:BitsPerSample", m_dds.fmt.bpp / 3);
     m_spec.default_channel_names ();
 
     // detect texture type
