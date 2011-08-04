@@ -73,6 +73,12 @@ private:
         Compression_ZIP_Predict = 3
     };
 
+    enum ChannelID {
+        ChannelID_Transparency = -1,
+        ChannelID_LayerMask = -2,
+        ChannelID_UserMask = -3
+    };
+
     //Image resource loaders to handle loading certain image resources into ImageSpec
     struct ResourceLoader {
         uint16_t resource_id;
@@ -81,11 +87,6 @@ private:
 
     //Map image resource ID to image resource block
     typedef std::map<uint16_t, ImageResourceBlock> ImageResourceMap;
-
-    struct ImageResourcesSection {
-        uint32_t length;
-        ImageResourceMap resources;
-    };
 
     struct ResolutionInfo {
         float hRes;
@@ -190,10 +191,15 @@ private:
 	int m_subimage_count;
 	std::vector<ImageSpec> m_specs;
     static const ResourceLoader resource_loaders[];
+    ImageSpec m_composite_attribs;
+    ImageSpec m_common_attribs;
+    bool m_WantRaw;
+    TypeDesc m_type_desc;
+    std::vector<std::vector<ChannelInfo *> > m_channels;
+    std::vector<std::string> m_alpha_names;
 
 	FileHeader m_header;
 	ColorModeData m_color_data;
-    ImageResourcesSection m_image_resources;
     LayerMaskInfo m_layer_mask_info;
     std::vector<Layer> m_layers;
     GlobalMaskInfo m_global_mask_info;
@@ -217,7 +223,9 @@ private:
     bool validate_resource (ImageResourceBlock &block);
     //Call the resource_loaders to load the resources into an ImageSpec
     //m_specs should be resized to m_subimage_count first
-    bool handle_resources ();
+    bool handle_resources (ImageResourceMap &resources);
+    //Alpha Channel Names
+    bool load_resource_1006 (uint32_t length);
     //Pixel Aspect Ratio
     bool load_resource_1064 (uint32_t length);
     //ResolutionInfo
@@ -250,6 +258,10 @@ private:
     //Image Data Section
     bool load_image_data ();
 
+    void set_type_desc ();
+    bool setup_raw ();
+    bool setup_rgba ();
+
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
 
@@ -276,6 +288,9 @@ private:
     static const unsigned int additional_info_psb_count;
     bool is_additional_info_psb (const char *key);
 
+    static const char *mode_channel_names[][4];
+    static const unsigned int mode_channel_count[];
+
     //Some attributes may apply to only the merged composite.
     //Others may apply to all subimages.
     //These functions are intended to be used by image resource loaders.
@@ -284,30 +299,30 @@ private:
     template <typename T>
     void composite_attribute (const std::string &name, const T &value)
     {
-        m_specs[0].attribute (name, value);
+        m_composite_attribs.attribute (name, value);
     }
 
     //Add an attribute to the composite image spec
     template <typename T>
     void composite_attribute (const std::string &name, const TypeDesc &type, const T &value)
     {
-        m_specs[0].attribute (name, type, value);
+        m_composite_attribs.attribute (name, type, value);
     }
 
     //Add an attribute to the composite image spec and common image spec
     template <typename T>
     void common_attribute (const std::string &name, const T &value)
     {
-        BOOST_FOREACH (ImageSpec &spec, m_specs)
-            spec.attribute (name, value);
+        m_composite_attribs.attribute (name, value);
+        m_common_attribs.attribute (name, value);
     }
 
     //Add an attribute to the composite image spec and common image spec
     template <typename T>
     void common_attribute (const std::string &name, const TypeDesc &type, const T &value)
     {
-        BOOST_FOREACH (ImageSpec &spec, m_specs)
-            spec.attribute (name, type, value);
+        m_composite_attribs.attribute (name, type, value);
+        m_common_attribs.attribute (name, type, value);
     }
 
 };
@@ -320,6 +335,7 @@ private:
 #define ADD_LOADER(id) {id, boost::bind (&PSDInput::load_resource_##id, _1, _2)}
 const PSDInput::ResourceLoader PSDInput::resource_loaders[] =
 {
+    ADD_LOADER(1006),
     ADD_LOADER(1064),
     ADD_LOADER(1005),
     ADD_LOADER(1033),
@@ -346,6 +362,27 @@ PSDInput::additional_info_psb[] =
 };
 const unsigned int
 PSDInput::additional_info_psb_count = sizeof(additional_info_psb) / sizeof(additional_info_psb[0]);
+
+const char *
+PSDInput::mode_channel_names[][4] =
+{
+    {"A"},
+    {"I"},
+    {"I"},
+    {"R", "G", "B"},
+    {"C", "M", "Y", "K"},
+    {},
+    {},
+    {},
+    {},
+    {"L", "a", "b"}
+};
+
+const unsigned int
+PSDInput::mode_channel_count[] =
+{
+    1, 1, 1, 3, 4, 0, 0, 0, 0, 3
+};
 
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -406,8 +443,19 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     if (!load_image_data ())
         return false;
 
+    //Layer count + 1 for merged composite (Image Data Section)
     m_subimage_count = m_layers.size () + 1;
-    return false;
+    //Set m_type_desc to the appropriate TypeDesc
+    set_type_desc ();
+    if (m_WantRaw)
+        setup_raw ();
+    else
+        setup_rgba ();
+    
+    if (!seek_subimage (0, 0, newspec))
+        return false;
+
+    return true;
 }
 
 
@@ -415,6 +463,7 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
 bool
 PSDInput::open (const std::string &name, ImageSpec &newspec, const ImageSpec &config)
 {
+    m_WantRaw = config.get_int_attribute ("psd:RawData", 0) != 0;
     return open (name, newspec);
 }
 
@@ -423,7 +472,7 @@ PSDInput::open (const std::string &name, ImageSpec &newspec, const ImageSpec &co
 bool
 PSDInput::close ()
 {
-    init();  // Reset to initial state
+    init();
     return true;
 }
 
@@ -432,7 +481,15 @@ PSDInput::close ()
 bool
 PSDInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
-	return false;
+    if (miplevel != 0)
+        return false;
+
+    if (subimage < 0 || subimage >= m_subimage_count)
+        return false;
+
+    m_subimage = subimage;
+    newspec = m_spec = m_specs[subimage];
+	return true;
 }
 
 
@@ -452,6 +509,12 @@ PSDInput::init ()
     m_file.close ();
 	m_subimage = -1;
 	m_subimage_count = 0;
+	m_specs.clear ();
+	m_WantRaw = false;
+	m_layers.clear ();
+	m_image_data.channel_info.clear ();
+	m_channels.clear ();
+	m_alpha_names.clear ();
 }
 
 
@@ -476,10 +539,7 @@ PSDInput::read_header ()
     read_bige<uint32_t> (m_header.height);
     read_bige<uint16_t> (m_header.depth);
     read_bige<uint16_t> (m_header.color_mode);
-    if (!check_io ())
-        return false;
-
-    return true;
+    return check_io ();
 }
 
 
@@ -565,10 +625,7 @@ PSDInput::load_color_data ()
 
     m_color_data.data.resize (m_color_data.length);
     m_file.read (&m_color_data.data[0], m_color_data.length);
-    if (!check_io ())
-        return false;
-
-    return true;
+    return check_io ();
 }
 
 
@@ -592,26 +649,30 @@ PSDInput::validate_color_data ()
 bool
 PSDInput::load_resources ()
 {
-    read_bige<uint32_t> (m_image_resources.length);
+    uint32_t length;
+    read_bige<uint32_t> (length);
 
     if (!check_io ())
         return false;
 
     ImageResourceBlock block;
-    ImageResourceMap &resources = m_image_resources.resources;
+    ImageResourceMap resources;
     std::streampos begin = m_file.tellg ();
-    std::streampos end = begin + (std::streampos)m_image_resources.length;
+    std::streampos end = begin + (std::streampos)length;
     while (m_file && m_file.tellg () < end) {
         if (!read_resource (block) || !validate_resource (block))
             return false;
 
         resources.insert (std::make_pair (block.id, block));
     }
-    m_file.seekg (end);
     if (!check_io ())
         return false;
 
-    return true;
+    if (!handle_resources (resources))
+        return false;
+
+    m_file.seekg (end);
+    return check_io ();
 }
 
 
@@ -632,10 +693,7 @@ PSDInput::read_resource (ImageResourceBlock &block)
     if (block.length % 2 != 0)
         m_file.seekg(1, std::ios::cur);
 
-    if (!check_io ())
-        return false;
-
-    return true;
+    return check_io ();
 }
 
 
@@ -653,9 +711,8 @@ PSDInput::validate_resource (ImageResourceBlock &block)
 
 
 bool
-PSDInput::handle_resources ()
+PSDInput::handle_resources (ImageResourceMap &resources)
 {
-    ImageResourceMap &resources = m_image_resources.resources;
     //Loop through each of our resource loaders
     const ImageResourceMap::const_iterator end (resources.end ());
     BOOST_FOREACH (const ResourceLoader &loader, resource_loaders) {
@@ -672,6 +729,20 @@ PSDInput::handle_resources ()
         }
     }
     return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1006 (uint32_t length)
+{
+    int32_t bytes_remaining = length;
+    std::string name;
+    while (m_file && bytes_remaining >= 2) {
+        bytes_remaining -= read_pascal_string (name, 1);
+        m_alpha_names.push_back (name);
+    }
+    return check_io ();
 }
 
 
@@ -1019,10 +1090,7 @@ PSDInput::load_layer (Layer &layer)
         m_file.seekg (info.length, std::ios::cur);
         extra_remaining -= info.length;
     }
-    if (!check_io ())
-        return false;
-
-    return true;
+    return check_io ();
 }
 
 
@@ -1092,10 +1160,7 @@ PSDInput::load_layer_channel (Layer &layer, ChannelInfo &channel_info)
 ;
     }
     m_file.seekg (channel_info.data_length, std::ios::cur);
-    if (!check_io ())
-        return false;
-
-    return true;
+    return check_io ();
 
 }
 
@@ -1111,10 +1176,7 @@ PSDInput::read_rle_lengths (uint32_t height, std::vector<uint32_t> &rle_lengths)
         else
             read_bige<uint32_t> (rle_lengths[row]);
     }
-    if (!check_io ())
-        return false;
-
-    return true;
+    return check_io ();
 }
 
 
@@ -1141,10 +1203,7 @@ PSDInput::load_global_mask_info ()
     read_bige<uint16_t> (m_global_mask_info.opacity);
     read_bige<int16_t> (m_global_mask_info.kind);
     m_file.seekg (end);
-    if (!check_io ())
-        return false;
-
-    return true;
+    return check_io ();
 }
 
 
@@ -1186,10 +1245,7 @@ PSDInput::load_global_additional ()
         //skip it for now
         m_file.seekg (length, std::ios::cur);
     }
-    if (!check_io ())
-        return false;
-
-    return true;
+    return check_io ();
 }
 
 
@@ -1241,10 +1297,78 @@ PSDInput::load_image_data ()
                 break;
         }
     }
-    if (!check_io ())
-        return false;
+    return check_io ();
+}
 
+
+
+bool
+PSDInput::setup_raw ()
+{
     return true;
+}
+
+
+
+bool
+PSDInput::setup_rgba ()
+{
+    int channel_count = 3;
+    if (m_image_data.transparency)
+        channel_count++;
+
+    m_specs.reserve (m_subimage_count);
+    //Composite specs
+    m_specs.push_back (ImageSpec (m_header.width, m_header.height,
+                                  channel_count, m_type_desc));
+    m_specs.back ().extra_attribs = m_composite_attribs.extra_attribs;
+
+    //Composite channels
+    m_channels.reserve (m_subimage_count);
+    m_channels.resize (1);
+    m_channels[0].reserve (channel_count);
+    for (int i = 0; i < channel_count; ++i)
+        m_channels[0].push_back (&m_image_data.channel_info[i]);
+
+    BOOST_FOREACH (Layer &layer, m_layers) {
+        channel_count = 3;
+        bool transparency = (bool)layer.channel_id_map.count (ChannelID_Transparency);
+        if (transparency)
+            channel_count++;
+
+        m_specs.push_back (ImageSpec (layer.width, layer.height,
+                                      channel_count, m_type_desc));
+        m_specs.back ().extra_attribs = m_common_attribs.extra_attribs;
+
+        m_channels.resize (m_channels.size () + 1);
+        std::vector<ChannelInfo *> &channels = m_channels.back ();
+        channels.reserve (channel_count);
+        for (unsigned int i = 0; i < mode_channel_count[m_header.color_mode]; ++i)
+            channels.push_back (layer.channel_id_map[i]);
+
+        if (transparency)
+            channels.push_back (layer.channel_id_map[ChannelID_Transparency]);
+    }
+    return true;
+}
+
+
+
+void
+PSDInput::set_type_desc ()
+{
+    switch (m_header.depth) {
+        case 1:
+        case 8:
+            m_type_desc = TypeDesc::UINT8;
+            break;
+        case 16:
+            m_type_desc = TypeDesc::UINT16;
+            break;
+        case 32:
+            m_type_desc = TypeDesc::UINT32;
+            break;
+    };
 }
 
 
