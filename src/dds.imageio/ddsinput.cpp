@@ -459,8 +459,8 @@ DDSInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         tempstr += ((char *)&m_dds.fmt.fourCC)[3];
         m_spec.attribute ("compression", tempstr);
     }
-    // this only makes sense for plain RGB files
-    if ((m_dds.fmt.flags & (DDS_PF_RGB | DDS_PF_ALPHA)) == DDS_PF_RGB)
+    // this only makes sense for RGB files
+    if (m_dds.fmt.flags & DDS_PF_RGB)
         m_spec.attribute ("oiio:BitsPerSample", m_dds.fmt.bpp / 3);
     m_spec.default_channel_names ();
 

@@ -67,6 +67,7 @@ private:
     FILE *m_file;                     ///< Open image handle
     std::vector<unsigned char> m_scratch;
     dds_header m_dds;
+    int m_side;                       ///< Cube map side index
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -122,88 +123,120 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
         return false;
     }
 
-    if (mode == Create) {
-        // set up the DDS header struct
-        memset (&m_dds, 0, sizeof (m_dds));
-        m_dds.fourCC = DDS_MAKE4CC('D', 'D', 'S', ' ');
-        m_dds.size = 124;
-        m_dds.pitch = m_spec.scanline_bytes (true);
-        m_dds.fmt.size = 32;
-        m_dds.flags |= DDS_CAPS | DDS_PIXELFORMAT | DDS_WIDTH | DDS_HEIGHT
-            | DDS_PITCH;
-        m_dds.caps.flags1 |= DDS_CAPS1_TEXTURE;
-        
-        m_dds.fmt.bpp = m_spec.get_int_attribute ("oiio:BitsPerSample",
-            m_spec.format.size() * 8) * m_spec.nchannels;
-        
-        switch (m_spec.nchannels) {
-            case 1:
-                m_dds.fmt.flags |= DDS_PF_LUMINANCE;
-                break;
-            case 2:
-                m_dds.fmt.flags |= DDS_PF_LUMINANCE | DDS_PF_ALPHA;
-                m_dds.fmt.amask = (1 << (m_dds.fmt.bpp / 2)) - 1;
-                break;
-            case 3:
-                m_dds.fmt.flags |= DDS_PF_RGB;
-                m_dds.fmt.rmask = (1 << (m_dds.fmt.bpp / 3)) - 1;
-                m_dds.fmt.gmask = m_dds.fmt.rmask << (m_dds.fmt.bpp / 3);
-                m_dds.fmt.bmask = m_dds.fmt.gmask << (m_dds.fmt.bpp / 3);
-                break;
-            case 4:
-                m_dds.fmt.flags |= DDS_PF_RGB | DDS_PF_ALPHA;
-                m_dds.fmt.rmask = (1 << (m_dds.fmt.bpp / 4)) - 1;
-                m_dds.fmt.gmask = m_dds.fmt.rmask << (m_dds.fmt.bpp / 4);
-                m_dds.fmt.bmask = m_dds.fmt.gmask << (m_dds.fmt.bpp / 4);
-                m_dds.fmt.amask = m_dds.fmt.bmask << (m_dds.fmt.bpp / 4);
-                break;
-            default:
-                error ("Unsupported number of channels: %d", m_spec.nchannels);
+    switch (mode) {
+        case Create:
+        {
+            m_side = 0;
+            
+            // set up the DDS header struct
+            memset (&m_dds, 0, sizeof (m_dds));
+            m_dds.fourCC = DDS_MAKE4CC('D', 'D', 'S', ' ');
+            m_dds.size = 124;
+            m_dds.pitch = m_spec.scanline_bytes (true);
+            m_dds.fmt.size = 32;
+            m_dds.flags |= DDS_CAPS | DDS_PIXELFORMAT | DDS_WIDTH | DDS_HEIGHT
+                | DDS_PITCH;
+            m_dds.caps.flags1 |= DDS_CAPS1_TEXTURE;
+            
+            m_dds.fmt.bpp = m_spec.get_int_attribute ("oiio:BitsPerSample",
+                m_spec.format.size() * 8) * m_spec.nchannels;
+            
+            // FIXME: this mask determination algo is not very portable, it'll
+            // give wrong results on big-endian machines
+            switch (m_spec.nchannels) {
+                case 1:
+                    m_dds.fmt.flags |= DDS_PF_LUMINANCE;
+                    break;
+                case 2:
+                    m_dds.fmt.flags |= DDS_PF_LUMINANCE | DDS_PF_ALPHA;
+                    m_dds.fmt.amask = (1 << (m_dds.fmt.bpp / 2)) - 1;
+                    break;
+                case 3:
+                    m_dds.fmt.flags |= DDS_PF_RGB;
+                    m_dds.fmt.rmask = (1 << (m_dds.fmt.bpp / 3)) - 1;
+                    m_dds.fmt.gmask = m_dds.fmt.rmask << (m_dds.fmt.bpp / 3);
+                    m_dds.fmt.bmask = m_dds.fmt.gmask << (m_dds.fmt.bpp / 3);
+                    break;
+                case 4:
+                    m_dds.fmt.flags |= DDS_PF_RGB | DDS_PF_ALPHA;
+                    m_dds.fmt.rmask = (1 << (m_dds.fmt.bpp / 4)) - 1;
+                    m_dds.fmt.gmask = m_dds.fmt.rmask << (m_dds.fmt.bpp / 4);
+                    m_dds.fmt.bmask = m_dds.fmt.gmask << (m_dds.fmt.bpp / 4);
+                    m_dds.fmt.amask = m_dds.fmt.bmask << (m_dds.fmt.bpp / 4);
+                    break;
+                default:
+                    error ("Unsupported number of channels: %d", m_spec.nchannels);
+                    return false;
+            }
+            
+            m_dds.width = m_spec.width;
+            m_dds.height = m_spec.height;
+            
+            std::string textype = m_spec.get_string_attribute ("texturetype", "");
+            std::string texfmt = m_spec.get_string_attribute ("textureformat", "");
+            if (iequals (textype, "Volume Texture")
+                || iequals (texfmt, "Volume Texture")
+                || m_spec.depth > 1) {
+                m_dds.caps.flags1 |= DDS_CAPS1_COMPLEX;
+                m_dds.caps.flags2 |= DDS_CAPS2_VOLUME;
+                m_dds.flags |= DDS_DEPTH;
+            } else if (iequals (textype, "Environment")
+                || iequals (texfmt, "CubeFace Environment")) {
+                m_dds.caps.flags1 |= DDS_CAPS1_COMPLEX;
+                m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP;
+            }
+            
+            std::string cmp = m_spec.get_string_attribute ("compression", "");
+            if (iequals (cmp, "DXT1")) {
+                m_dds.fmt.flags |= DDS_PF_FOURCC;
+                m_dds.fmt.fourCC = DDS_4CC_DXT1;
+            } else if (iequals (cmp, "DXT2")) {
+                m_dds.fmt.flags |= DDS_PF_FOURCC;
+                m_dds.fmt.fourCC = DDS_4CC_DXT2;
+            } else if (iequals (cmp, "DXT3")) {
+                m_dds.fmt.flags |= DDS_PF_FOURCC;
+                m_dds.fmt.fourCC = DDS_4CC_DXT3;
+            } else if (iequals (cmp, "DXT4")) {
+                m_dds.fmt.flags |= DDS_PF_FOURCC;
+                m_dds.fmt.fourCC = DDS_4CC_DXT4;
+            } else if (iequals (cmp, "DXT5")) {
+                m_dds.fmt.flags |= DDS_PF_FOURCC;
+                m_dds.fmt.fourCC = DDS_4CC_DXT5;
+            }
+            
+            // skip the header (128 bytes) for now, we'll write it upon closing
+            // we don't know everything until the image data comes
+            int32_t zero = 0;
+            for (uint i = 0; i < 128 / sizeof(zero); ++i)
+                fwrite (&zero, sizeof(zero), 1, m_file);
+            break;
+        }
+        case AppendMIPLevel:
+            // if this is the first MIP level, mark it in the header
+            if (++m_dds.mipmaps == 1) {
+                m_dds.flags |= DDS_MIPMAPCOUNT;
+                m_dds.caps.flags1 |= DDS_CAPS1_COMPLEX | DDS_CAPS1_MIPMAP;
+            }
+            int w, h, d;
+            w = m_dds.width >> m_dds.mipmaps;
+            if (w < 1)
+                w = 1;
+            h = m_dds.height >> m_dds.mipmaps;
+            if (h < 1)
+                h = 1;
+            d = m_dds.depth >> m_dds.mipmaps;
+            if (d < 1)
+                d = 1;
+            if (m_spec.width != w || m_spec.height != h || m_spec.depth != d) {
+                error ("Out of order MIP map %dx%dx%d, expected %dx%dx%d",
+                    m_spec.width, m_spec.height, m_spec.depth, w, h, d);
                 return false;
-        }
-        
-        m_dds.width = m_spec.width;
-        m_dds.height = m_spec.height;
-        
-        std::string textype = m_spec.get_string_attribute ("texturetype", "");
-        std::string texfmt = m_spec.get_string_attribute ("textureformat", "");
-        if (iequals (textype, "Volume Texture")
-            || iequals (texfmt, "Volume Texture")
-            || m_spec.depth > 1) {
-            m_dds.caps.flags1 |= DDS_CAPS1_COMPLEX;
-            m_dds.caps.flags2 |= DDS_CAPS2_VOLUME;
-            m_dds.flags |= DDS_DEPTH;
-        } else if (iequals (textype, "Environment")
-            || iequals (texfmt, "CubeFace Environment")) {
-            m_dds.caps.flags1 |= DDS_CAPS1_COMPLEX;
-            m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP;
-        }
-        
-        std::string cmp = m_spec.get_string_attribute ("compression", "");
-        if (iequals (cmp, "DXT1")) {
-            m_dds.fmt.flags |= DDS_PF_FOURCC;
-            m_dds.fmt.fourCC = DDS_4CC_DXT1;
-        } else if (iequals (cmp, "DXT2")) {
-            m_dds.fmt.flags |= DDS_PF_FOURCC;
-            m_dds.fmt.fourCC = DDS_4CC_DXT2;
-        } else if (iequals (cmp, "DXT3")) {
-            m_dds.fmt.flags |= DDS_PF_FOURCC;
-            m_dds.fmt.fourCC = DDS_4CC_DXT3;
-        } else if (iequals (cmp, "DXT4")) {
-            m_dds.fmt.flags |= DDS_PF_FOURCC;
-            m_dds.fmt.fourCC = DDS_4CC_DXT4;
-        } else if (iequals (cmp, "DXT5")) {
-            m_dds.fmt.flags |= DDS_PF_FOURCC;
-            m_dds.fmt.fourCC = DDS_4CC_DXT5;
-        }
+            }
+            break;
+        case AppendSubimage:
+            error ("%s does not support subimages", format_name());
+            return false;
     }
-    
-    // skip the header (128 bytes) for now, we'll write it upon closing as we
-    // don't know everything until the image data is about to get written
-    int32_t zero = 0;
-    for (int i = 0; i < 32; ++i)
-        fwrite (&zero, sizeof(zero), 1, m_file);
-    
     
     return true;
 }
