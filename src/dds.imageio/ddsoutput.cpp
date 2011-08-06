@@ -53,21 +53,26 @@ public:
     virtual ~DDSOutput ();
     virtual const char * format_name (void) const { return "dds"; }
     virtual bool supports (const std::string &feature) const {
-        // Support nothing nonstandard
-        return false;
+        return iequals (feature, "mipmap") || iequals (feature, "volumes")
+            // FIXME: reenable when we figure out how to solve the cube map conflict!
+            /*|| iequals (feature, "tiles")*/;
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_tile (int x, int y, int z,
+                             TypeDesc format, const void *data,
+                             stride_t xstride, stride_t ystride, stride_t zstride);
 
 private:
     std::string m_filename;           ///< Stash the filename
     FILE *m_file;                     ///< Open image handle
     std::vector<unsigned char> m_scratch;
     dds_header m_dds;
-    int m_side;                       ///< Cube map side index
+    long m_startofs;                  ///< File offset to MIP level start
+    bool m_1x6;                       ///< If true, it's a 1x6 layout cube map
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -117,16 +122,14 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
 
     m_spec = userspec;  // Stash the spec
 
-    m_file = fopen (name.c_str(), "wb");
-    if (! m_file) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
-    }
-
     switch (mode) {
         case Create:
         {
-            m_side = 0;
+            m_file = fopen (name.c_str(), "wb");
+            if (! m_file) {
+                error ("Could not open file \"%s\"", name.c_str());
+                return false;
+            }
             
             // set up the DDS header struct
             memset (&m_dds, 0, sizeof (m_dds));
@@ -169,9 +172,6 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                     return false;
             }
             
-            m_dds.width = m_spec.width;
-            m_dds.height = m_spec.height;
-            
             std::string textype = m_spec.get_string_attribute ("texturetype", "");
             std::string texfmt = m_spec.get_string_attribute ("textureformat", "");
             if (iequals (textype, "Volume Texture")
@@ -180,10 +180,103 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                 m_dds.caps.flags1 |= DDS_CAPS1_COMPLEX;
                 m_dds.caps.flags2 |= DDS_CAPS2_VOLUME;
                 m_dds.flags |= DDS_DEPTH;
+                m_dds.width = m_spec.width;
+                m_dds.height = m_spec.height;
+                m_dds.depth = m_spec.depth;
+                m_startofs = ftell (m_file);
             } else if (iequals (textype, "Environment")
                 || iequals (texfmt, "CubeFace Environment")) {
                 m_dds.caps.flags1 |= DDS_CAPS1_COMPLEX;
                 m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP;
+                m_dds.width = m_spec.full_width;
+                m_dds.height = m_spec.full_height;
+                
+                // find out which cube faces we have here
+                texfmt = m_spec.get_string_attribute ("dds:CubeSides", "");
+                char s = 127; // start out in state of error
+                if (texfmt.length ()) {
+                    s = 0;      // clear error state and parse the string
+                    for (std::string::iterator it = texfmt.begin ();
+                        it != texfmt.end (); ++it) {
+                        if (*it == ' ')
+                            continue;
+                        switch (s) {
+                            case 0:
+                                if (*it == '+')
+                                    s = 1;
+                                else if (*it == '-')
+                                    s = -1;
+                                else
+                                    s = 127; // error
+                                break;
+                            case 1:
+                                if (*it == 'x' || *it == 'X') {
+                                    m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP_POSITIVEX;
+                                    s = 0;
+                                } else if (*it == 'y' || *it == 'Y') {
+                                    m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP_POSITIVEY;
+                                    s = 0;
+                                } else if (*it == 'z' || *it == 'Z') {
+                                    m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP_POSITIVEZ;
+                                    s = 0;
+                                } else
+                                    s = 127; // error
+                                break;
+                            case -1:
+                                if (*it == 'x' || *it == 'X') {
+                                    m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP_NEGATIVEX;
+                                    s = 0;
+                                } else if (*it == 'y' || *it == 'Y') {
+                                    m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP_NEGATIVEY;
+                                    s = 0;
+                                } else if (*it == 'z' || *it == 'Z') {
+                                    m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP_NEGATIVEZ;
+                                    s = 0;
+                                } else
+                                    s = 127; // error
+                                break;
+                        }
+                        if (s == 127) // error
+                            break;
+                    }
+                    // we had a parse error, disregard the flags we found
+                    if (s == 127)
+                        m_dds.caps.flags2 &= ~(DDS_CAPS2_CUBEMAP_POSITIVEX
+                            | DDS_CAPS2_CUBEMAP_POSITIVEY
+                            | DDS_CAPS2_CUBEMAP_POSITIVEZ
+                            | DDS_CAPS2_CUBEMAP_NEGATIVEX
+                            | DDS_CAPS2_CUBEMAP_NEGATIVEY
+                            | DDS_CAPS2_CUBEMAP_NEGATIVEZ);
+                }
+                // detect tile layout
+                int htiles = m_spec.width / m_spec.full_width;
+                int vtiles = m_spec.height / m_spec.full_height;
+                // check for the 1x6 layout
+                if (htiles == 1) {
+                    if (vtiles > 6) {
+                        error ("Invalid tile layout for cube map - 1x%d",
+                                vtiles);
+                        return false;
+                    }
+                    m_1x6 = true;
+                // else check for the 3x2 layout
+                } else if (htiles <= 3 && vtiles == 2)
+                    m_1x6 = false;
+                else {
+                    error ("Invalid tile layout for cube map - %dx%d",
+                            htiles, vtiles);
+                    return false;
+                }
+                if (s == 127) {
+                    // either side availability not specified by client or a
+                    // parsing error, assume first x sides
+                    for (int i = 0; i < htiles * vtiles; ++i)
+                        m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP_POSITIVEX << i;
+                }
+            } else {    // plain texture
+                m_dds.width = m_spec.width;
+                m_dds.height = m_spec.height;
+                m_startofs = ftell (m_file);
             }
             
             std::string cmp = m_spec.get_string_attribute ("compression", "");
@@ -214,20 +307,30 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
         case AppendMIPLevel:
             // if this is the first MIP level, mark it in the header
             if (++m_dds.mipmaps == 1) {
+                // miplevel 1 is the original size image, so increase again
+                ++m_dds.mipmaps;
                 m_dds.flags |= DDS_MIPMAPCOUNT;
                 m_dds.caps.flags1 |= DDS_CAPS1_COMPLEX | DDS_CAPS1_MIPMAP;
             }
-            int w, h, d;
-            w = m_dds.width >> m_dds.mipmaps;
+            unsigned int w, h, d;
+            // calculate new start offset
+            if (!(m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP)) {
+                dds_internal_seek (m_dds, m_file, 0, m_dds.mipmaps,
+                                   m_spec.pixel_bytes (true), w, h, d);
+                m_startofs = ftell (m_file);
+            }
+            // check if the mipmap isn't out of order
+            w = m_dds.width >> (m_dds.mipmaps - 1);
             if (w < 1)
                 w = 1;
-            h = m_dds.height >> m_dds.mipmaps;
+            h = m_dds.height >> (m_dds.mipmaps - 1);
             if (h < 1)
                 h = 1;
-            d = m_dds.depth >> m_dds.mipmaps;
+            d = m_dds.depth >> (m_dds.mipmaps - 1);
             if (d < 1)
                 d = 1;
-            if (m_spec.width != w || m_spec.height != h || m_spec.depth != d) {
+            if (m_spec.width != (int)w || m_spec.height != (int)h
+                || m_spec.depth != (int)d) {
                 error ("Out of order MIP map %dx%dx%d, expected %dx%dx%d",
                     m_spec.width, m_spec.height, m_spec.depth, w, h, d);
                 return false;
@@ -310,6 +413,13 @@ bool
 DDSOutput::write_scanline (int y, int z, TypeDesc format,
                             const void *data, stride_t xstride)
 {
+    // scanline writing is only used for non-cube maps, bail out if the client
+    // attempts to do that for something else
+    if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
+        error ("Cube maps in %s must be written as tiles", format_name ());
+        return false;
+    }
+    
     m_spec.auto_stride (xstride, format, spec().nchannels);
     const void *origdata = data;
     data = to_native_scanline (format, data, xstride, m_scratch);
@@ -319,15 +429,64 @@ DDSOutput::write_scanline (int y, int z, TypeDesc format,
         data = &m_scratch[0];
     }
     
+    fseek (m_file, m_startofs + z * m_dds.height * m_dds.pitch
+        + y * m_dds.pitch, SEEK_SET);
+    
     if (m_dds.fmt.flags & DDS_PF_FOURCC) {
         error ("Compression not yet supported");
         return false;
-    }
-    
-    fseek (m_file, 128 + y * m_dds.pitch, SEEK_SET);
-    fwrite (data, 1, m_dds.pitch, m_file);
+    } else      // uncompressed data
+        fwrite (data, 1, m_dds.pitch, m_file);
 
     return true;
+}
+
+
+
+bool
+DDSOutput::write_tile (int x, int y, int z,
+                       TypeDesc format, const void *data,
+                       stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    // tile writing is only used for cube maps, bail out if the client
+    // attempts to do that for something else
+    if (!(m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP)) {
+        error ("Only cube maps in %s may be written as tiles", format_name ());
+        return false;
+    }
+    
+    m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
+                        spec().tile_width, spec().tile_height);
+    
+    const void *origdata = data;   // Stash original pointer
+    data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
+    if (data == origdata) {
+        m_scratch.assign ((unsigned char *)data,
+                            (unsigned char *)data + m_spec.tile_bytes());
+        data = &m_scratch[0];
+    }
+    
+    // figure out tile index
+    int tx = x / m_spec.full_width;
+    int ty = y / m_spec.full_height;
+    int side;
+    if (m_1x6)
+        side = ty;
+    else
+        side = tx * 2 + ty;
+    
+    unsigned int w, h, d;
+    dds_internal_seek (m_dds, m_file, side, m_dds.mipmaps,
+                       m_spec.pixel_bytes (true), w, h, d);
+    if (w * h * d > 0) {
+        if (m_dds.fmt.flags & DDS_PF_FOURCC) {
+            error ("Compression not yet supported");
+            return false;
+        } else      // uncompressed data
+            fwrite (data, 1, m_spec.tile_bytes (true), m_file);
+    }
+    
+    return false;
 }
 
 OIIO_PLUGIN_NAMESPACE_END

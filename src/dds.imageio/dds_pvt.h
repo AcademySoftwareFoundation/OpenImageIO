@@ -129,6 +129,12 @@ typedef struct {
     dds_caps caps;      ///< DirectDraw Surface caps
 } dds_header;
 
+/// Helper function: performs actual file seeking.
+/// \note There are no sanity checks here, input must be validated independently!
+///
+void dds_internal_seek (dds_header dds, FILE *f, int cubeface, int miplevel,
+                        int Bpp, unsigned int& w, unsigned int& h, unsigned int& d);
+
 
 };  // namespace DDS_pvt
 

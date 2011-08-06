@@ -98,11 +98,6 @@ private:
     ///
     inline void calc_shifts (int mask, int& left, int& right);
 
-    /// Helper function: performs the actual file seeking.
-    ///
-    void internal_seek_subimage (int cubeface, int miplevel, unsigned int& w,
-                                     unsigned int& h, unsigned int& d);
-
     /// Helper function: performs the actual pixel decoding.
     bool internal_readimg (unsigned char *dst, int w, int h, int d);
 
@@ -329,72 +324,6 @@ DDSInput::calc_shifts (int mask, int& left, int& right)
 
 
 
-// NOTE: This function has no sanity checks! It's a private method and relies
-// on the input being correct and valid!
-void
-DDSInput::internal_seek_subimage (int cubeface, int miplevel, unsigned int& w,
-                                 unsigned int& h, unsigned int& d)
-{
-    // early out for cubemaps that don't contain the requested face
-    if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP
-        && !(m_dds.caps.flags2 & (DDS_CAPS2_CUBEMAP_POSITIVEX << cubeface))) {
-        w = h = d = 0;
-        return;
-    }
-    // we can easily calculate the offsets because both compressed and
-    // uncompressed images have predictable length
-    // calculate the offset; start with after the header
-    unsigned int ofs = 128;
-    unsigned int len;
-    // this loop is used to iterate over cube map sides, or run once in the
-    // case of ordinary 2D or 3D images
-    for (int j = 0; j <= cubeface; j++) {
-        w = m_dds.width;
-        h = m_dds.height;
-        d = m_dds.depth;
-        // skip subimages preceding the one we're seeking to
-        // if we have no mipmaps, the modulo formula doesn't work and we
-        // don't skip at all, so just add the offset and continue
-        if (m_dds.mipmaps < 2) {
-            if (j > 0) {
-                if (m_dds.fmt.flags & DDS_PF_FOURCC)
-                    // only check for DXT1 - all other formats have same block
-                    // size
-                    len = squish::GetStorageRequirements(w, h,
-                        m_dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
-                        : squish::kDxt5);
-                else
-                     len = w * h * d * m_Bpp;
-                ofs += len;
-            }
-            continue;
-        }
-        for (int i = 0; i < miplevel; i++) {
-            if (m_dds.fmt.flags & DDS_PF_FOURCC)
-                // only check for DXT1 - all other formats have same block size
-                len = squish::GetStorageRequirements(w, h,
-                    m_dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
-                    : squish::kDxt5);
-            else
-                len = w * h * d * m_Bpp;
-            ofs += len;
-            w >>= 1;
-            if (!w)
-                w = 1;
-            h >>= 1;
-            if (!h)
-                h = 1;
-            d >>= 1;
-            if (!d)
-                d = 1;
-        }
-    }
-    // seek to the offset we've found
-    fseek (m_file, ofs, SEEK_SET);
-}
-
-
-
 bool
 DDSInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 {
@@ -444,7 +373,7 @@ DDSInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         m_spec.tile_height  = m_spec.full_height    = h;
         m_spec.tile_depth   = m_spec.full_depth     = d;
     } else {
-        internal_seek_subimage(0, miplevel, w, h, d);
+        dds_internal_seek (m_dds, m_file, 0, miplevel, m_Bpp, w, h, d);
         // create imagespec
         m_spec = ImageSpec (w, h, m_nchans, TypeDesc::UINT8);
         m_spec.depth = d;
@@ -671,12 +600,12 @@ DDSInput::read_native_tile (int x, int y, int z, void *data)
         lastz = z;
         unsigned int w, h, d;
 #ifdef DDS_3X2_CUBE_MAP_LAYOUT
-        internal_seek_subimage (((x / m_spec.tile_width) << 1)
+        dds_internal_seek (m_dds, m_file, ((x / m_spec.tile_width) << 1)
                                 + y / m_spec.tile_height,
-                                m_miplevel, w, h, d);
+                                m_miplevel, m_Bpp, w, h, d);
 #else   // 1x6 layout
-        internal_seek_subimage (y / m_spec.tile_height,
-                                m_miplevel, w, h, d);
+        dds_internal_seek (m_dds, m_file, y / m_spec.tile_height,
+                                m_miplevel, m_Bpp, w, h, d);
 #endif // DDS_3X2_CUBE_MAP_LAYOUT
         if (!w && !h && !d)
             // face not present in file, black-pad the image
@@ -689,5 +618,71 @@ DDSInput::read_native_tile (int x, int y, int z, void *data)
     return true;
 }
 
-OIIO_PLUGIN_NAMESPACE_END
+// DDS_pvt implementation
+namespace DDS_pvt {
 
+void
+dds_internal_seek (dds_header dds, FILE *f, int cubeface, int miplevel, int Bpp,
+                        unsigned int& w, unsigned int& h, unsigned int& d)
+{
+    // early out for cubemaps that don't contain the requested face
+    if (dds.caps.flags2 & DDS_CAPS2_CUBEMAP
+        && !(dds.caps.flags2 & (DDS_CAPS2_CUBEMAP_POSITIVEX << cubeface))) {
+        w = h = d = 0;
+        return;
+    }
+    // we can easily calculate the offsets because both compressed and
+    // uncompressed images have predictable length
+    // calculate the offset; start with after the header
+    unsigned int ofs = 128;
+    unsigned int len;
+    // this loop is used to iterate over cube map sides, or run once in the
+    // case of ordinary 2D or 3D images
+    for (int j = 0; j <= cubeface; j++) {
+        w = dds.width;
+        h = dds.height;
+        d = dds.depth;
+        // skip subimages preceding the one we're seeking to
+        // if we have no mipmaps, the modulo formula doesn't work and we
+        // don't skip at all, so just add the offset and continue
+        if (dds.mipmaps < 2) {
+            if (j > 0) {
+                if (dds.fmt.flags & DDS_PF_FOURCC)
+                    // only check for DXT1 - all other formats have same block
+                    // size
+                    len = squish::GetStorageRequirements(w, h,
+                        dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
+                        : squish::kDxt5);
+                else
+                     len = w * h * d * Bpp;
+                ofs += len;
+            }
+            continue;
+        }
+        for (int i = 0; i < miplevel; i++) {
+            if (dds.fmt.flags & DDS_PF_FOURCC)
+                // only check for DXT1 - all other formats have same block size
+                len = squish::GetStorageRequirements(w, h,
+                    dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
+                    : squish::kDxt5);
+            else
+                len = w * h * d * Bpp;
+            ofs += len;
+            w >>= 1;
+            if (!w)
+                w = 1;
+            h >>= 1;
+            if (!h)
+                h = 1;
+            d >>= 1;
+            if (!d)
+                d = 1;
+        }
+    }
+    // seek to the offset we've found
+    fseek (f, ofs, SEEK_SET);
+}
+
+}
+
+OIIO_PLUGIN_NAMESPACE_END
