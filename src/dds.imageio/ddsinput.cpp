@@ -641,7 +641,7 @@ dds_internal_seek (dds_header dds, FILE *f, int cubeface, int miplevel, int Bpp,
     for (int j = 0; j <= cubeface; j++) {
         w = dds.width;
         h = dds.height;
-        d = dds.depth;
+        d = std::max(dds.depth, 1U);
         // skip subimages preceding the one we're seeking to
         // if we have no mipmaps, the modulo formula doesn't work and we
         // don't skip at all, so just add the offset and continue
