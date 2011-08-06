@@ -1,6 +1,12 @@
 Changes:
 
 
+Release 0.10.2 (August 6, 2011)
+-------------------------------
+* Improve the performance of ustring constructor when highly multithread.
+* Remove old out-of-date Doxygen html pages.
+
+
 Release 0.10.1 (August 2, 2011)
 -------------------------------
 * Fix TextureSystem::get_texture_info(file,"exists") (and the equivalent for
