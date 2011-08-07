@@ -242,18 +242,6 @@ DDSInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
-    // validate the pixel format
-    // TODO: support DXGI and the "wackier" uncompressed formats
-    if (m_dds.fmt.flags & DDS_PF_FOURCC
-        && m_dds.fmt.fourCC != DDS_4CC_DXT1
-        && m_dds.fmt.fourCC != DDS_4CC_DXT2
-        && m_dds.fmt.fourCC != DDS_4CC_DXT3
-        && m_dds.fmt.fourCC != DDS_4CC_DXT4
-        && m_dds.fmt.fourCC != DDS_4CC_DXT5) {
-        error ("Unsupported compression type");
-        return false;
-    }
-
     // determine the number of channels we have
     if (m_dds.fmt.flags & DDS_PF_FOURCC) {
         // squish decompresses everything to RGBA anyway
@@ -446,6 +434,20 @@ DDSInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 bool
 DDSInput::internal_readimg (unsigned char *dst, int w, int h, int d) {
     if (m_dds.fmt.flags & DDS_PF_FOURCC) {
+        // TODO: support DXGI and the "wackier" uncompressed formats
+        // validate the compression format
+        if (m_dds.fmt.fourCC != DDS_4CC_DXT1
+            && m_dds.fmt.fourCC != DDS_4CC_DXT2
+            && m_dds.fmt.fourCC != DDS_4CC_DXT3
+            && m_dds.fmt.fourCC != DDS_4CC_DXT4
+            && m_dds.fmt.fourCC != DDS_4CC_DXT5) {
+            error ("Unsupported compression type %c%c%c%c",
+                ((char *)&m_dds.fmt.fourCC)[0],
+                ((char *)&m_dds.fmt.fourCC)[1],
+                ((char *)&m_dds.fmt.fourCC)[2],
+                ((char *)&m_dds.fmt.fourCC)[3]);
+            return false;
+        }
         // compressed image
         int flags = 0;
         switch (m_dds.fmt.fourCC) {
