@@ -197,6 +197,8 @@ private:
     TypeDesc m_type_desc;
     std::vector<std::vector<ChannelInfo *> > m_channels;
     std::vector<std::string> m_alpha_names;
+    std::vector<std::string> m_channel_buffers;
+    std::string m_rle_buffer;
 
 	FileHeader m_header;
 	ColorModeData m_color_data;
@@ -259,8 +261,10 @@ private:
     bool load_image_data ();
 
     void set_type_desc ();
-    bool setup_raw ();
-    bool setup_rgba ();
+    void setup ();
+    void fill_channel_names (ImageSpec &spec, bool transparency);
+
+    bool read_channel_row (const ChannelInfo &channel_info, uint32_t row, char *data);
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -282,6 +286,8 @@ private:
     }
 
     int read_pascal_string (std::string &s, uint16_t mod_padding);
+
+    bool decompress_packbits (const char *src, char *dst, uint16_t packed_length, uint16_t unpacked_length);
 
     //These are AdditionalInfo entries that, for PSBs, have an 8-byte length
     static const char *additional_info_psb[];
@@ -447,11 +453,9 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     m_subimage_count = m_layers.size () + 1;
     //Set m_type_desc to the appropriate TypeDesc
     set_type_desc ();
-    if (m_WantRaw)
-        setup_raw ();
-    else
-        setup_rgba ();
-    
+    //Setup ImageSpecs and m_channels
+    setup ();
+
     if (!seek_subimage (0, 0, newspec))
         return false;
 
@@ -497,7 +501,30 @@ PSDInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 bool
 PSDInput::read_native_scanline (int y, int z, void *data)
 {
-    return false;
+    if (y < 0 || y > m_spec.height)
+        return false;
+
+    if (m_channel_buffers.size () < m_channels[m_subimage].size ())
+        m_channel_buffers.resize (m_channels[m_subimage].size ());
+
+    std::vector<ChannelInfo *> &channels = m_channels[m_subimage];
+    for (int c = 0; c < (int)channels.size (); ++c) {
+        std::string &buffer = m_channel_buffers[c];
+        ChannelInfo &channel_info = *channels[c];
+        if (buffer.size () < channel_info.row_length)
+            buffer.resize (channel_info.row_length);
+
+        if (!read_channel_row (channel_info, y, &buffer[0]))
+            return false;
+    }
+    char *dst = (char *)data;
+    for (int i = 0; i < m_spec.width; ++i) {
+        for (int c = 0; c < (int)channels.size (); ++c) {
+            std::string &buffer = m_channel_buffers[c];
+            *dst++ = buffer[i];
+        }
+    }
+    return true;
 }
 
 
@@ -535,8 +562,8 @@ PSDInput::read_header ()
     read_bige<uint16_t> (m_header.version);
     m_file.seekg(6, std::ios::cur);
     read_bige<uint16_t> (m_header.channel_count);
-    read_bige<uint32_t> (m_header.width);
     read_bige<uint32_t> (m_header.height);
+    read_bige<uint32_t> (m_header.width);
     read_bige<uint16_t> (m_header.depth);
     read_bige<uint16_t> (m_header.color_mode);
     return check_io ();
@@ -973,6 +1000,11 @@ PSDInput::load_layers ()
         if (!load_layer (layer))
             return false;
     }
+    for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count; ++layer_nbr) {
+        Layer &layer = m_layers[layer_nbr];
+        if (!load_layer_channels (layer))
+            return false;
+    }
     return true;
 }
 
@@ -1302,54 +1334,100 @@ PSDInput::load_image_data ()
 
 
 
-bool
-PSDInput::setup_raw ()
+void
+PSDInput::setup ()
 {
-    return true;
-}
+    int spec_channel_count = m_WantRaw ? mode_channel_count[m_header.color_mode] : 3;
+    int raw_channel_count = mode_channel_count[m_header.color_mode];
+    if (m_image_data.transparency) {
+        spec_channel_count++;
+        raw_channel_count++;
+    }
 
-
-
-bool
-PSDInput::setup_rgba ()
-{
-    int channel_count = 3;
-    if (m_image_data.transparency)
-        channel_count++;
-
-    m_specs.reserve (m_subimage_count);
-    //Composite specs
+    //Composite spec
     m_specs.push_back (ImageSpec (m_header.width, m_header.height,
-                                  channel_count, m_type_desc));
-    m_specs.back ().extra_attribs = m_composite_attribs.extra_attribs;
+                                  spec_channel_count, m_type_desc));
+    ImageSpec &composite_spec = m_specs.back ();
+    composite_spec.extra_attribs = m_composite_attribs.extra_attribs;
+    if (m_WantRaw)
+        fill_channel_names (composite_spec, m_image_data.transparency);
 
     //Composite channels
     m_channels.reserve (m_subimage_count);
     m_channels.resize (1);
-    m_channels[0].reserve (channel_count);
-    for (int i = 0; i < channel_count; ++i)
+    m_channels[0].reserve (raw_channel_count);
+    for (int i = 0; i < raw_channel_count; ++i)
         m_channels[0].push_back (&m_image_data.channel_info[i]);
 
     BOOST_FOREACH (Layer &layer, m_layers) {
-        channel_count = 3;
+        spec_channel_count = m_WantRaw ? mode_channel_count[m_header.color_mode] : 3;
+        raw_channel_count = mode_channel_count[m_header.color_mode];
         bool transparency = (bool)layer.channel_id_map.count (ChannelID_Transparency);
-        if (transparency)
-            channel_count++;
-
+        if (transparency) {
+            spec_channel_count++;
+            raw_channel_count++;
+        }
         m_specs.push_back (ImageSpec (layer.width, layer.height,
-                                      channel_count, m_type_desc));
-        m_specs.back ().extra_attribs = m_common_attribs.extra_attribs;
+                                      spec_channel_count, m_type_desc));
+        ImageSpec &spec = m_specs.back ();
+        spec.extra_attribs = m_common_attribs.extra_attribs;
+        if (m_WantRaw)
+            fill_channel_names (spec, transparency);
 
         m_channels.resize (m_channels.size () + 1);
         std::vector<ChannelInfo *> &channels = m_channels.back ();
-        channels.reserve (channel_count);
+        channels.reserve (raw_channel_count);
         for (unsigned int i = 0; i < mode_channel_count[m_header.color_mode]; ++i)
             channels.push_back (layer.channel_id_map[i]);
 
         if (transparency)
             channels.push_back (layer.channel_id_map[ChannelID_Transparency]);
     }
-    return true;
+}
+
+
+
+void
+PSDInput::fill_channel_names (ImageSpec &spec, bool transparency)
+{
+    spec.channelnames.clear ();
+    for (unsigned int i = 0; i < mode_channel_count[m_header.color_mode]; ++i)
+        spec.channelnames.push_back (mode_channel_names[m_header.color_mode][i]);
+
+    if (transparency)
+        spec.channelnames.push_back ("A");
+}
+
+
+
+bool
+PSDInput::read_channel_row (const ChannelInfo &channel_info, uint32_t row, char *data)
+{
+    if (row >= channel_info.row_pos.size ())
+        return false;
+
+    uint32_t rle_length;
+    channel_info.row_pos[row];
+    m_file.seekg (channel_info.row_pos[row]);
+    switch (channel_info.compression) {
+        case Compression_Raw:
+            m_file.read (data, channel_info.row_length);
+            break;
+        case Compression_RLE:
+            rle_length = channel_info.rle_lengths[row];
+            if (m_rle_buffer.size () < rle_length)
+                m_rle_buffer.resize (rle_length);
+
+            m_file.read (&m_rle_buffer[0], rle_length);
+            if (!check_io ())
+                return false;
+
+            if (!decompress_packbits (&m_rle_buffer[0], data, rle_length, channel_info.row_length))
+                return false;
+
+            break;
+    }
+    return check_io ();
 }
 
 
@@ -1412,6 +1490,49 @@ PSDInput::read_pascal_string (std::string &s, uint16_t mod_padding)
         }
     }
     return bytes;
+}
+
+
+
+bool
+PSDInput::decompress_packbits (const char *src, char *dst, uint16_t packed_length, uint16_t unpacked_length)
+{
+    int32_t src_remaining = packed_length;
+    int32_t dst_remaining = unpacked_length;
+    int16_t header;
+    int length;
+
+    while (src_remaining > 0 && dst_remaining > 0) {
+        header = *src++;
+        src_remaining--;
+
+        if (header == 128)
+            continue;
+        else if (header >= 0) {
+            // (1 + n) literal bytes
+            length = 1 + header;
+            src_remaining -= length;
+            dst_remaining -= length;
+            if (src_remaining < 0 || dst_remaining < 0)
+                return false;
+
+            std::memcpy (dst, src, length);
+            src += length;
+            dst += length;
+        } else {
+            // repeat byte (1 - n) times
+            length = 1 - header;
+            src_remaining--;
+            dst_remaining -= length;
+            if (src_remaining < 0 || dst_remaining < 0)
+                return false;
+
+            std::memset (dst, *src, length);
+            src++;
+            dst += length;
+        }
+    }
+    return true;
 }
 
 
