@@ -266,6 +266,10 @@ private:
 
     bool read_channel_row (const ChannelInfo &channel_info, uint32_t row, char *data);
 
+    //Interleave channels (RRR GGG BBB -> RGBRGBRGB).
+    //Uses m_channel_buffers and writes output to dst.
+    void interleave_row (char *dst);
+
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
 
@@ -518,12 +522,7 @@ PSDInput::read_native_scanline (int y, int z, void *data)
             return false;
     }
     char *dst = (char *)data;
-    for (int i = 0; i < m_spec.width; ++i) {
-        for (int c = 0; c < (int)channels.size (); ++c) {
-            std::string &buffer = m_channel_buffers[c];
-            *dst++ = buffer[i];
-        }
-    }
+    interleave_row (dst);
     return true;
 }
 
@@ -1427,7 +1426,38 @@ PSDInput::read_channel_row (const ChannelInfo &channel_info, uint32_t row, char 
 
             break;
     }
-    return check_io ();
+    if (!check_io ())
+        return false;
+
+    if (!bigendian ()) {
+        switch (m_header.depth) {
+            case 16:
+                swap_endian ((uint16_t *)data, m_spec.width);
+                break;
+            case 32:
+                swap_endian ((uint32_t *)data, m_spec.width);
+                break;
+        }
+    }
+    return true;
+}
+
+
+
+void
+PSDInput::interleave_row (char *dst)
+{
+    //bytes per sample
+    int bps = (m_header.depth + 7) / 8;
+    int width = m_spec.width;
+    std::vector<ChannelInfo *> &channels = m_channels[m_subimage];
+    for (int x = 0; x < width; ++x) {
+        for (unsigned int c = 0; c < channels.size (); ++c) {
+            std::string &buffer = m_channel_buffers[c];
+            std::memcpy (dst, &buffer[x * bps], bps);
+            dst += bps;
+        }
+    }
 }
 
 
