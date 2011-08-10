@@ -269,6 +269,9 @@ private:
     //Interleave channels (RRR GGG BBB -> RGBRGBRGB).
     //Uses m_channel_buffers and writes output to dst.
     void interleave_row (char *dst);
+    
+    bool convert_to_rgb (char *dst);
+    bool indexed_to_rgb (char *dst);
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -512,7 +515,8 @@ PSDInput::read_native_scanline (int y, int z, void *data)
         m_channel_buffers.resize (m_channels[m_subimage].size ());
 
     std::vector<ChannelInfo *> &channels = m_channels[m_subimage];
-    for (int c = 0; c < (int)channels.size (); ++c) {
+    int channel_count = (int)channels.size ();
+    for (int c = 0; c < channel_count; ++c) {
         std::string &buffer = m_channel_buffers[c];
         ChannelInfo &channel_info = *channels[c];
         if (buffer.size () < channel_info.row_length)
@@ -522,7 +526,12 @@ PSDInput::read_native_scanline (int y, int z, void *data)
             return false;
     }
     char *dst = (char *)data;
-    interleave_row (dst);
+    if (m_WantRaw || m_header.color_mode == ColorMode_RGB)
+        interleave_row (dst);
+    else {
+        if (!convert_to_rgb (dst))
+            return false;
+    }
     return true;
 }
 
@@ -541,6 +550,8 @@ PSDInput::init ()
 	m_image_data.channel_info.clear ();
 	m_channels.clear ();
 	m_alpha_names.clear ();
+	m_channel_buffers.clear ();
+	m_rle_buffer.clear ();
 }
 
 
@@ -649,8 +660,10 @@ PSDInput::load_color_data ()
     if (!validate_color_data ())
         return false;
 
-    m_color_data.data.resize (m_color_data.length);
-    m_file.read (&m_color_data.data[0], m_color_data.length);
+    if (m_color_data.length) {
+        m_color_data.data.resize (m_color_data.length);
+        m_file.read (&m_color_data.data[0], m_color_data.length);
+    }
     return check_io ();
 }
 
@@ -1451,13 +1464,42 @@ PSDInput::interleave_row (char *dst)
     int bps = (m_header.depth + 7) / 8;
     int width = m_spec.width;
     std::vector<ChannelInfo *> &channels = m_channels[m_subimage];
+    std::size_t channel_count = channels.size ();
     for (int x = 0; x < width; ++x) {
-        for (unsigned int c = 0; c < channels.size (); ++c) {
+        for (unsigned int c = 0; c < channel_count; ++c) {
             std::string &buffer = m_channel_buffers[c];
             std::memcpy (dst, &buffer[x * bps], bps);
             dst += bps;
         }
     }
+}
+
+
+
+bool
+PSDInput::convert_to_rgb (char *dst)
+{
+    switch (m_header.color_mode) {
+        case ColorMode_Indexed:
+            return indexed_to_rgb (dst);
+    }
+    return false;
+}
+
+
+
+bool
+PSDInput::indexed_to_rgb (char *dst)
+{
+    char *src = &m_channel_buffers[0][0];
+    char *table = &m_color_data.data[0];
+    for (int i = 0; i < m_spec.width; ++i) {
+        unsigned char index = *src++;
+        *dst++ = table[index];          //R
+        *dst++ = table[index + 256];    //G
+        *dst++ = table[index + 512];    //B
+    }
+    return true;
 }
 
 
