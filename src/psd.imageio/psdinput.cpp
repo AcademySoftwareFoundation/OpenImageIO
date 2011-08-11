@@ -636,16 +636,16 @@ PSDInput::validate_header ()
     //There are other (undocumented) color modes not listed here
     switch (m_header.color_mode) {
         case ColorMode_Bitmap :
-        case ColorMode_Grayscale :
         case ColorMode_Indexed :
         case ColorMode_RGB :
+            break;
+        case ColorMode_Grayscale :
         case ColorMode_CMYK :
         case ColorMode_Multichannel :
         case ColorMode_Duotone :
         case ColorMode_Lab :
-            //FIXME For testing purposes, we'll pretend we support these
-            //error ("[Header] unsupported color mode");
-            return true;
+            error ("[Header] unsupported color mode");
+            return false;
             break;
         default:
             error ("[Header] unrecognized color mode");
