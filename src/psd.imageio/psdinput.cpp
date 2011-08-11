@@ -199,6 +199,7 @@ private:
     std::vector<std::string> m_alpha_names;
     std::vector<std::string> m_channel_buffers;
     std::string m_rle_buffer;
+    int16_t m_transparency_index;
 
 	FileHeader m_header;
 	ColorModeData m_color_data;
@@ -243,6 +244,8 @@ private:
     };
     METHODDEF (void)
     thumbnail_error_exit (j_common_ptr cinfo);
+    //Transparency index (Indexed color mode)
+    bool load_resource_1047 (uint32_t length);
 
     //Layers
     bool load_layers ();
@@ -267,11 +270,11 @@ private:
     bool read_channel_row (const ChannelInfo &channel_info, uint32_t row, char *data);
 
     //Interleave channels (RRR GGG BBB -> RGBRGBRGB).
-    //Uses m_channel_buffers and writes output to dst.
     void interleave_row (char *dst);
     
     bool convert_to_rgb (char *dst);
     bool indexed_to_rgb (char *dst);
+    bool bitmap_to_rgb (char *dst);
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -352,7 +355,8 @@ const PSDInput::ResourceLoader PSDInput::resource_loaders[] =
     ADD_LOADER(1064),
     ADD_LOADER(1005),
     ADD_LOADER(1033),
-    ADD_LOADER(1036)
+    ADD_LOADER(1036),
+    ADD_LOADER(1047)
 };
 #undef ADD_LOADER
 
@@ -548,10 +552,12 @@ PSDInput::init ()
 	m_WantRaw = false;
 	m_layers.clear ();
 	m_image_data.channel_info.clear ();
+	m_image_data.transparency = false;
 	m_channels.clear ();
 	m_alpha_names.clear ();
 	m_channel_buffers.clear ();
 	m_rle_buffer.clear ();
+	m_transparency_index = -1;
 }
 
 
@@ -968,6 +974,19 @@ PSDInput::thumbnail_error_exit (j_common_ptr cinfo)
 
 
 bool
+PSDInput::load_resource_1047 (uint32_t length)
+{
+    read_bige<int16_t> (m_transparency_index);
+    if (m_transparency_index < 0 || m_transparency_index >= 768) {
+        error ("[Image Resource] [Transparency Index] index is out of range");
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
 PSDInput::load_layers ()
 {
     if (m_header.version == 1)
@@ -1003,9 +1022,6 @@ PSDInput::load_layers ()
         m_image_data.transparency = true;
         layer_info.layer_count = -layer_info.layer_count;
     }
-    else
-        m_image_data.transparency = false;
-
     m_layers.resize (layer_info.layer_count);
     for (int16_t layer_nbr = 0; layer_nbr < layer_info.layer_count; ++layer_nbr) {
         Layer &layer = m_layers[layer_nbr];
@@ -1355,6 +1371,8 @@ PSDInput::setup ()
         spec_channel_count++;
         raw_channel_count++;
     }
+    else if (m_header.color_mode == ColorMode_Indexed && m_transparency_index)
+        spec_channel_count++;
 
     //Composite spec
     m_specs.push_back (ImageSpec (m_header.width, m_header.height,
@@ -1463,8 +1481,7 @@ PSDInput::interleave_row (char *dst)
     //bytes per sample
     int bps = (m_header.depth + 7) / 8;
     int width = m_spec.width;
-    std::vector<ChannelInfo *> &channels = m_channels[m_subimage];
-    std::size_t channel_count = channels.size ();
+    std::size_t channel_count = m_channels[m_subimage].size ();
     for (int x = 0; x < width; ++x) {
         for (unsigned int c = 0; c < channel_count; ++c) {
             std::string &buffer = m_channel_buffers[c];
@@ -1482,6 +1499,8 @@ PSDInput::convert_to_rgb (char *dst)
     switch (m_header.color_mode) {
         case ColorMode_Indexed:
             return indexed_to_rgb (dst);
+        case ColorMode_Bitmap:
+            return bitmap_to_rgb (dst);
     }
     return false;
 }
@@ -1491,13 +1510,49 @@ PSDInput::convert_to_rgb (char *dst)
 bool
 PSDInput::indexed_to_rgb (char *dst)
 {
-    char *src = &m_channel_buffers[0][0];
+    char *src = &m_channel_buffers[m_subimage][0];
     char *table = &m_color_data.data[0];
+    if (m_transparency_index >= 0) {
+        for (int i = 0; i < m_spec.width; ++i) {
+            unsigned char index = *src++;
+            if (index == m_transparency_index) {
+                std::memset (dst, 0, 4);
+                dst += 4;
+                continue;
+            }
+            *dst++ = table[index];          //R
+            *dst++ = table[index + 256];    //G
+            *dst++ = table[index + 512];    //B
+            *dst++ = 0xff;                  //A
+        }
+    } else {
+        for (int i = 0; i < m_spec.width; ++i) {
+            unsigned char index = *src++;
+            *dst++ = table[index];          //R
+            *dst++ = table[index + 256];    //G
+            *dst++ = table[index + 512];    //B
+        }
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::bitmap_to_rgb (char *dst)
+{
     for (int i = 0; i < m_spec.width; ++i) {
-        unsigned char index = *src++;
-        *dst++ = table[index];          //R
-        *dst++ = table[index + 256];    //G
-        *dst++ = table[index + 512];    //B
+        int byte = i / 8;
+        int bit = 7 - i % 8;
+        char result;
+        char *src = &m_channel_buffers[m_subimage][byte];
+        if (*src & (1 << bit))
+            result = 0;
+        else
+            result = 0xff;
+
+        std::memset (dst, result, 3);
+        dst += 3;
     }
     return true;
 }
