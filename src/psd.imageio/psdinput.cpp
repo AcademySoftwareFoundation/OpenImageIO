@@ -50,8 +50,8 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool open (const std::string &name, ImageSpec &newspec, const ImageSpec &config);
     virtual bool close ();
-	virtual int current_subimage () const { return m_subimage; }
-	virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
+    virtual int current_subimage () const { return m_subimage; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
     virtual bool read_native_scanline (int y, int z, void *data);
 
 private:
@@ -180,6 +180,9 @@ private:
 
     struct ImageDataSection {
         std::vector<ChannelInfo> channel_info;
+        //When the layer count is negative, this is true and indicates that
+        //the first alpha channel should be used as transparency (for the
+        //merged image)
         bool transparency;
     };
 
@@ -191,14 +194,24 @@ private:
 	int m_subimage_count;
 	std::vector<ImageSpec> m_specs;
     static const ResourceLoader resource_loaders[];
+    //This holds the attributes for the merged image (subimage 0)
     ImageSpec m_composite_attribs;
+    //This holds common attributes that apply to all subimages
     ImageSpec m_common_attribs;
+    //psd:RawData config option, indicates that the user wants the raw,
+    //unconverted channel data
     bool m_WantRaw;
     TypeDesc m_type_desc;
+    //This holds all the ChannelInfos for all subimages
+    //Example: m_channels[subimg][channel]
     std::vector<std::vector<ChannelInfo *> > m_channels;
+    //Alpha Channel Names, not currently used
     std::vector<std::string> m_alpha_names;
+    //Buffers for channel data
     std::vector<std::string> m_channel_buffers;
+    //Buffer for RLE conversion
     std::string m_rle_buffer;
+    //Index of the transparent color, if any (for Indexed color mode only)
     int16_t m_transparency_index;
 
 	FileHeader m_header;
@@ -259,19 +272,22 @@ private:
 
     //Global Additional Layer Info
     bool load_global_additional ();
-    
+
     //Image Data Section
     bool load_image_data ();
 
     void set_type_desc ();
+    //Setup m_specs and m_channels
     void setup ();
     void fill_channel_names (ImageSpec &spec, bool transparency);
 
+    //Read a row of channel data
     bool read_channel_row (const ChannelInfo &channel_info, uint32_t row, char *data);
 
     //Interleave channels (RRR GGG BBB -> RGBRGBRGB).
     void interleave_row (char *dst);
-    
+
+    //Convert the channel data to RGB
     bool convert_to_rgb (char *dst);
     bool indexed_to_rgb (char *dst);
     bool bitmap_to_rgb (char *dst);
@@ -571,6 +587,8 @@ PSDInput::load_header ()
     return true;
 }
 
+
+
 bool
 PSDInput::read_header ()
 {
@@ -633,6 +651,9 @@ PSDInput::validate_header ()
         error ("[Header] invalid depth");
         return false;
     }
+    if (m_WantRaw)
+        return true;
+
     //There are other (undocumented) color modes not listed here
     switch (m_header.color_mode) {
         case ColorMode_Bitmap :
@@ -646,7 +667,6 @@ PSDInput::validate_header ()
         case ColorMode_Lab :
             error ("[Header] unsupported color mode");
             return false;
-            break;
         default:
             error ("[Header] unrecognized color mode");
             return false;
@@ -1511,6 +1531,7 @@ bool
 PSDInput::indexed_to_rgb (char *dst)
 {
     char *src = &m_channel_buffers[m_subimage][0];
+    //The color table is 768 bytes which is 256 * 3 channels (always RGB)
     char *table = &m_color_data.data[0];
     if (m_transparency_index >= 0) {
         for (int i = 0; i < m_spec.width; ++i) {
@@ -1675,4 +1696,3 @@ PSDInput::is_additional_info_psb (const char *key)
 }
 
 OIIO_PLUGIN_NAMESPACE_END
-
