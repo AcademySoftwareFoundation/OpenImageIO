@@ -54,7 +54,7 @@
 						EmptyFloat((x)[1]))
 
 
-
+namespace cineon {
 
 char Hex(char x)
 {
@@ -632,5 +632,5 @@ cineon::U32 cineon::Header::Width() const
 	return w;
 }
 
-
+}
 
