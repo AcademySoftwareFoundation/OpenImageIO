@@ -63,9 +63,10 @@ public:
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
-    virtual bool write_tile (int x, int y, int z,
+    // FIXME: reenable
+    /*virtual bool write_tile (int x, int y, int z,
                              TypeDesc format, const void *data,
-                             stride_t xstride, stride_t ystride, stride_t zstride);
+                             stride_t xstride, stride_t ystride, stride_t zstride);*/
 
 private:
     std::string m_filename;           ///< Stash the filename
@@ -77,6 +78,7 @@ private:
     long m_startofs;                  ///< File offset to MIP level start
     bool m_1x6;                       ///< If true, it's a 1x6 layout cube map
     int m_cmpflags;                   ///< libsquish flags, derived from CompressionQuality
+    int m_cubesides;                  ///< number of cube faces in file
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -88,6 +90,11 @@ private:
     /// Helper function: compress and flush a buffered image
     ///
     bool flush_compressed (void);
+    
+    /// Helper function: calculate the offset of a cube face scanline within the
+    /// entire image
+    ///
+    inline int get_side_scanline_ofs (int side, int y, int w, int h);
 };
 
 
@@ -140,6 +147,8 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                 error ("Could not open file \"%s\"", name.c_str());
                 return false;
             }
+            
+            m_cubesides = 0;
             
             // set up the DDS header struct
             memset (&m_dds, 0, sizeof (m_dds));
@@ -245,17 +254,21 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                                     s = 127; // error
                                 break;
                         }
-                        if (s == 127) // error
+                        if (s == 0) // we've found a new faces
+                            ++m_cubesides;
+                        else if (s == 127) // error
                             break;
                     }
                     // we had a parse error, disregard the flags we found
-                    if (s == 127)
+                    if (s == 127) {
                         m_dds.caps.flags2 &= ~(DDS_CAPS2_CUBEMAP_POSITIVEX
                             | DDS_CAPS2_CUBEMAP_POSITIVEY
                             | DDS_CAPS2_CUBEMAP_POSITIVEZ
                             | DDS_CAPS2_CUBEMAP_NEGATIVEX
                             | DDS_CAPS2_CUBEMAP_NEGATIVEY
                             | DDS_CAPS2_CUBEMAP_NEGATIVEZ);
+                        m_cubesides = 0;
+                    }
                 }
                 // detect tile layout
                 int htiles = m_spec.width / m_spec.full_width;
@@ -281,6 +294,7 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                     // parsing error, assume first x sides
                     for (int i = 0; i < htiles * vtiles; ++i)
                         m_dds.caps.flags2 |= DDS_CAPS2_CUBEMAP_POSITIVEX << i;
+                    m_cubesides = htiles * vtiles;
                 }
             } else {    // plain texture
                 m_dds.width = m_spec.width;
@@ -320,7 +334,7 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                 // replace pitch flag with linear size
                 m_dds.flags = (m_dds.flags | DDS_LINEARSIZE) & ~DDS_PITCH;
                 // for cube maps calculate storage requirements for a single face
-                if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP)
+                if (m_cubesides > 0)
                     m_dds.pitch = squish::GetStorageRequirements (m_spec.full_width,
                         m_spec.full_height, flag);
                 else
@@ -328,9 +342,10 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                         m_dds.height, flag);
                 // force UINT8 because that's what libsquish requires
                 m_spec.format = TypeDesc::UINT8;
-                m_rawbuf.resize (m_spec.nchannels == 4
-                    ? (m_spec.image_bytes (true))
-                    : (m_spec.width * m_spec.height * 4));
+                m_rawbuf.resize ((m_spec.nchannels == 4
+                        ? (m_spec.image_bytes (true))
+                        : (m_spec.width * m_spec.height * 4))
+                    * std::max(m_cubesides, 1));
                 m_cmpbuf.resize (m_dds.pitch);
                 
                 // determine compression flags
@@ -355,7 +370,9 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                         " meet compression criteria", cmp);
                     return false;
                 }*/
-                m_dds.pitch = m_spec.scanline_bytes (true);
+                m_dds.pitch = m_cubesides > 0
+                    ? m_dds.width * m_spec.pixel_bytes (true)
+                    : m_spec.scanline_bytes (true);
             }
             
             // skip the header (128 bytes) for now, we'll write it upon closing
@@ -379,15 +396,15 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
             }
             unsigned int w, h, d;
             // calculate new start offset
-            if (!(m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP)) {
+            if (m_cubesides <= 0) {
                 dds_internal_seek (m_dds, m_file, 0, m_dds.mipmaps - 1,
                                    m_spec.pixel_bytes (true), w, h, d);
                 m_startofs = ftell (m_file);
                 // if file is compressed, resize buffers accordingly
                 if (m_dds.fmt.flags & DDS_PF_FOURCC) {
                     m_rawbuf.resize (m_spec.nchannels == 4
-                        ? (m_spec.image_bytes (true))
-                        : (m_spec.width * m_spec.height * 4));
+                            ? (m_spec.image_bytes (true))
+                            : (m_spec.width * m_spec.height * 4));
                     m_cmpbuf.resize (squish::GetStorageRequirements(w, h,
                         m_dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
                         : squish::kDxt5));
@@ -402,7 +419,18 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
                 d = m_dds.depth >> (m_dds.mipmaps - 1);
                 if (d < 1)
                     d = 1;
+                // if file is compressed, resize buffers accordingly
+                if (m_dds.fmt.flags & DDS_PF_FOURCC) {
+                    m_rawbuf.resize ((m_spec.nchannels == 4
+                            ? (m_spec.image_bytes (true))
+                            : (m_spec.width * m_spec.height * 4))
+                        * m_cubesides);
+                    m_cmpbuf.resize (squish::GetStorageRequirements(w, h,
+                        m_dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
+                        : squish::kDxt5));
+                }
             }
+                
             // check if the mipmap isn't out of order
             if (m_spec.width != (int)w || m_spec.height != (int)h
                 || m_spec.depth != (int)d) {
@@ -493,13 +521,6 @@ bool
 DDSOutput::write_scanline (int y, int z, TypeDesc format,
                             const void *data, stride_t xstride)
 {
-    // scanline writing is only used for non-cube maps, bail out if the client
-    // attempts to do that for something else
-    if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
-        error ("Cube maps in %s must be written as tiles", format_name ());
-        return false;
-    }
-    
     m_spec.auto_stride (xstride, format, spec().nchannels);
     const void *origdata = data;
     data = to_native_scanline (format, data, xstride, m_scratch);
@@ -509,24 +530,91 @@ DDSOutput::write_scanline (int y, int z, TypeDesc format,
         data = &m_scratch[0];
     }
     
+    // for compressed images, we need to buffer raw incoming data, since
+    // libsquish compresses 4x4 pixel blocks, which we obviously can't provide
+    // when data is input scanline-by-scanline
     if (m_dds.fmt.flags & DDS_PF_FOURCC) {
-        if (m_spec.nchannels == 4)
+        if (m_spec.nchannels == 4) {
             // fast path - just copy through
-            memcpy (&m_rawbuf[(z * m_dds.height + y) * m_spec.scanline_bytes (true)],
-                data, m_spec.scanline_bytes (true));
-        else {
+            if (m_cubesides > 0) {
+                if (m_1x6) // the 1x6 layout needs nothing fancy
+                    memcpy(&m_rawbuf[y * m_spec.scanline_bytes (true)],
+                        data, m_spec.scanline_bytes (true));
+                else {  // the 3x2 needs additional horizontal offsetting
+                    int fslb = m_spec.full_width * m_spec.pixel_bytes (true);
+                    for (int i = y / m_spec.full_height; y < m_cubesides; i += 2) {
+                        memcpy (&m_rawbuf[i * m_spec.full_height
+                                * m_spec.full_width * 4 + y * fslb],
+                            (unsigned char *)data + i / 2 * fslb, fslb);
+                    }
+                }
+            } else
+                memcpy (&m_rawbuf[(z * m_spec.height + y)
+                        * m_spec.scanline_bytes (true)],
+                    data, m_spec.scanline_bytes (true));
+        } else {
             // need to interleave with opaque alpha
-            for (int i = 0; i < m_spec.width; ++i) {
-                int k = ((z * m_dds.height + y) * m_dds.width + i) * 4;
-                m_rawbuf[k + 0] = ((unsigned char *)data)[i * 3 + 0];
-                m_rawbuf[k + 1] = ((unsigned char *)data)[i * 3 + 1];
-                m_rawbuf[k + 2] = ((unsigned char *)data)[i * 3 + 2];
-                m_rawbuf[k + 3] = 255;
+            if (m_cubesides > 0) {
+                if (m_1x6)
+                    for (int i = 0; i < m_spec.full_width; ++i) {
+                        int k = y * m_spec.scanline_bytes (true) + i * 4;
+                        int l = i * 3;
+                        m_rawbuf[k + 0] = ((unsigned char *)data)[l + 0];
+                        m_rawbuf[k + 1] = ((unsigned char *)data)[l + 1];
+                        m_rawbuf[k + 2] = ((unsigned char *)data)[l + 2];
+                        m_rawbuf[k + 3] = 255;
+                    }
+                else {
+                    for (int i = y / m_spec.full_height; y < m_cubesides; i += 2) {
+                        for (int j = 0; j < m_spec.full_width; ++j) {
+                            int k = (i * m_spec.full_width * m_spec.full_height
+                                + j) * 4;
+                            int l = i/ 2 * m_spec.full_width
+                                * m_spec.pixel_bytes (true) + j * 3;
+                            m_rawbuf[k + 0] = ((unsigned char *)data)[l + 0];
+                            m_rawbuf[k + 1] = ((unsigned char *)data)[l + 1];
+                            m_rawbuf[k + 2] = ((unsigned char *)data)[l + 2];
+                            m_rawbuf[k + 3] = 255;
+                        }
+                    }
+                }
+            } else {
+                for (int i = 0; i < m_spec.width; ++i) {
+                    int k = ((z * m_dds.height + y) * m_dds.width + i) * 4;
+                    int l = i * 3;
+                    m_rawbuf[k + 0] = ((unsigned char *)data)[l + 0];
+                    m_rawbuf[k + 1] = ((unsigned char *)data)[l + 1];
+                    m_rawbuf[k + 2] = ((unsigned char *)data)[l + 2];
+                    m_rawbuf[k + 3] = 255;
+                }
             }
         }
     } else {     // uncompressed data
-        fseek (m_file, m_startofs + (z * m_dds.height + y) * m_dds.pitch, SEEK_SET);
-        fwrite (data, 1, m_dds.pitch, m_file);
+        if (m_cubesides > 0) {
+            unsigned int w, h, d;
+            if (m_1x6) {
+                dds_internal_seek (m_dds, m_file, y / m_spec.full_height,
+                                   m_dds.mipmaps - 1, m_spec.pixel_bytes (true),
+                                   w, h, d);
+                fseek (m_file, y % m_spec.full_height * m_spec.full_width
+                    * m_spec.pixel_bytes (true), SEEK_CUR);
+                fwrite (data, 1, m_dds.pitch, m_file);
+            } else {
+                for (int i = y / m_spec.full_height; y < m_cubesides; i += 2) {
+                    dds_internal_seek (m_dds, m_file, i, m_dds.mipmaps - 1,
+                                       m_spec.pixel_bytes (true), w, h, d);
+                    fseek (m_file, y % m_spec.full_height * m_spec.full_width
+                        * m_spec.pixel_bytes (true), SEEK_CUR);
+                    fwrite ((unsigned char *)data + i / 2 * m_spec.full_width
+                        * m_spec.pixel_bytes (true), 1, m_spec.full_width
+                        * m_spec.pixel_bytes (true), m_file);
+                }
+            }
+        } else {
+            fseek (m_file, m_startofs + (z * m_dds.height + y) * m_dds.pitch,
+                SEEK_SET);
+            fwrite (data, 1, m_dds.pitch, m_file);
+        }
     }
 
     return true;
@@ -534,14 +622,15 @@ DDSOutput::write_scanline (int y, int z, TypeDesc format,
 
 
 
-bool
+// FIXME: reenable when there's consent as to how to treat this
+/*bool
 DDSOutput::write_tile (int x, int y, int z,
                        TypeDesc format, const void *data,
                        stride_t xstride, stride_t ystride, stride_t zstride)
 {
     // tile writing is only used for cube maps, bail out if the client
     // attempts to do that for something else
-    if (!(m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP)) {
+    if (m_cubesides == 0) {
         error ("Only cube maps in %s may be written as tiles", format_name ());
         return false;
     }
@@ -578,29 +667,34 @@ DDSOutput::write_tile (int x, int y, int z,
     }
     
     return true;
-}
+}*/
 
 
 
 bool
 DDSOutput::flush_compressed (void)
 {
-    if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
-        
+    if (m_cubesides > 0) {
+        for (int i = 0; i < m_cubesides; ++i) {
+            unsigned int w, h, d;
+            dds_internal_seek (m_dds, m_file, i, m_dds.mipmaps - 1, 0, w, h, d);            
+            squish::CompressImage(&m_rawbuf[i * w * h * 4], w, h, &m_cmpbuf[0],
+                m_cmpflags);
+            if (!fwrite (&m_cmpbuf[0], 1, m_cmpbuf.size (), m_file))
+                return false;
+        }
     } else {
         // make sure we have the correct dimensions, because spec already has
         // the next mip level information
         unsigned int w, h;
         w = m_dds.width;
         h = m_dds.height;
-        for (int i = 0; i < (int)m_dds.mipmaps - 1; ++i) {
-            w >>= 1;
-            if (w < 1)
-                w = 1;
-            h >>= 1;
-            if (h < 1)
-                h = 1;
-        }
+        w >>= (m_dds.mipmaps - 1);
+        if (w < 1)
+            w = 1;
+        h >>= (m_dds.mipmaps - 1);
+        if (h < 1)
+            h = 1;
         squish::CompressImage(&m_rawbuf[0], w, h, &m_cmpbuf[0], m_cmpflags);
         fseek (m_file, m_startofs, SEEK_SET);
         if (!fwrite (&m_cmpbuf[0], 1, m_cmpbuf.size (), m_file))
@@ -609,6 +703,17 @@ DDSOutput::flush_compressed (void)
     m_rawbuf.clear ();
     m_cmpbuf.clear ();
     return true;
+}
+
+
+
+inline int
+DDSOutput::get_side_scanline_ofs (int side, int y, int w, int h)
+{
+    if (m_1x6)
+        return (side * h + y) * m_spec.scanline_bytes (true);
+    return ((side % 2) * h + y) * m_spec.scanline_bytes (true)
+        + side / 2 * w * m_spec.pixel_bytes (true);
 }
 
 OIIO_PLUGIN_NAMESPACE_END
