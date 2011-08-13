@@ -43,6 +43,7 @@
 #include <limits>
 #include <cmath>
 #include <cstddef>
+#include <iostream>
 
 #include "export.h"
 #include "version.h"
@@ -126,6 +127,10 @@ struct DLLPUBLIC TypeDesc {
     /// Return the name, for printing and whatnot.  For example,
     /// "float", "int[5]", "normal"
     const char *c_str() const;
+
+    friend std::ostream& operator<< (std::ostream& o, TypeDesc t) {
+        o << t.c_str();  return o;
+    }
 
     /// Return the number of elements: 1 if not an array, or the array
     /// length.
