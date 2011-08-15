@@ -189,10 +189,10 @@ private:
     std::string m_filename;
     std::ifstream m_file;
     //Current subimage
-	int m_subimage;
-	//Subimage count (1 + layer count)
-	int m_subimage_count;
-	std::vector<ImageSpec> m_specs;
+    int m_subimage;
+    //Subimage count (1 + layer count)
+    int m_subimage_count;
+    std::vector<ImageSpec> m_specs;
     static const ResourceLoader resource_loaders[];
     //This holds the attributes for the merged image (subimage 0)
     ImageSpec m_composite_attribs;
@@ -214,8 +214,8 @@ private:
     //Index of the transparent color, if any (for Indexed color mode only)
     int16_t m_transparency_index;
 
-	FileHeader m_header;
-	ColorModeData m_color_data;
+    FileHeader m_header;
+    ColorModeData m_color_data;
     LayerMaskInfo m_layer_mask_info;
     std::vector<Layer> m_layers;
     GlobalMaskInfo m_global_mask_info;
@@ -530,7 +530,7 @@ PSDInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     m_subimage = subimage;
     newspec = m_spec = m_specs[subimage];
-	return true;
+    return true;
 }
 
 
@@ -572,18 +572,18 @@ PSDInput::init ()
 {
     m_filename.clear ();
     m_file.close ();
-	m_subimage = -1;
-	m_subimage_count = 0;
-	m_specs.clear ();
-	m_WantRaw = false;
-	m_layers.clear ();
-	m_image_data.channel_info.clear ();
-	m_image_data.transparency = false;
-	m_channels.clear ();
-	m_alpha_names.clear ();
-	m_channel_buffers.clear ();
-	m_rle_buffer.clear ();
-	m_transparency_index = -1;
+    m_subimage = -1;
+    m_subimage_count = 0;
+    m_specs.clear ();
+    m_WantRaw = false;
+    m_layers.clear ();
+    m_image_data.channel_info.clear ();
+    m_image_data.transparency = false;
+    m_channels.clear ();
+    m_alpha_names.clear ();
+    m_channel_buffers.clear ();
+    m_rle_buffer.clear ();
+    m_transparency_index = -1;
 }
 
 
