@@ -286,13 +286,19 @@ private:
     //Read a row of channel data
     bool read_channel_row (const ChannelInfo &channel_info, uint32_t row, char *data);
 
-    //Interleave channels (RRR GGG BBB -> RGBRGBRGB).
+    //Interleave channels (RRRGGGBBB -> RGBRGBRGB).
     void interleave_row (char *dst);
 
     //Convert the channel data to RGB
     bool convert_to_rgb (char *dst);
     bool indexed_to_rgb (char *dst);
     bool bitmap_to_rgb (char *dst);
+    //To add support for other color modes (to be converted to RGB):
+    //-Add a function <colormode>_to_rgb (char *dst) that uses the raw channel
+    // data in m_channel_buffers[m_subimage] (size is m_spec.nchannels) and
+    // store the RGB data in dst
+    //-Modify validate_header function to not reject that color mode
+    //-Modify convert_to_rgb function to call <colormode>_to_rgb
 
     //Check if m_file is good. If not, set error message and return false.
     bool check_io ();
@@ -322,6 +328,7 @@ private:
     static const unsigned int additional_info_psb_count;
     bool is_additional_info_psb (const char *key);
 
+    //Channel names and counts for each color mode
     static const char *mode_channel_names[][4];
     static const unsigned int mode_channel_count[];
 
@@ -428,7 +435,7 @@ DLLEXPORT ImageInput *psd_input_imageio_create () { return new PSDInput; }
 DLLEXPORT int psd_imageio_version = OIIO_PLUGIN_VERSION;
 
 DLLEXPORT const char * psd_input_extensions[] = {
-    "psd", "pdd", "8bps", "psb", "8bpd", NULL
+    "psd", "pdd", "psb", NULL
 };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -1016,6 +1023,7 @@ PSDInput::load_resource_1060 (uint32_t length)
     if (!m_file.read (&data[0], length))
         return false;
 
+    //Store the XMP data for the composite and all other subimages
     if (!decode_xmp (data, m_composite_attribs) ||
         !decode_xmp (data, m_common_attribs)) {
         error ("Failed to decode XMP data");
