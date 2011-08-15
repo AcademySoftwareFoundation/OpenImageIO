@@ -259,6 +259,8 @@ private:
     thumbnail_error_exit (j_common_ptr cinfo);
     //Transparency index (Indexed color mode)
     bool load_resource_1047 (uint32_t length);
+    //XMP metadata
+    bool load_resource_1060 (uint32_t length);
 
     //Layers
     bool load_layers ();
@@ -372,7 +374,8 @@ const PSDInput::ResourceLoader PSDInput::resource_loaders[] =
     ADD_LOADER(1005),
     ADD_LOADER(1033),
     ADD_LOADER(1036),
-    ADD_LOADER(1047)
+    ADD_LOADER(1047),
+    ADD_LOADER(1060)
 };
 #undef ADD_LOADER
 
@@ -999,6 +1002,23 @@ PSDInput::load_resource_1047 (uint32_t length)
     read_bige<int16_t> (m_transparency_index);
     if (m_transparency_index < 0 || m_transparency_index >= 768) {
         error ("[Image Resource] [Transparency Index] index is out of range");
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1060 (uint32_t length)
+{
+    std::string data (length, 0);
+    if (!m_file.read (&data[0], length))
+        return false;
+
+    if (!decode_xmp (data, m_composite_attribs) ||
+        !decode_xmp (data, m_common_attribs)) {
+        error ("Failed to decode XMP data");
         return false;
     }
     return true;
