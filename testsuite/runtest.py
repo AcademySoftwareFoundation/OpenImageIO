@@ -3,16 +3,19 @@
 import os
 import sys
 import platform
+import subprocess
 
 from optparse import OptionParser
 
 
 def oiio_app (app):
     # when we use Visual Studio, built applications are stored
-    # in app/Release/ directory
-    solution_path = '../../build/windows/OpenImageIO.sln'
-    if ((platform.system () == 'Windows') and (os.path.isfile(solution_path) == True)):
-        return app + "/Release/" + app + " "
+    # in the app/$(OutDir)/ directory, e.g., Release or Debug.
+    # In that case the special token "$<CONFIGURATION>" which is replaced by
+    # the actual configuration if one is specified. "$<CONFIGURATION>" works
+    # because on Windows it is a forbidden filename due to the "<>" chars.
+    if (platform.system () == 'Windows'):
+        return app + "/$<CONFIGURATION>/" + app + " "
     return app + "/" + app + " "
 
 
@@ -27,6 +30,10 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
                       action="store", type="string", dest="path", default="")
     parser.add_option("-c", "--clean", help="clean up",
                       action="store_true", dest="clean", default=False)
+    parser.add_option("--devenv-config", help="use a MS Visual Studio configuration",
+                      action="store", type="string", dest="devenv_config", default="")
+    parser.add_option("--solution-path", help="MS Visual Studio solution path",
+                      action="store", type="string", dest="solution_path", default="")
     (options, args) = parser.parse_args()
 
     if options.clean :
@@ -43,13 +50,27 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
     #print "command = " + command
 
     if (platform.system () == 'Windows'):
-        command = command.replace (';', '&')
-    cmdret = os.system (command)
-    # print "cmdret = " + str(cmdret)
+        # Replace the /$<CONFIGURATION>/ component added in oiio_app
+        oiio_app_replace_str = "/"
+        if options.devenv_config != "":
+            oiio_app_replace_str = '/' + options.devenv_config + '/'
+        command = command.replace ("/$<CONFIGURATION>/", oiio_app_replace_str)
 
-    if cmdret != 0 and failureok == 0 :
-        print "FAIL"
-        return (1)
+    test_environ = None
+    if (platform.system () == 'Windows') and (options.solution_path != "") and \
+       (os.path.isdir (options.solution_path)):
+        test_environ = os.environ
+        libOIIO_path = options.solution_path + "\\libOpenImageIO\\"
+        if options.devenv_config != "":
+            libOIIO_path = libOIIO_path + '\\' + options.devenv_config
+        test_environ["PATH"] = libOIIO_path + ';' + test_environ["PATH"]
+
+    for sub_command in command.split(';'):
+        cmdret = subprocess.call (sub_command, shell=True, env=test_environ)
+        if cmdret != 0 and failureok == 0 :
+            print "#### Error: this command failed: ", sub_command
+            print "FAIL"
+            return (1)
 
     if (platform.system () == 'Windows'):
        diff_cmd = "fc "

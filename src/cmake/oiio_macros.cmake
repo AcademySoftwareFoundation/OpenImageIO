@@ -7,9 +7,9 @@
 #
 macro (oiio_install_targets)
     install (TARGETS ${ARGN}
-             RUNTIME DESTINATION "${BINDIR}" COMPONENT user
-             LIBRARY DESTINATION "${LIBDIR}" COMPONENT user
-             ARCHIVE DESTINATION "${LIBDIR}" COMPONENT developer)
+             RUNTIME DESTINATION "${BIN_INSTALL_DIR}" COMPONENT user
+             LIBRARY DESTINATION "${LIB_INSTALL_DIR}" COMPONENT user
+             ARCHIVE DESTINATION "${LIB_INSTALL_DIR}" COMPONENT developer)
 endmacro ()
 
 # Macro to add a build target for an IO plugin.
@@ -87,11 +87,28 @@ macro (oiio_add_tests)
         message (STATUS "  -> You can find it at ${_ats_URL}\n")
     else ()
         # Add the tests if all is well.
+        if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
+            set (_has_generator_expr TRUE)
+        endif ()
         foreach (_testname ${_ats_DEFAULT_ARGS})
-            add_test ( ${_testname} python
+            if (_has_generator_expr)
+                set (_add_test_args NAME ${_testname} COMMAND python)
+                if (MSVC_IDE)
+                    set (_extra_test_args
+                        --devenv-config $<CONFIGURATION>
+                        --solution-path "${CMAKE_BINARY_DIR}" )
+                else ()
+                    set (_extra_test_args "")
+                endif ()
+            else ()
+                set (_add_test_args ${_testname} python)
+                set (_extra_test_args "")
+            endif ()
+            add_test (${_add_test_args}
                 ${PROJECT_SOURCE_DIR}/../testsuite/${_testname}/run.py
                 ${PROJECT_SOURCE_DIR}/../testsuite/${_testname}
-                ${CMAKE_BINARY_DIR} )
+                ${CMAKE_BINARY_DIR}
+                ${_extra_test_args} )
         endforeach ()
     endif ()
 endmacro ()

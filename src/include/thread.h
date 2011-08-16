@@ -87,9 +87,15 @@
 #  include <tbb/spin_mutex.h>
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !USE_TBB
 #  include <windows.h>
 #  include <winbase.h>
+#  pragma intrinsic (_InterlockedExchangeAdd)
+#  pragma intrinsic (_InterlockedCompareExchange)
+#  pragma intrinsic (_InterlockedCompareExchange64)
+#  if defined(_WIN64)
+#    pragma intrinsic(_InterlockedExchangeAdd64)
+#  endif
 #endif
 
 #ifdef __APPLE__
@@ -250,7 +256,7 @@ private:
 inline int
 atomic_exchange_and_add (volatile int *at, int x)
 {
-#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+#if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
     return __sync_fetch_and_add ((int *)at, x);
 #elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
@@ -260,9 +266,9 @@ atomic_exchange_and_add (volatile int *at, int x)
     return OSAtomicAdd32Barrier (x, at) - x;
 #elif defined(_WIN32)
     // Windows
-    return InterlockedExchangeAdd ((volatile LONG *)at, x);
+    return _InterlockedExchangeAdd ((volatile LONG *)at, x);
 #else
-    error ("No atomics on this platform.")
+#   error No atomics on this platform.
 #endif
 }
 
@@ -271,7 +277,7 @@ atomic_exchange_and_add (volatile int *at, int x)
 inline long long
 atomic_exchange_and_add (volatile long long *at, long long x)
 {
-#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+#if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
     return __sync_fetch_and_add (at, x);
 #elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
@@ -281,9 +287,13 @@ atomic_exchange_and_add (volatile long long *at, long long x)
     return OSAtomicAdd64Barrier (x, at) - x;
 #elif defined(_WIN32)
     // Windows
+#  if defined(_WIN64)
+    return _InterlockedExchangeAdd64 ((volatile LONGLONG *)at, x);
+#  else
     return InterlockedExchangeAdd64 ((volatile LONGLONG *)at, x);
+#  endif
 #else
-    error ("No atomics on this platform.")
+#   error No atomics on this platform.
 #endif
 }
 
@@ -298,7 +308,7 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 inline bool
 atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 {
-#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+#if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
     return __sync_bool_compare_and_swap (at, compareval, newval);
 #elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
@@ -306,9 +316,9 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 #elif defined(__APPLE__)
     return OSAtomicCompareAndSwap32Barrier (compareval, newval, at);
 #elif defined(_WIN32)
-    return (InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
+    return (_InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
 #else
-    error ("No atomics on this platform.")
+#   error No atomics on this platform.
 #endif
 }
 
@@ -317,7 +327,7 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 inline bool
 atomic_compare_and_exchange (volatile long long *at, long long compareval, long long newval)
 {
-#if defined(__GNUC__) && defined(_GLIBCXX_ATOMIC_BUILTINS)
+#if defined(__GNUC__) && (defined(_GLIBCXX_ATOMIC_BUILTINS) || (__GNUC__ * 100 + __GNUC_MINOR__ >= 401))
     return __sync_bool_compare_and_swap (at, compareval, newval);
 #elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
@@ -325,9 +335,9 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
 #elif defined(__APPLE__)
     return OSAtomicCompareAndSwap64Barrier (compareval, newval, at);
 #elif defined(_WIN32)
-    return (InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
+    return (_InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
 #else
-    error ("No atomics on this platform.")
+#   error No atomics on this platform.
 #endif
 }
 
@@ -539,6 +549,98 @@ private:
 typedef spin_mutex::lock_guard spin_lock;
 
 #endif
+
+
+
+/// Spinning reader/writer mutex.  This is just like spin_mutex, except
+/// that there are separate locking mechanisms for "writers" (exclusive
+/// holders of the lock, presumably because they are modifying whatever
+/// the lock is protecting) and "readers" (non-exclusive, non-modifying
+/// tasks that may access the protectee simultaneously).
+class spin_rw_mutex {
+public:
+    /// Default constructor -- initialize to unlocked.
+    ///
+    spin_rw_mutex (void) { m_readers = 0; }
+
+    ~spin_rw_mutex (void) { }
+
+    /// Copy constructor -- initialize to unlocked.
+    ///
+    spin_rw_mutex (const spin_rw_mutex &) { m_readers = 0; }
+
+    /// Assignment does not do anything, since lockedness should not
+    /// transfer.
+    const spin_rw_mutex& operator= (const spin_rw_mutex&) { return *this; }
+
+    /// Acquire the reader lock.
+    ///
+    void read_lock () {
+        // Spin until there are no writers active
+        m_locked.lock();
+        // Register ourself as a reader
+        ++m_readers;
+        // Release the lock, to let other readers work
+        m_locked.unlock();
+    }
+
+    /// Release the reader lock.
+    ///
+    void read_unlock () {
+        --m_readers;  // it's atomic, no need to lock to release
+    }
+
+    /// Acquire the writer lock.
+    ///
+    void write_lock () {
+        // Make sure no new readers (or writers) can start
+        m_locked.lock();
+        // Spin until the last reader is done, at which point we will be
+        // the sole owners and nobody else (reader or writer) can acquire
+        // the resource until we release it.
+        while (m_readers > 0)
+                ;
+    }
+
+    /// Release the writer lock.
+    ///
+    void write_unlock () {
+        // Let other readers or writers get the lock
+        m_locked.unlock ();
+    }
+
+    /// Helper class: scoped read lock for a spin_rw_mutex -- grabs the
+    /// read lock upon construction, releases the lock when it exits scope.
+    class read_lock_guard {
+    public:
+        read_lock_guard (spin_rw_mutex &fm) : m_fm(fm) { m_fm.read_lock(); }
+        ~read_lock_guard () { m_fm.read_unlock(); }
+    private:
+        read_lock_guard(); // Do not implement
+        read_lock_guard(const read_lock_guard& other); // Do not implement
+        spin_rw_mutex & m_fm;
+    };
+
+    /// Helper class: scoped write lock for a spin_rw_mutex -- grabs the
+    /// read lock upon construction, releases the lock when it exits scope.
+    class write_lock_guard {
+    public:
+        write_lock_guard (spin_rw_mutex &fm) : m_fm(fm) { m_fm.write_lock(); }
+        ~write_lock_guard () { m_fm.write_unlock(); }
+    private:
+        write_lock_guard(); // Do not implement
+        write_lock_guard(const write_lock_guard& other); // Do not implement
+        spin_rw_mutex & m_fm;
+    };
+
+private:
+    spin_mutex m_locked;   // write lock
+    atomic_int m_readers;  // number of readers
+};
+
+
+typedef spin_rw_mutex::read_lock_guard spin_rw_read_lock;
+typedef spin_rw_mutex::write_lock_guard spin_rw_write_lock;
 
 
 }

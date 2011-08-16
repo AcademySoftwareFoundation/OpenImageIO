@@ -183,5 +183,72 @@ Strutil::get_rest_arguments (const std::string &str, std::string &base,
 }
 
 
+
+std::string
+Strutil::escape_chars (const std::string &unescaped)
+{
+    std::string s = unescaped;
+    for (size_t i = 0;  i < s.length();  ++i) {
+        char c = s[i];
+        if (c == '\n' || c == '\t' || c == '\v' || c == '\b' || 
+            c == '\r' || c == '\f' || c == '\a' || c == '\\' || c == '\"') {
+            s[i] = '\\';
+            ++i;
+            switch (c) {
+            case '\n' : c = 'n'; break;
+            case '\t' : c = 't'; break;
+            case '\v' : c = 'v'; break;
+            case '\b' : c = 'b'; break;
+            case '\r' : c = 'r'; break;
+            case '\f' : c = 'f'; break;
+            case '\a' : c = 'a'; break;
+            }
+            s.insert (i, &c, 1);
+        }
+    }
+    return s;
+}
+
+
+
+std::string
+Strutil::unescape_chars (const std::string &escaped)
+{
+    std::string s = escaped;
+    for (size_t i = 0, len = s.length();  i < len;  ++i) {
+        if (s[i] == '\\') {
+            char c = s[i+1];
+            if (c == 'n' || c == 't' || c == 'v' || c == 'b' || 
+                c == 'r' || c == 'f' || c == 'a' || c == '\\' || c == '\"') {
+                s.erase (i, 1);
+                --len;
+                switch (c) {
+                case 'n' : s[i] = '\n'; break;
+                case 't' : s[i] = '\t'; break;
+                case 'v' : s[i] = '\v'; break;
+                case 'b' : s[i] = '\b'; break;
+                case 'r' : s[i] = '\r'; break;
+                case 'f' : s[i] = '\f'; break;
+                case 'a' : s[i] = '\a'; break;
+                // default case: the deletion is enough (backslash and quote)
+                }
+            } else if (c >= '0' && c < '8') {
+                // up to 3 octal digits
+                int octalChar = 0;
+                for (int j = 0;  j < 3 && c >= '0' && c <= '7';  ++j) {
+                    octalChar = 8*octalChar + (c - '0');
+                    s.erase (i, 1);
+                    --len;
+                    c = s[i+1];
+                }
+                s[i] = (char) octalChar;
+            }
+
+        }
+    }
+    return s;
+}
+
+
 }
 OIIO_NAMESPACE_EXIT

@@ -12,8 +12,6 @@ set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/osdep.h
                          ../include/paramlist.h
                          ../include/plugin.h
-                         ../include/pugiconfig.hpp
-                         ../include/pugixml.hpp
                          ../include/SHA1.h
                          ../include/strutil.h
                          ../include/sysutil.h
@@ -25,8 +23,16 @@ set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/varyingref.h    
                          )
 
+if (NOT USE_EXTERNAL_PUGIXML)
+    list (APPEND libOpenImageIO_hdrs
+          ../include/pugiconfig.hpp
+          ../include/pugixml.hpp
+    )
+endif()
+
 set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
                          imagebufalgo.cpp imagebufalgo_orient.cpp
+                         imagebufalgo_yee.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp 
                           ../libutil/argparse.cpp
@@ -37,7 +43,6 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
                           ../libutil/paramlist.cpp 
                           ../libutil/plugin.cpp 
                           ../libutil/pystring.cpp
-                          ../libutil/pugixml.cpp
                           ../libutil/SHA1.cpp 
                           ../libutil/strutil.cpp 
                           ../libutil/sysutil.cpp
@@ -50,6 +55,10 @@ set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
                           ../libtexture/imagecache.cpp
                           ${libOpenImageIO_hdrs}
                          )
+
+if (NOT USE_EXTERNAL_PUGIXML)
+    list (APPEND libOpenImageIO_srcs ../libutil/pugixml.cpp)
+endif ()
 
 # Include our own TBB if using it
 if (USE_TBB)
@@ -164,7 +173,25 @@ if (EMBEDPLUGINS)
         message (STATUS "WebP plugin will not be built")
         set (WEBP_LIBRARY "")
     endif ()
+
+    # Organize the embedded plugins into source folders
+    set (plugin_types "")
+    foreach (src ${libOpenImageIO_srcs})
+        if (src MATCHES "^.+/([^/]+)\\.imageio/.+$")
+            set (plugin_types ${plugin_types} ${CMAKE_MATCH_1})
+        endif ()
+    endforeach ()
+    list (REMOVE_DUPLICATES plugin_types)
+    foreach (plugin ${plugin_types})
+        source_group ("Plugins\\${plugin}"
+                      REGULAR_EXPRESSION "^.+/${plugin}\\.imageio/.+$"
+                     )
+    endforeach ()
 endif ()
+
+# Source groups for libutil and libtexture
+source_group ("libutil"    REGULAR_EXPRESSION ".+/libutil/.+")
+source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
 
 if (BUILDSTATIC)
     add_library (OpenImageIO STATIC ${libOpenImageIO_srcs})
@@ -188,14 +215,16 @@ if (EMBEDPLUGINS)
     link_openexr (OpenImageIO)
 endif ()
 
-if (SOVERSION)
+if (USE_EXTERNAL_PUGIXML)
+    target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
+endif ()
+
 message(STATUS "Setting SOVERSION to: ${SOVERSION}")
 set_target_properties(OpenImageIO
                          PROPERTIES
                          VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
                          SOVERSION ${SOVERSION}
                      )
-endif ()
 
 oiio_install_targets (OpenImageIO)
 

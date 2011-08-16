@@ -87,7 +87,7 @@ enum DLLPUBLIC AlignedTransform
 /// Transform the image, as specified in the options. All transforms are done
 /// with respect the display winow (full_size / full_origin), though data
 /// outside this area (overscan) is preserved.  This operation does not
-///.filter pixel values; all operations are pixel aligned. In-place operation
+/// filter pixel values; all operations are pixel aligned. In-place operation
 /// (dst == src) is not supported.
 /// return true on success.
 
@@ -166,6 +166,36 @@ struct DLLPUBLIC PixelStats {
 /// (current subimage, and current mipmap level)
 bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
 
+/// Struct holding all the results computed by ImageBufAlgo::compare().
+/// (maxx,maxy,maxz,maxc) gives the pixel coordintes (x,y,z) and color
+/// channel of the pixel that differed maximally between the two images.
+/// nwarn and nfail are the number of "warnings" and "failures",
+/// respectively.
+struct CompareResults {
+    double meanerror, rms_error, PSNR, maxerror;
+    int maxx, maxy, maxz, maxc;
+    int nwarn, nfail;
+};
+
+/// Numerically compare two images.  The images must be the same size
+/// and number of channels, and must both be FLOAT data.  The difference
+/// threshold (for any individual color channel in any pixel) for a
+/// "failure" is failthresh, and for a "warning" is warnthresh.  The
+/// results are stored in result.
+bool DLLPUBLIC compare (const ImageBuf &A, const ImageBuf &B,
+                        float failthresh, float warnthresh,
+                        CompareResults &result);
+
+/// Compare two images using Hector Yee's perceptual metric, returning
+/// the number of pixels that fail the comparison.  The images must be
+/// the same size, FLOAT, and in a linear color space.  Only the first
+/// three channels are compared.  Free parameters are the ambient
+/// luminance in the room and the field of view of the image display;
+/// our defaults are probably reasonable guesses for an office
+/// environment.
+int DLLPUBLIC compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
+                           float luminance = 100, float fov = 45);
+
 /// You can optionally query the constantvalue'd color
 /// (current subimage, and current mipmap level)
 bool DLLPUBLIC isConstantColor (const ImageBuf &src, float *color = NULL);
@@ -179,6 +209,12 @@ bool DLLPUBLIC isMonochrome(const ImageBuf &src);
 /// (current subimage, and current mipmap level)
 std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src);
 
+/// Compute the sha1 byte hash for all the pixels in the image.
+/// (current subimage, and current mipmap level)
+std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src,
+                                           const std::string & extrainfo);
+
+
 
 /// Set dst, over the pixel range [xbegin,xend) x [ybegin,yend), to be a
 /// resized version of src (mapping such that the "full" image window of
@@ -188,14 +224,11 @@ std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src);
 /// be of type FLOAT.
 bool DLLPUBLIC resize (ImageBuf &dst, const ImageBuf &src,
                        int xbegin, int xend, int ybegin, int yend,
-                       Filter2D *filter=NULL, float filterwidth=1.0);
+                       Filter2D *filter=NULL);
 
 
 class Mapping;
 
-bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src,
-                          const Mapping &mapping,
-                          Filter2D *filter, float filterwidth);
 
 
 /// A Mapping is a class/functor that implements a mapping of pixels
@@ -205,27 +238,50 @@ bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src,
 ///              float *s, float *t, // corresponding positions in image B
 ///              float *dsdx, float *dtdx, // s & t derivs with respect to x
 ///              float *dsdy, float *dtdy) // s & t derivs with respect to y
-/// 
+/// The output image size where all input pixels are visible on the output 
+/// image (e.g. corners aren't cut out after rotation) is calculated with the 
+/// following method:
+///     void outputImagSize (int *width, int *height, // output image size
+///             int srcWidth, int srcHeight) // source image size
+/// isDstToSrcMapping describes type of mapping. If it's true then the mapping
+/// is OutputPixelPos->InputPixelPos, when it's false then the mapping is
+/// InputPixelPos->OutputPixelPos.
 /// This is the signature needed to be able to use a Mapping with the
 /// ImageBufAlgo::transform function.
 class Mapping {
 public:
-    Mapping () { }
+    Mapping () {
+        isDstToSrcMapping = true;
+    }
     virtual ~Mapping () { }
     virtual void map (float x, float y, float *s, float *t, float *dsdx,
                       float *dtdx, float *dsdy, float *dtdy)  const = 0;
+    virtual void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const = 0;
+    
+    bool isDstToSrcMapping;
 };
 
 
+/// Transforms source image src to destination image dst via a
+/// resampling defined by the mapping, using the given filter.
+bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src,
+                          const Mapping &mapping,
+                          Filter2D *filter, float xshift, float yshift);
+
+
+/// Mapping that implements rotation.  The rotation angle passed to the
+/// constructor is degrees clockwise.
 class RotationMapping : public Mapping {
 public:
-    RotationMapping (float _rotangle, float _originx = 0, float _originy = 0)
-        : rotangle(-_rotangle*M_PI / 180.0f), originx(_originx), originy(_originy)
-    { }
-    void map (float x, float y, float* s, float* t,
-              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+    RotationMapping (float rotangle, float originx = 0, float originy = 0);
+    virtual void map (float x, float y, float* s, float* t,
+                      float *dsdx, float *dtdx, float *dsdy, float *dtdy) const; 
+    virtual void outputImageSize (int *width, int *height,
+                                  int srcWidth, int srcHeight) const;
 private:
-    float rotangle, originx, originy;
+    float m_rotangle;  // rotation angle
+    float m_originx, m_originy;
+    float m_sinr, m_cosr;  // cached sin & cos of the angle
 };
 
 
@@ -241,6 +297,8 @@ public:
     { }
     void map (float x, float y, float* s, float* t,
               float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+    void outputImageSize (int *width, int *height,
+                          int srcWidth, int srcHeight) const;
 private:
     float new_width, new_height, xscale, yscale;
 };
@@ -249,16 +307,65 @@ private:
 
 class ShearMapping : public Mapping {
 public:
-    ShearMapping(float _m, float _n, float _originx = 0, float _originy = 0)
-        : m(_m), n(_n), originx(_originx), originy(_originy)
-    { }
+    ShearMapping (float m, float n, float originx = 0, float originy = 0);
     void map (float x, float y, float* s, float* t,
               float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+    void outputImageSize (int *width, int *height,
+                          int srcWidth, int srcHeight) const;
 private:
-    float m, n, originx, originy;
+    float m_m, m_n, m_originx, m_originy;
 };
 
 
+
+class ReflectionMapping : public Mapping {
+public:
+    ReflectionMapping (float a, float b, float originx = 0, float originy = 0);
+    void map (float x, float y, float* s, float* t,
+              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+    void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const;
+private:
+    float m_a, m_b, m_originx, m_originy;
+};
+
+
+struct Point {
+    Point(float x = 0, float y = 0): x(x), y(y) {}
+    float x,y;
+};
+
+
+// Thin Plate Spline mapping
+class TPSMapping : public Mapping {
+public:
+    TPSMapping (const std::vector<Point> &_controlPoints,
+                const std::vector<Point> &_destPoints);
+
+    void map (float x, float y, float* s, float* t,
+              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+    
+    void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const;
+    
+private:   
+    void calculateCoefficients();
+    
+    float rSquare(Point p1, Point p2) const;
+    float kernelFunction(Point p1, Point p2) const;
+    
+    /// Decompose matrix to LU form
+    bool LUDecompose(float** lu, int* indx, int dimmm) const;
+    bool solveMatrix(float* b, float* x, int* indx, float** lu, int dimm) const;
+    
+    void simpleMap (float x, float y, float* s, float* t) const;
+
+    std::vector<Point> srcControlPoints;
+    std::vector<Point> dstControlPoints;
+    std::vector<float> tpsXCoefs, tpsYCoefs;
+    std::vector<float*> ax, ay;
+    std::vector<float> axelements, ayelements;
+    std::vector<float> bx, by;
+    int ctrlpc; //control points count
+};
 
 };  // end namespace ImageBufAlgo
 

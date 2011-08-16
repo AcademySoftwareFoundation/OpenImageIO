@@ -82,7 +82,6 @@ static bool checknan = false;
 static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
 static std::string filtername = "box";
-static float filterwidth = 1.0f;
 static Filter2D *filter = NULL;
 
 // Conversion modes.  If none are true, we just make an ordinary texture.
@@ -108,7 +107,7 @@ static bool noresize = true;
 static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
 static bool nomipmap = false;
-static bool embed_hash = false;
+static bool embed_hash = false; // Ignored.
 static bool prman_metadata = false;
 static bool constant_color_detect = false;
 static bool monochrome_detect = false;
@@ -124,6 +123,43 @@ static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
 
 
 
+static std::string
+filter_help_string ()
+{
+    std::string s ("Select filter for resizing (choices:");
+    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+        FilterDesc d;
+        Filter2D::get_filterdesc (i, &d);
+        s.append (" ");
+        s.append (d.name);
+    }
+    s.append (", default=box)");
+    return s;
+}
+
+
+
+static Filter2D *
+setup_filter (const std::string &filtername)
+{
+    // Figure out the recommended filter width for the named filter
+    float filterwidth = 1.0f;
+    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+        FilterDesc d;
+        Filter2D::get_filterdesc (i, &d);
+        if (filtername == d.name) {
+            filterwidth = d.width;
+            break;
+        }
+    }
+
+    Filter2D *filter = Filter2D::create (filtername, filterwidth, filterwidth);
+
+    return filter;
+}
+
+
+
 static int
 parse_files (int argc, const char *argv[])
 {
@@ -131,6 +167,7 @@ parse_files (int argc, const char *argv[])
         filenames.push_back (argv[i]);
     return 0;
 }
+
 
 
 static void
@@ -150,8 +187,8 @@ getargs (int argc, char *argv[])
                   "-u", &updatemode, "Update mode",
                   "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
                   "--nchannels %d", &nchannels, "Specify the number of output image channels.",
-                  "-d %s", &dataformatname, "Set the output data format to one of:\n"
-                          "\t\t\tuint8, sint8, uint16, sint16, half, float",
+                  "-d %s", &dataformatname, "Set the output data format to one of: "
+                          "uint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
                   "--separate", &separate, "Use planarconfig separate (default: contiguous)",
 //                  "--ingamma %f", &ingamma, "Specify gamma of input files (default: 1)",
@@ -164,8 +201,7 @@ getargs (int argc, char *argv[])
                   "--twrap %s", &twrap, "Specific t wrap mode separately",
                   "--resize", &doresize, "Resize textures to power of 2 (default: no)",
                   "--noresize", &noresize, "Do not resize textures to power of 2 (deprecated)",
-                  "--filter %s %f", &filtername, &filterwidth,
-                        "Select filter and width (default: box 1)",
+                  "--filter %s", &filtername, filter_help_string().c_str(),
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN and Inf values (abort if found)",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
@@ -193,7 +229,7 @@ getargs (int argc, char *argv[])
 //                  "--shadcube", &shadowcubemode, "Create shadow cube (file order: px,nx,py,ny,pz,nz) (UNIMPLEMENTED)",
 //                  "--volshad", &volshadowmode, "Create volume shadow map (UNIMP)",
                   "--envlatl", &envlatlmode, "Create lat/long environment map",
-                  "--envcube", &envcubemode, "Create cubic env map (file order: px,nx,py,ny,pz,nz) (UNIMP)",
+                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
 //                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
 //                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
 //                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
@@ -242,12 +278,17 @@ getargs (int argc, char *argv[])
         exit (EXIT_FAILURE);
     }
 
-    filter = Filter2D::create (filtername, filterwidth, filterwidth);
+    filter = setup_filter (filtername);
     if (! filter) {
         std::cerr << "maketx ERROR: could not make filter '" << filtername << "\n";
         exit (EXIT_FAILURE);
     }
 
+    if (embed_hash && verbose) {
+        std::cerr << "maketx WARNING: The --embed_hash option is deprecated, and no longer necessary.\n";
+        std::cerr << "                 (Hashes are always computed.)\n";
+    }
+    
 //    std::cout << "Converting " << filenames[0] << " to " << outputfilename << "\n";
 }
 
@@ -304,9 +345,6 @@ set_oiio_options(TypeDesc out_dataformat)
     
     // Enable constant color optimizations
     constant_color_detect = true;
-    
-    // Always embed the image hash info
-    embed_hash = true;
     
     // Force fixed tile-size across the board
     tile[0] = 64;
@@ -401,7 +439,7 @@ static void
 resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
                  int x0, int x1, int y0, int y1)
 {
-    ImageBufAlgo::resize (*dst, *src, x0, x1, y0, y1, filter, filterwidth);
+    ImageBufAlgo::resize (*dst, *src, x0, x1, y0, y1, filter);
 }
 
 
@@ -629,11 +667,10 @@ make_texturemap (const char *maptypename = "texture map")
     stat_readtime += readtimer();
     
     // If requested - and we're a constant color - make a tiny texture instead
-    // FIXME: Add the appropriate metadata to also advertise this fact.
     std::vector<float> constantColor(src.nchannels());
-    bool isConstantColor = (constant_color_detect && ImageBufAlgo::isConstantColor (src, &constantColor[0]));
+    bool isConstantColor = ImageBufAlgo::isConstantColor (src, &constantColor[0]);
     
-    if (isConstantColor) {
+    if (isConstantColor && constant_color_detect) {
         int newwidth = std::max (1, std::min (src.spec().width, tile[0]));
         int newheight = std::max (1, std::min (src.spec().height, tile[1]));
         
@@ -683,13 +720,6 @@ make_texturemap (const char *maptypename = "texture map")
         }
     }
     
-    std::string hash_digest;
-    if (embed_hash) {
-        hash_digest = ImageBufAlgo::computePixelHashSHA1 (src);
-        if (verbose)
-            std::cout << "  SHA-1: " << hash_digest << std::endl;
-    }
-
     if (shadowmode) {
         // Some special checks for shadow maps
         if (src.spec().nchannels != 1) {
@@ -749,48 +779,6 @@ make_texturemap (const char *maptypename = "texture map")
 
     dstspec.attribute ("Software", full_command_line);
     
-    // Update the ImageDescription
-    std::string desc = dstspec.get_string_attribute ("ImageDescription");
-    bool updatedDesc = false;
-    
-    // FIXME: We need to do real dictionary style partial updates on the
-    //        ImageDescription. I.e., set one key without affecting the
-    //        other keys. But in the meantime, just clear it out if
-    //        it appears the incoming image was a maketx style texture.
-    
-    if ((desc.find("SHA-1=") != std::string::npos) || 
-        (desc.find("ConstantColor=") != std::string::npos)) {
-        desc = "";
-    }
-    
-    if (hash_digest.length()) {
-        if (desc.length())
-            desc += " ";
-        desc += "SHA-1=";
-        desc += hash_digest;
-        updatedDesc = true;
-    }
-    
-    if (isConstantColor) {
-        std::ostringstream os; // Emulate a JSON array
-        os << "[";
-        for(unsigned int i=0; i<constantColor.size(); ++i) {
-            if (i!=0) os << ",";
-            os << constantColor[i];
-        }
-        os << "]";
-        
-        if (desc.length())
-            desc += " ";
-        desc += "ConstantColor=";
-        desc += os.str();
-        updatedDesc = true;
-    }
-    
-    if (updatedDesc) {
-        dstspec.attribute ("ImageDescription", desc);
-    }
-
     if (shadowmode) {
         dstspec.attribute ("textureformat", "Shadow");
         if (prman_metadata)
@@ -896,7 +884,7 @@ make_texturemap (const char *maptypename = "texture map")
         if (verbose)
             std::cout << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
-        if (filtername == "box" && filterwidth == 1.0f)
+        if (filtername == "box" && filter->width() == 1.0f)
             parallel_image (resize_block, &dst, &src,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
@@ -907,6 +895,68 @@ make_texturemap (const char *maptypename = "texture map")
     }
     stat_resizetime += resizetimer();
 
+    
+    // Update the toplevel ImageDescription with the sha1 pixel hash and constant color
+    std::string desc = dstspec.get_string_attribute ("ImageDescription");
+    bool updatedDesc = false;
+    
+    // FIXME: We need to do real dictionary style partial updates on the
+    //        ImageDescription. I.e., set one key without affecting the
+    //        other keys. But in the meantime, just clear it out if
+    //        it appears the incoming image was a maketx style texture.
+    
+    if ((desc.find ("SHA-1=") != std::string::npos) || 
+        (desc.find ("ConstantColor=") != std::string::npos)) {
+        desc = "";
+    }
+    
+    
+    // The hash is only computed for the top mipmap level of pixel data.
+    // Thus, any additional information that will effect the lower levels
+    // (such as filtering information) needs to be manually added into the
+    // hash.
+    std::ostringstream addlHashData;
+    addlHashData << filter->name() << " ";
+    addlHashData << filter->width() << " ";
+    
+    std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel,
+        addlHashData.str());
+    if (hash_digest.length()) {
+        if (desc.length())
+            desc += " ";
+        desc += "SHA-1=";
+        desc += hash_digest;
+        if (verbose)
+            std::cout << "  SHA-1: " << hash_digest << std::endl;
+        updatedDesc = true;
+    }
+    
+    if (isConstantColor) {
+        std::ostringstream os; // Emulate a JSON array
+        os << "[";
+        for (unsigned int i=0; i<constantColor.size(); ++i) {
+            if (i!=0) os << ",";
+            os << constantColor[i];
+        }
+        os << "]";
+        
+        if (desc.length())
+            desc += " ";
+        desc += "ConstantColor=";
+        desc += os.str();
+        if (verbose)
+            std::cout << "  ConstantColor: " << os.str() << std::endl;
+        updatedDesc = true;
+    }
+    
+    if (updatedDesc) {
+        dstspec.attribute ("ImageDescription", desc);
+    }
+
+
+
+    // Write out, and compute, the mipmap levels for the speicifed image
+    
     std::string outformat = fileformatname.empty() ? outputfilename : fileformatname;
     write_mipmap (*toplevel, dstspec, outputfilename, outformat, out_dataformat,
                   !shadowmode && !nomipmap);
@@ -973,8 +1023,12 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     }
 
     // Write out the image
-    if (verbose)
+    if (verbose) {
         std::cout << "  Writing file: " << outputfilename << std::endl;
+        std::cout << "  Filter \"" << filter->name() << "\" width = " 
+                  << filter->width() << "\n";
+    }
+
     bool ok = true;
     ok &= img.write (out);
     stat_writetime += writetimer();
@@ -1001,7 +1055,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             smallspec.set_format (TypeDesc::FLOAT);
             small->alloc (smallspec);  // Realocate with new size
 
-            if (filtername == "box" && filterwidth == 1.0f)
+            if (filtername == "box" && filter->width() == 1.0f)
                 parallel_image (resize_block, small, big,
                                 smallspec.x, smallspec.x+smallspec.width,
                                 smallspec.y, smallspec.y+smallspec.height,

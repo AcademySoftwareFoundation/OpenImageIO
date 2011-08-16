@@ -544,7 +544,7 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
                                const void *data, stride_t xstride)
 {
     bool native = (format == TypeDesc::UNKNOWN);
-    size_t pixel_bytes = m_spec.pixel_bytes (native);
+    size_t pixel_bytes = m_spec.pixel_bytes (true);  // native
     if (native && xstride == AutoStride)
         xstride = (stride_t) pixel_bytes;
     m_spec.auto_stride (xstride, format, spec().nchannels);
@@ -594,7 +594,7 @@ OpenEXROutput::write_tile (int x, int y, int z,
                            stride_t xstride, stride_t ystride, stride_t zstride)
 {
     bool native = (format == TypeDesc::UNKNOWN);
-    size_t pixel_bytes = m_spec.pixel_bytes (native);
+    size_t pixel_bytes = m_spec.pixel_bytes (true);  // native
     if (native && xstride == AutoStride)
         xstride = (stride_t) pixel_bytes;
     m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,

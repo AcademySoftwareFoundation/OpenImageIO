@@ -8,7 +8,7 @@ if (APPLE)
 endif ()
 
 # Disable some warnings for Clang, it's a little too picky with boost
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     add_definitions ("-Wno-array-bounds")
 endif ()
 
@@ -42,7 +42,7 @@ if ( BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
     endif()
 							 
     install (TARGETS PyOpenImageIO
-             RUNTIME DESTINATION ${PYLIBDIR} COMPONENT user
-             LIBRARY DESTINATION ${PYLIBDIR} COMPONENT user)
+             RUNTIME DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user
+             LIBRARY DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user)
 
 endif ()

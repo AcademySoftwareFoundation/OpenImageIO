@@ -54,11 +54,16 @@ typedef unique_lock ustring_write_lock_t;
 typedef mutex ustring_mutex_t;
 typedef lock_guard ustring_read_lock_t;
 typedef lock_guard ustring_write_lock_t;
-#elif 1
+#elif 0
 // Use spin locks
 typedef spin_mutex ustring_mutex_t;
 typedef spin_lock ustring_read_lock_t;
 typedef spin_lock ustring_write_lock_t;
+#elif 1
+// Use rw spin locks
+typedef spin_rw_mutex ustring_mutex_t;
+typedef spin_rw_read_lock ustring_read_lock_t;
+typedef spin_rw_write_lock ustring_write_lock_t;
 #else
 // Use null locks
 typedef null_mutex ustring_mutex_t;
@@ -177,11 +182,17 @@ ustring::make_unique (const char *str)
         // already be present, and we can immediately return its rep.
         // Lots of threads may do this simultaneously, as long as they
         // are all in the table.
-        ustring_read_lock_t read_lock (ustring_mutex());
-        ++ustring_stats_constructed;
-        UstringTable::const_iterator found = table.find (str);
-        if (found != table.end())
-            return found->second->c_str();
+        const char *result = NULL;  // only non-NULL if it was found
+        {
+            ustring_read_lock_t read_lock (ustring_mutex());
+            UstringTable::const_iterator found = table.find (str);
+            if (found != table.end())
+                result = found->second->c_str();
+        }
+        // atomically increment the stat, since we're outside the lock
+        atomic_exchange_and_add (&ustring_stats_constructed, 1);
+        if (result)
+            return result;
     }
 
     // This string is not yet in the ustring table.  Create a new entry.
@@ -192,7 +203,7 @@ ustring::make_unique (const char *str)
     ustring::TableRep *rep = (ustring::TableRep *) malloc (size);
     new (rep) ustring::TableRep (str, len);
 
-    UstringTable::const_iterator found;
+    const char *result = rep->c_str(); // start assuming new one
     {
         // Now grab a write lock on the table.  This will prevent other
         // threads from even reading.  Just in case another thread has
@@ -200,15 +211,20 @@ ustring::make_unique (const char *str)
         // constructing its rep, check the table one more time.  If it's
         // still empty, add it.
         ustring_write_lock_t write_lock (ustring_mutex());
-        found = table.find (str);
+        UstringTable::const_iterator found = table.find (str);
         if (found == table.end()) {
-            table[rep->c_str()] = rep;
+            // add the one we just created to the table
+            table[result] = rep;
             ++ustring_stats_unique;
             ustring_stats_memory += size;
 #ifndef __GNUC__
             ustring_stats_memory += len+1;  // non-GNU replicates the chars
 #endif
-            return rep->c_str();
+            return result;
+        } else {
+            // use the one in the table, and we'll delete the new one we
+            // created at the end of the function
+            result = found->second->c_str();
         }
     }
     // Somebody else added this string to the table in that interval
@@ -217,7 +233,7 @@ ustring::make_unique (const char *str)
     // speculatively built.  Note that we've already released the lock
     // on the table at this point.
     delete rep;
-    return found->second->c_str();
+    return result;
 }
 
 

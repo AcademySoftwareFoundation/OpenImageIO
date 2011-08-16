@@ -1,5 +1,5 @@
 /*
-  Copyright 2008 Larry Gritz and the other authors and contributors.
+  Copyright 2011 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -32,138 +32,35 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <ctime>
 #include <iostream>
-#include <iomanip>
 #include <iterator>
+#include <vector>
+#include <string>
+#include <iomanip>
 
-#include "dassert.h"
+#include <boost/algorithm/string.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/foreach.hpp>
+#include <boost/filesystem.hpp>
+
+using boost::algorithm::iequals;
+
+
 #include "argparse.h"
 #include "imageio.h"
-#include "imagecache.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "sysutil.h"
+#include "filter.h"
 
-#ifdef __APPLE__
- using std::isinf;
- using std::isnan;
-#endif
-
+#include "oiiotool.h"
 
 OIIO_NAMESPACE_USING
+using namespace OiioTool;
 
 
-enum idiffErrors {
-    ErrOK = 0,            ///< No errors, the images match exactly
-    ErrWarn,              ///< Warning: the errors differ a little
-    ErrFail,              ///< Failure: the errors differ a lot
-    ErrDifferentSize,     ///< Images aren't even the same size
-    ErrFile,              ///< Could not find or open input files, etc.
-    ErrLast
-};
+using namespace ImageBufAlgo;
 
-
-
-static bool verbose = false;
-static bool outdiffonly = false;
-static std::string diffimage;
-static float diffscale = 1.0;
-static bool diffabs = false;
-static float warnthresh = 1.0e-6;
-static float warnpercent = 0;
-static float hardwarn = std::numeric_limits<float>::max();
-static float failthresh = 1.0e-6;
-static float failpercent = 0;
-static bool perceptual = false;
-static float hardfail = std::numeric_limits<float>::max();
-static std::vector<std::string> filenames;
-//static bool comparemeta = false;
-static bool compareall = false;
-
-
-
-static int
-parse_files (int argc, const char *argv[])
-{
-    for (int i = 0;  i < argc;  i++)
-        filenames.push_back (argv[i]);
-    return 0;
-}
-
-
-
-static void
-getargs (int argc, char *argv[])
-{
-    bool help = false;
-    ArgParse ap;
-    ap.options ("idiff -- compare two images\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  idiff [options] image1 image2",
-                  "%*", parse_files, "",
-                  "--help", &help, "Print help message",
-                  "-v", &verbose, "Verbose status messages",
-                  "-a", &compareall, "Compare all subimages/miplevels",
-                  "<SEPARATOR>", "Thresholding and comparison options",
-                  "-fail %g", &failthresh, "Failure threshold difference (0.000001)",
-                  "-failpercent %g", &failpercent, "Allow this percentage of failures (0)",
-                  "-hardfail %g", &hardfail, "Fail if any one pixel exceeds this error (infinity)",
-                  "-warn %g", &warnthresh, "Warning threshold difference (0.00001)",
-                  "-warnpercent %g", &warnpercent, "Allow this percentage of warnings (0)",
-                  "-hardwarn %g", &hardwarn, "Warn if any one pixel exceeds this error (infinity)",
-                  "-p", &perceptual, "Perform perceptual (rather than numeric) comparison",
-                  "<SEPARATOR>", "Difference image options",
-                  "-o %s", &diffimage, "Output difference image",
-                  "-od", &outdiffonly, "Output image only if nonzero difference",
-                  "-abs", &diffabs, "Output image of absolute value, not signed difference",
-                  "-scale %g", &diffscale, "Scale the output image by this factor",
-//                  "-meta", &comparemeta, "Compare metadata",
-                  NULL);
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage ();
-        exit (EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage ();
-        exit (EXIT_FAILURE);
-    }
-
-    if (filenames.size() != 2) {
-        std::cerr << "idiff: Must have two input filenames.\n";
-        ap.usage();
-        exit (EXIT_FAILURE);
-    }
-}
-
-
-
-static bool
-read_input (const std::string &filename, ImageBuf &img, 
-            ImageCache *cache, int subimage=0, int miplevel=0)
-{
-    if (img.subimage() >= 0 && 
-            img.subimage() == subimage && img.miplevel() == miplevel)
-        return true;
-
-    img.reset (filename, cache);
-    if (img.read (subimage, miplevel, false, TypeDesc::TypeFloat))
-        return true;
-
-    std::cerr << "idiff ERROR: Could not read " << filename << ":\n\t"
-              << img.geterror() << "\n";
-    return false;
-}
-
-
-
-static bool
-same_size (const ImageBuf &A, const ImageBuf &B)
-{
-    const ImageSpec &a (A.spec()), &b (B.spec());
-    return (a.width == b.width && a.height == b.height &&
-            a.depth == b.depth && a.nchannels == b.nchannels);
-}
 
 
 
@@ -185,69 +82,47 @@ safe_double_print (double val)
 
 
 int
-main (int argc, char *argv[])
+OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
+                          Oiiotool &ot)
 {
-    getargs (argc, argv);
+    std::cout << "Computing diff of \"" << ir0.name() << "\" vs \""
+              << ir1.name() << "\"\n";
+    ir0.read ();
+    ir1.read ();
 
-    std::cout << "Comparing \"" << filenames[0] 
-             << "\" and \"" << filenames[1] << "\"\n";
-
-    // Create a private ImageCache so we can customize its cache size
-    // and instruct it store everything internally as floats.
-    ImageCache *imagecache = ImageCache::create (true);
-    imagecache->attribute ("forcefloat", 1);
-    if (sizeof(void *) == 4)  // 32 bit or 64?
-        imagecache->attribute ("max_memory_MB", 512.0);
-    else
-        imagecache->attribute ("max_memory_MB", 2048.0);
-    imagecache->attribute ("autotile", 256);
-#ifdef DEBUG
-    imagecache->attribute ("statistics:level", 2);
-#endif
-
-    ImageBuf img0, img1;
-    if (! read_input (filenames[0], img0, imagecache) ||
-        ! read_input (filenames[1], img1, imagecache))
-        return ErrFile;
-//    ImageSpec spec0 = img0.spec();  // stash it
-
-    int ret = ErrOK;
-    for (int subimage = 0;  subimage < img0.nsubimages();  ++subimage) {
-        if (subimage > 0 && !compareall)
+    int ret = DiffErrOK;
+    for (int subimage = 0;  subimage < ir0.subimages();  ++subimage) {
+        if (subimage > 0 && !ot.allsubimages)
             break;
-        if (subimage >= img1.nsubimages())
+        if (subimage >= ir1.subimages())
             break;
 
-        if (compareall) {
+        if (ot.allsubimages) {
             std::cout << "Subimage " << subimage << ": ";
-            std::cout << img0.spec().width << " x " << img0.spec().height;
-            if (img0.spec().depth > 1)
-                std::cout << " x " << img0.spec().depth;
-            std::cout << ", " << img0.spec().nchannels << " channel\n";
+            const ImageSpec &spec (*ir0.spec(subimage));
+            std::cout << spec.width << " x " << spec.height;
+            if (spec.depth > 1)
+                std::cout << " x " << spec.depth;
+            std::cout << ", " << spec.nchannels << " channel\n";
         }
 
-        if (! read_input (filenames[0], img0, imagecache, subimage) ||
-            ! read_input (filenames[1], img1, imagecache, subimage))
-            return ErrFile;
-
-        if (img0.nmiplevels() != img1.nmiplevels()) {
+        if (ir0.miplevels(subimage) != ir1.miplevels(subimage)) {
             std::cout << "Files do not match in their number of MIPmap levels\n";
         }
 
-        for (int m = 0;  m < img0.nmiplevels();  ++m) {
-            if (m > 0 && !compareall)
+        for (int m = 0;  m < ir0.miplevels(subimage);  ++m) {
+            if (m > 0 && !ot.allsubimages)
                 break;
-            if (m > 0 && img0.nmiplevels() != img1.nmiplevels()) {
+            if (m > 0 && ir0.miplevels(subimage) != ir1.miplevels(subimage)) {
                 std::cout << "Files do not match in their number of MIPmap levels\n";
-                ret = ErrDifferentSize;
+                ret = DiffErrDifferentSize;
                 break;
             }
 
-            if (! read_input (filenames[0], img0, imagecache, subimage, m) ||
-                ! read_input (filenames[1], img1, imagecache, subimage, m))
-                return ErrFile;
+            ImageBuf &img0 (ir0(subimage,m));
+            ImageBuf &img1 (ir1(subimage,m));
 
-            if (compareall && img0.nmiplevels() > 1) {
+            if (ot.allsubimages && ir0.miplevels(subimage) > 1) {
                 std::cout << " MIP level " << m << ": ";
                 std::cout << img0.spec().width << " x " << img0.spec().height;
                 if (img0.spec().depth > 1)
@@ -269,7 +144,7 @@ main (int argc, char *argv[])
                 if (img1.spec().depth > 1)
                     std::cout << "x" << img1.spec().depth;
                 std::cout << "x" << img1.spec().nchannels << ")\n";
-                ret = ErrDifferentSize;
+                ret = DiffErrDifferentSize;
                 break;
             }
 
@@ -279,11 +154,13 @@ main (int argc, char *argv[])
             // Compare the two images.
             //
             ImageBufAlgo::CompareResults cr;
-            ImageBufAlgo::compare (img0, img1, failthresh, warnthresh, cr);
+            ImageBufAlgo::compare (img0, img1, ot.diff_failthresh, ot.diff_warnthresh, cr);
 
             int yee_failures = 0;
+#if 0
             if (perceptual)
                 yee_failures = ImageBufAlgo::compare_Yee (img0, img1);
+#endif
 
             // Print the report
             //
@@ -310,24 +187,26 @@ main (int argc, char *argv[])
             int precis = std::cout.precision();
             std::cout << "  " << cr.nwarn << " pixels (" 
                       << std::setprecision(3) << (100.0*cr.nwarn / npels) 
-                      << std::setprecision(precis) << "%) over " << warnthresh << "\n";
+                      << std::setprecision(precis) << "%) over " << ot.diff_warnthresh << "\n";
             std::cout << "  " << cr.nfail << " pixels (" 
                       << std::setprecision(3) << (100.0*cr.nfail / npels) 
-                      << std::setprecision(precis) << "%) over " << failthresh << "\n";
+                      << std::setprecision(precis) << "%) over " << ot.diff_failthresh << "\n";
+#if 0
             if (perceptual)
                 std::cout << "  " << yee_failures << " pixels ("
                           << std::setprecision(3) << (100.0*yee_failures / npels) 
                           << std::setprecision(precis)
                           << "%) failed the perceptual test\n";
-
-            if (cr.nfail > (failpercent/100.0 * npels) || cr.maxerror > hardfail ||
-                yee_failures > (failpercent/100.0 * npels)) {
-                ret = ErrFail;
-            } else if (cr.nwarn > (warnpercent/100.0 * npels) || cr.maxerror > hardwarn) {
-                if (ret != ErrFail)
-                    ret = ErrWarn;
+#endif
+            if (cr.nfail > (ot.diff_failpercent/100.0 * npels) || cr.maxerror > ot.diff_hardfail ||
+                yee_failures > (ot.diff_failpercent/100.0 * npels)) {
+                ret = DiffErrFail;
+            } else if (cr.nwarn > (ot.diff_warnpercent/100.0 * npels) || cr.maxerror > ot.diff_hardwarn) {
+                if (ret != DiffErrFail)
+                    ret = DiffErrWarn;
             }
 
+#if 0
             // If the user requested that a difference image be output,
             // do that.  N.B. we only do this for the first subimage
             // right now, because ImageBuf doesn't really know how to
@@ -361,27 +240,27 @@ main (int argc, char *argv[])
                 // non-matching subimage.
                 diffimage = "";
             }
+#endif
         }
     }
 
-    if (compareall && img0.nsubimages() != img1.nsubimages()) {
+    if (ot.allsubimages && ir0.subimages() != ir1.subimages()) {
         std::cout << "Images had differing numbers of subimages ("
-                  << img0.nsubimages() << " vs " << img1.nsubimages() << ")\n";
-        ret = ErrFail;
+                  << ir0.subimages() << " vs " << ir1.subimages() << ")\n";
+        ret = DiffErrFail;
     }
-    if (!compareall && (img0.nsubimages() > 1 || img1.nsubimages() > 1)) {
+    if (!ot.allsubimages && (ir0.subimages() > 1 || ir1.subimages() > 1)) {
         std::cout << "Only compared the first subimage (of "
-                  << img0.nsubimages() << " and " << img1.nsubimages() 
+                  << ir0.subimages() << " and " << ir1.subimages() 
                   << ", respectively)\n";
     }
 
-    if (ret == ErrOK)
+    if (ret == DiffErrOK)
         std::cout << "PASS\n";
-    else if (ret == ErrWarn)
+    else if (ret == DiffErrWarn)
         std::cout << "WARNING\n";
-    else
+    else {
         std::cout << "FAILURE\n";
-
-    ImageCache::destroy (imagecache);
+    }
     return ret;
 }

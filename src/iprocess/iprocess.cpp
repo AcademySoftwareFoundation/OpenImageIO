@@ -90,10 +90,13 @@ static std::string filtername;
 static float filterwidth = 1.0f;
 static int resize_x = 0, resize_y = 0;
 static float rotation_angle = 0;
-static float cent_x = FLT_MAX, cent_y = FLT_MAX; //transformation center
-static float scale_x = 0, scale_y = 0; //used for scale transformation
-static float shear_m = 0, shear_n = 0; //used for shear transformation
-
+static float cent_x = FLT_MAX, cent_y = FLT_MAX;      //transformation center
+static float scale_x = 0, scale_y = 0;                        //used for scale transformation
+static float shear_m = 0, shear_n = 0;                      //used for shear transformation
+static float refl_a = 0, refl_b = 0;                            //used for reflection transformation
+        //used for transformation, when true the output image is resized so that there is no data loss
+        //after transformation (e.g. after rotation corners won't be cut out).
+static bool nocrop = false;                                      
 
 
 static int
@@ -121,7 +124,7 @@ getargs (int argc, char *argv[])
                 "<SEPARATOR>", "Image operations:",
                 "--add", &do_add, "Add two images",
                 "--crop %s %d %d %d %d", &crop_type, &crop_xmin, &crop_xmax,
-                    &crop_ymin, &crop_ymax, "Crop an image (type, xmin, xmax, ymin, ymax)\n\t\t\t\ttype = black|white|trans|window|cut",
+                    &crop_ymin, &crop_ymax, "Crop an image (type, xmin, xmax, ymin, ymax); type = black|white|trans|window|cut",
                 "--flip", &flip, "Flip the Image (upside-down)",
                 "--flop", &flop, "Flop the Image (left/right mirror)",
                 "<SEPARATOR>", "Output options:",
@@ -147,14 +150,16 @@ getargs (int argc, char *argv[])
 //                "--contig", &contig, "Force planarconfig contig",
 //FIXME         "-z", &zfile, "Treat input as a depth file",
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
-                "--transfer %s", &colortransfer_to, "Transfer outputfile to another colorspace\n\t\t\t\tLinear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
-                "--colorspace %s", &colortransfer_from, "Override colorspace of inputfile\n\t\t\t\tLinear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
+                "--transfer %s", &colortransfer_to, "Transfer outputfile to another colorspace: Linear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
+                "--colorspace %s", &colortransfer_from, "Override colorspace of inputfile: Linear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
                 "--filter %s %f", &filtername, &filterwidth, "Set the filter to use for resize",
                 "--resize %d %d", &resize_x, &resize_y, "Resize the image to x by y pixels",
                 "--rotate %f", &rotation_angle, "Rotates the image by x degrees",
                 "--center %f %f", &cent_x, &cent_y, "Set the transformation center x y",
                 "--scale %f %f", &scale_x, &scale_y, "Scale the image to x and y original width and height",
                 "--shear %f %f", &shear_m, &shear_n, "Shear the image with m and n coefficients (m - horizontal, n - vertical)",
+                "--reflect %f %f", &refl_a, &refl_b, "Reflect the image along a line described by a and b function coefficients f(x) = ax + b",
+                "--nocrop", &nocrop, "Resize the output image so that there is no data loss after transformation (e.g. after rotation corners won't be cut out).",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
 	std::cerr << ap.geterror() << std::endl;
@@ -362,11 +367,102 @@ main (int argc, char *argv[])
         float pixel[3] = { .1, .1, .1 };
         ImageBufAlgo::fill (out, pixel);
         bool ok = ImageBufAlgo::resize (out, in, out.xbegin(), out.xend(),
-                              out.ybegin(), out.yend(), filter, filterwidth);
+                              out.ybegin(), out.yend(), filter);
         ASSERT (ok);
         out.save ();
         if (filter)
             Filter2D::destroy (filter);
+    }
+
+    bool transformation =   rotation_angle ||
+                            (shear_m || shear_n) ||
+                            (scale_x && scale_y) ||
+                            (refl_a || refl_b);
+
+    if (transformation) {       
+         if (filenames.size() != 1) {
+            std::cerr << "iprocess: --transformation needs one input filename\n";
+            exit (EXIT_FAILURE);
+        }
+
+        Filter2D *filter = NULL;
+        if (! filtername.empty()) {
+            filter = Filter2D::create (filtername, filterwidth, filterwidth);
+            if (! filter) {
+                std::cerr << "iprocess: unknown filter " << filtername << "\n";
+                return EXIT_FAILURE;
+            }
+        }
+
+        ImageBuf in;
+        if (! read_input (filenames[0], in)) {
+            std::cerr << "iprocess: read error: " << in.geterror() << "\n";
+            return EXIT_FAILURE;
+        }
+
+        if (cent_x == FLT_MAX && cent_y == FLT_MAX) {
+            cent_x = ImageBuf(in).spec().full_width / 2.0f;
+            cent_y = ImageBuf(in).spec().full_height / 2.0f;
+        }
+
+        ImageBufAlgo::Mapping *m = NULL;
+        
+        if (rotation_angle) {
+            m = new ImageBufAlgo::RotationMapping (rotation_angle, cent_x, cent_y);       
+        }
+        else if (shear_m || shear_n) {
+            m = new ImageBufAlgo::ShearMapping (shear_m, shear_n, cent_x, cent_y);
+        }
+        else if (scale_x && scale_y) {
+            m = new ImageBufAlgo::ResizeMapping (scale_x, scale_y);
+        }
+        else if(refl_a || refl_b) {
+            m = new ImageBufAlgo::ReflectionMapping (refl_a, refl_b, cent_x, cent_y);
+        }
+        
+        ImageSpec outspec = in.spec();
+        
+        // output image size
+        int out_width = 0;
+        int out_height = 0;
+        
+        if (nocrop)
+        {
+            m->outputImageSize(&out_width, &out_height, 
+                    ImageBuf(in).spec().full_width, ImageBuf(in).spec().full_height); 
+        }
+        else 
+        {
+            out_width = ImageBuf(in).spec().full_width;
+            out_height = ImageBuf(in).spec().full_height;
+        }
+        
+        outspec.width = out_width;
+        outspec.height = out_height;
+        outspec.full_width = out_width;
+        outspec.full_height = out_height;
+            
+        ImageBuf out (outputname, outspec);
+        float pixel[3] = { .1, .1, .1 };
+        ImageBufAlgo::fill (out, pixel);
+        
+        // set the shift to center a transformed image
+        float xshift = (out_width - ImageBuf(in).spec().full_width) / 2.0f;
+        float yshift = (out_height - ImageBuf(in).spec().full_height) / 2.0f;
+        
+        if (scale_x && scale_y) 
+        {
+            xshift = 0;
+            yshift = 0;
+        }
+        
+        bool ok = false;
+        ok = ImageBufAlgo::transform(out, in, *m, filter, xshift, yshift);
+        ASSERT (ok);
+        out.save ();
+        if (filter)
+            Filter2D::destroy (filter);
+
     }
 
     bool transformation =   rotation_angle ||

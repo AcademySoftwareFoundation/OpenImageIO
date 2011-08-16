@@ -4,7 +4,9 @@ set (OIIO_VERSION_MINOR 11)
 set (OIIO_VERSION_PATCH 0)
 
 cmake_minimum_required (VERSION 2.6)
-set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
+if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
+    cmake_policy (SET CMP0017 NEW)
+endif ()
 message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
 message (STATUS "Project build dir = ${CMAKE_BINARY_DIR}")
 
@@ -29,13 +31,11 @@ set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (USE_JASPER ON CACHE BOOL "Use Jasper for JPEG-2000 if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
+set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
+     "Use an externally built shared library version of the pugixml library")
 
-if (NOT SOVERSION)
-    set (SOVERSION ${OIIO_VERSION_MAJOR} CACHE STRING "Set the SO version in the SO name of the output library")
-endif ()
-if (NOT ${SOVERSION} STREQUAL ${OIIO_VERSION_MAJOR})
-    set (OIIO_VERSION_MAJOR ${SOVERSION})
-endif ()
+set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
+     CACHE STRING "Set the SO version in the SO name of the output library")
 
 if (NOTHREADS)
     message (STATUS "NO THREADS!")
@@ -78,7 +78,7 @@ if (NOT WIN32)
 endif()
 
 # Disable some warnings for Clang, it's a little too picky with boost
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     add_definitions ("-Wno-parentheses")
     add_definitions ("-Wno-char-subscripts")
     add_definitions ("-Wno-unused-function")
@@ -89,20 +89,72 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions ("-DDEBUG=1")
 endif ()
 
-# Exec Install Locations
-set (BINDIR   "${CMAKE_INSTALL_PREFIX}/bin")
-set (LIBDIR   "${CMAKE_INSTALL_PREFIX}/lib")
-set (PYLIBDIR "${CMAKE_INSTALL_PREFIX}/python")
-if (EXEC_INSTALL_PREFIX)
-    set (BINDIR   "${EXEC_INSTALL_PREFIX}/bin")
-    set (LIBDIR   "${EXEC_INSTALL_PREFIX}/lib")
-    set (PYLIBDIR "${EXEC_INSTALL_PREFIX}/python")
+###########################################################################
+# Paths for install tree customization.  Note that relative paths are relative
+# to CMAKE_INSTALL_PREFIX.
+set (DEFAULT_BIN_INSTALL_DIR   "bin")
+set (DEFAULT_LIB_INSTALL_DIR   "lib")
+set (DEFAULT_INCLUDE_INSTALL_DIR "include/OpenImageIO")
+if (UNIX AND NOT SELF_CONTAINED_INSTALL_TREE)
+    # Try to be well-behaved and install into reasonable places according to
+    # the "standard" unix directory heirarchy
+    # TODO: Figure out how to get the correct python directory
+    set (DEFAULT_PYLIB_INSTALL_DIR "lib/python/site-packages")
+    set (DEFAULT_DOC_INSTALL_DIR "share/doc/openimageio")
+    set (DEFAULT_MAN_INSTALL_DIR "share/man/man1")
+else ()
+    # Here is the "self-contained install tree" case: the expectation here is
+    # that everything OIIO related will go into its own directory, not into
+    # some standard system heirarchy.
+    set (DEFAULT_PYLIB_INSTALL_DIR "python")
+    set (DEFAULT_DOC_INSTALL_DIR "doc")
+    set (DEFAULT_MAN_INSTALL_DIR "doc/man")
 endif ()
+if (EXEC_INSTALL_PREFIX)
+    # Tack on an extra prefix to support multi-arch builds.
+    set (DEFAULT_BIN_INSTALL_DIR   "${EXEC_INSTALL_PREFIX}/${DEFAULT_BIN_INSTALL_DIR}")
+    set (DEFAULT_LIB_INSTALL_DIR   "${EXEC_INSTALL_PREFIX}/${DEFAULT_LIB_INSTALL_DIR}")
+    set (DEFAULT_PYLIB_INSTALL_DIR "${EXEC_INSTALL_PREFIX}/${DEFAULT_PYLIB_INSTALL_DIR}")
+endif ()
+# Set up cmake cache variables corresponding to the defaults deduced above, so
+# that the user can override them as desired:
+set (BIN_INSTALL_DIR ${DEFAULT_BIN_INSTALL_DIR} CACHE STRING
+     "Install location for binaries (relative to CMAKE_INSTALL_PREFIX or absolute)")
+set (LIB_INSTALL_DIR ${DEFAULT_LIB_INSTALL_DIR} CACHE STRING
+     "Install location for libraries (relative to CMAKE_INSTALL_PREFIX or absolute)")
+set (PYLIB_INSTALL_DIR ${DEFAULT_PYLIB_INSTALL_DIR} CACHE STRING
+     "Install location for python libraries (relative to CMAKE_INSTALL_PREFIX or absolute)")
+set (INCLUDE_INSTALL_DIR ${DEFAULT_INCLUDE_INSTALL_DIR} CACHE STRING
+     "Install location of header files (relative to CMAKE_INSTALL_PREFIX or absolute)")
+set (DOC_INSTALL_DIR ${DEFAULT_DOC_INSTALL_DIR} CACHE STRING
+     "Install location for documentation (relative to CMAKE_INSTALL_PREFIX or absolute)")
+if (UNIX)
+    set (MAN_INSTALL_DIR ${DEFAULT_MAN_INSTALL_DIR} CACHE STRING
+         "Install location for manual pages (relative to CMAKE_INSTALL_PREFIX or absolute)")
+endif()
 
-set (CMAKE_INSTALL_RPATH "${LIBDIR}")
-set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set (INSTALL_DOCS ON CACHE BOOL "Install documentation")
+
 
 ###########################################################################
+# Rpath handling.
+if (CMAKE_SKIP_RPATH)
+    # We need to disallow the user from truly setting CMAKE_SKIP_RPATH, since
+    # we want to run the generated executables from the build tree in order to
+    # generate the manual page documentation.  However, we make sure the
+    # install rpath is unset so that the install tree is still free of rpaths
+    # for linux packaging purposes.
+    set (CMAKE_SKIP_RPATH FALSE)
+    unset (CMAKE_INSTALL_RPATH)
+else ()
+    set (CMAKE_INSTALL_RPATH "${LIB_INSTALL_DIR}")
+    if (NOT IS_ABSOLUTE ${CMAKE_INSTALL_RPATH})
+        set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}")
+    endif ()
+    set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif ()
+
+
 if (MSVC)
     add_definitions (-D_CRT_SECURE_NO_DEPRECATE)
     add_definitions (-D_CRT_SECURE_NO_WARNINGS)
@@ -128,6 +180,7 @@ add_subdirectory (igrep)
 add_subdirectory (iinfo)
 add_subdirectory (iprocess)
 add_subdirectory (maketx)
+add_subdirectory (oiiotool)
 add_subdirectory (testtex)
 add_subdirectory (iv)
 

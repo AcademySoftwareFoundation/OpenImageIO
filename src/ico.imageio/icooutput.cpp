@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <zlib.h>
 
 #include "ico.h"
 #include "../png.imageio/png_pvt.h"
