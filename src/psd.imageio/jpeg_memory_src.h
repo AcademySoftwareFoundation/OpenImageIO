@@ -35,6 +35,10 @@ extern "C" {
 #include "jpeglib.h"
 }
 
+//This function allows you to read a JPEG from memory using libjpeg.
+//Newer versions of libjpeg have jpeg_mem_src which has the same functionality.
+//inbuffer is the buffer that holds the JPEG data
+//insize is the size of the buffer
 void
 jpeg_memory_src (j_decompress_ptr cinfo,
                  unsigned char *inbuffer, unsigned long insize);
