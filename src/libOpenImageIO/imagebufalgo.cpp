@@ -1498,10 +1498,12 @@ ImageBufAlgo::TPSMapping::TPSMapping (const std::vector<Point> &_srcPoints,
     : srcControlPoints(_srcPoints), dstControlPoints(_dstPoints),
       ctrlpc((int)_srcPoints.size())
 {
+    std::cout<< "ddddd\n";
     isDstToSrcMapping = false;
     
     int dim = ctrlpc + 2;
     tpsXCoefs.resize (dim);
+    std::cout<< "ddddd2\n";
     tpsYCoefs.resize (dim);
 
     axelements.resize (dim*dim);
@@ -1509,6 +1511,7 @@ ImageBufAlgo::TPSMapping::TPSMapping (const std::vector<Point> &_srcPoints,
     ax[0] = &axelements[0]; //elements
     for (int i=1; i<dim; i++) 
         ax[i] = ax[i-1] + dim;
+    std::cout<< "ddddd3\n";
     
     ayelements.resize (dim*dim);
     ay.resize (dim); //creating table of pointers
@@ -1516,10 +1519,13 @@ ImageBufAlgo::TPSMapping::TPSMapping (const std::vector<Point> &_srcPoints,
     for (int i=1; i<dim; i++) 
         ay[i] = ay[i-1] + dim;
 
+    std::cout<< "ddddd4\n";
     bx.resize (dim);
     by.resize (dim);
+    std::cout<< "ddddd5\n";
     
     calculateCoefficients();   
+    std::cout<< "ddddd2\n";
 }
 
 
@@ -1574,12 +1580,15 @@ ImageBufAlgo::TPSMapping::calculateCoefficients()
         by[i] = dstControlPoints[i].y;
     }
 
+    std::cout<<"dfffsss\n";
     //--- finding coefficients -----------------------------------//
     std::vector<int> indxX;
+    indxX.resize(dim);
     LUDecompose(&ax[0], &indxX[0], dim);
     solveMatrix(&bx[0], &tpsXCoefs[0], &indxX[0], &ax[0], dim);
 
     std::vector<int> indxY;
+    indxY.resize(dim);
     LUDecompose(&ay[0], &indxY[0], dim);
     solveMatrix(&by[0], &tpsYCoefs[0], &indxY[0], &ay[0], dim);
     //-------------------------------------------------------------//
