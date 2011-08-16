@@ -103,15 +103,15 @@ bool ImageOutputWrap::write_tile(int x, int y, int z, TypeDesc format, object &b
 }
 
 // TESTME
-bool ImageOutputWrap::write_rectangle(int xmin, int xmax, int ymin, int ymax, 
-                                    int zmin, int zmax, TypeDesc format, 
+bool ImageOutputWrap::write_rectangle(int xbegin, int xend, int ybegin, int yend,
+                                     int zbegin, int zend, TypeDesc format, 
                                     object &buffer, stride_t xstride=AutoStride,
                                     stride_t ystride=AutoStride,
                                     stride_t zstride=AutoStride)
 {
     const void *array = make_read_buffer(buffer);
-    return m_output->write_rectangle(xmin, xmax, ymin, ymax, zmin, zmax, format,
-                                array, xstride, ystride, zstride);
+    return m_output->write_rectangle(xbegin, xend, ybegin, yend, zbegin, zend,
+                                     format, array, xstride, ystride, zstride);
 }
 
 // The write_image method is a bit different from the c++ interface. 
