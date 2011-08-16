@@ -144,11 +144,10 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
 
 
 bool
-ImageOutput::write_rectangle (int xmin, int xmax, int ymin, int ymax,
-                              int zmin, int zmax, TypeDesc format,
+ImageOutput::write_rectangle (int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend, TypeDesc format,
                               const void *data, stride_t xstride,
-                              stride_t ystride,
-                              stride_t zstride)
+                              stride_t ystride, stride_t zstride)
 {
     return false;
 }
@@ -193,7 +192,7 @@ ImageOutput::to_native_scanline (TypeDesc format,
                                  const void *data, stride_t xstride,
                                  std::vector<unsigned char> &scratch)
 {
-    return to_native_rectangle (0, m_spec.width-1, 0, 0, 0, 0, format, data,
+    return to_native_rectangle (0, m_spec.width, 0, 1, 0, 1, format, data,
                                 xstride, 0, 0, scratch);
 }
 
@@ -204,16 +203,16 @@ ImageOutput::to_native_tile (TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride,
                              std::vector<unsigned char> &scratch)
 {
-    return to_native_rectangle (0, m_spec.tile_width-1, 0, m_spec.tile_height-1,
-                                0, std::max(0,m_spec.tile_depth-1), format, data,
+    return to_native_rectangle (0, m_spec.tile_width, 0, m_spec.tile_height,
+                                0, std::max(1,m_spec.tile_depth), format, data,
                                 xstride, ystride, zstride, scratch);
 }
 
 
 
 const void *
-ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
-                                  int zmin, int zmax, 
+ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
+                                  int zbegin, int zend,
                                   TypeDesc format, const void *data,
                                   stride_t xstride, stride_t ystride, stride_t zstride,
                                   std::vector<unsigned char> &scratch)
@@ -236,12 +235,12 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
         xstride = native_pixel_bytes;
     // Fill in the rest of the strides that haven't been set.
     m_spec.auto_stride (xstride, ystride, zstride, format,
-                        m_spec.nchannels, xmax-xmin+1, ymax-ymin+1);
+                        m_spec.nchannels, xend-xbegin, yend-ybegin);
 
     // Compute width and height from the rectangle extents
-    int width = xmax - xmin + 1;
-    int height = ymax - ymin + 1;
-    int depth = zmax - zmin + 1;
+    int width = xend - xbegin;
+    int height = yend - ybegin;
+    int depth = zend - zbegin;
 
     // Do the strides indicate that the data area is contiguous?
     bool contiguous = (xstride == (stride_t)m_spec.pixel_bytes(native_data));
@@ -343,7 +342,7 @@ ImageOutput::write_image (TypeDesc format, const void *data,
 
     if (supports ("rectangles")) {
         // Use a rectangle if we can
-        return write_rectangle (0, m_spec.width-1, 0, m_spec.height-1, 0, m_spec.depth-1,
+        return write_rectangle (0, m_spec.width, 0, m_spec.height, 0, m_spec.depth,
                                 format, data, xstride, ystride, zstride);
     }
 

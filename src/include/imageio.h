@@ -768,10 +768,9 @@ public:
                               stride_t ystride=AutoStride,
                               stride_t zstride=AutoStride);
 
-
-    /// Write pixels whose x coords range over xmin..xmax (inclusive), y
-    /// coords over ymin..ymax, and z coords over zmin...zmax.  The
-    /// three stride values give the distance (in bytes) between
+    /// Write a rectangle of pixels given by the range
+    ///   [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    /// The three stride values give the distance (in bytes) between
     /// successive pixels, scanlines, and volumetric slices,
     /// respectively.  Strides set to AutoStride imply 'contiguous'
     /// data, i.e.,
@@ -779,15 +778,16 @@ public:
     ///     ystride == xstride * (xmax-xmin+1)
     ///     zstride == ystride * (ymax-ymin+1)
     /// The data are automatically converted from 'format' to the actual
-    /// output format (as specified to open()) by this method.  
-    /// If format is TypeDesc::UNKNOWN, then rather than converting from
-    /// format, it will just copy pixels in the file's native data layout
-    /// (including, possibly, per-channel data formats).
+    /// output format (as specified to open()) by this method.  If
+    /// format is TypeDesc::UNKNOWN, it will just copy pixels assuming
+    /// they are already in the file's native data layout (including,
+    /// possibly, per-channel data formats).
+    ///
     /// Return true for success, false for failure.  It is a failure to
     /// call write_rectangle for a format plugin that does not return
     /// true for supports("rectangles").
-    virtual bool write_rectangle (int xmin, int xmax, int ymin, int ymax,
-                                  int zmin, int zmax, TypeDesc format,
+    virtual bool write_rectangle (int xbegin, int xend, int ybegin, int yend,
+                                  int zbegin, int zend, TypeDesc format,
                                   const void *data, stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride,
                                   stride_t zstride=AutoStride);
@@ -872,8 +872,8 @@ protected:
                                 stride_t xstride, stride_t ystride,
                                 stride_t zstride,
                                 std::vector<unsigned char> &scratch);
-    const void *to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
-                                     int zmin, int zmax,
+    const void *to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
+                                     int zbegin, int zend,
                                      TypeDesc format, const void *data,
                                      stride_t xstride, stride_t ystride,
                                      stride_t zstride,
