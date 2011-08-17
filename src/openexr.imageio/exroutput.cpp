@@ -624,9 +624,8 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
     for ( ;  ok && ybegin < yend;  ybegin += chunk) {
         int y1 = std::min (ybegin+chunk, yend);
         int nscanlines = y1 - ybegin;
-        
-        const void *d = to_native_rectangle (m_spec.x, m_spec.x+m_spec.width-1,
-                                             ybegin, y1-1, z, z, format, data,
+        const void *d = to_native_rectangle (m_spec.x, m_spec.x+m_spec.width,
+                                             ybegin, y1, z, z+1, format, data,
                                              xstride, ystride, zstride,
                                              m_scratch);
 
@@ -710,10 +709,7 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
         xstride = (stride_t) user_pixelbytes;
     m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
                         (xend-xbegin), (yend-ybegin));
-
-    // FIXME -- to_native_rectangle really needs to use begin/end notation,
-    // rather than min/max.
-    data = to_native_rectangle (xbegin, xend-1, ybegin, yend-1, zbegin, zend-1,
+    data = to_native_rectangle (xbegin, xend, ybegin, yend, zbegin, zend,
                                 format, data, xstride, ystride, zstride,
                                 m_scratch);
 
