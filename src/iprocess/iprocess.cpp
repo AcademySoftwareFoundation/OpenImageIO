@@ -428,8 +428,11 @@ main (int argc, char *argv[])
         
         if (nocrop)
         {
-            m->outputImageSize(&out_width, &out_height, 
-                    ImageBuf(in).spec().full_width, ImageBuf(in).spec().full_height); 
+            Imath::Box2f srcImgBox(Imath::V2f(0, 0), Imath::V2f(in_width, in_height));
+            Imath::Box2f newImgBox = m->bound(srcImgBox);
+        
+            out_width = newImgBox.max.x - newImgBox.min.x;
+            out_height = newImgBox.max.y - newImgBox.min.y; 
         }
         else 
         {

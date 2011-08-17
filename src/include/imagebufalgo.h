@@ -36,6 +36,8 @@
 #include "fmath.h"
 #include "colortransfer.h"
 #include "filter.h"
+#include "ImathBox.h"
+#include "ImathVec.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -256,7 +258,9 @@ public:
     virtual ~Mapping () { }
     virtual void map (float x, float y, float *s, float *t, float *dsdx,
                       float *dtdx, float *dsdy, float *dtdy)  const = 0;
-    virtual void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const = 0;
+//    virtual void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const = 0;
+    
+    virtual Imath::Box2f bound (const Imath::Box2f &src);
     
     bool isDstToSrcMapping;
 };
@@ -276,8 +280,8 @@ public:
     RotationMapping (float rotangle, float originx = 0, float originy = 0);
     virtual void map (float x, float y, float* s, float* t,
                       float *dsdx, float *dtdx, float *dsdy, float *dtdy) const; 
-    virtual void outputImageSize (int *width, int *height,
-                                  int srcWidth, int srcHeight) const;
+ //   virtual void outputImageSize (int *width, int *height,
+ //                                 int srcWidth, int srcHeight) const;
 private:
     float m_rotangle;  // rotation angle
     float m_originx, m_originy;
@@ -297,8 +301,10 @@ public:
     { }
     void map (float x, float y, float* s, float* t,
               float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
-    void outputImageSize (int *width, int *height,
-                          int srcWidth, int srcHeight) const;
+ //   void outputImageSize (int *width, int *height,
+ //                         int srcWidth, int srcHeight) const;
+    
+    Imath::Box2f bound (const Imath::Box2f &src);
 private:
     float new_width, new_height, xscale, yscale;
 };
@@ -310,8 +316,8 @@ public:
     ShearMapping (float m, float n, float originx = 0, float originy = 0);
     void map (float x, float y, float* s, float* t,
               float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
-    void outputImageSize (int *width, int *height,
-                          int srcWidth, int srcHeight) const;
+ //   void outputImageSize (int *width, int *height,
+ //                         int srcWidth, int srcHeight) const;
 private:
     float m_m, m_n, m_originx, m_originy;
 };
@@ -321,36 +327,31 @@ private:
 class ReflectionMapping : public Mapping {
 public:
     ReflectionMapping (float a, float b, float originx = 0, float originy = 0);
+    ReflectionMapping (Imath::V2f p1, Imath::V2f p2, float originx = 0, float originy = 0);
     void map (float x, float y, float* s, float* t,
               float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
-    void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const;
+ //   void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const;
 private:
     float m_a, m_b, m_originx, m_originy;
-};
-
-
-struct Point {
-    Point(float x = 0, float y = 0): x(x), y(y) {}
-    float x,y;
 };
 
 
 // Thin Plate Spline mapping
 class TPSMapping : public Mapping {
 public:
-    TPSMapping (const std::vector<Point> &_controlPoints,
-                const std::vector<Point> &_destPoints);
+    TPSMapping (const std::vector<Imath::V2f> &_controlPoints,
+                const std::vector<Imath::V2f> &_destPoints);
 
     void map (float x, float y, float* s, float* t,
               float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
     
-    void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const;
+ //   void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const;
     
 private:   
     void calculateCoefficients();
     
-    float rSquare(Point p1, Point p2) const;
-    float kernelFunction(Point p1, Point p2) const;
+    float rSquare(Imath::V2f p1, Imath::V2f p2) const;
+    float kernelFunction(Imath::V2f p1, Imath::V2f p2) const;
     
     /// Decompose matrix to LU form
     bool LUDecompose(float** lu, int* indx, int dimmm) const;
@@ -358,12 +359,10 @@ private:
     
     void simpleMap (float x, float y, float* s, float* t) const;
 
-    std::vector<Point> srcControlPoints;
-    std::vector<Point> dstControlPoints;
+    std::vector<Imath::V2f> srcControlPoints;
+    std::vector<Imath::V2f> dstControlPoints;
     std::vector<float> tpsXCoefs, tpsYCoefs;
-    std::vector<float*> ax, ay;
-    std::vector<float> axelements, ayelements;
-    std::vector<float> bx, by;
+
     int ctrlpc; //control points count
 };
 

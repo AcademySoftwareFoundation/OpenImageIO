@@ -49,6 +49,7 @@
 #include "dassert.h"
 #include "sysutil.h"
 #include "filter.h"
+#include <float.h>
 
 
 OIIO_NAMESPACE_ENTER
@@ -1228,7 +1229,34 @@ ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src,
     }
 }
 
+Imath::Box2f
+ImageBufAlgo::Mapping::bound (const Imath::Box2f &src)
+{
+    float dsdx = 0, dsdy = 0, dtdx = 0, dtdy = 0;
+    float x = 0, y = 0;
+    float minx, maxx, miny, maxy;
+    
+    float srcWidth = src.max.x;
+    float srcHeight = src.max.y;
+    
+    map (0, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
+    maxx = x;       minx = x;
+    maxy = y;       miny = y;
 
+    map (srcWidth, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
+    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
+    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
+
+    map (srcWidth, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
+    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
+    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
+
+    map (0, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
+    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
+    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
+    
+    return Imath::Box2f(Imath::V2f(minx, miny), Imath::V2f(minx, miny));
+}
 
 
 ImageBufAlgo::RotationMapping::RotationMapping (float rotangle, float originx,
@@ -1255,48 +1283,6 @@ ImageBufAlgo::RotationMapping::map (float x, float y, float* s, float* t,
 }
 
 
-
-void 
-ImageBufAlgo::RotationMapping::outputImageSize(int *width, int *height,
-                                               int srcWidth, int srcHeight) const
-{
-    float dsdx = 0, dsdy = 0, dtdx = 0, dtdy = 0;
-    float x = 0, y = 0;
-    float minx, maxx, miny, maxy;
-    
-    map (0, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = x;       minx = x;
-    maxy = y;       miny = y;
-
-    map (srcWidth, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
-    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
-
-    map (srcWidth, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
-    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
-
-    map (0, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
-    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
-
-    if (maxx > 0) maxx += 0.5f;
-    else maxx -= 0.5f;
-
-    if (minx > 0) minx += 0.5f;
-    else minx -= 0.5f;
-
-    if (maxy > 0) maxy += 0.5f;
-    else maxy -= 0.5f;
-
-    if (miny > 0) miny += 0.5f;
-    else miny -= 0.5f;
-
-    *width = (int)maxx - (int)minx;
-    *height = (int)maxy - (int)miny; 
-}
-
-
 void
 ImageBufAlgo::ResizeMapping::map (float x, float y, float* s, float* t,
                                   float *dsdx, float *dtdx, float *dsdy, float *dtdy) const
@@ -1310,14 +1296,14 @@ ImageBufAlgo::ResizeMapping::map (float x, float y, float* s, float* t,
 }
 
 
-void 
-ImageBufAlgo::ResizeMapping::outputImageSize(int *width, int *height,
-                                             int srcWidth, int srcHeight) const
-{
-    *width = srcWidth * xscale + 0.5f;
-    *height = srcHeight * yscale + 0.5f; 
+Imath::Box2f
+ImageBufAlgo::ResizeMapping::bound (const Imath::Box2f &src)
+{   
+    float width = src.max.x * xscale;
+    float height = src.max.y * yscale; 
+    
+    return Imath::Box2f(Imath::V2f(0, 0), Imath::V2f(width, height));   
 }
-
 
 
 ImageBufAlgo::ShearMapping::ShearMapping (float m, float n,
@@ -1368,52 +1354,22 @@ ImageBufAlgo::ShearMapping::map (float x, float y, float* s, float* t,
 
 
 
-void 
-ImageBufAlgo::ShearMapping::outputImageSize(int *width, int *height,
-                                            int srcWidth, int srcHeight) const
-{
-    float dsdx = 0, dsdy = 0, dtdx = 0, dtdy = 0;
-    float x = 0, y = 0;
-    float minx, maxx, miny, maxy;
-    
-    map (0, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = x;       minx = x;
-    maxy = y;       miny = y;
-
-    map (srcWidth, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
-    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
-
-    map (srcWidth, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
-    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
-
-    map (0, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
-    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
-
-    if (maxx > 0) maxx += 0.5f;
-    else maxx -= 0.5f;
-
-    if (minx > 0) minx += 0.5f;
-    else minx -= 0.5f;
-
-    if (maxy > 0) maxy += 0.5f;
-    else maxy -= 0.5f;
-
-    if (miny > 0) miny += 0.5f;
-    else miny -= 0.5f;
-
-    *width = (int)maxx - (int)minx;
-    *height = (int)maxy - (int)miny; 
-}
-
-
-
 ImageBufAlgo::ReflectionMapping::ReflectionMapping (float a, float b,
                                                     float originx, float originy)
     : m_a(a), m_b(b), m_originx(originx), m_originy(originy)
 { }
+
+ImageBufAlgo::ReflectionMapping::ReflectionMapping (Imath::V2f p1, Imath::V2f p2,
+                                                    float originx, float originy)
+    : m_originx(originx), m_originy(originy)
+{ 
+    if(p2.x != p1.x)
+        m_a = (p2.y - p1.y) / (p2.x - p1.x);
+    else
+        m_a = FLT_MAX;
+    
+    m_b = p1.y - m_a * p1.x;
+}
 
 
 
@@ -1451,67 +1407,36 @@ ImageBufAlgo::ReflectionMapping::map (float x, float y, float* s, float* t,
 
 
 
-void 
-ImageBufAlgo::ReflectionMapping::outputImageSize(int *width, int *height,
-                                                 int srcWidth, int srcHeight) const
-{
-    float dsdx = 0, dsdy = 0, dtdx = 0, dtdy = 0;
-    float x = 0, y = 0;
-    float minx, maxx, miny, maxy;
-    
-    map (0, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = x;       minx = x;
-    maxy = y;       miny = y;
-
-    map (srcWidth, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
-    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
-
-    map (srcWidth, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
-    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
-
-    map (0, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
-    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
-    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
-
-    if (maxx > 0) maxx += 0.5f;
-    else maxx -= 0.5f;
-
-    if (minx > 0) minx += 0.5f;
-    else minx -= 0.5f;
-
-    if (maxy > 0) maxy += 0.5f;
-    else maxy -= 0.5f;
-
-    if (miny > 0) miny += 0.5f;
-    else miny -= 0.5f;
-
-    *width = (int)maxx - (int)minx;
-    *height = (int)maxy - (int)miny; 
-}
-
-
-
-ImageBufAlgo::TPSMapping::TPSMapping (const std::vector<Point> &_srcPoints,
-                                      const std::vector<Point> &_dstPoints)
+ImageBufAlgo::TPSMapping::TPSMapping (const std::vector<Imath::V2f> &_srcPoints,
+                                      const std::vector<Imath::V2f> &_dstPoints)
     : srcControlPoints(_srcPoints), dstControlPoints(_dstPoints),
       ctrlpc((int)_srcPoints.size())
 {
-    std::cout<< "ddddd\n";
     isDstToSrcMapping = false;
     
     int dim = ctrlpc + 2;
     tpsXCoefs.resize (dim);
-    std::cout<< "ddddd2\n";
     tpsYCoefs.resize (dim);
 
+    calculateCoefficients();   
+}
+
+
+
+void
+ImageBufAlgo::TPSMapping::calculateCoefficients()
+{    
+    std::vector<float*> ax, ay;
+    std::vector<float> axelements, ayelements;
+    std::vector<float> bx, by;
+    
+    int dim = ctrlpc + 2;   //matrix dimension
+    
     axelements.resize (dim*dim);
     ax.resize (dim); //creating table of pointers
     ax[0] = &axelements[0]; //elements
     for (int i=1; i<dim; i++) 
         ax[i] = ax[i-1] + dim;
-    std::cout<< "ddddd3\n";
     
     ayelements.resize (dim*dim);
     ay.resize (dim); //creating table of pointers
@@ -1519,22 +1444,10 @@ ImageBufAlgo::TPSMapping::TPSMapping (const std::vector<Point> &_srcPoints,
     for (int i=1; i<dim; i++) 
         ay[i] = ay[i-1] + dim;
 
-    std::cout<< "ddddd4\n";
     bx.resize (dim);
     by.resize (dim);
-    std::cout<< "ddddd5\n";
     
-    calculateCoefficients();   
-    std::cout<< "ddddd2\n";
-}
-
-
-
-void
-ImageBufAlgo::TPSMapping::calculateCoefficients()
-{       
     //--- preparing matrixes for determining coefficients ---//
-    int dim = ctrlpc + 2;   //matrix dimension
 
     for (int y = 0; y < dim; y++) {
         for (int x = 0; x < dim; x++) {
@@ -1580,7 +1493,6 @@ ImageBufAlgo::TPSMapping::calculateCoefficients()
         by[i] = dstControlPoints[i].y;
     }
 
-    std::cout<<"dfffsss\n";
     //--- finding coefficients -----------------------------------//
     std::vector<int> indxX;
     indxX.resize(dim);
@@ -1608,7 +1520,7 @@ ImageBufAlgo::TPSMapping::map (float x, float y, float* s, float* t,
     float xSum = 0;
     float ySum = 0;
     
-    Point p1;
+    Imath::V2f p1;
     p1.x = x;
     p1.y = y;
     
@@ -1655,7 +1567,7 @@ ImageBufAlgo::TPSMapping::simpleMap (float x, float y, float* s, float* t) const
     float xSum = 0;
     float ySum = 0;
     
-    Point p1 (x, y);
+    Imath::V2f p1 (x, y);
     
     for (int i = 2; i < dim; i++) {
         xSum += tpsXCoefs[i] * kernelFunction(p1, srcControlPoints[i - 2]);
@@ -1668,20 +1580,9 @@ ImageBufAlgo::TPSMapping::simpleMap (float x, float y, float* s, float* t) const
     *s = xPrim;
     *t = yPrim; 
 }
-
-
-
-void
-ImageBufAlgo::TPSMapping::outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const
-{
-    *width = srcWidth;
-    *height = srcHeight;
-}
-
-
     
 float
-ImageBufAlgo::TPSMapping::rSquare(Point p1, Point p2) const
+ImageBufAlgo::TPSMapping::rSquare(Imath::V2f p1, Imath::V2f p2) const
 {
     return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
 }
@@ -1689,7 +1590,7 @@ ImageBufAlgo::TPSMapping::rSquare(Point p1, Point p2) const
 
 
 float
-ImageBufAlgo::TPSMapping::kernelFunction(Point p1, Point p2) const
+ImageBufAlgo::TPSMapping::kernelFunction(Imath::V2f p1, Imath::V2f p2) const
 {
     double r2 = rSquare(p1, p2);
 

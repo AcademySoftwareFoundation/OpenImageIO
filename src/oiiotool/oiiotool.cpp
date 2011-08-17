@@ -911,7 +911,7 @@ adjust_spec_resolution (ImageSpec &spec, const char *geom)
 
 static int
 action_transform (int argc, const char *argv[])
-{
+{  
     if (! ot.curimg.get()) {
         // Not enough have inputs been specified so far, so put this
         // function on the "pending" list.
@@ -957,8 +957,8 @@ action_transform (int argc, const char *argv[])
     int out_width = 0;
     int out_height = 0;
     // source image size
-    int in_width = Aspec.full_width;
-    int in_height = Aspec.full_height;
+    const int in_width = Aspec.full_width;
+    const int in_height = Aspec.full_height;
     
     
     if (cent_x == FLT_MAX && cent_y == FLT_MAX || nocrop) {
@@ -970,10 +970,9 @@ action_transform (int argc, const char *argv[])
     
     cmd = argv[0];
     size_t actionNameEndPos = cmd.find_first_of(":");
-    std::string actionName = cmd.substr (2, actionNameEndPos - 2);
+    std::string actionName = cmd.substr(2, actionNameEndPos - 2);
     
     //std::cout << actionName <<std::endl;
-    
     if (! strcmp (actionName.c_str(), "rotate")) {
         float rotation_angle = atof(argv[1]);
         m = new ImageBufAlgo::RotationMapping (rotation_angle, cent_x, cent_y);
@@ -986,16 +985,28 @@ action_transform (int argc, const char *argv[])
         float scale_y = atof(argv[2]);
         m = new ImageBufAlgo::ResizeMapping (scale_x, scale_y);
     } else if (! strcmp (actionName.c_str(), "reflect")) {
+        /*
         float refl_a = atof(argv[1]);
         float refl_b = atof(argv[2]);
         m = new ImageBufAlgo::ReflectionMapping (refl_a, refl_b, cent_x, cent_y);
+        */
+        float p1x = atof(argv[1]);
+        float p1y = atof(argv[2]);
+        float p2x = atof(argv[3]);
+        float p2y = atof(argv[4]);
+        m = new ImageBufAlgo::ReflectionMapping (Imath::V2f(p1x, p1y), Imath::V2f(p2x, p2y), cent_x, cent_y); 
     }
     
-    if (nocrop)
-        m->outputImageSize(&out_width, &out_height, in_width, in_height); 
+    if (nocrop) {
+        Imath::Box2f srcImgBox(Imath::V2f(0, 0), Imath::V2f(in_width, in_height));
+        Imath::Box2f newImgBox = m->bound(srcImgBox);
+        
+        out_width = newImgBox.max.x - newImgBox.min.x;
+        out_height = newImgBox.max.y - newImgBox.min.y;
+    }
     else {
-        out_width = in_width; //ImageBuf(in).spec().full_width;
-        out_height = in_height; //ImageBuf(in).spec().full_height;
+        out_width = in_width;
+        out_height = in_height;
     }
     
     newspec.width = out_width;
@@ -1052,6 +1063,8 @@ action_transform (int argc, const char *argv[])
     if (filter)
         Filter2D::destroy (filter);
     
+    delete m;
+    
     return 0;
 }
 
@@ -1060,6 +1073,7 @@ action_transform (int argc, const char *argv[])
 static int
 action_tps (int argc, const char *argv[])
 {  
+    
     if (! ot.curimg.get()) {
         // Not enough have inputs been specified so far, so put this
         // function on the "pending" list.
@@ -1069,6 +1083,7 @@ action_tps (int argc, const char *argv[])
         ot.pending_argc = 2;
         return 0;
     }
+      
     
     std::string filtername;
     std::string cmd = argv[0];
@@ -1108,17 +1123,17 @@ action_tps (int argc, const char *argv[])
     ImageBuf &Rib ((*ot.curimg)(0,0));
     
     //control points from input file are stored here
-    std::vector<ImageBufAlgo::Point> srccp;
-    std::vector<ImageBufAlgo::Point> dstcp;
+    std::vector<Imath::V2f> srccp;
+    std::vector<Imath::V2f> dstcp;
     
     std::string line;
     std::ifstream infile;
+    
     infile.open (argv[1]);
     
     float sx, sy, dx, dy;
-    while(!infile.eof())
+    while(getline(infile, line))
     {
-        getline(infile, line);
     //    std::cout << line;
         
         int assaignedc = 0;
@@ -1130,13 +1145,14 @@ action_tps (int argc, const char *argv[])
                     sx << ", " << sy << ")  ->  (" <<
                     dx << ", " << dy << ")\n";
             
-            srccp.push_back(ImageBufAlgo::Point(sx, sy));
-            dstcp.push_back(ImageBufAlgo::Point(dx, dy));
+            srccp.push_back(Imath::V2f(sx, sy));
+            dstcp.push_back(Imath::V2f(dx, dy));
         }
         else {
             std::cout << "WARNING! - Possible input error, line omitted.\n";        
         }
     }
+    infile.close();
  
     ImageBufAlgo::Mapping *m = NULL;
     m = new ImageBufAlgo::TPSMapping(srccp, dstcp);
@@ -1298,7 +1314,8 @@ getargs (int argc, char *argv[])
                 "--rotate %@ %f", &action_transform, &dummyfloat, "Rotates the image by x degrees",
                 "--scale %@ %f %f", &action_transform, &dummyfloat, &dummyfloat, "Scale the image to x and y original width and height (x, y)",
                 "--shear %@ %f %f", &action_transform, &dummyfloat, &dummyfloat, "Shear the image with m - horizontal and n - vertical coefficients (m, n)",
-                "--reflect %@ %f %f", &action_transform, &dummyfloat, &dummyfloat, "Reflect the image along a line described by a and b function coefficients f(x) = ax + b (a, b)",
+                "--reflect %@ %f %f %f %f", &action_transform, &dummyfloat, &dummyfloat, &dummyfloat, &dummyfloat, "Reflect the image along a line going thru by two points (x1, y1, x2, y2)",
+       //         "--reflect %@ %f %f", &action_transform, &dummyfloat, &dummyfloat, "Reflect the image along a line described by a and b function coefficients f(x) = ax + b (a, b)",
                 "--tps %@ %s", &action_tps, &dummystr, "Thin Plate Spline Deformation",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
