@@ -54,8 +54,33 @@ bool
 ImageOutput::write_scanline (int y, int z, TypeDesc format,
                              const void *data, stride_t xstride)
 {
+    // Default implementation: don't know how to write scanlines
     return false;
 }
+
+
+
+bool
+ImageOutput::write_scanlines (int ybegin, int yend, int z,
+                              TypeDesc format, const void *data,
+                              stride_t xstride, stride_t ystride)
+{
+    // Default implementation: write each scanline individually
+    stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
+    if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
+        xstride = native_pixel_bytes;
+    stride_t zstride = AutoStride;
+    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
+                        m_spec.width, yend-ybegin);
+    bool ok = true;
+    for (int y = ybegin;  ok && y < yend;  ++y) {
+        ok &= write_scanline (y, z, format, data, xstride);
+        data = (char *)data + ystride;
+    }
+    return ok;
+}
+
+
 
 bool
 ImageOutput::write_tile (int x, int y, int z, TypeDesc format,
@@ -63,8 +88,59 @@ ImageOutput::write_tile (int x, int y, int z, TypeDesc format,
                          stride_t ystride,
                          stride_t zstride)
 {
+    // Default implementation: don't know how to write tiles
     return false;
 }
+
+
+
+bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
+                               int zbegin, int zend, TypeDesc format,
+                               const void *data, stride_t xstride,
+                               stride_t ystride, stride_t zstride)
+{
+    // Default implementation: write each tile individually
+    stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
+    if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
+        xstride = native_pixel_bytes;
+    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
+                        xend-xbegin, yend-ybegin);
+
+    bool ok = true;
+    stride_t pixelsize = format.size() * m_spec.nchannels;
+    std::vector<char> buf;
+    for (int z = zbegin;  z < zend;  z += std::max(1,m_spec.tile_depth)) {
+        int zd = std::min (zend-z, m_spec.tile_depth);
+        for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
+            char *tilestart = ((char *)data + (z-zbegin)*zstride
+                               + (y-ybegin)*ystride);
+            int yh = std::min (yend-y, m_spec.tile_height);
+            for (int x = xbegin;  ok && x < xend;  x += m_spec.tile_width) {
+                int xw = std::min (xend-x, m_spec.tile_width);
+                // Full tiles are written directly into the user buffer, but
+                // Partial tiles (such as at the image edge) are copied into
+                // a padded buffer to stage them.
+                if (xw == m_spec.tile_width && yh == m_spec.tile_height &&
+                    zd == m_spec.tile_depth) {
+                    ok &= write_tile (x, y, z, format, tilestart,
+                                     xstride, ystride, zstride);
+                } else {
+                    buf.resize (pixelsize * m_spec.tile_pixels());
+                    OIIO_NAMESPACE::copy_image (m_spec.nchannels, xw, yh, zd,
+                                tilestart, pixelsize, xstride, ystride, zstride,
+                                &buf[0], pixelsize, pixelsize*m_spec.tile_width,
+                                pixelsize*m_spec.tile_pixels());
+                    ok &= write_tile (x, y, z, format, &buf[0],
+                                      pixelsize, pixelsize*m_spec.tile_width,
+                                      pixelsize*m_spec.tile_pixels());
+                }
+                tilestart += m_spec.tile_width * xstride;
+            }
+        }
+    }
+    return ok;
+}
+
 
 
 bool
@@ -76,6 +152,8 @@ ImageOutput::write_rectangle (int xmin, int xmax, int ymin, int ymax,
 {
     return false;
 }
+
+
 
 int
 ImageOutput::send_to_output (const char *format, ...)
@@ -166,8 +244,7 @@ ImageOutput::to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
     int depth = zmax - zmin + 1;
 
     // Do the strides indicate that the data area is contiguous?
-    bool contiguous = (native_data && xstride == native_pixel_bytes) ||
-        (!native_data && xstride == (stride_t)m_spec.pixel_bytes(false));
+    bool contiguous = (xstride == (stride_t)m_spec.pixel_bytes(native_data));
     contiguous &= ((ystride == xstride*width || height == 1) &&
                    (zstride == ystride*height || depth == 1));
 
@@ -271,71 +348,39 @@ ImageOutput::write_image (TypeDesc format, const void *data,
     }
 
     bool ok = true;
-    if (progress_callback)
-        if (progress_callback (progress_callback_data, 0.0f))
-            return ok;
+    if (progress_callback && progress_callback (progress_callback_data, 0.0f))
+        return ok;
     if (m_spec.tile_width && supports ("tiles")) {
         // Tiled image
-
-        // FIXME: what happens if the image dimensions are smaller than
-        // the tile dimensions?  Or if one of the tiles runs past the
-        // right or bottom edge?  Do we need to allocate a full tile and
-        // copy into it before calling write_tile?  That's probably the
-        // safe thing to do.  Or should that handling be pushed all the
-        // way into write_tile itself?
-
-        // Locally allocate a single tile to gracefully deal with image
-        // dimensions smaller than a tile, or if one of the tiles runs
-        // past the right or bottom edge.  Then we copy from our tile to
-        // the user data, only copying valid pixel ranges.
-        size_t tilexstride = pixel_bytes;
-        size_t tileystride = tilexstride * m_spec.tile_width;
-        size_t tilezstride = tileystride * m_spec.tile_height;
-        size_t tile_pixels = (size_t)m_spec.tile_width * (size_t)m_spec.tile_height *
-            (size_t)std::max(1,m_spec.tile_depth);
-        std::vector<char> pels (tile_pixels * pixel_bytes);
-        for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth)
+        for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth) {
+            int zend = std::min (z+m_spec.z+m_spec.tile_depth,
+                                 m_spec.z+m_spec.depth);
             for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
-                for (int x = 0;  x < m_spec.width && ok;  x += m_spec.tile_width) {
-                    // Now copy out the scanlines
-                    // FIXME -- can we do less work for the tiles that
-                    // don't overlap image boundaries?
-                    int ntz = std::min (z+m_spec.tile_depth, m_spec.depth) - z;
-                    int nty = std::min (y+m_spec.tile_height, m_spec.height) - y;
-                    int ntx = std::min (x+m_spec.tile_width, m_spec.width) - x;
-                    for (int tz = 0;  tz < ntz;  ++tz) {
-                        for (int ty = 0;  ty < nty;  ++ty) {
-                            if (pixel_bytes == xstride) {
-                                memcpy (&pels[ty*tileystride+tz*tilezstride],
-                                        (char *)data + x*xstride + (y+ty)*ystride + (z+tz)*zstride,
-                                        ntx*tilexstride);
-                            } else {
-                                for (int tx = 0;  tx < ntx;  ++tx) {
-                                    memcpy (&pels[tx*tilexstride+ty*tileystride+tz*tilezstride],
-                                            (char *)data + (x+tx)*xstride + (y+ty)*ystride + (z+tz)*zstride,
-                                            pixel_bytes);
-                                }
-                            }
-                        }
-                    }
-
-                    ok &= write_tile (x+m_spec.x, y+m_spec.y, z+m_spec.z,
-                                      format, &pels[0]);
-                }
-                if (progress_callback)
-                    if (progress_callback (progress_callback_data, (float)y/m_spec.height))
-                        return ok;
+                int yend = std::min (y+m_spec.y+m_spec.tile_height,
+                                     m_spec.y+m_spec.height);
+                const char *d = (const char *)data + z*zstride + y*ystride;
+                ok &= write_tiles (m_spec.x, m_spec.x+m_spec.width,
+                                   y+m_spec.y, yend, z+m_spec.z, zend,
+                                   format, d, xstride, ystride, zstride);
+                if (progress_callback &&
+                    progress_callback (progress_callback_data,
+                                       (float)(z*m_spec.height+y)/(m_spec.height*m_spec.depth)))
+                    return ok;
             }
+        }
     } else {
         // Scanline image
+        const int chunk = 256;
         for (int z = 0;  z < m_spec.depth;  ++z)
-            for (int y = 0;  y < m_spec.height && ok;  ++y) {
-                ok &= write_scanline (y+m_spec.y, z+m_spec.z, format,
-                                      (const char *)data + z*zstride + y*ystride,
-                                      xstride);
-                if (progress_callback && !(y & 0x0f))
-                    if (progress_callback (progress_callback_data, (float)y/m_spec.height))
-                        return ok;
+            for (int y = 0;  y < m_spec.height && ok;  y += chunk) {
+                int yend = std::min (y+m_spec.y+chunk, m_spec.y+m_spec.height);
+                const char *d = (const char *)data + z*zstride + y*ystride;
+                ok &= write_scanlines (y+m_spec.y, yend, z+m_spec.z,
+                                       format, d, xstride, ystride);
+                if (progress_callback &&
+                    progress_callback (progress_callback_data,
+                                       (float)(z*m_spec.height+y)/(m_spec.height*m_spec.depth)))
+                    return ok;
             }
     }
     if (progress_callback)

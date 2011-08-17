@@ -1,5 +1,4 @@
 #!/usr/bin/python 
-# -*- coding: utf-8 -*-
 
 import os
 import sys
@@ -13,19 +12,16 @@ if len(sys.argv) > 2 :
 sys.path = [".."] + sys.path
 import runtest
 
-# Start off
-command = "echo hi> out.txt"
-
-imagedir = "../../../oiio-images"
-
-# Run the tests
-command = command + "; " + runtest.rw_command (imagedir, "oiio.ico", path)
+# A command to run
+command = path + runtest.oiio_app ("oiiotool") + " ../../../oiio-images/grid.tif --resize 256x256 -o out.tif ; "
+command = command + path + runtest.oiio_app ("idiff") + " out.tif ref/out.tif > out.txt"
 
 # Outputs to check against references
-outputs = [ "out.txt" ]
+outputs = [ "out.tif" ]
 
 # Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ "oiio.ico" ]
+cleanfiles = [ "out.txt" ]
+
 
 # boilerplate
 ret = runtest.runtest (command, outputs, cleanfiles)

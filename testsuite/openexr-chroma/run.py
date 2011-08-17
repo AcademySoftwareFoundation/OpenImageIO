@@ -26,8 +26,8 @@ imagedir = "../../../openexr-images-1.5.0/Chromaciticies"
 # CrissyField.exr  Garden.exr       StarField.exr
 # Flowers.exr      MtTamNorth.exr
 imagedir = "../../../openexr-images-1.5.0/LuminanceChroma"
-#command = command + "; " + runtest.rw_command (imagedir, "CrissyField.exr", path)
-#command = command + "; " + runtest.rw_command (imagedir, "Flowers.exr", path)
+#command = command + "; " + runtest.rw_command (imagedir, "CrissyField.exr", path, extraargs="--compression zip")
+#command = command + "; " + runtest.rw_command (imagedir, "Flowers.exr", path, extraargs="--compression zip")
 command = command + "; " + runtest.rw_command (imagedir, "Garden.exr", path)
 #command = command + "; " + runtest.rw_command (imagedir, "MtTamNorth.exr", path)
 #command = command + "; " + runtest.rw_command (imagedir, "StarField.exr", path)
