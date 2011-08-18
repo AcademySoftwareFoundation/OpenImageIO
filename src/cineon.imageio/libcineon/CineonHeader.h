@@ -883,12 +883,6 @@ namespace cineon
 		 */
 		void CalculateNumberOfElements();
 
-				/*!
-		 * \brief Number of components for the element
-		 * \return number of components
-		 */
-		int ImageElementComponentCount(const int element) const;
-
 		/*!
 		 * \brief DataSize required for individual image element components
 		 * \return datasize of element

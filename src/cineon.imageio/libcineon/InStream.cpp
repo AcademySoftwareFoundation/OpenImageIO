@@ -38,6 +38,7 @@
 
 #include "CineonStream.h"
 
+namespace cineon {
 
 InStream::InStream() : fp(0)
 {
@@ -121,7 +122,7 @@ bool InStream::EndOfFile() const
 	return ::feof(this->fp);
 }
 
-
+}
 
 
 

@@ -180,7 +180,7 @@ catalog_plugin (const std::string &format_name,
     extern const char *name ## _input_extensions[];
 
     PLUGENTRY (bmp);
-//    PLUGENTRY (cineon);
+    PLUGENTRY (cineon);
     PLUGENTRY (dds);
     PLUGENTRY (dpx);
     PLUGENTRY (field3d);
@@ -225,7 +225,7 @@ catalog_builtin_plugins ()
                     name ## _output_extensions)
 
     DECLAREPLUG (bmp);
-//    DECLAREPLUG (cineon);
+    DECLAREPLUG (cineon);
     DECLAREPLUG (dds);
     DECLAREPLUG (dpx);
 #ifdef USE_FIELD3D

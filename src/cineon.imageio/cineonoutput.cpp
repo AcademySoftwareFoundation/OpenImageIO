@@ -34,6 +34,8 @@
 #include "imageio.h"
 #include "fmath.h"
 
+using namespace cineon;
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
