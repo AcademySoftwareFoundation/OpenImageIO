@@ -13,11 +13,19 @@ sys.path = [".."] + sys.path
 import runtest
 
 # A command to run
-command = path + runtest.oiio_app ("oiiotool") + " ../../../oiio-images/grid.tif --resize 256x256 -o out.tif ; "
-command = command + path + runtest.oiio_app ("idiff") + " out.tif ref/out.tif > out.txt"
+command = "echo hi > out.txt ; "
+command = command + path + runtest.oiio_app ("oiiotool") + " ../../../oiio-images/grid.tif --resize 256x256 -o resize.tif >> out.txt ; "
+command = command + path + runtest.oiio_app ("idiff") + " resize.tif ref/resize.tif >> out.txt ;"
+
+# To add more tests, just append more lines here, like this:
+#  command = command + path + runtest.oiio_app ("oiiotool") + " ../../../oiio-images/grid.tif OPTIONS -o feature.tif >> out.txt ; "
+#  command = command + path + runtest.oiio_app ("idiff") + " feature.tif ref/feature.tif >> out.txt ;"
+# and also add the new 'feature.tif' (or whatever you call it) to the outputs
+# list, below.
+
 
 # Outputs to check against references
-outputs = [ "out.tif" ]
+outputs = [ "resize.tif" ]
 
 # Files that need to be cleaned up, IN ADDITION to outputs
 cleanfiles = [ "out.txt" ]
