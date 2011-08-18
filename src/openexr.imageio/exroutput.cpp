@@ -695,7 +695,9 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
 {
 //    std::cerr << "exr::write_tiles " << xbegin << ' ' << xend 
 //              << ' ' << ybegin << ' ' << yend << "\n";
-    ASSERT (m_output_tiled != NULL);
+    if (! m_output_tiled ||
+        ! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
+        return false;
 
     // Compute where OpenEXR needs to think the full buffers starts.
     // OpenImageIO requires that 'data' points to where the client wants
@@ -713,6 +715,10 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
                                 format, data, xstride, ystride, zstride,
                                 m_scratch);
 
+    // clamp to the image edge
+    xend = std::min (xend, m_spec.x+m_spec.width);
+    yend = std::min (yend, m_spec.y+m_spec.height);
+    zend = std::min (zend, m_spec.z+m_spec.depth);
     int firstxtile = (xbegin-m_spec.x) / m_spec.tile_width;
     int firstytile = (ybegin-m_spec.y) / m_spec.tile_height;
     int nxtiles = (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width;

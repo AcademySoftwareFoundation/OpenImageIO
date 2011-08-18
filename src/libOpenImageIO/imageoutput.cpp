@@ -99,6 +99,9 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
                                const void *data, stride_t xstride,
                                stride_t ystride, stride_t zstride)
 {
+    if (! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
+        return false;
+
     // Default implementation: write each tile individually
     stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
     if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
@@ -356,7 +359,7 @@ ImageOutput::write_image (TypeDesc format, const void *data,
                                  m_spec.z+m_spec.depth);
             for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
                 int yend = std::min (y+m_spec.y+m_spec.tile_height,
-                                     m_spec.y+m_spec.height);
+                                     m_spec.z+m_spec.height);
                 const char *d = (const char *)data + z*zstride + y*ystride;
                 ok &= write_tiles (m_spec.x, m_spec.x+m_spec.width,
                                    y+m_spec.y, yend, z+m_spec.z, zend,

@@ -474,8 +474,7 @@ copy_image (int nchannels, int width, int height, int depth,
                 // Special case: pixels within each row are contiguous
                 // in both src and dst and we're copying all channels.
                 // Be efficient by converting each scanline as a single
-                // unit.  (Note that within convert_types, a memcpy will
-                // be used if the formats are identical.)
+                // unit.
                 memcpy (t, f, width*pixelsize);
             } else {
                 // General case -- anything goes with strides.

@@ -109,8 +109,17 @@ real-world example of writing a JPEG/JFIF plug-in.
   \begin{enumerate}
     \item[(f)] {\cf seek_subimage()}, only if your format supports
       reading multiple subimages within a single file.
+    \item[(g)] {\cf read_scanlines()}, only if your format has a speed
+      advantage when reading multiple scanlines at once.  If you do not
+      supply this function, the default implementation will simply call
+      {\cf read_scanline()} for each scanline in the range.
     \item[(g)] {\cf read_native_tile()}, only if your format supports
       reading tiled images.
+    \item[(g)] {\cf read_native_tiles()}, only if your format supports
+      reading tiled images and there is a speed advantage when reading
+      multiple tiles at once.  If you do not supply this function, the
+      default implementation will simply call {\cf read_native_tile()} for each
+      tile in the range.
   \end{enumerate}
 
   Here is how the class definition looks for our JPEG example.  Note
@@ -243,14 +252,15 @@ real-world example of writing a JPEG/JFIF plug-in.
       writing scanlines and you can get a performance improvement when
       outputting multiple scanlines at once.  If you don't supply
       {\cf write_scanlines()}, the default implementation will simply
-      call {\cf write_scanline()} repeatedly.
+      call {\cf write_scanline()} separately for each scanline in the
+      range.
     \item[(h)] {\cf write_tile()}, only if your format supports
       writing tiled images.
     \item[(i)] {\cf write_tiles()}, only if your format supports
       writing tiled images and you can get a performance improvement
       when outputting multiple tiles at once.  If you don't supply
       {\cf write_tiles()}, the default implementation will simply
-      call {\cf write_tile()} repeatedly.
+      call {\cf write_tile()} separately for each tile in the range.
     \item[(j)] {\cf write_rectangle()}, only if your format supports
       writing arbitrary rectangles.
     \item[(k)] {\cf write_image()}, only if you have a more clever

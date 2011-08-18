@@ -596,7 +596,9 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                  int zbegin, int zend, void *data)
 {
     // std::cerr << "openexr rnt " << xbegin << ' ' << xend << ' ' << ybegin << ' ' << yend << "\n";
-    ASSERT (m_input_tiled != NULL);
+    if (! m_input_tiled ||
+        ! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
+        return false;
 
     // Compute where OpenEXR needs to think the full buffers starts.
     // OpenImageIO requires that 'data' points to where the client wants
@@ -606,6 +608,11 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     size_t pixelbytes = m_spec.pixel_bytes (true);
     int firstxtile = (xbegin-m_spec.x) / m_spec.tile_width;
     int firstytile = (ybegin-m_spec.y) / m_spec.tile_height;
+    // clamp to the image edge
+    xend = std::min (xend, m_spec.x+m_spec.width);
+    yend = std::min (yend, m_spec.y+m_spec.height);
+    zend = std::min (zend, m_spec.z+m_spec.depth);
+    // figure out how many tiles we need
     int nxtiles = (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width;
     int nytiles = (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height;
     int whole_width = nxtiles * m_spec.tile_width;
@@ -641,10 +648,10 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                   m_miplevel, m_miplevel);
         if (data != origdata) {
             stride_t user_scanline_bytes = (xend-xbegin) * pixelbytes;
-            stride_t tmp_scanline_stride = nxtiles*m_spec.tile_width*pixelbytes;
+            stride_t scanline_stride = nxtiles*m_spec.tile_width*pixelbytes;
             for (int y = ybegin;  y < yend;  ++y)
-                memcpy ((char *)origdata+(y-ybegin)*user_scanline_bytes,
-                        (char *)data+(y-ybegin)*tmp_scanline_stride,
+                memcpy ((char *)origdata+(y-ybegin)*scanline_stride,
+                        (char *)data+(y-ybegin)*scanline_stride,
                         user_scanline_bytes);
         }
     }
