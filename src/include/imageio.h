@@ -360,6 +360,20 @@ public:
     /// Get an ImageSpec class from XML string.
     ///
     void from_xml (const char *xml);
+
+    /// Helper function to verify that the given pixel range exactly covers
+    /// a set of tiles.  Also returns false if the spec indicates that the
+    /// image isn't tiled at all.
+    bool valid_tile_range (int xbegin, int xend, int ybegin, int yend,
+                           int zbegin, int zend) {
+        return (tile_width &&
+                ((xbegin-x) % tile_width)  == 0 &&
+                ((ybegin-y) % tile_height) == 0 &&
+                ((zbegin-z) % tile_depth)  == 0 &&
+                (((xend-x) % tile_width)  == 0 || (xend-x) == width) &&
+                (((yend-y) % tile_height) == 0 || (yend-y) == height) &&
+                (((zend-z) % tile_depth)  == 0 || (zend-z) == depth));
+    }
 };
 
 
@@ -494,12 +508,12 @@ public:
                                  stride_t xstride=AutoStride,
                                  stride_t ystride=AutoStride);
 
-    /// Read the tile that includes pixels (*,y,z) into data, converting
-    /// if necessary from the native data format of the file into the
-    /// 'format' specified.  (z==0 for non-volume images.)  The stride
-    /// values give the data spacing of adjacent pixels, scanlines, and
-    /// volumetric slices (measured in bytes).  Strides set to
-    /// AutoStride imply 'contiguous' data, i.e.,
+    /// Read the tile whose upper-left origin is (x,y,z) into data,
+    /// converting if necessary from the native data format of the file
+    /// into the 'format' specified.  (z==0 for non-volume images.)  The
+    /// stride values give the data spacing of adjacent pixels,
+    /// scanlines, and volumetric slices (measured in bytes).  Strides
+    /// set to AutoStride imply 'contiguous' data, i.e.,
     ///     xstride == spec.nchannels*format.size()
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height
@@ -525,11 +539,14 @@ public:
                           AutoStride, AutoStride, AutoStride);
     }
 
-    /// Read a block of multiple tiles that include all pixels in
+    /// Read the block of multiple tiles that include all pixels in
     /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  This is
     /// analogous to read_tile except that it may be used to read more
     /// than one tile at a time (which, for some formats, may be able to
     /// be done much more efficiently or in parallel).
+    /// The begin/end pairs must correctly delineate tile boundaries,
+    /// with the exception that it may also be the end of the image data
+    /// if the image resolution is not a whole multiple of the tile size.
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, TypeDesc format,
                              void *data, stride_t xstride=AutoStride,
@@ -757,11 +774,14 @@ public:
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
 
-    /// Write a block of multiple tiles that include all pixels in
+    /// Write the block of multiple tiles that include all pixels in
     /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  This is
     /// analogous to write_tile except that it may be used to write more
     /// than one tile at a time (which, for some formats, may be able to
     /// be done much more efficiently or in parallel).
+    /// The begin/end pairs must correctly delineate tile boundaries,
+    /// with the exception that it may also be the end of the image data
+    /// if the image resolution is not a whole multiple of the tile size.
     virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend, TypeDesc format,
                               const void *data, stride_t xstride=AutoStride,
