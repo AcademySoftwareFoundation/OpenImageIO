@@ -51,6 +51,10 @@
 #include "filter.h"
 #include <float.h>
 
+#include <boost/numeric/ublas/lu.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/vector.hpp>
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -1425,27 +1429,19 @@ ImageBufAlgo::TPSMapping::TPSMapping (const std::vector<Imath::V2f> &_srcPoints,
 
 void
 ImageBufAlgo::TPSMapping::calculateCoefficients()
-{    
-    std::vector<float*> ax, ay;
-    std::vector<float> axelements, ayelements;
-    std::vector<float> bx, by;
-    
+{ 
     int dim = ctrlpc + 2;   //matrix dimension
     
-    axelements.resize (dim*dim);
-    ax.resize (dim); //creating table of pointers
-    ax[0] = &axelements[0]; //elements
-    for (int i=1; i<dim; i++) 
-        ax[i] = ax[i-1] + dim;
+    boost::numeric::ublas::permutation_matrix<double> px(dim);
+    boost::numeric::ublas::matrix<double> ax(dim, dim);
+    boost::numeric::ublas::vector<double> x(dim);
+    boost::numeric::ublas::vector<double> bx(dim);
     
-    ayelements.resize (dim*dim);
-    ay.resize (dim); //creating table of pointers
-    ay[0] = &ayelements[0]; //elements
-    for (int i=1; i<dim; i++) 
-        ay[i] = ay[i-1] + dim;
-
-    bx.resize (dim);
-    by.resize (dim);
+    boost::numeric::ublas::permutation_matrix<double> py(dim);
+    boost::numeric::ublas::matrix<double> ay(dim, dim);
+    boost::numeric::ublas::vector<double> y(dim);
+    boost::numeric::ublas::vector<double> by(dim);
+    
     
     //--- preparing matrixes for determining coefficients ---//
 
@@ -1453,31 +1449,31 @@ ImageBufAlgo::TPSMapping::calculateCoefficients()
         for (int x = 0; x < dim; x++) {
             if (y < dim - 2) {
                 if (x == 0) {
-                    ax[y][x] = 1;
-                    ay[y][x] = 1;
+                    ax(y,x) = 1;
+                    ay(y,x) = 1;
                     continue;
                 }
 
                 if (x == 1) {
-                    ax[y][x] = srcControlPoints[y].x;
-                    ay[y][x] = srcControlPoints[y].y;
+                    ax(y,x) = srcControlPoints[y].x;
+                    ay(y,x) = srcControlPoints[y].y;
                     continue;
                 }
 
-                ax[y][x] = kernelFunction(srcControlPoints[y], srcControlPoints[x - 2]);
-                ay[y][x] = kernelFunction(srcControlPoints[y], srcControlPoints[x - 2]);
+                ax(y,x) = kernelFunction(srcControlPoints[y], srcControlPoints[x - 2]);
+                ay(y,x) = kernelFunction(srcControlPoints[y], srcControlPoints[x - 2]);
             } else {
                 if (x == 0 || x == 1) {
-                    ax[y][x] = 0;
-                    ay[y][x] = 0;
+                    ax(y,x) = 0;
+                    ay(y,x) = 0;
                     continue;
                 } else if (y == dim - 2) {
-                    ax[y][x] = 1;
-                    ay[y][x] = 1;
+                    ax(y,x) = 1;
+                    ay(y,x) = 1;
                     continue;
                 } else {
-                    ax[y][x] = dstControlPoints[x - 2].x;
-                    ay[y][x] = dstControlPoints[x - 2].y;
+                    ax(y,x) = dstControlPoints[x - 2].x;
+                    ay(y,x) = dstControlPoints[x - 2].y;
                 }
             }
         }
@@ -1485,25 +1481,30 @@ ImageBufAlgo::TPSMapping::calculateCoefficients()
 
     for (int i = 0; i < dim; i++) {
         if (i >= dim - 2) {
-            bx[i] = 0;
-            by[i] = 0;
+            bx(i) = 0;
+            by(i) = 0;
             continue;
         }
-        bx[i] = dstControlPoints[i].x;
-        by[i] = dstControlPoints[i].y;
+        bx(i) = dstControlPoints[i].x;
+        by(i) = dstControlPoints[i].y;
     }
+    
+    // LU decomposition
+    lu_factorize(ax, px);
+    lu_factorize(ay, py);
 
-    //--- finding coefficients -----------------------------------//
-    std::vector<int> indxX;
-    indxX.resize(dim);
-    LUDecompose(&ax[0], &indxX[0], dim);
-    solveMatrix(&bx[0], &tpsXCoefs[0], &indxX[0], &ax[0], dim);
+    x = bx;
+    y = by;
+    
+    lu_substitute(ax, px, x);
+    lu_substitute(ay, py, y);
 
-    std::vector<int> indxY;
-    indxY.resize(dim);
-    LUDecompose(&ay[0], &indxY[0], dim);
-    solveMatrix(&by[0], &tpsYCoefs[0], &indxY[0], &ay[0], dim);
-    //-------------------------------------------------------------//
+    // solution
+    for (int i = 0; i < dim; i++) {
+        tpsXCoefs[i] = x(i);
+        tpsYCoefs[i] = y(i);
+    }
+    
 }
 
 
@@ -1580,13 +1581,12 @@ ImageBufAlgo::TPSMapping::simpleMap (float x, float y, float* s, float* t) const
     *s = xPrim;
     *t = yPrim; 
 }
-    
+
 float
 ImageBufAlgo::TPSMapping::rSquare(Imath::V2f p1, Imath::V2f p2) const
 {
     return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
 }
-
 
 
 float
@@ -1599,84 +1599,6 @@ ImageBufAlgo::TPSMapping::kernelFunction(Imath::V2f p1, Imath::V2f p2) const
 
     return r2 * log(sqrt(r2));
 }
-
-
-
-/// Decompose matrix to LU form
-bool
-ImageBufAlgo::TPSMapping::LUDecompose(float** lu, int* indx, int dim) const
-{
-    int i, imax = 0, j, k;
-    float big, temp;
-    float* vv = new float[dim];
-
-    for (i = 0; i < dim; i++) {
-        big = 0.0f;
-        for (j = 0; j < dim; j++)
-            if ((temp = fabs(lu[i][j])) > big) big = temp;
-        if (big == 0.0f)
-            return false; //singular matrix
-        vv[i] = 1.0f / big;
-    }
- 
-    for (k = 0; k < dim; k++) {
-        big = 0.0f;
-        for (i = k; i < dim; i++) {
-            temp = vv[i] * fabs(lu[i][k]);
-            if (temp > big) {
-                big = temp;
-                imax = i;
-            }
-        }
-
-        if (k != imax) {
-            for (j = 0; j < dim; j++) {
-                temp = lu[imax][j];
-                lu[imax][j] = lu[k][j];
-                lu[k][j] = temp;
-            }
-            vv[imax] = vv[k];
-        }
-        indx[k] = imax;
-
-        for (i = k + 1; i < dim; i++) {
-            temp = lu[i][k] /= lu[k][k];
-            for (j = k + 1; j < dim; j++)
-                lu[i][j] -= temp * lu[k][j];
-        }
-    }
-    return true;
-}
-
-
-
-bool
-ImageBufAlgo::TPSMapping::solveMatrix(float* b, float* x, int* indx, float** lu, int dimm) const
-{
-    int n = dimm;
-    int i, ii = 0, ip, j;
-    float sum = 0;
-    for (i = 0; i < n; i++)
-        x[i] = b[i];
-    for (i = 0; i < n; i++) {
-        ip = indx[i];
-        sum = x[ip];
-        x[ip] = x[i];
-        if (ii != 0)
-            for (j = ii - 1; j < i; j++) sum -= lu[i][j] * x[j];
-        else if (sum != 0.0f)
-            ii = i + 1;
-        x[i] = sum;
-    }
-    for (i = n - 1; i >= 0; i--) {
-        sum = x[i];
-        for (j = i + 1; j < n; j++) sum -= lu[i][j] * x[j];
-        x[i] = sum / lu[i][i];
-    }
-    return true;
-}
-
-
 
 }
 OIIO_NAMESPACE_EXIT

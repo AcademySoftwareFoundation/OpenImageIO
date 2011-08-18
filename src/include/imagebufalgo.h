@@ -353,10 +353,6 @@ private:
     float rSquare(Imath::V2f p1, Imath::V2f p2) const;
     float kernelFunction(Imath::V2f p1, Imath::V2f p2) const;
     
-    /// Decompose matrix to LU form
-    bool LUDecompose(float** lu, int* indx, int dimmm) const;
-    bool solveMatrix(float* b, float* x, int* indx, float** lu, int dimm) const;
-    
     void simpleMap (float x, float y, float* s, float* t) const;
 
     std::vector<Imath::V2f> srcControlPoints;

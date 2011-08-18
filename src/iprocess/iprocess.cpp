@@ -428,6 +428,9 @@ main (int argc, char *argv[])
         
         if (nocrop)
         {
+            int in_width = ImageBuf(in).spec().full_width;
+            int in_height = ImageBuf(in).spec().full_height;
+            
             Imath::Box2f srcImgBox(Imath::V2f(0, 0), Imath::V2f(in_width, in_height));
             Imath::Box2f newImgBox = m->bound(srcImgBox);
         
