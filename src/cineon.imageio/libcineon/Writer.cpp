@@ -214,7 +214,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 	const U8 bitDepth = this->header.BitDepth(element);
 	const U32 width = this->header.Width();
 	const U32 height = this->header.Height();
-	const int noc = this->header.ImageElementComponentCount(element);
+	const int noc = this->header.NumberOfElements();
 	const Packing packing = this->header.ImagePacking();
 
 	// check width & height, just in case
