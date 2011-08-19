@@ -193,6 +193,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (openexr);
     PLUGENTRY (png);
     PLUGENTRY (pnm);
+    PLUGENTRY (psd);
     PLUGENTRY (ptex);
     PLUGENTRY (sgi);
     PLUGENTRY (socket);
@@ -242,6 +243,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (openexr);
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
+    DECLAREPLUG (psd);
     DECLAREPLUG (ptex);
     DECLAREPLUG (sgi);
 #ifdef USE_BOOST_ASIO

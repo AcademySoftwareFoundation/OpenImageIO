@@ -104,6 +104,8 @@ if (EMBEDPLUGINS)
           ../jpeg.imageio/jpegexif.cpp
         ../png.imageio/pnginput.cpp ../png.imageio/pngoutput.cpp
         ../pnm.imageio/pnminput.cpp ../pnm.imageio/pnmoutput.cpp
+        ../psd.imageio/psdinput.cpp ../psd.imageio/psdoutput.cpp
+        ../psd.imageio/jpeg_memory_src.cpp
         ../ptex.imageio/ptexinput.cpp ../ptex.imageio/ptexoutput.cpp
         ../ptex.imageio/ptex/PtexCache.cpp ../ptex.imageio/ptex/PtexFilters.cpp
         ../ptex.imageio/ptex/PtexHalf.cpp ../ptex.imageio/ptex/PtexReader.cpp
