@@ -303,10 +303,11 @@ DDSOutput::open (const std::string &name, const ImageSpec &userspec,
             }
             
             std::string cmp = m_spec.get_string_attribute ("compression", "");
-            if (istarts_with (cmp, "DXT")
+            if (istarts_with (cmp, "DXT") && cmp.length () == 4
+                && cmp[3] >= '1' && cmp[3] <= '5'
                 // DXT compression only applies to RGB(A) images
                 && (m_spec.nchannels == 3 || m_spec.nchannels == 4)) {
-                int fourCC, flag;
+                int fourCC = 0, flag = 0; // shut up compiler
                 switch (cmp[3]) {
                     case '1':
                         fourCC = DDS_4CC_DXT1;
@@ -611,9 +612,9 @@ DDSOutput::write_scanline (int y, int z, TypeDesc format,
                 }
             }
         } else {
-            fseek (m_file, m_startofs + (z * m_dds.height + y) * m_dds.pitch,
-                SEEK_SET);
-            fwrite (data, 1, m_dds.pitch, m_file);
+            fseek (m_file, m_startofs + (z * m_dds.height + y)
+                * m_spec.scanline_bytes (true), SEEK_SET);
+            fwrite (data, 1, m_spec.scanline_bytes (true), m_file);
         }
     }
 

@@ -220,7 +220,7 @@ add_subdirectory (doc)
 # Testing
 
 # List all the individual testsuite tests here:
-oiio_add_tests (ico gpsread oiiotool sgi 
+oiio_add_tests (ico gpsread oiiotool sgi dds
                 texture-fill texture-gray texture-grid
                 texture-missing texture-pointsample texture-res
                 texture-skinny texture-fat
