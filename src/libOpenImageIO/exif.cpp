@@ -29,7 +29,6 @@
 */
 
 
-#include <cassert>
 #include <ctype.h>
 #include <cstdio>
 #include <iostream>
@@ -38,7 +37,6 @@
 #include <set>
 #include <algorithm>
 
-#include <boost/scoped_array.hpp>
 #include <boost/foreach.hpp>
 
 #include "fmath.h"
@@ -66,15 +64,15 @@ struct TIFFDirEntry {
 #endif
 
 #include "imageio.h"
-#include "jpeg_pvt.h"
 
 
 #define DEBUG_EXIF_READ  0
 #define DEBUG_EXIF_WRITE 0
 
-OIIO_PLUGIN_NAMESPACE_BEGIN
+OIIO_NAMESPACE_ENTER
+{
 
-namespace Jpeg_imageio_pvt {
+namespace {
 
 
 // Sizes of TIFFDataType members
@@ -562,86 +560,6 @@ public:
 
 
 
-// Decode a raw Exif data block and save all the metadata in an
-// ImageSpec.  Return true if all is ok, false if the exif block was
-// somehow malformed.
-bool
-decode_exif (const void *exif, int length, ImageSpec &spec)
-{
-    const unsigned char *buf = (const unsigned char *) exif;
-
-#if DEBUG_EXIF_READ
-    std::cerr << "Exif dump:\n";
-    for (int i = 0;  i < length;  ++i) {
-        if (buf[i] >= ' ')
-            std::cerr << (char)buf[i] << ' ';
-        std::cerr << "(" << (int)(unsigned char)buf[i] << ") ";
-    }
-    std::cerr << "\n";
-#endif
-
-    // APP1 blob doesn't have to be exif info.  Look for the exif marker,
-    // which near as I can tell is just the letters "Exif" at the start.
-    if (strncmp ((const char *)buf, "Exif\0", 5))
-        return false;
-
-    buf += 6;   // ...and two nulls follow the "Exif"
-    length -= 6;
-
-    // The next item should be a standard TIFF header.  Note that HERE,
-    // not the start of the Exif blob, is where all TIFF offsets are
-    // relative to.  The header should have the right magic number (which
-    // also tells us the endianness of the data) and an offset to the
-    // first TIFF directory.
-    //
-    // N.B. Just read libtiff's "tiff.h" for info on the structure 
-    // layout of TIFF headers and directory entries.  The TIFF spec
-    // itself is also helpful in this area.
-    const TIFFHeader *head = (const TIFFHeader *)buf;
-    if (head->tiff_magic != 0x4949 && head->tiff_magic != 0x4d4d)
-        return false;
-    bool host_little = littleendian();
-    bool file_little = (head->tiff_magic == 0x4949);
-    bool swab = (host_little != file_little);
-    if (swab)
-        swap_endian (&head->tiff_diroff);
-
-    // keep track of IFD offsets we've already seen to avoid infinite
-    // recursion if there are circular references.
-    std::set<size_t> ifd_offsets_seen;
-
-    // Read the directory that the header pointed to.  It should contain
-    // some number of directory entries containing tags to process.
-    const unsigned char *ifd = (buf + head->tiff_diroff);
-    unsigned short ndirs = *(const unsigned short *)ifd;
-    if (swab)
-        swap_endian (&ndirs);
-    for (int d = 0;  d < ndirs;  ++d)
-        read_exif_tag (spec, (const TIFFDirEntry *) (ifd+2+d*sizeof(TIFFDirEntry)),
-                       (const char *)buf, swab, ifd_offsets_seen, exif_tagmap);
-
-    // A few tidbits to look for
-    ImageIOParameter *p;
-    if ((p = spec.find_attribute ("Exif:ColorSpace")) ||
-        (p = spec.find_attribute ("ColorSpace"))) {
-        int cs = -1;
-        if (p->type() == TypeDesc::UINT) 
-            cs = *(const unsigned int *)p->data();
-        else if (p->type() == TypeDesc::INT) 
-            cs = *(const int *)p->data();
-        else if (p->type() == TypeDesc::UINT16) 
-            cs = *(const unsigned short *)p->data();
-        else if (p->type() == TypeDesc::INT16) 
-            cs = *(const short *)p->data();
-        // Exif spec says that anything other than 0xffff==uncalibrated
-        // should be interpreted to be sRGB.
-        if (cs != 0xffff)
-            spec.attribute ("oiio:ColorSpace", "sRGB");
-    }
-    return true;
-}
-
-
 
 static void
 append_dir_entry (const TagMap &tagmap,
@@ -798,42 +716,107 @@ reoffset (std::vector<TIFFDirEntry> &dirs, const TagMap &tagmap,
 }
 
 
+}  // anon namespace
 
-// Construct an Exif data block from the ImageSpec, writing the Exif 
+
+
+// Decode a raw Exif data block and save all the metadata in an
+// ImageSpec.  Return true if all is ok, false if the exif block was
+// somehow malformed.
+bool
+decode_exif (const void *exif, int length, ImageSpec &spec)
+{
+    const unsigned char *buf = (const unsigned char *) exif;
+
+#if DEBUG_EXIF_READ
+    std::cerr << "Exif dump:\n";
+    for (int i = 0;  i < length;  ++i) {
+        if (buf[i] >= ' ')
+            std::cerr << (char)buf[i] << ' ';
+        std::cerr << "(" << (int)(unsigned char)buf[i] << ") ";
+    }
+    std::cerr << "\n";
+#endif
+
+    // The first item should be a standard TIFF header.  Note that HERE,
+    // not the start of the Exif blob, is where all TIFF offsets are
+    // relative to.  The header should have the right magic number (which
+    // also tells us the endianness of the data) and an offset to the
+    // first TIFF directory.
+    //
+    // N.B. Just read libtiff's "tiff.h" for info on the structure 
+    // layout of TIFF headers and directory entries.  The TIFF spec
+    // itself is also helpful in this area.
+    const TIFFHeader *head = (const TIFFHeader *)buf;
+    if (head->tiff_magic != 0x4949 && head->tiff_magic != 0x4d4d)
+        return false;
+    bool host_little = littleendian();
+    bool file_little = (head->tiff_magic == 0x4949);
+    bool swab = (host_little != file_little);
+    if (swab)
+        swap_endian (&head->tiff_diroff);
+
+    // keep track of IFD offsets we've already seen to avoid infinite
+    // recursion if there are circular references.
+    std::set<size_t> ifd_offsets_seen;
+
+    // Read the directory that the header pointed to.  It should contain
+    // some number of directory entries containing tags to process.
+    const unsigned char *ifd = (buf + head->tiff_diroff);
+    unsigned short ndirs = *(const unsigned short *)ifd;
+    if (swab)
+        swap_endian (&ndirs);
+    for (int d = 0;  d < ndirs;  ++d)
+        read_exif_tag (spec, (const TIFFDirEntry *) (ifd+2+d*sizeof(TIFFDirEntry)),
+                       (const char *)buf, swab, ifd_offsets_seen, exif_tagmap);
+
+    // A few tidbits to look for
+    ImageIOParameter *p;
+    if ((p = spec.find_attribute ("Exif:ColorSpace")) ||
+        (p = spec.find_attribute ("ColorSpace"))) {
+        int cs = -1;
+        if (p->type() == TypeDesc::UINT) 
+            cs = *(const unsigned int *)p->data();
+        else if (p->type() == TypeDesc::INT) 
+            cs = *(const int *)p->data();
+        else if (p->type() == TypeDesc::UINT16) 
+            cs = *(const unsigned short *)p->data();
+        else if (p->type() == TypeDesc::INT16) 
+            cs = *(const short *)p->data();
+        // Exif spec says that anything other than 0xffff==uncalibrated
+        // should be interpreted to be sRGB.
+        if (cs != 0xffff)
+            spec.attribute ("oiio:ColorSpace", "sRGB");
+    }
+    return true;
+}
+
+
+
+// Construct an Exif data block from the ImageSpec, appending the Exif 
 // data as a big blob to the char vector.
 void
 encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 {
-    // Clear the buffer and reserve maximum space that an APP1 can take
-    // in a JPEG file, so we can push_back to our heart's content and
-    // know that no offsets or pointers to the exif vector's memory will
-    // change due to reallocation.
-    blob.clear ();
+    // Reserve maximum space that an APP1 can take in a JPEG file, so
+    // we can push_back to our heart's content and know that no offsets
+    // or pointers to the exif vector's memory will change due to
+    // reallocation.
     blob.reserve (0xffff);
 
     // Layout:
-    //                     "Exif\0\0"
     //    (tiffstart)      TIFFHeader
     //                     number of top dir entries 
     //                     top dir entry 0
     //                     ...
     //                     top dir entry (point to Exif IFD)
     //                     data for top dir entries (except Exif)
-
+    //
     //                     Exif IFD number of dir entries (n)
     //                     Exif IFD entry 0
     //                     ...
     //                     Exif IFD entry n-1
     //                     ...More Data for Exif entries...
-
-    // Start the blob with "Exif" and two nulls.  That's how it
-    // always is in the JPEG files I've examined.
-    blob.push_back ('E');
-    blob.push_back ('x');
-    blob.push_back ('i');
-    blob.push_back ('f');
-    blob.push_back (0);
-    blob.push_back (0);
 
     // Here is where the TIFF info starts.  All TIFF tag offsets are
     // relative to this position within the blob.
@@ -993,7 +976,6 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 }
 
 
-}  // namespace Jpeg_imageio_pvt
-
-OIIO_PLUGIN_NAMESPACE_END
+}
+OIIO_NAMESPACE_EXIT
 

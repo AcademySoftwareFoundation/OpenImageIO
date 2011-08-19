@@ -30,7 +30,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
     )
 endif()
 
-set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
+set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                          imagebufalgo.cpp imagebufalgo_orient.cpp
                          imagebufalgo_yee.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
@@ -101,7 +101,6 @@ if (EMBEDPLUGINS)
 		  ../iff.imageio/iffoutput.cpp
 		  ../iff.imageio/iff_pvt.cpp
         ../jpeg.imageio/jpeginput.cpp ../jpeg.imageio/jpegoutput.cpp
-          ../jpeg.imageio/jpegexif.cpp
         ../png.imageio/pnginput.cpp ../png.imageio/pngoutput.cpp
         ../pnm.imageio/pnminput.cpp ../pnm.imageio/pnmoutput.cpp
         ../ptex.imageio/ptexinput.cpp ../ptex.imageio/ptexoutput.cpp

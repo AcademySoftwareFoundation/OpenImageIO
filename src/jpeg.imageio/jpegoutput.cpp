@@ -47,8 +47,6 @@ extern "C" {
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace Jpeg_imageio_pvt;
-
 #define DBG if(0)
 
 
@@ -194,11 +192,18 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     if (iequals (m_spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"))
         m_spec.attribute ("Exif:ColorSpace", 1);
 
-    // Write EXIF info, if we have anything
+    // Write EXIF info
     std::vector<char> exif;
+    // Start the blob with "Exif" and two nulls.  That's how it
+    // always is in the JPEG files I've examined.
+    exif.push_back ('E');
+    exif.push_back ('x');
+    exif.push_back ('i');
+    exif.push_back ('f');
+    exif.push_back (0);
+    exif.push_back (0);
     encode_exif (m_spec, exif);
-    if (exif.size())
-        jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&exif[0], exif.size());
+    jpeg_write_marker (&m_cinfo, JPEG_APP0+1, (JOCTET*)&exif[0], exif.size());
 
     // Write IPTC IIM metadata tags, if we have anything
     std::vector<char> iptc;
