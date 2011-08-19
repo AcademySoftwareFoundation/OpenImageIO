@@ -388,7 +388,7 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     
     f[0] = atof (m_rla.AspectRatio);
     if (f[0] > 0.f)
-        m_spec.attribute ("rla:AspectRatio", f[0]);
+        m_spec.attribute ("PixelAspectRatio", f[0]);
     
     // read chromaticity points
     if (m_rla.RedChroma[0]) {

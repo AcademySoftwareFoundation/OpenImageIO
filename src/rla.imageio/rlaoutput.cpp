@@ -301,7 +301,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
         strncpy (m_rla.Aspect, s.c_str (), sizeof (m_rla.Aspect));
     
     snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.10f",
-        m_spec.width / (float)m_spec.height);
+        m_spec.get_float_attribute ("PixelAspectRatio", 1.f));
     strcpy (m_rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
         "rgb").c_str ());
     m_rla.FieldRendered = m_spec.get_int_attribute ("rla:FieldRendered", 0);
