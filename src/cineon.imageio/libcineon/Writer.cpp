@@ -290,9 +290,9 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 
 		case 64:
 			if (size == cineon::kLongLong)
-				this->fileLoc += WriteBuffer<R64, 64, true>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U64, 64, true>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
 			else
-				this->fileLoc += WriteBuffer<R64, 64, false>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U64, 64, false>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
 			break;
 		}
 	}

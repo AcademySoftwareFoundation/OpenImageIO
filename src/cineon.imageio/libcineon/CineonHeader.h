@@ -43,6 +43,7 @@
 
 #include <cstring>
 #include <stdint.h>
+#include <limits>
 
 #include "CineonStream.h"
 
@@ -1275,7 +1276,7 @@ namespace cineon
 	inline R32 GenericHeader::LowData(const int i) const
 	{
 		if (i < 0 || i >= MAX_ELEMENTS)
-			return 1.f / (1.f - 1.f);	// +infinity
+			return std::numeric_limits<R32>::infinity();
 		return this->chan[i].lowData;
 	}
 
@@ -1289,7 +1290,7 @@ namespace cineon
 	inline R32 GenericHeader::LowQuantity(const int i) const
 	{
 		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
+			return std::numeric_limits<R32>::max();
 		return this->chan[i].lowQuantity;
 	}
 
@@ -1303,7 +1304,7 @@ namespace cineon
 	inline R32 GenericHeader::HighData(const int i) const
 	{
 		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
+			return std::numeric_limits<R32>::max();
 		return this->chan[i].highData;
 	}
 
@@ -1317,7 +1318,7 @@ namespace cineon
 	inline R32 GenericHeader::HighQuantity(const int i) const
 	{
 		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
+			return std::numeric_limits<R32>::max();
 		return this->chan[i].highQuantity;
 	}
 
