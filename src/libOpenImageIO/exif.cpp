@@ -747,14 +747,14 @@ decode_exif (const void *exif, int length, ImageSpec &spec)
     // N.B. Just read libtiff's "tiff.h" for info on the structure 
     // layout of TIFF headers and directory entries.  The TIFF spec
     // itself is also helpful in this area.
-    const TIFFHeader *head = (const TIFFHeader *)buf;
-    if (head->tiff_magic != 0x4949 && head->tiff_magic != 0x4d4d)
+    TIFFHeader head = *(const TIFFHeader *)buf;
+    if (head.tiff_magic != 0x4949 && head.tiff_magic != 0x4d4d)
         return false;
     bool host_little = littleendian();
-    bool file_little = (head->tiff_magic == 0x4949);
+    bool file_little = (head.tiff_magic == 0x4949);
     bool swab = (host_little != file_little);
     if (swab)
-        swap_endian (&head->tiff_diroff);
+        swap_endian (&head.tiff_diroff);
 
     // keep track of IFD offsets we've already seen to avoid infinite
     // recursion if there are circular references.
@@ -762,7 +762,7 @@ decode_exif (const void *exif, int length, ImageSpec &spec)
 
     // Read the directory that the header pointed to.  It should contain
     // some number of directory entries containing tags to process.
-    const unsigned char *ifd = (buf + head->tiff_diroff);
+    const unsigned char *ifd = (buf + head.tiff_diroff);
     unsigned short ndirs = *(const unsigned short *)ifd;
     if (swab)
         swap_endian (&ndirs);
