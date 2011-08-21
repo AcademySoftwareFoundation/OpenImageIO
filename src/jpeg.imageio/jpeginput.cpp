@@ -42,8 +42,6 @@ extern "C" {
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using namespace Jpeg_imageio_pvt;
-
 
 // N.B. The class definition for JpgInput is in jpeg_pvt.h.
 
@@ -193,8 +191,11 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list;  m;  m = m->next) {
         if (m->marker == (JPEG_APP0+1) &&
-                ! strcmp ((const char *)m->data, "Exif"))
-            decode_exif ((unsigned char *)m->data, m->data_length, m_spec);
+                ! strcmp ((const char *)m->data, "Exif")) {
+            // The block starts with "Exif\0\0", so skip 6 bytes to get
+            // to the start of the actual Exif data TIFF directory
+            decode_exif ((unsigned char *)m->data+6, m->data_length-6, m_spec);
+        }
         else if (m->marker == (JPEG_APP0+1) &&
                  ! strcmp ((const char *)m->data, "http://ns.adobe.com/xap/1.0/")) {
 #ifdef DEBUG
