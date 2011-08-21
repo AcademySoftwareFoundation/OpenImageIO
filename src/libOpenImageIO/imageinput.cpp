@@ -209,6 +209,12 @@ bool
 ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
                        stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (! m_spec.tile_width ||
+        ((x-m_spec.x) % m_spec.tile_width) != 0 ||
+        ((y-m_spec.y) % m_spec.tile_height) != 0 ||
+        ((z-m_spec.z) % m_spec.tile_depth) != 0)
+        return false;   // coordinates are not a tile corner
+
     // native_pixel_bytes is the size of a pixel in the FILE, including
     // the per-channel format.
     stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
@@ -279,6 +285,9 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                         int zbegin, int zend, TypeDesc format, void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
+        return false;
+
     // native_pixel_bytes is the size of a pixel in the FILE, including
     // the per-channel format.
     stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
@@ -362,6 +371,9 @@ bool
 ImageInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                int zbegin, int zend, void *data)
 {
+    if (! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
+        return false;
+
     // Base class implementation of read_native_tiles just repeatedly
     // calls read_native_tile, which is supplied by every plugin that
     // supports tiles.  Only the hardcore ones will overload
