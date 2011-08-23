@@ -137,7 +137,8 @@ public:
     /// return true.  Return false if the file was not found or could
     /// not be opened as an image file by any available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
-                                int subimage=0, int miplevel=0) = 0;
+                                int subimage=0, int miplevel=0,
+                                bool native=false) = 0;
 
     /// Return a pointer to an ImageSpec associated with the named image
     /// (the first subimage & miplevel by default, or as set by
@@ -151,7 +152,7 @@ public:
     /// as long as nobody (even other threads) calls invalidate() on the
     /// file, or invalidate_all(), or destroys the ImageCache.
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
-                                        int miplevel=0) = 0;
+                                        int miplevel=0, bool native=false) = 0;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
     /// [ybegin..yend) X [zbegin..zend), with "exclusive end" a la STL,

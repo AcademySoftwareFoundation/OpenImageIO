@@ -141,6 +141,9 @@ public:
     ImageSpec & spec (int subimage, int miplevel) {
         return levelinfo(subimage,miplevel).spec;
     }
+    const ImageSpec & nativespec (int subimage, int miplevel) const {
+        return levelinfo(subimage,miplevel).nativespec;
+    }
     ustring filename (void) const { return m_filename; }
     ustring fileformat (void) const { return m_fileformat; }
     TexFormat textureformat () const { return m_texformat; }
@@ -187,12 +190,13 @@ public:
     /// precompute.
     struct LevelInfo {
         ImageSpec spec;             ///< ImageSpec for the mip level
+        ImageSpec nativespec;       ///< Native ImageSpec for the mip level
         bool full_pixel_range;      ///< pixel data window matches image window
         bool zero_origin;           ///< pixel data origin is (0,0)
         bool onetile;               ///< Whole level fits on one tile
         mutable bool polecolorcomputed;     ///< Pole color was computed
         mutable std::vector<float> polecolor;///< Pole colors
-        LevelInfo (const ImageSpec &spec);  ///< Initialize based on spec
+        LevelInfo (const ImageSpec &spec, const ImageSpec &nativespec);  ///< Initialize based on spec
     };
 
     /// Info for each subimage
@@ -205,6 +209,7 @@ public:
         SubimageInfo () : untiled(false), unmipped(false) { }
         ImageSpec &spec (int m) { return levels[m].spec; }
         const ImageSpec &spec (int m) const { return levels[m].spec; }
+        const ImageSpec &nativespec (int m) const { return levels[m].nativespec; }
     };
 
     const SubimageInfo &subimageinfo (int subimage) const {
@@ -656,10 +661,11 @@ public:
     /// the file was not found or could not be opened as an image file
     /// by any available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
-                                int subimage=0, int miplevel=0);
+                                int subimage=0, int miplevel=0,
+                                bool native=false);
 
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
-                                        int miplevel=0);
+                                        int miplevel=0, bool native=false);
 
     // Retrieve a rectangle of raw unfiltered pixels.
     virtual bool get_pixels (ustring filename, int subimage, int miplevel,

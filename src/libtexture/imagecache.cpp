@@ -254,8 +254,9 @@ ImageCacheStatistics::merge (const ImageCacheStatistics &s)
 
 
 
-ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec_)
-    : spec(spec_)
+ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec_,
+                                      const ImageSpec &nativespec_)
+    : spec(spec_), nativespec(nativespec_)
 {
     full_pixel_range = (spec.x == spec.full_x && spec.y == spec.full_y &&
                         spec.z == spec.full_z &&
@@ -318,12 +319,13 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         return false;
     }
 
-    ImageSpec tempspec;
+    ImageSpec nativespec, tempspec;
     m_broken = false;
     bool ok = true;
     for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
-        ok = m_input->open (m_filename.c_str(), tempspec);
+        ok = m_input->open (m_filename.c_str(), nativespec);
         if (ok) {
+            tempspec = nativespec;
             if (tries)   // succeeded, but only after a failure!
                 ++thread_info->m_stats.file_retry_success;
             (void) m_input->geterror ();  // Eat the errors
@@ -356,9 +358,10 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     do {
         m_subimages.resize (nsubimages+1);
         SubimageInfo &si (subimageinfo(nsubimages));
-        si.volume = (tempspec.depth > 1 || tempspec.full_depth > 1);
+        si.volume = (nativespec.depth > 1 || nativespec.full_depth > 1);
         int nmip = 0;
         do {
+            tempspec = nativespec;
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled = true;
                 if (imagecache().autotile()) {
@@ -371,9 +374,9 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                         tempspec.tile_depth = 1;
                 } else {
                     // Don't auto-tile -- which really means, make it look like
-                    // a single tile that's as big as the whole image
-                    // FIXME -- is there a good reason to round up pow 2 here?
-                    // Or does that just end up wasting space?
+                    // a single tile that's as big as the whole image.
+                    // We round to a power of 2 because the texture system
+                    // currently requires power of 2 tile sizes.
                     tempspec.tile_width = pow2roundup (tempspec.width);
                     tempspec.tile_height = pow2roundup (tempspec.height);
                     tempspec.tile_depth = pow2roundup(tempspec.depth);
@@ -389,10 +392,10 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 invalidate_spec ();
                 return false;
             }
-            LevelInfo levelinfo (tempspec);
+            LevelInfo levelinfo (tempspec, nativespec);
             si.levels.push_back (levelinfo);
             ++nmip;
-        } while (m_input->seek_subimage (nsubimages, nmip, tempspec));
+        } while (m_input->seek_subimage (nsubimages, nmip, nativespec));
 
         // Special work for non-MIPmapped images -- but only if "automip"
         // is on, it's a non-mipmapped image, and it doesn't have a
@@ -432,7 +435,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 s.tile_height = pow2roundup (s.tile_height);
                 s.tile_depth = pow2roundup (s.tile_depth);
                 ++nmip;
-                LevelInfo levelinfo (s);
+                LevelInfo levelinfo (s, s);
                 si.levels.push_back (levelinfo);
             }
         }
@@ -454,7 +457,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         }
 
         ++nsubimages;
-    } while (m_input->seek_subimage (nsubimages, 0, tempspec));
+    } while (m_input->seek_subimage (nsubimages, 0, nativespec));
     ASSERT ((size_t)nsubimages == m_subimages.size());
 
     const ImageSpec &spec (this->spec(0,0));
@@ -1996,9 +1999,9 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
 
 bool
 ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec,
-                               int subimage, int miplevel)
+                               int subimage, int miplevel, bool native)
 {
-    const ImageSpec *specptr = imagespec (filename, subimage, miplevel);
+    const ImageSpec *specptr = imagespec (filename, subimage, miplevel, native);
     if (specptr) {
         spec = *specptr;
         return true;
@@ -2010,7 +2013,8 @@ ImageCacheImpl::get_imagespec (ustring filename, ImageSpec &spec,
 
 
 const ImageSpec *
-ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel)
+ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
+                           bool native)
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);

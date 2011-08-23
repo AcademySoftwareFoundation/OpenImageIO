@@ -135,9 +135,16 @@ public:
     ///
     std::string error_message () const { return geterror (); }
 
-    /// Return a read-only (const) reference to the image spec.
-    ///
+    /// Return a read-only (const) reference to the image spec that
+    /// describes the buffer.
     const ImageSpec & spec () const { return m_spec; }
+
+    /// Return a read-only (const) reference to the "native" image spec
+    /// (that describes the file, which may be slightly different than
+    /// the spec of the ImageBuf, particularly if the IB is backed by an
+    /// ImageCache that is imposing some particular data format or tile
+    /// size).
+    const ImageSpec & nativespec () const { return m_nativespec; }
 
     /// Return the name of this image.
     ///
@@ -882,6 +889,7 @@ protected:
     int m_current_miplevel;      ///< Current miplevel we're viewing
     int m_nmiplevels;            ///< # of MIP levels in the current subimage
     ImageSpec m_spec;            ///< Describes the image (size, etc)
+    ImageSpec m_nativespec;      ///< Describes the true native image
     std::vector<char> m_pixels;  ///< Pixel data
     bool m_localpixels;          ///< Pixels are local, in m_pixels
     bool m_spec_valid;           ///< Is the spec valid
