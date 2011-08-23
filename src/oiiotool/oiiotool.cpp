@@ -225,7 +225,7 @@ output_file (int argc, const char *argv[])
     ImageOutput::OpenMode mode = ImageOutput::Create;  // initial open
     for (int s = 0, send = ir.subimages();  s < send;  ++s) {
         for (int m = 0, mend = ir.miplevels(s);  m < mend;  ++m) {
-            ImageSpec spec = *ir.spec(s,m);
+            ImageSpec spec = ir(s,m).nativespec();
             adjust_output_options (spec, ot);
             if (! out->open (filename, spec, mode)) {
                 std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";

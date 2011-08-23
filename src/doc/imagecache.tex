@@ -416,7 +416,7 @@ matches both the name and data type.
 \apiend
 
 \apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec,\\
-\bigspc  int subimage=0, int miplevel=0)}
+\bigspc  int subimage=0, int miplevel=0, bool native=false)}
 
 If the named image (and the specific subimage and MIP level) is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function copies
@@ -426,10 +426,16 @@ is not of a format readable by any plugin that could be found, or
 the designated subimage did not exist in the file, the return value is
 {\cf false} and {\cf spec} will not be modified.
 
+If {\cf native} is {\cf false} (the default), then the spec retrieved
+will accurately describe the image stored internally in the cache,
+whereas if {\cf native} is {\cf true}, the spec retrieved will reflect
+the original file.  These may differ due to use of certain \ImageCache
+settings such as \qkw{forcefloat} or \qkw{autotile}.
+
 \apiend
 
 \apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int
-  subimage=0, int miplevel=0)}
+  subimage=0, int miplevel=0, bool native=false)}
 
 If the named image is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function
@@ -437,6 +443,12 @@ returns a pointer to an \ImageSpec that describes it.  Otherwise, if the
 file is not found, could not be opened, is not of a format readable by
 any plugin that could be find, or the designated subimage did
 not exist in the file, the return value is NULL.
+
+If {\cf native} is {\cf false} (the default), then the spec retrieved
+will accurately describe the image stored internally in the cache,
+whereas if {\cf native} is {\cf true}, the spec retrieved will reflect
+the original file.  These may differ due to use of certain \ImageCache
+settings such as \qkw{forcefloat} or \qkw{autotile}.
 
 This method is much more efficient than {\cf get_imagespec()}, since it
 just returns a pointer to the spec held internally by the \ImageCache
