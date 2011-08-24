@@ -66,6 +66,8 @@ static boost::regex field_re;
 static bool subimages = false;
 static bool compute_sha1 = false;
 static bool compute_stats = false;
+static std::vector<int> num_of_miplevels;
+static int num_of_subimages = 1;
 
 
 
@@ -87,7 +89,45 @@ print_sha1 (ImageInput *input)
     printf ("    SHA-1: %s\n", digest.c_str());
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// checking how many subimages are stored in the file
+static int
+get_numberof_subimages (ImageInput *input, ImageSpec &spec)
+{
+    int num_subimages = 1;
+    while (input->seek_subimage (num_of_subimages, 0, spec)) {
+        ++num_of_subimages;        
+    }
+    input->seek_subimage (0, 0, spec);  // re-seek to the first        
+    return num_subimages;
+}
 
+
+//////////////////////////////////////////////////////////////////////////////
+// checking how many mipmap levels are stored in the file
+static std::vector<int>
+get_numberof_miplevels (ImageInput *input, ImageSpec &spec)
+{
+    std::vector<int> num_of_miplevels;
+    int num_of_subimages = 1;
+     {
+        int nmip = 1;
+        while (input->seek_subimage (input->current_subimage(), nmip, spec)) {
+            ++nmip;            
+        }
+        num_of_miplevels.push_back (nmip);
+     }
+     while (input->seek_subimage (num_of_subimages, 0, spec)) {        
+        ++num_of_subimages;
+        int nmip = 1;
+        while (input->seek_subimage (input->current_subimage(), nmip, spec)) {
+            ++nmip;            
+        }
+        num_of_miplevels.push_back (nmip);
+    }
+    input->seek_subimage (0, 0, spec);  // re-seek to the first*/
+    return num_of_miplevels;	
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Stats
@@ -420,16 +460,21 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
 
     if (compute_stats && (metamatch.empty() ||
                           boost::regex_search ("stats", field_re))) {
-        for (int m = 0;  m < nmip;  ++m) {
-            ImageSpec mipspec;
-            input->seek_subimage (current_subimage, m, mipspec);
-            if (filenameprefix)
-                printf ("%s : ", filename.c_str());
-            if (nmip > 1 && (subimages || m == 0)) {
-                printf ("    MIP %d of %d (%d x %d):\n",
-                        m, nmip, mipspec.width, mipspec.height);
-                print_stats (filename, spec, current_subimage, m, nmip>1);
+        if (nmip>1) {
+            for (int m = 0;  m < nmip;  ++m) {
+                ImageSpec mipspec;
+                input->seek_subimage (current_subimage, m, mipspec);
+                if (filenameprefix)
+                    printf ("%s : ", filename.c_str());
+                if (nmip > 1 && (subimages || m == 0)) {
+                    printf ("    MIP %d of %d (%d x %d):\n",
+                            m, nmip, mipspec.width, mipspec.height);
+                    print_stats (filename, spec, current_subimage, m, nmip>1);
+                }
             }
+        }
+        else {
+            print_stats (filename, spec,0,0,false);
         }
     }
 
@@ -446,32 +491,16 @@ print_info (const std::string &filename, size_t namefieldlength,
 {
     bool printed = false;
     int padlen = std::max (0, (int)namefieldlength - (int)filename.length());
-    std::string padding (padlen, ' ');
-
-    // checking how many subimages and mipmap levels are stored in the file
-    int num_of_subimages = 1;
+    std::string padding (padlen, ' ');    
     bool any_mipmapping = false;
-    std::vector<int> num_of_miplevels;
-    {
-        int nmip = 1;
-        while (input->seek_subimage (input->current_subimage(), nmip, spec)) {
-            ++nmip;
+    num_of_subimages = get_numberof_subimages (input, spec);
+    num_of_miplevels = get_numberof_miplevels (input, spec);
+    for (unsigned int i = 0; i < num_of_miplevels.size(); i++) {
+        if (num_of_miplevels.at (i) > 1) {
             any_mipmapping = true;
+            break;
         }
-        num_of_miplevels.push_back (nmip);
     }
-    while (input->seek_subimage (num_of_subimages, 0, spec)) {
-        // maybe we should do this more gently?
-        ++num_of_subimages;
-        int nmip = 1;
-        while (input->seek_subimage (input->current_subimage(), nmip, spec)) {
-            ++nmip;
-            any_mipmapping = true;
-        }
-        num_of_miplevels.push_back (nmip);
-    }
-    input->seek_subimage (0, 0, spec);  // re-seek to the first
-
     if (metamatch.empty() ||
         boost::regex_search ("resolution, width, height, depth, channels", field_re)) {
         printf ("%s%s : %4d x %4d", filename.c_str(), padding.c_str(),
