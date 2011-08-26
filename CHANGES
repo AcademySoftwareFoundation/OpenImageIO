@@ -1,6 +1,73 @@
 Changes:
 
 
+Release 0.11 (development in progress)
+--------------------------------------
+
+Major new features and improvements:
+ * WebP format reader/writer.
+ * Cineon support is re-enabled after various bug fixes.
+ * PSD (Adobe Photoshop) format reader.
+ * RLA (Wavefront) format reader/writer.
+ * New utility: oiiotool.  This is still a work in progress, but largely
+   subsumes the functionality of iprocess, iinfo, iconvert, idiff.
+
+API changes:
+ * Add API methods to ImageInput/ImageOutput that allow read/write of multiple
+   scanlines or tiles at a time.
+ * Change the last couple functions that took min/max pixel range
+   specifications to conform to our usual [begin,end) convention --
+   write_rectangle and to_native_rectangle.
+ * exif_encode, exif_decode now available as general utilities (previously
+   were private to the JPEG plugin).
+
+Fixes, minor enhancements, and performance improvements:
+ * ImageBufAlgo new algorithms: compare, compare_Yee, 
+ * TextureOpt: add ustring-aware versions of the decode_wrapmode utility.
+ * TypeDesc: allow stream << output.
+ * iv: raised maximum ImageCache size from 2 GB to 8 GB.
+ * PNM: fix but where file exceptions could go uncaught.
+
+Developer goodies:
+ * ArgParse enhancements: make %! indicate a bool that's set to false if
+   the option is found, %@ indicates an immediate callback, allow
+   callbacks for bool options, option matching ignores characters after
+   ':' in the option, wrap lines at word breaks when printing usage help.
+ * Generate man pages for the command-line tools.
+ * Strutil additions: escape_chars, unescape_chars.
+ * Use github.com/OpenImageIO/oiio-images project for test images that are
+   too big to fit in testsuite.
+
+
+
+Release 0.10.2 (August 6, 2011)
+-------------------------------
+* Improve the performance of ustring constructor when highly multithread.
+* Remove old out-of-date Doxygen html pages.
+
+
+Release 0.10.1 (August 2, 2011)
+-------------------------------
+* Fix TextureSystem::get_texture_info(file,"exists") (and the equivalent for
+  ImageCache), it was previously incorrectly giving an error if the file 
+  didn't exist.
+* Fixed an error where we were losing the error message if ImageInput::create
+  failed.
+* maketx: --hash is deprecated, the SHA-1 hash is always computed; the
+  hash takes into account upstream image changes, such as resizing; the
+  --filter command line argument only takes the filter name, the width
+  is now automatically computed.
+* Add static methods to Filter classes allowing queries about the names
+  and vital info about all available filters.
+* New Filesystem::is_regular() wraps the boost is_regular and catches
+  exceptions.
+* iv: raise the maximum ImageCache settable in the UI from 2GB to 8GB.
+* Bug fixes with per-channel data formats.
+* Add Strutil::escape_chars() and unescape_chars() utility functions.
+* TextureOpt: add ustring-aware versions of the decode_wrapmode() utility.
+
+
+
 Release 0.10 (June 9 2010)
 --------------------------
 
@@ -51,7 +118,6 @@ Fixes, minor enhancements, and performance improvements:
   resize properly if any of the dimensions change (previously only did
   if ALL dimensions changed) (0.9.3); --nchannels lets you set the number 
   of output channels.
-
 * Added ImageBufAlgo::transform to allow for 'flip' & 'flop' in iprocess.
   (0.9.1)
 * DPX: fix file reading when number of channels not equal to 3 (0.9.3);
