@@ -180,7 +180,7 @@ catalog_plugin (const std::string &format_name,
     extern const char *name ## _input_extensions[];
 
     PLUGENTRY (bmp);
-//    PLUGENTRY (cineon);
+    PLUGENTRY (cineon);
     PLUGENTRY (dds);
     PLUGENTRY (dpx);
     PLUGENTRY (field3d);
@@ -193,7 +193,9 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (openexr);
     PLUGENTRY (png);
     PLUGENTRY (pnm);
+    PLUGENTRY (psd);
     PLUGENTRY (ptex);
+    PLUGENTRY (rla);
     PLUGENTRY (sgi);
     PLUGENTRY (socket);
     PLUGENTRY (softimage);
@@ -225,7 +227,7 @@ catalog_builtin_plugins ()
                     name ## _output_extensions)
 
     DECLAREPLUG (bmp);
-//    DECLAREPLUG (cineon);
+    DECLAREPLUG (cineon);
     DECLAREPLUG (dds);
     DECLAREPLUG (dpx);
 #ifdef USE_FIELD3D
@@ -242,7 +244,9 @@ catalog_builtin_plugins ()
     DECLAREPLUG (openexr);
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
+    DECLAREPLUG (psd);
     DECLAREPLUG (ptex);
+    DECLAREPLUG (rla);
     DECLAREPLUG (sgi);
 #ifdef USE_BOOST_ASIO
     DECLAREPLUG (socket);

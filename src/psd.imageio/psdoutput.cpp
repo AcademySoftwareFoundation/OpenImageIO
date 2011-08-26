@@ -1,5 +1,5 @@
 /*
-  Copyright 2010 Larry Gritz and the other authors and contributors.
+  Copyright 2011 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -28,65 +28,59 @@
   (This is the Modified BSD License)
 */
 
-#include "libcineon/Cineon.h"
+#include <fstream>
+#include <iostream>
 
-#include "typedesc.h"
 #include "imageio.h"
-#include "fmath.h"
-
-using namespace cineon;
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-
-class CineonOutput : public ImageOutput {
+class PSDOutput : public ImageOutput {
 public:
-    CineonOutput ();
-    virtual ~CineonOutput ();
-    virtual const char * format_name (void) const { return "cineon"; }
+    PSDOutput ();
+    virtual ~PSDOutput ();
+    virtual const char * format_name (void) const { return "psd"; }
     virtual bool supports (const std::string &feature) const {
         // Support nothing nonstandard
         return false;
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       ImageOutput::OpenMode mode);
+                       OpenMode mode=Create);
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
 
 private:
+    std::string m_filename;           ///< Stash the filename
+    std::ofstream m_file;             ///< Open image handle
 
     // Initialize private members to pre-opened state
     void init (void) {
     }
+
 };
-
-
-
 
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *cineon_output_imageio_create () { return new CineonOutput; }
+DLLEXPORT ImageOutput *psd_output_imageio_create () { return new PSDOutput; }
 
-// DLLEXPORT int cineon_imageio_version = OIIO_PLUGIN_VERSION;   // it's in cineoninput.cpp
-
-DLLEXPORT const char * cineon_output_extensions[] = {
-    "cin", NULL
+DLLEXPORT const char * psd_output_extensions[] = {
+    "psd", NULL
 };
 
 OIIO_PLUGIN_EXPORTS_END
 
 
 
-CineonOutput::CineonOutput ()
+PSDOutput::PSDOutput ()
 {
     init ();
 }
 
 
 
-CineonOutput::~CineonOutput ()
+PSDOutput::~PSDOutput ()
 {
     // Close, if not already done.
     close ();
@@ -95,32 +89,27 @@ CineonOutput::~CineonOutput ()
 
 
 bool
-CineonOutput::open (const std::string &name, const ImageSpec &userspec,
-                    ImageOutput::OpenMode mode)
+PSDOutput::open (const std::string &name, const ImageSpec &userspec,
+                 OpenMode mode)
 {
-    error ("Cineon writer is not implemented yet, please poke Leszek in the "
-           "mailing list");
     return false;
 }
 
 
 
 bool
-CineonOutput::close ()
+PSDOutput::close ()
 {
-    init();  // Reset to initial state
-    return true;  // How can we fail?
-                  // Epicly. -- IneQuation
+    init ();
+    return false;
 }
 
 
 
 bool
-CineonOutput::write_scanline (int y, int z, TypeDesc format,
-                              const void *data, stride_t xstride)
+PSDOutput::write_scanline (int y, int z, TypeDesc format,
+                            const void *data, stride_t xstride)
 {
-    error ("Cineon writer is not implemented yet, please poke Leszek in the "
-           "mailing list");
     return false;
 }
 

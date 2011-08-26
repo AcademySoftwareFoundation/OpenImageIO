@@ -2,7 +2,7 @@ hi
 ../../../openexr-images-1.5.0/ScanLines/Desk.exr :  644 x  874, 4 channel, half openexr
     SHA-1: CBFEA416A3CA23DF2B1599A0495EECE6FB009E5D
     channel list: R, G, B, A
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "piz"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -19,7 +19,7 @@ PASS
 ../../../openexr-images-1.5.0/ScanLines/Cannon.exr :  780 x  566, 3 channel, half openexr
     SHA-1: 8855671D158731258798358D78E90B2A62CF206D
     channel list: R, G, B
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "b44"
     Copyright: "Copyright 2006 Industrial Light & Magic"
     PixelAspectRatio: 1
@@ -37,7 +37,7 @@ PASS
 ../../../openexr-images-1.5.0/ScanLines/Desk.exr :  644 x  874, 4 channel, half openexr
     SHA-1: CBFEA416A3CA23DF2B1599A0495EECE6FB009E5D
     channel list: R, G, B, A
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "piz"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -54,7 +54,7 @@ PASS
 ../../../openexr-images-1.5.0/ScanLines/MtTamWest.exr : 1214 x  732, 4 channel, half openexr
     SHA-1: 0C7FC9D17BCF20EE043335F7D2DCFA2F19B3BA09
     channel list: R, G, B, A
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "piz"
     altitude: 716
     DateTime: "2002:06:23 16:00:00"
@@ -78,7 +78,7 @@ PASS
 ../../../openexr-images-1.5.0/ScanLines/StillLife.exr : 1240 x  846, 4 channel, half openexr
     SHA-1: F794B0D381CA2FDCE32BCAEC3734B2AB49579401
     channel list: R, G, B, A
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "piz"
     DateTime: "2002:06:23 21:30:10"
     Copyright: "Copyright 2002 Industrial Light & Magic"
@@ -98,7 +98,7 @@ PASS
 ../../../openexr-images-1.5.0/ScanLines/Tree.exr :  928 x  906, 4 channel, half openexr
     SHA-1: 75D2AAD6D04D8B8F520D391926767BC4A00E6A0F
     channel list: R, G, B, A
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "piz"
     DateTime: "2002:06:23 15:00:00"
     focus: 3.5
@@ -123,7 +123,7 @@ PASS
     pixel data origin: x=-20, y=-20
     full/display size: 1000 x 1000
     full/display origin: 0, 0
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "zip"
     DateTime: "2004:01:19 12:55:33"
     Copyright: "Copyright 2004 Industrial Light & Magic"
@@ -144,7 +144,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/AllHalfValues.exr :  256 x  256, 3 channel, half openexr
     SHA-1: 4428F325F403515E6B3BF8E290FB7EDBF959ECF7
     channel list: R, G, B
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "piz"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -161,7 +161,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/BrightRings.exr :  800 x  800, 3 channel, half openexr
     SHA-1: F6528D07E75DA1CE490DA6A93EB68573070FFB4B
     channel list: R, G, B
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "zip"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -178,7 +178,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/BrightRingsNanInf.exr :  800 x  800, 3 channel, half openexr
     SHA-1: 73F0C53CFCE17B37DD873CF5FE4C9DF0DDB4D3DD
     channel list: R, G, B
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "zip"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -195,7 +195,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/GammaChart.exr :  800 x  800, 3 channel, half openexr
     SHA-1: D21C1DC58FEC725E62D5A9F1503965CBD1A9BFD4
     channel list: R, G, B
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -212,7 +212,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/GrayRampsDiagonal.exr :  800 x  800, 1 channel, half openexr
     SHA-1: 4CC9922AFAD6CA706D66E466BEA9E93D9E813B39
     channel list: Y
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -229,7 +229,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/GrayRampsHorizontal.exr :  800 x  800, 1 channel, half openexr
     SHA-1: 1F0A6393B53BCA1AF072EA8B7795AE19FE2C8883
     channel list: Y
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -246,7 +246,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/RgbRampsDiagonal.exr :  800 x  800, 3 channel, half openexr
     SHA-1: 8C973B65215B6C1BC0D29376F1C49D6A9A6CFA19
     channel list: R, G, B
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -263,7 +263,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/SquaresSwirls.exr : 1000 x 1000, 3 channel, half openexr
     SHA-1: C0A591BDED4A83540BBEFC9FD0549FEEE499EB3A
     channel list: R, G, B
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -280,7 +280,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/WideColorGamut.exr :  800 x  800, 3 channel, half openexr
     SHA-1: B49406C6AA10E1E3CCA7AAF3BF68FDD3E5790643
     channel list: R, G, B
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "zip"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -297,7 +297,7 @@ PASS
 ../../../openexr-images-1.5.0/TestImages/WideFloatRange.exr :  500 x  500, 1 channel, float openexr
     SHA-1: 9009BE7DD8CC438F258A48243056E6D46E6147EB
     channel list: G
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "pxr24"
     PixelAspectRatio: 1
     screenWindowWidth: 1
@@ -315,7 +315,7 @@ PASS
     SHA-1: 828CD8188CC4A237C8025BA6634D1682A7F8C9BB
     channel list: R, G, B
     tile size: 128 x 128
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "piz"
     altitude: 274.5
     FNumber: 2.8
@@ -344,7 +344,7 @@ PASS
     SHA-1: 32BF0712FEABFFB448898D91F97E5C38BD351FD7
     channel list: R, G, B
     tile size: 128 x 128
-    Color space: unknown
+    oiio:ColorSpace: "Linear"
     compression: "zip"
     focus: inf
     Copyright: "Copyright 2004 Industrial Light & Magic"

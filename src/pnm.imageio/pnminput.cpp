@@ -219,6 +219,8 @@ read_int (std::istream &in, T &dest, char comment='#')
 bool 
 PNMInput::read_file_scanline (void * data)
 {
+    try {
+
     std::vector<unsigned char> buf;
     bool good = true;
     if (!m_file.is_open())
@@ -270,6 +272,12 @@ PNMInput::read_file_scanline (void * data)
             return false;
     }
     return good;
+
+    }
+    catch (const std::exception &e) {
+        error ("PNM exception: %s", e.what());
+        return false;
+    }
 }
 
 
@@ -277,6 +285,8 @@ PNMInput::read_file_scanline (void * data)
 bool
 PNMInput::read_file_header ()
 {
+    try {
+
     unsigned int width, height;
     char c;
     if (!m_file.is_open())
@@ -326,6 +336,11 @@ PNMInput::read_file_header ()
 
     m_spec.attribute ("oiio:BitsPerSample", ceilf (logf (m_max_val + 1)/logf (2)));
     return true;
+    }
+    catch (const std::exception &e) {
+        error ("PNM exception: %s", e.what());
+        return false;
+    }
 }
 
 

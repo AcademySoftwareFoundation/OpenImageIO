@@ -118,11 +118,11 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
 # correctly).  If testwrite is nonzero, also iconvert the file to make a
 # copy (tests writing that format), and then idiff to make sure it
 # matches the original.
-def rw_command (dir, filename, cmdpath, testwrite=1) :
+def rw_command (dir, filename, cmdpath, testwrite=1, extraargs="") :
     cmd = cmdpath + oiio_app("iinfo") + " -v -a --hash " + dir + "/" + filename + " >> out.txt ; "
     print (cmd)
     if testwrite :
-        cmd = cmd + cmdpath + oiio_app("iconvert") + dir + "/" + filename + " " + filename + " >> out.txt ; "
+        cmd = cmd + cmdpath + oiio_app("iconvert") + dir + "/" + filename + " " + extraargs + " " + filename + " >> out.txt ; "
         cmd = cmd + cmdpath + oiio_app("idiff") + "-a " + dir + "/" + filename + " " + filename + " >> out.txt "
     return cmd
 

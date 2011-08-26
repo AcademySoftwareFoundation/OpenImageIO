@@ -41,7 +41,7 @@
 
 #include <cstdio>
 
-
+namespace cineon {
 
 /*!
  * \class InStream
@@ -196,7 +196,7 @@ class OutStream
 	FILE *fp;
 };
 
-
+}
 
 
 

@@ -29,7 +29,7 @@ imagedir = "../../../openexr-images-1.5.0/DisplayWindow"
 imagedir = "../../../openexr-images-1.5.0/ScanLines"
 #command = command + "; " + runtest.rw_command (imagedir, "Blobbies.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "Desk.exr", path)
-command = command + "; " + runtest.rw_command (imagedir, "Cannon.exr", path)
+command = command + "; " + runtest.rw_command (imagedir, "Cannon.exr", path, extraargs="--compression zip")
 command = command + "; " + runtest.rw_command (imagedir, "Desk.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "MtTamWest.exr", path)
 command = command + "; " + runtest.rw_command (imagedir, "StillLife.exr", path)

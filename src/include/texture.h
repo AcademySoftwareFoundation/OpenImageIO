@@ -170,6 +170,7 @@ public:
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
     static Wrap decode_wrapmode (const char *name);
+    static Wrap decode_wrapmode (ustring name);
 
     /// Utility: Parse a single wrap mode (e.g., "periodic") or a
     /// comma-separated wrap modes string (e.g., "black,clamp") into
@@ -267,6 +268,9 @@ public:
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
     static Wrap decode_wrapmode (const char *name) {
+        return (Wrap)TextureOpt::decode_wrapmode (name);
+    }
+    static Wrap decode_wrapmode (ustring name) {
         return (Wrap)TextureOpt::decode_wrapmode (name);
     }
 

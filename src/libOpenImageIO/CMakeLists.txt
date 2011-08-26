@@ -30,7 +30,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
     )
 endif()
 
-set (libOpenImageIO_srcs formatspec.cpp imagebuf.cpp
+set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                          imagebufalgo.cpp imagebufalgo_orient.cpp
                          imagebufalgo_yee.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
@@ -75,11 +75,11 @@ if (EMBEDPLUGINS)
     set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
         ../bmp.imageio/bmpinput.cpp ../bmp.imageio/bmpoutput.cpp
         ../bmp.imageio/bmp_pvt.cpp
-#        ../cineon.imageio/cineoninput.cpp ../cineon.imageio/cineonoutput.cpp
-#          ../cineon.imageio/libcineon/Cineon.cpp 
-#          ../cineon.imageio/libcineon/Codec.cpp ../cineon.imageio/libcineon/Reader.cpp
-#          ../cineon.imageio/libcineon/Writer.cpp ../cineon.imageio/libcineon/CineonHeader.cpp
-#          ../cineon.imageio/libcineon/ElementReadStream.cpp ../cineon.imageio/libcineon/InStream.cpp
+        ../cineon.imageio/cineoninput.cpp ../cineon.imageio/cineonoutput.cpp
+          ../cineon.imageio/libcineon/Cineon.cpp 
+          ../cineon.imageio/libcineon/Codec.cpp ../cineon.imageio/libcineon/Reader.cpp
+          ../cineon.imageio/libcineon/Writer.cpp ../cineon.imageio/libcineon/CineonHeader.cpp
+          ../cineon.imageio/libcineon/ElementReadStream.cpp ../cineon.imageio/libcineon/InStream.cpp
         ../dds.imageio/ddsinput.cpp ../dds.imageio/ddsoutput.cpp
           ../dds.imageio/squish/alpha.cpp ../dds.imageio/squish/clusterfit.cpp
           ../dds.imageio/squish/colourblock.cpp ../dds.imageio/squish/colourfit.cpp
@@ -101,9 +101,10 @@ if (EMBEDPLUGINS)
 		  ../iff.imageio/iffoutput.cpp
 		  ../iff.imageio/iff_pvt.cpp
         ../jpeg.imageio/jpeginput.cpp ../jpeg.imageio/jpegoutput.cpp
-          ../jpeg.imageio/jpegexif.cpp
         ../png.imageio/pnginput.cpp ../png.imageio/pngoutput.cpp
         ../pnm.imageio/pnminput.cpp ../pnm.imageio/pnmoutput.cpp
+        ../psd.imageio/psdinput.cpp ../psd.imageio/psdoutput.cpp
+        ../psd.imageio/jpeg_memory_src.cpp
         ../ptex.imageio/ptexinput.cpp ../ptex.imageio/ptexoutput.cpp
         ../ptex.imageio/ptex/PtexCache.cpp ../ptex.imageio/ptex/PtexFilters.cpp
         ../ptex.imageio/ptex/PtexHalf.cpp ../ptex.imageio/ptex/PtexReader.cpp
@@ -113,6 +114,7 @@ if (EMBEDPLUGINS)
         ../ptex.imageio/ptex/PtexTriangleKernel.cpp
         ../ptex.imageio/ptex/PtexUtils.cpp ../ptex.imageio/ptex/PtexWriter.cpp
         ../openexr.imageio/exrinput.cpp ../openexr.imageio/exroutput.cpp
+        ../rla.imageio/rlainput.cpp ../rla.imageio/rlaoutput.cpp
         ../sgi.imageio/sgiinput.cpp ../sgi.imageio/sgioutput.cpp
         ../softimage.imageio/softimageinput.cpp 
            ../softimage.imageio/softimageoutput.cpp 

@@ -16,7 +16,7 @@ import runtest
 # Start off
 command = "echo hi> out.txt"
 
-imagedir = "../../../oiio-testimages"
+imagedir = "../../../oiio-images"
 
 # Run the tests
 command = command + "; " + runtest.rw_command (imagedir, "oiio.ico", path)
