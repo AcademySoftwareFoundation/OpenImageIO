@@ -87,12 +87,12 @@ def io_open_test(spec_o):
         return 
     
     # test 1
-    if (out_o.open("../../../oiio-testimages/tahoe-gps-test.jpg", spec_o, False)):
+    if (out_o.open("../../../oiio-testimages/tahoe-gps-test.jpg", spec_o, oiio.ImageOutputOpenMode.Create)):
         print "Test 1 passed"
     else:
         print "Test 1 failed"
     # test 2
-    if (not out_o.open("", spec_o, False)):
+    if (not out_o.open("", spec_o, oiio.ImageOutputOpenMode.Create)):
         print "Test 2 passed"
     else:
         print "Test 2 failed"
@@ -106,7 +106,7 @@ def io_open_test(spec_o):
 
     # test 4 - same as test 1, but the "append" argument is set to True. 
     # Not sure how it's supposed to be used, though.
-    if (out_o.open("../../../oiio-testimages/tahoe-gps-test.jpg", spec_o, True)):
+    if (out_o.open("../../../oiio-testimages/tahoe-gps-test.jpg", spec_o, oiio.ImageOutputOpenMode.AppendSubimage)):
         print "Test 4 passed"
     else:
         print "Test 4 failed"
@@ -120,7 +120,7 @@ def io_close_test(spec_c):
     out_cl = oiio.ImageOutput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
 
     # The created image will be black since no writing is done at this point.
-    out_cl.open("../../../oiio-testimages/tahoe-gps-test.jpg", spec_c, False)
+    out_cl.open("../../../oiio-testimages/tahoe-gps-test.jpg", spec_c, oiio.ImageOutputOpenMode.Create)
     if out_cl == None:
         print "Can't opet test image, skipping close() tests"
         print
@@ -335,7 +335,7 @@ def run_io_tests():
     inp = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
     inp.open("../../../oiio-testimages/tahoe-gps.jpg", spec)
     desc = spec.format
-    arr = array.array("B", "\0" * spec.image_bytes())
+    arr = array.array("B", "\0" * spec.image_bytes(True))
     inp.read_image(desc, arr)
 
     io_create_test()
