@@ -31,6 +31,7 @@
 // Avoid a compiler warning from a duplication in tiffconf.h/pyconfig.h
 #undef SIZEOF_LONG
 #include <boost/python.hpp>
+#include <boost/python/enum.hpp>
 #include "imageio.h"
 #include "py_oiio.h"
 
@@ -189,7 +190,11 @@ void declare_imageoutput()
         .def("copy_image",      &ImageOutputWrap::copy_image)
         .def("geterror",        &ImageOutputWrap::geterror)
     ;
-
+    enum_<ImageOutput::OpenMode>("ImageOutputOpenMode")
+                .value("Create", ImageOutput::Create )
+		.value("AppendSubimage", ImageOutput::AppendSubimage)
+                .value("AppendMIPLevel", ImageOutput::AppendMIPLevel)
+		.export_values();
     scope().attr("AutoStride") = AutoStride;
 }
 
