@@ -35,6 +35,8 @@
 #include "imageio.h"
 #include "fmath.h"
 
+using namespace cineon;
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
@@ -210,20 +212,18 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
         case cineon::kRec709Red:
         case cineon::kRec709Green:
         case cineon::kRec709Blue:
-            m_spec.linearity = ImageSpec::Rec709;
+            m_spec.attribute ("oiio:ColorSpace", "Rec709");
         default:
             // either grayscale or printing density
             if (!isinf (m_cin.header.Gamma ()))
                 // actual gamma value is read later on
-                m_spec.linearity = ImageSpec::GammaCorrected;
-            else
-                m_spec.linearity = ImageSpec::UnknownLinearity;
+                m_spec.attribute ("oiio:ColorSpace", "GammaCorrected");
             break;
     }
 
     // gamma exponent
     if (!isinf (m_cin.header.Gamma ()))
-        m_spec.gamma = m_cin.header.Gamma ();
+        m_spec.attribute ("oiio:Gamma", (float) m_cin.header.Gamma ());
 
     // general metadata
     // some non-compliant writers will dump a field filled with 0xFF rather

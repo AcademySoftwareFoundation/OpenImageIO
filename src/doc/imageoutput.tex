@@ -881,7 +881,8 @@ is desired, the following steps are necessary:
   {\cf supports ("channelformats")}.
 \item The \ImageSpec passed to {\cf open()} should have its {\cf
   channelformats} vector filled with the types for each channel.
-\item The call to {\cf write_scanline}, {\cf write_tile}, or {\cf
+\item The call to {\cf write_scanline}, {\cf read_scanlines},
+  {\cf write_tile}, {\cf write_tiles}, or {\cf
   write_image} should pass a {\cf data} pointer to the raw data, already
   in the native per-channel format of the file and contiguously packed,
   and specify that the data is of type {\cf TypeDesc::UNKNOWN}.
@@ -1173,21 +1174,34 @@ and frees any memory or resources associated with it.
      const void *data, \\
 \bigspc stride_t xstride=AutoStride)}
 
-Write a full scanline that includes pixels $(*,y,z)$.  For 2D non-volume
+Write a block of scanlines that include pixels $(*,y,z)$, where
+$\mathit{ybegin} \le y < \mathit{yend}$.  This is 
+essentially identical to \writescanline, except that can write more than
+one scanline at a time, which may be more efficient for certain image
+format writers.
+\apiend
+
+\apiitem{bool {\ce write_scanlines} (int ybegin, int yend, int z, TypeDesc format,
+     const void *data, \\
+\bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
+
+Write a block of scanlines scanline that includes pixels $(*,y,z)$,
+where ${\mathit ybegin} \le y < {\mathit yend}$.  For 2D non-volume
 images, $z$ is ignored.  The {\kw xstride} value gives the distance
-between successive pixels (in bytes).  Strides set to the special value
+between successive pixels (in bytes), and {\kw ystride} gives the 
+distance between successive scanlines.  Strides set to the special value
 {\kw AutoStride} imply contiguous data, i.e., \\ \spc {\kw xstride} $=$
-{\kw spec.nchannels*format.size()} \\ This method
-automatically converts the data from the specified {\kw format} to the
-actual output format of the file.  
+{\kw spec.nchannels*format.size()}, {\kw ystride} $=$ {\kw spec.width*xstride}.\\
+
+This method automatically converts the data from the specified {\kw format}
+to the actual output format of the file.  
 If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data is assumed to
 already be in the file's native format (including per-channel formats, 
 as specified in the \ImageSpec's {\cf channelformats} field, if applicable).
-Return {\kw true} for success, {\kw
-  false} for failure.  It is a failure to call \writescanline with an
+Return {\kw true} for success, {\kw false} for failure.  
+It is a failure to call \writescanline with an
 out-of-order scanline if this format driver does not support random
 access.
-
 \apiend
 
 \apiitem{bool {\ce write_tile} (int x, int y, int z, TypeDesc format,
@@ -1212,17 +1226,50 @@ Return {\kw true} for success, {\kw false} for failure.  It is a
 failure to call \writetile with an out-of-order tile if this
 format driver does not support random access.
 
+This function returns {\cf true} if it successfully writes the tile,
+otherwise {\cf false} for a failure.
+The call will fail if the image is not tiled, or if $(x,y,z)$ is not
+actually a tile boundary.
 \apiend
 
-\apiitem{bool {\ce write_rectangle} ({\small int xmin, int xmax, int ymin, int ymax,
-                                  int zmin, int zmax,} \\ \bigspc TypeDesc format,
+\apiitem{bool {\ce write_tiles} (int xbegin, int xend, int ybegin, int yend,\\
+\bigspc int zbegin, int zend, TypeDesc format, const void *data, \\
+\bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
+\bigspc stride_t zstride=AutoStride)}
+
+Write the tiles that include pixels {\kw xbegin} $\le x <$ {\kw xend},
+{\kw ybegin} $\le y <$ {\kw yend}, {\kw zbegin} $\le z <$ {\kw zend}
+from {\kw data},
+converting if necessary from {\kw format} specified into the file's
+native data format.
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data will be assumed
+to already be in the native format (including per-channel formats, if applicable).
+The stride values
+give the data spacing of adjacent pixels, scanlines, and volumetric
+slices, respectively (measured in bytes).  Strides set to the special
+value of {\kw AutoStride} imply contiguous data, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels * spec.pixel_size()} \\
+\spc {\kw ystride} $=$ {\kw xstride * (xend-xbegin)} \\
+\spc {\kw zstride} $=$ {\kw ystride * (yend-ybegin)} \\
+The data for those tiles is assumed to be in the usual image order, as if
+it were just one big tile, and not ``paded'' to a whole multiple of the tile size.
+
+This function returns {\cf true} if it successfully writes the tiles,
+otherwise {\cf false} for a failure.
+The call will fail if the image is not tiled, or if the pixel ranges
+do not fall along tile (or image) boundaries, or if it is not a valid
+tile range.
+\apiend
+
+\apiitem{bool {\ce write_rectangle} ({\small int xbegin, int xend, int ybegin, int yend,
+                                  int zbegin, int zend,} \\ \bigspc TypeDesc format,
                                   const void *data, \\ \bigspc stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride, \\
                                   \bigspc stride_t zstride=AutoStride)}
 
-Write pixels whose $x$ coords range over {\kw xmin}...{\kw xmax}
-(inclusive), $y$ coords over {\kw ymin}...{\kw ymax}, and $z$ coords
-over {\kw zmin}...{\kw zmax}.  The three stride values give the distance
+Write pixels covering the range that includes pixels {\kw xbegin} $\le x <$ {\kw xend},
+{\kw ybegin} $\le y <$ {\kw yend}, {\kw zbegin} $\le z <$ {\kw zend}.
+The three stride values give the distance
 (in bytes) between successive pixels, scanlines, and volumetric slices,
 respectively.  Strides set to the special value {\kw AutoStride} imply
 contiguous data, i.e.,\\

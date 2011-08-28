@@ -35,8 +35,6 @@ tiles.
 
 \vspace{.25in}
 
-% Cineon not yet supported
-\begin{comment}
 \section{Cineon}
 \label{sec:bundledplugins:cineon}
 \index{Cineon}
@@ -45,11 +43,10 @@ Cineon is an image file format developed by Kodak that is commonly
 used for scanned motion picture film and digital intermediates.
 Cineon files use the file extension {\cf .cin}.
 
-\product's support of Cineon is preliminary.  Currently \product does not
-write Cineon files at all.
+%FIXME
 
 \vspace{.25in}
-\end{comment}
+
 
 
 \section{DDS}
@@ -597,6 +594,15 @@ It's not a smart choice unless you are sending your images back to the
 
 \vspace{.25in}
 
+\section{PSD}
+\label{sec:bundledplugins:psd}
+\index{PSD}
+
+% FIXME
+
+
+\vspace{.25in}
+
 \section{Ptex}
 \label{sec:bundledplugins:ptex}
 \index{Ptex}
@@ -625,6 +631,64 @@ write Ptex files at all.
 \emph{other} & & Any other arbitrary metadata in the Ptex file will be stored
   directly as attributes in the \ImageSpec.
 \end{tabular}
+
+
+
+\vspace{.25in}
+
+\section{RLA}
+\label{sec:bundledplugins:rla}
+\index{RLA}
+
+RLA (Run-Length encoded, version A) is an early CGI renderer output format,
+originating from Wavefront Advanced Visualizer and used primarily by software
+developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
+
+\product's support of RLA is complete - files can be both read and written.
+
+%\subsubsection*{Attributes}
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.75in}|p{0.5in}|p{3.0in}}
+\ImageSpec Attribute & Type & RLA header data or explanation \\
+\hline
+\qkw{rla:FrameNumber} & int & frame sequence number. \\
+\qkw{rla:Revision} & int & file format revision number, currently
+  \qkw{0xFFFE}. \\
+\qkw{rla:JobNumber} & int & job number ID of the file. \\
+\qkw{rla:FieldRendered} & int & whether the image is a field-rendered
+  (interlaced) one (\qkw{0} for false, non-zero for true). \\
+\qkw{rla:FileName} & string & name under which the file was orignally saved. \\
+\qkw{Software} & string & name of software used to save the image. \\
+\qkw{HostComputer} & string & name of machine used to save the image. \\
+\qkw{rla:UserName} & string & logon name of user who saved the image. \\
+\qkw{rla:Aspect} & string & aspect format description string. \\
+\qkw{rla:ColorChannel} & string & textual description of color channel data
+  format (usually \qkw{rgb}). \\
+\qkw{rla:Time} & string & description (format not standardized) of amount of
+  time spent on creating the image. \\
+\qkw{rla:Filter} & string & name of post-processing filter applied to the
+  image. \\
+\qkw{rla:AuxData} & string & textual description of auxiliary channel data
+  format. \\
+\qkw{rla:AspectRatio} & float & image aspect ratio. \\
+\qkw{rla:RedChroma} & vec2 or vec3 of floats & red point XY (vec2) or XYZ
+  (vec3) coordinates. \\
+\qkw{rla:GreenChroma} & vec2 or vec3 of floats & green point XY (vec2) or XYZ
+  (vec3) coordinates. \\
+\qkw{rla:BlueChroma} & vec2 or vec3 of floats & blue point XY (vec2) or XYZ
+  (vec3) coordinates. \\
+\qkw{rla:WhitePoint} & vec2 or vec3 of floats & white point XY (vec2) or XYZ
+  (vec3) coordinates. \\
+\end{tabular}
+
+\subsubsection*{Limitations}
+
+\begin{itemize}
+\item \product will only write 1 image to 1 file. The format specification
+  allows appending more images into the same file, but this is not currently
+  supported by the plugin.
+\end{itemize}
 
 
 
@@ -841,6 +905,15 @@ aware of:
   pixels ({\cf half} data).
 \end{itemize}
 
+
+
+\vspace{.25in}
+
+\section{Webp}
+\label{sec:bundledplugins:webp}
+\index{WebP}
+
+% FIXME
 
 
 \vspace{.25in}

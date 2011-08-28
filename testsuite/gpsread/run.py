@@ -13,7 +13,7 @@ sys.path = [".."] + sys.path
 import runtest
 
 # A command to run
-command = path + runtest.oiio_app("iinfo") + " -v ../../../oiio-testimages/tahoe-gps.jpg > out.txt"
+command = path + runtest.oiio_app("iinfo") + " -v ../../../oiio-images/tahoe-gps.jpg > out.txt"
 
 # Outputs to check against references
 outputs = [ "out.txt" ]

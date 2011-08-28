@@ -406,12 +406,21 @@ convert_image (int nchannels, int width, int height, int depth,
                ColorTransfer *tfunc,
                int alpha_channel, int z_channel)
 {
+    // If no format conversion is taking place, use the simplified
+    // copy_image.
+    if (src_type == dst_type && tfunc == NULL)
+        return copy_image (nchannels, width, height, depth, src, 
+                           src_type.size()*nchannels,
+                           src_xstride, src_ystride, src_zstride,
+                           dst, dst_xstride, dst_ystride, dst_zstride);
+
     ImageSpec::auto_stride (src_xstride, src_ystride, src_zstride,
                             src_type, nchannels, width, height);
     ImageSpec::auto_stride (dst_xstride, dst_ystride, dst_zstride,
                             dst_type, nchannels, width, height);
     bool result = true;
-    bool contig = (src_xstride == dst_xstride && src_xstride == nchannels);
+    bool contig = (src_xstride == dst_xstride &&
+                   src_xstride == stride_t(nchannels*src_type.size()));
     for (int z = 0;  z < depth;  ++z) {
         for (int y = 0;  y < height;  ++y) {
             const char *f = (const char *)src + (z*src_zstride + y*src_ystride);
@@ -440,6 +449,44 @@ convert_image (int nchannels, int width, int height, int depth,
         }
     }
     return result;
+}
+
+
+
+bool
+copy_image (int nchannels, int width, int height, int depth,
+            const void *src, stride_t pixelsize, stride_t src_xstride,
+            stride_t src_ystride, stride_t src_zstride, void *dst, 
+            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride)
+{
+    stride_t channelsize = pixelsize / nchannels;
+    ImageSpec::auto_stride (src_xstride, src_ystride, src_zstride,
+                            channelsize, nchannels, width, height);
+    ImageSpec::auto_stride (dst_xstride, dst_ystride, dst_zstride,
+                            channelsize, nchannels, width, height);
+    bool contig = (src_xstride == dst_xstride &&
+                   src_xstride == (stride_t)pixelsize);
+    for (int z = 0;  z < depth;  ++z) {
+        for (int y = 0;  y < height;  ++y) {
+            const char *f = (const char *)src + (z*src_zstride + y*src_ystride);
+            char *t = (char *)dst + (z*dst_zstride + y*dst_ystride);
+            if (contig) {
+                // Special case: pixels within each row are contiguous
+                // in both src and dst and we're copying all channels.
+                // Be efficient by converting each scanline as a single
+                // unit.
+                memcpy (t, f, width*pixelsize);
+            } else {
+                // General case -- anything goes with strides.
+                for (int x = 0;  x < width;  ++x) {
+                    memcpy (t, f, pixelsize);
+                    f += src_xstride;
+                    t += dst_xstride;
+                }
+            }
+        }
+    }
+    return true;
 }
 
 }

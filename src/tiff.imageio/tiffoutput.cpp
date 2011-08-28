@@ -516,6 +516,8 @@ TIFFOutput::write_tile (int x, int y, int z,
                         TypeDesc format, const void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (! m_spec.valid_tile_range (x, x, y, y, z, z))
+        return false;
     m_spec.auto_stride (xstride, ystride, zstride, format, spec().nchannels,
                         spec().tile_width, spec().tile_height);
     x -= m_spec.x;   // Account for offset, so x,y are file relative, not 

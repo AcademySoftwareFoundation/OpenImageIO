@@ -183,11 +183,10 @@ add_subdirectory (maketx)
 add_subdirectory (oiiotool)
 add_subdirectory (testtex)
 add_subdirectory (iv)
-
 # Add IO plugin directories
 if (NOT EMBEDPLUGINS)
     add_subdirectory (bmp.imageio)
-#    add_subdirectory (cineon.imageio)
+    add_subdirectory (cineon.imageio)
     add_subdirectory (dds.imageio)
     add_subdirectory (dpx.imageio)
     add_subdirectory (field3d.imageio)
@@ -199,7 +198,9 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (openexr.imageio)
     add_subdirectory (png.imageio)
     add_subdirectory (pnm.imageio)
+    add_subdirectory (psd.imageio)
     add_subdirectory (ptex.imageio)
+    add_subdirectory (rla.imageio)
     add_subdirectory (sgi.imageio)
     add_subdirectory (socket.imageio)
     add_subdirectory (softimage.imageio)
@@ -220,7 +221,7 @@ add_subdirectory (doc)
 # Testing
 
 # List all the individual testsuite tests here:
-oiio_add_tests (ico gpsread sgi 
+oiio_add_tests (ico gpsread oiiotool sgi rla
                 texture-fill texture-gray texture-grid
                 texture-missing texture-pointsample texture-res
                 texture-skinny texture-fat

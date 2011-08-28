@@ -108,23 +108,6 @@ class JpgInput : public ImageInput {
 
 
 
-namespace Jpeg_imageio_pvt {
-
-/// Decode a raw Exif data block and save all the metadata in an
-/// ImageSpec.  Return true if all is ok, false if the exif block was
-/// somehow malformed.  This is a utility function to make it easy for
-/// multiple format plugins to support embedding Exif metadata without
-/// having to duplicate functionality within each plugin.
-bool decode_exif (const void *buf, int length, ImageSpec &spec);
-
-/// Construct an Exif data block from the ImageSpec, writing the Exif 
-/// data as a big blob to the char vector.  This is a utility function 
-/// to make it easy for multiple format plugins to support embedding
-/// Exif data without having to duplicate functionality within each plugin.
-void encode_exif (const ImageSpec &spec, std::vector<char> &exif);
-
-};
-
 OIIO_PLUGIN_NAMESPACE_END
 
 

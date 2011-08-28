@@ -214,7 +214,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 	const U8 bitDepth = this->header.BitDepth(element);
 	const U32 width = this->header.Width();
 	const U32 height = this->header.Height();
-	const int noc = this->header.ImageElementComponentCount(element);
+	const int noc = this->header.NumberOfElements();
 	const Packing packing = this->header.ImagePacking();
 
 	// check width & height, just in case
@@ -290,9 +290,9 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 
 		case 64:
 			if (size == cineon::kLongLong)
-				this->fileLoc += WriteBuffer<R64, 64, true>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U64, 64, true>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
 			else
-				this->fileLoc += WriteBuffer<R64, 64, false>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
+				this->fileLoc += WriteBuffer<U64, 64, false>(this->fd, size, data, width, height, noc, packing, reverse, eolnPad, blank, status);
 			break;
 		}
 	}

@@ -107,7 +107,7 @@ and {\cf spec.tile_height} set to 0, whereas a tiled images will
 have nonzero values for the tile dimensions.
 
 
-\subsubsection{Reading individual scanlines}
+\subsubsection{Reading scanlines}
 
 Individual scanlines may be read using the \readscanline API
 call:
@@ -145,10 +145,17 @@ scanlines in strict order (starting with scanline 0, then 1, up to {\kw
 format and reader implementation, out-of-order scanline reads may be
 inefficient.
 
-The full description of the \readscanline function may be found
-in Section~\ref{sec:imageinput:reference}.
+There is also a {\cf read_scanlines()} function that operates similarly,
+except that it takes a {\cf ybegin} and {\cf yend} that specify a range,
+reading all scanlines {\cf ybegin} $\le y <$ {\cf yend}.  For most image
+format readers, this is implemented as a loop over individual scanlines,
+but some image format readers may be able to read a contiguous block of
+scanlines more efficiently than reading each one individually.
 
-\subsubsection{Reading individual tiles}
+The full descriptions of the \readscanline and {\cf read_scanlines()}
+functions may be found in Section~\ref{sec:imageinput:reference}.
+
+\subsubsection{Reading tiles}
 
 Once you {\kw open()} an image file, you can find out if it is a tiled
 image (and the tile size) by examining the \ImageSpec's {\cf
@@ -576,8 +583,9 @@ the following steps are necessary:
 \begin{enumerate}
 \item Check the \ImageSpec's {\cf channelformats} vector.  If non-empty,
   the channels in the file do not all have the same format.
-\item When calling {\cf read_scanline}, {\cf read_tile}, or {\cf
-  read_image}, pass a format of {\cf TypeDesc::UNKNOWN} to indicate that
+\item When calling {\cf read_scanline}, {\cf read_scanlines},
+  {\cf read_tile}, {\cf read_tiles}, or {\cf read_image}, 
+  pass a format of {\cf TypeDesc::UNKNOWN} to indicate that
   you would like the raw data in native per-channel format of the file
   written to your {\cf data} buffer.
 \end{enumerate}
@@ -798,11 +806,22 @@ This simplified version of {\kw read_scanline()} reads to contiguous
 float pixels.
 \apiend
 
+\apiitem{bool {\ce read_scanlines} (int ybegin, int yend, int z,\\
+  \bigspc TypeDesc format, void *data,\\
+  \bigspc                      stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
+
+Read all the scanlines that include pixels $(*,y,z)$, where
+$\mathit{ybegin} \le y < \mathit{yend}$, into {\kw data}.  This is 
+essentially identical to \readscanline, except that can read more than
+one scanline at a time, which may be more efficient for certain image
+format readers.
+\apiend
+
 \apiitem{bool {\ce read_tile} (int x, int y, int z, TypeDesc format,
                             void *data, \\ \bigspc stride_t xstride=AutoStride,
                             stride_t ystride=AutoStride, \\ \bigspc stride_t
                             zstride=AutoStride)}
-Read the tile that includes pixels $(*,y,z)$ into {\kw data}
+Read the tile whose upper-left origin is $(x,y,z)$ into {\kw data}
 ($z=0$ for non-volume images),
 converting if necessary from the native data format of the file into the 
 {\kw format} specified.
@@ -819,14 +838,54 @@ The \ImageInput is expected to give the appearance of random access
 --- in other words, if it can't randomly seek to the given tile, it
 should transparently close, reopen, and sequentially read through prior
 tiles.  The base \ImageInput class has a default implementation
-that calls read_native_tile and then does appropriate format conversion,
+that calls {\cf read_native_tile()} and then does appropriate format conversion,
 so there's no reason for each format plugin to override this method.
+
+This function returns {\cf true} if it successfully reads the tile,
+otherwise {\cf false} for a failure.
+The call will fail if the image is not tiled, or if $(x,y,z)$ is not
+actually a tile boundary.
 \apiend
 
 
 \apiitem{bool {\ce read_tile} (int x, int y, int z, float *data)}
 Simple version of {\kw read_tile} that reads to contiguous float pixels.
 \apiend
+
+
+\apiitem{bool {\ce read_tiles} (int xbegin, int xend, int ybegin, int
+  yend, \\ \bigspc int zbegin, int zend, TypeDesc format,
+                            void *data, \\ \bigspc stride_t xstride=AutoStride,
+                            stride_t ystride=AutoStride, \\ \bigspc stride_t
+                            zstride=AutoStride)}
+Read the tiles bounded by {\kw xbegin} $\le x <$ {\kw xend},
+{\kw ybegin} $\le y <$ {\kw yend}, {\kw zbegin} $\le z <$ {\kw zend}
+into {\kw data}
+converting if necessary from the file's native data format into
+the specified buffer {\kw format}.
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data will be preserved 
+in its native format (including per-channel formats, if applicable).
+The stride values
+give the data spacing of adjacent pixels, scanlines, and volumetric
+slices, respectively (measured in bytes).  Strides set to the special
+value of {\kw AutoStride} imply contiguous data, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.nchannels * spec.pixel_size()} \\
+\spc {\kw ystride} $=$ {\kw xstride * spec.tile_width} \\
+\spc {\kw zstride} $=$ {\kw ystride * spec.tile_height} \\
+The \ImageInput is expected to give the appearance of random access
+--- in other words, if it can't randomly seek to the given tile, it
+should transparently close, reopen, and sequentially read through prior
+tiles.  The base \ImageInput class has a default implementation
+that calls {\cf read_native_tiles()} and then does appropriate format conversion,
+so there's no reason for each format plugin to override this method.
+
+This function returns {\cf true} if it successfully reads the tiles,
+otherwise {\cf false} for a failure.
+The call will fail if the image is not tiled, or if the pixel ranges
+do not fall along tile (or image) boundaries, or if it is not a valid
+tile range.
+\apiend
+
 
 \apiitem{bool {\ce read_image} (TypeDesc format, void *data, \\
                              \bigspc stride_t xstride=AutoStride,
@@ -849,8 +908,8 @@ data, i.e., \\
 \spc {\kw xstride} $=$ {\kw spec.nchannels * pixel_size()} \\
 \spc {\kw ystride} $=$ {\kw xstride * spec.width} \\
 \spc {\kw zstride} $=$ {\kw ystride * spec.height} \\
-The function will internally either call {\kw read_scanline} or 
-{\kw read_tile}, depending on whether the file is scanline- or
+The function will internally either call {\kw read_scanlines} or 
+{\kw read_tiles}, depending on whether the file is scanline- or
 tile-oriented.
 
 Because this may be an expensive operation, a progres callback may be passed.
@@ -873,6 +932,17 @@ of the disk file and always reads into contiguous memory (no strides).
 It's up to the user to have enough space allocated and know what to do
 with the data.  IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE
 THIS METHOD.
+\apiend
+
+\apiitem{bool {\ce read_native_scanlines} (int ybegin, int yend, int z, void *data)}
+The {\kw read_native_scanlines()} function is just like 
+{\cf read_native_scanline}, except that it reads
+a range of scanlines rather than only one scanline.  It is not necessary
+for format plugins to override this method --- a default implementation
+in the \ImageInput base class simply calls {\cf read_native_scanline}
+for each scanline in the range.  But format plugins may optionally
+override this method if there is a way to achieve higher performance by
+reading multiple scanlines at once.
 \apiend
 
 \apiitem{bool {\ce read_native_tile} (int x, int y, int z, void *data)}

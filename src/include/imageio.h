@@ -249,15 +249,25 @@ public:
     /// Adjust the stride values, if set to AutoStride, to be the right
     /// sizes for contiguous data with the given format, channels,
     /// width, height.
-    static void auto_stride (stride_t &xstride, stride_t &ystride, stride_t &zstride,
-                             TypeDesc format,
+    static void auto_stride (stride_t &xstride, stride_t &ystride,
+                             stride_t &zstride, stride_t channelsize,
                              int nchannels, int width, int height) {
         if (xstride == AutoStride)
-            xstride = nchannels * format.size();
+            xstride = nchannels * channelsize;
         if (ystride == AutoStride)
             ystride = xstride * width;
         if (zstride == AutoStride)
             zstride = ystride * height;
+    }
+
+    /// Adjust the stride values, if set to AutoStride, to be the right
+    /// sizes for contiguous data with the given format, channels,
+    /// width, height.
+    static void auto_stride (stride_t &xstride, stride_t &ystride,
+                             stride_t &zstride, TypeDesc format,
+                             int nchannels, int width, int height) {
+        auto_stride (xstride, ystride, zstride, format.size(),
+                     nchannels, width, height);
     }
 
     /// Adjust xstride, if set to AutoStride, to be the right size for
@@ -350,6 +360,20 @@ public:
     /// Get an ImageSpec class from XML string.
     ///
     void from_xml (const char *xml);
+
+    /// Helper function to verify that the given pixel range exactly covers
+    /// a set of tiles.  Also returns false if the spec indicates that the
+    /// image isn't tiled at all.
+    bool valid_tile_range (int xbegin, int xend, int ybegin, int yend,
+                           int zbegin, int zend) {
+        return (tile_width &&
+                ((xbegin-x) % tile_width)  == 0 &&
+                ((ybegin-y) % tile_height) == 0 &&
+                ((zbegin-z) % tile_depth)  == 0 &&
+                (((xend-x) % tile_width)  == 0 || (xend-x) == width) &&
+                (((yend-y) % tile_height) == 0 || (yend-y) == height) &&
+                (((zend-z) % tile_depth)  == 0 || (zend-z) == depth));
+    }
 };
 
 
@@ -395,6 +419,19 @@ public:
     /// current subimage/MIPlevel.  Note that the contents of the spec
     /// are invalid before open() or after close().
     const ImageSpec &spec (void) const { return m_spec; }
+
+    /// Given the name of a 'feature', return whether this ImageInput
+    /// supports input of images with the given properties.
+    /// Feature names that ImageIO plugins are expected to recognize
+    /// include:
+    ///    none currently supported, this is for later expansion
+    ///
+    /// Note that main advantage of this approach, versus having
+    /// separate individual supports_foo() methods, is that this allows
+    /// future expansion of the set of possible queries without changing
+    /// the API, adding new entry points, or breaking linkage
+    /// compatibility.
+    virtual bool supports (const std::string &feature) const { return false; }
 
     /// Close an image that we are totally done with.
     ///
@@ -461,12 +498,22 @@ public:
         return read_scanline (y, z, TypeDesc::FLOAT, data);
     }
 
-    /// Read the tile that includes pixels (*,y,z) into data, converting
-    /// if necessary from the native data format of the file into the
-    /// 'format' specified.  (z==0 for non-volume images.)  The stride
-    /// values give the data spacing of adjacent pixels, scanlines, and
-    /// volumetric slices (measured in bytes).  Strides set to
-    /// AutoStride imply 'contiguous' data, i.e.,
+    /// Read multiple scanlines that include pixels (*,y,z) for all
+    /// ybegin <= y < yend, into data.  This is analogous to
+    /// read_scanline except that it may be used to read more than one
+    /// scanline at a time (which, for some formats, may be able to
+    /// be done much more efficiently or in parallel).
+    virtual bool read_scanlines (int ybegin, int yend, int z,
+                                 TypeDesc format, void *data,
+                                 stride_t xstride=AutoStride,
+                                 stride_t ystride=AutoStride);
+
+    /// Read the tile whose upper-left origin is (x,y,z) into data,
+    /// converting if necessary from the native data format of the file
+    /// into the 'format' specified.  (z==0 for non-volume images.)  The
+    /// stride values give the data spacing of adjacent pixels,
+    /// scanlines, and volumetric slices (measured in bytes).  Strides
+    /// set to AutoStride imply 'contiguous' data, i.e.,
     ///     xstride == spec.nchannels*format.size()
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height
@@ -482,7 +529,8 @@ public:
     /// format plugin to override this method.
     virtual bool read_tile (int x, int y, int z, TypeDesc format,
                             void *data, stride_t xstride=AutoStride,
-                            stride_t ystride=AutoStride, stride_t zstride=AutoStride);
+                            stride_t ystride=AutoStride,
+                            stride_t zstride=AutoStride);
 
     ///
     /// Simple read_tile reads to contiguous float pixels.
@@ -490,6 +538,21 @@ public:
         return read_tile (x, y, z, TypeDesc::FLOAT, data,
                           AutoStride, AutoStride, AutoStride);
     }
+
+    /// Read the block of multiple tiles that include all pixels in
+    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  This is
+    /// analogous to read_tile except that it may be used to read more
+    /// than one tile at a time (which, for some formats, may be able to
+    /// be done much more efficiently or in parallel).
+    /// The begin/end pairs must correctly delineate tile boundaries,
+    /// with the exception that it may also be the end of the image data
+    /// if the image resolution is not a whole multiple of the tile size.
+    virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend, TypeDesc format,
+                             void *data, stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride);
+
 
     /// Read the entire image of spec.width x spec.height x spec.depth
     /// pixels into data (which must already be sized large enough for
@@ -521,10 +584,20 @@ public:
 
     /// read_native_scanline is just like read_scanline, except that it
     /// keeps the data in the native format of the disk file and always
-    /// read into contiguous memory (no strides).  It's up to the user to
+    /// reads into contiguous memory (no strides).  It's up to the user to
     /// have enough space allocated and know what to do with the data.
     /// IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD.
     virtual bool read_native_scanline (int y, int z, void *data) = 0;
+
+    /// read_native_scanlines is just like read_scanlines, except that
+    /// it keeps the data in the native format of the disk file and
+    /// always reads into contiguous memory (no strides).  It's up to
+    /// the user to have enough space allocated and know what to do with
+    /// the data.  If a format does not override this method, the
+    /// default implementation it will simply be a loop calling
+    /// read_native_scanline for each scanline.
+    virtual bool read_native_scanlines (int ybegin, int yend, int z,
+                                        void *data);
 
     /// read_native_tile is just like read_tile, except that it
     /// keeps the data in the native format of the disk file and always
@@ -533,6 +606,16 @@ public:
     /// IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD
     /// IF IT SUPPORTS TILED IMAGES.
     virtual bool read_native_tile (int x, int y, int z, void *data);
+
+    /// read_native_tiles is just like read_tile, except that it keeps
+    /// the data in the native format of the disk file and always reads
+    /// into contiguous memory (no strides).  It's up to the caller to
+    /// have enough space allocated and know what to do with the data.
+    /// If a format does not override this method, the default
+    /// implementation it will simply be a loop calling read_native_tile
+    /// for each tile in the block.
+    virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
+                                    int zbegin, int zend, void *data);
 
     /// General message passing between client and image input server
     ///
@@ -589,7 +672,7 @@ public:
     // Overrride these functions in your derived output class
     // to inform the client which formats are supported
 
-    /// Given the name of a 'feature', return whether this ImageIO
+    /// Given the name of a 'feature', return whether this ImageOutput
     /// supports output of images with the given properties.
     /// Feature names that ImageIO plugins are expected to recognize
     /// include:
@@ -614,14 +697,12 @@ public:
     ///    "channelformats" Does the plugin/format support per-channel
     ///                       data formats?
     ///
-    /// Note that the earlier incarnation of ImageIO that shipped with
-    /// NVIDIA's Gelato 2.x had individual supports_foo functions.  When
-    /// forking OpenImageIO, we replaced this with a single entry point
-    /// that accepts tokens.  The main advantage is that this allows
+    /// Note that main advantage of this approach, versus having
+    /// separate individual supports_foo() methods, is that this allows
     /// future expansion of the set of possible queries without changing
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
-    virtual bool supports (const std::string &feature) const = 0;
+    virtual bool supports (const std::string &feature) const { return false; }
 
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
 
@@ -662,6 +743,16 @@ public:
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride=AutoStride);
 
+    /// Write multiple scanlines that include pixels (*,y,z) for all
+    /// ybegin <= y < yend, from data.  This is analogous to
+    /// write_scanline except that it may be used to write more than one
+    /// scanline at a time (which, for some formats, may be able to be
+    /// done much more efficiently or in parallel).
+    virtual bool write_scanlines (int ybegin, int yend, int z,
+                                  TypeDesc format, const void *data,
+                                  stride_t xstride=AutoStride,
+                                  stride_t ystride=AutoStride);
+
     /// Write the tile with (x,y,z) as the upper left corner.  (z is
     /// ignored for 2D non-volume images.)  The three stride values give
     /// the distance (in bytes) between successive pixels, scanlines,
@@ -683,9 +774,23 @@ public:
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
 
-    /// Write pixels whose x coords range over xmin..xmax (inclusive), y
-    /// coords over ymin..ymax, and z coords over zmin...zmax.  The
-    /// three stride values give the distance (in bytes) between
+    /// Write the block of multiple tiles that include all pixels in
+    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  This is
+    /// analogous to write_tile except that it may be used to write more
+    /// than one tile at a time (which, for some formats, may be able to
+    /// be done much more efficiently or in parallel).
+    /// The begin/end pairs must correctly delineate tile boundaries,
+    /// with the exception that it may also be the end of the image data
+    /// if the image resolution is not a whole multiple of the tile size.
+    virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend, TypeDesc format,
+                              const void *data, stride_t xstride=AutoStride,
+                              stride_t ystride=AutoStride,
+                              stride_t zstride=AutoStride);
+
+    /// Write a rectangle of pixels given by the range
+    ///   [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    /// The three stride values give the distance (in bytes) between
     /// successive pixels, scanlines, and volumetric slices,
     /// respectively.  Strides set to AutoStride imply 'contiguous'
     /// data, i.e.,
@@ -693,15 +798,16 @@ public:
     ///     ystride == xstride * (xmax-xmin+1)
     ///     zstride == ystride * (ymax-ymin+1)
     /// The data are automatically converted from 'format' to the actual
-    /// output format (as specified to open()) by this method.  
-    /// If format is TypeDesc::UNKNOWN, then rather than converting from
-    /// format, it will just copy pixels in the file's native data layout
-    /// (including, possibly, per-channel data formats).
+    /// output format (as specified to open()) by this method.  If
+    /// format is TypeDesc::UNKNOWN, it will just copy pixels assuming
+    /// they are already in the file's native data layout (including,
+    /// possibly, per-channel data formats).
+    ///
     /// Return true for success, false for failure.  It is a failure to
     /// call write_rectangle for a format plugin that does not return
     /// true for supports("rectangles").
-    virtual bool write_rectangle (int xmin, int xmax, int ymin, int ymax,
-                                  int zmin, int zmax, TypeDesc format,
+    virtual bool write_rectangle (int xbegin, int xend, int ybegin, int yend,
+                                  int zbegin, int zend, TypeDesc format,
                                   const void *data, stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride,
                                   stride_t zstride=AutoStride);
@@ -786,8 +892,8 @@ protected:
                                 stride_t xstride, stride_t ystride,
                                 stride_t zstride,
                                 std::vector<unsigned char> &scratch);
-    const void *to_native_rectangle (int xmin, int xmax, int ymin, int ymax,
-                                     int zmin, int zmax,
+    const void *to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
+                                     int zbegin, int zend,
                                      TypeDesc format, const void *data,
                                      stride_t xstride, stride_t ystride,
                                      stride_t zstride,
@@ -868,6 +974,31 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
                               ColorTransfer *tfunc = NULL,
                               int alpha_channel = -1, int z_channel = -1);
 
+/// Helper routine for data conversion: Copy an image of nchannels x
+/// width x height x depth from src to dst.  The src and dst may have
+/// different data layouts, but must have the same data type.  Clever
+/// use of this function can change layouts or strides, copy selective
+/// channels, copy subimages, etc.  If you're lazy, it's ok to pass
+/// AutoStride for any of the stride values, and they will be
+/// auto-computed assuming contiguous data.  Return true if ok, false if
+/// it didn't know how to do the conversion.
+DLLPUBLIC bool copy_image (int nchannels, int width, int height, int depth,
+                           const void *src, stride_t pixelsize,
+                           stride_t src_xstride, stride_t src_ystride,
+                           stride_t src_zstride,
+                           void *dst, stride_t dst_xstride,
+                           stride_t dst_ystride, stride_t dst_zstride);
+
+/// Decode a raw Exif data block and save all the metadata in an
+/// ImageSpec.  Return true if all is ok, false if the exif block was
+/// somehow malformed.  The binary data pointed to by 'exif' should
+/// start with a TIFF directory header.
+bool decode_exif (const void *exif, int length, ImageSpec &spec);
+
+/// Construct an Exif data block from the ImageSpec, appending the Exif 
+/// data as a big blob to the char vector.
+void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
+
 /// Add metadata to spec based on raw IPTC (International Press
 /// Telecommunications Council) metadata in the form of an IIM
 /// (Information Interchange Model).  Return true if all is ok, false if
@@ -876,7 +1007,7 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
 /// metadata without having to duplicate functionality within each
 /// plugin.  Note that IIM is actually considered obsolete and is
 /// replaced by an XML scheme called XMP.
-DLLPUBLIC bool decode_iptc_iim (const void *exif, int length, ImageSpec &spec);
+DLLPUBLIC bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 
 /// Find all the IPTC-amenable metadata in spec and assemble it into an
 /// IIM data block in iptc.  This is a utility function to make it easy
@@ -903,11 +1034,6 @@ DLLPUBLIC std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 
 // to force correct linkage on some systems
 DLLPUBLIC void _ImageIO_force_link ();
-
-/// Deprecated, Gelato <= 3 name for what we now call ImageSpec.
-///
-typedef ImageSpec ImageIOFormatSpec;
-
 
 }
 OIIO_NAMESPACE_EXIT
