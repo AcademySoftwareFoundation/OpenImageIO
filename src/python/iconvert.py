@@ -81,7 +81,7 @@ def convert_files(in_file, out_file):
     # adjust spec
     outspec = inspec
     nocopy = adjust_spec(inp, inspec, outspec)
-    out.open(tempname, outspec, oiio.ImageOutput.OpenMode.Create)    
+    out.open(tempname, outspec, oiio.ImageOutputOpenMode.Create)    
 
     # convert
     if nocopy == False:
