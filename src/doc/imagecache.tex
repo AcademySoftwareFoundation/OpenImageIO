@@ -530,6 +530,7 @@ modification times have been changed since they were first opened.
 \subsection{Errors and statistics}
 \label{sec:imagecache:api:geterror}
 \label{sec:imagecache:api:getstats}
+\label{sec:imagecache:api:resetstats}
 
 \apiitem{std::string {\ce geterror} ()}
 If any other API routines return {\cf false}, indicating that an error
@@ -544,6 +545,14 @@ operations, suitable for saving to a file or outputting to the terminal.
 The {\cf level} indicates the amount of detail in the statistics,
 with higher numbers (up to a maximum of 5) yielding more and more
 esoteric information.
+\apiend
+
+\apiitem{void {\ce reset_stats} ()}
+Reset most statistics to be as they were with a fresh
+\TextureSystem.  Caveat emptor: this does not flush the cache
+itelf, so the resulting statistics from the next set of texture
+requests will not match the number of tile reads, etc., that
+would have resulted from a new \TextureSystem.
 \apiend
 
 

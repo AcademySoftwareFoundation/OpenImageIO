@@ -1529,6 +1529,29 @@ ImageCacheImpl::printstats () const
 
 
 
+void
+ImageCacheImpl::reset_stats ()
+{
+    {
+        lock_guard lock (m_perthread_info_mutex);
+        for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
+            m_all_perthread_info[i]->m_stats.init ();
+    }
+
+    {
+        ic_read_lock fileguard (m_filemutex);
+        for (FilenameMap::const_iterator f = m_files.begin(); f != m_files.end(); ++f) {
+            const ImageCacheFileRef &file (f->second);
+            file->m_timesopened = 0;
+            file->m_tilesread = 0;
+            file->m_bytesread = 0;
+            file->m_iotime = 0;
+        }
+    }
+}
+
+
+
 bool
 ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
                            const void *val)
