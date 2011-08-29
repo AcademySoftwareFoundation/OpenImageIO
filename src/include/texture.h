@@ -601,6 +601,13 @@ public:
     /// they were first opened.
     virtual void invalidate_all (bool force=false) = 0;
 
+    /// Reset most statistics to be as they were with a fresh
+    /// TextureSystem.  Caveat emptor: this does not flush the cache
+    /// itelf, so the resulting statistics from the next set of texture
+    /// requests will not match the number of tile reads, etc., that
+    /// would have resulted from a new TextureSystem.
+    virtual void reset_stats () = 0;
+
 private:
     // Make delete private and unimplemented in order to prevent apps
     // from calling it.  Instead, they should call TextureSystem::destroy().

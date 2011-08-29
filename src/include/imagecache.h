@@ -205,6 +205,13 @@ public:
     ///
     virtual std::string getstats (int level=1) const = 0;
 
+    /// Reset most statistics to be as they were with a fresh
+    /// ImageCache.  Caveat emptor: this does not flush the cache itelf,
+    /// so the resulting statistics from the next set of texture
+    /// requests will not match the number of tile reads, etc., that
+    /// would have resulted from a new ImageCache.
+    virtual void reset_stats () = 0;
+
     /// Invalidate any loaded tiles or open file handles associated with
     /// the filename, so that any subsequent queries will be forced to
     /// re-open the file or re-load any tiles (even those that were

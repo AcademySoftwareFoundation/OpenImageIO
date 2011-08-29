@@ -1265,6 +1265,7 @@ applied.
 \subsection{Miscellaneous -- Statistics, errors, flushing the cache}
 \label{sec:texturesys:api:geterror}
 \label{sec:texturesys:api:getstats}
+\label{sec:texturesys:api:resetstats}
 \label{sec:texturesys:api:invalidate}
 
 \apiitem{std::string {\ce geterror} ()}
@@ -1282,6 +1283,14 @@ with higher numbers (up to a maximum of 5) yielding more and more
 esoteric information.  If {\cf icstats} is true, the returned string
 will also contain all the statistics of the underlying \ImageCache,
 but if false will only contain texture-specific statistics.
+\apiend
+
+\apiitem{void {\ce reset_stats} ()}
+Reset most statistics to be as they were with a fresh
+\ImageCache.  Caveat emptor: this does not flush the cache
+itelf, so the resulting statistics from the next set of texture
+requests will not match the number of tile reads, etc., that
+would have resulted from a new \ImageCache.
 \apiend
 
 \apiitem{void {\ce invalidate} (ustring filename)}
