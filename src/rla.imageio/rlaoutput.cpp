@@ -519,8 +519,8 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
         return true;
     }
     // integer values - RLE
-    unsigned char first;
-    const unsigned char *d;
+    unsigned char first = 0;
+    const unsigned char *d = 0;
     int rawcount = 0, rlecount = 0;
     length = 0;
     // keeps track of the record buffer position
