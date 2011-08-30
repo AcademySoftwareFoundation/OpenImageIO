@@ -178,6 +178,19 @@ if the ``client'' application will attempt to access those other
 channels that will no longer exist.
 \apiend
 
+\apiitem{--opaque-detect}
+Detects images that have a designated alpha channel for which the alpha value
+for all pixels is 1.0 (fully opaque), and omits the alpha channel from
+the output texture.  So, for example, an RGBA input texture where A=1
+for all pixels will be output just as RGB.  The purpose is to save disk
+space, texture I/O bandwidth, and texturing time for those textures
+where alpha was present in the input, but clearly not necessary.
+
+Use with caution!  This is a great optimization only if your use of such
+textures will assume that missing alpha channels are equivalent to
+textures whose alpha is 1.0 everywhere.
+\apiend
+
 \apiitem{--prman}
 PRMan is will crash in strange ways if given textures that don't have
 its quirky set of tile sizes and other specific metadata.  If you want

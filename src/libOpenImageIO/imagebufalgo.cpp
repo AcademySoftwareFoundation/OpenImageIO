@@ -613,32 +613,25 @@ isConstantColor_ (const ImageBuf &src, float *color)
     if (nchannels == 0)
         return true;
     
-    bool firstpixel = true;
-    int c = 0;
-    
     // Iterate using the native typing (for speed).
     ImageBuf::ConstIterator<T,T> s (src);
-    std::vector<T> constval (src.spec().nchannels);
-    
+    if (! s.valid())
+        return true;
+
+    // Store the first pixel
+    std::vector<T> constval (nchannels);
+    for (int c = 0;  c < nchannels;  ++c)
+        constval[c] = s[c];
+
     // Loop over all pixels ...
     for ( ; s.valid ();  ++s) {
-        if(firstpixel) {
-            for (c = 0;  c < nchannels;  ++c) {
-                constval[c] = s[c];
-            }
-            if(color) {
-                src.getpixel (s.x(), s.y(), s.z(), color);
-            }
-            firstpixel = false;
-        } else {
-            for (c = 0;  c < nchannels;  ++c) {
-                if(constval[c]!=s[c]) {
-                    return false;
-                }
-            }
-        }
+        for (int c = 0;  c < nchannels;  ++c)
+            if (constval[c] != s[c])
+                return false;
     }
     
+    if (color)
+        src.getpixel (src.xbegin(), src.ybegin(), src.zbegin(), color);
     return true;
 }
 
@@ -664,6 +657,43 @@ ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
     }
 };
 
+
+
+template<typename T>
+static inline bool
+isConstantChannel_ (const ImageBuf &src, int channel, float val)
+{
+    if (channel < 0 || channel >= src.nchannels())
+        return false;  // that channel doesn't exist in the image
+
+    T v = convert_type<float,T> (val);
+    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s)
+        if (s[channel] != v)
+            return false;
+    return true;
+}
+
+
+bool
+ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val)
+{
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT : return isConstantChannel_<float> (src, channel, val); break;
+    case TypeDesc::UINT8 : return isConstantChannel_<unsigned char> (src, channel, val); break;
+    case TypeDesc::INT8  : return isConstantChannel_<char> (src, channel, val); break;
+    case TypeDesc::UINT16: return isConstantChannel_<unsigned short> (src, channel, val); break;
+    case TypeDesc::INT16 : return isConstantChannel_<short> (src, channel, val); break;
+    case TypeDesc::UINT  : return isConstantChannel_<unsigned int> (src, channel, val); break;
+    case TypeDesc::INT   : return isConstantChannel_<int> (src, channel, val); break;
+    case TypeDesc::UINT64: return isConstantChannel_<unsigned long long> (src, channel, val); break;
+    case TypeDesc::INT64 : return isConstantChannel_<long long> (src, channel, val); break;
+    case TypeDesc::HALF  : return isConstantChannel_<half> (src, channel, val); break;
+    case TypeDesc::DOUBLE: return isConstantChannel_<double> (src, channel, val); break;
+    default:
+        return false;
+    }
+};
+
 namespace
 {
 
@@ -674,15 +704,11 @@ isMonochrome_ (const ImageBuf &src)
     int nchannels = src.nchannels();
     if (nchannels < 2) return true;
     
-    int c = 0;
-    T constvalue;
-    ImageBuf::ConstIterator<T,T> s (src);
-    
     // Loop over all pixels ...
-    for ( ; s.valid();  ++s) {
-        constvalue = s[0];
-        for (c = 1;  c < nchannels;  ++c) {
-            if(s[c] != constvalue) {
+    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s) {
+        T constvalue = s[0];
+        for (int c = 1;  c < nchannels;  ++c) {
+            if (s[c] != constvalue) {
                 return false;
             }
         }
