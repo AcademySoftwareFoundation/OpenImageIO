@@ -562,7 +562,7 @@ static FilterDesc filter2d_list[] = {
     // name             dim width fixedwidth scalable separable
     { "box",             2,   1,    false,    true,     true  },
     { "triangle",        2,   2,    false,    true,     true  },
-    { "gaussian",        2,   2,    false,    true,     true  },
+    { "gaussian",        3,   2,    false,    true,     true  },
     { "catrom",          2,   4,    true,     false,    true  },
     { "blackman-harris", 2,   3,    false,    true,     true  },
     { "sinc",            2,   4,    false,    true,     true  },
