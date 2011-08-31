@@ -654,7 +654,6 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
             m_output_scanline->writePixels (nscanlines);
         }
         catch (const std::exception &e) {
-            std::cerr << "except " << e.what() << "\n";
             error ("Failed OpenEXR write: %s", e.what());
             return false;
         }

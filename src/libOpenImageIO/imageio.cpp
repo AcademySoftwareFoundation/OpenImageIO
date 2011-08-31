@@ -323,7 +323,8 @@ convert_types (TypeDesc src_type, const void *src,
                int alpha_channel, int z_channel)
 {
     // If no conversion is necessary, just memcpy
-    if (src_type == dst_type && tfunc == NULL) {
+    if ((src_type == dst_type || dst_type.basetype == TypeDesc::UNKNOWN)
+          && tfunc == NULL) {
         memcpy (dst, src, n * src_type.size());
         return true;
     }
@@ -378,7 +379,7 @@ convert_types (TypeDesc src_type, const void *src,
     case TypeDesc::INT64 :  convert_type (buf, (long long *)dst, n);  break;
     case TypeDesc::UINT64 : convert_type (buf, (unsigned long long *)dst, n);  break;
     case TypeDesc::DOUBLE : convert_type (buf, (double *)dst, n); break;
-    default:         return false;  // unknown format
+        default:            return false;  // unknown format
     }
 
     return true;

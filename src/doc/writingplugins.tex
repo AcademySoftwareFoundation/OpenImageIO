@@ -109,17 +109,24 @@ real-world example of writing a JPEG/JFIF plug-in.
   \begin{enumerate}
     \item[(f)] {\cf seek_subimage()}, only if your format supports
       reading multiple subimages within a single file.
-    \item[(g)] {\cf read_scanlines()}, only if your format has a speed
+    \item[(g)] {\cf read_native_scanlines()}, only if your format has a speed
       advantage when reading multiple scanlines at once.  If you do not
       supply this function, the default implementation will simply call
       {\cf read_scanline()} for each scanline in the range.
-    \item[(g)] {\cf read_native_tile()}, only if your format supports
+    \item[(h)] {\cf read_native_tile()}, only if your format supports
       reading tiled images.
-    \item[(g)] {\cf read_native_tiles()}, only if your format supports
+    \item[(i)] {\cf read_native_tiles()}, only if your format supports
       reading tiled images and there is a speed advantage when reading
       multiple tiles at once.  If you do not supply this function, the
       default implementation will simply call {\cf read_native_tile()} for each
       tile in the range.
+    \item[(j)] ``Channel subset'' versions of {\cf read_native_scanlines()}
+      and/or {\cf read_native_tiles()}, only if your format has a more
+      efficient means of reading a subset of channels.  If you do not
+      supply these methods, the default implementation will simply use
+      {\cf read_native_scanlines()} or {\cf read_native_tiles()} to read
+      into a temporary all-channel buffer and then copy the channel
+      subset into the user's buffer.
   \end{enumerate}
 
   Here is how the class definition looks for our JPEG example.  Note
