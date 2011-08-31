@@ -808,6 +808,9 @@ float pixels.
 
 \apiitem{bool {\ce read_scanlines} (int ybegin, int yend, int z,\\
   \bigspc TypeDesc format, void *data,\\
+  \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride) \\
+bool {\ce read_scanlines} (int ybegin, int yend, int z,\\
+  \bigspc int firstchan, int nchans, TypeDesc format, void *data,\\
   \bigspc                      stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
 
 Read all the scanlines that include pixels $(*,y,z)$, where
@@ -815,7 +818,11 @@ $\mathit{ybegin} \le y < \mathit{yend}$, into {\kw data}.  This is
 essentially identical to \readscanline, except that can read more than
 one scanline at a time, which may be more efficient for certain image
 format readers.
+
+The version that specifies a channel range will read only
+channels $[${\cf firstchan},{\cf firstchan+nchans}$)$ into the buffer.
 \apiend
+
 
 \apiitem{bool {\ce read_tile} (int x, int y, int z, TypeDesc format,
                             void *data, \\ \bigspc stride_t xstride=AutoStride,
@@ -857,7 +864,12 @@ Simple version of {\kw read_tile} that reads to contiguous float pixels.
   yend, \\ \bigspc int zbegin, int zend, TypeDesc format,
                             void *data, \\ \bigspc stride_t xstride=AutoStride,
                             stride_t ystride=AutoStride, \\ \bigspc stride_t
-                            zstride=AutoStride)}
+                            zstride=AutoStride) \\
+bool {\ce read_tiles} (int xbegin, int xend, int ybegin, int yend, \\
+ \bigspc int zbegin, int zend, int firstchan, int nchans,\\
+ \bigspc TypeDesc format, void *data, \\ 
+ \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
+ \bigspc stride_t zstride=AutoStride)}
 Read the tiles bounded by {\kw xbegin} $\le x <$ {\kw xend},
 {\kw ybegin} $\le y <$ {\kw yend}, {\kw zbegin} $\le z <$ {\kw zend}
 into {\kw data}
@@ -884,6 +896,9 @@ otherwise {\cf false} for a failure.
 The call will fail if the image is not tiled, or if the pixel ranges
 do not fall along tile (or image) boundaries, or if it is not a valid
 tile range.
+
+The version that specifies a channel range will read only
+channels $[${\cf firstchan},{\cf firstchan+nchans}$)$ into the buffer.
 \apiend
 
 
@@ -945,6 +960,16 @@ override this method if there is a way to achieve higher performance by
 reading multiple scanlines at once.
 \apiend
 
+\apiitem{bool {\ce read_native_scanlines} (int ybegin, int yend, int z,
+\\ \bigspc  int firstchan, int nchans, void *data)}
+A variant of {\cf read_native_scanlines} that reads only a subset of 
+channels \\ $[${\cf firstchan},{\cf firstchan+nchans}$)$.  
+If a format reader subclass does
+not override this method, the default implementation will simply
+call the all-channel version of {\cf read_native_scanlines} into a
+temporary buffer and copy the subset of channels.
+\apiend
+
 \apiitem{bool {\ce read_native_tile} (int x, int y, int z, void *data)}
 The {\kw read_native_tile()} function is just like {\kw read_tile()}, 
 except that it keeps the data in the native format of the disk file and
@@ -952,6 +977,26 @@ always read into contiguous memory (no strides).  It's up to the user to
 have enough space allocated and know what to do with the data.  IT IS
 EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD IF IT
 SUPPORTS TILED IMAGES.
+\apiend
+
+\apiitem{bool {\ce read_native_tiles} (int xbegin, int xend, int ybegin,
+  int yend, \\ \bigspc int zbegin, int zend, void *data)}
+The {\kw read_native_tiles()} function is just like {\kw read_tiles()}, 
+except that it keeps the data in the native format of the disk file and
+always read into contiguous memory (no strides).  
+If a format reader does not override this method, the default
+implementation it will simply be a loop calling read_native_tile
+for each tile in the block.
+\apiend
+
+\apiitem{bool {\ce read_native_tiles} (int xbegin, int xend, int ybegin,
+  int yend, \\ \bigspc int zbegin, int zend, int firstchan, int nchans, void *data)}
+A variant of {\kw read_native_tiles()} that reads only a subset of 
+channels \\ $[${\cf firstchan},{\cf firstchan+nchans}$)$.  
+If a format reader subclass does
+not override this method, the default implementation will simply
+call the all-channel version of {\cf read_native_tiles} into a
+temporary buffer and copy the subset of channels.
 \apiend
 
 \apiitem{int {\ce send_to_input} (const char *format, ...)}

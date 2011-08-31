@@ -326,12 +326,31 @@ Returns the number of bytes comprising each channel of each pixel (i.e.,
 the size of a single value of the type described by the {\cf format} field).
 \apiend
 
+\apiitem{size_t {\ce channel_bytes} (int chan, bool native=false) const}
+Returns the number of bytes needed for the single specified
+channel.  If native is {\cf false} (default), compute the size of one
+channel of {\cf this->format}, but if native is {\cf true}, compute the size
+of the channel in terms of the ``native'' data format of that
+channel as stored in the file.
+\apiend
+
 \apiitem{size_t {\ce pixel_bytes} (bool native=false) const}
 Returns the number of bytes comprising each pixel (i.e. the number of
 channels multiplied by the channel size).
 
 If {\cf native} is true, this will be the sum of all the per-channel
 formats in {\cf channelformats}.  If {\cf native} is false (the
+default), or if all channels use the same format, this will simply be
+the number of channels multiplied by the width (in bytes) of the {\cf format}.
+\apiend
+
+\apiitem{size_t {\ce pixel_bytes} (int firstchan, int nchans, bool native=false) const}
+Returns the number of bytes comprising the range of channels 
+  $[${\cf firstchan}, {\cf firstchan+nchans}$)$ for each pixel.
+
+If {\cf native} is true, this will be the sum of the per-channel
+formats in {\cf channelformats} (for the given range of channels).  
+If {\cf native} is false (the
 default), or if all channels use the same format, this will simply be
 the number of channels multiplied by the width (in bytes) of the {\cf format}.
 \apiend
