@@ -431,7 +431,7 @@ public:
     /// future expansion of the set of possible queries without changing
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
-    virtual bool supports (const std::string &feature) const { return false; }
+    virtual bool supports (const std::string & /*feature*/) const { return false; }
 
     /// Close an image that we are totally done with.
     ///
@@ -702,7 +702,7 @@ public:
     /// future expansion of the set of possible queries without changing
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
-    virtual bool supports (const std::string &feature) const { return false; }
+    virtual bool supports (const std::string & /*feature*/) const { return false; }
 
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
 
