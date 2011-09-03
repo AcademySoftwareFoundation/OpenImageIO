@@ -628,16 +628,7 @@ action_add (int argc, const char *argv[])
                 continue;
             }
             ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::ConstIterator<float> b (Bib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            for ( ; ! r.done(); ++r) {
-                a.pos (r.x(), r.y());
-                b.pos (r.x(), r.y());
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = a[c] + b[c];
-            }
+            ImageBufAlgo::add (Rib, Aib, Bib);
         }
     }
              
