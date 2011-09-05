@@ -348,7 +348,7 @@ OiioTool::set_attribute (ImageRec &img, const std::string &attribname,
     // Does it seem to be a float, or did the caller explicitly request
     // that it be set as a float?
     p = NULL;
-    float f = strtof (value.c_str(), &p);
+    float f = strtod (value.c_str(), &p);
     while (*p && isspace(*p))
         ++p;
     if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::FLOAT) {
