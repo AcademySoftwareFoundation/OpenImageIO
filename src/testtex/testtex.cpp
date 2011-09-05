@@ -77,6 +77,7 @@ static Imath::V3f offset (0,0,0);
 static bool nountiled = false;
 static bool nounmipped = false;
 static bool gray_to_rgb = false;
+static bool resetstats = false;
 void *dummyptr;
 
 
@@ -125,6 +126,7 @@ getargs (int argc, const char *argv[])
                   "--offset %f %f %f", &offset[0], &offset[1], &offset[2], "Offset texture coordinates",
                   "--scalest %f %f", &sscale, &tscale, "Scale texture lookups (s, t)",
                   "--graytorgb", &gray_to_rgb, "Convert gratscale textures to RGB",
+                  "--resetstats", &resetstats, "Print and reset statistics on each iteration",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -366,6 +368,11 @@ test_plain_texture ()
                     }
                 }
             }
+        }
+
+        if (resetstats) {
+            std::cout << texsys->getstats(2) << "\n";
+            texsys->reset_stats ();
         }
     }
     

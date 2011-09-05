@@ -299,6 +299,15 @@ TextureSystemImpl::printstats () const
 
 
 
+void
+TextureSystemImpl::reset_stats ()
+{
+    ASSERT (m_imagecache);
+    m_imagecache->reset_stats ();
+}
+
+
+
 bool
 TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
                               const void *val)
