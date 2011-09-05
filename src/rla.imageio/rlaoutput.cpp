@@ -240,8 +240,13 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     if (iequals(s, "Linear"))
         strcpy (m_rla.Gamma, "1.0");
     else if (iequals(s, "GammaCorrected"))
+#ifdef WIN32
+        _snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f",
+            m_spec.get_float_attribute ("oiio:Gamma", 1.f));
+#else
         snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f",
             m_spec.get_float_attribute ("oiio:Gamma", 1.f));
+#endif // WIN32
     
     const ImageIOParameter *p;
     // default NTSC chromaticities
@@ -299,9 +304,14 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     s = m_spec.get_string_attribute ("rla:Aspect", "");
     if (s.length ())
         strncpy (m_rla.Aspect, s.c_str (), sizeof (m_rla.Aspect));
-    
+
+#ifdef WIN32
+    _snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.10f",
+        m_spec.get_float_attribute ("PixelAspectRatio", 1.f));
+#else
     snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.10f",
         m_spec.get_float_attribute ("PixelAspectRatio", 1.f));
+#endif // WIN32
     strcpy (m_rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
         "rgb").c_str ());
     m_rla.FieldRendered = m_spec.get_int_attribute ("rla:FieldRendered", 0);
@@ -421,13 +431,24 @@ RLAOutput::set_chromaticity (const ImageIOParameter *p, char *dst,
     if (p && p->type().basetype == TypeDesc::FLOAT) {
         switch (p->type().aggregate) {
             case TypeDesc::VEC2:
+#ifdef WIN32
+                _snprintf (dst, field_size, "%.4f %.4f",
+                    ((float *)p->data ())[0], ((float *)p->data ())[1]);
+#else
                 snprintf (dst, field_size, "%.4f %.4f",
                     ((float *)p->data ())[0], ((float *)p->data ())[1]);
+#endif // WIN32
                 break;
             case TypeDesc::VEC3:
+#ifdef WIN32
+                _snprintf (dst, field_size, "%.4f %.4f %.4f",
+                    ((float *)p->data ())[0], ((float *)p->data ())[1],
+                        ((float *)p->data ())[2]);
+#else
                 snprintf (dst, field_size, "%.4f %.4f %.4f",
                     ((float *)p->data ())[0], ((float *)p->data ())[1],
                         ((float *)p->data ())[2]);
+#endif // WIN32
                 break;
         }
     } else
