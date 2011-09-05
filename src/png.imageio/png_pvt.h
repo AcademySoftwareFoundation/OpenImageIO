@@ -153,7 +153,7 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     double gamma;
     if (png_get_gAMA (sp, ip, &gamma)) {
-        spec.attribute ("oiio:Gamma", (float) gamma);
+        spec.attribute ("oiio:Gamma", (float) 1.0f/gamma);
         spec.attribute ("oiio:ColorSpace", (gamma == 1) ? "Linear" : "GammaCorrected");
     }
     int srgb_intent;

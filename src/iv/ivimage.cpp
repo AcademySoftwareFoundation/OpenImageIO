@@ -73,8 +73,10 @@ IvImage::init_spec (const std::string &filename, int subimage, int miplevel)
     if (subimage != m_current_subimage || miplevel != m_current_miplevel)
         m_image_valid = false;
     bool ok = ImageBuf::init_spec (filename, subimage, miplevel);
-    if (ok && m_file_dataformat.basetype == TypeDesc::UNKNOWN) {
-        m_file_dataformat = m_spec.format;
+    if (ok) {
+        m_gamma = m_spec.get_float_attribute ("oiio:Gamma", 1.0f);
+        if(m_file_dataformat.basetype == TypeDesc::UNKNOWN)
+            m_file_dataformat = m_spec.format;
     }
     return ok;
 }
