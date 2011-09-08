@@ -51,6 +51,32 @@ Subimage 0: 73 x 43, 1 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
+../../../libtiffpic/depth/flower-minisblack-06.tif :   73 x   43, 1 channel, uint8 tiff
+    SHA-1: AE809BFEF36E3E0047343655231200A916D83492
+    channel list: A
+    oiio:BitsPerSample: 6
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-minisblack-06.tif"
+    tiff:PhotometricInterpretation: 1
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 148
+Converting ../../../libtiffpic/depth/flower-minisblack-06.tif to flower-minisblack-06.tif
+Comparing "../../../libtiffpic/depth/flower-minisblack-06.tif" and "flower-minisblack-06.tif"
+Subimage 0: 73 x 43, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
 ../../../libtiffpic/depth/flower-minisblack-08.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: 1A909C8E70CC479D8A35BAA9BFEDDCBF4BF46FDC
     channel list: A
@@ -69,6 +95,84 @@ PASS
     tiff:RowsPerStrip: 112
 Converting ../../../libtiffpic/depth/flower-minisblack-08.tif to flower-minisblack-08.tif
 Comparing "../../../libtiffpic/depth/flower-minisblack-08.tif" and "flower-minisblack-08.tif"
+Subimage 0: 73 x 43, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-minisblack-10.tif :   73 x   43, 1 channel, uint16 tiff
+    SHA-1: E9240FEF19CC8EF5EBBF2EE4A10EDF25E51C67B4
+    channel list: A
+    oiio:BitsPerSample: 10
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-minisblack-10.tif"
+    tiff:PhotometricInterpretation: 1
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 89
+Converting ../../../libtiffpic/depth/flower-minisblack-10.tif to flower-minisblack-10.tif
+Comparing "../../../libtiffpic/depth/flower-minisblack-10.tif" and "flower-minisblack-10.tif"
+Subimage 0: 73 x 43, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-minisblack-12.tif :   73 x   43, 1 channel, uint16 tiff
+    SHA-1: AAE977957ED6AAC647967192A74E4AD55FF75811
+    channel list: A
+    oiio:BitsPerSample: 12
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-minisblack-12.tif"
+    tiff:PhotometricInterpretation: 1
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 74
+Converting ../../../libtiffpic/depth/flower-minisblack-12.tif to flower-minisblack-12.tif
+Comparing "../../../libtiffpic/depth/flower-minisblack-12.tif" and "flower-minisblack-12.tif"
+Subimage 0: 73 x 43, 1 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-minisblack-14.tif :   73 x   43, 1 channel, uint16 tiff
+    SHA-1: C1B9CA21C227EF11626EF0C58BD49769EEF48363
+    channel list: A
+    oiio:BitsPerSample: 14
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-minisblack-14.tif"
+    tiff:PhotometricInterpretation: 1
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 64
+Converting ../../../libtiffpic/depth/flower-minisblack-14.tif to flower-minisblack-14.tif
+Comparing "../../../libtiffpic/depth/flower-minisblack-14.tif" and "flower-minisblack-14.tif"
 Subimage 0: 73 x 43, 1 channel
   Mean error = 0
   RMS error = 0
@@ -181,6 +285,58 @@ Subimage 0: 73 x 43, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
+../../../libtiffpic/depth/flower-rgb-contig-02.tif :   73 x   43, 3 channel, uint8 tiff
+    SHA-1: D68490C8E508DEBECEE4DF3A9E5DA0523CD5C302
+    channel list: R, G, B
+    oiio:BitsPerSample: 2
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-contig-02.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 148
+Converting ../../../libtiffpic/depth/flower-rgb-contig-02.tif to flower-rgb-contig-02.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-contig-02.tif" and "flower-rgb-contig-02.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-contig-04.tif :   73 x   43, 3 channel, uint8 tiff
+    SHA-1: A5920C9D08B9E25C96D55FDF72F46F589AE7643D
+    channel list: R, G, B
+    oiio:BitsPerSample: 4
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-contig-04.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 74
+Converting ../../../libtiffpic/depth/flower-rgb-contig-04.tif to flower-rgb-contig-04.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-contig-04.tif" and "flower-rgb-contig-04.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
 ../../../libtiffpic/depth/flower-rgb-contig-08.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 35D01526DE5F904B7978B8EA16192A28389E276F
     channel list: R, G, B
@@ -207,6 +363,84 @@ Subimage 0: 73 x 43, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
+../../../libtiffpic/depth/flower-rgb-contig-10.tif :   73 x   43, 3 channel, uint16 tiff
+    SHA-1: 0C41DF861699CF536C581721EF17B01D1EFB5D86
+    channel list: R, G, B
+    oiio:BitsPerSample: 10
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-contig-10.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 29
+Converting ../../../libtiffpic/depth/flower-rgb-contig-10.tif to flower-rgb-contig-10.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-contig-10.tif" and "flower-rgb-contig-10.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-contig-12.tif :   73 x   43, 3 channel, uint16 tiff
+    SHA-1: E61083B50548C7D304A45735452FD05C1814677B
+    channel list: R, G, B
+    oiio:BitsPerSample: 12
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-contig-12.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 24
+Converting ../../../libtiffpic/depth/flower-rgb-contig-12.tif to flower-rgb-contig-12.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-contig-12.tif" and "flower-rgb-contig-12.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-contig-14.tif :   73 x   43, 3 channel, uint16 tiff
+    SHA-1: DD060DA62BB8F5903C5087796B2D05A682BE8ADA
+    channel list: R, G, B
+    oiio:BitsPerSample: 14
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-contig-14.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 21
+Converting ../../../libtiffpic/depth/flower-rgb-contig-14.tif to flower-rgb-contig-14.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-contig-14.tif" and "flower-rgb-contig-14.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
 ../../../libtiffpic/depth/flower-rgb-contig-16.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: 19F69706D5C52FC9510A3C20F9A43361FEF2AC9D
     channel list: R, G, B
@@ -225,6 +459,188 @@ PASS
     tiff:RowsPerStrip: 18
 Converting ../../../libtiffpic/depth/flower-rgb-contig-16.tif to flower-rgb-contig-16.tif
 Comparing "../../../libtiffpic/depth/flower-rgb-contig-16.tif" and "flower-rgb-contig-16.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-planar-02.tif :   73 x   43, 3 channel, uint8 tiff
+    SHA-1: D68490C8E508DEBECEE4DF3A9E5DA0523CD5C302
+    channel list: R, G, B
+    oiio:BitsPerSample: 2
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-planar-02.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    planarconfig: "separate"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 431
+Converting ../../../libtiffpic/depth/flower-rgb-planar-02.tif to flower-rgb-planar-02.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-planar-02.tif" and "flower-rgb-planar-02.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-planar-04.tif :   73 x   43, 3 channel, uint8 tiff
+    SHA-1: A5920C9D08B9E25C96D55FDF72F46F589AE7643D
+    channel list: R, G, B
+    oiio:BitsPerSample: 4
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-planar-04.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    planarconfig: "separate"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 221
+Converting ../../../libtiffpic/depth/flower-rgb-planar-04.tif to flower-rgb-planar-04.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-planar-04.tif" and "flower-rgb-planar-04.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-planar-08.tif :   73 x   43, 3 channel, uint8 tiff
+    SHA-1: 35D01526DE5F904B7978B8EA16192A28389E276F
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-planar-08.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    planarconfig: "separate"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 112
+Converting ../../../libtiffpic/depth/flower-rgb-planar-08.tif to flower-rgb-planar-08.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-planar-08.tif" and "flower-rgb-planar-08.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-planar-10.tif :   73 x   43, 3 channel, uint16 tiff
+    SHA-1: 0C41DF861699CF536C581721EF17B01D1EFB5D86
+    channel list: R, G, B
+    oiio:BitsPerSample: 10
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-planar-10.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    planarconfig: "separate"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 89
+Converting ../../../libtiffpic/depth/flower-rgb-planar-10.tif to flower-rgb-planar-10.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-planar-10.tif" and "flower-rgb-planar-10.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-planar-12.tif :   73 x   43, 3 channel, uint16 tiff
+    SHA-1: E61083B50548C7D304A45735452FD05C1814677B
+    channel list: R, G, B
+    oiio:BitsPerSample: 12
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-planar-12.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    planarconfig: "separate"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 74
+Converting ../../../libtiffpic/depth/flower-rgb-planar-12.tif to flower-rgb-planar-12.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-planar-12.tif" and "flower-rgb-planar-12.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-planar-14.tif :   73 x   43, 3 channel, uint16 tiff
+    SHA-1: DD060DA62BB8F5903C5087796B2D05A682BE8ADA
+    channel list: R, G, B
+    oiio:BitsPerSample: 14
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-planar-14.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    planarconfig: "separate"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 64
+Converting ../../../libtiffpic/depth/flower-rgb-planar-14.tif to flower-rgb-planar-14.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-planar-14.tif" and "flower-rgb-planar-14.tif"
+Subimage 0: 73 x 43, 3 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+../../../libtiffpic/depth/flower-rgb-planar-16.tif :   73 x   43, 3 channel, uint16 tiff
+    SHA-1: 19F69706D5C52FC9510A3C20F9A43361FEF2AC9D
+    channel list: R, G, B
+    oiio:BitsPerSample: 16
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.2 unreleased Q32 http://www.GraphicsMagick.org/"
+    DocumentName: "flower-rgb-planar-16.tif"
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    planarconfig: "separate"
+    tiff:Compression: 1
+    compression: "none"
+    tiff:RowsPerStrip: 56
+Converting ../../../libtiffpic/depth/flower-rgb-planar-16.tif to flower-rgb-planar-16.tif
+Comparing "../../../libtiffpic/depth/flower-rgb-planar-16.tif" and "flower-rgb-planar-16.tif"
 Subimage 0: 73 x 43, 3 channel
   Mean error = 0
   RMS error = 0

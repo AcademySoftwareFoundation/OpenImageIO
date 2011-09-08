@@ -106,6 +106,7 @@ private:
     bool m_keep_unassociated_alpha;  ///< If the image is unassociated, please
                                      ///  try to keep it that way!
     bool m_convert_alpha;            ///< Do we need to associate alpha?
+    bool m_separate;                 ///< Separate planarconfig?
     unsigned short m_planarconfig;   ///< Planar config of the file
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
     unsigned short m_photometric;    ///< Of the *file*, not the client's view
@@ -118,6 +119,7 @@ private:
         m_emulate_mipmap = false;
         m_keep_unassociated_alpha = false;
         m_convert_alpha = false;
+        m_separate = false;
         m_colormap.clear();
     }
 
@@ -139,9 +141,10 @@ private:
     void palette_to_rgb (int n, const unsigned char *palettepels,
                          unsigned char *rgb);
 
-    // Convert nbits (1, 2, 4) bits to 8 bit
-    void nbit_to_8bit (int n, const unsigned char *bits,
-                       unsigned char *bytes, int nbits);
+    // Convert in-bits to out-bits (outbits must be 8, 16, 32, and
+    // inbits < outbits)
+    void bit_convert (int n, const unsigned char *in, int inbits,
+                      void *out, int outbits);
 
     void invert_photometric (int n, void *data);
 
@@ -495,7 +498,8 @@ TIFFInput::readspec ()
     case 1:
     case 2:
     case 4:
-        // Make 1, 2, 4 bpp look like byte images
+    case 6:
+        // Make 1, 2, 4, 6 bpp look like byte images
     case 8:
         if (sampleformat == SAMPLEFORMAT_UINT)
             m_spec.set_format (TypeDesc::UINT8);
@@ -503,6 +507,10 @@ TIFFInput::readspec ()
             m_spec.set_format (TypeDesc::INT8);
         else m_spec.set_format (TypeDesc::UINT8);  // punt
         break;
+    case 10:
+    case 12:
+    case 14:
+        // Make 10, 12, 14 bpp look like 16 bit images
     case 16:
         if (sampleformat == SAMPLEFORMAT_UINT)
             m_spec.set_format (TypeDesc::UINT16);
@@ -563,6 +571,9 @@ TIFFInput::readspec ()
     }
 
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
+    m_separate = (m_planarconfig == PLANARCONFIG_SEPARATE &&
+                  m_spec.nchannels > 1 &&
+                  m_photometric != PHOTOMETRIC_PALETTE);
     m_spec.attribute ("tiff:PlanarConfiguration", (int)m_planarconfig);
     if (m_planarconfig == PLANARCONFIG_SEPARATE)
         m_spec.attribute ("planarconfig", "separate");
@@ -618,7 +629,11 @@ TIFFInput::readspec ()
     // FIXME -- should subfiletype be "conventionized" and used for all
     // plugins uniformly? 
 
-    // FIXME: do we care about fillorder for 1-bit and 4-bit images?
+    // Do we care about fillorder?  No, the TIFF spec says, "We
+    // recommend that FillOrder=2 (lsb-to-msb) be used only in
+    // special-purpose applications".  So OIIO will assume msb-to-lsb
+    // convention until somebody finds a TIFF file in the wild that
+    // breaks this assumption.
 
     // Special names for shadow maps
     char *s = NULL;
@@ -792,16 +807,49 @@ TIFFInput::palette_to_rgb (int n, const unsigned char *palettepels,
 
 
 void
-TIFFInput::nbit_to_8bit (int n, const unsigned char *bits,
-                         unsigned char *bytes, int nbits)
+TIFFInput::bit_convert (int n, const unsigned char *in, int inbits,
+                        void *out, int outbits)
 {
-    int vals_per_byte = 8 / nbits;
-    int highest = (1 << nbits) - 1;
+    ASSERT (inbits >= 1 && inbits < 31);  // surely bugs if not
+    int highest = (1 << inbits) - 1;
+    int B = 0, b = 0;
+    // Invariant:
+    // So far, we have used in[0..B-1] and the high b bits of in[B].
     for (int i = 0;  i < n;  ++i) {
-        int b = bits[i/vals_per_byte];
-        b >>= (nbits * (vals_per_byte - 1 - (i % vals_per_byte)));
-        b &= highest;
-        bytes[i] = (unsigned char) ((b * 255) / highest);
+        long long val = 0;
+        int valbits = 0;  // bits so far we've accumulated in val
+        while (valbits < inbits) {
+            // Invariant: we have already accumulated valbits of the next
+            // needed value (of a total of inbits), living in the valbits
+            // low bits of val.
+            int out_left = inbits - valbits;  // How much more we still need
+            int in_left = 8 - b; // Bits still available in in[B].
+            if (in_left <= out_left) {
+                // Eat the rest of this byte:
+                //   |---------|--------|
+                //        b      in_left
+                val <<= in_left;
+                val |= in[B] & ~(0xffffffff << in_left);
+                ++B;
+                b = 0;
+                valbits += in_left;
+            } else {
+                // Eat just the bits we need:
+                //   |--|---------|-----|
+                //     b  out_left  extra
+                val <<= out_left;
+                int extra = 8 - b - out_left;
+                val |= (in[B] >> extra) & ~(0xffffffff << out_left);
+                b += out_left;
+                valbits = inbits;
+            }
+        }
+        if (outbits == 8)
+            ((unsigned char *)out)[i] = (unsigned char) ((val * 0xff) / highest);
+        else if (outbits == 16)
+            ((unsigned short *)out)[i] = (unsigned short) ((val * 0xffff) / highest);
+        else
+            ((unsigned int *)out)[i] = (unsigned int) ((val * 0xffffffff) / highest);
     }
 }
 
@@ -893,44 +941,57 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
     }
     m_next_scanline = y+1;
 
+    int nvals = m_spec.width * m_spec.nchannels;
+    m_scratch.resize (m_spec.scanline_bytes());
+    bool no_bit_convert = (m_bitspersample == 8 || m_bitspersample == 16 ||
+                           m_bitspersample == 32);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
-        m_scratch.resize (m_spec.width);
         if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
             error ("%s", lasterr.c_str());
             return false;
         }
         palette_to_rgb (m_spec.width, &m_scratch[0], (unsigned char *)data);
-    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
-        // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        m_scratch.resize (m_spec.scanline_bytes());
+    } else {
+        // Not palette
         int plane_bytes = m_spec.width * m_spec.format.size();
-        for (int c = 0;  c < m_spec.nchannels;  ++c)
-            if (TIFFReadScanline (m_tif, &m_scratch[plane_bytes*c], y, c) < 0) {
+        int planes = m_separate ? m_spec.nchannels : 1;
+        std::vector<unsigned char> scratch2 (m_separate ? m_spec.scanline_bytes() : 0);
+        // Where to read?  Directly into user data if no channel shuffling
+        // or bit shifting is needed, otherwise into scratch space.
+        unsigned char *readbuf = (no_bit_convert && !m_separate) ? (unsigned char *)data : &m_scratch[0];
+        // Perform the reads.  Note that for contig, planes==1, so it will
+        // only do one TIFFReadScanline.
+        for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
+            if (TIFFReadScanline (m_tif, &readbuf[plane_bytes*c], y, c) < 0) {
                 error ("%s", lasterr.c_str());
                 return false;
             }
-        separate_to_contig (m_spec.width, &m_scratch[0], (unsigned char *)data);
-    } else if (m_bitspersample == 1 || m_bitspersample == 2 || 
-               m_bitspersample == 4) {
-        // <8 bit images
-        m_scratch.resize (m_spec.width);
-        if (TIFFReadScanline (m_tif, &m_scratch[0], y) < 0) {
-            error ("%s", lasterr.c_str());
-            return false;
+        if (m_bitspersample < 8) {
+            // m_scratch now holds nvals n-bit values, contig or separate
+            std::swap (m_scratch, scratch2);
+            for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
+                bit_convert (m_separate ? m_spec.width : nvals,
+                             &scratch2[plane_bytes*c], m_bitspersample,
+                             m_separate ? &m_scratch[plane_bytes*c] : (unsigned char *)data+plane_bytes*c, 8);
+        } else if (m_bitspersample > 8 && m_bitspersample < 16) {
+            // m_scratch now holds nvals n-bit values, contig or separate
+            std::swap (m_scratch, scratch2);
+            for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
+                bit_convert (m_separate ? m_spec.width : nvals,
+                             &scratch2[plane_bytes*c], m_bitspersample,
+                             m_separate ? &m_scratch[plane_bytes*c] : (unsigned char *)data+plane_bytes*c, 16);
         }
-        nbit_to_8bit (m_spec.width, &m_scratch[0], (unsigned char *)data,
-                      m_bitspersample);
-    } else {
-        // Contiguous, >= 8 bit per sample -- the "usual" case
-        if (TIFFReadScanline (m_tif, data, y) < 0) {
-            error ("%s", lasterr.c_str());
-            return false;
+        if (m_separate) {
+            // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB).
+            // We know the data is in m_scratch at this point, so 
+            // contiguize it into the user data area.
+            separate_to_contig (m_spec.width, &m_scratch[0], (unsigned char *)data);
         }
     }
 
     if (m_photometric == PHOTOMETRIC_MINISWHITE)
-        invert_photometric (m_spec.width * m_spec.nchannels, data);
+        invert_photometric (nvals, data);
 
     // If alpha is unassociated and we aren't requested to keep it that
     // way, multiply the colors by alpha per the usual OIIO conventions
@@ -948,34 +1009,53 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
 {
     x -= m_spec.x;
     y -= m_spec.y;
-    int tile_pixels = m_spec.tile_width * m_spec.tile_height 
-                      * std::max (m_spec.tile_depth, 1);
+    imagesize_t tile_pixels = m_spec.tile_pixels();
+    imagesize_t nvals = tile_pixels * m_spec.nchannels;
+    m_scratch.resize (m_spec.tile_bytes());
+    bool no_bit_convert = (m_bitspersample == 8 || m_bitspersample == 16 ||
+                           m_bitspersample == 32);
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
-        m_scratch.resize (tile_pixels);
         if (TIFFReadTile (m_tif, &m_scratch[0], x, y, z, 0) < 0) {
             error ("%s", lasterr.c_str());
             return false;
         }
         palette_to_rgb (tile_pixels, &m_scratch[0], (unsigned char *)data);
-    } else if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
-        // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB)
-        int plane_bytes = tile_pixels * m_spec.format.size();
-        DASSERT ((size_t)plane_bytes*m_spec.nchannels == m_spec.tile_bytes());
-        m_scratch.resize (m_spec.tile_bytes());
-        for (int c = 0;  c < m_spec.nchannels;  ++c)
-            if (TIFFReadTile (m_tif, &m_scratch[plane_bytes*c], x, y, z, c) < 0) {
-                error ("%s (errno '%s')", lasterr.c_str(),
-                       errno ? strerror(errno) : "unknown");
+    } else {
+        // Not palette
+        imagesize_t plane_bytes = m_spec.tile_pixels() * m_spec.format.size();
+        int planes = m_separate ? m_spec.nchannels : 1;
+        std::vector<unsigned char> scratch2 (m_separate ? m_spec.tile_bytes() : 0);
+        // Where to read?  Directly into user data if no channel shuffling
+        // or bit shifting is needed, otherwise into scratch space.
+        unsigned char *readbuf = (no_bit_convert && !m_separate) ? (unsigned char *)data : &m_scratch[0];
+        // Perform the reads.  Note that for contig, planes==1, so it will
+        // only do one TIFFReadTile.
+        for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
+            if (TIFFReadTile (m_tif, &readbuf[plane_bytes*c], x, y, z, c) < 0) {
+                error ("%s", lasterr.c_str());
                 return false;
             }
-        separate_to_contig (tile_pixels, &m_scratch[0], (unsigned char *)data);
-    } else {
-        // Contiguous, >= 8 bit per sample -- the "usual" case
-        if (TIFFReadTile (m_tif, data, x, y, z, 0) < 0) {
-            error ("%s (errno '%s')", lasterr.c_str(),
-                   errno ? strerror(errno) : "unknown");
-            return false;
+        if (m_bitspersample < 8) {
+            // m_scratch now holds nvals n-bit values, contig or separate
+            std::swap (m_scratch, scratch2);
+            for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
+                bit_convert (m_separate ? tile_pixels : nvals,
+                             &scratch2[plane_bytes*c], m_bitspersample,
+                             m_separate ? &m_scratch[plane_bytes*c] : (unsigned char *)data+plane_bytes*c, 8);
+        } else if (m_bitspersample > 8 && m_bitspersample < 16) {
+            // m_scratch now holds nvals n-bit values, contig or separate
+            std::swap (m_scratch, scratch2);
+            for (int c = 0;  c < planes;  ++c)  /* planes==1 for contig */
+                bit_convert (m_separate ? tile_pixels : nvals,
+                             &scratch2[plane_bytes*c], m_bitspersample,
+                             m_separate ? &m_scratch[plane_bytes*c] : (unsigned char *)data+plane_bytes*c, 16);
+        }
+        if (m_separate) {
+            // Convert from separate (RRRGGGBBB) to contiguous (RGBRGBRGB).
+            // We know the data is in m_scratch at this point, so 
+            // contiguize it into the user data area.
+            separate_to_contig (tile_pixels, &m_scratch[0], (unsigned char *)data);
         }
     }
 
