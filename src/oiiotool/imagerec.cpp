@@ -109,7 +109,7 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
 
 
 
-ImageRec::ImageRec (const std::string &name, ImageSpec &spec,
+ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
                     ImageCache *imagecache)
     : m_name(name), m_elaborated(true),
       m_metadata_modified(false), m_pixels_modified(true),

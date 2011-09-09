@@ -152,7 +152,7 @@ public:
               bool copy_pixels = true);
 
     // Initialize an ImageRec with the given spec.
-    ImageRec (const std::string &name, ImageSpec &spec,
+    ImageRec (const std::string &name, const ImageSpec &spec,
               ImageCache *imagecache);
 
     // Number of subimages

@@ -628,16 +628,7 @@ action_add (int argc, const char *argv[])
                 continue;
             }
             ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBuf::ConstIterator<float> a (Aib);
-            ImageBuf::ConstIterator<float> b (Bib);
-            ImageBuf::Iterator<float> r (Rib);
-            int nchans = Rib.nchannels();
-            for ( ; ! r.done(); ++r) {
-                a.pos (r.x(), r.y());
-                b.pos (r.x(), r.y());
-                for (int c = 0;  c < nchans;  ++c)
-                    r[c] = a[c] + b[c];
-            }
+            ImageBufAlgo::add (Rib, Aib, Bib);
         }
     }
              
@@ -881,7 +872,7 @@ adjust_spec_resolution (ImageSpec &spec, const char *geom)
         x = (int)(spec.width * scale + 0.5f);
         y = (int)(spec.height * scale + 0.5f);
     } else {
-        std::cout << "Unrecognized resize amount '" << geom << "'\n";
+        std::cout << "Unrecognized size '" << geom << "'\n";
         return;
     }
     if (spec.width != x) {
@@ -902,6 +893,27 @@ adjust_spec_resolution (ImageSpec &spec, const char *geom)
         spec.full_y = 0;
         spec.full_height = y;
     }
+}
+
+
+
+static int
+action_create (int argc, const char *argv[])
+{
+    ASSERT (argc == 3);
+    int nchans = atoi (argv[2]);
+    if (nchans < 1 || nchans > 1024) {
+        std::cout << "Invalid number of channels: " << nchans << "\n";
+        nchans = 3;
+    }
+    ImageSpec spec (64, 64, nchans);
+    adjust_spec_resolution (spec, argv[1]);
+    ImageRecRef img (new ImageRec ("new", spec, ot.imagecache));
+    ImageBufAlgo::zero ((*img)());
+    if (ot.curimg)
+        ot.image_stack.push_back (ot.curimg);
+    ot.curimg = img;
+    return 0;
 }
 
 
@@ -1039,6 +1051,8 @@ getargs (int argc, char *argv[])
                 "--warnpercent %g", &ot.diff_warnpercent, "",
                 "--hardwarn %g", &ot.diff_hardwarn, "",
                 "<SEPARATOR>", "Actions:",
+                "--create %@ %s %d", action_create, &dummystr, &dummyint,
+                        "Create a blank image (args: geom, channels)",
                 "--unmip %@", action_unmip, &dummybool, "Discard all but the top level of a MIPmap",
                 "--subimage %@ %d", action_select_subimage, &dummyint, "Select just one subimage",
                 "--diff %@", action_diff, &dummybool, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
