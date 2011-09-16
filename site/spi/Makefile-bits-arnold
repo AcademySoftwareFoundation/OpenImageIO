@@ -29,11 +29,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
 	  -DILMBASE_CUSTOM=1 \
 	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
 	  -DOPENEXR_CUSTOM=1 \
-	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf" \
-	  -DHDF5_CUSTOM=1 \
-	  -DHDF5_INCLUDE_DIRS=/usr/include \
-	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-	  -DFIELD3D_HOME="/shots/spi/home/lib/SpComp2/Field3D/spinux1-gcc44m64/v116"
+	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
 endif  # endif spinux1_x86_64
 
 
