@@ -359,13 +359,8 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     std::string tempname = out_filename;
     if (tempname == in_filename) {
 #if (BOOST_VERSION >= 103700)
-#ifdef WIN32
         tempname = out_filename + ".tmp" 
                     + boost::filesystem::path(out_filename).extension().string();
-#else
-        tempname = out_filename + ".tmp" 
-                    + boost::filesystem::path(out_filename).extension();
-#endif // WIN32
 #else
         tempname = out_filename + ".tmp" 
                     + boost::filesystem::extension(out_filename);
