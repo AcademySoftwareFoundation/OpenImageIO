@@ -1,0 +1,1170 @@
+hi
+../../../oiio-images/psd_123.psd :  257 x  126, 4 channel, uint8 psd
+    4 subimages: 257x126 33x98 63x100 61x102 
+ subimage  0:  257 x  126, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    thumbnail_width: 160
+    thumbnail_height: 78
+    thumbnail_nchannels: 3
+    thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:14:43-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-22T22:14:43-04:00"
+    xmp:ModifyDate: "2011-08-22T22:14:43-04:00"
+    photoshop:TextLayers: "
+            <rdf:Bag>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>1</photoshop:LayerName>
+                  <photoshop:LayerText>1</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>2</photoshop:LayerName>
+                  <photoshop:LayerText>2</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>3</photoshop:LayerName>
+                  <photoshop:LayerText>3</photoshop:LayerText>
+               </rdf:li>
+            </rdf:Bag>
+         "
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    xmpMM:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:14:43-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
+ subimage  1:   33 x   98, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:14:43-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-22T22:14:43-04:00"
+    xmp:ModifyDate: "2011-08-22T22:14:43-04:00"
+    photoshop:TextLayers: "
+            <rdf:Bag>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>1</photoshop:LayerName>
+                  <photoshop:LayerText>1</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>2</photoshop:LayerName>
+                  <photoshop:LayerText>2</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>3</photoshop:LayerName>
+                  <photoshop:LayerText>3</photoshop:LayerText>
+               </rdf:li>
+            </rdf:Bag>
+         "
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    xmpMM:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:14:43-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
+ subimage  2:   63 x  100, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:14:43-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-22T22:14:43-04:00"
+    xmp:ModifyDate: "2011-08-22T22:14:43-04:00"
+    photoshop:TextLayers: "
+            <rdf:Bag>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>1</photoshop:LayerName>
+                  <photoshop:LayerText>1</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>2</photoshop:LayerName>
+                  <photoshop:LayerText>2</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>3</photoshop:LayerName>
+                  <photoshop:LayerText>3</photoshop:LayerText>
+               </rdf:li>
+            </rdf:Bag>
+         "
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    xmpMM:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:14:43-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
+ subimage  3:   61 x  102, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:14:43-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-22T22:14:43-04:00"
+    xmp:ModifyDate: "2011-08-22T22:14:43-04:00"
+    photoshop:TextLayers: "
+            <rdf:Bag>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>1</photoshop:LayerName>
+                  <photoshop:LayerText>1</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>2</photoshop:LayerName>
+                  <photoshop:LayerText>2</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>3</photoshop:LayerName>
+                  <photoshop:LayerText>3</photoshop:LayerText>
+               </rdf:li>
+            </rdf:Bag>
+         "
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    xmpMM:InstanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:14:43-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
+../../../oiio-images/psd_123_nomaxcompat.psd :  257 x  126, 3 channel, uint8 psd
+    4 subimages: 257x126 33x98 63x100 61x102 
+ subimage  0:  257 x  126, 3 channel, uint8 psd
+    channel list: R, G, B
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    thumbnail_width: 160
+    thumbnail_height: 78
+    thumbnail_nchannels: 3
+    thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:14:43-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-29T12:10:28-04:00"
+    xmp:ModifyDate: "2011-08-29T12:10:28-04:00"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:TextLayers: "
+            <rdf:Bag>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>1</photoshop:LayerName>
+                  <photoshop:LayerText>1</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>2</photoshop:LayerName>
+                  <photoshop:LayerText>2</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>3</photoshop:LayerName>
+                  <photoshop:LayerText>3</photoshop:LayerText>
+               </rdf:li>
+            </rdf:Bag>
+         "
+    xmpMM:InstanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    xmpMM:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:14:43-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9</stEvt:instanceID>
+                  <stEvt:when>2011-08-29T12:10:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9</stEvt:instanceID>
+                  <stEvt:when>2011-08-29T12:10:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
+ subimage  1:   33 x   98, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:14:43-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-29T12:10:28-04:00"
+    xmp:ModifyDate: "2011-08-29T12:10:28-04:00"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:TextLayers: "
+            <rdf:Bag>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>1</photoshop:LayerName>
+                  <photoshop:LayerText>1</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>2</photoshop:LayerName>
+                  <photoshop:LayerText>2</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>3</photoshop:LayerName>
+                  <photoshop:LayerText>3</photoshop:LayerText>
+               </rdf:li>
+            </rdf:Bag>
+         "
+    xmpMM:InstanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    xmpMM:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:14:43-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9</stEvt:instanceID>
+                  <stEvt:when>2011-08-29T12:10:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9</stEvt:instanceID>
+                  <stEvt:when>2011-08-29T12:10:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
+ subimage  2:   63 x  100, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:14:43-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-29T12:10:28-04:00"
+    xmp:ModifyDate: "2011-08-29T12:10:28-04:00"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:TextLayers: "
+            <rdf:Bag>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>1</photoshop:LayerName>
+                  <photoshop:LayerText>1</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>2</photoshop:LayerName>
+                  <photoshop:LayerText>2</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>3</photoshop:LayerName>
+                  <photoshop:LayerText>3</photoshop:LayerText>
+               </rdf:li>
+            </rdf:Bag>
+         "
+    xmpMM:InstanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    xmpMM:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:14:43-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9</stEvt:instanceID>
+                  <stEvt:when>2011-08-29T12:10:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9</stEvt:instanceID>
+                  <stEvt:when>2011-08-29T12:10:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
+ subimage  3:   61 x  102, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:14:43-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 257
+    Exif:PixelYDimension: 126
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-29T12:10:28-04:00"
+    xmp:ModifyDate: "2011-08-29T12:10:28-04:00"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:TextLayers: "
+            <rdf:Bag>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>1</photoshop:LayerName>
+                  <photoshop:LayerText>1</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>2</photoshop:LayerName>
+                  <photoshop:LayerText>2</photoshop:LayerText>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <photoshop:LayerName>3</photoshop:LayerName>
+                  <photoshop:LayerText>3</photoshop:LayerText>
+               </rdf:li>
+            </rdf:Bag>
+         "
+    xmpMM:InstanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    xmpMM:DocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:14:43-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9</stEvt:instanceID>
+                  <stEvt:when>2011-08-29T12:10:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9</stEvt:instanceID>
+                  <stEvt:when>2011-08-29T12:10:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
+../../../oiio-images/psd_bitmap.psd :  320 x  240, 3 channel, uint8 psd
+    channel list: R, G, B
+    XResolution: 180
+    YResolution: 180
+    ResolutionUnit: 2 (inches)
+    thumbnail_width: 160
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
+    Exif:ImageWidth: 3648
+    Exif:ImageLength: 2736
+    Exif:Photometric: 2
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    Exif:SamplesPerPixel: 3
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2007-01-18T15:49:21"
+    Artist: "Daniel Wyatt"
+    Exif:YCbCrPositioning: 1
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    Exif:ISOSpeedRatings: 75
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:CompressedBitsPerPixel: 5
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ExposureBiasValue: 0
+    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:Flash: 16 (no flash, flash supression)
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:CustomRendered: 0 (no)
+    Exif:ExposureMode: 0 (auto)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:DigitalZoomRatio: 1
+    Exif:SceneCaptureType: 1 (landscape)
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:Lens: "7.3-29.2 mm"
+    aux:ApproximateFocusDistance: "339/100"
+    aux:FlashCompensation: "0/1"
+    aux:OwnerName: "Daniel Wyatt"
+    aux:Firmware: "1.00"
+    xmp:ModifyDate: "2011-08-25T17:40:47-04:00"
+    xmp:MetadataDate: "2011-08-25T17:40:47-04:00"
+    photoshop:ColorMode: "0"
+    xmpMM:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:InstanceID: "xmp.iid:F410E7E462CFE011B8B8C52D9599FB9E"
+    xmpMM:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>converted</stEvt:action>
+                  <stEvt:parameters>from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>derived</stEvt:action>
+                  <stEvt:parameters>converted from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:49-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:49-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:2A93235262CFE011B8B8C52D9599FB9E</stEvt:instanceID>
+                  <stEvt:when>2011-08-25T17:40-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F310E7E462CFE011B8B8C52D9599FB9E</stEvt:instanceID>
+                  <stEvt:when>2011-08-25T17:40:47-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F410E7E462CFE011B8B8C52D9599FB9E</stEvt:instanceID>
+                  <stEvt:when>2011-08-25T17:40:47-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    PixelAspectRatio: 1
+../../../oiio-images/psd_indexed_trans.psd :  320 x  240, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 180
+    YResolution: 180
+    ResolutionUnit: 2 (inches)
+    thumbnail_width: 160
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
+    Exif:ImageWidth: 3648
+    Exif:ImageLength: 2736
+    Exif:Photometric: 2
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    Exif:SamplesPerPixel: 3
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2007-01-18T15:49:21"
+    Artist: "Daniel Wyatt"
+    Exif:YCbCrPositioning: 1
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    Exif:ISOSpeedRatings: 75
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:CompressedBitsPerPixel: 5
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ExposureBiasValue: 0
+    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:Flash: 16 (no flash, flash supression)
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:CustomRendered: 0 (no)
+    Exif:ExposureMode: 0 (auto)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:DigitalZoomRatio: 1
+    Exif:SceneCaptureType: 1 (landscape)
+    oiio:ColorSpace: "sRGB"
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:Lens: "7.3-29.2 mm"
+    aux:ApproximateFocusDistance: "339/100"
+    aux:FlashCompensation: "0/1"
+    aux:OwnerName: "Daniel Wyatt"
+    aux:Firmware: "1.00"
+    xmp:ModifyDate: "2011-08-29T11:54:09-04:00"
+    xmp:MetadataDate: "2011-08-29T11:54:09-04:00"
+    photoshop:ColorMode: "2"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    xmpMM:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:InstanceID: "xmp.iid:F3BDDC0457D2E011BF419187EAB8EBB9"
+    xmpMM:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>converted</stEvt:action>
+                  <stEvt:parameters>from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>derived</stEvt:action>
+                  <stEvt:parameters>converted from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:49-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:49-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:2A93235262CFE011B8B8C52D9599FB9E</stEvt:instanceID>
+                  <stEvt:when>2011-08-25T17:40-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F3BDDC0457D2E011BF419187EAB8EBB9</stEvt:instanceID>
+                  <stEvt:when>2011-08-29T11:54:09-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    PixelAspectRatio: 1
+../../../oiio-images/psd_rgb_8.psd :  320 x  240, 3 channel, uint8 psd
+    channel list: R, G, B
+    XResolution: 180
+    YResolution: 180
+    ResolutionUnit: 2 (inches)
+    thumbnail_width: 160
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
+    Exif:ImageWidth: 3648
+    Exif:ImageLength: 2736
+    Exif:Photometric: 2
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    Exif:SamplesPerPixel: 3
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2007-01-18T15:49:21"
+    Artist: "Daniel Wyatt"
+    Exif:YCbCrPositioning: 1
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    Exif:ISOSpeedRatings: 75
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:CompressedBitsPerPixel: 5
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ExposureBiasValue: 0
+    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:Flash: 16 (no flash, flash supression)
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:CustomRendered: 0 (no)
+    Exif:ExposureMode: 0 (auto)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:DigitalZoomRatio: 1
+    Exif:SceneCaptureType: 1 (landscape)
+    oiio:ColorSpace: "sRGB"
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:Lens: "7.3-29.2 mm"
+    aux:ApproximateFocusDistance: "339/100"
+    aux:FlashCompensation: "0/1"
+    aux:OwnerName: "Daniel Wyatt"
+    aux:Firmware: "1.00"
+    xmp:ModifyDate: "2011-08-25T17:40-04:00"
+    xmp:MetadataDate: "2011-08-25T17:40-04:00"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    xmpMM:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:InstanceID: "xmp.iid:2A93235262CFE011B8B8C52D9599FB9E"
+    xmpMM:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>converted</stEvt:action>
+                  <stEvt:parameters>from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>derived</stEvt:action>
+                  <stEvt:parameters>converted from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:49-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:49-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:2A93235262CFE011B8B8C52D9599FB9E</stEvt:instanceID>
+                  <stEvt:when>2011-08-25T17:40-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    PixelAspectRatio: 1
+../../../oiio-images/psd_rgb_16.psd :  320 x  240, 3 channel, uint16 psd
+    channel list: R, G, B
+    XResolution: 180
+    YResolution: 180
+    ResolutionUnit: 2 (inches)
+    thumbnail_width: 160
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
+    Exif:ImageWidth: 3648
+    Exif:ImageLength: 2736
+    Exif:Photometric: 2
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    Exif:SamplesPerPixel: 3
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2007-01-18T15:49:21"
+    Artist: "Daniel Wyatt"
+    Exif:YCbCrPositioning: 1
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    Exif:ISOSpeedRatings: 75
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:CompressedBitsPerPixel: 5
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ExposureBiasValue: 0
+    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:Flash: 16 (no flash, flash supression)
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:CustomRendered: 0 (no)
+    Exif:ExposureMode: 0 (auto)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:DigitalZoomRatio: 1
+    Exif:SceneCaptureType: 1 (landscape)
+    oiio:ColorSpace: "sRGB"
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:Lens: "7.3-29.2 mm"
+    aux:ApproximateFocusDistance: "339/100"
+    aux:FlashCompensation: "0/1"
+    aux:OwnerName: "Daniel Wyatt"
+    aux:Firmware: "1.00"
+    xmp:ModifyDate: "2011-08-25T17:39:49-04:00"
+    xmp:MetadataDate: "2011-08-25T17:39:49-04:00"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    xmpMM:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:InstanceID: "xmp.iid:2993235262CFE011B8B8C52D9599FB9E"
+    xmpMM:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>converted</stEvt:action>
+                  <stEvt:parameters>from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>derived</stEvt:action>
+                  <stEvt:parameters>converted from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:2993235262CFE011B8B8C52D9599FB9E</stEvt:instanceID>
+                  <stEvt:when>2011-08-25T17:39:49-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    PixelAspectRatio: 1
+../../../oiio-images/psd_rgb_32.psd :  320 x  240, 3 channel, uint psd
+    channel list: R, G, B
+    XResolution: 180
+    YResolution: 180
+    ResolutionUnit: 2 (inches)
+    thumbnail_width: 160
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
+    Exif:ImageWidth: 3648
+    Exif:ImageLength: 2736
+    Exif:Photometric: 2
+    Make: "Canon"
+    Model: "Canon PowerShot A640"
+    Orientation: 1 (normal)
+    Exif:SamplesPerPixel: 3
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2007-01-18T15:49:21"
+    Artist: "Daniel Wyatt"
+    Exif:YCbCrPositioning: 1
+    ExposureTime: 0.0166667
+    FNumber: 3.5
+    Exif:ISOSpeedRatings: 75
+    Exif:DateTimeOriginal: "2007:01:18 15:49:21"
+    Exif:DateTimeDigitized: "2007:01:18 15:49:21"
+    Exif:CompressedBitsPerPixel: 5
+    Exif:ShutterSpeedValue: 5.90625 (1/59 s)
+    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ExposureBiasValue: 0
+    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:SubjectDistance: 3.39 (3.39 m)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:Flash: 16 (no flash, flash supression)
+    Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    Exif:FocalPlaneXResolution: 12710.8
+    Exif:FocalPlaneYResolution: 12725.6
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:CustomRendered: 0 (no)
+    Exif:ExposureMode: 0 (auto)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:DigitalZoomRatio: 1
+    Exif:SceneCaptureType: 1 (landscape)
+    aux:LensInfo: "7300/1000 29200/1000 0/0 0/0"
+    aux:Lens: "7.3-29.2 mm"
+    aux:ApproximateFocusDistance: "339/100"
+    aux:FlashCompensation: "0/1"
+    aux:OwnerName: "Daniel Wyatt"
+    aux:Firmware: "1.00"
+    xmp:ModifyDate: "2011-08-25T17:39:38-04:00"
+    xmp:MetadataDate: "2011-08-25T17:39:38-04:00"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1 (Linear RGB Profile)"
+    xmpMM:DocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:InstanceID: "xmp.iid:2893235262CFE011B8B8C52D9599FB9E"
+    xmpMM:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>converted</stEvt:action>
+                  <stEvt:parameters>from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>derived</stEvt:action>
+                  <stEvt:parameters>converted from image/jpeg to application/vnd.adobe.photoshop</stEvt:parameters>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:08-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:36-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:49-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:56:49-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:57DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:57:01-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:58DA7E112BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T21:57:01-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:2893235262CFE011B8B8C52D9599FB9E</stEvt:instanceID>
+                  <stEvt:when>2011-08-25T17:39:38-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
+    stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
+    PixelAspectRatio: 1
+../../../oiio-images/psd_rgba_8.psd :  320 x  240, 4 channel, uint8 psd
+    2 subimages: 320x240 320x240 
+ subimage  0:  320 x  240, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    thumbnail_width: 160
+    thumbnail_height: 120
+    thumbnail_nchannels: 3
+    thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:07:44-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-25T17:39:28-04:00"
+    xmp:ModifyDate: "2011-08-25T17:39:28-04:00"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:DocumentAncestors: "
+            <rdf:Bag>
+               <rdf:li>E146B3E37A92795EE3EA6577040DE6D5</rdf:li>
+            </rdf:Bag>
+         "
+    xmpMM:InstanceID: "xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
+    xmpMM:DocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:037A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:07:44-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:2793235262CFE011B8B8C52D9599FB9E</stEvt:instanceID>
+                  <stEvt:when>2011-08-25T17:39:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
+ subimage  1:  320 x  240, 4 channel, uint8 psd
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CS5.1 Windows"
+    DateTime: "2011-08-22T22:07:44-04:00"
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 320
+    Exif:PixelYDimension: 240
+    oiio:ColorSpace: "sRGB"
+    xmp:MetadataDate: "2011-08-25T17:39:28-04:00"
+    xmp:ModifyDate: "2011-08-25T17:39:28-04:00"
+    photoshop:ColorMode: "3"
+    photoshop:ICCProfile: "sRGB IEC61966-2.1"
+    photoshop:DocumentAncestors: "
+            <rdf:Bag>
+               <rdf:li>E146B3E37A92795EE3EA6577040DE6D5</rdf:li>
+            </rdf:Bag>
+         "
+    xmpMM:InstanceID: "xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
+    xmpMM:DocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
+    xmpMM:History: "
+            <rdf:Seq>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:037A91A22BCDE011A998CBE7B5CCEB92</stEvt:instanceID>
+                  <stEvt:when>2011-08-22T22:07:44-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>saved</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:2793235262CFE011B8B8C52D9599FB9E</stEvt:instanceID>
+                  <stEvt:when>2011-08-25T17:39:28-04:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Photoshop CS5.1 Windows</stEvt:softwareAgent>
+                  <stEvt:changed>/</stEvt:changed>
+               </rdf:li>
+            </rdf:Seq>
+         "
+    PixelAspectRatio: 1
