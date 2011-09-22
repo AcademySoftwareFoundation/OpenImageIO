@@ -38,13 +38,13 @@
 #include <string>
 #include <utility>
 
+
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 
 using boost::algorithm::iequals;
-
 
 #include "argparse.h"
 #include "imageio.h"
@@ -54,7 +54,10 @@ using boost::algorithm::iequals;
 #include "filesystem.h"
 #include "filter.h"
 
+
 #include "oiiotool.h"
+#include <OpenColorIO/OpenColorIO.h>
+namespace OCIO = OCIO_NAMESPACE;
 
 OIIO_NAMESPACE_USING
 using namespace OiioTool;
@@ -286,6 +289,75 @@ set_string_attribute (int argc, const char *argv[])
 }
 
 
+static int
+change_color (int argc, const char *argv[])
+{
+    ASSERT (argc == 3);
+    if (! ot.curimg.get()) {
+        std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
+        return 0;
+    }
+
+
+
+	ImageRecRef A = ot.curimg;
+	A->read ();
+	ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+								   ot.allsubimages, true, false));
+
+	OCIO::ConstConfigRcPtr config = OCIO::GetCurrentConfig();
+
+	        // Get the processor
+	        //OCIO::ConstProcessorRcPtr processor = config->getProcessor(inputcolorspace, outputcolorspace);
+	OCIO::ConstProcessorRcPtr processor = config->getProcessor(argv[1], argv[2]);
+
+
+	        // Wrap the image in a light-weight ImageDescription
+//
+
+	        // Apply the color transformation (in place)
+	std::vector<float> img;
+
+	int subimages = ot.curimg->subimages();
+	for (int s = 0;  s < subimages;  ++s) {
+		int miplevels = ot.curimg->miplevels(s);
+		for (int m = 0;  m < miplevels;  ++m) {
+			const ImageBuf &Aib ((*A)(s,m));
+			ImageBuf &Rib ((*ot.curimg)(s,m));
+			ImageBuf::ConstIterator<float> a (Aib);
+			ImageBuf::Iterator<float> r (Rib);
+			int nchans = Rib.nchannels();
+			ImageSpec rspec = Rib.spec();
+
+			int width = rspec.width;
+			int height = rspec.height;
+
+
+
+			img.resize(width * height * nchans);
+			memset(&img[0], 0, width * height * nchans * sizeof(float));
+			int imgIndex = 0;
+			for ( ; ! a.done(); ++a) {
+				for (int c = 0;  c < nchans;  ++c){
+					img[imgIndex] = a[c];
+					imgIndex++;
+					}
+				}
+
+			OCIO::PackedImageDesc imageDesc(&img[0], width, height, nchans);
+			processor->apply(imageDesc);
+
+			imgIndex = 0;
+			for ( ; ! r.done(); ++r) {
+				for (int c = 0;  c < nchans;  ++c){
+					r[c] = img[imgIndex];
+					imgIndex++;
+					}
+			}
+		}
+	}
+	return 0;
+}
 
 static int
 set_any_attribute (int argc, const char *argv[])
@@ -1013,6 +1085,7 @@ getargs (int argc, char *argv[])
                     "Set the output data format to one of: "
                     "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
                 "--scanline", &ot.output_scanline, "Output scanline images",
+                "--colortransform %@ %s %s", change_color, &dummystr, &dummystr, "change color from blah to blah",
                 "--tile %@ %d %d", output_tiles, &ot.output_tilewidth, &ot.output_tileheight,
                     "Output tiled images (tilewidth, tileheight)",
                 "--compression %s", &ot.output_compression, "Set the compression method",
