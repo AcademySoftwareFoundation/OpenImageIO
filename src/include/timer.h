@@ -101,8 +101,9 @@ public:
         }
     }
 
-    /// Stop ticking.  Any elapsed time will be saved even though we
-    /// aren't currently ticking.
+    /// Stop ticking, return the total amount of time that has ticked
+    /// (both this round as well as previous laps).  Current ticks will
+    /// be added to previous elapsed time.
     double stop () {
         if (m_ticking) {
             value_t n = now();
@@ -119,16 +120,15 @@ public:
         m_ticking = false;
     }
 
-    /// Return the current elapsed time, and reset elapsed time to zero,
-    /// but keep the timer going.
+    /// Return just the time of the current lap (since the last call to
+    /// start() or lap()), add that to the previous elapsed time, reset
+    /// current start tiem to now, keep the timer going (if it was).
     double lap () {
-        double r = m_elapsed;
-        m_elapsed = 0;
-        if (m_ticking) {
-            value_t n = now();
-            r += diff (n, m_starttime);
-            m_starttime = n;
-        }
+        value_t n = now();
+        double r = m_ticking ? diff (m_starttime, n) : 0.0;
+        m_elapsed += r;
+        m_starttime = n;
+        m_ticking = true;
         return r;
     }
 
@@ -187,7 +187,7 @@ private:
         mach_timebase_info(&time_info);
         double seconds_per_tick = (1e-9*static_cast<double>(time_info.numer))/
           static_cast<double>(time_info.denom);
-        return (now - then) * seconds_per_tick;
+        return fabs ((now - then) * seconds_per_tick);
 #else
         return fabs (static_cast<double>(now.tv_sec  - then.tv_sec) +
                      static_cast<double>(now.tv_usec - then.tv_usec) / 1e6);
