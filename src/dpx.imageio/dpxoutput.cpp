@@ -224,7 +224,8 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         std::string dpxtransfer = m_spec.get_string_attribute ("dpx:Transfer", "");
         transfer = get_characteristic_from_string (dpxtransfer);
     }
-    
+    transfer = dpx::kLogarithmic;
+    std::cout << "here"<< m_spec.get_string_attribute ("dpx:Transfer", "");
     // colorimetric
     m_cmetr = get_characteristic_from_string
         (m_spec.get_string_attribute ("dpx:Colorimetric", "User defined"));
