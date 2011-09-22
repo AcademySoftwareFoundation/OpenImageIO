@@ -654,7 +654,6 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
             m_output_scanline->writePixels (nscanlines);
         }
         catch (const std::exception &e) {
-            std::cerr << "except " << e.what() << "\n";
             error ("Failed OpenEXR write: %s", e.what());
             return false;
         }
@@ -679,9 +678,9 @@ OpenEXROutput::write_tile (int x, int y, int z,
                            TypeDesc format, const void *data,
                            stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    return write_tiles (x, x+m_spec.tile_width,
-                        y, y+m_spec.tile_height,
-                        z, z+m_spec.tile_depth,
+    return write_tiles (x, std::min (x+m_spec.tile_width, m_spec.x+m_spec.width),
+                        y, std::min (y+m_spec.tile_height, m_spec.y+m_spec.height),
+                        z, std::min (z+m_spec.tile_depth, m_spec.z+m_spec.depth),
                         format, data, xstride, ystride, zstride);
 }
 
@@ -740,7 +739,6 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
                                     height*widthbytes);
         data = &padded[0];
     }
-
 
     char *buf = (char *)data
               - xbegin * pixelbytes

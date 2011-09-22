@@ -196,9 +196,14 @@ bool DLLPUBLIC compare (const ImageBuf &A, const ImageBuf &B,
 int DLLPUBLIC compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
                            float luminance = 100, float fov = 45);
 
-/// You can optionally query the constantvalue'd color
-/// (current subimage, and current mipmap level)
+/// Do all pixels for the entire image have the same channel values?  If
+/// color is not NULL, that constant value will be stored in
+/// color[0..nchannels-1].
 bool DLLPUBLIC isConstantColor (const ImageBuf &src, float *color = NULL);
+
+/// Does the requested channel have a given value over the entire image?
+///
+bool DLLPUBLIC isConstantChannel (const ImageBuf &src, int channel, float val);
 
 /// Is the image monochrome? (i.e., are all channels the same value?)
 /// zero and one channel images always return true

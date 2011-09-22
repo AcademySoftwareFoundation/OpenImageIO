@@ -245,15 +245,26 @@ private:
     //Call the resource_loaders to load the resources into an ImageSpec
     //m_specs should be resized to m_subimage_count first
     bool handle_resources (ImageResourceMap &resources);
-    //Alpha Channel Names
-    bool load_resource_1006 (uint32_t length);
-    //Pixel Aspect Ratio
-    bool load_resource_1064 (uint32_t length);
     //ResolutionInfo
     bool load_resource_1005 (uint32_t length);
-    //JPEG thumbnail
+    //Alpha Channel Names
+    bool load_resource_1006 (uint32_t length);
+    //JPEG thumbnail (Photoshop 4.0)
     bool load_resource_1033 (uint32_t length);
+    //JPEG thumbnail (Photoshop 5.0)
     bool load_resource_1036 (uint32_t length);
+    //Transparency index (Indexed color mode)
+    bool load_resource_1047 (uint32_t length);
+    //Exif data 1
+    bool load_resource_1058 (uint32_t length);
+    //Exif data 3
+    bool load_resource_1059 (uint32_t length);
+    //XMP metadata
+    bool load_resource_1060 (uint32_t length);
+    //Pixel Aspect Ratio
+    bool load_resource_1064 (uint32_t length);
+
+    //Load thumbnail resource, used for resources 1033 and 1036
     bool load_resource_thumbnail (uint32_t length, bool isBGR);
     //For thumbnail loading
     struct thumbnail_error_mgr {
@@ -262,10 +273,6 @@ private:
     };
     METHODDEF (void)
     thumbnail_error_exit (j_common_ptr cinfo);
-    //Transparency index (Indexed color mode)
-    bool load_resource_1047 (uint32_t length);
-    //XMP metadata
-    bool load_resource_1060 (uint32_t length);
 
     //Layers
     bool load_layers ();
@@ -386,13 +393,15 @@ private:
 #define ADD_LOADER(id) {id, boost::bind (&PSDInput::load_resource_##id, _1, _2)}
 const PSDInput::ResourceLoader PSDInput::resource_loaders[] =
 {
-    ADD_LOADER(1006),
-    ADD_LOADER(1064),
     ADD_LOADER(1005),
+    ADD_LOADER(1006),
     ADD_LOADER(1033),
     ADD_LOADER(1036),
     ADD_LOADER(1047),
-    ADD_LOADER(1060)
+    ADD_LOADER(1058),
+    ADD_LOADER(1059),
+    ADD_LOADER(1060),
+    ADD_LOADER(1064)
 };
 #undef ADD_LOADER
 
@@ -824,44 +833,6 @@ PSDInput::handle_resources (ImageResourceMap &resources)
     return true;
 }
 
-
-
-bool
-PSDInput::load_resource_1006 (uint32_t length)
-{
-    int32_t bytes_remaining = length;
-    std::string name;
-    while (m_file && bytes_remaining >= 2) {
-        bytes_remaining -= read_pascal_string (name, 1);
-        m_alpha_names.push_back (name);
-    }
-    return check_io ();
-}
-
-
-
-bool
-PSDInput::load_resource_1064 (uint32_t length)
-{
-    uint32_t version;
-    if (!read_bige<uint32_t> (version))
-        return false;
-
-    if (version != 1 && version != 2) {
-        error ("[Image Resource] [Pixel Aspect Ratio] Unrecognized version");
-        return false;
-    }
-    double aspect_ratio;
-    if (!read_bige<double> (aspect_ratio))
-        return false;
-
-    // FIXME(dewyatt): loss of precision?
-    common_attribute ("PixelAspectRatio", (float)aspect_ratio);
-    return true;
-}
-
-
-
 bool
 PSDInput::load_resource_1005 (uint32_t length)
 {
@@ -911,6 +882,20 @@ PSDInput::load_resource_1005 (uint32_t length)
 
 
 bool
+PSDInput::load_resource_1006 (uint32_t length)
+{
+    int32_t bytes_remaining = length;
+    std::string name;
+    while (m_file && bytes_remaining >= 2) {
+        bytes_remaining -= read_pascal_string (name, 1);
+        m_alpha_names.push_back (name);
+    }
+    return check_io ();
+}
+
+
+
+bool
 PSDInput::load_resource_1033 (uint32_t length)
 {
     return load_resource_thumbnail (length, true);
@@ -922,6 +907,85 @@ bool
 PSDInput::load_resource_1036 (uint32_t length)
 {
     return load_resource_thumbnail (length, false);
+}
+
+
+
+bool
+PSDInput::load_resource_1047 (uint32_t length)
+{
+    read_bige<int16_t> (m_transparency_index);
+    if (m_transparency_index < 0 || m_transparency_index >= 768) {
+        error ("[Image Resource] [Transparency Index] index is out of range");
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1058 (uint32_t length)
+{
+    std::string data (length, 0);
+    if (!m_file.read (&data[0], length))
+        return false;
+
+    if (!decode_exif (&data[0], length, m_composite_attribs) ||
+        !decode_exif (&data[0], length, m_common_attribs)) {
+        error ("Failed to decode Exif data");
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1059 (uint32_t length)
+{
+    //FIXME(dewyatt): untested, I don't have any images with this resource
+    return load_resource_1058 (length);
+}
+
+
+
+bool
+PSDInput::load_resource_1060 (uint32_t length)
+{
+    std::string data (length, 0);
+    if (!m_file.read (&data[0], length))
+        return false;
+
+    // Store the XMP data for the composite and all other subimages
+    if (!decode_xmp (data, m_composite_attribs) ||
+        !decode_xmp (data, m_common_attribs)) {
+        error ("Failed to decode XMP data");
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+PSDInput::load_resource_1064 (uint32_t length)
+{
+    uint32_t version;
+    if (!read_bige<uint32_t> (version))
+        return false;
+
+    if (version != 1 && version != 2) {
+        error ("[Image Resource] [Pixel Aspect Ratio] Unrecognized version");
+        return false;
+    }
+    double aspect_ratio;
+    if (!read_bige<double> (aspect_ratio))
+        return false;
+
+    // FIXME(dewyatt): loss of precision?
+    common_attribute ("PixelAspectRatio", (float)aspect_ratio);
+    return true;
 }
 
 
@@ -1019,37 +1083,6 @@ PSDInput::thumbnail_error_exit (j_common_ptr cinfo)
 {
     thumbnail_error_mgr *mgr = (thumbnail_error_mgr *)cinfo->err;
     longjmp (mgr->setjmp_buffer, 1);
-}
-
-
-
-bool
-PSDInput::load_resource_1047 (uint32_t length)
-{
-    read_bige<int16_t> (m_transparency_index);
-    if (m_transparency_index < 0 || m_transparency_index >= 768) {
-        error ("[Image Resource] [Transparency Index] index is out of range");
-        return false;
-    }
-    return true;
-}
-
-
-
-bool
-PSDInput::load_resource_1060 (uint32_t length)
-{
-    std::string data (length, 0);
-    if (!m_file.read (&data[0], length))
-        return false;
-
-    // Store the XMP data for the composite and all other subimages
-    if (!decode_xmp (data, m_composite_attribs) ||
-        !decode_xmp (data, m_common_attribs)) {
-        error ("Failed to decode XMP data");
-        return false;
-    }
-    return true;
 }
 
 

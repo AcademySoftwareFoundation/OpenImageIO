@@ -42,6 +42,11 @@ using boost::algorithm::iequals;
 #include "imageio.h"
 #include "fmath.h"
 
+#ifdef WIN32
+# define snprintf _snprintf
+#endif
+
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace RLA_pvt;
@@ -299,7 +304,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     s = m_spec.get_string_attribute ("rla:Aspect", "");
     if (s.length ())
         strncpy (m_rla.Aspect, s.c_str (), sizeof (m_rla.Aspect));
-    
+
     snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.10f",
         m_spec.get_float_attribute ("PixelAspectRatio", 1.f));
     strcpy (m_rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
@@ -519,8 +524,8 @@ RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
         return true;
     }
     // integer values - RLE
-    unsigned char first;
-    const unsigned char *d;
+    unsigned char first = 0;
+    const unsigned char *d = 0;
     int rawcount = 0, rlecount = 0;
     length = 0;
     // keeps track of the record buffer position

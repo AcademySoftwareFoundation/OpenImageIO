@@ -76,6 +76,31 @@ stride_t ImageSpec_auto_stride_2(const TypeDesc& format, int nchannels)
     return x;
 }
 
+
+stride_t ImageSpec_channel_bytes_1(ImageSpec& spec)
+{
+    return spec.channel_bytes ();
+}
+
+stride_t ImageSpec_channel_bytes_2(ImageSpec& spec, int chan, bool native)
+{
+    return spec.channel_bytes (chan, native);
+}
+
+
+
+stride_t ImageSpec_pixel_bytes_1(ImageSpec& spec, bool native)
+{
+    return spec.pixel_bytes (native);
+}
+
+stride_t ImageSpec_pixel_bytes_2(ImageSpec& spec, int firstchan, int nchans, bool native)
+{
+    return spec.pixel_bytes (firstchan, nchans, native);
+}
+
+
+
 void declare_imagespec()
 {
     class_<ImageSpec>("ImageSpec")
@@ -112,8 +137,10 @@ void declare_imagespec()
         .def("default_channel_names",   &ImageSpec::default_channel_names)
         .def("format_from_quantize",    &ImageSpec::format_from_quantize)
         .staticmethod("format_from_quantize")
-        .def("channel_bytes",           &ImageSpec::channel_bytes)
-        .def("pixel_bytes",             &ImageSpec::pixel_bytes)
+        .def("channel_bytes",           &ImageSpec_channel_bytes_1)
+        .def("channel_bytes",           &ImageSpec_channel_bytes_2)
+        .def("pixel_bytes",             &ImageSpec_pixel_bytes_1)
+        .def("pixel_bytes",             &ImageSpec_pixel_bytes_2)
         .def("scanline_bytes",          &ImageSpec::scanline_bytes)
         .def("tile_pixels",             &ImageSpec::tile_pixels)
         .def("tile_bytes",              &ImageSpec::tile_bytes)

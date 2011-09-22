@@ -188,16 +188,16 @@ deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gam
                     }
     }
     else {
-        float inv_gamma=1/gamma;
         for (int x = 0;  x < size;  ++x, data += channels)
-            if (data[alpha_channel])
+            if (data[alpha_channel]) {
+                // See associateAlpha() for an explanation.
+                float alpha_deassociate = pow((float)max / data[alpha_channel],
+                                              gamma);
                 for (int c = 0;  c < channels;  c++)
-                    if (c != alpha_channel) {
-                        //FIXME: Would it be worthwhile to do some caching on pow values??
-                        float f = pow(data[c]/max, inv_gamma); //Linearize
-                        f = (f / (data[alpha_channel]/max));
-                        data[c] = (T) std::min (max, (unsigned int)(max * pow(f, gamma)));
-                    }
+                    if (c != alpha_channel)
+                        data[c] = static_cast<T> (std::min (max,
+                                (unsigned int)(data[c] * alpha_deassociate)));
+            }
     }
 }
 

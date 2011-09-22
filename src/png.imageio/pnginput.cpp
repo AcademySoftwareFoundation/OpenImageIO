@@ -214,15 +214,22 @@ associateAlpha (T * data, int size, int channels, int alpha_channel, float gamma
                 }
     }
     else { //With gamma correction
-        float inv_gamma = 1.0 / gamma;
-        for (int x = 0;  x < size;  ++x, data += channels)
+        float inv_max = 1.0 / max;
+        for (int x = 0;  x < size;  ++x, data += channels) {
+            float alpha_associate = pow(data[alpha_channel]*inv_max, gamma);
+            // We need to transform to linear space, associate the alpha, and
+            // then transform back.  That is, if D = data[c], we want
+            //
+            // D' = max * ( (D/max)^(1/gamma) * (alpha/max) ) ^ gamma
+            //
+            // This happens to simplify to something which looks like
+            // multiplying by a nonlinear alpha:
+            //
+            // D' = D * (alpha/max)^gamma
             for (int c = 0;  c < channels;  c++)
-                if (c != alpha_channel){
-                    //FIXME: Would it be worthwhile to do some caching on pow values?
-                    float f = pow(data[c]/max, inv_gamma); //Linearize
-                    f = (f * data[alpha_channel]/max);
-                    data[c] = (T) (max * pow(f, gamma));
-                }
+                if (c != alpha_channel)
+                    data[c] = static_cast<T>(data[c] * alpha_associate);
+        }
     }
 }
 

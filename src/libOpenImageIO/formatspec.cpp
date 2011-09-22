@@ -260,6 +260,19 @@ ImageSpec::default_channel_names ()
 
 
 size_t
+ImageSpec::channel_bytes (int chan, bool native) const
+{
+    if (chan >= nchannels)
+        return 0;
+    if (!native || channelformats.empty())
+        return format.size();
+    else
+        return channelformats[chan].size();
+}
+
+
+
+size_t
 ImageSpec::pixel_bytes (bool native) const
 {
     if (nchannels < 0)
@@ -269,6 +282,24 @@ ImageSpec::pixel_bytes (bool native) const
     else {
         size_t sum = 0;
         for (int i = 0;  i < nchannels;  ++i)
+            sum += channelformats[i].size();
+        return sum;
+    }
+}
+
+
+
+size_t
+ImageSpec::pixel_bytes (int firstchan, int nchans, bool native) const
+{
+    nchans = std::min (nchans, nchannels-firstchan);
+    if (nchans < 0 || firstchan < 0)
+        return 0;
+    if (!native || channelformats.empty())
+        return clamped_mult32 ((size_t)nchans, channel_bytes());
+    else {
+        size_t sum = 0;
+        for (int i = firstchan, e = firstchan+nchans;  i < e;  ++i)
             sum += channelformats[i].size();
         return sum;
     }

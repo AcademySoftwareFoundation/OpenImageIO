@@ -185,9 +185,16 @@ public:
     static TypeDesc format_from_quantize (int quant_black, int quant_white,
                                           int quant_min, int quant_max);
 
-    ///
-    /// Return the number of bytes for each channel datum
+    /// Return the number of bytes for each channel datum, assuming they
+    /// are all stored using the data format given by this->format.
     size_t channel_bytes() const { return format.size(); }
+
+    /// Return the number of bytes needed for the single specified
+    /// channel.  If native is false (default), compute the size of one
+    /// channel of this->format, but if native is true, compute the size
+    /// of the channel in terms of the "native" data format of that
+    /// channel as stored in the file.
+    size_t channel_bytes (int chan, bool native=false) const;
 
     /// Return the number of bytes for each pixel (counting all channels).
     /// If native is false (default), assume all channels are in 
@@ -197,6 +204,16 @@ public:
     /// This will return std::numeric_limits<size_t>::max() in the
     /// event of an overflow where it's not representable in a size_t.
     size_t pixel_bytes (bool native=false) const;
+
+    /// Return the number of bytes for just the subset of channels in
+    /// each pixel described by [firstchan,firstchan+nchans).
+    /// If native is false (default), assume all channels are in 
+    /// this->format, but if native is true, compute the size of a pixel
+    /// in the "native" data format of the file (these may differ in
+    /// the case of per-channel formats).
+    /// This will return std::numeric_limits<size_t>::max() in the
+    /// event of an overflow where it's not representable in a size_t.
+    size_t pixel_bytes (int firstchan, int nchans, bool native=false) const;
 
     /// Return the number of bytes for each scanline.  This will return
     /// std::numeric_limits<imagesize_t>::max() in the event of an
@@ -431,7 +448,7 @@ public:
     /// future expansion of the set of possible queries without changing
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
-    virtual bool supports (const std::string &feature) const { return false; }
+    virtual bool supports (const std::string & /*feature*/) const { return false; }
 
     /// Close an image that we are totally done with.
     ///
@@ -499,11 +516,29 @@ public:
     }
 
     /// Read multiple scanlines that include pixels (*,y,z) for all
-    /// ybegin <= y < yend, into data.  This is analogous to
-    /// read_scanline except that it may be used to read more than one
-    /// scanline at a time (which, for some formats, may be able to
-    /// be done much more efficiently or in parallel).
+    /// ybegin <= y < yend, into data, using the strides given and
+    /// converting to the requested data format (unless format is
+    /// TypeDesc::UNKNOWN, in which case pixels will be copied in the
+    /// native data layout, including per-channel data formats).  This
+    /// is analogous to read_scanline except that it may be used to read
+    /// more than one scanline at a time (which, for some formats, may
+    /// be able to be done much more efficiently or in parallel).
     virtual bool read_scanlines (int ybegin, int yend, int z,
+                                 TypeDesc format, void *data,
+                                 stride_t xstride=AutoStride,
+                                 stride_t ystride=AutoStride);
+
+    /// Read multiple scanlines that include pixels (*,y,z) for all
+    /// ybegin <= y < yend, into data, using the strides given and
+    /// converting to the requested data format (unless format is
+    /// TypeDesc::UNKNOWN, in which case pixels will be copied in the
+    /// native data layout, including per-channel data formats).  Only
+    /// channels [firstchan,firstchan+nchans) will be read/copied
+    /// (firstchan=0, nchans=spec.nchannels reads all scanlines,
+    /// yielding equivalent behavior to the simpler variant of
+    /// read_scanlines).
+    virtual bool read_scanlines (int ybegin, int yend, int z,
+                                 int firstchan, int nchans,
                                  TypeDesc format, void *data,
                                  stride_t xstride=AutoStride,
                                  stride_t ystride=AutoStride);
@@ -540,19 +575,38 @@ public:
     }
 
     /// Read the block of multiple tiles that include all pixels in
-    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  This is
-    /// analogous to read_tile except that it may be used to read more
-    /// than one tile at a time (which, for some formats, may be able to
-    /// be done much more efficiently or in parallel).
-    /// The begin/end pairs must correctly delineate tile boundaries,
-    /// with the exception that it may also be the end of the image data
-    /// if the image resolution is not a whole multiple of the tile size.
+    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend), into data, using
+    /// the strides given and converting to the requested data format
+    /// (unless format is TypeDesc::UNKNOWN, in which case pixels will
+    /// be copied in the native data layout, including per-channel data
+    /// formats).  This is analogous to read_tile except that it may be
+    /// used to read more than one tile at a time (which, for some
+    /// formats, may be able to be done much more efficiently or in
+    /// parallel).  The begin/end pairs must correctly delineate tile
+    /// boundaries, with the exception that it may also be the end of
+    /// the image data if the image resolution is not a whole multiple
+    /// of the tile size.
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, TypeDesc format,
                              void *data, stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
 
+    /// Read the block of multiple tiles that include all pixels in
+    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend), into data, using
+    /// the strides given and converting to the requested data format
+    /// (unless format is TypeDesc::UNKNOWN, in which case pixels will
+    /// be copied in the native data layout, including per-channel data
+    /// formats).  Only channels [firstchan,firstchan+nchans) will be
+    /// read/copied (firstchan=0, nchans=spec.nchannels reads all
+    /// scanlines, yielding equivalent behavior to the simpler variant
+    /// of read_tiles).
+    virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend, 
+                             int firstchan, int nchans, TypeDesc format,
+                             void *data, stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride);
 
     /// Read the entire image of spec.width x spec.height x spec.depth
     /// pixels into data (which must already be sized large enough for
@@ -593,10 +647,19 @@ public:
     /// it keeps the data in the native format of the disk file and
     /// always reads into contiguous memory (no strides).  It's up to
     /// the user to have enough space allocated and know what to do with
-    /// the data.  If a format does not override this method, the
-    /// default implementation it will simply be a loop calling
-    /// read_native_scanline for each scanline.
+    /// the data.  If a format reader subclass does not override this
+    /// method, the default implementation it will simply be a loop
+    /// calling read_native_scanline for each scanline.
     virtual bool read_native_scanlines (int ybegin, int yend, int z,
+                                        void *data);
+
+    /// A variant of read_native_scanlines that reads only channels
+    /// [firstchan,firstchan+nchans).  If a format reader subclass does
+    /// not override this method, the default implementation will simply
+    /// call the all-channel version of read_native_scanlines into a
+    /// temporary buffer and copy the subset of channels.
+    virtual bool read_native_scanlines (int ybegin, int yend, int z,
+                                        int firstchan, int nchans,
                                         void *data);
 
     /// read_native_tile is just like read_tile, except that it
@@ -607,15 +670,24 @@ public:
     /// IF IT SUPPORTS TILED IMAGES.
     virtual bool read_native_tile (int x, int y, int z, void *data);
 
-    /// read_native_tiles is just like read_tile, except that it keeps
+    /// read_native_tiles is just like read_tiles, except that it keeps
     /// the data in the native format of the disk file and always reads
     /// into contiguous memory (no strides).  It's up to the caller to
     /// have enough space allocated and know what to do with the data.
-    /// If a format does not override this method, the default
+    /// If a format reader does not override this method, the default
     /// implementation it will simply be a loop calling read_native_tile
     /// for each tile in the block.
     virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend, void *data);
+
+    /// A variant of read_native_tiles that reads only channels
+    /// [firstchan,firstchan+nchans).  If a format reader subclass does
+    /// not override this method, the default implementation will simply
+    /// call the all-channel version of read_native_tiles into a
+    /// temporary buffer and copy the subset of channels.
+    virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
+                                    int zbegin, int zend,
+                                    int firstchan, int nchans, void *data);
 
     /// General message passing between client and image input server
     ///
@@ -702,7 +774,7 @@ public:
     /// future expansion of the set of possible queries without changing
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
-    virtual bool supports (const std::string &feature) const { return false; }
+    virtual bool supports (const std::string & /*feature*/) const { return false; }
 
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
 
@@ -942,14 +1014,16 @@ inline float exposure (float value, float gain, float invgamma)
 
 /// Helper function: convert contiguous arbitrary data between two
 /// arbitrary types (specified by TypeDesc's).  Return true if ok, false
-/// if it didn't know how to do the conversion.
+/// if it didn't know how to do the conversion.  If dst_type is UNKNWON,
+/// it will be assumed to be the same as src_type.
 DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
                               TypeDesc dst_type, void *to, int n);
 
 /// Helper function: convert contiguous arbitrary data between two
 /// arbitrary types (specified by TypeDesc's), with optional transfer
 /// function. Return true if ok, false if it didn't know how to do the
-/// conversion.
+/// conversion.  If dst_type is UNKNWON, it will be assumed to be the
+/// same as src_type.
 DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
                               TypeDesc dst_type, void *to, int n,
                               ColorTransfer *tfunc,

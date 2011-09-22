@@ -360,7 +360,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     if (tempname == in_filename) {
 #if (BOOST_VERSION >= 103700)
         tempname = out_filename + ".tmp" 
-                    + boost::filesystem::path(out_filename).extension();
+                    + boost::filesystem::path(out_filename).extension().string();
 #else
         tempname = out_filename + ".tmp" 
                     + boost::filesystem::extension(out_filename);

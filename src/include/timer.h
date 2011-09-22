@@ -129,7 +129,7 @@ public:
             r += diff (n, m_starttime);
             m_starttime = n;
         }
-        return m_elapsed;
+        return r;
     }
 
     /// Operator () returns the elapsed time so far, including both the

@@ -121,9 +121,11 @@ if (OPENEXR_HOME)
     ${OPENEXR_HOME}/lib64)
   if (OPENEXR_VERSION)
     set (OpenEXR_include_paths
-      ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/include)
+      ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/include
+      ${OPENEXR_HOME}/include/openexr-${OPENEXR_VERSION})
     list (APPEND OpenEXR_library_paths
-      ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/lib)
+      ${OPENEXR_HOME}/openexr-${OPENEXR_VERSION}/lib
+      ${OPENEXR_HOME}/lib/openexr-${OPENEXR_VERSION})
   endif()
   list (APPEND OpenEXR_include_paths ${OPENEXR_HOME}/include)
   if (OPENEXR_LIB_AREA)

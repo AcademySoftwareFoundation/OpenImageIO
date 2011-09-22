@@ -111,6 +111,7 @@ static bool embed_hash = false; // Ignored.
 static bool prman_metadata = false;
 static bool constant_color_detect = false;
 static bool monochrome_detect = false;
+static bool opaque_detect = false;
 static int nchannels = -1;
 static bool prman = false;
 static bool oiio = false;
@@ -220,6 +221,7 @@ getargs (int argc, char *argv[])
                   "--prman-metadata", &prman_metadata, "Add prman specific metadata",
                   "--constant-color-detect", &constant_color_detect, "Create 1-tile textures from constant color inputs",
                   "--monochrome-detect", &monochrome_detect, "Create 1-channel textures from monochrome inputs",
+                  "--opaque-detect", &opaque_detect, "Drop alpha channel that is always 1.0",
                   "--stats", &stats, "Print runtime statistics",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
 //FIXME           "-debugdso"
@@ -700,8 +702,21 @@ make_texturemap (const char *maptypename = "texture map")
         }
     }
     
+    // If requested -- and alpha is 1.0 everywhere -- drop it.
+    if (opaque_detect && src.spec().alpha_channel == src.nchannels()-1 &&
+          nchannels < 0 &&
+          ImageBufAlgo::isConstantChannel(src,src.spec().alpha_channel,1.0f)) {
+        ImageBuf newsrc(src.name() + ".noalpha", src.spec());
+        ImageBufAlgo::setNumChannels (newsrc, src, src.nchannels()-1);
+        src = newsrc;
+        if (verbose) {
+            std::cout << "  Alpha==1 image detected. Dropping the alpha channel.\n";
+        }
+    }
+
     // If requested - and we're a monochrome image - drop the extra channels
-    if (monochrome_detect && (src.nchannels() > 1) && ImageBufAlgo::isMonochrome(src)) {
+    if (monochrome_detect && (src.nchannels() > 1) && nchannels < 0 &&
+            ImageBufAlgo::isMonochrome(src)) {
         ImageBuf newsrc(src.name() + ".monochrome", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, 1);
         src = newsrc;
@@ -709,9 +724,10 @@ make_texturemap (const char *maptypename = "texture map")
             std::cout << "  Monochrome image detected. Converting to single channel texture.\n";
         }
     }
-    // Or, if we've otherwise explicitly requested to write out a
+
+    // If we've otherwise explicitly requested to write out a
     // specific number of channels, do it.
-    else if ((nchannels > 0) && (nchannels != src.nchannels())) {
+    if ((nchannels > 0) && (nchannels != src.nchannels())) {
         ImageBuf newsrc(src.name() + ".channels", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, nchannels);
         src = newsrc;
