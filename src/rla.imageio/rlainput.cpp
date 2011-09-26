@@ -129,9 +129,7 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
     
     // set a bogus subimage index so that seek_subimage actually seeks
     m_subimage = 1;
-    seek_subimage (0, 0, newspec);
-    
-    return true;
+    return seek_subimage (0, 0, newspec);
 }
 
 
@@ -210,6 +208,10 @@ RLAInput::read_header ()
         swap_endian (&m_rla.NumOfAuxBits);
         swap_endian (&m_rla.NextOffset);
     }
+
+    if (m_rla.Revision != (SHORT)0xFFFE)
+        return false;   // unknown file revision
+
     // load the scanline offset table
     m_sot.clear ();
     m_sot.resize (std::abs (m_rla.ActiveBottom - m_rla.ActiveTop) + 1);
@@ -280,8 +282,13 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                              std::max (m_rla.NumOfMatteBits * (m_rla.NumOfMatteChannels > 0 ? 1 : 0),
                                        m_rla.NumOfAuxBits * (m_rla.NumOfAuxChannels > 0 ? 1 : 0)))
                    + 7) / 8;
+    int nchannels = m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels
+                                             + m_rla.NumOfAuxChannels;
     TypeDesc maxtype = (maxbytes == 4) ? TypeDesc::UINT32
                      : (maxbytes == 2 ? TypeDesc::UINT16 : TypeDesc::UINT8);
+    if (nchannels < 1 || nchannels > 16 ||
+        (maxbytes != 1 && maxbytes != 2 && maxbytes != 4))
+        return false;   // failed sanity check
     m_spec = ImageSpec (m_rla.ActiveRight - m_rla.ActiveLeft + 1,
                         (m_rla.ActiveTop - m_rla.ActiveBottom + 1)
                             / (m_rla.FieldRendered ? 2 : 1), // interlaced image?
