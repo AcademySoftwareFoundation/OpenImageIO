@@ -16,7 +16,7 @@ import runtest
 # Start off
 command = "echo hi> out.txt"
 
-imagedir = "../../../oiio-testimages"
+imagedir = "../../../oiio-images"
 
 # List of images to test
 files = [ "ginsu_a_nc10.rla", "ginsu_a_ncf.rla", "ginsu_rgba_nc8.rla", \

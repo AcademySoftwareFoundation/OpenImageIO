@@ -424,8 +424,8 @@ def is_auto_stride_test():
     # we'll give it real image format data
     spec1 = oiio.ImageSpec()
     spec2 = oiio.ImageSpec()
-    inp = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
-    inp.open("../../../oiio-testimages/tahoe-gps.jpg", spec1)
+    inp = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
+    inp.open("../../../oiio-images/tahoe-gps.jpg", spec1)
         
     try:
         oiio.ImageSpec.auto_stride(spec1.format, spec1.nchannels, spec1.width, spec1.height)

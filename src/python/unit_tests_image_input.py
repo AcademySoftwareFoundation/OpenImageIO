@@ -14,9 +14,9 @@ def ii_create_test():
     print "Running ImageInput::create() tests..."
     spec = oiio.ImageSpec() #this is tested in ImageSpec test
     # test 1
-    pic1 = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic1 = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic1 == None:
-        print "Test 1 failed: check your plugin path and whether you ran the script from <trunk>/src/python. The oiio-testimages folder is supposed to be in the same folder as <trunk>. \n This error will cause all the open_<something> and read_<something> tests to fail."
+        print "Test 1 failed: check your plugin path and whether you ran the script from <trunk>/src/python. The oiio-images folder is supposed to be in the same folder as <trunk>. \n This error will cause all the open_<something> and read_<something> tests to fail."
     else:
         print "Test 1 passed"
     # test 2
@@ -45,14 +45,14 @@ def ii_create_test():
 
 def ii_open_test():
     print "Running ImageInput::open() tests..."
-    pic_o = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_o = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_o == None:
         print "Can't open test image, skipping open() tests"
         print
         return 
     spec_o = oiio.ImageSpec() #this is tested in ImageSpec test
     # test 1
-    if (pic_o.open("../../../oiio-testimages/tahoe-gps.jpg", spec_o)):
+    if (pic_o.open("../../../oiio-images/tahoe-gps.jpg", spec_o)):
         print "Test 1 passed"
     else:
         print "Test 1 failed"
@@ -78,7 +78,7 @@ def ii_open_with_config_test():
     print "Running ImageInput::open() (overload) tests..."
     print "Unimplemented yet"
     print
-    pic_owc = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_owc = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_owc == None:
         print "Can't open test image, skipping open_with_config() tests"
         print
@@ -87,7 +87,7 @@ def ii_open_with_config_test():
 
 def ii_spec_test():
     print "Running ImageInput::spec() tests..."
-    pic_s = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_s = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_s == None:
         print "Can't open test image, skipping spec() tests"
         print
@@ -114,7 +114,7 @@ def ii_spec_test():
 
 def ii_close_test():
     print "Running ImageInput::close() tests..."
-    pic_cl = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_cl = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_cl == None:
         print "Can't open test image, skipping close() tests"
         print
@@ -140,7 +140,7 @@ def ii_close_test():
 
 def ii_current_subimage_test():
     print "Running ImageInput::current_subimage()..."
-    pic_cs = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_cs = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_cs == None:
         print "Can't open test image, skipping read_image() tests"
         print
@@ -159,7 +159,7 @@ def ii_current_subimage_test():
 
 def ii_seek_subimage_test():
     print "Running ImageInput::seek_subimage()..."
-    pic_ss = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_ss = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_ss == None:
         print "Can't open test image, skipping read_image() tests"
         print
@@ -191,14 +191,14 @@ def ii_seek_subimage_test():
 
 def ii_read_image_test():
     print "Running ImageInput::read_image()..."
-    pic_ri = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_ri = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_ri == None:
         print "Can't open test image, skipping read_image() tests"
         print
         return    
     spec_ri = oiio.ImageSpec() #this is tested in ImageSpec test
     desc_ri = spec_ri.format
-    pic_ri.open("../../../oiio-testimages/tahoe-gps.jpg", spec_ri)
+    pic_ri.open("../../../oiio-images/tahoe-gps.jpg", spec_ri)
     
     arr1 = array.array("B", "\0" * spec_ri.image_bytes())
     # test 1
@@ -272,13 +272,13 @@ def ii_read_image_test():
     
 def ii_read_scanline_test():
     print "Starting ImageInput::read_scanline() tests..."
-    pic_rs = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_rs = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_rs == None:
         print "Can't open test image, skipping read_scanline() tests"
         print
         return
     spec_rs = oiio.ImageSpec()
-    pic_rs.open("../../../oiio-testimages/tahoe-gps.jpg", spec_rs)
+    pic_rs.open("../../../oiio-images/tahoe-gps.jpg", spec_rs)
     arr_rs = array.array("B", "\0" * spec_rs.scanline_bytes())
     # test 1
     if (pic_rs.read_scanline(0, 0, spec_rs.format, arr_rs)):
@@ -317,13 +317,13 @@ def ii_read_scanline_simple_test():
     # contains float pixels. The first test segfaults when it tries to read
     # a wrong image.
     print "Starting ImageInput::read_scanline() (overload) tests..."
-    pic_rss = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_rss = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_rss == None:
         print "Can't open test image, skipping read_scanline() (overload) tests"
         print
         return
     spec_rss = oiio.ImageSpec()
-    pic_rss.open("../../../oiio-testimages/tahoe-gps.jpg", spec_rss)
+    pic_rss.open("../../../oiio-images/tahoe-gps.jpg", spec_rss)
     arr_rss = array.array("B", "1234" * spec_rss.scanline_bytes()) # '1234' == sizeof(float)
     # test 1
     if (pic_rss.read_scanline(0, 0, arr_rss)):
@@ -366,13 +366,13 @@ def ii_read_scanline_simple_test():
 
 def ii_read_native_scanline_test():
     print "Starting ImageInput::read_native_scanline() tests..."
-    pic_rns = oiio.ImageInput.create("../../../oiio-testimages/tahoe-gps.jpg", plugin_path)
+    pic_rns = oiio.ImageInput.create("../../../oiio-images/tahoe-gps.jpg", plugin_path)
     if pic_rns == None:
         print "Can't open test image, skipping read_native_scanline() tests"
         print
         return
     spec_rns = oiio.ImageSpec()
-    pic_rns.open("../../../oiio-testimages/tahoe-gps.jpg", spec_rns)
+    pic_rns.open("../../../oiio-images/tahoe-gps.jpg", spec_rns)
     arr_rns = array.array("B", "\0" * spec_rns.scanline_bytes())    
     # test 1
     if (pic_rns.read_native_scanline(0, 0, arr_rns)):

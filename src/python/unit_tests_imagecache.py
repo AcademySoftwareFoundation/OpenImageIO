@@ -177,7 +177,7 @@ def ic_resolve_filename_test():
     print "Starting ImageCache.resolve_filename() tests..."
 
     # test 1    
-    pic_path = "../../../oiio-testimages/tahoe-gps.jpg"
+    pic_path = "../../../oiio-images/tahoe-gps.jpg"
     try:
         cache.resolve_filename(pic_path)
         print "Test 1 passed"
