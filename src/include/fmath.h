@@ -26,6 +26,10 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   (This is the Modified BSD License)
+
+  A few bits here are based upon code from NVIDIA that was also released
+  under the same modified BSD license, and marked as:
+     Copyright 2004 NVIDIA Corporation. All Rights Reserved.
 */
 
 
@@ -552,6 +556,18 @@ private:
 
 
 
+/// Linearly interpolate values v0-v1 at x: v0*(1-x) + v1*x.
+/// This is a template, and so should work for any types.
+template <class T, class Q>
+inline T
+lerp (T v0, T v1, Q x)
+{
+    // NOTE: a*(1-x) + b*x is much more numerically stable than a+x*(b-a)
+    return v0*(Q(1)-x) + v1*x;
+}
+
+
+
 /// Bilinearly interoplate values v0-v3 (v0 upper left, v1 upper right,
 /// v2 lower left, v3 lower right) at coordinates (s,t) and return the
 /// result.  This is a template, and so should work for any types.
@@ -1021,6 +1037,72 @@ safe_acosf (float x) {
     if (x <= -1.0f) return M_PI;
     return std::acos (x);
 }
+
+
+
+
+/// Solve for the x for which func(x) == y on the interval [xmin,xmax].
+/// Use a maximum of maxiter iterations, and stop any time the remaining
+/// search interval or the function evaluations <= eps.  If brack is
+/// non-NULL, set it to true if y is in [f(xmin), f(xmax)], otherwise
+/// false (in which case the caller should know that the results may be
+/// unreliable.  Results are undefined if the function is not monotonic
+/// on that interval or if there are multiple roots in the interval (it
+/// may not converge, or may converge to any of the roots without
+/// telling you that there are more than one).
+template<class T, class Func>
+T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
+          int maxiters=32, T eps=1.0e-6, bool *brack=0)
+{
+    // Use the Regula Falsi method, falling back to bisection if it
+    // hasn't converged after 3/4 of the maximum number of iterations.
+    // See, e.g., Numerical Recipes for the basic ideas behind both
+    // methods.
+    T v0 = func(xmin), v1 = func(xmax);
+    T x = xmin, v = v0;
+    bool increasing = (v0 < v1);
+    T vmin = increasing ? v0 : v1;
+    T vmax = increasing ? v1 : v0;
+    bool bracketed = (y >= vmin && y <= vmax);
+    if (brack)
+        *brack = bracketed;
+    if (! bracketed) {
+        // If our bounds don't bracket the zero, just give up, and
+        // return the approprate "edge" of the interval
+        if (y < vmin)
+            return increasing ? xmin : xmax;
+        else
+            return increasing ? xmax : xmin;
+    }
+    int rfiters = (3*maxiters)/4;   // how many times to try regula falsi
+    for (int iters = 0;  iters < maxiters;  ++iters) {
+        if (iters < rfiters) {
+            // Regula falsi
+            if (fabs(v0-v1) < eps)   // avoid divide by zero
+                return xmin;
+            x = lerp (xmin, xmax, clamp ((y-v0)/(v1-v0), T(0), T(1)));
+            v = func(x);
+            if (fabs(xmax-xmin) < eps || fabs(v-y) < eps)
+                return x;  // converged
+            if ((v < y) == increasing) {
+                xmin = x; v0 = v;
+            } else {
+                xmax = x; v1 = v;
+            }
+        } else {
+            // bisection
+            x = lerp (xmin, xmax, T(0.5));
+            v = func(x);
+            if (fabs(xmax-xmin) < eps || fabs(v-y) < eps)
+                return x;   // converged
+            if ((v < y) == increasing)
+                xmin = x;
+            else xmax = x;
+        }
+    }
+    return x;
+}
+
 
 
 }
