@@ -1076,10 +1076,14 @@ T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
     int rfiters = (3*maxiters)/4;   // how many times to try regula falsi
     for (int iters = 0;  iters < maxiters;  ++iters) {
         T t;  // interpolation factor
-        if (iters < rfiters)
-            t = clamp ((y-v0)/(v1-v0), T(0), T(1));  // Regula falsi
-        else
+        if (iters < rfiters) {
+            // Regula falsi
+            t = (y-v0)/(v1-v0);
+            if (t <= T(0) || t >= T(1))
+                t = T(0.5);  // RF convergence failure -- bisect instead
+        } else {
             t = T(0.5);            // bisection
+        }
         x = lerp (xmin, xmax, t);
         v = func(x);
         if ((v < y) == increasing) {
