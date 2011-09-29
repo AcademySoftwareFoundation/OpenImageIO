@@ -1069,36 +1069,26 @@ T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
     if (! bracketed) {
         // If our bounds don't bracket the zero, just give up, and
         // return the approprate "edge" of the interval
-        if (y < vmin)
-            return increasing ? xmin : xmax;
-        else
-            return increasing ? xmax : xmin;
+        return ((y < vmin) == increasing) ? xmin : xmax;
     }
+    if (fabs(v0-v1) < eps)   // already close enough
+        return x;
     int rfiters = (3*maxiters)/4;   // how many times to try regula falsi
     for (int iters = 0;  iters < maxiters;  ++iters) {
-        if (iters < rfiters) {
-            // Regula falsi
-            if (fabs(v0-v1) < eps)   // avoid divide by zero
-                return xmin;
-            x = lerp (xmin, xmax, clamp ((y-v0)/(v1-v0), T(0), T(1)));
-            v = func(x);
-            if (fabs(xmax-xmin) < eps || fabs(v-y) < eps)
-                return x;  // converged
-            if ((v < y) == increasing) {
-                xmin = x; v0 = v;
-            } else {
-                xmax = x; v1 = v;
-            }
+        T t;  // interpolation factor
+        if (iters < rfiters)
+            t = clamp ((y-v0)/(v1-v0), T(0), T(1));  // Regula falsi
+        else
+            t = T(0.5);            // bisection
+        x = lerp (xmin, xmax, t);
+        v = func(x);
+        if ((v < y) == increasing) {
+            xmin = x; v0 = v;
         } else {
-            // bisection
-            x = lerp (xmin, xmax, T(0.5));
-            v = func(x);
-            if (fabs(xmax-xmin) < eps || fabs(v-y) < eps)
-                return x;   // converged
-            if ((v < y) == increasing)
-                xmin = x;
-            else xmax = x;
+            xmax = x; v1 = v;
         }
+        if (fabs(xmax-xmin) < eps || fabs(v-y) < eps)
+            return x;   // converged
     }
     return x;
 }
