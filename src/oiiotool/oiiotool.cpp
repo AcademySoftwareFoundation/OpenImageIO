@@ -128,16 +128,13 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot, ImageOutput *out)
     std::string dataformatname;
 
     if (ot.output_dataformatname.empty()) {
-        if (! out->supports_data_format(spec.get_format_name()))
+        if (out->supports_data_format(spec.get_format_name()))
+            dataformatname = spec.get_format_name();
+        else
             dataformatname = out->get_default_data_format();
     }
     else {
-        if (out->supports_data_format(ot.output_dataformatname))
-            dataformatname = ot.output_dataformatname;
-        else {
-            std::cerr << "oiiotool ERROR: '" << ot.output_dataformatname << "' format not supported by '" << out->format_name() << "'" << std::endl;
-            return false;
-        }
+        dataformatname = ot.output_dataformatname;
     
 #if 0
         // FIXME -- eventually restore this for "copy" functionality
@@ -145,6 +142,15 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot, ImageOutput *out)
 //            nocopy = true;
 #endif
         spec.channelformats.clear ();
+    }
+    
+    if (dataformatname.empty()) {
+        std::cerr << "oiiotool ERROR: '" << out->format_name() << "' does not support the input data type (" << spec.get_format_name() << ") and does not specify a default format" << std::endl;
+        return false;
+    }
+    else if (! out->supports_data_format(dataformatname)) {
+        std::cerr << "oiiotool ERROR: '" << dataformatname << "' format not supported by '" << out->format_name() << "'" << std::endl;
+        return false;
     }
 
     if (dataformatname == "uint8")
@@ -163,6 +169,14 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot, ImageOutput *out)
         spec.set_format (TypeDesc::UINT16);
     else if (dataformatname == "int16")
         spec.set_format (TypeDesc::INT16);
+    else if (dataformatname == "uint32")
+        spec.set_format (TypeDesc::UINT32);
+    else if (dataformatname == "int32")
+        spec.set_format (TypeDesc::INT32);
+    else if (dataformatname == "uint64")
+        spec.set_format (TypeDesc::UINT64);
+    else if (dataformatname == "int64")
+        spec.set_format (TypeDesc::INT64);
     else if (dataformatname == "half")
         spec.set_format (TypeDesc::HALF);
     else if (dataformatname == "float")
