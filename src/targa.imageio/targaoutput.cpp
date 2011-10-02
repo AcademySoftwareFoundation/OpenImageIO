@@ -154,7 +154,7 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     // Force 8 bit integers
-    if (m_spec.format != TypeDesc::UINT16)
+    if (m_spec.format != TypeDesc::UINT8)
         m_spec.set_format (TypeDesc::UINT8);
 
     // check if the client wants the image to be run length encoded
