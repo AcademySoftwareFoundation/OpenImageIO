@@ -948,6 +948,8 @@ protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.
     void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    
+    void stash_spec(ImageSpec newspec);
 
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file

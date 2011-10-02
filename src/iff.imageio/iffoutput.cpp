@@ -95,7 +95,7 @@ IffOutput::open (const std::string &name, const ImageSpec &spec,
     close ();  // Close any already-opened file
     // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec = spec;
+    stash_spec(spec);
 
     // tiles
     m_spec.tile_width = tile_width();

@@ -126,7 +126,7 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     close ();  // Close any already-opened file
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     m_file = fopen (name.c_str(), "wb");
     if (! m_file) {

@@ -41,6 +41,7 @@
 
 #include "imageio.h"
 #include "imagebuf.h"
+#include "imagebufalgo.h"
 #include "imagecache.h"
 #include "dassert.h"
 #include "strutil.h"
@@ -276,8 +277,31 @@ ImageBuf::write (ImageOutput *out,
                  ProgressCallback progress_callback,
                  void *progress_callback_data) const
 {
-    stride_t as = AutoStride;
     bool ok = true;
+    
+    // If ImageOutput does not support data windows, then a new image buffer
+    // should be created here that has m_spec's full_width/height and that should
+    // be passed through.
+    if (!out->supports ("datawindow") &&
+            (m_spec.x != m_spec.full_x ||
+             m_spec.y != m_spec.full_y ||
+             m_spec.z != m_spec.full_z ||
+             m_spec.width != m_spec.full_width ||
+             m_spec.height != m_spec.full_height ||
+             m_spec.depth != m_spec.full_depth)) {
+        ImageBuf newBuf;
+
+        ok = ImageBufAlgo::crop(newBuf, *this, 0, m_spec.full_width, 0, m_spec.full_height, ImageBufAlgo::CROP_CUT);
+        if (! ok)
+            return ok;
+        
+        ok = newBuf.write(out, progress_callback, progress_callback_data);
+        if (! ok)
+            m_err = newBuf.geterror();
+        return ok;
+    }
+
+    stride_t as = AutoStride;
     if (m_localpixels) {
         ok = out->write_image (m_spec.format, &m_pixels[0], as, as, as,
                                progress_callback, progress_callback_data);
