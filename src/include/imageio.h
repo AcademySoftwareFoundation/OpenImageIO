@@ -790,7 +790,7 @@ public:
     
     // Returns the default data format for the plugin/format, to be used if
     // the input one is not supported
-    virtual std::string get_default_data_format() const { return "uint8"; }
+    virtual std::string get_default_data_format() const { return ""; }
 
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
 
