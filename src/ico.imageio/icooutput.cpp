@@ -56,6 +56,8 @@ public:
     virtual ~ICOOutput ();
     virtual const char * format_name (void) const { return "ico"; }
     virtual bool supports (const std::string &feature) const;
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint8"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -134,6 +136,15 @@ ICOOutput::~ICOOutput ()
 }
 
 
+bool
+ICOOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+
+    return false;
+}
+
 
 bool
 ICOOutput::open (const std::string &name, const ImageSpec &userspec,
@@ -145,7 +156,7 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     close ();  // Close any already-opened file
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {

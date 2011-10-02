@@ -55,6 +55,8 @@ public:
         // Support nothing nonstandard
         return false;
     }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint10"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -123,6 +125,21 @@ DPXOutput::~DPXOutput ()
 }
 
 
+bool
+DPXOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+    else if (format == "uint10")
+        return true;
+    else if (format == "uint12")
+        return true;
+    else if (format == "uint16")
+        return true;
+
+    return false;
+}
+
 
 bool
 DPXOutput::open (const std::string &name, const ImageSpec &userspec,
@@ -135,7 +152,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         return false;
     }
 
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     // open the image
     m_stream = new OutStream();

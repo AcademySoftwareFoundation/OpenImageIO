@@ -65,6 +65,8 @@ public:
     virtual ~TIFFOutput ();
     virtual const char * format_name (void) const { return "tiff"; }
     virtual bool supports (const std::string &feature) const;
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "float"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -143,6 +145,27 @@ TIFFOutput::supports (const std::string &feature) const
 }
 
 
+bool
+TIFFOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "int8")
+        return true;
+    else if (format == "uint8")
+        return true;
+    else if (format == "int16")
+        return true;
+    else if (format == "uint16")
+        return true;
+    else if (format == "half")
+        return true;
+    else if (format == "float")
+        return true;
+    else if (format == "double")
+        return true;
+
+    return false;
+}
+
 
 bool
 TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
@@ -154,7 +177,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     close ();  // Close any already-opened file
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {

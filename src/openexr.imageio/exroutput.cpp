@@ -70,6 +70,8 @@ public:
     virtual ~OpenEXROutput ();
     virtual const char * format_name (void) const { return "openexr"; }
     virtual bool supports (const std::string &feature) const;
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "half"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -174,6 +176,8 @@ OpenEXROutput::supports (const std::string &feature) const
         return true;
     if (feature == "channelformats")
         return true;
+    if (feature == "datawindow")
+        return true;
 
     // EXR supports random write order iff lineOrder is set to 'random Y'
     if (feature == "random_access") {
@@ -188,6 +192,18 @@ OpenEXROutput::supports (const std::string &feature) const
     return false;
 }
 
+bool
+OpenEXROutput::supports_data_format (const std::string &format) const
+{
+    if (format == "half")
+        return true;
+    else if (format == "float")
+        return true;
+    else if (format == "uint32")
+        return true;
+
+    return false;
+}
 
 
 bool
@@ -221,7 +237,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         }
     }
 
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     if (m_spec.width < 1 || m_spec.height < 1) {
         error ("Image resolution must be at least 1x1, you asked for %d x %d",

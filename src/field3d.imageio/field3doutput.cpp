@@ -50,6 +50,7 @@ public:
     virtual ~Field3DOutput ();
     virtual const char * format_name (void) const { return "field3d"; }
     virtual bool supports (const std::string &feature) const;
+    virtual bool supports_data_format (const std::string &format) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool close ();
@@ -127,6 +128,12 @@ Field3DOutput::supports (const std::string &feature) const
     return false;
 }
 
+
+bool
+Field3DOutput::supports_data_format (const std::string &format) const
+{
+    return false;
+}
 
 
 bool

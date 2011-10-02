@@ -182,7 +182,33 @@ ImageSpec::set_format (TypeDesc fmt)
                           quant_min, quant_max);
 }
 
-
+std::string
+ImageSpec::get_format_name ()
+{
+    if (format == TypeDesc::UINT8)
+        return "uint8";
+    else if (format == TypeDesc::INT8)
+        return "int8";
+    else if (format == TypeDesc::UINT16) {
+        int bitsPerSample = get_int_attribute("oiio:BitsPerSample");
+        if (bitsPerSample == 10)
+            return "uint10";
+        else if (bitsPerSample == 12)
+            return "uint12";
+        else
+            return "uint16";
+    }
+    else if (format == TypeDesc::INT16)
+        return "int16";
+    else if (format == TypeDesc::HALF)
+        return "half";
+    else if (format == TypeDesc::FLOAT)
+        return "float";
+    else if (format == TypeDesc::DOUBLE)
+        return "double";
+    
+    return "";
+}
 
 TypeDesc
 ImageSpec::format_from_quantize (int quant_black, int quant_white,

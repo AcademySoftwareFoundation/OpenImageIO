@@ -61,7 +61,7 @@ FitsOutput::open (const std::string &name, const ImageSpec &spec,
 
     // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec = spec;
+    stash_spec(spec);
 
     // checking if the file exists and can be opened in WRITE mode
     m_fd = fopen (m_filename.c_str (), mode == AppendSubimage ? "r+b" : "wb");
@@ -78,6 +78,31 @@ FitsOutput::open (const std::string &name, const ImageSpec &spec,
     return true;
 }
 
+
+bool
+FitsOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "int8")
+        return true;
+    else if (format == "uint8")
+        return true;
+    else if (format == "int16")
+        return true;
+    else if (format == "uint16")
+        return true;
+    else if (format == "int32")
+        return true;
+    else if (format == "uint32")
+        return true;
+    else if (format == "half")
+        return true;
+    else if (format == "float")
+        return true;
+    else if (format == "double")
+        return true;
+
+    return false;
+}
 
 
 bool

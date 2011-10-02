@@ -67,7 +67,7 @@ SocketOutput::open (const std::string &name, const ImageSpec &newspec,
     }
 
     m_next_scanline = 0;
-    m_spec = newspec;
+    stash_spec(newspec);
 
     return true;
 }
@@ -185,6 +185,15 @@ SocketOutput::connect_to_server (const std::string &name)
     }
 
     return true;
+}
+
+bool
+SocketOutput::supports (const std::string &feature) const
+{
+    if (feature == "datawindow")
+        return true;
+    
+    return false;
 }
 
 OIIO_PLUGIN_NAMESPACE_END

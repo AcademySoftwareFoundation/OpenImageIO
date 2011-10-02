@@ -136,6 +136,8 @@ class FitsOutput : public ImageOutput {
     virtual ~FitsOutput () { close (); }
     virtual const char *format_name (void) const { return "fits"; }
     virtual bool supports (const std::string &feature) const;
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "float"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close (void);

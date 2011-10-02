@@ -46,6 +46,17 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 OIIO_PLUGIN_EXPORTS_END
 
 
+bool
+SgiOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+    else if (format == "uint16")
+        return true;
+
+    return false;
+}
+
 
 bool
 SgiOutput::open (const std::string &name, const ImageSpec &spec,
@@ -59,7 +70,7 @@ SgiOutput::open (const std::string &name, const ImageSpec &spec,
     close ();  // Close any already-opened file
     // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec = spec;
+    stash_spec(spec);
 
     m_fd = fopen (m_filename.c_str (), "wb");
     if (!m_fd) {

@@ -45,6 +45,8 @@ class WebpOutput : public ImageOutput
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool supports (const std::string &property) const { return false; }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint8"; }
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
     virtual bool close();
@@ -74,6 +76,15 @@ static int WebpImageWriter(const uint8_t* img_data, size_t data_size,
 }
 
 
+bool
+WebpOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+
+    return false;
+}
+
 
 bool
 WebpOutput::open (const std::string &name, const ImageSpec &spec,
@@ -86,7 +97,7 @@ WebpOutput::open (const std::string &name, const ImageSpec &spec,
 
     // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec = spec;
+    stash_spec(spec);
 
     m_file = fopen (m_filename.c_str (), "wb");
     if (!m_file) {

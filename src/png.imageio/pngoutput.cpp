@@ -55,6 +55,8 @@ public:
         // Support nothing nonstandard
         return false;
     }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint8"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -117,6 +119,17 @@ PNGOutput::~PNGOutput ()
 }
 
 
+bool
+PNGOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+    else if (format == "uint16")
+        return true;
+
+    return false;
+}
+
 
 bool
 PNGOutput::open (const std::string &name, const ImageSpec &userspec,
@@ -128,7 +141,7 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     close ();  // Close any already-opened file
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     m_file = fopen (name.c_str(), "wb");
     if (! m_file) {

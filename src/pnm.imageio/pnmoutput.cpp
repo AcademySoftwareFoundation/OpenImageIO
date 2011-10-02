@@ -43,6 +43,8 @@ public:
         // Support nothing nonstandard
         return false;
     }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint8"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -151,6 +153,15 @@ PNMOutput::~PNMOutput ()
 }
 
 
+bool
+PNMOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+
+    return false;
+}
+
 
 bool
 PNMOutput::open (const std::string &name, const ImageSpec &userspec,
@@ -162,7 +173,7 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     close ();  // Close any already-opened file
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     int bits_per_sample = m_spec.get_int_attribute ("oiio:BitsPerSample", 8);
 

@@ -57,10 +57,9 @@ public:
     RLAOutput ();
     virtual ~RLAOutput ();
     virtual const char * format_name (void) const { return "rla"; }
-    virtual bool supports (const std::string &feature) const {
-        // Support nothing nonstandard
-        return false;
-    }
+    virtual bool supports (const std::string &feature) const;
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint8"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -130,6 +129,29 @@ RLAOutput::~RLAOutput ()
 }
 
 
+bool
+RLAOutput::supports (const std::string &feature) const
+{
+    if (feature == "datawindow")
+        return true;
+
+    return false;
+}
+
+
+bool
+RLAOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+    else if (format == "uint16")
+        return true;
+    else if (format == "float")
+        return true;
+
+    return false;
+}
+
 
 bool
 RLAOutput::open (const std::string &name, const ImageSpec &userspec,
@@ -141,7 +163,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     close ();  // Close any already-opened file
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     m_file = fopen (name.c_str(), "wb");
     if (! m_file) {
