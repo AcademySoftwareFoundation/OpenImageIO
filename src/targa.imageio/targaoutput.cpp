@@ -56,6 +56,8 @@ public:
         // Support nothing nonstandard
         return false;
     }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint8"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -114,6 +116,15 @@ TGAOutput::~TGAOutput ()
     close ();
 }
 
+
+bool
+TGAOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+
+    return false;
+}
 
 
 bool

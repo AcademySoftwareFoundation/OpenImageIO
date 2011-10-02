@@ -46,6 +46,17 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 OIIO_PLUGIN_EXPORTS_END
 
 
+bool
+SgiOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+    else if (format == "uint16")
+        return true;
+
+    return false;
+}
+
 
 bool
 SgiOutput::open (const std::string &name, const ImageSpec &spec,

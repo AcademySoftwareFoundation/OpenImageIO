@@ -70,6 +70,8 @@ public:
     virtual ~OpenEXROutput ();
     virtual const char * format_name (void) const { return "openexr"; }
     virtual bool supports (const std::string &feature) const;
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "half"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -190,6 +192,18 @@ OpenEXROutput::supports (const std::string &feature) const
     return false;
 }
 
+bool
+OpenEXROutput::supports_data_format (const std::string &format) const
+{
+    if (format == "half")
+        return true;
+    else if (format == "float")
+        return true;
+    else if (format == "uint32")
+        return true;
+
+    return false;
+}
 
 
 bool

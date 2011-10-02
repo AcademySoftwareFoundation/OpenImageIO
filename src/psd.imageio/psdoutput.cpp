@@ -44,6 +44,8 @@ public:
         // Support nothing nonstandard
         return false;
     }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return ""; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -86,6 +88,12 @@ PSDOutput::~PSDOutput ()
     close ();
 }
 
+
+bool
+PSDOutput::supports_data_format (const std::string &format) const
+{
+    return false;
+}
 
 
 bool

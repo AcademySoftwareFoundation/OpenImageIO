@@ -45,6 +45,8 @@ class HdrOutput : public ImageOutput {
     virtual ~HdrOutput () { close(); }
     virtual const char * format_name (void) const { return "hdr"; }
     virtual bool supports (const std::string &property) const { return false; }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "float"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool write_scanline (int y, int z, TypeDesc format,
@@ -69,6 +71,16 @@ OIIO_PLUGIN_EXPORTS_BEGIN
     };
 
 OIIO_PLUGIN_EXPORTS_END
+
+
+bool
+HdrOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "float")
+        return true;
+
+    return false;
+}
 
 
 bool

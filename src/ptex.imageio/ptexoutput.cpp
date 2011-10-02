@@ -43,6 +43,8 @@ public:
     virtual ~PtexOutput ();
     virtual const char * format_name (void) const { return "ptex"; }
     virtual bool supports (const std::string &feature) const;
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return ""; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        ImageOutput::OpenMode mode);
     virtual bool close ();
@@ -102,6 +104,12 @@ PtexOutput::supports (const std::string &feature) const
     return false;
 }
 
+
+bool
+PtexOutput::supports_data_format (const std::string &format) const
+{
+    return false;
+}
 
 
 bool

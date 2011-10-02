@@ -51,6 +51,7 @@ public:
         // Support nothing nonstandard
         return false;
     }
+    virtual bool supports_data_format (const std::string &format) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode);
     virtual bool close ();
@@ -99,6 +100,11 @@ DDSOutput::~DDSOutput ()
     close ();
 }
 
+bool
+DDSOutput::supports_data_format (const std::string &format) const
+{
+    return false;
+}
 
 
 bool
