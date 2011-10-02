@@ -122,32 +122,23 @@ input_file (int argc, const char *argv[])
 
 
 
-static void
-adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
+static bool
+adjust_output_options (ImageSpec &spec, const Oiiotool &ot, ImageOutput *out)
 {
-    if (! ot.output_dataformatname.empty()) {
-        if (ot.output_dataformatname == "uint8")
-            spec.set_format (TypeDesc::UINT8);
-        else if (ot.output_dataformatname == "int8")
-            spec.set_format (TypeDesc::INT8);
-        else if (ot.output_dataformatname == "uint10") {
-            spec.attribute ("oiio:BitsPerSample", 10);
-            spec.set_format (TypeDesc::UINT16);
+    std::string dataformatname;
+
+    if (ot.output_dataformatname.empty()) {
+        if (! out->supports_data_format(spec.get_format_name()))
+            dataformatname = out->get_default_data_format();
+    }
+    else {
+        if (out->supports_data_format(ot.output_dataformatname))
+            dataformatname = ot.output_dataformatname;
+        else {
+            std::cerr << "oiiotool ERROR: '" << ot.output_dataformatname << "' format not supported by '" << out->format_name() << "'" << std::endl;
+            return false;
         }
-        else if (ot.output_dataformatname == "uint12") {
-            spec.attribute ("oiio:BitsPerSample", 12);
-            spec.set_format (TypeDesc::UINT16);
-        }
-        else if (ot.output_dataformatname == "uint16")
-            spec.set_format (TypeDesc::UINT16);
-        else if (ot.output_dataformatname == "int16")
-            spec.set_format (TypeDesc::INT16);
-        else if (ot.output_dataformatname == "half")
-            spec.set_format (TypeDesc::HALF);
-        else if (ot.output_dataformatname == "float")
-            spec.set_format (TypeDesc::FLOAT);
-        else if (ot.output_dataformatname == "double")
-            spec.set_format (TypeDesc::DOUBLE);
+    
 #if 0
         // FIXME -- eventually restore this for "copy" functionality
 //        if (spec.format != inspec.format || inspec.channelformats.size())
@@ -155,6 +146,29 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
 #endif
         spec.channelformats.clear ();
     }
+
+    if (dataformatname == "uint8")
+        spec.set_format (TypeDesc::UINT8);
+    else if (dataformatname == "int8")
+        spec.set_format (TypeDesc::INT8);
+    else if (dataformatname == "uint10") {
+        spec.attribute ("oiio:BitsPerSample", 10);
+        spec.set_format (TypeDesc::UINT16);
+    }
+    else if (dataformatname == "uint12") {
+        spec.attribute ("oiio:BitsPerSample", 12);
+        spec.set_format (TypeDesc::UINT16);
+    }
+    else if (dataformatname == "uint16")
+        spec.set_format (TypeDesc::UINT16);
+    else if (dataformatname == "int16")
+        spec.set_format (TypeDesc::INT16);
+    else if (dataformatname == "half")
+        spec.set_format (TypeDesc::HALF);
+    else if (dataformatname == "float")
+        spec.set_format (TypeDesc::FLOAT);
+    else if (dataformatname == "double")
+        spec.set_format (TypeDesc::DOUBLE);
 
     if (ot.output_scanline)
         spec.tile_width = spec.tile_height = 0;
@@ -171,6 +185,8 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
     if (ot.output_planarconfig == "contig" ||
         ot.output_planarconfig == "separate")
         spec.attribute ("planarconfig", ot.output_planarconfig);
+    
+    return true;
 }
 
 
@@ -226,7 +242,8 @@ output_file (int argc, const char *argv[])
     for (int s = 0, send = ir.subimages();  s < send;  ++s) {
         for (int m = 0, mend = ir.miplevels(s);  m < mend;  ++m) {
             ImageSpec spec = *ir.spec(s,m);
-            adjust_output_options (spec, ot);
+            if (! adjust_output_options (spec, ot, out))
+                return 0;
             if (! out->open (filename, spec, mode)) {
                 std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
                 return 0;
