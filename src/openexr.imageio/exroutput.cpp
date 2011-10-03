@@ -174,6 +174,8 @@ OpenEXROutput::supports (const std::string &feature) const
         return true;
     if (feature == "channelformats")
         return true;
+    if (feature == "datawindow")
+        return true;
 
     // EXR supports random write order iff lineOrder is set to 'random Y'
     if (feature == "random_access") {
@@ -221,7 +223,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         }
     }
 
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     if (m_spec.width < 1 || m_spec.height < 1) {
         error ("Image resolution must be at least 1x1, you asked for %d x %d",

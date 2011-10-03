@@ -110,7 +110,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
 
     // Save name and spec for later use
     m_filename = name;
-    m_spec = newspec;
+    stash_spec(newspec);
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {

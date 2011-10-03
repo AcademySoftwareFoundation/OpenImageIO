@@ -135,7 +135,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         return false;
     }
 
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     // open the image
     m_stream = new OutStream();

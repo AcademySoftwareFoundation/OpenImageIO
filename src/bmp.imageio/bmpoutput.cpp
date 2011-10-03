@@ -63,7 +63,7 @@ BmpOutput::open (const std::string &name, const ImageSpec &spec,
 
     // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec = spec;
+    stash_spec(spec);
 
     // TODO: Figure out what to do with nchannels.
 

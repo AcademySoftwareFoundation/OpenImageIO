@@ -768,6 +768,8 @@ public:
     ///                       indicate that the entire data block is zero?
     ///    "channelformats" Does the plugin/format support per-channel
     ///                       data formats?
+    ///    "datawindow"     Does the plugin/format support data windows that
+    ///                       differ from their display window?
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows
@@ -948,6 +950,8 @@ protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.
     void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    
+    void stash_spec(ImageSpec newspec);
 
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
