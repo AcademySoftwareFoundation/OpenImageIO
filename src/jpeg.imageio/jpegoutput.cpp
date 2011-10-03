@@ -60,6 +60,8 @@ class JpgOutput : public ImageOutput {
     virtual ~JpgOutput () { close(); }
     virtual const char * format_name (void) const { return "jpeg"; }
     virtual bool supports (const std::string &property) const { return false; }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint8"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool write_scanline (int y, int z, TypeDesc format,
@@ -97,6 +99,15 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_PLUGIN_EXPORTS_END
 
+
+bool
+JpgOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+
+    return false;
+}
 
 
 bool
