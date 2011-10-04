@@ -701,7 +701,11 @@ ImageViewer::updateRecentFilesMenu ()
     for (size_t i = 0;  i < MaxRecentFiles;  ++i) {
         if (i < m_recent_files.size()) {
             boost::filesystem::path fn (m_recent_files[i]);
+#if (BOOST_FILESYSTEM_VERSION == 3) && defined (BOOST_WINDOWS_API)
+            openRecentAct[i]->setText (QString::fromStdString (fn.filename().string()));
+#else
             openRecentAct[i]->setText (fn.filename().c_str());
+#endif
             openRecentAct[i]->setData (m_recent_files[i].c_str());
             openRecentAct[i]->setVisible (true);
         } else {
