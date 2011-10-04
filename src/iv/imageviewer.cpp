@@ -701,7 +701,7 @@ ImageViewer::updateRecentFilesMenu ()
     for (size_t i = 0;  i < MaxRecentFiles;  ++i) {
         if (i < m_recent_files.size()) {
             boost::filesystem::path fn (m_recent_files[i]);
-            openRecentAct[i]->setText (fn.leaf().c_str());
+            openRecentAct[i]->setText (fn.filename().c_str());
             openRecentAct[i]->setData (m_recent_files[i].c_str());
             openRecentAct[i]->setVisible (true);
         } else {
@@ -1352,11 +1352,11 @@ static bool
 compName (IvImage *first, IvImage *second)
 {
 #if BOOST_FILESYSTEM_VERSION == 3
-    std::string firstFile = boost::filesystem3::path(first->name()).leaf().string();
-    std::string secondFile = boost::filesystem3::path(second->name()).leaf().string();
+    std::string firstFile = boost::filesystem3::path (first->name()).filename().string();
+    std::string secondFile = boost::filesystem3::path (second->name()).filename().string();
 #else
-    std::string firstFile = boost::filesystem::path(first->name()).leaf();
-    std::string secondFile = boost::filesystem::path(second->name()).leaf();
+    std::string firstFile = boost::filesystem::path (first->name()).filename();
+    std::string secondFile = boost::filesystem::path (second->name()).filename();
 #endif
     
     return (firstFile.compare(secondFile) < 0);

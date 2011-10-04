@@ -235,7 +235,7 @@ Filesystem::is_regular (const std::string &path)
 {
     bool r = false;
     try {
-        r = boost::filesystem::is_regular (path);
+        r = boost::filesystem::is_regular_file (path);
     } catch (const std::exception &e) {
         r = false;
     }

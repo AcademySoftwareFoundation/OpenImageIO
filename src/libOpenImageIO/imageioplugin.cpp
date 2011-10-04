@@ -286,9 +286,9 @@ catalog_all_plugins (std::string searchpath)
               itr != end_itr;  ++itr) {
             std::string full_filename = itr->path().string();
 #if BOOST_FILESYSTEM_VERSION == 3
-            std::string leaf = itr->path().leaf().string();
+            std::string leaf = itr->path().filename().string();
 #else
-            std::string leaf = itr->path().leaf();
+            std::string leaf = itr->path().filename();
 #endif
             size_t found = leaf.find (pattern);
             if (found != std::string::npos &&
@@ -312,7 +312,11 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
     }
 
     // Extract the file extension from the filename
-    std::string format = boost::filesystem::extension (filename);
+#if BOOST_FILESYSTEM_VERSION == 3
+    std::string format = boost::filesystem::path (filename).extension().string();
+#else
+    std::string format = boost::filesystem::path (filename).extension();
+#endif
     if (format.empty()) {
         // If the file had no extension, maybe it was itself the format name
         format = filename;
@@ -360,7 +364,11 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
     }
 
     // Extract the file extension from the filename
-    std::string format = boost::filesystem::extension (filename);
+#if BOOST_FILESYSTEM_VERSION == 3
+    std::string format = boost::filesystem::path (filename).extension().string();
+#else
+    std::string format = boost::filesystem::path (filename).extension();
+#endif
     if (format.empty()) {
         // If the file had no extension, maybe it was itself the format name
         format = filename;
