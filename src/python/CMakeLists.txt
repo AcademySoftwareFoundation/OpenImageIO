@@ -1,6 +1,6 @@
 if (NOT BOOST_CUSTOM)
     find_package (PythonLibs ${PYTHON_VERSION} REQUIRED)
-    find_package (Boost 1.34 REQUIRED COMPONENTS filesystem program_options regex system thread python)
+    find_package (Boost 1.34 REQUIRED COMPONENTS python)
 endif ()
 
 if (APPLE)
