@@ -140,6 +140,8 @@ class SgiOutput : public ImageOutput {
     virtual ~SgiOutput () { }
     virtual const char *format_name (void) const { return "sgi"; }
     virtual bool supports (const std::string &feature) const { return false; }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint8"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close (void);

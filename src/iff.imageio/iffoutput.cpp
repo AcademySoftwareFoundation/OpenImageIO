@@ -60,6 +60,17 @@ IffOutput::supports (const std::string &feature) const
 }
 
 
+bool
+IffOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+    else if (format == "uint16")
+        return true;
+
+    return false;
+}
+
 
 bool 
 IffOutput::open (const std::string &name, const ImageSpec &spec,

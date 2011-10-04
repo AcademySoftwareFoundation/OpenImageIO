@@ -175,6 +175,10 @@ public:
     /// Set the data format, and as a side effect set quantize
     /// to good defaults for that format
     void set_format (TypeDesc fmt);
+    
+    /// Get the format as a string, representing both the format, and any
+    /// bitsPerSample attribute
+    std::string get_format_name();
 
     /// Set the channelnames to reasonable defaults ("R", "G", "B", "A"),
     /// and alpha_channel, based on the number of channels.
@@ -775,6 +779,16 @@ public:
     /// the API, adding new entry points, or breaking linkage
     /// compatibility.
     virtual bool supports (const std::string & /*feature*/) const { return false; }
+
+    /// Override this function to specify which data formats are supported by the
+    /// plugin/format supports
+    
+    // Defaults to returning true to provide backward compatibility
+    virtual bool supports_data_format (const std::string &format) const { return true; }
+    
+    // Returns the default data format for the plugin/format, to be used if
+    // the input one is not supported
+    virtual std::string get_default_data_format() const { return ""; }
 
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
 

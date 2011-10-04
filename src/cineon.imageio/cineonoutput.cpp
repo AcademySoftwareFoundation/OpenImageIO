@@ -48,6 +48,8 @@ public:
         // Support nothing nonstandard
         return false;
     }
+    virtual bool supports_data_format (const std::string &format) const;
+    virtual std::string get_default_data_format () const { return "uint10"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        ImageOutput::OpenMode mode);
     virtual bool close ();
@@ -92,6 +94,21 @@ CineonOutput::~CineonOutput ()
     close ();
 }
 
+
+bool
+CineonOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "uint8")
+        return true;
+    else if (format == "uint10")
+        return true;
+    else if (format == "uint12")
+        return true;
+    else if (format == "uint16")
+        return true;
+
+    return false;
+}
 
 
 bool

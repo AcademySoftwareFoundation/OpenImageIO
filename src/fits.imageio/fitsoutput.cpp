@@ -79,6 +79,31 @@ FitsOutput::open (const std::string &name, const ImageSpec &spec,
 }
 
 
+bool
+FitsOutput::supports_data_format (const std::string &format) const
+{
+    if (format == "int8")
+        return true;
+    else if (format == "uint8")
+        return true;
+    else if (format == "int16")
+        return true;
+    else if (format == "uint16")
+        return true;
+    else if (format == "int32")
+        return true;
+    else if (format == "uint32")
+        return true;
+    else if (format == "half")
+        return true;
+    else if (format == "float")
+        return true;
+    else if (format == "double")
+        return true;
+
+    return false;
+}
+
 
 bool
 FitsOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
