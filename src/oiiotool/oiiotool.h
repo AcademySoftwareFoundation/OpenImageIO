@@ -133,7 +133,7 @@ private:
 
 
 
-struct ImageRec {
+class ImageRec {
 public:
     ImageRec (const std::string &name, ImageCache *imagecache)
         : m_name(name), m_elaborated(false),
