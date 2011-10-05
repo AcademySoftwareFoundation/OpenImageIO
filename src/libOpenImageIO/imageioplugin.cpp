@@ -285,11 +285,7 @@ catalog_all_plugins (std::string searchpath)
         for (boost::filesystem::directory_iterator itr (dir);
               itr != end_itr;  ++itr) {
             std::string full_filename = itr->path().string();
-#if BOOST_FILESYSTEM_VERSION == 3
-            std::string leaf = itr->path().filename().string();
-#else
-            std::string leaf = itr->path().filename();
-#endif
+            std::string leaf = Filesystem::filename (full_filename);
             size_t found = leaf.find (pattern);
             if (found != std::string::npos &&
                 (found == leaf.length() - patlen)) {

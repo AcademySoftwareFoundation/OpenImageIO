@@ -269,3 +269,7 @@ add_test (unit_strutil ${CMAKE_BINARY_DIR}/libOpenImageIO/strutil_test)
 add_executable (fmath_test fmath_test.cpp)
 target_link_libraries (fmath_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (unit_fmath ${CMAKE_BINARY_DIR}/libOpenImageIO/fmath_test)
+
+add_executable (filesystem_test filesystem_test.cpp)
+target_link_libraries (filesystem_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_filesystem ${CMAKE_BINARY_DIR}/libOpenImageIO/filesystem_test)

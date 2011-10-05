@@ -45,34 +45,33 @@
 OIIO_NAMESPACE_ENTER
 {
 
-#if 0
 
-// Return just the leaf file name (excluding directories) of a
-// potentially full file path name.
 std::string
-Filesystem::file_leafname (const std::string &filepath)
+Filesystem::filename (const std::string &filepath)
 {
-    const char *lastslash = strrchr (filepath.c_str(), '/');
-    return lastslash ? (lastslash+1) : "";
-}
-
-
-
-// Return just the directory part of the filepath.
-//
-std::string
-Filesystem::file_directory (const std::string &filepath)
-{
-}
-
-
+    // To simplify dealing with platform-specific separators and whatnot,
+    // just use the Boost routines:
+#if BOOST_FILESYSTEM_VERSION == 3
+    return boost::filesystem::path(filepath).filename().string();
+#else
+    return boost::filesystem::path(filepath).filename();
 #endif
+}
 
 
 
+std::string
+Filesystem::extension (const std::string &filepath)
+{
+#if BOOST_FILESYSTEM_VERSION == 3
+    return boost::filesystem::path(filepath).extension().string();
+#else
+    return boost::filesystem::path(filepath).extension();
+#endif
+}
 
-/// Return the file extension (just the part after the last '.') of a 
-/// filename.
+
+
 std::string
 Filesystem::file_extension (const std::string &filepath)
 {
