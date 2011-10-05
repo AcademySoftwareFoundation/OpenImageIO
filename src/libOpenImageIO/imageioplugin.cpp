@@ -311,18 +311,11 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
         return NULL;
     }
 
-    // Extract the file extension from the filename
-#if BOOST_FILESYSTEM_VERSION == 3
-    std::string format = boost::filesystem::path (filename).extension().string();
-#else
-    std::string format = boost::filesystem::path (filename).extension();
-#endif
+    // Extract the file extension from the filename (without the leading dot)
+    std::string format = Filesystem::file_extension (filename);
     if (format.empty()) {
         // If the file had no extension, maybe it was itself the format name
         format = filename;
-    } else {
-        if (format[0] == '.')
-            format.erase (format.begin());  // Erase leading dot
     }
 
     recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
@@ -363,18 +356,11 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
         return NULL;
     }
 
-    // Extract the file extension from the filename
-#if BOOST_FILESYSTEM_VERSION == 3
-    std::string format = boost::filesystem::path (filename).extension().string();
-#else
-    std::string format = boost::filesystem::path (filename).extension();
-#endif
+    // Extract the file extension from the filename (without the leading dot)
+    std::string format = Filesystem::file_extension (filename);
     if (format.empty()) {
         // If the file had no extension, maybe it was itself the format name
         format = filename;
-    } else {
-        if (format[0] == '.')
-            format.erase (format.begin());  // Erase leading dot
     }
 
     recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety

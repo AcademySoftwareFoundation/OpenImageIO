@@ -600,11 +600,7 @@ make_texturemap (const char *maptypename = "texture map")
         exit (EXIT_FAILURE);
     }
     if (outputfilename.empty()) {
-#if BOOST_FILESYSTEM_VERSION == 3
-        std::string ext = boost::filesystem::path (filenames[0]).extension().string();
-#else
-        std::string ext = boost::filesystem::path (filenames[0]).extension();
-#endif
+        const std::string ext = Filesystem::file_extension (filenames[0]);
         int notextlen = (int) filenames[0].length() - (int) ext.length();
         outputfilename = std::string (filenames[0].begin(),
                                       filenames[0].begin() + notextlen);
