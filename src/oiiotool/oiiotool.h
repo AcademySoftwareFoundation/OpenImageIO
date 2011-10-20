@@ -57,13 +57,15 @@ struct Oiiotool {
     int threads;
     
     // Output options
-    std::string output_dataformatname;
+    TypeDesc output_dataformat;
+    int output_bitspersample;
     bool output_scanline;
     int output_tilewidth, output_tileheight;
     std::string output_compression;
     int output_quality;
     std::string output_planarconfig;
     bool output_adjust_time;
+    bool output_autocrop;
 
     // Options for --diff
     float diff_warnthresh;
@@ -87,10 +89,11 @@ struct Oiiotool {
         : verbose(false), noclobber(false), allsubimages(false),
           printinfo(false), printstats(false), updatemode(false),
           threads(0),
+          output_dataformat(TypeDesc::UNKNOWN), output_bitspersample(0),
           output_scanline(false), output_tilewidth(0), output_tileheight(0),
           output_compression(""), output_quality(-1),
           output_planarconfig("default"),
-          output_adjust_time(false),
+          output_adjust_time(false), output_autocrop(true),
           diff_warnthresh(1.0e-6), diff_warnpercent(0),
           diff_hardwarn(std::numeric_limits<float>::max()),
           diff_failthresh(1.0e-6), diff_failpercent(0),
@@ -101,6 +104,10 @@ struct Oiiotool {
     {
     }
 
+    // Force img to be read at this point.
+    void read (ImageRecRef img);
+    // Read the current image
+    void read () { read (curimg); }
 };
 
 
@@ -243,12 +250,21 @@ bool print_info (const std::string &filename,
                  long long &totalsize, std::string &error);
 
 
+// Modify the resolution and/or offset according to what's in geom.
+// Valid geometries are WxH (resolution), +X+Y (offsets), WxH+X+Y
+// (resolution and offset).  If 'allow_scaling' is true, geometries of
+// S% (e.g. "50%") or just S (e.g., "1.2") will be accepted to scale the
+// existing width and height (rounding to the nearest whole number of
+// pixels.
+bool adjust_geometry (int &w, int &h, int &x, int &y, const char *geom,
+                      bool allow_scaling=false);
+
 // Set an attribute of the given image.  The type should be one of
 // TypeDesc::INT (decode the value as an int), FLOAT, STRING, or UNKNOWN
 // (look at the string and try to discern whether it's an int, float, or
 // string).  If the 'value' string is empty, it will delete the
 // attribute.
-bool set_attribute (ImageRec &img, const std::string &attribname,
+bool set_attribute (ImageRecRef img, const std::string &attribname,
                     TypeDesc type, const std::string &value);
 
 inline bool same_size (const ImageBuf &A, const ImageBuf &B)

@@ -652,6 +652,11 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 \noindent\begin{tabular}{p{1.75in}|p{0.5in}|p{3.0in}}
 \ImageSpec Attribute & Type & RLA header data or explanation \\
 \hline
+{\cf width}, {\cf height}, {\cf x}, {\cf y} & & RLA ``active/viewable'' window. \\
+& & \\
+{\cf\small full_width}, {\cf\small full_height}, {\cf\small full_x}, 
+  {\cf\small full_y} & & RLA ``full'' window.  \\
+& & \\
 \qkw{rla:FrameNumber} & int & frame sequence number. \\
 \qkw{rla:Revision} & int & file format revision number, currently
   \qkw{0xFFFE}. \\

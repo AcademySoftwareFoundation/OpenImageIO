@@ -335,7 +335,17 @@ public:
     ///
     int zmax () const { return spec().z + std::max(spec().depth,1) - 1; }
 
+    /// Set the "full" (a.k.a. display) window to [xbegin,xend) x
+    /// [ybegin,yend) x [zbegin,zend).  If bordercolor is not NULL, also
+    /// set the spec's "oiio:bordercolor" attribute.
+    void set_full (int xbegin, int xend, int ybegin, int yend,
+                   int zbegin, int zend, const float *bordercolor);
+
     bool pixels_valid (void) const { return m_pixels_valid; }
+
+    TypeDesc pixeltype () const {
+        return m_localpixels ? m_spec.format : m_cachedpixeltype;
+    }
 
     bool localpixels () const { return m_localpixels; }
     ImageCache *imagecache () const { return m_imagecache; }

@@ -174,6 +174,8 @@ OpenEXROutput::supports (const std::string &feature) const
         return true;
     if (feature == "channelformats")
         return true;
+    if (feature == "displaywindow")
+        return true;
 
     // EXR supports random write order iff lineOrder is set to 'random Y'
     if (feature == "random_access") {

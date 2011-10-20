@@ -57,10 +57,7 @@ public:
     RLAOutput ();
     virtual ~RLAOutput ();
     virtual const char * format_name (void) const { return "rla"; }
-    virtual bool supports (const std::string &feature) const {
-        // Support nothing nonstandard
-        return false;
-    }
+    virtual bool supports (const std::string &feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -127,6 +124,17 @@ RLAOutput::~RLAOutput ()
 {
     // Close, if not already done.
     close ();
+}
+
+
+
+bool
+RLAOutput::supports (const std::string &feature) const
+{
+    if (feature == "displaywindow")
+        return true;
+    // Support nothing else nonstandard
+    return false;
 }
 
 

@@ -111,7 +111,7 @@ void ImageBuf_zero_fill ()
 
 
 // Test ImageBuf::crop
-void crop_cut ()
+void test_crop ()
 {
     int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
     // Crop region we'll work with
@@ -129,216 +129,20 @@ void crop_cut ()
     ImageBufAlgo::fill (A, arbitrary1);
 
     // Test CUT crop
-    ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
-                        ImageBufAlgo::CROP_CUT);
-    // Should have changed the data window (origin and width/height)
-    OIIO_CHECK_EQUAL (B.spec().x, 0);
-    OIIO_CHECK_EQUAL (B.spec().width, xend-xbegin);
-    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_width, xend-xbegin);
-    OIIO_CHECK_EQUAL (B.spec().y, 0);
-    OIIO_CHECK_EQUAL (B.spec().height, yend-ybegin);
-    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_height, yend-ybegin);
-    float *pixel = ALLOCA(float, CHANNELS);
-    for (int j = 0;  j < B.spec().height;  ++j) {
-        for (int i = 0;  i < B.spec().width;  ++i) {
-            B.getpixel (i, j, pixel);
-            // Inside the crop region should match what it always was
-            for (int c = 0;  c < CHANNELS;  ++c)
-                OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
-        }
-    }
-}
+    ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend);
 
-
-
-void crop_window ()
-{
-    int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
-    // Crop region we'll work with
-    int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
-    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    spec.alpha_channel = 3;
-    ImageBuf A, B;
-    A.reset ("A", spec);
-    B.reset ("B", spec);
-    float arbitrary1[4];
-    arbitrary1[0] = 0.2;
-    arbitrary1[1] = 0.3;
-    arbitrary1[2] = 0.4;
-    arbitrary1[3] = 0.5;
-    ImageBufAlgo::fill (A, arbitrary1);
-
-    // Test WINDOW crop
-    ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
-                        ImageBufAlgo::CROP_WINDOW);
     // Should have changed the data window (origin and width/height)
     OIIO_CHECK_EQUAL (B.spec().x, xbegin);
     OIIO_CHECK_EQUAL (B.spec().width, xend-xbegin);
-    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_width, WIDTH);
     OIIO_CHECK_EQUAL (B.spec().y, ybegin);
     OIIO_CHECK_EQUAL (B.spec().height, yend-ybegin);
-    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_height, HEIGHT);
     float *pixel = ALLOCA(float, CHANNELS);
-    for (int j = ybegin;  j < yend;  ++j) {
-        for (int i = xbegin;  i < xend;  ++i) {
-            B.getpixel (i, j, pixel);
+    for (int j = 0;  j < B.spec().height;  ++j) {
+        for (int i = 0;  i < B.spec().width;  ++i) {
+            B.getpixel (i+B.xbegin(), j+B.ybegin(), pixel);
             // Inside the crop region should match what it always was
             for (int c = 0;  c < CHANNELS;  ++c)
                 OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
-        }
-    }
-}
-
-
-
-void crop_black ()
-{
-    int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
-    // Crop region we'll work with
-    int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
-    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    spec.alpha_channel = 3;
-    ImageBuf A, B;
-    A.reset ("A", spec);
-    B.reset ("B", spec);
-    float arbitrary1[4];
-    arbitrary1[0] = 0.2;
-    arbitrary1[1] = 0.3;
-    arbitrary1[2] = 0.4;
-    arbitrary1[3] = 0.5;
-    ImageBufAlgo::fill (A, arbitrary1);
-
-    // Test BLACK crop
-    ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
-                        ImageBufAlgo::CROP_BLACK);
-    // Should be full size
-    OIIO_CHECK_EQUAL (B.spec().x, 0);
-    OIIO_CHECK_EQUAL (B.spec().width, WIDTH);
-    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_width, WIDTH);
-    OIIO_CHECK_EQUAL (B.spec().y, 0);
-    OIIO_CHECK_EQUAL (B.spec().height, HEIGHT);
-    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_height, HEIGHT);
-    float *pixel = ALLOCA(float, CHANNELS);
-    for (int j = 0;  j < HEIGHT;  ++j) {
-        for (int i = 0;  i < WIDTH;  ++i) {
-            B.getpixel (i, j, pixel);
-            if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
-                // Inside the crop region should match what it always was
-                for (int c = 0;  c < CHANNELS;  ++c)
-                    OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
-            } else {
-                // Outside the crop region should be black
-                OIIO_CHECK_EQUAL (pixel[0], 0);
-                OIIO_CHECK_EQUAL (pixel[1], 0);
-                OIIO_CHECK_EQUAL (pixel[2], 0);
-                OIIO_CHECK_EQUAL (pixel[3], 1);
-            }
-        }
-    }
-}
-
-
-
-void crop_white ()
-{
-    int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
-    // Crop region we'll work with
-    int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
-    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    spec.alpha_channel = 3;
-    ImageBuf A, B;
-    A.reset ("A", spec);
-    B.reset ("B", spec);
-    float arbitrary1[4];
-    arbitrary1[0] = 0.2;
-    arbitrary1[1] = 0.3;
-    arbitrary1[2] = 0.4;
-    arbitrary1[3] = 0.5;
-    ImageBufAlgo::fill (A, arbitrary1);
-
-    // Test WHITE crop
-    ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
-                        ImageBufAlgo::CROP_WHITE);
-    // Should be full size
-    OIIO_CHECK_EQUAL (B.spec().x, 0);
-    OIIO_CHECK_EQUAL (B.spec().width, WIDTH);
-    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_width, WIDTH);
-    OIIO_CHECK_EQUAL (B.spec().y, 0);
-    OIIO_CHECK_EQUAL (B.spec().height, HEIGHT);
-    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_height, HEIGHT);
-    float *pixel = ALLOCA(float, CHANNELS);
-    for (int j = 0;  j < HEIGHT;  ++j) {
-        for (int i = 0;  i < WIDTH;  ++i) {
-            B.getpixel (i, j, pixel);
-            if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
-                // Inside the crop region should match what it always was
-                for (int c = 0;  c < CHANNELS;  ++c)
-                    OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
-            } else {
-                // Outside the crop region should be black
-                OIIO_CHECK_EQUAL (pixel[0], 1);
-                OIIO_CHECK_EQUAL (pixel[1], 1);
-                OIIO_CHECK_EQUAL (pixel[2], 1);
-                OIIO_CHECK_EQUAL (pixel[3], 1);
-            }
-        }
-    }
-}
-
-
-
-void crop_trans ()
-{
-    int WIDTH = 8, HEIGHT = 6, CHANNELS = 4;
-    // Crop region we'll work with
-    int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
-    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
-    spec.alpha_channel = 3;
-    ImageBuf A, B;
-    A.reset ("A", spec);
-    B.reset ("B", spec);
-    float arbitrary1[4];
-    arbitrary1[0] = 0.2;
-    arbitrary1[1] = 0.3;
-    arbitrary1[2] = 0.4;
-    arbitrary1[3] = 0.5;
-    ImageBufAlgo::fill (A, arbitrary1);
-
-    // Test TRANS crop
-    ImageBufAlgo::crop (B, A, xbegin, xend, ybegin, yend,
-                        ImageBufAlgo::CROP_TRANS);
-    // Should be ful size
-    OIIO_CHECK_EQUAL (B.spec().x, 0);
-    OIIO_CHECK_EQUAL (B.spec().width, WIDTH);
-    OIIO_CHECK_EQUAL (B.spec().full_x, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_width, WIDTH);
-    OIIO_CHECK_EQUAL (B.spec().y, 0);
-    OIIO_CHECK_EQUAL (B.spec().height, HEIGHT);
-    OIIO_CHECK_EQUAL (B.spec().full_y, 0);
-    OIIO_CHECK_EQUAL (B.spec().full_height, HEIGHT);
-    float *pixel = ALLOCA(float, CHANNELS);
-    for (int j = 0;  j < HEIGHT;  ++j) {
-        for (int i = 0;  i < WIDTH;  ++i) {
-            B.getpixel (i, j, pixel);
-            if (j >= ybegin && j < yend && i >= xbegin && i < xend) {
-                // Inside the crop region should match what it always was
-                for (int c = 0;  c < CHANNELS;  ++c)
-                    OIIO_CHECK_EQUAL (pixel[c], arbitrary1[c]);
-            } else {
-                // Outside the crop region should be black
-                OIIO_CHECK_EQUAL (pixel[0], 0);
-                OIIO_CHECK_EQUAL (pixel[1], 0);
-                OIIO_CHECK_EQUAL (pixel[2], 0);
-                OIIO_CHECK_EQUAL (pixel[3], 0);
-            }
         }
     }
 }
@@ -795,11 +599,7 @@ int
 main (int argc, char **argv)
 {
     ImageBuf_zero_fill ();
-    crop_cut ();
-    crop_window ();
-    crop_black ();
-    crop_white ();
-    crop_trans ();
+    test_crop ();
     ImageBuf_add ();
     ColourTransferLinear ();
     ColourTransferGamma22 ();

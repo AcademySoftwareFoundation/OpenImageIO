@@ -768,6 +768,8 @@ public:
     ///                       indicate that the entire data block is zero?
     ///    "channelformats" Does the plugin/format support per-channel
     ///                       data formats?
+    ///    "displaywindow"  Does the format support display ("full") windows
+    ///                        distinct from the pixel data window?
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows

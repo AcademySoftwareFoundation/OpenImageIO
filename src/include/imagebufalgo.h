@@ -102,6 +102,19 @@ bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t
 
 bool DLLPUBLIC setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
 
+
+/// Make dst be a cropped copy of src, but with the new pixel data
+/// window range [xbegin..xend) x [ybegin..yend).  Source pixel data
+/// falling outside this range will not be transferred to dst.  If
+/// the new pixel range extends beyond that of the source image, those
+/// new pixels will get the color specified by bordercolor[0..nchans-1],
+/// or with black/zero values if bordercolor is NULL.
+bool DLLPUBLIC crop (ImageBuf &dst, const ImageBuf &src,
+                     int xbegin, int xend, int ybegin, int yend,
+                     const float *bordercolor=NULL);
+
+
+
 /// Add the pixels of two images A and B, putting the sum in dst.
 /// The 'options' flag controls behaviors, particular of what happens
 /// when A, B, and dst have differing data windows.  Note that dst must
@@ -119,26 +132,6 @@ enum DLLPUBLIC AddOptions
     ADD_CLEAR_DST = 0,      ///< Default: clear all the dst pixels first
     ADD_RETAIN_WINDOWS = 2, ///< Honor the existing windows
     ADD_ALIGN_WINDOWS = 0,  ///< Default: align the windows before adding
-};
-
-
-
-/// Copy a crop window of src to dst.  The crop region is bounded by
-/// [xbegin..xend) X [ybegin..yend), with the pixels affected including
-/// begin but not including the end pixel (just like STL ranges).  The
-/// cropping can be done one of several ways, specified by the options
-/// parameter, one of: CROP_CUT, CROP_WINDOW, CROP_BLACK, CROP_WHITE,
-/// CROP_TRANS.
-bool DLLPUBLIC crop (ImageBuf &dst, const ImageBuf &src,
-           int xbegin, int xend, int ybegin, int yend, int options);
-
-enum DLLPUBLIC CropOptions 
-{
-    CROP_CUT, 	  ///< cut out a pixel region to make a new image at the origin
-    CROP_WINDOW,  ///< reduce the pixel data window, keep in the same position
-    CROP_BLACK,	  ///< color to black all the pixels outside of the bounds
-    CROP_WHITE,	  ///< color to white all the pixels outside of the bounds
-    CROP_TRANS	  ///< make all pixels out of bounds transparent (zero)
 };
 
 
