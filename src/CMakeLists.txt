@@ -243,7 +243,7 @@ oiio_add_tests (openexr-suite openexr-multires openexr-chroma
 
 oiio_add_tests (jpeg2000
     IMAGEDIR j2kp4files_v1_5
-    URL http://www.crc.ricoh.com/~gormish/jpeg2000conformance/)
+    URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
 
 oiio_add_tests (targa-tgautils
     IMAGEDIR TGAUTILS
