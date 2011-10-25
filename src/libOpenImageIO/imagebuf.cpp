@@ -92,6 +92,7 @@ ImageBuf::clear ()
     m_current_subimage = -1;
     m_current_miplevel = -1;
     m_spec = ImageSpec ();
+    m_nativespec = ImageSpec ();
     {
         std::vector<char> tmp;
         std::swap (m_pixels, tmp);  // clear it with deallocation
@@ -153,6 +154,7 @@ void
 ImageBuf::alloc (const ImageSpec &spec)
 {
     m_spec = spec;
+    m_nativespec = spec;
     m_spec_valid = true;
     realloc ();
 }
@@ -180,6 +182,7 @@ ImageBuf::init_spec (const std::string &filename, int subimage, int miplevel)
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_miplevels,
                                   TypeDesc::TypeInt, &m_nmiplevels);
     m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel);
+    m_imagecache->get_imagespec (m_name, m_nativespec, subimage, miplevel, true);
     if (m_nsubimages) {
         m_badfile = false;
         m_spec_valid = true;
@@ -217,7 +220,8 @@ ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
     }
 
     // Set our current spec to the requested subimage
-    if (! m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel)) {
+    if (! m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel) ||
+        ! m_imagecache->get_imagespec (m_name, m_nativespec, subimage, miplevel, true)) {
         m_err = m_imagecache->geterror ();
         return false;
     }
