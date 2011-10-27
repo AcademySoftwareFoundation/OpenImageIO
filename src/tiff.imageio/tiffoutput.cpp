@@ -135,6 +135,8 @@ TIFFOutput::supports (const std::string &feature) const
         return true;
     if (feature == "multiimage")
         return true;
+    if (feature == "datawindow")
+        return true;
 
     // FIXME: we could support "volumes" and "empty"
 
@@ -154,7 +156,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     close ();  // Close any already-opened file
-    m_spec = userspec;  // Stash the spec
+    stash_spec(userspec);
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {

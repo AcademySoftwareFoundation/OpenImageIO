@@ -81,7 +81,7 @@ HdrOutput::open (const std::string &name, const ImageSpec &newspec,
     }
 
     // Save spec for later use
-    m_spec = newspec;
+    stash_spec(newspec);
 
     // Check for things HDR can't support
     if (m_spec.nchannels != 3) {

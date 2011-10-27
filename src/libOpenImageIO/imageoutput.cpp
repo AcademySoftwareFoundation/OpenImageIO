@@ -327,6 +327,20 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
                        m_spec.format);
 }
 
+void
+ImageOutput::stash_spec(ImageSpec newspec)
+{
+    m_spec = newspec;
+
+    if ( !supports("datawindow")) {
+        m_spec.width = m_spec.full_width;
+        m_spec.height = m_spec.full_height;
+        m_spec.depth = m_spec.full_depth;
+        m_spec.x = m_spec.full_x;
+        m_spec.y = m_spec.full_y;
+        m_spec.z = m_spec.full_z;
+    }
+}
 
 
 bool

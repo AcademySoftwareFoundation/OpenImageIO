@@ -86,7 +86,7 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
     }
 
     // saving 'name' and 'spec' for later use
-    m_spec = spec;
+    stash_spec(spec);
     m_filename = name;
 
     // check for things that this format doesn't support

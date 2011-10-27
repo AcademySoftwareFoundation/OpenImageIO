@@ -86,7 +86,7 @@ WebpOutput::open (const std::string &name, const ImageSpec &spec,
 
     // saving 'name' and 'spec' for later use
     m_filename = name;
-    m_spec = spec;
+    stash_spec(spec);
 
     m_file = fopen (m_filename.c_str (), "wb");
     if (!m_file) {
