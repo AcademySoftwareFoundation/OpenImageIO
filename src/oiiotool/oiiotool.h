@@ -45,8 +45,8 @@ typedef shared_ptr<ImageRec> ImageRecRef;
 
 
 
-struct Oiiotool {
-
+class Oiiotool {
+public:
     // General options
     bool verbose;
     bool noclobber;
@@ -81,10 +81,6 @@ struct Oiiotool {
     ImageCache *imagecache;                  // back ptr to ImageCache
     int return_value;                        // oiiotool command return code
 
-    CallbackFunction pending_callback;
-    int pending_argc;
-    const char *pending_argv[4];
-
     Oiiotool ()
         : verbose(false), noclobber(false), allsubimages(false),
           printinfo(false), printstats(false), updatemode(false),
@@ -100,7 +96,7 @@ struct Oiiotool {
           diff_hardfail(std::numeric_limits<float>::max()),
           imagecache(NULL),
           return_value (EXIT_SUCCESS),
-          pending_callback(NULL), pending_argc(0)
+          m_pending_callback(NULL), m_pending_argc(0)
     {
     }
 
@@ -108,6 +104,23 @@ struct Oiiotool {
     void read (ImageRecRef img);
     // Read the current image
     void read () { read (curimg); }
+
+    // If required_images are not yet on the stack, then postpone this
+    // call by putting it on the 'pending' list and return true.
+    // Otherwise (if enough images are on the stack), return false.
+    bool postpone_callback (int required_images, CallbackFunction func,
+                            int argc, const char *argv[]);
+
+    // Process any pending commands.
+    void process_pending ();
+
+    CallbackFunction pending_callback () const { return m_pending_callback; }
+    const char *pending_callback_name () const { return m_pending_argv[0]; }
+
+private:
+    CallbackFunction m_pending_callback;
+    int m_pending_argc;
+    const char *m_pending_argv[4];
 };
 
 

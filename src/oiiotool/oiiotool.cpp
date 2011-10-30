@@ -98,20 +98,38 @@ Oiiotool::read (ImageRecRef img)
 
 
 
-static void
-process_pending ()
+bool
+Oiiotool::postpone_callback (int required_images, CallbackFunction func,
+                             int argc, const char *argv[])
+{
+    if (((curimg ? 1 : 0) + (int)image_stack.size()) < required_images) {
+        // Not enough have inputs been specified so far, so put this
+        // function on the "pending" list.
+        m_pending_callback = func;
+        m_pending_argc = argc;
+        for (int i = 0;  i < argc;  ++i)
+            m_pending_argv[i] = ustring(argv[i]).c_str();
+        return true;
+    }
+    return false;
+}
+
+
+
+void
+Oiiotool::process_pending ()
 {
     // Process any pending command -- this is a case where the
     // command line had prefix 'oiiotool --action file1 file2'
     // instead of infix 'oiiotool file1 --action file2'.
-    if (ot.pending_callback) {
-        int argc = ot.pending_argc;
+    if (m_pending_callback) {
+        int argc = m_pending_argc;
         const char *argv[4];
         for (int i = 0;  i < argc;  ++i)
-            argv[i] = ot.pending_argv[i];
-        CallbackFunction callback = ot.pending_callback;
-        ot.pending_callback = NULL;
-        ot.pending_argc = 0;
+            argv[i] = m_pending_argv[i];
+        CallbackFunction callback = m_pending_callback;
+        m_pending_callback = NULL;
+        m_pending_argc = 0;
         (*callback) (argc, argv);
     }
 }
@@ -138,7 +156,7 @@ input_file (int argc, const char *argv[])
             std::string error;
             OiioTool::print_info (argv[i], pio, totalsize, error);
         }
-        process_pending ();
+        ot.process_pending ();
     }
     return 0;
 }
@@ -608,15 +626,8 @@ rotate_orientation (int argc, const char *argv[])
 static int
 set_fullsize (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = set_fullsize;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argv[1] = argv[1];
-        ot.pending_argc = 2;
+    if (ot.postpone_callback (1, set_fullsize, argc, argv))
         return 0;
-    }
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -641,15 +652,8 @@ set_fullsize (int argc, const char *argv[])
 static int
 set_full_to_pixels (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = set_fullsize;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argv[1] = argv[1];
-        ot.pending_argc = 2;
+    if (ot.postpone_callback (1, set_full_to_pixels, argc, argv))
         return 0;
-    }
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -678,14 +682,8 @@ output_tiles (int argc, const char *argv[])
 static int
 action_unmip (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // No image has been specified so far, maybe the argument will
-        // come next?  Put it on the "pending" list.
-        ot.pending_callback = action_unmip;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_unmip, argc, argv))
         return 0;
-    }
 
     ot.read ();
     bool mipmapped = false;
@@ -705,15 +703,8 @@ action_unmip (int argc, const char *argv[])
 static int
 action_select_subimage (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // No image has been specified so far, maybe the argument will
-        // come next?  Put it on the "pending" list.
-        ot.pending_callback = action_select_subimage;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argv[1] = argv[1];
-        ot.pending_argc = 2;
+    if (ot.postpone_callback (1, action_select_subimage, argc, argv))
         return 0;
-    }
 
     ot.read ();
     if (ot.curimg->subimages() == 1)
@@ -729,14 +720,8 @@ action_select_subimage (int argc, const char *argv[])
 static int
 action_diff (int argc, const char *argv[])
 {
-    if (! ot.curimg.get() || ot.image_stack.size() == 0) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_diff;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (2, action_diff, argc, argv))
         return 0;
-    }
 
     int ret = do_action_diff (*ot.image_stack.back(), *ot.curimg, ot);
     if (ret != DiffErrOK && ret != DiffErrWarn)
@@ -749,14 +734,8 @@ action_diff (int argc, const char *argv[])
 static int
 action_add (int argc, const char *argv[])
 {
-    if (! ot.curimg.get() || ot.image_stack.size() == 0) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_add;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (2, action_add, argc, argv))
         return 0;
-    }
 
     ImageRecRef A = ot.image_stack.back();
     ot.image_stack.resize (ot.image_stack.size()-1);
@@ -791,14 +770,8 @@ action_add (int argc, const char *argv[])
 static int
 action_sub (int argc, const char *argv[])
 {
-    if (! ot.curimg.get() || ot.image_stack.size() == 0) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_sub;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (2, action_sub, argc, argv))
         return 0;
-    }
 
     ImageRecRef A = ot.image_stack.back();
     ot.image_stack.resize (ot.image_stack.size()-1);
@@ -842,14 +815,8 @@ action_sub (int argc, const char *argv[])
 static int
 action_abs (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_abs;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_abs, argc, argv))
         return 0;
-    }
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -881,14 +848,8 @@ action_abs (int argc, const char *argv[])
 static int
 action_flip (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_abs;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_flip, argc, argv))
         return 0;
-    }
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -922,14 +883,8 @@ action_flip (int argc, const char *argv[])
 static int
 action_flop (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_abs;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_flop, argc, argv))
         return 0;
-    }
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -963,14 +918,8 @@ action_flop (int argc, const char *argv[])
 static int
 action_flipflop (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_abs;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_flipflop, argc, argv))
         return 0;
-    }
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -1028,15 +977,8 @@ action_create (int argc, const char *argv[])
 static int
 action_crop (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_crop;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argv[1] = argv[1];
-        ot.pending_argc = 2;
+    if (ot.postpone_callback (1, action_crop, argc, argv))
         return 0;
-    }
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -1068,15 +1010,8 @@ action_crop (int argc, const char *argv[])
 int
 action_croptofull (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_croptofull;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argv[1] = argv[1];
-        ot.pending_argc = 2;
+    if (ot.postpone_callback (1, action_croptofull, argc, argv))
         return 0;
-    }
 
     ot.read ();
     ImageRecRef A = ot.curimg;
@@ -1095,15 +1030,8 @@ action_croptofull (int argc, const char *argv[])
 static int
 action_resize (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_resize;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argv[1] = argv[1];
-        ot.pending_argc = 2;
+    if (ot.postpone_callback (1, action_resize, argc, argv))
         return 0;
-    }
 
     std::string filtername;
     std::string cmd = argv[0];
@@ -1279,9 +1207,9 @@ main (int argc, char *argv[])
 #endif
 
     getargs (argc, argv);
-    process_pending ();
-    if (ot.pending_callback) {
-        std::cout << "oiiotool WARNING: pending '" << ot.pending_argv[0]
+    ot.process_pending ();
+    if (ot.pending_callback()) {
+        std::cout << "oiiotool WARNING: pending '" << ot.pending_callback_name()
                   << "' command never executed.\n";
     }
 
