@@ -538,6 +538,7 @@ public:
     private:
         lock_guard(); // Do not implement (even though TBB does)
         lock_guard(const lock_guard& other); // Do not implement
+        lock_guard& operator = (const lock_guard& other); // Do not implement
         spin_mutex & m_fm;
     };
 
@@ -618,6 +619,7 @@ public:
     private:
         read_lock_guard(); // Do not implement
         read_lock_guard(const read_lock_guard& other); // Do not implement
+        read_lock_guard& operator = (const read_lock_guard& other); // Do not implement
         spin_rw_mutex & m_fm;
     };
 
@@ -630,6 +632,7 @@ public:
     private:
         write_lock_guard(); // Do not implement
         write_lock_guard(const write_lock_guard& other); // Do not implement
+        write_lock_guard& operator = (const write_lock_guard& other); // Do not implement
         spin_rw_mutex & m_fm;
     };
 

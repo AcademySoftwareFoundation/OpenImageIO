@@ -348,7 +348,7 @@ OiioTool::set_attribute (ImageRec &img, const std::string &attribname,
     // Does it seem to be a float, or did the caller explicitly request
     // that it be set as a float?
     p = NULL;
-    float f = strtod (value.c_str(), &p);
+    float f = (float)strtod (value.c_str(), &p);
     while (*p && isspace(*p))
         ++p;
     if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::FLOAT) {
@@ -514,7 +514,7 @@ rotate_orientation (int argc, const char *argv[])
 
 
 static int
-output_tiles (int argc, const char *argv[])
+output_tiles (int, const char *[])
 {
     // the ArgParse will have set the tile size, but we need this routine
     // to clear the scanline flag
@@ -525,7 +525,7 @@ output_tiles (int argc, const char *argv[])
 
 
 static int
-action_unmip (int argc, const char *argv[])
+action_unmip (int, const char *argv[])
 {
     if (! ot.curimg.get()) {
         // No image has been specified so far, maybe the argument will
@@ -552,7 +552,7 @@ action_unmip (int argc, const char *argv[])
 
 
 static int
-action_select_subimage (int argc, const char *argv[])
+action_select_subimage (int, const char *argv[])
 {
     if (! ot.curimg.get()) {
         // No image has been specified so far, maybe the argument will
@@ -576,7 +576,7 @@ action_select_subimage (int argc, const char *argv[])
 
 
 static int
-action_diff (int argc, const char *argv[])
+action_diff (int, const char *argv[])
 {
     if (! ot.curimg.get() || ot.image_stack.size() == 0) {
         // Not enough have inputs been specified so far, so put this
@@ -596,7 +596,7 @@ action_diff (int argc, const char *argv[])
 
 
 static int
-action_add (int argc, const char *argv[])
+action_add (int, const char *argv[])
 {
     if (! ot.curimg.get() || ot.image_stack.size() == 0) {
         // Not enough have inputs been specified so far, so put this
@@ -638,7 +638,7 @@ action_add (int argc, const char *argv[])
 
 
 static int
-action_sub (int argc, const char *argv[])
+action_sub (int, const char *argv[])
 {
     if (! ot.curimg.get() || ot.image_stack.size() == 0) {
         // Not enough have inputs been specified so far, so put this
@@ -689,7 +689,7 @@ action_sub (int argc, const char *argv[])
 
 
 static int
-action_abs (int argc, const char *argv[])
+action_abs (int, const char *argv[])
 {
     if (! ot.curimg.get()) {
         // Not enough have inputs been specified so far, so put this
@@ -728,7 +728,7 @@ action_abs (int argc, const char *argv[])
 
 
 static int
-action_flip (int argc, const char *argv[])
+action_flip (int, const char *argv[])
 {
     if (! ot.curimg.get()) {
         // Not enough have inputs been specified so far, so put this
@@ -769,7 +769,7 @@ action_flip (int argc, const char *argv[])
 
 
 static int
-action_flop (int argc, const char *argv[])
+action_flop (int, const char *argv[])
 {
     if (! ot.curimg.get()) {
         // Not enough have inputs been specified so far, so put this
@@ -810,7 +810,7 @@ action_flop (int argc, const char *argv[])
 
 
 static int
-action_flipflop (int argc, const char *argv[])
+action_flipflop (int, const char *argv[])
 {
     if (! ot.curimg.get()) {
         // Not enough have inputs been specified so far, so put this
@@ -919,7 +919,7 @@ action_create (int argc, const char *argv[])
 
 
 static int
-action_resize (int argc, const char *argv[])
+action_resize (int, const char *argv[])
 {
     if (! ot.curimg.get()) {
         // Not enough have inputs been specified so far, so put this

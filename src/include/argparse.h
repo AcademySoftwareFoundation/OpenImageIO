@@ -37,6 +37,12 @@
 #ifndef OPENIMAGEIO_ARGPARSE_H
 #define OPENIMAGEIO_ARGPARSE_H
 
+#if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the std::string m_errmessage member of ArgParse below.
+#  pragma warning (disable : 4251)
+#endif
+
 #include <vector>
 
 #include "export.h"

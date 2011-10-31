@@ -498,6 +498,7 @@ struct DataProxy {
     E operator= (E newval) { m_data = convert_type<E,I>(newval); return newval; }
     operator E () const { return convert_type<I,E>(m_data); }
 private:
+    DataProxy& operator = (const DataProxy&); // Do not implement
     I &m_data;
 };
 
@@ -853,12 +854,12 @@ roundf (float val) {
 
 template<class T>
 inline int isinf (T x) {
-    return (isfinite(x)||isnan(x)) ? 0 : copysign(1.0f, x);
+    return (isfinite(x)||isnan(x)) ? 0 : static_cast<int>(copysign(1.0f, x));
 }
 
 inline float
 log2f (float val) {
-    return logf (val)/M_LN2;
+    return logf (val)/static_cast<float>(M_LN2);
 }
 
 
@@ -1023,8 +1024,8 @@ sincos(double x, double* sine, double* cosine)
 inline float
 safe_asinf (float x)
 {
-    if (x >=  1.0f) return  M_PI/2;
-    if (x <= -1.0f) return -M_PI/2;
+    if (x >=  1.0f) return  static_cast<float>(M_PI)/2;
+    if (x <= -1.0f) return -static_cast<float>(M_PI)/2;
     return std::asin (x);
 }
 
@@ -1034,7 +1035,7 @@ safe_asinf (float x)
 inline float
 safe_acosf (float x) {
     if (x >=  1.0f) return 0.0f;
-    if (x <= -1.0f) return M_PI;
+    if (x <= -1.0f) return static_cast<float>(M_PI);
     return std::acos (x);
 }
 
