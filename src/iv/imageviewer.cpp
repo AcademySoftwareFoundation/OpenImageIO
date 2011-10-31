@@ -118,7 +118,7 @@ ImageViewer::~ImageViewer ()
 
 
 void
-ImageViewer::closeEvent (QCloseEvent *event)
+ImageViewer::closeEvent (QCloseEvent*)
 {
     writeSettings ();
 }

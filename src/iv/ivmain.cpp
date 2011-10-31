@@ -28,6 +28,14 @@
   (This is the Modified BSD License)
 */
 
+#if defined(_MSC_VER)
+// Ignore warnings about conditional expressions that always evaluate true
+// on a given platform but may evaluate differently on another. There's
+// nothing wrong with such conditionals.
+// Also ignore warnings about not being able to generate default assignment
+// operators for some Qt classes included in headers below.
+#  pragma warning (disable : 4127 4512)
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -97,7 +105,11 @@ getargs (int argc, char *argv[])
 /// tie up any shell that it was launched from.  Return true if successful,
 /// false if it was unable to do so.
 static bool
-put_in_background (int argc, char *argv[])
+#if !defined(_MSC_VER)
+put_in_background (int argc, char* argv[])
+#else
+put_in_background (int, char* [])
+#endif
 {
     // You would think that this would be sufficient:
     //   pid_t pid = fork ();

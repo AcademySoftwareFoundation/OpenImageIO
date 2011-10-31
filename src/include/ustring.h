@@ -121,6 +121,15 @@
 #ifndef OPENIMAGEIO_USTRING_H
 #define OPENIMAGEIO_USTRING_H
 
+#if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the std::string empty_std_string static member variable of ustring below.
+// Also remove a warning about the strncpy function not being safe and deprecated in MSVC.
+// There is no equivalent safe and portable function and trying to fix this is more trouble than
+// its worth. (see http://stackoverflow.com/questions/858252/alternatives-to-ms-strncpy-s)
+#  pragma warning (disable : 4251 4996)
+#endif
+
 #include <string>
 #include <iostream>
 #include <cstring>

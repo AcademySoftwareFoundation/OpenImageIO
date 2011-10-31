@@ -32,6 +32,15 @@
 #ifndef OPENIMAGEIO_IMAGEVIEWER_H
 #define OPENIMAGEIO_IMAGEVIEWER_H
 
+#if defined (_MSC_VER)
+// Ignore warnings about conditional expressions that always evaluate true
+// on a given platform but may evaluate differently on another. There's
+// nothing wrong with such conditionals.
+// Also ignore warnings about not being able to generate default assignment
+// operators for some Qt classes included in headers below.
+#  pragma warning (disable : 4127 4512)
+#endif
+
 // included to remove std::min/std::max errors
 #include "osdep.h"
 

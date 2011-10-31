@@ -69,10 +69,10 @@ static bool outdiffonly = false;
 static std::string diffimage;
 static float diffscale = 1.0;
 static bool diffabs = false;
-static float warnthresh = 1.0e-6;
+static float warnthresh = 1.0e-6f;
 static float warnpercent = 0;
 static float hardwarn = std::numeric_limits<float>::max();
-static float failthresh = 1.0e-6;
+static float failthresh = 1.0e-6f;
 static float failpercent = 0;
 static bool perceptual = false;
 static float hardfail = std::numeric_limits<float>::max();
@@ -307,7 +307,7 @@ main (int argc, char *argv[])
 #ifdef _MSC_VER
             _set_output_format(_TWO_DIGIT_EXPONENT);
 #endif
-            int precis = std::cout.precision();
+            std::streamsize precis = std::cout.precision();
             std::cout << "  " << cr.nwarn << " pixels (" 
                       << std::setprecision(3) << (100.0*cr.nwarn / npels) 
                       << std::setprecision(precis) << "%) over " << warnthresh << "\n";

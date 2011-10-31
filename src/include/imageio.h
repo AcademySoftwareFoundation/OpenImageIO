@@ -43,6 +43,12 @@
 #ifndef OPENIMAGEIO_IMAGEIO_H
 #define OPENIMAGEIO_IMAGEIO_H
 
+#if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the std::vector<T> and std::string members of the classes below.
+#  pragma warning (disable : 4251)
+#endif
+
 #include <vector>
 #include <string>
 #include <limits>
@@ -67,7 +73,7 @@ typedef ptrdiff_t stride_t;
 /// Type we use to express how many pixels (or bytes) constitute an image,
 /// tile, or scanline.  Needs to be large enough to handle very big images
 /// (which we presume could be > 4GB).
-#if defined(LINUX64) /* add others if we know for sure size_t is ok */
+#if defined(LINUX64) || defined(_WIN64) /* add others if we know for sure size_t is ok */
 typedef size_t imagesize_t;
 #else
 typedef unsigned long long imagesize_t;

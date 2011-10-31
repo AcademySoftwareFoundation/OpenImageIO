@@ -829,7 +829,7 @@ IvGL::paint_pixelview ()
     float extraspace = yspacing * (1 + spec.nchannels) + 4;
     glColor4f (0.1f, 0.1f, 0.1f, 0.5f);
     gl_rect (-0.5f*closeupsize-2, 0.5f*closeupsize+2,
-             0.5f*closeupsize+2, -0.5f*closeupsize - extraspace, -0.1);
+             0.5f*closeupsize+2, -0.5f*closeupsize - extraspace, -0.1f);
 
     if (xp >= 0 && xp < img->oriented_width() && yp >= 0 && yp < img->oriented_height()) {
         // Now we print text giving the mouse coordinates and the numerical
@@ -1221,7 +1221,7 @@ IvGL::wheelEvent (QWheelEvent *event)
 
 
 void
-IvGL::focusOutEvent (QFocusEvent *event)
+IvGL::focusOutEvent (QFocusEvent*)
 {
     m_mouse_activation = true;
 }

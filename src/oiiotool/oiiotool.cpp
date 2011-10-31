@@ -393,7 +393,6 @@ OiioTool::adjust_geometry (int &w, int &h, int &x, int &y, const char *geom,
     int ww = w, hh = h;
     int xx = x, yy = y;
     int xmax, ymax;
-    char c;
     if (sscanf (geom, "%d,%d,%d,%d", &xx, &yy, &xmax, &ymax) == 4) {
         x = xx;
         y = yy;
@@ -458,7 +457,7 @@ OiioTool::set_attribute (ImageRecRef img, const std::string &attribname,
     // Does it seem to be a float, or did the caller explicitly request
     // that it be set as a float?
     p = NULL;
-    float f = strtod (value.c_str(), &p);
+    float f = (float)strtod (value.c_str(), &p);
     while (*p && isspace(*p))
         ++p;
     if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::FLOAT) {
@@ -669,7 +668,7 @@ set_full_to_pixels (int argc, const char *argv[])
 
 
 static int
-output_tiles (int argc, const char *argv[])
+output_tiles (int /*argc*/, const char *argv[])
 {
     // the ArgParse will have set the tile size, but we need this routine
     // to clear the scanline flag
