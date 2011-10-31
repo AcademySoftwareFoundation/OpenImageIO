@@ -125,13 +125,6 @@ public:
 
 
 
-#if defined(_MSC_VER)
-template class DLLPUBLIC std::allocator<TypeDesc>;
-template class DLLPUBLIC std::allocator<std::string>;
-template class DLLPUBLIC std::vector< TypeDesc, std::allocator<TypeDesc> >;
-template class DLLPUBLIC std::vector< std::string, std::allocator<std::string> >;
-#endif
-
 /// ImageSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
 class DLLPUBLIC ImageSpec {
