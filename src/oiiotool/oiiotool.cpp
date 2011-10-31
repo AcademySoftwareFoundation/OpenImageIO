@@ -73,22 +73,63 @@ static Oiiotool ot;
 // FIXME: do all ops respect -a (or lack thereof?)
 
 
+void
+Oiiotool::read (ImageRecRef img)
+{
+    // Cause the ImageRec to get read
+    img->read ();
+
+    // If this is the first tiled image we have come across, use it to
+    // set our tile size (unless the user explicitly set a tile size, or
+    // explicitly instructed scanline output).
+    const ImageSpec &nspec ((*img)().nativespec());
+    if (nspec.tile_width && ! output_tilewidth && ! ot.output_scanline) {
+        output_tilewidth = nspec.tile_width;
+        output_tileheight = nspec.tile_height;
+    }
+    // If we do not yet have an expected output format, set it based on
+    // this image (presumably the first one read.
+    if (output_dataformat == TypeDesc::UNKNOWN) {
+        output_dataformat = nspec.format;
+        if (! output_bitspersample)
+            output_bitspersample = nspec.get_int_attribute ("oiio:BitsPerSample");
+    }
+}
 
 
-static void
-process_pending ()
+
+bool
+Oiiotool::postpone_callback (int required_images, CallbackFunction func,
+                             int argc, const char *argv[])
+{
+    if (((curimg ? 1 : 0) + (int)image_stack.size()) < required_images) {
+        // Not enough have inputs been specified so far, so put this
+        // function on the "pending" list.
+        m_pending_callback = func;
+        m_pending_argc = argc;
+        for (int i = 0;  i < argc;  ++i)
+            m_pending_argv[i] = ustring(argv[i]).c_str();
+        return true;
+    }
+    return false;
+}
+
+
+
+void
+Oiiotool::process_pending ()
 {
     // Process any pending command -- this is a case where the
     // command line had prefix 'oiiotool --action file1 file2'
     // instead of infix 'oiiotool file1 --action file2'.
-    if (ot.pending_callback) {
-        int argc = ot.pending_argc;
+    if (m_pending_callback) {
+        int argc = m_pending_argc;
         const char *argv[4];
         for (int i = 0;  i < argc;  ++i)
-            argv[i] = ot.pending_argv[i];
-        CallbackFunction callback = ot.pending_callback;
-        ot.pending_callback = NULL;
-        ot.pending_argc = 0;
+            argv[i] = m_pending_argv[i];
+        CallbackFunction callback = m_pending_callback;
+        m_pending_callback = NULL;
+        m_pending_argc = 0;
         (*callback) (argc, argv);
     }
 }
@@ -115,7 +156,7 @@ input_file (int argc, const char *argv[])
             std::string error;
             OiioTool::print_info (argv[i], pio, totalsize, error);
         }
-        process_pending ();
+        ot.process_pending ();
     }
     return 0;
 }
@@ -125,36 +166,13 @@ input_file (int argc, const char *argv[])
 static void
 adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
 {
-    if (! ot.output_dataformatname.empty()) {
-        if (ot.output_dataformatname == "uint8")
-            spec.set_format (TypeDesc::UINT8);
-        else if (ot.output_dataformatname == "int8")
-            spec.set_format (TypeDesc::INT8);
-        else if (ot.output_dataformatname == "uint10") {
-            spec.attribute ("oiio:BitsPerSample", 10);
-            spec.set_format (TypeDesc::UINT16);
-        }
-        else if (ot.output_dataformatname == "uint12") {
-            spec.attribute ("oiio:BitsPerSample", 12);
-            spec.set_format (TypeDesc::UINT16);
-        }
-        else if (ot.output_dataformatname == "uint16")
-            spec.set_format (TypeDesc::UINT16);
-        else if (ot.output_dataformatname == "int16")
-            spec.set_format (TypeDesc::INT16);
-        else if (ot.output_dataformatname == "half")
-            spec.set_format (TypeDesc::HALF);
-        else if (ot.output_dataformatname == "float")
-            spec.set_format (TypeDesc::FLOAT);
-        else if (ot.output_dataformatname == "double")
-            spec.set_format (TypeDesc::DOUBLE);
-#if 0
-        // FIXME -- eventually restore this for "copy" functionality
-//        if (spec.format != inspec.format || inspec.channelformats.size())
-//            nocopy = true;
-#endif
-        spec.channelformats.clear ();
+    if (ot.output_dataformat != TypeDesc::UNKNOWN) {
+        spec.set_format (ot.output_dataformat);
+        if (ot.output_bitspersample != 0)
+            spec.attribute ("oiio:BitsPerSample", ot.output_bitspersample);
     }
+
+//        spec.channelformats.clear ();   // FIXME: why?
 
     if (ot.output_scanline)
         spec.tile_width = spec.tile_height = 0;
@@ -220,19 +238,33 @@ output_file (int argc, const char *argv[])
         std::cerr << "oiiotool ERROR: " << geterror() << "\n";
         return 0;
     }
-    ot.curimg->read ();
-    ImageRec &ir (*ot.curimg);
+    bool supports_displaywindow = out->supports ("displaywindow");
+    ot.read ();
+    ImageRecRef saveimg = ot.curimg;
+    ImageRecRef ir (ot.curimg);
+
+    if (! supports_displaywindow && ot.output_autocrop &&
+        (ir->spec()->x != ir->spec()->full_x ||
+         ir->spec()->y != ir->spec()->full_y ||
+         ir->spec()->width != ir->spec()->full_width ||
+         ir->spec()->height != ir->spec()->full_height)) {
+        const char *argv[] = { "croptofull" };
+        int action_croptofull (int argc, const char *argv[]); // forward decl
+        action_croptofull (1, argv);
+        ir = ot.curimg;
+    }
+
     ImageOutput::OpenMode mode = ImageOutput::Create;  // initial open
-    for (int s = 0, send = ir.subimages();  s < send;  ++s) {
-        for (int m = 0, mend = ir.miplevels(s);  m < mend;  ++m) {
-            ImageSpec spec = ir(s,m).nativespec();
+    for (int s = 0, send = ir->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = ir->miplevels(s);  m < mend;  ++m) {
+            ImageSpec spec = *ir->spec(s,m);
             adjust_output_options (spec, ot);
             if (! out->open (filename, spec, mode)) {
                 std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
                 return 0;
             }
-            if (! ir(s,m).write (out)) {
-                std::cerr << "oiiotool ERROR: " << ir(s,m).geterror() << "\n";
+            if (! (*ir)(s,m).write (out)) {
+                std::cerr << "oiiotool ERROR: " << (*ir)(s,m).geterror() << "\n";
                 return 0;
             }
             if (mend > 1) {
@@ -261,13 +293,46 @@ output_file (int argc, const char *argv[])
     delete out;
 
     if (ot.output_adjust_time) {
-        std::string metadatatime = ir.spec(0,0)->get_string_attribute ("DateTime");
-        std::time_t in_time = ir.time();
+        std::string metadatatime = ir->spec(0,0)->get_string_attribute ("DateTime");
+        std::time_t in_time = ir->time();
         if (! metadatatime.empty())
             DateTime_to_time_t (metadatatime.c_str(), in_time);
         boost::filesystem::last_write_time (filename, in_time);
     }
 
+    ot.curimg = saveimg;
+    return 0;
+}
+
+
+
+static int
+set_dataformat (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    std::string s (argv[1]);
+    if (s == "uint8")
+        ot.output_dataformat = TypeDesc::UINT8;
+    else if (s == "int8")
+        ot.output_dataformat = TypeDesc::INT8;
+    else if (s == "uint10") {
+        ot.output_dataformat = TypeDesc::UINT16;
+        ot.output_bitspersample = 10;
+    } 
+    else if (s == "uint12") {
+        ot.output_dataformat = TypeDesc::UINT16;
+        ot.output_bitspersample = 12;
+    }
+    else if (s == "uint16")
+        ot.output_dataformat = TypeDesc::UINT16;
+    else if (s == "int16")
+        ot.output_dataformat = TypeDesc::INT16;
+    else if (s == "half")
+        ot.output_dataformat = TypeDesc::HALF;
+    else if (s == "float")
+        ot.output_dataformat = TypeDesc::FLOAT;
+    else if (s == "double")
+        ot.output_dataformat = TypeDesc::DOUBLE;
     return 0;
 }
 
@@ -281,7 +346,7 @@ set_string_attribute (int argc, const char *argv[])
         std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
         return 0;
     }
-    set_attribute (*ot.curimg, argv[1], TypeDesc::TypeString, argv[2]);
+    set_attribute (ot.curimg, argv[1], TypeDesc::TypeString, argv[2]);
     return 0;
 }
 
@@ -295,7 +360,7 @@ set_any_attribute (int argc, const char *argv[])
         std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
         return 0;
     }
-    set_attribute (*ot.curimg, argv[1], TypeDesc(TypeDesc::UNKNOWN), argv[2]);
+    set_attribute (ot.curimg, argv[1], TypeDesc(TypeDesc::UNKNOWN), argv[2]);
     return 0;
 }
 
@@ -320,14 +385,59 @@ do_set_any_attribute (ImageSpec &spec, const std::pair<std::string,T> &x)
 
 
 bool
-OiioTool::set_attribute (ImageRec &img, const std::string &attribname,
+OiioTool::adjust_geometry (int &w, int &h, int &x, int &y, const char *geom,
+                           bool allow_scaling)
+{
+    size_t geomlen = strlen(geom);
+    float scale = 1.0f;
+    int ww = w, hh = h;
+    int xx = x, yy = y;
+    int xmax, ymax;
+    char c;
+    if (sscanf (geom, "%d,%d,%d,%d", &xx, &yy, &xmax, &ymax) == 4) {
+        x = xx;
+        y = yy;
+        w = std::max (0, xmax-xx+1);
+        h = std::max (0, ymax-yy+1);
+    } else if (sscanf (geom, "%dx%d%d%d", &ww, &hh, &xx, &yy) == 4) {
+        w = ww;
+        h = hh;
+        x = xx;
+        y = yy;
+    } else if (sscanf (geom, "%dx%d", &ww, &hh) == 2) {
+        w = ww;
+        h = hh;
+    } else if (sscanf (geom, "%d%d", &xx, &yy) == 2) {
+        x = xx;
+        y = yy;
+    } else if (allow_scaling &&
+               sscanf (geom, "%f", &scale) == 1 && geom[geomlen-1] == '%') {
+        scale *= 0.01f;
+        w = (int)(w * scale + 0.5f);
+        h = (int)(h * scale + 0.5f);
+    } else if (allow_scaling && sscanf (geom, "%f", &scale) == 1) {
+        w = (int)(w * scale + 0.5f);
+        h = (int)(h * scale + 0.5f);
+    } else {
+        std::cerr << "oiiotool ERROR: Unrecognized geometry \"" 
+                  << geom << "\"\n";
+        return false;
+    }
+//    printf ("geom %dx%d, %+d%+d\n", w, h, x, y);
+    return true;
+}
+
+
+
+bool
+OiioTool::set_attribute (ImageRecRef img, const std::string &attribname,
                          TypeDesc type, const std::string &value)
 {
-    img.read ();
-    img.metadata_modified (true);
+    ot.read (img);
+    img->metadata_modified (true);
     if (! value.length()) {
         // If the value is the empty string, clear the attribute
-        return apply_spec_mod (img, do_erase_attribute,
+        return apply_spec_mod (*img, do_erase_attribute,
                                attribname, ot.allsubimages);
     }
 
@@ -340,7 +450,7 @@ OiioTool::set_attribute (ImageRec &img, const std::string &attribname,
     if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::INT) {
         // int conversion succeeded and accounted for the whole string --
         // so set an int attribute.
-        return apply_spec_mod (img, do_set_any_attribute<int>,
+        return apply_spec_mod (*img, do_set_any_attribute<int>,
                                std::pair<std::string,int>(attribname,i),
                                ot.allsubimages);
     }
@@ -354,13 +464,13 @@ OiioTool::set_attribute (ImageRec &img, const std::string &attribname,
     if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::FLOAT) {
         // float conversion succeeded and accounted for the whole string --
         // so set a float attribute.
-        return apply_spec_mod (img, do_set_any_attribute<float>,
+        return apply_spec_mod (*img, do_set_any_attribute<float>,
                                std::pair<std::string,float>(attribname,f),
                                ot.allsubimages);
     }
 
     // Otherwise, set it as a string attribute
-    return apply_spec_mod (img, do_set_any_attribute<std::string>,
+    return apply_spec_mod (*img, do_set_any_attribute<std::string>,
                            std::pair<std::string,std::string>(attribname,value),
                            ot.allsubimages);
 }
@@ -471,7 +581,7 @@ set_orientation (int argc, const char *argv[])
         std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
         return 0;
     }
-    return set_attribute (*ot.curimg, argv[0], TypeDesc::INT, argv[1]);
+    return set_attribute (ot.curimg, argv[0], TypeDesc::INT, argv[1]);
 }
 
 
@@ -514,6 +624,51 @@ rotate_orientation (int argc, const char *argv[])
 
 
 static int
+set_fullsize (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, set_fullsize, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.curimg;
+    ImageSpec &spec (*A->spec(0,0));
+    int x = spec.full_x, y = spec.full_y;
+    int w = spec.full_width, h = spec.full_height;
+
+    adjust_geometry (w, h, x, y, argv[1]);
+    if (spec.full_x != x || spec.full_y != y ||
+          spec.full_width != w || spec.full_height != h) {
+        spec.full_x = x;
+        spec.full_y = y;
+        spec.full_width = w;
+        spec.full_height = h;
+        A->metadata_modified (true);
+    }
+    return 0;
+}
+
+
+
+static int
+set_full_to_pixels (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, set_full_to_pixels, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.curimg;
+    ImageSpec &spec (*A->spec(0,0));
+    spec.full_x = spec.x;
+    spec.full_y = spec.y;
+    spec.full_width = spec.width;
+    spec.full_height = spec.height;
+    A->metadata_modified (true);
+    return 0;
+}
+
+
+
+static int
 output_tiles (int argc, const char *argv[])
 {
     // the ArgParse will have set the tile size, but we need this routine
@@ -527,16 +682,10 @@ output_tiles (int argc, const char *argv[])
 static int
 action_unmip (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // No image has been specified so far, maybe the argument will
-        // come next?  Put it on the "pending" list.
-        ot.pending_callback = action_unmip;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_unmip, argc, argv))
         return 0;
-    }
 
-    ot.curimg->read ();
+    ot.read ();
     bool mipmapped = false;
     for (int s = 0, send = ot.curimg->subimages();  s < send;  ++s)
         mipmapped |= (ot.curimg->miplevels(s) > 1);
@@ -554,17 +703,10 @@ action_unmip (int argc, const char *argv[])
 static int
 action_select_subimage (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // No image has been specified so far, maybe the argument will
-        // come next?  Put it on the "pending" list.
-        ot.pending_callback = action_select_subimage;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argv[1] = argv[1];
-        ot.pending_argc = 2;
+    if (ot.postpone_callback (1, action_select_subimage, argc, argv))
         return 0;
-    }
 
-    ot.curimg->read ();
+    ot.read ();
     if (ot.curimg->subimages() == 1)
         return 0;    // --subimage on a single-image file is a no-op
     
@@ -578,14 +720,8 @@ action_select_subimage (int argc, const char *argv[])
 static int
 action_diff (int argc, const char *argv[])
 {
-    if (! ot.curimg.get() || ot.image_stack.size() == 0) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_diff;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (2, action_diff, argc, argv))
         return 0;
-    }
 
     int ret = do_action_diff (*ot.image_stack.back(), *ot.curimg, ot);
     if (ret != DiffErrOK && ret != DiffErrWarn)
@@ -598,20 +734,14 @@ action_diff (int argc, const char *argv[])
 static int
 action_add (int argc, const char *argv[])
 {
-    if (! ot.curimg.get() || ot.image_stack.size() == 0) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_add;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (2, action_add, argc, argv))
         return 0;
-    }
 
     ImageRecRef A = ot.image_stack.back();
     ot.image_stack.resize (ot.image_stack.size()-1);
     ImageRecRef B = ot.curimg;
-    A->read ();
-    B->read ();
+    ot.read (A);
+    ot.read (B);
     ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                    ot.allsubimages, true, false));
 
@@ -640,20 +770,14 @@ action_add (int argc, const char *argv[])
 static int
 action_sub (int argc, const char *argv[])
 {
-    if (! ot.curimg.get() || ot.image_stack.size() == 0) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_sub;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (2, action_sub, argc, argv))
         return 0;
-    }
 
     ImageRecRef A = ot.image_stack.back();
     ot.image_stack.resize (ot.image_stack.size()-1);
     ImageRecRef B = ot.curimg;
-    A->read ();
-    B->read ();
+    ot.read (A);
+    ot.read (B);
     ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
                                 ot.allsubimages, true, false));
 
@@ -691,19 +815,13 @@ action_sub (int argc, const char *argv[])
 static int
 action_abs (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_abs;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_abs, argc, argv))
         return 0;
-    }
 
+    ot.read ();
     ImageRecRef A = ot.curimg;
-    A->read ();
     ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                ot.allsubimages, true, false));
+                                   ot.allsubimages, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -730,19 +848,13 @@ action_abs (int argc, const char *argv[])
 static int
 action_flip (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_abs;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_flip, argc, argv))
         return 0;
-    }
 
+    ot.read ();
     ImageRecRef A = ot.curimg;
-    A->read ();
     ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                ot.allsubimages, true, false));
+                                   ot.allsubimages, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -771,19 +883,13 @@ action_flip (int argc, const char *argv[])
 static int
 action_flop (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_abs;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_flop, argc, argv))
         return 0;
-    }
 
+    ot.read ();
     ImageRecRef A = ot.curimg;
-    A->read ();
     ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                ot.allsubimages, true, false));
+                                   ot.allsubimages, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -812,19 +918,13 @@ action_flop (int argc, const char *argv[])
 static int
 action_flipflop (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_abs;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argc = 1;
+    if (ot.postpone_callback (1, action_flipflop, argc, argv))
         return 0;
-    }
 
+    ot.read ();
     ImageRecRef A = ot.curimg;
-    A->read ();
     ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                ot.allsubimages, true, false));
+                                   ot.allsubimages, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -853,50 +953,6 @@ action_flipflop (int argc, const char *argv[])
 
 
 
-// Modify the resolution of the spec according to what's in geom.  Valid
-// resolutions are 640x480 (an exact resolution), 50% (a percentage
-// change, will be rounded to the nearest pixel), 1.2 (a scale amount).
-static void
-adjust_spec_resolution (ImageSpec &spec, const char *geom)
-{
-    size_t geomlen = strlen(geom);
-    int x = 0, y = 0;
-    float scale = 1.0f;
-    if (sscanf (geom, "%dx%d", &x, &y) == 2) {
-        // printf ("geom %d x %d\n", x, y);
-    } else if (sscanf (geom, "%f", &scale) == 1 && geom[geomlen-1] == '%') {
-        scale *= 0.01f;
-        x = (int)(spec.width * scale + 0.5f);
-        y = (int)(spec.height * scale + 0.5f);
-    } else if (sscanf (geom, "%f", &scale) == 1) {
-        x = (int)(spec.width * scale + 0.5f);
-        y = (int)(spec.height * scale + 0.5f);
-    } else {
-        std::cout << "Unrecognized size '" << geom << "'\n";
-        return;
-    }
-    if (spec.width != x) {
-        spec.width = x;
-        // Punt on display window -- just set to data window for now, and
-        // also set the origin to 0.  Is there a better strategy when you
-        // resize?
-        spec.x = 0;
-        spec.full_x = 0;
-        spec.full_width = x;
-    }
-    if (spec.height != y) {
-        spec.height = y;
-        // Punt on display window -- just set to data window for now, and
-        // also set the origin to 0.  Is there a better strategy when you
-        // resize?
-        spec.y = 0;
-        spec.full_y = 0;
-        spec.full_height = y;
-    }
-}
-
-
-
 static int
 action_create (int argc, const char *argv[])
 {
@@ -907,7 +963,7 @@ action_create (int argc, const char *argv[])
         nchans = 3;
     }
     ImageSpec spec (64, 64, nchans);
-    adjust_spec_resolution (spec, argv[1]);
+    adjust_geometry (spec.width, spec.height, spec.x, spec.y, argv[1]);
     ImageRecRef img (new ImageRec ("new", spec, ot.imagecache));
     ImageBufAlgo::zero ((*img)());
     if (ot.curimg)
@@ -919,17 +975,63 @@ action_create (int argc, const char *argv[])
 
 
 static int
+action_crop (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_crop, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.curimg;
+    ImageSpec &Aspec (*A->spec(0,0));
+    ImageSpec newspec = Aspec;
+
+    adjust_geometry (newspec.width, newspec.height,
+                     newspec.x, newspec.y, argv[1]);
+    if (newspec.width != Aspec.width || newspec.height != Aspec.height) {
+        // resolution changed -- we need to do a full crop
+        ot.curimg.reset (new ImageRec (A->name(), newspec, ot.imagecache));
+        const ImageBuf &Aib ((*A)(0,0));
+        ImageBuf &Rib ((*ot.curimg)(0,0));
+        ImageBufAlgo::crop (Rib, Aib, newspec.x, newspec.x+newspec.width,
+                            newspec.y, newspec.y+newspec.height);
+    } else if (newspec.x != Aspec.x || newspec.y != Aspec.y) {
+        // only offset changed; don't copy the image or crop, simply
+        // adjust the origins.
+        Aspec.x = newspec.x;
+        Aspec.y = newspec.y;
+        A->metadata_modified (true);
+    }
+
+    return 0;
+}
+
+
+
+int
+action_croptofull (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_croptofull, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.curimg;
+    const ImageSpec &Aspec (*A->spec(0,0));
+    // Implement by calling action_crop with a geometry specifier built
+    // from the current full image size.
+    std::string size = Strutil::format ("%dx%d%+d%+d",
+                                        Aspec.full_width, Aspec.full_height,
+                                        Aspec.full_x, Aspec.full_y);
+    const char *newargv[2] = { "crop", size.c_str() };
+    return action_crop (2, newargv);
+}
+
+
+
+static int
 action_resize (int argc, const char *argv[])
 {
-    if (! ot.curimg.get()) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        ot.pending_callback = action_resize;
-        ot.pending_argv[0] = argv[0];
-        ot.pending_argv[1] = argv[1];
-        ot.pending_argc = 2;
+    if (ot.postpone_callback (1, action_resize, argc, argv))
         return 0;
-    }
 
     std::string filtername;
     std::string cmd = argv[0];
@@ -941,14 +1043,22 @@ action_resize (int argc, const char *argv[])
         }
     }
 
+    ot.read ();
     ImageRecRef A = ot.curimg;
-    A->read ();
     const ImageSpec &Aspec (*A->spec(0,0));
     ImageSpec newspec = Aspec;
 
-    adjust_spec_resolution (newspec, argv[1]);
+    adjust_geometry (newspec.width, newspec.height,
+                     newspec.x, newspec.y, argv[1]);
     if (newspec.width == Aspec.width && newspec.height == Aspec.height)
         return 0;  // nothing to do
+
+    // Shrink-wrap full to match actual pixels; I'm not sure what else
+    // is appropriate, need to think it over.
+    newspec.full_x = newspec.x;
+    newspec.full_y = newspec.y;
+    newspec.full_width = newspec.width;
+    newspec.full_height = newspec.height;
 
     ot.curimg.reset (new ImageRec (A->name(), newspec, ot.imagecache));
     Filter2D *filter = NULL;
@@ -1021,7 +1131,7 @@ getargs (int argc, char *argv[])
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, &dummystr, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
-                "-d %s", &ot.output_dataformatname,
+                "-d %@ %s", set_dataformat, &dummystr,
                     "Set the output data format to one of: "
                     "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
                 "--scanline", &ot.output_scanline, "Output scanline images",
@@ -1033,6 +1143,8 @@ getargs (int argc, char *argv[])
                     "Force planarconfig (contig, separate, default)",
                 "--adjust-time", &ot.output_adjust_time,
                     "Adjust file times to match DateTime metadata",
+                "--noautocrop %!", &ot.output_autocrop, 
+                    "Do not automatically crop images whose formats don't support separate pixel data and full/display windows",
                 "<SEPARATOR>", "Options that change current image metadata (but not pixel values):",
                 "--attrib %@ %s %s", set_any_attribute, &dummystr, &dummystr, "Sets metadata attribute (name, value)",
                 "--sattrib %@ %s %s", set_string_attribute, &dummystr, &dummystr, "Sets string metadata attribute (name, value)",
@@ -1043,6 +1155,8 @@ getargs (int argc, char *argv[])
                 "--rotcw %@", rotate_orientation, &dummybool, "Rotate orientation 90 deg clockwise",
                 "--rotccw %@", rotate_orientation, &dummybool, "Rotate orientation 90 deg counter-clockwise",
                 "--rot180 %@", rotate_orientation, &dummybool, "Rotate orientation 180 deg",
+                "--fullsize %@ %s", set_fullsize, &dummystr, "Set the display window (e.g., 1920x1280, 1024x768+100+0, -20-30)",
+                "--fullpixels %@", set_full_to_pixels, &dummybool, "Set the 'full' image range to be the pixel data window",
                 "<SEPARATOR>", "Options that affect subsequent actions:",
                 "--fail %g", &ot.diff_failthresh, "",
                 "--failpercent %g", &ot.diff_failpercent, "",
@@ -1062,6 +1176,8 @@ getargs (int argc, char *argv[])
                 "--flip %@", action_flip, &dummybool, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, &dummybool, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, &dummybool, "Flip and flop the image (180 degree rotation)",
+                "--crop %@ %s", action_crop, &dummystr, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
+                "--croptofull %@", action_croptofull, &dummybool, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resize %@ %s", action_resize, &dummystr, "Resize (640x480, 50%)",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
@@ -1084,16 +1200,16 @@ main (int argc, char *argv[])
     ot.imagecache = ImageCache::create (false);
     ASSERT (ot.imagecache);
     ot.imagecache->attribute ("forcefloat", 1);
-    ot.imagecache->attribute ("m_max_memory_MB", 2048.0);
-    ot.imagecache->attribute ("autotile", 1024);
+    ot.imagecache->attribute ("m_max_memory_MB", 4096.0);
+//    ot.imagecache->attribute ("autotile", 1024);
 #ifdef DEBUG
     ot.imagecache->attribute ("statistics:level", 2);
 #endif
 
     getargs (argc, argv);
-    process_pending ();
-    if (ot.pending_callback) {
-        std::cout << "oiiotool WARNING: pending '" << ot.pending_argv[0]
+    ot.process_pending ();
+    if (ot.pending_callback()) {
+        std::cout << "oiiotool WARNING: pending '" << ot.pending_callback_name()
                   << "' command never executed.\n";
     }
 

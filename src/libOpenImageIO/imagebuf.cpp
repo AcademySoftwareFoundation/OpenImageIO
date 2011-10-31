@@ -676,6 +676,24 @@ ImageBuf::oriented_full_y () const
 
 
 
+void
+ImageBuf::set_full (int xbegin, int xend, int ybegin, int yend,
+                    int zbegin, int zend, const float *bordercolor)
+{
+    m_spec.full_x = xbegin;
+    m_spec.full_y = ybegin;
+    m_spec.full_z = zbegin;
+    m_spec.full_width  = xend - xbegin;
+    m_spec.full_height = yend - ybegin;
+    m_spec.full_depth  = zend - zbegin;
+    if (bordercolor)
+        m_spec.attribute ("oiio:bordercolor",
+                          TypeDesc(TypeDesc::FLOAT,m_spec.nchannels),
+                          bordercolor);
+}
+
+
+
 const void *
 ImageBuf::pixeladdr (int x, int y, int z) const
 {

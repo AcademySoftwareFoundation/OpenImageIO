@@ -81,8 +81,7 @@ static std::string outputname;
 //static bool separate = false, contig = false;
 static bool flip = false;
 static bool flop = false;
-static std::string crop_type;
-static int crop_xmin = 0, crop_xmax = 0, crop_ymin = 0, crop_ymax = 0;
+static int crop_xmin = 0, crop_xmax = -1, crop_ymin = 0, crop_ymax = 0;
 static bool do_add = false;
 static std::string colortransfer_to = "", colortransfer_from = "sRGB";
 static std::string filtername;
@@ -115,8 +114,8 @@ getargs (int argc, char *argv[])
                 "-o %s", &outputname, "Set output filename",
                 "<SEPARATOR>", "Image operations:",
                 "--add", &do_add, "Add two images",
-                "--crop %s %d %d %d %d", &crop_type, &crop_xmin, &crop_xmax,
-                    &crop_ymin, &crop_ymax, "Crop an image (type, xmin, xmax, ymin, ymax); type = black|white|trans|window|cut",
+                "--crop %d %d %d %d", &crop_xmin, &crop_xmax,
+                    &crop_ymin, &crop_ymax, "Crop an image (xmin, xmax, ymin, ymax)",
                 "--flip", &flip, "Flip the Image (upside-down)",
                 "--flop", &flop, "Flop the Image (left/right mirror)",
                 "<SEPARATOR>", "Output options:",
@@ -201,7 +200,7 @@ main (int argc, char *argv[])
 
     bool ok = true;
 
-    if (crop_type.size()) {
+    if (crop_xmin < crop_xmax) {
         std::cout << "Cropping " << filenames[0] << " to  " << outputname << "\n";
         if (filenames.size() != 1) {
             std::cerr << "iprocess: --crop needs one input filename\n";
@@ -213,22 +212,7 @@ main (int argc, char *argv[])
             return EXIT_FAILURE;
         }
         ImageBuf out;
-        CropOptions opt = CROP_CUT;
-        if (crop_type == "white")
-            opt = CROP_WHITE;
-        else if (crop_type == "black")
-            opt = CROP_BLACK;
-        else if (crop_type == "trans")
-            opt = CROP_TRANS;
-        else if (crop_type == "window")
-            opt = CROP_WINDOW;
-        else if (crop_type == "cut")
-            opt = CROP_CUT;
-        else {
-            std::cerr << "iprocess: crop needs a 'type' of white, black, trans, window, or cut\n";
-            return EXIT_FAILURE;
-        }
-        crop (out, A, crop_xmin, crop_xmax+1, crop_ymin, crop_ymax+1, opt);
+        crop (out, A, crop_xmin, crop_xmax+1, crop_ymin, crop_ymax+1);
 	std::cout << "finished cropping\n";
         out.save (outputname);
     }

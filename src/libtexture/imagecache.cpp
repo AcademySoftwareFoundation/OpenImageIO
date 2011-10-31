@@ -2058,7 +2058,8 @@ ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
                file->miplevels(subimage));
         return NULL;
     }
-    const ImageSpec *spec = & file->spec (subimage, miplevel);
+    const ImageSpec *spec = native ? &file->nativespec (subimage,miplevel)
+                                   : &file->spec (subimage, miplevel);
     return spec;
 }
 

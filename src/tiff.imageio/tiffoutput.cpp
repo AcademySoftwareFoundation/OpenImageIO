@@ -135,6 +135,8 @@ TIFFOutput::supports (const std::string &feature) const
         return true;
     if (feature == "multiimage")
         return true;
+    if (feature == "displaywindow")
+        return true;
 
     // FIXME: we could support "volumes" and "empty"
 
