@@ -39,6 +39,10 @@
 #ifndef OPENIMAGEIO_PARAMLIST_H
 #define OPENIMAGEIO_PARAMLIST_H
 
+#if defined(_MSC_VER)
+#  pragma warning (disable : 4251)
+#endif
+
 #include <vector>
 
 #include "export.h"

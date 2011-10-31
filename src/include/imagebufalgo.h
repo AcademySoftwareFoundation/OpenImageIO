@@ -32,6 +32,10 @@
 #ifndef OPENIMAGEIO_IMAGEBUFALGO_H
 #define OPENIMAGEIO_IMAGEBUFALGO_H
 
+#if defined(_MSC_VER)
+#  pragma warning (disable : 4251)
+#endif
+
 #include "imageio.h"
 #include "imagebuf.h"
 #include "fmath.h"

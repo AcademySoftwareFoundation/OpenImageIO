@@ -28,6 +28,9 @@
   (This is the Modified BSD License)
 */
 
+#if defined(_MSC_VER)
+#  pragma warning (disable : 4127 4512)
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -97,7 +100,11 @@ getargs (int argc, char *argv[])
 /// tie up any shell that it was launched from.  Return true if successful,
 /// false if it was unable to do so.
 static bool
-put_in_background (int argc, char *argv[])
+#if !defined(_MSC_VER)
+put_in_background (int argc, char* argv[])
+#else
+put_in_background (int, char* [])
+#endif
 {
     // You would think that this would be sufficient:
     //   pid_t pid = fork ();

@@ -184,7 +184,7 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
 #ifdef _MSC_VER
             _set_output_format(_TWO_DIGIT_EXPONENT);
 #endif
-            int precis = std::cout.precision();
+            std::streamsize precis = std::cout.precision();
             std::cout << "  " << cr.nwarn << " pixels (" 
                       << std::setprecision(3) << (100.0*cr.nwarn / npels) 
                       << std::setprecision(precis) << "%) over " << ot.diff_warnthresh << "\n";

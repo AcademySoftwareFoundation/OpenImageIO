@@ -31,13 +31,17 @@
 #ifndef OPENIMAGEIO_COLORTRANSFER_H
 #define OPENIMAGEIO_COLORTRANSFER_H
 
+#if defined(_MSC_VER)
+#  pragma warning (disable : 4251)
+#endif
+
 #include "export.h"
 #include "version.h"
 
 OIIO_NAMESPACE_ENTER
 {
 
-/// Base class a functor that remaps values accorrding to a color
+/// Base class a functor that remaps values according to a color
 /// transfer function.
 class DLLPUBLIC ColorTransfer {
 public:
@@ -48,11 +52,11 @@ public:
     /// "linear_to_Rec709", etc.
     const std::string name (void) { return m_name; };
     
-    /// Return a vector of transfer paramater names
+    /// Return a vector of transfer parameter names
     ///
-    const std::vector<std::string> & paramaters (void) { return m_params; };
+    const std::vector<std::string> & parameters (void) { return m_params; };
     
-    /// Set a transfer function paramater If the name is not recognized,
+    /// Set a transfer function parameter If the name is not recognized,
     /// return false.
     virtual bool set (std::string name_, float param);
     
@@ -75,7 +79,7 @@ protected:
     std::string m_name;
     std::vector<std::string> m_params;
     
-    // Add transfer function paramater
+    // Add transfer function parameter
     bool add_paramater (const std:: string &name_) {
         m_params.push_back (name_);
         return true;

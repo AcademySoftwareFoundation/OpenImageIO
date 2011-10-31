@@ -449,7 +449,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             } else {
                 // Need to do it by hand for some reason.  Future expansion in which
                 // only a subset of channels are copied, or some such.
-                std::vector<char> pixels (outspec.image_bytes(true));
+                std::vector<char> pixels ((size_t)outspec.image_bytes(true));
                 ok = in->read_image (outspec.format, &pixels[0]);
                 if (! ok) {
                     std::cerr << "iconvert ERROR reading \"" << in_filename 

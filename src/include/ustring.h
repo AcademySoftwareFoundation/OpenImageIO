@@ -121,6 +121,10 @@
 #ifndef OPENIMAGEIO_USTRING_H
 #define OPENIMAGEIO_USTRING_H
 
+#if defined(_MSC_VER)
+#  pragma warning (disable : 4251 4996)
+#endif
+
 #include <string>
 #include <iostream>
 #include <cstring>

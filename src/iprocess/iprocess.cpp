@@ -350,7 +350,7 @@ main (int argc, char *argv[])
         outspec.full_width = resize_x;
         outspec.full_height = resize_y;
         ImageBuf out (outputname, outspec);
-        float pixel[3] = { .1, .1, .1 };
+        float pixel[3] = { .1f, .1f, .1f };
         ImageBufAlgo::fill (out, pixel);
         bool ok = ImageBufAlgo::resize (out, in, out.xbegin(), out.xend(),
                               out.ybegin(), out.yend(), filter);

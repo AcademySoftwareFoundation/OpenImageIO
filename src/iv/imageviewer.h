@@ -32,6 +32,10 @@
 #ifndef OPENIMAGEIO_IMAGEVIEWER_H
 #define OPENIMAGEIO_IMAGEVIEWER_H
 
+#if defined (_MSC_VER)
+#  pragma warning (disable : 4127 4512)
+#endif
+
 // included to remove std::min/std::max errors
 #include "osdep.h"
 

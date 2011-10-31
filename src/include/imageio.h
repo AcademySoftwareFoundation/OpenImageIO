@@ -43,6 +43,10 @@
 #ifndef OPENIMAGEIO_IMAGEIO_H
 #define OPENIMAGEIO_IMAGEIO_H
 
+#if defined(_MSC_VER)
+#  pragma warning (disable : 4251)
+#endif
+
 #include <vector>
 #include <string>
 #include <limits>
@@ -67,7 +71,7 @@ typedef ptrdiff_t stride_t;
 /// Type we use to express how many pixels (or bytes) constitute an image,
 /// tile, or scanline.  Needs to be large enough to handle very big images
 /// (which we presume could be > 4GB).
-#if defined(LINUX64) /* add others if we know for sure size_t is ok */
+#if defined(LINUX64) || defined(_WIN64) /* add others if we know for sure size_t is ok */
 typedef size_t imagesize_t;
 #else
 typedef unsigned long long imagesize_t;
@@ -120,6 +124,13 @@ public:
 };
 
 
+
+#if defined(_MSC_VER)
+template class DLLPUBLIC std::allocator<TypeDesc>;
+template class DLLPUBLIC std::allocator<std::string>;
+template class DLLPUBLIC std::vector< TypeDesc, std::allocator<TypeDesc> >;
+template class DLLPUBLIC std::vector< std::string, std::allocator<std::string> >;
+#endif
 
 /// ImageSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.

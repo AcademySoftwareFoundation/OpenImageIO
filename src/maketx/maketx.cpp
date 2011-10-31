@@ -485,8 +485,8 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel)
         // wrong will tend to over-represent the high latitudes in
         // low-res MIP levels.  We fold the area weighting into our
         // linear interpolation by adjusting yfrac.
-        float w0 = (1.0f - yfrac) * sinf (M_PI * (ytexel+0.5f)/(float)fh);
-        float w1 = yfrac * sinf (M_PI * (ynext+0.5f)/(float)fh);
+        float w0 = (1.0f - yfrac) * sinf ((float)M_PI * (ytexel+0.5f)/(float)fh);
+        float w1 = yfrac * sinf ((float)M_PI * (ynext+0.5f)/(float)fh);
         yfrac = w0 / (w0 + w1);
     }
     // Bilinearly interpolate
@@ -519,7 +519,7 @@ resize_block (ImageBuf *dst, const ImageBuf *src,
 
 // Copy src into dst, but only for the range [x0,x1) x [y0,y1).
 static void
-check_nan_block (ImageBuf *dst, const ImageBuf *src,
+check_nan_block (ImageBuf* /*dst*/, const ImageBuf* src,
                  int x0, int x1, int y0, int y1)
 {
     const ImageSpec &spec (src->spec());
