@@ -44,6 +44,8 @@
 #define OPENIMAGEIO_IMAGEIO_H
 
 #if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the std::vector<T> and std::string members of the classes below.
 #  pragma warning (disable : 4251)
 #endif
 

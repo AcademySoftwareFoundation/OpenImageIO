@@ -33,6 +33,8 @@
 #define OPENIMAGEIO_IMAGEBUFALGO_H
 
 #if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the std::vector<T> members of PixelStats below.
 #  pragma warning (disable : 4251)
 #endif
 

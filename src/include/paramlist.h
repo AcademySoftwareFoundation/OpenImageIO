@@ -40,6 +40,8 @@
 #define OPENIMAGEIO_PARAMLIST_H
 
 #if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the Rep m_vals member variable of ParamValueList below, which is a std::vector<T>.
 #  pragma warning (disable : 4251)
 #endif
 

@@ -32,6 +32,8 @@
 #define OPENIMAGEIO_COLORTRANSFER_H
 
 #if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the two STL protected members of ColorTransfer below.
 #  pragma warning (disable : 4251)
 #endif
 
