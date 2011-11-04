@@ -363,7 +363,11 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 si.untiled = true;
                 if (imagecache().autotile()) {
                     // Automatically make it appear as if it's tiled
-                    tempspec.tile_width = imagecache().autotile();
+                    if (imagecache().autoscanline()) {
+                        tempspec.tile_width = pow2roundup (tempspec.width);
+                    } else {
+                        tempspec.tile_width = imagecache().autotile();
+                    }
                     tempspec.tile_height = imagecache().autotile();
                     if (tempspec.depth > 1)
                         tempspec.tile_depth = imagecache().autotile();
@@ -419,7 +423,11 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 s.full_height = h;
                 s.full_depth = d;
                 if (imagecache().autotile()) {
-                    s.tile_width = std::min (imagecache().autotile(), w);
+                    if (imagecache().autoscanline()) {
+                       s.tile_width = w;
+                    } else {
+                       s.tile_width = std::min (imagecache().autotile(), w);
+                    }
                     s.tile_height = std::min (imagecache().autotile(), h);
                     s.tile_depth = std::min (imagecache().autotile(), d);
                 } else {
@@ -1233,6 +1241,7 @@ ImageCacheImpl::init ()
     m_max_open_files = 100;
     m_max_memory_bytes = 256 * 1024 * 1024;   // 256 MB default cache size
     m_autotile = 0;
+    m_autoscanline = false;
     m_automip = false;
     m_forcefloat = false;
     m_accept_untiled = true;
@@ -1582,6 +1591,13 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
             do_invalidate = true;
         }
     }
+    else if (name == "autoscanline" && type == TypeDesc::INT) {
+        int a = *(const int *)val;
+        if (a != m_autoscanline) {
+            m_autoscanline = a;
+            do_invalidate = true;
+        }
+    }
     else if (name == "automip" && type == TypeDesc::INT) {
         int a = *(const int *)val;
         if (a != m_automip) {
@@ -1653,6 +1669,7 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     ATTR_DECODE ("max_memory_MB", int, m_max_memory_bytes/(1024*1024));
     ATTR_DECODE ("statistics:level", int, m_statslevel);
     ATTR_DECODE ("autotile", int, m_autotile);
+    ATTR_DECODE ("autoscanline", int, m_autoscanline);
     ATTR_DECODE ("automip", int, m_automip);
     ATTR_DECODE ("forcefloat", int, m_forcefloat);
     ATTR_DECODE ("accept_untiled", int, m_accept_untiled);

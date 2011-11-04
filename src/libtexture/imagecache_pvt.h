@@ -633,6 +633,7 @@ public:
     int max_open_files () const { return m_max_open_files; }
     const std::string &searchpath () const { return m_searchpath; }
     int autotile () const { return m_autotile; }
+    bool autoscanline () const { return m_autoscanline; }
     bool automip () const { return m_automip; }
     bool forcefloat () const { return m_forcefloat; }
     bool accept_untiled () const { return m_accept_untiled; }
@@ -899,6 +900,7 @@ private:
     std::string m_searchpath;    ///< Colon-separated directory list
     std::vector<std::string> m_searchdirs; ///< Searchpath split into dirs
     int m_autotile;              ///< if nonzero, pretend tiles of this size
+    bool m_autoscanline;          ///< autotile using full width tiles
     bool m_automip;              ///< auto-mipmap on demand?
     bool m_forcefloat;           ///< force all cache tiles to be float
     bool m_accept_untiled;       ///< Accept untiled images?
