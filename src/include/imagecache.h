@@ -85,6 +85,7 @@ public:
     ///     float max_memory_MB : maximum tile cache size, in MB
     ///     string searchpath : colon-separated search path for images
     ///     int autotile : if >0, tile size to emulate for non-tiled images
+    ///     int autoscanline : autotile using full width tiles
     ///     int automip : if nonzero, emulate mipmap on the fly
     ///     int accept_untiled : if nonzero, accept untiled images, but
     ///                          if zero, reject untiled images (default=1)
