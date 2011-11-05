@@ -6,7 +6,7 @@
 # TBB_LIBRARIES - library to link against
 # TBB_FOUND - true if pugixml was found.
 
-find_path (TBB_INCLUDE_DIR tbb.h)
+find_path (TBB_INCLUDE_DIR tbb/tbb.h)
 find_library (TBB_LIBRARY NAMES tbb)
 
 # Support the REQUIRED and QUIET arguments, and set TBB_FOUND if found.
