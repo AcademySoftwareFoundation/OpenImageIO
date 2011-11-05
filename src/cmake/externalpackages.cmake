@@ -272,3 +272,16 @@ if (USE_EXTERNAL_PUGIXML)
 endif()
 
 ###########################################################################
+
+###########################################################################
+# TBB setup.  Normally we just use the version bundled with oiio, but
+# some linux distros are quite particular about having separate packages so we
+# allow this to be overridden to use the distro-provided package if desired.
+if (USE_EXTERNAL_TBB)
+    find_package (TBB REQUIRED)
+    # insert include path to pugixml first, to ensure that the external
+    # pugixml is found, and not the one in OIIO's include directory.
+    include_directories (BEFORE ${TBB_INCLUDE_DIR})
+endif()
+
+###########################################################################
