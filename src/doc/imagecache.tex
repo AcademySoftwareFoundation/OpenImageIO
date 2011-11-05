@@ -272,8 +272,9 @@ directories that will be searched in order for any image name
 that is not specified as an absolute path. (Default: no search path.)
 \apiend
 
-\apiitem{int autotile}
-This attributes controls how the image cache deals with images that
+\apiitem{int autotile \\
+int autoscanline}
+These attributes control how the image cache deals with images that
 are not ``tiled'' (i.e., are stored as scanlines). 
 
 If {\cf autotile} is set to 0 (the default), an untiled image will be
@@ -283,10 +284,18 @@ you are simultaneously accessing many large untiled images.
 
 If {\cf autotile} is nonzero (e.g., 64 is a good recommended value), any
 untiled images will be read and cached as if they were constructed in
-tiles of size {\cf autotile} $\times$ {\cf autotile}.  This leads to
-slightly more expensive disk access if you are using only a few
-images, but if you are using many untiled images, the caching will be much
-more efficient.
+tiles of size:
+
+\begin{tabular}{p{2in} p{3in}}
+ {\cf autotile} $\times$ {\cf autotile} & if {\cf autoscanline} is 0 \\
+ {\cf width} $\times$ {\cf autotile} & if {\cf autoscanline} is nonzero. \\
+\end{tabular}
+
+In both cases, this should lead more efficient caching.  The 
+{\cf autoscanline} determines whether the ``virtual tiles'' in the cache
+are square (if {\cf autoscanline} is 0, the default) or if they will be
+as wide as the image (but only {\cf autotile} scanlines high).  You
+should try in your application to see which leads to higher performance.
 \apiend
 
 \apiitem{int automip}
