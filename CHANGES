@@ -5,6 +5,7 @@ Release 0.11 (development in progress)
 --------------------------------------
 
 Major new features and improvements:
+ * New ImageInput methods that can read a subset of channels from an image.
  * WebP format reader/writer.
  * Cineon support is re-enabled after various bug fixes.
  * PSD (Adobe Photoshop) format reader.
@@ -15,18 +16,29 @@ Major new features and improvements:
 API changes:
  * Add API methods to ImageInput/ImageOutput that allow read/write of multiple
    scanlines or tiles at a time.
+ * New ImageInput methods that can read a subset of channels from an image.
  * Change the last couple functions that took min/max pixel range
    specifications to conform to our usual [begin,end) convention --
    write_rectangle and to_native_rectangle.
  * exif_encode, exif_decode now available as general utilities (previously
    were private to the JPEG plugin).
+ * ImageOutput::supports("displaywindow") lets you query whether the output
+   file format is able to handle differing display ("full") and pixel data
+   windows.
 
 Fixes, minor enhancements, and performance improvements:
- * ImageBufAlgo new algorithms: compare, compare_Yee, 
+ * ImageBufAlgo new algorithms: compare, compare_Yee, isConstantChannel.
  * TextureOpt: add ustring-aware versions of the decode_wrapmode utility.
  * TypeDesc: allow stream << output.
  * iv: raised maximum ImageCache size from 2 GB to 8 GB.
  * PNM: fix but where file exceptions could go uncaught.
+ * Properly create coefficients for Kodak color transform.
+ * iprocess: Fix bug calling read.
+ * maketx: new option --opaque-detect omits alpha from texture whose input
+   images had alpha=1 everywhere.
+ * Fixed bugs in sinc and Blackman-Harris filters.
+ * ImageCache/TextureSystem -- new reset_stats() method resets all the
+   statistics back to zero.
 
 Developer goodies:
  * ArgParse enhancements: make %! indicate a bool that's set to false if
@@ -37,7 +49,26 @@ Developer goodies:
  * Strutil additions: escape_chars, unescape_chars.
  * Use github.com/OpenImageIO/oiio-images project for test images that are
    too big to fit in testsuite.
+ * Fixed bugs in Timer::lap().
+ * Aded 'invert' algorithm to fmath.h.
+ * Clarify Timer docs and fix Apple-specific bug.
+ * New Filesystem utilities: filename(), extension().
 
+
+Release 0.10.3 (November 5, 2011)
+---------------------------------
+* New ImageCache/TextureSystem option: "autoscanline", which, when 
+  autotile is turned on, causes the virtual tiles to be the full width
+  of the image scanlines, rather than square.  This improves performance
+  for some apps.
+* Bug fix: PNG files with both associated alpha and gamma correction lost
+  precision when converting.
+* Bug fix: ICO and Targa did not properly force requested (but
+  unsupported) UINT16 output to be UINT8.
+* maketx (and Filter classes): fixes to sinc, blackman-harris filters.
+* Minor Python binding bug fixes.
+* Allow stream << of TypeDesc.
+* Fix minor Timer::lap() bug.
 
 
 Release 0.10.2 (August 6, 2011)
