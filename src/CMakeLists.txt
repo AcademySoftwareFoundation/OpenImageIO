@@ -1,7 +1,7 @@
 project (OpenImageIO)
 set (OIIO_VERSION_MAJOR 0)
 set (OIIO_VERSION_MINOR 10)
-set (OIIO_VERSION_PATCH 2)
+set (OIIO_VERSION_PATCH 3)
 
 cmake_minimum_required (VERSION 2.6)
 set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)

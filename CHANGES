@@ -1,6 +1,22 @@
 Changes:
 
 
+Release 0.10.3 (November 5, 2011)
+---------------------------------
+* New ImageCache/TextureSystem option: "autoscanline", which, when 
+  autotile is turned on, causes the virtual tiles to be the full width
+  of the image scanlines, rather than square.  This improves performance
+  for some apps.
+* Bug fix: PNG files with both associated alpha and gamma correction lost
+  precision when converting.
+* Bug fix: ICO and Targa did not properly force requested (but
+  unsupported) UINT16 output to be UINT8.
+* maketx (and Filter classes): fixes to sinc, blackman-harris filters.
+* Minor Python binding bug fixes.
+* Allow stream << of TypeDesc.
+* Fix minor Timer::lap() bug.
+
+
 Release 0.10.2 (August 6, 2011)
 -------------------------------
 * Improve the performance of ustring constructor when highly multithread.
