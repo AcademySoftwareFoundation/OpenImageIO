@@ -47,6 +47,7 @@ using namespace std::tr1;
 #include "thread.h"
 #include "fmath.h"
 #include "filter.h"
+#include "optparser.h"
 #include "imageio.h"
 
 #include "texture.h"
@@ -232,6 +233,11 @@ TextureSystemImpl::init ()
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
     m_statslevel = 0;
+
+    // Allow environment variable to override default options
+    const char *options = getenv ("OPENIMAGEIO_TEXTURE_OPTIONS");
+    if (options)
+        attribute ("options", options);
 }
 
 
@@ -312,6 +318,9 @@ bool
 TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
                               const void *val)
 {
+    if (name == "options" && type == TypeDesc::STRING) {
+        return optparser (*this, *(const char **)val);
+    }
     if (name == "worldtocommon" && (type == TypeDesc::TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         m_Mw2c = *(const Imath::M44f *)val;

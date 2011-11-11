@@ -579,6 +579,15 @@ that explicitly requires a particular orientation).  The default is
 \qkw{y}.  (Currently any other value will result in $z$ being ``up.'')
 \apiend
 
+\apiitem{string options}
+This catch-all is simply a comma-separated list of {\cf name=value}
+settings of named options.  For example,
+\begin{code}
+        ic->attribute ("options", "max_memory_MB=512.0,autotile=1");
+\end{code}
+\apiend
+
+
 
 \subsection{Opaque data for performance lookups}
 \label{sec:texturesys:api:opaque}
