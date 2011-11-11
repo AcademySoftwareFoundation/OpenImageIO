@@ -343,6 +343,14 @@ default is zero, meaning that failures of open or tile reading will
 immediately return as a failure.
 \apiend
 
+\apiitem{string options}
+This catch-all is simply a comma-separated list of {\cf name=value}
+settings of named options.  For example,
+\begin{code}
+        ic->attribute ("options", "max_memory_MB=512.0,autotile=1");
+\end{code}
+\apiend
+
 \bigskip
 
 \subsection{Getting information about images}

@@ -51,6 +51,7 @@ using namespace std::tr1;
 #include "strutil.h"
 #include "sysutil.h"
 #include "timer.h"
+#include "optparser.h"
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagecache.h"
@@ -1263,6 +1264,11 @@ ImageCacheImpl::init ()
     m_stat_open_files_peak = 0;
     m_tilemutex_holder = NULL;
     m_filemutex_holder = NULL;
+
+    // Allow environment variable to override default options
+    const char *options = getenv ("OPENIMAGEIO_IMAGECACHE_OPTIONS");
+    if (options)
+        attribute ("options", options);
 }
 
 
@@ -1570,6 +1576,9 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
 {
     bool do_invalidate = false;
     bool force_invalidate = false;
+    if (name == "options" && type == TypeDesc::STRING) {
+        return optparser (*this, *(const char **)val);
+    }
     if (name == "max_open_files" && type == TypeDesc::INT) {
         m_max_open_files = *(const int *)val;
     }
