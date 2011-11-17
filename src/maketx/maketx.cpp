@@ -67,6 +67,7 @@ static std::vector<std::string> filenames;
 static std::string outputfilename;
 static std::string dataformatname = "";
 static std::string fileformatname = "";
+static std::vector<std::string> mipimages;
 //static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
 static bool stats = false;
@@ -266,6 +267,7 @@ getargs (int argc, char *argv[])
                   "--monochrome-detect", &monochrome_detect, "Create 1-channel textures from monochrome inputs",
                   "--opaque-detect", &opaque_detect, "Drop alpha channel that is always 1.0",
                   "--stats", &stats, "Print runtime statistics",
+                  "--mipimage %L", &mipimages, "Specify an individual MIP level",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
 //FIXME           "-debugdso"
 //FIXME           "-note %s", &note, "Append a note to the image comments",
@@ -1195,16 +1197,35 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             smallspec.set_format (TypeDesc::FLOAT);
             small->alloc (smallspec);  // Realocate with new size
 
-            if (filtername == "box" && filter->width() == 1.0f)
-                parallel_image (resize_block, small, big,
-                                smallspec.x, smallspec.x+smallspec.width,
-                                smallspec.y, smallspec.y+smallspec.height,
-                                nthreads);
-            else
-                parallel_image (resize_block_HQ, small, big,
-                                smallspec.x, smallspec.x+smallspec.width,
-                                smallspec.y, smallspec.y+smallspec.height,
-                                nthreads);
+            if (mipimages.size()) {
+                // Special case -- the user specified a custom MIP level
+                small->reset (mipimages[0]);
+                small->read (0, 0, true, TypeDesc::FLOAT);
+                smallspec = small->spec();
+                if (smallspec.nchannels != outspec.nchannels) {
+                    std::cout << "WARNING: Custom mip level \"" << mipimages[0]
+                              << " had the wrong number of channels.\n";
+                    ImageBuf *t = new ImageBuf (mipimages[0], smallspec);
+                    ImageBufAlgo::setNumChannels(*t, *small, outspec.nchannels);
+                    std::swap (t, small);
+                    delete t;
+                }
+                smallspec.tile_width = outspec.tile_width;
+                smallspec.tile_height = outspec.tile_height;
+                smallspec.tile_depth = outspec.tile_depth;
+                mipimages.erase (mipimages.begin());
+            } else {
+                if (filtername == "box" && filter->width() == 1.0f)
+                    parallel_image (resize_block, small, big,
+                                    smallspec.x, smallspec.x+smallspec.width,
+                                    smallspec.y, smallspec.y+smallspec.height,
+                                    nthreads);
+                else
+                    parallel_image (resize_block_HQ, small, big,
+                                    smallspec.x, smallspec.x+smallspec.width,
+                                    smallspec.y, smallspec.y+smallspec.height,
+                                    nthreads);
+            }
 
             stat_miptime += miptimer();
             outspec = smallspec;
