@@ -934,31 +934,11 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     float B = -2.0f * (dsdx * dtdx + dsdy * dtdy);
     float C = dsdx2 + dsdy2;
     float F = A*C - B*B*0.25f;
-    if (fabsf(F) < 1.0e-12f) {
-        // Something wrong, minuscule derivs?  Punt.
-        // std::cerr << "too small ABCF " << A << ' ' << B << ' ' << C << ' ' << F << "\n";
-        // std::cerr << "derivs " << dsdx << ' ' << dtdx << ' ' << dsdy << ' ' << dtdy << "\n";
-        if ((dsdy2+dtdy2) > (dsdx2+dtdx2)) {
-            majorlength = std::max (sqrtf(dsdy2+dtdy2), 1.0e-8f);
-            minorlength = 1.0e-8f;
-            return 1;
-        } else {
-            majorlength = std::max (sqrtf(dsdx2+dtdx2), 1.0e-8f);
-            minorlength = 1.0e-8f;
-            return 0;
-        }
-    }
-    float F_inv = 1.0f / F;
-    A *= F_inv;
-    B *= F_inv;
-    C *= F_inv;
     float root = hypotf (A-C, B);
     float Aprime = (A + C - root) * 0.5f;
     float Cprime = (A + C + root) * 0.5f;
-    // FIXME -- look into whether a "fast rsqrt" would help here, or if
-    // these couple of sqrtfs are insignificant comapred to everything else.
-    majorlength = sqrtf (1.0f / Aprime);
-    minorlength = sqrtf (1.0f / Cprime);
+    majorlength = A > 0 ? sqrtf (F / Aprime) : 0;
+    minorlength = C > 0 ? sqrtf (F / Cprime) : 0;
     // N.B. Various papers (including the FELINE ones, imply that the
     // above calculations is the major and minor radii, but we treat
     // them as the diameter.  Tests indicate that we are filtering just
