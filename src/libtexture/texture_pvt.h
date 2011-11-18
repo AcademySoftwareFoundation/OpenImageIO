@@ -398,6 +398,9 @@ private:
     float anisotropic_aspect (float &majorlength, float &minorlength,
                               TextureOpt& options, float &trueaspect);
 
+    int ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
+                      float &majorlength, float &minorlength);
+
     /// Convert texture coordinates (s,t), which range on 0-1 for the
     /// "full" image boundary, to texel coordinates (i+ifrac,j+jfrac)
     /// where (i,j) is the texel to the immediate upper left of the
@@ -453,6 +456,9 @@ private:
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     bool m_gray_to_rgb;          ///< automatically copy gray to rgb channels?
+    float m_aniso_F_threshold;   ///< Threshold for ellipse_axes F test
+    int m_aniso_smallderiv_strategy; ///< Small deriv strategy in ellipse_axes
+
     /// Saved error string, per-thread
     ///
     mutable thread_specific_ptr< std::string > m_errormessage;

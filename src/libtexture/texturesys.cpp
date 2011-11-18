@@ -230,6 +230,8 @@ TextureSystemImpl::init ()
 {
     m_Mw2c.makeIdentity();
     m_gray_to_rgb = false;
+    m_aniso_F_threshold = 1.0e-12f;
+    m_aniso_smallderiv_strategy = 0;
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
     m_statslevel = 0;
@@ -342,6 +344,14 @@ TextureSystemImpl::attribute (const std::string &name, TypeDesc type,
         m_statslevel = *(const int *)val;
         // DO NOT RETURN! pass the same message to the image cache
     }
+    if (name == "aniso_smallderiv_strategy" && type == TypeDesc::TypeInt) {
+        m_aniso_smallderiv_strategy = *(const int *)val;
+        return true;
+    }
+    if (name == "aniso_F_threshold" && type == TypeDesc::TypeFloat) {
+        m_aniso_F_threshold = *(const float *)val;
+        return true;
+    }
 
     // Maybe it's meant for the cache?
     return m_imagecache->attribute (name, type, val);
@@ -366,6 +376,14 @@ TextureSystemImpl::getattribute (const std::string &name, TypeDesc type,
     if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
         (type == TypeDesc::TypeInt)) {
         *(int *)val = m_gray_to_rgb;
+        return true;
+    }
+    if (name == "aniso_smallderiv_strategy" && type == TypeDesc::TypeInt) {
+        *(int *)val = m_aniso_smallderiv_strategy;
+        return true;
+    }
+    if (name == "aniso_F_threshold" && type == TypeDesc::TypeFloat) {
+        *(float *)val = m_aniso_F_threshold;
         return true;
     }
 
@@ -919,12 +937,13 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 
 
 
-// Calculate major and minor axis lengths of the ellipse specified by the
-// s and t derivatives.  See Greene's EWA paper.  Return value is 0 if
-// the 'x' axis was the major axis, 1 if the 'y' axis was major.
-inline int
-ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
-              float &majorlength, float &minorlength)
+/// Calculate major and minor axis lengths of the ellipse specified by the
+/// s and t derivatives.  See Greene's EWA paper.  Return value is 0 if
+/// the 'x' axis was the major axis, 1 if the 'y' axis was major.
+int
+TextureSystemImpl::ellipse_axes (float dsdx, float dtdx,
+                                 float dsdy, float dtdy,
+                                 float &majorlength, float &minorlength)
 {
     float dsdx2 = dsdx*dsdx;
     float dtdx2 = dtdx*dtdx;
@@ -934,18 +953,38 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     float B = -2.0f * (dsdx * dtdx + dsdy * dtdy);
     float C = dsdx2 + dsdy2;
     float F = A*C - B*B*0.25f;
-    if (fabsf(F) < 1.0e-12f) {
+    if (fabsf(F) < m_aniso_F_threshold) {
         // Something wrong, minuscule derivs?  Punt.
         // std::cerr << "too small ABCF " << A << ' ' << B << ' ' << C << ' ' << F << "\n";
         // std::cerr << "derivs " << dsdx << ' ' << dtdx << ' ' << dsdy << ' ' << dtdy << "\n";
-        if ((dsdy2+dtdy2) > (dsdx2+dtdx2)) {
-            majorlength = std::max (sqrtf(dsdy2+dtdy2), 1.0e-8f);
-            minorlength = 1.0e-8f;
+        if (m_aniso_smallderiv_strategy == 1) {
+            if ((dsdy2+dtdy2) > (dsdx2+dtdx2)) {
+                majorlength = std::max (sqrtf(dsdy2+dtdy2), 1.0e-8f);
+                minorlength = std::max (sqrtf(dsdx2+dtdx2), 1.0e-8f);
+                return 1;
+            } else {
+                majorlength = std::max (sqrtf(dsdx2+dtdx2), 1.0e-8f);
+                minorlength = std::max (sqrtf(dsdy2+dtdy2), 1.0e-8f);
+                return 0;
+            }
+        } else if (m_aniso_smallderiv_strategy == 2) {
+            // Alternate proposed by Ramon Montoya -- essentially average
+            // the two directions and make it isotropic.  Is this better?
+            // Hard to tell, need more tests.
+            majorlength = 0.5f * (sqrtf(dsdx2+dtdx2) + sqrtf(dsdy2+dtdy2));
+            minorlength = majorlength;
             return 1;
         } else {
-            majorlength = std::max (sqrtf(dsdx2+dtdx2), 1.0e-8f);
-            minorlength = 1.0e-8f;
-            return 0;
+            // original strategy -- we now think this is broken
+            if ((dsdy2+dtdy2) > (dsdx2+dtdx2)) {
+                majorlength = std::max (sqrtf(dsdy2+dtdy2), 1.0e-8f);
+                minorlength = 1.0e-8f;
+                return 1;
+            } else {
+                majorlength = std::max (sqrtf(dsdx2+dtdx2), 1.0e-8f);
+                minorlength = 1.0e-8f;
+                return 0;
+            }
         }
     }
     float F_inv = 1.0f / F;
