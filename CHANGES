@@ -25,6 +25,11 @@ API changes:
  * ImageOutput::supports("displaywindow") lets you query whether the output
    file format is able to handle differing display ("full") and pixel data
    windows.
+ * TextureSystem and ImageCache now accept attribute "options", that is a
+   comma-separated list of name=value setings (e.g.
+   "max_memory_MB=256,max_files=1000").  Also, upon startup, the environment
+   variables OPENIMAGEIO_TEXTURE_OPTIONS and OPENIMAGEIO_IMAGECACHE_OPTIONS
+   are parsed for these startup values.
 
 Fixes, minor enhancements, and performance improvements:
  * ImageBufAlgo new algorithms: compare, compare_Yee, isConstantChannel.
@@ -53,6 +58,19 @@ Developer goodies:
  * Aded 'invert' algorithm to fmath.h.
  * Clarify Timer docs and fix Apple-specific bug.
  * New Filesystem utilities: filename(), extension().
+
+
+Release 0.10.4 (November 20, 2011)
+----------------------------------
+* Important texture bug fix: Improve robustness of texture lookups with
+  very small derivatives.  The previous bug/misunderstanding had the
+  result of some filter footprints with very small (but valid)
+  derivatives inappropriately using the highest-resolution MIPmap level
+  and maximum anisotropy, resulting in terrible performance, alising,
+  and in some cases visible seams on the boundary between where this
+  happened and where it didn't.  Be aware that the fixed code will make
+  some areas of texture look less sharp, but that's only because it was
+  aliasing before and using a totally incorrect MIPmap level.
 
 
 Release 0.10.3 (November 5, 2011)
