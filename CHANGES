@@ -1,6 +1,19 @@
 Changes:
 
 
+Release 0.10.4 (November 20, 2011)
+----------------------------------
+* Important texture bug fix: Improve robustness of texture lookups with
+  very small derivatives.  The previous bug/misunderstanding had the
+  result of some filter footprints with very small (but valid)
+  derivatives inappropriately using the highest-resolution MIPmap level
+  and maximum anisotropy, resulting in terrible performance, alising,
+  and in some cases visible seams on the boundary between where this
+  happened and where it didn't.  Be aware that the fixed code will make
+  some areas of texture look less sharp, but that's only because it was
+  aliasing before and using a totally incorrect MIPmap level.
+
+
 Release 0.10.3 (November 5, 2011)
 ---------------------------------
 * New ImageCache/TextureSystem option: "autoscanline", which, when 
