@@ -1073,6 +1073,13 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         miplevel[0] = 0;
         miplevel[1] = 0;
         levelblend = 0;
+        // It's possible that minorlength is degenerate, giving an aspect
+        // ratio that implies a huge nsamples, which is pointless if those
+        // samples are too close.  So if minorlength is less than 1/2 texel
+        // at the finest resolution, clamp it and recalculate aspect.
+        int r = std::max (subinfo.spec(0).full_width, subinfo.spec(0).full_height);
+        if (minorlength*r < 0.5f)
+            aspect = Imath::clamp (majorlength * r * 2.0f, 1.0f, float(options.anisotropic));
     }
     if (options.mipmode == TextureOpt::MipModeOneLevel) {
         miplevel[0] = miplevel[1];
