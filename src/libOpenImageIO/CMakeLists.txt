@@ -63,7 +63,11 @@ endif ()
 # Include our own TBB if using it
 if (USE_TBB)
     add_definitions ("-DUSE_TBB=1")
-    set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
+    list (APPEND libOpenImageIO_srcs ../libutil/tbb_misc.cpp)
+# Use the system installed TBB
+elseif (USE_EXTERNAL_TBB)
+    add_definitions ("-DUSE_TBB=1")
+    message (STATUS "System TBB will be used")
 else ()
     add_definitions ("-DUSE_TBB=0")
     message (STATUS "TBB will not be used")
