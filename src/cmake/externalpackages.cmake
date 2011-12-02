@@ -272,3 +272,22 @@ if (USE_EXTERNAL_PUGIXML)
 endif()
 
 ###########################################################################
+
+###########################################################################
+# TBB setup.  Normally we just use the version bundled with oiio, but
+# some linux distros are quite particular about having separate packages so we
+# allow this to be overridden to use the distro-provided package if desired.
+#
+# Try to find it first and fall back to built-in if not available.
+find_package (TBB REQUIRED)
+if (TBB_FOUND)
+    set (USE_EXTERNAL_TBB TRUE CACHE BOOL
+        "Use system installed TBB library if avaialble."
+    )
+    mark_as_advanced (FORCE USE_EXTERNAL_TBB)
+    # insert include path to TBB first, to ensure that the external
+    # TBB is found, and not the one in OIIO's include directory.
+    include_directories (BEFORE ${TBB_INCLUDE_DIR})
+endif()
+
+###########################################################################

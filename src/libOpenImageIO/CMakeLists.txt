@@ -61,7 +61,12 @@ if (NOT USE_EXTERNAL_PUGIXML)
 endif ()
 
 # Include our own TBB if using it
-if (USE_TBB)
+if (USE_TBB AND USE_EXTERNAL_TBB)
+    message (STATUS "  System TBB library will be used.")
+    add_definitions ("-DUSE_TBB=1")
+    set (libOpenImageIO_srcs ${libOpenImageIO_srcs})
+elseif (USE_TBB AND NOT USE_EXTERNAL_TBB)
+    message (STATUS "Built-in TBB library will be used.")
     add_definitions ("-DUSE_TBB=1")
     set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
 else ()
@@ -219,6 +224,10 @@ endif ()
 
 if (USE_EXTERNAL_PUGIXML)
     target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
+endif ()
+
+if (USE_EXTERNAL_TBB)
+    target_link_libraries (OpenImageIO ${TBB_LIBRARIES})
 endif ()
 
 message(STATUS "Setting SOVERSION to: ${SOVERSION}")
