@@ -284,7 +284,7 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
                            (char *)data + c*format.size(), format,
                            xstride, ystride, zstride, 
                            &scratch[offset], chanformat,
-                           native_pixel_bytes, AutoStride, AutoStride, NULL,
+                           native_pixel_bytes, AutoStride, AutoStride,
                            c == m_spec.alpha_channel ? 0 : -1,
                            c == m_spec.z_channel ? 0 : -1);
             offset += chanformat.size ();

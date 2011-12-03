@@ -46,7 +46,6 @@
 #include "imageio.h"
 #include "fmath.h"
 #include "imagecache.h"
-#include "colortransfer.h"
 #include "dassert.h"
 
 
@@ -278,9 +277,6 @@ public:
         return _copy_pixels (xbegin_, xend_, ybegin_, yend_, &result[0]);
     }
 
-    /// Apply a color transfer function to the pixels (in place).
-    ///
-    void transfer_pixels (ColorTransfer *tfunc);
 
     int orientation () const { return m_orientation; }
 

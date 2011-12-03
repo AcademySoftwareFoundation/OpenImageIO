@@ -41,7 +41,7 @@
 #include "imageio.h"
 #include "imagebuf.h"
 #include "fmath.h"
-#include "colortransfer.h"
+#include "color.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -141,11 +141,28 @@ enum DLLPUBLIC AddOptions
 };
 
 
-
-/// Apply a transfer function to the pixel values.
+/// Apply a color transform to the pixel values
 ///
-bool DLLPUBLIC colortransfer (ImageBuf &dst, const ImageBuf &src,
-                              ColorTransfer *tfunc);
+/// In-place operations (dst == src) are supported
+/// If unpremult is specified, unpremultiply before color conversion,
+/// then premultiply after the color conversion.  You'll may want to use this
+/// flag if your image contains an alpha channel
+///
+/// Note: the dst image does not need to equal the src image, either in buffers
+///       or bit depths. (For example, it is common for the src buffer to be a
+///       lower bit depth image and the output image to be float).
+/// If the output buffer is less than floating-point, results may be quantized /
+/// clamped
+/// return true on success, false on failure
+
+
+bool DLLPUBLIC colorconvert (ImageBuf &dst, const ImageBuf &src,
+    const ColorProcessor * processor,
+    bool unpremult);
+
+bool DLLPUBLIC colorconvert (float * color, int nchannels,
+    const ColorProcessor * processor,
+    bool unpremult);
 
 
 struct DLLPUBLIC PixelStats {

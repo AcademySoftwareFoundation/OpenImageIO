@@ -145,6 +145,14 @@ message (STATUS "OPENGL_FOUND=${OPENGL_FOUND} USE_OPENGL=${USE_OPENGL}")
 # end OpenGL setup
 ###########################################################################
 
+
+###########################################################################
+# OpenColorIO Setup
+if (USE_OCIO)
+    find_package (OpenColorIO)
+endif ()
+
+
 ###########################################################################
 # Qt setup
 

@@ -78,6 +78,7 @@ static double stat_readtime = 0;
 static double stat_writetime = 0;
 static double stat_resizetime = 0;
 static double stat_miptime = 0;
+static double stat_colorconverttime = 0;
 static bool checknan = false;
 static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
@@ -117,6 +118,10 @@ static bool prman = false;
 static bool oiio = false;
 static bool src_samples_border = false; // are src edge samples on the border?
 
+static bool unpremult = false;
+static std::string incolorspace;
+static std::string outcolorspace;
+
 // forward decl
 static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                    std::string outputfilename, std::string outformat,
@@ -138,7 +143,45 @@ filter_help_string ()
     return s;
 }
 
+static std::string
+colortitle_help_string ()
+{
+    std::string s ("Color Management Options ");
+    if(ColorConfig::supportsOpenColorIO()) {
+        s += "(OpenColorIO enabled)";
+    }
+    else {
+        s += "(OpenColorIO DISABLED)";
+    }
+    return s;
+}
 
+static std::string
+colorconvert_help_string ()
+{
+    std::string s = "Apply a color space conversion to the image."
+    "If the output color space is not the same bit depth "
+    "as input color space, it is your responsibility to set the data format "
+    "to the proper bit depth using the -d option. ";
+    
+    s += " (choices: ";
+    ColorConfig config;
+    if(config.error() || config.getNumColorSpaces()==0)
+    {
+        s += "NONE";
+    }
+    else
+    {
+        for (int i=0; i<config.getNumColorSpaces(); ++i)
+        {
+            if (i!=0) s += ", ";
+            s += config.getColorSpaceNameByIndex(i);
+        }
+    }
+    s += ")";
+    
+    return s;
+}
 
 static Filter2D *
 setup_filter (const std::string &filtername)
@@ -235,6 +278,12 @@ getargs (int argc, char *argv[])
 //                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
 //                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
 //                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
+                  "<SEPARATOR>", colortitle_help_string().c_str(),
+                  "--colorconvert %s %s", &incolorspace, &outcolorspace,
+                          colorconvert_help_string().c_str(),
+                  "--unpremult", &unpremult, "Unpremultiply before color conversion, then premultiply "
+                          "after the color conversion.  You'll probably want to use this flag "
+                          "if your image contains an alpha channel.",
                   "<SEPARATOR>", "Configuration Presets",
                   "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata.",
                   "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, metadata, and constant-color optimizations.",
@@ -857,6 +906,81 @@ make_texturemap (const char *maptypename = "texture map")
         }
     }
 
+
+
+
+    // Color convert the pixels, if needed, in place.
+    // If a color conversion is required we will promote the src to floating point
+    // (or there wont be enough precision potentially)
+    // Also, independently color convert the constant color metadata
+    
+    ImageBuf * ccSrc = &src;    // Ptr to cc'd src image
+    ImageBuf colorBuffer;
+    
+    if (!incolorspace.empty() && !outcolorspace.empty() && incolorspace != outcolorspace) {
+        if(src.spec().format != TypeDesc::FLOAT) {
+            ImageSpec floatSpec = src.spec();
+            floatSpec.set_format(TypeDesc::FLOAT);
+            
+            colorBuffer.reset("bitdepth promoted", floatSpec);
+            ccSrc = &colorBuffer;
+        }
+        
+        Timer colorconverttimer;
+        if (verbose) {
+            std::cout << "  Converting from colorspace " << incolorspace << " to colorspace " << outcolorspace << std::endl;
+        }
+        
+        ColorConfig config;
+        if(config.error()) {
+            std::cerr << "Error Creating ColorConfig." << std::endl;
+            std::cerr << config.geterror() << std::endl;
+            exit (EXIT_FAILURE);
+        }
+        
+        ColorProcessor * processor = config.createColorProcessor (
+            incolorspace.c_str(), outcolorspace.c_str());
+        
+        if(!processor || config.error())
+        {
+            std::cerr << "Error Creating Color Processor." << std::endl;
+            std::cerr << config.geterror() << std::endl;
+            exit (EXIT_FAILURE);
+        }
+        
+        if (unpremult && verbose)
+        {
+            std::cout << "  Unpremulting image..." << std::endl;
+        }
+        
+        if (!ImageBufAlgo::colorconvert (*ccSrc, src, processor, unpremult))
+        {
+            std::cerr << "Error applying color conversion to image." << std::endl;
+            exit (EXIT_FAILURE);
+        }
+        
+        
+        if (isConstantColor) {
+            if (!ImageBufAlgo::colorconvert (&constantColor[0],
+                static_cast<int>(constantColor.size()),
+                processor, unpremult)) {
+                std::cerr << "Error applying color conversion to constant color." << std::endl;
+                exit (EXIT_FAILURE);
+            }
+        }
+        
+        ColorConfig::deleteColorProcessor(processor);
+        processor = NULL;
+        
+        stat_colorconverttime += colorconverttimer();
+    }
+    
+
+
+
+
+
+
     // Force float for the sake of the ImageBuf math
     dstspec.set_format (TypeDesc::FLOAT);
 
@@ -886,12 +1010,12 @@ make_texturemap (const char *maptypename = "texture map")
     ImageBuf *toplevel = &dst;    // Ptr to top level of mipmap
     if (! do_resize) {
         // Don't need to resize
-        if (dstspec.format == srcspec.format) {
+        if (dstspec.format == ccSrc->spec().format) {
             // Even more special case, no format change -- just use
             // the original copy.
-            toplevel = &src;
+            toplevel = ccSrc;
         } else {
-            parallel_image (copy_block, &dst, &src,
+            parallel_image (copy_block, &dst, ccSrc,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
         }
@@ -901,11 +1025,11 @@ make_texturemap (const char *maptypename = "texture map")
             std::cout << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
         if (filtername == "box" && filter->width() == 1.0f)
-            parallel_image (resize_block, &dst, &src,
+            parallel_image (resize_block, &dst, ccSrc,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
         else
-            parallel_image (resize_block_HQ, &dst, &src,
+            parallel_image (resize_block_HQ, &dst, ccSrc,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
     }
@@ -1168,6 +1292,7 @@ main (int argc, char *argv[])
         std::cout << Strutil::format ("  file write:      %5.2f\n", stat_writetime);
         std::cout << Strutil::format ("  initial resize:  %5.2f\n", stat_resizetime);
         std::cout << Strutil::format ("  mip computation: %5.2f\n", stat_miptime);
+        std::cout << Strutil::format ("  color convert:   %5.2f\n", stat_colorconverttime);
         std::cout << Strutil::format ("  unaccounted:     %5.2f\n",
                                       alltime-stat_readtime-stat_writetime-stat_resizetime-stat_miptime);
         size_t kb = Sysutil::memory_used(true) / 1024;

@@ -83,7 +83,6 @@ static bool flip = false;
 static bool flop = false;
 static int crop_xmin = 0, crop_xmax = -1, crop_ymin = 0, crop_ymax = 0;
 static bool do_add = false;
-static std::string colortransfer_to = "", colortransfer_from = "sRGB";
 static std::string filtername;
 static float filterwidth = 1.0f;
 static int resize_x = 0, resize_y = 0;
@@ -136,13 +135,10 @@ getargs (int argc, char *argv[])
 //                "--rotcw", &rotcw, "Rotate 90 deg clockwise",
 //                "--rotccw", &rotccw, "Rotate 90 deg counter-clockwise",
 //                "--rot180", &rot180, "Rotate 180 deg",
-//                "--sRGB", &sRGB, "This file is in sRGB color space",
 //                "--separate", &separate, "Force planarconfig separate",
 //                "--contig", &contig, "Force planarconfig contig",
 //FIXME         "-z", &zfile, "Treat input as a depth file",
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
-                "--transfer %s", &colortransfer_to, "Transfer outputfile to another colorspace: Linear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
-                "--colorspace %s", &colortransfer_from, "Override colorspace of inputfile: Linear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
                 "--filter %s %f", &filtername, &filterwidth, "Set the filter to use for resize",
                 "--resize %d %d", &resize_x, &resize_y, "Resize the image to x by y pixels",
                 NULL);
@@ -265,46 +261,6 @@ main (int argc, char *argv[])
         }
         
         out.save (outputname);
-    }
-    
-    if (colortransfer_to != "") {
-        if (filenames.size() != 1) {
-            std::cerr << "iprocess: --transfer needs one input filename\n";
-            exit (EXIT_FAILURE);
-        }
-        
-        ImageBuf in;
-        if (! read_input (filenames[0], in)) {
-            std::cerr << "iprocess: read error: " << in.geterror() << "\n";
-            return EXIT_FAILURE;
-        }
-        
-        
-        ColorTransfer *from_func = ColorTransfer::create (colortransfer_from + "_to_linear");
-        if (from_func == NULL) {
-            std::cerr << "iprocess: --colorspace needs a 'colorspace' of "
-                << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
-            return EXIT_FAILURE;
-        }
-        ColorTransfer *to_func = ColorTransfer::create (std::string("linear_to_") + colortransfer_to);
-        if (to_func == NULL) {
-            std::cerr << "iprocess: --transfer needs a 'colorspace' of "
-                << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
-            return EXIT_FAILURE;
-        }
-        std::cout << "Converting [" << colortransfer_from << "] " << filenames[0]
-            << " to [" << colortransfer_to << "] " << outputname << "\n";
-        
-        //
-        ImageBuf linear;
-        ImageBuf out;
-        ImageBufAlgo::colortransfer (linear, in, from_func);
-        ImageBufAlgo::colortransfer (out, linear, to_func);
-        std::cout << "finished color transfer\n";
-        
-        //
-        out.save (outputname);
-        
     }
 
     if (resize_x && resize_y) {

@@ -57,7 +57,6 @@
 #include "export.h"
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
-#include "colortransfer.h"
 #include "version.h"
 
 OIIO_NAMESPACE_ENTER
@@ -1009,32 +1008,13 @@ inline std::string error_message () { return geterror (); }
 DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
                         int quant_min, int quant_max);
 
-/// Helper routine: compute (gain*value)^invgamma
-///
-inline float exposure (float value, float gain, float invgamma)
-{
-    if (invgamma != 1 && value >= 0)
-        return powf (gain * value, invgamma);
-    // Simple case - skip the expensive pow; also fall back to this
-    // case for negative values, for which gamma makes no sense.
-    return gain * value;
-}
-
 /// Helper function: convert contiguous arbitrary data between two
-/// arbitrary types (specified by TypeDesc's).  Return true if ok, false
-/// if it didn't know how to do the conversion.  If dst_type is UNKNWON,
-/// it will be assumed to be the same as src_type.
-DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
-                              TypeDesc dst_type, void *to, int n);
-
-/// Helper function: convert contiguous arbitrary data between two
-/// arbitrary types (specified by TypeDesc's), with optional transfer
-/// function. Return true if ok, false if it didn't know how to do the
+/// arbitrary types (specified by TypeDesc's)
+/// Return true if ok, false if it didn't know how to do the
 /// conversion.  If dst_type is UNKNWON, it will be assumed to be the
 /// same as src_type.
 DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
                               TypeDesc dst_type, void *to, int n,
-                              ColorTransfer *tfunc,
                               int alpha_channel = -1, int z_channel = -1);
 
 /// Helper routine for data conversion: Convert an image of nchannels x
@@ -1053,8 +1033,8 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
                               void *dst, TypeDesc dst_type,
                               stride_t dst_xstride, stride_t dst_ystride,
                               stride_t dst_zstride,
-                              ColorTransfer *tfunc = NULL,
                               int alpha_channel = -1, int z_channel = -1);
+
 
 /// Helper routine for data conversion: Copy an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
