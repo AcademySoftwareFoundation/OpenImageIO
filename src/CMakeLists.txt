@@ -29,6 +29,7 @@ set (USE_TBB ON CACHE BOOL "Use TBB if needed")
 set (USE_PYTHON ON CACHE BOOL "Build the Python bindings")
 set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
 set (USE_JASPER ON CACHE BOOL "Use Jasper for JPEG-2000 if found")
+set (USE_OCIO ON CACHE BOOL "Use OpenColorIO for color management if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
 set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL

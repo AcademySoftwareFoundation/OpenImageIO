@@ -383,7 +383,7 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 }
 
 
-
+/*
 bool
 ImageBufAlgo::colortransfer (ImageBuf &output, const ImageBuf &input,
                              ColorTransfer *tfunc)
@@ -401,7 +401,7 @@ ImageBufAlgo::colortransfer (ImageBuf &output, const ImageBuf &input,
     
     return true;
 }
-
+*/
 
 
 bool

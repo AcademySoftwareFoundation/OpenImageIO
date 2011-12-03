@@ -1,5 +1,5 @@
 set (libOpenImageIO_hdrs ../include/argparse.h
-                         ../include/colortransfer.h
+                         ../include/color.h
                          ../include/dassert.h
                          ../include/errorhandler.h
                          ../include/filesystem.h
@@ -34,9 +34,9 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                          imagebufalgo.cpp imagebufalgo_orient.cpp
                          imagebufalgo_yee.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
-                          imageoutput.cpp iptc.cpp xmp.cpp 
+                          imageoutput.cpp iptc.cpp xmp.cpp
+                          color_ocio.cpp color_generic.cpp
                           ../libutil/argparse.cpp
-                          ../libutil/colortransfer.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
                           ../libutil/filter.cpp 
@@ -67,6 +67,20 @@ if (USE_TBB)
 else ()
     add_definitions ("-DUSE_TBB=0")
     message (STATUS "TBB will not be used")
+endif ()
+
+# Include OpenColorIO if using it
+if (USE_OCIO)
+    FindOpenColorIO()
+    if (OCIO_FOUND)
+        message (STATUS "OpenColorIO enabled")
+        message(STATUS "OCIO_INCLUDES: ${OCIO_INCLUDES}")
+        include_directories (${OCIO_INCLUDES})
+    else ()
+        message (STATUS "Skipping OpenColorIO support")
+    endif ()
+else ()
+    message (STATUS "OpenColorIO disabled")
 endif ()
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
@@ -139,6 +153,7 @@ if (EMBEDPLUGINS)
     find_package (Jasper)
     include_directories (${PNG_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
     include_directories (${TIFF_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
+    
     add_definitions ("-DEMBED_PLUGINS=1")
     if (JASPER_FOUND AND USE_JASPER)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
@@ -201,6 +216,18 @@ else ()
     add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
 endif ()
 target_link_libraries (OpenImageIO ${Boost_LIBRARIES})
+
+
+
+# Include OpenColorIO if using it
+if (USE_OCIO AND OCIO_FOUND)
+    message (STATUS "Linking OpenColorIO ${OCIO_LIBRARIES}")
+    target_link_libraries (OpenImageIO ${OCIO_LIBRARIES})
+endif ()
+
+
+
+
 if (MSVC)
     target_link_libraries (OpenImageIO psapi.lib)
 endif (MSVC)

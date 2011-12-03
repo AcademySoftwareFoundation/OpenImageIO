@@ -98,6 +98,10 @@ ifneq (${USE_JASPER},)
 MY_CMAKE_FLAGS += -DUSE_JASPER:BOOL=${USE_JASPER}
 endif
 
+ifneq (${USE_OCIO},)
+MY_CMAKE_FLAGS += -DUSE_OCIO:BOOL=${USE_OCIO}
+endif
+
 ifneq (${BUILDSTATIC},)
 MY_CMAKE_FLAGS += -DBUILDSTATIC:BOOL=${BUILDSTATIC}
 endif
@@ -244,6 +248,7 @@ help:
 	@echo "  make PYTHON_VERSION=2.6 ... Specify the Python version"
 	@echo "  make USE_FIELD3D=0 ...      Don't build the Field3D plugin"
 	@echo "  make USE_JASPER=0 ...       Don't use Jasper or build the JPEG-2000 plugin"
+	@echo "  make USE_OCIO=0 ...         Specify whether to build with OpenColorIO support"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
 	@echo ""
