@@ -37,48 +37,81 @@
 OIIO_NAMESPACE_ENTER
 {
 
+/// The ColorProcessor encapsulates a baked color transformation, suitable for
+/// application to raw pixels, or ImageBuf(s). These are generated using
+/// ColorConfig::createColorProcessor, and referenced in ImageBufAlgo
+/// (amongst other places)
+
 class DLLPUBLIC ColorProcessor;
 
-/// Represents the current ColorConfiguration. This will rely on OpenColorIO,
-/// if enabled at build time.
-/// WARNING: ColorConfig and ColorProcessor are potentially heavy-weight.
-/// Their construction / destruction should be kept to an absolute minimum.
+
+
+/// Represents the set of all color transformations that are allowed.
+/// If OpenColorIO is enabled at build time, this configuration is loaded
+/// at runtime, allowing the user to have complete control of all color
+/// transformation math. ($OCIO)  (See opencolorio.org for details).
+/// If OpenColorIO is not enabled at build time, a generic color configuration
+/// is provided for minimal color support.
+///
+/// NOTE: ColorConfig(s) and ColorProcessor(s) are potentially heavy-weight.
+/// Their construction / destruction should be kept to a minimum.
 
 class DLLPUBLIC ColorConfig
 {
 public:
-    static bool supportsOpenColorIO();
-    
-    /// Initialize with the current color configuration. ($OCIO)
-    /// If OpenImageIO was not build with OCIO support, this will print
-    /// a warning to the shell, and continue.
-    /// Get the global OpenColorIO config
-    /// This will auto-initialize (using $OCIO) on first use
-    /// Multiple calls to this are immediate.
+    /// If OpenColorIO is enabled at build time, initialize with the current
+    /// color configuration. ($OCIO)
+    /// If OpenColorIO is not enabled, this does nothing.
+    ///
+    /// Multiple calls to this are inexpensive.
     ColorConfig();
     
-    /// Repeated calls to this do not cache.
+    /// If OpenColorIO is enabled at build time, initialize with the 
+    /// specified color configuration (.ocio) file
+    /// If OpenColorIO is not enabled, this will result in an error.
+    /// 
+    /// Multiple calls to this are potentially expensive.
     ColorConfig(const char * filename);
     
     ~ColorConfig();
     
+    /// Has an error string occurred?
+    /// (This will not affect the error state.)
+    bool error () const;
+    
     /// This routine will return the error string (and clear any error
     /// flags).  If no error has occurred since the last time geterror()
     /// was called, it will return an empty string.
-    
     std::string geterror ();
     
-    /// Is the error string set? Will not clear it.
-    bool error () const;
-    
-    
+    /// Get the number of ColorSpace(s) defined in this configuration
     int getNumColorSpaces() const;
+    
+    /// Query the name of the specified ColorSpace
     const char * getColorSpaceNameByIndex(int index) const;
+    
+    /// Given the specified input and output ColorSpace, construct the
+    /// processor.  It is possible that this will return NULL, if the
+    /// inputColorSpace doesnt exist, the outputColorSpace doesn't exist,
+    /// or if the specified transformation is illegal (for example, it may
+    /// require the inversion of a 3D-LUT, etc).   When the user is finished
+    /// with a ColorProcess, deleteColorProcessor should be called.
+    /// ColorProcessor(s) remain valid even if the ColorConfig that created
+    /// them no longer exists.
+    /// 
+    /// Multiple calls to this are potentially expensive.
     
     ColorProcessor* createColorProcessor(const char * inputColorSpace,
                                          const char * outputColorSpace) const;
     
+    /// Delete the specified ColorProcessor
     static void deleteColorProcessor(ColorProcessor * processor);
+    
+    /// Return if OpenImageIO was built with OCIO support
+    static bool supportsOpenColorIO();
+    
+    
+    
     
     private:
     ColorConfig(const ColorConfig &);

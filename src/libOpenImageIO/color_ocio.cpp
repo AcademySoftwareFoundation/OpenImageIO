@@ -181,31 +181,22 @@ ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 
 
 
-/// Apply a transfer function to the pixel values.
-/// In-place operation
-/// (dst == src) is supported
-/// If unpremult is specified, unpremultiply before color conversion, then
-/// premultiply after the color conversion.  You'll probably want to use this
-/// flag if your image contains an alpha channel
-/// return true on success
-/// Note: the dst image does not need to equal the src image, either in buffers
-/// or bit depths.  (For example, it is commong for the src buffer to be a lower
-/// bit depth image and the output image to be float).
-
 bool
 ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     const ColorProcessor* processor,
     bool unpremult)
 {
-    // exit if the processor is NULL or a no-op
-    if (!processor || (!processor->p) || processor->p->isNoOp())
+    // If the processor is NULL, return false (error)
+    if (!processor || (!processor->p))
+        return false;
+    
+    // If the processor is a no-op, no work needs to be done. Early exit.
+    if (processor->p->isNoOp())
         return true;
     
     ImageSpec dstspec = dst.spec();
     
-    std::vector<float> scanline;
-    scanline.resize(dstspec.width*4);
-    memset(&scanline[0], sizeof(float)*scanline.size(), 0);
+    std::vector<float> scanline(dstspec.width*4, 0.0f);
     OCIO::PackedImageDesc scanlineimg(&scanline[0], dstspec.width, 1, 4);
     
     // Only process up to, and including, the first 4 channels.
@@ -229,8 +220,17 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     float * dstPtr = NULL;
     const float fltmin = std::numeric_limits<float>::min();
     
+    // If the processor has crosstalk, and we'll be using it, we should
+    // reset the channels to 0 before loading each scanline.
+    bool clearScanline = (channelsToCopy<4 && 
+        (processor->p->hasChannelCrosstalk() || unpremult));
+    
     for (int k = dstspec.z; k < dstspec.z+dstspec.depth; k++) {
         for (int j = dstspec.y; j <  dstspec.y+dstspec.height; j++) {
+            // Clear the scanline
+            if (clearScanline) {
+                memset (&scanline[0], 0, sizeof(float)*scanline.size());
+            }
             
             // Load the scanline
             dstPtr = &scanline[0];
@@ -286,14 +286,18 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
     const ColorProcessor* processor,
     bool unpremult)
 {
-    // exit if the processor is NULL or a no-op
-    if (!processor || (!processor->p) || processor->p->isNoOp())
+    // If the processor is NULL, return false (error)
+    if (!processor || (!processor->p))
+        return false;
+    
+    // If the processor is a no-op, no work needs to be done. Early exit.
+    if (processor->p->isNoOp())
         return true;
     
     // Load the pixel
     float rgba[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
     int channelsToCopy = std::min (4, nchannels);
-    memcpy(rgba, color, channelsToCopy*sizeof(float));
+    memcpy(rgba, color, channelsToCopy*sizeof (float));
     
     const float fltmin = std::numeric_limits<float>::min();
     
@@ -325,6 +329,9 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
     
     return true;
 }
+
+
+
 
 }
 OIIO_NAMESPACE_EXIT

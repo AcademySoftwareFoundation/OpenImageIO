@@ -149,11 +149,7 @@ message (STATUS "OPENGL_FOUND=${OPENGL_FOUND} USE_OPENGL=${USE_OPENGL}")
 ###########################################################################
 # OpenColorIO Setup
 if (USE_OCIO)
-    find_package (OpenColorIO REQUIRED)
-    if (OCIO_FOUND)
-        include_directories (${OCIO_INCLUDES})
-        add_definitions ("-DUSE_OCIO=1")
-    endif ()
+    find_package (OpenColorIO)
 endif ()
 
 

@@ -383,27 +383,6 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 }
 
 
-/*
-bool
-ImageBufAlgo::colortransfer (ImageBuf &output, const ImageBuf &input,
-                             ColorTransfer *tfunc)
-{
-    // copy input ImageBuf to output ImageBuf if they aren't the same.
-    if (&output != &input)
-        output = input;
-
-    // exit if the transfer function is NULL
-    if (tfunc == NULL)
-        return true;
-
-    // run the transfer function over the output ImageBuf
-    output.transfer_pixels (tfunc);
-    
-    return true;
-}
-*/
-
-
 bool
 ImageBufAlgo::computePixelStats (PixelStats  &stats, const ImageBuf &src)
 {

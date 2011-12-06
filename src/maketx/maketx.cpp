@@ -144,24 +144,27 @@ filter_help_string ()
 }
 
 static std::string
-colorconvert_help_string ()
+colortitle_help_string ()
 {
-    std::string s = "Color convert the image ";
-    
+    std::string s ("Color Management Options ");
     if(ColorConfig::supportsOpenColorIO()) {
-        s += "using OpenColorIO. ";
+        s += "(OpenColorIO enabled)";
     }
     else {
-        s += "using basic internal color processing. ";
-        s += "If you would prefer customized color processing, ";
-        s += "please recompile with OpenColorIO support. ";
+        s += "(OpenColorIO DISABLED)";
     }
-    
-    s += "If the output color space is not the same bit depth "
+    return s;
+}
+
+static std::string
+colorconvert_help_string ()
+{
+    std::string s = "Apply a color space conversion to the image."
+    "If the output color space is not the same bit depth "
     "as input color space, it is your responsibility to set the data format "
     "to the proper bit depth using the -d option. ";
     
-    s += " Options: ";
+    s += " (choices: ";
     ColorConfig config;
     if(config.error() || config.getNumColorSpaces()==0)
     {
@@ -175,6 +178,7 @@ colorconvert_help_string ()
             s += config.getColorSpaceNameByIndex(i);
         }
     }
+    s += ")";
     
     return s;
 }
@@ -274,7 +278,7 @@ getargs (int argc, char *argv[])
 //                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
 //                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
 //                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
-                  "<SEPARATOR>", "Color Management Options",
+                  "<SEPARATOR>", colortitle_help_string().c_str(),
                   "--colorconvert %s %s", &incolorspace, &outcolorspace,
                           colorconvert_help_string().c_str(),
                   "--unpremult", &unpremult, "Unpremultiply before color conversion, then premultiply "

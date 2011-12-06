@@ -149,7 +149,7 @@ enum DLLPUBLIC AddOptions
 /// flag if your image contains an alpha channel
 ///
 /// Note: the dst image does not need to equal the src image, either in buffers
-///       or bit depths. (For example, it is commong for the src buffer to be a
+///       or bit depths. (For example, it is common for the src buffer to be a
 ///       lower bit depth image and the output image to be float).
 /// If the output buffer is less than floating-point, results may be quantized /
 /// clamped

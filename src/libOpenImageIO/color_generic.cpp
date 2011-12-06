@@ -198,8 +198,8 @@ ColorConfig::createColorProcessor (const char * inputColorSpace,
     }
     else {
         getImpl()->error_ = "Unknown color space: " + std::string(ocs);
-        return NULL;
         delete t1;
+        return NULL;
     }
     
     ColorProcessor * processor = new ColorProcessor();
@@ -222,31 +222,18 @@ ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 
 
 
-/// Apply a transfer function to the pixel values.
-/// In-place operation
-/// (dst == src) is supported
-/// If unpremult is specified, unpremultiply before color conversion, then
-/// premultiply after the color conversion.  You'll probably want to use this
-/// flag if your image contains an alpha channel
-/// return true on success
-/// Note: the dst image does not need to equal the src image, either in buffers
-/// or bit depths.  (For example, it is commong for the src buffer to be a lower
-/// bit depth image and the output image to be float).
-
 bool
 ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     const ColorProcessor* processor,
     bool unpremult)
 {
-    // exit if the processor is NULL or a no-op
+    // If the processor is NULL, return false (error)
     if (!processor)
-        return true;
+        return false;
     
     ImageSpec dstspec = dst.spec();
     
-    std::vector<float> scanline;
-    scanline.resize(dstspec.width*4);
-    memset(&scanline[0], sizeof(float)*scanline.size(), 0);
+    std::vector<float> scanline(dstspec.width*4, 0.0f);
     
     // Only process up to, and including, the first 4 channels.
     // This does let us process images with fewer than 4 channels, which is the intent
@@ -332,9 +319,9 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
     const ColorProcessor* processor,
     bool unpremult)
 {
-    // exit if the processor is NULL or a no-op
+    // If the processor is NULL, return false (error)
     if (!processor)
-        return true;
+        return false;
     
     // Load the pixel
     float rgba[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -374,6 +361,8 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
     
     return true;
 }
+
+
 
 }
 OIIO_NAMESPACE_EXIT

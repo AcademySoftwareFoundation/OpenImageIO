@@ -1009,17 +1009,6 @@ inline std::string error_message () { return geterror (); }
 DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
                         int quant_min, int quant_max);
 
-/// Helper routine: compute (gain*value)^invgamma
-///
-inline float exposure (float value, float gain, float invgamma)
-{
-    if (invgamma != 1 && value >= 0)
-        return powf (gain * value, invgamma);
-    // Simple case - skip the expensive pow; also fall back to this
-    // case for negative values, for which gamma makes no sense.
-    return gain * value;
-}
-
 /// Helper function: convert contiguous arbitrary data between two
 /// arbitrary types (specified by TypeDesc's)
 /// Return true if ok, false if it didn't know how to do the
@@ -1046,6 +1035,7 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
                               stride_t dst_xstride, stride_t dst_ystride,
                               stride_t dst_zstride,
                               int alpha_channel = -1, int z_channel = -1);
+
 
 /// Helper routine for data conversion: Copy an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
