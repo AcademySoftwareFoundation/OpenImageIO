@@ -55,7 +55,6 @@
 #include <cmath>
 
 #include "export.h"
-#include "fmath.h"
 #include "typedesc.h"   /* Needed for TypeDesc definition */
 #include "paramlist.h"
 #include "colortransfer.h"
@@ -74,7 +73,11 @@ typedef ptrdiff_t stride_t;
 /// Type we use to express how many pixels (or bytes) constitute an image,
 /// tile, or scanline.  Needs to be large enough to handle very big images
 /// (which we presume could be > 4GB).
-typedef uint64_t imagesize_t;
+#if defined(LINUX64) || defined(_WIN64) /* add others if we know for sure size_t is ok */
+typedef size_t imagesize_t;
+#else
+typedef unsigned long long imagesize_t;
+#endif
 
 
 
