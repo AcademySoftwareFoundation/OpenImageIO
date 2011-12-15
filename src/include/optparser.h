@@ -70,13 +70,15 @@ optparse1 (C &system, const std::string &opt)
             return system.attribute (name.c_str(), (float)atof(value.c_str()));
         else  // int
             return system.attribute (name.c_str(), (int)atoi(value.c_str()));
-    } else { // treat it as a string
-        // trim surrounding double quotes
-        if (value.size() >= 2 &&
-                value[0] == '\"' && value[value.size()-1] == '\"')
-            value = std::string (value, 1, value.size()-2);
-        return system.attribute (name.c_str(), value.c_str());
     }
+    // otherwise treat it as a string
+
+    // trim surrounding double quotes
+    if (value.size() >= 2 &&
+            value[0] == '\"' && value[value.size()-1] == '\"')
+        value = std::string (value, 1, value.size()-2);
+
+    return system.attribute (name.c_str(), value.c_str());
 }
 
 
