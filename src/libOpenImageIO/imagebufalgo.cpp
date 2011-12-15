@@ -49,6 +49,11 @@
 #include "dassert.h"
 #include "sysutil.h"
 #include "filter.h"
+#include <float.h>
+
+#include <boost/numeric/ublas/lu.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/vector.hpp>
 
 
 OIIO_NAMESPACE_ENTER
@@ -780,7 +785,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     const ImageSpec &dstspec (dst.spec());
     int nchannels = dstspec.nchannels;
 
-    if (dstspec.format.basetype != TypeDesc::FLOAT ||
+    if ( //dstspec.format.basetype != TypeDesc::FLOAT ||
         nchannels != srcspec.nchannels) {
         return false;
     }
@@ -939,6 +944,239 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     return true;
 }
 
+
+
+template<typename SRCTYPE>
+bool transform_ (ImageBuf &dst, const ImageBuf &src,
+                 const ImageBufAlgo::Mapping &mapping,
+                 Filter2D *filter, float xshift, float yshift)
+{
+    const ImageSpec &srcspec (src.spec());
+    const ImageSpec &dstspec (dst.spec());
+    int nchannels = dstspec.nchannels;
+
+    std::cout << "starting transform\n";
+
+    if (//dstspec.format.basetype != TypeDesc::FLOAT ||
+        nchannels != srcspec.nchannels) {
+        std::cout << "fail\n";
+        return false;
+    }
+
+    bool allocfilter = (filter == NULL);
+    if (allocfilter) {
+        filter = Filter2D::create ("triangle", 2.0f, 2.0f);
+    }
+    
+    if(mapping.isDstToSrcMapping)
+    {
+        float *pel = ALLOCA (float, nchannels);
+        float filterrad = filter->width() / 2.0f;
+        // radi,radj is the filter radius, as an integer, in source pixels.  We
+        // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
+        int radi = 0;
+        int radj = 0;
+
+        bool separable = filter->separable();
+
+        for (int y = 0;  y < dstspec.full_height;  ++y)
+        {
+            
+            for (int x = 0;  x < dstspec.full_width;  ++x)
+            {
+                // s,t are NDC space
+                float s = 0, t = 0, dsdx = 1.0f, dtdx = 0, dsdy = 0, dtdy = 1.0;
+
+                mapping.map (x-xshift, y-yshift, &s, &t, &dsdx, &dtdx, &dsdy, &dtdy);
+
+                radi = (int) ceilf (filterrad * dsdx) + 1;
+                radj = (int) ceilf (filterrad * dtdy) + 1;
+
+                float src_yf = t;  // src_xf, src_xf are image space float coordinates
+                int src_y;         // src_x, src_y are image space integer coordinates of the floor
+                float src_yf_frac = floorfrac (src_yf, &src_y);
+
+                float src_xf = s;
+                int src_x;
+                float src_xf_frac = floorfrac (src_xf, &src_x);
+
+                for (int c = 0;  c < nchannels;  ++c)
+                    pel[c] = 0.0f;
+
+                float totalweight = 0.0f;
+
+                if (separable)
+                {
+                    ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
+                                                           src_y-radi, src_y+radi+1,
+                                                           0, 1, true);
+                    for (int j = -radj;  j <= radj;  ++j)
+                    {
+                        for (int i = -radi;  i <= radi;  ++i, ++srcpel)
+                        {
+                        float w = filter->xfilt ( ((i-src_xf_frac) - (j-src_yf_frac) * dsdy) / dsdx )
+                                   * filter->yfilt ( ((j-src_yf_frac) - (i-src_xf_frac) * dtdx) / dtdy )
+                            ;
+                            
+                        if (fabsf(w) < 1.0e-6)
+                            continue;
+                                 
+                            totalweight += w;
+                            if (srcpel.exists())
+                            {
+                                for (int c = 0;  c < nchannels;  ++c)
+                                    pel[c] += w * srcpel[c];
+                            } else {
+                                // Outside data window
+                                //for (int c = 0;  c < nchannels;  ++c)
+                                //    p[c] += 0;
+                            }
+                        }
+                    }
+                } else {
+                    // Non-separable
+                    ImageBuf::ConstIterator<SRCTYPE> srcpel (src, src_x-radi, src_x+radi+1,
+                                                           src_y-radi, src_y+radi+1,
+                                                           0, 1, true);
+                    for (int j = -radj;  j <= radj;  ++j)
+                    {
+                        for (int i = -radi;  i <= radi;  ++i, ++srcpel)
+                        {
+                        float w = (*filter)(
+                                        ((i-src_xf_frac) - (j-src_yf_frac) * dsdy) / dsdx,
+                                        ((j-src_yf_frac) - (i-src_xf_frac) * dtdx) / dtdy
+                                  );
+                            if (fabsf(w) < 1.0e-6)
+                                continue;
+                            totalweight += w;
+                            DASSERT (! srcpel.done());
+                            if (srcpel.exists())
+                            {
+                                for (int c = 0;  c < nchannels;  ++c)
+                                    pel[c] += w * srcpel[c];
+                            }
+                        }
+                    }
+                    DASSERT (srcpel.done());
+                }
+
+                // Rescale pel to normalize the filter, then write it to the
+                // image.
+                if (fabsf(totalweight) < 1.0e-6)
+                {
+                    // zero it out
+                    for (int c = 0;  c < nchannels;  ++c)
+                        pel[c] = 0.0f;
+                } else {
+                    float winv = 1.0f / totalweight;
+                    for (int c = 0;  c < nchannels;  ++c)
+                        pel[c] *= winv;
+                }
+                dst.setpixel (x, y, pel);
+            }
+        }
+    }
+    else //isDstToSrcMapping == false
+    {
+        float *srcpel = ALLOCA (float, nchannels);
+        float *oldpel = ALLOCA (float, nchannels);
+        float *newpel = ALLOCA (float, nchannels);
+        float **w;
+        
+        int out_width = srcspec.full_width;
+        int out_height = srcspec.full_height;
+        
+        w = new float*[out_height]; //creating table of pointers
+        w[0] = new float[out_width*out_height]; //elements
+        for(int i=1; i<out_width; i++) 
+            w[i] = w[i-1] + out_height;
+        
+        for (int y = 0;  y < out_height;  ++y) 
+            for (int x = 0;  x < out_width;  ++x)
+                w[x][y] = 0;
+        
+        
+        bool separable = filter->separable();
+        float filterrad = filter->width() / 2.0f;
+        
+        int radi = 0;
+        int radj = 0;
+        int lap = (int) ceilf (filterrad) + 1;
+        
+        for (int y = -lap;  y < srcspec.full_height + lap;  ++y)
+        {  
+            for (int x = -lap;  x < srcspec.full_width + lap;  ++x)
+            {
+                // s,t are NDC space
+                float s = 0, t = 0, dsdx = 1.0f, dtdx = 0, dsdy = 0, dtdy = 1.0;
+                mapping.map (x-xshift, y-yshift, &s, &t, &dsdx, &dtdx, &dsdy, &dtdy);
+                
+                radi = (int) ceilf (filterrad * dsdx) + 1;
+                radj = (int) ceilf (filterrad * dtdy) + 1;
+
+                float dst_yf = t;  // src_xf, src_xf are image space float coordinates
+                int dst_y;         // src_x, src_y are image space integer coordinates of the floor
+                float dst_yf_frac = floorfrac (dst_yf, &dst_y);
+
+                float dst_xf = s;
+                int dst_x;
+                float dst_xf_frac = floorfrac (dst_xf, &dst_x);
+                
+                src.getpixel(x, y, srcpel);
+               
+                
+                for (int j = -radj;  j <= radj;  ++j)
+                {
+                    for (int i = -radi;  i <= radi;  ++i)
+                    {   
+                        if(dst_x+i < 0 || dst_x+i >= out_width || dst_y+j < 0 || dst_y+j >= out_height)
+                            continue;
+                        
+                        float curw = 0;
+
+                        if(separable) {
+                            curw = filter->xfilt ( ((i-dst_xf_frac) - (j-dst_yf_frac) * dsdy) / dsdx) *
+                                   filter->yfilt ( ((j-dst_yf_frac) - (i-dst_xf_frac) * dtdx) / dtdy);
+                        } else {
+                            curw = (*filter)(
+                                        ((i-dst_xf_frac) - (j-dst_yf_frac) * dsdy) / dsdx,
+                                        ((j-dst_yf_frac) - (i-dst_xf_frac) * dtdx) / dtdy
+                                  );
+                        }
+                        if (fabsf(curw) < 1.0e-6)
+                            continue;
+
+                        float oldw = w[dst_x+i][dst_y+j];
+                        dst.getpixel(dst_x+i, dst_y+j, oldpel);
+
+                        /*
+                        if(dst_x == 400 && dst_y == 400)
+                            std::cout << j << " " << i <<
+                                " curw " << curw <<
+                                " oldw " << oldw <<
+                                std::endl;
+                        */
+                        for (int c = 0;  c < nchannels;  ++c)
+                                newpel[c] = (oldw * oldpel[c] + curw * srcpel[c]) / (oldw + curw);
+
+                        dst.setpixel(dst_x+i, dst_y+j, newpel);
+                        w[dst_x+i][dst_y+j] = curw + oldw;
+
+                    }
+                }                  
+                             
+            }
+        }
+        
+        
+    }
+
+    if (allocfilter)
+        Filter2D::destroy (filter);
+    return true;
+}
+
+
 } // end anonymous namespace
 
 
@@ -971,10 +1209,413 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     case TypeDesc::DOUBLE:
         return resize_<double> (dst, src, xbegin, xend, ybegin, yend, filter);
     default:
+        std::cout << "aaaaa\n";
         return false;
     }
 }
 
+
+
+bool
+ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src,
+                         const Mapping &mapping,
+                         Filter2D *filter, float xshift, float yshift)
+{
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT :
+        return transform_<float> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::UINT8 :
+        return transform_<unsigned char> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::INT8  :
+        return transform_<char> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::UINT16:
+        return transform_<unsigned short> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::INT16 :
+        return transform_<short> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::UINT  :
+        return transform_<unsigned int> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::INT   :
+        return transform_<int> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::UINT64:
+        return transform_<unsigned long long> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::INT64 :
+        return transform_<long long> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::HALF  :
+        return transform_<half> (dst, src, mapping, filter, xshift, yshift);
+    case TypeDesc::DOUBLE:
+        return transform_<double> (dst, src, mapping, filter, xshift, yshift);
+    default:
+        std::cout << "aaaaa\n";
+        return false;
+    }
+}
+
+Imath::Box2f
+ImageBufAlgo::Mapping::bound (const Imath::Box2f &src)
+{
+    float dsdx = 0, dsdy = 0, dtdx = 0, dtdy = 0;
+    float x = 0, y = 0;
+    float minx, maxx, miny, maxy;
+    
+    float srcWidth = src.max.x;
+    float srcHeight = src.max.y;
+    
+    map (0, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
+    maxx = x;       minx = x;
+    maxy = y;       miny = y;
+
+    map (srcWidth, 0, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
+    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
+    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
+
+    map (srcWidth, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
+    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
+    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
+
+    map (0, srcHeight, &x, &y, &dsdx, &dtdx, &dsdy, &dtdy);
+    maxx = (x > maxx)? x : maxx;    minx = (x < minx)? x : minx;
+    maxy = (y > maxy)? y : maxy;    miny = (y < miny)? y : miny;
+    
+    return Imath::Box2f(Imath::V2f(minx, miny), Imath::V2f(minx, miny));
+}
+
+
+ImageBufAlgo::RotationMapping::RotationMapping (float rotangle, float originx,
+                                                float originy)
+    : m_rotangle(-rotangle*M_PI / 180.0f),
+      m_originx(originx), m_originy(originy),
+      m_sinr(sinf(m_rotangle)), m_cosr(cosf(m_rotangle))
+{
+}
+
+
+void
+ImageBufAlgo::RotationMapping::map (float x, float y, float* s, float* t,
+                                    float *dsdx, float *dtdx,
+                                    float *dsdy, float *dtdy) const
+{
+    *s = m_originx + (x+0.5f-m_originx) * m_cosr - (y+0.5f-m_originy) * m_sinr;
+    *t = m_originy + (x+0.5f-m_originx) * m_sinr + (y+0.5f-m_originy) * m_cosr;
+    // Simplifying assumption: rotation doesn't change pixel "size."
+    *dsdx = 1.0f;
+    *dtdx = 0;
+    *dsdy = 0;
+    *dtdy = 1.0f;
+}
+
+
+void
+ImageBufAlgo::ResizeMapping::map (float x, float y, float* s, float* t,
+                                  float *dsdx, float *dtdx, float *dsdy, float *dtdy) const
+{
+    *s = (x + 0.5f) / xscale;
+    *t = (y + 0.5f) / yscale;
+    *dsdx = 1.0f / xscale;
+    *dtdx = 0;
+    *dsdy = 0;
+    *dtdy = 1.0f / yscale;
+}
+
+
+Imath::Box2f
+ImageBufAlgo::ResizeMapping::bound (const Imath::Box2f &src)
+{   
+    float width = src.max.x * xscale;
+    float height = src.max.y * yscale; 
+    
+    return Imath::Box2f(Imath::V2f(0, 0), Imath::V2f(width, height));   
+}
+
+
+ImageBufAlgo::ShearMapping::ShearMapping (float m, float n,
+                                          float originx, float originy)
+    : m_m(-m), m_n(n), m_originx(originx), m_originy(originy)
+{ }
+
+
+
+void
+ImageBufAlgo::ShearMapping::map (float x, float y, float* s, float* t,
+                                 float *dsdx, float *dtdx, float *dsdy, float *dtdy) const
+{
+    x += 0.5f - m_originx;
+    y += 0.5f - m_originy;
+    
+    // making sure that we are not dividing by 0
+    if (1.0f - m_m*m_n == 0)
+        return;   
+
+    float mn = m_m * m_n;
+    *s = (x - m_m*y) / (1 - mn);
+    *t = y - m_n*(*s) + m_originy - 0.5f;
+    *s += m_originx - 0.5f;
+    
+    // correct formula
+    *dsdx = 1.0f / (1.0f - mn);
+    *dtdx = -m_n / (1.0f - mn);
+    *dsdy = -m_m / (1.0f - mn);
+    *dtdy = 1.0f / (1.0f - mn);
+    
+    // changes to the formula
+    // reduces blurring
+    /*
+    if(m > 0 && n >0)
+    {
+        *dtdx = 0;//-n / (1.0f - m*n);
+        *dsdy = 0;//-m / (1.0f - m*n);
+    }
+    // reduces aliasing when m or n parameter is high
+    if(m>1)
+        *dsdx += fabs(m) / 2;
+    if(n>1)
+        *dtdy += fabs(n) / 2;
+
+     */ 
+}
+
+
+
+ImageBufAlgo::ReflectionMapping::ReflectionMapping (float a, float b,
+                                                    float originx, float originy)
+    : m_a(a), m_b(b), m_originx(originx), m_originy(originy)
+{ }
+
+ImageBufAlgo::ReflectionMapping::ReflectionMapping (Imath::V2f p1, Imath::V2f p2,
+                                                    float originx, float originy)
+    : m_originx(originx), m_originy(originy)
+{ 
+    if(p2.x != p1.x)
+        m_a = (p2.y - p1.y) / (p2.x - p1.x);
+    else
+        m_a = FLT_MAX;
+    
+    m_b = p1.y - m_a * p1.x;
+}
+
+
+
+void
+ImageBufAlgo::ReflectionMapping::map (float x, float y, float* s, float* t,
+                   float *dsdx, float *dtdx, float *dsdy, float *dtdy) const
+{
+    x += 0.5f-m_originx;
+    y += 0.5f-m_originy;
+    
+    // preventing from division by zero (vertical reflection)
+    if (m_a == 0)
+        return;
+    
+    y *= -1;
+    
+    // determining a perpendicular function g(x)=cx+d to reflection
+    // f(x)=ax+b going through (x,y)
+    float c = -1.0f/m_a;
+    float d = y + x/m_a;
+
+    // g(x) and f(x) intersection point
+    float isy = (d*m_a - c*m_b) / (m_a - c);
+    float isx = (isy - m_b) / m_a;
+    
+    *s =  2*isx - x + m_originx - 0.5f;
+    *t = - 2*isy + y + m_originy - 0.5f; 
+
+    // Simplifying assumption: reflection doesn't change pixel "size."
+    *dsdx = 1.0f;
+    *dtdx = 0;
+    *dsdy = 0;
+    *dtdy = 1.0f;
+}
+
+
+
+ImageBufAlgo::TPSMapping::TPSMapping (const std::vector<Imath::V2f> &_srcPoints,
+                                      const std::vector<Imath::V2f> &_dstPoints)
+    : srcControlPoints(_srcPoints), dstControlPoints(_dstPoints),
+      ctrlpc((int)_srcPoints.size())
+{
+    isDstToSrcMapping = false;
+    
+    int dim = ctrlpc + 2;
+    tpsXCoefs.resize (dim);
+    tpsYCoefs.resize (dim);
+
+    calculateCoefficients();   
+}
+
+
+
+void
+ImageBufAlgo::TPSMapping::calculateCoefficients()
+{ 
+    int dim = ctrlpc + 2;   //matrix dimension
+    
+    boost::numeric::ublas::permutation_matrix<double> px(dim);
+    boost::numeric::ublas::matrix<double> ax(dim, dim);
+    boost::numeric::ublas::vector<double> x(dim);
+    boost::numeric::ublas::vector<double> bx(dim);
+    
+    boost::numeric::ublas::permutation_matrix<double> py(dim);
+    boost::numeric::ublas::matrix<double> ay(dim, dim);
+    boost::numeric::ublas::vector<double> y(dim);
+    boost::numeric::ublas::vector<double> by(dim);
+    
+    
+    //--- preparing matrixes for determining coefficients ---//
+
+    for (int y = 0; y < dim; y++) {
+        for (int x = 0; x < dim; x++) {
+            if (y < dim - 2) {
+                if (x == 0) {
+                    ax(y,x) = 1;
+                    ay(y,x) = 1;
+                    continue;
+                }
+
+                if (x == 1) {
+                    ax(y,x) = srcControlPoints[y].x;
+                    ay(y,x) = srcControlPoints[y].y;
+                    continue;
+                }
+
+                ax(y,x) = kernelFunction(srcControlPoints[y], srcControlPoints[x - 2]);
+                ay(y,x) = kernelFunction(srcControlPoints[y], srcControlPoints[x - 2]);
+            } else {
+                if (x == 0 || x == 1) {
+                    ax(y,x) = 0;
+                    ay(y,x) = 0;
+                    continue;
+                } else if (y == dim - 2) {
+                    ax(y,x) = 1;
+                    ay(y,x) = 1;
+                    continue;
+                } else {
+                    ax(y,x) = dstControlPoints[x - 2].x;
+                    ay(y,x) = dstControlPoints[x - 2].y;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < dim; i++) {
+        if (i >= dim - 2) {
+            bx(i) = 0;
+            by(i) = 0;
+            continue;
+        }
+        bx(i) = dstControlPoints[i].x;
+        by(i) = dstControlPoints[i].y;
+    }
+    
+    // LU decomposition
+    lu_factorize(ax, px);
+    lu_factorize(ay, py);
+
+    x = bx;
+    y = by;
+    
+    lu_substitute(ax, px, x);
+    lu_substitute(ay, py, y);
+
+    // solution
+    for (int i = 0; i < dim; i++) {
+        tpsXCoefs[i] = x(i);
+        tpsYCoefs[i] = y(i);
+    }
+    
+}
+
+
+
+void
+ImageBufAlgo::TPSMapping::map (float x, float y, float* s, float* t,
+                               float *dsdx, float *dtdx, float *dsdy, float *dtdy) const 
+{
+    x += 0.5f;
+    y += 0.5f;
+    
+    int dim = ctrlpc + 2;
+    
+    float xSum = 0;
+    float ySum = 0;
+    
+    Imath::V2f p1;
+    p1.x = x;
+    p1.y = y;
+    
+    for (int i = 2; i < dim; i++) {
+        xSum += tpsXCoefs[i] * kernelFunction(p1, srcControlPoints[i - 2]);
+        ySum += tpsYCoefs[i] * kernelFunction(p1, srcControlPoints[i - 2]);
+    }
+
+    float xPrim = (tpsXCoefs[0] + tpsXCoefs[1] * x + xSum);
+    float yPrim = (tpsYCoefs[0] + tpsYCoefs[1] * y + ySum);
+
+    *s = xPrim;
+    *t = yPrim;
+    
+    // FIXME
+    *dsdx = 1.0f;
+    *dtdx = 0;
+    *dsdy = 0;
+    *dtdy = 1.0f;
+    
+    // ok
+    float upperS = 0, upperT = 0, nextS = 0, nextT = 0;
+    x -= 0.5f;
+    y -= 0.5f;
+    simpleMap (x, y+1, &upperS, &upperT);
+    simpleMap (x+1, y, &nextS, &nextT);
+    
+    *dsdx = fabs(nextS - *s);
+  //  *dtdx = -(nextT - *t);
+  //  *dsdy = (upperS - *s);
+    *dtdy = fabs(upperT - *t);
+}
+
+
+
+void
+ImageBufAlgo::TPSMapping::simpleMap (float x, float y, float* s, float* t) const
+{
+    x += 0.5f;
+    y += 0.5f;
+    
+    int dim = ctrlpc + 2;
+    
+    float xSum = 0;
+    float ySum = 0;
+    
+    Imath::V2f p1 (x, y);
+    
+    for (int i = 2; i < dim; i++) {
+        xSum += tpsXCoefs[i] * kernelFunction(p1, srcControlPoints[i - 2]);
+        ySum += tpsYCoefs[i] * kernelFunction(p1, srcControlPoints[i - 2]);
+    }
+
+    float xPrim = (tpsXCoefs[0] + tpsXCoefs[1] * x + xSum);
+    float yPrim = (tpsYCoefs[0] + tpsYCoefs[1] * y + ySum);
+
+    *s = xPrim;
+    *t = yPrim; 
+}
+
+float
+ImageBufAlgo::TPSMapping::rSquare(Imath::V2f p1, Imath::V2f p2) const
+{
+    return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
+}
+
+
+float
+ImageBufAlgo::TPSMapping::kernelFunction(Imath::V2f p1, Imath::V2f p2) const
+{
+    double r2 = rSquare(p1, p2);
+
+    if (r2 == 0)
+        return 0;
+
+    return r2 * log(sqrt(r2));
+}
 
 }
 OIIO_NAMESPACE_EXIT

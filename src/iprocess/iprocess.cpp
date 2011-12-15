@@ -41,6 +41,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+#include <float.h>
 
 using boost::algorithm::iequals;
 
@@ -87,7 +88,14 @@ static std::string colortransfer_to = "", colortransfer_from = "sRGB";
 static std::string filtername;
 static float filterwidth = 1.0f;
 static int resize_x = 0, resize_y = 0;
-
+static float rotation_angle = 0;
+static float cent_x = FLT_MAX, cent_y = FLT_MAX;      //transformation center
+static float scale_x = 0, scale_y = 0;                        //used for scale transformation
+static float shear_m = 0, shear_n = 0;                      //used for shear transformation
+static float refl_a = 0, refl_b = 0;                            //used for reflection transformation
+        //used for transformation, when true the output image is resized so that there is no data loss
+        //after transformation (e.g. after rotation corners won't be cut out).
+static bool nocrop = false;                                      
 
 
 static int
@@ -145,6 +153,12 @@ getargs (int argc, char *argv[])
                 "--colorspace %s", &colortransfer_from, "Override colorspace of inputfile: Linear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
                 "--filter %s %f", &filtername, &filterwidth, "Set the filter to use for resize",
                 "--resize %d %d", &resize_x, &resize_y, "Resize the image to x by y pixels",
+                "--rotate %f", &rotation_angle, "Rotates the image by x degrees",
+                "--center %f %f", &cent_x, &cent_y, "Set the transformation center x y",
+                "--scale %f %f", &scale_x, &scale_y, "Scale the image to x and y original width and height",
+                "--shear %f %f", &shear_m, &shear_n, "Shear the image with m and n coefficients (m - horizontal, n - vertical)",
+                "--reflect %f %f", &refl_a, &refl_b, "Reflect the image along a line described by a and b function coefficients f(x) = ax + b",
+                "--nocrop", &nocrop, "Resize the output image so that there is no data loss after transformation (e.g. after rotation corners won't be cut out).",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
 	std::cerr << ap.geterror() << std::endl;
@@ -342,6 +356,103 @@ main (int argc, char *argv[])
         out.save ();
         if (filter)
             Filter2D::destroy (filter);
+    }
+
+    bool transformation =   rotation_angle ||
+                            (shear_m || shear_n) ||
+                            (scale_x && scale_y) ||
+                            (refl_a || refl_b);
+
+    if (transformation) {       
+         if (filenames.size() != 1) {
+            std::cerr << "iprocess: --transformation needs one input filename\n";
+            exit (EXIT_FAILURE);
+        }
+
+        Filter2D *filter = NULL;
+        if (! filtername.empty()) {
+            filter = Filter2D::create (filtername, filterwidth, filterwidth);
+            if (! filter) {
+                std::cerr << "iprocess: unknown filter " << filtername << "\n";
+                return EXIT_FAILURE;
+            }
+        }
+
+        ImageBuf in;
+        if (! read_input (filenames[0], in)) {
+            std::cerr << "iprocess: read error: " << in.geterror() << "\n";
+            return EXIT_FAILURE;
+        }
+
+        if (cent_x == FLT_MAX && cent_y == FLT_MAX) {
+            cent_x = ImageBuf(in).spec().full_width / 2.0f;
+            cent_y = ImageBuf(in).spec().full_height / 2.0f;
+        }
+
+        ImageBufAlgo::Mapping *m = NULL;
+        
+        if (rotation_angle) {
+            m = new ImageBufAlgo::RotationMapping (rotation_angle, cent_x, cent_y);       
+        }
+        else if (shear_m || shear_n) {
+            m = new ImageBufAlgo::ShearMapping (shear_m, shear_n, cent_x, cent_y);
+        }
+        else if (scale_x && scale_y) {
+            m = new ImageBufAlgo::ResizeMapping (scale_x, scale_y);
+        }
+        else if(refl_a || refl_b) {
+            m = new ImageBufAlgo::ReflectionMapping (refl_a, refl_b, cent_x, cent_y);
+        }
+        
+        ImageSpec outspec = in.spec();
+        
+        // output image size
+        int out_width = 0;
+        int out_height = 0;
+        
+        if (nocrop)
+        {
+            int in_width = ImageBuf(in).spec().full_width;
+            int in_height = ImageBuf(in).spec().full_height;
+            
+            Imath::Box2f srcImgBox(Imath::V2f(0, 0), Imath::V2f(in_width, in_height));
+            Imath::Box2f newImgBox = m->bound(srcImgBox);
+        
+            out_width = newImgBox.max.x - newImgBox.min.x;
+            out_height = newImgBox.max.y - newImgBox.min.y; 
+        }
+        else 
+        {
+            out_width = ImageBuf(in).spec().full_width;
+            out_height = ImageBuf(in).spec().full_height;
+        }
+        
+        outspec.width = out_width;
+        outspec.height = out_height;
+        outspec.full_width = out_width;
+        outspec.full_height = out_height;
+            
+        ImageBuf out (outputname, outspec);
+        float pixel[3] = { .1, .1, .1 };
+        ImageBufAlgo::fill (out, pixel);
+        
+        // set the shift to center a transformed image
+        float xshift = (out_width - ImageBuf(in).spec().full_width) / 2.0f;
+        float yshift = (out_height - ImageBuf(in).spec().full_height) / 2.0f;
+        
+        if (scale_x && scale_y) 
+        {
+            xshift = 0;
+            yshift = 0;
+        }
+        
+        bool ok = false;
+        ok = ImageBufAlgo::transform(out, in, *m, filter, xshift, yshift);
+        ASSERT (ok);
+        out.save ();
+        if (filter)
+            Filter2D::destroy (filter);
+
     }
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;

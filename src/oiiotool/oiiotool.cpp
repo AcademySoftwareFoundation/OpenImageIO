@@ -37,11 +37,14 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <fstream>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+#include <float.h>
+#include <OpenEXR/ImathVec.h>
 
 using boost::algorithm::iequals;
 
@@ -1027,6 +1030,264 @@ action_croptofull (int argc, const char *argv[])
 
 
 static int
+action_transform (int argc, const char *argv[])
+{  
+    if (! ot.curimg.get()) {
+        // Not enough have inputs been specified so far, so put this
+        // function on the "pending" list.
+        ot.pending_callback = action_transform;
+        ot.pending_argv[0] = argv[0];
+        ot.pending_argv[1] = argv[1];
+        ot.pending_argc = 2;
+        return 0;
+    }
+
+    float cent_x = FLT_MAX;
+    float cent_y = FLT_MAX;
+    bool nocrop = false;
+    
+    std::string filtername;
+    std::string cmd = argv[0];
+    size_t pos;
+    while ((pos = cmd.find_first_of(":")) != std::string::npos) {
+        cmd = cmd.substr (pos+1, std::string::npos);
+        if (! strncmp (cmd.c_str(), "filter=", 7)) {
+            size_t filterNameEndPos = cmd.find_first_of(":");
+            filtername = cmd.substr (7, filterNameEndPos - 7);
+        }
+        else if (! strncmp (cmd.c_str(), "nocrop", 6)) {
+            nocrop = true;
+        }
+        else if (! strncmp (cmd.c_str(), "center=", 7)) {
+            size_t centxEndPos = cmd.find_first_of(":");
+            std::string tmp = cmd.substr (0, centxEndPos);
+            if (sscanf (tmp.c_str(), "center=%f,%f", &cent_x, &cent_y) != 2) {
+                cent_x = FLT_MAX;
+                cent_y = FLT_MAX;
+            }
+        }
+    }
+
+    ImageRecRef A = ot.curimg;
+    A->read ();
+    const ImageSpec &Aspec (*A->spec(0,0));
+    ImageSpec newspec = Aspec;
+    
+    // output image size
+    int out_width = 0;
+    int out_height = 0;
+    // source image size
+    const int in_width = Aspec.full_width;
+    const int in_height = Aspec.full_height;
+    
+    
+    if (cent_x == FLT_MAX && cent_y == FLT_MAX || nocrop) {
+        cent_x = in_width / 2.0f;
+        cent_y = in_height / 2.0f;
+    }
+    
+    ImageBufAlgo::Mapping *m = NULL;
+    
+    cmd = argv[0];
+    size_t actionNameEndPos = cmd.find_first_of(":");
+    std::string actionName = cmd.substr(2, actionNameEndPos - 2);
+    
+    //std::cout << actionName <<std::endl;
+    if (! strcmp (actionName.c_str(), "rotate")) {
+        float rotation_angle = atof(argv[1]);
+        m = new ImageBufAlgo::RotationMapping (rotation_angle, cent_x, cent_y);
+    } else if (! strcmp (actionName.c_str(), "shear")) {
+        float shear_m = atof(argv[1]);
+        float shear_n = atof(argv[2]);
+        m = new ImageBufAlgo::ShearMapping (shear_m, shear_n, cent_x, cent_y);
+    } else if (! strcmp (actionName.c_str(), "scale")) {
+        float scale_x = atof(argv[1]);
+        float scale_y = atof(argv[2]);
+        m = new ImageBufAlgo::ResizeMapping (scale_x, scale_y);
+    } else if (! strcmp (actionName.c_str(), "reflect")) {
+        /*
+        float refl_a = atof(argv[1]);
+        float refl_b = atof(argv[2]);
+        m = new ImageBufAlgo::ReflectionMapping (refl_a, refl_b, cent_x, cent_y);
+        */
+        float p1x = atof(argv[1]);
+        float p1y = atof(argv[2]);
+        float p2x = atof(argv[3]);
+        float p2y = atof(argv[4]);
+        m = new ImageBufAlgo::ReflectionMapping (Imath::V2f(p1x, p1y), Imath::V2f(p2x, p2y), cent_x, cent_y); 
+    }
+    
+    if (nocrop) {
+        Imath::Box2f srcImgBox(Imath::V2f(0, 0), Imath::V2f(in_width, in_height));
+        Imath::Box2f newImgBox = m->bound(srcImgBox);
+        
+        out_width = newImgBox.max.x - newImgBox.min.x;
+        out_height = newImgBox.max.y - newImgBox.min.y;
+    }
+    else {
+        out_width = in_width;
+        out_height = in_height;
+    }
+    
+    newspec.width = out_width;
+    newspec.height = out_height;
+    newspec.full_width = out_width;
+    newspec.full_height = out_height;
+    
+    ot.curimg.reset (new ImageRec (A->name(), newspec, ot.imagecache));
+    
+    const ImageBuf &Aib ((*A)(0,0));
+    ImageBuf &Rib ((*ot.curimg)(0,0));
+    
+    // set the shift to center a transformed image
+    float xshift = (out_width - in_width) / 2.0f;
+    float yshift = (out_height - in_height) / 2.0f;
+    
+    if (! strcmp (actionName.c_str(), "scale")) {
+        xshift = 0;
+        yshift = 0;
+    }
+    
+    Filter2D *filter = NULL;
+    if (! filtername.empty()) {
+        // If there's a matching filter, use it (and its recommended width)
+        for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+            FilterDesc fd;
+            Filter2D::get_filterdesc (i, &fd);
+            if (fd.name == filtername) {
+                filter = Filter2D::create (filtername, fd.width, fd.width);
+                break;
+            }
+        }
+        if (!filter)
+            std::cout << "Filter \"" << filtername << "\" not recognized\n";
+    } else {
+        // defualt filter: lanczos 3 lobe 6x6
+        filter = Filter2D::create ("lanczos3", 6.0f, 6.0f);
+    }
+
+    if (ot.verbose) {
+        std::cout << actionName
+                  << " using ";
+        if (filter) {
+            std::cout << filter->name();
+        } else {
+            std::cout << "default";
+        }
+        std::cout << " filter\n";
+    }
+    
+    bool ok = false;
+    ok = ImageBufAlgo::transform(Rib, Aib, *m, filter, xshift, yshift);
+    
+    if (filter)
+        Filter2D::destroy (filter);
+    
+    delete m;
+    
+    return 0;
+}
+
+
+
+static int
+action_tps (int argc, const char *argv[])
+{  
+    
+    if (! ot.curimg.get()) {
+        // Not enough have inputs been specified so far, so put this
+        // function on the "pending" list.
+        ot.pending_callback = action_tps;
+        ot.pending_argv[0] = argv[0];
+        ot.pending_argv[1] = argv[1];
+        ot.pending_argc = 2;
+        return 0;
+    }
+      
+    
+    std::string filtername;
+    std::string cmd = argv[0];
+    size_t pos;
+    while ((pos = cmd.find_first_of(":")) != std::string::npos) {
+        cmd = cmd.substr (pos+1, std::string::npos);
+        if (! strncmp (cmd.c_str(), "filter=", 7)) {
+            filtername = cmd.substr (7, std::string::npos);
+        }
+    }
+    
+    ImageRecRef A = ot.curimg;
+    A->read ();
+    const ImageSpec &Aspec (*A->spec(0,0));
+    ImageSpec newspec = Aspec;
+    
+    ot.curimg.reset (new ImageRec (A->name(), newspec, ot.imagecache));
+    Filter2D *filter = NULL;
+    if (! filtername.empty()) {
+        // If there's a matching filter, use it (and its recommended width)
+        for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+            FilterDesc fd;
+            Filter2D::get_filterdesc (i, &fd);
+            if (fd.name == filtername) {
+                filter = Filter2D::create (filtername, fd.width, fd.width);
+                break;
+            }
+        }
+        if (!filter)
+            std::cout << "Filter \"" << filtername << "\" not recognized\n";
+    } else {
+        // defualt filter: lanczos 3 lobe 6x6
+        filter = Filter2D::create ("lanczos3", 6.0f, 6.0f);
+    }
+    
+    const ImageBuf &Aib ((*A)(0,0));
+    ImageBuf &Rib ((*ot.curimg)(0,0));
+    
+    //control points from input file are stored here
+    std::vector<Imath::V2f> srccp;
+    std::vector<Imath::V2f> dstcp;
+    
+    std::string line;
+    std::ifstream infile;
+    
+    infile.open (argv[1]);
+    
+    float sx, sy, dx, dy;
+    while(getline(infile, line))
+    {
+    //    std::cout << line;
+        
+        int assaignedc = 0;
+        assaignedc = sscanf(line.c_str(), "%f, %f %f, %f", &sx, &sy, &dx, &dy);
+        if(assaignedc == 4)
+        {
+            if(ot.verbose)
+                std::cout << "Control point added: (" <<
+                    sx << ", " << sy << ")  ->  (" <<
+                    dx << ", " << dy << ")\n";
+            
+            srccp.push_back(Imath::V2f(sx, sy));
+            dstcp.push_back(Imath::V2f(dx, dy));
+        }
+        else {
+            std::cout << "WARNING! - Possible input error, line omitted.\n";        
+        }
+    }
+    infile.close();
+ 
+    ImageBufAlgo::Mapping *m = NULL;
+    m = new ImageBufAlgo::TPSMapping(srccp, dstcp);
+    
+    bool ok = false;
+    ok = ImageBufAlgo::transform(Rib, Aib, *m, filter, 0, 0);
+    
+    if (filter)
+        Filter2D::destroy (filter);
+    return 0;
+}
+
+
+
+static int
 action_resize (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_resize, argc, argv))
@@ -1111,6 +1372,7 @@ getargs (int argc, char *argv[])
     ArgParse ap;
     bool dummybool;
     int dummyint;
+    float dummyfloat;
     std::string dummystr;
     ap.options ("oiiotool -- simple image processing operations\n"
                 OIIO_INTRO_STRING "\n"
@@ -1178,6 +1440,12 @@ getargs (int argc, char *argv[])
                 "--crop %@ %s", action_crop, &dummystr, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, &dummybool, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resize %@ %s", action_resize, &dummystr, "Resize (640x480, 50%)",
+                "--rotate %@ %f", &action_transform, &dummyfloat, "Rotates the image by x degrees",
+                "--scale %@ %f %f", &action_transform, &dummyfloat, &dummyfloat, "Scale the image to x and y original width and height (x, y)",
+                "--shear %@ %f %f", &action_transform, &dummyfloat, &dummyfloat, "Shear the image with m - horizontal and n - vertical coefficients (m, n)",
+                "--reflect %@ %f %f %f %f", &action_transform, &dummyfloat, &dummyfloat, &dummyfloat, &dummyfloat, "Reflect the image along a line going thru by two points (x1, y1, x2, y2)",
+       //         "--reflect %@ %f %f", &action_transform, &dummyfloat, &dummyfloat, "Reflect the image along a line described by a and b function coefficients f(x) = ax + b (a, b)",
+                "--tps %@ %s", &action_tps, &dummystr, "Thin Plate Spline Deformation",
                 NULL);
     if (ap.parse(argc, (const char**)argv) < 0) {
 	std::cerr << ap.geterror() << std::endl;

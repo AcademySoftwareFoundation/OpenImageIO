@@ -24,7 +24,6 @@
   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
   (This is the Modified BSD License)
 */
 
@@ -42,6 +41,9 @@
 #include "imagebuf.h"
 #include "fmath.h"
 #include "colortransfer.h"
+#include "filter.h"
+#include "ImathBox.h"
+#include "ImathVec.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -231,10 +233,145 @@ bool DLLPUBLIC resize (ImageBuf &dst, const ImageBuf &src,
                        Filter2D *filter=NULL);
 
 
+class Mapping;
+
+
+
+/// A Mapping is a class/functor that implements a mapping of pixels
+/// (x,y) in one image to pixels (s,t) and their derivatives in a second
+/// image with the following method:
+///    void map (float x, float y, // pixel-space positions in image A
+///              float *s, float *t, // corresponding positions in image B
+///              float *dsdx, float *dtdx, // s & t derivs with respect to x
+///              float *dsdy, float *dtdy) // s & t derivs with respect to y
+/// The output image size where all input pixels are visible on the output 
+/// image (e.g. corners aren't cut out after rotation) is calculated with the 
+/// following method:
+///     void outputImagSize (int *width, int *height, // output image size
+///             int srcWidth, int srcHeight) // source image size
+/// isDstToSrcMapping describes type of mapping. If it's true then the mapping
+/// is OutputPixelPos->InputPixelPos, when it's false then the mapping is
+/// InputPixelPos->OutputPixelPos.
+/// This is the signature needed to be able to use a Mapping with the
+/// ImageBufAlgo::transform function.
+class Mapping {
+public:
+    Mapping () {
+        isDstToSrcMapping = true;
+    }
+    virtual ~Mapping () { }
+    virtual void map (float x, float y, float *s, float *t, float *dsdx,
+                      float *dtdx, float *dsdy, float *dtdy)  const = 0;
+//    virtual void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const = 0;
+    
+    virtual Imath::Box2f bound (const Imath::Box2f &src);
+    
+    bool isDstToSrcMapping;
+};
+
+
+/// Transforms source image src to destination image dst via a
+/// resampling defined by the mapping, using the given filter.
+bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src,
+                          const Mapping &mapping,
+                          Filter2D *filter, float xshift, float yshift);
+
+
+/// Mapping that implements rotation.  The rotation angle passed to the
+/// constructor is degrees clockwise.
+class RotationMapping : public Mapping {
+public:
+    RotationMapping (float rotangle, float originx = 0, float originy = 0);
+    virtual void map (float x, float y, float* s, float* t,
+                      float *dsdx, float *dtdx, float *dsdy, float *dtdy) const; 
+ //   virtual void outputImageSize (int *width, int *height,
+ //                                 int srcWidth, int srcHeight) const;
+private:
+    float m_rotangle;  // rotation angle
+    float m_originx, m_originy;
+    float m_sinr, m_cosr;  // cached sin & cos of the angle
+};
+
+
+
+class ResizeMapping : public Mapping {
+public:
+    ResizeMapping (float _new_width, float _new_height, float orig_width, float orig_height)
+        : new_width(_new_width), new_height(_new_height), 
+          xscale(new_width / orig_width), yscale(new_height / orig_height)
+    { }
+    ResizeMapping (float _xscale, float _yscale) 
+        : xscale(_xscale), yscale(_yscale)
+    { }
+    void map (float x, float y, float* s, float* t,
+              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+ //   void outputImageSize (int *width, int *height,
+ //                         int srcWidth, int srcHeight) const;
+    
+    Imath::Box2f bound (const Imath::Box2f &src);
+private:
+    float new_width, new_height, xscale, yscale;
+};
+
+
+
+class ShearMapping : public Mapping {
+public:
+    ShearMapping (float m, float n, float originx = 0, float originy = 0);
+    void map (float x, float y, float* s, float* t,
+              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+ //   void outputImageSize (int *width, int *height,
+ //                         int srcWidth, int srcHeight) const;
+private:
+    float m_m, m_n, m_originx, m_originy;
+};
+
+
+
+class ReflectionMapping : public Mapping {
+public:
+    ReflectionMapping (float a, float b, float originx = 0, float originy = 0);
+    ReflectionMapping (Imath::V2f p1, Imath::V2f p2, float originx = 0, float originy = 0);
+    void map (float x, float y, float* s, float* t,
+              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+ //   void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const;
+private:
+    float m_a, m_b, m_originx, m_originy;
+};
+
+
+// Thin Plate Spline mapping
+class TPSMapping : public Mapping {
+public:
+    TPSMapping (const std::vector<Imath::V2f> &_controlPoints,
+                const std::vector<Imath::V2f> &_destPoints);
+
+    void map (float x, float y, float* s, float* t,
+              float *dsdx, float *dtdx, float *dsdy, float *dtdy) const;
+    
+ //   void outputImageSize(int *width, int *height, int srcWidth, int srcHeight) const;
+    
+private:   
+    void calculateCoefficients();
+    
+    float rSquare(Imath::V2f p1, Imath::V2f p2) const;
+    float kernelFunction(Imath::V2f p1, Imath::V2f p2) const;
+    
+    void simpleMap (float x, float y, float* s, float* t) const;
+
+    std::vector<Imath::V2f> srcControlPoints;
+    std::vector<Imath::V2f> dstControlPoints;
+    std::vector<float> tpsXCoefs, tpsYCoefs;
+
+    int ctrlpc; //control points count
+};
+
 };  // end namespace ImageBufAlgo
 
 
 }
 OIIO_NAMESPACE_EXIT
+
+
 
 #endif // OPENIMAGEIO_IMAGEBUF_H
