@@ -508,14 +508,26 @@ TIFFInput::readspec ()
             m_spec.set_format (TypeDesc::UINT16);
         else if (sampleformat == SAMPLEFORMAT_INT)
             m_spec.set_format (TypeDesc::INT16);
+        else if (sampleformat == SAMPLEFORMAT_IEEEFP)
+            m_spec.set_format (TypeDesc::HALF); // not to spec, but why not?
+        else
+            m_spec.set_format (TypeDesc::UNKNOWN);
         break;
     case 32:
         if (sampleformat == SAMPLEFORMAT_IEEEFP)
             m_spec.set_format (TypeDesc::FLOAT);
+        else if (sampleformat == SAMPLEFORMAT_UINT)
+            m_spec.set_format (TypeDesc::UINT32);
+        else if (sampleformat == SAMPLEFORMAT_INT)
+            m_spec.set_format (TypeDesc::INT32);
+        else
+            m_spec.set_format (TypeDesc::UNKNOWN);
         break;
     case 64:
         if (sampleformat == SAMPLEFORMAT_IEEEFP)
             m_spec.set_format (TypeDesc::DOUBLE);
+        else
+            m_spec.set_format (TypeDesc::UNKNOWN);
         break;
     default:
         m_spec.set_format (TypeDesc::UNKNOWN);
