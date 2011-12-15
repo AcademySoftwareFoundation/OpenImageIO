@@ -39,6 +39,7 @@
 #ifndef OPENIMAGEIO_OPTPARSER_H
 #define OPENIMAGEIO_OPTPARSER_H
 
+#include <string.h>
 
 OIIO_NAMESPACE_ENTER
 {
