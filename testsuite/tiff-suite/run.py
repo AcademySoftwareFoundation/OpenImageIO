@@ -92,7 +92,6 @@ command = command + "; " + runtest.rw_command (imagedir, "strike.tif", path)
 #   considered a deprecated format, not supported by libtiff
 
 # oxford.tif	601x81 8-bit RGB (lzw) screendump off oxford
-#  FIXME -- we read this ok, but something goes wrong on the iconvert!
 command = command + "; " + runtest.rw_command (imagedir, "oxford.tif", path, 0)
 
 # The other images are from Hewlett Packard and exemplify the use of the
