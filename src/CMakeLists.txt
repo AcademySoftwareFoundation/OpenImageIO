@@ -208,6 +208,7 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (targa.imageio)
     add_subdirectory (tiff.imageio)
     add_subdirectory (zfile.imageio)
+    add_subdirectory (xpm.imageio)
 endif ()
 
 if (USE_PYTHON AND Boost_PYTHON_FOUND)
