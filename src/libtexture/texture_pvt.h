@@ -452,6 +452,7 @@ private:
     ImageCacheImpl *m_imagecache;
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
+    float m_texsharp;            ///< texture sharpness factor
     bool m_gray_to_rgb;          ///< automatically copy gray to rgb channels?
     /// Saved error string, per-thread
     ///
