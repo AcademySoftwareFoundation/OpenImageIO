@@ -35,7 +35,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-namespace jpeg2000_pvt {
 
 static void openjpeg_dummy_callback(const char*, void*) {}
 
@@ -81,6 +80,19 @@ class Jpeg2000Output : public ImageOutput {
 
     OPJ_PROG_ORDER get_progression_order(const std::string& progression_order);
 };
+
+
+// Obligatory material to make this a recognizeable imageio plugin
+OIIO_PLUGIN_EXPORTS_BEGIN
+
+    DLLEXPORT ImageOutput *jpeg2000_output_imageio_create () {
+        return new Jpeg2000Output;
+    }
+    DLLEXPORT const char *jpeg2000_output_extensions[] = {
+        "jp2", "j2k", NULL
+    };
+
+OIIO_PLUGIN_EXPORTS_END
 
 
 bool
@@ -433,21 +445,4 @@ OPJ_PROG_ORDER Jpeg2000Output::get_progression_order(const std::string &progress
     return PROG_UNKNOWN;
 }
 
-} // namespace jpeg2000_pvt
-
-
-
-// Obligatory material to make this a recognizeable imageio plugin
-OIIO_PLUGIN_EXPORTS_BEGIN
-
-    DLLEXPORT ImageOutput *jpeg2000_output_imageio_create () {
-        return new jpeg2000_pvt::Jpeg2000Output;
-    }
-    DLLEXPORT const char *jpeg2000_output_extensions[] = {
-        "jp2", "j2k", NULL
-    };
-
-OIIO_PLUGIN_EXPORTS_END
-
 OIIO_PLUGIN_NAMESPACE_END
-

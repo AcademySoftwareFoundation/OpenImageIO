@@ -37,7 +37,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-namespace jpeg2000_pvt {
 
 static void openjpeg_dummy_callback(const char*, void*) {}
 
@@ -118,6 +117,20 @@ class Jpeg2000Input : public ImageInput {
         return n == p_nitems;
     }
 };
+
+
+// Obligatory material to make this a recognizeable imageio plugin
+OIIO_PLUGIN_EXPORTS_BEGIN
+
+    DLLEXPORT int jpeg2000_imageio_version = OIIO_PLUGIN_VERSION;
+    DLLEXPORT ImageInput *jpeg2000_input_imageio_create () {
+        return new Jpeg2000Input;
+    }
+    DLLEXPORT const char *jpeg2000_input_extensions[] = {
+        "jp2", "j2k", "j2c", NULL
+    };
+
+OIIO_PLUGIN_EXPORTS_END
 
 
 void
@@ -358,22 +371,6 @@ Jpeg2000Input::read_scanline(int y, int z, void *data)
     }
 }
 
-
-} // namespace jpeg2000_pvt
-
-
-// Obligatory material to make this a recognizeable imageio plugin
-OIIO_PLUGIN_EXPORTS_BEGIN
-
-    DLLEXPORT int jpeg2000_imageio_version = OIIO_PLUGIN_VERSION;
-    DLLEXPORT ImageInput *jpeg2000_input_imageio_create () {
-        return new jpeg2000_pvt::Jpeg2000Input;
-    }
-    DLLEXPORT const char *jpeg2000_input_extensions[] = {
-        "jp2", "j2k", "j2c", NULL
-    };
-
-OIIO_PLUGIN_EXPORTS_END
 
 OIIO_PLUGIN_NAMESPACE_END
 
