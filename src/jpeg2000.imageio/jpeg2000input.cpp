@@ -152,8 +152,7 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
     }
 
     opj_dinfo_t* decompressor = create_decompressor();
-    if (!decompressor)
-    {
+    if (!decompressor) {
         error ("Could not create Jpeg2000 stream decompressor");
         close();
         return false;
@@ -170,8 +169,7 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
     fread(&fileContent[0], sizeof(uint8_t), fileLength);
 
     opj_cio_t *cio = opj_cio_open((opj_common_ptr)decompressor, &fileContent[0], fileLength);
-    if (!cio)
-    { 
+    if (!cio) { 
         error ("Could not open Jpeg2000 stream");
         opj_destroy_decompress(decompressor);
         close();
@@ -181,8 +179,7 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
     m_image = opj_decode(decompressor, cio);
     opj_cio_close(cio);
     opj_destroy_decompress(decompressor);
-    if (!m_image)
-    {
+    if (!m_image) {
         error ("Could not decode Jpeg2000 stream");
         close();
         return false;
@@ -190,8 +187,7 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
 
     // we support only one, three or four components in image
     const int channelCount = m_image->numcomps;
-    if (channelCount != 1 && channelCount != 3 && channelCount != 4)
-    {
+    if (channelCount != 1 && channelCount != 3 && channelCount != 4) {
         error ("Only images with one, three or four components are supported");
         close();
         return false;
@@ -220,13 +216,9 @@ bool
 Jpeg2000Input::read_native_scanline (int y, int z, void *data)
 {
     if (m_spec.format == TypeDesc::UINT8)
-    {
         read_scanline<uint8_t>(y, z, data);
-    }
     else
-    {
         read_scanline<uint16_t>(y, z, data);
-    }
     return true;
 }
 
@@ -235,13 +227,11 @@ Jpeg2000Input::read_native_scanline (int y, int z, void *data)
 inline bool
 Jpeg2000Input::close (void)
 {
-    if (m_file)
-    {
+    if (m_file) {
         fclose(m_file);
         m_file = NULL;
     }
-    if (m_image)
-    {
+    if (m_image) {
         opj_image_destroy(m_image);
         m_image = NULL;
     }
@@ -252,13 +242,12 @@ Jpeg2000Input::close (void)
 bool Jpeg2000Input::isJp2File(const int* const p_magicTable) const
 {
     const int32_t JP2_MAGIC = 0x0000000C, JP2_MAGIC2 = 0x0C000000;
-    if (p_magicTable[0] == JP2_MAGIC || p_magicTable[0] == JP2_MAGIC2)
-    {
+    if (p_magicTable[0] == JP2_MAGIC || p_magicTable[0] == JP2_MAGIC2) {
         const int32_t JP2_SIG1_MAGIC = 0x6A502020, JP2_SIG1_MAGIC2 = 0x2020506A;
         const int32_t JP2_SIG2_MAGIC = 0x0D0A870A, JP2_SIG2_MAGIC2 = 0x0A870A0D;
         if ((p_magicTable[1] == JP2_SIG1_MAGIC || p_magicTable[1] == JP2_SIG1_MAGIC2)
             &&  (p_magicTable[2] == JP2_SIG2_MAGIC || p_magicTable[2] == JP2_SIG2_MAGIC2))
-        {
+	{
             return true;
         }
     }
@@ -270,20 +259,15 @@ opj_dinfo_t*
 Jpeg2000Input::create_decompressor()
 {
     int magic[3];
-    if (::fread (&magic, 4, 3, m_file) != 3)
-    {
+    if (::fread (&magic, 4, 3, m_file) != 3) {
         error ("Empty file \"%s\"", m_filename.c_str());
         return false;
     }
     opj_dinfo_t* dinfo = NULL;
     if (isJp2File(magic))
-    {
         dinfo = opj_create_decompress(CODEC_JP2);
-    }
     else
-    {
         dinfo = opj_create_decompress(CODEC_J2K);
-    }
     rewind(m_file);
     return dinfo;
 }
@@ -293,13 +277,9 @@ inline uint16_t
 Jpeg2000Input::read_pixel(int p_nativePrecision, int p_pixelData)
 {
     if (p_nativePrecision == 10)
-    {
         return baseTypeConvertU10ToU16(p_pixelData);
-    }
     if (p_nativePrecision == 12)
-    {
         return baseTypeConvertU12ToU16(p_pixelData);
-    }
     return p_pixelData;
 }
 
@@ -309,8 +289,7 @@ void
 Jpeg2000Input::read_scanline(int y, int z, void *data)
 {
     T* scanline = static_cast<T*>(data);
-    if (m_spec.nchannels == 1)
-    {
+    if (m_spec.nchannels == 1) {
         for (int i = 0; i < m_spec.width; i++)
         {
             scanline[i] = read_pixel(m_image->comps[0].prec, m_image->comps[0].data[y*m_spec.width + i]);
@@ -320,55 +299,44 @@ Jpeg2000Input::read_scanline(int y, int z, void *data)
 
     for (int i = 0, j = 0; i < m_spec.width; i++)
     {
-        if (y % m_image->comps[0].dy == 0 && i % m_image->comps[0].dx == 0)
-        {
+        if (y % m_image->comps[0].dy == 0 && i % m_image->comps[0].dx == 0) {
             const size_t data_offset = y/m_image->comps[0].dy * m_spec.width/m_image->comps[0].dx + i/m_image->comps[0].dx;
             scanline[j++] = read_pixel(m_image->comps[0].prec, m_image->comps[0].data[data_offset]);
         }
-        else
-        {
+        else {
             scanline[j++] = 0;
         }
 
-        if (y % m_image->comps[1].dy == 0 && i % m_image->comps[1].dx == 0)
-        {
+        if (y % m_image->comps[1].dy == 0 && i % m_image->comps[1].dx == 0) {
             const size_t data_offset = y/m_image->comps[1].dy * m_spec.width/m_image->comps[1].dx + i/m_image->comps[1].dx;
             scanline[j++] = read_pixel(m_image->comps[1].prec, m_image->comps[1].data[data_offset]);
         }
-        else
-        {
+        else {
             scanline[j++] = 0;
         }
 
-        if (y % m_image->comps[2].dy == 0 && i % m_image->comps[2].dx == 0)
-        {
+        if (y % m_image->comps[2].dy == 0 && i % m_image->comps[2].dx == 0) {
             const size_t data_offset = y/m_image->comps[2].dy * m_spec.width/m_image->comps[2].dx + i/m_image->comps[2].dx;
             scanline[j++] = read_pixel(m_image->comps[2].prec, m_image->comps[2].data[data_offset]);
         }
-        else
-        {
+        else {
             scanline[j++] = 0;
         }
 
-        if (m_spec.nchannels < 4)
-        {
+        if (m_spec.nchannels < 4) {
             continue;
         }
 
-        if (y % m_image->comps[3].dy == 0 && i % m_image->comps[3].dx == 0)
-        {
+        if (y % m_image->comps[3].dy == 0 && i % m_image->comps[3].dx == 0) {
             const size_t data_offset = y/m_image->comps[3].dy * m_spec.width/m_image->comps[3].dx + i/m_image->comps[3].dx;
             scanline[j++] = read_pixel(m_image->comps[3].prec, m_image->comps[3].data[data_offset]);
         }
-        else
-        {
+        else {
             scanline[j++] = 0;
         }
     }
     if (m_image->color_space == CLRSPC_SYCC)
-    {
         yuv_to_rgb(scanline);
-    }
 }
 
 
