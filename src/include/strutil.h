@@ -44,6 +44,7 @@
 #include <string>
 #include <cstring>
 #include <map>
+#include <sys/types.h>   // to safely get off_t
 
 #include "export.h"
 #include "version.h"
