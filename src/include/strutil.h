@@ -44,6 +44,7 @@
 #include <string>
 #include <cstring>
 #include <map>
+#include <unistd.h>
 
 #include "export.h"
 #include "version.h"
