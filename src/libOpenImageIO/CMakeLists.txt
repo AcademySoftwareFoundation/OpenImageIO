@@ -153,7 +153,7 @@ if (EMBEDPLUGINS)
     find_package (ZLIB REQUIRED)
     include_directories (${PNG_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
     include_directories (${TIFF_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
-    
+
     add_definitions ("-DEMBED_PLUGINS=1")
 
     if (FIELD3D_FOUND AND USE_FIELD3D)
