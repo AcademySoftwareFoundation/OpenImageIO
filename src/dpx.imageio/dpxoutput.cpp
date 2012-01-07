@@ -345,7 +345,12 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     m_dpx.header.SetIntegrationTimes (m_spec.get_float_attribute
         ("dpx:IntegrationTimes", std::numeric_limits<float>::quiet_NaN()));
     
-    m_dpx.header.timeCode = m_spec.get_int_attribute ("dpx:TimeCode", ~0);
+    tmpstr = m_spec.get_string_attribute ("dpx:TimeCode", "");
+    int tmpint = m_spec.get_int_attribute ("dpx:TimeCode", ~0);
+    if (tmpstr.size () > 0)
+        m_dpx.header.SetTimeCode (tmpstr.c_str ());
+    else if (tmpint != ~0)
+        m_dpx.header.timeCode = tmpint;
     m_dpx.header.userBits = m_spec.get_int_attribute ("dpx:UserBits", ~0);
     tmpstr = m_spec.get_string_attribute ("dpx:SourceDateTime", "");
     if (tmpstr.size () >= 19) {

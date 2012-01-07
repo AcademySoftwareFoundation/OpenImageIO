@@ -33,7 +33,7 @@ hi
     dpx:WhiteLevel: 0
     dpx:IntegrationTimes: 0
     dpx:Packing: "Filled, method A"
-    dpx:TimeCode: 0
+    dpx:TimeCode: "00:00:00:00"
     dpx:UserBits: 0
     dpx:Signal: "Undefined"
 Converting ../../../oiio-testimages/dpx_nuke_10bits_rgb.dpx to dpx_nuke_10bits_rgb.dpx
@@ -80,7 +80,7 @@ PASS
     dpx:WhiteLevel: 0
     dpx:IntegrationTimes: 0
     dpx:Packing: "Filled, method A"
-    dpx:TimeCode: 0
+    dpx:TimeCode: "00:00:00:00"
     dpx:UserBits: 0
     dpx:Signal: "Undefined"
 Converting ../../../oiio-testimages/dpx_nuke_16bits_rgba.dpx to dpx_nuke_16bits_rgba.dpx
