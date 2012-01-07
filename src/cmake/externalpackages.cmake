@@ -248,7 +248,6 @@ endif ()
 # OpenJpeg
 if (USE_OPENJPEG)
     find_package (OpenJpeg)
-    include_directories (${OPENJPEG_INCLUDE_DIR})
 endif()
 # end OpenJpeg setup_path
 ###########################################################################
