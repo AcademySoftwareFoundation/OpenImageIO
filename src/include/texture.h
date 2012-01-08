@@ -329,6 +329,7 @@ public:
     ///     int max_open_files : maximum number of file handles held open
     ///     float max_memory_MB : maximum tile cache size, in MB
     ///     string searchpath : colon-separated search path for texture files
+    ///     string plugin_searchpath : colon-separated search path for plugins
     ///     matrix44 worldtocommon : the world-to-common transformation
     ///     matrix44 commontoworld : the common-to-world transformation
     ///     int autotile : if >0, tile size to emulate for non-tiled images
