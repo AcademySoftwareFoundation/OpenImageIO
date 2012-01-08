@@ -637,6 +637,7 @@ public:
     // Retrieve options
     int max_open_files () const { return m_max_open_files; }
     const std::string &searchpath () const { return m_searchpath; }
+    const std::string &plugin_searchpath () const { return m_plugin_searchpath; }
     int autotile () const { return m_autotile; }
     bool autoscanline () const { return m_autoscanline; }
     bool automip () const { return m_automip; }
@@ -904,10 +905,11 @@ private:
     static mutex m_perthread_info_mutex; ///< Thread safety for perthread
     int m_max_open_files;
     atomic_ll m_max_memory_bytes;
-    std::string m_searchpath;    ///< Colon-separated directory list
+    std::string m_searchpath;    ///< Colon-separated image directory list
     std::vector<std::string> m_searchdirs; ///< Searchpath split into dirs
+    std::string m_plugin_searchpath; ///< Colon-separated plugin directory list
     int m_autotile;              ///< if nonzero, pretend tiles of this size
-    bool m_autoscanline;          ///< autotile using full width tiles
+    bool m_autoscanline;         ///< autotile using full width tiles
     bool m_automip;              ///< auto-mipmap on demand?
     bool m_forcefloat;           ///< force all cache tiles to be float
     bool m_accept_untiled;       ///< Accept untiled images?

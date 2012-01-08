@@ -312,7 +312,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         return false;
 
     m_input.reset (ImageInput::create (m_filename.c_str(),
-                                       m_imagecache.searchpath().c_str()));
+                                       m_imagecache.plugin_searchpath().c_str()));
     if (! m_input) {
         imagecache().error ("%s", OIIO_NAMESPACE::geterror().c_str());
         m_broken = true;
@@ -1609,6 +1609,9 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
             force_invalidate = true;
         }
     }
+    else if (name == "plugin_searchpath" && type == TypeDesc::STRING) {
+        m_plugin_searchpath = std::string (*(const char **)val);
+    }
     else if (name == "statistics:level" && type == TypeDesc::INT) {
         m_statslevel = *(const int *)val;
     }
@@ -1715,6 +1718,10 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     // The cases that don't fit in the simple ATTR_DECODE scheme
     if (name == "searchpath" && type == TypeDesc::STRING) {
         *(ustring *)val = m_searchpath;
+        return true;
+    }
+    if (name == "plugin_searchpath" && type == TypeDesc::STRING) {
+        *(ustring *)val = m_plugin_searchpath;
         return true;
     }
     if (name == "worldtocommon" && (type == TypeDesc::TypeMatrix ||

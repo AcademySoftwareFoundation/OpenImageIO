@@ -84,6 +84,7 @@ public:
     ///     int max_open_files : maximum number of file handles held open
     ///     float max_memory_MB : maximum tile cache size, in MB
     ///     string searchpath : colon-separated search path for images
+    ///     string plugin_searchpath : colon-separated search path for plugins
     ///     int autotile : if >0, tile size to emulate for non-tiled images
     ///     int autoscanline : autotile using full width tiles
     ///     int automip : if nonzero, emulate mipmap on the fly
