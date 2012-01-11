@@ -63,6 +63,7 @@ static int iters = 1;
 static int autotile = 0;
 static bool automip = false;
 static bool test_construction = false;
+static bool test_getimagespec = false;
 static TextureSystem *texsys = NULL;
 static std::string searchpath;
 static int blocksize = 1;
@@ -123,6 +124,7 @@ getargs (int argc, const char *argv[])
                   "--nountiled", &nountiled, "Reject untiled images",
                   "--nounmipped", &nounmipped, "Reject unmipped images",
                   "--ctr", &test_construction, "Test TextureOpt construction time",
+                  "--getimagespec", &test_getimagespec, "Test TextureSystem::get_imagespec",
                   "--offset %f %f %f", &offset[0], &offset[1], &offset[2], "Offset texture coordinates",
                   "--scalest %f %f", &sscale, &tscale, "Scale texture lookups (s, t)",
                   "--graytorgb", &gray_to_rgb, "Convert gratscale textures to RGB",
@@ -597,6 +599,16 @@ main (int argc, const char *argv[])
             dummyptr = &copy;  // This forces the optimizer to keep the loop
         }
         std::cout << "TextureOpt memcpy: " << t() << " ns\n";
+    }
+
+    if (test_getimagespec) {
+        Timer t;
+        ImageSpec spec;
+        ustring filename (filenames[0]);
+        for (int i = 0;  i < iters;  ++i) {
+            texsys->get_imagespec (filename, 0, spec);
+        }
+        iters = 0;
     }
 
     if (iters > 0) {
