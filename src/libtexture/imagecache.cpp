@@ -504,7 +504,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     }
 
     if ((p = spec.find_attribute ("wrapmodes", TypeDesc::STRING))) {
-        const char *wrapmodes = (const char *)p->data();
+        const char *wrapmodes = *(const char **)p->data();
         TextureOpt::parse_wrapmodes (wrapmodes, m_swrap, m_twrap);
         m_rwrap = m_swrap;
         // FIXME(volume) -- rwrap
