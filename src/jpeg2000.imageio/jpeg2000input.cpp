@@ -215,7 +215,7 @@ Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
 bool
 Jpeg2000Input::read_native_scanline (int y, int z, void *data)
 {
-    if (m_spec.format == TypeDesc::UINT8)
+    if (m_spec.format == TypeDesc::UINT8 || m_spec.format == TypeDesc::INT8)
         read_scanline<uint8_t>(y, z, data);
     else
         read_scanline<uint16_t>(y, z, data);

@@ -131,7 +131,7 @@ Jpeg2000Output::write_scanline (int y, int z, TypeDesc format,
 
     std::vector<uint8_t> scratch;
     data = to_native_scanline (format, data, xstride, scratch);
-    if (m_spec.format == TypeDesc::UINT8)
+    if (m_spec.format == TypeDesc::UINT8 || m_spec.format == TypeDesc::INT8)
         write_scanline<uint8_t>(y, z, data);
     else
         write_scanline<uint16_t>(y, z, data);
