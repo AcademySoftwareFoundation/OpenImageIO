@@ -1,5 +1,5 @@
 hi
-../../../oiio-testimages/ginsu_a_nc10.rla :  512 x  512, 4 channel, uint16 rla
+../../../oiio-images/ginsu_a_nc10.rla :  512 x  512, 4 channel, uint16 rla
     SHA-1: 2732EF8B7515349C6FB6C8D9B678D9968E304AE3
     channel list: R, G, B, A
     oiio:BitsPerSample: 10
@@ -8,17 +8,17 @@ hi
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "a_nc10.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_a_nc10.rla to ginsu_a_nc10.rla
-Comparing "../../../oiio-testimages/ginsu_a_nc10.rla" and "ginsu_a_nc10.rla"
+Converting ../../../oiio-images/ginsu_a_nc10.rla to ginsu_a_nc10.rla
+Comparing "../../../oiio-images/ginsu_a_nc10.rla" and "ginsu_a_nc10.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -27,7 +27,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_a_ncf.rla :  512 x  512, 4 channel, float rla
+../../../oiio-images/ginsu_a_ncf.rla :  512 x  512, 4 channel, float rla
     SHA-1: 10419E1D3AFFDE7F351BFA9ABF96F8C18527BE5D
     channel list: R, G, B, A
     oiio:BitsPerSample: 32
@@ -36,17 +36,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "a_ncf.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_a_ncf.rla to ginsu_a_ncf.rla
-Comparing "../../../oiio-testimages/ginsu_a_ncf.rla" and "ginsu_a_ncf.rla"
+Converting ../../../oiio-images/ginsu_a_ncf.rla to ginsu_a_ncf.rla
+Comparing "../../../oiio-images/ginsu_a_ncf.rla" and "ginsu_a_ncf.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -55,7 +55,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_rgba_nc8.rla :  512 x  512, 4 channel, uint8 rla
+../../../oiio-images/ginsu_rgba_nc8.rla :  512 x  512, 4 channel, uint8 rla
     SHA-1: 030CF1F960E9585D2F6A1173B86034BC15C26C41
     channel list: R, G, B, A
     oiio:BitsPerSample: 8
@@ -64,17 +64,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "rgba_nc8.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_rgba_nc8.rla to ginsu_rgba_nc8.rla
-Comparing "../../../oiio-testimages/ginsu_rgba_nc8.rla" and "ginsu_rgba_nc8.rla"
+Converting ../../../oiio-images/ginsu_rgba_nc8.rla to ginsu_rgba_nc8.rla
+Comparing "../../../oiio-images/ginsu_rgba_nc8.rla" and "ginsu_rgba_nc8.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -83,7 +83,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_rgb_nc16.rla :  512 x  512, 3 channel, uint16 rla
+../../../oiio-images/ginsu_rgb_nc16.rla :  512 x  512, 3 channel, uint16 rla
     SHA-1: B31B6515AA9BD09C8CFFCB242C1E7D5D130CA923
     channel list: R, G, B
     oiio:BitsPerSample: 16
@@ -92,17 +92,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "rgb_nc16.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_rgb_nc16.rla to ginsu_rgb_nc16.rla
-Comparing "../../../oiio-testimages/ginsu_rgb_nc16.rla" and "ginsu_rgb_nc16.rla"
+Converting ../../../oiio-images/ginsu_rgb_nc16.rla to ginsu_rgb_nc16.rla
+Comparing "../../../oiio-images/ginsu_rgb_nc16.rla" and "ginsu_rgb_nc16.rla"
 Subimage 0: 512 x 512, 3 channel
   Mean error = 0
   RMS error = 0
@@ -111,15 +111,15 @@ Subimage 0: 512 x 512, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/imgmake_rgba_nc10.rla :  512 x  512, 4 channel, uint16 rla
+../../../oiio-images/imgmake_rgba_nc10.rla :  512 x  512, 4 channel, uint16 rla
     SHA-1: 12F22B420DDB3D330092A38AF48F9A225467EC6E
     channel list: R, G, B, A
     oiio:BitsPerSample: 10
     compression: "rle"
     rla:FrameNumber: 1
     rla:FileName: "imgmake_rgba_nc10.rla"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:Aspect: " 1.333"
     rla:ColorChannel: "rgb"
     oiio:ColorSpace: "Linear"
@@ -127,8 +127,8 @@ PASS
     rla:GreenChroma: 0.21 0.21 0.71
     rla:BlueChroma: 0.14 0.14 0.08
     rla:WhitePoint: 0.31 0.31 0.316
-Converting ../../../oiio-testimages/imgmake_rgba_nc10.rla to imgmake_rgba_nc10.rla
-Comparing "../../../oiio-testimages/imgmake_rgba_nc10.rla" and "imgmake_rgba_nc10.rla"
+Converting ../../../oiio-images/imgmake_rgba_nc10.rla to imgmake_rgba_nc10.rla
+Comparing "../../../oiio-images/imgmake_rgba_nc10.rla" and "imgmake_rgba_nc10.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -137,7 +137,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_a_nc16.rla :  512 x  512, 4 channel, uint16 rla
+../../../oiio-images/ginsu_a_nc16.rla :  512 x  512, 4 channel, uint16 rla
     SHA-1: 476760230A4F7540072865C0E01CC6417EA9EC3E
     channel list: R, G, B, A
     oiio:BitsPerSample: 16
@@ -146,17 +146,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "a_nc16.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_a_nc16.rla to ginsu_a_nc16.rla
-Comparing "../../../oiio-testimages/ginsu_a_nc16.rla" and "ginsu_a_nc16.rla"
+Converting ../../../oiio-images/ginsu_a_nc16.rla to ginsu_a_nc16.rla
+Comparing "../../../oiio-images/ginsu_a_nc16.rla" and "ginsu_a_nc16.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -165,7 +165,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_rgba_nc10.rla :  512 x  512, 4 channel, uint16 rla
+../../../oiio-images/ginsu_rgba_nc10.rla :  512 x  512, 4 channel, uint16 rla
     SHA-1: 12F22B420DDB3D330092A38AF48F9A225467EC6E
     channel list: R, G, B, A
     oiio:BitsPerSample: 10
@@ -174,17 +174,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "rgba_nc10.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_rgba_nc10.rla to ginsu_rgba_nc10.rla
-Comparing "../../../oiio-testimages/ginsu_rgba_nc10.rla" and "ginsu_rgba_nc10.rla"
+Converting ../../../oiio-images/ginsu_rgba_nc10.rla to ginsu_rgba_nc10.rla
+Comparing "../../../oiio-images/ginsu_rgba_nc10.rla" and "ginsu_rgba_nc10.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -193,7 +193,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_rgba_ncf.rla :  512 x  512, 4 channel, float rla
+../../../oiio-images/ginsu_rgba_ncf.rla :  512 x  512, 4 channel, float rla
     SHA-1: 43EB1CE263C8FC4630AEE68E34139C02A13F506D
     channel list: R, G, B, A
     oiio:BitsPerSample: 32
@@ -202,17 +202,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "rgba_ncf.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_rgba_ncf.rla to ginsu_rgba_ncf.rla
-Comparing "../../../oiio-testimages/ginsu_rgba_ncf.rla" and "ginsu_rgba_ncf.rla"
+Converting ../../../oiio-images/ginsu_rgba_ncf.rla to ginsu_rgba_ncf.rla
+Comparing "../../../oiio-images/ginsu_rgba_ncf.rla" and "ginsu_rgba_ncf.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -221,7 +221,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_rgb_nc8.rla :  512 x  512, 3 channel, uint8 rla
+../../../oiio-images/ginsu_rgb_nc8.rla :  512 x  512, 3 channel, uint8 rla
     SHA-1: CB23AB13150BBD29947E65434E174D76C0324E7D
     channel list: R, G, B
     oiio:BitsPerSample: 8
@@ -230,17 +230,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "rgb_nc8.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_rgb_nc8.rla to ginsu_rgb_nc8.rla
-Comparing "../../../oiio-testimages/ginsu_rgb_nc8.rla" and "ginsu_rgb_nc8.rla"
+Converting ../../../oiio-images/ginsu_rgb_nc8.rla to ginsu_rgb_nc8.rla
+Comparing "../../../oiio-images/ginsu_rgb_nc8.rla" and "ginsu_rgb_nc8.rla"
 Subimage 0: 512 x 512, 3 channel
   Mean error = 0
   RMS error = 0
@@ -249,15 +249,15 @@ Subimage 0: 512 x 512, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/imgmake_rgba_nc16.rla :  512 x  512, 4 channel, uint16 rla
+../../../oiio-images/imgmake_rgba_nc16.rla :  512 x  512, 4 channel, uint16 rla
     SHA-1: C1E653EAAFABEE98913D9B485CADAA50EF5731B2
     channel list: R, G, B, A
     oiio:BitsPerSample: 16
     compression: "rle"
     rla:FrameNumber: 1
     rla:FileName: "imgmake_rgba_nc16.rla"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:Aspect: " 1.333"
     rla:ColorChannel: "rgb"
     oiio:ColorSpace: "Linear"
@@ -265,8 +265,8 @@ PASS
     rla:GreenChroma: 0.21 0.21 0.71
     rla:BlueChroma: 0.14 0.14 0.08
     rla:WhitePoint: 0.31 0.31 0.316
-Converting ../../../oiio-testimages/imgmake_rgba_nc16.rla to imgmake_rgba_nc16.rla
-Comparing "../../../oiio-testimages/imgmake_rgba_nc16.rla" and "imgmake_rgba_nc16.rla"
+Converting ../../../oiio-images/imgmake_rgba_nc16.rla to imgmake_rgba_nc16.rla
+Comparing "../../../oiio-images/imgmake_rgba_nc16.rla" and "imgmake_rgba_nc16.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -275,7 +275,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_a_nc8.rla :  512 x  512, 4 channel, uint8 rla
+../../../oiio-images/ginsu_a_nc8.rla :  512 x  512, 4 channel, uint8 rla
     SHA-1: B96EF7B8A3B5328312BE6EA090A408681C423A00
     channel list: R, G, B, A
     oiio:BitsPerSample: 8
@@ -284,17 +284,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "a_nc8.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_a_nc8.rla to ginsu_a_nc8.rla
-Comparing "../../../oiio-testimages/ginsu_a_nc8.rla" and "ginsu_a_nc8.rla"
+Converting ../../../oiio-images/ginsu_a_nc8.rla to ginsu_a_nc8.rla
+Comparing "../../../oiio-images/ginsu_a_nc8.rla" and "ginsu_a_nc8.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -303,7 +303,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_rgba_nc16.rla :  512 x  512, 4 channel, uint16 rla
+../../../oiio-images/ginsu_rgba_nc16.rla :  512 x  512, 4 channel, uint16 rla
     SHA-1: C1E653EAAFABEE98913D9B485CADAA50EF5731B2
     channel list: R, G, B, A
     oiio:BitsPerSample: 16
@@ -312,17 +312,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "rgba_nc16.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_rgba_nc16.rla to ginsu_rgba_nc16.rla
-Comparing "../../../oiio-testimages/ginsu_rgba_nc16.rla" and "ginsu_rgba_nc16.rla"
+Converting ../../../oiio-images/ginsu_rgba_nc16.rla to ginsu_rgba_nc16.rla
+Comparing "../../../oiio-images/ginsu_rgba_nc16.rla" and "ginsu_rgba_nc16.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
@@ -331,7 +331,7 @@ Subimage 0: 512 x 512, 4 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_rgb_nc10.rla :  512 x  512, 3 channel, uint16 rla
+../../../oiio-images/ginsu_rgb_nc10.rla :  512 x  512, 3 channel, uint16 rla
     SHA-1: CF6AE7239E7F8FEE3D44BD6D6FE907642938B471
     channel list: R, G, B
     oiio:BitsPerSample: 10
@@ -340,17 +340,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "rgb_nc10.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_rgb_nc10.rla to ginsu_rgb_nc10.rla
-Comparing "../../../oiio-testimages/ginsu_rgb_nc10.rla" and "ginsu_rgb_nc10.rla"
+Converting ../../../oiio-images/ginsu_rgb_nc10.rla to ginsu_rgb_nc10.rla
+Comparing "../../../oiio-images/ginsu_rgb_nc10.rla" and "ginsu_rgb_nc10.rla"
 Subimage 0: 512 x 512, 3 channel
   Mean error = 0
   RMS error = 0
@@ -359,7 +359,7 @@ Subimage 0: 512 x 512, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/ginsu_rgb_ncf.rla :  512 x  512, 3 channel, float rla
+../../../oiio-images/ginsu_rgb_ncf.rla :  512 x  512, 3 channel, float rla
     SHA-1: B5499846C3D45BF41351BC7A7338E9A31DD883AD
     channel list: R, G, B
     oiio:BitsPerSample: 32
@@ -368,17 +368,17 @@ PASS
     rla:FrameNumber: 1
     rla:JobNumber: 1
     rla:FileName: "rgb_ncf.rla"
-    rla:ProgramName: "IMGLIB"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    Software: "IMGLIB"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:ColorChannel: "rgb"
-    rla:AspectRatio: 1
+    PixelAspectRatio: 1
     rla:RedChroma: 0.67 0.33
     rla:GreenChroma: 0.21 0.71
     rla:BlueChroma: 0.14 0.08
     rla:WhitePoint: 0.31 0.316
-Converting ../../../oiio-testimages/ginsu_rgb_ncf.rla to ginsu_rgb_ncf.rla
-Comparing "../../../oiio-testimages/ginsu_rgb_ncf.rla" and "ginsu_rgb_ncf.rla"
+Converting ../../../oiio-images/ginsu_rgb_ncf.rla to ginsu_rgb_ncf.rla
+Comparing "../../../oiio-images/ginsu_rgb_ncf.rla" and "ginsu_rgb_ncf.rla"
 Subimage 0: 512 x 512, 3 channel
   Mean error = 0
   RMS error = 0
@@ -387,15 +387,15 @@ Subimage 0: 512 x 512, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/imgmake_rgba_nc8.rla :  512 x  512, 4 channel, uint8 rla
+../../../oiio-images/imgmake_rgba_nc8.rla :  512 x  512, 4 channel, uint8 rla
     SHA-1: 030CF1F960E9585D2F6A1173B86034BC15C26C41
     channel list: R, G, B, A
     oiio:BitsPerSample: 8
     compression: "rle"
     rla:FrameNumber: 1
     rla:FileName: "imgmake_rgba_nc8.rla"
-    rla:MachineName: "hawk073.spimageworks.com"
-    rla:UserName: "jeremys"
+    HostComputer: "hawk073.spimageworks.com"
+    Artist: "jeremys"
     rla:Aspect: " 1.333"
     rla:ColorChannel: "rgb"
     oiio:ColorSpace: "Linear"
@@ -403,8 +403,8 @@ PASS
     rla:GreenChroma: 0.21 0.21 0.71
     rla:BlueChroma: 0.14 0.14 0.08
     rla:WhitePoint: 0.31 0.31 0.316
-Converting ../../../oiio-testimages/imgmake_rgba_nc8.rla to imgmake_rgba_nc8.rla
-Comparing "../../../oiio-testimages/imgmake_rgba_nc8.rla" and "imgmake_rgba_nc8.rla"
+Converting ../../../oiio-images/imgmake_rgba_nc8.rla to imgmake_rgba_nc8.rla
+Comparing "../../../oiio-images/imgmake_rgba_nc8.rla" and "imgmake_rgba_nc8.rla"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
