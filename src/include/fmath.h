@@ -489,6 +489,20 @@ inline unsigned int bit_range_convert(unsigned int in) {
 
 
 
+// non-templated version.  Slow but general
+inline unsigned int
+bit_range_convert(unsigned int in, unsigned int FROM_BITS, unsigned int TO_BITS)
+{
+    unsigned int out = 0;
+    int shift = TO_BITS - FROM_BITS;
+    for (; shift > 0; shift -= FROM_BITS)
+        out |= in << shift;
+    out |= in >> -shift;
+    return out;
+}
+
+
+
 /// A DataProxy<I,E> looks like an (E &), but it really holds an (I &)
 /// and does conversions (via convert_type) as it reads in and out.
 /// (I and E are for INTERNAL and EXTERNAL data types, respectively).
