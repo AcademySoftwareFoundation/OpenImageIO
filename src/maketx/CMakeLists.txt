@@ -1,6 +1,3 @@
-if (NOT USE_TBB)
-    add_definitions ("-DUSE_TBB=0")
-endif ()
 set (maketx_srcs maketx.cpp)
 add_executable (maketx ${maketx_srcs})
 link_ilmbase (maketx)

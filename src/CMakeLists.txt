@@ -45,6 +45,13 @@ else ()
     message (STATUS "Building with thread support")
 endif ()
 
+if (USE_TBB)
+    add_definitions ("-DUSE_TBB=1")
+else ()
+    add_definitions ("-DUSE_TBB=0")
+    message (STATUS "TBB will not be used")
+endif ()
+
 set(CMAKE_MODULE_PATH
     "${PROJECT_SOURCE_DIR}/cmake/modules"
     "${PROJECT_SOURCE_DIR}/cmake")

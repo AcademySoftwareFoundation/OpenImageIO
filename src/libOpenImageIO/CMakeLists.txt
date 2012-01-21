@@ -62,11 +62,7 @@ endif ()
 
 # Include our own TBB if using it
 if (USE_TBB)
-    add_definitions ("-DUSE_TBB=1")
     set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
-else ()
-    add_definitions ("-DUSE_TBB=0")
-    message (STATUS "TBB will not be used")
 endif ()
 
 # Include OpenColorIO if using it
@@ -202,6 +198,9 @@ if (EMBEDPLUGINS)
                       REGULAR_EXPRESSION "^.+/${plugin}\\.imageio/.+$"
                      )
     endforeach ()
+else()
+    find_package (TIFF REQUIRED)
+    include_directories (${TIFF_INCLUDE_DIR})
 endif ()
 
 # Source groups for libutil and libtexture
