@@ -38,6 +38,8 @@
 #include "CineonStream.h"
 
 
+namespace cineon {
+
 OutStream::OutStream() : fp(0)
 {
 }
@@ -105,6 +107,7 @@ void OutStream::Flush()
 		::fflush(this->fp);
 }
 
+}
 
 
 
