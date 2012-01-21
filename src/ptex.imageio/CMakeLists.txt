@@ -1,4 +1,11 @@
-add_oiio_plugin (ptexinput.cpp ptexoutput.cpp
+find_package (ZLIB)
+
+if (ZLIB_FOUND)
+	if (WIN32)
+        add_definitions ("-DPTEX_EXPORTS")
+	endif()
+    include_directories (${ZLIB_INCLUDE_DIR})
+	add_oiio_plugin (ptexinput.cpp ptexoutput.cpp
                  ptex/PtexCache.cpp
                  ptex/PtexFilters.cpp
                  ptex/PtexHalf.cpp
@@ -9,5 +16,6 @@ add_oiio_plugin (ptexinput.cpp ptexoutput.cpp
                  ptex/PtexTriangleKernel.cpp
                  ptex/PtexUtils.cpp
                  ptex/PtexWriter.cpp
-                 )
+                 LINK_LIBRARIES ${ZLIB_LIBRARIES} )
+endif ()
 

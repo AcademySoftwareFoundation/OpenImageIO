@@ -1055,11 +1055,11 @@ DLLPUBLIC bool copy_image (int nchannels, int width, int height, int depth,
 /// ImageSpec.  Return true if all is ok, false if the exif block was
 /// somehow malformed.  The binary data pointed to by 'exif' should
 /// start with a TIFF directory header.
-bool decode_exif (const void *exif, int length, ImageSpec &spec);
+DLLPUBLIC bool decode_exif (const void *exif, int length, ImageSpec &spec);
 
 /// Construct an Exif data block from the ImageSpec, appending the Exif 
 /// data as a big blob to the char vector.
-void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
+DLLPUBLIC void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
 
 /// Add metadata to spec based on raw IPTC (International Press
 /// Telecommunications Council) metadata in the form of an IIM
