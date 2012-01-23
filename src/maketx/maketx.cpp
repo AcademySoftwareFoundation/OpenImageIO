@@ -909,33 +909,29 @@ make_texturemap (const char *maptypename = "texture map")
     }
 
 
-
-
-    // Color convert the pixels, if needed, in place.
-    // If a color conversion is required we will promote the src to floating point
-    // (or there wont be enough precision potentially)
-    // Also, independently color convert the constant color metadata
-    
+    // Color convert the pixels, if needed, in place.  If a color
+    // conversion is required we will promote the src to floating point
+    // (or there wont be enough precision potentially).  Also,
+    // independently color convert the constant color metadata
     ImageBuf * ccSrc = &src;    // Ptr to cc'd src image
     ImageBuf colorBuffer;
-    
     if (!incolorspace.empty() && !outcolorspace.empty() && incolorspace != outcolorspace) {
-        if(src.spec().format != TypeDesc::FLOAT) {
+        if (src.spec().format != TypeDesc::FLOAT) {
             ImageSpec floatSpec = src.spec();
             floatSpec.set_format(TypeDesc::FLOAT);
-            
             colorBuffer.reset("bitdepth promoted", floatSpec);
             ccSrc = &colorBuffer;
         }
         
         Timer colorconverttimer;
         if (verbose) {
-            std::cout << "  Converting from colorspace " << incolorspace << " to colorspace " << outcolorspace << std::endl;
+            std::cout << "  Converting from colorspace " << incolorspace 
+                      << " to colorspace " << outcolorspace << std::endl;
         }
         
         ColorConfig config;
-        if(config.error()) {
-            std::cerr << "Error Creating ColorConfig." << std::endl;
+        if (config.error()) {
+            std::cerr << "Error Creating ColorConfig\n";
             std::cerr << config.geterror() << std::endl;
             exit (EXIT_FAILURE);
         }
@@ -943,45 +939,32 @@ make_texturemap (const char *maptypename = "texture map")
         ColorProcessor * processor = config.createColorProcessor (
             incolorspace.c_str(), outcolorspace.c_str());
         
-        if(!processor || config.error())
-        {
+        if (!processor || config.error()) {
             std::cerr << "Error Creating Color Processor." << std::endl;
             std::cerr << config.geterror() << std::endl;
             exit (EXIT_FAILURE);
         }
         
         if (unpremult && verbose)
-        {
             std::cout << "  Unpremulting image..." << std::endl;
-        }
         
-        if (!ImageBufAlgo::colorconvert (*ccSrc, src, processor, unpremult))
-        {
-            std::cerr << "Error applying color conversion to image." << std::endl;
+        if (!ImageBufAlgo::colorconvert (*ccSrc, src, processor, unpremult)) {
+            std::cerr << "Error applying color conversion to image.\n";
             exit (EXIT_FAILURE);
         }
         
-        
         if (isConstantColor) {
             if (!ImageBufAlgo::colorconvert (&constantColor[0],
-                static_cast<int>(constantColor.size()),
-                processor, unpremult)) {
-                std::cerr << "Error applying color conversion to constant color." << std::endl;
+                static_cast<int>(constantColor.size()), processor, unpremult)) {
+                std::cerr << "Error applying color conversion to constant color.\n";
                 exit (EXIT_FAILURE);
             }
         }
-        
+
         ColorConfig::deleteColorProcessor(processor);
         processor = NULL;
-        
         stat_colorconverttime += colorconverttimer();
     }
-    
-
-
-
-
-
 
     // Force float for the sake of the ImageBuf math
     dstspec.set_format (TypeDesc::FLOAT);
