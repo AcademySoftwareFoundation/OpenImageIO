@@ -178,9 +178,32 @@ message (STATUS "OPENGL_FOUND=${OPENGL_FOUND} USE_OPENGL=${USE_OPENGL}")
 
 ###########################################################################
 # OpenColorIO Setup
+
 if (USE_OCIO)
+    # If 'OCIO_PATH' not set, use the env variable of that name if available
+    if (NOT OCIO_PATH)
+        if (NOT $ENV{OCIO_PATH} STREQUAL "")
+            set (OCIO_PATH $ENV{OCIO_PATH})
+        endif ()
+    endif()
+
     find_package (OpenColorIO)
+    FindOpenColorIO ()
+
+    if (OCIO_FOUND)
+        message (STATUS "OpenColorIO enabled")
+        message(STATUS "OCIO_INCLUDES: ${OCIO_INCLUDES}")
+        include_directories (${OCIO_INCLUDES})
+        add_definitions ("-DUSE_OCIO=1")
+    else ()
+        message (STATUS "Skipping OpenColorIO support")
+    endif ()
+else ()
+    message (STATUS "OpenColorIO disabled")
 endif ()
+
+# end OpenColorIO setup
+###########################################################################
 
 
 ###########################################################################
