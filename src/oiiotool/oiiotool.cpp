@@ -179,6 +179,7 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
     else if (ot.output_tilewidth) {
         spec.tile_width = ot.output_tilewidth;
         spec.tile_height = ot.output_tileheight;
+        spec.tile_depth = 1;
     }
 
     if (! ot.output_compression.empty())

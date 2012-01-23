@@ -644,8 +644,6 @@ RLA (Run-Length encoded, version A) is an early CGI renderer output format,
 originating from Wavefront Advanced Visualizer and used primarily by software
 developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 
-\product's support of RLA is complete - files can be both read and written.
-
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
@@ -664,9 +662,10 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 \qkw{rla:FieldRendered} & int & whether the image is a field-rendered
   (interlaced) one (\qkw{0} for false, non-zero for true). \\
 \qkw{rla:FileName} & string & name under which the file was orignally saved. \\
+\qkw{ImageDescription} & string & RLA ``Description'' of the image. \\
 \qkw{Software} & string & name of software used to save the image. \\
 \qkw{HostComputer} & string & name of machine used to save the image. \\
-\qkw{rla:UserName} & string & logon name of user who saved the image. \\
+\qkw{Artist} & string & RLA ``UserName'': logon name of user who saved the image. \\
 \qkw{rla:Aspect} & string & aspect format description string. \\
 \qkw{rla:ColorChannel} & string & textual description of color channel data
   format (usually \qkw{rgb}). \\
@@ -690,9 +689,8 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 \subsubsection*{Limitations}
 
 \begin{itemize}
-\item \product will only write 1 image to 1 file. The format specification
-  allows appending more images into the same file, but this is not currently
-  supported by the plugin.
+\item \product will only write 1 image to 1 file, multiple subimages
+  are not supported by the writer (but are supported by the reader).
 \end{itemize}
 
 
