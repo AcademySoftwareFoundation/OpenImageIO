@@ -104,7 +104,6 @@ static std::string wrap = "black";
 static std::string swrap;
 static std::string twrap;
 static bool doresize = false;
-static bool noresize = true;
 //static float opaquewidth = 0;  // should be volume shadow epsilon
 static Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
 static bool separate = false;
@@ -127,8 +126,8 @@ static ColorConfig colorconfig;
 
 // forward decl
 static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
-                   std::string outputfilename, std::string outformat,
-                   TypeDesc outputdatatype, bool mipmap);
+                          std::string outputfilename, ImageOutput *out,
+                          TypeDesc outputdatatype, bool mipmap);
 
 
 
@@ -247,7 +246,7 @@ getargs (int argc, char *argv[])
                   "--swrap %s", &swrap, "Specific s wrap mode separately",
                   "--twrap %s", &twrap, "Specific t wrap mode separately",
                   "--resize", &doresize, "Resize textures to power of 2 (default: no)",
-                  "--noresize", &noresize, "Do not resize textures to power of 2 (deprecated)",
+                  "--noresize %!", &doresize, "Do not resize textures to power of 2 (deprecated)",
                   "--filter %s", &filtername, filter_help_string().c_str(),
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN and Inf values (abort if found)",
@@ -316,8 +315,6 @@ getargs (int argc, char *argv[])
     }
     if (optionsum == 0)
         mipmapmode = true;
-    if (doresize)
-        noresize = false;
     
     if (prman && oiio) {
         std::cerr << "maketx ERROR: '--prman' compatibility, and '--oiio' optimizations are mutually exclusive.\n";
@@ -522,10 +519,10 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel)
     xfrac = floorfrac (x, &xtexel);
     yfrac = floorfrac (y, &ytexel);
     // Clamp
-    int xnext = Imath::clamp (xtexel+1, fx, fx+fw-1);
-    int ynext = Imath::clamp (ytexel+1, fy, fy+fh-1);
-    xtexel = std::max (xtexel, fx);
-    ytexel = std::max (ytexel, fy);
+    int xnext = Imath::clamp (xtexel+1, buf.xmin(), buf.xmax());
+    int ynext = Imath::clamp (ytexel+1, buf.ymin(), buf.ymax());
+    xtexel = std::max (xtexel, buf.xmin());
+    ytexel = std::max (ytexel, buf.ymin());
     // Get the four texels
     buf.getpixel (xtexel, ytexel, p[0], n);
     buf.getpixel (xnext, ytexel, p[1], n);
@@ -556,12 +553,14 @@ resize_block (ImageBuf *dst, const ImageBuf *src,
 {
     const ImageSpec &dstspec (dst->spec());
     float *pel = (float *) alloca (dstspec.pixel_bytes());
-    float xscale = 1.0f / (float)dstspec.width;
-    float yscale = 1.0f / (float)dstspec.height;
+    float xoffset = dstspec.full_x;
+    float yoffset = dstspec.full_y;
+    float xscale = 1.0f / (float)dstspec.full_width;
+    float yscale = 1.0f / (float)dstspec.full_height;
     for (int y = y0;  y < y1;  ++y) {
-        float t = (y+0.5f)*yscale;
+        float t = (y+0.5f)*yscale + yoffset;
         for (int x = x0;  x < x1;  ++x) {
-            float s = (x+0.5f)*xscale;
+            float s = (x+0.5f)*xscale + xoffset;
             interppixel_NDC_clamped (*src, s, t, pel);
             dst->setpixel (x, y, pel);
         }
@@ -639,6 +638,28 @@ fix_latl_edges (ImageBuf &buf)
 
 
 
+static std::string
+formatres (const ImageSpec &spec, bool extended=false)
+{
+    std::string s;
+    s = Strutil::format("%dx%d", spec.width, spec.height);
+    if (extended) {
+        if (spec.x || spec.y)
+            s += Strutil::format("%+d%+d", spec.x, spec.y);
+        if (spec.width != spec.full_width || spec.height != spec.full_height ||
+            spec.x != spec.full_x || spec.y != spec.full_y) {
+            s += " (full/display window is ";
+            s += Strutil::format("%dx%d", spec.full_width, spec.full_height);
+            if (spec.full_x || spec.full_y)
+                s += Strutil::format("%+d%+d", spec.full_x, spec.full_y);
+            s += ")";
+        }
+    }
+    return s;
+}
+
+
+
 static void
 make_texturemap (const char *maptypename = "texture map")
 {
@@ -670,6 +691,22 @@ make_texturemap (const char *maptypename = "texture map")
         std::cout << "maketx: no update required for \"" 
                   << outputfilename << "\"\n";
         return;
+    }
+
+
+    // Find an ImageIO plugin that can open the output file, and open it
+    std::string outformat = fileformatname.empty() ? outputfilename : fileformatname;
+    ImageOutput *out = ImageOutput::create (outformat.c_str());
+    if (! out) {
+        std::cerr 
+            << "maketx ERROR: Could not find an ImageIO plugin to write " 
+            << outformat << " files:" << geterror() << "\n";
+        exit (EXIT_FAILURE);
+    }
+    if (! out->supports ("tiles")) {
+        std::cerr << "maketx ERROR: \"" << outputfilename
+                  << "\" format does not support tiled images\n";
+        exit (EXIT_FAILURE);
     }
 
     ImageBuf src (filenames[0]);
@@ -726,22 +763,7 @@ make_texturemap (const char *maptypename = "texture map")
     bool isConstantColor = ImageBufAlgo::isConstantColor (src, &constantColor[0]);
     
     if (isConstantColor && constant_color_detect) {
-        int newwidth = std::max (1, std::min (src.spec().width, tile[0]));
-        int newheight = std::max (1, std::min (src.spec().height, tile[1]));
-        
         ImageSpec newspec = src.spec();
-        newspec.x = 0;
-        newspec.y = 0;
-        newspec.z = 0;
-        newspec.width = newwidth;
-        newspec.height = newheight;
-        newspec.depth = 1;
-        newspec.full_x = 0;
-        newspec.full_y = 0;
-        newspec.full_z = 0;
-        newspec.full_width = newspec.width;
-        newspec.full_height = newspec.height;
-        newspec.full_depth = newspec.depth;
         
         // Reset the image, to a new image, at the new size
         std::string name = src.name() + ".constant_color";
@@ -807,24 +829,57 @@ make_texturemap (const char *maptypename = "texture map")
     // Copy the input spec
     const ImageSpec &srcspec = src.spec();
     ImageSpec dstspec = srcspec;
-
+    bool orig_was_volume = srcspec.depth > 1 || srcspec.full_depth > 1;
+    bool orig_was_crop = (srcspec.x > srcspec.full_x ||
+                          srcspec.y > srcspec.full_y ||
+                          srcspec.z > srcspec.full_z ||
+                          srcspec.x+srcspec.width < srcspec.full_x+srcspec.full_width ||
+                          srcspec.y+srcspec.height < srcspec.full_y+srcspec.full_height ||
+                          srcspec.z+srcspec.depth < srcspec.full_z+srcspec.full_depth);
+    bool orig_was_overscan = (srcspec.x < srcspec.full_x &&
+                              srcspec.y < srcspec.full_y &&
+                              srcspec.x+srcspec.width > srcspec.full_x+srcspec.full_width &&
+                              srcspec.y+srcspec.height > srcspec.full_y+srcspec.full_height &&
+                              (!orig_was_volume || (srcspec.z < srcspec.full_z &&
+                                                    srcspec.z+srcspec.depth > srcspec.full_z+srcspec.full_depth)));
     // Make the output not a crop window
-    dstspec.x = 0;
-    dstspec.y = 0;
-    dstspec.z = 0;
-    dstspec.width = srcspec.full_width;
-    dstspec.height = srcspec.full_height;
-    dstspec.depth = srcspec.full_depth;
-    dstspec.full_x = 0;
-    dstspec.full_y = 0;
-    dstspec.full_z = 0;
-    dstspec.full_width = dstspec.width;
-    dstspec.full_height = dstspec.height;
-    dstspec.full_depth = dstspec.depth;
-    bool orig_was_crop = (srcspec.x != 0 || srcspec.y != 0 || srcspec.z != 0 ||
-                          srcspec.full_width != srcspec.width ||
-                          srcspec.full_height != srcspec.height ||
-                          srcspec.full_depth != srcspec.depth);
+    if (orig_was_crop) {
+        dstspec.x = 0;
+        dstspec.y = 0;
+        dstspec.z = 0;
+        dstspec.width = srcspec.full_width;
+        dstspec.height = srcspec.full_height;
+        dstspec.depth = srcspec.full_depth;
+        dstspec.full_x = 0;
+        dstspec.full_y = 0;
+        dstspec.full_z = 0;
+        dstspec.full_width = dstspec.width;
+        dstspec.full_height = dstspec.height;
+        dstspec.full_depth = dstspec.depth;
+    }
+    if (orig_was_overscan) {
+        swrap = "black";
+        twrap = "black";
+    }
+
+    if ((dstspec.x < 0 || dstspec.y < 0 || dstspec.z < 0) &&
+        (out && !out->supports("negativeorigin"))) {
+        // User passed negative origin but the output format doesn't
+        // support it.  Try to salvage the situation by shifting the
+        // image into the positive range.
+        if (dstspec.x < 0) {
+            dstspec.full_x -= dstspec.x;
+            dstspec.x = 0;
+        }
+        if (dstspec.y < 0) {
+            dstspec.full_y -= dstspec.y;
+            dstspec.y = 0;
+        }
+        if (dstspec.z < 0) {
+            dstspec.full_z -= dstspec.z;
+            dstspec.z = 0;
+        }
+    }
 
     // Make the output tiled, regardless of input
     dstspec.tile_width  = tile[0];
@@ -971,7 +1026,7 @@ make_texturemap (const char *maptypename = "texture map")
     dstspec.set_format (TypeDesc::FLOAT);
 
     // Handle resize to power of two, if called for
-    if (! noresize  &&  ! shadowmode) {
+    if (doresize  &&  ! shadowmode) {
         dstspec.width = pow2roundup (dstspec.width);
         dstspec.height = pow2roundup (dstspec.height);
         dstspec.full_width = dstspec.width;
@@ -981,7 +1036,7 @@ make_texturemap (const char *maptypename = "texture map")
     bool do_resize = false;
     // Resize if we're up-resing for pow2
     if (dstspec.width != srcspec.width || dstspec.height != srcspec.height ||
-            dstspec.depth != srcspec.depth)
+          dstspec.full_depth != srcspec.full_depth)
         do_resize = true;
     // resize if the original was a crop
     if (orig_was_crop)
@@ -990,6 +1045,15 @@ make_texturemap (const char *maptypename = "texture map")
     if (envlatlmode && ! src_samples_border && 
         (iequals(fileformatname,"openexr") || iends_with(outputfilename,".exr")))
         do_resize = true;
+
+    if (do_resize && orig_was_overscan &&
+        out && !out->supports("displaywindow")) {
+        std::cerr << "maketx ERROR: format " << out->format_name()
+                  << " does not support separate display windows,\n"
+                  << "              which is necessary when combining resizing"
+                  << " and an input image with overscan.";
+        exit (EXIT_FAILURE);
+    }
 
     Timer resizetimer;
     ImageBuf dst ("temp", dstspec);
@@ -1036,7 +1100,6 @@ make_texturemap (const char *maptypename = "texture map")
         desc = "";
     }
     
-    
     // The hash is only computed for the top mipmap level of pixel data.
     // Thus, any additional information that will effect the lower levels
     // (such as filtering information) needs to be manually added into the
@@ -1079,13 +1142,10 @@ make_texturemap (const char *maptypename = "texture map")
         dstspec.attribute ("ImageDescription", desc);
     }
 
-
-
     // Write out, and compute, the mipmap levels for the speicifed image
-    
-    std::string outformat = fileformatname.empty() ? outputfilename : fileformatname;
-    write_mipmap (*toplevel, dstspec, outputfilename, outformat, out_dataformat,
-                  !shadowmode && !nomipmap);
+    write_mipmap (*toplevel, dstspec, outputfilename,
+                  out, out_dataformat, !shadowmode && !nomipmap);
+    delete out;  // don't need it any more
 
     // If using update mode, stamp the output file with a modification time
     // matching that of the input file.
@@ -1097,26 +1157,12 @@ make_texturemap (const char *maptypename = "texture map")
 
 static void
 write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
-              std::string outputfilename, std::string outformat,
+              std::string outputfilename, ImageOutput *out,
               TypeDesc outputdatatype, bool mipmap)
 {
     ImageSpec outspec = outspec_template;
     outspec.set_format (outputdatatype);
 
-    // Find an ImageIO plugin that can open the output file, and open it
-    Timer writetimer;
-    ImageOutput *out = ImageOutput::create (outformat.c_str());
-    if (! out) {
-        std::cerr 
-            << "maketx ERROR: Could not find an ImageIO plugin to write " 
-            << outformat << " files:" << geterror() << "\n";
-        exit (EXIT_FAILURE);
-    }
-    if (! out->supports ("tiles")) {
-        std::cerr << "maketx ERROR: \"" << outputfilename
-                  << "\" format does not support tiled images\n";
-        exit (EXIT_FAILURE);
-    }
     if (mipmap && !out->supports ("multiimage") && !out->supports ("mipmap")) {
         std::cerr << "maketx ERROR: \"" << outputfilename
                   << "\" format does not support multires images\n";
@@ -1142,6 +1188,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     if (envlatlmode && src_samples_border)
         fix_latl_edges (img);
 
+    Timer writetimer;
     if (! out->open (outputfilename.c_str(), outspec)) {
         std::cerr << "maketx ERROR: Could not open \"" << outputfilename
                   << "\" : " << out->geterror() << "\n";
@@ -1153,6 +1200,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
         std::cout << "  Writing file: " << outputfilename << std::endl;
         std::cout << "  Filter \"" << filter->name() << "\" width = " 
                   << filter->width() << "\n";
+        std::cout << "  Top level is " << formatres(outspec) << std::endl;
     }
 
     bool ok = true;
@@ -1166,20 +1214,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
         ImageBuf *big = &img, *small = &tmp;
         while (ok && (outspec.width > 1 || outspec.height > 1)) {
             Timer miptimer;
-            // Resize a factor of two smaller
-            ImageSpec smallspec = outspec;
-            smallspec.width = big->spec().width;
-            smallspec.height = big->spec().height;
-            smallspec.depth = big->spec().depth;
-            if (smallspec.width > 1)
-                smallspec.width /= 2;
-            if (smallspec.height > 1)
-                smallspec.height /= 2;
-            smallspec.full_width  = smallspec.width;
-            smallspec.full_height = smallspec.height;
-            smallspec.full_depth  = smallspec.depth;
-            smallspec.set_format (TypeDesc::FLOAT);
-            small->alloc (smallspec);  // Realocate with new size
+            ImageSpec smallspec;
 
             if (mipimages.size()) {
                 // Special case -- the user specified a custom MIP level
@@ -1199,15 +1234,45 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                 smallspec.tile_depth = outspec.tile_depth;
                 mipimages.erase (mipimages.begin());
             } else {
+                // Resize a factor of two smaller
+                smallspec = outspec;
+                smallspec.width = big->spec().width;
+                smallspec.height = big->spec().height;
+                smallspec.depth = big->spec().depth;
+                if (smallspec.width > 1)
+                    smallspec.width /= 2;
+                if (smallspec.height > 1)
+                    smallspec.height /= 2;
+                smallspec.full_width = smallspec.width;
+                smallspec.full_height = smallspec.height;
+                smallspec.full_depth = smallspec.depth;
+                smallspec.set_format (TypeDesc::FLOAT);
+
+                // Trick: to get the resize working properly, we reset
+                // both display and pixel windows to match, and have 0
+                // offset, AND doctor the big image to have its display
+                // and pixel windows match.  Don't worry, the texture
+                // engine doesn't care what the upper MIP levels have
+                // for the window sizes, it uses level 0 to determine
+                // the relatinship between texture 0-1 space (display
+                // window) and the pixels.
+                smallspec.x = 0;
+                smallspec.y = 0;
+                smallspec.full_x = 0;
+                smallspec.full_y = 0;
+                small->alloc (smallspec);  // Realocate with new size
+                big->set_full (big->xbegin(), big->xend(), big->ybegin(),
+                               big->yend(), big->zbegin(), big->zend());
+
                 if (filtername == "box" && filter->width() == 1.0f)
                     parallel_image (resize_block, small, big,
-                                    smallspec.x, smallspec.x+smallspec.width,
-                                    smallspec.y, smallspec.y+smallspec.height,
+                                    small->xbegin(), small->xend(),
+                                    small->ybegin(), small->yend(),
                                     nthreads);
                 else
                     parallel_image (resize_block_HQ, small, big,
-                                    smallspec.x, smallspec.x+smallspec.width,
-                                    smallspec.y, smallspec.y+smallspec.height,
+                                    small->xbegin(), small->xend(),
+                                    small->ybegin(), small->yend(),
                                     nthreads);
             }
 
@@ -1230,9 +1295,9 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             }
             ok &= small->write (out);
             stat_writetime += writetimer();
-            if (verbose)
-                std::cout << "    " << smallspec.width << 'x' 
-                          << smallspec.height << "\n" << std::flush;
+            if (verbose) {
+                std::cout << "    " << formatres(smallspec) << std::endl;
+            }
             std::swap (big, small);
         }
     }
@@ -1244,14 +1309,12 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     if (ok)
         ok &= out->close ();
     stat_writetime += writetimer ();
-    delete out;
 
     if (! ok) {
         std::cerr << "maketx ERROR writing \"" << outputfilename
                   << "\" : " << out->geterror() << "\n";
         exit (EXIT_FAILURE);
     }
-
 }
 
 

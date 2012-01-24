@@ -559,6 +559,7 @@ static void
 test_getimagespec_gettexels (ustring filename)
 {
     ImageSpec spec;
+    int miplevel = 0;
     if (! texsys->get_imagespec (filename, 0, spec)) {
         std::cerr << "Could not get spec for " << filename << "\n";
         std::string e = texsys->geterror ();
@@ -570,7 +571,8 @@ test_getimagespec_gettexels (ustring filename)
     if (! test_gettexels)
         return;
 
-    int w = spec.width/2, h = spec.height/2;
+    int w = spec.width / std::max(1,2<<miplevel);
+    int h = spec.height / std::max(1,2<<miplevel);
     ImageSpec postagespec (w, h, spec.nchannels, TypeDesc::FLOAT);
     ImageBuf buf ("postage.exr", postagespec);
     TextureOptions opt;
@@ -578,7 +580,9 @@ test_getimagespec_gettexels (ustring filename)
     if (missing[0] >= 0)
         opt.missingcolor.init ((float *)&missing, 0);
     std::vector<float> tmp (w*h*spec.nchannels);
-    bool ok = texsys->get_texels (filename, opt, 0, w/2, w/2+w, h/2, h/2+h,
+    bool ok = texsys->get_texels (filename, opt, miplevel,
+                                  spec.x+w/2, spec.x+w/2+w,
+                                  spec.y+h/2, spec.y+h/2+h,
                                   0, 1, postagespec.format, &tmp[0]);
     if (! ok)
         std::cerr << texsys->geterror() << "\n";

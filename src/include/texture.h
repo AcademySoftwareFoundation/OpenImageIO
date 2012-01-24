@@ -183,7 +183,7 @@ private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
     int actualchannels;    // True number of channels read
-    typedef bool (*wrap_impl) (int &coord, int width);
+    typedef bool (*wrap_impl) (int &coord, int origin, int width);
     wrap_impl swrap_func, twrap_func, rwrap_func;
     int envlayout;    // Layout for environment wrap
     friend class pvt::TextureSystemImpl;
@@ -289,7 +289,7 @@ private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
     int actualchannels;    // True number of channels read
-    typedef bool (*wrap_impl) (int &coord, int width);
+    typedef bool (*wrap_impl) (int &coord, int origin, int width);
     wrap_impl swrap_func, twrap_func, rwrap_func;
     friend class pvt::TextureSystemImpl;
     friend class TextureOpt;
