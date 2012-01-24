@@ -416,13 +416,13 @@ private:
     /// in the file.
     void fill_channels (int nfilechannels, TextureOpt &options, float *result);
 
-    typedef bool (*wrap_impl) (int &coord, int width);
-    static bool wrap_black (int &coord, int width);
-    static bool wrap_clamp (int &coord, int width);
-    static bool wrap_periodic (int &coord, int width);
-    static bool wrap_periodic2 (int &coord, int width);
-    static bool wrap_periodic_sharedborder (int &coord, int width);
-    static bool wrap_mirror (int &coord, int width);
+    typedef bool (*wrap_impl) (int &coord, int origin, int width);
+    static bool wrap_black (int &coord, int origin, int width);
+    static bool wrap_clamp (int &coord, int origin, int width);
+    static bool wrap_periodic (int &coord, int origin, int width);
+    static bool wrap_periodic2 (int &coord, int origin, int width);
+    static bool wrap_periodic_sharedborder (int &coord, int origin, int width);
+    static bool wrap_mirror (int &coord, int origin, int width);
     static const wrap_impl wrap_functions[];
 
     /// Helper function for lat-long environment maps: compute a "pole"
@@ -506,13 +506,13 @@ TextureSystemImpl::st_to_texel (float s, float t, TextureFile &texturefile,
     // Note that we have two modes, depending on the m_sample_border.
     if (texturefile.m_sample_border == 0) {
         // texel samples are at 0.5/res, 1.5/res, ..., (res-0.5)/res,
-        s = s * spec.full_width  + spec.full_x - 0.5f;
-        t = t * spec.full_height + spec.full_y - 0.5f;
+        s = s * spec.width  + spec.x - 0.5f;
+        t = t * spec.height + spec.y - 0.5f;
     } else {
         // first and last rows/columns are *exactly* on the boundary,
         // so samples are at 0, 1/(res-1), ..., 1.
-        s = s * (spec.full_width-1)  + spec.full_x;
-        t = t * (spec.full_height-1) + spec.full_y;
+        s = s * (spec.width-1)  + spec.x;
+        t = t * (spec.height-1) + spec.y;
     }
     ifrac = floorfrac (s, &i);
     jfrac = floorfrac (t, &j);

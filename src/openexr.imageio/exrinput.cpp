@@ -519,8 +519,27 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     m_spec.width = w;
     m_spec.height = h;
-    m_spec.full_width = w;
-    m_spec.full_height = m_cubeface ? w : h;
+    // N.B. OpenEXR doesn't support data and display windows per MIPmap
+    // level.  So always take from the top level.
+    Imath::Box2i datawindow = m_header->dataWindow();
+    Imath::Box2i displaywindow = m_header->displayWindow();
+    m_spec.x = datawindow.min.x;
+    m_spec.y = datawindow.min.y;
+    if (miplevel == 0) {
+        m_spec.full_x = displaywindow.min.x;
+        m_spec.full_y = displaywindow.min.y;
+        m_spec.full_width = displaywindow.max.x - displaywindow.min.x + 1;
+        m_spec.full_height = displaywindow.max.y - displaywindow.min.y + 1;
+    } else {
+        m_spec.full_x = m_spec.x;
+        m_spec.full_y = m_spec.y;
+        m_spec.full_width = m_spec.width;
+        m_spec.full_height = m_spec.height;
+    }
+    if (m_cubeface) {
+        m_spec.full_width = w;
+        m_spec.full_height = w;
+    }
     newspec = m_spec;
 
     return true;

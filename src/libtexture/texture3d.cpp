@@ -279,9 +279,9 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
     DASSERT (options.swrap_func != NULL && options.twrap_func != NULL &&
              options.rwrap_func != NULL);
     bool svalid, tvalid, rvalid;  // Valid texels?  false means black border
-    svalid = options.swrap_func (stex, spec.full_width);
-    tvalid = options.twrap_func (ttex, spec.full_height);
-    rvalid = options.rwrap_func (rtex, spec.full_depth);
+    svalid = options.swrap_func (stex, spec.x, spec.width);
+    tvalid = options.twrap_func (ttex, spec.y, spec.height);
+    rvalid = options.rwrap_func (rtex, spec.z, spec.depth);
     if (! levelinfo.full_pixel_range) {
         svalid &= (stex >= spec.x && stex < (spec.x+spec.width)); // data window
         tvalid &= (ttex >= spec.y && ttex < (spec.y+spec.height));
@@ -368,12 +368,13 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     bool *svalid = valid_storage.bvalid;
     bool *tvalid = valid_storage.bvalid + 2;
     bool *rvalid = valid_storage.bvalid + 4;
-    svalid[0] = options.swrap_func (stex[0], spec.full_width);
-    svalid[1] = options.swrap_func (stex[1], spec.full_width);
-    tvalid[0] = options.twrap_func (ttex[0], spec.full_height);
-    tvalid[1] = options.twrap_func (ttex[1], spec.full_height);
-    rvalid[0] = options.rwrap_func (rtex[0], spec.full_depth);
-    rvalid[1] = options.rwrap_func (rtex[1], spec.full_depth);
+
+    svalid[0] = options.swrap_func (stex[0], spec.x, spec.width);
+    svalid[1] = options.swrap_func (stex[1], spec.x, spec.width);
+    tvalid[0] = options.twrap_func (ttex[0], spec.y, spec.height);
+    tvalid[1] = options.twrap_func (ttex[1], spec.y, spec.height);
+    rvalid[0] = options.rwrap_func (rtex[0], spec.z, spec.depth);
+    rvalid[1] = options.rwrap_func (rtex[1], spec.z, spec.depth);
     // Account for crop windows
     if (! levelinfo.full_pixel_range) {
         svalid[0] &= (stex[0] >= spec.x && stex[0] < spec.x+spec.width);
