@@ -281,8 +281,8 @@ public:
                                  TextureOptions::Wrap &swrapcode,
                                  TextureOptions::Wrap &twrapcode) {
         TextureOpt::parse_wrapmodes (wrapmodes,
-                                     *(TextureOpt::Wrap *)*&swrapcode,
-                                     *(TextureOpt::Wrap *)*&twrapcode);
+                                     *(TextureOpt::Wrap *)&swrapcode,
+                                     *(TextureOpt::Wrap *)&twrapcode);
     }
 
 private:
