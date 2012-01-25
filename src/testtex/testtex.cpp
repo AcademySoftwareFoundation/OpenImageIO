@@ -59,6 +59,7 @@ static int output_xres = 512, output_yres = 512;
 static float sscale = 1, tscale = 1;
 static float blur = 0;
 static float width = 1;
+static std::string wrapmodes ("periodic");
 static int iters = 1;
 static int autotile = 0;
 static bool automip = false;
@@ -112,6 +113,7 @@ getargs (int argc, const char *argv[])
                   "--blur %f", &blur, "Add blur to texture lookup",
                   "--width %f", &width, "Multiply filter width of texture lookup",
                   "--fill %f", &fill, "Set fill value for missing channels",
+                  "--wrap %s", &wrapmodes, "Set wrap mode (default, black, clamp, periodic, mirror, overscan)",
                   "--missing %f %f %f", &missing[0], &missing[1], &missing[2],
                         "Specify missing texture color",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
@@ -244,10 +246,8 @@ test_plain_texture ()
         opt.missingcolor.init ((float *)&missing, 0);
 //    opt.interpmode = TextureOptions::InterpSmartBicubic;
 //    opt.mipmode = TextureOptions::MipModeAniso;
-    opt.swrap = opt.twrap = TextureOptions::WrapPeriodic;
-//    opt.twrap = TextureOptions::WrapBlack;
+    TextureOptions::parse_wrapmodes (wrapmodes.c_str(), opt.swrap, opt.twrap);
 
-#if 1
     TextureOpt opt1;
     opt1.sblur = blur;
     opt1.tblur = blur;
@@ -257,8 +257,7 @@ test_plain_texture ()
     opt1.fill = localfill;
     if (missing[0] >= 0)
         opt1.missingcolor = (float *)&missing;
-    opt1.swrap = opt1.twrap = TextureOpt::WrapPeriodic;
-#endif
+    TextureOpt::parse_wrapmodes (wrapmodes.c_str(), opt1.swrap, opt1.twrap);
 
     int shadepoints = blocksize*blocksize;
     float *s = ALLOCA (float, shadepoints);
