@@ -65,21 +65,6 @@ if (USE_TBB)
     set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
 endif ()
 
-# Include OpenColorIO if using it
-if (USE_OCIO)
-    FindOpenColorIO()
-    if (OCIO_FOUND)
-        message (STATUS "OpenColorIO enabled")
-        message(STATUS "OCIO_INCLUDES: ${OCIO_INCLUDES}")
-        include_directories (${OCIO_INCLUDES})
-        add_definitions ("-DUSE_OCIO=1")
-    else ()
-        message (STATUS "Skipping OpenColorIO support")
-    endif ()
-else ()
-    message (STATUS "OpenColorIO disabled")
-endif ()
-
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
 if (EMBEDPLUGINS)
