@@ -80,18 +80,10 @@ ImageViewer::ImageViewer ()
     // Also, some time in the future we may want a real 3D LUT for 
     // "film look", etc.
 
-    if (darkPalette())
-        m_palette = QPalette (Qt::darkGray);  // darkGray?
-    else
-        m_palette = QPalette ();
-    QApplication::setPalette (m_palette);  // FIXME -- why not work?
-    this->setPalette (m_palette);
-
     slideTimer = new QTimer();
     slideDuration_ms = 5000;
     slide_loop = true;
     glwin = new IvGL (this, *this);
-    glwin->setPalette (m_palette);
     glwin->resize (m_default_width, m_default_height);
     setCentralWidget (glwin);
 
@@ -103,8 +95,9 @@ ImageViewer::ImageViewer ()
     readSettings();
 
     setWindowTitle (tr("Image Viewer"));
-    resize (m_default_width, m_default_height);
-//    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
+    QPoint p = QApplication::desktop()->screenGeometry().center();
+    // makes main window to appear in the center of the desktop
+    setGeometry (p.x() - (m_default_width >> 1), p.y() - (m_default_height >> 1), m_default_width, m_default_height);
 }
 
 
@@ -353,8 +346,10 @@ ImageViewer::createActions()
     pixelviewFollowsMouseBox->setChecked (false);
     linearInterpolationBox = new QCheckBox (tr("Linear interpolation"));
     linearInterpolationBox->setChecked (true);
+
     darkPaletteBox = new QCheckBox (tr("Dark palette"));
-    darkPaletteBox->setChecked (true);
+    connect (darkPaletteBox, SIGNAL(stateChanged(int)), SLOT(changePalette(int)));
+
     autoMipmap = new QCheckBox (tr("Generate mipmaps (requires restart)"));
     autoMipmap->setChecked (false);
 
@@ -2031,7 +2026,6 @@ ImageViewer::showInfoWindow ()
 {
     if (! infoWindow) {
         infoWindow = new IvInfoWindow (*this, true);
-        infoWindow->setPalette (m_palette);
     }
     infoWindow->update (cur());
     if (infoWindow->isHidden ())
@@ -2055,7 +2049,28 @@ ImageViewer::editPreferences ()
 {
     if (! preferenceWindow) {
         preferenceWindow = new IvPreferenceWindow (*this);
-        preferenceWindow->setPalette (m_palette);
     }
     preferenceWindow->show ();
 }
+
+void
+ImageViewer::changePalette (int darkPaletteBoxState)
+{
+    QPalette palette;
+    QString styleSheet;
+    if (darkPaletteBoxState) {
+        palette = QPalette(Qt::darkGray);
+        styleSheet = "background: gray;";
+    } else {
+        palette = QPalette();
+        styleSheet = "";
+    }
+    // set palette for the entire application
+    QApplication::setPalette(palette);
+    // set stylesheet for the spin boxes
+    maxMemoryIC->setStyleSheet(styleSheet);
+    slideShowDuration->setStyleSheet(styleSheet);
+    // set stylesheet for the status bar
+    statusBar()->setStyleSheet(styleSheet);
+}
+

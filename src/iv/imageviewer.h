@@ -238,8 +238,6 @@ public:
         return darkPaletteBox ? darkPaletteBox->isChecked() : m_darkPalette;
     }
 
-    QPalette palette (void) const { return m_palette; }
-
 private slots:
     void open();                        ///< Dialog to open new image from file
     void reload();                      ///< Reread current image from disk
@@ -296,6 +294,7 @@ private slots:
     void showInfoWindow();              ///< View extended info on image
     void showPixelviewWindow();         ///< View closeup pixel view
     void editPreferences();             ///< Edit viewer preferences
+    void changePalette (int darkPaletteBoxState); ///< Sets the application's palette
 private:
     void createActions ();
     void createMenus ();
@@ -382,7 +381,6 @@ private:
     bool m_fullscreen;                ///< Full screen mode
     std::vector<std::string> m_recent_files;  ///< Recently opened files
     float m_default_gamma;            ///< Default gamma of the display
-    QPalette m_palette;               ///< Custom palette
     bool m_darkPalette;               ///< Use dark palette?
 
     static const int m_default_width = 640; ///< The default width of the window.
