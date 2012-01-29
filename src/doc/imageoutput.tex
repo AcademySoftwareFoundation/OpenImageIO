@@ -1141,6 +1141,13 @@ by this query:
 \item[\rm \qkw{displaywindow}] Does the image format support specifying
   a display (``full'') window that is distinct from the pixel data
   window?
+\item[\rm \qkw{origin}] Does the image format support specifying
+  a pixel window origin (i.e., nonzero \ImageSpec {\cf x}, {\cf y},
+  {\cf z})?
+\item[\rm \qkw{negativeorigin}] Does the image format allow pixel
+  and data window origins (i.e., nonzero \ImageSpec {\cf x}, {\cf y},
+  {\cf z}, {\cf full_x}, {\cf full_y}, {\cf full_z}) to have
+  negative values?
 \end{description}
 
 \noindent This list of queries may be extended in future releases.
