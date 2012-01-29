@@ -341,7 +341,7 @@ public:
     /// [ybegin,yend) x [zbegin,zend).  If bordercolor is not NULL, also
     /// set the spec's "oiio:bordercolor" attribute.
     void set_full (int xbegin, int xend, int ybegin, int yend,
-                   int zbegin, int zend, const float *bordercolor);
+                   int zbegin, int zend, const float *bordercolor=NULL);
 
     bool pixels_valid (void) const { return m_pixels_valid; }
 
