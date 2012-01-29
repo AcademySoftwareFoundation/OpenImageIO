@@ -176,6 +176,10 @@ OpenEXROutput::supports (const std::string &feature) const
         return true;
     if (feature == "displaywindow")
         return true;
+    if (feature == "origin")
+        return true;
+    if (feature == "negativeorigin")
+        return true;
 
     // EXR supports random write order iff lineOrder is set to 'random Y'
     if (feature == "random_access") {
