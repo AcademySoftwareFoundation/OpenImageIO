@@ -1,49 +1,77 @@
 Changes:
 
 
-Release 0.11 (development in progress)
+Release 1.0 (development in progress)
 --------------------------------------
 
 Major new features and improvements:
+ * New ImageInput & ImageOutput methods that can efficiently read/write
+   multiple scanlines or tiles at a time.
  * New ImageInput methods that can read a subset of channels from an image.
  * WebP format reader/writer.
- * Cineon support is re-enabled after various bug fixes.
  * PSD (Adobe Photoshop) format reader.
  * RLA (Wavefront) format reader/writer.
+ * Cineon support is re-enabled after various bug fixes.
  * New utility: oiiotool.  This is still a work in progress, but largely
    subsumes the functionality of iprocess, iinfo, iconvert, idiff.
+ * Use OpenColorIO (www.opencolorio.org) for color space conversion, if
+   detected at build time and a valid OCIO configuration is found at runtime.
+   Color conversion commands have been added to oiiotool and maketx.
 
 API changes:
- * Add API methods to ImageInput/ImageOutput that allow read/write of multiple
-   scanlines or tiles at a time.
+ * New ImageInput & ImageOutput methods that can efficiently read/write
+   multiple scanlines or tiles at a time: read_scanlines, read_tiles,
+   write_scanlines, write_tiles.
  * New ImageInput methods that can read a subset of channels from an image.
  * Change the last couple functions that took min/max pixel range
    specifications to conform to our usual [begin,end) convention --
    write_rectangle and to_native_rectangle.
  * exif_encode, exif_decode now available as general utilities (previously
    were private to the JPEG plugin).
- * ImageOutput::supports("displaywindow") lets you query whether the output
+ * New ImageOutput::supports() queries: "displaywindow" queries whether the
    file format is able to handle differing display ("full") and pixel data
-   windows.
+   windows, "negativeorigin" queries whether data origin or full/display
+   origin may be negative.
  * TextureSystem and ImageCache now accept attribute "options", that is a
    comma-separated list of name=value setings (e.g.
    "max_memory_MB=256,max_files=1000").  Also, upon startup, the environment
    variables OPENIMAGEIO_TEXTURE_OPTIONS and OPENIMAGEIO_IMAGECACHE_OPTIONS
    are parsed for these startup values.
+ * TextureSystem/ImageCache: add a separate "plugin_searchpath" attribute
+   separate from the "searchpath" for images.
 
 Fixes, minor enhancements, and performance improvements:
  * ImageBufAlgo new algorithms: compare, compare_Yee, isConstantChannel.
  * TextureOpt: add ustring-aware versions of the decode_wrapmode utility.
  * TypeDesc: allow stream << output.
  * iv: raised maximum ImageCache size from 2 GB to 8 GB.
- * PNM: fix but where file exceptions could go uncaught.
+ * PNM: fix bug where file exceptions could go uncaught.
  * Properly create coefficients for Kodak color transform.
  * iprocess: Fix bug calling read.
  * maketx: new option --opaque-detect omits alpha from texture whose input
    images had alpha=1 everywhere.
+ * maketx: --mipimage option allows custom MIP levels to be assembled.
  * Fixed bugs in sinc and Blackman-Harris filters.
  * ImageCache/TextureSystem -- new reset_stats() method resets all the
    statistics back to zero.
+ * TIFF: better handling of unexpected bitsperpixel combinations; support
+   the nonstandard use of IEEEFP/16bit as "half"; fix many small bugs 
+   related to unusual depth depths and contig/separate conversions.
+ * JPEG-2000 plugin rewritten to use OpenJpeg library instead of Jasper.
+ * DPX: various bug fixes.
+ * RLA plugin overhauled and now has good support for non-8-bit depths.
+ * oiiotool improvements: --pop, --dup, --selectmip, --origin,
+   --incolorspace, --tocolorspace, --colorconvert.
+ * TextureSystem supports textures with "overscan" (including proper
+   maketx support for input images with overscan).
+ * TS/IC invalidate_all previously cleared all fingerprint info, but now
+   only clears fingerprints for individual files that are invalidated
+   (this makes for better duplicate detection).
+
+Build system improvements:
+ * Support compilation on FreeBSD.
+ * Improved custom detection of boost-python on Windows.
+ * Easier to compile OIIO without using TBB.
 
 Developer goodies:
  * ArgParse enhancements: make %! indicate a bool that's set to false if
@@ -51,13 +79,15 @@ Developer goodies:
    callbacks for bool options, option matching ignores characters after
    ':' in the option, wrap lines at word breaks when printing usage help.
  * Generate man pages for the command-line tools.
- * Strutil additions: escape_chars, unescape_chars.
+ * Strutil additions: escape_chars, unescape_chars, word_wrap.
+ * Filesystem additions: filename(), extension().
+ * Sysutil additions: terminal_columns()
  * Use github.com/OpenImageIO/oiio-images project for test images that are
    too big to fit in testsuite.
  * Fixed bugs in Timer::lap().
  * Aded 'invert' algorithm to fmath.h.
  * Clarify Timer docs and fix Apple-specific bug.
- * New Filesystem utilities: filename(), extension().
+ * testtex improvements: --wrap
 
 
 Release 0.10.4 (November 20, 2011)

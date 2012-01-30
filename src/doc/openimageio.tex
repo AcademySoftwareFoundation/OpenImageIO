@@ -42,7 +42,7 @@
 
 \def\product{{\sffamily OpenImageIO}\xspace}
 \def\OpenImageIO{{\sffamily OpenImageIO}\xspace}
-\def\versionnumber{0.11}
+\def\versionnumber{1.0}
 \def\productver{\product\ {\sffamily \versionnumber}\xspace}
 \def\producthome{{\codefont \$IMAGEIOHOME}\xspace}
 \def\ivbinary{{\codefont iv}\xspace}
@@ -84,8 +84,8 @@
 }
 \date{{\large 
 %Editor: Larry Gritz \\[2ex]
-Date: 9 June, 2011
-\\ (with corrections, 11 Nov 2011)
+Date: 13 Feb, 2012
+% \\ (with corrections, 11 Nov 2011)
 }}
 
 
@@ -137,6 +137,8 @@ Date: 9 June, 2011
 
 \part{Image Utilities}
 
+\include{oiiotool}
+
 \chapter{The {\kw iv} Image Viewer}
 \label{chap:iv}
 \indexapi{iv}
@@ -150,13 +152,9 @@ readable by \ImageInput plugins on hand.
 More documentation on this later.
 
 \include{iinfo}
-
 \include{iconvert}
-
 \include{igrep}
-
 \include{idiff}
-
 \include{maketx}
 
 

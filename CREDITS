@@ -24,7 +24,8 @@ Major contributors (roughly in order of joining the project):
     Krzysztof Blicharski sockets
     Nuno Cardoso         PNM
     Mikael Sundell       IFF
-    Jeremy Selan         Color space issues, maketx improvements
+    Jeremy Selan         Color space issues, maketx improvements, OpenColorIO
+                           integration
     Daniel Wyatt         PSD
 
 Other contributors (alphabetically):
@@ -38,6 +39,7 @@ Other contributors (alphabetically):
     Ben De Luca
     Nandan Dubey
     Marcos Fajardo
+    Henri Fousse
     Vitor Franchi
     Manuel Gamito
     Ananth Garre
@@ -55,6 +57,7 @@ Other contributors (alphabetically):
     Ryen
     M Joonas Pihlaja
     Carl Rand
+    Richard Shaw
     Cliff Stein
     Ott Tinn
     Edgar Velazquez-Armendariz
