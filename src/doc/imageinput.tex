@@ -628,6 +628,7 @@ Here is an example:
 
 \subsection{Error checking}
 \label{sec:imageinput:errors}
+\index{error checking}
 
 Nearly every \ImageInput API function returns a {\cf bool} indicating
 whether the operation succeeded ({\cf true}) or failed ({\cf false}).
@@ -895,6 +896,7 @@ This is currently undefined and is reserved for future use.
 \apiend
 
 \apiitem{std::string {\ce geterror} () const}
+\index{error checking}
 Returns the current error string describing what went wrong if
 any of the public methods returned {\kw false} indicating an error.
 (Hopefully the implementation plugin called {\kw error()} with a

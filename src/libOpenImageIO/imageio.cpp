@@ -91,6 +91,51 @@ geterror ()
 
 
 
+namespace {
+
+// Private global OIIO data.
+
+static spin_mutex attrib_mutex;
+static int oiio_threads = 1;
+static const int maxthreads = 64;   // reasonable maximum for sanity check
+
+};
+
+
+
+bool
+attribute (const std::string &name, TypeDesc type, const void *val)
+{
+    spin_lock lock (attrib_mutex);
+    if (name == "threads" && type == TypeDesc::TypeInt) {
+        oiio_threads = Imath::clamp (*(const int *)val, 0, maxthreads);
+        if (oiio_threads == 0) {
+#if (BOOST_VERSION >= 103500)
+            oiio_threads = boost::thread::hardware_concurrency();
+#else
+            oiio_threads = 1;
+#endif
+        }
+        return true;
+    }
+    return false;
+}
+
+
+
+bool
+getattribute (const std::string &name, TypeDesc type, void *val)
+{
+    spin_lock lock (attrib_mutex);
+    if (name == "threads" && type == TypeDesc::TypeInt) {
+        *(int *)val = oiio_threads;
+        return true;
+    }
+    return false;
+}
+
+
+
 int
 quantize (float value, int quant_black, int quant_white,
                        int quant_min, int quant_max)

@@ -61,7 +61,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class OpenEXRInput : public ImageInput {
 public:
-    OpenEXRInput () { init(); }
+    OpenEXRInput ();
     virtual ~OpenEXRInput () { close(); }
     virtual const char * format_name (void) const { return "openexr"; }
     virtual bool open (const std::string &name, ImageSpec &newspec);
@@ -177,6 +177,33 @@ private:
 static StringMap exr_tag_to_ooio_std;
 
 
+namespace pvt {
+
+void set_exr_threads ()
+{
+    static int exr_threads = 0;  // lives in exrinput.cpp
+    static spin_mutex exr_threads_mutex;  
+
+    int oiio_threads = 1;
+    OIIO_NAMESPACE::getattribute ("threads", oiio_threads);
+
+    spin_lock lock (exr_threads_mutex);
+    if (exr_threads != oiio_threads) {
+        exr_threads = oiio_threads;
+        Imf::setGlobalThreadCount (exr_threads == 1 ? 0 : exr_threads);
+    }
+}
+
+} // namespace pvt
+
+
+
+OpenEXRInput::OpenEXRInput ()
+{
+    init ();
+}
+
+
 
 bool
 OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
@@ -185,6 +212,8 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     bool tiled;
     if (! Imf::isOpenExrFile (name.c_str(), tiled))
         return false;
+
+    pvt::set_exr_threads ();
 
     m_spec = ImageSpec(); // Clear everything with default constructor
     

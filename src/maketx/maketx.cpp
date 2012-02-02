@@ -70,7 +70,7 @@ static std::string fileformatname = "";
 //static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
 static bool stats = false;
-static int nthreads = 0;
+static int nthreads = 0;    // default: use #cores threads if available
 static int tile[3] = { 64, 64, 1 };
 static std::string channellist;
 static bool updatemode = false;
@@ -185,7 +185,7 @@ getargs (int argc, char *argv[])
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
                   "-o %s", &outputfilename, "Output filename",
-                  "-t %d", &nthreads, "Number of threads (default: #cores)",
+                  "--threads %d", &nthreads, "Number of threads (default: #cores)",
                   "-u", &updatemode, "Update mode",
                   "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
                   "--nchannels %d", &nchannels, "Specify the number of output image channels.",
@@ -1119,6 +1119,7 @@ main (int argc, char *argv[])
     Timer alltimer;
     getargs (argc, argv);
 
+    OIIO_NAMESPACE::attribute ("threads", nthreads);
     if (stats) {
         ImageCache *ic = ImageCache::create ();  // get the shared one
         ic->attribute ("forcefloat", 1);   // Force float upon read

@@ -55,6 +55,7 @@ static std::string dataformatname = "";
 static float gammaval = 1.0f;
 //static bool depth = false;
 static bool verbose = false;
+static int nthreads = 0;    // default: use #cores threads if available
 static std::vector<std::string> filenames;
 static int tile[3] = { 0, 0, 1 };
 static bool scanline = false;
@@ -99,8 +100,9 @@ getargs (int argc, char *argv[])
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose status messages",
-                "-d %s", &dataformatname, "Set the output data format to one of:\n"
-                        "\t\t\tuint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
+                "--threads %d", &nthreads, "Number of threads (default 0 = #cores)",
+                "-d %s", &dataformatname, "Set the output data format to one of:"
+                        "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
                 "-g %f", &gammaval, "Set gamma correction (default = 1)",
                 "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
                 "--scanline", &scanline, "Output as a scanline image",
@@ -506,6 +508,8 @@ int
 main (int argc, char *argv[])
 {
     getargs (argc, argv);
+
+    OIIO_NAMESPACE::attribute ("threads", nthreads);
 
     bool ok = true;
 
