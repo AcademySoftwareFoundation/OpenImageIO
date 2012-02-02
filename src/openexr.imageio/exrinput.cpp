@@ -190,15 +190,17 @@ namespace pvt {
 
 void set_exr_threads ()
 {
-#if (BOOST_VERSION >= 103500)
     static int exr_threads = 0;  // lives in exrinput.cpp
     static spin_mutex exr_threads_mutex;  
+
+    int oiio_threads = 1;
+    OIIO_NAMESPACE::getattribute ("threads", oiio_threads);
+
     spin_lock lock (exr_threads_mutex);
-    if (! exr_threads) {
-        exr_threads = boost::thread::hardware_concurrency();
-        Imf::setGlobalThreadCount (exr_threads);
+    if (exr_threads != oiio_threads) {
+        exr_threads = oiio_threads;
+        Imf::setGlobalThreadCount (exr_threads == 1 ? 0 : exr_threads);
     }
-#endif
 }
 
 } // namespace pvt
@@ -207,8 +209,6 @@ void set_exr_threads ()
 
 OpenEXRInput::OpenEXRInput ()
 {
-    pvt::set_exr_threads ();
-
     init ();
 }
 
@@ -221,6 +221,8 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     bool tiled;
     if (! Imf::isOpenExrFile (name.c_str(), tiled))
         return false;
+
+    pvt::set_exr_threads ();
 
     m_spec = ImageSpec(); // Clear everything with default constructor
     

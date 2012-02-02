@@ -41,6 +41,12 @@ Verbose status messages, including runtime statistics and timing.
 Sets the name of the output texture.
 \apiend
 
+\apiitem{--threads \emph{n}}
+Use \emph{n} execution threads if it helps to speed up image operations.
+The default (also if $n=0$) is to use as many threads as there are cores
+present in the hardware.
+\apiend
+
 \apiitem{--format {\rm \emph{formatname}}}
 Specifies the image format of the output file (e.g., ``tiff'',
 ``OpenEXR'', etc.).  If {\cf --format} is not used, \maketx will 
