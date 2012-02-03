@@ -244,6 +244,9 @@ ArgOption::set_parameter (int i, const char *argv)
 {
     assert(i < m_count);
     
+    if (! m_param[i])   // If they passed NULL as the address,
+        return;         // don't write anything.
+
     switch (m_code[i]) {
     case 'd':
         *(int *)m_param[i] = atoi(argv);
@@ -436,14 +439,7 @@ ArgParse::options (const char *intro, ...)
         // Grab any parameters and store them with this option
         for (int i = 0; i < option->parameter_count(); i++) {
             void *p = va_arg (ap, void *);
-            if (p == NULL) {
-                error ("Missing argument parameter for \"%s\"",
-                              option->name().c_str());
-                return -1;
-            }
-            
             option->add_parameter (i, p);
-
             if (option == m_global)
                 option->set_callback ((ArgOption::callback_t)p);
         }

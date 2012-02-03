@@ -80,6 +80,7 @@ public:
     std::vector<ImageRecRef> image_stack;    // stack of previous images
     ImageCache *imagecache;                  // back ptr to ImageCache
     int return_value;                        // oiiotool command return code
+    ColorConfig colorconfig;                 // OCIO color config
 
     Oiiotool ()
         : verbose(false), noclobber(false), allsubimages(false),

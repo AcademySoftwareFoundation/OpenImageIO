@@ -36,6 +36,7 @@
 #include <iterator>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <utility>
 
 #include <boost/algorithm/string.hpp>
@@ -53,6 +54,7 @@ using boost::algorithm::iequals;
 #include "sysutil.h"
 #include "filesystem.h"
 #include "filter.h"
+#include "color.h"
 
 #include "oiiotool.h"
 
@@ -700,6 +702,82 @@ set_full_to_pixels (int argc, const char *argv[])
 
 
 static int
+set_colorspace (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    const char *args[3] = { argv[0], "oiio:ColorSpace", argv[1] };
+    return set_string_attribute (3, args);
+}
+
+
+
+static int
+action_colorconvert (int argc, const char *argv[])
+{
+    ASSERT (argc == 3);
+    if (ot.postpone_callback (1, action_colorconvert, argc, argv))
+        return 0;
+
+    std::string fromspace = argv[1];
+    std::string tospace = argv[2];
+
+    ot.read ();
+    bool need_transform = false;
+    ImageRecRef A = ot.curimg;
+    ot.read (A);
+
+    for (int s = 0, send = A->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+            const ImageSpec *spec = A->spec(s,m);
+            need_transform |=
+                spec->get_string_attribute("oiio:ColorSpace") != tospace;
+        }
+    }
+
+    if (! need_transform)
+        return 1;    // no need to do anything
+
+    ot.pop ();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+    
+    if (fromspace == "current")
+        fromspace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
+
+    ColorProcessor *processor =
+        ot.colorconfig.createColorProcessor (fromspace.c_str(), tospace.c_str());
+    if (! processor)
+        return 1;
+
+    for (int s = 0, send = A->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+            ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            ot.curimg->spec(s,m)->attribute ("oiio::Colorspace", tospace);
+        }
+    }
+
+    ot.colorconfig.deleteColorProcessor (processor);
+
+    return 1;
+}
+
+
+
+static int
+action_tocolorspace (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    if (! ot.curimg.get()) {
+        std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
+        return 0;
+    }
+    const char *args[3] = { argv[0], "current", argv[1] };
+    return action_colorconvert (3, args);
+}
+
+
+
+static int
 output_tiles (int /*argc*/, const char *argv[])
 {
     // the ArgParse will have set the tile size, but we need this routine
@@ -1259,7 +1337,15 @@ getargs (int argc, char *argv[])
                     "Throw away the current image",
                 "--dup %@", action_dup, &dummybool,
                     "Duplicate the current image (push a copy onto the stack)",
+                "<SEPARATOR>", "Color management:",
+                "--iscolorspace %@ %s", set_colorspace, NULL,
+                    "Set the assumed color space (without altering pixels)",
+                "--tocolorspace %@ %s", action_tocolorspace, NULL,
+                    "Convert the current image's pixels to a named color space",
+                "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
+                    "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
                 NULL);
+
     if (ap.parse(argc, (const char**)argv) < 0) {
 	std::cerr << ap.geterror() << std::endl;
         ap.usage ();
@@ -1267,6 +1353,22 @@ getargs (int argc, char *argv[])
     }
     if (help || argc <= 1) {
         ap.usage ();
+
+        // debugging color space names
+        std::stringstream s;
+        s << "Known color spaces: ";
+        const char *linear = ot.colorconfig.getColorSpaceNameByRole("linear");
+        for (int i = 0, e = ot.colorconfig.getNumColorSpaces();  i < e;  ++i) {
+            const char *n = ot.colorconfig.getColorSpaceNameByIndex(i);
+            s << "\"" << n << "\"";
+            if (linear && !iequals(n,"linear") && iequals (n, linear))
+                s << " (linear)";
+            if (i < e-1)
+                s << ", ";
+        }
+        int columns = Sysutil::terminal_columns() - 2;
+        std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+
         exit (EXIT_FAILURE);
     }
 
