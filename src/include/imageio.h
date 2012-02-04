@@ -999,6 +999,56 @@ DLLPUBLIC int openimageio_version ();
 /// which call obj->geterror().
 DLLPUBLIC std::string geterror ();
 
+/// Set a global attribute controlling OpenImageIO.  Return true
+/// if the name and type were recognized and the attribute was set.
+///
+/// Documented attributes:
+///     int threads : how many threads to use for operations that can
+///                   be sped up by spawning threads (default=1;
+///                   note that 0 means "as many threads as cores").
+DLLPUBLIC bool attribute (const std::string &name, TypeDesc type,
+                          const void *val);
+// Shortcuts for common types
+inline bool attribute (const std::string &name, int val) {
+    return attribute (name, TypeDesc::TypeInt, &val);
+}
+inline bool attribute (const std::string &name, float val) {
+    return attribute (name, TypeDesc::TypeFloat, &val);
+}
+inline bool attribute (const std::string &name, const char *val) {
+    return attribute (name, TypeDesc::TypeString, &val);
+}
+inline bool attribute (const std::string &name, const std::string &val) {
+    const char *s = val.c_str();
+    return attribute (name, TypeDesc::TypeString, &s);
+}
+
+/// Get the named global attribute of OpenImageIO, store it in *val.
+/// Return true if found and it was compatible with the type specified,
+/// otherwise return false and do not modify the contents of *val.  It
+/// is up to the caller to ensure that val points to the right kind and
+/// size of storage for the given type.
+DLLPUBLIC bool getattribute (const std::string &name, TypeDesc type,
+                             void *val);
+// Shortcuts for common types
+inline bool getattribute (const std::string &name, int &val) {
+    return getattribute (name, TypeDesc::TypeInt, &val);
+}
+inline bool getattribute (const std::string &name, float &val) {
+    return getattribute (name, TypeDesc::TypeFloat, &val);
+}
+inline bool getattribute (const std::string &name, char **val) {
+    return getattribute (name, TypeDesc::TypeString, val);
+}
+inline bool getattribute (const std::string &name, std::string &val) {
+    const char *s = NULL;
+    bool ok = getattribute (name, TypeDesc::TypeString, &s);
+    if (ok)
+        val = s;
+    return ok;
+}
+
+
 /// Deprecated
 ///
 inline std::string error_message () { return geterror (); }

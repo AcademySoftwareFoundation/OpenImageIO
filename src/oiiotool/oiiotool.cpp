@@ -137,6 +137,15 @@ Oiiotool::process_pending ()
 
 
 static int
+set_threads (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    OIIO_NAMESPACE::attribute ("threads", atoi(argv[0]));
+}
+
+
+
+static int
 input_file (int argc, const char *argv[])
 {
     for (int i = 0;  i < argc;  i++) {
@@ -1127,7 +1136,7 @@ getargs (int argc, char *argv[])
 //                "-u", &ot.updatemode, "Update mode: skip outputs when the file exists and is newer than all inputs",
                 "--no-clobber", &ot.noclobber, "Do not overwrite existing files",
                 "--noclobber", &ot.noclobber, "", // synonym
-                "--threads %d", &ot.threads, "Number of threads to use (0 == #cores)",
+                "--threads %@ %d", set_threads, &ot.threads, "Number of threads (default 0 == #cores)",
                 "<SEPARATOR>", "Commands that write images:",
                 "-o %@ %s", output_file, &dummystr, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",

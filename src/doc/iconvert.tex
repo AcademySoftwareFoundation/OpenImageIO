@@ -158,6 +158,12 @@ Prints usage information to the terminal.
 Verbose status messages.
 \apiend
 
+\apiitem{--threads \emph{n}}
+Use \emph{n} execution threads if it helps to speed up image operations.
+The default (also if $n=0$) is to use as many threads as there are cores
+present in the hardware.
+\apiend
+
 \apiitem{--inplace}
 Causes the output to \emph{replace} the input file, rather than create a
 new file with a different name.
