@@ -32,10 +32,16 @@
 #ifndef OPENIMAGEIO_IMAGEBUFALGO_H
 #define OPENIMAGEIO_IMAGEBUFALGO_H
 
+#if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the std::vector<T> members of PixelStats below.
+#  pragma warning (disable : 4251)
+#endif
+
 #include "imageio.h"
 #include "imagebuf.h"
 #include "fmath.h"
-#include "colortransfer.h"
+#include "color.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -102,6 +108,19 @@ bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t
 
 bool DLLPUBLIC setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
 
+
+/// Make dst be a cropped copy of src, but with the new pixel data
+/// window range [xbegin..xend) x [ybegin..yend).  Source pixel data
+/// falling outside this range will not be transferred to dst.  If
+/// the new pixel range extends beyond that of the source image, those
+/// new pixels will get the color specified by bordercolor[0..nchans-1],
+/// or with black/zero values if bordercolor is NULL.
+bool DLLPUBLIC crop (ImageBuf &dst, const ImageBuf &src,
+                     int xbegin, int xend, int ybegin, int yend,
+                     const float *bordercolor=NULL);
+
+
+
 /// Add the pixels of two images A and B, putting the sum in dst.
 /// The 'options' flag controls behaviors, particular of what happens
 /// when A, B, and dst have differing data windows.  Note that dst must
@@ -122,31 +141,28 @@ enum DLLPUBLIC AddOptions
 };
 
 
-
-/// Copy a crop window of src to dst.  The crop region is bounded by
-/// [xbegin..xend) X [ybegin..yend), with the pixels affected including
-/// begin but not including the end pixel (just like STL ranges).  The
-/// cropping can be done one of several ways, specified by the options
-/// parameter, one of: CROP_CUT, CROP_WINDOW, CROP_BLACK, CROP_WHITE,
-/// CROP_TRANS.
-bool DLLPUBLIC crop (ImageBuf &dst, const ImageBuf &src,
-           int xbegin, int xend, int ybegin, int yend, int options);
-
-enum DLLPUBLIC CropOptions 
-{
-    CROP_CUT, 	  ///< cut out a pixel region to make a new image at the origin
-    CROP_WINDOW,  ///< reduce the pixel data window, keep in the same position
-    CROP_BLACK,	  ///< color to black all the pixels outside of the bounds
-    CROP_WHITE,	  ///< color to white all the pixels outside of the bounds
-    CROP_TRANS	  ///< make all pixels out of bounds transparent (zero)
-};
-
-
-
-/// Apply a transfer function to the pixel values.
+/// Apply a color transform to the pixel values
 ///
-bool DLLPUBLIC colortransfer (ImageBuf &dst, const ImageBuf &src,
-                              ColorTransfer *tfunc);
+/// In-place operations (dst == src) are supported
+/// If unpremult is specified, unpremultiply before color conversion,
+/// then premultiply after the color conversion.  You'll may want to use this
+/// flag if your image contains an alpha channel
+///
+/// Note: the dst image does not need to equal the src image, either in buffers
+///       or bit depths. (For example, it is common for the src buffer to be a
+///       lower bit depth image and the output image to be float).
+/// If the output buffer is less than floating-point, results may be quantized /
+/// clamped
+/// return true on success, false on failure
+
+
+bool DLLPUBLIC colorconvert (ImageBuf &dst, const ImageBuf &src,
+    const ColorProcessor * processor,
+    bool unpremult);
+
+bool DLLPUBLIC colorconvert (float * color, int nchannels,
+    const ColorProcessor * processor,
+    bool unpremult);
 
 
 struct DLLPUBLIC PixelStats {
@@ -196,9 +212,14 @@ bool DLLPUBLIC compare (const ImageBuf &A, const ImageBuf &B,
 int DLLPUBLIC compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
                            float luminance = 100, float fov = 45);
 
-/// You can optionally query the constantvalue'd color
-/// (current subimage, and current mipmap level)
+/// Do all pixels for the entire image have the same channel values?  If
+/// color is not NULL, that constant value will be stored in
+/// color[0..nchannels-1].
 bool DLLPUBLIC isConstantColor (const ImageBuf &src, float *color = NULL);
+
+/// Does the requested channel have a given value over the entire image?
+///
+bool DLLPUBLIC isConstantChannel (const ImageBuf &src, int channel, float val);
 
 /// Is the image monochrome? (i.e., are all channels the same value?)
 /// zero and one channel images always return true

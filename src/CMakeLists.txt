@@ -28,7 +28,8 @@ set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
 set (USE_TBB ON CACHE BOOL "Use TBB if needed")
 set (USE_PYTHON ON CACHE BOOL "Build the Python bindings")
 set (USE_FIELD3D ON CACHE BOOL "Use Field3D if found")
-set (USE_JASPER ON CACHE BOOL "Use Jasper for JPEG-2000 if found")
+set (USE_OPENJPEG ON CACHE BOOL "Use OpenJpeg if found")
+set (USE_OCIO ON CACHE BOOL "Use OpenColorIO for color management if found")
 set (NOTHREADS OFF CACHE BOOL "Compile with no threads or locking")
 set (PYTHON_VERSION 2.6)
 set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
@@ -42,6 +43,13 @@ if (NOTHREADS)
     add_definitions ("-DNOTHREADS=1")
 else ()
     message (STATUS "Building with thread support")
+endif ()
+
+if (USE_TBB)
+    add_definitions ("-DUSE_TBB=1")
+else ()
+    add_definitions ("-DUSE_TBB=0")
+    message (STATUS "TBB will not be used")
 endif ()
 
 set(CMAKE_MODULE_PATH
@@ -209,7 +217,7 @@ if (NOT EMBEDPLUGINS)
     add_subdirectory (zfile.imageio)
 endif ()
 
-if (USE_PYTHON AND Boost_PYTHON_FOUND)
+if (USE_PYTHON AND oiio_boost_PYTHON_FOUND)
     add_subdirectory (python)
 endif ()
 
@@ -221,7 +229,7 @@ add_subdirectory (doc)
 # Testing
 
 # List all the individual testsuite tests here:
-oiio_add_tests (ico gpsread oiiotool sgi rla
+oiio_add_tests (ico gpsread oiiotool sgi rla psd dpx
                 texture-fill texture-gray texture-grid
                 texture-missing texture-pointsample texture-res
                 texture-skinny texture-fat
@@ -243,7 +251,7 @@ oiio_add_tests (openexr-suite openexr-multires openexr-chroma
 
 oiio_add_tests (jpeg2000
     IMAGEDIR j2kp4files_v1_5
-    URL http://www.crc.ricoh.com/~gormish/jpeg2000conformance/)
+    URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
 
 oiio_add_tests (targa-tgautils
     IMAGEDIR TGAUTILS

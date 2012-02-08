@@ -227,10 +227,10 @@ The number of \emph{channels} (color values) present in each pixel of
 the image.  For example, an RGB image has 3 channels.
 \apiend
 
-\newpage
+%\newpage
 %\vspace{24pt}  % make some space
 
-\apiitem{TypeDesc format \\
+\apiitem{TypeDesc format \\[0.5ex]
 std::vector<TypeDesc> channelformats}
 Describes the native format of the pixel data values themselves, as a
 \TypeDesc (see \ref{sec:TypeDesc}).  Typical values would be 
@@ -326,12 +326,31 @@ Returns the number of bytes comprising each channel of each pixel (i.e.,
 the size of a single value of the type described by the {\cf format} field).
 \apiend
 
+\apiitem{size_t {\ce channel_bytes} (int chan, bool native=false) const}
+Returns the number of bytes needed for the single specified
+channel.  If native is {\cf false} (default), compute the size of one
+channel of {\cf this->format}, but if native is {\cf true}, compute the size
+of the channel in terms of the ``native'' data format of that
+channel as stored in the file.
+\apiend
+
 \apiitem{size_t {\ce pixel_bytes} (bool native=false) const}
 Returns the number of bytes comprising each pixel (i.e. the number of
 channels multiplied by the channel size).
 
 If {\cf native} is true, this will be the sum of all the per-channel
 formats in {\cf channelformats}.  If {\cf native} is false (the
+default), or if all channels use the same format, this will simply be
+the number of channels multiplied by the width (in bytes) of the {\cf format}.
+\apiend
+
+\apiitem{size_t {\ce pixel_bytes} (int firstchan, int nchans, bool native=false) const}
+Returns the number of bytes comprising the range of channels 
+  $[${\cf firstchan}, {\cf firstchan+nchans}$)$ for each pixel.
+
+If {\cf native} is true, this will be the sum of the per-channel
+formats in {\cf channelformats} (for the given range of channels).  
+If {\cf native} is false (the
 default), or if all channels use the same format, this will simply be
 the number of channels multiplied by the width (in bytes) of the {\cf format}.
 \apiend
@@ -446,6 +465,113 @@ format the value nicely as a string.  If {\cf human} is true, use
 especially human-readable explanations (units, or decoding of
 values) for certain known metadata.
 \apiend
+
+
+
+\subsection{Miscellaneous Utilities}
+
+These helper functions are not part of any other \OpenImageIO class,
+they just exist in the {\cf OpenImageIO} namespace as general utilities.
+
+\apiitem{int {\ce openimageio_version} ()}
+\index{version}
+\indexapi{openimageio_version}
+Returns a numeric value for the version of \product, 10000 for each
+major version, 100 for each minor version, 1 for each patch.  For
+example, \product 1.2.3 would return a value of 10203.
+\apiend
+
+\apiitem{std::string {\ce geterror} ()}
+\index{error checking}
+\indexapi{geterror}
+Returns any error string describing what went wrong if 
+{\cf ImageInput::create()} or {\cf ImageOutput::create()} failed
+(since in such cases, the \ImageInput or \ImageOutput itself does 
+not exist to have its own {\cf geterror()} function called).
+\apiend
+
+
+\apiitem{bool {\ce attribute} (const std::string \&name, TypeDesc type,
+  const void *val)}
+\indexapi{attribute}
+
+Sets an global attribute (i.e., a property or option) of \product.
+The {\cf name} designates the name of the attribute, {\cf type}
+describes the type of data, and {\cf val} is a pointer to memory 
+containing the new value for the attribute.
+
+If the name is known, valid attribute that matches the type specified,
+the attribute will be set to the new value and {\cf attribute()} will
+return {\cf true}.  If {\cf name} is not recognized, or if the types do
+not match (e.g., {\cf type} is {\cf TypeDesc::TypeFloat} but the named
+attribute is a string), the attribute will not be modified, and {\cf
+  attribute()} will return {\cf false}.
+
+\noindent The following are the recognized attributes:
+
+\apiitem{int threads}
+\vspace{10pt}
+\index{threads}
+Some \product operations can be accelerated if allowed to spawn multiple
+threads to parallelize the task.  (Examples: decompressing multiple
+simultaneously-read OpenEXR scanlines, or many \ImageBuf operations.)
+This attribute sets the maximum number of threads that will be spawned.
+The default is 1.  If set to 0, it means that it should use as many
+threads as there are hardware cores present on the system.
+\apiend
+
+\apiend
+
+\apiitem{bool {\ce attribute} (const std::string \&name, int val) \\
+bool {\ce attribute} (const std::string \&name, float val) \\
+bool {\ce attribute} (const std::string \&name, const char *val) \\
+bool {\ce attribute} (const std::string \&name, const std::string \& val)}
+Specialized versions of {\cf attribute()} in which the data type is
+implied by the type of the argument.
+\apiend
+
+
+
+\apiitem{bool {\ce getattribute} (const std::string \&name, TypeDesc type,
+  void *val)}
+\indexapi{getattribute}
+
+Gets the current value of a global attribute.  The {\cf name} designates
+the name of the attribute, {\cf type} describes the type of data, and
+{\cf val} is a pointer to memory where the user would like the value
+placed.
+
+If the attribute name is valid and matches the type specified, the
+attribute value will be stored at address {\cf val} and {\cf
+  attribute()} will return {\cf true}.  If {\cf name} is not recognized
+as a valid attribute name, or if the types do not match (e.g., {\cf
+  type} is {\cf TypeDesc::TypeFloat} but the named attribute is a
+string), no data will be written to {\cf val}, and {\cf attribute()}
+will return {\cf false}.
+
+The complete list of attributes can be found above, in the description
+of the {\cf attribute()} function.
+\apiend
+
+\apiitem{bool {\ce getattribute} (const std::string \&name, int \&val) \\
+bool {\ce getattribute} (const std::string \&name, float \&val) \\
+bool {\ce getattribute} (const std::string \&name, char **val) \\
+bool {\ce getattribute} (const std::string \&name, std::string \& val)}
+Specialized versions of {\cf getattribute()} in which the data type is
+implied by the type of the argument.
+
+For example, the following are equivalent to the example above for the
+general (pointer) form of {\cf getattribute()}:
+
+\begin{code}
+      int maxfiles;
+      ts->getattribute ("max_open_files", &maxfiles);
+      const char *path;
+      ts->getattribute ("searchpath", &path);
+\end{code}
+
+\apiend
+
 
 
 \index{Image I/O API|)}

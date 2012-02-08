@@ -84,7 +84,9 @@ public:
     ///     int max_open_files : maximum number of file handles held open
     ///     float max_memory_MB : maximum tile cache size, in MB
     ///     string searchpath : colon-separated search path for images
+    ///     string plugin_searchpath : colon-separated search path for plugins
     ///     int autotile : if >0, tile size to emulate for non-tiled images
+    ///     int autoscanline : autotile using full width tiles
     ///     int automip : if nonzero, emulate mipmap on the fly
     ///     int accept_untiled : if nonzero, accept untiled images, but
     ///                          if zero, reject untiled images (default=1)
@@ -137,7 +139,8 @@ public:
     /// return true.  Return false if the file was not found or could
     /// not be opened as an image file by any available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
-                                int subimage=0, int miplevel=0) = 0;
+                                int subimage=0, int miplevel=0,
+                                bool native=false) = 0;
 
     /// Return a pointer to an ImageSpec associated with the named image
     /// (the first subimage & miplevel by default, or as set by
@@ -151,7 +154,7 @@ public:
     /// as long as nobody (even other threads) calls invalidate() on the
     /// file, or invalidate_all(), or destroys the ImageCache.
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
-                                        int miplevel=0) = 0;
+                                        int miplevel=0, bool native=false) = 0;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
     /// [ybegin..yend) X [zbegin..zend), with "exclusive end" a la STL,
@@ -204,6 +207,13 @@ public:
     /// Return the statistics output as a huge string.
     ///
     virtual std::string getstats (int level=1) const = 0;
+
+    /// Reset most statistics to be as they were with a fresh
+    /// ImageCache.  Caveat emptor: this does not flush the cache itelf,
+    /// so the resulting statistics from the next set of texture
+    /// requests will not match the number of tile reads, etc., that
+    /// would have resulted from a new ImageCache.
+    virtual void reset_stats () = 0;
 
     /// Invalidate any loaded tiles or open file handles associated with
     /// the filename, so that any subsequent queries will be forced to

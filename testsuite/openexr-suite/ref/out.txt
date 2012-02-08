@@ -118,7 +118,7 @@ Subimage 0: 928 x 906, 4 channel
   0 pixels (0%) over 1e-06
 PASS
 ../../../openexr-images-1.5.0/ScanLines/Blobbies.exr : 1040 x 1040, 5 channel, half/half/half/half/float openexr
-    SHA-1: EB3666BD3C1916A78974CE862F1BE06B600BEE56
+    SHA-1: 64C3C765E0D40AA92E066F6EC9198A8053BF1179
     channel list: R (half), G (half), B (half), A (half), Z (float)
     pixel data origin: x=-20, y=-20
     full/display size: 1000 x 1000

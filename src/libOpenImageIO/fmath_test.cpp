@@ -64,6 +64,16 @@ void test_convert_type ()
 
 
 
+void test_bit_range_convert ()
+{
+    OIIO_CHECK_EQUAL ((bit_range_convert<10,16>(1023)), 65535);
+    OIIO_CHECK_EQUAL ((bit_range_convert<2,8>(3)), 255);
+    OIIO_CHECK_EQUAL ((bit_range_convert<8,8>(255)), 255);
+    OIIO_CHECK_EQUAL ((bit_range_convert<16,10>(65535)), 1023);
+}
+
+
+
 int main (int argc, char *argv[])
 {
     std::cout << "round trip convert char/float/char\n";
@@ -76,6 +86,8 @@ int main (int argc, char *argv[])
     test_convert_type<short,float> ();
     std::cout << "round trip convert unsigned short/float/unsigned short\n";
     test_convert_type<unsigned short,float> ();
+
+    test_bit_range_convert();
 
     return unit_test_failures != 0;
 }

@@ -109,7 +109,7 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
 
 
 
-ImageRec::ImageRec (const std::string &name, ImageSpec &spec,
+ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
                     ImageCache *imagecache)
     : m_name(name), m_elaborated(true),
       m_metadata_modified(false), m_pixels_modified(true),
@@ -157,6 +157,13 @@ ImageRec::read ()
             ASSERT (ok);
             m_subimages[s].m_miplevels[m].reset (ib);
             m_subimages[s].m_specs[m] = ib->spec();
+            // For ImageRec purposes, we need to restore a few of the
+            // native settings.
+            const ImageSpec &nativespec (ib->nativespec());
+            // m_subimages[s].m_specs[m].format = nativespec.format;
+            m_subimages[s].m_specs[m].tile_width  = nativespec.tile_width;
+            m_subimages[s].m_specs[m].tile_height = nativespec.tile_height;
+            m_subimages[s].m_specs[m].tile_depth  = nativespec.tile_depth;
         }
     }
 

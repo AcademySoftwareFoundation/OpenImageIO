@@ -26,6 +26,10 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   (This is the Modified BSD License)
+
+  A few bits here are based upon code from NVIDIA that was also released
+  under the same modified BSD license, and marked as:
+     Copyright 2004 NVIDIA Corporation. All Rights Reserved.
 */
 
 
@@ -485,6 +489,20 @@ inline unsigned int bit_range_convert(unsigned int in) {
 
 
 
+// non-templated version.  Slow but general
+inline unsigned int
+bit_range_convert(unsigned int in, unsigned int FROM_BITS, unsigned int TO_BITS)
+{
+    unsigned int out = 0;
+    int shift = TO_BITS - FROM_BITS;
+    for (; shift > 0; shift -= FROM_BITS)
+        out |= in << shift;
+    out |= in >> -shift;
+    return out;
+}
+
+
+
 /// A DataProxy<I,E> looks like an (E &), but it really holds an (I &)
 /// and does conversions (via convert_type) as it reads in and out.
 /// (I and E are for INTERNAL and EXTERNAL data types, respectively).
@@ -494,6 +512,7 @@ struct DataProxy {
     E operator= (E newval) { m_data = convert_type<E,I>(newval); return newval; }
     operator E () const { return convert_type<I,E>(m_data); }
 private:
+    DataProxy& operator = (const DataProxy&); // Do not implement
     I &m_data;
 };
 
@@ -549,6 +568,18 @@ private:
     const I *m_data;
 };
 
+
+
+
+/// Linearly interpolate values v0-v1 at x: v0*(1-x) + v1*x.
+/// This is a template, and so should work for any types.
+template <class T, class Q>
+inline T
+lerp (T v0, T v1, Q x)
+{
+    // NOTE: a*(1-x) + b*x is much more numerically stable than a+x*(b-a)
+    return v0*(Q(1)-x) + v1*x;
+}
 
 
 
@@ -837,12 +868,12 @@ roundf (float val) {
 
 template<class T>
 inline int isinf (T x) {
-    return (isfinite(x)||isnan(x)) ? 0 : copysign(1.0f, x);
+    return (isfinite(x)||isnan(x)) ? 0 : static_cast<int>(copysign(1.0f, x));
 }
 
 inline float
 log2f (float val) {
-    return logf (val)/M_LN2;
+    return logf (val)/static_cast<float>(M_LN2);
 }
 
 
@@ -1007,8 +1038,8 @@ sincos(double x, double* sine, double* cosine)
 inline float
 safe_asinf (float x)
 {
-    if (x >=  1.0f) return  M_PI/2;
-    if (x <= -1.0f) return -M_PI/2;
+    if (x >=  1.0f) return  static_cast<float>(M_PI)/2;
+    if (x <= -1.0f) return -static_cast<float>(M_PI)/2;
     return std::asin (x);
 }
 
@@ -1018,9 +1049,69 @@ safe_asinf (float x)
 inline float
 safe_acosf (float x) {
     if (x >=  1.0f) return 0.0f;
-    if (x <= -1.0f) return M_PI;
+    if (x <= -1.0f) return static_cast<float>(M_PI);
     return std::acos (x);
 }
+
+
+
+
+/// Solve for the x for which func(x) == y on the interval [xmin,xmax].
+/// Use a maximum of maxiter iterations, and stop any time the remaining
+/// search interval or the function evaluations <= eps.  If brack is
+/// non-NULL, set it to true if y is in [f(xmin), f(xmax)], otherwise
+/// false (in which case the caller should know that the results may be
+/// unreliable.  Results are undefined if the function is not monotonic
+/// on that interval or if there are multiple roots in the interval (it
+/// may not converge, or may converge to any of the roots without
+/// telling you that there are more than one).
+template<class T, class Func>
+T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
+          int maxiters=32, T eps=1.0e-6, bool *brack=0)
+{
+    // Use the Regula Falsi method, falling back to bisection if it
+    // hasn't converged after 3/4 of the maximum number of iterations.
+    // See, e.g., Numerical Recipes for the basic ideas behind both
+    // methods.
+    T v0 = func(xmin), v1 = func(xmax);
+    T x = xmin, v = v0;
+    bool increasing = (v0 < v1);
+    T vmin = increasing ? v0 : v1;
+    T vmax = increasing ? v1 : v0;
+    bool bracketed = (y >= vmin && y <= vmax);
+    if (brack)
+        *brack = bracketed;
+    if (! bracketed) {
+        // If our bounds don't bracket the zero, just give up, and
+        // return the approprate "edge" of the interval
+        return ((y < vmin) == increasing) ? xmin : xmax;
+    }
+    if (fabs(v0-v1) < eps)   // already close enough
+        return x;
+    int rfiters = (3*maxiters)/4;   // how many times to try regula falsi
+    for (int iters = 0;  iters < maxiters;  ++iters) {
+        T t;  // interpolation factor
+        if (iters < rfiters) {
+            // Regula falsi
+            t = (y-v0)/(v1-v0);
+            if (t <= T(0) || t >= T(1))
+                t = T(0.5);  // RF convergence failure -- bisect instead
+        } else {
+            t = T(0.5);            // bisection
+        }
+        x = lerp (xmin, xmax, t);
+        v = func(x);
+        if ((v < y) == increasing) {
+            xmin = x; v0 = v;
+        } else {
+            xmax = x; v1 = v;
+        }
+        if (fabs(xmax-xmin) < eps || fabs(v-y) < eps)
+            return x;   // converged
+    }
+    return x;
+}
+
 
 
 }

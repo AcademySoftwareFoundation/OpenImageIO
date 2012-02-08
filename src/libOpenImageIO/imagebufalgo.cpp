@@ -157,108 +157,99 @@ ImageBufAlgo::fill (ImageBuf &dst,
 
 
 
+namespace {
+
+template<class T>
+bool crop_ (ImageBuf &dst, const ImageBuf &src,
+            int xbegin, int xend, int ybegin, int yend,
+            const float *bordercolor)
+{
+    int nchans = dst.nchannels();
+    T *border = ALLOCA (T, nchans);
+    const ImageIOParameter *p = src.spec().find_attribute ("oiio:bordercolor");
+    if (p && p->type().basetype == TypeDesc::FLOAT &&
+        (int)p->type().numelements() >= nchans) {
+        for (int c = 0;  c < nchans;  ++c)
+            border[c] = convert_type<float,T>(((float *)p->data())[0]);
+    } else {
+        for (int c = 0;  c < nchans;  ++c)
+            border[c] = T(0);
+    }
+
+    ImageBuf::Iterator<T,T> d (dst, xbegin, xend, ybegin, yend);
+    ImageBuf::ConstIterator<T,T> s (src);
+    for ( ;  ! d.done();  ++d) {
+        s.pos (d.x(), d.y());
+        if (s.valid()) {
+            for (int c = 0;  c < nchans;  ++c)
+                d[c] = s[c];
+        } else {
+            for (int c = 0;  c < nchans;  ++c)
+                d[c] = border[c];
+        }
+    }
+    return true;
+}
+
+};  // anon namespace
+
+
 
 bool 
 ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
-                    int xbegin, int xend, int ybegin, int yend, int options) 
+                    int xbegin, int xend, int ybegin, int yend,
+                    const float *bordercolor)
 {
-    const ImageSpec &src_spec (src.spec());
-    
-    //check input
-    if (xbegin >= xend){
-        std::cerr << "crop ERROR: xbegin should be smaller than xend \n" ;
-        return false;
-    }
-    if (ybegin >= yend){
-        std::cerr << "crop ERROR: ybegin should be smaller than yend \n" ;
-        return false;
-    }
-    if (xbegin < 0 || xend > src_spec.full_width) {
-        std::cerr << "crop ERROR: x values are out of image bounds \n" ;
-        return false;
-    }
-    if (options == CROP_TRANS && src_spec.alpha_channel == -1) {
-        std::cerr << "crop ERROR: no alpha channel present \n";
-        return false;
-    }		
-    //manipulate the images
-    
-    ImageSpec dst_spec = src_spec;		
-    switch (options) {
-    case CROP_WINDOW:
-        //mark the window
-        dst_spec.x = xbegin;
-	dst_spec.y = ybegin;
-	dst_spec.width = xend-xbegin;
-	dst_spec.height = yend-ybegin;
-	break;	
-    case CROP_BLACK:
-    case CROP_WHITE:
-    case CROP_TRANS:
-	//do nothing, all meta data remains the same
-	break;
-    case CROP_CUT:
-	dst_spec.x = 0;
-	dst_spec.y = 0;
-	dst_spec.width = xend-xbegin;
-	dst_spec.height = yend-ybegin;
-	dst_spec.full_width = dst_spec.width;
-	dst_spec.full_height = dst_spec.height;
-	break;
-    }
+    ImageSpec dst_spec = src.spec();
+    dst_spec.x = xbegin;
+    dst_spec.y = ybegin;
+    dst_spec.width = xend-xbegin;
+    dst_spec.height = yend-ybegin;
     
     // create new ImageBuffer
     if (!dst.pixels_valid())
         dst.alloc (dst_spec);
-    //copy the outer pixel  
-    float *pixel = (float *) alloca (src.nchannels()*sizeof(float)); 
-    if (options != CROP_WINDOW) {
-        switch(options) {
-        case CROP_BLACK:
-            for (int k=0; k<src.nchannels(); k++)
-                if (k != src_spec.alpha_channel)
-                    pixel[k] = 0;
-                else
-                    pixel[k] = 1;
-            break;
-        case CROP_WHITE:
-            for (int k=0; k<src.nchannels(); k++)
-                pixel[k]=1;
-            break;
-        case CROP_TRANS:
-            for (int k=0; k<src.nchannels(); k++)
-                pixel[k]=0;
-	    break;
-        }
-        fill (dst, pixel);
+
+    // do the actual copying
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT :
+        return crop_<float> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::UINT8 :
+        return crop_<unsigned char> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::INT8  :
+        return crop_<char> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::UINT16:
+        return crop_<unsigned short> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::INT16 :
+        return crop_<short> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::UINT  :
+        return crop_<unsigned int> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::INT   :
+        return crop_<int> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::UINT64:
+        return crop_<unsigned long long> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::INT64 :
+        return crop_<long long> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::HALF  :
+        return crop_<half> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    case TypeDesc::DOUBLE:
+        return crop_<double> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
+        break;
+    default:
+        return false;
     }
-    //copy the cropping area pixel
-    switch(options)
-    {
-    case CROP_WINDOW:
-    case CROP_BLACK:
-    case CROP_WHITE:
-    case CROP_TRANS:
-	//all the data is copied
-	for (int j=ybegin; j<yend; j++)
-            for (int i=xbegin; i<xend; i++) {
-                src.getpixel (i, j, pixel);
-                dst.setpixel (i, j, pixel);
-	    }
-	break;
-    case CROP_CUT:
-	for (int j=ybegin; j<yend; j++)
-            for (int i=xbegin; i<xend; i++) {
-                src.getpixel (i, j, pixel);
-                dst.setpixel (i-xbegin, j-ybegin, pixel);
-	    }
-	break;
-    }
-    return true;
 }
-    
-    
-    
+
 
 
 
@@ -390,27 +381,6 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     
     return true;
 }
-
-
-
-bool
-ImageBufAlgo::colortransfer (ImageBuf &output, const ImageBuf &input,
-                             ColorTransfer *tfunc)
-{
-    // copy input ImageBuf to output ImageBuf if they aren't the same.
-    if (&output != &input)
-        output = input;
-
-    // exit if the transfer function is NULL
-    if (tfunc == NULL)
-        return true;
-
-    // run the transfer function over the output ImageBuf
-    output.transfer_pixels (tfunc);
-    
-    return true;
-}
-
 
 
 bool
@@ -613,32 +583,25 @@ isConstantColor_ (const ImageBuf &src, float *color)
     if (nchannels == 0)
         return true;
     
-    bool firstpixel = true;
-    int c = 0;
-    
     // Iterate using the native typing (for speed).
     ImageBuf::ConstIterator<T,T> s (src);
-    std::vector<T> constval (src.spec().nchannels);
-    
+    if (! s.valid())
+        return true;
+
+    // Store the first pixel
+    std::vector<T> constval (nchannels);
+    for (int c = 0;  c < nchannels;  ++c)
+        constval[c] = s[c];
+
     // Loop over all pixels ...
     for ( ; s.valid ();  ++s) {
-        if(firstpixel) {
-            for (c = 0;  c < nchannels;  ++c) {
-                constval[c] = s[c];
-            }
-            if(color) {
-                src.getpixel (s.x(), s.y(), s.z(), color);
-            }
-            firstpixel = false;
-        } else {
-            for (c = 0;  c < nchannels;  ++c) {
-                if(constval[c]!=s[c]) {
-                    return false;
-                }
-            }
-        }
+        for (int c = 0;  c < nchannels;  ++c)
+            if (constval[c] != s[c])
+                return false;
     }
     
+    if (color)
+        src.getpixel (src.xbegin(), src.ybegin(), src.zbegin(), color);
     return true;
 }
 
@@ -664,6 +627,43 @@ ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
     }
 };
 
+
+
+template<typename T>
+static inline bool
+isConstantChannel_ (const ImageBuf &src, int channel, float val)
+{
+    if (channel < 0 || channel >= src.nchannels())
+        return false;  // that channel doesn't exist in the image
+
+    T v = convert_type<float,T> (val);
+    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s)
+        if (s[channel] != v)
+            return false;
+    return true;
+}
+
+
+bool
+ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val)
+{
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT : return isConstantChannel_<float> (src, channel, val); break;
+    case TypeDesc::UINT8 : return isConstantChannel_<unsigned char> (src, channel, val); break;
+    case TypeDesc::INT8  : return isConstantChannel_<char> (src, channel, val); break;
+    case TypeDesc::UINT16: return isConstantChannel_<unsigned short> (src, channel, val); break;
+    case TypeDesc::INT16 : return isConstantChannel_<short> (src, channel, val); break;
+    case TypeDesc::UINT  : return isConstantChannel_<unsigned int> (src, channel, val); break;
+    case TypeDesc::INT   : return isConstantChannel_<int> (src, channel, val); break;
+    case TypeDesc::UINT64: return isConstantChannel_<unsigned long long> (src, channel, val); break;
+    case TypeDesc::INT64 : return isConstantChannel_<long long> (src, channel, val); break;
+    case TypeDesc::HALF  : return isConstantChannel_<half> (src, channel, val); break;
+    case TypeDesc::DOUBLE: return isConstantChannel_<double> (src, channel, val); break;
+    default:
+        return false;
+    }
+};
+
 namespace
 {
 
@@ -674,15 +674,11 @@ isMonochrome_ (const ImageBuf &src)
     int nchannels = src.nchannels();
     if (nchannels < 2) return true;
     
-    int c = 0;
-    T constvalue;
-    ImageBuf::ConstIterator<T,T> s (src);
-    
     // Loop over all pixels ...
-    for ( ; s.valid();  ++s) {
-        constvalue = s[0];
-        for (c = 1;  c < nchannels;  ++c) {
-            if(s[c] != constvalue) {
+    for (ImageBuf::ConstIterator<T,T> s(src);  s.valid();  ++s) {
+        T constvalue = s[0];
+        for (int c = 1;  c < nchannels;  ++c) {
+            if (s[c] != constvalue) {
                 return false;
             }
         }

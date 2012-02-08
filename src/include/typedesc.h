@@ -36,6 +36,13 @@
 #ifndef OPENIMAGEIO_TYPEDESC_H
 #define OPENIMAGEIO_TYPEDESC_H
 
+#if defined(_MSC_VER)
+// Ignore warnings about conditional expressions that always evaluate true
+// on a given platform but may evaluate differently on another. There's
+// nothing wrong with such conditionals.
+#  pragma warning (disable : 4127)
+#endif
+
 #ifndef NULL
 #define NULL 0
 #endif
@@ -94,21 +101,26 @@ struct DLLPUBLIC TypeDesc {
     /// transformation rules.
     TypeDesc (BASETYPE btype=UNKNOWN, AGGREGATE agg=SCALAR,
               VECSEMANTICS xform=NOXFORM)
-        : basetype(btype), aggregate(agg), vecsemantics(xform), reserved(0),
+        : basetype(static_cast<unsigned char>(btype)),
+          aggregate(static_cast<unsigned char>(agg)),
+          vecsemantics(static_cast<unsigned char>(xform)), reserved(0),
           arraylen(0)
           { }
 
     /// Construct an array of a non-aggregate BASETYPE.
     ///
     TypeDesc (BASETYPE btype, int arraylength)
-        : basetype(btype), aggregate(SCALAR), vecsemantics(NOXFORM),
+        : basetype(static_cast<unsigned char>(btype)),
+          aggregate(SCALAR), vecsemantics(NOXFORM),
           reserved(0), arraylen(arraylength)
           { }
 
     /// Construct an array from BASETYPE, AGGREGATE, and array length,
     /// with unspecified (or moot) vector transformation semantics.
     TypeDesc (BASETYPE btype, AGGREGATE agg, int arraylength)
-        : basetype(btype), aggregate(agg), vecsemantics(NOXFORM), reserved(0),
+        : basetype(static_cast<unsigned char>(btype)),
+          aggregate(static_cast<unsigned char>(agg)),
+          vecsemantics(NOXFORM), reserved(0),
           arraylen(arraylength)
           { }
 
@@ -116,8 +128,10 @@ struct DLLPUBLIC TypeDesc {
     /// array length.
     TypeDesc (BASETYPE btype, AGGREGATE agg,
               VECSEMANTICS xform, int arraylength)
-        : basetype(btype), aggregate(agg), vecsemantics(xform), reserved(0),
-          arraylen(arraylength)
+        : basetype(static_cast<unsigned char>(btype)),
+          aggregate(static_cast<unsigned char>(agg)),
+          vecsemantics(static_cast<unsigned char>(xform)),
+          reserved(0), arraylen(arraylength)
           { }
 
     /// Construct from a string (e.g., "float[3]").  If no valid

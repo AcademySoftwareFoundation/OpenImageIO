@@ -30,6 +30,21 @@
 */
 
 
+// Filter results comparison
+//     pow2 downres (4K -> 128 tested)
+//     - katana 2.7.12
+//     - ImageMagick 6.3.6
+//     - prman 16.0 txmake
+//
+// box: oiio, prman, katana, imagemagick match
+// lanczos3: oiio, katana, imagemagick match.  prman is far sharper (perhaps lanczos2?)
+// sinc: oiio, prman match.  Katana is slighly softer. imagemagick is much softer
+// blackman harris:  all differ. In order of decreasing sharpness... imagemagick, oiio, prman
+// catrom: oiio, imagemagick, prman match
+// gaussian: prman, katana match (gaussian3).  imgmagick, oiio are sharper (gaussian2)
+
+
+
 #include <cmath>
 #include <cstring>
 #include <string>
@@ -245,8 +260,8 @@ public:
              * FilterBlackmanHarris1D::bh1d (y*m_hrad_inv);
     }
     bool separable (void) const { return true; }
-    float xfilt (float x) const { return FilterBlackmanHarris1D::bh1d(x); }
-    float yfilt (float y) const { return FilterBlackmanHarris1D::bh1d(y); }
+    float xfilt (float x) const { return FilterBlackmanHarris1D::bh1d(x*m_wrad_inv); }
+    float yfilt (float y) const { return FilterBlackmanHarris1D::bh1d(y*m_hrad_inv); }
     const std::string name (void) const { return "blackman-harris"; }
 private:
     float m_wrad_inv, m_hrad_inv;
@@ -278,7 +293,7 @@ class FilterSinc2D : public Filter2D {
 public:
     FilterSinc2D (float width, float height)
         : Filter2D(width,height),
-          m_wrad(2.0f/width), m_hrad(2.0f/height) { }
+          m_wrad(width/2.0f), m_hrad(height/2.0f) { }
     ~FilterSinc2D (void) { }
     float operator() (float x, float y) const {
         return FilterSinc1D::sinc1d(x,m_wrad) * FilterSinc1D::sinc1d(y,m_hrad);
@@ -483,7 +498,7 @@ FilterDesc filter1d_list[] = {
     { "gaussian",        1,   2,    false,    true,     true },
     { "catrom",          1,   4,    false,    false,    true },
     { "blackman-harris", 1,   3,    false,    true,     true },
-    { "sinc",            1,   6,    false,    false,    true },
+    { "sinc",            1,   4,    false,    true,     true },
     { "lanczos3",        1,   6,    false,    false,    true },
     { "mitchell",        1,   3,    false,    true,     true },
     { "bspline",         1,   4,    false,    true,     true }
@@ -550,7 +565,7 @@ static FilterDesc filter2d_list[] = {
     { "gaussian",        2,   2,    false,    true,     true  },
     { "catrom",          2,   4,    true,     false,    true  },
     { "blackman-harris", 2,   3,    false,    true,     true  },
-    { "sinc",            2,   6,    false,    false,    true  },
+    { "sinc",            2,   4,    false,    true,     true  },
     { "lanczos3",        2,   6,    true,     false,    true  },
     { "radial-lanczos3", 2,   6,    true,     false,    false },
     { "mitchell",        2,   3,    false,    true,     true  },
@@ -577,6 +592,7 @@ Filter2D::get_filterdesc (int filternum, FilterDesc *filterdesc)
 // width, and height, returns an allocated and instantiated filter of
 // the correct implementation.  If the name is not recognized, return
 // NULL.
+
 Filter2D *
 Filter2D::create (const std::string &filtername, float width, float height)
 {

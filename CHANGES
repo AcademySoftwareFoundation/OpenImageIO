@@ -1,6 +1,122 @@
 Changes:
 
 
+Release 0.11 (development in progress)
+--------------------------------------
+
+Major new features and improvements:
+ * New ImageInput methods that can read a subset of channels from an image.
+ * WebP format reader/writer.
+ * Cineon support is re-enabled after various bug fixes.
+ * PSD (Adobe Photoshop) format reader.
+ * RLA (Wavefront) format reader/writer.
+ * New utility: oiiotool.  This is still a work in progress, but largely
+   subsumes the functionality of iprocess, iinfo, iconvert, idiff.
+
+API changes:
+ * Add API methods to ImageInput/ImageOutput that allow read/write of multiple
+   scanlines or tiles at a time.
+ * New ImageInput methods that can read a subset of channels from an image.
+ * Change the last couple functions that took min/max pixel range
+   specifications to conform to our usual [begin,end) convention --
+   write_rectangle and to_native_rectangle.
+ * exif_encode, exif_decode now available as general utilities (previously
+   were private to the JPEG plugin).
+ * ImageOutput::supports("displaywindow") lets you query whether the output
+   file format is able to handle differing display ("full") and pixel data
+   windows.
+ * TextureSystem and ImageCache now accept attribute "options", that is a
+   comma-separated list of name=value setings (e.g.
+   "max_memory_MB=256,max_files=1000").  Also, upon startup, the environment
+   variables OPENIMAGEIO_TEXTURE_OPTIONS and OPENIMAGEIO_IMAGECACHE_OPTIONS
+   are parsed for these startup values.
+
+Fixes, minor enhancements, and performance improvements:
+ * ImageBufAlgo new algorithms: compare, compare_Yee, isConstantChannel.
+ * TextureOpt: add ustring-aware versions of the decode_wrapmode utility.
+ * TypeDesc: allow stream << output.
+ * iv: raised maximum ImageCache size from 2 GB to 8 GB.
+ * PNM: fix but where file exceptions could go uncaught.
+ * Properly create coefficients for Kodak color transform.
+ * iprocess: Fix bug calling read.
+ * maketx: new option --opaque-detect omits alpha from texture whose input
+   images had alpha=1 everywhere.
+ * Fixed bugs in sinc and Blackman-Harris filters.
+ * ImageCache/TextureSystem -- new reset_stats() method resets all the
+   statistics back to zero.
+
+Developer goodies:
+ * ArgParse enhancements: make %! indicate a bool that's set to false if
+   the option is found, %@ indicates an immediate callback, allow
+   callbacks for bool options, option matching ignores characters after
+   ':' in the option, wrap lines at word breaks when printing usage help.
+ * Generate man pages for the command-line tools.
+ * Strutil additions: escape_chars, unescape_chars.
+ * Use github.com/OpenImageIO/oiio-images project for test images that are
+   too big to fit in testsuite.
+ * Fixed bugs in Timer::lap().
+ * Aded 'invert' algorithm to fmath.h.
+ * Clarify Timer docs and fix Apple-specific bug.
+ * New Filesystem utilities: filename(), extension().
+
+
+Release 0.10.4 (November 20, 2011)
+----------------------------------
+* Important texture bug fix: Improve robustness of texture lookups with
+  very small derivatives.  The previous bug/misunderstanding had the
+  result of some filter footprints with very small (but valid)
+  derivatives inappropriately using the highest-resolution MIPmap level
+  and maximum anisotropy, resulting in terrible performance, alising,
+  and in some cases visible seams on the boundary between where this
+  happened and where it didn't.  Be aware that the fixed code will make
+  some areas of texture look less sharp, but that's only because it was
+  aliasing before and using a totally incorrect MIPmap level.
+
+
+Release 0.10.3 (November 5, 2011)
+---------------------------------
+* New ImageCache/TextureSystem option: "autoscanline", which, when 
+  autotile is turned on, causes the virtual tiles to be the full width
+  of the image scanlines, rather than square.  This improves performance
+  for some apps.
+* Bug fix: PNG files with both associated alpha and gamma correction lost
+  precision when converting.
+* Bug fix: ICO and Targa did not properly force requested (but
+  unsupported) UINT16 output to be UINT8.
+* maketx (and Filter classes): fixes to sinc, blackman-harris filters.
+* Minor Python binding bug fixes.
+* Allow stream << of TypeDesc.
+* Fix minor Timer::lap() bug.
+
+
+Release 0.10.2 (August 6, 2011)
+-------------------------------
+* Improve the performance of ustring constructor when highly multithread.
+* Remove old out-of-date Doxygen html pages.
+
+
+Release 0.10.1 (August 2, 2011)
+-------------------------------
+* Fix TextureSystem::get_texture_info(file,"exists") (and the equivalent for
+  ImageCache), it was previously incorrectly giving an error if the file 
+  didn't exist.
+* Fixed an error where we were losing the error message if ImageInput::create
+  failed.
+* maketx: --hash is deprecated, the SHA-1 hash is always computed; the
+  hash takes into account upstream image changes, such as resizing; the
+  --filter command line argument only takes the filter name, the width
+  is now automatically computed.
+* Add static methods to Filter classes allowing queries about the names
+  and vital info about all available filters.
+* New Filesystem::is_regular() wraps the boost is_regular and catches
+  exceptions.
+* iv: raise the maximum ImageCache settable in the UI from 2GB to 8GB.
+* Bug fixes with per-channel data formats.
+* Add Strutil::escape_chars() and unescape_chars() utility functions.
+* TextureOpt: add ustring-aware versions of the decode_wrapmode() utility.
+
+
+
 Release 0.10 (June 9 2010)
 --------------------------
 
@@ -51,7 +167,6 @@ Fixes, minor enhancements, and performance improvements:
   resize properly if any of the dimensions change (previously only did
   if ALL dimensions changed) (0.9.3); --nchannels lets you set the number 
   of output channels.
-
 * Added ImageBufAlgo::transform to allow for 'flip' & 'flop' in iprocess.
   (0.9.1)
 * DPX: fix file reading when number of channels not equal to 3 (0.9.3);

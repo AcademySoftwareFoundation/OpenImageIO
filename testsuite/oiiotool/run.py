@@ -30,6 +30,7 @@ outputs = [ "resize.tif" ]
 # Files that need to be cleaned up, IN ADDITION to outputs
 cleanfiles = [ "out.txt" ]
 
+print "Running this command:\n" + command + "\n"
 
 # boilerplate
 ret = runtest.runtest (command, outputs, cleanfiles)

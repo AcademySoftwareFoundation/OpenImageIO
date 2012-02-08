@@ -141,6 +141,9 @@ public:
     ImageSpec & spec (int subimage, int miplevel) {
         return levelinfo(subimage,miplevel).spec;
     }
+    const ImageSpec & nativespec (int subimage, int miplevel) const {
+        return levelinfo(subimage,miplevel).nativespec;
+    }
     ustring filename (void) const { return m_filename; }
     ustring fileformat (void) const { return m_fileformat; }
     TexFormat textureformat () const { return m_texformat; }
@@ -187,12 +190,13 @@ public:
     /// precompute.
     struct LevelInfo {
         ImageSpec spec;             ///< ImageSpec for the mip level
+        ImageSpec nativespec;       ///< Native ImageSpec for the mip level
         bool full_pixel_range;      ///< pixel data window matches image window
         bool zero_origin;           ///< pixel data origin is (0,0)
         bool onetile;               ///< Whole level fits on one tile
         mutable bool polecolorcomputed;     ///< Pole color was computed
         mutable std::vector<float> polecolor;///< Pole colors
-        LevelInfo (const ImageSpec &spec);  ///< Initialize based on spec
+        LevelInfo (const ImageSpec &spec, const ImageSpec &nativespec);  ///< Initialize based on spec
     };
 
     /// Info for each subimage
@@ -205,6 +209,7 @@ public:
         SubimageInfo () : untiled(false), unmipped(false) { }
         ImageSpec &spec (int m) { return levels[m].spec; }
         const ImageSpec &spec (int m) const { return levels[m].spec; }
+        const ImageSpec &nativespec (int m) const { return levels[m].nativespec; }
     };
 
     const SubimageInfo &subimageinfo (int subimage) const {
@@ -632,7 +637,9 @@ public:
     // Retrieve options
     int max_open_files () const { return m_max_open_files; }
     const std::string &searchpath () const { return m_searchpath; }
+    const std::string &plugin_searchpath () const { return m_plugin_searchpath; }
     int autotile () const { return m_autotile; }
+    bool autoscanline () const { return m_autoscanline; }
     bool automip () const { return m_automip; }
     bool forcefloat () const { return m_forcefloat; }
     bool accept_untiled () const { return m_accept_untiled; }
@@ -656,10 +663,11 @@ public:
     /// the file was not found or could not be opened as an image file
     /// by any available ImageIO plugin.
     virtual bool get_imagespec (ustring filename, ImageSpec &spec,
-                                int subimage=0, int miplevel=0);
+                                int subimage=0, int miplevel=0,
+                                bool native=false);
 
     virtual const ImageSpec *imagespec (ustring filename, int subimage=0,
-                                        int miplevel=0);
+                                        int miplevel=0, bool native=false);
 
     // Retrieve a rectangle of raw unfiltered pixels.
     virtual bool get_pixels (ustring filename, int subimage, int miplevel,
@@ -749,6 +757,7 @@ public:
 
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1) const;
+    virtual void reset_stats ();
     virtual void invalidate (ustring filename);
     virtual void invalidate_all (bool force=false);
 
@@ -896,9 +905,11 @@ private:
     static mutex m_perthread_info_mutex; ///< Thread safety for perthread
     int m_max_open_files;
     atomic_ll m_max_memory_bytes;
-    std::string m_searchpath;    ///< Colon-separated directory list
+    std::string m_searchpath;    ///< Colon-separated image directory list
     std::vector<std::string> m_searchdirs; ///< Searchpath split into dirs
+    std::string m_plugin_searchpath; ///< Colon-separated plugin directory list
     int m_autotile;              ///< if nonzero, pretend tiles of this size
+    bool m_autoscanline;         ///< autotile using full width tiles
     bool m_automip;              ///< auto-mipmap on demand?
     bool m_forcefloat;           ///< force all cache tiles to be float
     bool m_accept_untiled;       ///< Accept untiled images?

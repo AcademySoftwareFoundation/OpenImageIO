@@ -41,6 +41,12 @@ Verbose status messages, including runtime statistics and timing.
 Sets the name of the output texture.
 \apiend
 
+\apiitem{--threads \emph{n}}
+Use \emph{n} execution threads if it helps to speed up image operations.
+The default (also if $n=0$) is to use as many threads as there are cores
+present in the hardware.
+\apiend
+
 \apiitem{--format {\rm \emph{formatname}}}
 Specifies the image format of the output file (e.g., ``tiff'',
 ``OpenEXR'', etc.).  If {\cf --format} is not used, \maketx will 
@@ -178,6 +184,19 @@ if the ``client'' application will attempt to access those other
 channels that will no longer exist.
 \apiend
 
+\apiitem{--opaque-detect}
+Detects images that have a designated alpha channel for which the alpha value
+for all pixels is 1.0 (fully opaque), and omits the alpha channel from
+the output texture.  So, for example, an RGBA input texture where A=1
+for all pixels will be output just as RGB.  The purpose is to save disk
+space, texture I/O bandwidth, and texturing time for those textures
+where alpha was present in the input, but clearly not necessary.
+
+Use with caution!  This is a great optimization only if your use of such
+textures will assume that missing alpha channels are equivalent to
+textures whose alpha is 1.0 everywhere.
+\apiend
+
 \apiitem{--prman}
 PRMan is will crash in strange ways if given textures that don't have
 its quirky set of tile sizes and other specific metadata.  If you want
@@ -208,6 +227,18 @@ Specifically, this is the equivalent to using \\
  {\cf --separate --tile 64 64 --constant-color-detect --hash}.
 \apiend
 
+
+\apiitem{--mipimage {\rm \emph{filename}}}
+Specifies the name of an image file to use as a custom MIP-map level, 
+instead of simply downsizing the last one.  This option may be used
+multiple times to specify multiple levels.  For example:
+\begin{code}
+    maketx 256.tif --miplevel 128.tif --miplevel 64.tif -o out.tx
+\end{code}
+This will make a texture with the first MIP level taken from {\cf 256.tif},
+the second level from {\cf 128.tif}, the third from {\cf 64.tif}, and
+then subsequent levels will be the usual downsizings of {\cf 64.tif}.
+\apiend
 
 % --shadow --shadcube
 % --volshad --envlatl --envcube --lightprobe --latl2envcube --vertcross

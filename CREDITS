@@ -14,9 +14,9 @@ Major contributors (roughly in order of joining the project):
     Dan Wexler           Windows port
     Chris Kulla          texture system improvements
     Chris Foster         lots of things, best code reviewer!
-    Leszek Godlewski     ICO, Targa, DDS, DPX, Cineon
+    Leszek Godlewski     ICO, Targa, DDS, DPX, Cineon, RLA
     David Gordon         build issues, Python bindings
-    Robert Matusewicz    Windows port, BMP, JPEG-2000, FITS, SGI
+    Robert Matusewicz    Windows port, BMP, JPEG-2000, FITS, SGI, WebP
     Ismael Cortes        iv improvements
     Dinko Galetik        Python bindings
     Malcolm Humphreys    color transfer methods
@@ -25,17 +25,17 @@ Major contributors (roughly in order of joining the project):
     Nuno Cardoso         PNM
     Mikael Sundell       IFF
     Jeremy Selan         Color space issues, maketx improvements
+    Daniel Wyatt         PSD
 
 Other contributors (alphabetically):
 
     Vishal Agrawal
     Jeph Alapat
-    Jeremy Selan
     Basileios Anastasatos
-    Krzysztof Blicharski
     Solomon Boulos
     Duncan Chan
     Irena Damsky
+    Ben De Luca
     Nandan Dubey
     Marcos Fajardo
     Vitor Franchi
@@ -47,7 +47,10 @@ Other contributors (alphabetically):
     Vinod Khare
     Konrad Kleine
     Alexander Kuleshov
+    Hugh Macdonald
     Lukasz Maliszewski
+    Paul Molodowitch
+    Ramon Montoya
     Rui Li
     Ryen
     M Joonas Pihlaja
@@ -57,8 +60,8 @@ Other contributors (alphabetically):
     Edgar Velazquez-Armendariz
     Brecht Van Lommel
     Wormszer
-    Daniel Wyatt
     Xo Wang
+    Nicholas Yue
 
 
 If you know of somebody that I missed, please let me know: 

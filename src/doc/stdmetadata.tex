@@ -68,6 +68,12 @@ If the color space is \qkw{GammaCorrected}, this value is the gamma
 exponent.
 \apiend
 
+\apiitem{"oiio:BorderColor" : float[nchannels]}
+The color presumed to be filling any parts of the display/full image
+window that are not overlapping the pixel data window.  If not supplied,
+the default is black (0 in all channels).
+\apiend
+
 \apiitem{"Orientation" : int}
 \index{Orientation}
 \label{metadata:orientation}

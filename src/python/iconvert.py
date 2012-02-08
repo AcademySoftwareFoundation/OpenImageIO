@@ -5,7 +5,6 @@ def option_parser():
     parser.add_option("-v", action="store_true", dest="verbose", default=False)
     parser.add_option("--inplace", action="store_true", dest="inplace", default=False)
     parser.add_option("-d", dest="data_format_name", default="")
-    parser.add_option("-g", type="float", dest="gammaval", default=1.0)
     parser.add_option("--sRGB", action="store_true", dest="sRGB", default=False)
     parser.add_option("--tile", nargs=3, dest="tile")
     parser.add_option("--scanline", action="store_true", dest="scanline", default=False)
@@ -82,7 +81,7 @@ def convert_files(in_file, out_file):
     # adjust spec
     outspec = inspec
     nocopy = adjust_spec(inp, inspec, outspec)
-    out.open(tempname, outspec, False)    
+    out.open(tempname, outspec, oiio.ImageOutputOpenMode.Create)    
 
     # convert
     if nocopy == False:
@@ -136,9 +135,6 @@ def adjust_spec(inp, inspec, outspec):
         if outspec.format != inspec.format:
             nocopy = True
 
-    if options.gammaval != outspec.gamma:
-        outspec.gamma = options.gammaval
-        nocopy = True
     
     if options.sRGB:
         outspec.linearity = oiio.sRGB

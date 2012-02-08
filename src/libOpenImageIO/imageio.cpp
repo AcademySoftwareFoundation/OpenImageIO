@@ -91,6 +91,51 @@ geterror ()
 
 
 
+namespace {
+
+// Private global OIIO data.
+
+static spin_mutex attrib_mutex;
+static int oiio_threads = 1;
+static const int maxthreads = 64;   // reasonable maximum for sanity check
+
+};
+
+
+
+bool
+attribute (const std::string &name, TypeDesc type, const void *val)
+{
+    spin_lock lock (attrib_mutex);
+    if (name == "threads" && type == TypeDesc::TypeInt) {
+        oiio_threads = Imath::clamp (*(const int *)val, 0, maxthreads);
+        if (oiio_threads == 0) {
+#if (BOOST_VERSION >= 103500)
+            oiio_threads = boost::thread::hardware_concurrency();
+#else
+            oiio_threads = 1;
+#endif
+        }
+        return true;
+    }
+    return false;
+}
+
+
+
+bool
+getattribute (const std::string &name, TypeDesc type, void *val)
+{
+    spin_lock lock (attrib_mutex);
+    if (name == "threads" && type == TypeDesc::TypeInt) {
+        *(int *)val = oiio_threads;
+        return true;
+    }
+    return false;
+}
+
+
+
 int
 quantize (float value, int quant_black, int quant_white,
                        int quant_min, int quant_max)
@@ -315,15 +360,13 @@ pvt::convert_from_float (const float *src, void *dst, size_t nvals,
 }
 
 
-
 bool
 convert_types (TypeDesc src_type, const void *src, 
                TypeDesc dst_type, void *dst, int n,
-               ColorTransfer *tfunc,
                int alpha_channel, int z_channel)
 {
     // If no conversion is necessary, just memcpy
-    if (src_type == dst_type && tfunc == NULL) {
+    if ((src_type == dst_type || dst_type.basetype == TypeDesc::UNKNOWN)) {
         memcpy (dst, src, n * src_type.size());
         return true;
     }
@@ -332,7 +375,7 @@ convert_types (TypeDesc src_type, const void *src,
     bool use_tmp = false;
     boost::scoped_array<float> tmp;
     float *buf;
-    if (src_type == TypeDesc::FLOAT && tfunc == NULL) {
+    if (src_type == TypeDesc::FLOAT) {
         buf = (float *) src;
     } else {
         tmp.reset (new float[n]);  // Will be freed when tmp exists its scope
@@ -356,13 +399,6 @@ convert_types (TypeDesc src_type, const void *src,
         case TypeDesc::UINT64 : convert_type ((const unsigned long long *)src, buf, n);  break;
         default:         return false;  // unknown format
         }
-
-        // use a transfer function to encode or decode the image signal
-        if (tfunc) {
-            for (int i = 0;  i < n;  ++i)
-                if (i != alpha_channel && i != z_channel)
-                    buf[i] = (*tfunc) (buf[i]);
-        }
     }
 
     // Convert float to 'dst_type' (just a copy if dst is float)
@@ -378,19 +414,10 @@ convert_types (TypeDesc src_type, const void *src,
     case TypeDesc::INT64 :  convert_type (buf, (long long *)dst, n);  break;
     case TypeDesc::UINT64 : convert_type (buf, (unsigned long long *)dst, n);  break;
     case TypeDesc::DOUBLE : convert_type (buf, (double *)dst, n); break;
-    default:         return false;  // unknown format
+        default:            return false;  // unknown format
     }
 
     return true;
-}
-
-
-
-bool
-convert_types (TypeDesc src_type, const void *src, 
-               TypeDesc dst_type, void *dst, int n)
-{
-    return convert_types (src_type, src, dst_type, dst, n, NULL);
 }
 
 
@@ -403,12 +430,11 @@ convert_image (int nchannels, int width, int height, int depth,
                void *dst, TypeDesc dst_type,
                stride_t dst_xstride, stride_t dst_ystride,
                stride_t dst_zstride,
-               ColorTransfer *tfunc,
                int alpha_channel, int z_channel)
 {
     // If no format conversion is taking place, use the simplified
     // copy_image.
-    if (src_type == dst_type && tfunc == NULL)
+    if (src_type == dst_type)
         return copy_image (nchannels, width, height, depth, src, 
                            src_type.size()*nchannels,
                            src_xstride, src_ystride, src_zstride,
@@ -433,14 +459,12 @@ convert_image (int nchannels, int width, int height, int depth,
                 // be used if the formats are identical.)
                 result &= convert_types (src_type, f, dst_type, t,
                                          nchannels*width,
-                                         (ColorTransfer *)tfunc,
                                          alpha_channel, z_channel);
             } else {
                 // General case -- anything goes with strides.
                 for (int x = 0;  x < width;  ++x) {
                     result &= convert_types (src_type, f, dst_type, t,
                                              nchannels,
-                                             (ColorTransfer *)tfunc,
                                              alpha_channel, z_channel);
                     f += src_xstride;
                     t += dst_xstride;
@@ -474,8 +498,7 @@ copy_image (int nchannels, int width, int height, int depth,
                 // Special case: pixels within each row are contiguous
                 // in both src and dst and we're copying all channels.
                 // Be efficient by converting each scanline as a single
-                // unit.  (Note that within convert_types, a memcpy will
-                // be used if the formats are identical.)
+                // unit.
                 memcpy (t, f, width*pixelsize);
             } else {
                 // General case -- anything goes with strides.

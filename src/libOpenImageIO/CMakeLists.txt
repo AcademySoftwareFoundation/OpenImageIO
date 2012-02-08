@@ -1,5 +1,5 @@
 set (libOpenImageIO_hdrs ../include/argparse.h
-                         ../include/colortransfer.h
+                         ../include/color.h
                          ../include/dassert.h
                          ../include/errorhandler.h
                          ../include/filesystem.h
@@ -34,9 +34,9 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                          imagebufalgo.cpp imagebufalgo_orient.cpp
                          imagebufalgo_yee.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
-                          imageoutput.cpp iptc.cpp xmp.cpp 
+                          imageoutput.cpp iptc.cpp xmp.cpp
+                          color_ocio.cpp color_generic.cpp
                           ../libutil/argparse.cpp
-                          ../libutil/colortransfer.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
                           ../libutil/filter.cpp 
@@ -62,11 +62,7 @@ endif ()
 
 # Include our own TBB if using it
 if (USE_TBB)
-    add_definitions ("-DUSE_TBB=1")
     set (libOpenImageIO_srcs ${libOpenImageIO_srcs} ../libutil/tbb_misc.cpp)
-else ()
-    add_definitions ("-DUSE_TBB=0")
-    message (STATUS "TBB will not be used")
 endif ()
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
@@ -136,21 +132,10 @@ if (EMBEDPLUGINS)
     find_package (JPEG REQUIRED)
     find_package (TIFF REQUIRED)
     find_package (ZLIB REQUIRED)
-    find_package (Jasper)
     include_directories (${PNG_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
     include_directories (${TIFF_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
+
     add_definitions ("-DEMBED_PLUGINS=1")
-    if (JASPER_FOUND AND USE_JASPER)
-        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
-             ../jpeg2000.imageio/jpeg2000input.cpp
-             ../jpeg2000.imageio/jpeg2000output.cpp
-            )
-        include_directories (${JASPER_INCLUDE_DIR})
-        add_definitions ("-DUSE_JASPER=1")
-    else (JASPER_FOUND AND USE_JASPER)
-        message (STATUS "Jasper not found: jpeg2000 plugin will not be built")
-        set (JASPER_LIBRARY "")
-    endif (JASPER_FOUND AND USE_JASPER)
 
     if (FIELD3D_FOUND AND USE_FIELD3D)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
@@ -163,6 +148,15 @@ if (EMBEDPLUGINS)
         set (FIELD3D_LIBRARY "")
         set (HDF5_LIBRARIES "")
     endif ()
+
+    if (OPENJPEG_FOUND AND USE_OPENJPEG)
+        set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
+             ../jpeg2000.imageio/jpeg2000input.cpp ../jpeg2000.imageio/jpeg2000output.cpp)
+        include_directories (${OPENJPEG_INCLUDE_DIR})
+        add_definitions("-DUSE_OPENJPEG")
+    else()
+        message (STATUS "Jpeg-2000 plugin will not be built")
+    endif()
 
     if (WEBP_FOUND)
         set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
@@ -189,6 +183,9 @@ if (EMBEDPLUGINS)
                       REGULAR_EXPRESSION "^.+/${plugin}\\.imageio/.+$"
                      )
     endforeach ()
+else()
+    find_package (TIFF REQUIRED)
+    include_directories (${TIFF_INCLUDE_DIR})
 endif ()
 
 # Source groups for libutil and libtexture
@@ -201,6 +198,18 @@ else ()
     add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
 endif ()
 target_link_libraries (OpenImageIO ${Boost_LIBRARIES})
+
+
+
+# Include OpenColorIO if using it
+if (USE_OCIO AND OCIO_FOUND)
+    message (STATUS "Linking OpenColorIO ${OCIO_LIBRARIES}")
+    target_link_libraries (OpenImageIO ${OCIO_LIBRARIES})
+endif ()
+
+
+
+
 if (MSVC)
     target_link_libraries (OpenImageIO psapi.lib)
 endif (MSVC)
@@ -209,10 +218,11 @@ link_ilmbase (OpenImageIO)
 if (EMBEDPLUGINS)
     target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
                                ${JPEG_LIBRARIES} ${ZLIB_LIBRARIES}
-                               ${JASPER_LIBRARY}
                                ${FIELD3D_LIBRARY}
                                ${HDF5_LIBRARIES}
+                               ${OPENJPEG_LIBRARIES}
                                ${WEBP_LIBRARY}
+                               ${OPENJPEG_LIBRARIES}
                           )
     link_openexr (OpenImageIO)
 endif ()
@@ -269,3 +279,11 @@ add_test (unit_strutil ${CMAKE_BINARY_DIR}/libOpenImageIO/strutil_test)
 add_executable (fmath_test fmath_test.cpp)
 target_link_libraries (fmath_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (unit_fmath ${CMAKE_BINARY_DIR}/libOpenImageIO/fmath_test)
+
+add_executable (filesystem_test filesystem_test.cpp)
+target_link_libraries (filesystem_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_filesystem ${CMAKE_BINARY_DIR}/libOpenImageIO/filesystem_test)
+
+add_executable (optparser_test optparser_test.cpp)
+target_link_libraries (optparser_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_optparser ${CMAKE_BINARY_DIR}/libOpenImageIO/optparser_test)

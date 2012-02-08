@@ -238,7 +238,7 @@ catalog_builtin_plugins ()
     DECLAREPLUG (ico);
     DECLAREPLUG (iff);
     DECLAREPLUG (jpeg);
-#ifdef USE_JASPER
+#ifdef USE_OPENJPEG
     DECLAREPLUG (jpeg2000);
 #endif
     DECLAREPLUG (openexr);
@@ -285,11 +285,7 @@ catalog_all_plugins (std::string searchpath)
         for (boost::filesystem::directory_iterator itr (dir);
               itr != end_itr;  ++itr) {
             std::string full_filename = itr->path().string();
-#if BOOST_FILESYSTEM_VERSION == 3
-            std::string leaf = itr->path().leaf().string();
-#else
-            std::string leaf = itr->path().leaf();
-#endif
+            std::string leaf = Filesystem::filename (full_filename);
             size_t found = leaf.find (pattern);
             if (found != std::string::npos &&
                 (found == leaf.length() - patlen)) {
@@ -311,14 +307,11 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
         return NULL;
     }
 
-    // Extract the file extension from the filename
-    std::string format = boost::filesystem::extension (filename);
+    // Extract the file extension from the filename (without the leading dot)
+    std::string format = Filesystem::file_extension (filename);
     if (format.empty()) {
         // If the file had no extension, maybe it was itself the format name
         format = filename;
-    } else {
-        if (format[0] == '.')
-            format.erase (format.begin());  // Erase leading dot
     }
 
     recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
@@ -359,14 +352,11 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
         return NULL;
     }
 
-    // Extract the file extension from the filename
-    std::string format = boost::filesystem::extension (filename);
+    // Extract the file extension from the filename (without the leading dot)
+    std::string format = Filesystem::file_extension (filename);
     if (format.empty()) {
         // If the file had no extension, maybe it was itself the format name
         format = filename;
-    } else {
-        if (format[0] == '.')
-            format.erase (format.begin());  // Erase leading dot
     }
 
     recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety

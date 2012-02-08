@@ -55,6 +55,7 @@ static std::string dataformatname = "";
 static float gammaval = 1.0f;
 //static bool depth = false;
 static bool verbose = false;
+static int nthreads = 0;    // default: use #cores threads if available
 static std::vector<std::string> filenames;
 static int tile[3] = { 0, 0, 1 };
 static bool scanline = false;
@@ -99,6 +100,7 @@ getargs (int argc, char *argv[])
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose status messages",
+                "--threads %d", &nthreads, "Number of threads (default 0 = #cores)",
                 "-d %s", &dataformatname, "Set the output data format to one of:"
                         "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
                 "-g %f", &gammaval, "Set gamma correction (default = 1)",
@@ -358,13 +360,8 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
     std::string tempname = out_filename;
     if (tempname == in_filename) {
-#if (BOOST_VERSION >= 103700)
-        tempname = out_filename + ".tmp" 
-                    + boost::filesystem::path(out_filename).extension().string();
-#else
-        tempname = out_filename + ".tmp" 
-                    + boost::filesystem::extension(out_filename);
-#endif
+        tempname = out_filename + ".tmp."
+                    + Filesystem::file_extension (out_filename);
     }
 
     // Find an ImageIO plugin that can open the input file, and open it.
@@ -454,7 +451,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             } else {
                 // Need to do it by hand for some reason.  Future expansion in which
                 // only a subset of channels are copied, or some such.
-                std::vector<char> pixels (outspec.image_bytes(true));
+                std::vector<char> pixels ((size_t)outspec.image_bytes(true));
                 ok = in->read_image (outspec.format, &pixels[0]);
                 if (! ok) {
                     std::cerr << "iconvert ERROR reading \"" << in_filename 
@@ -506,6 +503,8 @@ int
 main (int argc, char *argv[])
 {
     getargs (argc, argv);
+
+    OIIO_NAMESPACE::attribute ("threads", nthreads);
 
     bool ok = true;
 

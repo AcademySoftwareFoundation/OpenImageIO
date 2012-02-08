@@ -77,7 +77,7 @@ print_sha1 (ImageInput *input)
         printf ("    SHA1 digest: (unable to compute, image is too big)\n");
         return;
     }
-    boost::scoped_array<unsigned char> buf(new unsigned char[size]);
+    boost::scoped_array<unsigned char> buf(new unsigned char[(unsigned int)size]);
     input->read_image (input->spec().format, &buf[0]);
     CSHA1 sha;
     sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
@@ -189,7 +189,7 @@ print_stats (const std::string &filename,
     
     // The original spec is used, otherwise the bit depth will
     // be reported incorrectly (as FLOAT)
-    unsigned int maxval = get_intsample_maxval (originalspec);
+    unsigned int maxval = (unsigned int)get_intsample_maxval (originalspec);
     
     printf ("%sStats Min: ", indent);
     for (unsigned int i=0; i<stats.min.size(); ++i) {

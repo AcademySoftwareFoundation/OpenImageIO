@@ -54,7 +54,12 @@ IvPreferenceWindow::IvPreferenceWindow (ImageViewer &viewer)
     inner_layout->addWidget (viewer.maxMemoryICLabel);
     inner_layout->addWidget (viewer.maxMemoryIC);
 
+    QLayout *slideShowLayout = new QHBoxLayout;
+    slideShowLayout->addWidget (viewer.slideShowDurationLabel);
+    slideShowLayout->addWidget (viewer.slideShowDuration);
+
     layout->addLayout (inner_layout);
+    layout->addLayout (slideShowLayout);
     layout->addWidget (closeButton);
     setLayout (layout);
 

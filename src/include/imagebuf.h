@@ -37,10 +37,15 @@
 #ifndef OPENIMAGEIO_IMAGEBUF_H
 #define OPENIMAGEIO_IMAGEBUF_H
 
+#if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the std::vector and std::string protected members of ImageBuf below.
+#  pragma warning (disable : 4251)
+#endif
+
 #include "imageio.h"
 #include "fmath.h"
 #include "imagecache.h"
-#include "colortransfer.h"
 #include "dassert.h"
 
 
@@ -135,9 +140,16 @@ public:
     ///
     std::string error_message () const { return geterror (); }
 
-    /// Return a read-only (const) reference to the image spec.
-    ///
+    /// Return a read-only (const) reference to the image spec that
+    /// describes the buffer.
     const ImageSpec & spec () const { return m_spec; }
+
+    /// Return a read-only (const) reference to the "native" image spec
+    /// (that describes the file, which may be slightly different than
+    /// the spec of the ImageBuf, particularly if the IB is backed by an
+    /// ImageCache that is imposing some particular data format or tile
+    /// size).
+    const ImageSpec & nativespec () const { return m_nativespec; }
 
     /// Return the name of this image.
     ///
@@ -265,9 +277,6 @@ public:
         return _copy_pixels (xbegin_, xend_, ybegin_, yend_, &result[0]);
     }
 
-    /// Apply a color transfer function to the pixels (in place).
-    ///
-    void transfer_pixels (ColorTransfer *tfunc);
 
     int orientation () const { return m_orientation; }
 
@@ -328,7 +337,17 @@ public:
     ///
     int zmax () const { return spec().z + std::max(spec().depth,1) - 1; }
 
+    /// Set the "full" (a.k.a. display) window to [xbegin,xend) x
+    /// [ybegin,yend) x [zbegin,zend).  If bordercolor is not NULL, also
+    /// set the spec's "oiio:bordercolor" attribute.
+    void set_full (int xbegin, int xend, int ybegin, int yend,
+                   int zbegin, int zend, const float *bordercolor);
+
     bool pixels_valid (void) const { return m_pixels_valid; }
+
+    TypeDesc pixeltype () const {
+        return m_localpixels ? m_spec.format : m_cachedpixeltype;
+    }
 
     bool localpixels () const { return m_localpixels; }
     ImageCache *imagecache () const { return m_imagecache; }
@@ -882,6 +901,7 @@ protected:
     int m_current_miplevel;      ///< Current miplevel we're viewing
     int m_nmiplevels;            ///< # of MIP levels in the current subimage
     ImageSpec m_spec;            ///< Describes the image (size, etc)
+    ImageSpec m_nativespec;      ///< Describes the true native image
     std::vector<char> m_pixels;  ///< Pixel data
     bool m_localpixels;          ///< Pixels are local, in m_pixels
     bool m_spec_valid;           ///< Is the spec valid

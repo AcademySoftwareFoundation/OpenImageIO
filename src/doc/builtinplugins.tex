@@ -35,8 +35,6 @@ tiles.
 
 \vspace{.25in}
 
-% Cineon not yet supported
-\begin{comment}
 \section{Cineon}
 \label{sec:bundledplugins:cineon}
 \index{Cineon}
@@ -45,11 +43,10 @@ Cineon is an image file format developed by Kodak that is commonly
 used for scanned motion picture film and digital intermediates.
 Cineon files use the file extension {\cf .cin}.
 
-\product's support of Cineon is preliminary.  Currently \product does not
-write Cineon files at all.
+%FIXME
 
 \vspace{.25in}
-\end{comment}
+
 
 
 \section{DDS}
@@ -597,6 +594,15 @@ It's not a smart choice unless you are sending your images back to the
 
 \vspace{.25in}
 
+\section{PSD}
+\label{sec:bundledplugins:psd}
+\index{PSD}
+
+% FIXME
+
+
+\vspace{.25in}
+
 \section{Ptex}
 \label{sec:bundledplugins:ptex}
 \index{Ptex}
@@ -638,14 +644,17 @@ RLA (Run-Length encoded, version A) is an early CGI renderer output format,
 originating from Wavefront Advanced Visualizer and used primarily by software
 developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 
-\product's support of RLA is complete - files can be both read and written.
-
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
 \noindent\begin{tabular}{p{1.75in}|p{0.5in}|p{3.0in}}
 \ImageSpec Attribute & Type & RLA header data or explanation \\
 \hline
+{\cf width}, {\cf height}, {\cf x}, {\cf y} & & RLA ``active/viewable'' window. \\
+& & \\
+{\cf\small full_width}, {\cf\small full_height}, {\cf\small full_x}, 
+  {\cf\small full_y} & & RLA ``full'' window.  \\
+& & \\
 \qkw{rla:FrameNumber} & int & frame sequence number. \\
 \qkw{rla:Revision} & int & file format revision number, currently
   \qkw{0xFFFE}. \\
@@ -653,9 +662,10 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 \qkw{rla:FieldRendered} & int & whether the image is a field-rendered
   (interlaced) one (\qkw{0} for false, non-zero for true). \\
 \qkw{rla:FileName} & string & name under which the file was orignally saved. \\
+\qkw{ImageDescription} & string & RLA ``Description'' of the image. \\
 \qkw{Software} & string & name of software used to save the image. \\
 \qkw{HostComputer} & string & name of machine used to save the image. \\
-\qkw{rla:UserName} & string & logon name of user who saved the image. \\
+\qkw{Artist} & string & RLA ``UserName'': logon name of user who saved the image. \\
 \qkw{rla:Aspect} & string & aspect format description string. \\
 \qkw{rla:ColorChannel} & string & textual description of color channel data
   format (usually \qkw{rgb}). \\
@@ -679,9 +689,8 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 \subsubsection*{Limitations}
 
 \begin{itemize}
-\item \product will only write 1 image to 1 file. The format specification
-  allows appending more images into the same file, but this is not currently
-  supported by the plugin.
+\item \product will only write 1 image to 1 file, multiple subimages
+  are not supported by the writer (but are supported by the reader).
 \end{itemize}
 
 
@@ -899,6 +908,15 @@ aware of:
   pixels ({\cf half} data).
 \end{itemize}
 
+
+
+\vspace{.25in}
+
+\section{Webp}
+\label{sec:bundledplugins:webp}
+\index{WebP}
+
+% FIXME
 
 
 \vspace{.25in}

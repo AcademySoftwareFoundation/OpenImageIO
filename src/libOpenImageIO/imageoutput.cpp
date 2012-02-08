@@ -99,6 +99,9 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
                                const void *data, stride_t xstride,
                                stride_t ystride, stride_t zstride)
 {
+    if (! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
+        return false;
+
     // Default implementation: write each tile individually
     stride_t native_pixel_bytes = (stride_t) m_spec.pixel_bytes (true);
     if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
@@ -281,7 +284,7 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
                            (char *)data + c*format.size(), format,
                            xstride, ystride, zstride, 
                            &scratch[offset], chanformat,
-                           native_pixel_bytes, AutoStride, AutoStride, NULL,
+                           native_pixel_bytes, AutoStride, AutoStride,
                            c == m_spec.alpha_channel ? 0 : -1,
                            c == m_spec.z_channel ? 0 : -1);
             offset += chanformat.size ();

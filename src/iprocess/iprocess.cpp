@@ -81,10 +81,8 @@ static std::string outputname;
 //static bool separate = false, contig = false;
 static bool flip = false;
 static bool flop = false;
-static std::string crop_type;
-static int crop_xmin = 0, crop_xmax = 0, crop_ymin = 0, crop_ymax = 0;
+static int crop_xmin = 0, crop_xmax = -1, crop_ymin = 0, crop_ymax = 0;
 static bool do_add = false;
-static std::string colortransfer_to = "", colortransfer_from = "sRGB";
 static std::string filtername;
 static float filterwidth = 1.0f;
 static int resize_x = 0, resize_y = 0;
@@ -115,8 +113,8 @@ getargs (int argc, char *argv[])
                 "-o %s", &outputname, "Set output filename",
                 "<SEPARATOR>", "Image operations:",
                 "--add", &do_add, "Add two images",
-                "--crop %s %d %d %d %d", &crop_type, &crop_xmin, &crop_xmax,
-                    &crop_ymin, &crop_ymax, "Crop an image (type, xmin, xmax, ymin, ymax); type = black|white|trans|window|cut",
+                "--crop %d %d %d %d", &crop_xmin, &crop_xmax,
+                    &crop_ymin, &crop_ymax, "Crop an image (xmin, xmax, ymin, ymax)",
                 "--flip", &flip, "Flip the Image (upside-down)",
                 "--flop", &flop, "Flop the Image (left/right mirror)",
                 "<SEPARATOR>", "Output options:",
@@ -137,13 +135,10 @@ getargs (int argc, char *argv[])
 //                "--rotcw", &rotcw, "Rotate 90 deg clockwise",
 //                "--rotccw", &rotccw, "Rotate 90 deg counter-clockwise",
 //                "--rot180", &rot180, "Rotate 180 deg",
-//                "--sRGB", &sRGB, "This file is in sRGB color space",
 //                "--separate", &separate, "Force planarconfig separate",
 //                "--contig", &contig, "Force planarconfig contig",
 //FIXME         "-z", &zfile, "Treat input as a depth file",
 //FIXME         "-c %s", &channellist, "Restrict/shuffle channels",
-                "--transfer %s", &colortransfer_to, "Transfer outputfile to another colorspace: Linear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
-                "--colorspace %s", &colortransfer_from, "Override colorspace of inputfile: Linear, Gamma, sRGB, AdobeRGB, Rec709, KodakLog",
                 "--filter %s %f", &filtername, &filterwidth, "Set the filter to use for resize",
                 "--resize %d %d", &resize_x, &resize_y, "Resize the image to x by y pixels",
                 NULL);
@@ -185,8 +180,8 @@ read_input (const std::string &filename, ImageBuf &img,
         return true;
 
     if (img.init_spec (filename, subimage, miplevel) && 
-        img.read (subimage, false, TypeDesc::FLOAT))
-        return true;
+        img.read (subimage, 0, false, TypeDesc::FLOAT))
+    	 return true;
 
     std::cerr << "iprocess ERROR: Could not read " << filename << ":\n\t"
               << img.geterror() << "\n";
@@ -201,7 +196,7 @@ main (int argc, char *argv[])
 
     bool ok = true;
 
-    if (crop_type.size()) {
+    if (crop_xmin < crop_xmax) {
         std::cout << "Cropping " << filenames[0] << " to  " << outputname << "\n";
         if (filenames.size() != 1) {
             std::cerr << "iprocess: --crop needs one input filename\n";
@@ -213,22 +208,7 @@ main (int argc, char *argv[])
             return EXIT_FAILURE;
         }
         ImageBuf out;
-        CropOptions opt = CROP_CUT;
-        if (crop_type == "white")
-            opt = CROP_WHITE;
-        else if (crop_type == "black")
-            opt = CROP_BLACK;
-        else if (crop_type == "trans")
-            opt = CROP_TRANS;
-        else if (crop_type == "window")
-            opt = CROP_WINDOW;
-        else if (crop_type == "cut")
-            opt = CROP_CUT;
-        else {
-            std::cerr << "iprocess: crop needs a 'type' of white, black, trans, window, or cut\n";
-            return EXIT_FAILURE;
-        }
-        crop (out, A, crop_xmin, crop_xmax+1, crop_ymin, crop_ymax+1, opt);
+        crop (out, A, crop_xmin, crop_xmax+1, crop_ymin, crop_ymax+1);
 	std::cout << "finished cropping\n";
         out.save (outputname);
     }
@@ -282,46 +262,6 @@ main (int argc, char *argv[])
         
         out.save (outputname);
     }
-    
-    if (colortransfer_to != "") {
-        if (filenames.size() != 1) {
-            std::cerr << "iprocess: --transfer needs one input filename\n";
-            exit (EXIT_FAILURE);
-        }
-        
-        ImageBuf in;
-        if (! read_input (filenames[0], in)) {
-            std::cerr << "iprocess: read error: " << in.geterror() << "\n";
-            return EXIT_FAILURE;
-        }
-        
-        
-        ColorTransfer *from_func = ColorTransfer::create (colortransfer_from + "_to_linear");
-        if (from_func == NULL) {
-            std::cerr << "iprocess: --colorspace needs a 'colorspace' of "
-                << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
-            return EXIT_FAILURE;
-        }
-        ColorTransfer *to_func = ColorTransfer::create (std::string("linear_to_") + colortransfer_to);
-        if (to_func == NULL) {
-            std::cerr << "iprocess: --transfer needs a 'colorspace' of "
-                << "Linear, Gamma, sRGB, AdobeRGB, Rec709 or KodakLog\n";
-            return EXIT_FAILURE;
-        }
-        std::cout << "Converting [" << colortransfer_from << "] " << filenames[0]
-            << " to [" << colortransfer_to << "] " << outputname << "\n";
-        
-        //
-        ImageBuf linear;
-        ImageBuf out;
-        ImageBufAlgo::colortransfer (linear, in, from_func);
-        ImageBufAlgo::colortransfer (out, linear, to_func);
-        std::cout << "finished color transfer\n";
-        
-        //
-        out.save (outputname);
-        
-    }
 
     if (resize_x && resize_y) {
         if (filenames.size() != 1) {
@@ -350,7 +290,7 @@ main (int argc, char *argv[])
         outspec.full_width = resize_x;
         outspec.full_height = resize_y;
         ImageBuf out (outputname, outspec);
-        float pixel[3] = { .1, .1, .1 };
+        float pixel[3] = { .1f, .1f, .1f };
         ImageBufAlgo::fill (out, pixel);
         bool ok = ImageBufAlgo::resize (out, in, out.xbegin(), out.xend(),
                               out.ybegin(), out.yend(), filter);

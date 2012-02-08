@@ -94,8 +94,12 @@ ifneq (${USE_FIELD3D},)
 MY_CMAKE_FLAGS += -DUSE_FIELD3D:BOOL=${USE_FIELD3D}
 endif
 
-ifneq (${USE_JASPER},)
-MY_CMAKE_FLAGS += -DUSE_JASPER:BOOL=${USE_JASPER}
+ifneq (${USE_OPENJPEG},)
+MY_CMAKE_FLAGS += -DUSE_OPENJPEG:BOOL=${USE_OPENJPEG}
+endif
+
+ifneq (${USE_OCIO},)
+MY_CMAKE_FLAGS += -DUSE_OCIO:BOOL=${USE_OCIO}
 endif
 
 ifneq (${BUILDSTATIC},)
@@ -243,7 +247,8 @@ help:
 	@echo "  make USE_PYTHON=0 ...       Don't build the Python binding"
 	@echo "  make PYTHON_VERSION=2.6 ... Specify the Python version"
 	@echo "  make USE_FIELD3D=0 ...      Don't build the Field3D plugin"
-	@echo "  make USE_JASPER=0 ...       Don't use Jasper or build the JPEG-2000 plugin"
+	@echo "  make USE_OPENJPEG=0 ...     Don't build the JPEG-2000 plugin"
+	@echo "  make USE_OCIO=0 ...         Don't use OpenColorIO even if found"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
 	@echo ""

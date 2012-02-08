@@ -125,7 +125,8 @@ if (ILMBASE_HOME)
       ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/include
       ${ILMBASE_HOME}/include/ilmbase-${ILMBASE_VERSION})
     set (IlmBase_library_paths
-      ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib)
+      ${ILMBASE_HOME}/ilmbase-${ILMBASE_VERSION}/lib
+      ${ILMBASE_HOME}/lib/ilmbase-${ILMBASE_VERSION})
   endif()
   list (APPEND IlmBase_include_paths ${ILMBASE_HOME}/include)
   set (IlmBase_library_paths

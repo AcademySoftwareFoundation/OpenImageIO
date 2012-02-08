@@ -1,10 +1,10 @@
-set (public_headers argparse.h dassert.h errorhandler.h export.h 
+set (public_headers argparse.h color.h dassert.h errorhandler.h export.h 
                     filesystem.h filter.h fmath.h hash.h
                     imagebuf.h imagebufalgo.h 
-                    imagecache.h imageio.h osdep.h paramlist.h plugin.h
+                    imagecache.h imageio.h
+                    optparser.h osdep.h paramlist.h plugin.h
                     refcnt.h strutil.h sysutil.h texture.h thread.h timer.h
                     typedesc.h ustring.h varyingref.h
-                    colortransfer.h
     )
 
 if (NOT USE_EXTERNAL_PUGIXML)

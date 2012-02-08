@@ -530,7 +530,9 @@ Recognized attributes include the following:
 \apiitem{int max_open_files \\
 float max_memory_MB \\
 string searchpath \\
+string plugin_searchpath \\
 int autotile \\
+int autoscanline \\
 int automip \\
 int accept_untiled \\
 int accept_unmipped \\
@@ -577,6 +579,15 @@ applies if the map itself doesn't specify a format or is in a format
 that explicitly requires a particular orientation).  The default is
 \qkw{y}.  (Currently any other value will result in $z$ being ``up.'')
 \apiend
+
+\apiitem{string options}
+This catch-all is simply a comma-separated list of {\cf name=value}
+settings of named options.  For example,
+\begin{code}
+        ic->attribute ("options", "max_memory_MB=512.0,autotile=1");
+\end{code}
+\apiend
+
 
 
 \subsection{Opaque data for performance lookups}
@@ -1265,9 +1276,11 @@ applied.
 \subsection{Miscellaneous -- Statistics, errors, flushing the cache}
 \label{sec:texturesys:api:geterror}
 \label{sec:texturesys:api:getstats}
+\label{sec:texturesys:api:resetstats}
 \label{sec:texturesys:api:invalidate}
 
 \apiitem{std::string {\ce geterror} ()}
+\index{error checking}
 If any other API routines return {\cf false}, indicating that an
 error has occurred, this routine will retrieve the error and clear
 the error status.  If no error has occurred since the last time
@@ -1282,6 +1295,14 @@ with higher numbers (up to a maximum of 5) yielding more and more
 esoteric information.  If {\cf icstats} is true, the returned string
 will also contain all the statistics of the underlying \ImageCache,
 but if false will only contain texture-specific statistics.
+\apiend
+
+\apiitem{void {\ce reset_stats} ()}
+Reset most statistics to be as they were with a fresh
+\ImageCache.  Caveat emptor: this does not flush the cache
+itelf, so the resulting statistics from the next set of texture
+requests will not match the number of tile reads, etc., that
+would have resulted from a new \ImageCache.
 \apiend
 
 \apiitem{void {\ce invalidate} (ustring filename)}

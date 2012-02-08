@@ -35,12 +35,18 @@
 #include <boost/algorithm/string.hpp>
 using boost::algorithm::iequals;
 
-#include "rla_pvt.h"
-
 #include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
 #include "fmath.h"
+#include "sysutil.h"
+
+#include "rla_pvt.h"
+
+#ifdef WIN32
+# define snprintf _snprintf
+#endif
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -52,10 +58,7 @@ public:
     RLAOutput ();
     virtual ~RLAOutput ();
     virtual const char * format_name (void) const { return "rla"; }
-    virtual bool supports (const std::string &feature) const {
-        // Support nothing nonstandard
-        return false;
-    }
+    virtual bool supports (const std::string &feature) const;
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create);
     virtual bool close ();
@@ -66,9 +69,9 @@ private:
     std::string m_filename;           ///< Stash the filename
     FILE *m_file;                     ///< Open image handle
     std::vector<unsigned char> m_scratch;
-    WAVEFRONT m_rla;                  ///< Wavefront RLA header
-    std::vector<int32_t> m_sot;       ///< Scanline offset table
-    std::vector<unsigned char> m_buf; ///< Run record buffer for RLE
+    RLAHeader m_rla;                  ///< Wavefront RLA header
+    std::vector<uint32_t> m_sot;      ///< Scanline offset table
+    std::vector<unsigned char> m_rle; ///< Run record buffer for RLE
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -81,17 +84,31 @@ private:
                                   size_t field_size, const char *default_val);
     
     /// Helper - handles the repetitive work of encoding and writing a channel
-    bool encode_plane (const unsigned char *data, stride_t xstride,
-                       int chsize, bool is_float);
+    bool encode_channel (const unsigned char *data, stride_t xstride,
+                         TypeDesc chantype, int bits);
     
-    /// Helper - flushes the current RLE run into the record buffer
-    inline void flush_run (int& rawcount, int& rlecount,
-                           std::vector<unsigned char>::iterator& it);
-    
-    /// Helper - flushes the current RLE record into file
-    inline bool flush_record (int& rawcount, int& rlecount,
-                              unsigned short& length, 
-                              std::vector<unsigned char>::iterator& it);
+    /// Helper - write, with error detection
+    bool fwrite (const void *buf, size_t itemsize, size_t nitems) {
+        size_t n = ::fwrite (buf, itemsize, nitems, m_file);
+        if (n != nitems)
+            error ("Write error: wrote %d records of %d", (int)n, (int)nitems);
+        return n == nitems;
+    }
+
+    /// Helper: write buf[0..nitems-1], swap endianness if necessary
+    template<typename T>
+    bool write (const T *buf, size_t nitems=1) {
+        if (littleendian() &&
+            (is_same<T,uint16_t>::value || is_same<T,int16_t>::value ||
+             is_same<T,uint32_t>::value || is_same<T,int32_t>::value)) {
+            T *newbuf = ALLOCA(T,nitems);
+            memcpy (newbuf, buf, nitems*sizeof(T));
+            swap_endian (newbuf, nitems);
+            buf = newbuf;
+        }
+        return fwrite (buf, sizeof(T), nitems);
+    }
+
 };
 
 
@@ -127,12 +144,27 @@ RLAOutput::~RLAOutput ()
 
 
 bool
+RLAOutput::supports (const std::string &feature) const
+{
+    if (feature == "displaywindow")
+        return true;
+    // Support nothing else nonstandard
+    return false;
+}
+
+
+
+bool
 RLAOutput::open (const std::string &name, const ImageSpec &userspec,
                  OpenMode mode)
 {
     if (mode != Create) {
         error ("%s does not support subimages or MIP levels", format_name());
         return false;
+        // FIXME -- the RLA format supports subimages, but our writer
+        // doesn't.  I'm not sure if it's worth worrying about for an
+        // old format that is so rarely used.  We'll come back to it if
+        // anybody actually encounters a multi-subimage RLA in the wild.
     }
 
     close ();  // Close any already-opened file
@@ -147,6 +179,11 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
         error ("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
+        return false;
+    }
+    if (m_spec.width > 65535 || m_spec.height > 65535) {
+        error ("Image resolution %d x %d too large for RLA (maxiumum 65535x65535)",
                m_spec.width, m_spec.height);
         return false;
     }
@@ -183,7 +220,8 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
                 break;
         m_rla.ColorChannelType = m_spec.channelformats[0] == TypeDesc::FLOAT
             ? CT_FLOAT : CT_BYTE;
-        m_rla.NumOfChannelBits = m_spec.channelformats[0].size () * 8;
+        int bits = m_spec.get_int_attribute ("oiio:BitsPerSample", 0);
+        m_rla.NumOfChannelBits = bits ? bits : m_spec.channelformats[0].size () * 8;
         // limit to 3 in case the loop went further
         m_rla.NumOfColorChannels = std::min (streak, 3);
         // if we have anything left, treat it as alpha
@@ -194,7 +232,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
                     break;
             m_rla.MatteChannelType = m_spec.channelformats[m_rla.NumOfColorChannels]
                 == TypeDesc::FLOAT ? CT_FLOAT : CT_BYTE;
-            m_rla.NumOfMatteBits = m_spec.channelformats[m_rla.NumOfColorChannels].size () * 8;
+            m_rla.NumOfMatteBits = bits ? bits : m_spec.channelformats[m_rla.NumOfColorChannels].size () * 8;
             m_rla.NumOfMatteChannels = streak;
         }
         // and if there's something more left, put it in auxiliary
@@ -240,13 +278,8 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     if (iequals(s, "Linear"))
         strcpy (m_rla.Gamma, "1.0");
     else if (iequals(s, "GammaCorrected"))
-#ifdef WIN32
-        _snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f",
-            m_spec.get_float_attribute ("oiio:Gamma", 1.f));
-#else
         snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f",
             m_spec.get_float_attribute ("oiio:Gamma", 1.f));
-#endif // WIN32
     
     const ImageIOParameter *p;
     // default NTSC chromaticities
@@ -259,22 +292,23 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     p = m_spec.find_attribute ("rla:WhitePoint");
     set_chromaticity (p, m_rla.WhitePoint, sizeof (m_rla.WhitePoint), "0.31 0.316");
 
+#define STRING_FIELD(rlafield,name)                                     \
+    {                                                                   \
+        std::string s = m_spec.get_string_attribute (name);             \
+        if (s.length()) {                                               \
+            strncpy (m_rla.rlafield, s.c_str(), sizeof(m_rla.rlafield));\
+            m_rla.rlafield[sizeof(m_rla.rlafield)-1] = 0;               \
+        } else {                                                        \
+            m_rla.rlafield[0] = 0;                                      \
+        }                                                               \
+    }
+
     m_rla.JobNumber = m_spec.get_int_attribute ("rla:JobNumber", 0);
-    strncpy (m_rla.FileName, name.c_str (), sizeof (m_rla.FileName));
-    
-    s = m_spec.get_string_attribute ("ImageDescription", "");
-    if (s.length ())
-        strncpy (m_rla.Description, s.c_str (), sizeof (m_rla.Description));
-    
-    // yay for advertising!
-    strcpy (m_rla.ProgramName, OIIO_INTRO_STRING);
-    
-    s = m_spec.get_string_attribute ("HostComputer", "");
-    if (s.length ())
-        strncpy (m_rla.MachineName, s.c_str (), sizeof (m_rla.MachineName));
-    s = m_spec.get_string_attribute ("rla:UserName", "");
-    if (s.length ())
-        strncpy (m_rla.UserName, s.c_str (), sizeof (m_rla.UserName));
+    STRING_FIELD (FileName, "rla:FileName");
+    STRING_FIELD (Description, "ImageDescription");
+    STRING_FIELD (ProgramName, "Software");
+    STRING_FIELD (MachineName, "HostComputer");
+    STRING_FIELD (UserName, "Artist");
     
     // the month number will be replaced with the 3-letter abbreviation
     time_t t = time (NULL);
@@ -301,124 +335,27 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     
     // FIXME: it appears that Wavefront have defined a set of aspect names;
     // I think it's safe not to care until someone complains
-    s = m_spec.get_string_attribute ("rla:Aspect", "");
-    if (s.length ())
-        strncpy (m_rla.Aspect, s.c_str (), sizeof (m_rla.Aspect));
+    STRING_FIELD (Aspect, "rla:Aspect");
 
-#ifdef WIN32
-    _snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.10f",
-        m_spec.get_float_attribute ("PixelAspectRatio", 1.f));
-#else
     snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.10f",
         m_spec.get_float_attribute ("PixelAspectRatio", 1.f));
-#endif // WIN32
     strcpy (m_rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
         "rgb").c_str ());
     m_rla.FieldRendered = m_spec.get_int_attribute ("rla:FieldRendered", 0);
-    
-    s = m_spec.get_string_attribute ("rla:Time", "");
-    if (s.length ())
-        strncpy (m_rla.Time, s.c_str (), sizeof (m_rla.Time));
-        
-    s = m_spec.get_string_attribute ("rla:Filter", "");
-    if (s.length ())
-        strncpy (m_rla.Filter, s.c_str (), sizeof (m_rla.Filter));
-    
-    s = m_spec.get_string_attribute ("rla:AuxData", "");
-    if (s.length ())
-        strncpy (m_rla.AuxData, s.c_str (), sizeof (m_rla.AuxData));
-    
-    if (littleendian()) {
-        // RLAs are big-endian
-        swap_endian (&m_rla.WindowLeft);
-        swap_endian (&m_rla.WindowRight);
-        swap_endian (&m_rla.WindowBottom);
-        swap_endian (&m_rla.WindowTop);
-        swap_endian (&m_rla.ActiveLeft);
-        swap_endian (&m_rla.ActiveRight);
-        swap_endian (&m_rla.ActiveBottom);
-        swap_endian (&m_rla.ActiveTop);
-        swap_endian (&m_rla.FrameNumber);
-        swap_endian (&m_rla.ColorChannelType);
-        swap_endian (&m_rla.NumOfColorChannels);
-        swap_endian (&m_rla.NumOfMatteChannels);
-        swap_endian (&m_rla.NumOfAuxChannels);
-        swap_endian (&m_rla.Revision);
-        swap_endian (&m_rla.JobNumber);
-        swap_endian (&m_rla.FieldRendered);
-        swap_endian (&m_rla.NumOfChannelBits);
-        swap_endian (&m_rla.MatteChannelType);
-        swap_endian (&m_rla.NumOfMatteBits);
-        swap_endian (&m_rla.AuxChannelType);
-        swap_endian (&m_rla.NumOfAuxBits);
-        swap_endian (&m_rla.NextOffset);
-    }
-    // due to struct packing, we may get a corrupt header if we just dump the
-    // struct to the file; to adress that, write every member individually
-    // save some typing
-#define WH(memb)    fwrite (&m_rla.memb, sizeof (m_rla.memb), 1, m_file)
-    WH(WindowLeft);
-    WH(WindowRight);
-    WH(WindowBottom);
-    WH(WindowTop);
-    WH(ActiveLeft);
-    WH(ActiveRight);
-    WH(ActiveBottom);
-    WH(ActiveTop);
-    WH(FrameNumber);
-    WH(ColorChannelType);
-    WH(NumOfColorChannels);
-    WH(NumOfMatteChannels);
-    WH(NumOfAuxChannels);
-    WH(Revision);
-    WH(Gamma);
-    WH(RedChroma);
-    WH(GreenChroma);
-    WH(BlueChroma);
-    WH(WhitePoint);
-    WH(JobNumber);
-    WH(FileName);
-    WH(Description);
-    WH(ProgramName);
-    WH(MachineName);
-    WH(UserName);
-    WH(DateCreated);
-    WH(Aspect);
-    WH(AspectRatio);
-    WH(ColorChannel);
-    WH(FieldRendered);
-    WH(Time);
-    WH(Filter);
-    WH(NumOfChannelBits);
-    WH(MatteChannelType);
-    WH(NumOfMatteBits);
-    WH(AuxChannelType);
-    WH(NumOfAuxBits);
-    WH(AuxData);
-    WH(Reserved);
-    WH(NextOffset);
-#undef WH
+
+    STRING_FIELD (Time, "rla:Time");
+    STRING_FIELD (Filter, "rla:Filter");
+    STRING_FIELD (AuxData, "rla:AuxData");
+
+    m_rla.rla_swap_endian ();        // RLAs are big-endian
+    write (&m_rla);
+    m_rla.rla_swap_endian ();        // flip back the endianness to native
     
     // write placeholder values - not all systems may expand the file with
     // zeroes upon seek
     m_sot.resize (m_spec.height, (int32_t)0);
-    fwrite (&m_sot[0], sizeof(int32_t), m_sot.size (), m_file);
+    write (&m_sot[0], m_sot.size());
     
-    // flip back the endianness of some things we will need again
-    if (littleendian ()) {
-        swap_endian (&m_rla.NumOfColorChannels);
-        swap_endian (&m_rla.NumOfMatteChannels);
-        swap_endian (&m_rla.NumOfAuxChannels);
-        swap_endian (&m_rla.NumOfChannelBits);
-        swap_endian (&m_rla.NumOfMatteBits);
-        swap_endian (&m_rla.NumOfAuxBits);
-    }
-    
-    // resize run record buffer to accomodate a worst-case scenario
-    // 2 bytes for record length, 1 byte per 1 longest run
-    m_buf.resize (2 + (size_t)ceil((1.0 + 1.0 / 128.0)
-        * m_spec.scanline_bytes(true)));
-
     return true;
 }
 
@@ -431,24 +368,13 @@ RLAOutput::set_chromaticity (const ImageIOParameter *p, char *dst,
     if (p && p->type().basetype == TypeDesc::FLOAT) {
         switch (p->type().aggregate) {
             case TypeDesc::VEC2:
-#ifdef WIN32
-                _snprintf (dst, field_size, "%.4f %.4f",
-                    ((float *)p->data ())[0], ((float *)p->data ())[1]);
-#else
                 snprintf (dst, field_size, "%.4f %.4f",
                     ((float *)p->data ())[0], ((float *)p->data ())[1]);
-#endif // WIN32
                 break;
             case TypeDesc::VEC3:
-#ifdef WIN32
-                _snprintf (dst, field_size, "%.4f %.4f %.4f",
-                    ((float *)p->data ())[0], ((float *)p->data ())[1],
-                        ((float *)p->data ())[2]);
-#else
                 snprintf (dst, field_size, "%.4f %.4f %.4f",
                     ((float *)p->data ())[0], ((float *)p->data ())[1],
                         ((float *)p->data ())[2]);
-#endif // WIN32
                 break;
         }
     } else
@@ -461,17 +387,16 @@ bool
 RLAOutput::close ()
 {
     if (m_file) {
-        // dump the scanline offset table to file
-        fseek (m_file, 740, SEEK_SET);
-        fwrite (&m_sot[0], sizeof(int32_t), m_sot.size (), m_file);
+        // Now that all scanlines ahve been output, return to write the
+        // correct scanline offset table to file.
+        fseek (m_file, sizeof(RLAHeader), SEEK_SET);
+        write (&m_sot[0], m_sot.size());
 
         // close the stream
         fclose (m_file);
         m_file = NULL;
     }
     
-    m_buf.clear ();
-
     init ();      // re-initialize
     return true;  // How can we fail?
                   // Epicly. -- IneQuation
@@ -479,172 +404,103 @@ RLAOutput::close ()
 
 
 
-inline void
-RLAOutput::flush_run (int& rawcount, int& rlecount,
-                      std::vector<unsigned char>::iterator& it)
-{
-    if (rawcount > 0) {
-        // take advantage of two's complement arithmetic
-        *(it - rawcount - 1) = ~((unsigned char)rawcount) + 1;
-        rawcount = 0;
-    } else if (rlecount > 0) {
-        *(it - 2) = (unsigned char)(rlecount - 1);
-        rlecount = 0;
-    }
-}
-
-
-
-inline bool
-RLAOutput::flush_record (int& rawcount, int& rlecount, unsigned short& length,
-                         std::vector<unsigned char>::iterator& it)
-{
-    flush_run (rawcount, rlecount, it);
-    it = m_buf.begin ();
-    if (littleendian ()) {
-        *it++ = ((unsigned char *)&length)[1];
-        *it++ = ((unsigned char *)&length)[0];
-    } else {
-        *it++ = ((unsigned char *)&length)[0];
-        *it++ = ((unsigned char *)&length)[1];
-    }
-    length += 2;        // account for the record length
-    if (fwrite (&m_buf[0], 1, length, m_file) != length)
-        return false;
-    // reserve 2 bytes for the record length
-    it = m_buf.begin () + 2;
-    length = 0;
-    return true;
-}
-
-
-
 bool
-RLAOutput::encode_plane (const unsigned char *data, stride_t xstride,
-                         int chsize, bool is_float)
+RLAOutput::encode_channel (const unsigned char *data, stride_t xstride,
+                           TypeDesc chantype, int bits)
 {
-    unsigned short length;
-    if (is_float) {
-        // fast path for floats - just dump the plane into the file
-        float f;            
-        length = m_spec.width * sizeof(float);
-        if (littleendian ())
-            swap_endian (&length);
-        fwrite (&length, sizeof (length), 1, m_file);
-        for (int x = 0; x < m_spec.width; ++x) {
-            f = *((float *)(data + x * xstride));
-            if (bigendian ())
-                swap_endian (&length);
-            fwrite (&f, sizeof (float), 1, m_file);
-        }
+    if (chantype == TypeDesc::FLOAT) {
+        // Special case -- float data is just dumped raw, no RLE
+        uint16_t size = m_spec.width * sizeof(float);
+        write (&size);
+        for (int x = 0;  x < m_spec.width;  ++x)
+            write ((const float *)&data[x*xstride]);
         return true;
     }
-    // integer values - RLE
-    unsigned char first;
-    const unsigned char *d;
-    int rawcount = 0, rlecount = 0;
-    length = 0;
-    // keeps track of the record buffer position
-    // reserve 2 bytes for the record length
-    std::vector<unsigned char>::iterator it = m_buf.begin () + 2;
-    for (int i = 0; i < chsize; ++i) {
-        // ensure correct byte order
-        if (littleendian ())
-            i = chsize - i - 1;
-        for (int x = 0; x < m_spec.width; ++x) {
-            ASSERT (it < m_buf.end ());
-            d = data + x * xstride + i;
-            bool contig = first == *d;
-            
-            // if the record has ended, flush it run and start anew
-            if (length == (1 << (sizeof (length) * 8)) - 1
-                && !flush_record (rawcount, rlecount, length, it))
-                return false;
-            
-            if (rawcount == 0 && rlecount == 0) {
-                // start of record
-                ++it;   // run length placeholder
-                *it++ = first = *d;
-                rlecount = 1;
-                length += 2;
-            } else if (rawcount > 0) {
-                // raw packet
-                if (rawcount == 128) {
-                    // max run length reached, flush
-                    flush_run (rawcount, rlecount, it);
-                    // start a new RLE run
-                    ++it;       // run length placeholder
-                    *it++ = first = *d;
-                    rlecount = 1;
-                    length += 2;
+
+    m_rle.resize (2);   // reserve t bytes for the encoded size
+
+    // multi-byte data types are sliced to MSB, nextSB, ..., LSB
+    int chsize = (int)chantype.size();
+    for (int byte = 0;  byte < chsize;  ++byte) {
+        int lastval = -1;     // last value
+        int count = 0;        // count of raw or repeats
+        bool repeat = false;  // if true, we're repeating
+        int runbegin = 0;     // where did the run begin
+        int byteoffset = bigendian() ? byte : (chsize-byte-1);
+        for (int x = 0;  x < m_spec.width;  ++x) {
+            int newval = data[x*xstride+byteoffset];
+            if (count == 0) {   // beginning of a run.
+                count = 1;
+                repeat = true;  // presumptive
+                runbegin = x;
+            } else if (repeat) { // We've seen one or more repeating characters
+                if (newval == lastval) {
+                    // another repeating value
+                    ++count;
                 } else {
-                    ++rawcount;
-                    if (contig) {
-                        if (rlecount == 0)
-                            rlecount = 2; // we wouldn't have noticed the 1st one
-                        else
-                            ++rlecount;
-                        // we have 3 contiguous bytes, flush and start RLE
-                        if (rlecount >= 3) {
-                            // rewind the iterator and the counters
-                            it -= rlecount - 1;
-                            rawcount -= rlecount;
-                            length -= rlecount - 2; // will be incremented below
-                            // flush the raw run
-                            flush_run (rawcount, rlecount, it);
-                            // start the RLE run
-                            // will be incremented below
-                            ++it;
-                        }
-                    } else
-                        // reset contiguity counter
-                        rlecount = 0;
-                    // also reset the comparison base
-                    *it++ = first = *d;
-                    ++length;
+                    // We stopped repeating.
+                    if (count < 3) {
+                        // If we didn't even have 3 in a row, just 
+                        // retroactively treat it as a raw run.
+                        ++count;
+                        repeat = false;
+                    } else {
+                        // We are ending a 3+ repetition
+                        m_rle.push_back (count-1);
+                        m_rle.push_back (lastval);
+                        count = 1;
+                        runbegin = x;
+                    }
                 }
-            } else {
-                // RLE packet
-                if (rlecount == 128 || (!contig && rlecount >= 3)) {
-                    // run ended, flush
-                    flush_run (rawcount, rlecount, it);
-                    // start a new RLE run
-                    ++it;       // run length placeholder
-                    *it++ = first = *d;
-                    rlecount = 1;
-                    length += 2;
-                } else if (contig)
-                    // another same byte
-                    ++rlecount;
-                else {
-                    // not contiguous, turn the remainder into a raw run
-                    for (int j = 1; j < rlecount; ++j, ++length)
-                        *it++ = first;
-                    rawcount = rlecount + 1;
-                    rlecount = 0;
-                    // also reset the comparison base
-                    *it++ = first = *d;
-                    ++length;
+            } else {  // Have not been repeating
+                if (newval == lastval) {
+                    // starting a repetition?  Output previous
+                    ASSERT (count > 1);
+                    // write everything but the last char
+                    --count;
+                    m_rle.push_back (-count);
+                    for (int i = 0;  i < count;  ++i)
+                        m_rle.push_back (data[(runbegin+i)*xstride+byteoffset]);
+                    count = 2;
+                    runbegin = x - 1;
+                    repeat = true;
+                } else {
+                    ++count;  // another non-repeat
                 }
             }
+
+            // If the run is too long or we're at the scanline end, write
+            if (count == 127 || x == m_spec.width-1) {
+                if (repeat) {
+                    m_rle.push_back (count-1); 
+                    m_rle.push_back (lastval);
+                } else {
+                    m_rle.push_back (-count);
+                    for (int i = 0;  i < count;  ++i)
+                        m_rle.push_back (data[(runbegin+i)*xstride+byteoffset]);
+                }
+                count = 0;
+            }
+            lastval = newval;
         }
-        // if there's anything left in the run, flush it
-        flush_run (rawcount, rlecount, it);
-        // restore index for proper loop functioning
-        if (littleendian ())
-            i = chsize - i - 1;
+        ASSERT (count == 0);
     }
-    // if there's anything left in the buffer, flush it
-    if (length > 0)
-        return flush_record (rawcount, rlecount, length, it);
-    return true;
+
+    // Now that we know the size of the encoded buffer, save it at the
+    // beginning
+    uint16_t size = uint16_t (m_rle.size() - 2);
+    m_rle[0] = size >> 8;
+    m_rle[1] = size & 255;
+
+    // And write the channel to the file
+    return write (&m_rle[0], m_rle.size());
 }
 
 
 
 bool
 RLAOutput::write_scanline (int y, int z, TypeDesc format,
-                            const void *data, stride_t xstride)
+                           const void *data, stride_t xstride)
 {
     m_spec.auto_stride (xstride, format, spec().nchannels);
     const void *origdata = data;
@@ -655,46 +511,22 @@ RLAOutput::write_scanline (int y, int z, TypeDesc format,
         data = &m_scratch[0];
     }
     
-    // store the offset to the scanline
-    m_sot[m_spec.height - y - 1] = (int32_t)ftell (m_file);
-    if (littleendian ())
-        swap_endian (&m_sot[m_spec.height - y - 1]);
-    
-    bool allsame = !m_spec.channelformats.size ();
-    bool is_float = (allsame ? m_spec.format : m_spec.channelformats[0])
-        == TypeDesc::FLOAT;        
+    // store the offset to the scanline.  We'll swap_endian if necessary
+    // when we go to actually write it.
+    m_sot[m_spec.height - y - 1] = (uint32_t)ftell (m_file);
+
+    size_t pixelsize = m_spec.pixel_bytes (true /*native*/);
     int offset = 0;
-    // colour channels
-    int chsize = allsame ? m_spec.format.size ()
-                         : m_spec.channelformats[0].size ();
-    for (int i = 0; i < m_rla.NumOfColorChannels; ++i, offset += chsize) {
-        if (!encode_plane ((unsigned char *)data + offset, xstride, chsize,
-            is_float))
+    for (int c = 0;  c < m_spec.nchannels;  ++c) {
+        TypeDesc chantype = m_spec.channelformats.size() ?
+            m_spec.channelformats[c] : m_spec.format;
+        int bits = (c < m_rla.NumOfColorChannels) ? m_rla.NumOfChannelBits
+            : (c < (m_rla.NumOfColorChannels+m_rla.NumOfMatteBits)) ? m_rla.NumOfMatteBits
+            : m_rla.NumOfAuxBits;
+        if (!encode_channel ((unsigned char *)data + offset, pixelsize,
+                             chantype, bits))
             return false;
-    }
-    // alpha (matte) channels
-    is_float = (allsame ? m_spec.format
-                        : m_spec.channelformats[m_rla.NumOfColorChannels])
-        == TypeDesc::FLOAT;
-    chsize = allsame ? m_spec.format.size ()
-                     : m_spec.channelformats[m_rla.NumOfColorChannels].size ();
-    for (int i = 0; i < m_rla.NumOfMatteChannels; ++i, offset += chsize) {
-        if (!encode_plane ((unsigned char *)data + offset, xstride, chsize,
-            is_float))
-            return false;
-    }
-    // aux (depth) channels
-    is_float = (allsame ? m_spec.format
-                        : m_spec.channelformats[m_rla.NumOfColorChannels
-                            + m_rla.NumOfMatteChannels])
-        == TypeDesc::FLOAT;
-    chsize = allsame ? m_spec.format.size ()
-                     : m_spec.channelformats[m_rla.NumOfColorChannels
-                         + m_rla.NumOfMatteChannels].size ();
-    for (int i = 0; i < m_rla.NumOfAuxChannels; ++i, offset += chsize) {
-        if (!encode_plane ((unsigned char *)data + offset, xstride, chsize,
-            is_float))
-            return false;
+        offset += chantype.size();
     }
 
     return true;

@@ -92,6 +92,7 @@ ImageBuf::clear ()
     m_current_subimage = -1;
     m_current_miplevel = -1;
     m_spec = ImageSpec ();
+    m_nativespec = ImageSpec ();
     {
         std::vector<char> tmp;
         std::swap (m_pixels, tmp);  // clear it with deallocation
@@ -153,6 +154,7 @@ void
 ImageBuf::alloc (const ImageSpec &spec)
 {
     m_spec = spec;
+    m_nativespec = spec;
     m_spec_valid = true;
     realloc ();
 }
@@ -180,6 +182,7 @@ ImageBuf::init_spec (const std::string &filename, int subimage, int miplevel)
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_miplevels,
                                   TypeDesc::TypeInt, &m_nmiplevels);
     m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel);
+    m_imagecache->get_imagespec (m_name, m_nativespec, subimage, miplevel, true);
     if (m_nsubimages) {
         m_badfile = false;
         m_spec_valid = true;
@@ -217,7 +220,8 @@ ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
     }
 
     // Set our current spec to the requested subimage
-    if (! m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel)) {
+    if (! m_imagecache->get_imagespec (m_name, m_spec, subimage, miplevel) ||
+        ! m_imagecache->get_imagespec (m_name, m_nativespec, subimage, miplevel, true)) {
         m_err = m_imagecache->geterror ();
         return false;
     }
@@ -568,46 +572,6 @@ ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
     return true;
 }
 
-
-
-template<typename T>
-static inline void
-transfer_pixels_ (ImageBuf &buf, ColorTransfer *tfunc)
-{
-    for (ImageBuf::Iterator<T> pixel (buf); pixel.valid(); ++pixel) {
-        convert_types (buf.spec().format, pixel.rawptr(),
-                       buf.spec().format, pixel.rawptr(),
-                       buf.nchannels(), tfunc,
-                       buf.spec().alpha_channel, buf.spec().z_channel);
-    }
-}
-
-
-
-void
-ImageBuf::transfer_pixels (ColorTransfer *tfunc)
-{
-    if (! tfunc)
-        return;
-    switch (spec().format.basetype) {
-    case TypeDesc::FLOAT : transfer_pixels_<float> (*this, tfunc); break;
-    case TypeDesc::UINT8 : transfer_pixels_<unsigned char> (*this, tfunc); break;
-    case TypeDesc::INT8  : transfer_pixels_<char> (*this, tfunc); break;
-    case TypeDesc::UINT16: transfer_pixels_<unsigned short> (*this, tfunc); break;
-    case TypeDesc::INT16 : transfer_pixels_<short> (*this, tfunc); break;
-    case TypeDesc::UINT  : transfer_pixels_<unsigned int> (*this, tfunc); break;
-    case TypeDesc::INT   : transfer_pixels_<int> (*this, tfunc); break;
-    case TypeDesc::UINT64: transfer_pixels_<unsigned long long> (*this, tfunc); break;
-    case TypeDesc::INT64 : transfer_pixels_<long long> (*this, tfunc); break;
-    case TypeDesc::HALF  : transfer_pixels_<half> (*this, tfunc); break;
-    case TypeDesc::DOUBLE: transfer_pixels_<double> (*this, tfunc); break;
-    default:
-        ASSERT (0);
-    }
-}
-
-
-
 int
 ImageBuf::oriented_width () const
 {
@@ -668,6 +632,24 @@ int
 ImageBuf::oriented_full_y () const
 {
     return m_orientation <= 4 ? m_spec.full_y : m_spec.full_x;
+}
+
+
+
+void
+ImageBuf::set_full (int xbegin, int xend, int ybegin, int yend,
+                    int zbegin, int zend, const float *bordercolor)
+{
+    m_spec.full_x = xbegin;
+    m_spec.full_y = ybegin;
+    m_spec.full_z = zbegin;
+    m_spec.full_width  = xend - xbegin;
+    m_spec.full_height = yend - ybegin;
+    m_spec.full_depth  = zend - zbegin;
+    if (bordercolor)
+        m_spec.attribute ("oiio:bordercolor",
+                          TypeDesc(TypeDesc::FLOAT,m_spec.nchannels),
+                          bordercolor);
 }
 
 

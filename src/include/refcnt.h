@@ -65,7 +65,7 @@ protected:
 
     /// Define copy constructor to NOT COPY reference counts! Copying a
     /// struct doesn't change how many other things point to it.
-    RefCnt (RefCnt &r) { m_refcnt = 0; }
+    RefCnt (RefCnt&) { m_refcnt = 0; }
 
     ~RefCnt () {}
 
@@ -80,7 +80,7 @@ public:
 
     /// Define operator= to NOT COPY reference counts!  Assigning a struct
     /// doesn't change how many other things point to it.
-    const RefCnt & operator= (const RefCnt& r) const { return *this; }
+    const RefCnt & operator= (const RefCnt&) const { return *this; }
 
 private:
     mutable atomic_int m_refcnt;

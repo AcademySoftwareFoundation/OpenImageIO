@@ -329,9 +329,11 @@ public:
     ///     int max_open_files : maximum number of file handles held open
     ///     float max_memory_MB : maximum tile cache size, in MB
     ///     string searchpath : colon-separated search path for texture files
+    ///     string plugin_searchpath : colon-separated search path for plugins
     ///     matrix44 worldtocommon : the world-to-common transformation
     ///     matrix44 commontoworld : the common-to-world transformation
     ///     int autotile : if >0, tile size to emulate for non-tiled images
+    ///     int autoscanline : autotile using full width tiles
     ///     int automip : if nonzero, emulate mipmap on the fly
     ///     int accept_untiled : if nonzero, accept untiled images
     ///     int accept_unmipped : if nonzero, accept unmipped images
@@ -600,6 +602,13 @@ public:
     /// invalidated if their modification times have been changed since
     /// they were first opened.
     virtual void invalidate_all (bool force=false) = 0;
+
+    /// Reset most statistics to be as they were with a fresh
+    /// TextureSystem.  Caveat emptor: this does not flush the cache
+    /// itelf, so the resulting statistics from the next set of texture
+    /// requests will not match the number of tile reads, etc., that
+    /// would have resulted from a new TextureSystem.
+    virtual void reset_stats () = 0;
 
 private:
     // Make delete private and unimplemented in order to prevent apps

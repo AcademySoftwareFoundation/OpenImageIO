@@ -272,8 +272,16 @@ directories that will be searched in order for any image name
 that is not specified as an absolute path. (Default: no search path.)
 \apiend
 
-\apiitem{int autotile}
-This attributes controls how the image cache deals with images that
+\apiitem{string plugin_searchpath}
+The search path for plugins: a colon-separated list of
+directories that will be searched in order for any OIIO plugins, if
+not found in OIIO's ``lib'' directory.)
+(Default: no additional search path.)
+\apiend
+
+\apiitem{int autotile \\
+int autoscanline}
+These attributes control how the image cache deals with images that
 are not ``tiled'' (i.e., are stored as scanlines). 
 
 If {\cf autotile} is set to 0 (the default), an untiled image will be
@@ -283,10 +291,18 @@ you are simultaneously accessing many large untiled images.
 
 If {\cf autotile} is nonzero (e.g., 64 is a good recommended value), any
 untiled images will be read and cached as if they were constructed in
-tiles of size {\cf autotile} $\times$ {\cf autotile}.  This leads to
-slightly more expensive disk access if you are using only a few
-images, but if you are using many untiled images, the caching will be much
-more efficient.
+tiles of size:
+
+\begin{tabular}{p{2in} p{3in}}
+ {\cf autotile} $\times$ {\cf autotile} & if {\cf autoscanline} is 0 \\
+ {\cf width} $\times$ {\cf autotile} & if {\cf autoscanline} is nonzero. \\
+\end{tabular}
+
+In both cases, this should lead more efficient caching.  The 
+{\cf autoscanline} determines whether the ``virtual tiles'' in the cache
+are square (if {\cf autoscanline} is 0, the default) or if they will be
+as wide as the image (but only {\cf autotile} scanlines high).  You
+should try in your application to see which leads to higher performance.
 \apiend
 
 \apiitem{int automip}
@@ -332,6 +348,14 @@ again, up to {\cf failure_retries} times before truly returning a
 failure.  This is meant to address spooky disk or network failures.  The
 default is zero, meaning that failures of open or tile reading will
 immediately return as a failure.
+\apiend
+
+\apiitem{string options}
+This catch-all is simply a comma-separated list of {\cf name=value}
+settings of named options.  For example,
+\begin{code}
+        ic->attribute ("options", "max_memory_MB=512.0,autotile=1");
+\end{code}
 \apiend
 
 \bigskip
@@ -416,7 +440,7 @@ matches both the name and data type.
 \apiend
 
 \apiitem{bool {\ce get_imagespec} (ustring filename, ImageSpec \&spec,\\
-\bigspc  int subimage=0, int miplevel=0)}
+\bigspc  int subimage=0, int miplevel=0, bool native=false)}
 
 If the named image (and the specific subimage and MIP level) is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function copies
@@ -426,10 +450,16 @@ is not of a format readable by any plugin that could be found, or
 the designated subimage did not exist in the file, the return value is
 {\cf false} and {\cf spec} will not be modified.
 
+If {\cf native} is {\cf false} (the default), then the spec retrieved
+will accurately describe the image stored internally in the cache,
+whereas if {\cf native} is {\cf true}, the spec retrieved will reflect
+the original file.  These may differ due to use of certain \ImageCache
+settings such as \qkw{forcefloat} or \qkw{autotile}.
+
 \apiend
 
 \apiitem{const ImageSpec * {\ce imagespec} (ustring filename, int
-  subimage=0, int miplevel=0)}
+  subimage=0, int miplevel=0, bool native=false)}
 
 If the named image is found and able to be opened by an available
 image format plugin, and the designated subimage exists, this function
@@ -437,6 +467,12 @@ returns a pointer to an \ImageSpec that describes it.  Otherwise, if the
 file is not found, could not be opened, is not of a format readable by
 any plugin that could be find, or the designated subimage did
 not exist in the file, the return value is NULL.
+
+If {\cf native} is {\cf false} (the default), then the spec retrieved
+will accurately describe the image stored internally in the cache,
+whereas if {\cf native} is {\cf true}, the spec retrieved will reflect
+the original file.  These may differ due to use of certain \ImageCache
+settings such as \qkw{forcefloat} or \qkw{autotile}.
 
 This method is much more efficient than {\cf get_imagespec()}, since it
 just returns a pointer to the spec held internally by the \ImageCache
@@ -530,8 +566,10 @@ modification times have been changed since they were first opened.
 \subsection{Errors and statistics}
 \label{sec:imagecache:api:geterror}
 \label{sec:imagecache:api:getstats}
+\label{sec:imagecache:api:resetstats}
 
 \apiitem{std::string {\ce geterror} ()}
+\index{error checking}
 If any other API routines return {\cf false}, indicating that an error
 has occurred, this routine will retrieve the error and clear the error
 status.  If no error has occurred since the last time {\cf geterror()}
@@ -544,6 +582,14 @@ operations, suitable for saving to a file or outputting to the terminal.
 The {\cf level} indicates the amount of detail in the statistics,
 with higher numbers (up to a maximum of 5) yielding more and more
 esoteric information.
+\apiend
+
+\apiitem{void {\ce reset_stats} ()}
+Reset most statistics to be as they were with a fresh
+\TextureSystem.  Caveat emptor: this does not flush the cache
+itelf, so the resulting statistics from the next set of texture
+requests will not match the number of tile reads, etc., that
+would have resulted from a new \TextureSystem.
 \apiend
 
 

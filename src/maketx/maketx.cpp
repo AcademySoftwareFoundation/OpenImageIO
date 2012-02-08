@@ -67,10 +67,11 @@ static std::vector<std::string> filenames;
 static std::string outputfilename;
 static std::string dataformatname = "";
 static std::string fileformatname = "";
+static std::vector<std::string> mipimages;
 //static float ingamma = 1.0f, outgamma = 1.0f;
 static bool verbose = false;
 static bool stats = false;
-static int nthreads = 0;
+static int nthreads = 0;    // default: use #cores threads if available
 static int tile[3] = { 64, 64, 1 };
 static std::string channellist;
 static bool updatemode = false;
@@ -78,6 +79,7 @@ static double stat_readtime = 0;
 static double stat_writetime = 0;
 static double stat_resizetime = 0;
 static double stat_miptime = 0;
+static double stat_colorconverttime = 0;
 static bool checknan = false;
 static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
@@ -111,10 +113,15 @@ static bool embed_hash = false; // Ignored.
 static bool prman_metadata = false;
 static bool constant_color_detect = false;
 static bool monochrome_detect = false;
+static bool opaque_detect = false;
 static int nchannels = -1;
 static bool prman = false;
 static bool oiio = false;
 static bool src_samples_border = false; // are src edge samples on the border?
+
+static bool unpremult = false;
+static std::string incolorspace;
+static std::string outcolorspace;
 
 // forward decl
 static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
@@ -137,7 +144,45 @@ filter_help_string ()
     return s;
 }
 
+static std::string
+colortitle_help_string ()
+{
+    std::string s ("Color Management Options ");
+    if(ColorConfig::supportsOpenColorIO()) {
+        s += "(OpenColorIO enabled)";
+    }
+    else {
+        s += "(OpenColorIO DISABLED)";
+    }
+    return s;
+}
 
+static std::string
+colorconvert_help_string ()
+{
+    std::string s = "Apply a color space conversion to the image."
+    "If the output color space is not the same bit depth "
+    "as input color space, it is your responsibility to set the data format "
+    "to the proper bit depth using the -d option. ";
+    
+    s += " (choices: ";
+    ColorConfig config;
+    if(config.error() || config.getNumColorSpaces()==0)
+    {
+        s += "NONE";
+    }
+    else
+    {
+        for (int i=0; i<config.getNumColorSpaces(); ++i)
+        {
+            if (i!=0) s += ", ";
+            s += config.getColorSpaceNameByIndex(i);
+        }
+    }
+    s += ")";
+    
+    return s;
+}
 
 static Filter2D *
 setup_filter (const std::string &filtername)
@@ -183,7 +228,7 @@ getargs (int argc, char *argv[])
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
                   "-o %s", &outputfilename, "Output filename",
-                  "-t %d", &nthreads, "Number of threads (default: #cores)",
+                  "--threads %d", &nthreads, "Number of threads (default: #cores)",
                   "-u", &updatemode, "Update mode",
                   "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
                   "--nchannels %d", &nchannels, "Specify the number of output image channels.",
@@ -220,7 +265,9 @@ getargs (int argc, char *argv[])
                   "--prman-metadata", &prman_metadata, "Add prman specific metadata",
                   "--constant-color-detect", &constant_color_detect, "Create 1-tile textures from constant color inputs",
                   "--monochrome-detect", &monochrome_detect, "Create 1-channel textures from monochrome inputs",
+                  "--opaque-detect", &opaque_detect, "Drop alpha channel that is always 1.0",
                   "--stats", &stats, "Print runtime statistics",
+                  "--mipimage %L", &mipimages, "Specify an individual MIP level",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
 //FIXME           "-debugdso"
 //FIXME           "-note %s", &note, "Append a note to the image comments",
@@ -233,6 +280,12 @@ getargs (int argc, char *argv[])
 //                  "--lightprobe", &lightprobemode, "Convert a lightprobe to cubic env map (UNIMP)",
 //                  "--latl2envcube", &latl2envcubemode, "Convert a lat-long env map to a cubic env map (UNIMP)",
 //                  "--vertcross", &vertcrossmode, "Convert a vertical cross layout to a cubic env map (UNIMP)",
+                  "<SEPARATOR>", colortitle_help_string().c_str(),
+                  "--colorconvert %s %s", &incolorspace, &outcolorspace,
+                          colorconvert_help_string().c_str(),
+                  "--unpremult", &unpremult, "Unpremultiply before color conversion, then premultiply "
+                          "after the color conversion.  You'll probably want to use this flag "
+                          "if your image contains an alpha channel.",
                   "<SEPARATOR>", "Configuration Presets",
                   "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata.",
                   "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, metadata, and constant-color optimizations.",
@@ -483,8 +536,8 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel)
         // wrong will tend to over-represent the high latitudes in
         // low-res MIP levels.  We fold the area weighting into our
         // linear interpolation by adjusting yfrac.
-        float w0 = (1.0f - yfrac) * sinf (M_PI * (ytexel+0.5f)/(float)fh);
-        float w1 = yfrac * sinf (M_PI * (ynext+0.5f)/(float)fh);
+        float w0 = (1.0f - yfrac) * sinf ((float)M_PI * (ytexel+0.5f)/(float)fh);
+        float w1 = yfrac * sinf ((float)M_PI * (ynext+0.5f)/(float)fh);
         yfrac = w0 / (w0 + w1);
     }
     // Bilinearly interpolate
@@ -517,7 +570,7 @@ resize_block (ImageBuf *dst, const ImageBuf *src,
 
 // Copy src into dst, but only for the range [x0,x1) x [y0,y1).
 static void
-check_nan_block (ImageBuf *dst, const ImageBuf *src,
+check_nan_block (ImageBuf* /*dst*/, const ImageBuf* src,
                  int x0, int x1, int y0, int y1)
 {
     const ImageSpec &spec (src->spec());
@@ -598,7 +651,7 @@ make_texturemap (const char *maptypename = "texture map")
         exit (EXIT_FAILURE);
     }
     if (outputfilename.empty()) {
-        std::string ext = boost::filesystem::extension (filenames[0]);
+        const std::string ext = Filesystem::file_extension (filenames[0]);
         int notextlen = (int) filenames[0].length() - (int) ext.length();
         outputfilename = std::string (filenames[0].begin(),
                                       filenames[0].begin() + notextlen);
@@ -700,8 +753,21 @@ make_texturemap (const char *maptypename = "texture map")
         }
     }
     
+    // If requested -- and alpha is 1.0 everywhere -- drop it.
+    if (opaque_detect && src.spec().alpha_channel == src.nchannels()-1 &&
+          nchannels < 0 &&
+          ImageBufAlgo::isConstantChannel(src,src.spec().alpha_channel,1.0f)) {
+        ImageBuf newsrc(src.name() + ".noalpha", src.spec());
+        ImageBufAlgo::setNumChannels (newsrc, src, src.nchannels()-1);
+        src = newsrc;
+        if (verbose) {
+            std::cout << "  Alpha==1 image detected. Dropping the alpha channel.\n";
+        }
+    }
+
     // If requested - and we're a monochrome image - drop the extra channels
-    if (monochrome_detect && (src.nchannels() > 1) && ImageBufAlgo::isMonochrome(src)) {
+    if (monochrome_detect && (src.nchannels() > 1) && nchannels < 0 &&
+            ImageBufAlgo::isMonochrome(src)) {
         ImageBuf newsrc(src.name() + ".monochrome", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, 1);
         src = newsrc;
@@ -709,9 +775,10 @@ make_texturemap (const char *maptypename = "texture map")
             std::cout << "  Monochrome image detected. Converting to single channel texture.\n";
         }
     }
-    // Or, if we've otherwise explicitly requested to write out a
+
+    // If we've otherwise explicitly requested to write out a
     // specific number of channels, do it.
-    else if ((nchannels > 0) && (nchannels != src.nchannels())) {
+    if ((nchannels > 0) && (nchannels != src.nchannels())) {
         ImageBuf newsrc(src.name() + ".channels", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, nchannels);
         src = newsrc;
@@ -841,6 +908,64 @@ make_texturemap (const char *maptypename = "texture map")
         }
     }
 
+
+    // Color convert the pixels, if needed, in place.  If a color
+    // conversion is required we will promote the src to floating point
+    // (or there wont be enough precision potentially).  Also,
+    // independently color convert the constant color metadata
+    ImageBuf * ccSrc = &src;    // Ptr to cc'd src image
+    ImageBuf colorBuffer;
+    if (!incolorspace.empty() && !outcolorspace.empty() && incolorspace != outcolorspace) {
+        if (src.spec().format != TypeDesc::FLOAT) {
+            ImageSpec floatSpec = src.spec();
+            floatSpec.set_format(TypeDesc::FLOAT);
+            colorBuffer.reset("bitdepth promoted", floatSpec);
+            ccSrc = &colorBuffer;
+        }
+        
+        Timer colorconverttimer;
+        if (verbose) {
+            std::cout << "  Converting from colorspace " << incolorspace 
+                      << " to colorspace " << outcolorspace << std::endl;
+        }
+        
+        ColorConfig config;
+        if (config.error()) {
+            std::cerr << "Error Creating ColorConfig\n";
+            std::cerr << config.geterror() << std::endl;
+            exit (EXIT_FAILURE);
+        }
+        
+        ColorProcessor * processor = config.createColorProcessor (
+            incolorspace.c_str(), outcolorspace.c_str());
+        
+        if (!processor || config.error()) {
+            std::cerr << "Error Creating Color Processor." << std::endl;
+            std::cerr << config.geterror() << std::endl;
+            exit (EXIT_FAILURE);
+        }
+        
+        if (unpremult && verbose)
+            std::cout << "  Unpremulting image..." << std::endl;
+        
+        if (!ImageBufAlgo::colorconvert (*ccSrc, src, processor, unpremult)) {
+            std::cerr << "Error applying color conversion to image.\n";
+            exit (EXIT_FAILURE);
+        }
+        
+        if (isConstantColor) {
+            if (!ImageBufAlgo::colorconvert (&constantColor[0],
+                static_cast<int>(constantColor.size()), processor, unpremult)) {
+                std::cerr << "Error applying color conversion to constant color.\n";
+                exit (EXIT_FAILURE);
+            }
+        }
+
+        ColorConfig::deleteColorProcessor(processor);
+        processor = NULL;
+        stat_colorconverttime += colorconverttimer();
+    }
+
     // Force float for the sake of the ImageBuf math
     dstspec.set_format (TypeDesc::FLOAT);
 
@@ -870,12 +995,12 @@ make_texturemap (const char *maptypename = "texture map")
     ImageBuf *toplevel = &dst;    // Ptr to top level of mipmap
     if (! do_resize) {
         // Don't need to resize
-        if (dstspec.format == srcspec.format) {
+        if (dstspec.format == ccSrc->spec().format) {
             // Even more special case, no format change -- just use
             // the original copy.
-            toplevel = &src;
+            toplevel = ccSrc;
         } else {
-            parallel_image (copy_block, &dst, &src,
+            parallel_image (copy_block, &dst, ccSrc,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
         }
@@ -885,11 +1010,11 @@ make_texturemap (const char *maptypename = "texture map")
             std::cout << "  Resizing image to " << dstspec.width 
                       << " x " << dstspec.height << std::endl;
         if (filtername == "box" && filter->width() == 1.0f)
-            parallel_image (resize_block, &dst, &src,
+            parallel_image (resize_block, &dst, ccSrc,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
         else
-            parallel_image (resize_block_HQ, &dst, &src,
+            parallel_image (resize_block_HQ, &dst, ccSrc,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height, nthreads);
     }
@@ -1055,16 +1180,35 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             smallspec.set_format (TypeDesc::FLOAT);
             small->alloc (smallspec);  // Realocate with new size
 
-            if (filtername == "box" && filter->width() == 1.0f)
-                parallel_image (resize_block, small, big,
-                                smallspec.x, smallspec.x+smallspec.width,
-                                smallspec.y, smallspec.y+smallspec.height,
-                                nthreads);
-            else
-                parallel_image (resize_block_HQ, small, big,
-                                smallspec.x, smallspec.x+smallspec.width,
-                                smallspec.y, smallspec.y+smallspec.height,
-                                nthreads);
+            if (mipimages.size()) {
+                // Special case -- the user specified a custom MIP level
+                small->reset (mipimages[0]);
+                small->read (0, 0, true, TypeDesc::FLOAT);
+                smallspec = small->spec();
+                if (smallspec.nchannels != outspec.nchannels) {
+                    std::cout << "WARNING: Custom mip level \"" << mipimages[0]
+                              << " had the wrong number of channels.\n";
+                    ImageBuf *t = new ImageBuf (mipimages[0], smallspec);
+                    ImageBufAlgo::setNumChannels(*t, *small, outspec.nchannels);
+                    std::swap (t, small);
+                    delete t;
+                }
+                smallspec.tile_width = outspec.tile_width;
+                smallspec.tile_height = outspec.tile_height;
+                smallspec.tile_depth = outspec.tile_depth;
+                mipimages.erase (mipimages.begin());
+            } else {
+                if (filtername == "box" && filter->width() == 1.0f)
+                    parallel_image (resize_block, small, big,
+                                    smallspec.x, smallspec.x+smallspec.width,
+                                    smallspec.y, smallspec.y+smallspec.height,
+                                    nthreads);
+                else
+                    parallel_image (resize_block_HQ, small, big,
+                                    smallspec.x, smallspec.x+smallspec.width,
+                                    smallspec.y, smallspec.y+smallspec.height,
+                                    nthreads);
+            }
 
             stat_miptime += miptimer();
             outspec = smallspec;
@@ -1117,6 +1261,7 @@ main (int argc, char *argv[])
     Timer alltimer;
     getargs (argc, argv);
 
+    OIIO_NAMESPACE::attribute ("threads", nthreads);
     if (stats) {
         ImageCache *ic = ImageCache::create ();  // get the shared one
         ic->attribute ("forcefloat", 1);   // Force float upon read
@@ -1152,6 +1297,7 @@ main (int argc, char *argv[])
         std::cout << Strutil::format ("  file write:      %5.2f\n", stat_writetime);
         std::cout << Strutil::format ("  initial resize:  %5.2f\n", stat_resizetime);
         std::cout << Strutil::format ("  mip computation: %5.2f\n", stat_miptime);
+        std::cout << Strutil::format ("  color convert:   %5.2f\n", stat_colorconverttime);
         std::cout << Strutil::format ("  unaccounted:     %5.2f\n",
                                       alltime-stat_readtime-stat_writetime-stat_resizetime-stat_miptime);
         size_t kb = Sysutil::memory_used(true) / 1024;

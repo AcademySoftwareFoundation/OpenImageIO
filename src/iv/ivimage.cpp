@@ -215,6 +215,23 @@ IvImage::longinfo () const
 static EightBitConverter<float> converter;
 
 
+/// Helper routine: compute (gain*value)^invgamma
+///
+
+namespace
+{
+
+inline float calc_exposure (float value, float gain, float invgamma)
+{
+    if (invgamma != 1 && value >= 0)
+        return powf (gain * value, invgamma);
+    // Simple case - skip the expensive pow; also fall back to this
+    // case for negative values, for which gamma makes no sense.
+    return gain * value;
+}
+
+}
+
 
 void 
 IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel)
@@ -313,7 +330,7 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
         float gain = powf (2.0f, exposure());
         for (int pixelvalue = 0; pixelvalue < 256; ++pixelvalue) {
             float pv_f = converter (pixelvalue);
-            pv_f = clamp (OIIO::exposure (pv_f, gain, inv_gamma),
+            pv_f = clamp (calc_exposure (pv_f, gain, inv_gamma),
                           0.0f, 1.0f);
             correction_table[pixelvalue] = (unsigned char) (pv_f*255 + 0.5);
         }

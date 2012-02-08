@@ -881,7 +881,8 @@ is desired, the following steps are necessary:
   {\cf supports ("channelformats")}.
 \item The \ImageSpec passed to {\cf open()} should have its {\cf
   channelformats} vector filled with the types for each channel.
-\item The call to {\cf write_scanline}, {\cf write_tile}, or {\cf
+\item The call to {\cf write_scanline}, {\cf read_scanlines},
+  {\cf write_tile}, {\cf write_tiles}, or {\cf
   write_image} should pass a {\cf data} pointer to the raw data, already
   in the native per-channel format of the file and contiguously packed,
   and specify that the data is of type {\cf TypeDesc::UNKNOWN}.
@@ -1018,6 +1019,7 @@ the order that the directories are listed.  Here is an example:
 
 \subsection{Error checking}
 \label{sec:imageoutput:errors}
+\index{error checking}
 
 Nearly every \ImageOutput API function returns a {\cf bool} indicating
 whether the operation succeeded ({\cf true}) or failed ({\cf false}).
@@ -1136,6 +1138,9 @@ by this query:
   entire data block is composed of pixels with value zero.  Plugins
   that support this achieve a speedup when passing blank scanlines or
   tiles (since no actual data needs to be transmitted or converted).
+\item[\rm \qkw{displaywindow}] Does the image format support specifying
+  a display (``full'') window that is distinct from the pixel data
+  window?
 \end{description}
 
 \noindent This list of queries may be extended in future releases.
@@ -1225,6 +1230,10 @@ Return {\kw true} for success, {\kw false} for failure.  It is a
 failure to call \writetile with an out-of-order tile if this
 format driver does not support random access.
 
+This function returns {\cf true} if it successfully writes the tile,
+otherwise {\cf false} for a failure.
+The call will fail if the image is not tiled, or if $(x,y,z)$ is not
+actually a tile boundary.
 \apiend
 
 \apiitem{bool {\ce write_tiles} (int xbegin, int xend, int ybegin, int yend,\\
@@ -1234,8 +1243,7 @@ format driver does not support random access.
 
 Write the tiles that include pixels {\kw xbegin} $\le x <$ {\kw xend},
 {\kw ybegin} $\le y <$ {\kw yend}, {\kw zbegin} $\le z <$ {\kw zend}
-from {\kw data}
-($z=0$ for non-volume images),
+from {\kw data},
 converting if necessary from {\kw format} specified into the file's
 native data format.
 If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data will be assumed
@@ -1249,6 +1257,12 @@ value of {\kw AutoStride} imply contiguous data, i.e., \\
 \spc {\kw zstride} $=$ {\kw ystride * (yend-ybegin)} \\
 The data for those tiles is assumed to be in the usual image order, as if
 it were just one big tile, and not ``paded'' to a whole multiple of the tile size.
+
+This function returns {\cf true} if it successfully writes the tiles,
+otherwise {\cf false} for a failure.
+The call will fail if the image is not tiled, or if the pixel ranges
+do not fall along tile (or image) boundaries, or if it is not a valid
+tile range.
 \apiend
 
 \apiitem{bool {\ce write_rectangle} ({\small int xbegin, int xend, int ybegin, int yend,
@@ -1341,6 +1355,7 @@ This is currently undefined and is reserved for future use.
 \apiend
 
 \apiitem{std::string {\ce geterror} ()}
+\index{error checking}
 Returns the current error string describing what went wrong if
 any of the public methods returned {\kw false} indicating an error.
 (Hopefully the implementation plugin called {\kw error()} with a
