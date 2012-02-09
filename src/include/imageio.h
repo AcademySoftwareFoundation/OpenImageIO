@@ -775,6 +775,10 @@ public:
     ///                       data formats?
     ///    "displaywindow"  Does the format support display ("full") windows
     ///                        distinct from the pixel data window?
+    ///    "origin"         Does the format support a nonzero x,y,z
+    ///                        origin of the pixel data window?
+    ///    "negativeorigin" Does the format support negative x,y,z
+    ///                        and full_{x,y,z} origin values?
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows

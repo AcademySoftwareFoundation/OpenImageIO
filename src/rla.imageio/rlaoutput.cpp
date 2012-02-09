@@ -146,7 +146,13 @@ RLAOutput::~RLAOutput ()
 bool
 RLAOutput::supports (const std::string &feature) const
 {
+    if (feature == "random_access")
+        return true;
     if (feature == "displaywindow")
+        return true;
+    if (feature == "origin")
+        return true;
+    if (feature == "negativeorigin")
         return true;
     // Support nothing else nonstandard
     return false;

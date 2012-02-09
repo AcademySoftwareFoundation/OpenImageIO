@@ -192,7 +192,6 @@ public:
         ImageSpec spec;             ///< ImageSpec for the mip level
         ImageSpec nativespec;       ///< Native ImageSpec for the mip level
         bool full_pixel_range;      ///< pixel data window matches image window
-        bool zero_origin;           ///< pixel data origin is (0,0)
         bool onetile;               ///< Whole level fits on one tile
         mutable bool polecolorcomputed;     ///< Pole color was computed
         mutable std::vector<float> polecolor;///< Pole colors
@@ -206,6 +205,12 @@ public:
         bool untiled;                   ///< Not tiled
         bool unmipped;                  ///< Not really MIP-mapped
         bool volume;                    ///< It's a volume image
+        bool full_pixel_range;          ///< pixel data window matches image window
+        // The scale/offset accounts for crops or overscans, converting
+        // 0-1 texture space relative to the "display/full window" into 
+        // 0-1 relative to the "pixel window".
+        float sscale, soffset, tscale, toffset;
+
         SubimageInfo () : untiled(false), unmipped(false) { }
         ImageSpec &spec (int m) { return levels[m].spec; }
         const ImageSpec &spec (int m) const { return levels[m].spec; }

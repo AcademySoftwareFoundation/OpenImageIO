@@ -137,6 +137,9 @@ TIFFOutput::supports (const std::string &feature) const
         return true;
     if (feature == "displaywindow")
         return true;
+    if (feature == "origin")
+        return true;
+    // N.B. TIFF doesn't support "negativeorigin"
 
     // FIXME: we could support "volumes" and "empty"
 

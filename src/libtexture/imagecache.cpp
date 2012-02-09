@@ -264,7 +264,6 @@ ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec_,
                         spec.width == spec.full_width &&
                         spec.height == spec.full_height &&
                         spec.depth == spec.full_depth);
-    zero_origin = (spec.x == 0 && spec.y == 0 && spec.z == 0);
     onetile = (spec.width <= spec.tile_width &&
                spec.height <= spec.tile_height &&
                spec.depth <= spec.tile_depth);
@@ -359,10 +358,28 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     do {
         m_subimages.resize (nsubimages+1);
         SubimageInfo &si (subimageinfo(nsubimages));
-        si.volume = (nativespec.depth > 1 || nativespec.full_depth > 1);
         int nmip = 0;
         do {
             tempspec = nativespec;
+            if (nmip == 0) {
+                // Things to do on MIP level 0, i.e. once per subimage
+                si.volume = (tempspec.depth > 1 || tempspec.full_depth > 1);
+                si.full_pixel_range = (tempspec.x == tempspec.full_x &&
+                                       tempspec.y == tempspec.full_y &&
+                                       tempspec.z == tempspec.full_z &&
+                                       tempspec.width == tempspec.full_width &&
+                                       tempspec.height == tempspec.full_height &&
+                                       tempspec.depth == tempspec.full_depth);
+                if (! si.full_pixel_range) {
+                    si.sscale = float(tempspec.full_width) / tempspec.width;
+                    si.soffset = float(tempspec.full_x-tempspec.x) / tempspec.width;
+                    si.tscale = float(tempspec.full_height) / tempspec.height;
+                    si.toffset = float(tempspec.full_y-tempspec.y) / tempspec.height;
+                } else {
+                    si.sscale = si.tscale = 1.0f;
+                    si.soffset = si.toffset = 0.0f;
+                }
+            }
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled = true;
                 if (imagecache().autotile()) {
@@ -389,7 +406,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             }
             thread_info->m_stats.files_totalsize += tempspec.image_bytes();
             // All MIP levels need the same number of channels
-            if (nmip > 1 && tempspec.nchannels != spec(nsubimages,0).nchannels) {
+            if (nmip > 0 && tempspec.nchannels != spec(nsubimages,0).nchannels) {
                 // No idea what to do with a subimage that doesn't have the
                 // same number of channels as the others, so just skip it.
                 close ();
