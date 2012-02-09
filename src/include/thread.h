@@ -75,10 +75,6 @@
 #  include <pthread.h>
 #endif
 
-#ifndef USE_TBB
-#  define USE_TBB 1
-#endif
-
 // Include files we need for atomic counters.
 // Some day, we hope this is all replaced by use of std::atomic<>.
 #if USE_TBB
