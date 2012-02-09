@@ -292,7 +292,7 @@ ustring::getstats (bool verbose)
             << ", unique " << ustring_stats_unique
             << ", " << Strutil::memformat(ustring_stats_memory);
     }
-
+#ifdef DEBUG
     // See if our hashing is pathological by checking if there are multiple
     // strings that ended up with the same hash.
     UstringTable &table (ustring_table());
@@ -318,7 +318,7 @@ ustring::getstats (bool verbose)
     }
     out << (verbose ? "  " : ", ") << collisions << " hash collisions (max " 
         << collision_max << (verbose ? ")\n" : ")");
-#ifdef DEBUG
+
     // DEBUG renders only -- reveal the strings sharing the most common hash
     if (collision_max > 2) {
         out << (verbose ? "" : "\n") << "  Most common hash " 
