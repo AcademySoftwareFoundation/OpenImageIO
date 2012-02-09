@@ -920,18 +920,7 @@ ImageCacheFile::invalidate ()
     m_broken = false;
     m_fingerprint.clear ();
     duplicate (NULL);
-#if 0
-    // Old code
-    // FIXME -- why do we need to reopen here?  Why reload the spec?
-    // LG thinks this was  broken because we still had m_subimages intact
-    // but still set m_validspec=true.  Weird, and led to subtle bugs.
-    open (imagecache().get_perthread_info());  // Force reload of spec
-    close ();
-    if (m_broken)
-        m_subimages.clear ();
-    m_validspec = false;  // force it to read next time
-    m_broken = false;
-#endif
+
     // Eat any errors that occurred in the open/close
     while (! imagecache().geterror().empty())
         ;
@@ -2309,6 +2298,14 @@ ImageCacheImpl::invalidate (ustring filename)
         file->invalidate ();
     }
 
+    // Remove the fingerprint corresponding to this file
+    {
+        spin_lock lock (m_fingerprints_mutex);
+        FilenameMap::iterator f = m_fingerprints.find (filename);
+        if (f != m_fingerprints.end())
+            m_fingerprints.erase (f);
+    }
+
     // Mark the per-thread microcaches as invalid
     lock_guard lock (m_perthread_info_mutex);
     for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
@@ -2357,8 +2354,6 @@ ImageCacheImpl::invalidate_all (bool force)
         // fprintf (stderr, "Invalidating %s\n", f.c_str());
         invalidate (f);
     }
-
-    clear_fingerprints ();
 
     // Mark the per-thread microcaches as invalid
     lock_guard lock (m_perthread_info_mutex);
