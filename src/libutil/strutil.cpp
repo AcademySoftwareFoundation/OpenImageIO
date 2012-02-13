@@ -34,6 +34,7 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <sstream>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 
@@ -249,6 +250,28 @@ Strutil::unescape_chars (const std::string &escaped)
     return s;
 }
 
+
+
+std::string
+Strutil::wordwrap (std::string src, int columns, int prefix)
+{
+    std::ostringstream out;
+    if (columns < prefix+20)
+        return src;   // give up, no way to make it wrap
+    columns -= prefix;  // now columns is the real width we have to work with
+    while ((int)src.length() > columns) {
+        // break the string in two
+        size_t breakpoint = src.find_last_of (' ', columns);
+        if (breakpoint == std::string::npos)
+            breakpoint = columns;
+        out << src.substr(0, breakpoint) << "\n" << std::string (prefix, ' ');
+        src = src.substr (breakpoint);
+        while (src[0] == ' ')
+            src.erase (0, 1);
+    }
+    out << src;
+    return out.str();
+}
 
 }
 OIIO_NAMESPACE_EXIT

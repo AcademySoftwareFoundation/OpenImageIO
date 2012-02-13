@@ -36,13 +36,15 @@
 #ifdef __linux__
 # include <sys/sysinfo.h>
 # include <unistd.h>
+# include <sys/ioctl.h>
 #endif
 
 #ifdef __FreeBSD__
-#include <sys/types.h>
-#include <sys/resource.h>
-#include <sys/sysctl.h>
-#include <sys/wait.h>
+# include <sys/types.h>
+# include <sys/resource.h>
+# include <sys/sysctl.h>
+# include <sys/wait.h>
+# include <sys/ioctl.h>
 #endif
 
 #ifdef __APPLE__
@@ -50,6 +52,7 @@
 # include <mach/mach_init.h>
 # include <mach-o/dyld.h>
 # include <unistd.h>
+# include <sys/ioctl.h>
 #endif
 
 #ifdef _WIN32
@@ -182,6 +185,25 @@ Sysutil::usleep (unsigned long useconds)
     ::usleep (useconds);     // *nix usleep() is in microseconds
 #endif
 }
+
+
+
+int
+Sysutil::terminal_columns ()
+{
+    int columns = 80;   // a decent guess, if we have nothing more to go on
+
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+    struct winsize w;
+    ioctl (0, TIOCGWINSZ, &w);
+    columns = w.ws_col;
+#elif defined(_WIN32)
+    // FIXME: is there a Windows equivalent?
+#endif
+
+    return columns;
+}
+
 
 }
 OIIO_NAMESPACE_EXIT
