@@ -16,7 +16,7 @@ import runtest
 # Start off
 command = "echo hi> out.txt"
 
-imagedir = "../../../oiio-testimages"
+imagedir = "../../../oiio-images"
 
 # List of images to test
 files = [ "dpx_nuke_10bits_rgb.dpx", "dpx_nuke_16bits_rgba.dpx" ]

@@ -1,5 +1,5 @@
 hi
-../../../oiio-testimages/dpx_nuke_10bits_rgb.dpx :  512 x  512, 3 channel, uint16 dpx
+../../../oiio-images/dpx_nuke_10bits_rgb.dpx :  512 x  512, 3 channel, uint16 dpx
     SHA-1: D63D2EC8C60AB41B1C0F72A65AE8FF27DA8A620E
     channel list: R, G, B
     oiio:BitsPerSample: 10
@@ -36,8 +36,8 @@ hi
     dpx:TimeCode: "00:00:00:00"
     dpx:UserBits: 0
     dpx:Signal: "Undefined"
-Converting ../../../oiio-testimages/dpx_nuke_10bits_rgb.dpx to dpx_nuke_10bits_rgb.dpx
-Comparing "../../../oiio-testimages/dpx_nuke_10bits_rgb.dpx" and "dpx_nuke_10bits_rgb.dpx"
+Converting ../../../oiio-images/dpx_nuke_10bits_rgb.dpx to dpx_nuke_10bits_rgb.dpx
+Comparing "../../../oiio-images/dpx_nuke_10bits_rgb.dpx" and "dpx_nuke_10bits_rgb.dpx"
 Subimage 0: 512 x 512, 3 channel
   Mean error = 0
   RMS error = 0
@@ -46,7 +46,7 @@ Subimage 0: 512 x 512, 3 channel
   0 pixels (0%) over 1e-06
   0 pixels (0%) over 1e-06
 PASS
-../../../oiio-testimages/dpx_nuke_16bits_rgba.dpx :  512 x  512, 4 channel, uint16 dpx
+../../../oiio-images/dpx_nuke_16bits_rgba.dpx :  512 x  512, 4 channel, uint16 dpx
     SHA-1: E9FECE70CD875C5654F58DA9EC576399F089D855
     channel list: R, G, B, A
     oiio:BitsPerSample: 10
@@ -83,8 +83,8 @@ PASS
     dpx:TimeCode: "00:00:00:00"
     dpx:UserBits: 0
     dpx:Signal: "Undefined"
-Converting ../../../oiio-testimages/dpx_nuke_16bits_rgba.dpx to dpx_nuke_16bits_rgba.dpx
-Comparing "../../../oiio-testimages/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16bits_rgba.dpx"
+Converting ../../../oiio-images/dpx_nuke_16bits_rgba.dpx to dpx_nuke_16bits_rgba.dpx
+Comparing "../../../oiio-images/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16bits_rgba.dpx"
 Subimage 0: 512 x 512, 4 channel
   Mean error = 0
   RMS error = 0
