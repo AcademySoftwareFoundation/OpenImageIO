@@ -122,6 +122,8 @@ static bool src_samples_border = false; // are src edge samples on the border?
 static bool unpremult = false;
 static std::string incolorspace;
 static std::string outcolorspace;
+static ColorConfig colorconfig;
+
 
 // forward decl
 static void write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
@@ -144,6 +146,8 @@ filter_help_string ()
     return s;
 }
 
+
+
 static std::string
 colortitle_help_string ()
 {
@@ -157,32 +161,30 @@ colortitle_help_string ()
     return s;
 }
 
+
+
 static std::string
 colorconvert_help_string ()
 {
-    std::string s = "Apply a color space conversion to the image."
+    std::string s = "Apply a color space conversion to the image. "
     "If the output color space is not the same bit depth "
     "as input color space, it is your responsibility to set the data format "
     "to the proper bit depth using the -d option. ";
     
     s += " (choices: ";
-    ColorConfig config;
-    if(config.error() || config.getNumColorSpaces()==0)
-    {
+    if (colorconfig.error() || colorconfig.getNumColorSpaces()==0) {
         s += "NONE";
-    }
-    else
-    {
-        for (int i=0; i<config.getNumColorSpaces(); ++i)
-        {
+    } else {
+        for (int i=0; i < colorconfig.getNumColorSpaces(); ++i) {
             if (i!=0) s += ", ";
-            s += config.getColorSpaceNameByIndex(i);
+            s += colorconfig.getColorSpaceNameByIndex(i);
         }
     }
     s += ")";
-    
     return s;
 }
+
+
 
 static Filter2D *
 setup_filter (const std::string &filtername)
@@ -929,19 +931,18 @@ make_texturemap (const char *maptypename = "texture map")
                       << " to colorspace " << outcolorspace << std::endl;
         }
         
-        ColorConfig config;
-        if (config.error()) {
+        if (colorconfig.error()) {
             std::cerr << "Error Creating ColorConfig\n";
-            std::cerr << config.geterror() << std::endl;
+            std::cerr << colorconfig.geterror() << std::endl;
             exit (EXIT_FAILURE);
         }
         
-        ColorProcessor * processor = config.createColorProcessor (
+        ColorProcessor * processor = colorconfig.createColorProcessor (
             incolorspace.c_str(), outcolorspace.c_str());
         
-        if (!processor || config.error()) {
+        if (!processor || colorconfig.error()) {
             std::cerr << "Error Creating Color Processor." << std::endl;
-            std::cerr << config.geterror() << std::endl;
+            std::cerr << colorconfig.geterror() << std::endl;
             exit (EXIT_FAILURE);
         }
         

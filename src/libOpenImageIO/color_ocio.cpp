@@ -127,6 +127,10 @@ ColorConfig::ColorConfig ()
 #endif
 
     getImpl()->inventory ();
+
+    // If we populated our own, remove any errors.
+    if (getNumColorSpaces() && !getImpl()->error_.empty())
+        getImpl()->error_.clear();
 }
 
 
