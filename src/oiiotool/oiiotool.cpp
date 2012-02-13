@@ -36,6 +36,7 @@
 #include <iterator>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <utility>
 
 #include <boost/algorithm/string.hpp>
@@ -53,6 +54,7 @@ using boost::algorithm::iequals;
 #include "sysutil.h"
 #include "filesystem.h"
 #include "filter.h"
+#include "color.h"
 
 #include "oiiotool.h"
 
@@ -152,11 +154,7 @@ input_file (int argc, const char *argv[])
     for (int i = 0;  i < argc;  i++) {
         if (ot.verbose)
             std::cout << "Reading " << argv[0] << "\n";
-        if (ot.curimg.get() != NULL) {
-            // Already a current image -- push it on the stack
-            ot.image_stack.push_back (ot.curimg);
-        }
-        ot.curimg.reset (new ImageRec (argv[i], ot.imagecache));
+        ot.push (ImageRecRef (new ImageRec (argv[i], ot.imagecache)));
         if (ot.printinfo || ot.printstats) {
             OiioTool::print_info_options pio;
             pio.verbose = ot.verbose;
@@ -634,6 +632,31 @@ rotate_orientation (int argc, const char *argv[])
 
 
 static int
+set_origin (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, set_origin, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.curimg;
+    ImageSpec &spec (*A->spec(0,0));
+    int x = spec.x, y = spec.y;
+    int w = spec.width, h = spec.height;
+
+    adjust_geometry (w, h, x, y, argv[1]);
+    if (spec.width != w || spec.height != h)
+        std::cerr << argv[0] << " can't be used to change the size, only the origin\n";
+    if (spec.x != x || spec.y != y) {
+        spec.x = x;
+        spec.y = y;
+        A->metadata_modified (true);
+    }
+    return 0;
+}
+
+
+
+static int
 set_fullsize (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, set_fullsize, argc, argv))
@@ -679,6 +702,82 @@ set_full_to_pixels (int argc, const char *argv[])
 
 
 static int
+set_colorspace (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    const char *args[3] = { argv[0], "oiio:ColorSpace", argv[1] };
+    return set_string_attribute (3, args);
+}
+
+
+
+static int
+action_colorconvert (int argc, const char *argv[])
+{
+    ASSERT (argc == 3);
+    if (ot.postpone_callback (1, action_colorconvert, argc, argv))
+        return 0;
+
+    std::string fromspace = argv[1];
+    std::string tospace = argv[2];
+
+    ot.read ();
+    bool need_transform = false;
+    ImageRecRef A = ot.curimg;
+    ot.read (A);
+
+    for (int s = 0, send = A->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+            const ImageSpec *spec = A->spec(s,m);
+            need_transform |=
+                spec->get_string_attribute("oiio:ColorSpace") != tospace;
+        }
+    }
+
+    if (! need_transform)
+        return 1;    // no need to do anything
+
+    ot.pop ();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+    
+    if (fromspace == "current")
+        fromspace = A->spec(0,0)->get_string_attribute ("oiio:Colorspace", "Linear");
+
+    ColorProcessor *processor =
+        ot.colorconfig.createColorProcessor (fromspace.c_str(), tospace.c_str());
+    if (! processor)
+        return 1;
+
+    for (int s = 0, send = A->subimages();  s < send;  ++s) {
+        for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
+            ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            ot.curimg->spec(s,m)->attribute ("oiio::Colorspace", tospace);
+        }
+    }
+
+    ot.colorconfig.deleteColorProcessor (processor);
+
+    return 1;
+}
+
+
+
+static int
+action_tocolorspace (int argc, const char *argv[])
+{
+    ASSERT (argc == 2);
+    if (! ot.curimg.get()) {
+        std::cerr << "oiiotool ERROR: " << argv[0] << " had no current image.\n";
+        return 0;
+    }
+    const char *args[3] = { argv[0], "current", argv[1] };
+    return action_colorconvert (3, args);
+}
+
+
+
+static int
 output_tiles (int /*argc*/, const char *argv[])
 {
     // the ArgParse will have set the tile size, but we need this routine
@@ -703,7 +802,28 @@ action_unmip (int argc, const char *argv[])
         return 0;    // --unmip on an unmipped image is a no-op
     }
 
-    ImageRecRef newimg (new ImageRec (*ot.curimg, -1, false, true, true));
+    ImageRecRef newimg (new ImageRec (*ot.curimg, -1, 0, true, true));
+    ot.curimg = newimg;
+    return 0;
+}
+
+
+
+static int
+action_selectmip (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_unmip, argc, argv))
+        return 0;
+
+    ot.read ();
+    bool mipmapped = false;
+    for (int s = 0, send = ot.curimg->subimages();  s < send;  ++s)
+        mipmapped |= (ot.curimg->miplevels(s) > 1);
+    if (! mipmapped) {
+        return 0;    // --selectmip on an unmipped image is a no-op
+    }
+
+    ImageRecRef newimg (new ImageRec (*ot.curimg, -1, atoi(argv[1]), true, true));
     ot.curimg = newimg;
     return 0;
 }
@@ -721,7 +841,8 @@ action_select_subimage (int argc, const char *argv[])
         return 0;    // --subimage on a single-image file is a no-op
     
     int subimage = std::min (atoi(argv[1]), ot.curimg->subimages());
-    ot.curimg.reset (new ImageRec (*ot.curimg, subimage, true, true, true));
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, subimage));
     return 0;
 }
 
@@ -747,13 +868,12 @@ action_add (int argc, const char *argv[])
     if (ot.postpone_callback (2, action_add, argc, argv))
         return 0;
 
-    ImageRecRef A = ot.image_stack.back();
-    ot.image_stack.resize (ot.image_stack.size()-1);
-    ImageRecRef B = ot.curimg;
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
     ot.read (A);
     ot.read (B);
-    ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                   ot.allsubimages, true, false));
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -783,13 +903,12 @@ action_sub (int argc, const char *argv[])
     if (ot.postpone_callback (2, action_sub, argc, argv))
         return 0;
 
-    ImageRecRef A = ot.image_stack.back();
-    ot.image_stack.resize (ot.image_stack.size()-1);
-    ImageRecRef B = ot.curimg;
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
     ot.read (A);
     ot.read (B);
-    ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                ot.allsubimages, true, false));
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -829,9 +948,9 @@ action_abs (int argc, const char *argv[])
         return 0;
 
     ot.read ();
-    ImageRecRef A = ot.curimg;
-    ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                   ot.allsubimages, true, false));
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -862,9 +981,9 @@ action_flip (int argc, const char *argv[])
         return 0;
 
     ot.read ();
-    ImageRecRef A = ot.curimg;
-    ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                   ot.allsubimages, true, false));
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -897,9 +1016,9 @@ action_flop (int argc, const char *argv[])
         return 0;
 
     ot.read ();
-    ImageRecRef A = ot.curimg;
-    ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                   ot.allsubimages, true, false));
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -932,9 +1051,9 @@ action_flipflop (int argc, const char *argv[])
         return 0;
 
     ot.read ();
-    ImageRecRef A = ot.curimg;
-    ot.curimg.reset (new ImageRec (*A, ot.allsubimages ? -1 : 0,
-                                   ot.allsubimages, true, false));
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
 
     int subimages = ot.curimg->subimages();
     for (int s = 0;  s < subimages;  ++s) {
@@ -958,6 +1077,26 @@ action_flipflop (int argc, const char *argv[])
         }
     }
              
+    return 0;
+}
+
+
+
+static int
+action_pop (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    ot.pop ();
+    return 0;
+}
+
+
+
+static int
+action_dup (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    ot.push (ot.curimg);
     return 0;
 }
 
@@ -999,7 +1138,8 @@ action_crop (int argc, const char *argv[])
                      newspec.x, newspec.y, argv[1]);
     if (newspec.width != Aspec.width || newspec.height != Aspec.height) {
         // resolution changed -- we need to do a full crop
-        ot.curimg.reset (new ImageRec (A->name(), newspec, ot.imagecache));
+        ot.pop();
+        ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
         const ImageBuf &Aib ((*A)(0,0));
         ImageBuf &Rib ((*ot.curimg)(0,0));
         ImageBufAlgo::crop (Rib, Aib, newspec.x, newspec.x+newspec.width,
@@ -1054,7 +1194,7 @@ action_resize (int argc, const char *argv[])
     }
 
     ot.read ();
-    ImageRecRef A = ot.curimg;
+    ImageRecRef A = ot.pop();
     const ImageSpec &Aspec (*A->spec(0,0));
     ImageSpec newspec = Aspec;
 
@@ -1070,7 +1210,7 @@ action_resize (int argc, const char *argv[])
     newspec.full_width = newspec.width;
     newspec.full_height = newspec.height;
 
-    ot.curimg.reset (new ImageRec (A->name(), newspec, ot.imagecache));
+    ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
     Filter2D *filter = NULL;
     if (! filtername.empty()) {
         // If there's a matching filter, use it (and its recommended width)
@@ -1165,6 +1305,8 @@ getargs (int argc, char *argv[])
                 "--rotcw %@", rotate_orientation, &dummybool, "Rotate orientation 90 deg clockwise",
                 "--rotccw %@", rotate_orientation, &dummybool, "Rotate orientation 90 deg counter-clockwise",
                 "--rot180 %@", rotate_orientation, &dummybool, "Rotate orientation 180 deg",
+                "--origin %@ %s", set_origin, &dummystr,
+                    "Set the pixel data window origin (e.g. +20+10)",
                 "--fullsize %@ %s", set_fullsize, &dummystr, "Set the display window (e.g., 1920x1280, 1024x768+100+0, -20-30)",
                 "--fullpixels %@", set_full_to_pixels, &dummybool, "Set the 'full' image range to be the pixel data window",
                 "<SEPARATOR>", "Options that affect subsequent actions:",
@@ -1178,6 +1320,8 @@ getargs (int argc, char *argv[])
                 "--create %@ %s %d", action_create, &dummystr, &dummyint,
                         "Create a blank image (args: geom, channels)",
                 "--unmip %@", action_unmip, &dummybool, "Discard all but the top level of a MIPmap",
+                "--selectmip %@ %d", action_selectmip, &dummyint,
+                    "Select just one MIP level (0 = highest res)",
                 "--subimage %@ %d", action_select_subimage, &dummyint, "Select just one subimage",
                 "--diff %@", action_diff, &dummybool, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
                 "--add %@", action_add, &dummybool, "Add two images",
@@ -1189,7 +1333,19 @@ getargs (int argc, char *argv[])
                 "--crop %@ %s", action_crop, &dummystr, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, &dummybool, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resize %@ %s", action_resize, &dummystr, "Resize (640x480, 50%)",
+                "--pop %@", action_pop, &dummybool,
+                    "Throw away the current image",
+                "--dup %@", action_dup, &dummybool,
+                    "Duplicate the current image (push a copy onto the stack)",
+                "<SEPARATOR>", "Color management:",
+                "--iscolorspace %@ %s", set_colorspace, NULL,
+                    "Set the assumed color space (without altering pixels)",
+                "--tocolorspace %@ %s", action_tocolorspace, NULL,
+                    "Convert the current image's pixels to a named color space",
+                "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
+                    "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
                 NULL);
+
     if (ap.parse(argc, (const char**)argv) < 0) {
 	std::cerr << ap.geterror() << std::endl;
         ap.usage ();
@@ -1197,6 +1353,22 @@ getargs (int argc, char *argv[])
     }
     if (help || argc <= 1) {
         ap.usage ();
+
+        // debugging color space names
+        std::stringstream s;
+        s << "Known color spaces: ";
+        const char *linear = ot.colorconfig.getColorSpaceNameByRole("linear");
+        for (int i = 0, e = ot.colorconfig.getNumColorSpaces();  i < e;  ++i) {
+            const char *n = ot.colorconfig.getColorSpaceNameByIndex(i);
+            s << "\"" << n << "\"";
+            if (linear && !iequals(n,"linear") && iequals (n, linear))
+                s << " (linear)";
+            if (i < e-1)
+                s << ", ";
+        }
+        int columns = Sysutil::terminal_columns() - 2;
+        std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+
         exit (EXIT_FAILURE);
     }
 

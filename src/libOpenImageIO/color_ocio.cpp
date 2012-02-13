@@ -1,5 +1,5 @@
 /*
-  Copyright 2010 Larry Gritz and the other authors and contributors.
+  Copyright 2012 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -38,36 +38,83 @@ using boost::algorithm::iequals;
 #include "color.h"
 #include "imagebufalgo.h"
 
-#if USE_OCIO
-
+#ifdef USE_OCIO
 #include <OpenColorIO/OpenColorIO.h>
 namespace OCIO = OCIO_NAMESPACE;
+#endif
+
 
 OIIO_NAMESPACE_ENTER
 {
 
+
 bool
 ColorConfig::supportsOpenColorIO ()
 {
+#ifdef USE_OCIO
     return true;
+#else
+    return false;
+#endif
 }
 
+
+
+// Hidden implementation of ColorConfig
 class ColorConfig::Impl
 {
 public:
+#ifdef USE_OCIO
     OCIO::ConstConfigRcPtr config_;
+#endif
     mutable std::string error_;
-    
+    std::vector<std::pair<std::string,int> > colorspaces;
+    std::string linear_alias;  // Alias for a scene-linear color space
+
     Impl() { }
-    
     ~Impl() { }
+    void inventory ();
+    void add (const std::string &name, int index) {
+        colorspaces.push_back (std::pair<std::string,int> (name, index));
+    }
 };
+
+
+
+// ColorConfig utility to take inventory of the color spaces available.
+// It sets up knowledge of "linear", "sRGB", "Rec709",
+// even if the underlying OCIO configuration lacks them.
+void
+ColorConfig::Impl::inventory ()
+{
+#ifdef USE_OCIO
+    if (config_) {
+        for (int i = 0, e = config_->getNumColorSpaces();  i < e;  ++i) {
+            std::string name = config_->getColorSpaceNameByIndex(i);
+            add (name, i);
+        }
+        OCIO::ConstColorSpaceRcPtr lin = config_->getColorSpace ("scene_linear");
+        if (lin)
+            linear_alias = lin->getName();
+    }
+    if (colorspaces.size())
+        return;   // If any were defined, we're done
+#endif
+
+    // If there was no configuration, or we didn't compile with OCIO
+    // support at all, register a few basic names we know about.
+    add ("linear", 0);
+    add ("sRGB", 1);
+    add ("Rec709", 2);
+}
 
 
 
 ColorConfig::ColorConfig ()
     : m_impl (new ColorConfig::Impl)
 {
+#ifdef USE_OCIO
+    OCIO::SetLoggingLevel (OCIO::LOGGING_LEVEL_NONE);
     try {
         getImpl()->config_ = OCIO::GetCurrentConfig();
     }
@@ -77,10 +124,18 @@ ColorConfig::ColorConfig ()
     catch(...) {
         getImpl()->error_ = "An unknown error occurred in OpenColorIO, GetCurrentConfig";
     }
+#endif
+
+    getImpl()->inventory ();
 }
 
+
+
 ColorConfig::ColorConfig (const char * filename)
+    : m_impl (new ColorConfig::Impl)
 {
+#ifdef USE_OCIO
+    OCIO::SetLoggingLevel (OCIO::LOGGING_LEVEL_NONE);
     try {
         getImpl()->config_ = OCIO::Config::CreateFromFile (filename);
     }
@@ -91,7 +146,10 @@ ColorConfig::ColorConfig (const char * filename)
     {
         getImpl()->error_ = "An unknown error occurred in OpenColorIO, CreateFromFile";
     }
+#endif
 }
+
+
 
 ColorConfig::~ColorConfig()
 {
@@ -99,11 +157,15 @@ ColorConfig::~ColorConfig()
     m_impl = NULL;
 }
 
+
+
 bool
 ColorConfig::error () const
 {
     return (!getImpl()->error_.empty());
 }
+
+
    
 std::string
 ColorConfig::geterror ()
@@ -113,59 +175,233 @@ ColorConfig::geterror ()
     return olderror;
 }
 
+
+
 int
 ColorConfig::getNumColorSpaces () const
 {
-    if (!getImpl()->config_) return 0;
-    getImpl()->error_ = "";
-    
-    return getImpl()->config_->getNumColorSpaces();
+    return (int) getImpl()->colorspaces.size();
 }
+
+
 
 const char *
 ColorConfig::getColorSpaceNameByIndex (int index) const
 {
-    if (!getImpl()->config_) return "";
-    getImpl()->error_ = "";
-    
-    return getImpl()->config_->getColorSpaceNameByIndex(index);
+    return getImpl()->colorspaces[index].first.c_str();
 }
 
 
 
+const char *
+ColorConfig::getColorSpaceNameByRole (const char *role) const
+{
+#if USE_OCIO
+    if (getImpl()->config_) {
+        OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace (role);
+        // Catch special case of obvious name synonyms
+        if (!c && iequals(role,"linear"))
+            c = getImpl()->config_->getColorSpace ("scene_linear");
+        if (!c && iequals(role,"scene_linear"))
+            c = getImpl()->config_->getColorSpace ("linear");
+        if (c)
+            return c->getName();
+    }
+#endif
 
+    // No OCIO at build time, or no OCIO configuration at run time
+    if (iequals (role, "linear") || iequals (role, "scene_linear"))
+        return "linear";
+
+    return NULL;  // Dunno what role
+}
+
+
+
+// Abstract wrapper class for objects that will apply color transformations.
 class ColorProcessor
 {
-    public:
-    OCIO::ConstProcessorRcPtr p;
+public:
+    ColorProcessor () {};
+    virtual ~ColorProcessor (void) { };
+    virtual bool isNoOp() const { return false; }
+    virtual bool hasChannelCrosstalk() const { return false; }
+    virtual void apply (float *data, int width, int height, int channels,
+                        stride_t chanstride, stride_t xstride,
+                        stride_t ystride) const = 0;
 };
+
+
+
+#ifdef USE_OCIO
+// Custom ColorProcessor that wraps an OpenColorIO Processor.
+class ColorProcessor_OCIO : public ColorProcessor
+{
+public:
+    ColorProcessor_OCIO (OCIO::ConstProcessorRcPtr p) : m_p(p) {};
+    virtual ~ColorProcessor_OCIO (void) { };
+    
+    virtual bool isNoOp() const { return m_p->isNoOp(); }
+    virtual bool hasChannelCrosstalk() const {
+        return m_p->hasChannelCrosstalk();
+    }
+    virtual void apply (float *data, int width, int height, int channels,
+                        stride_t chanstride, stride_t xstride,
+                        stride_t ystride) const
+    {
+        OCIO::PackedImageDesc pid (data, width, height, channels,
+                                   chanstride, xstride, ystride);
+        m_p->apply (pid);
+    }
+
+private:
+    OCIO::ConstProcessorRcPtr m_p;
+};
+#endif
+
+
+// ColorProcessor that hard-codes sRGB-to-linear
+class ColorProcessor_sRGB_to_linear : public ColorProcessor {
+public:
+    ColorProcessor_sRGB_to_linear () : ColorProcessor() { };
+    ~ColorProcessor_sRGB_to_linear () { };
+
+    virtual void apply (float *data, int width, int height, int channels,
+                        stride_t chanstride, stride_t xstride,
+                        stride_t ystride) const
+    {
+        if (channels > 3)
+            channels = 3;
+        for (int y = 0;  y < height;  ++y) {
+            char *d = (char *)data + y*ystride;
+            for (int x = 0;  x < width;  ++x, d += xstride)
+                for (int c = 0;  c < channels;  ++c)
+                    *(float *)d = sRGB_to_linear (*(float *)d);
+        }
+    }
+};
+
+
+// ColorProcessor that hard-codes linear-to-sRGB
+class ColorProcessor_linear_to_sRGB : public ColorProcessor {
+public:
+    ColorProcessor_linear_to_sRGB () : ColorProcessor() { };
+    ~ColorProcessor_linear_to_sRGB () { };
+    
+    virtual void apply (float *data, int width, int height, int channels,
+                        stride_t chanstride, stride_t xstride,
+                        stride_t ystride) const
+    {
+        if (channels > 3)
+            channels = 3;
+        for (int y = 0;  y < height;  ++y) {
+            char *d = (char *)data + y*ystride;
+            for (int x = 0;  x < width;  ++x, d += xstride)
+                for (int c = 0;  c < channels;  ++c)
+                    ((float *)d)[c] = linear_to_sRGB (((float *)d)[c]);
+        }
+    }
+};
+
+
+
+// ColorProcessor that hard-codes Rec709-to-linear
+class ColorProcessor_Rec709_to_linear : public ColorProcessor {
+public:
+    ColorProcessor_Rec709_to_linear () : ColorProcessor() { };
+    ~ColorProcessor_Rec709_to_linear () { };
+
+    virtual void apply (float *data, int width, int height, int channels,
+                        stride_t chanstride, stride_t xstride,
+                        stride_t ystride) const
+    {
+        if (channels > 3)
+            channels = 3;
+        for (int y = 0;  y < height;  ++y) {
+            char *d = (char *)data + y*ystride;
+            for (int x = 0;  x < width;  ++x, d += xstride)
+                for (int c = 0;  c < channels;  ++c)
+                    *(float *)d = Rec709_to_linear (*(float *)d);
+        }
+    }
+};
+
+
+// ColorProcessor that hard-codes linear-to-Rec709
+class ColorProcessor_linear_to_Rec709 : public ColorProcessor {
+public:
+    ColorProcessor_linear_to_Rec709 () : ColorProcessor() { };
+    ~ColorProcessor_linear_to_Rec709 () { };
+    
+    virtual void apply (float *data, int width, int height, int channels,
+                        stride_t chanstride, stride_t xstride,
+                        stride_t ystride) const
+    {
+        if (channels > 3)
+            channels = 3;
+        for (int y = 0;  y < height;  ++y) {
+            char *d = (char *)data + y*ystride;
+            for (int x = 0;  x < width;  ++x, d += xstride)
+                for (int c = 0;  c < channels;  ++c)
+                    ((float *)d)[c] = linear_to_Rec709 (((float *)d)[c]);
+        }
+    }
+};
+
+
 
 ColorProcessor*
 ColorConfig::createColorProcessor (const char * inputColorSpace,
                                    const char * outputColorSpace) const
 {
-    if(!getImpl()->config_) return NULL;
+#ifdef USE_OCIO
+    // Ask OCIO to make a Processor that can handle the requested
+    // transformation.
+    if (getImpl()->config_) {
+        OCIO::ConstProcessorRcPtr p;
+        try {
+            // Get the processor corresponding to this transform.
+            p = getImpl()->config_->getProcessor(inputColorSpace, outputColorSpace);
+        }
+        catch(OCIO::Exception &e) {
+            getImpl()->error_ = e.what();
+            return NULL;
+        }
+        catch(...) {
+            getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
+            return NULL;
+        }
     
-    OCIO::ConstProcessorRcPtr p;
-    
-    try {
-        // Get the processor corresponding to this transform.
-        p = getImpl()->config_->getProcessor(inputColorSpace, outputColorSpace);
+        getImpl()->error_ = "";
+        return new ColorProcessor_OCIO(p);
     }
-    catch(OCIO::Exception &e) {
-        getImpl()->error_ = e.what();
-        return NULL;
+#endif
+
+    // Either not compiled with OCIO support, or no OCIO configuration
+    // was found at all.  There are a few color conversions we know
+    // about even in such dire conditions.
+    if (iequals(inputColorSpace,"linear") &&
+        iequals(outputColorSpace,"sRGB")) {
+        return new ColorProcessor_linear_to_sRGB;
     }
-    catch(...) {
-        getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
-        return NULL;
+    if (iequals(inputColorSpace,"sRGB") &&
+        iequals(outputColorSpace,"linear")) {
+        return new ColorProcessor_sRGB_to_linear;
     }
-    
-    getImpl()->error_ = "";
-    ColorProcessor * processor = new ColorProcessor();
-    processor->p = p;
-    return processor;
+    if (iequals(inputColorSpace,"linear") &&
+        iequals(outputColorSpace,"Rec709")) {
+        return new ColorProcessor_linear_to_Rec709;
+    }
+    if (iequals(inputColorSpace,"Rec709") &&
+        iequals(outputColorSpace,"linear")) {
+        // No OCIO, or the OCIO config doesn't know linear->sRGB
+        return new ColorProcessor_Rec709_to_linear;
+    }
+
+    return NULL;    // if we get this far, we've failed
 }
+
+
 
 void
 ColorConfig::deleteColorProcessor (ColorProcessor * processor)
@@ -175,29 +411,26 @@ ColorConfig::deleteColorProcessor (ColorProcessor * processor)
 
 
 
-////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 //
 // Image Processing Implementations
 
 
-
 bool
 ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
-    const ColorProcessor* processor,
-    bool unpremult)
+                            const ColorProcessor* processor, bool unpremult)
 {
     // If the processor is NULL, return false (error)
-    if (!processor || (!processor->p))
+    if (!processor)
         return false;
-    
+
     // If the processor is a no-op, no work needs to be done. Early exit.
-    if (processor->p->isNoOp())
+    if (processor->isNoOp())
         return true;
     
-    ImageSpec dstspec = dst.spec();
-    
+    const ImageSpec &dstspec = dst.spec();
+    // Temporary space to hold one RGBA scanline
     std::vector<float> scanline(dstspec.width*4, 0.0f);
-    OCIO::PackedImageDesc scanlineimg(&scanline[0], dstspec.width, 1, 4);
     
     // Only process up to, and including, the first 4 channels.
     // This does let us process images with fewer than 4 channels, which is the intent
@@ -223,7 +456,7 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     // If the processor has crosstalk, and we'll be using it, we should
     // reset the channels to 0 before loading each scanline.
     bool clearScanline = (channelsToCopy<4 && 
-        (processor->p->hasChannelCrosstalk() || unpremult));
+                          (processor->hasChannelCrosstalk() || unpremult));
     
     for (int k = dstspec.z; k < dstspec.z+dstspec.depth; k++) {
         for (int j = dstspec.y; j <  dstspec.y+dstspec.height; j++) {
@@ -253,7 +486,9 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
             }
             
             // Apply the color transformation in place
-            processor->p->apply (scanlineimg);
+            processor->apply (&scanline[0], dstspec.width, 1, 4,
+                              sizeof(float), 4*sizeof(float),
+                              dstspec.width*4*sizeof(float));
             
             // Optionally premult
             if ((channelsToCopy>=4) && unpremult) {
@@ -280,18 +515,18 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
     return true;
 }
 
+
     
 bool
 ImageBufAlgo::colorconvert (float * color, int nchannels,
-    const ColorProcessor* processor,
-    bool unpremult)
+                            const ColorProcessor* processor, bool unpremult)
 {
     // If the processor is NULL, return false (error)
-    if (!processor || (!processor->p))
+    if (!processor)
         return false;
     
     // If the processor is a no-op, no work needs to be done. Early exit.
-    if (processor->p->isNoOp())
+    if (processor->isNoOp())
         return true;
     
     // Load the pixel
@@ -312,7 +547,8 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
     }
     
     // Apply the color transformation
-    processor->p->applyRGBA (rgba);
+    processor->apply (rgba, 1, 1, 4,
+                      sizeof(float), 4*sizeof(float), 4*sizeof(float));
     
     // Optionally premult
     if ((channelsToCopy>=4) && unpremult) {
@@ -331,10 +567,5 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
 }
 
 
-
-
 }
 OIIO_NAMESPACE_EXIT
-
-
-#endif // USE_OCIO

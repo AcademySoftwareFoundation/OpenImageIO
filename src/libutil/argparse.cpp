@@ -39,11 +39,9 @@
 #include <iterator>
 #include <string>
 #include <sstream>
-#if defined(__linux__) || defined(__APPLE__) 
-#  include <sys/ioctl.h>
-#endif
 
 #include "strutil.h"
+#include "sysutil.h"
 #include "argparse.h"
 #include "dassert.h"
 
@@ -246,6 +244,9 @@ ArgOption::set_parameter (int i, const char *argv)
 {
     assert(i < m_count);
     
+    if (! m_param[i])   // If they passed NULL as the address,
+        return;         // don't write anything.
+
     switch (m_code[i]) {
     case 'd':
         *(int *)m_param[i] = atoi(argv);
@@ -438,14 +439,7 @@ ArgParse::options (const char *intro, ...)
         // Grab any parameters and store them with this option
         for (int i = 0; i < option->parameter_count(); i++) {
             void *p = va_arg (ap, void *);
-            if (p == NULL) {
-                error ("Missing argument parameter for \"%s\"",
-                              option->name().c_str());
-                return -1;
-            }
-            
             option->add_parameter (i, p);
-
             if (option == m_global)
                 option->set_callback ((ArgOption::callback_t)p);
         }
@@ -513,35 +507,6 @@ ArgParse::geterror () const
 
 
 
-// Word-wrap string 'src' to no more than columns width, splitting at
-// space characters.  It assumes that 'prefix' characters are already
-// printed, and furthermore, if it should need to wrap, it prefixes that
-// number of spaces in front of subsequent lines.  By illustration, 
-// wordwrap("0 1 2 3 4 5 6 7 8", 4, 10) should return:
-// "0 1 2\n    3 4 5\n    6 7 8"
-static std::string
-wordwrap (std::string src, int prefix, int columns)
-{
-    std::ostringstream out;
-    if (columns < prefix+20)
-        return src;   // give up, no way to make it wrap
-    columns -= prefix;  // now columns is the real width we have to work with
-    while ((int)src.length() > columns) {
-        // break the string in two
-        size_t breakpoint = src.find_last_of (' ', columns);
-        if (breakpoint == std::string::npos)
-            breakpoint = columns;
-        out << src.substr(0, breakpoint) << "\n" << std::string (prefix, ' ');
-        src = src.substr (breakpoint);
-        while (src[0] == ' ')
-            src.erase (0, 1);
-    }
-    out << src;
-    return out.str();
-}
-
-
-
 void
 ArgParse::usage () const
 {
@@ -558,28 +523,21 @@ ArgParse::usage () const
     }
 
     // Try to figure out how wide the terminal is, so we can word wrap.
-    int columns = 80;
-#if defined(__linux__) || defined(__APPLE__) 
-    struct winsize w;
-    ioctl (0, TIOCGWINSZ, &w);
-    // std::cout << "terminal is " << w.ws_col << "x" << w.ws_row << "\n";
-    columns = w.ws_col;
-    // FIXME: is there a Windows equivalent?
-#endif
+    int columns = Sysutil::terminal_columns ();
 
     for (unsigned int i=0; i<m_option.size(); ++i) {
         ArgOption *opt = m_option[i];
         if (opt->description().length()) {
             size_t fmtlen = opt->fmt().length();
             if (opt->fmt() == "<SEPARATOR>") {
-                std::cout << wordwrap(opt->description(), 0, columns-2) << '\n';
+                std::cout << Strutil::wordwrap(opt->description(), columns-2, 0) << '\n';
             } else {
                 std::cout << "    " << opt->fmt();
                 if (fmtlen < longline)
                     std::cout << std::string (maxlen + 2 - fmtlen, ' ');
                 else
                     std::cout << "\n    " << std::string (maxlen + 2, ' ');
-                std::cout << wordwrap(opt->description(), maxlen+2+4+2, columns-2) << '\n';
+                std::cout << Strutil::wordwrap(opt->description(), columns-2, maxlen+2+4+2) << '\n';
             }
         }
     }

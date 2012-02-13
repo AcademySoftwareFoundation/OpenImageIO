@@ -73,6 +73,11 @@ DLLPUBLIC std::string this_program_path ();
 ///
 DLLPUBLIC void usleep (unsigned long useconds);
 
+/// Try to figure out how many columns wide the terminal window is.
+/// May not be correct all all systems, will default to 80 if it can't
+/// figure it out.
+DLLPUBLIC int terminal_columns ();
+
 };  // namespace Sysutils
 
 }

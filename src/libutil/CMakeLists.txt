@@ -1,4 +1,4 @@
-set (libutil_srcs argparse.cpp colortransfer.cpp errorhandler.cpp
+set (libutil_srcs argparse.cpp errorhandler.cpp
                   filesystem.cpp filter.cpp paramlist.cpp plugin.cpp SHA1.cpp
                   strutil.cpp sysutil.cpp typedesc.cpp ustring.cpp pystring.cpp
                   pugixml.cpp pugixpath.cpp)

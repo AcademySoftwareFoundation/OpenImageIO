@@ -87,8 +87,12 @@ public:
     /// Get the number of ColorSpace(s) defined in this configuration
     int getNumColorSpaces() const;
     
-    /// Query the name of the specified ColorSpace
+    /// Query the name of the specified ColorSpace.
     const char * getColorSpaceNameByIndex(int index) const;
+
+    /// Get the name of the color space representing the named role,
+    /// or NULL if none could be identified.
+    const char * getColorSpaceNameByRole (const char *role) const;
     
     /// Given the specified input and output ColorSpace, construct the
     /// processor.  It is possible that this will return NULL, if the
@@ -110,10 +114,7 @@ public:
     /// Return if OpenImageIO was built with OCIO support
     static bool supportsOpenColorIO();
     
-    
-    
-    
-    private:
+private:
     ColorConfig(const ColorConfig &);
     ColorConfig& operator= (const ColorConfig &);
     
@@ -123,6 +124,46 @@ public:
     Impl * getImpl() { return m_impl; }
     const Impl * getImpl() const { return m_impl; }
 };
+
+
+
+/// Utility -- convert sRGB value to linear
+///    http://en.wikipedia.org/wiki/SRGB
+inline float sRGB_to_linear (float x)
+{
+    return (x <= 0.04045f) ? (x / 12.92f)
+                           : powf ((x + 0.055f) / 1.055f, 2.4f);
+}
+
+/// Utility -- convert linear value to sRGB
+inline float linear_to_sRGB (float x)
+{
+    if (x < 0.0f)
+        return 0.0f;
+    return (x <= 0.0031308f) ? (12.92f * x)
+                             : (1.055f * powf (x, 1.f/2.4f) - 0.055f);
+}
+
+
+/// Utility -- convert Rec709 value to linear
+///    http://en.wikipedia.org/wiki/Rec._709
+inline float Rec709_to_linear (float x)
+{
+    if (x < 0.081f)
+        return (x < 0.0f) ? 0.0f : x * (1.0f/4.5f);
+    else
+        return powf ((x + 0.099f) * (1.0f/1.099f), (1.0f/0.45f));
+}
+
+/// Utility -- convert linear value to Rec709
+inline float linear_to_Rec709 (float x)
+{
+    if (x < 0.018f)
+        return (x < 0.0f)? 0.0f : x * 4.5f;
+    else
+        return 1.099f * powf(x, 0.45f) - 0.099f;
+}
+
 
 }
 OIIO_NAMESPACE_EXIT

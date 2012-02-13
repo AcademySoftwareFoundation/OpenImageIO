@@ -80,6 +80,7 @@ public:
     std::vector<ImageRecRef> image_stack;    // stack of previous images
     ImageCache *imagecache;                  // back ptr to ImageCache
     int return_value;                        // oiiotool command return code
+    ColorConfig colorconfig;                 // OCIO color config
 
     Oiiotool ()
         : verbose(false), noclobber(false), allsubimages(false),
@@ -116,6 +117,29 @@ public:
 
     CallbackFunction pending_callback () const { return m_pending_callback; }
     const char *pending_callback_name () const { return m_pending_argv[0]; }
+
+    void push (const ImageRecRef &img) {
+        if (img) {
+            if (curimg)
+                image_stack.push_back (curimg);
+            curimg = img;
+        }
+    }
+
+    void push (ImageRec *newir) { push (ImageRecRef(newir)); }
+
+    ImageRecRef pop () {
+        ImageRecRef r = curimg;
+        if (image_stack.size()) {
+            // There are images on the full stack -- pop it
+            curimg = image_stack.back ();
+            image_stack.resize (image_stack.size()-1);
+        } else {
+            // Nothing on the stack, so get rid of the current image
+            curimg = ImageRecRef();
+        }
+        return r;
+    }
 
 private:
     CallbackFunction m_pending_callback;
@@ -162,13 +186,13 @@ public:
     { }
 
     // Copy an existing ImageRec.  Copy just the single subimage_to_copy
-    // if >= 0, or all subimages if <0.  Copy mip levels only if
-    // copy_miplevels is true, otherwise only the top MIP level.  If
-    // writable is true, we expect to need to alter the pixels of the
-    // resulting ImageRec.  If copy_pixels is false, just make the new
-    // image big enough, no need to initialize the pixel values.
+    // if >= 0, or all subimages if <0.  Copy just the single
+    // miplevel_to_copy if >= 0, or all MIP levels if <0.  If writable
+    // is true, we expect to need to alter the pixels of the resulting
+    // ImageRec.  If copy_pixels is false, just make the new image big
+    // enough, no need to initialize the pixel values.
     ImageRec (ImageRec &img, int subimage_to_copy = -1,
-              bool copy_miplevels = true, bool writable = true,
+              int miplevel_to_copy = -1, bool writable = true,
               bool copy_pixels = true);
 
     // Initialize an ImageRec with the given spec.
