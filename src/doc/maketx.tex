@@ -227,6 +227,22 @@ Specifically, this is the equivalent to using \\
  {\cf --separate --tile 64 64 --constant-color-detect --hash}.
 \apiend
 
+\NEW
+\apiitem{--colorconvert {\rm \emph{inspace outspace}}}
+Convert the color space of the input image from \emph{inspace} to
+\emph{tospace}.  If OpenColorIO is installed and finds a valid
+configuration, it will be used for the color conversion.  If OCIO
+is not enabled (or cannot find a valid configuration, OIIO will at
+least be able to convert among linear, sRGB, and Rec709.
+\apiend
+
+\apiitem{--unpremult}
+When undergoing color some conversions, it is helpful to
+``un-premultiply'' the alpha before converting color channels, and then
+re-multiplying by alpha.  Caveat emptor -- if you don't know exactly
+when to use this, you probably shouldn't be using it at all.
+\apiend
+
 
 \apiitem{--mipimage {\rm \emph{filename}}}
 Specifies the name of an image file to use as a custom MIP-map level, 
