@@ -1360,7 +1360,7 @@ getargs (int argc, char *argv[])
                 "--rot180 %@", rotate_orientation, &dummybool, "Rotate orientation 180 deg",
                 "--origin %@ %s", set_origin, &dummystr,
                     "Set the pixel data window origin (e.g. +20+10)",
-                "--fullsize %@ %s", set_fullsize, &dummystr, "Set the display window (e.g., 1920x1280, 1024x768+100+0, -20-30)",
+                "--fullsize %@ %s", set_fullsize, &dummystr, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",
                 "--fullpixels %@", set_full_to_pixels, &dummybool, "Set the 'full' image range to be the pixel data window",
                 "<SEPARATOR>", "Options that affect subsequent actions:",
                 "--fail %g", &ot.diff_failthresh, "",

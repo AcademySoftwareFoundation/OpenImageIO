@@ -4,3 +4,655 @@
 
 \section{Overview}
 
+
+The \oiiotool program will read images (from any file format for which
+an \ImageInput plugin can be found), perform various operations on them,
+and write images (in any format for which an \ImageOutput plugin can be
+found).
+
+The \oiiotool utility is invoked as follows:
+
+\medskip
+
+\hspace{0.25in} \oiiotool \emph{args}
+
+\medskip
+
+\oiiotool maintains an \emph{image stack}, with the top image in the
+stack also called the \emph{current image}.  The stack begins containing
+no images.
+
+\oiiotool arguments consist of image names, or commands.  When an
+image name is encountered, that image is pushed on the stack and becomes
+the new \emph{current image}.
+
+Most other commands either alter the current image (replacing it with
+the alteration), or in some cases will pull more than one image off the
+stack (such as the current image and the next item on the stack) and
+then push a new image.
+
+
+
+
+\section{\oiiotool Tutorial / Recipes}
+
+This section will give quick examples of common uses of \oiiotool to get
+you started.  They should be fairly intuitive, but you can read the
+subsequent sections of this chapter for all the details on every
+command.
+
+\subsection*{Printing information about images}
+
+To print the name, format, resolution, and data type of an image
+(or many images):
+
+\begin{code}
+    oiiotool --info *.tif
+\end{code}
+
+\noindent To also print the full metadata about each input image, use both
+{\cf --info} and {\cf -v}:
+
+\begin{code}
+    oiiotool --info -v *.tif
+\end{code}
+
+\noindent To print info about all subimages and/or MIP-map levels of each
+input image, use the {\cf -a} flag:
+
+\begin{code}
+    oiiotool --info -v -a mipmap.exr
+\end{code}
+
+\noindent To print statistics giving the minimum, maximum, average, and
+standard deviation of each channel of an image, as well as other
+information about the pixels:
+
+\begin{code}
+    oiiotool --stats img_2012.jpg
+\end{code}
+
+\noindent The {\cf --info}, {\cf --stats}, {\cf -v}, and {\cf -a} flags may
+be used in any combination.
+
+
+\subsection*{Converting between file formats}
+
+It's a snap to convert among image formats supported by \product
+(i.e., for which \ImageInput and \ImageOutput plugins can be found).
+The \oiiotool utility will simply infer the file format from the
+file extension. The following example converts a PNG image to JPEG:
+
+\begin{code}
+    oiiotool lena.png -o lena.jpg
+\end{code}
+
+The first argument ({\cf lena.png}) is a filename, causing \oiiotool to
+read the file and makes it the current image.  The {\cf -o} command
+outputs the current image to the filename specified by the next
+argument.
+
+Thus, the above command should be read to mean, ``Read {\cf lena.png}
+into the current image, then output the current image as {\cf lena.jpg}
+(using whatever file format is traditionally associated with the {\cf
+  .jpg} extension).''
+
+
+\subsection*{Comparing two images}
+
+To print a report of the differences between two images of the same
+resolution:
+
+\begin{code}
+    oiiotool old.tif new.tif --diff
+\end{code}
+
+\noindent If you also want to save an image showing just the differences:
+
+\begin{code}
+    oiiotool old.tif new.tif --diff --sub --abs -o diff.tif
+\end{code}
+
+This looks complicated, but it's really simple: read {\cf old.tif},
+read {\cf new.tif} (pushing {\cf old.tif} down on the image stack),
+report the differences between them, subtract {\cf new.tif} from 
+{\cf old.tif} and replace them both with the difference image,
+replace that with its absolute value, then save that image to 
+{\cf diff.tif}.
+
+
+\subsection*{Changing the data format or bit depth}
+
+Just use the {\cf -d} option to specify a pixel data format for all
+subsequent outputs.  For example, assuming that {\cf in.tif} uses 16-bit
+unsigned integer pixels, the following will convert it to an 8-bit
+unsigned pixels:
+
+\begin{code}
+    oiiotool in.tif -d uint8 -o out.tif
+\end{code}
+
+
+\subsection*{Changing the compression}
+
+The following command converts writes a TIFF file, specifically using
+LZW compression:
+
+\begin{code}
+    oiiotool in.tif --compression lzw -o compressed.tif
+\end{code}
+
+The following command writes its results as a JPEG file at a 
+compression quality of 50 (pretty severe compression):
+
+\begin{code}
+    oiiotool big.jpg --quality 50 -o small.jpg
+\end{code}
+
+
+
+\subsection*{Converting between scanline and tiled images}
+
+Convert a scanline file to a tiled file with $16 \times 16$ tiles:
+
+\begin{code}
+    oiiotool s.tif --tile 16 16 -o t.tif
+\end{code}
+
+\noindent Convert a tiled file to scanline:
+
+\begin{code}
+    oiiotool t.tif --scanline -o s.tif
+\end{code}
+
+
+
+\subsection*{Adding captions or metadata}
+
+\begin{code}
+    oiiotool foo.jpg --caption "Hawaii vacation" -o bar.jpg
+    oiiotool foo.jpg --keyword "volcano,lava" -o bar.jpg
+\end{code}
+
+
+\subsection*{Resize an image}
+
+\begin{code}
+    oiiotool original.tif --resize 200% -o big.tif
+    oiiotool original.tif --resize 25% -o small.tif
+    oiiotool original.tif --resize 1024x768 -o specific.tif
+\end{code}
+
+
+\subsection*{Color convert an image}
+
+This command linearizes a JPEG assumed to be in sRGB, saving as
+an HDRI OpenEXR file:
+
+\begin{code}
+    oiiotool photo.jpg --colorconvert sRGB linear -o output.exr
+\end{code}
+
+\noindent And the other direction:
+
+\begin{code}
+    oiiotool render.exr --colorconvert linear sRGB -o fortheweb.png
+\end{code}
+
+\noindent This converts between two named color spaces (presumably
+defined by your facility's OpenColorIO configuration):
+
+\begin{code}
+    oiiotool in.dpx --colorconvert lg10 lnf -o out.exr
+\end{code}
+
+
+
+\section{\oiiotool commands: general}
+
+\apiitem{--help}
+Prints usage information to the terminal.
+\apiend
+
+\apiitem{-v}
+Verbose status messages --- print out more information about what
+\oiiotool is doing at every step.
+\apiend
+
+\apiitem{-q}
+Quet mode --- print out less information about what \oiiotool is doing
+(only errors).
+\apiend
+
+\apiitem{-a}
+Performs all operations on all subimages and/or MIPmap levels of each
+input image.  Without {\cf -a}, generally each input image will really
+only read the top-level MIPmap of the first subimage of the file.
+\apiend
+
+\apiitem{--info}
+Prints information about each input image as it is read.  If verbose mode
+is turned on ({\cf -v}), all the metadata for the image is printed.
+If verbose mode is not turned on, only the resolution and data format
+are printed.
+\apiend
+
+\apiitem{--stats}
+Prints detailed statistical information about each input image as it is
+read.
+\apiend
+
+\apiitem{--diff}
+This command computes the difference of the current image and the next
+image on the stack, and prints a report of those differences (how
+many pixels differed, the maximum amount, etc.).  This command does not
+alter the image stack.
+\apiend
+
+\apiitem{--no-clobber}
+Sets ``no clobber'' mode, in which existing images on disk will never be 
+overridden, even if the {\cf -o} command specifies that file.
+\apiend
+
+\apiitem{--threads \emph{n}}
+Use \emph{n} execution threads if it helps to speed up image operations.
+The default (also if $n=0$) is to use as many threads as there are cores
+present in the hardware.
+\apiend
+
+\begin{comment}
+\apiitem{--inplace}
+Causes the output to \emph{replace} the input file, rather than create a
+new file with a different name.
+
+Without this flag, \oiiotool expects two file names, which will
+be used to specify the input and output files, respectively.
+
+But when {\cf --inplace} option is used, any number of file names $\ge 1$ may
+be specified, and the image conversion commands are applied to each file
+in turn, with the output being saved under the original file name.  This
+is useful for applying the same conversion to many files.  
+
+For example, the following example will add the caption ``Hawaii
+vacation'' to all JPEG files in the current directory:
+
+\begin{code}
+        oiiotool --inplace --adjust-time --caption "Hawaii vacation" *.jpg
+\end{code}
+\apiend
+\end{comment}
+
+
+\section{\oiiotool commands: reading and writing images}
+
+The commands described in this section read images, write images,
+or control the way that subsequent images will be written upon output.
+
+\apiitem{\rm \emph{filename}}
+If a command-line option is the name of an image file, that file will
+be read and will become the new \emph{current image}, with the previous
+current image pushed onto the image stack.
+\apiend
+
+\apiitem{-o \rm \emph{filename}}
+Outputs the current image to the named file.  This does not remove the
+current image, it merely saves a copy of it.
+\apiend
+
+\apiitem{-d {\rm \emph{datatype}}}
+
+Attempts to set the pixel data type of all subsequent outputs.  Valid
+choices are: {\cf uint8}, {\cf sint8}, 
+{\cf uint16}, {\cf sint16}, {\cf  half}, {\cf float}, {\cf double}.
+
+The types {\cf uint10} and {\cf uint12} may be used to request 10- or
+12-bit unsigned integers.  If the output file format does not support
+them, {\cf uint16} will be substituted.
+
+If the {\cf -d} option is not supplied, the output data type will
+be the same as the data format of the input files, if possible.
+
+In any case, if the output file type does not support the requested
+data type, it will instead use whichever supported data type results
+in the least amount of precision lost.
+\apiend
+
+% FIXME -- no it doesn't!
+%\apiitem{-g {\rm \emph{gamma}}}
+%Applies a gamma correction of $1/\mathrm{gamma}$ to the pixels as they
+%are output.
+%\apiend
+
+%\apiitem{--sRGB}
+%Explicitly tags the image as being in sRGB color space.  Note that this
+%does not alter pixel values, it only marks which color space those
+%values refer to (and only works for file formats that understand such
+%things).  An example use of this command is if you have an image 
+%that is not explicitly marked as being in any particular color space,
+%but you know that the values are sRGB.
+%\apiend
+
+\apiitem{--scanline}
+Requests that subsequent output files be scanline-oriented, if scanline
+orientation is supported by the output file format.  By default, the
+output file will be scanline if the input is scanline, or tiled if the
+input is tiled.
+\apiend
+
+\apiitem{--tile {\rm \emph{x}} {\rm \emph{y}}}
+Requests that subsequent output files be tiled, with the given $x \times y$ 
+tile size, if tiled images are supported by the output format.
+By default, the output file will take on the tiledness and tile size
+of the input file.
+\apiend
+
+\apiitem{--compression {\rm \emph{method}}}
+Sets the compression method for subsequent output images.  Each
+\ImageOutput plugin will have its own set of methods that it supports.
+By default, the output image will use the same compression technique as
+the input image (assuming it is supported by the output format,
+otherwise it will use the default compression method of the output
+plugin).  
+\apiend
+
+\apiitem{--quality {\rm \emph{q}}}
+Sets the compression quality, on a 1--100 floating-point scale.
+This only has an effect if the particular compression method supports
+a quality metric (as JPEG does).
+\apiend
+
+\apiitem{--planarconfig {\rm \emph{config}}}
+Sets the planar configuration of subsequent outputs (if supported by
+their formats).  Valid choices are: {\cf config} for contiguous (or
+interleaved) packing of channels in the file (e.g., RGBRGBRGB...), 
+{\cf separate} for separate channel planes (e.g.,
+RRRR...GGGG...BBBB...), or {\cf default} for the default choice for the
+given format.  This command will be ignored for output files whose 
+file format does not support the given choice.
+\apiend
+
+\apiitem{--adjust-time}
+When this flag is present, after writing each output, the resulting
+file's modification time will be adjusted to match any \qkw{DateTime}
+metadata in the image.  After doing this, a directory listing will show
+file times that match when the original image was created or captured,
+rather than simply when \oiiotool was run.  This has no effect on
+image files that don't contain any \qkw{DateTime} metadata.
+\apiend
+
+\apiitem{--noautocrop}
+For subsequent outputs, do \emph{not} automatically crop images whose
+formats don't support separate pixel data and full/display windows.
+Without this, the default is that outputs will be cropped or padded with
+black as necessary when written to formats that don't support the
+concepts of pixel data windows and full/display windows.  This is a
+non-issue for file formats that support these concepts, such as OpenEXR.
+\apiend
+
+\section{\oiiotool commands that change the current image metadata}
+
+This section describes \oiiotool commands that alter the metadata
+of the current image, but do not alter its pixel values.  Only the
+current (i.e., top of stack) image is affected, not any images further
+down the stack.
+
+If the {\cf -a} flag has previously been set, these commands apply to
+all subimages or MIPmap levels of the current top image.  Otherwise,
+they only apply to the highest-resolution MIPmap level of the first
+subimage of the current top image.
+
+\apiitem{--attrib {\rm \emph{name value}}}
+Adds or replaces metadata with the given \emph{name} to have the 
+specified \emph{value}.
+
+It will try to infer the type of the metadata from the value: if the
+value contains only numerals (with optional leading minus sign), it will
+be saved as {\cf int} metadata; if it also contains a decimal point, it
+will be saved as {\cf float} metadata; otherwise, it will be saved as
+a {\cf string} metadata.
+\apiend
+
+\apiitem{--sattrib {\rm \emph{name value}}}
+Adds or replaces metadata with the given \emph{name} to have the 
+specified \emph{value}, forcing it to be interpreted as a {\cf string}.
+This is helpful if you want to set a {\cf string} metadata to a value
+that the {\cf --attrib} command would normally interpret as a number.
+\apiend
+
+\apiitem{--caption {\rm \emph{text}}}
+Sets the image metadata \qkw{ImageDescription}.
+This has no effect if the output image format does not support some kind
+of title, caption, or description metadata field.
+Be careful to enclose \emph{text} in quotes if you want your caption to
+include spaces or certain punctuation!
+\apiend
+
+\apiitem{--keyword {\rm \emph{text}}}
+Adds a keyword to the image metadata \qkw{Keywords}.  Any existing
+keywords will be preserved, not replaced, and the new keyword will not
+be added if it is an exact duplicate of existing keywords.  This has no
+effect if the output image format does not support some kind of keyword
+field.  
+
+Be careful to enclose \emph{text} in quotes if you want your keyword to
+include spaces or certain punctuation.  For image formats that have only
+a single field for keywords, \OpenImageIO will concatenate the keywords,
+separated by semicolon (`;'), so don't use semicolons within your
+keywords.
+\apiend
+
+\apiitem{--clear-keywords}
+Clears all existing keywords in the current image.
+\apiend
+
+\apiitem{--attrib {\rm \emph{name text}}}
+Sets the named image metadata attribute to a string given by
+\emph{text}.  For example, you could explicitly set the IPTC location
+metadata fields with:
+
+\begin{code}
+        oiiotool --attrib "IPTC:City" "Berkeley" in.jpg out.jpg
+\end{code}
+\apiend
+
+\apiitem{--orientation {\rm \emph{orient}}}
+Explicitly sets the image's \qkw{Orientation} metadata to a numeric
+value (see Section~\ref{metadata:orientation} for the numeric codes).
+This only changes the metadata field that specifies
+how the image should be displayed, it does NOT alter the pixels
+themselves, and so has no effect for image formats that don't
+support some kind of orientation metadata.
+\apiend
+
+\apiitem{--rotcw \\
+--rotccw \\
+--rot180}
+Adjusts the image's \qkw{Orientation} metadata by rotating it $90^\circ$
+clockwise, $90^\circ$ degrees counter-clockwise, or $180^\circ$,
+respectively, compared to its current setting.  This only changes the
+metadata field that specifies how the image should be displayed, it does
+NOT alter the pixels themselves, and so has no effect for image formats
+that don't support some kind of orientation metadata.
+\apiend
+
+\apiitem{--origin {\rm \emph{offset}}}
+Set the pixel data window origin.  The offset is in the form
+\begin{code}
+     [+-]x[+-]y
+\end{code}
+\noindent Examples: 
+\begin{code}
+    --origin +20+10           x=20, y=10
+    --origin +0-40            x=0, y=-40
+\end{code}
+\apiend
+
+\apiitem{--fullsize {\rm \emph{size}}}
+Set the display/full window size and/or offset.  The size is in the
+form 
+\\ \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
+  [+-]}\emph{yoffset} \\
+If either the offset or resolution is omitted, it will remain
+unchanged.
+
+\noindent Examples: 
+
+\begin{tabular}{p{2in} p{4in}}
+    {\cf --fullsize 1920x1080}  &      resolution w=1920, h=1080, offset unchanged \\
+    {\cf --fullsize -20-30} &          resolution unchanged, x=-20, y=-30 \\
+    {\cf --fullsize 1024x768+100+0}  & resolution w=1024, h=768, offset
+    x=100, y=0
+\end{tabular}
+
+\apiend
+
+\apiitem{--fullpixels}
+Set the full/display window range to exactly cover the pixel data window.
+\apiend
+
+
+
+\section{\oiiotool commands that make new images}
+
+\apiitem{--create {\rm \emph{size channels}}}
+
+Create new black image with the given size and number of channels,
+pushing it onto the image stack and making it the new current image.
+
+The \emph{size} is in the form
+\\ \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
+  [+-]}\emph{yoffset} \\
+If the offset is omitted, it will be $x=0,y=0$.
+
+\noindent Examples:
+
+\begin{tabular}{p{2in} p{4in}}
+    {\cf --create 1920x1080 3}  &      RGB with w=1920, h=1080, x=0, y=0 \\
+    {\cf --create 1024x768+100+0 4}  & RGBA with w=1024, h=768, x=100, y=0
+\end{tabular}
+\apiend
+
+\apiitem{--unmip}
+If the current image is MIP-mapped, discard all but the top level
+(i.e., replacing the current image with a new image consisting of only the
+highest-resolution level).
+\apiend
+
+\apiitem{--selectmip {\rm \emph{level}}}
+If the current image is MIP-mapped, replace the current image with a new
+image consisting of only the given \emph{level} of the MIPmap.
+Level 0 is the highest resolution version, level 1 is the next-lower
+resolution version, etc.
+\apiend
+
+\apiitem{--subimage {\rm \emph{n}}}
+If the current image has multiple subimages, replace the current image
+with a new image consisting of only the given subimage.
+\apiend
+
+\apiitem{--add}
+Replace the \emph{two} top images with a new image that is the sum of
+those images.
+\apiend
+
+\apiitem{--sub}
+Replace the \emph{two} top images with a new image that is the difference
+between the next-to-top and the top image.
+\apiend
+
+\apiitem{--abs}
+Replace the current image with a new image that has each pixel
+consisting of the \emph{absolute value} of he old pixel value.
+\apiend
+
+\apiitem{--flip}
+Replace the current image with a new image that is flipped vertically,
+with the top scanline becoming the bottom, and vice versa.
+\apiend
+
+\apiitem{--flop}
+Replace the current image with a new image that is flopped horizontally,
+with the leftmost column becoming the rightmost, and vice versa.
+\apiend
+
+\apiitem{--flipflop}
+Replace the current image with a new image that is both flipped and
+flopped, which is the same as a 180 degree rotation.
+\apiend
+
+\apiitem{--crop {\rm \emph{size}}}
+Replace the current image with a new copy with the given \emph{size},
+cropping old pixels no longer needed, padding black pixels where they
+previously did not exist in the old image, and adjusting the offsets
+if requested.
+
+The size is in the form 
+\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
+  [+-]}\emph{yoffset}
+\\ or~~~~ \spc \emph{xmin,ymin,xmax,ymax} \\
+
+\noindent Examples: 
+
+\begin{tabular}{p{2in} p{4in}}
+    {\cf --crop 100x120+35+40}  &      resolution w=100, h=120, offset x=35, y=40 \\
+    {\cf --crop 35,40,134,159}  &      resolution w=100, h=120, offset x=35, y=40
+\end{tabular}
+\apiend
+
+\apiitem{--croptofull}
+Replace the current image with a new image that is ropped or padded
+as necessary to make the pixel data window exactly cover
+the full/display window.
+\apiend
+
+\apiitem{--resize {\rm \emph{size}}}
+Replace the current image with a new image that is resized to the 
+given pixel data resolution.  The size is in the form 
+\\ \spc\spc \emph{width}\,{\cf x}\,\emph{height}
+\\ or~~~~ \spc \emph{scale}{\verb|%|} \\
+
+\noindent Examples: 
+
+\begin{tabular}{p{2in} p{4in}}
+    {\cf --resize 1024x768}  &     new resolution w=100, h=120, offset x=35, y=40 \\
+    {\cf --resize 50{\verb|%|}}  & reduce resolution by 50\verb|%| \\
+    {\cf --resize 300{\verb|%|}}  & increase resolution by 3x
+\end{tabular}
+
+\apiend
+
+\apiitem{--pop}
+Pop the image stack, discarding the current image and thereby
+making the next image on the stack into the new current image.
+\apiend
+
+\apiitem{--dup}
+Duplicate the current image and push the duplicate on the stack.
+Note that this results in both the current and the next image 
+on the stack being identical copies.
+\apiend
+
+
+\section{\oiiotool commands for color management}
+
+\apiitem{--iscolorspace {\rm \emph{colorspace}}}
+Alter the metadata of the current image so that it thinks its pixels
+are in the named color space.  This does not alter the pixels of the
+image, it only changes \oiiotool's understanding of what color
+space those those pixels are in.
+\apiend
+
+\apiitem{--tocolorspace {\rm \emph{tospace}}}
+Replace the current image with a new image whose pixels are transformed
+from their existing color space (as best understood or guessed by OIIO)
+into the named \emph{tospace}.
+\apiend
+
+\apiitem{--tocolorspace {\rm \emph{fromspace tospace}}}
+Replace the current image with a new image whose pixels are transformed
+from the named \emph{fromspace} color space into the named
+\emph{tospace} (disregarding any notion it may have previously had 
+about the color space of the current image).
+\apiend
+
+
