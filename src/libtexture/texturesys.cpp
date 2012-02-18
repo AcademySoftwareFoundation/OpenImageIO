@@ -760,7 +760,6 @@ adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
     dsdy *= swidth;
     dtdy *= twidth;
 
-#if 1
     // Clamp degenerate derivatives so they don't cause mathematical problems
     static const float eps = 1.0e-8f;
     if (fabsf(dsdx) < eps)
@@ -771,7 +770,6 @@ adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
         dsdy = copysignf (eps, dsdy);
     if (fabsf(dtdy) < eps)
         dtdy = copysignf (eps, dtdy);
-#endif
 
     if (sblur+tblur != 0.0f /* avoid the work when blur is zero */) {
         // Carefully add blur to the right derivative components in the
@@ -919,7 +917,7 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     float root = hypotf (A-C, B);
     float Aprime = (A + C - root) * 0.5f;
     float Cprime = (A + C + root) * 0.5f;
-    majorlength = A > 0 ? sqrtf (F / Aprime) : 0;
+    majorlength = A > 0 ? std::min (sqrtf (F / Aprime), 1e4f) : 0;
     minorlength = C > 0 ? sqrtf (F / Cprime) : 0;
     // N.B. Various papers (including the FELINE ones, imply that the
     // above calculations is the major and minor radii, but we treat
