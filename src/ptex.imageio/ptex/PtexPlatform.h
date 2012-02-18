@@ -85,16 +85,14 @@ typedef __int64 FilePos;
 #define fseeko _fseeki64
 #define ftello _ftelli64
 
+inline double log2(double x) {
+    return log(x) * 1.4426950408889634; 
+}
+
 #else
 typedef off_t FilePos;
 #endif
     
-#if defined(WINDOWS) || defined(__FreeBSD__)
-inline double log2(double x) {
-    return log(x) * 1.4426950408889634; 
-}
-#endif
-
 
 namespace PtexInternal {
 
