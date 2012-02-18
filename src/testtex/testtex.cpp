@@ -63,11 +63,13 @@ static int iters = 1;
 static int autotile = 0;
 static bool automip = false;
 static bool test_construction = false;
+static bool test_gettexels = false;
 static bool test_getimagespec = false;
 static TextureSystem *texsys = NULL;
 static std::string searchpath;
 static int blocksize = 1;
 static bool nowarp = false;
+static bool tube = false;
 static bool use_handle = false;
 static float cachesize = -1;
 static int maxfiles = -1;
@@ -118,12 +120,14 @@ getargs (int argc, const char *argv[])
                   "--handle", &use_handle, "Use texture handle rather than name lookup",
                   "--searchpath %s", &searchpath, "Search path for files",
                   "--nowarp", &nowarp, "Do not warp the image->texture mapping",
+                  "--tube", &tube, "Make a tube projection",
                   "--cachesize %f", &cachesize, "Set cache size, in MB",
                   "--scale %f", &scalefactor, "Scale intensities",
                   "--maxfiles %d", &maxfiles, "Set maximum open files",
                   "--nountiled", &nountiled, "Reject untiled images",
                   "--nounmipped", &nounmipped, "Reject unmipped images",
                   "--ctr", &test_construction, "Test TextureOpt construction time",
+                  "--gettexels", &test_gettexels, "Test TextureSystem::get_texels",
                   "--getimagespec", &test_getimagespec, "Test TextureSystem::get_imagespec",
                   "--offset %f %f %f", &offset[0], &offset[1], &offset[2], "Offset texture coordinates",
                   "--scalest %f %f", &sscale, &tscale, "Scale texture lookups (s, t)",
@@ -300,6 +304,29 @@ test_plain_texture ()
                                 dtdx[idx] = 0;
                                 dsdy[idx] = 0;
                                 dtdy[idx] = 1.0f/output_yres * tscale;
+                            } else if (tube) {
+                                float xt = float(x)/output_xres - 0.5f;
+                                float dxt_dx = 1.0f/output_xres;
+                                float yt = float(y)/output_yres - 0.5f;
+                                float dyt_dy = 1.0f/output_yres;
+                                float theta = atan2f (yt, xt);
+                                // See OSL's Dual2 for partial derivs of
+                                // atan2, hypot, and 1/x
+                                float denom = 1.0f / (xt*xt + yt*yt);
+                                float dtheta_dx = yt*dxt_dx * denom;
+                                float dtheta_dy = -xt*dyt_dy * denom;
+                                s[idx] = 4.0f * theta / (2.0f * M_PI);
+                                dsdx[idx] = 4.0f * dtheta_dx / (2.0f * M_PI);
+                                dsdy[idx] = 4.0f * dtheta_dy / (2.0f * M_PI);
+                                float h = hypot(xt,yt);
+                                float dh_dx = xt*dxt_dx / h;
+                                float dh_dy = yt*dyt_dy / h;
+                                h *= M_SQRT2;
+                                dh_dx *= M_SQRT2; dh_dy *= M_SQRT2;
+                                float hinv = 1.0f / h;
+                                t[idx] = hinv;
+                                dtdx[idx] = hinv * (-hinv * dh_dx);
+                                dtdy[idx] = hinv * (-hinv * dh_dy);
                             } else {
                                 Imath::V3f coord = warp ((float)x/output_xres,
                                                          (float)y/output_yres,
@@ -540,6 +567,10 @@ test_getimagespec_gettexels (ustring filename)
             std::cerr << "ERROR: " << e << "\n";
         return;
     }
+
+    if (! test_gettexels)
+        return;
+
     int w = spec.width/2, h = spec.height/2;
     ImageSpec postagespec (w, h, spec.nchannels, TypeDesc::FLOAT);
     ImageBuf buf ("postage.exr", postagespec);

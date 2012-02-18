@@ -77,6 +77,17 @@ bool DLLPUBLIC fill (ImageBuf &dst,
                      int ybegin, int yend,
                      int zbegin, int zend);
 
+/// Fill a subregion of the volume with a checkerboard.  The subregion
+/// is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  return
+/// true on success.
+bool DLLPUBLIC checker (ImageBuf &dst,
+                        int width,
+                        const float *color1,
+                        const float *color2,
+                        int xbegin, int xend,
+                        int ybegin, int yend,
+                        int zbegin=0, int zend=1);
+
 /// Enum describing options to be passed to transform
 
 enum DLLPUBLIC AlignedTransform

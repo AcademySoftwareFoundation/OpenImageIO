@@ -157,6 +157,29 @@ ImageBufAlgo::fill (ImageBuf &dst,
 
 
 
+bool
+ImageBufAlgo::checker (ImageBuf &dst,
+                       int width,
+                       const float *color1,
+                       const float *color2,
+                       int xbegin, int xend,
+                       int ybegin, int yend,
+                       int zbegin, int zend)
+{
+    for (int k = zbegin; k < zend; k++)
+        for (int j = ybegin; j < yend; j++)
+            for (int i = xbegin; i < xend; i++) {
+                int p = (k-zbegin)/width + (j-ybegin)/width + (i-xbegin)/width;
+                if (p & 1)
+                    dst.setpixel (i, j, k, color2);
+                else
+                    dst.setpixel (i, j, k, color1);
+            }
+    return true;
+}
+
+
+
 namespace {
 
 template<class T>

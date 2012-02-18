@@ -45,7 +45,7 @@
 #include <boost/filesystem.hpp>
 
 using boost::algorithm::iequals;
-
+using boost::algorithm::istarts_with;
 
 #include "argparse.h"
 #include "imageio.h"
@@ -1113,8 +1113,61 @@ action_create (int argc, const char *argv[])
     }
     ImageSpec spec (64, 64, nchans);
     adjust_geometry (spec.width, spec.height, spec.x, spec.y, argv[1]);
+    spec.full_x = spec.x;
+    spec.full_y = spec.y;
+    spec.full_z = spec.z;
+    spec.full_width = spec.width;
+    spec.full_height = spec.height;
+    spec.full_depth = spec.depth;
     ImageRecRef img (new ImageRec ("new", spec, ot.imagecache));
     ImageBufAlgo::zero ((*img)());
+    if (ot.curimg)
+        ot.image_stack.push_back (ot.curimg);
+    ot.curimg = img;
+    return 0;
+}
+
+
+
+static int
+action_pattern (int argc, const char *argv[])
+{
+    ASSERT (argc == 4);
+    int nchans = atoi (argv[3]);
+    if (nchans < 1 || nchans > 1024) {
+        std::cout << "Invalid number of channels: " << nchans << "\n";
+        nchans = 3;
+    }
+    ImageSpec spec (64, 64, nchans);
+    adjust_geometry (spec.width, spec.height, spec.x, spec.y, argv[2]);
+    spec.full_x = spec.x;
+    spec.full_y = spec.y;
+    spec.full_z = spec.z;
+    spec.full_width = spec.width;
+    spec.full_height = spec.height;
+    spec.full_depth = spec.depth;
+    ImageRecRef img (new ImageRec ("new", spec, ot.imagecache));
+    ImageBuf &ib ((*img)());
+    std::string pattern = argv[1];
+    if (iequals(pattern,"black")) {
+        ImageBufAlgo::zero (ib);
+    } else if (istarts_with(pattern,"checker")) {
+        int width = 8;
+        size_t pos;
+        while ((pos = pattern.find_first_of(":")) != std::string::npos) {
+            pattern = pattern.substr (pos+1, std::string::npos);
+            if (istarts_with(pattern,"width="))
+                width = atoi (pattern.substr(6, std::string::npos).c_str());
+        }
+        std::vector<float> color1 (nchans, 0.0f);
+        std::vector<float> color2 (nchans, 1.0f);
+        ImageBufAlgo::checker (ib, width, &color1[0], &color2[0],
+                               ib.xbegin(), ib.xend(),
+                               ib.ybegin(), ib.yend(),
+                               ib.zbegin(), ib.zend());
+    } else {
+        ImageBufAlgo::zero (ib);
+    }
     if (ot.curimg)
         ot.image_stack.push_back (ot.curimg);
     ot.curimg = img;
@@ -1319,6 +1372,8 @@ getargs (int argc, char *argv[])
                 "<SEPARATOR>", "Actions:",
                 "--create %@ %s %d", action_create, &dummystr, &dummyint,
                         "Create a blank image (args: geom, channels)",
+                "--pattern %@ %s %s %d", action_pattern, NULL, NULL, NULL,
+                        "Create a patterned image (args: pattern geom, channels)",
                 "--unmip %@", action_unmip, &dummybool, "Discard all but the top level of a MIPmap",
                 "--selectmip %@ %d", action_selectmip, &dummyint,
                     "Select just one MIP level (0 = highest res)",
