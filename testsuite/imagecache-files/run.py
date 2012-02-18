@@ -16,7 +16,7 @@ import runtest
 # Files that need to be cleaned up, IN ADDITION to outputs
 cleanfiles = [ "out.txt" "out.exr" ]
 
-texfile = "../../../oiio-testimages/grid.tx"
+texfile = "../../../oiio-images/grid.tx"
 
 # Make 10 copies of the grid texture, to different names to force
 # lots of filse in the cache.
