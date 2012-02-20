@@ -1085,6 +1085,8 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         }
     }
 
+    int nsamples = std::max (1, (int) ceilf (aspect - 0.25f));
+   
     if (miplevel[1] < 0) {
         // We'd like to blur even more, but make due with the coarsest
         // MIP level.
@@ -1097,6 +1099,14 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         miplevel[0] = 0;
         miplevel[1] = 0;
         levelblend = 0;
+        // We decrease the number of samples, since there is not enough
+        // resolution to justify sampling every minorlength distance
+        float filtwidth_ras = minorlength * std::min (subinfo.spec(0).full_width, subinfo.spec(0).full_height);
+        // We clamp sample distance to be no smaller than half a pixel
+        // Since we would never sample more than that on other mipmaps
+        if (filtwidth_ras < 0.5f ) {
+            nsamples = std::max(1,(int)(nsamples * filtwidth_ras * 2.f));
+        }
     }
     if (options.mipmode == TextureOpt::MipModeOneLevel) {
         miplevel[0] = miplevel[1];
@@ -1104,7 +1114,6 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     }
     float levelweight[2] = { 1.0f - levelblend, levelblend };
 
-    int nsamples = std::max (1, (int) ceilf (aspect - 0.25f));
     float invsamples = 1.0f / nsamples;
 
     bool ok = true;
