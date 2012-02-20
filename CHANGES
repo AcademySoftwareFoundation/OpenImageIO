@@ -1,6 +1,14 @@
 Changes:
 
 
+Release 0.10.5 (20 Feb 2012)
+* Improvements to anisotropic texture filtering: (1) fix for degenerate
+  derivatives that could corrupt the filter footpring calculations,
+  resulting in an infinitely long major axis; (2) more efficient subpixel
+  filtering for very narrow anisotropic footprints when on the highest-res
+  MIP level.
+
+
 Release 0.10.4 (November 20, 2011)
 ----------------------------------
 * Important texture bug fix: Improve robustness of texture lookups with
