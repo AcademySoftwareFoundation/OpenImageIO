@@ -1,8 +1,8 @@
 Changes:
 
 
-Release 1.0 (development in progress)
---------------------------------------
+Release 1.0 (20 Feb 2012, compared to 0.10.5)
+---------------------------------------------
 
 Major new features and improvements:
  * New ImageInput & ImageOutput methods that can efficiently read/write
@@ -88,6 +88,16 @@ Developer goodies:
  * Aded 'invert' algorithm to fmath.h.
  * Clarify Timer docs and fix Apple-specific bug.
  * testtex improvements: --wrap
+
+
+
+Release 0.10.5 (20 Feb 2012)
+----------------------------
+* Improvements to anisotropic texture filtering: (1) fix for degenerate
+  derivatives that could corrupt the filter footpring calculations,
+  resulting in an infinitely long major axis; (2) more efficient subpixel
+  filtering for very narrow anisotropic footprints when on the highest-res
+  MIP level.
 
 
 Release 0.10.4 (November 20, 2011)
