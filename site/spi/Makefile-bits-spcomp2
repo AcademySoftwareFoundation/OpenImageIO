@@ -17,13 +17,18 @@ $(info Including spi/Makefile-bits-spcomp2)
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=30
+OPENIMAGEIO_SPCOMP2_VERSION=31
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
 SOVERSION ?= ${OPENIMAGEIO_SPCOMP2_VERSION}
-SPCOMP2_RPATH ?= ""
+SPCOMP2_SHOTTREE_LOCATION = /shots/spi/home/lib/SpComp2
 INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
+
+OCIO_VERSION ?= 2
+OCIO_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${platform}-${COMPILER}/v${OCIO_VERSION}
+SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib
+SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug
 
 ## Spinux (current)
 ifeq ($(SP_ARCH), spinux1_x86_64)
@@ -39,9 +44,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
      -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
      -DOPENEXR_CUSTOM=1 \
      -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
-    ifeq (${OCIO_PATH},)
-        MY_CMAKE_FLAGS += -DOCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${platform}-${COMPILER}/current"
-    endif
+    MY_CMAKE_FLAGS += -DOCIO_PATH="${OCIO_PATH}"
 endif  # endif spinux1_x86_64
 
 
@@ -77,11 +80,11 @@ spcomp2_install: spcomp2 spcomp2_debug
 	echo $(INSTALL_SPCOMP2_LOCATION)
 	
 	patchelf \
-	--set-rpath $(SPCOMP2_RPATH) \
+	--set-rpath $(SPCOMP2_RPATH_OPT) \
 	${dist_dir}/lib/libOpenImageIO.so
 	
 	patchelf \
-	--set-rpath $(SPCOMP2_RPATH) \
+	--set-rpath $(SPCOMP2_RPATH_DEBUG) \
 	${dist_dir}.debug/lib/libOpenImageIO.so
 	
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m compile03.spimageworks.com \
