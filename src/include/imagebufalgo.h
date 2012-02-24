@@ -259,6 +259,19 @@ bool DLLPUBLIC resize (ImageBuf &dst, const ImageBuf &src,
                        Filter2D *filter=NULL);
 
 
+enum DLLPUBLIC NonFiniteFixMode
+{
+    NONFINITE_NONE = 0,     ///< Do nothing
+    NONFINITE_BLACK = 1,    ///< Replace nonfinite pixels with black
+    NONFINITE_BOX3 = 2,     ///< Replace nonfinite pixels with 3x3 finite average
+};
+
+/// Fix all non-finite pixels (nan/inf) using the specified approach
+bool DLLPUBLIC fixNonFinite(int * pixelsFixed,
+                            ImageBuf &dst, const ImageBuf &src,
+                            NonFiniteFixMode mode);
+
+
 };  // end namespace ImageBufAlgo
 
 

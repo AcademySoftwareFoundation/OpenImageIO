@@ -975,6 +975,136 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     default:
         return false;
     }
+    
+    return false;
+}
+
+namespace
+{
+
+template<typename SRCTYPE>
+bool fixNonFinite_ (int * pixelsFixed,
+                    ImageBuf &dst, const ImageBuf &src,
+                    ImageBufAlgo::NonFiniteFixMode mode)
+{
+    if (mode == ImageBufAlgo::NONFINITE_NONE) {
+        dst = src;
+        if (pixelsFixed) *pixelsFixed = 0;
+        return true;
+    }
+    else if (mode == ImageBufAlgo::NONFINITE_BLACK) {
+        // Replace non-finite pixels with black
+        int count = 0;
+        int nchannels = src.spec().nchannels;
+        
+        ImageBuf::Iterator<SRCTYPE> pixel (dst);
+        while (pixel.valid()) {
+            bool fixed = false;
+            for (int c = 0;  c < nchannels;  ++c) {
+                SRCTYPE value = pixel[c];
+                if (! isfinite(value)) {
+                    (*pixel)[c] = 0.0;
+                    fixed = true;
+                }
+            }
+            
+            if (fixed) ++count;
+            ++pixel;
+        }
+        
+        if (pixelsFixed) *pixelsFixed = count;
+        return true;
+    }
+    else if (mode == ImageBufAlgo::NONFINITE_BOX3) {
+        // Replace non-finite pixels with a simple 3x3 window average
+        // (the average excluding non-finite pixels, of course)
+        // 
+        // Warning: There is an inherent bug in this approach when src == dst
+        // As you progress across the image, the output buffer is also used
+        // as the input so there will be a directionality preference in the filling
+        // (I.e., updated values will be used only in the traversal direction).
+        // One can visualize this by disabling the isfinite check.
+
+        int count = 0;
+        int nchannels = src.spec().nchannels;
+        const int boxwidth = 1;
+        
+        ImageBuf::Iterator<SRCTYPE> pixel (dst);
+        
+        while (pixel.valid()) {
+            bool fixed = false;
+            
+            for (int c = 0;  c < nchannels;  ++c) {
+                float value = pixel[c];
+                if (! isfinite (value)) {
+                    int numvals = 0;
+                    SRCTYPE sum = 0.0;
+                    
+                    int top    = pixel.x() - boxwidth;
+                    int bottom = pixel.x() + boxwidth;
+                    int left   = pixel.y() - boxwidth;
+                    int right  = pixel.y() + boxwidth;
+                    
+                    ImageBuf::Iterator<SRCTYPE> it (dst, top, bottom, left, right);
+                    while (it.valid()) {
+                        SRCTYPE v = it[c];
+                        if (isfinite (v)) {
+                            sum += v;
+                            numvals ++;
+                        }
+                        ++it;
+                    }
+                    
+                    if (numvals>0) {
+                        (*pixel)[c] = (sum/static_cast<SRCTYPE>(numvals));
+                        fixed = true;
+                    }
+                    else {
+                        (*pixel)[c] = 0.0;
+                        fixed = true;
+                    }
+                }
+            }
+            
+            if (fixed) ++count;
+            ++pixel;
+        }
+        
+        if (pixelsFixed) *pixelsFixed = count;
+        return true;
+    }
+    
+    return false;
+}
+
+} // anon namespace
+
+
+
+/// Fix all non-finite pixels (nan/inf) using the specified approach
+bool
+ImageBufAlgo::fixNonFinite (int * pixelsFixed,
+            ImageBuf &dst, const ImageBuf &src,
+            NonFiniteFixMode mode)
+{
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT :
+        return fixNonFinite_<float> (pixelsFixed, dst, src, mode);
+    case TypeDesc::HALF  :
+         // This use of float here is on purpose to allow for simpler
+         // implementations that work on all data types
+        return fixNonFinite_<float> (pixelsFixed, dst, src, mode);
+    case TypeDesc::DOUBLE:
+        return fixNonFinite_<double> (pixelsFixed, dst, src, mode);
+    default:
+        break;
+    }
+    
+    // Non-float images cannot have non-finite pixels,
+    // so all we have to do is copy the image and return
+    dst = src;
+    if (pixelsFixed) *pixelsFixed = 0;
+    return true;
 }
 
 

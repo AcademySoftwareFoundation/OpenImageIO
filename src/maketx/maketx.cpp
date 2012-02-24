@@ -81,6 +81,7 @@ static double stat_resizetime = 0;
 static double stat_miptime = 0;
 static double stat_colorconverttime = 0;
 static bool checknan = false;
+static std::string fixnan = "none"; // none, black, box3
 static int found_nonfinite = 0;
 static spin_mutex maketx_mutex;   // for anything that needs locking
 static std::string filtername = "box";
@@ -250,6 +251,10 @@ getargs (int argc, char *argv[])
                   "--filter %s", &filtername, filter_help_string().c_str(),
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
                   "--checknan", &checknan, "Check for NaN and Inf values (abort if found)",
+                  "--fixnan %s", &fixnan, "Attempt to cleanup NaN/Inf(s) in the image using the specified approach. (default: none)\n"
+                          "\t\t\t\t  none: do nothing\n"
+                          "\t\t\t\t  black: replace NaN/Inf(s) with black\n"
+                          "\t\t\t\t  box3: Fill nan values with 3x3 window average, replace remaining NaN/Inf(s) with black",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
                           &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3], 
                           &Mcam[1][0], &Mcam[1][1], &Mcam[1][2], &Mcam[1][3], 
@@ -964,8 +969,29 @@ make_texturemap (const char *maptypename = "texture map")
             exit (EXIT_FAILURE);
         }
     }
-
-
+    
+    // Fix nans/infs (if requested
+    ImageBufAlgo::NonFiniteFixMode fixmode = ImageBufAlgo::NONFINITE_NONE;
+    if (fixnan.empty() || fixnan == "none") { }
+    else if (fixnan == "black") { fixmode = ImageBufAlgo::NONFINITE_BLACK; }
+    else if (fixnan == "box3") { fixmode = ImageBufAlgo::NONFINITE_BOX3; }
+    else {
+        std::cerr << "maketx ERROR: Unknown --fixnan mode " << " fixnan\n";
+        exit (EXIT_FAILURE);
+    }
+    
+    int pixelsFixed = 0;
+    if (!ImageBufAlgo::fixNonFinite (&pixelsFixed, src, src, fixmode)) {
+        std::cerr << "maketx ERROR: Error fixing nans/infs.\n";
+        exit (EXIT_FAILURE);
+    }
+    
+    if (verbose && pixelsFixed>0) {
+        std::cout << "  Warning: " << pixelsFixed << " nan/inf pixels fixed.\n";
+    }
+    
+    
+    
     // Color convert the pixels, if needed, in place.  If a color
     // conversion is required we will promote the src to floating point
     // (or there wont be enough precision potentially).  Also,
