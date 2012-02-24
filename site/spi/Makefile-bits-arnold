@@ -32,7 +32,7 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
 	  -DOPENEXR_CUSTOM=1 \
 	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
     ifeq (${OCIO_PATH},)
-        MY_CMAKE_FLAGS += -DOCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${platform}-${COMPILER}/current"
+        MY_CMAKE_FLAGS += -DOCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${platform}-${COMPILER}/v2"
     endif
 endif  # endif spinux1_x86_64
 
