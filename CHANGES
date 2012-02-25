@@ -1,7 +1,7 @@
 Changes:
 
 
-Release 1.0 (20 Feb 2012, compared to 0.10.5)
+Release 1.0 (25 Feb 2012, compared to 0.10.5)
 ---------------------------------------------
 
 Major new features and improvements:
@@ -41,16 +41,17 @@ API changes:
    separate from the "searchpath" for images.
 
 Fixes, minor enhancements, and performance improvements:
- * ImageBufAlgo new algorithms: compare, compare_Yee, isConstantChannel.
+ * ImageBufAlgo new algorithms: compare, compare_Yee, isConstantChannel,
+   fixNonFinite.
  * TextureOpt: add ustring-aware versions of the decode_wrapmode utility.
  * TypeDesc: allow stream << output.
  * iv: raised maximum ImageCache size from 2 GB to 8 GB.
  * PNM: fix bug where file exceptions could go uncaught.
  * Properly create coefficients for Kodak color transform.
  * iprocess: Fix bug calling read.
- * maketx: new option --opaque-detect omits alpha from texture whose input
-   images had alpha=1 everywhere.
- * maketx: --mipimage option allows custom MIP levels to be assembled.
+ * maketx new options: --opaque-detect omits alpha from texture whose input
+   images had alpha=1 everywhere; --mipimage option allows custom MIP
+   levels to be assembled; --fixnan repairs NaN & Inf values in the inputs.
  * Fixed bugs in sinc and Blackman-Harris filters.
  * ImageCache/TextureSystem -- new reset_stats() method resets all the
    statistics back to zero.
