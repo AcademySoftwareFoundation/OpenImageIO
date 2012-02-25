@@ -1138,7 +1138,7 @@ action_pattern (int argc, const char *argv[])
         std::cout << "Invalid number of channels: " << nchans << "\n";
         nchans = 3;
     }
-    ImageSpec spec (64, 64, nchans);
+    ImageSpec spec (64, 64, nchans, TypeDesc::FLOAT);
     adjust_geometry (spec.width, spec.height, spec.x, spec.y, argv[2]);
     spec.full_x = spec.x;
     spec.full_y = spec.y;
@@ -1308,6 +1308,39 @@ action_resize (int argc, const char *argv[])
 
 
 
+int
+action_fixnan (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_fixnan, argc, argv))
+        return 0;
+
+    NonFiniteFixMode mode = NONFINITE_BOX3;
+    if (!strcmp(argv[1], "black"))
+        mode = NONFINITE_BLACK;
+    else if (!strcmp(argv[1], "box3"))
+        mode = NONFINITE_BOX3;
+    else {
+        std::cerr << "--fixnan argument \"" << argv[1] << "\" not recognized. Valid choices: black, box3\n";
+    }
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            ImageBufAlgo::fixNonFinite (Rib, Aib, mode);
+        }
+    }
+             
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
@@ -1373,7 +1406,7 @@ getargs (int argc, char *argv[])
                 "--create %@ %s %d", action_create, &dummystr, &dummyint,
                         "Create a blank image (args: geom, channels)",
                 "--pattern %@ %s %s %d", action_pattern, NULL, NULL, NULL,
-                        "Create a patterned image (args: pattern geom, channels)",
+                        "Create a patterned image (args: pattern, geom, channels)",
                 "--unmip %@", action_unmip, &dummybool, "Discard all but the top level of a MIPmap",
                 "--selectmip %@ %d", action_selectmip, &dummyint,
                     "Select just one MIP level (0 = highest res)",
@@ -1388,6 +1421,7 @@ getargs (int argc, char *argv[])
                 "--crop %@ %s", action_crop, &dummystr, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, &dummybool, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resize %@ %s", action_resize, &dummystr, "Resize (640x480, 50%)",
+                "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
                 "--pop %@", action_pop, &dummybool,
                     "Throw away the current image",
                 "--dup %@", action_dup, &dummybool,

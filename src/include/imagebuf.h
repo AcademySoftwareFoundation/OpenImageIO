@@ -70,9 +70,17 @@ public:
     /// the pixels of the image (whose values will be undefined).
     ImageBuf (const std::string &name, const ImageSpec &spec);
 
+    /// Construct a copy of an ImageBuf.
+    ///
+    ImageBuf (const ImageBuf &src);
+
     /// Destructor for an ImageBuf.
     ///
     virtual ~ImageBuf ();
+
+    /// Copy an ImageBuf.
+    ///
+    const ImageBuf& operator= (const ImageBuf &src);
 
     /// Restore the ImageBuf to an uninitialized state.
     ///

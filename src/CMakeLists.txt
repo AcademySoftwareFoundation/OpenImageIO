@@ -229,7 +229,8 @@ add_subdirectory (doc)
 # Testing
 
 # List all the individual testsuite tests here:
-oiio_add_tests (ico gpsread oiiotool sgi rla psd dpx
+oiio_add_tests (ico gpsread oiiotool oiiotool-fixnan 
+                sgi rla psd dpx
                 texture-fill texture-gray texture-grid
                 texture-missing texture-overscan
                 texture-pointsample texture-res

@@ -73,12 +73,59 @@ ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
 
 
 
+ImageBuf::ImageBuf (const ImageBuf &src)
+    : m_name(src.m_name), m_fileformat(src.m_fileformat),
+      m_nsubimages(src.m_nsubimages),
+      m_current_subimage(src.m_current_subimage),
+      m_current_miplevel(src.m_current_miplevel),
+      m_nmiplevels(src.m_nmiplevels),
+      m_spec(src.m_spec), m_nativespec(src.m_nativespec),
+      m_pixels(src.m_pixels), m_localpixels(src.m_localpixels),
+      m_spec_valid(src.m_spec_valid), m_pixels_valid(src.m_pixels_valid),
+      m_badfile(src.m_badfile),
+      m_orientation(src.m_orientation),
+      m_pixelaspect(src.m_pixelaspect),
+      m_imagecache(src.m_imagecache),
+      m_cachedpixeltype(src.m_cachedpixeltype)
+{
+}
+
+
+
 ImageBuf::~ImageBuf ()
 {
     // Do NOT destroy m_imagecache here -- either it was created
     // externally and passed to the ImageBuf ctr or reset() method, or
     // else init_spec requested the system-wide shared cache, which
     // does not need to be destroyed.
+}
+
+
+
+const ImageBuf &
+ImageBuf::operator= (const ImageBuf &src)
+{
+    if (&src != this) {
+        m_name = src.m_name;
+        m_fileformat = src.m_fileformat;
+        m_nsubimages = src.m_nsubimages;
+        m_current_subimage = src.m_current_subimage;
+        m_current_miplevel = src.m_current_miplevel;
+        m_nmiplevels = src.m_nmiplevels;
+        m_spec = src.m_spec;
+        m_nativespec = src.m_nativespec;
+        m_pixels = src.m_pixels;
+        m_localpixels = src.m_localpixels;
+        m_spec_valid = src.m_spec_valid;
+        m_pixels_valid = src.m_pixels_valid;
+        m_badfile = src.m_badfile;
+        m_err.clear();
+        m_orientation = src.m_orientation;
+        m_pixelaspect = src.m_pixelaspect;
+        m_imagecache = src.m_imagecache;
+        m_cachedpixeltype = src.m_cachedpixeltype;
+    }
+    return *this;
 }
 
 
