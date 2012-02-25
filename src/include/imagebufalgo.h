@@ -267,9 +267,9 @@ enum DLLPUBLIC NonFiniteFixMode
 };
 
 /// Fix all non-finite pixels (nan/inf) using the specified approach
-bool DLLPUBLIC fixNonFinite(int * pixelsFixed,
-                            ImageBuf &dst, const ImageBuf &src,
-                            NonFiniteFixMode mode);
+bool DLLPUBLIC fixNonFinite(ImageBuf &dst, const ImageBuf &src,
+                            NonFiniteFixMode mode=NONFINITE_BOX3,
+                            int * pixelsFixed=NULL);
 
 
 };  // end namespace ImageBufAlgo

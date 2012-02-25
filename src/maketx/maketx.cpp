@@ -250,11 +250,8 @@ getargs (int argc, char *argv[])
                   "--noresize %!", &doresize, "Do not resize textures to power of 2 (deprecated)",
                   "--filter %s", &filtername, filter_help_string().c_str(),
                   "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
-                  "--checknan", &checknan, "Check for NaN and Inf values (abort if found)",
-                  "--fixnan %s", &fixnan, "Attempt to cleanup NaN/Inf(s) in the image using the specified approach. (default: none)\n"
-                          "\t\t\t\t  none: do nothing\n"
-                          "\t\t\t\t  black: replace NaN/Inf(s) with black\n"
-                          "\t\t\t\t  box3: Fill nan values with 3x3 window average, replace remaining NaN/Inf(s) with black",
+                  "--checknan", &checknan, "Check for NaN/Inf values (abort if found)",
+                  "--fixnan %s", &fixnan, "Attempt to fix NaN/Inf values in the image (options: none, black, box3)",
                   "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
                           &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3], 
                           &Mcam[1][0], &Mcam[1][1], &Mcam[1][2], &Mcam[1][3], 
@@ -981,7 +978,7 @@ make_texturemap (const char *maptypename = "texture map")
     }
     
     int pixelsFixed = 0;
-    if (!ImageBufAlgo::fixNonFinite (&pixelsFixed, src, src, fixmode)) {
+    if (!ImageBufAlgo::fixNonFinite (src, src, fixmode, &pixelsFixed)) {
         std::cerr << "maketx ERROR: Error fixing nans/infs.\n";
         exit (EXIT_FAILURE);
     }

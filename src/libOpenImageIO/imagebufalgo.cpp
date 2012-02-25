@@ -40,6 +40,7 @@
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
 
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -983,9 +984,9 @@ namespace
 {
 
 template<typename SRCTYPE>
-bool fixNonFinite_ (int * pixelsFixed,
-                    ImageBuf &dst, const ImageBuf &src,
-                    ImageBufAlgo::NonFiniteFixMode mode)
+bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
+                    ImageBufAlgo::NonFiniteFixMode mode,
+                    int * pixelsFixed)
 {
     if (mode == ImageBufAlgo::NONFINITE_NONE) {
         dst = src;
@@ -996,6 +997,9 @@ bool fixNonFinite_ (int * pixelsFixed,
         // Replace non-finite pixels with black
         int count = 0;
         int nchannels = src.spec().nchannels;
+        
+        // Copy the input to the output
+        dst = src;
         
         ImageBuf::Iterator<SRCTYPE> pixel (dst);
         while (pixel.valid()) {
@@ -1029,14 +1033,17 @@ bool fixNonFinite_ (int * pixelsFixed,
         int nchannels = src.spec().nchannels;
         const int boxwidth = 1;
         
+        // Copy the input to the output
+        dst = src;
+        
         ImageBuf::Iterator<SRCTYPE> pixel (dst);
         
         while (pixel.valid()) {
             bool fixed = false;
             
             for (int c = 0;  c < nchannels;  ++c) {
-                float value = pixel[c];
-                if (! isfinite (value)) {
+                SRCTYPE value = pixel[c];
+                if (! std::isfinite (value)) {
                     int numvals = 0;
                     SRCTYPE sum = 0.0;
                     
@@ -1048,7 +1055,7 @@ bool fixNonFinite_ (int * pixelsFixed,
                     ImageBuf::Iterator<SRCTYPE> it (dst, top, bottom, left, right);
                     while (it.valid()) {
                         SRCTYPE v = it[c];
-                        if (isfinite (v)) {
+                        if (std::isfinite (v)) {
                             sum += v;
                             numvals ++;
                         }
@@ -1056,7 +1063,7 @@ bool fixNonFinite_ (int * pixelsFixed,
                     }
                     
                     if (numvals>0) {
-                        (*pixel)[c] = (sum/static_cast<SRCTYPE>(numvals));
+                        (*pixel)[c] = sum/numvals;
                         fixed = true;
                     }
                     else {
@@ -1083,19 +1090,18 @@ bool fixNonFinite_ (int * pixelsFixed,
 
 /// Fix all non-finite pixels (nan/inf) using the specified approach
 bool
-ImageBufAlgo::fixNonFinite (int * pixelsFixed,
-            ImageBuf &dst, const ImageBuf &src,
-            NonFiniteFixMode mode)
+ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
+                            NonFiniteFixMode mode, int * pixelsFixed)
 {
     switch (src.spec().format.basetype) {
     case TypeDesc::FLOAT :
-        return fixNonFinite_<float> (pixelsFixed, dst, src, mode);
+        return fixNonFinite_<float> (dst, src, mode, pixelsFixed);
     case TypeDesc::HALF  :
          // This use of float here is on purpose to allow for simpler
          // implementations that work on all data types
-        return fixNonFinite_<float> (pixelsFixed, dst, src, mode);
+        return fixNonFinite_<float> (dst, src, mode, pixelsFixed);
     case TypeDesc::DOUBLE:
-        return fixNonFinite_<double> (pixelsFixed, dst, src, mode);
+        return fixNonFinite_<double> (dst, src, mode, pixelsFixed);
     default:
         break;
     }
