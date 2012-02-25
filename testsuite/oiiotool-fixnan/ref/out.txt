@@ -1,0 +1,68 @@
+hi
+Comparing "black.exr" and "ref/black.exr"
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+Comparing "box3.exr" and "ref/box3.exr"
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS
+Reading bad.exr
+bad.exr              :   64 x   64, 3 channel, half openexr
+    channel list: R, G, B
+    oiio:ColorSpace: "Linear"
+    compression: "zip"
+    DateTime: "2012:02:24 23:11:09"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    Stats Min: 0.000000 0.000000 0.000000 (float)
+    Stats Max: 1.000000 1.000000 1.000000 (float)
+    Stats Avg: 0.500000 0.500000 0.500000 (float)
+    Stats StdDev: 0.500000 0.500000 0.500000 (float)
+    Stats NanCount: 1 0 0 
+    Stats InfCount: 1 0 0 
+    Stats FiniteCount: 4094 4096 4096 
+    Constant: No
+    Monochrome: No
+Reading black.exr
+black.exr            :   64 x   64, 3 channel, half openexr
+    channel list: R, G, B
+    oiio:ColorSpace: "Linear"
+    compression: "zip"
+    DateTime: "2012:02:24 23:11:09"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    Stats Min: 0.000000 0.000000 0.000000 (float)
+    Stats Max: 1.000000 1.000000 1.000000 (float)
+    Stats Avg: 0.499756 0.500000 0.500000 (float)
+    Stats StdDev: 0.500000 0.500000 0.500000 (float)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4096 4096 4096 
+    Constant: No
+    Monochrome: No
+Reading box3.exr
+box3.exr             :   64 x   64, 3 channel, half openexr
+    channel list: R, G, B
+    oiio:ColorSpace: "Linear"
+    compression: "zip"
+    DateTime: "2012:02:24 23:11:09"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    Stats Min: 0.000000 0.000000 0.000000 (float)
+    Stats Max: 1.000000 1.000000 1.000000 (float)
+    Stats Avg: 0.500000 0.500000 0.500000 (float)
+    Stats StdDev: 0.500000 0.500000 0.500000 (float)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 4096 4096 4096 
+    Constant: No
+    Monochrome: Yes

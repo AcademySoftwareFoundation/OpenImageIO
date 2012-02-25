@@ -621,6 +621,15 @@ given pixel data resolution.  The size is in the form
 
 \apiend
 
+\apiitem{--fixnan {\rm \emph{streategy}}}
+Replace the new image with a copy in which any pixels that contained
+{\cf NaN} or {\cf Inf} values (hereafter referred to collectively as
+``nonfinite'') are repaired.  If \emph{strategy} is {\cf black},
+nonfinite values will be replaced with {\cf 0}.  If \emph{strategy} is
+{\cf box3}, nonfinite values will be replaced by the average of all the
+finite values within a $3 \times 3$ region surrounding the pixel.
+\apiend
+
 \apiitem{--pop}
 Pop the image stack, discarding the current image and thereby
 making the next image on the stack into the new current image.
