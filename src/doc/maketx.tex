@@ -136,6 +136,15 @@ an error message will be printed and {\cf maketx} will terminate without
 writing the output image (returning an error code).
 \apiend
 
+\apiitem{--fixnan {\rm \emph{streategy}}}
+\NEW Repairs any pixels in the input image that contained {\cf NaN} or 
+{\cf Inf} values (hereafter referred to collectively as ``nonfinite'').
+If \emph{strategy} is {\cf black}, nonfinite values will be replaced
+with {\cf 0}.  If \emph{strategy} is {\cf box3}, nonfinite values will
+be replaced by the average of all the finite values within a $3 \times 3$
+region surrounding the pixel.
+\apiend
+
 %\apiitem{--ingamma {\rm \emph{value}} \\
 %--outgamma {\rm \emph{value}}}
 %Not currently implemented
