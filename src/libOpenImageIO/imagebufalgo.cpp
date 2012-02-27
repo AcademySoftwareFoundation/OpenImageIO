@@ -272,6 +272,8 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
     default:
         return false;
     }
+    
+    return false;
 }
 
 
