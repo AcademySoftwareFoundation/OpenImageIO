@@ -87,7 +87,7 @@ spcomp2_install: spcomp2 spcomp2_debug
 	--set-rpath $(SPCOMP2_RPATH_DEBUG) \
 	${dist_dir}.debug/lib/libOpenImageIO.so
 	
-	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m compile03.spimageworks.com \
+	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
 	--project=OpenImageIO --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
 	--srcdir=${dist_dir}/lib --root=$(INSTALL_SPCOMP2_LOCATION) \
 	--arch=$(ARCHITECTURE)-$(COMPILER) \
