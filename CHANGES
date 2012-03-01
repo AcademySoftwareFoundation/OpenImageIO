@@ -1,7 +1,19 @@
 Changes:
 
 
+Release 0.10.6 (1 Mar 2012) -- Ports of several fixes from 1.0
+---------------------------
+* Fix for gcc 4.7 to be sure off_t is defined.
+* Fix bug with parse_wrapmodes (incorrect pointer indirection).
+* Skip hash collision stats when not in debug mode (speeds up generation
+  of stats).
+* Add global attribute()/getattribute() and allow "threads" to be set.
+  This adds API calls in a forward-compatible way, but doesn't change
+  any existing API entry points.
+
+
 Release 0.10.5 (20 Feb 2012)
+----------------------------
 * Improvements to anisotropic texture filtering: (1) fix for degenerate
   derivatives that could corrupt the filter footpring calculations,
   resulting in an infinitely long major axis; (2) more efficient subpixel
