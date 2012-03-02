@@ -70,11 +70,21 @@
 /// ASSERT(condition) checks if the condition is met, and if not, prints
 /// an error message indicating the module and line where the error
 /// occurred and then aborts.
+
 #ifndef ASSERT
 # define ASSERT(x)                                              \
     ((x) ? ((void)0)                                            \
          : (fprintf (stderr, "%s:%u: Failed assertion '%s'\n",  \
                      __FILE__, __LINE__, #x), abort()))
+#endif
+
+/// ASSERTMSG(condition,msg,...) is like ASSERT, but lets you add
+/// formatted output (a la printf) to the failure message.
+#ifndef ASSERTMSG
+# define ASSERTMSG(x,msg,...)                                       \
+    ((x) ? ((void)0)                                                \
+         : (fprintf (stderr, "%s:%u: Failed assertion '" #x "': " msg "\n",  \
+                     __FILE__, __LINE__, __VA_ARGS__), abort()))
 #endif
 
 
@@ -85,6 +95,15 @@
 # define DASSERT(x) ASSERT(x)
 #else
 # define DASSERT(x) ((void)0) /* DASSERT does nothing when not debugging */
+#endif
+
+/// DASSERTMSG(condition,msg,...) is just like ASSERTMSG, except that it
+/// only is functional in DEBUG mode, but does nothing when in a
+/// non-DEBUG (optimized, shipping) build.
+#ifdef DEBUG
+# define DASSERTMSG ASSERTMSG
+#else
+# define DASSERTMSG(...) ((void)0) /* does nothing when not debugging */
 #endif
 
 
