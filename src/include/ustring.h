@@ -321,7 +321,7 @@ public:
     /// Cast to int, which is interpreted as testing whether it's not an
     /// empty string.  This allows you to write "if (t)" with the same
     /// semantics as if it were a char*.
-    operator int (void) { return !empty(); }
+    operator int (void) const { return !empty(); }
 
     /// Return a const_iterator that references the first character of
     /// the string.
