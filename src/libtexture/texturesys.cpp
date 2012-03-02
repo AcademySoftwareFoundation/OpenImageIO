@@ -952,14 +952,14 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     float dtdx2 = dtdx*dtdx;
     float dsdy2 = dsdy*dsdy;
     float dtdy2 = dtdy*dtdy;
-    float A = dtdx2 + dtdy2;
-    float B = -2.0f * (dsdx * dtdx + dsdy * dtdy);
-    float C = dsdx2 + dsdy2;
-    float F = A*C - B*B*0.25f;
-    float root = hypotf (A-C, B);
-    float Aprime = (A + C - root) * 0.5f;
-    float Cprime = (A + C + root) * 0.5f;
-    majorlength = A > 0 ? std::min (sqrtf (F / Aprime), 1e4f) : 0;
+    double A = dtdx2 + dtdy2;
+    double B = -2.0 * (dsdx * dtdx + dsdy * dtdy);
+    double C = dsdx2 + dsdy2;
+    double F = A*C - B*B*0.25;
+    double root = hypot (A-C, B);
+    double Aprime = (A + C - root) * 0.5;
+    double Cprime = (A + C + root) * 0.5;
+    majorlength = A > 0 ? sqrtf (F / Aprime) : 0;
     minorlength = C > 0 ? sqrtf (F / Cprime) : 0;
     // N.B. Various papers (including the FELINE ones, imply that the
     // above calculations is the major and minor radii, but we treat
