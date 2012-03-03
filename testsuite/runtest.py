@@ -8,6 +8,37 @@ import subprocess
 from optparse import OptionParser
 
 
+#
+# Get standard testsuite test arguments: srcdir exepath
+#
+
+srcdir = "."
+tmpdir = "."
+path = "../.."
+
+if len(sys.argv) > 1 :
+    srcdir = sys.argv[1]
+    srcdir = os.path.abspath (srcdir) + "/"
+    os.chdir (srcdir)
+if len(sys.argv) > 2 :
+    path = sys.argv[2]
+
+tmpdir = "."
+tmpdir = os.path.abspath (tmpdir)
+
+refdir = "ref/"
+parent = "../../../../../"
+
+default_outputs = [ "out.txt" ]
+
+#print ("srcdir = " + srcdir)
+#print ("tmpdir = " + tmpdir)
+#print ("path = " + path)
+#print ("refdir = " + refdir)
+
+
+
+
 def oiio_app (app):
     # when we use Visual Studio, built applications are stored
     # in the app/$(OutDir)/ directory, e.g., Release or Debug.
@@ -16,7 +47,55 @@ def oiio_app (app):
     # because on Windows it is a forbidden filename due to the "<>" chars.
     if (platform.system () == 'Windows'):
         return app + "/$<CONFIGURATION>/" + app + " "
-    return app + "/" + app + " "
+    return path + "/" + app + "/" + app + " "
+
+
+
+# Construct a command that will compare two images, appending output to
+# the file "out.txt".
+def info_command (file, extraargs="") :
+    return (oiio_app("oiiotool") + "--info -v -a --hash " + extraargs
+            + " " + os.path.relpath(file,tmpdir) + " >> out.txt ;\n")
+
+
+# Construct a command that will compare two images, appending output to
+# the file "out.txt".  We allow a small number of pixels to have up to
+# 1 LSB (8 bit) error, it's very hard to make different platforms and
+# compilers always match to every last floating point bit.
+def diff_command (fileA, fileB, extraargs="", silent=0) :
+    command = (oiio_app("idiff") + "-a "
+               + "-failpercent 0.01 -hardfail 0.004 -warn 0.004 "
+               + extraargs + " " + os.path.relpath(fileA,tmpdir) 
+               + " " + os.path.relpath(fileB,tmpdir))
+    if not silent :
+        command += " >> out.txt"
+    command += " ;\n"
+    return command
+
+
+# Construct a command that will test the basic ability to read and write
+# an image, appending output to the file "out.txt".  First, iinfo the
+# file, including a hash (VERY unlikely not to match if we've read
+# correctly).  If testwrite is nonzero, also iconvert the file to make a
+# copy (tests writing that format), and then idiff to make sure it
+# matches the original.
+def rw_command (dir, filename, testwrite=1, extraargs="") :
+    fn = os.path.relpath (dir + "/" + filename, tmpdir)
+    cmd = (oiio_app("oiiotool") + " --info -v -a --hash " + fn
+           + " >> out.txt ;\n")
+    if testwrite :
+        cmd = (cmd + oiio_app("iconvert") + fn
+               + " " + extraargs + " " + filename + " >> out.txt ;\n")
+        cmd = (cmd + oiio_app("idiff") + " -a " + fn
+               + " " + filename + " >> out.txt ;\n")
+    return cmd
+
+
+# Construct a command that will test 
+def testtex_command (file, extraargs="") :
+    cmd = (oiio_app("testtex") + " " + file + " " + extraargs + " " +
+           " >> out.txt ;\n")
+    return cmd
 
 
 
@@ -24,7 +103,7 @@ def oiio_app (app):
 # in 'ref/'.  If all outputs match their reference copies, return 0
 # to pass.  If any outputs do not match their references return 1 to
 # fail.
-def runtest (command, outputs, cleanfiles="", failureok=0) :
+def runtest (command, outputs=default_outputs, failureok=0) :
     parser = OptionParser()
     parser.add_option("-p", "--path", help="add to executable path",
                       action="store", type="string", dest="path", default="")
@@ -36,18 +115,13 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
                       action="store", type="string", dest="solution_path", default="")
     (options, args) = parser.parse_args()
 
-    if options.clean :
-        for out in outputs+cleanfiles :
-            print "\tremoving " + out
-            try :
-                cmpresult = os.remove (out)
-            except OSError :
-                continue
-        return (0)
+#    print ("working dir = " + tmpdir)
+    os.chdir (srcdir)
+    open ("out.txt", "w").close()    # truncate out.txt
 
     if options.path != "" :
         sys.path = [options.path] + sys.path
-    #print "command = " + command
+    print "command = " + command
 
     if (platform.system () == 'Windows'):
         # Replace the /$<CONFIGURATION>/ component added in oiio_app
@@ -72,20 +146,19 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
             print "FAIL"
             return (1)
 
-    if (platform.system () == 'Windows'):
-       diff_cmd = "fc "
-    else:
-       diff_cmd = "diff "
     err = 0
     for out in outputs :
         extension = os.path.splitext(out)[1]
         if extension == ".tif" or extension == ".exr" :
             # images -- use idiff
-            cmpcommand = (os.path.join (os.environ['IMAGEIOHOME'], "bin", "idiff")
-                          + " " + out + " ref/" + out)
+            cmpcommand = diff_command (out, refdir + out)
         else :
             # anything else, mainly text files
-            cmpcommand = diff_cmd + out + " ref/" + out
+            if (platform.system () == 'Windows'):
+                diff_cmd = "fc "
+            else:
+                diff_cmd = "diff "
+            cmpcommand = (diff_cmd + out + " " + refdir + out)
         # print "cmpcommand = " + cmpcommand
         cmpresult = os.system (cmpcommand)
         if cmpresult == 0 :
@@ -94,43 +167,11 @@ def runtest (command, outputs, cleanfiles="", failureok=0) :
             print "\tNO MATCH " + out
             err = 1
 
-        if err == 0 :
-            print "PASS"
-        else :
-            print "FAIL"
-
-    # if everything passed, get rid of the temporary files
     if err == 0 :
-        for out in outputs+cleanfiles :
-            print "\tremoving " + out
-            try :
-                cmpresult = os.remove (out)
-            except OSError :
-                continue
-
+        print "PASS"
+    else :
+        print "FAIL"
     return (err)
 
 
-
-# Construct a command that will test the basic ability to read and write
-# an image, appending output to the file "out.txt".  First, iinfo the
-# file, including a hash (VERY unlikely not to match if we've read
-# correctly).  If testwrite is nonzero, also iconvert the file to make a
-# copy (tests writing that format), and then idiff to make sure it
-# matches the original.
-def rw_command (dir, filename, cmdpath, testwrite=1, extraargs="") :
-    cmd = cmdpath + oiio_app("iinfo") + " -v -a --hash " + dir + "/" + filename + " >> out.txt ; "
-    print (cmd)
-    if testwrite :
-        cmd = cmd + cmdpath + oiio_app("iconvert") + dir + "/" + filename + " " + extraargs + " " + filename + " >> out.txt ; "
-        cmd = cmd + cmdpath + oiio_app("idiff") + "-a " + dir + "/" + filename + " " + filename + " >> out.txt "
-    return cmd
-
-
-
-# Construct a command that will compare two images, appending output to
-# the file "out.txt".
-def diff_command (fileA, fileB, cmdpath) :
-    cmd = cmdpath + oiio_app("idiff") + "-a " + fileA + " " + fileB + " >> out.txt "
-    return cmd
 

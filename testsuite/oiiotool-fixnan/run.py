@@ -1,33 +1,24 @@
 #!/usr/bin/python 
 
-import os
 import sys
-
-path = ""
-command = ""
-if len(sys.argv) > 2 :
-    os.chdir (sys.argv[1])
-    path = sys.argv[2] + "/"
-
-sys.path = [".."] + sys.path
+sys.path = ["..", "testsuite"] + sys.path
 import runtest
 
 # A command to run
-command = "echo hi > out.txt ; "
-command = command + path + runtest.oiio_app ("oiiotool") + " bad.exr --fixnan black -o black.exr >> out.txt ; "
-command = command + path + runtest.oiio_app ("oiiotool") + " bad.exr --fixnan box3 -o box3.exr >> out.txt ; "
-command = command + path + runtest.oiio_app ("idiff") + " black.exr ref/black.exr >> out.txt ;"
-command = command + path + runtest.oiio_app ("idiff") + " box3.exr ref/box3.exr >> out.txt ;"
-command = command + path + runtest.oiio_app ("oiiotool") + " -v --stats bad.exr black.exr box3.exr >> out.txt ;"
+command = ""
+command = command + (runtest.oiio_app ("oiiotool") + 
+                     " bad.exr --fixnan black -o black.exr >> out.txt ;\n")
+command = command + (runtest.oiio_app ("oiiotool") + 
+                     " bad.exr --fixnan box3 -o box3.exr >> out.txt ;\n")
+command = command + runtest.info_command ("bad.exr", "--stats")
+command = command + runtest.info_command ("black.exr", "--stats")
+command = command + runtest.info_command ("box3.exr", "--stats")
 
 # Outputs to check against references
-outputs = [ "out.txt", "black.exr", "box3.exr" ]
-
-# Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ ]
+outputs = [ "black.exr", "box3.exr", "out.txt" ]
 
 print "Running this command:\n" + command + "\n"
 
 # boilerplate
-ret = runtest.runtest (command, outputs, cleanfiles)
+ret = runtest.runtest (command, outputs)
 sys.exit (ret)

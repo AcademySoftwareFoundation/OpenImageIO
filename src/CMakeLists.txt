@@ -230,6 +230,12 @@ add_subdirectory (doc)
 #########################################################################
 # Testing
 
+# Make a copy of the testsuite into the build area
+if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
+    file (COPY ${PROJECT_SOURCE_DIR}/../testsuite
+          DESTINATION ${CMAKE_BINARY_DIR})
+endif()
+
 # List all the individual testsuite tests here:
 oiio_add_tests (ico gpsread oiiotool oiiotool-fixnan 
                 sgi rla psd dpx
@@ -237,7 +243,9 @@ oiio_add_tests (ico gpsread oiiotool oiiotool-fixnan
                 texture-missing texture-overscan
                 texture-pointsample texture-res
                 texture-skinny texture-fat
-                texture-field3d)
+                texture-field3d
+               )
+
 
 # List testsuites which need special external reference images from the web
 # here:
@@ -268,6 +276,7 @@ oiio_add_tests (fits
 oiio_add_tests (webp
     IMAGEDIR webp-images
     URL http://code.google.com/speed/webp/gallery.html)
+
 
 #########################################################################
 # Packaging

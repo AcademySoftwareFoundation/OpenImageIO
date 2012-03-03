@@ -1,36 +1,27 @@
 #!/usr/bin/python 
 
-import os
 import sys
-
-path = ""
-command = ""
-if len(sys.argv) > 2 :
-    os.chdir (sys.argv[1])
-    path = sys.argv[2] + "/"
-
-sys.path = [".."] + sys.path
+sys.path = ["..", "testsuite"] + sys.path
 import runtest
 
 # Start off
-hi = "echo hi"
-command = hi + "> out.txt"
+command = ""
 
 
 # ../openexr-images-1.5.0/Chromaticities:
 # README         Rec709.exr     Rec709_YC.exr  XYZ.exr        XYZ_YC.exr
-imagedir = "../../../openexr-images-1.5.0/Chromaciticies"
+imagedir = runtest.parent + "/openexr-images-1.5.0/Chromaciticies"
 # FIXME - we don't currently understand chromaticities
 
 # ../openexr-images-1.5.0/LuminanceChroma:
 # CrissyField.exr  Garden.exr       StarField.exr
 # Flowers.exr      MtTamNorth.exr
-imagedir = "../../../openexr-images-1.5.0/LuminanceChroma"
-#command = command + "; " + runtest.rw_command (imagedir, "CrissyField.exr", path, extraargs="--compression zip")
-#command = command + "; " + runtest.rw_command (imagedir, "Flowers.exr", path, extraargs="--compression zip")
-command = command + "; " + runtest.rw_command (imagedir, "Garden.exr", path)
-#command = command + "; " + runtest.rw_command (imagedir, "MtTamNorth.exr", path)
-#command = command + "; " + runtest.rw_command (imagedir, "StarField.exr", path)
+imagedir = runtest.parent + "/openexr-images-1.5.0/LuminanceChroma"
+#command = command + runtest.rw_command (imagedir, "CrissyField.exr", extraargs="--compression zip")
+#command = command + runtest.rw_command (imagedir, "Flowers.exr", extraargs="--compression zip")
+command = command + runtest.rw_command (imagedir, "Garden.exr")
+#command = command + runtest.rw_command (imagedir, "MtTamNorth.exr")
+#command = command + runtest.rw_command (imagedir, "StarField.exr")
 # FIXME -- most of these are broken, we don't read LuminanceChroma images,
 #     nor do we currently support subsampled channels
 
@@ -38,10 +29,6 @@ command = command + "; " + runtest.rw_command (imagedir, "Garden.exr", path)
 # Outputs to check against references
 outputs = [ "out.txt" ]
 
-# Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ "Garden.exr" ]
-
-
 # boilerplate
-ret = runtest.runtest (command, outputs, cleanfiles)
+ret = runtest.runtest (command, outputs)
 sys.exit (ret)
