@@ -160,6 +160,7 @@ input_file (int argc, const char *argv[])
             pio.verbose = ot.verbose;
             pio.subimages = ot.allsubimages;
             pio.compute_stats = ot.printstats;
+            pio.compute_sha1 = ot.hash;
             long long totalsize = 0;
             std::string error;
             OiioTool::print_info (argv[i], pio, totalsize, error);
@@ -1360,6 +1361,7 @@ getargs (int argc, char *argv[])
                 "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
                 "--info", &ot.printinfo, "Print resolution and metadata on all inputs",
                 "--stats", &ot.printstats, "Print pixel statistics on all inputs",
+                "--hash", &ot.hash, "Print SHA-1 hash of each input image",
 //                "-u", &ot.updatemode, "Update mode: skip outputs when the file exists and is newer than all inputs",
                 "--no-clobber", &ot.noclobber, "Do not overwrite existing files",
                 "--noclobber", &ot.noclobber, "", // synonym
