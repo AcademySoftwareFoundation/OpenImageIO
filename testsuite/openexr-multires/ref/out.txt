@@ -1,5 +1,5 @@
-hi
-../../../openexr-images-1.5.0/MultiResolution/Bonita.exr :  550 x  832, 3 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr
+../../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr :  550 x  832, 3 channel, half openexr
     MIP-map levels: 550x832 275x416 137x208 68x104 34x52 17x26 8x13 4x6 2x3 1x1
     SHA-1: F43BE3720790586DDF9C978A34D464C292D3CDE2
     channel list: R, G, B
@@ -13,81 +13,10 @@ hi
     PixelAspectRatio: 1
     screenWindowWidth: 1
     wrapmodes: "clamp,clamp"
-Converting ../../../openexr-images-1.5.0/MultiResolution/Bonita.exr to Bonita.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/Bonita.exr" and "Bonita.exr"
-Subimage 0: 550 x 832, 3 channel
- MIP level 0: 550 x 832, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 275 x 416, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 137 x 208, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 68 x 104, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 34 x 52, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 17 x 26, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 8 x 13, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 4 x 6, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 2 x 3, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 1 x 1, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/Bonita.exr" and "Bonita.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr :  512 x  512, 4 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr
+../../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr :  512 x  512, 4 channel, half openexr
     MIP-map levels: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: 45728B1CA28D39A3C2BF22DF19863278FE25B1ED
     channel list: R, G, B, A
@@ -101,81 +30,10 @@ PASS
     PixelAspectRatio: 1
     screenWindowWidth: 1
     wrapmodes: "periodic,periodic"
-Converting ../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr to ColorCodedLevels.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
-Subimage 0: 512 x 512, 4 channel
- MIP level 0: 512 x 512, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 256 x 256, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 128 x 128, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 64 x 64, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 32 x 32, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 16 x 16, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 8 x 8, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 4 x 4, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 2 x 2, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 1 x 1, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr :  256 x 1536, 4 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr
+../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr :  256 x 1536, 4 channel, half openexr
     MIP-map levels: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
     SHA-1: 05FE405753166F125559E7C9AC558654F107C7E9
     channel list: R, G, B, A
@@ -190,88 +48,10 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr to KernerEnvCube.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
-Subimage 0: 256 x 1536, 4 channel
- MIP level 0: 256 x 1536, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 128 x 768, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 64 x 384, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 32 x 192, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 16 x 96, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 8 x 48, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 4 x 24, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 2 x 12, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 1 x 6, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 1 x 3, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 10: 1 x 1, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr : 1024 x  512, 4 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr
+../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr : 1024 x  512, 4 channel, half openexr
     MIP-map levels: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1
     SHA-1: 958966C77AADA8F4CB7738BE97CBE1FC9D9793DD
     channel list: R, G, B, A
@@ -285,88 +65,10 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr to KernerEnvLatLong.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
-Subimage 0: 1024 x 512, 4 channel
- MIP level 0: 1024 x 512, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 512 x 256, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 256 x 128, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 128 x 64, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 64 x 32, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 32 x 16, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 16 x 8, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 8 x 4, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 4 x 2, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 2 x 1, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 10: 1 x 1, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr :  512 x  512, 3 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr
+../../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr :  512 x  512, 3 channel, half openexr
     MIP-map levels: 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: E98E10A5087ECA2C514D42C92CE9DDBA3FC5BBEC
     channel list: R, G, B
@@ -379,81 +81,10 @@ PASS
     PixelAspectRatio: 1
     screenWindowWidth: 1
     wrapmodes: "mirror,mirror"
-Converting ../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr to MirrorPattern.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
-Subimage 0: 512 x 512, 3 channel
- MIP level 0: 512 x 512, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 256 x 256, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 128 x 128, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 64 x 64, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 32 x 32, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 16 x 16, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 8 x 8, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 4 x 4, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 2 x 2, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 1 x 1, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr :  512 x 3072, 4 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr
+../../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr :  512 x 3072, 4 channel, half openexr
     MIP-map levels: 512x3072 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
     SHA-1: 05FE405753166F125559E7C9AC558654F107C7E9
     channel list: R, G, B, A
@@ -468,95 +99,10 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr to OrientationCube.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
-Subimage 0: 512 x 3072, 4 channel
- MIP level 0: 512 x 3072, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 256 x 1536, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 128 x 768, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 64 x 384, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 32 x 192, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 16 x 96, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 8 x 48, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 4 x 24, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 2 x 12, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 1 x 6, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 10: 1 x 3, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 11: 1 x 1, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr : 1024 x  512, 4 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr
+../../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr : 1024 x  512, 4 channel, half openexr
     MIP-map levels: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1
     SHA-1: 2D725903DE1F4D99C1AE6F2E1EC40F27526FA11E
     channel list: R, G, B, A
@@ -570,88 +116,10 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr to OrientationLatLong.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
-Subimage 0: 1024 x 512, 4 channel
- MIP level 0: 1024 x 512, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 512 x 256, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 256 x 128, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 128 x 64, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 64 x 32, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 32 x 16, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 16 x 8, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 8 x 4, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 4 x 2, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 2 x 1, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 10: 1 x 1, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr :  517 x  517, 3 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr
+../../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr :  517 x  517, 3 channel, half openexr
     MIP-map levels: 517x517 258x258 129x129 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: 133460EA695DA519AF2726FA950441894395D2F6
     channel list: R, G, B
@@ -664,81 +132,10 @@ PASS
     PixelAspectRatio: 1
     screenWindowWidth: 1
     wrapmodes: "periodic,periodic"
-Converting ../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr to PeriodicPattern.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
-Subimage 0: 517 x 517, 3 channel
- MIP level 0: 517 x 517, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 258 x 258, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 129 x 129, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 64 x 64, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 32 x 32, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 16 x 16, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 8 x 8, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 4 x 4, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 2 x 2, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 1 x 1, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr :  256 x 1536, 3 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr
+../../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr :  256 x 1536, 3 channel, half openexr
     MIP-map levels: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
     SHA-1: 7722745105E9E02E8F1AAF17F7B3AAC5C56CD805
     channel list: R, G, B
@@ -753,88 +150,10 @@ PASS
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr to StageEnvCube.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
-Subimage 0: 256 x 1536, 3 channel
- MIP level 0: 256 x 1536, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 128 x 768, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 64 x 384, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 32 x 192, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 16 x 96, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 8 x 48, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 4 x 24, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 2 x 12, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 1 x 6, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 1 x 3, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 10: 1 x 1, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr : 1000 x  500, 3 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr
+../../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr : 1000 x  500, 3 channel, half openexr
     MIP-map levels: 1000x500 500x250 250x125 125x63 63x32 32x16 16x8 8x4 4x2 2x1 1x1
     SHA-1: 883801CB63BBA97E707EB7739CA572C7660D44EB
     channel list: R, G, B
@@ -848,88 +167,10 @@ PASS
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr to StageEnvLatLong.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
-Subimage 0: 1000 x 500, 3 channel
- MIP level 0: 1000 x 500, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 500 x 250, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 250 x 125, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 125 x 63, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 63 x 32, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 32 x 16, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 16 x 8, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 8 x 4, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 4 x 2, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 2 x 1, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 10: 1 x 1, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr :  256 x 1536, 3 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr
+../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr :  256 x 1536, 3 channel, half openexr
     MIP-map levels: 256x1536 128x768 64x384 32x192 16x96 8x48 4x24 2x12 1x6 1x3 1x1
     SHA-1: 7722745105E9E02E8F1AAF17F7B3AAC5C56CD805
     channel list: R, G, B
@@ -944,88 +185,10 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr to WavyLinesCube.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
-Subimage 0: 256 x 1536, 3 channel
- MIP level 0: 256 x 1536, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 128 x 768, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 64 x 384, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 32 x 192, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 16 x 96, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 8 x 48, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 4 x 24, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 2 x 12, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 1 x 6, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 1 x 3, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 10: 1 x 1, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr : 1024 x  512, 3 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr
+../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr : 1024 x  512, 3 channel, half openexr
     MIP-map levels: 1024x512 512x256 256x128 128x64 64x32 32x16 16x8 8x4 4x2 2x1 1x1
     SHA-1: 39B4F888CCF3FF79C6A8D1063B2786496875823F
     channel list: R, G, B
@@ -1039,88 +202,10 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr to WavyLinesLatLong.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
-Subimage 0: 1024 x 512, 3 channel
- MIP level 0: 1024 x 512, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 1: 512 x 256, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 2: 256 x 128, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 3: 128 x 64, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 4: 64 x 32, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 5: 32 x 16, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 6: 16 x 8, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 7: 8 x 4, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 8: 4 x 2, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 9: 2 x 1, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
- MIP level 10: 1 x 1, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
 PASS
-../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr
+../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr :  480 x  480, 4 channel, half openexr
     SHA-1: E802DC23DA0EEF8EE782CC5D7BA56294C0FA7462
     channel list: R, G, B, A
     oiio:ColorSpace: "Linear"
@@ -1128,13 +213,5 @@ PASS
     Copyright: "Copyright 2005 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr to WavyLinesSphere.exr
-Comparing "../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
-Subimage 0: 480 x 480, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
 PASS

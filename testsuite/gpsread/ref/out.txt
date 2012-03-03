@@ -1,4 +1,6 @@
-../../../oiio-images/tahoe-gps.jpg : 2048 x 1536, 3 channel, uint8 jpeg
+Reading ../../../../../oiio-images/tahoe-gps.jpg
+../../../../../oiio-images/tahoe-gps.jpg : 2048 x 1536, 3 channel, uint8 jpeg
+    SHA-1: C3B420EF8C20C4771F6F7BF89EA9D9D4002BA016
     channel list: R, G, B
     oiio:ColorSpace: "sRGB"
     Make: "HTC"

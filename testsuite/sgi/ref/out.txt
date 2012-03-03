@@ -1,59 +1,30 @@
-hi
-ref/norle-8.sgi :  100 x   63, 4 channel, uint8 sgi
+Reading ref/norle-8.sgi
+ref/norle-8.sgi      :  100 x   63, 4 channel, uint8 sgi
     SHA-1: AB45F4C8F7DC146D019C1B6C5FCF45EB86884C81
     channel list: R, G, B, A
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
-Converting ref/norle-8.sgi to norle-8.sgi
 Comparing "ref/norle-8.sgi" and "norle-8.sgi"
-Subimage 0: 100 x 63, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
 PASS
-ref/rle-8.sgi :  100 x   63, 4 channel, uint8 sgi
+Reading ref/rle-8.sgi
+ref/rle-8.sgi        :  100 x   63, 4 channel, uint8 sgi
     SHA-1: AB45F4C8F7DC146D019C1B6C5FCF45EB86884C81
     channel list: R, G, B, A
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
     compression: "rle"
-Converting ref/rle-8.sgi to rle-8.sgi
 Comparing "ref/rle-8.sgi" and "rle-8.sgi"
-Subimage 0: 100 x 63, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
 PASS
-ref/norle-16.sgi :  100 x   63, 4 channel, uint16 sgi
+Reading ref/norle-16.sgi
+ref/norle-16.sgi     :  100 x   63, 4 channel, uint16 sgi
     SHA-1: 883A9F68264340CD10BDCC2D12E487E36EDCFC64
     channel list: R, G, B, A
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
-Converting ref/norle-16.sgi to norle-16.sgi
 Comparing "ref/norle-16.sgi" and "norle-16.sgi"
-Subimage 0: 100 x 63, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
 PASS
-ref/rle-16.sgi :  100 x   63, 4 channel, uint16 sgi
+Reading ref/rle-16.sgi
+ref/rle-16.sgi       :  100 x   63, 4 channel, uint16 sgi
     SHA-1: 883A9F68264340CD10BDCC2D12E487E36EDCFC64
     channel list: R, G, B, A
     ImageDescription: "...rnold_SGI_Texture_Crash_Bugreport_01\Default_Pass_Main.1.sgi"
     compression: "rle"
-Converting ref/rle-16.sgi to rle-16.sgi
 Comparing "ref/rle-16.sgi" and "rle-16.sgi"
-Subimage 0: 100 x 63, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
 PASS
