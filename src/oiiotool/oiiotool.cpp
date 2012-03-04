@@ -152,6 +152,13 @@ static int
 input_file (int argc, const char *argv[])
 {
     for (int i = 0;  i < argc;  i++) {
+        int exists = 1;
+        if (! ot.imagecache->get_image_info (ustring(argv[0]), 0, 0, 
+                            ustring("exists"), TypeDesc::TypeInt, &exists)
+            || !exists) {
+            std::cerr << "oiiotool ERROR: Could not open file \"" << argv[0] << "\"\n";
+            exit (1);
+        }
         if (ot.verbose)
             std::cout << "Reading " << argv[0] << "\n";
         ot.push (ImageRecRef (new ImageRec (argv[i], ot.imagecache)));
