@@ -149,6 +149,8 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
             }
 
             int npels = img0.spec().width * img0.spec().height * img0.spec().depth;
+            if (npels == 0)
+                npels = 1;    // Avoid divide by zero for 0x0 images
             ASSERT (img0.spec().format == TypeDesc::FLOAT);
 
             // Compare the two images.
