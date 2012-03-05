@@ -81,6 +81,24 @@ safe_double_print (double val)
 
 
 
+inline void
+print_subimage (ImageRec &img0, int subimage, int miplevel)
+{
+    if (img0.subimages() > 1)
+        std::cout << "Subimage " << subimage << ' ';
+    if (img0.miplevels(subimage) > 1)
+        std::cout << " MIP level " << miplevel << ' ';
+    if (img0.subimages() > 1 || img0.miplevels(subimage) > 1)
+        std::cout << ": ";
+    const ImageSpec &spec (*img0.spec(subimage));
+    std::cout << spec.width << " x " << spec.height;
+    if (spec.depth > 1)
+        std::cout << " x " << spec.depth;
+    std::cout << ", " << spec.nchannels << " channel\n";
+}
+
+
+
 int
 OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
                           Oiiotool &ot)
@@ -96,15 +114,6 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
             break;
         if (subimage >= ir1.subimages())
             break;
-
-        if (ot.allsubimages) {
-            std::cout << "Subimage " << subimage << ": ";
-            const ImageSpec &spec (*ir0.spec(subimage));
-            std::cout << spec.width << " x " << spec.height;
-            if (spec.depth > 1)
-                std::cout << " x " << spec.depth;
-            std::cout << ", " << spec.nchannels << " channel\n";
-        }
 
         if (ir0.miplevels(subimage) != ir1.miplevels(subimage)) {
             std::cout << "Files do not match in their number of MIPmap levels\n";
@@ -122,18 +131,11 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
             ImageBuf &img0 (ir0(subimage,m));
             ImageBuf &img1 (ir1(subimage,m));
 
-            if (ot.allsubimages && ir0.miplevels(subimage) > 1) {
-                std::cout << " MIP level " << m << ": ";
-                std::cout << img0.spec().width << " x " << img0.spec().height;
-                if (img0.spec().depth > 1)
-                    std::cout << " x " << img0.spec().depth;
-                std::cout << ", " << img0.spec().nchannels << " channel\n";
-            }
-
             // Compare the dimensions of the images.  Fail if they
             // aren't the same resolution and number of channels.  No
             // problem, though, if they aren't the same data type.
             if (! same_size (img0, img1)) {
+                print_subimage (ir0, subimage, m);
                 std::cout << "Images do not match in size: ";
                 std::cout << "(" << img0.spec().width << "x" << img0.spec().height;
                 if (img0.spec().depth > 1)
@@ -163,49 +165,53 @@ OiioTool::do_action_diff (ImageRec &ir0, ImageRec &ir1,
             if (perceptual)
                 yee_failures = ImageBufAlgo::compare_Yee (img0, img1);
 #endif
-
-            // Print the report
-            //
-            std::cout << "  Mean error = ";
-            safe_double_print (cr.meanerror);
-            std::cout << "  RMS error = ";
-            safe_double_print (cr.rms_error);
-            std::cout << "  Peak SNR = ";
-            safe_double_print (cr.PSNR);
-            std::cout << "  Max error  = " << cr.maxerror;
-            if (cr.maxerror != 0) {
-                std::cout << " @ (" << cr.maxx << ", " << cr.maxy;
-                if (img0.spec().depth > 1)
-                    std::cout << ", " << cr.maxz;
-                std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
-            }
-            std::cout << "\n";
-// when Visual Studio is used float values in scientific foramt are 
-// printed with three digit exponent. We change this behaviour to fit
-// Linux way
-#ifdef _MSC_VER
-            _set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
-            std::streamsize precis = std::cout.precision();
-            std::cout << "  " << cr.nwarn << " pixels (" 
-                      << std::setprecision(3) << (100.0*cr.nwarn / npels) 
-                      << std::setprecision(precis) << "%) over " << ot.diff_warnthresh << "\n";
-            std::cout << "  " << cr.nfail << " pixels (" 
-                      << std::setprecision(3) << (100.0*cr.nfail / npels) 
-                      << std::setprecision(precis) << "%) over " << ot.diff_failthresh << "\n";
-#if 0
-            if (perceptual)
-                std::cout << "  " << yee_failures << " pixels ("
-                          << std::setprecision(3) << (100.0*yee_failures / npels) 
-                          << std::setprecision(precis)
-                          << "%) failed the perceptual test\n";
-#endif
             if (cr.nfail > (ot.diff_failpercent/100.0 * npels) || cr.maxerror > ot.diff_hardfail ||
                 yee_failures > (ot.diff_failpercent/100.0 * npels)) {
                 ret = DiffErrFail;
             } else if (cr.nwarn > (ot.diff_warnpercent/100.0 * npels) || cr.maxerror > ot.diff_hardwarn) {
                 if (ret != DiffErrFail)
                     ret = DiffErrWarn;
+            }
+
+            // Print the report
+            //
+            if (ot.verbose || ret != DiffErrOK) {
+                if (ot.allsubimages)
+                    print_subimage (ir0, subimage, m);
+                std::cout << "  Mean error = ";
+                safe_double_print (cr.meanerror);
+                std::cout << "  RMS error = ";
+                safe_double_print (cr.rms_error);
+                std::cout << "  Peak SNR = ";
+                safe_double_print (cr.PSNR);
+                std::cout << "  Max error  = " << cr.maxerror;
+                if (cr.maxerror != 0) {
+                    std::cout << " @ (" << cr.maxx << ", " << cr.maxy;
+                    if (img0.spec().depth > 1)
+                        std::cout << ", " << cr.maxz;
+                    std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
+                }
+                std::cout << "\n";
+// when Visual Studio is used float values in scientific foramt are 
+// printed with three digit exponent. We change this behaviour to fit
+// Linux way
+#ifdef _MSC_VER
+                _set_output_format(_TWO_DIGIT_EXPONENT);
+#endif
+                std::streamsize precis = std::cout.precision();
+                std::cout << "  " << cr.nwarn << " pixels (" 
+                          << std::setprecision(3) << (100.0*cr.nwarn / npels) 
+                          << std::setprecision(precis) << "%) over " << ot.diff_warnthresh << "\n";
+                std::cout << "  " << cr.nfail << " pixels (" 
+                          << std::setprecision(3) << (100.0*cr.nfail / npels) 
+                          << std::setprecision(precis) << "%) over " << ot.diff_failthresh << "\n";
+#if 0
+                if (perceptual)
+                    std::cout << "  " << yee_failures << " pixels ("
+                              << std::setprecision(3) << (100.0*yee_failures / npels) 
+                              << std::setprecision(precis)
+                              << "%) failed the perceptual test\n";
+#endif
             }
 
 #if 0
