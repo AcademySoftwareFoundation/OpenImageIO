@@ -1045,7 +1045,7 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
             
             for (int c = 0;  c < nchannels;  ++c) {
                 SRCTYPE value = pixel[c];
-                if (! std::isfinite (value)) {
+                if (! isfinite (value)) {
                     int numvals = 0;
                     SRCTYPE sum = 0.0;
                     
@@ -1057,7 +1057,7 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
                     ImageBuf::Iterator<SRCTYPE> it (dst, top, bottom, left, right);
                     while (it.valid()) {
                         SRCTYPE v = it[c];
-                        if (std::isfinite (v)) {
+                        if (isfinite (v)) {
                             sum += v;
                             numvals ++;
                         }
