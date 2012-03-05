@@ -1,5 +1,6 @@
 if (WEBP_FOUND)
-    add_oiio_plugin (webpinput.cpp jwebpoutput.cpp LINK_LIBRARIES ${WEBP_LIBRARY})
+    include_directories (${WEBP_INCLUDE_DIR})
+    add_oiio_plugin (webpinput.cpp webpoutput.cpp LINK_LIBRARIES ${WEBP_LIBRARY})
 endif()
 
 
