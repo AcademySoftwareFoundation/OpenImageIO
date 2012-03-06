@@ -1,27 +1,14 @@
 #!/usr/bin/python 
 
-import os
 import sys
-
-path = ""
-command = ""
-if len(sys.argv) > 2 :
-    os.chdir (sys.argv[1])
-    path = sys.argv[2] + "/"
-
-sys.path = [".."] + sys.path
+sys.path = ["..", "testsuite"] + sys.path
 import runtest
 
 # A command to run
-command = path + runtest.oiio_app("testtex") + " --nowarp --offset -1 -1 -1 --scalest 2 2 sparse_half.f3d ; "
-command = command + path + runtest.oiio_app("idiff") + " out.exr ref/out.exr > out.txt"
-# Outputs to check against references
-outputs = [  ]
+command = runtest.oiio_app("testtex") + " --nowarp --offset -1 -1 -1 --scalest 2 2 " + os.path.relpath("sparse_half.f3d",runtest.tmpdir)
 
-# Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ "out.txt" "out.exr" ]
-
+outputs = [ "out.exr" ]
 
 # boilerplate
-ret = runtest.runtest (command, outputs, cleanfiles)
+ret = runtest.runtest (command, outputs)
 sys.exit (ret)

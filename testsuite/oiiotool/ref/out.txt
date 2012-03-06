@@ -1,0 +1,9 @@
+Comparing "resize.tif" and "/Users/lg/lg/proj/oiio/oiio.lg/testsuite/oiiotool/ref/resize.tif"
+Subimage 0: 256 x 256, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS

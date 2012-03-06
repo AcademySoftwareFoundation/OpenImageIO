@@ -1,0 +1,9 @@
+Comparing "out.exr" and "../../../../testsuite/texture-fill/ref/out.exr"
+Subimage 0: 128 x 128, 4 channel
+  Mean error = 0
+  RMS error = 0
+  Peak SNR = inf
+  Max error  = 0
+  0 pixels (0%) over 1e-06
+  0 pixels (0%) over 1e-06
+PASS

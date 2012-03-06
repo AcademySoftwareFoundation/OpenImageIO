@@ -1,5 +1,5 @@
-hi
-../../../openexr-images-1.5.0/LuminanceChroma/Garden.exr :  874 x  493, 1 channel, half openexr
+Reading ../../../../../openexr-images-1.5.0/LuminanceChroma/Garden.exr
+../../../../../openexr-images-1.5.0/LuminanceChroma/Garden.exr :  874 x  493, 1 channel, half openexr
     SHA-1: FDC1BE9592AD4B1FE4EF2FF431783BAC83E619DE
     channel list: Y
     tile size: 128 x 128
@@ -8,13 +8,5 @@ hi
     Copyright: "Copyright 2004 Industrial Light & Magic"
     PixelAspectRatio: 1
     screenWindowWidth: 1
-Converting ../../../openexr-images-1.5.0/LuminanceChroma/Garden.exr to Garden.exr
-Comparing "../../../openexr-images-1.5.0/LuminanceChroma/Garden.exr" and "Garden.exr"
-Subimage 0: 874 x 493, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../openexr-images-1.5.0/LuminanceChroma/Garden.exr" and "Garden.exr"
 PASS

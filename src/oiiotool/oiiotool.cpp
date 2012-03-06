@@ -152,6 +152,13 @@ static int
 input_file (int argc, const char *argv[])
 {
     for (int i = 0;  i < argc;  i++) {
+        int exists = 1;
+        if (! ot.imagecache->get_image_info (ustring(argv[0]), 0, 0, 
+                            ustring("exists"), TypeDesc::TypeInt, &exists)
+            || !exists) {
+            std::cerr << "oiiotool ERROR: Could not open file \"" << argv[0] << "\"\n";
+            exit (1);
+        }
         if (ot.verbose)
             std::cout << "Reading " << argv[0] << "\n";
         ot.push (ImageRecRef (new ImageRec (argv[i], ot.imagecache)));
@@ -160,6 +167,7 @@ input_file (int argc, const char *argv[])
             pio.verbose = ot.verbose;
             pio.subimages = ot.allsubimages;
             pio.compute_stats = ot.printstats;
+            pio.compute_sha1 = ot.hash;
             long long totalsize = 0;
             std::string error;
             OiioTool::print_info (argv[i], pio, totalsize, error);
@@ -1360,6 +1368,7 @@ getargs (int argc, char *argv[])
                 "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
                 "--info", &ot.printinfo, "Print resolution and metadata on all inputs",
                 "--stats", &ot.printstats, "Print pixel statistics on all inputs",
+                "--hash", &ot.hash, "Print SHA-1 hash of each input image",
 //                "-u", &ot.updatemode, "Update mode: skip outputs when the file exists and is newer than all inputs",
                 "--no-clobber", &ot.noclobber, "Do not overwrite existing files",
                 "--noclobber", &ot.noclobber, "", // synonym

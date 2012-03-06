@@ -1,22 +1,6 @@
-hi
-Comparing "black.exr" and "ref/black.exr"
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-PASS
-Comparing "box3.exr" and "ref/box3.exr"
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-PASS
 Reading bad.exr
 bad.exr              :   64 x   64, 3 channel, half openexr
+    SHA-1: BDEA744AE77E178C4F9C3462110F57923AB496CE
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "zip"
@@ -34,6 +18,7 @@ bad.exr              :   64 x   64, 3 channel, half openexr
     Monochrome: No
 Reading black.exr
 black.exr            :   64 x   64, 3 channel, half openexr
+    SHA-1: A29F8126A8FB6A57851C1A5B6BE928AE3B2490F7
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "zip"
@@ -51,6 +36,7 @@ black.exr            :   64 x   64, 3 channel, half openexr
     Monochrome: No
 Reading box3.exr
 box3.exr             :   64 x   64, 3 channel, half openexr
+    SHA-1: 47A8E8F3E8B2C3B6B032FCC8C39D3C5FC1AAA390
     channel list: R, G, B
     oiio:ColorSpace: "Linear"
     compression: "zip"
@@ -66,3 +52,7 @@ box3.exr             :   64 x   64, 3 channel, half openexr
     Stats FiniteCount: 4096 4096 4096 
     Constant: No
     Monochrome: Yes
+Comparing "black.exr" and "ref/black.exr"
+PASS
+Comparing "box3.exr" and "ref/box3.exr"
+PASS

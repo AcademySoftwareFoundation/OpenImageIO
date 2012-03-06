@@ -53,6 +53,7 @@ public:
     bool allsubimages;
     bool printinfo;
     bool printstats;
+    bool hash;
     bool updatemode;
     int threads;
     
@@ -84,7 +85,8 @@ public:
 
     Oiiotool ()
         : verbose(false), noclobber(false), allsubimages(false),
-          printinfo(false), printstats(false), updatemode(false),
+          printinfo(false), printstats(false), hash(false),
+          updatemode(false),
           threads(0),
           output_dataformat(TypeDesc::UNKNOWN), output_bitspersample(0),
           output_scanline(false), output_tilewidth(0), output_tileheight(0),

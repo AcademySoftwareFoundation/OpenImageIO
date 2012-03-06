@@ -87,12 +87,15 @@ macro (oiio_add_tests)
         message (STATUS "  -> You can find it at ${_ats_URL}\n")
     else ()
         # Add the tests if all is well.
-        if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
+        if (DEFINED CMAKE_VERSION AND CMAKE_VERSION VERSION_GREATER 2.8)
             set (_has_generator_expr TRUE)
         endif ()
         foreach (_testname ${_ats_DEFAULT_ARGS})
+            set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}")
             if (_has_generator_expr)
-                set (_add_test_args NAME ${_testname} COMMAND python)
+                set (_add_test_args NAME ${_testname} 
+#                                    WORKING_DIRECTORY ${_testdir}
+                                    COMMAND python)
                 if (MSVC_IDE)
                     set (_extra_test_args
                         --devenv-config $<CONFIGURATION>
@@ -104,11 +107,10 @@ macro (oiio_add_tests)
                 set (_add_test_args ${_testname} python)
                 set (_extra_test_args "")
             endif ()
+            message (STATUS "TEST ${_testname}: ${_testdir}/run.py ${_testdir} ${CMAKE_BINARY_DIR} ${_extra_test_args}")
             add_test (${_add_test_args}
-                ${PROJECT_SOURCE_DIR}/../testsuite/${_testname}/run.py
-                ${PROJECT_SOURCE_DIR}/../testsuite/${_testname}
-                ${CMAKE_BINARY_DIR}
-                ${_extra_test_args} )
+                      "${_testdir}/run.py" "${_testdir}"
+                      ${_extra_test_args})
         endforeach ()
     endif ()
 endmacro ()

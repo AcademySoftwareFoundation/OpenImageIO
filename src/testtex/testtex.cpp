@@ -56,6 +56,7 @@ static std::vector<std::string> filenames;
 static std::string output_filename = "out.exr";
 static bool verbose = false;
 static int output_xres = 512, output_yres = 512;
+static std::string dataformatname = "half";
 static float sscale = 1, tscale = 1;
 static float blur = 0;
 static float width = 1;
@@ -106,6 +107,8 @@ getargs (int argc, const char *argv[])
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
                   "-o %s", &output_filename, "Output test image",
+                  "-d %s", &dataformatname, "Set the output data format to one of:"
+                        "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
                   "-res %d %d", &output_xres, &output_yres,
                       "Resolution of output test image",
                   "-iters %d", &iters,
@@ -224,6 +227,31 @@ test_plain_texture ()
               << output_filename << "\n";
     const int nchannels = 4;
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
+    if (! dataformatname.empty()) {
+        if (dataformatname == "uint8")
+            outspec.set_format (TypeDesc::UINT8);
+        else if (dataformatname == "int8")
+            outspec.set_format (TypeDesc::INT8);
+        else if (dataformatname == "uint10") {
+            outspec.attribute ("oiio:BitsPerSample", 10);
+            outspec.set_format (TypeDesc::UINT16);
+        }
+        else if (dataformatname == "uint12") {
+            outspec.attribute ("oiio:BitsPerSample", 12);
+            outspec.set_format (TypeDesc::UINT16);
+        }
+        else if (dataformatname == "uint16")
+            outspec.set_format (TypeDesc::UINT16);
+        else if (dataformatname == "int16")
+            outspec.set_format (TypeDesc::INT16);
+        else if (dataformatname == "half")
+            outspec.set_format (TypeDesc::HALF);
+        else if (dataformatname == "float")
+            outspec.set_format (TypeDesc::FLOAT);
+        else if (dataformatname == "double")
+            outspec.set_format (TypeDesc::DOUBLE);
+        outspec.channelformats.clear ();
+    }
     ImageBuf image (output_filename, outspec);
     ImageBufAlgo::zero (image);
 

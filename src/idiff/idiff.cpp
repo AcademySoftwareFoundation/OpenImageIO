@@ -184,13 +184,30 @@ safe_double_print (double val)
 
 
 
+inline void
+print_subimage (ImageBuf &img0, int subimage, int miplevel)
+{
+    if (img0.nsubimages() > 1)
+        std::cout << "Subimage " << subimage << ' ';
+    if (img0.nmiplevels() > 1)
+        std::cout << " MIP level " << miplevel << ' ';
+    if (img0.nsubimages() > 1 || img0.nmiplevels() > 1)
+        std::cout << ": ";
+    std::cout << img0.spec().width << " x " << img0.spec().height;
+    if (img0.spec().depth > 1)
+        std::cout << " x " << img0.spec().depth;
+    std::cout << ", " << img0.spec().nchannels << " channel\n";
+}
+
+
+
 int
 main (int argc, char *argv[])
 {
     getargs (argc, argv);
 
     std::cout << "Comparing \"" << filenames[0] 
-             << "\" and \"" << filenames[1] << "\"\n";
+              << "\" and \"" << filenames[1] << "\"\n";
 
     // Create a private ImageCache so we can customize its cache size
     // and instruct it store everything internally as floats.
@@ -218,17 +235,11 @@ main (int argc, char *argv[])
         if (subimage >= img1.nsubimages())
             break;
 
-        if (compareall) {
-            std::cout << "Subimage " << subimage << ": ";
-            std::cout << img0.spec().width << " x " << img0.spec().height;
-            if (img0.spec().depth > 1)
-                std::cout << " x " << img0.spec().depth;
-            std::cout << ", " << img0.spec().nchannels << " channel\n";
-        }
-
         if (! read_input (filenames[0], img0, imagecache, subimage) ||
-            ! read_input (filenames[1], img1, imagecache, subimage))
+            ! read_input (filenames[1], img1, imagecache, subimage)) {
+            std::cout << "Failed to read subimage " << subimage << "\n";
             return ErrFile;
+        }
 
         if (img0.nmiplevels() != img1.nmiplevels()) {
             std::cout << "Files do not match in their number of MIPmap levels\n";
@@ -247,18 +258,11 @@ main (int argc, char *argv[])
                 ! read_input (filenames[1], img1, imagecache, subimage, m))
                 return ErrFile;
 
-            if (compareall && img0.nmiplevels() > 1) {
-                std::cout << " MIP level " << m << ": ";
-                std::cout << img0.spec().width << " x " << img0.spec().height;
-                if (img0.spec().depth > 1)
-                    std::cout << " x " << img0.spec().depth;
-                std::cout << ", " << img0.spec().nchannels << " channel\n";
-            }
-
             // Compare the dimensions of the images.  Fail if they
             // aren't the same resolution and number of channels.  No
             // problem, though, if they aren't the same data type.
             if (! same_size (img0, img1)) {
+                print_subimage (img0, subimage, m);
                 std::cout << "Images do not match in size: ";
                 std::cout << "(" << img0.spec().width << "x" << img0.spec().height;
                 if (img0.spec().depth > 1)
@@ -274,6 +278,8 @@ main (int argc, char *argv[])
             }
 
             int npels = img0.spec().width * img0.spec().height * img0.spec().depth;
+            if (npels == 0)
+                npels = 1;    // Avoid divide by zero for 0x0 images
             ASSERT (img0.spec().format == TypeDesc::FLOAT);
 
             // Compare the two images.
@@ -285,47 +291,51 @@ main (int argc, char *argv[])
             if (perceptual)
                 yee_failures = ImageBufAlgo::compare_Yee (img0, img1);
 
-            // Print the report
-            //
-            std::cout << "  Mean error = ";
-            safe_double_print (cr.meanerror);
-            std::cout << "  RMS error = ";
-            safe_double_print (cr.rms_error);
-            std::cout << "  Peak SNR = ";
-            safe_double_print (cr.PSNR);
-            std::cout << "  Max error  = " << cr.maxerror;
-            if (cr.maxerror != 0) {
-                std::cout << " @ (" << cr.maxx << ", " << cr.maxy;
-                if (img0.spec().depth > 1)
-                    std::cout << ", " << cr.maxz;
-                std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
-            }
-            std::cout << "\n";
-// when Visual Studio is used float values in scientific foramt are 
-// printed with three digit exponent. We change this behaviour to fit
-// Linux way
-#ifdef _MSC_VER
-            _set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
-            std::streamsize precis = std::cout.precision();
-            std::cout << "  " << cr.nwarn << " pixels (" 
-                      << std::setprecision(3) << (100.0*cr.nwarn / npels) 
-                      << std::setprecision(precis) << "%) over " << warnthresh << "\n";
-            std::cout << "  " << cr.nfail << " pixels (" 
-                      << std::setprecision(3) << (100.0*cr.nfail / npels) 
-                      << std::setprecision(precis) << "%) over " << failthresh << "\n";
-            if (perceptual)
-                std::cout << "  " << yee_failures << " pixels ("
-                          << std::setprecision(3) << (100.0*yee_failures / npels) 
-                          << std::setprecision(precis)
-                          << "%) failed the perceptual test\n";
-
             if (cr.nfail > (failpercent/100.0 * npels) || cr.maxerror > hardfail ||
                 yee_failures > (failpercent/100.0 * npels)) {
                 ret = ErrFail;
             } else if (cr.nwarn > (warnpercent/100.0 * npels) || cr.maxerror > hardwarn) {
                 if (ret != ErrFail)
                     ret = ErrWarn;
+            }
+
+            // Print the report
+            //
+            if (verbose || ret != ErrOK) {
+                if (compareall)
+                    print_subimage (img0, subimage, m);
+                std::cout << "  Mean error = ";
+                safe_double_print (cr.meanerror);
+                std::cout << "  RMS error = ";
+                safe_double_print (cr.rms_error);
+                std::cout << "  Peak SNR = ";
+                safe_double_print (cr.PSNR);
+                std::cout << "  Max error  = " << cr.maxerror;
+                if (cr.maxerror != 0) {
+                    std::cout << " @ (" << cr.maxx << ", " << cr.maxy;
+                    if (img0.spec().depth > 1)
+                        std::cout << ", " << cr.maxz;
+                    std::cout << ", " << img0.spec().channelnames[cr.maxc] << ')';
+                }
+                std::cout << "\n";
+// when Visual Studio is used float values in scientific foramt are 
+// printed with three digit exponent. We change this behaviour to fit
+// Linux way
+#ifdef _MSC_VER
+                _set_output_format(_TWO_DIGIT_EXPONENT);
+#endif
+                std::streamsize precis = std::cout.precision();
+                std::cout << "  " << cr.nwarn << " pixels (" 
+                          << std::setprecision(3) << (100.0*cr.nwarn / npels) 
+                          << std::setprecision(precis) << "%) over " << warnthresh << "\n";
+                std::cout << "  " << cr.nfail << " pixels (" 
+                          << std::setprecision(3) << (100.0*cr.nfail / npels) 
+                          << std::setprecision(precis) << "%) over " << failthresh << "\n";
+                if (perceptual)
+                    std::cout << "  " << yee_failures << " pixels ("
+                              << std::setprecision(3) << (100.0*yee_failures / npels) 
+                              << std::setprecision(precis)
+                              << "%) failed the perceptual test\n";
             }
 
             // If the user requested that a difference image be output,

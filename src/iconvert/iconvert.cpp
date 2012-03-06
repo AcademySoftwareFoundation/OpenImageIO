@@ -356,7 +356,8 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         return false;
     }
 
-    std::cout << "Converting " << in_filename << " to " << out_filename << "\n";
+    if (verbose)
+        std::cout << "Converting " << in_filename << " to " << out_filename << "\n";
 
     std::string tempname = out_filename;
     if (tempname == in_filename) {

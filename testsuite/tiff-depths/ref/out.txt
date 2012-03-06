@@ -1,5 +1,5 @@
-hi
-../../../libtiffpic/depth/flower-minisblack-02.tif :   73 x   43, 1 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-minisblack-02.tif
+../../../../../libtiffpic/depth/flower-minisblack-02.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: F6BD9D10FB0DD8E9AC62DEBBB743A78FC48D3C9B
     channel list: A
     oiio:BitsPerSample: 2
@@ -15,17 +15,10 @@ hi
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 431
-Converting ../../../libtiffpic/depth/flower-minisblack-02.tif to flower-minisblack-02.tif
-Comparing "../../../libtiffpic/depth/flower-minisblack-02.tif" and "flower-minisblack-02.tif"
-Subimage 0: 73 x 43, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-minisblack-02.tif" and "flower-minisblack-02.tif"
 PASS
-../../../libtiffpic/depth/flower-minisblack-04.tif :   73 x   43, 1 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-minisblack-04.tif
+../../../../../libtiffpic/depth/flower-minisblack-04.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: 8C0CF14B3B585F4B1F249C681BEDEA4CB63E3EDD
     channel list: A
     oiio:BitsPerSample: 4
@@ -41,17 +34,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 221
-Converting ../../../libtiffpic/depth/flower-minisblack-04.tif to flower-minisblack-04.tif
-Comparing "../../../libtiffpic/depth/flower-minisblack-04.tif" and "flower-minisblack-04.tif"
-Subimage 0: 73 x 43, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-minisblack-04.tif" and "flower-minisblack-04.tif"
 PASS
-../../../libtiffpic/depth/flower-minisblack-06.tif :   73 x   43, 1 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-minisblack-06.tif
+../../../../../libtiffpic/depth/flower-minisblack-06.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: AE809BFEF36E3E0047343655231200A916D83492
     channel list: A
     oiio:BitsPerSample: 6
@@ -67,17 +53,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 148
-Converting ../../../libtiffpic/depth/flower-minisblack-06.tif to flower-minisblack-06.tif
-Comparing "../../../libtiffpic/depth/flower-minisblack-06.tif" and "flower-minisblack-06.tif"
-Subimage 0: 73 x 43, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-minisblack-06.tif" and "flower-minisblack-06.tif"
 PASS
-../../../libtiffpic/depth/flower-minisblack-08.tif :   73 x   43, 1 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-minisblack-08.tif
+../../../../../libtiffpic/depth/flower-minisblack-08.tif :   73 x   43, 1 channel, uint8 tiff
     SHA-1: 1A909C8E70CC479D8A35BAA9BFEDDCBF4BF46FDC
     channel list: A
     oiio:BitsPerSample: 8
@@ -93,17 +72,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 112
-Converting ../../../libtiffpic/depth/flower-minisblack-08.tif to flower-minisblack-08.tif
-Comparing "../../../libtiffpic/depth/flower-minisblack-08.tif" and "flower-minisblack-08.tif"
-Subimage 0: 73 x 43, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-minisblack-08.tif" and "flower-minisblack-08.tif"
 PASS
-../../../libtiffpic/depth/flower-minisblack-10.tif :   73 x   43, 1 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-minisblack-10.tif
+../../../../../libtiffpic/depth/flower-minisblack-10.tif :   73 x   43, 1 channel, uint16 tiff
     SHA-1: E9240FEF19CC8EF5EBBF2EE4A10EDF25E51C67B4
     channel list: A
     oiio:BitsPerSample: 10
@@ -119,17 +91,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 89
-Converting ../../../libtiffpic/depth/flower-minisblack-10.tif to flower-minisblack-10.tif
-Comparing "../../../libtiffpic/depth/flower-minisblack-10.tif" and "flower-minisblack-10.tif"
-Subimage 0: 73 x 43, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-minisblack-10.tif" and "flower-minisblack-10.tif"
 PASS
-../../../libtiffpic/depth/flower-minisblack-12.tif :   73 x   43, 1 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-minisblack-12.tif
+../../../../../libtiffpic/depth/flower-minisblack-12.tif :   73 x   43, 1 channel, uint16 tiff
     SHA-1: AAE977957ED6AAC647967192A74E4AD55FF75811
     channel list: A
     oiio:BitsPerSample: 12
@@ -145,17 +110,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 74
-Converting ../../../libtiffpic/depth/flower-minisblack-12.tif to flower-minisblack-12.tif
-Comparing "../../../libtiffpic/depth/flower-minisblack-12.tif" and "flower-minisblack-12.tif"
-Subimage 0: 73 x 43, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-minisblack-12.tif" and "flower-minisblack-12.tif"
 PASS
-../../../libtiffpic/depth/flower-minisblack-14.tif :   73 x   43, 1 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-minisblack-14.tif
+../../../../../libtiffpic/depth/flower-minisblack-14.tif :   73 x   43, 1 channel, uint16 tiff
     SHA-1: C1B9CA21C227EF11626EF0C58BD49769EEF48363
     channel list: A
     oiio:BitsPerSample: 14
@@ -171,17 +129,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 64
-Converting ../../../libtiffpic/depth/flower-minisblack-14.tif to flower-minisblack-14.tif
-Comparing "../../../libtiffpic/depth/flower-minisblack-14.tif" and "flower-minisblack-14.tif"
-Subimage 0: 73 x 43, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-minisblack-14.tif" and "flower-minisblack-14.tif"
 PASS
-../../../libtiffpic/depth/flower-minisblack-16.tif :   73 x   43, 1 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-minisblack-16.tif
+../../../../../libtiffpic/depth/flower-minisblack-16.tif :   73 x   43, 1 channel, uint16 tiff
     SHA-1: 7EBB74E46C869CA0D6D091183732214B6A75173A
     channel list: A
     oiio:BitsPerSample: 16
@@ -197,17 +148,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 56
-Converting ../../../libtiffpic/depth/flower-minisblack-16.tif to flower-minisblack-16.tif
-Comparing "../../../libtiffpic/depth/flower-minisblack-16.tif" and "flower-minisblack-16.tif"
-Subimage 0: 73 x 43, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-minisblack-16.tif" and "flower-minisblack-16.tif"
 PASS
-../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
+../../../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 52B3033465AA01129BAE149FF96CBB49877DAB7C
     channel list: R, G, B
     oiio:BitsPerSample: 2
@@ -223,17 +167,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 431
-Converting ../../../libtiffpic/depth/flower-palette-02.tif to flower-palette-02.tif
-Comparing "../../../libtiffpic/depth/flower-palette-02.tif" and "flower-palette-02.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-palette-02.tif" and "flower-palette-02.tif"
 PASS
-../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-palette-04.tif
+../../../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: C6E40A3D134F1A29E153FE15459D8DE657CB7F9C
     channel list: R, G, B
     oiio:BitsPerSample: 4
@@ -249,17 +186,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 221
-Converting ../../../libtiffpic/depth/flower-palette-04.tif to flower-palette-04.tif
-Comparing "../../../libtiffpic/depth/flower-palette-04.tif" and "flower-palette-04.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-palette-04.tif" and "flower-palette-04.tif"
 PASS
-../../../libtiffpic/depth/flower-palette-08.tif :   73 x   43, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-palette-08.tif
+../../../../../libtiffpic/depth/flower-palette-08.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 0ADA355BABFE9866F3D88AF7CA3AAC69D7DC036D
     channel list: R, G, B
     oiio:BitsPerSample: 8
@@ -275,17 +205,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 112
-Converting ../../../libtiffpic/depth/flower-palette-08.tif to flower-palette-08.tif
-Comparing "../../../libtiffpic/depth/flower-palette-08.tif" and "flower-palette-08.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-palette-08.tif" and "flower-palette-08.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-contig-02.tif :   73 x   43, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-contig-02.tif
+../../../../../libtiffpic/depth/flower-rgb-contig-02.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: D68490C8E508DEBECEE4DF3A9E5DA0523CD5C302
     channel list: R, G, B
     oiio:BitsPerSample: 2
@@ -301,17 +224,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 148
-Converting ../../../libtiffpic/depth/flower-rgb-contig-02.tif to flower-rgb-contig-02.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-contig-02.tif" and "flower-rgb-contig-02.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-02.tif" and "flower-rgb-contig-02.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-contig-04.tif :   73 x   43, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-contig-04.tif
+../../../../../libtiffpic/depth/flower-rgb-contig-04.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: A5920C9D08B9E25C96D55FDF72F46F589AE7643D
     channel list: R, G, B
     oiio:BitsPerSample: 4
@@ -327,17 +243,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 74
-Converting ../../../libtiffpic/depth/flower-rgb-contig-04.tif to flower-rgb-contig-04.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-contig-04.tif" and "flower-rgb-contig-04.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-04.tif" and "flower-rgb-contig-04.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-contig-08.tif :   73 x   43, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-contig-08.tif
+../../../../../libtiffpic/depth/flower-rgb-contig-08.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 35D01526DE5F904B7978B8EA16192A28389E276F
     channel list: R, G, B
     oiio:BitsPerSample: 8
@@ -353,17 +262,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 37
-Converting ../../../libtiffpic/depth/flower-rgb-contig-08.tif to flower-rgb-contig-08.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-contig-08.tif" and "flower-rgb-contig-08.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-08.tif" and "flower-rgb-contig-08.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-contig-10.tif :   73 x   43, 3 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-contig-10.tif
+../../../../../libtiffpic/depth/flower-rgb-contig-10.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: 0C41DF861699CF536C581721EF17B01D1EFB5D86
     channel list: R, G, B
     oiio:BitsPerSample: 10
@@ -379,17 +281,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 29
-Converting ../../../libtiffpic/depth/flower-rgb-contig-10.tif to flower-rgb-contig-10.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-contig-10.tif" and "flower-rgb-contig-10.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-10.tif" and "flower-rgb-contig-10.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-contig-12.tif :   73 x   43, 3 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-contig-12.tif
+../../../../../libtiffpic/depth/flower-rgb-contig-12.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: E61083B50548C7D304A45735452FD05C1814677B
     channel list: R, G, B
     oiio:BitsPerSample: 12
@@ -405,17 +300,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 24
-Converting ../../../libtiffpic/depth/flower-rgb-contig-12.tif to flower-rgb-contig-12.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-contig-12.tif" and "flower-rgb-contig-12.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-12.tif" and "flower-rgb-contig-12.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-contig-14.tif :   73 x   43, 3 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-contig-14.tif
+../../../../../libtiffpic/depth/flower-rgb-contig-14.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: DD060DA62BB8F5903C5087796B2D05A682BE8ADA
     channel list: R, G, B
     oiio:BitsPerSample: 14
@@ -431,17 +319,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 21
-Converting ../../../libtiffpic/depth/flower-rgb-contig-14.tif to flower-rgb-contig-14.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-contig-14.tif" and "flower-rgb-contig-14.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-14.tif" and "flower-rgb-contig-14.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-contig-16.tif :   73 x   43, 3 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-contig-16.tif
+../../../../../libtiffpic/depth/flower-rgb-contig-16.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: 19F69706D5C52FC9510A3C20F9A43361FEF2AC9D
     channel list: R, G, B
     oiio:BitsPerSample: 16
@@ -457,17 +338,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 18
-Converting ../../../libtiffpic/depth/flower-rgb-contig-16.tif to flower-rgb-contig-16.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-contig-16.tif" and "flower-rgb-contig-16.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-16.tif" and "flower-rgb-contig-16.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-planar-02.tif :   73 x   43, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-planar-02.tif
+../../../../../libtiffpic/depth/flower-rgb-planar-02.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: D68490C8E508DEBECEE4DF3A9E5DA0523CD5C302
     channel list: R, G, B
     oiio:BitsPerSample: 2
@@ -483,17 +357,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 431
-Converting ../../../libtiffpic/depth/flower-rgb-planar-02.tif to flower-rgb-planar-02.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-planar-02.tif" and "flower-rgb-planar-02.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-02.tif" and "flower-rgb-planar-02.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-planar-04.tif :   73 x   43, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-planar-04.tif
+../../../../../libtiffpic/depth/flower-rgb-planar-04.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: A5920C9D08B9E25C96D55FDF72F46F589AE7643D
     channel list: R, G, B
     oiio:BitsPerSample: 4
@@ -509,17 +376,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 221
-Converting ../../../libtiffpic/depth/flower-rgb-planar-04.tif to flower-rgb-planar-04.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-planar-04.tif" and "flower-rgb-planar-04.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-04.tif" and "flower-rgb-planar-04.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-planar-08.tif :   73 x   43, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-planar-08.tif
+../../../../../libtiffpic/depth/flower-rgb-planar-08.tif :   73 x   43, 3 channel, uint8 tiff
     SHA-1: 35D01526DE5F904B7978B8EA16192A28389E276F
     channel list: R, G, B
     oiio:BitsPerSample: 8
@@ -535,17 +395,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 112
-Converting ../../../libtiffpic/depth/flower-rgb-planar-08.tif to flower-rgb-planar-08.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-planar-08.tif" and "flower-rgb-planar-08.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-08.tif" and "flower-rgb-planar-08.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-planar-10.tif :   73 x   43, 3 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-planar-10.tif
+../../../../../libtiffpic/depth/flower-rgb-planar-10.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: 0C41DF861699CF536C581721EF17B01D1EFB5D86
     channel list: R, G, B
     oiio:BitsPerSample: 10
@@ -561,17 +414,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 89
-Converting ../../../libtiffpic/depth/flower-rgb-planar-10.tif to flower-rgb-planar-10.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-planar-10.tif" and "flower-rgb-planar-10.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-10.tif" and "flower-rgb-planar-10.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-planar-12.tif :   73 x   43, 3 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-planar-12.tif
+../../../../../libtiffpic/depth/flower-rgb-planar-12.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: E61083B50548C7D304A45735452FD05C1814677B
     channel list: R, G, B
     oiio:BitsPerSample: 12
@@ -587,17 +433,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 74
-Converting ../../../libtiffpic/depth/flower-rgb-planar-12.tif to flower-rgb-planar-12.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-planar-12.tif" and "flower-rgb-planar-12.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-12.tif" and "flower-rgb-planar-12.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-planar-14.tif :   73 x   43, 3 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-planar-14.tif
+../../../../../libtiffpic/depth/flower-rgb-planar-14.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: DD060DA62BB8F5903C5087796B2D05A682BE8ADA
     channel list: R, G, B
     oiio:BitsPerSample: 14
@@ -613,17 +452,10 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 64
-Converting ../../../libtiffpic/depth/flower-rgb-planar-14.tif to flower-rgb-planar-14.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-planar-14.tif" and "flower-rgb-planar-14.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-14.tif" and "flower-rgb-planar-14.tif"
 PASS
-../../../libtiffpic/depth/flower-rgb-planar-16.tif :   73 x   43, 3 channel, uint16 tiff
+Reading ../../../../../libtiffpic/depth/flower-rgb-planar-16.tif
+../../../../../libtiffpic/depth/flower-rgb-planar-16.tif :   73 x   43, 3 channel, uint16 tiff
     SHA-1: 19F69706D5C52FC9510A3C20F9A43361FEF2AC9D
     channel list: R, G, B
     oiio:BitsPerSample: 16
@@ -639,13 +471,5 @@ PASS
     tiff:Compression: 1
     compression: "none"
     tiff:RowsPerStrip: 56
-Converting ../../../libtiffpic/depth/flower-rgb-planar-16.tif to flower-rgb-planar-16.tif
-Comparing "../../../libtiffpic/depth/flower-rgb-planar-16.tif" and "flower-rgb-planar-16.tif"
-Subimage 0: 73 x 43, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-16.tif" and "flower-rgb-planar-16.tif"
 PASS

@@ -1,2 +1,0 @@
-    ImageInputs : 657 created, 0 current, 5 peak
-  Tiles: 1447 created, 640 current, 641 peak

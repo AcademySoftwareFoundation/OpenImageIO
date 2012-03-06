@@ -1,5 +1,5 @@
-hi
-../../../libtiffpic/cramps.tif :  800 x  607, 1 channel, uint8 tiff
+Reading ../../../../../libtiffpic/cramps.tif
+../../../../../libtiffpic/cramps.tif :  800 x  607, 1 channel, uint8 tiff
     SHA-1: A1CA337CBB22D84410BBE710BB31D5D6646CF839
     channel list: A
     oiio:BitsPerSample: 8
@@ -12,17 +12,10 @@ hi
     tiff:Compression: 32773
     compression: "packbits"
     tiff:RowsPerStrip: 12
-Converting ../../../libtiffpic/cramps.tif to cramps.tif
-Comparing "../../../libtiffpic/cramps.tif" and "cramps.tif"
-Subimage 0: 800 x 607, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/cramps.tif" and "cramps.tif"
 PASS
-../../../libtiffpic/cramps-tile.tif :  800 x  607, 1 channel, uint8 tiff
+Reading ../../../../../libtiffpic/cramps-tile.tif
+../../../../../libtiffpic/cramps-tile.tif :  800 x  607, 1 channel, uint8 tiff
     SHA-1: A1CA337CBB22D84410BBE710BB31D5D6646CF839
     channel list: A
     tile size: 256 x 256
@@ -33,26 +26,12 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 1
     compression: "none"
-Converting ../../../libtiffpic/cramps-tile.tif to cramps-tile.tif
-Comparing "../../../libtiffpic/cramps-tile.tif" and "cramps-tile.tif"
-Subimage 0: 800 x 607, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/cramps-tile.tif" and "cramps-tile.tif"
 PASS
-Comparing "../../../libtiffpic/cramps-tile.tif" and "../../../libtiffpic/cramps.tif"
-Subimage 0: 800 x 607, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/cramps-tile.tif" and "../../../../../libtiffpic/cramps.tif"
 PASS
-../../../libtiffpic/fax2d.tif : 1728 x 1082, 1 channel, uint8 tiff
+Reading ../../../../../libtiffpic/fax2d.tif
+../../../../../libtiffpic/fax2d.tif : 1728 x 1082, 1 channel, uint8 tiff
     SHA-1: A57ECEDA78607AE81ABA344E4456EDB1E34A6CB0
     channel list: A
     oiio:BitsPerSample: 1
@@ -66,17 +45,10 @@ PASS
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 3
-Converting ../../../libtiffpic/fax2d.tif to fax2d.tif
-Comparing "../../../libtiffpic/fax2d.tif" and "fax2d.tif"
-Subimage 0: 1728 x 1082, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/fax2d.tif" and "fax2d.tif"
 PASS
-../../../libtiffpic/g3test.tif : 1728 x 1103, 1 channel, uint8 tiff
+Reading ../../../../../libtiffpic/g3test.tif
+../../../../../libtiffpic/g3test.tif : 1728 x 1103, 1 channel, uint8 tiff
     SHA-1: D674B2BB7707525F8DD678E81CAF50EE3A15D1E8
     channel list: A
     oiio:BitsPerSample: 1
@@ -90,17 +62,10 @@ PASS
     tiff:PlanarConfiguration: 1
     planarconfig: "contig"
     tiff:Compression: 3
-Converting ../../../libtiffpic/g3test.tif to g3test.tif
-Comparing "../../../libtiffpic/g3test.tif" and "g3test.tif"
-Subimage 0: 1728 x 1103, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/g3test.tif" and "g3test.tif"
 PASS
-../../../libtiffpic/jello.tif :  256 x  192, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/jello.tif
+../../../../../libtiffpic/jello.tif :  256 x  192, 3 channel, uint8 tiff
     SHA-1: 41CD2AD5CA87F8CCBF7B181B58BEF136E6C64E1A
     channel list: R, G, B
     oiio:BitsPerSample: 8
@@ -111,17 +76,10 @@ PASS
     tiff:Compression: 32773
     compression: "packbits"
     tiff:RowsPerStrip: 32
-Converting ../../../libtiffpic/jello.tif to jello.tif
-Comparing "../../../libtiffpic/jello.tif" and "jello.tif"
-Subimage 0: 256 x 192, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/jello.tif" and "jello.tif"
 PASS
-../../../libtiffpic/pc260001.tif :  640 x  480, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/pc260001.tif
+../../../../../libtiffpic/pc260001.tif :  640 x  480, 3 channel, uint8 tiff
     SHA-1: F34868893B33383BE653ADA9FC054C8EA61BAC53
     channel list: R, G, B
     oiio:BitsPerSample: 8
@@ -162,17 +120,10 @@ PASS
     Exif:Saturation: 0 (normal)
     Exif:Sharpness: 2 (hard)
     oiio::ColorSpace: "sRGB"
-Converting ../../../libtiffpic/pc260001.tif to pc260001.tif
-Comparing "../../../libtiffpic/pc260001.tif" and "pc260001.tif"
-Subimage 0: 640 x 480, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/pc260001.tif" and "pc260001.tif"
 PASS
-../../../libtiffpic/quad-lzw.tif :  512 x  384, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/quad-lzw.tif
+../../../../../libtiffpic/quad-lzw.tif :  512 x  384, 3 channel, uint8 tiff
     SHA-1: EAE4D1FB2E60558747B8DDA9E93F0217191491A9
     channel list: R, G, B
     oiio:BitsPerSample: 8
@@ -182,17 +133,10 @@ PASS
     tiff:Compression: 5
     compression: "lzw"
     tiff:RowsPerStrip: 5
-Converting ../../../libtiffpic/quad-lzw.tif to quad-lzw.tif
-Comparing "../../../libtiffpic/quad-lzw.tif" and "quad-lzw.tif"
-Subimage 0: 512 x 384, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/quad-lzw.tif" and "quad-lzw.tif"
 PASS
-../../../libtiffpic/quad-tile.tif :  512 x  384, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/quad-tile.tif
+../../../../../libtiffpic/quad-tile.tif :  512 x  384, 3 channel, uint8 tiff
     SHA-1: EAE4D1FB2E60558747B8DDA9E93F0217191491A9
     channel list: R, G, B
     tile size: 128 x 128
@@ -203,26 +147,12 @@ PASS
     planarconfig: "contig"
     tiff:Compression: 5
     compression: "lzw"
-Converting ../../../libtiffpic/quad-tile.tif to quad-tile.tif
-Comparing "../../../libtiffpic/quad-tile.tif" and "quad-tile.tif"
-Subimage 0: 512 x 384, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/quad-tile.tif" and "quad-tile.tif"
 PASS
-Comparing "../../../libtiffpic/quad-tile.tif" and "../../../libtiffpic/quad-lzw.tif"
-Subimage 0: 512 x 384, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/quad-tile.tif" and "../../../../../libtiffpic/quad-lzw.tif"
 PASS
-../../../libtiffpic/strike.tif :  256 x  200, 4 channel, uint8 tiff
+Reading ../../../../../libtiffpic/strike.tif
+../../../../../libtiffpic/strike.tif :  256 x  200, 4 channel, uint8 tiff
     SHA-1: C764170BDD3B192C3F0D16EB761E690A3128C520
     channel list: R, G, B, A
     oiio:BitsPerSample: 8
@@ -235,17 +165,10 @@ PASS
     tiff:Compression: 5
     compression: "lzw"
     tiff:RowsPerStrip: 8
-Converting ../../../libtiffpic/strike.tif to strike.tif
-Comparing "../../../libtiffpic/strike.tif" and "strike.tif"
-Subimage 0: 256 x 200, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../libtiffpic/strike.tif" and "strike.tif"
 PASS
-../../../libtiffpic/oxford.tif :  601 x   81, 3 channel, uint8 tiff
+Reading ../../../../../libtiffpic/oxford.tif
+../../../../../libtiffpic/oxford.tif :  601 x   81, 3 channel, uint8 tiff
     SHA-1: 6158BC605553813CD61D99900DAE389EEC3763D8
     channel list: R, G, B
     oiio:BitsPerSample: 8

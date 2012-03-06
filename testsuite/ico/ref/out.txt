@@ -1,5 +1,5 @@
-hi
-../../../oiio-images/oiio.ico :   16 x   16, 4 channel, uint8 ico
+Reading ../../../../../oiio-images/oiio.ico
+../../../../../oiio-images/oiio.ico :   16 x   16, 4 channel, uint8 ico
     10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
  subimage  0:   16 x   16, 4 channel, uint8 ico
     SHA-1: 563F978D0860CB8791716CA694AB94EEA83E6E03
@@ -42,76 +42,5 @@ hi
     SHA-1: 0196F151853CC595AF7504196C8CCC5B3A3CE446
     channel list: R, G, B, A
     oiio:BitsPerSample: 8
-Converting ../../../oiio-images/oiio.ico to oiio.ico
-Comparing "../../../oiio-images/oiio.ico" and "oiio.ico"
-Subimage 0: 16 x 16, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-Subimage 1: 16 x 16, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-Subimage 2: 32 x 32, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-Subimage 3: 16 x 16, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-Subimage 4: 48 x 48, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-Subimage 5: 32 x 32, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-Subimage 6: 16 x 16, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-Subimage 7: 256 x 256, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-Subimage 8: 48 x 48, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
-Subimage 9: 32 x 32, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../oiio-images/oiio.ico" and "oiio.ico"
 PASS

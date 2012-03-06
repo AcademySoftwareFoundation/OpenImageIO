@@ -1,28 +1,15 @@
 #!/usr/bin/python 
 
-import os
 import sys
-
-path = ""
-command = ""
-if len(sys.argv) > 2 :
-    os.chdir (sys.argv[1])
-    path = sys.argv[2] + "/"
-
-sys.path = [".."] + sys.path
+sys.path = ["..", "testsuite"] + sys.path
 import runtest
 
 # A command to run
-command = path + runtest.oiio_app ("testtex") + " -fill 0.05 --res 128 128 --nowarp gray.png ; "
-command = command + path + runtest.oiio_app ("idiff") + " out.exr ref/out.exr > out.txt"
+command = runtest.testtex_command ("gray.png", "-fill 0.05 --res 128 128 --nowarp")
 
 # Outputs to check against references
-outputs = [  ]
-
-# Files that need to be cleaned up, IN ADDITION to outputs
-cleanfiles = [ "out.txt" "out.exr" "postage.exr" ]
-
+outputs = [ "out.exr" ]
 
 # boilerplate
-ret = runtest.runtest (command, outputs, cleanfiles)
+ret = runtest.runtest (command, outputs)
 sys.exit (ret)
