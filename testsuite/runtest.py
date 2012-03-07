@@ -29,7 +29,8 @@ tmpdir = os.path.abspath (tmpdir)
 refdir = "ref/"
 parent = "../../../../../"
 
-default_outputs = [ "out.txt" ]
+command = ""
+outputs = [ "out.txt" ]    # default
 
 #print ("srcdir = " + srcdir)
 #print ("tmpdir = " + tmpdir)
@@ -38,6 +39,7 @@ default_outputs = [ "out.txt" ]
 
 
 
+# Handy functions...
 
 def oiio_app (app):
     # when we use Visual Studio, built applications are stored
@@ -103,7 +105,7 @@ def testtex_command (file, extraargs="") :
 # in 'ref/'.  If all outputs match their reference copies, return 0
 # to pass.  If any outputs do not match their references return 1 to
 # fail.
-def runtest (command, outputs=default_outputs, failureok=0) :
+def runtest (command, outputs, failureok=0) :
     parser = OptionParser()
     parser.add_option("-p", "--path", help="add to executable path",
                       action="store", type="string", dest="path", default="")
@@ -175,3 +177,15 @@ def runtest (command, outputs=default_outputs, failureok=0) :
 
 
 
+
+
+#
+# Read the individual run.py file for this test, which will define 
+# command and outputs.
+#
+#sys.path = [srcdir, ".", "testsuite"] + sys.path
+execfile ("run.py")
+
+# Run the test and check the outputs
+ret = runtest (command, outputs)
+sys.exit (ret)
