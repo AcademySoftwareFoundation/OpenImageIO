@@ -675,13 +675,8 @@ make_texturemap (const char *maptypename = "texture map")
         std::cerr << "maketx ERROR: \"" << filenames[0] << "\" does not exist\n";
         exit (EXIT_FAILURE);
     }
-    if (outputfilename.empty()) {
-        const std::string ext = Filesystem::file_extension (filenames[0]);
-        int notextlen = (int) filenames[0].length() - (int) ext.length();
-        outputfilename = std::string (filenames[0].begin(),
-                                      filenames[0].begin() + notextlen);
-        outputfilename += ".tx";
-    }
+    if (outputfilename.empty()) 
+		outputfilename = boost::filesystem::change_extension (filenames[0], ".tx").string ();
 
     // When was the input file last modified?
     std::time_t in_time = boost::filesystem::last_write_time (filenames[0]);
