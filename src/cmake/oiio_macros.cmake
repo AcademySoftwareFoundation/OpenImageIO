@@ -77,8 +77,13 @@ endmacro ()
 # the user where to find such tests.
 #
 macro (oiio_add_tests)
-    parse_arguments (_ats "URL;IMAGEDIR" "" ${ARGN})
+    parse_arguments (_ats "URL;IMAGEDIR;LABEL;FOUNDVAR" "" ${ARGN})
     set (_ats_testdir "${PROJECT_SOURCE_DIR}/../../${_ats_IMAGEDIR}")
+    # If there was a FOUNDVAR param specified and that variable name is
+    # not defined, mark the test as broken.
+    if (_ats_FOUNDVAR AND NOT ${_ats_FOUNDVAR})
+        set (_ats_LABEL "broken")
+    endif ()
     if (_ats_IMAGEDIR AND NOT EXISTS ${_ats_testdir})
         # If the directory containig reference data (images) for the test
         # isn't found, point the user at the URL.
@@ -92,6 +97,9 @@ macro (oiio_add_tests)
         endif ()
         foreach (_testname ${_ats_DEFAULT_ARGS})
             set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}")
+            if (_ats_LABEL MATCHES "broken")
+                set (_testname "${_testname}-broken")
+            endif ()
             if (_has_generator_expr)
                 set (_add_test_args NAME ${_testname} 
 #                                    WORKING_DIRECTORY ${_testdir}
