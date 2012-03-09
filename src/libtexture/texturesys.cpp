@@ -813,6 +813,11 @@ adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
     if (fabsf(dtdy) < eps)
         dtdy = copysignf (eps, dtdy);
 
+    // If the derivatives are colinear then force them to be orthogonal
+    if (dsdx * dtdy - dsdy * dtdx == 0.0f) {
+       dtdy = -dtdy;
+    }
+
     if (sblur+tblur != 0.0f /* avoid the work when blur is zero */) {
         // Carefully add blur to the right derivative components in the
         // right proportions -- meerely adding the same amount of blur
