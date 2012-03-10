@@ -72,9 +72,6 @@ include (platform)
 include (externalpackages)
 
 
-# We want CTest for testing
-include (CTest)
-
 include_directories(
     ${CMAKE_SOURCE_DIR}/include/
     ${CMAKE_BINARY_DIR}/include/
@@ -246,6 +243,9 @@ add_subdirectory (doc)
 #                    for "make testall", but not "make test".
 #
 
+# We want CTest for testing
+include (CTest)
+
 # Make a copy of the testsuite into the build area
 if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
     file (COPY ${PROJECT_SOURCE_DIR}/../testsuite
@@ -257,7 +257,7 @@ oiio_add_tests (ico gpsread oiiotool oiiotool-fixnan
                 sgi rla psd dpx
                 texture-fill texture-gray texture-grid
                 texture-missing texture-overscan
-                texture-pointsample texture-res
+                texture-pointsample texture-width0blur texture-res
                 texture-skinny texture-fat
                 texture-field3d
                )
