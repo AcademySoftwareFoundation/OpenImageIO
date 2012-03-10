@@ -229,6 +229,22 @@ add_subdirectory (doc)
 
 #########################################################################
 # Testing
+# 
+# Just call oiio_add_tests(testname...) for each test.  Additional
+# optional arguments include:
+#     FOUNDVAR   specifies the name of a CMAKE variable; if not defined,
+#                    the test will not be added for 'make test' (helpful
+#                    for excluding tests for libraries not found).
+#     IMAGEDIR   specifies a directory for test images, one level higher
+#                    than where the oiio top level source lives -- a 
+#                    message will be printed if not found.
+#     URL        URL where the test images can be found, will be 
+#                    incorporated into the error message if the test
+#                    image directory is not found.
+#     LABEL      If set to "broken", will designate the test as one
+#                    that is known to be broken, so will only be run
+#                    for "make testall", but not "make test".
+#
 
 # Make a copy of the testsuite into the build area
 if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
@@ -262,6 +278,7 @@ oiio_add_tests (openexr-suite openexr-multires openexr-chroma
     URL http://www.openexr.com/downloads.html)
 
 oiio_add_tests (jpeg2000
+    FOUNDVAR OPENJPEG_FOUND
     IMAGEDIR j2kp4files_v1_5
     URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
 
@@ -274,6 +291,7 @@ oiio_add_tests (fits
     URL http://www.cv.nrao.edu/fits/data/tests/)
 
 oiio_add_tests (webp
+    FOUNDVAR WEBP_FOUND
     IMAGEDIR webp-images
     URL http://code.google.com/speed/webp/gallery.html)
 

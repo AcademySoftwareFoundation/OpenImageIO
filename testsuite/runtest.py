@@ -109,8 +109,6 @@ def runtest (command, outputs, failureok=0) :
     parser = OptionParser()
     parser.add_option("-p", "--path", help="add to executable path",
                       action="store", type="string", dest="path", default="")
-    parser.add_option("-c", "--clean", help="clean up",
-                      action="store_true", dest="clean", default=False)
     parser.add_option("--devenv-config", help="use a MS Visual Studio configuration",
                       action="store", type="string", dest="devenv_config", default="")
     parser.add_option("--solution-path", help="MS Visual Studio solution path",
@@ -183,7 +181,6 @@ def runtest (command, outputs, failureok=0) :
 # Read the individual run.py file for this test, which will define 
 # command and outputs.
 #
-#sys.path = [srcdir, ".", "testsuite"] + sys.path
 execfile ("run.py")
 
 # Run the test and check the outputs

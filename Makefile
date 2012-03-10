@@ -52,6 +52,7 @@ $(info INSTALLDIR = ${INSTALLDIR})
 VERBOSE := ${SHOWCOMMANDS}
 ifneq (${VERBOSE},)
 MY_MAKE_FLAGS += VERBOSE=${VERBOSE}
+TEST_FLAGS += -V
 endif
 
 ifneq (${EMBEDPLUGINS},)
@@ -129,6 +130,10 @@ ifneq (${MYCXX},)
 MY_CMAKE_FLAGS += -DCMAKE_CXX_COMPILER:STRING=${MYCXX}
 endif
 
+ifneq (${TEST},)
+TEST_FLAGS += -R ${TEST}
+endif
+
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
 #$(info MY_MAKE_FLAGS = ${MY_MAKE_FLAGS})
 
@@ -177,7 +182,14 @@ dist : cmakeinstall
 
 # 'make test' does a full build and then runs all tests
 test: cmake
-	( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} test )
+	cmake -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
+	( cd ${build_dir} ; ctest --force-new-ctest-process ${TEST_FLAGS} -E broken )
+
+# 'make testall' does a full build and then runs all tests (even the ones
+# that are expected to fail on some platforms)
+testall: cmake
+	cmake -E cmake_echo_color --switch=$(COLOR) --cyan "Running all tests ${TEST_FLAGS}..."
+	( cd ${build_dir} ; ctest --force-new-ctest-process ${TEST_FLAGS} )
 
 # 'make package' builds everything and then makes an installable package 
 # (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
@@ -206,14 +218,6 @@ nuke:
 doxygen:
 	doxygen src/doc/Doxyfile
 
-#testclean : ${all_tests}
-#	@ for f in ${all_tests} ; do \
-#	    ( cd $$f ; \
-#	      echo "Cleaning test $$f " ; \
-#	      ./run.py -c ; \
-#	    ) \
-#	done
-
 #########################################################################
 
 
@@ -230,7 +234,8 @@ help:
 	@echo "  make clean        Remove the temporary files in ${build_dir}"
 	@echo "  make realclean    Remove both ${build_dir} AND ${dist_dir}"
 	@echo "  make nuke         Remove ALL of build and dist (not just ${platform})"
-	@echo "  make test         Run all tests"
+	@echo "  make test         Run tests"
+	@echo "  make testall      Run all tests, even broken ones"
 	@echo "  make doxygen      Build the Doxygen docs in ${top_build_dir}/doxygen"
 	@echo ""
 	@echo "Helpful modifiers:"
