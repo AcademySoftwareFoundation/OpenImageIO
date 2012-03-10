@@ -803,15 +803,25 @@ adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
     dtdy *= twidth;
 
     // Clamp degenerate derivatives so they don't cause mathematical problems
-    static const float eps = 1.0e-8f;
-    if (fabsf(dsdx) < eps)
-        dsdx = copysignf (eps, dsdx);
-    if (fabsf(dtdx) < eps)
-        dtdx = copysignf (eps, dtdx);
-    if (fabsf(dsdy) < eps)
-        dsdy = copysignf (eps, dsdy);
-    if (fabsf(dtdy) < eps)
-        dtdy = copysignf (eps, dtdy);
+    static const float eps = 1.0e-8f, eps2 = eps*eps;
+    float dxlen2 = dsdx*dsdx + dtdx*dtdx;
+    float dylen2 = dsdy*dsdy + dtdy*dtdy;
+    if (dxlen2+dylen2 < 2.0f*eps2) {
+        // Essentially point sampling.  Substitute a tiny but finite filter.
+        dsdx = eps; dsdy = 0;
+        dtdx = 0;   dtdy = eps;
+        dxlen2 = dylen2 = eps2;
+    } else if (dxlen2 < eps2) {
+        // Tiny dx, sane dy -- pick a small dx orthogonal to dy
+        dsdy = -dtdx;
+        dtdy = dsdx;
+        dylen2 = eps2;
+    } else if (dylen2 < eps2) {
+        // Tiny dy, sane dx -- pick a small dy orthogonal to dx
+        dsdx = dtdy;
+        dtdx = -dsdy;
+        dxlen2 = eps2;
+    }
 
     if (sblur+tblur != 0.0f /* avoid the work when blur is zero */) {
         // Carefully add blur to the right derivative components in the
@@ -819,8 +829,8 @@ adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
         // to all four derivatives blurs too much at some angles.
         // FIXME -- we should benchmark whether a fast approximate rsqrt
         // here could have any detectable performance improvement.
-        float dxlen_inv = 1.0f / sqrtf (dsdx*dsdx + dtdx*dtdx);
-        float dylen_inv = 1.0f / sqrtf (dsdy*dsdy + dtdy*dtdy);
+        float dxlen_inv = 1.0f / sqrtf (dxlen2);
+        float dylen_inv = 1.0f / sqrtf (dylen2);
         dsdx += sblur * dsdx * dxlen_inv;
         dtdx += tblur * dtdx * dxlen_inv;
         dsdy += sblur * dsdy * dylen_inv;
