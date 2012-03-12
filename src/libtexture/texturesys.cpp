@@ -806,21 +806,28 @@ adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
     static const float eps = 1.0e-8f, eps2 = eps*eps;
     float dxlen2 = dsdx*dsdx + dtdx*dtdx;
     float dylen2 = dsdy*dsdy + dtdy*dtdy;
-    if (dxlen2+dylen2 < 2.0f*eps2) {
-        // Essentially point sampling.  Substitute a tiny but finite filter.
-        dsdx = eps; dsdy = 0;
-        dtdx = 0;   dtdy = eps;
-        dxlen2 = dylen2 = eps2;
-    } else if (dxlen2 < eps2) {
-        // Tiny dx, sane dy -- pick a small dx orthogonal to dy
-        dsdy = -dtdx;
-        dtdy = dsdx;
-        dylen2 = eps2;
+    if (dxlen2 < eps2) {   // Tiny dx
+        if (dylen2 < eps2) {
+            // Tiny dx and dy: Essentially point sampling.  Substitute a
+            // tiny but finite filter.
+            dsdx = eps; dsdy = 0;
+            dtdx = 0;   dtdy = eps;
+            dxlen2 = dylen2 = eps2;
+        } else {
+            // Tiny dx, sane dy -- pick a small dx orthogonal to dy, but
+            // of length eps.
+            float scale = eps / sqrtf(dylen2);
+            dsdx = dtdy * scale;
+            dtdx = -dsdy * scale;
+            dxlen2 = eps2;
+        }
     } else if (dylen2 < eps2) {
-        // Tiny dy, sane dx -- pick a small dy orthogonal to dx
-        dsdx = dtdy;
-        dtdx = -dsdy;
-        dxlen2 = eps2;
+        // Tiny dy, sane dx -- pick a small dy orthogonal to dx, but of
+        // length eps.
+        float scale = eps / sqrtf(dxlen2);
+        dsdy = -dtdx * scale;
+        dtdy = dsdx * scale;
+        dylen2 = eps2;
     }
 
     if (sblur+tblur != 0.0f /* avoid the work when blur is zero */) {
