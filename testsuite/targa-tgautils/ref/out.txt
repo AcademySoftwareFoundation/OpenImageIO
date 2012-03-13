@@ -1,5 +1,5 @@
-hi
-../../../TGAUTILS/CBW8.TGA :  128 x  128, 1 channel, uint8 targa
+Reading ../../../../../TGAUTILS/CBW8.TGA
+../../../../../TGAUTILS/CBW8.TGA :  128 x  128, 1 channel, uint8 targa
     SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
     channel list: A
     oiio:BitsPerSample: 8
@@ -14,18 +14,11 @@ hi
     thumbnail_height: 64
     thumbnail_nchannels: 1
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/CBW8.TGA to CBW8.TGA
-Comparing "../../../TGAUTILS/CBW8.TGA" and "CBW8.TGA"
-Subimage 0: 128 x 128, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/CBW8.TGA" and "CBW8.TGA"
 PASS
-../../../TGAUTILS/CCM8.TGA :  128 x  128, 3 channel, uint8 targa
-    SHA-1: AE42D771A290CCCEFDDC944B5DCFE1979EC8FF48
+Reading ../../../../../TGAUTILS/CCM8.TGA
+../../../../../TGAUTILS/CCM8.TGA :  128 x  128, 3 channel, uint8 targa
+    SHA-1: 1CA776B45486FB52A5A8953F9BAE94975933334D
     channel list: R, G, B
     oiio:BitsPerSample: 2
     compression: "rle"
@@ -39,18 +32,11 @@ PASS
     thumbnail_height: 64
     thumbnail_nchannels: 3
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/CCM8.TGA to CCM8.TGA
-Comparing "../../../TGAUTILS/CCM8.TGA" and "CCM8.TGA"
-Subimage 0: 128 x 128, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/CCM8.TGA" and "CCM8.TGA"
 PASS
-../../../TGAUTILS/CTC16.TGA :  128 x  128, 4 channel, uint8 targa
-    SHA-1: D070AEE8139A7B3AFA74CFB30A15F3C8103E61CB
+Reading ../../../../../TGAUTILS/CTC16.TGA
+../../../../../TGAUTILS/CTC16.TGA :  128 x  128, 4 channel, uint8 targa
+    SHA-1: A99112A53F34FA9D4A856DBC228A6969061D61C1
     channel list: R, G, B, A
     oiio:BitsPerSample: 4
     compression: "rle"
@@ -64,17 +50,10 @@ PASS
     thumbnail_height: 64
     thumbnail_nchannels: 4
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/CTC16.TGA to CTC16.TGA
-Comparing "../../../TGAUTILS/CTC16.TGA" and "CTC16.TGA"
-Subimage 0: 128 x 128, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/CTC16.TGA" and "CTC16.TGA"
 PASS
-../../../TGAUTILS/CTC24.TGA :  128 x  128, 3 channel, uint8 targa
+Reading ../../../../../TGAUTILS/CTC24.TGA
+../../../../../TGAUTILS/CTC24.TGA :  128 x  128, 3 channel, uint8 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     oiio:BitsPerSample: 8
@@ -89,17 +68,10 @@ PASS
     thumbnail_height: 64
     thumbnail_nchannels: 3
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/CTC24.TGA to CTC24.TGA
-Comparing "../../../TGAUTILS/CTC24.TGA" and "CTC24.TGA"
-Subimage 0: 128 x 128, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/CTC24.TGA" and "CTC24.TGA"
 PASS
-../../../TGAUTILS/CTC32.TGA :  128 x  128, 4 channel, uint8 targa
+Reading ../../../../../TGAUTILS/CTC32.TGA
+../../../../../TGAUTILS/CTC32.TGA :  128 x  128, 4 channel, uint8 targa
     SHA-1: 10856DDA29920D800808DDF85D4AC7860E0B310C
     channel list: R, G, B, A
     oiio:BitsPerSample: 8
@@ -114,17 +86,10 @@ PASS
     thumbnail_height: 64
     thumbnail_nchannels: 4
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/CTC32.TGA to CTC32.TGA
-Comparing "../../../TGAUTILS/CTC32.TGA" and "CTC32.TGA"
-Subimage 0: 128 x 128, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/CTC32.TGA" and "CTC32.TGA"
 PASS
-../../../TGAUTILS/UBW8.TGA :  128 x  128, 1 channel, uint8 targa
+Reading ../../../../../TGAUTILS/UBW8.TGA
+../../../../../TGAUTILS/UBW8.TGA :  128 x  128, 1 channel, uint8 targa
     SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
     channel list: A
     oiio:BitsPerSample: 8
@@ -138,18 +103,11 @@ PASS
     thumbnail_height: 64
     thumbnail_nchannels: 1
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/UBW8.TGA to UBW8.TGA
-Comparing "../../../TGAUTILS/UBW8.TGA" and "UBW8.TGA"
-Subimage 0: 128 x 128, 1 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/UBW8.TGA" and "UBW8.TGA"
 PASS
-../../../TGAUTILS/UCM8.TGA :  128 x  128, 3 channel, uint8 targa
-    SHA-1: AE42D771A290CCCEFDDC944B5DCFE1979EC8FF48
+Reading ../../../../../TGAUTILS/UCM8.TGA
+../../../../../TGAUTILS/UCM8.TGA :  128 x  128, 3 channel, uint8 targa
+    SHA-1: 1CA776B45486FB52A5A8953F9BAE94975933334D
     channel list: R, G, B
     oiio:BitsPerSample: 2
     targa:ImageID: "Truevision(R) Sample Image"
@@ -162,18 +120,11 @@ PASS
     thumbnail_height: 64
     thumbnail_nchannels: 3
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/UCM8.TGA to UCM8.TGA
-Comparing "../../../TGAUTILS/UCM8.TGA" and "UCM8.TGA"
-Subimage 0: 128 x 128, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/UCM8.TGA" and "UCM8.TGA"
 PASS
-../../../TGAUTILS/UTC16.TGA :  128 x  128, 4 channel, uint8 targa
-    SHA-1: D070AEE8139A7B3AFA74CFB30A15F3C8103E61CB
+Reading ../../../../../TGAUTILS/UTC16.TGA
+../../../../../TGAUTILS/UTC16.TGA :  128 x  128, 4 channel, uint8 targa
+    SHA-1: A99112A53F34FA9D4A856DBC228A6969061D61C1
     channel list: R, G, B, A
     oiio:BitsPerSample: 4
     targa:ImageID: "Truevision(R) Sample Image"
@@ -186,17 +137,10 @@ PASS
     thumbnail_height: 64
     thumbnail_nchannels: 4
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/UTC16.TGA to UTC16.TGA
-Comparing "../../../TGAUTILS/UTC16.TGA" and "UTC16.TGA"
-Subimage 0: 128 x 128, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/UTC16.TGA" and "UTC16.TGA"
 PASS
-../../../TGAUTILS/UTC24.TGA :  128 x  128, 3 channel, uint8 targa
+Reading ../../../../../TGAUTILS/UTC24.TGA
+../../../../../TGAUTILS/UTC24.TGA :  128 x  128, 3 channel, uint8 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     oiio:BitsPerSample: 8
@@ -210,17 +154,10 @@ PASS
     thumbnail_height: 64
     thumbnail_nchannels: 3
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/UTC24.TGA to UTC24.TGA
-Comparing "../../../TGAUTILS/UTC24.TGA" and "UTC24.TGA"
-Subimage 0: 128 x 128, 3 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/UTC24.TGA" and "UTC24.TGA"
 PASS
-../../../TGAUTILS/UTC32.TGA :  128 x  128, 4 channel, uint8 targa
+Reading ../../../../../TGAUTILS/UTC32.TGA
+../../../../../TGAUTILS/UTC32.TGA :  128 x  128, 4 channel, uint8 targa
     SHA-1: 10856DDA29920D800808DDF85D4AC7860E0B310C
     channel list: R, G, B, A
     oiio:BitsPerSample: 8
@@ -234,13 +171,5 @@ PASS
     thumbnail_height: 64
     thumbnail_nchannels: 4
     thumbnail_image: <unknown data type> (base 2, agg 1 vec 0)
-Converting ../../../TGAUTILS/UTC32.TGA to UTC32.TGA
-Comparing "../../../TGAUTILS/UTC32.TGA" and "UTC32.TGA"
-Subimage 0: 128 x 128, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+Comparing "../../../../../TGAUTILS/UTC32.TGA" and "UTC32.TGA"
 PASS
