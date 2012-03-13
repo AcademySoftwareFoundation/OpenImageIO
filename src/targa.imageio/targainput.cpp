@@ -516,11 +516,12 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
     case TYPE_RGB_RLE:
         switch (bytespp) {
         case 2:
-            // This format is pretty funky. It's a 1-5R-5G-5B layout, with the
-            // first bit unused, but thanks to the little-endianness, the order
-            // is pretty bizarre. The bits are non-contiguous, so we have to
-            // extract the relevant ones and synthesize the colour values from
-            // the two bytes.
+            // This format is pretty funky. It's a 1A-5R-5G-5B layout,
+            // with the first bit alpha (or unused if only 3 channels),
+            // but thanks to the little-endianness, the order is pretty
+            // bizarre. The bits are non-contiguous, so we have to
+            // extract the relevant ones and synthesize the colour
+            // values from the two bytes.
             // NOTE: This way of handling the pixel as two independent bytes
             // (as opposed to a single short int) makes it independent from
             // endianness.
@@ -533,12 +534,14 @@ TGAInput::decode_pixel (unsigned char *in, unsigned char *out,
             // green one needs a few words. The 5 bits are composed of the
             // 2 from the second byte as the more significant and the 3 from
             // the first one as the less significant ones.
-                        
+
             // extract the bits to valid 5-bit integers and expand to full range
             out[0] = bit_range_convert<5, 8> ((in[1] & 0x7C) >> 2);
             out[1] = bit_range_convert<5, 8> (((in[0] & 0xE0) >> 5)
                                             | ((in[1] & 0x03) << 3));
             out[2] = bit_range_convert<5, 8> (in[0] & 0x1F);
+            if (m_spec.nchannels > 3)
+                out[3] =  (in[0] & 0x80) ? 255 : 0;
             break;
         case 3:
             out[0] = in[2];
