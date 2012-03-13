@@ -246,7 +246,16 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
     int depth = zend - zbegin;
 
     // Do the strides indicate that the data area is contiguous?
-    bool contiguous = (xstride == (stride_t)m_spec.pixel_bytes(native_data));
+    bool contiguous;
+    if (native_data) {
+        // If it's native data, it had better be contiguous by the
+        // file's definition.
+        contiguous = (xstride == (stride_t)(m_spec.pixel_bytes(native_data)));
+    } else {
+        // If it's not native data, we only care if the user's buffer
+        // is contiguous.
+        contiguous = (xstride == (stride_t)(format.size()*m_spec.nchannels));
+    }
     contiguous &= ((ystride == xstride*width || height == 1) &&
                    (zstride == ystride*height || depth == 1));
 
