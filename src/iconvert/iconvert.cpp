@@ -251,16 +251,20 @@ adjust_spec (ImageInput *in, ImageOutput *out,
             outspec.set_format (TypeDesc::UINT16);
         else if (dataformatname == "int16")
             outspec.set_format (TypeDesc::INT16);
+        else if (dataformatname == "uint32" || dataformatname == "uint")
+            outspec.set_format (TypeDesc::UINT32);
+        else if (dataformatname == "int32" || dataformatname == "int")
+            outspec.set_format (TypeDesc::INT32);
         else if (dataformatname == "half")
             outspec.set_format (TypeDesc::HALF);
         else if (dataformatname == "float")
             outspec.set_format (TypeDesc::FLOAT);
         else if (dataformatname == "double")
             outspec.set_format (TypeDesc::DOUBLE);
-        if (outspec.format != inspec.format || inspec.channelformats.size())
-            nocopy = true;
         outspec.channelformats.clear ();
     }
+    if (outspec.format != inspec.format || inspec.channelformats.size())
+        nocopy = true;
     
     outspec.attribute ("oiio:Gamma", gammaval);
     if (sRGB) {
