@@ -137,7 +137,7 @@ writing the output image (returning an error code).
 \apiend
 
 \apiitem{--fixnan {\rm \emph{streategy}}}
-\NEW Repairs any pixels in the input image that contained {\cf NaN} or 
+Repairs any pixels in the input image that contained {\cf NaN} or 
 {\cf Inf} values (hereafter referred to collectively as ``nonfinite'').
 If \emph{strategy} is {\cf black}, nonfinite values will be replaced
 with {\cf 0}.  If \emph{strategy} is {\cf box3}, nonfinite values will
@@ -236,7 +236,6 @@ Specifically, this is the equivalent to using \\
  {\cf --separate --tile 64 64 --constant-color-detect --hash}.
 \apiend
 
-\NEW
 \apiitem{--colorconvert {\rm \emph{inspace outspace}}}
 Convert the color space of the input image from \emph{inspace} to
 \emph{tospace}.  If OpenColorIO is installed and finds a valid
