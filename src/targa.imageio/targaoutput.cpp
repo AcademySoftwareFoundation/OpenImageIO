@@ -76,8 +76,7 @@ private:
 
     /// Helper function to flush a non-run-length packet
     ///
-    inline void flush_rawp (unsigned char *& src, int size, int start,
-                               int ofs, int mult);
+    inline void flush_rawp (unsigned char *& src, int size, int start);
 
     /// Helper function to flush a run-length packet
     ///
@@ -154,8 +153,7 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
     }
 
     // Force 8 bit integers
-    if (m_spec.format != TypeDesc::UINT8)
-        m_spec.set_format (TypeDesc::UINT8);
+    m_spec.set_format (TypeDesc::UINT8);
 
     // check if the client wants the image to be run length encoded
     // currently only RGB RLE is supported
@@ -498,8 +496,7 @@ TGAOutput::flush_rlp (unsigned char *buf, int size)
 
 
 inline void
-TGAOutput::flush_rawp (unsigned char *& src, int size, int start,
-                          int ofs, int mult)
+TGAOutput::flush_rawp (unsigned char *& src, int size, int start)
 {
     // early out
     if (size < 1)
@@ -509,34 +506,20 @@ TGAOutput::flush_rawp (unsigned char *& src, int size, int start,
     fwrite (&h, 1, 1, m_file);
     // rewind the scanline and flush packet pixels
     unsigned char buf[4];
+    int n = m_spec.nchannels;
     for (int i = 0; i < size; i++) {
-        switch (m_spec.nchannels) {
-#if 0 // FIXME
-        case 1:
-            buf[0] = src[(start + i) * mult + ofs];
-            fwrite (buf, 1, 1, m_file);
-            break;
-        case 2:
-            buf[0] = src[mult * ((start + i) * 2 + 0) + ofs];
-            buf[1] = src[mult * ((start + i) * 2 + 1) + ofs];
-            fwrite (buf, 2, 1, m_file);
-            break;
-#endif
-        case 3:
-            buf[0] = src[mult * ((start + i) * 3 + 2) + ofs];
-            buf[1] = src[mult * ((start + i) * 3 + 1) + ofs];
-            buf[2] = src[mult * ((start + i) * 3 + 0) + ofs];
-            fwrite (buf, 3, 1, m_file);
-            break;
-        case 4:
-            buf[0] = src[mult * ((start + i) * 4 + 2) + ofs];
-            buf[1] = src[mult * ((start + i) * 4 + 1) + ofs];
-            buf[2] = src[mult * ((start + i) * 4 + 0) + ofs];
-            buf[3] = src[mult * ((start + i) * 4 + 3) + ofs];
-            fwrite (buf, 4, 1, m_file);
-            break;
+        if (n <= 2) {
+            // 1- and 2-channels can write directly
+            fwrite (src+start, 1, n, m_file);
+        } else {
+            // 3- and 4-channel must swap red and blue
+            buf[0] = src[(start + i) * n + 2];
+            buf[1] = src[(start + i) * n + 1];
+            buf[2] = src[(start + i) * n + 0];
+            if (n > 3)
+                buf[3] = src[(start + i) * n + 3];
+            fwrite (buf, 1, n, m_file);
         }
-        //std::cerr << "[tga] put pixel\n";
     }
 }
 
@@ -548,22 +531,17 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
 {
     y -= m_spec.y;
     m_spec.auto_stride (xstride, format, spec().nchannels);
-    const void *origdata = data;
     data = to_native_scanline (format, data, xstride, m_scratch);
-    if (data == origdata) {
+    if (data != &m_scratch[0]) {
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data+m_spec.scanline_bytes());
         data = &m_scratch[0];
     }
-
+    ASSERT (m_spec.format == TypeDesc::UINT8 &&
+            "Targa only supports 8 bit channels");
     //std::cerr << "[tga] writing scanline #" << y << "\n";
 
     unsigned char *bdata = (unsigned char *)data;
-    unsigned char buf[4];
-    // these are used to read the most significant 8 bits only (the
-    // precision loss...), also accounting for byte order
-    int mult = format == TypeDesc::UINT16 ? 2 : 1;
-    int ofs = (mult > 1 && bigendian()) ? 1 : 0;
 
     if (m_want_rle) {
         // Run Length Encoding
@@ -571,6 +549,7 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
         // n is the number of pixels in a run
         // b is the pixel size in bytes
         // FIXME: optimize runs spanning across multiple scanlines?
+        unsigned char buf[4];
         unsigned char buf2[4];
         bool rlp = false;
         int rlcount = 0, rawcount = 0;
@@ -582,23 +561,23 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
             switch (m_spec.nchannels) {
 #if 0
             case 1:
-                buf[0] = bdata[x * mult + ofs];
+                buf[0] = bdata[x ];
                 break;
             case 2:
-                buf[0] = bdata[mult * (x * 2 + 0) + ofs];
-                buf[1] = bdata[mult * (x * 2 + 1) + ofs];
+                buf[0] = bdata[(x * 2 + 0)];
+                buf[1] = bdata[(x * 2 + 1)];
                 break;
 #endif
             case 3:
-                buf[0] = bdata[mult * (x * 3 + 2) + ofs];
-                buf[1] = bdata[mult * (x * 3 + 1) + ofs];
-                buf[2] = bdata[mult * (x * 3 + 0) + ofs];
+                buf[0] = bdata[(x * 3 + 2)];
+                buf[1] = bdata[(x * 3 + 1)];
+                buf[2] = bdata[(x * 3 + 0)];
                 break;
             case 4:
-                buf[0] = bdata[mult * (x * 4 + 2) + ofs];
-                buf[1] = bdata[mult * (x * 4 + 1) + ofs];
-                buf[2] = bdata[mult * (x * 4 + 0) + ofs];
-                buf[3] = bdata[mult * (x * 4 + 3) + ofs];
+                buf[0] = bdata[(x * 4 + 2)];
+                buf[1] = bdata[(x * 4 + 1)];
+                buf[2] = bdata[(x * 4 + 0)];
+                buf[3] = bdata[(x * 4 + 3)];
                 break;
             }
 
@@ -652,9 +631,7 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
                         // is a chance that rawcount is now > 128; if so, we'll
                         // catch the remainder in the next iteration
                         rawcount -= 0x80;
-                        flush_rawp (bdata, 0x80,
-                                    x - 0x80 + 1,
-                                    ofs, mult);
+                        flush_rawp (bdata, 0x80, x - 0x80 + 1);
                     }
                 }
                 // check the encoding profitability condition
@@ -662,9 +639,7 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
                 // NOTE: the condition below is valid, nchannels can be 1
                 if (rlcount > 1 + 1 / m_spec.nchannels) {
                     // flush a packet of what we had so far
-                    flush_rawp (bdata, rawcount,
-                                x - rawcount - rlcount + 1,
-                                ofs, mult);
+                    flush_rawp (bdata, rawcount, x - rawcount - rlcount + 1);
                     // reset state
                     rawcount = 0;
                     // mark this as a run-length packet
@@ -677,40 +652,24 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
             flush_rlp (&buf2[0], rlcount);
         else {
             rawcount += rlcount;
-            flush_rawp (bdata, rawcount,
-                        m_spec.width - rawcount,
-                        ofs, mult);
+            flush_rawp (bdata, rawcount, m_spec.width - rawcount);
         }
     } else {
         // raw, non-compressed data
         // seek to the correct scanline
-        fseek(m_file, 18 + m_idlen + (m_spec.height - y - 1)
-              * m_spec.width * m_spec.nchannels, SEEK_SET);
-        for (int x = 0; x < m_spec.width; x++) {
-            switch (m_spec.nchannels) {
-            case 1:
-                buf[0] = bdata[x * mult + ofs];
-                fwrite (buf, 1, 1, m_file);
-                break;
-            case 2:
-                buf[0] = bdata[mult * (x * 2 + 0) + ofs];
-                buf[1] = bdata[mult * (x * 2 + 1) + ofs];
-                fwrite (buf, 2, 1, m_file);
-                break;
-            case 3:
-                buf[0] = bdata[mult * (x * 3 + 2) + ofs];
-                buf[1] = bdata[mult * (x * 3 + 1) + ofs];
-                buf[2] = bdata[mult * (x * 3 + 0) + ofs];
-                fwrite (buf, 3, 1, m_file);
-                break;
-            case 4:
-                buf[0] = bdata[mult * (x * 4 + 2) + ofs];
-                buf[1] = bdata[mult * (x * 4 + 1) + ofs];
-                buf[2] = bdata[mult * (x * 4 + 0) + ofs];
-                buf[3] = bdata[mult * (x * 4 + 3) + ofs];
-                fwrite (buf, 4, 1, m_file);
-                break;
-            }
+        int n = m_spec.nchannels;
+        int w = m_spec.width;
+        fseek(m_file, 18 + m_idlen + (m_spec.height - y - 1) * w * n, SEEK_SET);
+        if (n <= 2) {
+            // 1- and 2-channels can write directly
+            fwrite (bdata, n, w, m_file);
+        } else {
+            // 3- and 4-channels must swap R and B
+            std::vector<unsigned char> buf;
+            buf.assign (bdata, bdata + n*w);
+            for (int x = 0; x < m_spec.width; x++)
+                std::swap (buf[x*n], buf[x*n+2]);
+            fwrite (&buf[0], n, w, m_file);
         }
     }
 
