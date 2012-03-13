@@ -1,6 +1,32 @@
 Changes:
 
 
+
+Release 1.0.1 (13 Mar 2012, compared to 1.0.0)
+----------------------------------------------
+Fixes, minor enhancements, and performance improvements:
+ * Improvements in anisotropic texture filtering quality.
+ * oiiotool --hash prints the SHA-1 hash of each input image.
+ * oiiotool: properly print error message and exit when an input file
+   cannot be opened.
+ * Changed the default behavior of idiff and "oiiotool --diff" to print
+   the pixel difference report only for failures (not for successful
+   matches), unless in verbose (-v) mode.
+Developer goodies:
+ * dassert.h: New ASSERTMSG and DASSERTMSG allow even more flexible
+   assertion messages with full printf argument generality.
+ * Windows compilation fixes.
+ * Major testsuite overhaul: All tests are copied and run in the
+   build/ARCH/testsuite directory, no longer leaving any clutter in the
+   "source" testsuite area.  The testing scripts have been cleaned up
+   and greatly simplified.  An individual test can be run using "make
+   test TEST=name" (also works with regular expressions).  The usual
+   "make test" will exclude tests that are expected to be broken (such
+   as tests for portions of the system that were not built because their
+   required libraries were not found), but "make testall" will run all
+   tests including nominally "broken" ones.
+
+
 Release 1.0 (25 Feb 2012, compared to 0.10.5)
 ---------------------------------------------
 
