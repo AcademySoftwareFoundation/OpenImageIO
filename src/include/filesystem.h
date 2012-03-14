@@ -72,6 +72,11 @@ DLLPUBLIC std::string extension (const std::string &filepath);
 /// filename or filepath.  DEPRECATED.
 DLLPUBLIC std::string file_extension (const std::string &filepath);
 
+/// Replace the file extension of a filename or filepath. Does not
+/// alter filepath, just returns a new string
+DLLPUBLIC std::string replace_extension (const std::string &filepath, 
+                                         const std::string &new_extension);
+
 /// Turn a searchpath (multiple directory paths separated by ':' or ';')
 /// into a vector<string> containing each individual directory.  If
 /// validonly is true, only existing and readable directories will end
