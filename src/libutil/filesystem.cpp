@@ -96,6 +96,15 @@ Filesystem::file_extension (const std::string &filepath)
 
 
 
+std::string
+Filesystem::replace_extension (const std::string &filepath,
+                               const std::string &new_extension)
+{
+	return boost::filesystem::path(filepath).replace_extension(new_extension).string();
+}
+
+
+
 void
 Filesystem::searchpath_split (const std::string &searchpath,
                               std::vector<std::string> &dirs,
