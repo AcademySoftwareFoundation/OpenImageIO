@@ -549,8 +549,8 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
         // n is the number of pixels in a run
         // b is the pixel size in bytes
         // FIXME: optimize runs spanning across multiple scanlines?
-        unsigned char buf[4];
-        unsigned char buf2[4];
+        unsigned char buf[4] = { 0, 0, 0, 0 };
+        unsigned char buf2[4] = { 0, 0, 0, 0 };
         bool rlp = false;
         int rlcount = 0, rawcount = 0;
 
