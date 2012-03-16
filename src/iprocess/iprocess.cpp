@@ -37,13 +37,9 @@
 #include <vector>
 #include <string>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
-
-using boost::algorithm::iequals;
-
 
 #include "argparse.h"
 #include "imageio.h"

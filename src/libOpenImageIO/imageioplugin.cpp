@@ -36,7 +36,6 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include "dassert.h"
 #include "plugin.h"
@@ -88,7 +87,7 @@ declare_plugin (const std::string &format_name,
         std::string extsym = format_name + "_input_extensions";
         for (const char **e = input_extensions; e && *e; ++e) {
             std::string ext (*e);
-            boost::algorithm::to_lower (ext);
+            Strutil::to_lower (ext);
             if (input_formats.find(ext) == input_formats.end())
                 input_formats[ext] = input_creator;
         }
@@ -100,7 +99,7 @@ declare_plugin (const std::string &format_name,
             output_formats[format_name] = output_creator;
         for (const char **e = output_extensions; e && *e; ++e) {
             std::string ext (*e);
-            boost::algorithm::to_lower (ext);
+            Strutil::to_lower (ext);
             if (output_formats.find(ext) == output_formats.end())
                 output_formats[ext] = output_creator;
         }
@@ -318,7 +317,7 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
 
     // See if it's already in the table.  If not, scan all plugins we can
     // find to populate the table.
-    boost::algorithm::to_lower (format);
+    Strutil::to_lower (format);
     if (output_formats.find (format) == output_formats.end())
         catalog_all_plugins (plugin_searchpath);
 
@@ -363,7 +362,7 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
 
     // See if it's already in the table.  If not, scan all plugins we can
     // find to populate the table.
-    boost::algorithm::to_lower (format);
+    Strutil::to_lower (format);
     if (input_formats.find (format) == input_formats.end())
         catalog_all_plugins (plugin_searchpath);
 

@@ -40,9 +40,6 @@
 
 #include "rla_pvt.h"
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace RLA_pvt;
@@ -631,7 +628,7 @@ RLAInput::get_month_number (const char *s)
         "jul", "aug", "sep", "oct", "nov", "dec"
     };
     for (int i = 1;  i <= 12;  ++i)
-        if (iequals (s, months[i]))
+        if (Strutil::iequals (s, months[i]))
             return i;
     return -1;
 }

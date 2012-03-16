@@ -31,8 +31,6 @@
 
 #include <iostream>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
 #include <boost/foreach.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <half.h>

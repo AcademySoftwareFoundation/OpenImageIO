@@ -33,8 +33,6 @@
 
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
 
 #include "thread.h"
 #include "strutil.h"
@@ -171,7 +169,7 @@ static void
 add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
 {
     for (int i = 0;  xmptag[i].xmpname;  ++i) {
-        if (iequals (xmptag[i].xmpname, xmlname)) {
+        if (Strutil::iequals (xmptag[i].xmpname, xmlname)) {
             if (! xmptag[i].oiioname || ! xmptag[i].oiioname[0])
                 return;   // ignore it purposefully
             if (xmptag[i].oiiotype == TypeDesc::STRING) {
@@ -400,7 +398,7 @@ encode_xmp_category (const ImageSpec &spec, const char *xmlnamespace,
         // name, where the xmp name is in the right category.
         bool found = false;
         for (int i = 0;  xmptag[i].xmpname;  ++i) {
-            if (! iequals (p->name().c_str(), xmptag[i].oiioname))
+            if (! Strutil::iequals (p->name().c_str(), xmptag[i].oiioname))
                 continue;   // Name doesn't match
             if (strncmp (xmptag[i].xmpname, category.c_str(), category.length()))
                 continue;   // Category doesn't match
