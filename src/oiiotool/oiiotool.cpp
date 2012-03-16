@@ -39,13 +39,9 @@
 #include <sstream>
 #include <utility>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
-
-using boost::algorithm::iequals;
-using boost::algorithm::istarts_with;
 
 #include "argparse.h"
 #include "imageio.h"
@@ -1157,14 +1153,14 @@ action_pattern (int argc, const char *argv[])
     ImageRecRef img (new ImageRec ("new", spec, ot.imagecache));
     ImageBuf &ib ((*img)());
     std::string pattern = argv[1];
-    if (iequals(pattern,"black")) {
+    if (Strutil::iequals(pattern,"black")) {
         ImageBufAlgo::zero (ib);
-    } else if (istarts_with(pattern,"checker")) {
+    } else if (Strutil::istarts_with(pattern,"checker")) {
         int width = 8;
         size_t pos;
         while ((pos = pattern.find_first_of(":")) != std::string::npos) {
             pattern = pattern.substr (pos+1, std::string::npos);
-            if (istarts_with(pattern,"width="))
+            if (Strutil::istarts_with(pattern,"width="))
                 width = atoi (pattern.substr(6, std::string::npos).c_str());
         }
         std::vector<float> color1 (nchans, 0.0f);
@@ -1459,7 +1455,8 @@ getargs (int argc, char *argv[])
         for (int i = 0, e = ot.colorconfig.getNumColorSpaces();  i < e;  ++i) {
             const char *n = ot.colorconfig.getColorSpaceNameByIndex(i);
             s << "\"" << n << "\"";
-            if (linear && !iequals(n,"linear") && iequals (n, linear))
+            if (linear && !Strutil::iequals(n,"linear") &&
+                    Strutil::iequals (n, linear))
                 s << " (linear)";
             if (i < e-1)
                 s << ", ";

@@ -32,13 +32,11 @@
 #include <cstdlib>
 #include <cmath>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-
 #include "targa_pvt.h"
 
 #include "dassert.h"
 #include "typedesc.h"
+#include "strutil.h"
 #include "imageio.h"
 #include "fmath.h"
 
@@ -420,7 +418,7 @@ TGAOutput::close ()
 
         // gamma
         {
-            if (iequals (m_spec.get_string_attribute ("oiio:ColorSpace"), "GammaCorrected")) {
+            if (Strutil::iequals (m_spec.get_string_attribute ("oiio:ColorSpace"), "GammaCorrected")) {
                 float gamma = m_spec.get_float_attribute ("oiio:Gamma", 1.0);
                 
                 // FIXME: invent a smarter way to convert to a vulgar fraction?

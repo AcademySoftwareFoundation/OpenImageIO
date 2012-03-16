@@ -37,6 +37,7 @@
 #include <sstream>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "dassert.h"
 
@@ -272,6 +273,69 @@ Strutil::wordwrap (std::string src, int columns, int prefix)
     out << src;
     return out.str();
 }
+
+
+
+namespace {
+static std::locale loc = std::locale::classic();
+}
+
+
+bool
+Strutil::iequals (const std::string &a, const std::string &b)
+{
+    return boost::algorithm::iequals (a, b, loc);
+}
+
+
+bool
+Strutil::iequals (const char *a, const char *b)
+{
+    return boost::algorithm::iequals (a, b, loc);
+}
+
+
+bool
+Strutil::istarts_with (const std::string &a, const std::string &b)
+{
+    return boost::algorithm::istarts_with (a, b, loc);
+}
+
+
+bool
+Strutil::istarts_with (const char *a, const char *b)
+{
+    return boost::algorithm::istarts_with (a, b, loc);
+}
+
+
+bool
+Strutil::iends_with (const std::string &a, const std::string &b)
+{
+    return boost::algorithm::iends_with (a, b, loc);
+}
+
+
+bool
+Strutil::iends_with (const char *a, const char *b)
+{
+    return boost::algorithm::iends_with (a, b, loc);
+}
+
+
+void
+Strutil::to_lower (std::string &a)
+{
+    boost::algorithm::to_lower (a, loc);
+}
+
+
+void
+Strutil::to_upper (std::string &a)
+{
+    boost::algorithm::to_upper (a, loc);
+}
+
 
 }
 OIIO_NAMESPACE_EXIT

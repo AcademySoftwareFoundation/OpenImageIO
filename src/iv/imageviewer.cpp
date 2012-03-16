@@ -37,9 +37,6 @@
 #endif
 #include <vector>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 
@@ -56,7 +53,7 @@ using boost::algorithm::iequals;
 namespace
 {
     bool IsSpecSrgb(const ImageSpec & spec) {
-        return (iequals (spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"));
+        return (Strutil::iequals (spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"));
     }
 
 }

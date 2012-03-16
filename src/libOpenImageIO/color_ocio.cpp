@@ -32,9 +32,7 @@
 #include <vector>
 #include <string>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-
+#include "strutil.h"
 #include "color.h"
 #include "imagebufalgo.h"
 
@@ -204,9 +202,9 @@ ColorConfig::getColorSpaceNameByRole (const char *role) const
     if (getImpl()->config_) {
         OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace (role);
         // Catch special case of obvious name synonyms
-        if (!c && iequals(role,"linear"))
+        if (!c && Strutil::iequals(role,"linear"))
             c = getImpl()->config_->getColorSpace ("scene_linear");
-        if (!c && iequals(role,"scene_linear"))
+        if (!c && Strutil::iequals(role,"scene_linear"))
             c = getImpl()->config_->getColorSpace ("linear");
         if (c)
             return c->getName();
@@ -214,7 +212,7 @@ ColorConfig::getColorSpaceNameByRole (const char *role) const
 #endif
 
     // No OCIO at build time, or no OCIO configuration at run time
-    if (iequals (role, "linear") || iequals (role, "scene_linear"))
+    if (Strutil::iequals (role, "linear") || Strutil::iequals (role, "scene_linear"))
         return "linear";
 
     return NULL;  // Dunno what role
@@ -384,20 +382,20 @@ ColorConfig::createColorProcessor (const char * inputColorSpace,
     // Either not compiled with OCIO support, or no OCIO configuration
     // was found at all.  There are a few color conversions we know
     // about even in such dire conditions.
-    if (iequals(inputColorSpace,"linear") &&
-        iequals(outputColorSpace,"sRGB")) {
+    if (Strutil::iequals(inputColorSpace,"linear") &&
+        Strutil::iequals(outputColorSpace,"sRGB")) {
         return new ColorProcessor_linear_to_sRGB;
     }
-    if (iequals(inputColorSpace,"sRGB") &&
-        iequals(outputColorSpace,"linear")) {
+    if (Strutil::iequals(inputColorSpace,"sRGB") &&
+        Strutil::iequals(outputColorSpace,"linear")) {
         return new ColorProcessor_sRGB_to_linear;
     }
-    if (iequals(inputColorSpace,"linear") &&
-        iequals(outputColorSpace,"Rec709")) {
+    if (Strutil::iequals(inputColorSpace,"linear") &&
+        Strutil::iequals(outputColorSpace,"Rec709")) {
         return new ColorProcessor_linear_to_Rec709;
     }
-    if (iequals(inputColorSpace,"Rec709") &&
-        iequals(outputColorSpace,"linear")) {
+    if (Strutil::iequals(inputColorSpace,"Rec709") &&
+        Strutil::iequals(outputColorSpace,"linear")) {
         // No OCIO, or the OCIO config doesn't know linear->sRGB
         return new ColorProcessor_Rec709_to_linear;
     }

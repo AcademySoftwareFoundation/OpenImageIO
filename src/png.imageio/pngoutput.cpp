@@ -36,9 +36,6 @@
 
 #include "png_pvt.h"
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-
 #include "dassert.h"
 #include "imageio.h"
 #include "strutil.h"
