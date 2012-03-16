@@ -33,10 +33,6 @@
 #include <cmath>
 #include <map>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-using boost::algorithm::iends_with;
-
 #include <OpenEXR/ImfTestFile.h>
 #include <OpenEXR/ImfInputFile.h>
 #include <OpenEXR/ImfTiledInputFile.h>
@@ -393,20 +389,20 @@ OpenEXRInput::query_channels (void)
         // std::cerr << "Channel " << ci.name() << '\n';
         const char* name = ci.name();
         m_channelnames.push_back (name);
-        if (red < 0 && (iequals(name, "R") || iequals(name, "Red") ||
-                        iends_with(name,".R") || iends_with(name,".Red")))
+        if (red < 0 && (Strutil::iequals(name, "R") || Strutil::iequals(name, "Red") ||
+                        Strutil::iends_with(name,".R") || Strutil::iends_with(name,".Red")))
             red = c;
-        if (green < 0 && (iequals(name, "G") || iequals(name, "Green") ||
-                          iends_with(name,".G") || iends_with(name,".Green")))
+        if (green < 0 && (Strutil::iequals(name, "G") || Strutil::iequals(name, "Green") ||
+                          Strutil::iends_with(name,".G") || Strutil::iends_with(name,".Green")))
             green = c;
-        if (blue < 0 && (iequals(name, "B") || iequals(name, "Blue") ||
-                         iends_with(name,".B") || iends_with(name,".Blue")))
+        if (blue < 0 && (Strutil::iequals(name, "B") || Strutil::iequals(name, "Blue") ||
+                         Strutil::iends_with(name,".B") || Strutil::iends_with(name,".Blue")))
             blue = c;
-        if (alpha < 0 && (iequals(name, "A") || iequals(name, "Alpha") ||
-                          iends_with(name,".A") || iends_with(name,".Alpha")))
+        if (alpha < 0 && (Strutil::iequals(name, "A") || Strutil::iequals(name, "Alpha") ||
+                          Strutil::iends_with(name,".A") || Strutil::iends_with(name,".Alpha")))
             alpha = c;
-        if (zee < 0 && (iequals(name, "Z") || iequals(name, "Depth") ||
-                        iends_with(name,".Z") || iends_with(name,".Depth")))
+        if (zee < 0 && (Strutil::iequals(name, "Z") || Strutil::iequals(name, "Depth") ||
+                        Strutil::iends_with(name,".Z") || Strutil::iends_with(name,".Depth")))
             zee = c;
         ++m_spec.nchannels;
     }

@@ -32,8 +32,6 @@
 #include <cstdlib>
 #include <cmath>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
 #include <OpenEXR/ImathColor.h>
 
 #include "png_pvt.h"

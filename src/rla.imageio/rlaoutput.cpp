@@ -32,13 +32,11 @@
 #include <cstdlib>
 #include <cmath>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-
 #include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
 #include "fmath.h"
+#include "strutil.h"
 #include "sysutil.h"
 
 #include "rla_pvt.h"
@@ -281,9 +279,9 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     m_rla.Revision = 0xFFFE;
     
     std::string s = m_spec.get_string_attribute ("oiio:ColorSpace", "Unknown");
-    if (iequals(s, "Linear"))
+    if (Strutil::iequals(s, "Linear"))
         strcpy (m_rla.Gamma, "1.0");
-    else if (iequals(s, "GammaCorrected"))
+    else if (Strutil::iequals(s, "GammaCorrected"))
         snprintf (m_rla.Gamma, sizeof(m_rla.Gamma), "%.10f",
             m_spec.get_float_attribute ("oiio:Gamma", 1.f));
     

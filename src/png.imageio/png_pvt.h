@@ -33,8 +33,6 @@
 
 #include <png.h>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
 #include <OpenEXR/ImathColor.h>
 
 #include "dassert.h"
@@ -173,11 +171,11 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     if (num_comments) {
         std::string comments;
         for (int i = 0;  i < num_comments;  ++i) {
-            if (iequals (text_ptr[i].key, "Description"))
+            if (Strutil::iequals (text_ptr[i].key, "Description"))
                 spec.attribute ("ImageDescription", text_ptr[i].text);
-            else if (iequals (text_ptr[i].key, "Author"))
+            else if (Strutil::iequals (text_ptr[i].key, "Author"))
                 spec.attribute ("Artist", text_ptr[i].text);
-            else if (iequals (text_ptr[i].key, "Title"))
+            else if (Strutil::iequals (text_ptr[i].key, "Title"))
                 spec.attribute ("DocumentName", text_ptr[i].text);
             else
                 spec.attribute (text_ptr[i].key, text_ptr[i].text);
@@ -342,25 +340,25 @@ put_parameter (png_structp& sp, png_infop& ip, const std::string &_name,
     std::string name = _name;
 
     // Things to skip
-    if (iequals(name, "planarconfig"))  // No choice for PNG files
+    if (Strutil::iequals(name, "planarconfig"))  // No choice for PNG files
         return false;
-    if (iequals(name, "compression"))
+    if (Strutil::iequals(name, "compression"))
         return false;
-    if (iequals(name, "ResolutionUnit") ||
-          iequals(name, "XResolution") || iequals(name, "YResolution"))
+    if (Strutil::iequals(name, "ResolutionUnit") ||
+          Strutil::iequals(name, "XResolution") || Strutil::iequals(name, "YResolution"))
         return false;
 
     // Remap some names to PNG conventions
-    if (iequals(name, "Artist") && type == TypeDesc::STRING)
+    if (Strutil::iequals(name, "Artist") && type == TypeDesc::STRING)
         name = "Author";
-    if ((iequals(name, "name") || iequals(name, "DocumentName")) &&
+    if ((Strutil::iequals(name, "name") || Strutil::iequals(name, "DocumentName")) &&
           type == TypeDesc::STRING)
         name = "Title";
-    if ((iequals(name, "description") || iequals(name, "ImageDescription")) &&
+    if ((Strutil::iequals(name, "description") || Strutil::iequals(name, "ImageDescription")) &&
           type == TypeDesc::STRING)
         name = "Description";
 
-    if (iequals(name, "DateTime") && type == TypeDesc::STRING) {
+    if (Strutil::iequals(name, "DateTime") && type == TypeDesc::STRING) {
         png_time mod_time;
         int year, month, day, hour, minute, second;
         if (sscanf (*(const char **)data, "%4d:%02d:%02d %2d:%02d:%02d",
@@ -379,27 +377,27 @@ put_parameter (png_structp& sp, png_infop& ip, const std::string &_name,
     }
 
 #if 0
-    if (iequals(name, "ResolutionUnit") && type == TypeDesc::STRING) {
+    if (Strutil::iequals(name, "ResolutionUnit") && type == TypeDesc::STRING) {
         const char *s = *(char**)data;
         bool ok = true;
-        if (iequals (s, "none"))
+        if (Strutil::iequals (s, "none"))
             PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, RESUNIT_NONE);
-        else if (iequals (s, "in") || iequals (s, "inch"))
+        else if (Strutil::iequals (s, "in") || Strutil::iequals (s, "inch"))
             PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, RESUNIT_INCH);
-        else if (iequals (s, "cm"))
+        else if (Strutil::iequals (s, "cm"))
             PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, RESUNIT_CENTIMETER);
         else ok = false;
         return ok;
     }
-    if (iequals(name, "ResolutionUnit") && type == TypeDesc::UINT) {
+    if (Strutil::iequals(name, "ResolutionUnit") && type == TypeDesc::UINT) {
         PNGSetField (m_tif, PNGTAG_RESOLUTIONUNIT, *(unsigned int *)data);
         return true;
     }
-    if (iequals(name, "XResolution") && type == TypeDesc::FLOAT) {
+    if (Strutil::iequals(name, "XResolution") && type == TypeDesc::FLOAT) {
         PNGSetField (m_tif, PNGTAG_XRESOLUTION, *(float *)data);
         return true;
     }
-    if (iequals(name, "YResolution") && type == TypeDesc::FLOAT) {
+    if (Strutil::iequals(name, "YResolution") && type == TypeDesc::FLOAT) {
         PNGSetField (m_tif, PNGTAG_YRESOLUTION, *(float *)data);
         return true;
     }
@@ -436,14 +434,14 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
     png_set_oFFs (sp, ip, spec.x, spec.y, PNG_OFFSET_PIXEL);
 
     std::string colorspace = spec.get_string_attribute ("oiio:ColorSpace");
-    if (iequals (colorspace, "Linear")) {
+    if (Strutil::iequals (colorspace, "Linear")) {
         png_set_gAMA (sp, ip, 1.0);
     }
-    else if (iequals (colorspace, "GammaCorrected")) {
+    else if (Strutil::iequals (colorspace, "GammaCorrected")) {
         float gamma = spec.get_float_attribute ("oiio:Gamma", 1.0);
         png_set_gAMA (sp, ip, gamma);
     }
-    else if (iequals (colorspace, "sRGB")) {
+    else if (Strutil::iequals (colorspace, "sRGB")) {
         png_set_sRGB_gAMA_and_cHRM (sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
     }
     
@@ -467,12 +465,12 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
         const float y = *(const float *)yres->data();
         int unittype = PNG_RESOLUTION_UNKNOWN;
         float scale = 1;
-        if (iequals (unitname, "meter") || iequals (unitname, "m"))
+        if (Strutil::iequals (unitname, "meter") || Strutil::iequals (unitname, "m"))
             unittype = PNG_RESOLUTION_METER;
-        else if (iequals (unitname, "cm")) {
+        else if (Strutil::iequals (unitname, "cm")) {
             unittype = PNG_RESOLUTION_METER;
             scale = 100;
-        } else if (iequals (unitname, "inch") || iequals (unitname, "in")) {
+        } else if (Strutil::iequals (unitname, "inch") || Strutil::iequals (unitname, "in")) {
             unittype = PNG_RESOLUTION_METER;
             scale = 100.0/2.54;
         }
