@@ -31,7 +31,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <boost/algorithm/string.hpp>
 
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
@@ -42,7 +41,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-using boost::algorithm::iequals;
 
 
 
@@ -84,11 +82,11 @@ private:
 
     /// Helper function - retrieve libdpx descriptor for string
     ///
-    dpx::Characteristic get_characteristic_from_string (std::string str);
+    dpx::Characteristic get_characteristic_from_string (const std::string &str);
 
     /// Helper function - retrieve libdpx descriptor for string
     ///
-    dpx::Descriptor get_descriptor_from_string (std::string str);
+    dpx::Descriptor get_descriptor_from_string (const std::string &str);
 };
 
 
@@ -182,9 +180,9 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     // check if the client wants endianness reverse to native
     // assume big endian per Jeremy's request
     std::string endianness = m_spec.get_string_attribute ("oiio:Endian", "big");
-    if (iequals (endianness, "little"))
+    if (Strutil::iequals (endianness, "little"))
         m_wantSwap = bigendian ();
-    else if (iequals (endianness, "big"))
+    else if (Strutil::iequals (endianness, "big"))
         m_wantSwap = littleendian ();
     else // native
         m_wantSwap = false;
@@ -216,10 +214,10 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     dpx::Characteristic transfer;
     
     std::string colorspace = m_spec.get_string_attribute ("oiio:ColorSpace", "");
-    if (iequals (colorspace, "Linear"))  transfer = dpx::kLinear;
-    else if (iequals (colorspace, "GammaCorrected")) transfer = dpx::kUserDefined;
-    else if (iequals (colorspace, "Rec709")) transfer = dpx::kITUR709;
-    else if (iequals (colorspace, "KodakLog")) transfer = dpx::kLogarithmic;
+    if (Strutil::iequals (colorspace, "Linear"))  transfer = dpx::kLinear;
+    else if (Strutil::iequals (colorspace, "GammaCorrected")) transfer = dpx::kUserDefined;
+    else if (Strutil::iequals (colorspace, "Rec709")) transfer = dpx::kITUR709;
+    else if (Strutil::iequals (colorspace, "KodakLog")) transfer = dpx::kLogarithmic;
     else {
         std::string dpxtransfer = m_spec.get_string_attribute ("dpx:Transfer", "");
         transfer = get_characteristic_from_string (dpxtransfer);
@@ -232,9 +230,9 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
     // select packing method
     dpx::Packing packing;
     std::string tmpstr = m_spec.get_string_attribute ("dpx:ImagePacking", "Filled, method A");
-    if (iequals (tmpstr, "Packed"))
+    if (Strutil::iequals (tmpstr, "Packed"))
         packing = dpx::kPacked;
-    else if (iequals (tmpstr, "Filled, method B"))
+    else if (Strutil::iequals (tmpstr, "Filled, method B"))
         packing = dpx::kFilledMethodB;
     else
         packing = dpx::kFilledMethodA;
@@ -414,33 +412,33 @@ DPXOutput::write_scanline (int y, int z, TypeDesc format,
 
 
 dpx::Characteristic
-DPXOutput::get_characteristic_from_string (std::string str)
+DPXOutput::get_characteristic_from_string (const std::string &str)
 {
-    if (iequals (str, "User defined"))
+    if (Strutil::iequals (str, "User defined"))
         return dpx::kUserDefined;
-    else if (iequals (str, "Printing density"))
+    else if (Strutil::iequals (str, "Printing density"))
         return dpx::kPrintingDensity;
-    else if (iequals (str, "Linear"))
+    else if (Strutil::iequals (str, "Linear"))
         return dpx::kLinear;
-    else if (iequals (str, "Logarithmic"))
+    else if (Strutil::iequals (str, "Logarithmic"))
         return dpx::kLogarithmic;
-    else if (iequals (str, "Unspecified video"))
+    else if (Strutil::iequals (str, "Unspecified video"))
         return dpx::kUnspecifiedVideo;
-    else if (iequals (str, "SMPTE 274M"))
+    else if (Strutil::iequals (str, "SMPTE 274M"))
         return dpx::kSMPTE274M;
-    else if (iequals (str, "ITU-R 709-4"))
+    else if (Strutil::iequals (str, "ITU-R 709-4"))
         return dpx::kITUR709;
-    else if (iequals (str, "ITU-R 601-5 system B or G"))
+    else if (Strutil::iequals (str, "ITU-R 601-5 system B or G"))
         return dpx::kITUR601;
-    else if (iequals (str, "ITU-R 601-5 system M"))
+    else if (Strutil::iequals (str, "ITU-R 601-5 system M"))
         return dpx::kITUR602;
-    else if (iequals (str, "NTSC composite video"))
+    else if (Strutil::iequals (str, "NTSC composite video"))
         return dpx::kNTSCCompositeVideo;
-    else if (iequals (str, "PAL composite video"))
+    else if (Strutil::iequals (str, "PAL composite video"))
         return dpx::kPALCompositeVideo;
-    else if (iequals (str, "Z depth linear"))
+    else if (Strutil::iequals (str, "Z depth linear"))
         return dpx::kZLinear;
-    else if (iequals (str, "Z depth homogeneous"))
+    else if (Strutil::iequals (str, "Z depth homogeneous"))
         return dpx::kZHomogeneous;
     else
         return dpx::kUndefinedCharacteristic;
@@ -449,7 +447,7 @@ DPXOutput::get_characteristic_from_string (std::string str)
 
 
 dpx::Descriptor
-DPXOutput::get_descriptor_from_string (std::string str)
+DPXOutput::get_descriptor_from_string (const std::string &str)
 {
     if (str.empty ()) {
         // try to guess based on the image spec
@@ -467,42 +465,42 @@ DPXOutput::get_descriptor_from_string (std::string str)
                         + m_spec.nchannels - 2);
                 return dpx::kUndefinedDescriptor;
         }
-    } else if (iequals (str, "User defined")) {
+    } else if (Strutil::iequals (str, "User defined")) {
         if (m_spec.nchannels >= 2 && m_spec.nchannels <= 8)
             return (dpx::Descriptor)((int)dpx::kUserDefined2Comp
                 + m_spec.nchannels - 2);
         return dpx::kUserDefinedDescriptor;
-    } else if (iequals (str, "Red"))
+    } else if (Strutil::iequals (str, "Red"))
         return dpx::kRed;
-    else if (iequals (str, "Green"))
+    else if (Strutil::iequals (str, "Green"))
         return dpx::kGreen;
-    else if (iequals (str, "Blue"))
+    else if (Strutil::iequals (str, "Blue"))
         return dpx::kBlue;
-    else if (iequals (str, "Alpha"))
+    else if (Strutil::iequals (str, "Alpha"))
         return dpx::kAlpha;
-    else if (iequals (str, "Luma"))
+    else if (Strutil::iequals (str, "Luma"))
         return dpx::kLuma;
-    else if (iequals (str, "Color difference"))
+    else if (Strutil::iequals (str, "Color difference"))
         return dpx::kColorDifference;
-    else if (iequals (str, "Depth"))
+    else if (Strutil::iequals (str, "Depth"))
         return dpx::kDepth;
-    else if (iequals (str, "Composite video"))
+    else if (Strutil::iequals (str, "Composite video"))
         return dpx::kCompositeVideo;
-    else if (iequals (str, "RGB"))
+    else if (Strutil::iequals (str, "RGB"))
         return dpx::kRGB;
-    else if (iequals (str, "RGBA"))
+    else if (Strutil::iequals (str, "RGBA"))
         return dpx::kRGBA;
-    else if (iequals (str, "ABGR"))
+    else if (Strutil::iequals (str, "ABGR"))
         return dpx::kABGR;
-    else if (iequals (str, "CbYCrY"))
+    else if (Strutil::iequals (str, "CbYCrY"))
         return dpx::kCbYCrY;
-    else if (iequals (str, "CbYACrYA"))
+    else if (Strutil::iequals (str, "CbYACrYA"))
         return dpx::kCbYACrYA;
-    else if (iequals (str, "CbYCr"))
+    else if (Strutil::iequals (str, "CbYCr"))
         return dpx::kCbYCr;
-    else if (iequals (str, "CbYCrA"))
+    else if (Strutil::iequals (str, "CbYCrA"))
         return dpx::kCbYCrA;
-    //else if (iequals (str, "Undefined"))
+    //else if (Strutil::iequals (str, "Undefined"))
         return dpx::kUndefinedDescriptor;
 }
 

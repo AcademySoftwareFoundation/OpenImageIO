@@ -34,11 +34,8 @@
 
 #include <half.h>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
-
-using boost::algorithm::iequals;
 
 #include "dassert.h"
 #include "typedesc.h"
@@ -424,7 +421,7 @@ get_attribute_iterator (ImageIOParameterList & attribs,
     } else {
         for(ImageIOParameterList::iterator iter = attribs.begin();
             iter != attribs.end(); ++iter) {
-            if (iequals (iter->name().string(), name) &&
+            if (Strutil::iequals (iter->name().string(), name) &&
                 (searchtype == TypeDesc::UNKNOWN || searchtype == iter->type()))
                 return iter;
         }
@@ -448,7 +445,7 @@ get_attribute_const_iterator (const ImageIOParameterList & attribs,
     } else {
         for(ImageIOParameterList::const_iterator iter = attribs.begin();
             iter != attribs.end(); ++iter) {
-            if (iequals (iter->name().string(), name) &&
+            if (Strutil::iequals (iter->name().string(), name) &&
                 (searchtype == TypeDesc::UNKNOWN || searchtype == iter->type()))
                 return iter;
         }

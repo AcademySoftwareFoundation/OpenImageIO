@@ -141,6 +141,36 @@ strhash (const char *s)
 
 
 
+/// Case-insensitive comparison of strings.  For speed, this always uses
+/// a static locale that doesn't require a mutex.
+bool DLLPUBLIC iequals (const std::string &a, const std::string &b);
+bool DLLPUBLIC iequals (const char *a, const char *b);
+
+/// Does 'a' start with the string 'b', with a case-insensitive comparison?
+/// For speed, this always uses a static locale that doesn't require a mutex.
+bool DLLPUBLIC istarts_with (const std::string &a, const std::string &b);
+bool DLLPUBLIC istarts_with (const char *a, const char *b);
+
+/// Does 'a' end with the string 'b', with a case-insensitive comparison?
+/// For speed, this always uses a static locale that doesn't require a mutex.
+bool DLLPUBLIC iends_with (const std::string &a, const std::string &b);
+bool DLLPUBLIC iends_with (const char *a, const char *b);
+
+/// Does 'a' end with the string 'b', with a case-insensitive comparison?
+/// For speed, this always uses a static locale that doesn't require a mutex.
+bool DLLPUBLIC iends_with (const std::string &a, const std::string &b);
+bool DLLPUBLIC iends_with (const char *a, const char *b);
+
+/// Convert to upper case, faster than std::toupper because we use
+/// a static locale that doesn't require a mutex lock.
+void DLLPUBLIC to_lower (std::string &a);
+
+/// Convert to upper case, faster than std::toupper because we use
+/// a static locale that doesn't require a mutex lock.
+void DLLPUBLIC to_upper (std::string &a);
+
+
+
 /// C++ functor wrapper class for using strhash for hash_map or hash_set.
 /// The way this is used, in conjunction with StringEqual, to build an
 /// efficient hash_map for char*'s or std::string's is as follows:

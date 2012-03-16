@@ -621,6 +621,20 @@ public:
 };
 
 
+
+/// Case-insensitive comparison of ustrings.  For speed, this always
+/// uses a static locale that doesn't require a mutex lock.
+inline bool iequals (ustring a, ustring b) {
+    return a==b || Strutil::iequals(a.string(), b.string());
+}
+inline bool iequals (ustring a, const std::string &b) {
+    return Strutil::iequals(a.string(), b);
+}
+inline bool iequals (const std::string &a, ustring b) {
+    return Strutil::iequals(a, b.string());
+}
+
+
 }
 OIIO_NAMESPACE_EXIT
 

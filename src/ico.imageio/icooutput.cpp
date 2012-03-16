@@ -42,9 +42,6 @@
 #include "strutil.h"
 #include "fmath.h"
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace ICO_pvt;
@@ -366,7 +363,7 @@ bool
 ICOOutput::supports (const std::string &feature) const
 {
     // advertise our support for subimages
-    if (iequals (feature, "multiimage"))
+    if (Strutil::iequals (feature, "multiimage"))
         return true;
     return false;
 }

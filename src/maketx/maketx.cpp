@@ -38,9 +38,6 @@
 
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-using boost::algorithm::iends_with;
 #include <OpenEXR/ImathMatrix.h>
 
 #include "argparse.h"
@@ -864,7 +861,8 @@ make_texturemap (const char *maptypename = "texture map")
         do_resize = true;
     // resize if we're converting from non-border sampling to border sampling
     if (envlatlmode && ! src_samples_border && 
-        (iequals(fileformatname,"openexr") || iends_with(outputfilename,".exr")))
+        (Strutil::iequals(fileformatname,"openexr") ||
+         Strutil::iends_with(outputfilename,".exr")))
         do_resize = true;
 
     Timer resizetimer;

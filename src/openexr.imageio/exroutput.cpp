@@ -34,10 +34,6 @@
 #include <iostream>
 #include <map>
 
-#include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
-using boost::algorithm::istarts_with;
-
 #include <OpenEXR/ImfOutputFile.h>
 #include <OpenEXR/ImfTiledOutputFile.h>
 #include <OpenEXR/ImfChannelList.h>
@@ -165,7 +161,7 @@ OpenEXROutput::supports (const std::string &feature) const
     if (feature == "random_access") {
         const ImageIOParameter *param = m_spec.find_attribute("openexr:lineOrder");
         const char *lineorder = param ? *(char **)param->data() : NULL;
-        return (lineorder && iequals (lineorder, "randomY"));
+        return (lineorder && Strutil::iequals (lineorder, "randomY"));
     }
 
     // FIXME: we could support "empty"
@@ -282,7 +278,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         // methods may optimize image quality by adjusting pixel data
         // quantization acording to this hint.
         
-        bool pLinear = iequals (m_spec.get_string_attribute ("oiio:ColorSpace", "Linear"), "Linear");
+        bool pLinear = Strutil::iequals (m_spec.get_string_attribute ("oiio:ColorSpace", "Linear"), "Linear");
 #endif
         m_pixeltype.push_back (ptype);
         if (m_spec.channelformats.size())
@@ -329,18 +325,18 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
                                                Imf::ROUND_DOWN);
 
     if (textureformat) {
-        if (iequals (textureformat, "Plain Texture")) {
+        if (Strutil::iequals (textureformat, "Plain Texture")) {
             m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
                                                     Imf::MIPMAP_LEVELS);
-        } else if (iequals (textureformat, "CubeFace Environment")) {
+        } else if (Strutil::iequals (textureformat, "CubeFace Environment")) {
             m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
                                                     Imf::MIPMAP_LEVELS);
             m_header->insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_CUBE));
-        } else if (iequals (textureformat, "LatLong Environment")) {
+        } else if (Strutil::iequals (textureformat, "LatLong Environment")) {
             m_levelmode = m_spec.get_int_attribute ("openexr:levelmode",
                                                     Imf::MIPMAP_LEVELS);
             m_header->insert ("envmap", Imf::EnvmapAttribute(Imf::ENVMAP_LATLONG));
-        } else if (iequals (textureformat, "Shadow")) {
+        } else if (Strutil::iequals (textureformat, "Shadow")) {
             m_levelmode = Imf::ONE_LEVEL;  // Force one level for shadow maps
         }
 
@@ -401,74 +397,74 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 {
     // Translate
     std::string xname = name;
-    if (istarts_with (xname, "oiio:"))
+    if (Strutil::istarts_with (xname, "oiio:"))
         return false;
-    else if (iequals(xname, "worldtocamera"))
+    else if (Strutil::iequals(xname, "worldtocamera"))
         xname = "worldToCamera";
-    else if (iequals(xname, "worldtoscreen"))
+    else if (Strutil::iequals(xname, "worldtoscreen"))
         xname = "worldToNDC";
-    else if (iequals(xname, "DateTime"))
+    else if (Strutil::iequals(xname, "DateTime"))
         xname = "capDate";
-    else if (iequals(xname, "description") || iequals(xname, "ImageDescription"))
+    else if (Strutil::iequals(xname, "description") || Strutil::iequals(xname, "ImageDescription"))
         xname = "comments";
-    else if (iequals(xname, "Copyright"))
+    else if (Strutil::iequals(xname, "Copyright"))
         xname = "owner";
-    else if (iequals(xname, "PixelAspectRatio"))
+    else if (Strutil::iequals(xname, "PixelAspectRatio"))
         xname = "pixelAspectRatio";
-    else if (iequals(xname, "ExposureTime"))
+    else if (Strutil::iequals(xname, "ExposureTime"))
         xname = "expTime";
-    else if (iequals(xname, "FNumber"))
+    else if (Strutil::iequals(xname, "FNumber"))
         xname = "aperture";
-    else if (istarts_with (xname, format_prefix))
+    else if (Strutil::istarts_with (xname, format_prefix))
         xname = std::string (xname.begin()+format_prefix.size(), xname.end());
 
 //    std::cerr << "exr put '" << name << "' -> '" << xname << "'\n";
 
     // Special cases
-    if (iequals(xname, "Compression") && type == TypeDesc::STRING) {
+    if (Strutil::iequals(xname, "Compression") && type == TypeDesc::STRING) {
         const char *str = *(char **)data;
         m_header->compression() = Imf::ZIP_COMPRESSION;  // Default
         if (str) {
-            if (iequals (str, "none"))
+            if (Strutil::iequals (str, "none"))
                 m_header->compression() = Imf::NO_COMPRESSION;
-            else if (iequals (str, "deflate") || iequals (str, "zip")) 
+            else if (Strutil::iequals (str, "deflate") || Strutil::iequals (str, "zip")) 
                 m_header->compression() = Imf::ZIP_COMPRESSION;
-            else if (iequals (str, "rle")) 
+            else if (Strutil::iequals (str, "rle")) 
                 m_header->compression() = Imf::RLE_COMPRESSION;
-            else if (iequals (str, "zips")) 
+            else if (Strutil::iequals (str, "zips")) 
                 m_header->compression() = Imf::ZIPS_COMPRESSION;
-            else if (iequals (str, "piz")) 
+            else if (Strutil::iequals (str, "piz")) 
                 m_header->compression() = Imf::PIZ_COMPRESSION;
-            else if (iequals (str, "pxr24")) 
+            else if (Strutil::iequals (str, "pxr24")) 
                 m_header->compression() = Imf::PXR24_COMPRESSION;
 #ifdef IMF_B44_COMPRESSION
             // The enum Imf::B44_COMPRESSION is not defined in older versions
             // of OpenEXR, and there are no explicit version numbers in the
             // headers.  BUT this other related #define is present only in
             // the newer version.
-            else if (iequals (str, "b44"))
+            else if (Strutil::iequals (str, "b44"))
                 m_header->compression() = Imf::B44_COMPRESSION;
-            else if (iequals (str, "b44a"))
+            else if (Strutil::iequals (str, "b44a"))
                 m_header->compression() = Imf::B44A_COMPRESSION;
 #endif
         }
         return true;
     }
 
-    if (iequals (xname, "openexr:lineOrder") && type == TypeDesc::STRING) {
+    if (Strutil::iequals (xname, "openexr:lineOrder") && type == TypeDesc::STRING) {
         const char *str = *(char **)data;
         m_header->lineOrder() = Imf::INCREASING_Y;   // Default
         if (str) {
-            if (iequals (str, "randomY"))
+            if (Strutil::iequals (str, "randomY"))
                 m_header->lineOrder() = Imf::RANDOM_Y;
-            else if (iequals (str, "decreasingY"))
+            else if (Strutil::iequals (str, "decreasingY"))
                 m_header->lineOrder() = Imf::DECREASING_Y;
         }
         return true;
     }
 
     // Supress planarconfig!
-    if (iequals (xname, "planarconfig") || iequals (xname, "tiff:planarconfig"))
+    if (Strutil::iequals (xname, "planarconfig") || Strutil::iequals (xname, "tiff:planarconfig"))
         return true;
 
     // General handling of attributes
