@@ -840,10 +840,13 @@ ImageViewer::updateStatusBar ()
             }
         break;
     }
-    message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f",
-                                zoom() >= 1 ? zoom() : 1.0f,
-                                zoom() >= 1 ? 1.0f : 1.0f/zoom(),
-                                cur()->exposure(), cur()->gamma());
+    float ratioNum=zoom() >= 1 ? zoom() : 1.0f;
+    float ratioDen=zoom() >= 1 ? 1.0f : 1.0f/zoom();
+    int zoomLevel=(ratioNum/ratioDen)*100;
+    message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f Zoom %d%%",
+                                ratioNum, ratioDen,
+                                cur()->exposure(), cur()->gamma(),
+                                zoomLevel);
     if (cur()->nsubimages() > 1) {
         if (cur()->auto_subimage()) {
             message += Strutil::format ("  subimg AUTO (%d/%d)",
@@ -2059,3 +2062,4 @@ ImageViewer::editPreferences ()
     }
     preferenceWindow->show ();
 }
+
