@@ -615,14 +615,17 @@ image_progress_callback (void *opaque, float done)
 void
 ImageViewer::open()
 {
-    QStringList names;
-    names = QFileDialog::getOpenFileNames (this, tr("Open File(s)"),
-                                           QDir::currentPath());
-    if (names.empty())
+    static QString openPath = QDir::homePath();
+    QFileDialog dialog(NULL, tr("Open File(s)"), openPath);
+    dialog.setAcceptMode (QFileDialog::AcceptOpen);
+    dialog.setFileMode (QFileDialog::ExistingFiles);
+    if (!dialog.exec())
         return;
+    openPath = dialog.directory().path();
+    QStringList names = dialog.selectedFiles();
+
     int old_lastimage = m_images.size()-1;
-    QStringList list = names;
-    for (QStringList::Iterator it = list.begin();  it != list.end();  ++it) {
+    for (QStringList::Iterator it = names.begin();  it != names.end();  ++it) {
         std::string filename = it->toUtf8().data();
         if (filename.empty())
             continue;
