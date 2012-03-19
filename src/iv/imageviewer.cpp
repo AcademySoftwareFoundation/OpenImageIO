@@ -1630,6 +1630,7 @@ ImageViewer::keyPressEvent (QKeyEvent *event)
     case Qt::Key_Left :
     case Qt::Key_Up :
     case Qt::Key_PageUp :
+    case Qt::Key_Backspace :
         prevImage();
         return;  //break;
     case Qt::Key_Right :
@@ -1639,6 +1640,7 @@ ImageViewer::keyPressEvent (QKeyEvent *event)
 //            std::cerr << "hey, ctrl right\n";
     case Qt::Key_Down :
     case Qt::Key_PageDown :
+    case Qt::Key_Space :
         nextImage();
         return; //break;
     case Qt::Key_Escape :
