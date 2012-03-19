@@ -1,6 +1,14 @@
 Changes:
 
 
+Release 0.10.7 (19 Mar 2012)
+----------------------------
+* Threading performance improvement in the texture system as a result of
+  wrapping various internal "iequals" calls to pass a static locale
+  rather than relying on their default behavior that would use a mutex
+  underneath to access a global locale.
+
+
 Release 0.10.6 (1 Mar 2012) -- Ports of several fixes from 1.0
 ---------------------------
 * Fix for gcc 4.7 to be sure off_t is defined.
