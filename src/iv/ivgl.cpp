@@ -38,7 +38,12 @@
 
 #include <OpenEXR/half.h>
 #include <OpenEXR/ImathFun.h>
-#include <QGLFormat>
+
+#include <QtGui/QComboBox>
+#include <QtGui/QLabel>
+#include <QtGui/QMouseEvent>
+#include <QtGui/QProgressBar>
+#include <QtOpenGL/QGLFormat>
 
 #include <boost/algorithm/string.hpp>
 using boost::algorithm::iequals;
