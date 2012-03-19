@@ -44,7 +44,7 @@
 #include <iostream>
 #include <iterator>
 
-#include <QtGui>
+#include <QtGui/QApplication>
 
 #include <boost/foreach.hpp>
 

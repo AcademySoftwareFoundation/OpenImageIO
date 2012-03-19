@@ -40,6 +40,22 @@
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 
+#include <QtCore/QSettings>
+#include <QtCore/QTimer>
+#include <QtGui/QApplication>
+#include <QtGui/QComboBox>
+#include <QtGui/QDesktopWidget>
+#include <QtGui/QFileDialog>
+#include <QtGui/QKeyEvent>
+#include <QtGui/QLabel>
+#include <QtGui/QMenu>
+#include <QtGui/QMenuBar>
+#include <QtGui/QMessageBox>
+#include <QtGui/QProgressBar>
+#include <QtGui/QResizeEvent>
+#include <QtGui/QSpinBox>
+#include <QtGui/QStatusBar>
+
 #include <OpenEXR/ImathFun.h>
 
 #include "dassert.h"
