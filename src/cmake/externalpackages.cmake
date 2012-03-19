@@ -338,4 +338,47 @@ if (USE_EXTERNAL_PUGIXML)
     include_directories (BEFORE ${PUGIXML_INCLUDE_DIR})
 endif()
 
+
+###########################################################################
+# OpenCV setup
+
+if (USE_OPENCV)
+    find_path (OpenCV_INCLUDE_DIR opencv/cv.h
+               ${THIRD_PARTY_TOOLS}/include
+               ${PROJECT_SOURCE_DIR}/include  
+               ${OpenCV_HOME}/include
+               /usr/local/include
+               /opt/local/include
+               )
+    find_library (OpenCV_LIBS
+                  NAMES opencv_core
+                  PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
+                        ${PROJECT_SOURCE_DIR}/lib
+                        ${OpenCV_HOME}/lib
+                        /usr/local/lib
+                        /opt/local/lib
+                 )
+    find_library (OpenCV_LIBS_highgui
+                  NAMES opencv_highgui
+                  PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
+                        ${PROJECT_SOURCE_DIR}/lib
+                        ${OpenCV_HOME}/lib
+                        /usr/local/lib
+                        /opt/local/lib
+                 )
+    set (OpenCV_LIBS "${OpenCV_LIBS} ${OpenCV_LIBS_highgui}")
+    if (OpenCV_INCLUDE_DIR AND OpenCV_LIBS)
+        set (OpenCV_FOUND TRUE)
+        add_definitions ("-DUSE_OPENCV")
+        message (STATUS "OpenCV includes = ${OpenCV_INCLUDE_DIR} ")
+        message (STATUS "OpenCV libs = ${OpenCV_LIBS} ")
+    else ()
+        set (OpenCV_FOUND FALSE)
+        message (STATUS "OpenCV library not found")
+    endif ()
+else ()
+    message (STATUS "Not using OpenCV")
+endif ()
+
+# end OpenCV setup
 ###########################################################################

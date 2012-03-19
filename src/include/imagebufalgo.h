@@ -43,6 +43,13 @@
 #include "fmath.h"
 #include "color.h"
 
+
+#ifndef __OPENCV_CORE_TYPES_H__
+struct IplImage;  // Forward declaration; used by Intel Image lib & OpenCV
+#endif
+
+
+
 OIIO_NAMESPACE_ENTER
 {
 
@@ -270,6 +277,32 @@ enum DLLPUBLIC NonFiniteFixMode
 bool DLLPUBLIC fixNonFinite(ImageBuf &dst, const ImageBuf &src,
                             NonFiniteFixMode mode=NONFINITE_BOX3,
                             int * pixelsFixed=NULL);
+
+
+/// Convert an IplImage, used by OpenCV and Intel's Image Libray, and
+/// set ImageBuf dst to be the same image (copying the pixels).  If
+/// convert is not set to UNKNOWN, try to establish dst as holding that
+/// data type and convert the IplImage data.  Return true if ok, false
+/// if it couldn't figure out how to make the conversion from IplImage
+/// to ImageBuf.  If OpenImageIO was compiled without OpenCV support,
+/// this function will return false without modifying dst.
+bool DLLPUBLIC from_IplImage (ImageBuf &dst, const IplImage *ipl,
+                              TypeDesc convert=TypeDesc::UNKNOWN);
+
+/// Construct an IplImage*, used by OpenCV and Intel's Image Library,
+/// that is equivalent to the ImageBuf src.  If it is not possible, or
+/// if OpenImageIO was compiled without OpenCV support, then return
+/// NULL.  The ownership of the IplImage is fully transferred to the
+/// calling application.
+IplImage* DLLPUBLIC to_IplImage (const ImageBuf &src);
+
+/// Capture a still image from a designated camera.  If able to do so,
+/// store the image in dst and return true.  If there is no such device,
+/// or support for camera capture is not available (such as if OpenCV
+/// support was not enabled at compile time), return false and do not
+/// alter dst.
+bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
+                              TypeDesc convert=TypeDesc::UNKNOWN);
 
 
 };  // end namespace ImageBufAlgo

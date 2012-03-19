@@ -31,11 +31,11 @@ if (NOT USE_EXTERNAL_PUGIXML)
 endif()
 
 set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
-                         imagebufalgo.cpp imagebufalgo_orient.cpp
-                         imagebufalgo_yee.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp
                           color_ocio.cpp
+                          imagebufalgo.cpp imagebufalgo_orient.cpp
+                          imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
                           ../libutil/argparse.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
@@ -207,6 +207,12 @@ if (USE_OCIO AND OCIO_FOUND)
     target_link_libraries (OpenImageIO ${OCIO_LIBRARIES})
 endif ()
 
+
+# Include OpenCV if using it
+if (OpenCV_FOUND)
+    include_directories (${OpenCV_INCLUDE_DIR})
+    target_link_libraries (OpenImageIO opencv_core opencv_highgui)
+endif ()
 
 
 

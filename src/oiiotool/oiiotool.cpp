@@ -1172,9 +1172,31 @@ action_pattern (int argc, const char *argv[])
     } else {
         ImageBufAlgo::zero (ib);
     }
-    if (ot.curimg)
-        ot.image_stack.push_back (ot.curimg);
-    ot.curimg = img;
+    ot.push (img);
+    return 0;
+}
+
+
+
+static int
+action_capture (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    int camera = 0;
+
+    std::string cmd = argv[0];
+    size_t pos;
+    while ((pos = cmd.find_first_of(":")) != std::string::npos) {
+        cmd = cmd.substr (pos+1, std::string::npos);
+        if (istarts_with(cmd,"camera="))
+            camera = atoi(cmd.c_str()+7);
+    }
+
+    ImageBuf ib;
+    ImageBufAlgo::capture_image (ib, camera, TypeDesc::FLOAT);
+    ImageRecRef img (new ImageRec ("capture", ib.spec(), ot.imagecache));
+    (*img)() = ib;
+    ot.push (img);
     return 0;
 }
 
@@ -1412,6 +1434,8 @@ getargs (int argc, char *argv[])
                         "Create a blank image (args: geom, channels)",
                 "--pattern %@ %s %s %d", action_pattern, NULL, NULL, NULL,
                         "Create a patterned image (args: pattern, geom, channels)",
+                "--capture %@", action_capture, NULL,
+                        "Capture an image (args: camera=%%d)",
                 "--unmip %@", action_unmip, &dummybool, "Discard all but the top level of a MIPmap",
                 "--selectmip %@ %d", action_selectmip, &dummyint,
                     "Select just one MIP level (0 = highest res)",
