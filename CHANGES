@@ -1,6 +1,17 @@
 Changes:
 
 
+Release 1.0.2 (19 Mar 2012)
+----------------------------
+* Fixed TARGA reader bug where for 16-bpp, 4-channel images, we weren't
+  reading the alpha properly.
+* Fix ill-formed default output names for maketx (and in the process,
+  add Filesystem::replace_extension utility).
+* Threading performance improvement in the texture system as a result of
+  wrapping various internal "iequals" calls to pass a static locale
+  rather than relying on their default behavior that would use a mutex
+  underneath to access a global locale.
+
 
 Release 1.0.1 (13 Mar 2012, compared to 1.0.0)
 ----------------------------------------------
