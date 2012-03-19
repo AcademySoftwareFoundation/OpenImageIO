@@ -1697,12 +1697,20 @@ ImageViewer::closeImg()
     m_images[m_current_image] = NULL;
     m_images.erase (m_images.begin()+m_current_image);
 
-    // FIXME:
-    // For all image indices we may be storing,
-    //   if == m_current_image, wrap to 0 if this was the last image
-    //   else if > m_current_image, subtract one
+    // Update image indices
+    // This should be done for all image indices we may be storing
+    if (m_last_image == m_current_image)
+    {
+        if (!m_images.empty() && m_last_image > 0)
+            m_last_image = 0;
+        else
+            m_last_image = -1;
+    }
+    if (m_last_image > m_current_image)
+        m_last_image --;
 
-    current_image (current_image() < (int)m_images.size() ? current_image() : 0);
+    m_current_image = m_current_image < (int)m_images.size() ? m_current_image : 0;
+    displayCurrentImage ();
 }
 
 
