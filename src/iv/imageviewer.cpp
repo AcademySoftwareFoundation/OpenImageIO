@@ -74,6 +74,38 @@ namespace
 
 }
 
+
+
+static const char *s_file_filters = ""
+    "Image Files (*.bmp *.cin *.dds *.dpx *.f3d *.fits *.hdr *.ico *.iff *.jpg "
+    "*.jpe *.jpeg *.jif *.jfif *.jfi *.jp2 *.j2k *.exr *.png *.pbm *.pgm *.ppm "
+    "*.ptex *.rla *.sgi *.rgb *.rgba *.bw *.int *.inta *.pic *.tga *.tpic "
+    "*.tif *.tiff *.tx *.env *.sm *.vsm *.zfile);;"
+    "BMP (*.bmp);;"
+    "Cineon (*.cin);;"
+    "Direct Draw Surface (*.dds);;"
+    "DPX (*.dpx);;"
+    "Field3D (*.f3d);;"
+    "FITS (*.fits);;"
+    "HDR/RGBE (*.hdr);;"
+    "Icon (*.ico);;"
+    "IFF (*.iff);;"
+    "JPEG (*.jpg *.jpe *.jpeg *.jif *.jfif *.jfi);;"
+    "JPEG-2000 (*.jp2 *.j2k);;"
+    "OpenEXR (*.exr);;"
+    "Portable Network Graphics (*.png);;"
+    "PNM / Netpbm (*.pbm *.pgm *.ppm);;"
+    "Ptex (*.ptex);;"
+    "RLA (*.rla);;"
+    "SGI (*.sgi *.rgb *.rgba *.bw *.int *.inta);;"
+    "Softimage PIC (*.pic);;"
+    "Targa (*.tga *.tpic);;"
+    "TIFF (*.tif *.tiff *.tx *.env *.sm *.vsm);;"
+    "Zfile (*.zfile);;"
+    "All Files (*)";
+
+
+
 ImageViewer::ImageViewer ()
     : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
       m_current_image(-1), m_current_channel(0), m_color_mode(RGBA),
@@ -616,7 +648,8 @@ void
 ImageViewer::open()
 {
     static QString openPath = QDir::homePath();
-    QFileDialog dialog(NULL, tr("Open File(s)"), openPath);
+    QFileDialog dialog(NULL, tr("Open File(s)"),
+                       openPath, tr(s_file_filters));
     dialog.setAcceptMode (QFileDialog::AcceptOpen);
     dialog.setFileMode (QFileDialog::ExistingFiles);
     if (!dialog.exec())
@@ -765,7 +798,8 @@ ImageViewer::saveAs()
         return;
     QString name;
     name = QFileDialog::getSaveFileName (this, tr("Save Image"),
-                                         QString(img->name().c_str()));
+                                         QString(img->name().c_str()),
+                                         tr(s_file_filters));
     if (name.isEmpty())
         return;
     bool ok = img->save (name.toStdString(), "", image_progress_callback, this);
