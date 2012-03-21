@@ -369,7 +369,28 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
     create_prototype create_function = NULL; 
     if (input_formats.find (format) != input_formats.end()) {
         create_function = input_formats[format];
-    } else {
+        if (filename != format) {
+            // If given a full filename, double-check that our guess
+            // based on the extension actually works.  You never know
+            // when somebody will have an incorrectly-named file, let's
+            // deal with it robustly.
+            ImageInput *in = (ImageInput *)create_function();
+            ImageSpec tmpspec;
+            bool ok = in && in->open (filename, tmpspec);
+            if (ok) {
+                // It worked, close and we're ready to go
+                in->close ();
+            } else {
+                // Oops, it failed.  Apparently, this file can't be
+                // opened with this II.  Clear create_function to force
+                // the code below to check every plugin we know.
+                create_function = NULL;
+            }
+            delete in;
+        }
+    }
+
+    if (! create_function) {
         // If a plugin can't be found that was explicitly designated for
         // this extension, then just try every one we find and see if
         // any will open the file.  Pass it a configuration request that
