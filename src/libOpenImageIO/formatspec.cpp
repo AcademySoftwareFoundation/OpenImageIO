@@ -130,22 +130,6 @@ set_default_quantize (TypeDesc format,
 
 
 
-QuantizationSpec
-    QuantizationSpec::quantize_default (std::numeric_limits<stride_t>::min(),
-                                        std::numeric_limits<stride_t>::min(),
-                                        std::numeric_limits<stride_t>::min(),
-                                        std::numeric_limits<stride_t>::min());
-
-
-
-QuantizationSpec::QuantizationSpec (TypeDesc _type)
-{
-    set_default_quantize (_type, quant_black, quant_white,
-                          quant_min, quant_max);
-}
-
-
-
 ImageSpec::ImageSpec (TypeDesc format)
     : x(0), y(0), z(0), width(0), height(0), depth(1),
       full_x(0), full_y(0), full_z(0),

@@ -100,32 +100,6 @@ typedef ParamValueList ImageIOParameterList;
 
 
 
-class QuantizationSpec {
-public:
-    int quant_black;          ///< quantization of black (0.0) level
-    int quant_white;          ///< quantization of white (1.0) level
-    int quant_min;            ///< quantization minimum clamp value
-    int quant_max;            ///< quantization maximum clamp value
-
-    /// Construct a QuantizationSpec from the quantization parameters.
-    ///
-    QuantizationSpec (int _black, int _white, int _min, int _max)
-        : quant_black(_black), quant_white(_white),
-          quant_min(_min), quant_max(_max)
-    { }
-
-    /// Construct the "obvious" QuantizationSpec appropriate for the
-    /// given data type.
-    QuantizationSpec (TypeDesc _type);
-
-    /// Return a special QuantizationSpec that is a marker that the
-    /// recipient should use the default quantization for whatever data
-    /// type it is dealing with.
-    static QuantizationSpec quantize_default;
-};
-
-
-
 /// ImageSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
 class DLLPUBLIC ImageSpec {
