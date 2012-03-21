@@ -53,6 +53,9 @@ typedef void* (*create_prototype)();
 /// Mutex allowing thread safety of ImageOutput internals
 ///
 extern recursive_mutex imageio_mutex;
+extern int oiio_threads;
+extern ustring plugin_searchpath;
+
 
 // Use privately only
 void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(1,2);

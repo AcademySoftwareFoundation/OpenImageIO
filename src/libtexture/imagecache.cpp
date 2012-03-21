@@ -669,7 +669,7 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
             // TODO: should we attempt to close and re-open the file?
         }
         if (! ok)
-            imagecache().error ("%s", m_input->error_message().c_str());
+            imagecache().error ("%s", m_input->geterror().c_str());
     }
     if (ok) {
         size_t b = spec(subimage,miplevel).tile_bytes();
@@ -828,7 +828,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         for (int scanline = y0, i = 0; scanline <= y1 && ok; ++scanline, ++i) {
             ok = m_input->read_scanline (scanline, z, format, (void *)&buf[scanlinesize*i]);
             if (! ok)
-                imagecache().error ("%s", m_input->error_message().c_str());
+                imagecache().error ("%s", m_input->geterror().c_str());
         }
         size_t b = (y1-y0+1) * spec.scanline_bytes();
         thread_info->m_stats.bytes_read += b;
@@ -877,7 +877,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         // No auto-tile -- the tile is the whole image
         ok = m_input->read_image (format, data, xstride, ystride, zstride);
         if (! ok)
-            imagecache().error ("%s", m_input->error_message().c_str());
+            imagecache().error ("%s", m_input->geterror().c_str());
         size_t b = spec.image_bytes();
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;

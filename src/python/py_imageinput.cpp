@@ -35,12 +35,38 @@ namespace PyOpenImageIO
 
 using namespace boost::python;
 
+object ImageInputWrap::open_static_regular (const std::string &filename)
+{
+    ImageInputWrap* iiw = new ImageInputWrap;
+    iiw->m_input = ImageInput::open(filename);
+    if (iiw->m_input == NULL) {
+        delete iiw;
+        return object(handle<>(Py_None));
+    } else {
+        return object(iiw);
+    }
+}
+
+object ImageInputWrap::open_static_with_config (const std::string &filename,
+                                                const ImageSpec &config)
+{
+    ImageInputWrap* iiw = new ImageInputWrap;
+    iiw->m_input = ImageInput::open(filename, &config);
+    if (iiw->m_input == NULL) {
+        delete iiw;
+        return object(handle<>(Py_None));
+    } else {
+        return object(iiw);
+    }
+}
+
 object ImageInputWrap::create(const std::string &filename, 
-                const std::string &plugin_searchpath="") 
+                              const std::string &plugin_searchpath) 
 {
     ImageInputWrap* iiw = new ImageInputWrap;
     iiw->m_input = ImageInput::create(filename, plugin_searchpath);
     if (iiw->m_input == NULL) {
+        delete iiw;
         return object(handle<>(Py_None));
     }
     else {
@@ -230,9 +256,12 @@ void declare_imageinput()
         .def("create", &ImageInputWrap::create,
              (arg("filename"), arg("plugin_searchpath")=""))
         .staticmethod("create")
+        .def("open", &ImageInputWrap::open_static_regular,
+             (arg("filename")))
+        .staticmethod("open")
         .def("format_name",      &ImageInputWrap::format_name)
-        .def("open",             &ImageInputWrap::open_regular)
-        .def("open",             &ImageInputWrap::open_with_config)
+//        .def("open",             &ImageInputWrap::open_regular)
+//        .def("open",             &ImageInputWrap::open_with_config)
         .def("spec",             &ImageInputWrap::spec, 
              return_value_policy<copy_const_reference>())
         .def("close",            &ImageInputWrap::close)

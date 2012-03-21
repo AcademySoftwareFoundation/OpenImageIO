@@ -61,6 +61,7 @@ public:
     OpenEXRInput ();
     virtual ~OpenEXRInput () { close(); }
     virtual const char * format_name (void) const { return "openexr"; }
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
@@ -206,6 +207,14 @@ void set_exr_threads ()
 OpenEXRInput::OpenEXRInput ()
 {
     init ();
+}
+
+
+
+bool
+OpenEXRInput::valid_file (const std::string &filename) const
+{
+    return Imf::isOpenExrFile (filename.c_str());
 }
 
 

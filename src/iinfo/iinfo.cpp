@@ -578,7 +578,7 @@ main (int argc, const char *argv[])
 
     long long totalsize = 0;
     BOOST_FOREACH (const std::string &s, filenames) {
-        ImageInput *in = ImageInput::create (s.c_str(), "" /* searchpath */);
+        ImageInput *in = ImageInput::open (s.c_str());
         if (! in) {
             std::string err = geterror();
             if (err.empty())
@@ -586,16 +586,9 @@ main (int argc, const char *argv[])
             std::cerr << "iinfo: " << err << "\n";
             continue;
         }
-        ImageSpec spec;
-        if (in->open (s.c_str(), spec)) {
-            print_info (s, longestname, in, spec, verbose, sum, totalsize);
-            in->close ();
-        } else {
-            std::string err = in->geterror();
-            if (err.empty())
-                err = Strutil::format ("Could not open \"%s\"", s.c_str());
-            std::cerr << "iinfo: " << err << "\n";
-        }
+        ImageSpec spec = in->spec();
+        print_info (s, longestname, in, spec, verbose, sum, totalsize);
+        in->close ();
         delete in;
     }
 

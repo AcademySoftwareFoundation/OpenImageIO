@@ -46,9 +46,19 @@
 
 OIIO_NAMESPACE_ENTER
 {
-    using namespace pvt;
+
+// Global private data
+namespace pvt {
+int oiio_threads = 1;
+ustring plugin_searchpath;
+};
+
+
+
+using namespace pvt;
 
 namespace {
+
 
 // To avoid thread oddities, we have the storage area buffering error
 // messages for error()/geterror() be thread-specific.
@@ -111,7 +121,6 @@ namespace {
 // Private global OIIO data.
 
 static spin_mutex attrib_mutex;
-static int oiio_threads = 1;
 static const int maxthreads = 64;   // reasonable maximum for sanity check
 
 };
@@ -133,6 +142,10 @@ attribute (const std::string &name, TypeDesc type, const void *val)
         }
         return true;
     }
+    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
+        plugin_searchpath = ustring (*(const char **)val);
+        return true;
+    }
     return false;
 }
 
@@ -144,6 +157,10 @@ getattribute (const std::string &name, TypeDesc type, void *val)
     spin_lock lock (attrib_mutex);
     if (name == "threads" && type == TypeDesc::TypeInt) {
         *(int *)val = oiio_threads;
+        return true;
+    }
+    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
+        *(ustring *)val = plugin_searchpath;
         return true;
     }
     return false;
