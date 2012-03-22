@@ -130,8 +130,10 @@ private:
         }
     }
 
-    // Read tags from the current directory of m_tif and fill out spec
-    void readspec ();
+    // Read tags from the current directory of m_tif and fill out spec.
+    // If read_meta is false, assume that m_spec already contains valid
+    // metadata and should not be cleared or rewritten.
+    void readspec (bool read_meta=true);
 
     // Convert planar separate to contiguous data format
     void separate_to_contig (int n, const unsigned char *separate,
@@ -325,6 +327,11 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         return true;
     }
 
+    // If we're emulating a MIPmap, only resolution is allowed to change
+    // between MIP levels, so if we already have a valid level in m_spec,
+    // we don't need to re-parse metadata, it's guaranteed to be the same.
+    bool read_meta = !(m_emulate_mipmap && m_tif && m_subimage >= 0);
+
     if (! m_tif) {
         // Use our own error handler to keep libtiff from spewing to stderr
         lock_guard lock (lasterr_mutex);
@@ -345,7 +352,7 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     m_next_scanline = 0;   // next scanline we'll read
     if (TIFFSetDirectory (m_tif, subimage)) {
         m_subimage = subimage;
-        readspec ();
+        readspec (read_meta);
         newspec = m_spec;
         if (newspec.format == TypeDesc::UNKNOWN) {
             error ("No support for data format of \"%s\"", m_filename.c_str());
@@ -450,7 +457,7 @@ static const TIFF_tag_info exif_tag_table[] = {
 
 
 void
-TIFFInput::readspec ()
+TIFFInput::readspec (bool read_meta)
 {
     uint32 width = 0, height = 0, depth = 0;
     unsigned short nchans = 1;
@@ -459,7 +466,23 @@ TIFFInput::readspec ()
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_IMAGEDEPTH, &depth);
     TIFFGetFieldDefaulted (m_tif, TIFFTAG_SAMPLESPERPIXEL, &nchans);
 
-    m_spec = ImageSpec ((int)width, (int)height, (int)nchans);
+    if (read_meta) {
+        // clear the whole m_spec and start fresh
+        m_spec = ImageSpec ((int)width, (int)height, (int)nchans);
+    } else {
+        // assume m_spec is valid, except for things that might differ
+        // between MIP levels
+        m_spec.width = (int)width;
+        m_spec.height = (int)height;
+        m_spec.depth = (int)depth;
+        m_spec.full_x = 0;
+        m_spec.full_y = 0;
+        m_spec.full_z = 0;
+        m_spec.full_width = (int)width;
+        m_spec.full_height = (int)height;
+        m_spec.full_depth = (int)depth;
+        m_spec.nchannels = (int)nchans;
+    }
 
     float x = 0, y = 0;
     TIFFGetField (m_tif, TIFFTAG_XPOSITION, &x);
@@ -541,6 +564,12 @@ TIFFInput::readspec ()
         m_spec.set_format (TypeDesc::UNKNOWN);
         break;
     }
+
+    // If we've been instructed to skip reading metadata, because it is
+    // guaranteed to be identical to what we already have in m_spec,
+    // skip everything following.
+    if (! read_meta)
+        return;
 
     // Use the table for all the obvious things that can be mindlessly
     // shoved into the image spec.
