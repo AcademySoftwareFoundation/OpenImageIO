@@ -106,7 +106,7 @@ static const char *s_file_filters = ""
     "Targa (*.tga *.tpic);;"
     "TIFF (*.tif *.tiff *.tx *.env *.sm *.vsm);;"
     "Zfile (*.zfile);;"
-    "Any Files (*)";
+    "All Files (*)";
 
 
 
