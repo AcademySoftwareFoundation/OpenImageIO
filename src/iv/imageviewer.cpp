@@ -74,7 +74,7 @@ ImageViewer::ImageViewer ()
     }
     // FIXME -- would be nice to have a more nuanced approach to display
     // color space, in particular knowing whether the display is sRGB.
-    // Also, some time in the future we may want a real 3D LUT for 
+    // Also, some time in the future we may want a real 3D LUT for
     // "film look", etc.
 
     if (darkPalette())
@@ -473,7 +473,7 @@ ImageViewer::createMenus()
     toolsMenu->addAction (showPixelviewWindowAct);
     toolsMenu->addMenu (slideMenu);
     toolsMenu->addMenu (sortMenu);
-        
+
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -723,7 +723,7 @@ ImageViewer::add_image (const std::string &filename)
             QMessageBox::information (this, tr("iv Image Viewer"),
                               tr("%1").arg(newimage->geterror().c_str()));
         } else {
-            std::cerr << "Added image " << filename << ": " 
+            std::cerr << "Added image " << filename << ": "
 << newimage->spec().width << " x " << newimage->spec().height << "\n";
         }
         return;
@@ -823,7 +823,7 @@ ImageViewer::updateStatusBar ()
     case RGBA: message = Strutil::format ("RGBA (%d-%d)", m_current_channel, m_current_channel+3); break;
     case RGB: message = Strutil::format ("RGB (%d-%d)", m_current_channel, m_current_channel+2); break;
     case LUMINANCE: message = Strutil::format ("Lum (%d-%d)", m_current_channel, m_current_channel+2); break;
-    case HEATMAP: 
+    case HEATMAP:
         message = "Heat ";
     case SINGLE_CHANNEL:
         if ((int)spec->channelnames.size() > m_current_channel &&
@@ -966,6 +966,17 @@ ImageViewer::displayCurrentImage (bool update)
             if (load_result) {
                 update = true;
             } else {
+                std::string err;
+                err = img->geterror();
+                if (err.size()) {
+                    std::cerr << "Image Errors:" << std::endl;
+                    std::cerr << err << std::endl;
+                }
+                err = img->imagecache()->geterror();
+                if (err.size()) {
+                    std::cerr << "Cache Errors:" << std::endl;
+                    std::cerr << err << std::endl;
+                }
                 return;
             }
         }
@@ -1006,7 +1017,7 @@ ImageViewer::deleteCurrentImage()
         QString message ("Are you sure you want to remove <b>");
         message = message + QString(filename) + QString("</b> file from disk?");
         QMessageBox::StandardButton button;
-        button = QMessageBox::question (this, "", message, 
+        button = QMessageBox::question (this, "", message,
                                         QMessageBox::Yes | QMessageBox::No);
         if (button == QMessageBox::Yes) {
             closeImg();
@@ -1251,7 +1262,7 @@ ImageViewer::slideImages()
             slideTimer->stop();
             disconnect(slideTimer,0,0,0);
         }
-    }       
+    }
     else
         current_image (current_image() + 1);
 }
@@ -1561,8 +1572,10 @@ void
 ImageViewer::viewChannelNext ()
 {
     if (glwin->is_glsl_capable()) {
+        std::cout << "is_glsl_capable" << std::endl;
         viewChannel (m_current_channel+1, m_color_mode);
     } else {
+       std::cout << "NOT_glsl_capable" << std::endl;
         // Simulate old behavior.
         if (m_color_mode == LUMINANCE) {
             viewChannelFull();
@@ -1952,8 +1965,8 @@ void ImageViewer::updateActions()
 
 
 
-static inline void 
-calc_subimage_from_zoom (const IvImage *img, int &subimage, float &zoom, float &xcenter, float &ycenter) 
+static inline void
+calc_subimage_from_zoom (const IvImage *img, int &subimage, float &zoom, float &xcenter, float &ycenter)
 {
     int rel_subimage = Imath::trunc (log2f (1/zoom));
     subimage = clamp<int> (img->subimage() + rel_subimage, 0, img->nsubimages()-1);
@@ -1975,7 +1988,7 @@ ImageViewer::view (float xcenter, float ycenter, float newzoom, bool smooth, boo
     if (! img)
         return;
 
-    float oldzoom = m_zoom; 
+    float oldzoom = m_zoom;
     float oldxcenter, oldycenter;
     glwin->get_center (oldxcenter, oldycenter);
     float zoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);

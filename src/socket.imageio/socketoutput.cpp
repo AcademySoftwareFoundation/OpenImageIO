@@ -101,6 +101,7 @@ SocketOutput::write_tile (int x, int y, int z,
 {
     data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
 
+    std::cout << "writing tile " << x << " " << y << std::endl;
     try {
         socket_pvt::socket_write (socket, format, data, m_spec.tile_bytes ());
     } catch (boost::system::system_error &err) {
@@ -157,12 +158,14 @@ SocketOutput::connect_to_server (const std::string &name)
     std::string baseurl;
     rest_args["port"] = socket_pvt::default_port;
     rest_args["host"] = socket_pvt::default_host;
-    
-    if (! Strutil::get_rest_arguments (name, baseurl, rest_args)) {
+
+    std::string basename = name.substr(name.size()-7);
+    if (! Strutil::get_rest_arguments (basename, baseurl, rest_args)) {
         error ("Invalid 'open ()' argument: %s", name.c_str ());
         return false;
     }
-
+    std::cout << rest_args["host"] << std::endl;
+    std::cout << rest_args["port"] << std::endl;
     try {
         ip::tcp::resolver resolver (io);
         ip::tcp::resolver::query query (rest_args["host"].c_str (),

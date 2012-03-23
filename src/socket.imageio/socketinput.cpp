@@ -78,6 +78,19 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
     }
     // Also send information about endianess etc.
 
+//    std::cout << newspec.nchannels << std::endl;
+//    std::cout << newspec.format << std::endl;
+//    std::cout << newspec.x << std::endl;
+//    std::cout << newspec.y << std::endl;
+//    std::cout << newspec.width << std::endl;
+//    std::cout << newspec.height << std::endl;
+//    std::cout << newspec.full_x << std::endl;
+//    std::cout << newspec.full_y << std::endl;
+//    std::cout << newspec.full_width << std::endl;
+//    std::cout << newspec.full_height << std::endl;
+//    std::cout << newspec.tile_width << std::endl;
+//    std::cout << newspec.tile_height << std::endl;
+
     m_spec = newspec;
 
     return true;
@@ -87,16 +100,16 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
 
 bool
 SocketInput::read_native_scanline (int y, int z, void *data)
-{    
-    try {
-        boost::asio::read (socket, buffer (reinterpret_cast<char *> (data),
-                m_spec.scanline_bytes ()));
-    } catch (boost::system::system_error &err) {
-        error ("Error while reading: %s", err.what ());
-        return false;
-    }
+{
+//    try {
+//        boost::asio::read (socket, buffer (reinterpret_cast<char *> (data),
+//                m_spec.scanline_bytes ()));
+//    } catch (boost::system::system_error &err) {
+//        error ("Error while reading: %s", err.what ());
+//        return false;
+//    }
 
-    return true;
+   return true;
 }
 
 
@@ -104,15 +117,16 @@ SocketInput::read_native_scanline (int y, int z, void *data)
 bool
 SocketInput::read_native_tile (int x, int y, int z, void *data)
 {
-    try {
-        boost::asio::read (socket, buffer (reinterpret_cast<char *> (data),
-                m_spec.tile_bytes ()));
-    } catch (boost::system::system_error &err) {
-        error ("Error while reading: %s", err.what ());
-        return false;
-    }
+   std::cout << "tile " << x << " " << y << std::endl;
+//    try {
+//        boost::asio::read (socket, buffer (reinterpret_cast<char *> (data),
+//                m_spec.tile_bytes ()));
+//    } catch (boost::system::system_error &err) {
+//        error ("Error while reading: %s", err.what ());
+//        return false;
+//    }
 
-    return true;
+   return true;
 }
 
 
@@ -120,7 +134,7 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
 bool
 SocketInput::close ()
 {
-    socket.close();
+//    socket.close();
     return true;
 }
 
@@ -134,10 +148,14 @@ SocketInput::accept_connection(const std::string &name)
     rest_args["port"] = socket_pvt::default_port;
     rest_args["host"] = socket_pvt::default_host;
 
-    if (! Strutil::get_rest_arguments (name, baseurl, rest_args)) {
+    std::string basename = name.substr(name.size()-7);
+    if (! Strutil::get_rest_arguments (basename, baseurl, rest_args)) {
         error ("Invalid 'open ()' argument: %s", name.c_str ());
         return false;
     }
+
+    std::cout << rest_args["host"] << std::endl;
+    std::cout << rest_args["port"] << std::endl;
 
     int port = atoi (rest_args["port"].c_str ());
 
@@ -160,7 +178,7 @@ SocketInput::get_spec_from_client (ImageSpec &spec)
 {
     try {
         int spec_length;
-        
+
         boost::asio::read (socket, buffer (reinterpret_cast<char *> (&spec_length),
                 sizeof (boost::uint32_t)));
 
