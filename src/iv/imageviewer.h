@@ -49,13 +49,31 @@
 // This needs to be included before GL.h
 #include <glew.h>
 
-#include <QtGui>
-#include <QGLWidget>
+#include <QtGui/QAction>
+#include <QtGui/QCheckBox>
+#include <QtGui/QDialog>
+#include <QtGui/QMainWindow>
+#include <QtOpenGL/QGLWidget>
+
+#ifndef QT_NO_PRINTER
+#include <QtGui/QPrinter>
+#endif
 
 #include "imageio.h"
 #include "imagebuf.h"
 
 OIIO_NAMESPACE_USING;
+
+class QComboBox;
+class QLabel;
+class QMenu;
+class QMenuBar;
+class QProgressBar;
+class QPushButton;
+class QSpinBox;
+class QScrollArea;
+class QStatusBar;
+class QVBoxLayout;
 
 class IvMainWindow;
 class IvInfoWindow;
@@ -242,6 +260,7 @@ public:
 
 private slots:
     void open();                        ///< Dialog to open new image from file
+    void openDir();                     ///< Dialog to open all images from a directory
     void reload();                      ///< Reread current image from disk
     void openRecentFile();              ///< Open a recent file
     void closeImg();                    ///< Close the current image
@@ -327,7 +346,7 @@ private:
     QPrinter printer;
 #endif
 
-    QAction *openAct, *reloadAct, *closeImgAct;
+    QAction *openAct, *openDirAct, *reloadAct, *closeImgAct;
     static const unsigned int MaxRecentFiles = 10;
     QAction *openRecentAct[MaxRecentFiles];
     QAction *saveAsAct, *saveWindowAsAct, *saveSelectionAsAct;

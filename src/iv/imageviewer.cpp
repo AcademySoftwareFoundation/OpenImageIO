@@ -40,6 +40,22 @@
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 
+#include <QtCore/QSettings>
+#include <QtCore/QTimer>
+#include <QtGui/QApplication>
+#include <QtGui/QComboBox>
+#include <QtGui/QDesktopWidget>
+#include <QtGui/QFileDialog>
+#include <QtGui/QKeyEvent>
+#include <QtGui/QLabel>
+#include <QtGui/QMenu>
+#include <QtGui/QMenuBar>
+#include <QtGui/QMessageBox>
+#include <QtGui/QProgressBar>
+#include <QtGui/QResizeEvent>
+#include <QtGui/QSpinBox>
+#include <QtGui/QStatusBar>
+
 #include <OpenEXR/ImathFun.h>
 
 #include "dassert.h"
@@ -57,6 +73,42 @@ namespace
     }
 
 }
+
+
+static const char *s_all_extensions =
+    "*.bmp *.cin *.dds *.dpx *.f3d *.fits *.hdr *.ico *.iff *.jpg "
+    "*.jpe *.jpeg *.jif *.jfif *.jfi *.jp2 *.j2k *.exr *.png *.pbm *.pgm *.ppm "
+    "*.ptex *.rla *.sgi *.rgb *.rgba *.bw *.int *.inta *.pic *.tga *.tpic "
+    "*.tif *.tiff *.tx *.env *.sm *.vsm *.zfile";
+static const char *s_file_filters = ""
+    "Image Files (*.bmp *.cin *.dds *.dpx *.f3d *.fits *.hdr *.ico *.iff *.jpg "
+    "*.jpe *.jpeg *.jif *.jfif *.jfi *.jp2 *.j2k *.exr *.png *.pbm *.pgm *.ppm "
+    "*.ptex *.rla *.sgi *.rgb *.rgba *.bw *.int *.inta *.pic *.tga *.tpic "
+    "*.tif *.tiff *.tx *.env *.sm *.vsm *.zfile);;"
+    "BMP (*.bmp);;"
+    "Cineon (*.cin);;"
+    "Direct Draw Surface (*.dds);;"
+    "DPX (*.dpx);;"
+    "Field3D (*.f3d);;"
+    "FITS (*.fits);;"
+    "HDR/RGBE (*.hdr);;"
+    "Icon (*.ico);;"
+    "IFF (*.iff);;"
+    "JPEG (*.jpg *.jpe *.jpeg *.jif *.jfif *.jfi);;"
+    "JPEG-2000 (*.jp2 *.j2k);;"
+    "OpenEXR (*.exr);;"
+    "Portable Network Graphics (*.png);;"
+    "PNM / Netpbm (*.pbm *.pgm *.ppm);;"
+    "Ptex (*.ptex);;"
+    "RLA (*.rla);;"
+    "SGI (*.sgi *.rgb *.rgba *.bw *.int *.inta);;"
+    "Softimage PIC (*.pic);;"
+    "Targa (*.tga *.tpic);;"
+    "TIFF (*.tif *.tiff *.tx *.env *.sm *.vsm);;"
+    "Zfile (*.zfile);;"
+    "All Files (*)";
+
+
 
 ImageViewer::ImageViewer ()
     : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
@@ -128,6 +180,10 @@ ImageViewer::createActions()
     openAct = new QAction(tr("&Open..."), this);
     openAct->setShortcut(tr("Ctrl+O"));
     connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
+
+    openDirAct = new QAction(tr("Open &directory..."), this);
+    openDirAct->setShortcut(tr("Ctrl+D"));
+    connect(openDirAct, SIGNAL(triggered()), this, SLOT(openDir()));
 
     for (size_t i = 0;  i < MaxRecentFiles;  ++i) {
         openRecentAct[i] = new QAction (this);
@@ -384,6 +440,7 @@ ImageViewer::createMenus()
 
     fileMenu = new QMenu(tr("&File"), this);
     fileMenu->addAction (openAct);
+    fileMenu->addAction (openDirAct);
     fileMenu->addMenu (openRecentMenu);
     fileMenu->addAction (reloadAct);
     fileMenu->addAction (closeImgAct);
@@ -599,14 +656,18 @@ image_progress_callback (void *opaque, float done)
 void
 ImageViewer::open()
 {
-    QStringList names;
-    names = QFileDialog::getOpenFileNames (this, tr("Open File(s)"),
-                                           QDir::currentPath());
-    if (names.empty())
+    static QString openPath = QDir::currentPath();
+    QFileDialog dialog(NULL, tr("Open File(s)"),
+                       openPath, tr(s_file_filters));
+    dialog.setAcceptMode (QFileDialog::AcceptOpen);
+    dialog.setFileMode (QFileDialog::ExistingFiles);
+    if (!dialog.exec())
         return;
+    openPath = dialog.directory().path();
+    QStringList names = dialog.selectedFiles();
+
     int old_lastimage = m_images.size()-1;
-    QStringList list = names;
-    for (QStringList::Iterator it = list.begin();  it != list.end();  ++it) {
+    for (QStringList::Iterator it = names.begin();  it != names.end();  ++it) {
         std::string filename = it->toUtf8().data();
         if (filename.empty())
             continue;
@@ -619,6 +680,30 @@ ImageViewer::open()
         // Otherwise, add_image already did this for us.
         current_image (old_lastimage + 1);
         fitWindowToImage (true, true);
+    }
+}
+
+
+
+void
+ImageViewer::openDir()
+{
+    QString dirPath = QFileDialog::getExistingDirectory (this,
+            tr("Open All Images from Directory"), QDir::currentPath());
+    if (dirPath.isEmpty())
+        return;
+
+    QStringList name_filter_list = QString(s_all_extensions).split(" ");
+
+    QDir dir(dirPath);
+    dir.setFilter (QDir::Files | QDir::Readable);
+    dir.setNameFilters (name_filter_list);
+
+    QStringList entries = dir.entryList();
+    for (QStringList::Iterator it = entries.begin();
+         it != entries.end();  ++it) {
+        std::string filename = dir.absoluteFilePath (*it).toStdString();
+        add_image (filename);
     }
 }
 
@@ -746,7 +831,8 @@ ImageViewer::saveAs()
         return;
     QString name;
     name = QFileDialog::getSaveFileName (this, tr("Save Image"),
-                                         QString(img->name().c_str()));
+                                         QString(img->name().c_str()),
+                                         tr(s_file_filters));
     if (name.isEmpty())
         return;
     bool ok = img->save (name.toStdString(), "", image_progress_callback, this);
@@ -1630,6 +1716,7 @@ ImageViewer::keyPressEvent (QKeyEvent *event)
     case Qt::Key_Left :
     case Qt::Key_Up :
     case Qt::Key_PageUp :
+    case Qt::Key_Backspace :
         prevImage();
         return;  //break;
     case Qt::Key_Right :
@@ -1639,6 +1726,7 @@ ImageViewer::keyPressEvent (QKeyEvent *event)
 //            std::cerr << "hey, ctrl right\n";
     case Qt::Key_Down :
     case Qt::Key_PageDown :
+    case Qt::Key_Space :
         nextImage();
         return; //break;
     case Qt::Key_Escape :
@@ -1681,12 +1769,20 @@ ImageViewer::closeImg()
     m_images[m_current_image] = NULL;
     m_images.erase (m_images.begin()+m_current_image);
 
-    // FIXME:
-    // For all image indices we may be storing,
-    //   if == m_current_image, wrap to 0 if this was the last image
-    //   else if > m_current_image, subtract one
+    // Update image indices
+    // This should be done for all image indices we may be storing
+    if (m_last_image == m_current_image)
+    {
+        if (!m_images.empty() && m_last_image > 0)
+            m_last_image = 0;
+        else
+            m_last_image = -1;
+    }
+    if (m_last_image > m_current_image)
+        m_last_image --;
 
-    current_image (current_image() < (int)m_images.size() ? current_image() : 0);
+    m_current_image = m_current_image < (int)m_images.size() ? m_current_image : 0;
+    displayCurrentImage ();
 }
 
 

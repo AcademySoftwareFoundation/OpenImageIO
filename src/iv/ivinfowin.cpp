@@ -31,6 +31,12 @@
 
 #include <iostream>
 
+#include <QtGui/QKeyEvent>
+#include <QtGui/QLabel>
+#include <QtGui/QPushButton>
+#include <QtGui/QScrollArea>
+#include <QtGui/QVBoxLayout>
+
 #include "imageviewer.h"
 #include "dassert.h"
 #include "strutil.h"
