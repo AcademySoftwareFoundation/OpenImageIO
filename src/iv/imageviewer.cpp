@@ -647,7 +647,7 @@ image_progress_callback (void *opaque, float done)
 void
 ImageViewer::open()
 {
-    static QString openPath = QDir::homePath();
+    static QString openPath = QDir::currentPath();
     QFileDialog dialog(NULL, tr("Open File(s)"),
                        openPath, tr(s_file_filters));
     dialog.setAcceptMode (QFileDialog::AcceptOpen);
