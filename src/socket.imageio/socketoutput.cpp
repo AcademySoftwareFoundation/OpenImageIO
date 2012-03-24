@@ -101,15 +101,20 @@ SocketOutput::write_tile (int x, int y, int z,
 {
     data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
 
+    std::string header = Strutil::format ("tile?x=%d&y=%d&z=%d", x, y, z);
     std::cout << "writing tile " << x << " " << y << std::endl;
-    try {
-        socket_pvt::socket_write (socket, format, data, m_spec.tile_bytes ());
-    } catch (boost::system::system_error &err) {
-        error ("Error while reading: %s", err.what ());
-        return false;
+    if (send_header_to_server (header))
+    {
+        try {
+            socket_pvt::socket_write (socket, format, data, m_spec.tile_bytes ());
+        } catch (boost::system::system_error &err) {
+            error ("Error while reading: %s", err.what ());
+            return false;
+        }
+        return true;
     }
+    return false;
 
-    return true;
 }
 
 
@@ -132,15 +137,24 @@ SocketOutput::copy_image (ImageInput *in)
 
 
 bool
-SocketOutput::send_spec_to_server(const ImageSpec& spec)
+SocketOutput::send_spec_to_server (const ImageSpec& spec)
 {
-    std::string spec_xml = spec.to_xml();
-    int xml_length = spec_xml.length ();
+    return send_header_to_server (spec.to_xml ());
+}
+
+
+
+bool
+SocketOutput::send_header_to_server (const std::string &header)
+{
+    int length = header.length ();
 
     try {
-        boost::asio::write (socket, buffer (reinterpret_cast<const char *> (&xml_length),
-                sizeof (boost::uint32_t)));
-        boost::asio::write (socket, buffer (spec_xml.c_str (), spec_xml.length ()));
+        // first send the size of the header
+        boost::asio::write (socket,
+                buffer (reinterpret_cast<const char *> (&length), sizeof (boost::uint32_t)));
+        // then send the header itself
+        boost::asio::write (socket, buffer (header.c_str (), length));
     } catch (boost::system::system_error &err) {
         error ("Error while writing: %s", err.what ());
         return false;

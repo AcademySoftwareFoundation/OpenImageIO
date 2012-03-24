@@ -134,7 +134,7 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
 bool
 SocketInput::close ()
 {
-//    socket.close();
+    socket.close();
     return true;
 }
 
@@ -176,24 +176,47 @@ SocketInput::accept_connection(const std::string &name)
 bool
 SocketInput::get_spec_from_client (ImageSpec &spec)
 {
+    std::string spec_xml;
+    if (get_header_from_client (spec_xml))
+    {
+        spec.from_xml (spec_xml.c_str ());
+        return true;
+    }
+    return false;
+}
+
+
+
+bool
+SocketInput::get_header_from_client (std::string &header)
+{
     try {
-        int spec_length;
+        int length;
 
-        boost::asio::read (socket, buffer (reinterpret_cast<char *> (&spec_length),
-                sizeof (boost::uint32_t)));
+        boost::asio::read (socket,
+                buffer (reinterpret_cast<char *> (&length), sizeof (boost::uint32_t)));
 
-        char *spec_xml = new char[spec_length + 1];
-        boost::asio::read (socket, buffer (spec_xml, spec_length));
+        char *buf = new char[length + 1];
+        boost::asio::read (socket, buffer (buf, length));
 
-        spec.from_xml (spec_xml);
-        delete [] spec_xml;
+        header = buf;
+        delete [] buf;
+
     } catch (boost::system::system_error &err) {
+        // FIXME: we have a memory leak if read fails and spec_xml is not deleted
         error ("Error while reading: %s", err.what ());
         return false;
     }
-
     return true;
 }
 
+/*
+{
+    boost::asio::async_read_until(socket_, buf, boost::regex("\r\n\r\n"),
+            boost::bind(&connection::handle_read, shared_from_this(),
+                    ba::placeholders::error,
+                    ba::placeholders::bytes_transferred));
+}
+*/
 OIIO_PLUGIN_NAMESPACE_END
 

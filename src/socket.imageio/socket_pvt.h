@@ -83,6 +83,7 @@ class SocketOutput : public ImageOutput {
 
     bool connect_to_server (const std::string &name);
     bool send_spec_to_server (const ImageSpec &spec);
+    bool send_header_to_server (const std::string &header);
 };
 
 
@@ -107,6 +108,7 @@ class SocketInput : public ImageInput {
     
     bool accept_connection (const std::string &name);
     bool get_spec_from_client (ImageSpec &spec);
+    bool get_header_from_client (std::string &header);
 
     friend class SocketOutput;
 };

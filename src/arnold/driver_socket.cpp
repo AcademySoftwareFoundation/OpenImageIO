@@ -221,13 +221,14 @@ driver_write_bucket
    // get the first AOV layer
    if (!AiOutputIteratorGetNext(iterator, NULL, &pixel_type, &bucket_data))
       return;
-
+/*
    ShaderData *data = (ShaderData*)AiNodeGetLocalData(node);
    if (!data->out->write_tile (bucket_xo, bucket_yo, 0,
                                TypeDesc::FLOAT, bucket_data))
    {
       AiMsgError("[driver_socket] %s", data->out->geterror().c_str());
    }
+   */
 }
 
 

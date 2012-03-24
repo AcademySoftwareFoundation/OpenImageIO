@@ -5,14 +5,22 @@ BASE_LIBNAME := driver_socket
 
 variant :=
 
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Linux)
+	distdir = linux64
+endif
+ifeq ($(UNAME), Darwin)
+	distdir = macosx
+endif
+
 ifdef DEBUG
 	CFLAGS += -g -DDEBUG
 	variant := $(variant).debug
+	distdir := $(variant).debug
 else
 	CFLAGS += -O3 -DNDEBUG
 endif
-
-UNAME := $(shell uname)
 
 top_build_dir := build
 
@@ -21,7 +29,7 @@ build_dir     := ${top_build_dir}/${ARNOLD_VER3}/${OS_ARCH}${variant}
 
 RELEASE = $(REPO_PATH)/arnold/shaders/published/$(ARNOLD_VER3)/Linux-x86_64
 
-INCLUDE = 	-I/Volumes/sv-dev01/devRepo/chad/oiio/dist/linux64.debug/include	\
+INCLUDE = 	-I../../dist/$(distdir)/include	\
 			-I$(ARNOLD_HOME)/include 		\
 			-I.
 
@@ -38,8 +46,8 @@ LINK = g++
 
 LIBS = -lai -lOpenImageIO
 
-LIBDIR = 	-L$(ARNOLD_HOME)/bin	\
-			-L/Volumes/sv-dev01/devRepo/chad/oiio/dist/linux64.debug/lib/
+LIBDIR = 	-L../../dist/$(distdir)/lib \
+            -L$(ARNOLD_HOME)/bin	\
 
 LDFLAGS = -shared --whole-archive -Bsymbolic  $(LIBDIR)
 
