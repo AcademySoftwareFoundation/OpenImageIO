@@ -294,7 +294,7 @@ bool DLLPUBLIC from_IplImage (ImageBuf &dst, const IplImage *ipl,
 /// if OpenImageIO was compiled without OpenCV support, then return
 /// NULL.  The ownership of the IplImage is fully transferred to the
 /// calling application.
-IplImage* DLLPUBLIC to_IplImage (const ImageBuf &src);
+DLLPUBLIC IplImage* to_IplImage (const ImageBuf &src);
 
 /// Capture a still image from a designated camera.  If able to do so,
 /// store the image in dst and return true.  If there is no such device,
