@@ -51,9 +51,11 @@
 
 #include <QtGui>
 #include <QGLWidget>
+#include <QThread>
 
 #include "imageio.h"
 #include "imagebuf.h"
+#include "server.h"
 
 OIIO_NAMESPACE_USING;
 
@@ -63,6 +65,16 @@ class IvPreferenceWindow;
 class IvCanvas;
 class IvGL;
 class IvImage;
+
+class ServerThread : public QThread
+{
+    Q_OBJECT
+public:
+    void run ();
+    void acceptHandler (std::string& filename);
+signals:
+    void socketAccepted (QString filename);
+};
 
 class IvImage : public ImageBuf {
 public:
@@ -296,6 +308,7 @@ private slots:
     void showInfoWindow();              ///< View extended info on image
     void showPixelviewWindow();         ///< View closeup pixel view
     void editPreferences();             ///< Edit viewer preferences
+    void loadSocketImage(QString filename);
 private:
     void createActions ();
     void createMenus ();
@@ -390,6 +403,9 @@ private:
 
     // What zoom do we need to fit these window dimensions?
     float zoom_needed_to_fit (int w, int h);
+
+    ServerPool* m_servers;
+    ServerThread m_server_thread;
 
     friend class IvCanvas;
     friend class IvGL;

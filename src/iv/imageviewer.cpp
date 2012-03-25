@@ -39,6 +39,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/bind.hpp>
 
 #include <OpenEXR/ImathFun.h>
 
@@ -58,11 +59,24 @@ namespace
 
 }
 
+void
+ServerThread::run ()
+{
+    ServerPool::instance ()->run ();
+}
+
+void
+ServerThread::acceptHandler (std::string& filename)
+{
+    std::cout << "emitting" << std::endl;
+    emit socketAccepted(filename.c_str());
+}
+
 ImageViewer::ImageViewer ()
     : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
       m_current_image(-1), m_current_channel(0), m_color_mode(RGBA),
       m_last_image(-1), m_zoom(1), m_fullscreen(false), m_default_gamma(1),
-      m_darkPalette(false)
+      m_darkPalette(false), m_server_thread()
 {
     readSettings (false);
 
@@ -72,6 +86,13 @@ ImageViewer::ImageViewer ()
         if (g >= 0.1 && g <= 5)
             m_default_gamma = g;
     }
+
+    m_servers = ServerPool::instance ();
+
+    m_servers->add_server (10110, boost::bind (&ServerThread::acceptHandler, &m_server_thread, _1));
+    connect (&m_server_thread, SIGNAL(socketAccepted(QString)), this, SLOT(loadSocketImage(QString)));
+    m_server_thread.start();
+
     // FIXME -- would be nice to have a more nuanced approach to display
     // color space, in particular knowing whether the display is sRGB.
     // Also, some time in the future we may want a real 3D LUT for
@@ -2068,4 +2089,13 @@ ImageViewer::editPreferences ()
         preferenceWindow->setPalette (m_palette);
     }
     preferenceWindow->show ();
+}
+
+
+
+void
+ImageViewer::loadSocketImage (QString filename)
+{
+    std::cout << "slot called " << filename.toUtf8().data() << std::endl;
+    add_image(filename.toUtf8().data());
 }

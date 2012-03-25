@@ -43,7 +43,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
         return new SocketInput;
     }
     DLLEXPORT const char *socket_input_extensions[] = {
-        "socket", NULL
+        "*m_socket", NULL
     };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -51,7 +51,9 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 SocketInput::SocketInput()
-        : socket (io)
+//        : *m_socket (io)
+          : m_socket(NULL),
+            m_port(0)
 {
 }
 
@@ -69,7 +71,8 @@ bool
 SocketInput::open (const std::string &name, ImageSpec &newspec,
                    const ImageSpec &config)
 {
-    std::cout << "SocketInput::open" << std::endl;
+    std::cout << "SocketInput::open " << name << std::endl;
+
 #ifdef DEBUG_NO_CLIENT
     std::cout << "NO Client mode" << std::endl;
     newspec.nchannels = 4;
@@ -89,29 +92,51 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
     newspec.tile_width = 64;
     newspec.tile_height = 64;
 #else
-    // If there is a nonzero "nowait" request in the configuration, just
-    // return immediately.
-    if (config.get_int_attribute ("nowait", 0))
-        return false;
 
-    if (! (accept_connection (name) && get_spec_from_client (newspec) && listen_for_header_from_client ())) {
+    if (m_socket) {
+        // if the socket is already valid, then we've previously been opened
+        // TODO: check that the socket is alive
+        std::cout << "socket already open" << std::endl;
+        return true;
+    }
+    if (accept_connection (name)) {
+        // If there is a nonzero "nowait" request in the configuration, just
+        // return immediately.
+        if (config.get_int_attribute ("nowait", 0))
+            return true;
+
+        m_socket = &ServerPool::instance()->get_socket (m_port);
+
+        if (! (get_spec_from_client (newspec) && listen_for_header_from_client ())) {
+            if (m_socket) {
+                m_socket->close();
+                m_socket = NULL;
+                std::cout << "removed socket" << std::endl;
+            }
+        }
+    } else {
+        if (m_socket) {
+            m_socket->close();
+            m_socket = NULL;
+            std::cout << "removed socket" << std::endl;
+        }
         return false;
     }
     // Also send information about endianess etc.
 #endif
 
-    std::cout << newspec.nchannels << std::endl;
-    std::cout << newspec.format << std::endl;
-    std::cout << newspec.x << std::endl;
-    std::cout << newspec.y << std::endl;
-    std::cout << newspec.width << std::endl;
-    std::cout << newspec.height << std::endl;
-    std::cout << newspec.full_x << std::endl;
-    std::cout << newspec.full_y << std::endl;
-    std::cout << newspec.full_width << std::endl;
-    std::cout << newspec.full_height << std::endl;
-    std::cout << newspec.tile_width << std::endl;
-    std::cout << newspec.tile_height << std::endl;
+//    std::cout << newspec.nchannels << std::endl;
+//    std::cout << newspec.format << std::endl;
+//    std::cout << newspec.x << std::endl;
+//    std::cout << newspec.y << std::endl;
+//    std::cout << newspec.width << std::endl;
+//    std::cout << newspec.height << std::endl;
+//    std::cout << newspec.full_x << std::endl;
+//    std::cout << newspec.full_y << std::endl;
+//    std::cout << newspec.full_width << std::endl;
+//    std::cout << newspec.full_height << std::endl;
+//    std::cout << newspec.tile_width << std::endl;
+//    std::cout << newspec.tile_height << std::endl;
 
     m_spec = newspec;
 
@@ -124,7 +149,7 @@ bool
 SocketInput::read_native_scanline (int y, int z, void *data)
 {
 //    try {
-//        boost::asio::read (socket, buffer (reinterpret_cast<char *> (data),
+//        boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data),
 //                m_spec.scanline_bytes ()));
 //    } catch (boost::system::system_error &err) {
 //        error ("Error while reading: %s", err.what ());
@@ -141,7 +166,7 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
 {
    std::cout << "tile " << x << " " << y << std::endl;
 //    try {
-//        boost::asio::read (socket, buffer (reinterpret_cast<char *> (data),
+//        boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data),
 //                m_spec.tile_bytes ()));
 //    } catch (boost::system::system_error &err) {
 //        error ("Error while reading: %s", err.what ());
@@ -156,7 +181,9 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
 bool
 SocketInput::close ()
 {
-    socket.close();
+    std::cout << "SocketInput::close" << std::endl;
+    if (m_socket)
+        m_socket->close();
     return true;
 }
 
@@ -179,17 +206,17 @@ SocketInput::accept_connection(const std::string &name)
     std::cout << rest_args["host"] << std::endl;
     std::cout << rest_args["port"] << std::endl;
 
-    int port = atoi (rest_args["port"].c_str ());
+    m_port = atoi (rest_args["port"].c_str ());
 
-    try {
-        ip::tcp::endpoint endpoint (ip::tcp::v4(), port);
-        acceptor = boost::shared_ptr <ip::tcp::acceptor>
-            (new ip::tcp::acceptor (io, endpoint));
-        acceptor->accept (socket);
-    } catch (boost::system::system_error &err) {
-        error ("Error while accepting: %s", err.what ());
-        return false;
-    }
+//    try {
+//        ip::tcp::endpoint endpoint (ip::tcp::v4(), port);
+//        acceptor = boost::shared_ptr <ip::tcp::acceptor>
+//            (new ip::tcp::acceptor (io, endpoint));
+//        acceptor->accept (*m_socket);
+//    } catch (boost::system::system_error &err) {
+//        error ("Error while accepting: %s", err.what ());
+//        return false;
+//    }
 
     return true;
 }
@@ -216,11 +243,11 @@ SocketInput::get_header_from_client (std::string &header)
     try {
         int length;
 
-        boost::asio::read (socket,
+        boost::asio::read (*m_socket,
                 boost::asio::buffer (reinterpret_cast<char *> (&length), sizeof (boost::uint32_t)));
 
         char *buf = new char[length + 1];
-        boost::asio::read (socket, boost::asio::buffer (buf, length));
+        boost::asio::read (*m_socket, boost::asio::buffer (buf, length));
 
         header = buf;
         delete [] buf;
@@ -228,6 +255,7 @@ SocketInput::get_header_from_client (std::string &header)
     } catch (boost::system::system_error &err) {
         // FIXME: we have a memory leak if read fails and spec_xml is not deleted
         error ("Error while reading: %s", err.what ());
+        std::cerr << "get_header_from_client: " << err.what () << std::endl;
         return false;
     }
     return true;
@@ -238,14 +266,14 @@ SocketInput::listen_for_header_from_client ()
 {
     std::cout << "listen_for_header_from_client" << std::endl;
     try {
-        boost::asio::async_read (socket,
+        boost::asio::async_read (*m_socket,
                 boost::asio::buffer (reinterpret_cast<char *> (&m_header_length), sizeof (boost::uint32_t)),
                 boost::bind(&SocketInput::handle_read_header, this,
                                     placeholders::error));
 
     } catch (boost::system::system_error &err) {
         error ("Error while reading: %s", err.what ());
-        std::cerr << err.what () << std::endl;
+        std::cerr << "listen_for_header_from_client: " << err.what () << std::endl;
         return false;
     }
     return true;
@@ -260,7 +288,7 @@ SocketInput::handle_read_header(const boost::system::error_code& error)
     if (!error) {
 //        try {
             char *buf = new char[m_header_length + 1];
-            boost::asio::read (socket, boost::asio::buffer (buf, m_header_length));
+            boost::asio::read (*m_socket, boost::asio::buffer (buf, m_header_length));
 
             std::string header = buf;
             std::cout << header << std::endl;
@@ -271,7 +299,7 @@ SocketInput::handle_read_header(const boost::system::error_code& error)
 //                error ("Error while reading: %s", err.what ());
 //                return;
 //        }
-//        boost::asio::async_read(socket,
+//        boost::asio::async_read(*m_socket,
 //                boost::asio::buffer (read_msg_.body(), read_msg_.body_length()),
 //                boost::bind (&chat_session::handle_read_body, shared_from_this(),
 //                        boost::asio::placeholders::error));

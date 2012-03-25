@@ -580,7 +580,14 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_channelsize = m_datatype.size();
     m_pixelsize = m_channelsize * spec.nchannels;
     m_eightbit = (m_datatype == TypeDesc::UINT8);
-    m_mod_time = boost::filesystem::last_write_time (m_filename.string());
+    try {
+        // this assumes that filename specifies a file on disk, which may not be the
+        // case for esoteric plugins like socket.imageio
+        m_mod_time = boost::filesystem::last_write_time (m_filename.string());
+    }
+    catch (std::exception& e) {
+        //std::cerr << "Exception: " << e.what() << "\n";
+    }
 
     DASSERT (! m_broken);
     m_validspec = true;

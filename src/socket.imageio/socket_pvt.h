@@ -38,6 +38,7 @@
 #define OPENIMAGEIO_SOCKET_PVT_H
 
 #include "imageio.h"
+#include "server.h"
 
 #include <map>
 
@@ -103,10 +104,11 @@ class SocketInput : public ImageInput {
 
  private:
     int m_next_scanline;      // Which scanline is the next to read?
-    io_service io;
-    ip::tcp::socket socket;
-    boost::shared_ptr <ip::tcp::acceptor> acceptor;
+//    io_service io;
+    ip::tcp::socket* m_socket;
+//    boost::shared_ptr <ip::tcp::acceptor> acceptor;
     int m_header_length;
+    short m_port;
 
     bool accept_connection (const std::string &name);
     bool get_spec_from_client (ImageSpec &spec);
