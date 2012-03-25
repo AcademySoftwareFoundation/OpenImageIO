@@ -127,6 +127,7 @@ driver_open
    //const char* filename = "foo?port=10111&host=127.0.0.1.socket";
    const char* filename = "foo.socket";
 
+   AiMsgInfo("[driver_socket] Connecting");
    ImageOutput* out = ImageOutput::create(filename);
    if (!out)
    {
@@ -213,22 +214,24 @@ driver_prepare_bucket
 driver_write_bucket
 {
    AiMsgInfo("[driver_socket] write bucket   (%d, %d)",  bucket_xo, bucket_yo);
-
+   std::cout << "test" << std::endl;
 
    int         pixel_type;
    const void* bucket_data;
 
    // get the first AOV layer
    if (!AiOutputIteratorGetNext(iterator, NULL, &pixel_type, &bucket_data))
+   {
+      AiMsgError("[driver_socket] Could not get first AOV");
       return;
-/*
+   }
    ShaderData *data = (ShaderData*)AiNodeGetLocalData(node);
    if (!data->out->write_tile (bucket_xo, bucket_yo, 0,
                                TypeDesc::FLOAT, bucket_data))
    {
       AiMsgError("[driver_socket] %s", data->out->geterror().c_str());
    }
-   */
+
 }
 
 

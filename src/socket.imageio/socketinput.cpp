@@ -31,6 +31,7 @@
 #include "imageio.h"
 #include "socket_pvt.h"
 
+//#define DEBUG_NO_CLIENT 1
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -68,28 +69,49 @@ bool
 SocketInput::open (const std::string &name, ImageSpec &newspec,
                    const ImageSpec &config)
 {
+    std::cout << "SocketInput::open" << std::endl;
+#ifdef DEBUG_NO_CLIENT
+    std::cout << "NO Client mode" << std::endl;
+    newspec.nchannels = 4;
+    newspec.format = TypeDesc::FLOAT;
+    newspec.x = 0;
+    newspec.y = 0;
+    newspec.z = 0;
+    newspec.width = 640;
+    newspec.height = 480;
+    newspec.depth = 1;
+    newspec.full_x = 0;
+    newspec.full_y = 0;
+    newspec.full_z = 0;
+    newspec.full_width = 640;
+    newspec.full_height = 480;
+    newspec.full_depth = 1;
+    newspec.tile_width = 64;
+    newspec.tile_height = 64;
+#else
     // If there is a nonzero "nowait" request in the configuration, just
     // return immediately.
     if (config.get_int_attribute ("nowait", 0))
         return false;
 
-    if (! (accept_connection (name) && get_spec_from_client (newspec))) {
+    if (! (accept_connection (name) && get_spec_from_client (newspec) && listen_for_header_from_client ())) {
         return false;
     }
     // Also send information about endianess etc.
+#endif
 
-//    std::cout << newspec.nchannels << std::endl;
-//    std::cout << newspec.format << std::endl;
-//    std::cout << newspec.x << std::endl;
-//    std::cout << newspec.y << std::endl;
-//    std::cout << newspec.width << std::endl;
-//    std::cout << newspec.height << std::endl;
-//    std::cout << newspec.full_x << std::endl;
-//    std::cout << newspec.full_y << std::endl;
-//    std::cout << newspec.full_width << std::endl;
-//    std::cout << newspec.full_height << std::endl;
-//    std::cout << newspec.tile_width << std::endl;
-//    std::cout << newspec.tile_height << std::endl;
+    std::cout << newspec.nchannels << std::endl;
+    std::cout << newspec.format << std::endl;
+    std::cout << newspec.x << std::endl;
+    std::cout << newspec.y << std::endl;
+    std::cout << newspec.width << std::endl;
+    std::cout << newspec.height << std::endl;
+    std::cout << newspec.full_x << std::endl;
+    std::cout << newspec.full_y << std::endl;
+    std::cout << newspec.full_width << std::endl;
+    std::cout << newspec.full_height << std::endl;
+    std::cout << newspec.tile_width << std::endl;
+    std::cout << newspec.tile_height << std::endl;
 
     m_spec = newspec;
 
@@ -160,8 +182,9 @@ SocketInput::accept_connection(const std::string &name)
     int port = atoi (rest_args["port"].c_str ());
 
     try {
+        ip::tcp::endpoint endpoint (ip::tcp::v4(), port);
         acceptor = boost::shared_ptr <ip::tcp::acceptor>
-            (new ip::tcp::acceptor (io, ip::tcp::endpoint (ip::tcp::v4(), port)));
+            (new ip::tcp::acceptor (io, endpoint));
         acceptor->accept (socket);
     } catch (boost::system::system_error &err) {
         error ("Error while accepting: %s", err.what ());
@@ -194,10 +217,10 @@ SocketInput::get_header_from_client (std::string &header)
         int length;
 
         boost::asio::read (socket,
-                buffer (reinterpret_cast<char *> (&length), sizeof (boost::uint32_t)));
+                boost::asio::buffer (reinterpret_cast<char *> (&length), sizeof (boost::uint32_t)));
 
         char *buf = new char[length + 1];
-        boost::asio::read (socket, buffer (buf, length));
+        boost::asio::read (socket, boost::asio::buffer (buf, length));
 
         header = buf;
         delete [] buf;
@@ -210,13 +233,68 @@ SocketInput::get_header_from_client (std::string &header)
     return true;
 }
 
-/*
+bool
+SocketInput::listen_for_header_from_client ()
 {
-    boost::asio::async_read_until(socket_, buf, boost::regex("\r\n\r\n"),
-            boost::bind(&connection::handle_read, shared_from_this(),
-                    ba::placeholders::error,
-                    ba::placeholders::bytes_transferred));
+    std::cout << "listen_for_header_from_client" << std::endl;
+    try {
+        boost::asio::async_read (socket,
+                boost::asio::buffer (reinterpret_cast<char *> (&m_header_length), sizeof (boost::uint32_t)),
+                boost::bind(&SocketInput::handle_read_header, this,
+                                    placeholders::error));
+
+    } catch (boost::system::system_error &err) {
+        error ("Error while reading: %s", err.what ());
+        std::cerr << err.what () << std::endl;
+        return false;
+    }
+    return true;
 }
-*/
+
+
+
+void
+SocketInput::handle_read_header(const boost::system::error_code& error)
+{
+    std::cout << "handle_read_header" << std::endl;
+    if (!error) {
+//        try {
+            char *buf = new char[m_header_length + 1];
+            boost::asio::read (socket, boost::asio::buffer (buf, m_header_length));
+
+            std::string header = buf;
+            std::cout << header << std::endl;
+            delete [] buf;
+
+//        } catch (boost::system::system_error &err) {
+//                // FIXME: we have a memory leak if read fails and spec_xml is not deleted
+//                error ("Error while reading: %s", err.what ());
+//                return;
+//        }
+//        boost::asio::async_read(socket,
+//                boost::asio::buffer (read_msg_.body(), read_msg_.body_length()),
+//                boost::bind (&chat_session::handle_read_body, shared_from_this(),
+//                        boost::asio::placeholders::error));
+    }
+    else {
+//        room_.leave (shared_from_this ());
+    }
+}
+
+void
+SocketInput::handle_read_data(const boost::system::error_code& error)
+{
+    if (!error) {
+//        room_.deliver(read_msg_);
+//        boost::asio::async_read(socket_,
+//                boost::asio::buffer(read_msg_.data(), chat_message::header_length),
+//                boost::bind(&chat_session::handle_read_header, shared_from_this(),
+//                        boost::asio::placeholders::error));
+    }
+    else {
+//      room_.leave (shared_from_this ());
+    }
+}
+
 OIIO_PLUGIN_NAMESPACE_END
 

@@ -17,7 +17,7 @@ endif
 ifdef DEBUG
 	CFLAGS += -g -DDEBUG
 	variant := $(variant).debug
-	distdir := $(variant).debug
+	distdir := $(distdir).debug
 else
 	CFLAGS += -O3 -DNDEBUG
 endif
@@ -44,7 +44,7 @@ CC = g++
 LINK = /usr/local/gcc-4.1.2/bin/g++
 LINK = g++
 
-LIBS = -lai -lOpenImageIO
+LIBS = -lai -lOpenImageIO.1.1
 
 LIBDIR = 	-L../../dist/$(distdir)/lib \
             -L$(ARNOLD_HOME)/bin	\

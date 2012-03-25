@@ -51,7 +51,8 @@
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
-
+#include <boost/bind.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -105,10 +106,14 @@ class SocketInput : public ImageInput {
     io_service io;
     ip::tcp::socket socket;
     boost::shared_ptr <ip::tcp::acceptor> acceptor;
-    
+    int m_header_length;
+
     bool accept_connection (const std::string &name);
     bool get_spec_from_client (ImageSpec &spec);
     bool get_header_from_client (std::string &header);
+    bool listen_for_header_from_client ();
+    void handle_read_header(const boost::system::error_code& error);
+    void handle_read_data(const boost::system::error_code& error);
 
     friend class SocketOutput;
 };

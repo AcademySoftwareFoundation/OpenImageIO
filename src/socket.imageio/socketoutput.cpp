@@ -65,7 +65,7 @@ SocketOutput::open (const std::string &name, const ImageSpec &newspec,
     if (! (connect_to_server (name) && send_spec_to_server (newspec))) {
         return false;
     }
-
+    std::cout << "connection successful" << std::endl;
     m_next_scanline = 0;
     m_spec = newspec;
 
@@ -105,13 +105,14 @@ SocketOutput::write_tile (int x, int y, int z,
     std::cout << "writing tile " << x << " " << y << std::endl;
     if (send_header_to_server (header))
     {
-        try {
-            socket_pvt::socket_write (socket, format, data, m_spec.tile_bytes ());
-        } catch (boost::system::system_error &err) {
-            error ("Error while reading: %s", err.what ());
-            return false;
-        }
-        return true;
+        std::cout << "header sent" << std::endl;
+//        try {
+//            socket_pvt::socket_write (socket, format, data, m_spec.tile_bytes ());
+//        } catch (boost::system::system_error &err) {
+//            error ("Error while reading: %s", err.what ());
+//            return false;
+//        }
+//        return true;
     }
     return false;
 
@@ -178,8 +179,8 @@ SocketOutput::connect_to_server (const std::string &name)
         error ("Invalid 'open ()' argument: %s", name.c_str ());
         return false;
     }
-    std::cout << rest_args["host"] << std::endl;
-    std::cout << rest_args["port"] << std::endl;
+    std::cout << "host: " << rest_args["host"] << std::endl;
+    std::cout << "port: " << rest_args["port"] << std::endl;
     try {
         ip::tcp::resolver resolver (io);
         ip::tcp::resolver::query query (rest_args["host"].c_str (),
