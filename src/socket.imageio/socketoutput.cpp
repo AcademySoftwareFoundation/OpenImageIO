@@ -148,9 +148,10 @@ SocketOutput::send_spec_to_server (const ImageSpec& spec)
 bool
 SocketOutput::send_header_to_server (const std::string &header)
 {
-    unsigned int length = header.length ();
+    unsigned int length = header.length () + 1; // one extra for NULL terminator
 
     try {
+        std::cout << "data size: " << length << std::endl;
         // first send the size of the header
         boost::asio::write (socket,
                 buffer (reinterpret_cast<const char *> (&length), sizeof (boost::uint32_t)));

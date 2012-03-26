@@ -297,12 +297,13 @@ SocketInput::handle_read_header (const boost::system::error_code& error)
 {
 
     if (!error) {
-        std::cout << "handle_read_header" << std::endl;
+        std::cout << "handle_read_header: length " << m_header_length << std::endl;
 //        try {
-            char *buf = new char[m_header_length + 1];
+            char *buf = new char[m_header_length];
+            //char buf[header_length + 1] = "";
             boost::asio::read (*m_socket, boost::asio::buffer (buf, m_header_length));
 
-            std::string header = buf;
+            std::string header(buf);
             std::cout << "TILE: " << header << std::endl;
             delete [] buf;
 
