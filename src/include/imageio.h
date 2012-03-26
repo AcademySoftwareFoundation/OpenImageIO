@@ -974,7 +974,9 @@ DLLPUBLIC int openimageio_version ();
 
 /// Special geterror() called after ImageInput::create or
 /// ImageOutput::create, since if create fails, there's no object on
-/// which call obj->geterror().
+/// which call obj->geterror().  This function returns the last error
+/// for this particular thread; separate threads will not clobber each
+/// other's global error messages.
 DLLPUBLIC std::string geterror ();
 
 /// Set a global attribute controlling OpenImageIO.  Return true

@@ -50,9 +50,24 @@ OIIO_NAMESPACE_ENTER
 
 namespace {
 
-static std::string create_error_msg;
+// To avoid thread oddities, we have the storage area buffering error
+// messages for error()/geterror() be thread-specific.
+static thread_specific_ptr<std::string> thread_error_msg;
 
+// Return a reference to the string for this thread's error messages,
+// creating it if none exists for this thread thus far.
+static std::string &
+error_msg ()
+{
+    std::string *e = thread_error_msg.get();
+    if (! e) {
+        e = new std::string;
+        thread_error_msg.reset (e);
+    }
+    return *e;
 }
+
+} // end anon namespace
 
 recursive_mutex pvt::imageio_mutex;
 
@@ -74,7 +89,7 @@ pvt::error (const char *message, ...)
     recursive_lock_guard lock (pvt::imageio_mutex);
     va_list ap;
     va_start (ap, message);
-    create_error_msg = Strutil::vformat (message, ap);
+    error_msg() = Strutil::vformat (message, ap);
     va_end (ap);
 }
 
@@ -84,8 +99,8 @@ std::string
 geterror ()
 {
     recursive_lock_guard lock (pvt::imageio_mutex);
-    std::string e = create_error_msg;
-    create_error_msg.clear ();
+    std::string e = error_msg();
+    error_msg().clear ();
     return e;
 }
 
