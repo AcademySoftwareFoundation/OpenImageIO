@@ -1367,6 +1367,57 @@ action_fixnan (int argc, const char *argv[])
 
 
 
+void
+ip_threshold (const ImageBuf &Aib, ImageBuf &Rib, float threshold, float low, float high) 
+{
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        if (a[0] < threshold) {            
+            r[0] = low;
+        } else {
+            r[0] = high;
+        }
+    }
+}
+
+
+
+static int
+action_ip_threshold (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_threshold, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments for ip_threshold from command line
+    float threshold = (float) atof(argv[1]);
+    float low = (float) atof(argv[2]);
+    float high = (float) atof(argv[3]);
+
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_threshold (Aib, Rib, threshold, low, high);
+        }
+    }
+             
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
@@ -1374,6 +1425,7 @@ getargs (int argc, char *argv[])
     ArgParse ap;
     bool dummybool;
     int dummyint;
+    float dummyfloat;
     std::string dummystr;
     ap.options ("oiiotool -- simple image processing operations\n"
                 OIIO_INTRO_STRING "\n"
@@ -1443,6 +1495,7 @@ getargs (int argc, char *argv[])
                 "--diff %@", action_diff, &dummybool, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
                 "--add %@", action_add, &dummybool, "Add two images",
                 "--sub %@", action_sub, &dummybool, "Subtract two images",
+                "--threshold %@ %g %g %g", action_ip_threshold, &dummyfloat, &dummyfloat, &dummyfloat, "Threshold",
                 "--abs %@", action_abs, &dummybool, "Take the absolute value of the image pixels",
                 "--flip %@", action_flip, &dummybool, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, &dummybool, "Flop the image horizontally (left<->right)",
