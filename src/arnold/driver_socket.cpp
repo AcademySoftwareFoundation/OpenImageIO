@@ -128,14 +128,14 @@ driver_open
    const char* filename = "foo.socket";
 
    AiMsgInfo("[driver_socket] Connecting");
-   ImageOutput* out = ImageOutput::create(filename);
+   ImageOutput* out = v1_1::ImageOutput::create(filename);
    if (!out)
    {
       AiMsgError("[driver_socket] %s", out->geterror().c_str());
       return;
    }
 
-   ImageSpec spec = ImageSpec();
+   ImageSpec spec = v1_1::ImageSpec();
 
    const char *name = "";
    int pixel_type;
@@ -214,7 +214,6 @@ driver_prepare_bucket
 driver_write_bucket
 {
    AiMsgInfo("[driver_socket] write bucket   (%d, %d)",  bucket_xo, bucket_yo);
-   std::cout << "test" << std::endl;
 
    int         pixel_type;
    const void* bucket_data;

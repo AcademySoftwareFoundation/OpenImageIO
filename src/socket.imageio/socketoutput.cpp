@@ -65,7 +65,7 @@ SocketOutput::open (const std::string &name, const ImageSpec &newspec,
     if (! (connect_to_server (name) && send_spec_to_server (newspec))) {
         return false;
     }
-    std::cout << "connection successful" << std::endl;
+    std::cout << "SocketOutput::open: connection successful" << std::endl;
     m_next_scanline = 0;
     m_spec = newspec;
 
@@ -112,7 +112,7 @@ SocketOutput::write_tile (int x, int y, int z,
 //            error ("Error while reading: %s", err.what ());
 //            return false;
 //        }
-//        return true;
+        return true;
     }
     return false;
 
@@ -148,7 +148,7 @@ SocketOutput::send_spec_to_server (const ImageSpec& spec)
 bool
 SocketOutput::send_header_to_server (const std::string &header)
 {
-    int length = header.length ();
+    unsigned int length = header.length ();
 
     try {
         // first send the size of the header

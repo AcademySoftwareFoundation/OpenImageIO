@@ -38,6 +38,46 @@ OIIO_NAMESPACE_ENTER
 
 using boost::asio::ip::tcp;
 
+Session::Session(boost::asio::io_service& io_service)
+    : m_socket(io_service),
+      m_header_length(0)
+{
+}
+
+tcp::socket& Session::socket()
+{
+    return m_socket;
+}
+
+void Session::start()
+{
+//    m_socket.async_read_some(boost::asio::buffer(data_, max_length),
+//        boost::bind(&Session::handle_read, this,
+//          boost::asio::placeholders::error,
+//          boost::asio::placeholders::bytes_transferred));
+    std::cout << "Session::start" << std::endl;
+    boost::asio::async_read (m_socket,
+            boost::asio::buffer (reinterpret_cast<char *> (&m_header_length), sizeof (boost::uint32_t)),
+            boost::bind (&Session::handle_read, this,
+                                boost::asio::placeholders::error,
+                                boost::asio::placeholders::bytes_transferred));
+}
+
+void Session::handle_read(const boost::system::error_code& error,
+  size_t bytes_transferred)
+{
+    if (!error)
+    {
+        std::cout << "handle_read" << std::endl;
+    }
+    else
+    {
+        std::cout << "handle_read error" << std::endl;
+      delete this;
+    }
+}
+
+
 Server::Server(boost::asio::io_service& io_service, short port, boost::function<void(std::string&)> accept_handler)
     : m_socket(io_service),
       m_io_service(io_service),
@@ -46,20 +86,24 @@ Server::Server(boost::asio::io_service& io_service, short port, boost::function<
 {
     m_filename = Strutil::format ("sockethandle?port=%d.socket", port);
     std::cout << "setting up accept handler " << port << std::endl;
+    //Session* new_session = new Session(m_io_service);
     m_acceptor.async_accept(m_socket,
-            boost::bind(&Server::handle_accept, this,
+            boost::bind(&Server::handle_accept, this, //new_session,
                     boost::asio::placeholders::error));
 }
 
 
 
 void
+//Server::handle_accept(Session* session, const boost::system::error_code& error)
 Server::handle_accept(const boost::system::error_code& error)
 {
+    //delete session;
     if (!error) {
         std::cout << "handle accept" << std::endl;
 
         m_accept_handler(m_filename);
+        //session->start();
         // what to do wit the current image
         //callback(newimage);
 //        std::cout << "setting up new accept handler " << std::endl;
@@ -85,7 +129,9 @@ Server::get_socket()
 ServerPool* ServerPool::m_instance = NULL;
 
 
-ServerPool::ServerPool () : m_io_service()
+ServerPool::ServerPool () :
+        m_io_service(new boost::asio::io_service),
+        m_work(new boost::asio::io_service::work(*m_io_service))
 {
 }
 
@@ -122,7 +168,7 @@ bool
 ServerPool::run ()
 {
 //    try {
-        m_io_service.run();
+        m_io_service->run();
 //    }
 //    catch (std::exception& e) {
 //        std::cerr << "Exception: " << e.what() << "\n";
@@ -136,7 +182,7 @@ ServerPool::run ()
 void
 ServerPool::add_server (short port, boost::function<void(std::string&)> accept_handler)
 {
-    server_ptr server(new Server(m_io_service, port, accept_handler));
+    server_ptr server(new Server(*m_io_service, port, accept_handler));
     m_server_list.push_back(server);
     m_server_map[port] = server;
 }
@@ -145,7 +191,8 @@ ServerPool::add_server (short port, boost::function<void(std::string&)> accept_h
 boost::asio::io_service&
 ServerPool::get_io_service ()
 {
-    return m_io_service;
+    boost::asio::io_service& io_service = *m_io_service;
+    return io_service;
 }
 
 

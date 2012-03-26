@@ -114,6 +114,13 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
                 std::cout << "removed socket" << std::endl;
             }
         }
+//        else {
+//            std::cout << "running" << std::endl;
+//                        m_thread = boost::thread(
+//                                  boost::bind(&boost::asio::io_service::run, &ServerPool::instance()->get_io_service()));
+////            ServerPool::instance()->get_io_service().run();
+//
+//        }
     } else {
         if (m_socket) {
             m_socket->close();
@@ -164,7 +171,7 @@ SocketInput::read_native_scanline (int y, int z, void *data)
 bool
 SocketInput::read_native_tile (int x, int y, int z, void *data)
 {
-   std::cout << "tile " << x << " " << y << std::endl;
+//   std::cout << "tile " << x << " " << y << std::endl;
 //    try {
 //        boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data),
 //                m_spec.tile_bytes ()));
@@ -268,8 +275,12 @@ SocketInput::listen_for_header_from_client ()
     try {
         boost::asio::async_read (*m_socket,
                 boost::asio::buffer (reinterpret_cast<char *> (&m_header_length), sizeof (boost::uint32_t)),
-                boost::bind(&SocketInput::handle_read_header, this,
+                boost::bind (&SocketInput::handle_read_header, this,
                                     placeholders::error));
+//        m_socket->async_read_some (
+//                boost::asio::buffer (reinterpret_cast<char *> (&m_header_length), sizeof (boost::uint32_t)),
+//                boost::bind (&SocketInput::handle_read_header, this,
+//                                    placeholders::error));
 
     } catch (boost::system::system_error &err) {
         error ("Error while reading: %s", err.what ());
@@ -282,17 +293,21 @@ SocketInput::listen_for_header_from_client ()
 
 
 void
-SocketInput::handle_read_header(const boost::system::error_code& error)
+SocketInput::handle_read_header (const boost::system::error_code& error)
 {
-    std::cout << "handle_read_header" << std::endl;
+
     if (!error) {
+        std::cout << "handle_read_header" << std::endl;
 //        try {
             char *buf = new char[m_header_length + 1];
             boost::asio::read (*m_socket, boost::asio::buffer (buf, m_header_length));
 
             std::string header = buf;
-            std::cout << header << std::endl;
+            std::cout << "TILE: " << header << std::endl;
             delete [] buf;
+
+            // listen for next tile
+            listen_for_header_from_client();
 
 //        } catch (boost::system::system_error &err) {
 //                // FIXME: we have a memory leak if read fails and spec_xml is not deleted
@@ -305,12 +320,13 @@ SocketInput::handle_read_header(const boost::system::error_code& error)
 //                        boost::asio::placeholders::error));
     }
     else {
+        std::cout << "handle_read_header ERROR" << std::endl;
 //        room_.leave (shared_from_this ());
     }
 }
 
 void
-SocketInput::handle_read_data(const boost::system::error_code& error)
+SocketInput::handle_read_data (const boost::system::error_code& error)
 {
     if (!error) {
 //        room_.deliver(read_msg_);
