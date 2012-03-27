@@ -2000,7 +2000,7 @@ ImageViewer::about()
     QMessageBox::about(this, tr("About iv"),
             tr("<p><b>iv</b> is the image viewer for OpenImageIO.</p>"
                "<p>(c) Copyright 2008 Larry Gritz et al.  All Rights Reserved.</p>"
-               "<p>See http://openimageio.org for details.</p>"));
+               "<p>See <a href='http://openimageio.org'>http://openimageio.org</a> for details.</p>"));
 }
 
 
