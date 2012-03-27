@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <time.h>
 
 #include "dassert.h"
 #include "typedesc.h"

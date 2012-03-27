@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <iostream>
+#include <time.h>
 
 #include <tiffio.h>
 
