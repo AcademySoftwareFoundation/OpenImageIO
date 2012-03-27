@@ -256,7 +256,7 @@ endif()
 # List all the individual testsuite tests here:
 oiio_add_tests (ico gpsread misnamed-file
                 oiiotool oiiotool-fixnan 
-                sgi rla psd dpx
+                sgi rla psd dpx png
                 texture-fill texture-gray texture-grid
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
