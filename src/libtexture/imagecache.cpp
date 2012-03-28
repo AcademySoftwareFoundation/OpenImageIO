@@ -563,11 +563,18 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     // FIXME -- compute Mtex, Mras
 
     // See if there's a SHA-1 hash in the image description
-    std::string desc = spec.get_string_attribute ("ImageDescription");
-    const char *prefix = "SHA-1=";
-    size_t found = desc.rfind (prefix);
-    if (found != std::string::npos)
-        m_fingerprint = ustring (desc, found+strlen(prefix), 40);
+    std::string fing = spec.get_string_attribute ("oiio:SHA-1");
+    if (fing.length()) {
+        m_fingerprint = ustring(fing);
+    } else {
+        // If there was no "oiio:SHA-1" attribute, search for it as
+        // part of the ImageDescription.
+        std::string desc = spec.get_string_attribute ("ImageDescription");
+        const char *prefix = "SHA-1=";
+        size_t found = desc.rfind (prefix);
+        if (found != std::string::npos)
+            m_fingerprint = ustring (desc, found+strlen(prefix), 40);
+    }
 
     m_datatype = TypeDesc::FLOAT;
     if (! m_imagecache.forcefloat()) {
@@ -991,7 +998,7 @@ ImageCacheImpl::find_file (ustring filename,
             // but the SAME pixels?  It can happen!  Bad user, bad!  But
             // let's save them from their own foolishness.
             bool was_duplicate = false;
-            if (tf->fingerprint ()) {
+            if (tf->fingerprint() && m_deduplicate) {
                 // std::cerr << filename << " hash=" << tf->fingerprint() << "\n";
                 ImageCacheFile *dup = find_fingerprint (tf->fingerprint(), tf);
                 if (dup != tf) {
@@ -1257,6 +1264,7 @@ ImageCacheImpl::init ()
     m_accept_untiled = true;
     m_accept_unmipped = true;
     m_read_before_insert = false;
+    m_deduplicate = true;
     m_failure_retries = 0;
     m_latlong_y_up_default = true;
     m_Mw2c.makeIdentity();
@@ -1677,6 +1685,13 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
             do_invalidate = true;
         }
     }
+    else if (name == "deduplicate" && type == TypeDesc::INT) {
+        int r = *(const int *)val;
+        if (r != m_deduplicate) {
+            m_deduplicate = r;
+            do_invalidate = true;
+        }
+    }
     else if (name == "failure_retries" && type == TypeDesc::INT) {
         m_failure_retries = *(const int *)val;
     }
@@ -1719,6 +1734,7 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     ATTR_DECODE ("accept_untiled", int, m_accept_untiled);
     ATTR_DECODE ("accept_unmipped", int, m_accept_unmipped);
     ATTR_DECODE ("read_before_insert", int, m_read_before_insert);
+    ATTR_DECODE ("deduplicate", int, m_deduplicate);
     ATTR_DECODE ("failure_retries", int, m_failure_retries);
 
     // The cases that don't fit in the simple ATTR_DECODE scheme

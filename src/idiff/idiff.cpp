@@ -221,6 +221,9 @@ main (int argc, char *argv[])
 #ifdef DEBUG
     imagecache->attribute ("statistics:level", 2);
 #endif
+    // force a full diff, even for files tagged with the same
+    // fingerprint, just in case some mistake has been made.
+    imagecache->attribute ("deduplicate", 0);
 
     ImageBuf img0, img1;
     if (! read_input (filenames[0], img0, imagecache) ||

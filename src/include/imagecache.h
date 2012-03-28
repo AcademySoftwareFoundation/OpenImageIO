@@ -94,6 +94,7 @@ public:
     ///     int statistics:level : verbosity of statistics auto-printed.
     ///     int forcefloat : if nonzero, convert all to float.
     ///     int failure_retries : number of times to retry a read before fail.
+    ///     int deduplicate : if nonzero, detect duplicate textures (default=1)
     ///
     virtual bool attribute (const std::string &name, TypeDesc type,
                             const void *val) = 0;
