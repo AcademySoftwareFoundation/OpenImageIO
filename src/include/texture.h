@@ -338,6 +338,7 @@ public:
     ///     int accept_untiled : if nonzero, accept untiled images
     ///     int accept_unmipped : if nonzero, accept unmipped images
     ///     int failure_retries : how many times to retry a read failure
+    ///     int deduplicate : if nonzero, detect duplicate textures (default=1)
     ///     int gray_to_rgb : make 1-channel images fill RGB lookups
     ///     string latlong_up : default "up" direction for latlong ("y")
     ///
