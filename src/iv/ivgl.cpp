@@ -326,6 +326,11 @@ IvGL::create_shaders (void)
     }
     if (m_shaders_created)
         return;
+    
+    //initialize shader object handles for abort function
+    m_shader_program = 0;
+    m_vertex_shader = 0;
+    m_fragment_shader = 0;
 
     // When using extensions to support shaders, we need to load the function
     // entry points (which is actually done by GLEW) and then call them. So
@@ -357,7 +362,8 @@ IvGL::create_shaders (void)
     if (! status) {
         std::cerr << "vertex shader compile status: " << status << "\n";
         print_shader_log (std::cerr, m_vertex_shader);
-        // FIXME: How to handle this error?
+        create_shaders_abort ();
+        return;
     }
     if (m_shaders_using_extensions) {
         glAttachObjectARB (m_shader_program, m_vertex_shader);
@@ -381,7 +387,8 @@ IvGL::create_shaders (void)
     if (! status) {
         std::cerr << "fragment shader compile status: " << status << "\n";
         print_shader_log(std::cerr, m_fragment_shader);
-        // FIXME: How to handle this error?
+        create_shaders_abort ();
+        return;
     }
     if (m_shaders_using_extensions) {
         glAttachObjectARB (m_shader_program, m_fragment_shader);
@@ -405,7 +412,6 @@ IvGL::create_shaders (void)
     }
     if (! linked) {
         std::cerr << "NOT LINKED\n";
-        // FIXME: How to handle this error?
         char buf[10000];
         buf[0] = 0;
         GLsizei len;
@@ -415,9 +421,40 @@ IvGL::create_shaders (void)
             glGetProgramInfoLog (m_shader_program, sizeof(buf), &len, buf);
         }
         std::cerr << "link log:\n" << buf << "---\n";
+        create_shaders_abort ();
+        return;
     }
 
     m_shaders_created = true;
+}
+
+
+
+void
+IvGL::create_shaders_abort (void)
+{
+    if (m_shaders_using_extensions) {
+        glUseProgramObjectARB (0);
+        if (m_shader_program)
+            //this will also detach related shaders
+            glDeleteObjectARB (m_shader_program);
+        if (m_vertex_shader)
+            glDeleteObjectARB (m_vertex_shader);
+        if (m_fragment_shader)
+            glDeleteObjectARB (m_fragment_shader);
+    }
+    else {
+        glUseProgram (0);        
+        if (m_shader_program)
+            glDeleteProgram (m_shader_program);
+        if (m_vertex_shader)
+            glDeleteShader (m_vertex_shader);
+        if (m_fragment_shader)
+            glDeleteShader (m_fragment_shader);
+    }
+    
+    GLERRPRINT ("After delete shaders");    
+    m_use_shaders = false;
 }
 
 
