@@ -51,6 +51,7 @@
 #include "filesystem.h"
 #include "filter.h"
 #include "color.h"
+#include "fmath.h"
 
 #include "oiiotool.h"
 
@@ -1367,6 +1368,2090 @@ action_fixnan (int argc, const char *argv[])
 
 
 
+int*
+ip_histogram_calculate (const ImageBuf &Aib) 
+{
+    ImageBuf::ConstIterator<float> a (Aib);   
+
+    int* histogram = new int[256];
+    for (int i = 0; i < 256; i++) {
+        histogram[i] = 0;
+    }
+    
+    int v;
+    for ( ; ! a.done(); ++a) {
+        a.pos (a.x(), a.y());
+        v = (int) (a[0] * 255); // map 0-1 range to 0-255
+        histogram[v]++;        
+    }
+
+    return histogram;
+}
+
+
+
+ImageBuf*
+ip_histogram_to_image (int* histogram, int xres, int yres) 
+{
+    // Create new ImageBuf
+    ImageSpec spec (256, 256, 1, TypeDesc::FLOAT);
+    ImageBuf Rib ("", spec);
+    ImageBuf::Iterator<float> r (Rib);
+
+    // Init image to white
+    for ( ; ! r.done(); ++r) {
+        r[0] = 1.0f;                
+    }
+    r.pos (0, 0);
+     
+    // Get max value in histogram
+    int max = 0;
+    for (int i = 0; i < 256; i++) {
+        if (histogram[i] > max) {
+            max = histogram[i];
+        }
+    }    
+
+    // Draw histogram column by column, down -> up, by filling pixels.
+    // factor - how much we need to multiply the max histogram value so that it is drawn at the top of the image                                          
+    float maxf = ((float)max / (float)(xres * yres)) * 255;       // map maxf in range 0-255
+    float factor = 255.0 / maxf;                                  // maxf * factor = 255 => factor = 255 / maxf                                    
+    for (int i = 0; i < 256; i++) {        
+        float a = ((float)histogram[i] / (float)(xres * yres)) *  255;    // map in range 0-255
+        int aa = a * factor;         
+        for (int j = 0; j < aa; j++) {
+            int row = 255 - j;
+            r.pos (i, row);
+            r[0] = 0;
+        }
+    }
+
+    ImageBuf* result = new ImageBuf(Rib);
+    return result;
+}
+
+
+
+static int
+action_ip_histogram (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_histogram, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ImageSpec specR (256, 256, 1, TypeDesc::FLOAT);
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));
+
+    // Get arguments from command line
+    // no arguments
+
+    // Calculate histogram just for the first miplevel of the first subimage
+    const ImageBuf &Aib ((*A)());
+    ImageBuf &Rib ((*ot.curimg)());          
+    
+    const ImageSpec& spec = Aib.spec();
+    int xres = spec.width;
+    int yres = spec.height;    
+    int* histogram = ip_histogram_calculate (Aib);
+    Rib = *ip_histogram_to_image (histogram, xres, yres);    
+             
+    return 0;
+}
+
+
+
+float
+rgb_to_grayscale (float* rgb) 
+{    
+    float wr = 0.2125, wg = 0.7154, wb = 0.072;
+    return wr * rgb[0] + wg * rgb[1] + wb * rgb[2];
+}
+
+
+
+int*
+ip_histogram_rgb_luma (const ImageBuf &Aib)
+{
+    int* histogram = new int[256];
+    for (int i = 0; i < 256; i++) {
+        histogram[i] = 0;
+    }
+
+    ImageBuf::ConstIterator<float> a (Aib);    
+    for ( ; ! a.done(); ++a) {
+        a.pos (a.x(), a.y());
+        float rgb[3] = { a[0], a[1], a[2]}; 
+        float luma = rgb_to_grayscale (rgb);
+        int index = luma * 255; // map to 0-255 range
+        histogram[index]++;
+    }  
+    
+    return histogram;
+}
+
+
+
+static int
+action_ip_histogram_rgb_luma (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_histogram_rgb_luma, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ImageSpec specR (256, 256, 1, TypeDesc::FLOAT);
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));
+
+    // Get arguments from command line
+    // no arguments
+
+    // Calculate histogram just for the first miplevel of the first subimage
+    const ImageBuf &Aib ((*A)());
+    ImageBuf &Rib ((*ot.curimg)());          
+    
+    const ImageSpec& spec = Aib.spec();
+    int xres = spec.width;
+    int yres = spec.height;    
+    int* histogram_luma = ip_histogram_rgb_luma (Aib);
+    Rib = *ip_histogram_to_image (histogram_luma, xres, yres);    
+             
+    return 0;
+}
+
+
+
+void
+ip_histogram_rgb_components (const ImageBuf &Aib, int r[256], int g[256], int b[256]) 
+{     
+    ImageBuf::ConstIterator<float> a (Aib);
+    
+    // Calculate R histogram.
+    for (int i = 0; i < 256; i++) {
+        r[i] = 0;
+    }    
+    for ( ; ! a.done(); ++a) {
+        a.pos (a.x(), a.y());
+        int v = (int) (a[0] * 255); // map 0-1 range to 0-255
+        r[v]++;        
+    }
+    a.pos (0, 0);
+
+    // Calculate G histogram.
+    for (int i = 0; i < 256; i++) {
+        g[i] = 0;
+    }    
+    for ( ; ! a.done(); ++a) {
+        a.pos (a.x(), a.y());
+        int v = (int) (a[1] * 255); // map 0-1 range to 0-255
+        g[v]++;        
+    }
+    a.pos (0, 0);
+
+    // Calculate B histogram.
+    for (int i = 0; i < 256; i++) {
+        b[i] = 0;
+    }    
+    for ( ; ! a.done(); ++a) {
+        a.pos (a.x(), a.y());
+        int v = (int) (a[2] * 255); // map 0-1 range to 0-255
+        b[v]++;        
+    }    
+}
+
+
+
+static int
+action_ip_histogram_rgb_components (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_histogram_rgb_components, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+
+    // Calculate histogram just for the first miplevel of the first subimage
+    const ImageBuf &Aib ((*A)());  
+        
+    // Calculate histograms for R, G and B channels
+    int *r = new int[256];
+    int *g = new int[256];
+    int *b = new int[256];
+    ip_histogram_rgb_components (Aib, r, g, b);
+
+    // Get histograms as images  
+    const ImageSpec& spec = Aib.spec();
+    int xres = spec.width;
+    int yres = spec.height;   
+    ImageBuf* histogram_R = ip_histogram_to_image (r, xres, yres);
+    ImageBuf* histogram_G = ip_histogram_to_image (g, xres, yres);
+    ImageBuf* histogram_B = ip_histogram_to_image (b, xres, yres);
+    
+    // Create paths
+    std::string filename_prefix = argv[1];   // the images will be named prefix_R, prefix_G and prefix_B
+    std::string directory = argv[2];         // dir where the three images will be saved
+    std::string path = directory + filename_prefix + "_";
+    std::string path_R = path + "R.tif";
+    std::string path_G = path + "G.tif";
+    std::string path_B = path + "B.tif";
+
+    ImageSpec specR (256, 256, 1, TypeDesc::FLOAT);
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+    Rib = *histogram_G;    
+
+    // Write images    
+    histogram_R->save (path_R);
+    histogram_G->save (path_G);
+    histogram_B->save (path_B);
+             
+    return 0;
+}
+
+
+
+int*
+ip_cumulative_histogram (int histogram[256]) 
+{
+    int* result = new int[256];
+    for (int i = 0; i < 256; i++) {
+        result[i] = 0;
+    }
+
+    result[0] = histogram[0];
+    for (int i = 1; i < 256; i++)
+    {
+        result[i] = result[i-1]  + histogram[i];
+    }
+
+    return result;
+}
+
+
+
+static int
+action_ip_cumulative_histogram (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_cumulative_histogram, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ImageSpec specR (256, 256, 1, TypeDesc::FLOAT);
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));
+
+    // Get arguments from command line
+    // no arguments
+
+    // Calculate histogram just for the first miplevel of the first subimage
+    const ImageBuf &Aib ((*A)());
+    ImageBuf &Rib ((*ot.curimg)());
+  
+    const ImageSpec& spec = Aib.spec();
+    int xres = spec.width;
+    int yres = spec.height;
+    int* histogram = ip_histogram_calculate (Aib);
+    int* histogram_cum = ip_cumulative_histogram (histogram);
+    Rib = *ip_histogram_to_image (histogram_cum, xres, yres);    
+             
+    return 0;
+}
+
+
+
+void
+ip_contrast (const ImageBuf &Aib, ImageBuf &Rib, float contrast) 
+{
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        r[0] = clamp (a[0] * contrast, 0.0f, 1.0f);
+    }
+}
+
+
+
+static int
+action_ip_contrast (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_contrast, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    float contrast = (float) atof(argv[1]);
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_contrast (Aib, Rib, contrast);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_brightness (const ImageBuf &Aib, ImageBuf &Rib, float brightness) 
+{
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        r[0] = clamp (a[0] + brightness, 0.0f, 1.0f);
+    }
+}
+
+
+
+static int
+action_ip_brightness (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_brightness, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    float brightness = (float) atof(argv[1]);
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_brightness (Aib, Rib, brightness);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_invert (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        r[0] = 1.0 - a[0];
+    } 
+}
+
+
+
+static int
+action_ip_invert (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_invert, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments    
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_invert (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_threshold (const ImageBuf &Aib, ImageBuf &Rib, float threshold, float low, float high) 
+{
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        if (a[0] < threshold) {            
+            r[0] = low;
+        } else {
+            r[0] = high;
+        }
+    }
+}
+
+
+
+static int
+action_ip_threshold (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_threshold, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    float threshold = (float) atof(argv[1]);
+    float low = (float) atof(argv[2]);
+    float high = (float) atof(argv[3]);
+
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_threshold (Aib, Rib, threshold, low, high);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_auto_contrast (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    float min = 0.0, max = 1.0, lowest = 1.0, highest = 0.0;
+    // Get lowest and highest pixel values in the image
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        if (a[0] < lowest) { lowest = a[0]; }
+        if (a[0] > highest) { highest = a[0]; }
+    }
+
+    r.pos (0, 0);
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        r[0] = (a[0] - lowest) * (max / (highest - lowest));
+    }
+}
+
+
+
+static int
+action_ip_auto_contrast (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_auto_contrast, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_auto_contrast (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_modified_auto_contrast (const ImageBuf &Aib, ImageBuf &Rib, float slow, float shigh) 
+{
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+    const ImageSpec& spec = Aib.spec();
+    int xres = spec.width;
+    int yres = spec.height;
+
+    // Get histogram and cumulative histogram.
+    int* histogram = ip_histogram_calculate (Aib);
+    int* histogram_cum = ip_cumulative_histogram (histogram);
+  
+    // Find alow.
+    int temp1 = xres * yres * slow;
+    int alow = 255;
+    for (int i = 0; i < 256; i++) {
+        if (histogram_cum[i] >= temp1 && i < alow) {
+            alow = i;
+        }
+    }
+
+    // Find ahigh.
+    int temp2 = xres * yres * (1 - shigh);
+    int ahigh = 0;
+    for (int i = 0; i < 256; i++) {
+        if (histogram_cum[i] <= temp2 && i > ahigh) {
+            ahigh = i;
+        }
+    }    
+    // std::cout << alow << ", " << ahigh << "\n";
+
+    // Modify pixels.
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        int ai = (int) (a[0] * 255.0f); // map to range 0-255
+        if (ai <= alow) {
+            r[0] = 0;
+        } else if (ai >= ahigh) {
+            r[0] = 1;
+        } else {
+            r[0] = (float)(ai - alow) / (float)(ahigh - alow);
+        }
+    }
+}
+
+
+
+static int
+action_ip_modified_auto_contrast (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_modified_auto_contrast, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    float slow = (float) atof(argv[1]);
+    float shigh = (float) atof(argv[2]);
+
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_modified_auto_contrast (Aib, Rib, slow, shigh);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_histogram_equalization (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+    const ImageSpec& spec = Aib.spec();
+    int xres = spec.width;
+    int yres = spec.height;
+
+    // Get histogram and cumulative histogram.
+    int* histogram = ip_histogram_calculate (Aib);
+    int* histogram_cum = ip_cumulative_histogram (histogram);
+
+    float factor = 255.0 / (float)(xres * yres);
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        int val = (int) (a[0] * 255); // map to range 0-255
+        int result = floor (histogram_cum[val] * factor);
+        result = clamp (result, 0, 255);
+        r[0] = (float)result / 255.0f;    // map back to 0-1
+    }
+}
+
+
+
+static int
+action_ip_histogram_equalization (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_histogram_equalization, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_histogram_equalization (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+float* 
+cdf (int* histogram, int xres, int yres) 
+{
+    float* result = new float[256];    
+    int* histogram_cum = ip_cumulative_histogram (histogram);
+    for (int i = 0; i < 256; i++) {
+        result[i] = (float)histogram_cum[i] / (float)(xres * yres);
+    }
+    return result;
+}
+
+
+
+float*
+piecewise_linear_distribution_build (float* cdf) 
+{
+    // 256 / 32 = 8
+    int samples = 32 + 1;
+    int step = 8;
+    
+    float* result = new float[33 * 2];    
+    result[32 * 2 + 0] = 255; 
+    result[32 * 2 + 1] = 1;
+    for (int i = 0; i < samples - 1; i++) {
+        int a = i * step;
+        result[i * 2 + 0] = a;
+        result[i * 2 + 1] = cdf[a];
+    }
+    return result;
+}
+
+
+
+float
+piecewise_linear_distribution_evaluate (float* pld, int i) 
+{
+    // Find m.
+    int samples = 32;
+    int m = -1;
+    for (int j = 0; j < samples - 1; i++) {
+        float aj = pld[j * 2 + 0];
+        if (aj <= i and j > m) {
+            m = j;
+        }
+    }
+    
+    float am = pld[m * 2 + 0];
+    float qm = pld[m * 2 + 1];
+    float am_plus1 = pld[(m + 1) * 2 + 0];
+    float qm_plus1 = pld[(m + 1) * 2 + 1];
+
+    float result = qm + (i - am) * ((qm_plus1 - qm) / (am_plus1 - am));
+    return result;
+}
+
+
+
+void
+ip_histogram_specification_piecewise_linear (const ImageBuf &Aib, const ImageBuf &Bib, ImageBuf &Rib) 
+{    
+    // Iterators
+    ImageBuf::ConstIterator<float> a (Aib);    
+    ImageBuf::Iterator<float> r (Rib);
+
+    // A
+    const ImageSpec& specA = Aib.spec();    
+    int xresA = specA.width;
+    int yresA = specA.height;
+    int* histogramA = ip_histogram_calculate (Aib);    
+    float* cdfA = cdf (histogramA, xresA, yresA);    
+
+    // Create distribution_to_match from Bib
+    const ImageSpec& specB = Bib.spec();
+    int xresB = specB.width;
+    int yresB = specB.height;
+    int* histogramB = ip_histogram_calculate (Bib);
+    float* cdfB = cdf (histogramB, xresB, yresB);
+    float* distribution_to_match = piecewise_linear_distribution_build (cdfB);
+
+    // Calculate mapping.
+    int N = 32; // number of samples
+    float q0 = distribution_to_match[0 * 2 + 1];
+    unsigned char* map = new unsigned char[256];
+    for (int a = 0; a < 256; a++) {
+        float b = cdfA[a];        
+        if (b <= q0) {
+            map[a] = 0;
+        }
+        else if (b >= 1) {
+            map[a] = 255;
+        }
+        else {
+            int n = N - 1;            
+            while (n >= 0 && distribution_to_match[n * 2 + 1] > b) {
+                n--;
+            }   
+            float an = distribution_to_match[n * 2 + 0];
+            float an_plus1 = distribution_to_match[(n + 1) * 2 + 0];
+            float qn = distribution_to_match[n * 2 + 1];
+            float qn_plus1 = distribution_to_match[(n + 1) * 2 + 1];         
+            map[a] = an + (b - qn) * ((an_plus1 - an) / (qn_plus1 - qn));
+        }
+    }
+    
+    // Map pixels
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        int val = (int) (a[0] * 255); // map to range 0-255
+        r[0] = (float)map[val] / 255.0f;    // map back to 0-1
+    }
+}
+
+
+
+static int
+action_ip_histogram_specification_piecewise_linear (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_ip_histogram_specification_piecewise_linear, argc, argv))
+        return 0;
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            const ImageBuf &Bib ((*B)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_histogram_specification_piecewise_linear (Aib, Bib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_histogram_specification_moving_bars (const ImageBuf &Aib, const ImageBuf &Bib, ImageBuf &Rib) 
+{    
+    // Iterators
+    ImageBuf::ConstIterator<float> a (Aib);    
+    ImageBuf::Iterator<float> r (Rib);
+
+    // A
+    const ImageSpec& specA = Aib.spec();    
+    int xresA = specA.width;
+    int yresA = specA.height;
+    int* histogramA = ip_histogram_calculate (Aib);    
+    float* cdfA = cdf (histogramA, xresA, yresA);    
+
+    // B
+    const ImageSpec& specB = Bib.spec();
+    int xresB = specB.width;
+    int yresB = specB.height;
+    int* histogramB = ip_histogram_calculate (Bib);
+    float* cdfB = cdf (histogramB, xresB, yresB);
+    
+    // Calculate mapping.
+    unsigned char* map = new unsigned char[256];
+    for (int a = 0; a < 256; a++) {
+        int j = 255;
+        do {
+            map[a] = j--;
+        } while (j >= 0 && cdfA[a] <= cdfB[j]);
+    }
+    
+    // Map pixels
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        int val = (int) (a[0] * 255); // map to range 0-255
+        r[0] = (float)map[val] / 255.0f;    // map back to 0-1
+    }
+}
+
+
+
+static int
+action_ip_histogram_specification_moving_bars (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_ip_histogram_specification_moving_bars, argc, argv))
+        return 0;
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            const ImageBuf &Bib ((*B)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_histogram_specification_moving_bars (Aib, Bib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_gamma_correction (const ImageBuf &Aib, ImageBuf &Rib, float gammaValue)
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;
+    ImageBuf::ConstIterator<float> a (Aib);    
+    ImageBuf::Iterator<float> r (Rib);
+    
+    // Calculate mapping.
+    unsigned char* map = new unsigned char[256];
+    for (int a = 0; a < 256; a++) {
+        float aa = (float)a / 255.0f;
+        aa = pow(aa, gammaValue);
+        int b = (int) (aa * 255); 
+        map[a] = b;
+    }
+
+    // Map pixels
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        int val = (int) (a[0] * 255); // map to range 0-255
+        r[0] = (float)map[val] / 255.0f;    // map back to 0-1
+    }
+}
+
+
+
+static int
+action_ip_gamma_correction (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_gamma_correction, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    float gammaValue = (float) atof(argv[1]);
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_gamma_correction (Aib, Rib, gammaValue);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_alpha_blend (const ImageBuf &Aib, const ImageBuf &Bib, ImageBuf &Rib, float alpha)
+{
+    ImageBuf::ConstIterator<float> a (Aib); 
+    ImageBuf::ConstIterator<float> b (Bib);   
+    ImageBuf::Iterator<float> r (Rib);
+    
+    // A
+    const ImageSpec& specA = Aib.spec();    
+    int xresA = specA.width;
+    int yresA = specA.height;
+    
+    // B
+    const ImageSpec& specB = Bib.spec();
+    int xresB = specB.width;
+    int yresB = specB.height;
+          
+    for ( ; ! r.done(); ++r) {
+        a.pos (r.x(), r.y());
+        b.pos (r.x(), r.y());
+        r[0] = alpha * a[0] + (1 - alpha) * b[0];
+    }
+}
+
+
+
+static int
+action_ip_alpha_blend (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_ip_alpha_blend, argc, argv))
+        return 0;
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    float alpha = (float) atof(argv[1]);
+
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            const ImageBuf &Bib ((*B)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_alpha_blend (Aib, Bib, Rib, alpha);
+        }
+    }
+}
+
+
+
+void
+ip_filter_box (const ImageBuf &Aib, ImageBuf &Rib)
+{
+    ImageBuf::ConstIterator<float> a (Aib);       
+    ImageBuf::Iterator<float> r (Rib);
+    
+    // A
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;
+    
+    for (int v = 1; v <= yres - 2; v++) {
+        for (int u = 1; u <= xres - 2; u ++) {
+            r.pos (u, v);
+            float sum = 0;
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
+                    a.pos (u + i, v + j);                    
+                    sum += a[0];
+                }
+            }            
+            r[0] = sum / 9.0;
+        }
+    }
+}
+
+
+
+static int
+action_ip_filter_box (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_filter_box, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_filter_box (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}    
+
+
+
+float* 
+ip_filter_linear (const ImageBuf &Aib, float* filter, int filterX, int filterY) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;
+    ImageBuf::ConstIterator<float> a (Aib);
+
+    float* result = new float[xres * yres];
+    int K = filterX / 2;
+    int L = filterY / 2;
+
+    for (int v = L; v <= yres - L - 1; v++) {
+        for (int u = K; u <= xres - K - 1; u ++) {
+            float sum = 0;
+            for (int j = -L; j <= L; j++) {
+                for (int i = -K; i <= K; i++) {
+                    a.pos (u + i, v + j);                           
+                    float c = filter[(j + L) * filterX + (i + K)];
+                    sum += c * a[0];
+                }
+            }           
+            result[v * xres + u] = sum;
+        }
+    }
+
+    return result;
+}
+
+
+
+float* 
+ip_filter_linear_float (float* image, int xres, int yres, float* filter, int filterX, int filterY) 
+{  
+    float* result = new float[xres * yres];
+    int K = filterX / 2;
+    int L = filterY / 2;
+
+    for (int v = L; v <= yres - L - 1; v++) {
+        for (int u = K; u <= xres - K - 1; u ++) {
+            float sum = 0;
+            for (int j = -L; j <= L; j++) {
+                for (int i = -K; i <= K; i++) {
+                    float p = image[(v + j) * xres + (u + i)];
+                    float c = filter[(j + L) * filterX + (i + K)];
+                    sum += c * p;
+                }
+            }           
+            result[v * xres + u] = sum;
+        }
+    }
+
+    return result;
+}
+
+
+
+void 
+ip_filter_min (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;
+
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    for (int v = 1; v <= yres - 2; v++) {
+        for (int u = 1; u <= xres - 2; u ++) {
+            r.pos (u, v);
+            float min = 1;
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
+                    a.pos (u + i, v + j);                                
+                    if (a[0] < min) {
+                        min = a[0];
+                    }
+                }
+            }
+            r[0] = min;
+        }
+    }    
+}
+
+
+
+static int
+action_ip_filter_min (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_filter_min, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_filter_min (Aib, Rib);
+        }
+    }
+             
+    return 0;
+} 
+
+
+
+void 
+ip_filter_max (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;
+
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    for (int v = 1; v <= yres - 2; v++) {
+        for (int u = 1; u <= xres - 2; u ++) {
+            r.pos (u, v);
+            float max = 0;
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
+                    a.pos (u + i, v + j);                                
+                    if (a[0] > max) {
+                        max = a[0];
+                    }
+                }
+            }
+            r[0] = max;
+        }
+    }    
+}
+
+
+
+static int
+action_ip_filter_max (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_filter_max, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_filter_max (Aib, Rib);
+        }
+    }
+             
+    return 0;
+} 
+
+
+
+template<typename T>
+T* sort_array (T* arr, int n) 
+{
+    std::vector<T> myvector (arr, arr + n);    
+    std::sort (myvector.begin(), myvector.end()); 
+    T* array = new T[myvector.size()];
+    for(int i = 0; i < myvector.size(); i++) {
+        array[i] = myvector[i];
+    }
+    return array;
+}
+
+
+
+void 
+ip_filter_median_3x3 (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;    
+
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    float* p = new float[9];
+    for (int v = 1; v <= yres - 2; v++) {
+        for (int u = 1; u <= xres - 2; u ++) {
+            r.pos (u, v);
+            int k = 0;
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
+                    a.pos (u + j, v + i);
+                    p[k++] = a[0];
+                }
+            }
+            p = sort_array<float> (p, 9);
+            r[0] = p[4];
+        }
+    }    
+}
+
+
+
+static int
+action_ip_filter_median_3x3 (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_filter_median_3x3, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_filter_median_3x3 (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+float*
+normalize_filter (float* filter, int x, int y)
+{
+    float* result = new float[x * y];    
+    float sum = 0.0;
+    for (int i = 0; i < x; i++) {
+        for (int j = 0; j < y; j++) {
+            sum += abs (filter[j * x + i]);
+        }
+    }    
+    for (int i = 0; i < x; i++) {
+        for (int j = 0; j < y; j++) {
+            result[j * x + i] = filter[j * x + i] / sum;
+        }
+    }
+    return result;
+}
+
+
+
+void 
+ip_edge_detector_sobel (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;    
+
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    // Get Dx and Dy.    
+    float* sobel_filter_x = new float[9]{-1, 0, 1, -2, 0, 2, -1, 0, 1};
+    float* sobel_filter_y = new float[9]{-1, -2, -1, 0, 0, 0, 1, 2, 1};    
+    float* Dx = ip_filter_linear (Aib, sobel_filter_x, 3, 3); 
+    float* Dy = ip_filter_linear (Aib, sobel_filter_y, 3, 3);
+
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i ++) {
+            // Set pixels to gradient magnitude.            
+            r.pos (i, j);         
+            r[0] = sqrt(pow(Dx[j * xres + i], 2) + pow(Dy[j * xres + i], 2));            
+        }
+    }
+}
+
+
+
+static int
+action_ip_edge_detector_sobel (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_edge_detector_sobel, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_edge_detector_sobel (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void 
+ip_edge_detector_prewitt (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;    
+
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    // Get Dx and Dy.    
+    float* prewitt_filter_x = new float[9]{-1, 0, 1, -1, 0, 1, -1, 0, 1};
+    float* prewitt_filter_y = new float[9]{-1, -1, -1, 0, 0, 0, 1, 1, 1}; 
+    float* Dx = ip_filter_linear (Aib, prewitt_filter_x, 3, 3); 
+    float* Dy = ip_filter_linear (Aib, prewitt_filter_y, 3, 3);
+
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i ++) {
+            // Set pixels to gradient magnitude.            
+            r.pos (i, j);         
+            r[0] = sqrt(pow(Dx[j * xres + i], 2) + pow(Dy[j * xres + i], 2));            
+        }
+    }
+}
+
+
+
+static int
+action_ip_edge_detector_prewitt (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_edge_detector_prewitt, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_edge_detector_prewitt (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void 
+ip_edge_sharpen_laplace (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;    
+
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    float* laplace_filter = new float[9]{0, 1, 0, 1, -4, 1, 0, 1, 0};
+    float* temp =  ip_filter_linear (Aib, laplace_filter, 3, 3);
+
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i ++) {
+            a.pos (i, j);
+            r.pos (i, j);    
+            r[0] = a[0] - temp[j * xres + i];
+        }
+    }
+}
+
+
+
+static int
+action_ip_edge_sharpen_laplace (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_edge_sharpen_laplace, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_edge_sharpen_laplace (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void 
+ip_edge_unsharp_mask (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;    
+
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    float p = 1.0;    
+    float* gaussian = new float[9]{0.075, 0.125, 0.075, 0.125, 0.2, 0.125, 0.075, 0.125, 0.075};
+    float* blurred = ip_filter_linear (Aib, gaussian, 3, 3);
+
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i ++) { 
+            a.pos(i, j);
+            r.pos(i, j);
+            float val = (1 + p) * a[0];
+            val -= p * blurred[j * xres + i];
+            val = clamp(val, 0.0f, 1.0f);
+            r[0] = val;            
+        }
+    }
+}
+
+
+
+static int
+action_ip_edge_unsharp_mask (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_edge_unsharp_mask, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_edge_unsharp_mask (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+void
+ip_edge_detector_canny (const ImageBuf &Aib, ImageBuf &Rib, float low, float high) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;    
+
+    ImageBuf::ConstIterator<float> a (Aib);
+    ImageBuf::Iterator<float> r (Rib);
+
+    // Map Aib values to 0-255
+    float* AA = new float[xres * yres];
+    for (int i = 0; i < xres; i++) {
+        for (int j = 0; j < yres; j++) {
+            a.pos (i, j);
+            AA[j * xres + i] = a[0] * 255; 
+        }
+    }
+    
+    // Step 1: Blur
+    float* gaussian = new float[9]{0.075, 0.125, 0.075, 0.125, 0.2, 0.125, 0.075, 0.125, 0.075};
+    float* blurred = ip_filter_linear_float (AA, xres, yres, gaussian, 3, 3);
+
+    // Step 2: Gradient
+    float* sobel_filter_x = new float[9]{-1, 0, 1, -2, 0, 2, -1, 0, 1};
+    float* sobel_filter_y = new float[9]{-1, -2, -1, 0, 0, 0, 1, 2, 1};    
+    float* Dx = ip_filter_linear_float (blurred, xres, yres, sobel_filter_x, 3, 3);
+    float* Dy = ip_filter_linear_float (blurred, xres, yres, sobel_filter_y, 3, 3);
+
+    float* gradient = new float[xres * yres];
+    float* gradient_direction = new float[xres * yres];
+    int* gradient_direction_quantized = new int[xres * yres];
+
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i++) {    
+            // magnitude 
+            float value = sqrt(pow(Dx[j * xres + i], 2) + pow(Dy[j * xres + i], 2));
+            gradient[j * xres + i] = value;
+
+            // direction            
+            gradient_direction[j * xres + i] = atan2(Dy[j * xres + i], Dx[j * xres + i]) * (180.0 / 3.1415926);
+            if (gradient_direction[j * xres + i] < 0) {                
+                gradient_direction[j * xres + i] += 360;
+            }
+            float angle = gradient_direction[j * xres + i];
+            gradient_direction_quantized[j * xres + i] = 0;
+
+            if ((angle >= 0 && angle < 22.5) || (angle >= 157.5 && angle < 202.5) || (angle >= 337.5 && angle < 360)) {
+                gradient_direction_quantized[j * xres + i] = 0;                
+            }
+            else if ((angle >= 22.5 && angle < 67.5) || (angle >= 202.5 && angle < 247.5)) {
+                gradient_direction_quantized[j * xres + i] = 45;
+            }
+            else if ((angle >= 67.5 && angle < 112.5) || (angle >= 247.5 && angle < 292.5)) {
+                gradient_direction_quantized[j * xres + i] = 90;
+            }
+            else if ((angle >= 112.5 && angle < 157.5) || (angle >= 292.5 && angle < 337.5)) {                               
+                gradient_direction_quantized[j * xres + i] = 135;
+            }
+        }
+    }
+
+    // Step 3: Non maximum suppression
+    float* non_max = new float[xres * yres];
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i ++) {
+            non_max[j * xres + i] = gradient[j * xres + i];
+        }
+    }
+    for (int j = 1; j < yres - 1; j++) {
+        for (int i = 1; i < xres - 1; i ++) {
+            if (gradient_direction_quantized[j * xres + i] == 0) {
+                if (gradient[j * xres + i] < gradient[j * xres + (i - 1)] || gradient[j * xres + i] < gradient[j * xres + (i + 1)]) {
+                    non_max[j * xres + i] = 0;
+                }
+            }
+            if (gradient_direction_quantized[j * xres + i] == 45) {
+                if (gradient[j * xres + i] < gradient[(j + 1) * xres + (i - 1)] || gradient[j * xres + i] < gradient[(j - 1) * xres + (i + 1)]) {
+                    non_max[j * xres + i] = 0;
+                }
+            }
+            if (gradient_direction_quantized[j * xres + i] == 90) {
+                if (gradient[j * xres + i] < gradient[(j - 1) * xres + i] || gradient[j * xres + i] < gradient[(j + 1) * xres + i]) {
+                    non_max[j * xres + i] = 0;
+                }
+            }
+            if (gradient_direction_quantized[j * xres + i] == 135) {
+                if (gradient[j * xres + i] < gradient[(j - 1) * xres + (i - 1)] || gradient[j * xres + i] < gradient[(j + 1) * xres + (i + 1)]) {
+                    non_max[j * xres + i] = 0;
+                }
+            }
+        }
+    }
+
+    // Step 4: Hysteresis
+    float* hysteresis = new float[xres * yres];  
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i ++) {
+            hysteresis[j * xres + i] = non_max[j * xres + i];
+        }
+    }
+    // Mark as an edge, maybe an edge, or definitely not an edge
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i ++) {
+            if (hysteresis[j * xres + i] >= high) { hysteresis[j * xres + i] = 255; }
+            else if (hysteresis[j * xres + i] < high && hysteresis[j * xres + i] >= low) { hysteresis[j * xres + i] = 2; }
+            else if (hysteresis[j * xres + i] < low) { hysteresis[j * xres + i] = 0; }
+        }
+    }
+
+    // Reconsider case 2
+    for (int j = 1; j < yres - 1; j++) {
+        for (int i = 1; i < xres - 1; i ++) {
+            // Survive only if there is an edge pixel in the 8-pixel neighborhood
+            if (hysteresis[j * xres + (i - 1)] == 1 || hysteresis[j * xres + (i + 1)] == 1 || hysteresis[(j - 1) * xres + (i - 1)] == 1
+            || hysteresis[(j - 1) * xres + i] == 1 || hysteresis[(j - 1) * xres + (i + 1)] == 1 || hysteresis[(j + 1) * xres + (i - 1)] == 1
+            || hysteresis[(j + 1) * xres + i] == 1 || hysteresis[(j + 1) * xres + (i + 1)] == 1) {
+                hysteresis[j * xres + i] = 255;        
+            }
+        }
+    }
+    // Suppress case 2 pixels
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i ++) {
+            if (hysteresis[j * xres + i] == 2) {
+                hysteresis[j * xres + i] = 0;
+            }
+        }
+    }  
+
+    // Copy result to Rib
+    for (int i = 0; i < xres; i++) {
+        for (int j = 0; j < yres; j++) {
+            r.pos (i, j);
+            r[0] = hysteresis[j * xres + i] / 255.0f;   // map back to 0-1
+        }
+    }
+
+    /*
+    // Create rgb image that shows directions in different colors, for debug purposes.
+    unsigned char* directions = new unsigned char[xres * yres * 3];
+    for (int j = 0; j < yres; j++) {
+        for (int i = 0; i < xres; i++) {
+            // initially set to black color
+            directions[j * xres * 3 + i * 3 + 0] = 0;
+            directions[j * xres * 3 + i * 3 + 1] = 0;
+            directions[j * xres * 3 + i * 3 + 2] = 0;
+            if (hysteresis[j * xres + i] == 255) {
+                if (gradient_direction_quantized[j * xres + i] == 0) {
+                    directions[j * xres * 3 + i * 3 + 0] = 255;
+                    directions[j * xres * 3 + i * 3 + 1] = 0;
+                    directions[j * xres * 3 + i * 3 + 2] = 0;
+                }
+                if (gradient_direction_quantized[j * xres + i] == 45) {
+                    directions[j * xres * 3 + i * 3 + 0] = 0;
+                    directions[j * xres * 3 + i * 3 + 1] = 255;
+                    directions[j * xres * 3 + i * 3 + 2] = 0;
+                }
+                if (gradient_direction_quantized[j * xres + i] == 90) {
+                    directions[j * xres * 3 + i * 3 + 0] = 0;
+                    directions[j * xres * 3 + i * 3 + 1] = 0;
+                    directions[j * xres * 3 + i * 3 + 2] = 255;
+                }
+                if (gradient_direction_quantized[j * xres + i] == 135) {
+
+                    directions[j * xres * 3 + i * 3 + 0] = 255;
+                    directions[j * xres * 3 + i * 3 + 1] = 255;
+                    directions[j * xres * 3 + i * 3 + 2] = 0;
+                }
+            }
+        }
+    }
+    // Draw directions
+    */ 
+}
+
+
+
+static int
+action_ip_edge_detector_canny (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_edge_detector_canny, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    float low = (float) atof(argv[1]) * 255;    // map to 0-255 range     
+    float high = (float) atof(argv[2]) * 255;    
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_edge_detector_canny (Aib, Rib, low, high);
+        }
+    }
+             
+    return 0;
+}
+
+
+
+float*
+matrix_elements_pow (float* matrix, int xres, int yres, float degree) 
+{
+    float* result = new float[xres * yres];
+    for (int i = 0; i < yres; i++) {
+        for (int j = 0; j < xres; j++) {                                    
+            result[i * xres + j] = pow (matrix[i * xres + j], degree);
+        }
+    }
+    return result;
+}
+
+
+
+float*
+matrix_elements_mult (float* matrixA, float* matrixB, int xres, int yres) 
+{
+    float* result = new float[xres * yres];
+    for (int i = 0; i < yres; i++) {
+        for (int j = 0; j < xres; j++) {            
+            result[i * xres + j] = matrixA[i * xres + j] * matrixB[i * xres + j];
+        }
+    }
+    return result;
+}
+
+
+
+float*
+matrix_elements_abs (float* matrix, int xres, int yres) 
+{
+    float* result = new float[xres * yres];
+    for (int i = 0; i < yres; i++) {
+        for (int j = 0; j < xres; j++) {            
+            result[i * xres + j] = abs(matrix[i * xres + j]);
+        }
+    }
+    return result;
+}
+
+
+
+float*
+matrix_elements_clamp (float* matrix, int xres, int yres, float min, float max) 
+{
+    float* result = new float[xres * yres];
+    for (int i = 0; i < yres; i++) {
+        for (int j = 0; j < xres; j++) {
+            matrix[i * xres + j] = clamp (matrix[i * xres + j], min, max);
+        }
+    }
+    return result;
+}
+
+
+
+void
+harris_make_derivatives (const ImageBuf &Aib, float** A, float** B, float** C )
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height;
+
+    // Map Aib values to 0-255 range
+    ImageBuf::ConstIterator<float> a (Aib);
+    float* AA = new float[xres * yres];
+    for (int i = 0; i < xres; i++) {
+        for (int j = 0; j < yres; j++) {
+            a.pos (i, j);
+            AA[j * xres + i] = a[0] * 255;
+        }
+    }
+
+    // Blur the original image
+    float pfilt[3] = { 0.223755, 0.552490, 0.223755 };
+    float* Ix = ip_filter_linear_float (AA, xres, yres, pfilt, 3, 1);      
+    float* Iy = ip_filter_linear_float (AA, xres, yres, pfilt, 1, 3);     
+
+    // Horizontal and vertical derivatives
+    float dfilt[3] = { 0.453014, 0, -0.453014 };    
+    Ix = ip_filter_linear_float (Ix, xres, yres, dfilt, 3, 1);    
+    Iy = ip_filter_linear_float (Iy, xres, yres, dfilt, 1, 3);
+
+    // Compute A, B and C matrices   
+    *A = matrix_elements_pow (Ix, xres, yres, 2);
+    *B = matrix_elements_pow (Iy, xres, yres, 2);
+    *C = matrix_elements_mult (Ix, Iy, xres, yres);
+    
+    // Convolve with 1D gaussians
+    float bfilt[7] = { 0.01563, 0.09375, 0.234375, 0.3125, 0.234375, 0.09375, 0.01563 };
+    *A = ip_filter_linear_float (*A, xres, yres, bfilt, 7, 1);
+    *A = ip_filter_linear_float (*A, xres, yres, bfilt, 1, 7);
+    *B = ip_filter_linear_float (*B, xres, yres, bfilt, 7, 1);
+    *B = ip_filter_linear_float (*B, xres, yres, bfilt, 1, 7);
+    *C = ip_filter_linear_float (*C, xres, yres, bfilt, 7, 1);
+    *C = ip_filter_linear_float (*C, xres, yres, bfilt, 1, 7);
+}
+
+
+
+float*
+harris_make_crf (float* A, float* B, float* C, int xres, int yres, float alpha) 
+{
+    float* Q = new float[xres * yres];
+    for (int i = 0; i < yres; i++) {
+        for (int j = 0; j < xres; j++) {            
+            int t = i * xres + j;
+            float a = A[t], b = B[t], c = C[t];
+            float det = (a * b) - (c * c);
+            float trace = a + b;
+            Q[t] = det - alpha * (trace * trace);
+        }
+    } 
+    return Q;
+}
+
+
+
+bool
+harris_is_local_max (float* Q, int xres, int yres, int x, int y) 
+{    
+    if (x <= 0 || x >= xres - 1 || y <=0 || y >= yres - 1) {
+        return false;
+    }
+    else {
+        // check 8 neighbors        
+        float current = Q[y * xres + x];
+        for (int i = -1; i <= 1; i++) {
+            for (int j = -1; j <= 1; j++) {
+                if (i != 0 && j != 0) {
+                    if (Q[(y + j) * xres + (x + i)] > current) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
+
+
+class Corner {
+public:
+    int x;
+    int y;
+    float q;
+
+    Corner () {
+        x = 0;
+        y = 0;
+        q = 0;
+    } 
+   
+    Corner (int xx, int yy, int qq) {
+        x = xx;
+        y = yy;
+        q = qq;
+    }
+};
+
+
+
+bool compare_corners (Corner* i, Corner* j) { return (i->q > j->q); }
+
+
+
+std::vector<Corner*>
+harris_collect_corners (float* Q, int xres, int yres, int border, int threshold) 
+{
+    std::vector<Corner*> corner_list;
+    for (int j = border; j < yres - border; j++) {
+        for (int i = border; i < xres - border; i++) {
+            float q = Q[j * xres + i];
+            if (q > threshold && harris_is_local_max(Q, xres, yres, i, j)) {
+                Corner* c = new Corner(i, j, q);
+                corner_list.push_back (c);
+            }
+        }
+    }
+    sort (corner_list.begin(), corner_list.end(), compare_corners);
+    return corner_list;
+}
+
+
+
+int 
+harris_corner_dist (Corner c1, Corner c2) 
+{
+    int dx = c1.x - c2.x;
+    int dy = c1.y - c2.y;
+    return dx * dx + dy * dy; 
+}
+
+
+
+std::vector<Corner*>
+harris_cleanup_corners (std::vector<Corner*> corners, float dmin) 
+{
+    // Vector to array    
+    Corner** corner_array = new Corner*[corners.size()];
+    for (int i = 0; i < corners.size(); i++) {
+        corner_array[i] = corners[i];
+    }
+    
+    std::vector<Corner*> good_corners;
+    for (int i = 0; i < corners.size(); i++) {
+        if (corner_array[i] != NULL) {
+            good_corners.push_back(corner_array[i]);               
+            // delete corners close to this one
+            for (int j = i + 1; j < corners.size(); j++) {
+                if (corner_array[j] != NULL) {
+                    if (harris_corner_dist (*corner_array[i], *corner_array[j]) < dmin * dmin) {
+                        corner_array[j] = NULL; // delete corner
+                    }
+                }
+            }
+        } 
+    }
+    
+    return good_corners;    
+}
+
+
+
+void
+harris_draw_corner (ImageBuf &Rib, int xres, int yres, Corner corner) 
+{
+    int x = corner.x;
+    int y = corner.y;
+    
+    ImageBuf::Iterator<float> r (Rib);
+    r.pos (x, y);
+    r[0] = 0;
+    for (int i = -10; i <= 10; i++) { 
+        r.pos (x, y + i);       
+        r[0] = 0;        
+    }
+    for (int i = -10; i <= 10; i++) {        
+        r.pos (x + i, y); 
+        r[0] = 0;      
+    }
+}
+
+
+
+void
+ip_corner_detector_harris (const ImageBuf &Aib, ImageBuf &Rib) 
+{
+    const ImageSpec& spec = Aib.spec();    
+    int xres = spec.width;
+    int yres = spec.height; 
+
+    // Make derivatives
+    float* A = new float[xres * yres];
+    float* B = new float[xres * yres];
+    float* C = new float[xres * yres];
+    harris_make_derivatives (Aib, &A, &B, &C);
+
+    // Make crf
+    float* Q = harris_make_crf (A, B, C, xres, yres, 0.05);
+    
+    // Collect corners
+    std::vector<Corner*> corners = harris_collect_corners (Q, xres, yres, 20, 20000);    
+
+    // Cleanup corners
+    corners = harris_cleanup_corners (corners, 10);
+            
+    // Draw corners over the original image
+    Rib = Aib;
+    for (int i = 0; i < corners.size(); i++) {
+        harris_draw_corner (Rib, xres, yres, *corners[i]);
+    }
+}
+
+
+
+static int
+action_ip_corner_detector_harris (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_ip_corner_detector_harris, argc, argv))
+        return 0;
+
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    ot.push (new ImageRec (*A, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+
+    // Get arguments from command line
+    // no arguments
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Aib ((*A)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            
+            // For each subimage and mipmap
+            ip_corner_detector_harris (Aib, Rib);
+        }
+    }
+             
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
@@ -1374,6 +3459,7 @@ getargs (int argc, char *argv[])
     ArgParse ap;
     bool dummybool;
     int dummyint;
+    float dummyfloat;
     std::string dummystr;
     ap.options ("oiiotool -- simple image processing operations\n"
                 OIIO_INTRO_STRING "\n"
@@ -1443,6 +3529,33 @@ getargs (int argc, char *argv[])
                 "--diff %@", action_diff, &dummybool, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
                 "--add %@", action_add, &dummybool, "Add two images",
                 "--sub %@", action_sub, &dummybool, "Subtract two images",
+
+                "--threshold %@ %g %g %g", action_ip_threshold, &dummyfloat, &dummyfloat, &dummyfloat, "Threshold",
+                "--contrast %@ %g", action_ip_contrast, &dummyfloat, "Contrast",
+                "--brightness %@ %g", action_ip_brightness, &dummyfloat, "Brightness",
+                "--invert %@", action_ip_invert, &dummybool, "Invert",
+                "--autocontrast %@", action_ip_auto_contrast, &dummybool, "Auto-contrast",
+                "--autocontrast_modified %@ %g %g", action_ip_modified_auto_contrast, &dummyfloat, &dummyfloat, "Modified auto-contrast",
+                "--histogram %@", action_ip_histogram, &dummybool, "Histogram",
+                "--histogram_luma %@", action_ip_histogram_rgb_luma, &dummybool, "Luminance histogram for RGB image",
+                "--histogram_rgb_components %@ %s %s", action_ip_histogram_rgb_components, &dummystr, &dummystr, "Histograms per channel for RGB image",                               
+                "--histogram_cumulative %@", action_ip_cumulative_histogram, &dummybool, "Cumulative histogram",
+                "--histogram_equalization %@", action_ip_histogram_equalization, &dummybool, "Histogram",
+                "--histogram_specification_pl %@", action_ip_histogram_specification_piecewise_linear, &dummybool, "Histogram specification with piecewise linear distribution method",
+                "--histogram_specification_mb %@", action_ip_histogram_specification_moving_bars, &dummybool, "Histogram specification with moving bars method",
+                "--gamma_correction %@ %g", action_ip_gamma_correction, &dummyfloat, "Gamma correction",
+                "--alpha_blend %@ %g", action_ip_alpha_blend, &dummyfloat, "Alpha blend two images",
+                "--filter_box %@", action_ip_filter_box, &dummybool, "Box 3x3 filter",
+                "--filter_min %@", action_ip_filter_min, &dummybool, "Min filter",
+                "--filter_max %@", action_ip_filter_max, &dummybool, "Max filter",
+                "--filter_median %@", action_ip_filter_median_3x3, &dummybool, "Median filter",
+                "--edges_sobel %@", action_ip_edge_detector_sobel, &dummybool, "Sobel edge detector",
+                "--edges_prewitt %@", action_ip_edge_detector_prewitt, &dummybool, "Prewitt edge detector",
+                "--edges_sharpen_laplace %@", action_ip_edge_sharpen_laplace, &dummybool, "Laplace edge sharpening",
+                "--edges_unsharp_mask %@", action_ip_edge_unsharp_mask, &dummybool, "Unsharp mask",
+                "--edges_canny %@ %g %g", action_ip_edge_detector_canny, &dummyfloat, &dummyfloat, "Canny edge detector",
+                "--corners_harris %@", action_ip_corner_detector_harris, &dummybool, "Harris corner detector",
+
                 "--abs %@", action_abs, &dummybool, "Take the absolute value of the image pixels",
                 "--flip %@", action_flip, &dummybool, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, &dummybool, "Flop the image horizontally (left<->right)",
