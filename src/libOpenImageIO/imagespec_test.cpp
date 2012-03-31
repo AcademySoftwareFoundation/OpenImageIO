@@ -122,12 +122,12 @@ void test_imagespec_metadata_val ()
     OIIO_CHECK_NE (ret, "-1, -1");
     OIIO_CHECK_NE (ret, "18446744073709551615, 18446744073709551615,");
 
-    std::string smatrix[] = {"this is \"a test\"", "this is another test"};
-    metadata_val_test (&smatrix[0], 1, TypeDesc::TypeString, ret);
+    const char* smatrix[] = {"this is \"a test\"", "this is another test"};
+    metadata_val_test (smatrix, 1, TypeDesc::TypeString, ret);
     OIIO_CHECK_EQUAL (ret, "\"this is \"a test\"\"");
     OIIO_CHECK_NE (ret, smatrix[0]);
     OIIO_CHECK_NE (ret, "\"this is \"a test\"\",");
-    metadata_val_test (smatrix, sizeof (smatrix) / sizeof (std::string), TypeDesc::TypeString, ret);
+    metadata_val_test (smatrix, sizeof (smatrix) / sizeof (char *), TypeDesc::TypeString, ret);
     OIIO_CHECK_EQUAL (ret, "\"this is \"a test\"\", \"this is another test\"");
 
     float matrix16[2][16] = {{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
