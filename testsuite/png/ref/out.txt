@@ -1,0 +1,28 @@
+Reading ../../../../../oiio-images/oiio-logo-no-alpha.png
+../../../../../oiio-images/oiio-logo-no-alpha.png :  135 x  135, 4 channel, uint8 png
+    SHA-1: 75ED9B183E083ECF0A4881EEE0B553457B698CF4
+    channel list: R, G, B, A
+    oiio:Gamma: 0.45455
+    oiio:ColorSpace: "sRGB"
+    DateTime: "2009:03:26 17:19:47"
+    Comment: "Created with GIMP"
+    ResolutionUnit: "inch"
+    XResolution: 72.009
+    YResolution: 72.009
+    oiio:UnassociatedAlpha: 1
+Comparing "../../../../../oiio-images/oiio-logo-no-alpha.png" and "oiio-logo-no-alpha.png"
+PASS
+Reading ../../../../../oiio-images/oiio-logo-with-alpha.png
+../../../../../oiio-images/oiio-logo-with-alpha.png :  135 x  135, 4 channel, uint8 png
+    SHA-1: 8AED04DCCE8F83B068C537DC0982A42EFBE431B6
+    channel list: R, G, B, A
+    oiio:Gamma: 0.45455
+    oiio:ColorSpace: "sRGB"
+    DateTime: "2009:03:26 18:44:26"
+    Comment: "Created with GIMP"
+    ResolutionUnit: "inch"
+    XResolution: 72.009
+    YResolution: 72.009
+    oiio:UnassociatedAlpha: 1
+Comparing "../../../../../oiio-images/oiio-logo-with-alpha.png" and "oiio-logo-with-alpha.png"
+PASS

@@ -1134,6 +1134,7 @@ make_texturemap (const char *maptypename = "texture map")
         if (verbose)
             std::cout << "  SHA-1: " << hash_digest << std::endl;
         updatedDesc = true;
+        dstspec.attribute ("oiio:SHA-1", hash_digest);
     }
     
     if (isConstantColor) {
@@ -1152,6 +1153,7 @@ make_texturemap (const char *maptypename = "texture map")
         if (verbose)
             std::cout << "  ConstantColor: " << os.str() << std::endl;
         updatedDesc = true;
+        dstspec.attribute ("oiio:ConstantColor", os.str());
     }
     
     if (updatedDesc) {
