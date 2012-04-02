@@ -953,7 +953,7 @@ ImageViewer::displayCurrentImage (bool update)
         m_current_image = 0;
     IvImage *img = cur();
     if (img) {
-        if (! img->image_valid()) {
+        if (! img->image_valid() || img->file_updated()) {
             bool load_result = false;
 
             statusViewInfo->hide ();

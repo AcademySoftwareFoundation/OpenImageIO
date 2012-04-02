@@ -33,6 +33,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <half.h>
 
 #include "imageviewer.h"
@@ -46,7 +47,8 @@ IvImage::IvImage (const std::string &filename)
       m_thumbnail_valid(false),
       m_gamma(1), m_exposure(0),
       m_file_dataformat(TypeDesc::UNKNOWN), 
-      m_image_valid(false), m_auto_subimage(false)
+      m_image_valid(false), m_auto_subimage(false),
+      m_last_file_write_time(0)
 {
 }
 
@@ -79,14 +81,49 @@ IvImage::init_spec (const std::string &filename, int subimage, int miplevel)
 
 
 
+void
+IvImage::update_last_write_time ()
+{
+    boost::filesystem::path p(name());
+    
+    if (boost::filesystem::exists(p)) {
+        m_last_file_write_time = boost::filesystem::last_write_time(p);
+    } else {
+        // File has been deleted
+    }
+}
+
+
+
+bool
+IvImage::file_updated () const
+{
+    boost::filesystem::path p(name());
+    
+    if (boost::filesystem::exists(p)) {
+        std::time_t t = boost::filesystem::last_write_time(p);
+        
+        return t != m_last_file_write_time;        
+    } else {
+        // File has been deleted
+        return true;
+    }
+}
+
+
+   
 bool
 IvImage::read (int subimage, int miplevel, bool force, TypeDesc format,
                ProgressCallback progress_callback,
                void *progress_callback_data, bool secondary_data)
 {
+    // Check the time on the file to see if it's been updated since we last loaded.
+    if (file_updated()) {
+        invalidate();
+        update_last_write_time();
+    }
+    
     // Don't read if we already have it in memory, unless force is true.
-    // FIXME: should we also check the time on the file to see if it's
-    // been updated since we last loaded?
     if (m_image_valid && !force
           && subimage == m_current_subimage && miplevel == m_current_miplevel)
         return true;
@@ -103,6 +140,7 @@ IvImage::read (int subimage, int miplevel, bool force, TypeDesc format,
     } else {
         m_corrected_image.clear ();
     }
+    
     return m_image_valid;
 }
 

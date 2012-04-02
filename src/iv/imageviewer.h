@@ -46,6 +46,9 @@
 
 #include <vector>
 
+// included for std::time_t declaration
+#include <ctime>
+
 // This needs to be included before GL.h
 #include <glew.h>
 
@@ -134,7 +137,14 @@ public:
     //an ImageBufAlgo).
     bool copy_pixel_channels  (int xbegin, int xend, int ybegin, int yend,
                        int chbegin, int chend, TypeDesc format, void *result) const;
+
+    /// Checks the time on the file to see if it's been updated since we last loaded
+    bool file_updated () const;
+
 private:
+    /// Get the last write time on the file
+    void update_last_write_time ();
+
     ImageBuf m_corrected_image; ///< Colorspace/gamma/exposure corrected image.
     char *m_thumbnail;         ///< Thumbnail image
     bool m_thumbnail_valid;    ///< Thumbnail is valid
@@ -145,6 +155,7 @@ private:
     mutable std::string m_longinfo;
     bool m_image_valid;        ///< Image is valid and pixels can be read.
     bool m_auto_subimage;      ///< Automatically use subimages when zooming-in/out.
+    std::time_t m_last_file_write_time; ///< Time on a file when last loaded
 };
 
 
