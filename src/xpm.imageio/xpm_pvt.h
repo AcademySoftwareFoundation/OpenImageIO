@@ -53,6 +53,9 @@ namespace XPM_pvt {
         uint32_t height;
         uint32_t color_table_size;
         uint32_t char_count;
+        uint32_t hotspot_x;
+        uint32_t hotspot_y;
+        bool hotspot;
     };
     
 }

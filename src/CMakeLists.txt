@@ -265,7 +265,7 @@ oiio_add_tests (ico gpsread misnamed-file
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
                 texture-skinny texture-fat
-                texture-field3d
+                texture-field3d xpm
                )
 
 

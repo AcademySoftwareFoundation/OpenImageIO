@@ -1,0 +1,15 @@
+Reading ../../../../../oiio-testimages/g01.xpm
+../../../../../oiio-testimages/g01.xpm :  960 x  640, 4 channel, uint8 xpm
+    SHA-1: 5CAD133C39044D465CB1FE569E2A188E6C3332AD
+    channel list: R, G, B, A
+    oiio:BitsPerPixel: 32
+Reading ../../../../../oiio-testimages/g02.xpm
+../../../../../oiio-testimages/g02.xpm :  725 x  544, 4 channel, uint8 xpm
+    SHA-1: 5F49433C61DC56651B15B04167B8934F2C4E4BF2
+    channel list: R, G, B, A
+    oiio:BitsPerPixel: 32
+Reading ../../../../../oiio-testimages/g03.xpm
+../../../../../oiio-testimages/g03.xpm :  725 x  490, 4 channel, uint8 xpm
+    SHA-1: 1CB0F4AC5436FC648D1CEB61DEFB0AC9A8589C36
+    channel list: R, G, B, A
+    oiio:BitsPerPixel: 32

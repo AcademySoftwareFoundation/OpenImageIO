@@ -87,7 +87,8 @@ namespace XPM_pvt
         bool parse_header(const std::string &header);
 
         //Parsing form string to raw image data
-        bool parse_image_data(std::map<std::string, uint32_t> &color_map, uint32_t* image_data);
+        bool parse_image_data(std::map<std::string, uint32_t> &color_map, 
+            uint32_t* image_data);
 
         //Geting colors form string-lines
         bool parse_colors(std::map<std::string, uint32_t> &color_map);
@@ -100,8 +101,9 @@ namespace XPM_pvt
         int m_file_start; ///< used data offset
         std::vector<std::string> m_image; ///< lines contain image data
         std::vector<std::string> m_colors; ///< lines contain colors
-        std::map<std::string, uint32_t> m_color_map; ///< hash-map containing the string...
-        ///< ...and its corresponding color
+        std::map<std::string, uint32_t> m_color_map;///< hash-map containing the 
+                                                    ///< ..string and its
+                                                    ///< ..corresponding color
         uint32_t * m_image_data; ///< raw parsed image data
         XPMinput & m_input; ///< pointer to XPMinput object
     };
@@ -151,7 +153,8 @@ XPMinput::open(const std::string &name, ImageSpec &newspec) {
     m_parser = new XPM_pvt::Parser(m_file_ptr, *this);
     if (!m_parser->open())
         return false;
-    m_spec = ImageSpec(m_parser->get_width(), m_parser->get_height(), 4, TypeDesc::UINT8);
+    m_spec = ImageSpec(m_parser->get_width(), m_parser->get_height(), 4, 
+        TypeDesc::UINT8);
     m_spec.attribute("oiio:BitsPerPixel", 32);
 
     m_scanline_data = m_parser->get_raw_data();
@@ -265,14 +268,26 @@ Parser::parse_header(const std::string &header) {
     line >> m_data.height;
     line >> m_data.color_table_size;
     line >> m_data.char_count;
-
+    
+    if(line.eof()) {
+        m_data.hotspot = false;
+        return true;
+    }
+    
+    m_data.hotspot = true;
+    
+    line >> m_data.hotspot_x;
+    line >> m_data.hotspot_y;
+    
     return true;
 }
 
 
 
 bool
-Parser::parse_image_data(std::map<std::string, uint32_t> &color_map, uint32_t* image_data) {
+Parser::parse_image_data(std::map<std::string, uint32_t> &color_map, uint32_t* 
+    image_data) {
+    
     std::vector<std::string>::iterator it1;
     std::string::iterator it2;
     int i = 0;
@@ -314,59 +329,135 @@ Parser::parse_colors(std::map<std::string, uint32_t> &color_map) {
          Currently, support for only visual color mode and transparency
          */
 
-
-        if (tmp_line.find("None")!=std::string::npos)
-        {
+        if (tmp_line.find("None")!=std::string::npos) {
             color_map.insert(std::pair<std::string, uint32_t > (tmp_sings, 0));
         }
+        
+        std::istringstream str(tmp_line.substr(m_data.char_count, 
+                tmp_line.length()-1));
+        
+        while(!str.eof()) {
+            std::string tmp_buff;
+            uint32_t converted_value=0;
+            
+            str >> tmp_buff;
+            
+            if (tmp_buff == "c") {
+                
+                str >> tmp_buff;
+                
+                if(tmp_buff.length() < 1)
+                {
+                    m_input.send_error("File corrupted");
+                    return false;
+                }
 
-        uint8_t R;
-        std::string color = tmp_line.substr(tmp_line.find('#', m_data.char_count) + 1, 2);
-        R = strtoul(color.c_str(), NULL, 16);
+                switch (tmp_buff[0]) {
+                case '#': {
+                    int color_length = tmp_buff.length()-1;
+                    std::string cr;
+                    std::string cg;
+                    std::string cb;
+                    uint8_t R, G, B;
 
-        uint8_t G;
-        color = tmp_line.substr(tmp_line.find('#', m_data.char_count) + 3, 2);
-        G = strtoul(color.c_str(), NULL, 16);
-
-        uint8_t B;
-        color = tmp_line.substr(tmp_line.find('#', m_data.char_count) + 5, 2);
-        B = strtoul(color.c_str(), NULL, 16);
-
-        uint32_t converted_value = 0;
-        converted_value = (255 << 24) | (B << 16) | (G << 8) | (R << 0);
-
-        color_map.insert(std::pair<std::string, uint32_t > (tmp_sings, converted_value));
+                    std::cout << "tmp_buff=" << tmp_buff << std::endl;
+                    std::cout << "length=" << color_length << std::endl;
+                    
+                    switch (color_length) {
+                    case 3:
+                        cr = tmp_buff.substr(1, 1);
+                        R = strtoul(cr.c_str(), NULL, 16)<<8;
+                        cg = tmp_buff.substr(2, 1);
+                        G = strtoul(cg.c_str(), NULL, 16)<<8;
+                        cb = tmp_buff.substr(3, 1);
+                        B = strtoul(cb.c_str(), NULL, 16)<<8;
+                        break;
+                    case 6:
+                        cr = tmp_buff.substr(1, 2);
+                        R = strtoul(cr.c_str(), NULL, 16);
+                        cg = tmp_buff.substr(3, 2);
+                        G = strtoul(cg.c_str(), NULL, 16);
+                        cb = tmp_buff.substr(5, 2);
+                        B = strtoul(cb.c_str(), NULL, 16);
+                        break;
+                    case 12:
+                        cr = tmp_buff.substr(1, 4);
+                        R = strtoul(cr.c_str(), NULL, 16)>>8;
+                        cg = tmp_buff.substr(5, 4);
+                        G = strtoul(cg.c_str(), NULL, 16)>>8;
+                        cb = tmp_buff.substr(9, 4);
+                        B = strtoul(cb.c_str(), NULL, 16)>>8;
+                        break;
+                    default:
+                        m_input.send_error("invalid color format");
+                        R = G = B = 0;
+                        break;
+                    }
+                    
+                    converted_value = (255 << 24) | (B << 16) | (G << 8) | 
+                        (R << 0);
+                    break;
+                }
+                case '%':
+                    m_input.send_error("no support for hsv color");
+                    converted_value = (255 << 24);
+                    break;
+                default:
+                    m_input.send_error("no support for symbolic names color");
+                    
+                    converted_value = (255 << 24);
+                    break;
+                }
+            } else if(tmp_buff == "m") {
+                m_input.send_error("no support for monochrome color");
+                str >> tmp_buff;
+            } else if(tmp_buff == "g") {
+                m_input.send_error("no support for gray scale color");
+                str >> tmp_buff;
+            } else if(tmp_buff == "g4") {
+                m_input.send_error(
+                    "no support for symbolic for four-level gray scale color");
+                str >> tmp_buff;
+            } else if(tmp_buff == "s") {
+                m_input.send_error("no support for symbolic color names");
+                str >> tmp_buff;
+            }
+            
+            color_map.insert(std::pair<std::string, uint32_t > (tmp_sings, 
+                converted_value));
+        }
+        
     }
 
     return true;
 }
 
-
-
 bool
 Parser::read_next_string(std::string &result) {
-    char tmp_sing;
+    char tmp_sign;
     std::string tmp_line;
     while (1) {
-        if (fread(&tmp_sing, 1, 1, m_file) < 1) {
+        if (fread(&tmp_sign, 1, 1, m_file) < 1) {
             m_input.send_error("Unexpected end of file");
             return false;
         }
 
-        if (tmp_sing == '\"')
+        if (tmp_sign == '\"')
             break;
     }
 
     while (1) {
-        if (fread(&tmp_sing, 1, 1, m_file) < 1) {
+        if (fread(&tmp_sign, 1, 1, m_file) < 1) {
             m_input.send_error("Unexpected end of file");
             return false;
         }
 
-        if (tmp_sing == '\"')
+        if (tmp_sign == '\"')
             break;
-
-        tmp_line += tmp_sing;
+        if (tmp_sign == '\n')
+            continue;
+        
+        tmp_line += tmp_sign;
     }
 
     result = tmp_line;
