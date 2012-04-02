@@ -274,6 +274,10 @@ IvGL::create_shaders (void)
         "                heat_red(1.0-C2[startchannel]),\n"
         "                1.0);\n"
         "}\n"
+        "vec4 invert_mode (vec4 C)\n"
+        "{\n"
+        "    return vec4(1.0) - C;\n"
+        "}\n"
         "void main ()\n"
         "{\n"
         "    vec2 st = vTexCoord;\n"
@@ -307,6 +311,8 @@ IvGL::create_shaders (void)
         "        C = luminance_mode (C);\n"
         "    else if (colormode == 4)\n" // Heatmap.
         "        C = heatmap_mode (C);\n"
+        "    else if (colormode == 5)\n" // Invert.
+        "        C = invert_mode (C);\n"
         "    if (pixelview != 0)\n"
         "        C.a = 1.0;\n"
         "    C.xyz *= gain;\n"
@@ -664,6 +670,7 @@ num_channels (int current_channel, int nchannels, ImageViewer::COLOR_MODE color_
         return clamp (nchannels-current_channel, 0, 4);
     case ImageViewer::RGB:
     case ImageViewer::LUMINANCE:
+    case ImageViewer::INVERT:
         return clamp (nchannels-current_channel, 0, 3);
         break;
     case ImageViewer::SINGLE_CHANNEL:

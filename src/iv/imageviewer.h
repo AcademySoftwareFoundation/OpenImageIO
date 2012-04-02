@@ -144,7 +144,7 @@ public:
 private:
     /// Get the last write time on the file
     void update_last_write_time ();
-
+   
     ImageBuf m_corrected_image; ///< Colorspace/gamma/exposure corrected image.
     char *m_thumbnail;         ///< Thumbnail image
     bool m_thumbnail_valid;    ///< Thumbnail is valid
@@ -173,7 +173,8 @@ public:
         RGB = 1,
         SINGLE_CHANNEL = 2,
         LUMINANCE = 3,
-        HEATMAP = 4
+        HEATMAP = 4,
+        INVERT = 5
     };
 
     /// Tell the viewer about an image, but don't load it yet.
@@ -292,6 +293,7 @@ private slots:
     void viewColorRGB();                ///< View current 3 channels as RGB
     void viewColor1Ch();                ///< View current channel as gray
     void viewColorHeatmap();            ///< View current channel as heatmap.
+    void viewColorInvert();             ///< View current channel as invert
     void viewSubimagePrev();            ///< View prev subimage
     void viewSubimageNext();            ///< View next subimage
     void sortByName();                  ///< Sort images by Name.
@@ -353,6 +355,7 @@ private:
     QAction *viewChannelPrevAct, *viewChannelNextAct;
     QAction *viewColorRGBAAct, *viewColorRGBAct, *viewColor1ChAct;
     QAction *viewColorLumAct, *viewColorHeatmapAct;
+    QAction *viewColorInvertAct;
     QAction *viewSubimagePrevAct, *viewSubimageNextAct;
     QAction *zoomInAct;
     QAction *zoomOutAct;

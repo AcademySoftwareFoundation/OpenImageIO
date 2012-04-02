@@ -247,6 +247,11 @@ ImageViewer::createActions()
     viewColorHeatmapAct->setCheckable (true);
     connect(viewColorHeatmapAct, SIGNAL(triggered()), this, SLOT(viewColorHeatmap()));
 
+    viewColorInvertAct = new QAction (tr("Invert"), this);
+    viewColorInvertAct->setShortcut (tr("i"));
+    viewColorInvertAct->setCheckable (true);
+    connect(viewColorInvertAct, SIGNAL(triggered()), this, SLOT(viewColorInvert()));
+
     viewChannelPrevAct = new QAction(tr("Prev Channel"), this);
     viewChannelPrevAct->setShortcut(tr(","));
     connect(viewChannelPrevAct, SIGNAL(triggered()), this, SLOT(viewChannelPrev()));
@@ -444,6 +449,7 @@ ImageViewer::createMenus()
     colormodeMenu->addAction (viewColor1ChAct);
     colormodeMenu->addAction (viewColorLumAct);
     colormodeMenu->addAction (viewColorHeatmapAct);
+    colormodeMenu->addAction (viewColorInvertAct);
 
     viewMenu = new QMenu(tr("&View"), this);
     viewMenu->addAction (prevImageAct);
@@ -473,7 +479,7 @@ ImageViewer::createMenus()
     toolsMenu->addAction (showPixelviewWindowAct);
     toolsMenu->addMenu (slideMenu);
     toolsMenu->addMenu (sortMenu);
-        
+
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -835,6 +841,9 @@ ImageViewer::updateStatusBar ()
             } else {
                 message = Strutil::format ("chan %d", m_current_channel);
             }
+        break;
+    case INVERT:
+        message = "Invert";
         break;
     }
     message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f",
@@ -1217,6 +1226,7 @@ ImageViewer::viewChannel (int c, COLOR_MODE colormode)
                 }
             }
         }
+
         m_current_channel = c;
         m_color_mode = colormode;
         displayCurrentImage (update);
@@ -1231,6 +1241,7 @@ ImageViewer::viewChannel (int c, COLOR_MODE colormode)
         viewColorRGBAct->setChecked (m_color_mode == RGB);
         viewColor1ChAct->setChecked (m_color_mode == SINGLE_CHANNEL);
         viewColorHeatmapAct->setChecked (m_color_mode == HEATMAP);
+        viewColorInvertAct->setChecked (m_color_mode == INVERT);
     }
 #ifdef DEBUG
     change_channel_time.stop();
@@ -1251,7 +1262,7 @@ ImageViewer::slideImages()
             slideTimer->stop();
             disconnect(slideTimer,0,0,0);
         }
-    }       
+    }
     else
         current_image (current_image() + 1);
 }
@@ -1534,6 +1545,13 @@ void
 ImageViewer::viewColorHeatmap ()
 {
     viewChannel (m_current_channel, HEATMAP);
+}
+
+
+void
+ImageViewer::viewColorInvert ()
+{
+    viewChannel (m_current_channel, INVERT);
 }
 
 
