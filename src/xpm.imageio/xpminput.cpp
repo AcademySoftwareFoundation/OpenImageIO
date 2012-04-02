@@ -37,90 +37,117 @@
 #include <vector>
 #include <map>
 #include <cstdlib>
+#include <fmath.h>
+#include "errno.h"
 #include "xpm_pvt.h"
-#include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace XPM_pvt;
 
 namespace XPM_pvt
-{
-    class Parser {
-    public:
+{   
+class Parser {
+public:
 
-        Parser(FILE* file, XPMinput &input) :
-        m_file(file), m_input(input) {
-        }
+    Parser(): m_file(NULL), m_image_data(NULL)
+    {
+    }
 
-        bool open() {
-            return parse();
-        }
+    bool open(FILE* file, XPMinput *input)
+    {
+        m_file = file;
+        m_input = input;
+        return parse();
+    }
 
-        inline int get_height() {
+    inline int get_height()
+    {
+        if(m_file)
             return m_data.height;
-        }
+        else
+            return -1;
+    }
 
-        inline int get_width() {
+    inline int get_width()
+    {
+        if(m_file)
             return m_data.width;
-        }
+        else
+            return -1;
+    }
 
-        //Returning count of color used in xpm file
-        inline int get_color_count() {
+    //Returning count of color used in xpm file
+    inline int get_color_count()
+    {
+        if(m_file)
             return m_data.color_table_size;
+        else
+            return -1;
 
-        }
+    }
 
-        //Returning parsed to raw data buffor
-        uint32_t *get_raw_data();
+    //Returning parsed to raw data buffor
+    uint32_t *get_raw_data();
 
-        ~Parser() {
+    ~Parser()
+    {
+        if (m_image_data)
+            delete m_image_data;
+    }
 
-        }
+private:
+    bool parse();
 
-    private:
-        bool parse();
+    //Seeking the start of using data
+    bool init_parsing();
 
-        //Seeking the start of using data
-        bool init_parsing();
+    bool parse_header(const std::string &header);
 
-        bool parse_header(const std::string &header);
+    //Parsing form string to raw image data
+    bool parse_image_data(std::map<std::string, uint32_t> &color_map, 
+        uint32_t* image_data);
 
-        //Parsing form string to raw image data
-        bool parse_image_data(std::map<std::string, uint32_t> &color_map, 
-            uint32_t* image_data);
+    //Geting colors form string-lines
+    bool parse_colors(std::map<std::string, uint32_t> &color_map);
 
-        //Geting colors form string-lines
-        bool parse_colors(std::map<std::string, uint32_t> &color_map);
+    //Geting next string form c-language table
+    bool read_next_string(std::string &result);
 
-        //Geting next string form c-language table
-        bool read_next_string(std::string &result);
+    FILE * m_file; ///< file handler
+    XPM_data m_data; ///< XPM image data
+    int m_file_start; ///< used data offset
+    std::vector<std::string> m_image; ///< lines contain image data
+    std::vector<std::string> m_colors; ///< lines contain colors
+    std::map<std::string, uint32_t> m_color_map;///< hash-map containing the 
+                                                ///< ..string and its
+                                                ///< ..corresponding color
+    uint32_t * m_image_data; ///< raw parsed image data
+    XPMinput *m_input; ///< pointer to XPMinput object
+};
 
-        FILE * m_file; ///< file handler
-        XPM_data m_data; ///< XPM image data
-        int m_file_start; ///< used data offset
-        std::vector<std::string> m_image; ///< lines contain image data
-        std::vector<std::string> m_colors; ///< lines contain colors
-        std::map<std::string, uint32_t> m_color_map;///< hash-map containing the 
-                                                    ///< ..string and its
-                                                    ///< ..corresponding color
-        uint32_t * m_image_data; ///< raw parsed image data
-        XPMinput & m_input; ///< pointer to XPMinput object
-    };
 };
 
 
-class XPMinput : public ImageInput {
+class XPMinput : public ImageInput
+{
 public:
     friend class XPM_pvt::Parser;
 
-    XPMinput() {
+    XPMinput()
+    {
+        m_file_ptr = NULL;
     }
 
-    virtual ~XPMinput() {
+    virtual ~XPMinput()
+    {
+        if(m_file_ptr) {
+            fclose(m_file_ptr);
+        }
     }
 
-    virtual const char * format_name(void) const {
+    virtual const char * format_name(void) const
+    {
         return "xpm";
     }
 
@@ -130,11 +157,12 @@ public:
 
 private:
 
-    void send_error(const char *err) {
-        error("%s", err);
+    void send_error(const std::string &err)
+    {
+        error("%s", err.c_str());
     }
 
-    XPM_pvt::Parser * m_parser; ///<Parser handler
+    XPM_pvt::Parser m_parser; ///<Parser handler
     std::string m_file_name; ///<Stash the file name
     FILE * m_file_ptr; ///<File handler
     uint32_t * m_scanline_data; ///<Scan-line data pointer
@@ -144,20 +172,27 @@ private:
 
 
 bool
-XPMinput::open(const std::string &name, ImageSpec &newspec) {
+XPMinput::open(const std::string &name, ImageSpec &newspec)
+{
     m_file_ptr = fopen(name.c_str(), "r");
-
+    
     if (!m_file_ptr)
+    {
+        send_error(std::string("Cannot open file: ") + std::string(strerror(errno)));
         return false;
-
-    m_parser = new XPM_pvt::Parser(m_file_ptr, *this);
-    if (!m_parser->open())
+    }
+    
+    if (!m_parser.open(m_file_ptr, this))
+    {
+        send_error("Cannot parse this file");
+        fclose(m_file_ptr);
         return false;
-    m_spec = ImageSpec(m_parser->get_width(), m_parser->get_height(), 4, 
+    }
+    m_spec = ImageSpec(m_parser.get_width(), m_parser.get_height(), 4, 
         TypeDesc::UINT8);
     m_spec.attribute("oiio:BitsPerPixel", 32);
 
-    m_scanline_data = m_parser->get_raw_data();
+    m_scanline_data = m_parser.get_raw_data();
 
     newspec = spec();
 
@@ -167,18 +202,21 @@ XPMinput::open(const std::string &name, ImageSpec &newspec) {
 
 
 bool
-XPMinput::close() {
-    if (m_file_ptr)
+XPMinput::close()
+{
+    if (m_file_ptr) {
         fclose(m_file_ptr);
-
-    delete m_parser;
+        m_file_ptr = NULL;
+    }
+    
     return true;
 }
 
 
 
 bool
-XPMinput::read_native_scanline(int y, int z, void *data) {
+XPMinput::read_native_scanline(int y, int z, void *data)
+{    
     size_t width = m_spec.scanline_bytes(true);
     memcpy(data, &((uint8_t *) m_scanline_data)[y * width], width);
     return true;
@@ -187,7 +225,11 @@ XPMinput::read_native_scanline(int y, int z, void *data) {
 
 
 uint32_t*
-Parser::get_raw_data() {
+Parser::get_raw_data()
+{  
+    if(!m_file)
+        return NULL;
+    
     m_image_data = new uint32_t[m_data.width * m_data.height];
     parse_colors(m_color_map);
     parse_image_data(m_color_map, m_image_data);
@@ -197,7 +239,8 @@ Parser::get_raw_data() {
 
 
 bool
-Parser::parse() {
+Parser::parse()
+{
     std::string header;
     std::string token;
 
@@ -232,22 +275,20 @@ Parser::parse() {
 
 
 bool
-Parser::init_parsing() {
-    char tmp_sing;
+Parser::init_parsing()
+{
+    char tmp_sign;
     int i = 0;
 
     while (1) {
-        if (fread(&tmp_sing, 1, 1, m_file) < 1) {
-            m_input.send_error("Unexpected end of file");
+        tmp_sign = fgetc(m_file);
+        
+        if (feof(m_file)) {
+            m_input->send_error("Unexpected end of file");
             return false;
         }
 
-        if (tmp_sing == EOF) {
-            m_input.send_error("File corrupted");
-            return false;
-        }
-
-        if (tmp_sing == '{') {
+        if (tmp_sign == '{') {
             m_file_start = i;
             break;
         }
@@ -261,7 +302,8 @@ Parser::init_parsing() {
 
 
 bool
-Parser::parse_header(const std::string &header) {
+Parser::parse_header(const std::string &header)
+{
     std::istringstream line(header);
 
     line >> m_data.width;
@@ -286,7 +328,8 @@ Parser::parse_header(const std::string &header) {
 
 bool
 Parser::parse_image_data(std::map<std::string, uint32_t> &color_map, uint32_t* 
-    image_data) {
+    image_data)
+{
     
     std::vector<std::string>::iterator it1;
     std::string::iterator it2;
@@ -317,7 +360,8 @@ Parser::parse_image_data(std::map<std::string, uint32_t> &color_map, uint32_t*
 
 
 bool
-Parser::parse_colors(std::map<std::string, uint32_t> &color_map) {
+Parser::parse_colors(std::map<std::string, uint32_t> &color_map)
+{
     std::vector<std::string>::iterator it;
 
     //Find next color value and save it in hash-map
@@ -348,7 +392,7 @@ Parser::parse_colors(std::map<std::string, uint32_t> &color_map) {
                 
                 if(tmp_buff.length() < 1)
                 {
-                    m_input.send_error("File corrupted");
+                    m_input->send_error("File corrupted");
                     return false;
                 }
 
@@ -359,9 +403,6 @@ Parser::parse_colors(std::map<std::string, uint32_t> &color_map) {
                     std::string cg;
                     std::string cb;
                     uint8_t R, G, B;
-
-                    std::cout << "tmp_buff=" << tmp_buff << std::endl;
-                    std::cout << "length=" << color_length << std::endl;
                     
                     switch (color_length) {
                     case 3:
@@ -389,7 +430,7 @@ Parser::parse_colors(std::map<std::string, uint32_t> &color_map) {
                         B = strtoul(cb.c_str(), NULL, 16)>>8;
                         break;
                     default:
-                        m_input.send_error("invalid color format");
+                        m_input->send_error("invalid color format");
                         R = G = B = 0;
                         break;
                     }
@@ -399,27 +440,27 @@ Parser::parse_colors(std::map<std::string, uint32_t> &color_map) {
                     break;
                 }
                 case '%':
-                    m_input.send_error("no support for hsv color");
+                    m_input->send_error("no support for hsv color");
                     converted_value = (255 << 24);
                     break;
                 default:
-                    m_input.send_error("no support for symbolic names color");
+                    m_input->send_error("no support for symbolic names color");
                     
                     converted_value = (255 << 24);
                     break;
                 }
             } else if(tmp_buff == "m") {
-                m_input.send_error("no support for monochrome color");
+                m_input->send_error("no support for monochrome color");
                 str >> tmp_buff;
             } else if(tmp_buff == "g") {
-                m_input.send_error("no support for gray scale color");
+                m_input->send_error("no support for gray scale color");
                 str >> tmp_buff;
             } else if(tmp_buff == "g4") {
-                m_input.send_error(
+                m_input->send_error(
                     "no support for symbolic for four-level gray scale color");
                 str >> tmp_buff;
             } else if(tmp_buff == "s") {
-                m_input.send_error("no support for symbolic color names");
+                m_input->send_error("no support for symbolic color names");
                 str >> tmp_buff;
             }
             
@@ -433,12 +474,13 @@ Parser::parse_colors(std::map<std::string, uint32_t> &color_map) {
 }
 
 bool
-Parser::read_next_string(std::string &result) {
+Parser::read_next_string(std::string &result)
+{
     char tmp_sign;
     std::string tmp_line;
     while (1) {
-        if (fread(&tmp_sign, 1, 1, m_file) < 1) {
-            m_input.send_error("Unexpected end of file");
+        if ((tmp_sign = fgetc(m_file)) == EOF) {
+            m_input->send_error("Unexpected end of file");
             return false;
         }
 
@@ -447,8 +489,8 @@ Parser::read_next_string(std::string &result) {
     }
 
     while (1) {
-        if (fread(&tmp_sign, 1, 1, m_file) < 1) {
-            m_input.send_error("Unexpected end of file");
+        if ((tmp_sign = fgetc(m_file)) == EOF) {
+            m_input->send_error("Unexpected end of file");
             return false;
         }
 
@@ -467,7 +509,8 @@ Parser::read_next_string(std::string &result) {
 
 
 OIIO_PLUGIN_EXPORTS_BEGIN
-DLLEXPORT ImageInput *xpm_input_imageio_create() {
+DLLEXPORT ImageInput *xpm_input_imageio_create()
+{
     return new XPMinput;
 }
 DLLEXPORT int xpm_imageio_version = OIIO_PLUGIN_VERSION;

@@ -36,10 +36,9 @@
 #ifndef OPENIMAGEIO_XPM_H
 #define	OPENIMAGEIO_XPM_H
 
-#include <stdint.h>
+#include "fmath.h"
 #include "imageio.h"
 #include "typedesc.h"
-#define ASCII_COUNT 94
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -48,15 +47,15 @@ class XPMinput;
 
 namespace XPM_pvt {
 
-    struct XPM_data {
-        uint32_t width;
-        uint32_t height;
-        uint32_t color_table_size;
-        uint32_t char_count;
-        uint32_t hotspot_x;
-        uint32_t hotspot_y;
-        bool hotspot;
-    };
+struct XPM_data {
+    uint32_t width;
+    uint32_t height;
+    uint32_t color_table_size;
+    uint32_t char_count;
+    uint32_t hotspot_x;
+    uint32_t hotspot_y;
+    bool hotspot;
+};
     
 }
 OIIO_PLUGIN_NAMESPACE_END
