@@ -113,6 +113,23 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
 
 
 
+ImageRec::ImageRec (ImageBufRef img, bool copy_pixels)
+    : m_name(img->name()), m_elaborated(true),
+      m_metadata_modified(false), m_pixels_modified(false),
+      m_imagecache(img->imagecache())
+{
+    m_subimages.resize (1);
+    m_subimages[0].m_miplevels.resize (1);
+    m_subimages[0].m_specs.push_back (img->spec());
+    if (copy_pixels) {
+        m_subimages[0].m_miplevels[0].reset (new ImageBuf (*img));
+    } else {
+        m_subimages[0].m_miplevels[0] = img;
+    }
+}
+
+
+
 ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
                     ImageCache *imagecache)
     : m_name(name), m_elaborated(true),
