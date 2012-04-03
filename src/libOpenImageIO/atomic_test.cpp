@@ -32,6 +32,8 @@
 #include <iostream>
 
 #include "thread.h"
+#include "strutil.h"
+#include "timer.h"
 
 #include <boost/thread/thread.hpp>
 
@@ -44,9 +46,10 @@ OIIO_NAMESPACE_USING;
 // and decrementing the crap out of it, and make sure it has the right
 // value at the end.
 
-const int iterations = 1000000;
+const int iterations = 10000000;
 const int numthreads = 16;
 
+static spin_mutex print_mutex;  // make the prints not clobber each other
 atomic_int ai;
 atomic_ll all;
 
@@ -54,11 +57,11 @@ atomic_ll all;
 static void
 do_int_math ()
 {
-    std::cout << "thread " 
-#if (BOOST_VERSION >= 103500)
-              << boost::this_thread::get_id()
-#endif
+    {
+        spin_lock lock(print_mutex);
+        std::cout << "thread " << boost::this_thread::get_id()
               << ", ai = " << ai << "\n";
+    }
     for (int i = 0;  i < iterations;  ++i) {
         ++ai;
         ai += 3;
@@ -77,16 +80,20 @@ do_int_math ()
 
 void test_atomic_int ()
 {
-#if (BOOST_VERSION >= 103500)
-    std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
-#endif
+    {
+        spin_lock lock(print_mutex);
+        std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
+    }
 
     ai = 42;
     boost::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
         threads.create_thread (&do_int_math);
     }
-    std::cout << "Created " << threads.size() << " threads\n";
+    {
+        spin_lock lock(print_mutex);
+        std::cout << "Created " << threads.size() << " threads\n";
+    }
     threads.join_all ();
     OIIO_CHECK_EQUAL (ai, 42);
 }
@@ -96,11 +103,11 @@ void test_atomic_int ()
 static void
 do_int64_math ()
 {
-    std::cout << "thread " 
-#if (BOOST_VERSION >= 103500)
-              << boost::this_thread::get_id()
-#endif
-              << ", all = " << all << "\n";
+    {
+        spin_lock lock(print_mutex);
+        std::cout << "thread " << boost::this_thread::get_id()
+                  << ", all = " << all << "\n";
+    }
     for (int i = 0;  i < iterations;  ++i) {
         ++all;
         all += 3;
@@ -133,8 +140,9 @@ void test_atomic_int64 ()
 
 int main (int argc, char *argv[])
 {
+    Timer timer;
     test_atomic_int ();
     test_atomic_int64 ();
-
+    std::cout << "Time: " << Strutil::timeintervalformat (timer()) << "\n";
     return unit_test_failures;
 }
