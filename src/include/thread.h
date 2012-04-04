@@ -44,7 +44,7 @@
 // defining NOMINMAX to prevent problems with std::min/std::max
 // and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
 // when boost include windows.h
-#ifdef _WIN32
+#ifdef _MSC_VER
 # define WIN32_LEAN_AND_MEAN
 # define VC_EXTRALEAN
 # ifndef NOMINMAX
@@ -87,7 +87,7 @@
 #  include <tbb/spin_mutex.h>
 #endif
 
-#if defined(_WIN32) && !USE_TBB
+#if defined(_MSC_VER) && !USE_TBB
 #  include <windows.h>
 #  include <winbase.h>
 #  pragma intrinsic (_InterlockedExchangeAdd)
@@ -269,7 +269,7 @@ atomic_exchange_and_add (volatile int *at, int x)
 #elif defined(no__APPLE__)
     // Apple, not inline for Intel (only PPC?)
     return OSAtomicAdd32Barrier (x, at) - x;
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
     // Windows
     return _InterlockedExchangeAdd ((volatile LONG *)at, x);
 #else
@@ -290,7 +290,7 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 #elif defined(no__APPLE__)
     // Apple, not inline for Intel (only PPC?)
     return OSAtomicAdd64Barrier (x, at) - x;
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
     // Windows
 #  if defined(_WIN64)
     return _InterlockedExchangeAdd64 ((volatile LONGLONG *)at, x);
@@ -320,7 +320,7 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
     return a->compare_and_swap (newval, compareval) == newval;
 #elif defined(no__APPLE__)
     return OSAtomicCompareAndSwap32Barrier (compareval, newval, at);
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
     return (_InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
 #else
 #   error No atomics on this platform.
@@ -339,7 +339,7 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
     return a->compare_and_swap (newval, compareval) == newval;
 #elif defined(no__APPLE__)
     return OSAtomicCompareAndSwap64Barrier (compareval, newval, at);
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
     return (_InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
 #else
 #   error No atomics on this platform.
@@ -357,7 +357,7 @@ yield ()
     __TBB_Yield ();
 #elif defined(__GNUC__)
     sched_yield ();
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
     SwitchToThread ();
 #else
 #   error No yield on this platform.
@@ -373,17 +373,18 @@ pause (int delay)
 {
     if (delay < 32) {
 #if USE_TBB
-        __TBB_Pause(count);
+        __TBB_Pause(delay);
 #elif defined(__GNUC__)
         for (int i = 0; i < delay; ++i) {
             __asm__ __volatile__("pause;");
         }
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
         for (int i = 0; i < delay; ++i) {
-            _asm 
-            {
-                pause
-            }
+#if defined (_WIN64)
+            YieldProcessor();
+#else
+            _asm  pause
+#endif /* _WIN64 */
         }
 #else
         // No pause on this platform, just punt and do nothing.
