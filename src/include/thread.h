@@ -266,7 +266,7 @@ atomic_exchange_and_add (volatile int *at, int x)
 #elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
     return a->fetch_and_add (x);
-#elif defined(__APPLE__)
+#elif defined(no__APPLE__)
     // Apple, not inline for Intel (only PPC?)
     return OSAtomicAdd32Barrier (x, at) - x;
 #elif defined(_WIN32)
@@ -287,7 +287,7 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 #elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
     return a->fetch_and_add (x);
-#elif defined(__APPLE__)
+#elif defined(no__APPLE__)
     // Apple, not inline for Intel (only PPC?)
     return OSAtomicAdd64Barrier (x, at) - x;
 #elif defined(_WIN32)
@@ -318,7 +318,7 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 #elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
     return a->compare_and_swap (newval, compareval) == newval;
-#elif defined(__APPLE__)
+#elif defined(no__APPLE__)
     return OSAtomicCompareAndSwap32Barrier (compareval, newval, at);
 #elif defined(_WIN32)
     return (_InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
@@ -337,13 +337,60 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
 #elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
     return a->compare_and_swap (newval, compareval) == newval;
-#elif defined(__APPLE__)
+#elif defined(no__APPLE__)
     return OSAtomicCompareAndSwap64Barrier (compareval, newval, at);
 #elif defined(_WIN32)
     return (_InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
 #else
 #   error No atomics on this platform.
 #endif
+}
+
+
+
+/// Yield the processor for the rest of the timeslice.
+///
+inline void
+yield ()
+{
+#if USE_TBB
+    __TBB_Yield ();
+#elif defined(__GNUC__)
+    sched_yield ();
+#elif defined(_WIN32)
+    SwitchToThread ();
+#else
+#   error No yield on this platform.
+#endif
+}
+
+
+
+/// Slight pause; if long enough, yield the CPU to another thread.
+///
+inline void
+pause (int delay)
+{
+    if (delay < 32) {
+#if USE_TBB
+        __TBB_Pause(count);
+#elif defined(__GNUC__)
+        for (int i = 0; i < delay; ++i) {
+            __asm__ __volatile__("pause;");
+        }
+#elif defined(_WIN32)
+        for (int i = 0; i < delay; ++i) {
+            _asm 
+            {
+                pause
+            }
+        }
+#else
+        // No pause on this platform, just punt and do nothing.
+#endif
+    } else {
+        yield ();
+    }
 }
 
 
@@ -499,19 +546,22 @@ public:
     /// Acquire the lock, spin until we have it.
     ///
     void lock () {
-#if defined(__APPLE__)
+#if defined(x__APPLE__)
         // OS X has dedicated spin lock routines, may as well use them.
         OSSpinLockLock ((OSSpinLock *)&m_locked);
 #else
-        while (! try_lock())
-            ;
+        int i = 1;
+        while (! try_lock()) {
+            pause(i);
+            i *= 2;
+        }
 #endif
     }
 
     /// Release the lock that we hold.
     ///
     void unlock () {
-#if defined(__APPLE__)
+#if defined(x__APPLE__)
         OSSpinLockUnlock ((OSSpinLock *)&m_locked);
 #else
         m_locked = 0;
@@ -521,7 +571,7 @@ public:
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
     bool try_lock () {
-#if defined(__APPLE__)
+#if defined(x__APPLE__)
         return OSSpinLockTry ((OSSpinLock *)&m_locked);
 #else
 #  if USE_TBB
