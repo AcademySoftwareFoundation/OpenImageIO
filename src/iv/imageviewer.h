@@ -611,4 +611,45 @@ private:
     void load_texture (int x, int y, int width, int height, float percent);
 };
 
+
+
+class IvThumbnail : public QGraphicsView
+{
+    Q_OBJECT
+public:
+    IvThumbnail();
+    ~IvThumbnail();
+
+    /// scene for thumbnail images
+    QGraphicsScene scene;
+    
+    /// path to current file
+    QString currentFile;
+    
+    QList<QPixmap> pixmap;
+
+public slots:
+    /// add a thumbnail to the GraphicScene
+    void addThumbnail(QString &img);
+    
+    /// load the thumbnail
+    void loadThumbnail();
+    
+signals:
+
+    void loadImage();
+    
+protected:
+    /// Detecting mouse clicks
+    void mouseReleaseEvent(QMouseEvent*);
+    
+    /// Detecting mouse moves
+    void mouseMoveEvent(QMouseEvent *event);
+    
+    bool event(QEvent *event);
+    
+    void wheelEvent(QWheelEvent *event);
+};
+
+
 #endif // OPENIMAGEIO_IMAGEVIEWER_H
