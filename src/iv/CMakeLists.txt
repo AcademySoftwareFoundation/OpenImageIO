@@ -6,7 +6,7 @@ if (QT4_FOUND AND OPENGL_FOUND AND GLEW_FOUND)
                         ARGS ${PROJECT_SOURCE_DIR}/iv/imageviewer.h
                            -o ${CMAKE_BINARY_DIR}/iv/moc_imageviewer.cpp
                         )
-    set (iv_srcs imageviewer.cpp ivimage.cpp ivgl.cpp ivinfowin.cpp 
+    set (iv_srcs ivthumbnail.cpp imageviewer.cpp ivimage.cpp ivgl.cpp ivinfowin.cpp 
                  ivpref.cpp ivmain.cpp moc_imageviewer.cpp)
     if (FORCE_OPENGL_1)
         add_definitions(-DFORCE_OPENGL_1)

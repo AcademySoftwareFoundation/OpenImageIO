@@ -114,6 +114,8 @@ ImageViewer::ImageViewer ()
 {
     readSettings (false);
 
+    thumbnail = new IvThumbnail;
+    thumbnail->setInteractive(true);
     const char *gamenv = getenv ("GAMMA");
     if (gamenv) {
         float g = atof (gamenv);
@@ -138,7 +140,15 @@ ImageViewer::ImageViewer ()
     glwin = new IvGL (this, *this);
     glwin->setPalette (m_palette);
     glwin->resize (m_default_width, m_default_height);
-    setCentralWidget (glwin);
+    
+    QSplitter  *splitter = new QSplitter(Qt::Vertical, this);
+    splitter->addWidget(glwin);
+    splitter->addWidget(thumbnail);
+    QList<int> split;
+    split.append(400);
+    split.append(80);
+    splitter->setSizes(split);
+    setCentralWidget (splitter);
 
     createActions();
     createMenus();
@@ -890,10 +900,13 @@ ImageViewer::updateStatusBar ()
             }
         break;
     }
-    message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f",
-                                zoom() >= 1 ? zoom() : 1.0f,
-                                zoom() >= 1 ? 1.0f : 1.0f/zoom(),
-                                cur()->exposure(), cur()->gamma());
+    float ratioNum=zoom() >= 1 ? zoom() : 1.0f;
+    float ratioDen=zoom() >= 1 ? 1.0f : 1.0f/zoom();
+    int zoomLevel=(ratioNum/ratioDen)*100;
+    message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f Zoom %d%%",
+                                ratioNum, ratioDen,
+                                cur()->exposure(), cur()->gamma(),
+                                zoomLevel);
     if (cur()->nsubimages() > 1) {
         if (cur()->auto_subimage()) {
             message += Strutil::format ("  subimg AUTO (%d/%d)",
@@ -2117,3 +2130,4 @@ ImageViewer::editPreferences ()
     }
     preferenceWindow->show ();
 }
+
