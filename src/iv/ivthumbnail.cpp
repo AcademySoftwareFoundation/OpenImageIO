@@ -37,20 +37,30 @@ IvThumbnail::IvThumbnail() : QGraphicsView() {
 
       // Set background color and border
       this->setStyleSheet("background:transparent; border: none;");
-
-      this->verticalScrollBar()->hide();
   
 }
 
 IvThumbnail::~IvThumbnail(){}
 
-void IvThumbnail::mouseReleaseEvent(QMouseEvent* event){}
+void IvThumbnail::mouseReleaseEvent(QMouseEvent* event){
+  
+    // TODO: Probably call loadImage and other required functions
+}
     
-void IvThumbnail::mouseMoveEvent(QMouseEvent *event){}
+void IvThumbnail::mouseMoveEvent(QMouseEvent *event){
+  
+    // TODO
+}
     
-bool IvThumbnail::event(QEvent *event){}
+bool IvThumbnail::event(QEvent *event){
+  
+    // TODO
+}
 
-void IvThumbnail::wheelEvent(QWheelEvent *event){}
+void IvThumbnail::wheelEvent(QWheelEvent *event){
+  
+    // TODO
+}
 
 
 

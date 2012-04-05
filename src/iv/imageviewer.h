@@ -64,6 +64,7 @@ class IvCanvas;
 class IvGL;
 class IvImage;
 class IvThumbnail;
+class IvThumbThread;
 
 class IvImage : public ImageBuf {
 public:
@@ -651,6 +652,33 @@ protected:
     bool event(QEvent *event);
     
     void wheelEvent(QWheelEvent *event);
+};
+
+
+
+class IvThumbThread : public QThread
+{
+    Q_OBJECT
+public:
+
+
+public slots:
+
+    
+signals:
+    
+    /// send the thumbnail to main thread after generation
+    void sendToMain();
+    
+protected:
+
+  
+    void run(){
+      
+	// TODO: Thumbnail generation occurs here
+      
+    }
+    
 };
 
 
