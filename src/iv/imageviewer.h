@@ -656,4 +656,30 @@ protected:
 
 
 
+class IvThumbThread : public QThread
+{
+    Q_OBJECT
+public:
+
+
+public slots:
+
+    
+signals:
+    
+    /// send the thumbnail to main thread after generation
+    void sendToMain();
+    
+protected:
+
+  
+    void run(){
+      
+	// TODO: Thumbnail generation occurs here
+      
+    }
+    
+};
+
+
 #endif // OPENIMAGEIO_IMAGEVIEWER_H
