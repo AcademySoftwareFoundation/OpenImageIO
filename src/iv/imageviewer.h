@@ -63,6 +63,8 @@ class IvPreferenceWindow;
 class IvCanvas;
 class IvGL;
 class IvImage;
+class IvThumbnail;
+class IvThumbThread;
 
 class IvImage : public ImageBuf {
 public:
@@ -384,7 +386,7 @@ private:
     float m_default_gamma;            ///< Default gamma of the display
     QPalette m_palette;               ///< Custom palette
     bool m_darkPalette;               ///< Use dark palette?
-
+    IvThumbnail *thumbnail;	      ///< GraphicScene for thumbnails
     static const int m_default_width = 640; ///< The default width of the window.
     static const int m_default_height = 480; ///< The default height of the window.
 
@@ -610,5 +612,48 @@ private:
     /// been loaded.
     void load_texture (int x, int y, int width, int height, float percent);
 };
+
+
+
+class IvThumbnail : public QGraphicsView
+{
+    Q_OBJECT
+public:
+    IvThumbnail();
+    ~IvThumbnail();
+
+    /// scene for thumbnail images
+    QGraphicsScene scene;
+    
+    /// path image file
+    QString filePath;
+    
+    QList<QPixmap> pixmap;
+
+public slots:
+     /// add a thumbnail to the GraphicScene
+     void addThumbnail(QString &img);
+     
+     /// load the thumbnail
+     void loadThumbnail();
+    
+signals:
+    
+    /// show the image in imageviewer
+    void loadImage();
+    
+protected:
+    /// Detecting mouse clicks
+    void mouseReleaseEvent(QMouseEvent*);
+    
+    /// Detecting mouse moves
+    void mouseMoveEvent(QMouseEvent *event);
+    
+    bool event(QEvent *event);
+    
+    void wheelEvent(QWheelEvent *event);
+};
+
+
 
 #endif // OPENIMAGEIO_IMAGEVIEWER_H
