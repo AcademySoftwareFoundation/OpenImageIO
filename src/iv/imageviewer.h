@@ -63,6 +63,7 @@ class IvPreferenceWindow;
 class IvCanvas;
 class IvGL;
 class IvImage;
+class IvThumbnail;
 
 class IvImage : public ImageBuf {
 public:
@@ -384,7 +385,7 @@ private:
     float m_default_gamma;            ///< Default gamma of the display
     QPalette m_palette;               ///< Custom palette
     bool m_darkPalette;               ///< Use dark palette?
-
+    IvThumbnail *thumbnail;	      ///< GraphicScene for thumbnails
     static const int m_default_width = 640; ///< The default width of the window.
     static const int m_default_height = 480; ///< The default height of the window.
 
@@ -623,20 +624,21 @@ public:
     /// scene for thumbnail images
     QGraphicsScene scene;
     
-    /// path to current file
-    QString currentFile;
+    /// path image file
+    QString filePath;
     
     QList<QPixmap> pixmap;
 
 public slots:
-    /// add a thumbnail to the GraphicScene
-    void addThumbnail(QString &img);
-    
-    /// load the thumbnail
-    void loadThumbnail();
+     /// add a thumbnail to the GraphicScene
+     void addThumbnail(QString &img);
+     
+     /// load the thumbnail
+     void loadThumbnail();
     
 signals:
-
+    
+    /// show the image in imageviewer
     void loadImage();
     
 protected:
