@@ -40,22 +40,6 @@
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 
-#include <QtCore/QSettings>
-#include <QtCore/QTimer>
-#include <QtGui/QApplication>
-#include <QtGui/QComboBox>
-#include <QtGui/QDesktopWidget>
-#include <QtGui/QFileDialog>
-#include <QtGui/QKeyEvent>
-#include <QtGui/QLabel>
-#include <QtGui/QMenu>
-#include <QtGui/QMenuBar>
-#include <QtGui/QMessageBox>
-#include <QtGui/QProgressBar>
-#include <QtGui/QResizeEvent>
-#include <QtGui/QSpinBox>
-#include <QtGui/QStatusBar>
-
 #include <OpenEXR/ImathFun.h>
 
 #include "dassert.h"
@@ -73,38 +57,6 @@ namespace
     }
 
 }
-
-
-
-static const char *s_file_filters = ""
-    "Image Files (*.bmp *.cin *.dds *.dpx *.f3d *.fits *.hdr *.ico *.iff *.jpg "
-    "*.jpe *.jpeg *.jif *.jfif *.jfi *.jp2 *.j2k *.exr *.png *.pbm *.pgm *.ppm "
-    "*.ptex *.rla *.sgi *.rgb *.rgba *.bw *.int *.inta *.pic *.tga *.tpic "
-    "*.tif *.tiff *.tx *.env *.sm *.vsm *.zfile);;"
-    "BMP (*.bmp);;"
-    "Cineon (*.cin);;"
-    "Direct Draw Surface (*.dds);;"
-    "DPX (*.dpx);;"
-    "Field3D (*.f3d);;"
-    "FITS (*.fits);;"
-    "HDR/RGBE (*.hdr);;"
-    "Icon (*.ico);;"
-    "IFF (*.iff);;"
-    "JPEG (*.jpg *.jpe *.jpeg *.jif *.jfif *.jfi);;"
-    "JPEG-2000 (*.jp2 *.j2k);;"
-    "OpenEXR (*.exr);;"
-    "Portable Network Graphics (*.png);;"
-    "PNM / Netpbm (*.pbm *.pgm *.ppm);;"
-    "Ptex (*.ptex);;"
-    "RLA (*.rla);;"
-    "SGI (*.sgi *.rgb *.rgba *.bw *.int *.inta);;"
-    "Softimage PIC (*.pic);;"
-    "Targa (*.tga *.tpic);;"
-    "TIFF (*.tif *.tiff *.tx *.env *.sm *.vsm);;"
-    "Zfile (*.zfile);;"
-    "All Files (*)";
-
-
 
 ImageViewer::ImageViewer ()
     : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
@@ -362,11 +314,12 @@ ImageViewer::createActions()
 
     slideLoopAct = new QAction(tr("Loop slide show"), this);
     slideLoopAct->setCheckable (true);
-    slideLoopAct->setChecked (true);
+    slideLoopAct->setChecked (false);
     connect(slideLoopAct, SIGNAL(triggered()), this, SLOT(slideLoop()));
 
     slideNoLoopAct = new QAction(tr("Stop at end"), this);
     slideNoLoopAct->setCheckable (true);
+    slideNoLoopAct->setChecked (true);
     connect(slideNoLoopAct, SIGNAL(triggered()), this, SLOT(slideNoLoop()));
 
     sortByNameAct = new QAction(tr("By Name"), this);
@@ -388,6 +341,11 @@ ImageViewer::createActions()
     showInfoWindowAct->setShortcut(tr("Ctrl+I"));
 //    showInfoWindowAct->setEnabled(true);
     connect (showInfoWindowAct, SIGNAL(triggered()), this, SLOT(showInfoWindow()));
+  
+    showThumbWindowAct = new QAction(tr("Thumbnail view..."), this);
+    showThumbWindowAct->setCheckable (true);
+    connect (showThumbWindowAct, SIGNAL(triggered()), this, SLOT(showThumbWindow()));
+
 
     showPixelviewWindowAct = new QAction(tr("&Pixel closeup view..."), this);
     showPixelviewWindowAct->setCheckable (true);
@@ -518,6 +476,7 @@ ImageViewer::createMenus()
     toolsMenu = new QMenu(tr("&Tools"), this);
     // Mode: select, zoom, pan, wipe
     toolsMenu->addAction (showInfoWindowAct);
+    toolsMenu->addAction (showThumbWindowAct);
     toolsMenu->addAction (showPixelviewWindowAct);
     toolsMenu->addMenu (slideMenu);
     toolsMenu->addMenu (sortMenu);
@@ -647,18 +606,14 @@ image_progress_callback (void *opaque, float done)
 void
 ImageViewer::open()
 {
-    static QString openPath = QDir::currentPath();
-    QFileDialog dialog(NULL, tr("Open File(s)"),
-                       openPath, tr(s_file_filters));
-    dialog.setAcceptMode (QFileDialog::AcceptOpen);
-    dialog.setFileMode (QFileDialog::ExistingFiles);
-    if (!dialog.exec())
+    QStringList names;
+    names = QFileDialog::getOpenFileNames (this, tr("Open File(s)"),
+                                           QDir::currentPath());
+    if (names.empty())
         return;
-    openPath = dialog.directory().path();
-    QStringList names = dialog.selectedFiles();
-
     int old_lastimage = m_images.size()-1;
-    for (QStringList::Iterator it = names.begin();  it != names.end();  ++it) {
+    QStringList list = names;
+    for (QStringList::Iterator it = list.begin();  it != list.end();  ++it) {
         std::string filename = it->toUtf8().data();
         if (filename.empty())
             continue;
@@ -798,8 +753,7 @@ ImageViewer::saveAs()
         return;
     QString name;
     name = QFileDialog::getSaveFileName (this, tr("Save Image"),
-                                         QString(img->name().c_str()),
-                                         tr(s_file_filters));
+                                         QString(img->name().c_str()));
     if (name.isEmpty())
         return;
     bool ok = img->save (name.toStdString(), "", image_progress_callback, this);
@@ -847,7 +801,7 @@ ImageViewer::updateTitle ()
 {
     IvImage *img = cur();
     if (! img) {
-        setWindowTitle (tr("iv Image Viewer (no image loaded)"));
+        setWindowTitle (tr("iv Image Viewer Thumbnail Addition (no image loaded)"));
         return;
     }
     std::string message;
@@ -1734,20 +1688,12 @@ ImageViewer::closeImg()
     m_images[m_current_image] = NULL;
     m_images.erase (m_images.begin()+m_current_image);
 
-    // Update image indices
-    // This should be done for all image indices we may be storing
-    if (m_last_image == m_current_image)
-    {
-        if (!m_images.empty() && m_last_image > 0)
-            m_last_image = 0;
-        else
-            m_last_image = -1;
-    }
-    if (m_last_image > m_current_image)
-        m_last_image --;
+    // FIXME:
+    // For all image indices we may be storing,
+    //   if == m_current_image, wrap to 0 if this was the last image
+    //   else if > m_current_image, subtract one
 
-    m_current_image = m_current_image < (int)m_images.size() ? m_current_image : 0;
-    displayCurrentImage ();
+    current_image (current_image() < (int)m_images.size() ? current_image() : 0);
 }
 
 
@@ -2000,7 +1946,7 @@ ImageViewer::about()
     QMessageBox::about(this, tr("About iv"),
             tr("<p><b>iv</b> is the image viewer for OpenImageIO.</p>"
                "<p>(c) Copyright 2008 Larry Gritz et al.  All Rights Reserved.</p>"
-               "<p>See <a href='http://openimageio.org'>http://openimageio.org</a> for details.</p>"));
+               "<p>See http://openimageio.org for details.</p>"));
 }
 
 
@@ -2097,7 +2043,11 @@ ImageViewer::showInfoWindow ()
     else
         infoWindow->hide ();
 }
-
+void
+ImageViewer::showThumbWindow()
+{
+    //glwin->trigger_redraw ();
+}
 
 
 void
