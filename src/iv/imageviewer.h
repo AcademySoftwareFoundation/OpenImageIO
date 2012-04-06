@@ -49,31 +49,13 @@
 // This needs to be included before GL.h
 #include <glew.h>
 
-#include <QtGui/QAction>
-#include <QtGui/QCheckBox>
-#include <QtGui/QDialog>
-#include <QtGui/QMainWindow>
-#include <QtOpenGL/QGLWidget>
-
-#ifndef QT_NO_PRINTER
-#include <QtGui/QPrinter>
-#endif
+#include <QtGui>
+#include <QGLWidget>
 
 #include "imageio.h"
 #include "imagebuf.h"
 
 OIIO_NAMESPACE_USING;
-
-class QComboBox;
-class QLabel;
-class QMenu;
-class QMenuBar;
-class QProgressBar;
-class QPushButton;
-class QSpinBox;
-class QScrollArea;
-class QStatusBar;
-class QVBoxLayout;
 
 class IvMainWindow;
 class IvInfoWindow;
@@ -312,6 +294,7 @@ private slots:
     void setSlideShowDuration(int seconds); ///< Set the slide show duration in seconds
     void slideImages();                 ///< Slide show - move to next image
     void showInfoWindow();              ///< View extended info on image
+    void showThumbWindow();
     void showPixelviewWindow();         ///< View closeup pixel view
     void editPreferences();             ///< Edit viewer preferences
 private:
@@ -372,6 +355,7 @@ private:
     QAction *sortByImageDateAct, *sortByFileDateAct;
     QAction *slideShowAct, *slideLoopAct, *slideNoLoopAct;
     QAction *showInfoWindowAct;
+    QAction *showThumbWindowAct;
     QAction *editPreferencesAct;
     QAction *showPixelviewWindowAct;
     QMenu *fileMenu, *editMenu, /**imageMenu,*/ *viewMenu, *toolsMenu, *helpMenu;
@@ -627,9 +611,6 @@ private:
     /// Loads the given patch of the image, but first figures if it's already
     /// been loaded.
     void load_texture (int x, int y, int width, int height, float percent);
-    
-    /// Destroys shaders and selects fixed-function pipeline
-    void create_shaders_abort (void);
 };
 
 #endif // OPENIMAGEIO_IMAGEVIEWER_H
