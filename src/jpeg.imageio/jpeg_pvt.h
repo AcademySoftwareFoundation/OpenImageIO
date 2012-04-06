@@ -51,6 +51,7 @@ class JpgInput : public ImageInput {
     JpgInput () { init(); }
     virtual ~JpgInput () { close(); }
     virtual const char * format_name (void) const { return "jpeg"; }
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &spec);
     virtual bool open (const std::string &name, ImageSpec &spec,
                        const ImageSpec &config);

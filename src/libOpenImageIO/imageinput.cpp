@@ -649,7 +649,7 @@ ImageInput::send_to_client (const char *format, ...)
 
 
 void 
-ImageInput::error (const char *format, ...)
+ImageInput::error (const char *format, ...) const
 {
     va_list ap;
     va_start (ap, format);

@@ -717,7 +717,7 @@ public:
 protected:
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.
-    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    void error (const char *format, ...) const OPENIMAGEIO_PRINTF_ARGS(2,3);
 
 protected:
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
