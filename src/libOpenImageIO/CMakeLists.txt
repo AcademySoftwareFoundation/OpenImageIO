@@ -216,9 +216,9 @@ endif ()
 
 
 
-if (MSVC)
+if (WIN32)
     target_link_libraries (OpenImageIO psapi.lib)
-endif (MSVC)
+endif ()
 link_ilmbase (OpenImageIO)
 
 if (EMBEDPLUGINS)
