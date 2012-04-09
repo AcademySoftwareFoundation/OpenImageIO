@@ -4,6 +4,7 @@ import os
 import sys
 import platform
 import subprocess
+import difflib
 
 from optparse import OptionParser
 
@@ -51,6 +52,37 @@ outputs = [ "out.txt" ]    # default
 
 
 # Handy functions...
+
+# Compare two text files. Returns 0 if they are equal otherwise returns
+# a non-zero value and writes the differences to "diff_file".
+# Based on the command-line interface to difflib example from the Python
+# documentation
+def text_diff (fromfile, tofile, diff_file=None):
+    import time
+    try:
+        fromdate = time.ctime (os.stat (fromfile).st_mtime)
+        todate = time.ctime (os.stat (tofile).st_mtime)
+        fromlines = open (fromfile, 'rU').readlines()
+        tolines   = open (tofile, 'rU').readlines()
+    except:
+        print ("Unexpected error:", sys.exc_info()[0])
+        return -1
+        
+    diff = difflib.unified_diff(fromlines, tolines, fromfile, tofile,
+                                fromdate, todate)
+    # Diff is a generator, but since we need a way to tell if it is
+    # empty we just store all the text in advance
+    diff_lines = [l for l in diff]
+    if not diff_lines:
+        return 0
+    if diff_file:
+        try:
+            open (diff_file, 'w').writelines (diff_lines)
+        except:
+            print ("Unexpected error:", sys.exc_info()[0])
+    return 1
+
+
 
 def oiio_relpath (path, start=os.curdir):
     "Wrapper around os.path.relpath which always uses '/' as the separator."
@@ -153,15 +185,18 @@ def runtest (command, outputs, failureok=0) :
         if extension == ".tif" or extension == ".exr" :
             # images -- use idiff
             cmpcommand = diff_command (out, refdir + out, concat=False)
+            # print "cmpcommand = " + cmpcommand
+            cmpresult = os.system (cmpcommand)
+        elif extension == ".txt" :
+            cmpresult = text_diff (out, refdir + out, out + ".diff")
         else :
-            # anything else, mainly text files
+            # anything else
             if (platform.system () == 'Windows'):
                 diff_cmd = "fc "
             else:
                 diff_cmd = "diff "
             cmpcommand = (diff_cmd + out + " " + refdir + out)
-        # print "cmpcommand = " + cmpcommand
-        cmpresult = os.system (cmpcommand)
+            cmpresult = os.system (cmpcommand)
         if cmpresult == 0 :
             print "\tmatch " + out
         else :
