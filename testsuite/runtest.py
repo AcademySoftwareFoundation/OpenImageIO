@@ -5,6 +5,7 @@ import sys
 import platform
 import subprocess
 import difflib
+import filecmp
 
 from optparse import OptionParser
 
@@ -191,12 +192,8 @@ def runtest (command, outputs, failureok=0) :
             cmpresult = text_diff (out, refdir + out, out + ".diff")
         else :
             # anything else
-            if (platform.system () == 'Windows'):
-                diff_cmd = "fc "
-            else:
-                diff_cmd = "diff "
-            cmpcommand = (diff_cmd + out + " " + refdir + out)
-            cmpresult = os.system (cmpcommand)
+            cmpresult = 0 if filecmp.cmp (out, refdir + out) else 1
+        
         if cmpresult == 0 :
             print "\tmatch " + out
         else :
