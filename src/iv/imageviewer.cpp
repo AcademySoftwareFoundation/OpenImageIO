@@ -399,12 +399,12 @@ ImageViewer::createMenus()
     fileMenu->addAction (exitAct);
     menuBar()->addMenu (fileMenu);
 
-    editMenu = new QMenu(tr("&Edit"), this);
+    //editMenu = new QMenu(tr("&Edit"), this);
     // Copy
     // Paste
     // Clear selection
     // radio: prioritize selection, crop selection
-    menuBar()->addMenu (editMenu);
+    //menuBar()->addMenu (editMenu);
 
     expgamMenu = new QMenu(tr("Exposure/gamma"));  // submenu
     expgamMenu->addAction (exposureMinusOneHalfStopAct);
