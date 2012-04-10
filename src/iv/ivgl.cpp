@@ -47,6 +47,7 @@ using boost::algorithm::iequals;
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/compare.hpp>
 
+#include "ivutils.h"
 #include "strutil.h"
 #include "fmath.h"
 #include "timer.h"
@@ -1189,27 +1190,16 @@ IvGL::mouseMoveEvent (QMouseEvent *event)
 }
 
 
-
 void
 IvGL::wheelEvent (QWheelEvent *event)
 {
     m_mouse_activation = false;
     if (event->orientation() == Qt::Vertical) {
-        int degrees = event->delta() / 8;
-        if (true || (event->modifiers() & Qt::AltModifier)) {
-            // Holding down Alt while wheeling makes smooth zoom of small
-            // increments
-            float z = m_viewer.zoom();
-            z *= 1.0 + 0.005*degrees;
-            z = Imath::clamp (z, 0.01f, 256.0f);
-            m_viewer.zoom (z);
-            m_viewer.fitImageToWindowAct->setChecked (false);
-        } else {
-            if (degrees > 5)
-                m_viewer.zoomIn ();
-            else if (degrees < -5)
-                m_viewer.zoomOut ();
-        }
+        // TODO: Update this to keep the zoom centered on the event .x, .y
+        float oldzoom = m_viewer.zoom();
+        float newzoom = (event->delta()>0) ? \
+            pow2roundupf (oldzoom) : pow2rounddownf (oldzoom);
+        m_viewer.zoom (newzoom);
         event->accept();
     }
 }
