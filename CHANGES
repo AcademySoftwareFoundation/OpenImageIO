@@ -3,8 +3,27 @@ Changes:
 Release 1.1 (developmet in progress, compared to 1.0.2)
 -------------------------------------------------------
 Major new features and improvements:
+* OpenCV interoperability: new ImageBufAlgo::fromIplImage converts/copies
+  an OpenCV image to an ImageBuf.
+* New ImageBufAlgo functions:
+    capture_image : captures from a camera device (only if OpenCV is found)
+* New oiiotool commands:
+    --capture : captures from a camera device (only if OpenCV is found)
 
 API changes:
+* A new static ImageInput::open(filename [,config]) combines the old
+  create-and-open idiom into a single call, which is also much more
+  efficient because it won't needlessly open and close the file multiple
+  times.  This is now the preferred method for reading a file, though
+  the old-style create() and open() still work as always.
+* ImageInput plugins now may supply a valid_file(filename) method which 
+  detects whether a given file is in the right format, less expensively
+  than doing a full open() and checking for errors.  (It's probably the same
+  cost as before when the file is not the right time, but when it is, it's
+  less expensive because it can stop as soon as it knows it's the right
+  type, without needing to do a full header read and ImageSpec setup.)
+* Removed various error_message() functions that had been deprecated for
+  a long time (in favor of newer getmessage() functions).
 
 Fixes, minor enhancements, and performance improvements:
 * TextureSystem: anisotropic texture lookups are more robust when the 
@@ -12,8 +31,23 @@ Fixes, minor enhancements, and performance improvements:
 * iconvert handles the int32 and uint32 cases.
 * Bug fix in to_native_rectangle, which could lead to errors in certain
   data format conversions.
+* Faster TIFF texture access (by speeding up switching of MIPmap levels).
+* iv improvements:
+  - better behavior after closing the last image of the sequence.
+  - file load/save dialogs can filter to show just certain image file types.
+  - remember last open dialog directory
+  - "About" dialog has a link to the OIIO home page
+* Improve ::create to more robustly handle files whose extensions don't
+  match their actual formats.
+* ImageCache attribute "deduplicate" controls whether the identical-image
+  deduplication is enabled (on by default).
+* OpenImageIO::geterror() is now thread-specific, so separate threads will
+  no longer clobber each others' error messages.
 
 Build system improvements:
+* Various Windows build fixes, including fixes for Windows 7, and 
+  improvements to running the testsuite on Windows.
+* Testsuite additions and improvements: png fmath_test
 
 Developer goodies:
 * Strutil utilities: iequals, istarts_with, iends_with, to_lower, to_upper.
