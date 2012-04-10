@@ -1016,10 +1016,6 @@ IvGL::view (float xcenter, float ycenter, float zoom, bool redraw)
     m_centery = ycenter;
     m_zoom = zoom;
 
-    IvImage *img = m_viewer.cur();
-    if (img) {
-        clamp_view_to_window ();
-    }
     if (redraw)
         trigger_redraw ();
 }
