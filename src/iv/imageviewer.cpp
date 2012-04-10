@@ -114,6 +114,8 @@ ImageViewer::ImageViewer ()
 {
     readSettings (false);
 
+    thumbnail = new IvThumbnail;
+    thumbnail->setInteractive(true);
     const char *gamenv = getenv ("GAMMA");
     if (gamenv) {
         float g = atof (gamenv);
@@ -138,7 +140,15 @@ ImageViewer::ImageViewer ()
     glwin = new IvGL (this, *this);
     glwin->setPalette (m_palette);
     glwin->resize (m_default_width, m_default_height);
-    setCentralWidget (glwin);
+    
+    QSplitter  *splitter = new QSplitter(Qt::Vertical, this);
+    splitter->addWidget(glwin);
+    splitter->addWidget(thumbnail);
+    QList<int> split;
+    split.append(400);
+    split.append(80);
+    splitter->setSizes(split);
+    setCentralWidget (splitter);
 
     createActions();
     createMenus();
