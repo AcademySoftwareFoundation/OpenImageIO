@@ -40,6 +40,7 @@
 #include "imageio.h"
 #include "thread.h"
 #include "strutil.h"
+#include "filesystem.h"
 #include "fmath.h"
 
 
@@ -79,6 +80,7 @@ public:
     TIFFInput () { init(); }
     virtual ~TIFFInput () { close(); }
     virtual const char * format_name (void) const { return "tiff"; }
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool open (const std::string &name, ImageSpec &newspec,
                        const ImageSpec &config);
@@ -279,6 +281,25 @@ my_error_handler (const char *str, const char *format, va_list ap)
 {
     lock_guard lock (lasterr_mutex);
     lasterr = Strutil::vformat (format, ap);
+}
+
+
+
+bool
+TIFFInput::valid_file (const std::string &filename) const
+{
+    FILE *file = fopen (filename.c_str(), "r");
+    if (! file)
+        return false;  // needs to be able to open
+    unsigned short magic[2] = { 0, 0 };
+    fread (magic, sizeof(unsigned short), 2, file);
+    fclose (file);
+    if (magic[0] != TIFF_LITTLEENDIAN && magic[0] != TIFF_BIGENDIAN)
+        return false;  // not the right byte order
+    if ((magic[0] == TIFF_LITTLEENDIAN) != littleendian())
+        swap_endian (&magic[1], 1);
+    return (magic[1] == 42 /* Classic TIFF */ ||
+            magic[1] == 43 /* Big TIFF */);
 }
 
 

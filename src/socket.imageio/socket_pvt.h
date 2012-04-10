@@ -92,6 +92,7 @@ class SocketInput : public ImageInput {
     SocketInput ();
     virtual ~SocketInput () { close(); }
     virtual const char * format_name (void) const { return "socket"; }
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &spec);
     virtual bool open (const std::string &name, ImageSpec &spec,
                        const ImageSpec &config);

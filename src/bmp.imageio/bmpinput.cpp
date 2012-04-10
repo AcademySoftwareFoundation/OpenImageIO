@@ -48,6 +48,20 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+BmpInput::valid_file (const std::string &filename) const
+{
+    FILE *fd = fopen (filename.c_str(), "rb");
+    if (!fd)
+        return false;
+    bmp_pvt::BmpFileHeader bmp_header;
+    bool ok = bmp_header.read_header(fd) && bmp_header.isBmp();
+    fclose (fd);
+    return ok;
+}
+
+
+
+bool
 BmpInput::open (const std::string &name, ImageSpec &spec)
 {
     // saving 'name' for later use

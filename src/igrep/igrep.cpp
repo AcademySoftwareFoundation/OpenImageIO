@@ -89,20 +89,13 @@ grep_file (const std::string &filename, boost::regex &re,
         return r;
     }
 
-    boost::scoped_ptr<ImageInput> in (ImageInput::create (filename.c_str()));
-    if (in.get()) {
-        in->close ();
-    } else {
+    boost::scoped_ptr<ImageInput> in (ImageInput::open (filename.c_str()));
+    if (! in.get()) {
         if (! ignore_nonimage_files)
             std::cerr << geterror() << "\n";
         return false;
     }
-    ImageSpec spec;
-    if (! in->open (filename.c_str(), spec)) {
-        std::cerr << "igrep: Could not open \"" << filename << "\" : "
-                  << in->geterror() << "\n";
-        return false;
-    }
+    ImageSpec spec = in->spec();
 
     if (file_match) {
         bool match = boost::regex_search (filename, re);

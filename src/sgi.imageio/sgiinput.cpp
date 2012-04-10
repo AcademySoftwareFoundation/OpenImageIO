@@ -46,6 +46,21 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+SgiInput::valid_file (const std::string &filename) const
+{
+    FILE *fd = fopen (filename.c_str (), "rb");
+    if (!fd)
+        return false;
+    int16_t magic;
+    bool ok = (::fread (&magic, sizeof(magic), 1, fd) == 1) &&
+              (magic == sgi_pvt::SGI_MAGIC);
+    fclose (fd);
+    return ok;
+}
+
+
+
+bool
 SgiInput::open (const std::string &name, ImageSpec &spec)
 {
     // saving name for later use
@@ -60,8 +75,7 @@ SgiInput::open (const std::string &name, ImageSpec &spec)
     if (! read_header ())
         return false;
 
-    const short SGI_MAGIC = 0x01DA;
-    if (m_sgi_header.magic != SGI_MAGIC) {
+    if (m_sgi_header.magic != sgi_pvt::SGI_MAGIC) {
         error ("\"%s\" is not a SGI file, magic number doesn't match",
                m_filename.c_str());
         close ();

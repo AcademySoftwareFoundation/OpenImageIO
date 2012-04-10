@@ -46,6 +46,52 @@ OIIO_NAMESPACE_ENTER
     using namespace pvt;
 
 
+
+// Default implementation of valid_file: try to do a full open.  If it
+// succeeds, it's the right kind of file.  We assume that most plugins
+// will override this with something smarter and much less expensive,
+// like reading just the first few bytes of the file to check for magic
+// numbers.
+bool
+ImageInput::valid_file (const std::string &filename) const
+{
+    ImageSpec tmpspec;
+    bool ok = const_cast<ImageInput *>(this)->open (filename, tmpspec);
+    if (ok)
+        const_cast<ImageInput *>(this)->close ();
+    return ok;
+}
+
+
+
+ImageInput *
+ImageInput::open (const std::string &filename,
+                  const ImageSpec *config)
+{
+    if (config == NULL) {
+        // Without config, this is really just a call to create-with-open.
+        return ImageInput::create (filename, true, std::string());
+    }
+
+    // With config, create without open, then try to open with config.
+    ImageInput *in = ImageInput::create (filename, false, std::string());
+    if (! in)
+        return NULL;  // create() failed
+    ImageSpec newspec;
+    if (in->open (filename, newspec, *config))
+        return in;   // creted fine, opened fine, return it
+
+    // The open failed.  Transfer the error from 'in' to the global OIIO
+    // error, delete the ImageInput we allocated, and return NULL.
+    std::string err = in->geterror();
+    if (err.size())
+        pvt::error ("%s", err.c_str());
+    delete in;
+    return NULL;
+}
+
+
+
 bool 
 ImageInput::read_scanline (int y, int z, TypeDesc format, void *data,
                            stride_t xstride)
@@ -603,7 +649,7 @@ ImageInput::send_to_client (const char *format, ...)
 
 
 void 
-ImageInput::error (const char *format, ...)
+ImageInput::error (const char *format, ...) const
 {
     va_list ap;
     va_start (ap, format);

@@ -469,6 +469,7 @@ values) for certain known metadata.
 
 
 \subsection{Miscellaneous Utilities}
+\label{sec:miscapi}
 
 These helper functions are not part of any other \OpenImageIO class,
 they just exist in the {\cf OpenImageIO} namespace as general utilities.
@@ -488,11 +489,15 @@ Returns any error string describing what went wrong if
 {\cf ImageInput::create()} or {\cf ImageOutput::create()} failed
 (since in such cases, the \ImageInput or \ImageOutput itself does 
 not exist to have its own {\cf geterror()} function called).
+This function returns the last error
+for this particular thread; separate threads will not clobber each
+other's global error messages.
 \apiend
 
 
 \apiitem{bool {\ce attribute} (const std::string \&name, TypeDesc type,
   const void *val)}
+\index{globalattribute}
 \indexapi{attribute}
 
 Sets an global attribute (i.e., a property or option) of \product.
@@ -518,6 +523,13 @@ simultaneously-read OpenEXR scanlines, or many \ImageBuf operations.)
 This attribute sets the maximum number of threads that will be spawned.
 The default is 1.  If set to 0, it means that it should use as many
 threads as there are hardware cores present on the system.
+\apiend
+
+\apiitem{string plugin_serachpath}
+\vspace{10pt}
+\index{plugin_searchpath}
+A colon-separated list of directories to search for 
+dynamically-loaded format plugins.
 \apiend
 
 \apiend

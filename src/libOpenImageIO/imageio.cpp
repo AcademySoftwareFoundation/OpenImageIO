@@ -46,13 +46,38 @@
 
 OIIO_NAMESPACE_ENTER
 {
-    using namespace pvt;
+
+// Global private data
+namespace pvt {
+int oiio_threads = 1;
+ustring plugin_searchpath;
+};
+
+
+
+using namespace pvt;
 
 namespace {
 
-static std::string create_error_msg;
 
+// To avoid thread oddities, we have the storage area buffering error
+// messages for error()/geterror() be thread-specific.
+static thread_specific_ptr<std::string> thread_error_msg;
+
+// Return a reference to the string for this thread's error messages,
+// creating it if none exists for this thread thus far.
+static std::string &
+error_msg ()
+{
+    std::string *e = thread_error_msg.get();
+    if (! e) {
+        e = new std::string;
+        thread_error_msg.reset (e);
+    }
+    return *e;
 }
+
+} // end anon namespace
 
 recursive_mutex pvt::imageio_mutex;
 
@@ -74,7 +99,7 @@ pvt::error (const char *message, ...)
     recursive_lock_guard lock (pvt::imageio_mutex);
     va_list ap;
     va_start (ap, message);
-    create_error_msg = Strutil::vformat (message, ap);
+    error_msg() = Strutil::vformat (message, ap);
     va_end (ap);
 }
 
@@ -84,8 +109,8 @@ std::string
 geterror ()
 {
     recursive_lock_guard lock (pvt::imageio_mutex);
-    std::string e = create_error_msg;
-    create_error_msg.clear ();
+    std::string e = error_msg();
+    error_msg().clear ();
     return e;
 }
 
@@ -96,7 +121,6 @@ namespace {
 // Private global OIIO data.
 
 static spin_mutex attrib_mutex;
-static int oiio_threads = 1;
 static const int maxthreads = 64;   // reasonable maximum for sanity check
 
 };
@@ -118,6 +142,10 @@ attribute (const std::string &name, TypeDesc type, const void *val)
         }
         return true;
     }
+    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
+        plugin_searchpath = ustring (*(const char **)val);
+        return true;
+    }
     return false;
 }
 
@@ -129,6 +157,10 @@ getattribute (const std::string &name, TypeDesc type, void *val)
     spin_lock lock (attrib_mutex);
     if (name == "threads" && type == TypeDesc::TypeInt) {
         *(int *)val = oiio_threads;
+        return true;
+    }
+    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
+        *(ustring *)val = plugin_searchpath;
         return true;
     }
     return false;
