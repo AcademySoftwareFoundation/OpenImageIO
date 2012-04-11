@@ -133,25 +133,18 @@ namespace dpx
 		// number of datums in one row
 		int datums = dpxHeader.Width() * numberOfComponents;
 		
+		// Line length in bytes rounded to 32 bits boundary
+		int lineLength = ((datums - 1) / 3 + 1) * 4;
+
 		// read in each line at a time directly into the user memory space
 		for (int line = 0; line < height; line++)
 		{
 			// determine offset into image element
-
 			int actline = line + block.y1;
 
 			// first get line offset
-			long offset = actline * datums;
-			
-			// add in the accumulated round-up offset - the following magical formula is
-			// just an unrolling of a loop that does the same work in constant time:
-			// for (int i = 1; i <= actline; ++i)
-			//     offset += (i * datums) % 3;
-			offset += datums % 3 * ((actline + 2) / 3) + (3 - datums % 3) % 3 * ((actline + 1) / 3);
-			
-			// round up to the 32-bit boundary
-			offset = offset / 3 * 4;
-			
+			long offset = actline * lineLength;
+
 			// add in eoln padding
 			offset += line * eolnPad;
 			
