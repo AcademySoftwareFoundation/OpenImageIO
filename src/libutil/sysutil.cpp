@@ -39,7 +39,7 @@
 # include <sys/ioctl.h>
 #endif
 
-#ifdef __FreeBSD__
+#if defined (__FreeBSD__) || defined (__FreeBSD_kernel__)
 # include <sys/types.h>
 # include <sys/resource.h>
 # include <sys/sysctl.h>
@@ -154,7 +154,7 @@ Sysutil::this_program_path ()
 #elif defined(_WIN32)
     // According to MSDN...
     int r = GetModuleFileName (NULL, filename, size);
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC;
@@ -193,7 +193,7 @@ Sysutil::terminal_columns ()
 {
     int columns = 80;   // a decent guess, if we have nothing more to go on
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
     struct winsize w;
     ioctl (0, TIOCGWINSZ, &w);
     columns = w.ws_col;
