@@ -370,20 +370,14 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     }
 
     // Find an ImageIO plugin that can open the input file, and open it.
-    ImageInput *in = ImageInput::create (in_filename.c_str(), "" /* searchpath */);
+    ImageInput *in = ImageInput::open (in_filename.c_str());
     if (! in) {
-        std::cerr 
-            << "iconvert ERROR: Could not find an ImageIO plugin to read \"" 
-            << in_filename << "\" : " << geterror() << "\n";
-        return false;
-    }
-    ImageSpec inspec;
-    if (! in->open (in_filename.c_str(), inspec)) {
         std::cerr << "iconvert ERROR: Could not open \"" << in_filename
-                  << "\" : " << in->geterror() << "\n";
+                  << "\" : " << geterror() << "\n";
         delete in;
         return false;
     }
+    ImageSpec inspec = in->spec();
     std::string metadatatime = inspec.get_string_attribute ("DateTime");
 
     // Find an ImageIO plugin that can open the output file, and open it

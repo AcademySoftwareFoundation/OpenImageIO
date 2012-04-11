@@ -299,7 +299,8 @@ catalog_all_plugins (std::string searchpath)
 
 
 ImageOutput *
-ImageOutput::create (const std::string &filename, const std::string &plugin_searchpath)
+ImageOutput::create (const std::string &filename,
+                     const std::string &plugin_searchpath)
 {
     if (filename.empty()) { // Can't even guess if no filename given
         pvt::error ("ImageOutput::create() called with no filename");
@@ -319,7 +320,8 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
     // find to populate the table.
     Strutil::to_lower (format);
     if (output_formats.find (format) == output_formats.end())
-        catalog_all_plugins (plugin_searchpath);
+        catalog_all_plugins (plugin_searchpath.size() ? plugin_searchpath
+                                 : pvt::plugin_searchpath.string());
 
     if (output_formats.find (format) == output_formats.end()) {
         if (input_formats.empty()) {
@@ -344,7 +346,18 @@ ImageOutput::create (const std::string &filename, const std::string &plugin_sear
 
 
 ImageInput *
-ImageInput::create (const std::string &filename, const std::string &plugin_searchpath)
+ImageInput::create (const std::string &filename, 
+                    const std::string &plugin_searchpath)
+{
+    return create (filename, false, plugin_searchpath);
+}
+
+
+
+ImageInput *
+ImageInput::create (const std::string &filename, 
+                    bool do_open,
+                    const std::string &plugin_searchpath)
 {
     if (filename.empty()) { // Can't even guess if no filename given
         pvt::error ("ImageInput::create() called with no filename");
@@ -364,27 +377,44 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
     // find to populate the table.
     Strutil::to_lower (format);
     if (input_formats.find (format) == input_formats.end())
-        catalog_all_plugins (plugin_searchpath);
+        catalog_all_plugins (plugin_searchpath.size() ? plugin_searchpath
+                                 : pvt::plugin_searchpath.string());
 
-    create_prototype create_function = NULL; 
+    // Remember which prototypes we've already tried, so we don't double dip.
+    std::vector<create_prototype> formats_tried;
+
+    create_prototype create_function = NULL;
+    std::string specific_error;
     if (input_formats.find (format) != input_formats.end()) {
         create_function = input_formats[format];
+        ASSERT (create_function != NULL);
         if (filename != format) {
             // If given a full filename, double-check that our guess
             // based on the extension actually works.  You never know
             // when somebody will have an incorrectly-named file, let's
             // deal with it robustly.
+            formats_tried.push_back (create_function);
             ImageInput *in = (ImageInput *)create_function();
+            if (! do_open && in && in->valid_file(filename)) {
+                // Special case: we don't need to return the file
+                // already opened, and this ImageInput says that the
+                // file is the right type.
+                return in;
+            }
             ImageSpec tmpspec;
             bool ok = in && in->open (filename, tmpspec);
             if (ok) {
-                // It worked, close and we're ready to go
-                in->close ();
+                // It worked
+                if (! do_open)
+                    in->close ();
+                return in;
             } else {
                 // Oops, it failed.  Apparently, this file can't be
                 // opened with this II.  Clear create_function to force
                 // the code below to check every plugin we know.
                 create_function = NULL;
+                if (in)
+                    specific_error = in->geterror();
             }
             delete in;
         }
@@ -402,16 +432,31 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
         for (PluginMap::const_iterator plugin = input_formats.begin();
              plugin != input_formats.end(); ++plugin)
         {
-            ImageSpec test_spec;
-            ImageInput *test_plugin = (ImageInput*) plugin->second();
-            bool ok = test_plugin->open(filename, test_spec, config);
-            if (ok)
-                test_plugin->close ();
-            delete test_plugin;
-            if (ok) {
-                create_function = plugin->second;
-                break;
+            // If we already tried this create function, don't do it again
+            if (std::find (formats_tried.begin(), formats_tried.end(),
+                           plugin->second) != formats_tried.end())
+                continue;
+            formats_tried.push_back (plugin->second);  // remember
+
+            ImageSpec tmpspec;
+            ImageInput *in = (ImageInput*) plugin->second();
+            if (! in)
+                continue;
+            if (! do_open && ! in->valid_file(filename)) {
+                // Since we didn't need to open it, we just checked whether
+                // it was a valid file, and it's not.  Try the next one.
+                delete in;
+                continue;
             }
+            // We either need to open it, or we already know it appears
+            // to be a file of the right type.
+            bool ok = in->open(filename, tmpspec, config);
+            if (ok) {
+                if (! do_open)
+                    in->close ();
+                return in;
+            }
+            delete in;
         }
     }
 
@@ -423,6 +468,12 @@ ImageInput::create (const std::string &filename, const std::string &plugin_searc
                           "    Perhaps you need to set OIIO_LIBRARY_PATH.\n";
             fprintf (stderr, "%s", msg);
             pvt::error ("%s", msg);
+        }
+        else if (! specific_error.empty()) {
+            // Pass along any specific error message we got from our
+            // best guess of the format.
+            pvt::error ("OpenImageIO could not open \"%s\" as %s: %s",
+                        filename.c_str(), format.c_str(), specific_error.c_str());
         }
         else if (Filesystem::exists (filename))
             pvt::error ("OpenImageIO could not find a format reader for \"%s\". "

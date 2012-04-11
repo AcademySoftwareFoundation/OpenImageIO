@@ -69,6 +69,7 @@ class FitsInput : public ImageInput {
     FitsInput () { init (); }
     virtual ~FitsInput () { close (); }
     virtual const char *format_name (void) const { return "fits"; }
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &spec);
     virtual bool close (void);
     virtual bool read_native_scanline (int y, int z, void *data);

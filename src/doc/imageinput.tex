@@ -15,20 +15,15 @@ out its resolution, and read the pixels (converting them into
         OIIO_NAMESPACE_USING
         ...
 
-        const char *filename = "foo.jpg";
-        int xres, yres, channels;
-        unsigned char *pixels;
-
-        ImageInput *in = ImageInput::create (filename);
+        ImageInput *in = ImageInput::open (filename);
         if (! in)
             return;
-        ImageSpec spec;
-        in->open (filename, spec);
-        xres = spec.width;
-        yres = spec.height;
-        channels = spec.nchannels;
-        pixels = new unsigned char [xres*yres*channels];
-        in->read_image (TypeDesc::UINT8, pixels);
+        const ImageSpec &spec = in->spec();
+        int xres = spec.width;
+        int yres = spec.height;
+        int channels = spec.nchannels;
+        std::vector<unsigned char> pixels (xres*yres*channels);
+        in->read_image (TypeDesc::UINT8, &pixels[0]);
         in->close ();
         delete in;
 \end{code}
@@ -41,25 +36,21 @@ out its resolution, and read the pixels (converting them into
   file extension, but if that fails, by opening every ImageIO plugin it
   can find until one will open the file without error.  When it finds
   the right plugin, it creates a subclass instance of \ImageInput that
-  reads the right kind of file format.
+  reads the right kind of file format, and tries to fully open the file.
   \begin{code}
-        ImageInput *in = ImageInput::create (filename);
+        ImageInput *in = ImageInput::open (filename);
   \end{code}
-\item Open the file, read the header, and put all relevant metadata
-  about the file in a specification structure.
-  \begin{code}
-        ImageSpec spec;
-        in->open (filename, spec);
-  \end{code}
-\item The specification contains vital information such as the
+\item The specification, accessible as {\cf in->spec()}, contains 
+  vital information such as the
   dimensions of the image, number of color channels, and data type of
   the pixel values.  This is enough to allow us to allocate enough space
   for the image.
   \begin{code}
-        xres = spec.width;
-        yres = spec.height;
-        channels = spec.nchannels;
-        pixels = new unsigned char [xres*yres*channels];
+        const ImageSpec &spec = in->spec();
+        int xres = spec.width;
+        int yres = spec.height;
+        int channels = spec.nchannels;
+        std::vector<unsigned char> pixels (xres*yres*channels);
   \end{code}
   Note that in this example, we don't care what data format is used for
   the pixel data in the file --- we allocate enough space for unsigned
@@ -71,7 +62,7 @@ out its resolution, and read the pixels (converting them into
   is the native format of the data in the file (in this case, we request
   that it be automatically converted to unsigned 8-bit integers).
   \begin{code}
-        in->read_image (TypeDesc::UINT8, pixels);
+        in->read_image (TypeDesc::UINT8, &pixels[0]);
   \end{code}
 \item Close the file, destroy and free the \ImageInput we had created,
   and perform all other cleanup and release of any resources used by
@@ -114,14 +105,14 @@ call:
 
 \begin{code}
         ...
-        in->open (filename, spec);
+        in = ImageInput::open (filename);
+        const ImageSpec &spec = in->spec();
         if (spec.tile_width == 0) {
-            unsigned char *scanline = new unsigned char [spec.width*spec.channels];
+            std::vector<unsigned char> scanline (spec.width*spec.channels);
             for (int y = 0;  y < yres;  ++y) {
-                in->read_scanline (y, 0, TypeDesc::UINT8, scanline);
+                in->read_scanline (y, 0, TypeDesc::UINT8, &scanline[0]);
                 ... process data in scanline[0..width*channels-1] ...
             }
-            delete [] scanline;
         } else {
             ... handle tiles, or reject the file ...
         }
@@ -165,20 +156,20 @@ using \readscanline, not \readtile.
 
 \begin{code}
         ...
-        in->open (filename, spec);
+        in = ImageInput::open (filename);
+        const ImageSpec &spec = in->spec();
         if (spec.tile_width == 0) {
             ... read by scanline ...
         } else {
             // Tiles
             int tilesize = spec.tile_width * spec.tile_height;
-            unsigned char *tile = new unsigned char [tilesize * spec.channels];
+            std::vector<unsigned char> tile (tilesize * spec.channels);
             for (int y = 0;  y < yres;  y += spec.tile_height) {
                 for (int x = 0;  x < xres;  x += spec.tile_width) {
-                    in->read_tile (x, y, 0, TypeDesc::UINT8, tile);
+                    in->read_tile (x, y, 0, TypeDesc::UINT8, &tile[0]);
                     ... process the pixels in tile[] ..
                 }
             }
-            delete [] tile;
         }
         in->close ();
         ...
@@ -235,9 +226,8 @@ regardless of whether the TIFF file itself is using 8-bit, 16-bit, or
 float values.
 
 \begin{code}
-        ImageInput *in = ImageInput::create ("myfile.tif");
-        ImageSpec spec;
-        in->open (filename, spec);
+        ImageInput *in = ImageInput::open ("myfile.tif");
+        const ImageSpec &spec = in->spec();
         ...
         int numpixels = spec.width * spec.height;
         float pixels = new float [numpixels * channels];
@@ -360,9 +350,8 @@ respectively.
 Here is example code that prints the names of the channels in an image:
 
 \begin{code}
-        ImageInput *in = ImageInput::create (filename);
-        ImageSpec spec;
-        in->open (filename, spec);
+        ImageInput *in = ImageInput::open (filename);
+        const ImageSpec &spec = in->spec();
         for (int i = 0;  i < spec.nchannels;  ++i)
             std::cout << "Channel " << i << " is " 
                       << spec.channelnames[i] << "\n";
@@ -399,9 +388,8 @@ example that looks for orientation information, expecting it to consist
 of a single integer:
 
 \begin{code}
-        ImageInput *in = ImageInput::create (filename);
-        ImageSpec spec;
-        in->open (filename, spec);
+        ImageInput *in = ImageInput::open (filename);
+        const ImageSpec &spec = in->spec();
         ...
         ParamValue *p = spec.find_attribute ("Orientation", TypeDesc::INT);
         if (p) {
@@ -512,9 +500,8 @@ resolution (level 0) MIP-map level.  You can switch to viewing another
 subimage or MIP-map level using the {\cf seek_subimage()} function:
 
 \begin{code}
-        ImageInput *in = ImageInput::create (filename);
-        ImageSpec spec;
-        in->open (filename, spec);
+        ImageInput *in = ImageInput::open (filename);
+        const ImageSpec &spec = in->spec();
         ...
         int subimage = 1;
         int miplevel = 0;
@@ -543,9 +530,8 @@ multi-resolution image used for texture mapping) that shows how to read
 multi-image files:
 
 \begin{code}
-        ImageInput *in = ImageInput::create (filename);
-        ImageSpec spec;
-        in->open (filename, spec);
+        ImageInput *in = ImageInput::open (filename);
+        const ImageSpec &spec = in->spec();
 
         int num_miplevels = 0;
         while (in->seek_subimage (0, num_miplevels, spec)) {
@@ -595,9 +581,8 @@ to an OpenEXR file, consisting of R/G/B/A channels in {\cf half} and
 a Z channel in {\cf float}:
 
 \begin{code}
-        ImageSpec spec;
-        ImageInput *in = ImageInput::create (filename);
-        in->open (filename, spec);
+        ImageInput *in = ImageInput::open (filename);
+        const ImageSpec &spec = in->spec();
 
         // Allocate enough space
         unsigned char *pixels = new unsigned char [spec.image_bytes(true)];
@@ -617,19 +602,14 @@ a Z channel in {\cf float}:
 \subsection{Custom search paths for plugins}
 \label{sec:imageinput:searchpaths}
 
-Please see Section~\ref{sec:imageoutput:searchpaths} for discussion
-about search paths for finding plugins that implement \ImageOutput.
-
-In a similar fashion, calls to {\cf ImageOutput::create()}
-will search for plugins in each directory listed in the environment
-variable {\cf OIIO_LIBRARY_PATH}, in the order that they are listed.
-If no adequate plugin is found, then it will check the custom searchpath
-passed as the optional second argument to {\cf ImageInput::create()}.
-Here is an example:
+Please see Section~\ref{sec:miscapi} for discussion
+about setting the plugin search path via the {\cf attribute()} function.
+For example:
 
 \begin{code}
-        char *mysearch = "/usr/myapp/lib:${HOME}/plugins";
-        ImageInput *in = ImageInput::create (filename, mysearch);
+        std::string mysearch = "/usr/myapp/lib:${HOME}/plugins";
+        OpenImageIO::attribute ("plugin_searchpath", mysearch);
+        ImageInput *in = ImageInput::open (filename);
         ...
 \end{code} %$
 
@@ -645,12 +625,14 @@ message describing in more detail what went wrong, and the latest
 error message is accessible using the \ImageInput method 
 {\cf geterror()}, which returns the message as a {\cf std::string}.
 
-The exception to this rule is {\cf ImageInput::create}, which returns
-{\cf NULL} if it could not create an appropriate \ImageInput.  And in
-this case, since no \ImageInput exists for which you can call its {\cf
+The exceptions to this rule are static methods such as the static
+{\cf ImageInput::open} and {\cf ImageInput::create}, which return
+{\cf NULL} if it could not create an appropriate \ImageInput (and open
+it, in the case of {\cf open()}.  In such a case,
+since no \ImageInput is returned for which you can call its {\cf
   geterror()} function, there exists a global {\cf geterror()}
 function (in the {\cf OpenImageIO} namespace) that retrieves the latest
-error message resulting from a call to {\cf create}.
+error message resulting from a call to static {\cf open()} or {\cf create()}.
 
 Here is another version of the simple image reading code from
 Section~\ref{sec:imageinput:simple}, but this time it is fully
@@ -663,27 +645,19 @@ elaborated with error checking and reporting:
 
         const char *filename = "foo.jpg";
         int xres, yres, channels;
-        unsigned char *pixels;
+        std::vector<unsigned char> pixels;
 
-        ImageInput *in = ImageInput::create (filename);
+        ImageInput *in = ImageInput::open (filename);
         if (! in) {
-            std::cerr << "Could not create an ImageInput for " 
-                      << filename << ", error = " 
-                      << OpenImageIO::geterror() << "\n";
-            return;
-        }
-
-        ImageSpec spec;
-        if (! in->open (filename, spec)) {
             std::cerr << "Could not open " << filename 
-                      << ", error = " << in->geterror() << "\n";
-            delete in;
+                      << ", error = " << OpenImageIO::geterror() << "\n";
             return;
         }
+        const ImageSpec &spec = in->spec();
         xres = spec.width;
         yres = spec.height;
         channels = spec.nchannels;
-        pixels = new unsigned char [xres*yres*channels];
+        pixels.resize (xres*yres*channels);
 
         if (! in->read_image (TypeDesc::UINT8, pixels)) {
             std::cerr << "Could not read pixels from " << filename 
@@ -706,8 +680,28 @@ elaborated with error checking and reporting:
 \section{\ImageInput Class Reference}
 \label{sec:imageinput:reference}
 
+\apiitem{ImageInput * {\ce open} (const std::string \&filename, \\
+\bigspc\bigspc const ImageSpec *config=NULL)}
+Create an \ImageInput subclass instance that is able to read
+the given file and open it, returning the opened \ImageInput if
+successful.  If it fails, return {\cf NULL} and set an error that can
+be retrieved by {\cf OpenImageIO::geterror()}.
+    
+The {\cf config}, if not {\cf NULL}, points to an \ImageSpec giving
+requests or special instructions.  \ImageInput implementations
+are free to not respond to any such requests, so the default
+implementation is just to ignore config.
+    
+The {\cf open()} function will first try to make an \ImageInput
+corresponding to the format implied by the file extension (for example,
+\qkw{foo.tif} will try the TIFF plugin), but if one is not found or if
+the inferred one does not open the file, every known \ImageInput type
+will be tried until one is found that will open the file.
+\apiend
+
 \apiitem{ImageInput * {\ce create} (const std::string \&filename, \\
 \bigspc\bigspc   const std::string \&plugin_searchpath="")}
+
 Create and return an \ImageInput implementation that is able
 to read the given file.  The {\kw plugin_searchpath} parameter is a
 colon-separated list of directories to search for \product plugin
@@ -719,6 +713,27 @@ creates the \ImageInput, it does not open the file.
 
 \apiitem{const char * {\ce format_name} (void) const}
 Return the name of the format implemented by this class.
+\apiend
+
+\apiitem{bool {\ce supports} (const std::string \&feature)}
+\label{sec:inputsupportsfeaturelist}
+Given the name of a \emph{feature}, tells if this \ImageInput 
+instance supports that feature.  The following features are recognized
+by this query:
+\begin{description}
+\item[\spc] \spc
+\item[\rm ] No queries supported at this time.
+\end{description}
+\apiend
+
+\apiitem{bool {\ce valid_file} (const std::string \&filename) const}
+Return {\cf true} if the named file is a file of the type for this
+\ImageInput.  The implementation will try to determine this as
+efficiently as possible, in most cases much less expensively than doing
+a full {\cf open()}.  Note that a file can appear to be of
+the right type (i.e., {\cf valid_file()} returning {\cf true}) but still
+fail a subsequent call to {\cf open()}, such as if the contents of the
+file are truncated, nonsensical, or otherwise corrupted.
 \apiend
 
 \apiitem{bool {\ce open} (const std::string \&name, ImageSpec \&newspec)}

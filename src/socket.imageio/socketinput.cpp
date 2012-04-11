@@ -57,6 +57,24 @@ SocketInput::SocketInput()
 
 
 bool
+SocketInput::valid_file (const std::string &filename) const
+{
+    // Pass it a configuration request that includes a "nowait" option
+    // so that it returns immediately rather than waiting for a socket
+    // connection that doesn't yet exist.
+    ImageSpec config;
+    config.attribute ("nowait", (int)1);
+
+    ImageSpec tmpspec;
+    bool ok = const_cast<SocketInput *>(this)->open (filename, tmpspec, config);
+    if (ok)
+        const_cast<SocketInput *>(this)->close ();
+    return ok;
+}
+
+
+
+bool
 SocketInput::open (const std::string &name, ImageSpec &newspec)
 {
     return open (name, newspec, ImageSpec());
@@ -70,8 +88,9 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
 {
     // If there is a nonzero "nowait" request in the configuration, just
     // return immediately.
-    if (config.get_int_attribute ("nowait", 0))
+    if (config.get_int_attribute ("nowait", 0)) {
         return false;
+    }
 
     if (! (accept_connection (name) && get_spec_from_client (newspec))) {
         return false;
