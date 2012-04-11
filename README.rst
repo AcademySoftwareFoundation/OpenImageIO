@@ -5,6 +5,10 @@ README for OpenImageIO
 Introduction
 ------------
 
+The primary target audience for OIIO is VFX studios and developers of
+tools such as renderers, compositors, viewers, and other image-related
+software you'd find in a production pipeline.
+
 OpenImageIO consists of:
 
 * Simple but powerful ImageInput and ImageOutput APIs that provide
@@ -43,6 +47,10 @@ OpenImageIO consists of:
   a TextureSystem class provides filtered MIP-map texture lookups,
   atop the nice caching behavior of ImageCache.
 
+* ImageBuf and ImageBufAlgo functions -- a simple class for storing
+  and manipulating whole images in memory, and a collection of the
+  most useful computations you might want to do involving those images.
+  
 
 
 Licensing
