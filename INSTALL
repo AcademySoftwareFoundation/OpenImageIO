@@ -22,7 +22,7 @@ Building OpenImageIO on Linux or OS X
 -------------------------------------
 
 The following dependencies must be installed to build the core of
-OpenImageIO: Boost, libtiff and OpenEXR.  These can be installed
+OpenImageIO: Boost, libjpeg, libtiff and OpenEXR.  These can be installed
 using the standard package managers on your system.  Optionally, 
 to build the image viewing tools, you will need Qt, OpenGL, and GLEW.
 
@@ -182,7 +182,7 @@ images for testing OpenImageIO. We split test images into a separate
 SVN project in order to make the main source code tree smaller and
 simpler for people who don't need the test suite.
 
-svn checkout http://svn.openimageio.org/oiio-images/trunk oiio-images
+git clone https://github.com/OpenImageIO/oiio-images.git
 
 Also, there are collections of images for some of the file formats we
 support, and make test expects them to also be present. To run full tests,
@@ -190,7 +190,7 @@ you will need to download and unpack the test image collections from:
 
 http://www.remotesensing.org/libtiff/images.html
 http://www.openexr.com/downloads.html
-http://www.crc.ricoh.com/~gormish/jpeg2000conformance/
+http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803
 http://www.cv.nrao.edu/fits/data/tests/
 
 These images should be placed in a sibling directory to the OpenImageIO
