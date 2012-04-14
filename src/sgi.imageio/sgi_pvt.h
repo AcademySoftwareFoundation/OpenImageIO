@@ -91,6 +91,7 @@ class SgiInput : public ImageInput {
     SgiInput () { init(); }
     virtual ~SgiInput () { }
     virtual const char *format_name (void) const { return "sgi"; }
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &spec);
     virtual bool close (void);
     virtual bool read_native_scanline (int y, int z, void *data);

@@ -216,9 +216,9 @@ endif ()
 
 
 
-if (MSVC)
+if (WIN32)
     target_link_libraries (OpenImageIO psapi.lib)
-endif (MSVC)
+endif ()
 link_ilmbase (OpenImageIO)
 
 if (EMBEDPLUGINS)
@@ -259,37 +259,37 @@ endif ()
 add_executable (imagebufalgo_test imagebufalgo_test.cpp)
 link_ilmbase (imagebufalgo_test)
 target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (imagebufalgo ${CMAKE_BINARY_DIR}/libOpenImageIO/imagebufalgo_test)
+add_test (imagebufalgo imagebufalgo_test)
 
 
 add_executable (atomic_test atomic_test.cpp)
 target_link_libraries (atomic_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (unit_atomic ${CMAKE_BINARY_DIR}/libOpenImageIO/atomic_test)
+add_test (unit_atomic atomic_test)
 
 add_executable (spinlock_test spinlock_test.cpp)
 target_link_libraries (spinlock_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (unit_spinlock ${CMAKE_BINARY_DIR}/libOpenImageIO/spinlock_test)
+add_test (unit_spinlock spinlock_test)
 
 add_executable (ustring_test ustring_test.cpp)
 target_link_libraries (ustring_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (unit_ustring ${CMAKE_BINARY_DIR}/libOpenImageIO/ustring_test)
+add_test (unit_ustring ustring_test)
 
 add_executable (imagespec_test imagespec_test.cpp)
 target_link_libraries (imagespec_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (unit_imagespec ${CMAKE_BINARY_DIR}/libOpenImageIO/imagespec_test)
+add_test (unit_imagespec imagespec_test)
 
 add_executable (strutil_test strutil_test.cpp)
 target_link_libraries (strutil_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (unit_strutil ${CMAKE_BINARY_DIR}/libOpenImageIO/strutil_test)
+add_test (unit_strutil strutil_test)
 
 add_executable (fmath_test fmath_test.cpp)
 target_link_libraries (fmath_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (unit_fmath ${CMAKE_BINARY_DIR}/libOpenImageIO/fmath_test)
+add_test (unit_fmath fmath_test)
 
 add_executable (filesystem_test filesystem_test.cpp)
 target_link_libraries (filesystem_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (unit_filesystem ${CMAKE_BINARY_DIR}/libOpenImageIO/filesystem_test)
+add_test (unit_filesystem filesystem_test)
 
 add_executable (optparser_test optparser_test.cpp)
 target_link_libraries (optparser_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (unit_optparser ${CMAKE_BINARY_DIR}/libOpenImageIO/optparser_test)
+add_test (unit_optparser optparser_test)

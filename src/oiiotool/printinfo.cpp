@@ -441,22 +441,14 @@ OiioTool::print_info (const std::string &filename,
                       std::string &error)
 {
     error.clear();
-    ImageInput *input = ImageInput::create (filename.c_str(), "" /* searchpath */);
+    ImageInput *input = ImageInput::open (filename.c_str());
     if (! input) {
         error = geterror();
         if (error.empty())
             error = Strutil::format ("Could not open \"%s\"", filename.c_str());
         return false;
     }
-    ImageSpec spec;
-    if (! input->open (filename.c_str(), spec)) {
-        error = input->geterror();
-        if (error.empty())
-            error = Strutil::format ("Could not open \"%s\"", filename.c_str());
-        delete input;
-        return false;
-    }
-
+    ImageSpec spec = input->spec();
 
     boost::regex field_re;
     if (! opt.metamatch.empty())

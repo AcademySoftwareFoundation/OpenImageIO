@@ -53,6 +53,22 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+FitsInput::valid_file (const std::string &filename) const
+{
+    FILE *fd = fopen (filename.c_str (), "rb");
+    if (!fd)
+        return false;
+
+    char magic[6] = {0};
+    bool ok = (fread (magic, 1, 6, fd) == 6) && !strncmp (magic, "SIMPLE", 6);
+
+    fclose (fd);
+    return ok;
+}
+
+
+
+bool
 FitsInput::open (const std::string &name, ImageSpec &spec)
 {
     // saving 'name' for later use

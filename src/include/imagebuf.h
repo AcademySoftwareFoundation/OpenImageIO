@@ -144,9 +144,6 @@ public:
         m_err.clear();
         return e;
     }
-    /// Deprecated
-    ///
-    std::string error_message () const { return geterror (); }
 
     /// Return a read-only (const) reference to the image spec that
     /// describes the buffer.

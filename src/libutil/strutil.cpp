@@ -241,7 +241,7 @@ Strutil::unescape_chars (const std::string &escaped)
                     octalChar = 8*octalChar + (c - '0');
                     s.erase (i, 1);
                     --len;
-                    c = s[i+1];
+                    c = i+1 < len ? s[i+1] : '\0';
                 }
                 s[i] = (char) octalChar;
             }

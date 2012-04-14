@@ -75,9 +75,11 @@
 /// with which we break backwards compatibility.
 /// Version 11 teased apart subimage versus miplevel specification in
 /// the APIs and per-channel formats (introduced in OIIO 0.9).
-/// Version 12 added read_scanlines() and supports() methods to ImageInput.
+/// Version 12 added read_scanlines(), write_scanlines(), read_tiles(),
+///     write_tiles(), and ImageInput::supports(). (OIIO 1.0)
+/// Version 13 added ImageInput::valid_file().  (OIIO 1.1)
 
-#define OIIO_PLUGIN_VERSION 12
+#define OIIO_PLUGIN_VERSION 13
 
 #define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_ENTER {
 #define OIIO_PLUGIN_NAMESPACE_END } OIIO_NAMESPACE_EXIT
