@@ -1696,6 +1696,14 @@ ImageViewer::keyPressEvent (QKeyEvent *event)
     case Qt::Key_Escape :
         if (m_fullscreen)
             fullScreenToggle();
+        else
+            close();        
+        return;
+    case Qt::Key_F11 :
+        fullScreenToggle();
+        return;
+    case Qt::Key_F4 :
+        fitImageToWindowAct->trigger();
         return;
     case Qt::Key_Minus :
     case Qt::Key_Underscore :
