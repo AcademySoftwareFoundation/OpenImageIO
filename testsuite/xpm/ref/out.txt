@@ -4,12 +4,7 @@ Reading ../../../../../oiio-images/g01.xpm
     channel list: R, G, B, A
     oiio:BitsPerPixel: 32
 Reading ../../../../../oiio-images/g02.xpm
-../../../../../oiio-images/g02.xpm :  725 x  544, 4 channel, uint8 xpm
-    SHA-1: 5F49433C61DC56651B15B04167B8934F2C4E4BF2
-    channel list: R, G, B, A
-    oiio:BitsPerPixel: 32
-Reading ../../../../../oiio-images/g03.xpm
-../../../../../oiio-images/g03.xpm :  725 x  490, 4 channel, uint8 xpm
-    SHA-1: 1CB0F4AC5436FC648D1CEB61DEFB0AC9A8589C36
+../../../../../oiio-images/g02.xpm :  234 x  149, 4 channel, uint8 xpm
+    SHA-1: B91D86B419EC13E94C5456C39D40CFD750667209
     channel list: R, G, B, A
     oiio:BitsPerPixel: 32

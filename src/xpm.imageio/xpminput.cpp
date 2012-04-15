@@ -46,84 +46,75 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 using namespace XPM_pvt;
 
 namespace XPM_pvt
-{   
+{
+
 class Parser {
 public:
 
-    Parser(): m_file(NULL), m_image_data(NULL)
-    {
-    }
+    Parser(): m_file(NULL), m_buffer(NULL), m_last_idx(0), m_buffer_length(0)
+    { }
 
-    bool open(FILE* file, XPMinput *input)
+    bool open(FILE* file, XPMinput* input) // opens file and initializing parisng
     {
         m_file = file;
         m_input = input;
         return parse();
     }
 
-    inline int get_height()
+    inline int get_height() // returns height of image
     {
         if(m_file)
-            return m_data.height;
+            return m_header.height;
         else
             return -1;
     }
 
-    inline int get_width()
+    inline int get_width() // returns width of image
     {
         if(m_file)
-            return m_data.width;
+            return m_header.width;
         else
             return -1;
     }
-
-    //Returning count of color used in xpm file
-    inline int get_color_count()
-    {
-        if(m_file)
-            return m_data.color_table_size;
-        else
-            return -1;
-
-    }
-
-    //Returning parsed to raw data buffor
-    uint32_t *get_raw_data();
+    
+    bool get_line(int y, int z, void *data); // gets y-th line from file 
+                                             // returns false if ther was problem
+                                             // and true if line was read correctly
 
     ~Parser()
     {
-        if (m_image_data)
-            delete m_image_data;
+        if (m_buffer)
+            delete m_buffer;
+        if(m_color_map)
+            delete m_color_map;
     }
 
 private:
-    bool parse();
+    bool parse(); // this method initialize parsing of file 
+    
+    bool parse_header(const std::string &header); // parsing header
 
-    //Seeking the start of using data
-    bool init_parsing();
+    bool parse_color(char* line, int length); // this method gets colors from 
+                                              // line and converts value to
+                                              // pair <long, uint32_t>
 
-    bool parse_header(const std::string &header);
+    int find_next_element(); // read file, and save to buffer until sign 
+                             // '\"' appears; return count of read signs
+    
+    long char_to_long(const char* buff, int lenght); // method converts array 
+                                                     // of chars (max 4 elements)
+                                                     // to long int
+    
 
-    //Parsing form string to raw image data
-    bool parse_image_data(std::map<std::string, uint32_t> &color_map, 
-        uint32_t* image_data);
-
-    //Geting colors form string-lines
-    bool parse_colors(std::map<std::string, uint32_t> &color_map);
-
-    //Geting next string form c-language table
-    bool read_next_string(std::string &result);
-
-    FILE * m_file; ///< file handler
-    XPM_data m_data; ///< XPM image data
-    int m_file_start; ///< used data offset
-    std::vector<std::string> m_image; ///< lines contain image data
-    std::vector<std::string> m_colors; ///< lines contain colors
-    std::map<std::string, uint32_t> m_color_map;///< hash-map containing the 
-                                                ///< ..string and its
-                                                ///< ..corresponding color
-    uint32_t * m_image_data; ///< raw parsed image data
-    XPMinput *m_input; ///< pointer to XPMinput object
+    FILE * m_file;
+    XPM_data m_header;
+    long m_color_offset;
+    long m_data_offset;
+    char * m_buffer;
+    int m_last_idx;
+    int m_buffer_length;
+    std::map<long, uint32_t> * m_color_map;
+    XPMinput * m_input; ///< pointer to XPMinput object
 };
 
 };
@@ -152,21 +143,20 @@ public:
     }
 
     virtual bool open(const std::string &name, ImageSpec &newspec);
+    
     virtual bool close();
+    
     virtual bool read_native_scanline(int y, int z, void *data);
 
 private:
-
     void send_error(const std::string &err)
     {
         error("%s", err.c_str());
     }
 
-    XPM_pvt::Parser m_parser; ///<Parser handler
-    std::string m_file_name; ///<Stash the file name
-    FILE * m_file_ptr; ///<File handler
-    uint32_t * m_scanline_data; ///<Scan-line data pointer
-
+    XPM_pvt::Parser m_parser; // Parser handler
+    std::string m_file_name; // Stash the file name
+    FILE * m_file_ptr; // File handler
 };
 
 
@@ -188,14 +178,12 @@ XPMinput::open(const std::string &name, ImageSpec &newspec)
         fclose(m_file_ptr);
         return false;
     }
+    
     m_spec = ImageSpec(m_parser.get_width(), m_parser.get_height(), 4, 
         TypeDesc::UINT8);
+    
     m_spec.attribute("oiio:BitsPerPixel", 32);
-
-    m_scanline_data = m_parser.get_raw_data();
-
     newspec = spec();
-
     return true;
 }
 
@@ -216,293 +204,308 @@ XPMinput::close()
 
 bool
 XPMinput::read_native_scanline(int y, int z, void *data)
-{    
+{
     size_t width = m_spec.scanline_bytes(true);
-    memcpy(data, &((uint8_t *) m_scanline_data)[y * width], width);
-    return true;
-}
-
-
-
-uint32_t*
-Parser::get_raw_data()
-{  
-    if(!m_file)
-        return NULL;
-    
-    m_image_data = new uint32_t[m_data.width * m_data.height];
-    parse_colors(m_color_map);
-    parse_image_data(m_color_map, m_image_data);
-    return m_image_data;
+    return m_parser.get_line(y, width, data);
 }
 
 
 
 bool
-Parser::parse()
+Parser::parse() 
 {
-    std::string header;
-    std::string token;
-
-    if (!init_parsing())
-        return false;
-
-    if (!read_next_string(header))
-        return false;
-
-    if (!parse_header(header))
-        return false;
-
-    //Reading lines contain used colors
-    for (unsigned int i = 0; i < m_data.color_table_size; ++i) {
-        if (!read_next_string(token))
-            return false;
-
-        m_colors.push_back(token);
-    }
-
-    //Reading lines contain data
-    for (unsigned int i = 0; i < m_data.height; ++i) {
-        if (!read_next_string(token))
-            return false;
-
-        m_image.push_back(token);
-    }
-
-    return true;
-}
-
-
-
-bool
-Parser::init_parsing()
-{
+    //buffor for single sign
     char tmp_sign;
-    int i = 0;
-
+    
+    //signs counter
+    int i=0;
+    
+    //this loop finds the begining of header
     while (1) {
-        tmp_sign = fgetc(m_file);
         
-        if (feof(m_file)) {
+       //take next sign from file, if end of file, return false
+       if ((tmp_sign = fgetc(m_file)) == EOF) {
             m_input->send_error("Unexpected end of file");
             return false;
         }
-
+        
+        //if sign is '{', it means start of file.
         if (tmp_sign == '{') {
-            m_file_start = i;
             break;
         }
-
+        
         ++i;
     }
-
+    
+    //finds the start of header
+    for(int i=0; i<2; ++i)
+        find_next_element();
+    
+    parse_header(m_buffer);
+    
+    //loop looks for lines with colors, and parse it
+    for(unsigned int j=0; j<m_header.color_table_size; ++j) {
+        if(find_next_element()<0)
+            return false;
+        
+        int count = find_next_element();
+        if(count < 0)
+            return false;
+        if(!parse_color(m_buffer, count))
+            return false;
+    }
+    
+    //sets position to the beginning of image data
+    if(find_next_element()<0)
+        return false;
+    
+    //saves position of the begining of image data
+    m_data_offset = ftell(m_file);
+    
     return true;
 }
 
+int
+Parser::find_next_element() 
+{
+    char tmp_sign;
+    int i=0;
+    while (1) {
+        if ((tmp_sign = fgetc(m_file)) == EOF) {
+            m_input->send_error("Unexpected end of file");
+            return -1;
+        }
 
+        if (tmp_sign == '\"')
+            break;
+        
+        if(!m_buffer)
+            m_buffer = new char[255];
+        
+        //if buffer is too short, free memory and create new longer buffer
+        if( !(i<m_buffer_length-1) )
+        {
+            char * new_buff = new char[m_buffer_length+255];
+            memcpy(new_buff, m_buffer, m_buffer_length);
+            m_buffer_length+=255;
+            delete m_buffer;
+            m_buffer = new_buff;
+        }
+        
+        m_buffer[i] = tmp_sign;
+        ++i;
+    }
+    
+    //cstrings should end 0
+    m_buffer[i] = '\0';
+    return i;
+}
 
 bool
 Parser::parse_header(const std::string &header)
 {
     std::istringstream line(header);
 
-    line >> m_data.width;
-    line >> m_data.height;
-    line >> m_data.color_table_size;
-    line >> m_data.char_count;
+    line >> m_header.width;
+    line >> m_header.height;
+    line >> m_header.color_table_size;
+    line >> m_header.char_count;
+    
+    if(!m_buffer)
+        m_buffer = new char[255];
+    
+    m_color_map = new std::map<long, uint32_t>();
     
     if(line.eof()) {
-        m_data.hotspot = false;
+        m_header.hotspot = false;
         return true;
     }
     
-    m_data.hotspot = true;
+    m_header.hotspot = true;
     
-    line >> m_data.hotspot_x;
-    line >> m_data.hotspot_y;
+    line >> m_header.hotspot_x;
+    line >> m_header.hotspot_y;
     
     return true;
 }
 
-
+long 
+Parser::char_to_long(const char* buff, int length) 
+{
+    long result = 0;
+    
+    if(length>0)
+        result |= buff[0] << 24;
+    
+    if(length>1)
+        result |= buff[1] << 16;
+    
+    if(length>2)
+        result |= buff[2] << 8;
+    
+    if(length>3)
+       result |= buff[3];
+    
+    return result;
+}
 
 bool
-Parser::parse_image_data(std::map<std::string, uint32_t> &color_map, uint32_t* 
-    image_data)
+Parser::parse_color(char * line, int length)
 {
+    std::string tmp_line (line, length);
     
-    std::vector<std::string>::iterator it1;
-    std::string::iterator it2;
-    int i = 0;
-
-    for (it1 = m_image.begin(); it1 != m_image.end(); ++it1) {
-        //Get next line
-        std::string tmp_line = *it1;
-        for (it2 = tmp_line.begin(); it2 != tmp_line.end();) {
-
-            //get color form line
-            std::string string_color;
-            for (unsigned int j = 0; j < m_data.char_count; ++j) {
-                string_color += (*it2);
-                ++it2;
-            }
-            //Parse color using hash-map
-            uint32_t tmp_color = color_map[string_color];
-            image_data[i] = tmp_color;
-
-            ++i;
-        }
+    //buffer for current signs
+    char tmp_signs[m_header.char_count];
+    strncpy(tmp_signs, line, m_header.char_count);
+    
+    //color symbols coverted to long
+    long long_buff = char_to_long(tmp_signs, m_header.char_count);
+    
+    //transparency support
+    if (tmp_line.find("None")!=std::string::npos) {
+        m_color_map->insert(std::pair<long, uint32_t> (long_buff, 0));
     }
+    
+    std::istringstream str(std::string(&line[m_header.char_count]));
 
-    return true;
-}
-
-
-
-bool
-Parser::parse_colors(std::map<std::string, uint32_t> &color_map)
-{
-    std::vector<std::string>::iterator it;
-
-    //Find next color value and save it in hash-map
-    for (it = m_colors.begin(); it != m_colors.end(); ++it) {
-        std::string tmp_line = *it;
-        std::string tmp_sings = tmp_line.substr(0, m_data.char_count);
-
-        /*
-         Currently, support for only visual color mode and transparency
-         */
-
-        if (tmp_line.find("None")!=std::string::npos) {
-            color_map.insert(std::pair<std::string, uint32_t > (tmp_sings, 0));
-        }
+    while(!str.eof()) {
         
-        std::istringstream str(tmp_line.substr(m_data.char_count, 
-                tmp_line.length()-1));
-        
-        while(!str.eof()) {
-            std::string tmp_buff;
-            uint32_t converted_value=0;
-            
+        //buffor for next string from line
+        std::string tmp_buff;
+        uint32_t converted_value=0;
+
+        str >> tmp_buff;
+
+        if (tmp_buff == "c") {
+
             str >> tmp_buff;
-            
-            if (tmp_buff == "c") {
-                
-                str >> tmp_buff;
-                
-                if(tmp_buff.length() < 1)
-                {
-                    m_input->send_error("File corrupted");
-                    return false;
-                }
 
-                switch (tmp_buff[0]) {
-                case '#': {
-                    int color_length = tmp_buff.length()-1;
-                    std::string cr;
-                    std::string cg;
-                    std::string cb;
-                    uint8_t R, G, B;
-                    
-                    switch (color_length) {
-                    case 3:
-                        cr = tmp_buff.substr(1, 1);
-                        R = strtoul(cr.c_str(), NULL, 16)<<8;
-                        cg = tmp_buff.substr(2, 1);
-                        G = strtoul(cg.c_str(), NULL, 16)<<8;
-                        cb = tmp_buff.substr(3, 1);
-                        B = strtoul(cb.c_str(), NULL, 16)<<8;
-                        break;
-                    case 6:
-                        cr = tmp_buff.substr(1, 2);
-                        R = strtoul(cr.c_str(), NULL, 16);
-                        cg = tmp_buff.substr(3, 2);
-                        G = strtoul(cg.c_str(), NULL, 16);
-                        cb = tmp_buff.substr(5, 2);
-                        B = strtoul(cb.c_str(), NULL, 16);
-                        break;
-                    case 12:
-                        cr = tmp_buff.substr(1, 4);
-                        R = strtoul(cr.c_str(), NULL, 16)>>8;
-                        cg = tmp_buff.substr(5, 4);
-                        G = strtoul(cg.c_str(), NULL, 16)>>8;
-                        cb = tmp_buff.substr(9, 4);
-                        B = strtoul(cb.c_str(), NULL, 16)>>8;
-                        break;
-                    default:
-                        m_input->send_error("invalid color format");
-                        R = G = B = 0;
-                        break;
-                    }
-                    
-                    converted_value = (255 << 24) | (B << 16) | (G << 8) | 
-                        (R << 0);
+            if(tmp_buff.length() < 1) {
+                m_input->send_error("File corrupted");
+                return false;
+            }
+            
+            switch (tmp_buff[0]) {
+            case '#': {
+                int color_length = tmp_buff.length()-1;
+                std::string cr;
+                std::string cg;
+                std::string cb;
+                uint8_t R, G, B;
+
+                switch (color_length) {
+                case 3:
+                    cr = tmp_buff.substr(1, 1);
+                    R = strtoul(cr.c_str(), NULL, 16)<<8;
+                    cg = tmp_buff.substr(2, 1);
+                    G = strtoul(cg.c_str(), NULL, 16)<<8;
+                    cb = tmp_buff.substr(3, 1);
+                    B = strtoul(cb.c_str(), NULL, 16)<<8;
                     break;
-                }
-                case '%':
-                    m_input->send_error("no support for hsv color");
-                    converted_value = (255 << 24);
+                case 6:
+                    cr = tmp_buff.substr(1, 2);
+                    R = strtoul(cr.c_str(), NULL, 16);
+                    cg = tmp_buff.substr(3, 2);
+                    G = strtoul(cg.c_str(), NULL, 16);
+                    cb = tmp_buff.substr(5, 2);
+                    B = strtoul(cb.c_str(), NULL, 16);
+                    break;
+                case 12:
+                    cr = tmp_buff.substr(1, 4);
+                    R = strtoul(cr.c_str(), NULL, 16)>>8;
+                    cg = tmp_buff.substr(5, 4);
+                    G = strtoul(cg.c_str(), NULL, 16)>>8;
+                    cb = tmp_buff.substr(9, 4);
+                    B = strtoul(cb.c_str(), NULL, 16)>>8;
                     break;
                 default:
-                    m_input->send_error("no support for symbolic names color");
-                    
-                    converted_value = (255 << 24);
+                    m_input->send_error("invalid color format");
+                    R = G = B = 0;
                     break;
                 }
-            } else if(tmp_buff == "m") {
-                m_input->send_error("no support for monochrome color");
-                str >> tmp_buff;
-            } else if(tmp_buff == "g") {
-                m_input->send_error("no support for gray scale color");
-                str >> tmp_buff;
-            } else if(tmp_buff == "g4") {
-                m_input->send_error(
-                    "no support for symbolic for four-level gray scale color");
-                str >> tmp_buff;
-            } else if(tmp_buff == "s") {
-                m_input->send_error("no support for symbolic color names");
-                str >> tmp_buff;
+
+                converted_value = (255 << 24) | (B << 16) | (G << 8) | 
+                    (R << 0);
+                break;
             }
-            
-            color_map.insert(std::pair<std::string, uint32_t > (tmp_sings, 
-                converted_value));
+            case '%':
+                m_input->send_error("no support for hsv color");
+                converted_value = (255 << 24);
+                break;
+            default:
+                m_input->send_error("no support for symbolic names color");
+
+                converted_value = (255 << 24);
+                break;
+            }
+        } else if(tmp_buff == "m") {
+            m_input->send_error("no support for monochrome color");
+            str >> tmp_buff;
+        } else if(tmp_buff == "g") {
+            m_input->send_error("no support for gray scale color");
+            str >> tmp_buff;
+        } else if(tmp_buff == "g4") {
+            m_input->send_error(
+                "no support for symbolic for four-level gray scale color");
+            str >> tmp_buff;
+        } else if(tmp_buff == "s") {
+            m_input->send_error("no support for symbolic color names");
+            str >> tmp_buff;
         }
         
+        //insert converted color to map
+        m_color_map->insert(std::pair<long, uint32_t>(long_buff, converted_value));
     }
 
     return true;
 }
 
 bool
-Parser::read_next_string(std::string &result)
+Parser::get_line(int y, int z, void* data)
 {
-    char tmp_sign;
-    std::string tmp_line;
-    while (1) {
-        if ((tmp_sign = fgetc(m_file)) == EOF) {
-            m_input->send_error("Unexpected end of file");
-            return false;
-        }
 
-        if (tmp_sign == '\"')
-            break;
+    if(!(m_file && m_data_offset))
+        return false;
+    
+    // if last line was not next to current, 
+    // this loop seek place when it should start read data
+    if(y!=m_last_idx+1) {
+        fseek(m_file, m_data_offset, SEEK_SET);
+        for(int i=0; i<y; ++i) {
+            for(int j=0; j<2; ++j) {
+                int k = find_next_element();
+                if(k<0)
+                    return false;
+            }
+        }
     }
-
-    while (1) {
-        if ((tmp_sign = fgetc(m_file)) == EOF) {
-            m_input->send_error("Unexpected end of file");
-            return false;
+    
+    m_last_idx=y;
+    
+    char tmp_buff[m_header.char_count];
+    for(int i=0; i<z/4; ++i) {
+        for(unsigned int j=0; j<m_header.char_count; ++j) {
+            char tmp_sign = fgetc(m_file);
+            if (tmp_sign == EOF) {
+                m_input->send_error("Unexpected end of file");
+                return false;
+            }
+            
+            if(tmp_sign == '\"') {
+                m_input->send_error("File corrupted");
+                return false;
+            }
+            tmp_buff[j] = tmp_sign; 
         }
-
-        if (tmp_sign == '\"')
-            break;
-        if (tmp_sign == '\n')
-            continue;
         
-        tmp_line += tmp_sign;
+        long long_buff = char_to_long(tmp_buff, m_header.char_count);
+        uint32_t cl = (*m_color_map)[long_buff];
+        ((uint32_t*)data)[i] = cl;        
     }
-
-    result = tmp_line;
+    
+    fgetc(m_file);
+    find_next_element();
+    
     return true;
 }
 
