@@ -1,5 +1,14 @@
 Changes:
 
+Release 1.0.3 (16 Apr 2012)
+---------------------------
+* Fix reading bugs in DPX and Cineon.
+* iconvert handles the int32 and uint32 cases.
+* Bug fix in to_native_rectangle, which could lead to errors in certain
+  data format conversions.
+* Various Windows build fixes, including fixes for Windows 7.
+* Compilation fixes on FreeBSD.
+
 
 Release 1.0.2 (19 Mar 2012)
 ----------------------------
