@@ -38,7 +38,6 @@
 
 
 #include <algorithm>
-#include <cmath>
 #include "BaseTypeConverter.h"
 
 
@@ -135,13 +134,12 @@ namespace dpx
 		int datums = dpxHeader.Width() * numberOfComponents;
 		
 		// Line length in bytes rounded to 32 bits boundary
-		int lineLength = ceil((float)(dpxHeader.Width() * numberOfComponents) / 3.0f) * 4;
+		int lineLength = ((datums - 1) / 3 + 1) * 4;
 
 		// read in each line at a time directly into the user memory space
 		for (int line = 0; line < height; line++)
 		{
 			// determine offset into image element
-
 			int actline = line + block.y1;
 
 			// first get line offset
