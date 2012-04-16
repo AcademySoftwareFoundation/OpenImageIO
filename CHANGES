@@ -1,6 +1,11 @@
 Changes:
 
 
+Release 0.10.8 (16 Apr 2012)
+----------------------------
+* Fix reading bugs in DPX and Cineon.
+
+
 Release 0.10.7 (19 Mar 2012)
 ----------------------------
 * Threading performance improvement in the texture system as a result of
