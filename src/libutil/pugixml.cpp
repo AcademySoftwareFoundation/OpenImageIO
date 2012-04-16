@@ -92,7 +92,6 @@ typedef __int32 int32_t;
 #	define DMC_VOLATILE
 #endif
 
-namespace OIIO = OIIO_NAMESPACE;
 
 // Added by LG for OpenImageIO:
 using namespace OIIO;

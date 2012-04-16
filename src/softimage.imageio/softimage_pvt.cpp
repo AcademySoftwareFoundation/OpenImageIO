@@ -35,10 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-namespace OIIO = OIIO_NAMESPACE;
-
-
-
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 

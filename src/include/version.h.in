@@ -53,13 +53,19 @@
 #define OIIO_VERSION_STRING \
     OIIO_MAKE_VERSION_STRING(OIIO_VERSION_MAJOR, \
                          OIIO_VERSION_MINOR, OIIO_VERSION_PATCH)
+#define OIIO_INTRO_STRING "OpenImageIO " OIIO_VERSION_STRING " http://www.openimageio.org"
 
 
+// Macros to use in each file to enter and exit the right name spaces.
 #define OIIO_NAMESPACE_ENTER namespace OIIO_NAMESPACE { namespace OIIO_VERSION_NS
 #define OIIO_NAMESPACE_EXIT using namespace OIIO_VERSION_NS; }
 #define OIIO_NAMESPACE_USING using namespace OIIO_NAMESPACE;
 
-#define OIIO_INTRO_STRING "OpenImageIO " OIIO_VERSION_STRING " http://www.openimageio.org"
+// Establish the name spaces and make an alias 'OIIO' that gives us what
+// everybody really wants.
+namespace OIIO_NAMESPACE { namespace OIIO_VERSION_NS { } }
+namespace OIIO = OIIO_NAMESPACE::OIIO_VERSION_NS;
+
 
 /// Each imageio DSO/DLL should include this statement:
 ///      DLLPUBLIC int FORMAT_imageio_version = OPENIMAGEIO_PLUGIN_VERSION;

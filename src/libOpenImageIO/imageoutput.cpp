@@ -129,7 +129,7 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
                                      xstride, ystride, zstride);
                 } else {
                     buf.resize (pixelsize * m_spec.tile_pixels());
-                    OIIO_NAMESPACE::copy_image (m_spec.nchannels, xw, yh, zd,
+                    OIIO::copy_image (m_spec.nchannels, xw, yh, zd,
                                 tilestart, pixelsize, xstride, ystride, zstride,
                                 &buf[0], pixelsize, pixelsize*m_spec.tile_width,
                                 pixelsize*m_spec.tile_pixels());

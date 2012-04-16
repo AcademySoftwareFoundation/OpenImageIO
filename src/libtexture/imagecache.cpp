@@ -313,7 +313,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_input.reset (ImageInput::create (m_filename.c_str(),
                                        m_imagecache.plugin_searchpath().c_str()));
     if (! m_input) {
-        imagecache().error ("%s", OIIO_NAMESPACE::geterror().c_str());
+        imagecache().error ("%s", OIIO::geterror().c_str());
         m_broken = true;
         invalidate_spec ();
         return false;
