@@ -72,14 +72,20 @@ namespace cineon
 		// end of line padding
 		int eolnPad = dpxHeader.EndOfLinePadding();
 
+		// number of datums in one row
+		int datums = dpxHeader.Width() * numberOfComponents;
+
+		// Line length in bytes rounded to 32 bits boundary
+		int lineLength = ((datums - 1) / 3 + 1) * 4;
 
 		// read in each line at a time directly into the user memory space
 		for (int line = 0; line < height; line++)
 		{
+			// determine offset into image element
+			int actline = line + block.y1;
+
 			// first get line offset
-			long offset = (line + block.y1) * dpxHeader.Width() * numberOfComponents;
-			offset += offset % 3;
-			offset = offset / 3 * 4;
+			long offset = actline * lineLength;
 
 			// add in eoln padding
 			offset += line * eolnPad;
