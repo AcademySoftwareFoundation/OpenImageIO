@@ -61,7 +61,7 @@ namespace {
 
 
 // To avoid thread oddities, we have the storage area buffering error
-// messages for error()/geterror() be thread-specific.
+// messages for seterror()/geterror() be thread-specific.
 static thread_specific_ptr<std::string> thread_error_msg;
 
 // Return a reference to the string for this thread's error messages,
@@ -94,13 +94,10 @@ openimageio_version ()
 /// Error reporting for the plugin implementation: call this with
 /// printf-like arguments.
 void
-pvt::error (const char *message, ...)
+pvt::seterror (const std::string& message)
 {
     recursive_lock_guard lock (pvt::imageio_mutex);
-    va_list ap;
-    va_start (ap, message);
-    error_msg() = Strutil::vformat (message, ap);
-    va_end (ap);
+    error_msg() = message;
 }
 
 

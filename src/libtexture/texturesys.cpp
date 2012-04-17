@@ -539,7 +539,7 @@ TextureSystemImpl::geterror () const
 
 
 void
-TextureSystemImpl::error (const char *message, ...)
+TextureSystemImpl::append_error (const std::string& message) const
 {
     std::string *errptr = m_errormessage.get ();
     if (! errptr) {
@@ -551,10 +551,7 @@ TextureSystemImpl::error (const char *message, ...)
             "Accumulated error messages > 16MB. Try checking return codes!");
     if (errptr->size())
         *errptr += '\n';
-    va_list ap;
-    va_start (ap, message);
-    *errptr += Strutil::vformat (message, ap);
-    va_end (ap);
+    *errptr += message;
 }
 
 

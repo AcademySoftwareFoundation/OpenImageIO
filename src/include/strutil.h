@@ -49,6 +49,8 @@
 #include "export.h"
 #include "version.h"
 
+#include "tinyformat.h"
+
 #ifndef OPENIMAGEIO_PRINTF_ARGS
 #   ifndef __GNUC__
 #       define __attribute__(x)
@@ -76,11 +78,7 @@ OIIO_NAMESPACE_ENTER
 /// @brief     String-related utilities.
 namespace Strutil {
 
-
-/// Return a std::string formatted from printf-like arguments.
-///
-std::string DLLPUBLIC format (const char *fmt, ...)
-                                         OPENIMAGEIO_PRINTF_ARGS(1,2);
+using tinyformat::format;
 
 /// Return a std::string formatted from printf-like arguments -- passed
 /// already as a va_list.
