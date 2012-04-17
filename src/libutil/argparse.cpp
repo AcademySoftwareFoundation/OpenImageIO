@@ -488,15 +488,6 @@ ArgParse::found (const char *option_name)
 
 
 
-void
-ArgParse::error (const char *format, ...)
-{
-    va_list ap;
-    va_start (ap, format);
-    m_errmessage = Strutil::vformat (format, ap);
-    va_end (ap);
-}
-
 std::string
 ArgParse::geterror () const
 {

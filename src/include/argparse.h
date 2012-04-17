@@ -47,14 +47,7 @@
 
 #include "export.h"
 #include "version.h"
-
-#ifndef OPENIMAGEIO_PRINTF_ARGS  /* See comments in strutil.h */
-#   ifndef __GNUC__
-#       define __attribute__(x)
-#   endif
-#   define OPENIMAGEIO_PRINTF_ARGS(fmtarg_pos, vararg_pos) \
-        __attribute__ ((format (printf, fmtarg_pos, vararg_pos) ))
-#endif
+#include "tinyformat.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -191,7 +184,10 @@ private:
     std::vector<ArgOption *> m_option;
 
     ArgOption *find_option(const char *name);
-    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    // void error (const char *format, ...)
+    TINYFORMAT_WRAP_FORMAT (void, error, /**/,
+        std::ostringstream msg;, msg, m_errmessage = msg.str();)
+
     int found (const char *option);      // number of times option was parsed
 };
 
