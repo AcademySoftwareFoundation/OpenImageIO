@@ -503,7 +503,7 @@ main (int argc, char *argv[])
 {
     getargs (argc, argv);
 
-    OIIO_NAMESPACE::attribute ("threads", nthreads);
+    OIIO::attribute ("threads", nthreads);
 
     bool ok = true;
 

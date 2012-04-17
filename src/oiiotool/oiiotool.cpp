@@ -138,7 +138,7 @@ static int
 set_threads (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
-    OIIO_NAMESPACE::attribute ("threads", atoi(argv[0]));
+    OIIO::attribute ("threads", atoi(argv[0]));
     return 0;
 }
 

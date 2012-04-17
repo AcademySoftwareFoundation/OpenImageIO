@@ -37,55 +37,6 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
 endif  # endif spinux1_x86_64
 
 
-## CentOS (deprecated)
-ifeq (${SP_ARCH}, rhel40_x86_64)
-    platform=rhel40m64
-    # used by spcomp2 installer
-    COMPILER=gcc34m64
-    OPENEXR_VERSION=1.4.0
-    BOOST_VERSION=1_34_1
-    Boost_VERSION="103401"
-    QTDIR=/usr/local64/qt-4.4
-    Boost_LIBRARIES="-lboost_filesystem-gcc34-mt-${BOOST_VERSION} -lboost_regex-gcc34-mt-${BOOST_VERSION} -lboost_thread-gcc34-mt-${BOOST_VERSION} "
-
-    MY_CMAKE_FLAGS += \
-	-DSPECIAL_COMPILE_FLAGS="-include ${working_dir}/site/spi/include/spi_ns.h -include ${working_dir}/site/spi/include/tiff.h -DTIFF_OLD_VERSION" \
-	-DBOOST_CUSTOM=1 \
-	-DBoost_INCLUDE_DIRS=/usr/local64/include/boost-${BOOST_VERSION} \
-	-DBoost_LIBRARY_DIRS=/usr/local64/lib/boost-${BOOST_VERSION} \
-	-DBoost_LIBRARIES=$(Boost_LIBRARIES) \
-	-DBoost_VERSION=$(Boost_VERSION) \
-	-DILMBASE_HOME=/usr/local64/openexr/${OPENEXR_VERSION} \
-	-DILMBASE_INCLUDE_DIR=/usr/local64/openexr/${OPENEXR_VERSION}/include \
-	-DOPENEXR_VERSION=${OPENEXR_VERSION} \
-	-DOPENEXR_VERSION_DIGITS="010400" \
-	-DOPENEXR_HOME=/usr/local64/openexr/${OPENEXR_VERSION} \
-	-DQT_SEARCH_PATH=${QTDIR} \
-	-DQT_QMAKE_EXECUTABLE=${QTDIR}/bin/qmake
-
-    ifeq (${USE_PYTHON},1)
-        PYTHON_VERSION ?= 2.5
-
-        ifeq (${PYTHON_VERSION},2.5)
-            PYTHONLIB=/usr/local64/lib/libspi-python2.5.so
-            Boost_Python_LIBRARIES="-L/net/apps/rhel40m64/boost/1_34_1/gcc34/lib/python25 -Wl,-rpath,/net/apps/rhel40m64/boost/1_34_1/gcc34/lib/python25 -lboost_python-gcc34-mt-${BOOST_VERSION}"
-        else
-            PYTHONLIB=/usr/local64/lib/libpython${PYTHON_VERSION}.so
-            Boost_Python_LIBRARIES="-lboost_python-gcc34-mt-${BOOST_VERSION}"
-        endif
-
-        Boost_FOUND=TRUE
-        MY_CMAKE_FLAGS += \
-		-DQT_DIR=/usr/local \
-		-DBoost_Python_LIBRARIES=${Boost_Python_LIBRARIES} \
-		-DPYTHON_INCLUDE_PATH=/usr/local64/include/python${PYTHON_VERSION} \
-		-DPYTHON_LIBRARIES=${PYTHONLIB} \
-		-DPYTHONLIBS_FOUND=1
-
-    endif
-
-endif # endif rhel40_x86_64
-
 
 
 all: dist

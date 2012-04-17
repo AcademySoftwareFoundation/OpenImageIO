@@ -733,7 +733,7 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
         // If the image region is not an even multiple of the tile size,
         // we need to copy and add padding.
         padded.resize (pixelbytes * width * height, 0);
-        OIIO_NAMESPACE::copy_image (m_spec.nchannels, xend-xbegin,
+        OIIO::copy_image (m_spec.nchannels, xend-xbegin,
                                     yend-ybegin, 1, data, pixelbytes,
                                     pixelbytes, (xend-xbegin)*pixelbytes,
                                     (xend-xbegin)*(yend-ybegin)*pixelbytes,

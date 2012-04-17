@@ -39,7 +39,6 @@
 #include "strutil.h"
 #include "fmath.h"
 
-namespace OIIO = OIIO_NAMESPACE;
 
 IvImage::IvImage (const std::string &filename)
     : ImageBuf(filename), m_thumbnail(NULL),
