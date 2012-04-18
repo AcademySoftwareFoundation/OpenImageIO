@@ -41,8 +41,8 @@ ImageBufWrap::ImageBufWrap (const std::string &name,
     m_buf = new ImageBuf(name, spec);
 }
 
-ImageBufWrap::ImageBufWrap (const std::string &name = std::string(), 
-                ImageCacheWrap *icw = NULL) {
+ImageBufWrap::ImageBufWrap (const std::string &name,
+                            ImageCacheWrap *icw) {
     // TODO: this isn't done properly. It should not take NULL as 
     // 2nd argument, the proper way would be icw->Cache
     // It's like this just for the initial tests.
