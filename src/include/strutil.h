@@ -78,7 +78,16 @@ OIIO_NAMESPACE_ENTER
 /// @brief     String-related utilities.
 namespace Strutil {
 
-using tinyformat::format;
+/// Construct a std::string in a printf-like fashion.  In other words,
+/// something like:
+///    std::string s = Strutil::format ("blah %d %g", (int)foo, (float)bar);
+///
+/// The printf argument list is fully typesafe via tinyformat; format
+/// conceptually has the signature
+///
+/// static std::string Strutil::format (const char *fmt, ...);
+TINYFORMAT_WRAP_FORMAT (static std::string, format, /**/,
+    std::ostringstream msg;, msg, return msg.str();)
 
 /// Return a std::string formatted from printf-like arguments -- passed
 /// already as a va_list.

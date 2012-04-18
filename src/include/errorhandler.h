@@ -36,6 +36,8 @@
 
 #include "export.h"
 #include "version.h"
+#include "strutil.h"
+
 
 OIIO_NAMESPACE_ENTER
 {
