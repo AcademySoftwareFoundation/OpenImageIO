@@ -814,7 +814,12 @@ public:
 
     /// Internal error reporting routine, with printf-like arguments.
     ///
-    void error (const char *message, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    /// void error (const char *message, ...);
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
+
+    /// Append a string to the current error message
+    void append_error (const std::string& message) const;
 
     /// Get a pointer to the caller's thread's per-thread info, or create
     /// one in the first place if there isn't one already.
