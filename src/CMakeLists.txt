@@ -89,6 +89,8 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     add_definitions ("-Wno-char-subscripts")
     add_definitions ("-Wno-unused-function")
     add_definitions ("-Wno-overloaded-virtual")
+    add_definitions ("-Wno-delete-non-virtual-dtor")
+    add_definitions ("-Wno-shift-count-negative")
 endif ()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

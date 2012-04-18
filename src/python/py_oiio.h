@@ -170,7 +170,8 @@ private:
     ImageBuf *m_buf;
 public:
 
-    ImageBufWrap (const std::string&, ImageCacheWrap*);
+    ImageBufWrap (const std::string&name = std::string(),
+                  ImageCacheWrap*icw = NULL);
     ImageBufWrap (const std::string&, const ImageSpec&) ;  
     void clear ();
     void reset_to_new_image (const std::string&, ImageCache*);
