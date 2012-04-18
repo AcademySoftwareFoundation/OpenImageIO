@@ -261,7 +261,7 @@ Jpeg2000Input::create_decompressor()
     int magic[3];
     if (::fread (&magic, 4, 3, m_file) != 3) {
         error ("Empty file \"%s\"", m_filename.c_str());
-        return false;
+        return NULL;
     }
     opj_dinfo_t* dinfo = NULL;
     if (isJp2File(magic))
