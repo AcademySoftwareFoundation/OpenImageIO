@@ -48,18 +48,6 @@ OIIO_NAMESPACE_ENTER
 {
 
 std::string
-Strutil::format (const char *fmt, ...)
-{
-    va_list ap;
-    va_start (ap, fmt);
-    std::string buf = vformat (fmt, ap);
-    va_end (ap);
-    return buf;
-}
-
-
-
-std::string
 Strutil::vformat (const char *fmt, va_list ap)
 {
     // Allocate a buffer on the stack that's big enough for us almost
