@@ -85,8 +85,8 @@ namespace Strutil {
 /// The printf argument list is fully typesafe via tinyformat; format
 /// conceptually has the signature
 ///
-/// static std::string Strutil::format (const char *fmt, ...);
-TINYFORMAT_WRAP_FORMAT (static std::string, format, /**/,
+/// std::string Strutil::format (const char *fmt, ...);
+TINYFORMAT_WRAP_FORMAT (std::string, format, /**/,
     std::ostringstream msg;, msg, return msg.str();)
 
 /// Return a std::string formatted from printf-like arguments -- passed

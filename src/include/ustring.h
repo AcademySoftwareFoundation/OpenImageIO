@@ -553,8 +553,8 @@ public:
     /// The printf argument list is fully typesafe via tinyformat; format
     /// conceptually has the signature
     ///
-    /// static ustring format (const char *fmt, ...);
-    TINYFORMAT_WRAP_FORMAT (static ustring, format, /**/,
+    /// ustring format (const char *fmt, ...);
+    TINYFORMAT_WRAP_FORMAT (ustring, format, /**/,
         std::ostringstream msg;, msg, return ustring(msg.str());)
 
     /// Generic stream output of a ustring.
