@@ -191,7 +191,7 @@ void set_exr_threads ()
     static spin_mutex exr_threads_mutex;  
 
     int oiio_threads = 1;
-    OIIO_NAMESPACE::getattribute ("threads", oiio_threads);
+    OIIO::getattribute ("threads", oiio_threads);
 
     spin_lock lock (exr_threads_mutex);
     if (exr_threads != oiio_threads) {

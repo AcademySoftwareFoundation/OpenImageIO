@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+# Format the output from various oiio command line "$tool --help" invocations,
+# and munge such that txt2man generates a simple man page with not-too-horrible
+# formatting.
+
 from __future__ import print_function
 import sys
 
@@ -11,7 +15,7 @@ print()
 
 print('SYNOPSIS')
 for i,line in enumerate(lines[2:]):
-    if line.lstrip().startswith('-'):
+    if line.lstrip().startswith('-') or line.lstrip().startswith('Options'):
         optStart = i+2
         break
     print(line)

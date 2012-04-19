@@ -716,14 +716,17 @@ public:
 
 protected:
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.
-    void error (const char *format, ...) const OPENIMAGEIO_PRINTF_ARGS(2,3);
+    /// printf-like arguments.  Note however that this is fully typesafe!
+    // void error (const char *format, ...) const;
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
 
 protected:
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
 
 private:
     mutable std::string m_errmessage;  // private storage of error message
+    void append_error (const std::string& message) const; // add to m_errmessage
     static ImageInput *create (const std::string &filename, bool do_open,
                                const std::string &plugin_searchpath);
 
@@ -959,8 +962,10 @@ public:
 
 protected:
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.
-    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    /// printf-like arguments.  Note however that this is fully typesafe!
+    // void error (const char *format, ...)
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
 
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
@@ -988,6 +993,7 @@ protected:
     ImageSpec m_spec;           ///< format spec of the currently open image
 
 private:
+    void append_error (const std::string& message) const; // add to m_errmessage
     mutable std::string m_errmessage;   ///< private storage of error message
 };
 

@@ -129,7 +129,7 @@ bool ImageOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
                                      xstride, ystride, zstride);
                 } else {
                     buf.resize (pixelsize * m_spec.tile_pixels());
-                    OIIO_NAMESPACE::copy_image (m_spec.nchannels, xw, yh, zd,
+                    OIIO::copy_image (m_spec.nchannels, xw, yh, zd,
                                 tilestart, pixelsize, xstride, ystride, zstride,
                                 &buf[0], pixelsize, pixelsize*m_spec.tile_width,
                                 pixelsize*m_spec.tile_pixels());
@@ -176,16 +176,13 @@ ImageOutput::send_to_client (const char *format, ...)
 
 
 void
-ImageOutput::error (const char *format, ...)
+ImageOutput::append_error (const std::string& message) const
 {
-    va_list ap;
-    va_start (ap, format);
     ASSERT (m_errmessage.size() < 1024*1024*16 &&
             "Accumulated error messages > 16MB. Try checking return codes!");
     if (m_errmessage.size())
         m_errmessage += '\n';
-    m_errmessage += Strutil::vformat (format, ap);
-    va_end (ap);
+    m_errmessage += message;
 }
 
 

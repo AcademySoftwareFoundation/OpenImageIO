@@ -43,11 +43,13 @@ Fixes, minor enhancements, and performance improvements:
   deduplication is enabled (on by default).
 * OpenImageIO::geterror() is now thread-specific, so separate threads will
   no longer clobber each others' error messages.
+* Fix reading bugs in DPX and Cineon.
 
 Build system improvements:
 * Various Windows build fixes, including fixes for Windows 7, and 
   improvements to running the testsuite on Windows.
 * Testsuite additions and improvements: png fmath_test
+* Compilation fixes on FreeBSD.
 
 Developer goodies:
 * Strutil utilities: iequals, istarts_with, iends_with, to_lower, to_upper.

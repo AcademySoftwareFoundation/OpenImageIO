@@ -1343,7 +1343,7 @@ main (int argc, char *argv[])
     Timer alltimer;
     getargs (argc, argv);
 
-    OIIO_NAMESPACE::attribute ("threads", nthreads);
+    OIIO::attribute ("threads", nthreads);
     if (stats) {
         ImageCache *ic = ImageCache::create ();  // get the shared one
         ic->attribute ("forcefloat", 1);   // Force float upon read

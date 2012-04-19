@@ -313,7 +313,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_input.reset (ImageInput::create (m_filename.c_str(),
                                        m_imagecache.plugin_searchpath().c_str()));
     if (! m_input) {
-        imagecache().error ("%s", OIIO_NAMESPACE::geterror().c_str());
+        imagecache().error ("%s", OIIO::geterror().c_str());
         m_broken = true;
         invalidate_spec ();
         return false;
@@ -2466,7 +2466,7 @@ ImageCacheImpl::geterror () const
 
 
 void
-ImageCacheImpl::error (const char *message, ...)
+ImageCacheImpl::append_error (const std::string& message) const
 {
     std::string *errptr = m_errormessage.get ();
     if (! errptr) {
@@ -2478,10 +2478,7 @@ ImageCacheImpl::error (const char *message, ...)
             "Accumulated error messages > 16MB. Try checking return codes!");
     if (errptr->size())
         *errptr += '\n';
-    va_list ap;
-    va_start (ap, message);
-    *errptr += Strutil::vformat (message, ap);
-    va_end (ap);
+    *errptr += message;
 }
 
 

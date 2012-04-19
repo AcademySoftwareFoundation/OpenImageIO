@@ -138,7 +138,7 @@ static int
 set_threads (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
-    OIIO_NAMESPACE::attribute ("threads", atoi(argv[0]));
+    OIIO::attribute ("threads", atoi(argv[0]));
     return 0;
 }
 
@@ -1423,12 +1423,12 @@ getargs (int argc, char *argv[])
                 "--fullsize %@ %s", set_fullsize, &dummystr, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",
                 "--fullpixels %@", set_full_to_pixels, &dummybool, "Set the 'full' image range to be the pixel data window",
                 "<SEPARATOR>", "Options that affect subsequent actions:",
-                "--fail %g", &ot.diff_failthresh, "",
-                "--failpercent %g", &ot.diff_failpercent, "",
-                "--hardfail %g", &ot.diff_hardfail, "",
-                "--warn %g", &ot.diff_warnthresh, "",
-                "--warnpercent %g", &ot.diff_warnpercent, "",
-                "--hardwarn %g", &ot.diff_hardwarn, "",
+                "--fail %g", &ot.diff_failthresh, "Failure threshold difference (0.000001)",
+                "--failpercent %g", &ot.diff_failpercent, "Allow this percentage of failures in diff (0)",
+                "--hardfail %g", &ot.diff_hardfail, "Fail diff if any one pixel exceeds this error (infinity)",
+                "--warn %g", &ot.diff_warnthresh, "Warning threshold difference (0.00001)",
+                "--warnpercent %g", &ot.diff_warnpercent, "Allow this percentage of warnings in diff (0)",
+                "--hardwarn %g", &ot.diff_hardwarn, "Warn if any one pixel difference exceeds this error (infinity)",
                 "<SEPARATOR>", "Actions:",
                 "--create %@ %s %d", action_create, &dummystr, &dummyint,
                         "Create a blank image (args: geom, channels)",
