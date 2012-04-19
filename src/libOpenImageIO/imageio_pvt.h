@@ -60,7 +60,8 @@ extern ustring plugin_searchpath;
 // For internal use - use error() below for a nicer interface.
 void seterror (const std::string& message);
 
-/// Use error() privately only.  Protoype is conceptually:
+/// Use error() privately only.  Protoype is conceptually printf-like, but
+/// also fully typesafe:
 /// void error (const char *format, ...);
 TINYFORMAT_WRAP_FORMAT (void, error, /**/,
     std::ostringstream msg;, msg, seterror(msg.str());)
