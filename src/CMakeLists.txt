@@ -83,7 +83,7 @@ if (NOT MSVC)
     add_definitions ("-Wall")
 endif()
 
-if (CMAKE_COMPILER_IS_CLANG)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     # CMake doesn't automatically know what do do with
     # include_directories(SYSTEM...) when using clang.
     set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
