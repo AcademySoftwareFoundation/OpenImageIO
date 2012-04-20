@@ -79,13 +79,16 @@ include_directories(
 )
 
 # Strict warnings
-if (NOT WIN32)
+if (NOT MSVC)
     add_definitions ("-Wall")
 endif()
 
-# Disable some warnings for Clang, it's a little too picky with boost
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+if (CMAKE_COMPILER_IS_CLANG)
+    # CMake doesn't automatically know what do do with
+    # include_directories(SYSTEM...) when using clang.
     set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
+    # Disable some warnings for Clang, for some things that are too awkward
+    # to change just for the sake of having no warnings.
     add_definitions ("-Wno-unused-function")
     add_definitions ("-Wno-overloaded-virtual")
 endif ()
