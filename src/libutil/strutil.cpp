@@ -48,6 +48,18 @@ OIIO_NAMESPACE_ENTER
 {
 
 std::string
+Strutil::format_raw (const char *fmt, ...)
+{
+    va_list ap;
+    va_start (ap, fmt);
+    std::string buf = vformat (fmt, ap);
+    va_end (ap);
+    return buf;
+}
+
+
+
+std::string
 Strutil::vformat (const char *fmt, va_list ap)
 {
     // Allocate a buffer on the stack that's big enough for us almost
@@ -115,7 +127,11 @@ Strutil::memformat (off_t bytes, int digits)
         // Just bytes, don't bother with decimalization
         return format ("%lld B", (long long)bytes);
     }
-    return format ("%1.*f %s", digits, d, units);
+    // N.B. We use format_raw below because format() (due to its
+    // dependence on 'tinyformat') does not support variable precision.
+    // If tinyformat is extended to handle this, we will no longer
+    // need format_raw.
+    return format_raw ("%1.*f %s", digits, d, units);
 }
 
 
@@ -135,13 +151,17 @@ Strutil::timeintervalformat (double secs, int digits)
     int m = (int) floor (secs / mins);
     secs = fmod (secs, mins);
     if (d)
-        out += format ("%dd ", d);
-    if (h || d)
-        out += format ("%2dh ", h);
+        out += format ("%dd %dh ", d, h);
+    else if (h)
+        out += format ("%dh ", h);
+    // N.B. We use format_raw below because format() (due to its
+    // dependence on 'tinyformat') does not support variable precision.
+    // If tinyformat is extended to handle this, we will no longer
+    // need format_raw.
     if (m || h || d)
-        out += format ("%dm %1.*fs", m, digits, secs);
+        out += format_raw ("%dm %1.*fs", m, digits, secs);
     else
-        out += format ("%1.*fs", digits, secs);
+        out += format_raw ("%1.*fs", digits, secs);
     return out;
 }
 
