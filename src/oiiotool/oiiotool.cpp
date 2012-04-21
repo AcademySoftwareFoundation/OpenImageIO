@@ -74,6 +74,12 @@ static Oiiotool ot;
 void
 Oiiotool::read (ImageRecRef img)
 {
+    // If the image is already elaborated, take an early out, both to
+    // save time, but also because we only want to do the format and
+    // tile adjustments below as images are read in fresh from disk.
+    if (img->elaborated())
+        return;
+
     // Cause the ImageRec to get read
     img->read ();
 
