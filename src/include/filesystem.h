@@ -64,13 +64,15 @@ namespace Filesystem {
 /// file extension, if any) of a filepath.
 DLLPUBLIC std::string filename (const std::string &filepath);
 
-/// Return the file extension (including the last '.') of a filename or
-/// filepath.
-DLLPUBLIC std::string extension (const std::string &filepath);
+/// Return the file extension (including the last '.' if
+/// include_dot=true) of a filename or filepath.
+DLLPUBLIC std::string extension (const std::string &filepath,
+                                 bool include_dot=true);
 
-/// Return the file extension (just the part after the last '.') of a
-/// filename or filepath.  DEPRECATED.
-DLLPUBLIC std::string file_extension (const std::string &filepath);
+/// DEPRECATED.
+inline std::string file_extension (const std::string &filepath) {
+    return extension (filepath, false);
+}
 
 /// Replace the file extension of a filename or filepath. Does not
 /// alter filepath, just returns a new string
