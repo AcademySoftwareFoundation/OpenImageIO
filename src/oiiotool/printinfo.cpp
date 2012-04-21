@@ -94,7 +94,7 @@ read_input (const std::string &filename, ImageBuf &img,
         img.read (subimage, miplevel, false, TypeDesc::FLOAT))
         return true;
 
-    std::cerr << "iinfo ERROR: Could not read " << filename << ":\n\t"
+    std::cerr << "oiiotool ERROR: Could not read " << filename << ":\n\t"
               << img.geterror() << "\n";
     return false;
 }
@@ -420,7 +420,7 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
             input->seek_subimage (current_subimage, m, mipspec);
             if (opt.filenameprefix)
                 printf ("%s : ", filename.c_str());
-            if (nmip > 1 && (opt.subimages || m == 0)) {
+            if (nmip > 1) {
                 printf ("    MIP %d of %d (%d x %d):\n",
                         m, nmip, mipspec.width, mipspec.height);
             }
