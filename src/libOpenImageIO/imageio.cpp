@@ -135,10 +135,9 @@ getattribute (const std::string &name, TypeDesc type, void *val)
 }
 
 
-
-int
-quantize (float value, int quant_black, int quant_white,
-                       int quant_min, int quant_max)
+inline int
+quantize (float value, float quant_black, float quant_white,
+          int quant_min, int quant_max)
 {
     value = Imath::lerp (quant_black, quant_white, value);
     return Imath::clamp ((int)(value + 0.5f), quant_min, quant_max);
@@ -273,7 +272,7 @@ pvt::convert_to_float (const void *src, float *dst, int nvals,
 template<typename T>
 const void *
 _from_float (const float *src, T *dst, size_t nvals,
-            int quant_black, int quant_white, int quant_min, int quant_max)
+            float quant_black, float quant_white, int quant_min, int quant_max)
 {
     if (! src) {
         // If no source pixels, assume zeroes
