@@ -127,11 +127,7 @@ Strutil::memformat (off_t bytes, int digits)
         // Just bytes, don't bother with decimalization
         return format ("%lld B", (long long)bytes);
     }
-    // N.B. We use format_raw below because format() (due to its
-    // dependence on 'tinyformat') does not support variable precision.
-    // If tinyformat is extended to handle this, we will no longer
-    // need format_raw.
-    return format_raw ("%1.*f %s", digits, d, units);
+    return format ("%1.*f %s", digits, d, units);
 }
 
 
@@ -154,14 +150,10 @@ Strutil::timeintervalformat (double secs, int digits)
         out += format ("%dd %dh ", d, h);
     else if (h)
         out += format ("%dh ", h);
-    // N.B. We use format_raw below because format() (due to its
-    // dependence on 'tinyformat') does not support variable precision.
-    // If tinyformat is extended to handle this, we will no longer
-    // need format_raw.
     if (m || h || d)
-        out += format_raw ("%dm %1.*fs", m, digits, secs);
+        out += format ("%dm %1.*fs", m, digits, secs);
     else
-        out += format_raw ("%1.*fs", digits, secs);
+        out += format ("%1.*fs", digits, secs);
     return out;
 }
 
