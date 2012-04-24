@@ -862,7 +862,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                                                            0, 1, true);
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         float w = filter->xfilt (xratio * (i-src_xf_frac));
-                        if (fabsf(w) < 1.0e-6)
+                        if (w == 0.0f)
                             continue;
                         totalweight += w;
                         if (srcpel.exists()) {
@@ -878,10 +878,9 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                                 p[c] += w * clamped[c];
                         }
                     }
-                    if (fabsf(totalweight) >= 1.0e-6) {
-                        float winv = 1.0f / totalweight;
+                    if (totalweight != 0.0f) {
                         for (int c = 0;  c < nchannels;  ++c)
-                            p[c] *= winv;
+                            p[c] /= totalweight;
                     }
                 }
                 // Now filter vertically
@@ -903,7 +902,7 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
                     for (int i = -radi;  i <= radi;  ++i, ++srcpel) {
                         float w = (*filter)(xratio * (i-src_xf_frac),
                                             yratio * (j-src_yf_frac));
-                        if (fabsf(w) < 1.0e-6)
+                        if (w == 0.0f)
                             continue;
                         totalweight += w;
                         DASSERT (! srcpel.done());
@@ -926,14 +925,13 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
 
             // Rescale pel to normalize the filter, then write it to the
             // image.
-            if (fabsf(totalweight) < 1.0e-6) {
+            if (totalweight == 0.0f) {
                 // zero it out
                 for (int c = 0;  c < nchannels;  ++c)
                     pel[c] = 0.0f;
             } else {
-                float winv = 1.0f / totalweight;
                 for (int c = 0;  c < nchannels;  ++c)
-                    pel[c] *= winv;
+                    pel[c] /= totalweight;
             }
             dst.setpixel (x, y, pel);
         }
