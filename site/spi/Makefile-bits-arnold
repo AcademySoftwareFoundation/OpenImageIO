@@ -26,14 +26,23 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
     # the standard libGL.  This attempts to detect which libGL to use.
     SPINUX_GL_LIB = /usr/lib64/xorg.nvidia.3d/libGL.so
     MY_CMAKE_FLAGS += $(if $(wildcard ${SPINUX_GL_LIB}), -DOPENGL_gl_LIBRARY=${SPINUX_GL_LIB})
+    ifeq (${OCIO_PATH},)
+        OCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${platform}-${COMPILER}/v2"
+    endif
+    ifeq (${FIELD3D_HOME},)
+        FIELD3D_HOME="${INSTALL_SPCOMP2_LOCATION}/Field3D/${platform}-${COMPILER}/v227"
+    endif
     MY_CMAKE_FLAGS += \
 	  -DILMBASE_CUSTOM=1 \
 	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
 	  -DOPENEXR_CUSTOM=1 \
-	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf"
-    ifeq (${OCIO_PATH},)
-        MY_CMAKE_FLAGS += -DOCIO_PATH="${INSTALL_SPCOMP2_LOCATION}/OpenColorIO/${platform}-${COMPILER}/v2"
-    endif
+	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf" \
+	  -DOCIO_PATH="${OCIO_PATH}" \
+	  -DFIELD3D_HOME="${FIELD3D_HOME}" \
+          -DHDF5_CUSTOM=1 \
+	  -DHDF5_INCLUDE_DIRS=/usr/include \
+	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
+	  -DHDF5_LIBRARY_DIRS=/usr/lib64
 endif  # endif spinux1_x86_64
 
 

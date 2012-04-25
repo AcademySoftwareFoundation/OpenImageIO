@@ -52,6 +52,7 @@
 using namespace FIELD3D_NS;
 
 #include "field3d_pvt.h"
+#include "filesystem.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -73,6 +74,7 @@ public:
     Field3DInput () { init(); }
     virtual ~Field3DInput () { close(); }
     virtual const char * format_name (void) const { return "field3d"; }
+//    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
@@ -349,10 +351,19 @@ Field3DInput::open (const std::string &name, ImageSpec &newspec)
     if (m_input)
         close();
 
+    if (! Filesystem::is_regular (name))
+        return false;
+
     {
         spin_lock lock (field3d_mutex());
         m_input = new Field3DInputFile;
-        if (! m_input->open (name)) {
+        bool ok = false;
+        try {
+            ok = m_input->open (name);
+        } catch (...) {
+            ok = false;
+        }
+        if (! ok) {
             delete m_input;
             m_input = NULL;
             m_name.clear ();

@@ -266,7 +266,6 @@ oiio_add_tests (ico gpsread misnamed-file
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
                 texture-skinny texture-fat
-                texture-field3d
                )
 
 
@@ -301,6 +300,9 @@ oiio_add_tests (webp
     FOUNDVAR WEBP_FOUND
     IMAGEDIR webp-images
     URL http://code.google.com/speed/webp/gallery.html)
+
+oiio_add_tests (texture-field3d
+    FOUNDVAR FIELD3D_FOUND)
 
 
 #########################################################################
