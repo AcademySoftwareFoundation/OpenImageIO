@@ -96,7 +96,7 @@
 // specifiers (calls assert() by default).
 //
 // User defined types: Uses operator<< for user defined types by default.
-// Overload formatValue() or formatValueBasic() for more control.
+// Overload formatValue() for more control.
 //
 // Wrapping tfm::format inside a user defined format function: See the macros
 // TINYFORMAT_WRAP_FORMAT and TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS.
@@ -105,10 +105,6 @@
 
 #ifndef TINYFORMAT_H_INCLUDED
 #define TINYFORMAT_H_INCLUDED
-
-#include <cassert>
-#include <iostream>
-#include <sstream>
 
 namespace tinyformat {}
 //------------------------------------------------------------------------------
@@ -127,6 +123,10 @@ namespace tfm = tinyformat;
 
 //------------------------------------------------------------------------------
 // Implementation details.
+#include <cassert>
+#include <iostream>
+#include <sstream>
+
 #ifndef TINYFORMAT_ERROR
 #   define TINYFORMAT_ERROR(reason) assert(0 && reason)
 #endif
@@ -214,9 +214,67 @@ struct convertToInt
 template<typename T>
 struct convertToInt<T,true>
 {
-    static int invoke(const T& value) { return value; }
+    static int invoke(const T& value) { return static_cast<int>(value); }
 };
 
+} // namespace detail
+
+
+//------------------------------------------------------------------------------
+// Variable formatting functions.  May be overridden for user-defined types if
+// desired.
+
+
+// Format a value into a stream. Called from format() for all types by default.
+//
+// Users may override this for their own types.  When this function is called,
+// the stream flags will have been modified according to the format string.
+// The format specification is provided in the range [fmtBegin, fmtEnd).
+//
+// By default, formatValue() uses the usual stream insertion operator
+// operator<< to format the type T, with special cases for the %c and %p
+// conversions.
+template<typename T>
+inline void formatValue(std::ostream& out, const char* fmtBegin,
+                        const char* fmtEnd, const T& value)
+{
+    // The mess here is to support the %c and %p conversions: if these
+    // conversions are active we try to convert the type to a char or const
+    // void* respectively and format that instead of the value itself.  For the
+    // %p conversion it's important to avoid dereferencing the pointer, which
+    // could otherwise lead to a crash when printing a dangling (const char*).
+    const bool canConvertToChar = detail::is_convertible<T,char>::value;
+    const bool canConvertToVoidPtr = detail::is_convertible<T, const void*>::value;
+    if(canConvertToChar && *(fmtEnd-1) == 'c')
+        detail::formatValueAsType<T, char>::invoke(out, value);
+    else if(canConvertToVoidPtr && *(fmtEnd-1) == 'p')
+        detail::formatValueAsType<T, const void*>::invoke(out, value);
+    else
+        out << value;
+}
+
+
+// Overloaded version for char types to support printing as an integer
+#define TINYFORMAT_DEFINE_FORMATVALUE_CHAR(charType)                  \
+inline void formatValue(std::ostream& out, const char* fmtBegin,      \
+                        const char* fmtEnd, charType value)           \
+{                                                                     \
+    switch(*(fmtEnd-1))                                               \
+    {                                                                 \
+        case 'u': case 'd': case 'i': case 'o': case 'X': case 'x':   \
+            out << static_cast<int>(value); break;                    \
+        default:                                                      \
+            out << value;                   break;                    \
+    }                                                                 \
+}
+// per 3.9.1: char, signed char and unsigned char are all distinct types
+TINYFORMAT_DEFINE_FORMATVALUE_CHAR(char)
+TINYFORMAT_DEFINE_FORMATVALUE_CHAR(signed char)
+TINYFORMAT_DEFINE_FORMATVALUE_CHAR(unsigned char)
+#undef TINYFORMAT_DEFINE_FORMATVALUE_CHAR
+
+
+namespace detail {
 
 // Class holding current position in format string and an output stream into
 // which arguments are formatted.
@@ -368,8 +426,8 @@ void FormatIterator::accept(const T& value)
     {
         m_fmt = printFormatStringLiteral(m_out, m_fmt);
         fmtEnd = streamStateFromFormat(m_out, m_extraFlags, m_fmt, 0, 0);
-        m_wantWidth     = m_extraFlags & Flag_VariableWidth;
-        m_wantPrecision = m_extraFlags & Flag_VariablePrecision;
+        m_wantWidth     = (m_extraFlags & Flag_VariableWidth) != 0;
+        m_wantPrecision = (m_extraFlags & Flag_VariablePrecision) != 0;
     }
     // Consume value as variable width and precision specifier if necessary
     if(m_extraFlags & (Flag_VariableWidth | Flag_VariablePrecision))
@@ -762,60 +820,6 @@ void format(FormatIterator& fmtIter , const T1& v1, const T2& v2, const T3& v3, 
 #endif // End C++98 variadic template emulation for format()
 
 } // namespace detail
-
-
-//------------------------------------------------------------------------------
-// Variable formatting functions.  May be overridden for user-defined types if
-// desired.
-
-
-// Format a value into a stream. Called from format() for all types by default.
-//
-// Users may override this for their own types.  When this function is called,
-// the stream flags will have been modified according to the format string.
-// The format specification is provided in the range [fmtBegin, fmtEnd).
-//
-// By default, formatValue() uses the usual stream insertion operator
-// operator<< to format the type T, with special cases for the %c and %p
-// conversions.
-template<typename T>
-inline void formatValue(std::ostream& out, const char* fmtBegin,
-                        const char* fmtEnd, const T& value)
-{
-    // The mess here is to support the %c and %p conversions: if these
-    // conversions are active we try to convert the type to a char or const
-    // void* respectively and format that instead of the value itself.  For the
-    // %p conversion it's important to avoid dereferencing the pointer, which
-    // could otherwise lead to a crash when printing a dangling (const char*).
-    const bool canConvertToChar = detail::is_convertible<T,char>::value;
-    const bool canConvertToVoidPtr = detail::is_convertible<T, const void*>::value;
-    if(canConvertToChar && *(fmtEnd-1) == 'c')
-        detail::formatValueAsType<T, char>::invoke(out, value);
-    else if(canConvertToVoidPtr && *(fmtEnd-1) == 'p')
-        detail::formatValueAsType<T, const void*>::invoke(out, value);
-    else
-        out << value;
-}
-
-
-// Overloaded version for char types to support printing as an integer
-#define TINYFORMAT_DEFINE_FORMATVALUE_CHAR(charType)                  \
-inline void formatValue(std::ostream& out, const char* fmtBegin,      \
-                        const char* fmtEnd, charType value)           \
-{                                                                     \
-    switch(*(fmtEnd-1))                                               \
-    {                                                                 \
-        case 'u': case 'd': case 'i': case 'o': case 'X': case 'x':   \
-            out << static_cast<int>(value); break;                    \
-        default:                                                      \
-            out << value;                   break;                    \
-    }                                                                 \
-}
-// per 3.9.1: char, signed char and unsigned char are all distinct types
-TINYFORMAT_DEFINE_FORMATVALUE_CHAR(char)
-TINYFORMAT_DEFINE_FORMATVALUE_CHAR(signed char)
-TINYFORMAT_DEFINE_FORMATVALUE_CHAR(unsigned char)
-#undef TINYFORMAT_DEFINE_FORMATVALUE_CHAR
 
 
 //------------------------------------------------------------------------------
