@@ -967,6 +967,18 @@ truncf(float val)
 
 
 
+// Functions missing from FreeBSD
+#if (defined(__FreeBSD__) && (__FreeBSD_version < 803000))
+
+inline float
+log2f (float val) {
+    return logf (val)/static_cast<float>(M_LN2);
+}
+
+#endif
+
+
+
 /// Simple conversion of a (presumably non-negative) float into a
 /// rational.  This does not attempt to find the simplest fraction
 /// that approximates the float, for example 52.83 will simply
