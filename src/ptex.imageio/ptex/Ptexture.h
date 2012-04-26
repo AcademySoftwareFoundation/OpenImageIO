@@ -43,6 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include <math.h>
 
+#if defined(__FreeBSD__)
+#include <sys/param.h>
+#endif
+
 #if (defined(__FreeBSD__) && (__FreeBSD_version < 803000))
 
 inline double log2(double x) {return log(x)*(double)1.4426950408889634;}
