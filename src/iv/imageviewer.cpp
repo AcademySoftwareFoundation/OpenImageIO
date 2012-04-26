@@ -66,6 +66,11 @@
 #include "sysutil.h"
 #include "filesystem.h"
 
+#if !defined(log2f)
+
+inline float log2f(float x) {return logf(x)*(float)1.4426950408889634;}
+
+#endif /* log2f */
 
 namespace
 {
