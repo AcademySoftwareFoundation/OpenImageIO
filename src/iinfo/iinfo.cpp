@@ -428,8 +428,8 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
             if (nmip > 1 && (subimages || m == 0)) {
                 printf ("    MIP %d of %d (%d x %d):\n",
                         m, nmip, mipspec.width, mipspec.height);
-                print_stats (filename, spec, current_subimage, m, nmip>1);
             }
+            print_stats (filename, spec, current_subimage, m, nmip>1);
         }
     }
 
