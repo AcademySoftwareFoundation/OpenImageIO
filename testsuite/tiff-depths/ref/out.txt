@@ -1,5 +1,5 @@
 Reading ../../../../../libtiffpic/depth/flower-minisblack-02.tif
-../../../../../libtiffpic/depth/flower-minisblack-02.tif :   73 x   43, 1 channel, uint8 tiff
+../../../../../libtiffpic/depth/flower-minisblack-02.tif :   73 x   43, 1 channel, uint2 tiff
     SHA-1: F6BD9D10FB0DD8E9AC62DEBBB743A78FC48D3C9B
     channel list: A
     oiio:BitsPerSample: 2
@@ -18,7 +18,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-02.tif
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-02.tif" and "flower-minisblack-02.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-04.tif
-../../../../../libtiffpic/depth/flower-minisblack-04.tif :   73 x   43, 1 channel, uint8 tiff
+../../../../../libtiffpic/depth/flower-minisblack-04.tif :   73 x   43, 1 channel, uint4 tiff
     SHA-1: 8C0CF14B3B585F4B1F249C681BEDEA4CB63E3EDD
     channel list: A
     oiio:BitsPerSample: 4
@@ -37,7 +37,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-04.tif
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-04.tif" and "flower-minisblack-04.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-06.tif
-../../../../../libtiffpic/depth/flower-minisblack-06.tif :   73 x   43, 1 channel, uint8 tiff
+../../../../../libtiffpic/depth/flower-minisblack-06.tif :   73 x   43, 1 channel, uint6 tiff
     SHA-1: AE809BFEF36E3E0047343655231200A916D83492
     channel list: A
     oiio:BitsPerSample: 6
@@ -75,7 +75,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-08.tif
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-08.tif" and "flower-minisblack-08.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-10.tif
-../../../../../libtiffpic/depth/flower-minisblack-10.tif :   73 x   43, 1 channel, uint16 tiff
+../../../../../libtiffpic/depth/flower-minisblack-10.tif :   73 x   43, 1 channel, uint10 tiff
     SHA-1: E9240FEF19CC8EF5EBBF2EE4A10EDF25E51C67B4
     channel list: A
     oiio:BitsPerSample: 10
@@ -94,7 +94,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-10.tif
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-10.tif" and "flower-minisblack-10.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-12.tif
-../../../../../libtiffpic/depth/flower-minisblack-12.tif :   73 x   43, 1 channel, uint16 tiff
+../../../../../libtiffpic/depth/flower-minisblack-12.tif :   73 x   43, 1 channel, uint12 tiff
     SHA-1: AAE977957ED6AAC647967192A74E4AD55FF75811
     channel list: A
     oiio:BitsPerSample: 12
@@ -113,7 +113,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-12.tif
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-12.tif" and "flower-minisblack-12.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-minisblack-14.tif
-../../../../../libtiffpic/depth/flower-minisblack-14.tif :   73 x   43, 1 channel, uint16 tiff
+../../../../../libtiffpic/depth/flower-minisblack-14.tif :   73 x   43, 1 channel, uint14 tiff
     SHA-1: C1B9CA21C227EF11626EF0C58BD49769EEF48363
     channel list: A
     oiio:BitsPerSample: 14
@@ -151,7 +151,7 @@ Reading ../../../../../libtiffpic/depth/flower-minisblack-16.tif
 Comparing "../../../../../libtiffpic/depth/flower-minisblack-16.tif" and "flower-minisblack-16.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
-../../../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint8 tiff
+../../../../../libtiffpic/depth/flower-palette-02.tif :   73 x   43, 3 channel, uint2 tiff
     SHA-1: 52B3033465AA01129BAE149FF96CBB49877DAB7C
     channel list: R, G, B
     oiio:BitsPerSample: 2
@@ -170,7 +170,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-02.tif
 Comparing "../../../../../libtiffpic/depth/flower-palette-02.tif" and "flower-palette-02.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-palette-04.tif
-../../../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint8 tiff
+../../../../../libtiffpic/depth/flower-palette-04.tif :   73 x   43, 3 channel, uint4 tiff
     SHA-1: C6E40A3D134F1A29E153FE15459D8DE657CB7F9C
     channel list: R, G, B
     oiio:BitsPerSample: 4
@@ -208,7 +208,7 @@ Reading ../../../../../libtiffpic/depth/flower-palette-08.tif
 Comparing "../../../../../libtiffpic/depth/flower-palette-08.tif" and "flower-palette-08.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-02.tif
-../../../../../libtiffpic/depth/flower-rgb-contig-02.tif :   73 x   43, 3 channel, uint8 tiff
+../../../../../libtiffpic/depth/flower-rgb-contig-02.tif :   73 x   43, 3 channel, uint2 tiff
     SHA-1: D68490C8E508DEBECEE4DF3A9E5DA0523CD5C302
     channel list: R, G, B
     oiio:BitsPerSample: 2
@@ -227,7 +227,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-02.tif
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-02.tif" and "flower-rgb-contig-02.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-04.tif
-../../../../../libtiffpic/depth/flower-rgb-contig-04.tif :   73 x   43, 3 channel, uint8 tiff
+../../../../../libtiffpic/depth/flower-rgb-contig-04.tif :   73 x   43, 3 channel, uint4 tiff
     SHA-1: A5920C9D08B9E25C96D55FDF72F46F589AE7643D
     channel list: R, G, B
     oiio:BitsPerSample: 4
@@ -265,7 +265,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-08.tif
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-08.tif" and "flower-rgb-contig-08.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-10.tif
-../../../../../libtiffpic/depth/flower-rgb-contig-10.tif :   73 x   43, 3 channel, uint16 tiff
+../../../../../libtiffpic/depth/flower-rgb-contig-10.tif :   73 x   43, 3 channel, uint10 tiff
     SHA-1: 0C41DF861699CF536C581721EF17B01D1EFB5D86
     channel list: R, G, B
     oiio:BitsPerSample: 10
@@ -284,7 +284,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-10.tif
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-10.tif" and "flower-rgb-contig-10.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-12.tif
-../../../../../libtiffpic/depth/flower-rgb-contig-12.tif :   73 x   43, 3 channel, uint16 tiff
+../../../../../libtiffpic/depth/flower-rgb-contig-12.tif :   73 x   43, 3 channel, uint12 tiff
     SHA-1: E61083B50548C7D304A45735452FD05C1814677B
     channel list: R, G, B
     oiio:BitsPerSample: 12
@@ -303,7 +303,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-12.tif
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-12.tif" and "flower-rgb-contig-12.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-contig-14.tif
-../../../../../libtiffpic/depth/flower-rgb-contig-14.tif :   73 x   43, 3 channel, uint16 tiff
+../../../../../libtiffpic/depth/flower-rgb-contig-14.tif :   73 x   43, 3 channel, uint14 tiff
     SHA-1: DD060DA62BB8F5903C5087796B2D05A682BE8ADA
     channel list: R, G, B
     oiio:BitsPerSample: 14
@@ -341,7 +341,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-contig-16.tif
 Comparing "../../../../../libtiffpic/depth/flower-rgb-contig-16.tif" and "flower-rgb-contig-16.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-02.tif
-../../../../../libtiffpic/depth/flower-rgb-planar-02.tif :   73 x   43, 3 channel, uint8 tiff
+../../../../../libtiffpic/depth/flower-rgb-planar-02.tif :   73 x   43, 3 channel, uint2 tiff
     SHA-1: D68490C8E508DEBECEE4DF3A9E5DA0523CD5C302
     channel list: R, G, B
     oiio:BitsPerSample: 2
@@ -360,7 +360,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-02.tif
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-02.tif" and "flower-rgb-planar-02.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-04.tif
-../../../../../libtiffpic/depth/flower-rgb-planar-04.tif :   73 x   43, 3 channel, uint8 tiff
+../../../../../libtiffpic/depth/flower-rgb-planar-04.tif :   73 x   43, 3 channel, uint4 tiff
     SHA-1: A5920C9D08B9E25C96D55FDF72F46F589AE7643D
     channel list: R, G, B
     oiio:BitsPerSample: 4
@@ -398,7 +398,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-08.tif
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-08.tif" and "flower-rgb-planar-08.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-10.tif
-../../../../../libtiffpic/depth/flower-rgb-planar-10.tif :   73 x   43, 3 channel, uint16 tiff
+../../../../../libtiffpic/depth/flower-rgb-planar-10.tif :   73 x   43, 3 channel, uint10 tiff
     SHA-1: 0C41DF861699CF536C581721EF17B01D1EFB5D86
     channel list: R, G, B
     oiio:BitsPerSample: 10
@@ -417,7 +417,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-10.tif
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-10.tif" and "flower-rgb-planar-10.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-12.tif
-../../../../../libtiffpic/depth/flower-rgb-planar-12.tif :   73 x   43, 3 channel, uint16 tiff
+../../../../../libtiffpic/depth/flower-rgb-planar-12.tif :   73 x   43, 3 channel, uint12 tiff
     SHA-1: E61083B50548C7D304A45735452FD05C1814677B
     channel list: R, G, B
     oiio:BitsPerSample: 12
@@ -436,7 +436,7 @@ Reading ../../../../../libtiffpic/depth/flower-rgb-planar-12.tif
 Comparing "../../../../../libtiffpic/depth/flower-rgb-planar-12.tif" and "flower-rgb-planar-12.tif"
 PASS
 Reading ../../../../../libtiffpic/depth/flower-rgb-planar-14.tif
-../../../../../libtiffpic/depth/flower-rgb-planar-14.tif :   73 x   43, 3 channel, uint16 tiff
+../../../../../libtiffpic/depth/flower-rgb-planar-14.tif :   73 x   43, 3 channel, uint14 tiff
     SHA-1: DD060DA62BB8F5903C5087796B2D05A682BE8ADA
     channel list: R, G, B
     oiio:BitsPerSample: 14
