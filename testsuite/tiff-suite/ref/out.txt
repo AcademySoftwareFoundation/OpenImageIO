@@ -31,7 +31,7 @@ PASS
 Comparing "../../../../../libtiffpic/cramps-tile.tif" and "../../../../../libtiffpic/cramps.tif"
 PASS
 Reading ../../../../../libtiffpic/fax2d.tif
-../../../../../libtiffpic/fax2d.tif : 1728 x 1082, 1 channel, uint8 tiff
+../../../../../libtiffpic/fax2d.tif : 1728 x 1082, 1 channel, uint1 tiff
     SHA-1: A57ECEDA78607AE81ABA344E4456EDB1E34A6CB0
     channel list: A
     oiio:BitsPerSample: 1
@@ -48,7 +48,7 @@ Reading ../../../../../libtiffpic/fax2d.tif
 Comparing "../../../../../libtiffpic/fax2d.tif" and "fax2d.tif"
 PASS
 Reading ../../../../../libtiffpic/g3test.tif
-../../../../../libtiffpic/g3test.tif : 1728 x 1103, 1 channel, uint8 tiff
+../../../../../libtiffpic/g3test.tif : 1728 x 1103, 1 channel, uint1 tiff
     SHA-1: D674B2BB7707525F8DD678E81CAF50EE3A15D1E8
     channel list: A
     oiio:BitsPerSample: 1
