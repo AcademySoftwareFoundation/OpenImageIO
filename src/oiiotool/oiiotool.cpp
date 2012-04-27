@@ -188,6 +188,8 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
         spec.set_format (ot.output_dataformat);
         if (ot.output_bitspersample != 0)
             spec.attribute ("oiio:BitsPerSample", ot.output_bitspersample);
+        else
+            spec.erase_attribute ("oiio:BitsPerSample");
     }
 
 //        spec.channelformats.clear ();   // FIXME: why?
@@ -330,6 +332,7 @@ set_dataformat (int argc, const char *argv[])
 {
     ASSERT (argc == 2);
     std::string s (argv[1]);
+    ot.output_bitspersample = 0;  // use the default
     if (s == "uint8")
         ot.output_dataformat = TypeDesc::UINT8;
     else if (s == "int8")
