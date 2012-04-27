@@ -235,6 +235,8 @@ adjust_spec (ImageInput *in, ImageOutput *out,
         }
     }
     if (! dataformatname.empty()) {
+        // make sure there isn't a stray BPS that will screw us up
+        outspec.erase_attribute ("oiio:BitsPerSample");
         if (dataformatname == "uint8")
             outspec.set_format (TypeDesc::UINT8);
         else if (dataformatname == "int8")
