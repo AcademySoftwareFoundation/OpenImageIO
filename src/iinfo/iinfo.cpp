@@ -366,6 +366,24 @@ print_metadata (const ImageSpec &spec, const std::string &filename)
 
 
 
+static const char *
+extended_format_name (TypeDesc type, int bits)
+{
+    if (bits && bits < (int)type.size()*8) {
+        // The "oiio:BitsPerSample" betrays a different bit depth in the
+        // file than the data type we are passing.
+        if (type == TypeDesc::UINT8 || type == TypeDesc::UINT16 ||
+            type == TypeDesc::UINT32 || type == TypeDesc::UINT64)
+            return ustring::format("uint%d", bits).c_str();
+        if (type == TypeDesc::INT8 || type == TypeDesc::INT16 ||
+            type == TypeDesc::INT32 || type == TypeDesc::INT64)
+            return ustring::format("int%d", bits).c_str();
+    }
+    return type.c_str();  // use the name implied by type
+}
+
+
+
 // prints basic info (resolution, width, height, depth, channels, data format,
 // and format name) about given subimage.
 static void
@@ -390,7 +408,9 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
         printf ("%4d x %4d", spec.width, spec.height);
         if (spec.depth > 1)
             printf (" x %4d", spec.depth);
-        printf (", %d channel, %s%s", spec.nchannels, spec.format.c_str(),
+        int bits = spec.get_int_attribute ("oiio:BitsPerSample", 0);
+        printf (", %d channel, %s%s", spec.nchannels,
+                extended_format_name(spec.format, bits),
                 spec.depth > 1 ? " volume" : "");
         printf (" %s", input->format_name());
         printf ("\n");
@@ -428,8 +448,8 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
             if (nmip > 1 && (subimages || m == 0)) {
                 printf ("    MIP %d of %d (%d x %d):\n",
                         m, nmip, mipspec.width, mipspec.height);
-                print_stats (filename, spec, current_subimage, m, nmip>1);
             }
+            print_stats (filename, spec, current_subimage, m, nmip>1);
         }
     }
 
@@ -484,7 +504,8 @@ print_info (const std::string &filename, size_t namefieldlength,
                 printf ("%s%s", c ? "/" : "",
                         spec.channelformats[c].c_str());
         } else {
-            printf ("%s", spec.format.c_str());
+            int bits = spec.get_int_attribute ("oiio:BitsPerSample", 0);
+            printf ("%s", extended_format_name(spec.format, bits));
         }
         if (spec.depth > 1)
             printf (" volume");

@@ -15,7 +15,7 @@ Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_02.j2k
 Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_02.j2k" and "p0_02.j2k"
 PASS
 Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_03.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_03.j2k :  256 x  256, 1 channel, uint8 jpeg2000
+../../../../../j2kp4files_v1_5/codestreams_profile0/p0_03.j2k :  256 x  256, 1 channel, uint4 jpeg2000
     SHA-1: A0F0816029340C5AEDB4124333DF915F37B72B81
     channel list: A
     oiio:BitsPerSample: 4
@@ -39,7 +39,7 @@ Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_05.j2k
 Comparing "../../../../../j2kp4files_v1_5/codestreams_profile0/p0_05.j2k" and "p0_05.j2k"
 PASS
 Reading ../../../../../j2kp4files_v1_5/codestreams_profile0/p0_06.j2k
-../../../../../j2kp4files_v1_5/codestreams_profile0/p0_06.j2k :  513 x  129, 4 channel, uint16 jpeg2000
+../../../../../j2kp4files_v1_5/codestreams_profile0/p0_06.j2k :  513 x  129, 4 channel, uint12 jpeg2000
     SHA-1: D3061DF764BB425332C790C209D6BFEFF24B9196
     channel list: R, G, B, A
     oiio:BitsPerSample: 12
