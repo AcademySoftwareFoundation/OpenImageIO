@@ -235,7 +235,7 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
 
     // select packing method
     dpx::Packing packing;
-    tmpstr = m_spec.get_string_attribute ("dpx:ImagePacking", "Filled, method A");
+    tmpstr = m_spec.get_string_attribute ("dpx:Packing", "Filled, method A");
     if (Strutil::iequals (tmpstr, "Packed"))
         packing = dpx::kPacked;
     else if (Strutil::iequals (tmpstr, "Filled, method B"))
