@@ -253,6 +253,12 @@ DPXOutput::open (const std::string &name, const ImageSpec &userspec,
         }
     }
     m_dpx.header.SetBitDepth (0, bitDepth);
+
+    // Bug workaround: libDPX doesn't appear to correctly support
+    // "filled method A" for 12 bit data.  Does anybody care what
+    // packing/filling we use?  Punt and just use "packed".
+    if (bitDepth == 12)
+        packing = dpx::kPacked;
     
     // see if we'll need to convert or not
     if (m_desc == dpx::kRGB || m_desc == dpx::kRGBA) {
