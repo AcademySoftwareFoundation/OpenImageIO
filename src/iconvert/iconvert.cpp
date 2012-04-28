@@ -365,8 +365,8 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
     std::string tempname = out_filename;
     if (tempname == in_filename) {
-        tempname = out_filename + ".tmp."
-                    + Filesystem::file_extension (out_filename);
+        tempname = out_filename + ".tmp"
+                    + Filesystem::extension (out_filename);
     }
 
     // Find an ImageIO plugin that can open the input file, and open it.
