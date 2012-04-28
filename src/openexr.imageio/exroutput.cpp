@@ -417,9 +417,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 {
     // Translate
     std::string xname = name;
-    if (Strutil::istarts_with (xname, "oiio:"))
-        return false;
-    else if (Strutil::iequals(xname, "worldtocamera"))
+    if (Strutil::iequals(xname, "worldtocamera"))
         xname = "worldToCamera";
     else if (Strutil::iequals(xname, "worldtoscreen"))
         xname = "worldToNDC";
@@ -486,6 +484,21 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     // Supress planarconfig!
     if (Strutil::iequals (xname, "planarconfig") || Strutil::iequals (xname, "tiff:planarconfig"))
         return true;
+
+    // Special handling of any remaining "oiio:*" metadata.
+    if (Strutil::istarts_with (xname, "oiio:")) {
+        // None currently supported
+        return false;
+    }
+
+    // Before handling general named metadata, suppress non-openexr
+    // format-specific metadata.
+    if (strchr (name.c_str(), ':') &&
+        ! Strutil::istarts_with (name, "openexr:") &&
+        ! Strutil::istarts_with (name, "Exif:") &&
+        ! Strutil::istarts_with (name, "GPS:")) {
+        return false;
+    }
 
     // General handling of attributes
     // FIXME -- police this if we ever allow arrays
