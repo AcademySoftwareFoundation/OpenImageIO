@@ -74,7 +74,7 @@ public:
     Field3DInput () { init(); }
     virtual ~Field3DInput () { close(); }
     virtual const char * format_name (void) const { return "field3d"; }
-//    virtual bool valid_file (const std::string &filename) const;
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
@@ -93,6 +93,7 @@ private:
     struct layerrecord {
         std::string name;
         std::string attribute;
+        std::string unique_name;
         TypeDesc datatype;
         FieldType fieldtype;
         bool vecfield;      // true=vector, false=scalar
@@ -114,7 +115,7 @@ private:
     template<typename T> void read_layers (TypeDesc datatype);
 
     void read_one_layer (FieldRes::Ptr field, layerrecord &lay,
-                         TypeDesc datatype);
+                         TypeDesc datatype, size_t layernum);
 
     template<typename T> bool readtile (int x, int y, int z, T *data);
 
@@ -210,7 +211,7 @@ read_metadata (const M &meta, ImageSpec &spec)
 
 void
 Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
-                              TypeDesc datatype)
+                              TypeDesc datatype, size_t layernum)
 {
     lay.name = field->name;
     lay.attribute = field->attribute;
@@ -218,6 +219,22 @@ Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
     lay.extents = field->extents();
     lay.dataWindow = field->dataWindow();
     lay.field = field;
+
+    // Generate a unique name for the layer.  Field3D files can have
+    // multiple partitions (aka fields) with the same name, and
+    // different partitions can each have attributes (aka layers) with
+    // identical names.  The convention is that if there are duplicates,
+    // insert a number to disambiguate.
+    int duplicates = 0;
+    for (int i = 0;  i < (int)layernum;  ++i)
+        if (m_layers[i].name == lay.name && m_layers[i].attribute == lay.attribute)
+            ++duplicates;
+    if (! duplicates && lay.name == lay.attribute)
+        lay.unique_name = lay.name;
+    else
+        lay.unique_name = duplicates
+            ? Strutil::format ("%s.%u:%s", lay.name, duplicates+1, lay.attribute)
+            : Strutil::format ("%s:%s", lay.name, lay.attribute);
 
     lay.spec = ImageSpec(); // Clear everything with default constructor
     lay.spec.format = lay.datatype;
@@ -268,11 +285,11 @@ Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
     ASSERT (lay.spec.tile_width > 0 && lay.spec.tile_height > 0 &&
             lay.spec.tile_depth > 0);
 
-    lay.spec.attribute ("ImageDescription", lay.name + "." + lay.attribute);
-    lay.spec.attribute ("field3d:name", lay.name);
-    lay.spec.attribute ("field3d:attribute", lay.attribute);
+    lay.spec.attribute ("ImageDescription", lay.unique_name);
+    lay.spec.attribute ("oiio:subimagename", lay.unique_name);
+    lay.spec.attribute ("field3d:partition", lay.name);
+    lay.spec.attribute ("field3d:layer", lay.attribute);
     lay.spec.attribute ("field3d:fieldtype", field->className());
-
 
     FieldMapping::Ptr mapping = field->mapping();
     lay.spec.attribute ("field3d:mapping", mapping->className());
@@ -307,7 +324,8 @@ void Field3DInput::read_layers (TypeDesc datatype)
     if (sFields.size() > 0) {
         for (typename SFieldList::const_iterator i = sFields.begin(); 
              i != sFields.end(); ++i) {
-            m_layers.resize (m_layers.size()+1);
+            size_t layernum = m_layers.size();
+            m_layers.resize (layernum+1);
             layerrecord &lay (m_layers.back());
             if (field_dynamic_cast<DenseField<Data_T> >(*i))
                 lay.fieldtype = Dense;
@@ -315,7 +333,7 @@ void Field3DInput::read_layers (TypeDesc datatype)
                 lay.fieldtype = Sparse;
             else
                 ASSERT (0 && "unknown field type");
-            read_one_layer (*i, lay, datatype);
+            read_one_layer (*i, lay, datatype, layernum);
         }
     }
 
@@ -325,7 +343,8 @@ void Field3DInput::read_layers (TypeDesc datatype)
     if (vFields.size() > 0) {
         for (typename VFieldList::const_iterator i = vFields.begin(); 
              i != vFields.end(); ++i) {
-            m_layers.resize (m_layers.size()+1);
+            size_t layernum = m_layers.size();
+            m_layers.resize (layernum+1);
             layerrecord &lay (m_layers.back());
             typedef FIELD3D_VEC3_T<Data_T> VecData_T;
             if (field_dynamic_cast<DenseField<VecData_T> >(*i))
@@ -336,7 +355,7 @@ void Field3DInput::read_layers (TypeDesc datatype)
                 lay.fieldtype = MAC;
             else
                 ASSERT (0 && "unknown field type");
-            read_one_layer (*i, lay, datatype);
+            read_one_layer (*i, lay, datatype, layernum);
             lay.vecfield = true;
         }
     }
@@ -345,14 +364,41 @@ void Field3DInput::read_layers (TypeDesc datatype)
 
 
 bool
+Field3DInput::valid_file (const std::string &filename) const
+{
+    if (! Filesystem::is_regular (filename))
+        return false;
+
+    oiio_field3d_initialize ();
+
+    bool ok = false;
+    Field3DInputFile *input = NULL;
+    {
+        spin_lock lock (field3d_mutex());
+        input = new Field3DInputFile;
+        try {
+            ok = input->open (filename);
+        } catch (...) {
+            ok = false;
+        }
+        delete input;
+    }
+
+    return ok;
+}
+
+
+
+bool
 Field3DInput::open (const std::string &name, ImageSpec &newspec)
 {
-    oiio_field3d_initialize ();
     if (m_input)
         close();
 
     if (! Filesystem::is_regular (name))
         return false;
+
+    oiio_field3d_initialize ();
 
     {
         spin_lock lock (field3d_mutex());
