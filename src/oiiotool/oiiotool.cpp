@@ -1164,6 +1164,26 @@ action_pattern (int argc, const char *argv[])
     std::string pattern = argv[1];
     if (Strutil::iequals(pattern,"black")) {
         ImageBufAlgo::zero (ib);
+    } else if (Strutil::istarts_with(pattern,"constant")) {
+        float *fill = ALLOCA (float, nchans);
+        for (int c = 0;  c < nchans;  ++c)
+            fill[c] = 1.0f;
+        size_t pos;
+        while ((pos = pattern.find_first_of(":")) != std::string::npos) {
+            pattern = pattern.substr (pos+1, std::string::npos);
+            if (Strutil::istarts_with(pattern,"color=")) {
+                // Parse comma-separated color list
+                size_t numpos = 6;
+                for (int c = 0; c < nchans && numpos < pattern.size() && pattern[numpos] != ':'; ++c) {
+                    fill[c] = atof (pattern.c_str()+numpos);
+                    while (numpos < pattern.size() && pattern[numpos] != ':' && pattern[numpos] != ',')
+                        ++numpos;
+                    if (pattern[numpos])
+                        ++numpos;
+                }
+            }
+        }
+        ImageBufAlgo::fill (ib, fill);
     } else if (Strutil::istarts_with(pattern,"checker")) {
         int width = 8;
         size_t pos;
