@@ -379,6 +379,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                     si.sscale = si.tscale = 1.0f;
                     si.soffset = si.toffset = 0.0f;
                 }
+                si.subimagename = ustring (tempspec.get_string_attribute("oiio:subimagename"));
             }
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled = true;
@@ -2116,6 +2117,18 @@ ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
     const ImageSpec *spec = native ? &file->nativespec (subimage,miplevel)
                                    : &file->spec (subimage, miplevel);
     return spec;
+}
+
+
+
+int
+ImageCacheImpl::subimage_from_name (ImageCacheFile *file, ustring subimagename)
+{
+    for (int s = 0, send = file->subimages();  s < send;  ++s) {
+        if (file->subimageinfo(s).subimagename == subimagename)
+            return s;
+    }
+    return -1;  // No matching subimage name
 }
 
 
