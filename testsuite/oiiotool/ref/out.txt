@@ -22,3 +22,5 @@ constant.tif         :  320 x  240, 4 channel, float tiff
     Monochrome: No
 Comparing "resize.tif" and "ref/resize.tif"
 PASS
+Comparing "resize2.tif" and "ref/resize2.tif"
+PASS
