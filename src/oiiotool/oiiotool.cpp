@@ -1265,7 +1265,7 @@ action_resize (int argc, const char *argv[])
     ImageSpec newspec = Aspec;
 
     adjust_geometry (newspec.width, newspec.height,
-                     newspec.x, newspec.y, argv[1]);
+                     newspec.x, newspec.y, argv[1], true);
     if (newspec.width == Aspec.width && newspec.height == Aspec.height)
         return 0;  // nothing to do
 
