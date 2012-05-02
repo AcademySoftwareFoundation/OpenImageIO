@@ -1,5 +1,23 @@
 Changes:
 
+Release 1.0.4 (2 May 2012)
+--------------------------
+* DPX fixes for 12 bit DPX and packing methods.
+* Cineon fixes: remove buggy 32 and 64 bit output, which wasn't needed;
+  fix for 10 bit -> 16 bit promotion.
+* bmp fix: wasn't setting oiio:BitsPerSample correctly.
+* oiiotool fixes: improved argument help and add man page generation;
+  print data format info correctly for non-byte bit depths; better
+  inference of output tile size and data format from the inputs (when
+  not explicitly requested); --resize n% was broken; print data format
+  info correctly for non-byte bit depths.
+* iinfo fixes: make --stats print correctly; print data format info 
+  correctly for non-byte bit depths.
+* Fix roundoff error when converting from float buffers to int image files.
+* More precise filter normalization in ImageBufAlgo::resize (and therefore
+  oiiotool --resize).
+
+
 Release 1.0.3 (16 Apr 2012)
 ---------------------------
 * Fix reading bugs in DPX and Cineon.
