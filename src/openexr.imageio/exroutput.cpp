@@ -496,6 +496,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     if (strchr (name.c_str(), ':') &&
         ! Strutil::istarts_with (name, "openexr:") &&
         ! Strutil::istarts_with (name, "Exif:") &&
+        ! Strutil::istarts_with (name, "IPTC:") &&
         ! Strutil::istarts_with (name, "GPS:")) {
         return false;
     }
