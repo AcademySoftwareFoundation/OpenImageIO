@@ -477,7 +477,7 @@ int cineon::GenericHeader::ComponentByteCount(const int element) const
 int cineon::GenericHeader::DataSizeByteCount(const DataSize ds)
 {
 
-	int ret;
+	int ret = 0;
 
 	switch (ds)
 	{
