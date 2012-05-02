@@ -13,7 +13,7 @@ Major contributors (roughly in order of joining the project):
     Philip Nemec         unit testing framework
     Dan Wexler           Windows port
     Chris Kulla          texture system improvements
-    Chris Foster         lots of things, best code reviewer!
+    Chris Foster         lots of odds and ends, tinyformat, best code reviewer!
     Leszek Godlewski     ICO, Targa, DDS, DPX, Cineon, RLA
     David Gordon         build issues, Python bindings
     Robert Matusewicz    Windows port, BMP, JPEG-2000, FITS, SGI, WebP
