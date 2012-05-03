@@ -53,7 +53,8 @@ ImageBuf::ImageBuf (const std::string &filename,
                     ImageCache *imagecache)
     : m_name(filename), m_nsubimages(0),
       m_current_subimage(-1), m_current_miplevel(-1),
-      m_localpixels(false), m_spec_valid(false), m_pixels_valid(false),
+      m_localpixels(NULL), m_clientpixels(false),
+      m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1), 
       m_imagecache(imagecache)
 {
@@ -64,11 +65,30 @@ ImageBuf::ImageBuf (const std::string &filename,
 ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec)
     : m_name(filename), m_nsubimages(0),
       m_current_subimage(-1), m_current_miplevel(-1),
-      m_localpixels(true), m_spec_valid(false), m_pixels_valid(false),
+      m_localpixels(NULL), m_clientpixels(false),
+      m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_orientation(1), m_pixelaspect(1),
       m_imagecache(NULL)
 {
     alloc (spec);
+}
+
+
+
+ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec,
+                    void *buffer)
+    : m_name(filename), m_nsubimages(0),
+      m_current_subimage(-1), m_current_miplevel(-1),
+      m_localpixels(NULL), m_clientpixels(false),
+      m_spec_valid(false), m_pixels_valid(false),
+      m_badfile(false), m_orientation(1), m_pixelaspect(1),
+      m_imagecache(NULL)
+{
+    m_spec = spec;
+    m_nativespec = spec;
+    m_spec_valid = true;
+    m_localpixels = (char *)buffer;
+    m_clientpixels = true;
 }
 
 
@@ -80,7 +100,9 @@ ImageBuf::ImageBuf (const ImageBuf &src)
       m_current_miplevel(src.m_current_miplevel),
       m_nmiplevels(src.m_nmiplevels),
       m_spec(src.m_spec), m_nativespec(src.m_nativespec),
-      m_pixels(src.m_pixels), m_localpixels(src.m_localpixels),
+      m_pixels(src.m_pixels),
+      m_localpixels(src.m_localpixels),
+      m_clientpixels(src.m_clientpixels),
       m_spec_valid(src.m_spec_valid), m_pixels_valid(src.m_pixels_valid),
       m_badfile(src.m_badfile),
       m_orientation(src.m_orientation),
@@ -88,6 +110,20 @@ ImageBuf::ImageBuf (const ImageBuf &src)
       m_imagecache(src.m_imagecache),
       m_cachedpixeltype(src.m_cachedpixeltype)
 {
+    if (src.localpixels()) {
+        // Source had the image fully in memory (no cache)
+        if (src.m_clientpixels) {
+            // Source just wrapped the client app's pixels
+            ASSERT (0 && "ImageBuf wrapping client buffer not yet supported");
+        } else {
+            // We own our pixels
+            // Make sure our localpixels points to our own owned memory.
+            m_localpixels = &m_pixels[0];
+        }
+    } else {
+        // Source was cache-based
+        // nothing else to do
+    }
 }
 
 
@@ -116,6 +152,7 @@ ImageBuf::operator= (const ImageBuf &src)
         m_nativespec = src.m_nativespec;
         m_pixels = src.m_pixels;
         m_localpixels = src.m_localpixels;
+        m_clientpixels = src.m_clientpixels;
         m_spec_valid = src.m_spec_valid;
         m_pixels_valid = src.m_pixels_valid;
         m_badfile = src.m_badfile;
@@ -124,6 +161,23 @@ ImageBuf::operator= (const ImageBuf &src)
         m_pixelaspect = src.m_pixelaspect;
         m_imagecache = src.m_imagecache;
         m_cachedpixeltype = src.m_cachedpixeltype;
+        if (src.localpixels()) {
+            // Source had the image fully in memory (no cache)
+            if (src.m_clientpixels) {
+                // Source just wrapped the client app's pixels
+                ASSERT (0 && "ImageBuf wrapping client buffer not yet supported");
+                std::vector<char> tmp;
+                std::swap (m_pixels, tmp);  // delete it with prejudice
+            } else {
+                // We own our pixels
+                // Make sure our localpixels points to our own owned memory.
+                m_localpixels = &m_pixels[0];
+            }
+        } else {
+            // Source was cache-based
+            std::vector<char> tmp;
+            std::swap (m_pixels, tmp);  // delete it with prejudice
+        }
     }
     return *this;
 }
@@ -144,7 +198,8 @@ ImageBuf::clear ()
         std::vector<char> tmp;
         std::swap (m_pixels, tmp);  // clear it with deallocation
     }
-    m_localpixels = false;
+    m_localpixels = NULL;
+    m_clientpixels = false;
     m_spec_valid = false;
     m_pixels_valid = false;
     m_badfile = false;
@@ -189,7 +244,8 @@ ImageBuf::realloc ()
         // As tmp leaves scope, it frees m_pixels's old memory
     }
     m_pixels.resize (newsize);
-    m_localpixels = true;
+    m_localpixels = &m_pixels[0];
+    m_clientpixels = false;
 #if 0
     std::cerr << "ImageBuf " << m_name << " local allocation: " << newsize << "\n";
 #endif
@@ -309,9 +365,8 @@ ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
                                   m_spec.x, m_spec.x+m_spec.width,
                                   m_spec.y, m_spec.y+m_spec.height,
                                   m_spec.z, m_spec.z+m_spec.depth,
-                                  m_spec.format, &m_pixels[0])) {
+                                  m_spec.format, m_localpixels)) {
         m_pixels_valid = true;
-        m_localpixels = true;
     } else {
         m_pixels_valid = false;
         m_err = m_imagecache->geterror ();
@@ -330,7 +385,7 @@ ImageBuf::write (ImageOutput *out,
     stride_t as = AutoStride;
     bool ok = true;
     if (m_localpixels) {
-        ok = out->write_image (m_spec.format, &m_pixels[0], as, as, as,
+        ok = out->write_image (m_spec.format, m_localpixels, as, as, as,
                                progress_callback, progress_callback_data);
     } else {
         std::vector<char> tmp (m_spec.image_bytes());
@@ -704,7 +759,7 @@ ImageBuf::set_full (int xbegin, int xend, int ybegin, int yend,
 const void *
 ImageBuf::pixeladdr (int x, int y, int z) const
 {
-    if (! m_localpixels)
+    if (cachedpixels())
         return NULL;
     x -= spec().x;
     y -= spec().y;
@@ -712,7 +767,7 @@ ImageBuf::pixeladdr (int x, int y, int z) const
     size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
     if (z)
         p += z * clamped_mult64 (m_spec.scanline_bytes(), (imagesize_t)spec().height);
-    return &(m_pixels[p]);
+    return &(m_localpixels[p]);
 }
 
 
@@ -720,7 +775,7 @@ ImageBuf::pixeladdr (int x, int y, int z) const
 void *
 ImageBuf::pixeladdr (int x, int y, int z)
 {
-    if (! m_localpixels)
+    if (cachedpixels())
         return NULL;
     x -= spec().x;
     y -= spec().y;
@@ -728,7 +783,7 @@ ImageBuf::pixeladdr (int x, int y, int z)
     size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
     if (z)
         p += z * m_spec.scanline_bytes() * spec().height;
-    return &(m_pixels[p]);
+    return &(m_localpixels[p]);
 }
 
 

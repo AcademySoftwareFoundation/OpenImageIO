@@ -70,6 +70,11 @@ public:
     /// the pixels of the image (whose values will be undefined).
     ImageBuf (const std::string &name, const ImageSpec &spec);
 
+    /// Construct an ImageBuf that "wraps" a memory buffer owned by the
+    /// calling application.  It can write pixels to this buffer, but
+    /// can't change its resolution or data type.
+    ImageBuf (const std::string &name, const ImageSpec &spec, void *buffer);
+
     /// Construct a copy of an ImageBuf.
     ///
     ImageBuf (const ImageBuf &src);
@@ -354,7 +359,14 @@ public:
         return m_localpixels ? m_spec.format : m_cachedpixeltype;
     }
 
+    /// Are the pixels "local", i.e. fully in RAM and not backed by an
+    /// ImageCache?
     bool localpixels () const { return m_localpixels; }
+
+    /// Are the pixels backed by an ImageCache, rather than the whole
+    /// image being in RAM somewhere?
+    bool cachedpixels () const { return !m_localpixels; }
+
     ImageCache *imagecache () const { return m_imagecache; }
 
     /// Return the address where pixel (x,y) is stored in the image buffer.
@@ -928,8 +940,9 @@ protected:
     int m_nmiplevels;            ///< # of MIP levels in the current subimage
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     ImageSpec m_nativespec;      ///< Describes the true native image
-    std::vector<char> m_pixels;  ///< Pixel data
-    bool m_localpixels;          ///< Pixels are local, in m_pixels
+    std::vector<char> m_pixels;  ///< Pixel data, if local and we own it
+    char *m_localpixels;         ///< Pointer to local pixels
+    bool m_clientpixels;         ///< Local pixels are owned by the client app
     bool m_spec_valid;           ///< Is the spec valid
     bool m_pixels_valid;         ///< Image is valid
     bool m_badfile;              ///< File not found

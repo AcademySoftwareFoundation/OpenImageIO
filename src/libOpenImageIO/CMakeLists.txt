@@ -256,10 +256,15 @@ if (NOT LINKSTATIC)
     add_definitions (-DPTEX_EXPORTS)
 endif ()
 
+add_executable (imagebuf_test imagebuf_test.cpp)
+link_ilmbase (imagebuf_test)
+target_link_libraries (imagebuf_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_imagebuf imagebuf_test)
+
 add_executable (imagebufalgo_test imagebufalgo_test.cpp)
 link_ilmbase (imagebufalgo_test)
 target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-add_test (imagebufalgo imagebufalgo_test)
+add_test (unit_imagebufalgo imagebufalgo_test)
 
 
 add_executable (atomic_test atomic_test.cpp)
