@@ -215,7 +215,7 @@ public:
     // this defeat the purpose of Python? Instead, the wrapper could
     // allocate that array, fill it, and return it to Python. This is the way
     // ImageInput.read_image() was wrapped.
-    bool copy_pixels (int, int, int, int, TypeDesc, void*) const;
+    bool copy_pixels (int, int, int, int, int, int, TypeDesc, void*) const;
 
     // TODO: handle T and <T>. Don't know how to handle this with B.P, 
     // though haven't given it much thought yet.

@@ -149,9 +149,11 @@ void ImageBufWrap::setpixel_i (int i, const float *pixel,
 // this defeat the purpose of Python? Instead, the wrapper could
 // allocate that array, fill it, and return it to Python. This is the way
 // ImageInput.read_image() was wrapped.
-bool ImageBufWrap::copy_pixels (int xbegin, int xend, int ybegin, 
-                    int yend, TypeDesc format, void *result) const {
-    return m_buf->copy_pixels(xbegin, xend, ybegin, yend, format, result);
+bool ImageBufWrap::copy_pixels (int xbegin, int xend, int ybegin, int yend,
+                                int zbegin, int zend,
+                                TypeDesc format, void *result) const {
+    return m_buf->copy_pixels(xbegin, xend, ybegin, yend, zbegin, zend,
+                              format, result);
 }
 
 // TODO: handle T and <T>. Don't know how to handle this with B.P, 

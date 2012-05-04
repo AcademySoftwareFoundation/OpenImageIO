@@ -91,9 +91,9 @@ public:
     ///
     virtual void clear ();
 
-    /// Forget all previous info, reset this ImageBuf to a new image.
-    ///
-    virtual void reset (const std::string &name = std::string(),
+    /// Forget all previous info, reset this ImageBuf to a new image
+    /// that is uninitialized (no pixel values, no size or spec).
+    virtual void reset (const std::string &name,
                         ImageCache *imagecache = NULL);
 
     /// Forget all previous info, reset this ImageBuf to a blank
@@ -259,6 +259,7 @@ public:
     /// Return true if the operation could be completed, otherwise
     /// return false.
     bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
+                      int zbegin, int zend,
                       TypeDesc format, void *result) const;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
@@ -271,7 +272,7 @@ public:
     /// the operation could be completed, otherwise return false.
     template<typename T>
     bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
-                      T *result) const;
+                      int zbegin, int zend, T *result) const;
 
     /// Even safer version of copy_pixels: Retrieve the rectangle of
     /// pixels spanning [xbegin..xend) X [ybegin..yend) (with exclusive
@@ -281,10 +282,12 @@ public:
     /// could be completed, otherwise return false.
     template<typename T>
     bool copy_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
+                      int zbegin_, int zend_,
                       std::vector<T> &result) const
     {
-        result.resize (nchannels() * ((yend_-ybegin_)*(xend_-xbegin_)));
-        return _copy_pixels (xbegin_, xend_, ybegin_, yend_, &result[0]);
+        result.resize (nchannels() * ((zend_-zbegin_)*(yend_-ybegin_)*(xend_-xbegin_)));
+        return _copy_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
+                             &result[0]);
     }
 
 
@@ -952,7 +955,15 @@ protected:
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
 
+    // Resize the local owned buffer to the size indicated by the
+    // ImageBuf's spec.
     void realloc ();
+
+    // Copy src's pixels into *this.  Pixels must already be local
+    // (either owned or wrapped) and the resolution and number of
+    // channels must match src.  Data type is allowed to be different,
+    // however, with automatic conversion upon copy.
+    void copy_from (const ImageBuf &src);
 
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel

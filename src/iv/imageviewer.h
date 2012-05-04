@@ -138,9 +138,9 @@ public:
                       TypeDesc format, void *result) {
         if (m_corrected_image.localpixels ()) {
             return m_corrected_image.copy_pixels (xbegin, xend, ybegin, yend,
-                                                  format, result);
+                                                  0, 1, format, result);
         }
-        return ImageBuf::copy_pixels (xbegin, xend, ybegin, yend, format, result);
+        return ImageBuf::copy_pixels (xbegin, xend, ybegin, yend, 0, 1, format, result);
     }
 
     bool auto_subimage (void) const { return m_auto_subimage; }
