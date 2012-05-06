@@ -233,7 +233,8 @@ Filesystem::is_regular (const std::string &path)
     }
     return r;
 }
-FILE *
+
+FILE*
 Filesystem::fopen (const std::string &path, const std::string &mode)
 {
 #if defined(_WIN32) && BOOST_FILESYSTEM_VERSION == 3
@@ -247,6 +248,36 @@ Filesystem::fopen (const std::string &path, const std::string &mode)
 #else
     // on Unix platforms passing in UTF-8 works
     return ::fopen (path.c_str(), mode.c_str());
+#endif
+}
+
+void
+Filesystem::open (std::ifstream &stream,
+                  const std::string &path,
+                  std::ios_base::openmode mode)
+{
+#if defined(_WIN32) && BOOST_FILESYSTEM_VERSION == 3
+    // Windows std::ofstream accepts non-standard wchar_t* 
+    boost::filesystem::detail::utf8_codecvt_facet utf8;
+    boost::filesystem::path wpath (path.c_str(), utf8);
+    stream.open (wpath.c_str(), mode);
+#else
+    stream.open (path.c_str(), mode);
+#endif
+}
+
+void
+Filesystem::open (std::ofstream &stream,
+                  const std::string &path,
+                  std::ios_base::openmode mode)
+{
+#if defined(_WIN32) && BOOST_FILESYSTEM_VERSION == 3
+    // Windows std::ofstream accepts non-standard wchar_t*
+    boost::filesystem::detail::utf8_codecvt_facet utf8;
+    boost::filesystem::path wpath (path.c_str(), utf8);
+    stream.open (wpath.c_str(), mode);
+#else
+    stream.open (path.c_str(), mode);
 #endif
 }
 

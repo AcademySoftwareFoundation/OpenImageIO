@@ -45,6 +45,7 @@
 #define OPENIMAGEIO_FILESYSTEM_H
 
 #include <cstdio>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -122,7 +123,20 @@ DLLPUBLIC bool is_regular (const std::string &path);
 
 /// Version of fopen that can handle UTF-8 paths even on Windows
 ///
-DLLPUBLIC FILE *fopen (const std::string &path, const std::string &mode);
+DLLPUBLIC FILE *fopen (const std::string &path,
+                       const std::string &mode);
+
+/// Version of std::ifstream.open that can handle UTF-8 paths
+///
+DLLPUBLIC void open (std::ifstream &stream,
+                     const std::string &path,
+                     std::ios_base::openmode mode = std::ios_base::in);
+
+/// Version of std::ofstream.open that can handle UTF-8 paths
+///
+DLLPUBLIC void open (std::ofstream &stream,
+                     const std::string &path,
+                     std::ios_base::openmode mode = std::ios_base::out);
 
 };  // namespace Filesystem
 
