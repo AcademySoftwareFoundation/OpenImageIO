@@ -479,7 +479,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     std::time_t in_time;
     if (metadatatime.empty() ||
            ! DateTime_to_time_t (metadatatime.c_str(), in_time))
-        in_time = boost::filesystem::last_write_time (in_filename);
+        in_time = Filesystem::last_write_time (in_filename);
 
     if (out_filename != tempname) {
         if (ok) {
@@ -493,7 +493,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     // If user requested, try to adjust the file's modification time to
     // the creation time indicated by the file's DateTime metadata.
     if (ok && adjust_time)
-        boost::filesystem::last_write_time (out_filename, in_time);
+        Filesystem::last_write_time (out_filename, in_time);
 
     return ok;
 }

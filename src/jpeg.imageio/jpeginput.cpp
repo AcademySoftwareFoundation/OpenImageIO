@@ -37,6 +37,7 @@ extern "C" {
 }
 
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 #include "jpeg_pvt.h"
 
@@ -115,7 +116,7 @@ JpgInput::jpegerror (my_error_ptr myerr, bool fatal)
 bool
 JpgInput::valid_file (const std::string &filename) const
 {
-    FILE *fd = fopen (filename.c_str(), "rb");
+    FILE *fd = Filesystem::fopen (filename, "rb");
     if (! fd)
         return false;
 
@@ -150,7 +151,7 @@ JpgInput::open (const std::string &name, ImageSpec &newspec)
 {
     // Check that file exists and can be opened
     m_filename = name;
-    m_fd = fopen (name.c_str(), "rb");
+    m_fd = Filesystem::fopen (name, "rb");
     if (m_fd == NULL) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;

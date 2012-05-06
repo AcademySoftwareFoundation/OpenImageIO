@@ -39,6 +39,7 @@
 #include "typedesc.h"
 #include "imageio.h"
 #include "strutil.h"
+#include "filesystem.h"
 #include "fmath.h"
 #include "sysutil.h"
 

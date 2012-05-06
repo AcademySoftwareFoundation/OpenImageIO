@@ -115,7 +115,7 @@ SoftimageInput::open (const std::string& name, ImageSpec& spec)
     // Remember the filename
     m_filename = name;
     
-    m_fd = fopen (m_filename.c_str(), "rb");
+    m_fd = Filesystem::fopen (m_filename, "rb");
     if (!m_fd) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;

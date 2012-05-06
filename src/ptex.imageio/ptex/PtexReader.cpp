@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <errno.h>
 #include <stdio.h>
 
+#include "filesystem.h"
+
 #include "Ptexture.h"
 #include "PtexUtils.h"
 #include "PtexReader.h"
@@ -48,7 +50,7 @@ namespace {
     class DefaultInputHandler : public PtexInputHandler
     {
      public:
-	virtual Handle open(const char* path) { return (Handle) fopen(path, "rb"); }
+	virtual Handle open(const char* path) { return (Handle) OIIO::Filesystem::fopen(path, "rb"); }
 	virtual void seek(Handle handle, int64_t pos) { fseeko((FILE*)handle, pos, SEEK_SET); }
 	virtual size_t read(void* buffer, size_t size, Handle handle) {
 	    return fread(buffer, size, 1, (FILE*)handle) == 1 ? size : 0;

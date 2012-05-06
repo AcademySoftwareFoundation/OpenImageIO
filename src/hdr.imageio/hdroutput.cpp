@@ -34,6 +34,7 @@
 #include <iostream>
 
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 #include "rgbe.h"
 
@@ -102,7 +103,7 @@ HdrOutput::open (const std::string &name, const ImageSpec &newspec,
 
     m_spec.set_format (TypeDesc::FLOAT);   // Native rgbe is float32 only
 
-    m_fd = fopen (name.c_str(), "wb");
+    m_fd = Filesystem::fopen (name, "wb");
     if (m_fd == NULL) {
         error ("Unable to open file");
         return false;

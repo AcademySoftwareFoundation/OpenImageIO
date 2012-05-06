@@ -318,7 +318,7 @@ output_file (int argc, const char *argv[])
         std::time_t in_time = ir->time();
         if (! metadatatime.empty())
             DateTime_to_time_t (metadatatime.c_str(), in_time);
-        boost::filesystem::last_write_time (filename, in_time);
+        Filesystem::last_write_time (filename, in_time);
     }
 
     ot.curimg = saveimg;
