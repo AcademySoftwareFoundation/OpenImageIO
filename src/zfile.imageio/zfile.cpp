@@ -39,6 +39,7 @@
 #include "imageio.h"
 #include "thread.h"
 #include "strutil.h"
+#include "filesystem.h"
 #include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -134,12 +135,11 @@ DLLEXPORT const char * zfile_output_extensions[] = {
 
 OIIO_PLUGIN_EXPORTS_END
 
-
-
 bool
 ZfileInput::valid_file (const std::string &filename) const
 {
-    gzFile gz = gzopen (filename.c_str(), "rb");
+    FILE *fd = Filesystem::fopen (filename, "rb");
+    gzFile gz = (fd) ? gzdopen (fileno (fd), "rb") : NULL;
     if (! gz)
         return false;
 
@@ -158,7 +158,8 @@ ZfileInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
 
-    m_gz = gzopen (name.c_str(), "rb");
+    FILE *fd = Filesystem::fopen (name, "rb");
+    m_gz = (fd) ? gzdopen (fileno (fd), "rb") : NULL;
     if (! m_gz) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;
@@ -292,10 +293,12 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
     else
         memcpy (header.worldtoscreen, ident, 16*sizeof(float));
 
-    if (m_spec.get_string_attribute ("compression", "none") != std::string("none"))
-        m_gz = gzopen (name.c_str(), "wb");
+    if (m_spec.get_string_attribute ("compression", "none") != std::string("none")) {
+        FILE *fd = Filesystem::fopen (name, "wb");
+        m_gz = (fd) ? gzdopen (fileno (fd), "wb") : NULL;
+    }
     else
-        m_file = fopen (name.c_str(), "wb");
+        m_file = Filesystem::fopen (name, "wb");
     if (! m_file  &&  ! m_gz) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;
@@ -344,9 +347,9 @@ ZfileOutput::write_scanline (int y, int z, TypeDesc format,
     }
 
     if (m_gz)
-	gzwrite (m_gz, data, m_spec.width*sizeof(float));
+        gzwrite (m_gz, data, m_spec.width*sizeof(float));
     else
-	fwrite (data, sizeof(float), m_spec.width, m_file);
+        fwrite (data, sizeof(float), m_spec.width, m_file);
 
     return true;
 }

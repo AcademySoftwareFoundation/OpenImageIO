@@ -39,6 +39,7 @@ extern "C" {
 }
 
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 #include "jpeg_pvt.h"
 
@@ -129,7 +130,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         return false;
     }
 
-    m_fd = fopen (name.c_str(), "wb");
+    m_fd = Filesystem::fopen (name, "wb");
     if (m_fd == NULL) {
         error ("Unable to open file \"%s\"", name.c_str());
         return false;

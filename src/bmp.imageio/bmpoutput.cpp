@@ -65,7 +65,7 @@ BmpOutput::open (const std::string &name, const ImageSpec &spec,
 
     // TODO: Figure out what to do with nchannels.
 
-    m_fd = fopen (m_filename.c_str (), "wb");
+    m_fd = Filesystem::fopen (m_filename, "wb");
     if (! m_fd) {
         error ("Unable to open file \"%s\"", m_filename.c_str ());
         return false;

@@ -34,6 +34,7 @@
 
 #include <cstdio>
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

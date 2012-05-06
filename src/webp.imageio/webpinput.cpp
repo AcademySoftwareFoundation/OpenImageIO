@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <webp/decode.h>
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -68,7 +69,7 @@ WebpInput::open (const std::string &name, ImageSpec &spec)
 {
     m_filename = name;
 
-    m_file = fopen(m_filename.c_str(), "rb");
+    m_file = Filesystem::fopen(m_filename, "rb");
     if (!m_file)
     {
         error ("Could not open file \"%s\"", m_filename.c_str());

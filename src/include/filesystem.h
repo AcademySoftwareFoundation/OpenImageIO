@@ -44,7 +44,9 @@
 #ifndef OPENIMAGEIO_FILESYSTEM_H
 #define OPENIMAGEIO_FILESYSTEM_H
 
+#include <cstdio>
 #include <string>
+#include <vector>
 
 #include "export.h"
 #include "version.h"
@@ -117,6 +119,10 @@ DLLPUBLIC bool is_directory (const std::string &path);
 /// Return true if the file exists and is a regular file.
 ///
 DLLPUBLIC bool is_regular (const std::string &path);
+
+/// Version of fopen that can handle UTF-8 paths even on Windows
+///
+DLLPUBLIC FILE *fopen (const std::string &path, const std::string &mode);
 
 };  // namespace Filesystem
 

@@ -37,6 +37,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 
+#if defined(_WIN32) && BOOST_FILESYSTEM_VERSION == 3
+#include <boost/filesystem/detail/utf8_codecvt_facet.hpp>
+#endif
+
 #include "dassert.h"
 
 #include "filesystem.h"
@@ -229,7 +233,22 @@ Filesystem::is_regular (const std::string &path)
     }
     return r;
 }
+FILE *
+Filesystem::fopen (const std::string &path, const std::string &mode)
+{
+#if defined(_WIN32) && BOOST_FILESYSTEM_VERSION == 3
+    // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
+    // using boost::filesystem::path. for mode we assume no non-ascii characters
+    boost::filesystem::detail::utf8_codecvt_facet utf8;
+    boost::filesystem::path wpath (path.c_str(), utf8);
+    std::wstring wmode (mode.begin(), mode.end());
 
+    return ::_wfopen (wpath.c_str(), wmode.c_str());
+#else
+    // on Unix platforms passing in UTF-8 works
+    return ::fopen (path.c_str(), mode.c_str());
+#endif
+}
 
 }
 OIIO_NAMESPACE_EXIT

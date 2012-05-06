@@ -67,6 +67,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <iostream>
 #include <sstream>
 
+#include "filesystem.h"
+
 #include "Ptexture.h"
 #include "PtexUtils.h"
 #include "PtexWriter.h"
@@ -192,7 +194,7 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 	return 0;
 
     // try to open existing file (it might not exist)
-    FILE* fp = fopen(path, "rb+");
+    FILE* fp = OIIO::Filesystem::fopen(path, "rb+");
     if (!fp && errno != ENOENT) {
 	error = fileError("Can't open ptex file for update: ", path).c_str();
     }

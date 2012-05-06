@@ -101,7 +101,7 @@ IffOutput::open (const std::string &name, const ImageSpec &spec,
     m_spec.tile_width = tile_width();
     m_spec.tile_height = tile_height();
     
-    m_fd = fopen (m_filename.c_str (), "wb");
+    m_fd = Filesystem::fopen (m_filename, "wb");
     if (!m_fd) {
         error ("Unable to open file \"%s\"", m_filename.c_str ());
         return false;
