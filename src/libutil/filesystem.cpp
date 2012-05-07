@@ -37,6 +37,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include "dassert.h"
 
 #include "filesystem.h"
@@ -234,12 +238,12 @@ Filesystem::is_regular (const std::string &path)
 static std::wstring
 string_utf8_to_windows_native(const std::string& str)
 {
-	std::wstring native;
-	
-	native.resize(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0));
-	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, native.c_str(), native.size());
+    std::wstring native;
+    
+    native.resize(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0));
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &native[0], native.size());
 
-	return native;
+    return native;
 }
 #endif
 
@@ -248,8 +252,8 @@ Filesystem::fopen (const std::string &path, const std::string &mode)
 {
 #ifdef _WIN32
     // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
-	std::wstring wpath = string_utf8_to_windows_native(path);
-	std::wstring wmode = string_utf8_to_windows_native(mode);
+    std::wstring wpath = string_utf8_to_windows_native(path);
+    std::wstring wmode = string_utf8_to_windows_native(mode);
 
     return ::_wfopen (wpath.c_str(), wmode.c_str());
 #else
@@ -265,7 +269,7 @@ Filesystem::open (std::ifstream &stream,
 {
 #ifdef _WIN32
     // Windows std::ofstream accepts non-standard wchar_t* 
-	std::wstring wpath = string_utf8_to_windows_native(path);
+    std::wstring wpath = string_utf8_to_windows_native(path);
     stream.open (wpath.c_str(), mode);
 #else
     stream.open (path.c_str(), mode);
@@ -279,7 +283,7 @@ Filesystem::open (std::ofstream &stream,
 {
 #ifdef _WIN32
     // Windows std::ofstream accepts non-standard wchar_t*
-	std::wstring wpath = string_utf8_to_windows_native(path);
+    std::wstring wpath = string_utf8_to_windows_native(path);
     stream.open (wpath.c_str(), mode);
 #else
     stream.open (path.c_str(), mode);
