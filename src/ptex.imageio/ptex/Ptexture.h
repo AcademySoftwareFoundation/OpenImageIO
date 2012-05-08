@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
   @brief Public API classes for reading, writing, caching, and filtering Ptex files.
 */
 
-#include "fmath.h"
+#include <math.h>
 
 #if !defined(log2)
 
