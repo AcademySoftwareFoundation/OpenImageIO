@@ -188,7 +188,7 @@ ImageRec::read ()
         }
     }
 
-    m_time = boost::filesystem::last_write_time (name());
+    m_time = Filesystem::last_write_time (name());
     m_elaborated = true;
     return true;
 }

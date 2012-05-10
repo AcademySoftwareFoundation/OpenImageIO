@@ -39,6 +39,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <shellapi.h>
 #endif
 
 #include "dassert.h"
@@ -245,6 +246,15 @@ string_utf8_to_windows_native(const std::string& str)
 
     return native;
 }
+
+static std::string
+string_windows_native_to_utf8(const std::wstring& str)
+{
+    std::string utf8;
+    utf8.resize(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
+    WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, &utf8[0], utf8.size(), NULL, NULL);
+    return utf8;
+}
 #endif
 
 FILE*
@@ -252,8 +262,8 @@ Filesystem::fopen (const std::string &path, const std::string &mode)
 {
 #ifdef _WIN32
     // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
-    std::wstring wpath = string_utf8_to_windows_native(path);
-    std::wstring wmode = string_utf8_to_windows_native(mode);
+    std::wstring wpath = string_utf8_to_windows_native (path);
+    std::wstring wmode = string_utf8_to_windows_native (mode);
 
     return ::_wfopen (wpath.c_str(), wmode.c_str());
 #else
@@ -283,10 +293,62 @@ Filesystem::open (std::ofstream &stream,
 {
 #ifdef _WIN32
     // Windows std::ofstream accepts non-standard wchar_t*
-    std::wstring wpath = string_utf8_to_windows_native(path);
+    std::wstring wpath = string_utf8_to_windows_native (path);
     stream.open (wpath.c_str(), mode);
 #else
     stream.open (path.c_str(), mode);
+#endif
+}
+
+std::time_t
+Filesystem::last_write_time (const std::string& path)
+{
+#ifdef _WIN32
+    std::wstring wpath = string_utf8_to_windows_native (path);
+    return boost::filesystem::last_write_time (wpath);
+#else
+    return boost::filesystem::last_write_time (path);
+#endif
+}
+
+void
+Filesystem::last_write_time (const std::string& path, std::time_t time)
+{
+#ifdef _WIN32
+    std::wstring wpath = string_utf8_to_windows_native (path);
+    boost::filesystem::last_write_time (wpath, time);
+#else
+    boost::filesystem::last_write_time (path, time);
+#endif
+}
+
+void
+Filesystem::convert_native_arguments (int argc, const char **argv[])
+{
+#ifdef _WIN32
+    // Windows only, standard main() entry point does not accept unicode file
+    // paths, here we retrieve wide char arguments and convert them to utf8
+    if (argc == 0)
+        return;
+
+    int native_argc;
+    wchar_t **native_argv = CommandLineToArgvW (GetCommandLineW (), &native_argc);
+
+    if (!native_argv || native_argc != argc)
+        return;
+
+    static std::vector<const char*> argv_array;
+    static std::vector<std::string> argv_strings;
+
+    argv_array.resize (argc);
+    argv_strings.resize (argc);
+
+    for (int i = 0; i < argc; i++) {
+        argv_strings[i] = string_windows_native_to_utf8 (native_argv[i]);
+        argv_array[i] = argv_strings[i].c_str();
+    }
+
+    *argv = &argv_array[0];
 #endif
 }
 

@@ -45,6 +45,7 @@
 #define OPENIMAGEIO_FILESYSTEM_H
 
 #include <cstdio>
+#include <ctime>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -137,6 +138,18 @@ DLLPUBLIC void open (std::ifstream &stream,
 DLLPUBLIC void open (std::ofstream &stream,
                      const std::string &path,
                      std::ios_base::openmode mode = std::ios_base::out);
+
+/// Get last modified time of file
+///
+DLLPUBLIC std::time_t last_write_time (const std::string& path);
+
+/// Set last modified time on file
+///
+DLLPUBLIC void last_write_time (const std::string& path, std::time_t time);
+
+/// Ensure command line arguments are UTF-8 everywhere
+///
+DLLPUBLIC void convert_native_arguments (int argc, const char **argv[]);
 
 };  // namespace Filesystem
 

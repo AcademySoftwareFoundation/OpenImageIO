@@ -588,7 +588,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_channelsize = m_datatype.size();
     m_pixelsize = m_channelsize * spec.nchannels;
     m_eightbit = (m_datatype == TypeDesc::UINT8);
-    m_mod_time = boost::filesystem::last_write_time (m_filename.string());
+    m_mod_time = Filesystem::last_write_time (m_filename.string());
 
     DASSERT (! m_broken);
     m_validspec = true;
@@ -2360,7 +2360,7 @@ ImageCacheImpl::invalidate_all (bool force)
                 all_files.push_back (name);
                 continue;
             }
-            std::time_t t = boost::filesystem::last_write_time (name.string());
+            std::time_t t = Filesystem::last_write_time (name.string());
             // Invalidate the file if it has been modified since it was
             // last opened, or if 'force' is true.
             bool inval = force || (t != f->mod_time());
