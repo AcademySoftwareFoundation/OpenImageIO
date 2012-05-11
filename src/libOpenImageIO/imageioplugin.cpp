@@ -308,7 +308,7 @@ ImageOutput::create (const std::string &filename,
     }
 
     // Extract the file extension from the filename (without the leading dot)
-    std::string format = Filesystem::file_extension (filename);
+    std::string format = Filesystem::extension (filename, false);
     if (format.empty()) {
         // If the file had no extension, maybe it was itself the format name
         format = filename;
@@ -365,7 +365,7 @@ ImageInput::create (const std::string &filename,
     }
 
     // Extract the file extension from the filename (without the leading dot)
-    std::string format = Filesystem::file_extension (filename);
+    std::string format = Filesystem::extension (filename, false);
     if (format.empty()) {
         // If the file had no extension, maybe it was itself the format name
         format = filename;

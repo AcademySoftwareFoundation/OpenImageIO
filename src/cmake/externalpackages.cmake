@@ -269,11 +269,15 @@ if (USE_FIELD3D)
 endif ()
 if (USE_FIELD3D AND HDF5_FOUND)
     message (STATUS "FIELD3D_HOME=${FIELD3D_HOME}")
-    find_path (FIELD3D_INCLUDES Field3D/Field.h
-               ${THIRD_PARTY_TOOLS}/include
-               ${PROJECT_SOURCE_DIR}/include
-               ${FIELD3D_HOME}/include
-              )
+    if (FIELD3D_HOME)
+        set (FIELD3D_INCLUDES ${FIELD3D_HOME}/include)
+    else ()
+        find_path (FIELD3D_INCLUDES Field3D/Field.h
+                   ${THIRD_PARTY_TOOLS}/include
+                   ${PROJECT_SOURCE_DIR}/include
+                   ${FIELD3D_HOME}/include
+                  )
+    endif ()
     find_library (FIELD3D_LIBRARY
                   NAMES Field3D
                   PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/

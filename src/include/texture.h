@@ -145,6 +145,7 @@ public:
     int nchannels;            ///< Number of channels to look up
     int firstchannel;         ///< First channel of the lookup
     int subimage;             ///< Subimage or face ID
+    ustring subimagename;     ///< Subimage name
     Wrap swrap;               ///< Wrap mode in the s direction
     Wrap twrap;               ///< Wrap mode in the t direction
     MipMode mipmode;          ///< Mip mode
@@ -241,6 +242,7 @@ public:
     int firstchannel;         ///< First channel of the lookup
     int nchannels;            ///< Number of channels to look up
     int subimage;             ///< Subimage or face ID
+    ustring subimagename;     ///< Subimage name
     Wrap swrap;               ///< Wrap mode in the s direction
     Wrap twrap;               ///< Wrap mode in the t direction
     MipMode mipmode;          ///< Mip mode

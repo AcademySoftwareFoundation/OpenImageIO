@@ -89,8 +89,17 @@ namespace Strutil {
 TINYFORMAT_WRAP_FORMAT (std::string, format, /**/,
     std::ostringstream msg;, msg, return msg.str();)
 
+/// Return a std::string formatted from printf-like arguments.  Like the
+/// real sprintf, this is not guaranteed type-safe and is not extensible
+/// like format().  You would only want to use this instead of the safe
+/// format() in rare situations where you really need to use obscure
+/// printf features that aren't supported by tinyformat.
+std::string DLLPUBLIC format_raw (const char *fmt, ...)
+                                         OPENIMAGEIO_PRINTF_ARGS(1,2);
+
 /// Return a std::string formatted from printf-like arguments -- passed
-/// already as a va_list.
+/// already as a va_list.  Like vsprintf, this is not guaranteed
+/// type-safe and is not extensible like format().
 std::string DLLPUBLIC vformat (const char *fmt, va_list ap)
                                          OPENIMAGEIO_PRINTF_ARGS(1,0);
 

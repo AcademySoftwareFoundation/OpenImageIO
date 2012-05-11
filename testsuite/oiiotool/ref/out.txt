@@ -1,9 +1,26 @@
-Comparing "resize.tif" and "/Users/lg/lg/proj/oiio/oiio.lg/testsuite/oiiotool/ref/resize.tif"
-Subimage 0: 256 x 256, 4 channel
-  Mean error = 0
-  RMS error = 0
-  Peak SNR = inf
-  Max error  = 0
-  0 pixels (0%) over 1e-06
-  0 pixels (0%) over 1e-06
+black.tif            :  320 x  240, 3 channel, uint8 tiff
+    Stats Min: 0 0 0 (of 255)
+    Stats Max: 0 0 0 (of 255)
+    Stats Avg: 0.00 0.00 0.00 (of 255)
+    Stats StdDev: 0.00 0.00 0.00 (of 255)
+    Stats NanCount: 0 0 0 
+    Stats InfCount: 0 0 0 
+    Stats FiniteCount: 76800 76800 76800 
+    Constant: Yes
+    Constant Color: 0.00 0.00 0.00 (of 255)
+    Monochrome: Yes
+constant.tif         :  320 x  240, 4 channel, float tiff
+    Stats Min: 0.100000 0.200000 0.300000 1.000000 (float)
+    Stats Max: 0.100000 0.200000 0.300000 1.000000 (float)
+    Stats Avg: 0.100000 0.200000 0.300000 1.000000 (float)
+    Stats StdDev: 0.000020 0.000040 nan 0.000000 (float)
+    Stats NanCount: 0 0 0 0 
+    Stats InfCount: 0 0 0 0 
+    Stats FiniteCount: 76800 76800 76800 76800 
+    Constant: Yes
+    Constant Color: 0.100000 0.200000 0.300000 1.000000 (float)
+    Monochrome: No
+Comparing "resize.tif" and "ref/resize.tif"
+PASS
+Comparing "resize2.tif" and "ref/resize2.tif"
 PASS

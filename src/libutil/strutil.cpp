@@ -48,6 +48,18 @@ OIIO_NAMESPACE_ENTER
 {
 
 std::string
+Strutil::format_raw (const char *fmt, ...)
+{
+    va_list ap;
+    va_start (ap, fmt);
+    std::string buf = vformat (fmt, ap);
+    va_end (ap);
+    return buf;
+}
+
+
+
+std::string
 Strutil::vformat (const char *fmt, va_list ap)
 {
     // Allocate a buffer on the stack that's big enough for us almost
@@ -135,9 +147,9 @@ Strutil::timeintervalformat (double secs, int digits)
     int m = (int) floor (secs / mins);
     secs = fmod (secs, mins);
     if (d)
-        out += format ("%dd ", d);
-    if (h || d)
-        out += format ("%2dh ", h);
+        out += format ("%dd %dh ", d, h);
+    else if (h)
+        out += format ("%dh ", h);
     if (m || h || d)
         out += format ("%dm %1.*fs", m, digits, secs);
     else

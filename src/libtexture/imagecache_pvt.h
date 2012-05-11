@@ -210,6 +210,7 @@ public:
         // 0-1 texture space relative to the "display/full window" into 
         // 0-1 relative to the "pixel window".
         float sscale, soffset, tscale, toffset;
+        ustring subimagename;
 
         SubimageInfo () : untiled(false), unmipped(false) { }
         ImageSpec &spec (int m) { return levels[m].spec; }
@@ -759,6 +760,11 @@ public:
                             int x, int y, int z);
     virtual void release_tile (Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
+
+    /// Return the numerical subimage index for the given subimage name,
+    /// as stored in the "oiio:subimagename" metadata.  Return -1 if no
+    /// subimage matches its name.
+    int subimage_from_name (ImageCacheFile *file, ustring subimagename);
 
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1) const;

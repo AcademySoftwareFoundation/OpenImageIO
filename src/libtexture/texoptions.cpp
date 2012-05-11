@@ -96,7 +96,7 @@ TextureOptions::TextureOptions ()
 
 TextureOptions::TextureOptions (const TextureOpt &opt)
     : firstchannel(opt.firstchannel), nchannels(opt.nchannels),
-      subimage(opt.subimage),
+      subimage(opt.subimage), subimagename(opt.subimagename),
       swrap((Wrap)opt.swrap), twrap((Wrap)opt.twrap),
       mipmode((MipMode)opt.mipmode),
       interpmode((InterpMode)opt.interpmode),
@@ -121,7 +121,7 @@ TextureOptions::TextureOptions (const TextureOpt &opt)
 
 TextureOpt::TextureOpt (const TextureOptions &opt, int index)
     : nchannels(opt.nchannels), firstchannel(opt.firstchannel),
-      subimage(opt.subimage),
+      subimage(opt.subimage), subimagename(opt.subimagename),
       swrap((Wrap)opt.swrap), twrap((Wrap)opt.twrap),
       mipmode((MipMode)opt.mipmode),
       interpmode((InterpMode)opt.interpmode),
