@@ -138,6 +138,7 @@ ImageBuf::~ImageBuf ()
 
 
 
+#if 0
 const ImageBuf &
 ImageBuf::operator= (const ImageBuf &src)
 {
@@ -181,6 +182,7 @@ ImageBuf::operator= (const ImageBuf &src)
     }
     return *this;
 }
+#endif
 
 
 
@@ -441,6 +443,56 @@ ImageBuf::save (const std::string &_filename, const std::string &_fileformat,
     if (progress_callback)
         progress_callback (progress_callback_data, 0);
     return true;
+}
+
+
+
+bool
+ImageBuf::copy (const ImageBuf &src)
+{
+    if (! m_spec_valid && ! m_pixels_valid) {
+        // uninitialized
+        if (! src.m_spec_valid && ! src.m_pixels_valid)
+            return true;   // uninitialized=uninitialized is a nop
+        reset (src.name(), src.spec());
+    }
+
+    bool selfcopy = (&src == this);
+
+    if (cachedpixels()) {
+        if (selfcopy) {  // special case: self copy of ImageCache loads locally
+            return read (subimage(), miplevel(), true /*force*/);
+        }
+        reset (src.name(), src.spec());
+        // Now it has local pixels
+    }
+
+    if (selfcopy)
+        return true;
+
+    if (localpixels()) {
+        if (m_clientpixels) {
+            // app-owned memory
+            if (spec().width != src.spec().width ||
+                spec().height != src.spec().height ||
+                spec().depth != src.spec().depth ||
+                spec().nchannels != src.spec().nchannels) {
+                // size doesn't match, fail
+                return false;
+            }
+            m_spec = src.spec();
+            m_nativespec = m_spec;
+        } else {
+            // locally owned memory
+            reset (src.name(), src.spec());
+        }
+        return src.copy_pixels (src.xbegin(), src.xend(),
+                                src.ybegin(), src.yend(),
+                                src.zbegin(), src.zend(), spec().format,
+                                m_localpixels);
+    }
+
+    return false;   // all other cases fail
 }
 
 

@@ -291,8 +291,7 @@ ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
         return false;
     
     if (numChannels == src.spec().nchannels) {
-        dst = src;
-        return true;
+        return dst.copy (src);
     }
     
     // Update the ImageSpec
@@ -991,7 +990,8 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
                     int * pixelsFixed)
 {
     if (mode == ImageBufAlgo::NONFINITE_NONE) {
-        dst = src;
+        if (! dst.copy (src))
+            return false;
         if (pixelsFixed) *pixelsFixed = 0;
         return true;
     }
@@ -1001,7 +1001,8 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
         int nchannels = src.spec().nchannels;
         
         // Copy the input to the output
-        dst = src;
+        if (! dst.copy (src))
+            return false;
         
         ImageBuf::Iterator<SRCTYPE> pixel (dst);
         while (pixel.valid()) {
@@ -1036,7 +1037,8 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
         const int boxwidth = 1;
         
         // Copy the input to the output
-        dst = src;
+        if (! dst.copy (src))
+            return false;
         
         ImageBuf::Iterator<SRCTYPE> pixel (dst);
         
@@ -1110,7 +1112,8 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
     
     // Non-float images cannot have non-finite pixels,
     // so all we have to do is copy the image and return
-    dst = src;
+    if (! dst.copy (src))
+        return false;
     if (pixelsFixed) *pixelsFixed = 0;
     return true;
 }

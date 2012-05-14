@@ -83,10 +83,6 @@ public:
     ///
     virtual ~ImageBuf ();
 
-    /// Copy an ImageBuf.
-    ///
-    const ImageBuf& operator= (const ImageBuf &src);
-
     /// Restore the ImageBuf to an uninitialized state.
     ///
     virtual void clear ();
@@ -141,6 +137,22 @@ public:
     virtual bool write (ImageOutput *out,
                         ProgressCallback progress_callback=NULL,
                         void *progress_callback_data=NULL) const;
+
+    /// Try to copy the pixels and metadata from src to *this, returning
+    /// true upon success and false upon error/failure.
+    /// 
+    /// If the previous state of *this was uninitialized, owning its own
+    /// local pixel memory, or referring to a read-only image backed by
+    /// ImageCache, then local pixel memory will be allocated to hold
+    /// the new pixels and the call always succeeds unless the memory
+    /// cannot be allocated.
+    ///
+    /// If *this previously referred to an app-owned memory buffer, the
+    /// memory cannot be re-allocated, so the call will only succeed if
+    /// the app-owned buffer is already the correct resolution and
+    /// number of channels.  The data type of the pixels will be
+    /// converted automatically to the data type of the app buffer.
+    bool copy (const ImageBuf &src);
 
     /// Return info on the last error that occurred since geterror()
     /// was called.  This also clears the error message for next time.
@@ -971,6 +983,10 @@ protected:
     const void * retile (int x, int y, int z,
                          ImageCache::Tile* &tile, int &tilexbegin,
                          int &tileybegin, int &tilezbegin) const;
+
+    /// Private and unimplemented.
+    const ImageBuf& operator= (const ImageBuf &src);
+
 };
 
 

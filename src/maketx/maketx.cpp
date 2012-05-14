@@ -777,7 +777,7 @@ make_texturemap (const char *maptypename = "texture map")
           ImageBufAlgo::isConstantChannel(src,src.spec().alpha_channel,1.0f)) {
         ImageBuf newsrc(src.name() + ".noalpha", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, src.nchannels()-1);
-        src = newsrc;
+        src.copy (newsrc);
         if (verbose) {
             std::cout << "  Alpha==1 image detected. Dropping the alpha channel.\n";
         }
@@ -788,7 +788,7 @@ make_texturemap (const char *maptypename = "texture map")
             ImageBufAlgo::isMonochrome(src)) {
         ImageBuf newsrc(src.name() + ".monochrome", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, 1);
-        src = newsrc;
+        src.copy (newsrc);
         if (verbose) {
             std::cout << "  Monochrome image detected. Converting to single channel texture.\n";
         }
@@ -799,7 +799,7 @@ make_texturemap (const char *maptypename = "texture map")
     if ((nchannels > 0) && (nchannels != src.nchannels())) {
         ImageBuf newsrc(src.name() + ".channels", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, nchannels);
-        src = newsrc;
+        src.copy (newsrc);
         if (verbose) {
             std::cout << "  Overriding number of channels to " << nchannels << "\n";
         }
