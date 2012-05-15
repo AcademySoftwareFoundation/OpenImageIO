@@ -286,7 +286,7 @@ namespace dpx
 			const int bytes = Header::DataSizeByteCount(src_size);
 
 			// copy buffer if need to promote data types from src to destination
-			if (!SAMEBUFTYPE)
+			if (SAMEBUFTYPE)
 			{
 				src = dst;
 				CopyWriteBuffer<IB>(src_size, (imageBuf+(h*width*noc*bytes)+(h*eolnPad)), dst, (width*noc));
