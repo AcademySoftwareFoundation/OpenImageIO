@@ -45,6 +45,7 @@
 # include <sys/sysctl.h>
 # include <sys/wait.h>
 # include <sys/ioctl.h>
+# include <unistd.h>
 #endif
 
 #ifdef __APPLE__
