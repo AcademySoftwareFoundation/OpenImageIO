@@ -238,11 +238,11 @@ Jpeg2000Output::init_components(opj_image_cmptparm_t *components, int precision)
 opj_cinfo_t*
 Jpeg2000Output::create_compressor()
 {
-    std::string ext = Filesystem::file_extension(m_filename);
+    std::string ext = Filesystem::extension(m_filename);
     opj_cinfo_t *compressor = NULL;
-    if (ext == "j2k")
+    if (ext == ".j2k")
         compressor = opj_create_compress(CODEC_J2K);
-    else if (ext == "jp2")
+    else if (ext == ".jp2")
         compressor = opj_create_compress(CODEC_JP2);
 
     return compressor;

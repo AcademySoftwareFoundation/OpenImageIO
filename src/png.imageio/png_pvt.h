@@ -149,14 +149,15 @@ read_info (png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     spec.default_channel_names ();
 
-    double gamma;
-    if (png_get_gAMA (sp, ip, &gamma)) {
-        spec.attribute ("oiio:Gamma", (float) gamma);
-        spec.attribute ("oiio:ColorSpace", (gamma == 1) ? "Linear" : "GammaCorrected");
-    }
     int srgb_intent;
     if (png_get_sRGB (sp, ip, &srgb_intent)) {
         spec.attribute ("oiio:ColorSpace", "sRGB");
+    } else {
+        double gamma;
+        if (png_get_gAMA (sp, ip, &gamma)) {
+            spec.attribute ("oiio:Gamma", (float)(1.0f/gamma));
+            spec.attribute ("oiio:ColorSpace", (gamma == 1) ? "Linear" : "GammaCorrected");
+        }
     }
     png_timep mod_time;
     if (png_get_tIME (sp, ip, &mod_time)) {
@@ -439,7 +440,7 @@ write_info (png_structp& sp, png_infop& ip, int& color_type,
     }
     else if (Strutil::iequals (colorspace, "GammaCorrected")) {
         float gamma = spec.get_float_attribute ("oiio:Gamma", 1.0);
-        png_set_gAMA (sp, ip, gamma);
+        png_set_gAMA (sp, ip, 1.0f/gamma);
     }
     else if (Strutil::iequals (colorspace, "sRGB")) {
         png_set_sRGB_gAMA_and_cHRM (sp, ip, PNG_sRGB_INTENT_ABSOLUTE);

@@ -183,14 +183,13 @@ Field3d is an open-source volume data file format.  Field3d files
 commonly use the extension {\cf .f3d}.
 The official Field3D site is:
 \url{http://sites.google.com/site/field3d/}
+Currently, \product only reads Field3d files, and does not write them.
 
 Fields are comprised of multiple \emph{layers} (which appear to \product
 as subimages).  Each layer/subimage may have a different name,
 resolution, and coordinate mapping.  Layers may be scalar (1 channel) or
 vector (3 channel) fields, and the data may be {\cf half}, {\cf float},
 or {\cf double}.
-
-Currently, \product only reads Field3d files, and does not write them.
 
 \product always reports Field3D files as tiled.  If the Field3d file has
 a ``block size'', the block size will be reported as the tile size.
@@ -202,9 +201,10 @@ Otherwise, the tile size will be the size of the entire volume.
 \noindent\begin{tabular}{p{1.6in}|p{0.6in}|p{3.0in}}
 \ImageSpec Attribute & Type & Field3d header data or explanation \\
 \hline
-\qkw{ImageDescription} & string & layer name + ``.'' + attribute name \\
-\qkw{field3d:name} & string & the layer name \\
-\qkw{field3d:attribute} & string & the layer attribute name \\
+\qkw{ImageDescription} & string & unique layer name \\
+\qkw{oiio:subimagename} & string & unique layer name \\
+\qkw{field3d:partition} & string & the partition name \\
+\qkw{field3d:layer} & string & the layer (a.k.a.\ attribute) name \\
 \qkw{field3d:fieldtype} & string & field type, one of:
    \qkw{dense}, \qkw{sparse}, or \qkw{MAC} \\
 \qkw{field3d:mapping} & string & the coordinate mapping type \\
@@ -214,6 +214,17 @@ Otherwise, the tile size will be the size of the entire volume.
   world-to-local coordinate mapping \\
 \end{tabular}
 
+\vspace{10pt}
+
+The ``unique layer name'' is generally the partition name + ``:'' +
+attribute name (example: \qkw{defaultfield:density}), with the following
+exceptions: (1) if the partition and attribute names are identical, just
+one is used rather than it being pointlessly concatenated (e.g.,
+\qkw{density}, not \qkw{density:density}); (2) if there are mutiple
+partitions + attribute combinations with identical names in the same
+file, ``.\emph{number}'' will be added after the partition name for 
+subsequent layers (e.g., \qkw{default:density}, \qkw{default.2:density},
+\qkw{default.3:density}).
 
 \vspace{.25in}
 

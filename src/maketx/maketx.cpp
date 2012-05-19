@@ -1134,6 +1134,7 @@ make_texturemap (const char *maptypename = "texture map")
         if (verbose)
             std::cout << "  SHA-1: " << hash_digest << std::endl;
         updatedDesc = true;
+        dstspec.attribute ("oiio:SHA-1", hash_digest);
     }
     
     if (isConstantColor) {
@@ -1152,6 +1153,7 @@ make_texturemap (const char *maptypename = "texture map")
         if (verbose)
             std::cout << "  ConstantColor: " << os.str() << std::endl;
         updatedDesc = true;
+        dstspec.attribute ("oiio:ConstantColor", os.str());
     }
     
     if (updatedDesc) {
@@ -1341,7 +1343,7 @@ main (int argc, char *argv[])
     Timer alltimer;
     getargs (argc, argv);
 
-    OIIO_NAMESPACE::attribute ("threads", nthreads);
+    OIIO::attribute ("threads", nthreads);
     if (stats) {
         ImageCache *ic = ImageCache::create ();  // get the shared one
         ic->attribute ("forcefloat", 1);   // Force float upon read

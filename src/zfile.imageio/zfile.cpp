@@ -66,6 +66,7 @@ public:
     ZfileInput () { init(); }
     virtual ~ZfileInput () { close(); }
     virtual const char * format_name (void) const { return "zfile"; }
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual bool read_native_scanline (int y, int z, void *data);
@@ -132,6 +133,23 @@ DLLEXPORT const char * zfile_output_extensions[] = {
 };
 
 OIIO_PLUGIN_EXPORTS_END
+
+
+
+bool
+ZfileInput::valid_file (const std::string &filename) const
+{
+    gzFile gz = gzopen (filename.c_str(), "rb");
+    if (! gz)
+        return false;
+
+    ZfileHeader header;
+    gzread (gz, &header, sizeof(header));
+
+    bool ok = (header.magic == zfile_magic || header.magic == zfile_magic_endian);
+    gzclose (gz);
+    return ok;
+}
 
 
 

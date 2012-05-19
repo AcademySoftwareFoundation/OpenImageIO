@@ -36,14 +36,8 @@
 
 #include "export.h"
 #include "version.h"
+#include "strutil.h"
 
-#ifndef OPENIMAGEIO_PRINTF_ARGS  /* See comments in strutil.h */
-#   ifndef __GNUC__
-#       define __attribute__(x)
-#   endif
-#   define OPENIMAGEIO_PRINTF_ARGS(fmtarg_pos, vararg_pos) \
-        __attribute__ ((format (printf, fmtarg_pos, vararg_pos) ))
-#endif
 
 OIIO_NAMESPACE_ENTER
 {

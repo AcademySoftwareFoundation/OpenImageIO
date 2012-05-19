@@ -100,32 +100,6 @@ typedef ParamValueList ImageIOParameterList;
 
 
 
-class QuantizationSpec {
-public:
-    int quant_black;          ///< quantization of black (0.0) level
-    int quant_white;          ///< quantization of white (1.0) level
-    int quant_min;            ///< quantization minimum clamp value
-    int quant_max;            ///< quantization maximum clamp value
-
-    /// Construct a QuantizationSpec from the quantization parameters.
-    ///
-    QuantizationSpec (int _black, int _white, int _min, int _max)
-        : quant_black(_black), quant_white(_white),
-          quant_min(_min), quant_max(_max)
-    { }
-
-    /// Construct the "obvious" QuantizationSpec appropriate for the
-    /// given data type.
-    QuantizationSpec (TypeDesc _type);
-
-    /// Return a special QuantizationSpec that is a marker that the
-    /// recipient should use the default quantization for whatever data
-    /// type it is dealing with.
-    static QuantizationSpec quantize_default;
-};
-
-
-
 /// ImageSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
 class DLLPUBLIC ImageSpec {
@@ -405,6 +379,24 @@ public:
 /// format-agnostic manner.
 class DLLPUBLIC ImageInput {
 public:
+    /// Create an ImageInput subclass instance that is able to read
+    /// the given file and open it, returning the opened ImageInput if
+    /// successful.  If it fails, return NULL and set an error that can
+    /// be retrieved by OpenImageIO::geterror().
+    ///
+    /// The 'config', if not NULL, points to an ImageSpec giving
+    /// requests or special instructions.  ImageInput implementations
+    /// are free to not respond to any such requests, so the default
+    /// implementation is just to ignore config.
+    ///
+    /// open() will first try to make an ImageInput corresponding to
+    /// the format implied by the file extension (for example, "foo.tif"
+    /// will try the TIFF plugin), but if one is not found or if the
+    /// inferred one does not open the file, every known ImageInput type
+    /// will be tried until one is found that will open the file.
+    static ImageInput *open (const std::string &filename,
+                             const ImageSpec *config = NULL);
+
     /// Create and return an ImageInput implementation that is willing
     /// to read the given file.  The plugin_searchpath parameter is a
     /// colon-separated list of directories to search for ImageIO plugin
@@ -412,6 +404,9 @@ public:
     /// actually just try every imageio plugin it can locate, until it
     /// finds one that's able to open the file without error.  This just
     /// creates the ImageInput, it does not open the file.
+    ///
+    /// If the caller intends to immediately open the file, then it is
+    /// simpler to call static ImageInput::open().
     static ImageInput *create (const std::string &filename,
                                const std::string &plugin_searchpath="");
 
@@ -421,6 +416,15 @@ public:
     /// Return the name of the format implemented by this class.
     ///
     virtual const char *format_name (void) const = 0;
+
+    /// Return true if the named file is file of the type for this
+    /// ImageInput.  The implementation will try to determine this as
+    /// efficiently as possible, in most cases much less expensively
+    /// than doing a full open().  Note that a file can appear to be of
+    /// the right type (i.e., valid_file() returning true) but still
+    /// fail a subsequent call to open(), such as if the contents of the
+    /// file are truncated, nonsensical, or otherwise corrupted.
+    virtual bool valid_file (const std::string &filename) const;
 
     /// Open file with given name.  Various file attributes are put in
     /// newspec and a copy is also saved in this->spec.  From these
@@ -439,14 +443,15 @@ public:
 
     /// Return a reference to the image format specification of the
     /// current subimage/MIPlevel.  Note that the contents of the spec
-    /// are invalid before open() or after close().
+    /// are invalid before open() or after close(), and may change with
+    /// a call to seek_subimage().
     const ImageSpec &spec (void) const { return m_spec; }
 
     /// Given the name of a 'feature', return whether this ImageInput
     /// supports input of images with the given properties.
     /// Feature names that ImageIO plugins are expected to recognize
     /// include:
-    ///    none currently supported, this is for later expansion
+    ///    none at this time
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows
@@ -708,20 +713,23 @@ public:
         m_errmessage.clear ();
         return e;
     }
-    /// Deprecated
-    ///
-    std::string error_message () const { return geterror (); }
 
 protected:
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.
-    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    /// printf-like arguments.  Note however that this is fully typesafe!
+    // void error (const char *format, ...) const;
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
 
 protected:
-    ImageSpec m_spec;  ///< format spec of the current open subimage/MIPlevel
+    ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
 
 private:
-    mutable std::string m_errmessage;  ///< private storage of error massage
+    mutable std::string m_errmessage;  // private storage of error message
+    void append_error (const std::string& message) const; // add to m_errmessage
+    static ImageInput *create (const std::string &filename, bool do_open,
+                               const std::string &plugin_searchpath);
+
 };
 
 
@@ -951,14 +959,13 @@ public:
         m_errmessage.clear ();
         return e;
     }
-    /// Deprecated
-    ///
-    std::string error_message () const { return geterror (); }
 
 protected:
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.
-    void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    /// printf-like arguments.  Note however that this is fully typesafe!
+    // void error (const char *format, ...)
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
 
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
@@ -986,7 +993,8 @@ protected:
     ImageSpec m_spec;           ///< format spec of the currently open image
 
 private:
-    mutable std::string m_errmessage;   ///< private storage of error massage
+    void append_error (const std::string& message) const; // add to m_errmessage
+    mutable std::string m_errmessage;   ///< private storage of error message
 };
 
 
@@ -1000,16 +1008,22 @@ DLLPUBLIC int openimageio_version ();
 
 /// Special geterror() called after ImageInput::create or
 /// ImageOutput::create, since if create fails, there's no object on
-/// which call obj->geterror().
+/// which call obj->geterror().  This function returns the last error
+/// for this particular thread; separate threads will not clobber each
+/// other's global error messages.
 DLLPUBLIC std::string geterror ();
 
 /// Set a global attribute controlling OpenImageIO.  Return true
 /// if the name and type were recognized and the attribute was set.
 ///
 /// Documented attributes:
-///     int threads : how many threads to use for operations that can
-///                   be sped up by spawning threads (default=1;
-///                   note that 0 means "as many threads as cores").
+///     int threads
+///             How many threads to use for operations that can be sped
+///             by spawning threads (default=1; note that 0 means "as
+///             many threads as cores").
+///     string plugin_searchpath
+///             Colon-separated list of directories to search for 
+///             dynamically-loaded format plugins.
 DLLPUBLIC bool attribute (const std::string &name, TypeDesc type,
                           const void *val);
 // Shortcuts for common types
@@ -1052,10 +1066,6 @@ inline bool getattribute (const std::string &name, std::string &val) {
     return ok;
 }
 
-
-/// Deprecated
-///
-inline std::string error_message () { return geterror (); }
 
 /// Helper routine: quantize a value to an integer given the
 /// quantization parameters.

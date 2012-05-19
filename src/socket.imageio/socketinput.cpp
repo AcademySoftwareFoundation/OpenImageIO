@@ -60,6 +60,25 @@ SocketInput::SocketInput()
 
 
 bool
+SocketInput::valid_file (const std::string &filename) const
+{
+//    // Pass it a configuration request that includes a "nowait" option
+//    // so that it returns immediately rather than waiting for a socket
+//    // connection that doesn't yet exist.
+//    ImageSpec config;
+//    config.attribute ("nowait", (int)1);
+//
+//    ImageSpec tmpspec;
+//    bool ok = const_cast<SocketInput *>(this)->open (filename, tmpspec, config);
+//    if (ok)
+//        const_cast<SocketInput *>(this)->close ();
+//    return ok;
+    return true;
+}
+
+
+
+bool
 SocketInput::open (const std::string &name, ImageSpec &newspec)
 {
     return open (name, newspec, ImageSpec());
@@ -163,7 +182,7 @@ SocketInput::read_native_scanline (int y, int z, void *data)
 //        return false;
 //    }
 
-   return true;
+    return true;
 }
 
 
@@ -180,7 +199,7 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
 //        return false;
 //    }
 
-   return true;
+    return true;
 }
 
 

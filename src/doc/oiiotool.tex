@@ -259,6 +259,10 @@ Prints detailed statistical information about each input image as it is
 read.
 \apiend
 
+\apiitem{--hash}
+Print the SHA-1 hash of the pixels of each input image.
+\apiend
+
 \apiitem{--diff}
 This command computes the difference of the current image and the next
 image on the stack, and prints a report of those differences (how
@@ -493,7 +497,9 @@ that don't support some kind of orientation metadata.
 \apiend
 
 \apiitem{--origin {\rm \emph{offset}}}
-Set the pixel data window origin.  The offset is in the form
+Set the pixel data window origin, essentially translating the existing
+pixel data window to a different position on the image plane.
+The offset is in the form
 \begin{code}
      [+-]x[+-]y
 \end{code}
@@ -548,6 +554,45 @@ If the offset is omitted, it will be $x=0,y=0$.
     {\cf --create 1024x768+100+0 4}  & RGBA with w=1024, h=768, x=100, y=0
 \end{tabular}
 \apiend
+
+
+\apiitem{--pattern {\rm \emph{patternname size channels}}}
+Create new image with the given size and number of channels,
+initialize its pixels to the named pattern, and push it onto 
+the image stack to make it the new current image.
+
+The \emph{size} is in the form
+\\ \emph{width}\,{\cf x}\,\emph{height}{\cf [+-]}\emph{xoffset}{\cf
+  [+-]}\emph{yoffset} \\
+If the offset is omitted, it will be $x=0,y=0$.
+
+The patterns recognized include the following:
+
+\begin{tabular}{p{1in} p{4in}}
+    {\cf black}  & A black image (all pixels 0.0) \\
+    {\cf constant}  & A constant color image, defaulting to white, but
+       the color can be set with the optional {\cf :color=r,g,b,...}
+       arguments giving a numerical value for each channel. \\
+    {\cf checker} & A black and white checkerboard pattern.  The
+       optional argument {\cf :width=} sets with width of the checkers
+       (defaulting to 8 pixels).
+\end{tabular}
+
+\noindent Examples:
+
+\apiitem{--pattern constant:color=0.3,0.5,0.1,1.0 640x480 4}
+\vspace{10pt}
+A constant 4-channel, $640\times 580$ image with all pixels (0.5, 0.5,
+0.1, 1).
+\apiend
+
+\apiitem{--pattern checker:width=16 512x512 3}
+\vspace{10pt}
+An $512 \times 512$ RGB image with a 16-pixel-wide checker pattern.
+\apiend
+
+\apiend
+
 
 \apiitem{--capture}
 
@@ -659,7 +704,7 @@ decreasing resolution. \\
 
 \begin{tabular}{p{2in} p{4in}}
     {\cf --resize 1024x768}  &     new resolution w=100, h=120, offset x=35, y=40 \\
-    {\cf --resize 50{\verb|%|}}  & reduce resolution by 50\verb|%| \\
+    {\cf --resize 50{\verb|%|}}  & reduce resolution to 50\verb|%| \\
     {\cf --resize 300{\verb|%|}}  & increase resolution by 3x
 \end{tabular}
 

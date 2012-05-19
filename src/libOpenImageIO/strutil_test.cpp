@@ -28,10 +28,35 @@
   (This is the Modified BSD License)
 */
 
-#include "imageio.h"
+#include "strutil.h"
 #include "unittest.h"
 
 OIIO_NAMESPACE_USING;
+
+
+
+void test_memformat ()
+{
+    OIIO_CHECK_EQUAL (Strutil::memformat (15), "15 B");
+    OIIO_CHECK_EQUAL (Strutil::memformat (15LL*1024), "15 KB");
+    OIIO_CHECK_EQUAL (Strutil::memformat (15LL*1024*1024), "15.0 MB");
+    OIIO_CHECK_EQUAL (Strutil::memformat (15LL*1024*1024*1024), "15.0 GB");
+    OIIO_CHECK_EQUAL (Strutil::memformat (15LL*1024*1024+200000), "15.2 MB");
+    OIIO_CHECK_EQUAL (Strutil::memformat (15LL*1024*1024+200000, 3), "15.191 MB");
+}
+
+
+
+void test_timeintervalformat ()
+{
+    OIIO_CHECK_EQUAL (Strutil::timeintervalformat (15.321), "15.3s");
+    OIIO_CHECK_EQUAL (Strutil::timeintervalformat (150.321), "2m 30.3s");
+    OIIO_CHECK_EQUAL (Strutil::timeintervalformat (15000.321), "4h 10m 0.3s");
+    OIIO_CHECK_EQUAL (Strutil::timeintervalformat (150000.321), "1d 17h 40m 0.3s");
+    OIIO_CHECK_EQUAL (Strutil::timeintervalformat (150.321, 2), "2m 30.32s");
+}
+
+
 
 void test_get_rest_arguments ()
 {
@@ -111,6 +136,8 @@ void test_escape_sequences ()
 
 int main (int argc, char *argv[])
 {
+    test_memformat ();
+    test_timeintervalformat ();
     test_get_rest_arguments ();
     test_escape_sequences ();
 

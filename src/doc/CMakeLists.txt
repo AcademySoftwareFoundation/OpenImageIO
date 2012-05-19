@@ -17,7 +17,7 @@ find_program(TXT2MAN txt2man)
 find_package(PythonInterp)
 if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
     message (STATUS "Unix man page documentation will be generated")
-    set (cli_tools iinfo maketx idiff iv igrep iprocess iconvert)
+    set (cli_tools oiiotool iinfo maketx idiff iv igrep iprocess iconvert)
 
     foreach (tool ${cli_tools})
         set (outfile "${documentation_BINARY_DIR}/${tool}.1")

@@ -197,6 +197,11 @@ public:
               int miplevel_to_copy = -1, bool writable = true,
               bool copy_pixels = true);
 
+    // Create an ImageRef that consists of the ImageBuf img.  Copy img
+    // if copy_pixels==true, otherwise just take ownership of img (it's
+    // a shared pointer).
+    ImageRec (ImageBufRef img, bool copy_pixels = true);
+
     // Initialize an ImageRec with the given spec.
     ImageRec (const std::string &name, const ImageSpec &spec,
               ImageCache *imagecache);
@@ -211,6 +216,14 @@ public:
         return m_subimages[subimage].miplevels();
     }
 
+    // Subimage reference accessors.
+    SubimageRec& subimage (int i) {
+        return m_subimages[i];
+    }
+    const SubimageRec& subimage (int i) const {
+        return m_subimages[i];
+    }
+
     // Accessing it like an array returns a specific subimage
     SubimageRec& operator[] (int i) {
         return m_subimages[i];
@@ -221,6 +234,8 @@ public:
 
     std::string name () const { return m_name; }
 
+    // Has the ImageRec been actually read or evaluated?  (Until needed,
+    // it's lazily kept as name only, without reading the file.)
     bool elaborated () const { return m_elaborated; }
 
     bool read ();

@@ -43,6 +43,7 @@ public:
     DPXInput () : m_stream(NULL), m_dataPtr(NULL) { init(); }
     virtual ~DPXInput () { close(); }
     virtual const char * format_name (void) const { return "dpx"; }
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool close ();
     virtual int current_subimage (void) const { return m_subimage; }
@@ -93,6 +94,25 @@ DLLEXPORT const char * dpx_input_extensions[] = {
 };
 
 OIIO_PLUGIN_EXPORTS_END
+
+
+
+bool
+DPXInput::valid_file (const std::string &filename) const
+{
+    InStream *stream = new InStream();
+    if (! stream)
+        return false;
+    bool ok = false;
+    if (stream->Open(filename.c_str())) {
+        dpx::Reader dpx;
+        dpx.SetInStream(stream);
+        ok = dpx.ReadHeader();
+        stream->Close();
+    }
+    delete stream;
+    return ok;
+}
 
 
 

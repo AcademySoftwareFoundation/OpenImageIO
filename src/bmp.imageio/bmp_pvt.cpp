@@ -31,9 +31,6 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-namespace OIIO = OIIO_NAMESPACE;
-
-
 namespace bmp_pvt {
 
 

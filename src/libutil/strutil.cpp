@@ -48,7 +48,7 @@ OIIO_NAMESPACE_ENTER
 {
 
 std::string
-Strutil::format (const char *fmt, ...)
+Strutil::format_raw (const char *fmt, ...)
 {
     va_list ap;
     va_start (ap, fmt);
@@ -147,9 +147,9 @@ Strutil::timeintervalformat (double secs, int digits)
     int m = (int) floor (secs / mins);
     secs = fmod (secs, mins);
     if (d)
-        out += format ("%dd ", d);
-    if (h || d)
-        out += format ("%2dh ", h);
+        out += format ("%dd %dh ", d, h);
+    else if (h)
+        out += format ("%dh ", h);
     if (m || h || d)
         out += format ("%dm %1.*fs", m, digits, secs);
     else
@@ -241,7 +241,7 @@ Strutil::unescape_chars (const std::string &escaped)
                     octalChar = 8*octalChar + (c - '0');
                     s.erase (i, 1);
                     --len;
-                    c = s[i+1];
+                    c = i+1 < len ? s[i+1] : '\0';
                 }
                 s[i] = (char) octalChar;
             }

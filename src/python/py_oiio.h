@@ -71,6 +71,8 @@ private:
 public:
 	virtual ~ImageInputWrap();
     static boost::python::object create(const std::string&, const std::string&);
+    static boost::python::object open_static_regular(const std::string&);
+    static boost::python::object open_static_with_config(const std::string&,const ImageSpec&);
     const char *format_name () const;
     bool open_regular (const std::string&, ImageSpec&);
     bool open_with_config(const std::string&, ImageSpec&, const ImageSpec&);
@@ -168,7 +170,8 @@ private:
     ImageBuf *m_buf;
 public:
 
-    ImageBufWrap (const std::string&, ImageCacheWrap*);
+    ImageBufWrap (const std::string&name = std::string(),
+                  ImageCacheWrap*icw = NULL);
     ImageBufWrap (const std::string&, const ImageSpec&) ;  
     void clear ();
     void reset_to_new_image (const std::string&, ImageCache*);

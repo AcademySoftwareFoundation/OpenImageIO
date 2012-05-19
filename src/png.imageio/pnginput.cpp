@@ -51,6 +51,7 @@ public:
     PNGInput () { init(); }
     virtual ~PNGInput () { close(); }
     virtual const char * format_name (void) const { return "png"; }
+    virtual bool valid_file (const std::string &filename) const;
     virtual bool open (const std::string &name, ImageSpec &newspec);
     virtual bool open (const std::string &name, ImageSpec &newspec,
                        const ImageSpec &config);
@@ -107,6 +108,21 @@ DLLEXPORT const char * png_input_extensions[] = {
 };
 
 OIIO_PLUGIN_EXPORTS_END
+
+
+
+bool
+PNGInput::valid_file (const std::string &filename) const
+{
+    FILE *fd = fopen (filename.c_str(), "rb");
+    if (! fd)
+        return false;
+    unsigned char sig[8];
+    bool ok = (fread (sig, 1, sizeof(sig), fd) == sizeof(sig) &&
+               png_sig_cmp (sig, 0, 7) == 0);
+    fclose (fd);
+    return ok;
+}
 
 
 

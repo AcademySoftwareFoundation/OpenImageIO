@@ -3,7 +3,7 @@ Installation instructions for OpenImageIO
 For the most up-to-date build instructions (and in any case somewhat
 more detailed than here), please see our wiki:
 
-http://openimageio.org/wiki/index.php?title=Checking_out_and_building_OpenImageIO
+https://sites.google.com/site/openimageio/checking-out-and-building-openimageio
 
 Supported platforms at present include Linux (32 and 64 bit),
 Mac OS X, and Windows.
@@ -21,6 +21,23 @@ not be able to find the plugins.
 Building OpenImageIO on Linux or OS X
 -------------------------------------
 
+The following dependencies must be installed to build the core of
+OpenImageIO: Boost, libjpeg, libtiff and OpenEXR.  These can be installed
+using the standard package managers on your system.  Optionally, 
+to build the image viewing tools, you will need Qt, OpenGL, and GLEW.
+
+On OS X, these dependencies can be installed using MacPorts or 
+Homebrew.  After installation of either of these package installers,
+use the "port" or "brew" commands (respectively) to install the
+dependencies (e.g. "port install qt4-mac" or "brew update; 
+brew doctor; brew install qt") before invoking make as described below.
+
+Dependent libraries can be installed in either the system default
+locations or in custom directories.  Libraries installed in custom
+directories must notify the CMake system using environment variables.
+For example, set QTDIR to point at the root of the Qt library location
+so that CMake can find it (see CMake configuration output).
+
 On Linux and OS X, you can build from source from the top-level
 directory by just typing 'make'.  (Yes, we have a 'make' wrapper around
 our CMake build, it simplifies things.)
@@ -31,9 +48,6 @@ platform you are building for (e.g., linux, linux64, macosx).
 
 The result of the make will be a full binary distribution in 
 dist/PLATFORM.
-
-Sorry, that's as much as it does right now.  This is not ready for
-release!  Soon we'll tar it up, have installers, etc.
 
 Make targets you should know about:
 
@@ -159,3 +173,31 @@ D:\OIIO\external\dist\windows\zlib-1.2.3;D:\OIIO\external\dist\windows\libpng-1.
 
 Also, if cmake won't find GLEW set up GLEW_INCLUDES and GLEW_LIBRARIES
 in cmake-gui. Don't add them (they are already added), just set them.
+
+
+Test Images
+-----------
+
+We have yet another SVN project just for containing a set of sample
+images for testing OpenImageIO. We split test images into a separate
+SVN project in order to make the main source code tree smaller and
+simpler for people who don't need the test suite.
+
+git clone https://github.com/OpenImageIO/oiio-images.git
+
+Also, there are collections of images for some of the file formats we
+support, and make test expects them to also be present. To run full tests,
+you will need to download and unpack the test image collections from:
+
+http://www.remotesensing.org/libtiff/images.html
+http://www.openexr.com/downloads.html
+http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803
+http://www.cv.nrao.edu/fits/data/tests/
+
+These images should be placed in a sibling directory to the OpenImageIO
+repository named oiio-testimages.
+
+You do not need any of these packages in order to build or use
+OpenImageIO. But if you are going to contribute to OpenImageIO
+development, you probably want them, since it is required for executing
+OpenImageIO's test suite (when you run "make test").

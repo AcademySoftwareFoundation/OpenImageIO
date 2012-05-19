@@ -79,14 +79,16 @@ include_directories(
 )
 
 # Strict warnings
-if (NOT WIN32)
+if (NOT MSVC)
     add_definitions ("-Wall")
 endif()
 
-# Disable some warnings for Clang, it's a little too picky with boost
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    add_definitions ("-Wno-parentheses")
-    add_definitions ("-Wno-char-subscripts")
+    # CMake doesn't automatically know what do do with
+    # include_directories(SYSTEM...) when using clang.
+    set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
+    # Disable some warnings for Clang, for some things that are too awkward
+    # to change just for the sake of having no warnings.
     add_definitions ("-Wno-unused-function")
     add_definitions ("-Wno-overloaded-virtual")
 endif ()
@@ -177,6 +179,12 @@ if (MSVC)
 endif (MSVC)
 
 
+# We want CTest for testing
+# N.B. This needs to be added before any of the subdirectories, or
+# their add_test commands will not register.
+include (CTest)
+
+
 # Tell CMake to process the sub-directories
 add_subdirectory (libOpenImageIO)
 
@@ -244,9 +252,6 @@ add_subdirectory (doc)
 #                    for "make testall", but not "make test".
 #
 
-# We want CTest for testing
-include (CTest)
-
 # Make a copy of the testsuite into the build area
 if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
     file (COPY ${PROJECT_SOURCE_DIR}/../testsuite
@@ -254,13 +259,13 @@ if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
 endif()
 
 # List all the individual testsuite tests here:
-oiio_add_tests (ico gpsread oiiotool oiiotool-fixnan 
-                sgi rla psd dpx
+oiio_add_tests (ico gpsread misnamed-file
+                oiiotool oiiotool-fixnan 
+                sgi rla psd dpx png
                 texture-fill texture-gray texture-grid
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res
                 texture-skinny texture-fat
-                texture-field3d
                )
 
 
@@ -296,6 +301,9 @@ oiio_add_tests (webp
     IMAGEDIR webp-images
     URL http://code.google.com/speed/webp/gallery.html)
 
+oiio_add_tests (texture-field3d
+    FOUNDVAR FIELD3D_FOUND)
+
 
 #########################################################################
 # Packaging
@@ -311,8 +319,8 @@ set (CPACK_PACKAGE_FILE_NAME OpenImageIO-${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MI
 #SET (CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_SOURCE_DIR}/..)
 exec_program ("cmake -E copy ${PROJECT_SOURCE_DIR}/../LICENSE ${CMAKE_BINARY_DIR}/License.txt")
 set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/License.txt")
-exec_program ("cmake -E copy ${PROJECT_SOURCE_DIR}/../README ${CMAKE_BINARY_DIR}/Readme.txt")
-set (CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/Readme.txt")
+exec_program ("cmake -E copy ${PROJECT_SOURCE_DIR}/../README.rst ${CMAKE_BINARY_DIR}/Readme.rst")
+set (CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/Readme.rst")
 set (CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/doc/Welcome.txt")
 #SET (CPACK_STRIP_FILES Do we need this?)
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

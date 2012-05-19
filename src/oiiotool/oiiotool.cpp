@@ -74,6 +74,12 @@ static Oiiotool ot;
 void
 Oiiotool::read (ImageRecRef img)
 {
+    // If the image is already elaborated, take an early out, both to
+    // save time, but also because we only want to do the format and
+    // tile adjustments below as images are read in fresh from disk.
+    if (img->elaborated())
+        return;
+
     // Cause the ImageRec to get read
     img->read ();
 
@@ -138,7 +144,7 @@ static int
 set_threads (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
-    OIIO_NAMESPACE::attribute ("threads", atoi(argv[0]));
+    OIIO::attribute ("threads", atoi(argv[0]));
     return 0;
 }
 
@@ -182,6 +188,8 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
         spec.set_format (ot.output_dataformat);
         if (ot.output_bitspersample != 0)
             spec.attribute ("oiio:BitsPerSample", ot.output_bitspersample);
+        else
+            spec.erase_attribute ("oiio:BitsPerSample");
     }
 
 //        spec.channelformats.clear ();   // FIXME: why?
@@ -324,6 +332,7 @@ set_dataformat (int argc, const char *argv[])
 {
     ASSERT (argc == 2);
     std::string s (argv[1]);
+    ot.output_bitspersample = 0;  // use the default
     if (s == "uint8")
         ot.output_dataformat = TypeDesc::UINT8;
     else if (s == "int8")
@@ -1155,6 +1164,26 @@ action_pattern (int argc, const char *argv[])
     std::string pattern = argv[1];
     if (Strutil::iequals(pattern,"black")) {
         ImageBufAlgo::zero (ib);
+    } else if (Strutil::istarts_with(pattern,"constant")) {
+        float *fill = ALLOCA (float, nchans);
+        for (int c = 0;  c < nchans;  ++c)
+            fill[c] = 1.0f;
+        size_t pos;
+        while ((pos = pattern.find_first_of(":")) != std::string::npos) {
+            pattern = pattern.substr (pos+1, std::string::npos);
+            if (Strutil::istarts_with(pattern,"color=")) {
+                // Parse comma-separated color list
+                size_t numpos = 6;
+                for (int c = 0; c < nchans && numpos < pattern.size() && pattern[numpos] != ':'; ++c) {
+                    fill[c] = atof (pattern.c_str()+numpos);
+                    while (numpos < pattern.size() && pattern[numpos] != ':' && pattern[numpos] != ',')
+                        ++numpos;
+                    if (pattern[numpos])
+                        ++numpos;
+                }
+            }
+        }
+        ImageBufAlgo::fill (ib, fill);
     } else if (Strutil::istarts_with(pattern,"checker")) {
         int width = 8;
         size_t pos;
@@ -1278,7 +1307,7 @@ action_resize (int argc, const char *argv[])
     ImageSpec newspec = Aspec;
 
     adjust_geometry (newspec.width, newspec.height,
-                     newspec.x, newspec.y, argv[1]);
+                     newspec.x, newspec.y, argv[1], true);
     if (newspec.width == Aspec.width && newspec.height == Aspec.height)
         return 0;  // nothing to do
 
@@ -1423,12 +1452,12 @@ getargs (int argc, char *argv[])
                 "--fullsize %@ %s", set_fullsize, &dummystr, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",
                 "--fullpixels %@", set_full_to_pixels, &dummybool, "Set the 'full' image range to be the pixel data window",
                 "<SEPARATOR>", "Options that affect subsequent actions:",
-                "--fail %g", &ot.diff_failthresh, "",
-                "--failpercent %g", &ot.diff_failpercent, "",
-                "--hardfail %g", &ot.diff_hardfail, "",
-                "--warn %g", &ot.diff_warnthresh, "",
-                "--warnpercent %g", &ot.diff_warnpercent, "",
-                "--hardwarn %g", &ot.diff_hardwarn, "",
+                "--fail %g", &ot.diff_failthresh, "Failure threshold difference (0.000001)",
+                "--failpercent %g", &ot.diff_failpercent, "Allow this percentage of failures in diff (0)",
+                "--hardfail %g", &ot.diff_hardfail, "Fail diff if any one pixel exceeds this error (infinity)",
+                "--warn %g", &ot.diff_warnthresh, "Warning threshold difference (0.00001)",
+                "--warnpercent %g", &ot.diff_warnpercent, "Allow this percentage of warnings in diff (0)",
+                "--hardwarn %g", &ot.diff_hardwarn, "Warn if any one pixel difference exceeds this error (infinity)",
                 "<SEPARATOR>", "Actions:",
                 "--create %@ %s %d", action_create, &dummystr, &dummyint,
                         "Create a blank image (args: geom, channels)",

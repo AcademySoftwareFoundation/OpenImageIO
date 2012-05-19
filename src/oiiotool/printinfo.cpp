@@ -94,7 +94,7 @@ read_input (const std::string &filename, ImageBuf &img,
         img.read (subimage, miplevel, false, TypeDesc::FLOAT))
         return true;
 
-    std::cerr << "iinfo ERROR: Could not read " << filename << ":\n\t"
+    std::cerr << "oiiotool ERROR: Could not read " << filename << ":\n\t"
               << img.geterror() << "\n";
     return false;
 }
@@ -359,6 +359,24 @@ print_metadata (const ImageSpec &spec, const std::string &filename,
 
 
 
+static const char *
+extended_format_name (TypeDesc type, int bits)
+{
+    if (bits && bits < (int)type.size()*8) {
+        // The "oiio:BitsPerSample" betrays a different bit depth in the
+        // file than the data type we are passing.
+        if (type == TypeDesc::UINT8 || type == TypeDesc::UINT16 ||
+            type == TypeDesc::UINT32 || type == TypeDesc::UINT64)
+            return ustring::format("uint%d", bits).c_str();
+        if (type == TypeDesc::INT8 || type == TypeDesc::INT16 ||
+            type == TypeDesc::INT32 || type == TypeDesc::INT64)
+            return ustring::format("int%d", bits).c_str();
+    }
+    return type.c_str();  // use the name implied by type
+}
+
+
+
 // prints basic info (resolution, width, height, depth, channels, data format,
 // and format name) about given subimage.
 static void
@@ -385,7 +403,9 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
         printf ("%4d x %4d", spec.width, spec.height);
         if (spec.depth > 1)
             printf (" x %4d", spec.depth);
-        printf (", %d channel, %s%s", spec.nchannels, spec.format.c_str(),
+        int bits = spec.get_int_attribute ("oiio:BitsPerSample", 0);
+        printf (", %d channel, %s%s", spec.nchannels,
+                extended_format_name(spec.format, bits),
                 spec.depth > 1 ? " volume" : "");
         printf (" %s", input->format_name());
         printf ("\n");
@@ -420,7 +440,7 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
             input->seek_subimage (current_subimage, m, mipspec);
             if (opt.filenameprefix)
                 printf ("%s : ", filename.c_str());
-            if (nmip > 1 && (opt.subimages || m == 0)) {
+            if (nmip > 1) {
                 printf ("    MIP %d of %d (%d x %d):\n",
                         m, nmip, mipspec.width, mipspec.height);
             }
@@ -441,22 +461,14 @@ OiioTool::print_info (const std::string &filename,
                       std::string &error)
 {
     error.clear();
-    ImageInput *input = ImageInput::create (filename.c_str(), "" /* searchpath */);
+    ImageInput *input = ImageInput::open (filename.c_str());
     if (! input) {
         error = geterror();
         if (error.empty())
             error = Strutil::format ("Could not open \"%s\"", filename.c_str());
         return false;
     }
-    ImageSpec spec;
-    if (! input->open (filename.c_str(), spec)) {
-        error = input->geterror();
-        if (error.empty())
-            error = Strutil::format ("Could not open \"%s\"", filename.c_str());
-        delete input;
-        return false;
-    }
-
+    ImageSpec spec = input->spec();
 
     boost::regex field_re;
     if (! opt.metamatch.empty())
@@ -503,7 +515,8 @@ OiioTool::print_info (const std::string &filename,
                 printf ("%s%s", c ? "/" : "",
                         spec.channelformats[c].c_str());
         } else {
-            printf ("%s", spec.format.c_str());
+            int bits = spec.get_int_attribute ("oiio:BitsPerSample", 0);
+            printf ("%s", extended_format_name(spec.format, bits));
         }
         if (spec.depth > 1)
             printf (" volume");

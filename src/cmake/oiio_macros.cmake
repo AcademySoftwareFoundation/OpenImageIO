@@ -92,7 +92,7 @@ macro (oiio_add_tests)
         message (STATUS "  -> You can find it at ${_ats_URL}\n")
     else ()
         # Add the tests if all is well.
-        if (DEFINED CMAKE_VERSION AND CMAKE_VERSION VERSION_GREATER 2.8)
+        if (DEFINED CMAKE_VERSION AND NOT CMAKE_VERSION VERSION_LESS 2.8)
             set (_has_generator_expr TRUE)
         endif ()
         foreach (_testname ${_ats_DEFAULT_ARGS})
@@ -107,7 +107,7 @@ macro (oiio_add_tests)
                 if (MSVC_IDE)
                     set (_extra_test_args
                         --devenv-config $<CONFIGURATION>
-                        --solution-path "${CMAKE_BINARY_DIR}" )
+                        --solution-path "${PROJECT_BINARY_DIR}" )
                 else ()
                     set (_extra_test_args "")
                 endif ()

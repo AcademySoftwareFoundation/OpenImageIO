@@ -1,31 +1,31 @@
 Reading ../../../../../oiio-images/oiio.ico
-../../../../../oiio-images/oiio.ico :   16 x   16, 4 channel, uint8 ico
+../../../../../oiio-images/oiio.ico :   16 x   16, 4 channel, uint1 ico
     10 subimages: 16x16 32x32 16x16 48x48 32x32 16x16 256x256 48x48 32x32 16x16 
- subimage  0:   16 x   16, 4 channel, uint8 ico
+ subimage  0:   16 x   16, 4 channel, uint1 ico
     SHA-1: 563F978D0860CB8791716CA694AB94EEA83E6E03
     channel list: R, G, B, A
     oiio:BitsPerSample: 1
- subimage  1:   32 x   32, 4 channel, uint8 ico
+ subimage  1:   32 x   32, 4 channel, uint2 ico
     SHA-1: C6AC509D1005F1B1377A24F33A77D4ABEE425628
     channel list: R, G, B, A
     oiio:BitsPerSample: 2
- subimage  2:   16 x   16, 4 channel, uint8 ico
+ subimage  2:   16 x   16, 4 channel, uint2 ico
     SHA-1: D9F2BA4010F3BC5D0E24FED9D1C9FC2920180AE8
     channel list: R, G, B, A
     oiio:BitsPerSample: 2
- subimage  3:   48 x   48, 4 channel, uint8 ico
+ subimage  3:   48 x   48, 4 channel, uint3 ico
     SHA-1: BA341CEBEC4D0FEBC090E329310D2B8BBEAE1F4C
     channel list: R, G, B, A
     oiio:BitsPerSample: 3
- subimage  4:   32 x   32, 4 channel, uint8 ico
+ subimage  4:   32 x   32, 4 channel, uint3 ico
     SHA-1: F1D395FE75B3E6133ECF456745EC747CBD53941C
     channel list: R, G, B, A
     oiio:BitsPerSample: 3
- subimage  5:   16 x   16, 4 channel, uint8 ico
+ subimage  5:   16 x   16, 4 channel, uint3 ico
     SHA-1: B39B76D983D11966C8C344506084515AF9A0F40F
     channel list: R, G, B, A
     oiio:BitsPerSample: 3
- subimage  6:  256 x  256, 4 channel, uint8 ico
+ subimage  6:  256 x  256, 4 channel, uint2 ico
     SHA-1: F44C9B94AB7D612F62A4DC29FD9C56FD173F2614
     channel list: R, G, B, A
     oiio:UnassociatedAlpha: 1

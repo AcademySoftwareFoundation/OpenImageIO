@@ -210,6 +210,7 @@ public:
         // 0-1 texture space relative to the "display/full window" into 
         // 0-1 relative to the "pixel window".
         float sscale, soffset, tscale, toffset;
+        ustring subimagename;
 
         SubimageInfo () : untiled(false), unmipped(false) { }
         ImageSpec &spec (int m) { return levels[m].spec; }
@@ -760,6 +761,11 @@ public:
     virtual void release_tile (Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
 
+    /// Return the numerical subimage index for the given subimage name,
+    /// as stored in the "oiio:subimagename" metadata.  Return -1 if no
+    /// subimage matches its name.
+    int subimage_from_name (ImageCacheFile *file, ustring subimagename);
+
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1) const;
     virtual void reset_stats ();
@@ -814,7 +820,12 @@ public:
 
     /// Internal error reporting routine, with printf-like arguments.
     ///
-    void error (const char *message, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    /// void error (const char *message, ...);
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
+
+    /// Append a string to the current error message
+    void append_error (const std::string& message) const;
 
     /// Get a pointer to the caller's thread's per-thread info, or create
     /// one in the first place if there isn't one already.
@@ -920,6 +931,7 @@ private:
     bool m_accept_untiled;       ///< Accept untiled images?
     bool m_accept_unmipped;      ///< Accept unmipped images?
     bool m_read_before_insert;   ///< Read tiles before adding to cache?
+    bool m_deduplicate;          ///< Detect duplicate files?
     int m_failure_retries;       ///< Times to re-try disk failures
     bool m_latlong_y_up_default; ///< Is +y the default "up" for latlong?
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix

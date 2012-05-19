@@ -61,37 +61,17 @@ Filesystem::filename (const std::string &filepath)
 
 
 std::string
-Filesystem::extension (const std::string &filepath)
+Filesystem::extension (const std::string &filepath, bool include_dot)
 {
+    std::string s;
 #if BOOST_FILESYSTEM_VERSION == 3
-    return boost::filesystem::path(filepath).extension().string();
+    s = boost::filesystem::path(filepath).extension().string();
 #else
-    return boost::filesystem::path(filepath).extension();
+    s = boost::filesystem::path(filepath).extension();
 #endif
-}
-
-
-
-std::string
-Filesystem::file_extension (const std::string &filepath)
-{
-    // Search for the LAST dot in the filepath
-    const char *ext = strrchr (filepath.c_str(), '.');
-
-    // If there was no dot at all, or if it was the last character, there's
-    // no file extension, so just return "".
-    if (! ext || !ext[1])
-        return "";
-
-    ++ext;  // Advance to the char AFTER the dot
-
-    // But if there's a slash after the last dot, then the dot was part
-    // of the directory, not the leaf name.
-    if (strchr (ext, '/'))
-        return "";
-
-    // The extension starts AFTER the period!
-    return ext;
+    if (! include_dot && !s.empty() && s[0] == '.')
+        s.erase (0, 1);  // erase the first character
+    return s;
 }
 
 
@@ -100,7 +80,7 @@ std::string
 Filesystem::replace_extension (const std::string &filepath,
                                const std::string &new_extension)
 {
-	return boost::filesystem::path(filepath).replace_extension(new_extension).string();
+    return boost::filesystem::path(filepath).replace_extension(new_extension).string();
 }
 
 

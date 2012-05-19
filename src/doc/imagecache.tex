@@ -350,6 +350,15 @@ default is zero, meaning that failures of open or tile reading will
 immediately return as a failure.
 \apiend
 
+\apiitem{int deduplicate}
+When nonzero, the \ImageCache will notice duplicate images under
+different names if their headers contain a SHA-1 fingerprint (as is done
+with \maketx-produced textures) and handle them more efficiently by
+avoiding redundant reads.  The default is 1 (de-duplication turned on).
+The only reason to set it to 0 is if you specifically want to disable the
+de-duplication optimization.
+\apiend
+
 \apiitem{string options}
 This catch-all is simply a comma-separated list of {\cf name=value}
 settings of named options.  For example,

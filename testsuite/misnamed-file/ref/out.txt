@@ -1,0 +1,18 @@
+Reading misnamed.exr
+misnamed.exr         : 1000 x 1000, 4 channel, uint8 tiff
+    SHA-1: 97D6548FF9E9BFD21424B773B1D84FACDF0C1797
+    channel list: R, G, B, A
+    oiio:BitsPerSample: 8
+    Orientation: 1 (normal)
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: "in"
+    Software: "GraphicsMagick 1.3.6 2009-07-25 Q8 http://www.GraphicsMagick.org/"
+    DocumentName: "g.tif"
+    tiff:PageNumber: 0
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 8
+    compression: "zip"
+    tiff:RowsPerStrip: 8
