@@ -101,6 +101,8 @@ SocketOutput::write_tile (int x, int y, int z,
 {
     data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
 
+    //ImageSpec spec(x, y, m_spec.nchannels, format);
+    //std::string header = spec.to_xml ();
     std::string header = Strutil::format ("tile?x=%d&y=%d&z=%d", x, y, z);
     std::cout << "writing tile " << x << " " << y << std::endl;
     if (send_header_to_server (header))

@@ -319,6 +319,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         return false;
     }
 
+    m_input->set_tile_changed_callback(&ImageCacheFile::tile_changed_callback, (void*)this);
+
     ImageSpec nativespec, tempspec;
     m_broken = false;
     bool ok = true;
@@ -941,7 +943,14 @@ ImageCacheFile::invalidate ()
         ;
 }
 
-
+bool
+ImageCacheFile::tile_changed_callback (void* data, int x, int y, int z)
+{
+    ImageCacheFile* file = (ImageCacheFile*)data;
+    std::cout << "tile_changed_callback " << x << " " << y << std::endl;
+    file->imagecache().get_tile (file->filename(), 0, 0, x, y, z);
+    return true;
+}
 
 ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename,
@@ -1807,6 +1816,7 @@ bool
 ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
                            ImageCachePerThreadInfo *thread_info)
 {
+    std::cout << "find_tile_main_cache " << id.x() << " " << id.y() << std::endl;
     DASSERT (! id.file().broken());
     ImageCacheStatistics &stats (thread_info->m_stats);
 
@@ -1885,6 +1895,7 @@ void
 ImageCacheImpl::add_tile_to_cache (ImageCacheTileRef &tile,
                                    ImageCachePerThreadInfo *thread_info)
 {
+    std::cout << "add_tile_to_cache " << tile->id().x() << " " << tile->id().y() << std::endl;
     bool ourtile = true;
     {
 #if IMAGECACHE_TIME_STATS
@@ -2243,6 +2254,7 @@ ImageCache::Tile *
 ImageCacheImpl::get_tile (ustring filename, int subimage, int miplevel,
                           int x, int y, int z)
 {
+    std::cout << "get_tile" << std::endl;
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);
     if (! file || file->broken())
@@ -2294,7 +2306,7 @@ ImageCacheImpl::tile_pixels (ImageCache::Tile *tile, TypeDesc &format) const
 
 
 void
-ImageCacheImpl::invalidate (ustring filename)
+ImageCacheImpl::invalidate (ustring filename, bool close)
 {
     ImageCacheFile *file = NULL;
     {
@@ -2329,7 +2341,7 @@ ImageCacheImpl::invalidate (ustring filename)
         tilemutex_holder (NULL);
     }
 
-    {
+    if (close) {
         ic_write_lock fileguard (m_filemutex);
         file->invalidate ();
     }

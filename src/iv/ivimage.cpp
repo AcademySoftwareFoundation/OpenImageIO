@@ -395,13 +395,13 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
 
 
 void
-IvImage::invalidate ()
+IvImage::invalidate (bool close)
 { 
     m_pixels_valid = false;
     m_thumbnail_valid = false;
     m_image_valid = false;
     if (m_imagecache) {
-        m_imagecache->invalidate (m_name);
+        m_imagecache->invalidate (m_name, close);
     }
 }
 

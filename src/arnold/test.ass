@@ -7,7 +7,7 @@
 options
 {
  name options
- AA_samples 4
+ AA_samples 8
  outputs 
   "RGBA RGBA gaussian_filter driver_socket" 
  xres 640

@@ -177,7 +177,7 @@ driver_open
       AiMsgWarning("[driver_socket] %s", out->geterror().c_str());
    }
 
-   ShaderData *data = (ShaderData*)AiNodeGetLocalData(node);
+   ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
    data->out = out;
 
 }
@@ -224,7 +224,7 @@ driver_write_bucket
       AiMsgError("[driver_socket] Could not get first AOV");
       return;
    }
-   ShaderData *data = (ShaderData*)AiNodeGetLocalData(node);
+   ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
    if (!data->out->write_tile (bucket_xo, bucket_yo, 0,
                                TypeDesc::FLOAT, bucket_data))
    {
@@ -237,17 +237,17 @@ driver_write_bucket
 driver_close
 {
    AiMsgInfo("[driver_socket] driver close");
-   ShaderData *data = (ShaderData*)AiNodeGetLocalData(node);
+   ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
    data->out->close();
 }
 
 node_finish
 {
    AiMsgInfo("[driver_socket] driver finish");
+   ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
+   AiFree(data);
    // release the driver
    AiDriverDestroy(node);
-   ShaderData *data = (ShaderData*)AiNodeGetLocalData(node);
-   AiFree(data);
 }
 
 

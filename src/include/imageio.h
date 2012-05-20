@@ -93,7 +93,7 @@ const stride_t AutoStride = std::numeric_limits<stride_t>::min();
 /// bool, which if 'true' will STOP the read or write.
 typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
-
+typedef bool (*TileChangedCallback)(void *opaque_data, int x, int y, int z);
 
 typedef ParamValue ImageIOParameter;
 typedef ParamValueList ImageIOParameterList;
@@ -713,6 +713,10 @@ public:
         m_errmessage.clear ();
         return e;
     }
+    void set_tile_changed_callback (TileChangedCallback tile_callback, void* tile_callback_data) {
+        m_tile_changed_callback=tile_callback;
+        m_tile_changed_callback_data = tile_callback_data;
+    }
 
 protected:
     /// Error reporting for the plugin implementation: call this with
@@ -723,6 +727,8 @@ protected:
 
 protected:
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
+    TileChangedCallback m_tile_changed_callback;
+    void* m_tile_changed_callback_data;
 
 private:
     mutable std::string m_errmessage;  // private storage of error message

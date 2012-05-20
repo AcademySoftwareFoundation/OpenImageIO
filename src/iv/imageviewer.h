@@ -130,7 +130,7 @@ public:
     std::string shortinfo () const;
     std::string longinfo () const;
 
-    void invalidate ();
+    void invalidate (close=true);
 
     /// Can we read the pixels of this image already?
     ///

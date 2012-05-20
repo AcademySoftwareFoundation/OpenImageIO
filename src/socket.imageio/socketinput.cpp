@@ -190,7 +190,7 @@ SocketInput::read_native_scanline (int y, int z, void *data)
 bool
 SocketInput::read_native_tile (int x, int y, int z, void *data)
 {
-//   std::cout << "tile " << x << " " << y << std::endl;
+   std::cout << "read_native_tile " << x << " " << y << std::endl;
 //    try {
 //        boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data),
 //                m_spec.tile_bytes ()));
@@ -323,7 +323,25 @@ SocketInput::handle_read_header (const boost::system::error_code& error)
             boost::asio::read (*m_socket, boost::asio::buffer (buf, m_header_length));
 
             std::string header(buf);
-            std::cout << "TILE: " << header << std::endl;
+            //ImageSpec spc;
+            //spec.from_xml (header.c_str ());
+            std::map<std::string, std::string> rest_args;
+            std::string baseurl;
+            if (! Strutil::get_rest_arguments (header, baseurl, rest_args)) {
+                //error ("Invalid header: %s", header.c_str ());
+                //return;
+            }
+            else
+            {
+                std::cout << "TILE: " << rest_args["x"] << " " << rest_args["y"] << std::endl;
+                if (m_tile_changed_callback)
+                {
+                    m_tile_changed_callback (m_tile_changed_callback_data,
+                            atoi (rest_args["x"].c_str ()),
+                            atoi (rest_args["y"].c_str ()),
+                            atoi (rest_args["z"].c_str ()));
+                }
+            }
             delete [] buf;
 
             // listen for next tile

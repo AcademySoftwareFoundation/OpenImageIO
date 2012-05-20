@@ -328,6 +328,9 @@ private:
 #endif
     }
 
+
+    static bool tile_changed_callback(void* data, int x, int y, int z);
+
     friend class ImageCacheImpl;
     friend class TextureSystemImpl;
 };
@@ -769,7 +772,7 @@ public:
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1) const;
     virtual void reset_stats ();
-    virtual void invalidate (ustring filename);
+    virtual void invalidate (ustring filename, bool close=true);
     virtual void invalidate_all (bool force=false);
 
     /// Merge all the per-thread statistics into one set of stats.
