@@ -1185,24 +1185,40 @@ and frees any memory or resources associated with it.
      const void *data, \\
 \bigspc stride_t xstride=AutoStride)}
 
-Write a block of scanlines that include pixels $(*,y,z)$, where
-$\mathit{ybegin} \le y < \mathit{yend}$.  This is 
-essentially identical to \writescanline, except that can write more than
-one scanline at a time, which may be more efficient for certain image
-format writers.
+Write the scanline that includes pixels $(*,y,z)$ from {\cf data}.  For
+2D non-volume images, $z$ is ignored.
+The {\cf xstride} value gives the data spacing of adjacent pixels (in
+bytes).  Strides set to the special value {\kw AutoStride} imply
+contiguous data, i.e., \\ 
+\spc {\kw xstride} $=$ {\kw spec.nchannels * format.size()} \\
+
+This method automatically converts the data from the specified {\kw format}
+to the actual output format of the file.  
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data is assumed to
+already be in the file's native format (including per-channel formats, 
+as specified in the \ImageSpec's {\cf channelformats} field, if applicable).
+Return {\kw true} for success, {\kw false} for failure.  
+It is a failure to call \writescanline with an
+out-of-order scanline if this format driver does not support random
+access.
 \apiend
 
-\apiitem{bool {\ce write_scanlines} (int ybegin, int yend, int z, TypeDesc format,
+\apiitem{bool {\ce write_scanlines} (int ybegin, int yend, int z, \\
+\bigspc TypeDesc format,
      const void *data, \\
 \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
 
 Write a block of scanlines scanline that includes pixels $(*,y,z)$,
-where ${\mathit ybegin} \le y < {\mathit yend}$.  For 2D non-volume
-images, $z$ is ignored.  The {\kw xstride} value gives the distance
-between successive pixels (in bytes), and {\kw ystride} gives the 
-distance between successive scanlines.  Strides set to the special value
-{\kw AutoStride} imply contiguous data, i.e., \\ \spc {\kw xstride} $=$
-{\kw spec.nchannels*format.size()}, {\kw ystride} $=$ {\kw spec.width*xstride}.\\
+where ${\mathit ybegin} \le y < {\mathit yend}$.  This is essentially
+identical to {\cf write_scanline()}, except that it can write more than
+one scanline at a time, which may be more efficient for certain
+image format writers.
+
+For 2D non-volume images, $z$ is ignored.  The {\kw xstride} value gives
+the distance between successive pixels (in bytes), and {\kw ystride}
+gives the distance between successive scanlines.  Strides set to the
+special value {\kw AutoStride} imply contiguous data, i.e., \\
+ \spc {\kw xstride} $=$ {\kw spec.nchannels*format.size()} \\ \spc {\kw ystride} $=$ {\kw spec.width*xstride}
 
 This method automatically converts the data from the specified {\kw format}
 to the actual output format of the file.  
@@ -1272,8 +1288,8 @@ do not fall along tile (or image) boundaries, or if it is not a valid
 tile range.
 \apiend
 
-\apiitem{bool {\ce write_rectangle} ({\small int xbegin, int xend, int ybegin, int yend,
-                                  int zbegin, int zend,} \\ \bigspc TypeDesc format,
+\apiitem{bool {\ce write_rectangle} ({\small int xbegin, int xend, int ybegin, int yend, \\ \bigspc
+                                  int zbegin, int zend,} TypeDesc format,
                                   const void *data, \\ \bigspc stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride, \\
                                   \bigspc stride_t zstride=AutoStride)}
