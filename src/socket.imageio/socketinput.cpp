@@ -53,7 +53,9 @@ OIIO_PLUGIN_EXPORTS_END
 SocketInput::SocketInput()
 //        : *m_socket (io)
           : m_socket(NULL),
-            m_port(0)
+            m_port(0),
+            m_curr_tile_x(-1),
+            m_curr_tile_y(-1)
 {
 }
 
@@ -190,15 +192,18 @@ SocketInput::read_native_scanline (int y, int z, void *data)
 bool
 SocketInput::read_native_tile (int x, int y, int z, void *data)
 {
-   std::cout << "read_native_tile " << x << " " << y << std::endl;
-//    try {
-//        boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data),
-//                m_spec.tile_bytes ()));
-//    } catch (boost::system::system_error &err) {
-//        error ("Error while reading: %s", err.what ());
-//        return false;
-//    }
-
+    if (m_curr_tile_x >= 0 || m_curr_tile_y >= 0) {
+    //    int size = m_spec.tile_pixels() * m_spec.nchannels; // * format.size();
+        int size = m_spec.tile_bytes ();
+        std::cout << "read_native_tile (" << x << ", " << y << ") size: " << size << std::endl;
+        try {
+            boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data),
+                    m_spec.tile_bytes ()));
+        } catch (boost::system::system_error &err) {
+            error ("Error while reading: %s", err.what ());
+            return false;
+        }
+    }
     return true;
 }
 
@@ -334,12 +339,14 @@ SocketInput::handle_read_header (const boost::system::error_code& error)
             else
             {
                 std::cout << "TILE: " << rest_args["x"] << " " << rest_args["y"] << std::endl;
+                int x = atoi (rest_args["x"].c_str ());
+                int y = atoi (rest_args["y"].c_str ());
+                int z = atoi (rest_args["z"].c_str ());
+                m_curr_tile_x = x;
+                m_curr_tile_y = y;
                 if (m_tile_changed_callback)
                 {
-                    m_tile_changed_callback (m_tile_changed_callback_data,
-                            atoi (rest_args["x"].c_str ()),
-                            atoi (rest_args["y"].c_str ()),
-                            atoi (rest_args["z"].c_str ()));
+                    m_tile_changed_callback (m_tile_changed_callback_data, x, y, z);
                 }
             }
             delete [] buf;

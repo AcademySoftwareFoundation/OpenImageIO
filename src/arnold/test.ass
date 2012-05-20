@@ -11,8 +11,8 @@ options
  outputs 
   "RGBA RGBA gaussian_filter driver_socket" 
  xres 640
- yres 480
- aspect_ratio 1.0002501
+ yres 640
+ aspect_ratio 1.
  bucket_scanning "spiral"
  camera "perspShape"
  sss_subpixel_cache on

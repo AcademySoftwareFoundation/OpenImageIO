@@ -112,6 +112,8 @@ class SocketInput : public ImageInput {
     unsigned int m_header_length;
     short m_port;
     boost::thread m_thread;
+    int m_curr_tile_x;
+    int m_curr_tile_y;
 
     bool accept_connection (const std::string &name);
     bool get_spec_from_client (ImageSpec &spec);
