@@ -127,7 +127,7 @@ put_in_background (int, char* [])
     // But it suffers from the same problem on OS X, and seems to just be
     // a wrapper for fork.
 
-#ifdef __linux
+#ifdef __linux || defined(__GLIBC__)
     // Simplest case:
     daemon (1, 1);
     return true;
