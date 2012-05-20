@@ -137,46 +137,6 @@ Sysutil::get_local_time (const time_t *time, struct tm *converted_time)
 }
 
 
-
-std::string
-Sysutil::this_program_path ()
-{
-    char filename[10240];
-    filename[0] = 0;
-    unsigned int size = sizeof(filename);
-
-#if defined(__linux__)
-    int r = readlink ("/proc/self/exe", filename, size);
-#elif defined(__APPLE__)
-    // For info:  'man 3 dyld'
-    int r = _NSGetExecutablePath (filename, &size);
-    if (r == 0)
-        r = size;
-#elif defined(_WIN32)
-    // According to MSDN...
-    int r = GetModuleFileName (NULL, filename, size);
-#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-//  char filename[1024];
-    size_t cb = sizeof(filename);
-    int r=1;
-    sysctl(mib, 4, filename, &cb, NULL, 0);
-#else
-    // No idea what platform this is
-    ASSERT (0);
-#endif
-
-    if (r > 0)
-        return std::string (filename);
-    return std::string();   // Couldn't figure it out
-}
-
-
-
 void
 Sysutil::usleep (unsigned long useconds)
 {
