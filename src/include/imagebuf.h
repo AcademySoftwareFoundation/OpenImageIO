@@ -96,12 +96,21 @@ public:
     /// image of the given name and dimensions.
     virtual void reset (const std::string &name, const ImageSpec &spec);
 
-    /// Allocate space the right size for an image described by the
-    /// format spec.  If the ImageBuf already has allocated pixels,
-    /// their values will not be preserved if the new spec does not
-    /// describe an image of the same size and data type as it used
-    /// to be.
+    /// Copy spec to *this, and then allocate enough space the right
+    /// size for an image described by the format spec.  If the ImageBuf
+    /// already has allocated pixels, their values will not be preserved
+    /// if the new spec does not describe an image of the same size and
+    /// data type as it used to be.
     virtual void alloc (const ImageSpec &spec);
+
+    /// Change the pixel data window resolution, channel information,
+    /// and data format to that described by src (but no other
+    /// metadata), and then resize the local buffer to accommodate the
+    /// new image size.  Return true on success, false if it could not
+    /// be done because it was not possible to change the resolution,
+    /// channels, or data format (e.g., if it wrapped an app memory
+    /// buffer and thus could not be resized).
+    virtual bool reres (const ImageBuf &spec);
 
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
@@ -137,6 +146,17 @@ public:
     virtual bool write (ImageOutput *out,
                         ProgressCallback progress_callback=NULL,
                         void *progress_callback_data=NULL) const;
+
+    /// Copy all the metadata from src to *this (except for pixel data
+    /// resolution, channel information, and data format).
+    void copy_metadata (const ImageBuf &src);
+
+    /// Copy the pixel data from src to *this, automatically converting
+    /// to the existing data format of *this.  It only copies pixels in
+    /// the overlap regions (and channels) of the two images; pixel data
+    /// in *this that do exist in src will be set to 0, and pixel data
+    /// in src that do not exist in *this will not be copied.
+    bool copy_pixels (const ImageBuf &src);
 
     /// Try to copy the pixels and metadata from src to *this, returning
     /// true upon success and false upon error/failure.
@@ -270,7 +290,7 @@ public:
     /// memory big enough to accommodate the requested rectangle.
     /// Return true if the operation could be completed, otherwise
     /// return false.
-    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
+    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
                       int zbegin, int zend,
                       TypeDesc format, void *result) const;
 
@@ -283,23 +303,23 @@ public:
     /// enough to accommodate the requested rectangle.  Return true if
     /// the operation could be completed, otherwise return false.
     template<typename T>
-    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
+    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
                       int zbegin, int zend, T *result) const;
 
-    /// Even safer version of copy_pixels: Retrieve the rectangle of
+    /// Even safer version of get_pixels: Retrieve the rectangle of
     /// pixels spanning [xbegin..xend) X [ybegin..yend) (with exclusive
     /// 'end'), specified as integer pixel coordinates, at the current
     /// MIP-map level, storing the pixel values in the 'result' vector
     /// (even allocating the right size).  Return true if the operation
     /// could be completed, otherwise return false.
     template<typename T>
-    bool copy_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
+    bool get_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
                       int zbegin_, int zend_,
                       std::vector<T> &result) const
     {
         result.resize (nchannels() * ((zend_-zbegin_)*(yend_-ybegin_)*(xend_-xbegin_)));
-        return _copy_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
-                             &result[0]);
+        return get_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
+                           &result[0]);
     }
 
 

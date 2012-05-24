@@ -750,8 +750,8 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
     std::vector<unsigned char> tmp (scanline_bytes);
     for (int z = src.zmin(), zend=src.zend();  z < zend;  ++z) {
         for (int y = src.ymin(), yend=src.yend();  y < yend;  ++y) {
-            src.copy_pixels (src.xbegin(), src.xend(), y, y+1, z, z+1,
-                             src.spec().format, &tmp[0]);
+            src.get_pixels (src.xbegin(), src.xend(), y, y+1, z, z+1,
+                            src.spec().format, &tmp[0]);
             sha.Update (&tmp[0], (unsigned int) scanline_bytes);
         }
     }

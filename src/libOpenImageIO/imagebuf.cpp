@@ -41,6 +41,7 @@
 
 #include "imageio.h"
 #include "imagebuf.h"
+#include "imagebufalgo.h"
 #include "imagecache.h"
 #include "dassert.h"
 #include "strutil.h"
@@ -276,8 +277,8 @@ ImageBuf::copy_from (const ImageBuf &src)
             m_spec.depth == src.m_spec.depth &&
             m_spec.nchannels == src.m_spec.nchannels);
     realloc ();
-    src.copy_pixels (src.xbegin(), src.xend(), src.ybegin(), src.yend(),
-                     src.zbegin(), src.zend(), m_spec.format, m_localpixels);
+    src.get_pixels (src.xbegin(), src.xend(), src.ybegin(), src.yend(),
+                    src.zbegin(), src.zend(), m_spec.format, m_localpixels);
 }
 
 
@@ -407,8 +408,8 @@ ImageBuf::write (ImageOutput *out,
                                progress_callback, progress_callback_data);
     } else {
         std::vector<char> tmp (m_spec.image_bytes());
-        copy_pixels (xbegin(), xend(), ybegin(), yend(), zbegin(), zend(),
-                     m_spec.format, &tmp[0]);
+        get_pixels (xbegin(), xend(), ybegin(), yend(), zbegin(), zend(),
+                    m_spec.format, &tmp[0]);
         ok = out->write_image (m_spec.format, &tmp[0], as, as, as,
                                progress_callback, progress_callback_data);
         // FIXME -- not good for huge images.  Instead, we should read
@@ -448,12 +449,211 @@ ImageBuf::save (const std::string &_filename, const std::string &_fileformat,
 
 
 bool
+ImageBuf::reres (const ImageBuf &src)
+{
+    if (localpixels() && ! m_clientpixels) {
+        m_spec.width = src.m_spec.width;
+        m_spec.height = src.m_spec.height;
+        m_spec.depth = src.m_spec.depth;
+        m_spec.nchannels = src.m_spec.nchannels;
+        m_spec.format = src.m_spec.format;
+        m_spec.channelformats = src.m_spec.channelformats;
+        m_spec.channelnames = src.m_spec.channelnames;
+        m_spec.alpha_channel = src.m_spec.alpha_channel;
+        m_spec.z_channel = src.m_spec.z_channel;
+        return true;
+    }
+    return false;  // not the kind of ImageBuf that can be resized
+}
+
+
+
+void
+ImageBuf::copy_metadata (const ImageBuf &src)
+{
+    m_spec.full_x = src.m_spec.full_x;
+    m_spec.full_y = src.m_spec.full_y;
+    m_spec.full_z = src.m_spec.full_z;
+    m_spec.full_width = src.m_spec.full_width;
+    m_spec.full_height = src.m_spec.full_height;
+    m_spec.full_depth = src.m_spec.full_depth;
+    m_spec.tile_width = src.m_spec.tile_width;
+    m_spec.tile_height = src.m_spec.tile_height;
+    m_spec.tile_depth = src.m_spec.tile_depth;
+    m_spec.extra_attribs = src.m_spec.extra_attribs;
+}
+
+
+
+namespace {
+
+// Pixel-by-pixel copy fully templated by both data types.
+template<class D, class S>
+void copy_pixels_2 (ImageBuf &dst, const ImageBuf &src, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend, int nchannels)
+{
+    if (is_same<D,S>::value) {
+        // If both bufs are the same type, just directly copy the values
+        ImageBuf::Iterator<D,D> d (dst, xbegin, xend, ybegin, yend, zbegin, zend);
+        ImageBuf::ConstIterator<D,D> s (src, xbegin, xend, ybegin, yend, zbegin, zend);
+        for ( ; ! d.done();  ++d, ++s) {
+            if (s.exists() && d.exists()) {
+                for (int c = 0;  c < nchannels;  ++c)
+                    d[c] = s[c];
+            }
+        }
+    } else {
+        // If the two bufs are different types, convert through float
+        ImageBuf::Iterator<D,float> d (dst, xbegin, xend, ybegin, yend, zbegin, zend);
+        ImageBuf::ConstIterator<S,float> s (dst, xbegin, xend, ybegin, yend, zbegin, zend);
+        for ( ; ! d.done();  ++d, ++s) {
+            if (s.exists() && d.exists()) {
+                for (int c = 0;  c < nchannels;  ++c)
+                    d[c] = s[c];
+            }
+        }
+    }        
+}
+
+
+// Call two-type template copy_pixels_2 based on src AND dst data type
+template<class S>
+void copy_pixels_ (ImageBuf &dst, const ImageBuf &src, int xbegin, int xend,
+                   int ybegin, int yend, int zbegin, int zend, int nchannels)
+{
+    switch (dst.spec().format.basetype) {
+    case TypeDesc::FLOAT :
+        copy_pixels_2<float,S> (dst, src, xbegin, xend, ybegin, yend,
+                                zbegin, zend, nchannels);
+        break;
+    case TypeDesc::UINT8 :
+        copy_pixels_2<unsigned char,S> (dst, src, xbegin, xend, ybegin, yend,
+                                        zbegin, zend, nchannels);
+        break;
+    case TypeDesc::INT8  :
+        copy_pixels_2<char,S> (dst, src, xbegin, xend, ybegin, yend,
+                               zbegin, zend, nchannels);
+        break;
+    case TypeDesc::UINT16:
+        copy_pixels_2<unsigned short,S> (dst, src, xbegin, xend, ybegin, yend,
+                                         zbegin, zend, nchannels);
+        break;
+    case TypeDesc::INT16 :
+        copy_pixels_2<short,S> (dst, src, xbegin, xend, ybegin, yend,
+                                zbegin, zend, nchannels);
+        break;
+    case TypeDesc::UINT  :
+        copy_pixels_2<unsigned int,S> (dst, src, xbegin, xend, ybegin, yend,
+                                       zbegin, zend, nchannels);
+        break;
+    case TypeDesc::INT   :
+        copy_pixels_2<int,S> (dst, src, xbegin, xend, ybegin, yend,
+                              zbegin, zend, nchannels);
+        break;
+    case TypeDesc::HALF  :
+        copy_pixels_2<half,S> (dst, src, xbegin, xend, ybegin, yend,
+                               zbegin, zend, nchannels);
+        break;
+    case TypeDesc::DOUBLE:
+        copy_pixels_2<double,S> (dst, src, xbegin, xend, ybegin, yend,
+                                 zbegin, zend, nchannels);
+        break;
+    case TypeDesc::UINT64:
+        copy_pixels_2<unsigned long long,S> (dst, src, xbegin, xend, ybegin, yend,
+                                             zbegin, zend, nchannels);
+        break;
+    case TypeDesc::INT64 :
+        copy_pixels_2<long long,S> (dst, src, xbegin, xend, ybegin, yend,
+                                    zbegin, zend, nchannels);
+        break;
+    default:
+        ASSERT (0);
+    }
+}
+
+}
+
+bool
+ImageBuf::copy_pixels (const ImageBuf &src)
+{
+    // compute overlap
+    int xbegin = std::max (this->xbegin(), src.xbegin());
+    int xend = std::min (this->xend(), src.xend());
+    int ybegin = std::max (this->ybegin(), src.ybegin());
+    int yend = std::min (this->yend(), src.yend());
+    int zbegin = std::max (this->zbegin(), src.zbegin());
+    int zend = std::min (this->zend(), src.zend());
+    int nchannels = std::min (this->nchannels(), src.nchannels());
+
+    // If we aren't copying over all our pixels, zero out the pixels
+    if (xbegin != this->xbegin() || xend != this->xend() ||
+        ybegin != this->ybegin() || yend != this->yend() ||
+        zbegin != this->zbegin() || zend != this->zend() ||
+        nchannels != this->nchannels())
+        ImageBufAlgo::zero (*this);
+
+    // Call template copy_pixels_ based on src data type
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT :
+        copy_pixels_<float> (*this, src, xbegin, xend, ybegin, yend,
+                             zbegin, zend, nchannels);
+        break;
+    case TypeDesc::UINT8 :
+        copy_pixels_<unsigned char> (*this, src, xbegin, xend, ybegin, yend,
+                                     zbegin, zend, nchannels);
+        break;
+    case TypeDesc::INT8  :
+        copy_pixels_<char> (*this, src, xbegin, xend, ybegin, yend,
+                            zbegin, zend, nchannels);
+        break;
+    case TypeDesc::UINT16:
+        copy_pixels_<unsigned short> (*this, src, xbegin, xend, ybegin, yend,
+                                      zbegin, zend, nchannels);
+        break;
+    case TypeDesc::INT16 :
+        copy_pixels_<short> (*this, src, xbegin, xend, ybegin, yend,
+                             zbegin, zend, nchannels);
+        break;
+    case TypeDesc::UINT  :
+        copy_pixels_<unsigned int> (*this, src, xbegin, xend, ybegin, yend,
+                                    zbegin, zend, nchannels);
+        break;
+    case TypeDesc::INT   :
+        copy_pixels_<int> (*this, src, xbegin, xend, ybegin, yend,
+                           zbegin, zend, nchannels);
+        break;
+    case TypeDesc::HALF  :
+        copy_pixels_<half> (*this, src, xbegin, xend, ybegin, yend,
+                            zbegin, zend, nchannels);
+        break;
+    case TypeDesc::DOUBLE:
+        copy_pixels_<double> (*this, src, xbegin, xend, ybegin, yend,
+                              zbegin, zend, nchannels);
+        break;
+    case TypeDesc::UINT64:
+        copy_pixels_<unsigned long long> (*this, src, xbegin, xend, ybegin, yend,
+                                          zbegin, zend, nchannels);
+        break;
+    case TypeDesc::INT64 :
+        copy_pixels_<long long> (*this, src, xbegin, xend, ybegin, yend,
+                                 zbegin, zend, nchannels);
+        break;
+    default:
+        ASSERT (0);
+    }
+    return true;
+}
+
+
+
+bool
 ImageBuf::copy (const ImageBuf &src)
 {
     if (! m_spec_valid && ! m_pixels_valid) {
         // uninitialized
         if (! src.m_spec_valid && ! src.m_pixels_valid)
             return true;   // uninitialized=uninitialized is a nop
+        // uninitialized = initialized : set up *this with local storage
         reset (src.name(), src.spec());
     }
 
@@ -480,16 +680,12 @@ ImageBuf::copy (const ImageBuf &src)
                 // size doesn't match, fail
                 return false;
             }
-            m_spec = src.spec();
-            m_nativespec = m_spec;
+            dst.copy_metadata (src);
         } else {
-            // locally owned memory
+            // locally owned memory -- we can fully resize it
             reset (src.name(), src.spec());
         }
-        return src.copy_pixels (src.xbegin(), src.xend(),
-                                src.ybegin(), src.yend(),
-                                src.zbegin(), src.zend(), spec().format,
-                                m_localpixels);
+        return dst.copy_pixels (src);
     }
 
     return false;   // all other cases fail
@@ -640,8 +836,8 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 template<typename S, typename D>
 static inline void 
-copy_pixels_ (const ImageBuf &buf, int xbegin, int xend,
-              int ybegin, int yend, int zbegin, int zend, D *r)
+get_pixels_ (const ImageBuf &buf, int xbegin, int xend,
+             int ybegin, int yend, int zbegin, int zend, D *r)
 {
     int w = (xend-xbegin), h = (yend-ybegin);
     imagesize_t wh = imagesize_t(w) * imagesize_t(h);
@@ -657,14 +853,14 @@ copy_pixels_ (const ImageBuf &buf, int xbegin, int xend,
 
 template<typename D>
 bool
-ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
-                       int zbegin, int zend, D *r) const
+ImageBuf::get_pixels (int xbegin, int xend, int ybegin, int yend,
+                      int zbegin, int zend, D *r) const
 {
     // Caveat: serious hack here.  To avoid duplicating code, use a
     // #define.  Furthermore, exploit the CType<> template to construct
     // the right C data type for the given BASETYPE.
 #define TYPECASE(B)                                                     \
-    case B : copy_pixels_<CType<B>::type,D>(*this, xbegin, xend, ybegin, yend, zbegin, zend, (D *)r); return true
+    case B : get_pixels_<CType<B>::type,D>(*this, xbegin, xend, ybegin, yend, zbegin, zend, (D *)r); return true
     
     switch (spec().format.basetype) {
         TYPECASE (TypeDesc::UINT8);
@@ -686,7 +882,7 @@ ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
 
 
 bool
-ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
+ImageBuf::get_pixels (int xbegin, int xend, int ybegin, int yend,
                        int zbegin, int zend,
                        TypeDesc format, void *result) const
 {
@@ -695,37 +891,37 @@ ImageBuf::copy_pixels (int xbegin, int xend, int ybegin, int yend,
     // wants for a destination type, call a template specialization.
     switch (format.basetype) {
     case TypeDesc::UINT8 :
-        copy_pixels<unsigned char> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned char *)result);
+        get_pixels<unsigned char> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned char *)result);
         break;
     case TypeDesc::INT8:
-        copy_pixels<char> (xbegin, xend, ybegin, yend, zbegin, zend, (char *)result);
+        get_pixels<char> (xbegin, xend, ybegin, yend, zbegin, zend, (char *)result);
         break;
     case TypeDesc::UINT16 :
-        copy_pixels<unsigned short> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned short *)result);
+        get_pixels<unsigned short> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned short *)result);
         break;
     case TypeDesc::INT16 :
-        copy_pixels<short> (xbegin, xend, ybegin, yend, zbegin, zend, (short *)result);
+        get_pixels<short> (xbegin, xend, ybegin, yend, zbegin, zend, (short *)result);
         break;
     case TypeDesc::UINT :
-        copy_pixels<unsigned int> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned int *)result);
+        get_pixels<unsigned int> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned int *)result);
         break;
     case TypeDesc::INT :
-        copy_pixels<int> (xbegin, xend, ybegin, yend, zbegin, zend, (int *)result);
+        get_pixels<int> (xbegin, xend, ybegin, yend, zbegin, zend, (int *)result);
         break;
     case TypeDesc::HALF :
-        copy_pixels<half> (xbegin, xend, ybegin, yend, zbegin, zend, (half *)result);
+        get_pixels<half> (xbegin, xend, ybegin, yend, zbegin, zend, (half *)result);
         break;
     case TypeDesc::FLOAT :
-        copy_pixels<float> (xbegin, xend, ybegin, yend, zbegin, zend, (float *)result);
+        get_pixels<float> (xbegin, xend, ybegin, yend, zbegin, zend, (float *)result);
         break;
     case TypeDesc::DOUBLE :
-        copy_pixels<double> (xbegin, xend, ybegin, yend, zbegin, zend, (double *)result);
+        get_pixels<double> (xbegin, xend, ybegin, yend, zbegin, zend, (double *)result);
         break;
     case TypeDesc::UINT64 :
-        copy_pixels<unsigned long long> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned long long *)result);
+        get_pixels<unsigned long long> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned long long *)result);
         break;
     case TypeDesc::INT64 :
-        copy_pixels<long long> (xbegin, xend, ybegin, yend, zbegin, zend, (long long *)result);
+        get_pixels<long long> (xbegin, xend, ybegin, yend, zbegin, zend, (long long *)result);
         break;
     default:
         return false;
