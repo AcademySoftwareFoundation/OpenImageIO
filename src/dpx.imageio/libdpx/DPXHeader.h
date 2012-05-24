@@ -228,7 +228,8 @@ namespace dpx
 		k525LineProgressive169AR = 200,					//!< YCbCr 525-line, 1:1 progressive, 16:9 aspect ratio
 		k625LineProgressive169AR = 201,					//!< YCbCr 625-line, 1:1 progressive, 16:9 aspect ratio
 		k750LineProgressive169AR = 202,					//!< YCbCr 750-line, 1:1 progressive, 16:9 aspect ratio (SMPTE 296M)
-		k1125LineProgressive169AR = 203					//!< YCbCr 1125-line, 1:1 progressive, 16:9 aspect ratio (SMPTE 274M)
+		k1125LineProgressive169AR = 203,				//!< YCbCr 1125-line, 1:1 progressive, 16:9 aspect ratio (SMPTE 274M)
+        k255 = 255
 	};
 
 
