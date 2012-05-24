@@ -1,5 +1,15 @@
 Changes:
 
+Release 1.0.5 (3 Jun 2012)
+--------------------------
+* Various fixes for FreeBSD/kFreeBSD systems.
+* Various fixes to compile with Clang 3.1 without warnings.
+* Fixed some DPX and Cineon bugs related to channel names.
+* Fixed some mangled text in the PDF documentation.
+* Developer goodie: TypeDesc::equivalent() tests two TypeDesc's for
+  equality, but allows 'triples' with differing vector semantics to match.
+
+
 Release 1.0.4 (2 May 2012)
 --------------------------
 * DPX fixes for 12 bit DPX and packing methods.
