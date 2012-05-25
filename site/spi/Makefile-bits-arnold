@@ -37,8 +37,8 @@ ifeq ($(SP_ARCH), spinux1_x86_64)
 	  -DILMBASE_CUSTOM_LIBRARIES="SpiImath SpiHalf SpiIlmThread SpiIex" \
 	  -DOPENEXR_CUSTOM=1 \
 	  -DOPENEXR_CUSTOM_LIBRARY="SpiIlmImf" \
-	  -DOCIO_PATH="${OCIO_PATH}" \
-	  -DFIELD3D_HOME="${FIELD3D_HOME}" \
+	  -DOCIO_PATH=${OCIO_PATH} \
+	  -DFIELD3D_HOME=${FIELD3D_HOME} \
           -DHDF5_CUSTOM=1 \
 	  -DHDF5_INCLUDE_DIRS=/usr/include \
 	  -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
