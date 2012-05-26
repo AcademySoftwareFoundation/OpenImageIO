@@ -943,14 +943,25 @@ ImageCacheFile::invalidate ()
         ;
 }
 
+
+
 bool
 ImageCacheFile::tile_changed_callback (void* data, int x, int y, int z)
 {
     ImageCacheFile* file = (ImageCacheFile*)data;
     std::cout << "tile_changed_callback " << x << " " << y << std::endl;
+    // TODO: get these values from the proper place
+    int subimage = 0;
+    int miplevel = 0;
+    TileID id (*file, subimage, miplevel, x, y, z);
+    // remove the tile from cache
+    file->imagecache().invalidate_tile (id);
+    // re-cache the tile
     file->imagecache().get_tile (file->filename(), 0, 0, x, y, z);
     return true;
 }
+
+
 
 ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename,
@@ -2359,6 +2370,33 @@ ImageCacheImpl::invalidate (ustring filename, bool close)
     for (size_t i = 0;  i < m_all_perthread_info.size();  ++i)
         if (m_all_perthread_info[i])
             m_all_perthread_info[i]->purge = 1;
+}
+
+
+
+bool
+ImageCacheImpl::invalidate_tile (const TileID &id)
+{
+    TileCache::iterator todelete = m_tilecache.find (id);
+    if (todelete != m_tilecache.end()) {
+
+        ic_write_lock tileguard (m_tilemutex);
+#ifdef DEBUG
+        tilemutex_holder (get_perthread_info ());
+#endif
+
+        m_tilecache.erase (todelete);
+        // If the tile we deleted is the current clock sweep
+        // position, that would leave it pointing to an invalid
+        // tile entry, ick!  In this case, just advance it.
+        // FIXME:
+//        if (todelete == m_tile_sweep)
+//            m_tile_sweep = tci;
+
+        tilemutex_holder (NULL);
+        return true;
+    }
+    return false;
 }
 
 

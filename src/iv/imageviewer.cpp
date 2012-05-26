@@ -2146,5 +2146,5 @@ ImageViewer::loadSocketImage (QString filename)
     std::cout << "INVALIDATE " << std::endl;
     // we have to invalidate the cache so that new tiles will be loaded.
     // the second argument informs the cache not to close the file
-    cur()->invalidate(false);
+    //cur()->invalidate(false);
 }

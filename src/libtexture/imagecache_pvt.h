@@ -774,6 +774,7 @@ public:
     virtual void reset_stats ();
     virtual void invalidate (ustring filename, bool close=true);
     virtual void invalidate_all (bool force=false);
+    virtual bool invalidate_tile (const TileID &id);
 
     /// Merge all the per-thread statistics into one set of stats.
     ///
