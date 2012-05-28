@@ -149,7 +149,7 @@ DLLPUBLIC void last_write_time (const std::string& path, std::time_t time);
 
 /// Ensure command line arguments are UTF-8 everywhere
 ///
-DLLPUBLIC void convert_native_arguments (int argc, const char **argv[]);
+DLLPUBLIC void convert_native_arguments (int argc, const char *argv[]);
 
 };  // namespace Filesystem
 

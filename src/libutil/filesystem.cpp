@@ -43,6 +43,7 @@
 #endif
 
 #include "dassert.h"
+#include "ustring.h"
 
 #include "filesystem.h"
 
@@ -237,22 +238,24 @@ Filesystem::is_regular (const std::string &path)
 
 #ifdef _WIN32
 static std::wstring
-string_utf8_to_windows_native(const std::string& str)
+string_utf8_to_windows_native (const std::string& str)
 {
     std::wstring native;
     
-    native.resize(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0));
-    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &native[0], native.size());
+    native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0));
+    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], native.size());
 
     return native;
 }
 
 static std::string
-string_windows_native_to_utf8(const std::wstring& str)
+string_windows_native_to_utf8 (const std::wstring& str)
 {
     std::string utf8;
-    utf8.resize(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
-    WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, &utf8[0], utf8.size(), NULL, NULL);
+
+    utf8.resize(WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
+    WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, &utf8[0], utf8.size(), NULL, NULL);
+
     return utf8;
 }
 #endif
@@ -278,7 +281,7 @@ Filesystem::open (std::ifstream &stream,
                   std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    // Windows std::ofstream accepts non-standard wchar_t* 
+    // Windows std::ifstream accepts non-standard wchar_t* 
     std::wstring wpath = string_utf8_to_windows_native(path);
     stream.open (wpath.c_str(), mode);
 #else
@@ -323,7 +326,7 @@ Filesystem::last_write_time (const std::string& path, std::time_t time)
 }
 
 void
-Filesystem::convert_native_arguments (int argc, const char **argv[])
+Filesystem::convert_native_arguments (int argc, const char *argv[])
 {
 #ifdef _WIN32
     // Windows only, standard main() entry point does not accept unicode file
@@ -337,18 +340,10 @@ Filesystem::convert_native_arguments (int argc, const char **argv[])
     if (!native_argv || native_argc != argc)
         return;
 
-    static std::vector<const char*> argv_array;
-    static std::vector<std::string> argv_strings;
-
-    argv_array.resize (argc);
-    argv_strings.resize (argc);
-
     for (int i = 0; i < argc; i++) {
-        argv_strings[i] = string_windows_native_to_utf8 (native_argv[i]);
-        argv_array[i] = argv_strings[i].c_str();
+        std::string utf8_arg = string_windows_native_to_utf8 (native_argv[i]);
+        argv[i] = ustring (utf8_arg).c_str();
     }
-
-    *argv = &argv_array[0];
 #endif
 }
 

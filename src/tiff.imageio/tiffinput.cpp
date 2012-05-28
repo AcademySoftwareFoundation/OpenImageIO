@@ -364,6 +364,8 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         FILE *fd = Filesystem::fopen (m_filename, "rm");
         m_tif = (fd) ? TIFFFdOpen (fileno (fd), m_filename.c_str(), "rm") : NULL;
         if (m_tif == NULL) {
+            if (fd)
+                fclose (fd);
             error ("Could not open file: %s",
                    lasterr.length() ? lasterr.c_str() : m_filename.c_str());
             return false;

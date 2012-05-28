@@ -174,6 +174,8 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     FILE *fd = Filesystem::fopen (name, fmode);
     m_tif = (fd) ? TIFFFdOpen (fileno (fd), name.c_str(), fmode) : NULL;
     if (! m_tif) {
+        if (fd)
+            fclose(fd);
         error ("Can't open \"%s\" for output.", name.c_str());
         return false;
     }

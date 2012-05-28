@@ -140,8 +140,11 @@ ZfileInput::valid_file (const std::string &filename) const
 {
     FILE *fd = Filesystem::fopen (filename, "rb");
     gzFile gz = (fd) ? gzdopen (fileno (fd), "rb") : NULL;
-    if (! gz)
+    if (! gz) {
+        if (fd)
+            fclose (fd);
         return false;
+    }
 
     ZfileHeader header;
     gzread (gz, &header, sizeof(header));
@@ -161,6 +164,8 @@ ZfileInput::open (const std::string &name, ImageSpec &newspec)
     FILE *fd = Filesystem::fopen (name, "rb");
     m_gz = (fd) ? gzdopen (fileno (fd), "rb") : NULL;
     if (! m_gz) {
+        if (fd)
+            fclose (fd);
         error ("Could not open file \"%s\"", name.c_str());
         return false;
     }
@@ -295,7 +300,12 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
 
     if (m_spec.get_string_attribute ("compression", "none") != std::string("none")) {
         FILE *fd = Filesystem::fopen (name, "wb");
-        m_gz = (fd) ? gzdopen (fileno (fd), "wb") : NULL;
+
+        if (fd) {
+            m_gz = gzdopen (fileno (fd), "wb");
+            if (!m_gz)
+                fclose (fd);
+        }
     }
     else
         m_file = Filesystem::fopen (name, "wb");
