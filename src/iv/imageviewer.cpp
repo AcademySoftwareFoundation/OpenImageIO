@@ -90,6 +90,7 @@ ServerThread::acceptHandler (std::string& filename)
 }
 
 
+
 static const char *s_file_filters = ""
     "Image Files (*.bmp *.cin *.dds *.dpx *.f3d *.fits *.hdr *.ico *.iff *.jpg "
     "*.jpe *.jpeg *.jif *.jfif *.jfi *.jp2 *.j2k *.exr *.png *.pbm *.pgm *.ppm "
@@ -134,11 +135,17 @@ ImageViewer::ImageViewer ()
             m_default_gamma = g;
     }
 
+    // start a server on a different that will load a socket image when a connect is made
     m_servers = ServerPool::instance ();
 
     m_servers->add_server (10110, boost::bind (&ServerThread::acceptHandler, &m_server_thread, _1));
     connect (&m_server_thread, SIGNAL(socketAccepted(QString)), this, SLOT(loadSocketImage(QString)));
     m_server_thread.start();
+
+    // install a callback to handle tiles that are updated externally
+    ImageCache *imagecache = ImageCache::create (true);
+    imagecache->set_tile_changed_callback(ImageViewer::tileChangedCallback, (void*)this);
+    connect (this, SIGNAL(tileChanged()), this, SLOT(refreshImg()));
 
     // FIXME -- would be nice to have a more nuanced approach to display
     // color space, in particular knowing whether the display is sRGB.
@@ -2143,8 +2150,40 @@ ImageViewer::loadSocketImage (QString filename)
 {
     std::cout << "slot called " << filename.toUtf8().data() << std::endl;
     add_image (filename.toUtf8().data());
-    std::cout << "INVALIDATE " << std::endl;
+    //std::cout << "INVALIDATE " << std::endl;
     // we have to invalidate the cache so that new tiles will be loaded.
     // the second argument informs the cache not to close the file
     //cur()->invalidate(false);
 }
+
+
+
+bool
+ImageViewer::tileChangedCallback (void* data, ImageInput* input, int x, int y, int z)
+{
+    ImageViewer* viewer = (ImageViewer*)data;
+    std::cout << "tile_changed_callback " << x << " " << y << " " << input->format_name() << std::endl;
+    if ( strcmp(input->format_name(), "socket") == 0 ) {
+        std::cout << "emitting" << std::endl;
+        // we need to emit a signal so that the update can be performed on the main thread
+        viewer->emit tileChanged();
+    }
+    return true;
+}
+
+
+
+void
+ImageViewer::refreshImg ()
+{
+    std::cout << "refreshImg " << " displayCurrentImage" << std::endl;
+
+    glwin->update ();
+    float z = zoom();
+    if (fitImageToWindowAct->isChecked ())
+        z = zoom_needed_to_fit (glwin->width(), glwin->height());
+    zoom (z);
+}
+
+
+

@@ -336,17 +336,15 @@ SocketInput::handle_read_header (const boost::system::error_code& error)
                 //error ("Invalid header: %s", header.c_str ());
                 //return;
             }
-            else
-            {
+            else {
                 std::cout << "TILE: " << rest_args["x"] << " " << rest_args["y"] << std::endl;
                 int x = atoi (rest_args["x"].c_str ());
                 int y = atoi (rest_args["y"].c_str ());
                 int z = atoi (rest_args["z"].c_str ());
                 m_curr_tile_x = x;
                 m_curr_tile_y = y;
-                if (m_tile_changed_callback)
-                {
-                    m_tile_changed_callback (m_tile_changed_callback_data, x, y, z);
+                if (m_tile_changed_callback) {
+                    m_tile_changed_callback (m_tile_changed_callback_data, this, x, y, z);
                 }
             }
             delete [] buf;

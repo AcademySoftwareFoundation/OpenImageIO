@@ -93,7 +93,8 @@ const stride_t AutoStride = std::numeric_limits<stride_t>::min();
 /// bool, which if 'true' will STOP the read or write.
 typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
-typedef bool (*TileChangedCallback)(void *opaque_data, int x, int y, int z);
+class ImageInput;
+typedef bool (*TileChangedCallback)(void *opaque_data, ImageInput* input, int x, int y, int z);
 
 typedef ParamValue ImageIOParameter;
 typedef ParamValueList ImageIOParameterList;

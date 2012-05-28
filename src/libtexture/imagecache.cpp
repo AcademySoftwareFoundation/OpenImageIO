@@ -946,18 +946,31 @@ ImageCacheFile::invalidate ()
 
 
 bool
-ImageCacheFile::tile_changed_callback (void* data, int x, int y, int z)
+ImageCacheFile::tile_changed_callback (void* data, ImageInput* input, int x, int y, int z)
 {
     ImageCacheFile* file = (ImageCacheFile*)data;
+    std::cout << "tile_changed_callback " << x << " " << y << std::endl;
+    // TODO: get these values from the proper place
+    return file->imagecache().tile_changed(file, x, y, z);
+}
+
+
+
+bool
+ImageCacheImpl::tile_changed (ImageCacheFile* file, int x, int y, int z)
+{
     std::cout << "tile_changed_callback " << x << " " << y << std::endl;
     // TODO: get these values from the proper place
     int subimage = 0;
     int miplevel = 0;
     TileID id (*file, subimage, miplevel, x, y, z);
     // remove the tile from cache
-    file->imagecache().invalidate_tile (id);
-    // re-cache the tile
-    file->imagecache().get_tile (file->filename(), 0, 0, x, y, z);
+    invalidate_tile (id);
+    // re-cache the tile with a fresh result
+    get_tile (file->filename(), subimage, miplevel, x, y, z);
+    if (m_tile_changed_callback) {
+        return m_tile_changed_callback (m_tile_changed_callback_data, file->imageinput(), x, y, z);
+    }
     return true;
 }
 

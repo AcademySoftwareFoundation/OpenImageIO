@@ -273,9 +273,12 @@ public:
 
     QPalette palette (void) const { return m_palette; }
 
+    static bool tileChangedCallback(void* data, ImageInput* input, int x, int y, int z);
+
 private slots:
     void open();                        ///< Dialog to open new image from file
     void reload();                      ///< Reread current image from disk
+    void refreshImg();                  ///< Reload current image from cache
     void openRecentFile();              ///< Open a recent file
     void closeImg();                    ///< Close the current image
     void saveAs();                      ///< Save As... functionality
@@ -330,6 +333,10 @@ private slots:
     void showPixelviewWindow();         ///< View closeup pixel view
     void editPreferences();             ///< Edit viewer preferences
     void loadSocketImage(QString filename);
+
+signals:
+    void tileChanged();
+
 private:
     void createActions ();
     void createMenus ();

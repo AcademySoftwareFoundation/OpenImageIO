@@ -241,10 +241,19 @@ public:
     /// opened.
     virtual void invalidate_all (bool force=false) = 0;
 
+    void set_tile_changed_callback (TileChangedCallback tile_callback, void* tile_callback_data) {
+        m_tile_changed_callback=tile_callback;
+        m_tile_changed_callback_data = tile_callback_data;
+    }
+
 private:
     // Make delete private and unimplemented in order to prevent apps
     // from calling it.  Instead, they should call ImageCache::destroy().
     void operator delete (void * /*todel*/) { }
+
+protected:
+    TileChangedCallback m_tile_changed_callback;
+    void* m_tile_changed_callback_data;
 };
 
 

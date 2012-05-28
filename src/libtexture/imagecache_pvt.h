@@ -329,7 +329,7 @@ private:
     }
 
 
-    static bool tile_changed_callback(void* data, int x, int y, int z);
+    static bool tile_changed_callback(void* data, ImageInput* input, int x, int y, int z);
 
     friend class ImageCacheImpl;
     friend class TextureSystemImpl;
@@ -861,6 +861,8 @@ public:
     /// Wrapper around check_max_files that grabs the filemutex while it
     /// does so.
     void check_max_files_with_lock (ImageCachePerThreadInfo *thread_info);
+
+    bool tile_changed (ImageCacheFile* file, int x, int y, int z);
 
 private:
     void init ();
