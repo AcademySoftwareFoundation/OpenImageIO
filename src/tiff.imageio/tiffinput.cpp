@@ -361,11 +361,13 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
 
     if (! m_tif) {
-        FILE *fd = Filesystem::fopen (m_filename, "rm");
-        m_tif = (fd) ? TIFFFdOpen (fileno (fd), m_filename.c_str(), "rm") : NULL;
+#ifdef _WIN32
+        std::wstring wfilename = Filesystem::path_to_windows_native (m_filename);
+        m_tif = TIFFOpenW (wfilename.c_str(), "rm");
+#else
+        m_tif = TIFFOpen (m_filename.c_str(), "rm");
+#endif
         if (m_tif == NULL) {
-            if (fd)
-                fclose (fd);
             error ("Could not open file: %s",
                    lasterr.length() ? lasterr.c_str() : m_filename.c_str());
             return false;
@@ -758,8 +760,12 @@ TIFFInput::readspec (bool read_meta)
         // I'm not sure what state TIFFReadEXIFDirectory leaves us.
         // So to be safe, close and re-seek.
         TIFFClose (m_tif);
-        FILE *fd = Filesystem::fopen (m_filename, "rm");
-        m_tif = (fd) ? TIFFFdOpen (fileno (fd), m_filename.c_str(), "rm"): NULL;
+#ifdef _WIN32
+        std::wstring wfilename = Filesystem::path_to_windows_native (m_filename);
+        m_tif = TIFFOpenW (wfilename.c_str(), "rm");
+#else
+        m_tif = TIFFOpen (m_filename.c_str(), "rm");
+#endif
         TIFFSetDirectory (m_tif, m_subimage);
 
         // A few tidbits to look for

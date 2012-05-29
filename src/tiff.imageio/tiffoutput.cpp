@@ -170,28 +170,11 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         m_spec.depth = 1;
 
     // Open the file
-#if 1
-    m_tif = TIFFOpen (name.c_str(), mode == AppendSubimage ? "a" : "w");
+#ifdef _WIN32
+    std::wstring wname = Filesystem::path_to_windows_native (name);
+    m_tif = TIFFOpenW (wname.c_str(), mode == AppendSubimage ? "a" : "w");
 #else
-    // The following code was proposed by Brecht Van Lommel, going through
-    // Filesystem::fopen in order to take advantage of correct handling of
-    // UTF-8 filenames in Windows (which TIFFOpen doesn't do).  
-    // Looked good on paper, but for some reason, the code below does NOT
-    // correctly handle "a" append mode, which means that writing multiple
-    // subimages breaks, which in turn renders 'maketx' useless!  Though
-    // since it doesn't return an error code, you don't know that until your
-    // texturing looks bad and you realize it's because there's only one
-    // level of the MIPmap output.  Ugh!
-    // I (lg) played with it for a while and couldn't find a solution.
-    // Our bug?  Bug in libtiff?  Who knows?  Back in your court, Brecht.
-    // When you find a solution, we can re-enable this code.  Easy to test
-    // by simply doing 'maketx input.tif -o output.tif' and then
-    // 'iinfo -v output.tif' to verify whether MIP levels are present.
-    FILE *fd = Filesystem::fopen (name, mode == AppendSubimage ? "a+b" : "wb");
-    m_tif = (fd) ? TIFFFdOpen (fileno (fd), name.c_str(),
-                               mode == AppendSubimage ? "a" : "w") : NULL;
-    if (! m_tif && fd)
-        fclose (fd);
+    m_tif = TIFFOpen (name.c_str(), mode == AppendSubimage ? "a" : "w");
 #endif
     if (! m_tif) {
         error ("Can't open \"%s\" for output.", name.c_str());
