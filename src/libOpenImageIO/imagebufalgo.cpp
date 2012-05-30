@@ -291,8 +291,7 @@ ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels
         return false;
     
     if (numChannels == src.spec().nchannels) {
-        dst = src;
-        return true;
+        return dst.copy (src);
     }
     
     // Update the ImageSpec
@@ -749,10 +748,12 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src,
     imagesize_t scanline_bytes = src.spec().scanline_bytes();
     ASSERT (scanline_bytes < std::numeric_limits<unsigned int>::max());
     std::vector<unsigned char> tmp (scanline_bytes);
-    for (int y = src.ymin();  y <= src.ymax();  ++y) {
-        src.copy_pixels (src.xbegin(), src.xend(), y, y+1,
-                         src.spec().format, &tmp[0]);
-        sha.Update (&tmp[0], (unsigned int) scanline_bytes);
+    for (int z = src.zmin(), zend=src.zend();  z < zend;  ++z) {
+        for (int y = src.ymin(), yend=src.yend();  y < yend;  ++y) {
+            src.get_pixels (src.xbegin(), src.xend(), y, y+1, z, z+1,
+                            src.spec().format, &tmp[0]);
+            sha.Update (&tmp[0], (unsigned int) scanline_bytes);
+        }
     }
     
     // If extra info is specified, also include it in the sha computation
@@ -989,7 +990,8 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
                     int * pixelsFixed)
 {
     if (mode == ImageBufAlgo::NONFINITE_NONE) {
-        dst = src;
+        if (! dst.copy (src))
+            return false;
         if (pixelsFixed) *pixelsFixed = 0;
         return true;
     }
@@ -999,7 +1001,8 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
         int nchannels = src.spec().nchannels;
         
         // Copy the input to the output
-        dst = src;
+        if (! dst.copy (src))
+            return false;
         
         ImageBuf::Iterator<SRCTYPE> pixel (dst);
         while (pixel.valid()) {
@@ -1034,7 +1037,8 @@ bool fixNonFinite_ (ImageBuf &dst, const ImageBuf &src,
         const int boxwidth = 1;
         
         // Copy the input to the output
-        dst = src;
+        if (! dst.copy (src))
+            return false;
         
         ImageBuf::Iterator<SRCTYPE> pixel (dst);
         
@@ -1108,7 +1112,8 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
     
     // Non-float images cannot have non-finite pixels,
     // so all we have to do is copy the image and return
-    dst = src;
+    if (! dst.copy (src))
+        return false;
     if (pixelsFixed) *pixelsFixed = 0;
     return true;
 }

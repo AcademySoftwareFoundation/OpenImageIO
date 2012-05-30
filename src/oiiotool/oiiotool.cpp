@@ -1224,7 +1224,7 @@ action_capture (int argc, const char *argv[])
     ImageBuf ib;
     ImageBufAlgo::capture_image (ib, camera, TypeDesc::FLOAT);
     ImageRecRef img (new ImageRec ("capture", ib.spec(), ot.imagecache));
-    (*img)() = ib;
+    (*img)().copy (ib);
     ot.push (img);
     return 0;
 }

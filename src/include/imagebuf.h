@@ -70,6 +70,11 @@ public:
     /// the pixels of the image (whose values will be undefined).
     ImageBuf (const std::string &name, const ImageSpec &spec);
 
+    /// Construct an ImageBuf that "wraps" a memory buffer owned by the
+    /// calling application.  It can write pixels to this buffer, but
+    /// can't change its resolution or data type.
+    ImageBuf (const std::string &name, const ImageSpec &spec, void *buffer);
+
     /// Construct a copy of an ImageBuf.
     ///
     ImageBuf (const ImageBuf &src);
@@ -78,29 +83,34 @@ public:
     ///
     virtual ~ImageBuf ();
 
-    /// Copy an ImageBuf.
-    ///
-    const ImageBuf& operator= (const ImageBuf &src);
-
     /// Restore the ImageBuf to an uninitialized state.
     ///
     virtual void clear ();
 
-    /// Forget all previous info, reset this ImageBuf to a new image.
-    ///
-    virtual void reset (const std::string &name = std::string(),
+    /// Forget all previous info, reset this ImageBuf to a new image
+    /// that is uninitialized (no pixel values, no size or spec).
+    virtual void reset (const std::string &name,
                         ImageCache *imagecache = NULL);
 
     /// Forget all previous info, reset this ImageBuf to a blank
     /// image of the given name and dimensions.
     virtual void reset (const std::string &name, const ImageSpec &spec);
 
-    /// Allocate space the right size for an image described by the
-    /// format spec.  If the ImageBuf already has allocated pixels,
-    /// their values will not be preserved if the new spec does not
-    /// describe an image of the same size and data type as it used
-    /// to be.
+    /// Copy spec to *this, and then allocate enough space the right
+    /// size for an image described by the format spec.  If the ImageBuf
+    /// already has allocated pixels, their values will not be preserved
+    /// if the new spec does not describe an image of the same size and
+    /// data type as it used to be.
     virtual void alloc (const ImageSpec &spec);
+
+    /// Change the pixel data window resolution, channel information,
+    /// and data format to that described by src (but no other
+    /// metadata), and then resize the local buffer to accommodate the
+    /// new image size.  Return true on success, false if it could not
+    /// be done because it was not possible to change the resolution,
+    /// channels, or data format (e.g., if it wrapped an app memory
+    /// buffer and thus could not be resized).
+    virtual bool reres (const ImageBuf &spec);
 
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
@@ -136,6 +146,33 @@ public:
     virtual bool write (ImageOutput *out,
                         ProgressCallback progress_callback=NULL,
                         void *progress_callback_data=NULL) const;
+
+    /// Copy all the metadata from src to *this (except for pixel data
+    /// resolution, channel information, and data format).
+    void copy_metadata (const ImageBuf &src);
+
+    /// Copy the pixel data from src to *this, automatically converting
+    /// to the existing data format of *this.  It only copies pixels in
+    /// the overlap regions (and channels) of the two images; pixel data
+    /// in *this that do exist in src will be set to 0, and pixel data
+    /// in src that do not exist in *this will not be copied.
+    bool copy_pixels (const ImageBuf &src);
+
+    /// Try to copy the pixels and metadata from src to *this, returning
+    /// true upon success and false upon error/failure.
+    /// 
+    /// If the previous state of *this was uninitialized, owning its own
+    /// local pixel memory, or referring to a read-only image backed by
+    /// ImageCache, then local pixel memory will be allocated to hold
+    /// the new pixels and the call always succeeds unless the memory
+    /// cannot be allocated.
+    ///
+    /// If *this previously referred to an app-owned memory buffer, the
+    /// memory cannot be re-allocated, so the call will only succeed if
+    /// the app-owned buffer is already the correct resolution and
+    /// number of channels.  The data type of the pixels will be
+    /// converted automatically to the data type of the app buffer.
+    bool copy (const ImageBuf &src);
 
     /// Return info on the last error that occurred since geterror()
     /// was called.  This also clears the error message for next time.
@@ -253,7 +290,8 @@ public:
     /// memory big enough to accommodate the requested rectangle.
     /// Return true if the operation could be completed, otherwise
     /// return false.
-    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
+    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
+                      int zbegin, int zend,
                       TypeDesc format, void *result) const;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
@@ -265,21 +303,23 @@ public:
     /// enough to accommodate the requested rectangle.  Return true if
     /// the operation could be completed, otherwise return false.
     template<typename T>
-    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
-                      T *result) const;
+    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
+                      int zbegin, int zend, T *result) const;
 
-    /// Even safer version of copy_pixels: Retrieve the rectangle of
+    /// Even safer version of get_pixels: Retrieve the rectangle of
     /// pixels spanning [xbegin..xend) X [ybegin..yend) (with exclusive
     /// 'end'), specified as integer pixel coordinates, at the current
     /// MIP-map level, storing the pixel values in the 'result' vector
     /// (even allocating the right size).  Return true if the operation
     /// could be completed, otherwise return false.
     template<typename T>
-    bool copy_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
+    bool get_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
+                      int zbegin_, int zend_,
                       std::vector<T> &result) const
     {
-        result.resize (nchannels() * ((yend_-ybegin_)*(xend_-xbegin_)));
-        return _copy_pixels (xbegin_, xend_, ybegin_, yend_, &result[0]);
+        result.resize (nchannels() * ((zend_-zbegin_)*(yend_-ybegin_)*(xend_-xbegin_)));
+        return get_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
+                           &result[0]);
     }
 
 
@@ -354,7 +394,14 @@ public:
         return m_localpixels ? m_spec.format : m_cachedpixeltype;
     }
 
+    /// Are the pixels "local", i.e. fully in RAM and not backed by an
+    /// ImageCache?
     bool localpixels () const { return m_localpixels; }
+
+    /// Are the pixels backed by an ImageCache, rather than the whole
+    /// image being in RAM somewhere?
+    bool cachedpixels () const { return !m_localpixels; }
+
     ImageCache *imagecache () const { return m_imagecache; }
 
     /// Return the address where pixel (x,y) is stored in the image buffer.
@@ -928,8 +975,9 @@ protected:
     int m_nmiplevels;            ///< # of MIP levels in the current subimage
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     ImageSpec m_nativespec;      ///< Describes the true native image
-    std::vector<char> m_pixels;  ///< Pixel data
-    bool m_localpixels;          ///< Pixels are local, in m_pixels
+    std::vector<char> m_pixels;  ///< Pixel data, if local and we own it
+    char *m_localpixels;         ///< Pointer to local pixels
+    bool m_clientpixels;         ///< Local pixels are owned by the client app
     bool m_spec_valid;           ///< Is the spec valid
     bool m_pixels_valid;         ///< Image is valid
     bool m_badfile;              ///< File not found
@@ -939,7 +987,15 @@ protected:
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
 
+    // Resize the local owned buffer to the size indicated by the
+    // ImageBuf's spec.
     void realloc ();
+
+    // Copy src's pixels into *this.  Pixels must already be local
+    // (either owned or wrapped) and the resolution and number of
+    // channels must match src.  Data type is allowed to be different,
+    // however, with automatic conversion upon copy.
+    void copy_from (const ImageBuf &src);
 
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
@@ -947,6 +1003,10 @@ protected:
     const void * retile (int x, int y, int z,
                          ImageCache::Tile* &tile, int &tilexbegin,
                          int &tileybegin, int &tilezbegin) const;
+
+    /// Private and unimplemented.
+    const ImageBuf& operator= (const ImageBuf &src);
+
 };
 
 
