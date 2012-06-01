@@ -680,12 +680,12 @@ ImageBuf::copy (const ImageBuf &src)
                 // size doesn't match, fail
                 return false;
             }
-            dst.copy_metadata (src);
+            this->copy_metadata (src);
         } else {
             // locally owned memory -- we can fully resize it
             reset (src.name(), src.spec());
         }
-        return dst.copy_pixels (src);
+        return this->copy_pixels (src);
     }
 
     return false;   // all other cases fail
