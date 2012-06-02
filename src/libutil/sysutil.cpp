@@ -152,6 +152,8 @@ Sysutil::this_program_path ()
 
 #if defined(__linux__)
     int r = readlink ("/proc/self/exe", filename, size);
+    ASSERT(r < int(size)); // user won't get the right answer if the filename is too long to store
+    if (r > 0) filename[r] = 0; // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)
     // For info:  'man 3 dyld'
     int r = _NSGetExecutablePath (filename, &size);
