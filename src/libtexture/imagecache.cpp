@@ -960,14 +960,17 @@ bool
 ImageCacheImpl::tile_changed (ImageCacheFile* file, int x, int y, int z)
 {
     std::cout << "tile_changed_callback " << x << " " << y << std::endl;
+    ImageInput *input = file->imageinput();
+
     // TODO: get these values from the proper place
-    int subimage = 0;
-    int miplevel = 0;
+    int subimage = input->current_subimage();
+    int miplevel =  input->current_miplevel();
     TileID id (*file, subimage, miplevel, x, y, z);
     // remove the tile from cache
     invalidate_tile (id);
     // re-cache the tile with a fresh result
-    get_tile (file->filename(), subimage, miplevel, x, y, z);
+    ImageCachePerThreadInfo *thread_info = get_perthread_info ();
+    get_tile (id, thread_info);
     if (m_tile_changed_callback) {
         return m_tile_changed_callback (m_tile_changed_callback_data, file->imageinput(), x, y, z);
     }
@@ -1840,7 +1843,6 @@ bool
 ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
                            ImageCachePerThreadInfo *thread_info)
 {
-    std::cout << "find_tile_main_cache " << id.x() << " " << id.y() << std::endl;
     DASSERT (! id.file().broken());
     ImageCacheStatistics &stats (thread_info->m_stats);
 
@@ -2278,7 +2280,6 @@ ImageCache::Tile *
 ImageCacheImpl::get_tile (ustring filename, int subimage, int miplevel,
                           int x, int y, int z)
 {
-    std::cout << "get_tile" << std::endl;
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);
     if (! file || file->broken())
@@ -2292,6 +2293,14 @@ ImageCacheImpl::get_tile (ustring filename, int subimage, int miplevel,
     y = spec.y + ytile * spec.tile_height;
     z = spec.z + ztile * spec.tile_depth;
     TileID id (*file, subimage, miplevel, x, y, z);
+    return get_tile (id, thread_info);
+}
+
+
+
+ImageCache::Tile *
+ImageCacheImpl::get_tile (const TileID &id, ImageCachePerThreadInfo *thread_info)
+{
     ImageCacheTileRef tile;
     if (find_tile_main_cache (id, tile, thread_info)) {
         tile->_incref();   // Fake an extra reference count

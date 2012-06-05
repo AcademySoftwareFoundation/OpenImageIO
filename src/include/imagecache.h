@@ -241,7 +241,7 @@ public:
     /// opened.
     virtual void invalidate_all (bool force=false) = 0;
 
-    void set_tile_changed_callback (TileChangedCallback tile_callback, void* tile_callback_data) {
+    void set_tile_changed_callback (TileChangedCallback tile_callback, void *tile_callback_data) {
         m_tile_changed_callback=tile_callback;
         m_tile_changed_callback_data = tile_callback_data;
     }

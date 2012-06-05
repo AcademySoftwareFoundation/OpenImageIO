@@ -761,6 +761,8 @@ public:
 
     virtual Tile *get_tile (ustring filename, int subimage, int miplevel,
                             int x, int y, int z);
+    virtual Tile *get_tile (const TileID &id, ImageCachePerThreadInfo *thread_info);
+
     virtual void release_tile (Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
 
