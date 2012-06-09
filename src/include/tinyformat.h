@@ -851,6 +851,11 @@ returnType funcName(TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS const char* fmt
 cog.outl()
 
 ]]]*/
+#ifndef TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
+#define TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
+#endif
+
+
 #define TINYFORMAT_WRAP_FORMAT(returnType, funcName, funcDeclSuffix,       \
                                bodyPrefix, streamName, bodySuffix)         \
 inline                                                                     \
@@ -1008,6 +1013,7 @@ void printf(const char* fmt, const Args&... args)
 
 // template<typename... Args>
 // void format(std::ostream& out, const char* fmt, const Args&... args)
+#undef TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
 #define TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS std::ostream& out,
 TINYFORMAT_WRAP_FORMAT(void, format, /*empty*/, /*empty*/, out, /*empty*/)
 #undef TINYFORMAT_WRAP_FORMAT_EXTRA_ARGS
