@@ -66,11 +66,6 @@
 #include "sysutil.h"
 #include "filesystem.h"
 
-#if (defined(__FreeBSD__) && (__FreeBSD_version < 803000))
-
-inline float log2f(float x) {return logf(x)*(float)1.4426950408889634;}
-
-#endif /* log2f */
 
 namespace
 {
