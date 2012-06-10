@@ -64,6 +64,10 @@
 # include <stdint.h>
 #endif
 
+#if defined(__FreeBSD__)
+#include <sys/param.h>
+#endif
+
 #include "version.h"
 
 OIIO_NAMESPACE_ENTER
