@@ -114,7 +114,7 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 PNGInput::valid_file (const std::string &filename) const
 {
-    FILE *fd = fopen (filename.c_str(), "rb");
+    FILE *fd = Filesystem::fopen (filename, "rb");
     if (! fd)
         return false;
     unsigned char sig[8];
@@ -132,7 +132,7 @@ PNGInput::open (const std::string &name, ImageSpec &newspec)
     m_filename = name;
     m_subimage = 0;
 
-    m_file = fopen (name.c_str(), "rb");
+    m_file = Filesystem::fopen (name, "rb");
     if (! m_file) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;

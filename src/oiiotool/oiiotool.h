@@ -234,6 +234,8 @@ public:
 
     std::string name () const { return m_name; }
 
+    // Has the ImageRec been actually read or evaluated?  (Until needed,
+    // it's lazily kept as name only, without reading the file.)
     bool elaborated () const { return m_elaborated; }
 
     bool read ();

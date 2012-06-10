@@ -235,6 +235,8 @@ adjust_spec (ImageInput *in, ImageOutput *out,
         }
     }
     if (! dataformatname.empty()) {
+        // make sure there isn't a stray BPS that will screw us up
+        outspec.erase_attribute ("oiio:BitsPerSample");
         if (dataformatname == "uint8")
             outspec.set_format (TypeDesc::UINT8);
         else if (dataformatname == "int8")
@@ -365,8 +367,8 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
     std::string tempname = out_filename;
     if (tempname == in_filename) {
-        tempname = out_filename + ".tmp."
-                    + Filesystem::file_extension (out_filename);
+        tempname = out_filename + ".tmp"
+                    + Filesystem::extension (out_filename);
     }
 
     // Find an ImageIO plugin that can open the input file, and open it.
@@ -477,7 +479,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     std::time_t in_time;
     if (metadatatime.empty() ||
            ! DateTime_to_time_t (metadatatime.c_str(), in_time))
-        in_time = boost::filesystem::last_write_time (in_filename);
+        in_time = Filesystem::last_write_time (in_filename);
 
     if (out_filename != tempname) {
         if (ok) {
@@ -491,7 +493,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     // If user requested, try to adjust the file's modification time to
     // the creation time indicated by the file's DateTime metadata.
     if (ok && adjust_time)
-        boost::filesystem::last_write_time (out_filename, in_time);
+        Filesystem::last_write_time (out_filename, in_time);
 
     return ok;
 }

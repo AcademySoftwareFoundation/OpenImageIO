@@ -34,6 +34,7 @@
 #include <iostream>
 
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 #include "rgbe.h"
 
@@ -122,7 +123,7 @@ HdrInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     close();
 
     // Check that file exists and can be opened
-    m_fd = fopen (m_filename.c_str(), "rb");
+    m_fd = Filesystem::fopen (m_filename, "rb");
     if (m_fd == NULL) {
         error ("Could not open file \"%s\"", m_filename.c_str());
         return false;

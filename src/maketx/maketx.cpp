@@ -676,12 +676,12 @@ make_texturemap (const char *maptypename = "texture map")
         outputfilename = Filesystem::replace_extension (filenames[0], ".tx");
 
     // When was the input file last modified?
-    std::time_t in_time = boost::filesystem::last_write_time (filenames[0]);
+    std::time_t in_time = Filesystem::last_write_time (filenames[0]);
 
     // When in update mode, skip making the texture if the output already
     // exists and has the same file modification time as the input file.
     if (updatemode && Filesystem::exists (outputfilename) &&
-        (in_time == boost::filesystem::last_write_time (outputfilename))) {
+        (in_time == Filesystem::last_write_time (outputfilename))) {
         std::cout << "maketx: no update required for \"" 
                   << outputfilename << "\"\n";
         return;
@@ -777,7 +777,7 @@ make_texturemap (const char *maptypename = "texture map")
           ImageBufAlgo::isConstantChannel(src,src.spec().alpha_channel,1.0f)) {
         ImageBuf newsrc(src.name() + ".noalpha", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, src.nchannels()-1);
-        src = newsrc;
+        src.copy (newsrc);
         if (verbose) {
             std::cout << "  Alpha==1 image detected. Dropping the alpha channel.\n";
         }
@@ -788,7 +788,7 @@ make_texturemap (const char *maptypename = "texture map")
             ImageBufAlgo::isMonochrome(src)) {
         ImageBuf newsrc(src.name() + ".monochrome", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, 1);
-        src = newsrc;
+        src.copy (newsrc);
         if (verbose) {
             std::cout << "  Monochrome image detected. Converting to single channel texture.\n";
         }
@@ -799,7 +799,7 @@ make_texturemap (const char *maptypename = "texture map")
     if ((nchannels > 0) && (nchannels != src.nchannels())) {
         ImageBuf newsrc(src.name() + ".channels", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, nchannels);
-        src = newsrc;
+        src.copy (newsrc);
         if (verbose) {
             std::cout << "  Overriding number of channels to " << nchannels << "\n";
         }
@@ -1168,7 +1168,7 @@ make_texturemap (const char *maptypename = "texture map")
     // If using update mode, stamp the output file with a modification time
     // matching that of the input file.
     if (updatemode)
-        boost::filesystem::last_write_time (outputfilename, in_time);
+        Filesystem::last_write_time (outputfilename, in_time);
 }
 
 

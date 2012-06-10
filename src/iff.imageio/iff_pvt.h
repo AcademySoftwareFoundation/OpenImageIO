@@ -35,6 +35,7 @@
 
 #include <cstdio>
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 
 

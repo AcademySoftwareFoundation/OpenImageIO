@@ -39,6 +39,7 @@
 
 #include "dassert.h"
 #include "imageio.h"
+#include "filesystem.h"
 #include "strutil.h"
 #include "sysutil.h"
 #include "timer.h"
@@ -169,7 +170,12 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         m_spec.depth = 1;
 
     // Open the file
+#ifdef _WIN32
+    std::wstring wname = Filesystem::path_to_windows_native (name);
+    m_tif = TIFFOpenW (wname.c_str(), mode == AppendSubimage ? "a" : "w");
+#else
     m_tif = TIFFOpen (name.c_str(), mode == AppendSubimage ? "a" : "w");
+#endif
     if (! m_tif) {
         error ("Can't open \"%s\" for output.", name.c_str());
         return false;

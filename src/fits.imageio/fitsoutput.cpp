@@ -64,7 +64,7 @@ FitsOutput::open (const std::string &name, const ImageSpec &spec,
     m_spec = spec;
 
     // checking if the file exists and can be opened in WRITE mode
-    m_fd = fopen (m_filename.c_str (), mode == AppendSubimage ? "r+b" : "wb");
+    m_fd = Filesystem::fopen (m_filename, mode == AppendSubimage ? "r+b" : "wb");
     if (!m_fd) {
         error ("Unable to open file \"%s\"", m_filename.c_str());
         return false;

@@ -36,6 +36,7 @@
 #include <map>
 
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 #include "pystring.h"
 

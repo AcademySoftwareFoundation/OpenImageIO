@@ -74,6 +74,12 @@ static Oiiotool ot;
 void
 Oiiotool::read (ImageRecRef img)
 {
+    // If the image is already elaborated, take an early out, both to
+    // save time, but also because we only want to do the format and
+    // tile adjustments below as images are read in fresh from disk.
+    if (img->elaborated())
+        return;
+
     // Cause the ImageRec to get read
     img->read ();
 
@@ -182,6 +188,8 @@ adjust_output_options (ImageSpec &spec, const Oiiotool &ot)
         spec.set_format (ot.output_dataformat);
         if (ot.output_bitspersample != 0)
             spec.attribute ("oiio:BitsPerSample", ot.output_bitspersample);
+        else
+            spec.erase_attribute ("oiio:BitsPerSample");
     }
 
 //        spec.channelformats.clear ();   // FIXME: why?
@@ -310,7 +318,7 @@ output_file (int argc, const char *argv[])
         std::time_t in_time = ir->time();
         if (! metadatatime.empty())
             DateTime_to_time_t (metadatatime.c_str(), in_time);
-        boost::filesystem::last_write_time (filename, in_time);
+        Filesystem::last_write_time (filename, in_time);
     }
 
     ot.curimg = saveimg;
@@ -324,6 +332,7 @@ set_dataformat (int argc, const char *argv[])
 {
     ASSERT (argc == 2);
     std::string s (argv[1]);
+    ot.output_bitspersample = 0;  // use the default
     if (s == "uint8")
         ot.output_dataformat = TypeDesc::UINT8;
     else if (s == "int8")
@@ -1155,6 +1164,26 @@ action_pattern (int argc, const char *argv[])
     std::string pattern = argv[1];
     if (Strutil::iequals(pattern,"black")) {
         ImageBufAlgo::zero (ib);
+    } else if (Strutil::istarts_with(pattern,"constant")) {
+        float *fill = ALLOCA (float, nchans);
+        for (int c = 0;  c < nchans;  ++c)
+            fill[c] = 1.0f;
+        size_t pos;
+        while ((pos = pattern.find_first_of(":")) != std::string::npos) {
+            pattern = pattern.substr (pos+1, std::string::npos);
+            if (Strutil::istarts_with(pattern,"color=")) {
+                // Parse comma-separated color list
+                size_t numpos = 6;
+                for (int c = 0; c < nchans && numpos < pattern.size() && pattern[numpos] != ':'; ++c) {
+                    fill[c] = atof (pattern.c_str()+numpos);
+                    while (numpos < pattern.size() && pattern[numpos] != ':' && pattern[numpos] != ',')
+                        ++numpos;
+                    if (pattern[numpos])
+                        ++numpos;
+                }
+            }
+        }
+        ImageBufAlgo::fill (ib, fill);
     } else if (Strutil::istarts_with(pattern,"checker")) {
         int width = 8;
         size_t pos;
@@ -1195,7 +1224,7 @@ action_capture (int argc, const char *argv[])
     ImageBuf ib;
     ImageBufAlgo::capture_image (ib, camera, TypeDesc::FLOAT);
     ImageRecRef img (new ImageRec ("capture", ib.spec(), ot.imagecache));
-    (*img)() = ib;
+    (*img)().copy (ib);
     ot.push (img);
     return 0;
 }
@@ -1278,7 +1307,7 @@ action_resize (int argc, const char *argv[])
     ImageSpec newspec = Aspec;
 
     adjust_geometry (newspec.width, newspec.height,
-                     newspec.x, newspec.y, argv[1]);
+                     newspec.x, newspec.y, argv[1], true);
     if (newspec.width == Aspec.width && newspec.height == Aspec.height)
         return 0;  // nothing to do
 

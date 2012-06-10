@@ -124,6 +124,18 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     if (! texturefile  ||  texturefile->broken())
         return missing_texture (options, result);
 
+    if (options.subimagename) {
+        // If subimage was specified by name, figure out its index.
+        int s = m_imagecache->subimage_from_name (texturefile, options.subimagename);
+        if (s < 0) {
+            error ("Unknown subimage \"%s\" in texture \"%s\"",
+                   options.subimagename.c_str(), texturefile->filename().c_str());
+            return false;
+        }
+        options.subimage = s;
+        options.subimagename.clear();
+    }
+
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
     // Figure out the wrap functions
@@ -292,12 +304,9 @@ TextureSystemImpl::accum3d_sample_closest (const Imath::V3f &P, int miplevel,
         return true;
     }
 
-    int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
-    int tileheightmask = spec.tile_height - 1;
-    int tiledepthmask = spec.tile_depth - 1;
-    int tile_s = (stex - spec.x) & tilewidthmask;
-    int tile_t = (ttex - spec.y) & tileheightmask;
-    int tile_r = (rtex - spec.z) & tiledepthmask;
+    int tile_s = (stex - spec.x) % spec.tile_width;
+    int tile_t = (ttex - spec.y) % spec.tile_height;
+    int tile_r = (rtex - spec.z) % spec.tile_depth;
     TileID id (texturefile, options.subimage, miplevel,
                stex - tile_s, ttex - tile_t, rtex - tile_r);
     bool ok = find_tile (id, thread_info);
@@ -394,9 +403,9 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
     const unsigned char *texel[2][2][2];
     TileRef savetile[2][2][2];
     static float black[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-    int tile_s = (stex[0] - spec.x) & tilewidthmask;
-    int tile_t = (ttex[0] - spec.y) & tileheightmask;
-    int tile_r = (rtex[0] - spec.z) & tiledepthmask;
+    int tile_s = (stex[0] - spec.x) % spec.tile_width;
+    int tile_t = (ttex[0] - spec.y) % spec.tile_height;
+    int tile_r = (rtex[0] - spec.z) % spec.tile_depth;
     bool s_onetile = (tile_s != tilewidthmask) & (stex[0]+1 == stex[1]);
     bool t_onetile = (tile_t != tileheightmask) & (ttex[0]+1 == ttex[1]);
     bool r_onetile = (tile_r != tiledepthmask) & (rtex[0]+1 == rtex[1]);
@@ -436,9 +445,9 @@ TextureSystemImpl::accum3d_sample_bilinear (const Imath::V3f &P, int miplevel,
                         texel[k][j][i] = (unsigned char *)black;
                         continue;
                     }
-                    tile_s = (stex[i] - spec.x) & tilewidthmask;
-                    tile_t = (ttex[j] - spec.y) & tileheightmask;
-                    tile_r = (rtex[k] - spec.z) & tiledepthmask;
+                    tile_s = (stex[i] - spec.x) % spec.tile_width;
+                    tile_t = (ttex[j] - spec.y) % spec.tile_height;
+                    tile_r = (rtex[k] - spec.z) % spec.tile_depth;
                     TileID id (texturefile, options.subimage, miplevel,
                                stex[i] - tile_s, ttex[j] - tile_t,
                                rtex[k] - tile_r);

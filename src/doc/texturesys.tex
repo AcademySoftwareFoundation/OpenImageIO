@@ -62,12 +62,17 @@ should have nchannels = 3, firstchannel = 0.  To retrieve just the blue
 channel, you should have nchannels = 1, firstchannel = 2.
 \apiend
 
-\apiitem{int subimage}
-The subimage or face within the file to use for the texture lookup.
-The default is 0, and larger values only make sense for a texture file
-that supports subimages or separate images per face (such as Ptex).
-This will be ignored if the file does not have multiple subimages or
-separate per-face textures.
+\apiitem{int subimage \\
+ustring subimagename}
+Specifies the subimage or face within the file to use for the texture lookup.
+If {\cf subimagename} is set (it defaults to the empty string), it will
+try to use the subimage that had a matching metadata
+\qkw{oiio:subimagename}, otherwise the integer {\cf subimage} will be
+used (which defaults to 0, i.e., the first/default subimage).  Nonzero
+subimage indices only make sense for a texture file that supports
+subimages or separate images per face (such as Ptex).  This will be
+ignored if the file does not have multiple subimages or separate
+per-face textures.
 \apiend
 
 \apiitem{Wrap swrap, twrap}

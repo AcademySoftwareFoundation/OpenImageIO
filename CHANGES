@@ -1,6 +1,6 @@
 Changes:
 
-Release 1.1 (developmet in progress, compared to 1.0.2)
+Release 1.1 (developmet in progress, compared to 1.0.4)
 -------------------------------------------------------
 Major new features and improvements:
 * OpenCV interoperability: new ImageBufAlgo::fromIplImage converts/copies
@@ -9,6 +9,7 @@ Major new features and improvements:
     capture_image : captures from a camera device (only if OpenCV is found)
 * New oiiotool commands:
     --capture : captures from a camera device (only if OpenCV is found)
+    --pattern constant : creates a constant-color image
 
 API changes:
 * A new static ImageInput::open(filename [,config]) combines the old
@@ -24,6 +25,11 @@ API changes:
   type, without needing to do a full header read and ImageSpec setup.)
 * Removed various error_message() functions that had been deprecated for
   a long time (in favor of newer getmessage() functions).
+* Define a namespace alias 'OIIO' that gets you past all the custom
+  namespacesin a convenient way.
+* TextureOpt now contains a 'subimagename' field that allows subimages
+  to be addressed by name as well as by index (only for multi-image textures,
+  of course).
 
 Fixes, minor enhancements, and performance improvements:
 * TextureSystem: anisotropic texture lookups are more robust when the 
@@ -44,17 +50,59 @@ Fixes, minor enhancements, and performance improvements:
 * OpenImageIO::geterror() is now thread-specific, so separate threads will
   no longer clobber each others' error messages.
 * Fix reading bugs in DPX and Cineon.
+* PNG: fix handling of gamma for sRGB images.
+* oiiotool fixes: print MIP messages correctly (it was only printing for
+  the first MIP level); make sure stray "oiio:BitsPerSample" in an input
+  file doesn't mess up the -d flags.
+* Field3D fixes: properly catch exceptions thrown by the Field3D open();
+  conform metadata to Field3D conventions; multi-layer f3d files will
+  present as a multi-image file with the "oiio:subimagename" giving a
+  unique name for each layer subimage; 
+* OpenEXR: suppress format-specific metadata from other formats.
+* Texture files are no longer limited to having tile sizes that are
+  powers of 2.
 
 Build system improvements:
 * Various Windows build fixes, including fixes for Windows 7, and 
   improvements to running the testsuite on Windows.
 * Testsuite additions and improvements: png fmath_test
 * Compilation fixes on FreeBSD.
+* Add FIELD3D_HOME build variable to allow explicit path to Field3D
+  implementation.
 
 Developer goodies:
 * Strutil utilities: iequals, istarts_with, iends_with, to_lower, to_upper.
+* Use Chris Foster's 'tinyformat' for type-safe printf-like formatting,
+  and this now forms the basis of Strutil::format, ustring::format, and
+  many of the classes' error() methods.
 
 
+
+Release 1.0.4 (2 May 2012)
+--------------------------
+* DPX fixes for 12 bit DPX and packing methods.
+* Cineon fixes: remove buggy 32 and 64 bit output, which wasn't needed;
+  fix for 10 bit -> 16 bit promotion.
+* bmp fix: wasn't setting oiio:BitsPerSample correctly.
+* oiiotool fixes: improved argument help and add man page generation;
+  print data format info correctly for non-byte bit depths; better
+  inference of output tile size and data format from the inputs (when
+  not explicitly requested); --resize n% was broken; print data format
+  info correctly for non-byte bit depths.
+* iinfo fixes: make --stats print correctly; print data format info 
+  correctly for non-byte bit depths.
+* Fix roundoff error when converting from float buffers to int image files.
+* More precise filter normalization in ImageBufAlgo::resize (and therefore
+  oiiotool --resize).
+
+Release 1.0.3 (16 Apr 2012)
+---------------------------
+* Fix reading bugs in DPX and Cineon.
+* iconvert handles the int32 and uint32 cases.
+* Bug fix in to_native_rectangle, which could lead to errors in certain
+  data format conversions.
+* Various Windows build fixes, including fixes for Windows 7.
+* Compilation fixes on FreeBSD.
 
 Release 1.0.2 (19 Mar 2012)
 ----------------------------
@@ -66,7 +114,6 @@ Release 1.0.2 (19 Mar 2012)
   wrapping various internal "iequals" calls to pass a static locale
   rather than relying on their default behavior that would use a mutex
   underneath to access a global locale.
-
 
 Release 1.0.1 (13 Mar 2012, compared to 1.0.0)
 ----------------------------------------------

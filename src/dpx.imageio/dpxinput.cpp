@@ -34,6 +34,7 @@
 #include "typedesc.h"
 #include "imageio.h"
 #include "fmath.h"
+#include "strutil.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -256,7 +257,7 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
             {
                 for (int i = 0;
                     i < m_dpx.header.ImageElementComponentCount(subimage); i++) {
-                    std::string ch = "channel" + i;
+                    std::string ch = Strutil::format("channel%d", i);
                     m_spec.channelnames.push_back(ch);
                 }
             }
@@ -518,7 +519,7 @@ DPXInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         case dpx::k1125LineProgressive169AR:
             tmpstr = "YCbCr 1125p, 16:9 (SMPTE 274M)";
             break;
-        case 0xFF:
+        case dpx::k255:
             // don't set the attribute at all
             break;
         default:

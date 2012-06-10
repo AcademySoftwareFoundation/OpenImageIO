@@ -36,6 +36,7 @@
 #include "dassert.h"
 #include "typedesc.h"
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 
 #include "rla_pvt.h"
@@ -167,7 +168,7 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
 
-    m_file = fopen (name.c_str(), "rb");
+    m_file = Filesystem::fopen (name, "rb");
     if (! m_file) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;

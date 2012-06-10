@@ -44,7 +44,11 @@
 #ifndef OPENIMAGEIO_FILESYSTEM_H
 #define OPENIMAGEIO_FILESYSTEM_H
 
+#include <cstdio>
+#include <ctime>
+#include <fstream>
 #include <string>
+#include <vector>
 
 #include "export.h"
 #include "version.h"
@@ -64,13 +68,15 @@ namespace Filesystem {
 /// file extension, if any) of a filepath.
 DLLPUBLIC std::string filename (const std::string &filepath);
 
-/// Return the file extension (including the last '.') of a filename or
-/// filepath.
-DLLPUBLIC std::string extension (const std::string &filepath);
+/// Return the file extension (including the last '.' if
+/// include_dot=true) of a filename or filepath.
+DLLPUBLIC std::string extension (const std::string &filepath,
+                                 bool include_dot=true);
 
-/// Return the file extension (just the part after the last '.') of a
-/// filename or filepath.  DEPRECATED.
-DLLPUBLIC std::string file_extension (const std::string &filepath);
+/// DEPRECATED.
+inline std::string file_extension (const std::string &filepath) {
+    return extension (filepath, false);
+}
 
 /// Replace the file extension of a filename or filepath. Does not
 /// alter filepath, just returns a new string
@@ -115,6 +121,45 @@ DLLPUBLIC bool is_directory (const std::string &path);
 /// Return true if the file exists and is a regular file.
 ///
 DLLPUBLIC bool is_regular (const std::string &path);
+
+/// Version of fopen that can handle UTF-8 paths even on Windows
+///
+DLLPUBLIC FILE *fopen (const std::string &path,
+                       const std::string &mode);
+
+/// Version of std::ifstream.open that can handle UTF-8 paths
+///
+DLLPUBLIC void open (std::ifstream &stream,
+                     const std::string &path,
+                     std::ios_base::openmode mode = std::ios_base::in);
+
+/// Version of std::ofstream.open that can handle UTF-8 paths
+///
+DLLPUBLIC void open (std::ofstream &stream,
+                     const std::string &path,
+                     std::ios_base::openmode mode = std::ios_base::out);
+
+/// Get last modified time of file
+///
+DLLPUBLIC std::time_t last_write_time (const std::string& path);
+
+/// Set last modified time on file
+///
+DLLPUBLIC void last_write_time (const std::string& path, std::time_t time);
+
+/// Ensure command line arguments are UTF-8 everywhere
+///
+DLLPUBLIC void convert_native_arguments (int argc, const char *argv[]);
+
+#ifdef _WIN32
+// Conversion to windows native wide char file path
+//
+DLLPUBLIC std::wstring path_to_windows_native (const std::string& path);
+
+// Conversion from windows native wide char file path
+//
+DLLPUBLIC std::string path_from_windows_native (const std::wstring& wpath);
+#endif
 
 };  // namespace Filesystem
 

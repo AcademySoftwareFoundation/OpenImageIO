@@ -379,6 +379,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                     si.sscale = si.tscale = 1.0f;
                     si.soffset = si.toffset = 0.0f;
                 }
+                si.subimagename = ustring (tempspec.get_string_attribute("oiio:subimagename"));
             }
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled = true;
@@ -587,7 +588,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_channelsize = m_datatype.size();
     m_pixelsize = m_channelsize * spec.nchannels;
     m_eightbit = (m_datatype == TypeDesc::UINT8);
-    m_mod_time = boost::filesystem::last_write_time (m_filename.string());
+    m_mod_time = Filesystem::last_write_time (m_filename.string());
 
     DASSERT (! m_broken);
     m_validspec = true;
@@ -763,7 +764,7 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
     }
 
     // Now convert and copy those values out to the caller's buffer
-    lores.copy_pixels (0, tw, 0, th, format, data);
+    lores.get_pixels (0, tw, 0, th, 0, 1, format, data);
 
     // Restore the microcache to the way it was before.
     thread_info->tile = oldtile;
@@ -2120,6 +2121,18 @@ ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
 
 
 
+int
+ImageCacheImpl::subimage_from_name (ImageCacheFile *file, ustring subimagename)
+{
+    for (int s = 0, send = file->subimages();  s < send;  ++s) {
+        if (file->subimageinfo(s).subimagename == subimagename)
+            return s;
+    }
+    return -1;  // No matching subimage name
+}
+
+
+
 bool
 ImageCacheImpl::get_pixels (ustring filename, int subimage, int miplevel,
                             int xbegin, int xend, int ybegin, int yend,
@@ -2347,7 +2360,7 @@ ImageCacheImpl::invalidate_all (bool force)
                 all_files.push_back (name);
                 continue;
             }
-            std::time_t t = boost::filesystem::last_write_time (name.string());
+            std::time_t t = Filesystem::last_write_time (name.string());
             // Invalidate the file if it has been modified since it was
             // last opened, or if 'force' is true.
             bool inval = force || (t != f->mod_time());
