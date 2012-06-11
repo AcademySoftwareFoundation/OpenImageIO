@@ -232,8 +232,8 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
                 TypeDesc chanformat = m_spec.channelformats[c+firstchan];
                 ok = convert_image (1 /* channels */, m_spec.width, nscanlines, 1, 
                                     &buf[offset], chanformat, 
-                                    pixel_bytes, AutoStride, AutoStride,
-                                    (char *)data + c*m_spec.format.size(),
+                                    native_pixel_bytes, native_scanline_bytes, 0,
+                                    (char *)data + c*format.size(),
                                     format, xstride, ystride, zstride);
                 offset += chanformat.size ();
             }
@@ -444,6 +444,9 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                                      : (format.size() * nchans);
     stride_t full_pixelsize = native_data ? m_spec.pixel_bytes(true)
                                           : (format.size() * m_spec.nchannels);
+    stride_t full_tilewidthbytes = full_pixelsize * m_spec.tile_width;
+    stride_t full_tilewhbytes = full_tilewidthbytes * m_spec.tile_height;
+    stride_t full_tilebytes = full_tilewhbytes * m_spec.tile_depth;
     size_t prefix_bytes = m_spec.pixel_bytes (0,firstchan,true);
     std::vector<char> buf;
     for (int z = zbegin;  z < zend;  z += std::max(1,m_spec.tile_depth)) {
@@ -464,16 +467,14 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                     ok &= read_tile (x, y, z, format, tilestart,
                                      xstride, ystride, zstride);
                 } else {
-                    buf.resize (m_spec.tile_bytes());
+                    buf.resize (full_tilebytes);
                     ok &= read_tile (x, y, z, format, &buf[0],
-                                     full_pixelsize,
-                                     full_pixelsize*m_spec.tile_width,
-                                     full_pixelsize*m_spec.tile_pixels());
+                                     full_pixelsize, full_tilewidthbytes,
+                                     full_tilewhbytes);
                     if (ok)
                         copy_image (nchans, xw, yh, zd, &buf[prefix_bytes],
                                     pixelsize, full_pixelsize,
-                                    full_pixelsize*m_spec.tile_width,
-                                    full_pixelsize*m_spec.tile_pixels(),
+                                    full_tilewidthbytes, full_tilewhbytes,
                                     tilestart, xstride, ystride, zstride);
                 }
                 tilestart += m_spec.tile_width * xstride;
