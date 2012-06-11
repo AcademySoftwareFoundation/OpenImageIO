@@ -414,6 +414,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 invalidate_spec ();
                 return false;
             }
+            // ImageCache can't store differing formats per channel
+            tempspec.channelformats.clear();
             LevelInfo levelinfo (tempspec, nativespec);
             si.levels.push_back (levelinfo);
             ++nmip;

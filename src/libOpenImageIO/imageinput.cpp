@@ -186,8 +186,8 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
                 TypeDesc chanformat = m_spec.channelformats[c+firstchan];
                 ok = convert_image (1 /* channels */, m_spec.width, nscanlines, 1, 
                                     &buf[offset], chanformat, 
-                                    pixel_bytes, AutoStride, AutoStride,
-                                    (char *)data + c*m_spec.format.size(),
+                                    native_pixel_bytes, native_scanline_bytes, 0,
+                                    (char *)data + c*format.size(),
                                     format, xstride, ystride, zstride);
                 offset += chanformat.size ();
             }
