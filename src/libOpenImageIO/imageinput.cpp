@@ -86,13 +86,9 @@ ImageInput::read_scanline (int y, int z, TypeDesc format, void *data,
                              data, format, xstride, AutoStride, AutoStride);
     } else {
         // Per-channel formats -- have to convert/copy channels individually
-        if (native_data) {
-            ASSERT (contiguous && "Per-channel native input requires contiguous strides");
-        }
-        ASSERT (format != TypeDesc::UNKNOWN);
         ASSERT (m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         size_t offset = 0;
-        for (int c = 0;  c < m_spec.nchannels;  ++c) {
+        for (int c = 0;  ok && c < m_spec.nchannels;  ++c) {
             TypeDesc chanformat = m_spec.channelformats[c];
             ok = convert_image (1 /* channels */, m_spec.width, 1, 1, 
                                 buf+offset, chanformat, 
@@ -186,7 +182,7 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
                 TypeDesc chanformat = m_spec.channelformats[c+firstchan];
                 ok = convert_image (1 /* channels */, m_spec.width, nscanlines, 1, 
                                     &buf[offset], chanformat, 
-                                    native_pixel_bytes, native_scanline_bytes, 0,
+                                    native_pixel_bytes, AutoStride, AutoStride,
                                     (char *)data + c*format.size(),
                                     format, xstride, ystride, zstride);
                 offset += chanformat.size ();
@@ -304,10 +300,6 @@ ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
                              data, format, xstride, ystride, zstride);
     } else {
         // Per-channel formats -- have to convert/copy channels individually
-        if (native_data) {
-            ASSERT (contiguous && "Per-channel native input requires contiguous strides");
-        }
-        ASSERT (format != TypeDesc::UNKNOWN);
         ASSERT (m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         size_t offset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
@@ -416,23 +408,34 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                 // partial channel subsets are read into a buffer and
                 // then copied.
                 if (xw == m_spec.tile_width && yh == m_spec.tile_height &&
-                      zd == m_spec.tile_depth &&
+                      zd == m_spec.tile_depth && !perchanfile &&
                       firstchan == 0 && nchans == m_spec.nchannels) {
+                    // Full tile, either native data or not needing
+                    // per-tile data format conversion.
                     ok &= read_tile (x, y, z, format, tilestart,
                                      xstride, ystride, zstride);
                 } else {
                     buf.resize (full_tilebytes);
-                    ok &= read_tile (x, y, z, format, &buf[0],
-                                     full_pixelsize, full_tilewidthbytes,
-                                     full_tilewhbytes);
+                    ok &= read_tile (x, y, z, 
+                                     perchanfile ? TypeDesc::UNKNOWN : format,
+                                     &buf[0], full_pixelsize,
+                                     full_tilewidthbytes, full_tilewhbytes);
                     if (ok)
                         copy_image (nchans, xw, yh, zd, &buf[prefix_bytes],
                                     pixelsize, full_pixelsize,
                                     full_tilewidthbytes, full_tilewhbytes,
                                     tilestart, xstride, ystride, zstride);
+                    // N.B. It looks like read_tiles doesn't handle the
+                    // per-channel data types case fully, but it does!
+                    // The call to read_tile() above handles the case of
+                    // per-channel data types, converting to to desired
+                    // format, so all we have to do on our own is the
+                    // copy_image.
                 }
                 tilestart += m_spec.tile_width * xstride;
             }
+            if (! ok)
+                break;
         }
     }
 
