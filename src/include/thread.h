@@ -366,32 +366,28 @@ yield ()
 
 
 
-/// Slight pause; if long enough, yield the CPU to another thread.
-///
+// Slight pause
 inline void
 pause (int delay)
 {
-    if (delay < 32) {
 #if USE_TBB
-        __TBB_Pause(delay);
+    __TBB_Pause(delay);
 #elif defined(__GNUC__)
-        for (int i = 0; i < delay; ++i) {
-            __asm__ __volatile__("pause;");
-        }
-#elif defined(_MSC_VER)
-        for (int i = 0; i < delay; ++i) {
-#if defined (_WIN64)
-            YieldProcessor();
-#else
-            _asm  pause
-#endif /* _WIN64 */
-        }
-#else
-        // No pause on this platform, just punt and do nothing.
-#endif
-    } else {
-        yield ();
+    for (int i = 0; i < delay; ++i) {
+        __asm__ __volatile__("pause;");
     }
+#elif defined(_MSC_VER)
+    for (int i = 0; i < delay; ++i) {
+#if defined (_WIN64)
+        YieldProcessor();
+#else
+        _asm  pause
+#endif /* _WIN64 */
+    }
+#else
+    // No pause on this platform, just punt
+    for (int i = 0; i < delay; ++i) ;
+#endif
 }
 
 
@@ -418,6 +414,10 @@ public:
     /// Retrieve value
     ///
     operator T() const { return atomic_exchange_and_add (&m_val, 0); }
+
+    /// Fast retrieval of value, no interchange, don't care about memory
+    /// fences.
+    T fast_value () const { return m_val; }
 
     /// Assign new value.
     ///
@@ -507,6 +507,24 @@ typedef tbb::spin_mutex::scoped_lock spin_lock;
 // Define our own spin locks.  Do we trust them?
 
 
+// Helper class to deliver ever longer pauses until we yield our timeslice.
+class atomic_backoff {
+public:
+    atomic_backoff () : m_count(1) { }
+
+    void operator() () {
+        if (m_count <= 16) {
+            pause (m_count);
+            m_count *= 2;
+        } else {
+            yield();
+        }
+    }
+private:
+    int m_count;
+};
+
+
 
 /// A spin_mutex is semantically equivalent to a regular mutex, except
 /// for the following:
@@ -551,10 +569,19 @@ public:
         // OS X has dedicated spin lock routines, may as well use them.
         OSSpinLockLock ((OSSpinLock *)&m_locked);
 #else
-        int i = 1;
         while (! try_lock()) {
-            pause(i);
-            i *= 2;
+            // Trick #1: don't spin too tightly; instead, insert
+            // increasingly longer pauses, and if the lock is under lots
+            // of contention, eventually yield the timeslice.  This is
+            // all handled by the atomic_backoff helper class.
+            atomic_backoff backoff;
+            do {
+                backoff();
+            } while (*(int *)&m_locked);
+            // Trick #2 above: try_lock involves a compare_and_swap,
+            // which writes memory, and that will lock the bus.  But an
+            // normal read of m_locked will let us spin until the value
+            // changes, without locking the bus!
         }
 #endif
     }
