@@ -1,5 +1,15 @@
 Changes:
 
+Release 1.0.6 (12 Jun 2012)
+---------------------------
+
+* Fix allocation and stride bugs in that could overrun a buffer when
+  reading tiled images whose resolution was not a whole number of tiles.
+* Fix stride bugs when reading scanline images with differing data types
+  per channel.
+* Fixes for FreeBSD compilation.
+
+
 Release 1.0.5 (3 Jun 2012)
 --------------------------
 * Various fixes for FreeBSD/kFreeBSD systems.
