@@ -423,7 +423,155 @@ public:
     /// Use with extreme caution!  Will return NULL if the pixel values
     /// aren't local.
     void *pixeladdr (int x, int y, int z);
+    
+    
+    /// Common code for all ImageBuf iterators
+    class IteratorBase {
+    public:
+        /// Retrieve the current x location of the iterator.
+        ///
+        const int &x () const { return m_x; }
+        /// Retrieve the current y location of the iterator.
+        ///
+        const int &y () const { return m_y; }
+        /// Retrieve the current z location of the iterator.
+        ///
+        const int &z () const { return m_z; }
 
+        /// Is the current location valid?  Locations outside the
+        /// designated region are invalid, as is an iterator that has
+        /// completed iterating over the whole region.
+        bool valid () const {
+            return m_valid;
+        }
+
+        /// Is the location (x,y[,z]) within the designated iteration
+        /// range?
+        bool valid (int x_, int y_, int z_=0) const {
+            return (x_ >= m_rng_xbegin && x_ < m_rng_xend &&
+                    y_ >= m_rng_ybegin && y_ < m_rng_yend &&
+                    z_ >= m_rng_zbegin && z_ < m_rng_zend);
+        }
+
+        /// Is the location (x,y[,z]) within the region of the ImageBuf
+        /// that contains pixel values (sometimes called the "data window")?
+        bool exists (int x_, int y_, int z_=0) const {
+            return (x_ >= m_img_xbegin && x_ < m_img_xend &&
+                    y_ >= m_img_ybegin && y_ < m_img_yend &&
+                    z_ >= m_img_zbegin && z_ < m_img_zend);
+        }
+        /// Does the current location exist within the ImageBuf's 
+        /// data window?
+        bool exists () const {
+            return m_exists;
+        }
+
+        /// Are we finished iterating over the region?
+        //
+        bool done () const {
+            // We're "done" if we are both invalid and in exactly the
+            // spot that we would end up after iterating off of the last
+            // pixel in the range.  (The m_valid test is just a quick
+            // early-out for when we're in the correct pixel range.)
+            return (m_valid == false && m_x == m_rng_xbegin &&
+                    m_y == m_rng_ybegin && m_z == m_rng_zend);
+        }
+
+    protected:
+        /// IteratorBase is not intended to be instantiated
+        /// To reinforce this, the constructors are made private
+        
+        /// Construct from just an ImageBuf -- iterate over the whole
+        /// region, starting with the upper left pixel of the region.
+        IteratorBase (const ImageBuf &ib)
+        {
+            init_ib (ib);
+            range_is_image ();
+        }
+        /// Construct from an ImageBuf and a specific pixel index.
+        /// The iteration range is the full image.
+        IteratorBase (const ImageBuf &ib, int x_, int y_, int z_=0)
+        {
+            init_ib (ib);
+            range_is_image ();
+        }
+        /// Construct from an ImageBuf and designated region -- iterate
+        /// over region, starting with the upper left pixel, and do NOT
+        /// clamp the region to the valid image pixels.  If "unclamped"
+        /// is true, the iteration region will NOT be clamped to the
+        /// image boundary, so you must use done() to test whether the
+        /// iteration is complete, versus valid() to test whether it's
+        /// pointing to a valid image pixel.
+        IteratorBase (const ImageBuf &ib, int xbegin, int xend,
+                  int ybegin, int yend, int zbegin=0, int zend=1,
+                  bool unclamped=false)
+        {
+            init_ib (ib);
+            if (unclamped) {
+                m_rng_xbegin = xbegin;
+                m_rng_xend = xend;
+                m_rng_ybegin = ybegin;
+                m_rng_yend = yend;
+                m_rng_zbegin = zbegin;
+                m_rng_zend = zend;
+            } else {
+                m_rng_xbegin = std::max(xbegin,m_img_xbegin);
+                m_rng_xend = std::min(xend,m_img_xend);
+                m_rng_ybegin = std::max(ybegin,m_img_ybegin);
+                m_rng_yend = std::min(yend,m_img_yend);
+                m_rng_zbegin = std::max(zbegin,m_img_zbegin);
+                m_rng_zend = std::min(zend,m_img_zend);
+            }
+        }
+        /// pseudo copy constructor
+        IteratorBase (const IteratorBase &i, const ImageBuf &ib)
+            : m_rng_xbegin(i.m_rng_xbegin), m_rng_xend(i.m_rng_xend),
+            m_rng_ybegin(i.m_rng_ybegin), m_rng_yend(i.m_rng_yend),
+            m_rng_zbegin(i.m_rng_zbegin), m_rng_zend(i.m_rng_zend)
+        {
+            init_ib (ib);
+        }
+        
+        /// Helper for derived operator='s
+        void assign (const IteratorBase &i, const ImageBuf &ib) {
+            init_ib (ib);
+            m_rng_xbegin = i.m_rng_xbegin;  m_rng_xend = i.m_rng_xend;
+            m_rng_ybegin = i.m_rng_ybegin;  m_rng_yend = i.m_rng_yend;
+            m_rng_zbegin = i.m_rng_zbegin;  m_rng_zend = i.m_rng_zend;
+        }        
+        
+        bool m_valid, m_exists;
+        // Image boundaries
+        int m_img_xbegin, m_img_xend, m_img_ybegin, m_img_yend,
+            m_img_zbegin, m_img_zend;
+        // Iteration range
+        int m_rng_xbegin, m_rng_xend, m_rng_ybegin, m_rng_yend,
+            m_rng_zbegin, m_rng_zend;        
+        int m_x, m_y, m_z;
+        int m_tilexbegin, m_tileybegin, m_tilezbegin;
+        int m_tilewidth, m_tileheight, m_tiledepth;
+        int m_nchannels;
+
+        // Helper called by ctrs -- set up some locally cached values
+        // that are copied or derived from the ImageBuf.
+        void init_ib (const ImageBuf &ib) {
+            m_img_xbegin = ib.xbegin(); m_img_xend = ib.xend();
+            m_img_ybegin = ib.ybegin(); m_img_yend = ib.yend();
+            m_img_zbegin = ib.zbegin(); m_img_zend = ib.zend();
+            m_nchannels = ib.spec().nchannels;
+            m_tilewidth = ib.spec().tile_width;
+            m_tileheight = ib.spec().tile_height;
+            m_tiledepth = ib.spec().tile_depth;
+        }
+
+        // Helper called by ctrs -- make the iteration range the full
+        // image data window.
+        void range_is_image () {
+            m_rng_xbegin = m_img_xbegin;  m_rng_xend = m_img_xend; 
+            m_rng_ybegin = m_img_ybegin;  m_rng_yend = m_img_yend;
+            m_rng_zbegin = m_img_zbegin;  m_rng_zend = m_img_zend;
+        }
+    };
 
     /// Templated class for referring to an individual pixel in an
     /// ImageBuf, iterating over the pixels of an ImageBuf, or iterating
