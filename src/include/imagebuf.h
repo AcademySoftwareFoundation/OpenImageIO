@@ -831,7 +831,315 @@ public:
         ConstDataArrayProxy<BUFT,USERT> m_proxy;
         ImageCache::Tile *m_tile;
     };
+    
+    
+    /// Tile-aware 'unordered' iterator
+    /// Different ++, no pos(), always clamped to image
+    template<typename BUFT, typename USERT=float>
+    class UnorderedIterator: public IteratorBase {
+    public:
+        UnorderedIterator (ImageBuf &ib)
+            : IteratorBase(ib), m_ib(&ib), m_tile(NULL) {
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
+        // Always clamp to the image
+        // There's no reason to go outside the image with this iterator
+        UnorderedIterator (ImageBuf &ib, int xbegin, int xend,
+                  int ybegin, int yend, int zbegin=0, int zend=1)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, true), 
+            m_ib(&ib), m_tile(NULL) {
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
+        UnorderedIterator (const UnorderedIterator &i)
+            : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
+            pos (i.m_x, i.m_y, i.m_z);
+        }
+        ~UnorderedIterator() {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+        }
+        
+        void operator++ () {
+            m_proxy += m_nchannels;
+            if (++m_x >= m_tilerng_xend) {
+                m_x = m_tilerng_xbegin;
+                
+                //how many pixels to skip to get to the next row?
+                m_proxy += (m_tilewidth - (m_tilerng_xend-m_tilerng_xbegin)) *
+                        m_nchannels;
+                
+                if (++m_y >= m_tilerng_yend) {
+                    m_y = m_tilerng_ybegin;
+                    //how many rows to skip to get to the next layer?
+                    m_proxy += (m_tileheight - (m_tilerng_yend-m_tilerng_ybegin)) *
+                        (m_tilewidth * m_nchannels);
+                    
+                    if (++m_z >= m_tilerng_zend) {
+                        //we're done with this tile, move on to the next
+                        m_z = m_tilerng_zbegin;
+                        
+                        m_x += m_tilewidth; //next tile ++x
+                        if (m_x < m_rng_xend) { //is this tile in our range?
+                            update_tile();
+                            return;
+                        }
+                        
+                        //++x didn't work so reset and try ++y
+                        m_x = m_rng_xbegin;
+                        m_y += m_tileheight;
+                        if (m_y < m_rng_yend) {
+                            update_tile();
+                            return;
+                        }
+                        
+                        //now try ++z
+                        m_y = m_rng_ybegin;
+                        m_z += m_tiledepth;
+                        if (m_z < m_rng_zend) {
+                            update_tile();
+                            return;
+                        }
+                        
+                        //if ++z doesn't work, we're done with the iterator
+                        //so x=xbegin, y=ybegin, z=zend, valid=false
+                        // (IteratorBase::done() == true)
+                        m_z = m_rng_zend;
+                        m_valid = false;
+                        return;
+                    }
+                }
+            }
+        }
+        /// Increment to the next pixel in the region.
+        ///
+        void operator++ (int) {
+            ++(*this);
+        }
+        
+        const UnorderedIterator & operator= (const UnorderedIterator &i) {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+            m_tile = NULL;
+            m_ib = i.m_ib;
+            assign (i, *i.m_ib);
+            pos (i.m_x, i.m_y, i.m_z);
+            return *this;
+        }
+        
+        /// Dereferencing the iterator gives us a proxy for the pixel,
+        /// which we can index for reading or assignment.
+        DataArrayProxy<BUFT,USERT>& operator* () { return m_proxy; }
 
+        /// Array indexing retrieves the value of the i-th channel of
+        /// the current pixel.
+        USERT operator[] (int i) const { return m_proxy[i]; } 
+
+        /// Array referencing retrieve a proxy (which may be "assigned
+        /// to") of i-th channel of the current pixel, so that this
+        /// works: me[i] = val;
+        DataProxy<BUFT,USERT> operator[] (int i) { return m_proxy[i]; } 
+        
+        void * rawptr () const { return m_proxy.get(); }
+        
+    private:
+        ImageBuf *m_ib;
+        DataArrayProxy<BUFT,USERT> m_proxy;
+        ImageCache::Tile *m_tile;
+        //intersection of current tile and valid pixels
+        int m_tilerng_xbegin, m_tilerng_xend, m_tilerng_ybegin, m_tilerng_yend,
+            m_tilerng_zbegin, m_tilerng_zend;
+        
+        void pos (int x_, int y_, int z_=0) {
+            m_x = x_;
+            m_y = y_;
+            m_z = z_;
+            update_tile();
+        }
+        
+        void update_tile () {
+            bool v = valid(m_x, m_y, m_z);
+            bool e = exists(m_x, m_y, m_z);
+            
+            if (!e)
+                m_proxy.set (NULL);
+            else if (m_ib->localpixels())
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (m_x, m_y, m_z));
+            else
+                m_proxy.set ((BUFT *)m_ib->retile (m_x, m_y, m_z,
+                                         m_tile, m_tilexbegin,
+                                         m_tileybegin, m_tilezbegin));
+            
+            m_valid = v;
+            m_exists = e;            
+            get_intersection ();
+        }
+        
+        void get_intersection () {
+            m_tilerng_xbegin = std::max(m_tilexbegin, m_rng_xbegin);
+            m_tilerng_xend = std::min(m_tilexbegin+m_tilewidth,
+                                        m_rng_xend);
+            m_tilerng_ybegin = std::max(m_tileybegin, m_rng_ybegin);
+            m_tilerng_yend = std::min(m_tileybegin+m_tileheight,
+                                        m_rng_xend);
+            m_tilerng_zbegin = std::max(m_tilezbegin, m_rng_zbegin);
+            m_tilerng_zend = std::min(m_tilezbegin+m_tiledepth,
+                                        m_rng_zend);
+        }
+    };
+    
+    template<typename BUFT, typename USERT=float>
+    class UnorderedConstIterator: public IteratorBase {    
+    public:
+        UnorderedConstIterator (const ImageBuf &ib)
+            : IteratorBase(ib), m_ib(&ib), m_tile(NULL) {
+            pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
+        }
+        // Always clamp to the image
+        // There's no reason to go outside the image with this iterator
+        UnorderedConstIterator (const ImageBuf &ib, int xbegin, int xend,
+                  int ybegin, int yend, int zbegin=0, int zend=1)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, true), 
+            m_ib(&ib), m_tile(NULL) {
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
+        UnorderedConstIterator (const UnorderedConstIterator &i)
+            : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
+            pos (i.m_x, i.m_y, i.m_z);
+        }
+        //cast from UnorderedIterator to const
+        UnorderedConstIterator (const UnorderedIterator<BUFT, USERT> &i)
+            : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
+            pos (i.m_x, i.m_y, i.m_z);
+        }
+        ~UnorderedConstIterator() {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+        }
+        
+        const UnorderedConstIterator & operator= (const UnorderedConstIterator &i) {
+            if (m_tile)
+                m_ib->imagecache()->release_tile (m_tile);
+            m_tile = NULL;
+            m_ib = i.m_ib;
+            assign (i, *i.m_ib);
+            pos (i.m_x, i.m_y, i.m_z);
+            return *this;
+        }
+        
+        /// Increment to the next pixel in the region.
+        ///
+        void operator++ () {
+            m_proxy += m_nchannels;
+            if (++m_x >= m_tilerng_xend) {
+                m_x = m_tilerng_xbegin;
+                
+                //how many pixels to skip to get to the next row?
+                m_proxy += (m_tilewidth - (m_tilerng_xend-m_tilerng_xbegin)) *
+                        m_nchannels;
+                
+                if (++m_y >= m_tilerng_yend) {
+                    m_y = m_tilerng_ybegin;
+                    //how many rows to skip to get to the next layer?
+                    m_proxy += (m_tileheight - (m_tilerng_yend-m_tilerng_ybegin)) *
+                        (m_tilewidth * m_nchannels);
+                    
+                    if (++m_z >= m_tilerng_zend) {
+                        //we're done with this tile, move on to the next
+                        m_z = m_tilerng_zbegin;
+                        
+                        m_x += m_tilewidth; //next tile ++x
+                        if (m_x < m_rng_xend) { //is this tile in our range?
+                            update_tile();
+                            return;
+                        }
+                        
+                        //++x didn't work so reset and try ++y
+                        m_x = m_rng_xbegin;
+                        m_y += m_tileheight;
+                        if (m_y < m_rng_yend) {
+                            update_tile();
+                            return;
+                        }
+                        
+                        //now try ++z
+                        m_y = m_rng_ybegin;
+                        m_z += m_tiledepth;
+                        if (m_z < m_rng_zend) {
+                            update_tile();
+                            return;
+                        }
+                        
+                        //if ++z doesn't work, we're done with the iterator
+                        //so x=xbegin, y=ybegin, z=zend, valid=false
+                        // (IteratorBase::done() == true)
+                        m_z = m_rng_zend;
+                        m_valid = false;
+                        return;
+                    }
+                }
+            }
+        }
+        /// Increment to the next pixel in the region.
+        ///
+        void operator++ (int) {
+            ++(*this);
+        }
+        
+        /// Dereferencing the iterator gives us a proxy for the pixel,
+        /// which we can index for reading or assignment.
+        ConstDataArrayProxy<BUFT,USERT>& operator* () const { return m_proxy; }
+
+        /// Array indexing retrieves the value of the i-th channel of
+        /// the current pixel.
+        USERT operator[] (int i) const { return m_proxy[i]; } 
+
+        const void * rawptr () const { return m_proxy.get(); }
+        
+    private:
+        const ImageBuf *m_ib;
+        ConstDataArrayProxy<BUFT,USERT> m_proxy;
+        ImageCache::Tile *m_tile;
+        //intersection of current tile and valid pixels
+        int m_tilerng_xbegin, m_tilerng_xend, m_tilerng_ybegin, m_tilerng_yend,
+            m_tilerng_zbegin, m_tilerng_zend;
+            
+        void pos (int x_, int y_, int z_=0) {
+            m_x = x_;
+            m_y = y_;
+            m_z = z_;
+            update_tile();
+        }
+
+        void update_tile () {
+            bool v = valid(m_x, m_y, m_z);
+            bool e = exists(m_x, m_y, m_z);
+            
+            if (!e)
+                m_proxy.set (NULL);
+            else if (m_ib->localpixels())
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (m_x, m_y, m_z));
+            else
+                m_proxy.set ((BUFT *)m_ib->retile (m_x, m_y, m_z,
+                                         m_tile, m_tilexbegin,
+                                         m_tileybegin, m_tilezbegin));
+            
+            m_valid = v;
+            m_exists = e;
+            get_intersection();
+        }
+        
+        void get_intersection () {
+            m_tilerng_xbegin = std::max(m_tilexbegin, m_rng_xbegin);
+            m_tilerng_xend = std::min(m_tilexbegin+m_tilewidth,
+                                        m_rng_xend);
+            m_tilerng_ybegin = std::max(m_tileybegin, m_rng_ybegin);
+            m_tilerng_yend = std::min(m_tileybegin+m_tileheight,
+                                        m_rng_xend);
+            m_tilerng_zbegin = std::max(m_tilezbegin, m_rng_zbegin);
+            m_tilerng_zend = std::min(m_tilezbegin+m_tiledepth,
+                                        m_rng_zend);
+        }
+    };
 
 protected:
     ustring m_name;              ///< Filename of the image
