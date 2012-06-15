@@ -980,7 +980,7 @@ public:
                                         m_rng_xend);
             m_tilerng_ybegin = std::max(m_tileybegin, m_rng_ybegin);
             m_tilerng_yend = std::min(m_tileybegin+m_tileheight,
-                                        m_rng_xend);
+                                        m_rng_yend);
             m_tilerng_zbegin = std::max(m_tilezbegin, m_rng_zbegin);
             m_tilerng_zend = std::min(m_tilezbegin+m_tiledepth,
                                         m_rng_zend);
@@ -1134,7 +1134,7 @@ public:
                                         m_rng_xend);
             m_tilerng_ybegin = std::max(m_tileybegin, m_rng_ybegin);
             m_tilerng_yend = std::min(m_tileybegin+m_tileheight,
-                                        m_rng_xend);
+                                        m_rng_yend);
             m_tilerng_zbegin = std::max(m_tilezbegin, m_rng_zbegin);
             m_tilerng_zend = std::min(m_tilezbegin+m_tiledepth,
                                         m_rng_zend);
