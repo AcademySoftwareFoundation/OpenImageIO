@@ -143,8 +143,8 @@ Oiiotool::process_pending ()
 static int
 set_threads (int argc, const char *argv[])
 {
-    ASSERT (argc == 1);
-    OIIO_NAMESPACE::attribute ("threads", atoi(argv[0]));
+    ASSERT (argc == 2);
+    OIIO_NAMESPACE::attribute ("threads", atoi(argv[1]));
     return 0;
 }
 
