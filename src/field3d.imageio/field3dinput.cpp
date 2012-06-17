@@ -355,8 +355,8 @@ void Field3DInput::read_layers (TypeDesc datatype)
                 lay.fieldtype = MAC;
             else
                 ASSERT (0 && "unknown field type");
-            read_one_layer (*i, lay, datatype, layernum);
             lay.vecfield = true;
+            read_one_layer (*i, lay, datatype, layernum);
         }
     }
 }
