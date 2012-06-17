@@ -3,3 +3,13 @@ branches/
 build/
 dist/
 testsuite/runtest.pyc
+
+Makefile.mine
+
+test.tif
+
+test.tx
+
+test2.tx
+
+test.exr
