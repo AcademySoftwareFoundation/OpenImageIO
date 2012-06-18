@@ -284,7 +284,7 @@ getargs (int argc, char *argv[])
                   "--colorconvert %s %s", &incolorspace, &outcolorspace,
                           colorconvert_help_string().c_str(),
                   "--colorspace %s", &incolorspace, "Set input colorspace. "
-                          "This is used for internal processing and does not affect the output colorspace.",
+                          "Used for internal image processing and does not affect the output colorspace.",
                   "--unpremult", &unpremult, "Unpremultiply before color conversion, then premultiply "
                           "after the color conversion.  You'll probably want to use this flag "
                           "if your image contains an alpha channel.",
