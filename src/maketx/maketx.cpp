@@ -745,9 +745,9 @@ append_desc (std::string &desc, const std::string &key,
 {
     size_t key_pos = desc.find (key);
     if (key_pos != std::string::npos) { //found, replace
-        size_t val_pos = key_pos + key.length() + 1;
-        size_t end_pos = desc.find_first_of (' ', val_pos);
-        desc.replace (val_pos, end_pos, value);
+        size_t val_pos = key_pos + key.length() + 1; // + 1 -> '='
+        size_t val_end = desc.find_first_of (' ', val_pos);
+        desc.replace (val_pos, val_end, value);
     }
     else { // not found, append
         if (desc.length())
@@ -1172,7 +1172,7 @@ make_texturemap (const char *maptypename = "texture map")
     }
     stat_resizetime += resizetimer();
 
-    if (isConstantColor) {
+    if (isConstantColor && constant_color_detect) {
         if (incolorspace != outcolorspace) {
             // do the full colorspace conversion for metadata, as there will
             // be no further processing of this data.
@@ -1241,7 +1241,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
 
     ImageBuf *toplevel = &img;    // Ptr to top level of mipmap
 
-    // convert to outcolorspace prior to hash computation
+    // Convert to outcolorspace prior to hash computation.
     ImageBuf ccDst; 
     if (!incolorspace.empty() && !outcolorspace.empty()) {
         if (outcolorspace != "linear") {
@@ -1366,6 +1366,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
 
             if (!incolorspace.empty() && !outcolorspace.empty()) {
                 if (outcolorspace != "linear") {
+                    // we're done with big ptr, so let's reuse it
                     big->reset ("colorspace conversion", small->spec());
                     convert_color (*small, "linear", *big, outcolorspace);
                     // big now points to linear small, and small points to cc'd small
