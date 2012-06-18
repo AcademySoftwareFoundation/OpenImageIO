@@ -78,6 +78,13 @@ DLLPUBLIC void usleep (unsigned long useconds);
 /// figure it out.
 DLLPUBLIC int terminal_columns ();
 
+/// Try to put the process into the background so it doesn't continue to
+/// tie up any shell that it was launched from.  The arguments are the
+/// argc/argv that describe the program and its command line arguments.
+/// Return true if successful, false if it was unable to do so.
+DLLPUBLIC bool put_in_background (int argc, char* argv[]);
+
+
 };  // namespace Sysutils
 
 }
