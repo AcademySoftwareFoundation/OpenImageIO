@@ -44,7 +44,7 @@
 // defining NOMINMAX to prevent problems with std::min/std::max
 // and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
 // when boost include windows.h
-#ifdef _WIN32
+#ifdef _MSC_VER
 # define WIN32_LEAN_AND_MEAN
 # define VC_EXTRALEAN
 # ifndef NOMINMAX
@@ -87,7 +87,7 @@
 #  include <tbb/spin_mutex.h>
 #endif
 
-#if defined(_WIN32) && !USE_TBB
+#if defined(_MSC_VER) && !USE_TBB
 #  include <windows.h>
 #  include <winbase.h>
 #  pragma intrinsic (_InterlockedExchangeAdd)
@@ -266,10 +266,10 @@ atomic_exchange_and_add (volatile int *at, int x)
 #elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
     return a->fetch_and_add (x);
-#elif defined(__APPLE__)
+#elif defined(no__APPLE__)
     // Apple, not inline for Intel (only PPC?)
     return OSAtomicAdd32Barrier (x, at) - x;
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
     // Windows
     return _InterlockedExchangeAdd ((volatile LONG *)at, x);
 #else
@@ -287,10 +287,10 @@ atomic_exchange_and_add (volatile long long *at, long long x)
 #elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
     return a->fetch_and_add (x);
-#elif defined(__APPLE__)
+#elif defined(no__APPLE__)
     // Apple, not inline for Intel (only PPC?)
     return OSAtomicAdd64Barrier (x, at) - x;
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
     // Windows
 #  if defined(_WIN64)
     return _InterlockedExchangeAdd64 ((volatile LONGLONG *)at, x);
@@ -318,9 +318,9 @@ atomic_compare_and_exchange (volatile int *at, int compareval, int newval)
 #elif USE_TBB
     atomic<int> *a = (atomic<int> *)at;
     return a->compare_and_swap (newval, compareval) == newval;
-#elif defined(__APPLE__)
+#elif defined(no__APPLE__)
     return OSAtomicCompareAndSwap32Barrier (compareval, newval, at);
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
     return (_InterlockedCompareExchange ((volatile LONG *)at, newval, compareval) == compareval);
 #else
 #   error No atomics on this platform.
@@ -337,12 +337,56 @@ atomic_compare_and_exchange (volatile long long *at, long long compareval, long 
 #elif USE_TBB
     atomic<long long> *a = (atomic<long long> *)at;
     return a->compare_and_swap (newval, compareval) == newval;
-#elif defined(__APPLE__)
+#elif defined(no__APPLE__)
     return OSAtomicCompareAndSwap64Barrier (compareval, newval, at);
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
     return (_InterlockedCompareExchange64 ((volatile LONGLONG *)at, newval, compareval) == compareval);
 #else
 #   error No atomics on this platform.
+#endif
+}
+
+
+
+/// Yield the processor for the rest of the timeslice.
+///
+inline void
+yield ()
+{
+#if USE_TBB
+    __TBB_Yield ();
+#elif defined(__GNUC__)
+    sched_yield ();
+#elif defined(_MSC_VER)
+    SwitchToThread ();
+#else
+#   error No yield on this platform.
+#endif
+}
+
+
+
+// Slight pause
+inline void
+pause (int delay)
+{
+#if USE_TBB
+    __TBB_Pause(delay);
+#elif defined(__GNUC__)
+    for (int i = 0; i < delay; ++i) {
+        __asm__ __volatile__("pause;");
+    }
+#elif defined(_MSC_VER)
+    for (int i = 0; i < delay; ++i) {
+#if defined (_WIN64)
+        YieldProcessor();
+#else
+        _asm  pause
+#endif /* _WIN64 */
+    }
+#else
+    // No pause on this platform, just punt
+    for (int i = 0; i < delay; ++i) ;
 #endif
 }
 
@@ -370,6 +414,10 @@ public:
     /// Retrieve value
     ///
     operator T() const { return atomic_exchange_and_add (&m_val, 0); }
+
+    /// Fast retrieval of value, no interchange, don't care about memory
+    /// fences.
+    T fast_value () const { return m_val; }
 
     /// Assign new value.
     ///
@@ -459,6 +507,24 @@ typedef tbb::spin_mutex::scoped_lock spin_lock;
 // Define our own spin locks.  Do we trust them?
 
 
+// Helper class to deliver ever longer pauses until we yield our timeslice.
+class atomic_backoff {
+public:
+    atomic_backoff () : m_count(1) { }
+
+    void operator() () {
+        if (m_count <= 16) {
+            pause (m_count);
+            m_count *= 2;
+        } else {
+            yield();
+        }
+    }
+private:
+    int m_count;
+};
+
+
 
 /// A spin_mutex is semantically equivalent to a regular mutex, except
 /// for the following:
@@ -499,19 +565,31 @@ public:
     /// Acquire the lock, spin until we have it.
     ///
     void lock () {
-#if defined(__APPLE__)
+#if defined(x__APPLE__)
         // OS X has dedicated spin lock routines, may as well use them.
         OSSpinLockLock ((OSSpinLock *)&m_locked);
 #else
-        while (! try_lock())
-            ;
+        while (! try_lock()) {
+            // Trick #1: don't spin too tightly; instead, insert
+            // increasingly longer pauses, and if the lock is under lots
+            // of contention, eventually yield the timeslice.  This is
+            // all handled by the atomic_backoff helper class.
+            atomic_backoff backoff;
+            do {
+                backoff();
+            } while (*(int *)&m_locked);
+            // Trick #2 above: try_lock involves a compare_and_swap,
+            // which writes memory, and that will lock the bus.  But an
+            // normal read of m_locked will let us spin until the value
+            // changes, without locking the bus!
+        }
 #endif
     }
 
     /// Release the lock that we hold.
     ///
     void unlock () {
-#if defined(__APPLE__)
+#if defined(x__APPLE__)
         OSSpinLockUnlock ((OSSpinLock *)&m_locked);
 #else
         m_locked = 0;
@@ -521,7 +599,7 @@ public:
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
     bool try_lock () {
-#if defined(__APPLE__)
+#if defined(x__APPLE__)
         return OSSpinLockTry ((OSSpinLock *)&m_locked);
 #else
 #  if USE_TBB
