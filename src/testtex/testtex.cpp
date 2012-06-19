@@ -327,6 +327,39 @@ map_tube (int x, int y, float &s, float &t,
 
 
 
+// To test filters, we always sample at the center of the image, and
+// keep the minor axis of the filter at 1/256, but we vary the
+// eccentricity (i.e. major axis length) as we go left (1) to right
+// (32), and vary the angle as we go top (0) to bottom (2pi).
+//
+// If filtering is correct, all pixels should sample from the same MIP
+// level because they have the same minor axis (1/256), regardless of
+// eccentricity or angle.  If we specify a texture that has a
+// distinctive color at the 256-res level, and something totally
+// different at the 512 and 128 levels, it should be easy to verify that
+// we aren't over-filtering or under-filtering by selecting the wrong
+// MIP level.  (Though of course, there are other kinds of mistakes we
+// could be making, such as computing the wrong eccentricity or angle.)
+static void
+map_filtertest (int x, int y, float &s, float &t,
+                float &dsdx, float &dtdx, float &dsdy, float &dtdy)
+{
+    float minoraxis = 1.0f/256;
+    float majoraxis = minoraxis * lerp (1.0f, 32.0f, (float)x/output_xres);
+    float angle = 2.0f * M_PI * (float)y/output_yres;
+    float sinangle, cosangle;
+    sincos (angle, &sinangle, &cosangle);
+    s = 0.5f;
+    t = 0.5f;
+
+    dsdx =  minoraxis * cosangle;
+    dtdx =  minoraxis * sinangle;
+    dsdy = -majoraxis * sinangle;
+    dtdy =  majoraxis * cosangle;
+}
+
+
+
 void
 map_default_3D (int x, int y, Imath::V3f &P,
                 Imath::V3f &dPdx, Imath::V3f &dPdy, Imath::V3f &dPdz)
@@ -719,10 +752,7 @@ main (int argc, const char *argv[])
         iters = 0;
     }
 
-    if (filtertest) {
-        // test_filtering ();
-    }
-    else if (iters > 0) {
+    if (iters > 0) {
         ustring filename (filenames[0]);
         test_gettextureinfo (filename);
         const char *texturetype = "Plain Texture";
@@ -733,6 +763,8 @@ main (int argc, const char *argv[])
                 test_plain_texture (map_default);
             else if (tube)
                 test_plain_texture (map_tube);
+            else if (filtertest)
+                test_plain_texture (map_filtertest);
             else
                 test_plain_texture (map_warp);
         }
