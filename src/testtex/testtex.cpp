@@ -261,8 +261,8 @@ static void
 map_default (int x, int y, float &s, float &t,
              float &dsdx, float &dtdx, float &dsdy, float &dtdy)
 {
-    s = (float)x/output_xres * sscale + offset[0];
-    t = (float)y/output_yres * tscale + offset[1];
+    s = float(x+0.5f)/output_xres * sscale + offset[0];
+    t = float(y+0.5f)/output_yres * tscale + offset[1];
     dsdx = 1.0f/output_xres * sscale;
     dtdx = 0.0f;
     dsdy = 0.0f;
@@ -275,15 +275,15 @@ static void
 map_warp (int x, int y, float &s, float &t,
           float &dsdx, float &dtdx, float &dsdy, float &dtdy)
 {
-    Imath::V3f coord = warp ((float)x/output_xres, (float)y/output_yres, xform);
+    Imath::V3f coord = warp (float(x+0.5f)/output_xres, float(y+0.5f)/output_yres, xform);
     coord.x *= sscale;
     coord.y *= tscale;
     coord += offset;
-    Imath::V3f coordx = warp ((float)(x+1)/output_xres, (float)y/output_yres, xform);
+    Imath::V3f coordx = warp (float(x+1.5f)/output_xres, float(y+0.5f)/output_yres, xform);
     coordx.x *= sscale;
     coordx.y *= tscale;
     coordx += offset;
-    Imath::V3f coordy = warp ((float)x/output_xres, (float)(y+1)/output_yres, xform);
+    Imath::V3f coordy = warp (float(x+0.5f)/output_xres, float(y+1.5f)/output_yres, xform);
     coordy.x *= sscale;
     coordy.y *= tscale;
     coordy += offset;
@@ -301,9 +301,9 @@ static void
 map_tube (int x, int y, float &s, float &t,
           float &dsdx, float &dtdx, float &dsdy, float &dtdy)
 {
-    float xt = float(x)/output_xres - 0.5f;
+    float xt = float(x+0.5f)/output_xres - 0.5f;
     float dxt_dx = 1.0f/output_xres;
-    float yt = float(y)/output_yres - 0.5f;
+    float yt = float(y+0.5f)/output_yres - 0.5f;
     float dyt_dy = 1.0f/output_yres;
     float theta = atan2f (yt, xt);
     // See OSL's Dual2 for partial derivs of
@@ -345,8 +345,8 @@ map_filtertest (int x, int y, float &s, float &t,
                 float &dsdx, float &dtdx, float &dsdy, float &dtdy)
 {
     float minoraxis = 1.0f/256;
-    float majoraxis = minoraxis * lerp (1.0f, 32.0f, (float)x/output_xres);
-    float angle = 2.0f * M_PI * (float)y/output_yres;
+    float majoraxis = minoraxis * lerp (1.0f, 32.0f, (float)x/(output_xres-1));
+    float angle = 2.0f * M_PI * (float)y/(output_yres-1);
     float sinangle, cosangle;
     sincos (angle, &sinangle, &cosangle);
     s = 0.5f;
@@ -364,8 +364,8 @@ void
 map_default_3D (int x, int y, Imath::V3f &P,
                 Imath::V3f &dPdx, Imath::V3f &dPdy, Imath::V3f &dPdz)
 {
-    P[0] = (float)x/output_xres * sscale;
-    P[1] = (float)y/output_yres * tscale;
+    P[0] = (float)(x+0.5f)/output_xres * sscale;
+    P[1] = (float)(y+0.5f)/output_yres * tscale;
     P[2] = 0.5f * sscale;
     P += offset;
     dPdx[0] = 1.0f/output_xres * sscale;
