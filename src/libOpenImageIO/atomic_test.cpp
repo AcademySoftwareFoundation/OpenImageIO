@@ -34,8 +34,11 @@
 #include "thread.h"
 #include "strutil.h"
 #include "timer.h"
+#include "argparse.h"
+#include "ustring.h"
 
 #include <boost/thread/thread.hpp>
+#include <boost/bind.hpp>
 
 #include "unittest.h"
 
@@ -46,8 +49,11 @@ OIIO_NAMESPACE_USING;
 // and decrementing the crap out of it, and make sure it has the right
 // value at the end.
 
-const int iterations = 10000000;
-const int numthreads = 16;
+static int iterations = 160000000;
+static int numthreads = 16;
+static int ntrials = 1;
+static bool verbose = false;
+static bool wedge = false;
 
 static spin_mutex print_mutex;  // make the prints not clobber each other
 atomic_int ai;
@@ -55,9 +61,9 @@ atomic_ll all;
 
 
 static void
-do_int_math ()
+do_int_math (int iterations)
 {
-    {
+    if (verbose) {
         spin_lock lock(print_mutex);
         std::cout << "thread " << boost::this_thread::get_id()
               << ", ai = " << ai << "\n";
@@ -78,22 +84,14 @@ do_int_math ()
 
 
 
-void test_atomic_int ()
+void test_atomic_int (int numthreads, int iterations)
 {
-    {
-        spin_lock lock(print_mutex);
-        std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
-    }
-
     ai = 42;
     boost::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (&do_int_math);
+        threads.create_thread (boost::bind (do_int_math, iterations));
     }
-    {
-        spin_lock lock(print_mutex);
-        std::cout << "Created " << threads.size() << " threads\n";
-    }
+    ASSERT ((int)threads.size() == numthreads);
     threads.join_all ();
     OIIO_CHECK_EQUAL (ai, 42);
 }
@@ -101,9 +99,9 @@ void test_atomic_int ()
 
 
 static void
-do_int64_math ()
+do_int64_math (int iterations)
 {
-    {
+    if (verbose) {
         spin_lock lock(print_mutex);
         std::cout << "thread " << boost::this_thread::get_id()
                   << ", all = " << all << "\n";
@@ -124,25 +122,81 @@ do_int64_math ()
 
 
 
-void test_atomic_int64 ()
+void test_atomic_int64 (int numthreads, int iterations)
 {
     all = 0;
     boost::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (&do_int64_math);
+        threads.create_thread (boost::bind (do_int64_math, iterations));
     }
     threads.join_all ();
-    do_int64_math ();
     OIIO_CHECK_EQUAL (all, 0);
+}
+
+
+
+void test_atomics (int numthreads, int iterations)
+{
+    test_atomic_int (numthreads, iterations);
+    test_atomic_int64 (numthreads, iterations);
+}
+
+
+
+static void
+getargs (int argc, char *argv[])
+{
+    bool help = false;
+    ArgParse ap;
+    ap.options ("atomic_test\n"
+                OIIO_INTRO_STRING "\n"
+                "Usage:  atomic_test [options]",
+                // "%*", parse_files, "",
+                "--help", &help, "Print help message",
+                "-v", &verbose, "Verbose mode",
+                "--threads %d", &numthreads, 
+                    ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+                "--iters %d", &iterations,
+                    ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+                "--trials %d", &ntrials, "Number of trials",
+                "--wedge", &wedge, "Do a wedge test",
+                NULL);
+    if (ap.parse (argc, (const char**)argv) < 0) {
+        std::cerr << ap.geterror() << std::endl;
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+    if (help) {
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
 }
 
 
 
 int main (int argc, char *argv[])
 {
-    Timer timer;
-    test_atomic_int ();
-    test_atomic_int64 ();
-    std::cout << "Time: " << Strutil::timeintervalformat (timer()) << "\n";
+    getargs (argc, argv);
+
+    std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
+    std::cout << "threads\ttime (best of " << ntrials << ")\n";
+    std::cout << "-------\t----------\n";
+
+    static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
+    for (int i = 0; threadcounts[i] <= numthreads; ++i) {
+        int nt = threadcounts[i];
+        int its = iterations/nt;
+
+        double range;
+        double t = time_trial (boost::bind(test_atomics,nt,its),
+                               ntrials, &range);
+
+        std::cout << Strutil::format ("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n",
+                                      nt, Strutil::timeintervalformat(t),
+                                      t, range, its);
+        if (! wedge)
+            break;    // don't loop if we're not wedging
+    }
+
     return unit_test_failures;
 }
