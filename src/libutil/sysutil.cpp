@@ -215,5 +215,64 @@ Sysutil::terminal_columns ()
 }
 
 
+
+bool
+#if !defined(_MSC_VER)
+Sysutil::put_in_background (int argc, char* argv[])
+#else
+Sysutil::put_in_background (int, char* [])
+#endif
+{
+    // You would think that this would be sufficient:
+    //   pid_t pid = fork ();
+    //   if (pid < 0)       // Some kind of error, we were unable to background
+    //      return false;
+    //   if (pid == 0)
+    //       return true;   // This is the child process, so continue with life
+    //   // Otherwise, this is the parent process, so terminate
+    //   exit (0); 
+    // But it's not.  On OS X, it's not safe to fork() if your app is linked
+    // against certain libraries or frameworks.  So the only thing that I
+    // think is safe is to exec a new process.
+    // Another solution is this:
+    //    daemon (1, 1);
+    // But it suffers from the same problem on OS X, and seems to just be
+    // a wrapper for fork.
+
+#if defined(__linux__) || defined(__GLIBC__)
+    // Simplest case:
+    daemon (1, 1);
+    return true;
+#endif
+
+#ifdef __APPLE__
+    std::string newcmd = std::string(argv[0]) + " -F";
+    for (int i = 1;  i < argc;  ++i) {
+        newcmd += " \"";
+        newcmd += argv[i];
+        newcmd += "\"";
+    }
+    newcmd += " &";
+    if (system (newcmd.c_str()) != -1)
+        exit (0);
+    return true;
+#endif
+
+#ifdef WIN32
+    // if we are not in DEBUG mode this code switch the app to
+    // full windowed mode (no console and no need to define WinMain)
+    // FIXME: this should be done in CMakeLists.txt but first we have to
+    // fix Windows Debug build
+# ifndef DEBUG
+#  pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
+# endif
+    return true;
+#endif
+
+    // Otherwise, we don't know what to do
+    return false;
+}
+
+
 }
 OIIO_NAMESPACE_EXIT
