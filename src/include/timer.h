@@ -227,6 +227,32 @@ private:
 };
 
 
+
+/// Helper template that runs a function (or functor) n times, using a
+/// Timer to benchmark the results, and returning the fastest trial.  If
+/// 'range' is non-NULL, the range (max-min) of the various time trials
+/// will be stored there.
+template<class FUNC>
+double
+time_trial (FUNC func, int n=1, double *range=NULL)
+{
+    double mintime = 1.0e30, maxtime = 0.0;
+    while (n-- > 0) {
+        Timer timer;
+        func ();
+        double t = timer();
+        if (t < mintime)
+            mintime = t;
+        if (t > maxtime)
+            maxtime = t;
+    }
+    if (range)
+        *range = maxtime-mintime;
+    return mintime;
+}
+
+
+
 }
 OIIO_NAMESPACE_EXIT
 
