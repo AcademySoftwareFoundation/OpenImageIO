@@ -67,6 +67,7 @@ static bool automip = false;
 static bool test_construction = false;
 static bool test_gettexels = false;
 static bool test_getimagespec = false;
+static bool filtertest = false;
 static TextureSystem *texsys = NULL;
 static std::string searchpath;
 static int blocksize = 1;
@@ -83,6 +84,7 @@ static bool nountiled = false;
 static bool nounmipped = false;
 static bool gray_to_rgb = false;
 static bool resetstats = false;
+static Imath::M33f xform;
 void *dummyptr;
 
 
@@ -124,18 +126,19 @@ getargs (int argc, const char *argv[])
                   "--blocksize %d", &blocksize, "Set blocksize (n x n) for batches",
                   "--handle", &use_handle, "Use texture handle rather than name lookup",
                   "--searchpath %s", &searchpath, "Search path for files",
+                  "--filtertest", &filtertest, "Test the filter sizes",
                   "--nowarp", &nowarp, "Do not warp the image->texture mapping",
                   "--tube", &tube, "Make a tube projection",
-                  "--cachesize %f", &cachesize, "Set cache size, in MB",
-                  "--scale %f", &scalefactor, "Scale intensities",
-                  "--maxfiles %d", &maxfiles, "Set maximum open files",
-                  "--nountiled", &nountiled, "Reject untiled images",
-                  "--nounmipped", &nounmipped, "Reject unmipped images",
                   "--ctr", &test_construction, "Test TextureOpt construction time",
                   "--gettexels", &test_gettexels, "Test TextureSystem::get_texels",
                   "--getimagespec", &test_getimagespec, "Test TextureSystem::get_imagespec",
                   "--offset %f %f %f", &offset[0], &offset[1], &offset[2], "Offset texture coordinates",
                   "--scalest %f %f", &sscale, &tscale, "Scale texture lookups (s, t)",
+                  "--cachesize %f", &cachesize, "Set cache size, in MB",
+                  "--scale %f", &scalefactor, "Scale intensities",
+                  "--maxfiles %d", &maxfiles, "Set maximum open files",
+                  "--nountiled", &nountiled, "Reject untiled images",
+                  "--nounmipped", &nounmipped, "Reject unmipped images",
                   "--graytorgb", &gray_to_rgb, "Convert gratscale textures to RGB",
                   "--resetstats", &resetstats, "Print and reset statistics on each iteration",
                   NULL);
@@ -199,34 +202,10 @@ test_gettextureinfo (ustring filename)
 }
 
 
-inline Imath::V3f
-warp (float x, float y, Imath::M33f &xform)
-{
-    Imath::V3f coord (x, y, 1.0f);
-    coord *= xform;
-    coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
-    return coord;
-}
-
-
-inline Imath::V3f
-warp (float x, float y, float z, Imath::M33f &xform)
-{
-    Imath::V3f coord (x, y, z);
-    coord *= xform;
-    coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
-    return coord;
-}
-
-
 
 static void
-test_plain_texture ()
+adjust_spec (ImageSpec &outspec, const std::string &dataformatname)
 {
-    std::cerr << "Testing 2d texture " << filenames[0] << ", output = " 
-              << output_filename << "\n";
-    const int nchannels = 4;
-    ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
     if (! dataformatname.empty()) {
         if (dataformatname == "uint8")
             outspec.set_format (TypeDesc::UINT8);
@@ -252,13 +231,200 @@ test_plain_texture ()
             outspec.set_format (TypeDesc::DOUBLE);
         outspec.channelformats.clear ();
     }
+}
+
+
+
+inline Imath::V3f
+warp (float x, float y, Imath::M33f &xform)
+{
+    Imath::V3f coord (x, y, 1.0f);
+    coord *= xform;
+    coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
+    return coord;
+}
+
+
+inline Imath::V3f
+warp (float x, float y, float z, Imath::M33f &xform)
+{
+    Imath::V3f coord (x, y, z);
+    coord *= xform;
+    coord[0] *= 1/(1+2*std::max (-0.5f, coord[1]));
+    return coord;
+}
+
+
+
+// Just map pixels to [0,1] st space
+static void
+map_default (int x, int y, float &s, float &t,
+             float &dsdx, float &dtdx, float &dsdy, float &dtdy)
+{
+    s = float(x+0.5f)/output_xres * sscale + offset[0];
+    t = float(y+0.5f)/output_yres * tscale + offset[1];
+    dsdx = 1.0f/output_xres * sscale;
+    dtdx = 0.0f;
+    dsdy = 0.0f;
+    dtdy = 1.0f/output_yres * tscale;
+}
+
+
+
+static void
+map_warp (int x, int y, float &s, float &t,
+          float &dsdx, float &dtdx, float &dsdy, float &dtdy)
+{
+    Imath::V3f coord = warp (float(x+0.5f)/output_xres, float(y+0.5f)/output_yres, xform);
+    coord.x *= sscale;
+    coord.y *= tscale;
+    coord += offset;
+    Imath::V3f coordx = warp (float(x+1.5f)/output_xres, float(y+0.5f)/output_yres, xform);
+    coordx.x *= sscale;
+    coordx.y *= tscale;
+    coordx += offset;
+    Imath::V3f coordy = warp (float(x+0.5f)/output_xres, float(y+1.5f)/output_yres, xform);
+    coordy.x *= sscale;
+    coordy.y *= tscale;
+    coordy += offset;
+    s = coord[0];
+    t = coord[1];
+    dsdx = coordx[0] - coord[0];
+    dtdx = coordx[1] - coord[1];
+    dsdy = coordy[0] - coord[0];
+    dtdy = coordy[1] - coord[1];
+}
+
+
+
+static void
+map_tube (int x, int y, float &s, float &t,
+          float &dsdx, float &dtdx, float &dsdy, float &dtdy)
+{
+    float xt = float(x+0.5f)/output_xres - 0.5f;
+    float dxt_dx = 1.0f/output_xres;
+    float yt = float(y+0.5f)/output_yres - 0.5f;
+    float dyt_dy = 1.0f/output_yres;
+    float theta = atan2f (yt, xt);
+    // See OSL's Dual2 for partial derivs of
+    // atan2, hypot, and 1/x
+    float denom = 1.0f / (xt*xt + yt*yt);
+    float dtheta_dx = yt*dxt_dx * denom;
+    float dtheta_dy = -xt*dyt_dy * denom;
+    s = 4.0f * theta / (2.0f * M_PI);
+    dsdx = 4.0f * dtheta_dx / (2.0f * M_PI);
+    dsdy = 4.0f * dtheta_dy / (2.0f * M_PI);
+    float h = hypot(xt,yt);
+    float dh_dx = xt*dxt_dx / h;
+    float dh_dy = yt*dyt_dy / h;
+    h *= M_SQRT2;
+    dh_dx *= M_SQRT2; dh_dy *= M_SQRT2;
+    float hinv = 1.0f / h;
+    t = hinv;
+    dtdx = hinv * (-hinv * dh_dx);
+    dtdy = hinv * (-hinv * dh_dy);
+}
+
+
+
+// To test filters, we always sample at the center of the image, and
+// keep the minor axis of the filter at 1/256, but we vary the
+// eccentricity (i.e. major axis length) as we go left (1) to right
+// (32), and vary the angle as we go top (0) to bottom (2pi).
+//
+// If filtering is correct, all pixels should sample from the same MIP
+// level because they have the same minor axis (1/256), regardless of
+// eccentricity or angle.  If we specify a texture that has a
+// distinctive color at the 256-res level, and something totally
+// different at the 512 and 128 levels, it should be easy to verify that
+// we aren't over-filtering or under-filtering by selecting the wrong
+// MIP level.  (Though of course, there are other kinds of mistakes we
+// could be making, such as computing the wrong eccentricity or angle.)
+static void
+map_filtertest (int x, int y, float &s, float &t,
+                float &dsdx, float &dtdx, float &dsdy, float &dtdy)
+{
+    float minoraxis = 1.0f/256;
+    float majoraxis = minoraxis * lerp (1.0f, 32.0f, (float)x/(output_xres-1));
+    float angle = 2.0f * M_PI * (float)y/(output_yres-1);
+    float sinangle, cosangle;
+    sincos (angle, &sinangle, &cosangle);
+    s = 0.5f;
+    t = 0.5f;
+
+    dsdx =  minoraxis * cosangle;
+    dtdx =  minoraxis * sinangle;
+    dsdy = -majoraxis * sinangle;
+    dtdy =  majoraxis * cosangle;
+}
+
+
+
+void
+map_default_3D (int x, int y, Imath::V3f &P,
+                Imath::V3f &dPdx, Imath::V3f &dPdy, Imath::V3f &dPdz)
+{
+    P[0] = (float)(x+0.5f)/output_xres * sscale;
+    P[1] = (float)(y+0.5f)/output_yres * tscale;
+    P[2] = 0.5f * sscale;
+    P += offset;
+    dPdx[0] = 1.0f/output_xres * sscale;
+    dPdx[1] = 0;
+    dPdx[2] = 0;
+    dPdy[0] = 0;
+    dPdy[1] = 1.0f/output_yres * tscale;
+    dPdy[2] = 0;
+    dPdz.setValue (0,0,0);
+}
+
+
+
+void
+map_warp_3D (int x, int y, Imath::V3f &P,
+             Imath::V3f &dPdx, Imath::V3f &dPdy, Imath::V3f &dPdz)
+{
+    Imath::V3f coord = warp ((float)x/output_xres,
+                             (float)y/output_yres,
+                             0.5, xform);
+    coord.x *= sscale;
+    coord.y *= tscale;
+    coord += offset;
+    Imath::V3f coordx = warp ((float)(x+1)/output_xres,
+                              (float)y/output_yres,
+                              0.5, xform);
+    coordx.x *= sscale;
+    coordx.y *= tscale;
+    coordx += offset;
+    Imath::V3f coordy = warp ((float)x/output_xres,
+                              (float)(y+1)/output_yres,
+                              0.5, xform);
+    coordy.x *= sscale;
+    coordy.y *= tscale;
+    coordy += offset;
+    P = coord;
+    dPdx = coordx - coord;
+    dPdy = coordy - coord;
+    dPdz.setValue (0,0,0);
+}
+
+
+
+template<class MAPPING>
+void
+test_plain_texture (MAPPING mapping)
+{
+    std::cerr << "Testing 2d texture " << filenames[0] << ", output = " 
+              << output_filename << "\n";
+    const int nchannels = 4;
+    ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
+    adjust_spec (outspec, dataformatname);
     ImageBuf image (output_filename, outspec);
     ImageBufAlgo::zero (image);
 
     Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
     Imath::M33f rot;    rot.rotate (radians(30.0f));
     Imath::M33f trans;  trans.translate (Imath::V2f (0.35f, 0.15f));
-    Imath::M33f xform = scale * rot * trans;
+    xform = scale * rot * trans;
     xform.invert();
 
     TextureOptions opt;
@@ -324,62 +490,8 @@ test_plain_texture ()
                 for (int y = by; y < by+blocksize; ++y) {
                     for (int x = bx; x < bx+blocksize; ++x) {
                         if (x < output_xres && y < output_yres) {
-                            if (nowarp) {
-                                s[idx] = (float)x/output_xres * sscale + offset[0];
-                                t[idx] = (float)y/output_yres * tscale + offset[1];
-                                dsdx[idx] = 1.0f/output_xres * sscale;
-                                dtdx[idx] = 0;
-                                dsdy[idx] = 0;
-                                dtdy[idx] = 1.0f/output_yres * tscale;
-                            } else if (tube) {
-                                float xt = float(x)/output_xres - 0.5f;
-                                float dxt_dx = 1.0f/output_xres;
-                                float yt = float(y)/output_yres - 0.5f;
-                                float dyt_dy = 1.0f/output_yres;
-                                float theta = atan2f (yt, xt);
-                                // See OSL's Dual2 for partial derivs of
-                                // atan2, hypot, and 1/x
-                                float denom = 1.0f / (xt*xt + yt*yt);
-                                float dtheta_dx = yt*dxt_dx * denom;
-                                float dtheta_dy = -xt*dyt_dy * denom;
-                                s[idx] = 4.0f * theta / (2.0f * M_PI);
-                                dsdx[idx] = 4.0f * dtheta_dx / (2.0f * M_PI);
-                                dsdy[idx] = 4.0f * dtheta_dy / (2.0f * M_PI);
-                                float h = hypot(xt,yt);
-                                float dh_dx = xt*dxt_dx / h;
-                                float dh_dy = yt*dyt_dy / h;
-                                h *= M_SQRT2;
-                                dh_dx *= M_SQRT2; dh_dy *= M_SQRT2;
-                                float hinv = 1.0f / h;
-                                t[idx] = hinv;
-                                dtdx[idx] = hinv * (-hinv * dh_dx);
-                                dtdy[idx] = hinv * (-hinv * dh_dy);
-                            } else {
-                                Imath::V3f coord = warp ((float)x/output_xres,
-                                                         (float)y/output_yres,
-                                                         xform);
-                                coord.x *= sscale;
-                                coord.y *= tscale;
-                                coord += offset;
-                                Imath::V3f coordx = warp ((float)(x+1)/output_xres,
-                                                          (float)y/output_yres,
-                                                          xform);
-                                coordx.x *= sscale;
-                                coordx.y *= tscale;
-                                coordx += offset;
-                                Imath::V3f coordy = warp ((float)x/output_xres,
-                                                          (float)(y+1)/output_yres,
-                                                          xform);
-                                coordy.x *= sscale;
-                                coordy.y *= tscale;
-                                coordy += offset;
-                                s[idx] = coord[0];
-                                t[idx] = coord[1];
-                                dsdx[idx] = coordx[0] - coord[0];
-                                dtdx[idx] = coordx[1] - coord[1];
-                                dsdy[idx] = coordy[0] - coord[0];
-                                dtdy[idx] = coordy[1] - coord[1];
-                            }
+                            mapping (x, y, s[idx], t[idx],
+                                     dsdx[idx], dtdx[idx], dsdy[idx], dtdy[idx]);
                             runflags[idx] = RunFlagOn;
                         } else {
                             runflags[idx] = RunFlagOff;
@@ -439,20 +551,22 @@ test_plain_texture ()
 
 
 
-static void
-test_texture3d (ustring filename)
+template<class MAPPING>
+void
+test_texture3d (ustring filename, MAPPING mapping)
 {
     std::cerr << "Testing 3d texture " << filename << ", output = " 
               << output_filename << "\n";
     const int nchannels = 4;
     ImageSpec outspec (output_xres, output_yres, nchannels, TypeDesc::HALF);
+    adjust_spec (outspec, dataformatname);
     ImageBuf image (output_filename, outspec);
     ImageBufAlgo::zero (image);
 
     Imath::M33f scale;  scale.scale (Imath::V2f (0.5, 0.5));
     Imath::M33f rot;    rot.rotate (radians(30.0f));
     Imath::M33f trans;  trans.translate (Imath::V2f (0.35f, 0.15f));
-    Imath::M33f xform = scale * rot * trans;
+    xform = scale * rot * trans;
     xform.invert();
 
     TextureOptions opt;
@@ -492,42 +606,7 @@ test_texture3d (ustring filename)
                 for (int y = by; y < by+blocksize; ++y) {
                     for (int x = bx; x < bx+blocksize; ++x) {
                         if (x < output_xres && y < output_yres) {
-                            if (nowarp) {
-                                P[idx][0] = (float)x/output_xres * sscale;
-                                P[idx][1] = (float)y/output_yres * tscale;
-                                P[idx][2] = 0.5f * sscale;
-                                P[idx] += offset;
-                                dPdx[idx][0] = 1.0f/output_xres * sscale;
-                                dPdx[idx][1] = 0;
-                                dPdx[idx][2] = 0;
-                                dPdy[idx][0] = 0;
-                                dPdy[idx][1] = 1.0f/output_yres * tscale;
-                                dPdy[idx][2] = 0;
-                                dPdz[idx].setValue (0,0,0);
-                            } else {
-                                Imath::V3f coord = warp ((float)x/output_xres,
-                                                         (float)y/output_yres,
-                                                         0.5, xform);
-                                coord.x *= sscale;
-                                coord.y *= tscale;
-                                coord += offset;
-                                Imath::V3f coordx = warp ((float)(x+1)/output_xres,
-                                                          (float)y/output_yres,
-                                                          0.5, xform);
-                                coordx.x *= sscale;
-                                coordx.y *= tscale;
-                                coordx += offset;
-                                Imath::V3f coordy = warp ((float)x/output_xres,
-                                                          (float)(y+1)/output_yres,
-                                                          0.5, xform);
-                                coordy.x *= sscale;
-                                coordy.y *= tscale;
-                                coordy += offset;
-                                P[idx] = coord;
-                                dPdx[idx] = coordx - coord;
-                                dPdy[idx] = coordy - coord;
-                                dPdz[idx].setValue (0,0,0);
-                            }
+                            mapping (x, y, P[idx], dPdx[idx], dPdy[idx], dPdz[idx]);
                             runflags[idx] = RunFlagOn;
                         } else {
                             runflags[idx] = RunFlagOff;
@@ -680,10 +759,20 @@ main (int argc, const char *argv[])
         texsys->get_texture_info (filename, 0, ustring("texturetype"),
                                   TypeDesc::STRING, &texturetype);
         if (! strcmp (texturetype, "Plain Texture")) {
-            test_plain_texture ();
+            if (nowarp)
+                test_plain_texture (map_default);
+            else if (tube)
+                test_plain_texture (map_tube);
+            else if (filtertest)
+                test_plain_texture (map_filtertest);
+            else
+                test_plain_texture (map_warp);
         }
         if (! strcmp (texturetype, "Volume Texture")) {
-            test_texture3d (filename);
+            if (nowarp)
+                test_texture3d (filename, map_default_3D);
+            else
+                test_texture3d (filename, map_warp_3D);
         }
         if (! strcmp (texturetype, "Shadow")) {
             test_shadow (filename);
