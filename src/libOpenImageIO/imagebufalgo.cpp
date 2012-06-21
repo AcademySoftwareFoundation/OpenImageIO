@@ -39,6 +39,7 @@
 
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/bind.hpp>
 
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
@@ -1124,16 +1125,16 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
 
 
 
-/// Multithreading for function f (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi).
+/// Generalized multithreading for image processing functions.
 template <class Func>
 void 
-parallel_image (Func f, ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi, int nthreads)
+parallel_image (Func f, ImageBuf &R, ROI roi, int nthreads)
 {
     // Try to fill all cores.
     if (nthreads < 0) { nthreads = boost::thread::hardware_concurrency(); }
 
     if (nthreads == 1 || R.spec().image_pixels() < 1000) {
-        f (R, A, B, roi);
+        f (roi);
     } else if (nthreads > 1) {      
         boost::thread_group threads;        
         int blocksize = std::max (1, (roi.width() + nthreads - 1) / nthreads);
@@ -1141,7 +1142,7 @@ parallel_image (Func f, ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI 
         for (int i = 0;  i < nthreads;  i++) {
             roi.xbegin += i * blocksize;
             roi.xend = std::min (roi.xbegin + 1 + blocksize, roi_xend);
-            threads.add_thread (new boost::thread (f, R, A, B, roi));
+            threads.add_thread (new boost::thread (f, roi));
         }
         threads.join_all ();
     }
@@ -1217,37 +1218,59 @@ over_RA (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi, int nthrea
 {
     switch (B.spec().format.basetype) {  
         case TypeDesc::FLOAT :
-            parallel_image (over_RAB<Rtype, Atype, float>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, float>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
             return true;       
         case TypeDesc::UINT8 :
-            parallel_image (over_RAB<Rtype, Atype, unsigned char>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, unsigned char>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
             return true;          
         case TypeDesc::INT8 : 
-            parallel_image (over_RAB<Rtype, Atype, char>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, char>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
             return true;         
         case TypeDesc::UINT16 :
-            parallel_image (over_RAB<Rtype, Atype, unsigned short>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, unsigned short>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
             return true;          
         case TypeDesc::INT16 :
-            parallel_image (over_RAB<Rtype, Atype, short>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, short>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
             return true;         
         case TypeDesc::UINT :
-            parallel_image (over_RAB<Rtype, Atype, unsigned int>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, unsigned int>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
             return true; 
         case TypeDesc::INT :         
-            parallel_image (over_RAB<Rtype, Atype, int>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, int>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
             return true;       
         case TypeDesc::UINT64 :
-            parallel_image (over_RAB<Rtype, Atype, unsigned long long>, R, A, B, roi, nthreads);       
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, unsigned long long>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);       
             return true;        
         case TypeDesc::INT64 : 
-            parallel_image (over_RAB<Rtype, Atype, long long>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, long long>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads); 
             return true; 
         case TypeDesc::HALF : 
-            parallel_image (over_RAB<Rtype, Atype, half>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, half>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads); 
             return true;   
         case TypeDesc::DOUBLE : 
-            parallel_image (over_RAB<Rtype, Atype, double>, R, A, B, roi, nthreads);
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, double>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads); 
             return true; 
     }
     return false;
