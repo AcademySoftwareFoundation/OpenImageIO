@@ -143,8 +143,8 @@ Oiiotool::process_pending ()
 static int
 set_threads (int argc, const char *argv[])
 {
-    ASSERT (argc == 2);
-    OIIO::attribute ("threads", atoi(argv[1]));
+    ASSERT (argc == 1);
+    OIIO::attribute ("threads", atoi(argv[0]));
     return 0;
 }
 
@@ -1396,11 +1396,41 @@ action_fixnan (int argc, const char *argv[])
 
 
 
+static int
+action_over (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_over, argc, argv)) { return 0; }
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    const ImageBuf &Aib ((*A)());
+    const ImageBuf &Bib ((*B)());
+    const ImageSpec &specA = Aib.spec();
+    const ImageSpec &specB = Bib.spec();
+
+    // Create output image specification.
+    ImageSpec specR = specA;
+    set_roi (specR, unite (get_roi(specA), get_roi(specB)));
+    specR.nchannels = std::max (specA.nchannels, specB.nchannels);
+    if (specR.alpha_channel < 0 && specR.nchannels == 4)
+        specR.alpha_channel = 3;
+    
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));    
+    ImageBuf &Rib ((*ot.curimg)());
+
+    ImageBufAlgo::over (Rib, Aib, Bib);    
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
     bool help = false;
-    ArgParse ap;
+    ArgParse ap;    
     ap.options ("oiiotool -- simple image processing operations\n"
                 OIIO_INTRO_STRING "\n"
                 "Usage:  oiiotool [filename,option,action]...\n",
@@ -1488,6 +1518,7 @@ getargs (int argc, char *argv[])
                     "Convert the current image's pixels to a named color space",
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
+                "--over %@", action_over, NULL, "A over B",
                 NULL);
 
     if (ap.parse(argc, (const char**)argv) < 0) {

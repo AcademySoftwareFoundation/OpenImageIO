@@ -305,6 +305,13 @@ bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
                               TypeDesc convert=TypeDesc::UNKNOWN);
 
 
+
+/// Image processing operation: A over B.
+bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                    ROI roi = ROI(), int threads = -1);
+
+
+
 };  // end namespace ImageBufAlgo
 
 
