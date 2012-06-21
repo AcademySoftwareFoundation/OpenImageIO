@@ -1416,11 +1416,11 @@ action_over (int argc, const char *argv[])
     specR.nchannels = std::max (specA.nchannels, specB.nchannels);
     if (specR.alpha_channel < 0 && specR.nchannels == 4)
         specR.alpha_channel = 3;
-    
-    ot.push (new ImageRec ("irec", specR, ot.imagecache));    
+
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));
     ImageBuf &Rib ((*ot.curimg)());
 
-    ImageBufAlgo::over (Rib, Aib, Bib);    
+    ImageBufAlgo::over (Rib, Aib, Bib);
     return 0;
 }
 
@@ -1430,7 +1430,7 @@ static void
 getargs (int argc, char *argv[])
 {
     bool help = false;
-    ArgParse ap;    
+    ArgParse ap;
     ap.options ("oiiotool -- simple image processing operations\n"
                 OIIO_INTRO_STRING "\n"
                 "Usage:  oiiotool [filename,option,action]...\n",

@@ -67,9 +67,9 @@ public:
     // Region explicitly defined.
     ROI (int xbegin, int xend, int ybegin, int yend, int zbegin, int zend)
         : xbegin(xbegin), xend(xend), ybegin(ybegin), yend(yend),
-          zbegin(zbegin), zend(zend), defined(true)  
+          zbegin(zbegin), zend(zend), defined(true)
     { }
- 
+
     // Region dimensions.
     int width () const { return xend - xbegin; }
     int height () const { return yend - ybegin; }
@@ -82,7 +82,7 @@ public:
 
 
 
-/// Union of two regions.
+/// Union of two regions, the smallest region containing both.
 ROI unite (const ROI &A, const ROI &B);
 
 
@@ -542,19 +542,20 @@ public:
             m_rng_zend   = std::min (zend,   m_img_zend);
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
-        /// Construct read-write clamped valid iteration region from ImageBuf and ROI. 
+        /// Construct read-write clamped valid iteration region from
+        /// ImageBuf and ROI.
         Iterator (ImageBuf &ib, const ROI &roi)
             : m_ib(&ib), m_tile(NULL)
         {
             init_ib ();
-            m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin); 
+            m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
             m_rng_xend   = std::min (roi.xend,   m_img_xend);
             m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
             m_rng_yend   = std::min (roi.yend,   m_img_yend);
             m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
             m_rng_zend   = std::min (roi.zend,   m_img_zend);
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-        }        
+        }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel, and do NOT
         /// clamp the region to the valid image pixels.  If "unclamped"
@@ -820,19 +821,20 @@ public:
             m_rng_zend   = std::min (zend,   m_img_zend);
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
-        /// Construct read-only clamped valid iteration region from ImageBuf and ROI.
+        /// Construct read-only clamped valid iteration region
+        /// from ImageBuf and ROI.
         ConstIterator (ImageBuf &ib, const ROI &roi)
             : m_ib(&ib), m_tile(NULL)
         {
             init_ib ();
-            m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin); 
+            m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
             m_rng_xend   = std::min (roi.xend,   m_img_xend);
             m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
             m_rng_yend   = std::min (roi.yend,   m_img_yend);
             m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
             m_rng_zend   = std::min (roi.zend,   m_img_zend);
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-        }  
+        }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel, and do NOT
         /// clamp the region to the valid image pixels.  If "unclamped"

@@ -54,26 +54,18 @@ OIIO_NAMESPACE_ENTER
 
 ROI get_roi (const ImageSpec &spec)
 {
-    int xbegin = spec.x;
-    int ybegin = spec.y;
-    int zbegin = spec.z;
-    int xend = spec.x + spec.width;
-    int yend = spec.y + spec.height;
-    int zend = spec.z + spec.depth;
-    return ROI (xbegin, xend, ybegin, yend, zbegin, zend);
+    return ROI (spec.x, spec.x + spec.width,
+                spec.y, spec.y + spec.height,
+                spec.z, spec.z + spec.depth);
 }
 
 
 
 ROI get_roi_full (const ImageSpec &spec)
 {
-    int xbegin = spec.full_x;
-    int ybegin = spec.full_y;
-    int zbegin = spec.full_z;
-    int xend = spec.full_x + spec.full_width;
-    int yend = spec.full_y + spec.full_height;
-    int zend = spec.full_z + spec.full_depth;
-    return ROI (xbegin, xend, ybegin, yend, zbegin, zend);
+    return ROI (spec.full_x, spec.full_x + spec.full_width,
+                spec.full_y, spec.full_y + spec.full_height,
+                spec.full_z, spec.full_z + spec.full_depth);
 }
 
 
@@ -104,26 +96,18 @@ void set_roi_full (ImageSpec &spec, const ROI &newroi)
 
 ROI unite (const ROI &A, const ROI &B)
 {
-    int xbegin = std::min (A.xbegin, B.xbegin);
-    int ybegin = std::min (A.ybegin, B.ybegin);
-    int zbegin = std::min (A.zbegin, B.zbegin);
-    int xend = std::max (A.xend, B.xend);
-    int yend = std::max (A.yend, B.yend);
-    int zend = std::max (A.zend, B.zend);
-    return ROI (xbegin, xend, ybegin, yend, zbegin, zend);
+    return ROI (std::min (A.xbegin, B.xbegin), std::max (A.xend, B.xend),
+                std::min (A.ybegin, B.ybegin), std::max (A.yend, B.yend),
+                std::min (A.zbegin, B.zbegin), std::max (A.zend, B.zend));
 }
 
 
 
 ROI intersect (const ROI &A, const ROI &B)
 {
-    int xbegin = std::max (A.xbegin, B.xbegin);
-    int ybegin = std::max (A.ybegin, B.ybegin);
-    int zbegin = std::max (A.zbegin, B.zbegin);
-    int xend = std::min (A.xend, B.xend);
-    int yend = std::min (A.yend, B.yend);
-    int zend = std::min (A.zend, B.zend);
-    return ROI (xbegin, xend, ybegin, yend, zbegin, zend);
+    return ROI (std::max (A.xbegin, B.xbegin), std::min (A.xend, B.xend),
+                std::max (A.ybegin, B.ybegin), std::min (A.yend, B.yend),
+                std::max (A.zbegin, B.zbegin), std::min (A.zend, B.zend));
 }
 
 
