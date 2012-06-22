@@ -76,19 +76,19 @@ public:
     int depth () const { return zend - zbegin; }
 
     // Region operations.
-    friend ROI unite (const ROI &A, const ROI &B);
-    friend ROI intersect (const ROI &A, const ROI &B);
+    friend ROI roi_union (const ROI &A, const ROI &B);
+    friend ROI roi_intersection (const ROI &A, const ROI &B);
 };
 
 
 
 /// Union of two regions, the smallest region containing both.
-ROI unite (const ROI &A, const ROI &B);
+ROI roi_union (const ROI &A, const ROI &B);
 
 
 
 /// Intersection of two regions.
-ROI intersect (const ROI &A, const ROI &B);
+ROI roi_intersection (const ROI &A, const ROI &B);
 
 
 

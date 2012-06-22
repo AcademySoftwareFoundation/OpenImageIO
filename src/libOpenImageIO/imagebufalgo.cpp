@@ -1346,6 +1346,9 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     int non_alpha_B = has_alpha_B ? (channels_B - 1) : 3;
     bool B_not_34 = channels_B != 3 && channels_B != 4;
 
+    // Fail if the input images have a Z channel.
+    if (specA.z_channel >= 0 || specB.z_channel >= 0) { return false; }
+
     // If input images A and B have different number of non-alpha channels
     // then return false.
     if (non_alpha_A != non_alpha_B) { return false; }
@@ -1366,7 +1369,7 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     // Initialized R -> use as allocated.  
     // Uninitialized R -> size it to the union of A and B.
     ImageSpec newspec = ImageSpec ();
-    ROI union_AB = unite (get_roi(specA), get_roi(specB));
+    ROI union_AB = roi_union (get_roi(specA), get_roi(specB));
     set_roi (newspec, union_AB);
     if ((! has_alpha_A && ! has_alpha_B)
         || (has_alpha_A && ! has_alpha_B && alpha_A == channels_A - 1)

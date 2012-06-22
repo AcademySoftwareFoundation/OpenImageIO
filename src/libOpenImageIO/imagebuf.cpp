@@ -94,7 +94,7 @@ void set_roi_full (ImageSpec &spec, const ROI &newroi)
 
 
 
-ROI unite (const ROI &A, const ROI &B)
+ROI roi_union (const ROI &A, const ROI &B)
 {
     return ROI (std::min (A.xbegin, B.xbegin), std::max (A.xend, B.xend),
                 std::min (A.ybegin, B.ybegin), std::max (A.yend, B.yend),
@@ -103,7 +103,7 @@ ROI unite (const ROI &A, const ROI &B)
 
 
 
-ROI intersect (const ROI &A, const ROI &B)
+ROI roi_intersection (const ROI &A, const ROI &B)
 {
     return ROI (std::max (A.xbegin, B.xbegin), std::min (A.xend, B.xend),
                 std::max (A.ybegin, B.ybegin), std::min (A.yend, B.yend),

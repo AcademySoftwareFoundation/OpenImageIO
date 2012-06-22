@@ -1412,7 +1412,7 @@ action_over (int argc, const char *argv[])
 
     // Create output image specification.
     ImageSpec specR = specA;
-    set_roi (specR, unite (get_roi(specA), get_roi(specB)));
+    set_roi (specR, roi_union (get_roi(specA), get_roi(specB)));
     specR.nchannels = std::max (specA.nchannels, specB.nchannels);
     if (specR.alpha_channel < 0 && specR.nchannels == 4)
         specR.alpha_channel = 3;
