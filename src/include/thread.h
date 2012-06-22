@@ -41,6 +41,7 @@
 
 #include "version.h"
 
+
 // defining NOMINMAX to prevent problems with std::min/std::max
 // and std::numeric_limits<type>::min()/std::numeric_limits<type>::max()
 // when boost include windows.h
@@ -515,7 +516,7 @@ public:
     /// Acquire the lock, spin until we have it.
     ///
     void lock () {
-#if defined(x__APPLE__)
+#if defined(no__APPLE__)
         // OS X has dedicated spin lock routines, may as well use them.
         OSSpinLockLock ((OSSpinLock *)&m_locked);
 #else
@@ -527,7 +528,7 @@ public:
             atomic_backoff backoff;
             do {
                 backoff();
-            } while (*(int *)&m_locked);
+            } while (*(volatile int *)&m_locked);
             // Trick #2 above: try_lock involves a compare_and_swap,
             // which writes memory, and that will lock the bus.  But an
             // normal read of m_locked will let us spin until the value
@@ -539,9 +540,15 @@ public:
     /// Release the lock that we hold.
     ///
     void unlock () {
-#if defined(x__APPLE__)
+#if defined(no__APPLE__)
         OSSpinLockUnlock ((OSSpinLock *)&m_locked);
+#elif defined(__GNUC__)
+        // GCC gives us an intrinsic that is even better, an atomic
+        // assignment of 0 with "release" barrier semantics.
+        __sync_lock_release ((volatile int *)&m_locked);
 #else
+        // Otherwise, just assign zero to the atomic (but that's a full 
+        // memory barrier).
         m_locked = 0;
 #endif
     }
@@ -549,12 +556,16 @@ public:
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
     bool try_lock () {
-#if defined(x__APPLE__)
+#if defined(no__APPLE__)
         return OSSpinLockTry ((OSSpinLock *)&m_locked);
 #else
 #  if USE_TBB
         // TBB's compare_and_swap returns the original value
         return m_locked.compare_and_swap (0, 1) == 0;
+#  elif defined(__GNUC__)
+        // GCC gives us an intrinsic that is even better -- an atomic
+        // exchange with "acquire" barrier semantics.
+        return __sync_lock_test_and_set ((volatile int *)&m_locked, 1) == 0;
 #  else
         // Our compare_and_swap returns true if it swapped
         return m_locked.bool_compare_and_swap (0, 1);
