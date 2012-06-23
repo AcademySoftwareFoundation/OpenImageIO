@@ -328,7 +328,7 @@ bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 
 bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A, float contrast,
-                        int* channels_mask = NULL, ROI roi = ROI(),
+                        bool* channels_mask = NULL, ROI roi = ROI(),
                         int nthreads = -1);
                         
 

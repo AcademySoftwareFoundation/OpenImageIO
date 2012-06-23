@@ -1426,6 +1426,19 @@ action_over (int argc, const char *argv[])
 
 
 
+bool*
+channels_mask_from_string (std::string channels_mask_string)
+{
+    int size = channels_mask_string.size();
+    bool* channels_mask = new bool[size];
+    for (int i = 0; i < size; ++i) {
+        channels_mask[i] = (channels_mask_string[i] == '1') ? true : false;
+    }
+    return channels_mask;
+}
+
+
+
 static int
 action_contrast (int argc, const char *argv[])
 {
@@ -1443,8 +1456,12 @@ action_contrast (int argc, const char *argv[])
 
     // Get arguments from command line.
     float contrast = (float) atof(argv[1]);
+    std::string channels_mask_string = argv[2];
+    bool* channels_mask = channels_mask_from_string (channels_mask_string);
 
-    ImageBufAlgo::contrast (Rib, Aib, contrast);
+    ImageBufAlgo::contrast (Rib, Aib, contrast, channels_mask);
+
+    delete channels_mask;
     return 0;
 }
 
@@ -1453,7 +1470,6 @@ action_contrast (int argc, const char *argv[])
 static void
 getargs (int argc, char *argv[])
 {
-    float dummyfloat;
     bool help = false;
     ArgParse ap;
     ap.options ("oiiotool -- simple image processing operations\n"
@@ -1544,7 +1560,7 @@ getargs (int argc, char *argv[])
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
                 "--over %@", action_over, NULL, "A over B",
-                "--contrast %@ %g", action_contrast, &dummyfloat, "Modify image contrast",
+                "--contrast %@ %g %s", action_contrast, NULL, NULL, "Modify image contrast",
                 NULL);
 
     if (ap.parse(argc, (const char**)argv) < 0) {

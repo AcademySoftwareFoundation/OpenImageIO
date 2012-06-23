@@ -1455,7 +1455,7 @@ ib_average (const ImageBuf &A)
 template<class Rtype, class Atype>
 void
 contrast_RA (ImageBuf &R, const ImageBuf &A, float contrast,
-            int* channels_mask, ROI roi)
+            bool* channels_mask, ROI roi)
 {
     double* average_values = ib_average<Atype, float> (A);
     int channels_A = A.nchannels();
@@ -1467,9 +1467,11 @@ contrast_RA (ImageBuf &R, const ImageBuf &A, float contrast,
         if (a.valid()) {
             for (int c = 0; c < channels_A ; ++c) {
                 if (channels_mask == NULL
-                || (channels_mask != NULL && channels_mask[c] == 1))
+                || (channels_mask != NULL && channels_mask[c] == true))
                     r[c] = (a[c] - average_values[c]) * contrast
                             + average_values[c];
+                else
+                    r[c] = a[c];
             }
         }
     }
@@ -1482,7 +1484,7 @@ contrast_RA (ImageBuf &R, const ImageBuf &A, float contrast,
 template<class Rtype>
 bool
 contrast_R (ImageBuf &R, const ImageBuf &A, float contrast,
-            int* channels_mask, ROI roi, int nthreads)
+            bool* channels_mask, ROI roi, int nthreads)
 {
     switch (A.spec().format.basetype) {
         case TypeDesc::FLOAT :
@@ -1521,7 +1523,7 @@ contrast_R (ImageBuf &R, const ImageBuf &A, float contrast,
             _1), R, roi, nthreads);
             return true;
         case TypeDesc::UINT64 :
-            parallel_image (boost::bind (contrast_RA<Rtype, unsigned long long>,            
+            parallel_image (boost::bind (contrast_RA<Rtype, unsigned long long>,
             boost::ref(R), boost::cref(A), contrast, channels_mask,
             _1), R, roi, nthreads);
             return true;
@@ -1548,7 +1550,7 @@ contrast_R (ImageBuf &R, const ImageBuf &A, float contrast,
 
 bool
 ImageBufAlgo::contrast (ImageBuf &R, const ImageBuf &A, float contrast,
-            int* channels_mask, ROI roi, int nthreads)
+            bool* channels_mask, ROI roi, int nthreads)
 {
     // Input image A.
     const ImageSpec &specA = A.spec();
