@@ -1396,6 +1396,77 @@ action_fixnan (int argc, const char *argv[])
 
 
 
+static int
+action_over (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_over, argc, argv)) { return 0; }
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    const ImageBuf &Aib ((*A)());
+    const ImageBuf &Bib ((*B)());
+    const ImageSpec &specA = Aib.spec();
+    const ImageSpec &specB = Bib.spec();
+
+    // Create output image specification.
+    ImageSpec specR = specA;
+    set_roi (specR, roi_union (get_roi(specA), get_roi(specB)));
+    specR.nchannels = std::max (specA.nchannels, specB.nchannels);
+    if (specR.alpha_channel < 0 && specR.nchannels == 4)
+        specR.alpha_channel = 3;
+
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+
+    ImageBufAlgo::over (Rib, Aib, Bib);
+    return 0;
+}
+
+
+
+bool*
+channels_mask_from_string (std::string channels_mask_string)
+{
+    int size = channels_mask_string.size();
+    bool* channels_mask = new bool[size];
+    for (int i = 0; i < size; ++i) {
+        channels_mask[i] = (channels_mask_string[i] == '1') ? true : false;
+    }
+    return channels_mask;
+}
+
+
+
+static int
+action_contrast (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_contrast, argc, argv)) { return 0; }
+
+    // Get input image A.
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    const ImageBuf &Aib ((*A)());
+    const ImageSpec &specA = Aib.spec();
+
+    // Get output image R.
+    ot.push (new ImageRec ("irec", specA, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+
+    // Get arguments from command line.
+    float contrast = (float) atof(argv[1]);
+    std::string channels_mask_string = argv[2];
+    bool* channels_mask = channels_mask_from_string (channels_mask_string);
+
+    ImageBufAlgo::contrast (Rib, Aib, contrast, channels_mask);
+
+    delete channels_mask;
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
@@ -1488,6 +1559,8 @@ getargs (int argc, char *argv[])
                     "Convert the current image's pixels to a named color space",
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
+                "--over %@", action_over, NULL, "A over B",
+                "--contrast %@ %g %s", action_contrast, NULL, NULL, "Modify image contrast",
                 NULL);
 
     if (ap.parse(argc, (const char**)argv) < 0) {
