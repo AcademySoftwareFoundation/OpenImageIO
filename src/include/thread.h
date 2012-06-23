@@ -40,6 +40,7 @@
 #define OPENIMAGEIO_THREAD_H
 
 #include "version.h"
+#include "sysutil.h"
 
 
 // defining NOMINMAX to prevent problems with std::min/std::max
@@ -520,19 +521,22 @@ public:
         // OS X has dedicated spin lock routines, may as well use them.
         OSSpinLockLock ((OSSpinLock *)&m_locked);
 #else
-        while (! try_lock()) {
-            // Trick #1: don't spin too tightly; instead, insert
-            // increasingly longer pauses, and if the lock is under lots
-            // of contention, eventually yield the timeslice.  This is
-            // all handled by the atomic_backoff helper class.
-            atomic_backoff backoff;
+        // To avoid spinning too tightly, we use the atomic_backoff to
+        // provide increasingly longer pauses, and if the lock is under
+        // lots of contention, eventually yield the timeslice.
+        atomic_backoff backoff;
+        // Try to get ownership of the lock. Though experimentation, we
+        // found that OIIO_UNLIKELY makes this just a bit faster on 
+        // gcc x86/x86_64 systems.
+        while (! OIIO_UNLIKELY(try_lock())) {
             do {
                 backoff();
             } while (*(volatile int *)&m_locked);
-            // Trick #2 above: try_lock involves a compare_and_swap,
-            // which writes memory, and that will lock the bus.  But an
-            // normal read of m_locked will let us spin until the value
-            // changes, without locking the bus!
+            // The full try_lock() involves a compare_and_swap, which
+            // writes memory, and that will lock the bus.  But a normal
+            // read of m_locked will let us spin until the value
+            // changes, without locking the bus. So it's faster to
+            // check in this manner until the mutex appears to be free.
         }
 #endif
     }
