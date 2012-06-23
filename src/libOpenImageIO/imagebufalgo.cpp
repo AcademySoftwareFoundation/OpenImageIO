@@ -1138,9 +1138,10 @@ parallel_image (Func f, ImageBuf &R, ROI roi, int nthreads)
     } else if (nthreads > 1) {
         boost::thread_group threads;
         int blocksize = std::max (1, (roi.width() + nthreads - 1) / nthreads);
+        int roi_xbegin = roi.xbegin;
         int roi_xend = roi.xend;
         for (int i = 0;  i < nthreads;  i++) {
-            roi.xbegin += i * blocksize;
+            roi.xbegin = roi_xbegin + i * blocksize;
             roi.xend = std::min (roi.xbegin + blocksize, roi_xend);
             threads.add_thread (new boost::thread (f, roi));
         }
