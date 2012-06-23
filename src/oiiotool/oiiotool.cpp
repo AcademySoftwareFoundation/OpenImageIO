@@ -1396,6 +1396,46 @@ action_fixnan (int argc, const char *argv[])
 
 
 
+bool*
+channels_mask_from_string (std::string channels_mask_string)
+{
+    int size = channels_mask_string.size();
+    bool* channels_mask = new bool[size];
+    for (int i = 0; i < size; ++i) {
+        channels_mask[i] = (channels_mask_string[i] == '1') ? true : false;
+    }
+    return channels_mask;
+}
+
+
+
+static int
+action_invert (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_invert, argc, argv)) { return 0; }
+
+    // Get input image A.
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    const ImageBuf &Aib ((*A)());
+    const ImageSpec &specA = Aib.spec();
+
+    // Get output image R.
+    ot.push (new ImageRec ("irec", specA, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+
+    // Get arguments from command line.
+    std::string channels_mask_string = argv[1];
+    bool* channels_mask = channels_mask_from_string (channels_mask_string);
+
+    ImageBufAlgo::invert (Rib, Aib, channels_mask);
+
+    delete channels_mask;
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
@@ -1488,6 +1528,7 @@ getargs (int argc, char *argv[])
                     "Convert the current image's pixels to a named color space",
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
+                "--invert %@ %s", action_invert, NULL, "Invert the image",
                 NULL);
 
     if (ap.parse(argc, (const char**)argv) < 0) {
