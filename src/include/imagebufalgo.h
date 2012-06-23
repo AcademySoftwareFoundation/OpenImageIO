@@ -305,6 +305,13 @@ bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
                               TypeDesc convert=TypeDesc::UNKNOWN);
 
 
+
+bool DLLPUBLIC brightness (ImageBuf &R, const ImageBuf &A, float brightness,
+                        bool* channels_mask = NULL, ROI roi = ROI(),
+                        int nthreads = -1);
+
+
+
 };  // end namespace ImageBufAlgo
 
 
