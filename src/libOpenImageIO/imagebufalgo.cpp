@@ -37,6 +37,10 @@
 /// \file
 /// Implementation of ImageBufAlgo algorithms.
 
+#include <boost/version.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/bind.hpp>
+
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
 
@@ -50,7 +54,7 @@
 #include "dassert.h"
 #include "sysutil.h"
 #include "filter.h"
-
+#include "thread.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -1117,6 +1121,209 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
     if (pixelsFixed) *pixelsFixed = 0;
     return true;
 }
+
+
+
+/// Generalized multithreading for image processing functions.
+template <class Func>
+void
+parallel_image (Func f, ImageBuf &R, ROI roi, int nthreads)
+{
+    // Try to fill all cores.
+    if (nthreads <= 0) { nthreads = 1; }//boost::thread::hardware_concurrency(); }
+
+    if (nthreads == 0 || nthreads == 1 || R.spec().image_pixels() < 1000) {
+        f (roi);
+    } else if (nthreads > 1) {
+        boost::thread_group threads;
+        int blocksize = std::max (1, (roi.width() + nthreads - 1) / nthreads);
+        int roi_xend = roi.xend;
+        for (int i = 0; i < nthreads; i++) {
+            roi.xbegin += i * blocksize;
+            roi.xend = std::min (roi.xbegin + blocksize, roi_xend);
+            threads.add_thread (new boost::thread (f, roi));
+        }
+        threads.join_all ();
+    }
+}
+
+
+
+/// brightness = 0: don't modify the image.
+/// brightness = 1: result is white image, maximum brightness.
+/// brighness = -1: result is black image, minimum brightness.
+/// -1 <= brightness <= 1: negative values decrease and positive
+/// values increase brightness.
+template<class Rtype, class Atype>
+void
+brightness_RA (ImageBuf &R, const ImageBuf &A, float brightness,
+            bool* channels_mask, ROI roi)
+{
+    int channels_A = A.nchannels();
+    ImageBuf::ConstIterator<Atype, float> a (A);
+    ImageBuf::Iterator<Rtype, float> r (R, roi);
+
+    // If input image A has 3 channels assume RGB and apply a different
+    // algorithm than the one for the general case.
+    if (channels_A == 3) {
+        // RGB -> HSL
+        // Modify L
+        // HSL -> RGB
+
+        return;
+    }
+
+    // General case: channels_A != 3.
+    for ( ; ! r.done(); r++) {
+        a.pos (r.x(), r.y(), r.z());
+        if (a.valid()) {
+            for (int c = 0; c < channels_A ; ++c) {
+                if (channels_mask == NULL
+                || (channels_mask != NULL && channels_mask[c] == true))
+                    r[c] = a[c] + brightness;
+                else
+                    r[c] = a[c];
+            }
+        }
+    }
+}
+
+
+
+template<class Rtype>
+bool
+brightness_R (ImageBuf &R, const ImageBuf &A, float brightness,
+            bool* channels_mask, ROI roi, int nthreads)
+{
+    switch (A.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            parallel_image (boost::bind (brightness_RA<Rtype, float>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT8 :
+            parallel_image (boost::bind (brightness_RA<Rtype, unsigned char>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT8 :
+            parallel_image (boost::bind (brightness_RA<Rtype, char>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT16 :
+            parallel_image (boost::bind (brightness_RA<Rtype, unsigned short>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT16 :
+            parallel_image (boost::bind (brightness_RA<Rtype, short>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT :
+            parallel_image (boost::bind (brightness_RA<Rtype, unsigned int>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT :
+            parallel_image (boost::bind (brightness_RA<Rtype, int>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT64 :
+            parallel_image (boost::bind (brightness_RA<Rtype, unsigned long long>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT64 :
+            parallel_image (boost::bind (brightness_RA<Rtype, long long>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::HALF :
+            parallel_image (boost::bind (brightness_RA<Rtype, half>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::DOUBLE :
+            parallel_image (boost::bind (brightness_RA<Rtype, double>,
+            boost::ref(R), boost::cref(A), brightness, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+    }
+    return false;
+}
+
+
+
+bool
+ImageBufAlgo::brightness (ImageBuf &R, const ImageBuf &A, float brightness,
+            bool* channels_mask, ROI roi, int nthreads)
+{
+    // Input image A.
+    const ImageSpec &specA = A.spec();
+    int channels_A = specA.nchannels;
+
+    // Output image R.
+    const ImageSpec &specR = R.spec();
+    int channels_R = specR.nchannels;
+
+    // The input image needs at least one channel.
+    if (channels_A < 1) { return false; }
+
+    // Initialized R -> it must match A.
+    // Uninitialized R -> initialize from A.
+    if (! R.initialized()) {
+        R.reset ("over", specA);
+    } else {
+        if (channels_A != channels_R) { return false; }
+    }
+
+    // Specified ROI -> use it. Unspecified ROI -> initialize from R.
+    if (! roi.defined) {
+        roi = get_roi (R.spec());
+    }
+
+    // Call brightness_R.
+    switch (R.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            return brightness_R<float> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::UINT8 :
+            return brightness_R<unsigned char> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::INT8 :
+            return brightness_R<char> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::UINT16 :
+            return brightness_R<unsigned short> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::INT16 :
+            return brightness_R<short> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::UINT :
+            return brightness_R<unsigned int> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::INT :
+            return brightness_R<int> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::UINT64 :
+            return brightness_R<unsigned long long> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::INT64 :
+            return brightness_R<long long> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::HALF :
+            return brightness_R<half> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::DOUBLE :
+            return brightness_R<double> (R, A, brightness, channels_mask,
+                                     roi, nthreads);
+    }
+    return false;
+}
+
 
 
 }
