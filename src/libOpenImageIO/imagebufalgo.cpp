@@ -37,6 +37,10 @@
 /// \file
 /// Implementation of ImageBufAlgo algorithms.
 
+#include <boost/version.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/bind.hpp>
+
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
 
@@ -50,6 +54,7 @@
 #include "dassert.h"
 #include "sysutil.h"
 #include "filter.h"
+#include "thread.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -1117,6 +1122,182 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
     if (pixelsFixed) *pixelsFixed = 0;
     return true;
 }
+
+
+
+/// Generalized multithreading for image processing functions.
+template <class Func>
+void
+parallel_image (Func f, ImageBuf &R, ROI roi, int nthreads)
+{
+    // Try to fill all cores.
+    if (nthreads <= 0) { nthreads = 1; }//boost::thread::hardware_concurrency(); }
+
+    if (nthreads == 0 || nthreads == 1 || R.spec().image_pixels() < 1000) {
+        f (roi);
+    } else if (nthreads > 1) {
+        boost::thread_group threads;
+        int blocksize = std::max (1, (roi.width() + nthreads - 1) / nthreads);
+        int roi_xend = roi.xend;
+        for (int i = 0; i < nthreads; i++) {
+            roi.xbegin += i * blocksize;
+            roi.xend = std::min (roi.xbegin + blocksize, roi_xend);
+            threads.add_thread (new boost::thread (f, roi));
+        }
+        threads.join_all ();
+    }
+}
+
+
+
+template<class Rtype, class Atype>
+void
+invert_RA (ImageBuf &R, const ImageBuf &A,
+            bool* channels_mask, ROI roi)
+{
+    int channels_A = A.nchannels();
+    ImageBuf::ConstIterator<Atype, float> a (A);
+    ImageBuf::Iterator<Rtype, float> r (R, roi);
+
+    for ( ; ! r.done(); r++) {
+        a.pos (r.x(), r.y(), r.z());
+        if (a.valid()) {
+            for (int c = 0; c < channels_A ; ++c) {
+                if (channels_mask == NULL
+                || (channels_mask != NULL && channels_mask[c] == true))
+                    r[c] = 1.0f - a[c];
+                else
+                    r[c] = a[c];
+            }
+        }
+    }
+}
+
+
+
+template<class Rtype>
+bool
+invert_R (ImageBuf &R, const ImageBuf &A,
+            bool* channels_mask, ROI roi, int nthreads)
+{
+    switch (A.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            parallel_image (boost::bind (invert_RA<Rtype, float>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT8 :
+            parallel_image (boost::bind (invert_RA<Rtype, unsigned char>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT8 :
+            parallel_image (boost::bind (invert_RA<Rtype, char>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT16 :
+            parallel_image (boost::bind (invert_RA<Rtype, unsigned short>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT16 :
+            parallel_image (boost::bind (invert_RA<Rtype, short>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT :
+            parallel_image (boost::bind (invert_RA<Rtype, unsigned int>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT :
+            parallel_image (boost::bind (invert_RA<Rtype, int>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT64 :
+            parallel_image (boost::bind (invert_RA<Rtype, unsigned long long>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT64 :
+            parallel_image (boost::bind (invert_RA<Rtype, long long>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::HALF :
+            parallel_image (boost::bind (invert_RA<Rtype, half>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::DOUBLE :
+            parallel_image (boost::bind (invert_RA<Rtype, double>,
+            boost::ref(R), boost::cref(A), channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+    }
+    return false;
+}
+
+
+
+bool
+ImageBufAlgo::invert (ImageBuf &R, const ImageBuf &A,
+            bool* channels_mask, ROI roi, int nthreads)
+{
+    // Input image A.
+    const ImageSpec &specA = A.spec();
+    int channels_A = specA.nchannels;
+
+    // Output image R.
+    const ImageSpec &specR = R.spec();
+    int channels_R = specR.nchannels;
+
+    // The input image needs at least one channel.
+    if (channels_A < 1) { return false; }
+
+    // Initialized R -> it must match A.
+    // Uninitialized R -> initialize from A.
+    if (! R.initialized()) {
+        R.reset ("over", specA);
+    } else {
+        if (channels_A != channels_R) { return false; }
+    }
+
+    // Specified ROI -> use it. Unspecified ROI -> initialize from R.
+    if (! roi.defined) {
+        roi = get_roi (R.spec());
+    }
+
+    // Call invert_R.
+    switch (R.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            return invert_R<float> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::UINT8 :
+            return invert_R<unsigned char> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::INT8 :
+            return invert_R<char> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::UINT16 :
+            return invert_R<unsigned short> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::INT16 :
+            return invert_R<short> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::UINT :
+            return invert_R<unsigned int> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::INT :
+            return invert_R<int> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::UINT64 :
+            return invert_R<unsigned long long> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::INT64 :
+            return invert_R<long long> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::HALF :
+            return invert_R<half> (R, A, channels_mask, roi, nthreads);
+        case TypeDesc::DOUBLE :
+            return invert_R<double> (R, A, channels_mask,roi, nthreads);
+    }
+    return false;
+}
+
 
 
 }
