@@ -1230,50 +1230,14 @@ over_RA (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi,
             boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
             nthreads);
             return true;
-        case TypeDesc::INT8 :
-            parallel_image (boost::bind (over_RAB<Rtype, Atype, char>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
         case TypeDesc::UINT16 :
             parallel_image (boost::bind (
             over_RAB<Rtype, Atype, unsigned short>,
             boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
             nthreads);
             return true;
-        case TypeDesc::INT16 :
-            parallel_image (boost::bind (over_RAB<Rtype, Atype, short>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
-        case TypeDesc::UINT :
-            parallel_image (boost::bind (over_RAB<Rtype, Atype, unsigned int>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
-        case TypeDesc::INT :
-            parallel_image (boost::bind (over_RAB<Rtype, Atype, int>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
-        case TypeDesc::UINT64 :
-            parallel_image (boost::bind (
-            over_RAB<Rtype, Atype, unsigned long long>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
-        case TypeDesc::INT64 :
-            parallel_image (boost::bind (over_RAB<Rtype, Atype, long long>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
         case TypeDesc::HALF :
             parallel_image (boost::bind (over_RAB<Rtype, Atype, half>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
-        case TypeDesc::DOUBLE :
-            parallel_image (boost::bind (over_RAB<Rtype, Atype, double>,
             boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
             nthreads);
             return true;
@@ -1293,25 +1257,10 @@ over_R (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi,
             return over_RA<Rtype, float> (R, A, B, roi, nthreads);
         case TypeDesc::UINT8 :
             return over_RA<Rtype, unsigned char> (R, A, B, roi, nthreads);
-        case TypeDesc::INT8 :
-            return over_RA<Rtype, char> (R, A, B, roi, nthreads);
         case TypeDesc::UINT16 :
             return over_RA<Rtype, unsigned short> (R, A, B, roi, nthreads);
-        case TypeDesc::INT16 :
-            return over_RA<Rtype, short> (R, A, B, roi, nthreads);
-        case TypeDesc::UINT :
-            return over_RA<Rtype, unsigned int> (R, A, B, roi, nthreads);
-        case TypeDesc::INT :
-            return over_RA<Rtype, int> (R, A, B, roi, nthreads);
-        case TypeDesc::UINT64 :
-            return over_RA<Rtype, unsigned long long> (R, A, B, roi, 
-            nthreads);
-        case TypeDesc::INT64 :
-            return over_RA<Rtype, long long> (R, A, B, roi, nthreads);
         case TypeDesc::HALF :
             return over_RA<Rtype, half> (R, A, B, roi, nthreads);
-        case TypeDesc::DOUBLE :
-            return over_RA<Rtype, double> (R, A, B, roi, nthreads);
     }
     return false;
 }
@@ -1406,24 +1355,10 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
             return over_R<float> (R, A, B, roi, nthreads);
         case TypeDesc::UINT8 :
             return over_R<unsigned char> (R, A, B, roi, nthreads);
-        case TypeDesc::INT8 : 
-            return over_R<char> (R, A, B, roi, nthreads);
         case TypeDesc::UINT16 :
             return over_R<unsigned short> (R, A, B, roi, nthreads);
-        case TypeDesc::INT16 :
-            return over_R<short> (R, A, B, roi, nthreads);
-        case TypeDesc::UINT :
-            return over_R<unsigned int> (R, A, B, roi, nthreads);
-        case TypeDesc::INT :
-            return over_R<int> (R, A, B, roi, nthreads);
-        case TypeDesc::UINT64 :
-            return over_R<unsigned long long> (R, A, B, roi, nthreads);
-        case TypeDesc::INT64 :
-            return over_R<long long> (R, A, B, roi, nthreads);
         case TypeDesc::HALF :
             return over_R<half> (R, A, B, roi, nthreads);
-        case TypeDesc::DOUBLE :
-            return over_R<double> (R, A, B, roi, nthreads);
     }
     return false;
 }
