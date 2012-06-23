@@ -1131,7 +1131,7 @@ void
 parallel_image (Func f, ImageBuf &R, ROI roi, int nthreads)
 {
     // Try to fill all cores.
-    if (nthreads <= 0) { nthreads = boost::thread::hardware_concurrency(); }
+    if (nthreads <= 0) { nthreads = 1; }//boost::thread::hardware_concurrency(); }
 
     if (nthreads == 0 || nthreads == 1 || R.spec().image_pixels() < 1000) {
         f (roi);
@@ -1424,6 +1424,191 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
             return over_R<half> (R, A, B, roi, nthreads);
         case TypeDesc::DOUBLE :
             return over_R<double> (R, A, B, roi, nthreads);
+    }
+    return false;
+}
+
+
+
+/// Calculate average pixel values for each channel in the image.
+template<class T1, class T2>
+double*
+ib_average (const ImageBuf &A)
+{
+    int chans = A.nchannels();
+    double* average_values = new double[chans];
+    for (int i = 0; i < chans; ++i) { average_values[i] = 0.0; }
+    ImageBuf::ConstIterator<T1, T2> a (A);
+
+    for ( ; ! a.done(); a++)
+        for (int i = 0;  i < chans;  ++i)
+            average_values[i] += a[i];
+
+    for (int i = 0; i < chans; ++i)
+        average_values[i] /= A.spec().image_pixels();
+
+    return average_values;
+}
+
+
+
+template<class Rtype, class Atype>
+void
+contrast_RA (ImageBuf &R, const ImageBuf &A, float contrast,
+            int* channels_mask, ROI roi)
+{
+    double* average_values = ib_average<Atype, float> (A);
+    int channels_A = A.nchannels();
+    ImageBuf::ConstIterator<Atype, float> a (A);
+    ImageBuf::Iterator<Rtype, float> r (R, roi);
+
+    for ( ; ! r.done(); r++) {
+        a.pos (r.x(), r.y(), r.z());
+        if (a.valid()) {
+            for (int c = 0; c < channels_A ; ++c) {
+                if (channels_mask == NULL
+                || (channels_mask != NULL && channels_mask[c] == 1))
+                    r[c] = (a[c] - average_values[c]) * contrast
+                            + average_values[c];
+            }
+        }
+    }
+
+    delete average_values;
+}
+
+
+
+template<class Rtype>
+bool
+contrast_R (ImageBuf &R, const ImageBuf &A, float contrast,
+            int* channels_mask, ROI roi, int nthreads)
+{
+    switch (A.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            parallel_image (boost::bind (contrast_RA<Rtype, float>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT8 :
+            parallel_image (boost::bind (contrast_RA<Rtype, unsigned char>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT8 :
+            parallel_image (boost::bind (contrast_RA<Rtype, char>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT16 :
+            parallel_image (boost::bind (contrast_RA<Rtype, unsigned short>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT16 :
+            parallel_image (boost::bind (contrast_RA<Rtype, short>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT :
+            parallel_image (boost::bind (contrast_RA<Rtype, unsigned int>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT :
+            parallel_image (boost::bind (contrast_RA<Rtype, int>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::UINT64 :
+            parallel_image (boost::bind (contrast_RA<Rtype, unsigned long long>,            
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::INT64 :
+            parallel_image (boost::bind (contrast_RA<Rtype, long long>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::HALF :
+            parallel_image (boost::bind (contrast_RA<Rtype, half>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+        case TypeDesc::DOUBLE :
+            parallel_image (boost::bind (contrast_RA<Rtype, double>,
+            boost::ref(R), boost::cref(A), contrast, channels_mask,
+            _1), R, roi, nthreads);
+            return true;
+    }
+    return false;
+}
+
+
+
+bool
+ImageBufAlgo::contrast (ImageBuf &R, const ImageBuf &A, float contrast,
+            int* channels_mask, ROI roi, int nthreads)
+{
+    // Input image A.
+    const ImageSpec &specA = A.spec();
+    int channels_A = specA.nchannels;
+
+    // Output image R.
+    const ImageSpec &specR = R.spec();
+    int channels_R = specR.nchannels;
+
+    // The input image needs at least one channel.
+    if (channels_A < 1) { return false; }
+
+    // Initialized R -> it must match A.
+    // Uninitialized R -> initialize from A.
+    if (! R.initialized()) {
+        R.reset ("over", specA);
+    } else {
+        if (channels_A != channels_R) { return false; }
+    }
+
+    // Specified ROI -> use it. Unspecified ROI -> initialize from R.
+    if (! roi.defined) {
+        roi = get_roi (R.spec());
+    }
+
+    // Call contrast_R.
+    switch (R.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            return contrast_R<float> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::UINT8 :
+            return contrast_R<unsigned char> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::INT8 :
+            return contrast_R<char> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::UINT16 :
+            return contrast_R<unsigned short> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::INT16 :
+            return contrast_R<short> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::UINT :
+            return contrast_R<unsigned int> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::INT :
+            return contrast_R<int> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::UINT64 :
+            return contrast_R<unsigned long long> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::INT64 :
+            return contrast_R<long long> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::HALF :
+            return contrast_R<half> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
+        case TypeDesc::DOUBLE :
+            return contrast_R<double> (R, A, contrast, channels_mask,
+                                     roi, nthreads);
     }
     return false;
 }

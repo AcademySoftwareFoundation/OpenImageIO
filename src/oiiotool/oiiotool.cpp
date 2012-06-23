@@ -1426,9 +1426,34 @@ action_over (int argc, const char *argv[])
 
 
 
+static int
+action_contrast (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_contrast, argc, argv)) { return 0; }
+
+    // Get input image A.
+    ot.read ();
+    ImageRecRef A = ot.pop();
+    const ImageBuf &Aib ((*A)());
+    const ImageSpec &specA = Aib.spec();
+
+    // Get output image R.
+    ot.push (new ImageRec ("irec", specA, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+
+    // Get arguments from command line.
+    float contrast = (float) atof(argv[1]);
+
+    ImageBufAlgo::contrast (Rib, Aib, contrast);
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
+    float dummyfloat;
     bool help = false;
     ArgParse ap;
     ap.options ("oiiotool -- simple image processing operations\n"
@@ -1519,6 +1544,7 @@ getargs (int argc, char *argv[])
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
                     "Convert pixels from 'src' to 'dst' color space (without regard to its previous interpretation)",
                 "--over %@", action_over, NULL, "A over B",
+                "--contrast %@ %g", action_contrast, &dummyfloat, "Modify image contrast",
                 NULL);
 
     if (ap.parse(argc, (const char**)argv) < 0) {
