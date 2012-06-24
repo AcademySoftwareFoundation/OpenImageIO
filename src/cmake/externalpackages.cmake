@@ -333,6 +333,22 @@ endif()
 # end Webp setup
 ###########################################################################
 
+# Eigen setup
+    message (STATUS "EIGEN_HOME=${EIGEN_HOME}")
+    find_path (EIGEN_INCLUDE_DIR eigen3
+               ${THIRD_PARTY_TOOLS}/include
+               ${PROJECT_SOURCE_DIR}/include  
+               ${EIGEN_HOME}/)
+    if (EIGEN_INCLUDE_DIR)
+        set (EIGEN_FOUND TRUE)
+        message (STATUS "EIGEN includes = ${EIGEN_INCLUDE_DIR} ")
+    else()
+        set (EIGEN_FOUND FALSE)
+        message (STATUS "Eigen library not found")
+    endif()
+# end Eigen setup
+###########################################################################
+
 ###########################################################################
 # Pugixml setup.  Normally we just use the version bundled with oiio, but
 # some linux distros are quite particular about having separate packages so we
