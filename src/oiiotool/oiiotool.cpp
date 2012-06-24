@@ -1394,6 +1394,33 @@ action_fixnan (int argc, const char *argv[])
     return 0;
 }
 
+static int
+action_smoothcompletion (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_smoothcompletion, argc, argv))
+        return 0;
+
+    ImageRecRef M (ot.pop());
+    ImageRecRef S (ot.pop());
+    ot.read (S);
+    ot.read (M);
+    ot.push (new ImageRec (*S, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Sib ((*S)(s,m));
+            const ImageBuf &Mib ((*M)(0,m)); //TODO: check this!
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            ImageBufAlgo::smoothImageCompletion(Rib, Sib, Mib);        
+        }
+    }
+             
+    return 0;
+}
+
 
 
 static void
@@ -1481,6 +1508,8 @@ getargs (int argc, char *argv[])
                     "Throw away the current image",
                 "--dup %@", action_dup, NULL,
                     "Duplicate the current image (push a copy onto the stack)",
+                "<SEPARATOR>", "Poisson image editing actions:",
+                "--smoothcompletion %@", action_smoothcompletion, &dummybool, "Smooth image completion.",
                 "<SEPARATOR>", "Color management:",
                 "--iscolorspace %@ %s", set_colorspace, NULL,
                     "Set the assumed color space (without altering pixels)",
