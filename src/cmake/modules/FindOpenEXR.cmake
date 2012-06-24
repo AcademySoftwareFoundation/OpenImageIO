@@ -141,7 +141,7 @@ list (APPEND OpenEXR_library_paths ${OpenEXR_generic_library_paths})
 
 # Locate the header files
 PREFIX_FIND_INCLUDE_DIR (OpenEXR
-  OpenEXR/OpenEXRConfig.h OpenEXR_include_paths)
+  OpenEXR/ImfArray.h OpenEXR_include_paths)
 
 # If the headers were found, add its parent to the list of lib directories
 if (OPENEXR_INCLUDE_DIR)
