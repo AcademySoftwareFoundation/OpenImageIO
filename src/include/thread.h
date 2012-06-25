@@ -685,8 +685,12 @@ public:
     };
 
 private:
+    OIIO_CACHE_ALIGN
     spin_mutex m_locked;   // write lock
+    char pad1_[OIIO_CACHE_LINE_SIZE-sizeof(spin_mutex)];
+    OIIO_CACHE_ALIGN
     atomic_int m_readers;  // number of readers
+    char pad2_[OIIO_CACHE_LINE_SIZE-sizeof(atomic_int)];
 };
 
 
