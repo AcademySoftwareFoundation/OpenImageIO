@@ -344,6 +344,25 @@ pause (int delay)
 
 
 
+// Helper class to deliver ever longer pauses until we yield our timeslice.
+class atomic_backoff {
+public:
+    atomic_backoff () : m_count(1) { }
+
+    void operator() () {
+        if (m_count <= 16) {
+            pause (m_count);
+            m_count *= 2;
+        } else {
+            yield();
+        }
+    }
+private:
+    int m_count;
+};
+
+
+
 #if (! USE_TBB)
 // If we're not using TBB, we need to define our own atomic<>.
 
@@ -457,25 +476,6 @@ typedef tbb::spin_mutex::scoped_lock spin_lock;
 #else
 
 // Define our own spin locks.  Do we trust them?
-
-
-// Helper class to deliver ever longer pauses until we yield our timeslice.
-class atomic_backoff {
-public:
-    atomic_backoff () : m_count(1) { }
-
-    void operator() () {
-        if (m_count <= 16) {
-            pause (m_count);
-            m_count *= 2;
-        } else {
-            yield();
-        }
-    }
-private:
-    int m_count;
-};
-
 
 
 /// A spin_mutex is semantically equivalent to a regular mutex, except
