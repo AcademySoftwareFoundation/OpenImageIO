@@ -1131,7 +1131,7 @@ void
 parallel_image (Func f, ImageBuf &R, ROI roi, int nthreads)
 {
     // Try to fill all cores.
-    if (nthreads <= 0) { std::cout << nthreads << "\n"; OIIO::getattribute ("threads", nthreads); std::cout << nthreads << "\n";}
+    if (nthreads <= 0) { OIIO::getattribute ("threads", nthreads); }
 
     if (nthreads == 0 || nthreads == 1 || R.spec().image_pixels() < 1000) {
         f (roi);
