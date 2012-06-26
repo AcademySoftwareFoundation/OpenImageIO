@@ -238,6 +238,8 @@ driver_close
 {
    AiMsgInfo("[driver_socket] driver close");
    ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
+   // This line crashes the render, likely because we haven't finished sending data to the server.
+   // we should use another thread as in this example: http://www.boost.org/doc/libs/1_38_0/doc/html/boost_asio/example/chat/chat_client.cpp
    data->out->close();
 }
 

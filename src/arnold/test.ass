@@ -10,8 +10,8 @@ options
  AA_samples 8
  outputs 
   "RGBA RGBA gaussian_filter driver_socket" 
- xres 640
- yres 640
+ xres 600
+ yres 480
  aspect_ratio 1.
  bucket_scanning "spiral"
  camera "perspShape"
@@ -44,7 +44,7 @@ driver_socket
 persp_camera
 {
  name perspShape
- fov 54.432224 
+ fov 20
  matrix 
   0.93105584 0 0.36487678 0
   0.12920322 0.93520719 -0.32968774 0

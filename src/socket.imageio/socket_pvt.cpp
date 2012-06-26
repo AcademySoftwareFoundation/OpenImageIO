@@ -60,6 +60,26 @@ socket_write (ip::tcp::socket &s, TypeDesc &type, const void *data, int size)
     return bytes;
 }
 
+// utility for calcuating the bytes of a cropped edge tile
+int
+tile_bytes_at(const ImageSpec &spec, int x, int y, int z)
+{
+    if (spec.tile_width <= 0 || spec.tile_height <= 0 || spec.tile_depth <= 0)
+        return 0;
+
+    int tile_width = std::min(spec.full_width, (x + spec.tile_width)) - x;
+    int tile_height = std::min(spec.full_height, (y + spec.tile_height)) - y;
+
+    imagesize_t r = clamped_mult64 ((imagesize_t)tile_width,
+                                    (imagesize_t)tile_height);
+    if (spec.tile_depth > 1) {
+        int tile_depth = std::min(spec.full_depth, (z + spec.tile_depth)) - z;
+        r = clamped_mult64 (r, (imagesize_t)tile_depth);
+    }
+
+    return r * spec.nchannels * spec.format.size();
+}
+
 }
 
 OIIO_PLUGIN_NAMESPACE_END

@@ -80,10 +80,12 @@ class SocketOutput : public ImageOutput {
 
  private:
     int m_next_scanline;             // Which scanline is the next to write?
+    boost::thread m_thread;
     io_service io;
     ip::tcp::socket socket;
     std::vector<unsigned char> m_scratch;
 
+    void do_close ();
     bool connect_to_server (const std::string &name);
     bool send_spec_to_server (const ImageSpec &spec);
     bool send_header_to_server (const std::string &header);
@@ -132,6 +134,7 @@ const char default_port[] = "10110";
 const char default_host[] = "127.0.0.1";
 
 std::size_t socket_write (ip::tcp::socket &s, TypeDesc &type, const void *data, int size);
+int tile_bytes_at(const ImageSpec &spec, int x, int y, int z);
 
 }
 

@@ -62,6 +62,7 @@ bool
 SocketOutput::open (const std::string &name, const ImageSpec &newspec,
                     OpenMode mode)
 {
+    m_thread = boost::thread(boost::bind(&boost::asio::io_service::run, &io));
     if (! (connect_to_server (name) && send_spec_to_server (newspec))) {
         return false;
     }
@@ -104,12 +105,12 @@ SocketOutput::write_tile (int x, int y, int z,
     //ImageSpec spec(x, y, m_spec.nchannels, format);
     //std::string header = spec.to_xml ();
     std::string header = Strutil::format ("tile?x=%d&y=%d&z=%d", x, y, z);
-    int size = m_spec.tile_pixels() * m_spec.nchannels * format.size();
+    int size = socket_pvt::tile_bytes_at (m_spec, x, y, z);
     std::cout << "writing tile (" << x << ", " << y << ") size: " << size << " " << m_spec.tile_bytes () << std::endl;
     if (send_header_to_server (header))
     {
         try {
-            socket_pvt::socket_write (socket, format, data, m_spec.tile_bytes());
+            socket_pvt::socket_write (socket, format, data, size);
         } catch (boost::system::system_error &err) {
             error ("Error while reading: %s", err.what ());
             return false;
@@ -125,7 +126,10 @@ SocketOutput::write_tile (int x, int y, int z,
 bool
 SocketOutput::close ()
 {
-    socket.close();
+    std::cout << "SocketOutput::close" << std::endl;
+    // TODO: notify the server that we are disconnecting
+    io.post(boost::bind(&SocketOutput::do_close, this));
+    m_thread.join();
     return true;
 }
 
@@ -136,6 +140,17 @@ SocketOutput::copy_image (ImageInput *in)
 {
     return true;
 }
+
+
+
+void
+SocketOutput::do_close ()
+{
+    // FIXME: this is not running
+    std::cout << "SocketOutput::do_close" << std::endl;
+    socket.close();
+}
+
 
 
 

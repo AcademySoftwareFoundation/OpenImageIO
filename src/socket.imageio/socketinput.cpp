@@ -194,11 +194,10 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
 {
     if (m_curr_tile_x >= 0 || m_curr_tile_y >= 0) {
     //    int size = m_spec.tile_pixels() * m_spec.nchannels; // * format.size();
-        int size = m_spec.tile_bytes ();
+        int size = socket_pvt::tile_bytes_at (m_spec, x, y, z);
         std::cout << "read_native_tile (" << x << ", " << y << ") size: " << size << std::endl;
         try {
-            boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data),
-                    m_spec.tile_bytes ()));
+            boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data), size));
         } catch (boost::system::system_error &err) {
             error ("Error while reading: %s", err.what ());
             return false;
