@@ -836,25 +836,25 @@ public:
     /// Tile-aware 'unordered' iterator
     /// Different ++, no pos(), always clamped to image
     template<typename BUFT, typename USERT=float>
-    class UnorderedIterator: public IteratorBase {
+    class TiledIterator: public IteratorBase {
     public:
-        UnorderedIterator (ImageBuf &ib)
+        TiledIterator (ImageBuf &ib)
             : IteratorBase(ib), m_ib(&ib), m_tile(NULL) {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         // Always clamp to the image
         // There's no reason to go outside the image with this iterator
-        UnorderedIterator (ImageBuf &ib, int xbegin, int xend,
+        TiledIterator (ImageBuf &ib, int xbegin, int xend,
                   int ybegin, int yend, int zbegin=0, int zend=1)
             : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, true), 
             m_ib(&ib), m_tile(NULL) {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
-        UnorderedIterator (const UnorderedIterator &i)
+        TiledIterator (const TiledIterator &i)
             : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
             pos (i.m_x, i.m_y, i.m_z);
         }
-        ~UnorderedIterator() {
+        ~TiledIterator() {
             if (m_tile)
                 m_ib->imagecache()->release_tile (m_tile);
         }
@@ -906,7 +906,7 @@ public:
             ++(*this);
         }
         
-        const UnorderedIterator & operator= (const UnorderedIterator &i) {
+        const TiledIterator & operator= (const TiledIterator &i) {
             if (m_tile)
                 m_ib->imagecache()->release_tile (m_tile);
             m_tile = NULL;
@@ -978,35 +978,35 @@ public:
     };
     
     template<typename BUFT, typename USERT=float>
-    class UnorderedConstIterator: public IteratorBase {    
+    class TiledConstIterator: public IteratorBase {    
     public:
-        UnorderedConstIterator (const ImageBuf &ib)
+        TiledConstIterator (const ImageBuf &ib)
             : IteratorBase(ib), m_ib(&ib), m_tile(NULL) {
             pos (m_rng_xbegin,m_rng_ybegin,m_rng_zbegin);
         }
         // Always clamp to the image
         // There's no reason to go outside the image with this iterator
-        UnorderedConstIterator (const ImageBuf &ib, int xbegin, int xend,
+        TiledConstIterator (const ImageBuf &ib, int xbegin, int xend,
                   int ybegin, int yend, int zbegin=0, int zend=1)
             : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, true), 
             m_ib(&ib), m_tile(NULL) {
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
-        UnorderedConstIterator (const UnorderedConstIterator &i)
+        TiledConstIterator (const TiledConstIterator &i)
             : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
             pos (i.m_x, i.m_y, i.m_z);
         }
-        //cast from UnorderedIterator to const
-        UnorderedConstIterator (const UnorderedIterator<BUFT, USERT> &i)
+        //cast from TiledIterator to const
+        TiledConstIterator (const TiledIterator<BUFT, USERT> &i)
             : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
             pos (i.m_x, i.m_y, i.m_z);
         }
-        ~UnorderedConstIterator() {
+        ~TiledConstIterator() {
             if (m_tile)
                 m_ib->imagecache()->release_tile (m_tile);
         }
         
-        const UnorderedConstIterator & operator= (const UnorderedConstIterator &i) {
+        const TiledConstIterator & operator= (const TiledConstIterator &i) {
             if (m_tile)
                 m_ib->imagecache()->release_tile (m_tile);
             m_tile = NULL;

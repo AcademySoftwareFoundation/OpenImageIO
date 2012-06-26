@@ -841,7 +841,7 @@ get_pixels_ (const ImageBuf &buf, int xbegin, int xend,
 {
     int w = (xend-xbegin), h = (yend-ybegin);
     imagesize_t wh = imagesize_t(w) * imagesize_t(h);
-    for (ImageBuf::UnorderedConstIterator<S,D> p (buf, xbegin, xend, ybegin, yend, zbegin, zend);
+    for (ImageBuf::TiledConstIterator<S,D> p (buf, xbegin, xend, ybegin, yend, zbegin, zend);
          p.valid(); ++p) { 
         imagesize_t offset = ((p.z()-zbegin)*wh + (p.y()-ybegin)*w + (p.x()-xbegin)) * buf.nchannels();
         for (int c = 0;  c < buf.nchannels();  ++c)

@@ -414,7 +414,7 @@ copy_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
 {
     int w = (xend-xbegin);
     int nc = (chend-chbegin);
-    for (ImageBuf::UnorderedConstIterator<S,D> p (buf, xbegin, xend, ybegin, yend);
+    for (ImageBuf::TiledConstIterator<S,D> p (buf, xbegin, xend, ybegin, yend);
          p.valid(); ++p) { 
         imagesize_t offset = ((p.y()-ybegin)*w + (p.x()-xbegin)) * nc;
         for (int c = 0;  c < nc;  ++c)
