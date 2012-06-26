@@ -859,11 +859,29 @@ public:
                 m_ib->imagecache()->release_tile (m_tile);
         }
         
+        /// Explicitly point the iterator.  This results in an invalid
+        /// iterator if outside the previously-designated region.
+        void pos (int x_, int y_, int z_=0) {
+            bool v = valid(x_,y_,z_);
+            bool e = exists(x_,y_,z_);
+            if (! e)
+                m_proxy.set (NULL);
+            else if (m_ib->localpixels())
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
+            else
+                m_proxy.set ((BUFT *)m_ib->retile (x_, y_, z_,
+                                         m_tile, m_tilexbegin,
+                                         m_tileybegin, m_tilezbegin));
+            m_x = x_;  m_y = y_;  m_z = z_;
+            get_intersection();
+            m_valid = v;
+            m_exists = e;
+        }
+        
         void operator++ () {
             m_proxy += m_nchannels;
             if (++m_x >= m_tilerng_xend) {
                 m_x = m_tilerng_xbegin;
-                
                 //how many pixels to skip to get to the next row?
                 m_proxy += (m_tilewidth - (m_tilerng_xend-m_tilerng_xbegin)) *
                         m_nchannels;
@@ -875,37 +893,9 @@ public:
                         (m_tilewidth * m_nchannels);
                     
                     if (++m_z >= m_tilerng_zend) {
-                        //we're done with this tile, move on to the next
                         m_z = m_tilerng_zbegin;
-                        
-                        m_x += m_tilewidth; //next tile ++x
-                        if (m_x < m_rng_xend) { //is this tile in our range?
-                            update_tile();
-                            return;
-                        }
-                        
-                        //++x didn't work so reset and try ++y
-                        m_x = m_rng_xbegin;
-                        m_y += m_tileheight;
-                        if (m_y < m_rng_yend) {
-                            update_tile();
-                            return;
-                        }
-                        
-                        //now try ++z
-                        m_y = m_rng_ybegin;
-                        m_z += m_tiledepth;
-                        if (m_z < m_rng_zend) {
-                            update_tile();
-                            return;
-                        }
-                        
-                        //if ++z doesn't work, we're done with the iterator
-                        //so x=xbegin, y=ybegin, z=zend, valid=false
-                        // (IteratorBase::done() == true)
-                        m_z = m_rng_zend;
-                        m_valid = false;
-                        return;
+                        //we're done with this tile, move on to the next
+                        increment_tile ();
                     }
                 }
             }
@@ -949,31 +939,6 @@ public:
         int m_tilerng_xbegin, m_tilerng_xend, m_tilerng_ybegin, m_tilerng_yend,
             m_tilerng_zbegin, m_tilerng_zend;
         
-        void pos (int x_, int y_, int z_=0) {
-            m_x = x_;
-            m_y = y_;
-            m_z = z_;
-            update_tile();
-        }
-        
-        void update_tile () {
-            bool v = valid(m_x, m_y, m_z);
-            bool e = exists(m_x, m_y, m_z);
-            
-            if (!e)
-                m_proxy.set (NULL);
-            else if (m_ib->localpixels())
-                m_proxy.set ((BUFT *)m_ib->pixeladdr (m_x, m_y, m_z));
-            else
-                m_proxy.set ((BUFT *)m_ib->retile (m_x, m_y, m_z,
-                                         m_tile, m_tilexbegin,
-                                         m_tileybegin, m_tilezbegin));
-            
-            m_valid = v;
-            m_exists = e;            
-            get_intersection ();
-        }
-        
         void get_intersection () {
             m_tilerng_xbegin = std::max(m_tilexbegin, m_rng_xbegin);
             m_tilerng_xend = std::min(m_tilexbegin+m_tilewidth,
@@ -984,6 +949,31 @@ public:
             m_tilerng_zbegin = std::max(m_tilezbegin, m_rng_zbegin);
             m_tilerng_zend = std::min(m_tilezbegin+m_tiledepth,
                                         m_rng_zend);
+        }
+        
+        void increment_tile () {
+            DASSERT(m_x == m_tilerng_xbegin && m_y == m_tilerng_ybegin &&
+                    m_z == m_tilerng_zbegin);
+            if (m_tilexbegin + m_tilewidth < m_rng_xend) { //++x
+                pos (m_tilexbegin + m_tilewidth, m_y, m_z);
+                return;
+            }
+            m_x = m_rng_xbegin;
+            if (m_tileybegin + m_tileheight < m_rng_yend) { //++y
+                pos (m_x, m_tileybegin + m_tileheight, m_z);
+                return;
+            }
+            m_y = m_rng_ybegin;
+            if (m_tilezbegin + m_tiledepth < m_rng_zend) { //++z
+                pos (m_x, m_y, m_tilezbegin + m_tiledepth);
+                return;
+            }
+            m_z = m_rng_zend;
+            //if ++z doesn't work, we're done with the iterator
+            //so x=xbegin, y=ybegin, z=zend, valid=false
+            // (IteratorBase::done() == true)
+            m_valid = false;
+            return;
         }
     };
     
@@ -1026,13 +1016,31 @@ public:
             return *this;
         }
         
+        /// Explicitly point the iterator.  This results in an invalid
+        /// iterator if outside the previously-designated region.
+        void pos (int x_, int y_, int z_=0) {
+            bool v = valid(x_,y_,z_);
+            bool e = exists(x_,y_,z_);
+            if (! e)
+                m_proxy.set (NULL);
+            else if (m_ib->localpixels())
+                m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
+            else
+                m_proxy.set ((BUFT *)m_ib->retile (x_, y_, z_,
+                                         m_tile, m_tilexbegin,
+                                         m_tileybegin, m_tilezbegin));
+            m_x = x_;  m_y = y_;  m_z = z_;
+            get_intersection();
+            m_valid = v;
+            m_exists = e;
+        }
+        
         /// Increment to the next pixel in the region.
         ///
         void operator++ () {
             m_proxy += m_nchannels;
             if (++m_x >= m_tilerng_xend) {
                 m_x = m_tilerng_xbegin;
-                
                 //how many pixels to skip to get to the next row?
                 m_proxy += (m_tilewidth - (m_tilerng_xend-m_tilerng_xbegin)) *
                         m_nchannels;
@@ -1044,37 +1052,9 @@ public:
                         (m_tilewidth * m_nchannels);
                     
                     if (++m_z >= m_tilerng_zend) {
-                        //we're done with this tile, move on to the next
                         m_z = m_tilerng_zbegin;
-                        
-                        m_x += m_tilewidth; //next tile ++x
-                        if (m_x < m_rng_xend) { //is this tile in our range?
-                            update_tile();
-                            return;
-                        }
-                        
-                        //++x didn't work so reset and try ++y
-                        m_x = m_rng_xbegin;
-                        m_y += m_tileheight;
-                        if (m_y < m_rng_yend) {
-                            update_tile();
-                            return;
-                        }
-                        
-                        //now try ++z
-                        m_y = m_rng_ybegin;
-                        m_z += m_tiledepth;
-                        if (m_z < m_rng_zend) {
-                            update_tile();
-                            return;
-                        }
-                        
-                        //if ++z doesn't work, we're done with the iterator
-                        //so x=xbegin, y=ybegin, z=zend, valid=false
-                        // (IteratorBase::done() == true)
-                        m_z = m_rng_zend;
-                        m_valid = false;
-                        return;
+                        //we're done with this tile, move on to the next
+                        increment_tile ();
                     }
                 }
             }
@@ -1102,31 +1082,6 @@ public:
         //intersection of current tile and valid pixels
         int m_tilerng_xbegin, m_tilerng_xend, m_tilerng_ybegin, m_tilerng_yend,
             m_tilerng_zbegin, m_tilerng_zend;
-            
-        void pos (int x_, int y_, int z_=0) {
-            m_x = x_;
-            m_y = y_;
-            m_z = z_;
-            update_tile();
-        }
-
-        void update_tile () {
-            bool v = valid(m_x, m_y, m_z);
-            bool e = exists(m_x, m_y, m_z);
-            
-            if (!e)
-                m_proxy.set (NULL);
-            else if (m_ib->localpixels())
-                m_proxy.set ((BUFT *)m_ib->pixeladdr (m_x, m_y, m_z));
-            else
-                m_proxy.set ((BUFT *)m_ib->retile (m_x, m_y, m_z,
-                                         m_tile, m_tilexbegin,
-                                         m_tileybegin, m_tilezbegin));
-            
-            m_valid = v;
-            m_exists = e;
-            get_intersection();
-        }
         
         void get_intersection () {
             m_tilerng_xbegin = std::max(m_tilexbegin, m_rng_xbegin);
@@ -1138,6 +1093,31 @@ public:
             m_tilerng_zbegin = std::max(m_tilezbegin, m_rng_zbegin);
             m_tilerng_zend = std::min(m_tilezbegin+m_tiledepth,
                                         m_rng_zend);
+        }
+        
+        void increment_tile () {
+            DASSERT(m_x == m_tilerng_xbegin && m_y == m_tilerng_ybegin &&
+                    m_z == m_tilerng_zbegin);
+            if (m_tilexbegin + m_tilewidth < m_rng_xend) { //++x
+                pos (m_tilexbegin + m_tilewidth, m_y, m_z);
+                return;
+            }
+            m_x = m_rng_xbegin;
+            if (m_tileybegin + m_tileheight < m_rng_yend) { //++y
+                pos (m_x, m_tileybegin + m_tileheight, m_z);
+                return;
+            }
+            m_y = m_rng_ybegin;
+            if (m_tilezbegin + m_tiledepth < m_rng_zend) { //++z
+                pos (m_x, m_y, m_tilezbegin + m_tiledepth);
+                return;
+            }
+            m_z = m_rng_zend;
+            //if ++z doesn't work, we're done with the iterator
+            //so x=xbegin, y=ybegin, z=zend, valid=false
+            // (IteratorBase::done() == true)
+            m_valid = false;
+            return;
         }
     };
 
