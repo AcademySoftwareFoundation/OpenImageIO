@@ -1131,7 +1131,7 @@ void
 parallel_image (Func f, ImageBuf &R, ROI roi, int nthreads)
 {
     // Try to fill all cores.
-    if (nthreads <= 0) { nthreads = boost::thread::hardware_concurrency(); }
+    if (nthreads <= 0) { std::cout << nthreads << "\n"; OIIO::getattribute ("threads", nthreads); std::cout << nthreads << "\n";}
 
     if (nthreads == 0 || nthreads == 1 || R.spec().image_pixels() < 1000) {
         f (roi);
@@ -1347,7 +1347,7 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from R.
     if (! roi.defined) {
-        roi = get_roi (specR);
+        roi = get_roi (R.spec());
     }
 
     // Call over_R.
