@@ -647,7 +647,7 @@ public:
         // Spin until the last reader is done, at which point we will be
         // the sole owners and nobody else (reader or writer) can acquire
         // the resource until we release it.
-        while (m_readers > 0)
+        while (*(volatile int *)&m_readers > 0)
                 ;
     }
 
