@@ -66,7 +66,7 @@ Comparing "../../../../../openexr-images-1.5.0/ScanLines/Tree.exr" and "Tree.exr
 PASS
 Reading ../../../../../openexr-images-1.5.0/ScanLines/Blobbies.exr
 ../../../../../openexr-images-1.5.0/ScanLines/Blobbies.exr : 1040 x 1040, 5 channel, half/half/half/half/float openexr
-    SHA-1: 1D3D059692BB2074264393AA2B04D3E60DC52BDC
+    SHA-1: 64C3C765E0D40AA92E066F6EC9198A8053BF1179
     channel list: R (half), G (half), B (half), A (half), Z (float)
     pixel data origin: x=-20, y=-20
     full/display size: 1000 x 1000

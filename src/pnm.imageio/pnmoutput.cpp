@@ -30,6 +30,7 @@
 
 #include <fstream>
 
+#include "filesystem.h"
 #include "imageio.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -175,10 +176,10 @@ PNMOutput::open (const std::string &name, const ImageSpec &userspec,
     if (!m_spec.get_int_attribute ("pnm:binary", 1)) 
     {
         m_pnm_type -= 3;
-        m_file.open (name.c_str());
+        Filesystem::open (m_file, name);
     }
     else
-        m_file.open (name.c_str(), std::ios::out|std::ios::binary);
+        Filesystem::open (m_file, name, std::ios::out|std::ios::binary);
 
     if (!m_file.is_open())
        return false;

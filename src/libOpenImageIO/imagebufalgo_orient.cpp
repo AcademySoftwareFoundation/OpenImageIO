@@ -145,8 +145,7 @@ bool
 ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t)
 {
     if (t == TRANSFORM_NONE) {
-        dst = src;
-        return true;
+        return dst.copy (src);
     }
     
     ImageSpec dst_spec (src.spec());

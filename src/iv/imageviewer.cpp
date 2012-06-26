@@ -1755,7 +1755,6 @@ ImageViewer::keyPressEvent (QKeyEvent *event)
 void
 ImageViewer::resizeEvent (QResizeEvent *event)
 {
-    QSize size = event->size();
     if (fitImageToWindowAct->isChecked ())
         fitImageToWindow ();
     QMainWindow::resizeEvent (event);
@@ -1944,10 +1943,10 @@ void ImageViewer::fitWindowToImage (bool zoomok, bool minsize)
     if (! m_fullscreen) {
         QDesktopWidget *desktop = QApplication::desktop ();
         QRect availgeom = desktop->availableGeometry (this);
-        QRect screengeom = desktop->screenGeometry (this);
         int availwidth = availgeom.width() - extraw - 20;
         int availheight = availgeom.height() - extrah - menuBar()->height() - 20;
 #if 0
+        QRect screengeom = desktop->screenGeometry (this);
         std::cerr << "available desktop geom " << availgeom.x() << ' ' << availgeom.y() << ' ' << availgeom.width() << "x" << availgeom.height() << "\n";
         std::cerr << "screen desktop geom " << screengeom.x() << ' ' << screengeom.y() << ' ' << screengeom.width() << "x" << screengeom.height() << "\n";
 #endif

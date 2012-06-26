@@ -288,7 +288,7 @@ my_error_handler (const char *str, const char *format, va_list ap)
 bool
 TIFFInput::valid_file (const std::string &filename) const
 {
-    FILE *file = fopen (filename.c_str(), "r");
+    FILE *file = Filesystem::fopen (filename, "r");
     if (! file)
         return false;  // needs to be able to open
     unsigned short magic[2] = { 0, 0 };
@@ -361,7 +361,12 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
 
     if (! m_tif) {
+#ifdef _WIN32
+        std::wstring wfilename = Filesystem::path_to_windows_native (m_filename);
+        m_tif = TIFFOpenW (wfilename.c_str(), "rm");
+#else
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
+#endif
         if (m_tif == NULL) {
             error ("Could not open file: %s",
                    lasterr.length() ? lasterr.c_str() : m_filename.c_str());
@@ -755,7 +760,12 @@ TIFFInput::readspec (bool read_meta)
         // I'm not sure what state TIFFReadEXIFDirectory leaves us.
         // So to be safe, close and re-seek.
         TIFFClose (m_tif);
+#ifdef _WIN32
+        std::wstring wfilename = Filesystem::path_to_windows_native (m_filename);
+        m_tif = TIFFOpenW (wfilename.c_str(), "rm");
+#else
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
+#endif
         TIFFSetDirectory (m_tif, m_subimage);
 
         // A few tidbits to look for

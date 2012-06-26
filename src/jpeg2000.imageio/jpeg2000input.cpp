@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <vector>
 #include <openjpeg.h>
+#include "filesystem.h"
 #include "fmath.h"
 #include "imageio.h"
 
@@ -145,7 +146,7 @@ bool
 Jpeg2000Input::open (const std::string &p_name, ImageSpec &p_spec)
 {
     m_filename = p_name;
-    m_file = fopen(m_filename.c_str(), "rb");
+    m_file = Filesystem::fopen(m_filename, "rb");
     if (!m_file) {
         error ("Could not open file \"%s\"", m_filename.c_str());
         return false;

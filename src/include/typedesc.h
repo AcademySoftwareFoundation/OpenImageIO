@@ -220,6 +220,13 @@ struct DLLPUBLIC TypeDesc {
         return (BASETYPE)t.basetype != b || (AGGREGATE)t.aggregate != SCALAR || t.arraylen != 0;
     }
 
+    /// TypeDesc's are equivalent if they are equal, or if their only
+    /// inequality is differing vector semantics.
+    friend bool equivalent (TypeDesc a, TypeDesc b) {
+        return a.basetype == b.basetype && a.aggregate == b.aggregate &&
+               a.arraylen == b.arraylen;
+    }        
+
     /// Demote the type to a non-array
     ///
     void unarray (void) { arraylen = 0; }

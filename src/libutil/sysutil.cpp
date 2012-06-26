@@ -45,6 +45,7 @@
 # include <sys/sysctl.h>
 # include <sys/wait.h>
 # include <sys/ioctl.h>
+# include <unistd.h>
 #endif
 
 #ifdef __APPLE__
@@ -60,6 +61,11 @@
 # include <Psapi.h>
 #else
 # include <sys/resource.h>
+#endif
+
+#ifdef __GNU__
+# include <unistd.h>
+# include <sys/ioctl.h>
 #endif
 
 #include "dassert.h"
@@ -146,6 +152,8 @@ Sysutil::this_program_path ()
 
 #if defined(__linux__)
     int r = readlink ("/proc/self/exe", filename, size);
+    ASSERT(r < int(size)); // user won't get the right answer if the filename is too long to store
+    if (r > 0) filename[r] = 0; // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)
     // For info:  'man 3 dyld'
     int r = _NSGetExecutablePath (filename, &size);
@@ -164,6 +172,8 @@ Sysutil::this_program_path ()
     size_t cb = sizeof(filename);
     int r=1;
     sysctl(mib, 4, filename, &cb, NULL, 0);
+#elif defined(__GNU__)
+    int r = 0;
 #else
     // No idea what platform this is
     ASSERT (0);
@@ -193,7 +203,7 @@ Sysutil::terminal_columns ()
 {
     int columns = 80;   // a decent guess, if we have nothing more to go on
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__GNU__)
     struct winsize w;
     ioctl (0, TIOCGWINSZ, &w);
     columns = w.ws_col;

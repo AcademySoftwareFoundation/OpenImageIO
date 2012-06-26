@@ -143,8 +143,8 @@ Oiiotool::process_pending ()
 static int
 set_threads (int argc, const char *argv[])
 {
-    ASSERT (argc == 1);
-    OIIO::attribute ("threads", atoi(argv[0]));
+    ASSERT (argc == 2);
+    OIIO::attribute ("threads", atoi(argv[1]));
     return 0;
 }
 
@@ -318,7 +318,7 @@ output_file (int argc, const char *argv[])
         std::time_t in_time = ir->time();
         if (! metadatatime.empty())
             DateTime_to_time_t (metadatatime.c_str(), in_time);
-        boost::filesystem::last_write_time (filename, in_time);
+        Filesystem::last_write_time (filename, in_time);
     }
 
     ot.curimg = saveimg;
@@ -1224,7 +1224,7 @@ action_capture (int argc, const char *argv[])
     ImageBuf ib;
     ImageBufAlgo::capture_image (ib, camera, TypeDesc::FLOAT);
     ImageRecRef img (new ImageRec ("capture", ib.spec(), ot.imagecache));
-    (*img)() = ib;
+    (*img)().copy (ib);
     ot.push (img);
     return 0;
 }
@@ -1401,9 +1401,6 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap;
-    bool dummybool;
-    int dummyint;
-    std::string dummystr;
     ap.options ("oiiotool -- simple image processing operations\n"
                 OIIO_INTRO_STRING "\n"
                 "Usage:  oiiotool [filename,option,action]...\n",
@@ -1421,9 +1418,9 @@ getargs (int argc, char *argv[])
                 "--noclobber", &ot.noclobber, "", // synonym
                 "--threads %@ %d", set_threads, &ot.threads, "Number of threads (default 0 == #cores)",
                 "<SEPARATOR>", "Commands that write images:",
-                "-o %@ %s", output_file, &dummystr, "Output the current image to the named file",
+                "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
-                "-d %@ %s", set_dataformat, &dummystr,
+                "-d %@ %s", set_dataformat, NULL,
                     "Set the output data format to one of: "
                     "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
                 "--scanline", &ot.output_scanline, "Output scanline images",
@@ -1438,19 +1435,19 @@ getargs (int argc, char *argv[])
                 "--noautocrop %!", &ot.output_autocrop, 
                     "Do not automatically crop images whose formats don't support separate pixel data and full/display windows",
                 "<SEPARATOR>", "Options that change current image metadata (but not pixel values):",
-                "--attrib %@ %s %s", set_any_attribute, &dummystr, &dummystr, "Sets metadata attribute (name, value)",
-                "--sattrib %@ %s %s", set_string_attribute, &dummystr, &dummystr, "Sets string metadata attribute (name, value)",
-                "--caption %@ %s", set_caption, &dummystr, "Sets caption (ImageDescription metadata)",
-                "--keyword %@ %s", set_keyword, &dummystr, "Add a keyword",
-                "--clear-keywords %@", clear_keywords, &dummybool, "Clear all keywords",
-                "--orientation %@ %d", set_orientation, &dummyint, "Set the assumed orientation",
-                "--rotcw %@", rotate_orientation, &dummybool, "Rotate orientation 90 deg clockwise",
-                "--rotccw %@", rotate_orientation, &dummybool, "Rotate orientation 90 deg counter-clockwise",
-                "--rot180 %@", rotate_orientation, &dummybool, "Rotate orientation 180 deg",
-                "--origin %@ %s", set_origin, &dummystr,
+                "--attrib %@ %s %s", set_any_attribute, NULL, NULL, "Sets metadata attribute (name, value)",
+                "--sattrib %@ %s %s", set_string_attribute, NULL, NULL, "Sets string metadata attribute (name, value)",
+                "--caption %@ %s", set_caption, NULL, "Sets caption (ImageDescription metadata)",
+                "--keyword %@ %s", set_keyword, NULL, "Add a keyword",
+                "--clear-keywords %@", clear_keywords, NULL, "Clear all keywords",
+                "--orientation %@ %d", set_orientation, NULL, "Set the assumed orientation",
+                "--rotcw %@", rotate_orientation, NULL, "Rotate orientation 90 deg clockwise",
+                "--rotccw %@", rotate_orientation, NULL, "Rotate orientation 90 deg counter-clockwise",
+                "--rot180 %@", rotate_orientation, NULL, "Rotate orientation 180 deg",
+                "--origin %@ %s", set_origin, NULL,
                     "Set the pixel data window origin (e.g. +20+10)",
-                "--fullsize %@ %s", set_fullsize, &dummystr, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",
-                "--fullpixels %@", set_full_to_pixels, &dummybool, "Set the 'full' image range to be the pixel data window",
+                "--fullsize %@ %s", set_fullsize, NULL, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",
+                "--fullpixels %@", set_full_to_pixels, NULL, "Set the 'full' image range to be the pixel data window",
                 "<SEPARATOR>", "Options that affect subsequent actions:",
                 "--fail %g", &ot.diff_failthresh, "Failure threshold difference (0.000001)",
                 "--failpercent %g", &ot.diff_failpercent, "Allow this percentage of failures in diff (0)",
@@ -1459,30 +1456,30 @@ getargs (int argc, char *argv[])
                 "--warnpercent %g", &ot.diff_warnpercent, "Allow this percentage of warnings in diff (0)",
                 "--hardwarn %g", &ot.diff_hardwarn, "Warn if any one pixel difference exceeds this error (infinity)",
                 "<SEPARATOR>", "Actions:",
-                "--create %@ %s %d", action_create, &dummystr, &dummyint,
+                "--create %@ %s %d", action_create, NULL, NULL,
                         "Create a blank image (args: geom, channels)",
                 "--pattern %@ %s %s %d", action_pattern, NULL, NULL, NULL,
                         "Create a patterned image (args: pattern, geom, channels)",
                 "--capture %@", action_capture, NULL,
                         "Capture an image (args: camera=%%d)",
-                "--unmip %@", action_unmip, &dummybool, "Discard all but the top level of a MIPmap",
-                "--selectmip %@ %d", action_selectmip, &dummyint,
+                "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
+                "--selectmip %@ %d", action_selectmip, NULL,
                     "Select just one MIP level (0 = highest res)",
-                "--subimage %@ %d", action_select_subimage, &dummyint, "Select just one subimage",
-                "--diff %@", action_diff, &dummybool, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
-                "--add %@", action_add, &dummybool, "Add two images",
-                "--sub %@", action_sub, &dummybool, "Subtract two images",
-                "--abs %@", action_abs, &dummybool, "Take the absolute value of the image pixels",
-                "--flip %@", action_flip, &dummybool, "Flip the image vertically (top<->bottom)",
-                "--flop %@", action_flop, &dummybool, "Flop the image horizontally (left<->right)",
-                "--flipflop %@", action_flipflop, &dummybool, "Flip and flop the image (180 degree rotation)",
-                "--crop %@ %s", action_crop, &dummystr, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
-                "--croptofull %@", action_croptofull, &dummybool, "Crop or pad to make pixel data region match the \"full\" region",
-                "--resize %@ %s", action_resize, &dummystr, "Resize (640x480, 50%)",
+                "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
+                "--diff %@", action_diff, NULL, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
+                "--add %@", action_add, NULL, "Add two images",
+                "--sub %@", action_sub, NULL, "Subtract two images",
+                "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
+                "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
+                "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
+                "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
+                "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
+                "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
+                "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
-                "--pop %@", action_pop, &dummybool,
+                "--pop %@", action_pop, NULL,
                     "Throw away the current image",
-                "--dup %@", action_dup, &dummybool,
+                "--dup %@", action_dup, NULL,
                     "Duplicate the current image (push a copy onto the stack)",
                 "<SEPARATOR>", "Color management:",
                 "--iscolorspace %@ %s", set_colorspace, NULL,

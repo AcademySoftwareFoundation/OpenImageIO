@@ -417,6 +417,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 invalidate_spec ();
                 return false;
             }
+            // ImageCache can't store differing formats per channel
+            tempspec.channelformats.clear();
             LevelInfo levelinfo (tempspec, nativespec);
             si.levels.push_back (levelinfo);
             ++nmip;
@@ -593,7 +595,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     try {
         // this assumes that filename specifies a file on disk, which may not be the
         // case for esoteric plugins like socket.imageio
-        m_mod_time = boost::filesystem::last_write_time (m_filename.string());
+        m_mod_time = Filesystem::last_write_time (m_filename.string());
     }
     catch (std::exception& e) {
         //std::cerr << "Exception: " << e.what() << "\n";
@@ -773,7 +775,7 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
     }
 
     // Now convert and copy those values out to the caller's buffer
-    lores.copy_pixels (0, tw, 0, th, format, data);
+    lores.get_pixels (0, tw, 0, th, 0, 1, format, data);
 
     // Restore the microcache to the way it was before.
     thread_info->tile = oldtile;
@@ -2439,7 +2441,7 @@ ImageCacheImpl::invalidate_all (bool force)
                 all_files.push_back (name);
                 continue;
             }
-            std::time_t t = boost::filesystem::last_write_time (name.string());
+            std::time_t t = Filesystem::last_write_time (name.string());
             // Invalidate the file if it has been modified since it was
             // last opened, or if 'force' is true.
             bool inval = force || (t != f->mod_time());

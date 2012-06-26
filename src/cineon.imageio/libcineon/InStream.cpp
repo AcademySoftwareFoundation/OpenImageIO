@@ -35,6 +35,7 @@
 
 #include <cstdio>
 
+#include "filesystem.h"
 
 #include "CineonStream.h"
 
@@ -54,7 +55,7 @@ bool InStream::Open(const char *f)
 {
 	if (this->fp)
 		this->Close();
-	if ((this->fp = ::fopen(f, "rb")) == 0)
+	if ((this->fp = OIIO::Filesystem::fopen(f, "rb")) == 0)
 		return false;
 
 	return true;

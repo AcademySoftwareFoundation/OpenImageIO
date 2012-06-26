@@ -811,7 +811,7 @@ IvGL::paint_pixelview ()
 
         void *zoombuffer = alloca ((xend-xbegin)*(yend-ybegin)*nchannels*spec.channel_bytes());
         if (! m_use_shaders) {
-            img->copy_pixels (spec.x + xbegin, spec.x + xend,
+            img->get_pixels (spec.x + xbegin, spec.x + xend,
                     spec.y + ybegin, spec.y + yend,
                     spec.format, zoombuffer);
         } else {
@@ -1566,7 +1566,7 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
     // it safely since ImageBuf has a cache underneath and the whole image
     // may not be resident at once.
     if (! m_use_shaders) {
-        m_current_image->copy_pixels (x, x + width, y, y + height,
+        m_current_image->get_pixels (x, x + width, y, y + height,
                                       spec.format, &m_tex_buffer[0]);
     } else {
         m_current_image->copy_pixel_channels (x, x+width, y, y+height,

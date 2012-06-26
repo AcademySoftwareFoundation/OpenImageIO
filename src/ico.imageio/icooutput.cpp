@@ -202,7 +202,7 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
 
     //std::cerr << "[ico] writing at " << m_bpp << "bpp\n";
 
-    m_file = fopen (name.c_str(), mode == AppendSubimage ? "r+b" : "wb");
+    m_file = Filesystem::fopen (name, mode == AppendSubimage ? "r+b" : "wb");
     if (! m_file) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;

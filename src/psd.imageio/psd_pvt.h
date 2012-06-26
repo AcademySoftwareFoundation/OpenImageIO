@@ -32,6 +32,7 @@
 #define OPENIMAGEIO_PSD_PVT_H
 
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

@@ -37,7 +37,13 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <shellapi.h>
+#endif
+
 #include "dassert.h"
+#include "ustring.h"
 
 #include "filesystem.h"
 
@@ -230,6 +236,130 @@ Filesystem::is_regular (const std::string &path)
     return r;
 }
 
+
+
+#ifdef _WIN32
+std::wstring
+Filesystem::path_to_windows_native (const std::string& str)
+{
+    std::wstring native;
+    
+    native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0));
+    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], native.size());
+
+    return native;
+}
+
+
+
+std::string
+Filesystem::path_from_windows_native (const std::wstring& str)
+{
+    std::string utf8;
+
+    utf8.resize(WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
+    WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, &utf8[0], utf8.size(), NULL, NULL);
+
+    return utf8;
+}
+#endif
+
+
+
+FILE*
+Filesystem::fopen (const std::string &path, const std::string &mode)
+{
+#ifdef _WIN32
+    // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
+    std::wstring wpath = path_to_windows_native (path);
+    std::wstring wmode = path_to_windows_native (mode);
+
+    return ::_wfopen (wpath.c_str(), wmode.c_str());
+#else
+    // on Unix platforms passing in UTF-8 works
+    return ::fopen (path.c_str(), mode.c_str());
+#endif
+}
+
+
+
+void
+Filesystem::open (std::ifstream &stream,
+                  const std::string &path,
+                  std::ios_base::openmode mode)
+{
+#ifdef _WIN32
+    // Windows std::ifstream accepts non-standard wchar_t* 
+    std::wstring wpath = path_to_windows_native(path);
+    stream.open (wpath.c_str(), mode);
+#else
+    stream.open (path.c_str(), mode);
+#endif
+}
+
+
+
+void
+Filesystem::open (std::ofstream &stream,
+                  const std::string &path,
+                  std::ios_base::openmode mode)
+{
+#ifdef _WIN32
+    // Windows std::ofstream accepts non-standard wchar_t*
+    std::wstring wpath = path_to_windows_native (path);
+    stream.open (wpath.c_str(), mode);
+#else
+    stream.open (path.c_str(), mode);
+#endif
+}
+
+std::time_t
+Filesystem::last_write_time (const std::string& path)
+{
+#ifdef _WIN32
+    std::wstring wpath = path_to_windows_native (path);
+    return boost::filesystem::last_write_time (wpath);
+#else
+    return boost::filesystem::last_write_time (path);
+#endif
+}
+
+
+
+void
+Filesystem::last_write_time (const std::string& path, std::time_t time)
+{
+#ifdef _WIN32
+    std::wstring wpath = path_to_windows_native (path);
+    boost::filesystem::last_write_time (wpath, time);
+#else
+    boost::filesystem::last_write_time (path, time);
+#endif
+}
+
+
+
+void
+Filesystem::convert_native_arguments (int argc, const char *argv[])
+{
+#ifdef _WIN32
+    // Windows only, standard main() entry point does not accept unicode file
+    // paths, here we retrieve wide char arguments and convert them to utf8
+    if (argc == 0)
+        return;
+
+    int native_argc;
+    wchar_t **native_argv = CommandLineToArgvW (GetCommandLineW (), &native_argc);
+
+    if (!native_argv || native_argc != argc)
+        return;
+
+    for (int i = 0; i < argc; i++) {
+        std::string utf8_arg = path_from_windows_native (native_argv[i]);
+        argv[i] = ustring (utf8_arg).c_str();
+    }
+#endif
+}
 
 }
 OIIO_NAMESPACE_EXIT

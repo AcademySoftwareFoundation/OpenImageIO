@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fmath.h>
 #include <imageio.h>
 
+#include "filesystem.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

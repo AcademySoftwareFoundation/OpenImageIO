@@ -64,6 +64,10 @@
 # include <stdint.h>
 #endif
 
+#if defined(__FreeBSD__)
+#include <sys/param.h>
+#endif
+
 #include "version.h"
 
 OIIO_NAMESPACE_ENTER
@@ -963,6 +967,18 @@ truncf(float val)
  using std::isnan;
  using std::isinf;
  using std::isfinite;
+#endif
+
+
+
+// Functions missing from FreeBSD
+#if (defined(__FreeBSD__) && (__FreeBSD_version < 803000))
+
+inline float
+log2f (float val) {
+    return logf (val)/static_cast<float>(M_LN2);
+}
+
 #endif
 
 

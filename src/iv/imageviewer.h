@@ -149,13 +149,13 @@ public:
     /// color space correction when indicated.
     void pixel_transform (bool srgb_to_linear, int color_mode, int channel);
 
-    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
-                      TypeDesc format, void *result) {
+    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
+                     TypeDesc format, void *result) {
         if (m_corrected_image.localpixels ()) {
-            return m_corrected_image.copy_pixels (xbegin, xend, ybegin, yend,
-                                                  format, result);
+            return m_corrected_image.get_pixels (xbegin, xend, ybegin, yend,
+                                                  0, 1, format, result);
         }
-        return ImageBuf::copy_pixels (xbegin, xend, ybegin, yend, format, result);
+        return ImageBuf::get_pixels (xbegin, xend, ybegin, yend, 0, 1, format, result);
     }
 
     bool auto_subimage (void) const { return m_auto_subimage; }
