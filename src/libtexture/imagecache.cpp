@@ -45,7 +45,6 @@ using namespace std::tr1;
 #include "varyingref.h"
 #include "ustring.h"
 #include "filesystem.h"
-#include "hash.h"
 #include "thread.h"
 #include "fmath.h"
 #include "strutil.h"
@@ -119,8 +118,6 @@ iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 
 
 
-#ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
-
 /// Perform "map[key] = value", and set sweep_iter = end() if it is invalidated.
 ///
 /// For some reason, unordered_map::insert and operator[] may invalidate
@@ -141,23 +138,6 @@ void safe_insert (HashMapT& map, const typename HashMapT::key_type& key,
     if (nbuckets_pre_insert != map.bucket_count())
         sweep_iter = map.end ();
 }
-
-#else
-
-template<typename HashMapT>
-void safe_insert (HashMapT& map, const typename HashMapT::key_type& key,
-                  const typename HashMapT::mapped_type& value,
-                  typename HashMapT::iterator& /*sweep_iter*/)
-{
-    // Traditional implementations of hash_map don't typically invalidate
-    // iterators on insertion.
-    //   - VC++'s stdext::hash_map, according to msdn, and 
-    //   - The implementation coming with g++ according to some vague
-    //     indications in the SGI docs & other places on the web.
-    map[key] = value;
-}
-
-#endif
 
 
 };  // end anonymous namespace

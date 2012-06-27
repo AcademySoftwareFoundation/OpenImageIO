@@ -36,10 +36,11 @@
 #include "export.h"
 #include "thread.h"
 #include "strutil.h"
-#include "hash.h"
 #include "dassert.h"
 
 #include "ustring.h"
+
+#include <boost/unordered_map.hpp>
 
 OIIO_NAMESPACE_ENTER
 {
@@ -72,11 +73,7 @@ typedef null_lock<null_mutex> ustring_write_lock_t;
 #endif
 
 
-#ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
 typedef boost::unordered_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
-#else
-typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
-#endif // OIIO_HAVE_BOOST_UNORDERED_MAP
 
 std::string ustring::empty_std_string ("");
 

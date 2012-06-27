@@ -195,15 +195,12 @@ void DLLPUBLIC to_upper (std::string &a);
 
 
 
-/// C++ functor wrapper class for using strhash for hash_map or hash_set.
-/// The way this is used, in conjunction with StringEqual, to build an
-/// efficient hash_map for char*'s or std::string's is as follows:
+/// C++ functor wrapper class for using strhash for unordered_map or
+/// unordered_set.  The way this is used, in conjunction with
+/// StringEqual, to build an efficient hash map for char*'s or
+/// std::string's is as follows:
 /// \code
-///   #ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
 ///    boost::unordered_map <const char *, Key, Strutil::StringHash, Strutil::StringEqual>
-///   #else
-///    hash_map <const char *, Key, Strutil::StringHash, Strutil::StringEqual>
-///   #endif
 /// \endcode
 class StringHash {
 public:
