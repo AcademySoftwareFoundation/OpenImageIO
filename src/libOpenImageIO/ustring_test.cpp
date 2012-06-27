@@ -48,11 +48,7 @@ OIIO_NAMESPACE_USING;
 static void
 create_lotso_ustrings ()
 {
-    std::cout << "thread " 
-#if (BOOST_VERSION >= 103500)
-              << boost::this_thread::get_id() 
-#endif
-              << "\n";
+    std::cout << "thread " << boost::this_thread::get_id() << "\n";
     char buf[20];
     const int iterations = 1000000;
     for (int i = 0;  i < iterations;  ++i) {
@@ -65,9 +61,7 @@ create_lotso_ustrings ()
 
 void test_ustring_lock ()
 {
-#if (BOOST_VERSION >= 103500)
     std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
-#endif
 
     const int numthreads = 16;
     boost::thread_group threads;

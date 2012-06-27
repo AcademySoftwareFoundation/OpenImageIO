@@ -131,11 +131,7 @@ attribute (const std::string &name, TypeDesc type, const void *val)
     if (name == "threads" && type == TypeDesc::TypeInt) {
         oiio_threads = Imath::clamp (*(const int *)val, 0, maxthreads);
         if (oiio_threads == 0) {
-#if (BOOST_VERSION >= 103500)
             oiio_threads = boost::thread::hardware_concurrency();
-#else
-            oiio_threads = 1;
-#endif
         }
         return true;
     }

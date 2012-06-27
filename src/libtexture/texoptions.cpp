@@ -37,7 +37,6 @@ using namespace std::tr1;
 #include "typedesc.h"
 #include "varyingref.h"
 #include "ustring.h"
-#include "hash.h"
 #include "thread.h"
 #include "fmath.h"
 #include "imageio.h"

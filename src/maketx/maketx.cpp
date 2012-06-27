@@ -436,14 +436,9 @@ parallel_image (Func func, ImageBuf *dst, const ImageBuf *src,
         nthreads = 1;
     // nthreads < 1 means try to make enough threads to fill all cores
     if (nthreads < 1) {
-#if (BOOST_VERSION >= 103500)
         nthreads = boost::thread::hardware_concurrency();
-#else
-        nthreads = 1;   // hardware_concurrency not supported in Boost < 1.35
-#endif
     }
 
-#if (BOOST_VERSION >= 103500)
     if (nthreads > 1) {
         boost::thread_group threads;
         int blocksize = std::max (1, ((xend-xbegin) + nthreads-1) / nthreads);
@@ -458,11 +453,8 @@ parallel_image (Func func, ImageBuf *dst, const ImageBuf *src,
         }
         threads.join_all ();
     } else {
-#endif // BOOST_VERSION
         func (dst, src, xbegin, xend, ybegin, yend);
-#if (BOOST_VERSION >= 103500)
     }
-#endif
 }
 
 

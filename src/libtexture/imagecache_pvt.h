@@ -36,6 +36,8 @@
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
+#include <boost/unordered_map.hpp>
+
 #include "texture.h"
 #include "refcnt.h"
 
@@ -313,19 +315,11 @@ private:
                         TypeDesc format, void *data);
 
     void lock_input_mutex () {
-#if (BOOST_VERSION >= 103500)
         m_input_mutex.lock ();
-#else
-        boost::detail::thread::lock_ops<recursive_mutex>::lock (m_input_mutex);
-#endif
     }
 
     void unlock_input_mutex () {
-#if (BOOST_VERSION >= 103500)
         m_input_mutex.unlock ();
-#else
-        boost::detail::thread::lock_ops<recursive_mutex>::unlock (m_input_mutex);
-#endif
     }
 
     friend class ImageCacheImpl;
@@ -341,11 +335,7 @@ typedef intrusive_ptr<ImageCacheFile> ImageCacheFileRef;
 
 /// Map file names to file references
 ///
-#ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
 typedef boost::unordered_map<ustring,ImageCacheFileRef,ustringHash> FilenameMap;
-#else
-typedef hash_map<ustring,ImageCacheFileRef,ustringHash> FilenameMap;
-#endif
 
 
 
@@ -531,11 +521,8 @@ typedef intrusive_ptr<ImageCacheTile> ImageCacheTileRef;
 
 /// Hash table that maps TileID to ImageCacheTileRef -- this is the type of the
 /// main tile cache.
-#ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
 typedef boost::unordered_map<TileID, ImageCacheTileRef, TileID::Hasher> TileCache;
-#else
-typedef hash_map<TileID, ImageCacheTileRef, TileID::Hasher> TileCache;
-#endif
+
 
 /// A very small amount of per-thread data that saves us from locking
 /// the mutex quite as often.  We store things here used by both
