@@ -305,6 +305,28 @@ bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
                               TypeDesc convert=TypeDesc::UNKNOWN);
 
 
+
+/// Image processing operation: A over B.
+/// R: result image.
+/// A, B: input images.
+/// roi: region of interest where the operation is applied. Pixels outside
+/// this region are not modified. Pixels inside this region but outside
+/// the two input images A and B, are set to (0,0,...). If roi is not
+/// specified then the operation is applied to the full size image.
+/// threads: if <= 0 then try to fill all cores, otherwise use at most
+/// that many threads.
+/// Notes: If R is initialized it must have an alpha channel specified.
+/// If R is not initialized, initialize it to match the input images.
+/// If A or B has an alpha channel then use it, otherwise for 3 channels
+/// assume RGB and alpha 1.0 everywhere, and for 4 channels assume RGBA
+/// and alpha channel 3. An image with number of channels different
+/// than 3 and 4 must have an alpha channel specified, no assumptions
+/// can be made and the operation fails.
+bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                    ROI roi = ROI(), int threads = -1);
+
+
+
 };  // end namespace ImageBufAlgo
 
 

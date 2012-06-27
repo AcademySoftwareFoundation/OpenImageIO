@@ -37,6 +37,10 @@
 /// \file
 /// Implementation of ImageBufAlgo algorithms.
 
+#include <boost/version.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/bind.hpp>
+
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
 
@@ -50,6 +54,7 @@
 #include "dassert.h"
 #include "sysutil.h"
 #include "filter.h"
+#include "thread.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -1117,6 +1122,248 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
     if (pixelsFixed) *pixelsFixed = 0;
     return true;
 }
+
+
+
+/// Generalized multithreading for image processing functions.
+template <class Func>
+void
+parallel_image (Func f, ImageBuf &R, ROI roi, int nthreads)
+{
+    // Try to fill all cores.
+    if (nthreads <= 0) { OIIO::getattribute ("threads", nthreads); }
+
+    if (nthreads == 0 || nthreads == 1 || R.spec().image_pixels() < 1000) {
+        f (roi);
+    } else if (nthreads > 1) {
+        boost::thread_group threads;
+        int blocksize = std::max (1, (roi.width() + nthreads - 1) / nthreads);
+        int roi_xbegin = roi.xbegin;
+        int roi_xend = roi.xend;
+        for (int i = 0;  i < nthreads;  i++) {
+            roi.xbegin = roi_xbegin + i * blocksize;
+            roi.xend = std::min (roi.xbegin + blocksize, roi_xend);
+            threads.add_thread (new boost::thread (f, roi));
+        }
+        threads.join_all ();
+    }
+}
+
+
+
+template<class Rtype, class Atype, class Btype>
+void
+over_RAB (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi)
+{
+    // Output image R.
+    const ImageSpec &specR = R.spec();
+    int channels_R = specR.nchannels;
+
+    // Input image A.
+    const ImageSpec &specA = A.spec();
+    int alpha_index_A =  specA.alpha_channel;
+    int has_alpha_A = (alpha_index_A >= 0);
+    int channels_A = specA.nchannels;
+
+    // Input image B.
+    const ImageSpec &specB = B.spec();
+    int alpha_index_B =  specB.alpha_channel;
+    int has_alpha_B = (alpha_index_B >= 0);
+    int channels_B = specB.nchannels;
+
+    int channels_AB = std::min (channels_A, channels_B);
+
+    ImageBuf::ConstIterator<Atype, float> a (A);
+    ImageBuf::ConstIterator<Btype, float> b (B);
+    ImageBuf::Iterator<Rtype, float> r (R, roi);
+    for ( ; ! r.done(); r++) {
+        a.pos (r.x(), r.y(), r.z());
+        b.pos (r.x(), r.y(), r.z());
+
+        if (! a.valid()) {
+            if (! b.valid()) {
+                // a and b invalid.
+                for (int c = 0; c < channels_R; c++) { r[c] = 0.0f; }
+            } else {
+                // a invalid, b valid.
+                for (int c = 0; c < channels_B; c++) { r[c] = b[c]; }
+                if (! has_alpha_B) { r[3] = 1.0f; }
+            }
+            continue;
+        }
+
+        if (! b.valid()) {
+            // a valid, b invalid.
+            for (int c = 0; c < channels_A; c++) { r[c] = a[c]; }
+            if (! has_alpha_A) { r[3] = 1.0f; }
+            continue;
+        }
+
+        // At this point, a and b are valid.
+        float alpha_A = has_alpha_A 
+                        ? clamp (a[alpha_index_A], 0.0f, 1.0f) : 1.0f;
+        float one_minus_alpha_A = 1.0f - alpha_A;
+        for (int c = 0;  c < channels_AB;  c++)
+            r[c] = a[c] + one_minus_alpha_A * b[c];
+        if (channels_R != channels_AB) {
+            // R has 4 channels, A or B has 3 channels -> alpha channel is 3.
+            r[3] = alpha_A + one_minus_alpha_A * (has_alpha_B ? b[3] : 1.0f);
+        }
+    }
+}
+
+
+
+template<class Rtype, class Atype>
+bool
+over_RA (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi,
+        int nthreads)
+{
+    switch (B.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, float>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
+            return true;
+        case TypeDesc::UINT8 :
+            parallel_image (boost::bind (
+            over_RAB<Rtype, Atype, unsigned char>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
+            return true;
+        case TypeDesc::UINT16 :
+            parallel_image (boost::bind (
+            over_RAB<Rtype, Atype, unsigned short>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
+            return true;
+        case TypeDesc::HALF :
+            parallel_image (boost::bind (over_RAB<Rtype, Atype, half>,
+            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
+            nthreads);
+            return true;
+    }
+    return false;
+}
+
+
+
+template<class Rtype>
+bool
+over_R (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi,
+        int nthreads)
+{
+    switch (A.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            return over_RA<Rtype, float> (R, A, B, roi, nthreads);
+        case TypeDesc::UINT8 :
+            return over_RA<Rtype, unsigned char> (R, A, B, roi, nthreads);
+        case TypeDesc::UINT16 :
+            return over_RA<Rtype, unsigned short> (R, A, B, roi, nthreads);
+        case TypeDesc::HALF :
+            return over_RA<Rtype, half> (R, A, B, roi, nthreads);
+    }
+    return false;
+}
+
+
+
+bool
+ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
+                    int nthreads)
+{
+    // Output image R.
+    const ImageSpec &specR = R.spec();
+    int alpha_R =  specR.alpha_channel;
+    int has_alpha_R = (alpha_R >= 0);
+    int channels_R = specR.nchannels;
+    int non_alpha_R = channels_R - has_alpha_R;
+    bool initialized_R = R.initialized();
+
+    // Input image A.
+    const ImageSpec &specA = A.spec();
+    int alpha_A =  specA.alpha_channel;
+    int has_alpha_A = (alpha_A >= 0);
+    int channels_A = specA.nchannels;
+    int non_alpha_A = has_alpha_A ? (channels_A - 1) : 3;
+    bool A_not_34 = channels_A != 3 && channels_A != 4;
+
+    // Input image B.
+    const ImageSpec &specB = B.spec();
+    int alpha_B =  specB.alpha_channel;
+    int has_alpha_B = (alpha_B >= 0);
+    int channels_B = specB.nchannels;
+    int non_alpha_B = has_alpha_B ? (channels_B - 1) : 3;
+    bool B_not_34 = channels_B != 3 && channels_B != 4;
+
+    // Fail if the input images have a Z channel.
+    if (specA.z_channel >= 0 || specB.z_channel >= 0) { return false; }
+
+    // If input images A and B have different number of non-alpha channels
+    // then return false.
+    if (non_alpha_A != non_alpha_B) { return false; }
+
+    // A or B has number of channels different than 3 and 4, and it does
+    // not have an alpha channel.
+    if ((A_not_34 && !has_alpha_A) ||
+        (B_not_34 && !has_alpha_B)) {
+        return false;
+    }
+
+    // A or B has zero or one channel -> return false.
+    if (channels_A == 0 || channels_A == 1 || 
+        channels_B == 0 || channels_B == 1) {
+        return false;
+    }
+
+    // Initialized R -> use as allocated.  
+    // Uninitialized R -> size it to the union of A and B.
+    ImageSpec newspec = ImageSpec ();
+    ROI union_AB = roi_union (get_roi(specA), get_roi(specB));
+    set_roi (newspec, union_AB);
+    if ((! has_alpha_A && ! has_alpha_B)
+        || (has_alpha_A && ! has_alpha_B && alpha_A == channels_A - 1)
+        || (! has_alpha_A && has_alpha_B && alpha_B == channels_B - 1)) {
+        if (! initialized_R) {
+            newspec.nchannels = 4;
+            newspec.alpha_channel =  3;
+            R.reset ("over", newspec);
+        } else {
+            if (non_alpha_R != 3 || alpha_R != 3) { return false; }
+        }
+    } else if (has_alpha_A && has_alpha_B && alpha_A == alpha_B) {
+        if (! initialized_R) {
+            newspec.nchannels = channels_A;
+            newspec.alpha_channel =  alpha_A;
+            R.reset ("over", newspec);
+        } else {
+            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A) {
+                return false;
+            }
+        }
+    } else {
+        return false;
+    }
+
+    // Specified ROI -> use it. Unspecified ROI -> initialize from R.
+    if (! roi.defined) {
+        roi = get_roi (R.spec());
+    }
+
+    // Call over_R.
+    switch (R.spec().format.basetype) {
+        case TypeDesc::FLOAT :
+            return over_R<float> (R, A, B, roi, nthreads);
+        case TypeDesc::UINT8 :
+            return over_R<unsigned char> (R, A, B, roi, nthreads);
+        case TypeDesc::UINT16 :
+            return over_R<unsigned short> (R, A, B, roi, nthreads);
+        case TypeDesc::HALF :
+            return over_R<half> (R, A, B, roi, nthreads);
+    }
+    return false;
+}
+
 
 
 }
