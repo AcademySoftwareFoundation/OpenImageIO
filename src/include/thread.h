@@ -62,17 +62,10 @@
 #include <boost/thread.hpp>
 #include <boost/thread/tss.hpp>
 #include <boost/version.hpp>
-#if (BOOST_VERSION == 103500)
-#  include <boost/thread/shared_mutex.hpp>
-#endif
 
 #if defined(__GNUC__) && (BOOST_VERSION == 104500)
 // can't restore via push/pop in all versions of gcc (warning push/pop implemented for 4.6+ only)
 #pragma GCC diagnostic error "-Wunused-variable"
-#endif
-
-#if (BOOST_VERSION < 103500)
-#  include <pthread.h>
 #endif
 
 #ifndef USE_TBB
@@ -196,7 +189,7 @@ typedef null_lock<shared_mutex> shared_lock;
 typedef null_lock<shared_mutex> unique_lock;
 
 
-#elif (BOOST_VERSION >= 103500)
+#else
 
 // Fairly modern Boost has all the mutex and lock types we need.
 
@@ -208,49 +201,6 @@ typedef boost::lock_guard< boost::recursive_mutex > recursive_lock_guard;
 typedef boost::shared_lock< boost::shared_mutex > shared_lock;
 typedef boost::unique_lock< boost::shared_mutex > unique_lock;
 using boost::thread_specific_ptr;
-
-#else
-
-// Old Boost lacks reader-writer mutexes -- UGLY!!! Make stripped down
-// versions of shared_mutex, shared_lock, and exclusive_lock.  I can't
-// wait for the day when we get to remove these.  Note that this uses
-// pthreads, so only works on Linux & OSX.  Windows will just have to
-// use a more modern Boost.
-
-typedef boost::mutex mutex;
-typedef boost::recursive_mutex recursive_mutex;
-typedef boost::mutex::scoped_lock lock_guard;
-typedef boost::recursive_mutex::scoped_lock recursive_lock_guard;
-using boost::thread_specific_ptr;
-
-
-class shared_mutex {
-public:
-    shared_mutex () { pthread_rwlock_init (&m_rwlock, NULL); }
-    ~shared_mutex () { pthread_rwlock_destroy (&m_rwlock); }
-    void lock () { pthread_rwlock_wrlock (&m_rwlock); }
-    void unlock () { pthread_rwlock_unlock (&m_rwlock); }
-    void lock_shared () { pthread_rwlock_rdlock (&m_rwlock); }
-    void unlock_shared () { pthread_rwlock_unlock (&m_rwlock); }
-private:
-    pthread_rwlock_t m_rwlock;
-};
-
-class shared_lock {
-public:
-    shared_lock (shared_mutex &m) : m_mutex(m) { m_mutex.lock_shared (); }
-    ~shared_lock () { m_mutex.unlock_shared (); }
-private:
-    shared_mutex &m_mutex;
-};
-
-class unique_lock {
-public:
-    unique_lock (shared_mutex &m) : m_mutex(m) { m_mutex.lock (); }
-    ~unique_lock () { m_mutex.unlock (); }
-private:
-    shared_mutex &m_mutex;
-};
 
 #endif
 
