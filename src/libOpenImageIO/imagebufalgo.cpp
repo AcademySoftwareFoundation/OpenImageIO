@@ -38,7 +38,6 @@
 /// Implementation of ImageBufAlgo algorithms.
 
 #include <boost/version.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/bind.hpp>
 
 #include <OpenEXR/ImathFun.h>
@@ -1125,35 +1124,12 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
 
 
 
-/// Generalized multithreading for image processing functions.
-template <class Func>
-void
-parallel_image (Func f, ImageBuf &R, ROI roi, int nthreads)
-{
-    // Try to fill all cores.
-    if (nthreads <= 0) { OIIO::getattribute ("threads", nthreads); }
+namespace {   // anonymous namespace
 
-    if (nthreads == 0 || nthreads == 1 || R.spec().image_pixels() < 1000) {
-        f (roi);
-    } else if (nthreads > 1) {
-        boost::thread_group threads;
-        int blocksize = std::max (1, (roi.width() + nthreads - 1) / nthreads);
-        int roi_xbegin = roi.xbegin;
-        int roi_xend = roi.xend;
-        for (int i = 0;  i < nthreads;  i++) {
-            roi.xbegin = roi_xbegin + i * blocksize;
-            roi.xend = std::min (roi.xbegin + blocksize, roi_xend);
-            threads.add_thread (new boost::thread (f, roi));
-        }
-        threads.join_all ();
-    }
-}
-
-
-
+// Fully type-specialized version of over.
 template<class Rtype, class Atype, class Btype>
 void
-over_RAB (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi)
+over_RAB (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
 {
     // Output image R.
     const ImageSpec &specR = R.spec();
@@ -1214,58 +1190,53 @@ over_RAB (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi)
 
 
 
+// Partially type-specialized version of over -- return and A types are
+// known, we still need to specialize based on B's type.
 template<class Rtype, class Atype>
 bool
-over_RA (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi,
+over_RA (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
         int nthreads)
 {
+// Shorten text below with a macro
+#define RUN_OP(type)                                                    \
+       ImageBufAlgo::parallel_image (                                   \
+               boost::bind (over_RAB<Rtype,Atype,type>, boost::ref(R),  \
+                            boost::cref(A), boost::cref(B), _1),        \
+               roi, nthreads)
+
     switch (B.spec().format.basetype) {
-        case TypeDesc::FLOAT :
-            parallel_image (boost::bind (over_RAB<Rtype, Atype, float>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
-        case TypeDesc::UINT8 :
-            parallel_image (boost::bind (
-            over_RAB<Rtype, Atype, unsigned char>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
-        case TypeDesc::UINT16 :
-            parallel_image (boost::bind (
-            over_RAB<Rtype, Atype, unsigned short>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
-        case TypeDesc::HALF :
-            parallel_image (boost::bind (over_RAB<Rtype, Atype, half>,
-            boost::ref(R), boost::cref(A), boost::cref(B), _1), R, roi,
-            nthreads);
-            return true;
+    case TypeDesc::FLOAT  : RUN_OP (float);          return true;
+    case TypeDesc::UINT8  : RUN_OP (unsigned char);  return true;
+    case TypeDesc::UINT16 : RUN_OP (unsigned short); return true;
+    case TypeDesc::HALF   : RUN_OP (half);           return true;
     }
-    return false;
+    return false;  // unsupported type
+#undef RUN_OP
 }
 
 
 
+// Partially type-specialized version of over -- return type known,
+// need to specialize on A and B.
 template<class Rtype>
 bool
-over_R (ImageBuf &R, const ImageBuf &A,  const ImageBuf &B, ROI roi,
+over_R (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
         int nthreads)
 {
     switch (A.spec().format.basetype) {
-        case TypeDesc::FLOAT :
-            return over_RA<Rtype, float> (R, A, B, roi, nthreads);
-        case TypeDesc::UINT8 :
-            return over_RA<Rtype, unsigned char> (R, A, B, roi, nthreads);
-        case TypeDesc::UINT16 :
-            return over_RA<Rtype, unsigned short> (R, A, B, roi, nthreads);
-        case TypeDesc::HALF :
-            return over_RA<Rtype, half> (R, A, B, roi, nthreads);
+    case TypeDesc::FLOAT :
+        return over_RA<Rtype, float> (R, A, B, roi, nthreads);
+    case TypeDesc::UINT8 :
+        return over_RA<Rtype, unsigned char> (R, A, B, roi, nthreads);
+    case TypeDesc::UINT16 :
+        return over_RA<Rtype, unsigned short> (R, A, B, roi, nthreads);
+    case TypeDesc::HALF :
+        return over_RA<Rtype, half> (R, A, B, roi, nthreads);
     }
-    return false;
+    return false;  // unsupported type
 }
 
+}    // anonymous namespace
 
 
 bool
@@ -1297,24 +1268,22 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     bool B_not_34 = channels_B != 3 && channels_B != 4;
 
     // Fail if the input images have a Z channel.
-    if (specA.z_channel >= 0 || specB.z_channel >= 0) { return false; }
+    if (specA.z_channel >= 0 || specB.z_channel >= 0)
+        return false;
 
     // If input images A and B have different number of non-alpha channels
     // then return false.
-    if (non_alpha_A != non_alpha_B) { return false; }
+    if (non_alpha_A != non_alpha_B)
+        return false;
 
     // A or B has number of channels different than 3 and 4, and it does
     // not have an alpha channel.
-    if ((A_not_34 && !has_alpha_A) ||
-        (B_not_34 && !has_alpha_B)) {
+    if ((A_not_34 && !has_alpha_A) || (B_not_34 && !has_alpha_B))
         return false;
-    }
 
     // A or B has zero or one channel -> return false.
-    if (channels_A == 0 || channels_A == 1 || 
-        channels_B == 0 || channels_B == 1) {
+    if (channels_A <= 1 || channels_B <= 1)
         return false;
-    }
 
     // Initialized R -> use as allocated.  
     // Uninitialized R -> size it to the union of A and B.
@@ -1329,7 +1298,8 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
             newspec.alpha_channel =  3;
             R.reset ("over", newspec);
         } else {
-            if (non_alpha_R != 3 || alpha_R != 3) { return false; }
+            if (non_alpha_R != 3 || alpha_R != 3)
+                return false;
         }
     } else if (has_alpha_A && has_alpha_B && alpha_A == alpha_B) {
         if (! initialized_R) {
@@ -1337,9 +1307,8 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
             newspec.alpha_channel =  alpha_A;
             R.reset ("over", newspec);
         } else {
-            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A) {
+            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A)
                 return false;
-            }
         }
     } else {
         return false;
@@ -1350,18 +1319,19 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
         roi = get_roi (R.spec());
     }
 
-    // Call over_R.
+    // Call over_R, specialize by return type (which will in turn
+    // specialize by source image types.
     switch (R.spec().format.basetype) {
-        case TypeDesc::FLOAT :
-            return over_R<float> (R, A, B, roi, nthreads);
-        case TypeDesc::UINT8 :
-            return over_R<unsigned char> (R, A, B, roi, nthreads);
-        case TypeDesc::UINT16 :
-            return over_R<unsigned short> (R, A, B, roi, nthreads);
-        case TypeDesc::HALF :
-            return over_R<half> (R, A, B, roi, nthreads);
+    case TypeDesc::FLOAT :
+        return over_R<float> (R, A, B, roi, nthreads);
+    case TypeDesc::UINT8 :
+        return over_R<unsigned char> (R, A, B, roi, nthreads);
+    case TypeDesc::UINT16 :
+        return over_R<unsigned short> (R, A, B, roi, nthreads);
+    case TypeDesc::HALF :
+        return over_R<half> (R, A, B, roi, nthreads);
     }
-    return false;
+    return false;  // unsupported type
 }
 
 

@@ -52,7 +52,8 @@ OIIO_NAMESPACE_ENTER
 
 
 
-ROI get_roi (const ImageSpec &spec)
+ROI
+get_roi (const ImageSpec &spec)
 {
     return ROI (spec.x, spec.x + spec.width,
                 spec.y, spec.y + spec.height,
@@ -61,7 +62,8 @@ ROI get_roi (const ImageSpec &spec)
 
 
 
-ROI get_roi_full (const ImageSpec &spec)
+ROI
+get_roi_full (const ImageSpec &spec)
 {
     return ROI (spec.full_x, spec.full_x + spec.full_width,
                 spec.full_y, spec.full_y + spec.full_height,
@@ -70,7 +72,8 @@ ROI get_roi_full (const ImageSpec &spec)
 
 
 
-void set_roi (ImageSpec &spec, const ROI &newroi)
+void
+set_roi (ImageSpec &spec, const ROI &newroi)
 {
     spec.x = newroi.xbegin;
     spec.y = newroi.ybegin;
@@ -82,7 +85,8 @@ void set_roi (ImageSpec &spec, const ROI &newroi)
 
 
 
-void set_roi_full (ImageSpec &spec, const ROI &newroi)
+void
+set_roi_full (ImageSpec &spec, const ROI &newroi)
 {
     spec.full_x = newroi.xbegin;
     spec.full_y = newroi.ybegin;
@@ -94,7 +98,8 @@ void set_roi_full (ImageSpec &spec, const ROI &newroi)
 
 
 
-ROI roi_union (const ROI &A, const ROI &B)
+ROI
+roi_union (const ROI &A, const ROI &B)
 {
     return ROI (std::min (A.xbegin, B.xbegin), std::max (A.xend, B.xend),
                 std::min (A.ybegin, B.ybegin), std::max (A.yend, B.yend),
@@ -103,7 +108,8 @@ ROI roi_union (const ROI &A, const ROI &B)
 
 
 
-ROI roi_intersection (const ROI &A, const ROI &B)
+ROI
+roi_intersection (const ROI &A, const ROI &B)
 {
     return ROI (std::max (A.xbegin, B.xbegin), std::min (A.xend, B.xend),
                 std::max (A.ybegin, B.ybegin), std::min (A.yend, B.yend),

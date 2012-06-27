@@ -1399,7 +1399,8 @@ action_fixnan (int argc, const char *argv[])
 static int
 action_over (int argc, const char *argv[])
 {
-    if (ot.postpone_callback (2, action_over, argc, argv)) { return 0; }
+    if (ot.postpone_callback (2, action_over, argc, argv))
+        return 0;
 
     ImageRecRef B (ot.pop());
     ImageRecRef A (ot.pop());
@@ -1500,7 +1501,7 @@ getargs (int argc, char *argv[])
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
-                "--over %@", action_over, NULL, "Composite two images",
+                "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",

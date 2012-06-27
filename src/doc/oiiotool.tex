@@ -638,12 +638,18 @@ those images.
 
 \apiitem{--sub}
 Replace the \emph{two} top images with a new image that is the difference
-between the next-to-top and the top image.
+between the first and second images.
 \apiend
 
 \apiitem{--abs}
 Replace the current image with a new image that has each pixel
 consisting of the \emph{absolute value} of he old pixel value.
+\apiend
+
+\apiitem{--over}
+Replace the \emph{two} top images with a new image that is the
+Porter/Duff ``over'' composite of the first image over the second
+image.
 \apiend
 
 \apiitem{--flip}

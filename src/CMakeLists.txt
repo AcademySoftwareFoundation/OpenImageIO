@@ -287,7 +287,7 @@ endif()
 
 # List all the individual testsuite tests here:
 oiio_add_tests (ico gpsread misnamed-file nonwhole-tiles
-                oiiotool oiiotool-fixnan 
+                oiiotool oiiotool-composite oiiotool-fixnan 
                 perchannel
                 sgi rla psd dpx png
                 texture-fill texture-filtersize
