@@ -52,6 +52,61 @@
 OIIO_NAMESPACE_ENTER
 {
 
+class ImageBuf;
+
+
+
+/// Helper struct describing a region of interest in an image.
+/// The region is [xbegin,xend) x [begin,yend) x [zbegin,zend),
+/// with the "end" designators signifying one past the last pixel,
+/// a la STL style.
+struct ROI {
+    int xbegin, xend, ybegin, yend, zbegin, zend;
+    bool defined;
+
+    /// Default constructor is an undefined region.
+    ///
+    ROI () : defined(false) { }
+
+    /// Constructor with an explicitly defined region.
+    ///
+    ROI (int xbegin, int xend, int ybegin, int yend, int zbegin=0, int zend=1)
+        : xbegin(xbegin), xend(xend), ybegin(ybegin), yend(yend),
+          zbegin(zbegin), zend(zend), defined(true)
+    { }
+
+    // Region dimensions.
+    int width () const { return xend - xbegin; }
+    int height () const { return yend - ybegin; }
+    int depth () const { return zend - zbegin; }
+    /// Total number of pixels in the region.
+    imagesize_t npixels () const {
+        imagesize_t w = width(), h = height(), d = depth();
+        return w*h*d;
+    }
+};
+
+
+/// Union of two regions, the smallest region containing both.
+ROI roi_union (const ROI &A, const ROI &B);
+
+/// Intersection of two regions.
+ROI roi_intersection (const ROI &A, const ROI &B);
+
+/// Return pixel data window for this ImageSpec as a ROI.
+ROI get_roi (const ImageSpec &spec);
+
+/// Return full/display window for this ImageSpec as a ROI.
+ROI get_roi_full (const ImageSpec &spec);
+
+/// Set pixel data window for this ImageSpec to a ROI.
+void set_roi (ImageSpec &spec, const ROI &newroi);
+
+/// Set full/display window for this ImageSpec to a ROI.
+void set_roi_full (ImageSpec &spec, const ROI &newroi);
+
+
+
 /// An ImageBuf is a simple in-memory representation of a 2D image.  It
 /// uses ImageInput and ImageOutput underneath for its file I/O, and has
 /// simple routines for setting and getting individual pixels, that
@@ -424,6 +479,8 @@ public:
     /// aren't local.
     void *pixeladdr (int x, int y, int z);
 
+    /// Is this ImageBuf object initialized?
+    bool initialized () const { return m_spec_valid || m_pixels_valid; }
 
     /// Templated class for referring to an individual pixel in an
     /// ImageBuf, iterating over the pixels of an ImageBuf, or iterating
@@ -478,6 +535,20 @@ public:
             m_rng_yend   = std::min (yend,   m_img_yend);
             m_rng_zbegin = std::max (zbegin, m_img_zbegin);
             m_rng_zend   = std::min (zend,   m_img_zend);
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
+        /// Construct read-write clamped valid iteration region from
+        /// ImageBuf and ROI.
+        Iterator (ImageBuf &ib, const ROI &roi)
+            : m_ib(&ib), m_tile(NULL)
+        {
+            init_ib ();
+            m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
+            m_rng_xend   = std::min (roi.xend,   m_img_xend);
+            m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
+            m_rng_yend   = std::min (roi.yend,   m_img_yend);
+            m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
+            m_rng_zend   = std::min (roi.zend,   m_img_zend);
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct from an ImageBuf and designated region -- iterate
@@ -743,6 +814,20 @@ public:
             m_rng_yend   = std::min (yend,   m_img_yend);
             m_rng_zbegin = std::max (zbegin, m_img_zbegin);
             m_rng_zend   = std::min (zend,   m_img_zend);
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
+        /// Construct read-only clamped valid iteration region
+        /// from ImageBuf and ROI.
+        ConstIterator (ImageBuf &ib, const ROI &roi)
+            : m_ib(&ib), m_tile(NULL)
+        {
+            init_ib ();
+            m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
+            m_rng_xend   = std::min (roi.xend,   m_img_xend);
+            m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
+            m_rng_yend   = std::min (roi.yend,   m_img_yend);
+            m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
+            m_rng_zend   = std::min (roi.zend,   m_img_zend);
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct from an ImageBuf and designated region -- iterate
