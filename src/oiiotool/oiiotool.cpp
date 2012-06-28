@@ -1396,6 +1396,37 @@ action_fixnan (int argc, const char *argv[])
 
 
 
+static int
+action_over (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_over, argc, argv))
+        return 0;
+
+    ImageRecRef B (ot.pop());
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.read (B);
+    const ImageBuf &Aib ((*A)());
+    const ImageBuf &Bib ((*B)());
+    const ImageSpec &specA = Aib.spec();
+    const ImageSpec &specB = Bib.spec();
+
+    // Create output image specification.
+    ImageSpec specR = specA;
+    set_roi (specR, roi_union (get_roi(specA), get_roi(specB)));
+    specR.nchannels = std::max (specA.nchannels, specB.nchannels);
+    if (specR.alpha_channel < 0 && specR.nchannels == 4)
+        specR.alpha_channel = 3;
+
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+
+    ImageBufAlgo::over (Rib, Aib, Bib);
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
@@ -1470,6 +1501,7 @@ getargs (int argc, char *argv[])
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
+                "--over %@", action_over, NULL, "'Over' composite of two images",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",

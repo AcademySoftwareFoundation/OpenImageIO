@@ -49,7 +49,7 @@ OIIO_NAMESPACE_ENTER
 
 // Global private data
 namespace pvt {
-int oiio_threads = 1;
+int oiio_threads = boost::thread::hardware_concurrency();
 ustring plugin_searchpath;
 };
 

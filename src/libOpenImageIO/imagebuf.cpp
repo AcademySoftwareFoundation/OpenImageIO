@@ -50,6 +50,74 @@
 OIIO_NAMESPACE_ENTER
 {
 
+
+
+ROI
+get_roi (const ImageSpec &spec)
+{
+    return ROI (spec.x, spec.x + spec.width,
+                spec.y, spec.y + spec.height,
+                spec.z, spec.z + spec.depth);
+}
+
+
+
+ROI
+get_roi_full (const ImageSpec &spec)
+{
+    return ROI (spec.full_x, spec.full_x + spec.full_width,
+                spec.full_y, spec.full_y + spec.full_height,
+                spec.full_z, spec.full_z + spec.full_depth);
+}
+
+
+
+void
+set_roi (ImageSpec &spec, const ROI &newroi)
+{
+    spec.x = newroi.xbegin;
+    spec.y = newroi.ybegin;
+    spec.z = newroi.zbegin;
+    spec.width = newroi.width();
+    spec.height = newroi.height();
+    spec.depth = newroi.depth();
+}
+
+
+
+void
+set_roi_full (ImageSpec &spec, const ROI &newroi)
+{
+    spec.full_x = newroi.xbegin;
+    spec.full_y = newroi.ybegin;
+    spec.full_z = newroi.zbegin;
+    spec.full_width = newroi.width();
+    spec.full_height = newroi.height();
+    spec.full_depth = newroi.depth();
+}
+
+
+
+ROI
+roi_union (const ROI &A, const ROI &B)
+{
+    return ROI (std::min (A.xbegin, B.xbegin), std::max (A.xend, B.xend),
+                std::min (A.ybegin, B.ybegin), std::max (A.yend, B.yend),
+                std::min (A.zbegin, B.zbegin), std::max (A.zend, B.zend));
+}
+
+
+
+ROI
+roi_intersection (const ROI &A, const ROI &B)
+{
+    return ROI (std::max (A.xbegin, B.xbegin), std::min (A.xend, B.xend),
+                std::max (A.ybegin, B.ybegin), std::min (A.yend, B.yend),
+                std::max (A.zbegin, B.zbegin), std::min (A.zend, B.zend));
+}
+
+
+
 ImageBuf::ImageBuf (const std::string &filename,
                     ImageCache *imagecache)
     : m_name(filename), m_nsubimages(0),

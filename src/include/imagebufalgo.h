@@ -42,6 +42,7 @@
 #include "imagebuf.h"
 #include "fmath.h"
 #include "color.h"
+#include "thread.h"
 
 
 #ifndef __OPENCV_CORE_TYPES_H__
@@ -303,6 +304,100 @@ DLLPUBLIC IplImage* to_IplImage (const ImageBuf &src);
 /// alter dst.
 bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
                               TypeDesc convert=TypeDesc::UNKNOWN);
+
+
+
+/// Set R to the composite of A over B using the Porter/Duff definition
+/// of "over", returning true upon success and false for any of a
+/// variety of failures (as described below).
+///
+/// A and B must have valid alpha channels identified by their ImageSpec
+/// alpha_channel field, with the following two exceptions: (a) a
+/// 3-channel image with no identified alpha will be assumed to be RGB,
+/// alpha == 1.0; (b) a 4-channel image with no identified alpha will be
+/// assumed to be RGBA with alpha in channel [3].  If A or B do not have
+/// alpha channels (as determined by those rules) or if the number of
+/// non-alpha channels do not match between A and B, over() will fail,
+/// returning false.
+///
+/// R is not already an initialized ImageBuf, it will be sized to
+/// encompass the minimal rectangular pixel region containing the union
+/// of the defined pixels of A and B, and with a number of channels
+/// equal to the number of non-alpha channels of A and B, plus an alpha
+/// channel.  However, if R is already initialized, it will not be
+/// resized, and the "over" operation will apply to its existing pixel
+/// data window.  In this case, R must have an alpha channel designated
+/// and must have the same number of non-alpha channels as A and B,
+/// otherwise it will fail, returning false.
+///
+/// 'roi' specifies the region of R's pixels which will be computed;
+/// existing pixels outside this range will not be altered.  If not
+/// specified, the default ROI value will be interpreted as a request to
+/// apply "A over B" to the entire region of R's pixel data.
+///
+/// A, B, and R need not perfectly overlap in their pixel data windows;
+/// pixel values of A or B that are outside their respective pixel data
+/// window will be treated as having "zero" (0,0,0...) value.
+///
+/// threads == 0, the default, indicates that over() should use as many
+/// CPU threads as are specified by the global OIIO "threads" attribute.
+/// Note that this is not a guarantee, for example, the implementation
+/// may choose to spawn fewer threads for images too small to make a
+/// large number of threads to be worthwhile.  Values of threads > 0 are
+/// a request for that specific number of threads, with threads == 1
+/// guaranteed to not spawn additional threads (this is especially
+/// useful if over() is being called from one thread of an
+/// already-multithreaded program).
+bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     ROI roi = ROI(), int threads = 0);
+
+
+
+
+/// Helper template for generalized multithreading for image processing
+/// functions.  Some function/functor f is applied to every pixel the
+/// region of interest roi, dividing the region into multiple threads if
+/// threads != 1.  Note that threads == 0 indicates that the number of
+/// threads should be as set by the global OIIO "threads" attribute.
+///
+/// Most image operations will require additional arguments, including
+/// additional input and output images or other parameters.  The
+/// parallel_image template can still be used by employing the
+/// boost::bind (or std::bind, for C++11).  For example, suppose you
+/// have an image operation defined as:
+///     void my_image_op (ImageBuf &out, const ImageBuf &in,
+///                       float scale, ROI roi);
+/// Then you can parallelize it as follows:
+///     ImageBuf R /*result*/, A /*input*/;
+///     ROI roi = get_roi (R);
+///     parallel_image (boost::bind(my_image_op,boost::ref(R),
+///                                 boost::cref(A),3.14,_1), roi);
+///
+template <class Func>
+void
+parallel_image (Func f, ROI roi, int nthreads=0)
+{
+    // Special case: threads <= 0 means to use the "threads" attribute
+    if (nthreads <= 0)
+        OIIO::getattribute ("threads", nthreads);
+
+    if (nthreads <= 1 || roi.npixels() < 1000) {
+        // Just one thread, or a small image region: use this thread only
+        f (roi);
+    } else {
+        // Spawn threads by dividing the region into y bands.
+        boost::thread_group threads;
+        int blocksize = std::max (1, (roi.height() + nthreads - 1) / nthreads);
+        int roi_ybegin = roi.ybegin;
+        int roi_yend = roi.yend;
+        for (int i = 0;  i < nthreads;  i++) {
+            roi.ybegin = roi_ybegin + i * blocksize;
+            roi.yend = std::min (roi.ybegin + blocksize, roi_yend);
+            threads.add_thread (new boost::thread (f, roi));
+        }
+        threads.join_all ();
+    }
+}
 
 
 };  // end namespace ImageBufAlgo
