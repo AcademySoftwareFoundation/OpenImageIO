@@ -735,7 +735,7 @@ public:
             : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
             pos (i.m_x, i.m_y, i.m_z);
         }        
-        //cast Iterator to ConstIterator
+        // cast Iterator to ConstIterator
         ConstIterator (const Iterator<BUFT, USERT> &i)
             : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
             pos (i.m_x, i.m_y, i.m_z);
@@ -833,8 +833,8 @@ public:
     };
     
     
-    /// Tile-aware 'unordered' iterator
-    /// Different ++, no pos(), always clamped to image
+    /// Tile-aware iterator
+    /// Minimizes calls to ImageBuf::retile
     template<typename BUFT, typename USERT=float>
     class TiledIterator: public IteratorBase {
     public:
@@ -996,7 +996,7 @@ public:
             : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
             pos (i.m_x, i.m_y, i.m_z);
         }
-        //cast from TiledIterator to const
+        // cast from TiledIterator to const
         TiledConstIterator (const TiledIterator<BUFT, USERT> &i)
             : IteratorBase(i, *i.m_ib), m_ib(i.m_ib), m_tile(NULL) {
             pos (i.m_x, i.m_y, i.m_z);
