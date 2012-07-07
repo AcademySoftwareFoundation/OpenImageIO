@@ -352,7 +352,7 @@ PNMInput::open (const std::string &name, ImageSpec &newspec)
     if (m_file.is_open()) //close previously opened file
         m_file.close();
 
-    Filesystem::open (m_file, name);
+    Filesystem::open (m_file, name, std::ios::in|std::ios::binary);
 
     m_current_line = "";
     m_pos = m_current_line.c_str();
