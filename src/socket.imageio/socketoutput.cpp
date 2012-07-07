@@ -124,6 +124,47 @@ SocketOutput::write_tile (int x, int y, int z,
 
 
 bool
+SocketOutput::write_rectangle (int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend, TypeDesc format,
+                              const void *data, stride_t xstride,
+                              stride_t ystride, stride_t zstride)
+{
+    data = to_native_rectangle (xbegin, xend, ybegin, yend, zbegin, zend,
+                                format, data, xstride, ystride, zstride, m_scratch);
+
+    int size = socket_pvt::rectangle_bytes_at (m_spec, xbegin, xend,
+                                               ybegin, yend, zbegin, zend);
+
+    // adjust images with non-standard origins?
+//    xbegin -= m_spec.x;
+//    ybegin -= m_spec.y;
+//    zbegin -= m_spec.z;
+//    xend -= m_spec.x;
+//    yend -= m_spec.y;
+//    zend -= m_spec.z;
+    std::string header = Strutil::format ("tile?size=%d&xmin=%d&xmax=%d" \
+                                          "&ymin=%d&ymax=%d&zmin=%d&zmax=%d",
+                                          size, xbegin, xend, ybegin, yend,
+                                          zbegin, zend);
+
+    std::cout << "writing tile (" << xbegin << ", " << ybegin << ") size: " << size << " " << m_spec.tile_bytes () << std::endl;
+    if (send_header_to_server (header))
+    {
+        try {
+            socket_pvt::socket_write (socket, format, data, size);
+        } catch (boost::system::system_error &err) {
+            error ("Error while reading: %s", err.what ());
+            return false;
+        }
+        return true;
+    }
+    return false;
+
+}
+
+
+
+bool
 SocketOutput::close ()
 {
     std::cout << "SocketOutput::close" << std::endl;

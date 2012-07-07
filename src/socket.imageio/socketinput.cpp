@@ -193,14 +193,58 @@ bool
 SocketInput::read_native_tile (int x, int y, int z, void *data)
 {
     if (m_curr_tile_x >= 0 || m_curr_tile_y >= 0) {
-    //    int size = m_spec.tile_pixels() * m_spec.nchannels; // * format.size();
-        int size = socket_pvt::tile_bytes_at (m_spec, x, y, z);
-        std::cout << "read_native_tile (" << x << ", " << y << ") size: " << size << std::endl;
+
+        // TODO: assert we're on the current tile
+        int width  = m_curr_rect.xend - m_curr_rect.xbegin + 1;
+        int height = m_curr_rect.yend - m_curr_rect.ybegin + 1;
+        int depth  = m_curr_rect.zend - m_curr_rect.zbegin + 1;
+
+        // assert rect fits inside tile
+        if ( (width  > m_spec.tile_width) ||
+             (height > m_spec.tile_height) ||
+             (depth  > m_spec.tile_depth) )
+        {
+            error("rectangle exceeds tile");
+            return false;
+        }
+
+        // only the width/height should be non-native because
+        // SocketOutput::write_rectangle converts to native rectangle before sending.
+        bool contig = (width == m_spec.tile_width);
+        bool native_tile = (contig && (m_curr_rect.xbegin == x) && (m_curr_rect.ybegin == y));
+        int pixelsize = m_spec.pixel_bytes(true);
+        int yoffset = (y == 0) ? 0 : pixelsize * m_spec.tile_width * (m_curr_rect.ybegin % y);
+        char *scratch;
+        if (native_tile)
+            // contiguous scanlines with or without vertical offset at bottom
+            scratch = reinterpret_cast<char *> (data);
+        else if (contig) {
+            // contiguous scanlines with vertical offset at top
+            scratch = reinterpret_cast<char *> (data) + yoffset;
+        }
+        else
+            scratch = new char[m_curr_rect.size];
+        std::cout << "read_native_tile: " << native_tile << " " << contig << " " << yoffset << std::endl;
+        std::cout << "read_native_tile (" << x << ", " << y << ") (" << m_curr_rect.xbegin << ", " << m_curr_rect.ybegin << ") size: " << m_curr_rect.size << std::endl;
         try {
-            boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data), size));
+            boost::asio::read (*m_socket, buffer (scratch, m_curr_rect.size));
         } catch (boost::system::system_error &err) {
             error ("Error while reading: %s", err.what ());
             return false;
+        }
+        if (!native_tile && !contig) {
+            // copy into data:
+            std::cout << "COPYING!" << std::endl;
+            int xoffset = (x == 0) ? 0 : pixelsize * (m_curr_rect.xbegin % x);
+            stride_t src_ystride = pixelsize * width;
+            stride_t dst_ystride = pixelsize * m_spec.tile_width;
+            char *src = reinterpret_cast<char *> (data) + yoffset + xoffset;
+            // first arg, "nchannels", is not used when providing xstrides
+            copy_image (1, m_spec.tile_width, height, depth, scratch, pixelsize,
+                        pixelsize, src_ystride, AutoStride,         /* src strides */
+                        src,
+                        pixelsize, dst_ystride, AutoStride);        /* dst strides */
+            delete[] scratch;
         }
     }
     return true;
@@ -336,10 +380,25 @@ SocketInput::handle_read_header (const boost::system::error_code& error)
                 //return;
             }
             else {
-                std::cout << "TILE: " << rest_args["x"] << " " << rest_args["y"] << std::endl;
-                int x = atoi (rest_args["x"].c_str ());
-                int y = atoi (rest_args["y"].c_str ());
-                int z = atoi (rest_args["z"].c_str ());
+                // we may receive rectangles at image borders
+                m_curr_rect.size   = atoi (rest_args["size"].c_str ());
+                m_curr_rect.xbegin = atoi (rest_args["xmin"].c_str ());
+                m_curr_rect.ybegin = atoi (rest_args["ymin"].c_str ());
+                m_curr_rect.zbegin = atoi (rest_args["zmin"].c_str ());
+                m_curr_rect.xend   = atoi (rest_args["xmax"].c_str ());
+                m_curr_rect.yend   = atoi (rest_args["ymax"].c_str ());
+                m_curr_rect.zend   = atoi (rest_args["zmax"].c_str ());
+
+                std::cout << "TILE: " << m_curr_rect.xbegin << " " << m_curr_rect.ybegin << std::endl;
+
+                // Snap x,y,z to the corner of the tile
+                int xtile = m_curr_rect.xbegin / m_spec.tile_width;
+                int ytile = m_curr_rect.ybegin / m_spec.tile_height;
+                int ztile = m_curr_rect.zbegin / m_spec.tile_depth;
+                int x = m_spec.x + xtile * m_spec.tile_width;
+                int y = m_spec.y + ytile * m_spec.tile_height;
+                int z = m_spec.z + ztile * m_spec.tile_depth;
+
                 m_curr_tile_x = x;
                 m_curr_tile_y = y;
                 if (m_tile_changed_callback) {

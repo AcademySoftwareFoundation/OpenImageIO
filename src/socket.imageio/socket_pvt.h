@@ -60,7 +60,28 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace boost::asio;
 
+namespace socket_pvt {
 
+struct NativeRectangle
+{
+    int xbegin;
+    int ybegin;
+    int zbegin;
+    int xend;
+    int yend;
+    int zend;
+    int size;
+};
+
+const char default_port[] = "10110";
+
+const char default_host[] = "127.0.0.1";
+
+std::size_t socket_write (ip::tcp::socket &s, TypeDesc &type, const void *data, int size);
+int tile_bytes_at(const ImageSpec &spec, int x, int y, int z);
+int rectangle_bytes_at(const ImageSpec &spec, int xbegin, int xend,
+                       int ybegin, int yend, int zbegin, int zend);
+}
 
 class SocketOutput : public ImageOutput {
  public:
@@ -75,6 +96,11 @@ class SocketOutput : public ImageOutput {
     virtual bool write_tile (int x, int y, int z,
                              TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride);
+    virtual bool write_rectangle (int xbegin, int xend, int ybegin, int yend,
+                                  int zbegin, int zend, TypeDesc format,
+                                  const void *data, stride_t xstride=AutoStride,
+                                  stride_t ystride=AutoStride,
+                                  stride_t zstride=AutoStride);
     virtual bool close ();
     virtual bool copy_image (ImageInput *in);
 
@@ -116,6 +142,7 @@ class SocketInput : public ImageInput {
     boost::thread m_thread;
     int m_curr_tile_x;
     int m_curr_tile_y;
+    socket_pvt::NativeRectangle m_curr_rect;
 
     bool accept_connection (const std::string &name);
     bool get_spec_from_client (ImageSpec &spec);
@@ -127,16 +154,6 @@ class SocketInput : public ImageInput {
     friend class SocketOutput;
 };
 
-namespace socket_pvt {
-
-const char default_port[] = "10110";
-
-const char default_host[] = "127.0.0.1";
-
-std::size_t socket_write (ip::tcp::socket &s, TypeDesc &type, const void *data, int size);
-int tile_bytes_at(const ImageSpec &spec, int x, int y, int z);
-
-}
 
 OIIO_PLUGIN_NAMESPACE_END
 

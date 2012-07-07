@@ -218,19 +218,22 @@ driver_write_bucket
    int         pixel_type;
    const void* bucket_data;
 
-   // get the first AOV layer
+   // TODO:
+   // we must convert from arnold tiles, where pixels are grouped by aovs
+   // to oiio tiles, where aov pixels are interleaved.
+   // for now, just get the first AOV layer
    if (!AiOutputIteratorGetNext(iterator, NULL, &pixel_type, &bucket_data))
    {
       AiMsgError("[driver_socket] Could not get first AOV");
       return;
    }
    ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
-   if (!data->out->write_tile (bucket_xo, bucket_yo, 0,
-                               TypeDesc::FLOAT, bucket_data))
+   if (!data->out->write_rectangle (bucket_xo, bucket_xo + bucket_size_x -1,
+                                    bucket_yo, bucket_yo + bucket_size_y -1,
+                                    0, 0, TypeDesc::FLOAT, bucket_data))
    {
       AiMsgError("[driver_socket] %s", data->out->geterror().c_str());
    }
-
 }
 
 

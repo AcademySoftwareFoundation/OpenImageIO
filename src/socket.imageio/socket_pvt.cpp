@@ -60,7 +60,10 @@ socket_write (ip::tcp::socket &s, TypeDesc &type, const void *data, int size)
     return bytes;
 }
 
-// utility for calcuating the bytes of a cropped edge tile
+
+
+/// utility for calculating the bytes of a cropped edge tile
+// NOTE: this assumes all channels have the same format
 int
 tile_bytes_at(const ImageSpec &spec, int x, int y, int z)
 {
@@ -77,8 +80,22 @@ tile_bytes_at(const ImageSpec &spec, int x, int y, int z)
         r = clamped_mult64 (r, (imagesize_t)tile_depth);
     }
 
+    // FIXME: use spec.pixel_bytes (true) to take per-channel formats into account
     return r * spec.nchannels * spec.format.size();
 }
+
+
+/// utility for calculating the bytes of a rectangle
+int
+rectangle_bytes_at(const ImageSpec &spec, int xbegin, int xend, int ybegin, int yend,
+                   int zbegin, int zend)
+{
+    int width  = xend - xbegin + 1;
+    int height = yend - ybegin + 1;
+    int depth  = zend - zbegin + 1;
+    return width * height * depth * spec.pixel_bytes (true);
+}
+
 
 }
 
