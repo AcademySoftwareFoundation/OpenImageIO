@@ -91,7 +91,9 @@ static std::map<Bucket,int> s_buckets;
 
 node_parameters
 {
-   AiParameterSTR("socket_filename", "foo?port=10111.socket");
+   AiParameterSTR("filename", "");
+   AiParameterStr("port", "10110"); // TODO: read this from server.h
+   AiParameterStr("host", "127.0.0.1"); // TODO: read this from server.h
 }
 
 node_initialize
@@ -123,9 +125,9 @@ driver_extension
 
 driver_open
 {
-   //const char* filename = AiNodeGetStr(node, "socket_filename");
+   const char* filename = AiNodeGetStr(node, "filename");
    //const char* filename = "foo?port=10111&host=127.0.0.1.socket";
-   const char* filename = "foo.socket";
+   //const char* filename = "foo.socket";
 
    AiMsgInfo("[driver_socket] Connecting");
    ImageOutput* out = v1_1::ImageOutput::create(filename);
@@ -137,10 +139,10 @@ driver_open
 
    ImageSpec spec = v1_1::ImageSpec();
 
-   const char *name = "";
+   const char *aov = "";
    int pixel_type;
 
-   if (!AiOutputIteratorGetNext (iterator, &name, &pixel_type, NULL))
+   if (!AiOutputIteratorGetNext (iterator, &aov, &pixel_type, NULL))
       return;
 
    switch (pixel_type)
@@ -171,6 +173,8 @@ driver_open
    spec.full_depth = 1;
    spec.tile_width = bucket_size;
    spec.tile_height = bucket_size;
+   spec.attribute("port", AiNodeGetStr(node, "port"));
+   spec.attribute("host", AiNodeGetStr(node, "host"));
 
    if (!out->open(filename, spec))
    {

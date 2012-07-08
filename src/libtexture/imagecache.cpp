@@ -951,7 +951,7 @@ bool
 ImageCacheFile::tile_changed_callback (void* data, ImageInput* input, int x, int y, int z)
 {
     ImageCacheFile* file = (ImageCacheFile*)data;
-    std::cout << "tile_changed_callback " << x << " " << y << std::endl;
+    std::cout << "ImageCacheFile::tile_changed_callback: (" << x << ", " << y << ")" << std::endl;
     // TODO: get these values from the proper place
     return file->imagecache().tile_changed(file, x, y, z);
 }
@@ -961,7 +961,7 @@ ImageCacheFile::tile_changed_callback (void* data, ImageInput* input, int x, int
 bool
 ImageCacheImpl::tile_changed (ImageCacheFile* file, int x, int y, int z)
 {
-    std::cout << "tile_changed_callback " << x << " " << y << std::endl;
+    std::cout << "ImageCacheImpl::tile_changed (" << x << ", " << y << ")" << std::endl;
     ImageInput *input = file->imageinput();
 
     // TODO: get these values from the proper place
@@ -1923,7 +1923,7 @@ void
 ImageCacheImpl::add_tile_to_cache (ImageCacheTileRef &tile,
                                    ImageCachePerThreadInfo *thread_info)
 {
-    std::cout << "add_tile_to_cache " << tile->id().x() << " " << tile->id().y() << std::endl;
+    std::cout << "ImageCacheImpl::add_tile_to_cache (" << tile->id().x() << ", " << tile->id().y() << ")" << std::endl;
     bool ourtile = true;
     {
 #if IMAGECACHE_TIME_STATS

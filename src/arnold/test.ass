@@ -38,7 +38,7 @@ driver_exr
 driver_socket
 {
  name driver_socket
- socket_filename "foo\?port=10111.socket"
+ filename "foo.socket"
 }
 
 persp_camera

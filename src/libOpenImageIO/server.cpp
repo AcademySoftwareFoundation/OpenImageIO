@@ -39,91 +39,92 @@ OIIO_NAMESPACE_ENTER
 using boost::asio::ip::tcp;
 
 Session::Session(boost::asio::io_service& io_service)
-    : m_socket(io_service),
-      m_header_length(0)
+    : m_socket(io_service)
 {
 }
+
+
 
 tcp::socket& Session::socket()
 {
     return m_socket;
 }
 
-void Session::start()
+
+
+bool
+Session::get_filename (std::string &filename)
 {
-//    m_socket.async_read_some(boost::asio::buffer(data_, max_length),
-//        boost::bind(&Session::handle_read, this,
-//          boost::asio::placeholders::error,
-//          boost::asio::placeholders::bytes_transferred));
-    std::cout << "Session::start" << std::endl;
-    boost::asio::async_read (m_socket,
-            boost::asio::buffer (reinterpret_cast<char *> (&m_header_length), sizeof (boost::uint32_t)),
-            boost::bind (&Session::handle_read, this,
-                                boost::asio::placeholders::error,
-                                boost::asio::placeholders::bytes_transferred));
+    try {
+        int length;
+        std::cout << "Session::get_filename " << std::endl;
+        boost::asio::read (m_socket,
+                boost::asio::buffer (reinterpret_cast<char *> (&length), sizeof (boost::uint32_t)));
+
+        char *buf = new char[length + 1];
+        boost::asio::read (m_socket, boost::asio::buffer (buf, length));
+
+        filename = buf;
+        delete [] buf;
+
+    } catch (boost::system::system_error &err) {
+        //error ("Error while reading: %s", err.what ());
+        std::cerr << "get_filename: " << err.what () << std::endl;
+        return false;
+    }
+    return true;
 }
 
-void Session::handle_read(const boost::system::error_code& error,
-  size_t bytes_transferred)
-{
-    if (!error)
-    {
-        std::cout << "handle_read" << std::endl;
-    }
-    else
-    {
-        std::cout << "handle_read error" << std::endl;
-      delete this;
-    }
-}
 
 
 Server::Server(boost::asio::io_service& io_service, short port, boost::function<void(std::string&)> accept_handler)
-    : m_socket(io_service),
-      m_io_service(io_service),
+    : m_io_service(io_service),
       m_acceptor(io_service, tcp::endpoint(tcp::v4(), port)),
       m_accept_handler(accept_handler)
 {
-    m_filename = Strutil::format ("sockethandle?port=%d.socket", port);
     std::cout << "setting up accept handler " << port << std::endl;
-    //Session* new_session = new Session(m_io_service);
-    m_acceptor.async_accept(m_socket,
-            boost::bind(&Server::handle_accept, this, //new_session,
+    Session* session = new Session(m_io_service);
+    m_acceptor.async_accept(session->socket(),
+            boost::bind(&Server::handle_accept, this, session,
                     boost::asio::placeholders::error));
 }
 
 
 
 void
-//Server::handle_accept(Session* session, const boost::system::error_code& error)
-Server::handle_accept(const boost::system::error_code& error)
+Server::handle_accept(Session* session, const boost::system::error_code& err)
+//Server::handle_accept(const boost::system::error_code& error)
 {
-    //delete session;
-    if (!error) {
+    if (!err) {
         std::cout << "handle accept" << std::endl;
+        // TODO: read filename over socket
+        std::string filename;
+        if (!session->get_filename (filename)) {
+            // TODO: print error properly
+            std::cerr << "could not get file name" << std::endl;
+            delete session;
+        }
+        else if (ServerPool::instance()->m_session_map.count (filename)) {
+            // TODO: print error properly
+            // TODO: optionally uniquify filename
+            std::cerr << "file already exists: \"" << filename << "\"" << std::endl;
+            delete session;
+        }
+        else {
+            ServerPool::instance()->m_session_map[filename] = session;
+            m_accept_handler(filename);
+        }
+        session = new Session(m_io_service);
+        m_acceptor.async_accept (session->socket(),
+                boost::bind(&Server::handle_accept, this, session,
+                        boost::asio::placeholders::error));
 
-        m_accept_handler(m_filename);
-        //session->start();
-        // what to do wit the current image
-        //callback(newimage);
-//        std::cout << "setting up new accept handler " << std::endl;
-//        newimage = new ImageBuf(m_filename);
-//        //m_socket = tcp::socket(m_io_service);
-//        m_acceptor.async_accept(m_socket,
-//                boost::bind(&Server::handle_accept, this, newimage,
-//                        boost::asio::placeholders::error));
     } else {
-        std::cout << "handle accept error: " << std::endl;
+        delete session;
+        std::cerr << "handle accept error: " << err.message() << std::endl;
     }
 }
 
-
-
-tcp::socket&
-Server::get_socket()
-{
-    return m_socket;
-}
 
 
 ServerPool* ServerPool::m_instance = NULL;
@@ -140,7 +141,7 @@ ServerPool::ServerPool () :
 ServerPool::~ServerPool ()
 {
     m_server_list.clear ();
-    m_server_map.clear ();
+    m_session_map.clear ();
 }
 
 
@@ -184,7 +185,6 @@ ServerPool::add_server (short port, boost::function<void(std::string&)> accept_h
 {
     server_ptr server(new Server(*m_io_service, port, accept_handler));
     m_server_list.push_back(server);
-    m_server_map[port] = server;
 }
 
 
@@ -198,9 +198,16 @@ ServerPool::get_io_service ()
 
 
 tcp::socket&
-ServerPool::get_socket (short port)
+ServerPool::get_socket (const std::string& filename)
 {
-    return m_server_map[port]->get_socket();
+    std::cout << "get_socket" << std::endl;
+    std::map<std::string, Session*>::iterator it;
+    it = m_session_map.find(filename);
+    if (it == m_session_map.end()) {
+        // TODO: raise error
+        std::cerr << "file not in session map " << filename << std::endl;
+    }
+    return it->second->socket();
 }
 
 

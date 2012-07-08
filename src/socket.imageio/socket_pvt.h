@@ -112,7 +112,7 @@ class SocketOutput : public ImageOutput {
     std::vector<unsigned char> m_scratch;
 
     void do_close ();
-    bool connect_to_server (const std::string &name);
+    bool connect_to_server (const std::string &name, const ImageSpec& spec);
     bool send_spec_to_server (const ImageSpec &spec);
     bool send_header_to_server (const std::string &header);
 };
@@ -138,13 +138,12 @@ class SocketInput : public ImageInput {
     ip::tcp::socket* m_socket;
 //    boost::shared_ptr <ip::tcp::acceptor> acceptor;
     unsigned int m_header_length;
-    short m_port;
+    std::string m_filename;
     boost::thread m_thread;
     int m_curr_tile_x;
     int m_curr_tile_y;
     socket_pvt::NativeRectangle m_curr_rect;
 
-    bool accept_connection (const std::string &name);
     bool get_spec_from_client (ImageSpec &spec);
     bool get_header_from_client (std::string &header);
     bool listen_for_header_from_client ();

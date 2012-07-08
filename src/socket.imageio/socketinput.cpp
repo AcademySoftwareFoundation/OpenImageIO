@@ -43,7 +43,7 @@ OIIO_PLUGIN_EXPORTS_BEGIN
         return new SocketInput;
     }
     DLLEXPORT const char *socket_input_extensions[] = {
-        "*m_socket", NULL
+        "m_socket", NULL
     };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -53,7 +53,7 @@ OIIO_PLUGIN_EXPORTS_END
 SocketInput::SocketInput()
 //        : *m_socket (io)
           : m_socket(NULL),
-            m_port(0),
+            m_filename(""),
             m_curr_tile_x(-1),
             m_curr_tile_y(-1)
 {
@@ -120,36 +120,20 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
         std::cout << "socket already open" << std::endl;
         return true;
     }
-    if (accept_connection (name)) {
-        // If there is a nonzero "nowait" request in the configuration, just
-        // return immediately.
-        if (config.get_int_attribute ("nowait", 0))
-            return true;
 
-        m_socket = &ServerPool::instance()->get_socket (m_port);
+    // If there is a nonzero "nowait" request in the configuration, just
+    // return immediately.
+    if (config.get_int_attribute ("nowait", 0))
+        return true;
 
-        if (! (get_spec_from_client (newspec) && listen_for_header_from_client ())) {
-            if (m_socket) {
-                m_socket->close();
-                m_socket = NULL;
-                std::cout << "removed socket" << std::endl;
-            }
-        }
-//        else {
-//            std::cout << "running" << std::endl;
-//                        m_thread = boost::thread(
-//                                  boost::bind(&boost::asio::io_service::run, &ServerPool::instance()->get_io_service()));
-////            ServerPool::instance()->get_io_service().run();
-//
-//        }
-    } else {
-        if (m_socket) {
-            m_socket->close();
-            m_socket = NULL;
-            std::cout << "removed socket" << std::endl;
-        }
+    m_filename = name;
+    m_socket = &ServerPool::instance()->get_socket (m_filename);
+
+    if (! (get_spec_from_client (newspec) && listen_for_header_from_client ())) {
+        close();
         return false;
     }
+
     // Also send information about endianess etc.
 #endif
 
@@ -176,15 +160,7 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
 bool
 SocketInput::read_native_scanline (int y, int z, void *data)
 {
-//    try {
-//        boost::asio::read (*m_socket, buffer (reinterpret_cast<char *> (data),
-//                m_spec.scanline_bytes ()));
-//    } catch (boost::system::system_error &err) {
-//        error ("Error while reading: %s", err.what ());
-//        return false;
-//    }
-
-    return true;
+    return false;
 }
 
 
@@ -217,15 +193,15 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
         char *scratch;
         if (native_tile)
             // contiguous scanlines with or without vertical offset at bottom
-            scratch = reinterpret_cast<char *> (data);
+            scratch = (char *)data;
         else if (contig) {
             // contiguous scanlines with vertical offset at top
-            scratch = reinterpret_cast<char *> (data) + yoffset;
+            scratch = (char *)data + yoffset;
         }
         else
             scratch = new char[m_curr_rect.size];
-        std::cout << "read_native_tile: " << native_tile << " " << contig << " " << yoffset << std::endl;
-        std::cout << "read_native_tile (" << x << ", " << y << ") (" << m_curr_rect.xbegin << ", " << m_curr_rect.ybegin << ") size: " << m_curr_rect.size << std::endl;
+
+        std::cout << "SocketInput::read_native_tile (" << x << ", " << y << ")  size: " << m_curr_rect.size << std::endl;
         try {
             boost::asio::read (*m_socket, buffer (scratch, m_curr_rect.size));
         } catch (boost::system::system_error &err) {
@@ -238,7 +214,7 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
             int xoffset = (x == 0) ? 0 : pixelsize * (m_curr_rect.xbegin % x);
             stride_t src_ystride = pixelsize * width;
             stride_t dst_ystride = pixelsize * m_spec.tile_width;
-            char *src = reinterpret_cast<char *> (data) + yoffset + xoffset;
+            char *src = (char *)data + yoffset + xoffset;
             // first arg, "nchannels", is not used when providing xstrides
             copy_image (1, m_spec.tile_width, height, depth, scratch, pixelsize,
                         pixelsize, src_ystride, AutoStride,         /* src strides */
@@ -246,6 +222,7 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
                         pixelsize, dst_ystride, AutoStride);        /* dst strides */
             delete[] scratch;
         }
+        std::cout << "SocketInput::read_native_tile: done" << std::endl;
     }
     return true;
 }
@@ -256,42 +233,12 @@ bool
 SocketInput::close ()
 {
     std::cout << "SocketInput::close" << std::endl;
-    if (m_socket)
+    // TODO: remove session from ServerPool
+    if (m_socket) {
         m_socket->close();
-    return true;
-}
-
-
-
-bool
-SocketInput::accept_connection(const std::string &name)
-{
-    std::map<std::string, std::string> rest_args;
-    std::string baseurl;
-    rest_args["port"] = socket_pvt::default_port;
-    rest_args["host"] = socket_pvt::default_host;
-
-    std::string basename = name.substr(name.size()-7);
-    if (! Strutil::get_rest_arguments (basename, baseurl, rest_args)) {
-        error ("Invalid 'open ()' argument: %s", name.c_str ());
-        return false;
+        m_socket = NULL;
+        std::cout << "removed socket" << std::endl;
     }
-
-    std::cout << rest_args["host"] << std::endl;
-    std::cout << rest_args["port"] << std::endl;
-
-    m_port = atoi (rest_args["port"].c_str ());
-
-//    try {
-//        ip::tcp::endpoint endpoint (ip::tcp::v4(), port);
-//        acceptor = boost::shared_ptr <ip::tcp::acceptor>
-//            (new ip::tcp::acceptor (io, endpoint));
-//        acceptor->accept (*m_socket);
-//    } catch (boost::system::system_error &err) {
-//        error ("Error while accepting: %s", err.what ());
-//        return false;
-//    }
-
     return true;
 }
 
@@ -310,16 +257,17 @@ SocketInput::get_spec_from_client (ImageSpec &spec)
 }
 
 
-
+// TODO: merge into get_spec_from_client
 bool
 SocketInput::get_header_from_client (std::string &header)
 {
     try {
         int length;
-
+        std::cout << "SocketInput::get_header_from_client " << m_socket << std::endl;
         boost::asio::read (*m_socket,
                 boost::asio::buffer (reinterpret_cast<char *> (&length), sizeof (boost::uint32_t)));
 
+        // TODO: use shared pointer for buf
         char *buf = new char[length + 1];
         boost::asio::read (*m_socket, boost::asio::buffer (buf, length));
 
@@ -335,10 +283,12 @@ SocketInput::get_header_from_client (std::string &header)
     return true;
 }
 
+
+// TODO: rename to listen_for_tile_from_client
 bool
 SocketInput::listen_for_header_from_client ()
 {
-    std::cout << "listen_for_header_from_client" << std::endl;
+    std::cout << "SocketInput::listen_for_header_from_client" << std::endl;
     try {
         boost::asio::async_read (*m_socket,
                 boost::asio::buffer (reinterpret_cast<char *> (&m_header_length), sizeof (boost::uint32_t)),
@@ -358,21 +308,21 @@ SocketInput::listen_for_header_from_client ()
 }
 
 
-
+// TODO: rename to handle_tile_header
 void
-SocketInput::handle_read_header (const boost::system::error_code& error)
+SocketInput::handle_read_header (const boost::system::error_code& err)
 {
-
-    if (!error) {
-        std::cout << "handle_read_header: length " << m_header_length << std::endl;
+    if (!err) {
+        // this is where the chain begins
+        std::cout << std::endl;
+        std::cout << "SocketInput::handle_read_header: length " << m_header_length << std::endl;
 //        try {
+            // TODO: use shared pointer for buf
             char *buf = new char[m_header_length];
             //char buf[header_length + 1] = "";
             boost::asio::read (*m_socket, boost::asio::buffer (buf, m_header_length));
 
             std::string header(buf);
-            //ImageSpec spc;
-            //spec.from_xml (header.c_str ());
             std::map<std::string, std::string> rest_args;
             std::string baseurl;
             if (! Strutil::get_rest_arguments (header, baseurl, rest_args)) {
@@ -402,6 +352,15 @@ SocketInput::handle_read_header (const boost::system::error_code& error)
                 m_curr_tile_x = x;
                 m_curr_tile_y = y;
                 if (m_tile_changed_callback) {
+                    // This callback should ultimately trigger read_native_tile,
+                    // which will finish the job of reading in the pixel data.
+                    // We could begin asynchronously reading that tile now, but
+                    // we would have to allocate memory for it, whereas if we
+                    // read synchronously we can (usually) read directly into the
+                    // memory passed to read_native_tile.
+                    // Also, with asynchronous reading we could accumulate many
+                    // tiles before a display gets around to retrieving them,
+                    // which means even more memory overhead.
                     m_tile_changed_callback (m_tile_changed_callback_data, this, x, y, z);
                 }
             }
@@ -421,11 +380,13 @@ SocketInput::handle_read_header (const boost::system::error_code& error)
 //                        boost::asio::placeholders::error));
     }
     else {
-        std::cout << "handle_read_header ERROR" << std::endl;
-//        room_.leave (shared_from_this ());
+        error ("Failed to read tile header: %s", err.message().c_str());
+        std::cerr << "handle_read_header: Failed to read tile header: " << err.message() << std::endl;
     }
 }
 
+
+// TODO: remove
 void
 SocketInput::handle_read_data (const boost::system::error_code& error)
 {

@@ -2147,8 +2147,14 @@ ImageViewer::editPreferences ()
 void
 ImageViewer::loadSocketImage (QString filename)
 {
-    std::cout << "slot called " << filename.toUtf8().data() << std::endl;
+    std::cout << "ImageViewer::loadSocketImage: " << filename.toUtf8().data() << std::endl;
     add_image (filename.toUtf8().data());
+    if (m_images.size() > 1) {
+        // If this is the first image, resize to fit it
+        std::cout << "ImageViewer::loadSocketImage: display" << std::endl;
+        nextImage ();
+    }
+    std::cout << "ImageViewer::loadSocketImage: done" << std::endl;
     //std::cout << "INVALIDATE " << std::endl;
     // we have to invalidate the cache so that new tiles will be loaded.
     // the second argument informs the cache not to close the file
@@ -2161,11 +2167,12 @@ bool
 ImageViewer::tileChangedCallback (void* data, ImageInput* input, int x, int y, int z)
 {
     ImageViewer* viewer = (ImageViewer*)data;
-    std::cout << "tile_changed_callback " << x << " " << y << " " << input->format_name() << std::endl;
     if ( strcmp(input->format_name(), "socket") == 0 ) {
-        std::cout << "emitting" << std::endl;
-        // we need to emit a signal so that the update can be performed on the main thread
+        std::cout << "ImageViewer::tileChangedCallback (" << x << ", " << y << ") emitting" << std::endl;
+        // we need to emit a signal so that the update can be performed on the main thread.
+        // this triggers refreshImg
         viewer->emit tileChanged();
+        std::cout << "ImageViewer::tileChangedCallback (" << x << ", " << y << ") done" << std::endl;
     }
     return true;
 }
@@ -2175,13 +2182,13 @@ ImageViewer::tileChangedCallback (void* data, ImageInput* input, int x, int y, i
 void
 ImageViewer::refreshImg ()
 {
-    std::cout << "refreshImg " << " displayCurrentImage" << std::endl;
-
+    std::cout << "--->ImageViewer::refreshImg start" << std::endl;
     glwin->update ();
     float z = zoom();
     if (fitImageToWindowAct->isChecked ())
         z = zoom_needed_to_fit (glwin->width(), glwin->height());
     zoom (z);
+    std::cout << "--->ImageViewer::refreshImg done" << std::endl;
 }
 
 

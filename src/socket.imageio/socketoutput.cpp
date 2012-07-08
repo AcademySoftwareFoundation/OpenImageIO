@@ -63,7 +63,7 @@ SocketOutput::open (const std::string &name, const ImageSpec &newspec,
                     OpenMode mode)
 {
     m_thread = boost::thread(boost::bind(&boost::asio::io_service::run, &io));
-    if (! (connect_to_server (name) && send_spec_to_server (newspec))) {
+    if (! (connect_to_server (name, newspec) && send_spec_to_server (newspec))) {
         return false;
     }
     std::cout << "SocketOutput::open: connection successful" << std::endl;
@@ -147,7 +147,7 @@ SocketOutput::write_rectangle (int xbegin, int xend, int ybegin, int yend,
                                           size, xbegin, xend, ybegin, yend,
                                           zbegin, zend);
 
-    std::cout << "writing tile (" << xbegin << ", " << ybegin << ") size: " << size << " " << m_spec.tile_bytes () << std::endl;
+    std::cout << "SocketOutput::write_rectangle: (" << xbegin << ", " << ybegin << ") size: " << size << " " << m_spec.tile_bytes () << std::endl;
     if (send_header_to_server (header))
     {
         try {
@@ -209,13 +209,15 @@ SocketOutput::send_header_to_server (const std::string &header)
     unsigned int length = header.length () + 1; // one extra for NULL terminator
 
     try {
-        std::cout << "data size: " << length << std::endl;
+        std::cout << "SocketOutput::send_header_to_server: sending data size: " << length << std::endl;
         // first send the size of the header
         boost::asio::write (socket,
                 buffer (reinterpret_cast<const char *> (&length), sizeof (boost::uint32_t)));
+        std::cout << "SocketOutput::send_header_to_server: sending data" << std::endl;
         // then send the header itself
         boost::asio::write (socket,
                 buffer (header.c_str (), length));
+        std::cout << "SocketOutput::send_header_to_server: done" << std::endl;
     } catch (boost::system::system_error &err) {
         error ("Error while writing: %s", err.what ());
         return false;
@@ -227,24 +229,16 @@ SocketOutput::send_header_to_server (const std::string &header)
 
 
 bool
-SocketOutput::connect_to_server (const std::string &name)
+SocketOutput::connect_to_server (const std::string &name, const ImageSpec& spec)
 {
-    std::map<std::string, std::string> rest_args;
-    std::string baseurl;
-    rest_args["port"] = socket_pvt::default_port;
-    rest_args["host"] = socket_pvt::default_host;
+    std::string port = spec.get_string_attribute("port", socket_pvt::default_port);
+    std::string host = spec.get_string_attribute("host", socket_pvt::default_host);
 
-    std::string basename = name.substr(name.size()-7);
-    if (! Strutil::get_rest_arguments (basename, baseurl, rest_args)) {
-        error ("Invalid 'open ()' argument: %s", name.c_str ());
-        return false;
-    }
-    std::cout << "host: " << rest_args["host"] << std::endl;
-    std::cout << "port: " << rest_args["port"] << std::endl;
+    std::cout << "host: " << host << std::endl;
+    std::cout << "port: " << port << std::endl;
     try {
         ip::tcp::resolver resolver (io);
-        ip::tcp::resolver::query query (rest_args["host"].c_str (),
-                rest_args["port"].c_str ());
+        ip::tcp::resolver::query query (host.c_str (), port.c_str ());
         ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve (query);
         ip::tcp::resolver::iterator end;
 
@@ -254,14 +248,15 @@ SocketOutput::connect_to_server (const std::string &name)
             socket.connect (*endpoint_iterator++, err);
         }
         if (err) {
-            error ("Host \"%s\" not found", rest_args["host"].c_str ());
+            error ("Host \"%s\" not found", host.c_str ());
             return false;
         }
     } catch (boost::system::system_error &err) {
         error ("Error while connecting: %s", err.what ());
         return false;
     }
-
+    // TODO: assert name ends in .socket
+    send_header_to_server (name);
     return true;
 }
 

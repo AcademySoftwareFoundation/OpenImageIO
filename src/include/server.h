@@ -60,16 +60,11 @@ class Session
 {
 public:
   Session(boost::asio::io_service& io_service);
+  bool get_filename (std::string &filename);
   tcp::socket& socket();
-  void start();
-  void handle_read(const boost::system::error_code& error,
-      size_t bytes_transferred);
 
 private:
   tcp::socket m_socket;
-  unsigned int m_header_length;
-  enum { max_length = 1024 };
-  char data_[max_length];
 };
 
 class Server
@@ -77,14 +72,10 @@ class Server
 public:
     Server (boost::asio::io_service& io_service, short port, boost::function<void(std::string&)> accept_handler);
 
-    //void handle_accept (Session* session, const boost::system::error_code& error);
-    void handle_accept (const boost::system::error_code& error);
-
-    tcp::socket& get_socket ();
+    void handle_accept (Session* session, const boost::system::error_code& error);
+    //void handle_accept (const boost::system::error_code& error);
 
 private:
-    std::string m_filename;
-    tcp::socket m_socket;
     boost::asio::io_service& m_io_service;
     tcp::acceptor m_acceptor;
     boost::function<void(std::string&)> m_accept_handler;
@@ -101,7 +92,7 @@ public:
     bool run ();
     void add_server (short port, boost::function<void(std::string&)> accept_handler);
     boost::asio::io_service& get_io_service ();
-    tcp::socket& get_socket (short port);
+    tcp::socket& get_socket (const std::string& filename);
 
 private:
     ServerPool ();
@@ -115,7 +106,9 @@ private:
     io_service_ptr m_io_service;
     work_ptr m_work;
     std::vector<server_ptr> m_server_list;
-    std::map<int, server_ptr> m_server_map;
+    std::map<std::string, Session*> m_session_map;
+
+    friend class Server;
 };
 
 OIIO_NAMESPACE_EXIT
