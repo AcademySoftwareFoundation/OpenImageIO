@@ -92,8 +92,6 @@ bool
 SocketInput::open (const std::string &name, ImageSpec &newspec,
                    const ImageSpec &config)
 {
-    std::cout << "SocketInput::open " << name << std::endl;
-
 #ifdef DEBUG_NO_CLIENT
     std::cout << "NO Client mode" << std::endl;
     newspec.nchannels = 4;
@@ -117,15 +115,18 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
     if (m_socket) {
         // if the socket is already valid, then we've previously been opened
         // TODO: check that the socket is alive
-        std::cout << "socket already open" << std::endl;
+        std::cout << "SocketInput::open: socket already open" << std::endl;
         return true;
     }
 
     // If there is a nonzero "nowait" request in the configuration, just
     // return immediately.
     if (config.get_int_attribute ("nowait", 0))
+    {
+        std::cout << "SocketInput::open: nowait option" << std::endl;
         return true;
-
+    }
+    std::cout << "SocketInput::open " << name << std::endl;
     m_filename = name;
     m_socket = &ServerPool::instance()->get_socket (m_filename);
 
@@ -224,6 +225,8 @@ SocketInput::read_native_tile (int x, int y, int z, void *data)
         }
         std::cout << "SocketInput::read_native_tile: done" << std::endl;
     }
+    else
+        std::cout << "SocketInput::read_native_tile: tile has not arrived yet" << std::endl;
     return true;
 }
 

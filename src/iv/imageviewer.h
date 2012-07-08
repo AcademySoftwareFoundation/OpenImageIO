@@ -49,9 +49,7 @@
 // This needs to be included before GL.h
 #include <glew.h>
 
-
-#include <QGLWidget>
-#include <QThread>
+#include <QtCore/QThread>
 #include <QtGui/QAction>
 #include <QtGui/QCheckBox>
 #include <QtGui/QDialog>
@@ -61,7 +59,6 @@
 #ifndef QT_NO_PRINTER
 #include <QtGui/QPrinter>
 #endif
-
 
 #include "imageio.h"
 #include "imagebuf.h"

@@ -108,7 +108,7 @@ class SocketOutput : public ImageOutput {
     int m_next_scanline;             // Which scanline is the next to write?
     boost::thread m_thread;
     io_service io;
-    ip::tcp::socket socket;
+    ip::tcp::socket m_socket;
     std::vector<unsigned char> m_scratch;
 
     void do_close ();

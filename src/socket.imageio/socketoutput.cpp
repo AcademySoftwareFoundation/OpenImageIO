@@ -51,7 +51,7 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 SocketOutput::SocketOutput()
-    : socket (io)
+    : m_socket (io)
 {
 
 }
@@ -82,9 +82,9 @@ SocketOutput::write_scanline (int y, int z, TypeDesc format,
     data = to_native_scanline (format, data, xstride, m_scratch);
 
     try {
-        socket_pvt::socket_write (socket, format, data, m_spec.scanline_bytes ());
+        socket_pvt::socket_write (m_socket, format, data, m_spec.scanline_bytes ());
     } catch (boost::system::system_error &err) {
-        error ("Error while reading: %s", err.what ());
+        error ("Error while writing scanline: %s", err.what ());
         return false;
     }
 
@@ -100,24 +100,10 @@ SocketOutput::write_tile (int x, int y, int z,
                           TypeDesc format, const void *data,
                           stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
-
-    //ImageSpec spec(x, y, m_spec.nchannels, format);
-    //std::string header = spec.to_xml ();
-    std::string header = Strutil::format ("tile?x=%d&y=%d&z=%d", x, y, z);
-    int size = socket_pvt::tile_bytes_at (m_spec, x, y, z);
-    std::cout << "writing tile (" << x << ", " << y << ") size: " << size << " " << m_spec.tile_bytes () << std::endl;
-    if (send_header_to_server (header))
-    {
-        try {
-            socket_pvt::socket_write (socket, format, data, size);
-        } catch (boost::system::system_error &err) {
-            error ("Error while reading: %s", err.what ());
-            return false;
-        }
-        return true;
-    }
-    return false;
+    return write_rectangle (x, x + m_spec.tile_width - 1,
+                            y, y + m_spec.tile_height - 1,
+                            z, z + m_spec.tile_depth - 1,
+                            format, data, xstride, ystride, zstride);
 
 }
 
@@ -151,15 +137,14 @@ SocketOutput::write_rectangle (int xbegin, int xend, int ybegin, int yend,
     if (send_header_to_server (header))
     {
         try {
-            socket_pvt::socket_write (socket, format, data, size);
+            socket_pvt::socket_write (m_socket, format, data, size);
         } catch (boost::system::system_error &err) {
-            error ("Error while reading: %s", err.what ());
+            error ("Error while writing rectangle: %s", err.what ());
             return false;
         }
         return true;
     }
     return false;
-
 }
 
 
@@ -179,7 +164,7 @@ SocketOutput::close ()
 bool
 SocketOutput::copy_image (ImageInput *in)
 {
-    return true;
+    return false;
 }
 
 
@@ -189,7 +174,7 @@ SocketOutput::do_close ()
 {
     // FIXME: this is not running
     std::cout << "SocketOutput::do_close" << std::endl;
-    socket.close();
+    m_socket.close();
 }
 
 
@@ -211,15 +196,15 @@ SocketOutput::send_header_to_server (const std::string &header)
     try {
         std::cout << "SocketOutput::send_header_to_server: sending data size: " << length << std::endl;
         // first send the size of the header
-        boost::asio::write (socket,
+        boost::asio::write (m_socket,
                 buffer (reinterpret_cast<const char *> (&length), sizeof (boost::uint32_t)));
         std::cout << "SocketOutput::send_header_to_server: sending data" << std::endl;
         // then send the header itself
-        boost::asio::write (socket,
+        boost::asio::write (m_socket,
                 buffer (header.c_str (), length));
         std::cout << "SocketOutput::send_header_to_server: done" << std::endl;
     } catch (boost::system::system_error &err) {
-        error ("Error while writing: %s", err.what ());
+        error ("Error while writing header: %s", err.what ());
         return false;
     }
 
@@ -244,8 +229,8 @@ SocketOutput::connect_to_server (const std::string &name, const ImageSpec& spec)
 
         boost::system::error_code err = error::host_not_found;
         while (err && endpoint_iterator != end) {
-            socket.close ();
-            socket.connect (*endpoint_iterator++, err);
+            m_socket.close ();
+            m_socket.connect (*endpoint_iterator++, err);
         }
         if (err) {
             error ("Host \"%s\" not found", host.c_str ());
@@ -255,8 +240,11 @@ SocketOutput::connect_to_server (const std::string &name, const ImageSpec& spec)
         error ("Error while connecting: %s", err.what ());
         return false;
     }
-    // TODO: assert name ends in .socket
-    send_header_to_server (name);
+    // assert name ends in .socket so that SocketInput is used on the receiving end
+    if (!Strutil::iends_with(name, ".socket"))
+        send_header_to_server (name + ".socket");
+    else
+        send_header_to_server (name);
     return true;
 }
 

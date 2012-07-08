@@ -89,8 +89,6 @@ ServerThread::acceptHandler (std::string& filename)
     emit socketAccepted(filename.c_str());
 }
 
-
-
 static const char *s_file_filters = ""
     "Image Files (*.bmp *.cin *.dds *.dpx *.f3d *.fits *.hdr *.ico *.iff *.jpg "
     "*.jpe *.jpeg *.jif *.jfif *.jfi *.jp2 *.j2k *.exr *.png *.pbm *.pgm *.ppm "
@@ -2150,7 +2148,7 @@ ImageViewer::loadSocketImage (QString filename)
     std::cout << "ImageViewer::loadSocketImage: " << filename.toUtf8().data() << std::endl;
     add_image (filename.toUtf8().data());
     if (m_images.size() > 1) {
-        // If this is the first image, resize to fit it
+        // If this is the first image it will have already been made active
         std::cout << "ImageViewer::loadSocketImage: display" << std::endl;
         nextImage ();
     }
