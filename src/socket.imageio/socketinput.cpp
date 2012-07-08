@@ -51,7 +51,6 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 SocketInput::SocketInput()
-//        : *m_socket (io)
           : m_socket(NULL),
             m_filename(""),
             m_curr_tile_x(-1),
@@ -64,18 +63,17 @@ SocketInput::SocketInput()
 bool
 SocketInput::valid_file (const std::string &filename) const
 {
-//    // Pass it a configuration request that includes a "nowait" option
-//    // so that it returns immediately rather than waiting for a socket
-//    // connection that doesn't yet exist.
-//    ImageSpec config;
-//    config.attribute ("nowait", (int)1);
-//
-//    ImageSpec tmpspec;
-//    bool ok = const_cast<SocketInput *>(this)->open (filename, tmpspec, config);
-//    if (ok)
-//        const_cast<SocketInput *>(this)->close ();
-//    return ok;
-    return true;
+    // Pass it a configuration request that includes a "nowait" option
+    // so that it returns immediately rather than waiting for a socket
+    // connection that doesn't yet exist.
+    ImageSpec config;
+    config.attribute ("nowait", (int)1);
+
+    ImageSpec tmpspec;
+    bool ok = const_cast<SocketInput *>(this)->open (filename, tmpspec, config);
+    if (ok)
+        const_cast<SocketInput *>(this)->close ();
+    return ok;
 }
 
 
@@ -128,7 +126,7 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
     }
     std::cout << "SocketInput::open " << name << std::endl;
     m_filename = name;
-    m_socket = &ServerPool::instance()->get_socket (m_filename);
+    m_socket = &SocketServerPool::instance()->get_socket (m_filename);
 
     if (! (get_spec_from_client (newspec) && listen_for_header_from_client ())) {
         close();
@@ -236,7 +234,7 @@ bool
 SocketInput::close ()
 {
     std::cout << "SocketInput::close" << std::endl;
-    // TODO: remove session from ServerPool
+    // TODO: remove session from SocketServerPool
     if (m_socket) {
         m_socket->close();
         m_socket = NULL;
@@ -385,23 +383,6 @@ SocketInput::handle_read_header (const boost::system::error_code& err)
     else {
         error ("Failed to read tile header: %s", err.message().c_str());
         std::cerr << "handle_read_header: Failed to read tile header: " << err.message() << std::endl;
-    }
-}
-
-
-// TODO: remove
-void
-SocketInput::handle_read_data (const boost::system::error_code& error)
-{
-    if (!error) {
-//        room_.deliver(read_msg_);
-//        boost::asio::async_read(socket_,
-//                boost::asio::buffer(read_msg_.data(), chat_message::header_length),
-//                boost::bind(&chat_session::handle_read_header, shared_from_this(),
-//                        boost::asio::placeholders::error));
-    }
-    else {
-//      room_.leave (shared_from_this ());
     }
 }
 

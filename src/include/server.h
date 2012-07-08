@@ -56,21 +56,25 @@ using boost::asio::ip::tcp;
 typedef boost::shared_ptr<boost::asio::io_service> io_service_ptr;
 typedef boost::shared_ptr<boost::asio::io_service::work> work_ptr;
 
+/// Represents a successful server connection.
+/// Its main purpose is to hold the data socket and to get the incoming file name
 class Session
 {
 public:
-  Session(boost::asio::io_service& io_service);
-  bool get_filename (std::string &filename);
-  tcp::socket& socket();
+    Session(boost::asio::io_service& io_service);
+    bool get_filename (std::string &filename);
+    tcp::socket& socket();
 
 private:
-  tcp::socket m_socket;
+    tcp::socket m_socket;
 };
 
-class Server
+/// A simple socket server that listens for incoming SocketOutput request and
+/// triggers a callback when one is received.
+class SocketServer
 {
 public:
-    Server (boost::asio::io_service& io_service, short port, boost::function<void(std::string&)> accept_handler);
+    SocketServer (boost::asio::io_service& io_service, short port, boost::function<void(std::string&)> accept_callback);
 
     void handle_accept (Session* session, const boost::system::error_code& error);
     //void handle_accept (const boost::system::error_code& error);
@@ -81,34 +85,40 @@ private:
     boost::function<void(std::string&)> m_accept_handler;
 };
 
-typedef boost::shared_ptr<Server> server_ptr;
+typedef boost::shared_ptr<SocketServer> server_ptr;
 
-
-class ServerPool
+/// A singleton class for managing servers listening for incoming SocketOutput requests.
+class SocketServerPool
 {
 public:
-    static ServerPool *instance ();
+    static SocketServerPool *instance ();
     static void destroy ();
     bool run ();
-    void add_server (short port, boost::function<void(std::string&)> accept_handler);
+    // Start a server listening on the given port. It will call accept_callback
+    // with the name of the file that the connected SocketOutput will send.
+    // This callback should ultimately create a SocketInput class.
+    void add_server (short port, boost::function<void(std::string&)> accept_callback);
     boost::asio::io_service& get_io_service ();
+
+    /// Given a filename return the socket used for data transfer.
+    /// This is used internally by SocketInput.
     tcp::socket& get_socket (const std::string& filename);
 
 private:
-    ServerPool ();
-    ~ServerPool ();
+    SocketServerPool ();
+    ~SocketServerPool ();
 
     // Make delete private and unimplemented in order to prevent apps
-    // from calling it.  Instead, they should call ImageCache::destroy().
+    // from calling it.  Instead, they should call SocketServerPool::destroy().
     void operator delete (void * /*todel*/) { }
 
-    static ServerPool* m_instance;
+    static SocketServerPool* m_instance;
     io_service_ptr m_io_service;
     work_ptr m_work;
     std::vector<server_ptr> m_server_list;
     std::map<std::string, Session*> m_session_map;
 
-    friend class Server;
+    friend class SocketServer;
 };
 
 OIIO_NAMESPACE_EXIT

@@ -18,82 +18,16 @@ typedef struct
    ImageOutput* out;
 } ShaderData;
 
-/*
-time_t s_start_time;
-
-
-class Bucket
-{
-public:
-   Bucket(int xo, int yo) {x=xo; y=yo;}
-   int x;
-   int y;
-   inline bool operator==(const Bucket& other) const { return x == other.x && y == other.y; }
-   inline bool operator!=(const Bucket& other) const { return x != other.x || y != other.y; }
-   inline bool operator<(const Bucket& other) const
-   {
-      if (y==other.y)
-         return x < other.x;
-      else
-         return y < other.y;
-   }
-};
-
-
-struct COutputDriverData
-{
-   AtBBox2   refresh_bbox;
-   float     gamma;
-   unsigned int    imageWidth, imageHeight;
-   bool rendering;
-};
-
-enum EDisplayUpdateMessageType
-{
-   MSG_BUCKET_PREPARE,
-   MSG_BUCKET_UPDATE,
-   MSG_IMAGE_COMPLETE,
-   MSG_RENDER_DONE
-};
-
-// Do not use copy constructor and assignment operator outside
-// of a critical section
-// (basically do not use them, CMTBlockingQueue uses them)
-struct CDisplayUpdateMessage
-{
-
-   EDisplayUpdateMessageType msgType;
-   AtBBox2                   bucketRect;
-   RV_PIXEL*                 pixels;
-
-   CDisplayUpdateMessage(EDisplayUpdateMessageType msg = MSG_BUCKET_PREPARE,
-                           int minx = 0, int miny = 0, int maxx = 0, int maxy = 0,
-                           RV_PIXEL* px = NULL)
-   {
-      msgType         = msg;
-      bucketRect.minx = minx;
-      bucketRect.miny = miny;
-      bucketRect.maxx = maxx;
-      bucketRect.maxy = maxy;
-      pixels          = px;
-   }
-};
-
-static CMTBlockingQueue<CDisplayUpdateMessage> s_displayUpdateQueue;
-static COutputDriverData                       s_outputDriverData;
-static bool                                    s_finishedRendering;
-static MString                                 s_camera_name;
-static MString                                 s_panel_name;
-
-
-static std::map<Bucket,int> s_buckets;
-*/
-
 node_parameters
 {
    AiParameterSTR("filename", "");
    AiParameterStr("port", "10110"); // TODO: read this from server.h
    AiParameterStr("host", "127.0.0.1"); // TODO: read this from server.h
+
+   AiMetaDataSetStr(mds, NULL, "maya.translator", "socket");
+   AiMetaDataSetStr(mds, NULL, "maya.attr_prefix", "");
+   AiMetaDataSetBool(mds, NULL, "single_layer_driver", true);
+   AiMetaDataSetBool(mds, NULL, "display_driver", true);
 }
 
 node_initialize
@@ -110,6 +44,10 @@ driver_supports_pixel_type
 {
    switch (pixel_type)
    {
+      case AI_TYPE_FLOAT:
+      case AI_TYPE_POINT2:
+      case AI_TYPE_POINT:
+      case AI_TYPE_VECTOR:
       case AI_TYPE_RGB:
       case AI_TYPE_RGBA:
          return true;
@@ -125,11 +63,13 @@ driver_extension
 
 driver_open
 {
-   const char* filename = AiNodeGetStr(node, "filename");
-   //const char* filename = "foo?port=10111&host=127.0.0.1.socket";
-   //const char* filename = "foo.socket";
+   std::string filename = AiNodeGetStr(node, "filename");
 
    AiMsgInfo("[driver_socket] Connecting");
+   // assert name ends in .socket so that SocketInput is used on the receiving end
+   if (!Strutil::iends_with(filename, ".socket"))
+       filename += ".socket";
+
    ImageOutput* out = v1_1::ImageOutput::create(filename);
    if (!out)
    {
@@ -147,7 +87,15 @@ driver_open
 
    switch (pixel_type)
    {
+      case AI_TYPE_FLOAT:
+         spec.nchannels = 1;
+         break;
+      case AI_TYPE_POINT2:
+         spec.nchannels = 2;
+         break;
       case AI_TYPE_RGB:
+      case AI_TYPE_VECTOR:
+      case AI_TYPE_POINT:
          spec.nchannels = 3;
          break;
       case AI_TYPE_RGBA:
@@ -189,30 +137,6 @@ driver_open
 driver_prepare_bucket
 {
    AiMsgDebug("[driver_socket.%d] prepare bucket (%d, %d)", tid, bucket_xo, bucket_yo);
-
-//   ThreadData* pdata = &data[tid];
-//   if (!pdata->initialized)
-//   {
-//      pdata->initialized = true;
-//      AiMsgDebug("[driver_socket.%d] Initializing", tid);
-//      // char buf[256];
-//      // sprintf(buf, "/var/tmp/test.sqlite3.%d", tid);
-//      if (init_database("/var/tmp/test.sqlite3", &pdata->db_handle, &pdata->db_stmt))
-//         return;
-//      // TODO: move this into init_database?
-//      pdata->globals_list = new std::vector<AtShaderGlobals>;
-//      pdata->node_list = new std::vector<NodeData>;
-//   }
-
-   //sql_exec(&pdata->db_handle, "BEGIN;");
-   /*
-   CDisplayUpdateMessage   msg(MSG_BUCKET_PREPARE,
-                               bucket_xo, bucket_yo,
-                               bucket_xo + bucket_size_x - 1, bucket_yo + bucket_size_y - 1,
-                               NULL) ;
-
-   s_displayUpdateQueue.push(msg);
-   */
 }
 
 driver_write_bucket
@@ -222,7 +146,7 @@ driver_write_bucket
    int         pixel_type;
    const void* bucket_data;
 
-   // TODO:
+   // TODO: multiple-aovs
    // we must convert from arnold tiles, where pixels are grouped by aovs
    // to oiio tiles, where aov pixels are interleaved.
    // for now, just get the first AOV layer

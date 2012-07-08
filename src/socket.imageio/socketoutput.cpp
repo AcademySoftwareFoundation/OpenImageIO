@@ -227,12 +227,14 @@ SocketOutput::connect_to_server (const std::string &name, const ImageSpec& spec)
         ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve (query);
         ip::tcp::resolver::iterator end;
 
+        std::cout << "looping endpoints" << std::endl;
         boost::system::error_code err = error::host_not_found;
         while (err && endpoint_iterator != end) {
             m_socket.close ();
             m_socket.connect (*endpoint_iterator++, err);
         }
         if (err) {
+            std::cerr << "Host \"" << host << "\" not found" << std::endl;
             error ("Host \"%s\" not found", host.c_str ());
             return false;
         }
@@ -240,11 +242,7 @@ SocketOutput::connect_to_server (const std::string &name, const ImageSpec& spec)
         error ("Error while connecting: %s", err.what ());
         return false;
     }
-    // assert name ends in .socket so that SocketInput is used on the receiving end
-    if (!Strutil::iends_with(name, ".socket"))
-        send_header_to_server (name + ".socket");
-    else
-        send_header_to_server (name);
+    send_header_to_server (name);
     return true;
 }
 

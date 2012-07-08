@@ -84,7 +84,7 @@ class IvCanvas;
 class IvGL;
 class IvImage;
 
-class ServerThread : public QThread
+class SocketServerThread : public QThread
 {
     Q_OBJECT
 public:
@@ -127,7 +127,7 @@ public:
     std::string shortinfo () const;
     std::string longinfo () const;
 
-    void invalidate (bool close=true);
+    void invalidate ();
 
     /// Can we read the pixels of this image already?
     ///
@@ -429,8 +429,8 @@ private:
     // What zoom do we need to fit these window dimensions?
     float zoom_needed_to_fit (int w, int h);
 
-    ServerPool* m_servers;
-    ServerThread m_server_thread;
+    SocketServerPool* m_servers;
+    SocketServerThread m_server_thread;
 
     friend class IvCanvas;
     friend class IvGL;

@@ -774,7 +774,7 @@ public:
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1) const;
     virtual void reset_stats ();
-    virtual void invalidate (ustring filename, bool close=true);
+    virtual void invalidate (ustring filename);
     virtual void invalidate_all (bool force=false);
     virtual bool invalidate_tile (const TileID &id);
 

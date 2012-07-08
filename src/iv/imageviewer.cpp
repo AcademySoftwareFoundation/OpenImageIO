@@ -77,13 +77,13 @@ namespace
 }
 
 void
-ServerThread::run ()
+SocketServerThread::run ()
 {
-    ServerPool::instance ()->run ();
+    SocketServerPool::instance ()->run ();
 }
 
 void
-ServerThread::acceptHandler (std::string& filename)
+SocketServerThread::acceptHandler (std::string& filename)
 {
     std::cout << "emitting" << std::endl;
     emit socketAccepted(filename.c_str());
@@ -118,6 +118,7 @@ static const char *s_file_filters = ""
     "All Files (*)";
 
 
+
 ImageViewer::ImageViewer ()
     : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
       m_current_image(-1), m_current_channel(0), m_color_mode(RGBA),
@@ -134,9 +135,9 @@ ImageViewer::ImageViewer ()
     }
 
     // start a server on a different that will load a socket image when a connect is made
-    m_servers = ServerPool::instance ();
+    m_servers = SocketServerPool::instance ();
 
-    m_servers->add_server (10110, boost::bind (&ServerThread::acceptHandler, &m_server_thread, _1));
+    m_servers->add_server (10110, boost::bind (&SocketServerThread::acceptHandler, &m_server_thread, _1));
     connect (&m_server_thread, SIGNAL(socketAccepted(QString)), this, SLOT(loadSocketImage(QString)));
     m_server_thread.start();
 
@@ -147,7 +148,7 @@ ImageViewer::ImageViewer ()
 
     // FIXME -- would be nice to have a more nuanced approach to display
     // color space, in particular knowing whether the display is sRGB.
-    // Also, some time in the future we may want a real 3D LUT for
+    // Also, some time in the future we may want a real 3D LUT for 
     // "film look", etc.
 
     if (darkPalette())
@@ -544,7 +545,7 @@ ImageViewer::createMenus()
     toolsMenu->addAction (showPixelviewWindowAct);
     toolsMenu->addMenu (slideMenu);
     toolsMenu->addMenu (sortMenu);
-
+        
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -798,7 +799,7 @@ ImageViewer::add_image (const std::string &filename)
             QMessageBox::information (this, tr("iv Image Viewer"),
                               tr("%1").arg(newimage->geterror().c_str()));
         } else {
-            std::cerr << "Added image " << filename << ": "
+            std::cerr << "Added image " << filename << ": " 
 << newimage->spec().width << " x " << newimage->spec().height << "\n";
         }
         return;
@@ -899,7 +900,7 @@ ImageViewer::updateStatusBar ()
     case RGBA: message = Strutil::format ("RGBA (%d-%d)", m_current_channel, m_current_channel+3); break;
     case RGB: message = Strutil::format ("RGB (%d-%d)", m_current_channel, m_current_channel+2); break;
     case LUMINANCE: message = Strutil::format ("Lum (%d-%d)", m_current_channel, m_current_channel+2); break;
-    case HEATMAP:
+    case HEATMAP: 
         message = "Heat ";
     case SINGLE_CHANNEL:
         if ((int)spec->channelnames.size() > m_current_channel &&
@@ -1093,7 +1094,7 @@ ImageViewer::deleteCurrentImage()
         QString message ("Are you sure you want to remove <b>");
         message = message + QString(filename) + QString("</b> file from disk?");
         QMessageBox::StandardButton button;
-        button = QMessageBox::question (this, "", message,
+        button = QMessageBox::question (this, "", message, 
                                         QMessageBox::Yes | QMessageBox::No);
         if (button == QMessageBox::Yes) {
             closeImg();
@@ -1338,7 +1339,7 @@ ImageViewer::slideImages()
             slideTimer->stop();
             disconnect(slideTimer,0,0,0);
         }
-    }
+    }       
     else
         current_image (current_image() + 1);
 }
@@ -1648,10 +1649,8 @@ void
 ImageViewer::viewChannelNext ()
 {
     if (glwin->is_glsl_capable()) {
-        std::cout << "is_glsl_capable" << std::endl;
         viewChannel (m_current_channel+1, m_color_mode);
     } else {
-       std::cout << "NOT_glsl_capable" << std::endl;
         // Simulate old behavior.
         if (m_color_mode == LUMINANCE) {
             viewChannelFull();
@@ -2035,8 +2034,8 @@ void ImageViewer::updateActions()
 
 
 
-static inline void
-calc_subimage_from_zoom (const IvImage *img, int &subimage, float &zoom, float &xcenter, float &ycenter)
+static inline void 
+calc_subimage_from_zoom (const IvImage *img, int &subimage, float &zoom, float &xcenter, float &ycenter) 
 {
     int rel_subimage = Imath::trunc (log2f (1/zoom));
     subimage = clamp<int> (img->subimage() + rel_subimage, 0, img->nsubimages()-1);
@@ -2058,7 +2057,7 @@ ImageViewer::view (float xcenter, float ycenter, float newzoom, bool smooth, boo
     if (! img)
         return;
 
-    float oldzoom = m_zoom;
+    float oldzoom = m_zoom; 
     float oldxcenter, oldycenter;
     glwin->get_center (oldxcenter, oldycenter);
     float zoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
@@ -2153,10 +2152,6 @@ ImageViewer::loadSocketImage (QString filename)
         nextImage ();
     }
     std::cout << "ImageViewer::loadSocketImage: done" << std::endl;
-    //std::cout << "INVALIDATE " << std::endl;
-    // we have to invalidate the cache so that new tiles will be loaded.
-    // the second argument informs the cache not to close the file
-    //cur()->invalidate(false);
 }
 
 

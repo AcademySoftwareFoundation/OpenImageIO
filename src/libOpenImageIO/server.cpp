@@ -77,7 +77,7 @@ Session::get_filename (std::string &filename)
 
 
 
-Server::Server(boost::asio::io_service& io_service, short port, boost::function<void(std::string&)> accept_handler)
+SocketServer::SocketServer(boost::asio::io_service& io_service, short port, boost::function<void(std::string&)> accept_handler)
     : m_io_service(io_service),
       m_acceptor(io_service, tcp::endpoint(tcp::v4(), port)),
       m_accept_handler(accept_handler)
@@ -85,15 +85,15 @@ Server::Server(boost::asio::io_service& io_service, short port, boost::function<
     std::cout << "setting up accept handler " << port << std::endl;
     Session* session = new Session(m_io_service);
     m_acceptor.async_accept(session->socket(),
-            boost::bind(&Server::handle_accept, this, session,
+            boost::bind(&SocketServer::handle_accept, this, session,
                     boost::asio::placeholders::error));
 }
 
 
 
 void
-Server::handle_accept(Session* session, const boost::system::error_code& err)
-//Server::handle_accept(const boost::system::error_code& error)
+SocketServer::handle_accept(Session* session, const boost::system::error_code& err)
+//SocketServer::handle_accept(const boost::system::error_code& error)
 {
     if (!err) {
         std::cout << "handle accept" << std::endl;
@@ -104,19 +104,19 @@ Server::handle_accept(Session* session, const boost::system::error_code& err)
             std::cerr << "could not get file name" << std::endl;
             delete session;
         }
-        else if (ServerPool::instance()->m_session_map.count (filename)) {
+        else if (SocketServerPool::instance()->m_session_map.count (filename)) {
             // TODO: print error properly
             // TODO: optionally uniquify filename
             std::cerr << "file already exists: \"" << filename << "\"" << std::endl;
             delete session;
         }
         else {
-            ServerPool::instance()->m_session_map[filename] = session;
+            SocketServerPool::instance()->m_session_map[filename] = session;
             m_accept_handler(filename);
         }
         session = new Session(m_io_service);
         m_acceptor.async_accept (session->socket(),
-                boost::bind(&Server::handle_accept, this, session,
+                boost::bind(&SocketServer::handle_accept, this, session,
                         boost::asio::placeholders::error));
 
     } else {
@@ -127,10 +127,10 @@ Server::handle_accept(Session* session, const boost::system::error_code& err)
 
 
 
-ServerPool* ServerPool::m_instance = NULL;
+SocketServerPool* SocketServerPool::m_instance = NULL;
 
 
-ServerPool::ServerPool () :
+SocketServerPool::SocketServerPool () :
         m_io_service(new boost::asio::io_service),
         m_work(new boost::asio::io_service::work(*m_io_service))
 {
@@ -138,7 +138,7 @@ ServerPool::ServerPool () :
 
 
 
-ServerPool::~ServerPool ()
+SocketServerPool::~SocketServerPool ()
 {
     m_server_list.clear ();
     m_session_map.clear ();
@@ -146,18 +146,18 @@ ServerPool::~ServerPool ()
 
 
 
-ServerPool*
-ServerPool::instance ()
+SocketServerPool*
+SocketServerPool::instance ()
 {
     if (!m_instance)
-        m_instance = new ServerPool ();
+        m_instance = new SocketServerPool ();
     return m_instance;
 }
 
 
 
 void
-ServerPool::destroy ()
+SocketServerPool::destroy ()
 {
     if (m_instance)
         delete m_instance;
@@ -166,7 +166,7 @@ ServerPool::destroy ()
 
 
 bool
-ServerPool::run ()
+SocketServerPool::run ()
 {
 //    try {
         m_io_service->run();
@@ -181,15 +181,15 @@ ServerPool::run ()
 
 
 void
-ServerPool::add_server (short port, boost::function<void(std::string&)> accept_handler)
+SocketServerPool::add_server (short port, boost::function<void(std::string&)> accept_handler)
 {
-    server_ptr server(new Server(*m_io_service, port, accept_handler));
+    server_ptr server(new SocketServer(*m_io_service, port, accept_handler));
     m_server_list.push_back(server);
 }
 
 
 boost::asio::io_service&
-ServerPool::get_io_service ()
+SocketServerPool::get_io_service ()
 {
     boost::asio::io_service& io_service = *m_io_service;
     return io_service;
@@ -198,7 +198,7 @@ ServerPool::get_io_service ()
 
 
 tcp::socket&
-ServerPool::get_socket (const std::string& filename)
+SocketServerPool::get_socket (const std::string& filename)
 {
     std::cout << "get_socket" << std::endl;
     std::map<std::string, Session*>::iterator it;

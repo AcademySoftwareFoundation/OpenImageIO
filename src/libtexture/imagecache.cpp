@@ -2341,7 +2341,7 @@ ImageCacheImpl::tile_pixels (ImageCache::Tile *tile, TypeDesc &format) const
 
 
 void
-ImageCacheImpl::invalidate (ustring filename, bool close)
+ImageCacheImpl::invalidate (ustring filename)
 {
     ImageCacheFile *file = NULL;
     {
@@ -2376,7 +2376,7 @@ ImageCacheImpl::invalidate (ustring filename, bool close)
         tilemutex_holder (NULL);
     }
 
-    if (close) {
+    {
         ic_write_lock fileguard (m_filemutex);
         file->invalidate ();
     }
