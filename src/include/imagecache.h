@@ -226,9 +226,7 @@ public:
     /// reference-counted tile pointers from the named image, but those
     /// procedures will not get updated pixels until they release the
     /// tiles they are holding.
-    /// If close is false, the cache is invalidated, but the current
-    /// ImageInput is left open.
-    virtual void invalidate (ustring filename, bool close=true) = 0;
+    virtual void invalidate (ustring filename) = 0;
 
     /// Invalidate all loaded tiles and open file handles.  This is safe
     /// to do even if other procedures are currently holding

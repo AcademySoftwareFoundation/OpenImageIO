@@ -56,6 +56,7 @@
 #include <boost/thread.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace boost::asio;
@@ -134,9 +135,7 @@ class SocketInput : public ImageInput {
 
  private:
     int m_next_scanline;      // Which scanline is the next to read?
-//    io_service io;
     ip::tcp::socket* m_socket;
-//    boost::shared_ptr <ip::tcp::acceptor> acceptor;
     unsigned int m_header_length;
     std::string m_filename;
     boost::thread m_thread;
@@ -148,7 +147,6 @@ class SocketInput : public ImageInput {
     bool get_header_from_client (std::string &header);
     bool listen_for_header_from_client ();
     void handle_read_header(const boost::system::error_code& error);
-    void handle_read_data(const boost::system::error_code& error);
 
     friend class SocketOutput;
 };
