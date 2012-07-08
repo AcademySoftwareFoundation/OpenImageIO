@@ -28,29 +28,8 @@
   (This is the Modified BSD License)
 */
 
-/* This header has to be included before boost/regex.hpp header
-   If it is included after, there is an error
-   "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
-*/
-#include "SHA1.h"
-
-/// \file
-/// Implementation of ImageBufAlgo algorithms.
-
-#include <OpenEXR/ImathFun.h>
-#include <OpenEXR/half.h>
-
-#include <cmath>
 #include <iostream>
-#include <limits>
-#include <stdexcept>
-
-#include "imagebuf.h"
 #include "imagebufalgo.h"
-#include "dassert.h"
-#include "sysutil.h"
-#include "filter.h"
-
 
 OIIO_NAMESPACE_ENTER
 {
@@ -80,30 +59,38 @@ static inline bool
 smoothImageCompletion_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask)
 {
     ImageBufAlgo::SmoothImageCompletion<T> sic(dst, src, mask);
-    sic.solve();
-    return true;
+    bool success = sic.solve();
+    return success;
+}
+
+template<typename T>
+static inline bool
+seamlessCloning_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2)
+{
+    ImageBufAlgo::SeamlessCloning<T> sc(dst, src, mask, src2);
+    bool success = sc.solve();
+    return success;
 }
 
 }
-
 
 bool
 ImageBufAlgo::smoothImageCompletion(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask)
 {
     switch (src.spec().format.basetype) {
-    case TypeDesc::FLOAT : return smoothImageCompletion_<float> (dst, src, mask); break;
-    case TypeDesc::UINT8 : return smoothImageCompletion_<unsigned char> (dst, src, mask); break;
-    case TypeDesc::INT8  : return smoothImageCompletion_<char> (dst, src, mask); break;
-    case TypeDesc::UINT16: return smoothImageCompletion_<unsigned short> (dst, src, mask); break;
-    case TypeDesc::INT16 : return smoothImageCompletion_<short> (dst, src, mask); break;
-    case TypeDesc::UINT  : return smoothImageCompletion_<unsigned int> (dst, src, mask); break;
-    case TypeDesc::INT   : return smoothImageCompletion_<int> (dst, src, mask); break;
-    case TypeDesc::UINT64: return smoothImageCompletion_<unsigned long long> (dst, src, mask); break;
-    case TypeDesc::INT64 : return smoothImageCompletion_<long long> (dst, src, mask); break;
-    case TypeDesc::HALF  : return smoothImageCompletion_<half> (dst, src, mask); break;
-    case TypeDesc::DOUBLE: return smoothImageCompletion_<double> (dst, src, mask); break; 
+    case TypeDesc::FLOAT : return smoothImageCompletion_<float> (dst, src, mask); break; 
     default:
         return false;
+    }
+};
+
+bool
+ImageBufAlgo::seamlessCloning(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2)
+{
+    switch (src.spec().format.basetype) {
+        case TypeDesc::FLOAT : return seamlessCloning_<float> (dst, src, mask, src2); break;
+        default:
+            return false;
     }
 };
 
@@ -123,10 +110,10 @@ bool ImageBufAlgo::PoissonImageEditing<T>::solve()
         return false;
     
     buildMapping();
-    buildSparseLinearSystem();
-    computeOutputPixels();
+    buildSparseLinearSystem();  
+    bool success = computeOutputPixels();
     
-    return true;
+    return success;
 }
 
 template <class T>
@@ -144,7 +131,7 @@ void ImageBufAlgo::PoissonImageEditing<T>::buildMapping()
     int nchannels = maskImg.spec().nchannels;
     int posInSeq = 0; //position of masked pixel in a sequence
     
-    ImageBuf::ConstIterator<T> p (maskImg, 1, h-1, 1, w-1);
+    ImageBuf::ConstIterator<T> p (maskImg, 1, w-1, 1, h-1);
     std::vector<T> maskingColor(maskImg.spec().nchannels, 0.0f);
   
     // Loop over all pixels from mask image ...
@@ -254,7 +241,7 @@ void ImageBufAlgo::PoissonImageEditing<T>::buildSparseLinearSystem()
 }
 
 template <class T>
-void ImageBufAlgo::PoissonImageEditing<T>::computeOutputPixels()
+bool ImageBufAlgo::PoissonImageEditing<T>::computeOutputPixels()
 {
     int w = maskImg.spec().full_width;
     int h = maskImg.spec().full_height;
@@ -264,14 +251,14 @@ void ImageBufAlgo::PoissonImageEditing<T>::computeOutputPixels()
     int inchannels = img.nchannels();
     std::vector<T> maskingColor(mnchannels, 0.0f);
     
-    
+
     Eigen::SparseLDLT< Eigen::SparseMatrix<double> > solver;
    
     solver.compute(A);
     if(!solver.succeeded())
     {
-        std::cerr << "factorization error - quit\n";
-        return;
+    //    std::cout << "factorization error - quit\n";
+        return false;
     }
     
     for(int k = 0; k < inchannels; k++)
@@ -291,7 +278,7 @@ void ImageBufAlgo::PoissonImageEditing<T>::computeOutputPixels()
             //FIXME - clamping range should depend on pixel type
             for(int k = 0; k < inchannels; k++)
                 oPxl[k] = clamp<T>(x[k](posInSeq), 0, 1);
-               
+                         
             posInSeq++;
         }
         else {
@@ -303,6 +290,8 @@ void ImageBufAlgo::PoissonImageEditing<T>::computeOutputPixels()
         sPxl++;
         oPxl++;
     }
+    
+    return true;
 }
     
 
@@ -322,6 +311,31 @@ void ImageBufAlgo::SmoothImageCompletion<T>::getGuidanceVector(std::vector<T> &p
     for(int i = 0; i < nchannels; i++)
         pel[i] = 0;
 }
+
+
+
+//------------ Seamless cloning ------------------------//
+template <class T>
+ImageBufAlgo::SeamlessCloning<T>::SeamlessCloning(ImageBuf &output, const ImageBuf& src, const ImageBuf& mask, const ImageBuf& _src2) :
+        PoissonImageEditing<T>(output, src, mask),
+        src2 (_src2)
+{
+    
+}
+
+template <class T>
+void ImageBufAlgo::SeamlessCloning<T>::getGuidanceVector(std::vector<T> &pel, int x, int y, int nchannels)
+{   
+    ImageBuf::ConstIterator<T> p (src2, x, x+1, y, y+1);
+    ImageBuf::ConstIterator<T> lp (src2, x-1, x, y, y+1);
+    ImageBuf::ConstIterator<T> rp (src2, x+1, x+2, y, y+1);
+    ImageBuf::ConstIterator<T> dp (src2, x, x+1, y+1, y+2);
+    ImageBuf::ConstIterator<T> up (src2, x, x+1, y-1, y);
+    
+    for(int i = 0; i < nchannels; i++)
+        pel[i] = lp[i] + rp[i] + dp[i] + up[i] - 4*p[i];
+}
+
 
 
 

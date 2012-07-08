@@ -318,6 +318,10 @@ bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
 /// src and mask must be the same size.
 bool DLLPUBLIC smoothImageCompletion(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask);
 
+/// Clones area masked by mask of src2 image into src image
+bool DLLPUBLIC seamlessCloning(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2);
+
+
 template<typename PXLTYPE>
 bool DLLPUBLIC pixelCmp(PXLTYPE *a, PXLTYPE *b, int channels);
 
@@ -356,7 +360,8 @@ protected:
     
     //Solves linear system and computes the output value for every pixel.
     //Common for all PIE algorithms.
-    void computeOutputPixels();
+    //Returns true on success.
+    bool computeOutputPixels();
     //-------------------------------------------------//
     
     
@@ -373,6 +378,18 @@ private:
     
 public:
     SmoothImageCompletion(ImageBuf &output, const ImageBuf &src, const ImageBuf &mask);
+    void getGuidanceVector(std::vector<T> &pel, int x, int y, int nchannels);
+};
+
+
+template <class T>
+class SeamlessCloning : public PoissonImageEditing<T>
+{
+private:
+    const ImageBuf &src2;
+public:
+    //masked part of src2 image will be cloned into src image
+    SeamlessCloning(ImageBuf &output, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2);
     void getGuidanceVector(std::vector<T> &pel, int x, int y, int nchannels);
 };
 
