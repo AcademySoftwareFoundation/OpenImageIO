@@ -1,5 +1,5 @@
 /*
-  Copyright 2009 Larry Gritz and the other authors and contributors.
+  Copyright 2012 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -45,100 +45,57 @@
 
 OIIO_NAMESPACE_USING;
 
-// How do we test atomics?  Run a whole bunch of threads, incrementing
-// and decrementing the crap out of it, and make sure it has the right
-// value at the end.
+// Test spin_rw_mutex by creating a bunch of threads usually just check
+// the accumulator value (requiring a read lock), but occasionally
+// (1/100 of the time) increment the accumulator, requiring a write
+// lock.  If, at the end, the accumulated value is equal to
+// iterations/read_to_write_ratio*threads, then the locks worked.
 
-static int iterations = 160000000;
+static int read_write_ratio = 99;
+static int iterations = 16000000;
 static int numthreads = 16;
 static int ntrials = 1;
 static bool verbose = false;
 static bool wedge = false;
 
-static spin_mutex print_mutex;  // make the prints not clobber each other
-atomic_int ai;
-atomic_ll all;
+volatile long long accum = 0;
+spin_rw_mutex mymutex;
 
-
-static void
-do_int_math (int iterations)
-{
-    if (verbose) {
-        spin_lock lock(print_mutex);
-        std::cout << "thread " << boost::this_thread::get_id()
-              << ", ai = " << ai << "\n";
-    }
-    for (int i = 0;  i < iterations;  ++i) {
-        ++ai;
-        ai += 3;
-        --ai;
-        ai++;
-        ai -= 3;
-        --ai;
-        // That should have a net change of 0, but since other threads
-        // are doing operations simultaneously, it's only after all
-        // threads have finished that we can be sure it's back to the
-        // initial value.
-    }
-}
-
-
-
-void test_atomic_int (int numthreads, int iterations)
-{
-    ai = 42;
-    boost::thread_group threads;
-    for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (boost::bind (do_int_math, iterations));
-    }
-    ASSERT ((int)threads.size() == numthreads);
-    threads.join_all ();
-    OIIO_CHECK_EQUAL (ai, 42);
-}
 
 
 
 static void
-do_int64_math (int iterations)
+do_accum (int iterations)
 {
-    if (verbose) {
-        spin_lock lock(print_mutex);
-        std::cout << "thread " << boost::this_thread::get_id()
-                  << ", all = " << all << "\n";
-    }
     for (int i = 0;  i < iterations;  ++i) {
-        ++all;
-        all += 3;
-        --all;
-        all++;
-        all -= 3;
-        --all;
-        // That should have a net change of 0, but since other threads
-        // are doing operations simultaneously, it's only after all
-        // threads have finished that we can be sure it's back to the
-        // initial value.
+        if ((i % (read_write_ratio+1)) == read_write_ratio) {
+            spin_rw_write_lock lock (mymutex);
+            accum += 1;
+        } else {
+            spin_rw_read_lock lock (mymutex);
+            // meaningless test to force examination of the variable
+            if (accum < 0)
+                break;
+        }
     }
 }
 
 
 
-void test_atomic_int64 (int numthreads, int iterations)
+void test_spin_rw (int numthreads, int iterations)
 {
-    all = 0;
+    accum = 0;
     boost::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (boost::bind (do_int64_math, iterations));
+        threads.create_thread (boost::bind(do_accum,iterations));
     }
+    if (verbose)
+        std::cout << "Created " << threads.size() << " threads\n";
     threads.join_all ();
-    OIIO_CHECK_EQUAL (all, 0);
-}
-
-
-
-void test_atomics (int numthreads, int iterations)
-{
-    test_atomic_int (numthreads, iterations);
-    test_atomic_int64 (numthreads, iterations);
+    OIIO_CHECK_EQUAL (accum, (((long long)iterations/(read_write_ratio+1)) * (long long)numthreads));
+    if (verbose)
+        std::cout << "it " << iterations << ", r::w = " << read_write_ratio
+                  << ", accum = " << accum << "\n";
 }
 
 
@@ -148,9 +105,9 @@ getargs (int argc, char *argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options ("atomic_test\n"
+    ap.options ("spin_rw_test\n"
                 OIIO_INTRO_STRING "\n"
-                "Usage:  atomic_test [options]",
+                "Usage:  spin_rw_test [options]",
                 // "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose mode",
@@ -159,6 +116,8 @@ getargs (int argc, char *argv[])
                 "--iters %d", &iterations,
                     ustring::format("Number of iterations (default: %d)", iterations).c_str(),
                 "--trials %d", &ntrials, "Number of trials",
+                "--rwratio %d", &read_write_ratio, 
+                    ustring::format("Reader::writer ratio (default: %d)", read_write_ratio).c_str(),
                 "--wedge", &wedge, "Do a wedge test",
                 NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
@@ -179,6 +138,7 @@ int main (int argc, char *argv[])
     getargs (argc, argv);
 
     std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
+    std::cout << "reader:writer ratio = " << read_write_ratio << ":1\n";
     std::cout << "threads\ttime (best of " << ntrials << ")\n";
     std::cout << "-------\t----------\n";
 
@@ -188,7 +148,7 @@ int main (int argc, char *argv[])
         int its = iterations/nt;
 
         double range;
-        double t = time_trial (boost::bind(test_atomics,nt,its),
+        double t = time_trial (boost::bind(test_spin_rw,nt,its),
                                ntrials, &range);
 
         std::cout << Strutil::format ("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n",

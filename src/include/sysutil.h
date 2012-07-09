@@ -46,6 +46,30 @@
 /// allocates memory, equivalent of C99 type var_name[size]
 #define ALLOCA(type, size) ((type*)alloca((size) * sizeof (type)))
 
+
+// Define a macro that can be used for memory alignment.
+// I think that in a future world of C++1x compatibility, all these can
+// be replaced with [[ align(size) ]].
+#if defined (_MSC_VER)
+#  define OIIO_ALIGN(size) __declspec(align(size))
+#elif defined (__GNUC__)
+#  define OIIO_ALIGN(size) __attribute__((aligned(size)))
+#elif defined (__INTEL_COMPILER)
+#  define OIIO_ALIGN(size) __declspec(align((size)))
+#else
+#  error "Don't know how to define OIIO_ALIGN"
+#endif
+
+// Cache line size is 64 on all modern x86 CPUs. If this changes or we
+// anticipate ports to other architectures, we'll need to change this.
+#define OIIO_CACHE_LINE_SIZE 64
+
+// Align the next declaration to be on its own cache line
+#define OIIO_CACHE_ALIGN OIIO_ALIGN(OIIO_CACHE_LINE_SIZE)
+
+
+
+
 OIIO_NAMESPACE_ENTER
 {
 
