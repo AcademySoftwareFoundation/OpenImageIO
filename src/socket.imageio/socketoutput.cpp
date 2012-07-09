@@ -62,7 +62,9 @@ bool
 SocketOutput::open (const std::string &name, const ImageSpec &newspec,
                     OpenMode mode)
 {
-    m_thread = boost::thread(boost::bind(&boost::asio::io_service::run, &io));
+    // FIXME: the thread is crashing when rendering within Maya.
+    // This will be necessary if we want to do asynchronous tile writing
+//    m_thread = boost::thread(boost::bind(&boost::asio::io_service::run, &io));
     if (! (connect_to_server (name, newspec) && send_spec_to_server (newspec))) {
         return false;
     }
@@ -155,7 +157,7 @@ SocketOutput::close ()
     std::cout << "SocketOutput::close" << std::endl;
     // TODO: notify the server that we are disconnecting
     io.post(boost::bind(&SocketOutput::do_close, this));
-    m_thread.join();
+//    m_thread.join();
     return true;
 }
 
@@ -216,9 +218,10 @@ SocketOutput::send_header_to_server (const std::string &header)
 bool
 SocketOutput::connect_to_server (const std::string &name, const ImageSpec& spec)
 {
-    std::string port = spec.get_string_attribute("port", socket_pvt::default_port);
-    std::string host = spec.get_string_attribute("host", socket_pvt::default_host);
+    std::string port = spec.get_string_attribute("port", default_port);
+    std::string host = spec.get_string_attribute("host", default_host);
 
+    std::cout << "name: " << name << std::endl;
     std::cout << "host: " << host << std::endl;
     std::cout << "port: " << port << std::endl;
     try {

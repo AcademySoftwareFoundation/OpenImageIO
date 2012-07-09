@@ -21,8 +21,8 @@ typedef struct
 node_parameters
 {
    AiParameterSTR("filename", "");
-   AiParameterStr("port", "10110"); // TODO: read this from server.h
-   AiParameterStr("host", "127.0.0.1"); // TODO: read this from server.h
+   AiParameterStr("port", default_port);
+   AiParameterStr("host", default_host);
 
    AiMetaDataSetStr(mds, NULL, "maya.translator", "socket");
    AiMetaDataSetStr(mds, NULL, "maya.attr_prefix", "");
@@ -32,8 +32,11 @@ node_parameters
 
 node_initialize
 {
+   AiMsgInfo("[driver_socket] node_initialize");
    // set second arg to true once multiple outputs are supported
-   AiDriverInitialize(node, false, AiMalloc(sizeof(ShaderData)));
+   ShaderData *data = (ShaderData*)AiMalloc(sizeof(ShaderData));
+   data->out = NULL;
+   AiDriverInitialize(node, false, data);
 }
 
 node_update
@@ -63,6 +66,10 @@ driver_extension
 
 driver_open
 {
+   ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
+   if (data->out != NULL)
+       return;
+
    std::string filename = AiNodeGetStr(node, "filename");
 
    AiMsgInfo("[driver_socket] Connecting");
@@ -129,7 +136,6 @@ driver_open
       AiMsgWarning("[driver_socket] %s", out->geterror().c_str());
    }
 
-   ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
    data->out = out;
 
 }
@@ -168,16 +174,15 @@ driver_write_bucket
 driver_close
 {
    AiMsgInfo("[driver_socket] driver close");
-   ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
-   // This line crashes the render, likely because we haven't finished sending data to the server.
-   // we should use another thread as in this example: http://www.boost.org/doc/libs/1_38_0/doc/html/boost_asio/example/chat/chat_client.cpp
-   data->out->close();
 }
 
 node_finish
 {
    AiMsgInfo("[driver_socket] driver finish");
    ShaderData *data = (ShaderData*)AiDriverGetLocalData(node);
+   // This line crashes the render, likely because we haven't finished sending data to the server.
+   // we should use another thread as in this example: http://www.boost.org/doc/libs/1_38_0/doc/html/boost_asio/example/chat/chat_client.cpp
+   data->out->close();
    AiFree(data);
    // release the driver
    AiDriverDestroy(node);

@@ -167,7 +167,7 @@ SocketInput::read_native_scanline (int y, int z, void *data)
 bool
 SocketInput::read_native_tile (int x, int y, int z, void *data)
 {
-    if (m_curr_tile_x >= 0 || m_curr_tile_y >= 0) {
+    if ((x == m_curr_tile_x) && (y == m_curr_tile_y)) {
 
         // TODO: assert we're on the current tile
         int width  = m_curr_rect.xend - m_curr_rect.xbegin + 1;
@@ -236,7 +236,7 @@ SocketInput::close ()
     std::cout << "SocketInput::close" << std::endl;
     // TODO: remove session from SocketServerPool
     if (m_socket) {
-        m_socket->close();
+        SocketServerPool::instance()->close_socket (m_filename);
         m_socket = NULL;
         std::cout << "removed socket" << std::endl;
     }

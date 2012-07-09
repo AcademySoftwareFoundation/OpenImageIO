@@ -74,9 +74,6 @@ struct NativeRectangle
     int size;
 };
 
-const char default_port[] = "10110";
-
-const char default_host[] = "127.0.0.1";
 
 std::size_t socket_write (ip::tcp::socket &s, TypeDesc &type, const void *data, int size);
 int tile_bytes_at(const ImageSpec &spec, int x, int y, int z);

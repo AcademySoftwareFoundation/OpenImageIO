@@ -212,5 +212,18 @@ SocketServerPool::get_socket (const std::string& filename)
 
 
 
+bool
+SocketServerPool::close_socket (const std::string& filename)
+{
+    std::map<std::string, Session*>::iterator it;
+    it = m_session_map.find(filename);
+    if (it == m_session_map.end()) {
+        return false;
+    }
+    it->second->socket().close();
+    m_session_map.erase(it);
+    return true;
+}
+
 OIIO_NAMESPACE_EXIT
 }

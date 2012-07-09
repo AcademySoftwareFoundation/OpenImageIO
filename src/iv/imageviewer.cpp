@@ -134,11 +134,13 @@ ImageViewer::ImageViewer ()
             m_default_gamma = g;
     }
 
-    // start a server on a different that will load a socket image when a connect is made
+    // start a server on a different thread that will load a socket image when a connect is made
     m_servers = SocketServerPool::instance ();
-
-    m_servers->add_server (10110, boost::bind (&SocketServerThread::acceptHandler, &m_server_thread, _1));
-    connect (&m_server_thread, SIGNAL(socketAccepted(QString)), this, SLOT(loadSocketImage(QString)));
+    m_servers->add_server (default_port,
+                           boost::bind (&SocketServerThread::acceptHandler,
+                                        &m_server_thread, _1));
+    connect (&m_server_thread, SIGNAL(socketAccepted(QString)),
+             this, SLOT(loadSocketImage(QString)));
     m_server_thread.start();
 
     // install a callback to handle tiles that are updated externally
