@@ -1,8 +1,15 @@
 Changes:
 
+Release 1.0.7 (8 July 2012)
+---------------------------
+* Bug fix when reading vector Field3D files.
+* Fix input of tiled images with per-channel formats.
+* Add testsuite/nonwhole-tiles and testsuite/perchannel.
+* Bug fix when reading binary PNM files.
+
+
 Release 1.0.6 (12 Jun 2012)
 ---------------------------
-
 * Fix allocation and stride bugs in that could overrun a buffer when
   reading tiled images whose resolution was not a whole number of tiles.
 * Fix stride bugs when reading scanline images with differing data types
