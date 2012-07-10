@@ -1395,8 +1395,12 @@ void PtexIncrWriter::finish()
 
     // rewrite extheader for updated editdatasize
     if (_extheader.editdatapos) {
-	_extheader.editdatasize = uint64_t(ftello(_fp)) - _extheader.editdatapos;
-	fseeko(_fp, HeaderSize, SEEK_SET);
-	fwrite(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize), 1, _fp);
+		_extheader.editdatasize = uint64_t(ftello(_fp)) - _extheader.editdatapos;
+		fseeko(_fp, HeaderSize, SEEK_SET);
+		size_t byte_count = fwrite(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize), 1, _fp);
+		if (byte_count != 1) {
+			// FIXME Bad Write
+			//error ("Bad write PtexIncrWriter::finish (err %d)", byte_count);
+		}
     }
 }

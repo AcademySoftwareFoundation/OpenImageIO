@@ -70,7 +70,11 @@ static int WebpImageWriter(const uint8_t* img_data, size_t data_size,
                            const WebPPicture* const webp_img)
 {
     FILE *out_file = (FILE*)webp_img->custom_ptr;
-    fwrite (img_data, data_size, sizeof(uint8_t), out_file);
+    size_t wb = fwrite (img_data, data_size, sizeof(uint8_t), out_file);
+	if (wb != sizeof(uint8_t)) {
+		//FIXME Bad write occurred
+	}
+
     return 1;
 }
 

@@ -112,7 +112,12 @@ SgiOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
         long scanline_offset = sgi_pvt::SGI_HEADER_LEN + (c * m_spec.height + y)
                                   * m_spec.width * bpc;
         fseek (m_fd, scanline_offset, SEEK_SET);
-        fwrite (&channeldata[0], 1, m_spec.width*bpc, m_fd);
+        size_t byte_count = fwrite (&channeldata[0], 1, m_spec.width * bpc, m_fd);
+		if (byte_count != (size_t)(m_spec.width * bpc)) {
+			// FIXME Bad Write
+			error ("Bad write sgi::write_scanline (err %d)", byte_count);
+			return false;
+		}
     }
 
     return true;    
@@ -174,20 +179,25 @@ SgiOutput::create_and_write_header()
         swap_endian(&sgi_header.colormap);
     }
 
-    fwrite(&sgi_header.magic, sizeof(sgi_header.magic), 1, m_fd);
-    fwrite(&sgi_header.storage, sizeof(sgi_header.storage), 1, m_fd);
-    fwrite(&sgi_header.bpc, sizeof(sgi_header.bpc), 1, m_fd);
-    fwrite(&sgi_header.dimension, sizeof(sgi_header.dimension), 1, m_fd);
-    fwrite(&sgi_header.xsize, sizeof(sgi_header.xsize), 1, m_fd);
-    fwrite(&sgi_header.ysize, sizeof(sgi_header.ysize), 1, m_fd);
-    fwrite(&sgi_header.zsize, sizeof(sgi_header.zsize), 1, m_fd);
-    fwrite(&sgi_header.pixmin, sizeof(sgi_header.pixmin), 1, m_fd);
-    fwrite(&sgi_header.pixmax, sizeof(sgi_header.pixmax), 1, m_fd);
-    fwrite(&sgi_header.dummy, sizeof(sgi_header.dummy), 1, m_fd);
-    fwrite(sgi_header.imagename, sizeof(sgi_header.imagename), 1, m_fd);
-    fwrite(&sgi_header.colormap, sizeof(sgi_header.colormap), 1, m_fd);
+    size_t byte_count = 0;
+    byte_count += fwrite(&sgi_header.magic, sizeof(sgi_header.magic), 1, m_fd);
+    byte_count += fwrite(&sgi_header.storage, sizeof(sgi_header.storage), 1, m_fd);
+    byte_count += fwrite(&sgi_header.bpc, sizeof(sgi_header.bpc), 1, m_fd);
+    byte_count += fwrite(&sgi_header.dimension, sizeof(sgi_header.dimension), 1, m_fd);
+    byte_count += fwrite(&sgi_header.xsize, sizeof(sgi_header.xsize), 1, m_fd);
+    byte_count += fwrite(&sgi_header.ysize, sizeof(sgi_header.ysize), 1, m_fd);
+    byte_count += fwrite(&sgi_header.zsize, sizeof(sgi_header.zsize), 1, m_fd);
+    byte_count += fwrite(&sgi_header.pixmin, sizeof(sgi_header.pixmin), 1, m_fd);
+    byte_count += fwrite(&sgi_header.pixmax, sizeof(sgi_header.pixmax), 1, m_fd);
+    byte_count += fwrite(&sgi_header.dummy, sizeof(sgi_header.dummy), 1, m_fd);
+    byte_count += fwrite(sgi_header.imagename, sizeof(sgi_header.imagename), 1, m_fd);
+    byte_count += fwrite(&sgi_header.colormap, sizeof(sgi_header.colormap), 1, m_fd);
     char dummy[404] = {0};
-    fwrite(dummy, 404, 1, m_fd);
+    byte_count += fwrite(dummy, 404, 1, m_fd);
+
+    if (byte_count != 13) { // FIXME The parameters in fwrite should be swapped to make error checking nicer
+    	error ("Write failed in sgi::create_and_write_header (err: unknwn)");
+    }
 }
 
 OIIO_PLUGIN_NAMESPACE_END

@@ -154,18 +154,21 @@ DibInformationHeader::write_header (FILE *fd)
 {
     if (bigendian ())
         swap_endian ();
-    fwrite (&size, 1, sizeof(size), fd);
-    fwrite (&width, 1, sizeof(width), fd);
-    fwrite (&height, 1, sizeof(height), fd);
-    fwrite (&cplanes, 1, sizeof(cplanes), fd);
-    fwrite (&bpp, 1, sizeof(bpp), fd);
-    fwrite (&compression, 1, sizeof(compression), fd);
-    fwrite (&isize, 1, sizeof(isize), fd);
-    fwrite (&hres, 1, sizeof(hres), fd);
-    fwrite (&vres, 1, sizeof(vres), fd);
-    fwrite (&cpalete, 1, sizeof(cpalete), fd);
-    fwrite (&important, 1, sizeof(important), fd);
-    return true;
+
+    size_t bytes = 0;
+    bytes += fwrite (&size, 1, sizeof(size), fd);
+    bytes += fwrite (&width, 1, sizeof(width), fd);
+    bytes += fwrite (&height, 1, sizeof(height), fd);
+    bytes += fwrite (&cplanes, 1, sizeof(cplanes), fd);
+    bytes += fwrite (&bpp, 1, sizeof(bpp), fd);
+    bytes += fwrite (&compression, 1, sizeof(compression), fd);
+    bytes += fwrite (&isize, 1, sizeof(isize), fd);
+    bytes += fwrite (&hres, 1, sizeof(hres), fd);
+    bytes += fwrite (&vres, 1, sizeof(vres), fd);
+    bytes += fwrite (&cpalete, 1, sizeof(cpalete), fd);
+    bytes += fwrite (&important, 1, sizeof(important), fd);
+
+    return (bytes == (size_t)size); // bytes == size --> wrote correct amount
 }
 
 

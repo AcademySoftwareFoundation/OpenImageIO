@@ -178,7 +178,11 @@ Jpeg2000Output::save_image()
 
     opj_encode(compressor, cio, m_image, NULL);
 
-    fwrite(cio->buffer, 1, cio_tell(cio), m_file);
+    size_t wb = fwrite(cio->buffer, 1, cio_tell(cio), m_file);
+    if (wb != (size_t)cio_tell(cio)) {
+    	error ("Failed write jpeg2000::save_image (err: %d)", wb);
+    	return false;
+    }
 
     opj_destroy_compress(compressor);
     opj_cio_close(cio);

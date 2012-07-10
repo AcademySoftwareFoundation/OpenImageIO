@@ -111,8 +111,8 @@ BmpOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
     for (int i = 0, iend = buf.size() - 2; i < iend; i += m_spec.nchannels)
         std::swap (buf[i], buf[i+2]);
 
-    fwrite (&buf[0], 1, buf.size (), m_fd);
-    return true;
+    size_t byte_count = fwrite (&buf[0], 1, buf.size (), m_fd);
+    return byte_count == buf.size (); // true if wrote all bytes (no error)
 }
 
 

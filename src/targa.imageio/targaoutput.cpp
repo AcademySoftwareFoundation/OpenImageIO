@@ -205,7 +205,8 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
     // due to struct packing, we may get a corrupt header if we just dump the
     // struct to the file; to adress that, write every member individually
     // save some typing
-#define WH(memb)    fwrite (&tga.memb, sizeof (tga.memb), 1, m_file)
+    size_t byte_count = 0;
+#define WH(memb)    byte_count += fwrite (&tga.memb, sizeof (tga.memb), 1, m_file)
     WH(idlen);
     WH(cmap_type);
     WH(type);
@@ -219,10 +220,20 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
     WH(bpp);
     WH(attr);
 #undef WH
+    if (byte_count != 12) { // number of members
+    	error ("Failed write targa::open (err: unknwn)");
+    	return false;
+    }
+
 
     // dump comment to file, don't bother about null termination
-    if (tga.idlen)
-        fwrite (id.c_str(), tga.idlen, 1, m_file);
+    if (tga.idlen) {
+    	byte_count = fwrite (id.c_str(), tga.idlen, 1, m_file);
+        if (byte_count != 1) {
+        	error ("Failed write targa::open (err: %d)", byte_count);
+        	return false;
+        }
+    }
 
     return true;
 }
@@ -232,8 +243,19 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 TGAOutput::close ()
 {
-    if (m_file) {
-        // write out the TGA 2.0 data fields
+	// This call is made a lot:
+#define WRITE_TMP_INT(count) { \
+		size_t byte_count = fwrite (&tmpint, count, 1, m_file); \
+		if (byte_count != 1) { \
+			error ("Failed write targa::close (err: %d)", byte_count); \
+			return false; \
+		} \
+	}
+
+	if (m_file) {
+        size_t byte_count = 0;
+
+		// write out the TGA 2.0 data fields
 
         // FIXME: write out the developer area; according to Larry,
         // it's probably safe to ignore it altogether until someone complains
@@ -259,10 +281,16 @@ TGAOutput::close ()
                             if (bigendian())
                                 swap_endian (&ofs_thumb);
                             // dump thumbnail size
-                            fwrite (&tw, 1, 1, m_file);
-                            fwrite (&th, 1, 1, m_file);
+                            size_t byte_count = 0;
+                            byte_count += fwrite (&tw, 1, 1, m_file);
+                            byte_count += fwrite (&th, 1, 1, m_file);
                             // dump thumbnail data
-                            fwrite (p->data(), p->datasize(), 1, m_file);
+                            byte_count += fwrite (p->data(), p->datasize(), 1, m_file);
+                            if (byte_count != 3) {
+                            	error ("Failed write targa::close (err: %d)", byte_count);
+
+                            	return false;
+                            }
                         }
                     }
                 }
@@ -281,17 +309,25 @@ TGAOutput::close ()
         short tmpint = 495;
         if (bigendian())
             swap_endian (&tmpint);
-        fwrite (&tmpint, sizeof (tmpint), 1, m_file);
+        WRITE_TMP_INT(1);
 
         tmpint = 0;
 
         // author
         std::string tmpstr = m_spec.get_string_attribute ("Artist", "");
-        fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
+
+        byte_count = fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
                 1, m_file);
+		if (byte_count != 1) {
+			error ("Failed write targa::close (err: %d)", byte_count);
+
+			return false;
+		}
+
         // fill the rest with zeros
-        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
-            fwrite (&tmpint, 1, 1, m_file);
+        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--) {
+        	WRITE_TMP_INT(1);
+        }
 
         // image comment
         tmpstr = m_spec.get_string_attribute ("ImageDescription", "");
@@ -303,21 +339,29 @@ TGAOutput::close ()
                 // on line breaks, fill the remainder of the line with zeros
                 if (p[pos] == '\n') {
                     while ((w + 1) % 81 != 0) {
-                        fwrite (&tmpint, 1, 1, m_file);
+                    	WRITE_TMP_INT(1);
+
                         w++;
                     }
                     continue;
                 }
-                fwrite (&p[pos], 1, 1, m_file);
+
+                byte_count = fwrite (&p[pos], 1, 1, m_file);
+				if (byte_count != 1) {
+					error ("Failed write targa::close (err: %d)", byte_count);
+
+					return false;
+				}
                 // null-terminate each line
                 if ((w + 1) % 81 == 0) {
-                    fwrite (&tmpint, 1, 1, m_file);
+                	WRITE_TMP_INT(1);
                     w++;
                 }
             }
             // fill the rest with zeros
-            for (; w < 324; w++)
-                fwrite (&tmpint, 1, 1, m_file);
+            for (; w < 324; w++) {
+            	WRITE_TMP_INT(1);
+            }
         }
 
         // timestamp
@@ -337,22 +381,39 @@ TGAOutput::close ()
                 swap_endian (&i);
                 swap_endian (&s);
             }
-            fwrite (&m, sizeof (m), 1, m_file);
-            fwrite (&d, sizeof (d), 1, m_file);
-            fwrite (&y, sizeof (y), 1, m_file);
-            fwrite (&h, sizeof (h), 1, m_file);
-            fwrite (&i, sizeof (i), 1, m_file);
-            fwrite (&s, sizeof (s), 1, m_file);
+            byte_count = fwrite (&m, sizeof (m), 1, m_file);
+            byte_count += fwrite (&d, sizeof (d), 1, m_file);
+            byte_count += fwrite (&y, sizeof (y), 1, m_file);
+            byte_count += fwrite (&h, sizeof (h), 1, m_file);
+            byte_count += fwrite (&i, sizeof (i), 1, m_file);
+            byte_count += fwrite (&s, sizeof (s), 1, m_file);
+            if (byte_count != 6) {
+            	error ("Failed write targa::close (err: %d)", byte_count);
+            	return false;
+            }
         }
 
         // job ID
         tmpstr = m_spec.get_string_attribute ("DocumentName", "");
-        fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
+        byte_count = fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
                 1, m_file);
-        // fill the rest with zeros
-        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
-            fwrite (&tmpint, 1, 1, m_file);
+		if (byte_count != 1) {
+			error ("Failed write targa::close (err: %d)", byte_count);
 
+			return false;
+		}
+
+        // fill the rest with zeros
+        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--) {
+            fwrite (&tmpint, 1, 1, m_file);
+            byte_count = fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
+                            1, m_file);
+			if (byte_count != 1) {
+				error ("Failed write targa::close (err: %d)", byte_count);
+
+				return false;
+			}
+        }
         // job time
         tmpstr = m_spec.get_string_attribute ("targa:JobTime", "");
         {
@@ -366,18 +427,27 @@ TGAOutput::close ()
                 swap_endian (&m);
                 swap_endian (&s);
             }
-            fwrite (&h, sizeof (h), 1, m_file);
-            fwrite (&m, sizeof (m), 1, m_file);
-            fwrite (&s, sizeof (s), 1, m_file);
+            byte_count = fwrite (&h, sizeof (h), 1, m_file);
+            byte_count += fwrite (&m, sizeof (m), 1, m_file);
+            byte_count += fwrite (&s, sizeof (s), 1, m_file);
+            if (byte_count != 3) {
+            	error ("Failed write targa::close (err: unknwn)");
+            	return false;
+            }
         }
 
         // software ID - we advertise ourselves
         tmpstr = OIIO_INTRO_STRING;
-        fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
+
+        byte_count += fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
                 1, m_file);
+		if (byte_count != 1) {
+			error ("Failed write targa::close (err: %d)", byte_count);
+			return false;
+		}
         // fill the rest with zeros
         for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
-            fwrite (&tmpint, 1, 1, m_file);
+            WRITE_TMP_INT(1);
 
         // software version
         {
@@ -386,14 +456,18 @@ TGAOutput::close ()
                     + OIIO_VERSION_PATCH;
             if (bigendian())
                 swap_endian (&v);
-            fwrite (&v, sizeof (v), 1, m_file);
-            fwrite (&tmpint, 1, 1, m_file);
+            byte_count +=  fwrite (&v, sizeof (v), 1, m_file);
+			if (byte_count != 1) {
+				error ("Failed write targa::close (err: %d)", byte_count);
+				return false;
+			}
+            WRITE_TMP_INT(1)
         }
 
         // key colour
         // FIXME: what do we save here?
-        fwrite (&tmpint, 2, 1, m_file);
-        fwrite (&tmpint, 2, 1, m_file);
+        WRITE_TMP_INT(2);
+        WRITE_TMP_INT(2);
 
         // pixel aspect ratio
         {
@@ -403,16 +477,16 @@ TGAOutput::close ()
                 // FIXME: invent a smarter way to convert to a vulgar fraction?
                 // numerator
                 tmpint = (unsigned short)(ratio * 10000.f);
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
                 // denominator
                 tmpint = 10000;
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
                 // reset tmpint value
                 tmpint = 0;
             } else {
                 // just dump two zeros in there
-                fwrite (&tmpint, 2, 1, m_file);
-                fwrite (&tmpint, 2, 1, m_file);
+            	WRITE_TMP_INT(2);
+            	WRITE_TMP_INT(2);
             }
         }
 
@@ -426,16 +500,16 @@ TGAOutput::close ()
                 // is needed, thus the expansion by 10
                 // numerator
                 tmpint = (unsigned short)(gamma * 10.f);
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
                 // denominator
                 tmpint = 10;
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
                 // reset tmpint value
                 tmpint = 0;
             } else {
                 // just dump two zeros in there
-                fwrite (&tmpint, 2, 1, m_file);
-                fwrite (&tmpint, 2, 1, m_file);
+            	WRITE_TMP_INT(2);
+            	WRITE_TMP_INT(2);
             }
         }
 
@@ -443,28 +517,40 @@ TGAOutput::close ()
         // FIXME: support this once it becomes clear how it's actually supposed
         // to be used... the spec is very unclear about this
         // for the time being just dump four NULL bytes
-        fwrite (&tmpint, 2, 1, m_file);
-        fwrite (&tmpint, 2, 1, m_file);
+        WRITE_TMP_INT(2);
+        WRITE_TMP_INT(2);
 
         // offset to thumbnail (endiannes has already been accounted for)
-        fwrite (&ofs_thumb, 4, 1, m_file);
+        byte_count = fwrite (&ofs_thumb, 4, 1, m_file);
+        if (byte_count != 1) {
+			error ("Failed write targa::close (err: %d)", byte_count);
+			return false;
+		}
 
         // offset to scanline table
         // not used very widely, don't bother unless someone complains
-        fwrite (&tmpint, 2, 1, m_file);
-        fwrite (&tmpint, 2, 1, m_file);
+        WRITE_TMP_INT(2);
+        WRITE_TMP_INT(2);
 
         // alpha type
         {
             unsigned char at = (m_spec.nchannels % 2 == 0)
                              ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
-            fwrite (&at, 1, 1, m_file);
+            byte_count = fwrite (&at, 1, 1, m_file);
+            if (byte_count != 1) {
+				error ("Failed write targa::close (err: %d)", byte_count);
+				return false;
+			}
         }
 
         // write out the TGA footer
-        fwrite (&foot.ofs_ext, 1, sizeof (foot.ofs_ext), m_file);
-        fwrite (&foot.ofs_dev, 1, sizeof (foot.ofs_dev), m_file);
-        fwrite (&foot.signature, 1, sizeof (foot.signature), m_file);
+        byte_count = fwrite (&foot.ofs_ext, 1, sizeof (foot.ofs_ext), m_file);
+        byte_count += fwrite (&foot.ofs_dev, 1, sizeof (foot.ofs_dev), m_file);
+        byte_count += fwrite (&foot.signature, 1, sizeof (foot.signature), m_file);
+        if (byte_count != sizeof(tga_footer)) {
+			error ("Failed write targa::close (err: unknwn)", byte_count);
+			return false;
+		}
 
         // close the stream
         fclose (m_file);
@@ -474,6 +560,8 @@ TGAOutput::close ()
     init ();      // re-initialize
     return true;  // How can we fail?
                   // Epicly. -- IneQuation
+
+#undef WRITE_TMP_INT
 }
 
 
@@ -486,9 +574,13 @@ TGAOutput::flush_rlp (unsigned char *buf, int size)
         return;
     // write packet header
     unsigned char h = (size - 1) | 0x80;
-    fwrite (&h, 1, 1, m_file);
+    size_t byte_count = fwrite (&h, 1, 1, m_file);
     // write packet pixel
-    fwrite (buf, m_spec.nchannels, 1, m_file);
+    byte_count += fwrite (buf, m_spec.nchannels, 1, m_file);
+    if (byte_count != 2) {
+		error ("Failed write targa::flush_rlp (err: unknwn)", byte_count);
+		return;
+	}
 }
 
 
@@ -508,7 +600,11 @@ TGAOutput::flush_rawp (unsigned char *& src, int size, int start)
     for (int i = 0; i < size; i++) {
         if (n <= 2) {
             // 1- and 2-channels can write directly
-            fwrite (src+start, 1, n, m_file);
+            size_t b = fwrite (src+start, 1, n, m_file);
+            if (b != (size_t)n) {
+            	error ("Write fail targa::flush_rawp (err: %d)", b);
+            	return;
+            }
         } else {
             // 3- and 4-channel must swap red and blue
             buf[0] = src[(start + i) * n + 2];
@@ -516,7 +612,12 @@ TGAOutput::flush_rawp (unsigned char *& src, int size, int start)
             buf[2] = src[(start + i) * n + 0];
             if (n > 3)
                 buf[3] = src[(start + i) * n + 3];
-            fwrite (buf, 1, n, m_file);
+
+            size_t b = fwrite (buf, 1, n, m_file);
+			if (b != (size_t)n) {
+				error ("Write fail targa::flush_rawp (err: %d)", b);
+				return;
+			}
         }
     }
 }
@@ -660,14 +761,23 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
         fseek(m_file, 18 + m_idlen + (m_spec.height - y - 1) * w * n, SEEK_SET);
         if (n <= 2) {
             // 1- and 2-channels can write directly
-            fwrite (bdata, n, w, m_file);
+            size_t c = fwrite (bdata, n, w, m_file);
+            if (c != (size_t)w) {
+            	error ("Failed write targa::write_scanline (err: %d)", c);
+            	return false;
+            }
         } else {
             // 3- and 4-channels must swap R and B
             std::vector<unsigned char> buf;
             buf.assign (bdata, bdata + n*w);
             for (int x = 0; x < m_spec.width; x++)
                 std::swap (buf[x*n], buf[x*n+2]);
-            fwrite (&buf[0], n, w, m_file);
+
+            size_t c = fwrite (&buf[0], n, w, m_file);
+			if (c != (size_t)w) {
+				error ("Failed write targa::write_scanline (err: %d)", c);
+				return false;
+			}
         }
     }
 
