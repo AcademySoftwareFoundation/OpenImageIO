@@ -344,6 +344,18 @@ public:
     void setpixel (int i, const float *pixel, int maxchannels=1000);
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
+    /// [ybegin..yend), channels [chbegin,chend) (all with exclusive
+    /// 'end'), specified as integer pixel coordinates, at the current
+    /// MIP-map level, storing the pixel values beginning at the address
+    /// specified by result.  It is up to the caller to ensure that
+    /// result points to an area of memory big enough to accommodate the
+    /// requested rectangle.  Return true if the operation could be
+    /// completed, otherwise return false.
+    bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend, int chbegin, int chend,
+                             TypeDesc format, void *result) const;
+
+    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
     /// [ybegin..yend) (with exclusive 'end'), specified as integer
     /// pixel coordinates, at the current MIP-map level, storing the
     /// pixel values beginning at the address specified by result.  It
@@ -364,8 +376,17 @@ public:
     /// enough to accommodate the requested rectangle.  Return true if
     /// the operation could be completed, otherwise return false.
     template<typename T>
+    bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend, int chbegin, int chend,
+                             T *result) const;
+
+    template<typename T>
     bool get_pixels (int xbegin, int xend, int ybegin, int yend,
-                      int zbegin, int zend, T *result) const;
+                     int zbegin, int zend, T *result) const
+    {
+        return get_pixel_channels (xbegin, xend, ybegin, yend, zbegin, zend,
+                                   0, nchannels(), result);
+    }
 
     /// Even safer version of get_pixels: Retrieve the rectangle of
     /// pixels spanning [xbegin..xend) X [ybegin..yend) (with exclusive
@@ -382,7 +403,6 @@ public:
         return get_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
                            &result[0]);
     }
-
 
     int orientation () const { return m_orientation; }
 
