@@ -32,7 +32,7 @@
     will only accept "RADIANCE" as the programtype.
 */
 
-#ifdef _CPLUSPLUS
+#if defined(_CPLUSPLUS) || defined(__cplusplus)
 /* define if your compiler understands inline commands */
 #define INLINE inline
 #else
