@@ -82,7 +82,13 @@ WebpInput::open (const std::string &name, ImageSpec &spec)
 
     std::vector<uint8_t> encoded_image;
     encoded_image.resize(m_image_size, 0);
-    fread(&encoded_image[0], sizeof(uint8_t), encoded_image.size(), m_file);
+    int numRead = fread(&encoded_image[0], sizeof(uint8_t), encoded_image.size(), m_file);
+    if (numRead != encoded_image.size()) {
+    	error ("Did not read correct amount of images. (expected %d, read %d)",
+    			encoded_image.size(), numRead);
+    	close ();
+    	return false;
+    }
 
     int width = 0, height = 0;
     if(!WebPGetInfo(&encoded_image[0], encoded_image.size(), &width, &height))
