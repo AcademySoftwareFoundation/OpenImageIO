@@ -353,6 +353,50 @@ bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 
 
+/// ImageBufAlgo::histogram --------------------------------------------------
+/// Parameters:
+/// A           - input image that contains the one channel to be histogramed.
+///               A must have at least one channel, but it can have more.
+/// channel     - index of the channel to be histogramed.
+/// histogram   - clear old content and store the histogram here.
+/// bins        - number of bins.
+/// cumulative  - if true then compute cumulative histogram, otherwise compute
+///               regular histogram.
+/// min, max    - pixel values outside of the min->max range are not used for
+///               computing the histogram.
+/// submin      - store number of pixel values < min.
+/// supermax    - store number of pixel values > max.
+/// roi         - only pixels in this region of the image are histogramed.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC histogram (const ImageBuf &A, int channel,
+                         std::vector<imagesize_t> &histogram, int bins=256,
+                         bool cumulative=false, float min=0, float max=1,
+                         imagesize_t *submin=NULL, imagesize_t *supermax=NULL,
+                         ROI roi=ROI());
+
+
+
+/// ImageBufAlgo::histogram_draw ---------------------------------------------
+/// Parameters:
+/// histogram   - the histogram to be drawn, must have at least 1 bin.
+/// R           - output image where the histogram will be drawn. R must have
+///               3 channels because the colors for the histogram may be
+///               modified later.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC histogram_draw (const std::vector<imagesize_t> &histogram,
+                               ImageBuf &R);
+
+
+
+/// ImageBufAlgo::histogram_text ---------------------------------------------
+/// Parameters:
+/// histogram   - the histogram to be saved as text file.
+/// file        - path to text file where the histogram will be saved.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC histogram_text (const std::vector<imagesize_t> &histogram,
+                               const char *file);
+
+
 
 /// Helper template for generalized multithreading for image processing
 /// functions.  Some function/functor f is applied to every pixel the
