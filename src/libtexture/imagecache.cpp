@@ -980,7 +980,7 @@ ImageCacheImpl::find_file (ustring filename,
             // What if we've opened another file, with a different name,
             // but the SAME pixels?  It can happen!  Bad user, bad!  But
             // let's save them from their own foolishness.
-            bool was_duplicate = false;
+//            bool was_duplicate = false; // FIXME Unused Variable, should this be checked in the loop?
             if (tf->fingerprint() && m_deduplicate) {
                 // std::cerr << filename << " hash=" << tf->fingerprint() << "\n";
                 ImageCacheFile *dup = find_fingerprint (tf->fingerprint(), tf);
@@ -999,7 +999,7 @@ ImageCacheImpl::find_file (ustring filename,
                         tf->m_sample_border == dup->m_sample_border) {
                         tf->duplicate (dup);
                         tf->close ();
-                        was_duplicate = true;
+//                        was_duplicate = true; // FIXME Unused Variable
                         // std::cerr << "  duplicates " 
                         //   << fingerfound->second.get()->filename() << "\n";
                     }

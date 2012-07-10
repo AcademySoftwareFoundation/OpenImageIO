@@ -1611,7 +1611,7 @@ namespace dpx
 	
 	inline void GenericHeader::SetCreator(const char *creat)
 	{
-		::strncpy(this->creator, creat, 200);
+		::strncpy(this->creator, creat, 100);
 	}
 	
 	inline void GenericHeader::Project(char *prj) const
