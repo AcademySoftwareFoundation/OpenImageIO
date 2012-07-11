@@ -309,7 +309,8 @@ bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
 
 /// Set R to the composite of A over B using the Porter/Duff definition
 /// of "over", returning true upon success and false for any of a
-/// variety of failures (as described below).
+/// variety of failures (as described below).  All three buffers must
+/// have 'float' pixel data type.
 ///
 /// A and B must have valid alpha channels identified by their ImageSpec
 /// alpha_channel field, with the following two exceptions: (a) a
