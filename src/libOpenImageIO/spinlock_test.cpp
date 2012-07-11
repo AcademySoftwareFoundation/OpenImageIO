@@ -38,6 +38,7 @@
 #include "ustring.h"
 
 #include <boost/thread/thread.hpp>
+#include <boost/bind.hpp>
 
 #include "unittest.h"
 
@@ -49,9 +50,11 @@ OIIO_NAMESPACE_USING;
 // accumulated value is equal to iterations*threads, then the spin locks
 // worked.
 
-static int iterations = 100000000;
+static int iterations = 160000000;
 static int numthreads = 16;
+static int ntrials = 1;
 static bool verbose = false;
+static bool wedge = false;
 
 static spin_mutex print_mutex;  // make the prints not clobber each other
 volatile long long accum = 0;
@@ -59,8 +62,9 @@ spin_mutex mymutex;
 
 
 
+
 static void
-do_accum ()
+do_accum (int iterations)
 {
     if (verbose) {
         spin_lock lock(print_mutex);
@@ -75,25 +79,16 @@ do_accum ()
 
 
 
-void test_spinlock ()
+void test_spinlock (int numthreads, int iterations)
 {
-    if (verbose) {
-        spin_lock lock(print_mutex);
-        std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
-    }
-
     accum = 0;
     boost::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (&do_accum);
+        threads.create_thread (boost::bind(do_accum,iterations));
     }
-    if (verbose) {
-        spin_lock lock(print_mutex);
-        std::cout << "Created " << threads.size() << " threads\n";
-    }
+    ASSERT ((int)threads.size() == numthreads);
     threads.join_all ();
-    int a = (int) accum;
-    OIIO_CHECK_EQUAL (a, (int)(numthreads * iterations));
+    OIIO_CHECK_EQUAL (accum, ((long long)iterations * (long long)numthreads));
 }
 
 
@@ -113,6 +108,8 @@ getargs (int argc, char *argv[])
                     ustring::format("Number of threads (default: %d)", numthreads).c_str(),
                 "--iters %d", &iterations,
                     ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+                "--trials %d", &ntrials, "Number of trials",
+                "--wedge", &wedge, "Do a wedge test",
                 NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -130,14 +127,26 @@ getargs (int argc, char *argv[])
 int main (int argc, char *argv[])
 {
     getargs (argc, argv);
-    std::cout << "Running " << iterations << " on " << numthreads << "\n";
 
-    Timer timer;
-    test_spinlock ();
-    std::cout << "accum = " << accum << ", expect " 
-              << ((long long)iterations * (long long)numthreads) << "\n";
-    std::cout << "Time: " << Strutil::timeintervalformat (timer()) << "\n";
-    OIIO_CHECK_EQUAL (accum, ((long long)iterations * (long long)numthreads));
+    std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
+    std::cout << "threads\ttime (best of " << ntrials << ")\n";
+    std::cout << "-------\t----------\n";
+
+    static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
+    for (int i = 0; threadcounts[i] <= numthreads; ++i) {
+        int nt = threadcounts[i];
+        int its = iterations/nt;
+
+        double range;
+        double t = time_trial (boost::bind(test_spinlock,nt,its),
+                               ntrials, &range);
+
+        std::cout << Strutil::format ("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n",
+                                      nt, Strutil::timeintervalformat(t),
+                                      t, range, its);
+        if (! wedge)
+            break;    // don't loop if we're not wedging
+    }
 
     return unit_test_failures;
 }
