@@ -139,7 +139,7 @@ inline int
 quantize (float value, float quant_black, float quant_white,
           int quant_min, int quant_max)
 {
-    value = Imath::lerp (quant_black, quant_white, value);
+    value = Imath::lerp ((float)quant_black, (float)quant_white, value);
     return Imath::clamp ((int)(value + 0.5f), quant_min, quant_max);
 }
 
