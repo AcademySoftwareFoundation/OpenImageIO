@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <iostream>
+#include <fstream>
 #include <iterator>
 #include <vector>
 #include <string>
@@ -1448,7 +1449,7 @@ action_over (int argc, const char *argv[])
 ///                   Histogram channel 0 in the input image "in" and save it
 ///                   as an image "out". Create 256 bins which means that the
 ///                   width of the output image will be 256. The height of the
-///                   output image is also 256. The resulting histogram is 
+///                   output image is also 256. The resulting histogram is
 ///                   not cumulative. Empty string needs to be provided
 ///                   instead of a text file path.
 ///
@@ -1471,25 +1472,36 @@ action_histogram (int argc, const char *argv[])
     const ImageBuf &Aib ((*A)());
 
     // Get arguments from command line.
-    int channel = atoi (argv[1]);
-    int bins = atoi (argv[2]);
-    bool cumulative = (bool) atoi (argv[4]);
-    bool output_format = (bool) atoi (argv[5]);
+    int channel         = atoi (argv[1]);
+    int bins            = atoi (argv[2]);
+    int height          = atoi (argv[3]);
+    int cumulative      = atoi (argv[4]);
+    int output_format   = atoi (argv[5]);
+    const char *file    = argv[6];
 
-    // Compute histogram.
+    // Compute regular histogram.
     std::vector<imagesize_t> hist;
-    ImageBufAlgo::histogram (Aib, channel, hist, bins, cumulative);
+    ImageBufAlgo::histogram (Aib, channel, hist, bins);
 
-    // Output histogram as image or text.
+    // Compute cumulative histogram if specified.
+    if (cumulative == 1)
+        for (int i = 1; i < bins; i++)
+            hist[i] += hist[i-1];
+
+    // Output as image.
     if (output_format == 1) {
-        int height = atoi (argv[3]);
-        ImageSpec specR (bins, height, 3, TypeDesc::FLOAT);
+        ImageSpec specR (bins, height, 1, TypeDesc::FLOAT);
         ot.push (new ImageRec ("irec", specR, ot.imagecache));
         ImageBuf &Rib ((*ot.curimg)());
         ImageBufAlgo::histogram_draw (hist, Rib);
-    } else {
-        const char *file = argv[6];
-        ImageBufAlgo::histogram_text (hist, file);
+    }
+    // Output as text.
+    else {
+        std::ofstream s (file);
+        if (! s.is_open()) return false;
+        for (int i = 0; i < bins; i++)
+            s << i << " " << hist[i] << "\n";
+        s.close();
     }
 
     return 0;

@@ -45,7 +45,6 @@
 
 #include <cmath>
 #include <iostream>
-#include <fstream>
 #include <limits>
 #include <stdexcept>
 
@@ -1337,57 +1336,66 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
 
 
 
+namespace { // anonymous namespace
+
+// Fully type-specialized version of histogram.
+template<class Atype>
+bool
+histogram_impl (const ImageBuf &A, int channel,
+                std::vector<imagesize_t> &histogram, int bins,
+                float min, float max, imagesize_t *submin,
+                imagesize_t *supermax, ROI roi)
+{
+    // Double check ImageBuf types.
+    if (A.spec().format != BaseTypeFromC<Atype>::value)
+        return false;
+
+    // Initialize.
+    ImageBuf::ConstIterator<Atype, float> a (A, roi);
+    float ratio = bins / (max-min);
+    if (submin != NULL) *submin = 0;
+    if (supermax != NULL) *supermax = 0;
+    histogram.assign(bins, 0);
+
+    // Compute histogram.
+    for ( ; ! a.done(); a++) {
+        float c = a[channel];
+        if (c >= min && c <= max) {
+            // Map range min->max to 0->(bins-1).
+            histogram[ (c==max) ? bins-1 : (int) ((c-min) * ratio) ]++;
+        } else {
+            if (submin != NULL && c < min) (*submin)++;
+            if (supermax != NULL && c > max) (*supermax)++;
+        }
+    }
+    return true;
+}
+
+} // anonymous namespace
+
+
+
 bool
 ImageBufAlgo::histogram (const ImageBuf &A, int channel,
                          std::vector<imagesize_t> &histogram, int bins,
-                         bool cumulative, float min, float max,
-                         imagesize_t *submin, imagesize_t *supermax,
-                         ROI roi)
+                         float min, float max, imagesize_t *submin,
+                         imagesize_t *supermax, ROI roi)
 {
-    // Input image A must have at least 1 channel.
-    if (A.nchannels() == 0)
+    // Input validation.
+    if (A.nchannels()==0 || channel<0 || channel>=A.nchannels() || bins<1 ||
+        max-min <= 0)
         return false;
 
-    // Is the channel valid?
-    if (channel < 0 || channel >= A.nchannels())
-        return false;
-
-    // There must be at least one bin.
-    if (bins < 1)
-        return false;
-
-    // Is min to max a valid range?
-    if (max - min <= 0)
+    // Check ImageBuf types.
+    if (A.spec().format != TypeDesc::TypeFloat)
         return false;
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from A.
     if (! roi.defined)
         roi = get_roi (A.spec());
 
-    // Initialize.
-    ImageBuf::ConstIterator<float, float> a (A, roi);
-    float ratio = bins / (max-min);
-    if (submin != NULL) *submin = 0;
-    if (supermax != NULL) *supermax = 0;
-    histogram.assign(bins, 0);
-
-    for ( ; ! a.done(); a++) {
-        if (a[channel] >= min && a[channel] <= max) {
-            // Map range min->max to 0->(bins-1).
-            int i = (a[channel]==max) ? bins-1
-                                      : (int) ((a[channel]-min) * ratio);
-            histogram[i]++;
-        } else {
-            if (submin != NULL && a[channel] < min) (*submin)++;
-            if (supermax != NULL && a[channel] > max) (*supermax)++;
-        }
-    }
-
-    // If cumulative == true then calculate cumulative histogram.
-    if (cumulative)
-        for (int i = 1; i < bins; i++)
-            histogram[i] += histogram[i-1];
-
+    histogram_impl<float> (A, channel, histogram, bins, min, max,
+                           submin, supermax, roi);
     return true;
 }
 
@@ -1397,23 +1405,21 @@ bool
 ImageBufAlgo::histogram_draw (const std::vector<imagesize_t> &histogram,
                               ImageBuf &R)
 {
-    // Output image R must have exactly 3 channels.
-    if (R.nchannels() != 3)
-        return false;
-
-    // Width of output image must equal number of bins.
+    // Fail if there are no bins to draw.
     int bins = histogram.size();
-    if (R.spec().width != bins)
-        return false;
+    if (bins == 0) return false;
 
-    // Fail if there are no bins to draw.    
-    if (bins == 0)
-        return false;
+    // Check R and modify it if needed.
+    if (R.spec().format != TypeDesc::TypeFloat || R.nchannels() != 1 ||
+        R.spec().width != bins) {
+        //const ImageSpec specR (bins, R.spec().height, 1, TypeDesc::FLOAT);
+        //R.reres (specR);
+    }
 
     // Fill output image R with white color.
     ImageBuf::Iterator<float, float> r (R);
     for ( ; ! r.done(); ++r)
-        r[0] = r[1] = r[2] = 1;
+        r[0] = 1;
 
     // Draw histogram left->right, bottom->up.
     int height = R.spec().height;
@@ -1424,26 +1430,10 @@ ImageBufAlgo::histogram_draw (const std::vector<imagesize_t> &histogram,
             for (int j = 1; j <= h; j++) {
                 int row = height - j;
                 r.pos (b, row);
-                r[0] = r[1] = r[2] = 0;
+                r[0] = 0;
             }
         }
     }
-    return true;
-}
-
-
-
-bool
-ImageBufAlgo::histogram_text (const std::vector<imagesize_t> &histogram,
-                              const char *file)
-{
-    int bins = histogram.size();
-    std::ofstream s (file);
-    if (! s.is_open())
-        return false;
-    for (int i = 0; i < bins; i++)
-        s << i << " " << histogram[i] << "\n";
-    s.close();
     return true;
 }
 
