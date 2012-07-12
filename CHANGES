@@ -1,6 +1,13 @@
 Changes:
 
 
+Release 0.10.9 (12 Jul 2012)
+----------------------------
+* Fix a bug in quantize that could, in some circumstances, have 8-bit files
+  with some alpha pixels as 254 instead of 255 even when they should be
+  completely opaque.
+
+
 Release 0.10.8 (16 Apr 2012)
 ----------------------------
 * Fix reading bugs in DPX and Cineon.
