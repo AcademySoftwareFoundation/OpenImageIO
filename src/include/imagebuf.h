@@ -818,7 +818,7 @@ public:
         }
         /// Construct read-only clamped valid iteration region
         /// from ImageBuf and ROI.
-        ConstIterator (ImageBuf &ib, const ROI &roi)
+        ConstIterator (const ImageBuf &ib, const ROI &roi)
             : m_ib(&ib), m_tile(NULL)
         {
             init_ib ();
