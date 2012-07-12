@@ -1225,6 +1225,13 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     int non_alpha_B = has_alpha_B ? (channels_B - 1) : 3;
     bool B_not_34 = channels_B != 3 && channels_B != 4;
 
+    // At present, this operation only supports ImageBuf's containing
+    // float pixel data.
+    if (R.spec().format != TypeDesc::TypeFloat ||
+        A.spec().format != TypeDesc::TypeFloat ||
+        B.spec().format != TypeDesc::TypeFloat)
+        return false;
+
     // Fail if the input images have a Z channel.
     if (specA.z_channel >= 0 || specB.z_channel >= 0)
         return false;
@@ -1275,14 +1282,7 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     // Specified ROI -> use it. Unspecified ROI -> initialize from R.
     if (! roi.defined) {
         roi = get_roi (R.spec());
-    }
-
-    // At present, this operation only supports ImageBuf's containing
-    // float pixel data.
-    if (R.spec().format != TypeDesc::TypeFloat ||
-        A.spec().format != TypeDesc::TypeFloat ||
-        B.spec().format != TypeDesc::TypeFloat)
-        return false;
+    }    
 
     parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
                                  boost::cref(A), boost::cref(B), _1),
