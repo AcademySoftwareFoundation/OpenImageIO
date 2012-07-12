@@ -241,6 +241,12 @@ public:
     /// describes the buffer.
     const ImageSpec & spec () const { return m_spec; }
 
+    /// Return a writable reference to the image spec that describes the
+    /// buffer.  Use with extreme caution!  If you use this for anything
+    /// other than adding attribute metadata, you are really taking your
+    /// chances!
+    ImageSpec & specmod () { return m_spec; }
+
     /// Return a read-only (const) reference to the "native" image spec
     /// (that describes the file, which may be slightly different than
     /// the spec of the ImageBuf, particularly if the IB is backed by an
