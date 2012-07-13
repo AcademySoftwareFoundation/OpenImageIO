@@ -6,7 +6,8 @@
 #include <ai_render.h>
 #include <ai_universe.h>
 
-#include <OpenImageIO/imageio.h>
+#include "imageio.h"
+#include "server.h"
 #include <cstdio>
 
 OIIO_NAMESPACE_USING
@@ -21,7 +22,7 @@ typedef struct
 node_parameters
 {
    AiParameterSTR("filename", "");
-   AiParameterStr("port", default_port);
+   AiParameterInt("port", default_port);
    AiParameterStr("host", default_host);
 
    AiMetaDataSetStr(mds, NULL, "maya.translator", "socket");
@@ -128,7 +129,7 @@ driver_open
    spec.full_depth = 1;
    spec.tile_width = bucket_size;
    spec.tile_height = bucket_size;
-   spec.attribute("port", AiNodeGetStr(node, "port"));
+   spec.attribute("port", AiNodeGetInt(node, "port"));
    spec.attribute("host", AiNodeGetStr(node, "host"));
 
    if (!out->open(filename, spec))

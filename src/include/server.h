@@ -56,7 +56,7 @@ using boost::asio::ip::tcp;
 typedef boost::shared_ptr<boost::asio::io_service> io_service_ptr;
 typedef boost::shared_ptr<boost::asio::io_service::work> work_ptr;
 
-const char default_port[] = "10110";
+const int  default_port = 10110;
 const char default_host[] = "127.0.0.1";
 
 /// Represents a successful server connection.

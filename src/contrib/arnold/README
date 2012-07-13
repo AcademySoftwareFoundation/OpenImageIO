@@ -1,0 +1,22 @@
+to test, first launch iv in foreground mode:
+
+	iv -F
+
+then, from a different shell, run kick.  but first, you need to setup
+DYLD_LIBRARY_PATH:
+
+	export DYLD_LIBRARY_PATH=${ARNOLD_HOME}/bin:${OIIO_DIST}/lib
+
+on osx, make sure that arnold's library path comes first, so that kick does not find the newer,
+incompatible library in OIIO_DIST. Alternately, you can simply remove the unversioned
+symlink:
+
+	rm ${OIIO_DIST}/lib/libOpenImageIO.dylib
+
+then ensure arnold finds the "arnold_driver" plugin:
+
+	export ARNOLD_PLUGIN_PATH=${OIIO_DIST}/lib
+
+then render the test file:
+
+	kick -dp -dw test.ass

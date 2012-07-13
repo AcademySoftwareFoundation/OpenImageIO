@@ -27,7 +27,7 @@
 
   (This is the Modified BSD License)
 */
-
+#include <sstream>
 #include <boost/lexical_cast.hpp>
 
 #include "imageio.h"
@@ -218,7 +218,9 @@ SocketOutput::send_header_to_server (const std::string &header)
 bool
 SocketOutput::connect_to_server (const std::string &name, const ImageSpec& spec)
 {
-    std::string port = spec.get_string_attribute("port", default_port);
+    std::stringstream ports;
+    ports << spec.get_int_attribute("port", default_port);
+    std::string port = ports.str();
     std::string host = spec.get_string_attribute("host", default_host);
 
     std::cout << "name: " << name << std::endl;

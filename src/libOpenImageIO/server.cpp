@@ -77,7 +77,8 @@ Session::get_filename (std::string &filename)
 
 
 
-SocketServer::SocketServer(boost::asio::io_service& io_service, short port, boost::function<void(std::string&)> accept_handler)
+SocketServer::SocketServer(boost::asio::io_service& io_service, short port,
+                           boost::function<void(std::string&)> accept_handler)
     : m_io_service(io_service),
       m_acceptor(io_service, tcp::endpoint(tcp::v4(), port)),
       m_accept_handler(accept_handler)

@@ -1,0 +1,10 @@
+
+find_package (arnold)
+if (ARNOLD_FOUND)
+    include_directories (${ARNOLD_INCLUDE_DIR})
+    set (arnold_srcs driver_socket.cpp)
+    add_library (arnold_driver SHARED ${arnold_srcs})
+    set_target_properties (arnold_driver PROPERTIES PREFIX "")
+    target_link_libraries (arnold_driver OpenImageIO ${ARNOLD_LIBRARY})
+    oiio_install_targets (arnold_driver)
+endif ()

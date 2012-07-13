@@ -1,7 +1,0 @@
-to test, first launch iv in foreground mode:
-
-	iv -F
-
-then render the test file:
-
-	kick -dp -dw test.ass
