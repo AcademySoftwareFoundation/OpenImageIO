@@ -1346,15 +1346,17 @@ histogram_impl (const ImageBuf &A, int channel,
                 float min, float max, imagesize_t *submin,
                 imagesize_t *supermax, ROI roi)
 {
-    // Double check ImageBuf types.
-    if (A.spec().format != BaseTypeFromC<Atype>::value)
-        return false;
+    // Double check A's type.
+    if (A.spec().format != BaseTypeFromC<Atype>::value) return false;
 
     // Initialize.
     ImageBuf::ConstIterator<Atype, float> a (A, roi);
     float ratio = bins / (max-min);
-    if (submin != NULL) *submin = 0;
-    if (supermax != NULL) *supermax = 0;
+    int bins_minus_1 = bins-1;
+    bool submin_ok = submin != NULL;
+    bool supermax_ok = supermax != NULL;
+    if (submin_ok) *submin = 0;
+    if (supermax_ok) *supermax = 0;
     histogram.assign(bins, 0);
 
     // Compute histogram.
@@ -1362,10 +1364,10 @@ histogram_impl (const ImageBuf &A, int channel,
         float c = a[channel];
         if (c >= min && c <= max) {
             // Map range min->max to 0->(bins-1).
-            histogram[ (c==max) ? bins-1 : (int) ((c-min) * ratio) ]++;
+            histogram[ c==max ? bins_minus_1 : (int) ((c-min) * ratio) ]++;
         } else {
-            if (submin != NULL && c < min) (*submin)++;
-            if (supermax != NULL && c > max) (*supermax)++;
+            if (submin_ok && c < min) (*submin)++;
+            else if (supermax_ok) (*supermax)++;
         }
     }
     return true;
@@ -1382,17 +1384,12 @@ ImageBufAlgo::histogram (const ImageBuf &A, int channel,
                          imagesize_t *supermax, ROI roi)
 {
     // Input validation.
-    if (A.nchannels()==0 || channel<0 || channel>=A.nchannels() || bins<1 ||
-        max-min <= 0)
-        return false;
-
-    // Check ImageBuf types.
-    if (A.spec().format != TypeDesc::TypeFloat)
+    if (A.spec().format != TypeDesc::TypeFloat || A.nchannels() == 0 ||
+        channel < 0 || channel >= A.nchannels() || bins < 1 || max-min <= 0)
         return false;
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from A.
-    if (! roi.defined)
-        roi = get_roi (A.spec());
+    if (! roi.defined) roi = get_roi (A.spec());
 
     histogram_impl<float> (A, channel, histogram, bins, min, max,
                            submin, supermax, roi);
@@ -1418,16 +1415,16 @@ ImageBufAlgo::histogram_draw (const std::vector<imagesize_t> &histogram,
 
     // Fill output image R with white color.
     ImageBuf::Iterator<float, float> r (R);
-    for ( ; ! r.done(); ++r)
-        r[0] = 1;
+    for ( ; ! r.done(); ++r) r[0] = 1;
 
     // Draw histogram left->right, bottom->up.
     int height = R.spec().height;
     imagesize_t max = *std::max_element (histogram.begin(), histogram.end());
     for (int b = 0; b < bins; b++) {
-        int h = (int) ((float)histogram[b] / (float)max * height + 0.5f);
-        if (h != 0) {
-            for (int j = 1; j <= h; j++) {
+        int bin_height = (int) ((float)histogram[b]/(float)max*height + 0.5f);
+        if (bin_height != 0) {
+            // Draw one bin at column b.
+            for (int j = 1; j <= bin_height; j++) {
                 int row = height - j;
                 r.pos (b, row);
                 r[0] = 0;

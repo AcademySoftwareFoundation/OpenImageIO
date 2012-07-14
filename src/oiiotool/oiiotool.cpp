@@ -1429,36 +1429,26 @@ action_over (int argc, const char *argv[])
 
 
 /// action_histogram ---------------------------------------------------------
-/// usage:          - ./oiiotool in --histogram channel bins
+/// Usage           - ./oiiotool in --histogram channel bins
 ///                   height cumulative output_format text_file_path -o out
 ///
-/// in              - input image that contains the one channel to be
-///                   histogramed.
-/// channel         - the channel in the input image to be histogramed.
-/// bins            - number of bins, equivalent to width of histogram window.
-/// height          - height of histogram window.
-/// cumulative      - if 1 the histogram is cumulative, otherwise it is a
-///                 - regular histogram.
-/// output_format   - if 1 then save the histogram as image, if 0 save it
-///                   as a text file.
-/// text_file_path  - path to text file where the histogram will be saved.
-/// out             - path to output image.
+/// in              - Input image that contains the channel to be histogramed.
+/// channel         - The channel in the input image to be histogramed.
+/// bins            - Number of bins equals histogram's width.
+/// height          - Histogram's height.
+/// cumulative      - 1 -> cumulative histogram, 0 -> regular histogram.
+/// output_format   - Save histogram as: 1 -> image, 0 -> text file.
+/// text_file_path  - Path to text file where the histogram will be saved.
+/// out             - Output image.
 ///
-/// examples:       - ./oiiotool in --histogram 0 256 256 0 1 "" -o out
+/// Examples        - ./oiiotool in --histogram 0 256 256 0 1 "" -o out
 ///
-///                   Histogram channel 0 in the input image "in" and save it
-///                   as an image "out". Create 256 bins which means that the
-///                   width of the output image will be 256. The height of the
-///                   output image is also 256. The resulting histogram is
-///                   not cumulative. Empty string needs to be provided
-///                   instead of a text file path.
+///                   Save the non-cumulative histogram of channel 0 in image
+///                   'in', as an image with size 256x256.
 ///
 ///                 - ./oiiotool in --histogram 0 256 256 0 0 text_file_path
 ///
-///                   This time we save the histogram as a text file rather
-///                   than as an image, so there is no need to specify output
-///                   image, but we do need to specify the path to the text
-///                   file.
+///                   Same as the previous example, but now save as text file.
 /// --------------------------------------------------------------------------
 static int
 action_histogram (int argc, const char *argv[])
@@ -1473,11 +1463,17 @@ action_histogram (int argc, const char *argv[])
 
     // Get arguments from command line.
     int channel         = atoi (argv[1]);
-    int bins            = atoi (argv[2]);
-    int height          = atoi (argv[3]);
-    int cumulative      = atoi (argv[4]);
-    int output_format   = atoi (argv[5]);
-    const char *file    = argv[6];
+    const char *size    = argv[2];
+    int cumulative      = atoi (argv[3]);
+    int output_format   = atoi (argv[4]);
+    const char *file    = argv[5];
+
+    // Extract bins and height from size.
+    int bins = 0, height = 0;
+    if (sscanf (size, "%dx%d", &bins, &height) != 2) {
+        std::cerr << "Invalid size" << "\n";
+        return -1;
+    }
 
     // Compute regular histogram.
     std::vector<imagesize_t> hist;
@@ -1498,7 +1494,7 @@ action_histogram (int argc, const char *argv[])
     // Output as text.
     else {
         std::ofstream s (file);
-        if (! s.is_open()) return false;
+        if (! s.is_open()) return -1;
         for (int i = 0; i < bins; i++)
             s << i << " " << hist[i] << "\n";
         s.close();
@@ -1584,7 +1580,7 @@ getargs (int argc, char *argv[])
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
                 "--over %@", action_over, NULL, "'Over' composite of two images",
-                "--histogram %@ %d %d %d %d %d %s", action_histogram, NULL, NULL, NULL, NULL, NULL, NULL, "Histogram one channel",
+                "--histogram %@ %d %s %d %d %s", action_histogram, NULL, NULL, NULL, NULL, NULL, "Histogram one channel",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",

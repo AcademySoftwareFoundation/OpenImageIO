@@ -355,16 +355,31 @@ bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 /// ImageBufAlgo::histogram --------------------------------------------------
 /// Parameters:
-/// A           - input image that contains the one channel to be histogramed.
-///               A must have at least one channel, but it can have more.
-/// channel     - index of the channel to be histogramed.
-/// histogram   - clear old content and store the histogram here.
-/// bins        - number of bins.
-/// min, max    - pixel values outside of the min->max range are not used for
-///               computing the histogram.
-/// submin      - store number of pixel values < min.
-/// supermax    - store number of pixel values > max.
-/// roi         - only pixels in this region of the image are histogramed.
+/// A           - Input image that contains the one channel to be histogramed.
+///               A must contain float pixel data and have at least 1 channel,
+///               but it can have more.
+/// channel     - Only this channel in A will be histogramed. It must be int
+///               bigger or equal to 0 and smaller than the number of channels
+///               in A.
+/// histogram   - Clear old content and store the histogram here.
+/// bins        - Number of bins must be at least 1.
+/// min, max    - Pixel values outside of the min->max range are not used for
+///               computing the histogram. If min<max then the range is valid.
+/// submin      - Store number of pixel values < min.
+/// supermax    - Store number of pixel values > max.
+/// roi         - Only pixels in this region of the image are histogramed. If
+///               roi is not defined then the full size image will be
+///               histogramed.
+///
+/// Implementation details:
+///
+///             - Pixel values in min->max range are mapped to 0->(bins-1)
+///               range, so that each value is placed in the appropriate bin.
+///               The formula used is: y = (x-min) * bins/(max-min), where
+///               y is the value in the 0->(bins-1) range and x is the value
+///               in the min->max range. There is one special case x==max
+///               for which the formula is not used and x is assigned to the
+///               last bin at position (bins-1) in the vector histogram.
 /// --------------------------------------------------------------------------
 bool DLLPUBLIC histogram (const ImageBuf &A, int channel,
                           std::vector<imagesize_t> &histogram, int bins=256,
@@ -375,10 +390,9 @@ bool DLLPUBLIC histogram (const ImageBuf &A, int channel,
 
 /// ImageBufAlgo::histogram_draw ---------------------------------------------
 /// Parameters:
-/// histogram   - the histogram to be drawn, must have at least 1 bin.
-/// R           - output image with one channel where the histogram will be
-///               drawn. If R has different width than the number of bins
-///               in the histogram, then resize R to fit the number of bins.
+/// histogram   - The histogram to be drawn, must have at least 1 bin.
+/// R           - R should have only 1 channel with float pixel data, and
+///               width equal to the number of elements in histogram.
 /// --------------------------------------------------------------------------
 bool DLLPUBLIC histogram_draw (const std::vector<imagesize_t> &histogram,
                                ImageBuf &R);
