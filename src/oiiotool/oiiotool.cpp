@@ -1429,24 +1429,24 @@ action_over (int argc, const char *argv[])
 
 
 /// action_histogram ---------------------------------------------------------
-/// Usage           - ./oiiotool in --histogram channel bins
-///                   height cumulative output_format text_file_path -o out
+/// Usage           - ./oiiotool in --histogram channel 'bins'x'height'
+///                   cumulative output_format text_file_path -o out
 ///
 /// in              - Input image that contains the channel to be histogramed.
 /// channel         - The channel in the input image to be histogramed.
-/// bins            - Number of bins equals histogram's width.
-/// height          - Histogram's height.
+/// 'bins'x'height' - Width and height of the histogram, where width equals
+///                   the number of bins.
 /// cumulative      - 1 -> cumulative histogram, 0 -> regular histogram.
 /// output_format   - Save histogram as: 1 -> image, 0 -> text file.
 /// text_file_path  - Path to text file where the histogram will be saved.
 /// out             - Output image.
 ///
-/// Examples        - ./oiiotool in --histogram 0 256 256 0 1 "" -o out
+/// Examples        - ./oiiotool in --histogram 0 256x256 0 1 "" -o out
 ///
 ///                   Save the non-cumulative histogram of channel 0 in image
 ///                   'in', as an image with size 256x256.
 ///
-///                 - ./oiiotool in --histogram 0 256 256 0 0 text_file_path
+///                 - ./oiiotool in --histogram 0 256x256 0 0 text_file_path
 ///
 ///                   Same as the previous example, but now save as text file.
 /// --------------------------------------------------------------------------
