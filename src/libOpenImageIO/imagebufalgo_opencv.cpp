@@ -45,6 +45,7 @@
 #include "imagebufalgo.h"
 #include "dassert.h"
 #include "thread.h"
+#include "sysutil.h"
 
 
 
@@ -190,8 +191,21 @@ ImageBufAlgo::capture_image (ImageBuf &dst, int cameranum, TypeDesc convert)
             return false;  // failed somehow
         }
     }
+
+    time_t now;
+    time (&now);
+    struct tm tmtime;
+    Sysutil::get_local_time (&now, &tmtime);
+    std::string datetime = Strutil::format ("%4d:%02d:%02d %02d:%02d:%02d",
+                                   tmtime.tm_year+1900, tmtime.tm_mon+1,
+                                   tmtime.tm_mday, tmtime.tm_hour,
+                                   tmtime.tm_min, tmtime.tm_sec);
+
     bool ok = ImageBufAlgo::from_IplImage (dst, frame, convert);
     // cvReleaseImage (&frame);   // unnecessary?
+    if (ok)
+        dst.specmod().attribute ("DateTime", datetime);
+
     return ok;
 #else
     return false;
