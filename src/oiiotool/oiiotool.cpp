@@ -1429,7 +1429,8 @@ action_over (int argc, const char *argv[])
 
 
 /// action_histogram ---------------------------------------------------------
-/// Usage           - ./oiiotool in --histogram channel 'bins'x'height'
+/// Usage:
+///                   ./oiiotool in --histogram channel 'bins'x'height'
 ///                   cumulative output_format text_file_path -o out
 ///
 /// in              - Input image that contains the channel to be histogramed.
@@ -1441,7 +1442,8 @@ action_over (int argc, const char *argv[])
 /// text_file_path  - Path to text file where the histogram will be saved.
 /// out             - Output image.
 ///
-/// Examples        - ./oiiotool in --histogram 0 256x256 0 1 "" -o out
+/// Examples:
+///                 - ./oiiotool in --histogram 0 256x256 0 1 "" -o out
 ///
 ///                   Save the non-cumulative histogram of channel 0 in image
 ///                   'in', as an image with size 256x256.

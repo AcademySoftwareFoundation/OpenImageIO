@@ -358,9 +358,8 @@ bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 /// A           - Input image that contains the one channel to be histogramed.
 ///               A must contain float pixel data and have at least 1 channel,
 ///               but it can have more.
-/// channel     - Only this channel in A will be histogramed. It must be int
-///               bigger or equal to 0 and smaller than the number of channels
-///               in A.
+/// channel     - Only this channel in A will be histogramed. It must satisfy
+///               0 <= channel < A.nchannels().
 /// histogram   - Clear old content and store the histogram here.
 /// bins        - Number of bins must be at least 1.
 /// min, max    - Pixel values outside of the min->max range are not used for
@@ -370,16 +369,6 @@ bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 /// roi         - Only pixels in this region of the image are histogramed. If
 ///               roi is not defined then the full size image will be
 ///               histogramed.
-///
-/// Implementation details:
-///
-///             - Pixel values in min->max range are mapped to 0->(bins-1)
-///               range, so that each value is placed in the appropriate bin.
-///               The formula used is: y = (x-min) * bins/(max-min), where
-///               y is the value in the 0->(bins-1) range and x is the value
-///               in the min->max range. There is one special case x==max
-///               for which the formula is not used and x is assigned to the
-///               last bin at position (bins-1) in the vector histogram.
 /// --------------------------------------------------------------------------
 bool DLLPUBLIC histogram (const ImageBuf &A, int channel,
                           std::vector<imagesize_t> &histogram, int bins=256,
@@ -391,8 +380,9 @@ bool DLLPUBLIC histogram (const ImageBuf &A, int channel,
 /// ImageBufAlgo::histogram_draw ---------------------------------------------
 /// Parameters:
 /// histogram   - The histogram to be drawn, must have at least 1 bin.
-/// R           - R should have only 1 channel with float pixel data, and
-///               width equal to the number of elements in histogram.
+/// R           - The histogram will be drawn in the output image R. R should
+///               have only 1 channel with float pixel data, and width equal
+///               to the number of bins, that is elements in histogram.
 /// --------------------------------------------------------------------------
 bool DLLPUBLIC histogram_draw (const std::vector<imagesize_t> &histogram,
                                ImageBuf &R);

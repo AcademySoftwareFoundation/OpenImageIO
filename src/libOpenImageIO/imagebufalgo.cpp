@@ -1338,7 +1338,16 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
 
 namespace { // anonymous namespace
 
-// Fully type-specialized version of histogram.
+/// histogram_impl -----------------------------------------------------------
+/// Fully type-specialized version of histogram.
+///
+/// Pixel values in min->max range are mapped to 0->(bins-1) range, so that
+/// each value is placed in the appropriate bin. The formula used is:
+/// y = (x-min) * bins/(max-min), where y is the value in the 0->(bins-1)
+/// range and x is the value in the min->max range. There is one special
+/// case x==max for which the formula is not used and x is assigned to the
+/// last bin at position (bins-1) in the vector histogram.
+/// --------------------------------------------------------------------------
 template<class Atype>
 bool
 histogram_impl (const ImageBuf &A, int channel,
@@ -1407,10 +1416,11 @@ ImageBufAlgo::histogram_draw (const std::vector<imagesize_t> &histogram,
     if (bins == 0) return false;
 
     // Check R and modify it if needed.
+    int height = R.spec().height;
     if (R.spec().format != TypeDesc::TypeFloat || R.nchannels() != 1 ||
         R.spec().width != bins) {
-        //const ImageSpec specR (bins, R.spec().height, 1, TypeDesc::FLOAT);
-        //R.reres (specR);
+        ImageSpec newspec = ImageSpec (bins, height, 1, TypeDesc::FLOAT);
+        R.reset ("dummy", newspec);
     }
 
     // Fill output image R with white color.
@@ -1418,7 +1428,6 @@ ImageBufAlgo::histogram_draw (const std::vector<imagesize_t> &histogram,
     for ( ; ! r.done(); ++r) r[0] = 1;
 
     // Draw histogram left->right, bottom->up.
-    int height = R.spec().height;
     imagesize_t max = *std::max_element (histogram.begin(), histogram.end());
     for (int b = 0; b < bins; b++) {
         int bin_height = (int) ((float)histogram[b]/(float)max*height + 0.5f);
