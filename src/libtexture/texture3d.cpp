@@ -175,7 +175,7 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
                                Plocal, dPdx, dPdy, dPdz, result);
     if (actualchannels < options.nchannels)
-        fill_channels (spec.nchannels, options, result);
+        fill_channels (spec, options, result);
     return ok;
 
 

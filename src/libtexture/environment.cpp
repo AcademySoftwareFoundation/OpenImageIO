@@ -500,7 +500,7 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     ++stats.aniso_queries;
 
     if (actualchannels < options.nchannels)
-        fill_channels (spec.nchannels, options, result);
+        fill_channels (spec, options, result);
 
     return ok;
 }

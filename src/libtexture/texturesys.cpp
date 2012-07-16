@@ -601,17 +601,42 @@ TextureSystemImpl::missing_texture (TextureOpt &options, float *result)
 
 
 void
-TextureSystemImpl::fill_channels (int nfilechannels, TextureOpt &options,
+TextureSystemImpl::fill_channels (const ImageSpec &spec, TextureOpt &options,
                                   float *result)
 {
     // Starting channel to deal with is the first beyond what we actually
     // got from the texture lookup.
     int c = options.actualchannels;
 
-    // Special case: multi-channel texture reads from single channel
-    // files propagate their grayscale value to G and B.
-    if (nfilechannels == 1 && m_gray_to_rgb && 
-            options.firstchannel == 0 && options.nchannels >= 3) {
+    bool save_alpha = false;
+
+    // Multi-channel texture reads from single channel files will
+    // propagate their grayscale value to G and B (no alpha)
+    bool propagate = (spec.nchannels == 1 &&
+                      m_gray_to_rgb &&
+                      options.firstchannel == 0 && options.nchannels >= 3);
+
+    // When reading monochrome images with alpha into a 4
+    // channel result, move the alpha to the last position (CCCA)
+    if (spec.nchannels == 2 && spec.alpha_channel == 1 &&
+        m_gray_to_rgb &&
+        options.firstchannel == 0 && options.nchannels == 4) {
+        // Save alpha
+        result[3] = result[1];
+        if (options.dresultds)
+            options.dresultds[3] = options.dresultds[1];
+        if (options.dresultdt)
+            options.dresultdt[3] = options.dresultdt[1];
+        if (options.dresultdr)
+            options.dresultdr[3] = options.dresultdr[1];
+        // And we will propagate monochrome to G and B
+        propagate = true;
+        // And save the alpha
+        save_alpha = true;
+    }
+
+    // Propagate to G and B if needed
+    if (propagate) {
         result[1] = result[0];
         result[2] = result[0];
         if (options.dresultds) {
@@ -626,7 +651,7 @@ TextureSystemImpl::fill_channels (int nfilechannels, TextureOpt &options,
             options.dresultdr[1] = options.dresultdr[0];
             options.dresultdr[2] = options.dresultdr[0];
         }
-        c = 3; // we're done with channels 0-2, work on 3 next
+        c = 3 + save_alpha;
     }
 
     // Fill in the remaining files with the fill color
@@ -713,7 +738,7 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     bool ok = (this->*lookup) (*texturefile, thread_info, options,
                                s, t, dsdx, dtdx, dsdy, dtdy, result);
     if (actualchannels < options.nchannels)
-        fill_channels (spec.nchannels, options, result);
+        fill_channels (spec, options, result);
     return ok;
 }
 
