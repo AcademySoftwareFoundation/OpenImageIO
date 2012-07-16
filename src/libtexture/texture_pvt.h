@@ -413,7 +413,7 @@ private:
 
     /// Correctly fill in channels that were requested but not present
     /// in the file.
-    void fill_channels (int nfilechannels, TextureOpt &options, float *result);
+    void fill_channels (const ImageSpec &spec, TextureOpt &options, float *result);
 
     typedef bool (*wrap_impl) (int &coord, int width);
     static bool wrap_black (int &coord, int width);
