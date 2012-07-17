@@ -388,3 +388,25 @@ endif ()
 
 # end OpenCV setup
 ###########################################################################
+
+
+###########################################################################
+# Freetype setup
+
+if (USE_FREETYPE)
+    find_package (Freetype)
+    if (FREETYPE_FOUND)
+        add_definitions ("-DUSE_FREETYPE")
+        message (STATUS "Freetype includes = ${FREETYPE_INCLUDE_DIRS} ")
+        message (STATUS "Freetype libs = ${FREETYPE_LIBRARIES} ")
+    else ()
+        message (STATUS "Freetype library not found")
+    endif ()
+else ()
+    message (STATUS "Not using Freetype")
+endif ()
+
+# end Freetype setup
+###########################################################################
+
+

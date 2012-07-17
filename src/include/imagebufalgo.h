@@ -353,6 +353,20 @@ bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
                      ROI roi = ROI(), int threads = 0);
 
 
+/// Render a text string into image R, essentially doing an "over" of
+/// the character into the existing pixel data.  The baseline of the
+/// first character will start at position (x,y).  The font is given by
+/// fontname as a full pathname to the font file (defaulting to some
+/// reasonable system font if not supplied at all), and with a nominal
+/// height of fontheight (in pixels).  The characters will be drawn in
+/// opaque white (1.0,1.0,...) in all channels, unless textcolor is
+/// supplied (and is expected to point to a float array of length at
+/// least equal to R.spec().nchannels).
+bool DLLPUBLIC render_text (ImageBuf &R, int x, int y,
+                            const std::string &text,
+                            int fontsize=16, const std::string &fontname="",
+                            const float *textcolor = NULL);
+
 
 
 /// Helper template for generalized multithreading for image processing
