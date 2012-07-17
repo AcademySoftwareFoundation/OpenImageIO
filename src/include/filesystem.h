@@ -78,8 +78,9 @@ inline std::string file_extension (const std::string &filepath) {
     return extension (filepath, false);
 }
 
-/// Replace the file extension of a filename or filepath. Does not
-/// alter filepath, just returns a new string
+/// Replace the file extension of a filename or filepath. Does not alter
+/// filepath, just returns a new string.  Note that the new_extension
+/// should contain a leading '.' dot.
 DLLPUBLIC std::string replace_extension (const std::string &filepath, 
                                          const std::string &new_extension);
 
@@ -96,12 +97,15 @@ DLLPUBLIC void searchpath_split (const std::string &searchpath,
 /// directories, returning the full path as a string.  If the file is
 /// not found in any of the listed directories, return an empty string.
 /// If the filename is absolute, the directory list will not be used.
-/// If testcwd is true, "." will be tested before the searchpath; if
-/// testcwd is false, "." will only be tested if it's explicitly in
-/// dirs.
+/// If testcwd is true, "." will be tested before the searchpath;
+/// otherwise, "." will only be tested if it's explicitly in dirs.  If
+/// recursive is true, the directories will be searched recursively,
+/// finding a matching file in any subdirectory of the directories
+/// listed in dirs; otherwise.
 DLLPUBLIC std::string searchpath_find (const std::string &filename,
                                        const std::vector<std::string> &dirs,
-                                       bool testcwd = true);
+                                       bool testcwd = true,
+                                       bool recursive = false);
 
 /// Return true if the path is an "absolute" (not relative) path.
 /// If 'dot_is_absolute' is true, consider "./foo" absolute.

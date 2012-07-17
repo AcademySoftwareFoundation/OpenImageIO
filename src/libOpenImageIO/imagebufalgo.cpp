@@ -54,6 +54,13 @@
 #include "sysutil.h"
 #include "filter.h"
 #include "thread.h"
+#include "filesystem.h"
+
+#ifdef USE_FREETYPE
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+
 
 
 OIIO_NAMESPACE_ENTER
@@ -1290,6 +1297,128 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     return true;
 }
 
+
+
+#ifdef USE_FREETYPE
+namespace { // anon
+static mutex ft_mutex;
+static FT_Library ft_library = NULL;
+static bool ft_broken = false;
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+const char *default_font_name = "cour";
+#elif defined (__APPLE__)
+const char *default_font_name = "Courier New";
+#elif defined (_WIN32)
+const char *default_font_name = "Courier";
+#else
+const char *default_font_name = "cour";
+#endif
+} // anon namespace
+#endif
+
+
+bool
+ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
+                           int fontsize, const std::string &font_,
+                           const float *textcolor)
+{
+#ifdef USE_FREETYPE
+    // If we know FT is broken, don't bother trying again
+    if (ft_broken)
+        return false;
+
+    // Thread safety
+    lock_guard ft_lock (ft_mutex);
+    int error = 0;
+
+    // If FT not yet initialized, do it now.
+    if (! ft_library) {
+        error = FT_Init_FreeType (&ft_library);
+        if (error) {
+            ft_broken = true;
+            return false;
+        }
+    }
+
+    // A set of likely directories for fonts to live, across several systems.
+    std::vector<std::string> search_dirs;
+    std::string home = getenv ("HOME");
+    if (! home.empty()) {
+        search_dirs.push_back (home + "/fonts");
+        search_dirs.push_back (home + "/Fonts");
+        search_dirs.push_back (home + "/Library/Fonts");
+    }
+    search_dirs.push_back ("/usr/share/fonts");
+    search_dirs.push_back ("/Library/Fonts");
+    search_dirs.push_back ("C:/Windows/Fonts");
+    search_dirs.push_back ("/opt/local/share/fonts");
+
+    // Try to find the font.  Experiment with several extensions
+    std::string font = font_;
+    if (font.empty())
+        font = default_font_name;
+    if (! Filesystem::is_regular (font)) {
+        // Font specified is not a full path
+        std::string f;
+        static const char *extensions[] = { "", ".ttf", ".pfa", ".pfb", NULL };
+        for (int i = 0;  f.empty() && extensions[i];  ++i)
+            f = Filesystem::searchpath_find (font+extensions[i],
+                                             search_dirs, true, true);
+        if (! f.empty())
+            font = f;
+    }
+
+    FT_Face face;      // handle to face object
+    error = FT_New_Face (ft_library, font.c_str(), 0 /* face index */, &face);
+    if (error)
+        return false;  // couldn't open the face
+
+    error = FT_Set_Pixel_Sizes (face,        // handle to face object
+                                0,           // pixel_width
+                                fontsize);   // pixel_heigh
+    if (error) {
+        FT_Done_Face (face);
+        return false;  // couldn't set the character size
+    }
+
+    FT_GlyphSlot slot = face->glyph;  // a small shortcut
+    int nchannels = R.spec().nchannels;
+    float *pixelcolor = ALLOCA (float, nchannels);
+    if (! textcolor) {
+        float *localtextcolor = ALLOCA (float, nchannels);
+        for (int c = 0;  c < nchannels;  ++c)
+            localtextcolor[c] = 1.0f;
+        textcolor = localtextcolor;
+    }
+
+    for (size_t n = 0, e = text.size();  n < e;  ++n) {
+        // load glyph image into the slot (erase previous one)
+        error = FT_Load_Char (face, text[n], FT_LOAD_RENDER);
+        if (error)
+            continue;  // ignore errors
+        // now, draw to our target surface
+        for (int j = 0;  j < slot->bitmap.rows; ++j) {
+            int ry = y + j - slot->bitmap_top;
+            for (int i = 0;  i < slot->bitmap.width; ++i) {
+                int rx = x + i + slot->bitmap_left;
+                float b = slot->bitmap.buffer[slot->bitmap.pitch*j+i] / 255.0f;
+                R.getpixel (rx, ry, pixelcolor);
+                for (int c = 0;  c < nchannels;  ++c)
+                    pixelcolor[c] = b*textcolor[c] + (1.0f-b) * pixelcolor[c];
+                R.setpixel (rx, ry, pixelcolor);
+            }
+        }
+        // increment pen position
+        x += slot->advance.x >> 6;
+    }
+
+    FT_Done_Face (face);
+    return true;
+
+#else
+    return false;   // Font rendering not supported
+#endif
+}
 
 
 }
