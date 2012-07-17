@@ -1,6 +1,12 @@
 Changes:
 
 
+Release 0.10.10 (17 Jul 2012)
+-----------------------------
+* TextureSystem: fix fill_channels for monochrome+alpha images to properly
+  expand to "RRRA."
+
+
 Release 0.10.9 (12 Jul 2012)
 ----------------------------
 * Fix a bug in quantize that could, in some circumstances, have 8-bit files
