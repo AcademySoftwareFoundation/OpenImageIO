@@ -1482,8 +1482,16 @@ action_text (int argc, const char *argv[])
         }
     }
 
-    ImageBufAlgo::render_text (Rib, x, y, argv[1] /* the text */,
-                               fontsize, font, textcolor);
+    bool ok = ImageBufAlgo::render_text (Rib, x, y, argv[1] /* the text */,
+                                         fontsize, font, textcolor);
+    if (! ok) {
+        std::cerr << "ERROR: " << argv[0];
+        std::string err = Rib.geterror();
+        if (err.length())
+            std::cerr << " (" << err << ")";
+        std::cerr << "\n";
+        exit (-1);
+    }
 
     return 0;
 }

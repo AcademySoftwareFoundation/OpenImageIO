@@ -1336,6 +1336,7 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
         error = FT_Init_FreeType (&ft_library);
         if (error) {
             ft_broken = true;
+            R.error ("Could not initialize FreeType for font rendering");
             return false;
         }
     }
@@ -1370,14 +1371,17 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
 
     FT_Face face;      // handle to face object
     error = FT_New_Face (ft_library, font.c_str(), 0 /* face index */, &face);
-    if (error)
+    if (error) {
+        R.error ("Could not set font face to \"%s\"", font);
         return false;  // couldn't open the face
+    }
 
     error = FT_Set_Pixel_Sizes (face,        // handle to face object
                                 0,           // pixel_width
                                 fontsize);   // pixel_heigh
     if (error) {
         FT_Done_Face (face);
+        R.error ("Could not set font size to %d", fontsize);
         return false;  // couldn't set the character size
     }
 
@@ -1416,6 +1420,7 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
     return true;
 
 #else
+    R.error ("OpenImageIO was not compiled with FreeType for font rendering");
     return false;   // Font rendering not supported
 #endif
 }
