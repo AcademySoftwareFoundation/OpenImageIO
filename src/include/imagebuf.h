@@ -47,6 +47,7 @@
 #include "fmath.h"
 #include "imagecache.h"
 #include "dassert.h"
+#include "thread.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -229,13 +230,20 @@ public:
     /// converted automatically to the data type of the app buffer.
     bool copy (const ImageBuf &src);
 
-    /// Return info on the last error that occurred since geterror()
-    /// was called.  This also clears the error message for next time.
-    std::string geterror (void) const {
-        std::string e = m_err;
-        m_err.clear();
-        return e;
-    }
+    /// Error reporting for ImageBuf: call this with printf-like
+    /// arguments.  Note however that this is fully typesafe!
+    /// void error (const char *format, ...)
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
+
+    /// Return true if the IB has had an error and has an error message
+    /// to retrieve via geterror().
+    bool has_error (void) const;
+
+    /// Return info on the last error that occurred since geterror() was
+    /// called (or an empty string if no errors are pending).  This also
+    /// clears the error message for next time.
+    std::string geterror (void) const;
 
     /// Return a read-only (const) reference to the image spec that
     /// describes the buffer.
@@ -1093,6 +1101,7 @@ protected:
     bool m_pixels_valid;         ///< Image is valid
     bool m_badfile;              ///< File not found
     mutable std::string m_err;   ///< Last error message
+    spin_mutex m_err_mutex;      ///< Protect m_err
     int m_orientation;           ///< Orientation of the image
     float m_pixelaspect;         ///< Pixel aspect ratio of the image
     ImageCache *m_imagecache;    ///< ImageCache to use
@@ -1117,6 +1126,9 @@ protected:
 
     /// Private and unimplemented.
     const ImageBuf& operator= (const ImageBuf &src);
+
+    /// Add to the error message list for this IB.
+    void append_error (const std::string& message) const;
 
 };
 
