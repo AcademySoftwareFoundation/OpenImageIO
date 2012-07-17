@@ -262,7 +262,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 	}
 
 	// can we write the entire memory chunk at once without any additional processing
-	if (!rle  &&
+	if (!rle  && !this->header.RequiresByteSwap() &&
 		((bitDepth == 8 && size == dpx::kByte) ||
 		 (bitDepth == 12 && size == dpx::kWord && packing == kFilledMethodA) || 
 		 (bitDepth == 16 && size == dpx::kWord) || 
