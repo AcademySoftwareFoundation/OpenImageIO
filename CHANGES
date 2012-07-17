@@ -1,5 +1,13 @@
 Changes:
 
+Release 1.0.8 (17 July 2012)
+----------------------------
+* Fix quantization/truncation bug that sometimes left tiny alpha holes in
+  8 bit images (making some alpha value that should be 255, instead 254).
+* TextureSystem: fix fill_channels for monochrome+alpha images to properly
+  expand to "RRRA."
+
+
 Release 1.0.7 (8 July 2012)
 ---------------------------
 * Bug fix when reading vector Field3D files.
