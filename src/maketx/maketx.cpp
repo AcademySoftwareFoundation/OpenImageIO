@@ -283,6 +283,8 @@ getargs (int argc, char *argv[])
                   "<SEPARATOR>", colortitle_help_string().c_str(),
                   "--colorconvert %s %s", &incolorspace, &outcolorspace,
                           colorconvert_help_string().c_str(),
+                  "--colorspace %s", &incolorspace, "Set input colorspace. "
+                          "Used for internal image processing and does not affect the output colorspace.",
                   "--unpremult", &unpremult, "Unpremultiply before color conversion, then premultiply "
                           "after the color conversion.  You'll probably want to use this flag "
                           "if your image contains an alpha channel.",
@@ -650,6 +652,105 @@ formatres (const ImageSpec &spec, bool extended=false)
 }
 
 
+static void
+convert_color (ImageBuf &src, const std::string &inspace, 
+               ImageBuf &dst, const std::string &outspace)
+{
+    Timer colorconverttimer;
+    if (verbose) {
+        std::cout << "  Converting from colorspace " << inspace 
+                  << " to colorspace " << outspace << std::endl;
+    }
+    
+    if (colorconfig.error()) {
+        std::cerr << "Error Creating ColorConfig\n";
+        std::cerr << colorconfig.geterror() << std::endl;
+        exit (EXIT_FAILURE);
+    }
+    
+    ColorProcessor * processor = colorconfig.createColorProcessor (
+        inspace.c_str(), outspace.c_str());
+    
+    if (!processor || colorconfig.error()) {
+        std::cerr << "Error Creating Color Processor." << std::endl;
+        std::cerr << colorconfig.geterror() << std::endl;
+        exit (EXIT_FAILURE);
+    }
+    
+    if (unpremult && verbose)
+        std::cout << "  Unpremulting image..." << std::endl;
+    
+    if (!ImageBufAlgo::colorconvert (dst, src, processor, unpremult)) {
+        std::cerr << "Error applying color conversion to image.\n";
+        exit (EXIT_FAILURE);
+    }
+    
+    ColorConfig::deleteColorProcessor(processor);
+    processor = NULL;
+    stat_colorconverttime += colorconverttimer();
+}
+
+
+static void
+convert_color (std::vector<float> &color, 
+               const std::string &inspace, const std::string &outspace)
+{
+    Timer colorconverttimer;
+    if (verbose) {
+        std::cout << "  Converting from colorspace " << inspace 
+                  << " to colorspace " << outspace << std::endl;
+    }
+    
+    if (colorconfig.error()) {
+        std::cerr << "Error Creating ColorConfig\n";
+        std::cerr << colorconfig.geterror() << std::endl;
+        exit (EXIT_FAILURE);
+    }
+    
+    ColorProcessor * processor = colorconfig.createColorProcessor (
+        inspace.c_str(), outspace.c_str());
+    
+    if (!processor || colorconfig.error()) {
+        std::cerr << "Error Creating Color Processor." << std::endl;
+        std::cerr << colorconfig.geterror() << std::endl;
+        exit (EXIT_FAILURE);
+    }
+    
+    if (unpremult && verbose)
+        std::cout << "  Unpremulting image..." << std::endl;
+    
+    if (!ImageBufAlgo::colorconvert (&color[0],
+        static_cast<int>(color.size()), processor, unpremult)) {
+        std::cerr << "Error applying color conversion to constant color.\n";
+        exit (EXIT_FAILURE);
+    }
+
+    ColorConfig::deleteColorProcessor(processor);
+    processor = NULL;
+    stat_colorconverttime += colorconverttimer();
+}
+
+
+static void
+append_desc (std::string &desc, const std::string &key,
+             const std::string &value)
+{
+    size_t key_pos = desc.find (key);
+    if (key_pos != std::string::npos) { //found, replace
+        size_t val_pos = key_pos + key.length() + 1; // + 1 -> '='
+        size_t val_end = desc.find_first_of (' ', val_pos);
+        desc.replace (val_pos, val_end, value);
+    }
+    else { // not found, append
+        if (desc.length())
+            desc += " ";
+        desc += key + "=";
+        desc += value;
+    }
+    if (verbose)
+        std::cout << "  " << key << ": " << value << std::endl;
+}
+
 
 static void
 make_texturemap (const char *maptypename = "texture map")
@@ -979,54 +1080,24 @@ make_texturemap (const char *maptypename = "texture map")
     // independently color convert the constant color metadata
     ImageBuf * ccSrc = &src;    // Ptr to cc'd src image
     ImageBuf colorBuffer;
-    if (!incolorspace.empty() && !outcolorspace.empty() && incolorspace != outcolorspace) {
-        if (src.spec().format != TypeDesc::FLOAT) {
-            ImageSpec floatSpec = src.spec();
-            floatSpec.set_format(TypeDesc::FLOAT);
-            colorBuffer.reset("bitdepth promoted", floatSpec);
-            ccSrc = &colorBuffer;
-        }
-        
-        Timer colorconverttimer;
-        if (verbose) {
-            std::cout << "  Converting from colorspace " << incolorspace 
-                      << " to colorspace " << outcolorspace << std::endl;
-        }
-        
-        if (colorconfig.error()) {
-            std::cerr << "Error Creating ColorConfig\n";
-            std::cerr << colorconfig.geterror() << std::endl;
-            exit (EXIT_FAILURE);
-        }
-        
-        ColorProcessor * processor = colorconfig.createColorProcessor (
-            incolorspace.c_str(), outcolorspace.c_str());
-        
-        if (!processor || colorconfig.error()) {
-            std::cerr << "Error Creating Color Processor." << std::endl;
-            std::cerr << colorconfig.geterror() << std::endl;
-            exit (EXIT_FAILURE);
-        }
-        
-        if (unpremult && verbose)
-            std::cout << "  Unpremulting image..." << std::endl;
-        
-        if (!ImageBufAlgo::colorconvert (*ccSrc, src, processor, unpremult)) {
-            std::cerr << "Error applying color conversion to image.\n";
-            exit (EXIT_FAILURE);
-        }
-        
-        if (isConstantColor) {
-            if (!ImageBufAlgo::colorconvert (&constantColor[0],
-                static_cast<int>(constantColor.size()), processor, unpremult)) {
-                std::cerr << "Error applying color conversion to constant color.\n";
-                exit (EXIT_FAILURE);
-            }
-        }
 
-        ColorConfig::deleteColorProcessor(processor);
-        processor = NULL;
-        stat_colorconverttime += colorconverttimer();
+    if (!incolorspace.empty()) {
+        if (outcolorspace.empty()) {
+            // If outcolorspace is empty, assume that --colorspace flag was
+            // issued and that the in/out colorspace should be the same.
+            outcolorspace = incolorspace;
+        }
+        if (incolorspace != "linear") {
+            // We're only interested in getting from incolorspace -> linear,
+            // until after processing.
+            if (src.spec().format != TypeDesc::FLOAT) {
+                ImageSpec floatSpec = src.spec();
+                floatSpec.set_format(TypeDesc::FLOAT);
+                colorBuffer.reset("bitdepth promoted", floatSpec);
+                ccSrc = &colorBuffer;
+            }
+            convert_color (src, incolorspace, *ccSrc, "linear");
+        }
     }
 
     // Force float for the sake of the ImageBuf math
@@ -1093,43 +1164,13 @@ make_texturemap (const char *maptypename = "texture map")
     }
     stat_resizetime += resizetimer();
 
-    
-    // Update the toplevel ImageDescription with the sha1 pixel hash and constant color
-    std::string desc = dstspec.get_string_attribute ("ImageDescription");
-    bool updatedDesc = false;
-    
-    // FIXME: We need to do real dictionary style partial updates on the
-    //        ImageDescription. I.e., set one key without affecting the
-    //        other keys. But in the meantime, just clear it out if
-    //        it appears the incoming image was a maketx style texture.
-    
-    if ((desc.find ("SHA-1=") != std::string::npos) || 
-        (desc.find ("ConstantColor=") != std::string::npos)) {
-        desc = "";
-    }
-    
-    // The hash is only computed for the top mipmap level of pixel data.
-    // Thus, any additional information that will effect the lower levels
-    // (such as filtering information) needs to be manually added into the
-    // hash.
-    std::ostringstream addlHashData;
-    addlHashData << filter->name() << " ";
-    addlHashData << filter->width() << " ";
-    
-    std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel,
-        addlHashData.str());
-    if (hash_digest.length()) {
-        if (desc.length())
-            desc += " ";
-        desc += "SHA-1=";
-        desc += hash_digest;
-        if (verbose)
-            std::cout << "  SHA-1: " << hash_digest << std::endl;
-        updatedDesc = true;
-        dstspec.attribute ("oiio:SHA-1", hash_digest);
-    }
-    
-    if (isConstantColor) {
+    if (isConstantColor && constant_color_detect) {
+        if (incolorspace != outcolorspace) {
+            // do the full colorspace conversion for metadata, as there will
+            // be no further processing of this data.
+            convert_color (constantColor, incolorspace, outcolorspace);
+        }
+
         std::ostringstream os; // Emulate a JSON array
         os << "[";
         for (unsigned int i=0; i<constantColor.size(); ++i) {
@@ -1137,18 +1178,10 @@ make_texturemap (const char *maptypename = "texture map")
             os << constantColor[i];
         }
         os << "]";
-        
-        if (desc.length())
-            desc += " ";
-        desc += "ConstantColor=";
-        desc += os.str();
-        if (verbose)
-            std::cout << "  ConstantColor: " << os.str() << std::endl;
-        updatedDesc = true;
-        dstspec.attribute ("oiio:ConstantColor", os.str());
-    }
-    
-    if (updatedDesc) {
+
+        // Update the toplevel ImageDescription with the constant color
+        std::string desc = dstspec.get_string_attribute ("ImageDescription");
+        append_desc (desc, "ConstantColor", os.str());
         dstspec.attribute ("ImageDescription", desc);
     }
 
@@ -1198,6 +1231,35 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     if (envlatlmode && src_samples_border)
         fix_latl_edges (img);
 
+    ImageBuf *toplevel = &img;    // Ptr to top level of mipmap
+
+    // Convert to outcolorspace prior to hash computation.
+    ImageBuf ccDst; 
+    if (!incolorspace.empty() && !outcolorspace.empty()) {
+        if (outcolorspace != "linear") {
+            ccDst.reset ("temp for colorspace conversion", outspec);
+            convert_color (*toplevel, "linear", ccDst, outcolorspace);
+            toplevel = &ccDst;
+        }
+    }
+    
+    // The hash is only computed for the top mipmap level of pixel data.
+    // Thus, any additional information that will effect the lower levels
+    // (such as filtering information) needs to be manually added into the
+    // hash.
+    std::ostringstream addlHashData;
+    addlHashData << filter->name() << " ";
+    addlHashData << filter->width() << " ";
+    
+    std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel,
+        addlHashData.str());
+    if (hash_digest.length()) {
+        std::string desc = outspec.get_string_attribute ("ImageDescription");
+        append_desc (desc, "SHA-1", hash_digest);
+        outspec.attribute ("ImageDescription", desc);
+    }
+
+    // Write out the image
     Timer writetimer;
     if (! out->open (outputfilename.c_str(), outspec)) {
         std::cerr << "maketx ERROR: Could not open \"" << outputfilename
@@ -1205,7 +1267,6 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
         exit (EXIT_FAILURE);
     }
 
-    // Write out the image
     if (verbose) {
         std::cout << "  Writing file: " << outputfilename << std::endl;
         std::cout << "  Filter \"" << filter->name() << "\" width = " 
@@ -1214,7 +1275,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
     }
 
     bool ok = true;
-    ok &= img.write (out);
+    ok &= toplevel->write (out);
     stat_writetime += writetimer();
 
     if (mipmap) {  // Mipmap levels:
@@ -1270,9 +1331,12 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                 smallspec.y = 0;
                 smallspec.full_x = 0;
                 smallspec.full_y = 0;
-                small->alloc (smallspec);  // Realocate with new size
+                small->alloc (smallspec);  // Reallocate with new size
                 big->set_full (big->xbegin(), big->xend(), big->ybegin(),
                                big->yend(), big->zbegin(), big->zend());
+
+                if (verbose)
+                    std::cout << "  Resizing...\n" << std::flush;
 
                 if (filtername == "box" && filter->width() == 1.0f)
                     parallel_image (resize_block, small, big,
@@ -1292,6 +1356,16 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             if (envlatlmode && src_samples_border)
                 fix_latl_edges (*small);
 
+            if (!incolorspace.empty() && !outcolorspace.empty()) {
+                if (outcolorspace != "linear") {
+                    // we're done with big ptr, so let's reuse it
+                    big->reset ("colorspace conversion", small->spec());
+                    convert_color (*small, "linear", *big, outcolorspace);
+                    // big now points to linear small, and small points to cc'd small
+                    std::swap (small, big);
+                }
+            }
+    
             Timer writetimer;
             // If the format explicitly supports MIP-maps, use that,
             // otherwise try to simulate MIP-mapping with multi-image.
@@ -1308,7 +1382,9 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             if (verbose) {
                 std::cout << "    " << formatres(smallspec) << std::endl;
             }
-            std::swap (big, small);
+
+            if (incolorspace.empty() && outcolorspace.empty())
+                std::swap (big, small);
         }
     }
 
