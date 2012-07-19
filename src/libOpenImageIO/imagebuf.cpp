@@ -967,7 +967,7 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                              xbegin, xend, ybegin, yend, zbegin, zend,  \
                              chbegin, chend, (CType<B>::type *)result);
 
-    switch (spec().format.basetype) {
+    switch (format.basetype) {
         TYPECASE (TypeDesc::UINT8);
         TYPECASE (TypeDesc::INT8);
         TYPECASE (TypeDesc::UINT16);
