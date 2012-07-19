@@ -33,21 +33,40 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace bmp_pvt {
 
+/// Helper - write, with error detection
+template <class T>
+bool fwrite (FILE *fd, const T &buf, size_t nitems=1) {
+    size_t itemsize = sizeof(T);
+    size_t n = std::fwrite (&buf, itemsize, nitems, fd);
+//    if (n != nitems)
+//        error ("Write error: wrote %d records of %d", (int)n, (int)nitems);
+    return n == nitems;
+}
 
+/// Helper - read, with error detection
+template <class T>
+bool fread (FILE *fd, T &buf, size_t nitems=1, size_t itemsize=sizeof(T)) {
+ //   size_t itemsize = sizeof(T);
+    size_t n = std::fread (&buf, itemsize, nitems, fd);
+//    if (n != nitems)
+//        error ("Write error: wrote %d records of %d", (int)n, (int)nitems);
+    return n == nitems;
+}
 
 bool
 BmpFileHeader::read_header (FILE *fd)
 {
-    int byte_count = 0;
-    byte_count += fread (&magic, 1, sizeof (magic), fd);
-    byte_count += fread (&fsize, 1, sizeof (fsize), fd);
-    byte_count += fread (&res1, 1, sizeof (res1), fd);
-    byte_count += fread (&res2, 1, sizeof (res2), fd);
-    byte_count += fread (&offset, 1, sizeof (offset), fd);
+    if (!fread(fd, magic) ||
+        !fread(fd, fsize) ||
+        !fread(fd, res1) ||
+        !fread(fd, res2) ||
+        !fread(fd, offset)) {
+        return false;
+    }
 
     if (bigendian ())
         swap_endian ();
-    return (byte_count == BMP_HEADER_SIZE);
+    return true;
 }
 
 
@@ -58,13 +77,15 @@ BmpFileHeader::write_header (FILE *fd)
     if (bigendian ())
         swap_endian ();
 
-    int byte_count = 0;
-    byte_count += fwrite (&magic, 1, sizeof (magic), fd);
-    byte_count += fwrite (&fsize, 1, sizeof (fsize), fd);
-    byte_count += fwrite (&res1, 1, sizeof (res1), fd);
-    byte_count += fwrite (&res2, 1, sizeof (res2), fd);
-    byte_count += fwrite (&offset, 1, sizeof (offset), fd);
-    return (byte_count == BMP_HEADER_SIZE);
+    if (!fwrite(fd, magic) ||
+        !fwrite(fd, fsize) ||
+        !fwrite(fd, res1) ||
+        !fwrite(fd, res2) ||
+        !fwrite(fd, offset)) {
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -98,53 +119,61 @@ BmpFileHeader::swap_endian (void)
 bool
 DibInformationHeader::read_header (FILE *fd)
 {
-    int byte_count = 0;
-    byte_count += fread (&size, 1, sizeof (size), fd);
+    if (!fread (fd, size))
+        return false;
 
     if (size == WINDOWS_V3 || size == WINDOWS_V4) {
-        byte_count += fread (&width, 1, sizeof (width), fd);
-        byte_count += fread (&height, 1, sizeof (height), fd);
-        byte_count += fread (&cplanes, 1, sizeof (cplanes), fd);
-        byte_count += fread (&bpp, 1, sizeof (bpp), fd);
-        byte_count += fread (&compression, 1, sizeof (compression), fd);
-        byte_count += fread (&isize, 1, sizeof (isize), fd);
-        byte_count += fread (&hres, 1, sizeof (hres), fd);
-        byte_count += fread (&vres, 1, sizeof (vres), fd);
-        byte_count += fread (&cpalete, 1, sizeof (cpalete), fd);
-        byte_count += fread (&important, 1, sizeof (important), fd);
+        if (!fread(fd, width) ||
+            !fread(fd, height) ||
+            !fread(fd, cplanes) ||
+            !fread(fd, bpp) ||
+            !fread(fd, compression) ||
+            !fread(fd, isize) ||
+            !fread(fd, hres) ||
+            !fread(fd, vres) ||
+            !fread(fd, cpalete) ||
+            !fread(fd, important)) {
+            return false;
+        }
+
         if (size == WINDOWS_V4) {
-            byte_count += fread (&red_mask, 1, sizeof (red_mask), fd);
-            byte_count += fread (&blue_mask, 1, sizeof (blue_mask), fd);
-            byte_count += fread (&green_mask, 1, sizeof (green_mask), fd);
-            byte_count += fread (&cs_type, 1, sizeof (cs_type), fd);
-            byte_count += fread (&red_x, 1, sizeof (red_x), fd);
-            byte_count += fread (&red_y, 1, sizeof (red_y), fd);
-            byte_count += fread (&red_z, 1, sizeof (red_z), fd);
-            byte_count += fread (&green_x, 1, sizeof (green_x), fd);
-            byte_count += fread (&green_y, 1, sizeof (green_y), fd);
-            byte_count += fread (&green_z, 1, sizeof (green_z), fd);
-            byte_count += fread (&blue_x, 1, sizeof (blue_x), fd);
-            byte_count += fread (&blue_y, 1, sizeof (blue_y), fd);
-            byte_count += fread (&blue_z, 1, sizeof (blue_z), fd);
-            byte_count += fread (&gamma_x, 1, sizeof (gamma_x), fd);
-            byte_count += fread (&gamma_y, 1, sizeof (gamma_y), fd);
-            byte_count += fread (&gamma_z, 1, sizeof (gamma_z), fd);
             int32_t dummy;
-            byte_count += fread (&dummy, 1, sizeof (dummy), fd);
+
+            if (!fread (fd, red_mask) ||
+                !fread (fd, blue_mask) ||
+                !fread (fd, green_mask) ||
+                !fread (fd, cs_type) ||
+                !fread (fd, red_x) ||
+                !fread (fd, red_y) ||
+                !fread (fd, red_z) ||
+                !fread (fd, green_x) ||
+                !fread (fd, green_y) ||
+                !fread (fd, green_z) ||
+                !fread (fd, blue_x) ||
+                !fread (fd, blue_y) ||
+                !fread (fd, blue_z) ||
+                !fread (fd, gamma_x) ||
+                !fread (fd, gamma_y) ||
+                !fread (fd, gamma_z) ||
+                !fread (fd, dummy)) {
+                return false;
+            }
         }
     }
     else if (size == OS2_V1) {
         // this fileds are smaller then in WINDOWS_Vx headers,
         // so we use hardcoded counts
-        byte_count += fread (&width, 1, 2, fd);
-        byte_count += fread (&height, 1, 2, fd);
-        byte_count += fread (&cplanes, 1, 2, fd);
-        byte_count += fread (&bpp, 1, 2, fd);
+        if (!fread (fd, width, 1, 2) || //
+            !fread (fd, height, 1, 2) ||
+            !fread (fd, cplanes, 1, 2) ||
+            !fread (fd, bpp, 1, 2)) {
+            return false;
+        }
         
     }
     if (bigendian ())
         swap_endian ();
-    return (byte_count == size);
+    return true;
 }
 
 
@@ -155,20 +184,21 @@ DibInformationHeader::write_header (FILE *fd)
     if (bigendian ())
         swap_endian ();
 
-    size_t bytes = 0;
-    bytes += fwrite (&size, 1, sizeof(size), fd);
-    bytes += fwrite (&width, 1, sizeof(width), fd);
-    bytes += fwrite (&height, 1, sizeof(height), fd);
-    bytes += fwrite (&cplanes, 1, sizeof(cplanes), fd);
-    bytes += fwrite (&bpp, 1, sizeof(bpp), fd);
-    bytes += fwrite (&compression, 1, sizeof(compression), fd);
-    bytes += fwrite (&isize, 1, sizeof(isize), fd);
-    bytes += fwrite (&hres, 1, sizeof(hres), fd);
-    bytes += fwrite (&vres, 1, sizeof(vres), fd);
-    bytes += fwrite (&cpalete, 1, sizeof(cpalete), fd);
-    bytes += fwrite (&important, 1, sizeof(important), fd);
+    if (!fwrite(fd, size) ||
+        !fwrite (fd, width) ||
+        !fwrite (fd, height) ||
+        !fwrite (fd, cplanes) ||
+        !fwrite (fd, bpp) ||
+        !fwrite (fd, compression) ||
+        !fwrite (fd, isize) ||
+        !fwrite (fd, hres) ||
+        !fwrite (fd, vres) ||
+        !fwrite (fd, cpalete) ||
+        !fwrite (fd, important)) {
+        return false;
+    }
 
-    return (bytes == (size_t)size); // bytes == size --> wrote correct amount
+    return (true);
 }
 
 
