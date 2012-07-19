@@ -140,6 +140,18 @@ Oiiotool::process_pending ()
 
 
 
+void
+Oiiotool::error (const std::string &command, const std::string &explanation)
+{
+    std::cerr << "ERROR: " << command;
+    if (explanation.length())
+        std::cerr << " (" << explanation << ")";
+    std::cerr << "\n";
+    exit (-1);
+}
+
+
+
 static int
 set_threads (int argc, const char *argv[])
 {
@@ -764,7 +776,9 @@ action_colorconvert (int argc, const char *argv[])
 
     for (int s = 0, send = A->subimages();  s < send;  ++s) {
         for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
-            ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            if (! ok)
+                ot.error (argv[0], (*ot.curimg)(s,m).geterror());
             ot.curimg->spec(s,m)->attribute ("oiio::Colorspace", tospace);
         }
     }
@@ -901,7 +915,9 @@ action_add (int argc, const char *argv[])
                 continue;
             }
             ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBufAlgo::add (Rib, Aib, Bib);
+            bool ok = ImageBufAlgo::add (Rib, Aib, Bib);
+            if (! ok)
+                ot.error (argv[0], Rib.geterror());
         }
     }
              
@@ -1133,7 +1149,9 @@ action_create (int argc, const char *argv[])
     spec.full_height = spec.height;
     spec.full_depth = spec.depth;
     ImageRecRef img (new ImageRec ("new", spec, ot.imagecache));
-    ImageBufAlgo::zero ((*img)());
+    bool ok = ImageBufAlgo::zero ((*img)());
+    if (! ok)
+        ot.error (argv[0], (*img)().geterror());
     if (ot.curimg)
         ot.image_stack.push_back (ot.curimg);
     ot.curimg = img;
@@ -1163,7 +1181,9 @@ action_pattern (int argc, const char *argv[])
     ImageBuf &ib ((*img)());
     std::string pattern = argv[1];
     if (Strutil::iequals(pattern,"black")) {
-        ImageBufAlgo::zero (ib);
+        bool ok = ImageBufAlgo::zero (ib);
+        if (! ok)
+            ot.error (argv[0], ib.geterror());
     } else if (Strutil::istarts_with(pattern,"constant")) {
         float *fill = ALLOCA (float, nchans);
         for (int c = 0;  c < nchans;  ++c)
@@ -1183,7 +1203,9 @@ action_pattern (int argc, const char *argv[])
                 }
             }
         }
-        ImageBufAlgo::fill (ib, fill);
+        bool ok = ImageBufAlgo::fill (ib, fill);
+        if (! ok)
+            ot.error (argv[0], ib.geterror());
     } else if (Strutil::istarts_with(pattern,"checker")) {
         int width = 8;
         size_t pos;
@@ -1194,12 +1216,16 @@ action_pattern (int argc, const char *argv[])
         }
         std::vector<float> color1 (nchans, 0.0f);
         std::vector<float> color2 (nchans, 1.0f);
-        ImageBufAlgo::checker (ib, width, &color1[0], &color2[0],
-                               ib.xbegin(), ib.xend(),
-                               ib.ybegin(), ib.yend(),
-                               ib.zbegin(), ib.zend());
+        bool ok = ImageBufAlgo::checker (ib, width, &color1[0], &color2[0],
+                                         ib.xbegin(), ib.xend(),
+                                         ib.ybegin(), ib.yend(),
+                                         ib.zbegin(), ib.zend());
+        if (! ok)
+            ot.error (argv[0], ib.geterror());
     } else {
-        ImageBufAlgo::zero (ib);
+        bool ok = ImageBufAlgo::zero (ib);
+        if (! ok)
+            ot.error (argv[0], ib.geterror());
     }
     ot.push (img);
     return 0;
@@ -1222,7 +1248,9 @@ action_capture (int argc, const char *argv[])
     }
 
     ImageBuf ib;
-    ImageBufAlgo::capture_image (ib, camera, TypeDesc::FLOAT);
+    bool ok = ImageBufAlgo::capture_image (ib, camera, TypeDesc::FLOAT);
+    if (! ok)
+        ot.error (argv[0], ib.geterror());
     ImageRecRef img (new ImageRec ("capture", ib.spec(), ot.imagecache));
     (*img)().copy (ib);
     ot.push (img);
@@ -1250,8 +1278,10 @@ action_crop (int argc, const char *argv[])
         ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
         const ImageBuf &Aib ((*A)(0,0));
         ImageBuf &Rib ((*ot.curimg)(0,0));
-        ImageBufAlgo::crop (Rib, Aib, newspec.x, newspec.x+newspec.width,
-                            newspec.y, newspec.y+newspec.height);
+        bool ok = ImageBufAlgo::crop (Rib, Aib, newspec.x, newspec.x+newspec.width,
+                                      newspec.y, newspec.y+newspec.height);
+        if (! ok)
+            ot.error (argv[0], Rib.geterror());
     } else if (newspec.x != Aspec.x || newspec.y != Aspec.y) {
         // only offset changed; don't copy the image or crop, simply
         // adjust the origins.
@@ -1387,7 +1417,9 @@ action_fixnan (int argc, const char *argv[])
         for (int m = 0;  m < miplevels;  ++m) {
             const ImageBuf &Aib ((*A)(s,m));
             ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBufAlgo::fixNonFinite (Rib, Aib, mode);
+            bool ok = ImageBufAlgo::fixNonFinite (Rib, Aib, mode);
+            if (! ok)
+                ot.error (argv[0], Rib.geterror());
         }
     }
              
@@ -1421,7 +1453,9 @@ action_over (int argc, const char *argv[])
     ot.push (new ImageRec ("irec", specR, ot.imagecache));
     ImageBuf &Rib ((*ot.curimg)());
 
-    ImageBufAlgo::over (Rib, Aib, Bib);
+    bool ok = ImageBufAlgo::over (Rib, Aib, Bib);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
     return 0;
 }
 
@@ -1439,7 +1473,9 @@ action_text (int argc, const char *argv[])
     ot.push (new ImageRec (*A, 0, 0, true, false));
     ImageBuf &Rib ((*ot.curimg)(0,0));
     const ImageSpec &Rspec = Rib.spec();
-    ImageBufAlgo::zero (Rib);
+    bool ok = ImageBufAlgo::zero (Rib);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
 
     // Set up defaults for text placement, size, font, color
     int x = Rspec.x + Rspec.width/2;
@@ -1482,8 +1518,10 @@ action_text (int argc, const char *argv[])
         }
     }
 
-    ImageBufAlgo::render_text (Rib, x, y, argv[1] /* the text */,
-                               fontsize, font, textcolor);
+    ok = ImageBufAlgo::render_text (Rib, x, y, argv[1] /* the text */,
+                                    fontsize, font, textcolor);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
 
     return 0;
 }

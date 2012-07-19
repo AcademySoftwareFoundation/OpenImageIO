@@ -97,6 +97,7 @@ ImageBufAlgo::zero (ImageBuf &dst)
     case TypeDesc::HALF  : zero_<half> (dst); break;
     case TypeDesc::DOUBLE: zero_<double> (dst); break;
     default:
+        dst.error ("Unsupported pixel data format '%s'", dst.spec().format);
         return false;
     }
     
@@ -126,18 +127,7 @@ ImageBufAlgo::fill (ImageBuf &dst,
                     int xbegin, int xend,
                     int ybegin, int yend)
 {
-    if (xbegin >= xend) {
-        return false;
-    }
-    if (ybegin >= yend) {
-        return false;
-    }
-    
-    for (int j = ybegin; j < yend; j++)
-        for (int i = xbegin; i < xend; i++)
-            dst.setpixel (i, j, pixel);
-    
-    return true;
+    return fill (dst, pixel, xbegin, xend, ybegin, yend, 0, 1);
 }
 
 
@@ -148,22 +138,10 @@ ImageBufAlgo::fill (ImageBuf &dst,
                     int ybegin, int yend,
                     int zbegin, int zend)
 {
-
-    if (xbegin >= xend) {
-        return false;
-    }
-    if (ybegin >= yend) {
-        return false;
-    }
-    if (zbegin >= zend) {
-        return false;
-    }
-    
     for (int k = zbegin; k < zend; k++)
         for (int j = ybegin; j < yend; j++)
             for (int i = xbegin; i < xend; i++)
                 dst.setpixel (i, j, k, pixel);
-    
     return true;
 }
 
@@ -281,9 +259,11 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
         return crop_<double> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
         break;
     default:
+        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
     
+    ASSERT (0);
     return false;
 }
 
@@ -294,13 +274,17 @@ bool
 ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels)
 {
     // Not intended to create 0-channel images.
-    if (numChannels <= 0)
+    if (numChannels <= 0) {
+        dst.error ("%d-channel images not supported", numChannels);
         return false;
+    }
     // If we dont have a single source channel,
     // hard to know how big to make the additional channels
-    if (src.spec().nchannels == 0)
+    if (src.spec().nchannels == 0) {
+        dst.error ("%d-channel images not supported", src.spec().nchannels);
         return false;
-    
+    }
+
     if (numChannels == src.spec().nchannels) {
         return dst.copy (src);
     }
@@ -368,11 +352,14 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     // dst must be distinct from A and B
     if ((const void *)&A == (const void *)&dst ||
         (const void *)&B == (const void *)&dst) {
+        dst.error ("destination image must be distinct from source");
         return false;
     }
     
     // all three images must have the same number of channels
     if (A.spec().nchannels != B.spec().nchannels) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   A.spec().nchannels, B.spec().nchannels);
         return false;
     }
     
@@ -420,15 +407,19 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
-ImageBufAlgo::computePixelStats (PixelStats  &stats, const ImageBuf &src)
+ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src)
 {
     int nchannels = src.spec().nchannels;
-    if (nchannels == 0)
+    if (nchannels == 0) {
+        src.error ("%d-channel images not supported", nchannels);
         return false;
+    }
 
-    if (src.spec().format != TypeDesc::FLOAT)
+    if (src.spec().format != TypeDesc::FLOAT) {
+        src.error ("only 'float' images are supported");
         return false;
-    
+    }
+
     // Local storage to allow for intermediate representations which
     // are sometimes more precise than the final stats output.
     
@@ -659,6 +650,7 @@ ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
     case TypeDesc::HALF  : return isConstantColor_<half> (src, color); break;
     case TypeDesc::DOUBLE: return isConstantColor_<double> (src, color); break;
     default:
+        src.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
 };
@@ -696,6 +688,7 @@ ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val)
     case TypeDesc::HALF  : return isConstantChannel_<half> (src, channel, val); break;
     case TypeDesc::DOUBLE: return isConstantChannel_<double> (src, channel, val); break;
     default:
+        src.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
 };
@@ -742,6 +735,7 @@ ImageBufAlgo::isMonochrome(const ImageBuf &src)
     case TypeDesc::HALF  : return isMonochrome_<half> (src); break;
     case TypeDesc::DOUBLE: return isMonochrome_<double> (src); break;
     default:
+        src.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
 };
@@ -797,8 +791,13 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     const ImageSpec &dstspec (dst.spec());
     int nchannels = dstspec.nchannels;
 
-    if (dstspec.format.basetype != TypeDesc::FLOAT ||
-        nchannels != srcspec.nchannels) {
+    if (dstspec.format.basetype != TypeDesc::FLOAT) {
+        dst.error ("only 'float' images are supported");
+        return false;
+    }
+    if (nchannels != srcspec.nchannels) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
         return false;
     }
 
@@ -986,9 +985,11 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     case TypeDesc::DOUBLE:
         return resize_<double> (dst, src, xbegin, xend, ybegin, yend, filter);
     default:
+        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
-    
+
+    ASSERT (0);
     return false;
 }
 
@@ -1140,8 +1141,11 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
 {
     if (R.spec().format != BaseTypeFromC<Rtype>::value ||
         A.spec().format != BaseTypeFromC<Atype>::value ||
-        B.spec().format != BaseTypeFromC<Btype>::value)
+        B.spec().format != BaseTypeFromC<Btype>::value) {
+        R.error ("Unsupported pixel data format combination '%s / %s / %s'",
+                 R.spec().format, A.spec().format, B.spec().format);
         return false;   // double check that types match
+    }
 
     // Output image R.
     const ImageSpec &specR = R.spec();
@@ -1236,26 +1240,37 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     // float pixel data.
     if (R.spec().format != TypeDesc::TypeFloat ||
         A.spec().format != TypeDesc::TypeFloat ||
-        B.spec().format != TypeDesc::TypeFloat)
+        B.spec().format != TypeDesc::TypeFloat) {
+        R.error ("Unsupported pixel data format combination '%s / %s / %s'",
+                   R.spec().format, A.spec().format, B.spec().format);
         return false;
+    }
 
     // Fail if the input images have a Z channel.
-    if (specA.z_channel >= 0 || specB.z_channel >= 0)
+    if (specA.z_channel >= 0 || specB.z_channel >= 0) {
+        R.error ("'over' does not support Z channels");
         return false;
+    }
 
     // If input images A and B have different number of non-alpha channels
     // then return false.
-    if (non_alpha_A != non_alpha_B)
+    if (non_alpha_A != non_alpha_B) {
+        R.error ("inputs had different numbers of color channels");
         return false;
+    }
 
     // A or B has number of channels different than 3 and 4, and it does
     // not have an alpha channel.
-    if ((A_not_34 && !has_alpha_A) || (B_not_34 && !has_alpha_B))
+    if ((A_not_34 && !has_alpha_A) || (B_not_34 && !has_alpha_B)) {
+        R.error ("inputs must have alpha channels (or be implicitly RGB or RGBA)");
         return false;
+    }
 
     // A or B has zero or one channel -> return false.
-    if (channels_A <= 1 || channels_B <= 1)
+    if (channels_A <= 1 || channels_B <= 1) {
+        R.error ("unsupported number of channels");
         return false;
+    }
 
     // Initialized R -> use as allocated.  
     // Uninitialized R -> size it to the union of A and B.
@@ -1270,8 +1285,10 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
             newspec.alpha_channel =  3;
             R.reset ("over", newspec);
         } else {
-            if (non_alpha_R != 3 || alpha_R != 3)
+            if (non_alpha_R != 3 || alpha_R != 3) {
+                R.error ("unsupported channel layout");
                 return false;
+            }
         }
     } else if (has_alpha_A && has_alpha_B && alpha_A == alpha_B) {
         if (! initialized_R) {
@@ -1279,10 +1296,13 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
             newspec.alpha_channel =  alpha_A;
             R.reset ("over", newspec);
         } else {
-            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A)
+            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A) {
+                R.error ("unsupported channel layout");
                 return false;
+            }
         }
     } else {
+        R.error ("unsupported channel layout");
         return false;
     }
 
@@ -1294,7 +1314,7 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
                                  boost::cref(A), boost::cref(B), _1),
                            roi, nthreads);
-    return true;
+    return ! R.has_error();
 }
 
 
@@ -1336,6 +1356,7 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
         error = FT_Init_FreeType (&ft_library);
         if (error) {
             ft_broken = true;
+            R.error ("Could not initialize FreeType for font rendering");
             return false;
         }
     }
@@ -1370,14 +1391,17 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
 
     FT_Face face;      // handle to face object
     error = FT_New_Face (ft_library, font.c_str(), 0 /* face index */, &face);
-    if (error)
+    if (error) {
+        R.error ("Could not set font face to \"%s\"", font);
         return false;  // couldn't open the face
+    }
 
     error = FT_Set_Pixel_Sizes (face,        // handle to face object
                                 0,           // pixel_width
                                 fontsize);   // pixel_heigh
     if (error) {
         FT_Done_Face (face);
+        R.error ("Could not set font size to %d", fontsize);
         return false;  // couldn't set the character size
     }
 
@@ -1416,6 +1440,7 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
     return true;
 
 #else
+    R.error ("OpenImageIO was not compiled with FreeType for font rendering");
     return false;   // Font rendering not supported
 #endif
 }

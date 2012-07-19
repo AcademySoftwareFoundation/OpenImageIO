@@ -163,7 +163,7 @@ Filesystem::searchpath_find (const std::string &filename,
             return f.string();
         }
 
-        if (recursive && Filesystem::is_directory (f.string())) {
+        if (recursive && Filesystem::is_directory (d)) {
             std::vector<std::string> subdirs;
             for (boost::filesystem::directory_iterator s(d); 
                  s != boost::filesystem::directory_iterator();  ++s)
