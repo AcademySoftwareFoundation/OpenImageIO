@@ -214,6 +214,12 @@ if (OpenCV_FOUND)
     target_link_libraries (OpenImageIO opencv_core opencv_highgui)
 endif ()
 
+# Include Freetype if using it
+if (FREETYPE_FOUND)
+    include_directories (${FREETYPE_INCLUDE_DIRS})
+    target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES})
+endif ()
+
 
 
 if (WIN32)
@@ -274,6 +280,10 @@ add_test (unit_atomic atomic_test)
 add_executable (spinlock_test spinlock_test.cpp)
 target_link_libraries (spinlock_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (unit_spinlock spinlock_test)
+
+add_executable (spin_rw_test spin_rw_test.cpp)
+target_link_libraries (spin_rw_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_spin_rw spin_rw_test)
 
 add_executable (ustring_test ustring_test.cpp)
 target_link_libraries (ustring_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})

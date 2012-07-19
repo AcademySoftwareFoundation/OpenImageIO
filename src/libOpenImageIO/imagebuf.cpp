@@ -156,6 +156,7 @@ ImageBuf::ImageBuf (const std::string &filename, const ImageSpec &spec,
     m_spec = spec;
     m_nativespec = spec;
     m_spec_valid = true;
+    m_pixels_valid = true;
     m_localpixels = (char *)buffer;
     m_clientpixels = true;
 }
@@ -904,16 +905,18 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 template<typename S, typename D>
 static inline void 
-get_pixels_ (const ImageBuf &buf, int xbegin, int xend,
-             int ybegin, int yend, int zbegin, int zend, D *r)
+get_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
+                     int ybegin, int yend, int zbegin, int zend, 
+                     int chbegin, int chend, D *r)
 {
     int w = (xend-xbegin), h = (yend-ybegin);
     imagesize_t wh = imagesize_t(w) * imagesize_t(h);
+    int nchans = chend - chbegin;
     for (ImageBuf::ConstIterator<S,D> p (buf, xbegin, xend, ybegin, yend, zbegin, zend);
          p.valid(); ++p) { 
         imagesize_t offset = ((p.z()-zbegin)*wh + (p.y()-ybegin)*w + (p.x()-xbegin)) * buf.nchannels();
-        for (int c = 0;  c < buf.nchannels();  ++c)
-            r[offset+c] = p[c];
+        for (int c = 0;  c < nchans;  ++c)
+            r[offset+c] = p[c+chbegin];
     }
 }
 
@@ -921,15 +924,49 @@ get_pixels_ (const ImageBuf &buf, int xbegin, int xend,
 
 template<typename D>
 bool
-ImageBuf::get_pixels (int xbegin, int xend, int ybegin, int yend,
-                      int zbegin, int zend, D *r) const
+ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend,
+                              int chbegin, int chend, D *r) const
 {
     // Caveat: serious hack here.  To avoid duplicating code, use a
     // #define.  Furthermore, exploit the CType<> template to construct
     // the right C data type for the given BASETYPE.
 #define TYPECASE(B)                                                     \
-    case B : get_pixels_<CType<B>::type,D>(*this, xbegin, xend, ybegin, yend, zbegin, zend, (D *)r); return true
+    case B : get_pixel_channels_<CType<B>::type,D>(*this,               \
+                       xbegin, xend, ybegin, yend, zbegin, zend,        \
+                       chbegin, chend, (D *)r); return true
     
+    switch (spec().format.basetype) {
+        TYPECASE (TypeDesc::UINT8);
+        TYPECASE (TypeDesc::INT8);
+        TYPECASE (TypeDesc::UINT16);
+        TYPECASE (TypeDesc::INT16);
+        TYPECASE (TypeDesc::UINT);
+        TYPECASE (TypeDesc::INT);
+        TYPECASE (TypeDesc::HALF);
+        TYPECASE (TypeDesc::FLOAT);
+        TYPECASE (TypeDesc::DOUBLE);
+        TYPECASE (TypeDesc::UINT64);
+        TYPECASE (TypeDesc::INT64);
+    }
+    return false;
+#undef TYPECASE
+}
+
+
+
+bool
+ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend, int chbegin, int chend,
+                              TypeDesc format, void *result) const
+{
+    // For each possible base type that the user wants for a destination
+    // type, call a template specialization.
+#define TYPECASE(B)                                                     \
+    case B : return get_pixel_channels<CType<B>::type> (                \
+                             xbegin, xend, ybegin, yend, zbegin, zend,  \
+                             chbegin, chend, (CType<B>::type *)result);
+
     switch (spec().format.basetype) {
         TYPECASE (TypeDesc::UINT8);
         TYPECASE (TypeDesc::INT8);
@@ -954,61 +991,11 @@ ImageBuf::get_pixels (int xbegin, int xend, int ybegin, int yend,
                        int zbegin, int zend,
                        TypeDesc format, void *result) const
 {
-#if 1
-    // Fancy method -- for each possible base type that the user
-    // wants for a destination type, call a template specialization.
-    switch (format.basetype) {
-    case TypeDesc::UINT8 :
-        get_pixels<unsigned char> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned char *)result);
-        break;
-    case TypeDesc::INT8:
-        get_pixels<char> (xbegin, xend, ybegin, yend, zbegin, zend, (char *)result);
-        break;
-    case TypeDesc::UINT16 :
-        get_pixels<unsigned short> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned short *)result);
-        break;
-    case TypeDesc::INT16 :
-        get_pixels<short> (xbegin, xend, ybegin, yend, zbegin, zend, (short *)result);
-        break;
-    case TypeDesc::UINT :
-        get_pixels<unsigned int> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned int *)result);
-        break;
-    case TypeDesc::INT :
-        get_pixels<int> (xbegin, xend, ybegin, yend, zbegin, zend, (int *)result);
-        break;
-    case TypeDesc::HALF :
-        get_pixels<half> (xbegin, xend, ybegin, yend, zbegin, zend, (half *)result);
-        break;
-    case TypeDesc::FLOAT :
-        get_pixels<float> (xbegin, xend, ybegin, yend, zbegin, zend, (float *)result);
-        break;
-    case TypeDesc::DOUBLE :
-        get_pixels<double> (xbegin, xend, ybegin, yend, zbegin, zend, (double *)result);
-        break;
-    case TypeDesc::UINT64 :
-        get_pixels<unsigned long long> (xbegin, xend, ybegin, yend, zbegin, zend, (unsigned long long *)result);
-        break;
-    case TypeDesc::INT64 :
-        get_pixels<long long> (xbegin, xend, ybegin, yend, zbegin, zend, (long long *)result);
-        break;
-    default:
-        return false;
-    }
-#else
-    // Naive method -- loop over pixels, calling getpixel()
-    size_t usersize = format.size() * nchannels();
-    float *pel = (float *) alloca (nchannels() * sizeof(float));
-    for (int z = zbegin;  z < zend;  ++z)
-        for (int y = ybegin;  y < yend;  ++y)
-            for (int x = xbegin;  x < xend;  ++x) {
-                getpixel (x, y, z, pel);
-                convert_types (TypeDesc::TypeFloat, pel,
-                               format, result, nchannels());
-                result = (void *) ((char *)result + usersize);
-            }
-#endif
-    return true;
+    return get_pixel_channels (xbegin, xend, ybegin, yend, zbegin, zend,
+                               0, nchannels(), format, result);
 }
+
+
 
 int
 ImageBuf::oriented_width () const

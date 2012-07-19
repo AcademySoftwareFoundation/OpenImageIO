@@ -146,12 +146,6 @@ public:
     bool auto_subimage (void) const { return m_auto_subimage; }
     void auto_subimage (bool v) { m_auto_subimage = v; }
 
-    /// Copies a rectangular block of pixels into 'result' with the given
-    /// 'format', copying only from channels [chbegin, chend).
-    //FIXME: I really feel this should go somewhere else (i.e., in ImageBuf or as
-    //an ImageBufAlgo).
-    bool copy_pixel_channels  (int xbegin, int xend, int ybegin, int yend,
-                       int chbegin, int chend, TypeDesc format, void *result) const;
 private:
     ImageBuf m_corrected_image; ///< Colorspace/gamma/exposure corrected image.
     char *m_thumbnail;         ///< Thumbnail image

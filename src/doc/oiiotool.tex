@@ -534,8 +534,40 @@ Set the full/display window range to exactly cover the pixel data window.
 \apiend
 
 
+\section{\oiiotool commands that adjust the image stack}
 
-\section{\oiiotool commands that make new images}
+\apiitem{--pop}
+Pop the image stack, discarding the current image and thereby
+making the next image on the stack into the new current image.
+\apiend
+
+\apiitem{--dup}
+Duplicate the current image and push the duplicate on the stack.
+Note that this results in both the current and the next image 
+on the stack being identical copies.
+\apiend
+
+\apiitem{--unmip}
+If the current image is MIP-mapped, discard all but the top level
+(i.e., replacing the current image with a new image consisting of only the
+highest-resolution level).
+\apiend
+
+\apiitem{--selectmip {\rm \emph{level}}}
+If the current image is MIP-mapped, replace the current image with a new
+image consisting of only the given \emph{level} of the MIPmap.
+Level 0 is the highest resolution version, level 1 is the next-lower
+resolution version, etc.
+\apiend
+
+\apiitem{--subimage {\rm \emph{n}}}
+If the current image has multiple subimages, replace the current image
+with a new image consisting of only the given subimage.
+\apiend
+
+
+
+\section{\oiiotool commands that make entirely new images}
 
 \apiitem{--create {\rm \emph{size channels}}}
 
@@ -613,23 +645,8 @@ include:
 \end{tabular}
 \apiend
 
-\apiitem{--unmip}
-If the current image is MIP-mapped, discard all but the top level
-(i.e., replacing the current image with a new image consisting of only the
-highest-resolution level).
-\apiend
 
-\apiitem{--selectmip {\rm \emph{level}}}
-If the current image is MIP-mapped, replace the current image with a new
-image consisting of only the given \emph{level} of the MIPmap.
-Level 0 is the highest resolution version, level 1 is the next-lower
-resolution version, etc.
-\apiend
-
-\apiitem{--subimage {\rm \emph{n}}}
-If the current image has multiple subimages, replace the current image
-with a new image consisting of only the given subimage.
-\apiend
+\section{\oiiotool commands that do image processing}
 
 \apiitem{--add}
 Replace the \emph{two} top images with a new image that is the sum of
@@ -725,16 +742,30 @@ nonfinite values will be replaced with {\cf 0}.  If \emph{strategy} is
 finite values within a $3 \times 3$ region surrounding the pixel.
 \apiend
 
-\apiitem{--pop}
-Pop the image stack, discarding the current image and thereby
-making the next image on the stack into the new current image.
+\apiitem{--text {\rm \emph{words}}}
+Draw (rasterize) text overtop of the current image.
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf x=}\emph{xpos} & $x$ position (in pixel coordinates) of the text \\
+ & {\cf y=}\emph{ypos} & $y$ position (in pixel coordinates) of the text  \\
+ & {\cf size=}\emph{size} & font size (height, in pixels) \\
+ & {\cf font=}\emph{name} & font name, full path to the font file on
+  disk (use double quotes {\cf "name"} if the path name includes spaces) \\
+ & {\cf color=}\emph{r,g,b,...} & specify the color of the text \\
+\end{tabular}
+
+The default positions the text starting at the center of the image,
+drawn 16 pixels high in opaque white in all channels (1,1,1,...), and
+using a default font (which may be system dependent).
+
+\noindent Examples: 
+
+\begin{code}
+    oiiotool in.exr --text:x=10:y=400:size=40 "Hello world" -o out.exr
+\end{code}
+
 \apiend
 
-\apiitem{--dup}
-Duplicate the current image and push the duplicate on the stack.
-Note that this results in both the current and the next image 
-on the stack being identical copies.
-\apiend
 
 
 \section{\oiiotool commands for color management}

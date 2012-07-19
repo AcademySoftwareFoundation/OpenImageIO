@@ -1427,6 +1427,69 @@ action_over (int argc, const char *argv[])
 
 
 
+static int
+action_text (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_text, argc, argv))
+        return 0;
+
+    // Read and copy the top-of-stack image
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.push (new ImageRec (*A, 0, 0, true, false));
+    ImageBuf &Rib ((*ot.curimg)(0,0));
+    const ImageSpec &Rspec = Rib.spec();
+    ImageBufAlgo::zero (Rib);
+
+    // Set up defaults for text placement, size, font, color
+    int x = Rspec.x + Rspec.width/2;
+    int y = Rspec.y + Rspec.height/2;
+    int fontsize = 16;
+    std::string font = "";
+    float *textcolor = ALLOCA (float, Rspec.nchannels);
+    for (int c = 0;  c < Rspec.nchannels;  ++c)
+        textcolor[c] = 1.0f;
+
+    // Parse optional arguments for overrides
+    std::string command = argv[0];
+    size_t pos;
+    while ((pos = command.find_first_of(":")) != std::string::npos) {
+        command = command.substr (pos+1, std::string::npos);
+        if (Strutil::istarts_with(command,"x=")) {
+            x = atoi (command.c_str()+2);
+        } else if (Strutil::istarts_with(command,"y=")) {
+            y = atoi (command.c_str()+2);
+        } else if (Strutil::istarts_with(command,"size=")) {
+            fontsize = atoi (command.c_str()+5);
+        } else if (Strutil::istarts_with(command,"color=")) {
+            // Parse comma-separated color list
+            size_t numpos = 6;
+            for (int c = 0; c < Rspec.nchannels && numpos < command.size() && command[numpos] != ':'; ++c) {
+                textcolor[c] = atof (command.c_str()+numpos);
+                while (numpos < command.size() && command[numpos] != ':' && command[numpos] != ',')
+                    ++numpos;
+                if (command[numpos])
+                    ++numpos;
+            }
+        } else if (Strutil::istarts_with(command,"font=")) {
+            font = "";
+            int s = 5;
+            bool quote = (command[s] == '\"');
+            if (quote)
+                ++s;
+            for ( ; command[s] && command[s] != ':' && command[s] != '\"'; ++s)
+                font += command[s];
+        }
+    }
+
+    ImageBufAlgo::render_text (Rib, x, y, argv[1] /* the text */,
+                               fontsize, font, textcolor);
+
+    return 0;
+}
+
+
+
 static void
 getargs (int argc, char *argv[])
 {
@@ -1493,10 +1556,6 @@ getargs (int argc, char *argv[])
                         "Create a patterned image (args: pattern, geom, channels)",
                 "--capture %@", action_capture, NULL,
                         "Capture an image (args: camera=%%d)",
-                "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
-                "--selectmip %@ %d", action_selectmip, NULL,
-                    "Select just one MIP level (0 = highest res)",
-                "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
                 "--diff %@", action_diff, NULL, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
@@ -1509,6 +1568,13 @@ getargs (int argc, char *argv[])
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
+                "--text %@ %s", action_text, NULL,
+                    "Render text into the current image",
+                "<SEPARATOR>", "Image stack manipulation:",
+                "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
+                "--selectmip %@ %d", action_selectmip, NULL,
+                    "Select just one MIP level (0 = highest res)",
+                "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
                 "--pop %@", action_pop, NULL,
                     "Throw away the current image",
                 "--dup %@", action_dup, NULL,
