@@ -47,7 +47,8 @@
 #include "fmath.h"
 #include "color.h"
 #include <eigen3/Eigen/Sparse>
-#include <eigen3/unsupported/Eigen/SparseExtra>
+#include <eigen3/Eigen/SparseCholesky>
+//#include <eigen3/unsupported/Eigen/SparseExtra>
 
 
 #ifndef __OPENCV_CORE_TYPES_H__

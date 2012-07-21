@@ -36,7 +36,7 @@ OIIO_NAMESPACE_ENTER
   
 template<typename PXLTYPE>
 bool ImageBufAlgo::pixelCmp(PXLTYPE *a, PXLTYPE *b, int channels)
-{
+{   
     if(memcmp(a, b, channels*sizeof(PXLTYPE)) == 0)
         return true;
     else
@@ -152,6 +152,9 @@ void ImageBufAlgo::PoissonImageEditing<T>::buildSparseLinearSystem()
     
     A = Eigen::SparseMatrix<double>(N,N);
     
+    std::vector< Eigen::Triplet<double> > tripletList;
+    tripletList.reserve(5*N);
+    
     int w = maskImg.spec().full_width;
     int h = maskImg.spec().full_height;
     
@@ -199,24 +202,24 @@ void ImageBufAlgo::PoissonImageEditing<T>::buildSparseLinearSystem()
             getGuidanceVector(bVal, x, y, inchannels);
 
             if ( ImageBufAlgo::pixelCmp<T>((T*)(uMPxl.rawptr()), &maskingColor[0], mnchannels) ) // x, y-1
-                A.insert(i,mapping[key-w]) = 1;
+                tripletList.push_back(Eigen::Triplet<double>(i,mapping[key-w],1));
             else 
                 ImageBufAlgo::pixelSub<T>(&bVal[0], (T*)(uSPxl.rawptr()), inchannels);
             
-            if ( ImageBufAlgo::pixelCmp<T>((T*)(lMPxl.rawptr()), &maskingColor[0], mnchannels) ) // x-1,y
-                A.insert(i,mapping[key-1]) = 1;             
+            if ( ImageBufAlgo::pixelCmp<T>((T*)(lMPxl.rawptr()), &maskingColor[0], mnchannels) ) // x-1,y        
+                tripletList.push_back(Eigen::Triplet<double>(i,mapping[key-1],1));
             else 
                 ImageBufAlgo::pixelSub<T>(&bVal[0], (T*)(lSPxl.rawptr()), inchannels);
 
-            A.insert(i,i) = -4;
+            tripletList.push_back(Eigen::Triplet<double>(i,i,-4));
 
             if ( ImageBufAlgo::pixelCmp<T>((T*)(rMPxl.rawptr()), &maskingColor[0], mnchannels) ) // x+1,y
-                A.insert(i,mapping[key+1]) = 1;
+                tripletList.push_back(Eigen::Triplet<double>(i,mapping[key+1],1));
             else 
                 ImageBufAlgo::pixelSub<T>(&bVal[0], (T*)(rSPxl.rawptr()), inchannels);
 
             if ( ImageBufAlgo::pixelCmp<T>((T*)(dMPxl.rawptr()), &maskingColor[0], mnchannels) ) // x,y+1
-                A.insert(i,mapping[key+w]) = 1;
+                tripletList.push_back(Eigen::Triplet<double>(i,mapping[key+w],1));
             else
                 ImageBufAlgo::pixelSub<T>(&bVal[0], (T*)(dSPxl.rawptr()), inchannels);
             
@@ -238,6 +241,8 @@ void ImageBufAlgo::PoissonImageEditing<T>::buildSparseLinearSystem()
         dSPxl++;
         uSPxl++;     
     }
+    
+    A.setFromTriplets(tripletList.begin(), tripletList.end());
 }
 
 template <class T>
@@ -251,11 +256,14 @@ bool ImageBufAlgo::PoissonImageEditing<T>::computeOutputPixels()
     int inchannels = img.nchannels();
     std::vector<T> maskingColor(mnchannels, 0.0f);
     
-
-    Eigen::SparseLDLT< Eigen::SparseMatrix<double> > solver;
+    //We can use one of these
+    //TO DO: find out which is the fastest solution
+    Eigen::SimplicialLDLT< Eigen::SparseMatrix<double> > solver;
+    //Eigen::ConjugateGradient < Eigen::SparseMatrix<double> > solver;
+    //Eigen::BiCGSTAB < Eigen::SparseMatrix<double> > solver;
    
     solver.compute(A);
-    if(!solver.succeeded())
+    if(solver.info()!=Eigen::Success)
     {
     //    std::cout << "factorization error - quit\n";
         return false;

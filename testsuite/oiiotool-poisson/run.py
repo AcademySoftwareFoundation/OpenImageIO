@@ -8,7 +8,7 @@ command += (oiio_app("oiiotool")
 
 # seamless cloning
 command += (oiio_app("oiiotool") 
-            + " cloning_src1.png --clone cloning_src2.png cloning_mask.png -o cloning_out.jpg >> cloning_out.txt ;\n")
+            + " cloning_src1.png --clone cloning_mask.png cloning_src2.png -o cloning_out.jpg >> cloning_out.txt ;\n")
 
 
 # Outputs to check against references
