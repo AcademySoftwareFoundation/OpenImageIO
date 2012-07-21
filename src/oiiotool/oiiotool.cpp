@@ -1430,31 +1430,31 @@ action_over (int argc, const char *argv[])
 
 /// action_histogram ---------------------------------------------------------
 /// Usage:
-///                   ./oiiotool in --histogram channel 'bins'x'height'
-///                   cumulative output_format text_file_path -o out
+///                   ./oiiotool in --histogram:cumulative=int 'bins'x'height'
+///                   channel -o out
 ///
 /// in              - Input image that contains the channel to be histogramed.
-/// channel         - The channel in the input image to be histogramed.
+/// cumulative      - Optional argument: 1->cumulative, 0->regular histogram.
 /// 'bins'x'height' - Width and height of the histogram, where width equals
 ///                   the number of bins.
-/// cumulative      - 1 -> cumulative histogram, 0 -> regular histogram.
-/// output_format   - Save histogram as: 1 -> image, 0 -> text file.
-/// text_file_path  - Path to text file where the histogram will be saved.
+/// channel         - The channel in the input image to be histogramed.
 /// out             - Output image.
 ///
 /// Examples:
-///                 - ./oiiotool in --histogram 0 256x256 0 1 "" -o out
+///                 - ./oiiotool in --histogram 256x256 0 -o out
 ///
 ///                   Save the non-cumulative histogram of channel 0 in image
 ///                   'in', as an image with size 256x256.
 ///
-///                 - ./oiiotool in --histogram 0 256x256 0 0 text_file_path
+///                 - ./oiiotool in --histogram:cumulative=1 256x256 0 -o out
 ///
-///                   Same as the previous example, but now save as text file.
+///                   Same as the previous example, but now a cumulative
+///                   histogram is created, instead of a regular one.
 /// --------------------------------------------------------------------------
 static int
 action_histogram (int argc, const char *argv[])
 {
+    ASSERT (argc == 3);
     if (ot.postpone_callback (1, action_histogram, argc, argv))
         return 0;
 
@@ -1464,11 +1464,17 @@ action_histogram (int argc, const char *argv[])
     const ImageBuf &Aib ((*A)());
 
     // Get arguments from command line.
-    int channel         = atoi (argv[1]);
-    const char *size    = argv[2];
-    int cumulative      = atoi (argv[3]);
-    int output_format   = atoi (argv[4]);
-    const char *file    = argv[5];
+    const char *size = argv[1];
+    int channel = atoi (argv[2]);
+
+    int cumulative = 0;
+    std::string cmd = argv[0];
+    size_t pos;
+    while ((pos = cmd.find_first_of(":")) != std::string::npos) {
+        cmd = cmd.substr (pos+1, std::string::npos);
+        if (Strutil::istarts_with(cmd,"cumulative="))
+            cumulative = atoi(cmd.c_str()+11);
+    }
 
     // Extract bins and height from size.
     int bins = 0, height = 0;
@@ -1486,22 +1492,12 @@ action_histogram (int argc, const char *argv[])
         for (int i = 1; i < bins; i++)
             hist[i] += hist[i-1];
 
-    // Output as image.
-    if (output_format == 1) {
-        ImageSpec specR (bins, height, 1, TypeDesc::FLOAT);
-        ot.push (new ImageRec ("irec", specR, ot.imagecache));
-        ImageBuf &Rib ((*ot.curimg)());
-        ImageBufAlgo::histogram_draw (hist, Rib);
-    }
-    // Output as text.
-    else {
-        std::ofstream s (file);
-        if (! s.is_open()) return -1;
-        for (int i = 0; i < bins; i++)
-            s << i << " " << hist[i] << "\n";
-        s.close();
-    }
+    // Output image.
+    ImageSpec specR (bins, height, 1, TypeDesc::FLOAT);
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
 
+    ImageBufAlgo::histogram_draw (hist, Rib);
     return 0;
 }
 
@@ -1582,7 +1578,7 @@ getargs (int argc, char *argv[])
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
                 "--over %@", action_over, NULL, "'Over' composite of two images",
-                "--histogram %@ %d %s %d %d %s", action_histogram, NULL, NULL, NULL, NULL, NULL, "Histogram one channel",
+                "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (args: cumulative=0)",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",

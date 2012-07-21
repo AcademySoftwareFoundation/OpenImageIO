@@ -1356,7 +1356,8 @@ histogram_impl (const ImageBuf &A, int channel,
                 imagesize_t *supermax, ROI roi)
 {
     // Double check A's type.
-    if (A.spec().format != BaseTypeFromC<Atype>::value) return false;
+    if (A.spec().format != BaseTypeFromC<Atype>::value)
+        return false;
 
     // Initialize.
     ImageBuf::ConstIterator<Atype, float> a (A, roi);
@@ -1364,19 +1365,25 @@ histogram_impl (const ImageBuf &A, int channel,
     int bins_minus_1 = bins-1;
     bool submin_ok = submin != NULL;
     bool supermax_ok = supermax != NULL;
-    if (submin_ok) *submin = 0;
-    if (supermax_ok) *supermax = 0;
+    if (submin_ok)
+        *submin = 0;
+    if (supermax_ok)
+        *supermax = 0;
     histogram.assign(bins, 0);
 
     // Compute histogram.
     for ( ; ! a.done(); a++) {
         float c = a[channel];
-        if (c >= min && c <= max) {
+        if (c >= min && c < max) {
             // Map range min->max to 0->(bins-1).
-            histogram[ c==max ? bins_minus_1 : (int) ((c-min) * ratio) ]++;
+            histogram[ (int) ((c-min) * ratio) ]++;
+        } else if (c == max) {
+            histogram[bins_minus_1]++;
         } else {
-            if (submin_ok && c < min) (*submin)++;
-            else if (supermax_ok) (*supermax)++;
+            if (submin_ok && c < min)
+                (*submin)++;
+            else if (supermax_ok)
+                (*supermax)++;
         }
     }
     return true;
@@ -1398,11 +1405,11 @@ ImageBufAlgo::histogram (const ImageBuf &A, int channel,
         return false;
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from A.
-    if (! roi.defined) roi = get_roi (A.spec());
+    if (! roi.defined)
+        roi = get_roi (A.spec());
 
-    histogram_impl<float> (A, channel, histogram, bins, min, max,
+    return histogram_impl<float> (A, channel, histogram, bins, min, max,
                            submin, supermax, roi);
-    return true;
 }
 
 
@@ -1413,7 +1420,8 @@ ImageBufAlgo::histogram_draw (const std::vector<imagesize_t> &histogram,
 {
     // Fail if there are no bins to draw.
     int bins = histogram.size();
-    if (bins == 0) return false;
+    if (bins == 0)
+        return false;
 
     // Check R and modify it if needed.
     int height = R.spec().height;
@@ -1425,7 +1433,8 @@ ImageBufAlgo::histogram_draw (const std::vector<imagesize_t> &histogram,
 
     // Fill output image R with white color.
     ImageBuf::Iterator<float, float> r (R);
-    for ( ; ! r.done(); ++r) r[0] = 1;
+    for ( ; ! r.done(); ++r)
+        r[0] = 1;
 
     // Draw histogram left->right, bottom->up.
     imagesize_t max = *std::max_element (histogram.begin(), histogram.end());
