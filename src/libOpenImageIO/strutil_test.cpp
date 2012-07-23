@@ -134,12 +134,24 @@ void test_escape_sequences ()
 
 
 
+void test_strip ()
+{
+    OIIO_CHECK_EQUAL (Strutil::strip ("abcdefbac", "abc"), "def");
+    OIIO_CHECK_EQUAL (Strutil::strip ("defghi", "abc"), "defghi");
+    OIIO_CHECK_EQUAL (Strutil::strip ("  \tHello, world\n"), "Hello, world");
+    OIIO_CHECK_EQUAL (Strutil::strip (" \t"), "");
+    OIIO_CHECK_EQUAL (Strutil::strip (""), "");
+}
+
+
+
 int main (int argc, char *argv[])
 {
     test_memformat ();
     test_timeintervalformat ();
     test_get_rest_arguments ();
     test_escape_sequences ();
+    test_strip ();
 
     return unit_test_failures;
 }

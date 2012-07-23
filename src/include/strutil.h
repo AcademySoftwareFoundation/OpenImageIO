@@ -193,6 +193,11 @@ void DLLPUBLIC to_lower (std::string &a);
 /// a static locale that doesn't require a mutex lock.
 void DLLPUBLIC to_upper (std::string &a);
 
+/// Return a copy of str with all consecutive characters in chars
+/// removed from the beginning and ending.  If chars is empty, it will
+/// be interpreted as " \t\n\r\f\v" (whitespace).
+std::string DLLPUBLIC strip (const std::string &str,
+                             const std::string &chars=std::string());
 
 
 /// C++ functor wrapper class for using strhash for unordered_map or
