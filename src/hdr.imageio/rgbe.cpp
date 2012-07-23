@@ -83,7 +83,6 @@ static int rgbe_error(int rgbe_error_code, const char *msg, char *errbuf)
           sprintf(errbuf,"RGBE error: %s\n",msg);
       else
           fprintf(stderr,"RGBE error: %s\n",msg);
-    break;
   }
   return RGBE_RETURN_FAILURE;
 }
@@ -165,110 +164,108 @@ int RGBE_WriteHeader(FILE *fp, int width, int height, rgbe_header_info *info,
 int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info,
                     char *errbuf)
 {
-	char buf[128];
-	float tempf;
-	size_t i;
+  char buf[128];
+  int found_format;
+  float tempf;
+  int i;
 
-	if (info) {
-		info->valid = 0;
-		info->programtype[0] = 0;
-		info->gamma = info->exposure = 1.0;
-	}
+  found_format = 0;
+  if (info) {
+    info->valid = 0;
+    info->programtype[0] = 0;
+    info->gamma = info->exposure = 1.0;
+  }
+  if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == NULL)
+    return rgbe_error(rgbe_read_error,NULL, errbuf);
+  if ((buf[0] != '#')||(buf[1] != '?')) {
+    /* if you want to require the magic token then uncomment the next line */
+    /*return rgbe_error(rgbe_format_error,"bad initial token"); */
+  }
+  else if (info) {
+    info->valid |= RGBE_VALID_PROGRAMTYPE;
+    for(i=0;i<(int)sizeof(info->programtype)-1;i++) {
+      if ((buf[i+2] == 0) || isspace(buf[i+2]))
+	break;
+      info->programtype[i] = buf[i+2];
+    }
+    info->programtype[i] = 0;
+    if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
+      return rgbe_error(rgbe_read_error,NULL, errbuf);
+  }
+  bool found_FORMAT_line = false;
+  for(;;) {
+    if ((buf[0] == 0)||(buf[0] == '\n')) {
+        if (found_FORMAT_line)
+            break;
+        return rgbe_error(rgbe_format_error,"no FORMAT specifier found", errbuf);
+    }
+    else if (strcmp(buf,"FORMAT=32-bit_rle_rgbe\n") == 0) {
+        found_FORMAT_line = true;
+        /* LG says no:    break;       // format found so break out of loop */
+    }
+    else if (info && (sscanf(buf,"GAMMA=%g",&tempf) == 1)) {
+      info->gamma = tempf;
+      info->valid |= RGBE_VALID_GAMMA;
+    }
+    else if (info && (sscanf(buf,"EXPOSURE=%g",&tempf) == 1)) {
+      info->exposure = tempf;
+      info->valid |= RGBE_VALID_EXPOSURE;
+    }
+    if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
+      return rgbe_error(rgbe_read_error,NULL, errbuf);
+  }
+  if (strcmp(buf,"\n") != 0) {
+      printf ("Found '%s'\n", buf);
+    return rgbe_error(rgbe_format_error,
+		      "missing blank line after FORMAT specifier", errbuf);
+  }
+  if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
+    return rgbe_error(rgbe_read_error,NULL, errbuf);
 
-	if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == NULL)
-		return rgbe_error(rgbe_read_error,NULL, errbuf);
-
-	if ((buf[0] != '#')||(buf[1] != '?')) {
-		/* if you want to require the magic token then uncomment the next line */
-		/*return rgbe_error(rgbe_format_error,"bad initial token"); */
-	} else if (info) {
-		info->valid |= RGBE_VALID_PROGRAMTYPE;
-		for (i = 0; i < (int)sizeof(info->programtype)-1; i++) {
-			if ((buf[i + 2] == 0) || isspace(buf[i + 2]))
-			break;
-			info->programtype[i] = buf[i + 2];
-		}
-		info->programtype[i] = 0;
-		if (fgets(buf, sizeof(buf)/sizeof(buf[0]), fp) == 0)
-			return rgbe_error(rgbe_read_error, NULL, errbuf);
-	}
-
-	bool found_FORMAT_line = false;
-	for ( ; ; ) {
-		if ((buf[0] == 0)||(buf[0] == '\n')) {
-			if (found_FORMAT_line)
-			break;
-			return rgbe_error(rgbe_format_error,"no FORMAT specifier found", errbuf);
-		}
-		else if (strcmp(buf,"FORMAT=32-bit_rle_rgbe\n") == 0) {
-			found_FORMAT_line = true;
-			/* LG says no:    break;       // format found so break out of loop */
-		}
-		else if (info && (sscanf(buf,"GAMMA=%g",&tempf) == 1)) {
-			info->gamma = tempf;
-			info->valid |= RGBE_VALID_GAMMA;
-		}
-		else if (info && (sscanf(buf,"EXPOSURE=%g",&tempf) == 1)) {
-			info->exposure = tempf;
-			info->valid |= RGBE_VALID_EXPOSURE;
-		}
-		if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
-			return rgbe_error(rgbe_read_error,NULL, errbuf);
-	} /* end for ( ; ; ) */
-
-	if (strcmp(buf,"\n") != 0) {
-		printf ("Found '%s'\n", buf);
-		return rgbe_error(rgbe_format_error,
-				"missing blank line after FORMAT specifier", errbuf);
-	}
-
-	if (fgets(buf,sizeof(buf)/sizeof(buf[0]),fp) == 0)
-		return rgbe_error(rgbe_read_error,NULL, errbuf);
-
-	if (sscanf(buf,"-Y %d +X %d", height, width) == 2) {
-		if (info) {
-			info->orientation = 1;
-			info->valid |= RGBE_VALID_ORIENTATION;
-		}
-	} else if (sscanf(buf,"-Y %d -X %d", height, width) == 2) {
-		if (info) {
-			info->orientation = 2;
-			info->valid |= RGBE_VALID_ORIENTATION;
-		}
-	} else if (sscanf(buf,"+Y %d -X %d", height, width) == 2) {
-		if (info) {
-			info->orientation = 3;
-			info->valid |= RGBE_VALID_ORIENTATION;
-		}
-	} else if (sscanf(buf,"+Y %d +X %d", height, width) == 2) {
-		if (info) {
-			info->orientation = 4;
-			info->valid |= RGBE_VALID_ORIENTATION;
-		}
-	} else if (sscanf(buf,"+X %d -Y %d", height, width) == 2) {
-		if (info) {
-			info->orientation = 5;
-			info->valid |= RGBE_VALID_ORIENTATION;
-		}
-	} else if (sscanf(buf,"+X %d +Y %d", height, width) == 2) {
-		if (info) {
-			info->orientation = 6;
-			info->valid |= RGBE_VALID_ORIENTATION;
-		}
-	} else if (sscanf(buf,"-X %d +Y %d", height, width) == 2) {
-		if (info) {
-			info->orientation = 7;
-			info->valid |= RGBE_VALID_ORIENTATION;
-		}
-	} else if (sscanf(buf,"-X %d -Y %d", height, width) == 2) {
-		if (info) {
-			info->orientation = 8;
-			info->valid |= RGBE_VALID_ORIENTATION;
-		}
-	} else {
-		return rgbe_error(rgbe_format_error, "missing image size specifier", errbuf);
-	}
-	return RGBE_RETURN_SUCCESS;
+  if (sscanf(buf,"-Y %d +X %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 1;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"-Y %d -X %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 2;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"+Y %d -X %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 3;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"+Y %d +X %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 4;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"+X %d -Y %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 5;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"+X %d +Y %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 6;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"-X %d +Y %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 7;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else if (sscanf(buf,"-X %d -Y %d",height,width) == 2) {
+      if (info) {
+          info->orientation = 8;
+          info->valid |= RGBE_VALID_ORIENTATION;
+      }
+  } else {
+    return rgbe_error(rgbe_format_error,"missing image size specifier", errbuf);
+  }
+  return RGBE_RETURN_SUCCESS;
 }
 
 /* simple write routine that does not use run length encoding */
