@@ -256,10 +256,13 @@ ImageBuf::operator= (const ImageBuf &src)
 
 
 
+static spin_mutex err_mutex;      ///< Protect m_err fields
+
+
 bool
 ImageBuf::has_error () const
 {
-    spin_lock lock (*(spin_mutex *)&m_err_mutex);
+    spin_lock lock (err_mutex);
     return ! m_err.empty();
 }
 
@@ -268,7 +271,7 @@ ImageBuf::has_error () const
 std::string
 ImageBuf::geterror (void) const
 {
-    spin_lock lock (*(spin_mutex *)&m_err_mutex);
+    spin_lock lock (err_mutex);
     std::string e = m_err;
     m_err.clear();
     return e;
@@ -279,7 +282,7 @@ ImageBuf::geterror (void) const
 void
 ImageBuf::append_error (const std::string &message) const
 {
-    spin_lock lock (*(spin_mutex *)&m_err_mutex);
+    spin_lock lock (err_mutex);
     ASSERT (m_err.size() < 1024*1024*16 &&
             "Accumulated error messages > 16MB. Try checking return codes!");
     if (m_err.size() && m_err[m_err.size()-1] != '\n')
