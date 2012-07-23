@@ -150,6 +150,7 @@ ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t)
     
     ImageSpec dst_spec (src.spec());
     if(!TransformImageSpec(dst_spec, t)) {
+        dst.error ("unknown transform type %d", (int)t);
         return false;
     }
     
@@ -169,6 +170,7 @@ ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t)
         return true;
     }
     
+    dst.error ("unknown transform type %d", (int)t);
     return false;
 }
 

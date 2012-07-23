@@ -60,6 +60,7 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
 {
     if (! ipl) {
         DASSERT (0 && "ImageBufAlgo::fromIplImage called with NULL ipl");
+        dst.error ("Passed NULL source IplImage");
         return false;
     }
 #ifdef USE_OPENCV
@@ -79,6 +80,7 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
         srcformat = TypeDesc::DOUBLE;  break;
     default:
         DASSERT (0 && "unknown IplImage type");
+        dst.error ("Unsupported IplImage depth %d", (int)ipl->depth);
         return false;
     }
 
@@ -89,6 +91,7 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
 
     if (ipl->dataOrder != IPL_DATA_ORDER_PIXEL) {
         // We don't handle separate color channels, and OpenCV doesn't either
+        dst.error ("Unsupported IplImage data order %d", (int)ipl->dataOrder);
         return false;
     }
     
@@ -123,6 +126,7 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
 
     return true;
 #else
+    dst.error ("fromIplImage not supported -- no OpenCV support at compile time");
     return false;
 #endif
 }
@@ -184,10 +188,12 @@ ImageBufAlgo::capture_image (ImageBuf &dst, int cameranum, TypeDesc convert)
         lock_guard lock (opencv_mutex);
         CvCapture *cvcam = cameras[cameranum];
         if (! cvcam) {
+            dst.error ("Could not create a capture camera (OpenCV error)");
             return false;  // failed somehow
         }
         frame = cvQueryFrame (cvcam);
         if (! frame) {
+            dst.error ("Could not cvQueryFrame (OpenCV error)");
             return false;  // failed somehow
         }
     }
@@ -208,6 +214,7 @@ ImageBufAlgo::capture_image (ImageBuf &dst, int cameranum, TypeDesc convert)
 
     return ok;
 #else
+    dst.error ("capture_image not supported -- no OpenCV support at compile time");
     return false;
 #endif
 }

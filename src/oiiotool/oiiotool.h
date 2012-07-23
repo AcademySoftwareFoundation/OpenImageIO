@@ -143,6 +143,8 @@ public:
         return r;
     }
 
+    void error (const std::string &command, const std::string &explanation);
+
 private:
     CallbackFunction m_pending_callback;
     int m_pending_argc;

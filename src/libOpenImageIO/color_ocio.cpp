@@ -423,8 +423,10 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             const ColorProcessor* processor, bool unpremult)
 {
     // If the processor is NULL, return false (error)
-    if (!processor)
+    if (!processor) {
+        dst.error ("Passed NULL ColorProcessor to colorconvert() [probable application bug]");
         return false;
+    }
 
     // If the processor is a no-op, no work needs to be done. Early exit.
     if (processor->isNoOp())
@@ -524,9 +526,10 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
                             const ColorProcessor* processor, bool unpremult)
 {
     // If the processor is NULL, return false (error)
-    if (!processor)
+    if (!processor) {
         return false;
-    
+    }
+
     // If the processor is a no-op, no work needs to be done. Early exit.
     if (processor->isNoOp())
         return true;
