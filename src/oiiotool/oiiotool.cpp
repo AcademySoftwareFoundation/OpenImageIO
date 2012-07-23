@@ -1433,7 +1433,11 @@ action_over (int argc, const char *argv[])
 ///                   channel -o out
 ///
 /// in              - Input image that contains the channel to be histogramed.
-/// cumulative      - Optional argument: 1->cumulative, 0->regular histogram.
+/// cumulative      - Optional argument that can take values 0 or 1. If 0,
+///                   then each bin will contain the count of pixels having
+///                   values in the range for that bin. If 1, then each bin
+///                   will contain not only its count, but also the counts of
+///                   all preceding bins.
 /// 'bins'x'height' - Width and height of the histogram, where width equals
 ///                   the number of bins.
 /// channel         - The channel in the input image to be histogramed.
@@ -1496,7 +1500,7 @@ action_histogram (int argc, const char *argv[])
     ot.push (new ImageRec ("irec", specR, ot.imagecache));
     ImageBuf &Rib ((*ot.curimg)());
 
-    ImageBufAlgo::histogram_draw (hist, Rib);
+    ImageBufAlgo::histogram_draw (Rib, hist);
     return 0;
 }
 

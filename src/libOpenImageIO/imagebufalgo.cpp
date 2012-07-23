@@ -1356,8 +1356,9 @@ histogram_impl (const ImageBuf &A, int channel,
                 imagesize_t *supermax, ROI roi)
 {
     // Double check A's type.
-    if (A.spec().format != BaseTypeFromC<Atype>::value)
+    if (A.spec().format != BaseTypeFromC<Atype>::value) {
         return false;
+    }
 
     // Initialize.
     ImageBuf::ConstIterator<Atype, float> a (A, roi);
@@ -1399,29 +1400,45 @@ ImageBufAlgo::histogram (const ImageBuf &A, int channel,
                          float min, float max, imagesize_t *submin,
                          imagesize_t *supermax, ROI roi)
 {
-    // Input validation.
-    if (A.spec().format != TypeDesc::TypeFloat || A.nchannels() == 0 ||
-        channel < 0 || channel >= A.nchannels() || bins < 1 || max-min <= 0)
+    if (A.spec().format != TypeDesc::TypeFloat) {
         return false;
+    }
+
+    if (A.nchannels() == 0) {
+        return false;
+    }
+
+    if (channel < 0 || channel >= A.nchannels()) {
+        return false;
+    }
+
+    if (bins < 1) {
+        return false;
+    }
+
+    if (max <= min) {
+        return false;
+    }
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from A.
     if (! roi.defined)
         roi = get_roi (A.spec());
 
     return histogram_impl<float> (A, channel, histogram, bins, min, max,
-                           submin, supermax, roi);
+                                  submin, supermax, roi);
 }
 
 
 
 bool
-ImageBufAlgo::histogram_draw (const std::vector<imagesize_t> &histogram,
-                              ImageBuf &R)
+ImageBufAlgo::histogram_draw (ImageBuf &R,
+                              const std::vector<imagesize_t> &histogram)
 {
     // Fail if there are no bins to draw.
     int bins = histogram.size();
-    if (bins == 0)
+    if (bins == 0) {
         return false;
+    }
 
     // Check R and modify it if needed.
     int height = R.spec().height;
