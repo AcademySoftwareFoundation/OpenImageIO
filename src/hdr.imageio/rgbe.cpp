@@ -83,6 +83,7 @@ static int rgbe_error(int rgbe_error_code, const char *msg, char *errbuf)
           sprintf(errbuf,"RGBE error: %s\n",msg);
       else
           fprintf(stderr,"RGBE error: %s\n",msg);
+    break;
   }
   return RGBE_RETURN_FAILURE;
 }
@@ -165,11 +166,9 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info,
                     char *errbuf)
 {
   char buf[128];
-  int found_format;
   float tempf;
-  int i;
+  size_t i;
 
-  found_format = 0;
   if (info) {
     info->valid = 0;
     info->programtype[0] = 0;
