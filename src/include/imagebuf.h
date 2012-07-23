@@ -47,7 +47,6 @@
 #include "fmath.h"
 #include "imagecache.h"
 #include "dassert.h"
-#include "thread.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -1101,7 +1100,6 @@ protected:
     bool m_pixels_valid;         ///< Image is valid
     bool m_badfile;              ///< File not found
     mutable std::string m_err;   ///< Last error message
-    spin_mutex m_err_mutex;      ///< Protect m_err
     int m_orientation;           ///< Orientation of the image
     float m_pixelaspect;         ///< Pixel aspect ratio of the image
     ImageCache *m_imagecache;    ///< ImageCache to use
