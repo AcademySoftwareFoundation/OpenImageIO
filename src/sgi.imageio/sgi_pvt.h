@@ -157,6 +157,24 @@ class SgiOutput : public ImageOutput {
     }
 
     void create_and_write_header();
+
+    /// Helper - write, with error detection
+    template <class T>
+    bool fwrite (const T &buf, size_t nitems=1, size_t itemsize=sizeof(T)) {
+        size_t n = std::fwrite (&buf, itemsize, nitems, m_fd);
+        if (n != nitems)
+            error ("Write error: wrote %d records of %d", (int)n, (int)nitems);
+        return n == nitems;
+    }
+
+    /// Helper - read, with error detection
+    template <class T>
+    bool fread (T &buf, size_t nitems=1, size_t itemsize=sizeof(T)) {
+        size_t n = std::fread (&buf, itemsize, nitems, m_fd);
+        if (n != nitems)
+            error ("Write error: wrote %d records of %d", (int)n, (int)nitems);
+        return n == nitems;
+    }
 };
 
 
