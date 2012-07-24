@@ -1446,5 +1446,138 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
 }
 
 
+namespace { // anonymous namespace
+
+/// histogram_impl -----------------------------------------------------------
+/// Fully type-specialized version of histogram.
+///
+/// Pixel values in min->max range are mapped to 0->(bins-1) range, so that
+/// each value is placed in the appropriate bin. The formula used is:
+/// y = (x-min) * bins/(max-min), where y is the value in the 0->(bins-1)
+/// range and x is the value in the min->max range. There is one special
+/// case x==max for which the formula is not used and x is assigned to the
+/// last bin at position (bins-1) in the vector histogram.
+/// --------------------------------------------------------------------------
+template<class Atype>
+bool
+histogram_impl (const ImageBuf &A, int channel,
+                std::vector<imagesize_t> &histogram, int bins,
+                float min, float max, imagesize_t *submin,
+                imagesize_t *supermax, ROI roi)
+{
+    // Double check A's type.
+    if (A.spec().format != BaseTypeFromC<Atype>::value) {
+        return false;
+    }
+
+    // Initialize.
+    ImageBuf::ConstIterator<Atype, float> a (A, roi);
+    float ratio = bins / (max-min);
+    int bins_minus_1 = bins-1;
+    bool submin_ok = submin != NULL;
+    bool supermax_ok = supermax != NULL;
+    if (submin_ok)
+        *submin = 0;
+    if (supermax_ok)
+        *supermax = 0;
+    histogram.assign(bins, 0);
+
+    // Compute histogram.
+    for ( ; ! a.done(); a++) {
+        float c = a[channel];
+        if (c >= min && c < max) {
+            // Map range min->max to 0->(bins-1).
+            histogram[ (int) ((c-min) * ratio) ]++;
+        } else if (c == max) {
+            histogram[bins_minus_1]++;
+        } else {
+            if (submin_ok && c < min)
+                (*submin)++;
+            else if (supermax_ok)
+                (*supermax)++;
+        }
+    }
+    return true;
+}
+
+} // anonymous namespace
+
+
+
+bool
+ImageBufAlgo::histogram (const ImageBuf &A, int channel,
+                         std::vector<imagesize_t> &histogram, int bins,
+                         float min, float max, imagesize_t *submin,
+                         imagesize_t *supermax, ROI roi)
+{
+    if (A.spec().format != TypeDesc::TypeFloat) {
+        return false;
+    }
+
+    if (A.nchannels() == 0) {
+        return false;
+    }
+
+    if (channel < 0 || channel >= A.nchannels()) {
+        return false;
+    }
+
+    if (bins < 1) {
+        return false;
+    }
+
+    if (max <= min) {
+        return false;
+    }
+
+    // Specified ROI -> use it. Unspecified ROI -> initialize from A.
+    if (! roi.defined)
+        roi = get_roi (A.spec());
+
+    return histogram_impl<float> (A, channel, histogram, bins, min, max,
+                                  submin, supermax, roi);
+}
+
+
+
+bool
+ImageBufAlgo::histogram_draw (ImageBuf &R,
+                              const std::vector<imagesize_t> &histogram)
+{
+    // Fail if there are no bins to draw.
+    int bins = histogram.size();
+    if (bins == 0) {
+        return false;
+    }
+
+    // Check R and modify it if needed.
+    int height = R.spec().height;
+    if (R.spec().format != TypeDesc::TypeFloat || R.nchannels() != 1 ||
+        R.spec().width != bins) {
+        ImageSpec newspec = ImageSpec (bins, height, 1, TypeDesc::FLOAT);
+        R.reset ("dummy", newspec);
+    }
+
+    // Fill output image R with white color.
+    ImageBuf::Iterator<float, float> r (R);
+    for ( ; ! r.done(); ++r)
+        r[0] = 1;
+
+    // Draw histogram left->right, bottom->up.
+    imagesize_t max = *std::max_element (histogram.begin(), histogram.end());
+    for (int b = 0; b < bins; b++) {
+        int bin_height = (int) ((float)histogram[b]/(float)max*height + 0.5f);
+        if (bin_height != 0) {
+            // Draw one bin at column b.
+            for (int j = 1; j <= bin_height; j++) {
+                int row = height - j;
+                r.pos (b, row);
+                r[0] = 0;
+            }
+        }
+    }
+    return true;
+}
+
 }
 OIIO_NAMESPACE_EXIT

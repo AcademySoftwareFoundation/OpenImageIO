@@ -368,6 +368,41 @@ bool DLLPUBLIC render_text (ImageBuf &R, int x, int y,
                             const float *textcolor = NULL);
 
 
+/// ImageBufAlgo::histogram --------------------------------------------------
+/// Parameters:
+/// A           - Input image that contains the one channel to be histogramed.
+///               A must contain float pixel data and have at least 1 channel,
+///               but it can have more.
+/// channel     - Only this channel in A will be histogramed. It must satisfy
+///               0 <= channel < A.nchannels().
+/// histogram   - Clear old content and store the histogram here.
+/// bins        - Number of bins must be at least 1.
+/// min, max    - Pixel values outside of the min->max range are not used for
+///               computing the histogram. If min<max then the range is valid.
+/// submin      - Store number of pixel values < min.
+/// supermax    - Store number of pixel values > max.
+/// roi         - Only pixels in this region of the image are histogramed. If
+///               roi is not defined then the full size image will be
+///               histogramed.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC histogram (const ImageBuf &A, int channel,
+                          std::vector<imagesize_t> &histogram, int bins=256,
+                          float min=0, float max=1, imagesize_t *submin=NULL,
+                          imagesize_t *supermax=NULL, ROI roi=ROI());
+
+
+
+/// ImageBufAlgo::histogram_draw ---------------------------------------------
+/// Parameters:
+/// R           - The histogram will be drawn in the output image R. R must
+///               have only 1 channel with float pixel data, and width equal
+///               to the number of bins, that is elements in histogram.
+/// histogram   - The histogram to be drawn, must have at least 1 bin.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC histogram_draw (ImageBuf &R,
+                               const std::vector<imagesize_t> &histogram);
+
+
 
 /// Helper template for generalized multithreading for image processing
 /// functions.  Some function/functor f is applied to every pixel the
