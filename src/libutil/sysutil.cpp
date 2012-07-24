@@ -241,8 +241,8 @@ Sysutil::put_in_background (int, char* [])
 
 #if defined(__linux__) || defined(__GLIBC__)
     // Simplest case:
-    daemon (1, 1);
-    return true;
+	// daemon returns 0 if successful, thus return true if successful
+    return daemon (1, 1) == 0;
 #endif
 
 #ifdef __APPLE__

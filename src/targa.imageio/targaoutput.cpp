@@ -79,6 +79,15 @@ private:
     /// Helper function to flush a run-length packet
     ///
     inline void flush_rlp (unsigned char *buf, int size);
+
+    /// Helper - write, with error detection
+    template <class T>
+    bool fwrite (const T &buf, size_t nitems=1, size_t itemsize=sizeof(T)) {
+        size_t n = std::fwrite (&buf, itemsize, nitems, m_file);
+        if (n != nitems)
+            error ("Write error: wrote %d records of %d", (int)n, (int)nitems);
+        return n == nitems;
+    }
 };
 
 
@@ -205,24 +214,28 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
     // due to struct packing, we may get a corrupt header if we just dump the
     // struct to the file; to adress that, write every member individually
     // save some typing
-#define WH(memb)    fwrite (&tga.memb, sizeof (tga.memb), 1, m_file)
-    WH(idlen);
-    WH(cmap_type);
-    WH(type);
-    WH(cmap_first);
-    WH(cmap_length);
-    WH(cmap_size);
-    WH(x_origin);
-    WH(y_origin);
-    WH(width);
-    WH(height);
-    WH(bpp);
-    WH(attr);
-#undef WH
+    if (!fwrite(tga.idlen) ||
+        !fwrite(tga.cmap_type) ||
+        !fwrite(tga.type) ||
+        !fwrite(tga.cmap_first) ||
+        !fwrite(tga.cmap_length) ||
+        !fwrite(tga.cmap_size) ||
+        !fwrite(tga.x_origin) ||
+        !fwrite(tga.y_origin) ||
+        !fwrite(tga.width) ||
+        !fwrite(tga.height) ||
+        !fwrite(tga.bpp) ||
+        !fwrite(tga.attr)) {
+        return false;
+    }
+
 
     // dump comment to file, don't bother about null termination
-    if (tga.idlen)
-        fwrite (id.c_str(), tga.idlen, 1, m_file);
+    if (tga.idlen) {
+        if (!fwrite(id.c_str(), tga.idlen)) {
+            return false;
+        }
+    }
 
     return true;
 }
@@ -232,6 +245,13 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 TGAOutput::close ()
 {
+    // This call is made a lot:
+#define WRITE_TMP_INT(count) { \
+        if (!fwrite (tmpint, count)) { \
+            return false; \
+        } \
+    }
+
     if (m_file) {
         // write out the TGA 2.0 data fields
 
@@ -259,10 +279,11 @@ TGAOutput::close ()
                             if (bigendian())
                                 swap_endian (&ofs_thumb);
                             // dump thumbnail size
-                            fwrite (&tw, 1, 1, m_file);
-                            fwrite (&th, 1, 1, m_file);
-                            // dump thumbnail data
-                            fwrite (p->data(), p->datasize(), 1, m_file);
+                            if (!fwrite (tw) ||
+                                    !fwrite (th) ||
+                                    !fwrite (p->data(), p->datasize())) {
+                                return false;
+                            }
                         }
                     }
                 }
@@ -281,17 +302,20 @@ TGAOutput::close ()
         short tmpint = 495;
         if (bigendian())
             swap_endian (&tmpint);
-        fwrite (&tmpint, sizeof (tmpint), 1, m_file);
+        WRITE_TMP_INT(1);
 
         tmpint = 0;
 
         // author
         std::string tmpstr = m_spec.get_string_attribute ("Artist", "");
-        fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
-                1, m_file);
+        if (!fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
+            return false;
+        }
+
         // fill the rest with zeros
-        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
-            fwrite (&tmpint, 1, 1, m_file);
+        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--) {
+            WRITE_TMP_INT(1);
+        }
 
         // image comment
         tmpstr = m_spec.get_string_attribute ("ImageDescription", "");
@@ -303,21 +327,26 @@ TGAOutput::close ()
                 // on line breaks, fill the remainder of the line with zeros
                 if (p[pos] == '\n') {
                     while ((w + 1) % 81 != 0) {
-                        fwrite (&tmpint, 1, 1, m_file);
+                        WRITE_TMP_INT(1);
+
                         w++;
                     }
                     continue;
                 }
-                fwrite (&p[pos], 1, 1, m_file);
+
+                if (!fwrite (p[pos])) {
+                    return false;
+                }
                 // null-terminate each line
                 if ((w + 1) % 81 == 0) {
-                    fwrite (&tmpint, 1, 1, m_file);
+                    WRITE_TMP_INT(1);
                     w++;
                 }
             }
             // fill the rest with zeros
-            for (; w < 324; w++)
-                fwrite (&tmpint, 1, 1, m_file);
+            for (; w < 324; w++) {
+                WRITE_TMP_INT(1);
+            }
         }
 
         // timestamp
@@ -337,22 +366,29 @@ TGAOutput::close ()
                 swap_endian (&i);
                 swap_endian (&s);
             }
-            fwrite (&m, sizeof (m), 1, m_file);
-            fwrite (&d, sizeof (d), 1, m_file);
-            fwrite (&y, sizeof (y), 1, m_file);
-            fwrite (&h, sizeof (h), 1, m_file);
-            fwrite (&i, sizeof (i), 1, m_file);
-            fwrite (&s, sizeof (s), 1, m_file);
+            if (!fwrite(m) ||
+                    !fwrite(d) ||
+                    !fwrite(y) ||
+                    !fwrite(h) ||
+                    !fwrite(i) ||
+                    !fwrite(s)) {
+                return false;
+            }
         }
 
         // job ID
         tmpstr = m_spec.get_string_attribute ("DocumentName", "");
-        fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
-                1, m_file);
-        // fill the rest with zeros
-        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
-            fwrite (&tmpint, 1, 1, m_file);
+        if (!fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
+            return false;
+        }
 
+        // fill the rest with zeros
+        for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--) {
+            if (!fwrite (tmpint) ||
+                    !fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
+                return false;
+            }
+        }
         // job time
         tmpstr = m_spec.get_string_attribute ("targa:JobTime", "");
         {
@@ -366,18 +402,22 @@ TGAOutput::close ()
                 swap_endian (&m);
                 swap_endian (&s);
             }
-            fwrite (&h, sizeof (h), 1, m_file);
-            fwrite (&m, sizeof (m), 1, m_file);
-            fwrite (&s, sizeof (s), 1, m_file);
+            if (!fwrite(h) ||
+                !fwrite(m) ||
+                !fwrite(s)) {
+                return false;
+            }
         }
 
         // software ID - we advertise ourselves
         tmpstr = OIIO_INTRO_STRING;
-        fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)),
-                1, m_file);
+
+        if (!fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
+            return false;
+        }
         // fill the rest with zeros
         for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
-            fwrite (&tmpint, 1, 1, m_file);
+            WRITE_TMP_INT(1);
 
         // software version
         {
@@ -386,14 +426,16 @@ TGAOutput::close ()
                     + OIIO_VERSION_PATCH;
             if (bigendian())
                 swap_endian (&v);
-            fwrite (&v, sizeof (v), 1, m_file);
-            fwrite (&tmpint, 1, 1, m_file);
+            if (!fwrite(v)) {
+                return false;
+            }
+            WRITE_TMP_INT(1)
         }
 
         // key colour
         // FIXME: what do we save here?
-        fwrite (&tmpint, 2, 1, m_file);
-        fwrite (&tmpint, 2, 1, m_file);
+        WRITE_TMP_INT(2);
+        WRITE_TMP_INT(2);
 
         // pixel aspect ratio
         {
@@ -403,16 +445,16 @@ TGAOutput::close ()
                 // FIXME: invent a smarter way to convert to a vulgar fraction?
                 // numerator
                 tmpint = (unsigned short)(ratio * 10000.f);
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
                 // denominator
                 tmpint = 10000;
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
                 // reset tmpint value
                 tmpint = 0;
             } else {
                 // just dump two zeros in there
-                fwrite (&tmpint, 2, 1, m_file);
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
+                WRITE_TMP_INT(2);
             }
         }
 
@@ -426,16 +468,16 @@ TGAOutput::close ()
                 // is needed, thus the expansion by 10
                 // numerator
                 tmpint = (unsigned short)(gamma * 10.f);
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
                 // denominator
                 tmpint = 10;
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
                 // reset tmpint value
                 tmpint = 0;
             } else {
                 // just dump two zeros in there
-                fwrite (&tmpint, 2, 1, m_file);
-                fwrite (&tmpint, 2, 1, m_file);
+                WRITE_TMP_INT(2);
+                WRITE_TMP_INT(2);
             }
         }
 
@@ -443,28 +485,34 @@ TGAOutput::close ()
         // FIXME: support this once it becomes clear how it's actually supposed
         // to be used... the spec is very unclear about this
         // for the time being just dump four NULL bytes
-        fwrite (&tmpint, 2, 1, m_file);
-        fwrite (&tmpint, 2, 1, m_file);
+        WRITE_TMP_INT(2);
+        WRITE_TMP_INT(2);
 
         // offset to thumbnail (endiannes has already been accounted for)
-        fwrite (&ofs_thumb, 4, 1, m_file);
+        if (!fwrite(&ofs_thumb)) {
+            return false;
+        }
 
         // offset to scanline table
         // not used very widely, don't bother unless someone complains
-        fwrite (&tmpint, 2, 1, m_file);
-        fwrite (&tmpint, 2, 1, m_file);
+        WRITE_TMP_INT(2);
+        WRITE_TMP_INT(2);
 
         // alpha type
         {
             unsigned char at = (m_spec.nchannels % 2 == 0)
                              ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
-            fwrite (&at, 1, 1, m_file);
+            if (!fwrite(at)) {
+                return false;
+            }
         }
 
         // write out the TGA footer
-        fwrite (&foot.ofs_ext, 1, sizeof (foot.ofs_ext), m_file);
-        fwrite (&foot.ofs_dev, 1, sizeof (foot.ofs_dev), m_file);
-        fwrite (&foot.signature, 1, sizeof (foot.signature), m_file);
+        if (!fwrite(&foot.ofs_ext) ||
+                !fwrite(&foot.ofs_dev) ||
+                !fwrite(&foot.signature)) {
+            return false;
+        }
 
         // close the stream
         fclose (m_file);
@@ -474,6 +522,8 @@ TGAOutput::close ()
     init ();      // re-initialize
     return true;  // How can we fail?
                   // Epicly. -- IneQuation
+
+#undef WRITE_TMP_INT
 }
 
 
@@ -486,9 +536,11 @@ TGAOutput::flush_rlp (unsigned char *buf, int size)
         return;
     // write packet header
     unsigned char h = (size - 1) | 0x80;
-    fwrite (&h, 1, 1, m_file);
     // write packet pixel
-    fwrite (buf, m_spec.nchannels, 1, m_file);
+    if (!fwrite(h) || !fwrite (buf, m_spec.nchannels)) {
+        // do something intelligent?
+        return;
+    }
 }
 
 
@@ -501,14 +553,17 @@ TGAOutput::flush_rawp (unsigned char *& src, int size, int start)
         return;
     // write packet header
     unsigned char h = (size - 1) & ~0x80;
-    fwrite (&h, 1, 1, m_file);
+    if (!fwrite (h))
+        return;
     // rewind the scanline and flush packet pixels
     unsigned char buf[4];
     int n = m_spec.nchannels;
     for (int i = 0; i < size; i++) {
         if (n <= 2) {
             // 1- and 2-channels can write directly
-            fwrite (src+start, 1, n, m_file);
+            if (!fwrite (src+start, n)) {
+                return;
+            }
         } else {
             // 3- and 4-channel must swap red and blue
             buf[0] = src[(start + i) * n + 2];
@@ -516,7 +571,9 @@ TGAOutput::flush_rawp (unsigned char *& src, int size, int start)
             buf[2] = src[(start + i) * n + 0];
             if (n > 3)
                 buf[3] = src[(start + i) * n + 3];
-            fwrite (buf, 1, n, m_file);
+            if (!fwrite (buf, n)) {
+                return;
+            }
         }
     }
 }
@@ -660,14 +717,19 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
         fseek(m_file, 18 + m_idlen + (m_spec.height - y - 1) * w * n, SEEK_SET);
         if (n <= 2) {
             // 1- and 2-channels can write directly
-            fwrite (bdata, n, w, m_file);
+            if (!fwrite (bdata, n, w)) {
+                return false;
+            }
         } else {
             // 3- and 4-channels must swap R and B
             std::vector<unsigned char> buf;
             buf.assign (bdata, bdata + n*w);
             for (int x = 0; x < m_spec.width; x++)
                 std::swap (buf[x*n], buf[x*n+2]);
-            fwrite (&buf[0], n, w, m_file);
+
+            if (!fwrite (&buf[0], n, w)) {
+                return false;
+            }
         }
     }
 

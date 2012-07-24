@@ -475,7 +475,7 @@ OiioTool::print_info (const std::string &filename,
         field_re.assign (opt.metamatch,
                          boost::regex::extended | boost::regex_constants::icase);
 
-    bool printed = false;
+//    bool printed = false; // FIXME Unused Completely
     int padlen = std::max (0, (int)opt.namefieldlength - (int)filename.length());
     std::string padding (padlen, ' ');
 
@@ -534,7 +534,7 @@ OiioTool::print_info (const std::string &filename,
         if (! opt.verbose && num_of_subimages == 1 && any_mipmapping)
             printf (" (+mipmap)");
         printf ("\n");
-        printed = true;
+//        printed = true;
     }
 
     if (opt.verbose && num_of_subimages != 1) {

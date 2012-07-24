@@ -504,8 +504,8 @@ int PtexWriterBase::writeBlock(FILE* fp, const void* data, int size)
 {
     if (!_ok) return 0;
     if (!fwrite(data, size, 1, fp)) {
-	setError("PtexWriter error: file write failed");
-	return 0;
+        setError("PtexWriter error: file write failed");
+        return 0;
     }
     return size;
 }
@@ -545,8 +545,8 @@ int PtexWriterBase::writeZipBlock(FILE* fp, const void* data, int size, bool fin
 int PtexWriterBase::readBlock(FILE* fp, void* data, int size)
 {
     if (!fread(data, size, 1, fp)) {
-	setError("PtexWriter error: temp file read failed");
-	return 0;
+        setError("PtexWriter error: temp file read failed");
+        return 0;
     }
     return size;
 }
@@ -1213,10 +1213,10 @@ PtexIncrWriter::PtexIncrWriter(const char* path, FILE* fp,
 
     // make sure existing header matches
     if (!fread(&_header, PtexIO::HeaderSize, 1, fp) || _header.magic != Magic) {
-	std::stringstream str;
-	str << "Not a ptex file: " << path;
-	setError(str.str());
-	return;
+        std::stringstream str;
+        str << "Not a ptex file: " << path;
+        setError(str.str());
+        return;
     }
 
     bool headerMatch = (mt == _header.meshtype &&
@@ -1225,20 +1225,20 @@ PtexIncrWriter::PtexIncrWriter(const char* path, FILE* fp,
 			alphachan == int(_header.alphachan) &&
 			nfaces == int(_header.nfaces));
     if (!headerMatch) {
-	std::stringstream str;
-	str << "PtexWriter::edit error: header doesn't match existing file, "
-	    << "conversions not currently supported";
-	setError(str.str());
+        std::stringstream str;
+        str << "PtexWriter::edit error: header doesn't match existing file, "
+            << "conversions not currently supported";
+        setError(str.str());
 	return;
     }
 
     // read extended header
     memset(&_extheader, 0, sizeof(_extheader));
     if (!fread(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize), 1, fp)) {
-	std::stringstream str;
-	str << "Error reading extended header: " << path;
-	setError(str.str());
-	return;
+        std::stringstream str;
+        str << "Error reading extended header: " << path;
+        setError(str.str());
+        return;
     }
 
     // seek to end of file to append
@@ -1395,8 +1395,11 @@ void PtexIncrWriter::finish()
 
     // rewrite extheader for updated editdatasize
     if (_extheader.editdatapos) {
-	_extheader.editdatasize = uint64_t(ftello(_fp)) - _extheader.editdatapos;
-	fseeko(_fp, HeaderSize, SEEK_SET);
-	fwrite(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize), 1, _fp);
+		_extheader.editdatasize = uint64_t(ftello(_fp)) - _extheader.editdatapos;
+		fseeko(_fp, HeaderSize, SEEK_SET);
+		if (!fwrite(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize), 1, _fp)) {
+			// FIXME Bad Write
+			//error ("Bad write PtexIncrWriter::finish (err %d)", byte_count);
+		}
     }
 }

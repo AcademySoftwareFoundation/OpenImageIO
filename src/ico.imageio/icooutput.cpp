@@ -91,7 +91,18 @@ private:
 
     /// Helper: read, with error detection
     ///
-    bool fread (void *buf, size_t itemsize, size_t nitems) {
+    template <class T>
+    bool fwrite (const T buf, size_t nitems = 1, size_t itemsize = sizeof(T)) {
+        size_t n = ::fwrite (&buf, itemsize, nitems, m_file);
+        if (n != nitems)
+            error ("Write error");
+        return n == nitems;
+    }
+
+    /// Helper: read, with error detection
+    ///
+    template <class T>
+    bool fread (T *buf, size_t nitems=1, size_t itemsize=sizeof(T)) {
         size_t n = ::fread (buf, itemsize, nitems, m_file);
         if (n != nitems)
             error ("Read error");
@@ -219,11 +230,13 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
             swap_endian (&ico.type);
             swap_endian (&ico.count);
         }
-        fwrite (&ico, 1, sizeof(ico), m_file);
+        if (!fwrite(ico)) {
+            return false;
+        }
         m_offset = sizeof(ico_header) + sizeof(ico_subimage);
     } else {
         // we'll be appending data, so see what's already in the file
-        if (! fread (&ico, 1, sizeof(ico)))
+        if (! fread (&ico))
             return false;
         if (bigendian()) {
             // ICOs are little endian
@@ -245,7 +258,9 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
         int len = ftell (m_file);
         unsigned char buf[512];
         // append null data at the end of file so that we don't seek beyond eof
-        fwrite (buf, sizeof (ico_subimage), 1, m_file);
+        if (!fwrite (buf, sizeof (ico_subimage))) {
+            return false;
+        }
 
         // do the actual moving, 0.5kB per iteration
         int amount, skip = sizeof (ico_header) + sizeof (ico_subimage)
@@ -259,7 +274,9 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
                 return false;
             fseek (m_file, skip + left - amount + sizeof (ico_subimage),
                    SEEK_SET);
-            fwrite (buf, amount, 1, m_file);
+            if (!fwrite (buf, amount)) {
+                return false;
+            }
         }
 
         // update header
@@ -269,7 +286,10 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
             swap_endian (&ico.type);
             swap_endian (&ico.count);
         }
-        fwrite (&ico, sizeof (ico), 1, m_file);
+
+        if (!fwrite(ico)) {
+            return false;
+        }
 
         // and finally, update the offsets in subimage headers to point to
         // their data correctly
@@ -285,7 +305,10 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
                 swap_endian (&temp);
             // roll back 4 bytes, we need to rewrite the value we just read
             fseek (m_file, -4, SEEK_CUR);
-            fwrite (&temp, sizeof (temp), 1, m_file);
+            if (!fwrite(temp)) {
+                return false;
+            }
+
             // skip to the next subimage; subtract 4 bytes because that's how
             // much we've just written
             fseek (m_file, sizeof (ico_subimage) - 4, SEEK_CUR);
@@ -318,7 +341,10 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
         swap_endian (&subimg.len);
         swap_endian (&subimg.ofs);
     }
-    fwrite (&subimg, 1, sizeof(subimg), m_file);
+    if (!fwrite(subimg)) {
+        return false;
+    }
+
 
     fseek (m_file, m_offset, SEEK_SET);
     if (m_want_png) {
@@ -345,13 +371,19 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
             swap_endian (&bmi.height);
             swap_endian (&bmi.len);
         }
-        fwrite (&bmi, sizeof (bmi), 1, m_file);
+
+        if (!fwrite(bmi)) {
+            return false;
+        }
 
         // append null data so that we don't seek beyond eof in write_scanline
         char buf[512];
         memset (buf, 0, sizeof (buf));
-        for (int left = bmi.len; left > 0; left -= sizeof (buf))
-            fwrite (buf, std::min (left, (int)sizeof (buf)), 1, m_file);
+        for (int left = bmi.len; left > 0; left -= sizeof (buf)) {
+            if (! fwrite (buf, std::min (left, (int)sizeof (buf)))) {
+                return false;
+            }
+        }
         fseek (m_file, m_offset + sizeof (bmi), SEEK_SET);
     }
 
@@ -416,31 +448,36 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
         fseek (m_file, m_offset + sizeof (ico_bitmapinfo)
             + (m_spec.height - y - 1) * m_xor_slb, SEEK_SET);
         // write the XOR mask
+        size_t buff_size = 0;
         for (int x = 0; x < m_spec.width; x++) {
             switch (m_color_type) {
              // reuse PNG constants
             case PNG_COLOR_TYPE_GRAY:
                 buf[0] = buf[1] = buf[2] = bdata[x];
-                fwrite (buf, 3, 1, m_file);
-                break;
+                buff_size = 3;
+              break;
             case PNG_COLOR_TYPE_GRAY_ALPHA:
                 buf[0] = buf[1] = buf[2] = bdata[x * 2 + 0];
                 buf[3] = bdata[x * 2 + 1];
-                fwrite (buf, 4, 1, m_file);
-                break;
+                buff_size = 4;
+              break;
             case PNG_COLOR_TYPE_RGB:
                 buf[0] = bdata[x * 3 + 2];
                 buf[1] = bdata[x * 3 + 1];
                 buf[2] = bdata[x * 3 + 0];
-                fwrite (buf, 3, 1, m_file);
-                break;
+                buff_size = 3;
+              break;
             case PNG_COLOR_TYPE_RGB_ALPHA:
                 buf[0] = bdata[x * 4 + 2];
                 buf[1] = bdata[x * 4 + 1];
                 buf[2] = bdata[x * 4 + 0];
                 buf[3] = bdata[x * 4 + 3];
-                fwrite (buf, 4, 1, m_file);
-                break;
+                buff_size = 4;
+              break;
+            }
+
+            if (!fwrite (buf, buff_size)) {
+                return false;
             }
         }
 
@@ -470,7 +507,10 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
                         break;
                     }
                 }
-                fwrite (&buf[0], 1, 1, m_file);
+
+                if (!fwrite(buf[0])) {
+                    return false;
+                }
             }
         }
     }
