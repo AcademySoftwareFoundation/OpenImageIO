@@ -226,14 +226,14 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
         !fwrite(tga.height) ||
         !fwrite(tga.bpp) ||
         !fwrite(tga.attr)) {
-    	return false;
+        return false;
     }
 
 
     // dump comment to file, don't bother about null termination
     if (tga.idlen) {
-    	if (!fwrite(id.c_str(), tga.idlen)) {
-        	return false;
+        if (!fwrite(id.c_str(), tga.idlen)) {
+            return false;
         }
     }
 
@@ -245,14 +245,14 @@ TGAOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 TGAOutput::close ()
 {
-	// This call is made a lot:
+    // This call is made a lot:
 #define WRITE_TMP_INT(count) { \
-		if (!fwrite (tmpint, count)) { \
-			return false; \
-		} \
-	}
+        if (!fwrite (tmpint, count)) { \
+            return false; \
+        } \
+    }
 
-	if (m_file) {
+    if (m_file) {
         // write out the TGA 2.0 data fields
 
         // FIXME: write out the developer area; according to Larry,
@@ -308,13 +308,13 @@ TGAOutput::close ()
 
         // author
         std::string tmpstr = m_spec.get_string_attribute ("Artist", "");
-		if (!fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
-			return false;
-		}
+        if (!fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
+            return false;
+        }
 
         // fill the rest with zeros
         for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--) {
-        	WRITE_TMP_INT(1);
+            WRITE_TMP_INT(1);
         }
 
         // image comment
@@ -327,7 +327,7 @@ TGAOutput::close ()
                 // on line breaks, fill the remainder of the line with zeros
                 if (p[pos] == '\n') {
                     while ((w + 1) % 81 != 0) {
-                    	WRITE_TMP_INT(1);
+                        WRITE_TMP_INT(1);
 
                         w++;
                     }
@@ -339,13 +339,13 @@ TGAOutput::close ()
                 }
                 // null-terminate each line
                 if ((w + 1) % 81 == 0) {
-                	WRITE_TMP_INT(1);
+                    WRITE_TMP_INT(1);
                     w++;
                 }
             }
             // fill the rest with zeros
             for (; w < 324; w++) {
-            	WRITE_TMP_INT(1);
+                WRITE_TMP_INT(1);
             }
         }
 
@@ -372,22 +372,22 @@ TGAOutput::close ()
                     !fwrite(h) ||
                     !fwrite(i) ||
                     !fwrite(s)) {
-            	return false;
+                return false;
             }
         }
 
         // job ID
         tmpstr = m_spec.get_string_attribute ("DocumentName", "");
-		if (!fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
-			return false;
-		}
+        if (!fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
+            return false;
+        }
 
         // fill the rest with zeros
         for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--) {
-			if (!fwrite (tmpint) ||
-			        !fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
-				return false;
-			}
+            if (!fwrite (tmpint) ||
+                    !fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
+                return false;
+            }
         }
         // job time
         tmpstr = m_spec.get_string_attribute ("targa:JobTime", "");
@@ -405,16 +405,16 @@ TGAOutput::close ()
             if (!fwrite(h) ||
                 !fwrite(m) ||
                 !fwrite(s)) {
-            	return false;
+                return false;
             }
         }
 
         // software ID - we advertise ourselves
         tmpstr = OIIO_INTRO_STRING;
 
-		if (!fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
-			return false;
-		}
+        if (!fwrite (tmpstr.c_str(), std::min (tmpstr.length (), size_t(40)))) {
+            return false;
+        }
         // fill the rest with zeros
         for (int i = 41 - std::min (tmpstr.length (), size_t(40)); i > 0; i--)
             WRITE_TMP_INT(1);
@@ -453,8 +453,8 @@ TGAOutput::close ()
                 tmpint = 0;
             } else {
                 // just dump two zeros in there
-            	WRITE_TMP_INT(2);
-            	WRITE_TMP_INT(2);
+                WRITE_TMP_INT(2);
+                WRITE_TMP_INT(2);
             }
         }
 
@@ -476,8 +476,8 @@ TGAOutput::close ()
                 tmpint = 0;
             } else {
                 // just dump two zeros in there
-            	WRITE_TMP_INT(2);
-            	WRITE_TMP_INT(2);
+                WRITE_TMP_INT(2);
+                WRITE_TMP_INT(2);
             }
         }
 
@@ -511,8 +511,8 @@ TGAOutput::close ()
         if (!fwrite(&foot.ofs_ext) ||
                 !fwrite(&foot.ofs_dev) ||
                 !fwrite(&foot.signature)) {
-			return false;
-		}
+            return false;
+        }
 
         // close the stream
         fclose (m_file);
@@ -539,8 +539,8 @@ TGAOutput::flush_rlp (unsigned char *buf, int size)
     // write packet pixel
     if (!fwrite(h) || !fwrite (buf, m_spec.nchannels)) {
         // do something intelligent?
-		return;
-	}
+        return;
+    }
 }
 
 
@@ -562,7 +562,7 @@ TGAOutput::flush_rawp (unsigned char *& src, int size, int start)
         if (n <= 2) {
             // 1- and 2-channels can write directly
             if (!fwrite (src+start, n)) {
-            	return;
+                return;
             }
         } else {
             // 3- and 4-channel must swap red and blue
@@ -718,7 +718,7 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
         if (n <= 2) {
             // 1- and 2-channels can write directly
             if (!fwrite (bdata, n, w)) {
-            	return false;
+                return false;
             }
         } else {
             // 3- and 4-channels must swap R and B
@@ -727,9 +727,9 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
             for (int x = 0; x < m_spec.width; x++)
                 std::swap (buf[x*n], buf[x*n+2]);
 
-			if (!fwrite (&buf[0], n, w)) {
-				return false;
-			}
+            if (!fwrite (&buf[0], n, w)) {
+                return false;
+            }
         }
     }
 
