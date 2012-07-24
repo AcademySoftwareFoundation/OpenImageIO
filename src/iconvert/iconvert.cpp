@@ -372,9 +372,10 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     // Find an ImageIO plugin that can open the input file, and open it.
     ImageInput *in = ImageInput::create (in_filename.c_str(), "" /* searchpath */);
     if (! in) {
-        std::cerr 
-            << "iconvert ERROR: Could not find an ImageIO plugin to read \"" 
-            << in_filename << "\" : " << geterror() << "\n";
+        std::string err = geterror();
+        std::cerr << "iconvert ERROR: " 
+                  << (err.length() ? err : Strutil::format("Could not open \"%s\"", in_filename.c_str()))
+                  << "\n";
         return false;
     }
     ImageSpec inspec;
@@ -441,8 +442,10 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
                 mode = ImageOutput::Create;
 
             if (! out->open (tempname.c_str(), outspec, mode)) {
-                std::cerr << "iconvert ERROR: Could not open \"" << out_filename
-                          << "\" : " << out->geterror() << "\n";
+                std::string err = geterror();
+                std::cerr << "iconvert ERROR: " 
+                          << (err.length() ? err : Strutil::format("Could not open \"%s\"", out_filename.c_str()))
+                          << "\n";
                 ok = false;
                 break;
             }

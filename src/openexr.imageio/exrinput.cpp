@@ -51,6 +51,8 @@
 #include "imageio.h"
 #include "thread.h"
 #include "strutil.h"
+#include "fmath.h"
+#include "filesystem.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -205,9 +207,15 @@ bool
 OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
 {
     // Quick check to reject non-exr files
-    bool tiled;
-    if (! Imf::isOpenExrFile (name.c_str(), tiled))
+    if (! Filesystem::is_regular (name)) {
+        error ("Could not open file \"%s\"", name.c_str());
         return false;
+    }
+    bool tiled;
+    if (! Imf::isOpenExrFile (name.c_str(), tiled)) {
+        error ("\"%s\" is not an OpenEXR file", name.c_str());
+        return false;
+    }
 
     pvt::set_exr_threads ();
 
