@@ -274,9 +274,9 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
                 return false;
             fseek (m_file, skip + left - amount + sizeof (ico_subimage),
                    SEEK_SET);
-			if (!fwrite (buf, amount)) {
-				return false;
-			}
+            if (!fwrite (buf, amount)) {
+                return false;
+            }
         }
 
         // update header
@@ -372,17 +372,17 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
             swap_endian (&bmi.len);
         }
 
-		if (!fwrite(bmi)) {
-			return false;
-		}
+        if (!fwrite(bmi)) {
+            return false;
+        }
 
         // append null data so that we don't seek beyond eof in write_scanline
         char buf[512];
         memset (buf, 0, sizeof (buf));
         for (int left = bmi.len; left > 0; left -= sizeof (buf)) {
-			if (! fwrite (buf, std::min (left, (int)sizeof (buf)))) {
-				return false;
-			}
+            if (! fwrite (buf, std::min (left, (int)sizeof (buf)))) {
+                return false;
+            }
         }
         fseek (m_file, m_offset + sizeof (bmi), SEEK_SET);
     }
@@ -477,7 +477,7 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
             }
 
             if (!fwrite (buf, buff_size)) {
-            	return false;
+                return false;
             }
         }
 
