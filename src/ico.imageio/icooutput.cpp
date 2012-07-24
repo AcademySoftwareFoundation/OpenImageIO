@@ -91,7 +91,18 @@ private:
 
     /// Helper: read, with error detection
     ///
-    bool fread (void *buf, size_t itemsize, size_t nitems) {
+    template <class T>
+    bool fwrite (const T buf, size_t nitems = 1, size_t itemsize = sizeof(T)) {
+        size_t n = ::fwrite (&buf, itemsize, nitems, m_file);
+        if (n != nitems)
+            error ("Write error");
+        return n == nitems;
+    }
+
+    /// Helper: read, with error detection
+    ///
+    template <class T>
+    bool fread (T *buf, size_t nitems=1, size_t itemsize=sizeof(T)) {
         size_t n = ::fread (buf, itemsize, nitems, m_file);
         if (n != nitems)
             error ("Read error");
@@ -219,15 +230,13 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
             swap_endian (&ico.type);
             swap_endian (&ico.count);
         }
-        size_t byte_count = fwrite (&ico, 1, sizeof(ico), m_file);
-        if (byte_count != sizeof(ico)) {
-        	error ("Bad file write in ico. (err: %d)", byte_count);
-        	return false;
+        if (!fwrite(ico)) {
+            return false;
         }
         m_offset = sizeof(ico_header) + sizeof(ico_subimage);
     } else {
         // we'll be appending data, so see what's already in the file
-        if (! fread (&ico, 1, sizeof(ico)))
+        if (! fread (&ico))
             return false;
         if (bigendian()) {
             // ICOs are little endian
@@ -249,12 +258,8 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
         int len = ftell (m_file);
         unsigned char buf[512];
         // append null data at the end of file so that we don't seek beyond eof
-        {
-        	size_t byte_count = fwrite (buf, sizeof (ico_subimage), 1, m_file);
-			if (byte_count != 1) {
-				error ("Bad file write in ico open. (err: %d)", byte_count);
-				return false;
-			}
+        if (!fwrite (buf, sizeof (ico_subimage))) {
+            return false;
         }
 
         // do the actual moving, 0.5kB per iteration
@@ -269,9 +274,7 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
                 return false;
             fseek (m_file, skip + left - amount + sizeof (ico_subimage),
                    SEEK_SET);
-            size_t byte_count = fwrite (buf, amount, 1, m_file);
-			if (byte_count != 1) {
-				error ("Bad file write in ico. (err: %d)", byte_count);
+			if (!fwrite (buf, amount)) {
 				return false;
 			}
         }
@@ -284,12 +287,8 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
             swap_endian (&ico.count);
         }
 
-		{
-			size_t byte_count = fwrite (&ico, sizeof (ico), 1, m_file);
-			if (byte_count != 1) {
-				error ("Bad file write in ico. (err: %d)", byte_count);
-				return false;
-			}
+        if (!fwrite(ico)) {
+            return false;
         }
 
         // and finally, update the offsets in subimage headers to point to
@@ -306,11 +305,9 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
                 swap_endian (&temp);
             // roll back 4 bytes, we need to rewrite the value we just read
             fseek (m_file, -4, SEEK_CUR);
-            size_t byte_count = fwrite (&temp, sizeof (temp), 1, m_file);
-			if (byte_count != 1) {
-				error ("Bad file write in ico. (err: %d)", byte_count);
-				return false;
-			}
+            if (!fwrite(temp)) {
+                return false;
+            }
 
             // skip to the next subimage; subtract 4 bytes because that's how
             // much we've just written
@@ -344,11 +341,9 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
         swap_endian (&subimg.len);
         swap_endian (&subimg.ofs);
     }
-    size_t byte_count = fwrite (&subimg, 1, sizeof(subimg), m_file);
-	if (byte_count != sizeof(subimg)) {
-		error ("Bad file write in ico open. (err: %d)", byte_count);
-		return false;
-	}
+    if (!fwrite(subimg)) {
+        return false;
+    }
 
 
     fseek (m_file, m_offset, SEEK_SET);
@@ -377,9 +372,7 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
             swap_endian (&bmi.len);
         }
 
-        size_t byte_count = fwrite (&bmi, sizeof (bmi), 1, m_file);
-		if (byte_count != 1) {
-			error ("Bad file write in ico open. (err: %d)", byte_count);
+		if (!fwrite(bmi)) {
 			return false;
 		}
 
@@ -387,9 +380,7 @@ ICOOutput::open (const std::string &name, const ImageSpec &userspec,
         char buf[512];
         memset (buf, 0, sizeof (buf));
         for (int left = bmi.len; left > 0; left -= sizeof (buf)) {
-            size_t byte_count = fwrite (buf, std::min (left, (int)sizeof (buf)), 1, m_file);
-			if (byte_count != 1) {
-				error ("Bad file write in ico open. (err: %d)", byte_count);
+			if (! fwrite (buf, std::min (left, (int)sizeof (buf)))) {
 				return false;
 			}
         }
@@ -485,9 +476,7 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
               break;
             }
 
-            size_t byte_count = fwrite (buf, buff_size, 1, m_file);
-            if (byte_count != 1) {
-            	error ("Bad file write in ico write_scanline (err: %d)", byte_count);
+            if (!fwrite (buf, buff_size)) {
             	return false;
             }
         }
@@ -519,11 +508,9 @@ ICOOutput::write_scanline (int y, int z, TypeDesc format,
                     }
                 }
 
-                size_t byte_count = fwrite (&buf[0], 1, 1, m_file);
-				if (byte_count != 1) {
-					error ("Bad file write in ico write_scanline. (err: %d)", byte_count);
-					return false;
-				}
+                if (!fwrite(buf[0])) {
+                    return false;
+                }
             }
         }
     }
