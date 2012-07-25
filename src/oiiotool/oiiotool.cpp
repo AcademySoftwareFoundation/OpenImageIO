@@ -1589,7 +1589,11 @@ action_histogram (int argc, const char *argv[])
 
     // Compute regular histogram.
     std::vector<imagesize_t> hist;
-    ImageBufAlgo::histogram (Aib, channel, hist, bins);
+    bool ok = ImageBufAlgo::histogram (Aib, channel, hist, bins);
+    if (! ok) {
+        ot.error (argv[0], Aib.geterror());
+        return 0;
+    }
 
     // Compute cumulative histogram if specified.
     if (cumulative == 1)
@@ -1601,7 +1605,10 @@ action_histogram (int argc, const char *argv[])
     ot.push (new ImageRec ("irec", specR, ot.imagecache));
     ImageBuf &Rib ((*ot.curimg)());
 
-    ImageBufAlgo::histogram_draw (Rib, hist);
+    ok = ImageBufAlgo::histogram_draw (Rib, hist);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+
     return 0;
 }
 
