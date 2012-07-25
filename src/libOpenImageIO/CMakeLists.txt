@@ -214,6 +214,12 @@ if (OpenCV_FOUND)
     target_link_libraries (OpenImageIO opencv_core opencv_highgui)
 endif ()
 
+# Include Freetype if using it
+if (FREETYPE_FOUND)
+    include_directories (${FREETYPE_INCLUDE_DIRS})
+    target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES})
+endif ()
+
 
 
 if (WIN32)

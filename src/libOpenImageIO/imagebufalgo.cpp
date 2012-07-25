@@ -54,6 +54,13 @@
 #include "sysutil.h"
 #include "filter.h"
 #include "thread.h"
+#include "filesystem.h"
+
+#ifdef USE_FREETYPE
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+
 
 
 OIIO_NAMESPACE_ENTER
@@ -90,6 +97,7 @@ ImageBufAlgo::zero (ImageBuf &dst)
     case TypeDesc::HALF  : zero_<half> (dst); break;
     case TypeDesc::DOUBLE: zero_<double> (dst); break;
     default:
+        dst.error ("Unsupported pixel data format '%s'", dst.spec().format);
         return false;
     }
     
@@ -119,18 +127,7 @@ ImageBufAlgo::fill (ImageBuf &dst,
                     int xbegin, int xend,
                     int ybegin, int yend)
 {
-    if (xbegin >= xend) {
-        return false;
-    }
-    if (ybegin >= yend) {
-        return false;
-    }
-    
-    for (int j = ybegin; j < yend; j++)
-        for (int i = xbegin; i < xend; i++)
-            dst.setpixel (i, j, pixel);
-    
-    return true;
+    return fill (dst, pixel, xbegin, xend, ybegin, yend, 0, 1);
 }
 
 
@@ -141,22 +138,10 @@ ImageBufAlgo::fill (ImageBuf &dst,
                     int ybegin, int yend,
                     int zbegin, int zend)
 {
-
-    if (xbegin >= xend) {
-        return false;
-    }
-    if (ybegin >= yend) {
-        return false;
-    }
-    if (zbegin >= zend) {
-        return false;
-    }
-    
     for (int k = zbegin; k < zend; k++)
         for (int j = ybegin; j < yend; j++)
             for (int i = xbegin; i < xend; i++)
                 dst.setpixel (i, j, k, pixel);
-    
     return true;
 }
 
@@ -274,9 +259,11 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
         return crop_<double> (dst, src, xbegin, xend, ybegin, yend, bordercolor);
         break;
     default:
+        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
     
+    ASSERT (0);
     return false;
 }
 
@@ -287,13 +274,17 @@ bool
 ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels)
 {
     // Not intended to create 0-channel images.
-    if (numChannels <= 0)
+    if (numChannels <= 0) {
+        dst.error ("%d-channel images not supported", numChannels);
         return false;
+    }
     // If we dont have a single source channel,
     // hard to know how big to make the additional channels
-    if (src.spec().nchannels == 0)
+    if (src.spec().nchannels == 0) {
+        dst.error ("%d-channel images not supported", src.spec().nchannels);
         return false;
-    
+    }
+
     if (numChannels == src.spec().nchannels) {
         return dst.copy (src);
     }
@@ -361,11 +352,14 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     // dst must be distinct from A and B
     if ((const void *)&A == (const void *)&dst ||
         (const void *)&B == (const void *)&dst) {
+        dst.error ("destination image must be distinct from source");
         return false;
     }
     
     // all three images must have the same number of channels
     if (A.spec().nchannels != B.spec().nchannels) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   A.spec().nchannels, B.spec().nchannels);
         return false;
     }
     
@@ -413,15 +407,19 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
-ImageBufAlgo::computePixelStats (PixelStats  &stats, const ImageBuf &src)
+ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src)
 {
     int nchannels = src.spec().nchannels;
-    if (nchannels == 0)
+    if (nchannels == 0) {
+        src.error ("%d-channel images not supported", nchannels);
         return false;
+    }
 
-    if (src.spec().format != TypeDesc::FLOAT)
+    if (src.spec().format != TypeDesc::FLOAT) {
+        src.error ("only 'float' images are supported");
         return false;
-    
+    }
+
     // Local storage to allow for intermediate representations which
     // are sometimes more precise than the final stats output.
     
@@ -652,6 +650,7 @@ ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color)
     case TypeDesc::HALF  : return isConstantColor_<half> (src, color); break;
     case TypeDesc::DOUBLE: return isConstantColor_<double> (src, color); break;
     default:
+        src.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
 };
@@ -689,6 +688,7 @@ ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val)
     case TypeDesc::HALF  : return isConstantChannel_<half> (src, channel, val); break;
     case TypeDesc::DOUBLE: return isConstantChannel_<double> (src, channel, val); break;
     default:
+        src.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
 };
@@ -735,6 +735,7 @@ ImageBufAlgo::isMonochrome(const ImageBuf &src)
     case TypeDesc::HALF  : return isMonochrome_<half> (src); break;
     case TypeDesc::DOUBLE: return isMonochrome_<double> (src); break;
     default:
+        src.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
 };
@@ -790,8 +791,13 @@ bool resize_ (ImageBuf &dst, const ImageBuf &src,
     const ImageSpec &dstspec (dst.spec());
     int nchannels = dstspec.nchannels;
 
-    if (dstspec.format.basetype != TypeDesc::FLOAT ||
-        nchannels != srcspec.nchannels) {
+    if (dstspec.format.basetype != TypeDesc::FLOAT) {
+        dst.error ("only 'float' images are supported");
+        return false;
+    }
+    if (nchannels != srcspec.nchannels) {
+        dst.error ("channel number mismatch: %d vs. %d", 
+                   dst.spec().nchannels, src.spec().nchannels);
         return false;
     }
 
@@ -979,9 +985,11 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     case TypeDesc::DOUBLE:
         return resize_<double> (dst, src, xbegin, xend, ybegin, yend, filter);
     default:
+        dst.error ("Unsupported pixel data format '%s'", src.spec().format);
         return false;
     }
-    
+
+    ASSERT (0);
     return false;
 }
 
@@ -1133,8 +1141,11 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi)
 {
     if (R.spec().format != BaseTypeFromC<Rtype>::value ||
         A.spec().format != BaseTypeFromC<Atype>::value ||
-        B.spec().format != BaseTypeFromC<Btype>::value)
+        B.spec().format != BaseTypeFromC<Btype>::value) {
+        R.error ("Unsupported pixel data format combination '%s / %s / %s'",
+                 R.spec().format, A.spec().format, B.spec().format);
         return false;   // double check that types match
+    }
 
     // Output image R.
     const ImageSpec &specR = R.spec();
@@ -1229,26 +1240,37 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     // float pixel data.
     if (R.spec().format != TypeDesc::TypeFloat ||
         A.spec().format != TypeDesc::TypeFloat ||
-        B.spec().format != TypeDesc::TypeFloat)
+        B.spec().format != TypeDesc::TypeFloat) {
+        R.error ("Unsupported pixel data format combination '%s / %s / %s'",
+                   R.spec().format, A.spec().format, B.spec().format);
         return false;
+    }
 
     // Fail if the input images have a Z channel.
-    if (specA.z_channel >= 0 || specB.z_channel >= 0)
+    if (specA.z_channel >= 0 || specB.z_channel >= 0) {
+        R.error ("'over' does not support Z channels");
         return false;
+    }
 
     // If input images A and B have different number of non-alpha channels
     // then return false.
-    if (non_alpha_A != non_alpha_B)
+    if (non_alpha_A != non_alpha_B) {
+        R.error ("inputs had different numbers of color channels");
         return false;
+    }
 
     // A or B has number of channels different than 3 and 4, and it does
     // not have an alpha channel.
-    if ((A_not_34 && !has_alpha_A) || (B_not_34 && !has_alpha_B))
+    if ((A_not_34 && !has_alpha_A) || (B_not_34 && !has_alpha_B)) {
+        R.error ("inputs must have alpha channels (or be implicitly RGB or RGBA)");
         return false;
+    }
 
     // A or B has zero or one channel -> return false.
-    if (channels_A <= 1 || channels_B <= 1)
+    if (channels_A <= 1 || channels_B <= 1) {
+        R.error ("unsupported number of channels");
         return false;
+    }
 
     // Initialized R -> use as allocated.  
     // Uninitialized R -> size it to the union of A and B.
@@ -1263,8 +1285,10 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
             newspec.alpha_channel =  3;
             R.reset ("over", newspec);
         } else {
-            if (non_alpha_R != 3 || alpha_R != 3)
+            if (non_alpha_R != 3 || alpha_R != 3) {
+                R.error ("unsupported channel layout");
                 return false;
+            }
         }
     } else if (has_alpha_A && has_alpha_B && alpha_A == alpha_B) {
         if (! initialized_R) {
@@ -1272,10 +1296,13 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
             newspec.alpha_channel =  alpha_A;
             R.reset ("over", newspec);
         } else {
-            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A)
+            if (non_alpha_R != non_alpha_A || alpha_R != alpha_A) {
+                R.error ("unsupported channel layout");
                 return false;
+            }
         }
     } else {
+        R.error ("unsupported channel layout");
         return false;
     }
 
@@ -1287,10 +1314,270 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
                                  boost::cref(A), boost::cref(B), _1),
                            roi, nthreads);
-    return true;
+    return ! R.has_error();
 }
 
 
+
+#ifdef USE_FREETYPE
+namespace { // anon
+static mutex ft_mutex;
+static FT_Library ft_library = NULL;
+static bool ft_broken = false;
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+const char *default_font_name = "cour";
+#elif defined (__APPLE__)
+const char *default_font_name = "Courier New";
+#elif defined (_WIN32)
+const char *default_font_name = "Courier";
+#else
+const char *default_font_name = "cour";
+#endif
+} // anon namespace
+#endif
+
+
+bool
+ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
+                           int fontsize, const std::string &font_,
+                           const float *textcolor)
+{
+#ifdef USE_FREETYPE
+    // If we know FT is broken, don't bother trying again
+    if (ft_broken)
+        return false;
+
+    // Thread safety
+    lock_guard ft_lock (ft_mutex);
+    int error = 0;
+
+    // If FT not yet initialized, do it now.
+    if (! ft_library) {
+        error = FT_Init_FreeType (&ft_library);
+        if (error) {
+            ft_broken = true;
+            R.error ("Could not initialize FreeType for font rendering");
+            return false;
+        }
+    }
+
+    // A set of likely directories for fonts to live, across several systems.
+    std::vector<std::string> search_dirs;
+    std::string home = getenv ("HOME");
+    if (! home.empty()) {
+        search_dirs.push_back (home + "/fonts");
+        search_dirs.push_back (home + "/Fonts");
+        search_dirs.push_back (home + "/Library/Fonts");
+    }
+    search_dirs.push_back ("/usr/share/fonts");
+    search_dirs.push_back ("/Library/Fonts");
+    search_dirs.push_back ("C:/Windows/Fonts");
+    search_dirs.push_back ("/opt/local/share/fonts");
+
+    // Try to find the font.  Experiment with several extensions
+    std::string font = font_;
+    if (font.empty())
+        font = default_font_name;
+    if (! Filesystem::is_regular (font)) {
+        // Font specified is not a full path
+        std::string f;
+        static const char *extensions[] = { "", ".ttf", ".pfa", ".pfb", NULL };
+        for (int i = 0;  f.empty() && extensions[i];  ++i)
+            f = Filesystem::searchpath_find (font+extensions[i],
+                                             search_dirs, true, true);
+        if (! f.empty())
+            font = f;
+    }
+
+    FT_Face face;      // handle to face object
+    error = FT_New_Face (ft_library, font.c_str(), 0 /* face index */, &face);
+    if (error) {
+        R.error ("Could not set font face to \"%s\"", font);
+        return false;  // couldn't open the face
+    }
+
+    error = FT_Set_Pixel_Sizes (face,        // handle to face object
+                                0,           // pixel_width
+                                fontsize);   // pixel_heigh
+    if (error) {
+        FT_Done_Face (face);
+        R.error ("Could not set font size to %d", fontsize);
+        return false;  // couldn't set the character size
+    }
+
+    FT_GlyphSlot slot = face->glyph;  // a small shortcut
+    int nchannels = R.spec().nchannels;
+    float *pixelcolor = ALLOCA (float, nchannels);
+    if (! textcolor) {
+        float *localtextcolor = ALLOCA (float, nchannels);
+        for (int c = 0;  c < nchannels;  ++c)
+            localtextcolor[c] = 1.0f;
+        textcolor = localtextcolor;
+    }
+
+    for (size_t n = 0, e = text.size();  n < e;  ++n) {
+        // load glyph image into the slot (erase previous one)
+        error = FT_Load_Char (face, text[n], FT_LOAD_RENDER);
+        if (error)
+            continue;  // ignore errors
+        // now, draw to our target surface
+        for (int j = 0;  j < slot->bitmap.rows; ++j) {
+            int ry = y + j - slot->bitmap_top;
+            for (int i = 0;  i < slot->bitmap.width; ++i) {
+                int rx = x + i + slot->bitmap_left;
+                float b = slot->bitmap.buffer[slot->bitmap.pitch*j+i] / 255.0f;
+                R.getpixel (rx, ry, pixelcolor);
+                for (int c = 0;  c < nchannels;  ++c)
+                    pixelcolor[c] = b*textcolor[c] + (1.0f-b) * pixelcolor[c];
+                R.setpixel (rx, ry, pixelcolor);
+            }
+        }
+        // increment pen position
+        x += slot->advance.x >> 6;
+    }
+
+    FT_Done_Face (face);
+    return true;
+
+#else
+    R.error ("OpenImageIO was not compiled with FreeType for font rendering");
+    return false;   // Font rendering not supported
+#endif
+}
+
+
+namespace { // anonymous namespace
+
+/// histogram_impl -----------------------------------------------------------
+/// Fully type-specialized version of histogram.
+///
+/// Pixel values in min->max range are mapped to 0->(bins-1) range, so that
+/// each value is placed in the appropriate bin. The formula used is:
+/// y = (x-min) * bins/(max-min), where y is the value in the 0->(bins-1)
+/// range and x is the value in the min->max range. There is one special
+/// case x==max for which the formula is not used and x is assigned to the
+/// last bin at position (bins-1) in the vector histogram.
+/// --------------------------------------------------------------------------
+template<class Atype>
+bool
+histogram_impl (const ImageBuf &A, int channel,
+                std::vector<imagesize_t> &histogram, int bins,
+                float min, float max, imagesize_t *submin,
+                imagesize_t *supermax, ROI roi)
+{
+    // Double check A's type.
+    if (A.spec().format != BaseTypeFromC<Atype>::value) {
+        return false;
+    }
+
+    // Initialize.
+    ImageBuf::ConstIterator<Atype, float> a (A, roi);
+    float ratio = bins / (max-min);
+    int bins_minus_1 = bins-1;
+    bool submin_ok = submin != NULL;
+    bool supermax_ok = supermax != NULL;
+    if (submin_ok)
+        *submin = 0;
+    if (supermax_ok)
+        *supermax = 0;
+    histogram.assign(bins, 0);
+
+    // Compute histogram.
+    for ( ; ! a.done(); a++) {
+        float c = a[channel];
+        if (c >= min && c < max) {
+            // Map range min->max to 0->(bins-1).
+            histogram[ (int) ((c-min) * ratio) ]++;
+        } else if (c == max) {
+            histogram[bins_minus_1]++;
+        } else {
+            if (submin_ok && c < min)
+                (*submin)++;
+            else if (supermax_ok)
+                (*supermax)++;
+        }
+    }
+    return true;
+}
+
+} // anonymous namespace
+
+
+
+bool
+ImageBufAlgo::histogram (const ImageBuf &A, int channel,
+                         std::vector<imagesize_t> &histogram, int bins,
+                         float min, float max, imagesize_t *submin,
+                         imagesize_t *supermax, ROI roi)
+{
+    if (A.spec().format != TypeDesc::TypeFloat) {
+        return false;
+    }
+
+    if (A.nchannels() == 0) {
+        return false;
+    }
+
+    if (channel < 0 || channel >= A.nchannels()) {
+        return false;
+    }
+
+    if (bins < 1) {
+        return false;
+    }
+
+    if (max <= min) {
+        return false;
+    }
+
+    // Specified ROI -> use it. Unspecified ROI -> initialize from A.
+    if (! roi.defined)
+        roi = get_roi (A.spec());
+
+    return histogram_impl<float> (A, channel, histogram, bins, min, max,
+                                  submin, supermax, roi);
+}
+
+
+
+bool
+ImageBufAlgo::histogram_draw (ImageBuf &R,
+                              const std::vector<imagesize_t> &histogram)
+{
+    // Fail if there are no bins to draw.
+    int bins = histogram.size();
+    if (bins == 0) {
+        return false;
+    }
+
+    // Check R and modify it if needed.
+    int height = R.spec().height;
+    if (R.spec().format != TypeDesc::TypeFloat || R.nchannels() != 1 ||
+        R.spec().width != bins) {
+        ImageSpec newspec = ImageSpec (bins, height, 1, TypeDesc::FLOAT);
+        R.reset ("dummy", newspec);
+    }
+
+    // Fill output image R with white color.
+    ImageBuf::Iterator<float, float> r (R);
+    for ( ; ! r.done(); ++r)
+        r[0] = 1;
+
+    // Draw histogram left->right, bottom->up.
+    imagesize_t max = *std::max_element (histogram.begin(), histogram.end());
+    for (int b = 0; b < bins; b++) {
+        int bin_height = (int) ((float)histogram[b]/(float)max*height + 0.5f);
+        if (bin_height != 0) {
+            // Draw one bin at column b.
+            for (int j = 1; j <= bin_height; j++) {
+                int row = height - j;
+                r.pos (b, row);
+                r[0] = 0;
+            }
+        }
+    }
+    return true;
+}
 
 }
 OIIO_NAMESPACE_EXIT

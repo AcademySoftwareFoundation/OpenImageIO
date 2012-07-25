@@ -256,6 +256,42 @@ ImageBuf::operator= (const ImageBuf &src)
 
 
 
+static spin_mutex err_mutex;      ///< Protect m_err fields
+
+
+bool
+ImageBuf::has_error () const
+{
+    spin_lock lock (err_mutex);
+    return ! m_err.empty();
+}
+
+
+
+std::string
+ImageBuf::geterror (void) const
+{
+    spin_lock lock (err_mutex);
+    std::string e = m_err;
+    m_err.clear();
+    return e;
+}
+
+
+
+void
+ImageBuf::append_error (const std::string &message) const
+{
+    spin_lock lock (err_mutex);
+    ASSERT (m_err.size() < 1024*1024*16 &&
+            "Accumulated error messages > 16MB. Try checking return codes!");
+    if (m_err.size() && m_err[m_err.size()-1] != '\n')
+        m_err += '\n';
+    m_err += message;
+}
+
+
+
 void
 ImageBuf::clear ()
 {
@@ -967,7 +1003,7 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                              xbegin, xend, ybegin, yend, zbegin, zend,  \
                              chbegin, chend, (CType<B>::type *)result);
 
-    switch (spec().format.basetype) {
+    switch (format.basetype) {
         TYPECASE (TypeDesc::UINT8);
         TYPECASE (TypeDesc::INT8);
         TYPECASE (TypeDesc::UINT16);

@@ -229,13 +229,20 @@ public:
     /// converted automatically to the data type of the app buffer.
     bool copy (const ImageBuf &src);
 
-    /// Return info on the last error that occurred since geterror()
-    /// was called.  This also clears the error message for next time.
-    std::string geterror (void) const {
-        std::string e = m_err;
-        m_err.clear();
-        return e;
-    }
+    /// Error reporting for ImageBuf: call this with printf-like
+    /// arguments.  Note however that this is fully typesafe!
+    /// void error (const char *format, ...)
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
+
+    /// Return true if the IB has had an error and has an error message
+    /// to retrieve via geterror().
+    bool has_error (void) const;
+
+    /// Return info on the last error that occurred since geterror() was
+    /// called (or an empty string if no errors are pending).  This also
+    /// clears the error message for next time.
+    std::string geterror (void) const;
 
     /// Return a read-only (const) reference to the image spec that
     /// describes the buffer.
@@ -1117,6 +1124,9 @@ protected:
 
     /// Private and unimplemented.
     const ImageBuf& operator= (const ImageBuf &src);
+
+    /// Add to the error message list for this IB.
+    void append_error (const std::string& message) const;
 
 };
 

@@ -337,5 +337,20 @@ Strutil::to_upper (std::string &a)
 }
 
 
+
+std::string
+Strutil::strip (const std::string &str, const std::string &chars)
+{
+    const char *stripchars = (chars.empty() ? " \t\n\r\f\v" : chars.c_str());
+    size_t len = str.length();
+    size_t b = str.find_first_not_of (stripchars);
+    if (b == std::string::npos)
+        return std::string("");
+    size_t e = str.find_last_not_of (stripchars);
+    DASSERT (e != std::string::npos);
+    return std::string (str, b, e-b+1);
+}
+
+
 }
 OIIO_NAMESPACE_EXIT

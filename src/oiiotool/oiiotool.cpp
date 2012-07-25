@@ -140,6 +140,18 @@ Oiiotool::process_pending ()
 
 
 
+void
+Oiiotool::error (const std::string &command, const std::string &explanation)
+{
+    std::cerr << "ERROR: " << command;
+    if (explanation.length())
+        std::cerr << " (" << explanation << ")";
+    std::cerr << "\n";
+    exit (-1);
+}
+
+
+
 static int
 set_threads (int argc, const char *argv[])
 {
@@ -764,7 +776,9 @@ action_colorconvert (int argc, const char *argv[])
 
     for (int s = 0, send = A->subimages();  s < send;  ++s) {
         for (int m = 0, mend = A->miplevels(s);  m < mend;  ++m) {
-            ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            bool ok = ImageBufAlgo::colorconvert ((*ot.curimg)(s,m), (*A)(s,m), processor, false);
+            if (! ok)
+                ot.error (argv[0], (*ot.curimg)(s,m).geterror());
             ot.curimg->spec(s,m)->attribute ("oiio::Colorspace", tospace);
         }
     }
@@ -901,7 +915,9 @@ action_add (int argc, const char *argv[])
                 continue;
             }
             ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBufAlgo::add (Rib, Aib, Bib);
+            bool ok = ImageBufAlgo::add (Rib, Aib, Bib);
+            if (! ok)
+                ot.error (argv[0], Rib.geterror());
         }
     }
              
@@ -1133,7 +1149,9 @@ action_create (int argc, const char *argv[])
     spec.full_height = spec.height;
     spec.full_depth = spec.depth;
     ImageRecRef img (new ImageRec ("new", spec, ot.imagecache));
-    ImageBufAlgo::zero ((*img)());
+    bool ok = ImageBufAlgo::zero ((*img)());
+    if (! ok)
+        ot.error (argv[0], (*img)().geterror());
     if (ot.curimg)
         ot.image_stack.push_back (ot.curimg);
     ot.curimg = img;
@@ -1163,7 +1181,9 @@ action_pattern (int argc, const char *argv[])
     ImageBuf &ib ((*img)());
     std::string pattern = argv[1];
     if (Strutil::iequals(pattern,"black")) {
-        ImageBufAlgo::zero (ib);
+        bool ok = ImageBufAlgo::zero (ib);
+        if (! ok)
+            ot.error (argv[0], ib.geterror());
     } else if (Strutil::istarts_with(pattern,"constant")) {
         float *fill = ALLOCA (float, nchans);
         for (int c = 0;  c < nchans;  ++c)
@@ -1183,7 +1203,9 @@ action_pattern (int argc, const char *argv[])
                 }
             }
         }
-        ImageBufAlgo::fill (ib, fill);
+        bool ok = ImageBufAlgo::fill (ib, fill);
+        if (! ok)
+            ot.error (argv[0], ib.geterror());
     } else if (Strutil::istarts_with(pattern,"checker")) {
         int width = 8;
         size_t pos;
@@ -1194,12 +1216,16 @@ action_pattern (int argc, const char *argv[])
         }
         std::vector<float> color1 (nchans, 0.0f);
         std::vector<float> color2 (nchans, 1.0f);
-        ImageBufAlgo::checker (ib, width, &color1[0], &color2[0],
-                               ib.xbegin(), ib.xend(),
-                               ib.ybegin(), ib.yend(),
-                               ib.zbegin(), ib.zend());
+        bool ok = ImageBufAlgo::checker (ib, width, &color1[0], &color2[0],
+                                         ib.xbegin(), ib.xend(),
+                                         ib.ybegin(), ib.yend(),
+                                         ib.zbegin(), ib.zend());
+        if (! ok)
+            ot.error (argv[0], ib.geterror());
     } else {
-        ImageBufAlgo::zero (ib);
+        bool ok = ImageBufAlgo::zero (ib);
+        if (! ok)
+            ot.error (argv[0], ib.geterror());
     }
     ot.push (img);
     return 0;
@@ -1222,7 +1248,9 @@ action_capture (int argc, const char *argv[])
     }
 
     ImageBuf ib;
-    ImageBufAlgo::capture_image (ib, camera, TypeDesc::FLOAT);
+    bool ok = ImageBufAlgo::capture_image (ib, camera, TypeDesc::FLOAT);
+    if (! ok)
+        ot.error (argv[0], ib.geterror());
     ImageRecRef img (new ImageRec ("capture", ib.spec(), ot.imagecache));
     (*img)().copy (ib);
     ot.push (img);
@@ -1250,8 +1278,10 @@ action_crop (int argc, const char *argv[])
         ot.push (new ImageRec (A->name(), newspec, ot.imagecache));
         const ImageBuf &Aib ((*A)(0,0));
         ImageBuf &Rib ((*ot.curimg)(0,0));
-        ImageBufAlgo::crop (Rib, Aib, newspec.x, newspec.x+newspec.width,
-                            newspec.y, newspec.y+newspec.height);
+        bool ok = ImageBufAlgo::crop (Rib, Aib, newspec.x, newspec.x+newspec.width,
+                                      newspec.y, newspec.y+newspec.height);
+        if (! ok)
+            ot.error (argv[0], Rib.geterror());
     } else if (newspec.x != Aspec.x || newspec.y != Aspec.y) {
         // only offset changed; don't copy the image or crop, simply
         // adjust the origins.
@@ -1387,7 +1417,9 @@ action_fixnan (int argc, const char *argv[])
         for (int m = 0;  m < miplevels;  ++m) {
             const ImageBuf &Aib ((*A)(s,m));
             ImageBuf &Rib ((*ot.curimg)(s,m));
-            ImageBufAlgo::fixNonFinite (Rib, Aib, mode);
+            bool ok = ImageBufAlgo::fixNonFinite (Rib, Aib, mode);
+            if (! ok)
+                ot.error (argv[0], Rib.geterror());
         }
     }
              
@@ -1421,7 +1453,155 @@ action_over (int argc, const char *argv[])
     ot.push (new ImageRec ("irec", specR, ot.imagecache));
     ImageBuf &Rib ((*ot.curimg)());
 
-    ImageBufAlgo::over (Rib, Aib, Bib);
+    bool ok = ImageBufAlgo::over (Rib, Aib, Bib);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+    return 0;
+}
+
+
+
+static int
+action_text (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_text, argc, argv))
+        return 0;
+
+    // Read and copy the top-of-stack image
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.push (new ImageRec (*A, 0, 0, true, false));
+    ImageBuf &Rib ((*ot.curimg)(0,0));
+    const ImageSpec &Rspec = Rib.spec();
+    bool ok = ImageBufAlgo::zero (Rib);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+
+    // Set up defaults for text placement, size, font, color
+    int x = Rspec.x + Rspec.width/2;
+    int y = Rspec.y + Rspec.height/2;
+    int fontsize = 16;
+    std::string font = "";
+    float *textcolor = ALLOCA (float, Rspec.nchannels);
+    for (int c = 0;  c < Rspec.nchannels;  ++c)
+        textcolor[c] = 1.0f;
+
+    // Parse optional arguments for overrides
+    std::string command = argv[0];
+    size_t pos;
+    while ((pos = command.find_first_of(":")) != std::string::npos) {
+        command = command.substr (pos+1, std::string::npos);
+        if (Strutil::istarts_with(command,"x=")) {
+            x = atoi (command.c_str()+2);
+        } else if (Strutil::istarts_with(command,"y=")) {
+            y = atoi (command.c_str()+2);
+        } else if (Strutil::istarts_with(command,"size=")) {
+            fontsize = atoi (command.c_str()+5);
+        } else if (Strutil::istarts_with(command,"color=")) {
+            // Parse comma-separated color list
+            size_t numpos = 6;
+            for (int c = 0; c < Rspec.nchannels && numpos < command.size() && command[numpos] != ':'; ++c) {
+                textcolor[c] = atof (command.c_str()+numpos);
+                while (numpos < command.size() && command[numpos] != ':' && command[numpos] != ',')
+                    ++numpos;
+                if (command[numpos])
+                    ++numpos;
+            }
+        } else if (Strutil::istarts_with(command,"font=")) {
+            font = "";
+            int s = 5;
+            bool quote = (command[s] == '\"');
+            if (quote)
+                ++s;
+            for ( ; command[s] && command[s] != ':' && command[s] != '\"'; ++s)
+                font += command[s];
+        }
+    }
+
+    ok = ImageBufAlgo::render_text (Rib, x, y, argv[1] /* the text */,
+                                    fontsize, font, textcolor);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+
+    return 0;
+}
+
+
+
+/// action_histogram ---------------------------------------------------------
+/// Usage:
+///                   ./oiiotool in --histogram:cumulative=int 'bins'x'height'
+///                   channel -o out
+///
+/// in              - Input image that contains the channel to be histogramed.
+/// cumulative      - Optional argument that can take values 0 or 1. If 0,
+///                   then each bin will contain the count of pixels having
+///                   values in the range for that bin. If 1, then each bin
+///                   will contain not only its count, but also the counts of
+///                   all preceding bins.
+/// 'bins'x'height' - Width and height of the histogram, where width equals
+///                   the number of bins.
+/// channel         - The channel in the input image to be histogramed.
+/// out             - Output image.
+///
+/// Examples:
+///                 - ./oiiotool in --histogram 256x256 0 -o out
+///
+///                   Save the non-cumulative histogram of channel 0 in image
+///                   'in', as an image with size 256x256.
+///
+///                 - ./oiiotool in --histogram:cumulative=1 256x256 0 -o out
+///
+///                   Same as the previous example, but now a cumulative
+///                   histogram is created, instead of a regular one.
+/// --------------------------------------------------------------------------
+static int
+action_histogram (int argc, const char *argv[])
+{
+    ASSERT (argc == 3);
+    if (ot.postpone_callback (1, action_histogram, argc, argv))
+        return 0;
+
+    // Input image.
+    ot.read ();
+    ImageRecRef A (ot.pop());
+    const ImageBuf &Aib ((*A)());
+
+    // Get arguments from command line.
+    const char *size = argv[1];
+    int channel = atoi (argv[2]);
+
+    int cumulative = 0;
+    std::string cmd = argv[0];
+    size_t pos;
+    while ((pos = cmd.find_first_of(":")) != std::string::npos) {
+        cmd = cmd.substr (pos+1, std::string::npos);
+        if (Strutil::istarts_with(cmd,"cumulative="))
+            cumulative = atoi(cmd.c_str()+11);
+    }
+
+    // Extract bins and height from size.
+    int bins = 0, height = 0;
+    if (sscanf (size, "%dx%d", &bins, &height) != 2) {
+        std::cerr << "Invalid size" << "\n";
+        return -1;
+    }
+
+    // Compute regular histogram.
+    std::vector<imagesize_t> hist;
+    ImageBufAlgo::histogram (Aib, channel, hist, bins);
+
+    // Compute cumulative histogram if specified.
+    if (cumulative == 1)
+        for (int i = 1; i < bins; i++)
+            hist[i] += hist[i-1];
+
+    // Output image.
+    ImageSpec specR (bins, height, 1, TypeDesc::FLOAT);
+    ot.push (new ImageRec ("irec", specR, ot.imagecache));
+    ImageBuf &Rib ((*ot.curimg)());
+
+    ImageBufAlgo::histogram_draw (Rib, hist);
     return 0;
 }
 
@@ -1493,15 +1673,12 @@ getargs (int argc, char *argv[])
                         "Create a patterned image (args: pattern, geom, channels)",
                 "--capture %@", action_capture, NULL,
                         "Capture an image (args: camera=%%d)",
-                "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
-                "--selectmip %@ %d", action_selectmip, NULL,
-                    "Select just one MIP level (0 = highest res)",
-                "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
                 "--diff %@", action_diff, NULL, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
                 "--add %@", action_add, NULL, "Add two images",
                 "--sub %@", action_sub, NULL, "Subtract two images",
                 "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
                 "--over %@", action_over, NULL, "'Over' composite of two images",
+                "--histogram %@ %s %d", action_histogram, NULL, NULL, "Histogram one channel (args: cumulative=0)",
                 "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
                 "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
                 "--flipflop %@", action_flipflop, NULL, "Flip and flop the image (180 degree rotation)",
@@ -1509,6 +1686,13 @@ getargs (int argc, char *argv[])
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
+                "--text %@ %s", action_text, NULL,
+                    "Render text into the current image",
+                "<SEPARATOR>", "Image stack manipulation:",
+                "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
+                "--selectmip %@ %d", action_selectmip, NULL,
+                    "Select just one MIP level (0 = highest res)",
+                "--subimage %@ %d", action_select_subimage, NULL, "Select just one subimage",
                 "--pop %@", action_pop, NULL,
                     "Throw away the current image",
                 "--dup %@", action_dup, NULL,

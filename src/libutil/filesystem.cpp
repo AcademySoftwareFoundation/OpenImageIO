@@ -141,7 +141,7 @@ Filesystem::searchpath_split (const std::string &searchpath,
 std::string
 Filesystem::searchpath_find (const std::string &filename,
                              const std::vector<std::string> &dirs,
-                             bool testcwd)
+                             bool testcwd, bool recursive)
 {
     bool abs = Filesystem::path_is_absolute (filename);
 
@@ -152,12 +152,6 @@ Filesystem::searchpath_find (const std::string &filename,
             return filename;
     }
 
-#if 0 // NO, don't do this any more.
-    // If an absolute filename was not found, we're done.
-    if (abs)
-        return std::string();
-#endif
-
     // Relative filename, not yet found -- try each directory in turn
     BOOST_FOREACH (const std::string &d, dirs) {
         // std::cerr << "\tPath = '" << d << "'\n";
@@ -167,6 +161,17 @@ Filesystem::searchpath_find (const std::string &filename,
         if (Filesystem::is_regular (f.string())) {
             // std::cerr << "Found '" << f << "'\n";
             return f.string();
+        }
+
+        if (recursive && Filesystem::is_directory (d)) {
+            std::vector<std::string> subdirs;
+            for (boost::filesystem::directory_iterator s(d); 
+                 s != boost::filesystem::directory_iterator();  ++s)
+                if (Filesystem::is_directory(s->path().string()))
+                    subdirs.push_back (s->path().string());
+            std::string found = searchpath_find (filename, subdirs, false, true);
+            if (found.size())
+                return found;
         }
     }
     return std::string();
