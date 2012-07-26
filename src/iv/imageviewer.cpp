@@ -29,6 +29,7 @@
 */
 
 #include "imageviewer.h"
+#include "ivgl.h"
 
 #include <iostream>
 #include <cmath>

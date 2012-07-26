@@ -29,6 +29,7 @@
 */
 
 #include "imageviewer.h"
+#include "ivgl.h"
 
 #include <iostream>
 
@@ -1061,6 +1062,22 @@ IvGL::view (float xcenter, float ycenter, float zoom, bool redraw)
 
     if (redraw)
         trigger_redraw ();
+}
+
+
+
+void
+IvGL::zoom (float newzoom, bool redraw)
+{
+    view (m_centerx, m_centery, newzoom, redraw);
+}
+
+
+
+void
+IvGL::center (float x, float y, bool redraw)
+{
+    view (x, y, m_viewer.zoom(), redraw);
 }
 
 
