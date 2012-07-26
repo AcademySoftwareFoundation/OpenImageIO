@@ -316,8 +316,13 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
 
     if (m_gz)
         gzwrite (m_gz, &header, sizeof(header));
-    else
-        fwrite (&header, sizeof(header), 1, m_file);
+    else {
+    	size_t b = fwrite (&header, sizeof(header), 1, m_file);
+    	if (b != 1) {
+            error ("Failed write zfile::open (err: %d)", b);
+            return false;
+    	}
+    }
 
     return true;
 }
@@ -358,8 +363,14 @@ ZfileOutput::write_scanline (int y, int z, TypeDesc format,
 
     if (m_gz)
         gzwrite (m_gz, data, m_spec.width*sizeof(float));
-    else
-        fwrite (data, sizeof(float), m_spec.width, m_file);
+    else {
+    	size_t b = fwrite (data, sizeof(float), m_spec.width, m_file);
+        if (b != (size_t)m_spec.width) {
+            error ("Failed write zfile::open (err: %d)", b);
+            return false;
+        }
+    }
+
 
     return true;
 }

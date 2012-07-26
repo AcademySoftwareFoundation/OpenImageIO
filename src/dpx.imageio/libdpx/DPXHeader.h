@@ -1532,13 +1532,13 @@ namespace dpx
 	
 	inline void GenericHeader::Version(char *v) const
 	{
-		::strncpy(v, this->version, 8);
+		::strncpy(v, this->version, sizeof(this->version));
 		v[8] = '\0';
 	}
 	
 	inline void GenericHeader::SetVersion(const char * v)
 	{
-		::strncpy(this->version, v, 8);
+		::strncpy(this->version, v, sizeof(this->version));
 	}
 	
 	inline U32 GenericHeader::FileSize() const
@@ -1583,57 +1583,57 @@ namespace dpx
 	
 	inline void GenericHeader::FileName(char *fn) const
 	{
-		::strncpy(fn, this->fileName, 100);
+		::strncpy(fn, this->fileName, sizeof(this->fileName));
 		fn[100] = '\0';
 	}
 	
 	inline void GenericHeader::SetFileName(const char *fn)
 	{
-		::strncpy(this->fileName, fn, 100);
+		::strncpy(this->fileName, fn, sizeof(this->fileName));
 	}
 	
 	inline void GenericHeader::CreationTimeDate(char *ct) const
 	{
-		::strncpy(ct, this->creationTimeDate, 24);
+		::strncpy(ct, this->creationTimeDate, sizeof(this->creationTimeDate));
 		ct[24] = '\0';
 	}
 	
 	inline void GenericHeader::SetCreationTimeDate(const char *ct)
 	{
-		::strncpy(this->creationTimeDate, ct, 24);
+		::strncpy(this->creationTimeDate, ct, sizeof(this->creationTimeDate));
 	}
 	
 	inline void GenericHeader::Creator(char *creat) const
 	{
-		::strncpy(creat, this->creator, 200);
+		::strncpy(creat, this->creator, sizeof(this->creator));
 		creat[200] = '\0';		
 	}
 	
 	inline void GenericHeader::SetCreator(const char *creat)
 	{
-		::strncpy(this->creator, creat, 200);
+		::strncpy(this->creator, creat, sizeof(this->creator));
 	}
 	
 	inline void GenericHeader::Project(char *prj) const
 	{
-		::strncpy(prj, this->project, 200);
+		::strncpy(prj, this->project, sizeof(this->project));
 		prj[200] = '\0';
 	}
 	
 	inline void GenericHeader::SetProject(const char *prj)
 	{
-		::strncpy(this->project, prj, 200);
+		::strncpy(this->project, prj, sizeof(this->project));
 	}
 	
 	inline void GenericHeader::Copyright(char *copy) const
 	{
-		::strncpy(copy, this->copyright, 200);
+		::strncpy(copy, this->copyright, sizeof(this->copyright));
 		copy[200] = '\0';
 	}
 	
 	inline void GenericHeader::SetCopyright(const char *copy)
 	{
-		::strncpy(this->copyright, copy, 200);
+		::strncpy(this->copyright, copy, sizeof(this->copyright));
 	}
 	
 	inline U32 GenericHeader::EncryptKey() const
@@ -1971,46 +1971,46 @@ namespace dpx
 	
 	inline void GenericHeader::SourceImageFileName(char *fn) const
 	{
-		::strncpy(fn, this->sourceImageFileName, 100);
+		::strncpy(fn, this->sourceImageFileName, sizeof(this->sourceImageFileName));
 		fn[100] = '\0';
 	}
 	
 	inline void GenericHeader::SetSourceImageFileName(const char *fn)
 	{
-		::strncpy(this->sourceImageFileName, fn, 100);
+		::strncpy(this->sourceImageFileName, fn, sizeof(this->sourceImageFileName));
 	}
 	
 	inline void GenericHeader::SourceTimeDate(char *td) const
 	{
-		::strncpy(td, this->sourceTimeDate, 24);
+		::strncpy(td, this->sourceTimeDate, sizeof(this->sourceTimeDate));
 		td[24] = '\0';
 	}
 	
 	inline void GenericHeader::SetSourceTimeDate(const char *td)
 	{
-		::strncpy(this->sourceTimeDate, td, 24);
+		::strncpy(this->sourceTimeDate, td, sizeof(this->sourceTimeDate));
 	}
 	
 	inline void GenericHeader::InputDevice(char *dev) const
 	{
-		::strncpy(dev, this->inputDevice, 32);
+		::strncpy(dev, this->inputDevice, sizeof(this->inputDevice));
 		dev[32] = '\0';
 	}
 	
 	inline void  GenericHeader::SetInputDevice(const char *dev)
 	{
-		::strncpy(this->inputDevice, dev, 32);
+		::strncpy(this->inputDevice, dev, sizeof(this->inputDevice));
 	}
 	
 	inline void GenericHeader::InputDeviceSerialNumber(char *sn) const
 	{
-		::strncpy(sn, this->inputDeviceSerialNumber, 32);
+		::strncpy(sn, this->inputDeviceSerialNumber, sizeof(this->inputDeviceSerialNumber));
 		sn[32] = '\0';
 	}
 	
 	inline void GenericHeader::SetInputDeviceSerialNumber(const char *sn)
 	{
-		::strncpy(this->inputDeviceSerialNumber, sn, 32);
+		::strncpy(this->inputDeviceSerialNumber, sn, sizeof(this->inputDeviceSerialNumber));
 	}
 	
 	inline U16 GenericHeader::Border(const int i) const
@@ -2066,13 +2066,13 @@ namespace dpx
 	
 	inline void IndustryHeader::Format(char *fmt) const
 	{
-		::strncpy(fmt, this->format, 32);
+		::strncpy(fmt, this->format, sizeof(this->format));
 		fmt[32] = '\0';
 	}
 
 	inline void IndustryHeader::SetFormat(const char *fmt)
 	{
-		::strncpy(this->format, fmt, 32);
+		::strncpy(this->format, fmt, sizeof(this->format));
 	}
 
 	inline U32 IndustryHeader::FramePosition() const
@@ -2127,24 +2127,24 @@ namespace dpx
 
 	inline void IndustryHeader::FrameId(char *id) const
 	{
-		::strncpy(id, this->frameId, 32);
+		::strncpy(id, this->frameId, sizeof(this->frameId));
 		id[32] = '\0';
 	}
 
 	inline void IndustryHeader::SetFrameId(const char *id)
 	{
-		::strncpy(this->frameId, id, 32);
+		::strncpy(this->frameId, id, sizeof(this->frameId));
 	}
 
 	inline void IndustryHeader::SlateInfo(char *slate) const
 	{
-		::strncpy(slate, this->slateInfo, 100);
+		::strncpy(slate, this->slateInfo, sizeof(this->slateInfo));
 		slate[100] = '\0';
 	}
 
 	inline void IndustryHeader::SetSlateInfo(const char *slate)
 	{
-		::strncpy(this->slateInfo, slate, 100);
+		::strncpy(this->slateInfo, slate, sizeof(this->slateInfo));
 	}
 
 

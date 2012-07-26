@@ -342,7 +342,6 @@ std::string
 Strutil::strip (const std::string &str, const std::string &chars)
 {
     const char *stripchars = (chars.empty() ? " \t\n\r\f\v" : chars.c_str());
-    size_t len = str.length();
     size_t b = str.find_first_not_of (stripchars);
     if (b == std::string::npos)
         return std::string("");
