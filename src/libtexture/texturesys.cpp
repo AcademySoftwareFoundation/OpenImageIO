@@ -1066,7 +1066,8 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     float levelblend = 0;
     // The ellipse is made up of two axes which correspond to the x and y pixel
     // directions. Pick the longest one and take several samples along it.
-    float smajor, tmajor, sminor, tminor;
+    float smajor, tmajor;
+    //float sminor, tminor; // FIXME UNUSED_AXIS These are currently unused Axis
     float majorlength, minorlength;
 
 #if 0
@@ -1081,15 +1082,15 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
         minorlength = yfilt;
         smajor = dsdx;
         tmajor = dtdx;
-        sminor = dsdy;
-        tminor = dtdy;
+//        sminor = dsdy; // FIXME See UNUSED_AXIS
+//        tminor = dtdy; // FIXME See UNUSED_AXIS
     } else {
         majorlength = yfilt;
         minorlength = xfilt;
         smajor = dsdy;
         tmajor = dtdy;
-        sminor = dsdx;
-        tminor = dtdx;
+//        sminor = dsdx; // FIXME See UNUSED_AXIS
+//        tminor = dtdx; // FIXME See UNUSED_AXIS
     }
 #else
     // Do a bit more math and get the exact ellipse axis lengths, and
@@ -1102,13 +1103,13 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     if (axis) {
         smajor = dsdy;
         tmajor = dtdy;
-        sminor = dsdx;
-        tminor = dtdx;
+//        sminor = dsdx; // FIXME See UNUSED_AXIS
+//        tminor = dtdx; // FIXME See UNUSED_AXIS
     } else {
         smajor = dsdx;
         tmajor = dtdx;
-        sminor = dsdy;
-        tminor = dtdy;
+//        sminor = dsdy; // FIXME See UNUSED_AXIS
+//        tminor = dtdy; // FIXME See UNUSED_AXIS
     }
 #endif
 

@@ -464,7 +464,6 @@ print_info (const std::string &filename, size_t namefieldlength,
             ImageInput *input, ImageSpec &spec,
             bool verbose, bool sum, long long &totalsize)
 {
-    bool printed = false;
     int padlen = std::max (0, (int)namefieldlength - (int)filename.length());
     std::string padding (padlen, ' ');
 
@@ -523,7 +522,6 @@ print_info (const std::string &filename, size_t namefieldlength,
         if (! verbose && num_of_subimages == 1 && any_mipmapping)
             printf (" (+mipmap)");
         printf ("\n");
-        printed = true;
     }
 
     if (verbose && num_of_subimages != 1) {

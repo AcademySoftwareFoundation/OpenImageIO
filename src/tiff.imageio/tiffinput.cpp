@@ -292,8 +292,10 @@ TIFFInput::valid_file (const std::string &filename) const
     if (! file)
         return false;  // needs to be able to open
     unsigned short magic[2] = { 0, 0 };
-    fread (magic, sizeof(unsigned short), 2, file);
+    size_t numRead = fread (magic, sizeof(unsigned short), 2, file);
     fclose (file);
+    if (numRead != 2)  // fread failed
+    	return false;
     if (magic[0] != TIFF_LITTLEENDIAN && magic[0] != TIFF_BIGENDIAN)
         return false;  // not the right byte order
     if ((magic[0] == TIFF_LITTLEENDIAN) != littleendian())
