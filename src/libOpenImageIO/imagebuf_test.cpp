@@ -111,12 +111,12 @@ void histogram_computation_test ()
     ImageBufAlgo::histogram (A, INPUT_CHANNEL, hist, HISTOGRAM_BINS);
 
     // Does the histogram size equal the number of bins?
-    OIIO_CHECK_EQUAL (hist.size(), HISTOGRAM_BINS);
+    OIIO_CHECK_EQUAL (hist.size(), (imagesize_t)HISTOGRAM_BINS);
 
     // Are the histogram values as expected?
-    OIIO_CHECK_EQUAL (hist[SPIKE1], SPIKE1_COUNT);
-    OIIO_CHECK_EQUAL (hist[SPIKE2], SPIKE2_COUNT);
-    OIIO_CHECK_EQUAL (hist[SPIKE3], SPIKE3_COUNT);
+    OIIO_CHECK_EQUAL (hist[SPIKE1], (imagesize_t)SPIKE1_COUNT);
+    OIIO_CHECK_EQUAL (hist[SPIKE2], (imagesize_t)SPIKE2_COUNT);
+    OIIO_CHECK_EQUAL (hist[SPIKE3], (imagesize_t)SPIKE3_COUNT);
     for (int i = 0; i < HISTOGRAM_BINS; i++)
         if (i!=SPIKE1 && i!=SPIKE2 && i!=SPIKE3)
             OIIO_CHECK_EQUAL (hist[i], 0);
