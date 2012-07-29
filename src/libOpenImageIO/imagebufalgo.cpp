@@ -1589,5 +1589,198 @@ ImageBufAlgo::histogram_draw (ImageBuf &R,
     return true;
 }
 
+
+
+namespace { // anonymous namespace
+
+// Fully type-specialized version of ImageBufAlgo::contrast.
+template<class Rtype, class Atype>
+bool
+contrast_impl (ImageBuf &R, const ImageBuf &A,
+               float* contrast, float* pivot, bool luminance, ROI roi)
+{
+    // Double check types.
+    if (R.spec().format != BaseTypeFromC<Rtype>::value ||
+        A.spec().format != BaseTypeFromC<Atype>::value) {
+        R.error ("Unsupported pixel data format combination '%s / %s'",
+                  R.spec().format, A.spec().format);
+        return false;
+    }
+
+    ImageBuf::ConstIterator<Atype, float> a (A);
+    ImageBuf::Iterator<Rtype, float> r (R, roi);
+
+    if (! luminance) {
+        for ( ; ! r.done(); r++) {
+            a.pos (r.x(), r.y(), r.z());
+            for (int i = 0; i < R.nchannels(); i++)
+                r[i] = clamp ((a[i] - pivot[i])*contrast[i] + pivot[i],
+                              0.0f, 1.0f);
+        }
+    } else {
+        for ( ; ! r.done(); r++) {
+            a.pos (r.x(), r.y(), r.z());
+
+            // Compute luminance L.
+            float L = 0.299f*a[0] + 0.587f*a[1] + 0.114f*a[2];
+
+            // Modify contrast for L to get the new luminance L_new.
+            float L_new = clamp ((L - pivot[0])*contrast[0] + pivot[0],
+                                  0.0f, 1.0f);
+
+            // Multiply the R, G and B components with L_new/L.
+            float ratio = L_new/L;
+            r[0] = clamp (a[0] * ratio, 0.0f, 1.0f);
+            r[1] = clamp (a[1] * ratio, 0.0f, 1.0f);
+            r[2] = clamp (a[2] * ratio, 0.0f, 1.0f);
+        }
+    }
+
+    return true;
+}
+
+} // anonymous namespace
+
+
+
+bool
+contrast (ImageBuf &R, const ImageBuf &A,
+          float* contrast, float* pivot, bool luminance,
+          ROI roi, int threads)
+{
+    // Images R and A must have float pixel data.
+    if (R.spec().format != TypeDesc::TypeFloat ||
+        A.spec().format != TypeDesc::TypeFloat) {
+        R.error ("Unsupported pixel data format combination '%s / %s'",
+                  R.spec().format, A.spec().format);
+        return false;
+    }
+
+    // Initialize output image R from input image A if needed.
+    if (! R.initialized()) {
+        ImageSpec newspec = A.spec();
+        newspec.set_format (TypeDesc::FLOAT);
+        R.reset ("dummy", newspec);
+    } else {
+        if (R.nchannels() != A.nchannels()) {
+            std::string err = std::string ("Input and output image ").append
+                              ("must have the same number of channels");
+            R.error (err.c_str());
+            return false;
+        }
+    }
+
+    // Input image A must have at least one channel.
+    if (A.nchannels() < 1) {
+        R.error ("Input image must have at least 1 channel");
+        return false;
+    }
+
+    // Are all the values in the contrast array valid, that is >= 0?
+    for (int i = 0; i < A.nchannels(); i++) {
+        if (contrast[i] < 0) {
+            R.error ("Contrast values must be non-negative");
+            return false;
+        }
+    }
+
+    // Are all the values in the pivot array valid, that is >= 0 and <= 1?
+    for (int i = 0; i < A.nchannels(); i++) {
+        if (pivot[i] < 0 || pivot[i] > 1) {
+            R.error ("Pivot values must be between 0 and 1 inclusive");
+            return false;
+        }
+    }
+
+    // If luminance==true, A must have exactly 3 non-alpha and non-z channels.
+    if (luminance) {
+        int nchannels = A.nchannels() - (A.spec().alpha_channel >= 0)
+                                      - (A.spec().z_channel >= 0);
+        if (nchannels != 3) {
+            std::string err = std::string ("Input image must have ").append
+                              ("exactly 3 non-alpha and non-z channels");
+            R.error (err.c_str());
+            return false;
+        }
+    }
+
+    // If roi is not defined then initialize from R.
+    if (! roi.defined)
+        roi = get_roi (R.spec());
+    // If roi is defined then clip to R's region.
+    else {
+        roi = roi_intersection (roi, get_roi (R.spec()));
+        if (! roi.defined) {
+            std::string err = std::string ("Output image and region ").append
+                              ("of interest don't have any common pixels");
+            R.error (err.c_str());
+            return false;
+        }
+    }
+
+    ImageBufAlgo::parallel_image (boost::bind (contrast_impl<float,float>,
+                                  boost::ref(R), boost::cref(A), contrast,
+                                  pivot, luminance, _1),
+                           roi, threads);
+
+    return ! R.has_error();
+}
+
+
+
+bool
+ImageBufAlgo::contrast (ImageBuf &R, const ImageBuf &A,
+                        float* contrast_, float* pivot,
+                        ROI roi, int threads)
+{
+    return contrast (R, A, contrast_, pivot, false, roi, threads);
+}
+
+
+
+bool
+ImageBufAlgo::contrast (ImageBuf &R, const ImageBuf &A,
+                        float* contrast_, float pivot,
+                        ROI roi, int threads)
+{
+    float pivot_arr [A.nchannels()];
+    for (int i = 0; i < A.nchannels(); i++)
+        pivot_arr[i] = pivot;
+
+    return contrast (R, A, contrast_, pivot_arr, false, roi, threads);
+}
+
+
+
+bool
+ImageBufAlgo::contrast (ImageBuf &R, const ImageBuf &A,
+                        float contrast_, float* pivot,
+                        ROI roi, int threads)
+{
+    float contrast_arr [A.nchannels()];
+    for (int i = 0; i < A.nchannels(); i++)
+        contrast_arr[i] = contrast_;
+
+    return contrast (R, A, contrast_arr, pivot, false, roi, threads);
+}
+
+
+
+bool
+ImageBufAlgo::contrast (ImageBuf &R, const ImageBuf &A,
+                        float contrast_, float pivot, bool luminance,
+                        ROI roi, int threads)
+{
+    float contrast_arr [A.nchannels()];
+    for (int i = 0; i < A.nchannels(); i++)
+        contrast_arr[i] = contrast_;
+
+    float pivot_arr [A.nchannels()];
+    for (int i = 0; i < A.nchannels(); i++)
+        pivot_arr[i] = pivot;
+
+    return contrast (R, A, contrast_arr, pivot_arr, luminance, roi, threads);
+}
+
 }
 OIIO_NAMESPACE_EXIT
