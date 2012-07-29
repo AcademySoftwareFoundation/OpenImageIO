@@ -65,9 +65,9 @@ smoothImageCompletion_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask
 
 template<typename T>
 static inline bool
-seamlessCloning_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2)
+seamlessCloning_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2, bool isMixed)
 {
-    ImageBufAlgo::SeamlessCloning<T> sc(dst, src, mask, src2);
+    ImageBufAlgo::SeamlessCloning<T> sc(dst, src, mask, src2, isMixed);
     bool success = sc.solve();
     return success;
 }
@@ -85,10 +85,10 @@ ImageBufAlgo::smoothImageCompletion(ImageBuf &dst, const ImageBuf &src, const Im
 };
 
 bool
-ImageBufAlgo::seamlessCloning(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2)
+ImageBufAlgo::seamlessCloning(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2, bool isMixed)
 {
     switch (src.spec().format.basetype) {
-        case TypeDesc::FLOAT : return seamlessCloning_<float> (dst, src, mask, src2); break;
+        case TypeDesc::FLOAT : return seamlessCloning_<float> (dst, src, mask, src2, isMixed); break;
         default:
             return false;
     }
@@ -324,11 +324,12 @@ void ImageBufAlgo::SmoothImageCompletion<T>::getGuidanceVector(std::vector<T> &p
 
 //------------ Seamless cloning ------------------------//
 template <class T>
-ImageBufAlgo::SeamlessCloning<T>::SeamlessCloning(ImageBuf &output, const ImageBuf& src, const ImageBuf& mask, const ImageBuf& _src2) :
+ImageBufAlgo::SeamlessCloning<T>::SeamlessCloning(ImageBuf &output, const ImageBuf& src, const ImageBuf& mask, const ImageBuf& _src2, bool _isMixed) :
         PoissonImageEditing<T>(output, src, mask),
-        src2 (_src2)
+        src2 (_src2),
+        isMixed (_isMixed)
 {
-    
+
 }
 
 template <class T>
@@ -342,6 +343,24 @@ void ImageBufAlgo::SeamlessCloning<T>::getGuidanceVector(std::vector<T> &pel, in
     
     for(int i = 0; i < nchannels; i++)
         pel[i] = lp[i] + rp[i] + dp[i] + up[i] - 4*p[i];
+    
+    if(isMixed) 
+    {    
+        ImageBuf::ConstIterator<T> p1 (this->img, x, x+1, y, y+1);
+        ImageBuf::ConstIterator<T> lp1 (this->img, x-1, x, y, y+1);
+        ImageBuf::ConstIterator<T> rp1 (this->img, x+1, x+2, y, y+1);
+        ImageBuf::ConstIterator<T> dp1 (this->img, x, x+1, y+1, y+2);
+        ImageBuf::ConstIterator<T> up1 (this->img, x, x+1, y-1, y);
+        
+        for(int i = 0; i < nchannels; i++)
+        {
+            T tmp = lp1[i] + rp1[i] + dp1[i] + up1[i] - 4*p1[i];
+            if(fabs(tmp) > fabs(pel[i]))
+                pel[i] = tmp;
+        }
+    }
+ 
+    
 }
 
 

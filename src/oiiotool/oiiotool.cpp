@@ -1453,6 +1453,38 @@ action_seamlesscloning (int argc, const char *argv[])
     return 0;
 }
 
+static int
+action_seamlesscloningmixed (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (3, action_seamlesscloningmixed, argc, argv))
+        return 0;
+    
+    ImageRecRef S2 (ot.pop());
+    ImageRecRef M (ot.pop());
+    ImageRecRef S (ot.pop());
+    ot.read (S);
+    ot.read (M);
+    ot.read (S2);
+    ot.push (new ImageRec (*S, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Sib ((*S)(s,m));
+            const ImageBuf &Mib ((*M)(0,m)); //TODO: check this!
+            const ImageBuf &S2ib ((*S2)(s,m));
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            bool success = ImageBufAlgo::seamlessCloning(Rib, Sib, Mib, S2ib, true);
+            if(!success)
+                std::cerr << "Error occured!\n";
+        }
+    }
+    
+    return 0;
+}
+
 
 static void
 getargs (int argc, char *argv[])
@@ -1545,6 +1577,7 @@ getargs (int argc, char *argv[])
                 "<SEPARATOR>", "Poisson image editing actions:",
                 "--smoothcompletion %@", action_smoothcompletion, &dummybool, "Smooth image completion.",
                 "--clone %@", action_seamlesscloning, &dummybool, "Seamless cloning of one image into another.",
+                "--mixclone %@", action_seamlesscloningmixed, &dummybool, "Seamless cloning using mixed gradients for guidance.",
                 "<SEPARATOR>", "Color management:",
                 "--iscolorspace %@ %s", set_colorspace, NULL,
                     "Set the assumed color space (without altering pixels)",

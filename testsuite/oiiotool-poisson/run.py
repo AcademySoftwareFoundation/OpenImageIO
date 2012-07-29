@@ -10,6 +10,10 @@ command += (oiio_app("oiiotool")
 command += (oiio_app("oiiotool") 
             + " cloning_src1.png --clone cloning_mask.png cloning_src2.png -o cloning_out.jpg >> cloning_out.txt ;\n")
 
+# seamless cloning with mixed gradients
+command += (oiio_app("oiiotool") 
+            + " cloning_src1.png --mixclone cloning_mask.png cloning_src2.png -o mixclone_out.jpg >> mixclone_out.txt ;\n")
+
 
 # Outputs to check against references
 outputs = [ "out.jpg", "out.txt", "cloning_out.jpg", "cloning_out.txt" ]

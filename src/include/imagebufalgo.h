@@ -320,7 +320,7 @@ bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
 bool DLLPUBLIC smoothImageCompletion(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask);
 
 /// Clones area masked by mask of src2 image into src image
-bool DLLPUBLIC seamlessCloning(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2);
+bool DLLPUBLIC seamlessCloning(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2, bool isMixed = false);
 
 
 template<typename PXLTYPE>
@@ -388,9 +388,10 @@ class SeamlessCloning : public PoissonImageEditing<T>
 {
 private:
     const ImageBuf &src2;
+    bool isMixed; //defines whether mixed gradient is used for guidance
 public:
     //masked part of src2 image will be cloned into src image
-    SeamlessCloning(ImageBuf &output, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2);
+    SeamlessCloning(ImageBuf &output, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2, bool isMix = false);
     void getGuidanceVector(std::vector<T> &pel, int x, int y, int nchannels);
 };
 
