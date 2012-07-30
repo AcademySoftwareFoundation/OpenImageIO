@@ -926,6 +926,11 @@ ImageCacheImpl::find_file (ustring filename,
     ImageCacheFile *tf = NULL;
     bool newfile = false;
 
+    // Debugging aid: attribute "substitute_image" forces all image
+    // references to be to one named file.
+    if (m_substitute_image)
+        filename = m_substitute_image;
+
     // Part 1 - make sure the ImageCacheFile entry exists and is in the
     // file cache.  For this part, we need to lock the file cache.
     {
@@ -1682,6 +1687,9 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
             m_latlong_y_up_default = y_up;
             do_invalidate = true;
         }
+    } else if (name == "substitute_image" && type == TypeDesc::STRING) {
+        m_substitute_image = ustring (*(const char **)val);
+        do_invalidate = true;
     } else {
         // Otherwise, unknown name
         return false;
@@ -1739,6 +1747,10 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     }
     if (name == "latlong_up" && type == TypeDesc::STRING) {
         *(const char **)val = ustring (m_latlong_y_up_default ? "y" : "z").c_str();
+        return true;
+    }
+    if (name == "substitute_image" && type == TypeDesc::STRING) {
+        *(const char **)val = m_substitute_image.c_str();
         return true;
     }
 
