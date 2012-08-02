@@ -1070,6 +1070,15 @@ safe_acosf (float x) {
 }
 
 
+/// Safe (clamping) sqrt.
+///
+inline float
+safe_sqrtf (float x)
+{
+    return (x < 0.0f) ? 0.0f : sqrtf(x);
+}
+
+
 
 
 /// Solve for the x for which func(x) == y on the interval [xmin,xmax].
