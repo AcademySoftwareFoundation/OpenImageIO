@@ -224,7 +224,38 @@ defined by your facility's OpenColorIO configuration):
 \end{code}
 
 
+\subsection*{Channel reordering and padding}
 
+\noindent Turn a single channel image into gray RGB:
+\begin{code}
+    oiiotool gray.tif --ch 0,0,0 -o rgb.tif
+\end{code}
+
+\noindent Copy just the color from an RGBA file, truncating the A,
+yielding RGB only:
+\begin{code}
+    oiiotool rgba.tif --ch R,G,B -o rgb.tif
+\end{code}
+
+\noindent Zero out the red and green channels:
+\begin{code}
+    oiiotool rgb.tif --ch =0,=0,B -o justblue.tif
+\end{code}
+
+\noindent Swap the red and blue channels from an RGBA image:
+\begin{code}
+    oiiotool rgba.tif --ch 2,1,0,3 -o bgra.tif
+\end{code}
+
+\noindent Extract just the named channels from a complicted many-channel
+image, and add an alpha channel that is 1 everywhere:
+\begin{code}
+    oiiotool allmyaovs.exr --ch spec.R,spec.G,spec.B,=1 -o spec.exr
+\end{code}
+
+
+
+\newpage
 \section{\oiiotool commands: general}
 
 \apiitem{--help}
@@ -547,10 +578,17 @@ Note that this results in both the current and the next image
 on the stack being identical copies.
 \apiend
 
-\apiitem{--unmip}
-If the current image is MIP-mapped, discard all but the top level
-(i.e., replacing the current image with a new image consisting of only the
-highest-resolution level).
+\apiitem{--ch {\rm \emph{channellist}}}
+Replaces the top image with a new copy whose channels have been 
+reordered as given by the \emph{channellist}.  The {\cf channellist}
+is a comma-separated list of channel names and/or numbers (e.g., 
+\qkw{R,G,B}, \emph{A}, \emph{B,G,R}, \emph{4,5,6,A}).  Channel numbers outside
+the valid range of input channels, or unknown names, will be replaced
+by black channels.
+A channel designation beginning with the {\cf =} character and followed
+by a number is a \emph{literal value} that will be used to fill that
+channel.  If the \emph{channellist} is shorter than the number of
+channels in the source image, unspecified channels will be omitted.
 \apiend
 
 \apiitem{--selectmip {\rm \emph{level}}}
@@ -558,6 +596,13 @@ If the current image is MIP-mapped, replace the current image with a new
 image consisting of only the given \emph{level} of the MIPmap.
 Level 0 is the highest resolution version, level 1 is the next-lower
 resolution version, etc.
+\apiend
+
+\apiitem{--unmip}
+If the current image is MIP-mapped, discard all but the top level
+(i.e., replacing the current image with a new image consisting of only the
+highest-resolution level).  Note that this is equivalent to 
+{\cf --selectmip 0}.
 \apiend
 
 \apiitem{--subimage {\rm \emph{n}}}

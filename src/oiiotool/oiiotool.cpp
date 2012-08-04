@@ -38,6 +38,7 @@
 #include <string>
 #include <sstream>
 #include <utility>
+#include <ctype.h>
 
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
@@ -831,6 +832,126 @@ action_unmip (int argc, const char *argv[])
 
     ImageRecRef newimg (new ImageRec (*ot.curimg, -1, 0, true, true));
     ot.curimg = newimg;
+    return 0;
+}
+
+
+
+// For a given spec (which contains the channel names for an image), and
+// a comma separated list of channels (e.g., "B,G,R,A"), compute the
+// vector of integer indices for those channels (e.g., {2,1,0,3}).
+// Return true for success, false for failure, including if any of the
+// channels were not present in the image.
+static bool
+decode_channel_set (const ImageSpec &spec, std::string chanlist,
+                    std::vector<std::string> &channelnames,
+                    std::vector<int> &channels, std::vector<float> &values)
+{
+    channels.clear ();
+    while (chanlist.length()) {
+        // Extract the next channel name
+        size_t pos = chanlist.find_first_of(",");
+        std::string onechan (chanlist, 0, pos);
+        onechan = Strutil::strip (onechan);
+        if (pos == std::string::npos)
+            chanlist.clear();
+        else
+            chanlist = chanlist.substr (pos+1, std::string::npos);
+
+        // Find the index corresponding to that channel
+        float value = 0.0f;
+        int ch = -1;
+        for (int i = 0;  i < spec.nchannels;  ++i)
+            if (spec.channelnames[i] == onechan) {
+                ch = i;  break;
+            }
+        if (ch < 0 && onechan.length() &&
+                (isdigit(onechan[0]) || onechan[0] == '-'))
+            ch = atoi (onechan.c_str());
+        if (ch < 0 && onechan.length() && onechan[0] == '=')
+            value = atof (onechan.c_str()+1);
+        channelnames.push_back (onechan);
+        channels.push_back (ch);
+        values.push_back (value);
+    }
+    return true;
+}
+
+
+
+static int
+action_channels (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_channels, argc, argv))
+        return 0;
+
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+
+    std::string chanlist = argv[1];
+    if (chanlist == "RGB")   // Fix common synonyms/mistakes
+        chanlist = "R,G,B";
+    else if (chanlist == "RGBA")
+        chanlist = "R,G,B,A";
+
+    // Decode the channel set, make the full list of ImageSpec's we'll
+    // need to describe the new ImageRec with the altered channels.
+    std::vector<int> allmiplevels;
+    std::vector<ImageSpec> allspecs;
+    for (int s = 0, subimages = ot.allsubimages ? A->subimages() : 1;
+         s < subimages;  ++s) {
+        std::vector<std::string> channelnames;
+        std::vector<int> channels;
+        std::vector<float> values;
+        bool ok = decode_channel_set (*A->spec(s,0), chanlist,
+                                      channelnames, channels, values);
+        if (! ok) {
+            ot.error (argv[0], Strutil::format("Invalid or unknown channel selection \"%s\"", chanlist));
+            ot.push (A);
+            return 0;
+        }
+        int miplevels = ot.allsubimages ? A->miplevels(s) : 1;
+        allmiplevels.push_back (miplevels);
+        for (int m = 0;  m < miplevels;  ++m) {
+            ImageSpec spec = *A->spec(s,m);
+            spec.nchannels = (int)channelnames.size();
+            spec.default_channel_names ();
+            spec.channelformats.clear();
+            allspecs.push_back (spec);
+        }
+    }
+
+    // Create the replacement ImageRec
+    ImageRecRef R (new ImageRec(A->name(), (int)allmiplevels.size(),
+                                &allmiplevels[0], &allspecs[0]));
+    ot.push (R);
+
+    // Subimage by subimage, MIP level by MIP level, copy/shuffle the
+    // channels individually from the source image into the result.
+    for (int s = 0, subimages = R->subimages();  s < subimages;  ++s) {
+        std::vector<std::string> channelnames;
+        std::vector<int> channels;
+        std::vector<float> values;
+        decode_channel_set (*A->spec(s,0), chanlist, channelnames,
+                            channels, values);
+        for (int m = 0, miplevels = R->miplevels(s);  m < miplevels;  ++m) {
+            // Shuffle the indexed/named channels
+            ImageBufAlgo::channels ((*R)(s,m), (*A)(s,m), (int)channels.size(),
+                                    &channels[0], false);
+            // Set channels that are literals
+            for (int c = 0;  c < (int)channels.size();  ++c)
+                if (channels[c] < 0) {
+                    ROI roi = get_roi (*R->spec(s,m));
+                    roi.chbegin = c;
+                    roi.chend = c+1;
+                    ImageBufAlgo::fill ((*R)(s,m), &values[c], roi);
+                }
+            // Tricky subtlety: IBA::channels changed the underlying IB,
+            // we may need to update the IRR's copy of the spec.
+            R->update_spec_from_imagebuf(s,m);
+        }
+    }
+
     return 0;
 }
 
@@ -1750,6 +1871,8 @@ getargs (int argc, char *argv[])
                 "--text %@ %s", action_text, NULL,
                     "Render text into the current image (options: x=, y=, size=, color=)",
                 "<SEPARATOR>", "Image stack manipulation:",
+                "--ch %@ %s", action_channels, NULL,
+                    "Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")",
                 "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
                 "--selectmip %@ %d", action_selectmip, NULL,
                     "Select just one MIP level (0 = highest res)",
