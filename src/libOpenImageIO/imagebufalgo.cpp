@@ -242,6 +242,87 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
 
 
 bool
+ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
+                        int nchannels, const int *channelorder,
+                        bool shuffle_channel_names)
+{
+    // Not intended to create 0-channel images.
+    if (nchannels <= 0) {
+        dst.error ("%d-channel images not supported", nchannels);
+        return false;
+    }
+    // If we dont have a single source channel,
+    // hard to know how big to make the additional channels
+    if (src.spec().nchannels == 0) {
+        dst.error ("%d-channel images not supported", src.spec().nchannels);
+        return false;
+    }
+
+    // If channelorder is NULL, it will be interpreted as
+    // {0, 1, ..., nchannels-1}.
+    int *local_channelorder = NULL;
+    if (! channelorder) {
+        local_channelorder = ALLOCA (int, nchannels);
+        for (int c = 0;  c < nchannels;  ++c)
+            local_channelorder[c] = c;
+        channelorder = local_channelorder;
+    }
+
+    // If this is the identity transformation, just do a simple copy
+    bool inorder = true;
+    for (int c = 0;  c < nchannels;   ++c)
+        inorder &= (channelorder[c] == c);
+    if (nchannels == src.spec().nchannels && inorder) {
+        return dst.copy (src);
+    }
+
+    // Construct a new ImageSpec that describes the desired channel ordering.
+    ImageSpec newspec = src.spec();
+    newspec.nchannels = nchannels;
+    newspec.default_channel_names ();
+    if (shuffle_channel_names) {
+        newspec.alpha_channel = -1;
+        newspec.z_channel = -1;
+        for (int c = 0; c < nchannels;  ++c) {
+            int csrc = channelorder[c];
+            if (csrc >= 0 && csrc < src.spec().nchannels) {
+                newspec.channelnames[c] = src.spec().channelnames[csrc];
+                if (csrc == src.spec().alpha_channel)
+                    newspec.alpha_channel = c;
+                if (csrc == src.spec().z_channel)
+                    newspec.z_channel = c;
+            }
+        }
+    }
+
+    // Update the image (realloc with the new spec)
+    dst.alloc (newspec);
+
+    // Copy the channels individually
+    stride_t dstxstride = AutoStride, dstystride = AutoStride, dstzstride = AutoStride;
+    ImageSpec::auto_stride (dstxstride, dstystride, dstzstride,
+                            newspec.format.size(), newspec.nchannels,
+                            newspec.width, newspec.height);
+    int channelsize = newspec.format.size();
+    char *pixels = (char *) dst.pixeladdr (dst.xbegin(), dst.ybegin(),
+                                           dst.zbegin());
+    for (int c = 0;  c < nchannels;  ++c) {
+        if (channelorder[c] >= 0 && channelorder[c] < src.spec().nchannels) {
+            int csrc = channelorder[c];
+            src.get_pixel_channels (src.xbegin(), src.xend(),
+                                    src.ybegin(), src.yend(),
+                                    src.zbegin(), src.zend(),
+                                    csrc, csrc+1, newspec.format, pixels,
+                                    dstxstride, dstystride, dstzstride);
+        }
+        pixels += channelsize;
+    }
+    return true;
+}
+
+
+
+bool
 ImageBufAlgo::setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels)
 {
     // Not intended to create 0-channel images.

@@ -117,9 +117,28 @@ bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t
 /// If channels are added, they are cleared to a value of 0.0.
 /// Does not support in-place operation.
 /// return true on success.
-
+/// DEPRECATED -- you should instead use the more general
+/// ImageBufAlgo::channels (dst, src, numChannels, NULL, true);
 bool DLLPUBLIC setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
 
+
+/// Generic channel shuffling -- copy src to dst, but with channels in
+/// the order channelorder[0..nchannels-1].  Does not support in-place
+/// operation.  If channelorder[i] < 0, it will just make dst channel i
+/// be black (0.0) rather than copying from src.
+///
+/// If channelorder is NULL, it will be interpreted as
+/// {0, 1, ..., nchannels-1}.
+///
+/// If shuffle_channel_names is false, the resulting dst image will have
+/// default channel names in the usual order ("R", "G", etc.), but if
+/// shuffle_channel_names is true, the names will be taken from the
+/// corresponding channels of the source image -- be careful with this,
+/// shuffling both channel ordering and their names could result in no
+/// semantic change at all, if you catch the drift.
+bool DLLPUBLIC channels (ImageBuf &dst, const ImageBuf &src,
+                         int nchannels, const int *channelorder,
+                         bool shuffle_channel_names=false);
 
 /// Make dst be a cropped copy of src, but with the new pixel data
 /// window range [xbegin..xend) x [ybegin..yend).  Source pixel data
