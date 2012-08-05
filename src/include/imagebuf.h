@@ -365,45 +365,60 @@ public:
     /// [ybegin..yend), channels [chbegin,chend) (all with exclusive
     /// 'end'), specified as integer pixel coordinates, at the current
     /// MIP-map level, storing the pixel values beginning at the address
-    /// specified by result.  It is up to the caller to ensure that
-    /// result points to an area of memory big enough to accommodate the
-    /// requested rectangle.  Return true if the operation could be
-    /// completed, otherwise return false.
-    bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend, int chbegin, int chend,
-                             TypeDesc format, void *result) const;
-
-    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
-    /// [ybegin..yend) (with exclusive 'end'), specified as integer
-    /// pixel coordinates, at the current MIP-map level, storing the
-    /// pixel values beginning at the address specified by result.  It
-    /// is up to the caller to ensure that result points to an area of
+    /// specified by result and with the given strides (by default,
+    /// AutoStride means the usual contiguous packing of pixels).  It is
+    /// up to the caller to ensure that result points to an area of
     /// memory big enough to accommodate the requested rectangle.
     /// Return true if the operation could be completed, otherwise
     /// return false.
-    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
-                      int zbegin, int zend,
-                      TypeDesc format, void *result) const;
+    bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend, int chbegin, int chend,
+                             TypeDesc format, void *result,
+                             stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride) const;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
     /// [ybegin..yend) (with exclusive 'end'), specified as integer
     /// pixel coordinates, at the current MIP-map level, storing the
-    /// pixel values beginning at the address specified by result,
-    /// converting to the type <T> in the process.  It is up to the
-    /// caller to ensure that result points to an area of memory big
-    /// enough to accommodate the requested rectangle.  Return true if
-    /// the operation could be completed, otherwise return false.
+    /// pixel values beginning at the address specified by result and
+    /// with the given strides (by default, AutoStride means the usual
+    /// contiguous packing of pixels).  It is up to the caller to ensure
+    /// that result points to an area of memory big enough to
+    /// accommodate the requested rectangle.  Return true if the
+    /// operation could be completed, otherwise return false.
+    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
+                     int zbegin, int zend, TypeDesc format,
+                     void *result, stride_t xstride=AutoStride,
+                     stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride) const;
+
+    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
+    /// [ybegin..yend) (with exclusive 'end'), specified as integer
+    /// pixel coordinates, at the current MIP-map level, storing the
+    /// pixel values beginning at the address specified by result and
+    /// with the given strides (by default, AutoStride means the usual
+    /// contiguous packing of pixels), converting to the type <T> in the
+    /// process.  It is up to the caller to ensure that result points to
+    /// an area of memory big enough to accommodate the requested
+    /// rectangle.  Return true if the operation could be completed,
+    /// otherwise return false.
     template<typename T>
     bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, int chbegin, int chend,
-                             T *result) const;
+                             T *result, stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride) const;
 
     template<typename T>
     bool get_pixels (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, T *result) const
+                     int zbegin, int zend, T *result,
+                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride) const
     {
         return get_pixel_channels (xbegin, xend, ybegin, yend, zbegin, zend,
-                                   0, nchannels(), result);
+                                   0, nchannels(), result,
+                                   xstride, ystride, zstride);
     }
 
     /// Even safer version of get_pixels: Retrieve the rectangle of
