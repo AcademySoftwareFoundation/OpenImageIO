@@ -709,6 +709,68 @@ bool OIIO_API make_texture (MakeTextureMode mode,
                             std::ostream *outstream = NULL);
 
 
+/// ImageBufAlgo::contrast ---------------------------------------------------
+/// Formula:    - out = (in-pivot)*contrast + pivot
+///                   = in*contrast + pivot*(1-contrast)
+///
+/// Parameters:
+/// R           - Output image R must have float pixel data. If initialized,
+///               fail if R.nchannels() != A.nchannels(). If not initialized,
+///               initialize from A.spec(), but set the format to float.
+/// A           - Input image A must have >= 1 channel and float pixel data.
+/// contrast    - This function assumes the caller will provide it with
+///               contrast array with A.nchannels() values, and it fails if
+///               any of them is < 0. Each value is used for its respective
+///               channel and determines if contrast is increased(>1),
+///               decreased(<1), or not modified(1).
+/// pivot       - This function assumes the caller will provide it with
+///               pivot array with A.nchannels() values, and it fails if any
+///               of them is < 0 or > 1. Each value is used for its respective
+///               channel.
+/// roi         - The operation is applied only to this region. If not defined
+///               it is initialized from R's region. If defined, it is clipped
+///               to its intersection with R's region, and the operation fails
+///               if that intersection region is empty.
+/// threads     - Number of threads.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A,
+                         float* contrast, float* pivot,
+                         ROI roi=ROI(), int threads=0);
+
+
+
+/// ImageBufAlgo::contrast ---------------------------------------------------
+/// One contrast value per channel and one pivot value for all channels.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A,
+                         float* contrast, float pivot=0.5f,
+                         ROI roi=ROI(), int threads=0);
+
+
+
+/// ImageBufAlgo::contrast ---------------------------------------------------
+/// One contrast value for all channels and one pivot value per channel.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A,
+                         float contrast, float* pivot,
+                         ROI roi=ROI(), int threads=0);
+
+
+
+/// ImageBufAlgo::contrast ---------------------------------------------------
+/// One contrast value and one pivot value for all channels.
+///
+/// Additional parameter:
+/// luminance   - If false, the operation is applied to all channels. If true,
+///               the first 3 channels are assumed RGB and the operation is
+///               applied to their luminance channel, while ignoring alpha and
+///               z channels if present. If true and the number of non-alpha
+///               and non-z channels in A is != 3, the operation fails.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC contrast (ImageBuf &R, const ImageBuf &A,
+                         float contrast, float pivot=0.5f,
+                         bool luminance=false, ROI roi=ROI(), int threads=0);
+
 
 
 /// Helper template for generalized multithreading for image processing
