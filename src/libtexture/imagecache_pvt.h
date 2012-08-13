@@ -923,6 +923,7 @@ private:
     bool m_latlong_y_up_default; ///< Is +y the default "up" for latlong?
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
+    ustring m_substitute_image;  ///< Substitute this image for all others
 
     mutable ic_mutex m_filemutex; ///< Thread safety for file cache
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's

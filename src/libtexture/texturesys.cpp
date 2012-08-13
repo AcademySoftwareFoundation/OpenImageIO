@@ -43,6 +43,7 @@ using namespace std::tr1;
 #include "varyingref.h"
 #include "ustring.h"
 #include "strutil.h"
+#include "sysutil.h"
 #include "thread.h"
 #include "fmath.h"
 #include "filter.h"
@@ -54,6 +55,10 @@ using namespace std::tr1;
 #include "imagecache.h"
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
+#include "imagebuf.h"
+#include "imagebufalgo.h"
+#include <boost/random.hpp>
+
 
 OIIO_NAMESPACE_ENTER
 {
@@ -251,6 +256,10 @@ TextureSystemImpl::init ()
     const char *options = getenv ("OPENIMAGEIO_TEXTURE_OPTIONS");
     if (options)
         attribute ("options", options);
+
+#if 0
+    unit_test_texture ();
+#endif
 }
 
 
@@ -826,10 +835,10 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
 // Scale the derivs as dictated by 'width' and 'blur', and also make sure
 // they are all some minimum value to make the subsequent math clean.
 inline void
-adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
-                   float swidth, float twidth, float sblur, float tblur)
+adjust_width (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
+              float swidth, float twidth)
 {
-    // Trust user not to use nonsensical width<0 or blur<0
+    // Trust user not to use nonsensical width<0
     dsdx *= swidth;
     dtdx *= twidth;
     dsdy *= swidth;
@@ -862,20 +871,96 @@ adjust_width_blur (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
         dtdy = dsdx * scale;
         dylen2 = eps2;
     }
+}
 
+
+
+// Adjust the ellipse major and minor axes based on the blur, if nonzero.
+// Trust user not to use nonsensical blur<0
+inline void
+adjust_blur (float &majorlength, float &minorlength, float theta,
+             float sblur, float tblur)
+{
     if (sblur+tblur != 0.0f /* avoid the work when blur is zero */) {
         // Carefully add blur to the right derivative components in the
-        // right proportions -- meerely adding the same amount of blur
+        // right proportions -- merely adding the same amount of blur
         // to all four derivatives blurs too much at some angles.
         // FIXME -- we should benchmark whether a fast approximate rsqrt
         // here could have any detectable performance improvement.
-        float dxlen_inv = 1.0f / sqrtf (dxlen2);
-        float dylen_inv = 1.0f / sqrtf (dylen2);
-        dsdx += sblur * dsdx * dxlen_inv;
-        dtdx += tblur * dtdx * dxlen_inv;
-        dsdy += sblur * dsdy * dylen_inv;
-        dtdy += tblur * dtdy * dylen_inv;
+        DASSERT (majorlength > 0.0f && minorlength > 0.0f);
+        float sintheta, costheta;
+        sincos (theta, &sintheta, &costheta);
+        sintheta = fabsf(sintheta);
+        costheta = fabsf(costheta);
+        majorlength += sblur * costheta + tblur * sintheta;
+        minorlength += sblur * sintheta + tblur * costheta;
     }
+}
+
+
+
+// For the given texture file, options, and ellipse major and minor
+// lengths and aspect ratio, compute the two MIPmap levels and
+// respective weights to use for a texture lookup.  The general strategy
+// is that we choose the MIPmap level so that the minor axis length is
+// pixel-sized (and then we will sample several times along the major
+// axis in order to handle anisotropy), but we make adjustments in
+// corner cases where the ideal sampling is too high or too low resolution
+// given the MIPmap levels we have available.
+inline void
+compute_miplevels (TextureSystemImpl::TextureFile &texturefile,
+                   TextureOpt &options,
+                   float majorlength, float minorlength, float &aspect,
+                   int *miplevel, float *levelweight)
+{
+    ImageCacheFile::SubimageInfo &subinfo (texturefile.subimageinfo(options.subimage));
+    float levelblend;
+    int nmiplevels = (int)subinfo.levels.size();
+    for (int m = 0;  m < nmiplevels;  ++m) {
+        // Compute the filter size (minor axis) in raster space at this
+        // MIP level.  We use the smaller of the two texture resolutions,
+        // which is better than just using one, but a more principled
+        // approach is desired but remains elusive.  FIXME.
+        float filtwidth_ras = minorlength * std::min (subinfo.spec(m).width, subinfo.spec(m).height);
+        // Once the filter width is smaller than one texel at this level,
+        // we've gone too far, so we know that we want to interpolate the
+        // previous level and the current level.  Note that filtwidth_ras
+        // is expected to be >= 0.5, or would have stopped one level ago.
+        if (filtwidth_ras <= 1.0f) {
+            miplevel[0] = m-1;
+            miplevel[1] = m;
+            levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
+            break;
+        }
+    }
+
+    if (miplevel[1] < 0) {
+        // We'd like to blur even more, but make due with the coarsest
+        // MIP level.
+        miplevel[0] = nmiplevels - 1;
+        miplevel[1] = miplevel[0];
+        levelblend = 0;
+    } else if (miplevel[0] < 0) {
+        // We wish we had even more resolution than the finest MIP level,
+        // but tough for us.
+        miplevel[0] = 0;
+        miplevel[1] = 0;
+        levelblend = 0;
+        // It's possible that minorlength is degenerate, giving an aspect
+        // ratio that implies a huge nsamples, which is pointless if those
+        // samples are too close.  So if minorlength is less than 1/2 texel
+        // at the finest resolution, clamp it and recalculate aspect.
+        int r = std::max (subinfo.spec(0).full_width, subinfo.spec(0).full_height);
+        if (minorlength*r < 0.5f) {
+            aspect = Imath::clamp (majorlength * r * 2.0f, 1.0f, float(options.anisotropic));
+        }
+    }
+    if (options.mipmode == TextureOpt::MipModeOneLevel) {
+        miplevel[0] = miplevel[1];
+        levelblend = 0;
+    }
+    levelweight[0] = 1.0f - levelblend;
+    levelweight[1] = levelblend;
 }
 
 
@@ -903,54 +988,21 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
     if (!(dresultds && dresultdt))
         dresultds = dresultdt = NULL;
 
-    // Use the differentials to figure out which MIP-map levels to use.
-    adjust_width_blur (dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth,
-                       options.sblur, options.tblur);
+    adjust_width (dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth);
 
     // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
     int miplevel[2] = { -1, -1 };
-    float levelblend = 0;
+    float levelweight[2] = { 0, 0 };
     float sfilt = std::max (fabsf(dsdx), fabsf(dsdy));
     float tfilt = std::max (fabsf(dtdx), fabsf(dtdy));
     float filtwidth = options.conservative_filter ? std::max (sfilt, tfilt)
                                                   : std::min (sfilt, tfilt);
-    ImageCacheFile::SubimageInfo &subinfo (texturefile.subimageinfo(options.subimage));
-    int nmiplevels = (int)subinfo.levels.size();
-    for (int m = 0;  m < nmiplevels;  ++m) {
-        // Compute the filter size in raster space at this MIP level
-        float filtwidth_ras = subinfo.spec(m).width * filtwidth;
-        // Once the filter width is smaller than one texel at this level,
-        // we've gone too far, so we know that we want to interpolate the
-        // previous level and the current level.  Note that filtwidth_ras
-        // is expected to be >= 0.5, or would have stopped one level ago.
-        if (filtwidth_ras <= 1) {
-            miplevel[0] = m-1;
-            miplevel[1] = m;
-            levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
-            break;
-        }
-    }
-    if (miplevel[1] < 0) {
-        // We'd like to blur even more, but make due with the coarsest
-        // MIP level.
-        miplevel[0] = nmiplevels - 1;
-        miplevel[1] = miplevel[0];
-        levelblend = 0;
-    } else if (miplevel[0] < 0) {
-        // We wish we had even more resolution than the finest MIP level,
-        // but tough for us.
-        miplevel[0] = 0;
-        miplevel[1] = 0;
-        levelblend = 0;
-    }
-    if (options.mipmode == TextureOpt::MipModeOneLevel) {
-        // Force use of just one mipmap level
-        miplevel[0] = miplevel[1];
-        levelblend = 0;
-    }
-    float levelweight[2] = { 1.0f - levelblend, levelblend };
-//    std::cerr << "Levels " << miplevel[0] << ' ' << miplevel[1] << ' ' << levelblend << "\n";
+    // account for blur
+    filtwidth += std::max (options.sblur, options.tblur);
+    float aspect = 1.0f;
+    compute_miplevels (texturefile, options, filtwidth, filtwidth, aspect,
+                       miplevel, levelweight);
 
     static const accum_prototype accum_functions[] = {
         // Must be in the same order as InterpMode enum
@@ -991,12 +1043,15 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 
 
 
-// Calculate major and minor axis lengths of the ellipse specified by the
-// s and t derivatives.  See Greene's EWA paper.  Return value is 0 if
-// the 'x' axis was the major axis, 1 if the 'y' axis was major.
-inline int
+// Given pixel derivatives, calculate major and minor axis lengths and
+// major axis orientation angle of the ellipse.  See Greene's EWA paper
+// or Mavridis (2011).  If ABCF is non-NULL, it should point to space
+// for 4 floats, which will be used to store the ellipse parameters A,
+// B, C, F.
+inline void
 ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
-              float &majorlength, float &minorlength)
+              float &majorlength, float &minorlength, float &theta,
+              float *ABCF = NULL)
 {
     float dsdx2 = dsdx*dsdx;
     float dtdx2 = dtdx*dtdx;
@@ -1009,18 +1064,70 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     double root = hypot (A-C, B);
     double Aprime = (A + C - root) * 0.5;
     double Cprime = (A + C + root) * 0.5;
-    majorlength = A > 0 ? sqrtf (F / Aprime) : 0;
-    minorlength = C > 0 ? sqrtf (F / Cprime) : 0;
-    // N.B. Various papers (including the FELINE ones, imply that the
-    // above calculations is the major and minor radii, but we treat
-    // them as the diameter.  Tests indicate that we are filtering just
-    // right, so I suspect that we are off by a factor of 2 elsewhere as
-    // well, compensating perfectly for this error.  Or maybe I just
-    // don't understand the situation at all.
-    if ((dsdy2+dtdy2) > (dsdx2+dtdx2))
-        return 1;
-    else
-        return 0;
+    majorlength = A > 0 ? safe_sqrtf (F / Aprime) : 0;
+    minorlength = C > 0 ? safe_sqrtf (F / Cprime) : 0;
+    theta = atan2 (B, A-C) * 0.5 + M_PI_2;
+    if (ABCF) {
+        // Optionally store the ellipse equation parameters, the ellipse
+        // is given by: A*u^2 + B*u*v + C*v^2 < 1
+        double Finv = 1.0f / F;
+        ABCF[0] = A * Finv;
+        ABCF[1] = B * Finv;
+        ABCF[2] = C * Finv;
+        ABCF[3] = F;
+    }
+
+    // N.B. If the derivs passed in are the full pixel-to-pixel
+    // derivatives, then majorlength/minorlength are the (diameter) axes
+    // of the ellipse; if the derivs are the "to edge of pixel" 1/2
+    // length derivs, then majorlength/minorlength are the major and
+    // minur radii of the elipse.  We do the former!  So it's important
+    // to consider that factor of 2 in compute_ellipse_sampling.
+}
+
+
+
+// Given the aspect ratio, major axis orientation angle, and axis lengths,
+// calculate the smajor & tmajor values that give the orientation of the
+// line on which samples should be distributed.  If there are n samples,
+// they should be positioned as:
+//     p_i = 2*(i+0.5)/n - 1.0;
+//     sample_i = (s + p_i*smajor, t + p_i*tmajor)
+inline int
+compute_ellipse_sampling (float aspect, float theta,
+                          float majorlength, float minorlength,
+                          float &smajor, float &tmajor,
+                          float &invsamples,
+                          float *weights=NULL)
+{
+    // Compute the sin and cos of the sampling direction, given major
+    // axis angle
+    sincos (theta, &tmajor, &smajor);
+    float L = 2.0f * (majorlength - minorlength);
+    smajor *= L;
+    tmajor *= L;
+    int nsamples = std::max (1, (int) ceilf (aspect - 0.3f));
+    // N.B. Theoretically, nsamples ought to be int(2*aspect - 1).  But
+    // I believe that this does more samples than we need (or want to
+    // pay for) when aspect is high, and not quite enough when aspect is
+    // low (aspect 1.4 sure looks like it should have two samples to me
+    // when I draw the ellipse).
+    invsamples = 1.0f / nsamples;
+    if (weights) {
+        if (nsamples == 1) {
+            weights[0] = 1.0f;
+        } else if (nsamples == 2) {
+            weights[0] = 0.5f;  weights[1] = 0.5f;
+        } else {
+            float scale = majorlength / L;  // 1/(L/major)
+            for (int i = 0, e = (nsamples+1)/2;  i < e;  ++i) {
+                float x = (2.0f*(i+0.5f)*invsamples - 1.0f) * scale;
+                float w = expf(-2.0f*x*x);
+                weights[nsamples-i-1] = weights[i] = w;
+            }
+        }
+    }
+    return nsamples;
 }
 
 
@@ -1056,114 +1163,44 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     int naturalsres = (int) (1.0f / sfilt_noblur);
     int naturaltres = (int) (1.0f / tfilt_noblur);
 
-    // Scale by 'width' and 'blur'
-    adjust_width_blur (dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth,
-                       options.sblur, options.tblur);
+    // Scale by 'width'
+    adjust_width (dsdx, dtdx, dsdy, dtdy, options.swidth, options.twidth);
 
     // Determine the MIP-map level(s) we need: we will blend
     //    data(miplevel[0]) * (1-levelblend) + data(miplevel[1]) * levelblend
-    int miplevel[2] = { -1, -1 };
-    float levelblend = 0;
-    // The ellipse is made up of two axes which correspond to the x and y pixel
-    // directions. Pick the longest one and take several samples along it.
     float smajor, tmajor;
-    //float sminor, tminor; // FIXME UNUSED_AXIS These are currently unused Axis
     float majorlength, minorlength;
+    float theta;
 
-#if 0
-    // OLD code -- I thought this approximation was a good try, but it
-    // severely underestimates anisotropy for grazing angles, and
-    // therefore overblurs the texture lookups compared to the
-    // ellipse_axis code below...
-    float xfilt = std::max (fabsf(dsdx), fabsf(dtdx));
-    float yfilt = std::max (fabsf(dsdy), fabsf(dtdy));
-    if (xfilt > yfilt) {
-        majorlength = xfilt;
-        minorlength = yfilt;
-        smajor = dsdx;
-        tmajor = dtdx;
-//        sminor = dsdy; // FIXME See UNUSED_AXIS
-//        tminor = dtdy; // FIXME See UNUSED_AXIS
-    } else {
-        majorlength = yfilt;
-        minorlength = xfilt;
-        smajor = dsdy;
-        tmajor = dtdy;
-//        sminor = dsdx; // FIXME See UNUSED_AXIS
-//        tminor = dtdx; // FIXME See UNUSED_AXIS
-    }
-#else
     // Do a bit more math and get the exact ellipse axis lengths, and
     // therefore a more accurate aspect ratio as well.  Looks much MUCH
     // better, but for scenes with lots of grazing angles, it can greatly
     // increase the average anisotropy, therefore the number of bilinear
     // or bicubic texture probes, and therefore runtime!
     // FIXME -- come back and improve performance to compensate.
-    int axis = ellipse_axes (dsdx, dtdx, dsdy, dtdy, majorlength, minorlength);
-    if (axis) {
-        smajor = dsdy;
-        tmajor = dtdy;
-//        sminor = dsdx; // FIXME See UNUSED_AXIS
-//        tminor = dtdx; // FIXME See UNUSED_AXIS
-    } else {
-        smajor = dsdx;
-        tmajor = dtdx;
-//        sminor = dsdy; // FIXME See UNUSED_AXIS
-//        tminor = dtdy; // FIXME See UNUSED_AXIS
-    }
-#endif
+    ellipse_axes (dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta);
+
+    adjust_blur (majorlength, minorlength, theta, options.sblur, options.tblur);
 
     float aspect, trueaspect;
     aspect = anisotropic_aspect (majorlength, minorlength, options, trueaspect);
 
-    ImageCacheFile::SubimageInfo &subinfo (texturefile.subimageinfo(options.subimage));
-    int nmiplevels = (int)subinfo.levels.size();
-    for (int m = 0;  m < nmiplevels;  ++m) {
-        // Compute the filter size (minor axis) in raster space at this
-        // MIP level.  We use the smaller of the two texture resolutions,
-        // which is better than just using one, but a more principled
-        // approach is desired but remains elusive.  FIXME.
-        float filtwidth_ras = minorlength * std::min (subinfo.spec(m).width, subinfo.spec(m).height);
-        // Once the filter width is smaller than one texel at this level,
-        // we've gone too far, so we know that we want to interpolate the
-        // previous level and the current level.  Note that filtwidth_ras
-        // is expected to be >= 0.5, or would have stopped one level ago.
-        if (filtwidth_ras <= 1.0f) {
-            miplevel[0] = m-1;
-            miplevel[1] = m;
-            levelblend = Imath::clamp (2.0f - 1.0f/filtwidth_ras, 0.0f, 1.0f);
-            break;
-        }
-    }
+    int miplevel[2] = { -1, -1 };
+    float levelweight[2] = { 0, 0 };
+    compute_miplevels (texturefile, options, majorlength, minorlength, aspect,
+                       miplevel, levelweight);
 
-    if (miplevel[1] < 0) {
-        // We'd like to blur even more, but make due with the coarsest
-        // MIP level.
-        miplevel[0] = nmiplevels - 1;
-        miplevel[1] = miplevel[0];
-        levelblend = 0;
-    } else if (miplevel[0] < 0) {
-        // We wish we had even more resolution than the finest MIP level,
-        // but tough for us.
-        miplevel[0] = 0;
-        miplevel[1] = 0;
-        levelblend = 0;
-        // It's possible that minorlength is degenerate, giving an aspect
-        // ratio that implies a huge nsamples, which is pointless if those
-        // samples are too close.  So if minorlength is less than 1/2 texel
-        // at the finest resolution, clamp it and recalculate aspect.
-        int r = std::max (subinfo.spec(0).full_width, subinfo.spec(0).full_height);
-        if (minorlength*r < 0.5f)
-            aspect = Imath::clamp (majorlength * r * 2.0f, 1.0f, float(options.anisotropic));
-    }
-    if (options.mipmode == TextureOpt::MipModeOneLevel) {
-        miplevel[0] = miplevel[1];
-        levelblend = 0;
-    }
-    float levelweight[2] = { 1.0f - levelblend, levelblend };
-
-    int nsamples = std::max (1, (int) ceilf (aspect - 0.25f));
-    float invsamples = 1.0f / nsamples;
+    float *lineweight = ALLOCA (float, options.anisotropic);
+    float invsamples;
+    int nsamples = compute_ellipse_sampling (aspect, theta, majorlength,
+                                             minorlength, smajor, tmajor,
+                                             invsamples, lineweight);
+    // All the computations were done assuming full diametric axes of
+    // the ellipse, but our derivatives are pixel-to-pixel, yielding
+    // semi-major and semi-minor lengths, so we need to scale everything
+    // by 1/2.
+    smajor *= 0.5f;
+    tmajor *= 0.5f;
 
     bool ok = true;
     int npointson = 0;
@@ -1201,20 +1238,21 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
             break;
         }
         for (int sample = 0;  sample < nsamples;  ++sample) {
-            float pos = (sample + 0.5f) * invsamples - 0.5f;
-            ok &= (this->*accumer) (s + pos * smajor, t + pos * tmajor, lev, texturefile,
-                                    thread_info, options, levelweight[level],
+            float pos = 2.0f * ((sample + 0.5f) * invsamples - 0.5f);
+            float w = levelweight[level] * lineweight[sample];
+            ok &= (this->*accumer) (s + pos * smajor, t + pos * tmajor,
+                                    lev, texturefile,
+                                    thread_info, options, w,
                                     result, dresultds, dresultdt);
-            sumw += levelweight[level];
+            sumw += w;
         }
     }
 
     if (sumw > 0) {
-       float invw = 1 / sumw;
        for (int c = 0;  c < options.actualchannels;  ++c) {
-          result[c] *= invw;
-          if (dresultds) dresultds[c] *= invw;
-          if (dresultdt) dresultdt[c] *= invw;
+           result[c] /= sumw;
+           if (dresultds) dresultds[c] /= sumw;
+           if (dresultdt) dresultdt[c] /= sumw;
        }
     }
 
@@ -1849,6 +1887,116 @@ TextureSystemImpl::accum_sample_bicubic (float s, float t, int miplevel,
 
     return true;
 }
+
+
+
+void
+TextureSystemImpl::visualize_ellipse (const std::string &name,
+                                      float dsdx, float dtdx,
+                                      float dsdy, float dtdy,
+                                      float sblur, float tblur)
+{
+    std::cout << name << " derivs dx " << dsdx << ' ' << dtdx << ", dt " << dtdx << ' ' << dtdy << "\n";
+    adjust_width (dsdx, dtdx, dsdy, dtdy, 1.0f, 1.0f);
+    float majorlength, minorlength, theta;
+    float ABCF[4];
+    ellipse_axes (dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta, ABCF);
+    std::cout << "  ellipse major " << majorlength << ", minor " 
+              << minorlength << ", theta " << theta << "\n";
+    adjust_blur (majorlength, minorlength, theta, sblur, tblur);
+    std::cout << "  post " << sblur << ' ' << tblur << " blur: major " 
+              << majorlength << ", minor " << minorlength << "\n\n";
+
+    TextureOpt options;
+    float trueaspect;
+    float aspect = TextureSystemImpl::anisotropic_aspect (majorlength, minorlength, options, trueaspect);
+    float *lineweight = ALLOCA (float, options.anisotropic);
+    float smajor, tmajor, invsamples;
+    int nsamples = compute_ellipse_sampling (aspect, theta, majorlength,
+                                             minorlength, smajor, tmajor,
+                                             invsamples, lineweight);
+
+    // Make an ImageBuf to hold our visualization image, set it to grey
+    float scale = 100;
+    int w = 256, h = 256;
+    ImageSpec spec (w, h, 3);
+    ImageBuf ib (name, spec);
+    static float dark[3] = { 0.2, 0.2, 0.2 };
+    static float white[3] = { 1, 1, 1 };
+    static float grey[3] = { 0.5, 0.5, 0.5 };
+    static float red[3] = { 1, 0, 0 };
+    static float green[3] = { 0, 1, 0 };
+    ImageBufAlgo::fill (ib, grey);
+
+    // scan all the pixels, darken the ellipse interior
+    for (int j = 0;  j < h;  ++j) {
+        float y = (j-h/2)/scale;
+        for (int i = 0;  i < w;  ++i) {
+            float x = (i-w/2)/scale;
+            float d2 = ABCF[0]*x*x + ABCF[1]*x*y + ABCF[2]*y*y;
+            if (d2 < 1.0f)
+                ib.setpixel (i, h-1-j, dark);
+        }
+    }
+
+    // Draw red and green axes for the dx and dy derivatives, respectively
+    for (int i = 0, e = std::max(fabsf(dsdx),fabsf(dtdx))*scale;  i < e;  ++i)
+        ib.setpixel (w/2+int(float(i)/e*dsdx*scale), h/2-int(float(i)/e*dtdx*scale), red);
+    for (int i = 0, e = std::max(fabsf(dsdy),fabsf(dtdy))*scale;  i < e;  ++i)
+        ib.setpixel (w/2+int(float(i)/e*dsdy*scale), h/2-int(float(i)/e*dtdy*scale), green);
+
+    float bigweight = 0;
+    for (int i = 0;  i < nsamples;  ++i)
+        bigweight = std::max(lineweight[i],bigweight);
+
+    // Plop white dots at the sample positions
+    for (int sample = 0;  sample < nsamples;  ++sample) {
+        float pos = 1.0f * (sample + 0.5f) * invsamples - 0.5f;
+        float x = pos*smajor, y = pos*tmajor;
+        int xx = w/2+int(x*scale), yy = h/2-int(y*scale);
+        int size = int (5 * lineweight[sample]/bigweight);
+        ImageBufAlgo::fill (ib, white, xx-size/2, xx+size/2+1, 
+                            yy-size/2, yy+size/2+1);
+    }
+
+    ib.save ();
+}
+
+
+
+void
+TextureSystemImpl::unit_test_texture ()
+{
+    float blur = 0;
+    float dsdx, dtdx, dsdy, dtdy;
+
+    dsdx = 0.4; dtdx = 0.0; dsdy = 0.0; dtdy = 0.2;
+    visualize_ellipse ("0.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+
+    dsdx = 0.2; dtdx = 0.0; dsdy = 0.0; dtdy = 0.4;
+    visualize_ellipse ("1.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+
+    dsdx = 0.2; dtdx = 0.2; dsdy = -0.2; dtdy = 0.2;
+    visualize_ellipse ("2.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+
+    dsdx = 0.35; dtdx = 0.27; dsdy = 0.1; dtdy = 0.35;
+    visualize_ellipse ("3.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+
+    dsdx = 0.35; dtdx = 0.27; dsdy = 0.1; dtdy = -0.35;
+    visualize_ellipse ("4.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+
+    boost::mt19937 rndgen;
+    boost::uniform_01<boost::mt19937, float> rnd(rndgen);
+    for (int i = 0;  i < 100;  ++i) {
+        dsdx = 1.5f*(rnd() - 0.5f);
+        dtdx = 1.5f*(rnd() - 0.5f);
+        dsdy = 1.5f*(rnd() - 0.5f);
+        dtdy = 1.5f*(rnd() - 0.5f);
+        visualize_ellipse (Strutil::format("%d.tif", 100+i),
+                           dsdx, dtdx, dsdy, dtdy, blur, blur);
+    }
+}
+
 
 
 };  // end namespace pvt

@@ -291,7 +291,7 @@ oiio_add_tests (ico gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-composite oiiotool-fixnan 
                 perchannel
                 sgi rla psd dpx png
-                texture-fill texture-filtersize
+                texture-blurtube texture-fill texture-filtersize
                 texture-gray texture-grid
                 texture-missing texture-overscan
                 texture-pointsample texture-width0blur texture-res

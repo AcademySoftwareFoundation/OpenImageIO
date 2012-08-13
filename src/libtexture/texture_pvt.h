@@ -62,6 +62,8 @@ class ImageCacheTileRef;
 ///
 class TextureSystemImpl : public TextureSystem {
 public:
+    typedef ImageCacheFile TextureFile;
+
     TextureSystemImpl (ImageCache *imagecache);
     virtual ~TextureSystemImpl ();
 
@@ -264,7 +266,6 @@ public:
     void operator delete (void *todel) { ::delete ((char *)todel); }
 
 private:
-    typedef ImageCacheFile TextureFile;
     typedef ImageCacheTileRef TileRef;
     typedef ImageCachePerThreadInfo PerThreadInfo;
 
@@ -395,8 +396,8 @@ private:
     /// ratio is returned (possibly adjusting major and minorlength to
     /// conform to the aniso limits) but the true aspect is stored in
     /// 'trueaspect'.
-    float anisotropic_aspect (float &majorlength, float &minorlength,
-                              TextureOpt& options, float &trueaspect);
+    static float anisotropic_aspect (float &majorlength, float &minorlength,
+                                     TextureOpt& options, float &trueaspect);
 
     /// Convert texture coordinates (s,t), which range on 0-1 for the
     /// "full" image boundary, to texel coordinates (i+ifrac,j+jfrac)
@@ -443,6 +444,9 @@ private:
                        const ImageCacheFile::LevelInfo &levelinfo,
                        TextureOpt &options, int miplevel, int nchannels);
 
+    /// Perform short unit tests.
+    void unit_test_texture ();
+
     /// Internal error reporting routine, with printf-like arguments.
     ///
     /// void error (const char *message, ...) const
@@ -453,6 +457,10 @@ private:
     void append_error (const std::string& message) const;
 
     void printstats () const;
+
+    // Debugging aid
+    void visualize_ellipse (const std::string &name, float dsdx, float dtdx,
+                            float dsdy, float dtdy, float sblur, float tblur);
 
     ImageCacheImpl *m_imagecache;
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
@@ -488,10 +496,20 @@ TextureSystemImpl::anisotropic_aspect (float &majorlength, float &minorlength,
         //    it slightly too blurry along the minor axis, slightly
         //    aliasing along the major axis.  You can't please everybody.
         if (options.conservative_filter) {
+#if 0
+            // Soltion (a) -- never alias by blurring more along minor axis
+            minorlength = majorlength / options.anisotropic;
+#else
             // Solution (c) -- this is our default, usually a nice balance.
-            majorlength = sqrtf ((majorlength) *
+            // We used to take the geometric mean...
+//            majorlength = sqrtf ((majorlength) *
+//                                 (minorlength * options.anisotropic));
+            // ...but frankly I find the average to be a little more
+            // visually pleasing.
+            majorlength = 0.5f * ((majorlength) +
                                  (minorlength * options.anisotropic));
             minorlength = majorlength / options.anisotropic;
+#endif
         } else {
             // Solution (b) -- alias slightly, never overblur
             majorlength = minorlength * options.anisotropic;
