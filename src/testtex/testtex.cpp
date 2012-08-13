@@ -58,9 +58,10 @@ static bool verbose = false;
 static int output_xres = 512, output_yres = 512;
 static std::string dataformatname = "half";
 static float sscale = 1, tscale = 1;
-static float blur = 0;
+static float sblur = 0, tblur = -1;
 static float width = 1;
 static std::string wrapmodes ("periodic");
+static int anisotropic = -1;
 static int iters = 1;
 static int autotile = 0;
 static bool automip = false;
@@ -102,6 +103,9 @@ parse_files (int argc, const char *argv[])
 static void
 getargs (int argc, const char *argv[])
 {
+    TextureOptions opt;  // to figure out defaults
+    anisotropic = opt.anisotropic;
+
     bool help = false;
     ArgParse ap;
     ap.options ("Usage:  testtex [options] inputfile",
@@ -115,10 +119,13 @@ getargs (int argc, const char *argv[])
                       "Resolution of output test image",
                   "-iters %d", &iters,
                       "Iterations for time trials",
-                  "--blur %f", &blur, "Add blur to texture lookup",
+                  "--blur %f", &sblur, "Add blur to texture lookup",
+                  "--stblur %f %f", &sblur, &tblur, "Add blur (s, t) to texture lookup",
                   "--width %f", &width, "Multiply filter width of texture lookup",
                   "--fill %f", &fill, "Set fill value for missing channels",
                   "--wrap %s", &wrapmodes, "Set wrap mode (default, black, clamp, periodic, mirror, overscan)",
+                  "--aniso %d", &anisotropic,
+                      Strutil::format("Set max anisotropy (default: %d)", anisotropic).c_str(),
                   "--missing %f %f %f", &missing[0], &missing[1], &missing[2],
                         "Specify missing texture color",
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
@@ -428,8 +435,8 @@ test_plain_texture (MAPPING mapping)
     xform.invert();
 
     TextureOptions opt;
-    opt.sblur = blur;
-    opt.tblur = blur;
+    opt.sblur = sblur;
+    opt.tblur = tblur >= 0.0f ? tblur : sblur;
     opt.swidth = width;
     opt.twidth = width;
     opt.nchannels = nchannels;
@@ -441,10 +448,11 @@ test_plain_texture (MAPPING mapping)
 //    opt.interpmode = TextureOptions::InterpSmartBicubic;
 //    opt.mipmode = TextureOptions::MipModeAniso;
     TextureOptions::parse_wrapmodes (wrapmodes.c_str(), opt.swrap, opt.twrap);
+    opt.anisotropic = anisotropic;
 
     TextureOpt opt1;
-    opt1.sblur = blur;
-    opt1.tblur = blur;
+    opt1.sblur = sblur;
+    opt1.tblur = tblur >= 0.0f ? tblur : sblur;
     opt1.swidth = width;
     opt1.twidth = width;
     opt1.nchannels = nchannels;
@@ -452,6 +460,7 @@ test_plain_texture (MAPPING mapping)
     if (missing[0] >= 0)
         opt1.missingcolor = (float *)&missing;
     TextureOpt::parse_wrapmodes (wrapmodes.c_str(), opt1.swrap, opt1.twrap);
+    opt1.anisotropic = anisotropic;
 
     int shadepoints = blocksize*blocksize;
     float *s = ALLOCA (float, shadepoints);
@@ -570,9 +579,9 @@ test_texture3d (ustring filename, MAPPING mapping)
     xform.invert();
 
     TextureOptions opt;
-    opt.sblur = blur;
-    opt.tblur = blur;
-    opt.rblur = blur;
+    opt.sblur = sblur;
+    opt.tblur = tblur >= 0.0f ? tblur : sblur;
+    opt.rblur = sblur;
     opt.swidth = width;
     opt.twidth = width;
     opt.rwidth = width;
@@ -583,6 +592,7 @@ test_texture3d (ustring filename, MAPPING mapping)
         opt.missingcolor.init ((float *)&missing, 0);
 
     opt.swrap = opt.twrap = opt.rwrap = TextureOptions::WrapPeriodic;
+    opt.anisotropic = anisotropic;
     int shadepoints = blocksize*blocksize;
     Imath::V3f *P = ALLOCA (Imath::V3f, shadepoints);
     Runflag *runflags = ALLOCA (Runflag, shadepoints);

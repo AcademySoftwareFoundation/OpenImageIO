@@ -1462,6 +1462,59 @@ action_over (int argc, const char *argv[])
 
 
 static int
+action_fill (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_fill, argc, argv))
+        return 0;
+
+    // Read and copy the top-of-stack image
+    ImageRecRef A (ot.pop());
+    ot.read (A);
+    ot.push (new ImageRec (*A, 0, 0, true, false));
+    ImageBuf &Rib ((*ot.curimg)(0,0));
+    const ImageSpec &Rspec = Rib.spec();
+    bool ok = ImageBufAlgo::zero (Rib);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+
+    int w = Rib.spec().width, h = Rib.spec().height;
+    int x = Rib.spec().x, y = Rib.spec().y;
+    if (! adjust_geometry (w, h, x, y, argv[1], true)) {
+        return 0;
+    }
+
+    float *color = ALLOCA (float, Rspec.nchannels);
+    for (int c = 0;  c < Rspec.nchannels;  ++c)
+        color[c] = 1.0f;
+
+    // Parse optional arguments for overrides
+    std::string command = argv[0];
+    size_t pos;
+    while ((pos = command.find_first_of(":")) != std::string::npos) {
+        command = command.substr (pos+1, std::string::npos);
+        if (Strutil::istarts_with(command,"color=")) {
+            // Parse comma-separated color list
+            size_t numpos = 6;
+            for (int c = 0; c < Rspec.nchannels && numpos < command.size() && command[numpos] != ':'; ++c) {
+                color[c] = atof (command.c_str()+numpos);
+                while (numpos < command.size() && command[numpos] != ':' && command[numpos] != ',')
+                    ++numpos;
+                if (command[numpos])
+                    ++numpos;
+            }
+        }
+    }
+
+    ok = ImageBufAlgo::fill (Rib, color, x, x+w, y, y+h);
+    if (! ok)
+        ot.error (argv[0], Rib.geterror());
+
+    return 0;
+}
+
+
+
+static int
 action_text (int argc, const char *argv[])
 {
     if (ot.postpone_callback (1, action_text, argc, argv))
@@ -1693,8 +1746,9 @@ getargs (int argc, char *argv[])
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--resize %@ %s", action_resize, NULL, "Resize (640x480, 50%)",
                 "--fixnan %@ %s", action_fixnan, NULL, "Fix NaN/Inf values in the image (options: none, black, box3)",
+                "--fill %@ %s", action_fill, NULL, "Fill a region (options: x=, y=, size=, color=)",
                 "--text %@ %s", action_text, NULL,
-                    "Render text into the current image",
+                    "Render text into the current image (options: x=, y=, size=, color=)",
                 "<SEPARATOR>", "Image stack manipulation:",
                 "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
                 "--selectmip %@ %d", action_selectmip, NULL,
