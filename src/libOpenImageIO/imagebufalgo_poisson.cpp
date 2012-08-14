@@ -361,22 +361,57 @@ void ImageBufAlgo::SeamlessCloning<T>::getGuidanceVector(std::vector<T> &pel, in
     ImageBuf::ConstIterator<T> dp (src2, x, x+1, y+1, y+2);
     ImageBuf::ConstIterator<T> up (src2, x, x+1, y-1, y);
     
-    for(int i = 0; i < nchannels; i++)
-        pel[i] = lp[i] + rp[i] + dp[i] + up[i] - 4*p[i];
-    
-    if(isMixed) 
-    {    
+    if(!isMixed)
+    {
+        for(int i = 0; i < nchannels; i++)
+            pel[i] = lp[i] + rp[i] + dp[i] + up[i] - 4*p[i];
+    }
+    else {    
         ImageBuf::ConstIterator<T> p1 (this->img, x, x+1, y, y+1);
         ImageBuf::ConstIterator<T> lp1 (this->img, x-1, x, y, y+1);
         ImageBuf::ConstIterator<T> rp1 (this->img, x+1, x+2, y, y+1);
         ImageBuf::ConstIterator<T> dp1 (this->img, x, x+1, y+1, y+2);
         ImageBuf::ConstIterator<T> up1 (this->img, x, x+1, y-1, y);
         
+        T ds1, ds2, ds3, ds4;
+        T di1, di2, di3, di4;
+        
         for(int i = 0; i < nchannels; i++)
         {
-            T tmp = lp1[i] + rp1[i] + dp1[i] + up1[i] - 4*p1[i];
-            if(fabs(tmp) > fabs(pel[i]))
-                pel[i] = tmp;
+            pel[i] = 0;
+            
+            ds1 = p[i] - lp[i];
+            ds2 = p[i] - rp[i];
+            ds3 = p[i] - dp[i];
+            ds4 = p[i] - up[i];
+            
+            di1 = p1[i] - lp1[i];
+            di2 = p1[i] - rp1[i];
+            di3 = p1[i] - dp1[i];
+            di4 = p1[i] - up1[i];
+            
+            if(fabs(ds1) > fabs(di1))
+                pel[i] += ds1;
+            else
+                pel[i] += di1;
+            
+            if(fabs(ds2) > fabs(di2))
+                pel[i] += ds2;
+            else
+                pel[i] += di2;
+            
+            if(fabs(ds3) > fabs(di3))
+                pel[i] += ds3;
+            else
+                pel[i] += di3;
+            
+            if(fabs(ds4) > fabs(di4))
+                pel[i] += ds4;
+            else
+                pel[i] += di4;
+            
+            pel[i] *= -1;
+            
         }
     }
  
