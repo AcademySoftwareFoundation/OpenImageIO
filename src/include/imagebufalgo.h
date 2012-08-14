@@ -322,6 +322,9 @@ bool DLLPUBLIC smoothImageCompletion(ImageBuf &dst, const ImageBuf &src, const I
 /// Clones area masked by mask of src2 image into src image
 bool DLLPUBLIC seamlessCloning(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2, bool isMixed = false);
 
+/// Local illumination changes, can correct under-exposed region or reduce reflections
+bool DLLPUBLIC localIlluminationChange(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask);
+
 
 template<typename PXLTYPE>
 bool DLLPUBLIC pixelCmp(PXLTYPE *a, PXLTYPE *b, int channels);
@@ -392,6 +395,20 @@ private:
 public:
     //masked part of src2 image will be cloned into src image
     SeamlessCloning(ImageBuf &output, const ImageBuf &src, const ImageBuf &mask, const ImageBuf &src2, bool isMix = false);
+    void getGuidanceVector(std::vector<T> &pel, int x, int y, int nchannels);
+};
+
+
+template <class T>
+class LocalIlluminationChange : public PoissonImageEditing<T>
+{
+protected:
+    std::vector<float> averageGradient;
+    
+public:
+    LocalIlluminationChange(ImageBuf &output, const ImageBuf &src, const ImageBuf &mask);
+    bool solve();
+    void findAverageGradient();
     void getGuidanceVector(std::vector<T> &pel, int x, int y, int nchannels);
 };
 

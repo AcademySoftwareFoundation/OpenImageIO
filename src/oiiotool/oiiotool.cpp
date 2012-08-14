@@ -1485,6 +1485,34 @@ action_seamlesscloningmixed (int argc, const char *argv[])
     return 0;
 }
 
+static int
+action_illuminationchange (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (2, action_illuminationchange, argc, argv))
+        return 0;
+
+    ImageRecRef M (ot.pop());
+    ImageRecRef S (ot.pop());
+    ot.read (S);
+    ot.read (M);
+    ot.push (new ImageRec (*S, ot.allsubimages ? -1 : 0,
+                           ot.allsubimages ? -1 : 0, true, false));
+    
+    int subimages = ot.curimg->subimages();
+    for (int s = 0;  s < subimages;  ++s) {
+        int miplevels = ot.curimg->miplevels(s);
+        for (int m = 0;  m < miplevels;  ++m) {
+            const ImageBuf &Sib ((*S)(s,m));
+            const ImageBuf &Mib ((*M)(0,m)); //TODO: check this!
+            ImageBuf &Rib ((*ot.curimg)(s,m));
+            ImageBufAlgo::localIlluminationChange(Rib, Sib, Mib);        
+        }
+    }
+             
+    return 0;
+}
+
+
 
 static void
 getargs (int argc, char *argv[])
@@ -1578,6 +1606,7 @@ getargs (int argc, char *argv[])
                 "--smoothcompletion %@", action_smoothcompletion, &dummybool, "Smooth image completion.",
                 "--clone %@", action_seamlesscloning, &dummybool, "Seamless cloning of one image into another.",
                 "--mixclone %@", action_seamlesscloningmixed, &dummybool, "Seamless cloning using mixed gradients for guidance.",
+                "--illumchange %@", action_illuminationchange, &dummybool, "Local illumination changes, can correct under-exposed region or reduce reflections.",
                 "<SEPARATOR>", "Color management:",
                 "--iscolorspace %@ %s", set_colorspace, NULL,
                     "Set the assumed color space (without altering pixels)",

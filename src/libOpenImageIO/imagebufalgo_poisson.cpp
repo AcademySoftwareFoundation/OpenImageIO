@@ -72,6 +72,15 @@ seamlessCloning_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask, cons
     return success;
 }
 
+template<typename T>
+static inline bool
+localIlluminationChange_ (ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask)
+{
+    ImageBufAlgo::LocalIlluminationChange<T> lich(dst, src, mask);
+    bool success = lich.solve();
+    return success;
+}
+
 }
 
 bool
@@ -93,6 +102,17 @@ ImageBufAlgo::seamlessCloning(ImageBuf &dst, const ImageBuf &src, const ImageBuf
             return false;
     }
 };
+
+bool
+ImageBufAlgo::localIlluminationChange(ImageBuf &dst, const ImageBuf &src, const ImageBuf &mask)
+{
+    switch (src.spec().format.basetype) {
+    case TypeDesc::FLOAT : return localIlluminationChange_<float> (dst, src, mask); break; 
+    default:
+        return false;
+    }
+};
+
 
 template <class T>
 ImageBufAlgo::PoissonImageEditing<T>::PoissonImageEditing(ImageBuf &output, const ImageBuf &src, const ImageBuf &mask) :
@@ -360,6 +380,114 @@ void ImageBufAlgo::SeamlessCloning<T>::getGuidanceVector(std::vector<T> &pel, in
         }
     }
  
+    
+}
+
+
+//---------- Local illumination changes -------------------//
+
+template <class T>
+ImageBufAlgo::LocalIlluminationChange<T>::LocalIlluminationChange(ImageBuf &output, const ImageBuf& src, const ImageBuf& mask) :
+        PoissonImageEditing<T>(output, src, mask)
+{
+
+}
+
+//overloaded
+template <class T>
+bool ImageBufAlgo::LocalIlluminationChange<T>::solve()
+{
+    if(!this->verifyMask())
+        return false;
+    
+    this->buildMapping();
+    this->findAverageGradient();
+    this->buildSparseLinearSystem();  
+    bool success = this->computeOutputPixels();
+    
+    return success;
+}
+
+template <class T>
+void ImageBufAlgo::LocalIlluminationChange<T>::findAverageGradient()
+{
+    int w = this->maskImg.spec().full_width;
+    int h = this->maskImg.spec().full_height;
+    
+    ImageBuf::ConstIterator<T> cMPxl (this->maskImg, 1, w-1, 1, h-1); // center mask pixel
+    ImageBuf::ConstIterator<T> lMPxl (this->maskImg, 0, w-2, 1, h-1); // left
+    ImageBuf::ConstIterator<T> rMPxl (this->maskImg, 2, w,   1, h-1);   // right
+    ImageBuf::ConstIterator<T> dMPxl (this->maskImg, 1, w-1, 2, h);   // down
+    ImageBuf::ConstIterator<T> uMPxl (this->maskImg, 1, w-1, 0, h-2); // up
+    
+    ImageBuf::ConstIterator<T> cSPxl (this->img, 1, w-1, 1, h-1); // center mask pixel
+    ImageBuf::ConstIterator<T> lSPxl (this->img, 0, w-2, 1, h-1); // left
+    ImageBuf::ConstIterator<T> rSPxl (this->img, 2, w,   1, h-1);   // right
+    ImageBuf::ConstIterator<T> dSPxl (this->img, 1, w-1, 2, h);   // down
+    ImageBuf::ConstIterator<T> uSPxl (this->img, 1, w-1, 0, h-2); // up
+    
+    int nchannels = this->img.nchannels();
+    int mnchannels = this->maskImg.nchannels();
+    
+    std::vector<T> maskingColor(mnchannels, 0.0f);
+    this->averageGradient.resize(nchannels, 0);
+
+    int count = 0;
+    
+    while (cMPxl.valid()) 
+    {
+        if (ImageBufAlgo::pixelCmp<T>((T*)(cMPxl.rawptr()), &maskingColor[0], nchannels))
+        {        
+            for(int i = 0; i < nchannels; i++)
+                averageGradient[i] += lSPxl[i] + rSPxl[i] + dSPxl[i] + uSPxl[i] - 4*cSPxl[i];
+
+            count++;
+        }
+        
+        cMPxl++;
+        lMPxl++;
+        rMPxl++;
+        dMPxl++;
+        uMPxl++;
+        
+        cSPxl++;
+        lSPxl++;
+        rSPxl++;
+        dSPxl++;
+        uSPxl++;
+    }
+    
+    for(int i = 0; i < nchannels; i++)
+        averageGradient[i] = fabs(averageGradient[i]);
+
+}
+
+template <class T>
+void ImageBufAlgo::LocalIlluminationChange<T>::getGuidanceVector(std::vector<T> &vf, int x, int y, int nchannels)
+{   
+    ImageBuf::ConstIterator<T> p1 (this->img, x, x+1, y, y+1);
+    ImageBuf::ConstIterator<T> lp1 (this->img, x-1, x, y, y+1);
+    ImageBuf::ConstIterator<T> rp1 (this->img, x+1, x+2, y, y+1);
+    ImageBuf::ConstIterator<T> dp1 (this->img, x, x+1, y+1, y+2);
+    ImageBuf::ConstIterator<T> up1 (this->img, x, x+1, y-1, y);
+    
+    float a = 0.05f;
+    float b = 0.3f;
+    float e = 0.000000000000000001f;
+
+    for(int i = 0; i < nchannels; i++)
+    {   
+        float pq1 = p1[i] - lp1[i];
+        float pq2 = p1[i] - rp1[i];
+        float pq3 = p1[i] - dp1[i];
+        float pq4 = p1[i] - up1[i];
+        
+        vf[i] = -powf(a*averageGradient[i], b) *
+                ( powf(fabs(pq1) + e,-b)*pq1 +
+                  powf(fabs(pq2) + e,-b)*pq2 +
+                  powf(fabs(pq3) + e,-b)*pq3 +
+                  powf(fabs(pq4) + e,-b)*pq4 );        
+    }
     
 }
 
