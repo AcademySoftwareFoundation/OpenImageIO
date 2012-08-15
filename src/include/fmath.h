@@ -1075,7 +1075,7 @@ safe_acosf (float x) {
 inline float
 safe_sqrtf (float x)
 {
-    return (x < 0.0f) ? 0.0f : sqrtf(x);
+    return (x > 0.0f) ? sqrtf(x) : 0.0f;
 }
 
 

@@ -1064,8 +1064,8 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     double root = hypot (A-C, B);
     double Aprime = (A + C - root) * 0.5;
     double Cprime = (A + C + root) * 0.5;
-    majorlength = A > 0 ? safe_sqrtf (F / Aprime) : 0;
-    minorlength = C > 0 ? safe_sqrtf (F / Cprime) : 0;
+    majorlength = A > 0 ? std::min(safe_sqrtf (F / Aprime), 1000.0f) : 0;
+    minorlength = C > 0 ? std::min(safe_sqrtf (F / Cprime), 1000.0f) : 0;
     theta = atan2 (B, A-C) * 0.5 + M_PI_2;
     if (ABCF) {
         // Optionally store the ellipse equation parameters, the ellipse
