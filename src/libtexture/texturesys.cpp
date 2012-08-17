@@ -301,10 +301,10 @@ TextureSystemImpl::getstats (int level, bool icstats) const
         out << "    bilinear : " << stats.bilinear_interps << "\n";
         out << "    bicubic  : " << stats.cubic_interps << "\n";
         if (stats.aniso_queries)
-            out << Strutil::format ("  Average anisotropy : %.3g\n",
+            out << Strutil::format ("  Average anisotropic probes : %.3g\n",
                                     (double)stats.aniso_probes/(double)stats.aniso_queries);
         else
-            out << Strutil::format ("  Average anisotropy : 0\n");
+            out << Strutil::format ("  Average anisotropic probes : 0\n");
         out << Strutil::format ("  Max anisotropy in the wild : %.3g\n",
                                 stats.max_aniso);
         if (icstats)
@@ -1060,16 +1060,23 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     double A = dtdx2 + dtdy2;
     double B = -2.0 * (dsdx * dtdx + dsdy * dtdy);
     double C = dsdx2 + dsdy2;
-    double F = A*C - B*B*0.25;
-    double root = hypot (A-C, B);
+    double root = hypot (A-C, B);  // equivalent: sqrt (A*A - 2AC + C*C + B*B)
     double Aprime = (A + C - root) * 0.5;
     double Cprime = (A + C + root) * 0.5;
-    majorlength = A > 0 ? safe_sqrtf (F / Aprime) : 0;
-    minorlength = C > 0 ? safe_sqrtf (F / Cprime) : 0;
+#if 0
+    double F = A*C - B*B*0.25;
+    majorlength = std::min(safe_sqrtf (F / Aprime), 1000.0f);
+    minorlength = std::min(safe_sqrtf (F / Cprime), 1000.0f);
+#else
+    // Wolfram says that this is equivalent to:
+    majorlength = std::min (safe_sqrtf(Cprime), 1000.0f);
+    minorlength = std::min (safe_sqrtf(Aprime), 1000.0f);
+#endif
     theta = atan2 (B, A-C) * 0.5 + M_PI_2;
     if (ABCF) {
         // Optionally store the ellipse equation parameters, the ellipse
         // is given by: A*u^2 + B*u*v + C*v^2 < 1
+        double F = A*C - B*B*0.25;
         double Finv = 1.0f / F;
         ABCF[0] = A * Finv;
         ABCF[1] = B * Finv;
@@ -1106,12 +1113,14 @@ compute_ellipse_sampling (float aspect, float theta,
     float L = 2.0f * (majorlength - minorlength);
     smajor *= L;
     tmajor *= L;
+#if 1
+    // This is the theoretically correct number of samples.
+    int nsamples = std::max (1, int(2.0f*aspect-1.0f));
+#else
     int nsamples = std::max (1, (int) ceilf (aspect - 0.3f));
-    // N.B. Theoretically, nsamples ought to be int(2*aspect - 1).  But
-    // I believe that this does more samples than we need (or want to
-    // pay for) when aspect is high, and not quite enough when aspect is
-    // low (aspect 1.4 sure looks like it should have two samples to me
-    // when I draw the ellipse).
+    // This approach does fewer samples for high aspect ratios, but I see
+    // artifacts.
+#endif
     invsamples = 1.0f / nsamples;
     if (weights) {
         if (nsamples == 1) {
@@ -1190,7 +1199,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     compute_miplevels (texturefile, options, majorlength, minorlength, aspect,
                        miplevel, levelweight);
 
-    float *lineweight = ALLOCA (float, options.anisotropic);
+    float *lineweight = ALLOCA (float, 2*options.anisotropic);
     float invsamples;
     int nsamples = compute_ellipse_sampling (aspect, theta, majorlength,
                                              minorlength, smajor, tmajor,
@@ -1910,7 +1919,7 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
     TextureOpt options;
     float trueaspect;
     float aspect = TextureSystemImpl::anisotropic_aspect (majorlength, minorlength, options, trueaspect);
-    float *lineweight = ALLOCA (float, options.anisotropic);
+    float *lineweight = ALLOCA (float, 2*options.anisotropic);
     float smajor, tmajor, invsamples;
     int nsamples = compute_ellipse_sampling (aspect, theta, majorlength,
                                              minorlength, smajor, tmajor,
