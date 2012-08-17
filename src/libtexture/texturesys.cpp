@@ -1060,16 +1060,23 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
     double A = dtdx2 + dtdy2;
     double B = -2.0 * (dsdx * dtdx + dsdy * dtdy);
     double C = dsdx2 + dsdy2;
-    double F = A*C - B*B*0.25;
-    double root = hypot (A-C, B);
+    double root = hypot (A-C, B);  // equivalent: sqrt (A*A - 2AC + C*C + B*B)
     double Aprime = (A + C - root) * 0.5;
     double Cprime = (A + C + root) * 0.5;
-    majorlength = A > 0 ? std::min(safe_sqrtf (F / Aprime), 1000.0f) : 0;
-    minorlength = C > 0 ? std::min(safe_sqrtf (F / Cprime), 1000.0f) : 0;
+#if 0
+    double F = A*C - B*B*0.25;
+    majorlength = std::min(safe_sqrtf (F / Aprime), 1000.0f);
+    minorlength = std::min(safe_sqrtf (F / Cprime), 1000.0f);
+#else
+    // Wolfram says that this is equivalent to:
+    majorlength = std::min (safe_sqrtf(Cprime), 1000.0f);
+    minorlength = std::min (safe_sqrtf(Aprime), 1000.0f);
+#endif
     theta = atan2 (B, A-C) * 0.5 + M_PI_2;
     if (ABCF) {
         // Optionally store the ellipse equation parameters, the ellipse
         // is given by: A*u^2 + B*u*v + C*v^2 < 1
+        double F = A*C - B*B*0.25;
         double Finv = 1.0f / F;
         ABCF[0] = A * Finv;
         ABCF[1] = B * Finv;
