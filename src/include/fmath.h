@@ -1072,10 +1072,16 @@ safe_acosf (float x) {
 
 /// Safe (clamping) sqrt.
 ///
+inline double
+safe_sqrt (double x)
+{
+    return (x > 0.0) ? sqrt(x) : 0.0;
+}
+
 inline float
 safe_sqrtf (float x)
 {
-    return (x < 0.0f) ? 0.0f : sqrtf(x);
+    return (x > 0.0f) ? sqrtf(x) : 0.0f;
 }
 
 
