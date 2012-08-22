@@ -100,6 +100,10 @@ else ()
     message (STATUS "TBB will not be used")
 endif ()
 
+if (EXTRA_CPP_DEFINITIONS)
+    add_definitions ("${EXTRA_CPP_DEFINITIONS}")
+endif()
+
 set(CMAKE_MODULE_PATH
     "${PROJECT_SOURCE_DIR}/cmake/modules"
     "${PROJECT_SOURCE_DIR}/cmake")
