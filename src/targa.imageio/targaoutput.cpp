@@ -585,7 +585,7 @@ TGAOutput::write_scanline (int y, int z, TypeDesc format,
     y -= m_spec.y;
     m_spec.auto_stride (xstride, format, spec().nchannels);
     data = to_native_scanline (format, data, xstride, m_scratch);
-    if (data != &m_scratch[0]) {
+    if (m_scratch.empty() || data != &m_scratch[0]) {
         m_scratch.assign ((unsigned char *)data,
                           (unsigned char *)data+m_spec.scanline_bytes());
         data = &m_scratch[0];
