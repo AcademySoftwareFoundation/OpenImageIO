@@ -228,6 +228,46 @@ public:
     }
 };
 
+#ifdef _WIN32
+/// Conversion functions between UTF-8 and UTF-16 for windows.
+///
+/// For historical reasons, the standard encoding for strings on windows is
+/// UTF-16, whereas the unix world seems to have settled on UTF-8.  These two
+/// encodings can be stored in std::string and std::wstring respectively, with
+/// the caveat that they're both variable-width encodings, so not all the
+/// standard string methods will make sense (for example std::string::size()
+/// won't return the number of glyphs in a UTF-8 string, unless it happens to
+/// be made up of only the 7-bit ASCII subset).
+///
+/// The standard windows API functions usually have two versions, a UTF-16
+/// version with a 'W' suffix (using wchar_t* strings), and an ANSI version
+/// with a 'A' suffix (using char* strings) which uses the current windows
+/// code page to define the encoding.  (To make matters more confusing there is
+/// also a further "TCHAR" version which is #defined to the UTF-16 or ANSI
+/// version, depending on whether UNICODE is defined during compilation.
+/// This is meant to make it possible to support compiling libraries in
+/// either unicode or ansi mode from the same codebase.)
+///
+/// Using std::string as the string container (as in OIIO) implies that we
+/// can't use UTF-16.  It also means we need a variable-width encoding to
+/// represent characters in non-Latin alphabets in an unambiguous way; the
+/// obvious candidate is UTF-8.  File paths in OIIO are considered to be
+/// represented in UTF-8, and must be converted to UTF-16 before passing to
+/// windows API file opening functions.
+
+/// On the other hand, the encoding used for the ANSI versions of the windows
+/// API is the current windows code page.  This is more compatible with the
+/// default setup of the standard windows command prompt, and may be more
+/// appropriate for error messages.
+
+// Conversion to wide char
+//
+std::wstring DLLPUBLIC utf8_to_utf16(const std::string& utf8str);
+
+// Conversion from wide char
+//
+std::string DLLPUBLIC utf16_to_utf8(const std::wstring& utf16str);
+#endif
 
 };  // namespace Strutil
 
