@@ -259,13 +259,6 @@ Sysutil::put_in_background (int, char* [])
 #endif
 
 #ifdef WIN32
-    // if we are not in DEBUG mode this code switch the app to
-    // full windowed mode (no console and no need to define WinMain)
-    // FIXME: this should be done in CMakeLists.txt but first we have to
-    // fix Windows Debug build
-# ifndef DEBUG
-#  pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
-# endif
     return true;
 #endif
 
