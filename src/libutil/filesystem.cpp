@@ -243,41 +243,13 @@ Filesystem::is_regular (const std::string &path)
 
 
 
-#ifdef _WIN32
-std::wstring
-Filesystem::path_to_windows_native (const std::string& str)
-{
-    std::wstring native;
-    
-    native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0));
-    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], native.size());
-
-    return native;
-}
-
-
-
-std::string
-Filesystem::path_from_windows_native (const std::wstring& str)
-{
-    std::string utf8;
-
-    utf8.resize(WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
-    WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, &utf8[0], utf8.size(), NULL, NULL);
-
-    return utf8;
-}
-#endif
-
-
-
 FILE*
 Filesystem::fopen (const std::string &path, const std::string &mode)
 {
 #ifdef _WIN32
     // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
-    std::wstring wpath = path_to_windows_native (path);
-    std::wstring wmode = path_to_windows_native (mode);
+    std::wstring wpath = Strutil::utf8_to_utf16 (path);
+    std::wstring wmode = Strutil::utf8_to_utf16 (mode);
 
     return ::_wfopen (wpath.c_str(), wmode.c_str());
 #else
@@ -295,7 +267,7 @@ Filesystem::open (std::ifstream &stream,
 {
 #ifdef _WIN32
     // Windows std::ifstream accepts non-standard wchar_t* 
-    std::wstring wpath = path_to_windows_native(path);
+    std::wstring wpath = Strutil::utf8_to_utf16(path);
     stream.open (wpath.c_str(), mode);
 #else
     stream.open (path.c_str(), mode);
@@ -311,7 +283,7 @@ Filesystem::open (std::ofstream &stream,
 {
 #ifdef _WIN32
     // Windows std::ofstream accepts non-standard wchar_t*
-    std::wstring wpath = path_to_windows_native (path);
+    std::wstring wpath = Strutil::utf8_to_utf16 (path);
     stream.open (wpath.c_str(), mode);
 #else
     stream.open (path.c_str(), mode);
@@ -322,7 +294,7 @@ std::time_t
 Filesystem::last_write_time (const std::string& path)
 {
 #ifdef _WIN32
-    std::wstring wpath = path_to_windows_native (path);
+    std::wstring wpath = Strutil::utf8_to_utf16 (path);
     return boost::filesystem::last_write_time (wpath);
 #else
     return boost::filesystem::last_write_time (path);
@@ -335,7 +307,7 @@ void
 Filesystem::last_write_time (const std::string& path, std::time_t time)
 {
 #ifdef _WIN32
-    std::wstring wpath = path_to_windows_native (path);
+    std::wstring wpath = Strutil::utf8_to_utf16 (path);
     boost::filesystem::last_write_time (wpath, time);
 #else
     boost::filesystem::last_write_time (path, time);
@@ -360,7 +332,7 @@ Filesystem::convert_native_arguments (int argc, const char *argv[])
         return;
 
     for (int i = 0; i < argc; i++) {
-        std::string utf8_arg = path_from_windows_native (native_argv[i]);
+        std::string utf8_arg = Strutil::utf16_to_utf8 (native_argv[i]);
         argv[i] = ustring (utf8_arg).c_str();
     }
 #endif

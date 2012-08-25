@@ -228,6 +228,15 @@ public:
     }
 };
 
+#ifdef _WIN32
+// Conversion to wide char
+//
+std::wstring DLLPUBLIC utf8_to_utf16(const std::string& utf8str);
+
+// Conversion from wide char
+//
+std::string DLLPUBLIC utf16_to_utf8(const std::wstring& utf16str);
+#endif
 
 };  // namespace Strutil
 

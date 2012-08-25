@@ -364,7 +364,7 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     if (! m_tif) {
 #ifdef _WIN32
-        std::wstring wfilename = Filesystem::path_to_windows_native (m_filename);
+        std::wstring wfilename = Strutil::utf8_to_utf16 (m_filename);
         m_tif = TIFFOpenW (wfilename.c_str(), "rm");
 #else
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
@@ -763,7 +763,7 @@ TIFFInput::readspec (bool read_meta)
         // So to be safe, close and re-seek.
         TIFFClose (m_tif);
 #ifdef _WIN32
-        std::wstring wfilename = Filesystem::path_to_windows_native (m_filename);
+        std::wstring wfilename = Strutil::utf8_to_utf16 (m_filename);
         m_tif = TIFFOpenW (wfilename.c_str(), "rm");
 #else
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
