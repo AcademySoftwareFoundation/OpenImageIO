@@ -66,6 +66,10 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
+// Custom file output stream, copying code from the class StdOFStream in OpenEXR,
+// which would have been used if we just provided a filename. The difference is
+// that this can handle UTF-8 file paths on all platforms.
+
 class OpenEXROutputStream : public Imf::OStream
 {
 public:
