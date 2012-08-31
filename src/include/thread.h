@@ -69,7 +69,7 @@
 #endif
 
 #ifndef USE_TBB
-#  define USE_TBB 1
+#  define USE_TBB 0
 #endif
 
 // Include files we need for atomic counters.
