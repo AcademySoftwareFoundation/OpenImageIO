@@ -1,5 +1,10 @@
 Changes:
 
+Release 0.10.11 (1 Sep 2012)
+----------------------------
+* Improve error messages when trying to open an OpenEXR image that doesn't
+  exist or is not a valid OpenEXR file.
+
 
 Release 0.10.10 (17 Jul 2012)
 -----------------------------
