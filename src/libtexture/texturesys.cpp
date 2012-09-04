@@ -1390,10 +1390,8 @@ TextureSystemImpl::accum_sample_closest (float s, float t, int miplevel,
         return true;
     }
 
-    int tilewidthmask  = spec.tile_width  - 1;  // e.g. 63
-    int tileheightmask = spec.tile_height - 1;
-    int tile_s = (stex - spec.x) & tilewidthmask;
-    int tile_t = (ttex - spec.y) & tileheightmask;
+    int tile_s = (stex - spec.x) % spec.tile_width;
+    int tile_t = (ttex - spec.y) % spec.tile_height;
     TileID id (texturefile, options.subimage, miplevel,
                stex - tile_s, ttex - tile_t, 0);
     bool ok = find_tile (id, thread_info);
