@@ -1,5 +1,14 @@
 Changes:
 
+Release 1.0.9 (4 Sep 2012)
+----------------------------
+* Improve error messages when trying to open an OpenEXR image that doesn't
+  exist or is not a valid OpenEXR file.
+* Make the TextureSystem work properly with MIPmapped images whose tile
+  size is not a power of 2 (mostly back-ported from master, but with
+  additional fixes).
+
+
 Release 1.0.8 (17 July 2012)
 ----------------------------
 * Fix quantization/truncation bug that sometimes left tiny alpha holes in
