@@ -1,5 +1,12 @@
 Changes:
 
+Release 0.10.12 (4 Sep 2012)
+----------------------------
+* Make the TextureSystem work properly with MIPmapped images whose tile
+  size is not a power of 2 (mostly back-ported from master, but with
+  additional fixes).
+
+
 Release 0.10.11 (1 Sep 2012)
 ----------------------------
 * Improve error messages when trying to open an OpenEXR image that doesn't
