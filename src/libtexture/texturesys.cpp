@@ -929,21 +929,21 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap (TextureFile &texturefile,
 // the 'x' axis was the major axis, 1 if the 'y' axis was major.
 inline int
 ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
-              float &majorlength, float &minorlength)
+              float &majorlength, float &minorlength, float &theta)
 {
     float dsdx2 = dsdx*dsdx;
     float dtdx2 = dtdx*dtdx;
     float dsdy2 = dsdy*dsdy;
     float dtdy2 = dtdy*dtdy;
-    float A = dtdx2 + dtdy2;
-    float B = -2.0f * (dsdx * dtdx + dsdy * dtdy);
-    float C = dsdx2 + dsdy2;
-    float F = A*C - B*B*0.25f;
-    float root = hypotf (A-C, B);
-    float Aprime = (A + C - root) * 0.5f;
-    float Cprime = (A + C + root) * 0.5f;
-    majorlength = A > 0 ? std::min (sqrtf (F / Aprime), 1e4f) : 0;
-    minorlength = C > 0 ? sqrtf (F / Cprime) : 0;
+    double A = dtdx2 + dtdy2;
+    double B = -2.0f * (dsdx * dtdx + dsdy * dtdy);
+    double C = dsdx2 + dsdy2;
+    double root = hypotf (A-C, B);
+    double Aprime = (A + C - root) * 0.5f;
+    double Cprime = (A + C + root) * 0.5f;
+    majorlength = std::min (safe_sqrtf(Cprime), 1000.0f);
+    minorlength = std::min (safe_sqrtf(Aprime), 1000.0f);
+    theta = atan2 (B, A-C) * 0.5 + M_PI_2;
     // N.B. Various papers (including the FELINE ones, imply that the
     // above calculations is the major and minor radii, but we treat
     // them as the diameter.  Tests indicate that we are filtering just
@@ -954,6 +954,37 @@ ellipse_axes (float dsdx, float dtdx, float dsdy, float dtdy,
         return 1;
     else
         return 0;
+}
+
+
+
+// Given the aspect ratio, major axis orientation angle, and axis lengths,
+// calculate the smajor & tmajor values that give the orientation of the
+// line on which samples should be distributed.  If there are n samples,
+// they should be positioned as:
+//     p_i = 2*(i+0.5)/n - 1.0;
+//     sample_i = (s + p_i*smajor, t + p_i*tmajor)
+inline int
+compute_ellipse_sampling (float aspect, float theta,
+                          float majorlength, float minorlength,
+                          float &smajor, float &tmajor,
+                          float &invsamples)
+{
+    // Compute the sin and cos of the sampling direction, given major
+    // axis angle
+    sincos (theta, &tmajor, &smajor);
+    float L = 2.0f * (majorlength - minorlength);
+    smajor *= L;
+    tmajor *= L;
+    // This is the theoretically correct number of samples.
+    int nsamples = std::max (1, (int) ceilf (aspect - 0.25f));
+    // N.B. Theoretically, nsamples ought to be int(2*aspect - 1).  But
+    // I believe that this does more samples than we need (or want to
+    // pay for) when aspect is high, and not quite enough when aspect is
+    // low (aspect 1.4 sure looks like it should have two samples to me
+    // when I draw the ellipse).
+    invsamples = 1.0f / nsamples;
+    return nsamples;
 }
 
 
@@ -1001,6 +1032,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     // directions. Pick the longest one and take several samples along it.
     float smajor, tmajor, sminor, tminor;
     float majorlength, minorlength;
+    float theta;
 
 #if 0
     // OLD code -- I thought this approximation was a good try, but it
@@ -1031,7 +1063,7 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     // increase the average anisotropy, therefore the number of bilinear
     // or bicubic texture probes, and therefore runtime!
     // FIXME -- come back and improve performance to compensate.
-    int axis = ellipse_axes (dsdx, dtdx, dsdy, dtdy, majorlength, minorlength);
+    int axis = ellipse_axes (dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta);
     if (axis) {
         smajor = dsdy;
         tmajor = dtdy;
@@ -1094,8 +1126,16 @@ TextureSystemImpl::texture_lookup (TextureFile &texturefile,
     }
     float levelweight[2] = { 1.0f - levelblend, levelblend };
 
-    int nsamples = std::max (1, (int) ceilf (aspect - 0.25f));
-    float invsamples = 1.0f / nsamples;
+    float invsamples;
+    int nsamples = compute_ellipse_sampling (aspect, theta, majorlength,
+                                             minorlength, smajor, tmajor,
+                                             invsamples);
+    // All the computations were done assuming full diametric axes of
+    // the ellipse, but our derivatives are pixel-to-pixel, yielding
+    // semi-major and semi-minor lengths, so we need to scale everything
+    // by 1/2.
+    smajor *= 0.5f;
+    tmajor *= 0.5f;
 
     bool ok = true;
     int npointson = 0;

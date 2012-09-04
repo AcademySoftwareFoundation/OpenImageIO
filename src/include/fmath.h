@@ -1030,6 +1030,12 @@ safe_acosf (float x) {
 
 
 
+inline float
+safe_sqrtf (float x) {
+    return (x > 0.0f) ? sqrtf(x) : 0.0f;
+}
+
+
 
 /// Solve for the x for which func(x) == y on the interval [xmin,xmax].
 /// Use a maximum of maxiter iterations, and stop any time the remaining
