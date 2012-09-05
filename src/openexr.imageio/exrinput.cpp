@@ -41,6 +41,12 @@
 #include <OpenEXR/ImfTiledInputFile.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
+
+// The way that OpenEXR uses dynamic casting for attributes requires 
+// temporarily suspending "hidden" symbol visibility mode.
+#ifdef __GNUC__
+#pragma GCC visibility push(default)
+#endif
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
@@ -48,7 +54,6 @@
 #include <OpenEXR/ImfStringAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
-#include <OpenEXR/ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #ifdef USE_OPENEXR_VERSION2
@@ -60,6 +65,12 @@
 #include <OpenEXR/ImfDeepTiledInputPart.h>
 #include <OpenEXR/ImfDeepFrameBuffer.h>
 #endif
+
+#ifdef __GNUC__
+#pragma GCC visibility pop
+#endif
+
+#include <OpenEXR/ImfCRgbaFile.h>
 
 #include "dassert.h"
 #include "imageio.h"
