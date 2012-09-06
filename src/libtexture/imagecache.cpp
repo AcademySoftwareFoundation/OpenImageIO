@@ -938,7 +938,7 @@ ImageCacheImpl::find_file (ustring filename,
         Timer timer;
 #endif
         DASSERT (m_filemutex_holder != thread_info);
-        ic_read_lock readguard (m_filemutex);
+        ic_write_lock readguard (m_filemutex);
         DASSERT (m_filemutex_holder == NULL);
         filemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
@@ -1090,7 +1090,7 @@ ImageCacheImpl::check_max_files_with_lock (ImageCachePerThreadInfo *thread_info)
     Timer timer;
 #endif
     DASSERT (m_filemutex_holder != thread_info);
-    ic_read_lock readguard (m_filemutex);
+    ic_write_lock readguard (m_filemutex);
     DASSERT (m_filemutex_holder == NULL);
     filemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
@@ -1197,12 +1197,9 @@ ImageCacheTile::read (ImageCachePerThreadInfo *thread_info)
 void
 ImageCacheTile::wait_pixels_ready () const
 {
+    atomic_backoff backoff;
     while (! m_pixels_ready) {
-        // Be kind to the CPU.  As far as I know, this does nothing on
-        // Windows.  Any Windows gurus know a better idea?
-#ifdef __TBB_Yield
-        __TBB_Yield ();
-#endif
+        backoff();
     }
 }
 
@@ -1557,7 +1554,7 @@ ImageCacheImpl::reset_stats ()
     }
 
     {
-        ic_read_lock fileguard (m_filemutex);
+        ic_write_lock fileguard (m_filemutex);
         for (FilenameMap::const_iterator f = m_files.begin(); f != m_files.end(); ++f) {
             const ImageCacheFileRef &file (f->second);
             file->m_timesopened = 0;
@@ -1797,48 +1794,39 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
 
     ++stats.find_tile_microcache_misses;
 
-    {
 #if IMAGECACHE_TIME_STATS
-        Timer timer;
+    Timer timer;
 #endif
+    TileCache::iterator found;
+    {
         DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
         ic_read_lock readguard (m_tilemutex);
-        tilemutex_holder (thread_info);
+        // tilemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
         stats.tile_locking_time += timer();
 #endif
-
-        TileCache::iterator found = m_tilecache.find (id);
+        found = m_tilecache.find (id);
 #if IMAGECACHE_TIME_STATS
         stats.find_tile_time += timer();
 #endif
-        if (found != m_tilecache.end()) {
+        if (found != m_tilecache.end())
             tile = found->second;
-            // We need to release the tile lock BEFORE calling
-            // wait_pixels_ready, or we could end up deadlocked if the
-            // other thread reading the pixels needs to lock the cache
-            // because it's doing automip.
-            DASSERT (m_tilemutex_holder == thread_info); // better still be us
-            tilemutex_holder (NULL);
-            m_tilemutex.unlock ();
-            tile->wait_pixels_ready ();
-            tile->use ();
-            DASSERT (id == tile->id());
-            DASSERT (tile);
-            DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
-            // Relock -- this shouldn't be necessary, but by golly, if I
-            // don't do this, I get inconsistent lock states.  Maybe a TBB
-            // bug in the lock_guard destructor if the spin mutex was 
-            // unlocked by hand, as above?
-            // FIXME -- try removing this if/when we upgrade to a newer TBB.
-            m_tilemutex.lock ();
-            return true;
-        }
-        DASSERT (tilemutex_holder() == thread_info); // better still be us
-        tilemutex_holder (NULL);
+        // DASSERT (m_tilemutex_holder == thread_info); // better still be us
+        // tilemutex_holder (NULL);
     }
 
-    DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
+    if (found != m_tilecache.end()) {
+        // We found the tile in the cache, but we need to make sure we
+        // wait until the pixels are ready to read.  We purposely have
+        // released the lock (above) before calling wait_pixels_ready,
+        // otherwise we could deadlock if another thread reading the
+        // pixels needs to lock the cache because it's doing automip.
+        tile->wait_pixels_ready ();
+        tile->use ();
+        DASSERT (id == tile->id());
+        DASSERT (tile);
+        return true;
+    }
 
     // The tile was not found in cache.
 
@@ -2283,7 +2271,7 @@ ImageCacheImpl::invalidate (ustring filename)
 {
     ImageCacheFile *file = NULL;
     {
-        ic_read_lock fileguard (m_filemutex);
+        ic_write_lock fileguard (m_filemutex);
         FilenameMap::iterator fileit = m_files.find (filename);
         if (fileit != m_files.end()) {
             file = fileit->second.get();
@@ -2342,7 +2330,7 @@ ImageCacheImpl::invalidate_all (bool force)
     // Make a list of all files that need to be invalidated
     std::vector<ustring> all_files;
     {
-        ic_read_lock fileguard (m_filemutex);
+        ic_write_lock fileguard (m_filemutex);
         for (FilenameMap::iterator fileit = m_files.begin();
                  fileit != m_files.end();  ++fileit) {
             ImageCacheFileRef &f (fileit->second);

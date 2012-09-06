@@ -40,6 +40,8 @@
 #ifndef OPENIMAGEIO_SYSUTIL_H
 #define OPENIMAGEIO_SYSUTIL_H
 
+#include <string>
+
 #include "export.h"
 #include "version.h"
 
@@ -67,6 +69,25 @@
 // Align the next declaration to be on its own cache line
 #define OIIO_CACHE_ALIGN OIIO_ALIGN(OIIO_CACHE_LINE_SIZE)
 
+
+
+// gcc defines a special intrinsic to use in conditionals that can speed
+// up extremely performance-critical spots if the conditional usually
+// (or rarely) is true.  You use it by replacing
+//     if (x) ...
+// with
+//     if (OIIO_LIKELY(x)) ...     // if you think x will usually be true
+// or
+//     if (OIIO_UNLIKELY(x)) ...   // if you think x will rarely be true
+// Caveat: Programmers are notoriously bad at guessing this, so it
+// should be used only with thorough benchmarking.
+#ifdef __GNUC__
+#define OIIO_LIKELY(x)   (__builtin_expect((x), 1))
+#define OIIO_UNLIKELY(x) (__builtin_expect((x), 0))
+#else
+#define OIIO_LIKELY(x)   (x)
+#define OIIO_UNLIKELY(x) (x)
+#endif
 
 
 
