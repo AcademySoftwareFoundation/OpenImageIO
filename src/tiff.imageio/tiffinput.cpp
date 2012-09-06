@@ -259,11 +259,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *tiff_input_imageio_create () { return new TIFFInput; }
+OIIO_EXPORT ImageInput *tiff_input_imageio_create () { return new TIFFInput; }
 
-// DLLEXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION; // it's in tiffoutput.cpp
+// OIIO_EXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION; // it's in tiffoutput.cpp
 
-DLLEXPORT const char * tiff_input_extensions[] = {
+OIIO_EXPORT const char * tiff_input_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
 };
 

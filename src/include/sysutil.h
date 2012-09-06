@@ -103,31 +103,31 @@ namespace Sysutil {
 /// The amount of memory currently being used by this process, in bytes.
 /// By default, returns the full virtual arena, but if resident=true,
 /// it will report just the resident set in RAM.
-DLLPUBLIC size_t memory_used (bool resident=false);
+OIIO_API size_t memory_used (bool resident=false);
 
 
 /// Convert calendar time pointed by 'time' into local time and save it in
 /// 'converted_time' variable
-DLLPUBLIC void get_local_time (const time_t *time, struct tm *converted_time);
+OIIO_API void get_local_time (const time_t *time, struct tm *converted_time);
 
 /// Return the full path of the currently-running executable program.
 ///
-DLLPUBLIC std::string this_program_path ();
+OIIO_API std::string this_program_path ();
 
 /// Sleep for the given number of microseconds.
 ///
-DLLPUBLIC void usleep (unsigned long useconds);
+OIIO_API void usleep (unsigned long useconds);
 
 /// Try to figure out how many columns wide the terminal window is.
 /// May not be correct all all systems, will default to 80 if it can't
 /// figure it out.
-DLLPUBLIC int terminal_columns ();
+OIIO_API int terminal_columns ();
 
 /// Try to put the process into the background so it doesn't continue to
 /// tie up any shell that it was launched from.  The arguments are the
 /// argc/argv that describe the program and its command line arguments.
 /// Return true if successful, false if it was unable to do so.
-DLLPUBLIC bool put_in_background (int argc, char* argv[]);
+OIIO_API bool put_in_background (int argc, char* argv[]);
 
 
 };  // namespace Sysutils

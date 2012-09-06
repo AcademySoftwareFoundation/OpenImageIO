@@ -93,7 +93,7 @@
 #endif
 
 
-// Back compatibility macros
+// Back compatibility macros (DEPRECATED)
 #define DLLPUBLIC OIIO_API
 #define DLLEXPORT OIIO_EXPORT
 

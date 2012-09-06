@@ -62,7 +62,7 @@ OIIO_NAMESPACE_ENTER
 ///  - Each value has an array of 4 ELEMENTS, ecah of which is a color
 ///  - A color has 3 COMPONENTS (R, G, B)
 ///
-class DLLPUBLIC ParamValue {
+class OIIO_API ParamValue {
 public:
     /// Interpolation types
     ///
@@ -143,7 +143,7 @@ private:
 
 /// A list of ParamValue entries, that can be iterated over or searched.
 ///
-class DLLPUBLIC ParamValueList {
+class OIIO_API ParamValueList {
     typedef std::vector<ParamValue> Rep;
 public:
     ParamValueList () { }

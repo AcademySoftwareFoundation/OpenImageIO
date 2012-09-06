@@ -454,11 +454,11 @@ PSDInput::mode_channel_count[] =
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *psd_input_imageio_create () { return new PSDInput; }
+OIIO_EXPORT ImageInput *psd_input_imageio_create () { return new PSDInput; }
 
-DLLEXPORT int psd_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int psd_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * psd_input_extensions[] = {
+OIIO_EXPORT const char * psd_input_extensions[] = {
     "psd", "pdd", "psb", NULL
 };
 

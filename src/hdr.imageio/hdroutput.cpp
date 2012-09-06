@@ -62,10 +62,10 @@ class HdrOutput : public ImageOutput {
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *hdr_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *hdr_output_imageio_create () {
         return new HdrOutput;
     }
-    DLLEXPORT const char *hdr_output_extensions[] = {
+    OIIO_EXPORT const char *hdr_output_extensions[] = {
         "hdr", "rgbe", NULL
     };
 

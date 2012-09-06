@@ -86,11 +86,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *dpx_input_imageio_create () { return new DPXInput; }
+OIIO_EXPORT ImageInput *dpx_input_imageio_create () { return new DPXInput; }
 
-DLLEXPORT int dpx_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int dpx_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * dpx_input_extensions[] = {
+OIIO_EXPORT const char * dpx_input_extensions[] = {
     "dpx", NULL
 };
 

@@ -102,7 +102,7 @@ typedef ParamValueList ImageIOParameterList;
 
 /// ImageSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
-class DLLPUBLIC ImageSpec {
+class OIIO_API ImageSpec {
 public:
     int x, y, z;              ///< origin (upper left corner) of pixel data
     int width;                ///< width of the pixel data window
@@ -391,7 +391,7 @@ public:
 
 
 /// Structure to hold "deep" data -- multiple samples per pixel.
-struct DLLPUBLIC DeepData {
+struct OIIO_API DeepData {
 public:
     int npixels, nchannels;
     std::vector<TypeDesc> channeltypes;  // for each channel [c]
@@ -416,7 +416,7 @@ public:
 
 /// ImageInput abstracts the reading of an image file in a file
 /// format-agnostic manner.
-class DLLPUBLIC ImageInput {
+class OIIO_API ImageInput {
 public:
     /// Create an ImageInput subclass instance that is able to read
     /// the given file and open it, returning the opened ImageInput if
@@ -800,7 +800,7 @@ private:
 
 /// ImageOutput abstracts the writing of an image file in a file
 /// format-agnostic manner.
-class DLLPUBLIC ImageOutput {
+class OIIO_API ImageOutput {
 public:
     /// Create an ImageOutput that will write to a file, with the format
     /// inferred from the extension of the name.  The plugin_searchpath
@@ -1111,14 +1111,14 @@ private:
 /// Retrieve the version of OpenImageIO for the library.  This is so
 /// plugins can query to be sure they are linked against an adequate
 /// version of the library.
-DLLPUBLIC int openimageio_version ();
+OIIO_API int openimageio_version ();
 
 /// Special geterror() called after ImageInput::create or
 /// ImageOutput::create, since if create fails, there's no object on
 /// which call obj->geterror().  This function returns the last error
 /// for this particular thread; separate threads will not clobber each
 /// other's global error messages.
-DLLPUBLIC std::string geterror ();
+OIIO_API std::string geterror ();
 
 /// Set a global attribute controlling OpenImageIO.  Return true
 /// if the name and type were recognized and the attribute was set.
@@ -1134,7 +1134,7 @@ DLLPUBLIC std::string geterror ();
 ///     string format_list     (for 'getattribute' only, cannot set)
 ///             Comma-separated list of all format names supported
 ///             or for which plugins could be found.
-DLLPUBLIC bool attribute (const std::string &name, TypeDesc type,
+OIIO_API bool attribute (const std::string &name, TypeDesc type,
                           const void *val);
 // Shortcuts for common types
 inline bool attribute (const std::string &name, int val) {
@@ -1156,7 +1156,7 @@ inline bool attribute (const std::string &name, const std::string &val) {
 /// otherwise return false and do not modify the contents of *val.  It
 /// is up to the caller to ensure that val points to the right kind and
 /// size of storage for the given type.
-DLLPUBLIC bool getattribute (const std::string &name, TypeDesc type,
+OIIO_API bool getattribute (const std::string &name, TypeDesc type,
                              void *val);
 // Shortcuts for common types
 inline bool getattribute (const std::string &name, int &val) {
@@ -1179,7 +1179,7 @@ inline bool getattribute (const std::string &name, std::string &val) {
 
 /// Helper routine: quantize a value to an integer given the
 /// quantization parameters.
-DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
+OIIO_API int quantize (float value, int quant_black, int quant_white,
                         int quant_min, int quant_max);
 
 /// Helper function: convert contiguous arbitrary data between two
@@ -1187,7 +1187,7 @@ DLLPUBLIC int quantize (float value, int quant_black, int quant_white,
 /// Return true if ok, false if it didn't know how to do the
 /// conversion.  If dst_type is UNKNWON, it will be assumed to be the
 /// same as src_type.
-DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
+OIIO_API bool convert_types (TypeDesc src_type, const void *src,
                               TypeDesc dst_type, void *to, int n,
                               int alpha_channel = -1, int z_channel = -1);
 
@@ -1200,7 +1200,7 @@ DLLPUBLIC bool convert_types (TypeDesc src_type, const void *src,
 /// stride values, and they will be auto-computed assuming contiguous
 /// data.  Return true if ok, false if it didn't know how to do the
 /// conversion.
-DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
+OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
                               const void *src, TypeDesc src_type,
                               stride_t src_xstride, stride_t src_ystride,
                               stride_t src_zstride,
@@ -1218,7 +1218,7 @@ DLLPUBLIC bool convert_image (int nchannels, int width, int height, int depth,
 /// AutoStride for any of the stride values, and they will be
 /// auto-computed assuming contiguous data.  Return true if ok, false if
 /// it didn't know how to do the conversion.
-DLLPUBLIC bool copy_image (int nchannels, int width, int height, int depth,
+OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
                            const void *src, stride_t pixelsize,
                            stride_t src_xstride, stride_t src_ystride,
                            stride_t src_zstride,
@@ -1229,11 +1229,11 @@ DLLPUBLIC bool copy_image (int nchannels, int width, int height, int depth,
 /// ImageSpec.  Return true if all is ok, false if the exif block was
 /// somehow malformed.  The binary data pointed to by 'exif' should
 /// start with a TIFF directory header.
-DLLPUBLIC bool decode_exif (const void *exif, int length, ImageSpec &spec);
+OIIO_API bool decode_exif (const void *exif, int length, ImageSpec &spec);
 
 /// Construct an Exif data block from the ImageSpec, appending the Exif 
 /// data as a big blob to the char vector.
-DLLPUBLIC void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
+OIIO_API void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
 
 /// Add metadata to spec based on raw IPTC (International Press
 /// Telecommunications Council) metadata in the form of an IIM
@@ -1243,7 +1243,7 @@ DLLPUBLIC void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
 /// metadata without having to duplicate functionality within each
 /// plugin.  Note that IIM is actually considered obsolete and is
 /// replaced by an XML scheme called XMP.
-DLLPUBLIC bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
+OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 
 /// Find all the IPTC-amenable metadata in spec and assemble it into an
 /// IIM data block in iptc.  This is a utility function to make it easy
@@ -1251,14 +1251,14 @@ DLLPUBLIC bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
 /// without having to duplicate functionality within each plugin.  Note
 /// that IIM is actually considered obsolete and is replaced by an XML
 /// scheme called XMP.
-DLLPUBLIC void encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
+OIIO_API void encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
 
 /// Add metadata to spec based on XMP data in an XML block.  Return true
 /// if all is ok, false if the xml was somehow malformed.  This is a
 /// utility function to make it easy for multiple format plugins to
 /// support embedding XMP metadata without having to duplicate
 /// functionality within each plugin.
-DLLPUBLIC bool decode_xmp (const std::string &xml, ImageSpec &spec);
+OIIO_API bool decode_xmp (const std::string &xml, ImageSpec &spec);
 
 /// Find all the relavant metadata (IPTC, Exif, etc.) in spec and
 /// assemble it into an XMP XML string.  This is a utility function to
@@ -1266,10 +1266,10 @@ DLLPUBLIC bool decode_xmp (const std::string &xml, ImageSpec &spec);
 /// metadata without having to duplicate functionality within each
 /// plugin.  If 'minimal' is true, then don't encode things that would
 /// be part of ordinary TIFF or exif tags.
-DLLPUBLIC std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
+OIIO_API std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 
 // to force correct linkage on some systems
-DLLPUBLIC void _ImageIO_force_link ();
+OIIO_API void _ImageIO_force_link ();
 
 }
 OIIO_NAMESPACE_EXIT

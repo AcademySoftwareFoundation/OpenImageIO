@@ -73,7 +73,7 @@ OIIO_NAMESPACE_ENTER
 ///
 /////////////////////////////////////////////////////////////////////////////
 
-struct DLLPUBLIC TypeDesc {
+struct OIIO_API TypeDesc {
     /// BASETYPE is a simple enum for the C/C++ built-in types.
     ///
     enum BASETYPE { UNKNOWN, NONE, 

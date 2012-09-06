@@ -79,15 +79,15 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *
+OIIO_EXPORT ImageOutput *
 field3d_output_imageio_create ()
 {
     return new Field3DOutput;
 }
 
-DLLEXPORT int field3d_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int field3d_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * field3d_output_extensions[] = {
+OIIO_EXPORT const char * field3d_output_extensions[] = {
     "f3d", NULL
 };
 

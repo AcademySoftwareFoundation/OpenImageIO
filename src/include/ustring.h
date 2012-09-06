@@ -145,7 +145,7 @@
 OIIO_NAMESPACE_ENTER
 {
 
-class DLLPUBLIC ustring {
+class OIIO_API ustring {
 public:
     typedef char value_type;
     typedef value_type * pointer;

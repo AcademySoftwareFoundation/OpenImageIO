@@ -34,9 +34,9 @@
 // #define PUGIXML_FUNCTION __fastcall // to set calling conventions to all public functions to fastcall
 // In absence of PUGIXML_CLASS/PUGIXML_FUNCTION definitions PUGIXML_API is used instead
 
-// OIIO: use already defined DLLPUBLIC
+// OIIO: use already defined OIIO_API
 #include "export.h"
-#define PUGIXML_API DLLPUBLIC
+#define PUGIXML_API OIIO_API
 
 #endif
 

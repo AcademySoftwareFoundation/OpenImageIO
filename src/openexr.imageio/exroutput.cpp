@@ -217,15 +217,15 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *
+OIIO_EXPORT ImageOutput *
 openexr_output_imageio_create ()
 {
     return new OpenEXROutput;
 }
 
-DLLEXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * openexr_output_extensions[] = {
+OIIO_EXPORT const char * openexr_output_extensions[] = {
     "exr", NULL
 };
 
