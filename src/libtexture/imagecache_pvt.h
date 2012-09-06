@@ -55,6 +55,8 @@ namespace pvt {
 # define IMAGECACHE_TIME_STATS 0
 #endif
 
+#define IMAGECACHE_USE_RW_MUTEX 1
+
 
 class ImageCacheImpl;
 struct ImageCachePerThreadInfo;
@@ -694,11 +696,11 @@ public:
             ic_read_lock lock (m_tilemutex);
 #ifdef DEBUG
             DASSERT (m_tilemutex_holder == NULL);
-            m_tilemutex_holder = thread_info;
+//            m_tilemutex_holder = thread_info;
 #endif
             found = m_tilecache.find (id);
 #ifdef DEBUG
-            m_tilemutex_holder = NULL;
+//            m_tilemutex_holder = NULL;
 #endif
         } else {
             // Caller already holds the lock
@@ -899,9 +901,15 @@ private:
     /// Clear the fingerprint list, thread-safe.
     void clear_fingerprints ();
 
+#if IMAGECACHE_USE_RW_MUTEX
+    typedef spin_rw_mutex ic_mutex;
+    typedef spin_rw_write_lock ic_read_lock;
+    typedef spin_rw_write_lock ic_write_lock;
+#else
     typedef spin_mutex ic_mutex;
     typedef spin_lock  ic_read_lock;
     typedef spin_lock  ic_write_lock;
+#endif
 
     thread_specific_ptr< ImageCachePerThreadInfo > m_perthread_info;
     std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
