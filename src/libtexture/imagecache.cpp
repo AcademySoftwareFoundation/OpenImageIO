@@ -1795,7 +1795,7 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
     ++stats.find_tile_microcache_misses;
 
 #if IMAGECACHE_TIME_STATS
-    Timer timer;
+    Timer timer1;
 #endif
     TileCache::iterator found;
     {
@@ -1803,11 +1803,11 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
         ic_read_lock readguard (m_tilemutex);
         // tilemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
-        stats.tile_locking_time += timer();
+        stats.tile_locking_time += timer1();
 #endif
         found = m_tilecache.find (id);
 #if IMAGECACHE_TIME_STATS
-        stats.find_tile_time += timer();
+        stats.find_tile_time += timer1();
 #endif
         if (found != m_tilecache.end())
             tile = found->second;
