@@ -3,13 +3,28 @@ Changes:
 Release 1.1 (developmet in progress, compared to 1.0.4)
 -------------------------------------------------------
 Major new features and improvements:
-* OpenCV interoperability: new ImageBufAlgo::fromIplImage converts/copies
-  an OpenCV image to an ImageBuf.
+* Big ImageCache/TextureSystem improvements:
+  - Improved accuracy of anisotropic texture filtering, especially when
+    combined with "blur."
+  - Improve performance in cases with high numbers of threads using the
+    TS simultaneously (mostly due to use of reader-writer locks on the
+    tile cache rather than unique locks).
 * New ImageBufAlgo functions:
-    capture_image : captures from a camera device (only if OpenCV is found)
+    fromIplImage() : converts/copies an OpenCV image to an ImageBuf.
+    capture_image() : captures from a camera device (only if OpenCV is found)
+    over() : Porter/Duff "over" compositing operation
+    render_text() : render text into an image
+    histogram() : compute value histogram information for an image
+    histogram_draw() : compute an image containing a graph of the histogram
+                       of another image
 * New oiiotool commands:
     --capture : captures from a camera device (only if OpenCV is found)
     --pattern constant : creates a constant-color image
+    --over : Porter/Duff "over" compositing operation
+    --text : render text into an image.
+    --histogram : computes an image containing a graph of the histogram of
+                  the input image.
+    --fill : fills a region with a solid color
 
 API changes:
 * A new static ImageInput::open(filename [,config]) combines the old
@@ -30,14 +45,33 @@ API changes:
 * TextureOpt now contains a 'subimagename' field that allows subimages
   to be addressed by name as well as by index (only for multi-image textures,
   of course).
+* ImageBuf improvements:
+  - A new constructor allows an ImageBuf to "wrap" an existing buffer
+    memory owned by the calling application without allocating/copying.
+  - Renamed the old ImageBuf::copy_pixels -> get_pixels, and it now
+    works for 3D (volumetric) buffers.
+  - New ImageBuf::copy(), and eliminated operator= which was confusing.
+  - New ImageBuf methods: reres(), copy_metadata(), copy_pixels(),
+    get_pixel_channels().
+  - ImageBuf::specmod() allows writable access to the ImageSpec (caution!).
+  - Better error reporting mechanism.
+* Many ImageBufAlgo functions now take a 'ROI' that restricts the operation
+  to a particular range of pixels within the image (usually defaulting to
+  the whole image).
 
 Fixes, minor enhancements, and performance improvements:
-* TextureSystem: anisotropic texture lookups are more robust when the 
-  derivatives are tiny.
+* ImageCache/TextureSystem:
+  - Anisotropic texture lookups are more robust when the derivatives are tiny.
+  - Attribute "deduplicate" controls whether the identical-image
+    deduplication is enabled (on by default).
+  - Attribute "substitute_image" lets you force all texture references to a
+    single image (helpful for debugging).
+  - Texture files are no longer limited to having tile sizes that are
+    powers of 2.
+  - Much faster TIFF texture access (by speeding up switching of MIPmap levels).
 * iconvert handles the int32 and uint32 cases.
 * Bug fix in to_native_rectangle, which could lead to errors in certain
   data format conversions.
-* Faster TIFF texture access (by speeding up switching of MIPmap levels).
 * iv improvements:
   - better behavior after closing the last image of the sequence.
   - file load/save dialogs can filter to show just certain image file types.
@@ -45,11 +79,10 @@ Fixes, minor enhancements, and performance improvements:
   - "About" dialog has a link to the OIIO home page
 * Improve ::create to more robustly handle files whose extensions don't
   match their actual formats.
-* ImageCache attribute "deduplicate" controls whether the identical-image
-  deduplication is enabled (on by default).
 * OpenImageIO::geterror() is now thread-specific, so separate threads will
   no longer clobber each others' error messages.
 * Fix reading bugs in DPX and Cineon.
+* DPX: fix endianness problem for 15 bit DPX output.
 * PNG: fix handling of gamma for sRGB images.
 * oiiotool fixes: print MIP messages correctly (it was only printing for
   the first MIP level); make sure stray "oiio:BitsPerSample" in an input
@@ -59,22 +92,53 @@ Fixes, minor enhancements, and performance improvements:
   present as a multi-image file with the "oiio:subimagename" giving a
   unique name for each layer subimage; 
 * OpenEXR: suppress format-specific metadata from other formats.
-* Texture files are no longer limited to having tile sizes that are
-  powers of 2.
+* Handle UTF-8 paths properly on Windows.
+* Removed the obsolete "iprocess" utility.
+* Fix allocation and stride bugs when dealing with images having different data
+  formats per channel, and tiled images with partially filled border tiles.
+* Field3D: Bug fix when reading vector f3d files.
+* Significant performance improvements of our atomics and spin locks when
+  compiling with USE_TBB=0.
+* Fix quantize() to properly round rather than truncate.
+* ImageBufAlgo functions now by convention will save error messages into
+  the error state of their output ImageBuf parameter.
+* Improve I/O error checking -- many file reads/writes did not previously
+  have their result status checked.
+* Fixed missing OpenEXR open() error message.
+* Clean up error reporting in iconvert.
 
-Build system improvements:
+Build/test system improvements:
 * Various Windows build fixes, including fixes for Windows 7, and 
   improvements to running the testsuite on Windows.
 * Testsuite additions and improvements: png fmath_test
 * Compilation fixes on FreeBSD.
+* Compilation fixes on GNU Hurd platform.
+* Compilation and warning fixes for Clang 3.1.
 * Add FIELD3D_HOME build variable to allow explicit path to Field3D
   implementation.
+* Remove support for Boost < 1.40.
+* Improved unit tests for atomics, spin locks, and rw locks.
+* Avoid generating iv man pages when USE_QT=0
+* New testtex options: --aniso, --stblur
+* CMake option 'EXTRA_CPP_DEFINITIONS' lets custom builds inject
+  site-specific compiler flags.
 
 Developer goodies:
 * Strutil utilities: iequals, istarts_with, iends_with, to_lower, to_upper.
 * Use Chris Foster's 'tinyformat' for type-safe printf-like formatting,
   and this now forms the basis of Strutil::format, ustring::format, and
   many of the classes' error() methods.
+* TypeDesc::equivalent() tests for type equality but allows triples with
+  different' vector semantics to match.
+* In timer.h, a new time_trial() template that makes multiple trial
+  benchmarks easy.
+* Macros for memory and cache alignment (in sysutil.h).
+* Extend Filesystem::searchpath_find() to be able to search recursively.
+* Strutil::strip() strips whitespace (or other specified character sets) from
+  the beginning or ending of strings.
+* Change threads.h to set USE_TBB=0 if undefined as a compiler flag; this
+  makes it easier to use threads.h in other applications without worrying
+  about TBB at all.
 
 
 
