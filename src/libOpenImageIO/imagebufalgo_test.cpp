@@ -91,7 +91,7 @@ void ImageBuf_zero_fill ()
     const float arbitrary3[CHANNELS] = { 0.42, 0.43, 0.44, 0.45 };
     {
         const int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
-        ImageBufAlgo::fill (A, arbitrary3, xbegin, xend, ybegin, yend);
+        ImageBufAlgo::fill (A, arbitrary3, ROI(xbegin, xend, ybegin, yend));
         for (int j = 0;  j < HEIGHT;  ++j) {
             for (int i = 0;  i < WIDTH;  ++i) {
                 float pixel[CHANNELS];

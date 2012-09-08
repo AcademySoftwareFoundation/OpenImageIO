@@ -1505,7 +1505,7 @@ action_fill (int argc, const char *argv[])
         }
     }
 
-    ok = ImageBufAlgo::fill (Rib, color, x, x+w, y, y+h);
+    ok = ImageBufAlgo::fill (Rib, color, ROI(x, x+w, y, y+h));
     if (! ok)
         ot.error (argv[0], Rib.geterror());
 
