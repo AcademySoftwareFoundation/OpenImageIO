@@ -1307,9 +1307,8 @@ ImageBufAlgo::over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, ROI roi,
     }
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from R.
-    if (! roi.defined) {
+    if (! roi.defined())
         roi = get_roi (R.spec());
-    }    
 
     parallel_image (boost::bind (over_impl<float,float,float>, boost::ref(R),
                                  boost::cref(A), boost::cref(B), _1),
@@ -1538,7 +1537,7 @@ ImageBufAlgo::histogram (const ImageBuf &A, int channel,
     }
 
     // Specified ROI -> use it. Unspecified ROI -> initialize from A.
-    if (! roi.defined)
+    if (! roi.defined())
         roi = get_roi (A.spec());
 
     histogram_impl<float> (A, channel, histogram, bins, min, max,

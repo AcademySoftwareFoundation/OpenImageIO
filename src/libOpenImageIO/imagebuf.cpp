@@ -57,7 +57,8 @@ get_roi (const ImageSpec &spec)
 {
     return ROI (spec.x, spec.x + spec.width,
                 spec.y, spec.y + spec.height,
-                spec.z, spec.z + spec.depth);
+                spec.z, spec.z + spec.depth,
+                0, spec.nchannels);
 }
 
 
@@ -67,7 +68,8 @@ get_roi_full (const ImageSpec &spec)
 {
     return ROI (spec.full_x, spec.full_x + spec.full_width,
                 spec.full_y, spec.full_y + spec.full_height,
-                spec.full_z, spec.full_z + spec.full_depth);
+                spec.full_z, spec.full_z + spec.full_depth,
+                0, spec.nchannels);
 }
 
 
@@ -103,7 +105,8 @@ roi_union (const ROI &A, const ROI &B)
 {
     return ROI (std::min (A.xbegin, B.xbegin), std::max (A.xend, B.xend),
                 std::min (A.ybegin, B.ybegin), std::max (A.yend, B.yend),
-                std::min (A.zbegin, B.zbegin), std::max (A.zend, B.zend));
+                std::min (A.zbegin, B.zbegin), std::max (A.zend, B.zend),
+                std::min (A.chbegin, B.chbegin), std::max (A.chend, B.chend));
 }
 
 
@@ -113,7 +116,8 @@ roi_intersection (const ROI &A, const ROI &B)
 {
     return ROI (std::max (A.xbegin, B.xbegin), std::min (A.xend, B.xend),
                 std::max (A.ybegin, B.ybegin), std::min (A.yend, B.yend),
-                std::max (A.zbegin, B.zbegin), std::min (A.zend, B.zend));
+                std::max (A.zbegin, B.zbegin), std::min (A.zend, B.zend),
+                std::max (A.chbegin, B.chbegin), std::min (A.chend, B.chend));
 }
 
 
