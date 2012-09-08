@@ -58,32 +58,25 @@ class Filter2D;  // forward declaration
 
 namespace ImageBufAlgo {
 
-/// Zero out (set to 0, black) the entire image.
-/// return true on success.
-bool DLLPUBLIC zero (ImageBuf &dst);
+/// Zero out (set to 0, black) the image region.  If the optional ROI is
+/// not specified, it will set all channels of all image pixels to 0.0.
+/// Return true on success, false on failure.
+bool DLLPUBLIC zero (ImageBuf &dst, ROI roi=ROI());
 
-
-/// Fill the entire image with the given pixel value.
-/// return true on success.
-bool DLLPUBLIC fill (ImageBuf &dst,
-                     const float *pixel);
-
-/// Fill a subregion of the image with the given pixel value.  The
-/// subregion is bounded by [xbegin..xend) X [ybegin..yend).
-/// return true on success.
-bool DLLPUBLIC fill (ImageBuf &dst,
-                     const float *pixel,
-                     int xbegin, int xend,
-                     int ybegin, int yend);
+/// Fill the image with a given channel values.  If the optional ROI is
+/// not specified, it will fill all channels of all image pixels.  Note
+/// that values[0] corresponds to channel roi.chanbegin.  Return true on
+/// success, false on failure.
+bool DLLPUBLIC fill (ImageBuf &dst, const float *values, ROI roi=ROI());
 
 /// Fill a subregion of the volume with the given pixel value.  The
 /// subregion is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).
 /// return true on success.
-bool DLLPUBLIC fill (ImageBuf &dst,
-                     const float *pixel,
-                     int xbegin, int xend,
-                     int ybegin, int yend,
-                     int zbegin, int zend);
+inline bool DLLPUBLIC xfill (ImageBuf &dst, const float *pixel,
+                     int xbegin, int xend, int ybegin, int yend,
+                     int zbegin=0, int zend=1) {
+    return fill (dst, pixel, ROI(xbegin,xend,ybegin,yend,zbegin,zend));
+}
 
 /// Fill a subregion of the volume with a checkerboard.  The subregion
 /// is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  return

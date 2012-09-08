@@ -71,31 +71,33 @@ namespace
 
 template<typename T>
 static inline void
-zero_ (ImageBuf &buf)
+fill_ (ImageBuf &dst, const float *values, ROI roi=ROI())
 {
-    int chans = buf.nchannels();
-    for (ImageBuf::Iterator<T> pixel (buf);  pixel.valid();  ++pixel)
-        for (int i = 0;  i < chans;  ++i)
-            pixel[i] = 0;
+    int chbegin = roi.chbegin;
+    int chend = std::min (roi.chend, dst.nchannels());
+    for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
+        for (int c = chbegin, i = 0;  c < chend;  ++c, ++i)
+            p[c] = values[i];
 }
 
 }
 
 bool
-ImageBufAlgo::zero (ImageBuf &dst)
+ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi)
 {
+    ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
     switch (dst.spec().format.basetype) {
-    case TypeDesc::FLOAT : zero_<float> (dst); break;
-    case TypeDesc::UINT8 : zero_<unsigned char> (dst); break;
-    case TypeDesc::INT8  : zero_<char> (dst); break;
-    case TypeDesc::UINT16: zero_<unsigned short> (dst); break;
-    case TypeDesc::INT16 : zero_<short> (dst); break;
-    case TypeDesc::UINT  : zero_<unsigned int> (dst); break;
-    case TypeDesc::INT   : zero_<int> (dst); break;
-    case TypeDesc::UINT64: zero_<unsigned long long> (dst); break;
-    case TypeDesc::INT64 : zero_<long long> (dst); break;
-    case TypeDesc::HALF  : zero_<half> (dst); break;
-    case TypeDesc::DOUBLE: zero_<double> (dst); break;
+    case TypeDesc::FLOAT : fill_<float> (dst, pixel, roi); break;
+    case TypeDesc::UINT8 : fill_<unsigned char> (dst, pixel, roi); break;
+    case TypeDesc::UINT16: fill_<unsigned short> (dst, pixel, roi); break;
+    case TypeDesc::HALF  : fill_<half> (dst, pixel, roi); break;
+    case TypeDesc::INT8  : fill_<char> (dst, pixel, roi); break;
+    case TypeDesc::INT16 : fill_<short> (dst, pixel, roi); break;
+    case TypeDesc::UINT  : fill_<unsigned int> (dst, pixel, roi); break;
+    case TypeDesc::INT   : fill_<int> (dst, pixel, roi); break;
+    case TypeDesc::UINT64: fill_<unsigned long long> (dst, pixel, roi); break;
+    case TypeDesc::INT64 : fill_<long long> (dst, pixel, roi); break;
+    case TypeDesc::DOUBLE: fill_<double> (dst, pixel, roi); break;
     default:
         dst.error ("Unsupported pixel data format '%s'", dst.spec().format);
         return false;
@@ -106,43 +108,12 @@ ImageBufAlgo::zero (ImageBuf &dst)
 
 
 bool
-ImageBufAlgo::fill (ImageBuf &dst,
-                    const float *pixel)
+ImageBufAlgo::zero (ImageBuf &dst, ROI roi)
 {
-    // Walk through all data in our buffer. (i.e., crop or overscan)
-    // The display window is irrelevant
-    for (int k = dst.spec().z; k < dst.spec().z+dst.spec().depth; k++)
-        for (int j = dst.spec().y; j <  dst.spec().y+dst.spec().height; j++)
-            for (int i = dst.spec().x; i < dst.spec().x+dst.spec().width ; i++)
-                dst.setpixel (i, j, pixel);
-    
-    return true;
-}
-
-
-/// return true on success.
-bool
-ImageBufAlgo::fill (ImageBuf &dst,
-                    const float *pixel,
-                    int xbegin, int xend,
-                    int ybegin, int yend)
-{
-    return fill (dst, pixel, xbegin, xend, ybegin, yend, 0, 1);
-}
-
-
-bool
-ImageBufAlgo::fill (ImageBuf &dst,
-                    const float *pixel,
-                    int xbegin, int xend,
-                    int ybegin, int yend,
-                    int zbegin, int zend)
-{
-    for (int k = zbegin; k < zend; k++)
-        for (int j = ybegin; j < yend; j++)
-            for (int i = xbegin; i < xend; i++)
-                dst.setpixel (i, j, k, pixel);
-    return true;
+    int chans = std::min (dst.nchannels(), roi.nchannels());
+    float *zero = ALLOCA(float,chans);
+    memset (zero, 0, chans*sizeof(float));
+    return fill (dst, zero, roi);
 }
 
 
