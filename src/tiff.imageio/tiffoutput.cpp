@@ -171,7 +171,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
 
     // Open the file
 #ifdef _WIN32
-    std::wstring wname = Filesystem::path_to_windows_native (name);
+    std::wstring wname = Strutil::utf8_to_utf16 (name);
     m_tif = TIFFOpenW (wname.c_str(), mode == AppendSubimage ? "a" : "w");
 #else
     m_tif = TIFFOpen (name.c_str(), mode == AppendSubimage ? "a" : "w");

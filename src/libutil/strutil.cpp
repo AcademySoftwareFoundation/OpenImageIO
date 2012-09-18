@@ -39,6 +39,11 @@
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <shellapi.h>
+#endif
+
 #include "dassert.h"
 
 #include "strutil.h"
@@ -349,6 +354,34 @@ Strutil::strip (const std::string &str, const std::string &chars)
     DASSERT (e != std::string::npos);
     return std::string (str, b, e-b+1);
 }
+
+
+
+#ifdef _WIN32
+std::wstring
+Strutil::utf8_to_utf16 (const std::string& str)
+{
+    std::wstring native;
+    
+    native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0));
+    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], native.size());
+
+    return native;
+}
+
+
+
+std::string
+Strutil::utf16_to_utf8 (const std::wstring& str)
+{
+    std::string utf8;
+
+    utf8.resize(WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
+    WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, &utf8[0], utf8.size(), NULL, NULL);
+
+    return utf8;
+}
+#endif
 
 
 }
