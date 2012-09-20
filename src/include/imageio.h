@@ -451,7 +451,7 @@ public:
     /// supports input of images with the given properties.
     /// Feature names that ImageIO plugins are expected to recognize
     /// include:
-    ///    none at this time
+    ///    "deepdata"    Deep (multi-sample per pixel) data
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows
@@ -768,8 +768,12 @@ public:
     ///    "random_access"  May tiles or scanlines be written in
     ///                       any order (false indicates that they MUST
     ///                       be in successive order).
-    ///    "multiimage"     Does this format support multiple images
+    ///    "multiimage"     Does this format support multiple subimages
     ///                       within a file?
+    ///    "appendsubimage" Does this format support adding subimages one at
+    ///                       a time through open(name,spec,AppendSubimage)?
+    ///                       If not, then open(name,subimages,specs) must
+    ///                       be used instead.
     ///    "mipmap"         Does this format support multiple resolutions
     ///                       for an image/subimage?
     ///    "volumes"        Does this format support "3D" pixel arrays?
@@ -787,6 +791,7 @@ public:
     ///                        origin of the pixel data window?
     ///    "negativeorigin" Does the format support negative x,y,z
     ///                        and full_{x,y,z} origin values?
+    ///    "deepdata"       Deep (multi-sample per pixel) data
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows
@@ -802,11 +807,33 @@ public:
     /// for failure.  Note that it is legal to call open multiple times
     /// on the same file without a call to close(), if it supports
     /// multiimage and mode is AppendSubimage, or if it supports
-    /// MIP-maps and mode is AppendMIPlevel -- this is interpreted as
+    /// MIP-maps and mode is AppendMIPLevel -- this is interpreted as
     /// appending a subimage, or a MIP level to the current subimage,
     /// respectively.
     virtual bool open (const std::string &name, const ImageSpec &newspec,
                        OpenMode mode=Create) = 0;
+
+    /// Open the file with given name, expecting to have a given total
+    /// number of subimages, described by specs[0..subimages-1].  
+    /// Return true for success, false for failure.  Upon success, the
+    /// first subimage will be open and ready for transmission of
+    /// pixels.  Subsequent subimages will be denoted with the usual
+    /// call of open(name,spec,AppendSubimage) (and MIP levels by
+    /// open(name,spec,AppendMIPLevel)).
+    ///
+    /// The purpose of this call is to accommodate format-writing
+    /// libraries that fmust know the number and specifications of the
+    /// subimages upon first opening the file; such formats can be
+    /// detected by
+    ///     supports("multiimage") && !supports("appendsubimage")
+    /// The individual specs passed to the appending open() calls for
+    /// subsequent subimages MUST match the ones originally passed.
+    virtual bool open (const std::string &name, int subimages,
+                       const ImageSpec *specs) {
+        // Default implementation: just a regular open, assume that
+        // appending will work.
+        return open (name, specs[0]);
+    }
 
     /// Return a reference to the image format specification of the
     /// current subimage.  Note that the contents of the spec are

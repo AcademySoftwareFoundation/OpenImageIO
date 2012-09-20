@@ -127,7 +127,7 @@ public:
     virtual bool get_image_info (ustring filename, int subimage, int miplevel,
                          ustring dataname, TypeDesc datatype, void *data) = 0;
 
-    /// Back-compatible version of get_image_info -- temporary
+    /// Back-compatible version of get_image_info -- DEPRECATED
     bool get_image_info (ustring filename, ustring dataname,
                          TypeDesc datatype, void *data) {
         return get_image_info (filename, 0, 0, dataname, datatype, data);
