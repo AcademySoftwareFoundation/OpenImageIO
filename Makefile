@@ -107,6 +107,13 @@ ifneq (${USE_OCIO},)
 MY_CMAKE_FLAGS += -DUSE_OCIO:BOOL=${USE_OCIO}
 endif
 
+ifneq (${ILMBASE_HOME},)
+MY_CMAKE_FLAGS += -DILMBASE_HOME:STRING=${ILMBASE_HOME}
+endif
+ifneq (${OPENEXR_HOME},)
+MY_CMAKE_FLAGS += -DOPENEXR_HOME:STRING=${OPENEXR_HOME}
+endif
+
 ifneq (${BUILDSTATIC},)
 MY_CMAKE_FLAGS += -DBUILDSTATIC:BOOL=${BUILDSTATIC}
 endif
@@ -258,6 +265,8 @@ help:
 	@echo "  make USE_FIELD3D=0 ...      Don't build the Field3D plugin"
 	@echo "  make USE_OPENJPEG=0 ...     Don't build the JPEG-2000 plugin"
 	@echo "  make USE_OCIO=0 ...         Don't use OpenColorIO even if found"
+	@echo "  make ILMBASE_HOME=path ...  Custom Ilmbase installation"
+	@echo "  make OPENEXR_HOME=path ...  Custom OpenEXR installation"
 	@echo "  make BUILDSTATIC=1 ...      Build static library instead of shared"
 	@echo "  make LINKSTATIC=1 ...       Link with static external libraries when possible"
 	@echo ""
