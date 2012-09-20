@@ -1,0 +1,62 @@
+Reading ../../../../../openexr-images/v2/Stereo/composited.exr
+../../../../../openexr-images/v2/Stereo/composited.exr : 1918 x 1078, 4 channel, half openexr
+    4 subimages: 1918x1078 1918x1078 1918x1078 1918x1078 
+ subimage  0: 1918 x 1078, 4 channel, half openexr
+    SHA-1: 95EDAC421BCDE17EFB4DA1078E13DCC322D56608
+    channel list: R, G, B, A
+    pixel data origin: x=1, y=1
+    full/display size: 1920 x 1080
+    full/display origin: 0, 0
+    oiio:ColorSpace: "Linear"
+    compression: "zip"
+    chunkCount: 1078
+    name: "rgba.left"
+    nuke/node_hash: "b4ea9f917764b762"
+    Copyright: "Copyright 2012 Weta Digital Ltd"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    view: "left"
+ subimage  1: 1918 x 1078, 1 channel, half openexr
+    SHA-1: 5CB9423E903117694CEE3DD17275CD47342AA084
+    channel list: Z
+    pixel data origin: x=1, y=1
+    full/display size: 1920 x 1080
+    full/display origin: 0, 0
+    oiio:ColorSpace: "Linear"
+    compression: "zip"
+    chunkCount: 1078
+    name: "depth.left"
+    Copyright: "Copyright 2012 Weta Digital Ltd"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    view: "left"
+ subimage  2: 1918 x 1078, 4 channel, half openexr
+    SHA-1: 95EDAC421BCDE17EFB4DA1078E13DCC322D56608
+    channel list: R, G, B, A
+    pixel data origin: x=1, y=1
+    full/display size: 1920 x 1080
+    full/display origin: 0, 0
+    oiio:ColorSpace: "Linear"
+    compression: "zip"
+    chunkCount: 1078
+    name: "rgba.right"
+    Copyright: "Copyright 2012 Weta Digital Ltd"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    view: "right"
+ subimage  3: 1918 x 1078, 1 channel, half openexr
+    SHA-1: 5CB9423E903117694CEE3DD17275CD47342AA084
+    channel list: Z
+    pixel data origin: x=1, y=1
+    full/display size: 1920 x 1080
+    full/display origin: 0, 0
+    oiio:ColorSpace: "Linear"
+    compression: "zip"
+    chunkCount: 1078
+    name: "depth.right"
+    Copyright: "Copyright 2012 Weta Digital Ltd"
+    PixelAspectRatio: 1
+    screenWindowWidth: 1
+    view: "right"
+Comparing "../../../../../openexr-images/v2/Stereo/composited.exr" and "composited.exr"
+PASS
