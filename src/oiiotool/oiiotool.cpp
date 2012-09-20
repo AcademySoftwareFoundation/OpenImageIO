@@ -288,14 +288,37 @@ output_file (int argc, const char *argv[])
         ir = ot.curimg;
     }
 
-    ImageOutput::OpenMode mode = ImageOutput::Create;  // initial open
+    std::vector<ImageSpec> subimagespecs (ir->subimages());
+    for (int s = 0;  s < ir->subimages();  ++s) {
+        ImageSpec spec = *ir->spec(s,0);
+        adjust_output_options (spec, ot);
+        subimagespecs[s] = spec;
+    }
+
+    // Do the initial open
+    ImageOutput::OpenMode mode = ImageOutput::Create;
+    if (ir->subimages() > 1 && out->supports("multiimage")) {
+        if (! out->open (filename, ir->subimages(), &subimagespecs[0])) {
+            std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
+            return 0;
+        }
+    } else {
+        if (! out->open (filename, subimagespecs[0], mode)) {
+            std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
+            return 0;
+        }
+    }
+
+    // Output all the subimages and MIP levels
     for (int s = 0, send = ir->subimages();  s < send;  ++s) {
         for (int m = 0, mend = ir->miplevels(s);  m < mend;  ++m) {
             ImageSpec spec = *ir->spec(s,m);
             adjust_output_options (spec, ot);
-            if (! out->open (filename, spec, mode)) {
-                std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
-                return 0;
+            if (s > 0 || m > 0) {  // already opened first subimage/level
+                if (! out->open (filename, spec, mode)) {
+                    std::cerr << "oiiotool ERROR: " << out->geterror() << "\n";
+                    return 0;
+                }
             }
             if (! (*ir)(s,m).write (out)) {
                 std::cerr << "oiiotool ERROR: " << (*ir)(s,m).geterror() << "\n";
