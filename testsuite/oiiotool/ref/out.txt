@@ -28,3 +28,5 @@ Comparing "histogram_regular.tif" and "ref/histogram_regular.tif"
 PASS
 Comparing "histogram_cumulative.tif" and "ref/histogram_cumulative.tif"
 PASS
+Comparing "chanshuffle.tif" and "ref/chanshuffle.tif"
+PASS

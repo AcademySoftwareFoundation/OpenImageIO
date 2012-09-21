@@ -58,32 +58,25 @@ class Filter2D;  // forward declaration
 
 namespace ImageBufAlgo {
 
-/// Zero out (set to 0, black) the entire image.
-/// return true on success.
-bool DLLPUBLIC zero (ImageBuf &dst);
+/// Zero out (set to 0, black) the image region.  If the optional ROI is
+/// not specified, it will set all channels of all image pixels to 0.0.
+/// Return true on success, false on failure.
+bool DLLPUBLIC zero (ImageBuf &dst, ROI roi=ROI());
 
-
-/// Fill the entire image with the given pixel value.
-/// return true on success.
-bool DLLPUBLIC fill (ImageBuf &dst,
-                     const float *pixel);
-
-/// Fill a subregion of the image with the given pixel value.  The
-/// subregion is bounded by [xbegin..xend) X [ybegin..yend).
-/// return true on success.
-bool DLLPUBLIC fill (ImageBuf &dst,
-                     const float *pixel,
-                     int xbegin, int xend,
-                     int ybegin, int yend);
+/// Fill the image with a given channel values.  If the optional ROI is
+/// not specified, it will fill all channels of all image pixels.  Note
+/// that values[0] corresponds to channel roi.chanbegin.  Return true on
+/// success, false on failure.
+bool DLLPUBLIC fill (ImageBuf &dst, const float *values, ROI roi=ROI());
 
 /// Fill a subregion of the volume with the given pixel value.  The
 /// subregion is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).
 /// return true on success.
-bool DLLPUBLIC fill (ImageBuf &dst,
-                     const float *pixel,
-                     int xbegin, int xend,
-                     int ybegin, int yend,
-                     int zbegin, int zend);
+inline bool DLLPUBLIC xfill (ImageBuf &dst, const float *pixel,
+                     int xbegin, int xend, int ybegin, int yend,
+                     int zbegin=0, int zend=1) {
+    return fill (dst, pixel, ROI(xbegin,xend,ybegin,yend,zbegin,zend));
+}
 
 /// Fill a subregion of the volume with a checkerboard.  The subregion
 /// is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  return
@@ -124,9 +117,28 @@ bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t
 /// If channels are added, they are cleared to a value of 0.0.
 /// Does not support in-place operation.
 /// return true on success.
-
+/// DEPRECATED -- you should instead use the more general
+/// ImageBufAlgo::channels (dst, src, numChannels, NULL, true);
 bool DLLPUBLIC setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
 
+
+/// Generic channel shuffling -- copy src to dst, but with channels in
+/// the order channelorder[0..nchannels-1].  Does not support in-place
+/// operation.  If channelorder[i] < 0, it will just make dst channel i
+/// be black (0.0) rather than copying from src.
+///
+/// If channelorder is NULL, it will be interpreted as
+/// {0, 1, ..., nchannels-1}.
+///
+/// If shuffle_channel_names is false, the resulting dst image will have
+/// default channel names in the usual order ("R", "G", etc.), but if
+/// shuffle_channel_names is true, the names will be taken from the
+/// corresponding channels of the source image -- be careful with this,
+/// shuffling both channel ordering and their names could result in no
+/// semantic change at all, if you catch the drift.
+bool DLLPUBLIC channels (ImageBuf &dst, const ImageBuf &src,
+                         int nchannels, const int *channelorder,
+                         bool shuffle_channel_names=false);
 
 /// Make dst be a cropped copy of src, but with the new pixel data
 /// window range [xbegin..xend) x [ybegin..yend).  Source pixel data

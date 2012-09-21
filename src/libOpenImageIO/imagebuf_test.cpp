@@ -98,13 +98,13 @@ void histogram_computation_test ()
     ImageBuf A ("A", spec);
 
     float value[] = {0.2f};
-    ImageBufAlgo::fill (A, value, 0, INPUT_WIDTH, 0, 8);
+    ImageBufAlgo::fill (A, value, ROI(0, INPUT_WIDTH, 0, 8));
 
     value[0] = 0.5f;
-    ImageBufAlgo::fill (A, value, 0, INPUT_WIDTH, 8, 24);
+    ImageBufAlgo::fill (A, value, ROI(0, INPUT_WIDTH, 8, 24));
 
     value[0] = 0.8f;
-    ImageBufAlgo::fill (A, value, 0, INPUT_WIDTH, 24, 64);
+    ImageBufAlgo::fill (A, value, ROI(0, INPUT_WIDTH, 24, 64));
 
     // Compute A's histogram.
     std::vector<imagesize_t> hist;

@@ -57,7 +57,8 @@ get_roi (const ImageSpec &spec)
 {
     return ROI (spec.x, spec.x + spec.width,
                 spec.y, spec.y + spec.height,
-                spec.z, spec.z + spec.depth);
+                spec.z, spec.z + spec.depth,
+                0, spec.nchannels);
 }
 
 
@@ -67,7 +68,8 @@ get_roi_full (const ImageSpec &spec)
 {
     return ROI (spec.full_x, spec.full_x + spec.full_width,
                 spec.full_y, spec.full_y + spec.full_height,
-                spec.full_z, spec.full_z + spec.full_depth);
+                spec.full_z, spec.full_z + spec.full_depth,
+                0, spec.nchannels);
 }
 
 
@@ -103,7 +105,8 @@ roi_union (const ROI &A, const ROI &B)
 {
     return ROI (std::min (A.xbegin, B.xbegin), std::max (A.xend, B.xend),
                 std::min (A.ybegin, B.ybegin), std::max (A.yend, B.yend),
-                std::min (A.zbegin, B.zbegin), std::max (A.zend, B.zend));
+                std::min (A.zbegin, B.zbegin), std::max (A.zend, B.zend),
+                std::min (A.chbegin, B.chbegin), std::max (A.chend, B.chend));
 }
 
 
@@ -113,7 +116,8 @@ roi_intersection (const ROI &A, const ROI &B)
 {
     return ROI (std::max (A.xbegin, B.xbegin), std::min (A.xend, B.xend),
                 std::max (A.ybegin, B.ybegin), std::min (A.yend, B.yend),
-                std::max (A.zbegin, B.zbegin), std::min (A.zend, B.zend));
+                std::max (A.zbegin, B.zbegin), std::min (A.zend, B.zend),
+                std::max (A.chbegin, B.chbegin), std::min (A.chend, B.chend));
 }
 
 
@@ -943,16 +947,19 @@ template<typename S, typename D>
 static inline void 
 get_pixel_channels_ (const ImageBuf &buf, int xbegin, int xend,
                      int ybegin, int yend, int zbegin, int zend, 
-                     int chbegin, int chend, D *r)
+                     int chbegin, int chend, D *r,
+                     stride_t xstride, stride_t ystride, stride_t zstride)
 {
     int w = (xend-xbegin), h = (yend-ybegin);
-    imagesize_t wh = imagesize_t(w) * imagesize_t(h);
     int nchans = chend - chbegin;
+    ImageSpec::auto_stride (xstride, ystride, zstride, sizeof(D), nchans, w, h);
     for (ImageBuf::ConstIterator<S,D> p (buf, xbegin, xend, ybegin, yend, zbegin, zend);
-         p.valid(); ++p) { 
-        imagesize_t offset = ((p.z()-zbegin)*wh + (p.y()-ybegin)*w + (p.x()-xbegin)) * buf.nchannels();
+         !p.done(); ++p) {
+        imagesize_t offset = (p.z()-zbegin)*zstride + (p.y()-ybegin)*ystride
+                           + (p.x()-xbegin)*xstride;
+        D *rc = (D *)((char *)r + offset);
         for (int c = 0;  c < nchans;  ++c)
-            r[offset+c] = p[c+chbegin];
+            rc[c] = p[c+chbegin];
     }
 }
 
@@ -962,7 +969,9 @@ template<typename D>
 bool
 ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend,
-                              int chbegin, int chend, D *r) const
+                              int chbegin, int chend, D *r,
+                              stride_t xstride, stride_t ystride,
+                              stride_t zstride) const
 {
     // Caveat: serious hack here.  To avoid duplicating code, use a
     // #define.  Furthermore, exploit the CType<> template to construct
@@ -970,7 +979,8 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
 #define TYPECASE(B)                                                     \
     case B : get_pixel_channels_<CType<B>::type,D>(*this,               \
                        xbegin, xend, ybegin, yend, zbegin, zend,        \
-                       chbegin, chend, (D *)r); return true
+                       chbegin, chend, (D *)r, xstride, ystride, zstride); \
+             return true
     
     switch (spec().format.basetype) {
         TYPECASE (TypeDesc::UINT8);
@@ -994,14 +1004,17 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
 bool
 ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend, int chbegin, int chend,
-                              TypeDesc format, void *result) const
+                              TypeDesc format, void *result,
+                              stride_t xstride, stride_t ystride,
+                              stride_t zstride) const
 {
     // For each possible base type that the user wants for a destination
     // type, call a template specialization.
 #define TYPECASE(B)                                                     \
     case B : return get_pixel_channels<CType<B>::type> (                \
                              xbegin, xend, ybegin, yend, zbegin, zend,  \
-                             chbegin, chend, (CType<B>::type *)result);
+                             chbegin, chend, (CType<B>::type *)result,  \
+                             xstride, ystride, zstride)
 
     switch (format.basetype) {
         TYPECASE (TypeDesc::UINT8);
@@ -1024,11 +1037,13 @@ ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
 
 bool
 ImageBuf::get_pixels (int xbegin, int xend, int ybegin, int yend,
-                       int zbegin, int zend,
-                       TypeDesc format, void *result) const
+                      int zbegin, int zend, TypeDesc format, void *result,
+                      stride_t xstride, stride_t ystride,
+                      stride_t zstride) const
 {
     return get_pixel_channels (xbegin, xend, ybegin, yend, zbegin, zend,
-                               0, nchannels(), format, result);
+                               0, nchannels(), format, result,
+                               xstride, ystride, zstride);
 }
 
 
