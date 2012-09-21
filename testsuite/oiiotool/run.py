@@ -29,6 +29,11 @@ command += (oiio_app ("oiiotool") + " "
             + " --histogram:cumulative=1 256x256 0 "
             + "-o histogram_cumulative.tif >> out.txt ;\n")
 
+# test channel shuffling
+command += (oiio_app ("oiiotool") + " " 
+            + parent + "/oiio-images/grid.tif"
+            + " --ch =0.25,B,G -o chanshuffle.tif >> out.txt ;\n")
+
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
 # below.
@@ -37,6 +42,7 @@ command += (oiio_app ("oiiotool") + " "
 # Outputs to check against references
 outputs = [ "resize.tif", "resize2.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
+            "chanshuffle.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

@@ -1962,8 +1962,8 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
         float x = pos*smajor, y = pos*tmajor;
         int xx = w/2+int(x*scale), yy = h/2-int(y*scale);
         int size = int (5 * lineweight[sample]/bigweight);
-        ImageBufAlgo::fill (ib, white, xx-size/2, xx+size/2+1, 
-                            yy-size/2, yy+size/2+1);
+        ImageBufAlgo::fill (ib, white, ROI(xx-size/2, xx+size/2+1, 
+                                           yy-size/2, yy+size/2+1));
     }
 
     ib.save ();

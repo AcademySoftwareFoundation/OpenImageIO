@@ -152,6 +152,28 @@ ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
 
 
 
+ImageRec::ImageRec (const std::string &name, int nsubimages,
+                    const int *miplevels, const ImageSpec *specs)
+    : m_name(name), m_elaborated(true),
+      m_metadata_modified(false), m_pixels_modified(true),
+      m_imagecache(NULL)
+{
+    int specnum = 0;
+    m_subimages.resize (nsubimages);
+    for (int s = 0;  s < nsubimages;  ++s) {
+        m_subimages[s].m_miplevels.resize (miplevels[s]);
+        m_subimages[s].m_specs.resize (miplevels[s]);
+        for (int m = 0;  m < miplevels[s];  ++m) {
+            ImageBuf *ib = new ImageBuf (name, specs[specnum]);
+            m_subimages[s].m_miplevels[m].reset (ib);
+            m_subimages[s].m_specs[m] = specs[specnum];
+            ++specnum;
+        }
+    }
+}
+
+
+
 bool
 ImageRec::read ()
 {
