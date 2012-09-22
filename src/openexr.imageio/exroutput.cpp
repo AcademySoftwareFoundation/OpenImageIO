@@ -213,9 +213,9 @@ OpenEXROutput::~OpenEXROutput ()
     // Close, if not already done.
     close ();
 
-    delete m_output_stream;  m_output_stream = NULL;
     delete m_output_scanline;  m_output_scanline = NULL;
     delete m_output_tiled;  m_output_tiled = NULL;
+    delete m_output_stream;  m_output_stream = NULL;
     delete m_header;    m_header = NULL;
 }
 
