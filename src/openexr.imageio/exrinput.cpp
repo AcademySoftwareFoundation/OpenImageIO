@@ -31,6 +31,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <errno.h>
+#include <fstream>
 #include <map>
 
 #include <OpenEXR/ImfTestFile.h>
@@ -46,6 +48,8 @@
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
+#include <OpenEXR/IexBaseExc.h>
+#include <OpenEXR/IexThrowErrnoExc.h>
 
 #include "dassert.h"
 #include "imageio.h"
@@ -55,6 +59,67 @@
 #include "filesystem.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
+
+
+// Custom file input stream, copying code from the class StdIFStream in OpenEXR,
+// which would have been used if we just provided a filename. The difference is
+// that this can handle UTF-8 file paths on all platforms.
+
+class OpenEXRInputStream : public Imf::IStream
+{
+public:
+    OpenEXRInputStream (const char *filename)
+    : Imf::IStream (filename)
+    {
+        // The reason we have this class is for this line, so that we
+        // can correctly handle UTF-8 file paths on Windows
+        Filesystem::open (ifs, filename, std::ios_base::binary);
+
+        if (!ifs)
+            Iex::throwErrnoExc ();
+    }
+
+    virtual bool read (char c[], int n)
+    {
+        if (!ifs)
+            throw Iex::InputExc ("Unexpected end of file.");
+
+        errno = 0;
+        ifs.read (c, n);
+        return check_error ();
+    }
+
+    virtual Imath::Int64 tellg ()
+    {
+        return std::streamoff (ifs.tellg ());
+    }
+
+    virtual void seekg (Imath::Int64 pos)
+    {
+        ifs.seekg (pos);
+        check_error ();
+    }
+
+    virtual void clear ()
+    {
+        ifs.clear ();
+    }
+
+private:
+    bool check_error ()
+    {
+        if (!ifs) {
+            if (errno)
+                Iex::throwErrnoExc ();
+
+            return false;
+        }
+
+        return true;
+    }
+
+    std::ifstream ifs;
+};
 
 
 class OpenEXRInput : public ImageInput {
@@ -81,6 +146,7 @@ public:
 
 private:
     const Imf::Header *m_header;          ///< Ptr to image header
+    OpenEXRInputStream *m_input_stream;   ///< Stream for input file
     Imf::InputFile *m_input_scanline;     ///< Input for scanline files
     Imf::TiledInputFile *m_input_tiled;   ///< Input for tiled files
     std::vector<Imf::PixelType> m_pixeltype; ///< Imf pixel type for each chan
@@ -99,6 +165,7 @@ private:
 
     void init () {
         m_header = NULL;
+        m_input_stream = NULL;
         m_input_scanline = NULL;
         m_input_tiled = NULL;
         m_subimage = -1;
@@ -242,15 +309,20 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     m_spec.attribute ("oiio:ColorSpace", "Linear");
     
     try {
+        m_input_stream = new OpenEXRInputStream (name.c_str());
+
         if (tiled) {
-            m_input_tiled = new Imf::TiledInputFile (name.c_str());
+            m_input_tiled = new Imf::TiledInputFile (*m_input_stream);
             m_header = &(m_input_tiled->header());
         } else {
-            m_input_scanline = new Imf::InputFile (name.c_str());
+            m_input_scanline = new Imf::InputFile (*m_input_stream);
             m_header = &(m_input_scanline->header());
         }
     }
     catch (const std::exception &e) {
+        delete m_input_stream;
+        m_input_stream = NULL;
+
         error ("OpenEXR exception: %s", e.what());
         return false;
     }
@@ -564,6 +636,7 @@ OpenEXRInput::close ()
 {
     delete m_input_scanline;
     delete m_input_tiled;
+    delete m_input_stream;
     init ();  // Reset to initial state
     return true;
 }

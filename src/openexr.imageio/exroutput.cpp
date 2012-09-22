@@ -31,6 +31,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <errno.h>
+#include <fstream>
 #include <iostream>
 #include <map>
 
@@ -46,18 +48,73 @@
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
+#include <OpenEXR/IexBaseExc.h>
+#include <OpenEXR/IexThrowErrnoExc.h>
+
 #ifdef IMF_B44_COMPRESSION
 #define OPENEXR_VERSION_IS_1_6_OR_LATER
 #endif
 
 #include "dassert.h"
 #include "imageio.h"
+#include "filesystem.h"
 #include "thread.h"
 #include "strutil.h"
 #include "sysutil.h"
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
+
+
+// Custom file output stream, copying code from the class StdOFStream in OpenEXR,
+// which would have been used if we just provided a filename. The difference is
+// that this can handle UTF-8 file paths on all platforms.
+
+class OpenEXROutputStream : public Imf::OStream
+{
+public:
+    OpenEXROutputStream (const char *filename)
+    : Imf::OStream(filename)
+    {
+        // The reason we have this class is for this line, so that we
+        // can correctly handle UTF-8 file paths on Windows
+        Filesystem::open (ofs, filename, std::ios_base::binary);
+
+        if (!ofs)
+            Iex::throwErrnoExc ();
+    }
+
+    virtual void write (const char c[], int n)
+    {
+        errno = 0;
+        ofs.write (c, n);
+        check_error ();
+    }
+
+    virtual Imath::Int64 tellp ()
+    {
+        return std::streamoff (ofs.tellp ());
+    }
+
+    virtual void seekp (Imath::Int64 pos)
+    {
+        ofs.seekp (pos);
+        check_error ();
+    }
+
+private:
+    void check_error ()
+    {
+        if (!ofs) {
+            if (errno)
+                Iex::throwErrnoExc ();
+
+            throw Iex::ErrnoExc ("File output failed.");
+        }
+    }
+
+    std::ofstream ofs;
+};
 
 
 class OpenEXROutput : public ImageOutput {
@@ -84,6 +141,7 @@ public:
 
 private:
     Imf::Header *m_header;                ///< Ptr to image header
+    OpenEXROutputStream *m_output_stream; ///< Stream for output file
     Imf::OutputFile *m_output_scanline;   ///< Input for scanline files
     Imf::TiledOutputFile *m_output_tiled; ///< Input for tiled files
     int m_levelmode;                      ///< The level mode of the file
@@ -98,6 +156,7 @@ private:
     // Initialize private members to pre-opened state
     void init (void) {
         m_header = NULL;
+        m_output_stream = NULL;
         m_output_scanline = NULL;
         m_output_tiled = NULL;
         m_subimage = -1;
@@ -156,6 +215,7 @@ OpenEXROutput::~OpenEXROutput ()
 
     delete m_output_scanline;  m_output_scanline = NULL;
     delete m_output_tiled;  m_output_tiled = NULL;
+    delete m_output_stream;  m_output_stream = NULL;
     delete m_header;    m_header = NULL;
 }
 
@@ -386,17 +446,22 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
                        m_spec.extra_attribs[p].data());
 
     try {
+        m_output_stream = new OpenEXROutputStream (name.c_str());
+
         if (m_spec.tile_width) {
             m_header->setTileDescription (
                 Imf::TileDescription (m_spec.tile_width, m_spec.tile_height,
                                       Imf::LevelMode(m_levelmode),
                                       Imf::LevelRoundingMode(m_roundingmode)));
-            m_output_tiled = new Imf::TiledOutputFile (name.c_str(), *m_header);
+            m_output_tiled = new Imf::TiledOutputFile (*m_output_stream, *m_header);
         } else {
-            m_output_scanline = new Imf::OutputFile (name.c_str(), *m_header);
+            m_output_scanline = new Imf::OutputFile (*m_output_stream, *m_header);
         }
     }
     catch (const std::exception &e) {
+        delete m_output_stream;
+        m_output_stream = NULL;
+
         error ("OpenEXR exception: %s", e.what());
         m_output_scanline = NULL;
         return false;
