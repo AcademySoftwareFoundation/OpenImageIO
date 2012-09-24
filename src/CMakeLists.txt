@@ -313,8 +313,8 @@ oiio_add_tests (tiff-suite tiff-depths
     IMAGEDIR libtiffpic
     URL http://www.remotesensing.org/libtiff/images.html)
 
-oiio_add_tests (openexr-suite openexr-multires openexr-chroma
-    IMAGEDIR openexr-images-1.5.0
+oiio_add_tests (openexr-suite openexr-multires openexr-chroma openexr-v2
+    IMAGEDIR openexr-images
     URL http://www.openexr.com/downloads.html)
 
 oiio_add_tests (jpeg2000

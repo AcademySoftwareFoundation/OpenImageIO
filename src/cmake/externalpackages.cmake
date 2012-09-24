@@ -53,18 +53,22 @@ macro (LINK_ILMBASE target)
     target_link_libraries (${target} ${ILMBASE_LIBRARIES})
 endmacro ()
 
-setup_string (OPENEXR_VERSION 1.6.1 "OpenEXR version number")
-mark_as_advanced (OPENEXR_VERSION)
-#setup_string (OPENEXR_VERSION_DIGITS 010601 "OpenEXR version preprocessor number")
-#mark_as_advanced (OPENEXR_VERSION_DIGITS)
-# FIXME -- should instead do the search & replace automatically, like this
-# way it was done in the old makefiles:
-#     OPENEXR_VERSION_DIGITS ?= 0$(subst .,0,${OPENEXR_VERSION})
+
 setup_path (OPENEXR_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the OpenEXR library install")
 mark_as_advanced (OPENEXR_HOME)
 
 find_package (OpenEXR REQUIRED)
+
+if (EXISTS ${OPENEXR_INCLUDE_DIR}/OpenEXR/ImfMultiPartInputFile.h)
+    add_definitions (-DUSE_OPENEXR_VERSION2=1)
+    setup_string (OPENEXR_VERSION 2.0.0 "OpenEXR version number")
+    message (STATUS "OpenEXR version 2.x")
+else ()
+    setup_string (OPENEXR_VERSION 1.6.1 "OpenEXR version number")
+    message (STATUS "OpenEXR version 1.x")
+endif ()
+mark_as_advanced (OPENEXR_VERSION)
 
 include_directories (${OPENEXR_INCLUDE_DIR})
 include_directories (${OPENEXR_INCLUDE_DIR}/OpenEXR)
