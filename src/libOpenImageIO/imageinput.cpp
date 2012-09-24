@@ -602,7 +602,7 @@ ImageInput::read_image (TypeDesc format, void *data,
     if (m_spec.tile_width) {
         // Tiled image
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth) {
-            for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
+            for (int y = 0;  y < m_spec.height && ok;  y += m_spec.tile_height) {
                 ok &= read_tiles (m_spec.x, m_spec.x+m_spec.width,
                                   y+m_spec.y, std::min (y+m_spec.y+m_spec.tile_height, m_spec.y+m_spec.height),
                                   z+m_spec.z, std::min (z+m_spec.z+m_spec.tile_depth, m_spec.z+m_spec.depth),
