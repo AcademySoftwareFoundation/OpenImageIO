@@ -52,6 +52,8 @@
 #include <OpenEXR/IexThrowErrnoExc.h>
 #ifdef USE_OPENEXR_VERSION2
 #include <OpenEXR/ImfMultiPartInputFile.h>
+#include <OpenEXR/ImfInputPart.h>
+#include <OpenEXR/ImfTiledInputPart.h>
 #endif
 
 #include "dassert.h"
@@ -67,62 +69,46 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Custom file input stream, copying code from the class StdIFStream in OpenEXR,
 // which would have been used if we just provided a filename. The difference is
 // that this can handle UTF-8 file paths on all platforms.
-
 class OpenEXRInputStream : public Imf::IStream
 {
 public:
-    OpenEXRInputStream (const char *filename)
-    : Imf::IStream (filename)
-    {
+    OpenEXRInputStream (const char *filename) : Imf::IStream (filename) {
         // The reason we have this class is for this line, so that we
         // can correctly handle UTF-8 file paths on Windows
         Filesystem::open (ifs, filename, std::ios_base::binary);
-
         if (!ifs)
             Iex::throwErrnoExc ();
     }
-
-    virtual bool read (char c[], int n)
-    {
+    virtual bool read (char c[], int n) {
         if (!ifs)
             throw Iex::InputExc ("Unexpected end of file.");
-
         errno = 0;
         ifs.read (c, n);
         return check_error ();
     }
-
-    virtual Imath::Int64 tellg ()
-    {
+    virtual Imath::Int64 tellg () {
         return std::streamoff (ifs.tellg ());
     }
-
-    virtual void seekg (Imath::Int64 pos)
-    {
+    virtual void seekg (Imath::Int64 pos) {
         ifs.seekg (pos);
         check_error ();
     }
-
-    virtual void clear ()
-    {
+    virtual void clear () {
         ifs.clear ();
     }
 
 private:
-    bool check_error ()
-    {
+    bool check_error () {
         if (!ifs) {
             if (errno)
                 Iex::throwErrnoExc ();
-
             return false;
         }
-
         return true;
     }
-
     std::ifstream ifs;
 };
+
 
 
 class OpenEXRInput : public ImageInput {
@@ -170,7 +156,13 @@ private:
     std::vector<PartInfo> m_parts;        ///< Image parts
     OpenEXRInputStream *m_input_stream;   ///< Stream for input file
 #ifdef USE_OPENEXR_VERSION2
-    Imf::MultiPartInputFile *m_mpinput;   ///< Multipart input
+    Imf::MultiPartInputFile *m_input_multipart;   ///< Multipart input
+    Imf::InputPart *m_scanline_input_part;
+    Imf::TiledInputPart *m_tiled_input_part;
+#else
+    char *m_input_multipart;   ///< Multipart input
+    char *m_scanline_input_part;
+    char *m_tiled_input_part;
 #endif
     Imf::InputFile *m_input_scanline;     ///< Input for scanline files
     Imf::TiledInputFile *m_input_tiled;   ///< Input for tiled files
@@ -181,9 +173,9 @@ private:
 
     void init () {
         m_input_stream = NULL;
-#ifdef USE_OPENEXR_VERSION2
-        m_mpinput = NULL;
-#endif
+        m_input_multipart = NULL;
+        m_scanline_input_part = NULL;
+        m_tiled_input_part = NULL;
         m_input_scanline = NULL;
         m_input_tiled = NULL;
         m_subimage = -1;
@@ -319,10 +311,18 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
 
     m_spec = ImageSpec(); // Clear everything with default constructor
     
-#ifdef USE_OPENEXR_VERSION2
     try {
         m_input_stream = new OpenEXRInputStream (name.c_str());
-        m_mpinput = new Imf::MultiPartInputFile (*m_input_stream);
+    }
+    catch (const std::exception &e) {
+        m_input_stream = NULL;
+        error ("OpenEXR exception: %s", e.what());
+        return false;
+    }
+
+#ifdef USE_OPENEXR_VERSION2
+    try {
+        m_input_multipart = new Imf::MultiPartInputFile (*m_input_stream);
     }
     catch (const std::exception &e) {
         delete m_input_stream;
@@ -331,17 +331,10 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
-    m_nsubimages = m_mpinput->parts();
-    m_parts.resize (m_nsubimages);
+    m_nsubimages = m_input_multipart->parts();
 
 #else
-    m_nsubimages = 1;  // OpenEXR 1.x did not have multipart
-    m_parts.resize (m_nsubimages);
-
-#endif
-
     try {
-        m_input_stream = new OpenEXRInputStream (name.c_str());
         if (tiled) {
             m_input_tiled = new Imf::TiledInputFile (*m_input_stream);
         } else {
@@ -359,6 +352,10 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         return false;
     }
 
+    m_nsubimages = 1;  // OpenEXR 1.x did not have multipart
+#endif
+
+    m_parts.resize (m_nsubimages);
     m_subimage = -1;
     m_miplevel = -1;
     bool ok = seek_subimage (0, 0, newspec);
@@ -640,8 +637,8 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     if (! part.initialized) {
         const Imf::Header *header = NULL;
 #ifdef USE_OPENEXR_VERSION2
-        if (m_mpinput)
-            header = &(m_mpinput->header(subimage));
+        if (m_input_multipart)
+            header = &(m_input_multipart->header(subimage));
 #else
         if (m_input_tiled)
             header = &(m_input_tiled->header());
@@ -649,12 +646,34 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
             header = &(m_input_scanline->header());
 #endif
         part.parse_header (header);
+        part.initialized = true;
     }
+
+#ifdef USE_OPENEXR_VERSION2
+    if (subimage != m_subimage) {
+        delete m_scanline_input_part;  m_scanline_input_part = NULL;
+        delete m_tiled_input_part;  m_tiled_input_part = NULL;
+        try {
+            if (part.spec.tile_width) {
+                m_tiled_input_part = new Imf::TiledInputPart (*m_input_multipart, subimage);
+            } else {
+                m_scanline_input_part = new Imf::InputPart (*m_input_multipart, subimage);
+            }
+        }
+        catch (const std::exception &e) {
+            error ("OpenEXR exception: %s", e.what());
+            m_scanline_input_part = NULL;
+            m_tiled_input_part = NULL;
+            ASSERT(0);
+            return false;
+        }
+        m_subimage = subimage;
+    }
+#endif
 
     if (miplevel < 0 || miplevel >= part.nmiplevels)   // out of range
         return false;
 
-    m_subimage = subimage;
     m_miplevel = miplevel;
     m_spec = part.spec;
 
@@ -716,9 +735,9 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 bool
 OpenEXRInput::close ()
 {
-#ifdef USE_OPENEXR_VERSION2
-    delete m_mpinput;
-#endif
+    delete m_input_multipart;
+    delete m_scanline_input_part;
+    delete m_tiled_input_part;
     delete m_input_scanline;
     delete m_input_tiled;
     delete m_input_stream;
@@ -750,8 +769,10 @@ OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
 {
 //    std::cerr << "openexr rns " << ybegin << ' ' << yend << ", channels "
 //              << firstchan << "-" << (firstchan+nchans-1) << "\n";
-    if (m_input_scanline == NULL)
+    if (m_input_scanline == NULL && m_scanline_input_part == NULL) {
+        error ("called OpenEXRInput::read_native_scanlines without an open file");
         return false;
+    }
 
     // Compute where OpenEXR needs to think the full buffers starts.
     // OpenImageIO requires that 'data' points to where the client wants
@@ -778,8 +799,17 @@ OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
                                             pixelbytes, scanlinebytes));
             chanoffset += chanbytes;
         }
-        m_input_scanline->setFrameBuffer (frameBuffer);
-        m_input_scanline->readPixels (ybegin, yend-1);
+        if (m_input_scanline) {
+            m_input_scanline->setFrameBuffer (frameBuffer);
+            m_input_scanline->readPixels (ybegin, yend-1);
+#ifdef USE_OPENEXR_VERSION2
+        } else if (m_scanline_input_part) {
+            m_scanline_input_part->setFrameBuffer (frameBuffer);
+            m_scanline_input_part->readPixels (ybegin, yend-1);
+#endif
+        } else {
+            ASSERT (0);
+        }
     }
     catch (const std::exception &e) {
         error ("Failed OpenEXR read: %s", e.what());
@@ -820,9 +850,11 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
               << ' ' << yend << ", chans " << firstchan 
               << "-" << (firstchan+nchans-1) << "\n";
 #endif
-    if (! m_input_tiled ||
-        ! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
+    if (! (m_input_tiled || m_tiled_input_part) ||
+        ! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend)) {
+        error ("called OpenEXRInput::read_native_tiles without an open file");
         return false;
+    }
 
     // Compute where OpenEXR needs to think the full buffers starts.
     // OpenImageIO requires that 'data' points to where the client wants
@@ -867,10 +899,21 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                             pixelbytes*m_spec.tile_width*nxtiles));
             chanoffset += chanbytes;
         }
-        m_input_tiled->setFrameBuffer (frameBuffer);
-        m_input_tiled->readTiles (firstxtile, firstxtile+nxtiles-1,
-                                  firstytile, firstytile+nytiles-1,
-                                  m_miplevel, m_miplevel);
+        if (m_input_tiled) {
+            m_input_tiled->setFrameBuffer (frameBuffer);
+            m_input_tiled->readTiles (firstxtile, firstxtile+nxtiles-1,
+                                      firstytile, firstytile+nytiles-1,
+                                      m_miplevel, m_miplevel);
+#ifdef USE_OPENEXR_VERSION2
+        } else if (m_tiled_input_part) {
+            m_tiled_input_part->setFrameBuffer (frameBuffer);
+            m_tiled_input_part->readTiles (firstxtile, firstxtile+nxtiles-1,
+                                           firstytile, firstytile+nytiles-1,
+                                           m_miplevel, m_miplevel);
+#endif
+        } else {
+            ASSERT (0);
+        }
         if (data != origdata) {
             stride_t user_scanline_bytes = (xend-xbegin) * pixelbytes;
             stride_t scanline_stride = nxtiles*m_spec.tile_width*pixelbytes;

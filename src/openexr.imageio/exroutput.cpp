@@ -71,55 +71,44 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-// Custom file output stream, copying code from the class StdOFStream in OpenEXR,
-// which would have been used if we just provided a filename. The difference is
-// that this can handle UTF-8 file paths on all platforms.
-
+// Custom file output stream, copying code from the class StdOFStream in
+// OpenEXR, which would have been used if we just provided a
+// filename. The difference is that this can handle UTF-8 file paths on
+// all platforms.
 class OpenEXROutputStream : public Imf::OStream
 {
 public:
-    OpenEXROutputStream (const char *filename)
-    : Imf::OStream(filename)
-    {
+    OpenEXROutputStream (const char *filename) : Imf::OStream(filename) {
         // The reason we have this class is for this line, so that we
         // can correctly handle UTF-8 file paths on Windows
         Filesystem::open (ofs, filename, std::ios_base::binary);
-
         if (!ofs)
             Iex::throwErrnoExc ();
     }
-
-    virtual void write (const char c[], int n)
-    {
+    virtual void write (const char c[], int n) {
         errno = 0;
         ofs.write (c, n);
         check_error ();
     }
-
-    virtual Imath::Int64 tellp ()
-    {
+    virtual Imath::Int64 tellp () {
         return std::streamoff (ofs.tellp ());
     }
-
-    virtual void seekp (Imath::Int64 pos)
-    {
+    virtual void seekp (Imath::Int64 pos) {
         ofs.seekp (pos);
         check_error ();
     }
 
 private:
-    void check_error ()
-    {
+    void check_error () {
         if (!ofs) {
             if (errno)
                 Iex::throwErrnoExc ();
-
             throw Iex::ErrnoExc ("File output failed.");
         }
     }
-
     std::ofstream ofs;
 };
+
 
 
 class OpenEXROutput : public ImageOutput {
@@ -321,6 +310,7 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         catch (const std::exception &e) {
             error ("OpenEXR exception: %s", e.what());
             m_output_scanline = NULL;
+            m_output_tiled = NULL;
             return false;
         }
         if (! m_output_scanline && ! m_output_tiled) {
