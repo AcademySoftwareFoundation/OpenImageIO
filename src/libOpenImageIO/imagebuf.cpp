@@ -497,7 +497,7 @@ ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
         m_pixels_valid = true;
     } else {
         m_pixels_valid = false;
-        m_err = m_imagecache->geterror ();
+        error ("%s", m_imagecache->geterror ());
     }
 
     return m_pixels_valid;
@@ -525,7 +525,7 @@ ImageBuf::write (ImageOutput *out,
         // little bits at a time (scanline or tile blocks).
     }
     if (! ok)
-        m_err = out->geterror ();
+        error ("%s", out->geterror ());
     return ok;
 }
 
@@ -540,11 +540,11 @@ ImageBuf::save (const std::string &_filename, const std::string &_fileformat,
     std::string fileformat = _fileformat.size() ? _fileformat : filename;
     boost::scoped_ptr<ImageOutput> out (ImageOutput::create (fileformat.c_str(), "" /* searchpath */));
     if (! out) {
-        m_err = geterror();
+        error ("%s", geterror());
         return false;
     }
     if (! out->open (filename.c_str(), m_spec)) {
-        m_err = out->geterror ();
+        error ("%s", out->geterror());
         return false;
     }
     if (! write (out.get(), progress_callback, progress_callback_data))

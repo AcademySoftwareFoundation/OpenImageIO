@@ -770,8 +770,10 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
     if (m_input->current_subimage() != subimage ||
         m_input->current_miplevel() != miplevel) {
         ImageSpec tmp;
-        if (! m_input->seek_subimage (subimage, miplevel, tmp))
+        if (! m_input->seek_subimage (subimage, miplevel, tmp)) {
+            imagecache().error ("%s", m_input->geterror().c_str());
             return false;
+        }
     }
 
     // We should not hold the tile mutex at this point
