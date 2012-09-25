@@ -634,6 +634,53 @@ ImageInput::read_image (TypeDesc format, void *data,
 
 
 
+bool
+ImageInput::read_native_deep_scanlines (int ybegin, int yend, int z,
+                                        int firstchan, int nchans,
+                                        DeepData &deepdata)
+{
+    return false;  // default: doesn't support deep images
+}
+
+
+
+bool
+ImageInput::read_native_deep_tiles (int xbegin, int xend,
+                                    int ybegin, int yend,
+                                    int zbegin, int zend,
+                                    int firstchan, int nchans,
+                                    DeepData &deepdata)
+{
+    return false;  // default: doesn't support deep images
+}
+
+
+
+bool
+ImageInput::read_native_deep_image (DeepData &deepdata)
+{
+    if (m_spec.depth > 1) {
+        error ("read_native_deep_image is not supported for volume (3D) images.");
+        return false;
+        // FIXME? - not implementing 3D deep images for now.  The only
+        // format that supports deep images at this time is OpenEXR, and
+        // it doesn't support volumes.
+    }
+    if (m_spec.tile_width) {
+        // Tiled image
+        return read_native_deep_tiles (m_spec.x, m_spec.x+m_spec.width,
+                                       m_spec.y, m_spec.y+m_spec.height,
+                                       m_spec.z, m_spec.z+m_spec.depth,
+                                       0, m_spec.nchannels, deepdata);
+    } else {
+        // Scanline image
+        return read_native_deep_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                                           0, m_spec.nchannels, deepdata);
+    }
+}
+
+
+
 int 
 ImageInput::send_to_input (const char *format, ...)
 {
