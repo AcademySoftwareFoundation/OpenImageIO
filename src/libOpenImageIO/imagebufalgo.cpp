@@ -593,6 +593,11 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
                        float failthresh, float warnthresh,
                        ImageBufAlgo::CompareResults &result)
 {
+    if (A.spec().format != TypeDesc::FLOAT &&
+        B.spec().format != TypeDesc::FLOAT) {
+        A.error ("ImageBufAlgo::compare only works on 'float' images.");
+        return false;
+    }
     int npels = A.spec().width * A.spec().height * A.spec().depth;
     int nvals = npels * A.spec().nchannels;
 
@@ -604,8 +609,6 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
     result.maxx=0, result.maxy=0, result.maxz=0, result.maxc=0;
     result.nfail = 0, result.nwarn = 0;
     float maxval = 1.0;  // max possible value
-    ASSERT (A.spec().format == TypeDesc::FLOAT &&
-            B.spec().format == TypeDesc::FLOAT);
     ImageBuf::ConstIterator<float,float> a (A);
     ImageBuf::ConstIterator<float,float> b (B);
     // Break up into batches to reduce cancelation errors as the error
