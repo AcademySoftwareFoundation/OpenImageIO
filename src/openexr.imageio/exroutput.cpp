@@ -56,8 +56,11 @@
 #endif
 #ifdef USE_OPENEXR_VERSION2
 #include <OpenEXR/ImfMultiPartOutputFile.h>
+#include <OpenEXR/ImfPartType.h>
 #include <OpenEXR/ImfOutputPart.h>
 #include <OpenEXR/ImfTiledOutputPart.h>
+#include <OpenEXR/ImfDeepScanlineOutputPart.h>
+#include <OpenEXR/ImfDeepTiledOutputPart.h>
 #endif
 
 #include "dassert.h"
@@ -66,6 +69,7 @@
 #include "thread.h"
 #include "strutil.h"
 #include "sysutil.h"
+#include "fmath.h"
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -134,6 +138,11 @@ public:
                               int zbegin, int zend, TypeDesc format,
                               const void *data, stride_t xstride,
                               stride_t ystride, stride_t zstride);
+    virtual bool write_deep_scanlines (int ybegin, int yend, int z,
+                                       const DeepData &deepdata);
+    virtual bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                                   int zbegin, int zend,
+                                   const DeepData &deepdata);
 
 private:
     OpenEXROutputStream *m_output_stream; ///< Stream for output file
@@ -143,10 +152,14 @@ private:
     Imf::MultiPartOutputFile *m_output_multipart;
     Imf::OutputPart *m_scanline_output_part;
     Imf::TiledOutputPart *m_tiled_output_part;
+    Imf::DeepScanLineOutputPart *m_deep_scanline_output_part;
+    Imf::DeepTiledOutputPart *m_deep_tiled_output_part;
 #else
     char *m_output_multipart;
     char *m_scanline_output_part;
     char *m_tiled_output_part;
+    char *m_deep_scanline_output_part;
+    char *m_deep_tiled_output_part;
 #endif
     int m_levelmode;                      ///< The level mode of the file
     int m_roundingmode;                   ///< Rounding mode of the file
@@ -167,6 +180,8 @@ private:
         m_output_multipart = NULL;
         m_scanline_output_part = NULL;
         m_tiled_output_part = NULL;
+        m_deep_scanline_output_part = NULL;
+        m_deep_tiled_output_part = NULL;
         m_subimage = -1;
         m_miplevel = -1;
         std::vector<ImageSpec>().swap (m_subimagespecs);  // clear and free
@@ -241,6 +256,8 @@ OpenEXROutput::~OpenEXROutput ()
     delete m_output_tiled;  m_output_tiled = NULL;
     delete m_scanline_output_part;  m_scanline_output_part = NULL;
     delete m_tiled_output_part;  m_tiled_output_part = NULL;
+    delete m_deep_scanline_output_part;  m_deep_scanline_output_part = NULL;
+    delete m_deep_tiled_output_part;  m_deep_tiled_output_part = NULL;
     delete m_output_multipart;  m_output_multipart = NULL;
     delete m_output_stream;  m_output_stream = NULL;
 }
@@ -287,6 +304,8 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
                      OpenMode mode)
 {
     if (mode == Create) {
+        if (userspec.deep)  // Fall back on multi-part OpenEXR for deep files
+            return open (name, 1, &userspec);
         m_nsubimages = 1;
         m_subimage = 0;
         m_nmiplevels = 1;
@@ -340,15 +359,25 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
             if (m_tiled_output_part) {
                 delete m_tiled_output_part;
                 m_tiled_output_part = new Imf::TiledOutputPart (*m_output_multipart, m_subimage);
-            } else {
+            } else if (m_scanline_output_part) {
                 delete m_scanline_output_part;
                 m_scanline_output_part = new Imf::OutputPart (*m_output_multipart, m_subimage);
+            } else if (m_deep_tiled_output_part) {
+                delete m_deep_tiled_output_part;
+                m_deep_tiled_output_part = new Imf::DeepTiledOutputPart (*m_output_multipart, m_subimage);
+            } else if (m_deep_scanline_output_part) {
+                delete m_deep_scanline_output_part;
+                m_deep_scanline_output_part = new Imf::DeepScanLineOutputPart (*m_output_multipart, m_subimage);
+            } else {
+                ASSERT (0);
             }
         }
         catch (const std::exception &e) {
             error ("OpenEXR exception: %s", e.what());
             m_scanline_output_part = NULL;
             m_tiled_output_part = NULL;
+            m_deep_scanline_output_part = NULL;
+            m_deep_tiled_output_part = NULL;
             return false;
         }
         m_spec = m_subimagespecs[m_subimage];
@@ -403,8 +432,8 @@ OpenEXROutput::open (const std::string &name, int subimages,
     }
 
 #ifdef USE_OPENEXR_VERSION2
-    // Only one part?  Write an OpenEXR 1.x file
-    if (subimages == 1)
+    // Only one part and not deep?  Write an OpenEXR 1.x file
+    if (subimages == 1 && ! specs[0].deep)
         return open (name, specs[0], Create);
 
     // Copy the passed-in subimages and turn into OpenEXR headers
@@ -415,13 +444,26 @@ OpenEXROutput::open (const std::string &name, int subimages,
     m_subimagespecs.assign (specs, specs+subimages);
     m_headers.resize (subimages);
     std::string filetype;
-    filetype = specs[0].tile_width ? "tiledimage" : "scanlineimage";
+    if (specs[0].deep)
+        filetype = specs[0].tile_width ? "tiledimage" : "deepscanlineimage";
+    else
+        filetype = specs[0].tile_width ? "tiledimage" : "scanlineimage";
+    bool deep = false;
     for (int s = 0;  s < subimages;  ++s) {
         if (! spec_to_header (m_subimagespecs[s], m_headers[s]))
             return false;
-        if (subimages > 1)
-            m_headers[s].insert ("type", Imf::StringAttribute(filetype));
+        deep |= m_subimagespecs[s].deep;
+        if (m_subimagespecs[s].deep != m_subimagespecs[0].deep) {
+            error ("OpenEXR does not support mixed deep/nondeep multi-part image files");
+            return false;
+        }
+        if (subimages > 1 || deep) {
+            bool tiled = m_subimagespecs[s].tile_width;
+            m_headers[s].setType (deep ? (tiled ? Imf::DEEPTILE   : Imf::DEEPSCANLINE)
+                                       : (tiled ? Imf::TILEDIMAGE : Imf::SCANLINEIMAGE));
+        }
     }
+
     m_spec = m_subimagespecs[0];
 
     // Create an ImfMultiPartOutputFile
@@ -434,10 +476,26 @@ OpenEXROutput::open (const std::string &name, int subimages,
         // do this quite yet.
         m_output_multipart = new Imf::MultiPartOutputFile (name.c_str(),
                                                  &m_headers[0], subimages);
-        if (m_spec.tile_width) {
-            m_tiled_output_part = new Imf::TiledOutputPart (*m_output_multipart, 0);
+    }
+    catch (const std::exception &e) {
+        delete m_output_stream;
+        m_output_stream = NULL;
+        error ("OpenEXR exception: %s", e.what());
+        return false;
+    }
+    try {
+        if (deep) {
+            if (m_spec.tile_width) {
+                m_deep_tiled_output_part = new Imf::DeepTiledOutputPart (*m_output_multipart, 0);
+            } else {
+                m_deep_scanline_output_part = new Imf::DeepScanLineOutputPart (*m_output_multipart, 0);
+            }
         } else {
-            m_scanline_output_part = new Imf::OutputPart (*m_output_multipart, 0);
+            if (m_spec.tile_width) {
+                m_tiled_output_part = new Imf::TiledOutputPart (*m_output_multipart, 0);
+            } else {
+                m_scanline_output_part = new Imf::OutputPart (*m_output_multipart, 0);
+            }
         }
     }
     catch (const std::exception &e) {
@@ -445,6 +503,8 @@ OpenEXROutput::open (const std::string &name, int subimages,
         delete m_output_stream;  m_output_stream = NULL;
         m_scanline_output_part = NULL;
         m_tiled_output_part = NULL;
+        m_deep_scanline_output_part = NULL;
+        m_deep_tiled_output_part = NULL;
         return false;
     }
 
@@ -453,6 +513,10 @@ OpenEXROutput::open (const std::string &name, int subimages,
     // No support for OpenEXR 2.x -- one subimage only
     if (subimages != 1) {
         error ("OpenEXR 1.x does not support multiple subimages.");
+        return false;
+    }
+    if (specs[0].deep) {
+        error ("OpenEXR 1.x does not support deep data.");
         return false;
     }
     return open (name, specs[0], Create);
@@ -512,8 +576,7 @@ OpenEXROutput::spec_to_header (ImageSpec &spec, Imf::Header &header)
         if (spec.channelnames[c].empty())
             spec.channelnames[c] = (c<4) ? default_chan_names[c]
                                            : Strutil::format ("unknown %d", c);
-        TypeDesc format = spec.channelformats.size() ?
-                                  spec.channelformats[c] : spec.format;
+        TypeDesc format = spec.channelformat(c);
         Imf::PixelType ptype;
         switch (format.basetype) {
         case TypeDesc::UINT:
@@ -816,8 +879,10 @@ bool
 OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
                                const void *data, stride_t xstride)
 {
-    if (! (m_output_scanline || m_scanline_output_part))
+    if (! (m_output_scanline || m_scanline_output_part)) {
+        error ("called OpenEXROutput::write_scanline without an open file");
         return false;
+    }
 
     bool native = (format == TypeDesc::UNKNOWN);
     size_t pixel_bytes = m_spec.pixel_bytes (true);  // native
@@ -827,10 +892,10 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
     data = to_native_scanline (format, data, xstride, m_scratch);
 
     // Compute where OpenEXR needs to think the full buffers starts.
-    // OpenImageIO requires that 'data' points to where the client wants
-    // to put the pixels being read, but OpenEXR's frameBuffer.insert()
-    // wants where the address of the "virtual framebuffer" for the
-    // whole image.
+    // OpenImageIO requires that 'data' points to where client stored
+    // the bytes to be written, but OpenEXR's frameBuffer.insert() wants
+    // where the address of the "virtual framebuffer" for the whole
+    // image.
     imagesize_t scanlinebytes = m_spec.scanline_bytes (native);
     char *buf = (char *)data
               - m_spec.x * pixel_bytes
@@ -840,9 +905,7 @@ OpenEXROutput::write_scanline (int y, int z, TypeDesc format,
         Imf::FrameBuffer frameBuffer;
         size_t chanoffset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
-            size_t chanbytes = m_spec.channelformats.size() 
-                                  ? m_spec.channelformats[c].size() 
-                                  : m_spec.format.size();
+            size_t chanbytes = m_spec.channelformat(c).size();
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
                                 Imf::Slice (m_pixeltype[c],
                                             buf + chanoffset,
@@ -878,8 +941,10 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
                                 TypeDesc format, const void *data,
                                 stride_t xstride, stride_t ystride)
 {
-    if (! (m_output_scanline || m_scanline_output_part))
+    if (! (m_output_scanline || m_scanline_output_part)) {
+        error ("called OpenEXROutput::write_scanlines without an open file");
         return false;
+    }
 
     yend = std::min (yend, spec().y+spec().height);
     bool native = (format == TypeDesc::UNKNOWN);
@@ -904,10 +969,10 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
                                              m_scratch);
 
         // Compute where OpenEXR needs to think the full buffers starts.
-        // OpenImageIO requires that 'data' points to where the client wants
-        // to put the pixels being read, but OpenEXR's frameBuffer.insert()
-        // wants where the address of the "virtual framebuffer" for the
-        // whole image.
+        // OpenImageIO requires that 'data' points to where client stored
+        // the bytes to be written, but OpenEXR's frameBuffer.insert() wants
+        // where the address of the "virtual framebuffer" for the whole
+        // image.
         char *buf = (char *)d
                   - m_spec.x * pixel_bytes
                   - ybegin * scanlinebytes;
@@ -915,9 +980,7 @@ OpenEXROutput::write_scanlines (int ybegin, int yend, int z,
             Imf::FrameBuffer frameBuffer;
             size_t chanoffset = 0;
             for (int c = 0;  c < m_spec.nchannels;  ++c) {
-                size_t chanbytes = m_spec.channelformats.size() 
-                                      ? m_spec.channelformats[c].size() 
-                                      : m_spec.format.size();
+                size_t chanbytes = m_spec.channelformat(c).size();
                 frameBuffer.insert (m_spec.channelnames[c].c_str(),
                                     Imf::Slice (m_pixeltype[c],
                                                 buf + chanoffset,
@@ -977,9 +1040,14 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
 {
 //    std::cerr << "exr::write_tiles " << xbegin << ' ' << xend 
 //              << ' ' << ybegin << ' ' << yend << "\n";
-    if (! (m_output_tiled || m_tiled_output_part) ||
-        ! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
+    if (! (m_output_tiled || m_tiled_output_part)) {
+        error ("called OpenEXROutput::write_tiles without an open file");
         return false;
+    }
+    if (! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend)) {
+        error ("called OpenEXROutput::write_tiles with an invalid tile range");
+        return false;
+    }
 
     // Compute where OpenEXR needs to think the full buffers starts.
     // OpenImageIO requires that 'data' points to where the client wants
@@ -1031,9 +1099,7 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
         Imf::FrameBuffer frameBuffer;
         size_t chanoffset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
-            size_t chanbytes = m_spec.channelformats.size() 
-                                  ? m_spec.channelformats[c].size() 
-                                  : m_spec.format.size();
+            size_t chanbytes = m_spec.channelformat(c).size();
             frameBuffer.insert (m_spec.channelnames[c].c_str(),
                                 Imf::Slice (m_pixeltype[c],
                                             buf + chanoffset, pixelbytes,
@@ -1062,6 +1128,127 @@ OpenEXROutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
     }
 
     return true;
+}
+
+
+
+bool
+OpenEXROutput::write_deep_scanlines (int ybegin, int yend, int z,
+                                     const DeepData &deepdata)
+{
+    if (m_deep_scanline_output_part == NULL) {
+        error ("called OpenEXROutput::write_deep_scanlines without an open file");
+        return false;
+    }
+    if (m_spec.width*(yend-ybegin) != deepdata.npixels ||
+        m_spec.nchannels != deepdata.nchannels) {
+        error ("called OpenEXROutput::write_deep_scanlines with non-matching DeepData size");
+        return false;
+    }
+
+#ifdef USE_OPENEXR_VERSION2
+    int nchans = m_spec.nchannels;
+    try {
+        // Set up the count and pointers arrays and the Imf framebuffer
+        Imf::DeepFrameBuffer frameBuffer;
+        Imf::Slice countslice (Imf::UINT,
+                               (char *)(&deepdata.nsamples[0]
+                                        - m_spec.x
+                                        - ybegin*m_spec.width),
+                               sizeof(unsigned int),
+                               sizeof(unsigned int) * m_spec.width);
+        frameBuffer.insertSampleCountSlice (countslice);
+        for (int c = 0;  c < nchans;  ++c) {
+            size_t chanbytes = m_spec.channelformat(c).size();
+            Imf::DeepSlice slice (m_pixeltype[c],
+                                  (char *)(&deepdata.pointers[c]
+                                           - m_spec.x * nchans
+                                           - ybegin*m_spec.width*nchans),
+                                  sizeof(void*) * nchans, // xstride of pointer array
+                                  sizeof(void*) * nchans*m_spec.width, // ystride of pointer array
+                                  chanbytes); // stride of data sample
+            frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
+        }
+        m_deep_scanline_output_part->setFrameBuffer (frameBuffer);
+
+        // Write the pixels
+        m_deep_scanline_output_part->writePixels (yend-ybegin);
+    }
+    catch (const std::exception &e) {
+        error ("Failed OpenEXR write: %s", e.what());
+        return false;
+    }
+
+    return true;
+
+#else
+    error ("deep data not supported with OpenEXR 1.x");
+    return false;
+#endif
+}
+
+
+
+bool
+OpenEXROutput::write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                                 int zbegin, int zend,
+                                 const DeepData &deepdata)
+{
+    if (m_deep_tiled_output_part == NULL) {
+        error ("called OpenEXROutput::write_deep_tiles without an open file");
+        return false;
+    }
+    if ((xend-xbegin)*(yend-ybegin)*(zend-zbegin) != deepdata.npixels ||
+        m_spec.nchannels != deepdata.nchannels) {
+        error ("called OpenEXROutput::write_deep_tiles with non-matching DeepData size");
+        return false;
+    }
+
+#ifdef USE_OPENEXR_VERSION2
+    int nchans = m_spec.nchannels;
+    try {
+        size_t width = (xend - xbegin);
+
+        // Set up the count and pointers arrays and the Imf framebuffer
+        Imf::DeepFrameBuffer frameBuffer;
+        Imf::Slice countslice (Imf::UINT,
+                               (char *)(&deepdata.nsamples[0]
+                                        - xbegin
+                                        - ybegin*width),
+                               sizeof(unsigned int),
+                               sizeof(unsigned int) * width);
+        frameBuffer.insertSampleCountSlice (countslice);
+        for (int c = 0;  c < nchans;  ++c) {
+            size_t chanbytes = m_spec.channelformat(c).size();
+            Imf::DeepSlice slice (m_pixeltype[c],
+                                  (char *)(&deepdata.pointers[c]
+                                           - xbegin*nchans
+                                           - ybegin*width*nchans),
+                                  sizeof(void*) * nchans, // xstride of pointer array
+                                  sizeof(void*) * nchans*width, // ystride of pointer array
+                                  chanbytes); // stride of data sample
+            frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
+        }
+        m_deep_tiled_output_part->setFrameBuffer (frameBuffer);
+
+        int xtiles = round_to_multiple (xend-xbegin, m_spec.tile_width) / m_spec.tile_width;
+        int ytiles = round_to_multiple (yend-ybegin, m_spec.tile_height) / m_spec.tile_height;
+
+        // Write the pixels
+        m_deep_tiled_output_part->writeTiles (0, xtiles-1, 0, ytiles-1,
+                                                 m_miplevel, m_miplevel);
+    }
+    catch (const std::exception &e) {
+        error ("Failed OpenEXR write: %s", e.what());
+        return false;
+    }
+
+    return true;
+
+#else
+    error ("deep data not supported with OpenEXR 1.x");
+    return false;
+#endif
 }
 
 
