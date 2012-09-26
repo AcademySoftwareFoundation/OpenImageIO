@@ -63,15 +63,29 @@ using namespace ImageBufAlgo;
 static void
 print_sha1 (ImageInput *input)
 {
-    imagesize_t size = input->spec().image_bytes ();
-    if (size >= std::numeric_limits<size_t>::max()) {
-        printf ("    SHA1 digest: (unable to compute, image is too big)\n");
-        return;
-    }
-    boost::scoped_array<unsigned char> buf(new unsigned char[(unsigned int)size]);
-    input->read_image (input->spec().format, &buf[0]);
     CSHA1 sha;
-    sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
+    const ImageSpec &spec (input->spec());
+    if (spec.deep) {
+        // Special handling of deep data
+        DeepData dd;
+        if (! input->read_native_deep_image (dd)) {
+            printf ("    SHA-1: unable to compute, could not read image\n");
+            return;
+        }
+        // Hash both the sample counds and the data block
+        sha.Update ((const unsigned char *)&dd.nsamples[0], dd.nsamples.size());
+        sha.Update ((const unsigned char *)&dd.data[0], dd.data.size());
+    } else {
+        imagesize_t size = input->spec().image_bytes (true /*native*/);
+        if (size >= std::numeric_limits<size_t>::max()) {
+            printf ("    SHA-1: unable to compute, image is too big\n");
+            return;
+        }
+        boost::scoped_array<unsigned char> buf(new unsigned char[(unsigned int)size]);
+        input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0]);
+        sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
+    }
+
     sha.Final ();
     std::string digest;
     sha.ReportHashStl (digest, CSHA1::REPORT_HEX_SHORT);
@@ -232,25 +246,48 @@ print_stats (const std::string &filename,
     }
     printf ("\n");
     
-    std::vector<float> constantValues(input.spec().nchannels);
-    if(isConstantColor(input, &constantValues[0])) {
-        printf ("%sConstant: Yes\n", indent);
-        printf ("%sConstant Color: ", indent);
-        for (unsigned int i=0; i<constantValues.size(); ++i) {
-            print_stats_num (constantValues[i], maxval, false);
-            printf (" ");
+    if (input.deep()) {
+        const DeepData *dd (input.deepdata());
+        size_t npixels = dd->nsamples.size();
+        size_t totalsamples = 0, emptypixels = 0;
+        size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
+        for (size_t p = 0;  p < npixels;  ++p) {
+            int c = dd->nsamples[p];
+            totalsamples += c;
+            if (c > maxsamples)
+                maxsamples = c;
+            if (c < minsamples)
+                minsamples = c;
+            if (c == 0)
+                ++emptypixels;
         }
-        print_stats_footer (maxval);
-        printf ("\n");
-    }
-    else {
-        printf ("%sConstant: No\n", indent);
-    }
-    
-    if(isMonochrome(input)) {
-        printf ("%sMonochrome: Yes\n", indent);
+        printf ("%sMin deep samples in any pixel : %llu\n", indent, (unsigned long long)minsamples);
+        printf ("%sMax deep samples in any pixel : %llu\n", indent, (unsigned long long)maxsamples);
+        printf ("%sAverage deep samples per pixel: %.2f\n", indent, double(totalsamples)/double(npixels));
+        printf ("%sTotal deep samples in all pixels: %llu\n", indent, (unsigned long long)totalsamples);
+        printf ("%sPixels with deep samples   : %llu\n", indent, (unsigned long long)(npixels-emptypixels));
+        printf ("%sPixels with no deep samples: %llu\n", indent, (unsigned long long)emptypixels);
     } else {
-        printf ("%sMonochrome: No\n", indent);
+        std::vector<float> constantValues(input.spec().nchannels);
+        if (isConstantColor(input, &constantValues[0])) {
+            printf ("%sConstant: Yes\n", indent);
+            printf ("%sConstant Color: ", indent);
+            for (unsigned int i=0; i<constantValues.size(); ++i) {
+                print_stats_num (constantValues[i], maxval, false);
+                printf (" ");
+            }
+            print_stats_footer (maxval);
+            printf ("\n");
+        }
+        else {
+            printf ("%sConstant: No\n", indent);
+        }
+    
+        if( isMonochrome(input)) {
+            printf ("%sMonochrome: Yes\n", indent);
+        } else {
+            printf ("%sMonochrome: No\n", indent);
+        }
     }
 }
 
