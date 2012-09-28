@@ -1033,6 +1033,109 @@ a Z channel in {\cf float}:
 \end{code}
 
 
+\subsection{Writing ``deep'' data}
+\label{sec:imageoutput:deepdata}  \index{deep data}
+\NEW
+Some image file formats (OpenEXR only, at this time) support the concept
+of ``deep'' pixels -- those containing multiple samples per pixel (and a
+potentially differing number of them in each pixel).  You can tell
+if a format supports deep images by checking {\cf supports("deepdata")},
+and you can specify a deep data in an \ImageSpec by setting its {\cf deep}
+field will be {\cf true}.
+
+Deep files cannot be written with the usual {\cf write_scanline}, {\cf
+  write_scanlines}, {\cf write_tile}, {\cf write_tiles}, {\cf write_image}
+functions, due to the nature of their variable number of samples per
+pixel.  Instead, \ImageOutput has three special member functions used
+only for writing deep data:
+
+\begin{code}
+    bool write_deep_scanlines (int ybegin, int yend, int z,
+                               const DeepData &deepdata);
+
+    bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                           int zbegin, int zend, const DeepData &deepdata);
+
+    bool write_deep_image (const DeepData &deepdata);
+\end{code}
+
+It is only possible to write ``native'' data types to deep files; that
+is, there is no automatic translation into arbitrary data types as there
+is for ordinary images.  All three of these functions are passed
+deep data in a special {\cf DeepData} structure, defined in
+{\cf imageio.h} as follows:
+
+\begin{code}
+    struct DeepData {
+        int npixels, nchannels;
+        std::vector<TypeDesc> channeltypes;  // for each channel [c]
+        std::vector<unsigned int> nsamples;// for each pixel [z][y][x]
+        std::vector<void *> pointers;    // for each channel per pixel [z][y][x][c]
+        std::vector<char> data;          // for each sample [z][y][x][c][s]
+
+        DeepData ();
+        // Set the size and allocate the nsamples[] vector.
+        void init (int npix, int nchan,
+                   const TypeDesc *chbegin, const TypeDesc *chend);
+        // Allocate data[] and set up all the pointers[]
+        void alloc ();
+    };
+\end{code}
+
+\noindent Here is an example of using these methods to write a deep image:
+
+\begin{code}
+    // Prepare the spec for 'half' RGBA, 'float' z
+    int nchannels = 5;
+    ImageSpec spec (xres, yres, nchannels);
+    TypeDesc channeltypes[] = { TypeDesc::HALF, TypeDesc::HALF,
+          TypeDesc::HALF, TypeDesc::HALF, TypeDesc::FLOAT };
+    spec.z_channel = 4;
+    spec.channelnames[spec.z_channel] = "Z";
+    spec.channeltypes.assign (channeltypes+0, channeltypes+nchannels);
+    spec.deep = true;
+
+    // Prepare the data (sorry, complicated, but need to show the gist)
+    DeepData deepdata;
+    deepdata.init (xres*yres, 5, channeltypes+0, channeltypes+nchannels);
+    for (int y = 0;  y < yres;  ++y)
+        for (int x = 0;  x < xres;  ++x)
+            deepdata.nsamples[y*xres+x] = ...num samples for that pixel...;
+    deepdata.alloc ();  // allocate pointers and data
+    int pixel = 0;
+    for (int y = 0;  y < yres;  ++y)
+        for (int x = 0;  x < xres;  ++x, ++pixel)
+            for (int chan = 0;  chan < nchannels;  ++chan) {
+                void *ptr = deepdata.pointers[pixel*nchannels + c];
+                if (chan < 4) {  // RGBA -- it's HALF data
+                    for (int samp = 0; samp < deepdata.nsamples[pixel]; ++samp)
+                        ((half *)ptr)[samp] = ...value...;
+                } else {
+                    // z channel -- FLOAT data
+                    for (int samp = 0; samp < deepdata.nsamples[pixel]; ++samp)
+                        ((float *)ptr)[samp] = ...value...;
+                }
+            }
+        }
+    }
+
+
+    // Create the output
+    ImageOutput *out = ImageOutput::create (filename);
+    if (! out)
+        return;
+    // Make sure the format can handle deep data and per-channel formats
+    if (! out->supports("deepdata") || ! out->supports("channelformats"))
+        return;
+
+    // Do the I/O (this is the easy part!)
+    out->open (filename, spec);
+    out->write_deep_image (deepdata);
+    out->close ();
+    delete out;
+\end{code}
+
+
 \subsection{Copying an entire image}
 \label{sec:imageoutput:copyimage}
 
@@ -1286,7 +1389,7 @@ a MIP level to the current subimage, respectively.
 
 \apiitem{bool {\ce open} (const std::string \&name, int subimages,
  const ImageSpec *specs)}
-
+\NEW
 Open the file with given {\cf name}, expecting to have a given total
 number of subimages, described by {\cf specs[0..subimages-1]}.  Return
 {\cf true} for success, {\cf false} for failure.  Upon success, the
@@ -1343,7 +1446,7 @@ access.
      const void *data, \\
 \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
 
-Write a block of scanlines scanline that includes pixels $(*,y,z)$,
+Write a block of scanlines that include pixels $(*,y,z)$,
 where ${\mathit ybegin} \le y < {\mathit yend}$.  This is essentially
 identical to {\cf write_scanline()}, except that it can write more than
 one scanline at a time, which may be more efficient for certain
@@ -1481,6 +1584,20 @@ Periodically, it will be called as follows:
 
 \apiend
 
+
+\apiitem{bool {\ce write_deep_scanlines} (int ybegin, int yend, int z, \\
+\bigspc const DeepData \&deepdata) \\
+bool {\ce write_deep_tiles} (int xbegin, int xend, int ybegin, int yend,\\
+\bigspc int zbegin, int zend, const DeepData \&deepdata) \\
+bool {\ce write_deep_image} (const DeepData \&deepdata)}
+\NEW
+Write deep data for a block of scanlines, a block of tiles, or an entire
+image (analogously to the usual {\cf write_scanlines}, {\cf write_tiles},
+and {\cf write_image}, but with deep data).
+Return {\kw true} for success, {\kw false} for failure.
+\apiend
+
+
 \apiitem{bool {\ce copy_image} (ImageInput *in)}
 
 Read the current subimage of {\cf in}, and write it as the next subimage
@@ -1493,7 +1610,7 @@ if it works ok, {\cf false} if for some reason the operation wasn't possible.
 If a particular \ImageOutput implementation does not supply a
 {\cf copy_image} method, it will inherit the default implementation,
 which is to simply read scanlines or tiles from {\cf in} and write
-them to {\cf *this}.  However, some format implementations may have a
+them to {\cf *this}.  However, some file format implementations may have a
 special technique for directly copying raw pixel data from the
 input to the output, when both input and output are the same
 file type and the same data format.  This can be more efficient 
