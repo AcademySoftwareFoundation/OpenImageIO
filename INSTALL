@@ -22,7 +22,7 @@ Building OpenImageIO on Linux or OS X
 -------------------------------------
 
 The following dependencies must be installed to build the core of
-OpenImageIO: Boost, libjpeg, libtiff and OpenEXR.  These can be installed
+OpenImageIO: Boost, libjpeg, libtiff, libpng and OpenEXR.  These can be installed
 using the standard package managers on your system.  Optionally, 
 to build the image viewing tools, you will need Qt, OpenGL, and GLEW.
 
