@@ -221,7 +221,7 @@ bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
 struct CompareResults {
     double meanerror, rms_error, PSNR, maxerror;
     int maxx, maxy, maxz, maxc;
-    int nwarn, nfail;
+    imagesize_t nwarn, nfail;
 };
 
 /// Numerically compare two images.  The images must be the same size
