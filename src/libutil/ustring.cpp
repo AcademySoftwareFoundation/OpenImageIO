@@ -46,11 +46,6 @@ OIIO_NAMESPACE_ENTER
 {
 
 #if 0
-// Use reader/writer locks
-typedef shared_mutex ustring_mutex_t;
-typedef shared_lock ustring_read_lock_t;
-typedef unique_lock ustring_write_lock_t;
-#elif 0
 // Use regular mutex
 typedef mutex ustring_mutex_t;
 typedef lock_guard ustring_read_lock_t;
