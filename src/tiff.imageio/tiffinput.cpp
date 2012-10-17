@@ -47,6 +47,19 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
+// General TIFF information:
+// TIFF 6.0 spec: 
+//     http://partners.adobe.com/public/developer/en/tiff/TIFF6.pdf
+// Other Adobe TIFF docs:
+//     http://partners.adobe.com/public/developer/tiff/index.html
+// Adobe extensions to allow 16 (and 24) bit float in TIFF (ugh, not on
+// their developer page, only on Chris Cox's web site?):
+//     http://chriscox.org/TIFFTN3d1.pdf
+// Libtiff:
+//     http://remotesensing.org/libtiff/
+
+
+
 // Helper struct for constructing tables of TIFF tags
 struct TIFF_tag_info {
     int tifftag;       // TIFF tag used for this info
@@ -567,8 +580,10 @@ TIFFInput::readspec (bool read_meta)
             m_spec.set_format (TypeDesc::UINT16);
         else if (sampleformat == SAMPLEFORMAT_INT)
             m_spec.set_format (TypeDesc::INT16);
-        else if (sampleformat == SAMPLEFORMAT_IEEEFP)
-            m_spec.set_format (TypeDesc::HALF); // not to spec, but why not?
+        else if (sampleformat == SAMPLEFORMAT_IEEEFP) {
+            m_spec.set_format (TypeDesc::HALF);
+            // Adobe extension, see http://chriscox.org/TIFFTN3d1.pdf
+        }
         else
             m_spec.set_format (TypeDesc::UNKNOWN);
         break;
