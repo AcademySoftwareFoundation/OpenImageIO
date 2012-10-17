@@ -1,5 +1,11 @@
 Changes:
 
+Release 0.10.13 (17 Oct 2012)
+-----------------------------
+* TIFF: Recognize nonstandard Adobe use of IEEEFP and 16 bitspersample as
+  meaning 'half'.
+
+
 Release 0.10.12 (4 Sep 2012)
 ----------------------------
 * Make the TextureSystem work properly with MIPmapped images whose tile
