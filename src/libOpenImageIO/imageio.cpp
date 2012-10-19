@@ -49,8 +49,10 @@ OIIO_NAMESPACE_ENTER
 
 // Global private data
 namespace pvt {
+recursive_mutex imageio_mutex;
 int oiio_threads = boost::thread::hardware_concurrency();
 ustring plugin_searchpath;
+std::string format_list;   // comma-separated list of all formats
 };
 
 
@@ -79,7 +81,6 @@ error_msg ()
 
 } // end anon namespace
 
-recursive_mutex pvt::imageio_mutex;
 
 
 
@@ -154,6 +155,12 @@ getattribute (const std::string &name, TypeDesc type, void *val)
     }
     if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
         *(ustring *)val = plugin_searchpath;
+        return true;
+    }
+    if (name == "format_list" && type == TypeDesc::TypeString) {
+        if (format_list.empty())
+            pvt::catalog_all_plugins (plugin_searchpath.string());
+        *(ustring *)val = ustring(format_list);
         return true;
     }
     return false;
