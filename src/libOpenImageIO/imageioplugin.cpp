@@ -104,6 +104,12 @@ declare_plugin (const std::string &format_name,
                 output_formats[ext] = output_creator;
         }
     }
+
+    // Add the name to the master list of format_names
+    recursive_lock_guard lock (pvt::imageio_mutex);
+    if (format_list.length())
+        format_list += std::string(",");
+    format_list += format_name;
 }
 
 
@@ -260,11 +266,15 @@ catalog_builtin_plugins ()
 #endif
 }
 
+} // anon namespace end
+
+
+
 /// Look at ALL imageio plugins in the searchpath and add them to the
 /// catalog.  This routine is not reentrant and should only be called
 /// by a routine that is holding a lock on imageio_mutex.
-static void
-catalog_all_plugins (std::string searchpath)
+void
+pvt::catalog_all_plugins (std::string searchpath)
 {
     catalog_builtin_plugins ();
 
@@ -295,7 +305,6 @@ catalog_all_plugins (std::string searchpath)
     }
 }
 
-}
 
 
 ImageOutput *

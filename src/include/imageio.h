@@ -1024,6 +1024,9 @@ DLLPUBLIC std::string geterror ();
 ///     string plugin_searchpath
 ///             Colon-separated list of directories to search for 
 ///             dynamically-loaded format plugins.
+///     string format_list     (for 'getattribute' only, cannot set)
+///             Comma-separated list of all format names supported
+///             or for which plugins could be found.
 DLLPUBLIC bool attribute (const std::string &name, TypeDesc type,
                           const void *val);
 // Shortcuts for common types
@@ -1062,7 +1065,7 @@ inline bool getattribute (const std::string &name, std::string &val) {
     const char *s = NULL;
     bool ok = getattribute (name, TypeDesc::TypeString, &s);
     if (ok)
-        val = s;
+        val = s ? s : "";
     return ok;
 }
 
