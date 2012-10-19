@@ -35,6 +35,7 @@
 #include <iostream>
 #include <cmath>
 #include <sstream>
+#include <limits>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
@@ -353,6 +354,76 @@ Strutil::strip (const std::string &str, const std::string &chars)
     size_t e = str.find_last_not_of (stripchars);
     DASSERT (e != std::string::npos);
     return std::string (str, b, e-b+1);
+}
+
+
+
+static void
+split_whitespace (const std::string &str, std::vector<std::string> &result,
+                  int maxsplit)
+{
+    // Implementation inspired by Pystring
+    std::string::size_type i, j, len = str.size();
+    for (i = j = 0; i < len; ) {
+        while (i < len && ::isspace(str[i]))
+            i++;
+        j = i;
+        while (i < len && ! ::isspace(str[i]))
+            i++;
+        if (j < i) {
+            if (maxsplit-- <= 0)
+                break;
+            result.push_back (str.substr(j, i - j));
+            while (i < len && ::isspace(str[i]))
+                i++;
+            j = i;
+        }
+    }
+    if (j < len)
+        result.push_back (str.substr(j, len - j));
+}
+
+
+
+void
+Strutil::split (const std::string &str, std::vector<std::string> &result,
+                const std::string &sep, int maxsplit)
+{
+    // Implementation inspired by Pystring
+    result.clear();
+    if (maxsplit < 0)
+        maxsplit = std::numeric_limits<int>::max();
+    if (sep.size() == 0) {
+        split_whitespace (str, result, maxsplit);
+        return;
+    }
+    size_t i = 0, j = 0, len = str.size(), n = sep.size();
+    while (i+n <= len) {
+        if (str[i] == sep[0] && str.substr(i, n) == sep) {
+            if (maxsplit-- <= 0)
+                break;
+            result.push_back (str.substr(j, i - j));
+            i = j = i + n;
+        } else {
+            i++;
+        }
+    }
+    result.push_back (str.substr(j, len-j));
+}
+
+
+
+std::string
+Strutil::join (const std::vector<std::string> &seq, const std::string & str)
+{
+    // Implementation inspired by Pystring
+    size_t seqlen = seq.size();
+    if (seqlen == 0)
+        return "";
+    std::string result (seq[0]);
+    for (size_t i = 1; i < seqlen; ++i)
+        result += str + seq[i];
+    return result;
 }
 
 

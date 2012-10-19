@@ -43,6 +43,7 @@
 #include <cstdarg>
 #include <string>
 #include <cstring>
+#include <vector>
 #include <map>
 #include <sys/types.h>   // to safely get off_t
 
@@ -198,6 +199,18 @@ void DLLPUBLIC to_upper (std::string &a);
 /// be interpreted as " \t\n\r\f\v" (whitespace).
 std::string DLLPUBLIC strip (const std::string &str,
                              const std::string &chars=std::string());
+
+/// Fills the "result" list with the words in the string, using sep as
+/// the delimiter string.  If maxsplit is > -1, at most maxsplit splits
+/// are done. If sep is "", any whitespace string is a separator.
+void DLLPUBLIC split (const std::string &str, std::vector<std::string> &result,
+                      const std::string &sep = "", int maxsplit = -1);
+
+/// Join all the strings in 'seq' into one big string, separated by the
+/// 'sep' string.
+std::string DLLPUBLIC join (const std::vector<std::string> &seq,
+                            const std::string &sep="");
+
 
 
 /// C++ functor wrapper class for using strhash for unordered_map or
