@@ -195,7 +195,13 @@ static std::string format_prefix ("openexr_");
 
 
 namespace pvt {
-    void set_exr_threads ();
+void set_exr_threads ();
+
+// format-specific metadata prefixes
+static std::vector<std::string> format_prefixes;
+static atomic_int format_prefixes_initialized;
+static spin_mutex format_prefixes_mutex;   // guard
+
 }
 
 
@@ -558,12 +564,21 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
 
     // Before handling general named metadata, suppress non-openexr
     // format-specific metadata.
-    if (strchr (name.c_str(), ':') &&
-        ! Strutil::istarts_with (name, "openexr:") &&
-        ! Strutil::istarts_with (name, "Exif:") &&
-        ! Strutil::istarts_with (name, "IPTC:") &&
-        ! Strutil::istarts_with (name, "GPS:")) {
-        return false;
+    if (const char *colon = strchr (xname.c_str(), ':')) {
+        std::string prefix (xname.c_str(), colon);
+        if (! Strutil::iequals (prefix, format_name())) {
+            if (! pvt::format_prefixes_initialized) {
+                // Retrieve and split the list, only the first time
+                spin_lock lock (pvt::format_prefixes_mutex);
+                std::string format_list;
+                OIIO::getattribute ("format_list", format_list);
+                Strutil::split (format_list, pvt::format_prefixes, ",");
+                pvt::format_prefixes_initialized = true;
+            }
+            for (size_t i = 0, e = pvt::format_prefixes.size();  i < e;  ++i)
+                if (Strutil::iequals (prefix, pvt::format_prefixes[i]))
+                    return false;
+        }
     }
 
     // General handling of attributes
