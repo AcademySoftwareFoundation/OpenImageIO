@@ -345,49 +345,49 @@ flexible functionality.  A few representative examples follow:
 \item Flip an image vertically upon writing, by using \emph{negative}
   $y$ stride:
   \begin{code}
-        unsigned char pixels[xres*yres*channels];
-        int scanlinesize = xres * channels * sizeof(pixels[0]);
-        ...
-        out->write_image (TypeDesc::UINT8,
-                          (char *)pixels+(yres-1)*scanlinesize, // offset to last
-                          AutoStride,                  // default x stride
-                          -scanlinesize,               // special y stride
-                          AutoStride);                 // default z stride
+    unsigned char pixels[xres*yres*channels];
+    int scanlinesize = xres * channels * sizeof(pixels[0]);
+    ...
+    out->write_image (TypeDesc::UINT8,
+                      (char *)pixels+(yres-1)*scanlinesize, // offset to last
+                      AutoStride,                  // default x stride
+                      -scanlinesize,               // special y stride
+                      AutoStride);                 // default z stride
   \end{code}
 \item Write a tile that is embedded within a whole image of pixel data,
   rather than having a one-tile-only memory layout:
   \begin{code}
-        unsigned char pixels[xres*yres*channels];
-        int pixelsize = channels * sizeof(pixels[0]);
-        int scanlinesize = xres * pixelsize;
-        ...
-        out->write_tile (x, y, 0, TypeDesc::UINT8,
-                         (char *)pixels + y*scanlinesize + x*pixelsize,
-                         pixelsize,
-                         scanlinesize);
+    unsigned char pixels[xres*yres*channels];
+    int pixelsize = channels * sizeof(pixels[0]);
+    int scanlinesize = xres * pixelsize;
+    ...
+    out->write_tile (x, y, 0, TypeDesc::UINT8,
+                     (char *)pixels + y*scanlinesize + x*pixelsize,
+                     pixelsize,
+                     scanlinesize);
   \end{code}
 \item Write only a subset of channels to disk.  In this example, our
   internal data layout consists of 4 channels, but we write just 
   channel 3 to disk as a one-channel image:
   \begin{code}
-        // In-memory representation is 4 channel
-        const int xres = 640, yres = 480;
-        const int channels = 4;  // RGBA
-        const int channelsize = sizeof(unsigned char);
-        unsigned char pixels[xres*yres*channels];
+    // In-memory representation is 4 channel
+    const int xres = 640, yres = 480;
+    const int channels = 4;  // RGBA
+    const int channelsize = sizeof(unsigned char);
+    unsigned char pixels[xres*yres*channels];
 
-        // File representation is 1 channel
-        ImageOutput *out = ImageOutput::create (filename);
-        ImageSpec spec (xres, yres, 1, TypeDesc::UINT8);
-        out->open (filename, spec);
+    // File representation is 1 channel
+    ImageOutput *out = ImageOutput::create (filename);
+    ImageSpec spec (xres, yres, 1, TypeDesc::UINT8);
+    out->open (filename, spec);
 
-        // Use strides to write out a one-channel "slice" of the image
-        out->write_image (TypeDesc::UINT8,
-                          (char *)pixels+3*channelsize, // offset to chan 3
-                          channels*channelsize,         // 4 channel x stride
-                          AutoStride,                   // default y stride
-                          AutoStride);                  // default z stride
-        ...
+    // Use strides to write out a one-channel "slice" of the image
+    out->write_image (TypeDesc::UINT8,
+                      (char *)pixels+3*channelsize, // offset to chan 3
+                      channels*channelsize,         // 4 channel x stride
+                      AutoStride,                   // default y stride
+                      AutoStride);                  // default z stride
+    ...
   \end{code}
 \end{itemize}
 

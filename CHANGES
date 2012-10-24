@@ -17,6 +17,7 @@ Major new features and improvements:
     histogram() : compute value histogram information for an image
     histogram_draw() : compute an image containing a graph of the histogram
                        of another image
+    channels() : select, shuffle, truncate, or extend channels of an image.
 * New oiiotool commands:
     --capture : captures from a camera device (only if OpenCV is found)
     --pattern constant : creates a constant-color image
@@ -25,6 +26,7 @@ Major new features and improvements:
     --histogram : computes an image containing a graph of the histogram of
                   the input image.
     --fill : fills a region with a solid color
+    --ch : select, shuffle, truncate, or extend channels
 
 API changes:
 * A new static ImageInput::open(filename [,config]) combines the old
@@ -55,9 +57,17 @@ API changes:
     get_pixel_channels().
   - ImageBuf::specmod() allows writable access to the ImageSpec (caution!).
   - Better error reporting mechanism.
-* Many ImageBufAlgo functions now take a 'ROI' that restricts the operation
-  to a particular range of pixels within the image (usually defaulting to
-  the whole image).
+  - get_pixels and get_pixel_channels take optional strides.
+* ImageBufAlgo changes:
+  - Many ImageBufAlgo functions now take a 'ROI' that restricts the
+    operation to a particular range of pixels within the image (usually
+    defaulting to the whole image), and for some operations a range of
+    channels.
+  - zero() and fill() take ROI arguments.
+  - ImageBufAlgo::CompareResults struct changed the failure and warning
+    counts to imagesize_t so they can't overflow int for large images.
+* OIIO::getattribute("format_list") now can retrieve the comma-separated
+  list of all known image file formats.
 
 Fixes, minor enhancements, and performance improvements:
 * ImageCache/TextureSystem:
@@ -106,6 +116,9 @@ Fixes, minor enhancements, and performance improvements:
   have their result status checked.
 * Fixed missing OpenEXR open() error message.
 * Clean up error reporting in iconvert.
+* Fixes to handle Windows utf8 filenames properly.
+* ImageBufAlgo::compare() gives a sensible error (rather than an assertion)
+  if the images being compared are not float.
 
 Build/test system improvements:
 * Various Windows build fixes, including fixes for Windows 7, and 
@@ -124,7 +137,8 @@ Build/test system improvements:
   site-specific compiler flags.
 
 Developer goodies:
-* Strutil utilities: iequals, istarts_with, iends_with, to_lower, to_upper.
+* Strutil new utilities: iequals, istarts_with, iends_with, to_lower,
+  to_upper, strip, join.
 * Use Chris Foster's 'tinyformat' for type-safe printf-like formatting,
   and this now forms the basis of Strutil::format, ustring::format, and
   many of the classes' error() methods.
@@ -139,7 +153,8 @@ Developer goodies:
 * Change threads.h to set USE_TBB=0 if undefined as a compiler flag; this
   makes it easier to use threads.h in other applications without worrying
   about TBB at all.
-
+* Windows utf8 filename utilities path_to_windows_native and
+  path_from_windows_native.
 
 
 Release 1.0.4 (2 May 2012)

@@ -525,7 +525,7 @@ The default is 1.  If set to 0, it means that it should use as many
 threads as there are hardware cores present on the system.
 \apiend
 
-\apiitem{string plugin_serachpath}
+\apiitem{string plugin_searchpath}
 \vspace{10pt}
 \index{plugin_searchpath}
 A colon-separated list of directories to search for 
@@ -538,6 +538,8 @@ dynamically-loaded format plugins.
 A comma-separated list of all the names of all supported 
 image format readers and writers.  (Note: can only be retrieved
 by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
+\apiend
+
 \apiend
 
 \apiitem{bool {\ce attribute} (const std::string \&name, int val) \\
@@ -585,7 +587,7 @@ general (pointer) form of {\cf getattribute()}:
       int maxfiles;
       ts->getattribute ("max_open_files", &maxfiles);
       const char *path;
-      ts->getattribute ("searchpath", &path);
+      ts->getattribute ("plugin_searchpath", &path);
 \end{code}
 
 \apiend

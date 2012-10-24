@@ -290,27 +290,27 @@ flexible functionality.  A few representative examples follow:
 \item Flip an image vertically upon reading, by using \emph{negative}
   $y$ stride:
   \begin{code}
-        unsigned char pixels[spec.width * spec.height * spec.nchannels];
-        int scanlinesize = spec.width * spec.nchannels * sizeof(pixels[0]);
-        ...
-        in->read_image (TypeDesc::UINT8,
-                        (char *)pixels+(yres-1)*scanlinesize, // offset to last
-                        AutoStride,                  // default x stride
-                        -scanlinesize,               // special y stride
-                        AutoStride);                 // default z stride
+    unsigned char pixels[spec.width * spec.height * spec.nchannels];
+    int scanlinesize = spec.width * spec.nchannels * sizeof(pixels[0]);
+    ...
+    in->read_image (TypeDesc::UINT8,
+                    (char *)pixels+(yres-1)*scanlinesize, // offset to last
+                    AutoStride,                  // default x stride
+                    -scanlinesize,               // special y stride
+                    AutoStride);                 // default z stride
   \end{code}
 \item Read a tile into its spot in a buffer whose layout matches
   a whole image of pixel data,
   rather than having a one-tile-only memory layout:
   \begin{code}
-        unsigned char pixels[spec.width * spec.height * spec.nchannels];
-        int pixelsize = spec.nchannels * sizeof(pixels[0]);
-        int scanlinesize = xpec.width * pixelsize;
-        ...
-        in->read_tile (x, y, 0, TypeDesc::UINT8,
-                       (char *)pixels + y*scanlinesize + x*pixelsize,
-                       pixelsize,
-                       scanlinesize);
+    unsigned char pixels[spec.width * spec.height * spec.nchannels];
+    int pixelsize = spec.nchannels * sizeof(pixels[0]);
+    int scanlinesize = xpec.width * pixelsize;
+    ...
+    in->read_tile (x, y, 0, TypeDesc::UINT8,
+                   (char *)pixels + y*scanlinesize + x*pixelsize,
+                   pixelsize,
+                   scanlinesize);
   \end{code}
 \end{itemize}
 
