@@ -134,6 +134,8 @@ TIFFOutput::supports (const std::string &feature) const
         return true;
     if (feature == "multiimage")
         return true;
+    if (feature == "appendsubimage")
+        return true;
     if (feature == "displaywindow")
         return true;
     if (feature == "origin")
@@ -335,7 +337,7 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
                 compress = COMPRESSION_NONE;
             else if (Strutil::iequals (str, "lzw"))
                 compress = COMPRESSION_LZW;
-            else if (Strutil::iequals (str, "zip") || Strutil::iequals (str, "deflate"))
+            else if (Strutil::istarts_with (str, "zip") || Strutil::iequals (str, "deflate"))
                 compress = COMPRESSION_ADOBE_DEFLATE;
             else if (Strutil::iequals (str, "packbits"))
                 compress = COMPRESSION_PACKBITS;

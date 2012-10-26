@@ -467,7 +467,7 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src)
         return false;
     }
 
-    if (src.spec().format != TypeDesc::FLOAT) {
+    if (src.spec().format != TypeDesc::FLOAT && ! src.deep()) {
         src.error ("only 'float' images are supported");
         return false;
     }
@@ -518,34 +518,57 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src)
         finitecount[i] = 0;
     }
     
-    ImageBuf::ConstIterator<float> s (src);
-    
-    float value = 0.0;
-    int c = 0;
-    
-    // Loop over all pixels ...
-    for ( ; s.valid();  ++s) {
-        for (c = 0;  c < nchannels;  ++c) {
-            value = s[c];
-            
-            if (isnan (value)) {
-                ++nancount[c];
+    if (src.deep()) {
+        // Loop over all pixels ...
+        for (ImageBuf::ConstIterator<float> s(src); s.valid();  ++s) {
+            int samples = s.deep_samples();
+            if (! samples)
                 continue;
+            for (int c = 0;  c < nchannels;  ++c) {
+                for (int i = 0;  i < samples;  ++i) {
+                    float value = s.deep_value (c, i);
+                    if (isnan (value)) {
+                        ++nancount[c];
+                        continue;
+                    }
+                    if (isinf (value)) {
+                        ++infcount[c];
+                        continue;
+                    }
+                    ++finitecount[c];
+                    tempsum[c] += value;
+                    tempsum2[c] += value*value;
+                    min[c] = std::min (value, min[c]);
+                    max[c] = std::max (value, max[c]);
+                    if ((finitecount[c] % PIXELS_PER_BATCH) == 0) {
+                        sum[c] += tempsum[c]; tempsum[c] = 0.0;
+                        sum2[c] += tempsum2[c]; tempsum2[c] = 0.0;
+                    }
+                }
             }
-            if (isinf (value)) {
-                ++infcount[c];
-                continue;
-            }
-            
-            ++finitecount[c];
-            tempsum[c] += value;
-            tempsum2[c] += value*value;
-            min[c] = std::min (value, min[c]);
-            max[c] = std::max (value, max[c]);
-            
-            if ((finitecount[c] % PIXELS_PER_BATCH) == 0) {
-                sum[c] += tempsum[c]; tempsum[c] = 0.0;
-                sum2[c] += tempsum2[c]; tempsum2[c] = 0.0;
+        }
+    } else {  // Non-deep case
+        // Loop over all pixels ...
+        for (ImageBuf::ConstIterator<float> s(src); s.valid();  ++s) {
+            for (int c = 0;  c < nchannels;  ++c) {
+                float value = s[c];
+                if (isnan (value)) {
+                    ++nancount[c];
+                    continue;
+                }
+                if (isinf (value)) {
+                    ++infcount[c];
+                    continue;
+                }
+                ++finitecount[c];
+                tempsum[c] += value;
+                tempsum2[c] += value*value;
+                min[c] = std::min (value, min[c]);
+                max[c] = std::max (value, max[c]);
+                if ((finitecount[c] % PIXELS_PER_BATCH) == 0) {
+                    sum[c] += tempsum[c]; tempsum[c] = 0.0;
+                    sum2[c] += tempsum2[c]; tempsum2[c] = 0.0;
+                }
             }
         }
     }
@@ -559,7 +582,7 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src)
     stats.infcount.resize (nchannels);
     stats.finitecount.resize (nchannels);
     
-    for (c = 0;  c < nchannels;  ++c) {
+    for (int c = 0;  c < nchannels;  ++c) {
         if (finitecount[c] == 0) {
             stats.min[c] = 0.0;
             stats.max[c] = 0.0;
@@ -588,6 +611,36 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src)
 
 
 
+template<class BUFT>
+inline void
+compare_value (ImageBuf::ConstIterator<BUFT,float> &a, int chan,
+               float aval, float bval, ImageBufAlgo::CompareResults &result,
+               float &maxval, double &batcherror, double &batch_sqrerror,
+               bool &failed, bool &warned, float failthresh, float warnthresh)
+{
+    maxval = std::max (maxval, std::max (aval, bval));
+    double f = fabs (aval - bval);
+    batcherror += f;
+    batch_sqrerror += f*f;
+    if (f > result.maxerror) {
+        result.maxerror = f;
+        result.maxx = a.x();
+        result.maxy = a.y();
+        result.maxz = 0;  // FIXME -- doesn't work for volume images
+        result.maxc = chan;
+    }
+    if (! warned && f > warnthresh) {
+        ++result.nwarn;
+        warned = true;
+    }
+    if (! failed && f > failthresh) {
+        ++result.nfail;
+        failed = true;
+    }
+}
+
+
+
 bool
 ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
                        float failthresh, float warnthresh,
@@ -611,36 +664,35 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
     float maxval = 1.0;  // max possible value
     ImageBuf::ConstIterator<float,float> a (A);
     ImageBuf::ConstIterator<float,float> b (B);
+    bool deep = A.deep();
+    if (B.deep() != A.deep())
+        return false;
     // Break up into batches to reduce cancelation errors as the error
     // sums become too much larger than the error for individual pixels.
     const int batchsize = 4096;   // As good a guess as any
     for ( ;  a.valid();  ) {
         double batcherror = 0;
         double batch_sqrerror = 0;
-        for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
-            b.pos (a.x(), a.y());  // ensure alignment
-            bool warned = false, failed = false;  // For this pixel
-            for (int c = 0;  c < A.spec().nchannels;  ++c) {
-                float aval = a[c], bval = b[c];
-                maxval = std::max (maxval, std::max (aval, bval));
-                double f = fabs (aval - bval);
-                batcherror += f;
-                batch_sqrerror += f*f;
-                if (f > result.maxerror) {
-                    result.maxerror = f;
-                    result.maxx = a.x();
-                    result.maxy = a.y();
-                    result.maxz = 0;  // FIXME -- doesn't work for volume images
-                    result.maxc = c;
-                }
-                if (! warned && f > warnthresh) {
-                    ++result.nwarn;
-                    warned = true;
-                }
-                if (! failed && f > failthresh) {
-                    ++result.nfail;
-                    failed = true;
-                }
+        if (deep) {
+            for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
+                b.pos (a.x(), a.y());  // ensure alignment
+                bool warned = false, failed = false;  // For this pixel
+                for (int c = 0;  c < A.spec().nchannels;  ++c)
+                    for (int s = 0, e = a.deep_samples(); s < e;  ++s) {
+                        compare_value (a, c, a.deep_value(c,s),
+                                       b.deep_value(c,s), result, maxval,
+                                       batcherror, batch_sqrerror,
+                                       failed, warned, failthresh, warnthresh);
+                    }
+            }
+        } else {  // non-deep
+            for (int i = 0;  i < batchsize && a.valid();  ++i, ++a) {
+                b.pos (a.x(), a.y());  // ensure alignment
+                bool warned = false, failed = false;  // For this pixel
+                for (int c = 0;  c < A.spec().nchannels;  ++c)
+                    compare_value (a, c, a[c], b[c], result, maxval,
+                                   batcherror, batch_sqrerror,
+                                   failed, warned, failthresh, warnthresh);
             }
         }
         totalerror += batcherror;

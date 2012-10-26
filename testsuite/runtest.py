@@ -129,15 +129,20 @@ def diff_command (fileA, fileB, extraargs="", silent=0, concat=True) :
 # correctly).  If testwrite is nonzero, also iconvert the file to make a
 # copy (tests writing that format), and then idiff to make sure it
 # matches the original.
-def rw_command (dir, filename, testwrite=1, extraargs="") :
+def rw_command (dir, filename, testwrite=1, use_oiiotool=0, extraargs="",
+                preargs="", idiffextraargs="") :
     fn = oiio_relpath (dir + "/" + filename, tmpdir)
     cmd = (oiio_app("oiiotool") + " --info -v -a --hash " + fn
            + " >> out.txt ;\n")
     if testwrite :
-        cmd = (cmd + oiio_app("iconvert") + fn
-               + " " + extraargs + " " + filename + " >> out.txt ;\n")
+        if use_oiiotool :
+            cmd = (cmd + oiio_app("oiiotool") + preargs + " " + fn
+                   + " " + extraargs + " -o " + filename + " >> out.txt ;\n")
+        else :
+            cmd = (cmd + oiio_app("iconvert") + preargs + " " + fn
+                   + " " + extraargs + " " + filename + " >> out.txt ;\n")
         cmd = (cmd + oiio_app("idiff") + " -a " + fn
-               + " " + filename + " >> out.txt ;\n")
+               + " " + idiffextraargs + " " + filename + " >> out.txt ;\n")
     return cmd
 
 

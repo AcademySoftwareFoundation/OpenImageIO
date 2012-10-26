@@ -207,10 +207,10 @@ struct DLLPUBLIC PixelStats {
 };
 
 
-/// Compute statistics on the specified image (over all pixels in the data
-/// window). Upon success, the returned vectors will have size == numchannels.
-/// A FLOAT ImageBuf is required.
-/// (current subimage, and current mipmap level)
+/// Compute statistics on the specified image (over all pixels in the
+/// data window of the current subimage and MIPmap level). Upon success,
+/// the returned vectors will have size == numchannels.  A FLOAT
+/// ImageBuf is required.
 bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
 
 /// Struct holding all the results computed by ImageBufAlgo::compare().

@@ -437,6 +437,22 @@ public:
                            &result[0]);
     }
 
+    /// Retrieve the number of deep data samples corresponding to pixel
+    /// (x,y,z).  Return 0 not a deep image or if the pixel is out of
+    /// range or has no deep samples.
+    int deep_samples (int x, int y, int z=0) const;
+
+    /// Return a pointer to the raw array of deep data samples for
+    /// channel c of pixel (x,y,z).  Return NULL if not a deep image or
+    /// if the pixel is out of range or has no deep samples.
+    const void *deep_pixel_ptr (int x, int y, int z, int c) const;
+
+    /// Return the value (as a float) of sample s of channel c of pixel
+    /// (x,y,z).  Return 0.0 if not a deep image or if the pixel
+    /// coordinates or channel number are out of range or if it has no
+    /// deep samples.
+    float deep_value (int x, int y, int z, int c, int s) const;
+
     int orientation () const { return m_orientation; }
 
     int oriented_width () const;
@@ -537,6 +553,13 @@ public:
     /// Use with extreme caution!  Will return NULL if the pixel values
     /// aren't local.
     void *pixeladdr (int x, int y, int z);
+
+    /// Does this ImageBuf store deep data?
+    bool deep () const { return m_spec.deep; }
+
+    /// Retrieve the "deep" data.
+    DeepData *deepdata () { return deep() ? &m_deepdata : NULL; }
+    const DeepData *deepdata () const { return deep() ? &m_deepdata : NULL; }
 
     /// Is this ImageBuf object initialized?
     bool initialized () const { return m_spec_valid || m_pixels_valid; }
@@ -667,7 +690,7 @@ public:
         void pos (int x_, int y_, int z_=0) {
             bool v = valid(x_,y_,z_);
             bool e = exists(x_,y_,z_);
-            if (! e)
+            if (! e || m_deep)
                 m_proxy.set (NULL);
             else if (m_ib->localpixels())
                 m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
@@ -785,6 +808,14 @@ public:
 
         void * rawptr () const { return m_proxy.get(); }
 
+        /// Retrieve the number of deep data samples at this pixel.
+        int deep_samples () { return m_ib->deep_samples (m_x, m_y, m_z); }
+
+        /// Retrieve the deep data value of sample s of channel c.
+        USERT deep_value (int c, int s) const {
+            return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
+        }
+
     private:
         ImageBuf *m_ib;
         bool m_valid, m_exists;
@@ -799,6 +830,7 @@ public:
         ImageCache::Tile *m_tile;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_nchannels, m_tilewidth;
+        bool m_deep;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
@@ -808,6 +840,7 @@ public:
             m_img_zbegin = m_ib->zbegin(); m_img_zend = m_ib->zend();
             m_nchannels = m_ib->spec().nchannels;
             m_tilewidth = m_ib->spec().tile_width;
+            m_deep = m_ib->deep();
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -827,6 +860,8 @@ public:
             if (m_x >= m_img_xend /*same as !exists() for this case*/) {
                 m_proxy.set (NULL);
                 m_exists = false;
+            } else if (m_deep) {
+                m_proxy.set (NULL);
             } else if (m_ib->localpixels()) {
                 m_proxy += m_nchannels;
             } else if (m_x < m_tilexbegin+m_tilewidth) {
@@ -950,7 +985,7 @@ public:
         void pos (int x_, int y_, int z_=0) {
             bool v = valid(x_,y_,z_);
             bool e = exists(x_,y_,z_);
-            if (! e)
+            if (! e || m_deep)
                 m_proxy.set (NULL);
             else if (m_ib->localpixels())
                 m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
@@ -1063,6 +1098,14 @@ public:
 
         const void * rawptr () const { return m_proxy.get(); }
 
+        /// Retrieve the number of deep data samples at this pixel.
+        int deep_samples () { return m_ib->deep_samples (m_x, m_y, m_z); }
+
+        /// Retrieve the deep data value of sample s of channel c.
+        USERT deep_value (int c, int s) const {
+            return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
+        }
+
     private:
         const ImageBuf *m_ib;
         bool m_valid, m_exists;
@@ -1077,6 +1120,7 @@ public:
         ImageCache::Tile *m_tile;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_nchannels, m_tilewidth;
+        bool m_deep;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
@@ -1086,6 +1130,7 @@ public:
             m_img_zbegin = m_ib->zbegin(); m_img_zend = m_ib->zend();
             m_nchannels = m_ib->spec().nchannels;
             m_tilewidth = m_ib->spec().tile_width;
+            m_deep = m_ib->deep();
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -1105,6 +1150,8 @@ public:
             if (m_x >= m_img_xend /*same as !exists() for this case*/) {
                 m_proxy.set (NULL);
                 m_exists = false;
+            } else if (m_deep) {
+                m_proxy.set (NULL);
             } else if (m_ib->localpixels()) {
                 m_proxy += m_nchannels;
             } else if (m_x < m_tilexbegin+m_tilewidth) {
@@ -1138,6 +1185,7 @@ protected:
     float m_pixelaspect;         ///< Pixel aspect ratio of the image
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
+    DeepData m_deepdata;         ///< Deep data
 
     // Resize the local owned buffer to the size indicated by the
     // ImageBuf's spec.

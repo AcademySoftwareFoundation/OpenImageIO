@@ -216,17 +216,19 @@ the {\kw write_rectangle()} API call:
 \begin{code}
         unsigned int rect[...];
         ... generate data in rect[] ..
-        out->write_rectangle (xmin, xmax, ymin, ymax, zmin, zmax, TypeDesc::UINT8, rect);
-        ...
+        out->write_rectangle (xbegin, xend, ybegin, yend, zbegin, zend,
+                              TypeDesc::UINT8, rect);
 \end{code}
 
 The first six arguments to {\kw write_rectangle()} specify the region of
-pixels that is being transmitted by supplying the minimum and maximum
+pixels that is being transmitted by supplying the minimum and one-past-maximum
 pixel indices in $x$ (column), $y$ (scanline), and $z$ (slice, always 0
-for 2D non-volume images).  The total number of pixels being transmitted
-is therefore:
+for 2D non-volume images).\footnote{\OpenImageIO nearly always follows
+the C++ STL convention of specifying ranges as {\cf [begin,end)}, that
+is, {\cf begin, begin+1, ..., end-1.}}
+The total number of pixels being transmitted is therefore:
 \begin{code}
-        (xmax-xmin+1) * (ymax-ymin+1) * (zmax-zmin+1)
+        (xend-xbegin) * (yend-ybegin) * (zend-zbegin)
 \end{code}
 \noindent This is followed by a \TypeDesc describing the data you
 are supplying, and a pointer to the rectangle's pixel data itself, which
@@ -728,7 +730,7 @@ quantization.
 \smallskip
 \begin{tabular}{|l|r|r|r|r|r|}
 \hline
-{\bf Data Format} & {\bf black} & {\bf white} & {\bf min} & {\bf max} \\
+{\bf Data Format} & {\bf black} & {\bf white} & {\bf min} & {\bf max} & \\
 \hline
 {\cf UINT8}  & 0 &        255 &     0 & 255 & 0.5 \\
 {\cf INT8}   & 0 &        127 &  -128 & 127 & 0.5 \\
@@ -790,33 +792,137 @@ queried using:
 \end{code}
 
 
-\subsection{Multi-image files and MIP-maps}
+\subsection{Multi-image files}
 \label{sec:imageoutput:multiimage}
-\label{sec:imageoutput:mipmap}
 
-Some image file formats support multiple discrete subimages to be stored
-in one file, and/or multiple resolutions (MIP-map levels).  Given a
-created \ImageOutput, you can query whether multiple images may be
-stored in the file:
+Some image file formats support storing multiple images within a single
+file.  Given a created \ImageOutput, you can query whether multiple
+images may be stored in the file:
 
 \begin{code}
         ImageOutput *out = ImageOutput::create (filename);
         if (out->supports ("multiimage"))
             ...
+\end{code}
+
+Some image formats allow you to do the initial {\cf open()} call
+without declaring the specifics of the subimages, and simply append
+subimages as you go.  You can detect this by checking
+\begin{code}
+        if (out->supports ("appendsubimage"))
+            ...
+\end{code}
+
+In this case, all you have to do is, after writing all the pixels of one
+image but before calling {\cf close()}, call {\cf open()} again for the
+next subimage and pass {\cf AppendSubimage} as the value for the
+\emph{mode} argument (see Section~\ref{sec:imageoutput:reference} for
+the full technical description of the arguments to {\cf open}).  The
+{\cf close()} routine is called just once, after all subimages are
+completed.  Here is an example:
+
+\begin{code}
+        const char *filename = "foo.tif";
+        int nsubimages;     // assume this is set
+        ImageSpec specs[];  // assume these are set for each subimage
+        unsigned char *pixels[]; // assume a buffer for each subimage
+
+        // Create the ImageOutput
+        ImageOutput *out = ImageOutput::create (filename);
+
+        // Be sure we can support subimages
+        if (subimages > 1 &&  (! out->supports("multiimage") ||
+                               ! out->supports("appendsubimage"))) {
+            std::cerr << "Does not support appending of subimages\n";
+            delete out;
+            return;
+        }
+
+        // Use Create mode for the first level.
+        ImageOutput::OpenMode appendmode = ImageOutput::Create;
+
+        // Write the individual subimages
+        for (int s = 0;  s < nsubimages;  ++s) {
+            out->open (filename, specs[s], appendmode);
+            out->write_image (TypeDesc::UINT8, pixels[s]);
+            // Use AppendSubimage mode for subsequent levels
+            appendmode = ImageOutput::AppendSubimage;
+        }
+        out->close ();
+        delete out;
+\end{code}
+
+
+On the other hand, if {\cf out->supports("appendsubimage")} returns
+{\cf false}, then you must use a different {\cf open()} variety that
+allows you to declare the number of subimages and their specifications
+up front.
+
+Below is an example of how to write a multi-subimage file, assuming that
+you know all the image specifications ahead of time.  This should be
+safe for any file format that supports multiple subimages, regardless of
+whether it supports appending, and thus is the preferred method for
+writing subimages, assuming that you are able to know the number and
+specification of the subimages at the time you first open the file.
+
+\begin{code}
+        const char *filename = "foo.tif";
+        int nsubimages;     // assume this is set
+        ImageSpec specs[];  // assume these are set for each subimage
+        unsigned char *pixels[]; // assume a buffer for each subimage
+
+        // Create the ImageOutput
+        ImageOutput *out = ImageOutput::create (filename);
+
+        // Be sure we can support subimages
+        if (subimages > 1 && ! out->supports ("multiimage")) {
+            std::cerr << "Cannot write multiple subimages\n";
+            delete out;
+            return;
+        }
+
+        // Open and declare all subimages
+        out->open (filename, nsubimages, specs);
+
+        // Write the individual subimages
+        for (int s = 0;  s < nsubimages;  ++s) {
+            if (s > 0)  // Not needed for the first, which is already open
+                out->open (filename, specs[s], ImageInput::AppendSubimage);
+            out->write_image (TypeDesc::UINT8, pixels[s]);
+        }
+        out->close ();
+        delete out;
+\end{code}
+
+In both of these examples, we have used \writeimage, but of course
+\writescanline, \writetile, and {\cf write_rectangle()} work as you
+would expect, on the current subimage.
+
+
+\subsection{MIP-maps}
+\label{sec:imageoutput:mipmap}
+
+Some image file formats support multiple copies of an image at successively
+lower resolutions (MIP-map levels, or an ``image pyramid'').  Given a
+created \ImageOutput, you can query whether MIP-maps may be
+stored in the file:
+
+\begin{code}
+        ImageOutput *out = ImageOutput::create (filename);
         if (out->supports ("mipmap"))
             ...
 \end{code}
 
-If you are working with an \ImageOutput that supports multiple images
-or MIP-map levels,
-it is easy to write these images.  All you have to do is, after writing
-all the pixels of one image but before calling {\cf close()}, call {\cf
-  open()} again for the next subimage or MIP level and passing the
-appropriate value for the optional third
-\emph{mode} argument.  (See
-Section~\ref{sec:imageoutput:reference} for the full technical
-description of the arguments to {\cf open()}.)  The {\cf close()}
-routine is called just once, after all subimages and MIP levels are completed.
+If you are working with an \ImageOutput that supports MIP-map levels, it
+is easy to write these levels.  After writing all the pixels of one
+MIP-map level, 
+call {\cf open()} again for the next MIP level and pass
+{\cf ImageInput::AppendMIPLevel} as the value for the \emph{mode}
+argument, and then write the pixels of the subsequent MIP level.
+(See Section~\ref{sec:imageoutput:reference} for
+the full technical description of the arguments to {\cf open()}.)  The
+{\cf close()} routine is called just once, after all subimages and MIP
+levels are completed.
 
 Below is pseudocode for writing a MIP-map (a multi-resolution image
 used for texture mapping):
@@ -845,14 +951,15 @@ used for texture mapping):
         // Write images, halving every time, until we're down to
         // 1 pixel in either dimension
         while (spec.width >= 1 && spec.height >= 1) {
-            out->open (filename, spec, mode);
+            out->open (filename, spec, appendmode);
             out->write_image (TypeDesc::UINT8, pixels);
             // Assume halve() resamples the image to half resolution
             halve (pixels, spec.width, spec.height);
             // Don't forget to change spec for the next iteration
             spec.width /= 2;
             spec.height /= 2;
-            // For subsequent levels, change the append mode argument to
+
+            // For subsequent levels, change the mode argument to
             // open().  If the format doesn't support MIPmaps directly,
             // try to emulate it with subimages.
             if (out->supports("mipmap"))
@@ -866,7 +973,7 @@ used for texture mapping):
 
 In this example, we have used \writeimage, but of course \writescanline,
 \writetile, and {\cf write_rectangle()} work as you would expect, on the
-current subimage.
+current MIP level.
 
 
 \subsection{Per-channel formats}
@@ -923,6 +1030,109 @@ a Z channel in {\cf float}:
         out->write_image (TypeDesc::UNKNOWN, /* use channel formats */
                           pixels,            /* data buffer */
                           sizeof(Pixel));    /* pixel stride */
+\end{code}
+
+
+\subsection{Writing ``deep'' data}
+\label{sec:imageoutput:deepdata}  \index{deep data}
+\NEW
+Some image file formats (OpenEXR only, at this time) support the concept
+of ``deep'' pixels -- those containing multiple samples per pixel (and a
+potentially differing number of them in each pixel).  You can tell
+if a format supports deep images by checking {\cf supports("deepdata")},
+and you can specify a deep data in an \ImageSpec by setting its {\cf deep}
+field will be {\cf true}.
+
+Deep files cannot be written with the usual {\cf write_scanline}, {\cf
+  write_scanlines}, {\cf write_tile}, {\cf write_tiles}, {\cf write_image}
+functions, due to the nature of their variable number of samples per
+pixel.  Instead, \ImageOutput has three special member functions used
+only for writing deep data:
+
+\begin{code}
+    bool write_deep_scanlines (int ybegin, int yend, int z,
+                               const DeepData &deepdata);
+
+    bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                           int zbegin, int zend, const DeepData &deepdata);
+
+    bool write_deep_image (const DeepData &deepdata);
+\end{code}
+
+It is only possible to write ``native'' data types to deep files; that
+is, there is no automatic translation into arbitrary data types as there
+is for ordinary images.  All three of these functions are passed
+deep data in a special {\cf DeepData} structure, defined in
+{\cf imageio.h} as follows:
+
+\begin{code}
+    struct DeepData {
+        int npixels, nchannels;
+        std::vector<TypeDesc> channeltypes;  // for each channel [c]
+        std::vector<unsigned int> nsamples;// for each pixel [z][y][x]
+        std::vector<void *> pointers;    // for each channel per pixel [z][y][x][c]
+        std::vector<char> data;          // for each sample [z][y][x][c][s]
+
+        DeepData ();
+        // Set the size and allocate the nsamples[] vector.
+        void init (int npix, int nchan,
+                   const TypeDesc *chbegin, const TypeDesc *chend);
+        // Allocate data[] and set up all the pointers[]
+        void alloc ();
+    };
+\end{code}
+
+\noindent Here is an example of using these methods to write a deep image:
+
+\begin{code}
+    // Prepare the spec for 'half' RGBA, 'float' z
+    int nchannels = 5;
+    ImageSpec spec (xres, yres, nchannels);
+    TypeDesc channeltypes[] = { TypeDesc::HALF, TypeDesc::HALF,
+          TypeDesc::HALF, TypeDesc::HALF, TypeDesc::FLOAT };
+    spec.z_channel = 4;
+    spec.channelnames[spec.z_channel] = "Z";
+    spec.channeltypes.assign (channeltypes+0, channeltypes+nchannels);
+    spec.deep = true;
+
+    // Prepare the data (sorry, complicated, but need to show the gist)
+    DeepData deepdata;
+    deepdata.init (xres*yres, 5, channeltypes+0, channeltypes+nchannels);
+    for (int y = 0;  y < yres;  ++y)
+        for (int x = 0;  x < xres;  ++x)
+            deepdata.nsamples[y*xres+x] = ...num samples for that pixel...;
+    deepdata.alloc ();  // allocate pointers and data
+    int pixel = 0;
+    for (int y = 0;  y < yres;  ++y)
+        for (int x = 0;  x < xres;  ++x, ++pixel)
+            for (int chan = 0;  chan < nchannels;  ++chan) {
+                void *ptr = deepdata.pointers[pixel*nchannels + c];
+                if (chan < 4) {  // RGBA -- it's HALF data
+                    for (int samp = 0; samp < deepdata.nsamples[pixel]; ++samp)
+                        ((half *)ptr)[samp] = ...value...;
+                } else {
+                    // z channel -- FLOAT data
+                    for (int samp = 0; samp < deepdata.nsamples[pixel]; ++samp)
+                        ((float *)ptr)[samp] = ...value...;
+                }
+            }
+        }
+    }
+
+
+    // Create the output
+    ImageOutput *out = ImageOutput::create (filename);
+    if (! out)
+        return;
+    // Make sure the format can handle deep data and per-channel formats
+    if (! out->supports("deepdata") || ! out->supports("channelformats"))
+        return;
+
+    // Do the I/O (this is the easy part!)
+    out->open (filename, spec);
+    out->write_deep_image (deepdata);
+    out->close ();
+    delete out;
 \end{code}
 
 
@@ -1121,14 +1331,14 @@ by this query:
   order?  False indicates that they must be in successive order.
 \item[\rm \qkw{multiimage}] Does this format support multiple subimages
   within a single file?
+\item[\rm \qkw{appendsubimage}] Does this format support multiple
+  subimages that can be successively appended at will, without needing
+  to pre-declare the number and specifications the subimages when the 
+  file is first opened?
 \item[\rm \qkw{mipmap}] Does this format support resolutions per
   image/subimage (MIP-map levels)?
 \item[\rm \qkw{volumes}] Does this format support ``3D'' pixel arrays
   (a.k.a.\ volume images)?
-\item[\rm \qkw{channelformats}] Does this format writer support per-channel
-  data formats, respecting the \ImageSpec's {\cf channelformats}
-  field?  (If not, it only accepts a single data format for all
-  channels and will ignore the {\cf channelformats} field of the spec.)
 \item[\rm \qkw{rewrite}] Does this plugin allow the same scanline or
   tile to be sent more than once?  Generally this is true for plugins
   that implement some sort of interactive display, rather than a saved
@@ -1138,6 +1348,10 @@ by this query:
   entire data block is composed of pixels with value zero.  Plugins
   that support this achieve a speedup when passing blank scanlines or
   tiles (since no actual data needs to be transmitted or converted).
+\item[\rm \qkw{channelformats}] Does this format writer support per-channel
+  data formats, respecting the \ImageSpec's {\cf channelformats}
+  field?  (If not, it only accepts a single data format for all
+  channels and will ignore the {\cf channelformats} field of the spec.)
 \item[\rm \qkw{displaywindow}] Does the image format support specifying
   a display (``full'') window that is distinct from the pixel data
   window?
@@ -1148,6 +1362,9 @@ by this query:
   and data window origins (i.e., nonzero \ImageSpec {\cf x}, {\cf y},
   {\cf z}, {\cf full_x}, {\cf full_y}, {\cf full_z}) to have
   negative values?
+\item[\rm \qkw{deepdata}] Does the image format allow ``deep'' data
+  consisting of multiple values per pixel (and potentially a differing
+  number of values from pixel to pixel)?
 \end{description}
 
 \noindent This list of queries may be extended in future releases.
@@ -1160,16 +1377,37 @@ plugins.
 \apiitem{bool {\ce open} (const std::string \&name, const ImageSpec \&newspec,\\
 \bigspc  OpenMode mode=Create)}
 
-Open the file with given {\kw name}, with resolution, and other format
+Open the file with given {\kw name}, with resolution and other format
 data as given in {\kw newspec}.  This function returns {\kw true} for
 success, {\kw false} for failure.  Note that it is legal to call 
 {\kw open()} multiple times on the same file without a call to
 {\kw close()}, if it supports multiimage and {\kw mode} is 
 {\kw AppendSubimage}, or if it supports MIP-maps and {\kw mode} is 
-{\kw AppendMIPlevel} -- this is interpreted as appending a subimage, or
+{\kw AppendMIPLevel} -- this is interpreted as appending a subimage, or
 a MIP level to the current subimage, respectively.
-
 \apiend
+
+\apiitem{bool {\ce open} (const std::string \&name, int subimages,
+ const ImageSpec *specs)}
+\NEW
+Open the file with given {\cf name}, expecting to have a given total
+number of subimages, described by {\cf specs[0..subimages-1]}.  Return
+{\cf true} for success, {\cf false} for failure.  Upon success, the
+first subimage will be open and ready for transmission of
+pixels.  Subsequent subimages will be denoted with the usual
+call of {\cf open(name,spec,AppendSubimage)} (and MIP levels by
+{\cf open(name,spec,AppendMIPLevel)}).
+
+The purpose of this call is to accommodate format-writing libraries that
+must know the number and specifications of the subimages upon first
+opening the file; such formats can be detected by
+\begin{code}
+    supports("multiimage") && ! supports("appendsubimage")
+\end{code}
+The individual specs passed to the appending {\cf open()} calls for
+subsequent subimages must match the ones originally passed.
+\apiend
+
 
 \apiitem{const ImageSpec \& {\ce spec} ()}
 Returns the spec internally associated with this currently open
@@ -1208,7 +1446,7 @@ access.
      const void *data, \\
 \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
 
-Write a block of scanlines scanline that includes pixels $(*,y,z)$,
+Write a block of scanlines that include pixels $(*,y,z)$,
 where ${\mathit ybegin} \le y < {\mathit yend}$.  This is essentially
 identical to {\cf write_scanline()}, except that it can write more than
 one scanline at a time, which may be more efficient for certain
@@ -1301,8 +1539,8 @@ The three stride values give the distance
 respectively.  Strides set to the special value {\kw AutoStride} imply
 contiguous data, i.e.,\\
 \spc {\kw xstride} $=$ {\kw spec.nchannels*format.size()} \\
-\spc {\kw ystride} $=$ {\kw xstride*(xmax-xmin+1)} \\
-\spc {\kw zstride} $=$ {\kw ystride*(ymax-ymin+1)}\\
+\spc {\kw ystride} $=$ {\kw xstride*(xend-xbegin)} \\
+\spc {\kw zstride} $=$ {\kw ystride*(yend-ybegin)}\\
 This method automatically converts the data from the specified 
 {\kw format} to the actual output format of the file.  
 If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data is assumed to
@@ -1346,6 +1584,20 @@ Periodically, it will be called as follows:
 
 \apiend
 
+
+\apiitem{bool {\ce write_deep_scanlines} (int ybegin, int yend, int z, \\
+\bigspc const DeepData \&deepdata) \\
+bool {\ce write_deep_tiles} (int xbegin, int xend, int ybegin, int yend,\\
+\bigspc int zbegin, int zend, const DeepData \&deepdata) \\
+bool {\ce write_deep_image} (const DeepData \&deepdata)}
+\NEW
+Write deep data for a block of scanlines, a block of tiles, or an entire
+image (analogously to the usual {\cf write_scanlines}, {\cf write_tiles},
+and {\cf write_image}, but with deep data).
+Return {\kw true} for success, {\kw false} for failure.
+\apiend
+
+
 \apiitem{bool {\ce copy_image} (ImageInput *in)}
 
 Read the current subimage of {\cf in}, and write it as the next subimage
@@ -1358,7 +1610,7 @@ if it works ok, {\cf false} if for some reason the operation wasn't possible.
 If a particular \ImageOutput implementation does not supply a
 {\cf copy_image} method, it will inherit the default implementation,
 which is to simply read scanlines or tiles from {\cf in} and write
-them to {\cf *this}.  However, some format implementations may have a
+them to {\cf *this}.  However, some file format implementations may have a
 special technique for directly copying raw pixel data from the
 input to the output, when both input and output are the same
 file type and the same data format.  This can be more efficient 
