@@ -125,7 +125,8 @@ public:
                                             ///< e.g., {"R","G","B","A"}
     int alpha_channel;        ///< Index of alpha channel, or -1 if not known
     int z_channel;            ///< Index of depth channel, or -1 if not known
-    
+    bool deep;                ///< Contains deep data
+
     // quantize is used for ImageOutput
     int quant_black;          ///< quantization of black (0.0) level
     int quant_white;          ///< quantization of white (1.0) level
@@ -370,8 +371,46 @@ public:
                 (((yend-y) % tile_height) == 0 || (yend-y) == height) &&
                 (((zend-z) % tile_depth)  == 0 || (zend-z) == depth));
     }
+
+    /// Return teh channelformat of the given channel.
+    TypeDesc channelformat (int chan) const {
+        return chan >= (int)channelformats.size() ? format : channelformats[chan];
+    }
+
+    /// Fill in an array of channel formats describing all channels in
+    /// the image.  (Note that this differs slightly from the member
+    /// data channelformats, which is empty if there are not separate
+    /// per-channel formats.)
+    void get_channelformats (std::vector<TypeDesc> &formats) {
+        formats = channelformats;
+        if ((int)formats.size() < nchannels)
+            formats.resize (nchannels, format);
+    }
 };
 
+
+
+/// Structure to hold "deep" data -- multiple samples per pixel.
+struct DLLPUBLIC DeepData {
+public:
+    int npixels, nchannels;
+    std::vector<TypeDesc> channeltypes;  // for each channel [c]
+    std::vector<unsigned int> nsamples;// for each pixel [z][y][x]
+    std::vector<void *> pointers;    // for each channel per pixel [z][y][x][c]
+    std::vector<char> data;          // for each sample [z][y][x][c][s]
+
+    DeepData () : npixels(0), nchannels(0) { }
+    /// Initialize size and allocate nsamples, pointers
+    void init (int npix, int nchan,
+               const TypeDesc *chbegin, const TypeDesc *chend);
+    /// After nsamples[] has been filled in, allocate enough scratch space
+    /// for data and set up all the pointers.
+    void alloc ();
+    /// Clear the vectors and reset size to 0.
+    void clear ();
+    /// Deallocate all space in the vectors
+    void free ();
+};
 
 
 
@@ -544,7 +583,7 @@ public:
     /// TypeDesc::UNKNOWN, in which case pixels will be copied in the
     /// native data layout, including per-channel data formats).  Only
     /// channels [firstchan,firstchan+nchans) will be read/copied
-    /// (firstchan=0, nchans=spec.nchannels reads all scanlines,
+    /// (firstchan=0, nchans=spec.nchannels reads all channels,
     /// yielding equivalent behavior to the simpler variant of
     /// read_scanlines).
     virtual bool read_scanlines (int ybegin, int yend, int z,
@@ -609,7 +648,7 @@ public:
     /// be copied in the native data layout, including per-channel data
     /// formats).  Only channels [firstchan,firstchan+nchans) will be
     /// read/copied (firstchan=0, nchans=spec.nchannels reads all
-    /// scanlines, yielding equivalent behavior to the simpler variant
+    /// channels, yielding equivalent behavior to the simpler variant
     /// of read_tiles).
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, 
@@ -645,6 +684,7 @@ public:
     bool read_image (float *data) {
         return read_image (TypeDesc::FLOAT, data);
     }
+
 
     /// read_native_scanline is just like read_scanline, except that it
     /// keeps the data in the native format of the disk file and always
@@ -698,6 +738,29 @@ public:
     virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
                                     int firstchan, int nchans, void *data);
+
+    /// Read native deep data from multiple scanlines that include
+    /// pixels (*,y,z) for all ybegin <= y < yend, into deepdata.  Only
+    /// channels [firstchan,firstchan+nchans) will be read (firstchan=0,
+    /// nchans=spec.nchannels reads all channels).
+    virtual bool read_native_deep_scanlines (int ybegin, int yend, int z,
+                                             int firstchan, int nchans,
+                                             DeepData &deepdata);
+
+    /// Read the block of multiple native deep data tiles that include
+    /// all pixels in [xbegin,xend) X [ybegin,yend) X [zbegin,zend),
+    /// into deepdata.  Only channels [firstchan,firstchan+nchans) will
+    /// be read (firstchan=0, nchans=spec.nchannels reads all channels).
+    virtual bool read_native_deep_tiles (int xbegin, int xend,
+                                         int ybegin, int yend,
+                                         int zbegin, int zend,
+                                         int firstchan, int nchans,
+                                         DeepData &deepdata);
+
+    /// Read the entire deep data image of spec.width x spec.height x
+    /// spec.depth pixels, all channels, into deepdata.
+    virtual bool read_native_deep_image (DeepData &deepdata);
+
 
     /// General message passing between client and image input server
     ///
@@ -768,8 +831,12 @@ public:
     ///    "random_access"  May tiles or scanlines be written in
     ///                       any order (false indicates that they MUST
     ///                       be in successive order).
-    ///    "multiimage"     Does this format support multiple images
+    ///    "multiimage"     Does this format support multiple subimages
     ///                       within a file?
+    ///    "appendsubimage" Does this format support adding subimages one at
+    ///                       a time through open(name,spec,AppendSubimage)?
+    ///                       If not, then open(name,subimages,specs) must
+    ///                       be used instead.
     ///    "mipmap"         Does this format support multiple resolutions
     ///                       for an image/subimage?
     ///    "volumes"        Does this format support "3D" pixel arrays?
@@ -787,6 +854,7 @@ public:
     ///                        origin of the pixel data window?
     ///    "negativeorigin" Does the format support negative x,y,z
     ///                        and full_{x,y,z} origin values?
+    ///    "deepdata"       Deep (multi-sample per pixel) data
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows
@@ -802,11 +870,33 @@ public:
     /// for failure.  Note that it is legal to call open multiple times
     /// on the same file without a call to close(), if it supports
     /// multiimage and mode is AppendSubimage, or if it supports
-    /// MIP-maps and mode is AppendMIPlevel -- this is interpreted as
+    /// MIP-maps and mode is AppendMIPLevel -- this is interpreted as
     /// appending a subimage, or a MIP level to the current subimage,
     /// respectively.
     virtual bool open (const std::string &name, const ImageSpec &newspec,
                        OpenMode mode=Create) = 0;
+
+    /// Open the file with given name, expecting to have a given total
+    /// number of subimages, described by specs[0..subimages-1].  
+    /// Return true for success, false for failure.  Upon success, the
+    /// first subimage will be open and ready for transmission of
+    /// pixels.  Subsequent subimages will be denoted with the usual
+    /// call of open(name,spec,AppendSubimage) (and MIP levels by
+    /// open(name,spec,AppendMIPLevel)).
+    ///
+    /// The purpose of this call is to accommodate format-writing
+    /// libraries that fmust know the number and specifications of the
+    /// subimages upon first opening the file; such formats can be
+    /// detected by
+    ///     supports("multiimage") && !supports("appendsubimage")
+    /// The individual specs passed to the appending open() calls for
+    /// subsequent subimages MUST match the ones originally passed.
+    virtual bool open (const std::string &name, int subimages,
+                       const ImageSpec *specs) {
+        // Default implementation: just a regular open, assume that
+        // appending will work.
+        return open (name, specs[0]);
+    }
 
     /// Return a reference to the image format specification of the
     /// current subimage.  Note that the contents of the spec are
@@ -924,6 +1014,23 @@ public:
                               stride_t zstride=AutoStride,
                               ProgressCallback progress_callback=NULL,
                               void *progress_callback_data=NULL);
+
+    /// Write deep scanlines containing pixels (*,y,z), for all y in
+    /// [ybegin,yend), to a deep file.
+    virtual bool write_deep_scanlines (int ybegin, int yend, int z,
+                                       const DeepData &deepdata);
+
+    /// Write the block of deep tiles that include all pixels in
+    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  
+    /// The begin/end pairs must correctly delineate tile boundaries,
+    /// with the exception that it may also be the end of the image data
+    /// if the image resolution is not a whole multiple of the tile size.
+    virtual bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                                   int zbegin, int zend,
+                                   const DeepData &deepdata);
+
+    /// Write the entire deep image denoted by data.
+    virtual bool write_deep_image (const DeepData &deepdata);
 
     /// Read the current subimage of 'in', and write it as the next
     /// subimage of *this, in a way that is efficient and does not alter

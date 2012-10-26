@@ -157,6 +157,50 @@ ImageOutput::write_rectangle (int xbegin, int xend, int ybegin, int yend,
 
 
 
+bool
+ImageOutput::write_deep_scanlines (int ybegin, int yend, int z,
+                                   const DeepData &deepdata)
+{
+    return false;  // default: doesn't support deep images
+}
+
+
+
+bool
+ImageOutput::write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                               int zbegin, int zend,
+                               const DeepData &deepdata)
+{
+    return false;  // default: doesn't support deep images
+}
+
+
+
+bool
+ImageOutput::write_deep_image (const DeepData &deepdata)
+{
+    if (m_spec.depth > 1) {
+        error ("write_deep_image is not supported for volume (3D) images.");
+        return false;
+        // FIXME? - not implementing 3D deep images for now.  The only
+        // format that supports deep images at this time is OpenEXR, and
+        // it doesn't support volumes.
+    }
+    if (m_spec.tile_width) {
+        // Tiled image
+        return write_deep_tiles (m_spec.x, m_spec.x+m_spec.width,
+                                 m_spec.y, m_spec.y+m_spec.height,
+                                 m_spec.z, m_spec.z+m_spec.depth,
+                                 deepdata);
+    } else {
+        // Scanline image
+        return write_deep_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                                     deepdata);
+    }
+}
+
+
+
 int
 ImageOutput::send_to_output (const char *format, ...)
 {
@@ -421,9 +465,20 @@ ImageOutput::copy_image (ImageInput *in)
     // but there are some exceptions (like in FITS plugin)
     // when we want to do this. Because 0x0 means there is no image
     // data in the file, we simply return true so the application thought
-    // that everything went right
+    // that everything went right.
     if (! spec().image_bytes())
         return true;
+
+    if (spec().deep) {
+        // Special case for ''deep'' images
+        DeepData deepdata;
+        bool ok = in->read_native_deep_image (deepdata);
+        if (ok)
+            ok = write_deep_image (deepdata);
+        else
+            error ("%s", in->geterror());  // copy err from in to out
+        return ok;
+    }
 
     // Naive implementation -- read the whole image and write it back out.
     // FIXME -- a smarter implementation would read scanlines or tiles at
@@ -432,10 +487,10 @@ ImageOutput::copy_image (ImageInput *in)
     TypeDesc format = native ? TypeDesc::UNKNOWN : inspec.format;
     std::vector<char> pixels (inspec.image_bytes(native));
     bool ok = in->read_image (format, &pixels[0]);
-    if (!ok)
-        error ("%s", in->geterror().c_str());  // copy err from in to out
     if (ok)
         ok = write_image (format, &pixels[0]);
+    else
+        error ("%s", in->geterror());  // copy err from in to out
     return ok;
 }
 

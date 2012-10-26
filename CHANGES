@@ -3,6 +3,7 @@ Changes:
 Release 1.1 (developmet in progress, compared to 1.0.4)
 -------------------------------------------------------
 Major new features and improvements:
+* Support for reading and writing "deep" images (including OpenEXR 2.0).
 * Big ImageCache/TextureSystem improvements:
   - Improved accuracy of anisotropic texture filtering, especially when
     combined with "blur."
@@ -34,6 +35,12 @@ API changes:
   efficient because it won't needlessly open and close the file multiple
   times.  This is now the preferred method for reading a file, though
   the old-style create() and open() still work as always.
+* Deep image support: ImageInput adds read_native_deep_scanlines,
+  read_native_deep_tiles, read_native_deep_image, and ImageOutput adds
+  write_deep_scanlines, write_deep_tiles, write_deep_image, as well as a
+  supports("deepdata") query.  Also, a 'deep' field has been added to
+  ImageSpec, and some deep data access functions have been added to
+  ImageBuf.
 * ImageInput plugins now may supply a valid_file(filename) method which 
   detects whether a given file is in the right format, less expensively
   than doing a full open() and checking for errors.  (It's probably the same
@@ -91,6 +98,8 @@ Fixes, minor enhancements, and performance improvements:
   match their actual formats.
 * OpenImageIO::geterror() is now thread-specific, so separate threads will
   no longer clobber each others' error messages.
+* OpenEXR: support for building with OpenEXR 2.x, including use of
+  multi-part EXR and "deep" data.
 * Fix reading bugs in DPX and Cineon.
 * DPX: fix endianness problem for 15 bit DPX output.
 * PNG: fix handling of gamma for sRGB images.
