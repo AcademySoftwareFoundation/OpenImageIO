@@ -789,7 +789,7 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     // format-specific metadata.
     if (const char *colon = strchr (xname.c_str(), ':')) {
         std::string prefix (xname.c_str(), colon);
-        if (! Strutil::iequals (prefix, format_name())) {
+        if (! Strutil::iequals (prefix, "openexr")) {
             if (! pvt::format_prefixes_initialized) {
                 // Retrieve and split the list, only the first time
                 spin_lock lock (pvt::format_prefixes_mutex);
