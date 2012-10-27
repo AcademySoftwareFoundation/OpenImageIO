@@ -74,11 +74,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *dds_output_imageio_create () { return new DDSOutput; }
+OIIO_EXPORT ImageOutput *dds_output_imageio_create () { return new DDSOutput; }
 
-// DLLEXPORT int dds_imageio_version = OIIO_PLUGIN_VERSION;   // it's in tgainput.cpp
+// OIIO_EXPORT int dds_imageio_version = OIIO_PLUGIN_VERSION;   // it's in tgainput.cpp
 
-DLLEXPORT const char * dds_output_extensions[] = {
+OIIO_EXPORT const char * dds_output_extensions[] = {
     "dds", NULL
 };
 

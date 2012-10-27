@@ -38,11 +38,11 @@ using namespace iff_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int iff_imageio_version = OIIO_PLUGIN_VERSION;
-    DLLEXPORT ImageInput *iff_input_imageio_create () {
+    OIIO_EXPORT int iff_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT ImageInput *iff_input_imageio_create () {
         return new IffInput;
     }
-    DLLEXPORT const char *iff_input_extensions[] = {
+    OIIO_EXPORT const char *iff_input_extensions[] = {
         "iff", "z", NULL
     };
 

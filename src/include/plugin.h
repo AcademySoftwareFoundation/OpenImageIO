@@ -56,14 +56,14 @@ typedef void * Handle;
 
 /// Return the platform-dependent suffix for plug-ins ("dll" on
 /// Windows, "so" on Linux, "dylib" on Mac OS X.
-DLLPUBLIC const char *plugin_extension (void);
+OIIO_API const char *plugin_extension (void);
 
 /// Open the named plugin, return its handle.  If it could not be
 /// opened, return 0 and the next call to geterror() will contain
 /// an explanatory message.  If the 'global' parameter is true, all
 /// symbols from the plugin will be available to the app (on Unix-like
 /// platforms; this has no effect on Windows).
-DLLPUBLIC Handle open (const char *plugin_filename, bool global=true);
+OIIO_API Handle open (const char *plugin_filename, bool global=true);
 
 inline Handle
 open (const std::string &plugin_filename, bool global=true)
@@ -74,12 +74,12 @@ open (const std::string &plugin_filename, bool global=true)
 /// Close the open plugin with the given handle and return true upon
 /// success.  If some error occurred, return false and the next call to
 /// geterror() will contain an explanatory message.
-DLLPUBLIC bool close (Handle plugin_handle);
+OIIO_API bool close (Handle plugin_handle);
 
 /// Get the address of the named symbol from the open plugin handle.  If
 /// some error occurred, return NULL and the next call to
 /// geterror() will contain an explanatory message.
-DLLPUBLIC void * getsym (Handle plugin_handle, const char *symbol_name);
+OIIO_API void * getsym (Handle plugin_handle, const char *symbol_name);
 
 inline void *
 getsym (Handle plugin_handle, const std::string &symbol_name)
@@ -93,7 +93,7 @@ getsym (Handle plugin_handle, const std::string &symbol_name)
 /// thread has called open, close, or getsym (all of which clear or
 /// overwrite the error message) between the error-generating call and
 /// geterror.
-DLLPUBLIC std::string geterror (void);
+OIIO_API std::string geterror (void);
 
 
 

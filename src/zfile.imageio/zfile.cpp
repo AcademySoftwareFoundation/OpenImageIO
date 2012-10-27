@@ -119,17 +119,17 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *zfile_input_imageio_create () { return new ZfileInput; }
+OIIO_EXPORT ImageInput *zfile_input_imageio_create () { return new ZfileInput; }
 
-DLLEXPORT int zfile_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int zfile_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * zfile_input_extensions[] = {
+OIIO_EXPORT const char * zfile_input_extensions[] = {
     "zfile", NULL
 };
 
-DLLEXPORT ImageOutput *zfile_output_imageio_create () { return new ZfileOutput; }
+OIIO_EXPORT ImageOutput *zfile_output_imageio_create () { return new ZfileOutput; }
 
-DLLEXPORT const char * zfile_output_extensions[] = {
+OIIO_EXPORT const char * zfile_output_extensions[] = {
     "zfile", NULL
 };
 

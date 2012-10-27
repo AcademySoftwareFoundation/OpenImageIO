@@ -61,18 +61,18 @@ namespace ImageBufAlgo {
 /// Zero out (set to 0, black) the image region.  If the optional ROI is
 /// not specified, it will set all channels of all image pixels to 0.0.
 /// Return true on success, false on failure.
-bool DLLPUBLIC zero (ImageBuf &dst, ROI roi=ROI());
+bool OIIO_API zero (ImageBuf &dst, ROI roi=ROI());
 
 /// Fill the image with a given channel values.  If the optional ROI is
 /// not specified, it will fill all channels of all image pixels.  Note
 /// that values[0] corresponds to channel roi.chanbegin.  Return true on
 /// success, false on failure.
-bool DLLPUBLIC fill (ImageBuf &dst, const float *values, ROI roi=ROI());
+bool OIIO_API fill (ImageBuf &dst, const float *values, ROI roi=ROI());
 
 /// Fill a subregion of the volume with the given pixel value.  The
 /// subregion is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).
 /// return true on success.
-inline bool DLLPUBLIC xfill (ImageBuf &dst, const float *pixel,
+inline bool OIIO_API fill (ImageBuf &dst, const float *pixel,
                      int xbegin, int xend, int ybegin, int yend,
                      int zbegin=0, int zend=1) {
     return fill (dst, pixel, ROI(xbegin,xend,ybegin,yend,zbegin,zend));
@@ -81,7 +81,7 @@ inline bool DLLPUBLIC xfill (ImageBuf &dst, const float *pixel,
 /// Fill a subregion of the volume with a checkerboard.  The subregion
 /// is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  return
 /// true on success.
-bool DLLPUBLIC checker (ImageBuf &dst,
+bool OIIO_API checker (ImageBuf &dst,
                         int width,
                         const float *color1,
                         const float *color2,
@@ -91,7 +91,7 @@ bool DLLPUBLIC checker (ImageBuf &dst,
 
 /// Enum describing options to be passed to transform
 
-enum DLLPUBLIC AlignedTransform
+enum OIIO_API AlignedTransform
 {
     TRANSFORM_NONE = 0,
     TRANSFORM_FLIP,        // Upside-down
@@ -109,7 +109,7 @@ enum DLLPUBLIC AlignedTransform
 /// (dst == src) is not supported.
 /// return true on success.
 
-bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t);
+bool OIIO_API transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t);
 
 
 /// Change the number of channels in the specified imagebuf.
@@ -119,7 +119,7 @@ bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t
 /// return true on success.
 /// DEPRECATED -- you should instead use the more general
 /// ImageBufAlgo::channels (dst, src, numChannels, NULL, true);
-bool DLLPUBLIC setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
+bool OIIO_API setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
 
 
 /// Generic channel shuffling -- copy src to dst, but with channels in
@@ -136,7 +136,7 @@ bool DLLPUBLIC setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannel
 /// corresponding channels of the source image -- be careful with this,
 /// shuffling both channel ordering and their names could result in no
 /// semantic change at all, if you catch the drift.
-bool DLLPUBLIC channels (ImageBuf &dst, const ImageBuf &src,
+bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
                          int nchannels, const int *channelorder,
                          bool shuffle_channel_names=false);
 
@@ -146,7 +146,7 @@ bool DLLPUBLIC channels (ImageBuf &dst, const ImageBuf &src,
 /// the new pixel range extends beyond that of the source image, those
 /// new pixels will get the color specified by bordercolor[0..nchans-1],
 /// or with black/zero values if bordercolor is NULL.
-bool DLLPUBLIC crop (ImageBuf &dst, const ImageBuf &src,
+bool OIIO_API crop (ImageBuf &dst, const ImageBuf &src,
                      int xbegin, int xend, int ybegin, int yend,
                      const float *bordercolor=NULL);
 
@@ -158,11 +158,11 @@ bool DLLPUBLIC crop (ImageBuf &dst, const ImageBuf &src,
 /// not be the same image as A or B, and all three images must have the
 /// same number of channels.  A and B *must* be float images.
 
-bool DLLPUBLIC add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options=0);
+bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B, int options=0);
 
 /// Enum describing options to be passed to ImageBufAlgo::add.
 /// Multiple options are allowed simultaneously by "or'ing" together.
-enum DLLPUBLIC AddOptions
+enum OIIO_API AddOptions
 {
     ADD_DEFAULT = 0,
     ADD_RETAIN_DST = 1,     ///< Retain dst pixels outside the region
@@ -187,16 +187,16 @@ enum DLLPUBLIC AddOptions
 /// return true on success, false on failure
 
 
-bool DLLPUBLIC colorconvert (ImageBuf &dst, const ImageBuf &src,
+bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
     const ColorProcessor * processor,
     bool unpremult);
 
-bool DLLPUBLIC colorconvert (float * color, int nchannels,
+bool OIIO_API colorconvert (float * color, int nchannels,
     const ColorProcessor * processor,
     bool unpremult);
 
 
-struct DLLPUBLIC PixelStats {
+struct OIIO_API PixelStats {
     std::vector<float> min;
     std::vector<float> max;
     std::vector<float> avg;
@@ -211,7 +211,7 @@ struct DLLPUBLIC PixelStats {
 /// data window of the current subimage and MIPmap level). Upon success,
 /// the returned vectors will have size == numchannels.  A FLOAT
 /// ImageBuf is required.
-bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
+bool OIIO_API computePixelStats (PixelStats &stats, const ImageBuf &src);
 
 /// Struct holding all the results computed by ImageBufAlgo::compare().
 /// (maxx,maxy,maxz,maxc) gives the pixel coordintes (x,y,z) and color
@@ -229,7 +229,7 @@ struct CompareResults {
 /// threshold (for any individual color channel in any pixel) for a
 /// "failure" is failthresh, and for a "warning" is warnthresh.  The
 /// results are stored in result.
-bool DLLPUBLIC compare (const ImageBuf &A, const ImageBuf &B,
+bool OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
                         float failthresh, float warnthresh,
                         CompareResults &result);
 
@@ -240,30 +240,30 @@ bool DLLPUBLIC compare (const ImageBuf &A, const ImageBuf &B,
 /// luminance in the room and the field of view of the image display;
 /// our defaults are probably reasonable guesses for an office
 /// environment.
-int DLLPUBLIC compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
+int OIIO_API compare_Yee (const ImageBuf &img0, const ImageBuf &img1,
                            float luminance = 100, float fov = 45);
 
 /// Do all pixels for the entire image have the same channel values?  If
 /// color is not NULL, that constant value will be stored in
 /// color[0..nchannels-1].
-bool DLLPUBLIC isConstantColor (const ImageBuf &src, float *color = NULL);
+bool OIIO_API isConstantColor (const ImageBuf &src, float *color = NULL);
 
 /// Does the requested channel have a given value over the entire image?
 ///
-bool DLLPUBLIC isConstantChannel (const ImageBuf &src, int channel, float val);
+bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val);
 
 /// Is the image monochrome? (i.e., are all channels the same value?)
 /// zero and one channel images always return true
 /// (current subimage, and current mipmap level)
-bool DLLPUBLIC isMonochrome(const ImageBuf &src);
+bool OIIO_API isMonochrome(const ImageBuf &src);
 
 /// Compute the sha1 byte hash for all the pixels in the image.
 /// (current subimage, and current mipmap level)
-std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src);
+std::string OIIO_API computePixelHashSHA1(const ImageBuf &src);
 
 /// Compute the sha1 byte hash for all the pixels in the image.
 /// (current subimage, and current mipmap level)
-std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src,
+std::string OIIO_API computePixelHashSHA1(const ImageBuf &src,
                                            const std::string & extrainfo);
 
 
@@ -274,12 +274,12 @@ std::string DLLPUBLIC computePixelHashSHA1(const ImageBuf &src,
 /// caller may explicitly pass a reconstruction filter, or resize() will
 /// choose a reasonable default if NULL is passed.  The dst buffer must
 /// be of type FLOAT.
-bool DLLPUBLIC resize (ImageBuf &dst, const ImageBuf &src,
+bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
                        int xbegin, int xend, int ybegin, int yend,
                        Filter2D *filter=NULL);
 
 
-enum DLLPUBLIC NonFiniteFixMode
+enum OIIO_API NonFiniteFixMode
 {
     NONFINITE_NONE = 0,     ///< Do nothing
     NONFINITE_BLACK = 1,    ///< Replace nonfinite pixels with black
@@ -287,7 +287,7 @@ enum DLLPUBLIC NonFiniteFixMode
 };
 
 /// Fix all non-finite pixels (nan/inf) using the specified approach
-bool DLLPUBLIC fixNonFinite(ImageBuf &dst, const ImageBuf &src,
+bool OIIO_API fixNonFinite(ImageBuf &dst, const ImageBuf &src,
                             NonFiniteFixMode mode=NONFINITE_BOX3,
                             int * pixelsFixed=NULL);
 
@@ -299,7 +299,7 @@ bool DLLPUBLIC fixNonFinite(ImageBuf &dst, const ImageBuf &src,
 /// if it couldn't figure out how to make the conversion from IplImage
 /// to ImageBuf.  If OpenImageIO was compiled without OpenCV support,
 /// this function will return false without modifying dst.
-bool DLLPUBLIC from_IplImage (ImageBuf &dst, const IplImage *ipl,
+bool OIIO_API from_IplImage (ImageBuf &dst, const IplImage *ipl,
                               TypeDesc convert=TypeDesc::UNKNOWN);
 
 /// Construct an IplImage*, used by OpenCV and Intel's Image Library,
@@ -307,14 +307,14 @@ bool DLLPUBLIC from_IplImage (ImageBuf &dst, const IplImage *ipl,
 /// if OpenImageIO was compiled without OpenCV support, then return
 /// NULL.  The ownership of the IplImage is fully transferred to the
 /// calling application.
-DLLPUBLIC IplImage* to_IplImage (const ImageBuf &src);
+OIIO_API IplImage* to_IplImage (const ImageBuf &src);
 
 /// Capture a still image from a designated camera.  If able to do so,
 /// store the image in dst and return true.  If there is no such device,
 /// or support for camera capture is not available (such as if OpenCV
 /// support was not enabled at compile time), return false and do not
 /// alter dst.
-bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
+bool OIIO_API capture_image (ImageBuf &dst, int cameranum = 0,
                               TypeDesc convert=TypeDesc::UNKNOWN);
 
 
@@ -361,7 +361,7 @@ bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
 /// guaranteed to not spawn additional threads (this is especially
 /// useful if over() is being called from one thread of an
 /// already-multithreaded program).
-bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+bool OIIO_API over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
                      ROI roi = ROI(), int threads = 0);
 
 
@@ -374,7 +374,7 @@ bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 /// opaque white (1.0,1.0,...) in all channels, unless textcolor is
 /// supplied (and is expected to point to a float array of length at
 /// least equal to R.spec().nchannels).
-bool DLLPUBLIC render_text (ImageBuf &R, int x, int y,
+bool OIIO_API render_text (ImageBuf &R, int x, int y,
                             const std::string &text,
                             int fontsize=16, const std::string &fontname="",
                             const float *textcolor = NULL);
@@ -397,7 +397,7 @@ bool DLLPUBLIC render_text (ImageBuf &R, int x, int y,
 ///               roi is not defined then the full size image will be
 ///               histogramed.
 /// --------------------------------------------------------------------------
-bool DLLPUBLIC histogram (const ImageBuf &A, int channel,
+bool OIIO_API histogram (const ImageBuf &A, int channel,
                           std::vector<imagesize_t> &histogram, int bins=256,
                           float min=0, float max=1, imagesize_t *submin=NULL,
                           imagesize_t *supermax=NULL, ROI roi=ROI());
@@ -411,7 +411,7 @@ bool DLLPUBLIC histogram (const ImageBuf &A, int channel,
 ///               to the number of bins, that is elements in histogram.
 /// histogram   - The histogram to be drawn, must have at least 1 bin.
 /// --------------------------------------------------------------------------
-bool DLLPUBLIC histogram_draw (ImageBuf &R,
+bool OIIO_API histogram_draw (ImageBuf &R,
                                const std::vector<imagesize_t> &histogram);
 
 

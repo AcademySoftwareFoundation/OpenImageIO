@@ -95,11 +95,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *targa_input_imageio_create () { return new TGAInput; }
+OIIO_EXPORT ImageInput *targa_input_imageio_create () { return new TGAInput; }
 
-DLLEXPORT int targa_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int targa_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * targa_input_extensions[] = {
+OIIO_EXPORT const char * targa_input_extensions[] = {
     "tga", "tpic", NULL
 };
 

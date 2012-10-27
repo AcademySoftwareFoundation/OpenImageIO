@@ -37,10 +37,10 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
-    DLLEXPORT ImageOutput *sgi_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *sgi_output_imageio_create () {
         return new SgiOutput;
     }
-    DLLEXPORT const char *sgi_output_extensions[] = {
+    OIIO_EXPORT const char *sgi_output_extensions[] = {
         "sgi", "rgb", "rgba", "bw", "int", "inta", NULL
     };
 OIIO_PLUGIN_EXPORTS_END

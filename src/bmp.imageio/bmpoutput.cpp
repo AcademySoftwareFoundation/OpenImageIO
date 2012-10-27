@@ -39,10 +39,10 @@ using namespace bmp_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *bmp_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *bmp_output_imageio_create () {
         return new BmpOutput;
     }
-    DLLEXPORT const char *bmp_output_extensions[] = {
+    OIIO_EXPORT const char *bmp_output_extensions[] = {
         "bmp", NULL
     };
 

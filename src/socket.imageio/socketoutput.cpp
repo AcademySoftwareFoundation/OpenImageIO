@@ -39,10 +39,10 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *socket_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *socket_output_imageio_create () {
         return new SocketOutput;
     }
-    DLLEXPORT const char *socket_output_extensions[] = {
+    OIIO_EXPORT const char *socket_output_extensions[] = {
         "socket", NULL
     };
 

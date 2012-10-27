@@ -64,10 +64,10 @@ if (CMAKE_COMPILER_IS_CLANG)
 endif ()
 
 
-
 set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
 set (BUILDSTATIC OFF CACHE BOOL "Build static library instead of shared")
 set (LINKSTATIC OFF CACHE BOOL "Link with static external libraries when possible")
+set (HIDE_SYMBOLS OFF CACHE BOOL "Hide symbols not in the public API")
 set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
 set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
@@ -98,6 +98,20 @@ if (USE_TBB)
 else ()
     add_definitions ("-DUSE_TBB=0")
     message (STATUS "TBB will not be used")
+endif ()
+
+if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
+    if (HIDE_SYMBOLS AND NOT DEBUGMODE)
+        # Turn default symbol visibility to hidden
+        set (VISIBILITY_COMMAND "-fvisibility=hidden -fvisibility-inlines-hidden")
+        add_definitions (${VISIBILITY_COMMAND})
+        if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+            # Linux: also hide all the symbols of dependent libraries to
+            # prevent clashes if an app using OIIO is linked against
+            # other verions of our dependencies.
+            set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${PROJECT_SOURCE_DIR}/libOpenImageIO/libOpenImageIO.map")
+        endif ()
+    endif ()
 endif ()
 
 if (EXTRA_CPP_DEFINITIONS)

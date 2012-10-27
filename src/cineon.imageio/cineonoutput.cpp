@@ -67,11 +67,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *cineon_output_imageio_create () { return new CineonOutput; }
+OIIO_EXPORT ImageOutput *cineon_output_imageio_create () { return new CineonOutput; }
 
-// DLLEXPORT int cineon_imageio_version = OIIO_PLUGIN_VERSION;   // it's in cineoninput.cpp
+// OIIO_EXPORT int cineon_imageio_version = OIIO_PLUGIN_VERSION;   // it's in cineoninput.cpp
 
-DLLEXPORT const char * cineon_output_extensions[] = {
+OIIO_EXPORT const char * cineon_output_extensions[] = {
     "cin", NULL
 };
 
