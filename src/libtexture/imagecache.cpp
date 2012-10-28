@@ -1076,8 +1076,16 @@ ImageCacheImpl::check_max_files (ImageCachePerThreadInfo *thread_info)
         }
         if (m_file_sweep == m_files.end())   // If STILL at the end,
             break;                           //     it must be empty, done
-        ASSERT (full_loops < 100);  // abort rather than infinite loop
         DASSERT (m_file_sweep->second);
+        if (full_loops >= 100) {
+            // Somehow we've looped over the whole file list a lot of
+            // times, yet still haven't closed enough files to be below
+            // the limit on file handles.  Punt by breaking out of the
+            // loop, even though it may mean we exceed the limit on the
+            // number of open files that the user requested.
+            error ("Unable to free file handles fast enough");
+            break;
+        }
         m_file_sweep->second->release ();  // May reduce open files
         ++m_file_sweep;
     }
@@ -1932,7 +1940,15 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
         }
         if (m_tile_sweep == m_tilecache.end())  // If STILL at the end,
             break;                              //      it must be empty, done
-        ASSERT (full_loops < 100);  // abort rather than infinite loop
+        if (full_loops >= 100) {
+            // Somehow we've looped over the whole tile list a lot of
+            // times, yet still haven't freed enough tiles to be below
+            // the cache size limit.  Punt by breaking out of the loop,
+            // even though it may mean we exceed the cache size the user
+            // requested.
+            error ("Unable to free tiles fast enough");
+            break;
+        }
         if (! m_tile_sweep->second->release ()) {
             TileCache::iterator todelete = m_tile_sweep;
             ++m_tile_sweep;
