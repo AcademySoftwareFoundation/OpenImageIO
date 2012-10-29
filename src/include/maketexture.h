@@ -48,7 +48,8 @@ OIIO_NAMESPACE_ENTER
 
 
 struct MaketxStats {
-    MaketxStats() : writetime(0), resizetime(0), miptime(0), colorconverttime(0) {}
+    MaketxStats() : readtime(0), writetime(0), resizetime(0), miptime(0),
+                    colorconverttime(0) {}
     double readtime;
     double writetime;
     double resizetime;
@@ -60,10 +61,18 @@ struct MaketxStats {
 struct MaketxParams {
     enum ConversionMode { MIPMAP, SHADOW, ENVLATLONG };
     
-    MaketxParams() : verbose(false), nthreads(0), checknan(false), fixnan("none"), filter(NULL), conversionmode(MIPMAP), fov(90), fovcot(0), wrap("black"), pow2resize(false), Mcam(0.0f), Mscr(0.0f), separate(false), nomipmap(false), prman_metadata(false), constant_color_detect(false), monochrome_detect(false), opaque_detect(false), nchannels(-1), prman(false), oiio(false), unpremult(false) {}
+    MaketxParams() : verbose(false), nthreads(0), checknan(false),
+                     fixnan("none"), filter(NULL), conversionmode(MIPMAP),
+                     fov(90), fovcot(0), wrap("black"), pow2resize(false),
+                     Mcam(0.0f), Mscr(0.0f), separate(false), nomipmap(false),
+                     prman_metadata(false), constant_color_detect(false),
+                     monochrome_detect(false), opaque_detect(false),
+                     nchannels(-1), prman(false), oiio(false),
+                     unpremult(false) {}
     
     bool verbose;
     int nthreads;    // default: use #cores threads if available
+    std::string fileformatname;
     std::string channellist;
     bool checknan;
     std::string dataformatname;

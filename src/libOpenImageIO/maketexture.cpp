@@ -45,12 +45,12 @@
 #include "fmath.h"
 #include "strutil.h"
 #include "sysutil.h"
-#include "thread.h"
 #include "color.h"
 #include "timer.h"
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "thread.h"
 
 
 OIIO_NAMESPACE_USING
@@ -64,11 +64,11 @@ static spin_mutex maketx_mutex;   // for found_nonfinite
 
 
 
-static bool
-write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
-              std::string outputfilename, ImageOutput *out,
-              TypeDesc outputdatatype, bool mipmap,
-              const MaketxParams &param, MaketxStats *stat);
+// forward decl
+static bool write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
+                          std::string outputfilename, ImageOutput *out,
+                          TypeDesc outputdatatype, bool mipmap,
+                          const MaketxParams &param, MaketxStats *stat);
 
 
 
@@ -103,14 +103,9 @@ parallel_image (Func func, ImageBuf *dst, const ImageBuf *src,
         nthreads = 1;
     // nthreads < 1 means try to make enough threads to fill all cores
     if (nthreads < 1) {
-#if (BOOST_VERSION >= 103500)
         nthreads = boost::thread::hardware_concurrency();
-#else
-        nthreads = 1;   // hardware_concurrency not supported in Boost < 1.35
-#endif
     }
     
-#if (BOOST_VERSION >= 103500)
     if (nthreads > 1) {
         boost::thread_group threads;
         int blocksize = std::max (1, ((xend-xbegin) + nthreads-1) / nthreads);
@@ -125,11 +120,8 @@ parallel_image (Func func, ImageBuf *dst, const ImageBuf *src,
         }
         threads.join_all ();
     } else {
-#endif // BOOST_VERSION
         func (dst, src, xbegin, xend, ybegin, yend, param);
-#if (BOOST_VERSION >= 103500)
     }
-#endif
 }
 
 
@@ -195,7 +187,6 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y,
     buf.getpixel (xnext, ytexel, p[1], n);
     buf.getpixel (xtexel, ynext, p[2], n);
     buf.getpixel (xnext, ynext, p[3], n);
-    
     if (mode == MaketxParams::ENVLATLONG) {
         // For latlong environment maps, in order to conserve energy, we
         // must weight the pixels by sin(t*PI) because pixels closer to
@@ -207,7 +198,6 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y,
         float w1 = yfrac * sinf ((float)M_PI * (ynext+0.5f)/(float)fh);
         yfrac = w0 / (w0 + w1);
     }
-    
     // Bilinearly interpolate
     bilerp (p[0], p[1], p[2], p[3], xfrac, yfrac, n, pixel);
 }
@@ -267,7 +257,6 @@ check_nan_block (ImageBuf* /*dst*/, const ImageBuf* src,
 static void
 fix_latl_edges (ImageBuf &buf)
 {
-    // WTF?
     //  ASSERT (envlatlmode && "only call fix_latl_edges for latlong maps");
     int n = buf.nchannels();
     float *left = ALLOCA (float, n);
@@ -331,22 +320,24 @@ formatres (const ImageSpec &spec, bool extended=false)
 
 
 bool
-make_texturemap (ImageBuf &src, const char *dst_filename,
+make_texturemap (ImageBuf &src, const char *outputfilename,
                  const MaketxParams &param, MaketxStats *stat)
 {
     if (param.prman && param.oiio)
         return false;
     
     // Find an ImageIO plugin that can open the output file, and open it
-    ImageOutput *out = ImageOutput::create (dst_filename);
+    std::string outformat = param.fileformatname.empty() ? outputfilename :
+                                                           param.fileformatname;
+    ImageOutput *out = ImageOutput::create (outformat.c_str());
     if (! out) {
         std::cerr
         << "maketx ERROR: Could not find an ImageIO plugin to write "
-        << dst_filename << ":" << geterror() << "\n";
+        << outformat << " files:" << geterror() << "\n";
         return false;
     }
     if (! out->supports ("tiles")) {
-        std::cerr << "maketx ERROR: \"" << dst_filename
+        std::cerr << "maketx ERROR: \"" << outputfilename
         << "\" format does not support tiled images\n";
         return false;
     }
@@ -376,19 +367,23 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
             out_dataformat = TypeDesc::DOUBLE;
     }
     
+    // Potentially modified parameter values
     int tile[3] = {0};
-    bool _separate = param.separate;
-    bool _prman_metadata = param.prman_metadata;
-    bool _constant_color_detect = param.constant_color_detect;
-    
+    bool separate = param.separate;
+    bool prman_metadata = param.prman_metadata;
+    bool constant_color_detect = param.constant_color_detect;
+    std::string swrap = param.swrap;
+    std::string twrap = param.twrap;
+    float fovcot = param.fovcot;
+
     // We cannot compute the prman / oiio options until after out_dataformat
     // has been determined, as it's required (and can potentially change
     // out_dataformat too!)
     assert(!(param.prman && param.oiio));
     if (param.prman) {
         // Force planar image handling, and also emit prman metadata
-        _separate = true;
-        _prman_metadata = true;
+        separate = true;
+        prman_metadata = true;
         
         // 8-bit : 64x64
         if (out_dataformat == TypeDesc::UINT8 ||
@@ -422,10 +417,10 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
         }
     } else if (param.oiio) {
         // Interleaved channels are faster to read
-        _separate = false;
+        separate = false;
         
         // Enable constant color optimizations
-        _constant_color_detect = true;
+        constant_color_detect = true;
         
         // Force fixed tile-size across the board
         tile[0] = 64;
@@ -452,7 +447,7 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
     std::vector<float> constantColor(src.nchannels());
     bool isConstantColor = ImageBufAlgo::isConstantColor (src, &constantColor[0]);
     
-    if (isConstantColor && _constant_color_detect) {
+    if (isConstantColor && constant_color_detect) {
         ImageSpec newspec = src.spec();
         
         // Reset the image, to a new image, at the new size
@@ -473,7 +468,7 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
         ImageBufAlgo::isConstantChannel(src,src.spec().alpha_channel,1.0f)) {
         ImageBuf newsrc(src.name() + ".noalpha", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, src.nchannels()-1);
-        src = newsrc;
+        src.copy (newsrc);
         if (param.verbose) {
             std::cout << "  Alpha==1 image detected. Dropping the alpha channel.\n";
         }
@@ -484,7 +479,7 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
         param.nchannels < 0 && ImageBufAlgo::isMonochrome(src)) {
         ImageBuf newsrc(src.name() + ".monochrome", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, 1);
-        src = newsrc;
+        src.copy (newsrc);
         if (param.verbose) {
             std::cout << "  Monochrome image detected. Converting to single channel texture.\n";
         }
@@ -495,7 +490,7 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
     if (param.nchannels > 0 && param.nchannels != src.nchannels()) {
         ImageBuf newsrc(src.name() + ".channels", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, param.nchannels);
-        src = newsrc;
+        src.copy (newsrc);
         if (param.verbose) {
             std::cout << "  Overriding number of channels to " <<
                          param.nchannels << "\n";
@@ -548,13 +543,9 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
         dstspec.full_height = dstspec.height;
         dstspec.full_depth = dstspec.depth;
     }
-    
-    std::string _swrap = param.swrap;
-    std::string _twrap = param.twrap;
-    
     if (orig_was_overscan) {
-        _swrap = "black";
-        _twrap = "black";
+        swrap = "black";
+        twrap = "black";
     }
     
     if ((dstspec.x < 0 || dstspec.y < 0 || dstspec.z < 0) &&
@@ -595,17 +586,17 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
     
     if (param.conversionmode == MaketxParams::SHADOW) {
         dstspec.attribute ("textureformat", "Shadow");
-        if (_prman_metadata)
+        if (prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Shadow");
     } else if (param.conversionmode == MaketxParams::ENVLATLONG) {
         dstspec.attribute ("textureformat", "LatLong Environment");
-        _swrap = "periodic";
-        _twrap = "clamp";
-        if (_prman_metadata)
+        swrap = "periodic";
+        twrap = "clamp";
+        if (prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Latlong Environment");
     } else {
         dstspec.attribute ("textureformat", "Plain Texture");
-        if(_prman_metadata)
+        if(prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Plain Texture");
     }
     
@@ -616,20 +607,18 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
     
     // FIXME - check for valid strings in the wrap mode
     if (param.conversionmode != MaketxParams::SHADOW) {
-        std::string wrapmodes = (_swrap.size() ? _swrap : param.wrap) + ',' +
-        (_twrap.size() ? _twrap : param.wrap);
+        std::string wrapmodes = (swrap.size() ? swrap : param.wrap) + ',' +
+        (twrap.size() ? twrap : param.wrap);
         dstspec.attribute ("wrapmodes", wrapmodes);
     }
     
-    
-    float _fovcot = param.fovcot;
-    if (_fovcot == 0.0f) {
-        _fovcot = static_cast<float>(srcspec.full_width) /
+    if(fovcot == 0.0f) {
+        fovcot = static_cast<float>(srcspec.full_width) /
         static_cast<float>(srcspec.full_height);
     }
-    dstspec.attribute ("fovcot", _fovcot);
+    dstspec.attribute ("fovcot", fovcot);
     
-    if (_separate)
+    if (separate)
         dstspec.attribute ("planarconfig", "separate");
     else {
         dstspec.erase_attribute("planarconfig");
@@ -764,8 +753,9 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
     // Note: src_samples_border is always false at this point.
     if (param.conversionmode == MaketxParams::ENVLATLONG &&
         (Strutil::iequals(out->format_name(),"openexr") ||
-         Strutil::iends_with(dst_filename,".exr")))
+         Strutil::iends_with(outputfilename,".exr")))
         do_resize = true;
+
     if (do_resize && orig_was_overscan &&
         out && !out->supports("displaywindow")) {
         std::cerr << "maketx ERROR: format " << out->format_name()
@@ -873,7 +863,7 @@ make_texturemap (ImageBuf &src, const char *dst_filename,
     // Write out, and compute, the mipmap levels for the speicifed image
     bool domip = param.conversionmode != MaketxParams::SHADOW &&
                  param.conversionmode != MaketxParams::MIPMAP;
-    if (!write_mipmap (*toplevel, dstspec, dst_filename,
+    if (!write_mipmap (*toplevel, dstspec, outputfilename,
                        out, out_dataformat, domip, param, stat))
         return false;
     
