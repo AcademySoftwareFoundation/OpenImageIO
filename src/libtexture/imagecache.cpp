@@ -353,6 +353,10 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     // of the ImageCacheFile.
     m_subimages.clear ();
     int nsubimages = 0;
+
+    // Since each subimage can potentially have its own mipmap levels,
+    // keep track of the highest level discovered
+    int maxmip = 0;
     do {
         m_subimages.resize (nsubimages+1);
         SubimageInfo &si (subimageinfo(nsubimages));
@@ -396,6 +400,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             LevelInfo levelinfo (tempspec);
             si.levels.push_back (levelinfo);
             ++nmip;
+            maxmip = std::max (nmip, maxmip);
         } while (m_input->seek_subimage (nsubimages, nmip, tempspec));
 
         // Special work for non-MIPmapped images -- but only if "automip"
@@ -440,6 +445,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 s.tile_height = pow2roundup (s.tile_height);
                 s.tile_depth = pow2roundup (s.tile_depth);
                 ++nmip;
+                maxmip = std::max (nmip, maxmip);
                 LevelInfo levelinfo (s);
                 si.levels.push_back (levelinfo);
             }
@@ -561,6 +567,9 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_eightbit = (m_datatype == TypeDesc::UINT8);
     m_mod_time = boost::filesystem::last_write_time (m_filename.string());
 
+    // Set all mipmap level read counts to zero
+    m_mipreadcount.resize(maxmip, 0);
+
     DASSERT (! m_broken);
     m_validspec = true;
     return true;
@@ -597,6 +606,9 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
     // Mark if we ever use a mip level that's not the first
     if (miplevel > 0)
         m_mipused = true;
+
+    // count how many times this mipmap level was read
+    m_mipreadcount[miplevel]++;
 
     SubimageInfo &subinfo (subimageinfo(subimage));
 
@@ -1346,6 +1358,13 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
                 out << " MIP-UNUSED";
                 break;
             }
+    }
+    if (! file->mipreadcount().empty()) {
+        out << " MIP COUNT [";
+        int nmip = (int) file->mipreadcount().size();
+        for (int c = 0; c < nmip; c++)
+            out << (c ? "," : "") << file->mipreadcount()[c];
+        out << "]";
     }
 
     return out.str ();
