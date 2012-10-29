@@ -31,6 +31,7 @@
 #ifndef OPENIMAGEIO_ICO_H
 #define OPENIMAGEIO_ICO_H
 
+#include "filesystem.h"
 #include "fmath.h"
 
 

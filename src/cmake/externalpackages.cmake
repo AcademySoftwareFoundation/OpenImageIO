@@ -53,18 +53,22 @@ macro (LINK_ILMBASE target)
     target_link_libraries (${target} ${ILMBASE_LIBRARIES})
 endmacro ()
 
-setup_string (OPENEXR_VERSION 1.6.1 "OpenEXR version number")
-mark_as_advanced (OPENEXR_VERSION)
-#setup_string (OPENEXR_VERSION_DIGITS 010601 "OpenEXR version preprocessor number")
-#mark_as_advanced (OPENEXR_VERSION_DIGITS)
-# FIXME -- should instead do the search & replace automatically, like this
-# way it was done in the old makefiles:
-#     OPENEXR_VERSION_DIGITS ?= 0$(subst .,0,${OPENEXR_VERSION})
+
 setup_path (OPENEXR_HOME "${THIRD_PARTY_TOOLS_HOME}"
             "Location of the OpenEXR library install")
 mark_as_advanced (OPENEXR_HOME)
 
 find_package (OpenEXR REQUIRED)
+
+if (EXISTS ${OPENEXR_INCLUDE_DIR}/OpenEXR/ImfMultiPartInputFile.h)
+    add_definitions (-DUSE_OPENEXR_VERSION2=1)
+    setup_string (OPENEXR_VERSION 2.0.0 "OpenEXR version number")
+    message (STATUS "OpenEXR version 2.x")
+else ()
+    setup_string (OPENEXR_VERSION 1.6.1 "OpenEXR version number")
+    message (STATUS "OpenEXR version 1.x")
+endif ()
+mark_as_advanced (OPENEXR_VERSION)
 
 include_directories (${OPENEXR_INCLUDE_DIR})
 include_directories (${OPENEXR_INCLUDE_DIR}/OpenEXR)
@@ -82,11 +86,9 @@ endmacro ()
 
 message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
 
-set (Boost_ADDITIONAL_VERSIONS "1.45" "1.44" 
+set (Boost_ADDITIONAL_VERSIONS "1.49" "1.48" "1.47" "1.46" "1.45" "1.44" 
                                "1.43" "1.43.0" "1.42" "1.42.0" 
-                               "1.41" "1.41.0" "1.40" "1.40.0"
-                               "1.39" "1.39.0" "1.38" "1.38.0"
-                               "1.37" "1.37.0" "1.34.1" "1_34_1")
+                               "1.41" "1.41.0" "1.40" "1.40.0")
 if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS   ON)
 endif ()
@@ -96,7 +98,7 @@ if (BOOST_CUSTOM)
     # N.B. For a custom version, the caller had better set up the variables
     # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
-    find_package (Boost 1.34 REQUIRED 
+    find_package (Boost 1.40 REQUIRED 
                   COMPONENTS filesystem regex system thread
                  )
     # Try to figure out if this boost distro has Boost::python.  If we
@@ -158,8 +160,12 @@ if (NOT oiio_boost_PYTHON_FOUND)
     set (PYTHONLIBS_FOUND OFF)
 endif ()
 
-include_directories ("${Boost_INCLUDE_DIRS}")
+include_directories (SYSTEM "${Boost_INCLUDE_DIRS}")
 link_directories ("${Boost_LIBRARY_DIRS}")
+
+#if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+#    add_definitions ("-Wno-parentheses")
+#endif ()
 
 # end Boost setup
 ###########################################################################
@@ -267,11 +273,15 @@ if (USE_FIELD3D)
 endif ()
 if (USE_FIELD3D AND HDF5_FOUND)
     message (STATUS "FIELD3D_HOME=${FIELD3D_HOME}")
-    find_path (FIELD3D_INCLUDES Field3D/Field.h
-               ${THIRD_PARTY_TOOLS}/include
-               ${PROJECT_SOURCE_DIR}/include
-               ${FIELD3D_HOME}/include
-              )
+    if (FIELD3D_HOME)
+        set (FIELD3D_INCLUDES ${FIELD3D_HOME}/include)
+    else ()
+        find_path (FIELD3D_INCLUDES Field3D/Field.h
+                   ${THIRD_PARTY_TOOLS}/include
+                   ${PROJECT_SOURCE_DIR}/include
+                   ${FIELD3D_HOME}/include
+                  )
+    endif ()
     find_library (FIELD3D_LIBRARY
                   NAMES Field3D
                   PATHS ${THIRD_PARTY_TOOLS_HOME}/lib/
@@ -382,3 +392,25 @@ endif ()
 
 # end OpenCV setup
 ###########################################################################
+
+
+###########################################################################
+# Freetype setup
+
+if (USE_FREETYPE)
+    find_package (Freetype)
+    if (FREETYPE_FOUND)
+        add_definitions ("-DUSE_FREETYPE")
+        message (STATUS "Freetype includes = ${FREETYPE_INCLUDE_DIRS} ")
+        message (STATUS "Freetype libs = ${FREETYPE_LIBRARIES} ")
+    else ()
+        message (STATUS "Freetype library not found")
+    endif ()
+else ()
+    message (STATUS "Not using Freetype")
+endif ()
+
+# end Freetype setup
+###########################################################################
+
+

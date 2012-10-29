@@ -54,9 +54,34 @@ void test_filename_decomposition ()
 
 
 
+void test_filename_searchpath_find ()
+{
+    // This will be run via testsuite/unit_filesystem, from the
+    // build/ARCH/libOpenImageIO directory.  One level up will be
+    // build/ARCH.
+    std::vector<std::string> dirs;
+    dirs.push_back ("..");
+    std::string s;
+
+    // non-recursive search success
+    s = Filesystem::searchpath_find ("License.txt", dirs, false, false);
+    OIIO_CHECK_EQUAL (s, "../License.txt");
+
+    // non-recursive search failure (file is in a subdirectory)
+    s = Filesystem::searchpath_find ("version.h", dirs, false, false);
+    OIIO_CHECK_EQUAL (s, "");
+
+    // recursive search success (file is in a subdirectory)
+    s = Filesystem::searchpath_find ("version.h", dirs, false, true);
+    OIIO_CHECK_EQUAL (s, "../include/version.h");
+}
+
+
+
 int main (int argc, char *argv[])
 {
     test_filename_decomposition ();
+    test_filename_searchpath_find ();
 
     return unit_test_failures;
 }

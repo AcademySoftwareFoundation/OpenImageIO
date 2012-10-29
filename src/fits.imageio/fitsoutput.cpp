@@ -64,7 +64,7 @@ FitsOutput::open (const std::string &name, const ImageSpec &spec,
     m_spec = spec;
 
     // checking if the file exists and can be opened in WRITE mode
-    m_fd = fopen (m_filename.c_str (), mode == AppendSubimage ? "r+b" : "wb");
+    m_fd = Filesystem::fopen (m_filename, mode == AppendSubimage ? "r+b" : "wb");
     if (!m_fd) {
         error ("Unable to open file \"%s\"", m_filename.c_str());
         return false;
@@ -118,10 +118,12 @@ FitsOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
                          data_tmp.size () / sizeof (double));
     }
 
-    fwrite (&data_tmp[0], 1, data_tmp.size (), m_fd);
+    size_t byte_count = fwrite (&data_tmp[0], 1, data_tmp.size (), m_fd);
 
     fsetpos (m_fd, &m_filepos);
-    return true;
+
+    //byte_count == data.size --> all written
+    return byte_count == data_tmp.size();
 }
 
 
@@ -204,8 +206,12 @@ FitsOutput::create_fits_header (void)
     const int hsize = HEADER_SIZE - header.size () % HEADER_SIZE;
     if (hsize)
         header.resize (header.size () + hsize, ' ');
-    fwrite (&header[0], 1, header.size (), m_fd);
 
+    size_t byte_count = fwrite (&header[0], 1, header.size (), m_fd);
+    if (byte_count != header.size ()) {
+    	// FIXME Bad Write
+    	error ("Bad header write (err %d)", byte_count);
+    }
 }
 
 

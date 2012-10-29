@@ -17,7 +17,7 @@ Reading ../../../../../TGAUTILS/CBW8.TGA
 Comparing "../../../../../TGAUTILS/CBW8.TGA" and "CBW8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/CCM8.TGA
-../../../../../TGAUTILS/CCM8.TGA :  128 x  128, 3 channel, uint8 targa
+../../../../../TGAUTILS/CCM8.TGA :  128 x  128, 3 channel, uint2 targa
     SHA-1: 1CA776B45486FB52A5A8953F9BAE94975933334D
     channel list: R, G, B
     oiio:BitsPerSample: 2
@@ -35,7 +35,7 @@ Reading ../../../../../TGAUTILS/CCM8.TGA
 Comparing "../../../../../TGAUTILS/CCM8.TGA" and "CCM8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/CTC16.TGA
-../../../../../TGAUTILS/CTC16.TGA :  128 x  128, 4 channel, uint8 targa
+../../../../../TGAUTILS/CTC16.TGA :  128 x  128, 4 channel, uint4 targa
     SHA-1: A99112A53F34FA9D4A856DBC228A6969061D61C1
     channel list: R, G, B, A
     oiio:BitsPerSample: 4
@@ -106,7 +106,7 @@ Reading ../../../../../TGAUTILS/UBW8.TGA
 Comparing "../../../../../TGAUTILS/UBW8.TGA" and "UBW8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/UCM8.TGA
-../../../../../TGAUTILS/UCM8.TGA :  128 x  128, 3 channel, uint8 targa
+../../../../../TGAUTILS/UCM8.TGA :  128 x  128, 3 channel, uint2 targa
     SHA-1: 1CA776B45486FB52A5A8953F9BAE94975933334D
     channel list: R, G, B
     oiio:BitsPerSample: 2
@@ -123,7 +123,7 @@ Reading ../../../../../TGAUTILS/UCM8.TGA
 Comparing "../../../../../TGAUTILS/UCM8.TGA" and "UCM8.TGA"
 PASS
 Reading ../../../../../TGAUTILS/UTC16.TGA
-../../../../../TGAUTILS/UTC16.TGA :  128 x  128, 4 channel, uint8 targa
+../../../../../TGAUTILS/UTC16.TGA :  128 x  128, 4 channel, uint4 targa
     SHA-1: A99112A53F34FA9D4A856DBC228A6969061D61C1
     channel list: R, G, B, A
     oiio:BitsPerSample: 4

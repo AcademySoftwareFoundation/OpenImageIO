@@ -170,7 +170,8 @@ private:
     ImageBuf *m_buf;
 public:
 
-    ImageBufWrap (const std::string&, ImageCacheWrap*);
+    ImageBufWrap (const std::string&name = std::string(),
+                  ImageCacheWrap*icw = NULL);
     ImageBufWrap (const std::string&, const ImageSpec&) ;  
     void clear ();
     void reset_to_new_image (const std::string&, ImageCache*);
@@ -214,14 +215,14 @@ public:
     // this defeat the purpose of Python? Instead, the wrapper could
     // allocate that array, fill it, and return it to Python. This is the way
     // ImageInput.read_image() was wrapped.
-    bool copy_pixels (int, int, int, int, TypeDesc, void*) const;
+    bool get_pixels (int, int, int, int, int, int, TypeDesc, void*) const;
 
     // TODO: handle T and <T>. Don't know how to handle this with B.P, 
     // though haven't given it much thought yet.
     /*
-    bool copy_pixels_convert (int xbegin, int xend, int ybegin, int yend,
+    bool get_pixels_convert (int xbegin, int xend, int ybegin, int yend,
                                 T *result) const; 
-    bool copy_pixels_convert_safer (int xbegin, int xend, int ybegin,
+    bool get_pixels_convert_safer (int xbegin, int xend, int ybegin,
                                 int yend, std::vector<T> &result) const;
     */
     

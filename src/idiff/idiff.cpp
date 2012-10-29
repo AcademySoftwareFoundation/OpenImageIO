@@ -279,6 +279,11 @@ main (int argc, char *argv[])
                 ret = ErrDifferentSize;
                 break;
             }
+            if (img0.deep() != img1.deep()) {
+                std::cout << "One image contains deep data, the other does not\n";
+                ret = ErrDifferentSize;
+                break;
+            }
 
             int npels = img0.spec().width * img0.spec().height * img0.spec().depth;
             if (npels == 0)
@@ -291,7 +296,7 @@ main (int argc, char *argv[])
             ImageBufAlgo::compare (img0, img1, failthresh, warnthresh, cr);
 
             int yee_failures = 0;
-            if (perceptual)
+            if (perceptual && ! img0.deep())
                 yee_failures = ImageBufAlgo::compare_Yee (img0, img1);
 
             if (cr.nfail > (failpercent/100.0 * npels) || cr.maxerror > hardfail ||

@@ -145,12 +145,12 @@ bool
 ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t)
 {
     if (t == TRANSFORM_NONE) {
-        dst = src;
-        return true;
+        return dst.copy (src);
     }
     
     ImageSpec dst_spec (src.spec());
     if(!TransformImageSpec(dst_spec, t)) {
+        dst.error ("unknown transform type %d", (int)t);
         return false;
     }
     
@@ -170,6 +170,7 @@ ImageBufAlgo::transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t)
         return true;
     }
     
+    dst.error ("unknown transform type %d", (int)t);
     return false;
 }
 

@@ -39,6 +39,7 @@
 
 #include "dassert.h"
 #include "imageio.h"
+#include "filesystem.h"
 #include "strutil.h"
 #include "sysutil.h"
 #include "timer.h"
@@ -133,6 +134,8 @@ TIFFOutput::supports (const std::string &feature) const
         return true;
     if (feature == "multiimage")
         return true;
+    if (feature == "appendsubimage")
+        return true;
     if (feature == "displaywindow")
         return true;
     if (feature == "origin")
@@ -169,7 +172,12 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         m_spec.depth = 1;
 
     // Open the file
+#ifdef _WIN32
+    std::wstring wname = Strutil::utf8_to_utf16 (name);
+    m_tif = TIFFOpenW (wname.c_str(), mode == AppendSubimage ? "a" : "w");
+#else
     m_tif = TIFFOpen (name.c_str(), mode == AppendSubimage ? "a" : "w");
+#endif
     if (! m_tif) {
         error ("Can't open \"%s\" for output.", name.c_str());
         return false;
@@ -329,7 +337,7 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
                 compress = COMPRESSION_NONE;
             else if (Strutil::iequals (str, "lzw"))
                 compress = COMPRESSION_LZW;
-            else if (Strutil::iequals (str, "zip") || Strutil::iequals (str, "deflate"))
+            else if (Strutil::istarts_with (str, "zip") || Strutil::iequals (str, "deflate"))
                 compress = COMPRESSION_ADOBE_DEFLATE;
             else if (Strutil::iequals (str, "packbits"))
                 compress = COMPRESSION_PACKBITS;

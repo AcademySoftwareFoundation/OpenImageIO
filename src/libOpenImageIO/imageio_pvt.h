@@ -55,10 +55,21 @@ typedef void* (*create_prototype)();
 extern recursive_mutex imageio_mutex;
 extern int oiio_threads;
 extern ustring plugin_searchpath;
+extern std::string format_list;
 
 
-// Use privately only
-void error (const char *format, ...) OPENIMAGEIO_PRINTF_ARGS(1,2);
+// For internal use - use error() below for a nicer interface.
+void seterror (const std::string& message);
+
+// Make sure all plugins are inventoried.  Should only be called while
+// imageio_mutex is held.  For internal use only.
+void catalog_all_plugins (std::string searchpath);
+
+/// Use error() privately only.  Protoype is conceptually printf-like, but
+/// also fully typesafe:
+/// void error (const char *format, ...);
+TINYFORMAT_WRAP_FORMAT (void, error, /**/,
+    std::ostringstream msg;, msg, seterror(msg.str());)
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values

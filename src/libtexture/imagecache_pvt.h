@@ -36,6 +36,8 @@
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
+#include <boost/unordered_map.hpp>
+
 #include "texture.h"
 #include "refcnt.h"
 
@@ -52,6 +54,8 @@ namespace pvt {
     // optimized runs.  Note that this has some performance penalty.
 # define IMAGECACHE_TIME_STATS 0
 #endif
+
+#define IMAGECACHE_USE_RW_MUTEX 1
 
 
 class ImageCacheImpl;
@@ -210,6 +214,7 @@ public:
         // 0-1 texture space relative to the "display/full window" into 
         // 0-1 relative to the "pixel window".
         float sscale, soffset, tscale, toffset;
+        ustring subimagename;
 
         SubimageInfo () : untiled(false), unmipped(false) { }
         ImageSpec &spec (int m) { return levels[m].spec; }
@@ -312,19 +317,11 @@ private:
                         TypeDesc format, void *data);
 
     void lock_input_mutex () {
-#if (BOOST_VERSION >= 103500)
         m_input_mutex.lock ();
-#else
-        boost::detail::thread::lock_ops<recursive_mutex>::lock (m_input_mutex);
-#endif
     }
 
     void unlock_input_mutex () {
-#if (BOOST_VERSION >= 103500)
         m_input_mutex.unlock ();
-#else
-        boost::detail::thread::lock_ops<recursive_mutex>::unlock (m_input_mutex);
-#endif
     }
 
     friend class ImageCacheImpl;
@@ -340,11 +337,7 @@ typedef intrusive_ptr<ImageCacheFile> ImageCacheFileRef;
 
 /// Map file names to file references
 ///
-#ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
 typedef boost::unordered_map<ustring,ImageCacheFileRef,ustringHash> FilenameMap;
-#else
-typedef hash_map<ustring,ImageCacheFileRef,ustringHash> FilenameMap;
-#endif
 
 
 
@@ -530,11 +523,8 @@ typedef intrusive_ptr<ImageCacheTile> ImageCacheTileRef;
 
 /// Hash table that maps TileID to ImageCacheTileRef -- this is the type of the
 /// main tile cache.
-#ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
 typedef boost::unordered_map<TileID, ImageCacheTileRef, TileID::Hasher> TileCache;
-#else
-typedef hash_map<TileID, ImageCacheTileRef, TileID::Hasher> TileCache;
-#endif
+
 
 /// A very small amount of per-thread data that saves us from locking
 /// the mutex quite as often.  We store things here used by both
@@ -706,11 +696,11 @@ public:
             ic_read_lock lock (m_tilemutex);
 #ifdef DEBUG
             DASSERT (m_tilemutex_holder == NULL);
-            m_tilemutex_holder = thread_info;
+//            m_tilemutex_holder = thread_info;
 #endif
             found = m_tilecache.find (id);
 #ifdef DEBUG
-            m_tilemutex_holder = NULL;
+//            m_tilemutex_holder = NULL;
 #endif
         } else {
             // Caller already holds the lock
@@ -759,6 +749,11 @@ public:
                             int x, int y, int z);
     virtual void release_tile (Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
+
+    /// Return the numerical subimage index for the given subimage name,
+    /// as stored in the "oiio:subimagename" metadata.  Return -1 if no
+    /// subimage matches its name.
+    int subimage_from_name (ImageCacheFile *file, ustring subimagename);
 
     virtual std::string geterror () const;
     virtual std::string getstats (int level=1) const;
@@ -814,7 +809,12 @@ public:
 
     /// Internal error reporting routine, with printf-like arguments.
     ///
-    void error (const char *message, ...) OPENIMAGEIO_PRINTF_ARGS(2,3);
+    /// void error (const char *message, ...);
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
+
+    /// Append a string to the current error message
+    void append_error (const std::string& message) const;
 
     /// Get a pointer to the caller's thread's per-thread info, or create
     /// one in the first place if there isn't one already.
@@ -901,9 +901,15 @@ private:
     /// Clear the fingerprint list, thread-safe.
     void clear_fingerprints ();
 
+#if IMAGECACHE_USE_RW_MUTEX
+    typedef spin_rw_mutex ic_mutex;
+    typedef spin_rw_write_lock ic_read_lock;
+    typedef spin_rw_write_lock ic_write_lock;
+#else
     typedef spin_mutex ic_mutex;
     typedef spin_lock  ic_read_lock;
     typedef spin_lock  ic_write_lock;
+#endif
 
     thread_specific_ptr< ImageCachePerThreadInfo > m_perthread_info;
     std::vector<ImageCachePerThreadInfo *> m_all_perthread_info;
@@ -925,6 +931,7 @@ private:
     bool m_latlong_y_up_default; ///< Is +y the default "up" for latlong?
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
+    ustring m_substitute_image;  ///< Substitute this image for all others
 
     mutable ic_mutex m_filemutex; ///< Thread safety for file cache
     FilenameMap m_files;         ///< Map file names to ImageCacheFile's

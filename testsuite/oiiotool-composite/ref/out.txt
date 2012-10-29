@@ -1,0 +1,2 @@
+Comparing "a_over_b.exr" and "ref/a_over_b.exr"
+PASS
