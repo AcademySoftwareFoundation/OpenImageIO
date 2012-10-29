@@ -190,10 +190,10 @@ WebpOutput::close()
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *webp_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *webp_output_imageio_create () {
         return new webp_pvt::WebpOutput;
     }
-    DLLEXPORT const char *webp_output_extensions[] = {
+    OIIO_EXPORT const char *webp_output_extensions[] = {
         "webp", NULL
     };
 

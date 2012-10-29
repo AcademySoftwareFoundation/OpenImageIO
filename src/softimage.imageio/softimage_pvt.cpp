@@ -38,7 +38,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT int softimage_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int softimage_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_PLUGIN_EXPORTS_END
 

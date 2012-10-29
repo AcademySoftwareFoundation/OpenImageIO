@@ -37,11 +37,11 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int socket_imageio_version = OIIO_PLUGIN_VERSION;
-    DLLEXPORT ImageInput *socket_input_imageio_create () {
+    OIIO_EXPORT int socket_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT ImageInput *socket_input_imageio_create () {
         return new SocketInput;
     }
-    DLLEXPORT const char *socket_input_extensions[] = {
+    OIIO_EXPORT const char *socket_input_extensions[] = {
         "socket", NULL
     };
 

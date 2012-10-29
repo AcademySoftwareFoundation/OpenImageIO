@@ -87,10 +87,10 @@ private:
 // symbols required for OpenImageIO plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageInput *softimage_input_imageio_create() {
+    OIIO_EXPORT ImageInput *softimage_input_imageio_create() {
         return new SoftimageInput;
     }
-    DLLEXPORT const char *softimage_input_extensions[] = {
+    OIIO_EXPORT const char *softimage_input_extensions[] = {
         "pic", NULL
     };
 

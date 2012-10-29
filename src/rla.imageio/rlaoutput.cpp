@@ -117,11 +117,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *rla_output_imageio_create () { return new RLAOutput; }
+OIIO_EXPORT ImageOutput *rla_output_imageio_create () { return new RLAOutput; }
 
-// DLLEXPORT int rla_imageio_version = OIIO_PLUGIN_VERSION;   // it's in rlainput.cpp
+// OIIO_EXPORT int rla_imageio_version = OIIO_PLUGIN_VERSION;   // it's in rlainput.cpp
 
-DLLEXPORT const char * rla_output_extensions[] = {
+OIIO_EXPORT const char * rla_output_extensions[] = {
     "rla", NULL
 };
 

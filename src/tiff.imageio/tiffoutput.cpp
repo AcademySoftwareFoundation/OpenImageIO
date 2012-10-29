@@ -100,11 +100,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *tiff_output_imageio_create () { return new TIFFOutput; }
+OIIO_EXPORT ImageOutput *tiff_output_imageio_create () { return new TIFFOutput; }
 
-DLLEXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * tiff_output_extensions[] = {
+OIIO_EXPORT const char * tiff_output_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
 };
 

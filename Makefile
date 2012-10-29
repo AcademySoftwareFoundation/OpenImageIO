@@ -83,6 +83,10 @@ ifneq (${NAMESPACE},)
 MY_CMAKE_FLAGS += -DOIIO_NAMESPACE:STRING=${NAMESPACE}
 endif
 
+ifneq (${HIDE_SYMBOLS},)
+MY_CMAKE_FLAGS += -DHIDE_SYMBOLS:BOOL=${HIDE_SYMBOLS}
+endif
+
 ifneq (${USE_PYTHON},)
 MY_CMAKE_FLAGS += -DUSE_PYTHON:BOOL=${USE_PYTHON}
 endif
@@ -254,6 +258,7 @@ help:
 	@echo "  make SOVERSION=nn ...       Include the specifed major version number "
 	@echo "                                in the shared object metadata"
 	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
+	@echo "  make HIDE_SYMBOLS=1         Hide symbols not in the public API"
 	@echo "  make EMBEDPLUGINS=0 ...     Don't compile the plugins into libOpenImageIO"
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"

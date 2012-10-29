@@ -63,9 +63,9 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *psd_output_imageio_create () { return new PSDOutput; }
+OIIO_EXPORT ImageOutput *psd_output_imageio_create () { return new PSDOutput; }
 
-DLLEXPORT const char * psd_output_extensions[] = {
+OIIO_EXPORT const char * psd_output_extensions[] = {
     "psd", NULL
 };
 

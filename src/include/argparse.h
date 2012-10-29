@@ -142,7 +142,7 @@ class ArgOption;   // Forward declaration
 /////////////////////////////////////////////////////////////////////////////
 
 
-class DLLPUBLIC ArgParse {
+class OIIO_API ArgParse {
 public:
     ArgParse (int argc=0, const char **argv=NULL);
     ~ArgParse ();

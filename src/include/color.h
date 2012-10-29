@@ -42,7 +42,7 @@ OIIO_NAMESPACE_ENTER
 /// ColorConfig::createColorProcessor, and referenced in ImageBufAlgo
 /// (amongst other places)
 
-class DLLPUBLIC ColorProcessor;
+class OIIO_API ColorProcessor;
 
 
 
@@ -56,7 +56,7 @@ class DLLPUBLIC ColorProcessor;
 /// NOTE: ColorConfig(s) and ColorProcessor(s) are potentially heavy-weight.
 /// Their construction / destruction should be kept to a minimum.
 
-class DLLPUBLIC ColorConfig
+class OIIO_API ColorConfig
 {
 public:
     /// If OpenColorIO is enabled at build time, initialize with the current

@@ -121,11 +121,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *dds_input_imageio_create () { return new DDSInput; }
+OIIO_EXPORT ImageInput *dds_input_imageio_create () { return new DDSInput; }
 
-DLLEXPORT int dds_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int dds_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * dds_input_extensions[] = {
+OIIO_EXPORT const char * dds_input_extensions[] = {
     "dds", NULL
 };
 

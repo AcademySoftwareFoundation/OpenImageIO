@@ -61,9 +61,9 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *pnm_output_imageio_create () { return new PNMOutput; }
+    OIIO_EXPORT ImageOutput *pnm_output_imageio_create () { return new PNMOutput; }
 
-    DLLEXPORT const char * pnm_output_extensions[] = {
+    OIIO_EXPORT const char * pnm_output_extensions[] = {
         "ppm","pgm","pbm","pnm", NULL
     };
 

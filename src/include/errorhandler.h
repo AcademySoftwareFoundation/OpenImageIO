@@ -57,7 +57,7 @@ OIIO_NAMESPACE_ENTER
 /// different behavior from the default console output) and make all
 /// error-like output via the ErrorHandler*.
 ///
-class DLLPUBLIC ErrorHandler {
+class OIIO_API ErrorHandler {
 public:
     /// Error categories.  We use broad categories in the high order bits.
     /// A library may just use these categories, or may create individual

@@ -86,10 +86,10 @@ class JpgOutput : public ImageOutput {
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *jpeg_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *jpeg_output_imageio_create () {
         return new JpgOutput;
     }
-    DLLEXPORT const char *jpeg_output_extensions[] = {
+    OIIO_EXPORT const char *jpeg_output_extensions[] = {
         "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", NULL
     };
 
