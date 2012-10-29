@@ -43,7 +43,6 @@ using namespace std::tr1;
 #include "varyingref.h"
 #include "ustring.h"
 #include "strutil.h"
-#include "hash.h"
 #include "thread.h"
 #include "fmath.h"
 #include "filter.h"
@@ -500,7 +499,7 @@ TextureSystemImpl::environment (TextureHandle *texture_handle_,
     ++stats.aniso_queries;
 
     if (actualchannels < options.nchannels)
-        fill_channels (spec.nchannels, options, result);
+        fill_channels (spec, options, result);
 
     return ok;
 }

@@ -121,7 +121,7 @@ ICOInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
 
-    m_file = fopen (name.c_str(), "rb");
+    m_file = Filesystem::fopen (name, "rb");
     if (! m_file) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;

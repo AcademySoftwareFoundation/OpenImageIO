@@ -52,6 +52,72 @@
 OIIO_NAMESPACE_ENTER
 {
 
+class ImageBuf;
+
+
+
+/// Helper struct describing a region of interest in an image.
+/// The region is [xbegin,xend) x [begin,yend) x [zbegin,zend),
+/// with the "end" designators signifying one past the last pixel,
+/// a la STL style.
+struct ROI {
+    int xbegin, xend, ybegin, yend, zbegin, zend;
+    int chbegin, chend;
+
+    /// Default constructor is an undefined region.
+    ///
+    ROI () : xbegin(0), xend(-1), chbegin(0), chend(1000) { }
+
+    /// Constructor with an explicitly defined region.
+    ///
+    ROI (int xbegin, int xend, int ybegin, int yend,
+         int zbegin=0, int zend=1, int chbegin=0, int chend=10000)
+        : xbegin(xbegin), xend(xend), ybegin(ybegin), yend(yend),
+          zbegin(zbegin), zend(zend), chbegin(chbegin), chend(chend)
+    { }
+
+    /// Is a region defined?
+    bool defined () const { return (xbegin <= xend); }
+
+    // Region dimensions.
+    int width () const { return xend - xbegin; }
+    int height () const { return yend - ybegin; }
+    int depth () const { return zend - zbegin; }
+    int nchannels () const { return chend - chbegin; }
+
+    /// Total number of pixels in the region.
+    imagesize_t npixels () const {
+        if (! defined())
+            return 0;
+        imagesize_t w = width(), h = height(), d = depth();
+        return w*h*d;
+    }
+
+};
+
+
+/// Union of two regions, the smallest region containing both.
+DLLPUBLIC ROI roi_union (const ROI &A, const ROI &B);
+
+/// Intersection of two regions.
+DLLPUBLIC ROI roi_intersection (const ROI &A, const ROI &B);
+
+/// Return pixel data window for this ImageSpec as a ROI.
+DLLPUBLIC ROI get_roi (const ImageSpec &spec);
+
+/// Return full/display window for this ImageSpec as a ROI.
+DLLPUBLIC ROI get_roi_full (const ImageSpec &spec);
+
+/// Set pixel data window for this ImageSpec to a ROI.
+/// Does NOT change the channels of the spec, regardless of newroi.
+DLLPUBLIC void set_roi (ImageSpec &spec, const ROI &newroi);
+
+/// Set full/display window for this ImageSpec to a ROI.
+/// Does NOT change the channels of the spec, regardless of newroi.
+DLLPUBLIC void set_roi_full (ImageSpec &spec, const ROI &newroi);
+
+
+
 /// An ImageBuf is a simple in-memory representation of a 2D image.  It
 /// uses ImageInput and ImageOutput underneath for its file I/O, and has
 /// simple routines for setting and getting individual pixels, that
@@ -70,6 +136,11 @@ public:
     /// the pixels of the image (whose values will be undefined).
     ImageBuf (const std::string &name, const ImageSpec &spec);
 
+    /// Construct an ImageBuf that "wraps" a memory buffer owned by the
+    /// calling application.  It can write pixels to this buffer, but
+    /// can't change its resolution or data type.
+    ImageBuf (const std::string &name, const ImageSpec &spec, void *buffer);
+
     /// Construct a copy of an ImageBuf.
     ///
     ImageBuf (const ImageBuf &src);
@@ -78,29 +149,34 @@ public:
     ///
     virtual ~ImageBuf ();
 
-    /// Copy an ImageBuf.
-    ///
-    const ImageBuf& operator= (const ImageBuf &src);
-
     /// Restore the ImageBuf to an uninitialized state.
     ///
     virtual void clear ();
 
-    /// Forget all previous info, reset this ImageBuf to a new image.
-    ///
-    virtual void reset (const std::string &name = std::string(),
+    /// Forget all previous info, reset this ImageBuf to a new image
+    /// that is uninitialized (no pixel values, no size or spec).
+    virtual void reset (const std::string &name,
                         ImageCache *imagecache = NULL);
 
     /// Forget all previous info, reset this ImageBuf to a blank
     /// image of the given name and dimensions.
     virtual void reset (const std::string &name, const ImageSpec &spec);
 
-    /// Allocate space the right size for an image described by the
-    /// format spec.  If the ImageBuf already has allocated pixels,
-    /// their values will not be preserved if the new spec does not
-    /// describe an image of the same size and data type as it used
-    /// to be.
+    /// Copy spec to *this, and then allocate enough space the right
+    /// size for an image described by the format spec.  If the ImageBuf
+    /// already has allocated pixels, their values will not be preserved
+    /// if the new spec does not describe an image of the same size and
+    /// data type as it used to be.
     virtual void alloc (const ImageSpec &spec);
+
+    /// Change the pixel data window resolution, channel information,
+    /// and data format to that described by src (but no other
+    /// metadata), and then resize the local buffer to accommodate the
+    /// new image size.  Return true on success, false if it could not
+    /// be done because it was not possible to change the resolution,
+    /// channels, or data format (e.g., if it wrapped an app memory
+    /// buffer and thus could not be resized).
+    virtual bool reres (const ImageBuf &spec);
 
     /// Read the file from disk.  Generally will skip the read if we've
     /// already got a current version of the image in memory, unless
@@ -137,17 +213,57 @@ public:
                         ProgressCallback progress_callback=NULL,
                         void *progress_callback_data=NULL) const;
 
-    /// Return info on the last error that occurred since geterror()
-    /// was called.  This also clears the error message for next time.
-    std::string geterror (void) const {
-        std::string e = m_err;
-        m_err.clear();
-        return e;
-    }
+    /// Copy all the metadata from src to *this (except for pixel data
+    /// resolution, channel information, and data format).
+    void copy_metadata (const ImageBuf &src);
+
+    /// Copy the pixel data from src to *this, automatically converting
+    /// to the existing data format of *this.  It only copies pixels in
+    /// the overlap regions (and channels) of the two images; pixel data
+    /// in *this that do exist in src will be set to 0, and pixel data
+    /// in src that do not exist in *this will not be copied.
+    bool copy_pixels (const ImageBuf &src);
+
+    /// Try to copy the pixels and metadata from src to *this, returning
+    /// true upon success and false upon error/failure.
+    /// 
+    /// If the previous state of *this was uninitialized, owning its own
+    /// local pixel memory, or referring to a read-only image backed by
+    /// ImageCache, then local pixel memory will be allocated to hold
+    /// the new pixels and the call always succeeds unless the memory
+    /// cannot be allocated.
+    ///
+    /// If *this previously referred to an app-owned memory buffer, the
+    /// memory cannot be re-allocated, so the call will only succeed if
+    /// the app-owned buffer is already the correct resolution and
+    /// number of channels.  The data type of the pixels will be
+    /// converted automatically to the data type of the app buffer.
+    bool copy (const ImageBuf &src);
+
+    /// Error reporting for ImageBuf: call this with printf-like
+    /// arguments.  Note however that this is fully typesafe!
+    /// void error (const char *format, ...)
+    TINYFORMAT_WRAP_FORMAT (void, error, const,
+        std::ostringstream msg;, msg, append_error(msg.str());)
+
+    /// Return true if the IB has had an error and has an error message
+    /// to retrieve via geterror().
+    bool has_error (void) const;
+
+    /// Return info on the last error that occurred since geterror() was
+    /// called (or an empty string if no errors are pending).  This also
+    /// clears the error message for next time.
+    std::string geterror (void) const;
 
     /// Return a read-only (const) reference to the image spec that
     /// describes the buffer.
     const ImageSpec & spec () const { return m_spec; }
+
+    /// Return a writable reference to the image spec that describes the
+    /// buffer.  Use with extreme caution!  If you use this for anything
+    /// other than adding attribute metadata, you are really taking your
+    /// chances!
+    ImageSpec & specmod () { return m_spec; }
 
     /// Return a read-only (const) reference to the "native" image spec
     /// (that describes the file, which may be slightly different than
@@ -246,42 +362,96 @@ public:
     void setpixel (int i, const float *pixel, int maxchannels=1000);
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
-    /// [ybegin..yend) (with exclusive 'end'), specified as integer
-    /// pixel coordinates, at the current MIP-map level, storing the
-    /// pixel values beginning at the address specified by result.  It
-    /// is up to the caller to ensure that result points to an area of
+    /// [ybegin..yend), channels [chbegin,chend) (all with exclusive
+    /// 'end'), specified as integer pixel coordinates, at the current
+    /// MIP-map level, storing the pixel values beginning at the address
+    /// specified by result and with the given strides (by default,
+    /// AutoStride means the usual contiguous packing of pixels).  It is
+    /// up to the caller to ensure that result points to an area of
     /// memory big enough to accommodate the requested rectangle.
     /// Return true if the operation could be completed, otherwise
     /// return false.
-    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
-                      TypeDesc format, void *result) const;
+    bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend, int chbegin, int chend,
+                             TypeDesc format, void *result,
+                             stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride) const;
 
     /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
     /// [ybegin..yend) (with exclusive 'end'), specified as integer
     /// pixel coordinates, at the current MIP-map level, storing the
-    /// pixel values beginning at the address specified by result,
-    /// converting to the type <T> in the process.  It is up to the
-    /// caller to ensure that result points to an area of memory big
-    /// enough to accommodate the requested rectangle.  Return true if
-    /// the operation could be completed, otherwise return false.
-    template<typename T>
-    bool copy_pixels (int xbegin, int xend, int ybegin, int yend,
-                      T *result) const;
+    /// pixel values beginning at the address specified by result and
+    /// with the given strides (by default, AutoStride means the usual
+    /// contiguous packing of pixels).  It is up to the caller to ensure
+    /// that result points to an area of memory big enough to
+    /// accommodate the requested rectangle.  Return true if the
+    /// operation could be completed, otherwise return false.
+    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
+                     int zbegin, int zend, TypeDesc format,
+                     void *result, stride_t xstride=AutoStride,
+                     stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride) const;
 
-    /// Even safer version of copy_pixels: Retrieve the rectangle of
+    /// Retrieve the rectangle of pixels spanning [xbegin..xend) X
+    /// [ybegin..yend) (with exclusive 'end'), specified as integer
+    /// pixel coordinates, at the current MIP-map level, storing the
+    /// pixel values beginning at the address specified by result and
+    /// with the given strides (by default, AutoStride means the usual
+    /// contiguous packing of pixels), converting to the type <T> in the
+    /// process.  It is up to the caller to ensure that result points to
+    /// an area of memory big enough to accommodate the requested
+    /// rectangle.  Return true if the operation could be completed,
+    /// otherwise return false.
+    template<typename T>
+    bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
+                             int zbegin, int zend, int chbegin, int chend,
+                             T *result, stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride) const;
+
+    template<typename T>
+    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
+                     int zbegin, int zend, T *result,
+                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride) const
+    {
+        return get_pixel_channels (xbegin, xend, ybegin, yend, zbegin, zend,
+                                   0, nchannels(), result,
+                                   xstride, ystride, zstride);
+    }
+
+    /// Even safer version of get_pixels: Retrieve the rectangle of
     /// pixels spanning [xbegin..xend) X [ybegin..yend) (with exclusive
     /// 'end'), specified as integer pixel coordinates, at the current
     /// MIP-map level, storing the pixel values in the 'result' vector
     /// (even allocating the right size).  Return true if the operation
     /// could be completed, otherwise return false.
     template<typename T>
-    bool copy_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
+    bool get_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
+                      int zbegin_, int zend_,
                       std::vector<T> &result) const
     {
-        result.resize (nchannels() * ((yend_-ybegin_)*(xend_-xbegin_)));
-        return _copy_pixels (xbegin_, xend_, ybegin_, yend_, &result[0]);
+        result.resize (nchannels() * ((zend_-zbegin_)*(yend_-ybegin_)*(xend_-xbegin_)));
+        return get_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
+                           &result[0]);
     }
 
+    /// Retrieve the number of deep data samples corresponding to pixel
+    /// (x,y,z).  Return 0 not a deep image or if the pixel is out of
+    /// range or has no deep samples.
+    int deep_samples (int x, int y, int z=0) const;
+
+    /// Return a pointer to the raw array of deep data samples for
+    /// channel c of pixel (x,y,z).  Return NULL if not a deep image or
+    /// if the pixel is out of range or has no deep samples.
+    const void *deep_pixel_ptr (int x, int y, int z, int c) const;
+
+    /// Return the value (as a float) of sample s of channel c of pixel
+    /// (x,y,z).  Return 0.0 if not a deep image or if the pixel
+    /// coordinates or channel number are out of range or if it has no
+    /// deep samples.
+    float deep_value (int x, int y, int z, int c, int s) const;
 
     int orientation () const { return m_orientation; }
 
@@ -354,7 +524,14 @@ public:
         return m_localpixels ? m_spec.format : m_cachedpixeltype;
     }
 
+    /// Are the pixels "local", i.e. fully in RAM and not backed by an
+    /// ImageCache?
     bool localpixels () const { return m_localpixels; }
+
+    /// Are the pixels backed by an ImageCache, rather than the whole
+    /// image being in RAM somewhere?
+    bool cachedpixels () const { return !m_localpixels; }
+
     ImageCache *imagecache () const { return m_imagecache; }
 
     /// Return the address where pixel (x,y) is stored in the image buffer.
@@ -377,6 +554,15 @@ public:
     /// aren't local.
     void *pixeladdr (int x, int y, int z);
 
+    /// Does this ImageBuf store deep data?
+    bool deep () const { return m_spec.deep; }
+
+    /// Retrieve the "deep" data.
+    DeepData *deepdata () { return deep() ? &m_deepdata : NULL; }
+    const DeepData *deepdata () const { return deep() ? &m_deepdata : NULL; }
+
+    /// Is this ImageBuf object initialized?
+    bool initialized () const { return m_spec_valid || m_pixels_valid; }
 
     /// Templated class for referring to an individual pixel in an
     /// ImageBuf, iterating over the pixels of an ImageBuf, or iterating
@@ -433,6 +619,24 @@ public:
             m_rng_zend   = std::min (zend,   m_img_zend);
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
+        /// Construct read-write clamped valid iteration region from
+        /// ImageBuf and ROI.
+        Iterator (ImageBuf &ib, const ROI &roi)
+            : m_ib(&ib), m_tile(NULL)
+        {
+            init_ib ();
+            if (roi.defined()) {
+                m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
+                m_rng_xend   = std::min (roi.xend,   m_img_xend);
+                m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
+                m_rng_yend   = std::min (roi.yend,   m_img_yend);
+                m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
+                m_rng_zend   = std::min (roi.zend,   m_img_zend);
+            } else {
+                range_is_image ();
+            }
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel, and do NOT
         /// clamp the region to the valid image pixels.  If "unclamped"
@@ -486,7 +690,7 @@ public:
         void pos (int x_, int y_, int z_=0) {
             bool v = valid(x_,y_,z_);
             bool e = exists(x_,y_,z_);
-            if (! e)
+            if (! e || m_deep)
                 m_proxy.set (NULL);
             else if (m_ib->localpixels())
                 m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
@@ -604,6 +808,14 @@ public:
 
         void * rawptr () const { return m_proxy.get(); }
 
+        /// Retrieve the number of deep data samples at this pixel.
+        int deep_samples () { return m_ib->deep_samples (m_x, m_y, m_z); }
+
+        /// Retrieve the deep data value of sample s of channel c.
+        USERT deep_value (int c, int s) const {
+            return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
+        }
+
     private:
         ImageBuf *m_ib;
         bool m_valid, m_exists;
@@ -618,6 +830,7 @@ public:
         ImageCache::Tile *m_tile;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_nchannels, m_tilewidth;
+        bool m_deep;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
@@ -627,6 +840,7 @@ public:
             m_img_zbegin = m_ib->zbegin(); m_img_zend = m_ib->zend();
             m_nchannels = m_ib->spec().nchannels;
             m_tilewidth = m_ib->spec().tile_width;
+            m_deep = m_ib->deep();
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -646,6 +860,8 @@ public:
             if (m_x >= m_img_xend /*same as !exists() for this case*/) {
                 m_proxy.set (NULL);
                 m_exists = false;
+            } else if (m_deep) {
+                m_proxy.set (NULL);
             } else if (m_ib->localpixels()) {
                 m_proxy += m_nchannels;
             } else if (m_x < m_tilexbegin+m_tilewidth) {
@@ -696,6 +912,24 @@ public:
             m_rng_yend   = std::min (yend,   m_img_yend);
             m_rng_zbegin = std::max (zbegin, m_img_zbegin);
             m_rng_zend   = std::min (zend,   m_img_zend);
+            pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+        }
+        /// Construct read-only clamped valid iteration region
+        /// from ImageBuf and ROI.
+        ConstIterator (const ImageBuf &ib, const ROI &roi)
+            : m_ib(&ib), m_tile(NULL)
+        {
+            init_ib ();
+            if (roi.defined()) {
+                m_rng_xbegin = std::max (roi.xbegin, m_img_xbegin);
+                m_rng_xend   = std::min (roi.xend,   m_img_xend);
+                m_rng_ybegin = std::max (roi.ybegin, m_img_ybegin);
+                m_rng_yend   = std::min (roi.yend,   m_img_yend);
+                m_rng_zbegin = std::max (roi.zbegin, m_img_zbegin);
+                m_rng_zend   = std::min (roi.zend,   m_img_zend);
+            } else {
+                range_is_image ();
+            }
             pos (m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
         }
         /// Construct from an ImageBuf and designated region -- iterate
@@ -751,7 +985,7 @@ public:
         void pos (int x_, int y_, int z_=0) {
             bool v = valid(x_,y_,z_);
             bool e = exists(x_,y_,z_);
-            if (! e)
+            if (! e || m_deep)
                 m_proxy.set (NULL);
             else if (m_ib->localpixels())
                 m_proxy.set ((BUFT *)m_ib->pixeladdr (x_, y_, z_));
@@ -864,6 +1098,14 @@ public:
 
         const void * rawptr () const { return m_proxy.get(); }
 
+        /// Retrieve the number of deep data samples at this pixel.
+        int deep_samples () { return m_ib->deep_samples (m_x, m_y, m_z); }
+
+        /// Retrieve the deep data value of sample s of channel c.
+        USERT deep_value (int c, int s) const {
+            return convert_type<float,USERT>(m_ib->deep_value (m_x, m_y, m_z, c, s));
+        }
+
     private:
         const ImageBuf *m_ib;
         bool m_valid, m_exists;
@@ -878,6 +1120,7 @@ public:
         ImageCache::Tile *m_tile;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_nchannels, m_tilewidth;
+        bool m_deep;
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
@@ -887,6 +1130,7 @@ public:
             m_img_zbegin = m_ib->zbegin(); m_img_zend = m_ib->zend();
             m_nchannels = m_ib->spec().nchannels;
             m_tilewidth = m_ib->spec().tile_width;
+            m_deep = m_ib->deep();
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -906,6 +1150,8 @@ public:
             if (m_x >= m_img_xend /*same as !exists() for this case*/) {
                 m_proxy.set (NULL);
                 m_exists = false;
+            } else if (m_deep) {
+                m_proxy.set (NULL);
             } else if (m_ib->localpixels()) {
                 m_proxy += m_nchannels;
             } else if (m_x < m_tilexbegin+m_tilewidth) {
@@ -928,8 +1174,9 @@ protected:
     int m_nmiplevels;            ///< # of MIP levels in the current subimage
     ImageSpec m_spec;            ///< Describes the image (size, etc)
     ImageSpec m_nativespec;      ///< Describes the true native image
-    std::vector<char> m_pixels;  ///< Pixel data
-    bool m_localpixels;          ///< Pixels are local, in m_pixels
+    std::vector<char> m_pixels;  ///< Pixel data, if local and we own it
+    char *m_localpixels;         ///< Pointer to local pixels
+    bool m_clientpixels;         ///< Local pixels are owned by the client app
     bool m_spec_valid;           ///< Is the spec valid
     bool m_pixels_valid;         ///< Image is valid
     bool m_badfile;              ///< File not found
@@ -938,8 +1185,17 @@ protected:
     float m_pixelaspect;         ///< Pixel aspect ratio of the image
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
+    DeepData m_deepdata;         ///< Deep data
 
+    // Resize the local owned buffer to the size indicated by the
+    // ImageBuf's spec.
     void realloc ();
+
+    // Copy src's pixels into *this.  Pixels must already be local
+    // (either owned or wrapped) and the resolution and number of
+    // channels must match src.  Data type is allowed to be different,
+    // however, with automatic conversion upon copy.
+    void copy_from (const ImageBuf &src);
 
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
@@ -947,6 +1203,13 @@ protected:
     const void * retile (int x, int y, int z,
                          ImageCache::Tile* &tile, int &tilexbegin,
                          int &tileybegin, int &tilezbegin) const;
+
+    /// Private and unimplemented.
+    const ImageBuf& operator= (const ImageBuf &src);
+
+    /// Add to the error message list for this IB.
+    void append_error (const std::string& message) const;
+
 };
 
 

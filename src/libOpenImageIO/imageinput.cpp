@@ -132,13 +132,9 @@ ImageInput::read_scanline (int y, int z, TypeDesc format, void *data,
                              data, format, xstride, AutoStride, AutoStride);
     } else {
         // Per-channel formats -- have to convert/copy channels individually
-        if (native_data) {
-            ASSERT (contiguous && "Per-channel native input requires contiguous strides");
-        }
-        ASSERT (format != TypeDesc::UNKNOWN);
         ASSERT (m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         size_t offset = 0;
-        for (int c = 0;  c < m_spec.nchannels;  ++c) {
+        for (int c = 0;  ok && c < m_spec.nchannels;  ++c) {
             TypeDesc chanformat = m_spec.channelformats[c];
             ok = convert_image (1 /* channels */, m_spec.width, 1, 1, 
                                 buf+offset, chanformat, 
@@ -232,8 +228,8 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
                 TypeDesc chanformat = m_spec.channelformats[c+firstchan];
                 ok = convert_image (1 /* channels */, m_spec.width, nscanlines, 1, 
                                     &buf[offset], chanformat, 
-                                    pixel_bytes, AutoStride, AutoStride,
-                                    (char *)data + c*m_spec.format.size(),
+                                    native_pixel_bytes, AutoStride, AutoStride,
+                                    (char *)data + c*format.size(),
                                     format, xstride, ystride, zstride);
                 offset += chanformat.size ();
             }
@@ -350,10 +346,6 @@ ImageInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
                              data, format, xstride, ystride, zstride);
     } else {
         // Per-channel formats -- have to convert/copy channels individually
-        if (native_data) {
-            ASSERT (contiguous && "Per-channel native input requires contiguous strides");
-        }
-        ASSERT (format != TypeDesc::UNKNOWN);
         ASSERT (m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         size_t offset = 0;
         for (int c = 0;  c < m_spec.nchannels;  ++c) {
@@ -444,6 +436,9 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                                      : (format.size() * nchans);
     stride_t full_pixelsize = native_data ? m_spec.pixel_bytes(true)
                                           : (format.size() * m_spec.nchannels);
+    stride_t full_tilewidthbytes = full_pixelsize * m_spec.tile_width;
+    stride_t full_tilewhbytes = full_tilewidthbytes * m_spec.tile_height;
+    stride_t full_tilebytes = full_tilewhbytes * m_spec.tile_depth;
     size_t prefix_bytes = m_spec.pixel_bytes (0,firstchan,true);
     std::vector<char> buf;
     for (int z = zbegin;  z < zend;  z += std::max(1,m_spec.tile_depth)) {
@@ -459,25 +454,34 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                 // partial channel subsets are read into a buffer and
                 // then copied.
                 if (xw == m_spec.tile_width && yh == m_spec.tile_height &&
-                      zd == m_spec.tile_depth &&
+                      zd == m_spec.tile_depth && !perchanfile &&
                       firstchan == 0 && nchans == m_spec.nchannels) {
+                    // Full tile, either native data or not needing
+                    // per-tile data format conversion.
                     ok &= read_tile (x, y, z, format, tilestart,
                                      xstride, ystride, zstride);
                 } else {
-                    buf.resize (m_spec.tile_bytes());
-                    ok &= read_tile (x, y, z, format, &buf[0],
-                                     full_pixelsize,
-                                     full_pixelsize*m_spec.tile_width,
-                                     full_pixelsize*m_spec.tile_pixels());
+                    buf.resize (full_tilebytes);
+                    ok &= read_tile (x, y, z, 
+                                     perchanfile ? TypeDesc::UNKNOWN : format,
+                                     &buf[0], full_pixelsize,
+                                     full_tilewidthbytes, full_tilewhbytes);
                     if (ok)
                         copy_image (nchans, xw, yh, zd, &buf[prefix_bytes],
                                     pixelsize, full_pixelsize,
-                                    full_pixelsize*m_spec.tile_width,
-                                    full_pixelsize*m_spec.tile_pixels(),
+                                    full_tilewidthbytes, full_tilewhbytes,
                                     tilestart, xstride, ystride, zstride);
+                    // N.B. It looks like read_tiles doesn't handle the
+                    // per-channel data types case fully, but it does!
+                    // The call to read_tile() above handles the case of
+                    // per-channel data types, converting to to desired
+                    // format, so all we have to do on our own is the
+                    // copy_image.
                 }
                 tilestart += m_spec.tile_width * xstride;
             }
+            if (! ok)
+                break;
         }
     }
 
@@ -598,7 +602,7 @@ ImageInput::read_image (TypeDesc format, void *data,
     if (m_spec.tile_width) {
         // Tiled image
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth) {
-            for (int y = 0;  y < m_spec.height;  y += m_spec.tile_height) {
+            for (int y = 0;  y < m_spec.height && ok;  y += m_spec.tile_height) {
                 ok &= read_tiles (m_spec.x, m_spec.x+m_spec.width,
                                   y+m_spec.y, std::min (y+m_spec.y+m_spec.tile_height, m_spec.y+m_spec.height),
                                   z+m_spec.z, std::min (z+m_spec.z+m_spec.tile_depth, m_spec.z+m_spec.depth),
@@ -630,6 +634,53 @@ ImageInput::read_image (TypeDesc format, void *data,
 
 
 
+bool
+ImageInput::read_native_deep_scanlines (int ybegin, int yend, int z,
+                                        int firstchan, int nchans,
+                                        DeepData &deepdata)
+{
+    return false;  // default: doesn't support deep images
+}
+
+
+
+bool
+ImageInput::read_native_deep_tiles (int xbegin, int xend,
+                                    int ybegin, int yend,
+                                    int zbegin, int zend,
+                                    int firstchan, int nchans,
+                                    DeepData &deepdata)
+{
+    return false;  // default: doesn't support deep images
+}
+
+
+
+bool
+ImageInput::read_native_deep_image (DeepData &deepdata)
+{
+    if (m_spec.depth > 1) {
+        error ("read_native_deep_image is not supported for volume (3D) images.");
+        return false;
+        // FIXME? - not implementing 3D deep images for now.  The only
+        // format that supports deep images at this time is OpenEXR, and
+        // it doesn't support volumes.
+    }
+    if (m_spec.tile_width) {
+        // Tiled image
+        return read_native_deep_tiles (m_spec.x, m_spec.x+m_spec.width,
+                                       m_spec.y, m_spec.y+m_spec.height,
+                                       m_spec.z, m_spec.z+m_spec.depth,
+                                       0, m_spec.nchannels, deepdata);
+    } else {
+        // Scanline image
+        return read_native_deep_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
+                                           0, m_spec.nchannels, deepdata);
+    }
+}
+
+
+
 int 
 ImageInput::send_to_input (const char *format, ...)
 {
@@ -649,16 +700,13 @@ ImageInput::send_to_client (const char *format, ...)
 
 
 void 
-ImageInput::error (const char *format, ...) const
+ImageInput::append_error (const std::string& message) const
 {
-    va_list ap;
-    va_start (ap, format);
     ASSERT (m_errmessage.size() < 1024*1024*16 &&
             "Accumulated error messages > 16MB. Try checking return codes!");
     if (m_errmessage.size())
         m_errmessage += '\n';
-    m_errmessage += Strutil::vformat (format, ap);
-    va_end (ap);
+    m_errmessage += message;
 }
 
 bool

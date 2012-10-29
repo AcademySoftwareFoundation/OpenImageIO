@@ -72,15 +72,29 @@ static bool compute_stats = false;
 static void
 print_sha1 (ImageInput *input)
 {
-    imagesize_t size = input->spec().image_bytes ();
-    if (size >= std::numeric_limits<size_t>::max()) {
-        printf ("    SHA1 digest: (unable to compute, image is too big)\n");
-        return;
-    }
-    boost::scoped_array<unsigned char> buf(new unsigned char[(unsigned int)size]);
-    input->read_image (input->spec().format, &buf[0]);
     CSHA1 sha;
-    sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
+    const ImageSpec &spec (input->spec());
+    if (spec.deep) {
+        // Special handling of deep data
+        DeepData dd;
+        if (! input->read_native_deep_image (dd)) {
+            printf ("    SHA-1: unable to compute, could not read image\n");
+            return;
+        }
+        // Hash both the sample counds and the data block
+        sha.Update ((const unsigned char *)&dd.nsamples[0], dd.nsamples.size());
+        sha.Update ((const unsigned char *)&dd.data[0], dd.data.size());
+    } else {
+        imagesize_t size = input->spec().image_bytes (true /*native*/);
+        if (size >= std::numeric_limits<size_t>::max()) {
+            printf ("    SHA-1: unable to compute, image is too big\n");
+            return;
+        }
+        boost::scoped_array<unsigned char> buf(new unsigned char[(unsigned int)size]);
+        input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0]);
+        sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
+    }
+
     sha.Final ();
     std::string digest;
     sha.ReportHashStl (digest, CSHA1::REPORT_HEX_SHORT);
@@ -173,15 +187,15 @@ print_stats (const std::string &filename,
              const ImageSpec &originalspec,
              int subimage=0, int miplevel=0, bool indentmip=false)
 {
+    PixelStats stats;
     const char *indent = indentmip ? "      " : "    ";
+
     ImageBuf input;
-    
     if (! read_input (filename, input, subimage, miplevel)) {
         std::cerr << "Stats: read error: " << input.geterror() << "\n";
         return;
     }
     
-    PixelStats stats;
     if (! computePixelStats (stats, input)) {
         printf ("%sStats: (unable to compute)\n", indent);
         return;
@@ -240,26 +254,49 @@ print_stats (const std::string &filename,
         printf ("%llu ", (unsigned long long)stats.finitecount[i]);
     }
     printf ("\n");
-    
-    std::vector<float> constantValues(input.spec().nchannels);
-    if(isConstantColor(input, &constantValues[0])) {
-        printf ("%sConstant: Yes\n", indent);
-        printf ("%sConstant Color: ", indent);
-        for (unsigned int i=0; i<constantValues.size(); ++i) {
-            print_stats_num (constantValues[i], maxval, false);
-            printf (" ");
+
+    if (input.deep()) {
+        const DeepData *dd (input.deepdata());
+        size_t npixels = dd->nsamples.size();
+        size_t totalsamples = 0, emptypixels = 0;
+        size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
+        for (size_t p = 0;  p < npixels;  ++p) {
+            int c = dd->nsamples[p];
+            totalsamples += c;
+            if (c > maxsamples)
+                maxsamples = c;
+            if (c < minsamples)
+                minsamples = c;
+            if (c == 0)
+                ++emptypixels;
         }
-        print_stats_footer (maxval);
-        printf ("\n");
-    }
-    else {
-        printf ("%sConstant: No\n", indent);
-    }
-    
-    if(isMonochrome(input)) {
-        printf ("%sMonochrome: Yes\n", indent);
+        printf ("%sMin deep samples in any pixel : %llu\n", indent, (unsigned long long)minsamples);
+        printf ("%sMax deep samples in any pixel : %llu\n", indent, (unsigned long long)maxsamples);
+        printf ("%sAverage deep samples per pixel: %.2f\n", indent, double(totalsamples)/double(npixels));
+        printf ("%sTotal deep samples in all pixels: %llu\n", indent, (unsigned long long)totalsamples);
+        printf ("%sPixels with deep samples   : %llu\n", indent, (unsigned long long)(npixels-emptypixels));
+        printf ("%sPixels with no deep samples: %llu\n", indent, (unsigned long long)emptypixels);
     } else {
-        printf ("%sMonochrome: No\n", indent);
+        std::vector<float> constantValues(input.spec().nchannels);
+        if (isConstantColor(input, &constantValues[0])) {
+            printf ("%sConstant: Yes\n", indent);
+            printf ("%sConstant Color: ", indent);
+            for (unsigned int i=0; i<constantValues.size(); ++i) {
+                print_stats_num (constantValues[i], maxval, false);
+                printf (" ");
+            }
+            print_stats_footer (maxval);
+            printf ("\n");
+        }
+        else {
+            printf ("%sConstant: No\n", indent);
+        }
+    
+        if (isMonochrome(input)) {
+            printf ("%sMonochrome: Yes\n", indent);
+        } else {
+            printf ("%sMonochrome: No\n", indent);
+        }
     }
 }
 
@@ -366,6 +403,24 @@ print_metadata (const ImageSpec &spec, const std::string &filename)
 
 
 
+static const char *
+extended_format_name (TypeDesc type, int bits)
+{
+    if (bits && bits < (int)type.size()*8) {
+        // The "oiio:BitsPerSample" betrays a different bit depth in the
+        // file than the data type we are passing.
+        if (type == TypeDesc::UINT8 || type == TypeDesc::UINT16 ||
+            type == TypeDesc::UINT32 || type == TypeDesc::UINT64)
+            return ustring::format("uint%d", bits).c_str();
+        if (type == TypeDesc::INT8 || type == TypeDesc::INT16 ||
+            type == TypeDesc::INT32 || type == TypeDesc::INT64)
+            return ustring::format("int%d", bits).c_str();
+    }
+    return type.c_str();  // use the name implied by type
+}
+
+
+
 // prints basic info (resolution, width, height, depth, channels, data format,
 // and format name) about given subimage.
 static void
@@ -390,7 +445,10 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
         printf ("%4d x %4d", spec.width, spec.height);
         if (spec.depth > 1)
             printf (" x %4d", spec.depth);
-        printf (", %d channel, %s%s", spec.nchannels, spec.format.c_str(),
+        int bits = spec.get_int_attribute ("oiio:BitsPerSample", 0);
+        printf (", %d channel, %s%s%s", spec.nchannels,
+                spec.deep ? "deep " : "",
+                extended_format_name(spec.format, bits),
                 spec.depth > 1 ? " volume" : "");
         printf (" %s", input->format_name());
         printf ("\n");
@@ -428,8 +486,8 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
             if (nmip > 1 && (subimages || m == 0)) {
                 printf ("    MIP %d of %d (%d x %d):\n",
                         m, nmip, mipspec.width, mipspec.height);
-                print_stats (filename, spec, current_subimage, m, nmip>1);
             }
+            print_stats (filename, spec, current_subimage, m, nmip>1);
         }
     }
 
@@ -444,7 +502,6 @@ print_info (const std::string &filename, size_t namefieldlength,
             ImageInput *input, ImageSpec &spec,
             bool verbose, bool sum, long long &totalsize)
 {
-    bool printed = false;
     int padlen = std::max (0, (int)namefieldlength - (int)filename.length());
     std::string padding (padlen, ' ');
 
@@ -479,12 +536,15 @@ print_info (const std::string &filename, size_t namefieldlength,
         if (spec.depth > 1)
             printf (" x %4d", spec.depth);
         printf (", %d channel, ", spec.nchannels);
+        if (spec.deep)
+            printf ("deep ");
         if (spec.channelformats.size()) {
             for (size_t c = 0;  c < spec.channelformats.size();  ++c)
                 printf ("%s%s", c ? "/" : "",
                         spec.channelformats[c].c_str());
         } else {
-            printf ("%s", spec.format.c_str());
+            int bits = spec.get_int_attribute ("oiio:BitsPerSample", 0);
+            printf ("%s", extended_format_name(spec.format, bits));
         }
         if (spec.depth > 1)
             printf (" volume");
@@ -502,7 +562,6 @@ print_info (const std::string &filename, size_t namefieldlength,
         if (! verbose && num_of_subimages == 1 && any_mipmapping)
             printf (" (+mipmap)");
         printf ("\n");
-        printed = true;
     }
 
     if (verbose && num_of_subimages != 1) {

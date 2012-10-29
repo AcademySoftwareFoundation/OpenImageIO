@@ -64,6 +64,10 @@
 # include <stdint.h>
 #endif
 
+#if defined(__FreeBSD__)
+#include <sys/param.h>
+#endif
+
 #include "version.h"
 
 OIIO_NAMESPACE_ENTER
@@ -967,6 +971,18 @@ truncf(float val)
 
 
 
+// Functions missing from FreeBSD
+#if (defined(__FreeBSD__) && (__FreeBSD_version < 803000))
+
+inline float
+log2f (float val) {
+    return logf (val)/static_cast<float>(M_LN2);
+}
+
+#endif
+
+
+
 /// Simple conversion of a (presumably non-negative) float into a
 /// rational.  This does not attempt to find the simplest fraction
 /// that approximates the float, for example 52.83 will simply
@@ -1051,6 +1067,21 @@ safe_acosf (float x) {
     if (x >=  1.0f) return 0.0f;
     if (x <= -1.0f) return static_cast<float>(M_PI);
     return std::acos (x);
+}
+
+
+/// Safe (clamping) sqrt.
+///
+inline double
+safe_sqrt (double x)
+{
+    return (x > 0.0) ? sqrt(x) : 0.0;
+}
+
+inline float
+safe_sqrtf (float x)
+{
+    return (x > 0.0f) ? sqrtf(x) : 0.0f;
 }
 
 

@@ -31,6 +31,7 @@
 #ifndef OPENIMAGEIO_TARGA_PVT_H
 #define OPENIMAGEIO_TARGA_PVT_H
 
+#include "filesystem.h"
 #include "fmath.h"
 
 

@@ -34,6 +34,7 @@
 
 #include <cstdio>
 #include "imageio.h"
+#include "filesystem.h"
 #include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -155,7 +156,16 @@ class SgiOutput : public ImageOutput {
         m_fd = NULL;
     }
 
-    void create_and_write_header();
+    bool create_and_write_header();
+
+    /// Helper - write, with error detection
+    template <class T>
+    bool fwrite (const T *buf, size_t itemsize=sizeof(T), size_t nitems=1) {
+        size_t n = std::fwrite (buf, itemsize, nitems, m_fd);
+        if (n != nitems)
+            error ("Error writing \"%s\" (wrote %d/%d records)", m_filename, (int)n, (int)nitems);
+        return n == nitems;
+    }
 };
 
 

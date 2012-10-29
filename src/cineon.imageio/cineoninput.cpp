@@ -34,6 +34,7 @@
 #include "typedesc.h"
 #include "imageio.h"
 #include "fmath.h"
+#include "strutil.h"
 
 using namespace cineon;
 
@@ -135,7 +136,7 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
         switch (m_cin.header.ImageDescriptor (i)) {
             case cineon::kGrayscale:
                 if (++gscount > 1) {
-                    std::string ch = "I" + gscount;
+                    std::string ch = Strutil::format ("I%d", gscount);
                     m_spec.channelnames.push_back (ch);
                 } else
                     m_spec.channelnames.push_back ("I");
@@ -143,7 +144,7 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
             case cineon::kPrintingDensityRed:
             case cineon::kRec709Red:
                 if (++gscount > 1) {
-                    std::string ch = "R" + rcount;
+                    std::string ch = Strutil::format ("R%d", rcount);
                     m_spec.channelnames.push_back (ch);
                 } else
                     m_spec.channelnames.push_back ("R");
@@ -151,7 +152,7 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
             case cineon::kPrintingDensityGreen:
             case cineon::kRec709Green:
                 if (++gcount > 1) {
-                    std::string ch = "G" + gcount;
+                    std::string ch = Strutil::format ("G%d", gcount);
                     m_spec.channelnames.push_back (ch);
                 } else
                     m_spec.channelnames.push_back ("G");
@@ -159,13 +160,13 @@ CineonInput::open (const std::string &name, ImageSpec &newspec)
             case cineon::kPrintingDensityBlue:
             case cineon::kRec709Blue:
                 if (++bcount > 1) {
-                    std::string ch = "B" + bcount;
+                    std::string ch = Strutil::format ("B%d", bcount);
                     m_spec.channelnames.push_back (ch);
                 } else
                     m_spec.channelnames.push_back ("B");
                 break;
             default:
-                std::string ch = "channel" + m_spec.channelnames.size ();
+                std::string ch = Strutil::format ("channel%d", (int)m_spec.channelnames.size());
                 m_spec.channelnames.push_back (ch);
                 break;
         }

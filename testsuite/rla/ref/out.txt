@@ -1,5 +1,5 @@
 Reading ../../../../../oiio-images/ginsu_a_nc10.rla
-../../../../../oiio-images/ginsu_a_nc10.rla :  512 x  512, 4 channel, uint16 rla
+../../../../../oiio-images/ginsu_a_nc10.rla :  512 x  512, 4 channel, uint10 rla
     SHA-1: 2732EF8B7515349C6FB6C8D9B678D9968E304AE3
     channel list: R, G, B, A
     oiio:BitsPerSample: 10
@@ -83,7 +83,7 @@ Reading ../../../../../oiio-images/ginsu_rgb_nc16.rla
 Comparing "../../../../../oiio-images/ginsu_rgb_nc16.rla" and "ginsu_rgb_nc16.rla"
 PASS
 Reading ../../../../../oiio-images/imgmake_rgba_nc10.rla
-../../../../../oiio-images/imgmake_rgba_nc10.rla :  512 x  512, 4 channel, uint16 rla
+../../../../../oiio-images/imgmake_rgba_nc10.rla :  512 x  512, 4 channel, uint10 rla
     SHA-1: 12F22B420DDB3D330092A38AF48F9A225467EC6E
     channel list: R, G, B, A
     oiio:BitsPerSample: 10
@@ -123,7 +123,7 @@ Reading ../../../../../oiio-images/ginsu_a_nc16.rla
 Comparing "../../../../../oiio-images/ginsu_a_nc16.rla" and "ginsu_a_nc16.rla"
 PASS
 Reading ../../../../../oiio-images/ginsu_rgba_nc10.rla
-../../../../../oiio-images/ginsu_rgba_nc10.rla :  512 x  512, 4 channel, uint16 rla
+../../../../../oiio-images/ginsu_rgba_nc10.rla :  512 x  512, 4 channel, uint10 rla
     SHA-1: 12F22B420DDB3D330092A38AF48F9A225467EC6E
     channel list: R, G, B, A
     oiio:BitsPerSample: 10
@@ -247,7 +247,7 @@ Reading ../../../../../oiio-images/ginsu_rgba_nc16.rla
 Comparing "../../../../../oiio-images/ginsu_rgba_nc16.rla" and "ginsu_rgba_nc16.rla"
 PASS
 Reading ../../../../../oiio-images/ginsu_rgb_nc10.rla
-../../../../../oiio-images/ginsu_rgb_nc10.rla :  512 x  512, 3 channel, uint16 rla
+../../../../../oiio-images/ginsu_rgb_nc10.rla :  512 x  512, 3 channel, uint10 rla
     SHA-1: CF6AE7239E7F8FEE3D44BD6D6FE907642938B471
     channel list: R, G, B
     oiio:BitsPerSample: 10

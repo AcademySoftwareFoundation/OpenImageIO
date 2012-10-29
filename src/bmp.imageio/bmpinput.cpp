@@ -50,7 +50,7 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 BmpInput::valid_file (const std::string &filename) const
 {
-    FILE *fd = fopen (filename.c_str(), "rb");
+    FILE *fd = Filesystem::fopen (filename, "rb");
     if (!fd)
         return false;
     bmp_pvt::BmpFileHeader bmp_header;
@@ -67,7 +67,7 @@ BmpInput::open (const std::string &name, ImageSpec &spec)
     // saving 'name' for later use
     m_filename = name;
 
-    m_fd = fopen (m_filename.c_str (), "rb");
+    m_fd = Filesystem::fopen (m_filename, "rb");
     if (!m_fd) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;
@@ -95,7 +95,6 @@ BmpInput::open (const std::string &name, ImageSpec &spec)
     const int height = (m_dib_header.height >= 0) ? m_dib_header.height
                                                   : -m_dib_header.height;
     m_spec = ImageSpec (m_dib_header.width, height, nchannels, TypeDesc::UINT8);
-    m_spec.attribute ("oiio:BitsPerSample", (int)m_dib_header.bpp);
     m_spec.attribute ("XResolution", (int)m_dib_header.hres);
     m_spec.attribute ("YResolution", (int)m_dib_header.vres);
     m_spec.attribute ("ResolutionUnit", "m");
@@ -110,6 +109,7 @@ BmpInput::open (const std::string &name, ImageSpec &spec)
             break;
         case 16 :
             m_scanline_size = ((m_spec.width << 1) + 3) & ~3;
+            m_spec.attribute ("oiio:BitsPerSample", 4);
             break;
         case  8 :
             m_scanline_size = (m_spec.width + 3) & ~3;

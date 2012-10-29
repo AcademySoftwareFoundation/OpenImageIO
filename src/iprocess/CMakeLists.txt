@@ -1,5 +1,0 @@
-set (iprocess_srcs iprocess.cpp)
-add_executable (iprocess ${iprocess_srcs})
-link_ilmbase (iprocess)
-target_link_libraries (iprocess OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
-oiio_install_targets (iprocess)

@@ -32,8 +32,13 @@
 #include <iostream>
 
 #include "thread.h"
+#include "strutil.h"
+#include "timer.h"
+#include "argparse.h"
+#include "ustring.h"
 
 #include <boost/thread/thread.hpp>
+#include <boost/bind.hpp>
 
 #include "unittest.h"
 
@@ -45,22 +50,27 @@ OIIO_NAMESPACE_USING;
 // accumulated value is equal to iterations*threads, then the spin locks
 // worked.
 
-const int iterations = 1000000;
-const int numthreads = 16;
+static int iterations = 160000000;
+static int numthreads = 16;
+static int ntrials = 1;
+static bool verbose = false;
+static bool wedge = false;
 
-volatile int accum = 0;
+static spin_mutex print_mutex;  // make the prints not clobber each other
+volatile long long accum = 0;
 spin_mutex mymutex;
 
 
 
+
 static void
-do_accum ()
+do_accum (int iterations)
 {
-    std::cout << "thread " 
-#if (BOOST_VERSION >= 103500)
-              << boost::this_thread::get_id() 
-#endif
-              << ", accum = " << accum << "\n";
+    if (verbose) {
+        spin_lock lock(print_mutex);
+        std::cout << "thread " << boost::this_thread::get_id() 
+                  << ", accum = " << accum << "\n";
+    }
     for (int i = 0;  i < iterations;  ++i) {
         spin_lock lock (mymutex);
         accum += 1;
@@ -69,28 +79,74 @@ do_accum ()
 
 
 
-void test_spinlock ()
+void test_spinlock (int numthreads, int iterations)
 {
-#if (BOOST_VERSION >= 103500)
-    std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
-#endif
-
     accum = 0;
     boost::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (&do_accum);
+        threads.create_thread (boost::bind(do_accum,iterations));
     }
-    std::cout << "Created " << threads.size() << " threads\n";
+    ASSERT ((int)threads.size() == numthreads);
     threads.join_all ();
-    int a = (int) accum;
-    OIIO_CHECK_EQUAL (a, (int)(numthreads * iterations));
+    OIIO_CHECK_EQUAL (accum, ((long long)iterations * (long long)numthreads));
+}
+
+
+
+static void
+getargs (int argc, char *argv[])
+{
+    bool help = false;
+    ArgParse ap;
+    ap.options ("spinlock_test\n"
+                OIIO_INTRO_STRING "\n"
+                "Usage:  spinlock_test [options]",
+                // "%*", parse_files, "",
+                "--help", &help, "Print help message",
+                "-v", &verbose, "Verbose mode",
+                "--threads %d", &numthreads, 
+                    ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+                "--iters %d", &iterations,
+                    ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+                "--trials %d", &ntrials, "Number of trials",
+                "--wedge", &wedge, "Do a wedge test",
+                NULL);
+    if (ap.parse (argc, (const char**)argv) < 0) {
+        std::cerr << ap.geterror() << std::endl;
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
+    if (help) {
+        ap.usage ();
+        exit (EXIT_FAILURE);
+    }
 }
 
 
 
 int main (int argc, char *argv[])
 {
-    test_spinlock ();
+    getargs (argc, argv);
+
+    std::cout << "hw threads = " << boost::thread::hardware_concurrency() << "\n";
+    std::cout << "threads\ttime (best of " << ntrials << ")\n";
+    std::cout << "-------\t----------\n";
+
+    static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
+    for (int i = 0; threadcounts[i] <= numthreads; ++i) {
+        int nt = threadcounts[i];
+        int its = iterations/nt;
+
+        double range;
+        double t = time_trial (boost::bind(test_spinlock,nt,its),
+                               ntrials, &range);
+
+        std::cout << Strutil::format ("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n",
+                                      nt, Strutil::timeintervalformat(t),
+                                      t, range, its);
+        if (! wedge)
+            break;    // don't loop if we're not wedging
+    }
 
     return unit_test_failures;
 }

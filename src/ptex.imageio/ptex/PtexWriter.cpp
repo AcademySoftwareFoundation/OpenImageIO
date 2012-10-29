@@ -67,6 +67,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <iostream>
 #include <sstream>
 
+#include "filesystem.h"
+
 #include "Ptexture.h"
 #include "PtexUtils.h"
 #include "PtexWriter.h"
@@ -192,7 +194,7 @@ PtexWriter* PtexWriter::edit(const char* path, bool incremental,
 	return 0;
 
     // try to open existing file (it might not exist)
-    FILE* fp = fopen(path, "rb+");
+    FILE* fp = OIIO::Filesystem::fopen(path, "rb+");
     if (!fp && errno != ENOENT) {
 	error = fileError("Can't open ptex file for update: ", path).c_str();
     }
@@ -1393,8 +1395,11 @@ void PtexIncrWriter::finish()
 
     // rewrite extheader for updated editdatasize
     if (_extheader.editdatapos) {
-	_extheader.editdatasize = uint64_t(ftello(_fp)) - _extheader.editdatapos;
-	fseeko(_fp, HeaderSize, SEEK_SET);
-	fwrite(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize), 1, _fp);
+        _extheader.editdatasize = uint64_t(ftello(_fp)) - _extheader.editdatapos;
+        fseeko(_fp, HeaderSize, SEEK_SET);
+        if (!fwrite(&_extheader, PtexUtils::min(uint32_t(ExtHeaderSize), _header.extheadersize), 1, _fp)) {
+            // FIXME Bad Write
+            //error ("Bad write PtexIncrWriter::finish (err %d)", byte_count);
+        }
     }
 }

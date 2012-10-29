@@ -45,8 +45,6 @@ OIIO_PLUGIN_EXPORTS_BEGIN
     };
 OIIO_PLUGIN_EXPORTS_END
 
-
-
 bool
 SgiOutput::open (const std::string &name, const ImageSpec &spec,
                  OpenMode mode)
@@ -61,7 +59,7 @@ SgiOutput::open (const std::string &name, const ImageSpec &spec,
     m_filename = name;
     m_spec = spec;
 
-    m_fd = fopen (m_filename.c_str (), "wb");
+    m_fd = Filesystem::fopen (m_filename, "wb");
     if (!m_fd) {
         error ("Unable to open file \"%s\"", m_filename.c_str ());
         return false;
@@ -73,9 +71,7 @@ SgiOutput::open (const std::string &name, const ImageSpec &spec,
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
         m_spec.set_format (TypeDesc::UINT8);
 
-    create_and_write_header();
-
-    return true;
+    return create_and_write_header();
 }
 
 
@@ -112,7 +108,9 @@ SgiOutput::write_scanline (int y, int z, TypeDesc format, const void *data,
         long scanline_offset = sgi_pvt::SGI_HEADER_LEN + (c * m_spec.height + y)
                                   * m_spec.width * bpc;
         fseek (m_fd, scanline_offset, SEEK_SET);
-        fwrite (&channeldata[0], 1, m_spec.width*bpc, m_fd);
+        if (!fwrite (&channeldata[0], 1, m_spec.width * bpc)) {
+            return false;
+        }
     }
 
     return true;    
@@ -131,7 +129,7 @@ SgiOutput::close ()
 
 
 
-void
+bool
 SgiOutput::create_and_write_header()
 {
     sgi_pvt::SgiHeader sgi_header;
@@ -174,20 +172,24 @@ SgiOutput::create_and_write_header()
         swap_endian(&sgi_header.colormap);
     }
 
-    fwrite(&sgi_header.magic, sizeof(sgi_header.magic), 1, m_fd);
-    fwrite(&sgi_header.storage, sizeof(sgi_header.storage), 1, m_fd);
-    fwrite(&sgi_header.bpc, sizeof(sgi_header.bpc), 1, m_fd);
-    fwrite(&sgi_header.dimension, sizeof(sgi_header.dimension), 1, m_fd);
-    fwrite(&sgi_header.xsize, sizeof(sgi_header.xsize), 1, m_fd);
-    fwrite(&sgi_header.ysize, sizeof(sgi_header.ysize), 1, m_fd);
-    fwrite(&sgi_header.zsize, sizeof(sgi_header.zsize), 1, m_fd);
-    fwrite(&sgi_header.pixmin, sizeof(sgi_header.pixmin), 1, m_fd);
-    fwrite(&sgi_header.pixmax, sizeof(sgi_header.pixmax), 1, m_fd);
-    fwrite(&sgi_header.dummy, sizeof(sgi_header.dummy), 1, m_fd);
-    fwrite(sgi_header.imagename, sizeof(sgi_header.imagename), 1, m_fd);
-    fwrite(&sgi_header.colormap, sizeof(sgi_header.colormap), 1, m_fd);
     char dummy[404] = {0};
-    fwrite(dummy, 404, 1, m_fd);
+    if (!fwrite(&sgi_header.magic) ||
+        !fwrite(&sgi_header.storage) ||
+        !fwrite(&sgi_header.bpc) ||
+        !fwrite(&sgi_header.dimension) ||
+        !fwrite(&sgi_header.xsize) ||
+        !fwrite(&sgi_header.ysize) ||
+        !fwrite(&sgi_header.zsize) ||
+        !fwrite(&sgi_header.pixmin) ||
+        !fwrite(&sgi_header.pixmax) ||
+        !fwrite(&sgi_header.dummy) ||
+        !fwrite(sgi_header.imagename, 1, 80) ||
+        !fwrite(&sgi_header.colormap) ||
+        !fwrite(dummy, 404, 1)) {
+        error ("Error writing to \"%s\"", m_filename);
+        return false;
+    }
+    return true;
 }
 
 OIIO_PLUGIN_NAMESPACE_END

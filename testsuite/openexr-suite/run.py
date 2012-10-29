@@ -1,15 +1,15 @@
 #!/usr/bin/python 
 
-# ../openexr-images-1.5.0/DisplayWindow:
+# ../openexr-images/DisplayWindow:
 # README   t03.exr  t06.exr  t09.exr  t12.exr  t15.exr
 # t01.exr  t04.exr  t07.exr  t10.exr  t13.exr  t16.exr
 # t02.exr  t05.exr  t08.exr  t11.exr  t14.exr
-imagedir = parent + "/openexr-images-1.5.0/DisplayWindow"
+imagedir = parent + "/openexr-images/DisplayWindow"
 
-# ../openexr-images-1.5.0/ScanLines:
+# ../openexr-images/ScanLines:
 # Blobbies.exr   Desk.exr       StillLife.exr
 # Cannon.exr     MtTamWest.exr  Tree.exr
-imagedir = parent + "/openexr-images-1.5.0/ScanLines"
+imagedir = parent + "/openexr-images/ScanLines"
 files = [ "Desk.exr", "MtTamWest.exr" ]
 for f in files:
     command += rw_command (imagedir, f)
@@ -20,12 +20,12 @@ for f in files:
 # Cannon must be instructed to use lossless compression
 # FIXME - on all: chromaticies, screenWindowCenter, preview?
 
-# ../openexr-images-1.5.0/TestImages:
+# ../openexr-images/TestImages:
 # AllHalfValues.exr        GrayRampsDiagonal.exr    SquaresSwirls.exr
 # BrightRings.exr          GrayRampsHorizontal.exr  WideColorGamut.exr
 # BrightRingsNanInf.exr    README                   WideFloatRange.exr
 # GammaChart.exr           RgbRampsDiagonal.exr
-imagedir = parent + "/openexr-images-1.5.0/TestImages"
+imagedir = parent + "/openexr-images/TestImages"
 files = [ "AllHalfValues.exr", "BrightRings.exr", "BrightRingsNanInf.exr",
           "GammaChart.exr", "GrayRampsDiagonal.exr",
           "GrayRampsHorizontal.exr", "RgbRampsDiagonal.exr",
@@ -33,9 +33,9 @@ files = [ "AllHalfValues.exr", "BrightRings.exr", "BrightRingsNanInf.exr",
 for f in files:
     command += rw_command (imagedir, f)
 
-# ../openexr-images-1.5.0/Tiles:
+# ../openexr-images/Tiles:
 # GoldenGate.exr  Ocean.exr       Spirals.exr
-imagedir = parent + "/openexr-images-1.5.0/Tiles"
+imagedir = parent + "/openexr-images/Tiles"
 files = [ "GoldenGate.exr", "Ocean.exr" ]
 for f in files:
     command += rw_command (imagedir, f)

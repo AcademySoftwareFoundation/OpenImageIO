@@ -42,6 +42,7 @@
 #include "imagebuf.h"
 #include "fmath.h"
 #include "color.h"
+#include "thread.h"
 
 
 #ifndef __OPENCV_CORE_TYPES_H__
@@ -57,32 +58,25 @@ class Filter2D;  // forward declaration
 
 namespace ImageBufAlgo {
 
-/// Zero out (set to 0, black) the entire image.
-/// return true on success.
-bool DLLPUBLIC zero (ImageBuf &dst);
+/// Zero out (set to 0, black) the image region.  If the optional ROI is
+/// not specified, it will set all channels of all image pixels to 0.0.
+/// Return true on success, false on failure.
+bool DLLPUBLIC zero (ImageBuf &dst, ROI roi=ROI());
 
-
-/// Fill the entire image with the given pixel value.
-/// return true on success.
-bool DLLPUBLIC fill (ImageBuf &dst,
-                     const float *pixel);
-
-/// Fill a subregion of the image with the given pixel value.  The
-/// subregion is bounded by [xbegin..xend) X [ybegin..yend).
-/// return true on success.
-bool DLLPUBLIC fill (ImageBuf &dst,
-                     const float *pixel,
-                     int xbegin, int xend,
-                     int ybegin, int yend);
+/// Fill the image with a given channel values.  If the optional ROI is
+/// not specified, it will fill all channels of all image pixels.  Note
+/// that values[0] corresponds to channel roi.chanbegin.  Return true on
+/// success, false on failure.
+bool DLLPUBLIC fill (ImageBuf &dst, const float *values, ROI roi=ROI());
 
 /// Fill a subregion of the volume with the given pixel value.  The
 /// subregion is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).
 /// return true on success.
-bool DLLPUBLIC fill (ImageBuf &dst,
-                     const float *pixel,
-                     int xbegin, int xend,
-                     int ybegin, int yend,
-                     int zbegin, int zend);
+inline bool DLLPUBLIC xfill (ImageBuf &dst, const float *pixel,
+                     int xbegin, int xend, int ybegin, int yend,
+                     int zbegin=0, int zend=1) {
+    return fill (dst, pixel, ROI(xbegin,xend,ybegin,yend,zbegin,zend));
+}
 
 /// Fill a subregion of the volume with a checkerboard.  The subregion
 /// is bounded by [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  return
@@ -123,9 +117,28 @@ bool DLLPUBLIC transform (ImageBuf &dst, const ImageBuf &src, AlignedTransform t
 /// If channels are added, they are cleared to a value of 0.0.
 /// Does not support in-place operation.
 /// return true on success.
-
+/// DEPRECATED -- you should instead use the more general
+/// ImageBufAlgo::channels (dst, src, numChannels, NULL, true);
 bool DLLPUBLIC setNumChannels(ImageBuf &dst, const ImageBuf &src, int numChannels);
 
+
+/// Generic channel shuffling -- copy src to dst, but with channels in
+/// the order channelorder[0..nchannels-1].  Does not support in-place
+/// operation.  If channelorder[i] < 0, it will just make dst channel i
+/// be black (0.0) rather than copying from src.
+///
+/// If channelorder is NULL, it will be interpreted as
+/// {0, 1, ..., nchannels-1}.
+///
+/// If shuffle_channel_names is false, the resulting dst image will have
+/// default channel names in the usual order ("R", "G", etc.), but if
+/// shuffle_channel_names is true, the names will be taken from the
+/// corresponding channels of the source image -- be careful with this,
+/// shuffling both channel ordering and their names could result in no
+/// semantic change at all, if you catch the drift.
+bool DLLPUBLIC channels (ImageBuf &dst, const ImageBuf &src,
+                         int nchannels, const int *channelorder,
+                         bool shuffle_channel_names=false);
 
 /// Make dst be a cropped copy of src, but with the new pixel data
 /// window range [xbegin..xend) x [ybegin..yend).  Source pixel data
@@ -194,10 +207,10 @@ struct DLLPUBLIC PixelStats {
 };
 
 
-/// Compute statistics on the specified image (over all pixels in the data
-/// window). Upon success, the returned vectors will have size == numchannels.
-/// A FLOAT ImageBuf is required.
-/// (current subimage, and current mipmap level)
+/// Compute statistics on the specified image (over all pixels in the
+/// data window of the current subimage and MIPmap level). Upon success,
+/// the returned vectors will have size == numchannels.  A FLOAT
+/// ImageBuf is required.
 bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
 
 /// Struct holding all the results computed by ImageBufAlgo::compare().
@@ -208,7 +221,7 @@ bool DLLPUBLIC computePixelStats (PixelStats &stats, const ImageBuf &src);
 struct CompareResults {
     double meanerror, rms_error, PSNR, maxerror;
     int maxx, maxy, maxz, maxc;
-    int nwarn, nfail;
+    imagesize_t nwarn, nfail;
 };
 
 /// Numerically compare two images.  The images must be the same size
@@ -303,6 +316,150 @@ DLLPUBLIC IplImage* to_IplImage (const ImageBuf &src);
 /// alter dst.
 bool DLLPUBLIC capture_image (ImageBuf &dst, int cameranum = 0,
                               TypeDesc convert=TypeDesc::UNKNOWN);
+
+
+
+/// Set R to the composite of A over B using the Porter/Duff definition
+/// of "over", returning true upon success and false for any of a
+/// variety of failures (as described below).  All three buffers must
+/// have 'float' pixel data type.
+///
+/// A and B must have valid alpha channels identified by their ImageSpec
+/// alpha_channel field, with the following two exceptions: (a) a
+/// 3-channel image with no identified alpha will be assumed to be RGB,
+/// alpha == 1.0; (b) a 4-channel image with no identified alpha will be
+/// assumed to be RGBA with alpha in channel [3].  If A or B do not have
+/// alpha channels (as determined by those rules) or if the number of
+/// non-alpha channels do not match between A and B, over() will fail,
+/// returning false.
+///
+/// R is not already an initialized ImageBuf, it will be sized to
+/// encompass the minimal rectangular pixel region containing the union
+/// of the defined pixels of A and B, and with a number of channels
+/// equal to the number of non-alpha channels of A and B, plus an alpha
+/// channel.  However, if R is already initialized, it will not be
+/// resized, and the "over" operation will apply to its existing pixel
+/// data window.  In this case, R must have an alpha channel designated
+/// and must have the same number of non-alpha channels as A and B,
+/// otherwise it will fail, returning false.
+///
+/// 'roi' specifies the region of R's pixels which will be computed;
+/// existing pixels outside this range will not be altered.  If not
+/// specified, the default ROI value will be interpreted as a request to
+/// apply "A over B" to the entire region of R's pixel data.
+///
+/// A, B, and R need not perfectly overlap in their pixel data windows;
+/// pixel values of A or B that are outside their respective pixel data
+/// window will be treated as having "zero" (0,0,0...) value.
+///
+/// threads == 0, the default, indicates that over() should use as many
+/// CPU threads as are specified by the global OIIO "threads" attribute.
+/// Note that this is not a guarantee, for example, the implementation
+/// may choose to spawn fewer threads for images too small to make a
+/// large number of threads to be worthwhile.  Values of threads > 0 are
+/// a request for that specific number of threads, with threads == 1
+/// guaranteed to not spawn additional threads (this is especially
+/// useful if over() is being called from one thread of an
+/// already-multithreaded program).
+bool DLLPUBLIC over (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     ROI roi = ROI(), int threads = 0);
+
+
+/// Render a text string into image R, essentially doing an "over" of
+/// the character into the existing pixel data.  The baseline of the
+/// first character will start at position (x,y).  The font is given by
+/// fontname as a full pathname to the font file (defaulting to some
+/// reasonable system font if not supplied at all), and with a nominal
+/// height of fontheight (in pixels).  The characters will be drawn in
+/// opaque white (1.0,1.0,...) in all channels, unless textcolor is
+/// supplied (and is expected to point to a float array of length at
+/// least equal to R.spec().nchannels).
+bool DLLPUBLIC render_text (ImageBuf &R, int x, int y,
+                            const std::string &text,
+                            int fontsize=16, const std::string &fontname="",
+                            const float *textcolor = NULL);
+
+
+/// ImageBufAlgo::histogram --------------------------------------------------
+/// Parameters:
+/// A           - Input image that contains the one channel to be histogramed.
+///               A must contain float pixel data and have at least 1 channel,
+///               but it can have more.
+/// channel     - Only this channel in A will be histogramed. It must satisfy
+///               0 <= channel < A.nchannels().
+/// histogram   - Clear old content and store the histogram here.
+/// bins        - Number of bins must be at least 1.
+/// min, max    - Pixel values outside of the min->max range are not used for
+///               computing the histogram. If min<max then the range is valid.
+/// submin      - Store number of pixel values < min.
+/// supermax    - Store number of pixel values > max.
+/// roi         - Only pixels in this region of the image are histogramed. If
+///               roi is not defined then the full size image will be
+///               histogramed.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC histogram (const ImageBuf &A, int channel,
+                          std::vector<imagesize_t> &histogram, int bins=256,
+                          float min=0, float max=1, imagesize_t *submin=NULL,
+                          imagesize_t *supermax=NULL, ROI roi=ROI());
+
+
+
+/// ImageBufAlgo::histogram_draw ---------------------------------------------
+/// Parameters:
+/// R           - The histogram will be drawn in the output image R. R must
+///               have only 1 channel with float pixel data, and width equal
+///               to the number of bins, that is elements in histogram.
+/// histogram   - The histogram to be drawn, must have at least 1 bin.
+/// --------------------------------------------------------------------------
+bool DLLPUBLIC histogram_draw (ImageBuf &R,
+                               const std::vector<imagesize_t> &histogram);
+
+
+
+/// Helper template for generalized multithreading for image processing
+/// functions.  Some function/functor f is applied to every pixel the
+/// region of interest roi, dividing the region into multiple threads if
+/// threads != 1.  Note that threads == 0 indicates that the number of
+/// threads should be as set by the global OIIO "threads" attribute.
+///
+/// Most image operations will require additional arguments, including
+/// additional input and output images or other parameters.  The
+/// parallel_image template can still be used by employing the
+/// boost::bind (or std::bind, for C++11).  For example, suppose you
+/// have an image operation defined as:
+///     void my_image_op (ImageBuf &out, const ImageBuf &in,
+///                       float scale, ROI roi);
+/// Then you can parallelize it as follows:
+///     ImageBuf R /*result*/, A /*input*/;
+///     ROI roi = get_roi (R);
+///     parallel_image (boost::bind(my_image_op,boost::ref(R),
+///                                 boost::cref(A),3.14,_1), roi);
+///
+template <class Func>
+void
+parallel_image (Func f, ROI roi, int nthreads=0)
+{
+    // Special case: threads <= 0 means to use the "threads" attribute
+    if (nthreads <= 0)
+        OIIO::getattribute ("threads", nthreads);
+
+    if (nthreads <= 1 || roi.npixels() < 1000) {
+        // Just one thread, or a small image region: use this thread only
+        f (roi);
+    } else {
+        // Spawn threads by dividing the region into y bands.
+        boost::thread_group threads;
+        int blocksize = std::max (1, (roi.height() + nthreads - 1) / nthreads);
+        int roi_ybegin = roi.ybegin;
+        int roi_yend = roi.yend;
+        for (int i = 0;  i < nthreads;  i++) {
+            roi.ybegin = roi_ybegin + i * blocksize;
+            roi.yend = std::min (roi.ybegin + blocksize, roi_yend);
+            threads.add_thread (new boost::thread (f, roi));
+        }
+        threads.join_all ();
+    }
+}
 
 
 };  // end namespace ImageBufAlgo

@@ -36,10 +36,11 @@
 #include "export.h"
 #include "thread.h"
 #include "strutil.h"
-#include "hash.h"
 #include "dassert.h"
 
 #include "ustring.h"
+
+#include <boost/unordered_map.hpp>
 
 OIIO_NAMESPACE_ENTER
 {
@@ -72,11 +73,7 @@ typedef null_lock<null_mutex> ustring_write_lock_t;
 #endif
 
 
-#ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
 typedef boost::unordered_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
-#else
-typedef hash_map <const char *, ustring::TableRep *, Strutil::StringHash, Strutil::StringEqual> UstringTable;
-#endif // OIIO_HAVE_BOOST_UNORDERED_MAP
 
 std::string ustring::empty_std_string ("");
 
@@ -234,44 +231,6 @@ ustring::make_unique (const char *str)
     // on the table at this point.
     delete rep;
     return result;
-}
-
-
-
-ustring
-ustring::format (const char *fmt, ...)
-{
-    // Allocate a buffer on the stack that's big enough for us almost
-    // all the time.  Be prepared to allocate dynamically if it doesn't fit.
-    size_t size = 1024;
-    char stackbuf[1024];
-    std::vector<char> dynamicbuf;
-    char *buf = &stackbuf[0];
-    
-    while (1) {
-        // Try to vsnprintf into our buffer.
-        va_list ap;
-        va_start (ap, fmt);
-        int needed = vsnprintf (buf, size, fmt, ap);
-        va_end (ap);
-
-        // NB. C99 (which modern Linux and OS X follow) says vsnprintf
-        // failure returns the length it would have needed.  But older
-        // glibc and current Windows return -1 for failure, i.e., not
-        // telling us how much was needed.
-
-        if (needed < (int)size && needed >= 0) {
-            // It fit fine so we're done.
-            return ustring (buf);
-        }
-
-        // vsnprintf reported that it wanted to write more characters
-        // than we allotted.  So try again using a dynamic buffer.  This
-        // doesn't happen very often if we chose our initial size well.
-        size = (needed > 0) ? (needed+1) : (size*2);
-        dynamicbuf.resize (size);
-        buf = &dynamicbuf[0];
-    }
 }
 
 

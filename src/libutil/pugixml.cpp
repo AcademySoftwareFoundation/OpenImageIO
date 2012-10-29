@@ -92,7 +92,6 @@ typedef __int32 int32_t;
 #	define DMC_VOLATILE
 #endif
 
-namespace OIIO = OIIO_NAMESPACE;
 
 // Added by LG for OpenImageIO:
 using namespace OIIO;
@@ -5660,7 +5659,7 @@ namespace
 			return PUGIXML_TEXT("NaN");
 
 		case FP_INFINITE:
-			return PUGIXML_TEXT("-Infinity") + (value > 0);
+                        return value>0 ? PUGIXML_TEXT("Infinity") : PUGIXML_TEXT("-Infinity");
 
 		case FP_ZERO:
 			return PUGIXML_TEXT("0");
@@ -5674,7 +5673,8 @@ namespace
 
 		if (v == 0) return PUGIXML_TEXT("0");
 		if (v != v) return PUGIXML_TEXT("NaN");
-		if (v * 2 == v) return PUGIXML_TEXT("-Infinity") + (value > 0);
+		if (v * 2 == v)
+                    return value>0 ? PUGIXML_TEXT("Infinity") : PUGIXML_TEXT("-Infinity");
 		return 0;
 	#endif
 	}

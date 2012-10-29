@@ -107,7 +107,7 @@ Jpeg2000Output::open (const std::string &name, const ImageSpec &spec,
     m_spec = spec;
     m_filename = name;
 
-    m_file = fopen (m_filename.c_str(), "wb");
+    m_file = Filesystem::fopen (m_filename, "wb");
     if (m_file == NULL) {
         error ("Unable to open file \"%s\"", m_filename.c_str());
         return false;
@@ -178,7 +178,11 @@ Jpeg2000Output::save_image()
 
     opj_encode(compressor, cio, m_image, NULL);
 
-    fwrite(cio->buffer, 1, cio_tell(cio), m_file);
+    size_t wb = fwrite(cio->buffer, 1, cio_tell(cio), m_file);
+    if (wb != (size_t)cio_tell(cio)) {
+    	error ("Failed write jpeg2000::save_image (err: %d)", wb);
+    	return false;
+    }
 
     opj_destroy_compress(compressor);
     opj_cio_close(cio);
@@ -238,11 +242,11 @@ Jpeg2000Output::init_components(opj_image_cmptparm_t *components, int precision)
 opj_cinfo_t*
 Jpeg2000Output::create_compressor()
 {
-    std::string ext = Filesystem::file_extension(m_filename);
+    std::string ext = Filesystem::extension(m_filename);
     opj_cinfo_t *compressor = NULL;
-    if (ext == "j2k")
+    if (ext == ".j2k")
         compressor = opj_create_compress(CODEC_J2K);
-    else if (ext == "jp2")
+    else if (ext == ".jp2")
         compressor = opj_create_compress(CODEC_JP2);
 
     return compressor;
