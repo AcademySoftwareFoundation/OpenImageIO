@@ -67,11 +67,9 @@ macro (setup_string name defaultval explanation)
         # If there's an environment variable of the same name that's
         # nonempty, use the env variable.  Otherwise, use the default.
         if (NOT $ENV{${name}} STREQUAL "")
-            set (${name} $ENV{${name}})
-                  # CACHE STRING ${explanation})
+            set (${name} $ENV{${name}} CACHE STRING ${explanation})
         else ()
-            set (${name} ${defaultval})
-                  # CACHE STRING ${explanation})
+            set (${name} ${defaultval} CACHE STRING ${explanation})
         endif ()
     endif ()
     message (STATUS "${name} = ${${name}}")

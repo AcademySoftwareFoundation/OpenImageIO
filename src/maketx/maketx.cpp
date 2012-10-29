@@ -436,14 +436,9 @@ parallel_image (Func func, ImageBuf *dst, const ImageBuf *src,
         nthreads = 1;
     // nthreads < 1 means try to make enough threads to fill all cores
     if (nthreads < 1) {
-#if (BOOST_VERSION >= 103500)
         nthreads = boost::thread::hardware_concurrency();
-#else
-        nthreads = 1;   // hardware_concurrency not supported in Boost < 1.35
-#endif
     }
 
-#if (BOOST_VERSION >= 103500)
     if (nthreads > 1) {
         boost::thread_group threads;
         int blocksize = std::max (1, ((xend-xbegin) + nthreads-1) / nthreads);
@@ -458,11 +453,8 @@ parallel_image (Func func, ImageBuf *dst, const ImageBuf *src,
         }
         threads.join_all ();
     } else {
-#endif // BOOST_VERSION
         func (dst, src, xbegin, xend, ybegin, yend);
-#if (BOOST_VERSION >= 103500)
     }
-#endif
 }
 
 
@@ -676,12 +668,12 @@ make_texturemap (const char *maptypename = "texture map")
         outputfilename = Filesystem::replace_extension (filenames[0], ".tx");
 
     // When was the input file last modified?
-    std::time_t in_time = boost::filesystem::last_write_time (filenames[0]);
+    std::time_t in_time = Filesystem::last_write_time (filenames[0]);
 
     // When in update mode, skip making the texture if the output already
     // exists and has the same file modification time as the input file.
     if (updatemode && Filesystem::exists (outputfilename) &&
-        (in_time == boost::filesystem::last_write_time (outputfilename))) {
+        (in_time == Filesystem::last_write_time (outputfilename))) {
         std::cout << "maketx: no update required for \"" 
                   << outputfilename << "\"\n";
         return;
@@ -777,7 +769,7 @@ make_texturemap (const char *maptypename = "texture map")
           ImageBufAlgo::isConstantChannel(src,src.spec().alpha_channel,1.0f)) {
         ImageBuf newsrc(src.name() + ".noalpha", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, src.nchannels()-1);
-        src = newsrc;
+        src.copy (newsrc);
         if (verbose) {
             std::cout << "  Alpha==1 image detected. Dropping the alpha channel.\n";
         }
@@ -788,7 +780,7 @@ make_texturemap (const char *maptypename = "texture map")
             ImageBufAlgo::isMonochrome(src)) {
         ImageBuf newsrc(src.name() + ".monochrome", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, 1);
-        src = newsrc;
+        src.copy (newsrc);
         if (verbose) {
             std::cout << "  Monochrome image detected. Converting to single channel texture.\n";
         }
@@ -799,7 +791,7 @@ make_texturemap (const char *maptypename = "texture map")
     if ((nchannels > 0) && (nchannels != src.nchannels())) {
         ImageBuf newsrc(src.name() + ".channels", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, nchannels);
-        src = newsrc;
+        src.copy (newsrc);
         if (verbose) {
             std::cout << "  Overriding number of channels to " << nchannels << "\n";
         }
@@ -1168,7 +1160,7 @@ make_texturemap (const char *maptypename = "texture map")
     // If using update mode, stamp the output file with a modification time
     // matching that of the input file.
     if (updatemode)
-        boost::filesystem::last_write_time (outputfilename, in_time);
+        Filesystem::last_write_time (outputfilename, in_time);
 }
 
 
@@ -1343,7 +1335,7 @@ main (int argc, char *argv[])
     Timer alltimer;
     getargs (argc, argv);
 
-    OIIO_NAMESPACE::attribute ("threads", nthreads);
+    OIIO::attribute ("threads", nthreads);
     if (stats) {
         ImageCache *ic = ImageCache::create ();  // get the shared one
         ic->attribute ("forcefloat", 1);   // Force float upon read

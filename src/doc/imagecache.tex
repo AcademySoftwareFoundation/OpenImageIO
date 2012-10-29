@@ -359,6 +359,14 @@ The only reason to set it to 0 is if you specifically want to disable the
 de-duplication optimization.
 \apiend
 
+\apiitem{string substitute_image}
+When set to anything other than the empty string, the \ImageCache will
+use the named image in place of \emph{all} other images.  This allows
+you to run an app using OIIO and (if you can manage to get this option
+set) automagically substitute a grid, zone plate, or other special
+debugging image for all image/texture use.
+\apiend
+
 \apiitem{string options}
 This catch-all is simply a comma-separated list of {\cf name=value}
 settings of named options.  For example,

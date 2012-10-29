@@ -45,7 +45,7 @@ OIIO_NAMESPACE_USING;
 
 
 // Test ImageBuf::zero and ImageBuf::fill
-void ImageBuf_zero_fill ()
+void test_zero_fill ()
 {
     const int WIDTH = 8;
     const int HEIGHT = 6;
@@ -91,7 +91,7 @@ void ImageBuf_zero_fill ()
     const float arbitrary3[CHANNELS] = { 0.42, 0.43, 0.44, 0.45 };
     {
         const int xbegin = 3, xend = 5, ybegin = 0, yend = 4;
-        ImageBufAlgo::fill (A, arbitrary3, xbegin, xend, ybegin, yend);
+        ImageBufAlgo::fill (A, arbitrary3, ROI(xbegin, xend, ybegin, yend));
         for (int j = 0;  j < HEIGHT;  ++j) {
             for (int i = 0;  i < WIDTH;  ++i) {
                 float pixel[CHANNELS];
@@ -150,7 +150,7 @@ void test_crop ()
 
 
 // Tests ImageBufAlgo::add
-void ImageBuf_add ()
+void test_add ()
 {
     const int WIDTH = 8;
     const int HEIGHT = 8;
@@ -181,10 +181,47 @@ void ImageBuf_add ()
 
 
 
-// check if two float values match
-inline bool
-is_equal (float x, float y) {
-    return std::abs(x - y) <= 1e-05 * std::abs(x); // 1e-05
+// Tests ImageBufAlgo::compare
+void test_compare ()
+{
+    // Construct two identical 50% grey images
+    const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ImageBuf A ("A", spec);
+    ImageBuf B ("B", spec);
+    const float grey[CHANNELS] = { 0.5, 0.5, 0.5 };
+    ImageBufAlgo::fill (A, grey);
+    ImageBufAlgo::fill (B, grey);
+
+    // Introduce some minor differences
+    const int NDIFFS = 10;
+    ImageBuf::Iterator<float> a (A);
+    for (int i = 0;  i < NDIFFS && a.valid();  ++i, ++a) {
+        for (int c = 0;  c < CHANNELS;  ++c)
+            a[c] = a[c] + 0.01f * i;
+    }
+    // We expect the differences to be { 0, 0.01, 0.02, 0.03, 0.04, 0.05,
+    // 0.06, 0.07, 0.08, 0.09, 0, 0, ...}.
+    const float failthresh = 0.05;
+    const float warnthresh = 0.025;
+    ImageBufAlgo::CompareResults comp;
+    ImageBufAlgo::compare (A, B, failthresh, warnthresh, comp);
+    // We expect 5 pixels to exceed the fail threshold, 7 pixels to
+    // exceed the warn threshold, the maximum difference to be 0.09,
+    // and the maximally different pixel to be (9,0).
+    // The total error should be 3 chans * sum{0.01,...,0.09} / (pixels*chans)
+    //   = 3 * 0.45 / (100*3) = 0.0045
+    std::cout << "Testing comparison: " << comp.nfail << " failed, "
+              << comp.nwarn << " warned, max diff = " << comp.maxerror
+              << " @ (" << comp.maxx << ',' << comp.maxy << ")\n";
+    std::cout << "   mean err " << comp.meanerror << ", RMS err " 
+              << comp.rms_error << ", PSNR = " << comp.PSNR <<  "\n";
+    OIIO_CHECK_EQUAL (comp.nfail, 5);
+    OIIO_CHECK_EQUAL (comp.nwarn, 7);
+    OIIO_CHECK_EQUAL_THRESH (comp.maxerror, 0.09, 1e-6);
+    OIIO_CHECK_EQUAL (comp.maxx, 9);
+    OIIO_CHECK_EQUAL (comp.maxy, 0);
+    OIIO_CHECK_EQUAL_THRESH (comp.meanerror, 0.0045, 1.0e-8);
 }
 
 
@@ -192,9 +229,10 @@ is_equal (float x, float y) {
 int
 main (int argc, char **argv)
 {
-    ImageBuf_zero_fill ();
+    test_zero_fill ();
     test_crop ();
-    ImageBuf_add ();
+    test_add ();
+    test_compare ();
     
     return unit_test_failures;
 }

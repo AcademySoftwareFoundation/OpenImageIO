@@ -39,6 +39,7 @@
 #include "imageio.h"
 #include "thread.h"
 #include "strutil.h"
+#include "filesystem.h"
 #include "fmath.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -134,14 +135,16 @@ DLLEXPORT const char * zfile_output_extensions[] = {
 
 OIIO_PLUGIN_EXPORTS_END
 
-
-
 bool
 ZfileInput::valid_file (const std::string &filename) const
 {
-    gzFile gz = gzopen (filename.c_str(), "rb");
-    if (! gz)
+    FILE *fd = Filesystem::fopen (filename, "rb");
+    gzFile gz = (fd) ? gzdopen (fileno (fd), "rb") : NULL;
+    if (! gz) {
+        if (fd)
+            fclose (fd);
         return false;
+    }
 
     ZfileHeader header;
     gzread (gz, &header, sizeof(header));
@@ -158,8 +161,11 @@ ZfileInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
 
-    m_gz = gzopen (name.c_str(), "rb");
+    FILE *fd = Filesystem::fopen (name, "rb");
+    m_gz = (fd) ? gzdopen (fileno (fd), "rb") : NULL;
     if (! m_gz) {
+        if (fd)
+            fclose (fd);
         error ("Could not open file \"%s\"", name.c_str());
         return false;
     }
@@ -292,10 +298,17 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
     else
         memcpy (header.worldtoscreen, ident, 16*sizeof(float));
 
-    if (m_spec.get_string_attribute ("compression", "none") != std::string("none"))
-        m_gz = gzopen (name.c_str(), "wb");
+    if (m_spec.get_string_attribute ("compression", "none") != std::string("none")) {
+        FILE *fd = Filesystem::fopen (name, "wb");
+
+        if (fd) {
+            m_gz = gzdopen (fileno (fd), "wb");
+            if (!m_gz)
+                fclose (fd);
+        }
+    }
     else
-        m_file = fopen (name.c_str(), "wb");
+        m_file = Filesystem::fopen (name, "wb");
     if (! m_file  &&  ! m_gz) {
         error ("Could not open file \"%s\"", name.c_str());
         return false;
@@ -303,8 +316,13 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
 
     if (m_gz)
         gzwrite (m_gz, &header, sizeof(header));
-    else
-        fwrite (&header, sizeof(header), 1, m_file);
+    else {
+    	size_t b = fwrite (&header, sizeof(header), 1, m_file);
+    	if (b != 1) {
+            error ("Failed write zfile::open (err: %d)", b);
+            return false;
+    	}
+    }
 
     return true;
 }
@@ -344,9 +362,15 @@ ZfileOutput::write_scanline (int y, int z, TypeDesc format,
     }
 
     if (m_gz)
-	gzwrite (m_gz, data, m_spec.width*sizeof(float));
-    else
-	fwrite (data, sizeof(float), m_spec.width, m_file);
+        gzwrite (m_gz, data, m_spec.width*sizeof(float));
+    else {
+    	size_t b = fwrite (data, sizeof(float), m_spec.width, m_file);
+        if (b != (size_t)m_spec.width) {
+            error ("Failed write zfile::open (err: %d)", b);
+            return false;
+        }
+    }
+
 
     return true;
 }

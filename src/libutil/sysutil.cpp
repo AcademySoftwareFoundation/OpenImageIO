@@ -39,12 +39,13 @@
 # include <sys/ioctl.h>
 #endif
 
-#ifdef __FreeBSD__
+#if defined (__FreeBSD__) || defined (__FreeBSD_kernel__)
 # include <sys/types.h>
 # include <sys/resource.h>
 # include <sys/sysctl.h>
 # include <sys/wait.h>
 # include <sys/ioctl.h>
+# include <unistd.h>
 #endif
 
 #ifdef __APPLE__
@@ -60,6 +61,11 @@
 # include <Psapi.h>
 #else
 # include <sys/resource.h>
+#endif
+
+#ifdef __GNU__
+# include <unistd.h>
+# include <sys/ioctl.h>
 #endif
 
 #include "dassert.h"
@@ -146,6 +152,8 @@ Sysutil::this_program_path ()
 
 #if defined(__linux__)
     int r = readlink ("/proc/self/exe", filename, size);
+    ASSERT(r < int(size)); // user won't get the right answer if the filename is too long to store
+    if (r > 0) filename[r] = 0; // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)
     // For info:  'man 3 dyld'
     int r = _NSGetExecutablePath (filename, &size);
@@ -154,7 +162,7 @@ Sysutil::this_program_path ()
 #elif defined(_WIN32)
     // According to MSDN...
     int r = GetModuleFileName (NULL, filename, size);
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC;
@@ -164,6 +172,8 @@ Sysutil::this_program_path ()
     size_t cb = sizeof(filename);
     int r=1;
     sysctl(mib, 4, filename, &cb, NULL, 0);
+#elif defined(__GNU__)
+    int r = 0;
 #else
     // No idea what platform this is
     ASSERT (0);
@@ -193,7 +203,7 @@ Sysutil::terminal_columns ()
 {
     int columns = 80;   // a decent guess, if we have nothing more to go on
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__GNU__)
     struct winsize w;
     ioctl (0, TIOCGWINSZ, &w);
     columns = w.ws_col;
@@ -202,6 +212,58 @@ Sysutil::terminal_columns ()
 #endif
 
     return columns;
+}
+
+
+
+bool
+#if !defined(_MSC_VER)
+Sysutil::put_in_background (int argc, char* argv[])
+#else
+Sysutil::put_in_background (int, char* [])
+#endif
+{
+    // You would think that this would be sufficient:
+    //   pid_t pid = fork ();
+    //   if (pid < 0)       // Some kind of error, we were unable to background
+    //      return false;
+    //   if (pid == 0)
+    //       return true;   // This is the child process, so continue with life
+    //   // Otherwise, this is the parent process, so terminate
+    //   exit (0); 
+    // But it's not.  On OS X, it's not safe to fork() if your app is linked
+    // against certain libraries or frameworks.  So the only thing that I
+    // think is safe is to exec a new process.
+    // Another solution is this:
+    //    daemon (1, 1);
+    // But it suffers from the same problem on OS X, and seems to just be
+    // a wrapper for fork.
+
+#if defined(__linux__) || defined(__GLIBC__)
+    // Simplest case:
+    // daemon returns 0 if successful, thus return true if successful
+    return daemon (1, 1) == 0;
+#endif
+
+#ifdef __APPLE__
+    std::string newcmd = std::string(argv[0]) + " -F";
+    for (int i = 1;  i < argc;  ++i) {
+        newcmd += " \"";
+        newcmd += argv[i];
+        newcmd += "\"";
+    }
+    newcmd += " &";
+    if (system (newcmd.c_str()) != -1)
+        exit (0);
+    return true;
+#endif
+
+#ifdef WIN32
+    return true;
+#endif
+
+    // Otherwise, we don't know what to do
+    return false;
 }
 
 

@@ -235,6 +235,8 @@ adjust_spec (ImageInput *in, ImageOutput *out,
         }
     }
     if (! dataformatname.empty()) {
+        // make sure there isn't a stray BPS that will screw us up
+        outspec.erase_attribute ("oiio:BitsPerSample");
         if (dataformatname == "uint8")
             outspec.set_format (TypeDesc::UINT8);
         else if (dataformatname == "int8")
@@ -365,15 +367,17 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
     std::string tempname = out_filename;
     if (tempname == in_filename) {
-        tempname = out_filename + ".tmp."
-                    + Filesystem::file_extension (out_filename);
+        tempname = out_filename + ".tmp"
+                    + Filesystem::extension (out_filename);
     }
 
     // Find an ImageIO plugin that can open the input file, and open it.
     ImageInput *in = ImageInput::open (in_filename.c_str());
     if (! in) {
-        std::cerr << "iconvert ERROR: Could not open \"" << in_filename
-                  << "\" : " << geterror() << "\n";
+        std::string err = geterror();
+        std::cerr << "iconvert ERROR: " 
+                  << (err.length() ? err : Strutil::format("Could not open \"%s\"", in_filename))
+                  << "\n";
         delete in;
         return false;
     }
@@ -435,8 +439,10 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
                 mode = ImageOutput::Create;
 
             if (! out->open (tempname.c_str(), outspec, mode)) {
-                std::cerr << "iconvert ERROR: Could not open \"" << out_filename
-                          << "\" : " << out->geterror() << "\n";
+                std::string err = geterror();
+                std::cerr << "iconvert ERROR: " 
+                          << (err.length() ? err : Strutil::format("Could not open \"%s\"", out_filename))
+                          << "\n";
                 ok = false;
                 break;
             }
@@ -477,7 +483,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     std::time_t in_time;
     if (metadatatime.empty() ||
            ! DateTime_to_time_t (metadatatime.c_str(), in_time))
-        in_time = boost::filesystem::last_write_time (in_filename);
+        in_time = Filesystem::last_write_time (in_filename);
 
     if (out_filename != tempname) {
         if (ok) {
@@ -491,7 +497,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     // If user requested, try to adjust the file's modification time to
     // the creation time indicated by the file's DateTime metadata.
     if (ok && adjust_time)
-        boost::filesystem::last_write_time (out_filename, in_time);
+        Filesystem::last_write_time (out_filename, in_time);
 
     return ok;
 }
@@ -503,7 +509,7 @@ main (int argc, char *argv[])
 {
     getargs (argc, argv);
 
-    OIIO_NAMESPACE::attribute ("threads", nthreads);
+    OIIO::attribute ("threads", nthreads);
 
     bool ok = true;
 

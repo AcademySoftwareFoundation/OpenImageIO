@@ -53,6 +53,14 @@ static int unit_test_failures = 0;
              << "\tvalues were '" << (x) << "' and '" << (y) << "'\n"), \
             (void)++unit_test_failures))
 
+#define OIIO_CHECK_EQUAL_THRESH(x,y,eps)                                \
+    ((std::abs((x)-(y)) <= eps) ? ((void)0)                             \
+         : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \
+             << "FAILED: " << #x << " == " << #y << "\n"                \
+             << "\tvalues were '" << (x) << "' and '" << (y) << "'"     \
+             << ", diff was " << std::abs((x)-(y)) << "\n"),            \
+            (void)++unit_test_failures))
+
 #define OIIO_CHECK_NE(x,y)                                              \
     (((x) != (y)) ? ((void)0)                                           \
          : ((std::cout << __FILE__ << ":" << __LINE__ << ":\n"          \

@@ -35,9 +35,15 @@
 #include <iostream>
 #include <cmath>
 #include <sstream>
+#include <limits>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <shellapi.h>
+#endif
 
 #include "dassert.h"
 
@@ -48,7 +54,7 @@ OIIO_NAMESPACE_ENTER
 {
 
 std::string
-Strutil::format (const char *fmt, ...)
+Strutil::format_raw (const char *fmt, ...)
 {
     va_list ap;
     va_start (ap, fmt);
@@ -147,9 +153,9 @@ Strutil::timeintervalformat (double secs, int digits)
     int m = (int) floor (secs / mins);
     secs = fmod (secs, mins);
     if (d)
-        out += format ("%dd ", d);
-    if (h || d)
-        out += format ("%2dh ", h);
+        out += format ("%dd %dh ", d, h);
+    else if (h)
+        out += format ("%dh ", h);
     if (m || h || d)
         out += format ("%dm %1.*fs", m, digits, secs);
     else
@@ -335,6 +341,118 @@ Strutil::to_upper (std::string &a)
 {
     boost::algorithm::to_upper (a, loc);
 }
+
+
+
+std::string
+Strutil::strip (const std::string &str, const std::string &chars)
+{
+    const char *stripchars = (chars.empty() ? " \t\n\r\f\v" : chars.c_str());
+    size_t b = str.find_first_not_of (stripchars);
+    if (b == std::string::npos)
+        return std::string("");
+    size_t e = str.find_last_not_of (stripchars);
+    DASSERT (e != std::string::npos);
+    return std::string (str, b, e-b+1);
+}
+
+
+
+static void
+split_whitespace (const std::string &str, std::vector<std::string> &result,
+                  int maxsplit)
+{
+    // Implementation inspired by Pystring
+    std::string::size_type i, j, len = str.size();
+    for (i = j = 0; i < len; ) {
+        while (i < len && ::isspace(str[i]))
+            i++;
+        j = i;
+        while (i < len && ! ::isspace(str[i]))
+            i++;
+        if (j < i) {
+            if (maxsplit-- <= 0)
+                break;
+            result.push_back (str.substr(j, i - j));
+            while (i < len && ::isspace(str[i]))
+                i++;
+            j = i;
+        }
+    }
+    if (j < len)
+        result.push_back (str.substr(j, len - j));
+}
+
+
+
+void
+Strutil::split (const std::string &str, std::vector<std::string> &result,
+                const std::string &sep, int maxsplit)
+{
+    // Implementation inspired by Pystring
+    result.clear();
+    if (maxsplit < 0)
+        maxsplit = std::numeric_limits<int>::max();
+    if (sep.size() == 0) {
+        split_whitespace (str, result, maxsplit);
+        return;
+    }
+    size_t i = 0, j = 0, len = str.size(), n = sep.size();
+    while (i+n <= len) {
+        if (str[i] == sep[0] && str.substr(i, n) == sep) {
+            if (maxsplit-- <= 0)
+                break;
+            result.push_back (str.substr(j, i - j));
+            i = j = i + n;
+        } else {
+            i++;
+        }
+    }
+    result.push_back (str.substr(j, len-j));
+}
+
+
+
+std::string
+Strutil::join (const std::vector<std::string> &seq, const std::string & str)
+{
+    // Implementation inspired by Pystring
+    size_t seqlen = seq.size();
+    if (seqlen == 0)
+        return "";
+    std::string result (seq[0]);
+    for (size_t i = 1; i < seqlen; ++i)
+        result += str + seq[i];
+    return result;
+}
+
+
+
+#ifdef _WIN32
+std::wstring
+Strutil::utf8_to_utf16 (const std::string& str)
+{
+    std::wstring native;
+    
+    native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0));
+    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], native.size());
+
+    return native;
+}
+
+
+
+std::string
+Strutil::utf16_to_utf8 (const std::wstring& str)
+{
+    std::string utf8;
+
+    utf8.resize(WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
+    WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, &utf8[0], utf8.size(), NULL, NULL);
+
+    return utf8;
+}
+#endif
 
 
 }

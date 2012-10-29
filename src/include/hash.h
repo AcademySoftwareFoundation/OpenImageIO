@@ -40,29 +40,9 @@
 
 #include <boost/version.hpp>
 
-#if BOOST_VERSION >= 103600
 #define OIIO_HAVE_BOOST_UNORDERED_MAP
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
-#endif
 
-#ifndef OIIO_HAVE_BOOST_UNORDERED_MAP
-
-#ifdef __GNUC__
-
-#include <ext/hash_map>
-#include <ext/hash_set>
-using __gnu_cxx::hash_map;
-using __gnu_cxx::hash_set;
-
-#else // __GNUC__
-
-#ifdef _MSC_VER
-#error Boost 1.36 or greater with "unordered_map" support required.
-#endif // _MSC_VER
-
-#endif // __GNUC__
-
-#endif // OIIO_HAVE_BOOST_UNORDERED_MAP
 
 #endif // OPENIMAGEIO_HASH_H

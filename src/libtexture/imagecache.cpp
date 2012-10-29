@@ -45,7 +45,6 @@ using namespace std::tr1;
 #include "varyingref.h"
 #include "ustring.h"
 #include "filesystem.h"
-#include "hash.h"
 #include "thread.h"
 #include "fmath.h"
 #include "strutil.h"
@@ -119,8 +118,6 @@ iorate_compare (const ImageCacheFileRef &a, const ImageCacheFileRef &b)
 
 
 
-#ifdef OIIO_HAVE_BOOST_UNORDERED_MAP
-
 /// Perform "map[key] = value", and set sweep_iter = end() if it is invalidated.
 ///
 /// For some reason, unordered_map::insert and operator[] may invalidate
@@ -141,23 +138,6 @@ void safe_insert (HashMapT& map, const typename HashMapT::key_type& key,
     if (nbuckets_pre_insert != map.bucket_count())
         sweep_iter = map.end ();
 }
-
-#else
-
-template<typename HashMapT>
-void safe_insert (HashMapT& map, const typename HashMapT::key_type& key,
-                  const typename HashMapT::mapped_type& value,
-                  typename HashMapT::iterator& /*sweep_iter*/)
-{
-    // Traditional implementations of hash_map don't typically invalidate
-    // iterators on insertion.
-    //   - VC++'s stdext::hash_map, according to msdn, and 
-    //   - The implementation coming with g++ according to some vague
-    //     indications in the SGI docs & other places on the web.
-    map[key] = value;
-}
-
-#endif
 
 
 };  // end anonymous namespace
@@ -313,7 +293,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_input.reset (ImageInput::create (m_filename.c_str(),
                                        m_imagecache.plugin_searchpath().c_str()));
     if (! m_input) {
-        imagecache().error ("%s", OIIO_NAMESPACE::geterror().c_str());
+        imagecache().error ("%s", OIIO::geterror().c_str());
         m_broken = true;
         invalidate_spec ();
         return false;
@@ -379,6 +359,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                     si.sscale = si.tscale = 1.0f;
                     si.soffset = si.toffset = 0.0f;
                 }
+                si.subimagename = ustring (tempspec.get_string_attribute("oiio:subimagename"));
             }
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled = true;
@@ -414,6 +395,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
                 invalidate_spec ();
                 return false;
             }
+            // ImageCache can't store differing formats per channel
+            tempspec.channelformats.clear();
             LevelInfo levelinfo (tempspec, nativespec);
             si.levels.push_back (levelinfo);
             ++nmip;
@@ -587,7 +570,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     m_channelsize = m_datatype.size();
     m_pixelsize = m_channelsize * spec.nchannels;
     m_eightbit = (m_datatype == TypeDesc::UINT8);
-    m_mod_time = boost::filesystem::last_write_time (m_filename.string());
+    m_mod_time = Filesystem::last_write_time (m_filename.string());
 
     DASSERT (! m_broken);
     m_validspec = true;
@@ -763,7 +746,7 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
     }
 
     // Now convert and copy those values out to the caller's buffer
-    lores.copy_pixels (0, tw, 0, th, format, data);
+    lores.get_pixels (0, tw, 0, th, 0, 1, format, data);
 
     // Restore the microcache to the way it was before.
     thread_info->tile = oldtile;
@@ -787,8 +770,10 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
     if (m_input->current_subimage() != subimage ||
         m_input->current_miplevel() != miplevel) {
         ImageSpec tmp;
-        if (! m_input->seek_subimage (subimage, miplevel, tmp))
+        if (! m_input->seek_subimage (subimage, miplevel, tmp)) {
+            imagecache().error ("%s", m_input->geterror().c_str());
             return false;
+        }
     }
 
     // We should not hold the tile mutex at this point
@@ -943,6 +928,11 @@ ImageCacheImpl::find_file (ustring filename,
     ImageCacheFile *tf = NULL;
     bool newfile = false;
 
+    // Debugging aid: attribute "substitute_image" forces all image
+    // references to be to one named file.
+    if (m_substitute_image)
+        filename = m_substitute_image;
+
     // Part 1 - make sure the ImageCacheFile entry exists and is in the
     // file cache.  For this part, we need to lock the file cache.
     {
@@ -950,7 +940,7 @@ ImageCacheImpl::find_file (ustring filename,
         Timer timer;
 #endif
         DASSERT (m_filemutex_holder != thread_info);
-        ic_read_lock readguard (m_filemutex);
+        ic_write_lock readguard (m_filemutex);
         DASSERT (m_filemutex_holder == NULL);
         filemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
@@ -997,7 +987,6 @@ ImageCacheImpl::find_file (ustring filename,
             // What if we've opened another file, with a different name,
             // but the SAME pixels?  It can happen!  Bad user, bad!  But
             // let's save them from their own foolishness.
-            bool was_duplicate = false;
             if (tf->fingerprint() && m_deduplicate) {
                 // std::cerr << filename << " hash=" << tf->fingerprint() << "\n";
                 ImageCacheFile *dup = find_fingerprint (tf->fingerprint(), tf);
@@ -1016,7 +1005,6 @@ ImageCacheImpl::find_file (ustring filename,
                         tf->m_sample_border == dup->m_sample_border) {
                         tf->duplicate (dup);
                         tf->close ();
-                        was_duplicate = true;
                         // std::cerr << "  duplicates " 
                         //   << fingerfound->second.get()->filename() << "\n";
                     }
@@ -1104,7 +1092,7 @@ ImageCacheImpl::check_max_files_with_lock (ImageCachePerThreadInfo *thread_info)
     Timer timer;
 #endif
     DASSERT (m_filemutex_holder != thread_info);
-    ic_read_lock readguard (m_filemutex);
+    ic_write_lock readguard (m_filemutex);
     DASSERT (m_filemutex_holder == NULL);
     filemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
@@ -1211,12 +1199,9 @@ ImageCacheTile::read (ImageCachePerThreadInfo *thread_info)
 void
 ImageCacheTile::wait_pixels_ready () const
 {
+    atomic_backoff backoff;
     while (! m_pixels_ready) {
-        // Be kind to the CPU.  As far as I know, this does nothing on
-        // Windows.  Any Windows gurus know a better idea?
-#ifdef __TBB_Yield
-        __TBB_Yield ();
-#endif
+        backoff();
     }
 }
 
@@ -1571,7 +1556,7 @@ ImageCacheImpl::reset_stats ()
     }
 
     {
-        ic_read_lock fileguard (m_filemutex);
+        ic_write_lock fileguard (m_filemutex);
         for (FilenameMap::const_iterator f = m_files.begin(); f != m_files.end(); ++f) {
             const ImageCacheFileRef &file (f->second);
             file->m_timesopened = 0;
@@ -1701,6 +1686,9 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
             m_latlong_y_up_default = y_up;
             do_invalidate = true;
         }
+    } else if (name == "substitute_image" && type == TypeDesc::STRING) {
+        m_substitute_image = ustring (*(const char **)val);
+        do_invalidate = true;
     } else {
         // Otherwise, unknown name
         return false;
@@ -1760,6 +1748,10 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
         *(const char **)val = ustring (m_latlong_y_up_default ? "y" : "z").c_str();
         return true;
     }
+    if (name == "substitute_image" && type == TypeDesc::STRING) {
+        *(const char **)val = m_substitute_image.c_str();
+        return true;
+    }
 
     // Stats we can just grab
     ATTR_DECODE ("stat:cache_memory_used", long long, m_mem_used);
@@ -1804,48 +1796,39 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
 
     ++stats.find_tile_microcache_misses;
 
-    {
 #if IMAGECACHE_TIME_STATS
-        Timer timer;
+    Timer timer1;
 #endif
+    TileCache::iterator found;
+    {
         DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
         ic_read_lock readguard (m_tilemutex);
-        tilemutex_holder (thread_info);
+        // tilemutex_holder (thread_info);
 #if IMAGECACHE_TIME_STATS
-        stats.tile_locking_time += timer();
+        stats.tile_locking_time += timer1();
 #endif
-
-        TileCache::iterator found = m_tilecache.find (id);
+        found = m_tilecache.find (id);
 #if IMAGECACHE_TIME_STATS
-        stats.find_tile_time += timer();
+        stats.find_tile_time += timer1();
 #endif
-        if (found != m_tilecache.end()) {
+        if (found != m_tilecache.end())
             tile = found->second;
-            // We need to release the tile lock BEFORE calling
-            // wait_pixels_ready, or we could end up deadlocked if the
-            // other thread reading the pixels needs to lock the cache
-            // because it's doing automip.
-            DASSERT (m_tilemutex_holder == thread_info); // better still be us
-            tilemutex_holder (NULL);
-            m_tilemutex.unlock ();
-            tile->wait_pixels_ready ();
-            tile->use ();
-            DASSERT (id == tile->id());
-            DASSERT (tile);
-            DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
-            // Relock -- this shouldn't be necessary, but by golly, if I
-            // don't do this, I get inconsistent lock states.  Maybe a TBB
-            // bug in the lock_guard destructor if the spin mutex was 
-            // unlocked by hand, as above?
-            // FIXME -- try removing this if/when we upgrade to a newer TBB.
-            m_tilemutex.lock ();
-            return true;
-        }
-        DASSERT (tilemutex_holder() == thread_info); // better still be us
-        tilemutex_holder (NULL);
+        // DASSERT (m_tilemutex_holder == thread_info); // better still be us
+        // tilemutex_holder (NULL);
     }
 
-    DASSERT (m_tilemutex_holder != thread_info); // shouldn't hold
+    if (found != m_tilecache.end()) {
+        // We found the tile in the cache, but we need to make sure we
+        // wait until the pixels are ready to read.  We purposely have
+        // released the lock (above) before calling wait_pixels_ready,
+        // otherwise we could deadlock if another thread reading the
+        // pixels needs to lock the cache because it's doing automip.
+        tile->wait_pixels_ready ();
+        tile->use ();
+        DASSERT (id == tile->id());
+        DASSERT (tile);
+        return true;
+    }
 
     // The tile was not found in cache.
 
@@ -2120,6 +2103,18 @@ ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
 
 
 
+int
+ImageCacheImpl::subimage_from_name (ImageCacheFile *file, ustring subimagename)
+{
+    for (int s = 0, send = file->subimages();  s < send;  ++s) {
+        if (file->subimageinfo(s).subimagename == subimagename)
+            return s;
+    }
+    return -1;  // No matching subimage name
+}
+
+
+
 bool
 ImageCacheImpl::get_pixels (ustring filename, int subimage, int miplevel,
                             int xbegin, int xend, int ybegin, int yend,
@@ -2278,7 +2273,7 @@ ImageCacheImpl::invalidate (ustring filename)
 {
     ImageCacheFile *file = NULL;
     {
-        ic_read_lock fileguard (m_filemutex);
+        ic_write_lock fileguard (m_filemutex);
         FilenameMap::iterator fileit = m_files.find (filename);
         if (fileit != m_files.end()) {
             file = fileit->second.get();
@@ -2337,7 +2332,7 @@ ImageCacheImpl::invalidate_all (bool force)
     // Make a list of all files that need to be invalidated
     std::vector<ustring> all_files;
     {
-        ic_read_lock fileguard (m_filemutex);
+        ic_write_lock fileguard (m_filemutex);
         for (FilenameMap::iterator fileit = m_files.begin();
                  fileit != m_files.end();  ++fileit) {
             ImageCacheFileRef &f (fileit->second);
@@ -2347,7 +2342,7 @@ ImageCacheImpl::invalidate_all (bool force)
                 all_files.push_back (name);
                 continue;
             }
-            std::time_t t = boost::filesystem::last_write_time (name.string());
+            std::time_t t = Filesystem::last_write_time (name.string());
             // Invalidate the file if it has been modified since it was
             // last opened, or if 'force' is true.
             bool inval = force || (t != f->mod_time());
@@ -2466,7 +2461,7 @@ ImageCacheImpl::geterror () const
 
 
 void
-ImageCacheImpl::error (const char *message, ...)
+ImageCacheImpl::append_error (const std::string& message) const
 {
     std::string *errptr = m_errormessage.get ();
     if (! errptr) {
@@ -2478,10 +2473,7 @@ ImageCacheImpl::error (const char *message, ...)
             "Accumulated error messages > 16MB. Try checking return codes!");
     if (errptr->size())
         *errptr += '\n';
-    va_list ap;
-    va_start (ap, message);
-    *errptr += Strutil::vformat (message, ap);
-    va_end (ap);
+    *errptr += message;
 }
 
 

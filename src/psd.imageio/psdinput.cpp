@@ -477,7 +477,7 @@ bool
 PSDInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
-    m_file.open (name.c_str(), std::ios::binary);
+    Filesystem::open (m_file, name, std::ios::binary);
     if (!m_file.is_open ()) {
         error ("\"%s\": failed to open file", name.c_str());
         return false;

@@ -44,6 +44,7 @@
 #include "sysutil.h"
 #include "argparse.h"
 #include "dassert.h"
+#include "filesystem.h"
 
 OIIO_NAMESPACE_ENTER
 {
@@ -321,6 +322,7 @@ ArgOption::add_argument (const char *argv)
 ArgParse::ArgParse (int argc, const char **argv)
     : m_argc(argc), m_argv(argv), m_global(NULL)
 {
+    Filesystem::convert_native_arguments (m_argc, m_argv);
 }
 
 
@@ -347,6 +349,8 @@ ArgParse::parse (int xargc, const char **xargv)
 {
     m_argc = xargc;
     m_argv = xargv;
+
+    Filesystem::convert_native_arguments (m_argc, m_argv);
 
     for (int i = 1; i < m_argc; i++) {
         if (m_argv[i][0] == '-' && 
@@ -487,15 +491,6 @@ ArgParse::found (const char *option_name)
 }
 
 
-
-void
-ArgParse::error (const char *format, ...)
-{
-    va_list ap;
-    va_start (ap, format);
-    m_errmessage = Strutil::vformat (format, ap);
-    va_end (ap);
-}
 
 std::string
 ArgParse::geterror () const
