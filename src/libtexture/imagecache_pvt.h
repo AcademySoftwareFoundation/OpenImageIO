@@ -177,6 +177,7 @@ public:
     size_t pixelsize () const { return m_pixelsize; }
     bool eightbit (void) const { return m_eightbit; }
     bool mipused (void) const { return m_mipused; }
+    const std::vector<size_t> &mipreadcount (void) const { return m_mipreadcount; }
 
     void invalidate ();
 
@@ -279,6 +280,7 @@ private:
     size_t m_timesopened;           ///< Separate times we opened this file
     double m_iotime;                ///< I/O time for this file
     bool m_mipused;                 ///< MIP level >0 accessed
+    std::vector<size_t> m_mipreadcount; ///< Tile reads per mip level
     volatile bool m_validspec;      ///< If false, reread spec upon open
     ImageCacheImpl &m_imagecache;   ///< Back pointer for ImageCache
     mutable recursive_mutex m_input_mutex; ///< Mutex protecting the ImageInput
