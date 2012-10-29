@@ -727,7 +727,8 @@ ImageBuf::pixeladdr (int x, int y, int z)
     z -= spec().z;
     size_t p = y * m_spec.scanline_bytes() + x * m_spec.pixel_bytes();
     if (z)
-        p += z * m_spec.scanline_bytes() * spec().height;
+      p += z * clamped_mult64 (m_spec.scanline_bytes(), (imagesize_t)spec().height);
+//        p += z * m_spec.scanline_bytes() * spec().height;
     return &(m_pixels[p]);
 }
 

@@ -178,30 +178,30 @@ catalog_plugin (const std::string &format_name,
     extern const char *name ## _output_extensions[];    \
     extern const char *name ## _input_extensions[];
 
-    PLUGENTRY (bmp);
-    PLUGENTRY (cineon);
-    PLUGENTRY (dds);
-    PLUGENTRY (dpx);
-    PLUGENTRY (field3d);
-    PLUGENTRY (fits);
-    PLUGENTRY (hdr);
-    PLUGENTRY (ico);
-    PLUGENTRY (iff);
+//    PLUGENTRY (bmp);
+//    PLUGENTRY (cineon);
+//    PLUGENTRY (dds);
+//    PLUGENTRY (dpx);
+//    PLUGENTRY (field3d);
+//    PLUGENTRY (fits);
+//    PLUGENTRY (hdr);
+//    PLUGENTRY (ico);
+//    PLUGENTRY (iff);
     PLUGENTRY (jpeg);
-    PLUGENTRY (jpeg2000);
-    PLUGENTRY (openexr);
+//    PLUGENTRY (jpeg2000);
+//    PLUGENTRY (openexr);
     PLUGENTRY (png);
-    PLUGENTRY (pnm);
-    PLUGENTRY (psd);
-    PLUGENTRY (ptex);
-    PLUGENTRY (rla);
-    PLUGENTRY (sgi);
-    PLUGENTRY (socket);
-    PLUGENTRY (softimage);
+//    PLUGENTRY (pnm);
+//    PLUGENTRY (psd);
+//    PLUGENTRY (ptex);
+//    PLUGENTRY (rla);
+//    PLUGENTRY (sgi);
+//    PLUGENTRY (socket);
+//    PLUGENTRY (softimage);
     PLUGENTRY (tiff);
-    PLUGENTRY (targa);
-    PLUGENTRY (webp);
-    PLUGENTRY (zfile);
+//    PLUGENTRY (targa);
+//    PLUGENTRY (webp);
+//    PLUGENTRY (zfile);
 
 
 #endif // defined(EMBED_PLUGINS)
@@ -225,38 +225,38 @@ catalog_builtin_plugins ()
                     (create_prototype) name ## _output_imageio_create,  \
                     name ## _output_extensions)
 
-    DECLAREPLUG (bmp);
-    DECLAREPLUG (cineon);
-    DECLAREPLUG (dds);
-    DECLAREPLUG (dpx);
+//    DECLAREPLUG (bmp);
+//    DECLAREPLUG (cineon);
+//    DECLAREPLUG (dds);
+//    DECLAREPLUG (dpx);
 #ifdef USE_FIELD3D
     DECLAREPLUG (field3d);
 #endif
-    DECLAREPLUG (fits);
-    DECLAREPLUG (hdr);
-    DECLAREPLUG (ico);
-    DECLAREPLUG (iff);
+//    DECLAREPLUG (fits);
+//    DECLAREPLUG (hdr);
+//    DECLAREPLUG (ico);
+//    DECLAREPLUG (iff);
     DECLAREPLUG (jpeg);
 #ifdef USE_OPENJPEG
     DECLAREPLUG (jpeg2000);
 #endif
-    DECLAREPLUG (openexr);
+//    DECLAREPLUG (openexr);
     DECLAREPLUG (png);
-    DECLAREPLUG (pnm);
-    DECLAREPLUG (psd);
-    DECLAREPLUG (ptex);
-    DECLAREPLUG (rla);
-    DECLAREPLUG (sgi);
+//    DECLAREPLUG (pnm);
+//    DECLAREPLUG (psd);
+//    DECLAREPLUG (ptex);
+//    DECLAREPLUG (rla);
+//    DECLAREPLUG (sgi);
 #ifdef USE_BOOST_ASIO
     DECLAREPLUG (socket);
 #endif
-    DECLAREPLUG (softimage);
+//    DECLAREPLUG (softimage);
     DECLAREPLUG (tiff);
-    DECLAREPLUG (targa);
+//    DECLAREPLUG (targa);
 #ifdef USE_WEBP
     DECLAREPLUG (webp);
 #endif
-    DECLAREPLUG (zfile);
+//    DECLAREPLUG (zfile);
 #endif
 }
 
