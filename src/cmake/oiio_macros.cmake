@@ -115,7 +115,9 @@ macro (oiio_add_tests)
                 set (_add_test_args ${_testname} python)
                 set (_extra_test_args "")
             endif ()
-            message (STATUS "TEST ${_testname}: ${CMAKE_BINARY_DIR}/testsuite/runtest.py ${_testdir} ${_extra_test_args}")
+            if (VERBOSE)
+                message (STATUS "TEST ${_testname}: ${CMAKE_BINARY_DIR}/testsuite/runtest.py ${_testdir} ${_extra_test_args}")
+            endif ()
             add_test (${_add_test_args}
                       ${CMAKE_BINARY_DIR}/testsuite/runtest.py
                       ${_testdir}

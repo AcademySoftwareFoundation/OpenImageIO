@@ -64,6 +64,7 @@ if (CMAKE_COMPILER_IS_CLANG)
 endif ()
 
 
+set (VERBOSE OFF CACHE BOOL "Print lots of messages while compiling")
 set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
 set (BUILDSTATIC OFF CACHE BOOL "Build static library instead of shared")
 set (LINKSTATIC OFF CACHE BOOL "Link with static external libraries when possible")
@@ -90,7 +91,9 @@ if (NOTHREADS)
     message (STATUS "NO THREADS!")
     add_definitions ("-DNOTHREADS=1")
 else ()
-    message (STATUS "Building with thread support")
+    if (VERBOSE)
+        message (STATUS "Building with thread support")
+    endif ()
 endif ()
 
 if (USE_TBB)

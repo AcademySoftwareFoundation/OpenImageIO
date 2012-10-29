@@ -178,10 +178,12 @@ if (OPENEXR_FOUND)
     list (APPEND OPENEXR_LIBRARIES ${${tmplib}})
   endforeach ()
   list (APPEND OPENEXR_LIBRARIES ${ZLIB_LIBRARIES})
-  FIND_PACKAGE_MESSAGE (OPENEXR
-    "Found OpenEXR: ${OPENEXR_LIBRARIES}"
-    "[${OPENEXR_INCLUDE_DIR}][${OPENEXR_LIBRARIES}][${OPENEXR_CURRENT_STATE}]"
-  )
+  if (VERBOSE)
+    FIND_PACKAGE_MESSAGE (OPENEXR
+      "Found OpenEXR: ${OPENEXR_LIBRARIES}"
+      "[${OPENEXR_INCLUDE_DIR}][${OPENEXR_LIBRARIES}][${OPENEXR_CURRENT_STATE}]"
+      )
+  endif ()
 endif ()
 
 # Unset the helper variables to avoid pollution
