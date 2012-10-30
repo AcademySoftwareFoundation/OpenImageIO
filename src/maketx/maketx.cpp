@@ -1213,8 +1213,14 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
         std::cout << "  Top level is " << formatres(outspec) << std::endl;
     }
 
-    bool ok = true;
-    ok &= img.write (out);
+    if (! img.write (out)) {
+        // ImageBuf::write transfers any errors from the ImageOutput to
+        // the ImageBuf.
+        std::cerr << "maketx ERROR: Write failed \" : " << img.geterror() << "\n";
+        out->close ();
+        exit (EXIT_FAILURE);
+    }
+
     stat_writetime += writetimer();
 
     if (mipmap) {  // Mipmap levels:
@@ -1222,7 +1228,7 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             std::cout << "  Mipmapping...\n" << std::flush;
         ImageBuf tmp;
         ImageBuf *big = &img, *small = &tmp;
-        while (ok && (outspec.width > 1 || outspec.height > 1)) {
+        while (outspec.width > 1 || outspec.height > 1) {
             Timer miptimer;
             ImageSpec smallspec;
 
@@ -1295,7 +1301,6 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
             Timer writetimer;
             // If the format explicitly supports MIP-maps, use that,
             // otherwise try to simulate MIP-mapping with multi-image.
-            bool ok = false;
             ImageOutput::OpenMode mode = out->supports ("mipmap") ?
                 ImageOutput::AppendMIPLevel : ImageOutput::AppendSubimage;
             if (! out->open (outputfilename.c_str(), outspec, mode)) {
@@ -1303,7 +1308,14 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                           << "\" : " << out->geterror() << "\n";
                 exit (EXIT_FAILURE);
             }
-            ok &= small->write (out);
+            if (! small->write (out)) {
+                // ImageBuf::write transfers any errors from the
+                // ImageOutput to the ImageBuf.
+                std::cerr << "maketx ERROR writing \"" << outputfilename
+                          << "\" : " << small->geterror() << "\n";
+                out->close ();
+                exit (EXIT_FAILURE);
+            }
             stat_writetime += writetimer();
             if (verbose) {
                 std::cout << "    " << formatres(smallspec) << std::endl;
@@ -1316,15 +1328,12 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
         std::cout << "  Wrote file: " << outputfilename << std::endl;
     writetimer.reset ();
     writetimer.start ();
-    if (ok)
-        ok &= out->close ();
-    stat_writetime += writetimer ();
-
-    if (! ok) {
+    if (! out->close ()) {
         std::cerr << "maketx ERROR writing \"" << outputfilename
                   << "\" : " << out->geterror() << "\n";
         exit (EXIT_FAILURE);
     }
+    stat_writetime += writetimer ();
 }
 
 
