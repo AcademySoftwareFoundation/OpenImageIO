@@ -1,5 +1,5 @@
-set (libutil_srcs argparse.cpp errorhandler.cpp
-                  filesystem.cpp filter.cpp paramlist.cpp plugin.cpp SHA1.cpp
+set (libutil_srcs argparse.cpp errorhandler.cpp filesystem.cpp
+                  filter.cpp hashes.cpp paramlist.cpp plugin.cpp SHA1.cpp
                   strutil.cpp sysutil.cpp typedesc.cpp ustring.cpp pystring.cpp
                   pugixml.cpp pugixpath.cpp)
 add_library (util SHARED ${libutil_srcs})
