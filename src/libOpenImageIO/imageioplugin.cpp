@@ -184,30 +184,30 @@ catalog_plugin (const std::string &format_name,
     extern const char *name ## _output_extensions[];    \
     extern const char *name ## _input_extensions[];
 
-//    PLUGENTRY (bmp);
-//    PLUGENTRY (cineon);
-//    PLUGENTRY (dds);
-//    PLUGENTRY (dpx);
-//    PLUGENTRY (field3d);
-//    PLUGENTRY (fits);
-//    PLUGENTRY (hdr);
-//    PLUGENTRY (ico);
-//    PLUGENTRY (iff);
+    PLUGENTRY (bmp);
+    PLUGENTRY (cineon);
+    PLUGENTRY (dds);
+    PLUGENTRY (dpx);
+    PLUGENTRY (field3d);
+    PLUGENTRY (fits);
+    PLUGENTRY (hdr);
+    PLUGENTRY (ico);
+    PLUGENTRY (iff);
     PLUGENTRY (jpeg);
-//    PLUGENTRY (jpeg2000);
-//    PLUGENTRY (openexr);
+    PLUGENTRY (jpeg2000);
+    PLUGENTRY (openexr);
     PLUGENTRY (png);
-//    PLUGENTRY (pnm);
-//    PLUGENTRY (psd);
-//    PLUGENTRY (ptex);
-//    PLUGENTRY (rla);
-//    PLUGENTRY (sgi);
-//    PLUGENTRY (socket);
-//    PLUGENTRY (softimage);
+    PLUGENTRY (pnm);
+    PLUGENTRY (psd);
+    PLUGENTRY (ptex);
+    PLUGENTRY (rla);
+    PLUGENTRY (sgi);
+    PLUGENTRY (socket);
+    PLUGENTRY (softimage);
     PLUGENTRY (tiff);
-//    PLUGENTRY (targa);
-//    PLUGENTRY (webp);
-//    PLUGENTRY (zfile);
+    PLUGENTRY (targa);
+    PLUGENTRY (webp);
+    PLUGENTRY (zfile);
 
 
 #endif // defined(EMBED_PLUGINS)

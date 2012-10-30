@@ -442,6 +442,8 @@ ImageBuf::read (int subimage, int miplevel, bool force, TypeDesc convert,
                ProgressCallback progress_callback,
                void *progress_callback_data)
 {
+    if (m_clientpixels)
+        return true;        // Don't real client allocated images (no error)
     if (pixels_valid() && !force &&
             subimage == this->subimage() && miplevel == this->miplevel())
         return true;
