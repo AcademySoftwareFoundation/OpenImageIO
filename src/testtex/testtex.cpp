@@ -49,6 +49,7 @@
 #include "sysutil.h"
 #include "strutil.h"
 #include "timer.h"
+#include "../libtexture/imagecache_pvt.h"
 
 OIIO_NAMESPACE_USING
 
@@ -85,6 +86,7 @@ static bool nountiled = false;
 static bool nounmipped = false;
 static bool gray_to_rgb = false;
 static bool resetstats = false;
+static bool testhash = false;
 static Imath::M33f xform;
 void *dummyptr;
 
@@ -148,6 +150,7 @@ getargs (int argc, const char *argv[])
                   "--nounmipped", &nounmipped, "Reject unmipped images",
                   "--graytorgb", &gray_to_rgb, "Convert gratscale textures to RGB",
                   "--resetstats", &resetstats, "Print and reset statistics on each iteration",
+                  "--testhash", &testhash, "Test the tile hashing function",
                   NULL);
     if (ap.parse (argc, argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -159,7 +162,8 @@ getargs (int argc, const char *argv[])
         exit (EXIT_FAILURE);
     }
 
-    if (filenames.size() < 1) {
+    if (filenames.size() < 1 &&
+          !test_construction && !test_getimagespec && !testhash) {
         std::cerr << "testtex: Must have at least one input file\n";
         ap.usage();
         exit (EXIT_FAILURE);
@@ -713,6 +717,114 @@ test_getimagespec_gettexels (ustring filename)
 
 
 
+static void
+test_hash ()
+{
+    std::vector<size_t> fourbits (1<<4, 0);
+    std::vector<size_t> eightbits (1<<8, 0);
+    std::vector<size_t> sixteenbits (1<<16, 0);
+    std::vector<size_t> highereightbits (1<<8, 0);
+
+    const size_t iters = 1000000;
+    const int res = 4*1024;  // Simulate tiles from a 4k image
+    const int tilesize = 64;
+    const int nfiles = iters / ((res/tilesize)*(res/tilesize));
+    std::cout << "Testing hashing with " << nfiles << " files of "
+              << res << 'x' << res << " with " << tilesize << 'x' << tilesize
+              << " tiles:\n";
+
+    ImageCache *imagecache = ImageCache::create ();
+
+    // Set up the ImageCacheFiles outside of the timing loop
+    using OIIO::pvt::ImageCacheImpl;
+    using OIIO::pvt::ImageCacheFile;
+    using OIIO::pvt::ImageCacheFileRef;
+    std::vector<ImageCacheFileRef> icf;
+    for (int f = 0;  f < nfiles;  ++f) {
+        ustring filename = ustring::format ("%06d.tif", f);
+        icf.push_back (new ImageCacheFile(*(ImageCacheImpl *)imagecache, NULL, filename));
+    }
+
+    // First, just try to do raw timings of the hash
+    Timer timer;
+    size_t i = 0, hh = 0;
+    for (int f = 0;  f < nfiles;  ++f) {
+        for (int y = 0;  y < res;  y += tilesize) {
+            for (int x = 0;  x < res;  x += tilesize, ++i) {
+                OIIO::pvt::TileID id (*icf[f], 0, 0, x, y, 0);
+                size_t h = id.hash();
+                hh += h;
+            }
+        }
+    }
+    std::cout << "hh = " << hh << "\n";
+    double time = timer();
+    double rate = (i/1.0e6) / time;
+    std::cout << "Hashing rate: " << Strutil::format ("%3.2f", rate)
+              << " Mhashes/sec\n";
+
+    // Now, check the quality of the hash by looking at the low 4, 8, and
+    // 16 bits and making sure that they divide into hash buckets fairly
+    // evenly.
+    i = 0;
+    for (int f = 0;  f < nfiles;  ++f) {
+        for (int y = 0;  y < res;  y += tilesize) {
+            for (int x = 0;  x < res;  x += tilesize, ++i) {
+                OIIO::pvt::TileID id (*icf[f], 0, 0, x, y, 0);
+                size_t h = id.hash();
+                ++ fourbits[h & 0xf];
+                ++ eightbits[h & 0xff];
+                ++ highereightbits[(h>>24) & 0xff];
+                ++ sixteenbits[h & 0xffff];
+                // if (i < 16) std::cout << Strutil::format("%llx\n", h);
+            }
+        }
+    }
+
+    size_t min, max;
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0;  i < 16;  ++i) {
+        if (fourbits[i] < min) min = fourbits[i];
+        if (fourbits[i] > max) max = fourbits[i];
+    }
+    std::cout << "4-bit hash buckets range from "
+              << min << " to " << max << "\n";
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0;  i < 256;  ++i) {
+        if (eightbits[i] < min) min = eightbits[i];
+        if (eightbits[i] > max) max = eightbits[i];
+    }
+    std::cout << "8-bit hash buckets range from "
+              << min << " to " << max << "\n";
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0;  i < 256;  ++i) {
+        if (highereightbits[i] < min) min = highereightbits[i];
+        if (highereightbits[i] > max) max = highereightbits[i];
+    }
+    std::cout << "higher 8-bit hash buckets range from "
+              << min << " to " << max << "\n";
+
+    min = std::numeric_limits<size_t>::max();
+    max = 0;
+    for (int i = 0;  i < (1<<16);  ++i) {
+        if (sixteenbits[i] < min) min = sixteenbits[i];
+        if (sixteenbits[i] > max) max = sixteenbits[i];
+    }
+    std::cout << "16-bit hash buckets range from "
+              << min << " to " << max << "\n";
+
+    std::cout << "\n";
+
+    ImageCache::destroy (imagecache);
+}
+
+
+
 int
 main (int argc, const char *argv[])
 {
@@ -762,7 +874,11 @@ main (int argc, const char *argv[])
         iters = 0;
     }
 
-    if (iters > 0) {
+    if (testhash) {
+        test_hash ();
+    }
+
+    if (iters > 0 && filenames.size()) {
         ustring filename (filenames[0]);
         test_gettextureinfo (filename);
         const char *texturetype = "Plain Texture";
