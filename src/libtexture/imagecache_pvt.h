@@ -639,6 +639,7 @@ public:
     bool forcefloat () const { return m_forcefloat; }
     bool accept_untiled () const { return m_accept_untiled; }
     bool accept_unmipped () const { return m_accept_unmipped; }
+    bool unassociatedalpha () const { return m_unassociatedalpha; }
     int failure_retries () const { return m_failure_retries; }
     bool latlong_y_up_default () const { return m_latlong_y_up_default; }
     void get_commontoworld (Imath::M44f &result) const {
@@ -927,6 +928,7 @@ private:
     bool m_accept_unmipped;      ///< Accept unmipped images?
     bool m_read_before_insert;   ///< Read tiles before adding to cache?
     bool m_deduplicate;          ///< Detect duplicate files?
+    bool m_unassociatedalpha;    ///< Keep unassociated alpha files as they are?
     int m_failure_retries;       ///< Times to re-try disk failures
     bool m_latlong_y_up_default; ///< Is +y the default "up" for latlong?
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
