@@ -115,6 +115,7 @@ static int nchannels = -1;
 static bool prman = false;
 static bool oiio = false;
 static bool src_samples_border = false; // are src edge samples on the border?
+static bool ignore_unassoc = false;  // ignore unassociated alpha tags
 
 static bool unpremult = false;
 static std::string incolorspace;
@@ -266,6 +267,7 @@ getargs (int argc, char *argv[])
                   "--constant-color-detect", &constant_color_detect, "Create 1-tile textures from constant color inputs",
                   "--monochrome-detect", &monochrome_detect, "Create 1-channel textures from monochrome inputs",
                   "--opaque-detect", &opaque_detect, "Drop alpha channel that is always 1.0",
+                  "--ignore-unassoc", &ignore_unassoc, "Ignore unassociated alpha tags in input (don't autoconvert)",
                   "--stats", &stats, "Print runtime statistics",
                   "--mipimage %L", &mipimages, "Specify an individual MIP level",
 //FIXME           "-c %s", &channellist, "Restrict/shuffle channels",
@@ -886,6 +888,9 @@ make_texturemap (const char *maptypename = "texture map")
     // Maybe a bug in libtiff zip compression for tiles?  So let's
     // stick to the default compression.
 
+    if (ignore_unassoc)
+        dstspec.erase_attribute ("oiio:UnassociatedAlpha");
+
     // Put a DateTime in the out file, either now, or matching the date
     // stamp of the input file (if update mode).
     time_t date;
@@ -1347,6 +1352,7 @@ main (int argc, char *argv[])
     ImageCache *ic = ImageCache::create ();  // get the shared one
     ic->attribute ("forcefloat", 1);   // Force float upon read
     ic->attribute ("max_memory_MB", 1024.0);  // 1 GB cache
+    ic->attribute ("unassociatedalpha", (int)ignore_unassoc);
 
     if (mipmapmode) {
         make_texturemap ("texture map");

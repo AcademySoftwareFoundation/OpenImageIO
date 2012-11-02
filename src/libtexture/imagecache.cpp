@@ -319,11 +319,15 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         return false;
     }
 
+    ImageSpec configspec;
+    if (imagecache().unassociatedalpha())
+        configspec.attribute ("oiio:UnassociatedAlpha", 1);
+
     ImageSpec nativespec, tempspec;
     m_broken = false;
     bool ok = true;
     for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
-        ok = m_input->open (m_filename.c_str(), nativespec);
+        ok = m_input->open (m_filename.c_str(), nativespec, configspec);
         if (ok) {
             tempspec = nativespec;
             if (tries)   // succeeded, but only after a failure!
@@ -1279,6 +1283,7 @@ ImageCacheImpl::init ()
     m_accept_untiled = true;
     m_accept_unmipped = true;
     m_read_before_insert = false;
+    m_unassociatedalpha = false;
     m_failure_retries = 0;
     m_latlong_y_up_default = true;
     m_Mw2c.makeIdentity();
@@ -1706,6 +1711,13 @@ ImageCacheImpl::attribute (const std::string &name, TypeDesc type,
             do_invalidate = true;
         }
     }
+    else if (name == "unassociatedalpha" && type == TypeDesc::INT) {
+        int r = *(const int *)val;
+        if (r != m_unassociatedalpha) {
+            m_unassociatedalpha = r;
+            do_invalidate = true;
+        }
+    }
     else if (name == "failure_retries" && type == TypeDesc::INT) {
         m_failure_retries = *(const int *)val;
     }
@@ -1748,6 +1760,7 @@ ImageCacheImpl::getattribute (const std::string &name, TypeDesc type,
     ATTR_DECODE ("accept_untiled", int, m_accept_untiled);
     ATTR_DECODE ("accept_unmipped", int, m_accept_unmipped);
     ATTR_DECODE ("read_before_insert", int, m_read_before_insert);
+    ATTR_DECODE ("unassociatedalpha", int, m_unassociatedalpha);
     ATTR_DECODE ("failure_retries", int, m_failure_retries);
 
     // The cases that don't fit in the simple ATTR_DECODE scheme
