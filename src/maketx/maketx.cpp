@@ -1345,12 +1345,11 @@ main (int argc, char *argv[])
     getargs (argc, argv);
 
     OIIO::attribute ("threads", nthreads);
-    if (stats) {
-        ImageCache *ic = ImageCache::create ();  // get the shared one
-        ic->attribute ("forcefloat", 1);   // Force float upon read
-        ic->attribute ("max_memory_MB", 1024.0);  // 1 GB cache
-        // N.B. This will apply to the default IC that any ImageBuf's get.
-    }
+
+    // N.B. This will apply to the default IC that any ImageBuf's get.
+    ImageCache *ic = ImageCache::create ();  // get the shared one
+    ic->attribute ("forcefloat", 1);   // Force float upon read
+    ic->attribute ("max_memory_MB", 1024.0);  // 1 GB cache
 
     if (mipmapmode) {
         make_texturemap ("texture map");
@@ -1391,7 +1390,6 @@ main (int argc, char *argv[])
     Filter2D::destroy (filter);
 
     if (stats) {
-        ImageCache *ic = ImageCache::create ();  // get the shared one
         std::cout << "\n" << ic->getstats();
     }
 
