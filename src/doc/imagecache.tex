@@ -350,6 +350,13 @@ default is zero, meaning that failures of open or tile reading will
 immediately return as a failure.
 \apiend
 
+\apiitem{int unassociatedalpha}
+When nonzero, will request that image format readers try to leave input
+images with unassociated alpha as they are, rather than automatically
+converting to associated alpha upon reading the pixels.  The default is
+0, meaning that the automatic conversion will take place.
+\apiend
+
 \apiitem{string options}
 This catch-all is simply a comma-separated list of {\cf name=value}
 settings of named options.  For example,

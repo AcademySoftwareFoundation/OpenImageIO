@@ -206,6 +206,15 @@ textures will assume that missing alpha channels are equivalent to
 textures whose alpha is 1.0 everywhere.
 \apiend
 
+\apiitem{--ignore-unassoc}
+\NEW Ignore any header tags in the input images that indicate that the
+input has ``unassociated'' alpha.  When this option is used, color
+channels with unassociated alpha will not be automatically multiplied
+by alpha to turn them into associated alpha. This is also a good way
+to fix input images that really are associated alpha, but whose headers
+incorrectly indicate that they are unassociated alpha. 
+\apiend
+
 \apiitem{--prman}
 PRMan is will crash in strange ways if given textures that don't have
 its quirky set of tile sizes and other specific metadata.  If you want
