@@ -1,5 +1,28 @@
 Changes:
 
+Release 1.0.10 (5 Nov 2012)
+---------------------------
+* ImageCache: more graceful handling of the inability to free handles or
+  tiles under extreme conditions. Rather than assert when we can't free
+  enough to stay within limits, just issue an error and allow the limits
+  to be exceeded (hopefully only by a little, and temporarily).
+* ImageCache: Detailed per-file stats now track the number of tile reads 
+  per MIPmap level.
+* ImageCache attribute "unassociatedalpha" (when nonzero) requests that
+  IC images not convert unassociated alpha image to associated alpha.
+* maketx option --ignore-unassoc leaves unassociated alpha data as it is
+  (no auto-conversion to associated alpha) and/or ignores the tags for
+  an input file that is associated but incorrectly tagged as unassociated
+  alpha.
+* oiiotool & info: the --hash command had a bug wherein when applied to
+  images there were MIP-mapped, would hash the lowest-res MIP level rather
+  than the highest-res.  This could result in two different images, if
+  they happened to have the same average color, to incorrectly report
+  the same SHA-1 hash.  Note that this did NOT affect non-MIPmapped images,
+  nor did it affect the SHA-1 hashing that occurred in maketx to allow
+  the TextureSystem to detect duplicate textures.
+
+
 Release 1.0.9 (4 Sep 2012)
 ----------------------------
 * Improve error messages when trying to open an OpenEXR image that doesn't
