@@ -1,5 +1,11 @@
 Changes:
 
+Release 0.10.14 (5 Nov 2012)
+----------------------------
+* ImageCache/TextureSystem: Detailed per-file stats show tiles read per
+  MIPmap level.
+
+
 Release 0.10.13 (17 Oct 2012)
 -----------------------------
 * TIFF: Recognize nonstandard Adobe use of IEEEFP and 16 bitspersample as
