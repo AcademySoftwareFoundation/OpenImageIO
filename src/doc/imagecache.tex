@@ -365,6 +365,12 @@ use the named image in place of \emph{all} other images.  This allows
 you to run an app using OIIO and (if you can manage to get this option
 set) automagically substitute a grid, zone plate, or other special
 debugging image for all image/texture use.
+
+\apiitem{int unassociatedalpha}
+When nonzero, will request that image format readers try to leave input
+images with unassociated alpha as they are, rather than automatically
+converting to associated alpha upon reading the pixels.  The default is
+0, meaning that the automatic conversion will take place.
 \apiend
 
 \apiitem{string options}
