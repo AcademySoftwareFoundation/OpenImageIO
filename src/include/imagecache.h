@@ -95,6 +95,8 @@ public:
     ///     int forcefloat : if nonzero, convert all to float.
     ///     int failure_retries : number of times to retry a read before fail.
     ///     int deduplicate : if nonzero, detect duplicate textures (default=1)
+    ///     string substitute_image : uses the named image in place of all
+    ///                               texture and image references.
     ///     int unassociatedalpha : if nonzero, keep unassociated alpha images
     ///
     virtual bool attribute (const std::string &name, TypeDesc type,

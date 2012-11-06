@@ -1,7 +1,7 @@
 Changes:
 
-Release 1.1 (developmet in progress, compared to 1.0.4)
--------------------------------------------------------
+Release 1.1 (developmet in progress, compared to 1.0.10)
+---------------------------------------------------------
 Major new features and improvements:
 * Support for reading and writing "deep" images (including OpenEXR 2.0).
 * Big ImageCache/TextureSystem improvements:
@@ -86,6 +86,14 @@ Fixes, minor enhancements, and performance improvements:
   - Texture files are no longer limited to having tile sizes that are
     powers of 2.
   - Much faster TIFF texture access (by speeding up switching of MIPmap levels).
+  - More graceful handling of the inability to free handles or tiles
+    under extreme conditions. Rather than assert when we can't free
+    enough to stay within limits, just issue an error and allow the
+    limits to be exceeded (hopefully only by a little, and temporarily).
+  - Detailed per-file stats now track the number of tile reads per
+    MIPmap level.
+  - Attribute "unassociatedalpha" (when nonzero) requests that
+    IC images not convert unassociated alpha image to associated alpha.
 * iconvert handles the int32 and uint32 cases.
 * Bug fix in to_native_rectangle, which could lead to errors in certain
   data format conversions.
@@ -111,6 +119,11 @@ Fixes, minor enhancements, and performance improvements:
   present as a multi-image file with the "oiio:subimagename" giving a
   unique name for each layer subimage; 
 * OpenEXR: suppress format-specific metadata from other formats.
+* Targa: fix several bugs that were preventing certain metadata from being
+  written properly.
+* TIFF: recognize the SAMPLEFORMAT_IEEEFP/bitspersample=16 as an image
+  composed of "half" pixels; enable PREDICTOR_FLOATINGPOINT to give slightly
+  better compression of float images.
 * Handle UTF-8 paths properly on Windows.
 * Removed the obsolete "iprocess" utility.
 * Fix allocation and stride bugs when dealing with images having different data
@@ -128,6 +141,21 @@ Fixes, minor enhancements, and performance improvements:
 * Fixes to handle Windows utf8 filenames properly.
 * ImageBufAlgo::compare() gives a sensible error (rather than an assertion)
   if the images being compared are not float.
+* maketx:
+  - Better error messages for a variety of things that could go wrong when
+    reading or writing image files.
+  - Fixes for bug preventing certain ImageCache efficiencies.
+  - new option --ignore-unassoc leaves unassociated alpha data as it is
+    (no auto-conversion to associated alpha) and/or ignores the tags for
+    an input file that is associated but incorrectly tagged as
+    unassociated alpha.
+* oiiotool & info: the --hash command had a bug wherein when applied to
+  images there were MIP-mapped, would hash the lowest-res MIP level rather
+  than the highest-res.  This could result in two different images, if
+  they happened to have the same average color, to incorrectly report
+  the same SHA-1 hash.  Note that this did NOT affect non-MIPmapped images,
+  nor did it affect the SHA-1 hashing that occurred in maketx to allow
+  the TextureSystem to detect duplicate textures.
 
 Build/test system improvements:
 * Various Windows build fixes, including fixes for Windows 7, and 
@@ -144,6 +172,14 @@ Build/test system improvements:
 * New testtex options: --aniso, --stblur
 * CMake option 'EXTRA_CPP_DEFINITIONS' lets custom builds inject
   site-specific compiler flags.
+* Make/cmake option: HIDE_SYMBOLS=1 will try to restrict symbol visibility
+  so that only symbols intended to be part of the public APIs will be
+  visible in the library when linked.
+* The old DLLPUBLIC and LLEXPORT macros, which could clash with other
+  packages, have been renamed to OIIO_API and OIIO_EXPORT.
+* Greatly reduced output when building with cmake; by default, most
+  non-error status messages only are printed when VERBOSE=1 compilation
+  is requested.
 
 Developer goodies:
 * Strutil new utilities: iequals, istarts_with, iends_with, to_lower,
@@ -165,6 +201,68 @@ Developer goodies:
 * Windows utf8 filename utilities path_to_windows_native and
   path_from_windows_native.
 
+
+
+Release 1.0.10 (5 Nov 2012)
+---------------------------
+* ImageCache: more graceful handling of the inability to free handles or
+  tiles under extreme conditions. Rather than assert when we can't free
+  enough to stay within limits, just issue an error and allow the limits
+  to be exceeded (hopefully only by a little, and temporarily).
+* ImageCache: Detailed per-file stats now track the number of tile reads 
+  per MIPmap level.
+* ImageCache attribute "unassociatedalpha" (when nonzero) requests that
+  IC images not convert unassociated alpha image to associated alpha.
+* maketx option --ignore-unassoc leaves unassociated alpha data as it is
+  (no auto-conversion to associated alpha) and/or ignores the tags for
+  an input file that is associated but incorrectly tagged as unassociated
+  alpha.
+* oiiotool & info: the --hash command had a bug wherein when applied to
+  images there were MIP-mapped, would hash the lowest-res MIP level rather
+  than the highest-res.  This could result in two different images, if
+  they happened to have the same average color, to incorrectly report
+  the same SHA-1 hash.  Note that this did NOT affect non-MIPmapped images,
+  nor did it affect the SHA-1 hashing that occurred in maketx to allow
+  the TextureSystem to detect duplicate textures.
+
+Release 1.0.9 (4 Sep 2012)
+----------------------------
+* Improve error messages when trying to open an OpenEXR image that doesn't
+  exist or is not a valid OpenEXR file.
+* Make the TextureSystem work properly with MIPmapped images whose tile
+  size is not a power of 2 (mostly back-ported from master, but with
+  additional fixes).
+
+Release 1.0.8 (17 July 2012)
+----------------------------
+* Fix quantization/truncation bug that sometimes left tiny alpha holes in
+  8 bit images (making some alpha value that should be 255, instead 254).
+* TextureSystem: fix fill_channels for monochrome+alpha images to properly
+  expand to "RRRA."
+
+Release 1.0.7 (8 July 2012)
+---------------------------
+* Bug fix when reading vector Field3D files.
+* Fix input of tiled images with per-channel formats.
+* Add testsuite/nonwhole-tiles and testsuite/perchannel.
+* Bug fix when reading binary PNM files.
+
+Release 1.0.6 (12 Jun 2012)
+---------------------------
+* Fix allocation and stride bugs in that could overrun a buffer when
+  reading tiled images whose resolution was not a whole number of tiles.
+* Fix stride bugs when reading scanline images with differing data types
+  per channel.
+* Fixes for FreeBSD compilation.
+
+Release 1.0.5 (3 Jun 2012)
+--------------------------
+* Various fixes for FreeBSD/kFreeBSD systems.
+* Various fixes to compile with Clang 3.1 without warnings.
+* Fixed some DPX and Cineon bugs related to channel names.
+* Fixed some mangled text in the PDF documentation.
+* Developer goodie: TypeDesc::equivalent() tests two TypeDesc's for
+  equality, but allows 'triples' with differing vector semantics to match.
 
 Release 1.0.4 (2 May 2012)
 --------------------------
