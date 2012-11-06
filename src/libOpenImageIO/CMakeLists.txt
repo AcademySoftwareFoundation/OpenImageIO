@@ -40,6 +40,7 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
                           ../libutil/filter.cpp 
+                          ../libutil/hashes.cpp 
                           ../libutil/paramlist.cpp 
                           ../libutil/plugin.cpp 
                           ../libutil/pystring.cpp
@@ -311,3 +312,7 @@ add_test (unit_filesystem filesystem_test)
 add_executable (optparser_test optparser_test.cpp)
 target_link_libraries (optparser_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (unit_optparser optparser_test)
+
+add_executable (hash_test hash_test.cpp)
+target_link_libraries (hash_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_hash hash_test)

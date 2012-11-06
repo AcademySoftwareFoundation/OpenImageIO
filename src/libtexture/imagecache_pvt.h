@@ -40,6 +40,7 @@
 
 #include "texture.h"
 #include "refcnt.h"
+#include "hash.h"
 
 
 OIIO_NAMESPACE_ENTER
@@ -371,10 +372,6 @@ public:
     int y (void) const { return m_y; }
     int z (void) const { return m_z; }
 
-    void x (int v) { m_x = v; }
-    void y (int v) { m_y = v; }
-    void z (int v) { m_z = v; }
-
     /// Do the two ID's refer to the same tile?  
     ///
     friend bool equal (const TileID &a, const TileID &b) {
@@ -398,13 +395,19 @@ public:
     ///
     bool operator== (const TileID &b) const { return equal (*this, b); }
 
-    /// Digest the TileID into a size_t to use as a hash key.  We do
-    /// this by multiplying each element by a different prime and
-    /// summing, so that collisions are unlikely.
+    /// Digest the TileID into a size_t to use as a hash key.
     size_t hash () const {
+#if 0
+        // original -- turned out not to fill hash buckets evenly
         return m_x * 53 + m_y * 97 + m_z * 193 + 
                m_subimage * 389 + m_miplevel * 1543 +
                m_file.filename().hash() * 769;
+#else
+        // Good compromise!
+        return bjhash::bjfinal (m_x+1543, m_y + 6151 + m_z*769,
+                                m_miplevel + (m_subimage<<8))
+                           + m_file.filename().hash();
+#endif
     }
 
     /// Functor that hashes a TileID
