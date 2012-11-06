@@ -82,7 +82,10 @@ print_sha1 (ImageInput *input)
             return;
         }
         boost::scoped_array<unsigned char> buf(new unsigned char[(unsigned int)size]);
-        input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0]);
+        if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
+            printf ("    SHA-1: unable to compute, could not read image\n");
+            return;
+        }
         sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
     }
 
@@ -464,6 +467,9 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
                          boost::regex_search ("sha-1", field_re))) {
         if (opt.filenameprefix)
             printf ("%s : ", filename.c_str());
+        // Before sha-1, be sure to point back to the highest-res MIP level
+        ImageSpec tmpspec;
+        input->seek_subimage (current_subimage, 0, tmpspec);
         print_sha1 (input);
     }
 
