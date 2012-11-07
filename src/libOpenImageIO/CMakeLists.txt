@@ -69,6 +69,10 @@ endif ()
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
 if (EMBEDPLUGINS)
+    if (BUILDSTATIC)
+        # If building static, need to define this for Ptex
+        add_definitions ("-DSTATIC_PTEX=1")
+    endif ()
     set (libOpenImageIO_srcs ${libOpenImageIO_srcs}
         ../bmp.imageio/bmpinput.cpp ../bmp.imageio/bmpoutput.cpp
         ../bmp.imageio/bmp_pvt.cpp
@@ -155,6 +159,10 @@ if (EMBEDPLUGINS)
              ../jpeg2000.imageio/jpeg2000input.cpp ../jpeg2000.imageio/jpeg2000output.cpp)
         include_directories (${OPENJPEG_INCLUDE_DIR})
         add_definitions("-DUSE_OPENJPEG")
+        if (BUILDSTATIC)
+            # If building static, need to define this for OpenJPEG
+            add_definitions ("-DOPJ_STATIC=1")
+        endif ()
     else()
         message (STATUS "Jpeg-2000 plugin will not be built")
     endif()
