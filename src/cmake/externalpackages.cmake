@@ -249,7 +249,7 @@ endif ()
 if (USE_OPENGL)
     set (GLEW_VERSION 1.5.1)
     find_library (GLEW_LIBRARIES
-                  NAMES GLEW)
+                  NAMES GLEW glew32)
     find_path (GLEW_INCLUDES
                NAMES glew.h
                PATH_SUFFIXES GL)
