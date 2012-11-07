@@ -38,6 +38,8 @@
 #ifndef OPENIMAGEIO_HASH_H
 #define OPENIMAGEIO_HASH_H
 
+#include <vector>
+
 #include <boost/version.hpp>
 
 #define OIIO_HAVE_BOOST_UNORDERED_MAP
@@ -161,6 +163,52 @@ inline uint64_t fmix (uint64_t k)
 }
 
 };  // end namespace murmur
+
+
+class CSHA1;  // opaque forward declaration
+
+
+/// Class that encapsulates SHA-1 hashing, a crypticographic-strength
+/// 160-bit hash function.  It's not as fast as our other hashing
+/// methods, but has an extremely low chance of having collisions.
+class OIIO_API SHA1 {
+public:
+    /// Create SHA1, optionally read data
+    SHA1 (const void *data=NULL, size_t size=0);
+    ~SHA1 ();
+
+    /// Append more data
+    void append (const void *data, size_t size);
+    /// Append more data from a vector, without thinking about sizes.
+    template<class T> void appendvec (const std::vector<T> &v) {
+        append (&v[0], v.size()*sizeof(T));
+    }
+
+    /// Type for storing the raw bits of the hash
+    struct Hash {
+        unsigned char hash[20];
+    };
+
+    /// Get the digest and store it in Hash h.
+    void gethash (Hash &h);
+
+    /// Get the digest and store it in h (must point to enough storage
+    /// to accommodate 20 bytes).
+    void gethash (void *h) { gethash (*(Hash *)h); }
+
+    /// Return the digest as a hex string
+    std::string digest ();
+
+    /// Roll the whole thing into one functor, return the string digest.
+    static std::string digest (const void *data, size_t size) {
+        SHA1 s (data, size);  return s.digest();
+    }
+
+private:
+    CSHA1 *m_csha1;
+    bool m_final;
+};
+
 
 } OIIO_NAMESPACE_EXIT
 
