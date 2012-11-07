@@ -200,7 +200,7 @@ typedef union
 	UINT_32 l[16];
 } SHA1_WORKSPACE_BLOCK;
 
-class OIIO_API CSHA1
+class CSHA1
 {
 public:
 #ifdef SHA1_UTILITY_FUNCTIONS
