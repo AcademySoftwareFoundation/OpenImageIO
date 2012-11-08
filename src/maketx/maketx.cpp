@@ -396,9 +396,6 @@ set_oiio_options(TypeDesc out_dataformat)
     // Interleaved channels are faster to read
     separate = false;
     
-    // Enable constant color optimizations
-    constant_color_detect = true;
-    
     // Force fixed tile-size across the board
     tile[0] = 64;
     tile[1] = 64;
@@ -747,21 +744,34 @@ make_texturemap (const char *maptypename = "texture map")
     stat_readtime += readtimer();
     
     // If requested - and we're a constant color - make a tiny texture instead
+    // Only safe if the full/display window is the same as the data window.
+    // Also note that this could affect the appearance when using "black"
+    // wrap mode at runtime.
     std::vector<float> constantColor(src.nchannels());
-    bool isConstantColor = ImageBufAlgo::isConstantColor (src, &constantColor[0]);
-    
-    if (isConstantColor && constant_color_detect) {
-        ImageSpec newspec = src.spec();
-        
-        // Reset the image, to a new image, at the new size
-        std::string name = src.name() + ".constant_color";
-        src.reset(name, newspec);
-        
-        ImageBufAlgo::fill (src, &constantColor[0]);
-        
-        if (verbose) {
-            std::cout << "  Constant color image detected. ";
-            std::cout << "Creating " << newspec.width << "x" << newspec.height << " texture instead.\n";
+    bool isConstantColor = false;
+    if (constant_color_detect &&
+        src.spec().x == 0 && src.spec().y == 0 && src.spec().z == 0 &&
+        src.spec().full_x == 0 && src.spec().full_y == 0 &&
+        src.spec().full_z == 0 && src.spec().full_width == src.spec().width &&
+        src.spec().full_height == src.spec().height &&
+        src.spec().full_depth == src.spec().depth) {
+        isConstantColor = ImageBufAlgo::isConstantColor (src, &constantColor[0]);
+        if (isConstantColor) {
+            // Reset the image, to a new image, at the tile size
+            ImageSpec newspec = src.spec();
+            newspec.width  = std::min (tile[0], src.spec().width);
+            newspec.height = std::min (tile[1], src.spec().height);
+            newspec.depth  = std::min (tile[2], src.spec().depth);
+            newspec.full_width  = newspec.width;
+            newspec.full_height = newspec.height;
+            newspec.full_depth  = newspec.depth;
+            std::string name = src.name() + ".constant_color";
+            src.reset(name, newspec);
+            ImageBufAlgo::fill (src, &constantColor[0]);
+            if (verbose) {
+                std::cout << "  Constant color image detected. ";
+                std::cout << "Creating " << newspec.width << "x" << newspec.height << " texture instead.\n";
+            }
         }
     }
     
@@ -778,8 +788,9 @@ make_texturemap (const char *maptypename = "texture map")
     }
 
     // If requested - and we're a monochrome image - drop the extra channels
-    if (monochrome_detect && (src.nchannels() > 1) && nchannels < 0 &&
-            ImageBufAlgo::isMonochrome(src)) {
+    if (monochrome_detect && nchannels < 0 &&
+          src.nchannels() == 3 && src.spec().alpha_channel < 0 &&  // RGB only
+          ImageBufAlgo::isMonochrome(src)) {
         ImageBuf newsrc(src.name() + ".monochrome", src.spec());
         ImageBufAlgo::setNumChannels (newsrc, src, 1);
         src.copy (newsrc);
