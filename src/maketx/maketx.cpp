@@ -71,6 +71,7 @@ static bool stats = false;
 static int nthreads = 0;    // default: use #cores threads if available
 static int tile[3] = { 64, 64, 1 };
 static std::string channellist;
+static std::string compression = "zip";
 static bool updatemode = false;
 static double stat_readtime = 0;
 static double stat_writetime = 0;
@@ -236,9 +237,7 @@ getargs (int argc, char *argv[])
                           "uint8, sint8, uint16, sint16, half, float",
                   "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
                   "--separate", &separate, "Use planarconfig separate (default: contiguous)",
-//                  "--ingamma %f", &ingamma, "Specify gamma of input files (default: 1)",
-//                  "--outgamma %f", &outgamma, "Specify gamma of output files (default: 1)",
-//                  "--opaquewidth %f", &opaquewidth, "Set z fudge factor for volume shadows",
+                  "--compression %s", &compression, "Set the compression method (default = zip, if possible)",
                   "--fov %f", &fov, "Field of view for envcube/shadcube/twofish",
                   "--fovcot %f", &fovcot, "Override the frame aspect ratio. Default is width/height.",
                   "--wrap %s", &wrap, "Specify wrap mode (black, clamp, periodic, mirror)",
@@ -885,11 +884,7 @@ make_texturemap (const char *maptypename = "texture map")
     dstspec.tile_height = tile[1];
     dstspec.tile_depth  = tile[2];
 
-    // Always use ZIP compression
-    dstspec.attribute ("compression", "zip");
-    // Ugh, the line above seems to trigger a bug in the tiff library.
-    // Maybe a bug in libtiff zip compression for tiles?  So let's
-    // stick to the default compression.
+    dstspec.attribute ("compression", compression);
 
     if (ignore_unassoc)
         dstspec.erase_attribute ("oiio:UnassociatedAlpha");
