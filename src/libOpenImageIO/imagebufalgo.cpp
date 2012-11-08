@@ -1469,11 +1469,12 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
 
     // A set of likely directories for fonts to live, across several systems.
     std::vector<std::string> search_dirs;
-    std::string home = getenv ("HOME");
-    if (! home.empty()) {
-        search_dirs.push_back (home + "/fonts");
-        search_dirs.push_back (home + "/Fonts");
-        search_dirs.push_back (home + "/Library/Fonts");
+    const char *home = getenv ("HOME");
+    if (home && *home) {
+        std::string h (home);
+        search_dirs.push_back (h + "/fonts");
+        search_dirs.push_back (h + "/Fonts");
+        search_dirs.push_back (h + "/Library/Fonts");
     }
     search_dirs.push_back ("/usr/share/fonts");
     search_dirs.push_back ("/Library/Fonts");
