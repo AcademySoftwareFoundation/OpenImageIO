@@ -22,14 +22,34 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
     message (STATUS "Python found ${PYTHONLIBS_FOUND} ")
     message (STATUS "Python include dirs ${PYTHON_INCLUDE_PATH}")
     message (STATUS "Python libraries    ${PYTHON_LIBRARIES}")
+    message (STATUS "Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
+    message (STATUS "Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
 
     include_directories (${PYTHON_INCLUDE_PATH} ${Boost_INCLUDE_DIRS})
     add_library (PyOpenImageIO SHARED ${python_srcs})
     target_link_libraries (PyOpenImageIO OpenImageIO ${Boost_LIBRARIES} ${Boost_Python_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
 
-    set_target_properties (PyOpenImageIO PROPERTIES
-                             OUTPUT_NAME OpenImageIO
-                             PREFIX "")
+    # Exclude the 'lib' prefix from the name
+    if(NOT PYLIB_LIB_PREFIX)
+        add_definitions("-DOIIO_PYMODULE_NAME=OpenImageIO")
+        set_target_properties (PyOpenImageIO PROPERTIES
+                                 OUTPUT_NAME OpenImageIO
+                                 PREFIX "")
+    else()
+        add_definitions("-DOIIO_PYMODULE_NAME=PyOpenImageIO")
+        set_target_properties (PyOpenImageIO PROPERTIES
+                                 OUTPUT_NAME PyOpenImageIO
+                                 PREFIX lib)
+    endif ()
+
+    if(PYLIB_INCLUDE_SONAME)
+        message(STATUS "Setting PyOIIO SOVERSION to: ${SOVERSION}")
+        set_target_properties(PyOpenImageIO PROPERTIES
+            VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
+            SOVERSION ${SOVERSION}
+        )
+    endif()
+
     if (APPLE)
         # Python seems to only look for plugins that end in .so, not .dylib
         set_target_properties (PyOpenImageIO PROPERTIES SUFFIX ".so")
@@ -40,7 +60,7 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
                                DEBUG_POSTFIX "_d"
                                SUFFIX ".pyd")
     endif()
-							 
+    
     install (TARGETS PyOpenImageIO
              RUNTIME DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user
              LIBRARY DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user)
