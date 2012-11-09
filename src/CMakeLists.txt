@@ -38,6 +38,9 @@ set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
 
+set (PYLIB_INCLUDE_SONAME OFF CACHE BOOL "If ON, soname/soversion will be set for Python module library")
+set (PYLIB_LIB_PREFIX OFF CACHE BOOL "If ON, prefix the Python module with 'lib'")
+
 if (NOTHREADS)
     message (STATUS "NO THREADS!")
     add_definitions ("-DNOTHREADS=1")
