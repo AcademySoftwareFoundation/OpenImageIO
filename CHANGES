@@ -149,6 +149,9 @@ Fixes, minor enhancements, and performance improvements:
     (no auto-conversion to associated alpha) and/or ignores the tags for
     an input file that is associated but incorrectly tagged as
     unassociated alpha.
+  - Option --monochrome-detect was buggy for images with alpha.
+  - Option --constant-color-detect didn't do anything; now it works.
+  - New option: --compression allows you to override the default compresion.
 * oiiotool & info: the --hash command had a bug wherein when applied to
   images there were MIP-mapped, would hash the lowest-res MIP level rather
   than the highest-res.  This could result in two different images, if
