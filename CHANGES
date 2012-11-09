@@ -1,5 +1,11 @@
 Changes:
 
+Release 0.10.15 (8 Nov 2012)
+----------------------------
+* Bug fix: texture attribute "wrapmodes" was not properly parsed in file
+  headers. (Back-port from 1.0)
+
+
 Release 0.10.14 (5 Nov 2012)
 ----------------------------
 * ImageCache/TextureSystem: Detailed per-file stats show tiles read per
