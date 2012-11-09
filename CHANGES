@@ -1,5 +1,14 @@
 Changes:
 
+Release 1.0.11 (8 Nov 2012)
+---------------------------
+* maketx bug fix: --monochrome-detect would do the wrong thing for
+  images with alpha.
+* maketx bug fix: --constant-color-detect didn't actually do anything.
+* maketx --compression now allows you to override the default compression
+  of the output texture (default is "zip").
+
+
 Release 1.0.10 (5 Nov 2012)
 ---------------------------
 * ImageCache: more graceful handling of the inability to free handles or
