@@ -1,8 +1,10 @@
 #include <stdio.h>      /* defines printf for tests */
 #include <time.h>       /* defines time_t for timings in the test */
 #include <stdint.h>     /* defines uint32_t etc */
-#include <sys/param.h>  /* attempt to define endianness */
-#ifdef linux
+#if defined(__linux__) || defined(__APPLE__)
+# include <sys/param.h>  /* attempt to define endianness */
+#endif
+#ifdef __linux__
 # include <endian.h>    /* attempt to define endianness */
 #endif
 

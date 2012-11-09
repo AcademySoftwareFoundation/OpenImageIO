@@ -155,9 +155,9 @@ inline uint32_t fmix (uint32_t h)
 inline uint64_t fmix (uint64_t k)
 {
     k ^= k >> 33;
-    k *= 0xff51afd7ed558ccdLLU;
+    k *= 0xff51afd7ed558ccdULL;
     k ^= k >> 33;
-    k *= 0xc4ceb9fe1a85ec53LLU;
+    k *= 0xc4ceb9fe1a85ec53ULL;
     k ^= k >> 33;
     return k;
 }
