@@ -1,7 +1,7 @@
 Changes:
 
-Release 1.1 (developmet in progress, compared to 1.0.10)
----------------------------------------------------------
+Release 1.1 (9 Nov 2012)
+------------------------
 Major new features and improvements:
 * Support for reading and writing "deep" images (including OpenEXR 2.0).
 * Big ImageCache/TextureSystem improvements:
