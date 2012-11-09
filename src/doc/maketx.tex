@@ -79,6 +79,11 @@ RGBRGBRGB...) packing of channels will be used for those file formats
 that support it.
 \apiend
 
+\apiitem{--compression {\rm \emph{method}}}
+Sets the compression method for the output image (the default is to try
+to use \qkw{zip} compression, if it is available).
+\apiend
+
 \apiitem{--update}
 Ordinarily, textures are created unconditionally (which could take
 several seconds for large input files if read over a network) and will
@@ -242,7 +247,7 @@ optimal values for \OpenImageIO's \TextureSystem, overriding any
 contradictory settings on the command line or in the input texture.
 
 Specifically, this is the equivalent to using \\
- {\cf --separate --tile 64 64 --constant-color-detect --hash}.
+ {\cf --separate --tile 64 64 --hash}.
 \apiend
 
 \apiitem{--colorconvert {\rm \emph{inspace outspace}}}
