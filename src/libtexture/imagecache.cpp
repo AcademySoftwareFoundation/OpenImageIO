@@ -753,7 +753,8 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
             ok &= imagecache().get_pixels (this, thread_info,
                                            subimage, miplevel-1,
                                            xlow, xlow+2, ylow, ylow+2,
-                                           0, 1, TypeDesc::FLOAT, bilerppels);
+                                           0, 1, 0, spec.nchannels,
+                                           TypeDesc::FLOAT, bilerppels);
             bilerp (bilerppels+0, bilerppels+spec.nchannels,
                     bilerppels+2*spec.nchannels, bilerppels+3*spec.nchannels,
                     xfrac, yfrac, spec.nchannels, resultpel);
@@ -2169,6 +2170,21 @@ ImageCacheImpl::get_pixels (ustring filename, int subimage, int miplevel,
                             int zbegin, int zend,
                             TypeDesc format, void *result)
 {
+    return get_pixels (filename, subimage, miplevel,
+                       xbegin, xend, ybegin, yend, zbegin, zend,
+                       0, -1, format, result);
+}
+
+
+
+bool
+ImageCacheImpl::get_pixels (ustring filename,
+                            int subimage, int miplevel,
+                            int xbegin, int xend, int ybegin, int yend,
+                            int zbegin, int zend, int chbegin, int chend,
+                            TypeDesc format, void *result, stride_t xstride,
+                            stride_t ystride, stride_t zstride)
+{
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);
     if (! file) {
@@ -2190,8 +2206,10 @@ ImageCacheImpl::get_pixels (ustring filename, int subimage, int miplevel,
         return false;
     }
 
-    return get_pixels (file, thread_info, subimage, miplevel, xbegin, xend, 
-                       ybegin, yend, zbegin, zend, format, result);
+    return get_pixels (file, thread_info, subimage, miplevel,
+                       xbegin, xend, ybegin, yend, zbegin, zend,
+                       chbegin, chend, format, result,
+                       xstride, ystride, zstride);
 }
 
 
@@ -2201,43 +2219,78 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                             ImageCachePerThreadInfo *thread_info,
                             int subimage, int miplevel,
                             int xbegin, int xend, int ybegin, int yend,
-                            int zbegin, int zend, 
-                            TypeDesc format, void *result)
+                            int zbegin, int zend, int chbegin, int chend,
+                            TypeDesc format, void *result,
+                            stride_t xstride, stride_t ystride, stride_t zstride)
 {
     const ImageSpec &spec (file->spec(subimage, miplevel));
     bool ok = true;
+
+    // Compute channels and stride if not given (assume all channels,
+    // contiguous data layout for strides).
+    if (chbegin < 0 || chend < 0) {
+        chbegin = 0;
+        chend = spec.nchannels;
+    }
+    int nchans = chend - chbegin;
+    ImageSpec::auto_stride (xstride, ystride, zstride, format, nchans,
+                            xend-xbegin, yend-ybegin);
 
     // FIXME -- this could be WAY more efficient than starting from
     // scratch for each pixel within the rectangle.  Instead, we should
     // grab a whole tile at a time and memcpy it rapidly.  But no point
     // doing anything more complicated (not to mention bug-prone) until
     // somebody reports this routine as being a bottleneck.
-    int nc = spec.nchannels;
-    size_t formatpixelsize = nc * format.size();
-    size_t scanlinesize = (xend-xbegin) * formatpixelsize;
-    size_t zplanesize = (yend-ybegin) * scanlinesize;
+
+    // formatpixelsize, scanlinesize, and zplanesize assume contiguous
+    // layout.  This may or may not be the same as the strides passed by
+    // the caller.
+    size_t formatsize = format.size();
+    imagesize_t formatpixelsize = nchans * formatsize;
+    imagesize_t scanlinesize = (xend-xbegin) * formatpixelsize;
+    imagesize_t zplanesize = (yend-ybegin) * scanlinesize;
     DASSERT (spec.depth >= 1 && spec.tile_depth >= 1);
-    for (int z = zbegin;  z < zend;  ++z) {
+
+    char *zptr = (char *)result;
+    for (int z = zbegin;  z < zend;  ++z, zptr += zstride) {
         if (z < spec.z || z >= (spec.z+spec.depth)) {
             // nonexistant planes
-            memset (result, 0, zplanesize);
-            result = (void *) ((char *) result + zplanesize);
+            if (xstride == formatpixelsize && ystride == scanlinesize) {
+                // Can zero out the plane in one shot
+                memset (zptr, 0, zplanesize);
+            } else {
+                // Non-contiguous strides -- zero out individual pixels
+                char *yptr = zptr;
+                for (int y = ybegin;  y < yend;  ++y, yptr += ystride) {
+                    char *xptr = yptr;
+                    for (int x = xbegin;  x < xend;  ++x, xptr += xstride)
+                        memset (xptr, 0, formatpixelsize);
+                }
+            }
             continue;
         }
         int tz = z - ((z - spec.z) % spec.tile_depth);
-        for (int y = ybegin;  y < yend;  ++y) {
+        char *yptr = zptr;
+        for (int y = ybegin;  y < yend;  ++y, yptr += ystride) {
             if (y < spec.y || y >= (spec.y+spec.height)) {
                 // nonexistant scanlines
-                memset (result, 0, scanlinesize);
-                result = (void *) ((char *) result + scanlinesize);
+                if (xstride == formatpixelsize) {
+                    // Can zero out the scanline in one shot
+                    memset (yptr, 0, scanlinesize);
+                } else {
+                    // Non-contiguous strides -- zero out individual pixels
+                    char *xptr = yptr;
+                    for (int x = xbegin;  x < xend;  ++x, xptr += xstride)
+                        memset (xptr, 0, formatpixelsize);
+                }
                 continue;
             }
             int ty = y - ((y - spec.y) % spec.tile_height);
-            for (int x = xbegin;  x < xend;  ++x) {
+            char *xptr = yptr;
+            for (int x = xbegin;  x < xend;  ++x, xptr += xstride) {
                 if (x < spec.x || x >= (spec.x+spec.width)) {
                     // nonexistant columns
-                    memset (result, 0, formatpixelsize);
-                    result = (void *) ((char *) result + formatpixelsize);
+                    memset (xptr, 0, formatpixelsize);
                     continue;
                 }
                 int tx = x - ((x - spec.x) % spec.tile_width);
@@ -2246,13 +2299,11 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                 if (! ok)
                     return false;  // Just stop if file read failed
                 ImageCacheTileRef &tile (thread_info->tile);
-                const char *data;
-                if (tile && (data = (const char *)tile->data (x, y, z))) {
-                    convert_types (file->datatype(), data, format, result, nc);
-                } else {
-                    memset (result, 0, formatpixelsize);
-                }
-                result = (void *) ((char *) result + formatpixelsize);
+                ASSERT (tile);
+                const char *data = (const char *)tile->data (x, y, z)
+                                  + chbegin*formatsize;
+                ASSERT (data);
+                convert_types (file->datatype(), data, format, xptr, nchans);
             }
         }
     }
