@@ -391,7 +391,7 @@ of a single integer:
         ImageInput *in = ImageInput::open (filename);
         const ImageSpec &spec = in->spec();
         ...
-        ParamValue *p = spec.find_attribute ("Orientation", TypeDesc::INT);
+        ParamValue *p = spec.find_attribute ("Orientation", TypeDesc::TypeInt);
         if (p) {
             int orientation = * (int *) p->data();
         } else {
@@ -408,6 +408,22 @@ to pixel data, there's no real memory waste of promoting all integer
 types to int32 metadata.  Floating-point metadata and string metadata
 may also exist, of course.
 
+For certain common types, there is an even simpler method for retrieving
+the metadata:
+
+\begin{code}
+    int i = spec.get_int_attribute ("Orientation", 0);
+    float f = spec.get_float_attribute ("PixelAspectRatio", 1.0f);
+    std::string s = spec.get_string_attribute ("ImageDescription", "");
+\end{code}
+
+This method simply returns the value.  The second argument is the
+default value to use if the attribute named is not found.  These
+versions will do automatic type conversion as well --- for example,
+if you ask for a float and the attribute is really an int, it will 
+return the proper float for it; or if the attribute is a UINT16 and
+you call {\cf get_int_attribute}, it will succeed, promoting to an int.
+
 It is also possible to step through all the metadata, item by item.
 This can be accomplished using the technique of the following example:
 
@@ -415,14 +431,21 @@ This can be accomplished using the technique of the following example:
         for (size_t i = 0;  i < spec.extra_attribs.size();  ++i) {
             const ParamValue &p (spec.extra_attribs[i]);
             printf ("    \%s: ", p.name.c_str());
-            if (p.type() == TypeDesc::STRING)
+            if (p.type() == TypeDesc::TypeString)
                 printf ("\"\%s\"", *(const char **)p.data());
-            else if (p.type() == TypeDesc::FLOAT)
+            else if (p.type() == TypeDesc::TypeFloat)
                 printf ("\%g", *(const float *)p.data());
-            else if (p.type() == TypeDesc::INT)
+            else if (p.type() == TypeDesc::TypeInt)
                 printf ("\%d", *(const int *)p.data());
             else if (p.type() == TypeDesc::UINT)
                 printf ("\%u", *(const unsigned int *)p.data());
+            else if (p.type() == TypeDesc::TypeMatrix) {
+                const float *f = (const float *)p.data();
+                printf ("\%f \%f \%f \%f \%f \%f \%f \%f "
+                        "\%f \%f \%f \%f \%f \%f \%f \%f",
+                        f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7],
+                        f[8], f[9], f[10], f[11], f[12], f[13], f[14], f[15]);
+            }
             else
                 printf ("<unknown data type>");
             printf ("\n");
