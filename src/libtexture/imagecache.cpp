@@ -2236,19 +2236,16 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
     ImageSpec::auto_stride (xstride, ystride, zstride, format, nchans,
                             xend-xbegin, yend-ybegin);
 
-    // FIXME -- this could be WAY more efficient than starting from
-    // scratch for each pixel within the rectangle.  Instead, we should
-    // grab a whole tile at a time and memcpy it rapidly.  But no point
-    // doing anything more complicated (not to mention bug-prone) until
-    // somebody reports this routine as being a bottleneck.
-
     // formatpixelsize, scanlinesize, and zplanesize assume contiguous
     // layout.  This may or may not be the same as the strides passed by
     // the caller.
+    TypeDesc cachetype = file->datatype();
+    stride_t cache_stride = cachetype.size() * spec.nchannels;
     size_t formatsize = format.size();
-    imagesize_t formatpixelsize = nchans * formatsize;
-    imagesize_t scanlinesize = (xend-xbegin) * formatpixelsize;
-    imagesize_t zplanesize = (yend-ybegin) * scanlinesize;
+    stride_t formatpixelsize = nchans * formatsize;
+    bool xcontig = (formatpixelsize == xstride && nchans == spec.nchannels);
+    stride_t scanlinesize = (xend-xbegin) * formatpixelsize;
+    stride_t zplanesize = (yend-ybegin) * scanlinesize;
     DASSERT (spec.depth >= 1 && spec.tile_depth >= 1);
 
     char *zptr = (char *)result;
@@ -2287,6 +2284,8 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
             }
             int ty = y - ((y - spec.y) % spec.tile_height);
             char *xptr = yptr;
+            int old_tx = -100000;
+            const char *data = NULL;
             for (int x = xbegin;  x < xend;  ++x, xptr += xstride) {
                 if (x < spec.x || x >= (spec.x+spec.width)) {
                     // nonexistant columns
@@ -2294,16 +2293,33 @@ ImageCacheImpl::get_pixels (ImageCacheFile *file,
                     continue;
                 }
                 int tx = x - ((x - spec.x) % spec.tile_width);
-                TileID tileid (*file, subimage, miplevel, tx, ty, tz);
-                ok &= find_tile (tileid, thread_info);
-                if (! ok)
-                    return false;  // Just stop if file read failed
-                ImageCacheTileRef &tile (thread_info->tile);
-                ASSERT (tile);
-                const char *data = (const char *)tile->data (x, y, z)
-                                  + chbegin*formatsize;
-                ASSERT (data);
-                convert_types (file->datatype(), data, format, xptr, nchans);
+                if (old_tx != tx) {
+                    // Only do a find_tile and re-setup of the data
+                    // pointer when we move across a tile boundary.
+                    TileID tileid (*file, subimage, miplevel, tx, ty, tz);
+                    ok &= find_tile (tileid, thread_info);
+                    if (! ok)
+                        return false;  // Just stop if file read failed
+                    ImageCacheTileRef &tile (thread_info->tile);
+                    ASSERT (tile);
+                    data = (const char *)tile->data (x, y, z)
+                                        + chbegin*formatsize;
+                    ASSERT (data);
+                    old_tx = tx;
+                }
+                if (xcontig) {
+                    // Special case for a contiguous span within one tile
+                    int spanend = std::min (tx + spec.tile_width, xend);
+                    stride_t span = spanend - x;
+                    convert_types (cachetype, data, format, xptr, nchans*span);
+                    x += (span-1);
+                    xptr += xstride * (span-1);
+                    // no need to increment data, since next read will
+                    // be from a different tile
+                } else {
+                    convert_types (cachetype, data, format, xptr, nchans);
+                    data += cache_stride;
+                }
             }
         }
     }
