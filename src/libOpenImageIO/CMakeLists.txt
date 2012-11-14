@@ -316,3 +316,7 @@ add_test (unit_optparser optparser_test)
 add_executable (hash_test hash_test.cpp)
 target_link_libraries (hash_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (unit_hash hash_test)
+
+add_executable (imagespeed_test imagespeed_test.cpp)
+target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+#add_test (unit_hash hash_test)
