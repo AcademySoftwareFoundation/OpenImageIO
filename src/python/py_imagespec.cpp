@@ -94,9 +94,9 @@ stride_t ImageSpec_pixel_bytes_1(ImageSpec& spec, bool native)
     return spec.pixel_bytes (native);
 }
 
-stride_t ImageSpec_pixel_bytes_2(ImageSpec& spec, int firstchan, int nchans, bool native)
+stride_t ImageSpec_pixel_bytes_2(ImageSpec& spec, int chbegin, int chend, bool native)
 {
-    return spec.pixel_bytes (firstchan, nchans, native);
+    return spec.pixel_bytes (chbegin, chend, native);
 }
 
 

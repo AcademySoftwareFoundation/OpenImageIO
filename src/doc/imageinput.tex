@@ -639,12 +639,12 @@ only for reading deep data:
 
 \begin{code}
     bool read_native_deep_scanlines (int ybegin, int yend, int z,
-                                     int firstchan, int nchans,
+                                     int chbegin, int chend,
                                      DeepData &deepdata);
 
     bool read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
                                  int zbegin, int zend,
-                                 int firstchan, int nchans, DeepData &deepdata);
+                                 int chbegin, int chend, DeepData &deepdata);
 
     bool read_native_deep_image (DeepData &deepdata);
 \end{code}
@@ -936,7 +936,7 @@ float pixels.
   \bigspc TypeDesc format, void *data,\\
   \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride) \\
 bool {\ce read_scanlines} (int ybegin, int yend, int z,\\
-  \bigspc int firstchan, int nchans, TypeDesc format, void *data,\\
+  \bigspc int chbegin, int chend, TypeDesc format, void *data,\\
   \bigspc                      stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
 
 Read all the scanlines that include pixels $(*,y,z)$, where
@@ -946,7 +946,7 @@ one scanline at a time, which may be more efficient for certain image
 format readers.
 
 The version that specifies a channel range will read only
-channels $[${\cf firstchan},{\cf firstchan+nchans}$)$ into the buffer.
+channels $[${\cf chbegin},{\cf chend}$)$ into the buffer.
 \apiend
 
 
@@ -992,7 +992,7 @@ Simple version of {\kw read_tile} that reads to contiguous float pixels.
                             stride_t ystride=AutoStride, \\ \bigspc stride_t
                             zstride=AutoStride) \\
 bool {\ce read_tiles} (int xbegin, int xend, int ybegin, int yend, \\
- \bigspc int zbegin, int zend, int firstchan, int nchans,\\
+ \bigspc int zbegin, int zend, int chbegin, int chend,\\
  \bigspc TypeDesc format, void *data, \\ 
  \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
  \bigspc stride_t zstride=AutoStride)}
@@ -1024,7 +1024,7 @@ do not fall along tile (or image) boundaries, or if it is not a valid
 tile range.
 
 The version that specifies a channel range will read only
-channels $[${\cf firstchan},{\cf firstchan+nchans}$)$ into the buffer.
+channels $[${\cf chbegin},{\cf chend}$)$ into the buffer.
 \apiend
 
 
@@ -1087,9 +1087,9 @@ reading multiple scanlines at once.
 \apiend
 
 \apiitem{bool {\ce read_native_scanlines} (int ybegin, int yend, int z,
-\\ \bigspc  int firstchan, int nchans, void *data)}
+\\ \bigspc  int chbegin, int chend, void *data)}
 A variant of {\cf read_native_scanlines} that reads only a subset of 
-channels \\ $[${\cf firstchan},{\cf firstchan+nchans}$)$.  
+channels \\ $[${\cf chbegin},{\cf chend}$)$.  
 If a format reader subclass does
 not override this method, the default implementation will simply
 call the all-channel version of {\cf read_native_scanlines} into a
@@ -1116,9 +1116,9 @@ for each tile in the block.
 \apiend
 
 \apiitem{bool {\ce read_native_tiles} (int xbegin, int xend, int ybegin,
-  int yend, \\ \bigspc int zbegin, int zend, int firstchan, int nchans, void *data)}
+  int yend, \\ \bigspc int zbegin, int zend, int chbegin, int chend, void *data)}
 A variant of {\kw read_native_tiles()} that reads only a subset of 
-channels \\ $[${\cf firstchan},{\cf firstchan+nchans}$)$.  
+channels \\ $[${\cf chbegin},{\cf chend}$)$.  
 If a format reader subclass does
 not override this method, the default implementation will simply
 call the all-channel version of {\cf read_native_tiles} into a
@@ -1126,11 +1126,11 @@ temporary buffer and copy the subset of channels.
 \apiend
 
 \apiitem{bool {\ce read_native_deep_scanlines} (int ybegin, int yend, int z,
- \\ \bigspc   int firstchan, int nchans, DeepData \&deepdata) \\
+ \\ \bigspc   int chbegin, int chend, DeepData \&deepdata) \\
 bool {\ce read_native_deep_tiles} (int xbegin, int xend,
                                          int ybegin, int yend, \\ \bigspc
                                          int zbegin, int zend,
-                                         int firstchan, int nchans,
+                                         int chbegin, int chend,
                                          DeepData \&deepdata) \\
 bool {\ce read_native_deep_image} (DeepData \&deepdata)}
 \NEW
@@ -1138,7 +1138,7 @@ Read native deep data from scanlines, tiles, or an entire image,
 storing the results in {\cf deepdata} (analogously to the usual
 {\cf read_scanlines}, {\cf read_tiles},
 and {\cf read_image}, but with deep data).
-Only channels $[${\cf firstchan},{\cf firstchan+nchans}$)$
+Only channels $[${\cf chbegin},{\cf chend}$)$
 will be read.
 \apiend
 

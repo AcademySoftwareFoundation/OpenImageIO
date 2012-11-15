@@ -273,16 +273,16 @@ ImageSpec::pixel_bytes (bool native) const
 
 
 size_t
-ImageSpec::pixel_bytes (int firstchan, int nchans, bool native) const
+ImageSpec::pixel_bytes (int chbegin, int chend, bool native) const
 {
-    nchans = std::min (nchans, nchannels-firstchan);
-    if (nchans < 0 || firstchan < 0)
+    if (chbegin < 0)
         return 0;
+    chend = std::max (chend, chbegin);
     if (!native || channelformats.empty())
-        return clamped_mult32 ((size_t)nchans, channel_bytes());
+        return clamped_mult32 ((size_t)(chend-chbegin), channel_bytes());
     else {
         size_t sum = 0;
-        for (int i = firstchan, e = firstchan+nchans;  i < e;  ++i)
+        for (int i = chbegin; i < chend;  ++i)
             sum += channelformats[i].size();
         return sum;
     }
