@@ -107,7 +107,7 @@ public:
     double stop () {
         if (m_ticking) {
             value_t n = now();
-            m_elapsed += diff (n, m_starttime);
+            m_elapsed += diff (m_starttime, n);
             m_ticking = false;
         }
         return m_elapsed;
@@ -187,7 +187,8 @@ private:
         mach_timebase_info(&time_info);
         double seconds_per_tick = (1e-9*static_cast<double>(time_info.numer))/
           static_cast<double>(time_info.denom);
-        return fabs ((now - then) * seconds_per_tick);
+        value_t d = (now>then) ? now-then : then-now;
+        return d * seconds_per_tick;
 #else
         return fabs (static_cast<double>(now.tv_sec  - then.tv_sec) +
                      static_cast<double>(now.tv_usec - then.tv_usec) / 1e6);
