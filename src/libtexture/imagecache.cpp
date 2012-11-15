@@ -1380,8 +1380,8 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
                 break;
             }
     }
-    if (! file->mipreadcount().empty()) {
-        out << " MIP COUNT [";
+    if (file->mipreadcount().size() > 1) {
+        out << " MIP-COUNT [";
         int nmip = (int) file->mipreadcount().size();
         for (int c = 0; c < nmip; c++)
             out << (c ? "," : "") << file->mipreadcount()[c];
