@@ -1134,6 +1134,12 @@ OIIO_API std::string geterror ();
 ///     string format_list     (for 'getattribute' only, cannot set)
 ///             Comma-separated list of all format names supported
 ///             or for which plugins could be found.
+///     string extension_list   (for 'getattribute' only, cannot set)
+///             For each format, the format name followed by a colon,
+///             followed by comma-separated list of all extensions that
+///             are presumed to be used for that format.  Semicolons
+///             separate the lists for formats.  For example,
+///                "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
 OIIO_API bool attribute (const std::string &name, TypeDesc type,
                           const void *val);
 // Shortcuts for common types

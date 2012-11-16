@@ -560,11 +560,25 @@ A colon-separated list of directories to search for
 dynamically-loaded format plugins.
 \apiend
 
-\apiitem{string format_names}
+\apiitem{string format_list}
 \vspace{10pt}
-\index{format_names}
+\index{format_list}
 A comma-separated list of all the names of all supported 
 image format readers and writers.  (Note: can only be retrieved
+by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
+\apiend
+
+\apiitem{string extension_list}
+\vspace{10pt}
+\index{extension_list}
+For each format, the format name, followed by a colon, followed by
+a comma-separated list of all extensions that are presumed to be used
+for that format.  Semicolons separate the lists for formats.  For
+example,
+\begin{code}
+     "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
+\end{code}
+(Note: can only be retrieved
 by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
 \apiend
 

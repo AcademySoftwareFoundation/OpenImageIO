@@ -53,6 +53,7 @@ recursive_mutex imageio_mutex;
 int oiio_threads = boost::thread::hardware_concurrency();
 ustring plugin_searchpath;
 std::string format_list;   // comma-separated list of all formats
+std::string extension_list;   // list of all extensions for all formats
 };
 
 
@@ -161,6 +162,12 @@ getattribute (const std::string &name, TypeDesc type, void *val)
         if (format_list.empty())
             pvt::catalog_all_plugins (plugin_searchpath.string());
         *(ustring *)val = ustring(format_list);
+        return true;
+    }
+    if (name == "extension_list" && type == TypeDesc::TypeString) {
+        if (extension_list.empty())
+            pvt::catalog_all_plugins (plugin_searchpath.string());
+        *(ustring *)val = ustring(extension_list);
         return true;
     }
     return false;
