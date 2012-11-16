@@ -520,7 +520,8 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::FloatAttribute *fattr;
         const Imf::StringAttribute *sattr;
         const Imf::M44fAttribute *mattr;
-        const Imf::V3fAttribute *vattr;        
+        const Imf::V3fAttribute *vattr;
+        const Imf::V2fAttribute *v2attr;
         const char *name = hit.name();
         std::string oname = exr_tag_to_ooio_std[name];
         if (oname.empty())   // Empty string means skip this attrib
@@ -544,6 +545,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         else if (type == "v3f" &&
                  (vattr = header->findTypedAttribute<Imf::V3fAttribute> (name)))
             spec.attribute (oname, TypeDesc::TypeVector, &(vattr->value()));
+        else if (type == "v2f" &&
+                 (v2attr = header->findTypedAttribute<Imf::V2fAttribute> (name))) {
+            TypeDesc v2 (TypeDesc::FLOAT,TypeDesc::VEC2);
+            spec.attribute (oname, v2, &(v2attr->value()));
+        }
         else {
 #if 0
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";
