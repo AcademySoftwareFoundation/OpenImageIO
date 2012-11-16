@@ -14,6 +14,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     nuke/node_hash: "b4ea9f917764b762"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     view: "left"
  subimage  1: 1918 x 1078, 1 channel, half openexr
@@ -28,6 +29,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     name: "depth.left"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     view: "left"
  subimage  2: 1918 x 1078, 4 channel, half openexr
@@ -42,6 +44,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     name: "rgba.right"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     view: "right"
  subimage  3: 1918 x 1078, 1 channel, half openexr
@@ -56,6 +59,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     name: "depth.right"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     view: "right"
 ../../../../../openexr-images/v2/Stereo/composited.exr : 1918 x 1078, 4 channel, half openexr (4 subimages)
@@ -85,6 +89,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     name: "rgba.left"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     version: 1
     view: "left"
@@ -100,6 +105,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     name: "rgba.right"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     version: 1
     view: "right"
@@ -131,6 +137,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     name: "rgba.left"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     version: 1
     view: "left"
@@ -143,6 +150,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     name: "rgba.right"
     Copyright: "Copyright 2012 Weta Digital Ltd"
     PixelAspectRatio: 1
+    screenWindowCenter: 0 0
     screenWindowWidth: 1
     version: 1
     view: "right"

@@ -848,6 +848,11 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
         header.insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));
         return true;
     }
+    if (type == TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC2) ||
+        type == TypeDesc(TypeDesc::FLOAT,2) /* array float[2] */) {
+        header.insert (xname.c_str(), Imf::V2fAttribute (*(Imath::V2f*)data));
+        return true;
+    }
 
 #ifdef DEBUG
     std::cerr << "Don't know what to do with " << type.c_str() << ' ' << xname << "\n";
