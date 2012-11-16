@@ -56,6 +56,7 @@ extern recursive_mutex imageio_mutex;
 extern int oiio_threads;
 extern ustring plugin_searchpath;
 extern std::string format_list;
+extern std::string extension_list;
 
 
 // For internal use - use error() below for a nicer interface.

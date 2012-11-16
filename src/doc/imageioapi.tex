@@ -568,6 +568,20 @@ image format readers and writers.  (Note: can only be retrieved
 by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
 \apiend
 
+\apiitem{string extension_list}
+\vspace{10pt}
+\index{extension_list}
+For each format, the format name, followed by a colon, followed by
+a comma-separated list of all extensions that are presumed to be used
+for that format.  Semicolons separate the lists for formats.  For
+example,
+\begin{code}
+     "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
+\end{code}
+(Note: can only be retrieved
+by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
+\apiend
+
 \apiend
 
 \apiitem{bool {\ce attribute} (const std::string \&name, int val) \\
