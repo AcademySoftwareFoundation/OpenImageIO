@@ -1,19 +1,34 @@
 Changes:
 
-Release 1.1.1 (14 Nov 2012)
+Release 1.1.1 (16 Nov 2012)
 ---------------------------
 * Altered the ImageInput::read_scanlines, read_tiles, read_native_scanlines,
-  read_native_tiles, read_native_deep_scanlines, read_native_deep_tiles
-  so that instead of specifying channel subsets as (firstchan, nchans),
-  they are specified as [chbegin, chend), to match how spatial extents
-  are done, as well as how channel ranges already were specified in ROI
-  and ImageBuf.  We hate changing API meanings, but we really think this
-  is better and more consistent.  Note that the two common uses of channel
+  read_native_tiles, read_native_deep_scanlines, read_native_deep_tiles,
+  and the channel-subset version of ImageSpec::pixel_bytes, so that
+  instead of specifying channel subsets as (firstchan, nchans), they are
+  specified as [chbegin, chend), to match how spatial extents are done,
+  as well as how channel ranges already were specified in ROI and
+  ImageBuf.  We hate changing API meanings, but we really think this is
+  better and more consistent.  Note that the two common uses of channel
   subsets were firstchan=0,nchans=nchannels (select all channels) and
   firstchan=foo,nchans=1, and we have rigged it so that [chbegin,chend)
   returns the same channels in both of these cases (in the latter case,
   because we retrieve a minimum of 1 channel), so we believe this is
   unlikely to break working code in the vast majority of cases.
+* OpenEXR: support reading and writing V2f attributes.
+* OIIO::getattribute("extension_list") returns a list of all formats
+  supported, and all extensions for each format, in the form:
+  "formatA:ext1,ext2,ext3;formatB:ext4,ext5;..."
+* The new ImageCache per-file stats that list numbers of tiles read per
+  MIPmap level have been reformatted slightly, and now print only for
+  files that are actually MIP-mapped.
+* New ImageCache::get_pixels() variety that can retrieve a subset of
+  channels.
+* Substantial speedup of ImageCache::get_pixels, used to be about 50%
+  more expensive to call IC::get_pixels compared to a direct call to
+  ImageInput::read_image; now is only about 15% more expensive to use
+  the cache.
+
 
 
 Release 1.1 (9 Nov 2012)
@@ -75,6 +90,8 @@ API changes:
   cost as before when the file is not the right time, but when it is, it's
   less expensive because it can stop as soon as it knows it's the right
   type, without needing to do a full header read and ImageSpec setup.)
+* New ImageCache::get_pixels() method that can retrieve a subset of
+  channels.
 * Removed various error_message() functions that had been deprecated for
   a long time (in favor of newer getmessage() functions).
 * Define a namespace alias 'OIIO' that gets you past all the custom
@@ -103,6 +120,9 @@ API changes:
     counts to imagesize_t so they can't overflow int for large images.
 * OIIO::getattribute("format_list") now can retrieve the comma-separated
   list of all known image file formats.
+* OIIO::getattribute("extension_list") returns a list of all formats
+  supported, and all extensions for each format, in the form:
+  "formatA:ext1,ext2,ext3;formatB:ext4,ext5;..."
 
 Fixes, minor enhancements, and performance improvements:
 * ImageCache/TextureSystem:
@@ -122,6 +142,10 @@ Fixes, minor enhancements, and performance improvements:
     MIPmap level.
   - Attribute "unassociatedalpha" (when nonzero) requests that
     IC images not convert unassociated alpha image to associated alpha.
+  - Substantial speedup of ImageCache::get_pixels, used to be about 50%
+    more expensive to call IC::get_pixels compared to a direct call to
+    ImageInput::read_image; now is only about 15% more expensive to use
+    the cache.
 * iconvert handles the int32 and uint32 cases.
 * Bug fix in to_native_rectangle, which could lead to errors in certain
   data format conversions.
@@ -147,6 +171,7 @@ Fixes, minor enhancements, and performance improvements:
   present as a multi-image file with the "oiio:subimagename" giving a
   unique name for each layer subimage; 
 * OpenEXR: suppress format-specific metadata from other formats.
+* OpenEXR: support reading and writing V2f attributes.
 * Targa: fix several bugs that were preventing certain metadata from being
   written properly.
 * TIFF: recognize the SAMPLEFORMAT_IEEEFP/bitspersample=16 as an image
