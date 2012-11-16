@@ -1,5 +1,16 @@
 Changes:
 
+
+Release 1.2 (in progress -- compared to 1.1.x)
+----------------------------------------------
+Major new features and improvements:
+API changes:
+Fixes, minor enhancements, and performance improvements:
+Build/test system improvements:
+Developer goodies:
+
+
+
 Release 1.1.1 (16 Nov 2012)
 ---------------------------
 * Altered the ImageInput::read_scanlines, read_tiles, read_native_scanlines,
