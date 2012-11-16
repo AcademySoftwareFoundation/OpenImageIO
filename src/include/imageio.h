@@ -186,14 +186,14 @@ public:
     size_t pixel_bytes (bool native=false) const;
 
     /// Return the number of bytes for just the subset of channels in
-    /// each pixel described by [firstchan,firstchan+nchans).
+    /// each pixel described by [chbegin,chend).
     /// If native is false (default), assume all channels are in 
     /// this->format, but if native is true, compute the size of a pixel
     /// in the "native" data format of the file (these may differ in
     /// the case of per-channel formats).
     /// This will return std::numeric_limits<size_t>::max() in the
     /// event of an overflow where it's not representable in a size_t.
-    size_t pixel_bytes (int firstchan, int nchans, bool native=false) const;
+    size_t pixel_bytes (int chbegin, int chend, bool native=false) const;
 
     /// Return the number of bytes for each scanline.  This will return
     /// std::numeric_limits<imagesize_t>::max() in the event of an
@@ -582,12 +582,11 @@ public:
     /// converting to the requested data format (unless format is
     /// TypeDesc::UNKNOWN, in which case pixels will be copied in the
     /// native data layout, including per-channel data formats).  Only
-    /// channels [firstchan,firstchan+nchans) will be read/copied
-    /// (firstchan=0, nchans=spec.nchannels reads all channels,
-    /// yielding equivalent behavior to the simpler variant of
-    /// read_scanlines).
+    /// channels [chbegin,chend) will be read/copied (chbegin=0,
+    /// chend=spec.nchannels reads all channels, yielding equivalent
+    /// behavior to the simpler variant of read_scanlines).
     virtual bool read_scanlines (int ybegin, int yend, int z,
-                                 int firstchan, int nchans,
+                                 int chbegin, int chend,
                                  TypeDesc format, void *data,
                                  stride_t xstride=AutoStride,
                                  stride_t ystride=AutoStride);
@@ -646,13 +645,12 @@ public:
     /// the strides given and converting to the requested data format
     /// (unless format is TypeDesc::UNKNOWN, in which case pixels will
     /// be copied in the native data layout, including per-channel data
-    /// formats).  Only channels [firstchan,firstchan+nchans) will be
-    /// read/copied (firstchan=0, nchans=spec.nchannels reads all
-    /// channels, yielding equivalent behavior to the simpler variant
-    /// of read_tiles).
+    /// formats).  Only channels [chbegin,chend) will be read/copied
+    /// (chbegin=0, chend=spec.nchannels reads all channels, yielding
+    /// equivalent behavior to the simpler variant of read_tiles).
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, 
-                             int firstchan, int nchans, TypeDesc format,
+                             int chbegin, int chend, TypeDesc format,
                              void *data, stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
@@ -704,13 +702,12 @@ public:
                                         void *data);
 
     /// A variant of read_native_scanlines that reads only channels
-    /// [firstchan,firstchan+nchans).  If a format reader subclass does
+    /// [chbegin,chend).  If a format reader subclass does
     /// not override this method, the default implementation will simply
     /// call the all-channel version of read_native_scanlines into a
     /// temporary buffer and copy the subset of channels.
     virtual bool read_native_scanlines (int ybegin, int yend, int z,
-                                        int firstchan, int nchans,
-                                        void *data);
+                                        int chbegin, int chend, void *data);
 
     /// read_native_tile is just like read_tile, except that it
     /// keeps the data in the native format of the disk file and always
@@ -731,30 +728,30 @@ public:
                                     int zbegin, int zend, void *data);
 
     /// A variant of read_native_tiles that reads only channels
-    /// [firstchan,firstchan+nchans).  If a format reader subclass does
+    /// [chbegin,chend).  If a format reader subclass does
     /// not override this method, the default implementation will simply
     /// call the all-channel version of read_native_tiles into a
     /// temporary buffer and copy the subset of channels.
     virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
-                                    int firstchan, int nchans, void *data);
+                                    int chbegin, int chend, void *data);
 
     /// Read native deep data from multiple scanlines that include
     /// pixels (*,y,z) for all ybegin <= y < yend, into deepdata.  Only
-    /// channels [firstchan,firstchan+nchans) will be read (firstchan=0,
-    /// nchans=spec.nchannels reads all channels).
+    /// channels [chbegin, chend) will be read (chbegin=0,
+    /// chend=spec.nchannels reads all channels).
     virtual bool read_native_deep_scanlines (int ybegin, int yend, int z,
-                                             int firstchan, int nchans,
+                                             int chbegin, int chend,
                                              DeepData &deepdata);
 
     /// Read the block of multiple native deep data tiles that include
     /// all pixels in [xbegin,xend) X [ybegin,yend) X [zbegin,zend),
-    /// into deepdata.  Only channels [firstchan,firstchan+nchans) will
-    /// be read (firstchan=0, nchans=spec.nchannels reads all channels).
+    /// into deepdata.  Only channels [chbegin,chend) will
+    /// be read (chbegin=0, chend=spec.nchannels reads all channels).
     virtual bool read_native_deep_tiles (int xbegin, int xend,
                                          int ybegin, int yend,
                                          int zbegin, int zend,
-                                         int firstchan, int nchans,
+                                         int chbegin, int chend,
                                          DeepData &deepdata);
 
     /// Read the entire deep data image of spec.width x spec.height x

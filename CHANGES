@@ -1,5 +1,21 @@
 Changes:
 
+Release 1.1.1 (14 Nov 2012)
+---------------------------
+* Altered the ImageInput::read_scanlines, read_tiles, read_native_scanlines,
+  read_native_tiles, read_native_deep_scanlines, read_native_deep_tiles
+  so that instead of specifying channel subsets as (firstchan, nchans),
+  they are specified as [chbegin, chend), to match how spatial extents
+  are done, as well as how channel ranges already were specified in ROI
+  and ImageBuf.  We hate changing API meanings, but we really think this
+  is better and more consistent.  Note that the two common uses of channel
+  subsets were firstchan=0,nchans=nchannels (select all channels) and
+  firstchan=foo,nchans=1, and we have rigged it so that [chbegin,chend)
+  returns the same channels in both of these cases (in the latter case,
+  because we retrieve a minimum of 1 channel), so we believe this is
+  unlikely to break working code in the vast majority of cases.
+
+
 Release 1.1 (9 Nov 2012)
 ------------------------
 Major new features and improvements:
@@ -41,6 +57,18 @@ API changes:
   supports("deepdata") query.  Also, a 'deep' field has been added to
   ImageSpec, and some deep data access functions have been added to
   ImageBuf.
+* Altered the ImageInput::read_scanlines, read_tiles, read_native_scanlines,
+  read_native_tiles, read_native_deep_scanlines, read_native_deep_tiles
+  so that instead of specifying channel subsets as (firstchan, nchans),
+  they are specified as [chbegin, chend), to match how spatial extents
+  are done, as well as how channel ranges already were specified in ROI
+  and ImageBuf.  We hate changing API meanings, but we really think this
+  is better and more consistent.  Note that the two common uses of channel
+  subsets were firstchan=0,nchans=nchannels (select all channels) and
+  firstchan=foo,nchans=1, and we have rigged it so that [chbegin,chend)
+  returns the same channels in both of these cases (in the latter case,
+  because we retrieve a minimum of 1 channel), so we believe this is
+  unlikely to break working code in the vast majority of cases.
 * ImageInput plugins now may supply a valid_file(filename) method which 
   detects whether a given file is in the right format, less expensively
   than doing a full open() and checking for errors.  (It's probably the same

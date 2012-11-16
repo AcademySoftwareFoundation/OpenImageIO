@@ -351,9 +351,9 @@ default), or if all channels use the same format, this will simply be
 the number of channels multiplied by the width (in bytes) of the {\cf format}.
 \apiend
 
-\apiitem{size_t {\ce pixel_bytes} (int firstchan, int nchans, bool native=false) const}
+\apiitem{size_t {\ce pixel_bytes} (int chbegin, int chend, bool native=false) const}
 Returns the number of bytes comprising the range of channels 
-  $[${\cf firstchan}, {\cf firstchan+nchans}$)$ for each pixel.
+  $[${\cf chbegin}, {\cf chend}$)$ for each pixel.
 
 If {\cf native} is true, this will be the sum of the per-channel
 formats in {\cf channelformats} (for the given range of channels).  
