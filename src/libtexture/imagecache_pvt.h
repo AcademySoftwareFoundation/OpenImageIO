@@ -675,13 +675,22 @@ public:
                              int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              TypeDesc format, void *result);
+    virtual bool get_pixels (ustring filename,
+                    int subimage, int miplevel, int xbegin, int xend,
+                    int ybegin, int yend, int zbegin, int zend,
+                    int chbegin, int chend, TypeDesc format, void *result,
+                    stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                    stride_t zstride=AutoStride);
 
     /// Retrieve a rectangle of raw unfiltered pixels, from an open valid
     /// ImageCacheFile.
-    bool get_pixels (ImageCacheFile *file, ImageCachePerThreadInfo *thread_info,
-                     int subimage, int miplevel, int xmin, int xmax,
-                     int ymin, int ymax, int zmin, int zmax, 
-                     TypeDesc format, void *result);
+    bool get_pixels (ImageCacheFile *file,
+                     ImageCachePerThreadInfo *thread_info,
+                     int subimage, int miplevel, int xbegin, int xend,
+                     int ybegin, int yend, int zbegin, int zend,
+                     int chbegin, int chend, TypeDesc format, void *result,
+                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
+                     stride_t zstride=AutoStride);
 
     /// Find the ImageCacheFile record for the named image, or NULL if
     /// no such file can be found.  This returns a plain old pointer,
