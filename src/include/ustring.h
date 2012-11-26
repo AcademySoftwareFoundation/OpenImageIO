@@ -472,7 +472,7 @@ public:
     }
 
     size_type find_last_not_of(const char *s, size_type pos, size_type n) const {
-        return string().find(s, pos, n);
+        return string().find_last_not_of(s, pos, n);
     }
 
     size_type find_last_not_of(const char *s, size_type pos = npos) const {
