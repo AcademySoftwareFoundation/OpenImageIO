@@ -488,7 +488,6 @@ resize_block_HQ (ImageBuf *dst, const ImageBuf *src,
 static void
 interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel)
 {
-
     int fx = buf.spec().full_x;
     int fy = buf.spec().full_y;
     int fw = buf.spec().full_width;
@@ -510,8 +509,9 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel)
     // Clamp
     int xnext = Imath::clamp (xtexel+1, buf.xmin(), buf.xmax());
     int ynext = Imath::clamp (ytexel+1, buf.ymin(), buf.ymax());
-    xtexel = std::max (xtexel, buf.xmin());
-    ytexel = std::max (ytexel, buf.ymin());
+    xnext = Imath::clamp (xnext, buf.xmin(), buf.xmax());
+    ynext = Imath::clamp (ynext, buf.ymin(), buf.ymax());
+
     // Get the four texels
     buf.getpixel (xtexel, ytexel, p[0], n);
     buf.getpixel (xnext, ytexel, p[1], n);
@@ -535,11 +535,20 @@ interppixel_NDC_clamped (const ImageBuf &buf, float x, float y, float *pixel)
 
 
 // Resize src into dst, relying on the linear interpolation of
-// interppixel_NDC_full, for the pixel range [x0,x1) x [y0,y1).
+// interppixel_NDC_full or interppixel_NDC_clamped, for the pixel range
+// [x0,x1) x [y0,y1).
 static void
 resize_block (ImageBuf *dst, const ImageBuf *src,
               int x0, int x1, int y0, int y1)
 {
+    const ImageSpec &srcspec (src->spec());
+    bool src_is_crop = (srcspec.x > srcspec.full_x ||
+                        srcspec.y > srcspec.full_y ||
+                        srcspec.z > srcspec.full_z ||
+                        srcspec.x+srcspec.width < srcspec.full_x+srcspec.full_width ||
+                        srcspec.y+srcspec.height < srcspec.full_y+srcspec.full_height ||
+                        srcspec.z+srcspec.depth < srcspec.full_z+srcspec.full_depth);
+
     const ImageSpec &dstspec (dst->spec());
     float *pel = (float *) alloca (dstspec.pixel_bytes());
     float xoffset = dstspec.full_x;
@@ -550,7 +559,10 @@ resize_block (ImageBuf *dst, const ImageBuf *src,
         float t = (y+0.5f)*yscale + yoffset;
         for (int x = x0;  x < x1;  ++x) {
             float s = (x+0.5f)*xscale + xoffset;
-            interppixel_NDC_clamped (*src, s, t, pel);
+            if (src_is_crop)
+                src->interppixel_NDC_full (s, t, pel);
+            else
+                interppixel_NDC_clamped (*src, s, t, pel);
             dst->setpixel (x, y, pel);
         }
     }
