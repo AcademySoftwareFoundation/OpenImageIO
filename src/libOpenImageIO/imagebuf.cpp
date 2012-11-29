@@ -865,7 +865,7 @@ static inline void
 getpixel_ (const ImageBuf &buf, int x, int y, int z, float *result, int chans)
 {
     ImageBuf::ConstIterator<T> pixel (buf, x, y, z);
-    if (pixel.valid()) {
+    if (pixel.exists()) {
         for (int i = 0;  i < chans;  ++i)
             result[i] = pixel[i];
     } else {
@@ -927,7 +927,7 @@ static inline void
 setpixel_ (ImageBuf &buf, int x, int y, int z, const float *data, int chans)
 {
     ImageBuf::Iterator<T> pixel (buf, x, y, z);
-    if (pixel.valid()) {
+    if (pixel.exists()) {
         for (int i = 0;  i < chans;  ++i)
             pixel[i] = data[i];
     }
