@@ -132,8 +132,9 @@ static void
 copy_block (ImageBuf *dst, const ImageBuf *src,
             int x0, int x1, int y0, int y1, const MaketxParams *param)
 {
-    const ImageSpec &dstspec (dst->spec());
-    float *pel = (float *) alloca (dstspec.pixel_bytes());
+//    const ImageSpec &dstspec (dst->spec());
+//    float *pel = (float *) alloca (dstspec.pixel_bytes());
+    float pel[256];
     for (int y = y0;  y < y1;  ++y) {
         for (int x = x0;  x < x1;  ++x) {
             src->getpixel (x, y, pel);
@@ -212,7 +213,8 @@ resize_block (ImageBuf *dst, const ImageBuf *src,
               int x0, int x1, int y0, int y1, const MaketxParams *param)
 {
     const ImageSpec &dstspec (dst->spec());
-    float *pel = (float *) alloca (dstspec.pixel_bytes());
+//    float *pel = (float *) alloca (dstspec.pixel_bytes());
+    float pel[256];
     float xoffset = dstspec.full_x;
     float yoffset = dstspec.full_y;
     float xscale = 1.0f / (float)dstspec.full_width;
@@ -235,7 +237,8 @@ check_nan_block (ImageBuf* /*dst*/, const ImageBuf* src,
                  int x0, int x1, int y0, int y1, const MaketxParams *param)
 {
     const ImageSpec &spec (src->spec());
-    float *pel = (float *) alloca (spec.pixel_bytes());
+//    float *pel = (float *) alloca (spec.pixel_bytes());
+    float pel[256];
     for (int y = y0;  y < y1;  ++y) {
         for (int x = x0;  x < x1;  ++x) {
             src->getpixel (x, y, pel);
@@ -260,8 +263,9 @@ fix_latl_edges (ImageBuf &buf)
 {
     //  ASSERT (envlatlmode && "only call fix_latl_edges for latlong maps");
     int n = buf.nchannels();
-    float *left = ALLOCA (float, n);
-    float *right = ALLOCA (float, n);
+//    float *left = ALLOCA (float, n);
+//    float *right = ALLOCA (float, n);
+    float left[256], right[256];
     
     // Make the whole first and last row be solid, since they are exactly
     // on the pole
@@ -424,7 +428,7 @@ make_texturemap (ImageBuf &src, ImageOutput *out,
     
     // Read the full file locally if it's less than 1 GB, otherwise
     // allow the ImageBuf to use ImageCache to manage memory.
-    bool read_local = (src.spec().image_bytes() < size_t(1024*1024*1024));
+    bool read_local = (src.spec().image_bytes() < param.readlocalbytes);
     
     if (param.verbose)
         std::cout << "Reading file: " << src.name() << std::endl;
@@ -567,11 +571,12 @@ make_texturemap (ImageBuf &src, ImageOutput *out,
     dstspec.tile_height = tile_height;
     dstspec.tile_depth  = param.tile_depth;
     
-    // Always use ZIP compression
-    dstspec.attribute ("compression", "zip");
-    // Ugh, the line above seems to trigger a bug in the tiff library.
-    // Maybe a bug in libtiff zip compression for tiles?  So let's
-    // stick to the default compression.
+    if (param.forcecompress) {
+        dstspec.attribute ("compression", "zip");
+        // Ugh, the line above seems to trigger a bug in the tiff library.
+        // Maybe a bug in libtiff zip compression for tiles?  So let's
+        // stick to the default compression.
+    }
     
     // Put a DateTime in the out file, either now, or matching the date
     // stamp of the input file (if update mode).
@@ -725,9 +730,10 @@ make_texturemap (ImageBuf &src, ImageOutput *out,
             stat->colorconverttime += colorconverttimer();
     }
     
-    // Force float for the sake of the ImageBuf math
-    dstspec.set_format (TypeDesc::FLOAT);
-    
+    // Force float for the sake of the ImageBuf math if requested
+    if (param.forcefloat)
+        dstspec.set_format (TypeDesc::FLOAT);
+  
     // Handle resize to power of two, if called for
     if (param.pow2resize  &&  param.conversionmode != MaketxParams::SHADOW) {
         dstspec.width = pow2roundup (dstspec.width);
@@ -760,7 +766,7 @@ make_texturemap (ImageBuf &src, ImageOutput *out,
     }
     
     Timer resizetimer;
-    ImageBuf dst ("temp", dstspec);
+    ImageBuf dst ("temp");
     ImageBuf *toplevel = &dst;    // Ptr to top level of mipmap
     if (! do_resize) {
         // Don't need to resize
@@ -769,6 +775,7 @@ make_texturemap (ImageBuf &src, ImageOutput *out,
             // the original copy.
             toplevel = ccSrc;
         } else {
+            dst.alloc(dstspec);
             parallel_image (copy_block, &dst, ccSrc,
                             dstspec.x, dstspec.x+dstspec.width,
                             dstspec.y, dstspec.y+dstspec.height,
@@ -776,6 +783,7 @@ make_texturemap (ImageBuf &src, ImageOutput *out,
         }
     } else {
         // Resize
+        dst.alloc(dstspec);
         if (param.verbose)
             std::cout << "  Resizing image to " << dstspec.width
             << " x " << dstspec.height << std::endl;
@@ -810,27 +818,33 @@ make_texturemap (ImageBuf &src, ImageOutput *out,
         desc = "";
     }
     
-    // The hash is only computed for the top mipmap level of pixel data.
-    // Thus, any additional information that will effect the lower levels
-    // (such as filtering information) needs to be manually added into the
-    // hash.
-    std::ostringstream addlHashData;
-    addlHashData << filter->name() << " ";
-    addlHashData << filter->width() << " ";
-    
-    std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel,
-                                                          addlHashData.str());
-    if (hash_digest.length()) {
-        if (desc.length())
-            desc += " ";
-        desc += "SHA-1=";
-        desc += hash_digest;
-        if (param.verbose)
-            std::cout << "  SHA-1: " << hash_digest << std::endl;
-        updatedDesc = true;
-        dstspec.attribute ("oiio:SHA-1", hash_digest);
+    if (param.computesha1) {
+        // The hash is only computed for the top mipmap level of pixel data.
+        // Thus, any additional information that will effect the lower levels
+        // (such as filtering information) needs to be manually added into the
+        // hash.
+        std::ostringstream addlHashData;
+        addlHashData << filter->name() << " ";
+        addlHashData << filter->width() << " ";
+        
+        printf("Computing SHA1\n");
+        
+        std::string hash_digest = ImageBufAlgo::computePixelHashSHA1 (*toplevel,
+                                                           addlHashData.str());
+        if (hash_digest.length()) {
+            if (desc.length())
+                desc += " ";
+            desc += "SHA-1=";
+            desc += hash_digest;
+            if (param.verbose)
+                std::cout << "  SHA-1: " << hash_digest << std::endl;
+            updatedDesc = true;
+            dstspec.attribute ("oiio:SHA-1", hash_digest);
+        }
+        printf("Computing SHA1 -- FINISHED\n");
     }
-    
+  
+  
     if (isConstantColor) {
         std::ostringstream os; // Emulate a JSON array
         os << "[";
@@ -970,7 +984,8 @@ write_mipmap (ImageBuf &img, const ImageSpec &outspec_template,
                 smallspec.full_width = smallspec.width;
                 smallspec.full_height = smallspec.height;
                 smallspec.full_depth = smallspec.depth;
-                smallspec.set_format (TypeDesc::FLOAT);
+                if (param.forcefloat)
+                    smallspec.set_format (TypeDesc::FLOAT);
                 
                 // Trick: to get the resize working properly, we reset
                 // both display and pixel windows to match, and have 0

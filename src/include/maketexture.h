@@ -56,9 +56,11 @@ struct MaketxParams {
     MaketxParams () : verbose(false), separate(false), nomipmap(false),
                       prman_metadata(false), constant_color_detect(false),
                       monochrome_detect(false), opaque_detect(false),
-                      checknan(false), prman(false), oiio(false), nthreads(0),
+                      checknan(false), computesha1(true), forcecompress(true),
+                      forcefloat(true), prman(false), oiio(false), nthreads(0),
                       tile_width(64), tile_height(64), tile_depth(1),
                       fixnan("none"), filter(NULL), conversionmode(MIPMAP),
+                      readlocalbytes(1024*1024*1024),
                       fov(90), fovcot(0), wrap("black"), pow2resize(false),
                       Mcam(0.0f), Mscr(0.0f), nchannels(-1), unpremult(false) {}
     
@@ -85,6 +87,15 @@ struct MaketxParams {
     
     /// Check for NaN/Inf values (abort if found)
     bool checknan;
+  
+    /// Compute SHA-1 (default to true)
+    bool computesha1;
+  
+    /// Force compression when saving the output file (default to true)
+    bool forcecompress;
+    
+    /// Force use of float buffers when resizing (default to true, slower!)
+    bool forcefloat;
     
     /// Use PRMan-safe settings for tile size, planarconfig, and metadata
     bool prman;
@@ -120,6 +131,9 @@ struct MaketxParams {
     
     /// Specify the type of output texture to create
     ConversionMode conversionmode;
+    
+    /// Specify the threshold above which we use an ImageCache
+    size_t readlocalbytes;
     
     
     // Options controlling file metadata or mipmap creation
