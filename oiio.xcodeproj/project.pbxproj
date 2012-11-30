@@ -68,7 +68,6 @@
 		CA24E7B31627227800BD9ED3 /* pngwutil.c in Sources */ = {isa = PBXBuildFile; fileRef = CA24E7A31627227800BD9ED3 /* pngwutil.c */; };
 		CA24E7B91627229C00BD9ED3 /* pnginput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA24E7B71627229C00BD9ED3 /* pnginput.cpp */; };
 		CA24E7BA1627229C00BD9ED3 /* pngoutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA24E7B81627229C00BD9ED3 /* pngoutput.cpp */; };
-		CA24E7CC162728ED00BD9ED3 /* boost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA24E7CB162728ED00BD9ED3 /* boost.framework */; };
 		CA24E8381627421600BD9ED3 /* jaricom.c in Sources */ = {isa = PBXBuildFile; fileRef = CA24E7EE1627421600BD9ED3 /* jaricom.c */; };
 		CA24E8391627421600BD9ED3 /* jcapimin.c in Sources */ = {isa = PBXBuildFile; fileRef = CA24E7EF1627421600BD9ED3 /* jcapimin.c */; };
 		CA24E83A1627421600BD9ED3 /* jcapistd.c in Sources */ = {isa = PBXBuildFile; fileRef = CA24E7F01627421600BD9ED3 /* jcapistd.c */; };
@@ -154,6 +153,7 @@
 		CA4428DD163F011000900286 /* texoptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA4428D6163F010F00900286 /* texoptions.cpp */; };
 		CA4428DE163F011000900286 /* texture3d.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA4428D8163F010F00900286 /* texture3d.cpp */; };
 		CA4428DF163F011000900286 /* texturesys.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA4428D9163F010F00900286 /* texturesys.cpp */; };
+		CA994F69166899F900D9C568 /* boost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA994F68166899F900D9C568 /* boost.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -287,7 +287,6 @@
 		CA24E7B71627229C00BD9ED3 /* pnginput.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pnginput.cpp; sourceTree = "<group>"; };
 		CA24E7B81627229C00BD9ED3 /* pngoutput.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pngoutput.cpp; sourceTree = "<group>"; };
 		CA24E7BB1627239B00BD9ED3 /* pnglibconf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pnglibconf.h; path = "libpng-1.5.13/pnglibconf.h"; sourceTree = "<group>"; };
-		CA24E7CB162728ED00BD9ED3 /* boost.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = boost.framework; path = ../Boost/boostoniphone/framework/boost.framework; sourceTree = "<group>"; };
 		CA24E7EE1627421600BD9ED3 /* jaricom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jaricom.c; path = "jpeg-8d/jaricom.c"; sourceTree = "<group>"; };
 		CA24E7EF1627421600BD9ED3 /* jcapimin.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jcapimin.c; path = "jpeg-8d/jcapimin.c"; sourceTree = "<group>"; };
 		CA24E7F01627421600BD9ED3 /* jcapistd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jcapistd.c; path = "jpeg-8d/jcapistd.c"; sourceTree = "<group>"; };
@@ -444,6 +443,7 @@
 		CA4428D7163F010F00900286 /* texture_pvt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = texture_pvt.h; path = src/libtexture/texture_pvt.h; sourceTree = SOURCE_ROOT; };
 		CA4428D8163F010F00900286 /* texture3d.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = texture3d.cpp; path = src/libtexture/texture3d.cpp; sourceTree = SOURCE_ROOT; };
 		CA4428D9163F010F00900286 /* texturesys.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = texturesys.cpp; path = src/libtexture/texturesys.cpp; sourceTree = SOURCE_ROOT; };
+		CA994F68166899F900D9C568 /* boost.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = boost.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -451,7 +451,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CA24E7CC162728ED00BD9ED3 /* boost.framework in Frameworks */,
+				CA994F69166899F900D9C568 /* boost.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -695,7 +695,7 @@
 				CA24E78C1627221900BD9ED3 /* libpng */,
 				CA24E6D516264CB500BD9ED3 /* libtiff */,
 				CA38A8F11625E79D0055AF8E /* oiio */,
-				CA24E7CB162728ED00BD9ED3 /* boost.framework */,
+				CA994F68166899F900D9C568 /* boost.framework */,
 				CA38A8ED1625E79D0055AF8E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -1121,8 +1121,7 @@
 				DSTROOT = /tmp/oiio.dst;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/../../Boost/boostoniphone/framework\"",
-					"\"$(SRCROOT)/../Boost/boostoniphone/framework\"",
+					"\"$(SRCROOT)\"",
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
@@ -1157,8 +1156,7 @@
 				DSTROOT = /tmp/oiio.dst;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/../../Boost/boostoniphone/framework\"",
-					"\"$(SRCROOT)/../Boost/boostoniphone/framework\"",
+					"\"$(SRCROOT)\"",
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
