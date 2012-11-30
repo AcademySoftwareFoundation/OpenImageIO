@@ -144,11 +144,11 @@ WebpInput::close()
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int webp_imageio_version = OIIO_PLUGIN_VERSION;
-    DLLEXPORT ImageInput *webp_input_imageio_create () {
+    OIIO_EXPORT int webp_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT ImageInput *webp_input_imageio_create () {
         return new webp_pvt::WebpInput;
     }
-    DLLEXPORT const char *webp_input_extensions[] = {
+    OIIO_EXPORT const char *webp_input_extensions[] = {
         "webp", NULL
     };
 

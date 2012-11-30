@@ -88,11 +88,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *png_output_imageio_create () { return new PNGOutput; }
+OIIO_EXPORT ImageOutput *png_output_imageio_create () { return new PNGOutput; }
 
-// DLLEXPORT int png_imageio_version = OIIO_PLUGIN_VERSION;   // it's in pnginput.cpp
+// OIIO_EXPORT int png_imageio_version = OIIO_PLUGIN_VERSION;   // it's in pnginput.cpp
 
-DLLEXPORT const char * png_output_extensions[] = {
+OIIO_EXPORT const char * png_output_extensions[] = {
     "png", NULL
 };
 

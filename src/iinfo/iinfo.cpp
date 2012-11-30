@@ -36,12 +36,6 @@
 #include <iostream>
 #include <iterator>
 
-/* This header have to be included before boost/regex.hpp header
-   If it is included after, there is an error
-   "undefined reference to CSHA1::Update (unsigned char const*, unsigned long)"
-*/
-#include "SHA1.h"
-
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>
 
@@ -50,6 +44,7 @@
 #include "imageio.h"
 #include "imagebuf.h"
 #include "imagebufalgo.h"
+#include "hash.h"
 
 OIIO_NAMESPACE_USING;
 
@@ -72,7 +67,7 @@ static bool compute_stats = false;
 static void
 print_sha1 (ImageInput *input)
 {
-    CSHA1 sha;
+    SHA1 sha;
     const ImageSpec &spec (input->spec());
     if (spec.deep) {
         // Special handling of deep data
@@ -82,23 +77,23 @@ print_sha1 (ImageInput *input)
             return;
         }
         // Hash both the sample counds and the data block
-        sha.Update ((const unsigned char *)&dd.nsamples[0], dd.nsamples.size());
-        sha.Update ((const unsigned char *)&dd.data[0], dd.data.size());
+        sha.appendvec (dd.nsamples);
+        sha.appendvec (dd.data);
     } else {
         imagesize_t size = input->spec().image_bytes (true /*native*/);
         if (size >= std::numeric_limits<size_t>::max()) {
             printf ("    SHA-1: unable to compute, image is too big\n");
             return;
         }
-        boost::scoped_array<unsigned char> buf(new unsigned char[(unsigned int)size]);
-        input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0]);
-        sha.Update ((const unsigned char *)&buf[0], (unsigned int) size);
+        std::vector<unsigned char> buf((size_t)size);
+        if (! input->read_image (TypeDesc::UNKNOWN /*native*/, &buf[0])) {
+            printf ("    SHA-1: unable to compute, could not read image\n");
+            return;
+        }
+        sha.appendvec (buf);
     }
 
-    sha.Final ();
-    std::string digest;
-    sha.ReportHashStl (digest, CSHA1::REPORT_HEX_SHORT);
-    printf ("    SHA-1: %s\n", digest.c_str());
+    printf ("    SHA-1: %s\n", sha.digest().c_str());
 }
 
 
@@ -261,7 +256,7 @@ print_stats (const std::string &filename,
         size_t totalsamples = 0, emptypixels = 0;
         size_t maxsamples = 0, minsamples = std::numeric_limits<size_t>::max();
         for (size_t p = 0;  p < npixels;  ++p) {
-            int c = dd->nsamples[p];
+            size_t c = dd->nsamples[p];
             totalsamples += c;
             if (c > maxsamples)
                 maxsamples = c;
@@ -470,6 +465,9 @@ print_info_subimage (int current_subimage, int max_subimages, ImageSpec &spec,
                          boost::regex_search ("sha-1", field_re))) {
         if (filenameprefix)
             printf ("%s : ", filename.c_str());
+        // Before sha-1, be sure to point back to the highest-res MIP level
+        ImageSpec tmpspec;
+        input->seek_subimage (current_subimage, 0, tmpspec);
         print_sha1 (input);
     }
 

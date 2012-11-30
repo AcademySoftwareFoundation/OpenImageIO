@@ -80,7 +80,6 @@ static bool vertcrossmode = false;
 static bool latl2envcubemode = false;
 
 
-
 static std::string
 filter_help_string ()
 {
@@ -402,7 +401,6 @@ main (int argc, char *argv[])
     Filter2D::destroy (param.filter);
 
     if (stats) {
-        ImageCache *ic = ImageCache::create ();  // get the shared one
         std::cout << "\n" << ic->getstats();
     }
 

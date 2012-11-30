@@ -33,8 +33,7 @@
 #define OPENIMAGEIO_EXPORT_H
 
 /// \file
-/// DLLPUBLIC and DLLEXPORT macros that are necessary for proper symbol
-/// export when doing multi-platform development.
+/// Macros necessary for proper symbol export from dynamic libraries.
 
 
 ///
@@ -51,47 +50,51 @@
 /// dilemma since the same header file is used by both the library and
 /// its clients.  Sheesh!
 ///
+/// But on Linux/OSX as well, we want to only have the DSO export the
+/// symbols we designate as the public interface.  So we link with
+/// -fvisibility=hidden to default to hiding the symbols.  See
+/// http://gcc.gnu.org/wiki/Visibility
+///
 /// We solve this awful mess by defining these macros:
 ///
-/// DLLPUBLIC - normally, assumes that it's being seen by a client
-///             of the library, and therefore declare as 'imported'.
-///             But if DLL_EXPORT_PUBLIC is defined, change the declaration
-///             to 'exported' -- you want to define this macro when
-///             compiling the module that actually defines the class.
+/// OIIO_API - used for the OpenImageIO public API.  Normally, assumes
+///               that it's being seen by a client of the library, and
+///               therefore declare as 'imported'.  But if
+///               OpenImageIO_EXPORT is defined (as is done by CMake
+///               when compiling the library itself), change the
+///               declaration to 'exported'.
+/// OIIO_EXPORT - explicitly exports a symbol that isn't part of the 
+///               public API but still needs to be visible.
+/// OIIO_LOCAL -  explicitly hides a symbol that might otherwise be
+///               exported
 ///
-/// DLLEXPORT - tag a symbol as exported from its DLL and therefore
-///             visible from any app that links against the DLL.  Do this
-///             only if you don't need to call the routine from within
-///             a different compilation module within the same DLL.  Or,
-///             if you just don't want to worry about the whole
-///             DLL_EXPORT_PUBLIC mess, and use this everywhere without
-///             fretting about the minor perf hit of not using 'import'.
-///
-/// Note that on Linux, all symbols are exported so this just isn't a
-/// problem, so we define these macros to be nothing.
-///
-/// It's a shame that we have to clutter all our header files with these
-/// stupid macros just because the Windows world is such a mess.
-///
+/// 
 
-#ifndef DLLEXPORT
-#  if defined(_MSC_VER) && defined(_WIN32)
-#    define DLLEXPORT __declspec(dllexport)
-#  else
-#    define DLLEXPORT
-#  endif
+#if defined(_MSC_VER) || defined(__CYGWIN__)
+  #define OIIO_IMPORT __declspec(dllimport)
+  #define OIIO_EXPORT __declspec(dllexport)
+  #define OIIO_LOCAL
+#else
+  #if __GNUC__ >= 4
+    #define OIIO_IMPORT __attribute__ ((visibility ("default")))
+    #define OIIO_EXPORT __attribute__ ((visibility ("default")))
+    #define OIIO_LOCAL  __attribute__ ((visibility ("hidden")))
+  #else
+    #define OIIO_IMPORT
+    #define OIIO_EXPORT
+    #define OIIO_LOCAL
+  #endif
 #endif
 
-#ifndef DLLPUBLIC
-#  if defined(_MSC_VER) && defined(_WIN32) && !defined (OIIO_STATIC_BUILD)
-#    ifdef OpenImageIO_EXPORTS
-#      define DLLPUBLIC __declspec(dllexport)
-#    else
-#      define DLLPUBLIC __declspec(dllimport)
-#    endif
-#  else
-#    define DLLPUBLIC
-#  endif
+#if defined(OpenImageIO_EXPORTS)
+#  define OIIO_API OIIO_EXPORT
+#else
+#  define OIIO_API OIIO_IMPORT
 #endif
+
+
+// Back compatibility macros (DEPRECATED)
+#define DLLPUBLIC OIIO_API
+#define DLLEXPORT OIIO_EXPORT
 
 #endif // OPENIMAGEIO_EXPORT_H

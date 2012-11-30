@@ -351,9 +351,9 @@ default), or if all channels use the same format, this will simply be
 the number of channels multiplied by the width (in bytes) of the {\cf format}.
 \apiend
 
-\apiitem{size_t {\ce pixel_bytes} (int firstchan, int nchans, bool native=false) const}
+\apiitem{size_t {\ce pixel_bytes} (int chbegin, int chend, bool native=false) const}
 Returns the number of bytes comprising the range of channels 
-  $[${\cf firstchan}, {\cf firstchan+nchans}$)$ for each pixel.
+  $[${\cf chbegin}, {\cf chend}$)$ for each pixel.
 
 If {\cf native} is true, this will be the sum of the per-channel
 formats in {\cf channelformats} (for the given range of channels).  
@@ -560,11 +560,25 @@ A colon-separated list of directories to search for
 dynamically-loaded format plugins.
 \apiend
 
-\apiitem{string format_names}
+\apiitem{string format_list}
 \vspace{10pt}
-\index{format_names}
+\index{format_list}
 A comma-separated list of all the names of all supported 
 image format readers and writers.  (Note: can only be retrieved
+by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
+\apiend
+
+\apiitem{string extension_list}
+\vspace{10pt}
+\index{extension_list}
+For each format, the format name, followed by a colon, followed by
+a comma-separated list of all extensions that are presumed to be used
+for that format.  Semicolons separate the lists for formats.  For
+example,
+\begin{code}
+     "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
+\end{code}
+(Note: can only be retrieved
 by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
 \apiend
 

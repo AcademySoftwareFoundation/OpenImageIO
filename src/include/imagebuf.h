@@ -97,24 +97,24 @@ struct ROI {
 
 
 /// Union of two regions, the smallest region containing both.
-DLLPUBLIC ROI roi_union (const ROI &A, const ROI &B);
+OIIO_API ROI roi_union (const ROI &A, const ROI &B);
 
 /// Intersection of two regions.
-DLLPUBLIC ROI roi_intersection (const ROI &A, const ROI &B);
+OIIO_API ROI roi_intersection (const ROI &A, const ROI &B);
 
 /// Return pixel data window for this ImageSpec as a ROI.
-DLLPUBLIC ROI get_roi (const ImageSpec &spec);
+OIIO_API ROI get_roi (const ImageSpec &spec);
 
 /// Return full/display window for this ImageSpec as a ROI.
-DLLPUBLIC ROI get_roi_full (const ImageSpec &spec);
+OIIO_API ROI get_roi_full (const ImageSpec &spec);
 
 /// Set pixel data window for this ImageSpec to a ROI.
 /// Does NOT change the channels of the spec, regardless of newroi.
-DLLPUBLIC void set_roi (ImageSpec &spec, const ROI &newroi);
+OIIO_API void set_roi (ImageSpec &spec, const ROI &newroi);
 
 /// Set full/display window for this ImageSpec to a ROI.
 /// Does NOT change the channels of the spec, regardless of newroi.
-DLLPUBLIC void set_roi_full (ImageSpec &spec, const ROI &newroi);
+OIIO_API void set_roi_full (ImageSpec &spec, const ROI &newroi);
 
 
 
@@ -123,7 +123,7 @@ DLLPUBLIC void set_roi_full (ImageSpec &spec, const ROI &newroi);
 /// simple routines for setting and getting individual pixels, that
 /// hides most of the details of memory layout and data representation
 /// (translating to/from float automatically).
-class DLLPUBLIC ImageBuf {
+class OIIO_API ImageBuf {
 public:
     /// Construct an ImageBuf to read the named image.  
     /// If name is the empty string (the default), it's a completely

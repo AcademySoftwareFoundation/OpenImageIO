@@ -190,10 +190,12 @@ if (ILMBASE_FOUND)
     list (APPEND ILMBASE_LIBRARIES ${${tmplib}})
   endforeach ()
   list (APPEND ILMBASE_LIBRARIES ${ILMBASE_PTHREADS})
-  FIND_PACKAGE_MESSAGE (ILMBASE
-    "Found IlmBase: ${ILMBASE_LIBRARIES}"
-    "[${ILMBASE_INCLUDE_DIR}][${ILMBASE_LIBRARIES}][${ILMBASE_CURRENT_STATE}]"
-  )
+  if (VERBOSE)
+    FIND_PACKAGE_MESSAGE (ILMBASE
+      "Found IlmBase: ${ILMBASE_LIBRARIES}"
+      "[${ILMBASE_INCLUDE_DIR}][${ILMBASE_LIBRARIES}][${ILMBASE_CURRENT_STATE}]"
+      )
+  endif ()
 endif ()
 
 # Unset the helper variables to avoid pollution

@@ -40,6 +40,12 @@
 #include <OpenEXR/ImfTiledOutputFile.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
+
+// The way that OpenEXR uses dynamic casting for attributes requires 
+// temporarily suspending "hidden" symbol visibility mode.
+#ifdef __GNUC__
+#pragma GCC visibility push(default)
+#endif
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
@@ -47,9 +53,13 @@
 #include <OpenEXR/ImfStringAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
-#include <OpenEXR/ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
+#include <OpenEXR/ImfCRgbaFile.h>  // JUST to get symbols to figure out version!
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
+
+#ifdef __GNUC__
+#pragma GCC visibility pop
+#endif
 
 #ifdef IMF_B44_COMPRESSION
 #define OPENEXR_VERSION_IS_1_6_OR_LATER
@@ -207,15 +217,15 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *
+OIIO_EXPORT ImageOutput *
 openexr_output_imageio_create ()
 {
     return new OpenEXROutput;
 }
 
-DLLEXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * openexr_output_extensions[] = {
+OIIO_EXPORT const char * openexr_output_extensions[] = {
     "exr", NULL
 };
 
@@ -836,6 +846,11 @@ OpenEXROutput::put_parameter (const std::string &name, TypeDesc type,
     }
     if (type == TypeDesc::TypeVector) {
         header.insert (xname.c_str(), Imf::V3fAttribute (*(Imath::V3f*)data));
+        return true;
+    }
+    if (type == TypeDesc(TypeDesc::FLOAT,TypeDesc::VEC2) ||
+        type == TypeDesc(TypeDesc::FLOAT,2) /* array float[2] */) {
+        header.insert (xname.c_str(), Imf::V2fAttribute (*(Imath::V2f*)data));
         return true;
     }
 

@@ -8,6 +8,8 @@
 
 // If compiling with MFC, you might want to add #include "StdAfx.h"
 
+#include "hash.h"
+#include "dassert.h"
 #include "SHA1.h"
 
 #ifdef SHA1_UTILITY_FUNCTIONS
@@ -43,6 +45,51 @@
 
 OIIO_NAMESPACE_ENTER
 {
+
+SHA1::SHA1 (const void *data, size_t size)
+{
+    m_csha1 = new CSHA1;
+    m_final = false;
+    append (data, size);
+}
+
+SHA1::~SHA1 ()
+{
+    delete m_csha1;
+}
+
+void
+SHA1::append (const void *data, size_t size)
+{
+    ASSERT (!m_final && "Called SHA1() after already getting digest");
+    if (data && size)
+        m_csha1->Update ((const unsigned char *)data, (unsigned int)size);
+}
+
+void
+SHA1::gethash (Hash &h)
+{
+    if (! m_final) {
+        m_csha1->Final ();
+        m_final = true;
+    }
+    m_csha1->GetHash (h.hash);
+}
+
+std::string
+SHA1::digest ()
+{
+    if (! m_final) {
+        m_csha1->Final ();
+        m_final = true;
+    }
+    std::string d;
+    m_csha1->ReportHashStl (d, CSHA1::REPORT_HEX_SHORT);
+    return d;
+}
+
+
+
 
 CSHA1::CSHA1()
 {

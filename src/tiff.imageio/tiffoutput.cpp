@@ -100,11 +100,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageOutput *tiff_output_imageio_create () { return new TIFFOutput; }
+OIIO_EXPORT ImageOutput *tiff_output_imageio_create () { return new TIFFOutput; }
 
-DLLEXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * tiff_output_extensions[] = {
+OIIO_EXPORT const char * tiff_output_extensions[] = {
     "tiff", "tif", "tx", "env", "sm", "vsm", NULL
 };
 
@@ -348,13 +348,12 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         // Use predictor when using compression
         if (compress == COMPRESSION_LZW || compress == COMPRESSION_ADOBE_DEFLATE) {
             if (m_spec.format == TypeDesc::FLOAT || m_spec.format == TypeDesc::DOUBLE || m_spec.format == TypeDesc::HALF) {
-                // TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
-
-                // Older versions of libtiff did not support this
-                // predictor.  So to prevent us from writing TIFF files
-                // that certain apps can't read, don't use it. Ugh.
-                // FIXME -- lift this restriction when we think the newer
-                // libtiff is widespread enough to no longer worry about this.
+                TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
+                // N.B. Very old versions of libtiff did not support this
+                // predictor.  It's possible that certain apps can't read
+                // floating point TIFFs with this set.  But since it's been
+                // documented since 2005, let's take our chances.  Comment
+                // out the above line if this is problematic.
             }
             else
                 TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);

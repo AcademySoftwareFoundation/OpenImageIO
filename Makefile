@@ -52,6 +52,7 @@ $(info INSTALLDIR = ${INSTALLDIR})
 VERBOSE := ${SHOWCOMMANDS}
 ifneq (${VERBOSE},)
 MY_MAKE_FLAGS += VERBOSE=${VERBOSE}
+MY_CMAKE_FLAGS += -DVERBOSE:BOOL=1
 TEST_FLAGS += -V
 endif
 
@@ -81,6 +82,10 @@ endif
 
 ifneq (${NAMESPACE},)
 MY_CMAKE_FLAGS += -DOIIO_NAMESPACE:STRING=${NAMESPACE}
+endif
+
+ifneq (${HIDE_SYMBOLS},)
+MY_CMAKE_FLAGS += -DHIDE_SYMBOLS:BOOL=${HIDE_SYMBOLS}
 endif
 
 ifneq (${USE_PYTHON},)
@@ -124,6 +129,14 @@ endif
 
 ifneq (${SOVERSION},)
 MY_CMAKE_FLAGS += -DSOVERSION:STRING=${SOVERSION}
+endif
+
+ifneq (${PYLIB_LIB_PREFIX},)
+MY_CMAKE_FLAGS += -DPYLIB_LIB_PREFIX:BOOL=${PYLIB_LIB_PREFIX}
+endif
+
+ifneq (${PYLIB_INCLUDE_SONAME},)
+MY_CMAKE_FLAGS += -DPYLIB_INCLUDE_SONAME:BOOL=${PYLIB_INCLUDE_SONAME}
 endif
 
 ifdef DEBUG
@@ -254,6 +267,7 @@ help:
 	@echo "  make SOVERSION=nn ...       Include the specifed major version number "
 	@echo "                                in the shared object metadata"
 	@echo "  make NAMESPACE=name         Wrap everything in another namespace"
+	@echo "  make HIDE_SYMBOLS=1         Hide symbols not in the public API"
 	@echo "  make EMBEDPLUGINS=0 ...     Don't compile the plugins into libOpenImageIO"
 	@echo "  make MYCC=xx MYCXX=yy ...   Use custom compilers"
 	@echo "  make USE_QT=0 ...           Skip anything that needs Qt"

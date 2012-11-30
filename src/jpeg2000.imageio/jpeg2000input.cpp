@@ -123,11 +123,11 @@ class Jpeg2000Input : public ImageInput {
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT int jpeg2000_imageio_version = OIIO_PLUGIN_VERSION;
-    DLLEXPORT ImageInput *jpeg2000_input_imageio_create () {
+    OIIO_EXPORT int jpeg2000_imageio_version = OIIO_PLUGIN_VERSION;
+    OIIO_EXPORT ImageInput *jpeg2000_input_imageio_create () {
         return new Jpeg2000Input;
     }
-    DLLEXPORT const char *jpeg2000_input_extensions[] = {
+    OIIO_EXPORT const char *jpeg2000_input_extensions[] = {
         "jp2", "j2k", "j2c", NULL
     };
 

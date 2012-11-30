@@ -41,6 +41,12 @@
 #include <OpenEXR/ImfTiledInputFile.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
+
+// The way that OpenEXR uses dynamic casting for attributes requires 
+// temporarily suspending "hidden" symbol visibility mode.
+#ifdef __GNUC__
+#pragma GCC visibility push(default)
+#endif
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
@@ -48,7 +54,6 @@
 #include <OpenEXR/ImfStringAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfCompressionAttribute.h>
-#include <OpenEXR/ImfCRgbaFile.h>   // JUST to get symbols to figure out version!
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #ifdef USE_OPENEXR_VERSION2
@@ -60,6 +65,12 @@
 #include <OpenEXR/ImfDeepTiledInputPart.h>
 #include <OpenEXR/ImfDeepFrameBuffer.h>
 #endif
+
+#ifdef __GNUC__
+#pragma GCC visibility pop
+#endif
+
+#include <OpenEXR/ImfCRgbaFile.h>
 
 #include "dassert.h"
 #include "imageio.h"
@@ -130,20 +141,20 @@ public:
     virtual bool read_native_scanline (int y, int z, void *data);
     virtual bool read_native_scanlines (int ybegin, int yend, int z, void *data);
     virtual bool read_native_scanlines (int ybegin, int yend, int z,
-                                        int firstchan, int nchans, void *data);
+                                        int chbegin, int chend, void *data);
     virtual bool read_native_tile (int x, int y, int z, void *data);
     virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend, void *data);
     virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
-                                    int firstchan, int nchans, void *data);
+                                    int chbegin, int chend, void *data);
     virtual bool read_native_deep_scanlines (int ybegin, int yend, int z,
-                                             int firstchan, int nchans,
+                                             int chbegin, int chend,
                                              DeepData &deepdata);
     virtual bool read_native_deep_tiles (int xbegin, int xend,
                                          int ybegin, int yend,
                                          int zbegin, int zend,
-                                         int firstchan, int nchans,
+                                         int chbegin, int chend,
                                          DeepData &deepdata);
 
 private:
@@ -208,15 +219,15 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *
+OIIO_EXPORT ImageInput *
 openexr_input_imageio_create ()
 {
     return new OpenEXRInput;
 }
 
-// DLLEXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION; // it's in exroutput.cpp
+// OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION; // it's in exroutput.cpp
 
-DLLEXPORT const char * openexr_input_extensions[] = {
+OIIO_EXPORT const char * openexr_input_extensions[] = {
     "exr", NULL
 };
 
@@ -509,7 +520,8 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         const Imf::FloatAttribute *fattr;
         const Imf::StringAttribute *sattr;
         const Imf::M44fAttribute *mattr;
-        const Imf::V3fAttribute *vattr;        
+        const Imf::V3fAttribute *vattr;
+        const Imf::V2fAttribute *v2attr;
         const char *name = hit.name();
         std::string oname = exr_tag_to_ooio_std[name];
         if (oname.empty())   // Empty string means skip this attrib
@@ -533,6 +545,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
         else if (type == "v3f" &&
                  (vattr = header->findTypedAttribute<Imf::V3fAttribute> (name)))
             spec.attribute (oname, TypeDesc::TypeVector, &(vattr->value()));
+        else if (type == "v2f" &&
+                 (v2attr = header->findTypedAttribute<Imf::V2fAttribute> (name))) {
+            TypeDesc v2 (TypeDesc::FLOAT,TypeDesc::VEC2);
+            spec.attribute (oname, v2, &(v2attr->value()));
+        }
         else {
 #if 0
             std::cerr << "  unknown attribute " << type << ' ' << name << "\n";
@@ -803,10 +820,11 @@ OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
 
 bool
 OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
-                                     int firstchan, int nchans, void *data)
+                                     int chbegin, int chend, void *data)
 {
+    chend = clamp (chend, chbegin+1, m_spec.nchannels);
 //    std::cerr << "openexr rns " << ybegin << ' ' << yend << ", channels "
-//              << firstchan << "-" << (firstchan+nchans-1) << "\n";
+//              << chbegin << "-" << (chend-1) << "\n";
     if (m_input_scanline == NULL && m_scanline_input_part == NULL) {
         error ("called OpenEXRInput::read_native_scanlines without an open file");
         return false;
@@ -818,7 +836,7 @@ OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
     const PartInfo &part (m_parts[m_subimage]);
-    size_t pixelbytes = m_spec.pixel_bytes (firstchan, nchans, true);
+    size_t pixelbytes = m_spec.pixel_bytes (chbegin, chend, true);
     size_t scanlinebytes = (size_t)m_spec.width * pixelbytes;
     char *buf = (char *)data
               - m_spec.x * pixelbytes
@@ -827,10 +845,10 @@ OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
     try {
         Imf::FrameBuffer frameBuffer;
         size_t chanoffset = 0;
-        for (int c = 0;  c < nchans;  ++c) {
-            size_t chanbytes = m_spec.channelformat(c+firstchan).size();
-            frameBuffer.insert (m_spec.channelnames[c+firstchan].c_str(),
-                                Imf::Slice (part.pixeltype[c+firstchan],
+        for (int c = chbegin;  c < chend;  ++c) {
+            size_t chanbytes = m_spec.channelformat(c).size();
+            frameBuffer.insert (m_spec.channelnames[c].c_str(),
+                                Imf::Slice (part.pixeltype[c],
                                             buf + chanoffset,
                                             pixelbytes, scanlinebytes));
             chanoffset += chanbytes;
@@ -879,12 +897,13 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
 bool
 OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                  int zbegin, int zend, 
-                                 int firstchan, int nchans, void *data)
+                                 int chbegin, int chend, void *data)
 {
+    chend = clamp (chend, chbegin+1, m_spec.nchannels);
 #if 0
     std::cerr << "openexr rnt " << xbegin << ' ' << xend << ' ' << ybegin 
-              << ' ' << yend << ", chans " << firstchan 
-              << "-" << (firstchan+nchans-1) << "\n";
+              << ' ' << yend << ", chans " << chbegin
+              << "-" << (chend-1) << "\n";
 #endif
     if (! (m_input_tiled || m_tiled_input_part) ||
         ! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend)) {
@@ -898,7 +917,7 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     // wants where the address of the "virtual framebuffer" for the
     // whole image.
     const PartInfo &part (m_parts[m_subimage]);
-    size_t pixelbytes = m_spec.pixel_bytes (firstchan, nchans, true);
+    size_t pixelbytes = m_spec.pixel_bytes (chbegin, chend, true);
     int firstxtile = (xbegin-m_spec.x) / m_spec.tile_width;
     int firstytile = (ybegin-m_spec.y) / m_spec.tile_height;
     // clamp to the image edge
@@ -925,9 +944,9 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     try {
         Imf::FrameBuffer frameBuffer;
         size_t chanoffset = 0;
-        for (int c = 0;  c < nchans;  ++c) {
-            size_t chanbytes = m_spec.channelformat(c+firstchan).size();
-            frameBuffer.insert (m_spec.channelnames[c+firstchan].c_str(),
+        for (int c = chbegin;  c < chend;  ++c) {
+            size_t chanbytes = m_spec.channelformat(c).size();
+            frameBuffer.insert (m_spec.channelnames[c].c_str(),
                                 Imf::Slice (part.pixeltype[c],
                                             buf + chanoffset, pixelbytes,
                                             pixelbytes*m_spec.tile_width*nxtiles));
@@ -969,7 +988,7 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
 
 bool
 OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
-                                          int firstchan, int nchans,
+                                          int chbegin, int chend,
                                           DeepData &deepdata)
 {
     if (m_deep_scanline_input_part == NULL) {
@@ -981,12 +1000,14 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
     try {
         const PartInfo &part (m_parts[m_subimage]);
         size_t npixels = (yend - ybegin) * m_spec.width;
+        chend = clamp (chend, chbegin+1, m_spec.nchannels);
+        int nchans = chend - chbegin;
 
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
-        deepdata.init (npixels, nchans, &channeltypes[firstchan],
-                       &channeltypes[firstchan+nchans]);
+        deepdata.init (npixels, nchans, &channeltypes[chbegin],
+                       &channeltypes[chend]);
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
                                (char *)(&deepdata.nsamples[0]
@@ -995,15 +1016,15 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
                                sizeof(unsigned int),
                                sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice (countslice);
-        for (int c = 0;  c < nchans;  ++c) {
-            Imf::DeepSlice slice (part.pixeltype[c+firstchan],
-                                  (char *)(&deepdata.pointers[c]
+        for (int c = chbegin;  c < chend;  ++c) {
+            Imf::DeepSlice slice (part.pixeltype[c],
+                                  (char *)(&deepdata.pointers[c-chbegin]
                                            - m_spec.x * nchans
                                            - ybegin*m_spec.width*nchans),
                                   sizeof(void*) * nchans, // xstride of pointer array
                                   sizeof(void*) * nchans*m_spec.width, // ystride of pointer array
-                                  part.chanbytes[c+firstchan]); // stride of data sample
-            frameBuffer.insert (m_spec.channelnames[c+firstchan].c_str(), slice);
+                                  part.chanbytes[c]); // stride of data sample
+            frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_scanline_input_part->setFrameBuffer (frameBuffer);
 
@@ -1033,7 +1054,7 @@ bool
 OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
                                       int ybegin, int yend,
                                       int zbegin, int zend,
-                                      int firstchan, int nchans,
+                                      int chbegin, int chend,
                                       DeepData &deepdata)
 {
     if (m_deep_tiled_input_part == NULL) {
@@ -1046,12 +1067,14 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         const PartInfo &part (m_parts[m_subimage]);
         size_t width = (xend - xbegin);
         size_t npixels = width * (yend - ybegin) * (zend - zbegin);
+        chend = clamp (chend, chbegin+1, m_spec.nchannels);
+        int nchans = chend - chbegin;
 
         // Set up the count and pointers arrays and the Imf framebuffer
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
-        deepdata.init (npixels, nchans, &channeltypes[firstchan],
-                       &channeltypes[firstchan+nchans]);
+        deepdata.init (npixels, nchans, &channeltypes[chbegin],
+                       &channeltypes[chend]);
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice (Imf::UINT,
                                (char *)(&deepdata.nsamples[0]
@@ -1060,15 +1083,15 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
                                sizeof(unsigned int),
                                sizeof(unsigned int) * width);
         frameBuffer.insertSampleCountSlice (countslice);
-        for (int c = 0;  c < nchans;  ++c) {
-            Imf::DeepSlice slice (part.pixeltype[c+firstchan],
-                                  (char *)(&deepdata.pointers[c]
+        for (int c = chbegin;  c < chend;  ++c) {
+            Imf::DeepSlice slice (part.pixeltype[c],
+                                  (char *)(&deepdata.pointers[c-chbegin]
                                            - xbegin*nchans
                                            - ybegin*width*nchans),
                                   sizeof(void*) * nchans, // xstride of pointer array
                                   sizeof(void*) * nchans*width, // ystride of pointer array
-                                  part.chanbytes[c+firstchan]); // stride of data sample
-            frameBuffer.insert (m_spec.channelnames[c+firstchan].c_str(), slice);
+                                  part.chanbytes[c]); // stride of data sample
+            frameBuffer.insert (m_spec.channelnames[c].c_str(), slice);
         }
         m_deep_tiled_input_part->setFrameBuffer (frameBuffer);
 

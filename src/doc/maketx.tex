@@ -79,6 +79,11 @@ RGBRGBRGB...) packing of channels will be used for those file formats
 that support it.
 \apiend
 
+\apiitem{--compression {\rm \emph{method}}}
+\NEW Sets the compression method for the output image (the default is to try
+to use \qkw{zip} compression, if it is available).
+\apiend
+
 \apiitem{--update}
 Ordinarily, textures are created unconditionally (which could take
 several seconds for large input files if read over a network) and will
@@ -206,6 +211,15 @@ textures will assume that missing alpha channels are equivalent to
 textures whose alpha is 1.0 everywhere.
 \apiend
 
+\apiitem{--ignore-unassoc}
+\NEW Ignore any header tags in the input images that indicate that the
+input has ``unassociated'' alpha.  When this option is used, color
+channels with unassociated alpha will not be automatically multiplied
+by alpha to turn them into associated alpha. This is also a good way
+to fix input images that really are associated alpha, but whose headers
+incorrectly indicate that they are unassociated alpha. 
+\apiend
+
 \apiitem{--prman}
 PRMan is will crash in strange ways if given textures that don't have
 its quirky set of tile sizes and other specific metadata.  If you want
@@ -233,7 +247,7 @@ optimal values for \OpenImageIO's \TextureSystem, overriding any
 contradictory settings on the command line or in the input texture.
 
 Specifically, this is the equivalent to using \\
- {\cf --separate --tile 64 64 --constant-color-detect --hash}.
+ {\cf --separate --tile 64 64 --hash}.
 \apiend
 
 \apiitem{--colorconvert {\rm \emph{inspace outspace}}}

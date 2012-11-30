@@ -39,10 +39,10 @@ using namespace fits_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    DLLEXPORT ImageOutput *fits_output_imageio_create () {
+    OIIO_EXPORT ImageOutput *fits_output_imageio_create () {
         return new FitsOutput;
     }
-    DLLEXPORT const char *fits_output_extensions[] = {
+    OIIO_EXPORT const char *fits_output_extensions[] = {
         "fits", NULL
     };
 

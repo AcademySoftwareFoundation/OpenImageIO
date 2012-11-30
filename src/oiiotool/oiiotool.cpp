@@ -1342,7 +1342,7 @@ action_pattern (int argc, const char *argv[])
                     fill[c] = atof (pattern.c_str()+numpos);
                     while (numpos < pattern.size() && pattern[numpos] != ':' && pattern[numpos] != ',')
                         ++numpos;
-                    if (pattern[numpos])
+                    if (numpos < pattern.size())
                         ++numpos;
                 }
             }
@@ -1643,7 +1643,7 @@ action_fill (int argc, const char *argv[])
                 color[c] = atof (command.c_str()+numpos);
                 while (numpos < command.size() && command[numpos] != ':' && command[numpos] != ',')
                     ++numpos;
-                if (command[numpos])
+                if (numpos < command.size())
                     ++numpos;
             }
         }
@@ -1701,16 +1701,16 @@ action_text (int argc, const char *argv[])
                 textcolor[c] = atof (command.c_str()+numpos);
                 while (numpos < command.size() && command[numpos] != ':' && command[numpos] != ',')
                     ++numpos;
-                if (command[numpos])
+                if (numpos < command.size())
                     ++numpos;
             }
         } else if (Strutil::istarts_with(command,"font=")) {
             font = "";
-            int s = 5;
+            size_t s = 5;
             bool quote = (command[s] == '\"');
             if (quote)
                 ++s;
-            for ( ; command[s] && command[s] != ':' && command[s] != '\"'; ++s)
+            for ( ; s < command.size() && command[s] != ':' && command[s] != '\"'; ++s)
                 font += command[s];
         }
     }

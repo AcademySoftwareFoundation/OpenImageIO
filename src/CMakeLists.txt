@@ -3,7 +3,7 @@ project (OpenImageIO)
 # Release version of the library
 set (OIIO_VERSION_MAJOR 1)
 set (OIIO_VERSION_MINOR 1)
-set (OIIO_VERSION_PATCH 0)
+set (OIIO_VERSION_PATCH 2)
 
 cmake_minimum_required (VERSION 2.6)
 if (NOT CMAKE_VERSION VERSION_LESS 2.8.4)
@@ -64,10 +64,11 @@ if (CMAKE_COMPILER_IS_CLANG)
 endif ()
 
 
-
+set (VERBOSE OFF CACHE BOOL "Print lots of messages while compiling")
 set (EMBEDPLUGINS ON CACHE BOOL "Embed format plugins in libOpenImageIO")
 set (BUILDSTATIC OFF CACHE BOOL "Build static library instead of shared")
 set (LINKSTATIC OFF CACHE BOOL "Link with static external libraries when possible")
+set (HIDE_SYMBOLS OFF CACHE BOOL "Hide symbols not in the public API")
 set (USE_OPENGL ON CACHE BOOL "Include OpenGL support")
 set (USE_QT ON CACHE BOOL "Include Qt support")
 set (FORCE_OPENGL_1 OFF CACHE BOOL "Force iv to use OpenGL's fixed pipeline")
@@ -86,11 +87,16 @@ set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
 
+set (PYLIB_INCLUDE_SONAME OFF CACHE BOOL "If ON, soname/soversion will be set for Python module library")
+set (PYLIB_LIB_PREFIX OFF CACHE BOOL "If ON, prefix the Python module with 'lib'")
+
 if (NOTHREADS)
     message (STATUS "NO THREADS!")
     add_definitions ("-DNOTHREADS=1")
 else ()
-    message (STATUS "Building with thread support")
+    if (VERBOSE)
+        message (STATUS "Building with thread support")
+    endif ()
 endif ()
 
 if (USE_TBB)
@@ -98,6 +104,20 @@ if (USE_TBB)
 else ()
     add_definitions ("-DUSE_TBB=0")
     message (STATUS "TBB will not be used")
+endif ()
+
+if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUCC)
+    if (HIDE_SYMBOLS AND NOT DEBUGMODE)
+        # Turn default symbol visibility to hidden
+        set (VISIBILITY_COMMAND "-fvisibility=hidden -fvisibility-inlines-hidden")
+        add_definitions (${VISIBILITY_COMMAND})
+        if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+            # Linux: also hide all the symbols of dependent libraries to
+            # prevent clashes if an app using OIIO is linked against
+            # other verions of our dependencies.
+            set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${PROJECT_SOURCE_DIR}/libOpenImageIO/libOpenImageIO.map")
+        endif ()
+    endif ()
 endif ()
 
 if (EXTRA_CPP_DEFINITIONS)

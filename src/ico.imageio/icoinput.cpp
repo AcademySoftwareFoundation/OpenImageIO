@@ -104,11 +104,11 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-DLLEXPORT ImageInput *ico_input_imageio_create () { return new ICOInput; }
+OIIO_EXPORT ImageInput *ico_input_imageio_create () { return new ICOInput; }
 
-DLLEXPORT int ico_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT int ico_imageio_version = OIIO_PLUGIN_VERSION;
 
-DLLEXPORT const char * ico_input_extensions[] = {
+OIIO_EXPORT const char * ico_input_extensions[] = {
     "ico", NULL
 };
 

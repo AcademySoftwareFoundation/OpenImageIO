@@ -41,6 +41,7 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
                           ../libutil/filter.cpp 
+                          ../libutil/hashes.cpp 
                           ../libutil/paramlist.cpp 
                           ../libutil/plugin.cpp 
                           ../libutil/pystring.cpp
@@ -199,7 +200,9 @@ if (BUILDSTATIC)
 else ()
     add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
 endif ()
-target_link_libraries (OpenImageIO ${Boost_LIBRARIES})
+target_link_libraries (OpenImageIO
+                           ${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}
+                           ${Boost_LIBRARIES})
 
 
 
@@ -228,6 +231,7 @@ if (WIN32)
     target_link_libraries (OpenImageIO psapi.lib)
 endif ()
 link_ilmbase (OpenImageIO)
+add_dependencies (OpenImageIO ${CMAKE_CURRENT_SOURCE_DIR}/libOpenImageIO.map)
 
 if (EMBEDPLUGINS)
     target_link_libraries (OpenImageIO ${PNG_LIBRARIES} ${TIFF_LIBRARIES}
@@ -310,3 +314,11 @@ add_test (unit_filesystem filesystem_test)
 add_executable (optparser_test optparser_test.cpp)
 target_link_libraries (optparser_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 add_test (unit_optparser optparser_test)
+
+add_executable (hash_test hash_test.cpp)
+target_link_libraries (hash_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+add_test (unit_hash hash_test)
+
+add_executable (imagespeed_test imagespeed_test.cpp)
+target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+#add_test (unit_hash hash_test)
