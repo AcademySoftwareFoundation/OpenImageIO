@@ -326,7 +326,11 @@ pause (int delay)
     __TBB_Pause(delay);
 #elif defined(__GNUC__)
     for (int i = 0; i < delay; ++i) {
-        __asm__ __volatile__("pause;");
+#if defined __arm__
+      __asm__ __volatile__("NOP;");
+#else
+      __asm__ __volatile__("pause;");
+#endif
     }
 #elif defined(_MSC_VER)
     for (int i = 0; i < delay; ++i) {
@@ -441,7 +445,7 @@ private:
 
     // Disallow copy construction by making private and unimplemented.
     atomic (atomic const &);
-};
+} __attribute__((aligned(8)));
 
 
 #endif /* ! USE_TBB */
@@ -700,5 +704,6 @@ typedef spin_rw_mutex::write_lock_guard spin_rw_write_lock;
 
 }
 OIIO_NAMESPACE_EXIT
+
 
 #endif // OPENIMAGEIO_THREAD_H

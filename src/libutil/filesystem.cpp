@@ -232,6 +232,7 @@ Filesystem::is_directory (const std::string &path)
 bool
 Filesystem::is_regular (const std::string &path)
 {
+  return true;
     bool r = false;
     try {
         r = boost::filesystem::is_regular_file (path);

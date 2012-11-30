@@ -357,6 +357,16 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
                            (void *)&scratch[0], width, height, depth, format);
     }
 
+    // Return early if there is no need to convert to float & back.
+    // Conversion is required if the format or quantization changes.
+    ImageSpec default_spec (m_spec.format);
+    if (format == m_spec.format &&
+        m_spec.quant_black == default_spec.quant_black &&
+        m_spec.quant_white == default_spec.quant_white &&
+        m_spec.quant_min == default_spec.quant_min &&
+        m_spec.quant_max == default_spec.quant_max)
+        return data;
+    
     // Rather than implement the entire cross-product of possible
     // conversions, use float as an intermediate format, which generally
     // will always preserve enough precision.

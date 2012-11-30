@@ -9,6 +9,7 @@ set (libOpenImageIO_hdrs ../include/argparse.h
                          ../include/imagebuf.h
                          ../include/imagecache.h
                          ../include/imageio.h
+                         ../include/maketexture.h
                          ../include/osdep.h
                          ../include/paramlist.h
                          ../include/plugin.h
@@ -54,6 +55,7 @@ set (libOpenImageIO_srcs exif.cpp formatspec.cpp imagebuf.cpp
                           ../libtexture/environment.cpp 
                           ../libtexture/texoptions.cpp 
                           ../libtexture/imagecache.cpp
+                          ../libtexture/maketexture.cpp
                           ${libOpenImageIO_hdrs}
                          )
 
